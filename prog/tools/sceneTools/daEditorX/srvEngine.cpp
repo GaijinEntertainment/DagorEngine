@@ -343,8 +343,8 @@ public:
   int registerEntitySubTypeId(const char *subtype_str) override { return IObjEntity::registerSubTypeId(subtype_str); }
   unsigned getEntitySubTypeMask(int mask_type) override { return IObjEntityFilter::getSubTypeMask(mask_type); }
   void setEntitySubTypeMask(int mask_type, unsigned value) override { IObjEntityFilter::setSubTypeMask(mask_type, value); }
-  uint64_t getEntityLayerHiddenMask() override { return IObjEntityFilter::getLayerHiddenMask(); }
-  void setEntityLayerHiddenMask(uint64_t value) override { IObjEntityFilter::setLayerHiddenMask(value); }
+  LayerHiddenMask getEntityLayerHiddenMask() override { return IObjEntityFilter::getLayerHiddenMask(); }
+  void setEntityLayerHiddenMask(LayerHiddenMask value) override { IObjEntityFilter::setLayerHiddenMask(value); }
 
   dag::ConstSpan<int> getGenObjAssetTypes() const override { return genObjTypes; }
 
@@ -1037,7 +1037,7 @@ IObjEntity *IObjEntity::clone(IObjEntity *origin)
 static OAHashNameMap<true> entSubType;
 static unsigned entSubTypeMask[4] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
 static bool showInvalidAssets = false;
-static uint64_t entLayerHiddenMask = (1ull << 63); // mark layer=63 as hidden
+static LayerHiddenMask entLayerHiddenMask(LayerHiddenMask::BIT_COUNT - 1, true); // mark layer=127 as hidden
 
 int IObjEntity::registerSubTypeId(const char *subtype_str)
 {
@@ -1047,8 +1047,12 @@ int IObjEntity::registerSubTypeId(const char *subtype_str)
 }
 void IObjEntityFilter::setSubTypeMask(int mask_type, unsigned mask) { entSubTypeMask[mask_type] = mask; }
 unsigned IObjEntityFilter::getSubTypeMask(int mask_type) { return entSubTypeMask[mask_type]; }
-void IObjEntityFilter::setLayerHiddenMask(uint64_t lhmask) { entLayerHiddenMask = lhmask | (1ull << 63); }
-uint64_t IObjEntityFilter::getLayerHiddenMask() { return entLayerHiddenMask; }
+void IObjEntityFilter::setLayerHiddenMask(LayerHiddenMask lhmask)
+{
+  entLayerHiddenMask = lhmask;
+  entLayerHiddenMask.setHidden(LayerHiddenMask::BIT_COUNT - 1);
+}
+LayerHiddenMask IObjEntityFilter::getLayerHiddenMask() { return entLayerHiddenMask; }
 void IObjEntityFilter::setShowInvalidAsset(bool show) { showInvalidAssets = show; }
 bool IObjEntityFilter::getShowInvalidAsset() { return showInvalidAssets; }
 

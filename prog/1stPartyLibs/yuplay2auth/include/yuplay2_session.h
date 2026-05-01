@@ -17,6 +17,9 @@
 #endif //YU2EASTL_STRING
 
 
+struct IYuplay2Answer;
+
+
 enum Yuplay2SessionFlags
 {
   YU2_SESSION_LOGGED_IN         = 1 << 0
@@ -235,8 +238,9 @@ struct IYuplay2Session
 {
   virtual void YU2VCALL free() = 0;
 
-  virtual IYuplay2UserProc* user() = 0;
-  virtual IYuplay2ItemProc* item() = 0;
+  virtual IYuplay2UserProc* YU2VCALL user() = 0;
+  virtual IYuplay2ItemProc* YU2VCALL item() = 0;
+  virtual IYuplay2Answer* YU2VCALL answer(Yuplay2Handle req) = 0;
 
   virtual unsigned YU2VCALL getStateSync() = 0;
 

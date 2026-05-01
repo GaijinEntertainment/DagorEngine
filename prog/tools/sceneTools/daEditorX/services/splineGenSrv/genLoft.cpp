@@ -151,11 +151,11 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
 
           if (loft.loftLayerOrder)
           {
-            node->script.setInt("layer", loft.loftLayerOrder);
+            node->script.setInt("layer", node->layer = loft.loftLayerOrder);
             hasNonZeroLayers = true;
           }
           if (loft.stage)
-            node->script.setInt("stage", loft.stage);
+            node->script.setInt("stage", node->stage = loft.stage);
           if (!loft.layerTag.empty())
             node->script.setStr("layerTag", loft.layerTag);
           loftGeometry.getGeometryContainer()->addNode(new (tmpmem) StaticGeometryNode(*node));

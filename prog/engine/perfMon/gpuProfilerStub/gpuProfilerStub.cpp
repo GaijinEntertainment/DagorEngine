@@ -25,6 +25,8 @@ void begin_event(const char *) {}
 void end_event() {}
 void stop_ds(DrawStatSingle &) {}
 void start_ds(DrawStatSingle &) {}
+void begin_gpu_stats() {}
+void end_gpu_stats(uint64_t *) {}
 
 bool get_gpu_thread_name(char *, const size_t) { return false; }
 } // namespace gpu_profiler

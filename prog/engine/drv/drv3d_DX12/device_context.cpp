@@ -182,6 +182,8 @@ int64_t FrameInfo::beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pi
   wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::beginFrame");
   waitTicks = ref_time_ticks() - waitTicks;
 
+  backendQueryManager.finishActivePipelineStatsQueries();
+
   frameIndex = frame_idx;
 
   backendQueryManager.flush();
@@ -284,6 +286,7 @@ ID3D12CommandSignature *SignatureStore::getSignatureForStride(ID3D12Device *devi
     info.type = type;
     if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, nullptr, COM_ARGS(&info.signature))))
     {
+      D3D_ERROR("getSignatureForStride(%u, %u) failed", desc.ByteStride, arg.Type);
       return nullptr;
     }
     ref = signatures.insert(ref, eastl::move(info));
@@ -325,6 +328,7 @@ ID3D12CommandSignature *SignatureStore::getSignatureForStride(ID3D12Device *devi
     info.rootSignature = root_signature;
     if (!DX12_CHECK_OK(device->CreateCommandSignature(&desc, root_signature, COM_ARGS(&info.signature))))
     {
+      D3D_ERROR("getSignatureForStride(%u, %u, %p) failed", desc.ByteStride, args[1].Type, root_signature);
       return nullptr;
     }
     ref = signaturesEx.insert(ref, eastl::move(info));
@@ -1428,10 +1432,18 @@ void DeviceContext::blitImageInternal(Image *src, Image *dst, const ImageBlit &r
 
 void DeviceContext::tidyFrame(FrontendFrameLatchedData &frame, TidyFrameMode mode)
 {
-  if (!frame.deletedQueries.empty() && TidyFrameMode::FrameCompleted == mode)
+  if (TidyFrameMode::FrameCompleted == mode)
   {
-    device.frontendQueryManager.removeDeletedQueries(frame.deletedQueries);
-    frame.deletedQueries.clear();
+    if (!frame.deletedQueries.empty())
+    {
+      device.frontendQueryManager.removeDeletedQueries(frame.deletedQueries);
+      frame.deletedQueries.clear();
+    }
+    if (!frame.deletedPipelineStatsQueries.empty())
+    {
+      device.frontendQueryManager.removeDeletedPipelineStatsQueries(frame.deletedPipelineStatsQueries);
+      frame.deletedPipelineStatsQueries.clear();
+    }
   }
 
   ResourceMemoryHeap::CompletedFrameExecutionInfo frameCompleteInfo;
@@ -2452,6 +2464,18 @@ void DeviceContext::deleteQuery(Query *query)
   immediateModeExecute();
 }
 
+void DeviceContext::deletePipelineStatsQuery(PipelineStatsQuery *query)
+{
+  DX12_LOCK_FRONT();
+  G_ASSERT(query != nullptr);
+  if (front.recordingLatchedFrame)
+    front.recordingLatchedFrame->deletedPipelineStatsQueries.push_back(query);
+
+  auto cmd = make_command<CmdCancelPipelineStatsQuery>(query);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
 void DeviceContext::generateMipmaps(Image *img)
 {
   if (!img)
@@ -3096,6 +3120,25 @@ void DeviceContext::endVisibilityQuery(Query *q)
   DX12_LOCK_FRONT();
   D3D_CONTRACT_ASSERTF(front.activeRangedQueries > 0, "DX12: Mismatched begin/end survey calls");
   --front.activeRangedQueries;
+  commandStream.pushBack(cmd);
+  restoreImmediateFlush();
+  immediateModeExecute();
+}
+
+void DeviceContext::beginPipelineStatsQuery(PipelineStatsQuery *q)
+{
+  q->setIssued();
+  auto cmd = make_command<CmdBeginPipelineStatsQuery>(q);
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(cmd);
+  suppressImmediateFlush();
+  immediateModeExecute();
+}
+
+void DeviceContext::endPipelineStatsQuery(PipelineStatsQuery *q)
+{
+  auto cmd = make_command<CmdEndPipelineStatsQuery>(q);
+  DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   restoreImmediateFlush();
   immediateModeExecute();
@@ -4531,6 +4574,8 @@ bool DeviceContext::ExecutionContext::prepareCommandExecution(CommandRequirement
 
     auto &resourceUsageDebugger = static_cast<ResourceUsageHistoryDataSetDebugger &>(self);
     contextState.resourceStates.setRecordingState(resourceUsageDebugger.shouldRecordResourceUsage());
+
+    frame.backendQueryManager.resumePipelineStatsQueries(contextState.cmdBuffer.getHandle(), device.device.get());
   }
   return true;
 }
@@ -4672,6 +4717,7 @@ int64_t DeviceContext::ExecutionContext::flush(uint64_t progress, const FrameCom
 
     contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
+    contextState.getFrameData().backendQueryManager.suspendActiveQueries(frameCore);
     contextState.getFrameData().backendQueryManager.resolve(frameCore);
     checkCloseCommandListResult(frameCore->Close(), "graphics", contextState.cmdBuffer.getBufferWrapper());
   }
@@ -5547,6 +5593,7 @@ void DeviceContext::ExecutionContext::dispatchIndirect(BufferResourceReferenceAn
       desc.ByteStride = sizeof(D3D12_DISPATCH_ARGUMENTS);
       if (!DX12_CHECK_OK(device.device->CreateCommandSignature(&desc, nullptr, COM_ARGS(&contextState.dispatchIndirectSignature))))
       {
+        D3D_ERROR("signature (%u, %u) for DeviceContext::ExecutionContext::dispatchIndirect failed", desc.ByteStride, arg.Type);
         return;
       }
     }
@@ -5758,7 +5805,7 @@ void DeviceContext::ExecutionContext::clearColorImage(Image *image, ImageViewSta
     auto &frame = contextState.getFrameData();
 
     contextState.cmdBuffer.setResourceHeap(frame.resourceViewHeaps.getActiveHandle(), frame.resourceViewHeaps.getBindlessGpuAddress());
-    auto clearPipeline = device.pipeMan.getClearPipeline(device, image->getFormat().asDxGiFormat());
+    auto clearPipeline = device.pipeMan.getClearPipeline(device, image->getFormat().asDxGiFormat<false>());
 
     if (!clearPipeline)
       return;
@@ -5873,7 +5920,7 @@ void DeviceContext::ExecutionContext::resolveMultiSampleImage(Image *src, Image 
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  D3D_CONTRACT_ASSERT(src->getFormat().asDxGiFormat() == dst->getFormat().asDxGiFormat());
+  D3D_CONTRACT_ASSERT(src->getFormat().asDxGiFormat<false>() == dst->getFormat().asDxGiFormat<false>());
 
   if (src->getFormat().isDepth())
   {
@@ -5881,7 +5928,7 @@ void DeviceContext::ExecutionContext::resolveMultiSampleImage(Image *src, Image 
     // ResolveSubresourceRegion with D3D12_RESOLVE_MODE_MIN matches DX11 behavior (minimum of MSAA samples).
     // Using plain ResolveSubresource with a non-depth format would average samples instead, causing depth
     // test artifacts (pixels near silhouette edges incorrectly passing depth test).
-    DXGI_FORMAT resolveFormat = src->getFormat().asDxGiFormat();
+    DXGI_FORMAT resolveFormat = src->getFormat().asDxGiFormat<false>();
     if (DXGI_FORMAT_D24_UNORM_S8_UINT == resolveFormat)
       resolveFormat = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     else if (DXGI_FORMAT_D32_FLOAT_S8X24_UINT == resolveFormat)
@@ -5896,7 +5943,7 @@ void DeviceContext::ExecutionContext::resolveMultiSampleImage(Image *src, Image 
   }
   else
   {
-    contextState.cmdBuffer.resolveSubresource(dst->getHandle(), 0, src->getHandle(), 0, src->getFormat().asDxGiFormat());
+    contextState.cmdBuffer.resolveSubresource(dst->getHandle(), 0, src->getHandle(), 0, src->getFormat().asDxGiFormat<false>());
   }
 
   dirtyTextureState(src);
@@ -5952,7 +5999,7 @@ void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageVie
   auto srcViewGpuHandle = frame.resourceViewHeaps.getGpuAddress(srcViewGpuIndex);
 
   contextState.cmdBuffer.setResourceHeap(frame.resourceViewHeaps.getActiveHandle(), frame.resourceViewHeaps.getBindlessGpuAddress());
-  auto blitPipeline = device.pipeMan.getBlitPipeline(device, dst->getFormat().asDxGiFormat());
+  auto blitPipeline = device.pipeMan.getBlitPipeline(device, dst->getFormat().asDxGiFormat<false>());
   if (!blitPipeline)
   {
     return;
@@ -7025,12 +7072,39 @@ void DeviceContext::ExecutionContext::endVisibilityQuery(Query *q)
   }
 }
 
+void DeviceContext::ExecutionContext::beginPipelineStatsQuery(PipelineStatsQuery *q)
+{
+  if (readyCommandList())
+  {
+    contextState.cmdBuffer.recordExternalCommands(
+      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.makePipelineStatsQuery(q, device.device.get(), cmd); });
+  }
+}
+
+void DeviceContext::ExecutionContext::endPipelineStatsQuery(PipelineStatsQuery *q)
+{
+  if (readyCommandList())
+  {
+    contextState.cmdBuffer.recordExternalCommands(
+      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.endPipelineStatsQuery(q, cmd); });
+  }
+}
+
 void DeviceContext::ExecutionContext::cancelQuery(Query *q)
 {
   if (readyCommandList())
   {
     contextState.frames.walkAll([q](auto &frame) //
       { frame.backendQueryManager.cancelQuery(q); });
+  }
+}
+
+void DeviceContext::ExecutionContext::cancelPipelineStatsQuery(PipelineStatsQuery *q)
+{
+  if (readyCommandList())
+  {
+    contextState.frames.walkAll([q](auto &frame) //
+      { frame.backendQueryManager.cancelPipelineStatsQuery(q); });
   }
 }
 

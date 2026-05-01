@@ -1,6 +1,7 @@
 include "panorama.dshl"
 include "static_shadow.dshl"
 include "sq_clouds_shadow.dshl"
+include "portal_rendering_inc.dshl"
 
 sampler water_ssr_linear_clamp_sampler
 {
@@ -544,6 +545,55 @@ macro USE_WATER_FOAM(stage)
         result.r = 0.02 + 0.1 * saturate(dot(vd.worldNormal, normalize(vd.pointToEyeNormalized)));
       }
       return result;
+    }
+  }
+endmacro
+
+macro APPLY_WATER_FOG(stage)
+  INIT_AND_USE_PORTAL_RENDERING(stage)
+  hlsl(stage)
+  {
+    struct FogData
+    {
+      float3 fogMul;
+      float3 fogAdd;
+      float3 fogAddSrgb;
+      bool applyFogWithSrgbCurve;
+    };
+
+    FogData computeWaterFog(const ViewData vd, float screenPosW)
+    {
+      FogData fogData;
+
+      if (portal_use_dense_fog)
+      {
+        get_portal_rendering_fog(vd.dist, fogData.fogMul, fogData.fogAdd, fogData.fogAddSrgb);
+        fogData.applyFogWithSrgbCurve = true;
+      }
+      else
+      {
+        float3 viewVec = vd.pointToEyeNormalized;
+        get_volfog_with_scattering(vd.linearTc, vd.linearTc, viewVec, vd.dist, screenPosW, fogData.fogMul, fogData.fogAdd);
+        fogData.fogAddSrgb = fogData.fogAdd;
+        fogData.applyFogWithSrgbCurve = false;
+      }
+
+      return fogData;
+    }
+
+    float3 applyWaterFog(float3 color, float fogAddScale, FogData fogData)
+    {
+      if (fogData.applyFogWithSrgbCurve)
+        color = sqrt(color);
+      color = color * fogData.fogMul + fogData.fogAddSrgb * fogAddScale;
+      if (fogData.applyFogWithSrgbCurve)
+        color = pow2(color);
+      return color;
+    }
+
+    float3 applyWaterFogInverse(float3 color, FogData fogData)
+    {
+      return max(float3(0, 0, 0), (color - fogData.fogAdd) / max(fogData.fogMul, 0.000001));
     }
   }
 endmacro

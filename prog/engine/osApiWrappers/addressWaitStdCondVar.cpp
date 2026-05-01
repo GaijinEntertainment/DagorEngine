@@ -30,7 +30,7 @@ static inline WaitTableEntry &get_wait_table_entry(const void *addr)
 // Note: dead code, but could be useful for debugging this module on windows
 #if _TARGET_PC_WIN
 void init_win_wait_on_address() {}
-os_wait_on_address_cb_t os_get_wait_on_address_impl()
+os_wait_on_address_cb_t os_get_native_wait_on_address_impl()
 {
   return [=](volatile uint32_t *a, const uint32_t *ca, int w) { os_wait_on_address(a, ca, w); };
 }

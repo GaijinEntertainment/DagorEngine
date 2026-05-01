@@ -218,6 +218,7 @@ GpuEventData *ProfilerData::startGPUEvent(uint32_t description, const char *d3d_
   e.description = description;
   e.depth = currentDepth;
   gpu_profiler::start_ds(e.ds);
+  gpu_profiler::begin_gpu_stats();
   gpu_profiler::insert_time_stamp(&e.start); // this is only safe, because we never free data which isnt finished (i.e. as long as end
                                              // is ~0ull)
   return &e;
@@ -232,6 +233,8 @@ __forceinline void ProfilerData::endGPUEvent(GpuEventData &e)
   if (storage)
   {
     gpu_profiler::stop_ds(e.ds);
+    // it will replace cpu side triangle stats if gpu stats are supported
+    gpu_profiler::end_gpu_stats(&e.ds.tri);
     gpu_profiler::insert_time_stamp(&e.end);
     storage->gpuDepth--;
   }

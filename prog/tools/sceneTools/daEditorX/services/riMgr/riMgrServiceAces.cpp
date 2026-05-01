@@ -672,6 +672,9 @@ public:
   bool showRiExtraInstance(bool moved);
   void hideRiExtraInstance();
 
+  // Called after rendinst::release_rt_rigen_data() to invalidate riexHandle.
+  void markRiExtraHandleInvalid();
+
 public:
   TMatrix tm;
   rendinst::riex_handle_t riexHandle = rendinst::RIEX_HANDLE_NULL;
@@ -817,7 +820,7 @@ public:
   void gatherRiP4(Tab<Point4> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, float x0, float z0, float x1, float z1)
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int j = 0; j < ent.size(); j++)
       if (ent[j] && ent[j]->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask))
       {
@@ -833,7 +836,7 @@ public:
   void gatherRiTM(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, float x0, float z0, float x1, float z1)
   {
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     int cnt = 0;
     for (int j = 0; j < ent.size(); j++)
       if (ent[j] && ent[j]->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask))
@@ -855,7 +858,7 @@ public:
 
     int pendingToFind = pendingRiExtraCount;
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (auto *e : ent)
     {
       if (!e || e->riexHandle != rendinst::RIEX_HANDLE_NULL)
@@ -882,7 +885,7 @@ public:
     }
   }
 
-  void renderService(int subtype_mask, uint64_t lh_mask)
+  void renderService(int subtype_mask, LayerHiddenMask lh_mask)
   {
     if (!res.get())
       ::render_invalid_entities(ent, subtype_mask);
@@ -908,11 +911,18 @@ public:
       end_draw_cached_debug_lines();
     }
   }
-  void showAndHideRiExtraInstancesOnLayerMaskChanges(int subtype_mask, uint64_t lh_mask)
+  void showAndHideRiExtraInstancesOnLayerMaskChanges(int subtype_mask, LayerHiddenMask lh_mask)
   {
     for (auto *e : ent)
       if (e)
         e->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask) ? (void)e->showRiExtraInstance(false) : e->hideRiExtraInstance();
+  }
+
+  void markRiExtraHandlesInvalid()
+  {
+    for (auto *e : ent)
+      if (e)
+        e->markRiExtraHandleInvalid();
   }
 
   void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<IOccluderGeomProvider::Quad> &occl_quads)
@@ -1319,7 +1329,7 @@ public:
     rendinst::initRIGen(/*render*/ true, 80, 8000.0f, NULL, NULL, -1, 256.0f);
     frameBlkId = ShaderGlobal::getBlockId("global_frame");
     lastRendMask = 0;
-    lastLayerHiddenMask = 0;
+    lastLayerHiddenMask = LayerHiddenMask();
     v_bbox3_init(rayBoxExt, v_zero());
 
     landBlendNoiseTexId = BAD_TEXTUREID;
@@ -1364,9 +1374,11 @@ public:
     if (rendinst::forceRiExtra)
     {
       debug("destroying riExtra instances in %s before rendinst::termRIGen()", __FUNCTION__);
+      LayerHiddenMask lhMask;
+      lhMask.setAllHidden();
       for (auto *p : riPool.getPools())
         if (p->useRiExtra())
-          p->showAndHideRiExtraInstancesOnLayerMaskChanges(0, ~uint64_t(0));
+          p->showAndHideRiExtraInstancesOnLayerMaskChanges(0, lhMask);
     }
   }
 
@@ -1388,7 +1400,7 @@ public:
       return;
 
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
 
     const int cnt = p.size();
@@ -1521,9 +1533,16 @@ public:
     }
 
     if (!is_visible)
+    {
+      // renderGeometry is skipped while hidden (export, panel hidden, etc.), but
+      // setTm()/setPerInstanceSeed() can still run and create or move riExtras
+      // under whatever layer mask is current at that moment. Mark riExtra
+      // visibility as needing a refresh on the next visible render. (ET-4522)
+      riExtraVisibilityDirty = true;
       return;
+    }
 
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     int frame_block = -1;
 
@@ -1546,6 +1565,15 @@ public:
           lastRendMask = (st_mask & rendSubtypeSumMask);
           lastLayerHiddenMask = lh_mask;
           showAndHideRiExtraInstancesOnLayerMaskChanges();
+          riExtraVisibilityDirty = false;
+        }
+        else if (riExtraVisibilityDirty)
+        {
+          // setTm() during the prior hidden period may have created/moved riExtras
+          // under a stale mask context. Refresh their visibility flags only - the
+          // riGen cell side did not see new placements, so do NOT discard cells.
+          showAndHideRiExtraInstancesOnLayerMaskChanges();
+          riExtraVisibilityDirty = false;
         }
         {
           mat44f proj;
@@ -1679,9 +1707,23 @@ public:
     rendinst::set_rigen_sweep_mask(bm, ox, oz, scale);
   }
 
-  void clearRtRIGenData() override
+  void call_release_rt_rigen_data()
   {
     rendinst::release_rt_rigen_data();
+
+    // After rendinst::release_rt_rigen_data() all the riExtra handles become invalid, so mark them in the entities as such.
+    // This ensures that the next time assureRiExtraCreated() runs, it will recreate them correctly.
+    // (Instead of this we could also call hideRiExtraInstance() before release_rt_rigen_data(), but that would do a lot of
+    // extra work unnecessarily, because it all would be thrown away.)
+    if (rendinst::forceRiExtra)
+      for (AcesRendInstEntityPool *p : riPool.getPools())
+        if (p->useRiExtra())
+          p->markRiExtraHandlesInvalid();
+  }
+
+  void clearRtRIGenData() override
+  {
+    call_release_rt_rigen_data();
     tmInst12x32bit_changeEnabled = true;
     rigenLandBox.setempty();
   }
@@ -1691,7 +1733,7 @@ public:
     if (g_debug_is_in_fatal)
       return false;
     debug("createRtRIGenData");
-    rendinst::release_rt_rigen_data();
+    call_release_rt_rigen_data();
     tmInst12x32bit_changeEnabled = false;
     rendinst::set_rt_pregen_gather_cb(&pregen_gather_pos_cb, &pregen_gather_tm_cb, &prepare_pool_mapping, &prepare_pools);
 
@@ -1707,20 +1749,12 @@ public:
     {
       p[i]->initPregenId();
       p[i]->initRiExtraIdx();
-
-      // After rendinst::release_rt_rigen_data() all the riExtra handles become invalid, so we destroy all entities by
-      // hiding them, and force their recreation at the next render.
-      if (p[i]->useRiExtra())
-      {
-        p[i]->showAndHideRiExtraInstancesOnLayerMaskChanges(0, ~uint64_t(0));
-        lastLayerHiddenMask = 0;
-      }
     }
     return true;
   }
   void releaseRtRIGenData() override
   {
-    rendinst::release_rt_rigen_data();
+    call_release_rt_rigen_data();
     tmInst12x32bit_changeEnabled = true;
   }
   EditableHugeBitMap2d *getRIGenBitMask(rendinst::gen::land::AssetData *land_cls) override
@@ -2031,7 +2065,7 @@ public:
 
     DAGORED2->getConsole().addMessage(ILogWriter::REMARK, "Fetching non-sowed entities...");
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     for (unsigned int poolNo = 0; poolNo < poolsList.size(); poolNo++)
     {
@@ -2370,8 +2404,9 @@ protected:
   MultiAcesRendInstEntityPool riPool;
   bool visible;
   bool project_tmInst12x32bit = false, tmInst12x32bit_changeEnabled = true;
+  bool riExtraVisibilityDirty = false;
   int lastRendMask;
-  uint64_t lastLayerHiddenMask;
+  LayerHiddenMask lastLayerHiddenMask;
   TEXTUREID treeTopProjectionTexId;
   float treeTopProjectionNormalY, treeTopProjectionSharpness;
 
@@ -2473,7 +2508,7 @@ protected:
       return;
 
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (auto *p : riPool.getPools())
       if (p->useRiExtra())
         p->showAndHideRiExtraInstancesOnLayerMaskChanges(subtypeMask, lh_mask);
@@ -3179,6 +3214,14 @@ void AcesRendInstEntity::hideRiExtraInstance()
   getPool()->pendingRiExtraCount++;
 }
 
+void AcesRendInstEntity::markRiExtraHandleInvalid()
+{
+  if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+    return;
+  riexHandle = rendinst::RIEX_HANDLE_NULL;
+  getPool()->pendingRiExtraCount++;
+}
+
 bool AcesRendInstEntity::getRendInstQuantizedTm(TMatrix &out_tm) const
 {
   G_ASSERT(pool);
@@ -3213,7 +3256,18 @@ void AcesRendInstEntity::setTm(const TMatrix &_tm)
   if (getPool()->useRiExtra())
   {
     tm = _tm;
-    showRiExtraInstance(true);
+
+    if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+    {
+      const int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+      const LayerHiddenMask lhMask = IObjEntityFilter::getLayerHiddenMask();
+      if (checkSubtypeAndLayerHiddenMasks(subtypeMask, lhMask))
+        showRiExtraInstance(true);
+    }
+    else
+    {
+      showRiExtraInstance(true);
+    }
   }
   else
   {
@@ -3236,7 +3290,15 @@ void AcesRendInstEntity::setPerInstanceSeed(int seed)
   {
     if (getPool()->useRiExtra())
     {
-      if (!showRiExtraInstance(false) && riExtraRenderInited)
+      bool makeVisible = true;
+      if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+      {
+        const int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+        const LayerHiddenMask lhMask = IObjEntityFilter::getLayerHiddenMask();
+        makeVisible = checkSubtypeAndLayerHiddenMasks(subtypeMask, lhMask);
+      }
+
+      if (makeVisible && !showRiExtraInstance(false) && riExtraRenderInited)
       {
         rendinst::set_riextra_instance_seed(riexHandle, instSeed);
         rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
@@ -3261,13 +3323,13 @@ void AcesRendInstEntity::destroy()
 
 void AcesRendInstEntity::setEditLayerIdx(int t)
 {
-  const uint64_t lhMask = IObjEntityFilter::getLayerHiddenMask();
-  const unsigned oldHidden = (lhMask >> editLayerIdx) & 1;
+  const LayerHiddenMask lhMask = IObjEntityFilter::getLayerHiddenMask();
+  const bool oldHidden = lhMask.isHidden(editLayerIdx);
 
   VirtualAcesRendInstEntity::setEditLayerIdx(t);
 
   // Update the entity if it has been moved from a visible to an invisible layer (or vice versa).
-  const unsigned newHidden = (lhMask >> editLayerIdx) & 1;
+  const bool newHidden = lhMask.isHidden(editLayerIdx);
   if (newHidden == oldHidden)
     return;
   if (getPool()->useRiExtra())

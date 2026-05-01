@@ -1,5 +1,6 @@
 require math.base
 require ecs
+require ecs.safe
 require DagorDataBlock
 require DagorRandom
 require DagorMath
@@ -42,11 +43,25 @@ def spawn_nodes(nodes : Array;
                 var subentityLocalTms : TMatrixList;
                 var subentityParentIdx : IntList;
                 var subentityNames : StringList;
-                var seed : int&)
+                var seed : int&;
+                child_euler_map : Object)
   for it in nodes
     let node = get_ecs_object(it)
 
-    let lTm = get_node_local_tm(*node, seed)
+    var lTm = get_node_local_tm(*node, seed)
+    let nodeName = get_string(*node, "name", "")
+    if nodeName != ""
+      let eulerAngles = get_Point3(child_euler_map, nodeName)
+      if eulerAngles != null
+        let angles = *eulerAngles
+        let ax = angles.x |> deg_to_rad
+        let ay = angles.y |> deg_to_rad
+        let az = angles.z |> deg_to_rad
+        var rx, ry, rz : float3x4
+        rotxTM(ax, rx); rotyTM(ay, ry); rotzTM(az, rz)
+        var eulerTm = ry * rz * rx
+        eulerTm[3] = lTm[3]
+        lTm = eulerTm
     let localTm = accumulatedTm * lTm
     let localFromEntityParent = tmFromEntityParent * lTm
     let tm = parentTm * localTm
@@ -76,7 +91,7 @@ def spawn_nodes(nodes : Array;
               subentityTms |> push(localTm)
               subentityLocalTms |> push(localFromEntityParent)
               subentityParentIdx |> push(parentEntityIdx)
-              subentityNames |> push(get_string(*node, "name", ""))
+              subentityNames |> push(nodeName)
               newParentEntityIdx = length(subentityEids) - 1
               newTmFromEntityParent = IDENT_TM
             break
@@ -84,7 +99,7 @@ def spawn_nodes(nodes : Array;
     let nested = get_ecs_array(node, "nested")
     if nested != null
       spawn_nodes(*nested, localTm, parentTm, newTmFromEntityParent, newParentEntityIdx,
-                  subentityEids, subentityTms, subentityLocalTms, subentityParentIdx, subentityNames, seed)
+                  subentityEids, subentityTms, subentityLocalTms, subentityParentIdx, subentityNames, seed, child_euler_map)
 
 
 [es(tag=server, on_appear)]
@@ -94,12 +109,13 @@ def composite_entity_created_es(evt : Event; @shared_comp nodes : Array; transfo
                                 var subentityLocalTms : TMatrixList;
                                 var subentityParentIdx : IntList;
                                 var subentityNames : StringList;
-                                var random_seed : int&)
+                                var random_seed : int&;
+                                child_euler_map : Object)
   if (random_seed == 0)
     random_seed = grnd()
   var seed = random_seed
   spawn_nodes(nodes, IDENT_TM, transform, IDENT_TM, -1,
-              subentityEids, subentityTms, subentityLocalTms, subentityParentIdx, subentityNames, seed)
+              subentityEids, subentityTms, subentityLocalTms, subentityParentIdx, subentityNames, seed, child_euler_map)
 
 [es(tag=server, track=transform)]
 def composite_entity_transform_change_es(evt : Event; transform : float3x4; subentityEids : EidList; subentityTms : TMatrixList)

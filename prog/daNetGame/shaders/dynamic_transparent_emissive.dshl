@@ -108,5 +108,12 @@ shader dynamic_transparent_emissive
     }
   }
 
-  compile("target_ps", "transp_emissive_ps");
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "transp_emissive_ps");
+  }
 }

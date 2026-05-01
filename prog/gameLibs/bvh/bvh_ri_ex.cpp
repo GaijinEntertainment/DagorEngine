@@ -30,8 +30,6 @@ static constexpr float bvh_ri_extra_range = 0;
 
 namespace bvh::ri
 {
-
-static OSReadWriteLock tree_lock;
 static OSReadWriteLock flag_lock;
 
 OSSpinlock typeDirtListLock;
@@ -226,37 +224,30 @@ struct RiExtraBVHJob : public cpujobs::IJob
   unsigned elemCount;
 
   dag::AtomicInteger<int> *nextGroupIx = nullptr;
+  eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> newUniqueRiExtraTreeBuffers[Context::maxUniqueLods];
 
   int fetchNextGroupIx() { return nextGroupIx->fetch_add(1); }
 
-  static ReferencedTransformData *mapTree(ContextId context_id, uint64_t mesh_id, vec4f pos, rendinst::riex_handle_t handle,
+  static ReferencedTransformData *mapTreeRiEx(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
     int lod_ix, void *user_data, bool &recycled, int &anim_index)
   {
-    G_UNUSED(pos);
-    G_UNUSED(lod_ix);
-    G_UNUSED(user_data);
-    G_UNUSED(anim_index);
-
-    tree_lock.lockRead();
-    ReferencedTransformData *dataPtr = nullptr;
-    if (auto handleIter = context_id->uniqueRiExtraTreeBuffers.find(handle); handleIter != context_id->uniqueRiExtraTreeBuffers.cend())
+    struct RiExtraTreeHash
     {
-      if (auto meshIdIter = handleIter->second.find(mesh_id); meshIdIter != handleIter->second.cend())
+      inline static uint64_t hash(uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle)
       {
-        dataPtr = &meshIdIter->second;
+        G_UNUSED(object_id);
+        G_UNUSED(pos);
+        uint64_t id = handle;
+        return id;
       }
-    }
-    tree_lock.unlockRead();
-    if (dataPtr == nullptr)
-    {
-      tree_lock.lockWrite();
-      dataPtr = &context_id->uniqueRiExtraTreeBuffers[handle][mesh_id];
-      tree_lock.unlockWrite();
-    }
-
-    recycled = false;
-
-    return dataPtr;
+    };
+    MapTreePointers pointers;
+    pointers.uniqueTreeBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
+    pointers.newUniqueTreeBuffers =
+      make_span(static_cast<RiExtraBVHJob *>(user_data)->newUniqueRiExtraTreeBuffers, Context::maxUniqueLods);
+    pointers.treeAnimIndexCount = {}; // Unused since do_animation_index is false
+    pointers.freeUniqueTreeBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
+    return map_tree_base<RiExtraTreeHash, false>(object_id, pos, handle, lod_ix, recycled, anim_index, pointers);
   }
 
   const char *getJobName(bool &) const override { return "RiExtraBVHJob"; }
@@ -430,8 +421,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
               //  debug("riExtra tree: %s", name.data());
               TreeInfo treeInfo;
               MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-              if (!handle_tree<mapTree>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors, handle, invWorldTm, treeInfo,
-                    metaAllocId, this, false, isBurning, hashVal))
+              if (!handle_tree<mapTreeRiEx>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors, handle, invWorldTm,
+                    treeInfo, metaAllocId, this, false, isBurning, hashVal))
                 continue;
               add_riExtra_instance(contextId, meshId, transform, &treeInfo, metaAllocId, threadIx);
             }
@@ -826,6 +817,27 @@ void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc)
 {
   override_dist_sq_mul_ooc = true;
   saved_ooc_cull_dist_sq_mul = dist_sq_mul_ooc;
+}
+
+void tidy_up_riex_trees(ContextId context_id)
+{
+  TIME_PROFILE(tidy_up_riex_trees)
+
+  for (auto &job : riExtraJobGroups[context_id].jobs)
+  {
+    for (auto [index, lod] : enumerate(job.newUniqueRiExtraTreeBuffers))
+    {
+      for (auto &tree : lod)
+        context_id->uniqueRiExtraTreeBuffers[index].insert(std::move(tree));
+      lod.clear();
+    }
+  }
+
+  TidyUpTreePointers pointers;
+  pointers.uniqueTreeBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
+  pointers.treeAnimIndexCount = {}; // unused since do_animation_index is false
+  pointers.freeUniqueTreeBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
+  tidy_up_trees_base<false>(context_id, pointers);
 }
 
 } // namespace bvh::ri

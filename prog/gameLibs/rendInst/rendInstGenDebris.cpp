@@ -303,10 +303,11 @@ rendinst::DestroyedRi *rendinst::doRIGenExternalControl(const rendinst::RendInst
       return nullptr;
 
     TMatrix tm = rendinst::getRIGenMatrix(desc);
+    uint32_t paletteId = rendinst::get_riextra_instance_seed(desc.getRiExtraHandle());
     mat44f tm44;
     v_mat44_make_from_43cu_unsafe(tm44, tm.array);
 
-    return rgl->rtData->addExternalDebris(tm44, pool);
+    return rgl->rtData->addExternalDebris(tm44, pool, paletteId);
   }
 
   RendInstGenData::Cell *cell = nullptr;
@@ -319,12 +320,13 @@ rendinst::DestroyedRi *rendinst::doRIGenExternalControl(const rendinst::RendInst
   if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
     return nullptr;
   mat44f tm;
-  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm))
+  uint32_t paletteId = 0;
+  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
     return nullptr;
   if (rem_rendinst)
     riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
 
-  DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool);
+  DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool, paletteId);
   if (ri)
     ri->savedData = buffer; // just POD copy
   if (RendInstGenData::renderResRequired)
@@ -351,12 +353,13 @@ Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const Rend
     TMatrix tm = rendinst::getRIGenMatrix(desc);
     mat44f tm44;
     v_mat44_make_from_43cu_unsafe(tm44, tm.array);
+    uint32_t paletteId = rendinst::get_riextra_instance_seed(desc.getRiExtraHandle());
 
     Tab<DestroyedRi *> result(framemem_ptr());
     result.reserve(copy_count);
     for (int i = 0; i < copy_count; ++i)
     {
-      if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm44, pool))
+      if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm44, pool, paletteId))
         result.push_back(ri);
     }
 
@@ -373,7 +376,8 @@ Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const Rend
   if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
     return {};
   mat44f tm;
-  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm))
+  uint32_t paletteId = 0;
+  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
     return {};
   if (rem_rendinst)
     riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
@@ -383,7 +387,7 @@ Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const Rend
 
   for (int i = 0; i < copy_count; ++i)
   {
-    if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool))
+    if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool, paletteId))
     {
       ri->savedData = buffer; // just POD copy
       result.push_back(ri);
@@ -624,7 +628,7 @@ static void add_destroyed_data(const rendinst::RendInstDesc &desc_, RendInstGenD
     desc.pool, desc.offs);
 
   // ensure offs/cellIdx are initialized, because nothing prevents desc without them to be passed here
-  if (desc.isRiExtra() && rendinst::isRiGenDescInGrid(desc))
+  if (desc.isRiExtra() && rendinst::isRiGenInWorld(desc))
   {
     const auto restorable = rendinst::get_restorable_desc(desc);
     G_ASSERTF_RETURN(restorable.isValid(), ,
@@ -877,7 +881,8 @@ DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInst
   if (effect_cb)
   {
     mat44f tm;
-    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm))
+    uint32_t paletteId = 0;
+    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
       play_destroy_effect(rgl->rtData, desc.pool, tm, effect_cb, false);
   }
   riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
@@ -975,7 +980,8 @@ DynamicPhysObjectData *rendinst::doRIGenDestrEx(const RendInstDesc &desc, bool c
   if (effect_cb)
   {
     mat44f tm;
-    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm))
+    uint32_t paletteId = 0;
+    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
       play_destroy_effect(rgl->rtData, desc.pool, tm, effect_cb, false);
   }
   riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
@@ -1580,7 +1586,7 @@ void RendInstGenData::RtData::addDebris(mat44f &tm, int pool_idx, unsigned frame
       curDebris[0], curDebris[1], pool_idx, riResName[pool_idx]);
 }
 
-rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, int pool_idx)
+rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, int pool_idx, uint32_t palette_id)
 {
   if (pool_idx >= riDebrisMap.size() || pool_idx < 0)
     return nullptr;
@@ -1592,7 +1598,15 @@ rendinst::DestroyedRi *RendInstGenData::RtData::addExternalDebris(mat44f &tm, in
   G_ASSERT(debris.props);
   rendinst::DestroyedRi *ri = new rendinst::DestroyedRi;
   riDebrisDelayedRi.emplace_back(ri);
-  ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, tm, false /*has_collision*/, -1, -1);
+
+  int additionalDataSize = 0;
+  int32_t *addData = nullptr;
+  if (palette_id != 0)
+  {
+    additionalDataSize = 1;
+    addData = reinterpret_cast<int32_t *>(&palette_id);
+  }
+  ri->riHandle = rendinst::addRIGenExtra44(debris.resIdx, tm, false /*has_collision*/, -1, -1, additionalDataSize, addData);
   ri->debrisNo = debrisNo;
   ri->propsId = -1; // Doesn't matter since `shouldUpdate` == false
   ri->frameAdded = 0;

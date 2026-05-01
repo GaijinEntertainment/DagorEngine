@@ -77,6 +77,7 @@ enum class SubPass
   NORMAL_PASS_HAZE,
   DYN_SHADOW_PASS_ALL,
   BVH,
+  TRIANGLE_SIZE_PASS,
   COUNT
 };
 
@@ -114,7 +115,8 @@ static constexpr const char *MAIN_CAMERA_SUBPASS_NODE_NAMES[SUBPASS_COUNT] = {
   "dagdp_riex_decal",
   "dagdp_riex_haze",
   nullptr, // DYN_SHADOW_PASS_ALL
-  nullptr  // BVH
+  nullptr,  // BVH
+  "dagdp_triangle_size_debug"
   // clang-format on
 };
 
@@ -125,15 +127,17 @@ static constexpr StageRange SUBPASS_STAGES[SUBPASS_COUNT] = {
   {ShaderMesh::STG_distortion, ShaderMesh::STG_distortion}, // NORMAL_PASS_HAZE
   {ShaderMesh::STG_opaque, ShaderMesh::STG_atest},          // DYN_SHADOW_PASS_ALL
   {ShaderMesh::STG_opaque, ShaderMesh::STG_atest},          // BVH
+  {ShaderMesh::STG_opaque, ShaderMesh::STG_atest}           // TRIANGLE_SIZE_DEBUG
 };
 
 static constexpr rendinst::RenderPass SUBPASS_RI_RENDER_PASS[SUBPASS_COUNT] = {
-  rendinst::RenderPass::Depth,  // PRE_PASS_ALL
-  rendinst::RenderPass::Normal, // NORMAL_PASS_OPAQUE
-  rendinst::RenderPass::Normal, // NORMAL_PASS_DECALS
-  rendinst::RenderPass::Normal, // NORMAL_PASS_HAZE
-  rendinst::RenderPass::Depth,  // DYN_SHADOW_PASS_ALL
-  rendinst::RenderPass::Depth,  // BVH, unused
+  rendinst::RenderPass::Depth,             // PRE_PASS_ALL
+  rendinst::RenderPass::Normal,            // NORMAL_PASS_OPAQUE
+  rendinst::RenderPass::Normal,            // NORMAL_PASS_DECALS
+  rendinst::RenderPass::Normal,            // NORMAL_PASS_HAZE
+  rendinst::RenderPass::Depth,             // DYN_SHADOW_PASS_ALL
+  rendinst::RenderPass::Depth,             // BVH, unused
+  rendinst::RenderPass::TriangleSizeDebug, // TRIANGLE_SIZE_DEBUG
 };
 
 // TODO: duplicates dag_multidrawContext.h
@@ -607,7 +611,13 @@ static void render(SubPass sub_pass,
   const auto treeConsts = rendinst::render::getCommonImmediateConstants();
   const uint32_t treeImmediateConsts[3] = {0u, treeConsts[0], treeConsts[1]};
 
+#if DAGOR_DBGLEVEL > 0
+  const auto &multiCallSpan =
+    persistent_data.cache
+      .multiCallSpans[eastl::to_underlying(sub_pass == SubPass::TRIANGLE_SIZE_PASS ? SubPass::NORMAL_PASS_OPAQUE : sub_pass)];
+#else
   const auto &multiCallSpan = persistent_data.cache.multiCallSpans[eastl::to_underlying(sub_pass)];
+#endif
 
   for (const auto &call : multiCallSpan)
   {
@@ -647,10 +657,19 @@ static void render(SubPass sub_pass,
       | (call.dvState.state_index != lastDvState.state_index))
     // clang-format on
     {
-      set_states_for_variant(*call.sElem, call.dvState.variant, call.dvState.program, call.dvState.state_index);
+#if DAGOR_DBGLEVEL > 0
+      if (sub_pass == SubPass::TRIANGLE_SIZE_PASS)
+      {
+        call.sElem->setStates();
+      }
+      else
+#endif
+      {
+        set_states_for_variant(*call.sElem, call.dvState.variant, call.dvState.program, call.dvState.state_index);
 
-      lastSElem = call.sElem;
-      lastDvState = call.dvState;
+        lastSElem = call.sElem;
+        lastDvState = call.dvState;
+      }
     }
 
     // When draw call ID is present, but not used, we have to skip it in the extended indirect args.
@@ -719,7 +738,10 @@ static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const 
   // Use a special namespace in order for nodes to draw into GBuffer at the correct time.
   const bool areNormalsPacked = renderer_has_feature(GBUFFER_PACKED_NORMALS);
   const dafg::NameSpace ns =
-    dafg::root() / "opaque" / (sub_pass == SubPass::NORMAL_PASS_DECALS ? (areNormalsPacked ? "mixing" : "decorations") : "statics");
+    sub_pass == SubPass::TRIANGLE_SIZE_PASS
+      ? dafg::root() / "tringle_size_debug"
+      : dafg::root() / "opaque" /
+          (sub_pass == SubPass::NORMAL_PASS_DECALS ? (areNormalsPacked ? "mixing" : "decorations") : "statics");
   const char *nodeName = MAIN_CAMERA_SUBPASS_NODE_NAMES[eastl::to_underlying(sub_pass)];
   G_ASSERT(nodeName);
 
@@ -733,6 +755,8 @@ static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const 
       pass = render_to_gbuffer_but_sample_depth(registry);
     else if (sub_pass == SubPass::NORMAL_PASS_HAZE)
       pass = registry.requestRenderPass().color({"early_haze_offset", "early_haze_color", "early_haze_depth"});
+    else if (sub_pass == SubPass::TRIANGLE_SIZE_PASS)
+      pass = registry.requestRenderPass().color({"triangle_size_tex"}).depthRo("gbuf_depth");
     else
       pass = render_to_gbuffer(registry);
 
@@ -967,7 +991,11 @@ static dafg::NodeHandle create_csm_subpass_node(const eastl::shared_ptr<RiexPers
   });
 }
 
-void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_builder, RiexManager &manager, NodeInserter node_inserter)
+void riex_finalize_view(const ViewInfo &view_info,
+  const ViewBuilder &view_builder,
+  RiexManager &manager,
+  NodeInserter node_inserter,
+  bool is_triangle_size_debug)
 {
   auto &builder = manager.currentBuilder;
 
@@ -1148,6 +1176,8 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
       for (SubPass subPass : VIEW_KIND_SUBPASSES[eastl::to_underlying(ViewKind::MAIN_CAMERA)])
         if (constants.haveSubPass[eastl::to_underlying(subPass)])
           node_inserter(create_main_camera_subpass_node(subPass, persistentData));
+      if (is_triangle_size_debug)
+        node_inserter(create_main_camera_subpass_node(SubPass::TRIANGLE_SIZE_PASS, persistentData));
       break;
     }
     case ViewKind::DYN_SHADOWS:

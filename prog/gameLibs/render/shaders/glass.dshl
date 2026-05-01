@@ -88,7 +88,13 @@ macro INIT_SIMPLE_GLASS(generate_transparent_gbuffer_pass)
   static float4 tint_color = (1.0, 1.0, 1.0, 0.0);
   interval tint_color: enabled < 1, default;
 
-  if (generate_transparent_gbuffer_pass)
+  if (is_transparent_triangle_debug)
+  {
+    blend_src = one; blend_dst = zero;
+    blend_asrc = one; blend_adst = zero;
+    z_write = false;
+  }
+  else if (generate_transparent_gbuffer_pass)
   {
     blend_src = one; blend_dst = zero;
     blend_asrc = one; blend_adst = zero;

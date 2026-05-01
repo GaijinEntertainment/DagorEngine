@@ -5,8 +5,14 @@ hlsl {
   #include "dagdp_common_placer.hlsli"
 }
 
+float dagdp__global_density_mul = 1;
+
 macro USE_DAGDP_COMMON_PLACER()
   READ_WORLD_SDF(cs)
+
+  (cs) {
+    dagdp__global_density_mul@f1 = dagdp__global_density_mul;
+  }
 
   hlsl(cs) {
     #define NO_GRADIENTS_IN_SHADER 1
@@ -28,7 +34,7 @@ macro USE_DAGDP_COMMON_PLACER()
       if (flags & SLOPE_PLACEMENT_IS_INVERTED_BIT)
         w = 1.0 - w;
 
-      return r <= w;
+      return r <= w * dagdp__global_density_mul;
     }
 
     bool checkOcclusion(float occlusionRange, float occlusionMin, float occlusionMax, float3 worldPos, float3 worldNorm, float r)

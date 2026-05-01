@@ -111,8 +111,14 @@ bool HAL_GetClipboardUpdated()
   return false;
 }
 
-// TODO: ImGui v1.92.6
-void HAL_RenderDrawData(ImDrawData *pDrawData) {}
+//=================================================================================================
+// HAL RENDER DRAW DATA
+//=================================================================================================
+void HAL_RenderDrawData(ImDrawData *pDrawData)
+{
+  if (pDrawData)
+    imgui_render_drawdata_to_texture(pDrawData, d3d::get_backbuffer_tex());
+}
 
 //=================================================================================================
 // HAL RENDER DRAW DATA

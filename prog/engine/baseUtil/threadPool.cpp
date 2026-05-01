@@ -54,10 +54,7 @@ namespace threadpool
 {
 static thread_local int currentWorkerId = -1;
 
-#if _TARGET_XBOXONE
-#define PER_WORKER_MAX_PRIO 1
-static uint8_t min_per_worker_prio = PRIO_HIGH;
-#elif _TARGET_PC_WIN
+#if _TARGET_PC_WIN
 static bool has_futex_impl = false;
 #endif
 
@@ -182,18 +179,18 @@ static __forceinline bool perform_queue_elem(const threadpool::JobQueueElem &jel
   return true;
 }
 
-static threadpool::JobQueueElem pop_job(TPQueue *pools, int prio_lowest, int prio = PRIO_HIGH)
+static threadpool::JobQueueElem pop_job(TPQueue *pools, int prio_lowest)
 {
   threadpool::JobQueueElem jelem;
-  for (; prio <= prio_lowest && !jelem.job; ++prio)
+  for (int prio = PRIO_HIGH; prio <= prio_lowest && !jelem.job; ++prio)
     jelem = pools[prio].pop();
   return jelem;
 }
 
 // return true if job is done
-static bool perform_job(TPQueue *pools, int prio_lowest, JobEnvironment &jenv, JobDoneEvent &doneEvent, int prio = PRIO_HIGH)
+static bool perform_job(TPQueue *pools, int prio_lowest, JobEnvironment &jenv, JobDoneEvent &doneEvent)
 {
-  return perform_queue_elem(pop_job(pools, prio_lowest, prio), jenv, doneEvent);
+  return perform_queue_elem(pop_job(pools, prio_lowest), jenv, doneEvent);
 }
 
 EA_DISABLE_VC_WARNING(4582) // ctor is not implicitly called
@@ -234,29 +231,14 @@ struct TPWorkerThread final : public DaThread
 {
   TPCtxBase &tpctx; // To consider: we can alloc instance with e.g. 64K alignment and mask 'this' pointer instead
   uint8_t id;
-#if PER_WORKER_MAX_PRIO
-  const uint8_t maxPrio = PRIO_HIGH;
-#else
-  constexpr static uint8_t maxPrio = PRIO_HIGH;
-#endif
   uint32_t nwakeslocal = 0; // intentionally stored in instance (as opposed to stack) to prevent threads snooping each other stacks
 
   JobEnvironment jenv;
 
   TPWorkerThread(); // not defined
-  TPWorkerThread(const char *name, int id_, TPCtxBase &tpctx_, size_t stack_size, int thread_priority, uint8_t max_prio,
-    uint64_t affinity) :
-    DaThread(name, stack_size, thread_priority, affinity),
-    tpctx(tpctx_),
-    id(uint8_t(id_))
-#if PER_WORKER_MAX_PRIO
-    ,
-    maxPrio(max_prio)
-#endif
-  {
-    G_UNUSED(max_prio);
-    G_FAST_ASSERT(max_prio < NUM_PRIO);
-  }
+  TPWorkerThread(const char *name, int id_, TPCtxBase &tpctx_, size_t stack_size, int thread_priority, uint64_t affinity) :
+    DaThread(name, stack_size, thread_priority, affinity), tpctx(tpctx_), id(uint8_t(id_))
+  {}
 
   void execute() override
   {
@@ -269,8 +251,9 @@ struct TPWorkerThread final : public DaThread
     // (*) https://learn.microsoft.com/en-us/windows/win32/procthread/priority-boosts
     G_VERIFYF(SetThreadPriorityBoost(GetCurrentThread(), /*bDisablePriorityBoost*/ TRUE), "%d", GetLastError());
 #elif _TARGET_PC_WIN // Use cached in locals fn pointer to reduce possible CPU cache interference with `num_wakes` globals
-    auto wait_on_address = os_get_wait_on_address_impl();
-#define os_wait_on_address wait_on_address
+    auto waitOnAddr = os_get_native_wait_on_address_impl();
+    auto os_wait_on_address = [&](volatile uint32_t *a, const uint32_t *ca) { waitOnAddr(a, ca, (int)INFINITE); };
+    G_FAST_ASSERT(!waitOnAddr == !HAVE_NATIVE_FUTEX);
 #endif
     TIME_PROFILE_THREAD(getCurrentThreadName());
     jenv.coreId = id;
@@ -288,54 +271,47 @@ struct TPWorkerThread final : public DaThread
     do
     {
       threadpool::JobQueueElem jelem;
-      // To consider: evaluate actual rate of spurious wakeups on different systems/OSes
       if HAVE_NATIVE_FUTEX_CONSTEXPR (haveNativeFutex)
       {
-        if (auto tmpWakes = interlocked_acquire_load(num_wakes.value); DAGOR_UNLIKELY(tmpWakes == nwakeslocal))
+        if (auto tmpWakes = interlocked_acquire_load(num_wakes.value); tmpWakes == nwakeslocal)
         {
-          os_wait_on_address(&num_wakes.value, &nwakeslocal, /*inf*/ -1);
+          os_wait_on_address(&num_wakes.value, &nwakeslocal);
           nwakeslocal = interlocked_acquire_load(num_wakes.value);
         }
         else
           nwakeslocal = tmpWakes;
-        jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio);
+        jelem = pop_job(tpctx.taskQueue, PRIO_LOW);
       }
       else
       {
         std::unique_lock<std::mutex> lock(tpctx.condVarMtx);
-        // Predicate prevents lost wake ups
+        // Predicate reduces chances of lost wake ups
         tpctx.condVar.wait(lock, [&, this]() { return interlocked_acquire_load(num_wakes.value) != nwakeslocal; });
         nwakeslocal = interlocked_acquire_load(num_wakes.value);
-        jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio); // Try to pop job under mutex since we already holding it at this point
+        jelem = pop_job(tpctx.taskQueue, PRIO_LOW); // Try to pop job under mutex since we already holding it at this point
       }
 
       if (interlocked_acquire_load(terminating))
         break;
 
-      int busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1); // if worker woke up, there is(was) something to do.
+      int busyIterations = BUSY_WAIT_ITERATIONS; // if worker woke up, there is(was) something to do.
       // Let's just-in case busy wait for few iterations, if new job appears, it won't have to wait for worker
       do // do while jobs exist
       {
         if (perform_queue_elem(jelem, jenv, tpctx.jobDoneEvent))
-        {
-          busyIterations = BUSY_WAIT_ITERATIONS / (maxPrio + 1);
-        }
+          busyIterations = BUSY_WAIT_ITERATIONS;
         else
         {
           if (--busyIterations <= 0)
             break;     // no more jobs in queue
           cpu_yield(); // just for HT
         }
-        jelem = pop_job(tpctx.taskQueue, PRIO_LOW, maxPrio);
+        jelem = pop_job(tpctx.taskQueue, PRIO_LOW);
       } while (1);
 
       reset_framemem();
 
     } while (!interlocked_acquire_load(terminating));
-
-#if _TARGET_PC_WIN
-#undef os_wait_on_address
-#endif
   } // execute()
 };
 
@@ -466,9 +442,8 @@ struct TPCtx : public TPCtxBase
   }
 };
 
-void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size, uint64_t max_workers_prio)
+void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size)
 {
-  G_UNUSED(max_workers_prio);
   if (tp_instance)
   {
     logwarn("Ignore dup attempt to init threadpool");
@@ -487,7 +462,7 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size, uint
 
   num_wakes.value = 0;
 #if _TARGET_PC_WIN
-  has_futex_impl = (bool)os_get_wait_on_address_impl();
+  has_futex_impl = (bool)os_get_native_wait_on_address_impl();
 #endif
 
   tp_instance_memory =
@@ -515,15 +490,10 @@ void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size, uint
 #else
   uint64_t waff = WORKER_THREADS_AFFINITY_MASK;
 #endif
-  for (int i = 0; i < num_workers; ++i, max_workers_prio >>= 2)
+  for (int i = 0; i < num_workers; ++i)
   {
     SNPRINTF(thread_name, sizeof(thread_name), "TPWorker #%d", i);
-    uint8_t wrkPrio = max_workers_prio & 3;
-#if PER_WORKER_MAX_PRIO
-    min_per_worker_prio = max(min_per_worker_prio, wrkPrio);
-#endif
-    new (&tp_instance->workers[i], _NEW_INPLACE)
-      TPWorkerThread(thread_name, i, *tp_instance, stack_size, workerThreadPriority, wrkPrio, waff);
+    new (&tp_instance->workers[i], _NEW_INPLACE) TPWorkerThread(thread_name, i, *tp_instance, stack_size, workerThreadPriority, waff);
     tp_instance->workers[i].start();
   }
 
@@ -620,19 +590,20 @@ bool add(cpujobs::IJob *j, JobPriority prio, uint32_t &queue_pos, AddFlags flags
   {
     queue_pos = tp_instance->add(j, prio);
     if ((flags & AddFlags::WakeOnAdd) != AddFlags::None)
-    {
-#if PER_WORKER_MAX_PRIO
-      if (prio < min_per_worker_prio) // Note: can't wake only one since it might be the one that serves only low prio jobs
-        tp_instance->wakeUpAll();
-      else
-#endif
-        tp_instance->wakeUpOne();
-    }
+      tp_instance->wakeUpOne();
   }
   else
   {
     j->doJob();
-    j->done = 1;
+    if (tp_instance)
+    {
+      interlocked_release_store(j->done, 1);
+      tp_instance->jobDoneEvent.done(j->done);
+    }
+    else
+    {
+      j->done = 1;
+    }
   }
 
   return true;
@@ -682,7 +653,15 @@ bool add_node(threadpool::IJobNode *j, uint32_t start_index, uint32_t num_jobs, 
     for (uint32_t i = start_index; i < (start_index + num_jobs); i++)
       j->doNodeJob(jenv_direct.get(), ((uint8_t *)(j->jobDataPtr)) + j->jobDataSize * i, i);
     j->jobCount = 0;
-    j->done = 1;
+    if (tp_instance)
+    {
+      interlocked_release_store(j->done, 1);
+      tp_instance->jobDoneEvent.done(j->done);
+    }
+    else
+    {
+      j->done = 1;
+    }
   }
 
   return true;

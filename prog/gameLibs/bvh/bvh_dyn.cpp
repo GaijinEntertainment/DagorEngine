@@ -431,16 +431,15 @@ static eastl::tuple<bool, uint32_t> hold_camo_tex(bvh::ContextId bvh_context_id,
   auto tql = get_managed_res_cur_tql(camoTexture);
   if (tql != TQL_stub)
   {
-    uint32_t camoTexBindless = 0xFFFFFFFFU;
+    uint32_t camoTexBindless = MeshMeta::INVALID_TEXTURE;
     if (camoTexture != BAD_TEXTUREID)
     {
       auto iter = bvh_context_id->camoTextures.find((uint32_t)camoTexture);
       if (iter == bvh_context_id->camoTextures.end())
       {
         uint32_t texIndex = MeshMeta::INVALID_TEXTURE;
-        uint32_t smpIndex = MeshMeta::INVALID_SAMPLER;
-        bvh_context_id->holdTexture(camoTexture, texIndex, smpIndex, d3d::SamplerHandle::Invalid, forceRefreshSrvsWhenLoaded);
-        camoTexBindless = (texIndex << 16) | smpIndex;
+        bvh_context_id->holdTexture(camoTexture, texIndex, forceRefreshSrvsWhenLoaded);
+        camoTexBindless = texIndex;
         bvh_context_id->camoTextures.emplace((uint32_t)camoTexture, camoTexBindless);
       }
       else
@@ -449,7 +448,7 @@ static eastl::tuple<bool, uint32_t> hold_camo_tex(bvh::ContextId bvh_context_id,
       return {true, camoTexBindless};
     }
   }
-  return {false, 0xFFFFFFFFU};
+  return {false, MeshMeta::INVALID_TEXTURE};
 }
 
 static int hold_decal_data(bvh::ContextId bvh_context_id, Sbuffer *decal_buffer)
@@ -540,7 +539,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
   auto getCamoData = [&](const ShaderMesh::RElem &elem) -> PerInstanceData * {
     auto camoTexture = elem.mat->get_texture(1);
     auto [camoValid, camoTexBindless] = hold_camo_tex(bvh_context_id, camoTexture, true);
-    uint32_t camoSkinTexBindless = 0xFFFFFFFFU;
+    uint32_t camoSkinTexBindless = MeshMeta::INVALID_TEXTURE;
     if (camoValid)
     {
       static int camo_skin_texVarId = get_shader_variable_id("camo_skin_tex", true);
@@ -591,9 +590,8 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
         }
       }
 
-      camoData.x = camoTexBindless;
-      camoData.x &= 0xFFFF0000U;
-      camoData.x |= camoSkinTexBindless >> 16;
+      camoData.x = camoTexBindless << 16;
+      camoData.x |= camoSkinTexBindless;
       camoData.y = uint32_t(d0z * 255) << 8 | uint32_t(d0w * 255);
       camoData.y |= uint32_t((d1z * 0.5f + 0.5f) * 0xFF) << 24 | uint32_t((d1w * 0.5f + 0.5f) * 0xFF) << 16;
       return &camoData;

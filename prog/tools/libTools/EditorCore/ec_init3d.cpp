@@ -68,6 +68,7 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming, const
     video_blk->setInt("min_target_size", video_blk->getInt("min_target_size", 0));
     video_blk->setStr("instancing", video_blk->getStr("instancing", "auto"));
     video_blk->setStr("driver", drv_name ? drv_name : video_blk->getStr("driver", "auto"));
+    video_blk->setInt("frameLimitBufferFramememKB", video_blk->getInt("frameLimitBufferFramememKB", 8 << 10));
   }
 
   global_settings_blk->addBlock("physx")->setBool("disable_hardware", true);

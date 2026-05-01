@@ -529,7 +529,7 @@ struct PhysicalDeviceSet
 
   uint32_t getAvailableVideoMemoryKb() const { return deviceLocalHeapSizeKb; }
 
-  uint32_t calculateTotalAvailableDeviceLocalMemoryKb()
+  uint32_t calculateAvailableDeviceLocalMemoryBudgetKb()
   {
     uint32_t availableKb = 0;
 #if VK_EXT_memory_budget
@@ -553,17 +553,35 @@ struct PhysicalDeviceSet
                               ->getInt64("softLimitMb", -1);
       if (softLimitMb != -1)
         budget = softLimitMb << 20;
-
-      // sanity check as spec says "heap's usage is an estimate"
-      if (budget < memoryBudgetInfo.heapUsage[primaryDeviceLocalHeap])
-        availableKb = 0;
-      else
-        availableKb = (budget - memoryBudgetInfo.heapUsage[primaryDeviceLocalHeap]) >> 10;
+      availableKb = budget >> 10;
     }
     else
 #endif
     {
       availableKb = memoryProperties.memoryHeaps[primaryDeviceLocalHeap].size >> 10;
+    }
+    return availableKb;
+  }
+
+  uint32_t calculateTotalAvailableDeviceLocalMemoryKb()
+  {
+    uint32_t budgetKb = calculateAvailableDeviceLocalMemoryBudgetKb();
+
+    uint32_t availableKb = 0;
+#if VK_EXT_memory_budget
+    if (memoryBudgetInfoAvailable)
+    {
+      // sanity check as spec says "heap's usage is an estimate"
+      uint32_t usageKb = memoryBudgetInfo.heapUsage[primaryDeviceLocalHeap] >> 10;
+      if (budgetKb < usageKb)
+        availableKb = 0;
+      else
+        availableKb = budgetKb - usageKb;
+    }
+    else
+#endif
+    {
+      availableKb = budgetKb;
     }
     return availableKb;
   }

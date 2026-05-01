@@ -87,7 +87,7 @@ if $(Platform) in windows {
     for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; }
   }
 } else if $(Platform) = macOS {
-  BundleName = DngSceneViewer ;
+  BundleName = DngSceneViewer-$(PlatformArch) ;
   BundleID   = com.gaijinent.$(BundleName) ;
   BundlePlist = @$(Root)/prog/_jBuild/macOS/generic.info.plist ../Info.plist ;
   BundleIcon = $(BundleName) ;

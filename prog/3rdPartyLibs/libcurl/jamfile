@@ -66,6 +66,10 @@ if $(PlatformSpec) = clang {
   }
 }
 
+if $(PlatformSpec) = gcc {
+  Copt += -Wno-discarded-qualifiers ;
+}
+
 if $(Platform) in macOS iOS tvOS linux android ps4 ps5 { CPPopt += -DHAVE_CONFIG_H ; }
 
 if $(UseSystemLibcurl) = yes {

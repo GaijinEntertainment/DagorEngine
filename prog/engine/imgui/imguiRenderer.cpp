@@ -196,6 +196,11 @@ void DagImGuiRenderer::renderDrawDataToTexture(const ImDrawData *draw_data, Base
   if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
     return;
 
+  if (draw_data->Textures)
+    for (ImTextureData *td : *draw_data->Textures)
+      if (td->Status != ImTextureStatus_OK)
+        updateTextureData(*td);
+
   uint32_t totalVtx = draw_data->TotalVtxCount;
   uint32_t totalIdx = draw_data->TotalIdxCount;
 

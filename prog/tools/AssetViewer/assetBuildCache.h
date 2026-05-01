@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <propPanel/control/menu.h>
 #include <generic/dag_tabFwd.h>
 #include <util/dag_string.h>
 
@@ -23,7 +24,7 @@ struct DaBuildProgress
 
 bool is_dabuild_running();
 void stop_dabuild_background();
-void update_dabuild_background();
+void update_dabuild_background(PropPanel::IMenu *mm);
 DaBuildProgress get_dabuild_progress();
 int get_dabuild_jobs();
 void set_dabuild_jobs(int jobs);

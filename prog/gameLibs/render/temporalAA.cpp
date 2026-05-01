@@ -85,9 +85,8 @@ TemporalAA::TemporalAA(const char *shader, const IPoint2 &input_resolution, cons
   if (mobile_taa)
   {
     const int precomputedWeightsSize = 64;
-    taaPrecomputedWeights.set(d3d::create_tex(nullptr, precomputedWeightsSize, precomputedWeightsSize,
-                                TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "taa_precomputed_weights", RESTAG_AA),
-      "taa_precomputed_weights");
+    taaPrecomputedWeights = dag::create_tex(nullptr, precomputedWeightsSize, precomputedWeightsSize,
+      TEXFMT_A16B16G16R16F | TEXCF_RTARGET, 1, "taa_precomputed_weights", RESTAG_AA);
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
     d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);

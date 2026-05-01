@@ -844,7 +844,7 @@ static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames
   sl::DLSSGState state;
   G_VERIFY(sl_funcs::slDLSSGGetState(viewport_id, state, &options) == sl::Result::eOk);
   if (state.status != sl::DLSSGStatus::eOk)
-    logerr("DLSSG: failed to set to %s state", frames_to_generate > 0 ? "enabled" : "disabled");
+    D3D_ERROR("DLSSG: failed to set to %s state", frames_to_generate > 0 ? "enabled" : "disabled");
   return state.status == sl::DLSSGStatus::eOk ? frames_to_generate : 0;
 }
 

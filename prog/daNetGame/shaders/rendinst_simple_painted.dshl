@@ -48,7 +48,11 @@ shader rendinst_simple_painted
 
   COMMON_RENDINST_PS_PREP(true)
 
-  if (!rendinst_render_is_shadow_or_depth)
+  if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (!rendinst_render_is_shadow_or_depth)
   {
     SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, GBUFFER_ORDER_STATIC)
   }

@@ -390,7 +390,7 @@ public:
   }
 
   // for multi select tree
-  virtual void getSelectedLeafs([[maybe_unused]] dag::Vector<TLeafHandle> &leafs, [[maybe_unused]] bool search_in_expanded,
+  virtual void getSelectedLeafs([[maybe_unused]] dag::Vector<TLeafHandle> &leafs, [[maybe_unused]] bool search_in_collapsed,
     [[maybe_unused]] bool include_filtered_out) const
   {
     G_UNUSED(leafs);

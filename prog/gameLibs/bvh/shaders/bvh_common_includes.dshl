@@ -10,12 +10,12 @@ endmacro
 macro USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(code)
 hlsl(code){
   static Texture2D<float4> cache_tex0 = nonUniformBindlessTex2D(bvh_textures, cache_tex0_tex_slot);
-  static SamplerState cache_tex0_samplerstate = bvh_samplers[NonUniformResourceIndex(cache_tex0_smp_slot)];
+  static SamplerState cache_tex0_samplerstate = bvh_clamp_sampler;
   static Texture2D<float4> indirection_tex = nonUniformBindlessTex2D(bvh_textures, indirection_tex_tex_slot);
   static Texture2D<float4> cache_tex1 = nonUniformBindlessTex2D(bvh_textures, cache_tex1_tex_slot);
   static Texture2D<float4> cache_tex2 = nonUniformBindlessTex2D(bvh_textures, cache_tex2_tex_slot);
   static Texture2D<float4> last_clip_tex = nonUniformBindlessTex2D(bvh_textures, last_clip_tex_tex_slot);
-  static SamplerState last_clip_tex_samplerstate = bvh_samplers[NonUniformResourceIndex(last_clip_tex_smp_slot)];
+  static SamplerState last_clip_tex_samplerstate = bvh_clamp_sampler;
 }
 endmacro
 

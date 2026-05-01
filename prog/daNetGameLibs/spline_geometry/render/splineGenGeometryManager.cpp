@@ -165,7 +165,20 @@ void SplineGenGeometryManager::updateInstancingData(
 {
   G_ASSERT(id < getAllocatedInstanceCount());
 
-  splineStagingBuffer.getBuf()->updateData(id * splineEntrySize, splineEntrySize, spline_vec.data(), VBLOCK_WRITEONLY);
+  if (!splineBufferDirty)
+  {
+    auto lockedStagingBuffer = lock_sbuffer<SplineGenSpline>(splineStagingBuffer.getBuf(), 0,
+      (stripes + 1) * getAllocatedInstanceCount(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    if (lockedStagingBuffer)
+      lockedStagingBuffer.updateDataRange(id * (stripes + 1), spline_vec.data(), stripes + 1);
+    else
+      logerr("spline_gen: failed to lock staging buffer for instance %u", (unsigned)id);
+  }
+  else
+  {
+    splineStagingBuffer.getBuf()->updateData(id * splineEntrySize, splineEntrySize, spline_vec.data(),
+      VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
+  }
   splineBufferDirtyMask.set(id);
   splineBufferDirty = true;
 
@@ -190,15 +203,25 @@ void SplineGenGeometryManager::updateAttachmentBatchIds(
   }
   attachmentMaxNo = max(attachmentMaxNo, instance.objCount);
 
-  instancingStagingBuffer.getBuf()->updateData(id * sizeof(SplineGenInstance), sizeof(SplineGenInstance), &instance, VBLOCK_WRITEONLY);
+  pendingInstanceWrites.emplace_back(id, instance);
 }
 
 void SplineGenGeometryManager::uploadGenerateData()
 {
   invalidatePrevBuffer = false;
   reactivationInProcess = false;
-  if (instancingStagingBuffer.getBuf() && instancingBuffer.getBuf())
-    instancingStagingBuffer.getBuf()->copyTo(instancingBuffer.getBuf());
+  if (instancingBuffer.getBuf())
+  {
+    if (!pendingInstanceWrites.empty())
+    {
+      const int lockCount = getAllocatedInstanceCount();
+      for (const auto &piw : pendingInstanceWrites)
+        if (piw.first < lockCount)
+          instancingBuffer.getBuf()->updateData(piw.first * sizeof(SplineGenInstance), sizeof(SplineGenInstance), &piw.second,
+            VBLOCK_WRITEONLY);
+    }
+  }
+  pendingInstanceWrites.clear();
   uploadSplineBuffer();
   uploadObjBatchIdBuffer();
 }
@@ -457,17 +480,13 @@ void SplineGenGeometryManager::allocateBuffers()
   needsVertexGeneration = vertex_gen_phase_exists || neededInBVH;
 
   String buffName;
-
-  buffName = String(0, "%i_splineGen_instancingStagingBuffer", templateName.c_str());
-  instancingStagingBuffer = dag::create_sbuffer(sizeof(SplineGenInstance), getAllocatedInstanceCount(),
-    SBCF_MISC_STRUCTURED | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, buffName);
-
   buffName = String(0, "%s_splineGen_instancingBuffer", templateName.c_str());
   instancingBuffer = dag::create_sbuffer(sizeof(SplineGenInstance), getAllocatedInstanceCount(),
     SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, buffName);
 
   buffName = String(0, "%s_splineGen_splineStagingBuffer", templateName.c_str());
-  splineStagingBuffer = dag::buffers::create_staging(splineEntrySize * getAllocatedInstanceCount(), buffName);
+  splineStagingBuffer = dag::create_sbuffer(sizeof(SplineGenSpline), (stripes + 1) * getAllocatedInstanceCount(),
+    SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, buffName);
 
   if (needsVertexGeneration)
   {

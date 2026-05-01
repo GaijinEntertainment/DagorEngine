@@ -2,6 +2,7 @@
 
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_driver.h>
+#include <drv_log_defs.h>
 #include <drv/3d/dag_res.h>
 #include <3d/dag_ICrashFallback.h>
 #include <ioSys/dag_dataBlock.h>
@@ -231,7 +232,7 @@ static DriverCode detect_api()
   {
     DataBlock *videoDrvBlk = const_cast<DataBlock *>(::dgs_get_settings())->addBlock("video");
     if (!(stricmp(driverName, "vulkan") == 0 || stricmp(driverName, "dx11") == 0 || stricmp(driverName, "dx12") == 0))
-      logerr("unknown driver <%s>, setting anyway!", driverName);
+      D3D_ERROR("unknown driver <%s>, setting anyway!", driverName);
     debug("command line forced <%s> driver", driverName);
     videoDrvBlk->setStr("driver", driverName);
   }

@@ -1,0 +1,20 @@
+int allow_triangle_size_debug = 0;
+interval allow_triangle_size_debug : no < 1, yes;
+
+// If want to use triangle size debug view either use, 'compile_shaders_dx12_triangle_size_debug.bat',
+// or assume / change below line to yes.
+assume_if_not_assumed allow_triangle_size_debug = no;
+
+macro TRIANGLE_SIZE_DEBUG_PS()
+  hlsl (ps)
+  {
+    float debug_ps( noperspective float3 barycentrics : SV_Barycentrics): SV_Target
+    {
+      float2 dBaryDx = ddx_fine(barycentrics.xy);
+      float2 dBaryDy = ddy_fine(barycentrics.xy);
+
+      return 0.5 / abs(dBaryDx.x * dBaryDy.y - dBaryDx.y * dBaryDy.x);
+    }
+  }
+  compile("target_ps", "debug_ps");
+endmacro

@@ -610,6 +610,24 @@ enum class Drv3dCommand
   // Called inside coredump handler
   SONY_ATTACH_CRASH_DUMP_INFO,
 
+  // Pipeline statistics query (dx12 only)
+  // Start the query. par1: void ** - query pointer, if *par1 is nullptr, the new query is created
+  PIPELINE_STATS_BEGIN,
+  // End the query. Must be called before frame end.
+  // par1: void * - query pointer received from PIPELINE_STAT_BEGIN
+  PIPELINE_STATS_END,
+  // Get the number of rasterized primitives for the query.
+  // par1: void * - query pointer, par2: uint64_t * - pointer to result variable
+  // returns 1 if the result is ready, otherwise 0. If the result is not ready, the value pointed by par2 is not modified.
+  // You must wait till the result is ready before starting a BEGIN/END pair with the same query pointer.
+  // Otherwise the behavior is undefined.
+  PIPELINE_STATS_RASTERIZED_PRIMITIVES,
+  // Create pipeline statistics query. par1: void ** - query pointer.
+  // After this call the query pointer is valid and can be used in PIPELINE_STAT_BEGIN/END
+  PIPELINE_STATS_CREATE_QUERY,
+  // Release pipeline statistics query. par1: void ** - query pointer, after this call the query pointer is nullptr
+  PIPELINE_STATS_RELEASE_QUERY,
+
   USER = 1000,
 };
 

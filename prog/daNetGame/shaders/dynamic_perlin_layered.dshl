@@ -73,7 +73,11 @@ shader dynamic_perlin_layered
   }
   DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
 
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal)
   {
     if (in_editor_assume == no) { NO_DYNSTCODE() }
     SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)

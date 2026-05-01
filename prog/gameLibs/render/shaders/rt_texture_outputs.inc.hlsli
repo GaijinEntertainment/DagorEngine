@@ -1,7 +1,6 @@
 #ifndef RT_TEXTURE_OUTPUTS
   BINDLESS_TEX_ARRAY(Texture2D, rt_texture_outputs, 3);
   BINDLESS_SMP_ARRAY(SamplerComparisonState, rt_comparison_texture_samplers, 2);
-  BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
 
   #define RT_TEXTURE_OUTPUTS
 #endif

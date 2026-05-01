@@ -115,6 +115,7 @@ const char *shcod_tokname(int t)
     case SHCOD_GLOB_SAMPLER: return "GLOB_SAMPLER";
     case SHCOD_SAMPLER: return "SAMPLER";
     case SHCOD_TEXTURE: return "TEXTURE";
+    case SHCOD_TEXTURE_STUBCOL: return "TEXTURE_STUBCOL";
     case SHCOD_TEXTURE_VS: return "TEXTURE_VS";
     case SHCOD_TEXTURE_CS: return "TEXTURE_CS";
     case SHCOD_VPR_CONST: return "VPR_CONST";

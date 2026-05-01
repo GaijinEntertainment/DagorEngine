@@ -18,6 +18,8 @@
 #include <drv/3d/dag_commands.h>
 #include <util/dag_watchdog.h>
 #include <generic/dag_align.h>
+#include <3d/dag_lockTexture.h>
+#include <drv/3d/dag_info.h>
 
 namespace shaderbindump
 {
@@ -29,6 +31,8 @@ struct IntervalBindRange
 };
 static dag::Vector<IntervalBindRange> intervalBindRanges;
 static OSSpinlock mutex;
+
+ShaderStubTexturesRepository g_stub_texture_repo;
 
 void reset_interval_binds()
 {
@@ -114,7 +118,18 @@ static bool read_shdump_file(IGenLoad &crd, int size, bool mmaped_load, F cb)
     G_ASSERT(crd.tell() == 0);
     int flen = -1;
     auto fdata = (const uint8_t *)df_mmap(static_cast<FullFileLoadCB &>(crd).fileHandle, &flen);
-    if (!fdata || flen != size || !cb(fdata, size))
+    if (!fdata)
+    {
+      debug("[SH] Failed to map bindump file");
+      return false;
+    }
+    if (flen != size)
+    {
+      debug("[SH] Bindump file mapped size doesn't match required size");
+      df_unmap(fdata, flen);
+      return false;
+    }
+    if (!cb(fdata, size))
     {
       df_unmap(fdata, flen);
       return false;
@@ -124,8 +139,15 @@ static bool read_shdump_file(IGenLoad &crd, int size, bool mmaped_load, F cb)
   else // generic path with memcopy
   {
     Tab<uint8_t> dump(size);
-    if (crd.tryRead(dump.data(), size) != size || !cb(dump.data(), size))
+    if (crd.tryRead(dump.data(), size) != size)
+    {
+      debug("[SH] Failed to fread bindump file contents");
       return false;
+    }
+    if (!cb(dump.data(), size))
+    {
+      return false;
+    }
   }
   return true;
 }
@@ -153,13 +175,17 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
 
   auto mappedDump = bindump::map<shader_layout::ScriptedShadersBinDumpCompressed>(dump);
   if (!mappedDump)
+  {
+    debug("[SH] Failed to map bindump compressed structure");
     return false;
+  }
 
   const auto &header = mappedDump->header;
 
   if (header.magicPart1 != _MAKE4C('VSPS') || header.magicPart2 != _MAKE4C('dump') || header.version != SHADER_BINDUMP_VER)
   {
     // @TODO: should this be a fatal too? seems like sign maybe should cause a fatal, but version -- allow to look for other dumps.
+    debug("[SH] Invalid bindump magic=%x|%x version=%d", header.magicPart1, header.magicPart2, header.version);
     return false;
   }
 
@@ -193,11 +219,15 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
 
   mShaderDump = mappedDump->scriptedShadersBindumpCompressed.decompress(mSelfData, bindump::BehaviorOnUncompressed::Copy);
   if (!mShaderDump)
+  {
+    debug("[SH] Failed to map bindump main structure");
     return false;
+  }
 
   mShaderDumpV2 = bindump::map<shader_layout::ScriptedShadersBinDumpV2>(mSelfData.data());
   mShaderDumpV3 = bindump::map<shader_layout::ScriptedShadersBinDumpV3>(mSelfData.data());
   mShaderDumpV4 = bindump::map<shader_layout::ScriptedShadersBinDumpV4>(mSelfData.data());
+  mShaderDumpV5 = bindump::map<shader_layout::ScriptedShadersBinDumpV5>(mSelfData.data());
 
   mDictionary = eastl::unique_ptr<ZSTD_DDict_s, ZstdDictionaryDeleter>(
     zstd_create_ddict(dag::ConstSpan<char>(mShaderDump->dictionary.data(), mShaderDump->dictionary.size()), true));
@@ -237,6 +267,12 @@ void ScriptedShadersBinDumpOwner::initAfterLoad(bool is_main)
   // TODO: fsh and csh should have different sizes, but this is on shader compiler people to do
   clear_and_resize(cshId, mShaderDump->fshCount);
   eastl::fill(cshId.begin(), cshId.end(), BAD_PROGRAM);
+
+  if (mShaderDumpV5 && d3d::is_inited())
+  {
+    for (auto key : mShaderDumpV5->usedStubTextureKeys)
+      shaderbindump::g_stub_texture_repo.add(key);
+  }
 
   ++generation;
 }
@@ -315,3 +351,66 @@ void ScriptedShadersGlobalData::initAfterLoad(ScriptedShadersBinDumpOwner const 
 }
 
 void ScriptedShadersGlobalData::clear() { globVarsState.clear(); }
+
+const UniqueTex &ShaderStubTexturesRepository::query(uint32_t col, ShaderVarTextureType shvtt) const
+{
+  shvtt = shvtt == SHVT_TEX_UNKNOWN ? SHVT_TEX_2D : shvtt;
+  auto it = stubTexturesMap.find(shader_layout::StubTextureKey{col, shvtt});
+  if (DAGOR_UNLIKELY(it == stubTexturesMap.end()))
+  {
+    logwarn("Stub texture for col=%x type=%d was not found, probably due to export shaders being used before d3d init.", col,
+      int(shvtt));
+    return stubTextureStore[0];
+  }
+  return stubTextureStore[it->second];
+}
+
+void ShaderStubTexturesRepository::add(shader_layout::StubTextureKey key)
+{
+  auto [it, isNew] = stubTexturesMap.emplace(key, stubTextureStore.size());
+  if (!isNew)
+    return;
+
+  auto &tex = stubTextureStore.emplace_back();
+
+  char namebuf[64];
+  SNPRINTF(namebuf, sizeof(namebuf), "shader_stubtex_%d_%x", key.textype, key.col);
+  int flags = TEXFMT_R8G8B8A8 | TEXCF_WRITEONLY;
+
+  switch (key.textype)
+  {
+    case SHVT_TEX_UNKNOWN:
+    case SHVT_TEX_2D: tex = dag::create_tex(nullptr, 1, 1, flags, 1, namebuf); break;
+    case SHVT_TEX_3D: tex = dag::create_voltex(1, 1, 1, flags, 1, namebuf); break;
+    case SHVT_TEX_CUBE: tex = dag::create_cubetex(1, flags, 1, namebuf); break;
+    case SHVT_TEX_2D_ARRAY: tex = dag::create_array_tex(1, 1, 1, flags, 1, namebuf); break;
+    case SHVT_TEX_CUBE_ARRAY: tex = dag::create_cube_array_tex(1, 1, flags, 1, namebuf); break;
+    default: G_ASSERT(0);
+  }
+
+  const bool isCube = (key.textype == SHVT_TEX_CUBE || key.textype == SHVT_TEX_CUBE_ARRAY);
+  bool ok = true;
+
+  for (int layer = 0, lc = isCube ? 6 : 1; layer < lc; ++layer)
+  {
+    eastl::optional<int> ll{};
+    if (isCube)
+      ll.emplace(layer);
+    if (auto lock = lock_texture<uint32_t>(stubTextureStore.back().getBaseTex(), 0, TEXLOCK_WRITE, ll))
+    {
+      lock.at(0, 0) = key.col;
+    }
+    else
+    {
+      ok = false;
+      break;
+    }
+  }
+
+  if (!ok)
+  {
+    logerr("Failed to create stubtex for col=%x type=%d", key.col, key.textype);
+    stubTexturesMap.erase(it);
+    stubTextureStore.pop_back();
+  }
+}

@@ -105,7 +105,7 @@ struct ImageInfo
     desc.SampleDesc = sampleDesc;
     desc.Layout = memoryLayout;
     desc.Flags = usage;
-    desc.Format = format.asDxGiTextureCreateFormat();
+    desc.Format = format.asDxGiResourceCreateFormat();
     desc.Dimension = type;
     desc.Width = size.width;
     desc.MipLevels = mips.count();

@@ -128,12 +128,11 @@ static inline float w_to_depth(float w, const Point2 &zNearFar, float def)
   // return w > zNearFar.x ? (w-zNearFar.x)* zNearFar.y/(zNearFar.y-zNearFar.x)/w : 0.0;//fwd
 }
 
-#define RESOLVE_GBUFFER_SHADERVARS  \
-  VAR(reproject_screen_gi, true)    \
-  VAR(thin_gbuf_resolve, true)      \
-  VAR(frame_tex, false)             \
-  VAR(dynamic_lights_count, true)   \
-  VAR(has_any_dynamic_lights, true) \
+#define RESOLVE_GBUFFER_SHADERVARS \
+  VAR(reproject_screen_gi, true)   \
+  VAR(thin_gbuf_resolve, true)     \
+  VAR(frame_tex, false)            \
+  VAR(dynamic_lights_count, true)  \
   VAR(gi_use_r9g9b9e5_tex_fmt, true)
 
 #define VAR(a, o) static ShaderVariableInfo a##VarId(#a, o);
@@ -293,21 +292,14 @@ static void bindResolvePassResources(dafg::Registry registry)
   registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("upscale_sampling_tex").optional();
 }
 
-static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_name,
-  const char *resolve_cshader_name,
-  const char *classify_cshader_name,
-  const ShadingResolver::PermutationsDesc &permutations_desc)
+static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_name, const char *resolve_cshader_name)
 {
   return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC,
-    [resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc](dafg::Registry registry) {
+    [resolve_pshader_name, resolve_cshader_name](dafg::Registry registry) {
       registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
 
-      auto hasAnyDynamicLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
-      auto dynamicLightsTexHndl = registry.readTexture("dynamic_lighting_texture")
-                                    .atStage(dafg::Stage::PS_OR_CS)
-                                    .bindToShaderVar("dynamic_lighting_texture")
-                                    .optional()
-                                    .handle();
+      registry.bindBlob<bool>("has_any_dynamic_lights", "has_any_dynamic_lights");
+      registry.readTexture("dynamic_lighting_texture").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("dynamic_lighting_texture");
 
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       auto gbufDepthHndl = registry.read("gbuf_depth").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
@@ -331,31 +323,15 @@ static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_n
       state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
 
       return [enabledDepthBoundsId = shaders::overrides::create(state),
-               shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, classify_cshader_name,
-                 permutations_desc),
-               gbufDepthHndl, finalTargetHndl, hasAnyDynamicLightsHndl, waterModeHndl, dynamicLightsTexHndl,
-               cameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
+               shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, nullptr,
+                 ShadingResolver::PermutationsDesc{}),
+               gbufDepthHndl, finalTargetHndl, waterModeHndl, cameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
         camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref()};
 
         ShadowsManager &shadowsManager = WRDispatcher::getShadowsManager();
         const CameraParams &camera = cameraHndl.ref();
 
         shadowsManager.setShadowFrameIndex(camera);
-
-        int dynamicLightsCount = ShaderGlobal::get_int(dynamic_lights_countVarId);
-        if (!dynamicLightsTexHndl.get())
-        {
-          ClusteredLights &lights = WRDispatcher::getClusteredLights();
-          if (lights.hasClusteredLights() && hasAnyDynamicLightsHndl.ref())
-            lights.setInsideOfFrustumLightsToShader();
-        }
-        else
-        {
-          // Disable classification, and do a runtime check in shader if dynamicLightsTexHndl contains valid data
-          // We skip rendering of that texture, if there are no lights in frame
-          ShaderGlobal::set_int(has_any_dynamic_lightsVarId, hasAnyDynamicLightsHndl.ref());
-          ShaderGlobal::set_int(dynamic_lights_countVarId, eastl::to_underlying(DynLightsOptimizationMode::NO_LIGHTS));
-        }
 
         bool useDepthBounds = ::depth_bounds_enabled();
         if (useDepthBounds)
@@ -375,20 +351,14 @@ static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_n
 
         if (useDepthBounds)
           shaders::overrides::reset();
-
-        if (dynamicLightsTexHndl.get())
-          ShaderGlobal::set_int(dynamic_lights_countVarId, dynamicLightsCount);
       };
     });
 }
 
-static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *resolve_pshader_name,
-  const char *resolve_cshader_name,
-  const char *classify_cshader_name,
-  const ShadingResolver::PermutationsDesc &permutations_desc)
+static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *resolve_pshader_name, const char *resolve_cshader_name)
 {
   return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC,
-    [resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc](dafg::Registry registry) {
+    [resolve_pshader_name, resolve_cshader_name](dafg::Registry registry) {
       registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
 
       auto gbufDepthHndl = registry.read("gbuf_depth").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
@@ -405,8 +375,8 @@ static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *re
       state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
 
       return [enabledDepthBoundsId = shaders::overrides::create(state),
-               shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, classify_cshader_name,
-                 permutations_desc),
+               shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, nullptr,
+                 ShadingResolver::PermutationsDesc{}),
                gbufDepthHndl, finalTargetHndl, waterModeHndl, cameraHndl]() {
         ShadowsManager &shadowsManager = WRDispatcher::getShadowsManager();
         const CameraParams &camera = cameraHndl.ref();
@@ -478,13 +448,10 @@ static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *re
     });
 }
 
-static dafg::NodeHandle makeThinResolveGbufferNode(const char *resolve_pshader_name,
-  const char *resolve_cshader_name,
-  const char *classify_cshader_name,
-  const ShadingResolver::PermutationsDesc &permutations_desc)
+static dafg::NodeHandle makeThinResolveGbufferNode(const char *resolve_pshader_name, const char *resolve_cshader_name)
 {
   return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC,
-    [resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc](dafg::Registry registry) {
+    [resolve_pshader_name, resolve_cshader_name](dafg::Registry registry) {
       registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
 
       auto gbufDepthHndl = registry.read("gbuf_depth").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("depth_gbuf").handle();
@@ -499,8 +466,8 @@ static dafg::NodeHandle makeThinResolveGbufferNode(const char *resolve_pshader_n
       registry.requestState().setFrameBlock("global_frame");
       auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
 
-      return [shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, classify_cshader_name,
-                permutations_desc),
+      return [shadingResolver = eastl::make_unique<ShadingResolver>(resolve_pshader_name, resolve_cshader_name, nullptr,
+                ShadingResolver::PermutationsDesc{}),
                gbufDepthHndl, finalTargetHndl, waterModeHndl, cameraHndl]() {
         const CameraParams &camera = cameraHndl.ref();
         WRDispatcher::getShadowsManager().setShadowFrameIndex(camera);
@@ -554,9 +521,7 @@ static dafg::NodeHandle makeRenderOtherLightsNode()
 }
 
 eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const char *resolve_pshader_name,
-  const char *resolve_cshader_name,
-  const char *classify_cshader_name,
-  const ShadingResolver::PermutationsDesc &permutations_desc)
+  const char *resolve_cshader_name)
 {
   const bool isFullDeferred = renderer_has_feature(FULL_DEFERRED);
   const bool useDepthBounds = ::depth_bounds_enabled();
@@ -564,14 +529,13 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const ch
   eastl::fixed_vector<dafg::NodeHandle, 2, false> result;
   if (isFullDeferred)
   {
-    result.push_back(makeFullResolveGbufferNode(resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc));
+    result.push_back(makeFullResolveGbufferNode(resolve_pshader_name, resolve_cshader_name));
     result.push_back(makeRenderOtherLightsNode());
   }
   else if (useDepthBounds)
-    result.push_back(
-      makeThinResolveGbufferNodeWithDepthBounds(resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc));
+    result.push_back(makeThinResolveGbufferNodeWithDepthBounds(resolve_pshader_name, resolve_cshader_name));
   else
-    result.push_back(makeThinResolveGbufferNode(resolve_pshader_name, resolve_cshader_name, classify_cshader_name, permutations_desc));
+    result.push_back(makeThinResolveGbufferNode(resolve_pshader_name, resolve_cshader_name));
   return result;
 }
 
@@ -606,7 +570,7 @@ static void create_gbuffer_nodes_es(const OnCameraNodeConstruction &evt)
 
   {
     const char *resolve_shader = nullptr;
-    const char *resolve_cshader = nullptr, *classify_cshader = nullptr;
+    const char *resolve_cshader = nullptr;
 
     const bool thinGBuffer = !renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED);
 
@@ -617,16 +581,9 @@ static void create_gbuffer_nodes_es(const OnCameraNodeConstruction &evt)
     {
       resolve_shader = evt.isBareMinimum ? "deferred_shadow_bare_minimum" : "deferred_shadow_to_buffer";
       resolve_cshader = evt.isBareMinimum ? "" : "deferred_shadow_compute";
-      classify_cshader = "deferred_shadow_classify_tiles";
     }
 
-    const ShadingResolver::PermutationsDesc resolve_permutations = {
-      {int(dynamic_lights_countVarId)} /* shaderVarIds */, 1,                /* shaderVarCount */
-      {{0 /* LIGHTS_OFF */, ShadingResolver::USE_CURRENT_SHADER_VAR_VALUE}}, /* shaderVarValues */
-      {0 /* LIGHTS_OFF */}                                                   /* shaderVarValuesToSkipClassifications */
-    };
-
-    auto nodes = makeResolveGbufferNodes(resolve_shader, resolve_cshader, classify_cshader, resolve_permutations);
+    auto nodes = makeResolveGbufferNodes(resolve_shader, resolve_cshader);
     for (auto &n : nodes)
       evt.nodes->push_back(eastl::move(n));
 

@@ -44,8 +44,10 @@
 #include <libTools/util/progressInd.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_directUtils.h>
 #include <ioSys/dag_fileIo.h>
-#include <ioSys/dag_zlibIo.h>
+#include <ioSys/dag_memIo.h>
+#include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_ioUtils.h>
@@ -219,497 +221,536 @@ HmapDetLayerProps::~HmapDetLayerProps()
 
 class GenericHeightMapService : public IHmapService
 {
-  template <class T>
-  class SubMapStorageImpl : public SubMapStorage<T>
+  // Safe atomic publish of <tmpPath> onto <finalPath>: snapshots the existing
+  // <finalPath> into <finalPath>.old, then renames <tmpPath> onto <finalPath>,
+  // and removes <finalPath>.old on success. If the publish rename fails we
+  // roll back by renaming the backup back to <finalPath> so the on-disk
+  // state stays consistent.
+  //
+  // The reader path (openFile / mapStorageFileExists) falls back to
+  // <finalPath>.old when <finalPath> is missing, so if both the publish AND
+  // the rollback rename fail -- or if the process dies between the two
+  // renames -- the backup file is still discoverable as the last-known-good
+  // copy and no data appears lost on next load. Any stale .old from a prior
+  // crashed save is therefore safe to overwrite: the reader either already
+  // promoted it to finalPath, or finalPath itself is still present and the
+  // .old is dead weight.
+  //
+  // label is a short prefix used in error logs so both MapStorageImpl and
+  // R32ZstFloatMapStorage callers can share this helper.
+  static bool atomic_publish_with_backup(const char *label, const String &tmpPath, const String &finalPath)
   {
-    using SubMapStorage<T>::mapSizeX;
-    using SubMapStorage<T>::mapSizeY;
-    using SubMapStorage<T>::elemSize;
-    using SubMapStorage<T>::elems;
-    using Element = typename SubMapStorage<T>::Element;
+    String oldPath(0, "%s.old", finalPath.c_str());
+
+    if (dd_file_exist(finalPath))
+    {
+      if (dd_file_exist(oldPath))
+        dd_erase(oldPath);
+      if (!dd_rename(finalPath, oldPath))
+      {
+        DAEDITOR3.conError("%s: backup rename '%s' -> '%s' failed; leaving existing file in place. New data stays at '%s'.", label,
+          finalPath.c_str(), oldPath.c_str(), tmpPath.c_str());
+        return false;
+      }
+    }
+
+    if (!dd_rename(tmpPath, finalPath))
+    {
+      // Publish rename failed. Try to put the backup back so the on-disk
+      // state looks untouched. If rollback also fails, .old remains as the
+      // last-known-good copy that openFile/mapStorageFileExists will pick up.
+      if (dd_file_exist(oldPath) && dd_rename(oldPath, finalPath))
+      {
+        DAEDITOR3.conError(
+          "%s: publish rename '%s' -> '%s' failed; rolled back to previous good file. New data is still available at '%s'.", label,
+          tmpPath.c_str(), finalPath.c_str(), tmpPath.c_str());
+      }
+      else
+      {
+        DAEDITOR3.conError("%s: publish rename '%s' -> '%s' failed AND rollback failed; last-known-good data is at '%s' (reader "
+                           "falls back to it). New data stays at '%s'.",
+          label, tmpPath.c_str(), finalPath.c_str(), oldPath.c_str(), tmpPath.c_str());
+      }
+      return false;
+    }
+
+    if (dd_file_exist(oldPath))
+      dd_erase(oldPath);
+    return true;
+  }
+
+  // size_t-safe IGenLoad that streams a const memory buffer of arbitrary
+  // length. Used as the source for zstd_compress_data so 4 GiB+ pixel
+  // buffers compress correctly; InPlaceMemLoadCB took an int datasize
+  // that silently truncated, producing empty/corrupt .zst files.
+  class LargeMemLoadCB : public IBaseLoad
+  {
+  public:
+    LargeMemLoadCB(const void *data, size_t data_sz) :
+      start((const char *)data), cur((const char *)data), end((const char *)data + data_sz)
+    {}
+
+    void read(void *dst, int size) override
+    {
+      if (tryRead(dst, size) != size)
+        DAGOR_THROW(LoadException("LargeMemLoadCB: unexpected EOF", 0));
+    }
+
+    int tryRead(void *dst, int size) override
+    {
+      if (cur >= end || size <= 0)
+        return 0;
+      size_t take = min(size_t(size), size_t(end - cur));
+      memcpy(dst, cur, take);
+      cur += take;
+      return int(take);
+    }
+
+    // tell()/seek*() are int-capped by the IGenLoad contract; streaming zstd
+    // only calls tryRead/read, so the clamp is defensive.
+    int tell() override
+    {
+      int64_t ofs = int64_t(cur - start);
+      return ofs > int64_t(INT_MAX) ? INT_MAX : int(ofs);
+    }
+    void seekto(int) override { G_ASSERTF(0, "LargeMemLoadCB::seekto unsupported"); }
+    void seekrel(int) override { G_ASSERTF(0, "LargeMemLoadCB::seekrel unsupported"); }
+    const char *getTargetName() override { return "(mem-src)"; }
+    int64_t getTargetDataSize() override { return int64_t(end - start); }
+
+  private:
+    const char *start;
+    const char *cur;
+    const char *end;
+  };
+
+  // size_t-safe IGenSave that writes decompressed bytes straight into a
+  // pre-sized memory buffer. Counterpart of LargeMemLoadCB: the old
+  // DynamicMemGeneralSaveCB scratch + int-capped copy path silently
+  // truncated 4 GiB payloads to zero.
+  class LargeMemSaveCB : public IBaseSave
+  {
+  public:
+    LargeMemSaveCB(void *data, size_t data_sz) : start((char *)data), cur((char *)data), end((char *)data + data_sz) {}
+
+    void write(const void *src, int size) override
+    {
+      if (size <= 0)
+        return;
+      size_t take = min(size_t(size), size_t(end - cur));
+      memcpy(cur, src, take);
+      cur += take;
+      if (take < size_t(size))
+        overflow = true;
+    }
+
+    int tell() override
+    {
+      int64_t ofs = int64_t(cur - start);
+      return ofs > int64_t(INT_MAX) ? INT_MAX : int(ofs);
+    }
+    void seekto(int) override { G_ASSERTF(0, "LargeMemSaveCB::seekto unsupported"); }
+    void seektoend(int = 0) override { G_ASSERTF(0, "LargeMemSaveCB::seektoend unsupported"); }
+    const char *getTargetName() override { return "(mem-dst)"; }
+    void flush() override {}
+
+    bool hasOverflow() const { return overflow; }
+
+  private:
+    char *start;
+    char *cur;
+    char *end;
+    bool overflow = false;
+  };
+
+  // Flat-memory persistent MapStorage impl. The base class holds a single
+  // Tab<T> pixels[]; this subclass adds atomic zstd-compressed .dat
+  // persistence for float / uint16/32/64 / E3DCOLOR maps.
+  //
+  // In the current editor no caller actually persists a map through this
+  // impl: landClsMap/colorMap/detTex*/lightMapScaled are RAM-only derived
+  // outputs, and the heightmaps use R32ZstFloatMapStorage below. The
+  // persistence path is kept functional (and size_t-safe via LargeMemLoad/
+  // SaveCB) so a new caller that needs a disk-backed uint* / color map can
+  // use it without re-deriving the compression layer.
+  //
+  // Disk format (little-endian):
+  //   [u32 magic = 'FMS1']
+  //   [u32 version = 1]
+  //   [i32 w][i32 h]
+  //   [u32 typeSize]        // sanity check against sizeof(T)
+  //   [u64 defVal]          // default pixel value (low bytes hold T)
+  //   [zstd-compressed raw T[w*h]]
+  // Writes go to <fname>.tmp then atomic rename onto <fname>.
+  //
+  // Backward-compat: the pre-flat paged format lived in "<fname>/<fname>.blk"
+  // plus "<fname>/XXXX-YYYY.<fname>.dat" siblings. This impl does NOT read
+  // that legacy format -- projects that still have paged lightmap/water maps
+  // need to regenerate after upgrading. The heightmap keeps a legacy reader
+  // in R32ZstFloatMapStorage below since heightmap data is not trivially
+  // regenerable.
+  template <class T>
+  class MapStorageImpl : public MapStorage<T>
+  {
+    using MapStorage<T>::mapSizeX;
+    using MapStorage<T>::mapSizeY;
+    using MapStorage<T>::defaultValue;
+    using MapStorage<T>::pixels;
 
   public:
-    using SubMapStorage<T>::defaultValue;
-    SubMapStorageImpl(int sx, int sy, int esz, const T &defval)
+    static const uint32_t FILE_MAGIC = _MAKE4C('FMS1');
+    static const uint32_t FILE_VERSION = 1;
+
+    MapStorageImpl(int sx, int sy, const T &defval) { MapStorage<T>::reset(sx, sy, defval); }
+    ~MapStorageImpl() override { closeFile(); }
+
+    bool createFile(const char *file_name) override
     {
-      modifications = 0;
-      mapSizeX = sx;
-      mapSizeY = sy;
-      elemSize = esz;
-      fileHandle = NULL;
-      defaultValue = defval;
-      SubMapStorage<T>::reset(sx, sy, esz, defaultValue);
-    }
-    ~SubMapStorageImpl() override
-    {
-      closeFile();
-      dd_erase(workFn);
-      workFn = "";
-      mainFn = "";
-    }
-
-    bool createFile(const char *basepath, const char *file_name)
-    {
-      if (fileHandle)
-        ::df_close(fileHandle);
-
-      fileHandle = NULL;
-      modifications = 0;
-      if (basepath && file_name)
-        if (!buildPathes(basepath, file_name))
-        {
-          // debug("%p.createFile(%s,%s) failed; mapSize=%dx%d", this, basepath, file_name, mapSizeX, mapSizeY);
-          return true;
-        }
-
-      dd_mkpath(workFn);
-      fileHandle = ::df_open(workFn, DF_RDWR | DF_CREATE);
-
-      if (!fileHandle)
+      // Set up the file path state; actual on-disk write happens on flushData.
+      if (!file_name || !*file_name)
         return false;
-
-      LFileGeneralSaveCB cwr(fileHandle);
-
-      DAGOR_TRY
-      {
-        cwr.writeInt(1); // version
-
-        cwr.writeInt(mapSizeX);
-        cwr.writeInt(mapSizeY);
-        cwr.writeInt(elemSize);
-
-        T *data = new (tmpmem) T[elemSize * elemSize];
-        for (int i = 0; i < elemSize * elemSize; ++i)
-          data[i] = defaultValue;
-
-        for (int i = 0; i < elems.size(); ++i)
-          cwr.write(elems[i].data ? elems[i].data : data, sizeof(T) * elemSize * elemSize);
-
-        delete[] data;
-        modifications++;
-      }
-      DAGOR_CATCH(const IGenSave::SaveException &)
-      {
-        DAEDITOR3.conError("error while saving %s", workFn);
-        ::df_close(fileHandle);
-        fileHandle = NULL;
-
-        return false;
-      }
-
-      for (int i = 0; i < elems.size(); ++i)
-        elems[i].isModified = false;
-
+      fname = file_name;
       return true;
     }
 
-    bool openFile(const char *basepath, const char *file_name)
+    bool openFile(const char *file_name) override
     {
-      if (fileHandle)
-        ::df_close(fileHandle);
-
-      modifications = 0;
-      fileHandle = NULL;
-      if (!buildPathes(basepath, file_name))
+      if (!file_name || !*file_name)
         return false;
+      fname = file_name;
 
-      if (!decompressToWorkfile())
-        return false;
-
-      fileHandle = ::df_open(workFn, DF_RDWR);
-      if (!fileHandle)
+      // Primary path is fname; if it's missing, fall back to fname.old,
+      // which atomic_publish_with_backup leaves behind when a save crashed
+      // or the publish rename failed. Treating .old as the last-known-good
+      // copy turns a transient save failure into just "loaded the previous
+      // version", not apparent data loss. If we do fall back, promote .old
+      // to fname so the next save starts from a clean state.
+      String loadPath = fname;
+      if (!dd_file_exist(loadPath))
       {
-        SubMapStorage<T>::resetElems();
-        return true;
+        String oldPath(0, "%s.old", fname.c_str());
+        if (!dd_file_exist(oldPath))
+          return true; // fresh file: keep the reset-initialized defaults
+        if (dd_rename(oldPath, fname))
+          DAEDITOR3.conNote("MapStorageImpl: recovered '%s' from backup '%s' (previous save did not complete)", fname.c_str(),
+            oldPath.c_str());
+        else
+          loadPath = oldPath; // couldn't promote -- read .old in place
       }
 
-      LFileGeneralLoadCB crd(fileHandle);
+      FullFileLoadCB reader(loadPath);
+      if (!reader.fileHandle)
+        return false;
+
       DAGOR_TRY
       {
-        int version = crd.readInt();
-
-        if (version != 1)
+        uint32_t magic = reader.readInt();
+        if (magic != FILE_MAGIC)
         {
-          ::df_close(fileHandle);
-          fileHandle = NULL;
+          DAEDITOR3.conError("MapStorageImpl: bad magic 0x%08X in '%s'", magic, fname.c_str());
+          return false;
+        }
+        uint32_t ver = reader.readInt();
+        if (ver != FILE_VERSION)
+        {
+          DAEDITOR3.conError("MapStorageImpl: unsupported version %u in '%s'", ver, fname.c_str());
+          return false;
+        }
+        int32_t w = reader.readInt();
+        int32_t h = reader.readInt();
+        uint32_t typeSize = reader.readInt();
+        if (typeSize != sizeof(T))
+        {
+          DAEDITOR3.conError("MapStorageImpl: type size mismatch in '%s': file=%u expected=%u", fname.c_str(), typeSize,
+            uint32_t(sizeof(T)));
+          return false;
+        }
+        int64_t dvRaw = 0;
+        reader.read(&dvRaw, sizeof(dvRaw));
+        T def;
+        memcpy(&def, &dvRaw, sizeof(T));
+        if (w <= 0 || h <= 0)
+        {
+          DAEDITOR3.conError("MapStorageImpl: bad dimensions %dx%d in '%s'", w, h, fname.c_str());
           return false;
         }
 
-        crd.readInt(mapSizeX);
-        crd.readInt(mapSizeY);
-        crd.readInt(elemSize);
+        MapStorage<T>::reset(w, h, def);
+        const size_t rawBytes = size_t(w) * size_t(h) * sizeof(T);
+
+        // Stream decompression straight into pixels.data(). Avoids the
+        // int-capped DynamicMemGeneralSaveCB scratch + memcpy path that
+        // silently truncated >2 GiB payloads on the compress side.
+        LargeMemSaveCB dst(pixels.data(), rawBytes);
+        int64_t unpacked = zstd_decompress_data(dst, reader);
+        if (unpacked <= 0 || size_t(unpacked) != rawBytes)
+        {
+          DAEDITOR3.conError("MapStorageImpl: zstd payload size mismatch in '%s': got %lld need %lld", fname.c_str(),
+            (long long)unpacked, (long long)rawBytes);
+          return false;
+        }
       }
       DAGOR_CATCH(const IGenLoad::LoadException &)
       {
-        DAEDITOR3.conError("error while loading %s", workFn);
-        ::df_close(fileHandle);
-        fileHandle = NULL;
+        DAEDITOR3.conError("MapStorageImpl: I/O exception reading '%s'", fname.c_str());
         return false;
       }
-
-      if (16 + mapSizeX * mapSizeY * sizeof(T) != df_length(fileHandle))
-      {
-        debug("%s: %dx%dx%d sz_req=%d sz_real=%d", file_name, mapSizeX, mapSizeY, elemSize, 16 + mapSizeX * mapSizeY * sizeof(T),
-          df_length(fileHandle));
-        ::df_close(fileHandle);
-        fileHandle = NULL;
-        return false;
-      }
-
-      SubMapStorage<T>::resetElems();
-
       return true;
     }
 
     void closeFile(bool finalize = false) override
     {
-      if (fileHandle)
-        ::df_close(fileHandle);
-      fileHandle = NULL;
-
-      if (finalize && modifications)
-        if (!compressToMainfile())
-          return;
-
       if (finalize)
-      {
-        dd_erase(workFn);
-        workFn = "";
-        mainFn = "";
-      }
+        fname = "";
     }
 
-    void eraseFile()
+    void eraseFile() override
     {
-      flushData();
-      if (fileHandle)
-      {
-        ::df_close(fileHandle);
-        fileHandle = NULL;
-      }
+      if (!fname.empty() && dd_file_exist(fname))
+        dd_erase(fname);
+      fname = "";
+      // Reset the pixel buffer so a follow-up save on a different path does
+      // not emit stale data. Keep the size/defaultValue as the caller left
+      // them so the map stays usable in memory.
+      MapStorage<T>::reset(mapSizeX, mapSizeY, defaultValue);
+    }
 
-      if (!workFn.empty())
-        ::dd_erase(workFn);
-      if (!mainFn.empty())
-        compressToMainfile();
-
-      clear_and_shrink(elems);
+    const char *getFileName() const override { return fname; }
+    bool isFileOpened() const override { return !fname.empty(); }
+    bool canBeReverted() const override { return !fname.empty() && dd_file_exist(fname); }
+    bool revertChanges() override
+    {
+      if (fname.empty())
+        return false;
+      String keep = fname;
+      return openFile(keep);
     }
 
     bool flushData() override
     {
-      if (!fileHandle)
-      {
-        bool mod = false;
-        for (int i = 0; i < elems.size(); ++i)
-          if (elems[i].isModified && elems[i].data)
-            mod = true;
-        if (mod && !mainFn.empty())
-          return createFile(NULL, NULL);
-        return !mainFn.empty();
-      }
-      LFileGeneralSaveCB cwr(fileHandle);
-      bool ret = true;
+      if (fname.empty())
+        return true;
 
-      DAGOR_TRY
+      String tmpPath(0, "%s.tmp", fname.c_str());
       {
-        int esize = sizeof(T) * elemSize * elemSize;
-
-        for (int i = 0; i < elems.size(); ++i)
+        FullFileSaveCB writer(tmpPath);
+        if (!writer.fileHandle)
         {
-          Element &e = elems[i];
-          if (!e.isModified)
-            continue;
-
-          cwr.seekto(FILE_DATA_OFFSET + i * esize);
-          cwr.write(e.data, esize);
-
-          e.isModified = false;
-          modifications++;
-        }
-      }
-      DAGOR_CATCH(const IGenSave::SaveException &)
-      {
-        DAEDITOR3.conError("error while flushing %s", mainFn);
-        ret = false;
-      }
-
-      df_flush(fileHandle);
-      return ret;
-    }
-
-    Element *loadElement(int index) override
-    {
-      if (!fileHandle)
-        return NULL;
-
-      LFileGeneralLoadCB crd(fileHandle);
-
-      Element *e = &elems[index];
-
-      DAGOR_TRY
-      {
-        int esize = sizeof(T) * elemSize * elemSize;
-
-        crd.seekto(FILE_DATA_OFFSET + index * esize);
-
-        e->allocate(elemSize, dag::get_allocator(elems));
-        crd.read(e->data, esize);
-      }
-      DAGOR_CATCH(const IGenLoad::LoadException &)
-      {
-        DAEDITOR3.conError("error while loading element of %s", mainFn);
-        e = NULL;
-      }
-
-      return e;
-    }
-
-    int getModifications() const
-    {
-      if (modifications)
-        return modifications;
-      for (int i = 0; i < elems.size(); i++)
-        if (elems[i].isModified)
-          return 1;
-      return 0;
-    }
-    bool buildPathes(const char *basepath, const char *file_name)
-    {
-      if (!basepath || !file_name || !*basepath || !*file_name)
-      {
-        mainFn = "";
-        workFn = "";
-        return false;
-      }
-      mainFn.printf(260, "%s%s", basepath, file_name);
-      workFn.printf(260, "%s../.work/%s", basepath, file_name);
-      dd_simplify_fname_c(mainFn);
-      mainFn.resize(strlen(mainFn) + 1);
-      dd_simplify_fname_c(workFn);
-      mainFn.resize(strlen(workFn) + 1);
-      return true;
-    }
-
-    bool compressToMainfile()
-    {
-      FullFileLoadCB crd(workFn);
-      if (!crd.fileHandle && !dd_file_exist(mainFn))
-        return true;
-      FullFileSaveCB cwr(mainFn);
-      if (!cwr.fileHandle)
-        return false;
-
-      int ver = 1 | 0x80000000; // version + compressed
-      if (!crd.fileHandle)
-        ver |= 0x40000000;
-      cwr.writeInt(ver);
-      cwr.writeInt(mapSizeX);
-      cwr.writeInt(mapSizeY);
-      cwr.writeInt(elemSize);
-
-      if (crd.fileHandle)
-      {
-        crd.seekto(FILE_DATA_OFFSET);
-        lzma_compress_data(cwr, 9, crd, mapSizeX * mapSizeY * sizeof(T));
-      }
-      crd.close();
-      cwr.close();
-
-      modifications = 0;
-      debug("compressed changed data: %s -> %s", workFn, mainFn);
-      return true;
-    }
-    bool decompressToWorkfile()
-    {
-      dd_mkpath(workFn);
-      dd_erase(workFn);
-
-      FullFileLoadCB crd(mainFn);
-      if (!crd.fileHandle)
-        return true;
-
-      if (df_length(crd.fileHandle) < 16)
-      {
-        DAEDITOR3.conError("%s: too small (%d bytes) during decompression", mainFn, df_length(crd.fileHandle));
-        return false;
-      }
-      int ver = crd.readInt();
-      if ((ver & 0x8000FFFF) != (1 | 0x80000000))
-      {
-        logerr("%s: bad version %08X", ver);
-        return false;
-      }
-      if (ver & 0x40000000)
-        return true;
-      int sx = crd.readInt();
-      int sy = crd.readInt();
-      int esz = crd.readInt();
-      if (sx != mapSizeX || sy != mapSizeY || esz != elemSize)
-      {
-        logerr("%s: size mismatch (%dx%d,%d) != (%dx%d,%d)", mainFn.str(), sx, sy, esz, mapSizeX, mapSizeY, elemSize);
-        hmap_stor_mismatch_cnt++;
-        if (hmap_stor_mismatch_cnt == 1000)
-          DAG_FATAL("%s: size mismatch (%dx%d,%d) != (%dx%d,%d)\n(too many errors)", mainFn.str(), sx, sy, esz, mapSizeX, mapSizeY,
-            elemSize);
-        return false;
-      }
-
-      FullFileSaveCB cwr(workFn);
-      if (!cwr.fileHandle)
-        return false;
-
-      cwr.writeInt(ver & ~0x80000000);
-      cwr.writeInt(sx);
-      cwr.writeInt(sy);
-      cwr.writeInt(esz);
-
-      DAGOR_TRY
-      {
-        LzmaLoadCB z_crd(crd, df_length(crd.fileHandle) - 16);
-        copy_stream_to_stream(z_crd, cwr, sx * sy * sizeof(T));
-        z_crd.close();
-        crd.close();
-        cwr.close();
-      }
-      DAGOR_CATCH(DagorException e)
-      {
-        DAEDITOR3.conError("%s: exception <%s> during decompression", mainFn, e.excDesc);
-
-        cwr.seekto(0);
-        cwr.writeInt(ver & ~0x80000000);
-        cwr.writeInt(sx);
-        cwr.writeInt(sy);
-        cwr.writeInt(esz);
-        for (int i = 0; i < sx * sy; ++i)
-          cwr.write(&defaultValue, sizeof(T));
-        modifications++;
-
-        DAEDITOR3.conWarning("%s: inited with default value", mainFn);
-      }
-      return true;
-    }
-
-    bool openOldFile(const char *file_name)
-    {
-      if (fileHandle)
-        ::df_close(fileHandle);
-
-      mainFn = file_name;
-      workFn.printf(260, "%s.unz", file_name);
-      modifications = 0;
-
-      fileHandle = ::df_open(mainFn, DF_RDWR);
-      if (!fileHandle)
-        return false;
-
-      LFileGeneralLoadCB crd(fileHandle);
-      if (crd.readInt() != _MAKE4C('ZLIB'))
-        crd.seekto(0);
-      else
-      {
-        int fsize = crd.readInt();
-
-        FullFileSaveCB cwr(workFn);
-        G_ASSERT(cwr.fileHandle);
-
-        ZlibLoadCB z_crd(crd, fsize);
-        copy_stream_to_stream(z_crd, cwr, fsize);
-        z_crd.close();
-
-        df_close(fileHandle);
-        fileHandle = ::df_open(workFn, DF_RDWR);
-        crd.fileHandle = fileHandle;
-        crd.seekto(0);
-      }
-
-      DAGOR_TRY
-      {
-        int version = crd.readInt();
-
-        if (version != 1)
-        {
-          ::df_close(fileHandle);
-          fileHandle = NULL;
+          DAEDITOR3.conError("MapStorageImpl: cannot open '%s' for writing", tmpPath.c_str());
           return false;
         }
 
-        crd.readInt(mapSizeX);
-        crd.readInt(mapSizeY);
-        crd.readInt(elemSize);
-      }
-      DAGOR_CATCH(const IGenLoad::LoadException &)
-      {
-        DAEDITOR3.conError("%s: exception <%s> during decompression (old file)", mainFn);
-        ::df_close(fileHandle);
-        fileHandle = NULL;
-        return false;
+        DAGOR_TRY
+        {
+          writer.writeInt(int(FILE_MAGIC));
+          writer.writeInt(int(FILE_VERSION));
+          writer.writeInt(mapSizeX);
+          writer.writeInt(mapSizeY);
+          writer.writeInt(int(sizeof(T)));
+          int64_t dvRaw = 0;
+          memcpy(&dvRaw, &defaultValue, sizeof(T));
+          writer.write(&dvRaw, sizeof(dvRaw));
+
+          const size_t rawBytes = size_t(mapSizeX) * size_t(mapSizeY) * sizeof(T);
+          // Use the size_t-safe LargeMemLoadCB instead of InPlaceMemLoadCB;
+          // the latter took an int datasize and silently truncated >2 GiB
+          // pixel buffers to zero, producing 16-byte corrupt .dat files.
+          LargeMemLoadCB in(pixels.data(), rawBytes);
+          int64_t packed = zstd_compress_data(writer, in, rawBytes, /*solid_threshold*/ 1 << 20, /*compressionLevel*/ 16);
+          if (packed <= 0)
+          {
+            DAEDITOR3.conError("MapStorageImpl: zstd_compress_data failed for '%s'", tmpPath.c_str());
+            return false;
+          }
+        }
+        DAGOR_CATCH(const IGenSave::SaveException &)
+        {
+          DAEDITOR3.conError("MapStorageImpl: I/O exception writing '%s'", tmpPath.c_str());
+          return false;
+        }
       }
 
-      if (FILE_DATA_OFFSET + mapSizeX * mapSizeY * sizeof(T) != df_length(fileHandle))
-      {
-        debug("%s: %dx%dx%d sz_req=%d sz_real=%d", file_name, mapSizeX, mapSizeY, elemSize, 16 + mapSizeX * mapSizeY * sizeof(T),
-          df_length(fileHandle));
-        ::df_close(fileHandle);
-        fileHandle = NULL;
-        return false;
-      }
-
-      SubMapStorage<T>::resetElems();
-
-      return true;
+      return atomic_publish_with_backup("MapStorageImpl", tmpPath, fname);
     }
 
   protected:
-    static const int FILE_DATA_OFFSET = 16;
-
-    file_ptr_t fileHandle;
-    String mainFn, workFn;
-    int modifications;
+    String fname;
   };
 
+  // Reads the pre-flat paged .blk + per-subMap .dat files into a MapStorage<T>
+  // that the caller has already pre-sized via resetStored(). Rectangle-copies
+  // the world-coord overlap of the legacy submap bbox and the caller's stored
+  // rect; legacy pixels outside the caller's rect are discarded. This is what
+  // tightens det-hmap from the 2048-aligned legacy bbox down to exactly
+  // detRect on first save.
+  //
+  // Format reminder (produced by the now-deleted SubMapStorageImpl):
+  //   <dir>/<base>.blk            -- DataBlock with "w", "h", "defVal"
+  //   <dir>/XXXX-YYYY.<base>.dat  -- per-submap (2048x2048 region, 8x8 tiles
+  //                                  of 256x256 each). Header:
+  //     [u32 ver (bit 31 = compressed)][u32 subW][u32 subH][u32 elemSize]
+  //     then compressed (or raw if uncompressed) row-major tile data:
+  //     tile index = ty*numTilesX + tx; each tile = elemSize*elemSize pixels.
+  // The compressed body uses LZMA in recent saves.
+  // Returns true if the legacy .blk was found and parsed (missing .dat
+  // siblings leave those regions at caller's defaultValue). Returns false if
+  // no .blk is present -- the caller should treat that as "no legacy data".
   template <class T>
-  class MapStorageImpl : public MapStorage<T>
+  static bool read_legacy_paged_into_stored(MapStorage<T> &out, const char *legacy_dir, const char *basename)
   {
-    using MapStorage<T>::SUBMAP_SZ;
-    using MapStorage<T>::ELEM_SZ;
-    using MapStorage<T>::mapSizeX;
-    using MapStorage<T>::mapSizeY;
-    using MapStorage<T>::numSubMapsX;
-    using MapStorage<T>::numSubMapsY;
-    using MapStorage<T>::defaultValue;
-    using MapStorage<T>::subMaps;
+    static const int SUBMAP_SZ = 2048;
+    static const int ELEM_SZ = 256;
 
+    String blkPath(260, "%s%s.blk", legacy_dir, basename);
+    if (!dd_file_exist(blkPath))
+      return false;
+
+    DataBlock blk;
+    if (!blk.load(blkPath))
+      return false;
+
+    const int logicalW = blk.getInt("w", 0);
+    const int logicalH = blk.getInt("h", 0);
+    // defVal and logicalW/H are advisory: caller has already pre-sized `out`
+    // from heightmapLand.plugin.blk. Legacy logicalW/H are used only to bound
+    // the submap iteration and to stop the per-pixel loop at submap edges.
+    if (logicalW <= 0 || logicalH <= 0)
+      return false;
+
+    const int callerOx = out.storedOfsX;
+    const int callerOy = out.storedOfsY;
+    const int callerSw = out.storedW;
+    const int callerSh = out.storedH;
+    if (callerSw <= 0 || callerSh <= 0)
+      return true; // nothing to fill
+    const int callerExX = callerOx + callerSw;
+    const int callerExY = callerOy + callerSh;
+
+    const int numSubMapsX = (logicalW + SUBMAP_SZ - 1) / SUBMAP_SZ;
+    const int numSubMapsY = (logicalH + SUBMAP_SZ - 1) / SUBMAP_SZ;
+
+    for (int sy = 0; sy < numSubMapsY; sy++)
+      for (int sx = 0; sx < numSubMapsX; sx++)
+      {
+        // Early-out: skip submaps that don't overlap the caller's stored
+        // rect. The legacy bbox may be much larger than detRect, so most
+        // submaps are pure waste to read for a tight detRect.
+        const int subOffX = sx * SUBMAP_SZ;
+        const int subOffY = sy * SUBMAP_SZ;
+        const int subExX = subOffX + SUBMAP_SZ;
+        const int subExY = subOffY + SUBMAP_SZ;
+        if (subExX <= callerOx || subOffX >= callerExX || subExY <= callerOy || subOffY >= callerExY)
+          continue;
+
+        String subPath(260, "%s%04d-%04d.%s.dat", legacy_dir, sx, sy, basename);
+        if (!dd_file_exist(subPath))
+          continue;
+
+        FullFileLoadCB reader(subPath);
+        if (!reader.fileHandle)
+          continue;
+
+        int ver = reader.readInt();
+        const bool compressed = (uint32_t(ver) & 0x80000000u) != 0;
+        if ((ver & 0x7FFFFFFF) != 1)
+        {
+          logerr("legacy paged submap '%s': bad version 0x%08X", subPath.c_str(), ver);
+          continue;
+        }
+        const int subW = reader.readInt();
+        const int subH = reader.readInt();
+        const int esz = reader.readInt();
+        if (esz != ELEM_SZ)
+        {
+          logerr("legacy paged submap '%s': unexpected elemSize %d", subPath.c_str(), esz);
+          continue;
+        }
+
+        const size_t subBytes = size_t(subW) * size_t(subH) * sizeof(T);
+        SmallTab<T, TmpmemAlloc> subBuf;
+        clear_and_resize(subBuf, subW * subH);
+
+        if (compressed)
+        {
+          const int bodyOff = reader.tell();
+          const int bodyLen = df_length(reader.fileHandle) - bodyOff;
+          uint8_t peek[2] = {0, 0};
+          reader.read(peek, 2);
+          reader.seekto(bodyOff);
+
+          LzmaLoadCB z_crd(reader, bodyLen);
+          z_crd.read(subBuf.data(), int(subBytes));
+          z_crd.close();
+        }
+        else
+          reader.read(subBuf.data(), int(subBytes));
+
+        const int numTilesX = (subW + ELEM_SZ - 1) / ELEM_SZ;
+        const int numTilesY = (subH + ELEM_SZ - 1) / ELEM_SZ;
+        for (int ty = 0; ty < numTilesY; ty++)
+          for (int tx = 0; tx < numTilesX; tx++)
+          {
+            const T *tileData = &subBuf[(ty * numTilesX + tx) * ELEM_SZ * ELEM_SZ];
+            for (int py = 0; py < ELEM_SZ; py++)
+            {
+              const int wy = subOffY + ty * ELEM_SZ + py;
+              if (wy >= logicalH)
+                break;
+              const int localY = wy - callerOy;
+              if (unsigned(localY) >= unsigned(callerSh))
+                continue;
+              for (int px = 0; px < ELEM_SZ; px++)
+              {
+                const int wx = subOffX + tx * ELEM_SZ + px;
+                if (wx >= logicalW)
+                  break;
+                const int localX = wx - callerOx;
+                if (unsigned(localX) >= unsigned(callerSw))
+                  continue;
+                out.pixels[intptr_t(localY) * callerSw + localX] = tileData[py * ELEM_SZ + px];
+              }
+            }
+          }
+      }
+    return true;
+  }
+
+  // Float MapStorage persisted as a single file:
+  //   <dir>/<base>.r32.zst   -- zstd-compressed raw floats, row-major, stored
+  //                             rect only (storedW x storedH pixels)
+  //
+  // No sidecar: mapSize/storedOfs/storedW/storedH/defVal are all derivable
+  // from heightmapLand.plugin.blk (heightMapSizeX/Y, detDivisor, detRect0,
+  // detRect1) and heightmap defVal is always 0. The caller is responsible
+  // for calling resetStored() with the correct extent BEFORE openFile();
+  // openFile just decompresses bytes into pixels.data().
+  //
+  // openFile picks the format automatically:
+  //   * .r32.zst present                -> decompress into caller buffer
+  //   * .r32.zst.old (crash recovery)   -> promote and decompress
+  //   * legacy paged <base>/<base>.blk  -> read 2048-submap tree, rectangle-
+  //                                        copy world-coord overlap into the
+  //                                        caller's pre-sized buffer (data
+  //                                        outside caller's stored rect is
+  //                                        discarded). Next flushData wipes
+  //                                        the legacy dir -- this tightens
+  //                                        the on-disk footprint from the
+  //                                        legacy 2048-aligned bbox down to
+  //                                        exactly detRect on first save.
+  //   * none of the above               -> fresh file; caller's pixels hold
+  //                                        defaultValue from resetStored.
+  class R32ZstFloatMapStorage : public MapStorage<float>
+  {
   public:
-    typedef SubMapStorageImpl<T> SubMapImpl;
-
-    MapStorageImpl(int sx, int sy, const T &defval)
-    {
-      mapSizeX = (sx + ELEM_SZ - 1) / ELEM_SZ * ELEM_SZ;
-      mapSizeY = (sy + ELEM_SZ - 1) / ELEM_SZ * ELEM_SZ;
-      defaultValue = defval;
-      MapStorage<T>::reset(sx, sy, defaultValue);
-    }
-    ~MapStorageImpl() override { closeFile(); }
+    R32ZstFloatMapStorage(int sx, int sy, float defval) { MapStorage<float>::reset(sx, sy, defval); }
+    ~R32ZstFloatMapStorage() override { closeFile(); }
 
     bool createFile(const char *file_name) override
     {
-      if (!buildPathes(file_name))
-        return false;
-
-      dd_mkdir(path);
-      DataBlock blk;
-      blk.setInt("w", mapSizeX);
-      blk.setInt("h", mapSizeY);
-      int64_t dv = 0;
-      *(T *)&dv = defaultValue;
-      blk.setInt64("defVal", dv);
-      for (int i = 0; i < subMaps.size(); i++)
-        if (subMaps[i])
-          subMap(i)->createFile(path, getSubMapPath(i));
-
-      blk.saveToTextFile(String(260, "%s%s.blk", path.str(), fname.str()));
-      return true;
+      // Only initializes path/fname; the .r32.zst itself is written by flushData
+      // into the parent dir, which already exists. The legacy paged-format
+      // directory is read-only fallback (see openFile) and must not be created.
+      return buildPathes(file_name);
     }
 
     bool openFile(const char *file_name) override
@@ -717,54 +758,40 @@ class GenericHeightMapService : public IHmapService
       if (!buildPathes(file_name))
         return false;
 
-      String fn_blk(260, "%s%s.blk", path.str(), fname.str());
-      if (!dd_file_exist(fn_blk) && dd_file_exist(file_name))
+      String compressedPath = buildR32ZstPath();
+      if (dd_file_exist(compressedPath))
+        return readR32Zst(compressedPath);
+
+      // Crash-recovery fallback: atomic_publish_with_backup leaves the
+      // previous good .r32.zst at <compressedPath>.old when a save fails or
+      // the process dies between the backup and publish renames. Promote .old
+      // to the final name so subsequent saves start clean.
+      String oldCompressedPath(0, "%s.old", compressedPath.c_str());
+      if (dd_file_exist(oldCompressedPath))
       {
-        // do conversion
-        logwarn("convert old %s to new %s", file_name, path.str());
-        SubMapImpl *e = new SubMapImpl(128, 128, 128, 0);
-        if (!e->openOldFile(file_name))
+        if (dd_rename(oldCompressedPath, compressedPath))
         {
-          logerr("failed to open old %s", file_name);
-          return false;
+          DAEDITOR3.conNote("R32ZstFloatMapStorage: recovered '%s' from backup '%s' (previous save did not complete)",
+            compressedPath.c_str(), oldCompressedPath.c_str());
+          return readR32Zst(compressedPath);
         }
-
-        dd_mkdir(path + "../.work");
-        MapStorage<T>::reset(e->getMapSizeX(), e->getMapSizeY(), e->defaultValue);
-        for (int y = 0, ye = e->getMapSizeY(); y < ye; y++)
-          for (int x = 0, xe = e->getMapSizeX(); x < xe; x++)
-            MapStorage<T>::setData(x, y, e->getData(x, y));
-        e->closeFile(true);
-        delete e;
-
-        if (!createFile(file_name))
-          return false;
-        MapStorage<T>::flushData();
-        dd_erase(file_name);
-
-        for (int i = 0; i < subMaps.size(); i++)
-          if (subMaps[i])
-            subMap(i)->compressToMainfile();
-        return true;
+        return readR32Zst(oldCompressedPath);
       }
 
-      DataBlock blk;
-      if (!blk.load(fn_blk))
-        return false;
-      if (!blk.paramCount())
-        return false;
+      // Legacy paged fallback: read the old .blk + .dat submap tree and
+      // rectangle-copy world-coord overlap into the caller-preset buffer.
+      // Data outside the caller's stored rect is discarded (tightens to
+      // detRect). Next flushData wipes the legacy dir.
+      String legacyBlk(260, "%s%s.blk", path.str(), fname.str());
+      if (dd_file_exist(legacyBlk))
+        return read_legacy_paged_into_stored<float>(*this, path.c_str(), fname.c_str());
 
-      int64_t dv = blk.getInt64("defVal");
-      MapStorage<T>::reset(blk.getInt("w"), blk.getInt("h"), *(T *)&dv);
+      // Fresh file -- keep caller's reset-initialized defaults.
       return true;
     }
 
     void closeFile(bool finalize = false) override
     {
-      for (int i = 0; i < subMaps.size(); i++)
-        if (subMaps[i])
-          subMaps[i]->closeFile(finalize);
-
       if (finalize)
       {
         fname = "";
@@ -774,63 +801,88 @@ class GenericHeightMapService : public IHmapService
 
     void eraseFile() override
     {
-      for (int i = 0; i < subMaps.size(); i++)
-        if (subMaps[i])
-          subMap(i)->eraseFile();
-      clear_and_shrink(subMaps);
-      if (!fname.empty())
-      {
-        String blk_fn(260, "%s%s.blk", path.str(), fname.str());
-        if (dd_file_exist(blk_fn))
-          DataBlock().saveToTextFile(blk_fn);
-      }
-      fname = "";
+      // Guard against eraseFile after closeFile(true) (or before any
+      // createFile/openFile) -- buildSiblingPath with empty fname returns a
+      // CWD-relative ".r32.zst" path that could match an unrelated file.
+      if (fname.empty())
+        return;
+      String compressedPath = buildR32ZstPath();
+      if (dd_file_exist(compressedPath))
+        dd_erase(compressedPath);
+      if (!path.empty() && dd_dir_exists(path))
+        dag::remove_dirtree(path);
+      // Preserve the stored rect (don't fall back to full-extent alloc), so a
+      // det-heightmap at 32768x32768 logical doesn't suddenly balloon to a
+      // 4 GiB allocation on erase. Callers that want to extend the edit area
+      // must explicitly resetStored to a larger bbox.
+      MapStorage<float>::resetStored(mapSizeX, mapSizeY, storedOfsX, storedOfsY, storedW, storedH, defaultValue);
     }
 
     const char *getFileName() const override { return path; }
     bool isFileOpened() const override { return !fname.empty(); }
-    bool canBeReverted() const override
-    {
-      int changes = 0;
-      for (int i = 0; i < subMaps.size(); i++)
-        if (subMaps[i])
-          changes += subMap(i)->getModifications();
-      return changes > 0;
-    }
+    bool canBeReverted() const override { return !fname.empty() && dd_file_exist(buildR32ZstPath()); }
     bool revertChanges() override
     {
-      for (int i = 0; i < subMaps.size(); i++)
-        if (subMaps[i] && subMap(i)->getModifications())
-          del_it(subMaps[i]);
+      if (fname.empty())
+        return false;
+      String compressedPath = buildR32ZstPath();
+      if (!dd_file_exist(compressedPath))
+        return false;
+      return readR32Zst(compressedPath);
+    }
+
+    bool flushData() override
+    {
+      if (fname.empty())
+        return true;
+
+      String r32Path = buildR32ZstPath();
+      String r32Tmp(0, "%s.tmp", r32Path.c_str());
+
+      // Raw-float payload: zstd of storedW * storedH row-major floats, no
+      // header. Streaming from pixels.data() through a size_t-safe reader
+      // avoids the int-sized API cap on InPlaceMemLoadCB that silently
+      // truncated 4 GiB payloads to 0.
+      const size_t storedBytes = size_t(storedW) * size_t(storedH) * sizeof(float);
+      {
+        FullFileSaveCB writer(r32Tmp);
+        if (!writer.fileHandle)
+        {
+          DAEDITOR3.conError("R32ZstFloatMapStorage: cannot open '%s' for writing", r32Tmp.c_str());
+          return false;
+        }
+        if (storedBytes > 0)
+        {
+          LargeMemLoadCB src(pixels.data(), storedBytes);
+          int64_t packed = zstd_compress_data(writer, src, storedBytes, /*solid_threshold*/ 1 << 20, /*compressionLevel*/ 11);
+          if (packed <= 0)
+          {
+            DAEDITOR3.conError("R32ZstFloatMapStorage: zstd_compress_data failed for '%s'", r32Tmp.c_str());
+            return false;
+          }
+        }
+        // Empty stored rect -> zero-byte .r32.zst; load path notices
+        // storedW*storedH == 0 and skips the decompress.
+      }
+      if (!atomic_publish_with_backup("R32ZstFloatMapStorage", r32Tmp, r32Path))
+        return false;
+
+      // One-shot cleanup of the legacy paged dir after the first successful
+      // .r32.zst write. If the dir still exists and contains the old .blk
+      // descriptor, wipe it.
+      if (dd_dir_exists(path))
+      {
+        String legacyBlk(260, "%s%s.blk", path.str(), fname.str());
+        if (dd_file_exist(legacyBlk))
+        {
+          dag::remove_dirtree(path);
+          DAEDITOR3.conNote("R32ZstFloatMapStorage: migrated legacy paged dir '%s' to '%s'", path.c_str(), r32Path.c_str());
+        }
+      }
       return true;
     }
 
-    typename MapStorage<T>::SubMap *createSubMap(int ex, int ey) override
-    {
-      SubMapImpl *e = new SubMapImpl(calcSubMapSizeX(ex), calcSubMapSizeY(ey), ELEM_SZ, defaultValue);
-      if (!e->createFile(path, getSubMapPath(ex, ey)))
-      {
-        delete e;
-        return NULL;
-      }
-      return subMaps[ey * numSubMapsX + ex] = e;
-    }
-    typename MapStorage<T>::SubMap *loadSubMap(int index) override
-    {
-      if (fname.empty())
-        return NULL;
-      int ex = index % numSubMapsX;
-      int ey = index / numSubMapsY;
-      SubMapImpl *e = new SubMapImpl(calcSubMapSizeX(ex), calcSubMapSizeY(ey), ELEM_SZ, defaultValue);
-      if (!e->openFile(path, getSubMapPath(index)))
-      {
-        DAEDITOR3.conError("failed to load subelem %s : %d -> %s", path, index, getSubMapPath(index));
-        delete e;
-        e = new SubMapImpl(calcSubMapSizeX(ex), calcSubMapSizeY(ey), ELEM_SZ, defaultValue);
-      }
-      return subMaps[index] = e;
-    }
-
+  private:
     bool buildPathes(const char *file_name)
     {
       path = "";
@@ -847,13 +899,45 @@ class GenericHeightMapService : public IHmapService
       fname.printf(260, "%.*s", ext - fn, fn);
       return true;
     }
-    String getSubMapPath(int ex, int ey) const { return String(260, "%04d-%04d.%s.dat", ex, ey, fname.str()); }
-    String getSubMapPath(int index) const { return getSubMapPath(index % numSubMapsX, index / numSubMapsX); }
-    int calcSubMapSizeX(int ex) const { return ex == numSubMapsX - 1 ? mapSizeX - (numSubMapsX - 1) * SUBMAP_SZ : SUBMAP_SZ; }
-    int calcSubMapSizeY(int ey) const { return ey == numSubMapsY - 1 ? mapSizeY - (numSubMapsY - 1) * SUBMAP_SZ : SUBMAP_SZ; }
 
-    SubMapImpl *subMap(int idx) { return static_cast<SubMapImpl *>(subMaps[idx]); }
-    const SubMapImpl *subMap(int idx) const { return static_cast<const SubMapImpl *>(subMaps[idx]); }
+    String buildR32ZstPath() const
+    {
+      // path is "<dir>/<fname>/" and fname is "<fname>". The .r32.zst lives
+      // next to the legacy dir as "<dir>/<fname>.r32.zst". Tab<char>::resize
+      // only lowers the used-count and doesn't null-terminate, so slicing
+      // path via c_str()+resize would leave the old tail readable and build
+      // an inside-dir path. Use printf with an explicit length instead.
+      const int suffixLen = int(fname.length()) + 1;
+      const int dirLen = max(int(path.length()) - suffixLen, 0);
+      return String(0, "%.*s%s.r32.zst", dirLen, path.c_str(), fname.c_str());
+    }
+
+    // Decompress straight into caller-preset pixels.data(). Decoded byte
+    // count must equal storedW*storedH*sizeof(float); mismatch (caller's
+    // stored rect disagrees with what was saved) -> conError and fail.
+    bool readR32Zst(const String &compressedPath)
+    {
+      const size_t storedBytes = size_t(storedW) * size_t(storedH) * sizeof(float);
+      if (storedBytes == 0)
+        return true; // caller pre-sized to empty rect; nothing to read.
+
+      FullFileLoadCB reader(compressedPath);
+      if (!reader.fileHandle)
+      {
+        DAEDITOR3.conError("R32ZstFloatMapStorage: cannot open '%s' for reading", compressedPath.c_str());
+        return false;
+      }
+      LargeMemSaveCB dst(pixels.data(), storedBytes);
+      int64_t unpacked = zstd_decompress_data(dst, reader);
+      if (unpacked <= 0 || size_t(unpacked) != storedBytes)
+      {
+        DAEDITOR3.conError("R32ZstFloatMapStorage: zstd payload size mismatch in '%s': got %lld need %lld", compressedPath.c_str(),
+          (long long)unpacked, (long long)storedBytes);
+        return false;
+      }
+      return true;
+    }
+
     String path, fname;
   };
 
@@ -871,9 +955,9 @@ class GenericHeightMapService : public IHmapService
     void alloc(int sx, int sy, bool sep_final)
     {
       ctorClear();
-      hmInitial = new MapStorageImpl<float>(sx, sy, 0);
+      hmInitial = new R32ZstFloatMapStorage(sx, sy, 0);
       if (sep_final)
-        hmFinal = new MapStorageImpl<float>(sx, sy, 0);
+        hmFinal = new R32ZstFloatMapStorage(sx, sy, 0);
       else
         hmFinal = hmInitial;
     }
@@ -1104,6 +1188,7 @@ public:
   TEXTUREID landMicrodetailsId = BAD_TEXTUREID;
 
   DataBlock grassBlk;
+  SimpleString paintDetailsTextureName;
 
   void loadLandMicroDetails(const DataBlock &blk)
   {
@@ -1121,9 +1206,12 @@ public:
   {
     loadLandMicroDetails(*level_blk.getBlockByNameEx("micro_details"));
     grassBlk = *level_blk.getBlockByNameEx("randomGrass");
+    paintDetailsTextureName = level_blk.getStr("global_paint_details_tex", "assets_color_global_tex_palette*");
   }
 
   void setGrassBlk(const DataBlock *blk) override { grassBlk = *blk; }
+
+  const char *getGlobalPaintDetailsTexName() const override { return paintDetailsTextureName.str(); }
 
   void initClipmap()
   {
@@ -1184,7 +1272,26 @@ public:
       DataBlock blk;
       return blk.load(blk_fn) && blk.paramCount();
     }
-    return dd_file_exist(fname);
+    if (dd_file_exist(fname))
+      return true;
+    // New-format projects store the flat .r32.zst next to the legacy paged
+    // dir at "<dir>/<basename>.r32.zst" (no .dat extension) -- see
+    // R32ZstFloatMapStorage::buildR32ZstPath. A naive "%s.r32.zst" would
+    // probe "<dir>/<basename>.dat.r32.zst" and miss the real migrated file,
+    // making loadMapFile skip openFile and load a zero-sized heightmap.
+    String zstPath(0, "%.*s.r32.zst", int(ext - fname), fname);
+    if (dd_file_exist(zstPath))
+      return true;
+    // atomic_publish_with_backup may leave the previous good file at
+    // <fname>.old when a save fails mid-swap. Treat that as "exists" so
+    // callers (e.g. eager-regen guards) don't mistake a transient save
+    // failure for a fresh/empty project. Also check the .r32.zst.old sibling
+    // (same extension-stripping rule as above) for the new flat-file layout.
+    String oldPath(0, "%s.old", fname);
+    if (dd_file_exist(oldPath))
+      return true;
+    String zstOldPath(0, "%.*s.r32.zst.old", int(ext - fname), fname);
+    return dd_file_exist(zstOldPath);
   }
 
   bool createStorage(HeightMapStorage &_hm, int sx, int sy, bool sep_final) override

@@ -5,6 +5,7 @@
 #include "var_scope.h"
 #include "value_ref.h"
 #include "symbol_info.h"
+#include "external_value.h"
 #include "naming.h"
 #include "checker_visitor.h"
 #include "compiler/compilationcontext.h"
@@ -155,10 +156,14 @@ VarScope *VarScope::copy(Arena *a, bool forClosure) const {
 }
 
 
-static SourceLoc getSymbolLocation(const SymbolInfo *info) {
+static SourceLoc getSymbolLocation(const ValueRef *v) {
+  const SymbolInfo *info = v->info;
   if (info->kind == SK_IMPORT) {
-    const ImportInfo *imp = info->declarator.imp;
-    return {imp->line, imp->column};
+    if (info->declarator.imp) // real `from X import Y` slot
+      return {info->declarator.imp->line, info->declarator.imp->column};
+    // host binding: coords on the ExternalValue
+    assert(v->externalValue);
+    return {v->externalValue->line, v->externalValue->column};
   }
   const Node *node = info->extractPointedNode();
   return {node->lineStart(), node->columnStart()}; //-V522
@@ -167,8 +172,8 @@ static SourceLoc getSymbolLocation(const SymbolInfo *info) {
 void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
   std::vector<std::pair<const char *, ValueRef *>> sorted(symbols.begin(), symbols.end());
   std::sort(sorted.begin(), sorted.end(), [](const auto &a, const auto &b) {
-    SourceLoc locA = getSymbolLocation(a.second->info);
-    SourceLoc locB = getSymbolLocation(b.second->info);
+    SourceLoc locA = getSymbolLocation(a.second);
+    SourceLoc locB = getSymbolLocation(b.second);
     if (locA.line != locB.line)
       return locA.line < locB.line;
     return locA.column < locB.column;
@@ -188,8 +193,16 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
 
     if (!info->used && n[0] != '_') {
       if (info->kind == SK_IMPORT) {
-        const ImportInfo *import = info->declarator.imp;
-        checker->reportImportSlot(import->line, import->column, import->name);
+        if (const ImportInfo *import = info->declarator.imp) {
+          checker->report(import->line, import->column, (int)strlen(import->name),
+            DiagnosticsId::DI_IMPORTED_NEVER_USED, import->name);
+        }
+        else {
+          // Host binding: report with "external binding" wording, coords from ExternalValue.
+          assert(v->externalValue);
+          checker->report(v->externalValue->line, v->externalValue->column, (int)strlen(n),
+            DiagnosticsId::DI_DECLARED_NEVER_USED, "external binding", n);
+        }
       }
       else {
         checker->report(info->extractPointedNode(), DiagnosticsId::DI_DECLARED_NEVER_USED, info->contextName(), n);

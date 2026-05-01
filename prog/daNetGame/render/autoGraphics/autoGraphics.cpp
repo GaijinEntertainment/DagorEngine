@@ -81,12 +81,16 @@ void try_apply_auto_antialiasing_and_resolution_settings()
     currMethod == render::antialiasing::AntialiasingMethod::DLSS || currMethod == render::antialiasing::AntialiasingMethod::FSR ||
     currMethod == render::antialiasing::AntialiasingMethod::XeSS || currMethod == render::antialiasing::AntialiasingMethod::TSR;
 
-  const bool forceUseUpscaler = auto_antialiasing::should_use_upscaling_method(renderingResolution) && !upscalingMethodIsUsed;
+  // true if rendering resolution is significantly lower than screen resolution
+  const bool forceUseUpscaler = auto_antialiasing::should_use_upscaling_method(renderingResolution);
 
-  // take auto method on first laucnh (if enabled) or current method from settings
-  auto antialiasingMethod = auto_antialiasing::get_auto_selected_method(forceUseUpscaler);
-  if (!antialiasingMethod)
-    antialiasingMethod = render::antialiasing::get_method_name(currMethod);
+  auto antialiasingMethod = render::antialiasing::get_method_name(currMethod);
+  if (auto autoAntialiasingMethod = auto_antialiasing::get_auto_selected_method(forceUseUpscaler))
+  {
+    // update antialiasingMethod if auto method was proposed and we don't already use an upscaling method
+    if (!(forceUseUpscaler && upscalingMethodIsUsed))
+      antialiasingMethod = autoAntialiasingMethod;
+  }
 
   // autoSettingsBlk is a patch for dgs settings, contains antialiasing_mode and upscaling/fxaaQuality
   const auto autoSettingsBlk = auto_resolution::get_antialiasing_settings(antialiasingMethod, renderingResolution);

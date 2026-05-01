@@ -160,8 +160,11 @@ struct CollisionNode
 protected:
   alignas(16) TMatrix tm = TMatrix::IDENT;
   alignas(16) BBox3 modelBBox;
-  BSphere3 boundingSphere;
-  Capsule capsule;
+  struct
+  {
+    Point3 c;
+    float r = 0.f;
+  } boundingSphere;
   float cachedMaxTmScale = 1.f;
   friend class CollisionResource;
   friend class CollisionResourceBVH;
@@ -182,7 +185,8 @@ public:
   uint16_t insideOfNode = 0xffff;
 
 protected:
-  SimpleString name;
+  uint32_t nameOfs = 0;      // offset into CollisionResource::names; 0 means empty
+  uint16_t capsuleIndex = 0; // index into CollisionResource::capsules; valid only for COLLISION_NODE_TYPE_CAPSULE
 
 public:
   CollisionNode() = default;
@@ -300,8 +304,9 @@ public:
   const char *getNodeName(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? n->name.str() : "";
+    return n ? getNodeNameStr(*n) : "";
   }
+  const char *getNodeNameStr(const CollisionNode &n) const { return names.empty() ? "" : names.data() + n.nameOfs; }
   const TMatrix &getNodeTm(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
@@ -589,14 +594,16 @@ public:
   BSphere3 getNodeBSphere(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? n->boundingSphere : BSphere3(Point3(0, 0, 0), 0);
+    if (!n || n->boundingSphere.r < 0)
+      return BSphere3(); // empty: r = r2 = -1
+    return BSphere3(n->boundingSphere.c, n->boundingSphere.r);
   }
   bool getNodeCapsule(int node_id, Capsule &out) const
   {
     const CollisionNode *n = getNode(node_id);
     if (n && n->type == COLLISION_NODE_TYPE_CAPSULE)
     {
-      out = n->capsule;
+      out = capsules[n->capsuleIndex];
       return true;
     }
     return false;
@@ -625,14 +632,26 @@ public:
   BSphere3 getNodeBSphereUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    return allNodesList[node_id].boundingSphere;
+    const auto &b = allNodesList[node_id].boundingSphere;
+    if (b.r < 0)
+      return BSphere3(); // empty: r = r2 = -1
+    return BSphere3(b.c, b.r);
   }
-  Point3 getNodeBSphereCenter(int node_id) const { return getNodeBSphere(node_id).c; }
-  float getNodeBSphereRadius(int node_id) const { return getNodeBSphere(node_id).r; }
+  Point3 getNodeBSphereCenter(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->boundingSphere.c : Point3(0, 0, 0);
+  }
+  float getNodeBSphereRadius(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->boundingSphere.r : -1.f;
+  }
   const Capsule &getNodeCapsuleUnsafe(int node_id) const
   {
     G_ASSERT((uint32_t)node_id < allNodesList.size());
-    return allNodesList[node_id].capsule;
+    G_ASSERT(allNodesList[node_id].type == COLLISION_NODE_TYPE_CAPSULE);
+    return capsules[allNodesList[node_id].capsuleIndex];
   }
   float getNodeMaxTmScaleUnsafe(int node_id) const
   {
@@ -761,6 +780,7 @@ protected:
   friend class CollisionGameResFactory;
   friend CollisionExporter;
   friend dabuildExp_collision::CollisionExporter;
+  friend struct CollisionResourceUnittest;
 
   struct Grid
   {
@@ -779,6 +799,11 @@ protected:
 
   Tab<CollisionNode> allNodesList;
   Tab<TMatrix> relGeomNodeTms; // parallel to allNodesList
+  // Tightly packed null-terminated names; offset 0 always holds '\0' so nameOfs==0 means empty
+  dag::Vector<char> names;
+  // Dense storage for capsule-type nodes; CollisionNode::capsuleIndex addresses entries here
+  dag::Vector<Capsule> capsules;
+  uint32_t addName(const char *name);
 
   Grid gridForTraceable;
   Grid gridForCollidable;

@@ -996,6 +996,8 @@ void HmapLandObjectEditor::_addObjects(RenderableEditableObject **obj, int num, 
       HmapLandPlugin::self->updateSnowSources();
       break;
     }
+  if (num == 1 && !RTTI_cast<SplineObject>(objs[0]))
+    return;
 
   clear_and_shrink(splines);
   for (int i = 0; i < objects.size(); i++)
@@ -1361,6 +1363,7 @@ void HmapLandObjectEditor::load(const DataBlock &splBlk, const DataBlock &polBlk
   if (layer < 0)
     splines.clear();
 
+  unsigned splines_loaded = 0, polygons_loaded = 0, entities_loaded = 0;
   int nid = splBlk.getNameId("spline");
   for (int i = 0; i < splBlk.blockCount(); i++)
     if (splBlk.getBlock(i)->getBlockNameId() == nid)
@@ -1372,7 +1375,10 @@ void HmapLandObjectEditor::load(const DataBlock &splBlk, const DataBlock &polBlk
       addObject(s, false);
       s->load(cb, false);
       s->onCreated(false);
+      splines_loaded++;
     }
+  if (splines_loaded)
+    debug("loaded %d spline(s) from %s", splines_loaded, splBlk.resolveFilename());
 
   nid = polBlk.getNameId("polygon");
   for (int i = 0; i < polBlk.blockCount(); i++)
@@ -1385,7 +1391,10 @@ void HmapLandObjectEditor::load(const DataBlock &splBlk, const DataBlock &polBlk
       addObject(s, false);
       s->load(cb, false);
       s->onCreated(false);
+      polygons_loaded++;
     }
+  if (polygons_loaded)
+    debug("loaded %d polygon(s) from %s", polygons_loaded, polBlk.resolveFilename());
 
   nid = entBlk.getNameId("entity");
   if (layer < 0)
@@ -1400,7 +1409,10 @@ void HmapLandObjectEditor::load(const DataBlock &splBlk, const DataBlock &polBlk
       o->setEditLayerIdx(layer < 0 ? o->lpIndex() : layer);
       addObject(o, false);
       o->load(cb);
+      entities_loaded++;
     }
+  if (entities_loaded)
+    debug("loaded %d entities from %s", entities_loaded, entBlk.resolveFilename());
 
   if (layer >= 0)
     return;

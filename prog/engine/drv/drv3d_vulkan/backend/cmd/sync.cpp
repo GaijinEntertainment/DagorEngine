@@ -45,6 +45,7 @@ bool d3d_resource_barrier_to_layout(bool is_depth, VkImageLayout &layout, Filter
       G_ASSERTF(is_depth, "vulkan: RO DS barrier used for non DS texture, fix caller!");
       layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
       break;
+    case RB_RO_BLIT_SOURCE: // fallthru
     case RB_RO_COPY_SOURCE: layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; break;
     default: return false;
   }
@@ -116,6 +117,7 @@ bool d3d_resource_barrier_to_laddr(bool is_tex, bool is_depth, LogicAddress &lad
       laddr = LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
       laddr.merge(LogicAddress::forImageOnExecStage(ExtendedShaderStage::PS, RegisterType::T));
       break;
+    case RB_RO_BLIT_SOURCE: // fallthru
     case RB_RO_COPY_SOURCE:
       laddr.access = VK_ACCESS_TRANSFER_READ_BIT;
       laddr.stage = VK_PIPELINE_STAGE_TRANSFER_BIT;

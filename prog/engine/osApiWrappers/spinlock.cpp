@@ -36,11 +36,7 @@ void os_spinlock_destroy(os_spinlock_t *lock)
 }
 
 #if _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2
-void os_spinlock_unlock_contended(os_spinlock_t *lock)
-{
-  if (os_get_wait_on_address_impl())
-    os_wake_on_address_one((uint32_t *)lock);
-}
+void os_spinlock_unlock_contended(os_spinlock_t *lock) { os_wake_on_address_one((uint32_t *)lock); }
 #endif
 
 void os_spinlock_lock_contended(os_spinlock_t *lock, da_profiler::desc_id_t token)
@@ -60,7 +56,7 @@ void os_spinlock_lock_contended(os_spinlock_t *lock, da_profiler::desc_id_t toke
     ny = (min)(ny * 2, 16);
   }
   // Phase 2: declare ourselves contended and park
-  auto waitOnAddr = os_get_wait_on_address_impl(); // May be null on win7
+  auto waitOnAddr = os_get_native_wait_on_address_impl(); // May be null on win7
   uint32_t expectedWait = LOCK_IS_TAKEN_CONTENDED;
   while (1)
   {

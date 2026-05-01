@@ -3,6 +3,7 @@
 #include "dlss.h"
 
 #include <d3d12.h>
+#include <drv_log_defs.h>
 
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
@@ -113,8 +114,8 @@ bool DLSSSuperResolutionDirect::Initialize(ID3D12Device *d3d_device, IDXGIAdapte
     {
       if (needsUpdatedDriver)
       {
-        logerr("NVIDIA DLSS cannot be loaded due to outdated driver. Minimum Driver Version required : %u.%u", minDriverVersionMajor,
-          minDriverVersionMinor);
+        D3D_ERROR("NVIDIA DLSS cannot be loaded due to outdated driver. Minimum Driver Version required : %u.%u",
+          minDriverVersionMajor, minDriverVersionMinor);
         return onFailure();
       }
       else

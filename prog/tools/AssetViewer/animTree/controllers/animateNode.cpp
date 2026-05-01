@@ -91,13 +91,13 @@ void animate_node_init_block_settings(PropPanel::ContainerPropertyControl *panel
   panel->createCheckBox(PID_CTRLS_ANIMATE_NODE_ARRAY_NODES_ONLY, "arrayNodesOnly", defaultBlock->getBool("arrayNodesOnly", false),
     isEditable);
 
-  panel->createButton(PID_CTRLS_ANIMATE_NODE_ADD_NODE, "Add node");
+  panel->createButton(PID_CTRLS_ANIMATE_NODE_ADD_NODE, "Add node", isEditable);
   const int nodeCount = defaultBlock->paramCountByName("node");
   panel->createButton(PID_CTRLS_ANIMATE_NODE_REMOVE_NODE, "Remove last node", nodeCount > 0, /*new_line*/ false);
   init_anim_block_params(panel, *defaultBlock, PID_CTRLS_ANIMATE_NODE_NODES_FIELD, PID_CTRLS_ANIMATE_NODE_ADD_NODE,
     PID_CTRLS_ANIMATE_NODE_REMOVE_NODE, "node");
 
-  panel->createButton(PID_CTRLS_ANIMATE_NODE_ADD_NODE_RE, "Add nodeRE");
+  panel->createButton(PID_CTRLS_ANIMATE_NODE_ADD_NODE_RE, "Add nodeRE", isEditable);
   const int nodeRECount = defaultBlock->paramCountByName("nodeRE");
   panel->createButton(PID_CTRLS_ANIMATE_NODE_REMOVE_NODE_RE, "Remove last nodeRE", nodeRECount > 0, /*new_line*/ false);
   init_anim_block_params(panel, *defaultBlock, PID_CTRLS_ANIMATE_NODE_RE_NODES_FIELD, PID_CTRLS_ANIMATE_NODE_ADD_NODE_RE,

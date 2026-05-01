@@ -151,7 +151,7 @@ public:
   virtual void gatherGeneratedGeomOrderLayers(LayerIndexList &order_layers) const = 0;
   virtual void gatherGeneratedGeomTags(OAHashNameMap<true> &loft_tags) const = 0;
   virtual void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int layer, int stage, int layer_order,
-    uint64_t lh_mask = 0) const = 0;
+    LayerHiddenMask lh_mask = LayerHiddenMask()) const = 0;
 
   virtual void renderGeneratedGeom(int layer, bool opaque, const Frustum &frustum, int layer_order, bool asHeightmapPatch = false) = 0;
   virtual bool traceRayFoundationLoftGeom(int layer, const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) const = 0;

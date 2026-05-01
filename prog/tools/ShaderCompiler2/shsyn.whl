@@ -335,10 +335,13 @@ static-var-type(static_var_type) ->
 
 static-var-mode(static_var_mode) -> ("static"|"dynamic")=mode;
 
+static-attrib(static_attrib_decl) -> ident=name "="=nothing ((ident=value)|(arithmetic-expr=expr));
+
 static-decl(static_var_decl) ->
   [static-var-mode=mode] static-var-type=type ident=name
   ["="=nothing sh-init-value=init]
   ["no_warnings"=no_warnings]
+  [(static-attrib=attrib)*]
   ";"=nothing;
 
 global-decl(global_var_decl) ->

@@ -6,7 +6,6 @@ include "heightmap_common.dshl"
 include "vr_reprojection.dshl"
 include "indoor_light_probes.dshl"
 include "water_3d_overrides.dshl"
-include "portal_rendering_inc.dshl"
 include "psh_derivate.dshl"
 include "water_3d_color.dshl"
 
@@ -15,6 +14,10 @@ assume chop_water_enabled = no;
 
 float water_refraction_base_mip = 1;
 float angle_to_roughness_scale = 0.1;
+
+hlsl {
+  #define USE_NOFOG_REFLECTION_ON_DISTANCE 1
+}
 
 macro INIT_WATER_3D_DEFERRED_COLOR_DNG()
   (ps) {
@@ -46,7 +49,6 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
   USE_WATER_CASCADES_ROUGHNESS()
 
   CUSTOM_FOG(ps)
-  INIT_AND_USE_PORTAL_RENDERING(ps)
 
   INIT_SAMPLE_DEPTH_TEX(ps)
   USE_SAMPLE_DEPTH_TEX(ps)
@@ -189,6 +191,8 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
   USE_UNDERWATER_SCATTERING(ps)
   USE_WATER_RAIN_RIPPLES(ps)
   USE_WATER_NORMALS_PS()
+
+  APPLY_WATER_FOG(ps)
 
   hlsl(ps) {
     struct WaterBaseContext
@@ -382,15 +386,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       // Getting water underocean color
 
       // Getting seabed color (refracted terrain & objects)
-      half3 fog_mul, fog_add, fog_add_srgb;
-      if (portal_use_dense_fog)
-        get_portal_rendering_fog(viewData.dist, fog_mul, fog_add, fog_add_srgb);
-      else
-        get_volfog_with_scattering(viewData.linearTc, viewData.linearTc, view, viewData.dist, viewData.screenPos.w, fog_mul, fog_add);
-
-      const bool applyFogWithSrgbCurve = portal_use_dense_fog;
-      if (!applyFogWithSrgbCurve)
-        fog_add_srgb = fog_add;
+      const FogData fogData = computeWaterFog(viewData, viewData.screenPos.w);
 
       const half waterPerlinColor = get_perlin_water_color(viewData.worldPos.xz);
       const UnderWaterScattering underWaterScattering = getUnderWaterScattering(viewData, deepnessData, waterPerlinColor);
@@ -403,7 +399,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
         half3 seabedColor = half3(0.07, 0.1, 0.07);
       #endif
 
-      seabedColor = max(float3(0,0,0), (unpack_hdr(seabedColor)-fog_add)/max(fog_mul,0.000001));
+      seabedColor = applyWaterFogInverse(unpack_hdr(seabedColor), fogData);
 
       // Getting environment reflection
       const EnvReflections envReflections = getEnvReflections(viewData, planarReflections);
@@ -448,24 +444,12 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       result.rgb = lerp(surfaceFoamColor * foamData.diffuseColor.rgb, result.rgb, foamData.diffuseColor.a);
 
       #if HAS_REFRACTION
-        // Applying fog
         result.a = 1.0;
+        result.rgb = applyWaterFog(result.rgb, 1.0, fogData);
       #else
-        //apply blend factor
         result.a = waterOpacity*(foamData.diffuseColor.a);
+        result.rgb = applyWaterFog(result.rgb, result.a, fogData);
       #endif
-
-      if (applyFogWithSrgbCurve)
-        result.rgb = sqrt(result.rgb);
-
-      #if HAS_REFRACTION
-        result.rgb = result.rgb*fog_mul + fog_add_srgb;
-      #else
-        result.rgb = result.rgb*fog_mul + fog_add_srgb*result.a;
-      #endif
-
-      if (applyFogWithSrgbCurve)
-        result.rgb = pow2(result.rgb);
 
       ##if has_water_flowmap
         // Flowmap debug render mode

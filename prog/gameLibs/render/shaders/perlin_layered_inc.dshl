@@ -142,13 +142,13 @@ macro USE_PERLIN_LAYERED(stage) //use this macro after RENDINST_BLOCK(), because
 endmacro
 
 
-macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, order_bit) //not for depth or shadow
+macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, has_microdetail_sampler) //not for depth or shadow
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
     WRITE_GBUFFER()
   }
-  USE_CHARACTER_MICRODETAIL()
+  USE_CHARACTER_MICRODETAIL_IMPL(has_microdetail_sampler, true)
   USE_CONST_COLOR_OVERRIDES()
   if (is_writing_gbuffer && is_blending_hmap)
   {
@@ -458,4 +458,8 @@ macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, order_bit) //not f
     }
   }
   compile("target_ps", "perlin_layered_ps");
+endmacro
+
+macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, order_bit)
+  PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, true)
 endmacro

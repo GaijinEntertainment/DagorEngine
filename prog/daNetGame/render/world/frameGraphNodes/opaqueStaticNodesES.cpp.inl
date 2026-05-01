@@ -20,6 +20,7 @@
 #include <render/world/renderPrecise.h>
 #include <shaders/dag_renderScene.h>
 #include <shaders/dag_shaderBlock.h>
+#include <triangleSizeDebug/triangleSizeDebug.h>
 
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
@@ -127,6 +128,77 @@ static auto request_opaque_pass(dafg::Registry registry)
   return cameraHndl;
 }
 
+static auto request_opaque_triangle_size(dafg::Registry registry)
+{
+  registry.allowAsyncPipelines().requestRenderPass().depthRo("gbuf_depth").color({"triangle_size_tex"});
+
+  auto [cameraHndl, stateRequest] = request_common_opaque_state(registry);
+
+  return cameraHndl;
+}
+
+
+eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns, bool prepassEnabled, MainNodeRenderPass mode)
+{
+  eastl::fixed_vector<dafg::NodeHandle, 2> result;
+  bool debugTriangle = mode == MainNodeRenderPass::TriangleSizeDebugPass;
+  result.push_back(ns.registerNode("rendinst_node", DAFG_PP_NODE_SRC, [debugTriangle](dafg::Registry registry) {
+    auto cameraHndl = debugTriangle ? request_opaque_triangle_size(registry) : request_opaque_pass(registry);
+
+    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+    registry.read("ri_update_token").blob<OrderingToken>();
+
+    if (!debugTriangle)
+    {
+      // Burnt ground decals are applied to rendinst clipmap
+      auto burntGroundNs = registry.root() / "burnt_ground";
+      burntGroundNs.read("burnt_ground_decals_buf").buffer().atStage(dafg::Stage::PS).bindToShaderVar().optional();
+      burntGroundNs.read("burnt_ground_decals_indices_buf")
+        .buffer()
+        .atStage(dafg::Stage::PS)
+        .bindToShaderVar("burnt_ground_decals_indices_buf")
+        .optional();
+    }
+
+    return [cameraHndl, strmCtxHndl, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
+      CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
+      camJobsMgr->waitVisibility(RENDER_MAIN);
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+
+      RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
+      auto *riExRenderer = camJobsMgr->waitAsyncRIGenExtraOpaqueRender();
+      const rendinst::RenderPass renderPass = debugTriangle ? rendinst::RenderPass::TriangleSizeDebug : rendinst::RenderPass::Normal;
+      rendinst::render::renderRIGen(renderPass, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
+        rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, /*count_multiply*/ 1, rendinst::AtestStage::All,
+        debugTriangle ? nullptr : riExRenderer, strmCtxHndl.ref());
+      auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+      if (!debugTriangle && wr.clipmap)
+        wr.clipmap->increaseUAVAtomicPrefix();
+    };
+  }));
+
+  result.push_back(ns.registerNode("ri_trees_node", DAFG_PP_NODE_SRC, [prepassEnabled, debugTriangle](dafg::Registry registry) {
+    auto cameraHndl = debugTriangle ? request_opaque_triangle_size(registry) : request_opaque_pass(registry);
+
+    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+    registry.read("ri_update_token").blob<OrderingToken>();
+
+    return [cameraHndl, strmCtxHndl, prepassEnabled, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
+      CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
+      camJobsMgr->waitVisibility(RENDER_MAIN);
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+
+      RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
+      const rendinst::RenderPass renderPass = debugTriangle ? rendinst::RenderPass::TriangleSizeDebug : rendinst::RenderPass::Normal;
+      rendinst::render::renderRIGen(renderPass, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
+        rendinst::LayerFlag::NotExtra, prepassEnabled ? rendinst::OptimizeDepthPass::Yes : rendinst::OptimizeDepthPass::No, 1,
+        rendinst::AtestStage::NoAtest, nullptr, strmCtxHndl.ref());
+    };
+  }));
+
+  return result;
+}
+
 eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabled)
 {
   eastl::fixed_vector<dafg::NodeHandle, 8> result;
@@ -221,55 +293,6 @@ eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabl
     };
   }));
 
-  result.push_back(ns.registerNode("rendinst_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    auto cameraHndl = request_opaque_pass(registry);
-
-    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
-    registry.read("ri_update_token").blob<OrderingToken>();
-
-    // Burnt ground decals are applied to rendinst clipmap
-    auto burntGroundNs = registry.root() / "burnt_ground";
-    burntGroundNs.read("burnt_ground_decals_buf").buffer().atStage(dafg::Stage::PS).bindToShaderVar().optional();
-    burntGroundNs.read("burnt_ground_decals_indices_buf")
-      .buffer()
-      .atStage(dafg::Stage::PS)
-      .bindToShaderVar("burnt_ground_decals_indices_buf")
-      .optional();
-
-    return [cameraHndl, strmCtxHndl](const dafg::multiplexing::Index &multiplexing_index) {
-      CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
-      camJobsMgr->waitVisibility(RENDER_MAIN);
-      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-
-      RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
-      auto *riExRenderer = camJobsMgr->waitAsyncRIGenExtraOpaqueRender();
-      rendinst::render::renderRIGen(rendinst::RenderPass::Normal, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
-        rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, /*count_multiply*/ 1, rendinst::AtestStage::All, riExRenderer,
-        strmCtxHndl.ref());
-      auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-      if (wr.clipmap)
-        wr.clipmap->increaseUAVAtomicPrefix();
-    };
-  }));
-
-  result.push_back(ns.registerNode("ri_trees_node", DAFG_PP_NODE_SRC, [prepassEnabled](dafg::Registry registry) {
-    auto cameraHndl = request_opaque_pass(registry);
-
-    auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
-    registry.read("ri_update_token").blob<OrderingToken>();
-
-    return [cameraHndl, strmCtxHndl, prepassEnabled](const dafg::multiplexing::Index &multiplexing_index) {
-      CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
-      camJobsMgr->waitVisibility(RENDER_MAIN);
-      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-
-      RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
-      rendinst::render::renderRIGen(rendinst::RenderPass::Normal, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
-        rendinst::LayerFlag::NotExtra, prepassEnabled ? rendinst::OptimizeDepthPass::Yes : rendinst::OptimizeDepthPass::No, 1,
-        rendinst::AtestStage::NoAtest, nullptr, strmCtxHndl.ref());
-    };
-  }));
-
   result.push_back(ns.registerNode("cables_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     request_opaque_pass(registry);
 
@@ -293,6 +316,9 @@ eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabl
       wr.renderGiCollision(cameraHndl.ref().viewItm, cameraHndl.ref().noJitterFrustum);
     };
   }));
+
+  for (auto &&n : makeOpaqueMainNodes(ns, prepassEnabled, MainNodeRenderPass::MainColorPass))
+    result.push_back(eastl::move(n));
 
   return result;
 }
@@ -333,6 +359,21 @@ dafg::NodeHandle makeOpaqueDynamicRendinstNode()
         strmCtxHndl.ref(), rendinst::RiExtraRenderingSubset::OnlyDynamic);
     };
   });
+}
+
+ECS_TAG(render, dev)
+static void create_opaque_triangle_size_debug_node_es(const CreateTriangleDebugNodes &evt)
+{
+  if (!evt.systems.isRI && !evt.systems.isTree)
+    return;
+
+  auto nodes = makeOpaqueMainNodes(evt.getNameSpace(), true, MainNodeRenderPass::TriangleSizeDebugPass);
+
+  if (evt.systems.isRI)
+    evt.nodes->push_back(eastl::move(nodes[0]));
+
+  if (evt.systems.isTree)
+    evt.nodes->push_back(eastl::move(nodes[1]));
 }
 
 ECS_TAG(render)

@@ -27,18 +27,18 @@ If the script is not run as an administrator, installers of certain programs may
 
 After the script completes its work, the X:\develop\devtools folder will be configured with the following SDKs and tools:
 
-* Agility.SDK.1.614.1 - DirectX 12 Agility SDK
+* Agility.SDK.1.619.0 - DirectX 12 Agility SDK
 * astcenc-4.6.1 - Adaptive Scalable Texture Compression (ASTC) Encoder
 * DXC-1.8.2505.1 - DirectX Compiler
 * FidelityFX_SC - a library for image quality enhancement
 * fmod-studio-2.xx.xx [optional] - FMOD sound library
 * ispc-v1.23.0-windows - Implicit SPMD Program Compiler
-* LLVM-15.0.7 - C/C++ compiler and libraries (Clang)
-* max2024.sdk - 3ds Max 2024 SDK
+* LLVM-21.1.8 - C/C++ compiler and libraries (Clang)
+* max2026.sdk - 3ds Max 2026 SDK
 * nasm - netwide assembler ver 2.x
 * openxr-1.0.27 - library for AR/VR
 * vc2019_16.11.34 - C/C++ compiler and libraries (MSVC)
-* vc2022_17.9.5 - C/C++ compiler and libraries (MSVC)
+* vc2022_17.14.4 - C/C++ compiler and libraries (MSVC)
 * win.sdk.100 - Windows 10 SDK
 * win.sdk.81 - Windows 8.1 SDK
 * ducible.exe - a tool to make builds of Portable Executables (PEs) and PDBs reproducible
@@ -49,10 +49,14 @@ Restart the command line console to make the new environment variables available
 
 ## How to Build: Prebuilt Binaries
 
-You will need to download and extract additional binary files from the repository [https://github.com/GaijinEntertainment/DagorEngine/releases](https://github.com/GaijinEntertainment/DagorEngine/releases) into the X:\develop\DagorEngine folder:
+You will need to download and extract additional binary files (as of 2026/04/30) from the CDN into the X:\develop\DagorEngine folder:
+* [tools-base.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/tools-base.7z) - contains initial data for tools
+* [samples-base.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/samples-base.7z) - contains initial assets that will be compiled into binary files that will be loaded by the game (samples)
+* [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/outerSpace-devsrc.7z) - contains initial assets for OuterSpace sample project
+* [dngSceneViewer.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/dngSceneViewer.7z) - contains binary data for east_district sample with dngSceneViewer (windows-x86_64 executables also included)
 
-* [tools-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-base.7z) - contains initial data for tools
-* [samples-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/samples-base.7z) - contains initial assets that will be compiled into binary files that will be loaded the game
+More downloads in the repository [https://github.com/GaijinEntertainment/DagorEngine/releases](https://github.com/GaijinEntertainment/DagorEngine/releases) with prebuilt binaries (may be a bit outdate):
+
 * [tools-prebuilt-windows-x86_64.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-windows-x86_64.7z),
   [tools-prebuilt-linux-x86_64.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-linux-x86_64.tar.gz),
   [tools-prebuilt-macOS.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-macOS.tar.gz) - contains the prebuilt engine toolkit
@@ -76,11 +80,11 @@ X:\develop\DagorEngine\samples\testGI\game
 
 ## How to Build: Build from Source Code
 
-First unpack [tools-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-base.7z) to DagorEngine root to get mandatory binary files in their place.
+First unpack [tools-base.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/tools-base.7z) to DagorEngine root to get mandatory binary files in their place.
 
-If you are going to run samples unpack [samples-base.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/samples-base.7z) to DagorEngine root (if you plan to only build EXE and shaders these binary data are not mandatory).
+If you are going to run samples unpack [samples-base.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/samples-base.7z) to DagorEngine root (if you plan to only build EXE and shaders these binary data are not mandatory).
 
-To build and run OuterSpace sample project unpack also [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/outerSpace-devsrc.7z) to DagorEngine root.
+To build and run OuterSpace sample project unpack also [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/outerSpace-devsrc.7z) to DagorEngine root.
 
 Then run `build_all.py` in DagorEngine root.
 
@@ -121,7 +125,7 @@ Example: `build_all.py project:dngSceneViewer code shaders` will build only code
   [Demos of a new Gaijin’s game showcase Dagor Engine power](https://gaijinent.com/news/demos-of-a-new-gaijins-game-showcase-dagor-engine-power)<br>
   [East District review on YouTube](https://youtu.be/miABl6aekBA)
 * Multiplayer sample: **Outer Space**<br>
-  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/outerSpace/prog) and source (develop) files [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/outerSpace-devsrc.7z) to be unpacked to DagorEngine root<br>
+  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/outerSpace/prog) and source (develop) files [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.04.30/outerSpace-devsrc.7z) to be unpacked to DagorEngine root<br>
   Prebuilt game (executables, shaders, vromfs, gameres) is available as [outerSpace-prebuilt-fullsrc.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/outerSpace-prebuilt-fullsrc.tar.gz)
 
 ### Documentation

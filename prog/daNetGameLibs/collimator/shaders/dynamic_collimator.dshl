@@ -195,5 +195,12 @@ shader collimator, gyro_sight {
       return float4(color, alpha);
     }
   }
-  compile("target_ps", "dynamic_simple_ps");
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "dynamic_simple_ps");
+  }
 }

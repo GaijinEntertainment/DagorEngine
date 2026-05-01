@@ -20,7 +20,7 @@ struct LensRenderInfo
   int relemId = -1;
   int rigidNo = -1;
 
-  operator bool() const { return relemId != 1 && rigidNo != -1; }
+  operator bool() const { return relemId != -1 && rigidNo != -1; }
 };
 
 const char *DYNAMIC_COLLIMATOR_MOA_SHADER_NAME = "dynamic_collimator_moa";

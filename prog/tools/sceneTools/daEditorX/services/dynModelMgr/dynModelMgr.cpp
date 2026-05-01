@@ -453,7 +453,7 @@ public:
 
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
         ent[i]->updatePrevWtm();
@@ -463,7 +463,7 @@ public:
   {
     dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if (st_mask & collisionSubtypeMask)
     {
       begin_draw_cached_debug_lines();
@@ -509,7 +509,7 @@ public:
     static int dynmodelObjEntInFlight = 0;
     bool render_now = (stage == STG_RENDER_DYNAMIC_OPAQUE || stage == STG_RENDER_TO_CLIPMAP || stage == STG_RENDER_DYNAMIC_TRANS);
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if (stage == STG_RENDER_TO_CLIPMAP && !(st_mask & decalSubtypeMask))
       return;
     if (render_now && dynmodelObjEntInFlight)
@@ -678,7 +678,7 @@ public:
   static bool hasActiveEntities()
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (auto ent : self->objPool.getEntities())
       if (ent && ent->res && ent->isNonVirtual() && ent->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
         return true;

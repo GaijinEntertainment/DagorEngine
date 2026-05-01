@@ -2326,13 +2326,12 @@ void WorldRenderer::closeResetable()
 bool WorldRenderer::forceEnableMotionVectors() const
 {
   const DataBlock *graphics = ::dgs_get_settings()->getBlockByNameEx("graphics");
-  return graphics->getBool("forceEnableMotionVectors", false) || is_denoiser_enabled();
+  return graphics->getBool("forceEnableMotionVectors", false) || is_denoiser_enabled() || can_use_motion_vrs();
 }
 
 bool WorldRenderer::needMotionVectors() const
 {
-  return (antiAliasing && antiAliasing->needMotionVectors()) || forceEnableMotionVectors() ||
-         (!isThinGBuffer() && can_use_motion_vrs());
+  return (antiAliasing && antiAliasing->needMotionVectors()) || (!isThinGBuffer() && forceEnableMotionVectors());
 }
 
 bool WorldRenderer::needSeparatedUI() const { return antiAliasing && antiAliasing->isFrameGenerationEnabled(); }
@@ -7214,13 +7213,13 @@ void WRDispatcher::recreateRayTracingDependentNodes(uint32_t features_to_reset)
 
   bool needSetResolution = false;
   if (wr->hasMotionVectors != wr->needMotionVectors())
-  {
-    if (features_to_reset & WRDispatcher::MOTION_VECTOR)
-      needSetResolution |= true;
-  }
-
-  if (features_to_reset & WRDispatcher::REINIT_TARGET)
     needSetResolution |= true;
+  // DLSS RR needs a device reset anyway, so we should avoid doing it twice.
+  // This code is still needed, because on startup DLSS RR might be on
+  // but RT wasn't initialized yet, so nodes were created wrong.
+  if (features_to_reset & WRDispatcher::REINIT_TARGET && !wr->applySettingsAfterResetDevice)
+    needSetResolution |= true;
+
   if (needSetResolution)
     wr->setResolution();
   if (features_to_reset & WRDispatcher::WATER)

@@ -971,6 +971,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
     return;
 
   centerCell = cc;
+  prepared = true;
 }
 
 static inline TEXTUREID query_tex_loading(TEXTUREID id)

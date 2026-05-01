@@ -163,6 +163,9 @@ static String assetFile;
 static unsigned collisionMask = 0;
 static unsigned rendGeomMask = 0;
 bool av_perform_uptodate_check = true;
+bool dabuildWindowVisible = true;
+bool daBuildWindowAutoOpen = true;
+bool daBuildWindowAutoClose = false;
 String a2d_last_ref_model;
 DataBlock asset_browser_modal_settings;
 
@@ -1775,6 +1778,8 @@ void AssetViewerApp::saveTreeState()
   setBlk.setBool("AutoShowCompositeEditor", compositeEditor.autoShow);
   setBlk.setBool("DeveloperToolsEnabled", developerToolsEnabled);
   setBlk.setBool("DaBuildWindowVisible", dabuildWindowVisible);
+  setBlk.setBool("DaBuildWindowAutoOpen", daBuildWindowAutoOpen);
+  setBlk.setBool("DaBuildWindowAutoClose", daBuildWindowAutoClose);
   setBlk.setInt("ToolbarScalePercent", getToolbarScalePercent());
 
   if (assetBuildWarningDisplay == AssetBuildWarningDisplay::ShowOncePerSession)
@@ -2551,6 +2556,8 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   getMainMenu()->setCheckById(CM_SETTINGS_ENABLE_DEVELOPER_TOOLS, developerToolsEnabled);
   getMainMenu()->setEnabledById(CM_VIEW_DEVELOPER_TOOLS, developerToolsEnabled);
 
+  daBuildWindowAutoOpen = setBlk.getBool("DaBuildWindowAutoOpen", daBuildWindowAutoOpen);
+  daBuildWindowAutoClose = setBlk.getBool("DaBuildWindowAutoClose", daBuildWindowAutoClose);
   dabuildWindowVisible = setBlk.getBool("DaBuildWindowVisible", dabuildWindowVisible);
   getMainMenu()->setCheckById(CM_WINDOW_DABUILD, dabuildWindowVisible);
 
@@ -3635,7 +3642,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     {
       IGenViewportWnd *vp = IEditorCoreEngine::get()->getCurrentViewport();
 
-      if (vp && vp->isActive())
+      if (vp)
       {
         vp->activate();
         vp->handleCommand(id);
@@ -4190,7 +4197,7 @@ void AssetViewerApp::onImguiDelayedCallback(void *user_data)
   else
   {
     ViewportWindow *viewport = ged.getCurrentViewport();
-    if (!viewport || !viewport->isActive())
+    if (!viewport)
       return;
 
     const unsigned viewportCommandId = commandId & ~DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
@@ -4379,6 +4386,7 @@ void AssetViewerApp::renderUI()
     ImGuiID dockSpaceLeft1Bottom = ImGui::DockBuilderSplitNode(dockSpaceLeft1, ImGuiDir_Down, 0.15f, nullptr, &dockSpaceLeft1);
     ImGuiID dockSpaceLeft2 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
     ImGuiID dockSpaceLeft3 = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.25f, nullptr, &dockSpaceViewport);
+    ImGuiID dockSpaceBottom = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Down, 0.25f, nullptr, &dockSpaceViewport);
 
     ImGuiDockNode *viewportNode = ImGui::DockBuilderGetNode(dockSpaceViewport);
     if (viewportNode)
@@ -4393,6 +4401,7 @@ void AssetViewerApp::renderUI()
     ImGui::DockBuilderDockWindow("Viewport", dockSpaceViewport);
     ImGui::DockBuilderDockWindow("Properties", dockSpaceRightBottom);
     ImGui::DockBuilderDockWindow("Composit Outliner", dockSpaceRightTop);
+    ImGui::DockBuilderDockWindow("daBuild", dockSpaceBottom);
 
     ImGui::DockBuilderFinish(rootDockSpaceId);
   }
@@ -4481,6 +4490,7 @@ void AssetViewerApp::renderUI()
   if (dabuildWindowVisible)
     ::render_dabuild_imgui();
 
+
   ImGui::EndChild();
 
   ImGui::End();
@@ -4527,7 +4537,7 @@ void AssetViewerApp::updateImgui()
 
   editor_core_update_imgui_style_editor();
 
-  ::update_dabuild_background();
+  ::update_dabuild_background(getMainMenu());
 
   renderUI();
 

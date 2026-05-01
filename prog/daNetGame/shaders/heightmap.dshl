@@ -18,6 +18,8 @@ include "vertex_density_overlay_inc.dshl"
 include "viewVecVS.dshl"
 include "camera_in_camera.dshl"
 include_optional "burnt_ground/shaders/burnt_ground_landmesh_inc.dshl"
+include "triangle_size_debug.dshl"
+include "triangle_size_debug_lmesh.dshl"
 
 float4 world_to_bw_mask = (1,1,0,0);
 int requires_uav = 1 always_referenced;
@@ -83,6 +85,14 @@ shader heightmap
   (vs) { camera_base_offset@f4 = camera_base_offset; }
 
   if (lmesh_rendering_mode == rendering_clipmap || lmesh_rendering_mode == grass_mask)
+  {
+    dont_render;
+  }
+  if ((allow_triangle_size_debug == no && lmesh_triangle_size_debug == on) || (!hardware.dx12 && lmesh_triangle_size_debug == on))
+  {
+    dont_render;
+  }
+  if (lmesh_rendering_mode != rendering_landmesh && lmesh_triangle_size_debug == on)
   {
     dont_render;
   }
@@ -367,8 +377,8 @@ shader heightmap
           float3 worldNormal = getWorldNormal(worldPos);
           half2 shadowBuffer = 1;
           float2 maskTC = worldPos.xz*world_to_bw_mask.xy+world_to_bw_mask.zw;
-          float mask = tex2D(blue_white_mask_tex, maskTC).x;
-          half4 diffuseColor = half4(mask,mask,1,1);
+          half3 col = tex2D(blue_white_mask_tex, maskTC).rgb;
+          half4 diffuseColor = half4(col, 1);
           half2 maskAbs = abs(maskTC*2 - half2(1,1));
           diffuseColor = max(maskAbs.x, maskAbs.y) > 1 ? 0 : diffuseColor;
 
@@ -606,7 +616,14 @@ shader heightmap
     compile("target_vs", "main_vs_heightmap_land");
     if (lmesh_rendering_mode == rendering_landmesh)
     {
-      compile("ps_5_0", "main_ps_heightmap_land");
+      if (lmesh_triangle_size_debug == on)
+      {
+        TRIANGLE_SIZE_DEBUG_PS()
+      }
+      else
+      {
+        compile("ps_5_0", "main_ps_heightmap_land");
+      }
     } else
     {
       compile("target_ps", "main_ps_heightmap_land");

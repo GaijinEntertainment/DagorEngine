@@ -1,2 +1,4 @@
+include "triangle_size_debug_transparent.dshl"
+
 int rendinst_transparent_gbuffer_pass = 0;
 interval rendinst_transparent_gbuffer_pass : off < 1, generate < 2, apply;

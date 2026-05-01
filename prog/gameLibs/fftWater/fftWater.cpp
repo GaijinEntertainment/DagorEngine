@@ -1515,15 +1515,15 @@ void load_heightmap(IGenLoad &loadCb, FFTWater *water)
   set_heightmap(water, eastl::move(heightmap));
 }
 
-void WaterHeightmap::getHeightmapDataBilinear(float x, float z, float &result) const
+bool WaterHeightmap::getHeightmapDataBilinear(float x, float z, float &result) const
 {
   x = (x * tcOffsetScale.z + tcOffsetScale.x) * gridSize;
   z = (z * tcOffsetScale.w + tcOffsetScale.y) * gridSize;
-  if (x < 0.0f || z < 0.0f || x > gridSize - 1 || z > gridSize - 1)
-    return;
+  if (x < 0.0f || z < 0.0f || (int)x > gridSize - 1 || (int)z > gridSize - 1)
+    return false;
   uint16_t cellData = grid[((int)z) * gridSize + (int)x];
   if (cellData == 0xFFFF)
-    return;
+    return false;
   int pageSize = PAGE_SIZE_PADDED;
   int gridX = (cellData >> 1) & 0x7F;
   int gridZ = (cellData >> 8) & 0xFF;
@@ -1551,6 +1551,7 @@ void WaterHeightmap::getHeightmapDataBilinear(float x, float z, float &result) c
   G_ASSERT(rt < pages.size());
   float height = (heights[lb] * wb + heights[lt] * wt) * wl + (heights[rb] * wb + heights[rt] * wt) * wr;
   result = round(height) * (heightScale / UINT16_MAX) + heightOffset;
+  return true;
 }
 
 bool WaterHeightmap::isFlat(int x, int z) const

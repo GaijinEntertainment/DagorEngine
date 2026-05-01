@@ -1565,6 +1565,55 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       }
       return 0;
     }
+    case Drv3dCommand::PIPELINE_STATS_BEGIN:
+    {
+      PipelineStatsQuery *&q = *static_cast<PipelineStatsQuery **>(par1);
+      if (!q)
+      {
+        q = api_state.device.getQueryManager().newPipelineStatsQuery();
+      }
+      api_state.device.getContext().beginPipelineStatsQuery(q);
+      return 1;
+    }
+    case Drv3dCommand::PIPELINE_STATS_END:
+    {
+      PipelineStatsQuery *q = static_cast<PipelineStatsQuery *>(par1);
+      if (q)
+      {
+        api_state.device.getContext().endPipelineStatsQuery(q);
+      }
+      return q != nullptr;
+    }
+    case Drv3dCommand::PIPELINE_STATS_RASTERIZED_PRIMITIVES:
+    {
+      PipelineStatsQuery *q = static_cast<PipelineStatsQuery *>(par1);
+      if (q && q->isFinalized())
+      {
+        *reinterpret_cast<uint64_t *>(par2) = q->getValue(&PipelineStatsQuery::ResultType::CPrimitives);
+        return 1;
+      }
+    }
+    break;
+    case Drv3dCommand::PIPELINE_STATS_CREATE_QUERY:
+    {
+      PipelineStatsQuery *&q = *static_cast<PipelineStatsQuery **>(par1);
+      if (!q)
+      {
+        q = api_state.device.getQueryManager().newPipelineStatsQuery();
+      }
+      return 1;
+    }
+    break;
+    case Drv3dCommand::PIPELINE_STATS_RELEASE_QUERY:
+      if (par1 && *static_cast<PipelineStatsQuery **>(par1))
+      {
+        if (auto &q = *static_cast<PipelineStatsQuery **>(par1))
+        {
+          api_state.device.getContext().deletePipelineStatsQuery(q);
+          *static_cast<PipelineStatsQuery **>(par1) = nullptr;
+        }
+      }
+      break;
     case Drv3dCommand::ACQUIRE_OWNERSHIP: api_state.globalLock.lock(); break;
     case Drv3dCommand::RELEASE_OWNERSHIP: api_state.globalLock.unlock(); break;
     case Drv3dCommand::TIMESTAMPFREQ: *reinterpret_cast<uint64_t *>(par1) = api_state.device.getGpuTimestampFrequency(); return 1;
@@ -2390,7 +2439,8 @@ bool d3d::issame_texformat(int cflg1, int cflg2)
 {
   auto formatA = FormatStore::fromCreateFlags(cflg1);
   auto formatB = FormatStore::fromCreateFlags(cflg2);
-  return formatA.asDxGiFormat() == formatB.asDxGiFormat();
+  return formatA.asDxGiFormat<true>() == formatB.asDxGiFormat<true>() &&
+         formatA.asDxGiFormat<false>() == formatB.asDxGiFormat<false>();
 }
 
 bool d3d::check_cubetexformat(int cflg)

@@ -43,9 +43,9 @@ void EsmShadows::close()
   esmShadowBlurTmp.close();
 }
 
-void EsmShadows::beginRenderSlice(int slice_id)
+void EsmShadows::beginRenderSlice(uint32_t slice_id)
 {
-  d3d::set_render_target(0, esmShadowArray.getArrayTex(), slice_id, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{esmShadowArray.getArrayTex(), 0, slice_id}});
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(255, 255, 255), 0.0f, 0);
   shaders::overrides::set(esmShadowsStateId);
   currentSlice = slice_id;
@@ -58,7 +58,7 @@ void EsmShadows::endRenderSlice()
   currentSlice = -1;
 }
 
-void EsmShadows::blur(int slice)
+void EsmShadows::blur(uint32_t slice)
 {
   TIME_D3D_PROFILE(esm_blur);
 
@@ -67,13 +67,13 @@ void EsmShadows::blur(int slice)
   ShaderGlobal::set_int(gauss_directionVarId, 0);
   ShaderGlobal::set_texture(esm_blur_srcVarId, esmShadowArray);
   d3d::resource_barrier({esmShadowArray.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, (unsigned)slice, 1});
-  d3d::set_render_target(esmShadowBlurTmp.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{esmShadowBlurTmp.getTex2D(), 0, 0}});
   esmBlurRenderer.render();
 
   ShaderGlobal::set_int(gauss_directionVarId, 1);
   ShaderGlobal::set_texture(esm_blur_srcVarId, esmShadowBlurTmp);
   d3d::resource_barrier({esmShadowBlurTmp.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-  d3d::set_render_target(0, esmShadowArray.getArrayTex(), slice, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{esmShadowArray.getArrayTex(), 0, slice}});
   esmBlurRenderer.render();
 
   d3d::resource_barrier({esmShadowArray.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, (unsigned)slice, 1});

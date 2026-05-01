@@ -19,7 +19,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
     NO_DYNSTCODE()
   }
   assume instancing_type = tm_vb;
-  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render;}
+  if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo || is_triangle_size_debug) { dont_render;}
   if (rendinst_render_pass == rendinst_render_pass_impostor_color || rendinst_render_pass == rendinst_render_pass_impostor_shadow || rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   {
     dont_render;
@@ -236,7 +236,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
 
 shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_deferred_normal_decal, rendinst_deferred_emissive_decal
 {
-  if (instancing_type != tm_vb)
+  if (instancing_type != tm_vb || is_triangle_size_debug)
   {
     dont_render;
   }

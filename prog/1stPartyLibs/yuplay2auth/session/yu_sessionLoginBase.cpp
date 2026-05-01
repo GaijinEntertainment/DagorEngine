@@ -1,68 +1,60 @@
 #include "stdafx.h"
 #include "yu_sessionLoginBase.h"
-#include "yu_json.h"
 #include "yu_string.h"
 
 
 //==================================================================================================
 Yuplay2Status YuSession::CommonLoginAction::parseServerAnswer(const YuCharTab& data)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    YuString statusStr = json.at("status").s();
-    Yuplay2Status status = checkJsonAnswer(statusStr, YU2_FAIL);
+    YuString tags = answer.at("tags").s();
 
-    if (status == YU2_OK)
+    if (psnRestricted)
     {
-      YuString tags = json.at("tags").s();
+      YuStringSet tagsSet = YuStr::explodeSet(tags, ',');
 
-      if (psnRestricted)
-      {
-        YuStringSet tagsSet = YuStr::explodeSet(tags, ',');
-
-        if (tagsSet.find("psnrestricted") != tagsSet.end())
-          return YU2_PSN_RESTRICTED;
-      }
-
-      YuString login(json.at("login").s());
-      YuString nick(json.at("nick").s());
-      YuString userId(json.at("user_id").s());
-      YuString token(json.at("token").s());
-      YuString jwt(json.at("jwt").s());
-      YuString lang(json.at("lang").s());
-      YuString country(json.at("country").s());
-      int64_t expTime = json.at("token_exp").i();
-      YuString nickorig(json.at("nickorig").s());
-      YuString nicksfx(json.at("nicksfx").s());
-
-      YuStrMap meta;
-
-      if (session.doGetMeta())
-      {
-        const YuParserVal::Dict& metaDict = json.at("meta").d();
-
-        for (auto mi = metaDict.begin(), end = metaDict.end(); mi != end; ++mi)
-          meta[mi->first] = mi->second.s();
-      }
-
-      session.onLogin(login, nick, userId, token, jwt, tags, lang, country, expTime, nickorig,
-        nicksfx, meta);
-
-      onOkStatus(json);
-
-      return YU2_OK;
+      if (tagsSet.find("psnrestricted") != tagsSet.end())
+        return YU2_PSN_RESTRICTED;
     }
 
-    return onErrorStatus(json, status);
+    YuString login(answer.at("login").s());
+    YuString nick(answer.at("nick").s());
+    YuString userId(answer.at("user_id").s());
+    YuString token(answer.at("token").s());
+    YuString jwt(answer.at("jwt").s());
+    YuString lang(answer.at("lang").s());
+    YuString country(answer.at("country").s());
+    int64_t expTime = answer.at("token_exp").i();
+    YuString nickorig(answer.at("nickorig").s());
+    YuString nicksfx(answer.at("nicksfx").s());
+
+    YuStrMap meta;
+
+    if (session.doGetMeta())
+    {
+      const YuParserVal::Dict& metaDict = answer.at("meta").d();
+
+      for (auto mi = metaDict.begin(), end = metaDict.end(); mi != end; ++mi)
+        meta[mi->first] = mi->second.s();
+    }
+
+    session.onLogin(login, nick, userId, token, jwt, tags, lang, country, expTime, nickorig,
+      nicksfx, meta);
+
+    onOkStatus(answer);
+
+    return YU2_OK;
   }
 
-  return YU2_FAIL;
+  return onErrorStatus(status);
 }
 
 
 //==================================================================================================
-Yuplay2Status YuSession::CommonLoginAction::onErrorStatus(const YuJson& answer,Yuplay2Status status)
+Yuplay2Status YuSession::CommonLoginAction::onErrorStatus(Yuplay2Status status)
 {
   if (status == YU2_FROZEN)
   {

@@ -23,7 +23,7 @@ static inline bool world_version_check(int &version, const BBox3 &query_aabb)
 int16_t *get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);
 bool is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc);
 bool get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, const int16_t *data,
-  const RendInstGenData::Cell *cell, mat44f &out_tm);
+  const RendInstGenData::Cell *cell, mat44f &out_tm, uint32_t &out_palette_id);
 RendInstGenData::CellRtData *get_cell_rtdata_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell **pcell = nullptr);
 
 int16_t *get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);

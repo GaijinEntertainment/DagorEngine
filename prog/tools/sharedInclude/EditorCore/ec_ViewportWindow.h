@@ -379,7 +379,7 @@ public:
   void updateImgui(ImGuiID canvas_id, const Point2 &size, float item_spacing, bool vr_mode = false);
 
   void setScreenshotMode(Point2 size) override { screenshotSize = size; }
-  void resetScreenshotMode() override { screenshotSize.reset(); }
+  void resetScreenshotMode() override;
 
 protected:
   // include_camera_distance: if set to false then the camera distance statistics will not be displayed in the

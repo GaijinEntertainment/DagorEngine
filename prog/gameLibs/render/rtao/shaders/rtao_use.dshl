@@ -46,6 +46,11 @@ macro USING_RTAO(stage)
 
       #include <rt_texture_outputs.inc.hlsli>
 
+      #ifndef global_samplers_array_defined
+        BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
+        #define global_samplers_array_defined
+      #endif
+
       float getRTAO(uint2 tci)
       {
         float2 uv = min(rtao_uv_max, (tci.xy + 0.5) * inv_output_resolution);

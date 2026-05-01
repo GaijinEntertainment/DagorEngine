@@ -9,6 +9,12 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entityId.h>
+#include <triangleSizeDebug/triangleSizeDebug.h>
+
+namespace var
+{
+static ShaderVariableInfo rendinst_transparent_triangle_size_debug("rendinst_transparent_triangle_size_debug", true);
+}
 
 SplineGenGeometryRepository::SplineGenGeometryRepository() {}
 
@@ -35,23 +41,40 @@ SplineGenGeometryAssetPtr SplineGenGeometryRepository::getOrMakeAsset(const east
   return assets.emplace(asset_name, eastl::make_shared<SplineGenGeometryAsset>(asset_name)).first->second;
 }
 
+dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug)
+{
+  auto nodeNs = is_triangle_debug ? dafg::root() / "tringle_size_debug" / "transparent" : dafg::root() / "transparent" / "close";
+  return nodeNs.registerNode("spline_gen", DAFG_PP_NODE_SRC, [is_triangle_debug](dafg::Registry registry) {
+    registry.requestState().allowWireframe().setFrameBlock("global_frame");
+    read_prev_frame_tex(registry);
+
+    if (is_triangle_debug)
+    {
+      auto ns = registry.root() / "transparent" / "close";
+      registry.requestRenderPass().color({"triangle_size_tex"}).depthRo(ns.readTexture("depth_for_transparency"));
+      registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+      use_camera_in_camera(registry);
+    }
+    else
+      request_common_published_transparent_state(registry, true);
+
+    return [is_triangle_debug](const dafg::multiplexing::Index &multiplexing_index) {
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+
+      STATE_GUARD_0(ShaderGlobal::set_int(var::rendinst_transparent_triangle_size_debug, VALUE), is_triangle_debug);
+      for (auto &managerPair : get_spline_gen_repository().getManagers())
+        managerPair.second->renderTransparent();
+    };
+  });
+}
+
+
 void SplineGenGeometryRepository::createTransparentSplineGenNode()
 {
   if (transparentSplineGenNode)
     return;
 
-  auto nodeNs = dafg::root() / "transparent" / "close";
-  transparentSplineGenNode = nodeNs.registerNode("spline_gen", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    read_prev_frame_tex(registry);
-    request_common_published_transparent_state(registry, true);
-    return [](const dafg::multiplexing::Index &multiplexing_index) {
-      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-
-      for (auto &managerPair : get_spline_gen_repository().getManagers())
-        managerPair.second->renderTransparent();
-    };
-  });
+  transparentSplineGenNode = createTransparentSplineGenNodeImpl(false);
 }
 
 template <typename Callable>
@@ -158,4 +181,13 @@ SplineGenGeometryRepository &get_spline_gen_repository()
     [&](SplineGenGeometryRepository &spline_gen_repository) { spline_instance = &spline_gen_repository; });
   G_ASSERT_EX(spline_instance, "need spline_gen_repository entity");
   return *spline_instance;
+}
+
+ECS_TAG(render, dev)
+static void create_transparent_spline_triangle_debug_es(const CreateTriangleDebugNodes &evt)
+{
+  if (!evt.systems.isTransparent)
+    return;
+
+  evt.nodes->push_back(createTransparentSplineGenNodeImpl(true));
 }

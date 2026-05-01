@@ -214,8 +214,7 @@ void TiledLights::computeTiledLigths(const bool clear_lights)
     SCOPE_RENDER_TARGET;
     if (useTilesRT)
     {
-      d3d::set_render_target();
-      d3d::set_render_target(0, tilesRT.getBaseTex(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{tilesRT.getBaseTex(), 0, 0}});
     }
     else
     {

@@ -1347,7 +1347,8 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
 
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(ri_desc);
   mat44f tm;
-  if (!riutil::get_rendinst_matrix(ri_desc, rgl, data, cell, tm) || !rgl)
+  uint32_t paletteId = 0;
+  if (!riutil::get_rendinst_matrix(ri_desc, rgl, data, cell, tm, paletteId) || !rgl)
     return false;
 
   CollisionResource *collRes = rgl->rtData->riCollRes[ri_desc.pool].collRes;
@@ -2043,7 +2044,7 @@ struct CallbackAddStrat : public MaterialRayStrat
   {
     for (auto &q : collInfoQueue)
     {
-      if (!rendinst::isRiGenDescInGrid(q.second.desc))
+      if (!rendinst::isRiGenInWorld(q.second.desc))
         continue;
 #if DAGOR_DBGLEVEL > 0
       processingElem = &q.second;
@@ -2842,7 +2843,7 @@ static bool testObjToRendInstIntersectionCache(const bounding_type_t &bounding, 
   {
     for (const rendinst::CollisionInfo &collInfo : collInfoQueue)
     {
-      if (!rendinst::isRiGenDescInGrid(collInfo.desc))
+      if (!rendinst::isRiGenInWorld(collInfo.desc))
         continue;
       RendInstGenData *rgl = rendinst::rgLayer[collInfo.desc.layer];
       bool isPosRi = !collInfo.desc.isRiExtra() && rgl->rtData->riPosInst[collInfo.desc.pool];

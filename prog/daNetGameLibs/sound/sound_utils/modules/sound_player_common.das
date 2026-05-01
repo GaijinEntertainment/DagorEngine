@@ -431,11 +431,27 @@ def private play_or_release_impl(var event : SoundEvent&; name : string; should_
 def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
   return play_or_release_impl(event, name, pos, should_play, false)
 
+def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool; blob : SoundOcclusionBlob&)
+  let enabled = event.enabled
+  if play_or_release_impl(event, name, pos, should_play, false)
+    if !enabled
+      attach_to_blob(event, blob)
+    return true
+  return false
+
 def play_or_release(var event : SoundEvent&; name : string; should_play : bool)
   return play_or_release_impl(event, name, should_play, false)
 
 def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
   return play_or_release_impl(event, name, pos, should_play, true)
+
+def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should_play : bool; blob : SoundOcclusionBlob&)
+  let enabled = event.enabled
+  if play_or_release_impl(event, name, pos, should_play, true)
+    if !enabled
+      attach_to_blob(event, blob)
+    return true
+  return false
 
 def play_or_abandon(var event : SoundEvent&; name : string; should_play : bool)
   return play_or_release_impl(event, name, should_play, true)

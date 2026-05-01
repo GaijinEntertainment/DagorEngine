@@ -50,10 +50,11 @@ protected:
 
   void stop() override;
 
+  Yuplay2Status parseServerJson(const YuCharTab& answer_bytes);
+
   static Yuplay2Status checkServerAnswer(const YuCharTab& answer, Yuplay2Status def_error = YU2_FAIL);
   static Yuplay2Status checkJsonAnswer(const YuString& answer, Yuplay2Status def_error = YU2_FAIL);
   static Yuplay2Status curlError(int error);
-  static Yuplay2Status parseServerJson(const YuCharTab& answer);
 
 private:
   template<class POST>

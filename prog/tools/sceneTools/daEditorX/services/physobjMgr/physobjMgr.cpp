@@ -408,7 +408,7 @@ public:
   void renderService() override
   {
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if (subtypeMask & collisionSubtypeMask)
     {
       dag::ConstSpan<PhysObjEntity *> ent = objPool.getEntities();
@@ -435,7 +435,7 @@ public:
   void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
       return;
 

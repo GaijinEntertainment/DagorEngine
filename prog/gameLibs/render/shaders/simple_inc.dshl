@@ -1,4 +1,4 @@
-macro USE_SIMPLE_PS(is_writing_gbuffer, order)
+macro USE_SIMPLE_PS_IMPL(is_writing_gbuffer, order, has_microdetail_sampler)
   if (is_writing_gbuffer)
   {
     WRITE_GBUFFER()
@@ -7,7 +7,7 @@ macro USE_SIMPLE_PS(is_writing_gbuffer, order)
     diffuse_tex@staticSmp = tex;
     normal_tex@staticSmp = normal;
   }
-  USE_CHARACTER_MICRODETAIL()
+  USE_CHARACTER_MICRODETAIL_IMPL(has_microdetail_sampler, true)
 
 hlsl(ps)
 {
@@ -135,4 +135,8 @@ hlsl(ps)
   }
 }
 compile("target_ps", "simple_ps");
+endmacro
+
+macro USE_SIMPLE_PS(is_writing_gbuffer, order)
+  USE_SIMPLE_PS_IMPL(is_writing_gbuffer, order, true)
 endmacro

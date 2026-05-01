@@ -8,6 +8,7 @@
 
 #include "assetUserFlags.h"
 #include "av_appwnd.h"
+#include "av_cm.h"
 #include <EditorCore/ec_input.h>
 #include <EditorCore/ec_workspace.h>
 #include <debug/dag_debug.h>
@@ -34,6 +35,11 @@ static IDaBuildInterface *dabuild = NULL;
 static DagorAssetMgr *assetMgr = NULL;
 static SimpleString startDir;
 extern bool av_perform_uptodate_check;
+extern bool dabuildWindowVisible;
+extern bool daBuildWindowAutoOpen;
+extern bool daBuildWindowAutoClose;
+static bool patchBuildMode = false;
+static bool wasDabuildRunning = false; // for detecting changes
 
 struct PendingLogEntry
 {
@@ -147,6 +153,7 @@ int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
   int pcount = dabuildcache::bind_with_mgr(mgr, appblk, appdir);
   dabuild = pcount ? dabuildcache::get_dabuild() : NULL;
   assetMgr = pcount ? &mgr : NULL;
+  patchBuildMode = appblk.getBool("av_patch_build", true);
   if (texconvcache::init(mgr, appblk, startDir, false, true))
   {
     get_app().getConsole().addMessage(ILogWriter::NOTE, "texture conversion cache inited");
@@ -214,8 +221,28 @@ void stop_dabuild_background()
   close_progress_shm();
 }
 
-void update_dabuild_background()
+void update_dabuild_background(PropPanel::IMenu *mm)
 {
+  bool isDabuildRunning = is_dabuild_running();
+  if (wasDabuildRunning != isDabuildRunning)
+  {
+    if (isDabuildRunning)
+    {
+      if (daBuildWindowAutoOpen)
+        dabuildWindowVisible = true;
+    }
+    else
+    {
+      if (daBuildWindowAutoClose)
+        dabuildWindowVisible = false;
+    }
+
+    wasDabuildRunning = isDabuildRunning;
+  }
+
+  if (mm)
+    mm->setCheckById(CM_WINDOW_DABUILD, dabuildWindowVisible); // catching both auto open/close and [X] closings
+
   {
     WinAutoLock lock(logMutex);
     if (!pendingLogs.empty())
@@ -401,6 +428,11 @@ static bool launch_build_async(DaBuildPostParams postParams)
   dabuildArgv.push_back(SimpleString(dabuildExe.str()));
   dabuildArgv.push_back(SimpleString("-nopbar"));
   dabuildCmdLine.printf(0, "\"%s\" -nopbar", dabuildExe.str());
+  if (patchBuildMode)
+  {
+    dabuildArgv.push_back(SimpleString("-patch_build"));
+    dabuildCmdLine.aprintf(0, " %s", dabuildArgv.back());
+  }
   if (progressShm)
   {
     String shmArg(0, "-progress_shm:%s", progressShmName.str());
@@ -825,7 +857,7 @@ bool is_asset_exportable(DagorAsset *a)
 
 void render_dabuild_imgui()
 {
-  DAEDITOR3.imguiBegin("daBuild");
+  DAEDITOR3.imguiBegin("daBuild", &dabuildWindowVisible);
   {
     bool running = ::is_dabuild_running();
 
@@ -884,6 +916,10 @@ void render_dabuild_imgui()
 
     if (!running)
       ImGui::EndDisabled();
+
+    ImGui::Checkbox("Auto open on build", &daBuildWindowAutoOpen);
+    ImGui::SameLine(0.0f, 10.0f);
+    ImGui::Checkbox("Auto close when finished", &daBuildWindowAutoClose);
   }
   DAEDITOR3.imguiEnd();
 

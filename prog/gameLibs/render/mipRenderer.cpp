@@ -67,7 +67,7 @@ void MipRenderer::renderTo(BaseTexture *src, BaseTexture *dst, const IPoint2 &ta
   TextureInfo texInfo;
 
   src->getinfo(texInfo);
-  d3d::set_render_target(dst, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{dst, 0, 0}});
   ShaderGlobal::set_float4(mip_target_sizeVarId, target_size.x, target_size.y, 1.0f / target_size.x, 1.0f / target_size.y);
   src->texmiplevel(0, 0);
   d3d::resource_barrier({src, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
@@ -116,7 +116,7 @@ void MipRenderer::render(BaseTexture *tex, uint8_t max_level) const
     else
     {
       d3d::resource_barrier({tex, RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i - 1), 1});
-      d3d::set_render_target(tex, i);
+      d3d::set_render_target({}, DepthAccess::RW, {{tex, static_cast<uint32_t>(i), 0}});
       mipRenderer.render();
     }
   }

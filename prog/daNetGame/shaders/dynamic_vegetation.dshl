@@ -209,7 +209,11 @@ shader dynamic_tree_colored
     }
   }
 
-  if (atest == atestOn || dyn_model_render_pass != render_to_depth)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (atest == atestOn || dyn_model_render_pass != render_to_depth)
   {
     hlsl(ps) {
       #define IS_DYNAMIC 1

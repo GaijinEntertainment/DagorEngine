@@ -170,7 +170,8 @@ void ProjectiveDecalsBase::render()
   d3d::resource_barrier({indirectBuffer.get(), RB_RO_INDIRECT_BUFFER});
   d3d::resource_barrier({buffer.culledInstances.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
   ShaderGlobal::set_buffer(var::decal_buffer, buffer.culledInstances.getBufId());
-  decalRenderer.shader->setStates();
+  if (!decalRenderer.shader->setStates())
+    return;
   d3d::setvsrc(0, 0, 0);
   d3d::draw_indexed_indirect(PRIM_TRILIST, indirectBuffer.get(), 0);
 }

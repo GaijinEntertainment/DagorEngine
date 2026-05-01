@@ -185,8 +185,9 @@ public:
     SND_BIND_FUN_EX(__reset, "reset", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(__move, "move", das::SideEffects::modifyArgumentAndExternal);
 
-    SND_BIND_FUN_EX(is_valid_event_handle_value, "is_valid_handle_value", das::SideEffects::none);
-    SND_BIND_FUN_EX(is_valid_event_value, "is_valid_handle_value", das::SideEffects::none);
+    SND_BIND_FUN_EX(event_handle__is_valid_handle_value, "is_valid_handle_value", das::SideEffects::none);
+    SND_BIND_FUN_EX(sound_event__is_valid_handle_value, "is_valid_handle_value", das::SideEffects::none);
+
     SND_BIND_FUN(invalid_sound_event_handle, das::SideEffects::none);
 
     SND_BIND_FUN_EX(play_with_name, "play", das::SideEffects::modifyExternal);

@@ -812,7 +812,7 @@ static bool recreate_swapchain(DXGI_SWAP_CHAIN_DESC &new_scd)
   if (SUCCEEDED(hres) && swap_chain)
     return true;
 
-  logerr("DX11: recreate_swapchain is failed (HRESULT = 0x%X, swap_chain = %p). Force driver reset...", hres, swap_chain);
+  D3D_ERROR("DX11: recreate_swapchain is failed (HRESULT = 0x%X, swap_chain = %p). Force driver reset...", hres, swap_chain);
   dump_swapchain_desc(new_scd);
 
   dagor_d3d_force_driver_reset = true;
@@ -831,7 +831,7 @@ D3D_FEATURE_LEVEL feature_level_from_str(const char *str)
   }
   FEATURE_LEVELS_LIST
 #undef X
-  logerr("unknown feature level %s, returning 10_0", str);
+  D3D_ERROR("unknown feature level %s, returning 10_0", str);
   return D3D_FEATURE_LEVEL_10_0;
 }
 
@@ -844,7 +844,7 @@ const char *str_from_feature_level(D3D_FEATURE_LEVEL level)
     FEATURE_LEVELS_LIST
   }
 #undef X
-  logerr("unknown feature level %x, returning 10_0", level);
+  D3D_ERROR("unknown feature level %x, returning 10_0", level);
   return "10_0";
 }
 
@@ -852,7 +852,7 @@ void compare_feature_levels(D3D_FEATURE_LEVEL old_level, D3D_FEATURE_LEVEL new_l
 {
   if (old_level != new_level)
   {
-    logerr("DX feature level changed from %s to %s. This will likely result in a crash.", str_from_feature_level(old_level),
+    D3D_ERROR("DX feature level changed from %s to %s. This will likely result in a crash.", str_from_feature_level(old_level),
       str_from_feature_level(new_level));
   }
 }
@@ -1564,6 +1564,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   g_device_desc.caps.hasNativeRayTracePipelineExpansion = false;
   g_device_desc.caps.hasProperUAVSupport = true;
   g_device_desc.caps.hasBarrierNone = false;
+  g_device_desc.caps.hasPipelineStatisticsQuery = false; // TODO: add support for this
 
   if (streamlineAdapter)
   {

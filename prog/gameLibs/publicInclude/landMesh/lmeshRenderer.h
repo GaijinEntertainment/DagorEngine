@@ -156,6 +156,7 @@ public:
   void resetOptSceneAndStates();
   void prepare(LandMeshManager &provider, const Point3 &view_pos, float hmap_camera_height);
   void prepare(LandMeshManager &provider, const Point3 &view_pos, float hmap_camera_height, float water_level);
+  bool isPrepared() const { return prepared; }
   // void set_land_classes(dag::ConstSpan<SimpleString> land_classes);
 
   void resetTextures();
@@ -331,6 +332,7 @@ protected:
   float undetailedLCMicroDetail; // scale microdetail otherwise (for compatibility tank mode we'd better have more tiled)
   Point4 worldMulPos[9][2];      // worldMulPos for all mirroring
   bool ignoreBottomDepthBias;
+  bool prepared = false;
   landmesh::OptimizedScene *optScn;
 
   enum StateDepthBias

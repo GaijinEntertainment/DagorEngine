@@ -40,10 +40,10 @@
   ASSIGN_OP(boundingSphere);          \
   ASSIGN_OP(cachedMaxTmScale);        \
   ASSIGN_OP(convexPlanes);            \
-  ASSIGN_OP(capsule);                 \
   ASSIGN_OP(nodeIndex);               \
   ASSIGN_OP(insideOfNode);            \
-  ASSIGN_OP(name);
+  ASSIGN_OP(nameOfs);                 \
+  ASSIGN_OP(capsuleIndex);
 
 CollisionNode &CollisionNode::operator=(const CollisionNode &n)
 {
@@ -80,6 +80,13 @@ CollisionNode &CollisionNode::operator=(CollisionNode &&n)
   return *this;
 }
 #undef COLLNODE_COPY_BASIC_MEMBERS
+
+// Squared radius for CollisionNode bounding sphere preserving the empty-sphere convention (r < 0 => r2 == -1).
+static inline float get_bsphere_r2(float r) { return r < 0 ? -1.f : r * r; }
+
+// BSphere3 from CollisionNode's stored c+r preserving the empty-sphere convention. Plain BSphere3(c, r) recomputes r2 = r*r,
+// so r=-1 would become r2=1 (non-empty); use this helper instead so r<0 produces a fully empty sphere.
+static inline BSphere3 make_node_bsphere(const Point3 &c, float r) { return r < 0 ? BSphere3() : BSphere3(c, r); }
 
 struct CollResProfileStats
 {
@@ -136,7 +143,6 @@ void CollisionResource::bakeNodeTransform(int node_id)
   v_stu_bbox3(n->modelBBox, box);
   v_stu_p3(&n->boundingSphere.c.x, vSphereC);
   n->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
-  n->boundingSphere.r2 = v_extract_x(sphereRad2);
 
   if (n->tm.det() < 0.f)
     for (int i = 0, e = (int)n->indices.size(); i + 2 < e; i += 3)
@@ -159,11 +165,23 @@ CollisionNode *CollisionResource::getNode(uint32_t index)
 
 int CollisionResource::getNodeIndexByName(const char *name) const
 {
-  if (name && *name)
+  if (name && *name && !names.empty())
     for (int i = 0; i < allNodesList.size(); i++)
-      if (strcmp(allNodesList[i].name, name) == 0)
+      if (strcmp(names.data() + allNodesList[i].nameOfs, name) == 0)
         return i;
   return -1;
+}
+
+uint32_t CollisionResource::addName(const char *name)
+{
+  if (names.empty())
+    names.push_back('\0');
+  if (!name || !*name)
+    return 0;
+  uint32_t ofs = (uint32_t)names.size();
+  size_t len = strlen(name);
+  names.insert(names.end(), name, name + len + 1);
+  return ofs;
 }
 
 CollisionNode *CollisionResource::getNodeByName(const char *name) { return getNode(getNodeIndexByName(name)); }
@@ -372,7 +390,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       alignas(EA_CACHE_LINE_SIZE) mat44f nodeTm, nodeItm;
       nodeTm = getMeshNodeTmInline(meshNode, tm, woffset, geom_node_tree);
       vec3f bsphCenter = v_mat44_mul_vec3p(nodeTm, v_ldu(&meshNode->boundingSphere.c.x));
-      float bsphR2 = meshNode->boundingSphere.r2 * max_tm_scale_sq * sqr(meshNode->cachedMaxTmScale);
+      float bsphR2 = get_bsphere_r2(meshNode->boundingSphere.r) * max_tm_scale_sq * sqr(meshNode->cachedMaxTmScale);
       if (is_single_ray)
       {
         vec3f vFrom = traces.front().vFrom;
@@ -809,7 +827,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         continue;
       bool isHit = false;
       vec3f bsphPos = v_ldu(&sphereNode->boundingSphere.c.x);
-      vec4f bsphR2 = v_set_x(sphereNode->boundingSphere.r2);
+      vec4f bsphR2 = v_set_x(get_bsphere_r2(sphereNode->boundingSphere.r));
       vec4f bsphCapsuleR = v_set_x(sphereNode->boundingSphere.r + localCapsuleRadius);
       vec4f bsphCapsuleR2 = v_mul(bsphCapsuleR, bsphCapsuleR);
       vec4f inOutLocalT = v_set_x(localT);
@@ -885,19 +903,15 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       vec3f vOutLocalNorm = v_zero();
       vec3f vOutLocalPos = v_zero();
 
+      const Capsule &nodeCapsule = capsules[capsuleNode->capsuleIndex];
       switch (trace_type)
       {
-        case CollisionTraceType::TRACE_RAY:
-          isHit = capsuleNode->capsule.traceRay(vLocalFrom, vLocalDir, inOutLocalT, vOutLocalNorm);
-          break;
+        case CollisionTraceType::TRACE_RAY: isHit = nodeCapsule.traceRay(vLocalFrom, vLocalDir, inOutLocalT, vOutLocalNorm); break;
         case CollisionTraceType::TRACE_CAPSULE:
-          isHit =
-            capsuleNode->capsule.traceCapsule(vLocalFrom, vLocalDir, inOutLocalT, localCapsuleRadius, vOutLocalNorm, vOutLocalPos);
+          isHit = nodeCapsule.traceCapsule(vLocalFrom, vLocalDir, inOutLocalT, localCapsuleRadius, vOutLocalNorm, vOutLocalPos);
           break;
-        case CollisionTraceType::RAY_HIT: isHit = capsuleNode->capsule.rayHit(vLocalFrom, vLocalDir, localT); break;
-        case CollisionTraceType::CAPSULE_HIT:
-          isHit = capsuleNode->capsule.capsuleHit(vLocalFrom, vLocalDir, localT, localCapsuleRadius);
-          break;
+        case CollisionTraceType::RAY_HIT: isHit = nodeCapsule.rayHit(vLocalFrom, vLocalDir, localT); break;
+        case CollisionTraceType::CAPSULE_HIT: isHit = nodeCapsule.capsuleHit(vLocalFrom, vLocalDir, localT, localCapsuleRadius); break;
         default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
       }
       if (isHit)
@@ -1802,11 +1816,11 @@ bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsTy
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = boxNode->nodeIndex;
 
   for (const CollisionNode *sphNode = sphereNodesHead; sphNode; sphNode = sphNode->nextNode)
-    if (sphNode->boundingSphere & pos)
+    if (lengthSq(pos - sphNode->boundingSphere.c) <= get_bsphere_r2(sphNode->boundingSphere.r))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = sphNode->nodeIndex;
 
   for (const CollisionNode *capNode = capsuleNodesHead; capNode; capNode = capNode->nextNode)
-    if (capNode->capsule.isInside(pos))
+    if (capsules[capNode->capsuleIndex].isInside(pos))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = capNode->nodeIndex;
 
   return !intersected_nodes_list.empty();
@@ -1817,8 +1831,8 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
 {
   offset.zero();
 
-  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node '%s' is not of convex type, only convex is supported",
-    node_to_check.name.str());
+  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
+    (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
   const int numIterations = 5;
   vec4f vOffset = v_zero();
@@ -1852,7 +1866,7 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
   }
   else if (node_to_move.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_move.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_move.boundingSphere.c, node_to_move.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
@@ -1910,8 +1924,8 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
 {
   offset.zero();
 
-  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node '%s' is not of convex type, only convex is supported",
-    node_to_check.name.str());
+  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
+    (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
   const int numIterations = 5;
   vec4f zero = v_zero();
@@ -1947,7 +1961,7 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
   }
   else if (node_to_move.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_move.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_move.boundingSphere.c, node_to_move.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
@@ -2042,7 +2056,7 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
   }
   else if (node_to_test.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_test.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_test.boundingSphere.c, node_to_test.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     bool insideAll = true;
     for (int j = 0; j < convex.size() && insideAll; ++j)
@@ -2088,8 +2102,8 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
 bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, const CollisionNode &restraining_node,
   const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree, const GeomNodeTree *restrain_node_tree) const
 {
-  G_ASSERTF(restraining_node.type == COLLISION_NODE_TYPE_CONVEX, "restrain node '%s' is not of convex type, only convex is supported",
-    restraining_node.name.str());
+  G_ASSERTF(restraining_node.type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
+    (unsigned)restraining_node.nodeIndex);
   TMatrix restrainTm;
   if (restrain_node_tree)
     getCollisionNodeTm(&restraining_node, tm_restrain, restrain_node_tree, restrainTm);
@@ -2193,7 +2207,7 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 void CollisionResource::initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree)
 {
   for (auto &node : allNodesList)
-    node.geomNodeId = geom_node_tree.findNodeIndex(node.name);
+    node.geomNodeId = geom_node_tree.findNodeIndex(getNodeNameStr(node));
 }
 
 CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
@@ -2207,6 +2221,8 @@ CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
   collRes->bsphereCenterNode = bsphereCenterNode;
   collRes->allNodesList = allNodesList;
   collRes->relGeomNodeTms = relGeomNodeTms;
+  collRes->names = names;
+  collRes->capsules = capsules;
 
   collRes->sortNodesList();
   collRes->rebuildNodesLL();
@@ -2215,11 +2231,12 @@ CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
 
 void CollisionResource::sortNodesList()
 {
-  stlsort::sort(allNodesList.begin(), allNodesList.end(), [](const CollisionNode &left, const CollisionNode &right) {
+  const char *namesData = names.empty() ? "" : names.data();
+  stlsort::sort(allNodesList.begin(), allNodesList.end(), [namesData](const CollisionNode &left, const CollisionNode &right) {
     float szL = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(left.modelBBox))));
     float szR = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(right.modelBBox))));
     if (szL == szR)
-      return strcmp(left.name, right.name) > 0;
+      return strcmp(namesData + left.nameOfs, namesData + right.nameOfs) > 0;
     return szL > szR; // larger first
   });
 
@@ -2638,7 +2655,8 @@ public:
           vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
           vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
 
-          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x), v_set_x(nodeB->boundingSphere.r2)))
+          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x),
+                v_set_x(get_bsphere_r2(nodeB->boundingSphere.r))))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1.f / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
@@ -2948,7 +2966,7 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
         {
           bool isIntersected = test_triangle_sphere_intersection(tm1to2 * node1->vertices[node1->indices[index1]],
             tm1to2 * node1->vertices[node1->indices[index1 + 1]], tm1to2 * node1->vertices[node1->indices[index1 + 2]],
-            node2->boundingSphere);
+            make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r));
 
           if (isIntersected)
           {
@@ -3154,6 +3172,8 @@ int CollisionResource::getMemoryUsed() const
     if (!(n.flags & CollisionNode::FLAG_INDICES_ARE_REFS))
       mem += n.indices.size() * sizeof(uint16_t);
   }
+  mem += (int)names.size();
+  mem += capsules.size() * sizeof(Capsule);
   mem += frtMem(gridForTraceable) + frtMem(gridForCollidable);
   return mem;
 }
@@ -3229,7 +3249,7 @@ bool CollisionResource::validateVerticesForJolt(const char *res_name, auto &&on_
       {
         if (passed)
           logwarn("Degenerative triangles detected in collision res: %s", res_name);
-        logwarn(" node '%s' " FMT_P3 FMT_P3 FMT_P3, node->name.c_str(), V3D(v0), V3D(v1), V3D(v2));
+        logwarn(" node '%s' " FMT_P3 FMT_P3 FMT_P3, getNodeNameStr(*node), V3D(v0), V3D(v1), V3D(v2));
         on_degenerate(triangleStartIdx, node);
         passed = false;
       }

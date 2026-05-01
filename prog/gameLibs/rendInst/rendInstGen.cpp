@@ -2396,12 +2396,7 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
       rendinst::onRiGenCellLoaded(rgl->rtData->layerIdx, idx, cx, cz, true, isLastJob);
     }
     virtual unsigned getJobTag() { return tag; };
-    virtual void releaseJob()
-    {
-      if (isLastJob && rendinst::do_delayed_ri_extra_destruction)
-        rendinst::do_delayed_ri_extra_destruction();
-      delete this;
-    }
+    virtual void releaseJob() { delete this; }
   };
 
   if (!rgl || !rgl->rtData)
@@ -3015,6 +3010,9 @@ void rendinst::get_ri_color_infos(
       if (rgl->rtData->riResName[i])
       {
         if (!rgl->rtData->riPosInst[i] && !rendinst::render::tmInstColored)
+          continue;
+
+        if (auto *res = rgl->rtData->riRes[i]; res && !res->hasImpostor())
           continue;
 
         cb(rgl->rtData->riColPair[i * 2 + 0], rgl->rtData->riColPair[i * 2 + 1], rgl->rtData->riResName[i]);

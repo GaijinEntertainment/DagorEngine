@@ -94,9 +94,6 @@ protected:
   float lod0AreaRadius;
   float lastLodExtension;
 
-  Point2 detailsWeightDist;
-  Point4 detailsWeightMin;
-  Point4 detailsWeightMax;
   shaders::UniqueOverrideStateId overrideAlpha, overrideRGB;
 
   const fft_water::WaterHeightmap *waterHeightmap = nullptr;

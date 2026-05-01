@@ -402,7 +402,6 @@ private:
   bool consoleCommandsAndVariableWindowsVisible = false;
   bool consoleWindowVisible = false;
   bool imguiDebugWindowsVisible = false;
-  bool dabuildWindowVisible = true;
   bool useDngBasedSceneRender = false;
   AssetBuildWarningDisplay assetBuildWarningDisplay = AssetBuildWarningDisplay::ShowWhenBuilding;
   String assetToInitiallySelect;

@@ -13,6 +13,10 @@
 #include <windows.h>
 #endif
 
+#if _TARGET_PC_LINUX
+extern SQInteger linux_get_primary_screen_info(HSQUIRRELVM vm);
+#endif
+
 #if _TARGET_PC_MACOSX
 extern SQInteger macosx_get_primary_screen_info(HSQUIRRELVM vm);
 #endif
@@ -65,6 +69,8 @@ static SQInteger get_primary_screen_info(HSQUIRRELVM vm)
   return 1;
 #elif _TARGET_PC_MACOSX
   return macosx_get_primary_screen_info(vm);
+#elif _TARGET_PC_LINUX
+  return linux_get_primary_screen_info(vm);
 #else
   return sq_throwerror(vm, "get_primary_screen_info not implemented on this platform");
 #endif

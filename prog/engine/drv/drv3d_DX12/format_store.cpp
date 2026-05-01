@@ -651,7 +651,7 @@ FormatStore FormatStore::fromDXGIFormat(DXGI_FORMAT fmt)
   FormatStore result;
 
   FormatInfoTableSet::IndexInfo ii = FormatInfoTableSet::getIndex(fmt);
-  result.isSrgb = ii.colorSpace == ColorSpace::SRGB;
+  result.srgbRead = result.srgbWrite = ii.colorSpace == ColorSpace::SRGB;
   result.linearFormat = ii.index;
   return result;
 }
@@ -678,17 +678,17 @@ FormatStore FormatStore::fromDXGIDepthFormat(DXGI_FORMAT fmt)
   return result;
 }
 
-DXGI_FORMAT FormatStore::asDxGiTextureCreateFormat() const
+DXGI_FORMAT FormatStore::asDxGiResourceCreateFormat() const
 {
   // R32F can be used both as float and uint, so it should be created typeless.
   if (linearFormat == (TEXFMT_R32F >> CREATE_FLAGS_FORMAT_SHIFT))
     return asDxGiBaseFormat();
   // For block compressed, we use the requested specific format
   if (isBlockCompressed())
-    return asDxGiFormat();
+    return asDxGiFormat<false>();
   // For depth (and stencil) or when srgb is requested and the format has a
   // srgb variation, we use the base format to allow views of different formats.
-  if ((isSrgbCapableFormatType() && isSrgb) || isDepth())
+  if ((isSrgbCapableFormatType() && srgbWrite) || isDepth())
     return asDxGiBaseFormat();
   // For any other format we use linear.
   return asLinearDxGiFormat();
@@ -700,10 +700,14 @@ DXGI_FORMAT FormatStore::asDxGiBaseFormat() const
   return FormatInfoTableSet::getFormat(linearFormat, ColorSpace::UNDEFINED);
 }
 
+template <bool use_for_read>
 DXGI_FORMAT FormatStore::asDxGiFormat() const
 {
-  return FormatInfoTableSet::getFormat(linearFormat, isSrgb ? ColorSpace::SRGB : ColorSpace::LINEAR);
+  return FormatInfoTableSet::getFormat(linearFormat, (use_for_read ? srgbRead : srgbWrite) ? ColorSpace::SRGB : ColorSpace::LINEAR);
 }
+
+template DXGI_FORMAT FormatStore::asDxGiFormat<true>() const;
+template DXGI_FORMAT FormatStore::asDxGiFormat<false>() const;
 
 DXGI_FORMAT FormatStore::asLinearDxGiFormat() const { return FormatInfoTableSet::getFormat(linearFormat, ColorSpace::LINEAR); }
 
@@ -944,7 +948,14 @@ uint32_t FormatStore::getBytesPerPixelBlockPerPlane(uint32_t *block_x, uint32_t 
   return bytesPerPlane;
 }
 
-const char *FormatStore::getNameString() const { return dxgi_format_name(asDxGiFormat()); }
+template <bool use_for_read>
+const char *FormatStore::getNameString() const
+{
+  return dxgi_format_name(asDxGiFormat<use_for_read>());
+}
+
+template const char *FormatStore::getNameString<true>() const;
+template const char *FormatStore::getNameString<false>() const;
 
 bool FormatStore::canBeStored(DXGI_FORMAT fmt) { return FormatInfoTableSet::isInList(fmt); }
 
@@ -956,12 +967,14 @@ uint32_t FormatStore::getChannelMask() const { return FormatInfoTableSet::getCha
 
 bool FormatStore::isSupported(D3D12_FORMAT_SUPPORT1 flags) const
 {
-  return (FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).support1 & flags) == flags;
+  return (FormatInfoTableSet::getFormatSupport(linearFormat, srgbRead).support1 & flags) == flags &&
+         (FormatInfoTableSet::getFormatSupport(linearFormat, srgbWrite).support1 & flags) == flags;
 }
 
 bool FormatStore::isSupported(D3D12_FORMAT_SUPPORT2 flags) const
 {
-  return (FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).support2 & flags) == flags;
+  return (FormatInfoTableSet::getFormatSupport(linearFormat, srgbRead).support2 & flags) == flags &&
+         (FormatInfoTableSet::getFormatSupport(linearFormat, srgbWrite).support2 & flags) == flags;
 }
 
 bool FormatStore::isSupportedTexture2D() const { return isSupported(D3D12_FORMAT_SUPPORT1_TEXTURE2D); }
@@ -994,13 +1007,13 @@ bool FormatStore::isSampleCountSupported(int32_t sampleCount) const
 {
   G_ASSERTF(is_pow2(sampleCount), "Sample count should be power-of-two value. %u is provided", sampleCount);
 
-  uint32_t sampleCountSupportMask = FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).sampleCountSupportMask;
+  uint32_t sampleCountSupportMask = FormatInfoTableSet::getFormatSupport(linearFormat, srgbWrite).sampleCountSupportMask;
   return (sampleCountSupportMask & (uint32_t)sampleCount) != 0;
 }
 
 int32_t FormatStore::getMaxSampleCount() const
 {
-  return (int32_t)FormatInfoTableSet::getFormatSupport(linearFormat, isSrgb).maxSampleCount;
+  return (int32_t)FormatInfoTableSet::getFormatSupport(linearFormat, srgbWrite).maxSampleCount;
 }
 
 bool FormatStore::isCopyConvertible(FormatStore other) const

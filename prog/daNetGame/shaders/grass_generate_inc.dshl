@@ -397,7 +397,7 @@ macro USE_GPU_GRASS_CORNER_POS(code)
     struct GrassCorner
     {
       float3 worldCornerPos;
-      float3 worldPos;
+      PRECISE float3 worldPos;
       float3 normal;
       float height_from_ground;
       float3 p2e;

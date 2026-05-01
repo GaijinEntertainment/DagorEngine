@@ -4,7 +4,7 @@
 #include "riGen/riUtil.h"
 #include "riGen/riGenExtra.h"
 
-bool rendinst::isRiGenDescInGrid(const rendinst::RendInstDesc &desc)
+bool rendinst::isRiGenInWorld(const rendinst::RendInstDesc &desc)
 {
   if (DAGOR_UNLIKELY(!desc.isValid()))
     return false;

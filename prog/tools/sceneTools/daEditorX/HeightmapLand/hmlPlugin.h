@@ -11,6 +11,7 @@
 #include <de3_assetService.h>
 #include <de3_bitMaskMgr.h>
 #include <de3_hmapStorage.h>
+#include "blockedDetTexMap.h"
 #include <de3_heightmap.h>
 #include <de3_roadsProvider.h>
 #include <de3_genObjHierMask.h>
@@ -375,7 +376,6 @@ public:
   void upscaleHeightMap(CoolConsole &con);
   void resizeHeightMapDet(CoolConsole &con);
   void createColormapFile(CoolConsole &con);
-  void createLightmapFile(CoolConsole &con);
   void resizeLandClassMapFile(CoolConsole &con);
 
   void resetLandmesh() { pendingLandmeshRebuild = true; }
@@ -517,13 +517,19 @@ public:
   void *getLayersHandle() const { return landClsLayersHandle; }
   int getDetLayerIdx() const { return detLayerIdx; }
   MapStorage<uint32_t> &getlandClassMap() { return landClsMap; }
+  bool isLandClsMapGenerated() const { return landClsMapGenerated; }
 
-  MapStorage<uint64_t> *getDetTexIdxMap() const { return detTexIdxMap; }
-  MapStorage<uint64_t> *getDetTexWtMap() const { return detTexWtMap; }
+  hmap_storage::BlockedDetTexMap *getDetTexMap() const { return detTexMap; }
   void prepareDetTexMaps();
 
   LandClassSlotsManager &getLandClassMgr() { return *lcMgr; }
   bool setDetailTexSlot(int s, const char *blk_name);
+  // True if any genLayer targets this detail-tex slot with writeDetTex
+  // enabled; false if the slot is registered (has a name) but every layer
+  // feeding it is land-only (writeDetTex=false). Used by the exporter to
+  // tell "legitimately no detTex writes" apart from "masks/thresholds drove
+  // every pixel to zero for a detTex-writing layer".
+  bool isDetTexSlotWritten(int slot_idx) const;
 
   bool exportLightmapToFile(const char *file_name, int target_code, bool high_quality);
 
@@ -559,12 +565,16 @@ public:
   bool getHeight(const Point2 &p, real &ht, Point3 *normal) const;
   void setShowBlueWhiteMask();
 
+  bool isShowingLandClassColors() const { return showLandClassColors; }
+  void refreshLandClassColorsTex() { updateBlueWhiteMask(nullptr); }
+
   void refillPanel(bool schedule_regen = false);
 
   void prepareEditableLandClasses();
   void addGenLayer(const char *name, int insert_before = -1);
   bool moveGenLayer(ScriptParam *gl, bool up);
   bool delGenLayer(ScriptParam *gl);
+  void rebuildLandSlots();
 
   struct HMDetGH
   {
@@ -742,6 +752,14 @@ private:
   HeightMapStorage heightMap;
 
   MapStorage<uint32_t> &landClsMap;
+  // True once generateLandColors has populated landClsMap (and, when enabled,
+  // colorMap / detTexMap) for the current project open session. Needed
+  // because resizeLandClassMapFile sizes the map to heightMap*lcmScale up
+  // front -- so a getMapSizeX()>0 check passes even for a freshly sized but
+  // empty map. Export guards and LandClassSlotsManager::reinitRIGen check
+  // this bit to avoid acting on the pre-generate zero state. Cleared by
+  // loadObjects and eraseHeightmap; set at the end of generateLandColors.
+  bool landClsMapGenerated = false;
   int lcmScale;
   void *landClsLayersHandle;
   dag::Span<HmapBitLayerDesc> landClsLayer;
@@ -769,7 +787,7 @@ private:
   bool applyHeightBakeSplines = true;
   bool applyHeightBakeSplinesOnEdit = false;
 
-  MapStorage<uint64_t> *detTexIdxMap, *detTexWtMap;
+  hmap_storage::BlockedDetTexMap *detTexMap = nullptr;
 
   int detDivisor;
   HeightMapStorage heightMapDet;
@@ -833,7 +851,9 @@ private:
 
   PtrTab<ScriptParam> genLayers;
   bool showBlueWhiteMask;
+  bool showLandClassColors = false;
   void updateBlueWhiteMask(const IBBox2 *);
+  void updateLandClassColorsTex();
   void updateGenerationMask(const IBBox2 *rect);
 
   bool showMonochromeLand;

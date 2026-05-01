@@ -21,13 +21,15 @@ KRNLIMP void os_wait_on_address_64(volatile uint64_t *addr, const uint64_t *cmpa
 
 #if _TARGET_PC_WIN
 KRNLIMP void init_win_wait_on_address();
-using os_wait_on_address_cb_t = dag::FixedMoveOnlyFunction<sizeof(void *), decltype(os_wait_on_address)>;
-using os_wait_on_address_64_cb_t = dag::FixedMoveOnlyFunction<sizeof(void *), decltype(os_wait_on_address_64)>;
-KRNLIMP os_wait_on_address_cb_t os_get_wait_on_address_impl();
-KRNLIMP os_wait_on_address_64_cb_t os_get_wait_on_address_64_impl();
-#else
-inline auto os_get_wait_on_address_impl() { return &os_wait_on_address; }
 #endif
+
+#if _TARGET_PC_WIN && !defined(_TARGET_ARCH_ARM64)
+using os_wait_on_address_cb_t = dag::FixedMoveOnlyFunction<sizeof(void *), decltype(os_wait_on_address)>;
+KRNLIMP os_wait_on_address_cb_t os_get_native_wait_on_address_impl();
+#else
+inline constexpr auto os_get_native_wait_on_address_impl() { return &os_wait_on_address; }
+#endif
+
 KRNLIMP void os_wake_on_address_all(volatile uint32_t *addr);
 KRNLIMP void os_wake_on_address_one(volatile uint32_t *addr);
 

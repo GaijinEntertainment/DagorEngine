@@ -761,7 +761,7 @@ protected:
       msg.type = type;
       msg.frameIndex = currentFrame.frameIndex;
       msg.eventPath = curentEventPath;
-      msg.format = format.asDxGiTextureCreateFormat();
+      msg.format = format.asDxGiResourceCreateFormat();
       msg.size = size;
       msg.extent = extent;
       msg.mips = mips.count();

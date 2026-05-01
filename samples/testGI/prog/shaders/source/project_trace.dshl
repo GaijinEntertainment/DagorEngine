@@ -38,8 +38,7 @@ macro PROJECT_TRACE(code, supports_raygen)
             hit.hitAlbedo = 0.5; // fixme: should be material color
           else if (hitInfo.albedoTextureIndex != 0xFFFF)
           {
-            SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-            float4 texel = bvh_textures[hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+            float4 texel = bvh_textures[hitInfo.albedoTextureIndex].SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, 0);
             hit.hitAlbedo = texel.rgb;
           }
           return true;

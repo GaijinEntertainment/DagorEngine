@@ -193,7 +193,7 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
       logerr("network message #%d/%s/%x to %d<%s> from conn #%d is failed to unpack", msgCls->classId, msgCls->debugClassName,
         msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId());
   }
-  else
+  else if (msgCls->routing != ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER || DAECS_EXTENSIVE_CHECKS) //-V547
     logwarn("network message #%d/%s/%x to %d<%s> from conn #%d is dropped due to failed routing (%d) check", msgCls->classId,
       msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId(),
       msgCls->routing);

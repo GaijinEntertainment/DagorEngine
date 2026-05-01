@@ -73,7 +73,7 @@ private:
   void replaceMatShaderClass(int lod, int mat_id, const char *new_shclass_name);
 
   void copyMatProperties(int lod, int mat_id);
-  void pasteMatProperties(int lod, int mat_id);
+  void pasteMatProperties(int lod, int mat_id, PropPanel::ContainerPropertyControl &editor_panel);
 
   void reloadCurrentAsset();
   bool notifyCurrentAssetNeedsReload();
@@ -125,6 +125,7 @@ private:
     eastl::function<void(MatVarDesc &, const MatVarDesc &)> common_var_cb);
 
   static EntityMatProperties propertiesCopyBuffer; // Should stay alive between assets. So, it's static.
+  static String propertiesCopyBufferProxyMatName;  // ProxyMat name of the copied material. Empty if not a ProxyMat.
 };
 
 class ProxymatAssetDragAndDropHandler : public PropPanel::IDropTargetHandler

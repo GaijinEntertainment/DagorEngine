@@ -11,6 +11,8 @@
 #include <id/idRange.h>
 #include <render/daFrameGraph/multiplexing.h>
 #include <render/daFrameGraph/resourceCreation.h>
+#include <render/daFrameGraph/detail/projectors.h>
+#include <render/daFrameGraph/detail/resourceType.h>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -157,6 +159,42 @@ struct IrGraphBuilderFixture
 
     validityInfo.nodeValid.set(nodeId, true);
     depData.resourceLifetimes[resId].readers.push_back(nodeId);
+  }
+
+  dafg::NodeNameId addNodeReadingAndBindingShVar(const char *node_name, const char *res_name, int sv_id, bool is_optional,
+    dafg::ResourceSubtypeTag projected_tag, dafg::detail::TypeErasedProjector projector)
+  {
+    auto root = registry.knownNames.root();
+    auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, node_name);
+    auto resId = registry.knownNames.addNameId<dafg::ResNameId>(root, res_name);
+
+    registry.nodes.expandMapping(nodeId);
+    auto &nodeData = registry.nodes[nodeId];
+    nodeData.sideEffect = dafg::SideEffects::External;
+    nodeData.readResources.insert(resId);
+
+    dafg::ResourceRequest req;
+    req.usage = {dafg::Usage::SHADER_RESOURCE, dafg::Access::READ_ONLY, dafg::Stage::PS};
+    req.optional = is_optional;
+    nodeData.resourceRequests[resId] = req;
+
+    // Mirror what bindToShaderVar() actually stores: optional flag plus the
+    // projected subtype tag and projector. NodeExecutor::bindShaderVar()
+    // dispatches to bindBlob<T>() via projectedTag, and bindBlob<T>() is what
+    // performs the "reset to T{}" when an optional resource is missing -- so
+    // the IR builder must carry both fields through for the reset to fire.
+    dafg::Binding binding;
+    binding.type = dafg::BindingType::ShaderVar;
+    binding.resource = resId;
+    binding.optional = is_optional;
+    binding.projectedTag = projected_tag;
+    binding.projector = projector;
+    nodeData.bindings[sv_id] = binding;
+
+    validityInfo.nodeValid.set(nodeId, true);
+    depData.resourceLifetimes.expandMapping(resId);
+    depData.resourceLifetimes[resId].readers.push_back(nodeId);
+    return nodeId;
   }
 
   // Source sentinel: no frontendNode, no predecessors
@@ -342,4 +380,89 @@ TEST_CASE("no-op rebuild with pruned nodes marks nothing changed", "[irGraphBuil
     CHECK_FALSE(changes2.irNodesChanged[idx]);
   for (auto idx : changes2.irResourcesChanged.trueKeys())
     CHECK_FALSE(changes2.irResourcesChanged[idx]);
+}
+
+namespace
+{
+// Standalone projector function so tests can identity-compare the pointer
+// stored in the IR Binding against the one fed into the frontend Binding.
+const void *testShVarProjector(const void *p) { return p; }
+} // namespace
+
+TEST_CASE("missing optional shader-var binding survives into IR with optional flag", "[irGraphBuilder][bindings]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // Mirrors the user-side scenario: a node reads a blob optionally and binds it
+  // to a shader var, but no producer ever creates that resource. The IR builder
+  // must still emit the binding (so the runtime can act on it) with no resource
+  // index, the optional flag preserved, and crucially the projectedTag carried
+  // through -- NodeExecutor::bindShaderVar() dispatches the "reset to T{}"
+  // branch via that tag, so dropping it would silently kill the regression fix.
+  constexpr int kFakeShVarId = 7;
+  const auto kProjectedTag = dafg::tag_for<int>();
+  auto consumerId = f.addNodeReadingAndBindingShVar("consumer", "missing_blob", kFakeShVarId, /*is_optional*/ true, kProjectedTag,
+    &testShVarProjector);
+
+  f.finalize();
+  f.build();
+
+  bool foundBinding = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  {
+    if (irNode.frontendNode != consumerId)
+      continue;
+
+    const auto &bindings = f.graph.nodeStates[idx].bindings;
+    auto it = bindings.find(kFakeShVarId);
+    REQUIRE(it != bindings.end());
+    CHECK_FALSE(it->second.resource.has_value());
+    CHECK(it->second.optional);
+    CHECK_FALSE(it->second.reset);
+    // Tag must survive even when the resource is missing, otherwise the
+    // runtime can't pick the right bindBlob<T> to reset the shader var.
+    CHECK(it->second.projectedTag == kProjectedTag);
+    // IR builder intentionally nulls the projector when there is no resource
+    // (it would never be invoked); see irGraphBuilder.cpp around line 1504.
+    CHECK(it->second.projector == nullptr);
+    foundBinding = true;
+  }
+  CHECK(foundBinding);
+}
+
+TEST_CASE("mandatory shader-var binding does not set IR optional flag", "[irGraphBuilder][bindings]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // Counter-test: a non-optional read with a producer present must yield a
+  // binding with the resource mapped and optional == false, so the runtime
+  // does not enter the reset branch. The projectedTag and projector must
+  // both survive to the IR so bindBlob<T> can fetch and project the blob.
+  constexpr int kFakeShVarId = 7;
+  const auto kProjectedTag = dafg::tag_for<int>();
+  f.addNodeCreatingResource("producer", "the_blob", dafg::SideEffects::External);
+  auto consumerId =
+    f.addNodeReadingAndBindingShVar("consumer", "the_blob", kFakeShVarId, /*is_optional*/ false, kProjectedTag, &testShVarProjector);
+
+  f.finalize();
+  f.build();
+
+  bool foundBinding = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  {
+    if (irNode.frontendNode != consumerId)
+      continue;
+
+    const auto &bindings = f.graph.nodeStates[idx].bindings;
+    auto it = bindings.find(kFakeShVarId);
+    REQUIRE(it != bindings.end());
+    CHECK(it->second.resource.has_value());
+    CHECK_FALSE(it->second.optional);
+    CHECK(it->second.projectedTag == kProjectedTag);
+    CHECK(it->second.projector == &testShVarProjector);
+    foundBinding = true;
+  }
+  CHECK(foundBinding);
 }

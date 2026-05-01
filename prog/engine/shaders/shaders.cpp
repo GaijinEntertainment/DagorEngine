@@ -1204,6 +1204,8 @@ public:
     }
 
     unload_shaders_bindump();
+
+    shaderbindump::g_stub_texture_repo.shutdown();
   }
 };
 

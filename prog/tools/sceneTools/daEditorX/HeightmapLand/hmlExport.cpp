@@ -621,6 +621,16 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
             usedDetTex[detIds[di]] = true;
       }
 
+    // A slot with a registered landclass asset but no pixel reaching the
+    // 1/255 quantized weight threshold gets dropped from lmDump, which is
+    // fine for the exported payload but means the editor-time
+    // blendDetTex(slot, wt) lookup later hits lcRemap[slot]=0xFF. Report
+    // such slots as errors so the BLK author knows the landclass is
+    // effectively unused (masks / thresholds / overlapping layers drove
+    // its contribution to zero everywhere). Layers with writeDetTex
+    // disabled never emit detTex weights in the first place -- that is a
+    // supported land-only configuration, not a failure -- so filter them
+    // out via isDetTexSlotWritten(i).
     clear_and_resize(detTexRemap, numDetTex);
     mem_set_ff(detTexRemap);
     int ord = 0;
@@ -628,6 +638,9 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
     {
       if (usedDetTex[i])
         detTexRemap[i] = ord++;
+      else if (
+        !tools_internal && i < land_class_names.size() && !land_class_names[i].empty() && HmapLandPlugin::self->isDetTexSlotWritten(i))
+        con.addMessage(ILogWriter::ERROR, "Landclass <%s> final weights are all 0!", land_class_names[i].c_str());
       debug("detTex[%d] %s is %s, remapped to %d", i, i < land_class_names.size() ? land_class_names[i].str() : NULL,
         usedDetTex[i] ? "used" : "UNUSED", detTexRemap[i]);
     }

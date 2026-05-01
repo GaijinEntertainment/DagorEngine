@@ -117,9 +117,9 @@ static void update_laser_spots_buffer_es(const UpdateStageInfoBeforeRender &evt,
   dag::Vector<LaserScreenSpot, framemem_allocator> lasersData;
   lasersData.reserve(MAX_LASER_SCREEN_SPOTS_COUNT);
   gather_laser_spots_ecs_query(manager,
-    [&](bool laserActive, bool laserAvailable, const Point3 &laser_data__fxPos, const Point3 &laser_data__fxDir,
+    [&](bool laserActive, bool laserAvailable, bool laserVisible, const Point3 &laser_data__fxPos, const Point3 &laser_data__fxDir,
       const float laser_data__intesity, const float &laser_data__crownSize, const Point3 &laserBeamColor) {
-      if (!laserActive || !laserAvailable)
+      if (!laserActive || !laserAvailable || !laserVisible)
         return;
       Point3 cameraDir = evt.viewItm.getcol(2);
       if (dot(laser_data__fxDir, cameraDir) > 0)
@@ -193,10 +193,11 @@ static void disable_laser_on_death_es(const ecs::Event &, ecs::EntityManager &ma
 ECS_TAG(render)
 ECS_TRACK(laserActive)
 ECS_TRACK(laserAvailable)
-static void disable_laser_es(const ecs::Event &, ecs::EntityManager &manager, bool laserActive, bool laserAvailable,
+ECS_TRACK(laserVisible)
+static void disable_laser_es(const ecs::Event &, ecs::EntityManager &manager, bool laserActive, bool laserAvailable, bool laserVisible,
   int &laserBeamTracerId, int &laserDecalId)
 {
-  if (!laserActive || !laserAvailable)
+  if (!laserActive || !laserAvailable || !laserVisible)
     disable_laser(manager, laserBeamTracerId, laserDecalId);
 }
 
@@ -205,15 +206,15 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static void update_lasers_es(const ParallelUpdateFrameDelayed &, ecs::EntityManager &manager, int &laserBeamTracerId,
   int &laserDecalId, const Point3 &laserBeamColor, float laserBeamMaxLength, float laserStartSize, float laserMaxSize,
-  float laserMaxIntensity, float laserScrollingSpeed, bool laserActive, bool laserAvailable, const Point3 &laser_data__rayHit,
-  const Point3 &laser_data__fxPos, const Point3 &laser_data__fxDir, const float &laser_data__laserLen,
-  const ecs::EntityId &laser_data__gunOwner, const ecs::EntityId &laser_data__playerId, bool laser_sight__is_compatible,
-  const float laser_data__dotIntensity, const Point3 &laserBeamDotColor)
+  float laserMaxIntensity, float laserScrollingSpeed, bool laserActive, bool laserAvailable, bool laserVisible,
+  const Point3 &laser_data__rayHit, const Point3 &laser_data__fxPos, const Point3 &laser_data__fxDir,
+  const float &laser_data__laserLen, const ecs::EntityId &laser_data__gunOwner, const ecs::EntityId &laser_data__playerId,
+  bool laser_sight__is_compatible, const float laser_data__dotIntensity, const Point3 &laserBeamDotColor)
 {
   if (!laser_sight__is_compatible)
     return;
 
-  if (!laserActive || !laserAvailable)
+  if (!laserActive || !laserAvailable || !laserVisible)
     return;
   TIME_D3D_PROFILE(laser_sight_update)
 

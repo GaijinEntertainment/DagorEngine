@@ -24,7 +24,7 @@ void report_detailed_image_srv(const PipelineStageStateBase::TRegister &t_regist
 
   const auto &extent = image->getBaseExtent();
   logdbg("DX12: [image] type=%s, format=%s, extent=%dx%dx%d, mips=%d, layers=%d, planes=%d, msaa=%d, viewcount=%d",
-    to_string(image->getType()), image->getFormat().getNameString(), extent.width, extent.height, extent.depth,
+    to_string(image->getType()), image->getFormat().getNameString<true>(), extent.width, extent.height, extent.depth,
     (uint32_t)image->getMipLevelRange().count(), (uint32_t)image->getArrayLayers().count(), (uint32_t)image->getPlaneCount().count(),
     (uint32_t)image->getMsaaLevel(), (uint32_t)image->getViewCount());
 
@@ -38,7 +38,7 @@ void report_detailed_image_srv(const PipelineStageStateBase::TRegister &t_regist
 
   auto view = t_register.imageView;
   logdbg("DX12: [viewstate] cube=%d, arr=%d, format=%s, mipofs=%d, mips=%d, arrofs=%d, arrcount=%d", (view.isCubemap ? 1 : 0),
-    (view.isArray ? 1 : 0), view.getFormat().getNameString(), (uint32_t)view.getMipBase().index(), (uint32_t)view.getMipCount(),
+    (view.isArray ? 1 : 0), view.getFormat().getNameString<true>(), (uint32_t)view.getMipBase().index(), (uint32_t)view.getMipCount(),
     (uint32_t)view.getArrayBase().index(), (uint32_t)view.getArrayCount());
 
   bool isValidDescriptor = (image->getRecentView().handle == t_register.view && image->getRecentView().state == view);

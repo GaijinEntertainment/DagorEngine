@@ -483,6 +483,8 @@ public:
 
   float maxStepAngle = 74.0f;
 
+  float flatGroundCos = 0.f;
+
   float crawlWalkNormTau = 0.2f;
 
   float wallJumpSpd = 5.f;

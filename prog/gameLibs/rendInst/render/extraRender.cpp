@@ -1469,8 +1469,7 @@ static inline void complete_vb_fill(RiGenExtraVisibility &v, uint32_t gen)
 {
   G_FAST_ASSERT(gen != INVALID_VB_EXTRA_GEN);
   interlocked_release_store(v.vbExtraGeneration, gen);
-  if (os_get_wait_on_address_impl())
-    os_wake_on_address_one(&v.vbExtraGeneration);
+  os_wake_on_address_one(&v.vbExtraGeneration);
 }
 
 static bool fill_vbextra(RiGenExtraVisibility &v,
@@ -1627,12 +1626,11 @@ void RenderRiExtraJob::doJob()
 
 void RenderRiExtraJob::waitVbFill(const RiGenVisibility *vis)
 {
-  auto waitOnAddr = os_get_wait_on_address_impl(); // May be null on win7
   uint32_t invalidGen = INVALID_VB_EXTRA_GEN;
   if (interlocked_acquire_load_ptr(vbase) == vis)
     if (interlocked_acquire_load(vis->riex.vbExtraGeneration) == INVALID_VB_EXTRA_GEN)
       spin_wait([&] {
-        waitOnAddr ? waitOnAddr(&vis->riex.vbExtraGeneration, &invalidGen, /*inf*/ -1) : ((void)0);
+        os_wait_on_address(&vis->riex.vbExtraGeneration, &invalidGen);
         return interlocked_acquire_load(vis->riex.vbExtraGeneration) == INVALID_VB_EXTRA_GEN;
       });
 }

@@ -209,7 +209,7 @@ else:
             '    your arch and place result binary to {2}/lib/linux64/libdxcompiler.so\n\n'
             .format(linux_arch_type, 'https://github.com/microsoft/DirectXShaderCompiler', dxc_dest_folder))
 
-# astcenc-4.5.1
+# astcenc-4.6.1
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
 if pathlib.Path(astcenc_dest_folder).exists():
   print('=== ASTC encoder 4.6.1 {0}, skipping setup'.format(astcenc_dest_folder))

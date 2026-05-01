@@ -122,7 +122,8 @@ bool drv3d_vulkan::WindowState::setRenderWindowParams()
     currentResolutionY = extent.height;
   }
 
-  if (currentResolutionX == settings.resolutionX && currentResolutionY == settings.resolutionY && ownsWindow)
+  if (windowMode == (int)dgs_get_window_mode() && currentResolutionX == settings.resolutionX &&
+      currentResolutionY == settings.resolutionY && ownsWindow)
     return true;
 
   closeWindow();
@@ -134,6 +135,7 @@ bool drv3d_vulkan::WindowState::setRenderWindowParams()
     linux_GUI::set_fullscreen_mode(!windowed);
     currentResolutionX = settings.resolutionX;
     currentResolutionY = settings.resolutionY;
+    windowMode = (int)dgs_get_window_mode();
     settings.aspect = (float)settings.resolutionX / settings.resolutionY;
     ownsWindow = true;
     return true;

@@ -48,13 +48,14 @@ struct NameSpace
 };
 
 
-enum class DependencyType
+enum class DependencyType : uint16_t
 {
   EXPLICIT_PREVIOUS,
   EXPLICIT_FOLLOW,
   IMPLICIT_RES_MODIFY,
   IMPLICIT_RES_READ,
   IMPLICIT_RES_CONSUME,
+  IMPLICIT_RES_HIST,
   COUNT
 };
 
@@ -76,7 +77,41 @@ struct Dependency
   NodeNameId from = NodeNameId::Invalid;
   NodeNameId to = NodeNameId::Invalid;
   ResNameId resource = ResNameId::Invalid;
+  bool disabled = false;
+  bool cycled = false;
 };
+
+struct NodeDependencies
+{
+  dag::RelocatableFixedVector<DependencyId, 4> in;
+  dag::RelocatableFixedVector<DependencyId, 4> out;
+};
+
+
+enum class NodeBoxId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<NodeBoxId>>(-1)
+};
+
+enum class NodeBoxDependencyId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<NodeBoxDependencyId>>(-1)
+};
+
+struct NodeBox
+{
+  dag::RelocatableFixedVector<NodeNameId, 8> nodes;
+  dag::RelocatableFixedVector<NodeBoxDependencyId, 8> inDeps;
+  dag::RelocatableFixedVector<NodeBoxDependencyId, 8> outDeps;
+};
+
+struct NodeBoxDependency
+{
+  NodeBoxId from;
+  NodeBoxId to;
+  dag::Vector<DependencyId> carriedDeps;
+};
+
 
 struct Edge
 {

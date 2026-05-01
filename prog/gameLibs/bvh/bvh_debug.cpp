@@ -136,25 +136,32 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
         stats.treeBLASSize += as(u.second.blas);
         stats.treeVBSize += u.second.buffer.size;
       }
-  for (auto &uu : context_id->uniqueRiExtraTreeBuffers)
-    for (auto &u : uu.second)
-    {
-      stats.treeCount++;
-      stats.treeBLASSize += as(u.second.blas);
-      stats.treeVBSize += u.second.buffer.size;
-    }
+  for (auto &lod : context_id->uniqueRiExtraTreeBuffers)
+    for (auto &uu : lod)
+      for (auto &u : uu.second.elems)
+      {
+        stats.treeRiExCount++;
+        stats.treeRiExBLASSize += as(u.second.blas);
+        stats.treeRiExVBSize += u.second.buffer.size;
+      }
   for (auto &uu : context_id->uniqueRiExtraFlagBuffers)
     for (auto &u : uu.second)
     {
-      stats.treeCount++;
-      stats.treeBLASSize += as(u.second.blas);
-      stats.treeVBSize += u.second.buffer.size;
+      stats.flagCount++;
+      stats.flagBLASSize += as(u.second.blas);
+      stats.flagVBSize += u.second.buffer.size;
     }
   for (auto &uu : context_id->freeUniqueTreeBLASes)
     for (auto &blas : uu.second.blases)
     {
       stats.treeCacheCount++;
       stats.treeCacheBLASSize += as(blas);
+    }
+  for (auto &uu : context_id->freeUniqueRiExtraTreeBLASes)
+    for (auto &blas : uu.second.blases)
+    {
+      stats.treeRiExCacheCount++;
+      stats.treeRiExCacheBLASSize += as(blas);
     }
 
   for (auto &[allocator, _] : context_id->processBufferAllocator)
@@ -447,19 +454,32 @@ static void imguiWindow()
     ImGui::Text("Skin cache count: %d", stats.skinCacheCount);
     ImGui::SameLine();
     ImGui::Text("Skin cache BLAS: %d MB", mb(stats.skinCacheBLASSize));
-    ImGui::Text("Tree count: %d", stats.treeCount);
+    ImGui::Text("RiGen Tree count: %d", stats.treeCount);
     ImGui::SameLine();
-    ImGui::Text("Tree VB: %d MB", mb(stats.treeVBSize));
+    ImGui::Text("RiGen Tree VB: %d MB", mb(stats.treeVBSize));
     ImGui::SameLine();
-    ImGui::Text("Tree BLAS: %d MB", mb(stats.treeBLASSize));
+    ImGui::Text("RiGen Tree BLAS: %d MB", mb(stats.treeBLASSize));
     ImGui::Text("Stat tree count: %d", stats.stationaryTreeCount);
     ImGui::SameLine();
     ImGui::Text("Stat tree VB: %d MB", mb(stats.stationaryTreeVBSize));
     ImGui::SameLine();
     ImGui::Text("Stat tree BLAS: %d MB", mb(stats.stationaryTreeBLASSize));
-    ImGui::Text("Tree cache count: %d", stats.treeCacheCount);
+    ImGui::Text("RiGen Tree cache count: %d", stats.treeCacheCount);
     ImGui::SameLine();
-    ImGui::Text("Tree cache BLAS: %d MB", mb(stats.treeCacheBLASSize));
+    ImGui::Text("RiGen Tree cache BLAS: %d MB", mb(stats.treeCacheBLASSize));
+    ImGui::Text("RiEx Tree count: %d", stats.treeRiExCount);
+    ImGui::SameLine();
+    ImGui::Text("RiEx Tree VB: %d MB", mb(stats.treeRiExVBSize));
+    ImGui::SameLine();
+    ImGui::Text("RiEx Tree BLAS: %d MB", mb(stats.treeRiExBLASSize));
+    ImGui::Text("RiEx Tree cache count: %d", stats.treeRiExCacheCount);
+    ImGui::SameLine();
+    ImGui::Text("RiEx Tree cache BLAS: %d MB", mb(stats.treeRiExCacheBLASSize));
+    ImGui::Text("Flag count: %d", stats.flagCount);
+    ImGui::SameLine();
+    ImGui::Text("Flag VB: %d MB", mb(stats.flagVBSize));
+    ImGui::SameLine();
+    ImGui::Text("Flag BLAS: %d MB", mb(stats.flagBLASSize));
     ImGui::Text("Dynamic allocation size: %d MB", mb(stats.dynamicVBAllocatorSize));
     ImGui::SameLine();
     ImGui::Text("free: %d MB", mb(stats.dynamicVBAllocatorFreeSize));

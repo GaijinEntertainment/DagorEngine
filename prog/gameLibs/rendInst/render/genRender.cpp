@@ -1528,7 +1528,8 @@ void rendinst::render::renderRIGen(RenderPass render_pass, const RiGenVisibility
   if (layer_flags & LayerFlag::NotExtra)
   {
     ShaderGlobal::set_int_fast(rendinstRenderPassVarId, eastl::to_underlying(render_pass));
-    G_ASSERT(render_pass == rendinst::RenderPass::Normal || !tree_depth_optimized);
+    G_ASSERT(
+      render_pass == rendinst::RenderPass::Normal || !tree_depth_optimized || render_pass == rendinst::RenderPass::TriangleSizeDebug);
     disableRendinstAlphaForNormalPassWithZPrepass();
     FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
       rgl->render(render_pass, visibility[_layer], view_itm, layer_flags & ~LayerFlag::Decals, tree_depth_optimized);

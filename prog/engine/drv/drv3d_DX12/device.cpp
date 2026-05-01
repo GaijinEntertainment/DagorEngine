@@ -770,7 +770,7 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, F
   auto blockBytesPerPlane = fmt.getBytesPerPixelBlockPerPlane(&blockX, &blockY, plane_index.index());
   result.rowCount = block_count(ext.height, blockY);
   result.rowByteSize = block_count(ext.width, blockX) * blockBytesPerPlane;
-  result.footprint.Format = fmt.asDxGiFormat();
+  result.footprint.Format = fmt.asDxGiFormat<true>();
   if (fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D24_UNORM_S8_UINT) ||
       fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D32_FLOAT_S8X24_UINT))
   {
@@ -1205,17 +1205,6 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     debug_state.configuration().enableNVRTValidation = false;
   }
 
-  if (GpuVendor::AMD == vendor)
-  {
-    auto driverDate = gpu::get_driver_date(adapter_info.info.VendorId, adapter_info.info.DeviceId);
-    if (driverDate.year <= 2022)
-    {
-      config.features.set(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE);
-      logwarn("DX12: Old AMD driver detected (%02d.%02d.%04d), disabling pipeline library cache as it might cause crashes",
-        driverDate.day, driverDate.month, driverDate.year);
-    }
-  }
-
   {
     D3D12_FEATURE_DATA_ARCHITECTURE data = {};
     if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &data, sizeof(data))))
@@ -1237,6 +1226,17 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   psoSlowThresholdUsec = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("psoSlowThresholdMsec", 1000) * 1000;
 
 #if _TARGET_PC_WIN
+  if (GpuVendor::AMD == vendor)
+  {
+    auto driverDate = gpu::get_driver_date(adapter_info.info.VendorId, adapter_info.info.DeviceId);
+    if (driverDate.year <= 2022)
+    {
+      config.features.set(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE);
+      logwarn("DX12: Old AMD driver detected (%02d.%02d.%04d), disabling pipeline library cache as it might cause crashes",
+        driverDate.day, driverDate.month, driverDate.year);
+    }
+  }
+
   {
     const bool isNvidia = (GpuVendor::NVIDIA == d3d_get_vendor(adapter_info.info.VendorId));
     const bool blkSkip = ::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("skipPreloadRaytracingPipelinesOnNvidia", false);
@@ -1829,6 +1829,7 @@ void Device::adjustCaps(DriverDesc &capabilities)
   capabilities.caps.hasRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_T1_2);
   capabilities.caps.hasNvidiaRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_SER_NV);
   capabilities.caps.hasBarrierNone = true;
+  capabilities.caps.hasPipelineStatisticsQuery = true;
 #endif
 
   capabilities.raytrace.opacityMicroMapInputBufferAlignment = getOpacityMicroMapInputBufferAlignment();

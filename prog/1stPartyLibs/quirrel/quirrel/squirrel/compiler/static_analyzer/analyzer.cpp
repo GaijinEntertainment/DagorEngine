@@ -26,8 +26,8 @@ const char *symbolContextName(SymbolKind k) {
   case SK_ENUM_CONST: return "enum const";
   case SK_PARAM: return "parameter";
   case SK_FOREACH: return "iteration variable";
-  case SK_EXTERNAL_BINDING: return "external binding";
   case SK_IMPORT: return "import";
+  case SK_SYNTHETIC: return "synthetic";
   default: return "<unknown>";
   }
 }

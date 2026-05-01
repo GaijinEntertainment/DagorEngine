@@ -5115,6 +5115,126 @@ BRICKS: list[Brick] = [
           "    let $out0_th = newthread($out0_obj.do_yield)\n"
           "    $out0 = $out0_th.call($out0_obj)\n"
           "  } catch($out0_e) { $out0 = $in0 }"),
+
+    # ---- foreach destructuring (parser desugars to surrogate val + body destr) ----
+    Brick("foreach_destruct_table",
+          [Slot("in0", INT), Slot("in1", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ({a, b} in [{a = $in0, b = $in1}, {a = $in1, b = $in0}])\n"
+          "    $out0 += a + b"),
+
+    Brick("foreach_destruct_array",
+          [Slot("in0", INT), Slot("in1", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ([a, b] in [[$in0, $in1], [$in1, $in0]])\n"
+          "    $out0 += a - b"),
+
+    Brick("foreach_destruct_idx_table",
+          [Slot("in0", INT), Slot("in1", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach (i, {x} in [{x = $in0}, {x = $in1}])\n"
+          "    $out0 += i * 10 + x"),
+
+    Brick("foreach_destruct_default",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ({m = $INT} in [{m = $in0}, {}, {m = $in0 + 1}])\n"
+          "    $out0 += m"),
+
+    Brick("foreach_destruct_typed_default",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ({k: int = $INT} in [{}, {k = $in0}, {}])\n"
+          "    $out0 += k"),
+
+    Brick("foreach_destruct_array_default",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ([a, b = $INT] in [[$in0], [$in0, $in0 + 1]])\n"
+          "    $out0 += a + b"),
+
+    Brick("foreach_destruct_empty_table",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ({} in [{a = $in0}, {b = $in0}, {}])\n"
+          "    $out0++"),
+
+    Brick("foreach_destruct_empty_array",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  foreach ([] in [[$in0, $in0], [$in0]])\n"
+          "    $out0++"),
+
+    Brick("foreach_destruct_nested",
+          [Slot("in0", INT), Slot("in1", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_rows = [{xs = [{v = $in0}, {v = $in1}]}, {xs = [{v = $in1}]}]\n"
+          "  foreach ({xs} in $out0_rows)\n"
+          "    foreach ({v} in xs) $out0 += v"),
+
+    # ---- per-iter capture: closures store v / i and call after loop ----
+    Brick("foreach_capture_val",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_fns = []\n"
+          "  foreach (v in [$in0, $in0 + 1, $in0 + 2])\n"
+          "    $out0_fns.append(@() v)\n"
+          "  foreach (f in $out0_fns) $out0 += f()"),
+
+    Brick("foreach_capture_idx_val",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_fns = []\n"
+          "  foreach (i, v in [$in0, $in0 * 2, $in0 * 3])\n"
+          "    $out0_fns.append(@() i * 100 + v)\n"
+          "  foreach (f in $out0_fns) $out0 += f()"),
+
+    Brick("foreach_capture_destruct_field",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_fns = []\n"
+          "  foreach ({v} in [{v = $in0}, {v = $in0 + 1}, {v = $in0 + 2}])\n"
+          "    $out0_fns.append(@() v)\n"
+          "  foreach (f in $out0_fns) $out0 += f()"),
+
+    Brick("foreach_capture_idx_destruct",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_fns = []\n"
+          "  foreach (i, {x} in [{x = $in0}, {x = $in0 + 1}])\n"
+          "    $out0_fns.append(@() i + x)\n"
+          "  foreach (f in $out0_fns) $out0 += f()"),
+
+    Brick("foreach_capture_no_inner_capture",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_fns = []\n"
+          "  foreach (v in [$in0, $in0 + 1])\n"
+          "    $out0_fns.append(function() { let local_v = $INT; return local_v })\n"
+          "  foreach (f in $out0_fns) $out0 += f()"),
+
+    Brick("foreach_destruct_default_with_closure",
+          [Slot("in0", INT)],
+          [Slot("out0", INT)],
+          "local $out0 = 0\n"
+          "  let $out0_factor = $in0\n"
+          "  foreach ({n = (function(){ return $out0_factor + $INT })()}\n"
+          "           in [{n = $in0}, {}, {n = $in0 + 1}])\n"
+          "    $out0 += n"),
 ]
 
 

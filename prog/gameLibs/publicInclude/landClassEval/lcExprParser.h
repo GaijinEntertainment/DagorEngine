@@ -15,14 +15,28 @@
 // Parser produces IR (tagged tree). Compiler/fusion converts IR to arena EvalNodes.
 //
 // Grammar (lowest to highest precedence):
-//   expr    ::= or
+//   program ::= seq                                     -- public entry
+//   seq     ::= stmt ((',' | ';') stmt)*                -- left-assoc, value = last stmt
+//   stmt    ::= ('var' | 'let') ID '=' assign | assign
+//   assign  ::= or ('=' assign)?                        -- right-assoc; LHS must be a
+//                                                          user-mutable var (var/let)
 //   or      ::= and ('||' and)*
 //   and     ::= cmp ('&&' cmp)*
 //   cmp     ::= add (('<' | '>' | '<=' | '>=' | '==' | '!=') add)?
 //   add     ::= mul (('+' | '-') mul)*
 //   mul     ::= unary (('*' | '/') unary)*
 //   unary   ::= ('-' | '!')? primary
-//   primary ::= NUMBER | ID | ID '(' expr (',' expr)* ')' | '(' expr ')'
+//   primary ::= NUMBER | ID | ID '(' assign (',' assign)* ')' | '(' seq ')'
+//
+// var/let/=/,/; semantics:
+//   * var <name> = expr / let <name> = expr -- declare a fresh user-mutable variable.
+//     ERROR if <name> already exists (external var, prior var/let, or function name).
+//   * <name> = expr -- assignment; LHS must be a previously-declared user var. Returns
+//     the assigned value. External (caller-registered) names are read-only.
+//   * `,` and `;` -- sequence (C-style comma operator); both forms are accepted and
+//     identical. Evaluates left for side effects, returns right.
+//   * Plain identifier reference -- ERROR if the name is not registered (no implicit
+//     declaration). Function-arg commas separate arguments, NOT the sequence operator.
 //
 // Types: every value is a float. Comparisons and !, &&, || treat 0.f as false and
 // non-zero as true, and produce exactly 0.f or 1.f. &&, ||, ! require bool operands.
@@ -141,12 +155,17 @@ struct IRNode
 // Only tracks the first 32 varIds (sufficient for built-in height/angle/curvature/mask).
 // ============================================================================
 
+// Both var nodes (reads) and assign nodes (writes) carry a varId; assign nodes don't
+// need a separate var-read child since the LHS slot is encoded in the assign IR node
+// itself (the parser pops the var IR node when synthesising the assign). Both cases
+// must contribute to the touched-var bitset so callers don't undersize vars[].
 inline uint32_t computeVarMask(const Tab<IRNode> &ir, int idx)
 {
   if (idx < 0)
     return 0;
   const IRNode &n = ir[idx];
-  uint32_t m = (n.tag == hash_name("var") && n.varId < 32) ? (1u << n.varId) : 0;
+  const bool touchesVar = n.tag == hash_name("var") || n.tag == hash_name("assign");
+  uint32_t m = (touchesVar && n.varId < 32) ? (1u << n.varId) : 0;
   for (int i = 0; i < n.nc; i++)
     m |= computeVarMask(ir, n.c[i]);
   return m;
@@ -168,19 +187,24 @@ inline uint32_t varMaskFromRoot(uint32_t root)
 //
 // Implemented as a flat scan over the IR array rather than a recursive tree walk.
 // parseToIR() rolls back the whole IR on failure, so after a successful parse every node
-// in `ir` is reachable from the root, and every var node is relevant. The flat scan is
-// O(N) and cannot stack-overflow on a long chain like a+a+a+... where the IR tree is
-// deeply left-recursive (N deep) even though parseExpr() only caps parenthesis / unary
-// nesting. `idx` is kept in the signature for backwards compatibility but only used to
-// short-circuit empty inputs.
+// in `ir` is reachable from the root, and every var/assign node is relevant. The flat
+// scan is O(N) and cannot stack-overflow on a long chain like a+a+a+... where the IR
+// tree is deeply left-recursive (N deep) even though parseExpr() only caps parenthesis /
+// unary nesting. `idx` is kept in the signature for backwards compatibility but only
+// used to short-circuit empty inputs.
+//
+// Both `var` (read) and `assign` (write) carry a varId. An expression that only writes
+// (e.g. `var a = 1`) emits assign nodes without a corresponding var read node, so we
+// must include both tags or vars[] gets sized too small.
 inline int computeMaxVarId(const Tab<IRNode> &ir, int idx)
 {
   if (idx < 0 || ir.size() == 0)
     return -1;
   const uint64_t varTag = hash_name("var");
+  const uint64_t assignTag = hash_name("assign");
   int m = -1;
   for (const IRNode &n : ir)
-    if (n.tag == varTag && (int)n.varId > m)
+    if ((n.tag == varTag || n.tag == assignTag) && (int)n.varId > m)
       m = (int)n.varId;
   return m;
 }

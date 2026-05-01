@@ -115,8 +115,9 @@ macro USE_BVH_DECALS(stage)
     {
       return float4(0, 0, 1. / (diffuse_to_decal * diffuse_to_decal + 1e-6), tank_decals_smoothness);
     }
+
     #define vehicle_decals_atlas uniformBindlessTex2D(bvh_textures, bvh_dynamic_decals_atlas_tex_slot)
-    #define vehicle_decals_atlas_samplerstate bvh_samplers[bvh_dynamic_decals_atlas_smp_slot]
+    #define vehicle_decals_atlas_samplerstate bvh_clamp_sampler
 
     static int instance_offset_for_decal = 0;
     #define INST_OFFSET_GETTER instance_offset_for_decal
@@ -227,7 +228,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
     #include <normaldetail.hlsl>
 
     #define paint_details_tex uniformBindlessTex2D(bvh_textures, paint_details_tex_slot)
-    #define paint_details_tex_samplerstate bvh_samplers[paint_details_smp_slot]
+    #define paint_details_tex_samplerstate bvh_clamp_sampler
   }
   (stage)
   {
@@ -330,23 +331,21 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
     half3 calc_perling_layers(HitInfo hitInfo, float mip_level)
     {
-      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.albedoSamplerIndex == 0xFFFFU)
+      if (hitInfo.albedoTextureIndex == 0xFFFFU)
         return 0;
 
       float4 invertHeights = float4(f16tof32(asuint(hitInfo.rawLayerData.z)), f16tof32(asuint(hitInfo.rawLayerData.z >> 16)), f16tof32(asuint(hitInfo.rawLayerData.w)), f16tof32(asuint(hitInfo.rawLayerData.w >> 16)));
       float4 mask_gamma = float4(f16tof32(asuint(hitInfo.rawLayerData.x)), f16tof32(asuint(hitInfo.rawLayerData.x >> 16)), f16tof32(asuint(hitInfo.rawLayerData.y)), f16tof32(asuint(hitInfo.rawLayerData.y >> 16)));
 
-      SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-
-      half4 diffuseColor0 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+      half4 diffuseColor0 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
       half4 diffuseColor1 = 0;
       if (hitInfo.alphaTextureIndex != 0xFFFFU)
-        diffuseColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+        diffuseColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
       else
         invertHeights.y = 0;
       half4 diffuseColor2 = 0;
       if (hitInfo.extraTextureIndex != 0xFFFFU)
-        diffuseColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+        diffuseColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
       else
         invertHeights.z = 0;
 
@@ -396,13 +395,12 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
     half3 calc_layers(HitInfo hitInfo, float mip_level)
     {
-      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU || hitInfo.albedoSamplerIndex == 0xFFFFU)
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU)
         return 0;
 
-      SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
-      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_sampler,hitInfo.texcoord, mip_level);
-      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler,hitInfo.texcoord, mip_level);
+      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
 
       float2 invert_heights = float2(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16));
       float2 paintDetails = float2(f16tof32(asuint(hitInfo.materialData2.y)), f16tof32(asuint(hitInfo.materialData2.y) >> 16));
@@ -545,10 +543,9 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
         {
           sp.albedo = calc_layers(hitInfo, mipLevel);
         }
-        else if (hitInfo.albedoTextureIndex != 0xFFFFU && hitInfo.albedoSamplerIndex != 0xFFFFU)
+        else if (hitInfo.albedoTextureIndex != 0xFFFFU)
         {
-          SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
           sp.albedo = texel.rgb;
           texelAlpha = texel.a;
           apply_painting(hitInfo, texel.a, sp.albedo);
@@ -564,7 +561,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
             if (hitInfo.extraTextureIndex != 0xFFFF)
             {
               // camouflage_scale_and_offset is ignored
-              fillColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+              fillColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
             }
             else
             {
@@ -578,10 +575,9 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
           }
         }
 
-        if (hitInfo.normalTextureIndex != 0xFFFFU && hitInfo.normalSamplerIndex != 0xFFFFU && !hitInfo.isLayered)
+        if (hitInfo.normalTextureIndex != 0xFFFFU && !hitInfo.isLayered)
         {
-          SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.normalSamplerIndex)];
-          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
           sp.smoothness = texel.r;
           sp.metalness = texel.b  * (hitInfo.isNonMetal ? 0 : 1);
         }
@@ -599,21 +595,20 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
           {
             uint camoTexPacked = asuint(hitInfo.perInstanceDataCompressed.x);
             uint camoTexIndex = camoTexPacked >> 16;
-            if (camoTexIndex != 0xFFFFU && hitInfo.albedoSamplerIndex != 0xFFFFU)
+            if (camoTexIndex != 0xFFFFU)
             {
               float4 camoParams = get_camo_params(hitInfo);
               float2 camoTexcoord = camoParams.xy;
               float condition = camoParams.z;
               float invCondition = 1.0 / condition;
 
-              SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-              half4 camoTexture = (half4)nonUniformBindlessTex2D(bvh_textures, camoTexIndex).SampleLevel(bvh_sampler, camoTexcoord, mipLevel);
+              half4 camoTexture = (half4)nonUniformBindlessTex2D(bvh_textures, camoTexIndex).SampleLevel(bvh_wrap_sampler, camoTexcoord, mipLevel);
 
               half camouflagePart = texelAlpha;
               uint camoSkinTex = camoTexPacked & 0xFFFFU;
               if (camoSkinTex < 0xFFFFU)
               {
-                half4 skinColor = (half4)nonUniformBindlessTex2D(bvh_textures, camoSkinTex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+                half4 skinColor = (half4)nonUniformBindlessTex2D(bvh_textures, camoSkinTex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
                 camoTexture.rgb = lerp(camoTexture.rgb, skinColor.rgb, skinColor.a);
                 camouflagePart = lerp(camouflagePart, 1.0, skinColor.a);
               }

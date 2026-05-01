@@ -18,7 +18,7 @@ enum
 };
 
 // Increase this number if changes in the compiler invalidate .obj for all APIs,
-static const int SHADER_CACHE_COMMON_VER = 95;
+static const int SHADER_CACHE_COMMON_VER = 101;
 
 static int make_shader_cache_ver(int ver)
 {

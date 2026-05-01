@@ -1500,12 +1500,13 @@ struct StateFieldSetter
 
         // bind "nothing", nullptr for projector is intentional
         // cuz it's not supposed to be called for nullopt resource idx
-        to.emplace(bindIdx, intermediate::Binding{bindInfo.type, eastl::nullopt, false, false, bindInfo.projectedTag, nullptr});
+        to.emplace(bindIdx,
+          intermediate::Binding{bindInfo.type, eastl::nullopt, false, false, bindInfo.optional, bindInfo.projectedTag, nullptr});
         continue;
       }
 
-      to.emplace(bindIdx,
-        intermediate::Binding{bindInfo.type, resIndex, bindInfo.history, bindInfo.reset, bindInfo.projectedTag, bindInfo.projector});
+      to.emplace(bindIdx, intermediate::Binding{bindInfo.type, resIndex, bindInfo.history, bindInfo.reset, bindInfo.optional,
+                            bindInfo.projectedTag, bindInfo.projector});
     }
   }
 

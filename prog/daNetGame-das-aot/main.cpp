@@ -62,6 +62,8 @@ int DagorWinMain(bool debugmode)
   setvbuf(stdout, NULL, _IOFBF, 8192);
 #if _TARGET_PC_WIN
   set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE));
+#elif _TARGET_PC_LINUX || _TARGET_PC_MACOSX
+  set_debug_console_handle((intptr_t)stdout);
 #endif
   dgs_report_fatal_error = stderr_report_fatal_error;
   if (dgs_argc < 3)

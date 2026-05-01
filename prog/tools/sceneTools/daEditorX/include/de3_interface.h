@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <de3_layerHiddenMask.h>
 #include <generic/dag_span.h>
 #include <util/dag_safeArg.h>
 #include <util/dag_stdint.h>
@@ -70,8 +71,8 @@ public:
   virtual unsigned getEntitySubTypeMask(int mask_type) = 0;
   virtual void setEntitySubTypeMask(int mask_type, unsigned value) = 0;
 
-  virtual uint64_t getEntityLayerHiddenMask() = 0;
-  virtual void setEntityLayerHiddenMask(uint64_t value) = 0;
+  virtual LayerHiddenMask getEntityLayerHiddenMask() = 0;
+  virtual void setEntityLayerHiddenMask(LayerHiddenMask value) = 0;
 
   virtual DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) = 0;
   virtual DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) = 0;

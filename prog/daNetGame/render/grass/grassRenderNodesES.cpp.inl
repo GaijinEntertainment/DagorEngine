@@ -125,7 +125,7 @@ static dafg::NodeHandle make_grass_generation_node()
 {
   return dafg::register_node("grass_generation_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
-    auto camera = read_camera_in_camera(registry);
+    auto camera = use_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto cameraHistory = read_history_camera_in_camera(registry).handle();
 
@@ -182,7 +182,8 @@ void init_grass_render_es(const ecs::Event &evt,
     grassNs.readBlob<OrderingToken>("burnt_grass_prepared_token").optional();
 
     shaders::OverrideState st;
-    st.set(shaders::OverrideState::Z_FUNC);
+    const uint32_t zWrite = prepass ? shaders::OverrideState::Z_WRITE_DISABLE : 0;
+    st.set(shaders::OverrideState::Z_FUNC | zWrite);
     st.zFunc = CMPF_EQUAL;
 
     auto cameraHndl = use_camera_in_camera(registry).handle();

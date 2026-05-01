@@ -5,7 +5,7 @@
 #pragma once
 
 #include <math/dag_TMatrix4.h>
-#include <3d/dag_textureIDHolder.h>
+#include <3d/dag_resPtr.h>
 #include <generic/dag_carray.h>
 #include <render/viewDependentResource.h>
 #include <resourcePool/resourcePool.h>
@@ -90,7 +90,7 @@ private:
   ViewDependentResource<int, 2> frame;
 
   Point2 jitterPixelOfs;
-  TextureIDHolderWithVar taaPrecomputedWeights;
+  UniqueTexHolder taaPrecomputedWeights;
 
   RTargetPool::Ptr historyTexPool;
   RTargetPool::Ptr wasDynamicTexPool;

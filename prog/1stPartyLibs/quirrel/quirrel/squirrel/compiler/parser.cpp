@@ -1611,6 +1611,39 @@ ForStatement* SQParser::parseForStatement()
     return newNode<ForStatement>(start, init, cond, mod, body);
 }
 
+void SQParser::parseDestructuringFields(DestructuringDecl *destr)
+{
+    while (_token != '}' && _token != ']' && _token != SQUIRREL_EOB) {
+        Id *fieldname = (Id *)Expect(TK_IDENTIFIER);
+        assert(fieldname);
+        if (!fieldname)
+            break;
+
+        unsigned typeMask = _token == ':' ? parseTypeMask(false) : ~0u;
+        SourceLoc varStart = fieldname->sourceSpan().start;
+
+        Expr *defaultExpr = nullptr;
+        if (_token == '=') {
+            Lex();
+            defaultExpr = Expression(SQE_REGULAR);
+        }
+
+        VarDecl *fieldDecl = newNode<VarDecl>(varStart, fieldname, defaultExpr, /*assignable*/false, /*destructured*/true);
+        fieldDecl->setTypeMask(typeMask);
+        destr->addDeclaration(fieldDecl);
+
+        if (_token == ',') {
+            Lex();
+            if (_token == ']' || _token == '}')
+                break;
+        }
+        else if (_token == TK_IDENTIFIER)
+            continue;
+        else
+            break;
+    }
+}
+
 ForeachStatement* SQParser::parseForEachStatement()
 {
     NestingChecker nc(this);
@@ -1621,21 +1654,44 @@ ForeachStatement* SQParser::parseForEachStatement()
 
     Expect('(');
 
-    Id *valname = (Id *)Expect(TK_IDENTIFIER);
-    assert(valname);
-
     Id *idxname = NULL;
-    if(_token == ',') {
-        idxname = valname;
-        Lex();
+    Id *valname = NULL;
+    DestructuringDecl *valDestr = NULL;
+
+    auto parseValDestructuring = [this, &valDestr]() -> Id* {
+        SQInteger destructurer = _token;
+        SourceLoc keywordStart = _lex.tokenStart();
+        char buf[32];
+        snprintf(buf, sizeof(buf), "@FE_VAL%u", _foreachDestrCounter++);
+        Id *surrogateName = newId(buf);
+        Lex(); // consume '{' or '['
+        valDestr = newNode<DestructuringDecl>(arena(), keywordStart, destructurer == '{' ? DT_TABLE : DT_ARRAY);
+        parseDestructuringFields(valDestr);
+        Expect(destructurer == '{' ? '}' : ']');
+        valDestr->setExpression(surrogateName);
+        return surrogateName;
+    };
+
+    if (_token == '{' || _token == '[') {
+        valname = parseValDestructuring();
+    }
+    else {
         valname = (Id *)Expect(TK_IDENTIFIER);
         assert(valname);
 
-        if (strcmp(idxname->name(), valname->name()) == 0) //-V522
-            _ctx.reportDiagnostic(DiagnosticsId::DI_SAME_FOREACH_KV_NAMES, valname->lineStart(), valname->columnStart(), valname->textWidth(), valname->name());
-    }
-    else {
-        //idxname = newNode<Id>("@INDEX@");
+        if (_token == ',') {
+            idxname = valname;
+            Lex();
+            if (_token == '{' || _token == '[') {
+                valname = parseValDestructuring();
+            }
+            else {
+                valname = (Id *)Expect(TK_IDENTIFIER);
+                assert(valname);
+                if (strcmp(idxname->name(), valname->name()) == 0) //-V522
+                    _ctx.reportDiagnostic(DiagnosticsId::DI_SAME_FOREACH_KV_NAMES, valname->lineStart(), valname->columnStart(), valname->textWidth(), valname->name());
+            }
+        }
     }
 
     Expect(TK_IN);
@@ -1656,6 +1712,14 @@ ForeachStatement* SQParser::parseForEachStatement()
       if (curTok.line != body->lineEnd() && curTok.column > start.column) {
         reportDiagnostic(DiagnosticsId::DI_SUSPICIOUS_FMT);
       }
+    }
+
+    if (valDestr) {
+        Block *wrap = newNode<Block>(arena(), body->sourceSpan().start);
+        wrap->addStatement(valDestr);
+        wrap->addStatement(body);
+        wrap->setSpanEnd(body->sourceSpan().end);
+        body = wrap;
     }
 
     VarDecl *idxDecl = idxname ? newNode<VarDecl>(idxname->sourceSpan().start, idxname, nullptr, false) : NULL;
@@ -2074,36 +2138,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
                 DestructuringDecl *destrDecl = newNode<DestructuringDecl>(arena(), keywordStart, destructurer == '{' ? DT_TABLE : DT_ARRAY);
                 destrDecl->setExpression(surrogateName);
 
-                for (;;) {
-                    Id *paramname = (Id *)Expect(TK_IDENTIFIER);
-                    assert(paramname);
-                    if (!paramname)
-                        break;
-
-                    unsigned typeMask = _token == ':' ? parseTypeMask(false) : ~0u;
-
-                    SourceLoc varStart = paramname->sourceSpan().start;
-
-                    Expr *expr = nullptr;
-                    if (_token == '=') {
-                        Lex();
-                        expr = Expression(SQE_REGULAR);
-                    }
-
-                    VarDecl *cur = newNode<VarDecl>(varStart, paramname, expr, false, true);
-                    cur->setTypeMask(typeMask);
-                    destrDecl->addDeclaration(cur);
-
-                    if (_token == ',') {
-                        Lex();
-                        if (_token == ']' || _token == '}')
-                            break;
-                    }
-                    else if (_token == TK_IDENTIFIER)
-                        continue;
-                    else
-                        break;
-                }
+                parseDestructuringFields(destrDecl);
 
                 Expect(destructurer == '{' ? '}' : ']');
                 f->addParameter(argSpan, surrogateName->name(), nullptr);

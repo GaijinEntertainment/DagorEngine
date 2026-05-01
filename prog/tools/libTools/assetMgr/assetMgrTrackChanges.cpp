@@ -42,9 +42,39 @@ struct DagorAssetMgr::ChangesTracker
   ThreadSafeMsgIoEx io;
   static const int IO_BUF_SZ = 256 << 10;
 
+  struct IncludeDepMap
+  {
+    OAHashNameMap<true> pathNames;
+    Tab<FastIntList> pathToAssetIdx;
+  };
+  IncludeDepMap *incDepMap = nullptr;
+
+  static void buildIncludeMap(IncludeDepMap &map, dag::ConstSpan<DagorAsset *> assets)
+  {
+    for (int i = 0; i < assets.size(); i++)
+    {
+      dag::ConstSpan<SimpleString> includes = assets[i]->getSrcIncludes();
+      for (int j = 0; j < includes.size(); j++)
+      {
+        char path[DAGOR_MAX_PATH];
+        strncpy(path, includes[j].str(), sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
+        dd_simplify_fname_c(path);
+        int id = map.pathNames.addNameId(path);
+        if (id >= map.pathToAssetIdx.size())
+          map.pathToAssetIdx.resize(id + 1);
+        map.pathToAssetIdx[id].addInt(i);
+      }
+    }
+  }
+
 public:
   ChangesTracker() : io(IO_BUF_SZ), f(midmem) {}
-  ~ChangesTracker() { startMonitoring({}); }
+  ~ChangesTracker()
+  {
+    startMonitoring({});
+    del_it(incDepMap);
+  }
 
   void addFolderMonitor(const char *foldername, int rootIdx)
   {
@@ -206,6 +236,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
 
   FastIntList changed_asset_idx, sec_changed_asset_idx;
   Tab<DagorAsset *> added_assets(tmpmem), removed_assets(tmpmem);
+  Tab<String> changed_inc_paths(tmpmem);
   int last_fidx = -1, last_file_id = -1, last_msec = 0;
   char fname[260], fdir[520];
 
@@ -260,6 +291,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
             if (sec_changed_asset_idx[i] > relevant_asset_idx)
               const_cast<int &>(sec_changed_asset_idx.getList()[i])--;
           a_end--;
+          del_it(tracker->incDepMap);
 
           post_msg(*msgPipe, msgPipe->REMARK, "ASSETS: <%s/%s> file was removed", folders[fidx]->folderPath.str(), fn);
           continue;
@@ -305,6 +337,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
               if (sec_changed_asset_idx[i] >= a_end)
                 const_cast<int &>(sec_changed_asset_idx.getList()[i])++;
             a_end++;
+            del_it(tracker->incDepMap);
 
             post_msg(*msgPipe, msgPipe->REMARK, "ASSETS: <%s/%s> file was added", folders[fidx]->folderPath.str(), fn);
             continue;
@@ -368,8 +401,36 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
             sec_changed_asset_idx.addInt(i);
       }
     }
+    if (fname_id == -1 && trail_stricmp(fn, ".blk"))
+      changed_inc_paths.push_back() = String(0, "%s/%s", baseRoots[rootIdx].folder.str(), fname);
   }
   tracker->io.endRead();
+
+  if (changed_asset_idx.getList().size() + sec_changed_asset_idx.getList().size() > 0)
+    del_it(tracker->incDepMap);
+
+  // mark assets that include any of the changed non-asset BLK files
+  if (!changed_inc_paths.empty())
+  {
+    if (!tracker->incDepMap)
+    {
+      tracker->incDepMap = new ChangesTracker::IncludeDepMap;
+      ChangesTracker::buildIncludeMap(*tracker->incDepMap, assets);
+    }
+
+    for (int p = 0; p < changed_inc_paths.size(); p++)
+    {
+      dd_simplify_fname_c(changed_inc_paths[p]);
+      int inc_id = tracker->incDepMap->pathNames.getNameId(changed_inc_paths[p]);
+      if (inc_id >= 0 && inc_id < tracker->incDepMap->pathToAssetIdx.size())
+        for (int k = 0; k < tracker->incDepMap->pathToAssetIdx[inc_id].getList().size(); k++)
+        {
+          int idx = tracker->incDepMap->pathToAssetIdx[inc_id].getList()[k];
+          if (!changed_asset_idx.hasInt(idx) && !sec_changed_asset_idx.hasInt(idx))
+            sec_changed_asset_idx.addInt(idx);
+        }
+    }
+  }
 
   int changed =
     added_assets.size() + removed_assets.size() + changed_asset_idx.getList().size() + sec_changed_asset_idx.getList().size();
@@ -429,7 +490,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
     if (!a.isVirtual())
     {
       strcpy(fname, a.getSrcFilePath());
-      if (!a.props.load(fname))
+      if (!a.reloadBlk(fname))
         post_error(*msgPipe, "can't load asset <%s> blk: %s", a.getNameTypified(), fname);
     }
     else if (a.getFolderIndex() >= 0)
@@ -528,7 +589,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
     {
       post_msg(*msgPipe, msgPipe->REMARK, "dependant asset <%s> changed", a.getNameTypified());
       strcpy(fname, a.getSrcFilePath());
-      if (!a.props.load(fname))
+      if (!a.reloadBlk(fname))
         post_error(*msgPipe, "can't load asset <%s> blk: %s", a.getNameTypified(), fname);
     }
     int atype = a.getType(), aname = a.getNameId();

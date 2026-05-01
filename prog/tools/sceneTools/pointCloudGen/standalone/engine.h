@@ -84,8 +84,8 @@ public:
   unsigned getEntitySubTypeMask(int mask_type) override { DUMMY_IMPL_0; }
   void setEntitySubTypeMask(int mask_type, unsigned value) override { DUMMY_IMPL; }
 
-  uint64_t getEntityLayerHiddenMask() override { DUMMY_IMPL_0; }
-  void setEntityLayerHiddenMask(uint64_t value) override { DUMMY_IMPL; }
+  LayerHiddenMask getEntityLayerHiddenMask() override { DUMMY_IMPL_VALUE({}); }
+  void setEntityLayerHiddenMask(LayerHiddenMask value) override { DUMMY_IMPL; }
 
   DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) override;
   DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) override;

@@ -189,6 +189,33 @@ struct SelectNode : EvalNode
   }
 };
 
+// Assignment: writes vars[varId] = eval(n0) and returns that value. The parser only
+// emits AssignNode when the target was previously declared via var/let, so this never
+// writes into an external read-only slot.
+struct AssignNode : EvalNode
+{
+  uint32_t n0;
+  uint16_t varId;
+  float eval(const EvalCtx &ctx) const override
+  {
+    float v = ctx.at(n0)->eval(ctx);
+    ctx.vars[varId] = v;
+    return v;
+  }
+};
+
+// Sequence: evaluates n0 (for its side effects, typically an assignment), discards the
+// result, then evaluates n1 and returns it. Both `,` and `;` parse to this node.
+struct SeqNode : EvalNode
+{
+  uint32_t n0, n1;
+  float eval(const EvalCtx &ctx) const override
+  {
+    ctx.at(n0)->eval(ctx);
+    return ctx.at(n1)->eval(ctx);
+  }
+};
+
 #undef LC_UNARY_NODE
 #undef LC_BINARY_NODE
 #undef LC_TERNARY_NODE

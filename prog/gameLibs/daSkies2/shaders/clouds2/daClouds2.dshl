@@ -319,7 +319,7 @@ macro RAYCAST_CLOUDS(code)
 
       for (int i=0; i<nuke_atmospheric_light_effects_count; i++)
       {
-        ##if !hardware.metal && compatibility_mode == compatibility_mode_off
+        ##if use_bitmasks_for_nuke_effects
           BRANCH
           if ((nuke_light_mask & (1u << clamp(uint(i), 0u, 31u))) == 0u)
           {
@@ -1220,7 +1220,7 @@ macro RAYCAST_CLOUDS(code)
       cp.first_slice_disappear = false;
 
       ##if nuke_in_atmosphere == on
-          ##if !hardware.metal && compatibility_mode == compatibility_mode_off
+          ##if use_bitmasks_for_nuke_effects
             uint2 texelCoords = uint2(texcoord * nuke_masks_tex_size);
 
             cp.nukeEffectsMasks = uint2(texelFetch(nuke_volumetrics_mask_tex, texelCoords, 0).r,

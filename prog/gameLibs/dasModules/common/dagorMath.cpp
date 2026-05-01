@@ -71,6 +71,7 @@ struct TMatrixAnnotation final : das::ManagedStructureAnnotation<TMatrix, false>
 struct FrustumAnnotation final : das::ManagedStructureAnnotation<Frustum, false>
 {
   FrustumAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Frustum", ml, "Frustum") {}
+  bool isLocal() const override { return true; } // force isLocal, because ctor is non trivial
 };
 
 struct BBox3Annotation final : das::ManagedStructureAnnotation<BBox3, false>
@@ -444,6 +445,13 @@ public:
       das::SideEffects::none, "bind_dascript::mat44f_make_matrix");
     das::addExtern<DAS_BIND_FUN(bind_dascript::mat44f_make_tm), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "float3x4",
       das::SideEffects::none, "bind_dascript::mat44f_make_tm");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::frustum_make_from_mat44f), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "Frustum",
+      das::SideEffects::none, "bind_dascript::frustum_make_from_mat44f");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::frustum_test_sphere)>(*this, lib, "frustum_test_sphere", das::SideEffects::none,
+      "bind_dascript::frustum_test_sphere");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::frustum_test_box)>(*this, lib, "frustum_test_box", das::SideEffects::none,
+      "bind_dascript::frustum_test_box");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::v_distance_sq_to_bbox)>(*this, lib, "v_distance_sq_to_bbox", das::SideEffects::none,
       "bind_dascript::v_distance_sq_to_bbox");

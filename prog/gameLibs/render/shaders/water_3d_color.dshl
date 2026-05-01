@@ -467,11 +467,13 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       FoamData foamData = calcFoam(input, vd, deepnessData, chopWaterData, foam_color);
 
       // Effects materials
-      #if WATER_USE_HALF_FLOAT_FIX
+      // On some hardware (at least AMD iGPU) select variables break water rendering when they have half-float type
+      // To avoid this without losing performance on all platforms, full float precision is forced when necessary
+      ##if hardware.pc && hardware.vulkan
         #define FOAM_MATERIAL_WEIGHT_TYPE float
-      #else
+      ##else
         #define FOAM_MATERIAL_WEIGHT_TYPE half
-      #endif
+      ##endif
       FOAM_MATERIAL_WEIGHT_TYPE foamMaterialWeight = saturate(foam_materialAlphaCoeff*foamData.foamFactor.x);
       half4 wfxDetailsFoam = half4(half3(foam_smoothness, foam_reflectance, foam_scatterCoeff) * foamMaterialWeight, 1 - foamMaterialWeight);
       half4 wfxDetailsMapClear = half4(0, 0, 0, 1);
@@ -783,8 +785,10 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       // Hide the 1px horizon seam between water and sky.
       const float horizonReflectionFogFadeRange = 0.01;
       float3 envReflectionFogged = reflectionsData.envReflection * fogData.fogMul + fogData.fogAdd;
-      envReflectionFogged = lerp(envReflectionFogged, reflectionsData.envReflection,
-        smoothstep(0, horizonReflectionFogFadeRange, vd.reflectDirNormalized.y));
+      #if USE_NOFOG_REFLECTION_ON_DISTANCE
+        envReflectionFogged = lerp(envReflectionFogged, reflectionsData.envReflection,
+          smoothstep(0, horizonReflectionFogFadeRange, vd.reflectDirNormalized.y));
+      #endif
 
       // Blend to env on far plane AFTER fog -- envReflection already has scattering baked in
       result.rgb = lerp(result.rgb, envReflectionFogged, vd.waterColorToEnvColorKoef);

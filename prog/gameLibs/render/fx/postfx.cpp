@@ -468,7 +468,7 @@ void PostFx::apply(Texture *source, Texture *target, const TMatrix &view_tm, con
     Driver3dRenderTarget rt;
     d3d::get_render_target(rt);
 
-    d3d::set_render_target(target, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
     ShaderGlobal::set_texture(varId, source);
     ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
     genPostFx->render();

@@ -155,8 +155,9 @@ inline void __move(SoundEvent &target, SoundEvent &source)
   source.handle = sndsys::EventHandle{};
 }
 
-inline bool is_valid_event_handle_value(const sndsys::EventHandle &handle) { return (bool)handle; }
-inline bool is_valid_event_value(const SoundEvent &sound_event) { return (bool)sound_event.handle; }
+inline bool event_handle__is_valid_handle_value(const sndsys::EventHandle &event_handle) { return (bool)event_handle; }
+inline bool sound_event__is_valid_handle_value(const SoundEvent &sound_event) { return (bool)sound_event.handle; }
+
 inline sndsys::EventHandle invalid_sound_event_handle() { return {}; }
 
 inline sndsys::EventHandle play_with_name(const char *name) { return sndsys::play(name); }

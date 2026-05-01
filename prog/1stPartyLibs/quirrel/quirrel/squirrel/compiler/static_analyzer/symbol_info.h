@@ -24,8 +24,8 @@ enum SymbolKind {
   SK_ENUM_CONST,
   SK_PARAM,
   SK_FOREACH,
-  SK_EXTERNAL_BINDING,
-  SK_IMPORT
+  SK_IMPORT,
+  SK_SYNTHETIC
 };
 
 const char *symbolContextName(SymbolKind k);
@@ -43,7 +43,6 @@ struct SymbolInfo {
     const EnumDecl *e;
     const ConstDecl *c;
     const EnumConst *ec;
-    const ExternalValueExpr *ev;
     const ImportInfo *imp;
   } declarator;
 
@@ -94,13 +93,15 @@ struct SymbolInfo {
       return declarator.ec->val;
     case SK_PARAM:
       return declarator.p;
-    case SK_EXTERNAL_BINDING:
-      return declarator.ev;
     case SK_IMPORT:
-      return nullptr; // Import slots don't have a Node representation
+      // Import slots have no AST source (declarator.imp carries line/col/name)
+      return nullptr; //-V1037
+    case SK_SYNTHETIC:
+      // Synthetic refs live only in astValues, never in scopes
+      return nullptr; //-V1037
     default:
       assert(0);
-      return nullptr;
+      return nullptr; //-V1037
     }
   }
 

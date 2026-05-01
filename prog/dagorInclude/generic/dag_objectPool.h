@@ -276,7 +276,7 @@ public:
   // Tries to free memory in a way that preserves object ids.
   void trimBack()
   {
-    while (!blocks.empt())
+    while (!blocks.empty())
     {
       auto &back = blocks.back();
       if (back->hasAnyAllocated())

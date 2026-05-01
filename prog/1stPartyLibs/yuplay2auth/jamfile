@@ -51,6 +51,7 @@ if $(Platform) = linux && $(Yuplay2UseGnome) = yes {
 
 
 Sources =
+  yu_answer.cpp
   yu_friends.cpp
   yu_itemInfo.cpp
   yu_syncCb.cpp

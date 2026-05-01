@@ -108,30 +108,37 @@ shader dynamic_spline_attachment
     normal_tex@staticSmp = normal;
   }
 
-  if (dyn_model_render_pass == render_pass_normal)
+  if (is_triangle_size_debug)
   {
-    DYNAMIC_SPLINE_GEN_PS_COMMON()
-    hlsl (ps)
-    {
-      GBUFFER_OUTPUT spline_gen_attachment_ps(VsOutput input HW_USE_SCREEN_POS)
-      {
-        float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
-        float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
-        return spline_gen_ps_base_impl(input, packedDiffuse, packedNormalMap, GET_SCREEN_POS(input.pos));
-      }
-    }
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
   }
   else
   {
-    hlsl (ps)
+    if (dyn_model_render_pass == render_pass_normal)
     {
-      void spline_gen_attachment_ps(VsOutput input)
+      DYNAMIC_SPLINE_GEN_PS_COMMON()
+      hlsl (ps)
       {
-        float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
-        float alpha = packedDiffuse.a;
-        clip_alpha(alpha);
+        GBUFFER_OUTPUT spline_gen_attachment_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
+          float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
+          return spline_gen_ps_base_impl(input, packedDiffuse, packedNormalMap, GET_SCREEN_POS(input.pos));
+        }
       }
     }
+    else
+    {
+      hlsl (ps)
+      {
+        void spline_gen_attachment_ps(VsOutput input)
+        {
+          float4 packedDiffuse = tex2DBindless(get_diffuse_tex(), input.texcoord);
+          float alpha = packedDiffuse.a;
+          clip_alpha(alpha);
+        }
+      }
+    }
+    compile("target_ps", "spline_gen_attachment_ps");
   }
-  compile("target_ps", "spline_gen_attachment_ps");
 }

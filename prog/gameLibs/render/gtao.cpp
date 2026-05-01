@@ -137,7 +137,7 @@ void GTAORenderer::renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolut
   }
   else
   {
-    d3d::set_render_target(rawTex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{rawTex, 0, 0}});
     d3d::setviewscissor(0, 0, sres.x, sres.y);
     aoRenderer->render();
   }
@@ -159,7 +159,7 @@ void GTAORenderer::applySpatialFilter(BaseTexture *rawTex, BaseTexture *spatialT
   }
   else
   {
-    d3d::set_render_target(spatialTex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{spatialTex, 0, 0}});
     d3d::setviewscissor(0, 0, sres.x, sres.y);
     spatialFilterRenderer->render();
   }
@@ -186,7 +186,7 @@ void GTAORenderer::applyTemporalFilter(BaseTexture *rawTex, BaseTexture *prevGta
   }
   else
   {
-    d3d::set_render_target(rawTex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{rawTex, 0, 0}});
     d3d::setviewscissor(0, 0, sres.x, sres.y);
     temporalFilterRenderer->render();
   }

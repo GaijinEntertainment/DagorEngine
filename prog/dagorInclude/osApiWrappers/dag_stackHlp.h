@@ -137,6 +137,10 @@ struct CallStackContext
 KRNLIMP CallStackContext set_extended_call_stack_capture_context(CallStackContext new_context);
 // Invokes current set thread local extended call stack context call back.
 KRNLIMP CallStackResolverCallbackAndSizePair capture_extended_call_stack(CallStackInfo stack);
+// Returns the generation of the extended call stack data, this values is incremented each time
+// set_extended_call_stack_capture_context is invoked.
+// This can be used to optimize detection of extended call stack data changes.
+KRNLIMP size_t get_extended_call_stack_generation();
 
 // Wraps inputs for extended call stack related functions to enable easier use
 struct CallStackInfo

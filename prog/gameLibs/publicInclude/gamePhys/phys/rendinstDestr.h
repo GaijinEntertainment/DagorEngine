@@ -32,10 +32,6 @@ enum RestorableRendinstState
   RRS_DESTROYED
 };
 
-typedef rendinst::RendInstDesc (*create_tree_rend_inst_destr_cb)(const rendinst::RendInstDesc &desc, bool add_restorable,
-  const Point3 &impactPos, const Point3 &impulse, bool create_phys, bool constrained_phys, float omega, float at_time,
-  const rendinst::CollisionInfo *coll_info, bool create_destr, bool from_damage);
-typedef void (*remove_tree_rendinst_destr_cb)(const rendinst::RendInstDesc &desc);
 typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
   uint32_t hashVal, const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox, bool is_collision);
@@ -98,14 +94,12 @@ struct DestrSettings
 DestrSettings &get_mutable_destr_settings();
 const DestrSettings &get_destr_settings();
 
-void init_ex(on_destr_changed_callback on_destr_cb, create_tree_rend_inst_destr_cb create_tree_cb,
-  remove_tree_rendinst_destr_cb rem_tree_cb, ri_tree_sound_cb tree_sound_cb, get_camera_pos get_current_camera_pos_,
+void init_ex(on_destr_changed_callback on_destr_cb, ri_tree_sound_cb tree_sound_cb, get_camera_pos get_current_camera_pos_,
   get_current_time_callback get_current_time_cb, bool enable_branch_destruction,
   remove_physx_collision_object_callback remove_physx_obj_cb = NULL, create_apex_actors_callback create_apex_actors_cb = NULL,
   apex_force_remove_actor_callback apex_remove_actor_cb = NULL);
 // apply_pending - apply destrs received before level load
 void init(on_destr_changed_callback on_destr_cb, bool apply_pending, bool enable_branch_destruction,
-  create_tree_rend_inst_destr_cb create_tree_destr_cb = nullptr, remove_tree_rendinst_destr_cb rem_tree_destr_cb = nullptr,
   ri_tree_sound_cb tree_sound_cb = nullptr, get_camera_pos get_camera_pos_cb = nullptr,
   get_current_time_callback get_current_time_cb = nullptr);
 void set_occlusion_callback(get_occlusion_callback cb);

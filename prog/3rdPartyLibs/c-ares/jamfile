@@ -78,7 +78,7 @@ if $(Platform) = macOS {
 }
 
 if $(PlatformSpec) in gcc {
-  Copt += -Wno-unused-result ;
+  Copt += -Wno-unused-result -Wno-discarded-qualifiers ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -105,7 +105,7 @@ shader rendinst_uv_debug
         float3 pointToEye = world_view_pos-worldPos;
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
-        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+        ##if (rendinst_render_pass != rendinst_render_pass_depth && !is_triangle_size_debug)
           output.uv12.xy = input.uv0 * (1. / 4096.0);
           output.pointToEye.xyz = pointToEye;
           #if RANDOMIZE_TC
@@ -124,6 +124,10 @@ shader rendinst_uv_debug
     if (rendinst_render_pass == rendinst_render_pass_depth)
     {
       compile("ps_null", "rendinst_render_depth_black_ps");
+    }
+    else if (is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
     }
     else
     {

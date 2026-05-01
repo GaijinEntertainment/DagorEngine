@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "yu_userInfo.h"
 #include "yu_string.h"
-#include "yu_json.h"
 
 #include <yuplay2_session.h>
 

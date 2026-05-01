@@ -205,7 +205,7 @@ shader rendinst_layered
 
       LAYERED_HEIGHTMAP_PS()
     }
-    else
+    else if (!is_triangle_size_debug)
     {
       if (rendinst_render_pass == rendinst_render_pass_normal)
       {
@@ -232,6 +232,10 @@ shader rendinst_layered
     else if (rendinst_render_pass == rendinst_render_pass_to_heightmap)
     {
       compile("target_ps", "heightmap_ps");
+    }
+    else if(is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
     }
     else
     {
@@ -375,7 +379,7 @@ shader rendinst_mask_layered
         float3 pointToEye = world_view_pos-worldPos;
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
-        ##if (rendinst_render_pass != rendinst_render_pass_depth)
+        ##if (rendinst_render_pass != rendinst_render_pass_depth && !is_triangle_size_debug)
           output.uv12.xy = input.uv0 * (1. / 4096.0);
           output.pointToEye.xyz = pointToEye;
           #if RANDOMIZE_TC
@@ -408,7 +412,12 @@ shader rendinst_mask_layered
     if (rendinst_render_pass == rendinst_render_pass_depth)
     {
       compile("ps_null", "rendinst_render_depth_black_ps");
-    } else
+    }
+    else if (is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
+    }
+    else
     {
       if ((rendinst_render_pass == rendinst_render_pass_normal))
       {

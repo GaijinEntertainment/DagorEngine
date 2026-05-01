@@ -132,7 +132,7 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
     // Assert proper alignment (should always be true due to sorted order)
     G_ASSERT(ofs % 4 == 0);
 
-    if (shc::config().addTextureType && vars[orig_idx].slot >= 0)
+    if (vars[orig_idx].slot >= 0)
     {
       if (vars[orig_idx].slot >= code->staticTextureTypes.size())
         for (int j = code->staticTextureTypes.size(); j <= vars[orig_idx].slot; j++)

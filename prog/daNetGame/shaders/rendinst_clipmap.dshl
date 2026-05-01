@@ -71,7 +71,8 @@ shader rendinst_clipmap, rendinst_landclass
       (global_tessellation_enabled && material_pn_triangulation != off) &&
       (rendinst_render_pass == rendinst_render_pass_normal ||
        rendinst_render_pass == rendinst_render_pass_depth ||
-       rendinst_render_pass == rendinst_render_pass_to_shadow);
+       rendinst_render_pass == rendinst_render_pass_to_shadow ||
+       is_triangle_size_debug);
 
   bool mix_texture_tesselation_enabled = material_use_mix_textures == yes && pn_triangulation_enabled;
 
@@ -253,7 +254,7 @@ shader rendinst_clipmap, rendinst_landclass
   RENDINST_INSTANCING()
 
   hlsl {
-    ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_grassify)
+    ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_grassify || is_triangle_size_debug)
       #define NEED_TC_WORLDPOS 1
       #define NEED_POINT_TO_EYE 1
     ##else
@@ -420,7 +421,12 @@ shader rendinst_clipmap, rendinst_landclass
       rendinst_render_pass == rendinst_render_pass_to_heightmap)
   {
     compile("ps_null", "rendinst_render_depth_black_ps");
-  } else if (grassify_enabled)
+  }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (grassify_enabled)
   {
     hlsl(ps)
     {

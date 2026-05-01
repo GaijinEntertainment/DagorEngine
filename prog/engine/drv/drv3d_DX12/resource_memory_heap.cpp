@@ -356,7 +356,7 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const BasicTextureResourceDescrip
   result.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   result.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
   result.MipLevels = desc.mipLevels;
-  result.Format = format.asDxGiTextureCreateFormat();
+  result.Format = format.asDxGiResourceCreateFormat();
   result.SampleDesc.Count = get_sample_count(desc.cFlags);
   result.SampleDesc.Quality = 0;
   result.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -702,7 +702,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
       (dxDesc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)))
   {
     clearValuePtr = &clearValue;
-    clearValue.Format = fmt.asDxGiFormat();
+    clearValue.Format = fmt.asDxGiFormat<false>();
     if (fmt.isColor())
     {
       clearValue.Color[0] = desc.asBasicTexRes.clearValue.asFloat[0];
@@ -4437,7 +4437,7 @@ void DebugView::drawTextureTable()
       ImGui::TableSetColumnIndex(5);
       const auto format = image->getFormat();
       // skip DXGI_FORMAT_ section
-      ImGui::TextUnformatted(format.getNameString() + 12);
+      ImGui::TextUnformatted(format.template getNameString<true>() + 12);
 
       subresourceCount += (mipCount * layerCount * format.getPlanes()).count();
 
@@ -5907,16 +5907,16 @@ struct BaseTexReportVisitor
         {
           target(ALIASED_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->getSize(), ql, typeName, tex->width, tex->height,
             tex->level_count(), tex->samplerState.getAniso(), skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
-            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getName(), extraInfo);
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString<true>(), 12),
+            img, viewCount, tex->getName(), extraInfo);
         }
         else
         {
           target(NORMAL_SIZE TEXTURE_FIRST ", %8dx%-8d" TEXTURE_SECOND, tex->getSize(), imageSize.units(), imageSize.name(), ql,
             typeName, tex->width, tex->height, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
-            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getName(), extraInfo);
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString<true>(), 12),
+            img, viewCount, tex->getName(), extraInfo);
         }
       }
       else // if (D3DResourceType::VOLTEX == tex->type || D3DResourceType::ARRTEX == tex->type || D3DResourceType::CUBEARRTEX ==
@@ -5927,16 +5927,16 @@ struct BaseTexReportVisitor
           target(ALIASED_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->getSize(), ql, typeName, tex->width, tex->height,
             tex->depth, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
-            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getName(), extraInfo);
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString<true>(), 12),
+            img, viewCount, tex->getName(), extraInfo);
         }
         else
         {
           target(NORMAL_SIZE TEXTURE_FIRST ", %5dx%-5dx%-5d" TEXTURE_SECOND, tex->getSize(), imageSize.units(), imageSize.name(), ql,
             typeName, tex->width, tex->height, tex->depth, tex->level_count(), tex->samplerState.getAniso(),
             skip_chars(filter_type_to_string(tex->samplerState.getFilter()), 18),
-            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString(), 12), img,
-            viewCount, tex->getName(), extraInfo);
+            skip_chars(filter_type_to_string(tex->samplerState.getMip()), 18), skip_chars(tex->getFormat().getNameString<true>(), 12),
+            img, viewCount, tex->getName(), extraInfo);
         }
       }
 #undef ALIASED_SIZE

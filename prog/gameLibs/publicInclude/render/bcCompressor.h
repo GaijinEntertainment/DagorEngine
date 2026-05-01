@@ -88,6 +88,7 @@ public:
   void copyToMip(Texture *dest_tex, int dest_mip, int dest_x, int dest_y, int src_mip = 0, int src_x = 0, int src_y = 0,
     int width = -1, int height = -1, Texture *external_buffer = nullptr);
 
+  Texture *getBuffer() const;
   void releaseBuffer(); // destroy buffer texture
 
   ECompressionType getCompressionType() const;

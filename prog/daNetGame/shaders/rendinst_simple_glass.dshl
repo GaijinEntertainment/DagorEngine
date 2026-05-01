@@ -94,7 +94,11 @@ shader rendinst_simple_glass
   compile("target_vs", "glass_vs");
 
   INIT_GLASS_TRANSP()
-  if (rendinst_transparent_gbuffer_pass == generate)
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (rendinst_transparent_gbuffer_pass == generate)
   {
     GENERATE_TRANSPARENT_GBUFFER_PS()
   }

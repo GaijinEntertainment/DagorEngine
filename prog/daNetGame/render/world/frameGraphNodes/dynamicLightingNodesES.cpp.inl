@@ -15,7 +15,6 @@
 #include <render/world/shadowsManager.h>
 #include <render/world/wrDispatcher.h>
 #include <shaders/dag_computeShaders.h>
-#include <util/dag_console.h>
 
 static dafg::AutoResolutionRequest<2> get_dynamic_lighting_texture_resolution(dafg::Registry registry)
 {
@@ -29,16 +28,13 @@ static dafg::Texture2dCreateInfo get_dynamic_lighting_tex_create_info(dafg::Regi
 
 static int divide_up(int x, int y) { return (x + y - 1) / y; }
 
-static void recreate_dynamic_lighting_nodes(bool is_precomputed,
-  bool is_rtsm,
-  dafg::NodeHandle &prepare_resources_node,
-  dafg::NodeHandle &generate_tiles_node,
-  dafg::NodeHandle &lighting_node)
+static void recreate_dynamic_lighting_nodes(
+  bool is_rtsm, dafg::NodeHandle &prepare_resources_node, dafg::NodeHandle &generate_tiles_node, dafg::NodeHandle &lighting_node)
 {
   if (!WRDispatcher::isReadyToUse())
     return;
 
-  if ((!is_precomputed && !is_rtsm) || WRDispatcher::isBareMinimum())
+  if (WRDispatcher::isBareMinimum())
   {
     prepare_resources_node = dafg::NodeHandle();
     generate_tiles_node = dafg::NodeHandle();
@@ -168,20 +164,18 @@ static void recreate_dynamic_lighting_nodes(bool is_precomputed,
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, OnRenderSettingsReady)
 static void dynamic_lighting_on_appear_es(const ecs::Event &,
-  bool dynamic_lighting_is_precomputed,
   bool &dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
   dafg::NodeHandle &dynamic_lighting_node)
 {
   dynamic_lighting_is_rtsm = is_rtsm_dynamic_enabled();
-  recreate_dynamic_lighting_nodes(dynamic_lighting_is_precomputed, dynamic_lighting_is_rtsm,
-    prepare_dynamic_lighting_texture_per_camera, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+  recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
+    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 ECS_TAG(render)
 static void dynamic_lighting_on_change_render_features_es(const ChangeRenderFeatures &evt,
-  bool dynamic_lighting_is_precomputed,
   bool dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
@@ -191,13 +185,12 @@ static void dynamic_lighting_on_change_render_features_es(const ChangeRenderFeat
       !evt.isFeatureChanged(FeatureRenderFlags::DYNAMIC_LIGHTS_SHADOWS))
     return;
 
-  recreate_dynamic_lighting_nodes(dynamic_lighting_is_precomputed, dynamic_lighting_is_rtsm,
-    prepare_dynamic_lighting_texture_per_camera, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+  recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
+    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 ECS_TAG(render)
 static void dynamic_lighting_on_set_resolution_es(const SetResolutionEvent &evt,
-  bool dynamic_lighting_is_precomputed,
   bool dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
@@ -206,56 +199,24 @@ static void dynamic_lighting_on_set_resolution_es(const SetResolutionEvent &evt,
   if (evt.type == SetResolutionEvent::Type::DYNAMIC_RESOLUTION)
     return;
 
-  recreate_dynamic_lighting_nodes(dynamic_lighting_is_precomputed, dynamic_lighting_is_rtsm,
-    prepare_dynamic_lighting_texture_per_camera, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+  recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
+    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 template <typename Callable>
 inline void set_dynamic_lighting_state_ecs_query(ecs::EntityId, Callable c);
 
-static void set_dynamic_lighting_state(ecs::EntityId eid, eastl::optional<bool> set_precomputed, eastl::optional<bool> set_rtsm)
-{
-  set_dynamic_lighting_state_ecs_query(eid,
-    [set_precomputed, set_rtsm](bool &dynamic_lighting_is_precomputed, bool &dynamic_lighting_is_rtsm,
-      dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera, dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
-      dafg::NodeHandle &dynamic_lighting_node) {
-      bool recreateNodes = false;
-      if (set_precomputed.has_value() && dynamic_lighting_is_precomputed != set_precomputed.value())
-      {
-        dynamic_lighting_is_precomputed = set_precomputed.value();
-        recreateNodes = true;
-      }
-      if (set_rtsm.has_value() && dynamic_lighting_is_rtsm != set_rtsm.value())
-      {
-        dynamic_lighting_is_rtsm = set_rtsm.value();
-        recreateNodes = true;
-      }
-      if (recreateNodes)
-        recreate_dynamic_lighting_nodes(dynamic_lighting_is_precomputed, dynamic_lighting_is_rtsm,
-          prepare_dynamic_lighting_texture_per_camera, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
-    });
-}
-
 void toggle_rtsm_dynamic(bool enable)
 {
   if (ecs::EntityId eid = g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_lighting")))
-    set_dynamic_lighting_state(eid, eastl::nullopt, enable);
-}
+    set_dynamic_lighting_state_ecs_query(eid,
+      [enable](bool &dynamic_lighting_is_rtsm, dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
+        dafg::NodeHandle &dynamic_lighting_generate_tiles_node, dafg::NodeHandle &dynamic_lighting_node) {
+        if (dynamic_lighting_is_rtsm == enable)
+          return;
 
-using namespace console;
-static bool dynamic_lighting_console_handler(const char *argv[], int argc)
-{
-  if (argc < 1)
-    return false;
-  int found = 0;
-  CONSOLE_CHECK_NAME("render", "use_precomputed_dynamic_lights", 2, 2)
-  {
-    if (ecs::EntityId eid = g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_lighting")))
-    {
-      bool usePrecomputedDynamicLights = to_bool(argv[1]);
-      set_dynamic_lighting_state(eid, usePrecomputedDynamicLights, eastl::nullopt);
-    }
-  }
-  return found;
+        dynamic_lighting_is_rtsm = enable;
+        recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
+          dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+      });
 }
-REGISTER_CONSOLE_HANDLER(dynamic_lighting_console_handler);

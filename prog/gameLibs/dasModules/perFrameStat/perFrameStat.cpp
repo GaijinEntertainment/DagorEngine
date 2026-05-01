@@ -12,6 +12,14 @@ public:
   {
     das::ModuleLibrary lib(this);
 
+    das::addExtern<DAS_BIND_FUN(::benchmark_perframe_stat::gpu_time::init)>(*this, lib, "benchmark_perframe_stat_gpu_time_init",
+      das::SideEffects::modifyExternal, "benchmark_perframe_stat::gpu_time::init");
+    das::addExtern<DAS_BIND_FUN(::benchmark_perframe_stat::gpu_time::initialized)>(*this, lib,
+      "benchmark_perframe_stat_gpu_time_initialized", das::SideEffects::accessExternal,
+      "benchmark_perframe_stat::gpu_time::initialized");
+    das::addExtern<DAS_BIND_FUN(::benchmark_perframe_stat::gpu_time::close)>(*this, lib, "benchmark_perframe_stat_gpu_time_close",
+      das::SideEffects::modifyExternal, "benchmark_perframe_stat::gpu_time::close");
+
     das::addExtern<DAS_BIND_FUN(::benchmark_perframe_stat::init)>(*this, lib, "benchmark_perframe_stat_init",
       das::SideEffects::modifyExternal, "benchmark_perframe_stat::init");
     das::addExtern<DAS_BIND_FUN(::benchmark_perframe_stat::reset)>(*this, lib, "benchmark_perframe_stat_reset",

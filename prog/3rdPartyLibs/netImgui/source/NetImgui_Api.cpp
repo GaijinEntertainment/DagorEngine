@@ -362,7 +362,14 @@ void SendDataTexture(ImTextureID textureId, void* pData, uint16_t width, uint16_
 		{
 			memcpy(pCmdTexture->mpTextureData.Get(), pData, dataSize);
 			pCmdTexture->mpTextureData.ToOffset();
-			client.TextureTrackingAdd(*pCmdTexture);
+
+			// MODIFICATION BY GAIJIN
+			// we use SendDataTexture for manually update textures
+			// and we dont need mark textures for tracking,
+			// as it's already handled before sending data
+			//
+			//client.TextureTrackingAdd(*pCmdTexture);
+			client.TexturePendingServerAdd(*pCmdTexture);
 
 			// Detects when user is sending the font texture
 		#if !NETIMGUI_IMGUI_TEXTURES_ENABLED

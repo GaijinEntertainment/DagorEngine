@@ -78,7 +78,7 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
       draw_cached_debug_sphere(sphereNode->boundingSphere.c, sphereNode->boundingSphere.r, debug_data.color);
 
     for (const CollisionNode *capsuleNode = capsuleNodesHead; capsuleNode; capsuleNode = capsuleNode->nextNode)
-      draw_cached_debug_capsule(capsuleNode->capsule, debug_data.color, TMatrix::IDENT);
+      draw_cached_debug_capsule(capsules[capsuleNode->capsuleIndex], debug_data.color, TMatrix::IDENT);
   }
 #else
   G_UNUSED(instance_tm);

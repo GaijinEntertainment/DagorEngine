@@ -868,7 +868,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       NO_DYNSTCODE()
     }
 
-    if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
+    if ((atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth) && !is_triangle_size_debug)
     {
       if (need_tree_burning_for_leaves)
       {
@@ -891,7 +891,12 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       bool alpha_clip_sep = shader != rendinst_tree_colored && atest == atestOn
       && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
       VEGETATION_PS(rendinst_render_pass == rendinst_render_pass_depth, atest == atestOn, alpha_clip_sep, alpha_clip_is_on, need_tree_burning, GBUFFER_ORDER_STATIC)
-    } else
+    }
+    else if (is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
+    }
+    else
     {
       compile("ps_null", "rendinst_render_depth_black_ps");
     }

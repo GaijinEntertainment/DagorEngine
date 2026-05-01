@@ -166,5 +166,8 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
 endmacro
 
 macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency, order)
-  SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, true, order)
+  if (!is_triangle_size_debug)
+  {
+    SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, true, order)
+  }
 endmacro

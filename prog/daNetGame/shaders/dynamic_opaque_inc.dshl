@@ -156,7 +156,7 @@ block(scene) dynamic_depth_scene
 }
 
 macro DYNAMIC_BLOCK_BASE()
-if (dyn_model_render_pass == render_pass_normal)
+if (dyn_model_render_pass == render_pass_normal  || is_triangle_size_debug)
 {
   supports dynamic_scene;
 
@@ -172,6 +172,10 @@ else if (dyn_model_render_pass == render_to_depth || dyn_model_render_pass == re
 endmacro
 
 macro DYNAMIC_BLOCK()
+  if ((allow_triangle_size_debug == no && is_triangle_size_debug) || (!hardware.dx12 && is_triangle_size_debug))
+  {
+    dont_render;
+  }
   DYNMODEL_SHARED_DECL_IMMEDIATE()
   DYNAMIC_BLOCK_BASE()
 endmacro

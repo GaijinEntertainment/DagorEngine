@@ -28,6 +28,8 @@ Sources =
   hmlSplineObject.cpp
   hmlSplinePoint.cpp
   hmlGenColorMap.cpp
+  blockedDetTexMap.cpp
+  smooth_noise.cpp
   hmlImport.cpp
   hmlEventHandler.cpp
   hmlIGenEditorPlugin.cpp

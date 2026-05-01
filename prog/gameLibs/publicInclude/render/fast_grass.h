@@ -19,6 +19,7 @@
 #include "grassInstance.hlsli"
 
 class DataBlock;
+class HeightmapHandler;
 
 
 class FastGrassRenderer

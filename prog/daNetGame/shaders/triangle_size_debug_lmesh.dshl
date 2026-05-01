@@ -1,0 +1,2 @@
+int lmesh_triangle_size_debug = 0;
+interval lmesh_triangle_size_debug : off < 1, on;

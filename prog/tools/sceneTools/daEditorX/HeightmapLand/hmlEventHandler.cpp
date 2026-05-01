@@ -347,18 +347,18 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
         lastExpLoftRect[1][0] = panel.getPoint2(24);
         lastExpLoftRect[1][1] = lastExpLoftRect[1][0] + panel.getPoint2(25);
 
-        G_STATIC_ASSERT(EditLayerProps::MAX_LAYERS <= 64);
-        uint64_t prev_layers_hide_mask = DAEDITOR3.getEntityLayerHiddenMask();
+        G_STATIC_ASSERT(EditLayerProps::MAX_LAYERS <= LayerHiddenMask::BIT_COUNT);
+        const LayerHiddenMask prev_layers_hide_mask = DAEDITOR3.getEntityLayerHiddenMask();
         bool honor_layer_props = panel.getBool(61);
         if (!honor_layer_props)
           DAEDITOR3.conNote("%s: ignoring layers' \"to mask\" property", "Loft mask export");
         else
         {
-          uint64_t layers_hide_mask = 0;
+          LayerHiddenMask layers_hide_mask;
           for (unsigned i = 0; i < EditLayerProps::layerProps.size(); i++)
           {
             if (!EditLayerProps::layerProps[i].renderToMask)
-              layers_hide_mask |= uint64_t(1) << i;
+              layers_hide_mask.setHidden(i);
             if (EditLayerProps::layerProps[i].hide && EditLayerProps::layerProps[i].renderToMask)
               DAEDITOR3.conNote("%s: unhiding layer '%s' due to \"to mask\" is ON", "Loft mask export", EditLayerProps::layerName(i));
             else if (!EditLayerProps::layerProps[i].hide && !EditLayerProps::layerProps[i].renderToMask)
@@ -442,22 +442,43 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
         DAEDITOR3.conNote("landclass layer %s exported to %%LEVEL%%/%s.tif", lname, lname);
 
-        if (idx == detLayerIdx && detTexIdxMap)
+        if (idx == detLayerIdx && detTexMap)
         {
+          // Block-by-block scan: fetch each 64x64 block pointer once, then
+          // iterate its pixels via getPackedAtLocal. Per-pixel getPackedAt
+          // strides across up to 8 * 4KB planes on every call, so a 4kx4k
+          // image turns into ~134M random-ish page accesses. The block
+          // fetch brings the planes into cache once per block.
+          using hmap_storage::DETTEX_BLOCK_W;
+          using hmap_storage::DetTexBlock;
+          const int blocksX = detTexMap->getBlocksX();
+          const int blocksY = detTexMap->getBlocksY();
+
           bool hasDet[256];
           memset(hasDet, 0, sizeof(hasDet));
-          for (int y = 0; y < mapSizeY; y++)
-            for (int x = 0; x < mapSizeX; x++)
+          for (int by = 0; by < blocksY; by++)
+            for (int bx = 0; bx < blocksX; bx++)
             {
-              uint64_t idx = detTexIdxMap->getData(x, y);
-              uint64_t wt = detTexWtMap->getData(x, y);
-              while (wt)
-              {
-                if (!hasDet[idx & 0xFF] && (wt & 0xFF))
-                  hasDet[idx & 0xFF] = true;
-                idx >>= 8;
-                wt >>= 8;
-              }
+              const DetTexBlock *b = detTexMap->getBlockAt(bx, by);
+              if (!b)
+                continue;
+              const int yBase = by * DETTEX_BLOCK_W;
+              const int xBase = bx * DETTEX_BLOCK_W;
+              const int yEnd = min(yBase + DETTEX_BLOCK_W, mapSizeY);
+              const int xEnd = min(xBase + DETTEX_BLOCK_W, mapSizeX);
+              for (int y = yBase; y < yEnd; y++)
+                for (int x = xBase; x < xEnd; x++)
+                {
+                  uint64_t pi = 0, pw = 0;
+                  hmap_storage::BlockedDetTexMap::getPackedAtLocal(*b, x - xBase, y - yBase, pi, pw);
+                  while (pw)
+                  {
+                    if (!hasDet[pi & 0xFF] && (pw & 0xFF))
+                      hasDet[pi & 0xFF] = true;
+                    pi >>= 8;
+                    pw >>= 8;
+                  }
+                }
             }
 
           bitMaskImgMgr->createBitMask(img, mapSizeX, mapSizeY, 8);
@@ -466,23 +487,34 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
           {
             if (!hasDet[dt])
               continue;
-            for (int y = 0; y < mapSizeY; y++)
-              for (int x = 0; x < mapSizeX; x++)
+            for (int by = 0; by < blocksY; by++)
+              for (int bx = 0; bx < blocksX; bx++)
               {
-                uint64_t idx = detTexIdxMap->getData(x, y);
-                uint64_t wt = detTexWtMap->getData(x, y);
-                while (wt)
-                {
-                  if ((idx & 0xFF) == dt)
+                const DetTexBlock *b = detTexMap->getBlockAt(bx, by);
+                if (!b)
+                  continue;
+                const int yBase = by * DETTEX_BLOCK_W;
+                const int xBase = bx * DETTEX_BLOCK_W;
+                const int yEnd = min(yBase + DETTEX_BLOCK_W, mapSizeY);
+                const int xEnd = min(xBase + DETTEX_BLOCK_W, mapSizeX);
+                for (int y = yBase; y < yEnd; y++)
+                  for (int x = xBase; x < xEnd; x++)
                   {
-                    int w = wt & 0xFF;
-                    if (w)
-                      img.setMaskPixel8(x, y, w);
-                    break;
+                    uint64_t pi = 0, pw = 0;
+                    hmap_storage::BlockedDetTexMap::getPackedAtLocal(*b, x - xBase, y - yBase, pi, pw);
+                    while (pw)
+                    {
+                      if ((pi & 0xFF) == dt)
+                      {
+                        int w = pw & 0xFF;
+                        if (w)
+                          img.setMaskPixel8(x, y, w);
+                        break;
+                      }
+                      pi >>= 8;
+                      pw >>= 8;
+                    }
                   }
-                  idx >>= 8;
-                  wt >>= 8;
-                }
               }
 
             String fn(128, "%s_%d_%s", lname, dt, dd_get_fname(detailTexBlkName[dt].str()));

@@ -763,7 +763,7 @@ static void split(Mesh &from, Mesh &pos, float A, float B, float C, float D, flo
 {
   Mesh neg;
   from.split(neg, pos, A, B, C, D, eps);
-  from = neg; //==can be optimized
+  from = eastl::move(neg); // avoid deep copy (dag::Vector move is a swap)
   /*from.optimize_tverts();
   pos.optimize_tverts();*/
 }
@@ -801,7 +801,7 @@ public:
     forEachCellMesh([&](Mesh &m) {
       m.kill_unused_verts(5e-4f); // only saves few vertices
       m.kill_bad_faces();
-      forEachMeshVert(m, [&](const Point3 &v) { v_bbox3_add_pt(box, v_ldu(&v.x)); });
+      forEachMeshVert(m, [&](const Point3 &v) { v_bbox3_add_pt(box, v_ldu_p3_safe(&v.x)); });
     });
     v_stu_bbox3(cell.box, box);
 
@@ -815,7 +815,7 @@ public:
     uint32_t numKilledFaces = 0;
     forEachCellMesh([&](Mesh &m) {
       forEachMeshVert(m, [&](Point3 &v) {
-        vec3f pv = v_ldu(&v.x);
+        vec3f pv = v_ldu_p3_safe(&v.x);
         vec3f qv = v_round(v_mul(v_sub(pv, cmpofs), cmpscales));
         vec3f cv = v_min(v_max(qv, v_zero()), v_splats(USHRT_MAX));
         v_stu_p3(&v.x, v_mul(cv, cmpunscale));
@@ -824,7 +824,7 @@ public:
       uint32_t prevNumFaces = m.face.size();
       m.kill_bad_faces2(1e-20f, 3e-3f, 50000.f);
       numKilledFaces += prevNumFaces - m.face.size();
-      forEachMeshVert(m, [&](Point3 &v) { v_stu_p3(&v.x, v_add(cmpofs, v_ldu(&v.x))); });
+      forEachMeshVert(m, [&](Point3 &v) { v_stu_p3(&v.x, v_add(cmpofs, v_ldu_p3_safe(&v.x))); });
     });
     if (numKilledFaces)
       debug("cell[%d] killed %d degen faces in land meshes", &cell - &cell0, numKilledFaces);
@@ -1335,7 +1335,7 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
             prevSplineMat = node->mesh->mats[0];
             splineBatch++;
           }
-          int loftLayer = node->script.getInt("layer", 0);
+          int loftLayer = node->layer;
           nodeLayer = loftLayer * LAYER_ORDER_MAX + splineLayer          // Split meshes by layers.
                       + splineBatch * LAYER_ORDER_MAX * LAYER_ORDER_MAX; // Do not join meshes if another mesh is between them to avoid
                                                                          // changing the render order.
@@ -1429,7 +1429,7 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
   }
 
   int time1 = dagTools->getTimeMsec();
-  con.setActionDesc("cutting meshes...");
+  con.setActionDesc("cutting %d meshes...", meshes.size());
   con.startProgress();
   con.setTotal(totalAllFaces);
   Tab<int> vert2Cell(tmpmem);
@@ -1524,18 +1524,80 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
       continue;
     }
 
-    // can be optimized by using binary(quad) tree of splits.
-    Mesh *prevY = new Mesh, *nextY = NULL;
-    split(mesh, *prevY, 0, 0, 1.f, -ofs.z, epsilon);
-
-    if (!prevY->face.size())
+    // Narrow the split work to only the cells actually touched by meshBox.
+    // Previously every mesh was split across all numCellsX*numCellsY cells regardless of size;
+    // with thousands of small static meshes each occupying ~1 cell that was dominant.
+    const int numCellsX = cells.getNumCellsX();
+    const int numCellsY = cells.getNumCellsY();
+    const float gridMaxX = ofs.x + numCellsX * meshCellSize;
+    const float gridMaxZ = ofs.z + numCellsY * meshCellSize;
+    if (meshBox.isempty() || meshBox[1].x < ofs.x || meshBox[0].x > gridMaxX || meshBox[1].z < ofs.z || meshBox[0].z > gridMaxZ)
     {
       cfaces += origFaceCount;
       con.setDone(cfaces);
       continue;
     }
+    // Mesh::split treats verts within +/-epsilon of a cell boundary plane as on-plane and
+    // routes the resulting face to the neg (lower-index) side. Match that here so a meshBox
+    // endpoint that lands on (or within eps of) an internal boundary maps to the lower cell;
+    // otherwise floorf would push boundary content into the upper cell and the initial Y/X
+    // crop at the new lower edge would also discard it.
+    auto findCellIdx = [&](float coord, float origin, int numCells) {
+      int idx = (int)floorf((coord - origin) / meshCellSize);
+      if (idx > 0 && fabsf((coord - origin) - idx * meshCellSize) <= epsilon)
+        --idx;
+      return clamp(idx, 0, numCells - 1);
+    };
+    const int cellYStart = findCellIdx(meshBox[0].z, ofs.z, numCellsY);
+    const int cellYEnd = findCellIdx(meshBox[1].z, ofs.z, numCellsY);
+    const int cellXStart = findCellIdx(meshBox[0].x, ofs.x, numCellsX);
+    const int cellXEnd = findCellIdx(meshBox[1].x, ofs.x, numCellsX);
 
-    for (int cellY = 0; cellY < cells.getNumCellsY(); ++cellY)
+    // Fast path: mesh fits entirely inside a single cell -> skip all splits.
+    if (cellYStart == cellYEnd && cellXStart == cellXEnd)
+    {
+      const float cellMinX = ofs.x + cellXStart * meshCellSize;
+      const float cellMinZ = ofs.z + cellYStart * meshCellSize;
+      const float cellMaxX = cellMinX + meshCellSize - ((cellXStart == numCellsX - 1) ? gridCellSize : 0);
+      const float cellMaxZ = cellMinZ + meshCellSize - ((cellYStart == numCellsY - 1) ? gridCellSize : 0);
+      if (meshBox[0].x >= cellMinX - epsilon && meshBox[1].x <= cellMaxX + epsilon && meshBox[0].z >= cellMinZ - epsilon &&
+          meshBox[1].z <= cellMaxZ + epsilon)
+      {
+        Mesh *destmesh = NULL;
+        if (!nodes[mi])
+          destmesh = cells.getCellLandMesh(cellXStart, cellYStart, true);
+        else if (isPatch[mi])
+          destmesh = cells.getCellPatchesMesh(cellXStart, cellYStart, true);
+        else if (isDecal[mi])
+          destmesh = cells.getCellDecalMesh(cellXStart, cellYStart, true);
+        else
+          destmesh = cells.getCellCombinedMesh(cellXStart, cellYStart, true);
+
+        if (destmesh)
+        {
+          if (nodes[mi])
+            mesh.optimize_tverts(-1.0);
+          destmesh->attach(mesh);
+        }
+        cfaces += mesh.face.size();
+        con.setDone(cfaces);
+        continue;
+      }
+    }
+
+    // can be optimized by using binary(quad) tree of splits.
+    Mesh *prevY = new Mesh, *nextY = NULL;
+    split(mesh, *prevY, 0, 0, 1.f, -(ofs.z + cellYStart * meshCellSize), epsilon);
+
+    if (!prevY->face.size())
+    {
+      del_it(prevY);
+      cfaces += origFaceCount;
+      con.setDone(cfaces);
+      continue;
+    }
+
+    for (int cellY = cellYStart; cellY <= cellYEnd; ++cellY)
     {
       if (nextY)
       {
@@ -1546,19 +1608,19 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
       if (!prevY->face.size())
         break;
       nextY = new Mesh;
-      split(*prevY, *nextY, 0.f, 0.f, 1.f,
-        -((cellY + 1) * meshCellSize - ((cellY == cells.getNumCellsY() - 1) ? gridCellSize : 0) + ofs.z), epsilon);
+      split(*prevY, *nextY, 0.f, 0.f, 1.f, -((cellY + 1) * meshCellSize - ((cellY == numCellsY - 1) ? gridCellSize : 0) + ofs.z),
+        epsilon);
       if (!prevY->face.size())
         continue;
       Mesh *prevX = new Mesh, *nextX = NULL;
-      split(*prevY, *prevX, 1.f, 0.f, 0.f, -ofs.x, epsilon);
+      split(*prevY, *prevX, 1.f, 0.f, 0.f, -(ofs.x + cellXStart * meshCellSize), epsilon);
       if (!prevX->face.size())
       {
         del_it(prevX);
         continue;
       }
       prevX->optimize_tverts(-1.0);
-      for (int cellX = 0; cellX < cells.getNumCellsX(); ++cellX)
+      for (int cellX = cellXStart; cellX <= cellXEnd; ++cellX)
       {
         if (nextX)
         {
@@ -1595,8 +1657,8 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
         if (!prevX->face.size())
           break;
         nextX = new Mesh;
-        split(*prevX, *nextX, 1.f, 0.f, 0.f,
-          -((cellX + 1) * meshCellSize - ((cellX == cells.getNumCellsX() - 1) ? gridCellSize : 0) + ofs.x), epsilon);
+        split(*prevX, *nextX, 1.f, 0.f, 0.f, -((cellX + 1) * meshCellSize - ((cellX == numCellsX - 1) ? gridCellSize : 0) + ofs.x),
+          epsilon);
         if (!prevX->face.size())
           continue;
         if (nodes[mi])
@@ -1831,8 +1893,13 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     landMeshMap.clear(true);
   guard_det_border = true;
 
-  if (generate_ok)
-    rebuildLandmeshDump();
+  // lmDump is intentionally not rebuilt here: at every callsite landClsMap
+  // (and the rest of the derived maps) is still empty -- generateLandColors
+  // hasn't run yet -- so serializing now would just bake an empty snapshot
+  // into lmDump that the renderer would then serve. Callers that actually
+  // need lmDump (beforeMainLoop after generateLandColors, PID_REBUILD_MESH
+  // via resetLandmesh -> pendingLandmeshRebuild) rebuild it themselves
+  // once the derived maps reflect the final state.
   return generate_ok;
 }
 
@@ -2308,15 +2375,15 @@ bool HmapLandPlugin::exportLandMesh(mkbindump::BinDumpSaveCB &cb, IWriterToLandm
 
   // export detail maps and textures
   int detailDataOfs = cb.tell();
-  int dmw = detTexWtMap ? detTexWtMap->getMapSizeX() : landClsMap.getMapSizeX();
-  int dmh = detTexWtMap ? detTexWtMap->getMapSizeY() : landClsMap.getMapSizeY();
-  int dm_tex_elem_size = (landMeshMap.getCellSize() / gridCellSize) * (detTexWtMap ? 1 : lcmScale);
+  int dmw = detTexMap ? detTexMap->getMapSizeX() : landClsMap.getMapSizeX();
+  int dmh = detTexMap ? detTexMap->getMapSizeY() : landClsMap.getMapSizeY();
+  int dm_tex_elem_size = (landMeshMap.getCellSize() / gridCellSize) * (detTexMap ? 1 : lcmScale);
   if (dmw / dm_tex_elem_size != landMeshMap.getNumCellsX() || dmh / dm_tex_elem_size != landMeshMap.getNumCellsY())
   {
     DAEDITOR3.conError("bad detMapSz=%dx%d and elemSz=%d gives elems=%dx%d while cells are %dx%d\n"
-                       "  (detTexWtMap=%dx%d landClsMap=%dx%d lcmScale=%d)",
+                       "  (detTexMap=%dx%d landClsMap=%dx%d lcmScale=%d)",
       dmw, dmh, dm_tex_elem_size, dmw / dm_tex_elem_size, dmh / dm_tex_elem_size, landMeshMap.getNumCellsX(),
-      landMeshMap.getNumCellsY(), detTexWtMap ? detTexWtMap->getMapSizeX() : 0, detTexWtMap ? detTexWtMap->getMapSizeY() : 0,
+      landMeshMap.getNumCellsY(), detTexMap ? detTexMap->getMapSizeX() : 0, detTexMap ? detTexMap->getMapSizeY() : 0,
       landClsMap.getMapSizeX(), landClsMap.getMapSizeY(), lcmScale);
 
     dm_tex_elem_size = dmw / landMeshMap.getNumCellsX();

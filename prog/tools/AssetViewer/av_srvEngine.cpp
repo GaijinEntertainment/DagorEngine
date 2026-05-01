@@ -219,8 +219,8 @@ public:
   unsigned getEntitySubTypeMask(int mask_type) override { return IObjEntityFilter::getSubTypeMask(mask_type); }
 
   void setEntitySubTypeMask(int mask_type, unsigned value) override { IObjEntityFilter::setSubTypeMask(mask_type, value); }
-  uint64_t getEntityLayerHiddenMask() override { return 1ull << 63; }
-  void setEntityLayerHiddenMask(uint64_t /*value*/) override {}
+  LayerHiddenMask getEntityLayerHiddenMask() override { return LayerHiddenMask(LayerHiddenMask::BIT_COUNT - 1, true); }
+  void setEntityLayerHiddenMask(LayerHiddenMask /*value*/) override {}
 
   dag::ConstSpan<int> getGenObjAssetTypes() const override
   {
@@ -541,7 +541,7 @@ void IObjEntityFilter::setSubTypeMask(int mask_type, unsigned mask) { entSubType
 
 
 unsigned IObjEntityFilter::getSubTypeMask(int mask_type) { return entSubTypeMask[mask_type]; }
-uint64_t IObjEntityFilter::getLayerHiddenMask() { return (1ull << 63); }
+LayerHiddenMask IObjEntityFilter::getLayerHiddenMask() { return LayerHiddenMask(LayerHiddenMask::BIT_COUNT - 1, true); }
 
 
 void IObjEntityFilter::setShowInvalidAsset(bool show) { showInvalidAssets = show; }

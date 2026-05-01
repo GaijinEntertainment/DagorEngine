@@ -69,6 +69,14 @@ void PipelineCache::load(PipelineCacheFile &src)
   }
 }
 
+bool PipelineCache::isCacheTooBig(size_t byte_count)
+{
+  bool ret = (byte_count >> 20) > Globals::cfg.pipelineCacheMaxSizeMb;
+  if (ret)
+    debug("vulkan: skipping pipeline save due too big size %uMb (max %uMb)", byte_count >> 20, Globals::cfg.pipelineCacheMaxSizeMb);
+  return ret;
+}
+
 void PipelineCache::waitAsyncStoreComplete()
 {
   if (asyncInProgress.load())
@@ -82,6 +90,9 @@ void PipelineCache::storeAsync()
   size_t count;
   if (VULKAN_CHECK_FAIL(Globals::VK::dev.vkGetPipelineCacheData(Globals::VK::dev.get(), handle, &count, NULL)))
     count = 0;
+
+  if (isCacheTooBig(count))
+    return;
 
   debug("vulkan: async extracting pipeline cache data of size %u Kb from driver", count >> 10);
 
@@ -112,6 +123,16 @@ void PipelineCache::store(PipelineCacheFile &dst)
   if (VULKAN_CHECK_FAIL(Globals::VK::dev.vkGetPipelineCacheData(Globals::VK::dev.get(), handle, &count, NULL)))
     count = 0;
 
+
+  if (isCacheTooBig(count))
+    return;
+
+  if ((count >> 20) > Globals::cfg.pipelineCacheBlockingSaveMaxSizeMb)
+  {
+    debug("vulkan: skipping blocking pipeline save due too big size %uMb (max %uMb)", count >> 20,
+      Globals::cfg.pipelineCacheBlockingSaveMaxSizeMb);
+    return;
+  }
   debug("vulkan: extracting pipeline cache data of size %u Kb from driver", count >> 10);
 
   if (count)

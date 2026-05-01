@@ -55,8 +55,7 @@ shader bvh_debug
           {
             if (hitInfo.albedoTextureIndex != 0xFFFF)
             {
-              SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-              float4 texel = bvh_textures[hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+              float4 texel = bvh_textures[hitInfo.albedoTextureIndex].SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, 0);
               debug_target[thread] = float4(texel.rgb, 1);
             }
             else

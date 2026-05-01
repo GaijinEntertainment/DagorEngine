@@ -35,6 +35,8 @@ struct BackendInterop
   std::atomic<bool> deviceLost{false};
   // shows that backend is busy with pipeline compilation
   std::atomic<bool> blockingPipelineCompilation{false};
+  // out-of-arch passing of primary swapchain vsync status for streamline workaround
+  std::atomic<bool> isVsyncOnPrimarySwapchain{false};
 
 
   struct PendingGPUWork

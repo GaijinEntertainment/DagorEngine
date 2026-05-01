@@ -11,199 +11,34 @@
 
 class IGenericProgressIndicator;
 
-template <class T>
-class SubMapStorage
-{
-public:
-  virtual ~SubMapStorage() {}
 
-  virtual void closeFile(bool finalize) = 0;
-  virtual bool flushData() = 0;
-
-
-  const T &getData(int x, int y) const
-  {
-    int ex, ey;
-    calcElemCoords(x, y, ex, ey);
-
-    const Element *elem = getElement(ex, ey);
-    if (!elem)
-      return defaultValue;
-
-    return elem->data[y * elemSize + x];
-  }
-
-
-  bool setData(int x, int y, const T &value)
-  {
-    int ex, ey;
-    calcElemCoords(x, y, ex, ey);
-
-    Element *elem = getElement(ex, ey);
-    if (!elem && value == defaultValue)
-      return false;
-    if (!elem)
-      elem = createElement(ex, ey);
-    if (!elem)
-      return false;
-
-    if (elem->data[y * elemSize + x] == value)
-    {
-      elem->isModified = true;
-      return false;
-    }
-    elem->data[y * elemSize + x] = value;
-    elem->isModified = true;
-    return true;
-  }
-
-
-  int getElemSize() const { return elemSize; }
-  int getMapSizeX() const { return mapSizeX; }
-  int getMapSizeY() const { return mapSizeY; }
-
-
-  void unloadUnchangedData(int less_than_y)
-  {
-    int ch = less_than_y / elemSize;
-    if (ch > numElemsY)
-      ch = numElemsY;
-
-    for (int i = 0; i < ch * numElemsX; ++i)
-    {
-      Element &e = elems[i];
-      if (e.isModified || !e.data)
-        continue;
-      e.release();
-    }
-  }
-
-  void reset(int map_size_x, int map_size_y, int elem_size, const T &def_value)
-  {
-    closeFile(false);
-
-    elemSize = elem_size;
-    mapSizeX = map_size_x;
-    mapSizeY = map_size_y;
-    defaultValue = def_value;
-
-    resetElems();
-  }
-
-
-public:
-  T defaultValue;
-
-protected:
-  struct Element
-  {
-    T *data;
-
-    unsigned timeStamp : 31;
-    unsigned isModified : 1;
-
-  public:
-    Element() : data(NULL), isModified(false), timeStamp(0) {}
-    Element(const Element &) = delete;
-    ~Element() { release(); }
-
-    void allocate(int size, IMemAlloc *mem)
-    {
-      G_ASSERT(!data);
-      data = new (mem) T[size * size];
-    }
-    void release()
-    {
-      if (data)
-      {
-        delete[] data;
-        data = NULL;
-      }
-    }
-  };
-
-
-  int mapSizeX, mapSizeY, elemSize;
-  int numElemsX, numElemsY;
-
-  Tab<Element> elems;
-
-
-protected:
-  SubMapStorage() : elems(midmem) {}
-
-  void resetElems()
-  {
-    numElemsX = (mapSizeX + elemSize - 1) / elemSize;
-    numElemsY = (mapSizeY + elemSize - 1) / elemSize;
-
-    clear_and_shrink(elems);
-    elems.resize(numElemsX * numElemsY);
-  }
-
-  void calcElemCoords(int &x, int &y, int &ex, int &ey) const
-  {
-    if (x < 0)
-      x = 0;
-    else if (x >= mapSizeX)
-      x = mapSizeX - 1;
-
-    if (y < 0)
-      y = 0;
-    else if (y >= mapSizeY)
-      y = mapSizeY - 1;
-
-    ex = x / elemSize;
-    ey = y / elemSize;
-
-    x -= ex * elemSize;
-    y -= ey * elemSize;
-  }
-
-
-  Element *getElement(int ex, int ey)
-  {
-    G_ASSERT(ex >= 0 && ex < numElemsX && ey >= 0 && ey < numElemsY);
-
-    int index = ey * numElemsX + ex;
-    G_ASSERT(index < elems.size());
-
-    if (elems[index].data)
-      return &elems[index];
-
-    return loadElement(index);
-  }
-  const Element *getElement(int ex, int ey) const { return const_cast<SubMapStorage<T> *>(this)->getElement(ex, ey); }
-
-
-  Element *createElement(int ex, int ey)
-  {
-    int index = ey * numElemsX + ex;
-    Element *e = &elems[index];
-    e->allocate(elemSize, dag::get_allocator(elems));
-
-    for (int i = 0; i < elemSize * elemSize; ++i)
-      e->data[i] = defaultValue;
-
-    return e;
-  }
-
-  virtual Element *loadElement(int index) = 0;
-};
-DAG_DECLARE_RELOCATABLE(SubMapStorage<float>::Element);
-DAG_DECLARE_RELOCATABLE(SubMapStorage<uint64_t>::Element);
-DAG_DECLARE_RELOCATABLE(SubMapStorage<uint32_t>::Element);
-DAG_DECLARE_RELOCATABLE(SubMapStorage<uint16_t>::Element);
-DAG_DECLARE_RELOCATABLE(SubMapStorage<E3DCOLOR>::Element);
-
+// Flat row-major pixel storage for editor maps with a sparse backing window.
+// The map has two extents:
+//   * Logical extent (mapSizeX, mapSizeY) -- reported by getMapSizeX/Y for
+//     caller arithmetic (cell counts, world-coord conversion, exports). Not
+//     used to bound get/setData.
+//   * Stored extent (storedOfsX, storedOfsY, storedW, storedH) -- the actual
+//     rectangle held in the `pixels` buffer and the only region get/setData
+//     touch. Reads outside it clamp to the rect boundary; writes outside it
+//     are silently dropped. Invariant: 0 <= storedOfs*, storedOfs* + storedW|H
+//     <= mapSize*; preserved by every mutator.
+//
+// Maps like det-heightmap are logically huge (e.g. 32768x32768) but only a
+// detRect-sized patch actually contains user data. Allocating the full logical
+// extent blew ~4 GiB of RAM per plane for an 8 GiB working set on a
+// 32768x32768 detail heightmap, so the in-memory Tab shrinks to the stored
+// rect. Callers pick their allocation policy via the reset overloads:
+//   * reset(w, h, defv)                          -> stored = full (0,0,w,h)
+//   * resetStored(w, h, ox, oy, sw, sh, defv)    -> stored = (ox,oy,sw,sh)
+//
+// Previous versions of this class were paged: a Tab of SUBMAP_SZ submaps,
+// each a Tab of ELEM_SZ tiles, with lazy allocation and modified-bit
+// tracking. The stored-rect model keeps the same flat-access API while
+// preserving the old paged format's ability to skip unused regions.
 template <class T>
 class MapStorage
 {
 public:
-  typedef SubMapStorage<T> SubMap;
-  static const int SUBMAP_SZ = 2048;
-  static const int ELEM_SZ = 256;
-
   virtual ~MapStorage() {}
 
   virtual bool createFile(const char *fname) = 0;
@@ -216,148 +51,261 @@ public:
   virtual bool canBeReverted() const = 0;
   virtual bool revertChanges() = 0;
 
-  bool flushData()
-  {
-    bool ok = true;
-    for (int i = 0; i < subMaps.size(); i++)
-      if (subMaps[i])
-        if (!subMaps[i]->flushData())
-          ok = false;
-    return ok;
-  }
+  virtual bool flushData() = 0;
 
 
   const T &getData(int x, int y) const
   {
-    int ex, ey;
-    calcSubMapCoords(x, y, ex, ey);
-
-    const SubMap *elem = getSubMap(ex, ey);
-    if (!elem)
+    if (storedW <= 0 || storedH <= 0)
       return defaultValue;
-
-    return elem->getData(x, y);
+    if (x < storedOfsX)
+      x = storedOfsX;
+    else if (x >= storedOfsX + storedW)
+      x = storedOfsX + storedW - 1;
+    if (y < storedOfsY)
+      y = storedOfsY;
+    else if (y >= storedOfsY + storedH)
+      y = storedOfsY + storedH - 1;
+    return pixels[intptr_t(y - storedOfsY) * storedW + (x - storedOfsX)];
   }
 
 
   bool setData(int x, int y, const T &value)
   {
-    int ex, ey;
-    calcSubMapCoords(x, y, ex, ey);
-
-    SubMap *elem = getSubMap(ex, ey);
-    if (!elem && value == defaultValue)
+    const int lx = x - storedOfsX, ly = y - storedOfsY;
+    if (unsigned(lx) >= unsigned(storedW) || unsigned(ly) >= unsigned(storedH))
+      return false; // outside stored rect -> drop
+    intptr_t idx = intptr_t(ly) * storedW + lx;
+    if (pixels[idx] == value)
       return false;
-    if (!elem)
-      elem = createSubMap(ex, ey);
-    if (!elem)
-      return false;
-
-    return elem->setData(x, y, value);
+    pixels[idx] = value;
+    return true;
   }
 
-  void copyVal(int x, int y, MapStorage<T> &map)
-  {
-    int ex, ey;
-    calcSubMapCoords(x, y, ex, ey);
+  void copyVal(int x, int y, MapStorage<T> &src) { setData(x, y, src.getData(x, y)); }
 
-    SubMap *s_elem = map.getSubMap(ex, ey);
-    SubMap *d_elem = getSubMap(ex, ey);
-    if ((!s_elem || s_elem->getData(x, y) == defaultValue) && (!d_elem || d_elem->getData(x, y) == defaultValue))
-      return;
-
-    if (!d_elem)
-      d_elem = createSubMap(ex, ey);
-    if (d_elem)
-      d_elem->setData(x, y, s_elem ? s_elem->getData(x, y) : defaultValue);
-  }
-
+  // ELEM_SZ is the legacy paged tile height; callers use it as a cadence
+  // for progress ticks / periodic work in scan loops. With flat storage the
+  // actual value is irrelevant, but keeping a mid-sized batch preserves the
+  // pacing those loops were tuned for.
+  static const int ELEM_SZ = 256;
   int getElemSize() const { return ELEM_SZ; }
   int getMapSizeX() const { return mapSizeX; }
   int getMapSizeY() const { return mapSizeY; }
 
-  void unloadUnchangedData(int less_than_y)
-  {
-    int ch = less_than_y / SUBMAP_SZ + 1;
-    if (ch > numSubMapsY)
-      ch = numSubMapsY;
+  // Stored-rect accessors. Callers that serialize pixels directly (file
+  // save paths) need offset+size of the actual backing buffer.
+  int getStoredOfsX() const { return storedOfsX; }
+  int getStoredOfsY() const { return storedOfsY; }
+  int getStoredWidth() const { return storedW; }
+  int getStoredHeight() const { return storedH; }
 
-    for (int i = 0; i < ch * numSubMapsX; ++i)
-      if (subMaps[i])
-        subMaps[i]->unloadUnchangedData(less_than_y - (i / numSubMapsX) * SUBMAP_SZ);
-  }
-  void unloadAllUnchangedData() { unloadUnchangedData((mapSizeY + ELEM_SZ - 1) / ELEM_SZ * ELEM_SZ); }
+  // Legacy paged-storage shims: there are no tiles to evict in the flat
+  // layout. Kept so callers that periodically unload as they scan don't
+  // have to be edited at every site.
+  void unloadUnchangedData(int) {}
+  void unloadAllUnchangedData() {}
 
+  // Full allocation: stored rect == logical extent. Callers that expect to
+  // write into every (x,y) in [0,w)x[0,h) use this.
   void reset(int map_size_x, int map_size_y, const T &def_value)
+  {
+    resetStored(map_size_x, map_size_y, 0, 0, map_size_x, map_size_y, def_value);
+  }
+
+  // Sparse allocation: logical extent stays (mw, mh) but only the
+  // (ofs_x, ofs_y, sw, sh) rectangle is backed by pixels. Pixels outside
+  // the rect read as defaultValue; writes outside it are dropped.
+  void resetStored(int map_size_x, int map_size_y, int ofs_x, int ofs_y, int sw, int sh, const T &def_value)
   {
     closeFile();
 
     mapSizeX = map_size_x;
     mapSizeY = map_size_y;
     defaultValue = def_value;
+    storedOfsX = ofs_x;
+    storedOfsY = ofs_y;
+    storedW = sw;
+    storedH = sh;
 
-    resetSubMaps();
+    const intptr_t total = intptr_t(sw) * intptr_t(sh);
+    clear_and_shrink(pixels);
+    if (total > 0)
+    {
+      pixels.resize(total);
+      for (intptr_t i = 0; i < total; i++)
+        pixels[i] = defaultValue;
+    }
   }
 
+  // O(1) rect-move: buffer contents stay bit-identical, only the
+  // (storedOfsX, storedOfsY) interpretation shifts. Size is unchanged.
+  // Callers use this for the "translate data" detRect-origin edit, where
+  // the user wants the terrain silhouette to move with the rect.
+  //
+  // Caller must validate the new rect still fits inside [0, mapSize).
+  // Defensive no-op if not, to avoid coordinates outside the logical map.
+  void translateStoredRect(int new_ofs_x, int new_ofs_y)
+  {
+    if (new_ofs_x < 0 || new_ofs_y < 0 || new_ofs_x + storedW > mapSizeX || new_ofs_y + storedH > mapSizeY)
+      return;
+    storedOfsX = new_ofs_x;
+    storedOfsY = new_ofs_y;
+  }
+
+  // General rect-move: allocate a new pixel buffer sized (sw, sh); copy the
+  // world-coord overlap of old [storedOfs, storedOfs+storedW/H) and new
+  // [ox, ox+sw/sh) from the old buffer into the new one. Non-overlap fills
+  // with defaultValue. Replaces the backing Tab<T>. Handles crop (new fully
+  // inside old), zero-expand (old fully inside new), and partial overlap
+  // (the "move rect" origin edit) uniformly.
+  void reshapeStoredRect(int ox, int oy, int sw, int sh)
+  {
+    if (sw < 0)
+      sw = 0;
+    if (sh < 0)
+      sh = 0;
+    if (ox < 0)
+      ox = 0;
+    if (oy < 0)
+      oy = 0;
+    if (ox + sw > mapSizeX)
+      sw = mapSizeX - ox;
+    if (oy + sh > mapSizeY)
+      sh = mapSizeY - oy;
+    if (sw < 0)
+      sw = 0;
+    if (sh < 0)
+      sh = 0;
+
+    const int oldOx = storedOfsX, oldOy = storedOfsY, oldSw = storedW, oldSh = storedH;
+    Tab<T> oldPixels{midmem};
+    oldPixels.swap(pixels);
+
+    storedOfsX = ox;
+    storedOfsY = oy;
+    storedW = sw;
+    storedH = sh;
+    const intptr_t total = intptr_t(sw) * intptr_t(sh);
+    pixels.resize(total);
+    for (intptr_t i = 0; i < total; i++)
+      pixels[i] = defaultValue;
+
+    if (oldSw <= 0 || oldSh <= 0 || sw <= 0 || sh <= 0)
+      return;
+
+    // World-coord overlap of [oldOx, oldOx+oldSw) x [oldOy, oldOy+oldSh) and
+    // [ox, ox+sw) x [oy, oy+sh). Copy overlap pixels from old local coords
+    // (wx-oldOx, wy-oldOy) to new local coords (wx-ox, wy-oy).
+    const int ovxMin = oldOx > ox ? oldOx : ox;
+    const int ovyMin = oldOy > oy ? oldOy : oy;
+    const int ovxMaxExcl = (oldOx + oldSw) < (ox + sw) ? (oldOx + oldSw) : (ox + sw);
+    const int ovyMaxExcl = (oldOy + oldSh) < (oy + sh) ? (oldOy + oldSh) : (oy + sh);
+    if (ovxMaxExcl <= ovxMin || ovyMaxExcl <= ovyMin)
+      return;
+
+    for (int wy = ovyMin; wy < ovyMaxExcl; wy++)
+    {
+      const int srcY = wy - oldOy;
+      const int dstY = wy - oy;
+      for (int wx = ovxMin; wx < ovxMaxExcl; wx++)
+      {
+        const int srcX = wx - oldOx;
+        const int dstX = wx - ox;
+        pixels[intptr_t(dstY) * sw + dstX] = oldPixels[intptr_t(srcY) * oldSw + srcX];
+      }
+    }
+  }
+
+  // Grow stored rect to at least cover [ox, ox+sw) x [oy, oy+sh), preserving
+  // existing pixels at their logical (x, y) positions. Newly covered pixels
+  // are filled with defaultValue. No-op if the request is already contained.
+  //
+  // Needed so legacy-migration loads (whose stored rect is the union bbox of
+  // persisted submap files, potentially smaller than the caller's detRectC)
+  // and detRect-expansion edits don't silently drop writes at the caller's
+  // new coverage area.
+  void expandStoredRect(int ox, int oy, int sw, int sh)
+  {
+    if (sw <= 0 || sh <= 0)
+      return;
+    const int reqEx = ox + sw, reqEy = oy + sh;
+    if (storedW > 0 && storedH > 0 && ox >= storedOfsX && oy >= storedOfsY && reqEx <= storedOfsX + storedW &&
+        reqEy <= storedOfsY + storedH)
+      return;
+
+    int newOx, newOy, newEx, newEy;
+    if (storedW > 0 && storedH > 0)
+    {
+      newOx = storedOfsX < ox ? storedOfsX : ox;
+      newOy = storedOfsY < oy ? storedOfsY : oy;
+      newEx = (storedOfsX + storedW) > reqEx ? (storedOfsX + storedW) : reqEx;
+      newEy = (storedOfsY + storedH) > reqEy ? (storedOfsY + storedH) : reqEy;
+    }
+    else
+    {
+      newOx = ox;
+      newOy = oy;
+      newEx = reqEx;
+      newEy = reqEy;
+    }
+    if (newOx < 0)
+      newOx = 0;
+    if (newOy < 0)
+      newOy = 0;
+    if (newEx > mapSizeX)
+      newEx = mapSizeX;
+    if (newEy > mapSizeY)
+      newEy = mapSizeY;
+    const int newSw = newEx - newOx, newSh = newEy - newOy;
+    if (newSw <= 0 || newSh <= 0)
+      return;
+
+    const int oldOx = storedOfsX, oldOy = storedOfsY, oldSw = storedW, oldSh = storedH;
+    Tab<T> oldPixels{midmem};
+    oldPixels.swap(pixels);
+
+    storedOfsX = newOx;
+    storedOfsY = newOy;
+    storedW = newSw;
+    storedH = newSh;
+    const intptr_t total = intptr_t(newSw) * intptr_t(newSh);
+    pixels.resize(total);
+    for (intptr_t i = 0; i < total; i++)
+      pixels[i] = defaultValue;
+
+    if (oldSw > 0 && oldSh > 0)
+    {
+      const int copyDstX = oldOx - newOx;
+      const int copyDstY = oldOy - newOy;
+      for (int y = 0; y < oldSh; y++)
+      {
+        const int tgtY = copyDstY + y;
+        if (unsigned(tgtY) >= unsigned(newSh))
+          continue;
+        for (int x = 0; x < oldSw; x++)
+        {
+          const int tgtX = copyDstX + x;
+          if (unsigned(tgtX) >= unsigned(newSw))
+            continue;
+          pixels[intptr_t(tgtY) * newSw + tgtX] = oldPixels[intptr_t(y) * oldSw + x];
+        }
+      }
+    }
+  }
+
+  // Row-major flat pixel buffer sized storedW * storedH.
+  Tab<T> pixels{midmem};
 
 public:
   T defaultValue;
 
-  int mapSizeX, mapSizeY;
-  int numSubMapsX, numSubMapsY;
-
-  Tab<SubMap *> subMaps;
-
+  int mapSizeX = 0, mapSizeY = 0;
+  int storedOfsX = 0, storedOfsY = 0;
+  int storedW = 0, storedH = 0;
 
 protected:
-  MapStorage() : subMaps(midmem) {}
-
-  void resetSubMaps()
-  {
-    numSubMapsX = (mapSizeX + SUBMAP_SZ - 1) / SUBMAP_SZ;
-    numSubMapsY = (mapSizeY + SUBMAP_SZ - 1) / SUBMAP_SZ;
-
-    clear_all_ptr_items_and_shrink(subMaps);
-    subMaps.resize(numSubMapsX * numSubMapsY);
-    mem_set_0(subMaps);
-  }
-
-  void calcSubMapCoords(int &x, int &y, int &ex, int &ey) const
-  {
-    if (x < 0)
-      x = 0;
-    else if (x >= mapSizeX)
-      x = mapSizeX - 1;
-
-    if (y < 0)
-      y = 0;
-    else if (y >= mapSizeY)
-      y = mapSizeY - 1;
-
-    ex = x / SUBMAP_SZ;
-    ey = y / SUBMAP_SZ;
-
-    x -= ex * SUBMAP_SZ;
-    y -= ey * SUBMAP_SZ;
-  }
-
-
-  SubMap *getSubMap(int ex, int ey)
-  {
-    G_ASSERT(ex >= 0 && ex < numSubMapsX && ey >= 0 && ey < numSubMapsY);
-
-    int index = ey * numSubMapsX + ex;
-    G_ASSERT(index < subMaps.size());
-
-    if (subMaps[index])
-      return subMaps[index];
-
-    return loadSubMap(index);
-  }
-  const SubMap *getSubMap(int ex, int ey) const { return const_cast<MapStorage<T> *>(this)->getSubMap(ex, ey); }
-
-  virtual SubMap *createSubMap(int ex, int ey) = 0;
-  virtual SubMap *loadSubMap(int index) = 0;
+  MapStorage() = default;
 };
 
 
@@ -397,11 +345,57 @@ public:
     if (hasDistinctInitialAndFinalMap())
       hmFinal->reset(map_size_x, map_size_y, def_value);
   }
+  // Sparse variant: allocate only the (ofs_x, ofs_y, sw, sh) sub-rectangle.
+  // Used for det-heightmap where the useful data lives inside detRect and
+  // the logical (mapSize) extent is much larger.
+  void resetStored(int map_size_x, int map_size_y, int ofs_x, int ofs_y, int sw, int sh, float def_value)
+  {
+    hmInitial->resetStored(map_size_x, map_size_y, ofs_x, ofs_y, sw, sh, def_value);
+    if (hasDistinctInitialAndFinalMap())
+      hmFinal->resetStored(map_size_x, map_size_y, ofs_x, ofs_y, sw, sh, def_value);
+  }
+  // Mirror initial's stored rect into hmFinal so paired lookups at matching
+  // (x,y) hit the same bbox. Was reset(w,h,defv) before bbox -- that form
+  // always allocated the full logical extent into hmFinal even when the
+  // initial was sparse.
   void resetFinal()
   {
     if (!hasDistinctInitialAndFinalMap())
       return;
-    hmFinal->reset(hmInitial->getMapSizeX(), hmInitial->getMapSizeY(), hmFinal->defaultValue);
+    hmFinal->resetStored(hmInitial->getMapSizeX(), hmInitial->getMapSizeY(), hmInitial->getStoredOfsX(), hmInitial->getStoredOfsY(),
+      hmInitial->getStoredWidth(), hmInitial->getStoredHeight(), hmFinal->defaultValue);
+    changed = true;
+  }
+
+  // Expand both stored rects to cover the requested region, preserving
+  // existing pixels. Callers use this to ensure writes inside a newly
+  // enlarged detRectC (or a legacy-migrated partial bbox) don't silently
+  // drop at setData.
+  void expandStoredRect(int ox, int oy, int sw, int sh)
+  {
+    hmInitial->expandStoredRect(ox, oy, sw, sh);
+    if (hasDistinctInitialAndFinalMap())
+      hmFinal->expandStoredRect(ox, oy, sw, sh);
+    changed = true;
+  }
+
+  // Rect-move primitives for detRect-origin / detRect-size UI edits. Both
+  // forward to both planes so splines baked into hmFinal stay aligned with
+  // hmInitial. changed = true in both cases: translate needs a flush because
+  // the on-disk interpretation of the byte payload shifts; reshape needs a
+  // flush because the buffer itself was rebuilt.
+  void translateStoredRect(int new_ofs_x, int new_ofs_y)
+  {
+    hmInitial->translateStoredRect(new_ofs_x, new_ofs_y);
+    if (hasDistinctInitialAndFinalMap())
+      hmFinal->translateStoredRect(new_ofs_x, new_ofs_y);
+    changed = true;
+  }
+  void reshapeStoredRect(int ox, int oy, int sw, int sh)
+  {
+    hmInitial->reshapeStoredRect(ox, oy, sw, sh);
+    if (hasDistinctInitialAndFinalMap())
+      hmFinal->reshapeStoredRect(ox, oy, sw, sh);
     changed = true;
   }
 
@@ -419,18 +413,8 @@ public:
     return hmInitial->flushData();
   }
 
-  void unloadUnchangedData(int less_than_y)
-  {
-    hmInitial->unloadUnchangedData(less_than_y);
-    if (hasDistinctInitialAndFinalMap())
-      hmFinal->unloadUnchangedData(less_than_y);
-  }
-  void unloadAllUnchangedData()
-  {
-    hmInitial->unloadAllUnchangedData();
-    if (hasDistinctInitialAndFinalMap())
-      hmFinal->unloadAllUnchangedData();
-  }
+  void unloadUnchangedData(int) {}
+  void unloadAllUnchangedData() {}
 
   int getElemSize() const { return hmInitial->getElemSize(); }
   int getMapSizeX() const { return hmInitial->getMapSizeX(); }

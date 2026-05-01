@@ -117,8 +117,8 @@ private:
     AddNewLayer,
     RenameLayer,
     MoveObjectToLayerSubMenu,
-    MoveObjectToLayerStart = MoveObjectToLayerSubMenu + 1, // Inclusive
-    MoveObjectToLayerEnd = MoveObjectToLayerStart + 64,    // Not inclusive.
+    MoveObjectToLayerStart = MoveObjectToLayerSubMenu + 1,                                    // Inclusive
+    MoveObjectToLayerEnd = MoveObjectToLayerStart + IOutliner::MAXIMUM_SUPPORTED_LAYER_COUNT, // Not inclusive.
     RenameObject,
     ChangeObjectAsset,
     DeleteObject,

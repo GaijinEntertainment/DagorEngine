@@ -204,6 +204,7 @@ if $(KernelLinkage) != dynamic {
   UseProgLibs =
     engine/osApiWrappers
     engine/kernel
+    engine/memory # before other libs to place static initializers early in list
     engine/ioSys
     engine/baseUtil
   ;
@@ -441,9 +442,6 @@ if $(Sanitize) && $(Sanitize) != disabled {
 } else if $(Platform) = linux && $(Dedicated) = yes { # linux dev is for production
   UseMemoryAllocator ?= def ;
   UseMemoryDebugLevel ?= off ;
-}
-if $(KernelLinkage) != dynamic {
-  UseProgLibs += engine/memory ;
 }
 if ! $(UseMemoryDebugLevel) in off def {
   Sources += main/opt/memleakDetector.cpp ;

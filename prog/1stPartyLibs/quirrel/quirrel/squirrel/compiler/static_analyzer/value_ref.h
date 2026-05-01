@@ -9,6 +9,7 @@ namespace SQCompilation
 {
 
 struct SymbolInfo;
+struct ExternalValue;
 class Expr;
 
 enum ValueRefState {
@@ -26,6 +27,11 @@ struct ValueRef {
   SymbolInfo *info;
   enum ValueRefState state;
   const Expr *expression;
+  // Set when this symbol's value comes from outside the analyzed script
+  // (host-provided binding or a require()/require_optional() result). The
+  // ExternalValue carries the SQObject and the source location where the
+  // analyzer learned about it. Owned by CheckerVisitor::externalValues.
+  const ExternalValue *externalValue;
 
   /*
     used to track mixed assignments
@@ -41,7 +47,7 @@ struct ValueRef {
   int32_t originEvalIndex;  // origin's evalIndex at the time of this declaration
 
   ValueRef(SymbolInfo *i, int32_t eid)
-    : info(i), evalIndex(eid), state(), expression(nullptr)
+    : info(i), evalIndex(eid), state(), expression(nullptr), externalValue(nullptr)
   {
     assigned = false;
     lastAssigneeScope = nullptr;
@@ -67,6 +73,7 @@ struct ValueRef {
     if (!isConstant()) {
       state = k;
       expression = nullptr;
+      externalValue = nullptr;
     }
     if (clearFlags) {
       flagsPositive = 0;

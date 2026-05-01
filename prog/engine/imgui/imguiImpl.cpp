@@ -527,7 +527,7 @@ static bool capture_window_drawdata(const char *window_title, int &w, int &h, in
   if (window)
   {
     x = window->Pos.x;
-    y = window->Pos.y - window->TitleBarHeight;
+    y = window->Pos.y - window->ViewportPos.y;
     w = window->Size.x;
     h = window->Size.y;
   }

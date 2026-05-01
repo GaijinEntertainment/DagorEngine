@@ -257,21 +257,71 @@ static void copyHwInstancesCpu(void *dst, const NativeInstance *src, size_t inst
 
 namespace parallel_instance_processing
 {
-static dag::AtomicInteger<int> jobGroupReleaseCounter;
+struct ParallelFinishResult
+{
+  bool MainUploadDone;
+  bool PerInstanceDataUploadDone;
+};
+
 static constexpr int COPY_DONE_VALUE = -666;
+static dag::AtomicInteger<int> jobGroupReleaseCounter;
+static ParallelFinishResult jobGroupParallelFinishResult = {false, false};
 
 enum class TargetFrame
 {
   Current,
   Next
 };
-static bool upload_heavy_stuff(ContextId context_id, TargetFrame target_frame)
-{
-  for (int i = 0; i < ri_gen_thread_count; i++)
-    G_ASSERT_RETURN(context_id->impostorInstances[i].size() == context_id->impostorInstanceData[i].size(), false);
 
-  for (int i = 0; i < ri_extra_thread_count; i++)
-    G_ASSERT_RETURN(context_id->riExtraInstances[i].size() == context_id->riExtraInstanceData[i].size(), false);
+static bool upload_main_data(ContextId context_id, TargetFrame target_frame)
+{
+  TIME_D3D_PROFILE(upload_main_tlas_data);
+
+  int impostorCount = 0;
+  for (auto &instances : context_id->impostorInstances)
+    impostorCount += instances.size();
+
+  int riExtraCount = 0;
+  for (auto &instances : context_id->riExtraInstances)
+    riExtraCount += instances.size();
+
+  const int uploadCount = impostorCount + riExtraCount;
+  if (uploadCount == 0)
+    return true; // no instance, nothing to upload, all good
+
+  auto tlasBuf = target_frame == TargetFrame::Next ? context_id->tlasUploadMain.getNextBuf() : context_id->tlasUploadMain.getBuf();
+
+  const uint32_t HW_INSTANCE_SIZE = d3d::get_driver_desc().raytrace.topAccelerationStructureInstanceElementSize;
+
+  if (!tlasBuf || tlasBuf->getSize() < uploadCount * HW_INSTANCE_SIZE)
+    return false;
+
+  auto upload = lock_sbuffer<uint8_t>(tlasBuf, 0, uploadCount * HW_INSTANCE_SIZE, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
+  if (!upload)
+    return false;
+
+  auto cursor = upload.get();
+  for (auto &instances : context_id->impostorInstances)
+  {
+    TIME_PROFILE(memcpy_impostors)
+
+    copyHwInstancesCpu(cursor, instances.data(), instances.size());
+    cursor += instances.size() * HW_INSTANCE_SIZE;
+  }
+
+  for (auto &instances : context_id->riExtraInstances)
+  {
+    TIME_PROFILE(memcpy_ri_extra)
+    copyHwInstancesCpu(cursor, instances.data(), instances.size());
+    cursor += instances.size() * HW_INSTANCE_SIZE;
+  }
+
+  return true;
+}
+
+static bool upload_per_instance_data(ContextId context_id, TargetFrame target_frame)
+{
+  TIME_D3D_PROFILE(upload_per_instance_data_heavy);
 
   int impostorCount = 0;
   for (auto &instances : context_id->impostorInstanceData)
@@ -283,65 +333,32 @@ static bool upload_heavy_stuff(ContextId context_id, TargetFrame target_frame)
 
   const int uploadCount = impostorCount + riExtraCount;
   if (uploadCount == 0)
-    return true;
+    return true; // no instance, nothing to upload, all good
 
-  auto tlasBuf = target_frame == TargetFrame::Next ? context_id->tlasUploadMain.getNextBuf() : context_id->tlasUploadMain.getBuf();
   auto perInstanceDataBuf =
     target_frame == TargetFrame::Next ? context_id->perInstanceData.getNextBuf() : context_id->perInstanceData.getBuf();
-
-  const uint32_t HW_INSTANCE_SIZE = d3d::get_driver_desc().raytrace.topAccelerationStructureInstanceElementSize;
-
-  if (!tlasBuf || tlasBuf->getSize() < uploadCount * HW_INSTANCE_SIZE)
-    return false;
 
   if (!perInstanceDataBuf || perInstanceDataBuf->getSize() < uploadCount * sizeof(PerInstanceData))
     return false;
 
+  auto upload =
+    lock_sbuffer<uint8_t>(perInstanceDataBuf, 0, uploadCount * sizeof(PerInstanceData), VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
+  if (!upload)
+    return false;
+
+  TIME_D3D_PROFILE(memcpy_per_instance_data);
+
+  int offset = 0;
+  for (auto &instanceData : context_id->impostorInstanceData)
   {
-    auto upload = lock_sbuffer<uint8_t>(tlasBuf, 0, uploadCount * HW_INSTANCE_SIZE, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
-    if (!upload)
-      return false;
-
-    auto cursor = upload.get();
-    for (auto &instances : context_id->impostorInstances)
-    {
-      TIME_PROFILE(memcpy_impostors)
-
-      copyHwInstancesCpu(cursor, instances.data(), instances.size());
-      cursor += instances.size() * HW_INSTANCE_SIZE;
-    }
-
-    for (auto &instances : context_id->riExtraInstances)
-    {
-      TIME_PROFILE(memcpy_ri_extra)
-      copyHwInstancesCpu(cursor, instances.data(), instances.size());
-      cursor += instances.size() * HW_INSTANCE_SIZE;
-    }
+    memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
+    offset += instanceData.size() * sizeof(PerInstanceData);
   }
-
+  for (auto &instanceData : context_id->riExtraInstanceData)
   {
-    auto upload =
-      lock_sbuffer<uint8_t>(perInstanceDataBuf, 0, uploadCount * sizeof(PerInstanceData), VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
-    if (!upload)
-      return false;
-
-    int offset = 0;
-    {
-      TIME_D3D_PROFILE(upload_per_instance_data_heavy);
-
-      for (auto &instanceData : context_id->impostorInstanceData)
-      {
-        memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
-        offset += instanceData.size() * sizeof(PerInstanceData);
-      }
-      for (auto &instanceData : context_id->riExtraInstanceData)
-      {
-        memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
-        offset += instanceData.size() * sizeof(PerInstanceData);
-      }
-    }
+    memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
+    offset += instanceData.size() * sizeof(PerInstanceData);
   }
-
   return true;
 }
 
@@ -350,11 +367,17 @@ static void on_parallel_jobs_finished(ContextId context_id)
   if (bvh_disable_parallel_instance_processing_finish)
     return;
 
+  // sanity check, they should always match:
+  for (int i = 0; i < ri_gen_thread_count; i++)
+    G_ASSERT(context_id->impostorInstances[i].size() == context_id->impostorInstanceData[i].size());
+  for (int i = 0; i < ri_extra_thread_count; i++)
+    G_ASSERT(context_id->riExtraInstances[i].size() == context_id->riExtraInstanceData[i].size());
+
   TIME_PROFILE(on_parallel_jobs_finished)
 
-  bool result = upload_heavy_stuff(context_id, TargetFrame::Next);
-  if (!result)
-    return;
+  bool mainUploadDone = upload_main_data(context_id, TargetFrame::Next);
+  bool perInstanceDataUploadDone = upload_per_instance_data(context_id, TargetFrame::Next);
+  jobGroupParallelFinishResult = ParallelFinishResult{mainUploadDone, perInstanceDataUploadDone};
 
   int prevValue = jobGroupReleaseCounter.exchange(COPY_DONE_VALUE);
   G_UNUSED(prevValue);
@@ -393,10 +416,18 @@ void after_job_end(ContextId context_id)
   on_parallel_jobs_finished(context_id);
 }
 
-bool is_parallel_jobs_finished(ContextId context_id)
+ParallelFinishResult is_parallel_jobs_finished(ContextId context_id)
 {
   G_UNUSED(context_id);
-  return jobGroupReleaseCounter.load() == COPY_DONE_VALUE;
+  if (jobGroupReleaseCounter.load() != COPY_DONE_VALUE)
+  {
+    // for extra safety
+    if (!bvh_disable_parallel_instance_processing_finish)
+      logerr("[BVH] Parallel jobs not finished, this should never happen! It will cause reallocation and stuttering!");
+    return ParallelFinishResult{false, false};
+  }
+
+  return jobGroupParallelFinishResult;
 }
 } // namespace parallel_instance_processing
 
@@ -1304,21 +1335,14 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     }
 
     if (info.ppPositionTextureId != BAD_TEXTUREID)
-    {
-      uint32_t dummy;
-      context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless, dummy);
-    }
+      context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless);
     if (info.ppDirectionTextureId != BAD_TEXTUREID)
-    {
-      uint32_t dummy;
-      context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless, dummy);
-    }
+      context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless);
 
     if (mesh.materialType & MeshMeta::bvhMaterialAlphaTest && info.alphaTextureId == BAD_TEXTUREID)
     {
       // If we need alpha testing, lets set the albedo texture to the alpha texture.
       meta.alphaTextureIndex = meta.albedoTextureIndex;
-      meta.alphaSamplerIndex = meta.albedoAndNormalSamplerIndex;
     }
 
     if (info.painted || info.isEmissive)
@@ -2012,61 +2036,42 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     //  context_id->numCompactionBlasesWaitingBuild.load());
   }
 
-  auto regGameTex = [&](int var_id, int sampler_id, bvh::Context::BindlessTexHolder &holder, uint32_t *size) {
+  auto regGameTex = [&](int var_id, bvh::Context::BindlessTexHolder &holder, uint32_t *size = nullptr) {
     TEXTUREID texId = ShaderGlobal::get_tex(var_id);
-    auto samplerId = ShaderGlobal::get_sampler(sampler_id);
     if (holder.texId != texId)
     {
       holder.close(context_id);
       holder.texId = texId;
-      holder.texSampler = samplerId;
-      if (auto texture = context_id->holdTexture(texId, holder.bindlessTexture, holder.bindlessSampler, samplerId); texture && size)
+      if (auto texture = context_id->holdTexture(texId, holder.bindlessTexture); texture && size)
       {
         TextureInfo info;
         texture->getinfo(info);
         *size = info.w;
       }
     }
-    else if (holder.texId != BAD_TEXTUREID && holder.texSampler != samplerId)
-    {
-      // To update the sampler, we re-register the texture with the new sampler
-      // then release it to make the reference counter correct.
-
-      holder.texSampler = samplerId;
-      context_id->holdTexture(holder.texId, holder.bindlessTexture, holder.bindlessSampler, samplerId);
-      context_id->releaseTexture(holder.texId);
-    }
   };
 
   static int paint_details_texVarId = get_shader_variable_id("paint_details_tex", true);
-  static int paint_details_tex_samplerstateVarId = get_shader_variable_id("paint_details_tex_samplerstate", true);
   static int grass_land_color_maskVarId = get_shader_variable_id("grass_land_color_mask", true);
-  static int grass_land_color_mask_samplerstateVarId = get_shader_variable_id("grass_land_color_mask_samplerstate", true);
   static int dynamic_mfd_texVarId = get_shader_variable_id("dynamic_mfd_tex", true);
-  static int dynamic_mfd_tex_samplerstateVarId = get_shader_variable_id("dynamic_mfd_tex_samplerstate", true);
   static int cache_tex0VarId = get_shader_variable_id("cache_tex0", true);
-  static int cache_tex0_samplerstateVarId = get_shader_variable_id("CacheTex0Sampler", true);
   static int indirection_texVarId = get_shader_variable_id("indirection_tex", true);
   static int cache_tex1VarId = get_shader_variable_id("cache_tex1", true);
   static int cache_tex2VarId = get_shader_variable_id("cache_tex2", true);
   static int last_clip_texVarId = get_shader_variable_id("last_clip_tex", true);
-  static int last_clip_tex_samplerstateVarId = get_shader_variable_id("LastClipTexSampler", true);
   static int dynamic_decals_atlasVarId = get_shader_variable_id("dynamic_decals_atlas", true);
-  static int dynamic_decals_atlas_samplerstateVarId = get_shader_variable_id("dynamic_decals_atlas_samplerstate", true);
 
   {
     TIME_PROFILE(regGameTex);
-    regGameTex(dynamic_mfd_texVarId, dynamic_mfd_tex_samplerstateVarId, context_id->dynamic_mfd_texBindless, nullptr);
-    regGameTex(paint_details_texVarId, paint_details_tex_samplerstateVarId, context_id->paint_details_texBindless,
-      &context_id->paintTexSize);
-    regGameTex(grass_land_color_maskVarId, grass_land_color_mask_samplerstateVarId, context_id->grass_land_color_maskBindless,
-      nullptr);
-    regGameTex(cache_tex0VarId, cache_tex0_samplerstateVarId, context_id->cache_tex0Bindless, nullptr);
-    regGameTex(indirection_texVarId, -1, context_id->indirection_texBindless, nullptr);
-    regGameTex(cache_tex1VarId, -1, context_id->cache_tex1Bindless, nullptr);
-    regGameTex(cache_tex2VarId, -1, context_id->cache_tex2Bindless, nullptr);
-    regGameTex(last_clip_texVarId, last_clip_tex_samplerstateVarId, context_id->last_clip_texBindless, nullptr);
-    regGameTex(dynamic_decals_atlasVarId, dynamic_decals_atlas_samplerstateVarId, context_id->dynamic_decals_atlasBindless, nullptr);
+    regGameTex(dynamic_mfd_texVarId, context_id->dynamic_mfd_texBindless);
+    regGameTex(paint_details_texVarId, context_id->paint_details_texBindless, &context_id->paintTexSize);
+    regGameTex(grass_land_color_maskVarId, context_id->grass_land_color_maskBindless);
+    regGameTex(cache_tex0VarId, context_id->cache_tex0Bindless);
+    regGameTex(indirection_texVarId, context_id->indirection_texBindless);
+    regGameTex(cache_tex1VarId, context_id->cache_tex1Bindless);
+    regGameTex(cache_tex2VarId, context_id->cache_tex2Bindless);
+    regGameTex(last_clip_texVarId, context_id->last_clip_texBindless);
+    regGameTex(dynamic_decals_atlasVarId, context_id->dynamic_decals_atlasBindless);
   }
 
   {
@@ -2116,17 +2121,36 @@ static void copyHwInstances(Sbuffer *instanceCount, Sbuffer *instances, Sbuffer 
 
 static struct BVHFallbackUploadHeavyDataJob : public cpujobs::IJob
 {
+private:
   ContextId contextId;
-  void start(ContextId context_id)
+  bool uploadMainData;
+  bool uploadPerInstanceData;
+
+public:
+  void start(ContextId context_id, bool upload_main_data, bool upload_per_instance_data)
   {
+    G_ASSERT(upload_main_data || upload_per_instance_data);
     contextId = context_id;
+    uploadMainData = upload_main_data;
+    uploadPerInstanceData = upload_per_instance_data;
     threadpool::add(this, threadpool::JobPriority::PRIO_HIGH, true);
   }
   void doJob() override
   {
-    bool result = parallel_instance_processing::upload_heavy_stuff(contextId, parallel_instance_processing::TargetFrame::Current);
-    G_ASSERT(result);
-    G_UNUSED(result);
+    if (uploadMainData)
+    {
+      bool mainUploadDone =
+        parallel_instance_processing::upload_main_data(contextId, parallel_instance_processing::TargetFrame::Current);
+      G_ASSERT(mainUploadDone);
+      G_UNUSED(mainUploadDone);
+    }
+    if (uploadPerInstanceData)
+    {
+      bool perInstanceDataUploadDone =
+        parallel_instance_processing::upload_per_instance_data(contextId, parallel_instance_processing::TargetFrame::Current);
+      G_ASSERT(perInstanceDataUploadDone);
+      G_UNUSED(perInstanceDataUploadDone);
+    }
   }
   const char *getJobName(bool &) const override { return "BVHFallbackUploadHeavyDataJob"; }
   void wait()
@@ -2221,12 +2245,9 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           if ((meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures) == 0)
           {
             meta.alphaTextureIndex = baseMeta.alphaTextureIndex;
-            meta.alphaSamplerIndex = baseMeta.alphaSamplerIndex;
             meta.albedoTextureIndex = baseMeta.albedoTextureIndex;
-            meta.albedoAndNormalSamplerIndex = baseMeta.albedoAndNormalSamplerIndex;
             meta.normalTextureIndex = baseMeta.normalTextureIndex;
             meta.extraTextureIndex = baseMeta.extraTextureIndex;
-            meta.extraSamplerIndex = baseMeta.extraSamplerIndex;
           }
           meta.ahsVertexBufferIndex = baseMeta.ahsVertexBufferIndex;
           // Copy the index buffer index only, the vertex buffer is part of the instance
@@ -2411,7 +2432,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     ri::wait_ri_extra_instances_update(context_id);
   }
 
-  const bool isParallelJobsFinished = parallel_instance_processing::is_parallel_jobs_finished(context_id);
+  const parallel_instance_processing::ParallelFinishResult parallelFinishResult =
+    parallel_instance_processing::is_parallel_jobs_finished(context_id);
 
   Sbuffer *grassInstances = nullptr;
   Sbuffer *grassInstanceCount = nullptr;
@@ -2542,6 +2564,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   auto uploadSizeMain = max(round_up(allInstancesCount, 1024 << 3), 1U << 17);
   auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
   auto uploadSizeParticles = max(round_up(fxBufferSize, 1024), 1U << 13);
+  auto uploadSizePerInstanceData = max(round_up(allInstancesCount, 1024), 1U << 13);
 
   if (context_id->tlasUploadMain && uploadSizeMain > context_id->tlasUploadMain->getNumElements())
     context_id->tlasUploadMain.close();
@@ -2549,15 +2572,15 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     context_id->tlasUploadTerrain.close();
   if (context_id->tlasUploadParticles && uploadSizeParticles > context_id->tlasUploadParticles->getNumElements())
     context_id->tlasUploadParticles.close();
-  if (context_id->perInstanceData && context_id->perInstanceData->getNumElements() < allInstancesCount)
+  if (context_id->perInstanceData && uploadSizePerInstanceData > context_id->perInstanceData->getNumElements())
     context_id->perInstanceData.close();
 
-  // These buffers are tied together in the same job. Must be reallocated together, or nooverwrite can break (and crash on PS5)
-  if ((!isParallelJobsFinished && !bvh_disable_parallel_instance_processing_finish) || !context_id->tlasUploadMain ||
-      !context_id->perInstanceData)
+  if (!bvh_disable_parallel_instance_processing_finish)
   {
-    context_id->tlasUploadMain.close();
-    context_id->perInstanceData.close();
+    if (!parallelFinishResult.MainUploadDone)
+      context_id->tlasUploadMain.close();
+    if (!parallelFinishResult.PerInstanceDataUploadDone)
+      context_id->perInstanceData.close();
   }
 
   bool reallocateMainTlas = !context_id->tlasUploadMain;
@@ -2570,14 +2593,12 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     TIME_PROFILE(allocate_main_tlas_upload);
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadMain.allocate(HW_INSTANCE_SIZE, uploadSizeMain, SBCF_UA_SR_STRUCTURED,
                                "bvh_tlas_upload_main", context_id), );
-    logdbg("tlasUploadMain resized to %u", uploadSizeMain);
   }
   if (reallocateTerrainTlas)
   {
     TIME_PROFILE(allocate_terrain_tlas_upload);
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadTerrain.allocate(HW_INSTANCE_SIZE, uploadSizeTerrain, SBCF_UA_SR_STRUCTURED,
                                "bvh_tlas_upload_terrain", context_id), );
-    logdbg("tlasUploadTerrain resized to %u", uploadSizeTerrain);
   }
 
   if (!context_id->tlasUploadParticles)
@@ -2591,14 +2612,14 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   if (reallocatePerInstanceData)
   {
-    const int perInstanceDataNumElements = max(allInstancesCount, 1);
-    HANDLE_LOST_DEVICE_STATE(context_id->perInstanceData.allocate(sizeof(PerInstanceData), perInstanceDataNumElements,
+    HANDLE_LOST_DEVICE_STATE(context_id->perInstanceData.allocate(sizeof(PerInstanceData), uploadSizePerInstanceData,
                                SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, "bvh_per_instance_data", context_id), );
-    logdbg("perInstanceData resized to %u", perInstanceDataNumElements);
   }
 
-  if (!isParallelJobsFinished || reallocateMainTlas || reallocatePerInstanceData)
-    bvh_fallback_upload_heavy_data_job.start(context_id);
+  const bool needFallbackMain = !parallelFinishResult.MainUploadDone || reallocateMainTlas;
+  const bool needFallbackPerInstance = !parallelFinishResult.PerInstanceDataUploadDone || reallocatePerInstanceData;
+  if (needFallbackMain || needFallbackPerInstance)
+    bvh_fallback_upload_heavy_data_job.start(context_id, needFallbackMain, needFallbackPerInstance);
 
   auto &instanceDescs = context_id->instanceDescsCpu;
 
@@ -3026,10 +3047,13 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     logdbg("Mesh meta: %d MB", mb(stats.meshMetaSize));
     logdbg("Skin BLAS: %d MB, Skin VB: %d MB, Skin count: %d", mb(stats.skinBLASSize), mb(stats.skinVBSize), stats.skinCount);
     logdbg("Skin cache BLAS: %d MB, Skin cache count: %d", mb(stats.skinCacheBLASSize), stats.skinCacheCount);
-    logdbg("Tree BLAS: %d MB, Tree VB: %d MB, Tree count: %d", mb(stats.treeBLASSize), mb(stats.treeVBSize), stats.treeCount);
+    logdbg("RiGen Tree BLAS: %d MB, VB: %d MB, count: %d", mb(stats.treeBLASSize), mb(stats.treeVBSize), stats.treeCount);
     logdbg("Stat tree BLAS: %d MB, Stat tree VB: %d MB, Stat tree count: %d", mb(stats.stationaryTreeBLASSize),
       mb(stats.stationaryTreeVBSize), stats.stationaryTreeCount);
-    logdbg("Tree cache BLAS: %d MB, Tree cache count: %d", mb(stats.treeCacheBLASSize), stats.treeCacheCount);
+    logdbg("RiGen Tree cache BLAS: %d MB, count: %d", mb(stats.treeCacheBLASSize), stats.treeCacheCount);
+    logdbg("RiEx Tree BLAS: %d MB,  VB: %d MB, count: %d", mb(stats.treeRiExBLASSize), mb(stats.treeRiExVBSize), stats.treeRiExCount);
+    logdbg("RiEx Tree cache BLAS: %d MB, cache count: %d", mb(stats.treeRiExCacheBLASSize), stats.treeRiExCacheCount);
+    logdbg("Flag BLAS: %d MB, VB: %d MB, count: %d", mb(stats.flagBLASSize), mb(stats.flagVBSize), stats.flagCount);
     logdbg("Dynamic VB allocator: %d MB, free %d MB", mb(stats.dynamicVBAllocatorSize), mb(stats.dynamicVBAllocatorFreeSize));
     logdbg("Terrain BLAS: %d MB, Terrain VB: %d MB", mb(stats.terrainBlasSize), mb(stats.terrainVBSize));
     logdbg("Grass BLAS: %d MB, Grass VB: %d MB, Grass IB: %d MB, Grass meta: %d MB, Grass query: %d MB", mb(stats.grassBlasSize),
@@ -3181,23 +3205,17 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_atmosphere_textureVarId = get_shader_variable_id("bvh_atmosphere_texture");
   static int bvh_atmosphere_texture_distanceVarId = get_shader_variable_id("bvh_atmosphere_texture_distance");
   static int bvh_paint_details_tex_slotVarId = get_shader_variable_id("bvh_paint_details_tex_slot");
-  static int bvh_paint_details_smp_slotVarId = get_shader_variable_id("bvh_paint_details_smp_slot");
   static int bvh_land_color_tex_slotVarId = get_shader_variable_id("bvh_land_color_tex_slot", true);
-  static int bvh_land_color_smp_slotVarId = get_shader_variable_id("bvh_land_color_smp_slot", true);
   static int bvh_dynamic_mfd_color_tex_slotVarId = get_shader_variable_id("bvh_dynamic_mfd_color_tex_slot", true);
-  static int bvh_dynamic_mfd_color_smp_slotVarId = get_shader_variable_id("bvh_dynamic_mfd_color_smp_slot", true);
   static int bvh_dynamic_decals_atlas_tex_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_tex_slot", true);
-  static int bvh_dynamic_decals_atlas_smp_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_smp_slot", true);
   static int bvh_dynamic_decals_atlas_buf_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_buf_slot", true);
   static int bvh_initial_nodes_buf_slotVarId = get_shader_variable_id("bvh_initial_nodes_buf_slot", true);
 
   static int cache_tex0_tex_slotVarId = get_shader_variable_id("cache_tex0_tex_slot", true);
-  static int cache_tex0_smp_slotVarId = get_shader_variable_id("cache_tex0_smp_slot", true);
   static int indirection_tex_tex_slotVarId = get_shader_variable_id("indirection_tex_tex_slot", true);
   static int cache_tex1_tex_slotVarId = get_shader_variable_id("cache_tex1_tex_slot", true);
   static int cache_tex2_tex_slotVarId = get_shader_variable_id("cache_tex2_tex_slot", true);
   static int last_clip_tex_tex_slotVarId = get_shader_variable_id("last_clip_tex_tex_slot", true);
-  static int last_clip_tex_smp_slotVarId = get_shader_variable_id("last_clip_tex_smp_slot", true);
 
   static int bvh_mip_rangeVarId = get_shader_variable_id("bvh_mip_range");
   static int bvh_mip_scaleVarId = get_shader_variable_id("bvh_mip_scale");
@@ -3240,23 +3258,17 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_buffer(bvh_per_instance_dataVarId, context_id->perInstanceData.getBufId());
 
   ShaderGlobal::set_int(bvh_paint_details_tex_slotVarId, context_id->paint_details_texBindless.bindlessTexture);
-  ShaderGlobal::set_int(bvh_paint_details_smp_slotVarId, context_id->paint_details_texBindless.bindlessSampler);
 
   ShaderGlobal::set_int(bvh_land_color_tex_slotVarId, context_id->grass_land_color_maskBindless.bindlessTexture);
-  ShaderGlobal::set_int(bvh_land_color_smp_slotVarId, context_id->grass_land_color_maskBindless.bindlessSampler);
 
   ShaderGlobal::set_int(bvh_dynamic_mfd_color_tex_slotVarId, context_id->dynamic_mfd_texBindless.bindlessTexture);
-  ShaderGlobal::set_int(bvh_dynamic_mfd_color_smp_slotVarId, context_id->dynamic_mfd_texBindless.bindlessSampler);
 
   ShaderGlobal::set_int(cache_tex0_tex_slotVarId, context_id->cache_tex0Bindless.bindlessTexture);
-  ShaderGlobal::set_int(cache_tex0_smp_slotVarId, context_id->cache_tex0Bindless.bindlessSampler);
   ShaderGlobal::set_int(indirection_tex_tex_slotVarId, context_id->indirection_texBindless.bindlessTexture);
   ShaderGlobal::set_int(cache_tex1_tex_slotVarId, context_id->cache_tex1Bindless.bindlessTexture);
   ShaderGlobal::set_int(cache_tex2_tex_slotVarId, context_id->cache_tex2Bindless.bindlessTexture);
   ShaderGlobal::set_int(last_clip_tex_tex_slotVarId, context_id->last_clip_texBindless.bindlessTexture);
-  ShaderGlobal::set_int(last_clip_tex_smp_slotVarId, context_id->last_clip_texBindless.bindlessSampler);
   ShaderGlobal::set_int(bvh_dynamic_decals_atlas_tex_slotVarId, context_id->dynamic_decals_atlasBindless.bindlessTexture);
-  ShaderGlobal::set_int(bvh_dynamic_decals_atlas_smp_slotVarId, context_id->dynamic_decals_atlasBindless.bindlessSampler);
   ShaderGlobal::set_int(bvh_dynamic_decals_atlas_buf_slotVarId, context_id->decalDataHolderBindlessSlot);
   ShaderGlobal::set_int(bvh_initial_nodes_buf_slotVarId, context_id->initialNodesHolderBindlessSlot);
 

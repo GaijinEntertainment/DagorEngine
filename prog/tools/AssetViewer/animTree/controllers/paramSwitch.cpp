@@ -128,7 +128,7 @@ void AnimTreePlugin::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
       AnimStatesData *initAnimStateData = eastl::find_if(statesData.begin(), statesData.end(),
         [](const AnimStatesData &data) { return data.type == AnimStatesType::INIT_ANIM_STATE; });
       String fullPath;
-      DataBlock props = getPropsAnimStates(getPluginPanel(), *initAnimStateData, fullPath);
+      DataBlock props = getPropsAnimStates(getPluginPanel(), *initAnimStateData, fullPath, /*only_includes*/ true);
       if (fullPath.empty())
       {
         logerr("Can't find enum props for find enum_gen paramSwitch childs");
@@ -278,7 +278,7 @@ void AnimTreePlugin::fillParamSwitchEnumGen(PropPanel::ContainerPropertyControl 
   AnimStatesData *initAnimStateData = eastl::find_if(statesData.begin(), statesData.end(),
     [](const AnimStatesData &data) { return data.type == AnimStatesType::INIT_ANIM_STATE; });
   String fullPath;
-  DataBlock props = getPropsAnimStates(getPluginPanel(), *initAnimStateData, fullPath);
+  DataBlock props = getPropsAnimStates(getPluginPanel(), *initAnimStateData, fullPath, /*only_includes*/ true);
   if (fullPath.empty())
     return;
 

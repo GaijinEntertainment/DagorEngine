@@ -85,7 +85,11 @@ shader dynamic_vcolor_layered
 
   USE_VCOLOR_LAYERED(ps)
 
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal)
   {
     SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)
   }

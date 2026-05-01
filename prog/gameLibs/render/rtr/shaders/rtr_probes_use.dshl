@@ -39,7 +39,11 @@ macro INIT_RTR_PROBES(stage, use_bindless)
       rtr_probe_sampler_slot@i1 = rtr_probe_sampler_slot;
     }
     hlsl(stage) {
-      #define probes_samplerstate bvh_samplers[rtr_probe_sampler_slot]
+      #ifndef global_samplers_array_defined
+        BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
+        #define global_samplers_array_defined
+      #endif
+      #define probes_samplerstate global_samplers_array[rtr_probe_sampler_slot]
       bool rtr_probes_bindless_enabled()
       {
         return rtr_probes_tex_slot >= 0 && rtr_probe_locations_buf_slot >= 0 && rtr_probe_sampler_slot >= 0;

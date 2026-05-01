@@ -162,8 +162,11 @@ shader generate_dynamic_lighting_tiles
 
   hlsl(cs)
   {
+##if hardware.scarlett
+    [WaveSize(64)] // requires SM 6.6+
+##else
     groupshared uint hasLightsGroup;
-
+##endif
     [numthreads(8, 8, 1)]
     void generate_direct_lights_tiles_cs(uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID, uint2 dtid : SV_DispatchThreadID)
     {
@@ -173,10 +176,12 @@ shader generate_dynamic_lighting_tiles
         storeBuffer(args, 8, 1);
       }
 
+##if !hardware.scarlett
       if (all(gtid == 0))
         hasLightsGroup = 0;
 
       GroupMemoryBarrierWithGroupSync();
+##endif
 
       bool left = gtid.x < 4;
       bool top  = gtid.y < 4;
@@ -198,11 +203,17 @@ shader generate_dynamic_lighting_tiles
 
           hasLightsThread = has_dynamic_lighting(tileIdx, nearW, farW) ? mask : 0;
 
+##if !hardware.scarlett
           InterlockedOr(hasLightsGroup, hasLightsThread);
+##endif
         }
       }
 
+##if hardware.scarlett
+      uint hasLightsGroup = WaveActiveBitOr(hasLightsThread);
+##else
       GroupMemoryBarrierWithGroupSync();
+##endif
 
       bool isMainThread = all((gtid & 3) == 0);
 

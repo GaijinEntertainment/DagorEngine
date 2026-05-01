@@ -462,7 +462,6 @@ eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
       registry.read("fom_shadows_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("fom_shadows_cos_samplerstate").optional();
 
       auto hasDynLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
-      registry.requestState().setFrameBlock("global_frame");
 
       auto camera = registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>();
       CameraViewShvars{camera}.bindViewVecs();

@@ -132,6 +132,7 @@ void update_dependent_param_state(PropPanel::ContainerPropertyControl *panel, da
   DependentParamData &param, const char *parent_name);
 
 DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_exist = true);
+DataBlock *find_animate_and_proc_block(DataBlock *props, const String &name);
 DataBlock *find_block_by_block_name(DataBlock *props, const String &name, bool should_exist = true);
 DataBlock *find_blend_node_settings(DataBlock &props, const char *name);
 DataBlock *find_a2d_node_settings(DataBlock &props, const char *name);
@@ -182,6 +183,8 @@ void check_fifo3_ctrl_child_idx(int idx, const char *fifo3_name);
 float get_default_anim_time(const char *a2d_name, const DagorAssetMgr &mgr);
 void focus_selected_node(PropPanel::ControlEventHandler *plugin_event_handler, PropPanel::ContainerPropertyControl *plugin_panel,
   PropPanel::TLeafHandle selected_leaf, int group_pid, int focus_panel_pid, int tree_pid);
+
+CtrlType get_selected_ctrl_type(PropPanel::ContainerPropertyControl *panel, bool is_proc_child);
 
 bool get_updated_child_name(const char *new_name, const String &old_name, const char *child_name, String &write_name);
 eastl::string_view get_node_mask_suffix_from_name(eastl::string_view name);

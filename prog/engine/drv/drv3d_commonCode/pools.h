@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "keyMapPools.h"
+#include "drv_log_defs.h"
 
 namespace drv3d_generic
 {
@@ -78,7 +79,7 @@ struct PodPool
       return true;
 
     if (freeList != BAD_HANDLE)
-      logerr("freeList %d is not equal to BAD_HANDLE, which means elements (%d) must be less than totalElements (%d)!", freeList,
+      D3D_ERROR("freeList %d is not equal to BAD_HANDLE, which means elements (%d) must be less than totalElements (%d)!", freeList,
         elements, totalElements);
 
 #if DAGOR_DBGLEVEL > 0
@@ -112,7 +113,7 @@ struct PodPool
 
     G_FAST_ASSERT(freeList >= 0);
     if (freeList >= totalElements || freeList < 0)
-      logerr("freeList %d is out of range - the pool has %d elements", freeList, totalElements);
+      D3D_ERROR("freeList %d is out of range - the pool has %d elements", freeList, totalElements);
 
     int index = freeList;
     freeList = entries[index].link >> 1; // unlink from free list
@@ -221,7 +222,7 @@ public:
   {
     G_FAST_ASSERT(isIndexValid(index));
     if (!(freeList == BAD_HANDLE || isIndexValid(freeList)))
-      logerr("freeList %d must be either BAD_HANDLE or valid index, pool has %d elements", freeList, totalElements);
+      D3D_ERROR("freeList %d must be either BAD_HANDLE or valid index, pool has %d elements", freeList, totalElements);
     entries[index].link = (freeList << 1) | 1;
     freeList = index;
     G_VERIFY(--usedElements >= 0);

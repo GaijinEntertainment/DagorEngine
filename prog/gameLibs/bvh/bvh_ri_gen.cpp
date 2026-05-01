@@ -163,78 +163,28 @@ static struct RiGenBVHJob : public cpujobs::IJob
 
   eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> newUniqueTreeBuffers[Context::maxUniqueLods];
 
-  static ReferencedTransformData *mapTreeStationary(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &,
-    int &anim_index)
-  {
-    anim_index = -1;
-    return nullptr;
-  }
-
-  static ReferencedTransformData *mapTree(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
+  static ReferencedTransformData *mapTreeRiGen(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
     int lod_ix, void *user_data, bool &recycled, int &anim_index)
   {
-    G_UNUSED(handle);
-
-    recycled = false;
-
-    Point4 p4;
-    v_stu(&p4, pos);
-    auto kx = (uint64_t)bitwise_cast<uint32_t, float>(p4.x + p4.y);
-    auto kz = (uint64_t)bitwise_cast<uint32_t, float>(p4.z - p4.y);
-    auto id = (kx << 32 | kz) ^ object_id;
-
-    // No need to have a lock here to access the containers. While this function is called from multiple threads,
-    // the uniqueTreeBuffers is only read from all threads. All new items are added to the newUniqueTreeBuffers,
-    // which is thread local. Then later it will be merged into the uniqueTreeBuffers on the main thread.
-
-    G_ASSERT(lod_ix < Context::maxUniqueLods);
-    auto &uniqueContainer = context_id->uniqueTreeBuffers[lod_ix];
-
-    ReferencedTransformDataWithAge *tree = nullptr;
-    if (auto instanceIter = uniqueContainer.find(id); instanceIter != uniqueContainer.end())
+    struct RiGenTreeHash
     {
-      tree = &instanceIter->second;
-    }
-    else
-    {
-      tree = &static_cast<RiGenBVHJob *>(user_data)->newUniqueTreeBuffers[lod_ix][id];
-
-      // Assign an anim index, which has the least instances
-      int leastIndices = 0;
-      for (int i = 1; i < Context::MaxTreeAnimIndices; ++i)
-        if (context_id->treeAnimIndexCount[i] < context_id->treeAnimIndexCount[leastIndices])
-          leastIndices = i;
-
-      tree->animIndex = leastIndices;
-      ++context_id->treeAnimIndexCount[leastIndices];
-    }
-
-    anim_index = tree->animIndex;
-
-    auto &data = tree->elems[object_id];
-
-    // Hash collision. It is possible that the same position is used for different trees of the same type.
-    if (data.used)
-      return nullptr;
-
-    data.used = true;
-
-    tree->age = -1;
-
-    if (!data.buffer)
-    {
-      if (auto iter = context_id->freeUniqueTreeBLASes.find(object_id); iter != context_id->freeUniqueTreeBLASes.end())
+      inline static uint64_t hash(uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle)
       {
-        if (int index = iter->second.cursor.sub_fetch(1); index >= 0)
-        {
-          auto &blas = iter->second.blases[index];
-          data.blas.swap(blas);
-          recycled = true;
-        }
+        G_UNUSED(handle);
+        Point4 p4;
+        v_stu(&p4, pos);
+        auto kx = (uint64_t)bitwise_cast<uint32_t, float>(p4.x + p4.y);
+        auto kz = (uint64_t)bitwise_cast<uint32_t, float>(p4.z - p4.y);
+        uint64_t id = (kx << 32 | kz) ^ object_id;
+        return id;
       }
-    }
-
-    return &data;
+    };
+    MapTreePointers pointers;
+    pointers.uniqueTreeBuffers = make_span(context_id->uniqueTreeBuffers, Context::maxUniqueLods);
+    pointers.newUniqueTreeBuffers = make_span(static_cast<RiGenBVHJob *>(user_data)->newUniqueTreeBuffers, Context::maxUniqueLods);
+    pointers.treeAnimIndexCount = make_span(context_id->treeAnimIndexCount, Context::MaxTreeAnimIndices);
+    pointers.freeUniqueTreeBLASes = &context_id->freeUniqueTreeBLASes;
+    return map_tree_base<RiGenTreeHash, true>(object_id, pos, handle, lod_ix, recycled, anim_index, pointers);
   }
 
   template <bool use_min_lod, bool filter_out_view_frustum>
@@ -350,10 +300,10 @@ static struct RiGenBVHJob : public cpujobs::IJob
 
             TreeInfo treeInfo;
             MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-            bool iok = isStationary ? handle_tree<mapTreeStationary>(thiz->contextId, elem, meshId, lod_ix, isPosInst, tm, tm.col3,
+            bool iok = isStationary ? handle_tree<map_tree_stationary>(thiz->contextId, elem, meshId, lod_ix, isPosInst, tm, tm.col3,
                                         colors, 0, invWorldTm, treeInfo, metaAllocId, thiz, true, false, palette_id)
-                                    : handle_tree<mapTree>(thiz->contextId, elem, meshId, lod_ix, isPosInst, tm, tm.col3, colors, 0,
-                                        invWorldTm, treeInfo, metaAllocId, thiz, false, false, palette_id);
+                                    : handle_tree<mapTreeRiGen>(thiz->contextId, elem, meshId, lod_ix, isPosInst, tm, tm.col3, colors,
+                                        0, invWorldTm, treeInfo, metaAllocId, thiz, false, false, palette_id);
             if (!iok)
               continue;
             add_riGen_instance(context_id, meshId, tm43, &treeInfo, isStationary, metaAllocId, thiz->threadIx);
@@ -365,8 +315,8 @@ static struct RiGenBVHJob : public cpujobs::IJob
             MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
             bool iok =
               isStationary
-                ? handle_leaves<mapTreeStationary>(thiz->contextId, meshId, lod_ix, tm, 0, invWorldTm, leavesInfo, metaAllocId, thiz)
-                : handle_leaves<mapTree>(thiz->contextId, meshId, lod_ix, tm, 0, invWorldTm, leavesInfo, metaAllocId, thiz);
+                ? handle_leaves<map_tree_stationary>(thiz->contextId, meshId, lod_ix, tm, 0, invWorldTm, leavesInfo, metaAllocId, thiz)
+                : handle_leaves<mapTreeRiGen>(thiz->contextId, meshId, lod_ix, tm, 0, invWorldTm, leavesInfo, metaAllocId, thiz);
             if (!iok)
               continue;
             add_riGen_instance(context_id, meshId, tm43, &leavesInfo, isStationary, metaAllocId, thiz->threadIx);
@@ -483,6 +433,27 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
   }
 }
 
+void tidy_up_rigen_trees(ContextId context_id)
+{
+  TIME_PROFILE(tidy_up_rigen_trees);
+
+  for (auto &job : ri_gen_bvh_job)
+  {
+    for (auto [index, lod] : enumerate(job.newUniqueTreeBuffers))
+    {
+      for (auto &tree : lod)
+        context_id->uniqueTreeBuffers[index].insert(std::move(tree));
+      lod.clear();
+    }
+  }
+  TidyUpTreePointers pointers;
+  pointers.uniqueTreeBuffers = make_span(context_id->uniqueTreeBuffers, Context::maxUniqueLods);
+  pointers.treeAnimIndexCount = make_span(context_id->treeAnimIndexCount, Context::MaxTreeAnimIndices);
+  pointers.freeUniqueTreeBLASes = &context_id->freeUniqueTreeBLASes;
+  tidy_up_trees_base<true>(context_id, pointers);
+}
+void tidy_up_riex_trees(ContextId context_id);
+
 static struct TidyUpTreesJob : public cpujobs::IJob
 {
   ContextId contextId;
@@ -494,63 +465,8 @@ static struct TidyUpTreesJob : public cpujobs::IJob
     // Remove unique tree buffers that was not used for a long time
 
     WinAutoLock lock(contextId->tidyUpTreesLock);
-
-    for (auto &job : ri_gen_bvh_job)
-    {
-      for (auto [index, lod] : enumerate(job.newUniqueTreeBuffers))
-      {
-        for (auto &tree : lod)
-          contextId->uniqueTreeBuffers[index].insert(std::move(tree));
-        lod.clear();
-      }
-    }
-
-    // We make use of the fact that resize does not shrink the vector itself, only the elem count is changed
-    for (auto &freeTrees : contextId->freeUniqueTreeBLASes)
-    {
-      if (freeTrees.second.cursor.load() < 0)
-        freeTrees.second.cursor.store(0);
-      freeTrees.second.blases.resize(freeTrees.second.cursor.load());
-    }
-
-    int dropCount = 0;
-
-    for (auto [index, lod] : enumerate(contextId->uniqueTreeBuffers))
-      for (auto iter = lod.begin(); iter != lod.end();)
-      {
-        // Reset the used flags, so in the next frame, all start fresh
-        for (auto &elem : iter->second.elems)
-          elem.second.used = false;
-
-        iter->second.age++;
-        if (iter->second.age < 1)
-        {
-          ++iter;
-          continue;
-        }
-
-        --contextId->treeAnimIndexCount[iter->second.animIndex];
-
-        for (auto &elem : iter->second.elems)
-        {
-          auto &storage = contextId->freeUniqueTreeBLASes[elem.first].blases.push_back();
-          storage.swap(elem.second.blas);
-
-          contextId->freeMetaRegion(elem.second.metaAllocId);
-
-          if (elem.second.buffer)
-          {
-            WinAutoLock lock(contextId->processBufferAllocatorLock);
-            contextId->processBufferAllocator[elem.second.buffer.allocator].first.free(elem.second.buffer.allocId);
-          }
-        }
-
-        dropCount++;
-        iter = lod.erase(iter);
-      }
-
-    for (auto &freeTrees : contextId->freeUniqueTreeBLASes)
-      freeTrees.second.cursor.store(freeTrees.second.blases.size());
+    tidy_up_rigen_trees(contextId);
+    tidy_up_riex_trees(contextId);
   }
 } tidy_up_trees_job;
 

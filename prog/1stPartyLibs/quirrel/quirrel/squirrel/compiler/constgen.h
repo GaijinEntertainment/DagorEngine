@@ -56,7 +56,6 @@ public:
     virtual void visitFunctionExpr(FunctionExpr *f);
 
     virtual void visitCommaExpr(CommaExpr *expr) { throwUnsupported(expr, "comma expression"); }
-    virtual void visitExternalValueExpr(ExternalValueExpr *expr) { throwUnsupported(expr, "external value expression"); }
 
     virtual void visitStmt(Statement *stmt) { throwUnsupported(stmt, "statement"); }
     virtual void visitBlock(Block *block) { throwUnsupported(block, "block statement"); }

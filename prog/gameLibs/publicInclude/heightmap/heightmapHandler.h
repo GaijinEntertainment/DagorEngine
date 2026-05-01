@@ -6,11 +6,8 @@
 
 #include <3d/dag_resPtr.h>
 #include <3d/dag_lockTexture.h>
-#include <vecmath/dag_vecMath.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
-#include <math/dag_bounds3.h>
-#include <math/dag_bounds2.h>
 #include <math/integer/dag_IBBox2.h>
 #include "heightmapRenderer.h"
 #include "heightmapCulling.h"
@@ -28,7 +25,21 @@ struct Frustum;
 
 struct HeightmapFrustumCullingInfo;
 
-class HeightmapHandler : public HeightmapPhysHandler
+class IHeightmapHandler
+{
+public:
+  virtual float getMaxUpwardDisplacement() const = 0;
+  virtual float getMaxDownwardDisplacement() const = 0;
+  virtual IPoint2 getHeightmapSize() const = 0;
+  virtual Point3 getHeightmapOffset() const = 0;
+  virtual float getHeightmapCellSize() const = 0;
+  virtual bool getHeightmapHeightMinMaxInChunk(const Point2 &pos, const real &chunkSize, real &hmin, real &hmax) const = 0;
+
+protected:
+  ~IHeightmapHandler() = default;
+};
+
+class HeightmapHandler : public IHeightmapHandler, public HeightmapPhysHandler
 {
 
 protected:
@@ -75,8 +86,15 @@ public:
   void invalidateCulling(const IBBox2 &);
   void setMaxUpwardDisplacement(float v);
   void setMaxDownwardDisplacement(float v);
-  float getMaxUpwardDisplacement() const { return maxUpwardDisplacement; }
-  float getMaxDownwardDisplacement() const { return maxDownwardDisplacement; }
+  float getMaxUpwardDisplacement() const override { return maxUpwardDisplacement; }
+  float getMaxDownwardDisplacement() const override { return maxDownwardDisplacement; }
+  IPoint2 getHeightmapSize() const override { return {getHeightmapSizeX(), getHeightmapSizeY()}; }
+  bool getHeightmapHeightMinMaxInChunk(const Point2 &pos, const real &chunkSize, real &hmin, real &hmax) const override
+  {
+    return HeightmapPhysHandler::getHeightmapHeightMinMaxInChunk(pos, chunkSize, hmin, hmax);
+  }
+  float getHeightmapCellSize() const override { return HeightmapPhysHandler::getHeightmapCellSize(); }
+  Point3 getHeightmapOffset() const override { return HeightmapPhysHandler::getHeightmapOffset(); }
   // works only on a mip level 0 for simplicity
   bool setHeightmapHeightUnsafeVisual(const IPoint2 &cell, uint16_t ht)
   {

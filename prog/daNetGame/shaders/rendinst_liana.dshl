@@ -187,7 +187,7 @@ shader rendinst_liana
         output.pointToEye.w = worldPos.y - worldLocalPos.y;
 ##endif
       #else
-##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+##if (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
         output.normal.w = worldPos.y - worldLocalPos.y;
 ##endif
       #endif
@@ -204,7 +204,8 @@ shader rendinst_liana
         clip(input.phaseOfGrowth);
       }
     }
-  } else
+  }
+  else if(!is_triangle_size_debug)
   {
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()
@@ -290,7 +291,14 @@ shader rendinst_liana
       }
     }
   }
-  compile("target_ps", "simple_ps");
+  if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "simple_ps");
+  }
   compile("target_vs", "simple_vs");
 }
 

@@ -18,6 +18,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include "globVar.h"
 #include "fast_isalnum.h"
 #include "hash.h"
@@ -811,46 +812,65 @@ bool CodeSourceBlocks::ppDoInclude(const char *incl_fn, Tab<char> &out_text, con
 
 static void distill_code(dag::Span<CodeSourceBlocks::Fragment> p, ShaderParser::ShaderBoolEvalCB &c)
 {
-  for (int i = 0; i < p.size(); i++)
-    if (p[i].cond)
+  using fragment_seq_t = dag::Span<CodeSourceBlocks::Fragment>;
+  dag::RelocatableFixedVector<fragment_seq_t, 16> condStack{};
+  condStack.push_back(p);
+
+  while (!condStack.empty())
+  {
+    uint32_t processedSeqId = condStack.size() - 1;
+    uint32_t fragmentsProcessed = 0;
+
+    for (auto &fragment : condStack[processedSeqId])
     {
-      if (p[i].cond->onIf.constExprVal != CodeSourceBlocks::ExprValue::ConstFalse)
-        if (p[i].cond->onIf.constExprVal == CodeSourceBlocks::ExprValue::ConstTrue || c.eval_expr(*p[i].cond->onIf.expr).value)
+      ++fragmentsProcessed;
+
+      if (fragment.cond)
+      {
+        if (fragment.cond->onIf.constExprVal != CodeSourceBlocks::ExprValue::ConstFalse)
+          if (
+            fragment.cond->onIf.constExprVal == CodeSourceBlocks::ExprValue::ConstTrue || c.eval_expr(*fragment.cond->onIf.expr).value)
+          {
+            condStack.push_back(make_span(fragment.cond->onIf.onTrue));
+            goto start_pushed_fragment;
+          }
+
+        for (int j = 0; j < fragment.cond->onElif.size(); j++)
+          if (fragment.cond->onElif[j].constExprVal == CodeSourceBlocks::ExprValue::ConstTrue ||
+              c.eval_expr(*fragment.cond->onElif[j].expr).value)
+          {
+            condStack.push_back(make_span(fragment.cond->onElif[j].onTrue));
+            goto start_pushed_fragment;
+          }
+
+        condStack.push_back(make_span(fragment.cond->onElse));
+        goto start_pushed_fragment;
+      }
+      else
+      {
+        if (!fragment.uncond.errors.empty())
         {
-          distill_code(make_span(p[i].cond->onIf.onTrue), c);
+          for (const auto &err : fragment.uncond.errors)
+            sh_debug(SHLOG_ERROR, "Parsing error in hlsl unconditional: %s", err.c_str());
           continue;
         }
-
-      bool on_elif = false;
-      for (int j = 0; j < p[i].cond->onElif.size(); j++)
-        if (
-          p[i].cond->onElif[j].constExprVal == CodeSourceBlocks::ExprValue::ConstTrue || c.eval_expr(*p[i].cond->onElif[j].expr).value)
+        else if (fragment.isDecl())
+          fragment.decl().identValue = c.eval_interval_value(declIdents.getName(fragment.decl().identId));
+        else if (fragment.isDeclBool())
         {
-          distill_code(make_span(p[i].cond->onElif[j].onTrue), c);
-          on_elif = true;
-          break;
+          c.decl_bool_alias(fragment.declBool().name, *fragment.declBool().expr);
+          continue;
         }
+        tmpUncondProg.push_back(&fragment.uncond);
+      }
+    }
 
-      if (!on_elif)
-        distill_code(make_span(p[i].cond->onElse), c);
-    }
-    else
-    {
-      if (!p[i].uncond.errors.empty())
-      {
-        for (const auto &err : p[i].uncond.errors)
-          sh_debug(SHLOG_ERROR, "Parsing error in hlsl unconditional: %s", err.c_str());
-        continue;
-      }
-      else if (p[i].isDecl())
-        p[i].decl().identValue = c.eval_interval_value(declIdents.getName(p[i].decl().identId));
-      else if (p[i].isDeclBool())
-      {
-        c.decl_bool_alias(p[i].declBool().name, *p[i].declBool().expr);
-        continue;
-      }
-      tmpUncondProg.push_back(&p[i].uncond);
-    }
+    condStack.pop_back();
+    continue;
+
+  start_pushed_fragment:
+    condStack[processedSeqId] = condStack[processedSeqId].subspan(fragmentsProcessed); // Not refs/ptrs since we push to stack
+  }
 }
 
 dag::ConstSpan<ublock_t *> CodeSourceBlocks::getPreprocessedCode(ShaderParser::ShaderBoolEvalCB &cb)

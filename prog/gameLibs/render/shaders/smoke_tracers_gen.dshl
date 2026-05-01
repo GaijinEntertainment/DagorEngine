@@ -274,7 +274,7 @@ shader cull_tracers_cs
       float decayTime = smoke_trace_current_time.x-head_time;
 
       float exposure_time = smoke_trace_current_time.z;//+1./120;
-      float burnEffect = saturate((tracers[id].burnTime - tracerTime)*(20));
+      float burnEffect = smoothstep(0.0, 0.5, (tracers[id].burnTime - tracerTime));
       if (decayTime<exposure_time && burnEffect>0)
       {
         GPUSmokeTracerHeadRender renderBox=(GPUSmokeTracerHeadRender)0;
@@ -290,11 +290,14 @@ shader cull_tracers_cs
         float3 renderP0 = p1 - min(maxExtensionMul, extensionMul) * dir;
         renderBox.p0.xyz = renderP0;
         renderBox.p1 = p1;
-        float2 viewDists = float2(distance(world_view_pos, renderP0), distance(world_view_pos, p1));
-        float2 pixel_radiuses = 1.5*viewDists * smoke_trace_current_time.w;
-        float2 tracerRadius = radiusStart.xx*tracer_head_radius_coeff;
-        float2 cRadiuses = max(tracerRadius, pixel_radiuses);
-        float fadeAtP1 = sqrt(tracerRadius.x / cRadiuses.y);
+        float3 eyeToP0 = renderP0 - world_view_pos;
+        float3 eyeToP1 = p1 - world_view_pos;
+        float2 depths = float2(dot(eyeToP0, local_view_z), dot(eyeToP1, local_view_z));
+
+        float tracerRadius = radiusStart * tracer_head_radius_coeff;
+        float2 pixelRadiuses = abs(depths) * smoke_trace_current_time.w * 1.5;
+        float2 cRadiuses = max(tracerRadius.xx, pixelRadiuses);
+        float fadeAtP1 = tracerRadius.x / cRadiuses.y;
         float maxBoxRadius = max(cRadiuses.x, cRadiuses.y);
         renderBox.radius0 = cRadiuses.x;
         renderBox.radius1 = cRadiuses.y;

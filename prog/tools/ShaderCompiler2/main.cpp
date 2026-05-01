@@ -207,7 +207,6 @@ static void showUsage()
     "  -suppressLogs   - do not make fileLogs\n"
     "  -enablefp16     - enable using 16 bit types in shaders\n"
     "  -HLSL2021       - use the HLSL 2021 version of the language\n"
-    "  -addTextureType - save static texture types to shaderdump (need for texture type validation in daBuild)\n"
     "  -logExactTiming - enable logging of compilation times with 0.001s (1ms) precision\n"
     "  -perFileAllLogs - enable logging of compilation times for all files with additional info\n"
     "  -dumpRegsAlways - Always dump registers from hlsl slot allocators at the end of a pass evaluation\n"
@@ -507,8 +506,6 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
     // because this way the blk hash uniquely identifies a build and can be stored in the
     // bindump header (for fully correct incremental build checks)
     blk.addStr("intermediateDir", intermediateDir.c_str());
-    if (shc::config().addTextureType)
-      blk.addBool("addTextureType", true);
     if (shc::config().cppStcodeMode != shader_layout::ExternalStcodeMode::NONE)
       blk.addBool("compileCppStcode", true);
     if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
@@ -1145,7 +1142,7 @@ int DagorWinMain(bool debugmode)
     }
     else if (dd_stricmp(s, "-addTextureType") == 0)
     {
-      globalConfigRW.addTextureType = true;
+      // legacy
     }
     else if (dd_stricmp(s, "-purge_sha1_cache") == 0)
     {

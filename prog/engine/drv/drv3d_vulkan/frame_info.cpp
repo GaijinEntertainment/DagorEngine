@@ -13,6 +13,7 @@
 #include "timelines.h"
 #include "wrapped_command_buffer.h"
 #include "vulkan_allocation_callbacks.h"
+#include "os.h"
 
 using namespace drv3d_vulkan;
 
@@ -317,7 +318,28 @@ void FrameInfo::finishGpuWork()
     if (!readbackDone->isReady())
       readbackDone->wait();
   }
-  Backend::interop.lastGPUCompleted.store(replayId); //-V1020
+  Backend::interop.lastGPUCompleted.store(replayId);
+  nvStreamlineVsyncWait(); //-V1020
+}
+
+void FrameInfo::nvStreamlineVsyncWait()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  if (!(Globals::VK::loader.streamlineAdapter && Globals::window.refreshRate > 0 &&
+        Backend::interop.isVsyncOnPrimarySwapchain.load(std::memory_order_relaxed)))
+    return;
+
+  int64_t currentRef = ref_time_ticks();
+  int64_t framePeriod = 1000 * 1000 * GPU_TIMELINE_HISTORY_SIZE / Globals::window.refreshRate;
+  if (currentRef < nextVsyncTimeRef)
+  {
+    TIME_PROFILE(vulkan_nv_streamline_vsync_wait);
+    sleep_precise_usec(ref_time_delta_to_usec(nextVsyncTimeRef - currentRef), preciseSleepContext);
+    nextVsyncTimeRef = rel_ref_time_ticks(nextVsyncTimeRef, framePeriod);
+  }
+  else
+    nextVsyncTimeRef = rel_ref_time_ticks(currentRef, framePeriod);
+#endif
 }
 
 void FrameInfo::finishSemaphores()

@@ -58,7 +58,7 @@ block(scene) nbs_fog_block
     distant_fog_local_view_z@f4 = distant_fog_local_view_z;
 
     static_shadow_tex@texArray = static_shadow_tex;
-    static_shadow_tex_cmpSampler@cmpSampler = static_shadow_tex_cmpSampler;
+    static_shadow_tex_cmpSampler@cmpSampler = static_shadow_tex_samplerstate;
     static_shadow_matrix_0_0@f4 = static_shadow_matrix_0_0;
     static_shadow_matrix_1_0@f4 = static_shadow_matrix_1_0;
     static_shadow_matrix_2_0@f4 = static_shadow_matrix_2_0;

@@ -115,6 +115,10 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
   {
     compile("ps_null", "rendinst_render_depth_black_ps");
   }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
   else
   {
     USE_METATEX_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
@@ -218,5 +222,12 @@ shader rendinst_refraction_metatex
     }
   }
 
-  compile("target_ps", "glass_ps");
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "glass_ps");
+  }
 }

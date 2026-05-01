@@ -2045,8 +2045,6 @@ static void bvh_render_settings_changed_es(const ecs::Event &,
       featuresToReset |= WRDispatcher::GI;
     if (changed.isRTRChanged)
       featuresToReset |= WRDispatcher::SSR;
-    if (changed.isDenoiserChanged)
-      featuresToReset |= WRDispatcher::MOTION_VECTOR;
     if (changed.isRayReconstructionChanged)
       featuresToReset |= WRDispatcher::REINIT_TARGET;
     WRDispatcher::recreateRayTracingDependentNodes(featuresToReset);

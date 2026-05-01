@@ -166,7 +166,7 @@ void ShadingResolver::resolve(BaseTexture *resolveTarget, const TMatrix &view_tm
   else if (!resolveShadingCS)
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(resolveTarget, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{resolveTarget, 0, 0}});
     if (depth_bounds_tex)
       d3d::set_depth(depth_bounds_tex, DepthAccess::SampledRO);
     if (resolve_area)

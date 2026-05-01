@@ -218,8 +218,13 @@ static bool compile_stat(const PreshaderStat &stat, PreshaderCompilationContext 
     return false;
   }
 
-  if (def.isBindless)
-    vctx.parsedSemCode().vars[def.bindlessVarId].texType = def.shvarTexType;
+  if (def.bindlessVarId >= 0 && def.shvarTexType != SHVT_TEX_UNKNOWN)
+  {
+    auto &svts = outCode.shadervarTexTypes;
+    if (svts.size() <= def.bindlessVarId)
+      svts.resize(def.bindlessVarId + 1, SHVT_TEX_UNKNOWN);
+    svts[def.bindlessVarId] = def.shvarTexType;
+  }
 
   ctx.hasDynStcodeRelyingOnMaterialParams |= def.hasDynStcodeRelyingOnMaterialParams;
   if (def.exprWithDynamicAndMaterialTerms)

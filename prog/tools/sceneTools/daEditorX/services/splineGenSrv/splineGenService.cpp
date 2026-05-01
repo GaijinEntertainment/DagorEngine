@@ -65,6 +65,70 @@ public:
 static TraceableSplineEntityCache<SplineGenEntity> traceable_spline_entity_cache;
 static TraceableSplineEntityCache<PolygonGenEntity> traceable_polygon_entity_cache;
 
+// Per-frame SoA cache for renderGeneratedGeom (spline path). The render call is invoked
+// O(loft_layers * order_layers) times per frame, and each invocation otherwise dereferences
+// every SplineGenEntity for a few scattered filter fields - cache misses dominate.
+// Bucketed by layerOrder (0..31) so a layer_order-specific call iterates only its slice.
+struct LoftRenderEntry
+{
+  bbox3f bbox;              // 32 bytes (16-byte aligned)
+  GeomObject *loftGeom;     // 8
+  uint8_t editLayerIdx;     // 1
+  uint8_t hasNonZeroLayers; // 1
+  uint16_t _pad0;
+  uint32_t _pad1;
+};
+
+struct LoftRenderCache
+{
+  Tab<LoftRenderEntry> entries;
+  int bucketStart[33] = {}; // bucketStart[lo] = first entry of layerOrder lo; [32] = total
+  bool isValid = false;
+
+  void invalidate() { isValid = false; }
+
+  void rebuild(dag::ConstSpan<SplineGenEntity *> ents)
+  {
+    int counts[32] = {};
+    for (SplineGenEntity *e : ents)
+      if (e && e->loftGeom && unsigned(e->layerOrder) < 32u)
+        counts[e->layerOrder]++;
+    int total = 0;
+    for (int i = 0; i < 32; i++)
+    {
+      bucketStart[i] = total;
+      total += counts[i];
+    }
+    bucketStart[32] = total;
+    entries.resize(total);
+    int cursor[32];
+    memcpy(cursor, bucketStart, sizeof(cursor));
+    for (SplineGenEntity *e : ents)
+      if (e && e->loftGeom && unsigned(e->layerOrder) < 32u)
+      {
+        LoftRenderEntry &en = entries[cursor[e->layerOrder]++];
+        en.bbox.bmin = v_ldu(&e->loftGeomBox[0].x);
+        en.bbox.bmax = v_ldu(&e->loftGeomBox[1].x);
+        en.loftGeom = e->loftGeom;
+        en.editLayerIdx = e->getEditLayerIdx();
+        en.hasNonZeroLayers = e->hasNonZeroLayers;
+      }
+    isValid = true;
+  }
+
+  dag::ConstSpan<LoftRenderEntry> slice(int layer_order) const
+  {
+    if (layer_order < 0)
+      return make_span_const(entries);
+    if (unsigned(layer_order) >= 32u)
+      return {};
+    return make_span_const(entries.data() + bucketStart[layer_order], bucketStart[layer_order + 1] - bucketStart[layer_order]);
+  }
+};
+static LoftRenderCache loft_render_cache;
+
+void invalidate_loft_render_cache() { loft_render_cache.invalidate(); }
+
 
 class SplineGenEntityManagementService : public IEditorService, public IObjEntityMgr
 {
@@ -76,7 +140,11 @@ public:
   void setServiceVisible(bool /*vis*/) override {}
   bool getServiceVisible() const override { return true; }
 
-  void actService(float dt) override { traceable_spline_entity_cache.isValid = false; }
+  void actService(float dt) override
+  {
+    traceable_spline_entity_cache.isValid = false;
+    loft_render_cache.invalidate();
+  }
 
   void beforeRenderService() override {}
   void renderService() override {}
@@ -279,7 +347,7 @@ struct SplineAndPolygonGenService : public ISplineGenService
           passed++;
           for (StaticGeometryNode *node : e->loftGeom->getGeometryContainer()->nodes)
             if (node)
-              if (int l = node->script.getInt("layer", 0))
+              if (int l = node->layer)
                 SplineGenEntity::cachedLoftLayers.set(l);
         }
 
@@ -323,7 +391,7 @@ struct SplineAndPolygonGenService : public ISplineGenService
   }
 
   void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int layer, int stage, int layer_order,
-    uint64_t lh_mask) const override
+    LayerHiddenMask lh_mask) const override
   {
     int st_mask =
       DAEDITOR3.getEntitySubTypeMask(collision ? IObjEntityFilter::STMASK_TYPE_COLLISION : IObjEntityFilter::STMASK_TYPE_EXPORT);
@@ -352,10 +420,10 @@ struct SplineAndPolygonGenService : public ISplineGenService
       for (int ni = 0; ni < geom->nodes.size(); ++ni)
       {
         StaticGeometryNode *node = geom->nodes[ni];
-        if (node && node->script.getInt("stage", 0) != stage)
+        if (node && node->stage != stage)
           continue;
 
-        if (node && node->script.getInt("layer", 0) == layer && (!flags || (node->flags & flags)))
+        if (node && node->layer == layer && (!flags || (node->flags & flags)))
         {
           StaticGeometryNode *n = new (tmpmem) StaticGeometryNode(*node);
           n->name = (ni == 0) ? String(0, "%s_%p", node->name, e) : String(0, "%s_%p_%d", node->name, e, ni);
@@ -369,12 +437,12 @@ struct SplineAndPolygonGenService : public ISplineGenService
   void renderGeneratedGeom(int layer, bool opaque, const Frustum &frustum, int layer_order, bool asHeightmapPatch = false) override
   {
     int st_mask = DAEDITOR3.getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     if ((st_mask & polySubtypeMask) && layer == 0)
       for (PolygonGenEntity *e : polyMgr->getEntities())
         if (e && (layer_order < 0 || e->layerOrder == layer_order))
-          if (!(lh_mask & (uint64_t(1) << e->getEditLayerIdx())) && frustum.testBoxB(e->geomBox))
+          if (!lh_mask.isHidden(e->getEditLayerIdx()) && frustum.testBoxB(e->geomBox))
           {
             if (e->geom.mainMesh)
               renderGeom(e->geom.mainMesh, layer, opaque, asHeightmapPatch);
@@ -383,26 +451,31 @@ struct SplineAndPolygonGenService : public ISplineGenService
           }
 
     if (st_mask & splineSubtypeMask)
-      for (SplineGenEntity *e : splMgr->getEntities())
-        if (e && e->loftGeom && e->mayHaveLayer(layer) && (layer_order < 0 || e->layerOrder == layer_order))
-          if (!(lh_mask & (uint64_t(1) << e->getEditLayerIdx())) && frustum.testBoxB(e->loftGeomBox))
-            renderGeom(e->loftGeom, layer, opaque, asHeightmapPatch);
+    {
+      if (!loft_render_cache.isValid)
+        loft_render_cache.rebuild(splMgr->getEntities());
+      for (const LoftRenderEntry &en : loft_render_cache.slice(layer_order))
+        if ((layer == 0 || en.hasNonZeroLayers) && !lh_mask.isHidden(en.editLayerIdx) && frustum.testBoxB(en.bbox.bmin, en.bbox.bmax))
+          renderGeom(en.loftGeom, layer, opaque, asHeightmapPatch);
+    }
   }
   static void renderGeom(GeomObject *geom, int layer, bool opaque, bool asHeightmapPatch)
   {
     bool changed = false;
     bool isPatch = false;
-    for (int name_idx = 0; name_idx < geom->getShaderNamesCount(); name_idx++)
+    if (asHeightmapPatch)
     {
-      const char *shaderName = geom->getShaderName(name_idx);
-      if (strstr(shaderName, "height_patch"))
-        isPatch = true;
+      for (int name_idx = 0; name_idx < geom->getShaderNamesCount(); name_idx++)
+      {
+        const char *shaderName = geom->getShaderName(name_idx);
+        if (strstr(shaderName, "height_patch"))
+          isPatch = true;
+      }
     }
     for (StaticGeometryNode *node : geom->getGeometryContainer()->nodes)
       if (node)
       {
-        int l = node->script.getInt("layer", 0);
-        if (l != layer || node->script.getInt("stage", 0) != 0)
+        if (node->layer != layer || node->stage != 0)
         {
           changed = true;
           node->flags |= StaticGeometryNode::FLG_OPERATIVE_HIDE;

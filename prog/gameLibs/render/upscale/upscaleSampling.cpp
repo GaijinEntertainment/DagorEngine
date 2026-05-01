@@ -200,7 +200,7 @@ void UpscaleSamplingTex::render(float goffset_x, float goffset_y, const DynRes *
     int w = dynamic_resolution ? dynamic_resolution->dynamicResolution.x : ti.w;
     int h = dynamic_resolution ? dynamic_resolution->dynamicResolution.y : ti.h;
 
-    d3d::set_render_target(target, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
     d3d::setview(0, 0, w, h, 0, 1);
     d3d::setscissor(0, 0, w, h);
     upsample_single.upscaleRenderer.render();

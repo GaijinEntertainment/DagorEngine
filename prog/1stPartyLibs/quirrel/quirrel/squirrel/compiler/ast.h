@@ -87,7 +87,6 @@
     DEF_TREE_OP(SETSLOT), \
     DEF_TREE_OP(CALL), \
     DEF_TREE_OP(TERNARY), \
-    DEF_TREE_OP(EXTERNAL_VALUE), \
     \
     DEF_TREE_OP(EXPR_MARK), \
     \
@@ -190,7 +189,6 @@ class AccessExpr;
 class LiteralExpr;
 class BinExpr;
 class CallExpr;
-class ExternalValueExpr;
 class TableExpr;
 class ClassExpr;
 class FunctionExpr;
@@ -212,7 +210,6 @@ public:
     LiteralExpr *asLiteral() const { assert(op() == TO_LITERAL); return (LiteralExpr *)this; }
     BinExpr *asBinExpr() const { assert(TO_NULLC <= op() && op() <= TO_MODEQ); return (BinExpr *)this; }
     CallExpr *asCallExpr() const { assert(op() == TO_CALL); return (CallExpr *)this; }
-    ExternalValueExpr *asExternal() const { assert(op() == TO_EXTERNAL_VALUE); return (ExternalValueExpr *)this; }
     TableExpr *asTableExpr() const { assert(op() == TO_TABLE || op() == TO_CLASS); return (TableExpr *)this; }
     ClassExpr *asClassExpr() const { assert(op() == TO_CLASS); return (ClassExpr *)this; }
     FunctionExpr *asFunctionExpr() const { assert(op() == TO_FUNCTION); return (FunctionExpr *)this; }
@@ -434,22 +431,6 @@ private:
         SQUnsignedInteger raw;
     } _v;
 
-};
-
-// Used in the analyzer for external bindings
-class ExternalValueExpr : public Expr {
-public:
-    ExternalValueExpr(const SQObject &from) : Expr(TO_EXTERNAL_VALUE, SourceSpan::invalid()), _value(from) {}
-    ExternalValueExpr(const SQObject &from, SourceSpan span) : Expr(TO_EXTERNAL_VALUE, span), _value(from) {}
-
-    void visitChildren(Visitor *visitor) {}
-    void transformChildren(Transformer *transformer) {}
-
-    SQObjectPtr& value() { return _value; }
-    const SQObjectPtr& value() const { return _value; }
-
-private:
-    SQObjectPtr _value; // To release this, ~ExternalValueExpr() dtor is called explicitly
 };
 
 enum IncForm {
@@ -1215,7 +1196,6 @@ public:
     virtual void visitClassExpr(ClassExpr *cls) { visitTableExpr(cls); }
     virtual void visitFunctionExpr(FunctionExpr *f) { visitExpr(f); }
     virtual void visitCommaExpr(CommaExpr *expr) { visitExpr(expr); }
-    virtual void visitExternalValueExpr(ExternalValueExpr *expr) { visitExpr(expr); }
 
     virtual void visitStmt(Statement *stmt) { visitNode(stmt); }
     virtual void visitBlock(Block *block) { visitStmt(block); }
@@ -1277,7 +1257,6 @@ public:
   virtual Node *transformClassExpr(ClassExpr *cls) { return transformTableExpr(cls); }
   virtual Node *transformFunctionExpr(FunctionExpr *f) { return transformExpr(f); }
   virtual Node *transformCommaExpr(CommaExpr *expr) { return transformExpr(expr); }
-  virtual Node *transformExternalValueExpr(ExternalValueExpr *expr) { return transformExpr(expr); }
 
   virtual Node *transformStmt(Statement *stmt) { return transformNode(stmt); }
   virtual Node *transformBlock(Block *block) { return transformStmt(block); }
@@ -1403,8 +1382,6 @@ void Node::visit(V *visitor) {
         visitor->visitCallExpr(static_cast<CallExpr *>(this)); return;
     case TO_TERNARY:
         visitor->visitTerExpr(static_cast<TerExpr *>(this)); return;
-    case TO_EXTERNAL_VALUE:
-        visitor->visitExternalValueExpr(static_cast<ExternalValueExpr *>(this)); return;
         //case TO_EXPR_MARK:
     case TO_VAR:
         visitor->visitVarDecl(static_cast<VarDecl *>(this)); return;
@@ -1521,8 +1498,6 @@ Node *Node::transform(T *transformer) {
     return transformer->transformCallExpr(static_cast<CallExpr *>(this));
   case TO_TERNARY:
     return transformer->transformTerExpr(static_cast<TerExpr *>(this));
-  case TO_EXTERNAL_VALUE:
-    return transformer->transformExternalValueExpr(static_cast<ExternalValueExpr *>(this));
     //case TO_EXPR_MARK:
   case TO_VAR:
     return transformer->transformVarDecl(static_cast<VarDecl *>(this));

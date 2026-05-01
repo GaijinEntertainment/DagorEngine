@@ -302,6 +302,7 @@ public:
 
   static bool isSplineCacheValid;
   static bool objectWasMoved, objectWasRotated, objectWasScaled;
+  static bool isSplineObjectsAreLoading;
 
 protected:
   Props props;

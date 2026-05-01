@@ -92,3 +92,7 @@ entity{
 entity{
   _template:t="lens_flare_renderer"
 }
+
+entity{
+  _template:t="dynamic_lighting"
+}

@@ -212,7 +212,8 @@ foreach
 
 ::
 
-    'foreach' '(' [index_id','] value_id 'in' exp ')' stat
+    value_pat   := id | '[' destr_fields ']' | '{' destr_fields '}'
+    'foreach' '(' [index_id','] value_pat 'in' exp ')' stat
 
 Executes a statement for every element contained in an array, table, class, string or generator.
 If exp is a generator it will be resumed every iteration as long as it is alive; the value will
@@ -225,6 +226,22 @@ from 0.::
     //or
     foreach (val in a)
         println ($"value={val}")
+
+The iteration value may also be a destructuring pattern, in which case the
+yielded value is unpacked into the named bindings on each iteration.
+Default values and type annotations are supported in the same way as for
+:ref:`destructuring assignments <destructuring_assignment>`.::
+
+    foreach ([a, b] in [[1, 2], [3, 4]])
+        println(a, b)
+
+    foreach (i, {x, y} in [{x = 1, y = 2}, {x = 3, y = 4}])
+        println(i, x, y)
+
+    foreach ({n: int = 0} in [{n = 5}, {}])
+        println(n)
+
+See :ref:`destructuring_assignment` for the full pattern syntax.
 
 -------
 break

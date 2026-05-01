@@ -404,6 +404,57 @@ macro WATER_3D_DEFERRED_COMMON_VS()
       worldPos.y = lerp(cpu_viewpos_water_level, worldPos.y, cpuWaterLevelInterpolation);
       distFade *= cpuWaterLevelInterpolation;
     }
+
+    // Custom dng function to calculate flowmap parameters,
+    // DNG uses a double-sample warp on cascade 0 to compute a cross-product foam term,
+    // whereas the WT shared version only accumulates XZ flow (no foam, no warp).
+    void calcWaterFlowmapParamsDNG(float3 worldPos, float viewDist, out float3 worldPos_a, out float3 worldPos_b, out float3 flowmapSample)
+    {
+      float2 windVec = wind_dir_speed.xy * cascadesTexelScale * (water_wind_strength + 0.5);
+
+      float3 flowmapBias = float3(0.5, 0.5, 0);
+      flowmapSample = flowmapBias;
+      float2 flowmapUV = worldPos.xz * world_to_flowmap.xy + world_to_flowmap.zw;
+      if (all(flowmapUV >= 0) && all(flowmapUV <= 1))
+      {
+        float3 flowmapSample1 = tex2Dlod(water_flowmap_tex, float4(flowmapUV, 0, 0)).xyz - flowmapBias;
+        float2 flowmapUV2 = flowmapUV + flowmapSample1.xy * world_to_flowmap.xy;
+        float3 flowmapSample2 = tex2Dlod(water_flowmap_tex, float4(flowmapUV2, 0, 0)).xyz - flowmapBias;
+        float flowmapFoam = abs(dot(float2(flowmapSample1.x, flowmapSample1.y), float2(flowmapSample2.y, -flowmapSample2.x)));
+        flowmapFoam = saturate(pow(flowmapFoam, water_flowmap_strength.z) * water_flowmap_strength.y);
+        flowmapSample += flowmapSample1 * water_flowmap_strength.x;
+        flowmapSample.z += flowmapFoam;
+      }
+      float2 flowmapUVAdd0 = worldPos.xz * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
+      if (all(flowmapUVAdd0 >= 0) && all(flowmapUVAdd0 <= 1))
+      {
+        float flowmapStrengthAdd0 = saturate(viewDist * water_flowmap_strength_add_0.x + water_flowmap_strength_add_0.y) * water_flowmap_strength_add_0.z;
+        float3 flowmapSampleAdd0 = tex2Dlod(water_flowmap_tex_add_0, float4(flowmapUVAdd0, 0, 0)).xyz;
+        flowmapSample += flowmapSampleAdd0 * flowmapStrengthAdd0;
+      }
+      BRANCH
+      if (water_flowmap_cascades >= 2)
+      {
+        float2 flowmapUVAdd1 = worldPos.xz * world_to_flowmap_add_1.xy + world_to_flowmap_add_1.zw;
+        if (all(flowmapUVAdd1 >= 0) && all(flowmapUVAdd1 <= 1))
+        {
+          float flowmapStrengthAdd1 = saturate(viewDist * water_flowmap_strength_add_1.x + water_flowmap_strength_add_1.y) * water_flowmap_strength_add_1.z;
+          float flowmapSampleAdd1 = tex2Dlod(water_flowmap_tex_blur, float4(flowmapUVAdd1, 0, 0)).x;
+          flowmapSample.z += flowmapSampleAdd1 * flowmapStrengthAdd1;
+        }
+      }
+
+      float2 flowmapVec = (flowmapSample.xy - flowmapBias.xy - windVec) * water_flowmap_fading;
+      float flowmapTime = getFlowmapTime();
+      float2 flowmapVec_a = flowmapVec * frac(flowmapTime + 0.0);
+      float2 flowmapVec_b = flowmapVec * frac(flowmapTime + 0.5);
+
+      worldPos_a = worldPos;
+      worldPos_b = worldPos;
+
+      worldPos_a.xz += flowmapVec_a * water_flowmap_multiplier;
+      worldPos_b.xz += flowmapVec_b * water_flowmap_multiplier;
+    }
   }
   if (water_tech == dng)
   {

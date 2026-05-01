@@ -112,6 +112,7 @@ class DynamicShadowRenderExtender;
 class EnviCover;
 
 enum class WaterRenderMode;
+enum class MainNodeRenderPass;
 
 namespace light_probe
 {
@@ -140,8 +141,9 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend struct WRDispatcher;
 
   friend eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueDynamicsNodes(const char *prev_region_ns);
-  friend dafg::NodeHandle makeOpaqueDynamicsNode();
+  friend dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass);
   friend eastl::fixed_vector<dafg::NodeHandle, 4> makeControlOpaqueStaticsNodes(const char *prev_region_ns);
+  friend eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace, bool, MainNodeRenderPass);
   friend eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool);
 
   friend dafg::NodeHandle makePrepareGbufferNode(
@@ -168,9 +170,9 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend eastl::array<dafg::NodeHandle, 2> makeExternalFinalFrameControlNodes(bool requires_multisampling);
   friend dafg::NodeHandle makePostfxTargetProducerNode(bool requires_multisampling);
   friend dafg::NodeHandle makeAimDofRestoreNode();
-  friend dafg::NodeHandle makeGroundNode(bool early);
+  friend dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode);
   friend eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *level_blk);
-  friend dafg::NodeHandle makeTransparentSceneLateNode();
+  friend dafg::NodeHandle makeTransparentSceneLateNode(MainNodeRenderPass mode);
   friend dafg::NodeHandle makeAcesFxTransparentNode();
 
   friend dafg::NodeHandle makeAfterWorldRenderNode();

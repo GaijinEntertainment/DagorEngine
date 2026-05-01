@@ -34,7 +34,7 @@ public:
     nspaceId = nspace_id;
     nameId = asset_nid;
     virtualBlk = false;
-    return props.load(fname);
+    return reloadBlk(fname);
   }
 
   void setAssetData(int folder_idx, int file_nid, int asset_type)

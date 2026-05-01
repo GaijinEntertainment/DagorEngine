@@ -15,12 +15,13 @@ include_optional "tree_burning.dshl"
 include "tree_burning_stub.dshl"
 include "gbuffer_mixing_tex.dshl"
 include_optional "burnt_ground/shaders/burnt_grass.dshl"
+include_optional "triangle_size_debug.dshl"
 
 define_macro_if_not_defined INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
 endmacro
 
 int rendinst_render_pass = 0;
-interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap;
+interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap < 10, rendinst_render_pass_triangle_debug;
 int fluid_wind_support_assume = 0;
 interval fluid_wind_support_assume: off < 1, on;
 
@@ -244,3 +245,12 @@ macro USE_RENDINST_IMPOSTOR_SHADOW()
 
 endmacro
 
+bool is_triangle_size_debug = rendinst_render_pass == rendinst_render_pass_triangle_debug;
+
+macro RI_TRIANGLE_SIZE_DEBUG_PS()
+  if ((allow_triangle_size_debug == no && is_triangle_size_debug) || !hardware.dx12)
+  {
+    dont_render;
+  }
+  TRIANGLE_SIZE_DEBUG_PS()
+endmacro

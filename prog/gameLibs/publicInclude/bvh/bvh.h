@@ -180,17 +180,8 @@ struct UniqueAS
   Sbuffer *getScratchBuffer() const { return scratchBuffer.get(); }
   uint64_t getGPUAddress() const { return gpuAddress; }
   uint32_t getASSize() const { return asSize; }
-  // This code should be used, but a bug in the D3D12 validation layers always expect the larger build size.
-  // So play along with that now.
-  // uint32_t getBuildScratchSize() const { return buildScratchSize; }
-  // uint32_t getUpdateScratchSize() const { return updateScratchSize; }
-#if _TARGET_C2
-
-
-#else
-  uint32_t getBuildScratchSize() const { return max(buildScratchSize, updateScratchSize); }
-  uint32_t getUpdateScratchSize() const { return max(buildScratchSize, updateScratchSize); }
-#endif
+  uint32_t getBuildScratchSize() const { return buildScratchSize; }
+  uint32_t getUpdateScratchSize() const { return updateScratchSize; }
 
   void reset()
   {

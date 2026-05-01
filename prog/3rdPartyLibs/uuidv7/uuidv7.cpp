@@ -67,7 +67,8 @@ int uuid7_from_string(const char *str, int str_len, uint8_t uuid[16])
     return false;
 
   int i = 0;
-  while (*str)
+  const char *strEnd = str + str_len;
+  while (str < strEnd)
   {
     if (*str == '-')
     {

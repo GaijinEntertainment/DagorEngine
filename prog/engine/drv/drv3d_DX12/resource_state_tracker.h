@@ -5154,7 +5154,7 @@ public:
             cmd.discardResource(tex->getHandle(), nullptr);
 
             cmd.setResourceHeap(descriptors.getActiveHandle(), descriptors.getBindlessGpuAddress());
-            auto clearPipeline = pipeMan.getClearPipeline(device_obj, tex->getFormat().asDxGiFormat());
+            auto clearPipeline = pipeMan.getClearPipeline(device_obj, tex->getFormat().asDxGiFormat<false>());
 
             if (!clearPipeline)
               return;

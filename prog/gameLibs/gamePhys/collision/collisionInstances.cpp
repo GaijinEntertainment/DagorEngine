@@ -227,7 +227,7 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
 
 CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc, const Point3 &vel, const Point3 &omega)
 {
-  if (!rendinst::isRiGenDescInGrid(desc) || !isCollisionObjectEnabled(desc))
+  if (!rendinst::isRiGenInWorld(desc) || !isCollisionObjectEnabled(desc))
     return CollisionObject();
   TMatrix tm = rendinst::getRIGenMatrix(desc);
   if (CollisionObject cobj = updateTm(desc, tm))

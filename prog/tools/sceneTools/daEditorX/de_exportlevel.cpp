@@ -965,12 +965,17 @@ bool DagorEdAppWindow::gatherUsedResStats(dag::ConstSpan<IBinaryDataBuilder *> e
   if (loadLevelSettingsBlk(levelSettingsBlk))
     out_trh.setupTexQualityFromLevelBlk(levelSettingsBlk);
 
+  bool prevFastConv = texconvcache::set_fast_conv(false);
   for (int i = 0; i < exporters.size(); i++)
   {
     if (!exporters[i]->addUsedTextures(out_trh))
+    {
+      texconvcache::set_fast_conv(prevFastConv);
       return false;
+    }
     console->incDone();
   }
+  texconvcache::set_fast_conv(prevFastConv);
 
   if (console->hasErrors())
     return false;

@@ -127,7 +127,8 @@ void VirtualResourceRequestBase::bindToShaderVar(const char *shader_var_name, Re
       shader_var_name, registry->knownNames.getName(nodeId));
     return;
   }
-  bindings[svId] = Binding{BindingType::ShaderVar, resUid.resId, static_cast<bool>(resUid.history), reset, projected_tag, projector};
+  bindings[svId] = Binding{
+    BindingType::ShaderVar, resUid.resId, static_cast<bool>(resUid.history), reset, thisRequest().optional, projected_tag, projector};
 
   // NOTE: we don't need to set this for blobs, but it doesn't matter anyways
   thisRequest().usage.type = Usage::SHADER_RESOURCE;
@@ -143,8 +144,8 @@ void VirtualResourceRequestBase::bindAsView(ResourceSubtypeTag projected_tag, Ty
       registry->knownNames.getName(nodeId));
     return;
   }
-  bindings[FAKE_ID_FOR_VIEW_MATRIX_BINDINGS] =
-    Binding{BindingType::ViewMatrix, resUid.resId, static_cast<bool>(resUid.history), false, projected_tag, projector};
+  bindings[FAKE_ID_FOR_VIEW_MATRIX_BINDINGS] = Binding{
+    BindingType::ViewMatrix, resUid.resId, static_cast<bool>(resUid.history), false, thisRequest().optional, projected_tag, projector};
 }
 
 void VirtualResourceRequestBase::bindAsProj(ResourceSubtypeTag projected_tag, TypeErasedProjector projector)
@@ -157,8 +158,8 @@ void VirtualResourceRequestBase::bindAsProj(ResourceSubtypeTag projected_tag, Ty
       registry->knownNames.getName(nodeId));
     return;
   }
-  bindings[FAKE_ID_FOR_PROJ_MATRIX_BINDINGS] =
-    Binding{BindingType::ProjMatrix, resUid.resId, static_cast<bool>(resUid.history), false, projected_tag, projector};
+  bindings[FAKE_ID_FOR_PROJ_MATRIX_BINDINGS] = Binding{
+    BindingType::ProjMatrix, resUid.resId, static_cast<bool>(resUid.history), false, thisRequest().optional, projected_tag, projector};
 }
 
 void VirtualResourceRequestBase::bindAsVertexBuffer(uint32_t stream, uint32_t stride)

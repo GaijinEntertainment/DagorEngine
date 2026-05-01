@@ -327,9 +327,6 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   turbulenceFoamEnabled(false),
   depthRendererEnabled(depth_renderer),
   ssrRendererEnabled(ssr_renderer),
-  detailsWeightDist(100.0f, 300.0f),
-  detailsWeightMin(300.0f, 500.0f, 5000.0f, 6000.0f),
-  detailsWeightMax(300.0f, 500.0f, 300.0f, 1300.0f),
   lastLodExtension(80000.0f),
   computeGradientsEnabled(false),
   forceTessellation(false),
@@ -610,6 +607,7 @@ WaterNVRender::~WaterNVRender()
   closeFoam();
   reset();
   numCascades = 0;
+  waterHeightmapVdata.close();
 }
 
 void WaterNVRender::simulateAllAt(double time)
@@ -1273,10 +1271,6 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     ShaderGlobal::set_float4(cascadesLodResolution0123VarId, cascadesLodResolution0123);
     ShaderGlobal::set_float4(cascadesLodResolution4567VarId, cascadesLodResolution4567);
   }
-
-  static int detailsWeightVarId = get_shader_variable_id("details_weight", true);
-  ShaderGlobal::set_float4(detailsWeightVarId,
-    Color4::xyzw(lerp(detailsWeightMin, detailsWeightMax, cvt(originAlt, detailsWeightDist.x, detailsWeightDist.y, 0.0f, 1.0f))));
 
   //
   dag::ConstSpan<eastl::pair<float, int>> waveLods =

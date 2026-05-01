@@ -745,6 +745,13 @@ struct DeviceDriverCapabilitiesBase
    * \platformtable{hasBarrierNone,c,a,c,a,c,c,c,c,c,c,r}
    */
   bool hasBarrierNone : 1;
+  /**
+   * \capbrief Supports query about graphics-pipeline activity
+   *
+   * \someNYI
+   * \platformtable{hasPipelineStatisticsQuery,c,a,c,a,c,c,c,c,c,c,r}
+   */
+  bool hasPipelineStatisticsQuery : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -905,6 +912,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = true;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for \scarlett
@@ -1114,6 +1123,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1275,6 +1286,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1419,6 +1432,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1572,6 +1587,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1665,6 +1682,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1799,6 +1818,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasNvidiaRayTraceShaderExecutionReorder = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for
@@ -1888,6 +1909,8 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasProperUAVSupport = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBarrierNone }
   static constexpr bool hasBarrierNone = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasPipelineStatisticsQuery }
+  static constexpr bool hasPipelineStatisticsQuery = false;
 };
 /**
  * \brief Optimized capabilities structure, hiding bitfield entries with static const values of known platform features for

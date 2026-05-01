@@ -42,9 +42,13 @@ macro DO_INIT_FOM_SHADOWS_BINDLESS(stage)
   }
   hlsl(stage)
   {
+    #ifndef global_samplers_array_defined
+      BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
+      #define global_samplers_array_defined
+    #endif
     #define fom_shadows_cos uniformBindlessTex2D(bvh_textures, fom_shadows_bindless_slots.y)
     #define fom_shadows_sin uniformBindlessTex2D(bvh_textures, fom_shadows_bindless_slots.x)
-    #define fom_shadows_cos_samplerstate bvh_samplers[fom_shadows_bindless_slots.z]
+    #define fom_shadows_cos_samplerstate global_samplers_array[fom_shadows_bindless_slots.z]
     #define FOM_USES_BINDLESS 1
   }
 endmacro

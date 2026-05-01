@@ -5,6 +5,7 @@
 #pragma once
 
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 
 
@@ -73,6 +74,21 @@ public:
 public:
   DataBlock props;
 
+  dag::ConstSpan<SimpleString> getSrcIncludes() const { return srcIncludes; }
+
+  bool reloadBlk(const char *fname)
+  {
+    struct IncludeCapture : DataBlock::IFileNotify
+    {
+      dag::Vector<SimpleString, eastl::allocator, false> paths;
+      void onFileLoaded(const char *included_fname) override { paths.push_back() = included_fname; }
+    } capture;
+    bool res = dblk::load(props, fname, dblk::ReadFlags(), &capture);
+    capture.paths.shrink_to_fit();
+    srcIncludes = eastl::move(capture.paths);
+    return res;
+  }
+
 protected:
   int nameId, fileNameId;
   short folderIdx;
@@ -81,6 +97,7 @@ protected:
   unsigned char ruleIdx = 0xFF;
   unsigned short globUnique : 1, virtualBlk : 1, userFlags : 14;
   DagorAssetMgr &mgr;
+  dag::Vector<SimpleString, eastl::allocator, false> srcIncludes;
 
   DagorAsset(DagorAssetMgr &m) :
     mgr(m), folderIdx(-1), assetType(-1), nameId(-1), nspaceId(-1), fileNameId(-1), globUnique(0), virtualBlk(0), userFlags(0)

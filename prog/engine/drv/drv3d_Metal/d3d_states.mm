@@ -12,6 +12,7 @@
 
 #include "render.h"
 #include "drv_assert_defs.h"
+#include "drv_log_defs.h"
 #include <drv/3d/dag_res.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
@@ -54,7 +55,7 @@ namespace drv3d_metal
     0,    //int maxclipplanes;
     64,     //int maxstreams;
     64,     //int maxstreamstr;
-    1024,   //int maxvpconsts;
+    4096,   //int maxvpconsts;
 
 
     65536 * 4, 65536 * 4, //int maxprims,maxvertind;
@@ -568,7 +569,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
           [man startCaptureWithDescriptor : desc
                                     error : &error];
           if (error)
-            logerr("Failed to start capture, error %s",
+            D3D_ERROR("Failed to start capture, error %s",
                   [[error localizedDescription] UTF8String]);
           [desc release];
 
@@ -898,7 +899,10 @@ static MTLTextureDescriptor *createTextureDescriptor(const ResourceDescription &
   G_ASSERT(get_sample_count(cflag) == 1);
 
   pTexDesc.storageMode = MTLStorageModePrivate;
-  pTexDesc.pixelFormat = drv3d_metal::Texture::format2Metal(cflag & TEXFMT_MASK);
+  bool srgb_read = cflag & TEXCF_SRGBREAD, srgb_write = cflag & TEXCF_SRGBWRITE;
+  MTLPixelFormat linear_format = drv3d_metal::Texture::format2Metal(cflag & TEXFMT_MASK);
+  MTLPixelFormat pixel_format = srgb_read ? drv3d_metal::Texture::format2MetalsRGB(cflag & TEXFMT_MASK) : linear_format;
+  pTexDesc.pixelFormat = pixel_format;
 
   if (pTexDesc.pixelFormat == MTLPixelFormatDepth32Float ||
       pTexDesc.pixelFormat == MTLPixelFormatDepth32Float_Stencil8)
@@ -912,7 +916,8 @@ static MTLTextureDescriptor *createTextureDescriptor(const ResourceDescription &
   is_depth_stencil = is_rt && is_depth_format_flg(cflag);
 
   bool as_uint = (cflag & TEXCF_UNORDERED) && canAliasToUint(cflag & TEXFMT_MASK);
-  if (pTexDesc.pixelFormat == MTLPixelFormatDepth32Float_Stencil8 || as_uint)
+  bool no_srgb = (cflag & TEXCF_UNORDERED) && srgb_read && pixel_format != linear_format;
+  if (pTexDesc.pixelFormat == MTLPixelFormatDepth32Float_Stencil8 || as_uint || no_srgb || (is_rt && (srgb_write != srgb_read)))
     pTexDesc.usage |= MTLTextureUsagePixelFormatView;
 
   return pTexDesc;

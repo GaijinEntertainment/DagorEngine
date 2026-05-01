@@ -44,7 +44,11 @@ struct RiexManager
   DynamicShadowRenderExtender::Handle shadowExtensionHandle;
 };
 
-void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_builder, RiexManager &manager, NodeInserter node_inserter);
+void riex_finalize_view(const ViewInfo &view_info,
+  const ViewBuilder &view_builder,
+  RiexManager &manager,
+  NodeInserter node_inserter,
+  bool is_triangle_size_debug);
 
 void riex_finalize(RiexManager &manager);
 

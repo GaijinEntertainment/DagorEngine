@@ -129,8 +129,7 @@ struct WRDispatcher
     SSAO = 1u << 1u,
     GI = 1u << 2u,
     SSR = 1u << 3u,
-    MOTION_VECTOR = 1u << 4u,
-    REINIT_TARGET = 1u << 5u,
+    REINIT_TARGET = 1u << 4u,
   };
   static void recreateRayTracingDependentNodes(uint32_t features_to_reset);
 };

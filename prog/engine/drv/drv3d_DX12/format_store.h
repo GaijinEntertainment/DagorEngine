@@ -17,11 +17,13 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
     CREATE_FLAGS_FORMAT_SHIFT = 24,
     // one additional entry for the default
     MAX_FORMAT_COUNT = (TEXFMT_LAST_DEPTH >> CREATE_FLAGS_FORMAT_SHIFT) - (TEXFMT_A2R10G10B10 >> CREATE_FLAGS_FORMAT_SHIFT) + 1 + 1,
-    BITS = BitsNeeded<MAX_FORMAT_COUNT>::VALUE
+    BITS_FORMAT = BitsNeeded<MAX_FORMAT_COUNT>::VALUE,
+    BITS = BITS_FORMAT + 2
   };
-  ADD_BITFIELD_MEMBER(isSrgb, BITS, 1)
-  ADD_BITFIELD_MEMBER(linearFormat, 0, BITS)
-  ADD_BITFIELD_MEMBER(index, 0, BITS + 1)
+  ADD_BITFIELD_MEMBER(srgbRead, BITS_FORMAT + 1, 1)
+  ADD_BITFIELD_MEMBER(srgbWrite, BITS_FORMAT, 1)
+  ADD_BITFIELD_MEMBER(linearFormat, 0, BITS_FORMAT)
+  ADD_BITFIELD_MEMBER(index, 0, BITS)
 
   BEGIN_BITFIELD_TYPE(CreateFlagFormat, uint32_t)
     ADD_BITFIELD_MEMBER(format, 24, 8)
@@ -39,8 +41,9 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
     fmt.setFromFlagTexFlags(cflg);
     return fmt;
   }
-  DXGI_FORMAT asDxGiTextureCreateFormat() const;
+  DXGI_FORMAT asDxGiResourceCreateFormat() const;
   DXGI_FORMAT asDxGiBaseFormat() const;
+  template <bool use_for_read>
   DXGI_FORMAT asDxGiFormat() const;
   DXGI_FORMAT asLinearDxGiFormat() const;
   DXGI_FORMAT asSrgbDxGiFormat() const;
@@ -48,27 +51,28 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   FormatStore getLinearVariant() const
   {
     FormatStore r = *this;
-    r.isSrgb = 0;
+    r.srgbRead = r.srgbWrite = 0;
     return r;
   }
   FormatStore getSRGBVariant() const
   {
     FormatStore r = *this;
-    r.isSrgb = 1;
+    r.srgbRead = r.srgbWrite = 1;
     return r;
   }
   void setFromFlagTexFlags(uint32_t flags)
   {
     CreateFlagFormat fmt(flags);
     linearFormat = fmt.format;
-    isSrgb = fmt.srgbRead | fmt.srgbWrite;
+    srgbRead = fmt.srgbRead;
+    srgbWrite = fmt.srgbWrite;
   }
   uint32_t asTexFlags() const
   {
     CreateFlagFormat fmt;
     fmt.format = linearFormat;
-    fmt.srgbRead = isSrgb;
-    fmt.srgbWrite = isSrgb;
+    fmt.srgbRead = srgbRead;
+    fmt.srgbWrite = srgbWrite;
     return fmt.wrapper.value;
   }
   bool isSampledAsFloat() const
@@ -133,6 +137,7 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   bool isBlockCompressed() const;
   uint32_t getBytesPerPixelBlock(uint32_t *block_x = NULL, uint32_t *block_y = NULL) const;
   uint32_t getBytesPerPixelBlockPerPlane(uint32_t * block_x, uint32_t * block_y, uint32_t plane_index) const;
+  template <bool use_for_read>
   const char *getNameString() const;
   // returns true if the format can be represented with this storage
   static bool canBeStored(DXGI_FORMAT fmt);

@@ -263,7 +263,7 @@ static void create_meshes(IPolygonGenObj::Geom &g, const char *parent_name, land
       node->flags = genGeom.flags | StaticGeometryNode::FLG_NO_RECOMPUTE_NORMALS;
       node->normalsDir = genGeom.normalsDir;
       if (genGeom.stage)
-        node->script.setInt("stage", genGeom.stage);
+        node->script.setInt("stage", node->stage = genGeom.stage);
       if (!genGeom.layerTag.empty())
         node->script.setStr("layerTag", genGeom.layerTag);
 
@@ -412,7 +412,7 @@ static void create_meshes(IPolygonGenObj::Geom &g, const char *parent_name, land
       node->flags = genGeom.flags | StaticGeometryNode::FLG_NO_RECOMPUTE_NORMALS;
       node->normalsDir = genGeom.normalsDir;
       if (genGeom.stage)
-        node->script.setInt("stage", genGeom.stage);
+        node->script.setInt("stage", node->stage = genGeom.stage);
       if (!genGeom.layerTag.empty())
         node->script.setStr("layerTag", genGeom.layerTag);
 

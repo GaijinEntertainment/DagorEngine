@@ -4,6 +4,26 @@
 #include "splineGenGeometryRepositoryES.cpp.inl"
 ECS_DEF_PULL_VAR(splineGenGeometryRepository);
 #include <daECS/core/internal/performQuery.h>
+//static constexpr ecs::ComponentDesc create_transparent_spline_triangle_debug_es_comps[] ={};
+static void create_transparent_spline_triangle_debug_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<CreateTriangleDebugNodes>());
+  create_transparent_spline_triangle_debug_es(static_cast<const CreateTriangleDebugNodes&>(evt)
+        );
+}
+static ecs::EntitySystemDesc create_transparent_spline_triangle_debug_es_es_desc
+(
+  "create_transparent_spline_triangle_debug_es",
+  "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryRepositoryES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, create_transparent_spline_triangle_debug_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<CreateTriangleDebugNodes>::build(),
+  0
+,"dev,render");
 static constexpr ecs::ComponentDesc load_spline_gen_template_params_ecs_query_comps[] =
 {
 //start of 10 ro components at [0]

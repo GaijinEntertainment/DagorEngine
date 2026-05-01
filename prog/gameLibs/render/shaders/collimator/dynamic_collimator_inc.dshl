@@ -1,3 +1,5 @@
+include "triangle_size_debug_transparent.dshl"
+
 macro DYNAMIC_COLLIMATOR_SHADER()
   DYNAMIC_BLOCK_TRANS()
   texture tex = material.texture.diffuse;
@@ -141,5 +143,12 @@ macro DYNAMIC_COLLIMATOR_SHADER()
       return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
     }
   }
-  compile("target_ps", "dynamic_simple_ps");
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "dynamic_simple_ps");
+  }
 endmacro

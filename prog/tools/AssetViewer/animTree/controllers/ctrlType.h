@@ -18,8 +18,13 @@
     DECL_CTRL(setParam), DECL_CTRL(twistCtrl), DECL_CTRL(eyeCtrl), DECL_CTRL(footLockerIK), DECL_CTRL(hasAttachment),              \
     DECL_CTRL(humanAim)
 
+#define PROC_CONTROLLERS_LIST                                                                                        \
+  DECL_CTRL(moveNode), DECL_CTRL(scaleNode), DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(alignEx), \
+    DECL_CTRL(alignNode), DECL_CTRL(lookat), DECL_CTRL(lookatNode), DECL_CTRL(compoundRotateShift)
+
 #define DECL_CTRL(x) String(#x)
 inline const Tab<String> ctrl_type = {CONTROLLERS_LIST, POST_BLEND_CONTROLLERS_LIST};
+inline const Tab<String> proc_ctrl_type = {PROC_CONTROLLERS_LIST};
 #undef DECL_CTRL
 
 #define DECL_CTRL(x) ctrl_type_##x

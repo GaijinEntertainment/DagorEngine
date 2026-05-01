@@ -275,7 +275,7 @@ void ec_update_imgui_single_hotkey_editor()
         else
           ec_editor_commands.changeHotkey(single_hotkey_editor->getEditorCommandId(), hotkeyIndex, keyChord.value());
       }
-      else
+      else if (keyChord.value() != 0) // when leaving shorcut blank on adding new shortcut
       {
         ec_editor_commands.addHotkey(single_hotkey_editor->getEditorCommandId(), keyChord.value());
       }

@@ -57,6 +57,58 @@ static ecs::EntitySystemDesc riex_view_finalize_es_es_desc
   ecs::EventSetBuilder<dagdp::EventViewFinalize>::build(),
   0
 ,nullptr,nullptr,"*");
+static constexpr ecs::ComponentDesc riex_triangle_size_debug_enable_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
+};
+static void riex_triangle_size_debug_enable_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<CreateTriangleDebugNodes>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dagdp::riex_triangle_size_debug_enable_es(static_cast<const CreateTriangleDebugNodes&>(evt)
+        , ECS_RW_COMP(riex_triangle_size_debug_enable_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc riex_triangle_size_debug_enable_es_es_desc
+(
+  "riex_triangle_size_debug_enable_es",
+  "prog/daNetGameLibs/daGdp/render/objects/riexES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riex_triangle_size_debug_enable_es_all_events),
+  make_span(riex_triangle_size_debug_enable_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<CreateTriangleDebugNodes>::build(),
+  0
+,"dev,render");
+static constexpr ecs::ComponentDesc riex_triangle_size_debug_disable_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
+};
+static void riex_triangle_size_debug_disable_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<DestroyTriangleDebugNodes>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dagdp::riex_triangle_size_debug_disable_es(static_cast<const DestroyTriangleDebugNodes&>(evt)
+        , ECS_RW_COMP(riex_triangle_size_debug_disable_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc riex_triangle_size_debug_disable_es_es_desc
+(
+  "riex_triangle_size_debug_disable_es",
+  "prog/daNetGameLibs/daGdp/render/objects/riexES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riex_triangle_size_debug_disable_es_all_events),
+  make_span(riex_triangle_size_debug_disable_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<DestroyTriangleDebugNodes>::build(),
+  0
+,"dev,render");
 static constexpr ecs::ComponentDesc riex_finalize_es_comps[] =
 {
 //start of 1 rw components at [0]

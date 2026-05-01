@@ -60,7 +60,8 @@ enum
   SHCOD_RWTEX_CS,  // 2p     | set r/w texture (UAV) to cs          | p1=ind p2=reg#
   SHCOD_RWBUF_VS,  // 2p     | set r/w buffer (UAV) to vs           | p1=ind p2=reg#
   SHCOD_RWTEX_VS,  // 2p     | set r/w texture (UAV) to vs          | p1=ind p2=reg#
-  SHCOD_NOP,
+
+  SHCOD_TEXTURE_STUBCOL, // 2p      | set texture stub color fallback     | p1=ind p2=reg#
   SHCOD_NOP,
   SHCOD_NOP,
   SHCOD_NOP,

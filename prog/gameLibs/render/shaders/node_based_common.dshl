@@ -1,7 +1,7 @@
 texture hmapMain always_referenced;
 float4 biom_attributes[32] always_referenced;
 texture static_shadow_tex always_referenced;
-sampler static_shadow_tex_cmpSampler always_referenced;
+sampler static_shadow_tex_samplerstate always_referenced;
 
 float4 nbs_params;
 float4 skylight_params;

@@ -123,8 +123,8 @@ bool DLSSSuperResolutionDirect::Initialize(VkInstance vk_instance, VkPhysicalDev
     {
       if (needsUpdatedDriver)
       {
-        logerr("NVIDIA DLSS cannot be loaded due to outdated driver. Minimum Driver Version required : %u.%u", minDriverVersionMajor,
-          minDriverVersionMinor);
+        D3D_ERROR("NVIDIA DLSS cannot be loaded due to outdated driver. Minimum Driver Version required : %u.%u",
+          minDriverVersionMajor, minDriverVersionMinor);
         return onFailure();
       }
       else

@@ -390,7 +390,11 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
     spline_gen_texture_n@smp2d = spline_gen_texture_n;
   }
 
-  if (dyn_model_render_pass == render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass == render_pass_normal)
   {
     DYNAMIC_SPLINE_GEN_PS_COMMON()
     if (shader == dynamic_refractive_spline_gen)

@@ -17,6 +17,7 @@
 #include <riGen/riGenExtra.h>
 #include "../globalManager.h"
 #include "riex.h"
+#include <triangleSizeDebug/triangleSizeDebug.h>
 
 namespace material_var
 {
@@ -230,7 +231,25 @@ static inline void riex_view_finalize_es(const dagdp::EventViewFinalize &evt, da
   const auto &viewInfo = evt.get<0>();
   const auto &viewBuilder = evt.get<1>();
   auto nodes = evt.get<2>();
-  riex_finalize_view(viewInfo, viewBuilder, dagdp__riex_manager, nodes);
+  const bool isTriangleSizeEnabled = evt.get<4>();
+  riex_finalize_view(viewInfo, viewBuilder, dagdp__riex_manager, nodes, isTriangleSizeEnabled);
+}
+
+ECS_TAG(render, dev)
+static inline void riex_triangle_size_debug_enable_es(const CreateTriangleDebugNodes &evt, dagdp::GlobalManager &dagdp__global_manager)
+{
+  if (!evt.systems.isDaGDP)
+    return;
+
+  dagdp__global_manager.destroyViews();
+  dagdp__global_manager.setTriangleDebugView(true);
+}
+
+ECS_TAG(render, dev)
+static inline void riex_triangle_size_debug_disable_es(const DestroyTriangleDebugNodes &, dagdp::GlobalManager &dagdp__global_manager)
+{
+  dagdp__global_manager.destroyViews();
+  dagdp__global_manager.setTriangleDebugView(false);
 }
 
 ECS_NO_ORDER

@@ -127,7 +127,17 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
 {
   if (!rigenSrv || !HmapLandPlugin::self)
     return;
-  if (!HmapLandPlugin::self->getlandClassMap().isFileOpened() && !HmapLandPlugin::self->isPseudoPlane())
+  // landClsMap is RAM-only now (commit f4a5c848); isFileOpened() is always
+  // false for it. The "ready" signal we need here is that the map has been
+  // sized (resizeLandClassMapFile ran), not that generateLandColors has
+  // populated its pixels -- reinitRIGen only consumes getMapSizeX/Y, never
+  // the pixel data. A stricter landClsMapGenerated gate would suppress the
+  // PID_LCMAP_SUBDIV resize path in hmlPlugin and the initial project-load
+  // call, both of which legitimately call reinitRIGen before the first
+  // generateLandColors pass; the RI-gen tables would then stay unbuilt
+  // until some unrelated later refresh. Export readiness still checks
+  // landClsMapGenerated directly (hmlIGenEditorPlugin::acceptObjects).
+  if (HmapLandPlugin::self->getlandClassMap().getMapSizeX() <= 0 && !HmapLandPlugin::self->isPseudoPlane())
     return;
 
   Tab<rendinst::gen::land::AssetData *> land_cls;
@@ -506,9 +516,9 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
             tile.resize(tile.TILED, rec[c]->landClass->tiled->data.size());
 
           tile.beginGenerate(tile.TILED);
-          objgenerator::generateTiledEntitiesInMaskedRect(*rec[c]->landClass->tiled, tiledByLandclassSubTypeId, 62,
-            HmapLandPlugin::self, tile.pool[tile.TILED], bmps[c], world2grid, tx * box_sz, ty * box_sz, box_sz, box_sz, world0x,
-            world0y, rendInst_atype);
+          objgenerator::generateTiledEntitiesInMaskedRect(*rec[c]->landClass->tiled, tiledByLandclassSubTypeId,
+            LayerHiddenMask::BIT_COUNT - 2, HmapLandPlugin::self, tile.pool[tile.TILED], bmps[c], world2grid, tx * box_sz, ty * box_sz,
+            box_sz, box_sz, world0x, world0y, rendInst_atype);
           tile.endGenerate(tile.TILED);
         }
 
@@ -521,9 +531,9 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
             tile.resize(tile.PLANTED, rec[c]->landClass->planted->ent.size());
 
           tile.beginGenerate(tile.PLANTED);
-          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, tiledByLandclassSubTypeId, 62,
-            HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c], world2grid, tx * box_sz, ty * box_sz, box_sz, box_sz, world0x,
-            world0y, 0, rendInst_atype);
+          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, tiledByLandclassSubTypeId,
+            LayerHiddenMask::BIT_COUNT - 2, HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c], world2grid, tx * box_sz,
+            ty * box_sz, box_sz, box_sz, world0x, world0y, 0, rendInst_atype);
           tile.endGenerate(tile.PLANTED);
         }
 

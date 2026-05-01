@@ -542,7 +542,7 @@ else:
     shutil.move(asdk_pkg_name+'/Microsoft.Direct3D.D3D12.nuspec', asdk_dest_folder)
     print('+++ Agility.SDK.{1} installed at {0}'.format(asdk_dest_folder, asdk_ver))
 
-# astcenc-4.5.1
+# astcenc-4.6.1
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
 if pathlib.Path(astcenc_dest_folder).exists():
   print('=== ASTC encoder 4.6.1 {0}, skipping setup'.format(astcenc_dest_folder))

@@ -17,6 +17,8 @@ void begin_event(const char *name);
 void end_event();
 void stop_ds(DrawStatSingle &ds);
 void start_ds(DrawStatSingle &ds);
+void begin_gpu_stats();
+void end_gpu_stats(uint64_t *result);
 
 bool get_gpu_thread_name(char *buf, const size_t max_len);
 } // namespace gpu_profiler

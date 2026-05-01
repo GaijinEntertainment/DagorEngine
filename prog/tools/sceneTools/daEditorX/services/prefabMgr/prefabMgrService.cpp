@@ -178,7 +178,7 @@ public:
 
     TMatrix tm;
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     if (stageIdx == prefabs::PrefabStage::LOFT_MASK_EXPORT && !(subtype_mask & groundObjectSubtypeMask))
       return;
@@ -209,7 +209,7 @@ public:
 
     TMatrix tm;
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     if (stageIdx == prefabs::PrefabStage::LOFT_MASK_EXPORT && !(subtype_mask & groundObjectSubtypeMask))
       return;
@@ -287,7 +287,7 @@ public:
       }
     return sum;
   }
-  void addGeometry(StaticGeometryContainer &cont, int node_flags, int entity_flags, int st_mask, uint64_t lh_mask = 0)
+  void addGeometry(StaticGeometryContainer &cont, int node_flags, int entity_flags, int st_mask, LayerHiddenMask lh_mask)
   {
     if (!geom)
       return;
@@ -749,7 +749,6 @@ public:
       return;
 
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
 
     for (int i = 0; i < p.size(); i++)
       p[i]->renderService(subtypeMask);
@@ -922,7 +921,7 @@ public:
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
       if (p[i]->checkStageIdx(stage_idx))
         p[i]->addGeometry(cont, StaticGeometryNode::FLG_RENDERABLE, 0, st_mask, lh_mask);
@@ -932,7 +931,7 @@ public:
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
       p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_GAME, st_mask, lh_mask);
   }
@@ -940,7 +939,7 @@ public:
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
       p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_EDITOR, st_mask, lh_mask);
   }

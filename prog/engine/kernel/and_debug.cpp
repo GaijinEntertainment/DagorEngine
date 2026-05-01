@@ -15,6 +15,9 @@
 
 char debug_internal::dbgFilepath[DAGOR_MAX_PATH];
 static char logDirPath[DAGOR_MAX_PATH];
+#if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0
+extern const unsigned MAX_LOG_FILE_SIZE;
+#endif
 
 using namespace debug_internal;
 
@@ -67,20 +70,19 @@ static int rotate_debug_files(const char *debugPath, const char *debugExt, const
   return count;
 }
 
-void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime_name, const size_t rotatedCount)
+void setup_debug_system(const char *exe_fname, const char *prefix, const char *debug_fname, bool datetime_name,
+  const size_t rotatedCount)
 {
-  static const char *BASE_LOG_NAME = "debug";
-
 #if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0
   const char *logExt = ".clog";
-  crypt_debug_setup(get_dagor_log_crypt_key(), 60 << 20 /* MAX_LOGS_FILE_SIZE */);
+  crypt_debug_setup(get_dagor_log_crypt_key(), MAX_LOG_FILE_SIZE);
 #else
   const char *logExt = "";
 #endif
 
   char logFilename[DAGOR_MAX_PATH];
   memset(logFilename, 0, sizeof(logFilename));
-  strcpy(logFilename, BASE_LOG_NAME);
+  strcpy(logFilename, debug_fname);
 
   char lastDbgPath[DAGOR_MAX_PATH];
   memset(dbgFilepath, 0, sizeof(dbgFilepath));
@@ -100,7 +102,7 @@ void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime
   else
   {
     const int logIndex = rotate_debug_files(logDirPath, logExt, rotatedCount);
-    SNPRINTF(logFilename, sizeof(logFilename), "%s%d", BASE_LOG_NAME, logIndex);
+    SNPRINTF(logFilename, sizeof(logFilename), "%s%d", debug_fname, logIndex);
   }
 
 #if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL == 0

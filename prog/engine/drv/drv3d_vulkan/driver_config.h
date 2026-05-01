@@ -49,6 +49,13 @@ struct DriverConfig
   // to system when memory release option is active
   // allows avoiding memory leaks while keeping reallocation overhead reasonable
   uint64_t resetCommandsReleasePeriodUs;
+  // will skip save of pipeline cache on shutdown if size is above this threshold
+  // game should use runtime defined points to save pipe cache (like on level load/change)
+  uint32_t pipelineCacheBlockingSaveMaxSizeMb;
+  // will skip save of pipeline cache entirely if size is above this threshold
+  // this means there is too much pipes or we trashed cache by something like caching all variants of various configs
+  // or we must allow system to handle bigger file sizes
+  uint32_t pipelineCacheMaxSizeMb;
 
   struct
   {
@@ -115,7 +122,7 @@ struct DriverConfig
     bool allowPredictedLatencyWaitWorker : 1;
     // issue fatal when NRP split is detected
     bool fatalOnNRPSplit : 1;
-    // trigger assertion when validation fails, otherwise trigger logerr
+    // trigger assertion when validation fails, otherwise trigger D3D_ERROR
     bool allowAssertOnValidationFail : 1;
     // enables RenderDoc layer if system provide it
     bool enableRenderDocLayer : 1;

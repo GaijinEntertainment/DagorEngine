@@ -281,7 +281,7 @@ void PhysObj::addCollisionToWorld()
 static inline bool apply_impulse_to_ri(rendinst::RendInstDesc &ri_desc, float at_time, Point3 &velocity, float impulse,
   const Point3 &impulse_dir, const Point3 &contact_pos, float speed)
 {
-  if (!rendinst::isRiGenDescInGrid(ri_desc))
+  if (!rendinst::isRiGenInWorld(ri_desc))
     return false;
   CachedCollisionObjectInfo *riCollisionInfo = rendinstdestr::get_or_add_cached_collision_object(ri_desc, at_time);
   if (!riCollisionInfo)

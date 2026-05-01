@@ -608,8 +608,6 @@ SQInteger SQLexer::ReadNumber()
 #define TSCIENTIFIC 4
 
     SQInteger type = TINT, firstchar = CUR_CHAR;
-    char *sTemp;
-    volatile SQFloat value;
     INIT_TEMP_STRING();
     NUM_NEXT();
     if(firstchar == '0' && sq_isdigit(CUR_CHAR))
@@ -677,17 +675,21 @@ SQInteger SQLexer::ReadNumber()
                 }
         }
 #else
-        value = (SQFloat)strtod(&_longstr[0], &sTemp);
-        _fvalue = value;
-        if(value == 0)
         {
-            for(int i = 0; i < _longstr.size(); i++)
+            char *sTemp;
+            volatile SQFloat value;
+            value = (SQFloat)strtod(&_longstr[0], &sTemp);
+            _fvalue = value;
+            if(value == 0)
             {
-                char c = _longstr[i];
-                if (!c || c == 'e' || c == 'E')
-                    break;
-                if (c != '.' && c != '0')
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_UNDERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                for(int i = 0; i < _longstr.size(); i++)
+                {
+                    char c = _longstr[i];
+                    if (!c || c == 'e' || c == 'E')
+                        break;
+                    if (c != '.' && c != '0')
+                        _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_UNDERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                }
             }
         }
 #endif

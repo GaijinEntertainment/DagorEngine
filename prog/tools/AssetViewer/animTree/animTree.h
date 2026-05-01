@@ -153,6 +153,8 @@ protected:
   bool createBlkIfNotExistWithDialog(String &path, PropPanel::ContainerPropertyControl *tree, TLeafHandle include_leaf);
   void saveIncludeChange(PropPanel::ContainerPropertyControl *panel, PropPanel::ContainerPropertyControl *tree,
     TLeafHandle include_leaf, DataBlock &props, const String &old_name, String &new_full_path, ParentLeafs parents);
+  DataBlock *findCtrlSettings(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, CtrlType type, DataBlock &out_props,
+    String &full_path, bool &out_is_proc_child, bool only_includes = false);
   void saveControllerSettings(PropPanel::ContainerPropertyControl *panel);
   void saveControllerParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
   void saveControllerBlocksSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data);

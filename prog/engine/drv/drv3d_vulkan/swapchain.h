@@ -32,7 +32,7 @@ struct SwapchainMode
   const char *modifySource;
 
   bool isFullscreenExclusiveAllowed();
-  bool isVsyncOn() const { return VK_PRESENT_MODE_IMMEDIATE_KHR != presentMode; }
+  bool isVsyncOn() const { return VK_PRESENT_MODE_FIFO_KHR == presentMode || VK_PRESENT_MODE_FIFO_RELAXED_KHR == presentMode; }
   void setHeadless() { surfaceAndWindow = {VulkanSurfaceKHRHandle{}, nullptr}; }
   bool isHdr() const { return usesHdr; }
   bool canDoHdr() const { return canUseHdr; }

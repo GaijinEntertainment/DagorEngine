@@ -296,7 +296,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
         ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
           output.pointToEye.w = worldPos.y - worldLocalPos.y;
         ##endif
-      ##elif (rendinst_render_pass != rendinst_render_pass_to_shadow)
+      ##elif (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
         output.normal.w = worldPos.y - worldLocalPos.y;
         output.normal.xyz = float3(0,0,0);
       ##endif
@@ -318,6 +318,10 @@ shader rendinst_flag_colored, rendinst_flag_layered
   if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   {
     RENDER_TO_SHADOW_PS()
+  }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
   }
   else
   {

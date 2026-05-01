@@ -48,15 +48,14 @@ static const carray<carray<eastl::pair<float, int>, 7>, fft_water::RENDER_GOOD> 
     {{{0.00f, 1}, {0.1f, 4}, {0.2f, 5}, {0.6f, 5}, {1.60f, 5}, {2.5f, 6}, {3.0f, 6}}},
     {{{0.00f, 3}, {0.1f, 5}, {0.2f, 6}, {1.2f, 6}, {1.60f, 7}, {2.5f, 7}, {3.0f, 7}}}}};
 
-#define GLOBAL_VARS_LIST         \
-  VAR(chop_fov)                  \
-  VAR(water_origin)              \
-  VAR(water_heightmap_region)    \
-  VAR(water_vertical_lod)        \
-  VAR(tess_distance)             \
-  VAR(chop_output_normal)        \
-  VAR(chop_detail_waves_enabled) \
-  VAR(details_weight)
+#define GLOBAL_VARS_LIST      \
+  VAR(chop_fov)               \
+  VAR(water_origin)           \
+  VAR(water_heightmap_region) \
+  VAR(water_vertical_lod)     \
+  VAR(tess_distance)          \
+  VAR(chop_output_normal)     \
+  VAR(chop_detail_waves_enabled)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -78,9 +77,6 @@ ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_qualit
   lod0TesselationAdditional(0),
   depthRendererEnabled(depth_renderer),
   ssrRendererEnabled(ssr_renderer),
-  detailsWeightDist(100.0f, 300.0f),
-  detailsWeightMin(300.0f, 500.0f, 5000.0f, 6000.0f),
-  detailsWeightMax(300.0f, 500.0f, 300.0f, 1300.0f),
   lastLodExtension(80000.0f),
   forceTessellation(false),
   maxWaveHeight(0.0f),
@@ -201,9 +197,6 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
 
   ShaderGlobal::set_float(tess_distanceVarId, lod0AreaRadius * 0.66f);
   ShaderGlobal::set_int(chop_output_normalVarId, render_mode == fft_water::RenderMode::WATER_DEPTH_SHADER ? 1 : 0);
-
-  ShaderGlobal::set_float4(details_weightVarId,
-    Color4::xyzw(lerp(detailsWeightMin, detailsWeightMax, cvt(originAlt, detailsWeightDist.x, detailsWeightDist.y, 0.0f, 1.0f))));
 
   float chopFov = 2.0f * atanf(1.0f / persp.hk);
   ShaderGlobal::set_float(chop_fovVarId, chopFov);

@@ -57,6 +57,10 @@ const size_t ANDROID_ROTATED_LOGS = 3;
 #endif
 #endif
 
+#ifndef DAGOR_DEBUG_LOG_NAME
+#define DAGOR_DEBUG_LOG_NAME "debug"
+#endif
+
 void DagorWinMainInit(int nCmdShow, bool debugmode);
 int DagorWinMain(int nCmdShow, bool debugmode);
 
@@ -726,6 +730,13 @@ SimpleString get_library_name(JavaVM *jvm, jobject activity)
   jclass ourActivity = jni->GetObjectClass(activity);
   JNI_ASSERT(jni, ourActivity);
 
+  jmethodID getLibraryNameFoLogging = jni->GetMethodID(ourActivity, "getLibraryNameFoLogging", "()Ljava/lang/String;");
+  if (jni->ExceptionCheck())
+  {
+    jni->ExceptionClear();
+    getLibraryNameFoLogging = NULL;
+  }
+
   jmethodID getLibraryName = jni->GetMethodID(ourActivity, "getLibraryName", "()Ljava/lang/String;");
   if (jni->ExceptionCheck()) // No method in class is normal case
   {
@@ -734,7 +745,7 @@ SimpleString get_library_name(JavaVM *jvm, jobject activity)
     return SimpleString("");
   }
 
-  jstring libraryName = (jstring)jni->CallObjectMethod(activity, getLibraryName);
+  jstring libraryName = (jstring)jni->CallObjectMethod(activity, getLibraryNameFoLogging ? getLibraryNameFoLogging : getLibraryName);
   JNI_ASSERT(jni, libraryName);
 
   const char *libraryNameC = jni->GetStringUTFChars(libraryName, NULL);
@@ -900,7 +911,8 @@ SimpleString get_intent_arguments(JavaVM *jvm, jobject activity)
 #undef JNI_ASSERT
 }
 
-extern void setup_debug_system(const char *exe_fname, const char *prefix, bool datetime_name, const size_t rotatedCount);
+extern void setup_debug_system(const char *exe_fname, const char *prefix, const char *debug_fname, bool datetime_name,
+  const size_t rotatedCount);
 
 static constexpr int MAX_ARGS_COUNT = 64;
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
@@ -991,7 +1003,7 @@ void android_main(struct android_app *state)
 
   SimpleString libraryName = get_library_name(jvm, activityObj);
   setup_debug_system((libraryName == "") ? "run" : libraryName, logsFolder.empty() ? externalDataPath : logsFolder.c_str(),
-    DAGOR_DBGLEVEL > 0, ANDROID_ROTATED_LOGS);
+    DAGOR_DEBUG_LOG_NAME, false, ANDROID_ROTATED_LOGS);
 
   g_android_joystick_events_free.set();
 

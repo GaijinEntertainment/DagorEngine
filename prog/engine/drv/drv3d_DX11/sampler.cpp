@@ -4,6 +4,7 @@
 
 #include <drv/3d/dag_sampler.h>
 #include "driver.h"
+#include "drv_log_defs.h"
 #include "validation.h"
 
 using namespace drv3d_dx11;
@@ -60,7 +61,7 @@ NO_UBSAN d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler
   {
     // We don't expect the number of unique samplers to be large. It is technically supported, but should not happen with real-world
     // use, unless there's some bug.
-    logerr("DX11: created %u unique samplers. This likely indicates a problem.", g_sampler_keys.size());
+    D3D_ERROR("DX11: created %u unique samplers. This likely indicates a problem.", g_sampler_keys.size());
   }
   return toHandle(nk);
 }

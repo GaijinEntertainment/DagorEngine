@@ -31,8 +31,6 @@ int laser_beam_use_angular_intensity_for_hero_only = 0;
 interval laser_beam_use_angular_intensity_for_hero_only: no <1, yes;
 assume_if_not_assumed laser_beam_use_angular_intensity_for_hero_only = no;
 
-interval special_vision : special_vision_off<1, thermal_vision;
-
 shader beam_tracers_tail
 {
   IMPORT_ON_TOP_CAMERA_IN_CAMERA(vs)
@@ -343,11 +341,6 @@ int beam_tracers_head_culledTracers_const_no = 8;
 
 shader beam_tracers_head
 {
-  if (special_vision == thermal_vision)
-  {
-    dont_render;
-  }
-
   supports global_frame;
   //cull_mode = none;
   z_write = false;

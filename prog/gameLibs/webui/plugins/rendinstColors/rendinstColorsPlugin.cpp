@@ -25,6 +25,7 @@
 
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstGenRender.h>
+#include <rendInst/riShaderConstBuffers.h>
 
 using namespace webui;
 
@@ -74,6 +75,8 @@ void on_rendinst_colors(RequestInfo *params)
     E3DCOLOR c1(r, g, b, a);
 
     rendinst::render::update_rigen_color(name, c0, c1);
+    rendinst::render::updateRiColorByName(name, c0, c1);
+
     html_response_raw(params->conn, "");
   }
   // else if (!strcmp(params->params[0], "detach")) {}

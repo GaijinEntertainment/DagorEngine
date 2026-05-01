@@ -104,8 +104,6 @@ CheckerVisitor::~CheckerVisitor() {
     if (p.second)
       p.second->~FunctionInfo();
   }
-  for (auto ev : externalValues)
-    ev->~ExternalValueExpr();
 }
 
 void CheckerVisitor::visitNode(Node *n) {
@@ -126,78 +124,16 @@ void CheckerVisitor::report(const Node *n, int32_t id, ...) {
   va_end(vargs);
 }
 
-void CheckerVisitor::reportImportSlot(int line, int column, const char *name) {
+void CheckerVisitor::report(int line, int col, int width, int32_t id, ...) {
   if (isEffectsGatheringPass)
     return;
 
-  int width = (int)strlen(name);
-  _ctx.reportDiagnostic(DiagnosticsId::DI_IMPORTED_NEVER_USED, line, column, width, name);
-}
+  va_list vargs;
+  va_start(vargs, id);
 
+  _ctx.vreportDiagnostic((enum DiagnosticsId)id, line, col, width, vargs);
 
-void CheckerVisitor::checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v) {
-  if (isEffectsGatheringPass)
-    return;
-
-  if (v->info->kind != SK_FOREACH)
-    return;
-
-  const FunctionExpr *thisScopeOwner = currentScope->owner;
-
-  if (v->info->ownedScope->owner == currentScope->owner)
-    return;
-
-  int32_t i = nodeStack.size() - 1;
-  assert(i > 0);
-
-  int32_t thisId = -1;
-
-  while (i >= 0) {
-    auto &m = nodeStack[i];
-
-    if (m.sst == SST_NODE) {
-      if (m.n == thisScopeOwner) {
-        thisId = i;
-        break;
-      }
-    }
-    --i;
-  }
-
-  assert(thisId > 0);
-
-  if (i > 1) { // call + foreach
-
-    auto &candidate = nodeStack[i - 1];
-
-    if (candidate.sst == SST_NODE && candidate.n->op() == TO_CALL) {
-      const CallExpr *call = candidate.n->asExpression()->asCallExpr();
-
-      bool found = false;
-      for (auto arg : call->arguments()) {
-        if (arg == thisScopeOwner) {
-          found = true;
-          break;
-        }
-      }
-
-      if (found) {// in call arguments
-        const Expr *callee = call->callee();
-        const char *name = nullptr;
-
-        if (callee->op() == TO_ID)
-          name = callee->asId()->name();
-        else if (callee->op() == TO_GETFIELD)
-          name = callee->asGetField()->fieldName();
-
-        if (name && nameLooksLikeCallsLambdaInPlace(name)) {
-          return;
-        }
-      }
-    }
-  }
-
-  report(id, DiagnosticsId::DI_ITER_IN_CLOSURE, id->name());
+  va_end(vargs);
 }
 
 void CheckerVisitor::checkIdUsed(const Id *id, const Node *p, ValueRef *v) {
@@ -292,12 +228,11 @@ void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
   if (isEffectsGatheringPass)
     return;
 
-  const Expr *r = acc->receiver();
-  r = maybeEval(r, true);
-  if (r->op() != TO_EXTERNAL_VALUE)
+  const ExternalValue *ev = findExternalValue(acc->receiver());
+  if (!ev)
     return;
 
-  const auto &container = r->asExternal()->value();
+  const SQObjectPtr &container = ev->value;
   if (sq_isinstance(container))
     return;
 
@@ -308,13 +243,13 @@ void CheckerVisitor::checkExternalField(const GetFieldExpr *acc) {
       report(acc, DI_MISSING_FIELD, acc->fieldName(), GetTypeName(container));
       char buf[128];
       snprintf(buf, sizeof(buf), "source of %s", GetTypeName(container));
-      report(r, DI_SEE_OTHER, buf);
+      report(ev->line, ev->column, ev->width, DI_SEE_OTHER, buf);
     }
     return;
   }
   sq_poptop(_ctx.getVm()); // pop the stack copy pushed by sq_obj_get
 
-  astValues[acc] = addExternalValue(rawVal, acc);
+  astValues[acc] = makeExternalValueRef(rawVal, acc);
 }
 
 static bool cannotBeNull(const Expr *e) {
@@ -1395,38 +1330,50 @@ void CheckerVisitor::checkAlreadyRequired(const CallExpr *call) {
 
   const char *moduleName = l->s();
 
-  if (!_ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
-    if (auto fv = findValueInScopes("require_optional"); fv && fv->expression && fv->expression->op() == TO_EXTERNAL_VALUE) {
-      auto vm = _ctx.getVm();
-      SQInteger top = sq_gettop(vm);
+  resolveRequire(call, moduleName);
+  noteRequiredModule(call, moduleName);
+}
 
-      sq_pushobject(vm, fv->expression->asExternal()->value());
-      sq_pushnull(vm);
-      sq_pushstring(vm, moduleName, -1);
+// Effectful: ask the host for the module's value (by calling require_optional
+// from the analyzer) and attach the result as an ExternalValue on the CallExpr.
+// Skipped when the user disabled it locally with `// -skip-require`.
+void CheckerVisitor::resolveRequire(const CallExpr *call, const char *moduleName) {
+  if (_ctx.isRequireDisabled(call->lineStart(), call->columnStart()))
+    return;
 
-      SQRESULT result = sq_call(vm, 2, true, false);
-      if (SQ_SUCCEEDED(result)) {
-        SQObject ret;
-        if (SQ_SUCCEEDED(sq_getstackobj(vm, -1, &ret)) && !sq_isnull(ret)) {
-          astValues[call] = addExternalValue(ret, call);
-        }
-        else if (do_report_missing_modules) {
-          report(call, DI_MISSING_MODULE, moduleName);
-          SQObjectPtr empty;
-          astValues[call] = addExternalValue(empty, call);
-        }
-      }
-      else if (do_report_missing_modules) {
-        report(call, DI_MISSING_MODULE, moduleName);
-        SQObjectPtr empty;
-        astValues[call] = addExternalValue(empty, call);
-      }
+  auto fv = findValueInScopes("require_optional");
+  if (!fv || !fv->externalValue)
+    return;
 
-      sq_settop(vm, top);
-    }
+  auto vm = _ctx.getVm();
+  SQInteger top = sq_gettop(vm);
 
+  sq_pushobject(vm, fv->externalValue->value);
+  sq_pushnull(vm);
+  sq_pushstring(vm, moduleName, -1);
+
+  SQObject ret;
+  bool ok = SQ_SUCCEEDED(sq_call(vm, 2, true, false))
+         && SQ_SUCCEEDED(sq_getstackobj(vm, -1, &ret))
+         && !sq_isnull(ret);
+
+  if (ok) {
+    astValues[call] = makeExternalValueRef(ret, call);
+  }
+  else if (do_report_missing_modules) {
+    report(call, DI_MISSING_MODULE, moduleName);
+    SQObjectPtr empty;
+    astValues[call] = makeExternalValueRef(empty, call);
+  }
+
+  sq_settop(vm, top);
+}
+
+// Structural: report DI_ALREADY_REQUIRED when the same top-level require/
+// require_optional appears twice in this file.
+void CheckerVisitor::noteRequiredModule(const CallExpr *call, const char *moduleName) {
   if (nodeStack.size() > 2)
-    return; // do not consider require which is not on TL
+    return; // do not consider require which is not on the top level
 
   if (requiredModules.find(moduleName) != requiredModules.end()) {
     report(call, DiagnosticsId::DI_ALREADY_REQUIRED, moduleName);
@@ -1650,6 +1597,7 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
 
   bool dummy;
   const FunctionInfo *info = findFunctionInfo(callExpr->callee(), dummy);
+  const ExternalValue *ev = nullptr;
   const SQFunctionProto *proto = nullptr;
   const SQNativeClosure *nclosure = nullptr;
 
@@ -1671,11 +1619,11 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
     }
   }
   else {
-    const ExternalValueExpr *ev = findExternalValue(callExpr->callee());
+    ev = findExternalValue(callExpr->callee());
     if (!ev)
       return;
 
-    const SQObject& v = ev->value();
+    const SQObject& v = ev->value;
     if (sq_isclosure(v)) {
       proto = _closure(v)->_function;
       funcName = sq_isstring(proto->_name) ? _stringval(proto->_name) : "unknown";
@@ -1711,7 +1659,10 @@ void CheckerVisitor::checkArguments(const CallExpr *callExpr) {
   if (!(effectiveParamSizeLB <= args.size() && args.size() <= maxParamSize)) {
     report(callExpr, DiagnosticsId::DI_PARAM_COUNT_MISMATCH, funcName,
       effectiveParamSizeLB, maxParamSize, args.size());
-    report(maybeEval(callExpr->callee(), true), DI_SEE_OTHER, "the function");
+    if (ev)
+      report(ev->line, ev->column, ev->width, DI_SEE_OTHER, "the function");
+    else
+      report(maybeEval(callExpr->callee()), DI_SEE_OTHER, "the function");
   }
 
   for (int i = 0; i < numParams; ++i) {
@@ -2031,7 +1982,6 @@ void CheckerVisitor::visitId(Id *id) {
   if (!v)
     return;
 
-  checkForeachIteratorCapturedByClosure(id, v);
   checkIdUsed(id, parentNode, v);
 }
 
@@ -3921,6 +3871,7 @@ void CheckerVisitor::applyAssignmentToScope(const BinExpr *bin) {
 
   v->expression = rhs;
   v->state = VRS_EXPRESSION;
+  v->externalValue = findExternalValue(rhs);
   v->flagsNegative = v->flagsPositive = 0;
   v->assigned = true;
   v->lastAssigneeScope = currentScope;
@@ -4109,6 +4060,7 @@ bool CheckerVisitor::isPotentiallyNullable(const Expr *e, std::unordered_set<con
   }
 
   e = maybeEval(e);
+  if (!e) return false;
 
   if (e->op() == TO_LITERAL) {
     const LiteralExpr *l = e->asLiteral();
@@ -4213,17 +4165,19 @@ bool CheckerVisitor::couldBeString(const Expr *e) {
   return false;
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e, bool allow_external) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e) {
   int32_t dummy = -1;
-  return maybeEval(e, dummy, allow_external);
+  return maybeEval(e, dummy);
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, bool allow_external) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId) {
   std::unordered_set<const Expr *> visited;
-  return maybeEval(e, evalId, visited, allow_external);
+  return maybeEval(e, evalId, visited);
 }
 
-const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited, bool allow_external) {
+const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited) {
+  if (!e)
+    return e;
 
   if (visited.find(e) != visited.end())
     return e;
@@ -4239,17 +4193,20 @@ const Expr *CheckerVisitor::maybeEval(const Expr *e, int32_t &evalId, std::unord
 
   evalId = v->evalIndex;
   if (v->hasValue()) {
-    if (!allow_external && v->expression && v->expression->op() == TO_EXTERNAL_VALUE)
+    // Stop at host-bound symbols: their value lives outside the AST in an
+    // ExternalValue. Callers that need the value use findExternalValue directly.
+    // Also stop when there is no AST expression to chase further.
+    if (v->externalValue || !v->expression)
       return e;
     // If this variable was initialized from another variable (aliased) and that source
     // variable has been reassigned since, stop evaluating the expression chain.
     // Example: let a = null; let b = a; a = 123; return b ?? 2
-    if (v->origin && v->expression && v->expression->op() == TO_ID) {
+    if (v->origin && v->expression->op() == TO_ID) {
       if (v->origin->evalIndex != v->originEvalIndex) {
         return e;
       }
     }
-    return maybeEval(v->expression, evalId, visited, allow_external);
+    return maybeEval(v->expression, evalId, visited);
   }
   else {
     return e;
@@ -4294,26 +4251,12 @@ void CheckerVisitor::computeNameRef(const GetFieldExpr *access, char *b, int32_t
   ptr += l;
 }
 
-const ExternalValueExpr *CheckerVisitor::findExternalValue(const Expr *e) {
-  const Expr *ee = maybeEval(e, true);
+const ExternalValue *CheckerVisitor::findExternalValue(const Expr *e) {
+  e = deparenStatic(e);
+  if (!e) return nullptr;
 
-  if (ee->op() == TO_EXTERNAL_VALUE)
-    return static_cast<const ExternalValueExpr *>(ee);
-
-  char buffer[128] = { 0 };
-  const char *name = computeNameRef(ee, buffer, sizeof buffer);
-  if (!name)
-    return nullptr;
-
-  const ValueRef *v = findValueInScopes(name);
-
-  if (!v || !v->hasValue())
-    return nullptr;
-
-  const Expr *expr = maybeEval(v->expression, true);
-
-  if (expr->op() == TO_EXTERNAL_VALUE)
-    return static_cast<const ExternalValueExpr *>(expr);
+  if (const ValueRef *v = findValueForExpr(e); v && v->externalValue)
+    return v->externalValue;
 
   return nullptr;
 }
@@ -4335,7 +4278,7 @@ const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor
 
   const ValueRef *v = findValueInScopes(name);
 
-  if (!v || !v->hasValue())
+  if (!v || !v->hasValue() || !v->expression)
     return nullptr;
 
   const Expr *expr = maybeEval(v->expression);
@@ -4356,6 +4299,11 @@ const FunctionInfo *CheckerVisitor::findFunctionInfo(const Expr *e, bool &isCtor
 void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
   const FunctionInfo *info = nullptr;
 
+  if (value->externalValue) {
+    applyUnknownInvocationToScope();
+    return;
+  }
+
   if (value->hasValue()) {
     const Expr *expr = maybeEval(value->expression);
     assert(expr != nullptr);
@@ -4370,10 +4318,6 @@ void CheckerVisitor::applyKnownInvocationToScope(const ValueRef *value) {
     }
     else if (expr->op() == TO_TABLE) {
       // Tables don't have function info
-    }
-    else if (expr->op() == TO_EXTERNAL_VALUE) {
-      applyUnknownInvocationToScope();
-      return;
     }
   }
 
@@ -4499,7 +4443,15 @@ void CheckerVisitor::visitVarDecl(VarDecl *decl) {
   ValueRef *v = makeValueRef(info);
   const Expr *init = decl->initializer();
   const Expr *origInit = deparenStatic(init);
-  init = maybeEval(init, true);
+
+  // Carry the external value across an alias declaration: `let mod = require(...)`,
+  // `let foo = mod.foo`, `let f = imported_fn`. Resolved against the original
+  // initializer (not maybeEval'd), so we hit astValues entries left by the
+  // child visitors above and direct name lookups for imported symbols.
+  if (origInit)
+    v->externalValue = findExternalValue(origInit);
+
+  init = maybeEval(init);
   if (decl->isDestructured()) {
     v->state = VRS_UNKNOWN;
     v->expression = nullptr;
@@ -4594,12 +4546,15 @@ void CheckerVisitor::visitEnumDecl(EnumDecl *enm) {
 
 void CheckerVisitor::checkDestructuredVarDefault(VarDecl *var) {
   const Expr *def = var->initializer();
-  def = maybeEval(def, true);
+  def = maybeEval(def);
   if (def) {
     auto vv = astValues[var];
     assert(vv);
     vv->state = VRS_INITIALIZED;
     vv->expression = def;
+    // No need to set vv->externalValue here -- visitVarDecl already populated
+    // it from decl->initializer() (the default expression) via
+    // findExternalValue(origInit) before this destructuring pass ran.
   }
   else {
     report(var, DiagnosticsId::DI_MISSING_DESTRUCTURED_VALUE, var->name());
@@ -4612,178 +4567,147 @@ void CheckerVisitor::visitDestructuringDecl(DestructuringDecl *d) {
 
   Visitor::visitDestructuringDecl(d);
 
-  if (auto v = findValueForExpr(d->initExpression()); v && v->hasValue() && v->expression) {
-    if (v->expression->op() == TO_EXTERNAL_VALUE) {
-      const auto &init = v->expression->asExternal()->value();
+  if (auto v = findValueForExpr(d->initExpression()); v && v->hasValue()) {
+    if (v->externalValue) {
+      const SQObjectPtr &init = v->externalValue->value;
       if (sq_isnull(init)) {
         for (auto var : d->declarations()) {
           checkDestructuredVarDefault(var);
         }
       }
-      else if (sq_istable(init)) {
-        if (d->type() == DT_TABLE) {
-          auto table = _table(init);
-          for (auto var : d->declarations()) {
-            SQObjectPtr val;
-            if (table->GetStr(var->name(), strlen(var->name()), val)) {
-              auto vv = astValues[var];
-              assert(vv);
-              vv->state = VRS_INITIALIZED;
-              vv->expression = addExternalValue(val, var)->expression;
-            }
-            else {
-              checkDestructuredVarDefault(var);
-            }
+      else {
+        auto applyDestructure = [&](DestructuringType expected, const char *typeName,
+                                    auto &&lookup) {
+          if (d->type() != expected) {
+            report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, typeName);
+            return;
           }
-        }
-        else {
-          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "table");
-        }
-      }
-      else if (sq_isclass(init)) {
-        if (d->type() == DT_TABLE) {
-          auto klass = _class(init);
-          for (auto var : d->declarations()) {
-            SQObjectPtr key(_ctx.getVm(), var->name());
-            SQObjectPtr val;
-            if (klass->Get(key, val)) {
-              auto vv = astValues[var];
-              assert(vv);
-              vv->state = VRS_INITIALIZED;
-              vv->expression = addExternalValue(val, var)->expression;
-            }
-            else {
-              checkDestructuredVarDefault(var);
-            }
-          }
-        }
-        else {
-          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "class");
-        }
-      }
-      else if (sq_isinstance(init)) {
-        if (d->type() == DT_TABLE) {
-          auto inst = _instance(init);
-          for (auto var : d->declarations()) {
-            SQObjectPtr key(_ctx.getVm(), var->name());
-            SQObjectPtr val;
-            if (inst->Get(key, val)) {
-              auto vv = astValues[var];
-              assert(vv);
-              vv->state = VRS_INITIALIZED;
-              vv->expression = addExternalValue(val, var)->expression;
-            }
-            else {
-              checkDestructuredVarDefault(var);
-            }
-          }
-        }
-        else {
-          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "instance");
-        }
-      }
-      else if (sq_isarray(init)) {
-        if (d->type() == DT_ARRAY) {
-          auto array = _array(init);
           SQInteger index = 0;
           for (auto var : d->declarations()) {
             SQObjectPtr val;
-            if (array->Get(index, val)) {
+            if (lookup(var, index, val)) {
               auto vv = astValues[var];
               assert(vv);
-              vv->state = VRS_INITIALIZED;
-              vv->expression = addExternalValue(val, var)->expression;
+              attachExternalValue(vv, val, var);
             }
             else {
               checkDestructuredVarDefault(var);
             }
             index++;
           }
+        };
+
+        if (sq_istable(init)) {
+          applyDestructure(DT_TABLE, "table", [&](VarDecl *var, SQInteger, SQObjectPtr &val) {
+            return _table(init)->GetStr(var->name(), strlen(var->name()), val);
+          });
+        }
+        else if (sq_isclass(init)) {
+          applyDestructure(DT_TABLE, "class", [&](VarDecl *var, SQInteger, SQObjectPtr &val) {
+            SQObjectPtr key(_ctx.getVm(), var->name());
+            return _class(init)->Get(key, val);
+          });
+        }
+        else if (sq_isinstance(init)) {
+          applyDestructure(DT_TABLE, "instance", [&](VarDecl *var, SQInteger, SQObjectPtr &val) {
+            SQObjectPtr key(_ctx.getVm(), var->name());
+            return _instance(init)->Get(key, val);
+          });
+        }
+        else if (sq_isarray(init)) {
+          applyDestructure(DT_ARRAY, "array", [&](VarDecl *, SQInteger idx, SQObjectPtr &val) {
+            return _array(init)->Get(idx, val);
+          });
         }
         else {
-          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, "array");
+          report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, GetTypeName(init));
         }
       }
-      else {
-        report(d, DiagnosticsId::DI_DESTRUCTURED_TYPE_MISMATCH, GetTypeName(init));
-      }
     }
-    else if (v->expression->op() == TO_TABLE) {
+    else if (v->expression && v->expression->op() == TO_TABLE) {
       // TODO: check table destructuring
     }
-    else if (v->expression->op() == TO_ARRAY) {
+    else if (v->expression && v->expression->op() == TO_ARRAY) {
       // TODO: check array destructuring
     }
   }
 }
 
 void CheckerVisitor::visitImportStatement(ImportStmt *import) {
-  if (import->slots.empty()) {
-    // Handle whole-module imports
-    ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
-    importInfo->line = import->lineStart();
-    importInfo->column = import->moduleAlias ? import->aliasCol : import->nameCol;
-    importInfo->name = import->moduleAlias ? import->moduleAlias : import->moduleName;
+  // For each name brought into scope by the import, build an SK_IMPORT symbol
+  // pointing at the ExternalValue already collected by analyze() under the same
+  // name (the host populates `bindings` before analyze() runs). The role
+  // (import slot, with its own source location) and the external value (from
+  // the binding) live in independent channels on ValueRef.
+  auto declareSlot = [&](int line, int col, const char *name) {
+    ValueRef *existing = findValueInScopes(name);
+    assert(existing && existing->externalValue);
 
-    // Find an external value auto-collected from bindings in analyze()
-    ValueRef *existing = findValueInScopes(importInfo->name);
-    assert(existing);
+    ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
+    importInfo->line = line;
+    importInfo->column = col;
+    importInfo->name = name;
 
     SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
-    ValueRef *v = makeValueRef(info);
-    v->state = VRS_INITIALIZED;
-    v->expression = existing->expression; //-V522
     info->declarator.imp = importInfo;
     info->ownedScope = currentScope;
 
-    // Warning! This redeclares symbol with the same name
-    // This is a temporary solution and will be fixed separately
-    declareSymbol(importInfo->name, v);
+    ValueRef *v = makeValueRef(info);
+    // Same value, but coords pointing at the import statement itself rather
+    // than at the host-bindings entry's synthetic location -- so DI_SEE_OTHER
+    // hints land on the import line. Going through attachExternalValue also
+    // preserves RT_NULL when the host binding's value happens to be null.
+    attachExternalValue(v, existing->externalValue->value, line, col, (int)strlen(name)); //-V522
+
+    declareSymbol(name, v);
+  };
+
+  if (import->slots.empty()) {
+    declareSlot(import->lineStart(),
+                import->moduleAlias ? import->aliasCol : import->nameCol,
+                import->moduleAlias ? import->moduleAlias : import->moduleName);
   }
   else {
     for (const SQModuleImportSlot &slot : import->slots) {
       if (strcmp(slot.name, "*") == 0)
         continue;
-
-      ImportInfo *importInfo = (ImportInfo *)arena->allocate(sizeof(ImportInfo));
-      importInfo->line = slot.line;
-      importInfo->column = slot.column;
-      importInfo->name = slot.alias ? slot.alias : slot.name;
-
-      // Find an external value auto-collected from bindings in analyze()
-      ValueRef *existing = findValueInScopes(importInfo->name);
-      assert(existing);
-
-      SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
-      ValueRef *v = makeValueRef(info);
-      v->state = VRS_INITIALIZED;
-      v->expression = existing->expression; //-V522
-      info->declarator.imp = importInfo;
-      info->ownedScope = currentScope;
-
-      // Warning! This redeclares symbol with the same name
-      // This is a temporary solution and will be fixed separately
-      declareSymbol(importInfo->name, v);
+      declareSlot(slot.line, slot.column, slot.alias ? slot.alias : slot.name);
     }
   }
 
   Visitor::visitImportStatement(import);
 }
 
-ValueRef* CheckerVisitor::addExternalValue(const SQObject &val, const Node *location) {
-  SymbolInfo *info = makeSymbolInfo(SK_EXTERNAL_BINDING);
-  ValueRef *v = makeValueRef(info);
-  // Create ExternalValueExpr with span from location (if provided) or invalid span
-  SourceSpan spanFromLoc = location ? location->sourceSpan() : SourceSpan::invalid();
-  ExternalValueExpr *ev = new(arena) ExternalValueExpr(val, spanFromLoc);
-  externalValues.push_back(ev);
-
-  info->declarator.ev = ev;
+void CheckerVisitor::attachExternalValue(ValueRef *v, const SQObject &val, int line, int col, int width) {
   v->state = VRS_INITIALIZED;
-  v->expression = ev;
-  if (sq_isnull(val)) v->flagsPositive |= RT_NULL;
-  // TODO: could create LiteralExpr for some values
+  v->externalValue = externalValues.make(val, line, col, width);
+  if (sq_isnull(val))
+    v->flagsPositive |= RT_NULL;
+}
 
+void CheckerVisitor::attachExternalValue(ValueRef *v, const SQObject &val, const Node *location) {
+  assert(location);
+  attachExternalValue(v, val, location->lineStart(), location->columnStart(), location->textWidth());
+}
+
+ValueRef *CheckerVisitor::makeExternalValueRef(const SQObject &val, const Node *location) {
+  // SK_SYNTHETIC: this ValueRef is not a declaration, just an external-value
+  // carrier for astValues. Synthetic refs never enter scope walks.
+  SymbolInfo *info = makeSymbolInfo(SK_SYNTHETIC);
+  ValueRef *v = makeValueRef(info);
+  attachExternalValue(v, val, location);
+  return v;
+}
+
+ValueRef *CheckerVisitor::declareHostBinding(const char *name, const SQObject &val, const Node *location) {
+  // Host bindings carry no ImportInfo: source coords live on the ExternalValue,
+  // name is the symbol-table key. checkUnusedSymbols branches on declarator.imp
+  // to distinguish host bindings from real `from X import Y` slots.
+  SymbolInfo *info = makeSymbolInfo(SK_IMPORT);
+  info->declarator.imp = nullptr;
+
+  ValueRef *v = makeValueRef(info);
+  attachExternalValue(v, val, location);
   return v;
 }
 
@@ -4801,7 +4725,7 @@ void CheckerVisitor::analyze(RootBlock *root, const HSQOBJECT *bindings) {
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
         const char *name = _string(key)->_val;
-        declareSymbol(name, addExternalValue(val, root));
+        declareSymbol(name, declareHostBinding(name, val, root));
       }
       pos._unVal.nInteger = idx;
     }

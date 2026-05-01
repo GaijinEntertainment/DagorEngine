@@ -453,6 +453,52 @@ void CodeGenVisitor::visitForStatement(ForStatement *forLoop) {
     _complexity_level--;
 }
 
+// Returns true if any Id node behind a function/lambda boundary inside body
+// matches name0 or name1 (either may be null). Over-approximates: an inner
+// same-named local that shadows the outer still counts as a hit. Cost of a
+// false positive is one MOVE per binding + one OP_CLOSE per iteration, so
+// the simpler scan wins.
+class CaptureScanVisitor : public Visitor {
+public:
+    bool captured = false;
+    int fnDepth = 0;
+    const char *name0 = nullptr;
+    const char *name1 = nullptr;
+    uint64_t bitFilter = 0; // bit i set if any tracked name starts with char c where c%64 == i
+
+    virtual void visitId(Id *id) override {
+        if (captured || fnDepth == 0)
+            return;
+        const char *nm = id->name();
+        if ((bitFilter & (uint64_t(1) << (uint8_t(nm[0]) & 63))) == 0)
+            return;
+        if ((name0 && strcmp(name0, nm) == 0) || (name1 && strcmp(name1, nm) == 0))
+            captured = true;
+    }
+
+    virtual void visitFunctionExpr(FunctionExpr *f) override {
+        if (captured)
+            return;
+        fnDepth++;
+        f->visitChildren(this);
+        fnDepth--;
+    }
+};
+
+static bool scanCaptureForNames(Statement *body, const char *name0, const char *name1) {
+    if (!name0 && !name1)
+        return false;
+    CaptureScanVisitor v;
+    v.name0 = name0;
+    v.name1 = name1;
+    if (name0)
+        v.bitFilter |= uint64_t(1) << (uint8_t(name0[0]) & 63);
+    if (name1)
+        v.bitFilter |= uint64_t(1) << (uint8_t(name1[0]) & 63);
+    body->visit(&v);
+    return v.captured;
+}
+
 void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     addLineNumber(foreachLoop);
     _complexity_level++;
@@ -463,23 +509,35 @@ void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
 
     SQInteger container = _fs->TopTarget();
 
-    SQObjectPtr idxName;
-    SQInteger indexpos = -1;
-    if (foreachLoop->idx()) {
-        assert(foreachLoop->idx()->op() == TO_VAR && ((VarDecl *)foreachLoop->idx())->initializer() == nullptr);
-        idxName = _fs->CreateString(((VarDecl *)foreachLoop->idx())->name());
-        //foreachLoop->idx()->visit(this);
-    }
-    else {
-        idxName = _fs->CreateString("@INDEX@");
-    }
-    indexpos = _fs->PushLocalVariable(idxName, SQCompiletimeVarInfo{});
-
     assert(foreachLoop->val()->op() == TO_VAR && ((VarDecl *)foreachLoop->val())->initializer() == nullptr);
-    _fs->PushLocalVariable(_fs->CreateString(((VarDecl *)foreachLoop->val())->name()), SQCompiletimeVarInfo{});
+    const char *userValName = ((VarDecl *)foreachLoop->val())->name();
+    const char *userIdxName = foreachLoop->idx() ? ((VarDecl *)foreachLoop->idx())->name() : nullptr;
 
-    //foreachLoop->val()->visit(this);
-    //SQInteger valuepos = _fs->_vlocals.back()._pos;
+    // Parser-emitted destructuring surrogate: source code can't reference it
+    // (lexer can't produce '@'), so it never gets captured and never needs
+    // per-iter rebinding.
+    bool valIsSurrogate = userValName && strncmp(userValName, "@FE_VAL", 7) == 0;
+
+    // Detect if any user-visible name (idx, val) is captured by an inner
+    // function inside body. When captured, we re-bind those names in a
+    // per-iteration scope inside the body region so END_SCOPE emits _OP_CLOSE
+    // every iter, giving each closure its own frozen copy of the value.
+    bool perIterScope = scanCaptureForNames(foreachLoop->body(),
+        userIdxName,
+        (userValName && !valIsSurrogate) ? userValName : nullptr);
+
+    // Outer-scope names: when a user-visible name will be re-bound per-iter,
+    // hide the outer slot under a surrogate so source references resolve to
+    // the per-iter binding.
+    SQObjectPtr idxName = (userIdxName && !perIterScope)
+        ? _fs->CreateString(userIdxName)
+        : _fs->CreateString("@INDEX@");
+    SQInteger indexpos = _fs->PushLocalVariable(idxName, SQCompiletimeVarInfo{});
+
+    SQObjectPtr valName = (userValName && !valIsSurrogate && perIterScope)
+        ? _fs->CreateString("@valouter@")
+        : _fs->CreateString(userValName);
+    SQInteger valpos = _fs->PushLocalVariable(valName, SQCompiletimeVarInfo{});
 
     //push reference index
     _fs->PushLocalVariable(_fs->CreateString("@ITERATOR@"), SQCompiletimeVarInfo{}); //use invalid id to make it inaccessible
@@ -490,7 +548,23 @@ void CodeGenVisitor::visitForeachStatement(ForeachStatement *foreachLoop) {
     SQInteger postForEachPos = _fs->GetCurrentPos();
 
     BEGIN_BREAKABLE_BLOCK();
-    foreachLoop->body()->visit(this);
+
+    if (perIterScope) {
+        BEGIN_SCOPE();
+        if (userIdxName) {
+            SQInteger pos = _fs->PushLocalVariable(_fs->CreateString(userIdxName), SQCompiletimeVarInfo{});
+            _fs->AddInstruction(_OP_MOVE, pos, indexpos);
+        }
+        if (userValName && !valIsSurrogate) {
+            SQInteger pos = _fs->PushLocalVariable(_fs->CreateString(userValName), SQCompiletimeVarInfo{});
+            _fs->AddInstruction(_OP_MOVE, pos, valpos);
+        }
+        foreachLoop->body()->visit(this);
+        END_SCOPE();
+    } else {
+        foreachLoop->body()->visit(this);
+    }
+
     SQInteger continuePos = _fs->GetCurrentPos();
     SQInteger forEachLabelPos = _fs->GetCurrentPos() + 1;
     _fs->AddInstruction(_OP_FOREACH, container, postForEachPos - forEachLabelPos, indexpos); //ip is already + 1 now

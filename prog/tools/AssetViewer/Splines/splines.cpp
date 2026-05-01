@@ -466,7 +466,7 @@ protected:
 
     GeomObject all_geom;
     loft_layers.iterate_layers([&](unsigned ll) {
-      splSrv->gatherStaticGeometry(*all_geom.getGeometryContainer(), StaticGeometryNode::FLG_RENDERABLE, false, ll, 2, -1, 0);
+      splSrv->gatherStaticGeometry(*all_geom.getGeometryContainer(), StaticGeometryNode::FLG_RENDERABLE, false, ll, 2, -1);
     });
 
     taggedGeom = new GeomObject;

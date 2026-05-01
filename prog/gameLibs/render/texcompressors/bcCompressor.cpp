@@ -261,6 +261,12 @@ bool BcCompressor::resetBuffer(unsigned int mips, unsigned int width, unsigned i
   return true;
 }
 
+Texture *BcCompressor::getBuffer() const
+{
+  G_ASSERT(useOwnBuffer);
+  return bufferTex.getTex2D();
+}
+
 void BcCompressor::releaseBuffer()
 {
   bufferWidth = bufferHeight = 0;
@@ -315,8 +321,7 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
   }
   else
   {
-    d3d::set_render_target();
-    d3d::set_render_target(0, buffer, dst_mip);
+    d3d::set_render_target({}, DepthAccess::RW, {{buffer, static_cast<uint32_t>(dst_mip), 0}});
     d3d::allow_render_pass_target_load();
 
     compressElem->setStates(0, true);
@@ -332,8 +337,6 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
     }
     d3d::setvsrc_ex(0, nullptr, 0, 0);
   }
-
-  d3d::resource_barrier({buffer, RB_RO_SRV | RB_RO_COPY_SOURCE, (unsigned)dst_mip, 1});
 
   if (src_id != BAD_D3DRESID)
     ShaderGlobal::set_texture(src_texVarId, BAD_TEXTUREID);

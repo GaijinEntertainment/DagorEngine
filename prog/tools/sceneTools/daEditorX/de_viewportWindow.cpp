@@ -11,6 +11,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <oldEditor/de_interface.h>
 #include <util/dag_string.h>
+#include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 int DagorEdViewportWindow::onMenuItemClick(unsigned id)
@@ -39,8 +40,13 @@ bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
   if (load_meta_info_from_image(files[0], metaInfo, errorMessage))
     ScreenshotMetaInfoLoader::applyCameraSettings(metaInfo, *this);
   else
-    wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera position from screenshot\n\"%s\"\n\n%s", files[0].c_str(),
-      errorMessage.c_str());
+  {
+    String f = files[0];
+    delayed_call([f, errorMessage]() {
+      wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera position from screenshot\n\"%s\"\n\n%s", f.c_str(),
+        errorMessage.c_str());
+    });
+  }
 
   return true;
 }

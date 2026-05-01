@@ -2524,6 +2524,15 @@ void ViewportWindow::copyTextureToViewportTexture(BaseTexture &source_texture, i
   d3d::stretch_rect(&source_texture, dstTexture, &rect, &rect);
 }
 
+void ViewportWindow::resetScreenshotMode()
+{
+  screenshotSize.reset();
+  OnChangePosition();
+  G_ASSERTF(!isViewportTextureReady() || (viewportTextureSize == ipoint2(viewport->getrb())),
+    "viewport_window=%dx%d render_viewport=%dx%d", viewportTextureSize.x, viewportTextureSize.y, (int)viewport->getrb().x,
+    (int)viewport->getrb().y);
+}
+
 void ViewportWindow::onImguiDelayedCallback(void *user_data)
 {
   DelayedMouseEvent *event = static_cast<DelayedMouseEvent *>(user_data);

@@ -70,6 +70,7 @@ EA_DISABLE_ALL_VC_WARNINGS()
 #else
 # include <string>
 # include <string_view>
+# include <vector>
 # include <unordered_map>
 # include <unordered_set>
 # include <memory>

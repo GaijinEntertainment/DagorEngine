@@ -165,7 +165,7 @@ shader rendinst_translucent
       }
     }
 
-    if (rendinst_render_pass != rendinst_render_pass_depth)
+    if (!(rendinst_render_pass == rendinst_render_pass_depth || is_triangle_size_debug))
     {
       USE_PIXEL_TANGENT_SPACE()
       WRITE_GBUFFER()
@@ -247,6 +247,10 @@ shader rendinst_translucent
       }
 
       compile("target_ps", "simple_ps");
+    }
+    else if (is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
     }
     else
     {

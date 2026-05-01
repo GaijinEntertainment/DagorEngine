@@ -994,7 +994,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
     void beginVisibilityQuery(Query *q);
     void endVisibilityQuery(Query *q);
+    void beginPipelineStatsQuery(PipelineStatsQuery *q);
+    void endPipelineStatsQuery(PipelineStatsQuery *q);
     void cancelQuery(Query *q);
+    void cancelPipelineStatsQuery(PipelineStatsQuery *q);
 #if _TARGET_PC_WIN
     void changePresentWindow(uint32_t index) { self.back.swapchain.setPresentWindow(index); }
 #endif
@@ -1165,6 +1168,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     uint32_t frameIndex = 0;
 #endif
     dag::Vector<Query *> deletedQueries;
+    dag::Vector<PipelineStatsQuery *> deletedPipelineStatsQueries;
   };
 
   struct Frontend
@@ -1442,6 +1446,7 @@ public:
   void shutdownSwapchain();
   void insertTimestampQuery(Query *query);
   void deleteQuery(Query *query);
+  void deletePipelineStatsQuery(PipelineStatsQuery *query);
   void generateMipmaps(Image *img);
   void setFramebuffer(Image **image_list, ImageViewState *view_list, bool read_only_depth);
 #if D3D_HAS_RAY_TRACING
@@ -1504,6 +1509,8 @@ public:
   void setStaticRenderState(StaticRenderStateID ident);
   void beginVisibilityQuery(Query *q);
   void endVisibilityQuery(Query *q);
+  void beginPipelineStatsQuery(PipelineStatsQuery *q);
+  void endPipelineStatsQuery(PipelineStatsQuery *q);
 #if _TARGET_XBOX
   // Protocol for suspend:
   // 1) Locks context

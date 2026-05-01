@@ -52,6 +52,14 @@ struct MemoryStatistics
   int64_t stationaryTreeVBSize;
   int treeCacheCount;
   int64_t treeCacheBLASSize;
+  int treeRiExCount;
+  int64_t treeRiExBLASSize;
+  int64_t treeRiExVBSize;
+  int treeRiExCacheCount;
+  int64_t treeRiExCacheBLASSize;
+  int flagCount;
+  int64_t flagBLASSize;
+  int64_t flagVBSize;
   int64_t dynamicVBAllocatorSize;
   int64_t dynamicVBAllocatorFreeSize;
   int64_t terrainBlasSize;

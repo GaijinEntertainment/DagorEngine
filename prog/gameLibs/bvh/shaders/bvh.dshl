@@ -14,7 +14,6 @@ int bvh_main_valid;
 int bvh_terrain_valid;
 int bvh_particles_valid;
 
-int bvh_samplers_range_start = 0;
 int bvh_meta_count = 0;
 int bvh_gbuffer_range_start = 0;
 
@@ -45,6 +44,24 @@ hlsl
 {
   #define INF 1e6
 }
+
+sampler bvh_clamp_sampler
+{
+  mipmap_mode = point;
+  filter = linear;
+  address_u = clamp;
+  address_v = clamp;
+  address_w = clamp;
+};
+
+sampler bvh_wrap_sampler
+{
+  mipmap_mode = point;
+  filter = linear;
+  address_u = wrap;
+  address_v = wrap;
+  address_w = wrap;
+};
 
 macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
   if (hardware.ps5)
@@ -79,7 +96,10 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
     }
 
     bvhMainValid@u1 = bvh_main_valid;
+    bvh_clamp_sampler@sampler = bvh_clamp_sampler;
+    bvh_wrap_sampler@sampler = bvh_wrap_sampler;
   }
+
   // ps5 currently doesn't support shadervar tlas binding
   if (!hardware.ps5)
   {
@@ -99,12 +119,10 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
       BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
       BINDLESS_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
       BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
-      BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
     ##else
       BINDLESS_NON_UNIFORM_TEX_ARRAY(Texture2D, bvh_textures, 2);
       BINDLESS_NON_UNIFORM_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
       BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
-      BINDLESS_SMP_ARRAY(SamplerState, bvh_samplers, 2);
     ##endif
 
     static const uint bvhGbufferAlbedo = 0;
@@ -473,29 +491,24 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       // 2 or 4 if the MSB is set
       return meta.indexBit * 2 + 2;
     }
-    uint get_texture_index(uint packd, out uint sampler_index)
+    uint get_texture_index(uint packd)
     {
-      sampler_index = packd & 0xFFFF;
-      return packd >> 16;
+      return packd & 0xFFFFU;
     }
-    uint get_albedo_texture_index(BVHMeta meta, out uint sampler_index)
+    uint get_albedo_texture_index(BVHMeta meta)
     {
-      sampler_index = meta.albedoAndNormalSamplerIndex;
       return meta.albedoTextureIndex;
     }
-    uint get_alpha_texture_index(BVHMeta meta, out uint sampler_index)
+    uint get_alpha_texture_index(BVHMeta meta)
     {
-      sampler_index = meta.alphaSamplerIndex;
       return meta.alphaTextureIndex;
     }
-    uint get_normal_texture_index(BVHMeta meta, out uint sampler_index)
+    uint get_normal_texture_index(BVHMeta meta)
     {
-      sampler_index = meta.albedoAndNormalSamplerIndex;
       return meta.normalTextureIndex;
     }
-    uint get_extra_texture_index(BVHMeta meta, out uint sampler_index)
+    uint get_extra_texture_index(BVHMeta meta)
     {
-      sampler_index = meta.extraSamplerIndex;
       return meta.extraTextureIndex;
     }
     float get_texcoord_scale(BVHMeta meta)
@@ -557,11 +570,6 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       uint normalTextureIndex;
       uint extraTextureIndex;
 
-      uint albedoSamplerIndex;
-      uint alphaSamplerIndex;
-      uint normalSamplerIndex;
-      uint extraSamplerIndex;
-
       bool isImpostor;
       bool isCamo;
       bool isMFD;
@@ -585,19 +593,6 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
 
       LayerData layerData;
     };
-
-    bool IsAlphaGreaterThan(HitInfo hit_info, float mip_level, float treshold)
-    {
-      float alpha = 1;
-
-      [branch]
-      if (hit_info.alphaTextureIndex != 0xFFFFU && hit_info.alphaSamplerIndex != 0xFFFFU)
-        alpha = nonUniformBindlessTex2D(bvh_textures, hit_info.alphaTextureIndex).SampleLevel(bvh_samplers[NonUniformResourceIndex(hit_info.alphaSamplerIndex)], hit_info.texcoord, mip_level).r;
-      else if (hit_info.albedoTextureIndex != 0xFFFFU && hit_info.albedoSamplerIndex != 0xFFFFU)
-        alpha = nonUniformBindlessTex2D(bvh_textures, hit_info.albedoTextureIndex).SampleLevel(bvh_samplers[NonUniformResourceIndex(hit_info.albedoSamplerIndex)], hit_info.texcoord, mip_level).a;
-
-      return alpha > treshold;
-    }
 
     uint3 LoadIndices(ByteAddressBuffer ib, uint ibBase, uint indexFormat)
     {
@@ -737,14 +732,13 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
           return AHS_Miss;
       }
 
-      uint alphaSamplerIndex;
-      uint alphaTextureIndex = get_alpha_texture_index(meta, alphaSamplerIndex);
+      uint alphaTextureIndex = get_alpha_texture_index(meta);
 
-      if (alphaTextureIndex == 0xFFFFU || alphaSamplerIndex == 0xFFFFU)
+      if (alphaTextureIndex == 0xFFFFU)
         return AHS_Miss;
 
       lod += is_impostor(meta.materialType) ? bvh_additional_impostor_mip_bias : 0;
-      float4 smp = nonUniformBindlessTex2D(bvh_textures, alphaTextureIndex).SampleLevel(bvh_samplers[NonUniformResourceIndex(alphaSamplerIndex)], tc, lod);
+      float4 smp = nonUniformBindlessTex2D(bvh_textures, alphaTextureIndex).SampleLevel(bvh_wrap_sampler, tc, lod);
       float alpha = is_alpha_in_red(meta.materialType) ? smp.r : smp.a;
 
       return alpha > alpha_treshold ? AHS_Hit : AHS_Miss;
@@ -788,10 +782,10 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       uint bhvMetaIndex = instanceId + (isImpostor ? 0 : geometryIndex);
       BVHMeta meta = structuredBufferAt(bvh_meta, bhvMetaIndex);
       hitInfo.material = meta.materialType;
-      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
-      hitInfo.alphaTextureIndex = get_alpha_texture_index(meta, hitInfo.alphaSamplerIndex);
-      hitInfo.normalTextureIndex = get_normal_texture_index(meta, hitInfo.normalSamplerIndex);
-      hitInfo.extraTextureIndex = get_extra_texture_index(meta, hitInfo.extraSamplerIndex);
+      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta);
+      hitInfo.alphaTextureIndex = get_alpha_texture_index(meta);
+      hitInfo.normalTextureIndex = get_normal_texture_index(meta);
+      hitInfo.extraTextureIndex = get_extra_texture_index(meta);
       hitInfo.translucency = 1;
       hitInfo.materialData1 = meta.materialData1;
       hitInfo.materialData2 = meta.materialData2;
@@ -819,7 +813,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
 
       ##if bvh_per_instance_albedo_replacement == yes
         if (hitInfo.perInstanceDataCompressed.x == 0xA1B3D0U)
-          hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceDataCompressed.y), hitInfo.albedoSamplerIndex);
+          hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceDataCompressed.y));
       ##endif
 
       if (is_terrain || get_material_type(meta.materialType) == bvhMaterialTerrain)
@@ -1372,7 +1366,7 @@ macro USE_PARTICLE_BVH(stage)
 
       BVHMeta meta = structuredBufferAt(bvh_meta, instanceId);
       hitInfo.material = meta.materialType;
-      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta, hitInfo.albedoSamplerIndex);
+      hitInfo.albedoTextureIndex = get_albedo_texture_index(meta);
 
       // For particles, the instance index is the particle data index
       hitInfo.perInstanceDataIndex = instanceIndex;
@@ -1584,7 +1578,7 @@ macro USE_BVH_FX_RENDER(stage)
 
         HitInfo hitInfo = CalcParticleHitInfo(ForwardAHSParams);
 
-        if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.albedoSamplerIndex == 0xFFFFU)
+        if (hitInfo.albedoTextureIndex == 0xFFFFU)
           return 0;
 
         ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, hitInfo.perInstanceDataIndex);
@@ -1593,8 +1587,8 @@ macro USE_BVH_FX_RENDER(stage)
         float mipLevel = calc_mip_level(primaryT + hitInfo.t, false, false);
         mipLevel *= smoothBias;
 
-        float4 texel1 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)], hitInfo.texcoord, mipLevel);
-        float4 texel2 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)], hitInfo.materialData1.xy, mipLevel);
+        float4 texel1 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.texcoord, mipLevel);
+        float4 texel2 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.materialData1.xy, mipLevel);
         half4 texel = half4(lerp(texel1, texel2, pd.frameBlend));
         if (pd.flags & BVH_MODFX_RMOD_TEX_COLOR_MATRIX)
         {

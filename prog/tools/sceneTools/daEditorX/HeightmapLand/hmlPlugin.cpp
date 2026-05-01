@@ -205,7 +205,7 @@ HmapLandPlugin::HmapLandPlugin() :
   snowValSVId(-1)
 {
   lastMinHeight[0] = lastMinHeight[1] = lastHeightRange[0] = lastHeightRange[1] = MAX_REAL;
-  detTexIdxMap = detTexWtMap = NULL;
+  detTexMap = nullptr;
   hmapTex[0] = hmapTex[1] = NULL;
   hmapTexId[0] = hmapTexId[1] = BAD_TEXTUREID;
   waterHeightMinRangeDet = Point2(0, 0);
@@ -442,8 +442,7 @@ HmapLandPlugin::~HmapLandPlugin()
   clearTexCache();
   hmlService->unregisterGenHmap("hmap");
   del_it(lcMgr);
-  del_it(detTexIdxMap);
-  del_it(detTexWtMap);
+  del_it(detTexMap);
   delete &landClsMap;
   delete &colorMap;
   delete &lightMapScaled;
@@ -885,6 +884,7 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
     colorGenParams[i]->fillParams(*maxGrp, pid);
 
   maxGrp->createCheckBox(PID_SHOWMASK, "Show blue-white mask", showBlueWhiteMask);
+  maxGrp->createCheckBox(PID_SHOW_LANDCLASS_COLORS, "Show landclass weights (color)", showLandClassColors);
 
   for (int i = 0; i < genLayers.size(); ++i)
     genLayers[i]->fillParams(*maxGrp, pid);
@@ -2029,7 +2029,7 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   {
     lightmapScaleFactor = newLightingDetails;
     lightMapScaled.reset(heightMap.getMapSizeX() * lightmapScaleFactor, heightMap.getMapSizeY() * lightmapScaleFactor, 0xFFFF);
-    createLightmapFile(DAGORED2->getConsole());
+    // lightMapScaled is RAM-only; calcFastLandLighting re-populates it.
     resetRenderer();
   }
 
@@ -2226,6 +2226,12 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
           updateBlueWhiteMask(NULL);
         DAGORED2->invalidateViewportCache();
       }
+      break;
+
+    case PID_SHOW_LANDCLASS_COLORS:
+      showLandClassColors = panel->getBool(pcb_id);
+      updateBlueWhiteMask(NULL);
+      DAGORED2->invalidateViewportCache();
       break;
 
     case PID_MONOLAND:
@@ -2940,17 +2946,51 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
   else if (pcb_id == PID_GRID_H2_APPLY)
   {
+    // detRect shifted -- derived maps (landClsMap, detTex*), landmesh
+    // geometry (delaunay importance inside detRect), and the landmesh
+    // physmap all key off the new rect. Invalidate + regen in the same order
+    // as beforeMainLoop so the viewport picks up the edit without requiring
+    // a manual Ctrl+G, and so the next saveObjects persists consistent
+    // derived state alongside the new detRect0/detRect1 in plugin.blk.
+    //
+    // Order matters: colors first (so landClsMap is populated), then mesh
+    // re-gen (uses landClsMap for importance-driven triangulation), then
+    // dump/manager/renderer/clipmap. rebuildLandmeshPhysMap runs last and
+    // is cheap thanks to the landClsMapGenerated gate in buildAndWritePhysMap.
+    auto regenAfterDetRectChange = [this]() {
+      landClsMapGenerated = false;
+      // may_rebuild_lmesh_if_needed=false: the landMeshMap re-triangulation
+      // and explicit rebuildLandmeshDump/Manager/PhysMap chain below is
+      // what actually puts lmDump in sync (it has to be downstream of the
+      // new landMeshMap). The in-function rebuild would build lmDump from
+      // the still-flat-importance landMeshMap, only to be overwritten
+      // immediately. Same opt-out as beforeMainLoop.
+      generateLandColors(nullptr, true, false);
+      if (useMeshSurface && exportType != EXPORT_PSEUDO_PLANE && !landMeshMap.isEmpty())
+      {
+        landMeshMap.clear(true);
+        generateLandMeshMap(landMeshMap, DAGORED2->getConsole(), false, NULL);
+      }
+      rebuildLandmeshDump();
+      rebuildLandmeshManager();
+      delayedResetRenderer();
+      if (hmlService)
+        hmlService->invalidateClipmap(true);
+      pendingLandmeshRebuild = false;
+      rebuildLandmeshPhysMap();
+    };
+
     float csz = panel->getFloat(PID_GRID_H2_CELL_SIZE);
     Point2 b0 = panel->getPoint2(PID_GRID_H2_BBOX_OFS);
     Point2 b1 = panel->getPoint2(PID_GRID_H2_BBOX_SZ) + b0;
-    int old_detDivisor = detDivisor;
-    BBox2 old_detRect = detRect;
-    IBBox2 old_detRectC = detRectC;
-    float *heights = NULL;
+    const int old_detDivisor = detDivisor;
+    const BBox2 old_detRect = detRect;
+    const IBBox2 old_detRectC = detRectC;
 
-    if (!csz)
-      detDivisor = 0;
-    else
+    int new_detDivisor = 0;
+    BBox2 new_detRect = detRect;
+    IBBox2 new_detRectC = detRectC;
+    if (csz)
     {
       float land_cell_sz = getLandCellSize();
       b0.x = floor((b0.x - heightMapOffset.x) / land_cell_sz) * land_cell_sz + heightMapOffset.x;
@@ -2961,31 +3001,79 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
         b1.x += land_cell_sz;
       if (b0.y == b1.y)
         b1.y += land_cell_sz;
-      detDivisor = gridCellSize / csz;
-      detRect[0] = b0;
-      detRect[1] = b1;
-      detRectC[0].set_xy((detRect[0] - heightMapOffset) / gridCellSize);
-      detRectC[0] *= detDivisor;
-      detRectC[1].set_xy((detRect[1] - heightMapOffset) / gridCellSize);
-      detRectC[1] *= detDivisor;
+      new_detDivisor = gridCellSize / csz;
+      new_detRect[0] = b0;
+      new_detRect[1] = b1;
+      new_detRectC[0].set_xy((new_detRect[0] - heightMapOffset) / gridCellSize);
+      new_detRectC[0] *= new_detDivisor;
+      new_detRectC[1].set_xy((new_detRect[1] - heightMapOffset) / gridCellSize);
+      new_detRectC[1] *= new_detDivisor;
+    }
 
-      heights = (float *)midmem->tryAlloc(sizeof(float) * (detRectC[1].x - detRectC[0].x) * (detRectC[1].y - detRectC[0].y));
+    // Classify the edit to decide whether existing det-hmap data can be
+    // preserved. divisorChanged / just-enabled / just-disabled require the
+    // old resample-from-main-hmap path; within a fixed divisor, origin and
+    // size edits are served by the reshape/translate primitives plus user
+    // prompts so accidental Apply presses don't silently discard data.
+    const bool divisorChanged = (new_detDivisor != old_detDivisor);
+    const bool disabling = (old_detDivisor && !new_detDivisor);
+    const bool createdAnew = new_detDivisor && !heightMapDet.isFileOpened();
+    const IPoint2 oldSizeC = old_detRectC.width();
+    const IPoint2 newSizeC = new_detRectC.width();
+    const bool originChanged = new_detDivisor && !divisorChanged && (new_detRectC[0] != old_detRectC[0]);
+    const bool sizeChanged = new_detDivisor && !divisorChanged && (newSizeC != oldSizeC);
+    const bool shrank = sizeChanged && (newSizeC.x < oldSizeC.x || newSizeC.y < oldSizeC.y);
+
+    bool cancelled = false;
+    if (!divisorChanged && !disabling && !createdAnew && (originChanged || sizeChanged))
+    {
+      int r = wingw::MB_ID_CANCEL;
+      if (originChanged && !sizeChanged)
+        r = wingw::message_box(wingw::MBS_YESNOCANCEL | wingw::MBS_QUEST, "Detail rect origin changed",
+          "How should existing detail heightmap data be handled?\n\n"
+          "Yes    = Translate: keep data in buffer, shift offset (terrain moves with rect)\n"
+          "No     = Move: keep data at world coords (overlap preserved, non-overlap zeroed)\n"
+          "Cancel = revert origin edit");
+      else if (sizeChanged && !originChanged && shrank)
+        r = wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Detail rect shrunk",
+          "Crop detail heightmap data outside the new rect?");
+      else if (sizeChanged && !originChanged) // size increased only
+        r = wingw::MB_ID_OK;                  // silent zero-expand; no prompt
+      else                                    // origin + size changed together -- Translate has no meaning
+        r = wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Detail rect moved and resized",
+          "Move detail heightmap data? Overlap preserved, non-overlap zeroed.");
+      cancelled = (r == wingw::MB_ID_CANCEL);
+      if (!cancelled)
+      {
+        detDivisor = new_detDivisor;
+        detRect = new_detRect;
+        detRectC = new_detRectC;
+        if (originChanged && !sizeChanged && r == wingw::MB_ID_YES)
+          heightMapDet.translateStoredRect(new_detRectC[0].x, new_detRectC[0].y);
+        else
+          heightMapDet.reshapeStoredRect(new_detRectC[0].x, new_detRectC[0].y, newSizeC.x, newSizeC.y);
+        onLandRegionChanged(new_detRectC[0].x / new_detDivisor, new_detRectC[0].y / new_detDivisor, new_detRectC[1].x / new_detDivisor,
+          new_detRectC[1].y / new_detDivisor);
+        applyHmModifiers();
+        heightMapDet.flushData();
+
+        regenAfterDetRectChange();
+      }
+    }
+    else if (divisorChanged || createdAnew)
+    {
+      // Resample-from-main-heightmap path: cell size differs (or the det map
+      // is being turned on for the first time), so no pixel-for-pixel copy
+      // is possible. Allocate heights from the old main heightmap sampled at
+      // the new grid, then stamp into the freshly-sized det storage.
+      float *heights = NULL;
+      const int area = (new_detRectC[1].x - new_detRectC[0].x) * (new_detRectC[1].y - new_detRectC[0].y);
+      if (area > 0)
+        heights = (float *)midmem->tryAlloc(sizeof(float) * area);
       if (heights)
       {
-        memset(heights, 0, sizeof(float) * (detRectC[1].x - detRectC[0].x) * (detRectC[1].y - detRectC[0].y));
-
-        int new_detDivisor = detDivisor;
-        BBox2 new_detRect = detRect;
-        IBBox2 new_detRectC = detRectC;
-
-        detDivisor = old_detDivisor;
-        detRect = old_detRect;
-        detRectC = old_detRectC;
-
+        memset(heights, 0, sizeof(float) * area);
         float *hp = heights;
-        DEBUG_DUMP_VAR(old_detRectC);
-        DEBUG_DUMP_VAR(detRectC);
-        DEBUG_DUMP_VAR(new_detRectC);
         for (int y = new_detRectC[0].y; y < new_detRectC[1].y; y++)
           for (int x = new_detRectC[0].x; x < new_detRectC[1].x; x++, hp++)
           {
@@ -2996,46 +3084,49 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
             else
               debug("failed %d,%d: %@", x, y, p);
           }
-
-        detDivisor = new_detDivisor;
-        detRect = new_detRect;
-        detRectC = new_detRectC;
       }
+
+      detDivisor = new_detDivisor;
+      detRect = new_detRect;
+      detRectC = new_detRectC;
+
+      resizeHeightMapDet(DAGORED2->getConsole());
+      if (heights)
+      {
+        float *hp = heights;
+        for (int y = detRectC[0].y; y < detRectC[1].y; y++)
+          for (int x = detRectC[0].x; x < detRectC[1].x; x++, hp++)
+          {
+            heightMapDet.setInitialData(x, y, *hp);
+            heightMapDet.setFinalData(x, y, *hp);
+          }
+        midmem->free(heights);
+      }
+      onLandRegionChanged(detRectC[0].x / detDivisor, detRectC[0].y / detDivisor, detRectC[1].x / detDivisor,
+        detRectC[1].y / detDivisor);
+      applyHmModifiers();
+      heightMapDet.flushData();
+
+      regenAfterDetRectChange();
+    }
+    else if (disabling)
+    {
+      detDivisor = new_detDivisor;
+      detRect = new_detRect;
+      detRectC = new_detRectC;
+      heightMapDet.closeFile();
+    }
+    // else: nothing changed -- no storage mutation.
+
+    if (cancelled)
+    {
+      detDivisor = old_detDivisor;
+      detRect = old_detRect;
+      detRectC = old_detRectC;
     }
     panel->setFloat(PID_GRID_H2_CELL_SIZE, detDivisor ? gridCellSize / detDivisor : 0);
     panel->setPoint2(PID_GRID_H2_BBOX_OFS, detRect[0]);
     panel->setPoint2(PID_GRID_H2_BBOX_SZ, detRect.width());
-
-    if (detDivisor)
-    {
-      int dw = heightMap.getMapSizeX() * detDivisor, dh = heightMap.getMapSizeY() * detDivisor;
-      bool created_anew = !heightMapDet.isFileOpened();
-
-      if (created_anew || heightMapDet.getMapSizeX() != dw || heightMapDet.getMapSizeY() != dh)
-      {
-        resizeHeightMapDet(DAGORED2->getConsole());
-
-        if (heights)
-        {
-          float *hp = heights;
-          for (int y = detRectC[0].y; y < detRectC[1].y; y++)
-            for (int x = detRectC[0].x; x < detRectC[1].x; x++, hp++)
-            {
-              heightMapDet.setInitialData(x, y, *hp);
-              heightMapDet.setFinalData(x, y, *hp);
-            }
-        }
-        onLandRegionChanged(detRectC[0].x / detDivisor, detRectC[0].y / detDivisor, detRectC[1].x / detDivisor,
-          detRectC[1].y / detDivisor);
-        applyHmModifiers();
-        heightMapDet.flushData();
-      }
-    }
-    else
-      heightMapDet.closeFile();
-
-    if (heights)
-      midmem->free(heights);
 
     panel->setBool(PID_RENDER_HM_METRICS, render.useMetricsHM = !detDivisor);
     if (render.useMetricsHM != hmlService->areMetricsUsedForHm2())

@@ -125,7 +125,6 @@ private:
   bool needsAllocation = false;
   bool needsVertexGeneration = false;
   bool reactivationInProcess = false;
-  UniqueBuf instancingStagingBuffer;
   UniqueBuf instancingBuffer;
   Bitarray splineBufferDirtyMask;
   bool splineBufferDirty = false;
@@ -136,6 +135,7 @@ private:
   UniqueBuf indirectionBuffer;
   UniqueBuf objBatchIdBuffer;
   eastl::vector<BatchId> objBatchIdData;
+  eastl::vector<eastl::pair<InstanceId, SplineGenInstance>> pendingInstanceWrites;
   uint32_t attachmentMaxNo = 0;
   uint32_t maxBatchesCount = 0;
   uint32_t drawIndirectArgsNr = 0;

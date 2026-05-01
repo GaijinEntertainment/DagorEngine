@@ -9,6 +9,8 @@ int SplineGenEntity::loftChangesCount = 0;
 ISplineGenService::LayerIndexList SplineGenEntity::cachedLoftLayers;
 OAHashNameMap<true> SplineGenEntity::splNames;
 
+extern void invalidate_loft_render_cache();
+
 static IHeightmap *request_hmap_object()
 {
   static IHeightmap *hmap = nullptr;
@@ -22,6 +24,8 @@ static IHeightmap *request_hmap_object()
 
 void SplineGenEntity::setEditLayerIdx(int t)
 {
+  if (editLayerIdx != t)
+    invalidate_loft_render_cache();
   editLayerIdx = t;
   for (auto &p : entPools)
     for (auto *e : p.entPool)
@@ -50,6 +54,8 @@ void SplineGenEntity::setup(const DagorAsset &asset)
 }
 void SplineGenEntity::copyFrom(const SplineGenEntity &e)
 {
+  if (loftGeom)
+    invalidate_loft_render_cache();
   nameId = e.nameId;
   splineClass = nullptr;
   if (IAssetService *srv = EDITORCORE->queryEditorInterface<IAssetService>())
@@ -116,6 +122,7 @@ void SplineGenEntity::deleteUnusedPoolsEntities()
 
 GeomObject &SplineGenEntity::getClearedLoftGeom()
 {
+  invalidate_loft_render_cache();
   loftGeomBox.setempty();
   loftSeg.clear();
   if (!loftGeom)
@@ -126,6 +133,7 @@ GeomObject &SplineGenEntity::getClearedLoftGeom()
 
 void SplineGenEntity::removeLoftGeom()
 {
+  invalidate_loft_render_cache();
   loftSeg.clear();
   del_it(loftGeom);
   updateLoftBox();
@@ -136,6 +144,7 @@ void SplineGenEntity::removeLoftGeom()
 
 void SplineGenEntity::updateLoftBox()
 {
+  invalidate_loft_render_cache();
   if (loftGeom)
     loftGeomBox = loftGeom->getBoundBox();
   else

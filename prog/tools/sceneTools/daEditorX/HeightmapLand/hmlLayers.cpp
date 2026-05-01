@@ -63,10 +63,10 @@ void EditLayerProps::loadLayersConfig(const DataBlock &blk, const DataBlock &loc
     if (activeLayerIdx[i] < 0)
       activeLayerIdx[i] = i;
 
-  uint64_t lh_mask = 0;
+  LayerHiddenMask lh_mask;
   for (int i = 0; i < layerProps.size(); i++)
     if (layerProps[i].hide)
-      lh_mask |= 1ull << i;
+      lh_mask.setHidden(i);
   DAEDITOR3.setEntityLayerHiddenMask(lh_mask);
 }
 void EditLayerProps::saveLayersConfig(DataBlock &blk, DataBlock &local_data)

@@ -547,17 +547,25 @@ unsigned stackhlp_fill_stack_exact(void **stack, unsigned max_size, const void *
 
 namespace
 {
-thread_local stackhelp::ext::CallStackContext extended_call_stack_capture_context;
-}
+struct CallStackContextWithCounter
+{
+  size_t counter = 0;
+  stackhelp::ext::CallStackContext context;
+};
+thread_local CallStackContextWithCounter extended_call_stack_capture_context;
+} // namespace
 
 stackhelp::ext::CallStackContext stackhelp::ext::set_extended_call_stack_capture_context(CallStackContext new_context)
 {
-  CallStackContext r = extended_call_stack_capture_context;
-  extended_call_stack_capture_context = new_context;
+  CallStackContext r = extended_call_stack_capture_context.context;
+  extended_call_stack_capture_context.context = new_context;
+  ++extended_call_stack_capture_context.counter;
   return r;
 }
 
 stackhelp::ext::CallStackResolverCallbackAndSizePair stackhelp::ext::capture_extended_call_stack(stackhelp::CallStackInfo stack)
 {
-  return extended_call_stack_capture_context(stack);
+  return extended_call_stack_capture_context.context(stack);
 }
+
+size_t stackhelp::ext::get_extended_call_stack_generation() { return extended_call_stack_capture_context.counter; }

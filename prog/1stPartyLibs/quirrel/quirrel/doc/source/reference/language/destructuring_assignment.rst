@@ -54,3 +54,41 @@ Example
 Default values in destructured parameters are applied when the corresponding
 slot is missing in the passed argument. Type annotations may be used on individual
 destructured elements in the same way as for regular parameters.
+
+Empty patterns ``{}`` and ``[]`` are accepted and simply discard the argument.
+
+
+Destructuring in ``foreach`` loops
+==================================
+
+The iteration value of a ``foreach`` loop may be a destructuring pattern. Both
+table-style ``{...}`` and array-style ``[...]`` patterns are supported, with or
+without an index variable. Default values and type annotations work the same
+way as in :ref:`destructuring_assignment` and in function parameters.
+
+Example
+::
+
+   let pairs = [[1, 2], [3, 4]]
+   foreach ([a, b] in pairs)
+     println(a, b)
+
+   let rows = [{x = 1, y = 2}, {x = 3, y = 4}]
+   foreach (i, {x, y} in rows)
+     println(i, x, y)
+
+   // defaults applied when a slot is missing
+   foreach ({x = -1, y = -2} in [{x = 10}, {y = 20}, {}])
+     println(x, y)
+
+   // typed defaults
+   foreach ({x: int = 0, y: int|null = null} in [{x = 5}, {y = 7}])
+     println(x, y)
+
+   // empty patterns are allowed (the iteration value is discarded)
+   foreach ({} in rows)
+     println("tick")
+
+The destructured bindings are scoped to the loop body. Each iteration produces
+fresh bindings, so closures captured inside the body observe the value from
+their own iteration.

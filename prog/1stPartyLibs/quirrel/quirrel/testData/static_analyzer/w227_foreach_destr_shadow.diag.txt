@@ -1,0 +1,18 @@
+WARNING: w228 (declared-never-used) parameter 'x' was declared but never used.
+testData/static_analyzer/w227_foreach_destr_shadow.nut:4:15
+
+// through Visitor::visitDestructuringDecl so visitVarDecl runs for each name.
+function outer(x) {
+               ^
+  function inner() {
+
+
+WARNING: w227 (ident-hides-ident) binding 'x' hides parameter with the same name.
+testData/static_analyzer/w227_foreach_destr_shadow.nut:6:14
+
+  function inner() {
+    foreach ({x = 99} in [{x = 1}]) {
+              ^-----
+      println(x)
+
+

@@ -294,6 +294,13 @@ inline TMatrix mat44f_make_tm(mat44f const &m)
   return tm;
 }
 
+inline Frustum frustum_make_from_mat44f(mat44f const &m) { return Frustum(m); }
+inline bool frustum_test_sphere(const Frustum &f, das::float3 c, float r)
+{
+  return f.testSphereB(reinterpret_cast<const Point3 &>(c), r);
+}
+inline bool frustum_test_box(const Frustum &f, const BBox3 &bb) { return f.testBoxB(bb); }
+
 inline float v_distance_sq_to_bbox(das::float4 bmin, das::float4 bmax, das::float4 c)
 {
   return ::v_extract_x(::v_distance_sq_to_bbox_x(bmin, bmax, c));

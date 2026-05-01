@@ -7,6 +7,7 @@ include "taa_inc.dshl"
 include "paint_details_inc.dshl"
 include "unpack_unit_vector_inc.dshl"
 include "dynamic_destr_disappear_inc.dshl"
+include "triangle_size_debug.dshl"
 
 float4 params_validation_debug_color = (1,0,1,16);
 
@@ -15,7 +16,7 @@ hlsl {
 }
 
 int dyn_model_render_pass = 0;
-interval dyn_model_render_pass : render_pass_normal < 1, render_to_depth < 2, render_to_deform_hmap;
+interval dyn_model_render_pass : render_pass_normal < 1, render_to_depth < 2, render_to_deform_hmap < 3, render_pass_triangle_debug;
 
 macro NO_DEFORM_HMAP()
   if (dyn_model_render_pass == render_to_deform_hmap)  { dont_render; }
@@ -411,4 +412,15 @@ endmacro
 
 macro DYNAMIC_SIMPLE_VS_NOATEST()
   DYNAMIC_SIMPLE_VS_BASE()
+endmacro
+
+
+bool is_triangle_size_debug = dyn_model_render_pass == render_pass_triangle_debug;
+
+macro DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  if ((allow_triangle_size_debug == no && is_triangle_size_debug) || !hardware.dx12)
+  {
+    dont_render;
+  }
+  TRIANGLE_SIZE_DEBUG_PS()
 endmacro

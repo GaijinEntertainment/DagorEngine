@@ -132,7 +132,7 @@ shader rendinst_monochrome
           output.pointToEye.w = worldPos.y - worldLocalPos.y;
         ##endif
       #else
-        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || is_triangle_size_debug)
           output.normal.w = worldPos.y - worldLocalPos.y;
           output.normal.xyz = float3(0,0,0); //avoid compilation warnings
         ##endif
@@ -147,6 +147,10 @@ shader rendinst_monochrome
   {
     (ps) {stub@f1 = smoothness; } //FIXME if there is no variables in pixel shader, it does not compile
     compile("ps_null", "rendinst_render_depth_black_ps");
+  }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
   }
   else
   {

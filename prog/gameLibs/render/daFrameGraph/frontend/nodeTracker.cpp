@@ -240,13 +240,12 @@ static uint32_t get_argument_value(const BlobArg &arg, const dafg::ResourceProvi
 
 static uint32_t get_argument_value(const DispatchAutoResolutionArg &arg, const dafg::ResourceProvider &provider)
 {
-  auto value = eastl::visit(
+  return eastl::visit(
     [&](const auto &res) {
       auto scaledResolution = scale_by(res, arg.multiplier);
-      return arg.projector(&scaledResolution);
+      return *static_cast<const uint32_t *>(arg.projector(&scaledResolution));
     },
     provider.resolutions[arg.autoResTypeId]);
-  return *static_cast<const uint32_t *>(value);
 }
 
 static uint32_t get_argument_value(const DispatchTextureResolutionArg &arg, const dafg::ResourceProvider &provider)

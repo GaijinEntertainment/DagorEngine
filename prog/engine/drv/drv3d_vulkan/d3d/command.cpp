@@ -343,21 +343,22 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
     case Drv3dCommand::GET_VIDEO_MEMORY_BUDGET:
     {
-      uint32_t totalMemory = Globals::VK::phy.getAvailableVideoMemoryKb();
+      // need to call this first to update budget
+      uint32_t availableMemory = Globals::Mem::pool.getCurrentAvailableDeviceKb();
+      uint32_t memoryBudget = Globals::VK::phy.calculateAvailableDeviceLocalMemoryBudgetKb();
       if (par1)
-        *reinterpret_cast<uint32_t *>(par1) = totalMemory;
+        *reinterpret_cast<uint32_t *>(par1) = memoryBudget;
       if (par2 || par3)
       {
-        uint32_t availableMemory = Globals::Mem::pool.getCurrentAvailableDeviceKb();
-        availableMemory = min<uint32_t>(totalMemory, availableMemory);
+        availableMemory = min<uint32_t>(memoryBudget, availableMemory);
         if (availableMemory == 0 && !Globals::VK::phy.memoryBudgetInfoAvailable)
           return 0;
         if (par2)
           *reinterpret_cast<uint32_t *>(par2) = availableMemory;
         if (par3)
-          *reinterpret_cast<uint32_t *>(par3) = totalMemory - availableMemory; // it is always positive
+          *reinterpret_cast<uint32_t *>(par3) = memoryBudget - availableMemory; // it is always positive
       }
-      return totalMemory;
+      return Globals::VK::phy.getAvailableVideoMemoryKb();
     }
 
 #if USE_STREAMLINE_FOR_DLSS

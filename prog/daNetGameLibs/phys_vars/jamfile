@@ -1,0 +1,16 @@
+Root    ?= ../../.. ;
+Module = phys_vars ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_phys_vars_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_DAS =
+  main
+;
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

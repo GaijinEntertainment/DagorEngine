@@ -14,6 +14,9 @@
 #include "shCompiler.h"
 #include "globalConfig.h"
 
+#include <shaders/shOpcode.h>
+#include <shaders/shOpcodeFormat.h>
+
 #include "cppStcode.h"
 #include <shaders/cppStcodeVer.h>
 
@@ -37,6 +40,7 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_sampler.h>
 #include <EASTL/unordered_map.h>
+#include <EASTL/span.h>
 #include <dag/dag_vector.h>
 #include <generic/dag_enumerate.h>
 
@@ -239,7 +243,7 @@ struct Variables
     return id;
   }
 
-  int addLocalVars(dag::ConstSpan<::ShaderClass::Var> locvar)
+  int addLocalVars(dag::ConstSpan<::ShaderClass::Var> locvar, dag::ConstSpan<ShaderVarTextureType> textypes)
   {
     int id = append_items(varLists, 1);
     if (locvar.empty())
@@ -257,6 +261,20 @@ struct Variables
       vl.v[i].nameId = varMap.xmap[v.nameId];
       vl.v[i].type = v.type;
       vl.v[i].isPublic = 0;
+
+      if (v.additionalFlags & ::ShaderClass::VF_HAS_STUB_COLOR)
+      {
+        shader_layout::StubTextureKey key{.col = v.stubColor, .textype = textypes[i]};
+        if (key.textype == SHVT_TEX_UNKNOWN)
+          key.textype = SHVT_TEX_2D;
+        auto it = eastl::find(stubTexKeys.begin(), stubTexKeys.end(), key);
+        if (it == stubTexKeys.end())
+        {
+          size_t id = it - stubTexKeys.begin();
+          stubTexKeys.resize(id + 1);
+          stubTexKeys[id] = key;
+        }
+      }
     }
 
     allocStorage(vl, 1);
@@ -374,6 +392,7 @@ struct Variables
   Tab<shader_layout::VarList<>> varLists;
   bindump::VecHolder<shader_layout::Var<>> vars;
   bindump::VecHolder<shader_layout::ShaderGvarMetadata> gvarsMetadata;
+  bindump::VecHolder<shader_layout::StubTextureKey> stubTexKeys;
   const GatherNameMap &varMap;
 };
 
@@ -819,7 +838,24 @@ struct ShaderCodes
           scr.suppBlockUid[tmpPassesRemap[k]] = addSuppBlkCodes(scode.passes[k]->suppBlk);
     }
 
-    staticTextureTypesByCode.emplace_back(scode.staticTextureTypes);
+    if (scode.staticTextureTypes.size() > unifiedStaticTextureTypes.size())
+      unifiedStaticTextureTypes.resize(scode.staticTextureTypes.size(), SHVT_TEX_UNKNOWN);
+    for (size_t i = 0; i < scode.staticTextureTypes.size(); ++i)
+    {
+      if (scode.staticTextureTypes[i] == SHVT_TEX_UNKNOWN)
+      {
+        continue;
+      }
+      else if (unifiedStaticTextureTypes[i] == SHVT_TEX_UNKNOWN)
+      {
+        unifiedStaticTextureTypes[i] = scode.staticTextureTypes[i];
+      }
+      else if (unifiedStaticTextureTypes[i] != scode.staticTextureTypes[i])
+      {
+        sh_debug(SHLOG_ERROR, "Inconsistent static texture types %d != %d for shader '%s'", unifiedStaticTextureTypes[i],
+          scode.staticTextureTypes[i], shader_name);
+      }
+    }
 
     codes.push_back(scr);
     return codes.size() - 1;
@@ -895,11 +931,47 @@ struct ShaderCodes
   SharedStorage<ShaderChannelId> chanStorage;
   SharedStorage<int> icStorage;
   SharedStorage<uint32_t> svStorage;
-  Tab<Tab<ShaderVarTextureType>> staticTextureTypesByCode;
+  Tab<ShaderVarTextureType> unifiedStaticTextureTypes;
+  Tab<ShaderVarTextureType> staticTextureVarTypes;
 
   static Tab<shader_layout::Pass<>> tmpPasses;
 };
 Tab<shader_layout::Pass<>> ShaderCodes::tmpPasses(tmpmem_ptr());
+
+static Tab<ShaderVarTextureType> collect_static_var_texture_types_from_initcode_and_slot_types(eastl::span<int> initcode,
+  dag::ConstSpan<ShaderVarTextureType> textypes, int varcount)
+{
+  G_ASSERT_RETURN(initcode.size() % 2 == 0, {});
+
+  // Collect types for textures -- the textypes mapping maps material slots, not var ids
+  Tab<ShaderVarTextureType> stVarIdToTexType(varcount, SHVT_TEX_UNKNOWN);
+  for (int i = 0; i < initcode.size(); i += 2)
+  {
+    if (DAGOR_LIKELY(shaderopcode::getOp(initcode[i + 1]) != SHCOD_TEXTURE))
+      continue;
+    int stVarId = initcode[i];
+    int slot = shaderopcode::getOp2p1(initcode[i + 1]);
+    if (slot > textypes.size())
+      continue; // texture was never used and it's type could not be recorded
+    stVarIdToTexType[stVarId] = textypes[slot];
+  }
+
+  return stVarIdToTexType;
+}
+
+static void patch_stubcol_init_codes_with_tex_types(eastl::span<int> initcode, dag::ConstSpan<ShaderVarTextureType> var_textypes)
+{
+  G_ASSERT_RETURN(initcode.size() % 2 == 0, );
+
+  for (int i = 0; i < initcode.size(); i += 2)
+  {
+    if (DAGOR_LIKELY(shaderopcode::getOp(initcode[i + 1]) != SHCOD_TEXTURE_STUBCOL))
+      continue;
+
+    int varId = shaderopcode::getOp2p2(initcode[i + 1]);
+    initcode[i + 1] = shaderopcode::makeOp2(SHCOD_TEXTURE_STUBCOL, var_textypes[varId], varId);
+  }
+}
 
 struct ShaderClassRecEx
 {
@@ -920,7 +992,9 @@ struct ShaderClassRecEx
     shClass.timestamp = {sc.timestamp};
 
     shClass.stVariants = vt.addVariantTable(sc.staticVariants, tmpCodeRemap, codes.codes.size(), sc.name.c_str());
-    vars.addLocalVars(sc.stvar);
+    codes.staticTextureVarTypes =
+      collect_static_var_texture_types_from_initcode_and_slot_types(sc.shInitCode, codes.unifiedStaticTextureTypes, sc.stvar.size());
+    vars.addLocalVars(sc.stvar, codes.staticTextureVarTypes);
   }
 
   static void clearTemp()
@@ -1329,7 +1403,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // write shaders binary dump
   //
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
-  bindump::Master<shader_layout::ScriptedShadersBinDumpV4> shaders_dump;
+  bindump::Master<shader_layout::ScriptedShadersBinDumpV5> shaders_dump;
 
   // write dump header
   shaders_dump_compressed.header.magicPart1 = _MAKE4C('VSPS');
@@ -1551,6 +1625,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   shaders_dump.globVars.v = vars.varLists[0].v;
 
   shaders_dump.globVarsMetadata = eastl::move(vars.gvarsMetadata);
+  shaders_dump.usedStubTextureKeys = eastl::move(vars.stubTexKeys);
 
   // write strings
   shaders_dump.varMap = var_names;
@@ -1632,9 +1707,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     out_c.name = shaders_dump.shaderNameMap[out_c.nameId].getElementAddress(0);
     out_c.name.setCount(shaders_dump.shaderNameMap[out_c.nameId].size());
 
-    if (shc::config().addTextureType && !code.staticTextureTypesByCode.empty())
-      out_c.staticTextureTypeBySlot = code.staticTextureTypesByCode.front();
+    patch_stubcol_init_codes_with_tex_types(stor.shaderClass[i]->shInitCode, code.staticTextureVarTypes);
 
+    out_c.staticTextureTypeBySlot = eastl::move(code.unifiedStaticTextureTypes);
     shInitCodeStorage.getRef(out_c.initCode, stor.shaderClass[i]->shInitCode.data(), stor.shaderClass[i]->shInitCode.size(), 8);
 
     shaders_dump.messagesByShclass[i].resize(stor.shaderClass[i]->messages.size());

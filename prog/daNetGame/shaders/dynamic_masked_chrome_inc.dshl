@@ -65,7 +65,11 @@ endmacro
 
 macro COMMON_MASKED_CHROME_PS()
   static float thermal_vision_temperature = 0.0;
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal && !is_triangle_size_debug)
   {
     if (num_bones == four_bones && has_wounds == torn_wounds)
     {

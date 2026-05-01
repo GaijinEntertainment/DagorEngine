@@ -24,7 +24,7 @@ public:
 
 private:
   virtual void onOkStatus(const YuJson& json);
-  virtual Yuplay2Status onErrorStatus(const YuJson& answer, Yuplay2Status status);
+  virtual Yuplay2Status onErrorStatus(Yuplay2Status status);
 };
 
 
@@ -294,7 +294,7 @@ public:
 
 private:
   virtual void onOkStatus(const YuJson& json);
-  virtual Yuplay2Status onErrorStatus(const YuJson& answer, Yuplay2Status status);
+  virtual Yuplay2Status onErrorStatus(Yuplay2Status status);
 };
 
 
@@ -310,7 +310,7 @@ private:
   uint64_t wegameId = 0;
 
   virtual void onOkStatus(const YuJson& json);
-  virtual Yuplay2Status onErrorStatus(const YuJson& answer, Yuplay2Status status);
+  virtual Yuplay2Status onErrorStatus(Yuplay2Status status);
 };
 
 

@@ -64,7 +64,6 @@ int getRIExtraNextResIdx(int pool_id);
 TMatrix getRIGenMatrix(const RendInstDesc &desc);
 // Assumes that everything required is already locked
 TMatrix getRIGenMatrixNoLock(const RendInstDesc &desc);
-TMatrix getRIGenMatrixDestr(const RendInstDesc &desc);
 const char *getRIGenResName(const RendInstDesc &desc);
 const char *getRIGenDestrName(const RendInstDesc &desc);
 const char *getRIGenDestrFxTemplateName(const RendInstDesc &desc);
@@ -97,6 +96,7 @@ bool ri_gen_has_collision(const RendInstDesc &ri_desc);
 
 RendInstDesc get_restorable_desc(const RendInstDesc &ri_desc);
 int find_restorable_data_index(const RendInstDesc &desc);
+bool resolve_rigen_desc_subcell(RendInstDesc &desc);
 
 RenderableInstanceLodsResource *getRIGenRes(RendInstGenData *rgl, const RendInstDesc &desc);
 RenderableInstanceLodsResource *getRIGenRes(int layer_ix, int pool_ix);

@@ -222,8 +222,9 @@ static void get_ri_collision(int layer, mat44f_cref globtm, const Point3 &view_p
         rendinst::RendInstDesc riDesc(i, j, riIdx, 0, layer);
 
         mat44f tm;
+        uint32_t paletteId = 0;
         if (!riutil::get_rendinst_matrix(riDesc, rgl, (int16_t *)(crt.sysMemData.get() + crt.pools[riIdx].baseOfs + j * stride), &cell,
-              tm))
+              tm, paletteId))
           continue;
 
         vec4f distVec = v_sub(tm.col3, curViewPos);

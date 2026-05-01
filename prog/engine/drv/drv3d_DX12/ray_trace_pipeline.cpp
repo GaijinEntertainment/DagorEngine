@@ -957,8 +957,9 @@ bool drv3d_dx12::RayTracePipeline::build(D3DDevice *device, const RaytracePipeli
   {
     pipelineBuilder.onError();
     // if we end up here, there is a bug somewhere
-    logerr("DX12: [DRIVER BUG] Trying to build a ray trace pipeline with predefined root signature that does not match the pipelines "
-           "needs");
+    D3D_ERROR(
+      "DX12: [DRIVER BUG] Trying to build a ray trace pipeline with predefined root signature that does not match the pipelines "
+      "needs");
     return false;
   }
 

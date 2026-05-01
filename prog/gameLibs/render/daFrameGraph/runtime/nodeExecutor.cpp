@@ -701,7 +701,7 @@ void NodeExecutor::bindBlob(int bind_idx, const intermediate::Binding &binding, 
     const auto blob = getBlobView(*binding.resource, frame);
     bindSetter(bind_idx, *static_cast<const eastl::remove_reference_t<ProjectedType> *>((binding.projector)(blob.data)));
   }
-  else if (binding.reset)
+  else if (binding.reset || binding.optional)
     bindSetter(bind_idx, ProjectedType{});
 }
 

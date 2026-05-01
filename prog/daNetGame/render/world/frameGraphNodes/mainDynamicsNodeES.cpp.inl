@@ -11,6 +11,7 @@
 #include <render/world/dynModelRenderPass.h>
 #include <render/world/dynModelRenderer.h>
 #include <frustumCulling/frustumPlanes.h>
+#include <triangleSizeDebug/triangleSizeDebug.h>
 
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
@@ -62,30 +63,37 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueDynamicsNodes(const ch
   return result;
 }
 
-dafg::NodeHandle makeOpaqueDynamicsNode()
+dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
 {
-  auto ns = dafg::root() / "opaque" / "dynamics";
+  bool debugTriangle = mode == MainNodeRenderPass::TriangleSizeDebugPass;
+  auto ns = debugTriangle ? dafg::root() / "tringle_size_debug" : dafg::root() / "opaque" / "dynamics";
 
-  return ns.registerNode("main_dynamics_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  return ns.registerNode("main_dynamics_node", DAFG_PP_NODE_SRC, [debugTriangle](dafg::Registry registry) {
     auto [cameraHndl, stateRequest] = request_common_opaque_state(registry);
     use_camera_in_camera_jitter_frustum_plane_shader_vars(registry);
-    render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
+
+    if (debugTriangle)
+      registry.requestRenderPass().depthRo("gbuf_depth").color({"triangle_size_tex"});
+    else
+      render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
     auto strmCtxHndl = registry.read("tex_ctx").blob<TexStreamingContext>().handle();
 
-    return [cameraHndl = cameraHndl, strmCtxHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")](
+    return [cameraHndl = cameraHndl, strmCtxHndl, debugTriangle,
+             dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")](
              const dafg::multiplexing::Index &multiplexing_index) {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       const auto &camera = cameraHndl.ref();
 
-      ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
+      ShaderGlobal::set_int(dyn_model_render_passVarId,
+        eastl::to_underlying(debugTriangle ? dynmodel::RenderPass::TriangleSizeDebug : dynmodel::RenderPass::Color));
 
       const uint32_t hints = UpdateStageInfoRender::RENDER_COLOR | UpdateStageInfoRender::RENDER_DEPTH |
                              UpdateStageInfoRender::RENDER_MAIN |
                              (wr.hasMotionVectors ? UpdateStageInfoRender::RENDER_MOTION_VECS : 0);
 
       const dynmodel_renderer::DynModelRenderingState *pState = nullptr;
-      if (async_animchars_main.get())
+      if (async_animchars_main.get() && !debugTriangle)
       {
         camera.jobsMgr->waitAsyncAnimcharMainRender();
         pState = camera.jobsMgr->getAsyncAnimcharMainRenderState();
@@ -130,4 +138,15 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueDecorationsNode(const 
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnCameraNodeConstruction)
-static void create_opaque_dynamics_nodes_es(const OnCameraNodeConstruction &evt) { evt.nodes->push_back(makeOpaqueDynamicsNode()); }
+static void create_opaque_dynamics_nodes_es(const OnCameraNodeConstruction &evt)
+{
+  evt.nodes->push_back(makeOpaqueDynamicsNode(MainNodeRenderPass::MainColorPass));
+}
+
+ECS_TAG(render, dev)
+static void create_opaque_dynamics_triangle_debug_es(const CreateTriangleDebugNodes &evt)
+{
+  if (!evt.systems.isDynamics)
+    return;
+  evt.nodes->push_back(makeOpaqueDynamicsNode(MainNodeRenderPass::TriangleSizeDebugPass));
+}

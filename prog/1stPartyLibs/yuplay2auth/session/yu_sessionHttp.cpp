@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "yu_sessionHttp.h"
-#include "yu_json.h"
 #include "yu_string.h"
-
 
 #ifdef YUPLAY2_USE_XCURL
 #include <XCurl.h>
@@ -334,11 +332,12 @@ void YuSession::AsyncHttpAction::onHttpError(const YuString& url, int err_no)
 
 
 //==================================================================================================
-Yuplay2Status YuSession::AsyncHttpAction::parseServerJson(const YuCharTab& answer)
+Yuplay2Status YuSession::AsyncHttpAction::parseServerJson(const YuCharTab& answer_bytes)
 {
-  YuJson json;
-  if (json.decode(answer))
-    return checkJsonAnswer(json.at("status").s());
+  answer.clear();
+
+  if (answer.decode(answer_bytes))
+    return checkJsonAnswer(answer.at("status").s());
 
   return YU2_FAIL;
 }

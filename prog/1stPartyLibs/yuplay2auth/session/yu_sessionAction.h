@@ -4,6 +4,7 @@
 
 
 #include "yu_session.h"
+#include "yu_answer.h"
 
 
 class YuSession::AsyncAction
@@ -23,12 +24,14 @@ public:
 
   Yuplay2Status getStatus() const { return status; }
   const void* getResult() const { return result; }
+  IYuplay2Answer* getAnswer() { return &answer; }
 
 protected:
   YuSession& session;
   ActionId id;
   Yuplay2Msg msg;
   YuEvent doneEvt;
+  YuApiAnswer answer;
 
   void beginAction();
   void done(Yuplay2Status status, const void* result = NULL);

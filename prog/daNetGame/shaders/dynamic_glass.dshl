@@ -22,6 +22,11 @@ interval special_vision : special_vision_off<1, thermal_vision;
 
 shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
 {
+  if (is_triangle_size_debug)
+  {
+    dont_render;
+  }
+
   SUPPORT_MULTIDRAW(false)
   NO_DEFORM_HMAP()
   static int num_bones = 0;
@@ -186,7 +191,11 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     USE_INDOOR_LIGHT_PROBES(ps, get_is_window())
     USE_THERMAL_SIGNATURE()
 
-    if (shader==dynamic_glass_chrome)
+    if (is_transparent_triangle_debug)
+    {
+      TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+    }
+    else if (shader==dynamic_glass_chrome)
     {
       if (diff == set)
       {

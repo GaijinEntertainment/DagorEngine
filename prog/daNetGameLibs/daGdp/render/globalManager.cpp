@@ -22,6 +22,7 @@ namespace var
 {
 static ShaderVariableInfo dyn_region("dagdp__dyn_region");
 static ShaderVariableInfo dyn_counters_num("dagdp__dyn_counters_num");
+static ShaderVariableInfo global_density_mul("dagdp__global_density_mul");
 }; // namespace var
 
 using TmpName = eastl::fixed_string<char, 256>;
@@ -44,6 +45,8 @@ struct ViewPersistentData
   RingCPUBufferLock readback;
   ViewConstants constants;
 };
+
+float GlobalManager::globalDensityMul = 1;
 
 void GlobalManager::reconfigure(const GlobalConfig &new_config)
 {
@@ -308,6 +311,8 @@ void GlobalManager::rebuildViews()
             perInstanceFormat})
           .atStage(dafg::Stage::COMPUTE)
           .useAs(dafg::Usage::SHADER_RESOURCE);
+
+        return [] { ShaderGlobal::set_float(var::global_density_mul, globalDensityMul); };
       });
 
       dafg::NodeHandle dynamicSetupNode =
@@ -376,16 +381,19 @@ void GlobalManager::rebuildViews()
             {
               const uint32_t totalPlaced = data[DYN_COUNTERS_INDEX_TOTAL_PLACED];
               const uint32_t totalCapacity = persistentData->constants.dynamicInstanceRegion.maxCount;
-
 #if DAGDP_DEBUG
               view.dynamicInstanceCounter = totalPlaced;
 #else
               G_UNUSED(view);
 #endif
-
               if (totalCapacity > 0 && totalPlaced > totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER)
-                LOGERR_ONCE("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %f", totalPlaced, totalCapacity,
-                  DYNAMIC_THRESHOLD_MULTIPLIER);
+              {
+                globalDensityMul *= totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER / float(totalPlaced + 1);
+#if DAGDP_DEBUG
+                logerr("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %g, setting global density to %g",
+                  totalPlaced, totalCapacity, DYNAMIC_THRESHOLD_MULTIPLIER, globalDensityMul);
+#endif
+              }
 
               persistentData->readback.unlock();
             }
@@ -409,7 +417,8 @@ void GlobalManager::rebuildViews()
       }
 
       const auto nodeInserter = [&nodes = view.nodes](dafg::NodeHandle node) { nodes.push_back(eastl::move(node)); };
-      g_entity_mgr->broadcastEventImmediate(EventViewFinalize(view.info, viewBuilder, nodeInserter, rulesBuilder));
+      g_entity_mgr->broadcastEventImmediate(
+        EventViewFinalize(view.info, viewBuilder, nodeInserter, rulesBuilder, triangleSizeDebugEnabled));
     }
 
 #if DAGDP_DEBUG

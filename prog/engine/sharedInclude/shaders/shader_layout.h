@@ -345,7 +345,6 @@ BINDUMP_BEGIN_LAYOUT(ShaderClass)
       return NO_TIMESTAMP;
     return timestamp[0];
   }
-
 BINDUMP_END_LAYOUT()
 
 BINDUMP_BEGIN_LAYOUT(ShaderBlock)
@@ -576,5 +575,20 @@ BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV4, ScriptedShadersBinDumpV3)
   BINDUMP_USING_EXTENSION()
   int32_t externalPsoCacheVersion = 0;
   VecHolder<ShaderGvarMetadata> globVarsMetadata;
+BINDUMP_END_LAYOUT()
+
+struct StubTextureKey
+{
+  uint32_t col;
+  ShaderVarTextureType textype;
+
+  operator uint64_t() const { return uint64_t(col) | (uint64_t(textype) << 32); }
+  friend bool operator==(const StubTextureKey &, const StubTextureKey &) = default;
+  friend bool operator!=(const StubTextureKey &, const StubTextureKey &) = default;
+};
+
+BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV5, ScriptedShadersBinDumpV4)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<StubTextureKey> usedStubTextureKeys;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

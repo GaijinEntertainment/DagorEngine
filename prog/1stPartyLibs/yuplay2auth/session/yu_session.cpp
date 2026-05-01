@@ -217,6 +217,16 @@ unsigned YU2VCALL YuSession::getStateSync()
 
 
 //==================================================================================================
+IYuplay2Answer* YU2VCALL YuSession::answer(Yuplay2Handle req)
+{
+  if (req)
+    return ((AsyncAction*)req)->getAnswer();
+
+  return NULL;
+}
+
+
+//==================================================================================================
 unsigned YU2VCALL YuSession::getTencentZoneIdSync()
 {
   YuWarden warden(sessionLock);

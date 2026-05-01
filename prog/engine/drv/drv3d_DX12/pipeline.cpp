@@ -130,7 +130,7 @@ bool PipelineVariant::generateOutputMergerDescriptions(const eastl::string &pipe
 
   if (0 != fb_layout.hasDepth)
   {
-    target.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT>(fb_layout.depthStencilFormat.asDxGiFormat());
+    target.append<CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT>(fb_layout.depthStencilFormat.asDxGiFormat<false>());
     rtSampleDesc.Count = 1 << fb_layout.depthMsaaLevel;
   }
 
@@ -147,7 +147,7 @@ bool PipelineVariant::generateOutputMergerDescriptions(const eastl::string &pipe
     {
       if (mask & 1)
       {
-        rtfma.RTFormats[i] = fb_layout.colorFormats[i].asDxGiFormat();
+        rtfma.RTFormats[i] = fb_layout.colorFormats[i].asDxGiFormat<false>();
         rtfma.NumRenderTargets = i + 1;
         rtSampleDesc.Count = 1 << fb_layout.getColorMsaaLevel(i);
       }
@@ -355,7 +355,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   desc.SampleMask = ~0u;
   if (fb_layout.hasDepth)
   {
-    desc.DSVFormat = fb_layout.depthStencilFormat.asDxGiFormat();
+    desc.DSVFormat = fb_layout.depthStencilFormat.asDxGiFormat<false>();
     desc.SampleDesc.Count = 1 << fb_layout.depthMsaaLevel;
   }
   else
@@ -376,7 +376,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
     {
       if (mask & 1)
       {
-        desc.RTVFormats[i] = fb_layout.colorFormats[i].asDxGiFormat();
+        desc.RTVFormats[i] = fb_layout.colorFormats[i].asDxGiFormat<false>();
         desc.NumRenderTargets = i + 1;
         desc.SampleDesc.Count = 1 << fb_layout.getColorMsaaLevel(i);
       }
@@ -530,7 +530,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
         uint8_t sampleCount = 1;
         if (0 != fb_layout.hasDepth)
         {
-          fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString());
+          fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString<false>());
           sampleCount = 1 << fb_layout.depthMsaaLevel;
         }
         fb_layout_info.aprintf(64, " colorTargetMask %u", fb_layout.colorTargetMask);
@@ -542,7 +542,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
           {
             if (mask & 1)
             {
-              fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString());
+              fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString<false>());
               sampleCount = 1 << fb_layout.getColorMsaaLevel(i);
             }
             else
@@ -657,7 +657,7 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
       {
         isOk = false;
         D3D_ERROR("DX12: Blend enabled for render target %u with format %s that does not support blending", i,
-          fb_layout.colorFormats[i].getNameString());
+          fb_layout.colorFormats[i].getNameString<false>());
       }
     }
     if (fb_layout.colorFormats[i] == FormatStore::fromDXGIFormat(DXGI_FORMAT_R9G9B9E5_SHAREDEXP) &&
@@ -791,7 +791,7 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
         uint8_t sampleCount = 1;
         if (0 != fb_layout.hasDepth)
         {
-          fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString());
+          fb_layout_info.aprintf(128, " depthStencilFormat %s", fb_layout.depthStencilFormat.getNameString<false>());
           sampleCount = 1 << fb_layout.depthMsaaLevel;
         }
         fb_layout_info.aprintf(64, " colorTargetMask %u", fb_layout.colorTargetMask);
@@ -803,7 +803,7 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
           {
             if (mask & 1)
             {
-              fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString());
+              fb_layout_info.aprintf(128, " %s", fb_layout.colorFormats[i].getNameString<false>());
               sampleCount = 1 << fb_layout.getColorMsaaLevel(i);
             }
             else

@@ -240,6 +240,7 @@ void StaticGeometryContainer::loadDagNode(class Node &node, DagLoadData &dag)
       getBlkScript(node.script, blkScript, nonBlkScript);
 
       dblk::load_text(gn->script, blkScript, dblk::ReadFlag::ROBUST, curLoadedDag);
+      gn->stage = gn->layer = 0;
 
       if (gn->script.paramCount())
       {
@@ -336,6 +337,8 @@ void StaticGeometryContainer::loadDagNode(class Node &node, DagLoadData &dag)
         gn->vltMul = gn->script.getInt("vlt_mul", 1);
         if (gn->vltMul <= 0)
           gn->vltMul = 1;
+        gn->layer = gn->script.getInt("layer", 0);
+        gn->stage = gn->script.getInt("stage", 0);
       }
 
       // old script format support (CFG)

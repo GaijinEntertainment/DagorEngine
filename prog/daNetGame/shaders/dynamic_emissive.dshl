@@ -26,7 +26,11 @@ shader dynamic_emissive
 // PS stuff.
 //---------------------------------------------------
 
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal)
   {
     compile("ps_null", "null_ps");
   }

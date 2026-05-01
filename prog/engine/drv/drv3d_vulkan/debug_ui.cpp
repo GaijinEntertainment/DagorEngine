@@ -560,6 +560,20 @@ void drv3d_vulkan::debug_ui_swapchain()
     Frontend::swapchain.setMode(newMode);
   }
 
+  if (ImGui::Button("Mode FIFO relaxed"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.presentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+    Frontend::swapchain.setMode(newMode);
+  }
+
+  if (ImGui::Button("Mode MAILBOX"))
+  {
+    SwapchainMode newMode = Frontend::swapchain.getMode();
+    newMode.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+    Frontend::swapchain.setMode(newMode);
+  }
+
   if (ImGui::Button("OS video mode set"))
   {
     if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)

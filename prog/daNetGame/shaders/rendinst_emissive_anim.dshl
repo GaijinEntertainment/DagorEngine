@@ -100,7 +100,12 @@ shader rendinst_emissive_anim
   if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   {
     compile("ps_null", "rendinst_render_depth_black_ps");
-  } else
+  }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
   {
     (ps) {
       time_scroll_param@f1 = (time_phase(1000, 0) * 1000, 0, 0, 0);

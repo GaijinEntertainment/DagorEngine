@@ -23,6 +23,12 @@ struct NodeHandleWithSlotsAccess;
 
 enum class SSRQuality;
 
+enum class MainNodeRenderPass
+{
+  MainColorPass = 0,
+  TriangleSizeDebugPass = 1,
+};
+
 // pImpl-like construction
 
 dafg::NodeHandle makePrepareGbufferDepthNode(uint32_t global_flags, int depth_format);
@@ -44,17 +50,18 @@ dafg::NodeHandle makeDelayedRenderDepthAboveNode();
 dafg::NodeHandle makeAsyncAnimcharRenderingStartNode(bool has_motion_vectors);
 
 eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueDynamicsNodes(const char *prev_region_ns);
-dafg::NodeHandle makeOpaqueDynamicsNode();
+dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode);
 eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueCloseupsNodes();
 eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueDecorationsNode(const char *previous_opaque_ns);
 eastl::fixed_vector<dafg::NodeHandle, 4> makeControlOpaqueStaticsNodes(const char *prev_region_ns);
+eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns, bool prepassEnabled, MainNodeRenderPass mode);
 eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabled);
 eastl::fixed_vector<dafg::NodeHandle, 2> makeControlOpaqueDynamicRendinstNodes(const char *prev_region_ns);
 dafg::NodeHandle makeOpaqueDynamicRendinstNode();
 
 // Early flag forces ground to be rendered before all other statics
 // used for tiled architectures
-dafg::NodeHandle makeGroundNode(bool early);
+dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode);
 
 eastl::fixed_vector<dafg::NodeHandle, 4> makeCreateVrsTextureNode(bool force_dummy_nodes);
 
@@ -110,9 +117,7 @@ dafg::NodeHandle makeGiScreenDebugDepthNode();
 
 eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool need_reprojection);
 eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const char *resolve_pshader_name,
-  const char *resolve_cshader_name,
-  const char *classify_cshader_name,
-  const ShadingResolver::PermutationsDesc &permutations_desc);
+  const char *resolve_cshader_name);
 
 dafg::NodeHandle makePrepareWaterNode();
 
@@ -134,7 +139,7 @@ dafg::NodeHandle makeDownsampleDepthWithWaterNode();
 dafg::NodeHandle makeReprojectedHzbImportNode();
 dafg::NodeHandle makeOcclusionFinalizeNode();
 
-dafg::NodeHandle makeRendinstTransparentNode();
+dafg::NodeHandle makeRendinstTransparentNode(MainNodeRenderPass mode);
 
 dafg::NodeHandle makeTransparentEcsNode();
 
@@ -143,8 +148,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes
 
 dafg::NodeHandle makeTranslucentInWorldPanelsNode();
 
-dafg::NodeHandle makeTransparentSceneLateNode();
-dafg::NodeHandle makeMainHeroTransNode();
+dafg::NodeHandle makeTransparentSceneLateNode(MainNodeRenderPass mode);
+dafg::NodeHandle makeMainHeroTransNode(MainNodeRenderPass mode);
 
 dafg::NodeHandle makeUnderWaterFogNode();
 

@@ -17,6 +17,8 @@
 #include "backend/cmd/resources.h"
 #include "backend/cmd/screen.h"
 #include "resource_manager.h"
+#include "backend.h"
+#include "backend_interop.h"
 
 #if _TARGET_ANDROID
 #include <osApiWrappers/dag_progGlobals.h>
@@ -880,6 +882,9 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
 
   currentMode = new_mode;
   currentMode.modifySource = nullptr;
+
+  if (this == &Frontend::swapchain)
+    Backend::interop.isVsyncOnPrimarySwapchain = currentMode.isVsyncOn();
 
   if (!hasChanges && !extentFittingChange)
   {

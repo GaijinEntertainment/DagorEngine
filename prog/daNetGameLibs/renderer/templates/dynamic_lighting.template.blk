@@ -1,7 +1,6 @@
 dynamic_lighting{
   _singleton:b=yes
   _tags:t="render"
-  dynamic_lighting_is_precomputed:b=yes
   dynamic_lighting_is_rtsm:b=no
   "prepare_dynamic_lighting_texture_per_camera:dafg::NodeHandle"{}
   "dynamic_lighting_generate_tiles_node:dafg::NodeHandle"{}

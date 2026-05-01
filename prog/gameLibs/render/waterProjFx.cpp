@@ -22,6 +22,7 @@
 #include <perfMon/dag_statDrv.h>
 
 #define MIN_WAVE_HEIGHT               0.5f
+#define MAX_WAKE_HEIGHT               1.0f
 #define CAMERA_PLANE_ELEVATION        3.0f
 #define CAMERA_PLANE_BOTTOM_MIN_ANGLE 0.999f
 #define FRUSTUM_CROP_MIN_HEIGHT       0.6f
@@ -200,7 +201,7 @@ void WaterProjectedFxRenderer::prepare(const TMatrix &view_tm, const TMatrix &vi
 
   if (change_projection)
   {
-    float wavesDeltaH = max(significant_wave_height * 2.2f, MIN_WAVE_HEIGHT);
+    float wavesDeltaH = max(significant_wave_height * 2.2f + MAX_WAKE_HEIGHT, MIN_WAVE_HEIGHT);
     float waterHeightTop = water_level + wavesDeltaH;
 
     Point3 cameraDir = newViewItm.getcol(2);

@@ -14,7 +14,7 @@
 #include <heightmap/heightmapCullingQuality.h>
 
 
-class HeightmapHandler;
+class IHeightmapHandler;
 
 struct LodGridVertexData
 {
@@ -35,8 +35,8 @@ class HeightmapHeightCulling
 public:
   static constexpr float NO_WATER_ON_LEVEL = -10000.0f;
 
-  bool init(HeightmapHandler *handler);
-  void updateMinMaxHeights(HeightmapHandler *handler, const IBBox2 &ib);
+  bool init(IHeightmapHandler *handler);
+  void updateMinMaxHeights(IHeightmapHandler *handler, const IBBox2 &ib);
   void getMinMax(int lod, const Point2 &patch_corner, const real &patch_size, real &hMin, real &hMax) const;
   void getMinMaxInterpolated(int lod, const Point2 &at, real &hMin, real &hMax) const;
   float getLod(float patch_size) const;

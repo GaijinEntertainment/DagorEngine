@@ -332,6 +332,7 @@ shader skies_render_screen
     mu_horizon@f2 = (1-rRG*rRG, -sqrt(1-rRG*rRG),0,0);
     //mu_horizon@f1 = (-sqrt(1-Rh*Rh),0,0,0);
     //skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    zn_zfar_inv@f1 = (1.0/zn_zfar.y);
   }
   hlsl {
     #define SKIES_RENDER_TO_FRUSTUM 1
@@ -385,13 +386,12 @@ shader skies_render_screen
       if (distToEarth>=0)
       {
         DimensionlessSpectrum groundTransmittance = 0;
+        IrradianceSpectrum groundInscatter = skyInscatter.rgb;
         #if SKIES_RENDER_TO_FRUSTUM
-        float skyLerp = saturate(distToEarth * skies_panoramic_scattering__inv_distance.y*1000*4-3);//saturate(distToEarth/80 - 1);
-        //float skyLerp = saturate(distToEarth/80 - 1);
+        float skyLerp = saturate(1000.0f * distToEarth * zn_zfar_inv - 1); // we blend frustum scattering to infinite scattering on distance to hide seam
         BRANCH
         if (skyLerp < 1 && use_tc)//
         {
-           IrradianceSpectrum groundInscatter = skyInscatter.rgb;
            get_scattering_tc_fog(scattering_lut_tc, -viewVect, distToEarth*1000, groundTransmittance, groundInscatter);
            if (skyLerp > 0)
             groundTransmittance = lerp(groundTransmittance, GetTransmittance(theAtmosphere, SamplerTexture2DFromName(skies_transmittance_texture), atmosphereR, atmosphereMu, distToEarth, true), skyLerp);

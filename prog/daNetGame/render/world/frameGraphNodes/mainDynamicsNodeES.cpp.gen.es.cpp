@@ -24,3 +24,23 @@ static ecs::EntitySystemDesc create_opaque_dynamics_nodes_es_es_desc
   ecs::EventSetBuilder<OnCameraNodeConstruction>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc create_opaque_dynamics_triangle_debug_es_comps[] ={};
+static void create_opaque_dynamics_triangle_debug_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<CreateTriangleDebugNodes>());
+  create_opaque_dynamics_triangle_debug_es(static_cast<const CreateTriangleDebugNodes&>(evt)
+        );
+}
+static ecs::EntitySystemDesc create_opaque_dynamics_triangle_debug_es_es_desc
+(
+  "create_opaque_dynamics_triangle_debug_es",
+  "prog/daNetGame/render/world/frameGraphNodes/mainDynamicsNodeES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, create_opaque_dynamics_triangle_debug_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<CreateTriangleDebugNodes>::build(),
+  0
+,"dev,render");

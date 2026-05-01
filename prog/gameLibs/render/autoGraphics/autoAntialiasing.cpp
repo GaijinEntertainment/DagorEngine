@@ -112,19 +112,20 @@ static const char *get_desired_aa_method(const char *available_methods, bool for
   auto autoAntialiasingForVendorBlk =
     dgs_get_settings()->getBlockByNameEx("auto_antialiasing")->getBlockByNameEx("desired_aa_for_vendor");
 
-  bool useFXAA = !force_use_upscaling_method && gpuInfo.isUMA;
+  const bool maybeUseFXAA = !force_use_upscaling_method && gpuInfo.isUMA;
+  bool useFXAA = false;
   switch (gpuInfo.vendor)
   {
     case GpuVendor::NVIDIA: selectedMethod = autoAntialiasingForVendorBlk->getStr("nvidia", DEFAULT_AA); break;
     case GpuVendor::AMD:
       // fsr is dx12 only, see render::antialiasing
       selectedMethod = d3d::get_driver_code().is(d3d::dx12) ? autoAntialiasingForVendorBlk->getStr("amd", DEFAULT_AA) : DEFAULT_AA;
-      useFXAA = useFXAA || use_fxaa_amd(gpuInfo.family);
+      useFXAA = maybeUseFXAA && use_fxaa_amd(gpuInfo.family);
       break;
     case GpuVendor::INTEL:
       // xess is dx12 only, see render::antialiasing
       selectedMethod = d3d::get_driver_code().is(d3d::dx12) ? autoAntialiasingForVendorBlk->getStr("intel", DEFAULT_AA) : DEFAULT_AA;
-      useFXAA = useFXAA || use_fxaa_intel(gpuInfo.family);
+      useFXAA = maybeUseFXAA && use_fxaa_intel(gpuInfo.family);
       break;
     default: logwarn("auto_antialiasing: unknown GPU vendor, fallback to %s", DEFAULT_AA); useFXAA = false;
   }

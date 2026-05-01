@@ -124,7 +124,6 @@ struct CompilerConfig
   bool validateIdenticalBytecode : 1 = false;
   bool hlsl2021 : 1 = false;
   bool useCompression : 1 = true;
-  bool addTextureType : 1 = false;
   bool suppressLogs : 1 = false;
   bool logExactCompilationTimes : 1 = false;
   bool logFullPerFileCompilationStats : 1 = false;

@@ -4,15 +4,8 @@ include "gbuffer.dshl"
 buffer laser_screen_spots;
 texture perlin_noise3d;
 
-interval special_vision : special_vision_off<1, thermal_vision;
-
 shader laser_screen_spot
 {
-  if (special_vision == thermal_vision)
-  {
-    dont_render;
-  }
-
   supports global_frame;
 
   cull_mode=none;

@@ -188,6 +188,12 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
+    const DataBlock *pipelineCacheProp = getPerDriverPropertyBlock("pipelineCache");
+    pipelineCacheBlockingSaveMaxSizeMb = pipelineCacheProp->getInt("blockingSaveMaxSizeMb", 256);
+    pipelineCacheMaxSizeMb = pipelineCacheProp->getInt("maxSizeMb", 1920);
+  }
+
+  {
     const DataBlock *frameMemProp = getPerDriverPropertyBlock("frameMem");
 
     bits.allowFrameMem = frameMemProp->getBool("allow", true);
@@ -493,6 +499,7 @@ void DriverConfig::extCapsFillPCWinOnly(DriverDesc &caps)
   caps.caps.hasNativeRayTracePipelineExpansion = false;
   caps.caps.hasProperUAVSupport = true;
   caps.caps.hasBarrierNone = false;
+  caps.caps.hasPipelineStatisticsQuery = false; // TODO: add support for this
   if (getPerDriverPropertyBlock("clearColorBug")->getBool("affected", false))
   {
     caps.issues.hasClearColorBug = true;

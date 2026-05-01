@@ -23,6 +23,8 @@ inline const uint64_t TAG_CONST = hash_name("const");
 inline const uint64_t TAG_VAR = hash_name("var");
 inline const uint64_t TAG_RAMP = hash_name("ramp");
 inline const uint64_t TAG_SRAMP = hash_name("smooth_ramp");
+inline const uint64_t TAG_ASSIGN = hash_name("assign");
+inline const uint64_t TAG_SEQ = hash_name("seq");
 
 // ============================================================================
 // Locale-independent number parsing
@@ -196,6 +198,11 @@ LCEXPR_PARSER_INLINE NodeEmitMap make_default_node_emit_map()
   m.emplace(hash_name("sqrt"), emitUnaryFn<SqrtNode>);
   m.emplace(hash_name("abs"), emitUnaryFn<AbsNode>);
   m.emplace(hash_name("frac"), emitUnaryFn<FracNode>);
+  // Sequence operator (`,` / `;`): plain binary, fold-friendly when both sides are
+  // const. Assign is deliberately NOT here -- AssignNode is hand-emitted in compileNode
+  // because it carries varId per-node, and tryFold must not collapse it (writing to
+  // vars[] is the whole point).
+  m.emplace(hash_name("seq"), emitBinaryFn<SeqNode>);
   return m;
 }
 
@@ -226,6 +233,16 @@ struct Parser
   eastl::string *err;
   bool failed;
   int depth;
+  // Any varId < externalVarBase is an external (caller-registered) read-only var.
+  // Anything >= externalVarBase was introduced by `var`/`let` during this parse and is
+  // user-mutable. Captured at parse start from *nextVarId.
+  uint16_t externalVarBase;
+  // The varId of the var/let currently having its initialiser parsed, or
+  // VAR_ID_OVERFLOW when no initialiser is in flight. parsePrimary uses this to reject
+  // self-references like `var a = a + 1` cleanly. Saved/restored across nested var/let
+  // so a sibling `var b = ...` inside the outer's initialiser does not change which
+  // name is "in flight" for the outer self-reference check.
+  uint16_t inFlightVarId;
 
   enum Tok
   {
@@ -245,9 +262,11 @@ struct Parser
     T_AND,
     T_OR,
     T_NOT,
+    T_ASSIGN,
     T_LPAREN,
     T_RPAREN,
-    T_COMMA
+    T_COMMA,
+    T_SEMI
   };
   Tok tok;
   float tokNum;
@@ -259,7 +278,11 @@ struct Parser
     ExprType type;
   };
 
-  bool isConst(int idx) { return idx >= 0 && (*ir)[idx].tag == hash_name("const"); }
+  // Bounds check is intentional: tryFold is reachable with a stale idx==0 after a deep
+  // sub-parse hit the depth cap before emitting anything. Without `idx < ir->size()`
+  // we'd read past-end of an empty Tab on the unwind path (e.g. a 200-char unary
+  // chain).
+  bool isConst(int idx) { return idx >= 0 && idx < (int)ir->size() && (*ir)[idx].tag == hash_name("const"); }
   float constVal(int idx) { return (*ir)[idx].constVal; }
 
   int addConst(float v)
@@ -407,9 +430,11 @@ struct Parser
       case '<': tok = T_LT; return;
       case '>': tok = T_GT; return;
       case '!': tok = T_NOT; return;
+      case '=': tok = T_ASSIGN; return; // `==` is consumed earlier; lone `=` is assignment.
       case '(': tok = T_LPAREN; return;
       case ')': tok = T_RPAREN; return;
       case ',': tok = T_COMMA; return;
+      case ';': tok = T_SEMI; return;
       default: error("unexpected character"); tok = T_END;
     }
   }
@@ -467,14 +492,154 @@ struct Parser
     return {addIR(hash_name(tag), 2, l.idx, r.idx), t};
   }
 
-  TNode parseExpr()
+  // Top-level entry: parses one or more statements separated by `,` / `;`. The whole
+  // sequence's value is the last statement's value; preceding statements run for their
+  // side effects (typically var/let or assignment). parseSeq is also what `(...)` and
+  // function-argument boundaries delegate to when sequences are syntactically allowed.
+  //
+  // Function arguments use parseAssign instead, because the comma there separates args.
+  TNode parseSeq()
   {
     if (!enterDepth())
       return {0, TYPE_FLOAT};
-    TNode n = parseOr();
+    TNode n = parseStmt();
+    while ((tok == T_COMMA || tok == T_SEMI) && !failed)
+    {
+      next();
+      TNode r = parseStmt();
+      // Const-fold (c1, c2) -> c2 when both sides are constants. Plain SeqNode emit
+      // would do the same, but tryFold replaces the whole subtree with a single const,
+      // saving an arena node and a virtual call at eval time.
+      int folded = tryFold(TAG_SEQ, 2, n.idx, r.idx);
+      if (folded >= 0)
+        n = {folded, r.type};
+      else
+        n = {addIR(TAG_SEQ, 2, n.idx, r.idx), r.type};
+    }
     leaveDepth();
     return n;
   }
+
+  // Statement: either a `var`/`let` declaration, or an assignment expression. Both
+  // produce a single IR node usable as a sequence element.
+  TNode parseStmt()
+  {
+    if (failed)
+      return {0, TYPE_FLOAT};
+    if (tok == T_ID && (strcmp(tokId, "var") == 0 || strcmp(tokId, "let") == 0))
+    {
+      next();
+      if (tok != T_ID)
+      {
+        error("expected identifier after 'var'/'let'");
+        return {0, TYPE_FLOAT};
+      }
+      char name[64];
+      int nameLen = (int)strlen(tokId);
+      memcpy(name, tokId, nameLen + 1);
+      next();
+      if (!expect(T_ASSIGN))
+        return {0, TYPE_FLOAT};
+      // Reject names that collide with a builtin/user function or with an existing
+      // variable (external or already-declared). A var/let must introduce a fresh name.
+      uint64_t h = hash_name(name, nameLen);
+      if (funcs->findVal(h))
+      {
+        char msg[96];
+        snprintf(msg, sizeof(msg), "var name '%s' conflicts with a function", name);
+        error(msg);
+        return {0, TYPE_FLOAT};
+      }
+      if (varMap->findVal(h))
+      {
+        char msg[96];
+        snprintf(msg, sizeof(msg), "var name '%s' is already defined", name);
+        error(msg);
+        return {0, TYPE_FLOAT};
+      }
+      // Reserve the new name BEFORE parsing the initialiser. Two reasons:
+      //  1. A nested same-name `var a = (var a = 1, a)` is rejected by the existing
+      //     "already defined" check on the inner var (without the reservation,
+      //     register_var() would silently reuse the inner slot for the outer name).
+      //  2. A self-reference `var a = a + 1` is caught at parsePrimary via inFlightVarId
+      //     (a clearer error than letting `a` resolve to its own freshly-allocated slot
+      //     and read undefined memory at eval time).
+      uint16_t vid = register_var(*varMap, *nextVarId, name);
+      if (vid == VAR_ID_OVERFLOW)
+      {
+        char msg[96];
+        snprintf(msg, sizeof(msg), "too many variables (limit %d)", (int)MAX_VAR_ID);
+        error(msg);
+        return {0, TYPE_FLOAT};
+      }
+      const uint16_t prevInFlight = inFlightVarId;
+      inFlightVarId = vid;
+      TNode rhs = parseAssign();
+      inFlightVarId = prevInFlight;
+      if (failed)
+        return {0, TYPE_FLOAT};
+      // The fresh user-var slot starts undefined on the caller's side; we always emit an
+      // AssignNode so the runtime store happens. tryFold would lose the side effect.
+      int idx = (int)ir->size();
+      IRNode irn = {};
+      irn.tag = TAG_ASSIGN;
+      irn.varId = vid;
+      irn.nc = 1;
+      irn.c[0] = rhs.idx;
+      ir->push_back(irn);
+      return {idx, rhs.type};
+    }
+    return parseAssign();
+  }
+
+  // Assignment: parseOr followed by an optional `= parseAssign`. Right-associative so
+  // `a = b = c` chains as `a = (b = c)`. The LHS of `=` must be a single user-mutable
+  // variable; anything else is a parse error.
+  TNode parseAssign()
+  {
+    if (!enterDepth())
+      return {0, TYPE_FLOAT};
+    TNode lhs = parseOr();
+    if (tok == T_ASSIGN && !failed)
+    {
+      // Validate LHS is a bare user-var node, then drop it and emit an assign in its
+      // place. Recursive descent guarantees the var node is the most recent IR entry,
+      // so a single pop_back is enough to remove it.
+      if (lhs.idx < 0 || (*ir)[lhs.idx].tag != TAG_VAR)
+      {
+        error("assignment target must be a variable");
+        leaveDepth();
+        return {0, TYPE_FLOAT};
+      }
+      uint16_t vid = (*ir)[lhs.idx].varId;
+      if (vid < externalVarBase)
+      {
+        error("cannot assign to external (read-only) variable");
+        leaveDepth();
+        return {0, TYPE_FLOAT};
+      }
+      G_ASSERT(lhs.idx == (int)ir->size() - 1);
+      ir->pop_back();
+      next();
+      TNode rhs = parseAssign();
+      int idx = (int)ir->size();
+      IRNode irn = {};
+      irn.tag = TAG_ASSIGN;
+      irn.varId = vid;
+      irn.nc = 1;
+      irn.c[0] = rhs.idx;
+      ir->push_back(irn);
+      leaveDepth();
+      return {idx, rhs.type};
+    }
+    leaveDepth();
+    return lhs;
+  }
+
+  // Backwards-compatible name kept for legacy callers / inner expression contexts that
+  // want "everything except sequence" -- function args, ternary slots, etc. parseSeq is
+  // the new public entry.
+  TNode parseExpr() { return parseAssign(); }
 
   TNode parseOr()
   {
@@ -547,6 +712,8 @@ struct Parser
         return {0, TYPE_FLOAT};
       TNode n = parseUnary();
       leaveDepth();
+      if (failed)
+        return {0, TYPE_FLOAT};
       int f = tryFold(hash_name("neg"), 1, n.idx);
       return f >= 0 ? TNode{f, TYPE_FLOAT} : TNode{addIR(hash_name("neg"), 1, n.idx), TYPE_FLOAT};
     }
@@ -557,6 +724,8 @@ struct Parser
         return {0, TYPE_FLOAT};
       TNode n = parseUnary();
       leaveDepth();
+      if (failed)
+        return {0, TYPE_FLOAT};
       requireBool(n, "! requires bool");
       int f = tryFold(hash_name("not"), 1, n.idx);
       return f >= 0 ? TNode{f, TYPE_BOOL} : TNode{addIR(hash_name("not"), 1, n.idx), TYPE_BOOL};
@@ -619,22 +788,36 @@ struct Parser
           return {folded, TYPE_FLOAT};
         return {addIR(fnHash, fi->nargs, args[0], args[1], args[2]), TYPE_FLOAT};
       }
-      uint16_t vid = register_var(*varMap, *nextVarId, name);
-      if (vid == VAR_ID_OVERFLOW)
+      // Lookup-only: an unknown identifier is an error. New names must be introduced
+      // explicitly via `var <name> = ...` / `let <name> = ...` at statement level.
+      uint64_t h = hash_name(name, nameLen);
+      const uint16_t *vidP = varMap->findVal(h);
+      if (!vidP)
       {
         char msg[96];
-        snprintf(msg, sizeof(msg), "too many variables (limit %d)", (int)MAX_VAR_ID);
+        snprintf(msg, sizeof(msg), "unknown identifier '%s'", name);
         error(msg);
         return {0, TYPE_FLOAT};
       }
-      int idx = addIR(hash_name("var"));
-      (*ir)[idx].varId = vid;
+      // Self-reference inside the var/let's own initialiser. The slot is reserved but
+      // unwritten at this point; resolving the read would either alias an unrelated
+      // value (uninitialised stack slot) or emit a load that the runtime traps on.
+      if (*vidP == inFlightVarId)
+      {
+        char msg[96];
+        snprintf(msg, sizeof(msg), "var '%s' cannot reference itself in its own initializer", name);
+        error(msg);
+        return {0, TYPE_FLOAT};
+      }
+      int idx = addIR(TAG_VAR);
+      (*ir)[idx].varId = *vidP;
       return {idx, TYPE_FLOAT};
     }
     if (tok == T_LPAREN)
     {
       next();
-      TNode n = parseExpr();
+      // Sequences are allowed inside parens, e.g. `(var t = fbm(x,y,4), t*t)`.
+      TNode n = parseSeq();
       expect(T_RPAREN);
       return n;
     }
@@ -664,6 +847,20 @@ LCEXPR_PARSER_INLINE uint32_t compileNode(const Tab<IRNode> &ir, int idx, Arena 
   {
     uint32_t o = emit<VarNode>(arena);
     at<VarNode>(arena, o)->varId = n.varId;
+    return compiled[idx] = o;
+  }
+  // Assign carries varId + a single child expression. The emit map cannot represent
+  // this shape (varId is per-node state, not in args[]) so we hand-roll the emit here
+  // -- analogous to RampVarConstNode below.
+  if (n.tag == TAG_ASSIGN)
+  {
+    uint32_t childOfs = compileNode(ir, n.c[0], arena, emitMap, compiled);
+    if (childOfs == PARSE_ERROR)
+      return PARSE_ERROR;
+    uint32_t o = emit<AssignNode>(arena);
+    auto *p = at<AssignNode>(arena, o);
+    p->n0 = childOfs;
+    p->varId = n.varId;
     return compiled[idx] = o;
   }
   // Subtree fusion: ramp(var, const, const) / smooth_ramp(var, const, const)
@@ -740,8 +937,12 @@ LCEXPR_PARSER_INLINE int parseToIR(const char *text, Tab<IRNode> &ir, const Func
   p.err = &error;
   p.failed = false;
   p.depth = 0;
+  // Anything already in varMap at parse start is external (read-only). User-declared
+  // vars are assigned ids >= externalVarBase by register_var() during parseStmt.
+  p.externalVarBase = nextVarId;
+  p.inFlightVarId = lcexpr::VAR_ID_OVERFLOW;
   p.next();
-  Parser::TNode result = p.parseExpr();
+  Parser::TNode result = p.parseSeq();
   if (!p.failed && p.tok != Parser::T_END)
     p.error("unexpected token after expression");
   if (p.failed)

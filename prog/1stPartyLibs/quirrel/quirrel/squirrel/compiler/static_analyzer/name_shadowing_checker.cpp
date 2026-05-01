@@ -24,7 +24,7 @@ void NameShadowingChecker::loadBindings(const HSQOBJECT *bindings) {
     while ((idx = table->Next(false, pos, key, val)) >= 0) {
       if (sq_isstring(key)) {
         const char *s = _string(key)->_val;
-        SymbolInfo *info = newSymbolInfo(SK_EXTERNAL_BINDING);
+        SymbolInfo *info = newSymbolInfo(SK_IMPORT);
         declareSymbol(s, info);
       }
       pos._unVal.nInteger = idx;
@@ -55,7 +55,7 @@ const Node *NameShadowingChecker::extractPointedNode(const SymbolInfo *info) {
     return info->declaration.ec->val;
   case SK_PARAM:
     return info->declaration.p;
-  case SK_EXTERNAL_BINDING:
+  case SK_IMPORT:
     return &rootPointerNode;
   default:
     assert(0);

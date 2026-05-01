@@ -1014,10 +1014,31 @@ DX12_BEGIN_CONTEXT_COMMAND(true, EndVisibilityQuery)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, BeginPipelineStatsQuery)
+  DX12_CONTEXT_COMMAND_PARAM(PipelineStatsQuery *, query)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.beginPipelineStatsQuery(query);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, EndPipelineStatsQuery)
+  DX12_CONTEXT_COMMAND_PARAM(PipelineStatsQuery *, query)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.endPipelineStatsQuery(query);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(false, CancelQuery)
   DX12_CONTEXT_COMMAND_PARAM(Query *, query)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.cancelQuery(query);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(false, CancelPipelineStatsQuery)
+  DX12_CONTEXT_COMMAND_PARAM(PipelineStatsQuery *, query)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.cancelPipelineStatsQuery(query);
 #endif
 DX12_END_CONTEXT_COMMAND
 

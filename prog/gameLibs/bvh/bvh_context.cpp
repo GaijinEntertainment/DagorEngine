@@ -255,13 +255,11 @@ void Context::freeMetaRegion(MeshMetaAllocator::AllocId &id)
   id = MeshMetaAllocator::INVALID_ALLOC_ID;
 }
 
-TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, uint32_t &sampler_bindless_index,
-  d3d::SamplerHandle sampler, bool forceRefreshSrvsWhenLoaded)
+TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded)
 {
   TextureHandle handle(id);
 
   texture_bindless_index = MeshMeta::INVALID_TEXTURE;
-  sampler_bindless_index = MeshMeta::INVALID_SAMPLER;
   if (id != BAD_TEXTUREID)
   {
     WinAutoLock lock(bindlessTextureLock);
@@ -292,18 +290,11 @@ TextureHandle Context::holdTexture(TEXTUREID id, uint32_t &texture_bindless_inde
       else
         G_ASSERT(0 && "Unknown res");
 
-      // @TODO: try replace with some validation instead of silent stubbing
-      if (sampler == d3d::INVALID_SAMPLER_HANDLE)
-        sampler = d3d::request_sampler({});
-
-      bindlessTex.samplerIndex = d3d::register_bindless_sampler(sampler);
-
       if (forceRefreshSrvsWhenLoaded && !check_managed_texture_loaded(id))
         texturesWaitingForLoad.insert(id);
     }
 
     texture_bindless_index = bindlessTex.rangeBase + bindlessTex.slotIndex;
-    sampler_bindless_index = bindlessTex.samplerIndex;
 
     // Taking an exclusive reference count for the returned texture pointer.
     handle.texture = acquire_managed_tex(id);

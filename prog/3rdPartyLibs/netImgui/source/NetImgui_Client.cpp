@@ -159,7 +159,13 @@ void Communications_Outgoing_Textures(ClientInfo& client)
 			client.mPendingTextures			= client.mPendingTextures->mpNext;
 			pPendingTexture->mpNext			= nullptr;
 			client.mPendingSend.pCommand	= pPendingTexture;
-			client.mPendingSend.bAutoFree	= false; // free handled by main update thread
+
+			// MODIFICATION BY GAIJIN
+			// we need auto free in case of custom textures
+			// as they are not presented in tracked textures
+			//
+			// client.mPendingSend.bAutoFree	= false; // free handled by main update thread
+			client.mPendingSend.bAutoFree	= pPendingTexture->mFormat == kTexFmtCustom;
 		}
 	}
 }

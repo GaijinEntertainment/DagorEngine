@@ -155,7 +155,7 @@ struct BaseTex final : public D3dResourceNameImpl<BaseTexture>
   void setInitialImageViewState()
   {
     // this fields not gonna change over texture lifetime
-    imageViewCache.setFormat(pars.allowSrgbRead() ? getFormat() : getFormat().getLinearVariant());
+    imageViewCache.setFormat(pars.allowSrgbRead() ? getFormat().getSRGBVariant() : getFormat().getLinearVariant());
     imageViewCache.isArray = pars.isArray();
     imageViewCache.isCubemap = pars.isCubeMap();
     imageViewCache.setArrayBase(0);

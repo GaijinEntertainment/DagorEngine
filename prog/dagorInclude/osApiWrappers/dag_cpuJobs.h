@@ -86,6 +86,13 @@ inline int get_core_count() { return get_logical_core_count(); } // compat alias
 //! return number of physical CPU cores
 KRNLIMP int get_physical_core_count();
 
+//! return number of performance CPU cores on a hybrid (P/E) architecture (or 0 otherwise)
+#if _TARGET_PC_WIN
+KRNLIMP int get_performance_core_count();
+#else
+constexpr inline int get_performance_core_count() { return 0; }
+#endif
+
 //! start job manager on specified Core. require reserve_jobmgr_cores = true passed in init
 KRNLIMP bool start_job_manager(int core_id, int stack_sz = 64 << 10, const char *thread_name = NULL,
   int thread_priority = DEFAULT_THREAD_PRIORITY);

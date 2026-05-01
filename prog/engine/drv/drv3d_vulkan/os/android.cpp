@@ -14,6 +14,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <math/integer/dag_IPoint2.h>
 #include <drv_utils.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <driver.h>
 #include "globals.h"
 
@@ -141,6 +142,7 @@ void android_d3d_reinit(void *w)
   if (d3d::is_inited())
   {
     d3d::reset_device();
+    d3d::set_render_target();
   }
 }
 

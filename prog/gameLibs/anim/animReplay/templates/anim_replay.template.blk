@@ -1,0 +1,113 @@
+anim_replay_params_config{
+  "anim_replay__ignoredAnimParams:list<t>"{}
+}
+
+anim_replay_save_context{
+  _use:t="anim_replay_params_config"
+  "anim_replay__timestamps:list<r>"{}
+  "anim_replay__savedAnimchars:array"{
+    "animcharData:object"{
+      "eid:eid"{}
+      "position:list<p3>"{}
+      "rotation:list<p4>"{}
+      "animParams:array"{
+        "animParam:object"{
+          id:i=-1
+          "values:list<r>"{}
+        }
+      }
+      "initialAnimStateParams:object"{}
+      "animTreeStates:object"{
+        "time:list<r>"{}
+        "state:array"{}
+        "animSpeed:list<r>"{}
+      }
+
+      // Motion Matching related
+      "mmEnabledRanges:list<p2>"{}
+      "mmTransitionTime:list<r>"{}
+      "mmTransitionClipIdx:list<i>"{}
+      "mmTransitionFrameIdx:list<i>"{}
+      "mmActiveAnimationProgress:list<r>"{}
+      "mmPlaySpeedMult:list<r>"{}
+      "mmTransitionBlendTime:list<r>"{}
+      "mmRootPosition:list<p3>"{}
+      "mmRootRotation:list<p4>"{}
+      "mmTagsChangeTime:list<r>"{}
+      "mmTagsValue:list<i>"{}
+      "mmTagsMask:list<i>"{}
+      "mmTrajectoryFeatures:list<p2>"{}
+      "mmTrajectoryLinearVelocity:list<p3>"{}
+      "mmTrajectoryAngularVelocity:list<p3>"{}
+      "mmInitialNodeWeights:list<r>"{}
+      "mmPoseFeatures:list<p3>"{}
+      "mmSearchTime:list<r>"{}
+      "mmSearchDistanceFactor:list<r>"{}
+      "mmSearchTrajectoryFeatures:list<p2>"{}
+      mmInitialUpdateProgress:r=0
+      // temp
+      mmPrevUpdateProgress:r=0
+    }
+  }
+  anim_replay__time:r=0
+  anim_replay__prevTime:r=0
+  anim_replay__sampleRate:i=30
+  anim_replay__animcharsRecordingFilter:i=0
+}
+
+anim_replay_load_context{
+  "anim_replay__loadingAnimchars:array"{}
+  "anim_replay__timestamps:list<r>"{}
+  anim_replay__animcharsLoaded:b=false
+  anim_replay__loadingFromFile:b=false
+  "anim_replay__mmDataBases:object"{}
+}
+
+anim_replay{
+  _use:t="anim_replay_params_config"
+  "anim_replay__animchars:array"{}
+  "anim_replay__hiddenAnimchars:list<eid>"{}
+  "anim_replay__timestamps:list<r>"{}
+  anim_replay__currentTime:r=0
+  anim_replay__prevTime:r=0
+  anim_replay__runMMSearch:b=false
+  anim_replay__prevMMTransitionTime:r=0
+  anim_replay__prevMMTransitionFrame:i=-1
+  anim_replay__disableMMTransitionBlend:b=false
+}
+
+replay_animchar{
+  _use:t="animchar"
+  animchar__turnDir:b=yes
+  animchar__res:t=""
+  "animchar__animState:object"{}
+  animchar_render__enabled:b=yes
+  "anim_replay_character:tag"{}
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+anim_replay_camera{
+  camera__active:b=no
+  fov:r=90
+  znear:r=0.01
+  zfar:r=10000
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  camera__accuratePos { _tags:t="gameClient" }
+  "camera__target:eid"{}
+  "camera_view:tag"{}
+  _tracked:t=camera__active
+  _tracked:t=camera__target
+
+  "anim_replay_camera:tag"{}
+  "anim_replay_camera__previousCameraEid:eid"{}
+  anim_replay_camera__move:p2=0,0
+  anim_replay_camera__rotation:p2=0,0
+  anim_replay_camera__zoom:r=0
+  anim_replay_camera__moveSensitivity:r=0.002
+  anim_replay_camera__rotationSensitivity:r=0.01
+  anim_replay_camera__zoomSensitivity:r=0.5
+  anim_replay_camera__centerAnimchar:b=no
+  anim_replay_camera__targetOffset:p3=0,0,0
+  anim_replay_camera__distanceToTarget:r=4
+  anim_replay_camera__zoomLimit:p2=0.5,10
+}

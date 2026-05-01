@@ -106,10 +106,6 @@ inline bool nameLooksLikeResultMustBeString(const char *name) {
   return hasAnyEqual(name, function_can_return_string);
 }
 
-inline bool nameLooksLikeCallsLambdaInPlace(const char *name) {
-  return hasAnyEqual(name, function_calls_lambda_inplace);
-}
-
 inline bool canFunctionReturnNull(const char *n) {
   return hasAnyEqual(n, function_can_return_null);
 }

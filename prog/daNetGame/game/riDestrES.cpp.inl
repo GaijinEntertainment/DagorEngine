@@ -377,8 +377,7 @@ static void net_rcv_ri_destr_update(const net::IMessage *msg)
 void init(bool have_render)
 {
   destructables::init(dgs_get_settings());
-  rendinstdestr::init(is_server() ? &on_ridestr_changed_server : nullptr, true, false, &rendinstdestr::create_tree_rend_inst_destr,
-    &rendinstdestr::remove_tree_rendinst_destr, &rendinstsound::rendinst_tree_sound_cb,
+  rendinstdestr::init(is_server() ? &on_ridestr_changed_server : nullptr, true, false, &rendinstsound::rendinst_tree_sound_cb,
     have_render ? +[] { return get_cam_itm().getcol(3); } : nullptr, &get_sync_time);
 
   if (have_render)

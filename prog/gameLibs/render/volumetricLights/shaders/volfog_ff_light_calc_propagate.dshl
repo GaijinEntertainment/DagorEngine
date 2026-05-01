@@ -1008,7 +1008,6 @@ shader froxel_fog_light_calc_propagate_cs
         groupshared half2 sharedTmpAccumulatedExtinction[WARP_SIZE_X*WARP_SIZE_Y*WARP_SIZE_Z];
     ##endif
   }
-
   if (froxel_fog_dispatch_mode == merged_parallel)
   {
     VOLFOG_INITIAL_COMMON(cs, 4)
@@ -1059,8 +1058,6 @@ shader froxel_fog_light_calc_propagate_ps
 
   assume froxel_fog_dispatch_mode = merged_linear;
 
-  supports global_frame; // needed for world_view_pos
-
   VOLFOG_INITIAL_COMMON(ps, 1)
 
   hlsl
@@ -1072,6 +1069,7 @@ shader froxel_fog_light_calc_propagate_ps
   (ps)
   {
     volfog_froxel_volume_res@f3 = (volfog_froxel_volume_res);
+    world_view_pos@f3 = world_view_pos;
   }
 
   hlsl(ps) {

@@ -156,7 +156,7 @@ else:
     shutil.rmtree(dxc_dest_folder+'/lib/win-arm64')
     print('+++ DXC May 2025 - Patch 1 -- 1.8.2505.1 installed at {0}'.format(dxc_dest_folder))
 
-# astcenc-4.5.1
+# astcenc-4.6.1
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'
 if pathlib.Path(astcenc_dest_folder).exists():
   print('=== ASTC encoder 4.6.1 {0}, skipping setup'.format(astcenc_dest_folder))

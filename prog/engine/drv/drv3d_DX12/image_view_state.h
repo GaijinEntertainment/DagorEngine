@@ -32,10 +32,10 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     IS_CUBEMAP_SHIFT = TYPE_BITS + TYPE_SHIFT,
     IS_ARRAY_BITS = 1,
     IS_ARRAY_SHIFT = IS_CUBEMAP_BITS + IS_CUBEMAP_SHIFT,
-    FORMAT_BITS = FormatStore::BITS + 1,
-    FORMAT_SHIFT = IS_ARRAY_SHIFT + IS_ARRAY_BITS,
+    FORMAT_STORE_BITS = FormatStore::BITS,
+    FORMAT_STORE_SHIFT = IS_ARRAY_SHIFT + IS_ARRAY_BITS,
     MIPMAP_OFFSET_BITS = BitsNeeded<15>::VALUE,
-    MIPMAP_OFFSET_SHIFT = FORMAT_SHIFT + FORMAT_BITS,
+    MIPMAP_OFFSET_SHIFT = FORMAT_STORE_SHIFT + FORMAT_STORE_BITS,
     MIPMAP_RANGE_OFFSET = 1,
     MIPMAP_RANGE_BITS = BitsNeeded<16 - MIPMAP_RANGE_OFFSET>::VALUE,
     MIPMAP_RANGE_SHIFT = MIPMAP_OFFSET_SHIFT + MIPMAP_OFFSET_BITS,
@@ -51,7 +51,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   ADD_BITFIELD_MEMBER(type, TYPE_SHIFT, TYPE_BITS)
   ADD_BITFIELD_MEMBER(isCubemap, IS_CUBEMAP_SHIFT, IS_CUBEMAP_BITS)
   ADD_BITFIELD_MEMBER(isArray, IS_ARRAY_SHIFT, IS_ARRAY_BITS)
-  ADD_BITFIELD_MEMBER(format, FORMAT_SHIFT, FORMAT_BITS)
+  ADD_BITFIELD_MEMBER(format, FORMAT_STORE_SHIFT, FORMAT_STORE_BITS)
   ADD_BITFIELD_MEMBER(mipmapOffset, MIPMAP_OFFSET_SHIFT, MIPMAP_OFFSET_BITS);
   ADD_BITFIELD_MEMBER(mipmapRange, MIPMAP_RANGE_SHIFT, MIPMAP_RANGE_BITS)
   ADD_BITFIELD_MEMBER(arrayOffset, ARRAY_OFFSET_SHIFT, ARRAY_OFFSET_BITS)
@@ -80,7 +80,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     D3D12_SHADER_RESOURCE_VIEW_DESC result;
     const auto fmt = getFormat();
     G_ASSERT(!fmt.isDepth() || !is_multisampled || d3d::get_driver_desc().caps.hasReadMultisampledDepth);
-    result.Format = fmt.asDxGiFormat();
+    result.Format = fmt.asDxGiFormat<true>();
     uint32_t planeSlice = 0;
     if (DXGI_FORMAT_D24_UNORM_S8_UINT == result.Format)
     {
@@ -218,7 +218,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   D3D12_UNORDERED_ACCESS_VIEW_DESC asUAVDesc(D3D12_RESOURCE_DIMENSION dim) const
   {
     D3D12_UNORDERED_ACCESS_VIEW_DESC result;
-    result.Format = getFormat().asDxGiFormat();
+    result.Format = getFormat().asDxGiFormat<false>();
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
@@ -272,7 +272,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   D3D12_RENDER_TARGET_VIEW_DESC asRTVDesc(D3D12_RESOURCE_DIMENSION dim, bool is_multisampled) const
   {
     D3D12_RENDER_TARGET_VIEW_DESC result;
-    result.Format = getFormat().asDxGiFormat();
+    result.Format = getFormat().asDxGiFormat<false>();
     switch (dim)
     {
       case D3D12_RESOURCE_DIMENSION_BUFFER:
@@ -344,7 +344,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   {
     D3D12_DEPTH_STENCIL_VIEW_DESC result;
     auto fmt = getFormat();
-    result.Format = fmt.asDxGiFormat();
+    result.Format = fmt.asDxGiFormat<false>();
     result.Flags = D3D12_DSV_FLAG_NONE;
     if (getType() == DSV_CONST)
     {

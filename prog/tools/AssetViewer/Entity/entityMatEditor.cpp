@@ -21,6 +21,7 @@
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/commonWindow/listDialog.h>
 #include <propPanel/commonWindow/multiListDialog.h>
+#include <propPanel/imguiHelper.h>
 #include <libTools/util/strUtil.h>
 #include <math/dag_mesh.h>
 #include <util/dag_strUtil.h>
@@ -118,6 +119,7 @@ G_STATIC_ASSERT(DAGTEXNUM == MAXMATTEXNUM);
 static const char *materialSearchVarsToSkip[] = {"num_bones"};
 static const char *missingResName = "--";
 EntityMatProperties EntityMaterialEditor::propertiesCopyBuffer;
+String EntityMaterialEditor::propertiesCopyBufferProxyMatName;
 
 static String make_shader_button_name(const char *shclass_name) { return String(0, "Shader: %s", shclass_name); }
 
@@ -595,6 +597,53 @@ void update_shader_parameter_group_property(PropPanel::ContainerPropertyControl 
 
   set_up_shader_parameter_group_property(*controlParent, *group);
 }
+
+class MaterialPasteMessageBoxDialog : public PropPanel::DialogWindow
+{
+public:
+  MaterialPasteMessageBoxDialog(const char *message1, const char *message2, bool shaders_differ, bool shaders_differ_and_compatible) :
+    PropPanel::DialogWindow(nullptr, hdpi::_pxActual(300), hdpi::_pxActual(100), "Paste options")
+  {
+    // The layout is like this because the buttons are long and more importantly, autoSize() currently does not handle
+    // the buttons panel properly.
+
+    String message(message1);
+    if (message2 && *message2)
+    {
+      message += "\n\n";
+      message += message2;
+    }
+    propertiesPanel->createStatic(PID_MESSAGE, message, true, true);
+
+    propertiesPanel->createButton(PID_APPLY_ONLY_THE_PROPERTIES, "Paste only the properties");
+    if (shaders_differ)
+      propertiesPanel->createButton(PID_APPLY_THE_SHADER_AND_THE_PROPERTIES, "Paste the shader and the properties",
+        shaders_differ_and_compatible);
+    propertiesPanel->createButton(PID_CONVERT_TO_NON_PROXY_MAT, "Convert to non-ProxyMat and then paste");
+    propertiesPanel->createButton(PID_SET_COPIED_PROXY_MAT, "Set copied ProxyMat");
+
+    buttonsPanel->removeById(PropPanel::DIALOG_ID_OK);
+
+    setInitialFocus(PID_APPLY_ONLY_THE_PROPERTIES);
+    autoSize();
+  }
+
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  {
+    if (pcb_id == PID_APPLY_ONLY_THE_PROPERTIES || pcb_id == PID_APPLY_THE_SHADER_AND_THE_PROPERTIES ||
+        pcb_id == PID_CONVERT_TO_NON_PROXY_MAT || pcb_id == PID_SET_COPIED_PROXY_MAT)
+      hide(pcb_id);
+  }
+
+  enum
+  {
+    PID_MESSAGE = PropPanel::DIALOG_ID_FIRST_FREE,
+    PID_APPLY_ONLY_THE_PROPERTIES,
+    PID_APPLY_THE_SHADER_AND_THE_PROPERTIES,
+    PID_CONVERT_TO_NON_PROXY_MAT,
+    PID_SET_COPIED_PROXY_MAT,
+  };
+};
 
 } // namespace
 
@@ -1406,32 +1455,116 @@ void EntityMaterialEditor::replaceMatShaderClass(int lod, int mat_id, const char
   });
 }
 
-void EntityMaterialEditor::copyMatProperties(int lod, int mat_id) { propertiesCopyBuffer = matDataPerLod[lod].matProperties[mat_id]; }
+void EntityMaterialEditor::copyMatProperties(int lod, int mat_id)
+{
+  const EntityLodMatData &srcLodMatData = matDataPerLod[lod];
+  const EntityMatProperties &srcMatProperties = srcLodMatData.matProperties[mat_id];
 
-void EntityMaterialEditor::pasteMatProperties(int lod, int mat_id)
+  propertiesCopyBuffer = srcMatProperties;
+  propertiesCopyBufferProxyMatName = srcLodMatData.fileRes->getCurProxyMatName(srcMatProperties.dagMatId);
+}
+
+void EntityMaterialEditor::pasteMatProperties(int lod, int mat_id, PropPanel::ContainerPropertyControl &editor_panel)
 {
   EntityMatProperties &matProperties = matDataPerLod[lod].matProperties[mat_id];
+  const SimpleString dstProxyMatName = matDataPerLod[lod].fileRes->getCurProxyMatName(matProperties.dagMatId);
+  const bool srcIsProxyMat = !propertiesCopyBufferProxyMatName.empty();
+  const bool dstIsProxyMat = !dstProxyMatName.empty();
+  const bool shadersDiffer =
+    !propertiesCopyBuffer.shClassName.empty() && matProperties.shClassName != propertiesCopyBuffer.shClassName;
+  const bool shadersDifferAndCompatible =
+    shadersDiffer && find_value_idx(getAvailableShaderClasses(), String(propertiesCopyBuffer.shClassName.c_str())) >= 0;
 
-  // Replace shader class first, so we will be pasting values into
-  // list of vars for the new class instead of previous.
-  bool shaderClassReplaced = false;
-  if (!propertiesCopyBuffer.shClassName.empty() && matProperties.shClassName != propertiesCopyBuffer.shClassName)
+  String shaderMessage;
+  if (shadersDiffer)
   {
-    if (wingw::message_box(wingw::MBS_YESNO, "Shaders difference",
-          "The copied shader '%s' is different from the current one. Do you want to paste it?",
-          propertiesCopyBuffer.shClassName.c_str()) == wingw::MB_ID_YES)
-    {
-      if (find_value_idx(getAvailableShaderClasses(), String(propertiesCopyBuffer.shClassName.c_str())) >= 0)
-      {
-        replaceMatShaderClass(lod, mat_id, propertiesCopyBuffer.shClassName.c_str());
-        shaderClassReplaced = true;
-      }
-      else
-      {
-        wingw::message_box(wingw::MBS_OK, "Shaders difference", "Shader '%s' is incompatible with asset type '%s' and can't be pasted",
-          propertiesCopyBuffer.shClassName.c_str(), DAEDITOR3.getAssetTypeName(entity->getAssetTypeId()));
-      }
-    }
+    if (shadersDifferAndCompatible)
+      shaderMessage.printf(0, "The copied shader '%s' is different from the current one.", propertiesCopyBuffer.shClassName.c_str());
+    else
+      shaderMessage.printf(0,
+        "The copied shader '%s' is different from the current one,\nand is incompatible with asset type '%s' and can't be pasted.",
+        propertiesCopyBuffer.shClassName.c_str(), DAEDITOR3.getAssetTypeName(entity->getAssetTypeId()));
+  }
+
+  int dialogResult = MaterialPasteMessageBoxDialog::PID_APPLY_ONLY_THE_PROPERTIES;
+
+  if (!srcIsProxyMat && !dstIsProxyMat && shadersDiffer)
+  {
+    MaterialPasteMessageBoxDialog dialog(shaderMessage, nullptr, shadersDiffer, shadersDifferAndCompatible);
+    dialog.getPanel()->removeById(MaterialPasteMessageBoxDialog::PID_CONVERT_TO_NON_PROXY_MAT);
+    dialog.getPanel()->removeById(MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT);
+    dialogResult = dialog.showDialog();
+  }
+  else if (!srcIsProxyMat && dstIsProxyMat)
+  {
+    MaterialPasteMessageBoxDialog dialog("The target material uses ProxyMat.", shaderMessage, shadersDiffer,
+      shadersDifferAndCompatible);
+    dialog.getPanel()->setCaption(MaterialPasteMessageBoxDialog::PID_APPLY_ONLY_THE_PROPERTIES,
+      "Paste only the properties into current ProxyMat");
+    dialog.getPanel()->setCaption(MaterialPasteMessageBoxDialog::PID_APPLY_THE_SHADER_AND_THE_PROPERTIES,
+      "Paste the shader and the properties into current ProxyMat");
+    dialog.getPanel()->setEnabledById(MaterialPasteMessageBoxDialog::PID_CONVERT_TO_NON_PROXY_MAT,
+      !shadersDiffer || shadersDifferAndCompatible);
+    dialog.getPanel()->removeById(MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT);
+    dialogResult = dialog.showDialog();
+  }
+  else if (srcIsProxyMat && !dstIsProxyMat)
+  {
+    MaterialPasteMessageBoxDialog dialog("The copied material uses ProxyMat.", shaderMessage, shadersDiffer,
+      shadersDifferAndCompatible);
+    dialog.getPanel()->removeById(MaterialPasteMessageBoxDialog::PID_CONVERT_TO_NON_PROXY_MAT);
+    dialog.getPanel()->setCaption(MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT, "Convert to ProxyMat and then paste");
+    dialog.getPanel()->setEnabledById(MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT,
+      !shadersDiffer || shadersDifferAndCompatible);
+    dialogResult = dialog.showDialog();
+  }
+  else if (srcIsProxyMat && dstIsProxyMat && propertiesCopyBufferProxyMatName != dstProxyMatName.c_str())
+  {
+    MaterialPasteMessageBoxDialog dialog("Both the copied and the target material use ProxyMats.", shaderMessage, shadersDiffer,
+      shadersDifferAndCompatible);
+    dialog.getPanel()->setCaption(MaterialPasteMessageBoxDialog::PID_APPLY_ONLY_THE_PROPERTIES,
+      "Paste only the properties into current ProxyMat");
+    dialog.getPanel()->setCaption(MaterialPasteMessageBoxDialog::PID_APPLY_THE_SHADER_AND_THE_PROPERTIES,
+      "Paste the shader and the properties into current ProxyMat");
+    dialog.getPanel()->removeById(MaterialPasteMessageBoxDialog::PID_CONVERT_TO_NON_PROXY_MAT);
+    dialog.getPanel()->setEnabledById(MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT,
+      !shadersDiffer || shadersDifferAndCompatible);
+    dialogResult = dialog.showDialog();
+  }
+
+  bool shaderClassReplaced = false;
+
+  if (dialogResult == MaterialPasteMessageBoxDialog::PID_APPLY_ONLY_THE_PROPERTIES)
+  {
+    // There is nothing extra to do when only applying to the properties.
+  }
+  else if (dialogResult == MaterialPasteMessageBoxDialog::PID_APPLY_THE_SHADER_AND_THE_PROPERTIES)
+  {
+    G_ASSERT(shadersDiffer && shadersDifferAndCompatible);
+
+    // Replace shader class first, so we will be pasting values into list of vars for the new class instead of previous.
+    replaceMatShaderClass(lod, mat_id, propertiesCopyBuffer.shClassName.c_str());
+    shaderClassReplaced = true;
+  }
+  else if (dialogResult == MaterialPasteMessageBoxDialog::PID_CONVERT_TO_NON_PROXY_MAT)
+  {
+    G_ASSERT(!shadersDiffer || shadersDifferAndCompatible);
+
+    performSwitchToNewProxyMat(lod, mat_id, "");
+    if (shadersDiffer)
+      replaceMatShaderClass(lod, mat_id, propertiesCopyBuffer.shClassName.c_str());
+    refillMatPropPanel(lod, mat_id, editor_panel);
+  }
+  else if (dialogResult == MaterialPasteMessageBoxDialog::PID_SET_COPIED_PROXY_MAT)
+  {
+    G_ASSERT(!shadersDiffer || shadersDifferAndCompatible);
+
+    performSwitchToNewProxyMat(lod, mat_id, propertiesCopyBufferProxyMatName);
+    refillMatPropPanel(lod, mat_id, editor_panel);
+  }
+  else // Cancel
+  {
+    return;
   }
 
   applyToCommonVars(matProperties.vars, propertiesCopyBuffer.vars, [](auto &var, const auto &copied_var) {
@@ -1783,7 +1916,7 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
         break;
       case LPID_COPY_PARAMS_BUTTON: copyMatProperties(lod, matId); break;
       case LPID_PASTE_PARAMS_BUTTON:
-        pasteMatProperties(lod, matId);
+        pasteMatProperties(lod, matId, *panel);
         refillMatPropPanel(lod, matId, *panel);
         break;
       case LPID_RESET_PARAMS_TO_DAG_BUTTON:

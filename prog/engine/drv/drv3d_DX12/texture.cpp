@@ -1295,7 +1295,7 @@ int BaseTex::update(BaseTexture *src)
   G_ASSERT_RETURN_AND_LOG(srcFmt.isCopyConvertible(dstFmt), 0,
     "DX12: BaseTex::update source <%s> format %s can not be copied to dest <%s> "
     "format %s",
-    sTex->getTexName(), srcFmt.getNameString(), getTexName(), dstFmt.getNameString());
+    sTex->getTexName(), srcFmt.getNameString<true>(), getTexName(), dstFmt.getNameString<true>());
 
   auto sExt = srcImage->getBaseExtent();
   auto dExt = dstImage->getBaseExtent();
@@ -1383,7 +1383,7 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
   G_ASSERT_RETURN_AND_LOG(sfmt.isCopyConvertible(dfmt), 0,
     "DX12: BaseTex::updateSubRegion source <%s> format %s can not be copied "
     "to dest <%s> format %s",
-    stex->getTexName(), sfmt.getNameString(), getTexName(), dfmt.getNameString());
+    stex->getTexName(), sfmt.getNameString<true>(), getTexName(), dfmt.getNameString<true>());
 
   ImageCopy region;
   region.srcSubresource = SubresourceIndex::make(src_subres_idx);
@@ -2583,7 +2583,7 @@ const char *d3d::pcwin::get_texture_format_str(const BaseTexture *tex)
   auto bt = getbasetex(tex);
   if (!bt)
     return nullptr;
-  return bt->getFormat().getNameString();
+  return bt->getFormat().getNameString<true>();
 }
 void *d3d::pcwin::get_native_surface(BaseTexture *)
 {

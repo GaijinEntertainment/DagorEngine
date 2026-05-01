@@ -71,13 +71,12 @@ public:
 
 // if num_workers == 0, jobs will be executed synchronously
 // queue_size must be power of 2
-KRNLIMP void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size = 64 << 10,
-  uint64_t max_workers_prio = 0); // max per-worker prio (2 bits per worker)
+KRNLIMP void init_ex(int num_workers, int queue_sizes[NUM_PRIO], size_t stack_size = 64 << 10);
 
-inline void init(int num_workers, int queue_size, size_t stack_size = 64 << 10, uint64_t max_workers_prio = 0)
+inline void init(int num_workers, int queue_size, size_t stack_size = 64 << 10)
 {
   int q_sizes[] = {queue_size, queue_size, queue_size};
-  init_ex(num_workers, q_sizes, stack_size, max_workers_prio);
+  init_ex(num_workers, q_sizes, stack_size);
 }
 
 KRNLIMP void shutdown();

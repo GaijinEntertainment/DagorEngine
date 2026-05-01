@@ -207,6 +207,9 @@ struct Binding
   // do we need to reset it to default value after node is executed
   bool reset = false;
 
+  // is this binding created with .optional()
+  bool optional = false;
+
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   detail::TypeErasedProjector projector = +[](const void *data) { return data; };
 };

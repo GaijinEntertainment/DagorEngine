@@ -1,4 +1,5 @@
 include "rendinst_rotation_palette.dshl"
+include "rendinst_opaque_inc.dshl"
 
 int baked_impostor_multisample = 0;
 interval baked_impostor_multisample: no < 1, yes;
@@ -130,7 +131,7 @@ endmacro
 macro INIT_BAKED_IMPOSTORS()
   hlsl
   {
-  ##if rendinst_render_pass == rendinst_render_pass_depth || rendinst_render_pass == rendinst_render_pass_normal
+  ##if rendinst_render_pass == rendinst_render_pass_depth || rendinst_render_pass == rendinst_render_pass_normal || is_triangle_size_debug
     // Baked billboard impostors always have 9 slices
     #define MULTISLICE_COUNT 9
     ##if baked_impostor_multisample == yes

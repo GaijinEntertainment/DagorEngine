@@ -469,6 +469,7 @@ static struct CpuJobsData //-V730
 #if _TARGET_PC_WIN | _TARGET_XBOX
   int numLogicalCores = 0;
   int numPhysicalCores = 0;
+  int numPerfCores = 0; // Non zero only on hybrid arch (Intel 12+th gen)
 #elif _TARGET_C1 | _TARGET_C2
 
 
@@ -607,8 +608,8 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
       inf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)alloca(bufLen);
       G_VERIFYF(GetLogicalProcessorInformationEx(RelationProcessorCore, inf, &bufLen), "%d", GetLastError());
     }
-    int numCores = 0, numProcs = 0;
-    eastl::pair<BYTE, KAFFINITY> procRecs[64] = {};
+    int numCores = 0, numProcs = 0, numPerfCores = 0;
+    eastl::pair<BYTE, KAFFINITY> procRecs[128] = {};
     BYTE maxEffClass = 0;
     for (int i = 0; offs < bufLen; i++)
     {
@@ -626,11 +627,12 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
     cpujobs_data.numPhysicalCores = numCores;
     dgs_main_thread_affinity = 0;
     EA_DISABLE_VC_WARNING(4146); // unary minus operator applied to unsigned type, result still unsigned
-    if (maxEffClass)
-      for (auto &r : procRecs)
-        if (r.first == maxEffClass && eastl::exchange(dgs_main_thread_affinity, /*lsb*/ r.second & -r.second))
-          break;
+    for (int i = 0, n = maxEffClass ? (min)((size_t)numCores, countof(procRecs)) : 0; i < n; i++)
+      if (procRecs[i].first == maxEffClass)
+        if (++numPerfCores <= 2)
+          dgs_main_thread_affinity = /*lsb*/ procRecs[i].second & -procRecs[i].second;
     EA_RESTORE_VC_WARNING();
+    cpujobs_data.numPerfCores = numPerfCores;
     if (!dgs_main_thread_affinity)
       dgs_main_thread_affinity = (numProcs >= 3) ? 4 : 1;
 
@@ -746,6 +748,14 @@ int cpujobs::get_physical_core_count()
 #endif
   return cpujobs_data.numPhysicalCores;
 }
+
+#if _TARGET_PC_WIN
+int cpujobs::get_performance_core_count()
+{
+  G_ASSERT(cpujobs_data.isInited());
+  return cpujobs_data.numPerfCores;
+}
+#endif
 
 bool cpujobs::start_job_manager(int core_id, int stk_sz, const char *threadName, int thread_priority)
 {

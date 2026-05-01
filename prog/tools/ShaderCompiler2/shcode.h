@@ -115,12 +115,19 @@ public:
     StVarValue() : i4{0, 0, 0, 0} {}
   };
 
+  enum VarFlags
+  {
+    VF_HAS_STUB_COLOR = 1
+  };
+
   class Var
   {
   public:
     NameId<VarMapAdapter> nameId;
     ShaderVarType type;
     StVarValue defval;
+    uint32_t additionalFlags = 0;
+    uint32_t stubColor = 0;
     Var() { memset(&defval, 0, sizeof(defval)); }
   };
   SerializableTab<Var> stvar;

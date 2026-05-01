@@ -43,7 +43,8 @@ CollisionResource *CollisionResource::createSingleMesh(dag::Span<Point3_vec4> re
   node.flags = flags | CollisionNode::IDENT;
   node.type = COLLISION_NODE_TYPE_MESH;
   node.modelBBox = bbox;
-  node.boundingSphere = bsphere;
+  node.boundingSphere.c = bsphere.c;
+  node.boundingSphere.r = bsphere.r;
   node.resetVertices(ref_vertices);
   node.resetIndices(indices);
 
@@ -55,12 +56,13 @@ CollisionResource *CollisionResource::createSingleMesh(dag::Span<Point3_vec4> re
 int CollisionResource::addSphereNode(const char *name, int16_t phys_mat_id, const BSphere3 &bsphere)
 {
   CollisionNode &n = createNode();
-  n.name = name;
+  n.nameOfs = addName(name);
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_SPHERE;
   n.flags = CollisionNode::IDENT;
   n.tm = TMatrix::IDENT;
-  n.boundingSphere = bsphere;
+  n.boundingSphere.c = bsphere.c;
+  n.boundingSphere.r = bsphere.r;
   n.modelBBox = BBox3(bsphere);
   n.nodeIndex = (uint16_t)(allNodesList.size() - 1);
   return n.nodeIndex;
@@ -69,13 +71,14 @@ int CollisionResource::addSphereNode(const char *name, int16_t phys_mat_id, cons
 int CollisionResource::addBoxNode(const char *name, int16_t phys_mat_id, const BBox3 &bbox)
 {
   CollisionNode &n = createNode();
-  n.name = name;
+  n.nameOfs = addName(name);
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_BOX;
   n.flags = CollisionNode::IDENT;
   n.tm = TMatrix::IDENT;
   n.modelBBox = bbox;
-  n.boundingSphere = BSphere3(bbox.center(), bbox.width().length() / 2.f);
+  n.boundingSphere.c = bbox.center();
+  n.boundingSphere.r = bbox.width().length() / 2.f;
   n.nodeIndex = (uint16_t)(allNodesList.size() - 1);
   return n.nodeIndex;
 }
@@ -83,14 +86,16 @@ int CollisionResource::addBoxNode(const char *name, int16_t phys_mat_id, const B
 int CollisionResource::addCapsuleNode(const char *name, int16_t phys_mat_id, const Point3 &p0, const Point3 &p1, float radius)
 {
   CollisionNode &n = createNode();
-  n.name = name;
+  n.nameOfs = addName(name);
   n.physMatId = phys_mat_id;
   n.type = COLLISION_NODE_TYPE_CAPSULE;
   n.flags = CollisionNode::IDENT;
   n.tm = TMatrix::IDENT;
   n.modelBBox = (BBox3(BSphere3(p0, radius)) += BSphere3(p1, radius));
-  n.boundingSphere = BSphere3((p0 + p1) / 2.f, (p0 - p1).length() / 2.f + radius);
-  n.capsule.set(p0, p1, radius);
+  n.boundingSphere.c = (p0 + p1) / 2.f;
+  n.boundingSphere.r = (p0 - p1).length() / 2.f + radius;
+  n.capsuleIndex = (uint16_t)capsules.size();
+  capsules.push_back(Capsule(p0, p1, radius));
   n.nodeIndex = (uint16_t)(allNodesList.size() - 1);
   return n.nodeIndex;
 }
@@ -115,6 +120,8 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   gridForTraceable.tracer.reset(nullptr);
   gridForCollidable.tracer.reset(nullptr);
   allNodesList.clear();
+  names.clear();
+  capsules.clear();
 
   unsigned label = _cb.readInt();
   G_ASSERTF_RETURN((label & 0xFFFF0000) == 0xACE50000, , "Invalid collision resource: 0x%8X", label);
@@ -148,14 +155,21 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     gridForCollidable.tracer.reset(load_frt16(*zcrd));
 
   reserve_and_resize(allNodesList, zcrd->readInt());
+  String tmp_node_name;
   for (auto &n : allNodesList)
   {
-    zcrd->readString(n.name);
+    zcrd->readString(tmp_node_name);
+    n.nameOfs = addName(tmp_node_name.c_str());
     zcrd->readString(tmp_str);
     n.physMatId = PhysMat::getMaterialId(tmp_str.str());
 
     zcrd->read(&n.modelBBox, sizeof(n.modelBBox));
-    zcrd->read(&n.boundingSphere, sizeof(n.boundingSphere));
+    {
+      BSphere3 tmpSph;
+      zcrd->read(&tmpSph, sizeof(BSphere3));
+      n.boundingSphere.c = tmpSph.c;
+      n.boundingSphere.r = tmpSph.r;
+    }
     n.behaviorFlags = zcrd->readIntP<2>();
     n.flags = zcrd->readIntP<1>();
     n.type = (CollisionResourceNodeType)zcrd->readIntP<1>();
@@ -199,8 +213,11 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     }
     if (n.type == COLLISION_NODE_TYPE_CAPSULE)
     {
-      n.capsule.set(n.modelBBox);
-      n.capsule.transform(n.tm);
+      Capsule c;
+      c.set(n.modelBBox);
+      c.transform(n.tm);
+      n.capsuleIndex = (uint16_t)capsules.size();
+      capsules.push_back(c);
     }
 
     n.nodeIndex = &n - allNodesList.data();
@@ -213,6 +230,8 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   if (zcrd != &_cb)
     zcrd->~IGenLoad();
 
+  names.shrink_to_fit();
+  capsules.shrink_to_fit();
   rebuildNodesLL();
   /* if (!validateVerticesForJolt())
   {
@@ -276,12 +295,14 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
 
     node.nodeIndex = nodeNo;
 
-    cb.readString(node.name);
+    String tmp_node_name;
+    cb.readString(tmp_node_name);
+    node.nameOfs = addName(tmp_node_name.c_str());
     if (hasMaterialData)
     {
-      SimpleString matName;
+      String matName;
       cb.readString(matName);
-      node.physMatId = resolve_phmat ? resolve_phmat(matName) : PhysMat::getMaterialId(matName.str());
+      node.physMatId = resolve_phmat ? resolve_phmat(matName.c_str()) : PhysMat::getMaterialId(matName.c_str());
     }
     else
       node.physMatId = PHYSMAT_INVALID;
@@ -326,13 +347,13 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
     }
     node.cachedMaxTmScale = sqrtf(max(len0sq, max(len1sq, len2sq)));
 
-    cb.read(&node.boundingSphere, sizeof(BSphere3));
-    cb.read(&node.modelBBox, sizeof(BBox3));
-    if (node.type == COLLISION_NODE_TYPE_CAPSULE)
     {
-      node.capsule.set(node.modelBBox);
-      node.capsule.transform(node.tm);
+      BSphere3 tmpSph;
+      cb.read(&tmpSph, sizeof(BSphere3));
+      node.boundingSphere.c = tmpSph.c;
+      node.boundingSphere.r = tmpSph.r;
     }
+    cb.read(&node.modelBBox, sizeof(BBox3));
     if (node.type == COLLISION_NODE_TYPE_CONVEX)
     {
       readTab(cb, tempConvexPlanes);
@@ -356,7 +377,7 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
         G_UNUSED(res_id);
         resName = "unknown";
 #endif
-        DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), verticesLimit, node.name.c_str(),
+        DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), verticesLimit, getNodeNameStr(node),
           resName.c_str());
       }
       node.vertices.set(memalloc_typed<Point3_vec4>(tempVertices.size(), midmem), tempVertices.size());
@@ -398,11 +419,21 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
       numNodes--;
       allNodesList.resize(numNodes);
     }
+    else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
+    {
+      Capsule c;
+      c.set(node.modelBBox);
+      c.transform(node.tm);
+      node.capsuleIndex = (uint16_t)capsules.size();
+      capsules.push_back(c);
+    }
   }
 
   vFullBBox = totalBBox;
   v_stu_bbox3(boundingBox, totalBBox);
 
+  names.shrink_to_fit();
+  capsules.shrink_to_fit();
   sortNodesList();
   rebuildNodesLL();
 
@@ -453,7 +484,6 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
       v_stu_bbox3(m->modelBBox, box);
       v_stu_p3(&m->boundingSphere.c.x, vSphereC);
       m->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
-      m->boundingSphere.r2 = v_extract_x(sphereRad2);
 
       if (m->tm.det() < 0.f) // swap indices order
         for (int i = 0; i < m->indices.size(); i += 3)
@@ -531,10 +561,10 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
 
     targetNode->modelBBox = bbox;
     targetNode->boundingSphere.c = bbox.center();
-    targetNode->boundingSphere.r2 = lengthSq(vertices[0] - targetNode->boundingSphere.c);
+    float r2 = lengthSq(vertices[0] - targetNode->boundingSphere.c);
     for (int i = 1; i < v_num; i++)
-      inplace_max(targetNode->boundingSphere.r2, lengthSq(vertices[i] - targetNode->boundingSphere.c));
-    targetNode->boundingSphere.r = sqrtf(targetNode->boundingSphere.r2);
+      inplace_max(r2, lengthSq(vertices[i] - targetNode->boundingSphere.c));
+    targetNode->boundingSphere.r = sqrtf(r2);
 
     targetNode->tm.identity();
     targetNode->flags |= targetNode->IDENT;

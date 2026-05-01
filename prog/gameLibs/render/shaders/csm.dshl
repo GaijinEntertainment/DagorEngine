@@ -330,18 +330,6 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
     {
       return get_csm_shadow(pointToEye, float3(0, 0, 0), dither, screenPos, radiusScale);
     }
-
-    half get_csm_fade_out(float dist)
-    {
-      return saturate(dist * csm_shadow_fade_out.x + csm_shadow_fade_out.y);
-    }
-
-    half apply_csm_fade_out(float dist, half shadow)
-    {
-      // apply a smooth fade at culling ranges
-      float fadeOut = get_csm_fade_out(dist);
-      return (half)lerp(half(1.0), shadow, fadeOut);
-    }
   }
 endmacro
 

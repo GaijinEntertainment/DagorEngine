@@ -46,9 +46,23 @@ struct TextureHandle
   TextureHandle() = default;
   TextureHandle(TEXTUREID id) : id(id) {}
   TextureHandle(const TextureHandle &) = delete;
-  TextureHandle(TextureHandle &&) = default;
+  TextureHandle(TextureHandle &&other)
+  {
+    texture = other.texture;
+    id = other.id;
+    other.texture = nullptr;
+  }
   TextureHandle &operator=(const TextureHandle &) = delete;
-  TextureHandle &operator=(TextureHandle &&) = default;
+  TextureHandle &operator=(TextureHandle &&other)
+  {
+    if (texture)
+      release_managed_tex(id);
+
+    texture = other.texture;
+    id = other.id;
+    other.texture = nullptr;
+    return *this;
+  }
   ~TextureHandle()
   {
     if (texture)
@@ -368,7 +382,6 @@ struct BindlessTexture
 {
   uint32_t rangeBase = 0xFFFFU;
   uint32_t slotIndex = 0;
-  uint32_t samplerIndex = 0xFFFFU;
   uint32_t referenceCount = 0;
   eastl::optional<D3DResourceType> resourceType;
 };
@@ -409,7 +422,6 @@ struct MeshMeta : public BVHMeta
   static constexpr uint32_t bvhMaterialUseInstanceTextures = 1 << 30;
 
   static constexpr uint32_t INVALID_TEXTURE = 0xFFFFu;
-  static constexpr uint32_t INVALID_SAMPLER = 0xFFFFu;
 
   MeshMeta()
   {
@@ -419,9 +431,9 @@ struct MeshMeta : public BVHMeta
     initialized = 0;
     materialType = 0;
     alphaTextureIndex = INVALID_TEXTURE;
-    alphaSamplerIndex = INVALID_SAMPLER;
+    padding1 = 0;
     ahsVertexBufferIndex = BVH_BINDLESS_BUFFER_MAX;
-    padding = 0;
+    padding2 = 0;
     colorOffset = 0xFFu;
     indexCount = 0;
     texcoordOffset = 0xFFu;
@@ -433,10 +445,8 @@ struct MeshMeta : public BVHMeta
     vertexBufferIndexHigh = 0xFu;
     vertexBufferIndexLow = 0xFFFFu;
     albedoTextureIndex = INVALID_TEXTURE;
-    albedoAndNormalSamplerIndex = INVALID_SAMPLER;
     normalTextureIndex = INVALID_TEXTURE;
     extraTextureIndex = INVALID_TEXTURE;
-    extraSamplerIndex = INVALID_SAMPLER;
     startIndex = 0;
     startVertex = 0;
     texcoordScale = 1.0f;
@@ -864,8 +874,7 @@ struct Context
   MeshMetaAllocator::AllocId allocateMetaRegion(int size);
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
 
-  TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, uint32_t &sampler_bindless_index,
-    d3d::SamplerHandle sampler = d3d::INVALID_SAMPLER_HANDLE, bool forceRefreshSrvsWhenLoaded = false);
+  TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexture(TEXTUREID id);
   bool releaseTexture(uint32_t texture_and_sampler_bindless_indices);
   void markChangedTextures();
@@ -1002,13 +1011,14 @@ struct Context
 
   eastl::unordered_map<uint32_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueHeliRotorBuffers;
   eastl::unordered_map<uint32_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueDeformedBuffers;
-  eastl::unordered_map<uint64_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueRiExtraTreeBuffers;
+  eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> uniqueRiExtraTreeBuffers[maxUniqueLods];
   eastl::unordered_map<uint64_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueRiExtraFlagBuffers;
   eastl::unordered_map<uint64_t, ReferencedTransformData> uniqueSplinegenBuffers;
   eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> uniqueTreeBuffers[maxUniqueLods];
   eastl::unordered_map<uint32_t, ReferencedTransformDataWithAge> uniqueSkinBuffers;
 
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> freeUniqueTreeBLASes;
+  eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> freeUniqueRiExtraTreeBLASes;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> freeUniqueSkinBLASes;
 
   WinCritSec processBufferAllocatorLock;
@@ -1084,9 +1094,8 @@ struct Context
   struct BindlessTexHolder
   {
     TEXTUREID texId = BAD_TEXTUREID;
-    d3d::SamplerHandle texSampler = d3d::INVALID_SAMPLER_HANDLE;
     uint32_t bindlessTexture = 0;
-    uint32_t bindlessSampler = 0;
+
 
     void close(bvh::ContextId context_id)
     {
@@ -1094,7 +1103,6 @@ struct Context
       {
         G_VERIFY(context_id->releaseTexture(texId));
         texId = BAD_TEXTUREID;
-        texSampler = d3d::INVALID_SAMPLER_HANDLE;
       }
     }
   };
@@ -1199,33 +1207,30 @@ void bvh_yield();
 // Helper functions because we can't pass the address of bitfields
 inline TextureHandle MeshMeta::holdAlbedoTex(Context *context_id, TEXTUREID texture_id)
 {
-  uint32_t textureIndex, samplerIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex, samplerIndex);
+  uint32_t textureIndex;
+  auto tex = context_id->holdTexture(texture_id, textureIndex);
   albedoTextureIndex = textureIndex;
-  albedoAndNormalSamplerIndex = samplerIndex;
   return tex;
 }
 inline TextureHandle MeshMeta::holdNormalTex(Context *context_id, TEXTUREID texture_id)
 {
-  uint32_t textureIndex, samplerIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex, samplerIndex);
+  uint32_t textureIndex;
+  auto tex = context_id->holdTexture(texture_id, textureIndex);
   normalTextureIndex = textureIndex;
   return tex;
 }
 inline TextureHandle MeshMeta::holdAlphaTex(Context *context_id, TEXTUREID texture_id)
 {
-  uint32_t textureIndex, samplerIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex, samplerIndex);
+  uint32_t textureIndex;
+  auto tex = context_id->holdTexture(texture_id, textureIndex);
   alphaTextureIndex = textureIndex;
-  alphaSamplerIndex = samplerIndex;
   return tex;
 }
 inline TextureHandle MeshMeta::holdExtraTex(Context *context_id, TEXTUREID texture_id)
 {
-  uint32_t textureIndex, samplerIndex;
-  auto tex = context_id->holdTexture(texture_id, textureIndex, samplerIndex);
+  uint32_t textureIndex;
+  auto tex = context_id->holdTexture(texture_id, textureIndex);
   extraTextureIndex = textureIndex;
-  extraSamplerIndex = samplerIndex;
   return tex;
 }
 

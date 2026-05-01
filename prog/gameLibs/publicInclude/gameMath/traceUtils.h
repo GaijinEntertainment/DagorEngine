@@ -88,7 +88,7 @@ struct TraceMeshFaces
       for (const CacheEntry &entry : cachedData)
       {
         bool isRiExtra = (entry.type & rendinst::GatherRiTypeFlag::RiExtraOnly).asInteger() != 0;
-        if ((entry.type & ri_types) && rendinst::isRiGenDescInGrid(entry.desc))
+        if ((entry.type & ri_types) && rendinst::isRiGenInWorld(entry.desc))
           callback(entry.desc, isRiExtra);
       }
     }

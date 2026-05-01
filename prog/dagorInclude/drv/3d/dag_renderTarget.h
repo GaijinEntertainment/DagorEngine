@@ -159,7 +159,7 @@ inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag:
   for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
     set_render_target(i, nullptr, 0);
 
-  set_depth(depth.tex, depth_access);
+  set_depth(depth.tex, depth.layer, depth_access);
 }
 
 /**

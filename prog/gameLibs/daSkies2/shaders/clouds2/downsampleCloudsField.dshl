@@ -386,8 +386,7 @@ macro GET_TILED_DISTANCE(code)
       float stepSize = step_size_big;
 
       #if COARSE_PHASE_SUBSTEPS_NEEDED
-        // check for nuke effect bitmask usage, compatibility_mode checked in CONDENSATION_CLOUDS_SUPPORT
-        ##if !hardware.metal
+        ##if use_bitmasks_for_nuke_effects
           uint2 texelCoords = uint2(texcoord * nuke_masks_tex_size);
           uint nukeVolumMask = texelFetch(nuke_volumetrics_mask_tex, texelCoords, 0).r;
         ##else

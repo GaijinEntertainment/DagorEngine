@@ -238,8 +238,7 @@ dafg::NodeHandle makeScopeDownsampleStencilNode(const char *node_name, const cha
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
 
-      d3d::set_render_target(nullptr, 0);
-      d3d::set_depth(depthHndl.view().getBaseTex(), DepthAccess::RW);
+      d3d::set_render_target({depthHndl.view().getBaseTex(), 0, 0}, DepthAccess::RW, {});
       d3d::clearview(CLEAR_STENCIL, 0, 0, 0);
 
       const int lensAreaViewportIndex = 1;
@@ -362,9 +361,7 @@ dafg::NodeHandle makeRenderOpticsPrepassNode()
     return [scopeDataHndls, hasOpticsPrepass, mainViewRes, postfxRes, depthForOpticsHandle]() {
       const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
 
-      d3d::set_render_target();
-      d3d::set_render_target(nullptr, 0);
-      d3d::set_depth(depthForOpticsHandle.view().getTex2D(), DepthAccess::RW);
+      d3d::set_render_target({depthForOpticsHandle.view().getTex2D(), 0, 0}, DepthAccess::RW, {});
       d3d::clearview(CLEAR_ZBUFFER, E3DCOLOR(0, 0, 0), 0.f, 0u);
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
@@ -433,7 +430,7 @@ dafg::NodeHandle makeRenderLensOpticsNode()
       if (bs->hasThermalRender.get())
         d3d::clear_rt({frameHndl.get()}, make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
 
-      d3d::set_render_target(frameHndl.get(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{frameHndl.get(), 0, 0}});
       if (bs->hasOpticsPrepass.ref())
         d3d::set_depth(opticsPrepassDepthHndl.view().getTex2D(), bs->useROdepth ? DepthAccess::SampledRO : DepthAccess::RW);
       else

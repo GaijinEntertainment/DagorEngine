@@ -48,7 +48,11 @@ shader dynamic_screen
 
   dynamic texture dynamic_screen_tex;
 
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal)
   {
     SPECIAL_RENDER_NOALPHATEST(false)
   }

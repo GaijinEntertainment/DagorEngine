@@ -97,7 +97,7 @@ public:
   void eval_static(static_var_decl &s) override;
   void eval_interval_decl(interval &interv) override {}
   void eval_bool_decl(bool_decl &) override;
-  void eval_init_stat(SHTOK_ident *var, shader_init_value &v);
+  void eval_init_stat(SHTOK_ident *var, shader_init_value &v, bool is_referenced);
   void eval_channel_decl(channel_decl &s, int stream_id = 0) override;
 
   int get_blend_k(const Terminal &s);

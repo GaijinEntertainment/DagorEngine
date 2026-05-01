@@ -9,6 +9,8 @@
 #include <runtime/runtime.h>
 #include <frontend/nodeTracker.h>
 #include <frontend/nameResolver.h>
+#include <backend/simdBitVector.h>
+#include <backend/simdBitMatrix.h>
 
 #include <imgui.h>
 #include <gui/dag_imgui.h>
@@ -16,6 +18,8 @@
 #include <imgui-node-editor/imgui_canvas.h>
 #include <imgui-node-editor/imgui_bezier_math.h>
 
+#include <generic/dag_reverseView.h>
+#include <generic/dag_bitset.h>
 #include <util/dag_convar.h>
 #include <util/dag_console.h>
 #include <render/debugTexOverlay.h>
@@ -32,24 +36,36 @@ constexpr float FAKE_NODE_Y_SIZE = 50.f;
 constexpr float COL_X_BASE_MARGIN = 2.f * NODE_X_SIZE;
 constexpr float OBJ_Y_BASE_MARGIN = 0.6f * NODE_Y_SIZE;
 
+constexpr float NAMESPACE_BORDER_WIDTH = 2.f;
 constexpr ImVec2 NAMESPACE_BORDER_PADDING = ImVec2{50.f, 50.f};
+constexpr ImVec2 NAMESPACE_NAMETAG_PADDING = ImVec2{3.f, 3.f};
 
 constexpr float NODE_BORDER_WIDTH = 2.f;
 constexpr ImVec2 NODE_BORDER_PADDING = ImVec2{10.f, 10.f};
 constexpr ImU32 NODE_REGULAR_COLOR = IM_COL32(100, 100, 100, 255);   // rgb(100, 100, 100)
 constexpr ImU32 NODE_SELECTION_COLOR = IM_COL32(250, 250, 150, 255); // rgb(250, 250, 150)
 
-constexpr ImU32 DEP_COLOR_PREV = IM_COL32(255, 0, 0, 255);   // rgb(255, 0, 0)
-constexpr ImU32 DEP_COLOR_FOLLOW = IM_COL32(0, 0, 255, 255); // rgb(0, 0, 255)
-constexpr ImU32 DEP_COLOR_MOD = IM_COL32(255, 255, 0, 255);  // rgb(255, 255, 0)
-constexpr ImU32 DEP_COLOR_READ = IM_COL32(0, 255, 0, 255);   // rgb(0, 255, 0)
-constexpr ImU32 DEP_COLOR_CONS = IM_COL32(255, 0, 255, 255); // rgb(255, 0, 255)
+constexpr ImU32 DEP_COLOR_PREV = IM_COL32(0, 255, 255, 255);   // rgb(0, 255, 255)
+constexpr ImU32 DEP_COLOR_FOLLOW = IM_COL32(0, 0, 255, 255);   // rgb(0, 0, 255)
+constexpr ImU32 DEP_COLOR_MOD = IM_COL32(255, 255, 0, 255);    // rgb(255, 255, 0)
+constexpr ImU32 DEP_COLOR_READ = IM_COL32(0, 192, 0, 255);     // rgb(0, 192, 0)
+constexpr ImU32 DEP_COLOR_CONS = IM_COL32(255, 0, 255, 255);   // rgb(255, 0, 255)
+constexpr ImU32 DEP_COLOR_HIST = IM_COL32(128, 255, 128, 255); // rgb(128, 255, 128)
 
 constexpr float EXPLICIT_DEP_WIDTH = 3.f;
 constexpr float RESOURCE_DEP_WIDTH = 5.f;
 
+constexpr float HISTORY_DEP_WIDTH = 5.f;
+constexpr float HISTORY_WAVE_LEN = NODE_X_SIZE / 3.f;
+constexpr float HISTORY_WAVE_HEIGHT = HISTORY_DEP_WIDTH * 5.f;
+
 constexpr float RES_SELECTION_WIDTH_FRAC = 2.f;
 constexpr ImU32 RES_SELECTION_COLOR = IM_COL32(255, 128, 0, 255); // rgb(255, 128, 0)
+
+constexpr float CYCLED_DEP_WIDTH_FRAC = 0.6f;
+constexpr ImU32 CYCLED_DEP_COLOR = IM_COL32(255, 0, 0, 255); // rgb(255, 0, 0)
+
+constexpr float DISABLED_DEP_WIDTH = 7.f;
 
 
 constexpr ImVec2 MAX_IMVEC2 = ImVec2{eastl::numeric_limits<float>::max(), eastl::numeric_limits<float>::max()};
@@ -78,6 +94,7 @@ static eastl::array<DependencyTypeInfo, static_cast<size_t>(DependencyType::COUN
   DependencyTypeInfo{"Modifies", DEP_COLOR_MOD},
   DependencyTypeInfo{"Reads", DEP_COLOR_READ},
   DependencyTypeInfo{"Consumes", DEP_COLOR_CONS},
+  DependencyTypeInfo{"Reads History", DEP_COLOR_HIST},
 };
 
 static DependencyTypeInfo &dependency_info_by_type(const DependencyType type)
@@ -214,6 +231,11 @@ void Visualizer::drawUI()
       }
       ImGui::EndCombo();
     }
+
+    ImGui::SameLine();
+    ImGui::Text("Hierarchical view:");
+    ImGui::SameLine();
+    ImGui::Checkbox("##hierarchicalView", &hierarchicalView);
   }
 
 
@@ -257,18 +279,198 @@ void Visualizer::drawCanvas()
   // here, we will perform draw, based on precalculated positions
   ImDrawList *drawList = ImGui::GetWindowDrawList();
   drawList->ChannelsSplit(CanvasChannels::COUNT);
-  {
-    const ImVec2 offset = ImVec2{0.f, -wholeGraphLayout.size.y / 2.f};
 
+  const auto &layoutToUse = hierarchicalView ? condensedLayout : wholeGraphLayout;
+  const ImVec2 layoutOffset = ImVec2{0.f, -1.f * layoutToUse.size.y / 2.f};
+
+  if (hierarchicalView)
+    for (uint32_t nodeBoxIndex = 0; nodeBoxIndex < nodeBoxes.size(); ++nodeBoxIndex)
+      drawNodeBox(drawList, NodeBoxId(nodeBoxIndex), layoutOffset + condensedLayout.objectsOffsets[nodeBoxIndex]);
+  else
     for (uint32_t userNodeIndex = 0; userNodeIndex < registry.nodes.size(); ++userNodeIndex)
-      drawNode(drawList, NodeNameId(userNodeIndex), offset + wholeGraphLayout.objectsOffsets[userNodeIndex],
+      drawNode(drawList, NodeNameId(userNodeIndex), layoutOffset + wholeGraphLayout.objectsOffsets[userNodeIndex],
         wholeGraphLayout.objectsSizes[userNodeIndex]);
 
-    drawEdges(drawList, wholeGraphLayout, offset);
+  drawEdges(drawList, layoutToUse, layoutOffset);
+
+  for (const auto depId : disabledDependencies)
+  {
+    const auto &dep = registryDependencies[depId];
+    ImVec2 fromOffset = layoutOffset;
+    ImVec2 toOffset = layoutOffset;
+    ImVec2 fromSize = {};
+    ImVec2 toSize = {};
+
+    if (hierarchicalView)
+    {
+      const auto fromBoxId = nodesNodeBox[dep.from];
+      const auto toBoxId = nodesNodeBox[dep.to];
+      fromOffset += condensedLayout.objectsOffsets[NodeIdx(fromBoxId)];
+      toOffset += condensedLayout.objectsOffsets[NodeIdx(toBoxId)];
+
+      for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[fromBoxId].nodes.size(); ++nodeIndex)
+        if (nodeBoxes[fromBoxId].nodes[nodeIndex] == dep.from)
+        {
+          fromOffset += nodeBoxesLayouts[fromBoxId].objectsOffsets[nodeIndex];
+          fromSize = nodeBoxesLayouts[fromBoxId].objectsSizes[nodeIndex];
+          break;
+        }
+
+      for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[toBoxId].nodes.size(); ++nodeIndex)
+        if (nodeBoxes[toBoxId].nodes[nodeIndex] == dep.to)
+        {
+          toOffset += nodeBoxesLayouts[toBoxId].objectsOffsets[nodeIndex];
+          toSize = nodeBoxesLayouts[toBoxId].objectsSizes[nodeIndex];
+          break;
+        }
+    }
+    else
+    {
+      fromOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.from)];
+      toOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.to)];
+      fromSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.from)];
+      toSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.to)];
+    }
+    if (fromOffset.x > toOffset.x)
+    {
+      eastl::swap(fromOffset, toOffset);
+      eastl::swap(fromSize, toSize);
+    }
+    const ImVec2 leftAnchor = fromOffset + ImVec2{0.f, fromSize.y / 2.f};
+    const ImVec2 rightAnchor = toOffset + ImVec2{toSize.x, toSize.y / 2.f};
+    const float topBound = min(rightAnchor.y, leftAnchor.y) - abs(rightAnchor.x - leftAnchor.x) / 3;
+    const float leftBound = leftAnchor.x - (leftAnchor.y - topBound);
+    const float rightBound = rightAnchor.x + (rightAnchor.y - topBound);
+    const ImCubicBezierPoints backEdgeCurve = {leftAnchor, ImVec2{leftBound, topBound}, ImVec2{rightBound, topBound}, rightAnchor};
+
+    drawList->ChannelsSetCurrent(CanvasChannels::TEXTS);
+    drawList->AddBezierCubic(backEdgeCurve.P0, backEdgeCurve.P1, backEdgeCurve.P2, backEdgeCurve.P3, CYCLED_DEP_COLOR,
+      DISABLED_DEP_WIDTH);
+
+    const auto hit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, backEdgeCurve);
+    if (hit.Distance < DISABLED_DEP_WIDTH &&
+        (!focusedResource.valid() || (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
+          (focusedResource.valid() && focusedResource.id == dep.resource) ||
+          (focusedResource.valid() && focusedResource.id != dep.resource && isVisibleRename(dep.resource))))
+      tooltipMessage.aprintf(0, "disabled: %s\n", getName(dep.resource));
   }
+
+  {
+    const auto &typeInfo = dependency_info_by_type(DependencyType::IMPLICIT_RES_HIST);
+    if (typeInfo.visible)
+    {
+      drawList->ChannelsSetCurrent(CanvasChannels::EDGES);
+
+      for (const auto depId : historyDependencies)
+      {
+        const auto &dep = registryDependencies[depId];
+        ImVec2 fromOffset = layoutOffset;
+        ImVec2 toOffset = layoutOffset;
+        ImVec2 fromSize = {};
+        ImVec2 toSize = {};
+
+        if (hierarchicalView)
+        {
+          const auto fromBoxId = nodesNodeBox[dep.from];
+          const auto toBoxId = nodesNodeBox[dep.to];
+          fromOffset += condensedLayout.objectsOffsets[NodeIdx(fromBoxId)];
+          toOffset += condensedLayout.objectsOffsets[NodeIdx(toBoxId)];
+
+          for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[fromBoxId].nodes.size(); ++nodeIndex)
+            if (nodeBoxes[fromBoxId].nodes[nodeIndex] == dep.from)
+            {
+              fromOffset += nodeBoxesLayouts[fromBoxId].objectsOffsets[nodeIndex];
+              fromSize = nodeBoxesLayouts[fromBoxId].objectsSizes[nodeIndex];
+              break;
+            }
+
+          for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[toBoxId].nodes.size(); ++nodeIndex)
+            if (nodeBoxes[toBoxId].nodes[nodeIndex] == dep.to)
+            {
+              toOffset += nodeBoxesLayouts[toBoxId].objectsOffsets[nodeIndex];
+              toSize = nodeBoxesLayouts[toBoxId].objectsSizes[nodeIndex];
+              break;
+            }
+        }
+        else
+        {
+          fromOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.from)];
+          toOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.to)];
+          fromSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.from)];
+          toSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.to)];
+        }
+        const ImVec2 leftAnchor = toOffset + ImVec2{0.f, toSize.y};
+        const ImVec2 rightAnchor = fromOffset + ImVec2{fromSize.x, fromSize.y};
+
+        const float dx = HISTORY_WAVE_LEN / 3.f;
+        const ImCubicBezierPoints leftLine = {leftAnchor, leftAnchor - ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
+          leftAnchor - ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, leftAnchor - ImVec2{3.f * dx, 0.f}};
+        const ImCubicBezierPoints rightLine = {rightAnchor, rightAnchor + ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
+          rightAnchor + ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, rightAnchor + ImVec2{3.f * dx, 0.f}};
+
+
+        drawList->AddBezierCubic(leftLine.P0, leftLine.P1, leftLine.P2, leftLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
+        drawList->AddBezierCubic(rightLine.P0, rightLine.P1, rightLine.P2, rightLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
+
+        const auto leftHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, leftLine);
+        const auto rightHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, rightLine);
+        const bool resVisible = !focusedResource.valid() ||
+                                (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
+                                (focusedResource.valid() && focusedResource.id == dep.resource) ||
+                                (focusedResource.valid() && focusedResource.id != dep.resource && isVisibleRename(dep.resource));
+
+        if (resVisible && leftHit.Distance < HISTORY_DEP_WIDTH)
+          tooltipMessage.aprintf(0, "history of: %s\n", getName(dep.resource));
+        if (resVisible && rightHit.Distance < HISTORY_DEP_WIDTH)
+          tooltipMessage.aprintf(0, "to next frame: %s\n", getName(dep.resource));
+      }
+    }
+  }
+
   drawList->ChannelsMerge();
 
   canvas.End();
+}
+
+void Visualizer::drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id, const ImVec2 offset)
+{
+  const auto &box = nodeBoxes[node_box_id];
+  const auto &boxLayout = nodeBoxesLayouts[node_box_id];
+  const auto nameSpaceId = nodeBoxesNameSpace[node_box_id];
+
+  if (nameSpaceId != registry.knownNames.root())
+  {
+    draw_list->ChannelsSetCurrent(CanvasChannels::NAMESPACES);
+
+    const ImU32 nameSpaceBorderColor = color_by_hash(size_t(nameSpaceId));
+    const ImU32 nameSpaceFillColor = apply_alpha_coeff(nameSpaceBorderColor, 0.1f);
+
+    const ImVec2 leftTopPos = offset;
+    const ImVec2 rightBottomPos = leftTopPos + boxLayout.size;
+
+    draw_list->AddRectFilled(leftTopPos, rightBottomPos, nameSpaceFillColor, 4.0f);
+    draw_list->AddRect(leftTopPos, rightBottomPos, nameSpaceBorderColor, 4.0f, 0, NAMESPACE_BORDER_WIDTH);
+
+
+    draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+
+    const char *nameSpaceName = registry.knownNames.getName(nameSpaceId);
+    const ImVec2 nameBoxSize = ImGui::CalcTextSize(nameSpaceName) + 2.f * NAMESPACE_NAMETAG_PADDING;
+
+    const ImVec2 nameBoxLeftTopPos = leftTopPos - ImVec2{0.f, nameBoxSize.y / 2};
+    const ImVec2 nameBoxRightBottomPos = nameBoxLeftTopPos + nameBoxSize;
+    const ImVec2 nameBoxTextStart = nameBoxLeftTopPos + NAMESPACE_NAMETAG_PADDING;
+
+    draw_list->AddRectFilled(nameBoxLeftTopPos, nameBoxRightBottomPos, nameSpaceBorderColor, 4.0f);
+    ImGui::SetCursorPos(nameBoxTextStart);
+    ImGui::TextUnformatted(nameSpaceName);
+  }
+
+  for (uint32_t userNodeIndex = 0; userNodeIndex < box.nodes.size(); ++userNodeIndex)
+    drawNode(draw_list, box.nodes[userNodeIndex], offset + boxLayout.objectsOffsets[userNodeIndex],
+      boxLayout.objectsSizes[userNodeIndex]);
+
+  drawEdges(draw_list, boxLayout, offset);
 }
 
 void Visualizer::drawNode(ImDrawList *draw_list, const NodeNameId node_id, const ImVec2 node_offset, const ImVec2 node_size)
@@ -346,8 +548,11 @@ void Visualizer::drawNode(ImDrawList *draw_list, const NodeNameId node_id, const
       }
     }
 
-    draw_list->AddRectFilled(node_offset, rightBottomPos, nodeFillColor, 4.0f);
-    draw_list->AddRect(node_offset, rightBottomPos, nodeBorderColor, 4.0f, 0, nodeBorderThickness);
+    if (nodesCycled[node_id])
+      draw_list->AddRect(leftTopPos - ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH},
+        rightBottomPos + ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH}, CYCLED_DEP_COLOR, 4.0f, 0, DISABLED_DEP_WIDTH);
+    draw_list->AddRectFilled(leftTopPos, rightBottomPos, nodeFillColor, 4.0f);
+    draw_list->AddRect(leftTopPos, rightBottomPos, nodeBorderColor, 4.0f, 0, nodeBorderThickness);
   }
 
   // draw texts and buttons
@@ -407,16 +612,25 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
     // and calcutale line widths
     dag::Vector<DependencyId, framemem_allocator> explicitDeps;
     dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> carriedResources;
-    IdIndexedMapping<ResNameId, DependencyType, framemem_allocator> resourcesInfos;
+    IdIndexedMapping<ResNameId, DependencyType, framemem_allocator> dependencyTypes;
+    IdIndexedFlags<ResNameId, framemem_allocator> reIsCycled;
     explicitDeps.reserve(edge.carriedDeps.size());
     carriedResources.reserve(edge.carriedDeps.size());
+    dependencyTypes.resize(registry.resources.size());
+    reIsCycled.resize(registry.resources.size(), false);
     for (const auto depId : edge.carriedDeps)
     {
-      const auto &dep = registryDependencies[depId];
-      if (dep.resource == ResNameId::Invalid)
+      const auto &dependency = registryDependencies[depId];
+      if (dependency.resource == ResNameId::Invalid)
+      {
         explicitDeps.push_back(depId);
-      else if (carriedResources.insert(dep.resource).second)
-        resourcesInfos.set(dep.resource, dep.type);
+      }
+      else
+      {
+        carriedResources.insert(dependency.resource);
+        dependencyTypes[dependency.resource] = dependency.type;
+        reIsCycled[dependency.resource] = reIsCycled[dependency.resource] || dependency.cycled;
+      }
     }
 
     const float edgeWidth = RESOURCE_DEP_WIDTH * min(carriedResources.size(), static_cast<uint32_t>(15));
@@ -439,7 +653,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
       float dependencyOffset = (dependencyWidth - edgeWidth) * 0.5f;
       for (const auto resId : carriedResources)
       {
-        const auto depType = resourcesInfos[resId];
+        const auto depType = dependencyTypes[resId];
         const auto &[_, depColor, depVisible] = dependency_info_by_type(depType);
         const bool resourceIsFocused = focusedResource.valid() && focusedResource.id == resId;
 
@@ -459,6 +673,9 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
             addBezierToDrawList(RES_SELECTION_COLOR, RES_SELECTION_WIDTH_FRAC * dependencyWidth);
 
           addBezierToDrawList(depColor, dependencyWidth);
+
+          if (reIsCycled[resId])
+            addBezierToDrawList(CYCLED_DEP_COLOR, CYCLED_DEP_WIDTH_FRAC * dependencyWidth);
         }
 
         // check to perform camera focusing on resource
@@ -484,7 +701,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
 
           for (const auto resId : carriedResources)
           {
-            const auto depType = resourcesInfos[resId];
+            const auto depType = dependencyTypes[resId];
             const auto &[_, depColor, depVisible] = dependency_info_by_type(depType);
             if (
               depVisible && (!focusedResource.valid() || (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
@@ -697,11 +914,14 @@ void Visualizer::updateVisualization()
   layoutReady = false;
 
   updateIRInfo();
-
   updateNameSpaces();
   updateDependencies();
 
+  checkCycles();
+  condenseGraph();
+
   performLayout();
+  performCondensedLayout();
 
   layoutReady = true;
 
@@ -810,18 +1030,11 @@ void Visualizer::updateDependencies()
   TIME_PROFILE(update_dependencies);
 
   registryDependencies.clear();
-  dependenciesLists.clear();
-  dependenciesLists.resize(registry.nodes.size(), {});
-  for (auto list : dependenciesLists)
-    list.reserve(16);
 
+
+  // firstly, we will get all the dependencies, stated in InternalRegistry
   auto addDependency = [&](const NodeNameId from, const NodeNameId to, const DependencyType dep,
-                         const ResNameId res = ResNameId::Invalid) {
-    auto [newDepId, newDep] = registryDependencies.appendNew();
-    dependenciesLists[from].push_back(newDepId);
-    newDep = {dep, from, to, res};
-  };
-
+                         const ResNameId res = ResNameId::Invalid) { registryDependencies.appendNew(Dependency{dep, from, to, res}); };
 
   // filling explicit dependencies
   for (auto [nodeId, nodeData] : registry.nodes.enumerate())
@@ -916,6 +1129,10 @@ void Visualizer::updateDependencies()
     }
     if (!resHasReaders && readSourceValid && resHasConsumer)
       addDependency(readSourceId, consumerId, DependencyType::IMPLICIT_RES_CONSUME, resId);
+
+    if (!resHasConsumer && readSourceValid)
+      for (const auto readerId : lifetime.historyReaders)
+        addDependency(readSourceId, readerId, DependencyType::IMPLICIT_RES_HIST, resId);
   }
 }
 
@@ -946,6 +1163,425 @@ static dag::Vector<NodeIdx> get_reversed_topsort(const AdjacencyLists &graph)
   return res;
 }
 
+void Visualizer::checkCycles()
+{
+  TIME_PROFILE(check_cycled_dependencies);
+
+
+  // here we will perform Kosaraju's algorithm to find all strongly connected components (SCC)
+  const uint32_t nodesCount = registry.nodes.size();
+  constexpr uint32_t NONE = static_cast<uint32_t>(-1);
+  IdIndexedMapping<NodeNameId, uint32_t> nodesSCC(nodesCount, NONE);
+
+  uint32_t currentSCC = 0;
+  {
+    AdjacencyLists graphAdjLists(nodesCount);
+    AdjacencyLists reversedGraphAdjLists(nodesCount);
+    for (const auto &dep : registryDependencies)
+      if (dep.type != DependencyType::IMPLICIT_RES_HIST)
+      {
+        graphAdjLists[NodeIdx(dep.from)].push_back(NodeIdx(dep.to));
+        reversedGraphAdjLists[NodeIdx(dep.to)].push_back(NodeIdx(dep.from));
+      }
+    dag::Vector<NodeIdx> componentOrder = get_reversed_topsort(reversedGraphAdjLists);
+    eastl::reverse(componentOrder.begin(), componentOrder.end());
+
+    dag::Vector<uint32_t, framemem_allocator> visitStack;
+    dag::Vector<uint32_t, framemem_allocator> dfsStack;
+    dag::Vector<uint32_t, framemem_allocator> leftOut;
+
+    visitStack.reserve(nodesCount);
+    dfsStack.reserve(nodesCount);
+    leftOut.reserve(nodesCount);
+
+    for (const auto nodeIndex : componentOrder)
+      if (nodesSCC[NodeNameId(nodeIndex)] == NONE)
+      {
+        visitStack.push_back(nodeIndex);
+        while (!visitStack.empty())
+        {
+          dfsStack.push_back(visitStack.back());
+          leftOut.push_back(0);
+          visitStack.pop_back();
+
+          nodesSCC[NodeNameId(dfsStack.back())] = currentSCC;
+
+          for (const auto toNodeIndex : graphAdjLists[dfsStack.back()])
+            if (nodesSCC[NodeNameId(toNodeIndex)] == NONE)
+            {
+              visitStack.push_back(toNodeIndex);
+              ++leftOut.back();
+            }
+
+          while (!leftOut.empty() && leftOut.back() == 0)
+          {
+            dfsStack.pop_back();
+            leftOut.pop_back();
+            if (!leftOut.empty())
+              --leftOut.back();
+          }
+        }
+        ++currentSCC;
+      }
+  }
+  const uint32_t sccCount = currentSCC;
+
+
+  // if each node is not a separate SCC - then some of them form a cycle
+  nodesCycled.clear();
+  nodesCycled.resize(nodesCount, false);
+  if (sccCount != nodesCount)
+  {
+    // if graph has cycles, we can care less about perf
+    dag::Vector<uint32_t, framemem_allocator> sccSizes(sccCount, 0);
+    for (const auto nodeId : registry.nodes.keys())
+      ++sccSizes[nodesSCC[nodeId]];
+
+    dag::Vector<uint32_t, framemem_allocator> sccWithLoopsIndices;
+    for (uint32_t sccIndex = 0; sccIndex < sccCount; ++sccIndex)
+      if (sccSizes[sccIndex] > 1)
+        sccWithLoopsIndices.push_back(sccIndex);
+
+    dag::Vector<dag::Vector<NodeNameId, framemem_allocator>, framemem_allocator> sccMembers;
+    sccMembers.resize(sccCount, {});
+    for (uint32_t i = sccWithLoopsIndices.size(); i > 0; --i)
+      sccMembers[sccWithLoopsIndices[i - 1]].reserve(sccSizes[sccWithLoopsIndices[i - 1]]);
+    for (const auto nodeId : registry.nodes.keys())
+      if (sccSizes[nodesSCC[nodeId]] > 1)
+        sccMembers[nodesSCC[nodeId]].push_back(nodeId);
+
+    dag::Vector<dag::Vector<DependencyId, framemem_allocator>, framemem_allocator> sccDependencies;
+    sccDependencies.resize(sccCount, {});
+    for (uint32_t i = sccWithLoopsIndices.size(); i > 0; --i)
+    {
+      const uint32_t sccIndex = sccWithLoopsIndices[i - 1];
+      for (auto [depId, dep] : registryDependencies.enumerate())
+        if (nodesSCC[dep.from] == sccIndex && nodesSCC[dep.to] == sccIndex && dep.type != DependencyType::IMPLICIT_RES_HIST)
+          sccDependencies[sccIndex].push_back(depId);
+    }
+
+
+    for (const auto sccIndex : sccWithLoopsIndices)
+    {
+      const auto &sccNodes = sccMembers[sccIndex];
+      const auto &sccDeps = sccDependencies[sccIndex];
+
+      IdIndexedMapping<NodeNameId, uint32_t, framemem_allocator> localIdx(nodesCount, NONE);
+      for (uint32_t i = 0; i < sccNodes.size(); ++i)
+        localIdx[sccNodes[i]] = i;
+
+      // Alert! Vibecoded!
+      // abandon all hope, ye who enter here
+      //
+      // Find minimum feedback arc set (FAS) by finding a node ordering that minimizes
+      // backward edges. FAS = backward edges in the optimal ordering.
+      //
+      // For small SCCs (n <= 20): exact bitmask DP, O(2^n * n).
+      // For larger SCCs: Eades greedy heuristic, O(n^2), roughly 2x optimal.
+      {
+        const uint32_t n = sccNodes.size();
+
+        dag::Vector<uint32_t, framemem_allocator> ordering(n);
+
+        constexpr uint32_t EXACT_THRESHOLD = 20;
+        if (n <= EXACT_THRESHOLD)
+        {
+          // adjMask[u] has bit v set if there is an edge u->v
+          dag::Vector<uint32_t, framemem_allocator> adjMask(n, 0);
+          for (const auto depId : sccDeps)
+          {
+            const auto &dep = registryDependencies[depId];
+            adjMask[localIdx[dep.from]] |= (1u << localIdx[dep.to]);
+          }
+
+          const uint32_t fullMask = (1u << n) - 1;
+          dag::Vector<uint32_t, framemem_allocator> dp(fullMask + 1, UINT32_MAX);
+          dag::Vector<uint8_t, framemem_allocator> lastPlaced(fullMask + 1, 0xFF);
+          dp[0] = 0;
+          for (uint32_t mask = 0; mask < fullMask; ++mask)
+          {
+            if (dp[mask] == UINT32_MAX)
+              continue;
+            for (uint32_t v = 0; v < n; ++v)
+            {
+              if (mask & (1u << v))
+                continue;
+              // edges from v to already-placed nodes become backward edges
+              uint32_t cost = Bitset<32>(adjMask[v] & mask).count();
+              uint32_t newMask = mask | (1u << v);
+              if (dp[mask] + cost < dp[newMask])
+              {
+                dp[newMask] = dp[mask] + cost;
+                lastPlaced[newMask] = static_cast<uint8_t>(v);
+              }
+            }
+          }
+          uint32_t mask = fullMask;
+          for (int pos = static_cast<int>(n) - 1; pos >= 0; --pos)
+          {
+            ordering[pos] = lastPlaced[mask];
+            mask ^= (1u << lastPlaced[mask]);
+          }
+        }
+        else
+        {
+          // adjMatrix[u*n + v] = true if edge u->v exists
+          dag::Vector<bool, framemem_allocator> adjMatrix(n * n, false);
+          for (const auto depId : sccDeps)
+          {
+            const auto &dep = registryDependencies[depId];
+            adjMatrix[localIdx[dep.from] * n + localIdx[dep.to]] = true;
+          }
+
+          dag::Vector<int, framemem_allocator> outDeg(n, 0), inDeg(n, 0);
+          for (uint32_t u = 0; u < n; ++u)
+            for (uint32_t v = 0; v < n; ++v)
+              if (adjMatrix[u * n + v])
+              {
+                ++outDeg[u];
+                ++inDeg[v];
+              }
+
+          dag::Vector<bool, framemem_allocator> removed(n, false);
+          dag::Vector<uint32_t, framemem_allocator> seqLeft, seqRight;
+          seqLeft.reserve(n);
+          seqRight.reserve(n);
+
+          auto removeNode = [&](uint32_t v) {
+            removed[v] = true;
+            for (uint32_t u = 0; u < n; ++u)
+            {
+              if (removed[u])
+                continue;
+              if (adjMatrix[v * n + u])
+                --inDeg[u];
+              if (adjMatrix[u * n + v])
+                --outDeg[u];
+            }
+          };
+
+          int remaining = static_cast<int>(n);
+          while (remaining > 0)
+          {
+            bool progress = true;
+            while (progress)
+            {
+              progress = false;
+              for (uint32_t v = 0; v < n; ++v)
+              {
+                if (removed[v])
+                  continue;
+                if (inDeg[v] == 0)
+                {
+                  seqLeft.push_back(v);
+                  removeNode(v);
+                  --remaining;
+                  progress = true;
+                }
+                else if (outDeg[v] == 0)
+                {
+                  seqRight.push_back(v);
+                  removeNode(v);
+                  --remaining;
+                  progress = true;
+                }
+              }
+            }
+            if (remaining > 0)
+            {
+              uint32_t best = 0;
+              int bestDelta = INT_MIN;
+              for (uint32_t v = 0; v < n; ++v)
+                if (!removed[v] && outDeg[v] - inDeg[v] > bestDelta)
+                {
+                  bestDelta = outDeg[v] - inDeg[v];
+                  best = v;
+                }
+              seqLeft.push_back(best);
+              removeNode(best);
+              --remaining;
+            }
+          }
+          eastl::copy(seqLeft.begin(), seqLeft.end(), ordering.begin());
+          eastl::reverse_copy(seqRight.begin(), seqRight.end(), ordering.begin() + seqLeft.size());
+        }
+
+        // pos[local_idx] = position in ordering
+        dag::Vector<uint32_t, framemem_allocator> pos(n);
+        for (uint32_t i = 0; i < n; ++i)
+          pos[ordering[i]] = i;
+
+        // Disable all deps that go backward in the ordering
+        for (const auto depId : sccDeps)
+        {
+          auto &dep = registryDependencies[depId];
+          if (pos[localIdx[dep.from]] > pos[localIdx[dep.to]])
+            dep.disabled = true;
+        }
+      }
+
+      for (const auto nodeId : sccNodes)
+        nodesCycled[nodeId] = true;
+      for (const auto depId : sccDeps)
+        registryDependencies[depId].cycled = true;
+    }
+  }
+
+
+  // and finally, we make lists of dependencies per node
+  // we won't use disabled dependencies to keep graph acyclic
+  nodesDependencies.clear();
+  nodesDependencies.resize(registry.nodes.size(), {});
+  historyDependencies.clear();
+  disabledDependencies.clear();
+  for (auto [depId, dep] : registryDependencies.enumerate())
+    if (!dep.disabled)
+    {
+      if (dep.type != DependencyType::IMPLICIT_RES_HIST)
+      {
+        nodesDependencies[dep.from].out.push_back(depId);
+        nodesDependencies[dep.to].in.push_back(depId);
+      }
+      else
+      {
+        historyDependencies.push_back(depId);
+      }
+    }
+    else
+    {
+      disabledDependencies.push_back(depId);
+    }
+}
+
+void Visualizer::condenseGraph()
+{
+  TIME_PROFILE(condence_graph_nodes);
+
+  nodeBoxes.clear();
+  nodeBoxDependencies.clear();
+  nodesNodeBox.clear();
+  nodeBoxesNameSpace.clear();
+
+  nodesNodeBox.resize(registry.nodes.size(), NodeBoxId::Invalid);
+  nodeBoxesNameSpace.resize(registry.knownNames.nameCount<NameSpaceNameId>(), NameSpaceNameId::Invalid);
+
+  IdIndexedMapping<NameSpaceNameId, dag::Vector<NodeBoxId, framemem_allocator>, framemem_allocator> nameSpacesNodeBoxes;
+  nameSpacesNodeBoxes.resize(registry.knownNames.nameCount<NameSpaceNameId>(), {});
+  for (auto [nameSpaceId, nameSpaceBoxes] : dag::ReverseView{nameSpacesNodeBoxes.enumerate()})
+    nameSpaceBoxes.reserve(nameSpaces[nameSpaceId].nodes.size());
+
+  {
+    dag::FixedMoveOnlyFunction<24, void(const NameSpaceNameId)> initNSBoxes = [&](const NameSpaceNameId namespace_id) {
+      if (nameSpaces[namespace_id].nodes.size() != 0)
+      {
+        auto [newBoxId, newBox] = nodeBoxes.appendNew();
+        nameSpacesNodeBoxes[namespace_id].push_back(newBoxId);
+      }
+
+      for (const auto subNameSpaceId : nameSpaces[namespace_id].subNameSpaces)
+        initNSBoxes(subNameSpaceId);
+    };
+    initNSBoxes(registry.knownNames.root());
+  }
+
+
+  // algorithm is similar to pass coloration in PassColorer::performSubpassColoring()
+  // but we dont check conflicts, caused by barriers, because we dont have them in user graph
+  {
+    SimdBitMatrix<NodeBoxId, framemem_allocator> boxReachability(registry.nodes.size(), false);
+    dag::Vector<NodeIdx, framemem_allocator> topOrder;
+    {
+      AdjacencyLists graphAdjLists(nodesDependencies.size());
+      for (auto [nodeId, nodeDependencies] : nodesDependencies.enumerate())
+      {
+        const auto nodeIdx = NodeIdx(nodeId);
+        graphAdjLists[nodeIdx].reserve(nodeDependencies.out.size());
+        for (const auto depId : nodeDependencies.out)
+          graphAdjLists[nodeIdx].push_back(NodeIdx(registryDependencies[depId].to));
+      }
+      topOrder = get_reversed_topsort(graphAdjLists);
+      eastl::reverse(topOrder.begin(), topOrder.end());
+    }
+    for (const auto nodeIndex : topOrder)
+    {
+      const auto nodeId = NodeNameId(nodeIndex);
+      const auto namespaceId = registry.knownNames.getParent(nodeId);
+      const auto &nodePredecessors = nodesDependencies[nodeId].in;
+
+      SimdBitVector<NodeBoxId, framemem_allocator> reachableFromCurrent(registry.nodes.size(), false);
+      {
+        dag::VectorSet<NodeBoxId, eastl::less<NodeBoxId>, framemem_allocator> predecessorBoxes;
+        predecessorBoxes.reserve(nodePredecessors.size());
+        for (const auto depId : nodePredecessors)
+          predecessorBoxes.insert(nodesNodeBox[registryDependencies[depId].from]);
+        for (const auto boxId : predecessorBoxes)
+          reachableFromCurrent |= boxReachability.row(boxId);
+      }
+
+      const auto candidateBox =
+        !nameSpacesNodeBoxes[namespaceId].empty() ? nameSpacesNodeBoxes[namespaceId].back() : NodeBoxId::Invalid;
+      if (candidateBox != NodeBoxId::Invalid && !reachableFromCurrent.test(candidateBox))
+      {
+        nodesNodeBox[nodeId] = candidateBox;
+      }
+      else
+      {
+        auto [newBoxId, newBox] = nodeBoxes.appendNew();
+        nameSpacesNodeBoxes[namespaceId].push_back(newBoxId);
+        nodesNodeBox[nodeId] = newBoxId;
+      }
+
+      for (const auto depId : nodePredecessors)
+        if (nodesNodeBox[registryDependencies[depId].from] != nodesNodeBox[nodeId])
+          reachableFromCurrent.set(nodesNodeBox[registryDependencies[depId].from], true);
+      boxReachability.row(nodesNodeBox[nodeId]) |= reachableFromCurrent;
+    }
+  }
+
+  // now, when we separated all nodes by boxes, we can fill boxes witn its nodes
+  // and unite node dependencies into node box dependencies
+  {
+    nodeBoxesNameSpace.clear();
+    nodeBoxesNameSpace.resize(nodeBoxes.size());
+    for (auto [nameSpaceId, nameSpaceBoxes] : nameSpacesNodeBoxes.enumerate())
+      for (const auto boxId : nameSpaceBoxes)
+        nodeBoxesNameSpace[boxId] = nameSpaceId;
+
+    for (const auto nodeId : registry.nodes.keys())
+      nodeBoxes[nodesNodeBox[nodeId]].nodes.push_back(nodeId);
+
+    IdIndexedMapping<NodeBoxId, IdIndexedMapping<NodeBoxId, NodeBoxDependencyId, framemem_allocator>, framemem_allocator> boxDepMap;
+    boxDepMap.resize(nodeBoxes.size(), {});
+    for (auto &row : dag::ReverseView{boxDepMap})
+      row.resize(nodeBoxes.size(), NodeBoxDependencyId::Invalid);
+
+    for (auto [depId, dep] : registryDependencies.enumerate())
+    {
+      const auto fromNodeBoxId = nodesNodeBox[dep.from];
+      const auto toNodeBoxId = nodesNodeBox[dep.to];
+      if (fromNodeBoxId != toNodeBoxId)
+      {
+        NodeBoxDependencyId targetDependency = boxDepMap[fromNodeBoxId][toNodeBoxId];
+        if (targetDependency == NodeBoxDependencyId::Invalid)
+        {
+          auto [newBoxDepId, newBoxDep] = nodeBoxDependencies.appendNew();
+          boxDepMap[fromNodeBoxId][toNodeBoxId] = newBoxDepId;
+          targetDependency = newBoxDepId;
+          newBoxDep.from = fromNodeBoxId;
+          newBoxDep.to = toNodeBoxId;
+        }
+        nodeBoxDependencies[targetDependency].carriedDeps.push_back(depId);
+      }
+    }
+
+    for (auto [boxDepId, boxDep] : nodeBoxDependencies.enumerate())
+    {
+      nodeBoxes[boxDep.from].outDeps.push_back(boxDepId);
+      nodeBoxes[boxDep.to].inDeps.push_back(boxDepId);
+    }
+  }
+}
+
 void Visualizer::performLayout()
 {
   TIME_PROFILE(generate_layout);
@@ -953,16 +1589,16 @@ void Visualizer::performLayout()
   wholeGraphLayout = {};
 
 
-  const uint32_t userNodesCount = dependenciesLists.size();
+  const uint32_t userNodesCount = nodesDependencies.size();
   if (userNodesCount > 0)
   {
     // we generate adjacency lists of graph and layout it
     AdjacencyLists graphAdjLists(userNodesCount);
-    for (auto [nodeId, nodeDependencies] : dependenciesLists.enumerate())
+    for (auto [nodeId, nodeDependencies] : nodesDependencies.enumerate())
     {
       const auto nodeIdx = NodeIdx(nodeId);
-      graphAdjLists[nodeIdx].reserve(nodeDependencies.size());
-      for (const auto depId : nodeDependencies)
+      graphAdjLists[nodeIdx].reserve(nodeDependencies.out.size());
+      for (const auto depId : nodeDependencies.out)
         graphAdjLists[nodeIdx].push_back(NodeIdx(registryDependencies[depId].to));
     }
     auto layout = layouter->layout(graphAdjLists, get_reversed_topsort(graphAdjLists), true);
@@ -988,18 +1624,178 @@ void Visualizer::performLayout()
         const auto [depSourceNodeIdx, depsIndicies] = layout.edgeMapping[curNodeIdx][curEdgeIdx];
         newEdge.carriedDeps.reserve(depsIndicies.size());
         for (uint32_t curDepInx : depsIndicies)
-          newEdge.carriedDeps.push_back(dependenciesLists[NodeNameId(depSourceNodeIdx)][curDepInx]);
+          newEdge.carriedDeps.push_back(nodesDependencies[NodeNameId(depSourceNodeIdx)].out[curDepInx]);
       }
     }
     wholeGraphLayout.edgesCount = wholeGraphLayout.edges.size();
   }
 
 
-  dag::Vector<NodeNameId, framemem_allocator> userNodeIds(dependenciesLists.keys().begin(), dependenciesLists.keys().end());
-  calculatePositions(wholeGraphLayout, userNodeIds);
+  dag::Vector<NodeNameId, framemem_allocator> userNodeIds(nodesDependencies.keys().begin(), nodesDependencies.keys().end());
+  calculatePositions(wholeGraphLayout, userNodeIds, {}, false);
 }
 
-void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes)
+void Visualizer::performBoxLayout(const NodeBox &node_box, Layout &node_box_layout)
+{
+  const uint32_t userNodesCount = node_box.nodes.size();
+  if (userNodesCount > 0)
+  {
+    const uint32_t sourceIndex = userNodesCount + 0;
+    const uint32_t sinkIndex = userNodesCount + 1;
+
+    dag::Vector<DependencyId, framemem_allocator> inDeps;
+    for (const auto boxDepId : node_box.inDeps)
+      for (const auto depId : nodeBoxDependencies[boxDepId].carriedDeps)
+        inDeps.push_back(depId);
+
+
+    AdjacencyLists boxAdjLists(userNodesCount + 2);
+    for (uint32_t nodeIndex = 0; nodeIndex < userNodesCount; ++nodeIndex)
+    {
+      const auto nodeId = node_box.nodes[nodeIndex];
+      boxAdjLists[nodeIndex].reserve(nodesDependencies[nodeId].out.size());
+      for (const auto depId : nodesDependencies[nodeId].out)
+        if (nodesNodeBox[nodeId] == nodesNodeBox[registryDependencies[depId].to])
+        {
+          for (uint32_t anotherNodeIndex = 0; anotherNodeIndex < userNodesCount; ++anotherNodeIndex)
+            if (node_box.nodes[anotherNodeIndex] == registryDependencies[depId].to)
+            {
+              boxAdjLists[nodeIndex].push_back(anotherNodeIndex);
+              break;
+            }
+        }
+        else
+        {
+          boxAdjLists[nodeIndex].push_back(sinkIndex);
+        }
+    }
+    {
+      boxAdjLists[sourceIndex].reserve(inDeps.size());
+      for (const auto depId : inDeps)
+        for (uint32_t nodeIndex = 0; nodeIndex < userNodesCount; ++nodeIndex)
+          if (node_box.nodes[nodeIndex] == registryDependencies[depId].to)
+          {
+            boxAdjLists[sourceIndex].push_back(nodeIndex);
+            break;
+          }
+    }
+    auto layout = layouter->layout(boxAdjLists, get_reversed_topsort(boxAdjLists), true);
+
+
+    node_box_layout = {
+      .objectsCount = layout.adjacencyList.size(),
+      .edgesCount = 0,
+      .objectsRanks = eastl::move(layout.nodeLayout),
+      .edges = {},
+    };
+
+    node_box_layout.edges.reserve(node_box_layout.objectsCount);
+    for (uint32_t objectIndex = 0; objectIndex < node_box_layout.objectsCount; ++objectIndex)
+    {
+      for (uint32_t edgeIndex = 0; edgeIndex < layout.adjacencyList[objectIndex].size(); ++edgeIndex)
+      {
+        Edge &newEdge = node_box_layout.edges.emplace_back();
+        newEdge.from = objectIndex;
+        newEdge.to = layout.adjacencyList[objectIndex][edgeIndex];
+
+        const auto [depSourceObjectIdx, depsIndicies] = layout.edgeMapping[objectIndex][edgeIndex];
+        newEdge.carriedDeps.reserve(depsIndicies.size());
+
+        if (depSourceObjectIdx == sourceIndex)
+        {
+          for (const auto depIndex : depsIndicies)
+            newEdge.carriedDeps.push_back(inDeps[depIndex]);
+        }
+        else
+        {
+          const auto &sourceNodeOutDeps = nodesDependencies[node_box.nodes[depSourceObjectIdx]].out;
+          for (const auto depIndex : depsIndicies)
+            newEdge.carriedDeps.push_back(sourceNodeOutDeps[depIndex]);
+        }
+      }
+    }
+    node_box_layout.edgesCount = node_box_layout.edges.size();
+  }
+}
+
+void Visualizer::performCondensedLayout()
+{
+  TIME_PROFILE(generate_hierarchical_layout);
+
+  nodeBoxesLayouts.clear();
+  nodeBoxesLayouts.resize(nodeBoxes.size(), {});
+
+
+  for (auto [nodeBoxId, nodeBox] : nodeBoxes.enumerate())
+  {
+    auto &nodeBoxLayout = nodeBoxesLayouts[nodeBoxId];
+    performBoxLayout(nodeBox, nodeBoxLayout);
+
+    dag::Vector<NodeNameId, framemem_allocator> boxNodeIds(nodeBox.nodes.begin(), nodeBox.nodes.end());
+    calculatePositions(nodeBoxLayout, boxNodeIds, {}, true);
+  }
+
+
+  // after all boxes are layouted, we consider each box as node and layout them all together
+  {
+    condensedLayout = {};
+
+
+    AdjacencyLists condencedAdjLists(nodeBoxes.size());
+    for (auto [boxId, nodeBox] : nodeBoxes.enumerate())
+    {
+      const auto boxIndex = NodeIdx(boxId);
+      condencedAdjLists[boxIndex].reserve(nodeBox.outDeps.size());
+      for (const auto boxDepId : nodeBox.outDeps)
+        condencedAdjLists[boxIndex].push_back(NodeIdx(nodeBoxDependencies[boxDepId].to));
+    }
+    auto layout = layouter->layout(condencedAdjLists, get_reversed_topsort(condencedAdjLists), true);
+
+
+    // after layouting, we collect nodes ranks and generated edges
+    condensedLayout = {
+      .objectsCount = layout.adjacencyList.size(),
+      .edgesCount = 0,
+      .objectsRanks = eastl::move(layout.nodeLayout),
+      .edges = {},
+    };
+
+    condensedLayout.edges.reserve(condensedLayout.objectsCount);
+    for (uint32_t curNodeIdx = 0; curNodeIdx < condensedLayout.objectsCount; ++curNodeIdx)
+    {
+      for (uint32_t curEdgeIdx = 0; curEdgeIdx < layout.adjacencyList[curNodeIdx].size(); ++curEdgeIdx)
+      {
+        Edge &newEdge = condensedLayout.edges.emplace_back();
+        newEdge.from = curNodeIdx;
+        newEdge.to = layout.adjacencyList[curNodeIdx][curEdgeIdx];
+
+        const auto [depSourceNodeIdx, depsIndicies] = layout.edgeMapping[curNodeIdx][curEdgeIdx];
+
+        uint32_t depsCount = 0;
+        for (uint32_t curDepInx : depsIndicies)
+        {
+          const auto boxDepId = nodeBoxes[NodeBoxId(depSourceNodeIdx)].outDeps[curDepInx];
+          depsCount += nodeBoxDependencies[boxDepId].carriedDeps.size();
+        }
+        newEdge.carriedDeps.reserve(depsCount);
+        for (uint32_t curDepInx : depsIndicies)
+        {
+          const auto boxDepId = nodeBoxes[NodeBoxId(depSourceNodeIdx)].outDeps[curDepInx];
+          for (const auto dependency : nodeBoxDependencies[boxDepId].carriedDeps)
+            newEdge.carriedDeps.push_back(dependency);
+        }
+      }
+    }
+    condensedLayout.edgesCount = condensedLayout.edges.size();
+
+
+    dag::Vector<NodeBoxId, framemem_allocator> boxIds(nodeBoxes.keys().begin(), nodeBoxes.keys().end());
+    calculatePositions(condensedLayout, {}, boxIds, false);
+  }
+}
+
+void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
+  const bool has_io)
 {
   TIME_PROFILE(calculate_positions);
 
@@ -1015,10 +1811,14 @@ void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId
   }
 
   const uint32_t userNodesCount = user_nodes.size();
-  const uint32_t fakeNodesCount = objectsCount - userNodesCount;
+  const uint32_t nodeBoxesCount = node_boxes.size();
+  const uint32_t serviceNodesCount = has_io ? 2 : 0;
+  const uint32_t fakeNodesCount = objectsCount - (userNodesCount + nodeBoxesCount + serviceNodesCount);
 
   const uint32_t userNodesIndexOffset = 0;
-  const uint32_t fakeNodesIndexOffset = userNodesIndexOffset + userNodesCount;
+  const uint32_t nodeBoxesIndexOffset = userNodesIndexOffset + userNodesCount;
+  const uint32_t serviceNodesIndexOffset = nodeBoxesIndexOffset + nodeBoxesCount;
+  const uint32_t fakeNodesIndexOffset = serviceNodesIndexOffset + serviceNodesCount;
 
   // for every column we need its size
   // and mapping "object -> column size"
@@ -1035,6 +1835,8 @@ void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId
 
     for (uint32_t userNodeIndex = 0; userNodeIndex < userNodesCount; ++userNodeIndex)
       objectsSizes[userNodesIndexOffset + userNodeIndex] = {NODE_X_SIZE, NODE_Y_SIZE};
+    for (uint32_t nodeBoxIndex = 0; nodeBoxIndex < nodeBoxesCount; ++nodeBoxIndex)
+      objectsSizes[nodeBoxesIndexOffset + nodeBoxIndex] = nodeBoxesLayouts[node_boxes[nodeBoxIndex]].size;
     for (uint32_t fakeNodeIndex = 0; fakeNodeIndex < fakeNodesCount; ++fakeNodeIndex)
       objectsSizes[fakeNodesIndexOffset + fakeNodeIndex] = {0.f, FAKE_NODE_Y_SIZE};
 
@@ -1206,6 +2008,12 @@ void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId
 
       for (uint32_t objectIndex = 0; objectIndex < objectsCount; ++objectIndex)
         objectsOffsets[objectIndex] += NAMESPACE_BORDER_PADDING - leftTop;
+
+      if (has_io)
+      {
+        objectsOffsets[serviceNodesIndexOffset + 0] = ImVec2{0.f, layoutSize.y / 2.f};
+        objectsOffsets[serviceNodesIndexOffset + 1] = ImVec2{layoutSize.x, layoutSize.y / 2.f};
+      }
     }
   }
 

@@ -10,7 +10,6 @@
 #include <3d/dag_resPtr.h>
 #include <3d/dag_lockTexture.h>
 #include <shaders/dag_postFxRenderer.h>
-#include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <math/dag_hlsl_floatx.h>
 #include <fftWater/flow_map_inc.hlsli>
@@ -255,7 +254,7 @@ struct WaterHeightmap
   WaterHeightmap &operator=(WaterHeightmap &&) = default;
   WaterHeightmap &operator=(const WaterHeightmap &) = delete;
 
-  void getHeightmapDataBilinear(float x, float z, float &result) const;
+  bool getHeightmapDataBilinear(float x, float z, float &result) const;
   bool isFlat(int x, int z) const;
 
   size_t calcDumpSize() const;

@@ -5,9 +5,11 @@
 #include <perfMon/dag_graphStat.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <perfMon/dag_perfTimer.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_spinlock.h>
+#include <generic/dag_relocatableFixedVector.h>
 
 #include <cstdio>
 
@@ -36,6 +38,25 @@ struct QueriesStorage
 };
 
 static eastl::unique_ptr<QueriesStorage> gpuStorage;
+
+enum
+{
+  PS_MAX_QUERIES_SHIFT = 15,
+  PS_MAX_QUERIES = 1 << PS_MAX_QUERIES_SHIFT
+};
+struct PipelineStatsStorage
+{
+  void *queries[PS_MAX_QUERIES]{0};
+  uint64_t *queryResults[PS_MAX_QUERIES]{0};
+  uint32_t queryStart{0};
+  uint32_t queryEnd{0};
+  dag::RelocatableFixedVector<uint32_t, 32> activeStack;
+};
+
+static eastl::unique_ptr<PipelineStatsStorage> psStorage;
+
+inline bool pipelineStatsSupported() { return psStorage != nullptr; };
+
 bool init()
 {
   if (initialized)
@@ -59,6 +80,26 @@ bool init()
     gpuStorage->queryResults[i] = &gpuStorage->queryResultsInternal[i];
   }
   d3d::driver_command(Drv3dCommand::TIMESTAMPISSUE, &gpuStorage->syncQuery);
+
+  // Try to initialize pipeline statistics queries
+  if (d3d::get_driver_desc().caps.hasPipelineStatisticsQuery)
+  {
+    psStorage = eastl::make_unique<PipelineStatsStorage>();
+    for (uint32_t i = 0; i < PS_MAX_QUERIES; i++)
+    {
+      d3d::driver_command(Drv3dCommand::PIPELINE_STATS_CREATE_QUERY, &psStorage->queries[i]);
+      if (!psStorage->queries[i])
+      {
+        logerr("Failed to create pipeline stats query, using CPU triangle counting instead");
+        for (uint32_t j = 0; j < i; j++)
+          d3d::driver_command(Drv3dCommand::PIPELINE_STATS_RELEASE_QUERY, &psStorage->queries[j]);
+
+        psStorage.reset();
+        break;
+      }
+    }
+  }
+
   return true;
 }
 
@@ -89,6 +130,16 @@ void shutdown()
   }
   d3d::driver_command(Drv3dCommand::RELEASE_QUERY, &gpuStorage->syncQuery);
   gpuStorage.reset();
+
+  if (pipelineStatsSupported())
+  {
+    for (uint32_t i = 0; i < PS_MAX_QUERIES; ++i)
+    {
+      d3d::driver_command(Drv3dCommand::PIPELINE_STATS_RELEASE_QUERY, &psStorage->queries[i]);
+    }
+    psStorage.reset();
+  }
+
   initialized = false;
 }
 
@@ -178,12 +229,74 @@ static void finish_queries_internal()
 
   gpuStorage->queryStart += processed;
 }
+
+static void finish_pipeline_stats_internal()
+{
+  if (!pipelineStatsSupported())
+    return;
+
+  const uint32_t modQid = psStorage->queryEnd % PS_MAX_QUERIES;
+  uint32_t id = psStorage->queryStart % PS_MAX_QUERIES;
+  uint32_t processed = 0;
+
+  for (; id != modQid; id = (id + 1) % PS_MAX_QUERIES, ++processed)
+  {
+    uint64_t result = 0;
+    if (!d3d::driver_command(Drv3dCommand::PIPELINE_STATS_RASTERIZED_PRIMITIVES, psStorage->queries[id], &result))
+      break;
+    if (psStorage->queryResults[id])
+      *psStorage->queryResults[id] = result;
+  }
+
+  psStorage->queryStart += processed;
+}
+
 void finish_queries()
 {
   if (!is_on())
     return;
   finish_queries_internal();
+  finish_pipeline_stats_internal();
 }
+
+void begin_gpu_stats()
+{
+  if (!pipelineStatsSupported())
+    return;
+
+  const uint32_t end = psStorage->queryEnd;
+  const uint32_t start = psStorage->queryStart;
+
+  if (end - start == PS_MAX_QUERIES)
+  {
+    psStorage->activeStack.push_back(~0u);
+    return;
+  }
+
+  const uint32_t index = end % PS_MAX_QUERIES;
+  psStorage->queryEnd++;
+
+  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_BEGIN, &psStorage->queries[index]);
+
+  psStorage->activeStack.push_back(index);
+}
+
+void end_gpu_stats(uint64_t *result)
+{
+  if (!pipelineStatsSupported())
+    return;
+
+  G_ASSERT_RETURN(!psStorage->activeStack.empty(), );
+
+  const uint32_t index = psStorage->activeStack.back();
+  psStorage->activeStack.pop_back();
+  if (index == ~0u)
+    return;
+
+  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_END, psStorage->queries[index]);
+  psStorage->queryResults[index] = result;
+}
+
 uint32_t flip(uint64_t *gpu_start)
 {
   if (!is_on())
@@ -194,6 +307,7 @@ uint32_t flip(uint64_t *gpu_start)
     return gpu_start ? insert_time_stamp(gpu_start) : insert_time_stamp(); // another spinlock is inside insert_time_stamp
   }();
   finish_queries_internal();
+  finish_pipeline_stats_internal();
 
   bool disjoint = false;
   d3d::driver_command(Drv3dCommand::TIMESTAMPFREQ, &gpuStorage->gpuFreq, &disjoint);

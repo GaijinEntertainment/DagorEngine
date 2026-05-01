@@ -246,8 +246,16 @@ macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
       float windEffectPrev = windEffect * noiseEffectPrev * fSpeedPrev / MAX_WIND_SPEED;
       windEffect *= noiseEffect * fSpeed / MAX_WIND_SPEED;
 
-      float3 windDelta = windEffect * normalize(directional_data.xyz);
-      float3 windDeltaPrev = windEffectPrev * normalize(directional_data.xyz);
+      float3 clothDir = normalize(directional_data.xyz);
+      // Blend displacement direction toward actual wind at high speeds (e.g. explosions).
+      // Below MAX_WIND_SPEED the baked vertex direction is used
+      float windDirBlend = saturate((fSpeed - MAX_WIND_SPEED) / (MAX_WIND_SPEED * 3));
+      float3 displacementDir = normalize(lerp(clothDir, wind, windDirBlend));
+      float windDirBlendPrev = saturate((fSpeedPrev - MAX_WIND_SPEED) / (MAX_WIND_SPEED * 3));
+      float3 displacementDirPrev = normalize(lerp(clothDir, windPrev, windDirBlendPrev));
+
+      float3 windDelta = windEffect * displacementDir;
+      float3 windDeltaPrev = windEffectPrev * displacementDirPrev;
 
       output_pos += mul(float4(windDelta.xyz, 0), viewProjTm);
       output_pos_prev += mul(float4(windDeltaPrev.xyz, 0), viewProjTm);

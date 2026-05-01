@@ -26,8 +26,6 @@ float water_roughness_base = 0.0;
 float4 water_cascades_lod_resolution0123 = float4(0.0, 0.0, 0.0, 0.0);
 float4 water_cascades_lod_resolution4567 = float4(0.0, 0.0, 0.0, 0.0);
 
-float4 details_weight = (50.0, 200.0, 5000.0, 6000.0);
-
 texture water_displacement_texture0;
 texture water_displacement_texture1;
 texture water_displacement_texture2;
@@ -296,7 +294,6 @@ macro INIT_WATER_GRADIENTS_CONSTS(stage)
     cascadesTexelScale0123@f4 = cascadesTexelScale0123;
     cascadesTexelScale4567@f4 = cascadesTexelScale4567;
     foam_hats_scale@f4 = foam_hats_scale;
-    details_weight@f4 = (1.0 / (details_weight.y - details_weight.x), -details_weight.x / (details_weight.y - details_weight.x), 1.0 / (details_weight.w - details_weight.z), -details_weight.z / (details_weight.w - details_weight.z));
     water_grad_mul_to_four@f4 = water_grad_mul_to_four;
     water_fold_mul_to_four@f4 = water_fold_mul_to_four;
     perlin_cascade_factors1@f4 = perlin_cascade_factors1;

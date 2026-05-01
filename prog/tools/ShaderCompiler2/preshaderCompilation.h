@@ -141,6 +141,8 @@ struct CompiledPreshader
   Tab<String> dynamicSamplerImplicitVars;
   Tab<int> usedMaterialVarIds;
 
+  Tab<ShaderVarTextureType> shadervarTexTypes;
+
   int stblkcodeNo = -1;
   int stcodeNo = -1;
   int cppStblkcodeId = -1;

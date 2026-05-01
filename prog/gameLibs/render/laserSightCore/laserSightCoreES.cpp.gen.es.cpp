@@ -167,9 +167,10 @@ static constexpr ecs::ComponentDesc disable_laser_es_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("laserBeamTracerId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("laserDecalId"), ecs::ComponentTypeInfo<int>()},
-//start of 2 ro components at [2]
+//start of 3 ro components at [2]
   {ECS_HASH("laserActive"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("laserAvailable"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("laserAvailable"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("laserVisible"), ecs::ComponentTypeInfo<bool>()}
 };
 static void disable_laser_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -178,6 +179,7 @@ static void disable_laser_es_all_events(const ecs::Event &__restrict evt, const 
         , components.manager()
     , ECS_RO_COMP(disable_laser_es_comps, "laserActive", bool)
     , ECS_RO_COMP(disable_laser_es_comps, "laserAvailable", bool)
+    , ECS_RO_COMP(disable_laser_es_comps, "laserVisible", bool)
     , ECS_RW_COMP(disable_laser_es_comps, "laserBeamTracerId", int)
     , ECS_RW_COMP(disable_laser_es_comps, "laserDecalId", int)
     );
@@ -189,18 +191,18 @@ static ecs::EntitySystemDesc disable_laser_es_es_desc
   "prog/gameLibs/render/laserSightCore/laserSightCoreES.cpp.inl",
   ecs::EntitySystemOps(nullptr, disable_laser_es_all_events),
   make_span(disable_laser_es_comps+0, 2)/*rw*/,
-  make_span(disable_laser_es_comps+2, 2)/*ro*/,
+  make_span(disable_laser_es_comps+2, 3)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   0
-,"render","laserActive,laserAvailable");
+,"render","laserActive,laserAvailable,laserVisible");
 static constexpr ecs::ComponentDesc update_lasers_es_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("laserBeamTracerId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("laserDecalId"), ecs::ComponentTypeInfo<int>()},
-//start of 17 ro components at [2]
+//start of 18 ro components at [2]
   {ECS_HASH("laserBeamColor"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laserBeamMaxLength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("laserStartSize"), ecs::ComponentTypeInfo<float>()},
@@ -209,6 +211,7 @@ static constexpr ecs::ComponentDesc update_lasers_es_comps[] =
   {ECS_HASH("laserScrollingSpeed"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("laserActive"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("laserAvailable"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("laserVisible"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("laser_data__rayHit"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laser_data__fxPos"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laser_data__fxDir"), ecs::ComponentTypeInfo<Point3>()},
@@ -235,6 +238,7 @@ static void update_lasers_es_all_events(const ecs::Event &__restrict evt, const 
     , ECS_RO_COMP(update_lasers_es_comps, "laserScrollingSpeed", float)
     , ECS_RO_COMP(update_lasers_es_comps, "laserActive", bool)
     , ECS_RO_COMP(update_lasers_es_comps, "laserAvailable", bool)
+    , ECS_RO_COMP(update_lasers_es_comps, "laserVisible", bool)
     , ECS_RO_COMP(update_lasers_es_comps, "laser_data__rayHit", Point3)
     , ECS_RO_COMP(update_lasers_es_comps, "laser_data__fxPos", Point3)
     , ECS_RO_COMP(update_lasers_es_comps, "laser_data__fxDir", Point3)
@@ -253,7 +257,7 @@ static ecs::EntitySystemDesc update_lasers_es_es_desc
   "prog/gameLibs/render/laserSightCore/laserSightCoreES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_lasers_es_all_events),
   make_span(update_lasers_es_comps+0, 2)/*rw*/,
-  make_span(update_lasers_es_comps+2, 17)/*ro*/,
+  make_span(update_lasers_es_comps+2, 18)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
@@ -289,9 +293,10 @@ inline void get_laser_manager_ecs_query(ecs::EntityManager &manager, Callable fu
 }
 static constexpr ecs::ComponentDesc gather_laser_spots_ecs_query_comps[] =
 {
-//start of 7 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("laserActive"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("laserAvailable"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("laserVisible"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("laser_data__fxPos"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laser_data__fxDir"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laser_data__intesity"), ecs::ComponentTypeInfo<float>()},
@@ -302,7 +307,7 @@ static ecs::CompileTimeQueryDesc gather_laser_spots_ecs_query_desc
 (
   "gather_laser_spots_ecs_query",
   empty_span(),
-  make_span(gather_laser_spots_ecs_query_comps+0, 7)/*ro*/,
+  make_span(gather_laser_spots_ecs_query_comps+0, 8)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -316,6 +321,7 @@ inline void gather_laser_spots_ecs_query(ecs::EntityManager &manager, Callable f
           function(
               ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laserActive", bool)
             , ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laserAvailable", bool)
+            , ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laserVisible", bool)
             , ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laser_data__fxPos", Point3)
             , ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laser_data__fxDir", Point3)
             , ECS_RO_COMP(gather_laser_spots_ecs_query_comps, "laser_data__intesity", float)

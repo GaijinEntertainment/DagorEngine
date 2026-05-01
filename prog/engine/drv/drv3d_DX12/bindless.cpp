@@ -177,7 +177,7 @@ void frontend::BindlessManager::reportBindlessSlotsInfoNoLock()
         auto info = state.resourceSlotInfo[inspectIndex].getIf<BufferSlotUsage>();
         if (!info)
         {
-          logerr("DX12: Bindless slot %u was expected to be of buffer type, but cast yielded nullptr", inspectIndex);
+          D3D_ERROR("DX12: Bindless slot %u was expected to be of buffer type, but cast yielded nullptr", inspectIndex);
         }
         else
         {
@@ -193,7 +193,7 @@ void frontend::BindlessManager::reportBindlessSlotsInfoNoLock()
         auto info = state.resourceSlotInfo[inspectIndex].getIf<TextureSlotUsage>();
         if (!info)
         {
-          logerr("DX12: Bindless slot %u was expected to be of texture type, but cast yielded nullptr", inspectIndex);
+          D3D_ERROR("DX12: Bindless slot %u was expected to be of texture type, but cast yielded nullptr", inspectIndex);
         }
         else
         {

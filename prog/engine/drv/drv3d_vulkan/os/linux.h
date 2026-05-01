@@ -18,6 +18,7 @@ struct WindowState
   bool ownsWindow = false;
   int currentResolutionX = 0;
   int currentResolutionY = 0;
+  int windowMode = -1;
 
   struct Settings
   {

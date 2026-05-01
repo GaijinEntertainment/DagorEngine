@@ -755,7 +755,14 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
         }
       }
-      compile("target_ps", "simple_ps");
+      if (is_triangle_size_debug)
+      {
+        RI_TRIANGLE_SIZE_DEBUG_PS()
+      }
+      else
+      {
+        compile("target_ps", "simple_ps");
+      }
     } else
     {
       compile("ps_null", "rendinst_render_depth_black_ps");

@@ -444,8 +444,6 @@ GamePackage load_game_package()
 
   app_profile::apply_settings_blk(gameInfo.gameSettings);
 
-  String consoleBindsFn(0, "console_binds.blk");
-  console_keybindings::set_binds_file_path(consoleBindsFn);
   console_keybindings::load_binds_from_file();
 
   bool useAddonVromSrc = false;

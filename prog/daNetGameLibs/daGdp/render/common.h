@@ -181,7 +181,7 @@ ECS_BROADCAST_EVENT_TYPE(EventInitialize);
 ECS_BROADCAST_EVENT_TYPE(EventRecreateViews, const GlobalConfig *, ViewInserter);
 ECS_BROADCAST_EVENT_TYPE(EventInvalidateViews);
 ECS_BROADCAST_EVENT_TYPE(EventViewProcess, const RulesBuilder &, const ViewInfo &, ViewBuilder *);
-ECS_BROADCAST_EVENT_TYPE(EventViewFinalize, const ViewInfo &, const ViewBuilder &, NodeInserter, const RulesBuilder &);
+ECS_BROADCAST_EVENT_TYPE(EventViewFinalize, const ViewInfo &, const ViewBuilder &, NodeInserter, const RulesBuilder &, bool);
 ECS_BROADCAST_EVENT_TYPE(EventFinalize, NodeInserter);
 
 void set_global_range_scale(float scale);

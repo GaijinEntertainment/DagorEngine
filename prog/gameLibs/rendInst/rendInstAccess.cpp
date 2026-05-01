@@ -241,46 +241,6 @@ static inline TMatrix getRIGenMatrixImpl(const rendinst::RendInstDesc &desc)
 TMatrix rendinst::getRIGenMatrix(const RendInstDesc &desc) { return getRIGenMatrixImpl(desc); }
 TMatrix rendinst::getRIGenMatrixNoLock(const RendInstDesc &desc) { return getRIGenMatrixImpl</*bLock*/ false>(desc); }
 
-TMatrix rendinst::getRIGenMatrixDestr(const RendInstDesc &desc)
-{
-  if (desc.isRiExtra())
-  {
-    rendinst::ccExtra.lockRead();
-    int idx = desc.cellIdx == -1 ? desc.idx : -1;
-    for (int i = 0; i < riExtra[desc.pool].riUniqueData.size(); ++i)
-    {
-      if (riExtra[desc.pool].riUniqueData[i].cellId != -(desc.cellIdx + 1) || riExtra[desc.pool].riUniqueData[i].offset != desc.offs)
-        continue;
-      idx = i;
-      break;
-    }
-    if (idx >= 0)
-    {
-      TMatrix tm;
-      mat44f tm44;
-      v_mat43_transpose_to_mat44(tm44, riExtra[desc.pool].riTm[idx]);
-      v_mat_43cu_from_mat44(tm.m[0], tm44);
-      rendinst::ccExtra.unlockRead();
-      return tm;
-    }
-    rendinst::ccExtra.unlockRead();
-    return TMatrix::IDENT;
-  }
-
-  ScopedLockRead lock(rendinst::rgLayer[desc.layer]->rtData->riRwCs);
-
-  TMatrix tm;
-  RendInstGenData::Cell *cell = nullptr;
-  int16_t *data = riutil::get_data_by_desc_no_subcell(desc, cell);
-  if (data)
-    tm = get_ri_matrix_from_data(desc, cell, data);
-  else
-    tm = TMatrix::IDENT;
-
-  return tm;
-}
-
-
 const char *rendinst::getRIGenResName(const RendInstDesc &desc)
 {
   if (desc.isRiExtra())
@@ -493,6 +453,37 @@ int rendinst::find_restorable_data_index(const RendInstDesc &desc)
       return r;
 
   return -1;
+}
+
+bool rendinst::resolve_rigen_desc_subcell(RendInstDesc &desc)
+{
+  G_ASSERT_RETURN(!desc.isRiExtra(), true);
+
+  RendInstGenData *rgl = getRgLayer(desc.layer);
+  if (!rgl || !rgl->rtData)
+    return false;
+
+  ScopedLockRead lock(rgl->rtData->riRwCs);
+
+  RendInstGenData::CellRtData *pcrt = riutil::get_cell_rtdata_by_desc(desc);
+  if (!pcrt || pcrt->scsRemap.empty())
+    return false;
+
+  const RendInstGenData::CellRtData::SubCellSlice &firstScs = pcrt->getCellSlice(desc.pool, 0);
+  const uint32_t target = firstScs.ofs + desc.offs;
+
+  constexpr int totalSubcells = RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV;
+  for (int sc = 0; sc < totalSubcells; ++sc)
+  {
+    const RendInstGenData::CellRtData::SubCellSlice &scs = pcrt->getCellSlice(desc.pool, sc);
+    if (scs.sz && target >= scs.ofs && target < scs.ofs + scs.sz)
+    {
+      desc.idx = sc;
+      desc.offs = target - scs.ofs;
+      return true;
+    }
+  }
+  return false;
 }
 
 RenderableInstanceLodsResource *rendinst::getRIGenRes(RendInstGenData *rgl, const RendInstDesc &desc)

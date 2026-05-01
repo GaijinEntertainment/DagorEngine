@@ -312,9 +312,9 @@ class DagExporter(Operator, ExportHelper):
                 broken_properties.append(DP[key])
                 continue
             if key=='renderable:b':
-                node.objFlg -= DAG_NF_RENDERABLE*int(DP[key]=='no')
+                node.objFlg -= DAG_NF_RENDERABLE*int(not DP[key])
             elif key=='cast_shadows:b':
-                node.objFlg -= DAG_NF_CASTSHADOW*int(DP[key]=='no')
+                node.objFlg -= DAG_NF_CASTSHADOW*int(not DP[key])
             try:
                 value=str(DP[key].to_list())
                 value=value.replace('[','')

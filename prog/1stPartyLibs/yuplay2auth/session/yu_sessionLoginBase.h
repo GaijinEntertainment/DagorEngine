@@ -22,7 +22,7 @@ protected:
 
   virtual Yuplay2Status parseServerAnswer(const YuCharTab& data);
 
-  virtual Yuplay2Status onErrorStatus(const YuJson& answer, Yuplay2Status status);
+  virtual Yuplay2Status onErrorStatus(Yuplay2Status status);
   virtual void onOkStatus(const YuJson& json) {}
 
   void onHttpResponse(const YuString& url, const YuCharTab& data) override;

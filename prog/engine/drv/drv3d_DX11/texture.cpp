@@ -1451,7 +1451,7 @@ BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels,
   int imgH = h;
 
   DriverDesc &dd = g_device_desc;
-  // TODO: remove clamp entirely and replace logerr with assert once all projects satisfy this requirement
+  // TODO: remove clamp entirely and replace D3D_ERROR with assert once all projects satisfy this requirement
   if ((w < dd.mintexw) || (w > dd.maxtexw) || (h < dd.mintexh) || (h > dd.maxtexh))
     D3D_CONTRACT_ERROR("create_tex: texture <%s> size %d x %d is out of bounds [%d, %d] x [%d, %d]", stat_name, w, h, dd.mintexw,
       dd.maxtexw, dd.mintexh, dd.maxtexh);
@@ -1577,7 +1577,7 @@ BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
   }
 
   DriverDesc &dd = g_device_desc;
-  // TODO: remove clamp entirely and replace logerr with assert once all projects satisfy this requirement
+  // TODO: remove clamp entirely and replace D3D_ERROR with assert once all projects satisfy this requirement
   if ((size < dd.mincubesize) || (size > dd.maxcubesize))
     D3D_CONTRACT_ERROR("create_cubetex: texture <%s> size %d is out of bounds [%d, %d]", stat_name, size, dd.mincubesize,
       dd.maxcubesize);

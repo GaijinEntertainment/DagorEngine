@@ -312,7 +312,6 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
     case TO_SETSLOT:
     case TO_BASE:
     case TO_ASSIGN: case TO_NEWSLOT:
-    case TO_EXTERNAL_VALUE:
     case TO_CODE_BLOCK_EXPR:
     default:
         return ~0u;

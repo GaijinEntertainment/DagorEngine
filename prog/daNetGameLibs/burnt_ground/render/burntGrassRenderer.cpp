@@ -46,9 +46,10 @@ BurntGrassRenderer::BurntGrassRenderer() :
   constexpr int INDEX_BUFFER_SIZE = BURNT_GRASS_INDEX_MAP_RESOLUTION * BURNT_GRASS_INDEX_MAP_RESOLUTION;
 
   burntTiles = dag::buffers::create_ua_sr_structured(sizeof(uint32_t),
-    BURNT_GRASS_TILE_RESOLUTION * BURNT_GRASS_TILE_RESOLUTION * GPU_TEXTURE_TILES, "burnt_grass_tiles");
+    BURNT_GRASS_TILE_RESOLUTION * BURNT_GRASS_TILE_RESOLUTION * GPU_TEXTURE_TILES, "burnt_grass_tiles", d3d::buffers::Init::Zero);
   burntTiles.setVar();
-  burntTileIndices = dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), INDEX_BUFFER_SIZE, "burnt_grass_tiles_indices");
+  burntTileIndices = dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), INDEX_BUFFER_SIZE, "burnt_grass_tiles_indices",
+    d3d::buffers::Init::Zero);
   burntTileIndices.setVar();
 
   fireSourcesBuf = dag::buffers::create_one_frame_sr_structured(sizeof(GpuFireSource), BURNT_GRASS_FIRE_GENERATOR_MAX_ITEM_COUNT,

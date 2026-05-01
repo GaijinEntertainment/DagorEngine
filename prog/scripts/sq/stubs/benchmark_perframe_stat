@@ -1,4 +1,7 @@
 return {
+  function benchmark_perframe_stat_gpu_time_init() { }
+  function benchmark_perframe_stat_gpu_time_initialized() { }
+  function benchmark_perframe_stat_gpu_time_close() { }
   function benchmark_perframe_stat_init(_) { }
   function benchmark_perframe_stat_reset() { }
   function benchmark_perframe_stat_add_last_frame() { }

@@ -154,7 +154,7 @@ macro COMMON_RESOLVE_EXTENDED(code)
     USE_SKY_SPECULAR_BASE(code)
   }
 
-  if (dynamic_lights_count != lights_off)
+  if (in_editor_assume == yes && dynamic_lights_count != lights_off)
   {
     (code) {
       viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
@@ -193,17 +193,9 @@ macro COMMON_RESOLVE_EXTENDED(code)
 
   if (in_editor_assume == no)
   {
-    if (dynamic_lighting_texture == NULL)
-    {
-      INIT_AND_USE_TILED_LIGHTS(code)
-    }
-    else
-    {
-      if (dynamic_lights_count != lights_off) {dont_render;}
-      (code){
-        has_any_dynamic_lights@i1 = has_any_dynamic_lights;
-        dynamic_lighting_texture@tex2d = dynamic_lighting_texture;
-      }
+    (code) {
+      has_any_dynamic_lights@i1 = has_any_dynamic_lights;
+      dynamic_lighting_texture@tex2d = dynamic_lighting_texture;
     }
   }
   else
@@ -443,7 +435,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
           result += standardBRDF( NoV, lightningNoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightning_dir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightning_color;
         }
       }
-      ##if dynamic_lighting_texture == NULL || in_editor_assume == yes
+      ##if in_editor_assume == yes
         result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
       ##else
         if (has_any_dynamic_lights)

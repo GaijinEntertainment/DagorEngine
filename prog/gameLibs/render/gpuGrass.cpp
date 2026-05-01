@@ -969,6 +969,7 @@ void GPUGrassBase::render(const GrassView view, RenderType rtype)
   const bool isOverrideStateSet = shaders::overrides::get_current() != shaders::OverrideStateId{};
 
   ShaderGlobal::set_buffer(grass_insts_bufVarId, genContext.grassInstances);
+  ShaderGlobal::set_int(grass_max_instance_countVarId, genContext.allocatedInstances);
   ShaderGlobal::set_int(grass_passVarId, rtype);
 
   if (rtype == GRASS_AFTER_PREPASS && visibilityOptimizationEnabled())

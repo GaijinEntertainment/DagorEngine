@@ -15,50 +15,97 @@
 
 namespace benchmark_perframe_stat
 {
+
+static Tab<PerFrameData> perframe_stat_buffer(inimem_ptr());
+
 namespace gpu_time
 {
-constexpr static int GPU_TIMESTAMP_LATENCY = 5;
-eastl::fixed_vector<GPUWatchMs, GPU_TIMESTAMP_LATENCY> gpu_timings{};
-
-struct GPUWatchValidator
+struct GPUWatchWrapper
 {
-  ~GPUWatchValidator() { G_ASSERTF(gpu_timings.empty(), "benchmark_perframe_stat: GPU timings not empty on shutdown"); }
-} validator;
+  void restart()
+  {
+    const auto prevSize = gpu_timings.empty() ? GPU_TIMESTAMP_LATENCY : gpu_timings.size();
+    gpu_timings.clear();
+    gpu_timings.resize(prevSize);
+    start = 0;
+    end = 0;
+  }
+
+  void close() { gpu_timings.clear(); }
+
+  bool active() const { return !gpu_timings.empty(); }
+
+  void add_last_frame(uint32_t buffer_index)
+  {
+    if (!active())
+      return;
+
+    if (buffer_index != 0)
+    {
+      auto e = end % gpu_timings.size();
+      gpu_timings[e].first.stop();
+
+      end++;
+      if (DAGOR_UNLIKELY(end - start == gpu_timings.size()))
+      {
+        logerr("benchmark_perframe_stat: GPU timestamp buffer is full. Increasing the buffer...");
+        start = start % gpu_timings.size();
+        end = gpu_timings.size();
+        gpu_timings.resize(gpu_timings.size() * 2);
+      }
+    }
+
+    const auto e = end % gpu_timings.size();
+    gpu_timings[e].second = buffer_index;
+    gpu_timings[e].first.start();
+    update_one_frame();
+  }
+
+  void flush_finished_frames()
+  {
+    if (!active())
+      return;
+
+    // flush all ready frames, but don't wait for GPU queries,
+    // as they will be available in next frames
+    while (update_one_frame()) {}
+  }
+
+  ~GPUWatchWrapper() { G_ASSERTF(gpu_timings.empty(), "benchmark_perframe_stat: GPU timings not empty on shutdown"); }
+
+private:
+  bool update_one_frame()
+  {
+    const auto s = start % gpu_timings.size();
+    uint64_t gpuFrameTimeUsec = 0;
+    if (gpu_timings[s].first.read(gpuFrameTimeUsec, 1000000))
+    {
+      perframe_stat_buffer[gpu_timings[s].second].gpuTimeUsec = static_cast<int>(gpuFrameTimeUsec);
+      start++;
+      return true;
+    }
+    return false;
+  }
+
+  constexpr static int GPU_TIMESTAMP_LATENCY = 16;
+  eastl::fixed_vector<eastl::pair<GPUWatchMs, uint32_t>, GPU_TIMESTAMP_LATENCY> gpu_timings{};
+  uint32_t start = 0;
+  uint32_t end = 0;
+} gpu_watch;
 
 void init()
 {
   GPUWatchMs::init_freq();
-  gpu_timings.resize(GPU_TIMESTAMP_LATENCY);
+  gpu_watch.restart();
 }
 
-bool initialized() { return !gpu_timings.empty(); }
+bool initialized() { return gpu_watch.active(); }
 
-void close() { gpu_timings.clear(); }
-
-// guard it from multiple calls, used only by add_last_frame
-static int get_last()
-{
-  if (!initialized())
-    return 0;
-
-  static size_t gpuTimingsIdx = 0;
-  uint64_t gpuTimeUs = 0;
-  gpu_timings[gpuTimingsIdx].stop();
-  gpuTimingsIdx = (gpuTimingsIdx + 1) % gpu_timings.size();
-  if (!gpu_timings[gpuTimingsIdx].read(gpuTimeUs, 1000000)) // -V1051
-  {
-    // don't trust anyone, clear it yourself on failure
-    gpuTimeUs = 0;
-  }
-  gpu_timings[gpuTimingsIdx].start();
-
-  return static_cast<int>(gpuTimeUs);
-}
+void close() { gpu_watch.close(); }
 
 } // namespace gpu_time
 
 static uint32_t prev_frame_id = 0;
-static Tab<PerFrameData> perframe_stat_buffer(inimem_ptr());
 
 void init(unsigned frames_limit)
 {
@@ -89,6 +136,8 @@ void reset()
   }
 
   perframe_stat_buffer.clear();
+  if (gpu_time::initialized())
+    gpu_time::gpu_watch.restart();
 }
 
 void add_last_frame()
@@ -108,8 +157,9 @@ void add_last_frame()
             "buffer size on next run. The current limit is %zu.",
       capacity);
 
+  gpu_time::gpu_watch.add_last_frame(perframe_stat_buffer.size());
   perframe_stat_buffer.push_back({workcycleperf::last_workcycle_time_usec, workcycleperf::last_cpu_only_cycle_time_usec,
-    memoryreport::get_device_vram_used_kb(), gpu_time::get_last()});
+    memoryreport::get_device_vram_used_kb(), 0});
   prev_frame_id = frameId;
 }
 
@@ -149,6 +199,8 @@ void dump_to_file(const char *fname)
     logerr("benchmark_perframe_stat: nothing to dump because record mode is disabled");
     return;
   }
+
+  gpu_time::gpu_watch.flush_finished_frames();
 
   dump_to_file_fn(fname);
 }

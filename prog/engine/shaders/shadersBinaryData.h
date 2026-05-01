@@ -25,7 +25,7 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include <EASTL/span.h>
 #include <EASTL/array.h>
-#include <EASTL/vector_map.h>
+#include <dag/dag_vectorMap.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 #include "shaderVarsState.h"
@@ -55,6 +55,7 @@ using ScriptedShadersBinDump = bindump::Mapper<shader_layout::ScriptedShadersBin
 using ScriptedShadersBinDumpV2 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV2>;
 using ScriptedShadersBinDumpV3 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV3>;
 using ScriptedShadersBinDumpV4 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV4>;
+using ScriptedShadersBinDumpV5 = bindump::Mapper<shader_layout::ScriptedShadersBinDumpV5>;
 using StrHolder = bindump::Mapper<bindump::StrHolder>;
 
 static constexpr uint32_t SHADERVAR_IDX_ABSENT = 0xFFFE;
@@ -92,6 +93,7 @@ struct ScriptedShadersBinDumpOwner
   ScriptedShadersBinDumpV2 *mShaderDumpV2 = nullptr;
   ScriptedShadersBinDumpV3 *mShaderDumpV3 = nullptr;
   ScriptedShadersBinDumpV4 *mShaderDumpV4 = nullptr;
+  ScriptedShadersBinDumpV5 *mShaderDumpV5 = nullptr;
   Tab<uint8_t> mSelfData;
   HashVal<64> mInitialDataHash;
 
@@ -135,6 +137,7 @@ struct ScriptedShadersBinDumpOwner
   const ScriptedShadersBinDumpV2 *getDumpV2() const { return mShaderDumpV2; }
   const ScriptedShadersBinDumpV3 *getDumpV3() const { return mShaderDumpV3; }
   const ScriptedShadersBinDumpV4 *getDumpV4() const { return mShaderDumpV4; }
+  const ScriptedShadersBinDumpV5 *getDumpV5() const { return mShaderDumpV5; }
 
   auto getDecompressionDict() { return mDictionary.get(); }
 
@@ -210,6 +213,34 @@ struct ShadersBinDumpAssetData
 bool load_shaders_bindump_asset(ShadersBinDumpAssetData &dump_asset, const char *src_filename,
   d3d::shadermodel::Version shader_model_version);
 
+class ShaderStubTexturesRepository
+{
+  dag::VectorMap<uint64_t, size_t> stubTexturesMap;
+  Tab<UniqueTex> stubTextureStore;
+
+  friend struct ScriptedShadersBinDumpOwner;
+  friend class ShadersRestartProc;
+
+public:
+  ShaderStubTexturesRepository() { stubTextureStore.emplace_back(); } // default for fallback
+  ShaderStubTexturesRepository(ShaderStubTexturesRepository &&) = default;
+  ShaderStubTexturesRepository &operator=(ShaderStubTexturesRepository &&) = default;
+  ShaderStubTexturesRepository(const ShaderStubTexturesRepository &) = delete;
+  ShaderStubTexturesRepository &operator=(const ShaderStubTexturesRepository &) = delete;
+  ~ShaderStubTexturesRepository() { shutdown(); }
+
+  const UniqueTex &query(uint32_t col, ShaderVarTextureType shvtt) const;
+  bool filled() const { return !stubTexturesMap.empty(); }
+
+private:
+  void add(shader_layout::StubTextureKey key);
+  void shutdown()
+  {
+    stubTexturesMap.clear();
+    stubTextureStore.resize(1);
+  }
+};
+
 namespace shaderbindump
 {
 static constexpr int MAX_BLOCK_LAYERS = 3;
@@ -218,6 +249,8 @@ extern unsigned blockStateWord;
 extern shaderbindump::ShaderBlock *nullBlock[MAX_BLOCK_LAYERS];
 
 extern bool autoBlockStateWordChange;
+
+extern ShaderStubTexturesRepository g_stub_texture_repo;
 
 #if DAGOR_DBGLEVEL > 0
 extern const ShaderClass *shClassUnderDebug;

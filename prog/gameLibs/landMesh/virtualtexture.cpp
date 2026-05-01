@@ -3338,15 +3338,6 @@ void ClipmapImpl::finalizeCompressionQueue()
         ShaderGlobal::set_int(var::clipmap_compression_gather4_allowed, mipNo == 0); // gathering on mips != 0 results in artifacts.
         compressor[ci]->updateFromMip(BAD_TEXTUREID, mipNo, mipNo, compressionQueue.size(),
           !useOwnBuffers ? bindedCompressorTex[ci] : nullptr);
-        if (recordTilesError && mipNo == 0) // only mip0 support for now..
-        {
-          for (int i = 0; i < compressionQueue.size(); ++i)
-          {
-            BcCompressor::ErrorStats stats =
-              compressor[ci]->getErrorStats(BAD_TEXTUREID, 0, mipNo, mipNo, i, !useOwnBuffers ? bindedCompressorTex[ci] : nullptr);
-            tilesError[compressionQueue[i]][ci] = stats;
-          }
-        }
       }
     }
     else
@@ -3355,9 +3346,24 @@ void ClipmapImpl::finalizeCompressionQueue()
     }
   }
 
+  // Get compression error of cache mip0 if such debug option has been enabled
+  for (int ci = 0; ci < cacheCnt && recordTilesError; ++ci)
+  {
+    if (compressor[ci] && compressor[ci]->isValid())
+    {
+      for (int i = 0; i < compressionQueue.size(); ++i)
+      {
+        BcCompressor::ErrorStats stats =
+          compressor[ci]->getErrorStats(BAD_TEXTUREID, 0, 0, 0, i, !useOwnBuffers ? bindedCompressorTex[ci] : nullptr);
+        tilesError[compressionQueue[i]][ci] = stats;
+      }
+    }
+  }
+
   G_ASSERT(compressionQueue.size() <= COMPRESS_QUEUE_SIZE);
   // fixme: actually we need compressors for each format, not for each texture!
   for (int ci = 0; ci < cacheCnt; ++ci)
+  {
     if (compressor[ci] && compressor[ci]->isValid())
     {
       TIME_D3D_PROFILE(copyBufferToCache);
@@ -3367,6 +3373,7 @@ void ClipmapImpl::finalizeCompressionQueue()
             (compressionQueue[i].y * texTileSize) >> mipNo, mipNo, (i * texTileSize) >> mipNo, 0, texTileSize >> mipNo,
             texTileSize >> mipNo, bindedCompressorTex[ci]);
     }
+  }
 
   G_ASSERT(!hasUncompressed || directUncompressElem);
   if (hasUncompressed && directUncompressElem)

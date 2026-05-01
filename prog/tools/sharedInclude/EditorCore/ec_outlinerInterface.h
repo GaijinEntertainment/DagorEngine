@@ -66,6 +66,8 @@ public:
   virtual void changeObjectAsset(dag::Span<RenderableEditableObject *> objects) = 0;
   virtual void deleteObjects(dag::Span<RenderableEditableObject *> objects) = 0;
   virtual void zoomAndCenterObject(RenderableEditableObject &object) = 0;
+
+  static constexpr int MAXIMUM_SUPPORTED_LAYER_COUNT = 128;
 };
 
 } // namespace Outliner

@@ -12,6 +12,6 @@ return {
   triggerAppsFlyerDeepLink = @() null
   setUserEmail = @(_) null
   enableTCFCollection = @(_) null
-  startConnector = @() null
-  stopConnector = @() null
+  startAppsFlyerConnector = @() null
+  stopAppsFlyerConnector = @() null
 }

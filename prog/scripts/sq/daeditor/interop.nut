@@ -1,7 +1,7 @@
 import "daEditorEmbedded" as daEditor
 from "eventbus" import eventbus_subscribe
 
-let entity_editor = require_optional("entity_editor")
+let entity_editor = require("entity_editor")
 let { editorIsActive, editorFreeCam, entitiesListUpdateTrigger, sceneListUpdateTrigger, showTemplateSelect, showPointAction,
   callPointActionCallback, resetPointActionMode, handleEntityCreated, handleEntityRemoved,
   handleEntityMoved, de4editMode, de4workMode, gizmoBasisType, gizmoBasisTypeEditingDisabled,

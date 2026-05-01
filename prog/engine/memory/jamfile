@@ -42,6 +42,8 @@ Sources +=
 
 if $(Platform) in windows xboxOne scarlett { Sources += dagmem_start.c ; }
 
+if $(UseMemoryDebugLevel) = def && $(Config) in rel irel { UseMemoryDebugLevel = off ; }
+
 if $(UseMemoryDebugLevel) in def off min || $(UseMemoryProfiler) = disabled {
   Sources += daProfileMemStub.cpp ;
 } else {

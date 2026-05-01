@@ -324,11 +324,15 @@ shader tsr_cs
       return tonemap(PackToYCoCgAlpha(result));
     }
 
-    // calculates rejection based on min/max values with having an exponential decay above the min/max threshold
-    float calculateDepthVarianceRejection(float expected_depth, float min_depth, float max_depth)
+    float calculateDepthOverhang(float expected_depth, float min_depth, float max_depth)
     {
-      float overhang = max3(0, expected_depth - max_depth, min_depth - expected_depth);
-      return gaussianKernel(overhang, depthOverhangSigmaInv);
+      return max3(0, expected_depth - max_depth, min_depth - expected_depth);
+    }
+
+    // calculates rejection based on min/max values with having an exponential decay above the min/max threshold
+    float calculateDepthVarianceRejection(float overhang, float depth)
+    {
+      return gaussianKernel(float2(overhang,0), depthOverhangSigmaInv * rcp(depth));
     }
 
     float calculateAabbScale(float motionVectorLength, bool is_dynamic, float reactive)
@@ -449,7 +453,9 @@ shader tsr_cs
       float historyConfidence;
       float4 historyColorDepth = reconstructHistory(historyUV, currentIsDynamic, historyConfidence);
 
-      float rejection = calculateDepthVarianceRejection(historyColorDepth.a - motionVector.z, depthStats.farthestDepth, depthStats.closestDepth);
+      float expectedDepth = historyColorDepth.a - motionVector.z;
+      float overhang = calculateDepthOverhang(expectedDepth, depthStats.farthestDepth, depthStats.closestDepth);
+      float rejection = calculateDepthVarianceRejection(overhang, expectedDepth);
       historyConfidence *= rejection;
 
       validateHistory(historyUV, historyColorDepth, historyConfidence, rejection);
@@ -472,9 +478,9 @@ shader tsr_cs
       float3 inputColor = reconstructInput(dtId, cacheParams, inputConfidence, inputMean, inputVariance);
 
       float aabbScale = calculateAabbScale(length(motionVector.xy), currentIsDynamic, reactive);
-      historyColorDepth.rgb = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance, aabbScale);
+      float3 rectifiedhistoryColor = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance, aabbScale);
 
-      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.depth), inputConfidence, historyColorDepth, historyConfidence, rejection, reactive);
+      TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.depth), inputConfidence, float4(rectifiedhistoryColor, historyColorDepth.a), historyConfidence, rejection, reactive);
 
       texture2DAt(outColor, dtId) = result.color;
       texture2DAt(outConfidence, dtId) = result.confidence;
@@ -489,6 +495,10 @@ shader tsr_cs
         result.debug = tonemappedColor;
       else if (debugView == 3)
         result.debug = float3(aabbScale, aabbScale, aabbScale) / 10;
+      else if (debugView == 4)
+        result.debug = UnpackFromYCoCg(tonemap_inv(historyColorDepth.rgb));
+      else if (debugView == 5)
+        result.debug = UnpackFromYCoCg(tonemap_inv(rectifiedhistoryColor));
       else
         result.debug = float3(rejection, rejection, rejection);
       texture2DAt(outDebug, dtId) = result.debug;

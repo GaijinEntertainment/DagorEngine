@@ -32,5 +32,12 @@ shader dynamic_metatex, dynamic_emissive_metatex, dynamic_translucent_metatex
 
   SET_DYNMAT_METATEX_PARAM_GETTERS()
 
-  METATEX_PS()
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    METATEX_PS()
+  }
 }

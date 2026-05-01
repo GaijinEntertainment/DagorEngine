@@ -173,6 +173,8 @@ public:
   virtual BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const = 0;
   virtual PhysMap *loadPhysMap(LandMeshManager *landMeshManager, IGenLoad &crd) = 0;
   virtual void beforeRender() = 0;
+
+  virtual const char *getGlobalPaintDetailsTexName() const = 0;
 };
 
 struct HmapBitLayerDesc

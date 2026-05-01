@@ -341,7 +341,7 @@ struct RendInstGenData
 
     void initDebris(const DataBlock &ri_blk, int (*get_fx_type_by_name)(const char *name));
     void addDebris(mat44f &tm, int pool_idx, unsigned frameNo, const Point3 &axis, float accumulatedPower = 0.0f);
-    rendinst::DestroyedRi *addExternalDebris(mat44f &tm, int pool_idx);
+    rendinst::DestroyedRi *addExternalDebris(mat44f &tm, int pool_idx, uint32_t palette_id);
     void addDebrisForRiExtraRange(const DataBlock &ri_blk, uint32_t res_idx, uint32_t count);
     void updateDelayedDebrisRi(float dt, bbox3f *movedDebrisBbox);
     void updateDebris(float dt, bbox3f *movedDebrisBbox)

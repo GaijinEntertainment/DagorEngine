@@ -126,6 +126,7 @@ int SplineObject::tiledByPolygonSubTypeId = -1;
 int SplineObject::roadsSubtypeMask = -1;
 int SplineObject::splineSubTypeId = -1;
 bool SplineObject::isSplineCacheValid = false;
+bool SplineObject::isSplineObjectsAreLoading = false;
 
 bool SplineObject::objectWasMoved = false, SplineObject::objectWasRotated = false, SplineObject::objectWasScaled = false;
 
@@ -1501,6 +1502,11 @@ void SplineObject::addPoint(SplinePointObject *pt)
   G_ASSERTF(pt->arrId >= 0 && pt->arrId <= points.size(), "pt->arrId=%d points.size()=%d", pt->arrId, points.size());
 
   insert_items(points, pt->arrId, 1, &pt);
+  if (SplineObject::isSplineObjectsAreLoading)
+  {
+    splBox += pt->getPt();
+    return;
+  }
 
   for (int i = points.size() - 1; i >= 0; i--)
     points[i]->arrId = i;
@@ -1753,6 +1759,7 @@ void SplineObject::load(const DataBlock &blk, bool use_undo)
 
   int nid = blk.getNameId("point");
 
+  SplineObject::isSplineObjectsAreLoading = true;
   for (int i = 0; i < blk.blockCount(); i++)
     if (blk.getBlock(i)->getBlockNameId() == nid)
     {
@@ -1767,10 +1774,9 @@ void SplineObject::load(const DataBlock &blk, bool use_undo)
       getObjEditor()->addObject(s, use_undo);
     }
   if (blk.getBool("closed", false))
-  {
     points.push_back(points[0]);
-    getSpline();
-  }
+  SplineObject::isSplineObjectsAreLoading = false;
+  getSpline();
 
   props.rndSeed = blk.getInt("rseed", points[1]->getPt().lengthSq() * 1000);
   props.perInstSeed = blk.getInt("perInstSeed", 0);
@@ -2196,7 +2202,7 @@ void SplineObject::gatherStaticGeom(StaticGeometryContainer &cont, const StaticG
   for (int ni = 0; ni < geom.nodes.size(); ++ni)
   {
     StaticGeometryNode *node = geom.nodes[ni];
-    if (node && node->script.getInt("stage", 0) != stage)
+    if (node && node->stage != stage)
       continue;
 
     if (node && (!flags || (node->flags & flags)))

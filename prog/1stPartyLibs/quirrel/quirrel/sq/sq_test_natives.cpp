@@ -1,7 +1,7 @@
 // Test native module for native field testing.
 // Registers "test.native" module with NativeVec class.
 
-#include <sqmodules/sqmodules.h>
+#include <sqmodules.h>
 #include <sqrat.h>
 #include <string.h>
 #include <stdio.h>

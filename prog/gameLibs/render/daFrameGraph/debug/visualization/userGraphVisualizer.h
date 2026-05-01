@@ -36,12 +36,14 @@ public:
   enum CanvasChannels
   {
     SUSPEND = 0,
+    NAMESPACES,
     EDGES,
     NODES,
     TEXTS,
     COUNT
   };
 
+  void drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id, const ImVec2 offset);
   void drawNode(ImDrawList *draw_list, const NodeNameId node_id, const ImVec2 node_offset, const ImVec2 node_size);
   void drawEdges(ImDrawList *draw_list, const Layout &layout, const ImVec2 offset);
 
@@ -56,8 +58,15 @@ public:
   void updateIRInfo();
   void updateNameSpaces();
   void updateDependencies();
+
+  void checkCycles();
+  void condenseGraph();
+
   void performLayout();
-  void calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes);
+  void performBoxLayout(const NodeBox &node_box, Layout &node_box_layout);
+  void performCondensedLayout();
+  void calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
+    const bool has_io);
 
 
   // data sources
@@ -80,8 +89,10 @@ private:
   dag::Vector<eastl::string_view> nodeNames;               // Node names in namespace order for ImGuiDagor::ComboWithFilter()
   dag::Vector<eastl::string_view> resNames;                // Resource names in namespace order for ImGuiDagor::ComboWithFilter()
 
-  IdIndexedMapping<DependencyId, Dependency> registryDependencies;           // List of all dependencies, stated in InternalRegistry
-  IdIndexedMapping<NodeNameId, dag::Vector<DependencyId>> dependenciesLists; // Lists of dependencies per user node
+  IdIndexedMapping<DependencyId, Dependency> registryDependencies;  // List of all dependencies, stated in InternalRegistry
+  IdIndexedMapping<NodeNameId, NodeDependencies> nodesDependencies; // Lists of dependencies per user node
+  dag::Vector<DependencyId> historyDependencies;                    // List of history reads, not used for layouting
+  dag::Vector<DependencyId> disabledDependencies;                   // Dependencies, that were disabled during check for cycles
 
   // from intermediate::Graph
   IdIndexedMapping<NodeNameId, PassColor> passColors;   // Info for visualizator to show node pass colors
@@ -90,9 +101,19 @@ private:
 
   // generated data
 private:
+  IdIndexedMapping<NodeBoxId, NodeBox> nodeBoxes;
+  IdIndexedMapping<NodeBoxDependencyId, NodeBoxDependency> nodeBoxDependencies;
+  IdIndexedMapping<NodeNameId, NodeBoxId> nodesNodeBox;
+  IdIndexedMapping<NodeBoxId, NameSpaceNameId> nodeBoxesNameSpace;
+
+  IdIndexedMapping<NodeBoxId, Layout> nodeBoxesLayouts;
+
+  IdIndexedFlags<NodeNameId> nodesCycled;    // Flags to indicate, that node is participate in cycle
   IdIndexedFlags<ResNameId> hiddenResources; // Flags to hide/show resources in resource tree view
   Layout wholeGraphLayout;                   // Non-hierarchical layout, containing all user-defined nodes
+  Layout condensedLayout;                    // Hierarchical layout with all boxes in condensed graph
   bool layoutReady = false;
+  bool hierarchicalView = false;
 
 
 private:

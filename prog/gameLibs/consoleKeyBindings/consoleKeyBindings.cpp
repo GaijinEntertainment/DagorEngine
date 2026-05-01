@@ -11,10 +11,9 @@
 
 namespace console_keybindings
 {
-OSSpinlock console_keybindings_mutex;
-Tab<ConsoleKeybinding> console_keybindings;
-SimpleString keybindings_file_path;
-
+static OSSpinlock console_keybindings_mutex;
+static dag::Vector<ConsoleKeybinding> console_keybindings;
+static const char *keybindings_file_path = "console_binds.blk";
 
 __forceinline bool check_modifier(unsigned a, unsigned b, unsigned mask)
 {
@@ -309,15 +308,12 @@ void clear()
 }
 
 
-void set_binds_file_path(const String &path) { keybindings_file_path = path; }
-
+void set_binds_file_path(const char *path) { keybindings_file_path = path; }
 
 void load_binds_from_file()
 {
   DataBlock consoleBinds;
-  if (dd_file_exist(keybindings_file_path))
-  {
-    dblk::load(consoleBinds, keybindings_file_path, dblk::ReadFlag::ROBUST);
+  if (dblk::load(consoleBinds, keybindings_file_path, dblk::ReadFlag::ROBUST))
     for (int i = 0; i < consoleBinds.blockCount(); ++i)
     {
       const DataBlock *bind = consoleBinds.getBlock(i);
@@ -325,9 +321,8 @@ void load_binds_from_file()
       const char *command = bind->getStr("command", nullptr);
       if (key && command)
         if (!console_keybindings::bind(key, command))
-          console::error("Failed to load console binding '%s' from file '%s'", key, keybindings_file_path.str());
+          console::error("Failed to load console binding '%s' from file '%s'", key, keybindings_file_path);
     }
-  }
 }
 
 

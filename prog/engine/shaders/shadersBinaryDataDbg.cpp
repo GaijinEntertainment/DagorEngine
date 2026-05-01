@@ -298,6 +298,16 @@ void shaderbindump::dumpShaderInfo(ScriptedShadersBinDump const &dump, const sha
     debug(" static init (%d):", cls.initCode.size() / 2);
     for (int i = 0; i < cls.initCode.size(); i += 2)
     {
+      if (shaderopcode::getOp(cls.initCode[i + 1]) == SHCOD_TEXTURE_STUBCOL)
+      {
+        int tt = shaderopcode::getOp2p1(cls.initCode[i + 1]);
+        int stVarId = shaderopcode::getOp2p2(cls.initCode[i + 1]);
+        uint32_t col = uint32_t(cls.initCode[i]);
+        const char *varname = (const char *)dump.varMap[cls.localVars.v[stVarId].nameId];
+        debug_("  %s <- stub col=%x tt=%d\n", varname, col, tt);
+        continue;
+      }
+
       int stVarId = cls.initCode[i];
       const char *varname = (const char *)dump.varMap[cls.localVars.v[stVarId].nameId];
 

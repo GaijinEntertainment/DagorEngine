@@ -14,7 +14,6 @@ std::vector<std::string> function_should_return_bool_prefix;
 std::vector<std::string> function_should_return_something_prefix;
 std::vector<std::string> function_result_must_be_utilized;
 std::vector<std::string> function_can_return_null;
-std::vector<std::string> function_calls_lambda_inplace;
 std::vector<std::string> function_takes_boolean_lambda;
 std::vector<std::string> function_requires_result_from_callback;
 std::vector<std::string> function_ignores_callback_result;
@@ -122,20 +121,6 @@ void resetAnalyzerConfig() {
     "modify",
   };
 
-  function_calls_lambda_inplace = {
-    "findvalue",
-    "findindex",
-    "__update",
-    "filter",
-    "map",
-    "reduce",
-    "each",
-    "sort",
-    "assert",
-    "persist",
-    "join",
-  };
-
   function_forbidden_parent_dir = {
     "require",
     "require_optional",
@@ -178,9 +163,6 @@ bool loadAnalyzerConfigFile(const KeyValueFile &config) {
 
   for (auto && v : config.getValuesList("function_can_return_null"))
     function_can_return_null.push_back(v);
-
-  for (auto && v : config.getValuesList("function_calls_lambda_inplace"))
-    function_calls_lambda_inplace.push_back(v);
 
   for (auto && v : config.getValuesList("function_result_must_be_utilized"))
     function_result_must_be_utilized.push_back(v);

@@ -24,7 +24,7 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
 #define G_ANALYSIS_ASSUME(expr)
 #endif
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || _TARGET_C1 || _TARGET_C2
 #define G_DEBUG_BREAK_FORCED __debugbreak()
 #elif defined(__i386__) || defined(__x86_64__)
 #define G_DEBUG_BREAK_FORCED       \

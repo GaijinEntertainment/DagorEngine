@@ -7,6 +7,8 @@
 #include "cascadeShadowsDecl.h"
 #include <EASTL/fixed_function.h>
 #include <3d/dag_resPtr.h>
+#include <vecmath/dag_vecMathDecl.h>
+#include <generic/dag_span.h>
 
 
 class DataBlock;
@@ -61,6 +63,12 @@ public:
     // Skip rendering to CSM any destructable whose bounding box radius is less than
     // (static shadow texel size) * (this multiplier)
     float destructablesMinBboxRadiusTexelMul = 0.f;
+    // Extend shadow projection box along the sun's depth axis to include the next cascade's frustum.
+    // Cascade doesn't depend on the orientation of the camera, it only depends on direction of the sun.
+    // So you only extend cascade in a single direction. If you're aligned with the sun direction, you'll
+    // see extended cascade. If you turn back, you'll see real cascade range.
+    // So I highly recommend to opt out of this feature.
+    bool extendZBoxToNextCascade = true;
     enum class ResourceAccessStrategy
     {
       Internal,
@@ -126,6 +134,7 @@ public:
   const TMatrix4_vec4 &getRenderProjMatrix(int cascade_no) const;
   const Point3 &shadowWidth(int cascade_no) const;
   const BBox3 &getWorldBox(int cascade_no) const;
+  Point2 getCascadeViewDepthRange(int cascade_no) const;
   bool shouldUpdateCascade(int cascade_no) const;
   bool isCascadeValid(int cascade_no) const;
   void copyFromSparsed(int cascade_no);
@@ -138,6 +147,7 @@ public:
   d3d::SamplerHandle getShadowsCascadeSampler() const;
   const TextureInfo &getShadowCascadeTexInfo() const;
   const Point2 &getZnZf(int cascade_no) const;
+  dag::ConstSpan<plane3f> getShadowRegionPlanes(int cascade_no) const;
 
   const String &setShadowCascadeDistanceDbg(const Point2 &scene_z_near_far, int tex_size, int splits_w, int splits_h,
     float shadow_distance, float pow_weight);

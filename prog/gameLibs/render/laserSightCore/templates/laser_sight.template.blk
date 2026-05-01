@@ -29,6 +29,7 @@ laser_sight{
   laserStartIntensity:r = 1.0
   laserMaxIntensity:r = 1.0
   laserActive:b = no
+  laserVisible:b = yes
   laserScrollingSpeed:r= 5.0
   laser__fxNodeName:t="laser_fx"
   laser__fxNodeIdx:i=-1
@@ -37,6 +38,7 @@ laser_sight{
   laserAvailable:b = yes
   _replicated:t="laserAvailable"
   _tracked:t="laserAvailable"
+  _tracked:t="laserVisible"
   "laserBeamTracerId:i"{
     _tags:t="render"
     value:i=-1
@@ -56,4 +58,5 @@ laser_sight{
   "laser_data__gunOwner:eid" {}
   "laser_data__playerId:eid" {}
   laser_sight__is_compatible:b=true
+  laser_sight__is_infrared:b=false
 }

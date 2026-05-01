@@ -188,6 +188,11 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
       return -1;
     auto &var = *varMaybe;
 
+    if (index == 0 && !var.isAlwaysReferenced && !var.isImplicitlyReferenced && ctx.globAssumes().getAssumedVal(var_name, true))
+    {
+      var.isImplicitlyReferenced = true;
+    }
+
     if (v >= 0)
     {
       auto &existingVar = variable_list[v];
@@ -314,7 +319,14 @@ static void add_assume_impl(ShaderAssumesTable &table, const IntervalList &inter
   else
   {
     intervalIndex = ctx.globVars().getIntervalList().getIntervalIndex(interval_nid);
-    interv = ctx.globVars().getIntervalList().getInterval(intervalIndex);
+    interv = ctx.globVars().getMutableIntervalList().getInterval(intervalIndex);
+
+    if (int gvarNid = ctx.varNameMap().getVarId(ctx.intervalNameMap().getName(interval_nid)); gvarNid >= 0)
+    {
+      int gvarId = ctx.globVars().getVarInternalIndex(gvarNid);
+      if (gvarId >= 0)
+        ctx.globVars().getMutableVariableList()[gvarId].isImplicitlyReferenced = true;
+    }
   }
   if (!interv)
   {

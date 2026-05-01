@@ -138,6 +138,48 @@ void compound_rotate_shift_prepare_params(dag::Vector<AnimParamData> &params, Pr
   remove_param_if_default_point3(params, panel, "preScale", CompoundRotateShift::DEFAULT_SCALE);
 }
 
+namespace DeltaAnglesCalc
+{
+static const int DEFAULT_SIDE_AXIS_IDX = 1;
+static const float DEFAULT_SCALE_ROTATE = 1.0f;
+static const float DEFAULT_SCALE_PITCH = 1.0f;
+static const float DEFAULT_SCALE_LEAN = 1.0f;
+static const bool DEFAULT_DEGREES = true;
+} // namespace DeltaAnglesCalc
+
+void delta_angles_calc_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
+{
+  add_edit_box_if_not_exists(params, panel, field_idx, "name");
+  add_edit_box_if_not_exists(params, panel, field_idx, "refNode");
+  add_edit_int_if_not_exists(params, panel, field_idx, "fwdAxisIdx");
+  add_edit_int_if_not_exists(params, panel, field_idx, "sideAxisIdx", DeltaAnglesCalc::DEFAULT_SIDE_AXIS_IDX);
+  add_edit_bool_if_not_exists(params, panel, field_idx, "fwdAxisInverse");
+  add_edit_bool_if_not_exists(params, panel, field_idx, "sideAxisInverse");
+  add_edit_box_if_not_exists(params, panel, field_idx, "destRotateVar");
+  add_edit_box_if_not_exists(params, panel, field_idx, "destPitchVar");
+  add_edit_box_if_not_exists(params, panel, field_idx, "destLeanVar");
+  add_edit_float_if_not_exists(params, panel, field_idx, "scaleRotate", DeltaAnglesCalc::DEFAULT_SCALE_ROTATE);
+  add_edit_float_if_not_exists(params, panel, field_idx, "scalePitch", DeltaAnglesCalc::DEFAULT_SCALE_PITCH);
+  add_edit_float_if_not_exists(params, panel, field_idx, "scaleLean", DeltaAnglesCalc::DEFAULT_SCALE_LEAN);
+  add_edit_bool_if_not_exists(params, panel, field_idx, "degrees", DeltaAnglesCalc::DEFAULT_DEGREES);
+}
+
+void delta_angles_calc_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  remove_param_if_default_str(params, panel, "refNode");
+  remove_param_if_default_int(params, panel, "fwdAxisIdx");
+  remove_param_if_default_int(params, panel, "sideAxisIdx", DeltaAnglesCalc::DEFAULT_SIDE_AXIS_IDX);
+  remove_param_if_default_bool(params, panel, "fwdAxisInverse");
+  remove_param_if_default_bool(params, panel, "sideAxisInverse");
+  remove_param_if_default_str(params, panel, "destRotateVar");
+  remove_param_if_default_str(params, panel, "destPitchVar");
+  remove_param_if_default_str(params, panel, "destLeanVar");
+  remove_param_if_default_float(params, panel, "scaleRotate", DeltaAnglesCalc::DEFAULT_SCALE_ROTATE);
+  remove_param_if_default_float(params, panel, "scalePitch", DeltaAnglesCalc::DEFAULT_SCALE_PITCH);
+  remove_param_if_default_float(params, panel, "scaleLean", DeltaAnglesCalc::DEFAULT_SCALE_LEAN);
+  remove_param_if_default_bool(params, panel, "degrees", DeltaAnglesCalc::DEFAULT_DEGREES);
+}
+
 void delta_rotate_shift_calc_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
 {
   add_edit_box_if_not_exists(params, panel, field_idx, "name");

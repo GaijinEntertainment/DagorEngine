@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <util/dag_inttypes.h>
 #include <EASTL/vector.h>
 #include <math/integer/dag_IPoint2.h>
 #include <3d/dag_resPtr.h>
@@ -19,13 +20,13 @@ public:
   void init(int w, int h, int slices, float esm_exp);
   void close();
 
-  void beginRenderSlice(int slice_id);
+  void beginRenderSlice(uint32_t slice_id);
   void endRenderSlice();
 
   ShaderElement *getShader() const { return esmDepthShader.shader.get(); }
 
 private:
-  void blur(int slice);
+  void blur(uint32_t slice);
   void initEsmShadowsStateId();
 
   UniqueTex esmShadowBlurTmp;

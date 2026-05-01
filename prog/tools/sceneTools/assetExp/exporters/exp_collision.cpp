@@ -42,6 +42,8 @@ enum
   DEGENERATIVE_MESH_DO_REMOVE,
 };
 static int degenerative_mesh_strategy = DEGENERATIVE_MESH_DO_ERROR;
+static bool jolt_degenerate_fail_export = false;
+
 static float degenerate_tri_area_threshold_sq = 5e-12f;
 static bool report_inverted_mesh_tm = false;
 
@@ -1080,7 +1082,14 @@ public:
     // do last verification after collapse, because Jolt uses quantization
     bool skipJoltValidation = a.props.getBool("skipJoltValidation", false);
     if (!skipJoltValidation && !coll.validateVerticesForJolt(a.getName()))
-      return false;
+    {
+      if (jolt_degenerate_fail_export)
+      {
+        log.addMessage(log.ERROR, "%s: build failed due to huge degenerative triangles (joltDegenerativeTriFailExport=true)",
+          a.getName());
+        return false;
+      }
+    }
 
     // write back uncompressed data in modern format
     mcwr.reset(128 << 10);
@@ -1242,6 +1251,7 @@ public:
         degen_strategy_str, degenerative_mesh_strategy);
     degenerate_tri_area_threshold_sq = collisionBlk->getReal("degenerativeTriAreaThresholdSq", 5e-12f);
     report_inverted_mesh_tm = collisionBlk->getBool("errorOnInvertedMesh", false);
+    jolt_degenerate_fail_export = collisionBlk->getBool("joltDegenerativeTriFailExport", false);
     return true;
   }
   void __stdcall destroy() override { delete this; }

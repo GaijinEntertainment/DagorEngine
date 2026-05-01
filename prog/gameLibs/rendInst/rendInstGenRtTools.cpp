@@ -520,6 +520,16 @@ static void gen_rt_rigen_cells(RendInstGenData *rgl, const BBox3 &area)
 }
 void rendinst::generate_rt_rigen_main_cells(const BBox3 &area)
 {
+  // SingleEntityPool keeps its per-cell context (per_pool_local_bb, bbox, ox/oy/oz,
+  // sweep_boxes_itm, cur_cell_id, ri_extra_counter, ...) in class statics shared
+  // across threads. Background RegenRiCell jobs (queued by scheduleRIGenPrepare
+  // from prepare_rt_rigen_data_render) also call generateCell and rewrite those
+  // statics. Drain them before running generateCell synchronously here, otherwise
+  // a worker entering a layer with empty rtData->riResBb leaves
+  // per_pool_local_bb=nullptr mid-loop and the next addEntity here null-derefs.
+  while (!rendinst::isRIGenPrepareFinished())
+    sleep_usec(1000);
+
   FOR_EACH_PRIMARY_RG_LAYER_DO (rgl)
     if (rgl->rtData)
       gen_rt_rigen_cells(rgl, area);
@@ -901,7 +911,8 @@ rendinst::GetRendInstMatrixByRiIdxResult rendinst::get_rendinst_matrix_by_ri_idx
 
     const int16_t *data = (int16_t *)(cellRt->sysMemData.get() + cellRt->pools[ri_idx].baseOfs + i * stride);
     mat44f tm44;
-    if (!riutil::get_rendinst_matrix(riDesc, const_cast<RendInstGenData *>(riGen), data, &cell, tm44))
+    uint32_t paletteId = 0;
+    if (!riutil::get_rendinst_matrix(riDesc, const_cast<RendInstGenData *>(riGen), data, &cell, tm44, paletteId))
       continue;
 
     const Point3 currentPos(v_extract_x(tm44.col3), v_extract_y(tm44.col3), v_extract_z(tm44.col3));

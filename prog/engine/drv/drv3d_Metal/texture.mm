@@ -475,8 +475,13 @@ namespace drv3d_metal
     }
     else
       rt_texture = tex;
+
     sub_texture = texture;
-    sub_texture_no_srgb = texture;
+    bool no_srgb = (base->cflg & TEXCF_UNORDERED) && (base->cflg & TEXCF_SRGBREAD) && format2Metal(base->base_format) != base->metal_format;
+    if (no_srgb)
+      sub_texture_no_srgb = [texture newTextureViewWithPixelFormat : format2Metal(base->base_format)];
+    else
+      sub_texture_no_srgb = texture;
 
     bool as_uint = (base->cflg & TEXCF_UNORDERED) && canAliasToUint(base->base_format & TEXFMT_MASK);
     if (as_uint)

@@ -19,11 +19,13 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
     CREATE_FLAGS_FORMAT_SHIFT = 24,
     // one additional entry for the default
     MAX_FORMAT_COUNT = (TEXFMT_LAST_DEPTH >> CREATE_FLAGS_FORMAT_SHIFT) - (TEXFMT_A2R10G10B10 >> CREATE_FLAGS_FORMAT_SHIFT) + 1 + 1,
-    BITS = BitsNeeded<MAX_FORMAT_COUNT>::VALUE
+    BITS = BitsNeeded<MAX_FORMAT_COUNT>::VALUE,
+    BITS_SZ = BITS + 2
   };
   ADD_BITFIELD_MEMBER(isSrgb, BITS, 1)
+  ADD_BITFIELD_MEMBER(isSrgbRead, BITS + 1, 1)
   ADD_BITFIELD_MEMBER(linearFormat, 0, BITS)
-  ADD_BITFIELD_MEMBER(index, 0, BITS + 1)
+  ADD_BITFIELD_MEMBER(index, 0, BITS_SZ)
 
   BEGIN_BITFIELD_TYPE(CreateFlagFormat, uint32_t)
     ADD_BITFIELD_MEMBER(format, 24, 8)
@@ -60,14 +62,17 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   {
     CreateFlagFormat fmt(flags);
     linearFormat = fmt.format;
-    isSrgb = fmt.srgbRead | fmt.srgbWrite;
+    // for blit like operations with raw input values (like clear_rt) to properly work we need base sRGB format
+    // only when srgb write is enabled, for other cases linear format is enough
+    isSrgb = fmt.srgbWrite;
+    isSrgbRead = fmt.srgbRead;
   }
   uint32_t asTexFlags() const
   {
     CreateFlagFormat fmt;
     fmt.format = linearFormat;
-    fmt.srgbRead = isSrgb;
     fmt.srgbWrite = isSrgb;
+    fmt.srgbRead = isSrgbRead;
     return fmt.wrapper.value;
   }
   uint32_t getFormatFlags() { return linearFormat << CREATE_FLAGS_FORMAT_SHIFT; }

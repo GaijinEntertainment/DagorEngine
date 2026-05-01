@@ -17,6 +17,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <propPanel/control/container.h>
+#include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <debug/dag_debug.h>
@@ -261,8 +262,11 @@ bool StartupDlg::onDropFiles(const dag::Vector<String> &files)
       !ScreenshotMetaInfoLoader::getProjectPath(mScreenshotMetaInfo, wsp.getAppDir(), wsp.getLevelsDir(),
         mFilePathFromScreenshotMetaInfo, errorMessage))
   {
-    wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera settings from screenshot\n\"%s\"\n\n%s", files[0].c_str(),
-      errorMessage.c_str());
+    String f = files[0];
+    delayed_call([f, errorMessage]() {
+      wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera settings from screenshot\n\"%s\"\n\n%s", f.c_str(),
+        errorMessage.c_str());
+    });
     return true;
   }
 

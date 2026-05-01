@@ -9,9 +9,11 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <memory/dag_framemem.h>
 #include <util/dag_oaHashNameMap.h>
 
-static DataBlock stg, gameParams;
+static DataBlock settings_blk, gameParams;
+#define stg settings_blk // TODO: compat alias, remove
 static const DataBlock *get_settings_blk() { return &stg; }
 static const DataBlock *get_game_params_blk() { return &gameParams; }
 
@@ -126,13 +128,17 @@ void dgs_load_settings_blk_ex(const DataBlock &filtered_cmd_blk, const char *set
 #endif
     if (file_ptr_t fp = df_open(patch_fn, read_flg))
     {
-      Tab<char> text(tmpmem);
+      Tab<char> text(framemem_ptr());
       text.resize(df_length(fp) + 3);
       df_read(fp, text.data(), data_size(text) - 3);
       df_close(fp);
-      strcpy(&text[text.size() - 3], "\n\n");
-      bool ret = dblk::load_text(stg, text, dblk::ReadFlags(), ".patch");
-      debug("%s: patching with %s: %d", "dgs_load_settings_blk", patch_fn, (int)ret);
+      memcpy(&text[text.size() - 3], "\n\n", 3);
+      bool loaded = dblk::load_text(stg, text, dblk::ReadFlags(), ".patch");
+      if (!loaded) [[unlikely]]
+        debug("Content of `%s`:\n%.*s%s", patch_fn, min(2048, (int)text.size() - 3), text.data(),
+          ((int)text.size() - 3) <= 2048 ? "" : "...");
+      int ll = loaded ? LOGLEVEL_DEBUG : LOGLEVEL_ERR;
+      logmessage(ll, "%s: patching with %s - %s", "dgs_load_settings_blk", patch_fn, loaded ? "OK" : "Failed!");
       break;
     }
   }

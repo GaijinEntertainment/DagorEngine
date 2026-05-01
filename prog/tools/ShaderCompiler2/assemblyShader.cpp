@@ -140,9 +140,52 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
   if (!inited)
     report_error(parser, s.name, "Variable '%s' must be inited", s.name->text);
 
+  uint32_t flags = 0;
+  uint32_t stubCol = 0;
+
+  for (auto *attrib : s.attrib)
+  {
+    if (streq(attrib->name->text, "stub"))
+    {
+      if (code.vars[v].dynamic)
+      {
+        report_error(parser, attrib->name, "'%s' attribute is not supported for dynamic vars", attrib->name->text);
+        return;
+      }
+      if (code.vars[v].type != SHVT_TEXTURE)
+      {
+        report_error(parser, attrib->name, "'%s' attribute is only supported for texture vars", attrib->name->text);
+        return;
+      }
+      if (attrib->value)
+      {
+        report_error(parser, attrib->name, "'%s' attribute takes a color expression", attrib->name->text);
+        return;
+      }
+
+      Color4 val{};
+      if (!exprParser.parseConstExpression(*attrib->expr, val, ExpressionParser::Context{shexpr::VT_COLOR4, false, attrib->name}))
+      {
+        report_error(parser, attrib->name, "Wrong expression for '%s' color", attrib->name->text);
+        return;
+      }
+
+      val = clamp(val, Color4(0.f, 0.f, 0.f, 0.f), Color4(1.f, 1.f, 1.f, 1.f));
+      flags |= ShaderClass::VF_HAS_STUB_COLOR;
+      stubCol =
+        (uint32_t(255.f * val.r)) | (uint32_t(255.f * val.g) << 8) | (uint32_t(255.f * val.b) << 16) | (uint32_t(255.f * val.a) << 24);
+    }
+    else
+    {
+      report_warning(parser, *attrib->name, "Unknown static attribute '%s'", attrib->name->text);
+    }
+  }
+
+  const bool hasStubColor = flags & ShaderClass::VF_HAS_STUB_COLOR;
+
   bool varReferenced = true;
 
-  if (!s.mode)
+  if (!s.mode && !hasStubColor)
   {
     int intervalNameId = ctx.tgtCtx().intervalNameMap().getNameId(s.name->text);
     ShaderVariant::ExtType intervalIndex = allRefStaticVars.getIntervals()->getIntervalIndex(intervalNameId);
@@ -157,6 +200,8 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
     sv = append_items(sclass.stvar, 1);
     sclass.stvar[sv].type = t;
     sclass.stvar[sv].nameId = varNameId;
+    sclass.stvar[sv].additionalFlags = flags;
+    sclass.stvar[sv].stubColor = stubCol;
 
     if (sclass.stvarsAreDynamic.size() <= sv)
       sclass.stvarsAreDynamic.resize(sv + 1);
@@ -215,6 +260,16 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
       report_error(parser, s.name, "static var '%s' defined with different type", s.name->text);
       return;
     }
+    if (sclass.stvar[sv].additionalFlags != flags)
+    {
+      report_error(parser, s.name, "static var '%s' defined with different attributes", s.name->text);
+      return;
+    }
+    if ((flags & ShaderClass::VF_HAS_STUB_COLOR) && (sclass.stvar[sv].stubColor != stubCol))
+    {
+      report_error(parser, s.name, "static var '%s' defined with different stub colors", s.name->text);
+      return;
+    }
   }
 
   if (varReferenced)
@@ -227,7 +282,22 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
   preshaderSource.staticVarDecls.push_back(&s);
 
   if (s.init && !s.init->expr)
-    eval_init_stat(s.name, *s.init);
+    eval_init_stat(s.name, *s.init, varReferenced);
+
+  if (hasStubColor)
+  {
+    int opcode = shaderopcode::makeOp2(SHCOD_TEXTURE_STUBCOL, 0, sv);
+    for (int i = 0; i < sclass.shInitCode.size(); i += 2)
+      if (sclass.shInitCode[i + 1] == opcode)
+      {
+        if (sclass.shInitCode[i] != stubCol)
+          report_error(parser, s.name, "ambiguous stub color for static texture <%s> used in branching", s.name->text);
+        return;
+      }
+
+    sclass.shInitCode.push_back(stubCol);
+    sclass.shInitCode.push_back(opcode);
+  }
 }
 
 void AssembleShaderEvalCB::eval_bool_decl(bool_decl &decl) { ctx.localBoolVars().add(decl, parser); }
@@ -245,7 +315,7 @@ void AssembleShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
   eval_bool_decl(decl);
 }
 
-void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v)
+void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v, bool is_referenced)
 {
   int varNameId = ctx.tgtCtx().varNameMap().getVarId(var->text);
 
@@ -272,9 +342,7 @@ void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v
       case SHADER_TOKENS::SHTOK_ambient: c = SHCOD_AMBIENT; break;
       default: G_ASSERT(0);
     }
-    int ident_id = ctx.tgtCtx().intervalNameMap().getNameId(var->text);
-    int intervalIndex = variant.intervals.getIntervalIndex(ident_id);
-    if (intervalIndex != INTERVAL_NOT_INIT && !code.vars[vi].dynamic)
+    if (is_referenced && !code.vars[vi].dynamic)
     {
       int stVarId = sclass.find_static_var(varNameId);
       if (stVarId < 0)
@@ -308,9 +376,7 @@ void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v
 
     code.vars[vi].slot = ind;
 
-    int e_texture_ident_id = ctx.tgtCtx().intervalNameMap().getNameId(var->text);
-    int intervalIndex = variant.intervals.getIntervalIndex(e_texture_ident_id);
-    int stVarId = intervalIndex != INTERVAL_NOT_INIT ? sclass.find_static_var(varNameId) : -1;
+    int stVarId = is_referenced ? sclass.find_static_var(varNameId) : -1;
     if (stVarId >= 0 && !code.vars[vi].dynamic)
     {
       int opcode = shaderopcode::makeOp2(SHCOD_TEXTURE, ind, 0);
@@ -1264,6 +1330,12 @@ void AssembleShaderEvalCB::end_eval(shader_decl &sh)
     }
     for (int vid : compiledPreshaderRef->usedMaterialVarIds)
       code.vars[vid].used = true;
+  }
+
+  for (auto [i, shvt] : enumerate(compiledPreshaderRef->shadervarTexTypes))
+  {
+    if (shvt != SHVT_TEX_UNKNOWN)
+      ctx.parsedSemCode().vars[i].texType = shvt;
   }
 
   if (curpass)

@@ -67,6 +67,15 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline /*gpu_pi
       if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
         return;
 
+      // RB_NONE is "hack" to skip next sync
+      // but it is non efficient as we must track src op for proper sync on vulkan
+      // and also sync step must be reordered/delayed, as other operations must be RB_NONE-d too
+      // yet if it is done, no RB_NONE is NOT needed at all
+      // because if operations can be batch completed, reordered/delayed sync step will verify it and
+      // make proper batch-fashion barriers
+      if (state == RB_NONE)
+        return;
+
       Image *image = cast_to_texture_base(tex)->image;
       uint32_t stop_index = (res_range == 0) ? image->getMipLevels() * image->getArrayLayers() : res_range + res_index;
       G_UNUSED(stop_index);

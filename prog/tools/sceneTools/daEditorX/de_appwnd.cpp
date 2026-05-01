@@ -1757,9 +1757,6 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
     {
       IGenViewportWnd *vpw = getCurrentViewport();
 
-      if ((!vpw) || (!vpw->isActive()))
-        return 0;
-
       if (vpw)
       {
         vpw->activate();
@@ -1780,6 +1777,8 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
             getEnabledColliders(backupPluginColliders);
         }
       }
+      else
+        return 0;
 
       if (id == CM_CAMERAS_FPS || id == CM_CAMERAS_TPS || id == CM_CAMERAS_CAR)
       {
@@ -3854,7 +3853,7 @@ void DagorEdAppWindow::onImguiDelayedCallback(void *user_data)
   else
   {
     ViewportWindow *viewport = ged.getCurrentViewport();
-    if (!viewport || !viewport->isActive())
+    if (!viewport)
       return;
 
     const unsigned viewportCommandId = commandId & ~DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;

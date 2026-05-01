@@ -178,12 +178,18 @@ public:
   const TMatrix4_vec4 &getCameraRenderMatrix(int cascade_no) const { return shadowSplits[cascade_no].cameraRenderMatrix; }
   const TMatrix4_vec4 &getWorldCullingMatrix(int cascade_no) const { return shadowSplits[cascade_no].worldCullingMatrix; }
   const TMatrix4_vec4 &getWorldRenderMatrix(int cascade_no) const { return shadowSplits[cascade_no].worldRenderMatrix; }
+  Point2 getCascadeViewDepthRange(int cascade_no) const { return Point2(shadowSplits[cascade_no].from, shadowSplits[cascade_no].to); }
 
   const TMatrix4_vec4 &getRenderViewMatrix(int cascade_no) const { return shadowSplits[cascade_no].renderViewMatrix; }
   const TMatrix4_vec4 &getRenderProjMatrix(int cascade_no) const { return shadowSplits[cascade_no].renderProjMatrix; }
   const Point3 &shadowWidth(int cascade_no) const { return shadowSplits[cascade_no].shadowWidth; }
 
   const BBox3 &getWorldBox(int cascade_no) const { return shadowSplits[cascade_no].worldBox; }
+  dag::ConstSpan<plane3f> getShadowRegionPlanes(int cascade_no) const
+  {
+    const ShadowSplit &s = shadowSplits[cascade_no];
+    return dag::ConstSpan<plane3f>(s.shadowRegionPlanes.data(), s.shadowRegionPlaneCount);
+  }
   bool shouldUpdateCascade(int cascade_no) const { return shadowSplits[cascade_no].shouldUpdate; }
   bool isCascadeValid(int cascade_no) const { return shadowSplits[cascade_no].to > shadowSplits[cascade_no].from; }
 
@@ -219,7 +225,7 @@ public:
 private:
   struct ShadowSplit
   {
-    ShadowSplit() : from(0), to(1), frames(0xFFFF), shouldUpdate(1) {}
+    ShadowSplit() : from(0), to(1), frames(0xFFFF), shouldUpdate(1), shadowRegionPlaneCount(0) {}
     float from, to;
     Point2 znzf;
     Point3 shadowWidth;
@@ -237,6 +243,8 @@ private:
     IBBox2 viewport;
     uint16_t frames; // how many frames it was not updated
     uint16_t shouldUpdate;
+    carray<plane3f, CSM_MAX_SHADOW_REGION_PLANES> shadowRegionPlanes;
+    int shadowRegionPlaneCount;
   };
 
   ICascadeShadowsClient *client;
@@ -934,8 +942,8 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
   for (int i = 1; i < 8; ++i)
     v_bbox3_add_pt(v_frustumInLSBox, frustumPointsInLS[i]);
 
-  if (next_z_far > z_far) // Extend box along the z-axis to include next cascade frustum.
-  {                       // Helps to avoid early cascade switch due to an insufficient depth range.
+  if (settings.extendZBoxToNextCascade && next_z_far > z_far) // Extend box along the z-axis to include next cascade frustum.
+  { // Helps to avoid early cascade switch due to an insufficient depth range.
     frustum.camPlanes[Frustum::FARPLANE] = v_perm_xyzd(frustum.camPlanes[Frustum::FARPLANE], v_splats(next_z_far));
     frustum.generateAllPointFrustm(frustumPoints);
     for (int i = 0; i < 8; ++i)
@@ -1037,6 +1045,84 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
   shadowFrustum.calcFrustumBBox(frustumWorldBox);
   v_stu(&split.worldBox[0].x, v_add(frustumWorldBox.bmin, v_ldu(&camera_pos.x)));
   v_stu_p3(&split.worldBox[1].x, v_add(frustumWorldBox.bmax, v_ldu(&camera_pos.x)));
+
+  {
+    Frustum worldFrustum;
+    worldFrustum.construct(TMatrix4(view_matrix) * projTM);
+    vec4f v_camera_pos = v_ldu_p3(&camera_pos.x);
+    {
+      vec4f n_far = worldFrustum.camPlanes[Frustum::FARPLANE];
+      vec4f n_near = worldFrustum.camPlanes[Frustum::NEARPLANE];
+      worldFrustum.camPlanes[Frustum::FARPLANE] = v_perm_xyzd(n_far, v_sub(v_splats(z_far), v_dot3(n_far, v_camera_pos)));
+      worldFrustum.camPlanes[Frustum::NEARPLANE] = v_perm_xyzd(n_near, v_sub(v_splats(-z_near), v_dot3(n_near, v_camera_pos)));
+    }
+    vec3f worldFrustumPoints[8];
+    worldFrustum.generateAllPointFrustm(worldFrustumPoints);
+
+    static const struct
+    {
+      uint8_t v0, v1, f0, f1;
+    } edges[12] = {
+      // side edges
+      {1, 0, Frustum::LEFT, Frustum::TOP},
+      {2, 3, Frustum::LEFT, Frustum::BOTTOM},
+      {5, 4, Frustum::RIGHT, Frustum::TOP},
+      {6, 7, Frustum::RIGHT, Frustum::BOTTOM},
+      // near-plane edges
+      {0, 4, Frustum::TOP, Frustum::NEARPLANE},
+      {4, 6, Frustum::RIGHT, Frustum::NEARPLANE},
+      {6, 2, Frustum::BOTTOM, Frustum::NEARPLANE},
+      {0, 2, Frustum::LEFT, Frustum::NEARPLANE},
+      // far-plane edges
+      {5, 1, Frustum::TOP, Frustum::FARPLANE},
+      {7, 5, Frustum::RIGHT, Frustum::FARPLANE},
+      {3, 7, Frustum::BOTTOM, Frustum::FARPLANE},
+      {3, 1, Frustum::LEFT, Frustum::FARPLANE},
+    };
+
+    const float EPS = 1.0e-6f;
+    vec4f v_dirToSun = v_ldu(&dir_to_sun.x);
+
+    vec4f v_centroid = worldFrustumPoints[0];
+    for (int i = 1; i < 8; ++i)
+      v_centroid = v_add(v_centroid, worldFrustumPoints[i]);
+    v_centroid = v_mul(v_centroid, v_splats(0.125f));
+
+    bool frontFace[6];
+    split.shadowRegionPlaneCount = 0;
+    // We classify faces relative to sun direction.
+    for (int i = 0; i < 6; ++i)
+    {
+      frontFace[i] = v_test_vec_x_lt_0(v_dot3_x(worldFrustum.camPlanes[i], v_dirToSun)) != 0;
+      if (!frontFace[i])
+        split.shadowRegionPlanes[split.shadowRegionPlaneCount++] = worldFrustum.camPlanes[i];
+    }
+
+    for (int i = 0; i < 12; ++i)
+    {
+      // Edge belongs to silhouette if shared faces have opposite sign.
+      if (frontFace[edges[i].f0] == frontFace[edges[i].f1])
+        continue;
+
+      vec4f edge = v_sub(worldFrustumPoints[edges[i].v1], worldFrustumPoints[edges[i].v0]);
+      vec4f n = v_cross3(v_dirToSun, edge);
+
+      if (v_extract_x(v_length3_sq_x(n)) <= EPS)
+        continue;
+
+      n = v_norm3(n);
+      vec4f d = v_neg(v_dot3(n, worldFrustumPoints[edges[i].v0]));
+      vec4f plane = v_perm_xyzd(n, d);
+
+      // In order to avoid complicating data structure with half-edges
+      // it's just easier to check plane orientation against centroid of frustum.
+      if (v_test_vec_x_lt_0(v_add(v_dot3_x(plane, v_centroid), v_splat_w(plane))))
+        plane = v_neg(plane);
+
+      G_ASSERT(split.shadowRegionPlaneCount < split.shadowRegionPlanes.size());
+      split.shadowRegionPlanes[split.shadowRegionPlaneCount++] = plane;
+    }
+  }
 }
 
 
@@ -1278,6 +1364,8 @@ const TMatrix4_vec4 &CascadeShadows::getRenderProjMatrix(int cascade_no) const {
 
 const BBox3 &CascadeShadows::getWorldBox(int cascade_no) const { return d->getWorldBox(cascade_no); }
 
+Point2 CascadeShadows::getCascadeViewDepthRange(int cascade_no) const { return d->getCascadeViewDepthRange(cascade_no); }
+
 bool CascadeShadows::shouldUpdateCascade(int cascade_no) const { return d->shouldUpdateCascade(cascade_no); }
 
 bool CascadeShadows::isCascadeValid(int cascade_no) const { return d->isCascadeValid(cascade_no); }
@@ -1320,3 +1408,4 @@ d3d::SamplerHandle CascadeShadows::getShadowsCascadeSampler() const { return d->
 const TextureInfo &CascadeShadows::getShadowCascadeTexInfo() const { return d->getShadowCascadeTexInfo(); }
 
 const Point2 &CascadeShadows::getZnZf(int cascade_no) const { return d->getZnZf(cascade_no); }
+dag::ConstSpan<plane3f> CascadeShadows::getShadowRegionPlanes(int cascade_no) const { return d->getShadowRegionPlanes(cascade_no); }

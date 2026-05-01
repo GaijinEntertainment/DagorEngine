@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "streamline_adapter.h"
+#include "drv_log_defs.h"
 #include <3d/gpuLatency.h>
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
@@ -18,7 +19,7 @@ static bool CheckOnce(bool cond, const char *msg, const Args &...args)
   static bool firstError = true;
   if (firstError)
   {
-    logerr(msg, args...);
+    D3D_ERROR(msg, args...);
     firstError = false;
   }
   return false;

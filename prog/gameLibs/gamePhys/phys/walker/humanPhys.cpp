@@ -509,6 +509,8 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   crawlSlideAngle = cosf(DegToRad(blk->getReal("crawlSlideAngle", crawlSlideAngle)));
   climbSlideAngle = cosf(DegToRad(blk->getReal("climbSlideAngle", climbSlideAngle)));
 
+  flatGroundCos = blk->getReal("flatGroundCos", flatGroundCos);
+
   maxStepAngle = cosf(DegToRad(blk->getReal("maxStepAngle", maxStepAngle)));
 
   forcedSlidingIfWalkTraceFailed = blk->getBool("forcedSlidingIfWalkTraceFailed", forcedSlidingIfWalkTraceFailed);
@@ -878,7 +880,8 @@ void HumanPhys::processShapeCastWalkResult(const PhysShapeQueryResult &shapeQuer
 
   const bool belowGround = dot(up_dir, shapeQuery.res) >= dot(up_dir, pos);
   const bool wasInAir = currentState.isInAirHistory & 2;
-  res.isInAir = wasInAir && !belowGround;
+  const bool hasFlatGround = flatGroundCos > 0.f && dot(up_dir, res.walkNormal) > flatGroundCos;
+  res.isInAir = !hasFlatGround && wasInAir && !belowGround;
 }
 
 HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, float from_ht, float down_ht, bool ignore_slide,
@@ -940,7 +943,8 @@ HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, floa
 
         const bool belowGround = dot(resPoint, upDir) >= dot(pos, upDir);
         const bool wasInAir = currentState.isInAirHistory & 2;
-        res.isInAir = wasInAir && !belowGround;
+        const bool hasFlatGround = flatGroundCos > 0.f && dot(upDir, res.walkNormal) > flatGroundCos;
+        res.isInAir = !hasFlatGround && wasInAir && !belowGround;
         res.walkMatId = matId;
       }
     }

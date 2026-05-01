@@ -87,3 +87,15 @@ inline bool path_is_abs(const char *path)
 #endif
   return path[0] == '/';
 }
+
+template <class T>
+inline constexpr T nbitmask(int nb)
+{
+  return (T{1} << nb) - T{1};
+}
+
+template <class T>
+inline constexpr T nbitmask(int nb, int shift)
+{
+  return ((T{1} << nb) - T{1}) << shift;
+}

@@ -10,11 +10,17 @@ namespace bind_dascript
 template <class T, int ID = 0>
 struct LoadingContainer
 {
-  thread_local static inline eastl::unique_ptr<T> value;
   eastl::vector<eastl::unique_ptr<T>> cache;
+
+  static decltype(auto) getTLSValue()
+  {
+    static thread_local eastl::unique_ptr<T> value;
+    return (value);
+  }
 
   static T *getOrCreateValuePtr()
   {
+    auto &value = getTLSValue();
     if (EASTL_UNLIKELY(!value))
       value = eastl::make_unique<T>();
     return value.get();
@@ -22,14 +28,15 @@ struct LoadingContainer
 
   void thisThreadDone()
   {
-    if (value)
+    if (auto &value = getTLSValue(); value)
       cache.emplace_back(eastl::move(value));
   }
 
   void clear()
   {
-    value.reset();
+    getTLSValue().reset();
     cache.clear();
   }
 };
+
 } // namespace bind_dascript

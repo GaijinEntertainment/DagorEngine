@@ -41,6 +41,7 @@ Sources =
   static_analyzer/value_ref.cpp
   static_analyzer/naming.cpp
   static_analyzer/global_state.cpp
+  static_analyzer/external_value.cpp
 ;
 
 UseProgLibs +=

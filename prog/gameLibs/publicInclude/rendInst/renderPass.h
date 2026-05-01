@@ -18,7 +18,8 @@ enum class RenderPass
   VoxelizeAlbedo = 6,
   Voxelize3d = 7,
   Grassify = 8,
-  ToHeightMap = 9
+  ToHeightMap = 9,
+  TriangleSizeDebug = 10
 };
 
 }

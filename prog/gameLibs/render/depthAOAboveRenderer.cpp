@@ -258,7 +258,7 @@ void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUR
   Tab<Vertex> &tris, int cascade_no)
 {
 
-  d3d::set_render_target((Texture *)target, cascade_no, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{(Texture *)target, 0, static_cast<uint32_t>(cascade_no)}});
   ShaderGlobal::set_texture(depth_ao_tex_to_blurVarId, depth_tid);
   ShaderGlobal::set_float(depth_ao_texture_sizeVarId, worldAODepthData.texSize);
   ShaderGlobal::set_float(depth_ao_texture_size_invVarId, 1.0f / worldAODepthData.texSize);

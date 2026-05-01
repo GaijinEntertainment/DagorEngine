@@ -24,12 +24,17 @@ shader rendinst_projective_decal
   static int mapping_mode = 0;
   interval mapping_mode: cone_mapping < 1, planar_mapping_fade;
 
+  // Parameters to control decal appearance based on angle (cos) between surface normal and decal normal.
+  // [x,y] - diffuse color blending range, [z,w] - normalMap blending
+  static float4 surface_normal_thresholds = (-0.5, 0, 0.5, 0.866);
+
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];
   (ps) {
     diffuse_tex@staticSmp = tex;
     normal_tex@staticSmp = normal;
     decal_tc@f4 = (decal_tc.x, decal_tc.y, decal_tc.z - decal_tc.x, decal_tc.w - decal_tc.y);
+    surface_normal_thresholds@f4 = surface_normal_thresholds;
   }
 
   hlsl {
@@ -148,16 +153,16 @@ shader rendinst_projective_decal
       ##endif
       half3 surfaceNormal = normalize(cross(ddx(pointToEye), ddy(pointToEye)));
       half dotNormal = dot(surfaceNormal, input.normal);
-      // Hide decal on opposite side of wall/floor
-      half diffuseBlendFrom = 0; // cos 90 degrees
-      half diffuseBlendTo = -0.5; // cos 120 degrees
-      alpha *= smoothstep(diffuseBlendTo, diffuseBlendFrom, dotNormal);
+      // It is needed to hide decal on opposite side of wall/floor, or sometimes even on perpendicular surfaces
+      half diffuseBlendFrom = get_surface_normal_thresholds().x;
+      half diffuseBlendTo = get_surface_normal_thresholds().y;
+      alpha *= smoothstep(diffuseBlendFrom, diffuseBlendTo, dotNormal);
+
       // We can't read normal from gbuf (because write there) and normal from ddx/ddy is very bad on round
-      // surfaces. So just not modify normal when angle is too large. Broken normals look worse than only
-      // diffuse part of blood.
-      half normalBlendFrom = 0.866; // cos 30 degrees
-      half normalBlendTo = 0.5; // cos 60 degrees
-      half normalStrength = smoothstep(normalBlendTo, normalBlendFrom, dotNormal);
+      // surfaces. So just not modify normal when angle is too large.
+      half normalBlendFrom = get_surface_normal_thresholds().z;
+      half normalBlendTo = get_surface_normal_thresholds().w;
+      half normalStrength = smoothstep(normalBlendFrom, normalBlendTo, dotNormal);
 
       half4 packedNormalMap = tex2DBindless(get_normal_tex(), decalTC.xy);
       half smoothness = packedNormalMap.r;

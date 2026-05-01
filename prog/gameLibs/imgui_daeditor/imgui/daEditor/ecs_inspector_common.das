@@ -537,9 +537,14 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
         imgui::SetClipboardText(string(blk))
 
     imgui::SameLine()
-    if imgui::Button("copy blk compact")
+    if imgui::Button("copy compact blk")
       imgui::CloseCurrentPopup()
       imgui::SetClipboardText(entity_to_compact_blk_text(eid))
+
+    imgui::SameLine()
+    if imgui::Button("copy filtered compact blk")
+      imgui::CloseCurrentPopup()
+      imgui::SetClipboardText(entity_to_filtered_compact_blk_text(eid, templateName, imgui_get_blk_val("ecs_inspector_{uid}", "filter", "")))
 
     imgui::SameLine()
     if imgui::Button("copy blk diff")
@@ -608,10 +613,6 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
   imgui::SameLine()
   SetNextItemWidth(-55.)
 
-  let mgr & = getEntityManager()
-  let dataComps & = getDataComponents()
-  let compTypes & = getComponentTypes()
-
   filter |> set() <| imgui_get_blk_val("ecs_inspector_{uid}", "filter", "")
 
   var filterChanged = filter |> Draw("##{eid}")
@@ -626,96 +627,13 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
     imgui_save_blk()
 
   imgui::BeginChild("sub", float2(0, 0))
-  let tmp = getTemplateByName(templateName)
   if BeginTable("split", 3, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersOuter | ImGuiTableFlags.RowBg)
     TableSetupColumn("name", ImGuiTableColumnFlags.WidthStretch)
     TableSetupColumn("value", ImGuiTableColumnFlags.WidthStretch)
     TableSetupColumn("menu", ImGuiTableColumnFlags.WidthFixed, TEXT_BASE_WIDTH * 2f)
 
-    if !basicStructAnnotationsInited
-      basicStructAnnotationsInited = true
-      program_for_each_registered_module() <| $(mod)
-        mod |> module_for_each_annotation <| $(ann)
-          if ann.isBasicStructureAnnotation
-            unsafe
-              let name = get_annotation_name(ann)
-              basicStructAnnotations |> insert(name) <| addr(reinterpret<BasicStructureAnnotation> ann)
-
-    let componentsNum = mgr |> getNumComponents(eid)
-    var inscope comps : array<tuple<name : string; cri : ComponentRenderInfo>>
-    for idx in urange(componentsNum >= 0 ? componentsNum : 0)
-      let compRef = mgr |> getEntityComponentRef(eid, idx)
-      let comp = dataComps |> data_components_getComponentById(compRef.componentId)
-      if (uint(comp.flags) & uint(IS_COPY)) != 0u
-        continue
-
-      let compTypeName = compTypes |> component_types_findTypeName(compRef.userType)
-      let name = dataComps |> data_components_getComponentNameById(compRef.componentId)
-      var annotationFound = false
-      let compsSizeBefore = length(comps)
-      if basicStructAnnotations |> key_exists(compTypeName) && !has_inspector(compTypeName)
-        annotationFound = true
-        let t = compTypes |> component_types_getTypeInfo(compRef.typeId)
-        let data = (uint(t.flags) & uint(ComponentTypeFlags.COMPONENT_TYPE_BOXED)) != 0u ? *unsafe(reinterpret<uint8 ??> compRef.rawData) : unsafe(reinterpret<uint8?> compRef.rawData)
-        collect_struct_components(name, data, compTypeName, comps, basicStructAnnotations)
-
-      comps |> emplace((name, ComponentRenderInfo(
-        rawData = compRef.rawData,
-        roVal = annotationFound ? "(Binded, {length(comps) - compsSizeBefore} fields)" : "(No das bind found)",// Correct term should be "annotation" but it is mainly used internally in das and most people refer to fields as binds.
-        dasTypeName = "",
-        typeName = compTypeName,
-        idx = idx,
-        componentId = compRef.componentId,
-        isValidComponent = true)))
-
-    comps |> sort() <| $(left; right)
-      return left.name < right.name
-
-    var inscope filters : array<string>
-    var inscope excludeFilters : array<string>
-    var inscope typeFilters : array<string>
-    var inscope excludeTypeFilters : array<string>
-    var inscope flagFilters : array<string>
-    var inscope excludeFlagFilters : array<string>
-    for filterRange in filter.Filters
-      if filterRange |> empty()
-        continue
-      let filterString = string(filterRange)
-      if filterString |> starts_with("t:") && length(filterString) > 2
-        typeFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
-      elif filterString |> starts_with("-t:") && length(filterString) > 3
-        excludeTypeFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
-      elif filterString |> starts_with("f:") && length(filterString) > 2
-        flagFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
-      elif filterString |> starts_with("-f:") && length(filterString) > 3
-        excludeFlagFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
-      elif filterString |> starts_with("-") && length(filterString) > 1
-        excludeFilters |> push(unsafe(slice(filterString, 1) |> strip() |> to_lower_in_place()))
-      else
-        filters |> push(unsafe(filterString |> to_lower_in_place()))
-
-
-    for c in comps
-      let name = c.name
-      var flags = 0u
-      var flagsSet = false
-      let lowerName = name |> to_lower()
-      if (length(filters) > 0 && !match(filters, lowerName)) || (length(excludeFilters) > 0 && match(excludeFilters, lowerName))
-        continue
-
-      let typeName = c.cri.typeName
-      let lowerTypeName = typeName |> to_lower()
-      if (length(typeFilters) > 0 && !match(typeFilters, lowerTypeName)) || (length(excludeTypeFilters) > 0 && match(excludeTypeFilters, lowerTypeName))
-        continue
-
-      if length(flagFilters) > 0 || length(excludeFlagFilters) > 0
-        flagsSet = true
-        flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
-        let nameWithFlags = item_flags(flags, "")
-        if (length(flagFilters) > 0 && !match(flagFilters, nameWithFlags)) || (length(excludeFlagFilters) > 0 && match(excludeTypeFilters, nameWithFlags))
-          continue
-
-      let inspectorFlags = inspector_get_flags(typeName, eids, name)
+    iterate_over_filtered_components(eid, templateName, filter) <| $(name; cri; flags)
+      let inspectorFlags = inspector_get_flags(cri.typeName, eids, name)
 
       // Call next raw before calling GetCursorPosY so we get the start of a row and not the end of the previous one.
       // Container types call TableNextRow inside their inspector for special formatting.
@@ -729,34 +647,34 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
       // after render and we need it for correct comp hiding and scroll behaviour especially near
       // the end of the list.
 
+      var hiddenByClipper = false
+
       // Components below view port
       if GetCursorPosY() > GetScrollY() + GetWindowSize().y && !inspectorFlags.MULTILINE
         imgui::Text("1")
         TableNextColumn()
-        continue
+        hiddenByClipper = true
 
       // Components above view port
       // imgui::GetTextLineHeightWithSpacing() is so that lines which are partially above the viewport are still rendered fully
-      if GetCursorPosY() + imgui::GetTextLineHeightWithSpacing() < GetScrollY() && !inspectorFlags.MULTILINE
+      elif GetCursorPosY() + imgui::GetTextLineHeightWithSpacing() < GetScrollY() && !inspectorFlags.MULTILINE
         imgui::Text("0")
         TableNextColumn()
-        continue
+        hiddenByClipper = true
 
-      if !flagsSet
-        flagsSet = true
-        flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
+      if !hiddenByClipper
+        if !inspectorFlags.IS_CONTAINER
+          imgui::Text(item_flags(flags, name))
+          imgui_hint(name)
+          TableNextColumn()
 
-      if !inspectorFlags.IS_CONTAINER
-        imgui::Text(item_flags(flags, name))
-        imgui_hint(name)
-        TableNextColumn()
-
-      var changed = false
-      let refs <- [ clone(c.cri) ]
-      render_item(eids, flags, name, typeName, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
-      if changed
-        entity_obj_editor_saveComponent(eid, name)
-        invalidate_item(eid, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs))
+        var changed = false
+        let typeName = cri.typeName
+        let refs <- [ clone(cri) ]
+        render_item(eids, flags, name, typeName, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs), 0, safe_addr(changed)) <| $ [unused_argument(_)] (_) => true
+        if changed
+          entity_obj_editor_saveComponent(eid, name)
+          invalidate_item(eid, unsafe(reinterpret<array<ComponentRenderInfo#>#> refs))
 
     EndTable()
 
@@ -764,6 +682,143 @@ def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>
   imgui::EndChild()
 
   PopID()
+
+[no_aot]
+def entity_to_filtered_compact_blk_text(eid : EntityId; templateName, filterStr : string; maxContainerItems : int = 10) : string
+  let mgr & = getEntityManager()
+
+  var filter = new ImGuiTextFilter
+  defer <|
+    unsafe
+      delete filter
+  *filter |> set() <| filterStr
+
+  var result = ""
+  var first = true
+  var lastCompName = ""
+  iterate_over_filtered_components(eid, templateName, *filter) <| $ [unused_argument(_cri, _flags)] (name; _cri; _flags)
+    let dotIdx = find(name, ".")
+    let compName = dotIdx >= 0 ? slice(name, 0, dotIdx) : name
+    if first || compName != lastCompName
+      first = false
+      lastCompName = compName
+
+      let compRef = mgr |> getComponentRef(eid, compName)
+      let compTypeName = getComponentTypes() |> component_types_findTypeName(compRef.userType)
+      if is_cont_type(compRef.userType)
+        using() <| $(var blk : DataBlock)
+          component_to_blk_param(compName, compRef, blk)
+          var elemCount = 0
+          if blk.blockCount > 0u
+            datablock_get_block(blk, 0u) <| $(contBlk)
+              elemCount = int(contBlk.paramCount) + int(contBlk.blockCount)
+          if elemCount < maxContainerItems
+            result += "{string(blk) |> strip()}\n"
+          else
+            result += "{compName}: {compTypeName} [{elemCount} items]\n"
+      else
+        using() <| $(var blk : DataBlock)
+          component_to_blk_param(compName, compRef, blk)
+          result += "{string(blk) |> strip()}\n"
+
+  return result
+
+[no_aot]
+def iterate_over_filtered_components(eid : EntityId;
+                                     templateName : string;
+                                     var filter : ImGuiTextFilter;
+                                     cb : block<(name : string; cri : ComponentRenderInfo; flags : uint) : void>)
+  if !basicStructAnnotationsInited
+    basicStructAnnotationsInited = true
+    program_for_each_registered_module() <| $(mod)
+      mod |> module_for_each_annotation <| $(ann)
+        if ann.isBasicStructureAnnotation
+          unsafe
+            let name = get_annotation_name(ann)
+            basicStructAnnotations |> insert(name) <| addr(reinterpret<BasicStructureAnnotation> ann)
+
+  let mgr & = getEntityManager()
+  let dataComps & = getDataComponents()
+  let compTypes & = getComponentTypes()
+  let tmp = getTemplateByName(templateName)
+
+  var inscope comps : array<tuple<name : string; cri : ComponentRenderInfo>>
+  let componentsNum = mgr |> getNumComponents(eid)
+  for idx in urange(componentsNum >= 0 ? componentsNum : 0)
+    let compRef = mgr |> getEntityComponentRef(eid, idx)
+    let comp = dataComps |> data_components_getComponentById(compRef.componentId)
+    if (uint(comp.flags) & uint(IS_COPY)) != 0u
+      continue
+
+    let compTypeName = compTypes |> component_types_findTypeName(compRef.userType)
+    let name = dataComps |> data_components_getComponentNameById(compRef.componentId)
+    var annotationFound = false
+    let compsSizeBefore = length(comps)
+    if basicStructAnnotations |> key_exists(compTypeName) && !has_inspector(compTypeName)
+      annotationFound = true
+      let t = compTypes |> component_types_getTypeInfo(compRef.typeId)
+      let data = (uint(t.flags) & uint(ComponentTypeFlags.COMPONENT_TYPE_BOXED)) != 0u ? *unsafe(reinterpret<uint8 ??> compRef.rawData) : unsafe(reinterpret<uint8?> compRef.rawData)
+      collect_struct_components(name, data, compTypeName, comps, basicStructAnnotations)
+
+    comps |> emplace((name, ComponentRenderInfo(
+      rawData = compRef.rawData,
+      roVal = annotationFound ? "(Binded, {length(comps) - compsSizeBefore} fields)" : "(No das bind found)",// Correct term should be "annotation" but it is mainly used internally in das and most people refer to fields as binds.
+      dasTypeName = "",
+      typeName = compTypeName,
+      idx = idx,
+      componentId = compRef.componentId,
+      isValidComponent = true)))
+
+  comps |> sort() <| $(left; right)
+    return left.name < right.name
+
+  var inscope filters : array<string>
+  var inscope excludeFilters : array<string>
+  var inscope typeFilters : array<string>
+  var inscope excludeTypeFilters : array<string>
+  var inscope flagFilters : array<string>
+  var inscope excludeFlagFilters : array<string>
+  for filterRange in filter.Filters
+    if filterRange |> empty()
+      continue
+    let filterString = string(filterRange)
+    if filterString |> starts_with("t:") && length(filterString) > 2
+      typeFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
+    elif filterString |> starts_with("-t:") && length(filterString) > 3
+      excludeTypeFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
+    elif filterString |> starts_with("f:") && length(filterString) > 2
+      flagFilters |> push(unsafe(slice(filterString, 2) |> strip() |> to_lower_in_place()))
+    elif filterString |> starts_with("-f:") && length(filterString) > 3
+      excludeFlagFilters |> push(unsafe(slice(filterString, 3) |> strip() |> to_lower_in_place()))
+    elif filterString |> starts_with("-") && length(filterString) > 1
+      excludeFilters |> push(unsafe(slice(filterString, 1) |> strip() |> to_lower_in_place()))
+    else
+      filters |> push(unsafe(filterString |> to_lower_in_place()))
+
+  for c in comps
+    let name = c.name
+    var flags = 0u
+    var flagsSet = false
+    let lowerName = name |> to_lower()
+    if (length(filters) > 0 && !match(filters, lowerName)) || (length(excludeFilters) > 0 && match(excludeFilters, lowerName))
+      continue
+
+    let typeName = c.cri.typeName
+    let lowerTypeName = typeName |> to_lower()
+    if (length(typeFilters) > 0 && !match(typeFilters, lowerTypeName)) || (length(excludeTypeFilters) > 0 && match(excludeTypeFilters, lowerTypeName))
+      continue
+
+    if length(flagFilters) > 0 || length(excludeFlagFilters) > 0
+      flagsSet = true
+      flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
+      let nameWithFlags = item_flags(flags, "")
+      if (length(flagFilters) > 0 && !match(flagFilters, nameWithFlags)) || (length(excludeFlagFilters) > 0 && match(excludeTypeFilters, nameWithFlags))
+        continue
+
+    if !flagsSet
+      flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
+
+    cb |> invoke(name, c.cri, flags)
 
 def get_annotation_name(ann : rtti::Annotation | rtti::TypeAnnotation)
   var name = ""

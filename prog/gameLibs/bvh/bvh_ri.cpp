@@ -275,16 +275,19 @@ void on_unload_scene(ContextId context_id)
     for (auto &trees : lod)
       for (auto &tree : trees.second.elems)
         context_id->freeMetaRegion(tree.second.metaAllocId);
-  for (auto &trees : context_id->uniqueRiExtraTreeBuffers)
-    for (auto &tree : trees.second)
-      context_id->freeMetaRegion(tree.second.metaAllocId);
+  for (auto &lod : context_id->uniqueRiExtraTreeBuffers)
+    for (auto &trees : lod)
+      for (auto &tree : trees.second.elems)
+        context_id->freeMetaRegion(tree.second.metaAllocId);
   for (auto &trees : context_id->uniqueRiExtraFlagBuffers)
     for (auto &tree : trees.second)
       context_id->freeMetaRegion(tree.second.metaAllocId);
   for (auto &lod : context_id->uniqueTreeBuffers)
     lod.clear();
   context_id->freeUniqueTreeBLASes.clear();
-  context_id->uniqueRiExtraTreeBuffers.clear();
+  context_id->freeUniqueRiExtraTreeBLASes.clear();
+  for (auto &lod : context_id->uniqueRiExtraTreeBuffers)
+    lod.clear();
   context_id->uniqueRiExtraFlagBuffers.clear();
 
   for (auto &tree : context_id->stationaryTreeBuffers)

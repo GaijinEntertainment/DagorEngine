@@ -30,6 +30,89 @@ inline bool is_flag(ContextId context_id, ShaderMesh::RElem &elem)
 
 using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &, int &);
 
+inline ReferencedTransformData *map_tree_stationary(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &,
+  int &anim_index)
+{
+  anim_index = -1;
+  return nullptr;
+}
+
+struct MapTreePointers
+{
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> newUniqueTreeBuffers;
+  dag::Span<int> treeAnimIndexCount;
+  eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
+};
+
+template <typename tree_hash, bool do_animation_index>
+inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle, int lod_ix,
+  bool &recycled, int &anim_index, MapTreePointers &pointers)
+{
+  recycled = false;
+
+  uint64_t id = tree_hash::hash(object_id, pos, handle);
+
+  // No need to have a lock here to access the containers. While this function is called from multiple threads,
+  // the uniqueTreeBuffers is only read from all threads. All new items are added to the newUniqueTreeBuffers,
+  // which is thread local. Then later it will be merged into the uniqueTreeBuffers on the main thread.
+
+  G_ASSERT(lod_ix < Context::maxUniqueLods);
+  auto &uniqueContainer = pointers.uniqueTreeBuffers[lod_ix];
+
+  ReferencedTransformDataWithAge *tree = nullptr;
+  if (auto instanceIter = uniqueContainer.find(id); instanceIter != uniqueContainer.end())
+  {
+    tree = &instanceIter->second;
+  }
+  else
+  {
+    tree = &pointers.newUniqueTreeBuffers[lod_ix][id];
+
+    if constexpr (do_animation_index)
+    {
+      // Assign an anim index, which has the least instances
+      int leastIndices = 0;
+      for (int i = 1; i < Context::MaxTreeAnimIndices; ++i)
+        if (pointers.treeAnimIndexCount[i] < pointers.treeAnimIndexCount[leastIndices])
+          leastIndices = i;
+
+      tree->animIndex = leastIndices;
+      ++pointers.treeAnimIndexCount[leastIndices];
+    }
+  }
+
+  if constexpr (do_animation_index)
+    anim_index = tree->animIndex;
+  else
+    anim_index = -1;
+
+  auto &data = tree->elems[object_id];
+
+  // Hash collision. It is possible that the same position is used for different trees of the same type.
+  if (data.used)
+    return nullptr;
+
+  data.used = true;
+
+  tree->age = -1;
+
+  if (!data.buffer)
+  {
+    if (auto iter = pointers.freeUniqueTreeBLASes->find(object_id); iter != pointers.freeUniqueTreeBLASes->end())
+    {
+      if (int index = iter->second.cursor.sub_fetch(1); index >= 0)
+      {
+        auto &blas = iter->second.blases[index];
+        data.blas.swap(blas);
+        recycled = true;
+      }
+    }
+  }
+
+  return &data;
+}
+
 template <map_tree_fn mapper>
 inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t object_id, int lod_ix, bool is_pos_inst,
   mat44f_cref tm, vec4f_const originalPos, const E3DCOLOR *colors, rendinst::riex_handle_t handle,
@@ -157,6 +240,67 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
     treeInfo.data.perInstanceRenderAdditionalData = 0;
 
   return true;
+}
+
+struct TidyUpTreePointers
+{
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
+  dag::Span<int> treeAnimIndexCount;
+  eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
+};
+
+template <bool do_animation_index>
+inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers)
+{
+  // We make use of the fact that resize does not shrink the vector itself, only the elem count is changed
+  for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
+  {
+    if (freeTrees.second.cursor.load() < 0)
+      freeTrees.second.cursor.store(0);
+    freeTrees.second.blases.resize(freeTrees.second.cursor.load());
+  }
+
+  int dropCount = 0;
+
+  for (auto [index, lod] : enumerate(pointers.uniqueTreeBuffers))
+    for (auto iter = lod.begin(); iter != lod.end();)
+    {
+      // Reset the used flags, so in the next frame, all start fresh
+      for (auto &elem : iter->second.elems)
+        elem.second.used = false;
+
+      iter->second.age++;
+      if (iter->second.age < 1)
+      {
+        ++iter;
+        continue;
+      }
+
+      if constexpr (do_animation_index)
+        --pointers.treeAnimIndexCount[iter->second.animIndex];
+
+      for (auto &elem : iter->second.elems)
+      {
+        auto &storage = (*pointers.freeUniqueTreeBLASes)[elem.first].blases.push_back();
+        storage.swap(elem.second.blas);
+
+        context_id->freeMetaRegion(elem.second.metaAllocId);
+
+        if (elem.second.buffer)
+        {
+          WinAutoLock lock(context_id->processBufferAllocatorLock);
+          context_id->processBufferAllocator[elem.second.buffer.allocator].first.free(elem.second.buffer.allocId);
+        }
+      }
+
+      dropCount++;
+      iter = lod.erase(iter);
+    }
+
+  for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
+    freeTrees.second.cursor.store(freeTrees.second.blases.size());
+
+  return dropCount;
 }
 
 float get_ri_lod_dist_bias();

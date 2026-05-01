@@ -81,7 +81,7 @@ bool tsr_use_bicubic_history_sampling = true;
 float tsr_input_sampling_sigma = 0.47f;
 float tsr_sharpening = 0.5f;
 float tsr_resampling_loss_sigma = 1.0f;
-float tsr_depth_overhang_sigma = 0.0004f;
+float tsr_depth_overhang_sigma = 0.01f;
 float tsr_process_loss = 0.99f;
 float tsr_debug_update_override = 1.0f;
 int tsr_debug_view = 1;
@@ -115,7 +115,6 @@ namespace
 void apply_preset(TemporalSuperResolution::Preset preset)
 {
   using P = TemporalSuperResolution::Preset;
-  tsr_depth_overhang_sigma = preset == P::Low ? 0.00006f : 0.0004f;
   tsr_resampling_loss_sigma = preset == P::Vr ? 2.0f : 1.0f;
   tsr_use_bicubic_history_sampling = preset == P::High;
 }
@@ -413,7 +412,7 @@ static void render_imgui()
   ImGui::SliderFloat("Input Sampling Sigma", &tsr_input_sampling_sigma, 0.0f, 10.0f);
   ImGui::SliderFloat("Sharpening", &tsr_sharpening, 0.0f, 1.0f);
   ImGui::SliderFloat("Resampling Loss Sigma", &tsr_resampling_loss_sigma, 0.0f, 10.0f);
-  ImGui::SliderFloat("Depth Overhang Sigma", &tsr_depth_overhang_sigma, 0.0f, 0.003f, "%.6f");
+  ImGui::SliderFloat("Depth Overhang Sigma", &tsr_depth_overhang_sigma, 0.0f, 0.1f, "%.6f");
   ImGui::SliderFloat("Process Loss", &tsr_process_loss, 0.0f, 1.0f);
   ImGui::SliderFloat("Process Loss Dynamic", &tsr_process_loss_dynamic, 0.0f, 1.0f);
   ImGui::SliderFloat("Debug Update Override", &tsr_debug_update_override, 0.0f, 1.0f);
@@ -436,11 +435,7 @@ static void render_imgui()
     return;
 
   static const char *const debug_view_labels[] = {
-    "Confidence",
-    "Rejection",
-    "Tonemapped color",
-    "Variance clipping AABB scale",
-  };
+    "Confidence", "Rejection", "Tonemapped color", "Variance clipping AABB scale", "History", "Rectified history"};
   const int debug_view_max = static_cast<int>(sizeof(debug_view_labels) / sizeof(debug_view_labels[0])) - 1;
   if (tsr_debug_view < 0)
     tsr_debug_view = 0;

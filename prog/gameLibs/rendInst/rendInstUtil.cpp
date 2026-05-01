@@ -117,7 +117,7 @@ bool riutil::is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc)
 }
 
 bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, const int16_t *data,
-  const RendInstGenData::Cell *cell, mat44f &out_tm)
+  const RendInstGenData::Cell *cell, mat44f &out_tm, uint32_t &out_palette_id)
 {
   G_ASSERT(!desc.isRiExtra());
   static constexpr int SUBCELL_DIV = RendInstGenData::SUBCELL_DIV;
@@ -140,21 +140,29 @@ bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGen
       if (!rendinst::gen::unpack_tm_pos(v_pos, v_scale, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id))
         return false;
 
+      out_palette_id = static_cast<uint32_t>(v_extract_xi(v_palette_id));
       rendinst::gen::RotationPaletteManager::Palette palette =
         rendinst::gen::get_rotation_palette_manager()->getPalette({crt.rtData->layerIdx, desc.pool});
-      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, v_extract_xi(v_palette_id));
+      quat4f v_rot = rendinst::gen::RotationPaletteManager::get_quat(palette, (int)out_palette_id);
 
       v_mat44_compose(out_tm, v_pos, v_rot, v_scale);
       return true;
     }
     else
     {
-      return rendinst::gen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation);
+      vec4i v_palette_id;
+      bool success = rendinst::gen::unpack_tm_pos(out_tm, data, v_cell_add, v_cell_mul, palette_rotation, &v_palette_id);
+      if (success)
+        out_palette_id = static_cast<uint32_t>(v_extract_xi(v_palette_id));
+      return success;
     }
   }
   else
   {
-    return rendinst::gen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
+    bool success = rendinst::gen::unpack_tm_full(out_tm, data, v_cell_add, v_cell_mul);
+    if (success)
+      out_palette_id = 0;
+    return success;
   }
 }
 

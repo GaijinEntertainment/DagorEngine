@@ -378,8 +378,9 @@ private:
   //IYuplay2Session
   virtual void YU2VCALL free();
 
-  virtual IYuplay2UserProc* user() { return (IYuplay2UserProc*)this; }
-  virtual IYuplay2ItemProc* item() { return (IYuplay2ItemProc*)this; }
+  virtual IYuplay2UserProc* YU2VCALL user() { return (IYuplay2UserProc*)this; }
+  virtual IYuplay2ItemProc* YU2VCALL item() { return (IYuplay2ItemProc*)this; }
+  virtual IYuplay2Answer* YU2VCALL answer(Yuplay2Handle req);
 
   virtual unsigned YU2VCALL getStateSync();
   virtual unsigned YU2VCALL getTencentZoneIdSync();

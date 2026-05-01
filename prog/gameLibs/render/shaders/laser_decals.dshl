@@ -13,8 +13,6 @@ texture perlin_noise3d;
 int laser_decals_debug_mode = 0;
 interval laser_decals_debug_mode: off<1, boxes;
 
-interval special_vision : special_vision_off<1, thermal_vision;
-
 shader laser_decal_generator
 {
   (cs) {
@@ -107,11 +105,6 @@ shader laser_point_decal {
   z_write = false;
   z_test = true;
   blend_src = sa; blend_dst = 1;
-
-  if (special_vision == thermal_vision)
-  {
-    dont_render;
-  }
 
   hlsl {
     #define BLEND_GBUFFER 1

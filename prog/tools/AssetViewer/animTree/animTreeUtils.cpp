@@ -583,6 +583,20 @@ DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_
   return nullptr;
 }
 
+DataBlock *find_animate_and_proc_block(DataBlock *props, const String &name)
+{
+  for (int i = 0; i < props->blockCount(); ++i)
+  {
+    DataBlock *settings = props->getBlock(i);
+    if (strcmp(settings->getBlockName(), "animateAndProcNode") != 0)
+      continue;
+    if (const DataBlock *animateNode = settings->getBlockByName("animateNode"))
+      if (name == animateNode->getStr("name", ""))
+        return settings;
+  }
+  return nullptr;
+}
+
 DataBlock *find_block_by_block_name(DataBlock *props, const String &name, bool should_exist)
 {
   for (int i = 0; i < props->blockCount(); ++i)
@@ -1097,3 +1111,13 @@ void move_block_blk(DataBlock &blk, int from, int to)
 }
 
 bool is_comp_op_needs_p1(const char *op) { return strcmp(op, "inside") == 0 || strcmp(op, "outside") == 0 || strcmp(op, "dist") == 0; }
+
+CtrlType get_selected_ctrl_type(PropPanel::ContainerPropertyControl *panel, bool is_proc_child)
+{
+  if (is_proc_child)
+  {
+    SimpleString name = panel->getText(PID_CTRLS_TYPE_COMBO_SELECT);
+    return static_cast<CtrlType>(lup(name.c_str(), ctrl_type, ctrl_type_not_found));
+  }
+  return static_cast<CtrlType>(panel->getInt(PID_CTRLS_TYPE_COMBO_SELECT));
+}

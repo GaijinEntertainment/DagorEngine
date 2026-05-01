@@ -6,7 +6,6 @@
 #include "yu_userInfo.h"
 #include "yu_binary.h"
 #include "yu_friends.h"
-#include "yu_json.h"
 #include "yu_system.h"
 #include "yu_bencode.h"
 #include "yu_fs.h"
@@ -104,25 +103,20 @@ bool YuSession::LoginAction::run(const YuString& login, const YuString& pass, bo
 //==================================================================================================
 Yuplay2Status YuSession::LoginAction::parseServerAnswer(const YuCharTab& data)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_2STEP_AUTH)
   {
-    YuString statusStr = json.at("status").s();
-    Yuplay2Status status = checkJsonAnswer(statusStr, YU2_FAIL);
+    YuString userId = answer.at("userId").s();
+    YuString requestId = answer.at("requestId").s();
 
-    if (status == YU2_2STEP_AUTH)
-    {
-      YuString userId = json.at("userId").s();
-      YuString requestId = json.at("requestId").s();
+    bool gpTotp = answer.at("hasGjPass").b();
+    bool emailTotp = answer.at("hasTwoStepEmail").b();
+    bool wtTotp = answer.at("hasWTR").b();
 
-      bool gpTotp = json.at("hasGjPass").b();
-      bool emailTotp = json.at("hasTwoStepEmail").b();
-      bool wtTotp = json.at("hasWTR").b();
+    session.onTwoStepResponse(requestId, userId, gpTotp, emailTotp, wtTotp);
 
-      session.onTwoStepResponse(requestId, userId, gpTotp, emailTotp, wtTotp);
-
-      return status;
-    }
+    return status;
   }
 
   return CommonLoginAction::parseServerAnswer(data);
@@ -139,14 +133,14 @@ void YuSession::LoginAction::onOkStatus(const YuJson& json)
 
 
 //==================================================================================================
-Yuplay2Status YuSession::LoginAction::onErrorStatus(const YuJson& answer, Yuplay2Status status)
+Yuplay2Status YuSession::LoginAction::onErrorStatus(Yuplay2Status status)
 {
   //Kongzhong auth sometimes use login/password sent to specific KongZhong URL,
   //and we should check its LGINERROR answer for "msg" (common login does not add "msg" to JSON)
   if (status == YU2_WRONG_LOGIN && answer.in("msg"))
     session.onKongZhongLoginFail(answer.at("msg").s());
 
-  return CommonLoginAction::onErrorStatus(answer, status);
+  return CommonLoginAction::onErrorStatus(status);
 }
 
 
@@ -682,24 +676,17 @@ bool YuSession::WebLoginSessionIdAction::run()
 //==================================================================================================
 void YuSession::WebLoginSessionIdAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
-  Yuplay2Status status = YU2_FAIL;
-  YuJson json;
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-  if (json.decode(data))
+  if (status == YU2_OK)
   {
-    YuString statusStr = json.at("status").s();
-    status = checkJsonAnswer(statusStr, YU2_FAIL);
+    YuString gsid = answer.at("gsid").s();
 
-    if (status == YU2_OK)
+    if (gsid.length())
     {
-      YuString gsid = json.at("gsid").s();
-
-      if (gsid.length())
-      {
-        IYuplay2String* res = new YuSessionString(gsid);
-        done(YU2_OK, res);
-        return;
-      }
+      IYuplay2String* res = new YuSessionString(gsid);
+      done(YU2_OK, res);
+      return;
     }
   }
 
@@ -772,38 +759,31 @@ void YuSession::WebLoginAction::onHttpResponse(const YuString& url, const YuChar
 {
   repeatingRequest = false;
 
-  Yuplay2Status status = YU2_FAIL;
-  YuJson json;
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-  if (json.decode(data))
+  if (status == YU2_OK)
   {
-    YuString statusStr = json.at("status").s();
-    status = checkJsonAnswer(statusStr, YU2_FAIL);
+    CommonLoginAction::onHttpResponse(url, data);
+    return;
+  }
+  else if (status == YU2_RETRY)
+  {
+    int delaySec = answer.at("delay").i();
 
-    if (status == YU2_OK)
+    if (delaySec > 0)
     {
-      CommonLoginAction::onHttpResponse(url, data);
-      return;
-    }
-    else if (status == YU2_RETRY)
-    {
-      int delaySec = json.at("delay").i();
-
-      if (delaySec > 0)
+      const int delayTick = 100;
+      for (int rest = delaySec * 1000; rest > 0; rest -= delayTick)
       {
-        const int delayTick = 100;
-        for (int rest = delaySec * 1000; rest > 0; rest -= delayTick)
-        {
-          YuSystem::sleep(delayTick);
+        YuSystem::sleep(delayTick);
 
-          if (stopEvt.check())
-            return;
-        }
+        if (stopEvt.check())
+          return;
       }
-
-      repeatRequest(url);
-      return;
     }
+
+    repeatRequest(url);
+    return;
   }
 
   done(status);
@@ -879,13 +859,12 @@ void YuSession::KongZhongLoginAction::onOkStatus(const YuJson& json)
 
 
 //==================================================================================================
-Yuplay2Status YuSession::KongZhongLoginAction::onErrorStatus(const YuJson& answer,
-                                                             Yuplay2Status status)
+Yuplay2Status YuSession::KongZhongLoginAction::onErrorStatus(Yuplay2Status status)
 {
   if (answer.in("msg"))
     session.onKongZhongLoginFail(answer.at("msg").s());
 
-  return CommonLoginAction::onErrorStatus(answer, status);
+  return CommonLoginAction::onErrorStatus(status);
 }
 
 
@@ -919,13 +898,12 @@ void YuSession::WegameLoginAction::onOkStatus(const YuJson& json)
 
 
 //==================================================================================================
-Yuplay2Status YuSession::WegameLoginAction::onErrorStatus(const YuJson& answer,
-                                                          Yuplay2Status status)
+Yuplay2Status YuSession::WegameLoginAction::onErrorStatus(Yuplay2Status status)
 {
   if (answer.in("msg"))
     session.onKongZhongLoginFail(answer.at("msg").s());
 
-  return CommonLoginAction::onErrorStatus(answer, status);
+  return CommonLoginAction::onErrorStatus(status);
 }
 
 
@@ -958,14 +936,12 @@ bool YuSession::GetTwoStepCodeAction::run()
 //==================================================================================================
 void YuSession::GetTwoStepCodeAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
-  YuJson json;
-
-  if (json.decode(data))
+  if (answer.decode(data))
   {
-    if (json.in("Message"))
+    if (answer.in("Message"))
     {
       IYuplay2String* res = NULL;
-      res = new YuSessionString(json.at("Message").s());
+      res = new YuSessionString(answer.at("Message").s());
       done(YU2_OK, res);
       return;
     }
@@ -1026,30 +1002,24 @@ bool YuSession::PurchCountAction::run(const YuString& token, const YuString& ite
 
 
 //==================================================================================================
-Yuplay2Status YuSession::PurchCountAction::parseServerAnswer(const YuCharTab& answer, int& count)
+Yuplay2Status YuSession::PurchCountAction::parseServerAnswer(const YuCharTab& data, int& count)
 {
-  YuJson json;
-  if (json.decode(answer))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status status = checkJsonAnswer(json.at("status").s());
+    const YuParserVal::Dict& items = answer.at("items").o();
+    count = 0;
 
-    if (status == YU2_OK)
-    {
-      const YuParserVal::Dict& items = json.at("items").o();
-      count = 0;
-
-      for (YuParserVal::Dict::const_iterator i = items.begin(), end = items.end(); i != end; ++i)
-        if (!i->first.comparei(guid))
-        {
-          count = i->second.i();
-          break;
-        }
-    }
-
-    return status;
+    for (YuParserVal::Dict::const_iterator i = items.begin(), end = items.end(); i != end; ++i)
+      if (!i->first.comparei(guid))
+      {
+        count = i->second.i();
+        break;
+      }
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1093,21 +1063,15 @@ void YuSession::MultiPurchCountAction::onHttpResponse(const YuString& url, const
 
 
 //==================================================================================================
-Yuplay2Status YuSession::MultiPurchCountAction::parseServerAnswer(const YuCharTab& answer,
+Yuplay2Status YuSession::MultiPurchCountAction::parseServerAnswer(const YuCharTab& data,
                                                                   IYuplay2ItemPurchases*& purch)
 {
-  YuJson json;
-  if (json.decode(answer))
-  {
-    Yuplay2Status status = checkJsonAnswer(json.at("status").s());
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-    if (status == YU2_OK)
-      purch = new YuItemPurchases(json, guids);
+  if (status == YU2_OK)
+    purch = new YuItemPurchases(answer, guids);
 
-    return status;
-  }
-
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1406,22 +1370,16 @@ bool YuSession::RenewTokenAction::run(const YuString& token)
 Yuplay2Status YuSession::RenewTokenAction::parseServerAnswer(const YuCharTab& data, YuString& token,
                                                              int64_t& token_exp, YuString& tags)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
-
-    if (ret == YU2_OK)
-    {
-      token = json.at("token").s();
-      token_exp = json.at("token_exp").i();
-      tags = json.at("tags").s();
-    }
-
-    return ret;
+    token = answer.at("token").s();
+    token_exp = answer.at("token_exp").i();
+    tags = answer.at("tags").s();
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1463,18 +1421,12 @@ bool YuSession::RenewJwtAction::run(const YuString& jwt)
 //==================================================================================================
 Yuplay2Status YuSession::RenewJwtAction::parseServerAnswer(const YuCharTab& data, YuString& jwt)
 {
-  YuJson json;
-  if (json.decode(data))
-  {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-    if (ret == YU2_OK)
-      jwt = json.at("jwt").s();
+  if (status == YU2_OK)
+    jwt = answer.at("jwt").s();
 
-    return ret;
-  }
-
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1521,40 +1473,34 @@ void YuSession::ItemInfoAction::onHttpResponse(const YuString& url, const YuChar
 Yuplay2Status YuSession::ItemInfoAction::parseServerAnswer(const YuCharTab& data,
                                                            IYuplay2ItemInfo*& info)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    status = YU2_FAIL;
 
-    if (ret == YU2_OK)
+    const YuParserVal::Dict& items = answer.at("items").o();
+
+    if (items.size())
     {
-      ret = YU2_FAIL;
+      const YuString& guid = items.begin()->first;
+      const YuParserVal& item = items.begin()->second;
 
-      const YuParserVal::Dict& items = json.at("items").o();
+      YuItemInfo* itemInfo = new YuItemInfo;
 
-      if (items.size())
+      if (itemInfo->assign(guid, item))
+        status = YU2_OK;
+      else
       {
-        const YuString& guid = items.begin()->first;
-        const YuParserVal& item = items.begin()->second;
-
-        YuItemInfo* itemInfo = new YuItemInfo;
-
-        if (itemInfo->assign(guid, item))
-          ret = YU2_OK;
-        else
-        {
-          delete itemInfo;
-          itemInfo = NULL;
-        }
-
-        info = itemInfo;
+        delete itemInfo;
+        itemInfo = NULL;
       }
-    }
 
-    return ret;
+      info = itemInfo;
+    }
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1575,21 +1521,15 @@ bool YuSession::MultiItemInfoAction::run(const YuStringSet& item_guids, const Yu
 
 
 //==================================================================================================
-Yuplay2Status YuSession::MultiItemInfoAction::parseServerAnswer(const YuCharTab& answer,
+Yuplay2Status YuSession::MultiItemInfoAction::parseServerAnswer(const YuCharTab& data,
                                                                 IYuplay2ItemsInfo*& info)
 {
-  YuJson json;
-  if (json.decode(answer))
-  {
-    Yuplay2Status status = checkJsonAnswer(json.at("status").s());
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-    if (status == YU2_OK)
-      info = new YuItemsInfo(json, guids);
+  if (status == YU2_OK)
+    info = new YuItemsInfo(answer, guids);
 
-    return status;
-  }
-
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1687,48 +1627,36 @@ void YuSession::OpenItemPageAction::onHttpEnd(const YuString& url)
 //==================================================================================================
 Yuplay2Status YuSession::OpenItemPageAction::onItemInfoReceived(const YuCharTab& data)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    status = YU2_FAIL;
 
-    if (ret == YU2_OK)
-    {
-      ret = YU2_FAIL;
+    itemUrl = answer.at("items").at(guid).at("url").s();
 
-      itemUrl = json.at("items").at(guid).at("url").s();
-
-      return itemUrl.length() ? YU2_OK : YU2_FAIL;
-    }
-
-    return ret;
+    return itemUrl.length() ? YU2_OK : YU2_FAIL;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
 //==================================================================================================
 Yuplay2Status YuSession::OpenItemPageAction::onUserStokenReceived(const YuCharTab& data)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    status = YU2_FAIL;
 
-    if (ret == YU2_OK)
-    {
-      ret = YU2_FAIL;
+    stoken = answer.at("stoken").s();
 
-      stoken = json.at("stoken").s();
-
-      return stoken.length() ? YU2_OK : YU2_FAIL;
-    }
-
-    return ret;
+    return stoken.length() ? YU2_OK : YU2_FAIL;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1794,41 +1722,35 @@ void YuSession::LoggedUrlAction::onHttpResponse(const YuString& url, const YuCha
 Yuplay2Status YuSession::LoggedUrlAction::parseServerAnswer(const YuCharTab& data,
                                                             IYuplay2String*& ret_url)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    status = YU2_FAIL;
 
-    if (ret == YU2_OK)
+    YuString stoken = answer.at("stoken").s();
+    if (stoken.length())
     {
-      ret = YU2_FAIL;
+      YuString uri = "/yuplay/token_login.php?stoken=";
+      uri += YuUrl::urlencode(stoken);
+      uri += "&ret=";
+      uri += YuUrl::urlencode(url.c_str());
 
-      YuString stoken = json.at("stoken").s();
-      if (stoken.length())
-      {
-        YuString uri = "/yuplay/token_login.php?stoken=";
-        uri += YuUrl::urlencode(stoken);
-        uri += "&ret=";
-        uri += YuUrl::urlencode(url.c_str());
+      YuUrl retUrl(DEFAULT_SITE_URL);
 
-        YuUrl retUrl(DEFAULT_SITE_URL);
+      if (baseHost.length())
+        retUrl.setHost(baseHost);
+      else if (url.proto().length())
+        retUrl.setHost(url.host());
 
-        if (baseHost.length())
-          retUrl.setHost(baseHost);
-        else if (url.proto().length())
-          retUrl.setHost(url.host());
+      retUrl.append(uri);
 
-        retUrl.append(uri);
-
-        ret_url = new YuSessionString(retUrl.c_str());
-        ret = YU2_OK;
-      }
+      ret_url = new YuSessionString(retUrl.c_str());
+      status = YU2_OK;
     }
-
-    return ret;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -1863,40 +1785,34 @@ void YuSession::SsoLoggedUrlAction::onHttpResponse(const YuString& url, const Yu
 Yuplay2Status YuSession::SsoLoggedUrlAction::parseServerAnswer(const YuCharTab& data,
                                                                IYuplay2String*& ret_url)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    status = YU2_FAIL;
 
-    if (ret == YU2_OK)
+    YuString stoken = answer.at("short_token").s();
+    if (stoken.length())
     {
-      ret = YU2_FAIL;
+      YuString loggedUrl(session.getSsoLoggedUrl());
+      loggedUrl += "?short_token=";
+      loggedUrl += YuUrl::urlencode(stoken);
 
-      YuString stoken = json.at("short_token").s();
-      if (stoken.length())
+      if (!serviceName.empty() && serviceName != "any")
       {
-        YuString loggedUrl(session.getSsoLoggedUrl());
-        loggedUrl += "?short_token=";
-        loggedUrl += YuUrl::urlencode(stoken);
-
-        if (!serviceName.empty() && serviceName != "any")
-        {
-          loggedUrl += "&service=";
-          loggedUrl += YuUrl::urlencode(serviceName);
-        }
-
-        loggedUrl += "&return_url=";
-        loggedUrl += YuUrl::urlencode(url.c_str());
-
-        ret_url = new YuSessionString(loggedUrl);
-        ret = YU2_OK;
+        loggedUrl += "&service=";
+        loggedUrl += YuUrl::urlencode(serviceName);
       }
-    }
 
-    return ret;
+      loggedUrl += "&return_url=";
+      loggedUrl += YuUrl::urlencode(url.c_str());
+
+      ret_url = new YuSessionString(loggedUrl);
+      status = YU2_OK;
+    }
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -2010,24 +1926,18 @@ void YuSession::SsoGetShortTokenAction::onHttpResponse(const YuString& url, cons
 Yuplay2Status YuSession::SsoGetShortTokenAction::parseServerAnswer(const YuCharTab& data,
                                                                IYuplay2String*& ret_short_token)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
-
-    if (ret == YU2_OK)
-    {
-      YuString shortToken = json.at("short_token").s();
-      if (shortToken.length())
-        ret_short_token = new YuSessionString(shortToken.c_str());
-      else
-        ret = YU2_FAIL;
-    }
-
-    return ret;
+    YuString shortToken = answer.at("short_token").s();
+    if (shortToken.length())
+      ret_short_token = new YuSessionString(shortToken.c_str());
+    else
+      status = YU2_FAIL;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -2060,25 +1970,19 @@ void YuSession::GetStokenAction::onHttpResponse(const YuString& url, const YuCha
 Yuplay2Status YuSession::GetStokenAction::parseServerAnswer(const YuCharTab& data,
                                                             IYuplay2String*& stoken)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    YuString token = answer.at("stoken").s();
 
-    if (ret == YU2_OK)
-    {
-      YuString token = json.at("stoken").s();
-
-      if (token.length())
-        stoken = new YuSessionString(token.c_str());
-      else
-        ret = YU2_FAIL;
-    }
-
-    return ret;
+    if (token.length())
+      stoken = new YuSessionString(token.c_str());
+    else
+      status = YU2_FAIL;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -2110,10 +2014,9 @@ void YuSession::GetOpenIdJwtAction::onHttpResponse(const YuString& url, const Yu
 Yuplay2Status YuSession::GetOpenIdJwtAction::parseServerAnswer(const YuCharTab& data,
                                                                IYuplay2String*& openid_jwt)
 {
-  YuJson json;
-  if (json.decode(data))
+  if (answer.decode(data))
   {
-    YuString openIdJwt(json.at("id_token").s());
+    YuString openIdJwt(answer.at("id_token").s());
 
     if (openIdJwt.length())
     {
@@ -2157,21 +2060,15 @@ void YuSession::TagUserAction::onHttpResponse(const YuString& url, const YuCharT
 //==================================================================================================
 Yuplay2Status YuSession::TagUserAction::parseServerAnswer(const YuCharTab& data)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
-
-    if (ret == YU2_OK)
-    {
-      YuString tags = json.at("tags").s();
-      session.onNewTags(tags);
-    }
-
-    return ret;
+    YuString tags = answer.at("tags").s();
+    session.onNewTags(tags);
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -2218,16 +2115,12 @@ bool YuSession::TencentPaymentConfAction::run()
 //==================================================================================================
 void YuSession::TencentPaymentConfAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
-  YuJson json;
-  Yuplay2Status st = YU2_FAIL;
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
 
-  if (json.decode(data))
-    st = checkJsonAnswer(json.at("status").s());
+  if (status == YU2_OK)
+    session.onTencentPaymentConf(answer.at("itc_eagles").f());
 
-  if (st == YU2_OK)
-    session.onTencentPaymentConf(json.at("itc_eagles").f());
-
-  done(st, st == YU2_OK ? &session.tencentGoldRate : NULL);
+  done(status, status == YU2_OK ? &session.tencentGoldRate : NULL);
 }
 
 
@@ -2262,25 +2155,19 @@ void YuSession::SteamLinkTokenAction::onHttpResponse(const YuString& url, const 
 Yuplay2Status YuSession::SteamLinkTokenAction::parseServerAnswer(const YuCharTab& data,
                                                                  IYuplay2String*& token)
 {
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    Yuplay2Status ret = checkJsonAnswer(json.at("status").s());
+    YuString tok = answer.at("token").s();
 
-    if (ret == YU2_OK)
-    {
-      YuString tok = json.at("token").s();
-
-      if (tok.length())
-        token = new YuSessionString(tok.c_str());
-      else
-        ret = YU2_FAIL;
-    }
-
-    return ret;
+    if (tok.length())
+      token = new YuSessionString(tok.c_str());
+    else
+      status = YU2_FAIL;
   }
 
-  return YU2_FAIL;
+  return status;
 }
 
 
@@ -2314,20 +2201,17 @@ bool YuSession::GooglePurchaseAction::run(const YuString& token, const YuString&
 void YuSession::GooglePurchaseAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
   IYuplay2GooglePurchaseInfo* res = NULL;
-  Yuplay2Status st = YU2_FAIL;
   int added = 0;
 
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    st = checkJsonAnswer(json.at("status").s());
-    added = (int)json.at("added").i();
+    added = (int)answer.at("added").i();
+    res = new GooglePurchaseInfo(purchToken, itemId, added);
   }
 
-  if (st == YU2_OK)
-    res = new GooglePurchaseInfo(purchToken, itemId, added);
-
-  done(st, res);
+  done(status, res);
 }
 
 
@@ -2361,20 +2245,17 @@ bool YuSession::HuaweiPurchaseAction::run(const YuString& token, const YuString&
 void YuSession::HuaweiPurchaseAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
   IYuplay2GooglePurchaseInfo* res = NULL;
-  Yuplay2Status st = YU2_FAIL;
   int added = 0;
 
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    st = checkJsonAnswer(json.at("status").s());
-    added = (int)json.at("added").i();
+    added = (int)answer.at("added").i();
+    res = new GooglePurchaseInfo(purchToken, itemId, added);
   }
 
-  if (st == YU2_OK)
-    res = new GooglePurchaseInfo(purchToken, itemId, added);
-
-  done(st, res);
+  done(status, res);
 }
 
 
@@ -2397,18 +2278,15 @@ bool YuSession::ApplePurchaseAction::run(const YuString& token, const YuString& 
 void YuSession::ApplePurchaseAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
   IYuplay2GooglePurchaseInfo* res = NULL;
-  Yuplay2Status st = YU2_FAIL;
   int added = 0;
 
-  YuJson json;
-  if (json.decode(data))
+  Yuplay2Status status = AsyncHttpAction::parseServerJson(data);
+
+  if (status == YU2_OK)
   {
-    st = checkJsonAnswer(json.at("status").s());
-    added = (int)json.at("added").i();
+    added = (int)answer.at("added").i();
+    res = new GooglePurchaseInfo(answer.at("apple_transaction_id").s(), "", added);
   }
 
-  if (st == YU2_OK)
-    res = new GooglePurchaseInfo(json.at("apple_transaction_id").s(), "", added);
-
-  done(st, res);
+  done(status, res);
 }

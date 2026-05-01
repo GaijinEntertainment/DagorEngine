@@ -252,7 +252,14 @@ shader rendinst_baked_impostor
         return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
       }
     }
-    compile("target_ps", "rendinst_impostor_ps");
+    if (is_triangle_size_debug)
+    {
+      RI_TRIANGLE_SIZE_DEBUG_PS()
+    }
+    else
+    {
+      compile("target_ps", "rendinst_impostor_ps");
+    }
   }
 
   //---------------------------------------------------

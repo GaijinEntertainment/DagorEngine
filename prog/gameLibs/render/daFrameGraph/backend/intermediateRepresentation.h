@@ -249,6 +249,9 @@ struct Binding
   // do we need to reset it to default value after node is executed
   bool reset = false;
 
+  // is this binding created with .optional()
+  bool optional = false;
+
   // projected type of "what"
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   // projector to get the value

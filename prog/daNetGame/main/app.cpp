@@ -543,23 +543,24 @@ static void send_dedicated_exit_metrics()
 static void init_main_thread(void *);
 static void init_threads(const DataBlock &cfg)
 {
-  int coreCount = cpujobs::get_core_count();
-  // Note: according to measurements of current threadpool & ecs parallel for implementation there is (almost)
-  // no perfomance gain with more then 6 work threads (together with main thread this corresponds to 7/8 cores
-  // of typical consumer Intel CCU or one Ryzen's CCX)
-#if _TARGET_C2
+  using namespace cpujobs;
+  int coreCount = get_logical_core_count(), numPhysCores = get_physical_core_count(), numPerfCores = get_performance_core_count();
+  int numWorkThreads = 7; // Note: 7 + 1 (main) corresponds to 8 cores of typical consumer Intel CCU or one Ryzen's CCX
+#if _TARGET_PC
+  if (numPerfCores)
+    numWorkThreads = numPerfCores >= 6 ? (numPerfCores - /*main*/ 1) : 6;
+#elif _TARGET_C2
 
-#else
-  static constexpr int NUM_WORK_THREADS = 6;
+
 #endif
-  int nwt = cfg.getInt("numWorkThreads", eastl::min(coreCount - /*main*/ 1, cfg.getInt("maxWorkThreads", NUM_WORK_THREADS)));
+  int nwt = cfg.getInt("numWorkThreads", eastl::min(coreCount - /*main*/ 1, cfg.getInt("maxWorkThreads", numWorkThreads)));
   int num_workers = eastl::clamp(nwt, 0, threadpool::MAX_WORKER_COUNT);
   int stack_size = cfg.getInt("workThreadsStackSize", 192 << 10);
 #if DAGOR_DBGLEVEL > 1 || defined(DAGOR_THREAD_SANITIZER)
   stack_size *= 2;
 #endif
   threadpool::init(num_workers, 2048, stack_size);
-  debug("threadpool inited for %d workers", num_workers);
+  debug("threadpool inited for %d workers (%d/%d/%d perf/physical/logical cores)", num_workers, numPerfCores, numPhysCores, coreCount);
   add_delayed_callback(init_main_thread, nullptr);
 }
 

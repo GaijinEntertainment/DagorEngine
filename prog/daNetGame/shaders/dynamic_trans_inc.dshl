@@ -6,6 +6,7 @@ include "refraction.dshl"
 include "csm.dshl"
 include "use_gi.dshl"
 include "sky_polarization_filter_term_inc.dshl"
+include "triangle_size_debug_transparent.dshl"
 
 block(scene) dynamic_trans_scene
 {

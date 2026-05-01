@@ -201,19 +201,17 @@ void HeatHazeRenderer::applyHaze(double total_time, Texture *back_buffer, const 
         float(back_buffer_area->bottom - back_buffer_area->top) / back_buffer_resolution.y,
         float(back_buffer_area->left) / back_buffer_resolution.x, float(back_buffer_area->top) / back_buffer_resolution.y);
 
-    d3d::set_render_target(haze_temp, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{haze_temp, 0, 0}});
     ShaderGlobal::set_texture(source_texVarId, back_buffer);
     ShaderGlobal::set_sampler(source_tex_samplerstateVarId, sourcePointTexSampler);
     ShaderGlobal::set_float4(haze_source_tex_uv_transformVarId, uvt);
-    d3d::set_depth(nullptr, DepthAccess::RW);
 
     ShaderGlobal::set_float4(haze_paramsVarId, 0.5f / back_buffer_resolution.x, 0.5f / back_buffer_resolution.y, hazeLuminanceScale.x,
       hazeLuminanceScale.y);
     ShaderGlobal::set_int(apply_haze_passVarId, APPLY_HAZE_DOWNSCALE);
     hazeFxRenderer->render();
 
-    d3d::set_render_target(back_buffer, 0);
-    d3d::set_depth(NULL, DepthAccess::RW);
+    d3d::set_render_target({}, DepthAccess::RW, {{back_buffer, 0, 0}});
     if (back_buffer_area)
     {
       auto ba = back_buffer_area;

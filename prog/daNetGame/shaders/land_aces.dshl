@@ -8,11 +8,22 @@ include "gbuffer.dshl"
 include "gbuffer_forward.dshl"
 include "static_shadow.dshl"
 include "wetness_inc.dshl"
+include "triangle_size_debug.dshl"
+include "triangle_size_debug_lmesh.dshl"
 
 float4 camera_base_offset = (0, 0, 0, 0);
 
 shader land_mesh//, land_mesh_combined
 {
+  if ((allow_triangle_size_debug == no && lmesh_triangle_size_debug == on) || (!hardware.dx12 && lmesh_triangle_size_debug == on))
+  {
+    dont_render;
+  }
+
+  if (lmesh_rendering_mode != rendering_landmesh && lmesh_triangle_size_debug == on)
+  {
+    dont_render;
+  }
 
   (vs) { camera_base_offset@f4 = camera_base_offset; }
 
@@ -379,6 +390,13 @@ shader land_mesh//, land_mesh_combined
     }
 
     compile("vs_5_0", "landmesh_vs");
-    compile("ps_5_0", "landmesh_ps");
+    if (lmesh_triangle_size_debug == on)
+    {
+      TRIANGLE_SIZE_DEBUG_PS()
+    }
+    else
+    {
+      compile("ps_5_0", "landmesh_ps");
+    }
   }
 }

@@ -100,9 +100,7 @@ void GroundDisplacementCPU::updateGroundPhysdetails(IRenderGroundPhysdetailsCB *
   vtm.setcol(2, 0, 1, 0);
   d3d::settm(TM_VIEW, vtm);
 
-  d3d::set_render_target();
-  d3d::set_render_target(0, (Texture *)NULL, 0);
-  d3d::set_depth(groundPhysDetailsTex.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({groundPhysDetailsTex.getTex2D(), 0, 0}, DepthAccess::RW, {});
 
   float regionSize = texelSize * bufferSize;
 
@@ -186,13 +184,13 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
     static int ground_physdetails_texVarId = ::get_shader_glob_var_id("ground_physdetails_tex");
     ShaderGlobal::set_texture_fast(ground_physdetails_texVarId, groundPhysDetailsTex.getId());
 
-    d3d::set_render_target(currentTarget, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{currentTarget, 0, 0}});
     renderHeightAndDisplacement.render();
 
     // restore filtering
     hmap->setTexFilter(d3d::FilterMode::Linear);
 
-    d3d::set_render_target(GPUgroundPhysDetailsTex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{GPUgroundPhysDetailsTex.getTex2D(), 0, 0}});
     renderGPUHeightAndDisplacement.render();
     d3d::resource_barrier({GPUgroundPhysDetailsTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     GPUgroundPhysDetailsTex.setVar();
@@ -376,7 +374,7 @@ void LandmeshPhysmatsCPU::update(const Point3 &center_pos, IRenderLandmeshPhysde
     origin = Point2(texelSize * floorf(center_pos.x / texelSize), texelSize * floorf(center_pos.z / texelSize));
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(currentTarget, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{currentTarget, 0, 0}});
 
     BBox2 region(Point2(origin.x - 0.5f * worldSize, origin.y - 0.5f * worldSize),
       Point2(origin.x + 0.5f * worldSize, origin.y + 0.5f * worldSize));
@@ -485,7 +483,7 @@ void PuddlesWetnessCPU::update(const Point3 &center_pos)
     ShaderGlobal::set_float4(puddles_CPU_to_worldVarId, worldSize, worldSize, origin.x - 0.5f * worldSize,
       origin.y - 0.5f * worldSize);
 
-    d3d::set_render_target(currentTarget, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{currentTarget, 0, 0}});
     renderPuddles.render();
 
     ringTextures.startCPUCopy();

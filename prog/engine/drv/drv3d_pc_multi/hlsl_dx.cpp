@@ -2,6 +2,7 @@
 
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_driverCode.h>
+#include <drv_log_defs.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_platform_pc.h>
 #include <drvCommonConsts.h>
@@ -56,7 +57,7 @@ void shutdown_hlsl_d3dcompiler_internal()
 static ID3D10Blob *compile_hlsl(const char *hlsl_text, const char *entry, const char *profile, String *out_err)
 {
   auto report_error = [out_err](const char *err_str) -> ID3D10Blob * {
-    logerr("Can't compile:\n %s", err_str);
+    D3D_ERROR("Can't compile:\n %s", err_str);
     if (out_err)
       out_err->aprintf(1024, "%s\n", err_str);
     return nullptr;
@@ -168,7 +169,7 @@ struct DxcState
     dxcModule = LoadLibraryA("dxcompiler.dll");
     if (!dxcModule)
     {
-      logerr("DX12: dxcompiler.dll not found, runtime HLSL compilation unavailable");
+      D3D_ERROR("DX12: dxcompiler.dll not found, runtime HLSL compilation unavailable");
       initFailed = true;
       return false;
     }
@@ -177,7 +178,7 @@ struct DxcState
     auto dxcCreateInstance = (DxcCreateInstanceProc)(void *)GetProcAddress(dxcModule, "DxcCreateInstance");
     if (!dxcCreateInstance)
     {
-      logerr("DX12: DxcCreateInstance not found in dxcompiler.dll");
+      D3D_ERROR("DX12: DxcCreateInstance not found in dxcompiler.dll");
       FreeLibrary(dxcModule);
       dxcModule = nullptr;
       initFailed = true;
@@ -187,7 +188,7 @@ struct DxcState
     HRESULT hr = dxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler));
     if (FAILED(hr))
     {
-      logerr("DX12: Failed to create IDxcCompiler3 (hr=0x%08X)", hr);
+      D3D_ERROR("DX12: Failed to create IDxcCompiler3 (hr=0x%08X)", hr);
       FreeLibrary(dxcModule);
       dxcModule = nullptr;
       initFailed = true;
@@ -197,7 +198,7 @@ struct DxcState
     hr = dxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&utils));
     if (FAILED(hr))
     {
-      logerr("DX12: Failed to create IDxcUtils (hr=0x%08X)", hr);
+      D3D_ERROR("DX12: Failed to create IDxcUtils (hr=0x%08X)", hr);
       compiler.Reset();
       FreeLibrary(dxcModule);
       dxcModule = nullptr;
@@ -212,8 +213,8 @@ struct DxcState
     HMODULE dxilModule = LoadLibraryA("dxil.dll");
     if (!dxilModule)
     {
-      logerr("DX12: dxil.dll not found — DXIL signing unavailable, runtime HLSL compilation disabled "
-             "(D3D12 rejects unsigned DXIL)");
+      D3D_ERROR("DX12: dxil.dll not found — DXIL signing unavailable, runtime HLSL compilation disabled "
+                "(D3D12 rejects unsigned DXIL)");
       compiler.Reset();
       utils.Reset();
       FreeLibrary(dxcModule);
@@ -314,7 +315,7 @@ static DxcCompileResult compile_hlsl_dxc(const char *hlsl_text, const char *entr
   if (errors.Get() && errors->GetStringLength() > 0)
   {
     const char *errStr = errors->GetStringPointer();
-    logerr("DX12 DXC: %s", errStr);
+    D3D_ERROR("DX12 DXC: %s", errStr);
     if (out_err)
       out_err->aprintf(1024, "%s\n", errStr);
   }
@@ -335,7 +336,7 @@ static DxcCompileResult compile_hlsl_dxc(const char *hlsl_text, const char *entr
 
   if (!result.bytecode.Get() || !result.reflection.Get())
   {
-    logerr("DX12 DXC: compilation succeeded but missing output (bytecode=%p, reflection=%p)", result.bytecode.Get(),
+    D3D_ERROR("DX12 DXC: compilation succeeded but missing output (bytecode=%p, reflection=%p)", result.bytecode.Get(),
       result.reflection.Get());
     if (out_err)
       out_err->aprintf(256, "DXC compilation produced no %s output\n", !result.bytecode.Get() ? "bytecode" : "reflection");
@@ -354,7 +355,7 @@ static bool fill_shader_header_from_reflection(dxil::ShaderHeader &header, dxil:
   HRESULT hr = dxc_state.utils->CreateReflection(&reflBuf, IID_PPV_ARGS(&reflector));
   if (FAILED(hr))
   {
-    logerr("DX12: CreateReflection failed (hr=0x%08X)", hr);
+    D3D_ERROR("DX12: CreateReflection failed (hr=0x%08X)", hr);
     return false;
   }
 
@@ -521,7 +522,7 @@ VPROG d3d::create_vertex_shader_hlsl(const char *hlsl_text, unsigned /*len*/, co
       shader->Release();
     }
     else
-      logerr("VS compile failed: %s, %s", entry, profile);
+      D3D_ERROR("VS compile failed: %s, %s", entry, profile);
     return vpr;
   }
 #ifdef USE_MULTI_D3D_DX12
@@ -576,7 +577,7 @@ FSHADER d3d::create_pixel_shader_hlsl(const char *hlsl_text, unsigned /*len*/, c
       shader->Release();
     }
     else
-      logerr("PS compile failed: %s, %s", entry, profile);
+      D3D_ERROR("PS compile failed: %s, %s", entry, profile);
     return fsh;
   }
 #ifdef USE_MULTI_D3D_DX12
@@ -613,6 +614,6 @@ bool d3d::compile_compute_shader_hlsl(const char *hlsl_text, unsigned /*len*/, c
     return true;
   }
   else
-    logerr("CS compile failed: %s, %s", entry, profile);
+    D3D_ERROR("CS compile failed: %s, %s", entry, profile);
   return false;
 }

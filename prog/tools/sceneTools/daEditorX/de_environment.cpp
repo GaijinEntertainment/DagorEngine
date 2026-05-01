@@ -13,6 +13,7 @@
 #include <de3_skiesService.h>
 #include <de3_interface.h>
 #include <de3_windService.h>
+#include <de3_hmapService.h>
 
 #include <EditorCore/ec_modelessDialogWindowController.h>
 #include <EditorCore/ec_workspace.h>
@@ -161,7 +162,14 @@ static void set_paint_detail_texture()
 {
   static int paintDetailsVarId = get_shader_variable_id("paint_details_tex", true);
   TEXTUREID localPaintColorsTexId, globalPaintColorsTexId;
+  IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
+  SimpleString globalTexPalette;
+
   globalPaintColorsTexId = get_managed_texture_id("assets_color_global_tex_palette*");
+  if (hmlService)
+    if (SharedTex globalPaintTex = dag::get_tex_gameres(hmlService->getGlobalPaintDetailsTexName()))
+      globalPaintColorsTexId = globalPaintTex.getTexId();
+
   if (!paintDetailsTexAsset.empty())
     localPaintColorsTexId = get_managed_texture_id(String(0, "%s*", paintDetailsTexAsset));
   else

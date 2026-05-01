@@ -12,6 +12,7 @@
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_events.h>
+#include <osApiWrappers/dag_addressWait.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <3d/dag_texPackMgr2.h>
 #include <drv/3d/dag_info.h>
@@ -196,6 +197,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
           DDSxDecodeCtx::updateWorkerUsedMask(static_cast<TexCreateJob *>(job)->prio, wIdx);
           G_ASSERT(interlocked_acquire_load(job->done) == TexCreateJob::JOB_ACTIVE);
           interlocked_release_store(job->done, TexCreateJob::JOB_FREE);
+          os_wake_on_address_one(&job->done);
           if (isThreadTerminating()) // check quit request
             return;
           job = ctx->q.pop();
@@ -285,15 +287,14 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
   void waitAllDone(int prio)
   {
-  check_done:
-    for (int i = 0; i < numWorkers * 2; i++)
+    for (uint32_t i = 0, ja = TexCreateJob::JOB_ACTIVE; i < numWorkers * 2; i++)
       if (interlocked_acquire_load(jobs[i].done) == TexCreateJob::JOB_ACTIVE)
-      {
-        if (jobs[i].prio != prio)
-          continue;
-        sleep_msec(1);
-        goto check_done;
-      }
+        spin_wait([&] {
+          if (jobs[i].prio != prio)
+            return false;
+          os_wait_on_address(&jobs[i].done, &ja);
+          return interlocked_acquire_load(jobs[i].done) == TexCreateJob::JOB_ACTIVE;
+        });
   }
   static bool isTexReading(TEXTUREID tid, int prio)
   {

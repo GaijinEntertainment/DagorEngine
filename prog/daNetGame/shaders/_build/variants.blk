@@ -8,3 +8,9 @@ invalid {num_of_cascades:i=6;}
 
 invalid {hasTexture:i=5;}
 invalid {hasTexture:i=2;}
+
+invalid {allow_triangle_size_debug:i=1; in_editor:i=1;}
+invalid {rendinst_render_pass:i=10; allow_triangle_size_debug:i=0;}
+invalid {dyn_model_render_pass:i=3; allow_triangle_size_debug:i=0;}
+invalid {lmesh_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}
+invalid {rendinst_transparent_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}

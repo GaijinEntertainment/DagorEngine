@@ -424,6 +424,10 @@ endmacro
 
 
 macro COMMON_RENDINST_VS_IO_DEFINES()
+  if (is_triangle_size_debug)
+  {
+    hlsl { #define HLSL_FULL_VS_OUTPUT 1}
+  }
 
   hlsl (ps) {
     #if HLSL_FULL_VS_OUTPUT && JITTER_DEPTH_PIXEL_OFFSET
@@ -539,11 +543,11 @@ macro COMMON_RENDINST_VS()
         output.pointToEye.xyz = pointToEye;
         output.pointToEye.w = 0; //avoid compilation warnings
 
-        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
           output.pointToEye.w = worldPos.y - worldLocalPos.y;
         ##endif
       #else
-        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
           output.normal.w = worldPos.y - worldLocalPos.y;
           output.normal.xyz = float3(0,0,0); //avoid compilation warnings
         ##endif

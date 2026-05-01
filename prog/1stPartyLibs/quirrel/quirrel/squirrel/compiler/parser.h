@@ -109,6 +109,7 @@ public:
     Decl *parseLocalDeclStatement(bool onlySingleVariable = false);
     Decl *parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart);
     Decl *parseLocalClassExprStmt(bool assignable, SourceLoc keywordStart);
+    void parseDestructuringFields(DestructuringDecl *destr);
 
     Statement* IfLikeBlock(bool &wrapped);
     Statement* parseIfStatement();
@@ -147,6 +148,7 @@ private:
     SQUnsignedInteger _lang_features;
     SQVM *_vm;
     bool _are_imports_still_allowed = true;
+    uint32_t _foreachDestrCounter = 0;
 };
 
 } // namespace SQCompilation

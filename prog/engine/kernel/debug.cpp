@@ -56,6 +56,7 @@ static char fatalerrFilepath[DAGOR_MAX_PATH];
 static char logDirPath[DAGOR_MAX_PATH];
 static dag::AtomicInteger<int> logFileSizes[LOGLEVEL_REMARK + 1];
 static unsigned logsMaxSize = 0;
+extern const unsigned MAX_LOG_FILE_SIZE = (64 << 20) - 16384;
 
 // debug_internal::Context debug_internal::debug_context = { NULL, -1 };
 bool debug_internal::always_flush_debug = false;
@@ -572,7 +573,7 @@ void start_classic_debug_system(const char *debug_fname, bool en_time, bool hhmm
   {
 #if DAGOR_FORCE_LOGS
     // crypted logs
-    crypt_debug_setup(get_dagor_log_crypt_key(), (60 << 20));
+    crypt_debug_setup(get_dagor_log_crypt_key(), MAX_LOG_FILE_SIZE);
     crypted_logs = cryptKey != NULL;
 #endif
     last_char_ptr--;

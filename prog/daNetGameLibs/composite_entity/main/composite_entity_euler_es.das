@@ -51,3 +51,8 @@ def composite_child_euler_map_es(evt : Event;
     subentityLocalTms[idx] = newLocalTm
 
     recompute_subtree(idx, transform, subentityEids, subentityTms, subentityLocalTms, subentityParentIdx)
+
+  let parentTM = transform
+  for i, subentityEid in iter_range(subentityEids), subentityEids
+    query(subentityEid) <| $ [es] (var transform : float3x4)
+      transform = parentTM * subentityTms[i]

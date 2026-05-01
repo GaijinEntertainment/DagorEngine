@@ -883,8 +883,19 @@ int ShaderMaterialProperties::execInitCode()
         else
           stvar[stVarId].texId = textureId[ind];
         break;
+      case SHCOD_TEXTURE_STUBCOL:
+      {
+        if (DAGOR_UNLIKELY(!shaderbindump::g_stub_texture_repo.filled()))
+          break;
+        uint32_t col = stVarId /*sclass->initCode[i] */;
+        auto texType = ShaderVarTextureType(shaderopcode::getOp2p1(sclass->initCode[i + 1]));
+        stVarId = shaderopcode::getOp2p2(sclass->initCode[i + 1]);
+        if (stvar[stVarId].texId == BAD_TEXTUREID)
+          stvar[stVarId].texId = shaderbindump::g_stub_texture_repo.query(col, texType).getTexId();
+        break;
+      }
 
-      default: G_ASSERT(0 && "unsupported");
+      default: G_ASSERTF(0, "unsupported opcode=%x op=%d", sclass->initCode[i + 1], shaderopcode::getOp(sclass->initCode[i + 1]));
     }
   }
   return diff_stvar_id;

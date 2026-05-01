@@ -62,6 +62,11 @@ void Shutdown()
 			}
 			else
 			{
+				// MODIFICATION BY GAIJIN
+				// delete created custom textures to prevent memory leaks
+				NetImgui::Internal::CmdTexture cmdTexture;
+				cmdTexture.mFormat = NetImgui::eTexFormat::kTexFmtCustom;
+				DestroyTexture_Custom(*texServer, cmdTexture, 0);
 			#if TEXTURE_CUSTOM_SAMPLE
 				if( texServer && texServer->mIsCustom )
 				{
@@ -289,6 +294,11 @@ bool CreateTexture_Default(ServerTexture& serverTexture, const NetImgui::Interna
 ServerTexture* CreateTexture(const NetImgui::Internal::CmdTexture& cmdTexture, uint32_t textureDataSize)
 //=================================================================================================
 {
+	// MODIFICATION BY GAIJIN
+	// dont create new textures on every creation command,
+	// instead, look if we already have created texture
+	// with such id and just update it
+	/*
 	ServerTexture* serverTex(new ServerTexture);
 	if( serverTex )
 	{
@@ -308,6 +318,45 @@ ServerTexture* CreateTexture(const NetImgui::Internal::CmdTexture& cmdTexture, u
 		{
 			delete serverTex;
 			serverTex = NULL;
+		}
+	}
+	return serverTex;
+	*/
+
+	ServerTexture* serverTex = nullptr;
+	for(ServerTexture* existingServerTex : gServerTextures)
+		if(existingServerTex && existingServerTex->IsValid() && existingServerTex->mClientTexID == (ImTextureID)(uintptr_t)cmdTexture.mTextureClientID)
+		{
+			serverTex = existingServerTex;
+			break;
+		}
+
+	if (serverTex)
+	{
+		if(	!(CreateTexture_Custom(*serverTex, cmdTexture, textureDataSize) ||
+					CreateTexture_Default(*serverTex, cmdTexture, textureDataSize)) )
+			serverTex = nullptr;
+	}
+	else
+	{
+		serverTex = new ServerTexture;
+
+		if (serverTex)
+		{
+			serverTex->mIsCustom	= cmdTexture.mFormat == NetImgui::eTexFormat::kTexFmtCustom;
+			serverTex->mClientTexID	= (ImTextureID)(uintptr_t)cmdTexture.mTextureClientID;
+			serverTex->mIsUpdatable	= false;
+
+			if(	CreateTexture_Custom(*serverTex, cmdTexture, textureDataSize) ||
+				CreateTexture_Default(*serverTex, cmdTexture, textureDataSize) )
+			{
+				gServerTextures.push_back(serverTex);
+			}
+			else
+			{
+				delete serverTex;
+				serverTex = NULL;
+			}
 		}
 	}
 	return serverTex;

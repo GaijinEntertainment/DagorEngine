@@ -6,6 +6,7 @@
 #include "ast_helpers.h"
 #include "function_info.h"
 #include "value_ref.h"
+#include "external_value.h"
 
 #include <unordered_set>
 
@@ -107,13 +108,12 @@ class CheckerVisitor : public Visitor
   NodeEqualChecker _equalChecker;
 
   void report(const Node *n, int32_t id, ...);
-  void reportImportSlot(int line, int column, const char *name);
+  void report(int line, int col, int width, int32_t id, ...);
 
   void checkKeyNameMismatch(const Expr *key, const Expr *expr);
 
   void checkAlwaysTrueOrFalse(const Expr *expr);
 
-  void checkForeachIteratorCapturedByClosure(const Id *id, const ValueRef *v);
   void checkIdUsed(const Id *id, const Node *p, ValueRef *v);
 
   void reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc);
@@ -153,6 +153,8 @@ class CheckerVisitor : public Visitor
   void checkMergeEmptyTable(const CallExpr *callExpr);
   void checkEmptyArrayResize(const CallExpr *callExpr);
   void checkAlreadyRequired(const CallExpr *callExpr);
+  void resolveRequire(const CallExpr *call, const char *moduleName);
+  void noteRequiredModule(const CallExpr *call, const char *moduleName);
   void checkCallNullable(const CallExpr *callExpr);
   void checkPersistCall(const CallExpr *callExpr);
   void checkForbiddenCall(const CallExpr *callExpr);
@@ -285,9 +287,10 @@ class CheckerVisitor : public Visitor
   std::unordered_set<const char *, StringHasher, StringEqualer> persistedKeys;
 
   std::unordered_map<const Node *, ValueRef *> astValues;
-  std::vector<ExternalValueExpr *> externalValues;
 
   Arena *arena;
+
+  ExternalValueTable externalValues; // Declared after arena and ctx for correct life time
 
   FunctionInfo *currentInfo;
 
@@ -309,14 +312,14 @@ class CheckerVisitor : public Visitor
   void applyKnownInvocationToScope(const ValueRef *ref);
   void applyUnknownInvocationToScope();
 
-  const ExternalValueExpr *findExternalValue(const Expr *e);
+  const ExternalValue *findExternalValue(const Expr *e);
   const FunctionInfo *findFunctionInfo(const Expr *e, bool &isCtor);
 
   void setValueFlags(const Expr *lvalue, unsigned pf, unsigned nf);
   const ValueRef *findValueForExpr(const Expr *e);
-  const Expr *maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited, bool allow_external = false);
-  const Expr *maybeEval(const Expr *e, int32_t &evalId, bool allow_external = false);
-  const Expr *maybeEval(const Expr *e, bool allow_external = false);
+  const Expr *maybeEval(const Expr *e, int32_t &evalId, std::unordered_set<const Expr *> &visited);
+  const Expr *maybeEval(const Expr *e, int32_t &evalId);
+  const Expr *maybeEval(const Expr *e);
 
   const char *findFieldName(const Expr *e);
 
@@ -347,6 +350,7 @@ public:
   CheckerVisitor(SQCompilationContext &ctx)
     : _ctx(ctx)
     , arena(ctx.arena())
+    , externalValues(ctx.arena())
     , currentInfo(nullptr)
     , currentScope(nullptr)
     , breakScope(nullptr)
@@ -398,7 +402,26 @@ public:
 
   void visitImportStatement(ImportStmt *import);
 
-  ValueRef* addExternalValue(const SQObject &val, const Node *location);
+  // Declare a host-provided binding into the current scope. Creates an
+  // SK_IMPORT SymbolInfo with the name, attaches a fresh ExternalValue, and
+  // returns the ValueRef. Only used by analyze() when ingesting `bindings`.
+  ValueRef *declareHostBinding(const char *name, const SQObject &val, const Node *location);
+
+  // Make an ExternalValue-only ValueRef for stashing into astValues so that
+  // callers of findValueForExpr can see the value of a node without a real
+  // declaration (synthetic require()/require_optional() result, GetField on
+  // an external). The returned ValueRef has info == nullptr; see ValueRef::info docs.
+  ValueRef *makeExternalValueRef(const SQObject &val, const Node *location);
+
+  // Attach an ExternalValue (and mark VRS_INITIALIZED) to an existing ValueRef
+  // - for destructuring slots that already have a SymbolInfo from visitVarDecl,
+  // or any other site that already created a ValueRef and just needs the value.
+  // The Node* form derives line/col/width from the node; the explicit-coord
+  // form is for sites that have parser coordinates but no AST node (e.g. an
+  // import-slot symbol that points at the `from X import name` line).
+  void attachExternalValue(ValueRef *v, const SQObject &val, const Node *location);
+  void attachExternalValue(ValueRef *v, const SQObject &val, int line, int col, int width);
+
   void checkDestructuredVarDefault(VarDecl *var);
 
   void analyze(RootBlock *root, const HSQOBJECT *bindings);

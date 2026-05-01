@@ -116,7 +116,8 @@ PULL_CONSOLE_PROC(profiler_console_handler)
   VAR(plane)                  \
   VAR(screen_pos_to_texcoord) \
   VAR(screen_size)            \
-  VAR(zn_zfar)
+  VAR(zn_zfar)                \
+  VAR(details_weight)
 
 namespace shvars
 {
@@ -1970,6 +1971,15 @@ public:
           water_panel.water_level - 0.5 * dimensions);
 
         const auto &cam = camHndl.ref();
+        float originAlt = cam.worldPos.y - water_panel.water_level;
+
+        Point2 detailsWeightDist(100.0f, 300.0f);
+        Point4 detailsWeightMin(300.0f, 500.0f, 5000.0f, 6000.0f);
+        Point4 detailsWeightMax(300.0f, 500.0f, 300.0f, 1300.0f);
+
+        shvars::details_weight.set_float4(Color4::xyzw(
+          lerp(detailsWeightMin, detailsWeightMax, cvt(originAlt, detailsWeightDist.x, detailsWeightDist.y, 0.0f, 1.0f))));
+
         fft_water::render(fftWater.get(), cam.worldPos, BAD_TEXTUREID, cam.globTm, cam.persp, fft_water::GEOM_NORMAL);
       };
     });

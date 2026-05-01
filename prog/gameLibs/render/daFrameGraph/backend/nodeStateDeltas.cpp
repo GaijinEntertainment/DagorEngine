@@ -348,7 +348,7 @@ sd::BindingsMap DeltaCalculator::delta(const intermediate::BindingsMap &old_bind
   // Unbind stuff
   for (auto &[k, v] : oldWithoutNew)
     if (result.find(k) == result.end())
-      result[k] = {v.type, eastl::nullopt, false, v.reset, v.projectedTag};
+      result[k] = {v.type, eastl::nullopt, false, v.reset, v.optional, v.projectedTag};
 
   // Transfer to regular heap memory
   return {result.begin(), result.end()};
