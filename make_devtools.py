@@ -119,11 +119,15 @@ else:
       make_file_link(python_dest_folder+'/python.exe', python_dest_folder+'/python3.exe')
   else:
     error("Python 3 not found")
-subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
-subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
-subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
-subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
-
+    
+if 'WindowsApps' in python_src_folder:
+  print('WARNING: Detected Microsoft Store Python. Skipping pip upgrade/install due to access restrictions.')
+  print('Install official Python from python.org for full functionality.')
+else:
+  subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
+  subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
+  subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
+  subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
 
 microsoft_retry = []
 
