@@ -1,0 +1,8 @@
+ERROR: Separate access operator '.' with its following name is forbidden
+testData/diagnostics/compilation_errors/sema_errors/space_sep_field_name.nut:3:11
+
+let t = {a = 1}
+let x = t. a
+           ^
+
+

@@ -1,14 +1,23 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
 include "psh_derivate.dshl"
+
 include "heightmap_common.dshl"
 include "normaldetail.dshl"
+
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+float4 heightmap_texels;
 
 shader heightmap
 {
   no_ablend;
 
   INIT_WORLD_HEIGHTMAP_VS()
+  (vs) {heightmap_texels@f4 = heightmap_texels;}
+
   USE_HEIGHTMAP_COMMON_VS()
   USE_HEIGHTMAP_INSTANCING()
   (vs) {
@@ -21,27 +30,151 @@ shader heightmap
     {
       VS_OUT_POSITION(pos)
       float3 p2e:  TEXCOORD1;
+      float morph:  TEXCOORD2;
     };
   }
 
+  INIT_EDGE_DECODE(vs)
+  hlsl(vs) {float getBaseHeight(float2 p) {return getWorldHeightGathered(p);}}
+  USE_EDGE_DECODE(vs)
   hlsl(vs) {
+    #include "noise/Value2D.hlsl"
+    float rand2(float2 co)
+    {
+      return frac(sin(co.x*12.9898+co.y) * 43758.5453);
+    }
+    float3 get_displacement(float3 worldPos)
+    {
+      #define DISP_STR 0
+      #define DISP_TILE 0.23
+      return getWorldNormal(worldPos)*DISP_STR*noise_Value2D(worldPos.xz*DISP_TILE);
+      //return 32*getWorldNormal(worldPos)*DISP_STR*rand2(worldPos.xz);
+    }
+
     VsOutput test_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
     {
-      DECODE_VERTEXID_POSXZ
-      VsOutput output;
-      float3 worldPos = getWorldPos(posXZ USED_INSTANCE_ID);
-      output.pos = mul(float4(worldPos, 1), globtm);
-      output.p2e = world_view_pos-worldPos;
+      float2 patchWorldOfs = 0;
+      //todo: use 1 bit per instance to determ if we need that at all
+      VsOutput output = (VsOutput)0;
+      ##if heightmap_has_morph == off
+      float3 worldPos = getWorldPosEdge(vertexId, instance_id);
+      worldPos += get_displacement(worldPos);
+      //int2 posXZ = decodePosXZWithoutIB(vertexId);
+      ##else
+      uint instId = HMAP_INSTANCE_OFS + instance_id.x;
+      uint triID = vertexId / 3u;
+      uint vertInTri = vertexId % 3u;
+      uint quadId = triID>>1;
+
+      uint2 quad = uint2(quadId & HMAP_QUAD_MASK, quadId >> HMAP_QUAD_SHIFT);
+      float4 instance_const = heightmap_scale_offset[instance_id.x];
+      //uint level = asint(instance_const.x);//
+      //int texelX = asint(instance_const.z), texelZ = asint(instance_const.w);//
+      //float levelPatch = heightmap_texels.z / (1U<<level);
+      //patchWorldOfs = heightmap_texels.xy + float2(texelX, texelZ) * levelPatch;
+      //float quadSize = levelPatch / patchDim;
+      patchWorldOfs = instance_const.zw;
+      float quadSize = instance_const.x;
+
+      uint4 border = decode_edge_tesselation(instance_const);
+      //border = max(border - 1, border);
+      uint flip = asuint(instance_const.y)>>24;
+      int edgeId = instId - heightmap_parent_edges_at.w;
+      if (edgeId >= 0 && instId < heightmap_parent_edges_at.z)
+      {
+        uint edgeAddress = quadId + (edgeId << HMAP_QUAD_DOUBLE_SHIFT);
+        flip = (uint(loadBuffer(heightmap_edges, ((edgeAddress>>3)&~3u))) >> (edgeAddress&31u)) & 1u;
+      }
+
+
+      bool isCorner = quad.y != adapt_edge_tesselation(quad.y, quad.x == 0 ? border.x : (quad.x + 1 == patchDim ? border.y : 1)) &&
+                      quad.x != adapt_edge_tesselation(quad.x, quad.y == 0 ? border.z : (quad.y + 1 == patchDim ? border.w : 1));
+
+      flip = isCorner ? (quad.x + quad.y)&1 : flip;
+      uint isSecondTri = (triID & 1);
+      int2 posXZ;
+
+      FLATTEN
+      if (vertInTri == 0) posXZ = int2(quad.x + (isSecondTri&flip), quad.y);
+      FLATTEN
+      if (vertInTri == 1) posXZ = int2(quad.x + !(flip|isSecondTri), quad.y + 1);
+      FLATTEN
+      if (vertInTri == 2) posXZ = int2(quad.x + 1, quad.y + isSecondTri);
+      posXZ.y = adapt_edge_tesselation(posXZ.y, posXZ.x == 0 ? border.x : (posXZ.x == patchDim ? border.y : 1));
+      posXZ.x = adapt_edge_tesselation(posXZ.x, posXZ.y == 0 ? border.z : (posXZ.y == patchDim ? border.w : 1));
+      float3 worldPos;
+      worldPos.xz = quadSize*posXZ;
+      //worldPos.xz = decodeWorldPosXZConst(instance_const, posXZ);
+      worldPos.y = getWorldHeightGathered(worldPos.xz + patchWorldOfs);
+      worldPos += get_displacement(worldPos + float3(patchWorldOfs,0).xzy);
+      int morphingId = instId - heightmap_parent_edges_at.y;
+      if (morphingId >= 0)
+      {
+        uint morphData = (asuint(instance_const.y)>>16)&0xFF;
+        uint parentFlip;
+        if (morphingId < heightmap_parent_edges_at.z - heightmap_parent_edges_at.y)
+        {
+          uint parentEdgeAddress = heightmap_parent_edges_at.x + (morphingId << (HMAP_QUAD_DOUBLE_SHIFT-2)) + (quad.x>>1) + ((quad.y>>1)<<(HMAP_QUAD_SHIFT-1));
+          parentFlip = (uint(loadBuffer(heightmap_edges, ((parentEdgeAddress>>3)&~3u))) >> (parentEdgeAddress&31u)) & 1u;
+        } else
+          parentFlip = flip;
+        //parentFlip = flip;
+        int2 fract = posXZ&1;
+        int2 posXZ0, posXZ1;
+        posXZ0.y = posXZ.y - fract.y;
+        posXZ1.y = posXZ.y + fract.y;
+        fract.x = (fract.x & fract.y & parentFlip) ? -1 : fract.x;
+        posXZ0.x = posXZ.x - fract.x;
+        posXZ1.x = posXZ.x + fract.x;
+
+
+        float3 worldPos0, worldPos1;
+        worldPos0.xz = quadSize*posXZ0;
+        worldPos1.xz = quadSize*posXZ1;
+        worldPos0.y = getWorldHeightGathered(worldPos0.xz + patchWorldOfs);
+        worldPos1.y = getWorldHeightGathered(worldPos1.xz + patchWorldOfs);
+        worldPos0 += get_displacement(worldPos0 + float3(patchWorldOfs,0).xzy);
+        worldPos1 += get_displacement(worldPos1 + float3(patchWorldOfs,0).xzy);
+        uint neighboors = heightmap_morph.Load(morphingId<<2);
+        FLATTEN
+        if (posXZ.x == 0)
+          morphData = neighboors&0xFF;
+        FLATTEN
+        if (posXZ.x == patchDim)
+          morphData = (neighboors>>8)&0xFF;
+
+        FLATTEN
+        if (posXZ.y == 0)
+          morphData = max(morphData, (neighboors>>16)&0xFF);
+        FLATTEN
+        if (posXZ.y == patchDim)
+          morphData = max(morphData, (neighboors>>24)&0xFF);
+        worldPos.y = lerp((worldPos0.y + worldPos1.y)*0.5, worldPos.y, morphData*(1.f/255));
+        output.morph = morphData*(1.f/255);
+      } else
+      {
+        output.morph = 1;
+      }
+      worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
+      ##endif
+      //float3 e2p = worldPos - (world_view_pos.xzy - float3(patchWorldOfs,0)).xzy;
+      float3 e2p = worldPos + float3(patchWorldOfs,0).xzy;
+      output.pos = mul(float4(e2p, 1), globtm);
+      output.p2e = world_view_pos-e2p;
       return output;
     }
   }
   //cull_mode = none;
   (ps) {
     heightmap@smp2d = tex_hmap_low;
-    sizes@f4 = (2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, 0, 0, 0);
+    sizes@f2 = (2*tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, 0, 0, 0);
+    heightmap_scale@f2 = heightmap_scale;
     tex_hmap_inv_sizes@f4 = (tex_hmap_inv_sizes.x, tex_hmap_inv_sizes.y, 1/tex_hmap_inv_sizes.x, 1/tex_hmap_inv_sizes.y);
-    world_to_hmap_low@f4 = world_to_hmap_low;
+    //world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+    //world_to_hmap_low@f4 = world_to_hmap_low;
     world_view_pos@f3 = world_view_pos;
+    viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
   }
 
   USE_PIXEL_TANGENT_SPACE()
@@ -52,7 +185,7 @@ shader heightmap
     #define sizeInMeters (sizes.x)
     float getTexel(float2 p)
     {
-      return h1tex2D(heightmap, p);
+      return tex2D(heightmap, p).x;
     }
 
     half3 getNormalLow(float2 pos)
@@ -72,27 +205,31 @@ shader heightmap
       normal = getNormalLow(tc_low);
       return normal;
     }
-
+    float getWorldHeight(float2 worldPosXZ)
+    {
+      //return decode_height(tex2Dlod(heightmap, float4(worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw, 0,0)).x);
+      return decode_height(getTexel(worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw));
+    }
     GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE)
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
-      float3 worldPos = world_view_pos.xyz-input.p2e.xyz;
+      float3 p2e = input.p2e.xyz;
+      float3 worldPos = world_view_pos.xyz - p2e;
       float3 worldNormal = getWorldNormal(worldPos.xyz).xyz;
 
       UnpackedGbuffer result;
       init_gbuffer(result);
-      float2 worldPosXZ = worldPos.xz;
-      float2 tc_low = worldPosXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
 
       //texCoord = input.tc;
       half3 albedo = 0.5;//half3(0.15,0.2, 0.05);
 
       //init_albedo_roughness(result, albedo_roughness);
       init_ao(result, 1);
+      //albedo.xyz *= lerp(float3(1,0,0), float3(0,1,0), input.morph);
       init_albedo(result, albedo.xyz);
       init_smoothness(result, 0.01);
       init_normal(result, worldNormal);
-      return encode_gbuffer(result, input.pointToEye, screenpos);
+      return encode_gbuffer(result, p2e, screenpos);
     }
   }
   compile("target_vs", "test_vs");

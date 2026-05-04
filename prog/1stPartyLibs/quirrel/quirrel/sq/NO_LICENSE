@@ -1,0 +1,4 @@
+License for this directory is covered by ../COPYRIGHT (Quirrel).
+This file is a Dagor-only marker to satisfy the Jam license check for
+the intermediate quirrel-sqcli.lib target; it is excluded from publication
+to the public GitHub mirror.

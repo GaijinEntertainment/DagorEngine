@@ -1,0 +1,25 @@
+Root           ?= ../../.. ;
+Location        = prog/3rdPartyLibs/abseil ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/abseil.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)
+;
+
+Sources =
+  absl/strings/numbers.cc
+  absl/strings/ascii.cc
+  absl/strings/match.cc
+  absl/strings/charconv.cc
+  absl/strings/internal/charconv_parse.cc
+  absl/strings/internal/charconv_bigint.cc
+  absl/strings/internal/memutil.cc
+  absl/numeric/int128.cc
+  absl/base/internal/raw_logging.cc
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

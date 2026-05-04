@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/autoBind.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <debug/dag_assert.h>
 
 namespace sq

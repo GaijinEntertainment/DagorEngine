@@ -430,6 +430,8 @@ struct btMatrixX
 	{
 		btAssert(rowend + 1 - rowstart == block.rows());
 		btAssert(colend + 1 - colstart == block.cols());
+		(void)(rowend); // unused
+		(void)(colend); // unused
 		for (int row = 0; row < block.rows(); row++)
 		{
 			for (int col = 0; col < block.cols(); col++)
@@ -442,6 +444,8 @@ struct btMatrixX
 	{
 		btAssert(rowend + 1 - rowstart == block.rows());
 		btAssert(colend + 1 - colstart == block.cols());
+		(void)(rowend); // unused
+		(void)(colend); // unused
 		for (int row = 0; row < block.rows(); row++)
 		{
 			for (int col = 0; col < block.cols(); col++)

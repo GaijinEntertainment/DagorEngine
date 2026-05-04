@@ -1,0 +1,10 @@
+if $(Platform) in windows {
+  local R = prog/gameLibs/assets_import ;
+  Sources +=
+    $(R)/dasModules/assets_import.cpp
+
+    $(R)/_aot/stub_assets_import.cpp
+  ;
+  opt on $(R)/dasModules/assets_import.cpp = -I$(Root)/prog/tools/sharedInclude -I$(Root)/prog/engine/sharedInclude ; # FIXME_BROKEN_DEP
+  opt on $(R)/_aot/stub_assets_import.cpp = -I$(Root)/prog/tools/sharedInclude ; # FIXME_BROKEN_DEP
+}

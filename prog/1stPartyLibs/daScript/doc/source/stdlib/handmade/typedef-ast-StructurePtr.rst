@@ -1,0 +1,1 @@
+Smart pointer to a `Structure` object. Used for creating and manipulating structure declarations in the AST.

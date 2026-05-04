@@ -180,6 +180,11 @@ function func2str(func, p={}) {
   if (!info.native) {
     local defparams = info?.defparams ?? []
     local params = info.parameters.slice(1)
+    if (info.varargs) {
+      if (params.len()>0 && params.top()=="...")
+        params=params.slice(0,-2)
+      params.append("...")
+    }
     local reqparams = params.slice(0, params.len() - defparams.len())
     local optparams = params.slice(reqparams.len())
     local params_str = []
@@ -308,7 +313,7 @@ function tostring_r(inp, params=defTostringParams) {
     if (typ == "array" && val.len() == 0)
       return [true, "[]"]
     if (typ == "instance") {
-      let str = val?.tostring()
+      let str = type(val?.tostring) == "function" ? val.tostring() : null
       return [str != null && str.indexof("(instance : 0x") != 0, str]
     }
     return [false, null]
@@ -386,7 +391,8 @@ function tostring_r(inp, params=defTostringParams) {
         stream.writestring(newline)
         stream.writestring(indent)
         if (!arrayElem) {
-          stream.writestring(tostring_any(key,null, compact)," = ")
+          stream.writestring(tostring_any(key,null, compact))
+          stream.writestring(" = ")
         }
         stream.writestring(brOp)
         write_to_string(value, $"{indent}{indentOnNewline}", curdeeplevel+1)
@@ -641,8 +647,8 @@ function [pure] isStringFloat(str, separator=".") {
   if (numListLen == 2 && numList[1] == "")
     numList[1] = "0"
   local lastSeg = numList[numListLen - 1]
-  local expMark = lastSeg.indexof("e") != null ? "e"
-    : lastSeg.indexof("E") != null ? "E"
+  local expMark = lastSeg.contains("e") ? "e"
+    : lastSeg.contains("E") ? "E"
     : null
   if (expMark) {
     local eList = split(lastSeg, expMark)
@@ -678,6 +684,15 @@ function [pure] toIntegerSafe(str, defValue = 0, needAssert = true) {
   return defValue
 }
 
+function [pure] toFloatSafe(str, defValue = 0.0, needAssert = true) {
+  if (type(str) == "string")
+    str = str.strip()
+  if (isStringFloat(str))
+    return str.tofloat()
+  if (needAssert)
+    assert(false, @() $"can't convert '{str}' to float")
+  return defValue
+}
 
 local utf8ToUpper
 local utf8ToLower
@@ -686,16 +701,16 @@ local utf8CapitalizeWords
 
 if (utf8 != null) {
   utf8ToUpper = function [pure] utf8ToUpperImpl(str) {
-    return utf8(str).strtr(CASE_PAIR_LOWER, CASE_PAIR_UPPER)
+    return utf8(str).toUpper()
   }
 
   utf8ToLower = function [pure] utf8ToLowerImpl(str) {
-    return utf8(str).strtr(CASE_PAIR_UPPER, CASE_PAIR_LOWER)
+    return utf8(str).toLower()
   }
 
   utf8Capitalize = function [pure] utf8CapitalizeImpl(str) {
     let utf8Str = utf8(str)
-    return "".concat(utf8(utf8Str.slice(0, 1)).strtr(CASE_PAIR_LOWER, CASE_PAIR_UPPER), utf8Str.slice(1))
+    return "".concat(utf8(utf8Str.slice(0, 1)).toUpper(), utf8Str.slice(1))
   }
   utf8CapitalizeWords = @[pure] utf8CapitalizeWordsImpl(str) " ".join(str.split(" ").map(utf8Capitalize))
 }
@@ -886,19 +901,19 @@ function validateEmail(no_dump_email) {
   if (quotes && quotes != 0)
     return false //quotes only at the begining
 
-  if (quotes == null && locpart.indexof("@")!=null)
+  if (quotes == null && locpart.contains("@"))
     return false //no @ without quotes
 
-  if (dompart.indexof(".") == null || dompart.indexof(".") > dompart.len() - 3) // warning disable: -func-can-return-null -potentially-nulled-ops
+  if (!dompart.contains(".") || dompart.indexof(".") > dompart.len() - 3) // warning disable: -func-can-return-null -potentially-nulled-ops
     return false  //too short first level domain or no periods
 
   return true
 }
 
 function clearBorderSymbols(value, symList = [" "]) {
-  while(value != "" && symList.indexof(value.slice(0,1)) != null)
+  while(value != "" && symList.contains(value.slice(0,1)))
     value = value.slice(1)
-  while(value!="" && symList.indexof(value.slice(-1)) != null)
+  while(value!="" && symList.contains(value.slice(-1)))
     value = value.slice(0, -1)
   return value
 }
@@ -984,6 +999,7 @@ return freeze(string.__merge({
   clearBorderSymbolsMultiline
 
   toIntegerSafe
+  toFloatSafe
   splitStringBySize
   obj2stringarray
 }))

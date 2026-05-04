@@ -1,0 +1,1 @@
+Base class for creating block annotations via the ``[block_macro]`` structure annotation; registers an ``AstBlockAnnotation`` with the compiler.

@@ -1,9 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <render/renderEvent.h>
-#include "render/renderLibsAllowed.h"
 #include <render/resourceSlot/registerAccess.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <ecs/render/resPtr.h>
@@ -14,18 +15,19 @@
 
 
 template <typename Callable>
-static void screen_effect_renderer_ecs_query(ecs::EntityId, Callable);
+static void screen_effect_renderer_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 template <typename Callable>
-static void get_screen_effect_renderer_ecs_query(Callable);
+static void get_screen_effect_renderer_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 static void screen_effect_renderer_init_es_event_handler(const BeforeLoadLevel &, ecs::EntityManager &manager)
 {
-  if (!is_render_lib_allowed("screen_effect"))
+  const DataBlock *graphicsBlk = dgs_get_settings()->getBlockByNameEx("graphics");
+  if (!graphicsBlk->getBool("screenEffect", true))
     return;
 
-  screen_effect_renderer_ecs_query(manager.getOrCreateSingletonEntity(ECS_HASH("screen_effect_renderer")),
+  screen_effect_renderer_ecs_query(manager, manager.getOrCreateSingletonEntity(ECS_HASH("screen_effect_renderer")),
     [&](ecs::EntityId eid, UniqueBufHolder &screen_effect__buffer, int &screen_effect__countVar,
       ecs::IntList &screen_effect__texVars) {
       screen_effect__texVars.reserve(MAX_SCREEN_EFFECTS);
@@ -59,6 +61,7 @@ static void screen_effect_renderer_close_es(const ecs::Event &, const ecs::IntLi
 ECS_TAG(render)
 ECS_NO_ORDER
 static void screen_effect_render_es(const UpdateStageInfoBeforeRender &,
+  ecs::EntityManager &manager,
   const UniqueBufHolder &screen_effect__buffer,
   int screen_effect__countVar,
   const ecs::IntList &screen_effect__texVars,
@@ -72,7 +75,7 @@ static void screen_effect_render_es(const UpdateStageInfoBeforeRender &,
   eastl::fixed_vector<TEXTUREID, MAX_SCREEN_EFFECTS, false> textures;
   float weightsSum = 0.f;
 
-  get_screen_effect_renderer_ecs_query(
+  get_screen_effect_renderer_ecs_query(manager,
     [&](const SharedTex &screen_effect__texture, Point4 screen_effect__diffuse, float screen_effect__uvScale,
       float screen_effect__roughness, float screen_effect__opacity, float screen_effect__intensity, float screen_effect__weight,
       float screen_effect__borderOffset, float screen_effect__borderSaturation) {
@@ -126,13 +129,13 @@ static void screen_effect_node_enable_es(const ecs::Event &, resource_slot::Node
   screenEffect = resource_slot::register_access("screen_effect", DAFG_PP_NODE_SRC,
     {resource_slot::Update{"postfx_input_slot", "screen_effects_frame", 200}},
     [](resource_slot::State slotsState, dafg::Registry registry) {
-      registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"), dafg::History::No,
+      registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"),
         {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
       registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
       registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
       registry.read("postfx_input_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("frame_tex_samplerstate");
       registry.read("downsampled_depth_with_late_water").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_depth");
-      registry.create("downsampled_depth_with_late_water_sampler", dafg::History::No)
+      registry.create("downsampled_depth_with_late_water_sampler")
         .blob<d3d::SamplerHandle>(d3d::request_sampler({}))
         .bindToShaderVar("downsampled_depth_samplerstate");
       registry.read("prev_frame_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar();

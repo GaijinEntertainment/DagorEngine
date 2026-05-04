@@ -8,6 +8,7 @@
 #define __SCRIPTSELEM_H
 
 #include "shadersBinaryData.h"
+#include "shBindumpsPrivate.h"
 #include <shaders/dag_renderStateId.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderState.h>
@@ -64,6 +65,7 @@ public:
 
   const shaderbindump::ShaderCode &code;
   const shaderbindump::ShaderClass &shClass;
+  ShaderBindumpHandle dumpHandle = MAIN_BINDUMP_HANDLE;
   mutable OSSpinlock stateBlocksSpinLock;
   mutable VDECL usedVdecl; // cached
   uint8_t stageDest;
@@ -75,16 +77,15 @@ public:
   };
   uint8_t dynVariantOption = NO_DYNVARIANT;
 
+  mutable bool texturesLoaded = false;
+  mutable int8_t tex_level = 15;
+  uint32_t dynVariantCollectionId = 0;
+
   // for each dynamic variant create it's own passes
   SmallTab<PackedPassId, MidmemAlloc> passes;
 
   SmallTab<int, MidmemAlloc> texVarOfs;
   SmallTab<VarMap, MidmemAlloc> varMapTable;
-  uint32_t dynVariantCollectionId = 0;
-
-  mutable int tex_level = 15;
-
-  mutable bool texturesLoaded = false;
 
 public:
   ScriptedShaderElement(ScriptedShaderElement &&) = default;
@@ -110,7 +111,7 @@ public:
   void update_stvar(ScriptedShaderMaterial &m, int stvarid);
 
   GCC_HOT void execute_chosen_stcode(uint16_t stcodeId, uint16_t extStcodeId, const shaderbindump::ShaderCode::Pass *cPass,
-    const uint8_t *vars) const;
+    ScriptedShadersBinDumpOwner const &dump_owner, const uint8_t *vars) const;
 
   SNC_LIKELY_TARGET bool setStates() const override;
   SNC_LIKELY_TARGET void render(int minv, int numv, int sind, int numf, int base_vertex, int prim = PRIM_TRILIST) const override;
@@ -156,7 +157,8 @@ public:
 
   const char *getShaderClassName() const override;
   void setProgram(uint32_t variant);
-  PROGRAM getComputeProgram(const shaderbindump::ShaderCode::ShRef *p) const;
+  PROGRAM getComputeProgram(const shaderbindump::ShaderCode::ShRef *p, int variant_code = -1) const;
+  PROGRAM getComputeProgram() const;
   inline bool setReqTexLevel(int req_tex_level = 15) const override
   {
     bool increased = req_tex_level > tex_level;
@@ -167,13 +169,17 @@ public:
 private:
   static const unsigned int invalid_variant = 0xFFFFFFFF;
   // use upper 16 bit of seFlags for internal needs
-  __forceinline void prepareShaderProgram(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
-  __forceinline void preparePassId(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
-  void preparePassIdOOL(PackedPassId::Id &pass_id, int variant, unsigned int variant_code) const;
+  __forceinline void prepareShaderProgram(PackedPassId::Id &pass_id, int variant, unsigned int variant_code,
+    ScriptedShadersBinDumpOwner const &dump_owner) const;
+  __forceinline void preparePassId(PackedPassId::Id &pass_id, int variant, unsigned int variant_code,
+    ScriptedShadersBinDumpOwner const &dump_owner) const;
+  void preparePassIdOOL(PackedPassId::Id &pass_id, int variant, unsigned int variant_code,
+    ScriptedShadersBinDumpOwner const &dump_owner) const;
 
   const shaderbindump::ShaderCode::ShRef *getPassCode() const;
 
-  ShaderStateBlockId recordStateBlock(const shaderbindump::ShaderCode::ShRef &p, const shaderbindump::ShaderCode &sc) const;
+  ShaderStateBlockId recordStateBlock(const shaderbindump::ShaderCode::ShRef &p, const shaderbindump::ShaderCode &sc,
+    ScriptedShadersBinDumpOwner const &dump_owner) const;
   VDECL initVdecl() const;
 
   ScriptedShaderElement(const ScriptedShaderElement &);

@@ -1,4 +1,4 @@
-KernelLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
 PlatformArch_windows ?= x86_64 ;
 UseD3DMulti = yes ;
 
@@ -28,7 +28,7 @@ Sources =
 UseProgLibs +=
   gameLibs/rendInst
   gameLibs/landMesh
-  gameLibs/daECS/core
+  engine/daECS/core
   gameLibs/ecs/gameres
   gameLibs/render
   gameLibs/gamePhys/phys

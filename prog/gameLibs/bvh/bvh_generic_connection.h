@@ -69,15 +69,17 @@ struct BVHConnection : public ::BVHConnection
     if (!instances)
     {
       instances = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), maxCount,
-        String(0, "bvh_%s_instances_%d", name.data(), nameCounter++));
+        String(0, "bvh_%s_instances_%d", name.data(), nameCounter++), d3d::buffers::Init::No, RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(instances, false);
     }
 
     if (!counter)
     {
-      counter = dag::buffers::create_ua_sr_byte_address(1, String(0, "bvh_%s_instance_counter", name.data()));
+      counter = dag::buffers::create_ua_sr_byte_address(1, String(0, "bvh_%s_instance_counter", name.data()), d3d::buffers::Init::No,
+        RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(counter, false);
-      counterReadback = dag::buffers::create_ua_byte_address_readback(1, String(0, "bvh_%s_instance_counter_readback", name.data()));
+      counterReadback = dag::buffers::create_ua_byte_address_readback(1, String(0, "bvh_%s_instance_counter_readback", name.data()),
+        d3d::buffers::Init::No, RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(counterReadback, false);
       counterQuery.reset(d3d::create_event_query());
       HANDLE_LOST_DEVICE_STATE(counterQuery, false);

@@ -1,0 +1,1 @@
+Smart pointer to a `Variable` object. Used for creating and manipulating variable declarations in the AST.

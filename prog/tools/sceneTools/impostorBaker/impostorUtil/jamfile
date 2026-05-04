@@ -1,4 +1,4 @@
-KernelLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
 UseD3DMulti = yes ;
 
 Root    ?= ../../../../.. ;

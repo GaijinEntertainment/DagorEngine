@@ -13,6 +13,7 @@ MAKE_TYPE_FACTORY(DataBlockReadFlags, dblk::ReadFlags);
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::DataBlock::ParamType, DataBlockParamType);
 DAS_BIND_ENUM_CAST(dblk::ReadFlag);
+DAS_BASE_BIND_ENUM_FACTORY(dblk::ReadFlag, "DataBlockReadFlag");
 
 namespace das
 {

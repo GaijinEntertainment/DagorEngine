@@ -2,9 +2,9 @@ options indenting = 2
 module jsonrpc_boost shared
 options strict_smart_pointers
 
-require ast
+require daslib/ast
 require strings
-require debugapi public
+require daslib/debugger public
 
 require daslib/ast_boost
 require daslib/templates_boost

@@ -17,56 +17,69 @@
 
 #include "lensFlareNodes.h"
 
+
 template <typename Callable>
-static void lens_glow_enabled_ecs_query(ecs::EntityId eid, Callable c);
-static bool query_lens_flare_enabled()
-{
-  bool enabled = false;
-  ecs::EntityId settingEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
-  lens_glow_enabled_ecs_query(settingEid, [&enabled](bool render_settings__lensFlares, bool render_settings__bare_minimum) {
-    enabled = render_settings__lensFlares && !render_settings__bare_minimum;
-  });
-  return enabled;
-}
+static void lens_glow_enabled_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
-ECS_ON_EVENT(on_appear)
-static void lens_flare_renderer_on_appear_es(const ecs::Event &,
+ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated, ChangeRenderFeatures)
+static void lens_flare_renderer_on_reinit_es(const ecs::Event &evt,
+  ecs::EntityManager &manager,
   LensFlareRenderer &lens_flare_renderer,
+  dafg::NodeHandle &lens_flare_renderer__per_camera_res_node,
   dafg::NodeHandle &lens_flare_renderer__render_node,
-  dafg::NodeHandle &lens_flare_renderer__prepare_lights_node)
+  dafg::NodeHandle &lens_flare_renderer__prepare_lights_node,
+  dafg::NodeHandle &lens_flare_renderer__camcam_lens_prepare_lights_node,
+  dafg::NodeHandle &lens_flare_renderer__camcam_lens_render_node)
 {
-  lens_flare_renderer.init();
-  bool enabled = query_lens_flare_enabled();
-  set_up_lens_flare_renderer(enabled, lens_flare_renderer, lens_flare_renderer__render_node, create_lens_flare_render_node,
-    lens_flare_renderer__prepare_lights_node, create_lens_flare_prepare_lights_node);
+  if (evt.cast<ecs::EventEntityCreated>())
+    lens_flare_renderer.init();
+
+  const ecs::EntityId settingEid = get_render_settings(evt);
+  bool renderOptionalFlareProviders = true;
+
+  lens_glow_enabled_ecs_query(manager, settingEid,
+    [&renderOptionalFlareProviders](bool render_settings__lensFlares, bool render_settings__bare_minimum) {
+      renderOptionalFlareProviders = render_settings__lensFlares && !render_settings__bare_minimum;
+    });
+
+  lens_flare_renderer.toggleOptionalProvidersProcessing(renderOptionalFlareProviders);
+
+  const LensFlareQualityParameters quality = {0.5f};
+  lens_flare_renderer__per_camera_res_node = create_lens_flare_per_camera_res_node(quality);
+  lens_flare_renderer__prepare_lights_node = create_lens_flare_prepare_lights_node(&lens_flare_renderer, 0);
+  lens_flare_renderer__render_node = create_lens_flare_render_node(&lens_flare_renderer, quality, 0);
+
+  if (renderer_has_feature(CAMERA_IN_CAMERA))
+  {
+    lens_flare_renderer__camcam_lens_prepare_lights_node = create_lens_flare_prepare_lights_node(&lens_flare_renderer, 1);
+    lens_flare_renderer__camcam_lens_render_node = create_lens_flare_render_node(&lens_flare_renderer, quality, 1);
+  }
+  else
+  {
+    lens_flare_renderer__camcam_lens_prepare_lights_node = {};
+    lens_flare_renderer__camcam_lens_render_node = {};
+  }
 }
 
 template <typename Callable>
-static void init_lens_flare_nodes_ecs_query(Callable);
+static void init_lens_flare_nodes_ecs_query(ecs::EntityManager &manager, Callable);
 
-ECS_TAG(render)
-ECS_ON_EVENT(OnRenderSettingsReady)
-ECS_TRACK(render_settings__lensFlares, render_settings__bare_minimum)
-static void lens_flare_renderer_on_settings_changed_es(
-  const ecs::Event &, bool render_settings__lensFlares, bool render_settings__bare_minimum)
+static inline void use_lens_flare_fg_resources(dafg::Registry registry)
 {
-  bool enabled = render_settings__lensFlares && !render_settings__bare_minimum;
-  init_lens_flare_nodes_ecs_query([enabled](LensFlareRenderer &lens_flare_renderer, dafg::NodeHandle &lens_flare_renderer__render_node,
-                                    dafg::NodeHandle &lens_flare_renderer__prepare_lights_node) {
-    set_up_lens_flare_renderer(enabled, lens_flare_renderer, lens_flare_renderer__render_node, create_lens_flare_render_node,
-      lens_flare_renderer__prepare_lights_node, create_lens_flare_prepare_lights_node);
-  });
+  (registry.root() / "lens_flare").readTexture("lens_flares").atStage(dafg::Stage::PS).bindToShaderVar("lens_flare_tex").optional();
+  (registry.root() / "lens_flare").readBlob<int>("has_lens_flares").optional().bindToShaderVar("lens_flares_enabled");
 }
 
 ECS_TAG(render)
+ECS_REQUIRE_NOT(ecs::Tag renderInDistortion)
 ECS_REQUIRE(const LensFlareRenderer &lens_flare_renderer)
-static void register_lens_flare_for_postfx_es(const RegisterPostfxResources &evt)
+static void register_lens_flare_for_postfx_es(const RegisterPostfxResources &evt) { use_lens_flare_fg_resources(evt.get<0>()); }
+
+ECS_TAG(render)
+ECS_REQUIRE(ecs::Tag renderInDistortion)
+ECS_REQUIRE(const LensFlareRenderer &lens_flare_renderer)
+static void register_lens_flare_for_distortion_es(const RegisterDistortionModifiersResources &evt)
 {
-  (evt.get<0>().root() / "lens_flare")
-    .readTexture("lens_flares")
-    .atStage(dafg::Stage::PS)
-    .bindToShaderVar("lens_flare_tex")
-    .optional();
-  (evt.get<0>().root() / "lens_flare").readBlob<int>("has_lens_flares").optional().bindToShaderVar("lens_flares_enabled");
+  use_lens_flare_fg_resources(evt.get<0>());
 }

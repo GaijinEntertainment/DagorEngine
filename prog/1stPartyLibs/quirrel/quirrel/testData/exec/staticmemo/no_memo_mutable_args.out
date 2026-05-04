@@ -1,0 +1,5 @@
+primitive return: ok
+new table return: ok
+passthrough not frozen: ok
+two mutable args: ok
+nested pure calls: ok

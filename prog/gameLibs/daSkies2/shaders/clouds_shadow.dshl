@@ -5,6 +5,10 @@ int skies_use_2d_shadows;
 
 texture clouds_shadows_2d;
 
+int clouds_disable_own_shadow = 0;
+interval clouds_disable_own_shadow: no < 1, yes;
+assume_if_not_assumed clouds_disable_own_shadow = no;
+
 macro INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code)
   (code) {
     world_pos_to_clouds_alt@f4 = (0.001/clouds_thickness2, -clouds_start_altitude2/clouds_thickness2,
@@ -30,7 +34,11 @@ macro USE_CLOUDS_SHADOW_BASE_REF(code)
   hlsl(code) {
     #define INV_WEATHER_SIZE (clouds_weather_inv_size__alt_scale.x)
     #ifndef DISABLE_CLOUDS_SHADOW
-      #define DISABLE_CLOUDS_SHADOW MOBILE_DEVICE
+      ##if clouds_disable_own_shadow == yes
+        #define DISABLE_CLOUDS_SHADOW 1
+      ##else
+        #define DISABLE_CLOUDS_SHADOW 0
+      ##endif
     #endif
   }
   USE_CLOUDS_SHADOWS_VOLUME(code)

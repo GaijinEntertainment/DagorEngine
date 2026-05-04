@@ -50,8 +50,8 @@ CpuComputeShaderId register_cpu_compute_shader_opt(Shaders &dst, const eastl::st
 int update_cpu_emission(Context &ctx, const eastl::vector<int> &workers, int start, int count);
 int update_cpu_simulation(Context &ctx, const eastl::vector<int> &workers, int start, int count);
 
-void update_gpu_emission(Context &ctx, const eastl::vector<int> &workers);
-void update_gpu_simulation(Context &ctx, const eastl::vector<int> &workers);
+void update_gpu_emission(Context &ctx, const eastl::vector<int> &workers, bool gpu_fetch);
+void update_gpu_simulation(Context &ctx, const eastl::vector<int> &workers, bool gpu_fetch);
 
 inline uint32_t get_render_tag(Shaders &dst, const eastl::string &tag, uint32_t max_tags)
 {

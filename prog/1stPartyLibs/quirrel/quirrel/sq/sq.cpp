@@ -21,30 +21,21 @@
 #include <sqstdstring.h>
 #include <sqstdaux.h>
 #include <sqmodules.h>
-#include <sqastio.h>
+#include <sqio.h>
 #include <sqstddebug.h>
-#include <squirrel/sqtypeparser.h>
-
-#include <startup/dag_globalSettings.h>
+#include <compiler/sqtypeparser.h>
 
 #define scvprintf vfprintf
 
 
 static SqModules *module_mgr = nullptr;
+static DefSqModulesFileAccess file_access;
 static bool check_stack_mode = false;
 
 
 void PrintVersionInfos();
 
-SQInteger quit(HSQUIRRELVM v)
-{
-    int *done;
-    sq_getuserpointer(v,-1,(SQUserPointer*)&done);
-    *done=1;
-    return 0;
-}
-
-void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
     va_list vl;
     va_start(vl, s);
@@ -54,7 +45,7 @@ void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 
 static FILE *errorStream = stderr;
 
-void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
     va_list vl;
     va_start(vl, s);
@@ -64,31 +55,32 @@ void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 
 void PrintVersionInfos()
 {
-    fprintf(stdout,_SC("%s %s (%d bits)\n"),SQUIRREL_VERSION,SQUIRREL_COPYRIGHT,((int)(sizeof(SQInteger)*8)));
+    fprintf(stdout,"%s %s (%d bits)\n",SQUIRREL_VERSION,SQUIRREL_COPYRIGHT,((int)(sizeof(SQInteger)*8)));
 }
 
 void PrintUsage()
 {
-    fprintf(stderr,_SC("Usage: sq <scriptpath [args]> [options]\n")
-        _SC("Available options are:\n")
-        _SC("  -c                        compiles the file to bytecode (default output 'out.cnut')\n")
-        _SC("  -o <out-file>             specifies output file for the -c option\n")
-        _SC("  -ast-dump [out-file]      dump AST into console or file if specified\n")
-        _SC("  -absolute-path            use absolute path when print diangostics\n")
-        _SC("  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n")
-        _SC("  -diag-file file           write diagnostics into specified file\n")
-        _SC("  -sa                       enable static analyzer\n")
-        _SC("  --check-stack             check stack after each script execution\n")
-        _SC("  --warnings-list           print all warnings and exit\n")
-        _SC("  --parse-types             parse function types from file\n")
-        _SC("  --D:<diagnostic-name>     disable diagnostic by text id\n")
-        _SC("  -optCH                    enable Closure Hoisting Optimization\n")
-        _SC("  -d                        generates debug infos\n")
-        _SC("  -v                        displays version\n")
-        _SC("  -h                        prints help\n"));
+    fprintf(stderr,"Usage: sq <scriptpath [args]> [options]\n"
+        "Available options are:\n"
+        "  -c                        compiles the file to bytecode (default output 'out.cnut')\n"
+        "  -o <out-file>             specifies output file for the -c option\n"
+        "  -ast-dump [out-file]      dump AST into console or file if specified\n"
+        "  -nodes-location           print AST nodes locations\n"
+        "  -absolute-path            use absolute path when print diangostics\n"
+        "  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n"
+        "  -diag-file file           write diagnostics into specified file\n"
+        "  -sa                       enable static analyzer\n"
+        "  --check-stack             check stack after each script execution\n"
+        "  --warnings-list           print all warnings and exit\n"
+        "  --parse-types             parse function types from file\n"
+        "  --D:<diagnostic-name>     disable diagnostic by text id\n"
+        "  -optCH                    enable Closure Hoisting Optimization\n"
+        "  -d                        generates debug infos\n"
+        "  -v                        displays version\n"
+        "  -h                        prints help\n");
 }
 
-std::string read_file_ignoring_utf8bom(const char *filename)
+static std::string read_file_ignoring_utf8bom(const char *filename)
 {
     FILE *f = fopen(filename, "rb");
     if (!f)
@@ -105,7 +97,8 @@ std::string read_file_ignoring_utf8bom(const char *filename)
     fclose(f);
     result[sz] = 0;
 
-    if (sz >= 3 && result[0] == 0xEF && result[1] == 0xBB && result[2] == 0xBF)
+    static const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+    if (sz >= 3 && memcmp(result.data(), bom, 3) == 0)
         result.erase(0, 3);
 
     return result;
@@ -150,6 +143,7 @@ static bool check_stack(HSQUIRRELVM v, int expected_top)
 struct DumpOptions {
   bool astDump;
   bool bytecodeDump;
+  bool nodesLocation;
 
   const char *astDumpFileName;
   const char *bytecodeDumpFileName;
@@ -167,17 +161,17 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
             FileOutputStream fos(dumpOpt->astDumpFileName);
             if (fos.valid())
             {
-                sq_dumpast(vm, astData, &fos);
+                sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
             }
             else
             {
-                printf(_SC("Error: cannot open AST dump file '%s'\n"), dumpOpt->astDumpFileName);
+                printf("Error: cannot open AST dump file '%s'\n", dumpOpt->astDumpFileName);
             }
         }
         else
         {
             FileOutputStream fos(stdout);
-            sq_dumpast(vm, astData, &fos);
+            sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
         }
     }
 }
@@ -198,7 +192,7 @@ static void dumpBytecodeAst_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
             }
             else
             {
-                printf(_SC("Error: cannot open Bytecode dump file '%s'\n"), dumpOpt->bytecodeDumpFileName);
+                printf("Error: cannot open Bytecode dump file '%s'\n", dumpOpt->bytecodeDumpFileName);
             }
         }
         else
@@ -318,6 +312,8 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
                     printf("  ellipsisArgTypeMask: 0x%x\n", unsigned(t.ellipsisArgTypeMask));
                     printf("  requiredArgs: %d\n", int(t.requiredArgs));
                     printf("  argCount: %d\n", int(t.argTypeMask.size()));
+                    printf("  pure: %s\n", t.pure ? "true" : "false");
+                    printf("  nodiscard: %s\n", t.nodiscard ? "true" : "false");
                     printf("\n");
                 }
                 else {
@@ -342,13 +338,12 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
 
 
 
-#define _INTERACTIVE 0
 #define _DONE 2
 #define _ERROR 3
 //<<FIXME>> this func is a mess
 int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 {
-    assert(module_mgr != nullptr && "Module manager has to be existed");
+    assert(module_mgr != nullptr && "Module manager has to be initialized");
     const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
@@ -380,9 +375,13 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 if ((index + 1) < argc && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
                     dumpOpt.astDumpFileName = argv[++index];
             }
+            else if (strcmp("-nodes-location", arg) == 0)
+            {
+                dumpOpt.nodesLocation = true;
+            }
             else if (strcmp("-absolute-path", arg) == 0)
             {
-                module_mgr->compilationOptions.useAbsolutePath = true;
+                file_access.useAbsolutePath = true;
             }
             else if (strcmp("-parse-types", arg) == 0)
             {
@@ -390,8 +389,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             }
             else if (strcmp("-d", arg) == 0)
             {
-                module_mgr->compilationOptions.debugInfo = true;
-                //sq_enabledebuginfo(v,1);
                 sq_lineinfo_in_expressions(v, 1);
             }
             else if (strcmp("-diag-file", arg) == 0)
@@ -402,13 +399,13 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                     diagFile = fopen(fileName, "wb");
                     if (diagFile == NULL)
                     {
-                        printf(_SC("Cannot open diagnostic output file '%s'\n"), fileName);
+                        printf("Cannot open diagnostic output file '%s'\n", fileName);
                         return _ERROR;
                     }
                 }
                 else
                 {
-                    printf(_SC("-diag-file option requires file name to be specified\n"));
+                    printf("-diag-file option requires file name to be specified\n");
                     return _ERROR;
                 }
             }
@@ -445,9 +442,9 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else if (strcmp("-sa", arg) == 0) {
                 static_analysis = true;
             }
-            else if (static_analysis && strncmp("--D:", arg, 4) == 0) {
-                if (!sq_setdiagnosticstatebyname(&arg[5], false))
-                    printf("Unknown warning ID: '%s'\n", &arg[5]);
+            else if (static_analysis && strncmp("-D:", arg, 3) == 0) {
+                if (!sq_setdiagnosticstatebyname(&arg[3], false))
+                    printf("Unknown warning ID: '%s'\n", &arg[3]);
             }
             else if (strcmp(arg, "-warnings-list") == 0) {
                 sq_printwarningslist(stdout);
@@ -455,7 +452,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             }
             else if (arg[0] == '-') {
                 PrintVersionInfos();
-                printf(_SC("unknown argument '%s'\n"), arg);
+                printf("unknown argument '%s'\n", arg);
                 PrintUsage();
                 *retval = -1;
                 return _ERROR;
@@ -498,7 +495,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         }
 
         for (const std::string & fn : listOfNutFiles) {
-            const SQChar *filename=fn.c_str();
+            const char *filename=fn.c_str();
 
             if (static_analysis) {
               sq_resetanalyzerconfig();
@@ -513,7 +510,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
             if (compiles_only) {
                 if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
-                    const SQChar *outfile = _SC("out.cnut");
+                    const char *outfile = "out.cnut";
                     if(output) {
                         outfile = output;
                     }
@@ -525,7 +522,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 int top = fill_stack(v);
 
                 Sqrat::Object exports;
-                std::string errMsg;
+                SqModules::string errMsg;
                 int retCode = _DONE;
 
                 if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
@@ -541,11 +538,11 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 }
 
                 if (retCode != _DONE) {
-                  fprintf(stderr, _SC("Error [%s]\n"), errMsg.c_str());
+                  fprintf(stderr, "Error [%s]\n", errMsg.c_str());
                 }
 
                 if (!check_stack(v, top)) {
-                    fprintf(stderr, _SC("Stack check failed after execution of '%s'\n"), filename);
+                    fprintf(stderr, "Stack check failed after execution of '%s'\n", filename);
                     *retval = -3;
                     retCode = _ERROR;
                 }
@@ -555,10 +552,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
             //if this point is reached an error occurred
             {
-                const SQChar *err;
+                const char *err;
                 sq_getlasterror(v);
                 if(SQ_SUCCEEDED(sq_getstring(v,-1,&err))) {
-                    printf(_SC("Error [%s]\n"),err);
+                    printf("Error [%s]\n",err);
                     *retval = -2;
                     return _ERROR;
                 }
@@ -566,126 +563,26 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
         }
     }
-
-    return _INTERACTIVE;
-}
-
-void Interactive(HSQUIRRELVM v)
-{
-
-#define MAXINPUT 1024
-    SQChar buffer[MAXINPUT];
-    SQInteger blocks =0;
-    SQInteger string=0;
-    SQInteger retval=0;
-    SQInteger done=0;
-    PrintVersionInfos();
-
-    HSQOBJECT bindingsTable;
-    sq_newtable(v);
-    sq_getstackobj(v, -1, &bindingsTable);
-    sq_addref(v, &bindingsTable);
-
-    sq_registerbaselib(v);
-
-    sq_pushstring(v,_SC("quit"),-1);
-    sq_pushuserpointer(v,&done);
-    sq_newclosure(v,quit,1);
-    sq_setparamscheck(v,1,NULL);
-    sq_newslot(v,-3,SQFalse);
-
-    sq_pop(v, 1); // bindingsTable
-
-    while (!done)
+    else
     {
-        SQInteger i = 0;
-        printf(_SC("\nsq>"));
-        for(;;) {
-            int c;
-            if(done)return;
-            c = getchar();
-            if (c == _SC('\n')) {
-                if (i>0 && buffer[i-1] == _SC('\\'))
-                {
-                    buffer[i-1] = _SC('\n');
-                }
-                else if(blocks==0)break;
-                buffer[i++] = _SC('\n');
-            }
-            else if (c==_SC('}')) {blocks--; buffer[i++] = (SQChar)c;}
-            else if(c==_SC('{') && !string){
-                    blocks++;
-                    buffer[i++] = (SQChar)c;
-            }
-            else if(c==_SC('"') || c==_SC('\'')){
-                    string=!string;
-                    buffer[i++] = (SQChar)c;
-            }
-            else if (i >= MAXINPUT-1) {
-                fprintf(stderr, _SC("sq : input line too long\n"));
-                break;
-            }
-            else{
-                buffer[i++] = (SQChar)c;
-            }
-        }
-        buffer[i] = _SC('\0');
-
-        if(buffer[0]==_SC('=')){
-            scsprintf(sq_getscratchpad(v,MAXINPUT),(size_t)MAXINPUT,_SC("return (%s)"),&buffer[1]);
-            memcpy(buffer,sq_getscratchpad(v,-1),(strlen(sq_getscratchpad(v,-1))+1)*sizeof(SQChar));
-            retval=1;
-        }
-        i=strlen(buffer);
-        if(i>0){
-            SQInteger oldtop=sq_gettop(v);
-            if(SQ_SUCCEEDED(sq_compile(v,buffer,i,_SC("interactive console"),SQTrue,&bindingsTable))){
-                sq_pushroottable(v);
-                if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue)) &&  retval){
-                    printf(_SC("\n"));
-                    sq_pushroottable(v);
-                    sq_pushstring(v,_SC("print"),-1);
-                    sq_get(v,-2);
-                    sq_pushroottable(v);
-                    sq_push(v,-4);
-                    sq_call(v,2,SQFalse,SQTrue);
-                    retval=0;
-                    printf(_SC("\n"));
-                }
-            }
-
-            sq_settop(v,oldtop);
-        }
+        PrintUsage();
+        *retval = -1;
+        return _ERROR;
     }
 
-    sq_release(v, &bindingsTable);
+    return _DONE;
 }
 
-
-//int main(int argc, char* argv[])
-int DagorWinMain(bool /*debugmode*/)
+int sq_interpreter_main(int argc, char* argv[])
 {
-    HSQUIRRELVM v;
     SQInteger retval = 0;
 
-    v=sq_open(1024);
+    HSQUIRRELVM v = sq_open(1024);
     sq_setprintfunc(v,printfunc,errorfunc);
 
-    sq_pushroottable(v);
-
-    sqstd_register_bloblib(v);
-    sqstd_register_iolib(v);
-    sqstd_register_systemlib(v);
-    sqstd_register_datetimelib(v);
-    sqstd_register_mathlib(v);
-    sqstd_register_stringlib(v);
-    sqstd_register_debuglib(v);
-
-    //aux library
-    //sets error handlers
     sqstd_seterrorhandlers(v);
 
-    module_mgr = new SqModules(v);
+    module_mgr = new SqModules(v, &file_access);
     module_mgr->registerMathLib();
     module_mgr->registerStringLib();
     module_mgr->registerSystemLib();
@@ -693,21 +590,14 @@ int DagorWinMain(bool /*debugmode*/)
     module_mgr->registerIoLib();
     module_mgr->registerDateTimeLib();
     module_mgr->registerDebugLib();
-    module_mgr->registerModulesLib();
 
-    sqstd_register_command_line_args(v, ::dgs_argc, ::dgs_argv);
+    sqstd_register_command_line_args(v, argc, argv);
+
+    extern void register_test_natives(SqModules *);
+    register_test_natives(module_mgr);
 
     //gets arguments
-    switch(getargs(v, ::dgs_argc, ::dgs_argv, &retval))
-    {
-    case _INTERACTIVE:
-        Interactive(v);
-        break;
-    case _DONE:
-    case _ERROR:
-    default:
-        break;
-    }
+    getargs(v, argc, argv, &retval);
 
     if (errorStream != stderr)
     {
@@ -719,4 +609,11 @@ int DagorWinMain(bool /*debugmode*/)
 
     return int(retval);
 }
+
+#ifndef SQ_EXCLUDE_DEFAULT_MAIN
+int main(int argc, char* argv[])
+{
+    return sq_interpreter_main(argc, argv);
+}
+#endif
 

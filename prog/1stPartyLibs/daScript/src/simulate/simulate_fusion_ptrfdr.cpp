@@ -165,11 +165,11 @@ namespace das {
     {
         REGISTER_OP1_WORKHORSE_FUSION_POINT(FieldDerefR2V);
         REGISTER_OP1_NUMERIC_VEC(FieldDerefR2V);
-        (**g_fusionEngine)["FieldDeref"].emplace_back(new Op1FusionPoint_FieldDeref_vec4f());
+        (*getFusionEngine())["FieldDeref"].emplace_back(new Op1FusionPoint_FieldDeref_vec4f());
 
         REGISTER_OP1_WORKHORSE_FUSION_POINT(PtrFieldDerefR2V);
         REGISTER_OP1_NUMERIC_VEC(PtrFieldDerefR2V);
-        (**g_fusionEngine)["PtrFieldDeref"].emplace_back(new Op1FusionPoint_PtrFieldDeref_vec4f());
+        (*getFusionEngine())["PtrFieldDeref"].emplace_back(new Op1FusionPoint_PtrFieldDeref_vec4f());
     }
 }
 

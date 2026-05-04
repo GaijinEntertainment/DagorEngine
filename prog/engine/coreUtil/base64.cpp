@@ -4,9 +4,20 @@
 #include <util/dag_globDef.h>
 
 #include <math/dag_mathBase.h>
+#include <EASTL/array.h>
 
+static constexpr eastl::array<uint8_t, 256> makeBase64ToSixtet(const char *map)
+{
+  eastl::array<uint8_t, 256> table{};
+  for (int i = 0; map[i] != '\0'; ++i)
+  {
+    unsigned char ch = static_cast<unsigned char>(map[i]);
+    table[ch] = static_cast<uint8_t>(i);
+  }
+  return table;
+}
 
-static const char sixtet_to_base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static constexpr const char sixtet_to_base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 
 void Base64::operator=(const char *s)
@@ -116,19 +127,8 @@ int Base64::decode(uint8_t *to) const
   unsigned long w;
   int i, j;
   int n;
-  static char base64_to_sixtet[256];
-  static int tab_init = 0;
+  static constexpr eastl::array<uint8_t, 256> base64_to_sixtet = makeBase64ToSixtet(sixtet_to_base64);
   uint8_t *from = data;
-
-  if (!tab_init)
-  {
-    memset(base64_to_sixtet, 0, 256);
-    for (i = 0; (j = sixtet_to_base64[i]) != '\0'; ++i)
-    {
-      base64_to_sixtet[j] = i;
-    }
-    tab_init = 1;
-  }
 
   w = 0;
   i = 0;

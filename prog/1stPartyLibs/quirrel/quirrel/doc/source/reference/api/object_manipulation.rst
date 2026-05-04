@@ -202,7 +202,7 @@ pushes the current delegate of the object at the position idx in the stack.
 
 .. _sq_getfreevariable:
 
-.. c:function:: const SQChar * sq_getfreevariable(HSQUIRRELVM v, SQInteger idx, SQInteger nval)
+.. c:function:: const char * sq_getfreevariable(HSQUIRRELVM v, SQInteger idx, SQInteger nval)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: index of the target object in the stack(closure)

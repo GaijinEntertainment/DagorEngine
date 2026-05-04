@@ -1,0 +1,5 @@
+hlsl {
+##if (hardware.ps4 || hardware.ps5)
+    #include "ps4Defines.hlsl"
+##endif
+}

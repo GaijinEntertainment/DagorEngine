@@ -9,7 +9,7 @@ try {
   RAND_MAX = math.RAND_MAX
 }
 
-const CompsToUpdateEachFrame = 30
+//CompsToUpdateEachFrame = 30
 const ROBJ_TEXT = 0
 const ROBJ_FRAME= 1
 const ROBJ_SOLID= 2
@@ -30,7 +30,7 @@ class Watched {
 }
 
 function rint(max){
-  return (rand()/RAND_MAX*max).tointeger()
+  return (rand().tofloat()/RAND_MAX*max).tointeger()
 }
 const screenWidth = 1920.0
 const screenHeight= 1080.0
@@ -53,7 +53,6 @@ function flex(val=null){
 
 
 
-const componentsNum = 2000 //amount of components
 const borders = true //show borders on each element
 
 function simpleComponent(i, watch){
@@ -65,7 +64,7 @@ function simpleComponent(i, watch){
   local  text = textCanBePlaced ? function() {
       return {
         watch=watch rendObj = ROBJ_TEXT
-        text = addText || !watch.get() ? ("" + i + watch.get()) : null
+        text = addText || !watch.get() ? ("" + i + watch.get()) : null  //-disable:-plus-string
       }
     } : null
   local  children = []
@@ -98,7 +97,8 @@ function simpleComponent(i, watch){
   }
 }
 
-local num = 0
+const componentsNum = 2000 //amount of components
+//local num = 0
 local children = []
 for (local i=0; i<componentsNum; ++i) {
   children.append(simpleComponent(i, Watched(i%3==0)))
@@ -149,4 +149,4 @@ function testf() {
     testUi(benchmark)
   }
 }
-print("\"profile darg ui\", "+profile_it(testsNum, testf) + ", "+ testsNum+"\n")
+print("\"profile darg ui\", "+profile_it(testsNum, testf) + ", "+ testsNum+"\n") //-disable:-plus-string

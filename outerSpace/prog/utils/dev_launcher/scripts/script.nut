@@ -1,10 +1,9 @@
 from "%darg/ui_imports.nut" import *
 from "dagor.workcycle" import resetTimeout
 import "components/style.nut" as style
-from "frp" import set_nested_observable_debug, set_subscriber_validation, warn_on_deprecated_methods
+from "frp" import set_subscriber_validation, warn_on_deprecated_methods
 from "dagor.system" import DBGLEVEL
 
-//set_nested_observable_debug( DBGLEVEL>0)
 //set_subscriber_validation( DBGLEVEL>0)
 warn_on_deprecated_methods( DBGLEVEL>0)
 

@@ -205,12 +205,11 @@ void setTargetObj(void *phys_body, const char *res)
   simObjRes = NULL;
   if (res)
   {
-    DynamicPhysObjectData *podata =
-      (DynamicPhysObjectData *)get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(res), PhysObjGameResClassId);
+    DynamicPhysObjectData *podata = (DynamicPhysObjectData *)get_one_game_resource_ex(res, PhysObjGameResClassId);
     if (podata)
     {
       simObjRes = podata->physRes;
-      release_game_resource((GameResource *)podata);
+      release_game_resource_ex(podata, PhysObjGameResClassId);
     }
     else
     {

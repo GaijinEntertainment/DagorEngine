@@ -34,6 +34,7 @@ public:
     FLG_FROZEN = 1 << 2,
     FLG_HIGHLIGHTED = 1 << 3,
     FLG_WANTRESELECT = 1 << 4,
+    FLG_LOCKED = 1 << 5,
   };
 
   inline EditableObject() : matrix(TMatrix::IDENT), objFlags(0), surfaceDist(0), objEditor(NULL) {}
@@ -67,6 +68,7 @@ public:
   inline bool isFrozen() const { return objFlags & FLG_FROZEN; }
   inline bool isSelected() const { return objFlags & FLG_SELECTED; }
   inline bool isHighlighted() const { return objFlags & FLG_HIGHLIGHTED; }
+  inline bool isLocked() const { return objFlags & FLG_LOCKED; }
 
   int getFlags() const { return objFlags; }
   virtual void setFlags(int value, int mask, bool use_undo = true);
@@ -75,6 +77,7 @@ public:
   virtual void freezeObject(bool freeze = true) { setFlags(freeze ? FLG_FROZEN : 0, FLG_FROZEN | (freeze ? FLG_SELECTED : 0)); }
   virtual void highlightObject(bool highlight = true) { setFlags(highlight ? FLG_HIGHLIGHTED : 0, FLG_HIGHLIGHTED); }
   virtual void selectObject(bool select = true) { setFlags(select ? FLG_SELECTED : 0, FLG_SELECTED); }
+  virtual void lockObject(bool lock = true) { setFlags(lock ? FLG_LOCKED : 0, FLG_LOCKED); }
 
   virtual bool getWorldBox(BBox3 &box) const = 0;
   virtual BBox3 getLbb() const = 0;

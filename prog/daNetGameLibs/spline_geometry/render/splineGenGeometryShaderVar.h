@@ -4,13 +4,17 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderVariableInfo.h>
 
-extern ShaderBlockIdHolder dynamicSceneBlockId, dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneBlockId, dynamicDepthSceneBlockId, dynamicSceneTransBlockId;
 
 namespace var
 {
+static ShaderVariableInfo spline_gen_has_generation_phase("spline_gen_has_generation_phase", true);
+static ShaderVariableInfo spline_gen_geometry_refractive_variant("spline_gen_geometry_refractive_variant", true);
 static ShaderVariableInfo spline_gen_instancing_buffer("spline_gen_instancing_buffer", true);
 static ShaderVariableInfo spline_gen_spline_buffer("spline_gen_spline_buffer", true);
 static ShaderVariableInfo spline_gen_prev_spline_buffer("spline_gen_prev_spline_buffer", true);
+static ShaderVariableInfo spline_gen_vertex_buffer("spline_gen_vertex_buffer", true);
+static ShaderVariableInfo spline_gen_prev_vertex_buffer("spline_gen_prev_vertex_buffer", true);
 static ShaderVariableInfo spline_gen_indirection_buffer("spline_gen_indirection_buffer", true);
 static ShaderVariableInfo spline_gen_stripes("spline_gen_stripes", true);
 static ShaderVariableInfo spline_gen_slices("spline_gen_slices", true);
@@ -32,4 +36,5 @@ static ShaderVariableInfo spline_gen_active_instance_count("spline_gen_active_in
 static ShaderVariableInfo spline_gen_culled_buffer("spline_gen_culled_buffer", true);
 static ShaderVariableInfo spline_gen_obj_elem_count("spline_gen_obj_elem_count", true);
 static ShaderVariableInfo spline_gen_obj_batch_id_buffer("spline_gen_obj_batch_id_buffer", true);
+static ShaderVariableInfo spline_gen_shape_data_buffer("spline_gen_shape_data_buffer", true);
 } // namespace var

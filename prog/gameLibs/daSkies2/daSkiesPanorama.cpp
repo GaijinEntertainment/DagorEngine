@@ -10,6 +10,8 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_async_pipeline.h>
 #include <drv/3d/dag_lock.h>
 #include <math/dag_TMatrix4.h>
@@ -23,7 +25,6 @@
 #include "shaders/clouds2/panorama_samples.hlsli"
 #include "render/downsampleDepth.h"
 #include <render/viewVecs.h>
-#include <drv/3d/dag_info.h>
 #include <math/dag_hlsl_floatx.h>
 
 #include <daSkies2/panorama_util.hlsli>
@@ -124,7 +125,7 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
       panoramaFrame = 0;
       currentPanorama = 0;
       closePanorama();
-      int panoramaQuality = clamp(tinfo.w / 1024, 1, 8);
+      int panoramaQuality = clamp(resolutionW / 1024, 1, 8);
       panoramaData = create_prepared_skies("panorama",
         PreparedSkiesParams{0,   // skies
           (panoramaQuality + 1), // scattering
@@ -144,7 +145,8 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     debug("alphaPanoramaFmt=0x%08X, noAlphaSkyHdrFmt=0x%08X", alphaPanoramaFmt, panoramaFmt);
     invalidatePanorama(true);
 
-    cloudsAlphaPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | alphaPanoramaFmt, 1, "clouds_alpha_panorama_tex");
+    cloudsAlphaPanoramaTex =
+      dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | alphaPanoramaFmt, 1, "clouds_alpha_panorama_tex", RESTAG_DASKIES2);
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -154,9 +156,9 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
 
     if (VariableMap::isGlobVariablePresent(get_shader_variable_id("clouds_panorama_mip", true)))
     {
-      cloudsPanoramaMipTex =
-        dag::create_tex(NULL, resolutionW / 4, resolutionH / 4, TEXCF_RTARGET | panoramaFmt, 4, "clouds_panorama_mip");
-      mipRenderer.init("bloom_filter_mipchain");
+      cloudsPanoramaMipTex = dag::create_tex(NULL, resolutionW / 4, resolutionH / 4, TEXCF_RTARGET | panoramaFmt, 4,
+        "clouds_panorama_mip", RESTAG_DASKIES2);
+      mipRenderer.init("bloom_filter_mipchain", d3d::AddressMode::Clamp);
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
       smpInfo.address_mode_v = d3d::AddressMode::Clamp;
@@ -165,7 +167,7 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
 
     // todo: sky panorama patch
     // todo: skyPanoramaTex can and should be just LUT in panoramaData
-    skyPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | panoramaFmt, 1, "sky_panorama_tex");
+    skyPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | panoramaFmt, 1, "sky_panorama_tex", RESTAG_DASKIES2);
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -177,13 +179,13 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
 
     if (compress_panorama)
       initPanoramaCompression(resolutionW, resolutionH);
-    ShaderGlobal::set_real(rgbm_panorama_scale_factorVarId, 1);
+    ShaderGlobal::set_float(rgbm_panorama_scale_factorVarId, 1);
 
     TextureInfo tinfo;
     tinfo.w = tinfo.h = 0;
     if (cloudsPanoramaMipTex)
       cloudsPanoramaMipTex->getinfo(tinfo);
-    ShaderGlobal::set_color4(clouds_panorama_tex_resVarId, resolutionW, resolutionH, tinfo.w, tinfo.h);
+    ShaderGlobal::set_float4(clouds_panorama_tex_resVarId, resolutionW, resolutionH, tinfo.w, tinfo.h);
   }
 
   {
@@ -214,7 +216,7 @@ void DaSkies::destroyCloudsPanoramaSplitResources()
 void DaSkies::createCloudsPanoramaSplitTex(int resolution_width, int resolution_height)
 {
   cloudsPanoramaSplitTex = dag::create_tex(NULL, resolution_width, resolution_height,
-    TEXCF_RTARGET | TEXFMT_A32B32G32R32F | TEXCF_TRANSIENT, 1, "clouds_panorama_split_tex");
+    TEXCF_RTARGET | TEXFMT_A32B32G32R32F | TEXCF_TRANSIENT, 1, "clouds_panorama_split_tex", RESTAG_DASKIES2);
 }
 
 void DaSkies::createCloudsPanoramaSplitResources(int resolution_width, int resolution_height)
@@ -247,13 +249,13 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
     name.printf(128, "clouds_panorama_tex_%d", i);
     const uint32_t flg = (TEXCF_RTARGET | panoramaFmt);
     cloudsPanoramaTex[i].close();
-    cloudsPanoramaTex[i] = dag::create_tex(NULL, w, h, flg, 1, name);
+    cloudsPanoramaTex[i] = dag::create_tex(NULL, w, h, flg, 1, name, RESTAG_DASKIES2);
 
     if (skyPanoramaPatchEnabled)
     {
       name.printf(128, "clouds_panorama_patch_tex_%d", i);
       cloudsPanoramaPatchTex[i].close();
-      cloudsPanoramaPatchTex[i] = dag::create_tex(NULL, pw, ph, flg, 1, name);
+      cloudsPanoramaPatchTex[i] = dag::create_tex(NULL, pw, ph, flg, 1, name, RESTAG_DASKIES2);
     }
 
     d3d::GpuAutoLock gpuLock;
@@ -287,7 +289,7 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
     create(1, resolution_width, resolution_height, max(8, resolution_height / 16), max(8, resolution_height / 16));
     create(2, resolution_width, resolution_height, max(8, resolution_height / 16), max(8, resolution_height / 16));
   }
-  ShaderGlobal::set_color4(clouds_panorama_tex_resVarId, resolution_width, resolution_height, 0, 0);
+  ShaderGlobal::set_float4(clouds_panorama_tex_resVarId, resolution_width, resolution_height, 0, 0);
 }
 
 void DaSkies::initPanoramaCompression(int width, int height)
@@ -305,7 +307,7 @@ void DaSkies::initPanoramaCompression(int width, int height)
   {
     auto compressFormat = etc2 ? TEXFMT_ETC2_RGBA : TEXFMT_DXT5;
     compressedCloudsPanoramaTex = dag::create_tex(NULL, width, height,
-      compressFormat | TEXCF_CLEAR_ON_CREATE | TEXCF_UPDATE_DESTINATION, 1, "compressed_clouds_panorama_tex");
+      compressFormat | TEXCF_CLEAR_ON_CREATE | TEXCF_UPDATE_DESTINATION, 1, "compressed_clouds_panorama_tex", RESTAG_DASKIES2);
 
     panoramaCompressor = eastl::make_unique<PanoramaCompressor>(cloudsPanoramaTex[0], compressFormat);
   }
@@ -336,7 +338,7 @@ static inline void set_horizon_shadervar(double earth_radius, double height)
   double RG = earth_radius;
   double rRG = RG / (RG + max(0.0, height * 0.001));
   float mu_horiz = -safe_sqrt(1.0 - rRG * rRG);
-  ShaderGlobal::set_real(skies_panorama_mu_horizonVarId, mu_horiz);
+  ShaderGlobal::set_float(skies_panorama_mu_horizonVarId, mu_horiz);
 }
 
 void DaSkies::clearUncompressedPanoramaTex()
@@ -354,7 +356,7 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
 
   set_viewvecs_to_shader(view_tm, proj_tm);
 
-  ShaderGlobal::set_color4(currentPanoramaWorldOffsetVarId, P3D(panorama_render_origin), panoramaReprojectionWeight);
+  ShaderGlobal::set_float4(currentPanoramaWorldOffsetVarId, P3D(panorama_render_origin), panoramaReprojectionWeight);
 
   TextureInfo tinfo;
   if (isPanoramaCompressed)
@@ -372,11 +374,11 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
   ShaderGlobal::set_int(clouds_panorama_use_biquadraticVarId, useBiQ ? 1 : 0);
 
   set_horizon_shadervar(skies.getEarthRadius(), origin.y);
-  ShaderGlobal::set_color4(skies_world_view_posVarId, origin.x, origin.y, origin.z, 0);
-  ShaderGlobal::set_color4(skies_panorama_light_dirVarId, panoramaVariables.real_skies_sun_light_dir);
+  ShaderGlobal::set_float4(skies_world_view_posVarId, origin.x, origin.y, origin.z, 0);
+  ShaderGlobal::set_float4(skies_panorama_light_dirVarId, panoramaVariables.real_skies_sun_light_dir);
   float sunOppositeTcX =
     safe_atan2(-panoramaVariables.real_skies_sun_light_dir.r, -panoramaVariables.real_skies_sun_light_dir.g) * (0.5f / PI) + 0.5f;
-  ShaderGlobal::set_real(skies_panorama_sun_opposite_tc_xVarId, sunOppositeTcX);
+  ShaderGlobal::set_float(skies_panorama_sun_opposite_tc_xVarId, sunOppositeTcX);
   ShaderGlobal::set_texture(clouds_panorama_texVarId,
     isPanoramaCompressed ? compressedCloudsPanoramaTex : cloudsPanoramaTex[currentPanorama]);
 
@@ -399,8 +401,8 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
 
 void DaSkies::get_panorama_settings(PanoramaSavedSettings &a)
 {
-#define COLOR4_PARAM(v) a.v = ShaderGlobal::get_color4(v##VarId);
-#define FLOAT_PARAM(v)  a.v = ShaderGlobal::get_real(v##VarId);
+#define COLOR4_PARAM(v) a.v = ShaderGlobal::get_float4(v##VarId);
+#define FLOAT_PARAM(v)  a.v = ShaderGlobal::get_float(v##VarId);
   PANORAMA_PARAMETERS
 #undef COLOR4_PARAM
 #undef FLOAT_PARAM
@@ -409,8 +411,8 @@ void DaSkies::get_panorama_settings(PanoramaSavedSettings &a)
 
 void DaSkies::set_panorama_settings(const PanoramaSavedSettings &a)
 {
-#define COLOR4_PARAM(v) ShaderGlobal::set_color4(v##VarId, a.v);
-#define FLOAT_PARAM(v)  ShaderGlobal::set_real(v##VarId, a.v);
+#define COLOR4_PARAM(v) ShaderGlobal::set_float4(v##VarId, a.v);
+#define FLOAT_PARAM(v)  ShaderGlobal::set_float(v##VarId, a.v);
   PANORAMA_PARAMETERS
 #undef COLOR4_PARAM
 #undef FLOAT_PARAM
@@ -427,13 +429,13 @@ void DaSkies::startUseOfCompressedTex()
   float maxSunBrightness = 12.f * skyParams.sun_brightness * 2.f;
   panoramaRGBMScaleFactor = maxSunBrightness > maxRGBMScaleFactor ? maxRGBMScaleFactor : maxSunBrightness;
   panoramaCompressor->updateCompressedTexture(compressedCloudsPanoramaTex.getTex2D(), panoramaRGBMScaleFactor);
-  ShaderGlobal::set_real(rgbm_panorama_scale_factorVarId, panoramaRGBMScaleFactor);
+  ShaderGlobal::set_float(rgbm_panorama_scale_factorVarId, panoramaRGBMScaleFactor);
 
   isPanoramaCompressed = true;
   clearUncompressedPanorama = true;
 }
 
-bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, const TMatrix4 &proj_tm)
+bool DaSkies::updatePanorama(const Point3 &origin_)
 {
   if (!panoramaEnabled())
     return false;
@@ -474,11 +476,12 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     }
     return false;
   }
-  else if (panoramaShouldWaitResourcesLoaded)
+  else
   {
     Tab<TEXTUREID> waitTex{};
     getCloudsTextureResourceDependencies(waitTex);
-    if (!::prefetch_and_check_managed_textures_loaded(waitTex, true))
+    mark_managed_textures_important(waitTex);
+    if (!::prefetch_and_check_managed_textures_loaded(waitTex, true) || !clouds || !clouds->isLightRendered() || !isScatteringReady())
     {
       if (panoramaValid == PANORAMA_INVALID)
       {
@@ -501,7 +504,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
 
     compressedCloudsPanoramaTex.close();
     initPanoramaCompression(tinfo.w, tinfo.h);
-    ShaderGlobal::set_real(rgbm_panorama_scale_factorVarId, panoramaRGBMScaleFactor);
+    ShaderGlobal::set_float(rgbm_panorama_scale_factorVarId, panoramaRGBMScaleFactor);
   }
 
   PanoramaSavedSettings vars;
@@ -511,7 +514,8 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
   {
     isPanoramaDepthTexReady = false;
     panorama_sun_light_dir = primarySunDir; // todo: move me
-    panorama_render_origin = origin_;       // todo: we should gradually move origin on apply
+    if (!panoramaRenderOriginStatic)
+      panorama_render_origin = origin_; // todo: we should gradually move origin on apply
     get_panorama_settings(panoramaVariables);
   }
   set_panorama_settings(panoramaVariables);
@@ -543,7 +547,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     if (panoramaValid == PANORAMA_INVALID || forcedInvalidate)
       panoramaData->resetGen = panoramaData->frame = panoramaData->lastSkiesPrepareFrame = 0;
     ShaderGlobal::set_int(skies_render_panorama_scatteringVarId, 1);
-    skies.prepareSkyForAltitude(origin, 1.0f, computedScatteringGeneration, panoramaData, view_tm, proj_tm,
+    skies.prepareSkyForAltitude(origin, 1.0f, computedScatteringGeneration, panoramaData, TMatrix::IDENT, TMatrix4::IDENT,
       panoramaData->lastSkiesPrepareFrame + 1, nullptr, getPrimarySunDir(), getSecondarySunDir());
     use_prepared_skies(panoramaData, nullptr);
     ShaderGlobal::set_int(skies_render_panorama_scatteringVarId, 0);
@@ -553,14 +557,14 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
   cloudsPanoramaTex[0]->getinfo(tinfo);
   {
     const uint32_t panoramaFrameQuadAndPatch = targetPanorama == currentPanorama ? 0 : panoramaFrameFraction % panorma_quads_frames;
-    ShaderGlobal::set_color4(skies_world_view_posVarId, origin.x, origin.y, origin.z, 0);
-    ShaderGlobal::set_color4(currentPanoramaWorldOffsetVarId, P3D(origin), panoramaReprojectionWeight);
+    ShaderGlobal::set_float4(skies_world_view_posVarId, origin.x, origin.y, origin.z, 0);
+    ShaderGlobal::set_float4(currentPanoramaWorldOffsetVarId, P3D(origin), panoramaReprojectionWeight);
     set_horizon_shadervar(skies.getEarthRadius(), origin.y);
     // set_panorama_settings(panoramaSaved[nextPanorama]);
     TIME_D3D_PROFILE(updatePanorama)
     // setCloudsVars();
 
-    ShaderGlobal::set_real(render_sunVarId, 1);
+    ShaderGlobal::set_float(render_sunVarId, 1);
     const bool updatePatch = panoramaFrameQuadAndPatch == 0;
     const int panoramaFrameQuad = panoramaFrameQuadAndPatch;
     skyStars->setMoonVars(origin, moonDir, moonAge, brightness(getCpuSunSky(Point3(0, moon_check_ht, 0), real_skies_sun_light_dir)));
@@ -572,16 +576,16 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       SCOPE_RENDER_TARGET;
       d3d::set_render_target(skyPanoramaTex.getTex2D(), 0);
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-      ShaderGlobal::set_color4(panoramaTCVarId, 0, 0, 1, 1);
+      ShaderGlobal::set_float4(panoramaTCVarId, 0, 0, 1, 1);
       skyPanorama.render();
       d3d::resource_barrier({skyPanoramaTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
-    renderStrataClouds(origin, view_tm, proj_tm, true);
+    setStrataCloudsVars();
     SCOPE_RENDER_TARGET;
     const uint32_t panoramaSubPixel = targetPanorama == currentPanorama ? panoramaFrameFraction % panorma_temporal_upsample
                                                                         : panoramaFrameFraction / panorma_quads_frames;
     ShaderGlobal::set_int(clouds_panorama_frameVarId, panoramaSubPixel);
-    ShaderGlobal::set_real(clouds_panorama_blendVarId,
+    ShaderGlobal::set_float(clouds_panorama_blendVarId,
       (cloudsPanoramaTex[1] || panoramaFrame < panoramaInvalidFrames) ? 1.f / (1.f + panoramaSubPixel) : 0);
 
     auto updateSubpixel = [&](ManagedTex &to, int x, int y, int w, int h) {
@@ -656,18 +660,19 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
         const int stripW = ti.w / panorma_quads_frames;
         x = panoramaFrameQuad * stripW;
         w = panoramaFrameQuad == panorma_quads_frames - 1 ? ti.w - x : stripW;
-        ShaderGlobal::set_color4(panoramaTCVarId, float(x) / ti.w, float(y) / ti.h, float(w) / ti.w, float(h) / ti.h);
+        ShaderGlobal::set_float4(panoramaTCVarId, float(x) / ti.w, float(y) / ti.h, float(w) / ti.w, float(h) / ti.h);
       }
       else
       {
         x = y = w = h = 0;
-        ShaderGlobal::set_color4(panoramaTCVarId, 0, 0, 1, 1);
+        ShaderGlobal::set_float4(panoramaTCVarId, 0, 0, 1, 1);
       }
     };
 
     cloudsLayersHeightsBarrier();
     bool needDepthOut = renderDownsampledDepth && !isPanoramaDepthTexReady;
     ShaderGlobal::set_int(clouds_panorama_depth_outVarId, needDepthOut ? 1 : 0);
+    G_ASSERT(strataTextureLoaded);
     {
       TIME_D3D_PROFILE(panoramaBig);
       int x, y, w, h;
@@ -685,7 +690,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     if (updatePatch && skyPanoramaPatchEnabled)
     {
       TIME_D3D_PROFILE(panoramaPatch);
-      ShaderGlobal::set_color4(panoramaTCVarId, 0, 0, 0, 0);
+      ShaderGlobal::set_float4(panoramaTCVarId, 0, 0, 0, 0);
       if (needDepthOut)
       {
         if (!cloudsDepthPanoramaPatchTex)
@@ -699,8 +704,9 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
     // if (updatePatch)
     {
       TIME_D3D_PROFILE(update_clouds_alpha)
-      ShaderGlobal::set_color4(cloudsAlphaPanoramaWorldPosVarId, origin.x, origin.y, origin.z, 0);
-      ShaderGlobal::set_real(clouds_panorama_blendVarId, (panoramaFrame < panoramaInvalidFrames) ? 1.f / (1.f + panoramaSubPixel) : 0);
+      ShaderGlobal::set_float4(cloudsAlphaPanoramaWorldPosVarId, origin.x, origin.y, origin.z, 0);
+      ShaderGlobal::set_float(clouds_panorama_blendVarId,
+        (panoramaFrame < panoramaInvalidFrames) ? 1.f / (1.f + panoramaSubPixel) : 0);
       int x, y, w, h;
       panoramaTC(x, y, w, h, cloudsAlphaPanoramaTex);
       d3d::set_render_target(cloudsAlphaPanoramaTex.getTex2D(), 0);
@@ -725,7 +731,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_, const TMatrix &view_tm, cons
       d3d::resource_barrier({to.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     };
     const uint32_t panoramaBlendFraction = panoramaFrameFraction;
-    ShaderGlobal::set_real(clouds_panorama_blendVarId, 1. / (panorma_temporal_frames - panoramaBlendFraction));
+    ShaderGlobal::set_float(clouds_panorama_blendVarId, 1. / (panorma_temporal_frames - panoramaBlendFraction));
     {
       TIME_D3D_PROFILE(panoramaBlend);
       blendTo(cloudsPanoramaTex[currentPanorama], cloudsPanoramaTex[2 - (targetPanorama - 1)]);
@@ -796,12 +802,12 @@ void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_n
   downsampled_depth.close();
 
   depth = dag::create_tex(NULL, w, h, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_GENERATEMIPS,
-    panoramaDepthTexMipNumber + 1, depth_name);
+    panoramaDepthTexMipNumber + 1, depth_name, RESTAG_DASKIES2);
 
   uint16_t downsampledW = w >> panoramaDepthTexMipNumber;
   uint16_t downsampledH = h >> panoramaDepthTexMipNumber;
-  downsampled_depth =
-    dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1, downsampled_depth_name);
+  downsampled_depth = dag::create_tex(NULL, downsampledW, downsampledH, TEXCF_RTARGET | TEXFMT_R32F | TEXCF_UNORDERED, 1,
+    downsampled_depth_name, RESTAG_DASKIES2);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = addru;
   smpInfo.address_mode_v = addrv;
@@ -843,10 +849,9 @@ void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsam
   isPanoramaDepthTexReady = true;
 }
 
-void DaSkies::invalidatePanorama(bool force, bool waitResourcesLoaded)
+void DaSkies::invalidatePanorama(bool force, bool prefetchDependencies)
 {
-  panoramaShouldWaitResourcesLoaded = waitResourcesLoaded;
-  if (panoramaShouldWaitResourcesLoaded)
+  if (prefetchDependencies)
   {
     Tab<TEXTUREID> waitTex{};
     getCloudsTextureResourceDependencies(waitTex);

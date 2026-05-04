@@ -8,7 +8,11 @@ Target      = engine/phys/physCommon.lib ;
 Sources =
   physResource.cpp
   physStat.cpp
+  physTwistCtrl.cpp
 ;
 
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+;
 
 include $(Root)/prog/_jBuild/build.jam ;

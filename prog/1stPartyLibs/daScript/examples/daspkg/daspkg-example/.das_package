@@ -1,0 +1,15 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("daspkg-example")
+    package_description("Example project using daspkg")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("daspkg-test-pure")
+    require_package("daspkg-test-deps")
+}

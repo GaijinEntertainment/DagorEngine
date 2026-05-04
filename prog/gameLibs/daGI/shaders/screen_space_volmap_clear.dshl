@@ -61,7 +61,6 @@ shader ssgi_clear_volmap_cs
   SAMPLE_INIT_VOLMAP_25D(cs)
   SAMPLE_VOLMAP_25D_NOT_INTERSECTED(cs)
   SSGI_CLEAR_INITIAL_VOLMAP()
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     [numthreads(4, 4, 4)]

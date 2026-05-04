@@ -4,3 +4,14 @@
 #define D3D_ERROR(...) logmessage(_MAKE4C('D3DE'), __VA_ARGS__)
 
 #define D3D_CONTRACT_ERROR(fmt, ...) logmessage(_MAKE4C('D3DE'), "Incorrect D3D API usage\n" fmt, ##__VA_ARGS__)
+
+#define D3D_ERROR_ONCE(...)      \
+  do                             \
+  {                              \
+    static bool logged_ = false; \
+    if (!logged_)                \
+    {                            \
+      D3D_ERROR(__VA_ARGS__);    \
+      logged_ = true;            \
+    }                            \
+  } while (0)

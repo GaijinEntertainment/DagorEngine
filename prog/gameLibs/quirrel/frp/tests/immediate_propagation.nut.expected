@@ -1,0 +1,8 @@
+initial: 2
+after immediate set: 10
+imm sub value: 10
+imm sub count: 1
+chain initial: 4
+chain after x=4: 10
+mix initial: 3
+mix after set+update: 6

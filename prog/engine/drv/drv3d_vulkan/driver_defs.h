@@ -43,6 +43,8 @@ inline constexpr uint32_t MAX_QUEUE_FAMILY_TYPES = 6;
 
 inline constexpr uint32_t MAX_MIPMAPS = 16;
 
+inline constexpr uint32_t MAX_SECONDARY_SWAPCHAIN_COUNT = 32;
+
 inline constexpr uint32_t COMMAND_BUFFER_ALLOC_BLOCK_SIZE = 0xA;
 
 inline constexpr uint32_t MAX_COMPUTE_CONST_REGISTERS = 4096;
@@ -66,7 +68,7 @@ inline constexpr uint32_t STENCIL_REF_OVERRIDE_DISABLE = 0x100;
 inline constexpr uint32_t FRAME_TIMING_HISTORY_LENGTH = 32;
 
 // if pipeline compiles longer than this threshold, it will be logged
-inline constexpr int64_t PIPELINE_COMPILATION_LONG_THRESHOLD = 4000;
+inline constexpr int64_t PIPELINE_COMPILATION_LONG_THRESHOLD_US = 500000;
 // 1s in microseconds, if we have a single draw/frame that takes that time, it is a possible TDR
 inline constexpr int64_t LONG_FRAME_THRESHOLD_US = 1000000;
 // 2s in ns as timeout for general GPU waiting calls
@@ -84,7 +86,14 @@ inline constexpr uint64_t GENERAL_GPU_TIMEOUT_US = 2 * 1000000;
 inline constexpr uint64_t GENERAL_GPU_TIMEOUT_NS = 2 * 1000000000;
 inline constexpr uint64_t GENERAL_GPU_TIMEOUT_US = GENERAL_GPU_TIMEOUT_NS / 1000;
 #endif
-inline constexpr size_t MAX_REPLAY_WAIT_CYCLES = 1000000;
+inline constexpr size_t MAX_REPLAY_WAIT_TRIES = 1500;
+// max time to wait for GPU fence before treating as device lost
+// must trigger before watchdog threshold to allow proper device lost handling
+inline constexpr uint64_t MAX_GPU_FENCE_WAIT_NS = 14ull * 1000000000;
+// on Android GENERAL_GPU_TIMEOUT_NS is UINT64_MAX (single infinite wait), so use 1 retry
+inline constexpr uint32_t MAX_GPU_FENCE_WAIT_RETRIES = GENERAL_GPU_TIMEOUT_NS > MAX_GPU_FENCE_WAIT_NS
+                                                         ? 1
+                                                         : (uint32_t)(MAX_GPU_FENCE_WAIT_NS / GENERAL_GPU_TIMEOUT_NS);
 // on some devices present includes completion of previously queued work, use threshold to detect that
 inline constexpr int64_t LONG_PRESENT_DURATION_THRESHOLD_US = 3 * 1000;
 inline constexpr int64_t ASYNC_PIPELINE_PARENT_MAX_WAIT_US = 3 * 1000000;
@@ -102,17 +111,13 @@ inline constexpr int64_t FRAME_GPU_BOUND_THRESHOLD_US = 2 * 1000;
 // print page memory map in memory stat printouts
 #define VULKAN_LOG_DEVICE_MEMORY_PAGES_MAP (DAGOR_DBGLEVEL > 0)
 
-// switches for deep debug in case of hideous failures
-// i.e. target device undocumented behaivour, spec uncoformity,
-// other "wide timeline/delayed" bugs/crashes
-// 1 for compilation tracking
-// 2 for compilation+bind tracking
-#define VULKAN_LOG_PIPELINE_ACTIVITY 0
+// allows precise logging of pipeline activity via config
+#define VULKAN_LOG_PIPELINE_ACTIVITY (DAGOR_DBGLEVEL > 0)
 
-// allow collecting caller data if validation error is occured in execution context
-#define VULKAN_VALIDATION_COLLECT_CALLER 0
-
+// 1 for depth and 1 for variable shading rate attachment
+#define MRT_EXTRA_SLOTS         2
 #define MRT_INDEX_DEPTH_STENCIL Driver3dRenderTarget::MAX_SIMRT
+#define MRT_INDEX_SHADING_RATE  (Driver3dRenderTarget::MAX_SIMRT + 1)
 
 // enable to verify that mapped buffers are not writed outside of their size
 #define VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK 0
@@ -131,9 +136,6 @@ inline constexpr int64_t FRAME_GPU_BOUND_THRESHOLD_US = 2 * 1000;
 // disabled for targets with sampled threads by default due to bug in profiler (corrupts memory)
 #define VULKAN_PROFILE_PIPELINE_COMPILER_THREADS ((_TARGET_PC_WIN | _TARGET_ANDROID | _TARGET_XBOX | _TARGET_APPLE) == 0)
 
-// enable to profile using user markers in replay
-#define VULKAN_PROFILE_USER_MARKERS_IN_REPLAY 0
-
 // enable to delay resource upload buffer based uploads
 #define VULKAN_DELAY_RUB_OPERATIONS 0
 
@@ -148,5 +150,7 @@ inline constexpr int64_t FRAME_GPU_BOUND_THRESHOLD_US = 2 * 1000;
 #else
 #define USE_STREAMLINE_FOR_DLSS 0
 #endif
+
+#define TSPEC template <>
 
 } // namespace drv3d_vulkan

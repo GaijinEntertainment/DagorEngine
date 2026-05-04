@@ -18,4 +18,5 @@ public:
   void sendPsoCacheBlkSync(const DataBlock &cache_blk) override;
   void sendHttpEventLog(const char *type, const void *data, uint32_t size, Json::Value *meta) override;
   void addFileToCrashReport(const char *path) override;
+  void reportSlowPsoCompilation(const char *pipeline_name, long duration_ms, const char *pipeline_type) override;
 };

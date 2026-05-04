@@ -203,7 +203,7 @@ typedef FastNameMap FastNameMapEx;
 #ifdef _TARGET_STATIC_LIB
 extern template struct OAHashNameMap<false>;
 extern template struct OAHashNameMap<true>;
-extern template struct OAHashNameMap<false, FNV1OAHasher<false>>;
+extern template struct OAHashNameMap<false, FNV1AOAHasher<false>>;
 #else
 #include "dag_oaHashNameMapImpl.inl"
 #endif

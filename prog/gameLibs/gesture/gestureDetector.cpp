@@ -30,7 +30,7 @@ static inline bool toPolar(float x, float y, float &out_magnitude, float &out_ph
   out_magnitude = sqrtf(sqr(x) + sqr(y));
   if (!out_magnitude)
     return false;
-  out_phi = acos(x / out_magnitude);
+  out_phi = safe_acos(x / out_magnitude);
   if (y < 0)
     out_phi = -out_phi;
   return true;

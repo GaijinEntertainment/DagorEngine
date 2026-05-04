@@ -11,7 +11,6 @@ interval projector_depth_fade_dist: no < 0.001, yes;
 
 shader projectors
 {
-  ENABLE_ASSERT(ps)
   supports global_frame;
 
   z_write = false;

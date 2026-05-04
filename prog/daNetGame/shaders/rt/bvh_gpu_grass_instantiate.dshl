@@ -1,0 +1,170 @@
+include "shader_global.dshl"
+texture perlin_noise3d;
+include "grass_generate_inc.dshl"
+include "rt/grass_generate_rt_inc.dshl"
+
+buffer grass_draw_instances_indirect_buffer_for_bvh;
+
+int gpu_grass_bvh_max_instances;
+int4 gpu_grass_bvh_blas;
+int4 gpu_grass_bvh_blas_horizontal;
+int gpu_grass_bvh_meta_index;
+int gpu_grass_bvh_meta_index_horizontal;
+int gpu_grass_bvh_meta_count;
+
+buffer gpu_grass_bvh_counter;
+buffer gpu_grass_bvh_instances;
+buffer gpu_grass_bvh_indirect;
+
+hlsl
+{
+  #define DISPATCH_X 32
+}
+
+macro INIT_AND_USE_LOAD_GRASS_COUNT()
+  (cs)
+  {
+    // UAV because the buffer doesn't have SRV flag
+    grassCount@uav = grass_draw_instances_indirect_buffer_for_bvh hlsl { RWByteAddressBuffer grassCount@uav; }
+  }
+  hlsl(cs)
+  {
+    uint loadGrassCount()
+    {
+      ##if grass_instancing == off
+        ##if grass_use_quads == yes
+          return loadBuffer(grassCount, 0) / 4;
+        ##else
+          return loadBuffer(grassCount, 0) / 6;
+        ##endif
+      ##else
+        return loadBuffer(grassCount, 4);
+      ##endif
+    }
+  }
+endmacro
+
+shader gpu_grass_bvh_make_indirect_args
+{
+  INIT_AND_USE_LOAD_GRASS_COUNT()
+  (cs)
+  {
+    gpu_grass_bvh_indirect@uav = gpu_grass_bvh_indirect hlsl { RWByteAddressBuffer gpu_grass_bvh_indirect@uav; }
+  }
+  hlsl(cs)
+  {
+    [numthreads(1,1,1)]
+    void make_indirect()
+    {
+      uint instanceCount = loadGrassCount();
+      uint groups = (instanceCount + DISPATCH_X - 1) / DISPATCH_X;
+      storeBuffer(gpu_grass_bvh_indirect, 0, groups);
+      storeBuffer(gpu_grass_bvh_indirect, 4, 1);
+      storeBuffer(gpu_grass_bvh_indirect, 8, 1);
+    }
+  }
+  compile("target_cs", "make_indirect")
+}
+
+shader gpu_grass_bvh_instantiate
+{
+  INIT_AND_USE_LOAD_GRASS_COUNT()
+  (cs)
+  {
+    grass@buf = grass_draw_instances_buffer hlsl {
+      #include <grassInstance.hlsli>
+      StructuredBuffer<GrassInstance> grass@buf;
+    }
+    grass_to_world_position@f4 = (1/world_to_grass_position.x, 0, -world_to_grass_position.z/world_to_grass_position.x, -world_to_grass_position.w/world_to_grass_position.x);
+    gpu_grass_bvh_max_instances@i1 = gpu_grass_bvh_max_instances;
+    gpu_grass_bvh_counter@uav = gpu_grass_bvh_counter hlsl { RWByteAddressBuffer gpu_grass_bvh_counter@uav; };
+    gpu_grass_bvh_instances@uav = gpu_grass_bvh_instances hlsl
+    {
+      #include <RTHWInstance.hlsli>
+      RWStructuredBuffer<RTHWInstance> gpu_grass_bvh_instances@uav;
+    };
+    gpu_grass_bvh_blas@u2 = gpu_grass_bvh_blas;
+    gpu_grass_bvh_blas_horizontal@u2 = gpu_grass_bvh_blas_horizontal;
+    gpu_grass_bvh_meta_index@u1 = gpu_grass_bvh_meta_index;
+    gpu_grass_bvh_meta_index_horizontal@u1 = gpu_grass_bvh_meta_index_horizontal;
+    gpu_grass_bvh_meta_count@u1 = gpu_grass_bvh_meta_count;
+    world_view_pos@f3 = world_view_pos;
+  }
+  assume gpu_grass_bvh_range = grass_on; // We just won't call it, if it's off
+  USE_GRASS_COMPRESSION(cs)
+  INIT_GPU_GRASS_CORNER_POS(cs)
+  USE_GPU_GRASS_CORNER_POS(cs)
+  INIT_GPU_GRASS_BVH_RANGE(cs)
+  USE_GPU_GRASS_BVH_RANGE(cs)
+  INIT_GPU_GRASS_BVH_RANDOM_DISCARD(cs)
+  USE_GPU_GRASS_BVH_RANDOM_DISCARD(cs)
+  INIT_GPU_GRASS_BVH_BURNING(cs)
+  USE_GPU_GRASS_BVH_BURNING(cs)
+  hlsl(cs)
+  {
+    static const uint bvhGroupGrass = 1 << 4;
+
+    [numthreads(DISPATCH_X,1,1)]
+    void make_instances(uint dtid : SV_DispatchThreadID)
+    {
+      uint instanceCount = loadGrassCount();
+      if (dtid >= instanceCount)
+        return;
+
+      GrassInstance compressedGrassInstance = structuredBufferAt(grass, dtid);
+      GrassInstanceUncompressed grassInstance = uncompress_instance(compressedGrassInstance);
+      grassInstance.position.xz = grass_to_world_position.x*grassInstance.position.xz + grass_to_world_position.zw;
+
+      bool is_horizontal = grassInstance.rotation < 0;
+
+      float3 position = grassInstance.position;
+
+      float2 height_horSize;
+      height_horSize.x = grassInstance.height;
+      height_horSize.y = grassInstance.size;
+      float3 boundingSphereWpos = grassInstance.position+float3(0,height_horSize.x*0.5,0);
+      float boundingSphereRadius = length(height_horSize) * 0.5;
+      if (!(keep_grass_for_bvh_sphere(boundingSphereWpos, boundingSphereRadius, world_view_pos) && keep_grass_randomly(round_grass_world_pos_for_bvh(position)) && !discard_burnt_grass(position)))
+        return;
+
+      uint outputLocation;
+      gpu_grass_bvh_counter.InterlockedAdd(0, 1, outputLocation);
+      if (outputLocation >= gpu_grass_bvh_max_instances)
+        return;
+
+      float3 pos10 = get_gpu_grass_corner_pos(grassInstance, float2(1, 0)).worldCornerPos;
+      float3 pos01 = get_gpu_grass_corner_pos(grassInstance, float2(0, 1)).worldCornerPos;
+      float3 pos11 = get_gpu_grass_corner_pos(grassInstance, float2(1, 1)).worldCornerPos;
+
+      float3 rightVec, upVec, zVec;
+      if (is_horizontal)
+      {
+        rightVec = (pos10 + pos11) / 2;
+        zVec = (pos01 + pos11) / 2;
+        upVec = normalize(cross(rightVec, zVec));
+      }
+      else
+      {
+        rightVec = pos10;
+        upVec = (pos01 + pos11) / 2;
+        zVec = normalize(cross(rightVec, upVec));
+      }
+
+      ##assert(grassInstance.grassType < GRASS_MAX_TYPES, "grassInstance.grassType = %d is out of range! GRASS_MAX_TYPES = %d", grassInstance.grassType, GRASS_MAX_TYPES);
+      uint grassTextureType = grass_colors_vs[grassInstance.grassType].grassTextureType;
+      ##assert(grassTextureType < gpu_grass_bvh_meta_count, "grassTextureType = %d is out of range! gpu_grass_bvh_meta_count = %d", grassTextureType, gpu_grass_bvh_meta_count);
+      uint metaIndex = (is_horizontal ? gpu_grass_bvh_meta_index_horizontal :  gpu_grass_bvh_meta_index) + min(grassTextureType, gpu_grass_bvh_meta_count);
+
+      RTHWInstance bvhInstance;
+      bvhInstance.transform0 = float4(float3(rightVec.x, upVec.x, zVec.x), position.x);
+      bvhInstance.transform1 = float4(float3(rightVec.y, upVec.y, zVec.y), position.y);
+      bvhInstance.transform2 = float4(float3(rightVec.z, upVec.z, zVec.z), position.z);
+      bvhInstance.instanceId_mask = metaIndex | (bvhGroupGrass << 24);
+      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24;
+      bvhInstance.blas = is_horizontal ? gpu_grass_bvh_blas_horizontal : gpu_grass_bvh_blas;
+
+      structuredBufferAt(gpu_grass_bvh_instances, outputLocation) = bvhInstance;
+    }
+  }
+  compile("target_cs", "make_instances")
+}

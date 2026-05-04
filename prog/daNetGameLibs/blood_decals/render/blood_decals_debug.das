@@ -17,7 +17,7 @@ def blood_decals_count()
 
 [console_cmd(name="blood_decals.clear")]
 def blood_decals_clear()
-  query() <| $ [es] (var blood_decals_manager : RingBufferDecals; var blood_decals_decals_count : int&)
+  query() <| $ [es] (var blood_decals_manager : RingBufferDecalManager; var blood_decals_decals_count : int&)
     blood_decals_manager |> clear()
     blood_decals_decals_count = 0
 

@@ -1,0 +1,80 @@
+wait.progress
+wait.time 500
+// assets:
+app.select_asset "cdk_test_building_cmp"
+wait.time 500
+editor.command Main.PreviousAsset
+wait.time 500
+editor.command Main.NextAsset
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+// toggle settings:
+editor.command Main.DiscardAssetTextures
+wait.time 100
+editor.command Main.DiscardAssetTextures
+wait.time 100
+editor.command Main.RenderGeometry
+wait.time 100
+editor.command Main.RenderGeometry
+wait.time 100
+editor.command Main.ToggleTheme
+wait.time 100
+editor.command Main.ToggleTheme
+wait.time 100
+// toggle panel:
+editor.command Main.EnvironmentSettings
+wait.time 100
+editor.command Main.EnvironmentSettings
+wait.time 100
+editor.command Main.Palette
+wait.time 100
+editor.command Main.Palette
+wait.time 100
+editor.command Main.ToggleTagManager
+wait.time 100
+editor.command Main.ToggleTagManager
+wait.time 100
+// toggle settings panel:
+editor.command Main.Settings.Camera
+wait.time 100
+editor.command Main.Settings.Camera
+wait.time 100
+editor.command Main.Settings.EditPreferences
+wait.time 100
+editor.command Main.Settings.EditPreferences
+wait.time 100
+editor.command Main.Settings.Screenshot
+wait.time 100
+editor.command Main.Settings.Screenshot
+wait.time 100
+editor.command Main.Settings.Stats
+wait.time 100
+editor.command Main.Settings.Stats
+wait.time 100
+editor.command Main.Settings.WorkCycleActRate
+wait.time 100
+editor.command Main.Settings.WorkCycleActRate
+wait.time 100
+// toggle developer tool:
+editor.command Main.View.ConsoleCommandsAndVariables
+wait.time 100
+editor.command Main.View.ConsoleCommandsAndVariables
+wait.time 100
+editor.command Main.View.ImguiDebugger
+wait.time 100
+editor.command Main.View.ImguiDebugger
+wait.time 100
+editor.command Main.View.ToastManager
+wait.time 100
+editor.command Main.View.ToastManager
+wait.time 100
+// open developer tool:
+editor.command Main.View.NodeDependencies
+wait.time 100
+editor.command Main.View.TextureDebug
+wait.time 100
+// revert and exit:
+editor.command Main.LoadDefaultLayout
+wait.time 500
+app.terminate 0

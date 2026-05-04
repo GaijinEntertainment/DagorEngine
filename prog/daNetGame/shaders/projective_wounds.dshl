@@ -39,7 +39,6 @@ macro WOUNDS_AND_BURNING_INIT()
     hlsl {
       #define ATEST_IS_ON 1
       #define HAS_TORN_WOUNDS 1
-      #define HAS_VS_PREV_FUNCTION 1
     }
 
     if (debug_torn_wounds == on)
@@ -53,6 +52,7 @@ macro WOUNDS_AND_BURNING_INIT()
   {
     hlsl {
       #define HAS_BLOOD_SPLASH 1
+      #define HAS_VS_PREV_FUNCTION 1
     }
   }
 endmacro

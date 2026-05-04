@@ -35,9 +35,9 @@ typedef int ImDrawIdx;
 // Forward declarations
 struct ImDrawCmd;  // A single draw command within a parent ImDrawList (generally maps to 1 GPU draw call)
 struct ImDrawList; // A single draw command list (generally one per window, conceptually you may see this as a dynamic "mesh" builder)
-typedef TEXTUREID ImTextureID; // User data to identify a texture (this is whatever to you want it to be! read the FAQ about
-                               // ImTextureID in imgui.cpp)
-#define IM_BAD_TEXTUREID BAD_TEXTUREID
+typedef void *ImTextureID; // User data to identify a texture (this is whatever to you want it to be! read the FAQ about
+                           // ImTextureID in imgui.cpp)
+#define IM_BAD_TEXTUREID nullptr
 
 // Typedefs and Enums/Flags (declared as int for compatibility with old C++, to allow using as flags and to not pollute the top of this
 // file) Use your programming IDE "Go to definition" facility on the names of the center columns to find the actual flags/enum lists.

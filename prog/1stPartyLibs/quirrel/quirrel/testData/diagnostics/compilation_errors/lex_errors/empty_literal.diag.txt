@@ -1,0 +1,8 @@
+ERROR: empty constant
+testData/diagnostics/compilation_errors/lex_errors/empty_literal.nut:2:8
+
+// EXPECT_ERROR: "empty constant"
+let x = ''
+        ^-
+
+

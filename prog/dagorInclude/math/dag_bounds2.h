@@ -163,6 +163,8 @@ INLINE bool non_empty_boxes_inclusive(const BBox2 &inner, const BBox2 &outer)
   return float_non_empty_boxes_not_inclusive(inner, outer) < 1.0f;
 };
 
+INLINE BBox2 get_intersection(const BBox2 &left, const BBox2 &right) { return {max(left[0], right[0]), min(left[1], right[1])}; }
+
 #undef INLINE
 
 /// @}

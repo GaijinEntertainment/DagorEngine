@@ -23,6 +23,7 @@ RendInstPhys::RendInstPhys() :
   physModel(NULL),
   physBody(NULL),
   additionalBody(NULL),
+  bendHelperBody(NULL),
   joints(midmem),
   centerOfMassTm(TMatrix::IDENT),
   scale(1.f, 1.f, 1.f),
@@ -44,6 +45,7 @@ RendInstPhys::RendInstPhys(RendInstPhysType type, const rendinst::RendInstDesc &
   riColObj(),
   physBody(NULL),
   additionalBody(NULL),
+  bendHelperBody(NULL),
   joints(midmem),
   scale(scal),
   ttl(1.f),
@@ -66,6 +68,7 @@ void RendInstPhys::cleanup()
   clear_all_ptr_items_and_shrink(joints);
   del_it(physBody);
   del_it(additionalBody);
+  del_it(bendHelperBody);
   treeSound.destroy(lastValidTm != TMatrix::IDENT ? lastValidTm : originalTm);
 }
 

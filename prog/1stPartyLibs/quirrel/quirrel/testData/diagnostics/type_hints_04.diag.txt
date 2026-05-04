@@ -1,0 +1,10 @@
+
+AN ERROR HAS OCCURRED [parameter 1 of 'fn' has an invalid type 'string' ; expected: 'integer']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/diagnostics/type_hints_04.nut:5
+
+LOCALS
+[fn] CLOSURE=FN:fn
+[vargv] ARRAY=[]
+[this] NULL

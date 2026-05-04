@@ -15,6 +15,15 @@ interval tex_debug_ranges : no < 1, yes;
 float tex_debug_slice = 0;
 int tex_debug_sliceI = 0;
 
+sampler StaticPointSampler
+{
+  mipmap_mode = point;
+  filter = point;
+  address_u = wrap;
+  address_v = wrap;
+  address_w = wrap;
+};
+
 shader tex_debug
 {
   (cs) {
@@ -23,6 +32,8 @@ shader tex_debug
     mip_level@i1 = tex_debug_mip_level;
     slice@f1 = tex_debug_slice;
     sliceI@i1 = tex_debug_sliceI;
+
+    point_sampler@sampler = StaticPointSampler;
   }
 
   if (tex_debug_type == twoD)
@@ -63,8 +74,6 @@ shader tex_debug
 
   hlsl(cs) {
     #define GROUP_SIZE 16
-
-    SamplerState point_sampler : register(s5);
 
     ##if tex_debug_ranges == yes && tex_debug_type != cube
       groupshared float2 minValues[GROUP_SIZE * GROUP_SIZE];

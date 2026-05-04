@@ -6,6 +6,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_query.h>
 #include <drv/3d/dag_commands.h>
@@ -64,27 +65,29 @@ public:
   {
     Driver3dRenderTarget prevRt;
     d3d::get_render_target(prevRt);
+    int prevFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
     if (rt == NULL)
     {
-      rt = d3d::create_tex(NULL, pixels_to_draw, 1, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "gpu water one point query");
+      rt = d3d::create_tex(NULL, pixels_to_draw, 1, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "gpu water one point query", RESTAG_WATER);
       d3d_err(rt);
-      d3d::set_render_target(rt, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{rt, 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     }
     else
-      d3d::set_render_target(rt, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{rt, 0, 0}});
 
-    ShaderGlobal::set_color4(check_water_posVarId, pos.x, pos.y, pos.z, maxHeight = height);
+    ShaderGlobal::set_float4(check_water_posVarId, pos.x, pos.y, pos.z, maxHeight = height);
     int x, y;
     d3d::get_target_size(x, y);
-    ShaderGlobal::set_color4(check_water_screenVarId, 1. / x * pixels_to_draw, 1. / y, 0.5f / pixels_to_draw, 0);
+    ShaderGlobal::set_float4(check_water_screenVarId, 1. / x * pixels_to_draw, 1. / y, 0.5f / pixels_to_draw, 0);
     d3d::driver_command(Drv3dCommand::GETVISIBILITYBEGIN, &query);
     queryPostFx.render();
     d3d::driver_command(Drv3dCommand::GETVISIBILITYEND, query);
     gotResults = false;
     d3d::set_render_target(prevRt);
+    ShaderGlobal::setBlock(prevFrameBlockId, ShaderGlobal::LAYER_FRAME);
   }
 
   float getResult(bool *is_last)
@@ -116,8 +119,9 @@ public:
     G_ASSERT(maxNumber > 0 && maxNumber <= 4096);
     destroy();
     maxNumber = clamp(maxNumber, (int)0, (int)4096);
-    gpuTexture = d3d::create_tex(NULL, maxNumber, 1, TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F, 1, "water_fetch_gpu");
-    vb = d3d::create_vb(maxNumber * sizeof(float) * 4, SBCF_DYNAMIC, "histogram");
+    gpuTexture =
+      d3d::create_tex(NULL, maxNumber, 1, TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F, 1, "water_fetch_gpu", RESTAG_WATER);
+    vb = d3d::create_vb(maxNumber * sizeof(float) * 4, SBCF_DYNAMIC, "histogram", RESTAG_WATER);
     event = d3d::create_event_query();
     clear_and_resize(results, maxNumber);
     for (int i = 0; i < maxNumber; ++i)
@@ -181,8 +185,8 @@ public:
     Driver3dRenderTarget prevRt;
     d3d::get_render_target(prevRt);
     SCOPE_RESET_SHADER_BLOCKS;
-    ShaderGlobal::set_color4(check_water_screenVarId, 1. / maxNumber, 1, maxNumber, 1);
-    d3d::set_render_target(gpuTexture, 0);
+    ShaderGlobal::set_float4(check_water_screenVarId, 1. / maxNumber, 1, maxNumber, 1);
+    d3d::set_render_target({}, DepthAccess::RW, {{gpuTexture, 0, 0}});
     waterRequestElem->setStates(0, true);
     d3d::setvsrc(0, vb, sizeof(float) * 4);
     d3d::draw(PRIM_POINTLIST, 0, lastNumber);

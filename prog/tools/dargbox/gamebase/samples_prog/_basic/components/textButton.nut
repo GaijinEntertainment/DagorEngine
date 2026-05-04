@@ -17,7 +17,7 @@ let defButtonStyle = {
       borderWidth = hdpx(1)
       borderColor = Color(60,60,60)
       fillColor = Color(40,40,40)
-      padding = static [hdpx(4), hdpx(7)]
+      padding = const [hdpx(4), hdpx(7)]
       margin = hdpx(2)
       borderRadius = hdpx(2)
     }

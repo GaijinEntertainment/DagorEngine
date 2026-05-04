@@ -7,6 +7,7 @@ if (__name__ == "__analysis__")
 
 
 local x = [1, 2]
+local z = 555
 
 function fn(arr) {
   return (arr ?? []).extend(x)
@@ -19,3 +20,8 @@ local tab = {
 
 local getSeasonMainPrizesData = @() (::premiumUnlock.value?.meta.promo ?? [])
   .extend(::basicUnlock.value?.meta.promo ?? [])
+
+function baz(arr) {
+  // both are temporaries - no warning needed
+  return (x[0] ? [z] : []).extend(x)
+}

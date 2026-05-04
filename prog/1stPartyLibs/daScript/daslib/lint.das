@@ -6,12 +6,19 @@ options strict_smart_pointers = true
 
 module lint shared private
 
+//! Lint pass that enables paranoid compilation checks.
+//!
+//! When this module is required, the ``paranoid`` lint flag is turned on
+//! for the current module, enabling stricter compiler diagnostics.
+//! See also ``lint_everything`` for applying lint to all modules.
+
 require daslib/strings_boost
 require daslib/ast_boost
 require daslib/strings_boost
 
 [lint_macro]
 class LintEverything : AstPassMacro {
+    //! Pass macro that enables lint checking for modules.
     def override apply(prog : ProgramPtr; mod : Module?) : bool {
         paranoid(prog, true)
         return true
@@ -19,10 +26,14 @@ class LintEverything : AstPassMacro {
 }
 
 class LintVisitor : AstVisitor {
+    //! AST visitor that performs lint checks.
     astVisitorAdapter : smart_ptr<ast::VisitorAdapter>
     exprForTerminator : array<uint64>
     compile_time_errors : bool
     noLint : bool = false
+    // collection mode — when true, errors are appended to `errors` instead of error()
+    collect_errors : bool = false
+    errors : array<string>
     def LintVisitor() {
         pass
     }
@@ -32,6 +43,8 @@ class LintVisitor : AstVisitor {
         }
         if (compile_time_errors) {
             compiling_program() |> macro_error(at, text)
+        } elif (collect_errors) {
+            errors |> push("{text} at {describe(at)}")
         } else {
             error("{text} at {describe(at)}\n")
         }
@@ -81,7 +94,7 @@ class LintVisitor : AstVisitor {
         exprForTerminator |> push(intptr(get_ptr(expr)))
     }
     def override preVisitExprCall(expr : smart_ptr<ExprCall>) : void {
-        if (expr.name |> eq <| "panic" && expr.func._module.name |> eq <| "$") {
+        if (expr.name |> eq <| "panic" && expr.func._module.name |> eq <| "builtin") {
             if (length(exprForTerminator) > 0) {
                 exprForTerminator |> pop()
             }
@@ -89,10 +102,16 @@ class LintVisitor : AstVisitor {
         }
     }
     def override preVisitExprForVariable(expr : smart_ptr<ExprFor>; v : VariablePtr; last : bool) : void {
+        if (expr.canShadow) {
+            return
+        }
         validate_var(v, false)
     }
 
     def validate_var(v : VariablePtr; can_make_const : bool) {
+        if (v.flags.generated) {
+            return
+        }
         let name = string(v.name)
         if (name |> starts_with("__")) {// system variables
             return
@@ -146,6 +165,7 @@ class LintVisitor : AstVisitor {
 }
 
 def public paranoid(prog : ProgramPtr; compile_time_errors : bool) {
+    //! Runs the paranoid lint visitor on the program to check for common coding issues.
     var astVisitor = new LintVisitor(compile_time_errors = compile_time_errors)
     unsafe {
         astVisitor.astVisitorAdapter <- make_visitor(*astVisitor)
@@ -155,4 +175,24 @@ def public paranoid(prog : ProgramPtr; compile_time_errors : bool) {
     unsafe {
         delete astVisitor
     }
+}
+
+def public paranoid_collect(prog : ProgramPtr; var errors : array<string>) : int {
+    //! Runs the paranoid lint visitor and collects errors as strings.
+    //! Returns the number of lint issues found.
+    var astVisitor = new LintVisitor(compile_time_errors = false, collect_errors = true)
+    unsafe {
+        astVisitor.astVisitorAdapter <- make_visitor(*astVisitor)
+    }
+    visit(prog, astVisitor.astVisitorAdapter)
+    let count = length(astVisitor.errors)
+    errors |> reserve(count)
+    for (e in astVisitor.errors) {
+        errors |> push(e)
+    }
+    astVisitor.astVisitorAdapter := null
+    unsafe {
+        delete astVisitor
+    }
+    return count
 }

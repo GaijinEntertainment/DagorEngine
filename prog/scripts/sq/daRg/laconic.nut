@@ -1,7 +1,7 @@
 from "daRg" import *
 import "daRg.behaviors" as Behaviors
 from "%sqstd/underscore.nut" import partition, flatten
-from "%darg/ui_imports.nut" import logerr, log
+from "%darg/ui_imports.nut" import logerr
 
 /*
 laconic framework
@@ -65,11 +65,12 @@ function comp(...) {
         else
           a[k] = toArray(a[k]).extend(toArray(v))
       }
-      else if (k in a)
-        logerr($"property {k} already exist")
-      a[k] <- v
+      else {
+        if (k in a)
+          logerr($"property {k} already exist")
+        a[k] <- v
+      }
     }
-    a.__update(b.value)
     return a
   }, {})
 
@@ -123,7 +124,7 @@ let Padding = @(...) Style({padding = vargv.len() > 1 ? vargv : vargv[0]})
 let Margin = @(...) Style({margin = vargv.len() > 1 ? vargv : vargv[0]})
 let Pos = @(...) Style({pos=vargv})
 let YOfs = @(y) Style({pos=[0,y]})
-let XOfs = @(x) Style({pos=[0,x]})
+let XOfs = @(x) Style({pos=[x,0]})
 
 function updateWithStyle(obj, style){
   if (type(style) == "table") {

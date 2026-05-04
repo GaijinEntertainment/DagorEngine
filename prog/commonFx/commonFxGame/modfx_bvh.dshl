@@ -4,15 +4,13 @@ include "bvh_common_includes.dshl"
 int dafx_modfx_bvh_instance_buffer_regno = 2 always_referenced;
 int dafx_modfx_bvh_instance_count_regno = 3 always_referenced;
 int dafx_modfx_bvh_instance_data_regno = 4 always_referenced;
-int dafx_modfx_bvh_meta_id_regno = 59 always_referenced;
+int dafx_modfx_bvh_meta_id_regno = 88 always_referenced;
 
 int dafx_modfx_bvh_max_count = 0;
 int4 dafx_modfx_bvh_blas_address = 0;
 
 shader dafx_modfx_bvh
 {
-  ENABLE_ASSERT(ps)
-
   if (!use_hw_raytracing) { dont_render; } // Compiles in compatibility mode too, because FX system checks for shader
 
   (vs) {
@@ -36,6 +34,32 @@ shader dafx_modfx_bvh
   DAFXEX_USE_SCENE_BLOCK()
   DAFX_USE_CLOUD_SHADOWS()
   DAFXEX_USE_SHADOW()
+
+  if (dafx_has_voxel_shadows)
+  {
+    VOXEL_SHADOWS_USE(vs)
+    hlsl(vs)
+    {
+      float apply_voxel_shadows(float3 wpos, float shadow)
+      {
+        uint cascade_id;
+        float fade;
+        float voxelShadow = get_voxel_shadows(wpos, cascade_id, fade);
+        return lerp(shadow, voxelShadow, fade);
+      }
+    }
+  }
+  else
+  {
+    hlsl(vs)
+    {
+      float apply_voxel_shadows(float3 wpos, float shadow)
+      {
+        return shadow;
+      }
+    }
+  }
+
   DAFXEX_USE_GI()
 
   DAFXEX_USE_PARTICLE_PLACEMENT()
@@ -67,23 +91,11 @@ shader dafx_modfx_bvh
       #include "modfx/modfx_bboard_render.hlsl"
     #undef FX_VS
 
-    #define ADD_SHADOW_INSTANCE 0
-
     float4 dafx_bvh_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID, uint draw_call_id : TEXCOORD0) : SV_Position
     {
       DafxRenderData ren_info;
       dafx_get_render_info( instanceId, vertexId, draw_call_id, ren_info );
-
-      // Skip every other particles, to lessen the load on tracing them.
-      if (vertexId != 0 || (( ren_info.start_source + instanceId) & 1) == 1)
-        return 0;
-
-      uint bvhIndex, bvhDataIndex;
-      bvh_instance_count.InterlockedAdd(0, ADD_SHADOW_INSTANCE ? 2 : 1, bvhIndex);
-      bvhDataIndex = ADD_SHADOW_INSTANCE ? bvhIndex / 2 : bvhIndex;
-
-      // Write a HW instance here
-      if (bvhIndex >= uint(bvh_max_count))
+      if (vertexId != 0)
         return 0;
 
       GlobalData gdata = global_data_load();
@@ -95,12 +107,23 @@ shader dafx_modfx_bvh
       uint flags = parent_data.flags;
 
       bool reverse_order = FLAG_ENABLED( flags, MODFX_RFLAG_REVERSE_ORDER );
-      uint data_ofs = dafx_get_render_data_offset( ren_info, !reverse_order );
+      uint rel_iid = dafx_get_render_calc_rel_iid(ren_info, !reverse_order);
+      uint data_ofs = dafx_get_render_data_offset( ren_info, rel_iid );
 
-      bool is_dead = false;
+      bool is_dead = dafx_is_reduced_render_discard(ren_info, rel_iid);
+      if (is_dead)
+        return 0;
 
       ModfxRenData rdata;
       modfx_load_ren_data(0, data_ofs, decls, rdata);
+
+      uint bvhIndex;
+      bvh_instance_count.InterlockedAdd(0, 1, bvhIndex);
+
+      // Write a HW instance here
+      if (bvhIndex >= uint(bvh_max_count))
+        return 0;
+
       rdata.pos += rdata.pos_offset;
       if (rdata.radius <= 0.f)
         is_dead = true;
@@ -184,30 +207,9 @@ shader dafx_modfx_bvh
       bvhInstance.transform1 = float4(rotated_right_vec.y, rotated_up_vec.y, rotated_forward_vec.y, wpos.y);
       bvhInstance.transform2 = float4(rotated_right_vec.z, rotated_up_vec.z, rotated_forward_vec.z, wpos.z);
       bvhInstance.instanceId_mask = bvh_meta_id | (1 << 24);
-      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24 | bvhDataIndex;
+      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24;
       bvhInstance.blas = is_dead ? int2(0, 0) : bvh_blas_address.xy;
       structuredBufferAt(bvh_instance_buffer, bvhIndex) = bvhInstance;
-
-      #if ADD_SHADOW_INSTANCE
-        rotated_forward_vec = normalize(-gdata.from_sun_direction.xyz);
-        rotated_up_vec = float3(0, 1, 0);
-        rotated_right_vec = normalize(cross(rotated_up_vec, rotated_forward_vec));
-        rotated_up_vec = normalize(cross(rotated_forward_vec, rotated_right_vec));
-
-        wpos += rotated_forward_vec * rdata.radius * 0.25f;
-
-        rotated_right_vec *= aspect.x * rdata.radius;
-        rotated_up_vec *= aspect.y * rdata.radius;
-        rotated_forward_vec *= rdata.radius;
-
-        bvhInstance.transform0 = float4(rotated_right_vec.x, rotated_up_vec.x, rotated_forward_vec.x, wpos.x);
-        bvhInstance.transform1 = float4(rotated_right_vec.y, rotated_up_vec.y, rotated_forward_vec.y, wpos.y);
-        bvhInstance.transform2 = float4(rotated_right_vec.z, rotated_up_vec.z, rotated_forward_vec.z, wpos.z);
-        bvhInstance.instanceId_mask = bvh_meta_id | (2 << 24);
-        bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24 | bvhDataIndex;
-        bvhInstance.blas = is_dead ? int2(0, 0) : bvh_blas_address.zw;
-        structuredBufferAt(bvh_instance_buffer, bvhIndex + 1) = bvhInstance;
-      #endif
 
       float2 delta;
 
@@ -253,7 +255,7 @@ shader dafx_modfx_bvh
         particleData.lighting = get_omni_lighting(rdata.pos.xyz, pp.pos, pp.radius, pp.color);
       }
 
-      #if MODFX_USE_SHADOW
+      #if MODFX_USE_STATIC_SHADOW
         float3 shadowWorldPos = lerp(rdata.pos, wpos, rcp(2 * rdata.radius + 1.f));
         particleData.shadow = get_static_shadow_for_fx(rdata.pos, rdata.radius, wpos, view_dir_norm, gdata.from_sun_direction.xyz) *
           getFOMShadow(wpos - gdata.from_sun_direction.xyz * rdata.radius) * clouds_shadow(shadowWorldPos);
@@ -262,6 +264,8 @@ shader dafx_modfx_bvh
       #else
         particleData.shadow = 1;
       #endif
+
+      particleData.shadow = apply_voxel_shadows(wpos, particleData.shadow);
 
       #define GET_BVH_MODFX_RFLAG(rflags, name) (FLAG_ENABLED( rflags, MODFX_RFLAG_##name ) ? BVH_MODFX_RFLAG_##name : 0)
       #define GET_BVH_MODFX_MODFLAG(parent_data, name) (parent_data.mods_offsets[MODFX_RMOD_##name] ? BVH_MODFX_RMOD_##name : 0)
@@ -279,11 +283,10 @@ shader dafx_modfx_bvh
       particleData.flags |= GET_BVH_MODFX_RFLAG( flags, BLEND_ADD );
 
       #if MODFX_USE_GI
-      if (FLAG_ENABLED(flags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED))
         particleData.ambient = ambient_calculating(wpos, gdata.world_view_pos, gdata.sky_color, 0);
-      else
-      #endif
+      #else
         particleData.ambient = gdata.sky_color;
+      #endif
 
       if ( parent_data.mods_offsets[MODFX_RMOD_LIGHTING_INIT] )
       {
@@ -317,7 +320,7 @@ shader dafx_modfx_bvh
       particleData.atmosphereLoss = loss;
       particleData.atmosphereInscatter = insc;
 
-      structuredBufferAt(bvh_instance_data, bvhDataIndex) = particleData;
+      structuredBufferAt(bvh_instance_data, bvhIndex) = particleData;
 
       return 0;
     }

@@ -64,7 +64,6 @@ function test_loop_func() {
   return res
 }
 const numTests = 20
-const iters = 200000
 let profile = @(name, func) println("".concat(name, ", ", profile_it(numTests, func), $", {numTests}"))
 
 assert(test_filterampreduce() == test_loop_max() && test_filterampreduce() == test_loop_func())

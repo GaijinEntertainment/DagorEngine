@@ -4,32 +4,39 @@
 //
 #pragma once
 
+#include <stdint.h>
+#include <util/dag_compilerDefs.h>
 #include <supp/dag_define_KRNLIMP.h>
 
-#if _TARGET_C3 || defined(__SANITIZE_THREAD__)
+#if _TARGET_C3 || defined(DAGOR_THREAD_SANITIZER)
 #define DAG_CS_CUSTOM_LOCKSCOUNT 1
 #endif
 
 #if _TARGET_APPLE | _TARGET_ANDROID | _TARGET_64BIT
-static constexpr int CRITICAL_SECTION_OBJECT_SIZE = 64;
+#define CRITICAL_SECTION_OBJECT_SIZE 64
 #else
-static constexpr int CRITICAL_SECTION_OBJECT_SIZE = 32;
+#define CRITICAL_SECTION_OBJECT_SIZE 32
 #endif
 
 struct CritSecStorage
 {
-#if defined(__GNUC__)
-  char critSec[CRITICAL_SECTION_OBJECT_SIZE] __attribute__((aligned(16)));
-#elif defined(_MSC_VER)
-  alignas(void *) char critSec[CRITICAL_SECTION_OBJECT_SIZE];
+#if _TARGET_PC_WIN || _TARGET_XBOX
+  uintptr_t DebugInfo;     // PRTL_CRITICAL_SECTION_DEBUG or -1 sentinel
+  long LockCount;          // LONG
+  long RecursionCount;     // LONG
+  uintptr_t OwningThread;  // HANDLE
+  uintptr_t LockSemaphore; // HANDLE
+  uintptr_t SpinCount;     // ULONG_PTR
 #else
-#error Compiler is not supported
+  char critSec[CRITICAL_SECTION_OBJECT_SIZE] __attribute__((aligned(16)));
 #endif
 #if DAG_CS_CUSTOM_LOCKSCOUNT
   volatile int locksCount;
 #endif
-  operator void *() { return critSec; }
+  operator void *() { return this; }
 };
+
+#undef CRITICAL_SECTION_OBJECT_SIZE
 
 //
 // critical sections
@@ -87,7 +94,7 @@ protected:
 
   // Unavailable, use WinAutoLockOpt if you need these
   WinAutoLock(CritSecStorage *pcss) : pLock(pcss) { lock(); }
-  WinAutoLock(WinCritSec *pwcs) : WinAutoLock(&pwcs->critSec) {}
+  WinAutoLock(WinCritSec *pwcs) : WinAutoLock(pwcs ? &pwcs->critSec : nullptr) {}
 
 public:
   WinAutoLock(CritSecStorage &css) : WinAutoLock(&css) {}

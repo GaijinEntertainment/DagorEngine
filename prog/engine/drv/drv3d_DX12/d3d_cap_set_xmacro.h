@@ -46,6 +46,7 @@
   DX12_D3D_CAP(hasXESS);                                    \
   DX12_D3D_CAP(hasDrawID);                                  \
   DX12_D3D_CAP(hasMeshShader);                              \
+  DX12_D3D_CAP(hasMeshShaderIndirectCount);                 \
   DX12_D3D_CAP(hasBasicViewInstancing);                     \
   DX12_D3D_CAP(hasOptimizedViewInstancing);                 \
   DX12_D3D_CAP(hasAcceleratedViewInstancing);               \
@@ -70,6 +71,7 @@
   DX12_D3D_CAP(hasTiled2DResources);                        \
   DX12_D3D_CAP(hasTiled3DResources);                        \
   DX12_D3D_CAP(hasMeshShader);                              \
+  DX12_D3D_CAP(hasMeshShaderIndirectCount);                 \
   DX12_D3D_CAP(hasBasicViewInstancing);                     \
   DX12_D3D_CAP(hasShaderFloat16Support);                    \
   DX12_D3D_CAP(hasRayQuery);                                \

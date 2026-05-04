@@ -4,6 +4,10 @@
 #include <sqrat.h>
 #include <math/dag_Point2.h>
 
+namespace textlayout
+{
+struct FormatParams;
+}
 
 namespace darg
 {
@@ -21,5 +25,7 @@ Point2 calc_text_size(const char *str, int len, int font_id, int spacing, int mo
 Point2 calc_text_size_u(const wchar_t *str, int len, int font_id, int spacing, int mono_width, int font_ht);
 
 bool is_text_input(const Element *elem);
+int calc_textarea_max_width(const Element *elem, const Point2 &elem_size);
+void fill_textarea_format_params(const Element *elem, const Point2 &elem_size, textlayout::FormatParams &params);
 
 } // namespace darg

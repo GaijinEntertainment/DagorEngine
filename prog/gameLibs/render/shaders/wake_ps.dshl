@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "waveWorks.dshl"
 include "water_heightmap.dshl"
+include "water_foam_params_inc.dshl"
 
 int wfx_count = 0;
 int wfx_offset = 0;
@@ -14,6 +15,9 @@ interval wfx_emitter_type: emitter_flow < 1, emitter_tail;
 int wfx_foam_z_enable = 1;
 interval wfx_foam_z_enable : no < 1, yes;
 
+int water_use_wfx_wake = 0;
+interval water_use_wfx_wake: off <1, on;
+
 float4 wfx_normals_pixel_size = (1.0 / 512.0, 1.0 / 512.0, 0.0, 0.0);
 
 texture wfx_diffuse;
@@ -21,6 +25,9 @@ texture wfx_distortion;
 texture wfx_gradient;
 texture wfx_hmap;
 texture wfx_normals;
+
+texture wfx_diffuse_mv;
+float wfx_diffuse_mv_scale = 0.0;
 
 macro USE_PARTICLE_SYSTEM(stage)
   (stage) { cnt_ofs_lim_dt@f4 = (wfx_count, wfx_offset, wfx_limit, wfx_ftime); }
@@ -42,12 +49,17 @@ endmacro
 
 shader wfx_gen_emitter
 {
+  (cs) {
+    emitterBuffer@uav : register(0) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      RWStructuredBuffer<GPUEmitter> emitterBuffer@uav;
+    };
+  }
   hlsl(cs) {
     #include "../wakePs/wakePs.hlsli"
 
     uint cmdCount: register(c0);
     GPUEmitterGen emitterGen[MAX_EMITTER_GEN_COMMANDS]: register(c1);
-    RWStructuredBuffer<GPUEmitter> emitterBuffer: register(u0);
 
     [numthreads(EMITTER_GEN_WARP, 1, 1)]
     void main(uint3 dtId: SV_DispatchThreadID)
@@ -66,13 +78,22 @@ shader wfx_emit
 {
   USE_PARTICLE_SYSTEM(cs)
 
-  (cs) { water_level@f1 = (water_level); }
+  (cs) {
+    water_level@f1 = (water_level);
+
+    emitterBuffer@buf : register(0) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      StructuredBuffer<GPUEmitter> emitterBuffer@buf;
+    };
+    random_buffer@tex2d : register(1);
+    particleBuffer@uav : register(1) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      RWStructuredBuffer<GPUParticle> particleBuffer@uav;
+    };
+  }
 
   hlsl(cs) {
     GPUEmitterDynamic emitterDynData[MAX_EMITTER_GEN_COMMANDS]: register(c2);
-    StructuredBuffer<GPUEmitter> emitterBuffer: register(t0);
-    Texture2D<float4> random_buffer: register(t1);
-    RWStructuredBuffer<GPUParticle> particleBuffer: register(u1);
 
     [numthreads(EMIT_WARP, 1, 1)]
     void main(uint3 dtId: SV_DispatchThreadID)
@@ -120,13 +141,26 @@ shader wfx_emit
 shader wfx_update
 {
   USE_PARTICLE_SYSTEM(cs)
-  ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    StructuredBuffer<GPUEmitter> emitterBuffer: register(t0);
-    RWStructuredBuffer<GPUParticle> particleBuffer: register(u1);
-    RWStructuredBuffer<GPUParticleRender> particleRenderBuffer: register(u2);
-    RWByteAddressBuffer indirectBuffer: register(u3);
 
+  (cs) {
+    emitterBuffer@buf : register(0) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      StructuredBuffer<GPUEmitter> emitterBuffer@buf;
+    };
+    particleBuffer@uav : register(1) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      RWStructuredBuffer<GPUParticle> particleBuffer@uav;
+    };
+    particleRenderBuffer@uav : register(2) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      RWStructuredBuffer<GPUParticleRender> particleRenderBuffer@uav;
+    };
+    indirectBuffer@uav : register(3) hlsl {
+      RWByteAddressBuffer indirectBuffer@uav;
+    };
+  }
+
+  hlsl(cs) {
     [numthreads(UPDATE_WARP, 1, 1)]
     void main(uint3 dtId: SV_DispatchThreadID)
     {
@@ -183,11 +217,15 @@ shader wfx_update
 
 shader wfx_clear
 {
-  ENABLE_ASSERT(cs)
   USE_PARTICLE_SYSTEM(cs)
 
+  (cs) {
+    indirectBuffer@uav : register(3) hlsl {
+      RWByteAddressBuffer indirectBuffer@uav;
+    };
+  }
+
   hlsl(cs) {
-    RWByteAddressBuffer indirectBuffer: register(u3);
 
     [numthreads(1, 1, 1)]
     void main()
@@ -254,6 +292,26 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
     (ps) { wfx_diffuse@smp2d = wfx_diffuse; }
   }
 
+  bool use_motion_vectors = shader == wfx_render_foam && compatibility_mode == compatibility_mode_off  && wfx_diffuse_mv != NULL;
+  if (use_motion_vectors)
+  {
+    (ps) {
+      wfx_diffuse_mv@tex2d = wfx_diffuse_mv;
+      wfx_diffuse_mv_scale@f1 = wfx_diffuse_mv_scale;
+    }
+    hlsl(ps){
+      #define wfx_diffuse_mv_samplerstate wfx_diffuse_samplerstate
+    }
+  }
+
+  bool output_wfx_details = water_use_wfx_wake == on && compatibility_mode == compatibility_mode_off &&
+    (shader == wfx_render_foam) || (shader == wfx_render_foam_distorted);
+
+  if (output_wfx_details)
+  {
+    INIT_FOAM_PARAMS(ps)
+  }
+
   hlsl {
     struct VsOutput
     {
@@ -270,9 +328,19 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
   }
 
   hlsl(ps) {
-    float4 wfx_ps(VsOutput input) : SV_Target
+    struct PsOutput
     {
-      float4 color = input.color;
+      float4 color : SV_Target0;
+      ##if output_wfx_details
+        float4 details : SV_Target2;
+      ##endif
+    };
+
+    PsOutput wfx_ps(VsOutput input)
+    {
+      PsOutput output;
+      output.color = input.color;
+
       float2 tc = input.tc_scale_falpha.xy;
 ##if shader == wfx_render_foam_distorted || shader == wfx_render_height_distorted
       float3 worldPos = input.worldPos;
@@ -301,36 +369,52 @@ shader wfx_render_height, wfx_render_height_distorted, wfx_render_foam, wfx_rend
       float opacity = distortion.a;
 ##endif
 ##if shader == wfx_render_foam
-      color.a *= lerp(tex2D(wfx_diffuse, tc).g, tex2D(wfx_diffuse, input.tc2).g, input.tc_scale_falpha.w);
-      color.rgb *= color.a;
+      float2 tc2 = input.tc2;
+      float frame_blend = input.tc_scale_falpha.w;
+      ##if use_motion_vectors
+        float4 mv = 2*float4(tex2D(wfx_diffuse_mv, tc).xy, tex2D(wfx_diffuse_mv, tc2).xy) - 1;
+        mv *= float2(-frame_blend, 1.0 - frame_blend).xxyy * wfx_diffuse_mv_scale;
+        tc += mv.xy;
+        tc2 += mv.zw;
+      ##endif
+      output.color.a *= lerp(tex2D(wfx_diffuse, tc).g, tex2D(wfx_diffuse, tc2).g, frame_blend);
+      output.color.rgb *= output.color.a;
+      ##if output_wfx_details
+        output.details = float4(foam_smoothness, foam_reflectance, foam_scatterCoeff, 1) * saturate(foam_materialAlphaCoeff*output.color.a);
+      ##endif
 ##elif shader == wfx_render_foam_distorted
       opacity *= water_foam_distortion_opacity_params.x * lerp(1.0, nvsf_foam_wave_hats, water_foam_distortion_opacity_params.y);
-      color.rgb *= tex2D(wfx_gradient, float2(intensity, 0.0)).rgb * opacity;
-      color.a *= intensity * opacity;
+      output.color.rgb *= tex2D(wfx_gradient, float2(intensity, 0.0)).rgb * opacity;
+      output.color.a *= intensity * opacity;
+      ##if output_wfx_details
+        output.details = float4(foam_smoothness, foam_reflectance, foam_scatterCoeff, 1) * saturate(foam_materialAlphaCoeff*output.color.a);
+      ##endif
 ##elif shader == wfx_render_height_distorted
       opacity *= water_foam_distortion_opacity_params.z * lerp(1.0, nvsf_foam_wave_hats, water_foam_distortion_opacity_params.w);
-      color.a *= intensity * opacity;
-      color.rgb *= color.a;
+      output.color.a *= intensity * opacity;
+      output.color.rgb *= output.color.a;
 ##elif shader == wfx_render_height
-      color.a *= (tex2D(wfx_diffuse, tc).r * 2.0 - 1.0) * input.tc_scale_falpha.z;
-      color.rgb *= color.a;
+      output.color.a *= (tex2D(wfx_diffuse, tc).r * 2.0 - 1.0) * input.tc_scale_falpha.z;
+      output.color.rgb *= output.color.a;
 ##else // shader == wfx_render_foam_mask
-      color.r = color.a*input.tc_scale_falpha.z*(1-tex2D(wfx_distortion, tc).b);
+      output.color.r = output.color.a*input.tc_scale_falpha.z*(1-tex2D(wfx_distortion, tc).b);
 ##endif
-      return color;
+      return output;
     }
   }
 
   (vs) {
     globtm@f44 = globtm;
+    particleRenderBuffer@buf : register(3) hlsl {
+      #include "../wakePs/wakePs.hlsli"
+      StructuredBuffer<GPUParticleRender> particleRenderBuffer@buf;
+    };
   };
 
   INIT_WATER_HEIGHTMAP_BASE(vs, @smp2d)
   USE_WATER_HEIGHTMAP(vs)
 
   hlsl(vs) {
-    StructuredBuffer<GPUParticleRender> particleRenderBuffer: register(t3);
-
     VsOutput wfx_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     {
       uint vPosId = vertexId % VERTICES_PER_PARTICLE;
@@ -385,10 +469,11 @@ shader wfx_normals
   z_test = false;
   z_write = false;
 
+  INIT_GLOBAL_POINT_CLAMP_SAMPLER(ps)
   USE_AND_INIT_VIEW_VEC_PS()
 
   (ps) {
-    wfx_hmap@smp2d = wfx_hmap;
+    wfx_hmap@tex2d = wfx_hmap;
     world_view_pos@f4 = world_view_pos;
     wlevel_psize@f3 = (water_level, wfx_normals_pixel_size.x, wfx_normals_pixel_size.y, 0);
   }
@@ -396,6 +481,8 @@ shader wfx_normals
   POSTFX_VS_TEXCOORD(1, texcoord)
 
   hlsl(ps) {
+    #define wfx_hmap_samplerstate global_point_clamp_sampler
+
     float4 get_water_position(float2 texcoord, float2 offset, out float3 out_view, out float hmap_height)
     {
       texcoord = texcoord + offset * wlevel_psize.yz;
@@ -417,7 +504,7 @@ shader wfx_normals
       ##if hardware.dx12
       // Avoid sampling hmap multiple times when we know that there are no effects
       // in this wave. May very rarely cause artifacts, but I doubt anyone will notice.
-      if (WaveActiveAllTrue(wfxHeight <= 0.0f))
+      if (WaveActiveAllTrue(wfxHeight == 0.0f))
         return float4(0.5f, 0.5f, 0.0f, 0.0f);
       ##endif
 

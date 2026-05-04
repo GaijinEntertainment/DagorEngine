@@ -22,6 +22,9 @@ void RaytraceAccelerationStructure::onDelayedCleanupFinish<CleanupTag::DESTROY_T
   if (Backend::State::pipe.isReferenced(this))
   {
     Backend::State::pendingCleanups.removeReferenced(this);
+    // will replace this AS with stub AS on usage
+    // this is done because we don't track TLAS-BLAS linkage lifetime and usually deleting TLAS means
+    // that some BLASes referenced by it may get removed, so it really can't be used
     destroyPrimaryVulkanObject();
     return;
   }
@@ -212,11 +215,11 @@ void RaytraceAccelerationStructure::releaseSharedHandle() { DAG_FATAL("vulkan: n
 
 void RaytraceAccelerationStructure::evict() { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
-void RaytraceAccelerationStructure::restoreFromSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: RT AS is not evictable"); }
+void RaytraceAccelerationStructure::restoreFromSysCopy() { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
 bool RaytraceAccelerationStructure::nonResidentCreation() { return false; }
 
-void RaytraceAccelerationStructure::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: RT AS is not evictable"); }
+void RaytraceAccelerationStructure::makeSysCopy() { DAG_FATAL("vulkan: RT AS is not evictable"); }
 
 void RaytraceAccelerationStructure::onDeviceReset() {}
 void RaytraceAccelerationStructure::afterDeviceReset() {}

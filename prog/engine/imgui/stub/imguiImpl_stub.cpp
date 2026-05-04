@@ -22,6 +22,7 @@ ImFont *imgui_get_bold_font() { return nullptr; }
 ImFont *imgui_get_mono_font() { return nullptr; }
 void imgui_apply_style_from_blk() {}
 int imgui_get_menu_bar_height() { return 0; }
+void *convert_dag_res_id_to_imgui(D3DRESID) { return nullptr; };
 
 ImGuiFunctionQueue *ImGuiFunctionQueue::windowHead = nullptr;
 ImGuiFunctionQueue *ImGuiFunctionQueue::functionHead = nullptr;

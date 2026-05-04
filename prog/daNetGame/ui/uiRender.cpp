@@ -16,11 +16,14 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/scripts/scripts.h>
 
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_panelRenderer.h>
+#include <quirrel/sqEventBus/sqEventBus.h>
 
 
 namespace uirender
@@ -143,6 +146,7 @@ void wait_ui_before_render_job_done()
     TIME_PROFILE(wait_ui_before_render_job_done);
     threadpool::wait(&ui_before_render_job);
   }
+  sqeventbus::set_mtsafe_mode(false);
 }
 
 
@@ -154,11 +158,25 @@ void start_ui_render_job(bool wake)
     ui_render_job.start(wake);
 }
 
+void prepare_to_start_ui_before_render_job()
+{
+  if (beforeRenderMultithreaded)
+  {
+    sqeventbus::set_mtsafe_mode(true);
+    interlocked_release_store(ui_before_render_job.done, 0); // To be able wait it
+  }
+}
 
 void start_ui_before_render_job()
 {
   if (beforeRenderMultithreaded)
-    threadpool::add(&ui_before_render_job, threadpool::PRIO_LOW, true);
+  {
+    if (is_main_thread())
+      sqeventbus::set_mtsafe_mode(true);
+    using namespace threadpool;
+    uint32_t _1;
+    add(&ui_before_render_job, PRIO_LOW, _1, AddFlags::WakeOnAdd | AddFlags::IgnoreNotDone);
+  }
 }
 
 void skip_ui_render_job()

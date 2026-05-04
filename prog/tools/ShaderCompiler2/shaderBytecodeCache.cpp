@@ -16,6 +16,18 @@ static constexpr int HLSL_CACHE_STAMPS[HLSL_COUNT] = {
   _MAKE4C('D11g'), // HLSL_AS - aliased with gs
 };
 
+static bool is_in_cache(const CachedShader &c, const CompileResult &r)
+{
+  if (r.metadata.size() + 4 != c.relMetadata.size() || !eastl::equal(r.metadata.begin(), r.metadata.end(), c.relMetadata.data() + 4))
+    return false;
+
+  size_t size_in_unsigned = (r.bytecode.size() + 3) / sizeof(unsigned);
+  if (size_in_unsigned != c.relCode.size() || !eastl::equal(r.bytecode.begin(), r.bytecode.end(), (const uint8_t *)c.relCode.data()))
+    return false;
+
+  return true;
+}
+
 bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &result, HlslCompilationStage stage,
   const String &compile_ctx)
 {
@@ -23,8 +35,7 @@ bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &resul
   bool added_new = false;
   ShaderCacheIndex codeIdx = ShaderCacheIndex::EMPTY;
   for (int i = cachedShadersList.size() - 1; i >= 0; i--)
-    if (cachedShadersList[i].codeType == stage && cachedShadersList[i].relCode.size() == size_in_unsigned + 1 &&
-        eastl::equal(result.bytecode.begin(), result.bytecode.end(), (const uint8_t *)&cachedShadersList[i].relCode[1]))
+    if (cachedShadersList[i].codeType == stage && is_in_cache(cachedShadersList[i], result))
     {
       codeIdx = ShaderCacheIndex{i};
       break;
@@ -36,15 +47,20 @@ bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &resul
     codeIdx = ShaderCacheIndex(append_items(cachedShadersList, 1));
     CachedShader &cachedShader = cachedShadersList[eastl::to_underlying(codeIdx)];
 
-    cachedShader.relCode.resize(size_in_unsigned + 1);
+    cachedShader.relMetadata.resize(result.metadata.size() + 4);
+    memcpy(cachedShader.relMetadata.data(), &HLSL_CACHE_STAMPS[stage], sizeof(HLSL_CACHE_STAMPS[stage]));
+    eastl::copy(result.metadata.begin(), result.metadata.end(), (uint8_t *)&cachedShader.relMetadata[4]);
+
+    cachedShader.relCode.resize(size_in_unsigned);
     cachedShader.codeType = stage;
     if (shc::config().validateIdenticalBytecode)
       cachedShader.compileCtx = compile_ctx;
     ++codeCounts.all[stage];
-    cachedShader.relCode[0] = HLSL_CACHE_STAMPS[stage];
     if (item_is_in(stage, {HLSL_CS, HLSL_AS, HLSL_MS}))
       cachedShader.computeShaderInfo = result.computeShaderInfo;
-    eastl::copy(result.bytecode.begin(), result.bytecode.end(), (uint8_t *)&cachedShader.relCode[1]);
+    eastl::copy(result.bytecode.begin(), result.bytecode.end(), (uint8_t *)&cachedShader.relCode[0]);
+    for (size_t i = result.bytecode.size(); i < size_in_unsigned * sizeof(unsigned); ++i)
+      ((uint8_t *)cachedShader.relCode.data())[i] = 0;
     added_new = true;
   }
 
@@ -102,8 +118,9 @@ void apply_shader_from_cache(SemanticShaderPass &pass, HlslCompilationStage stag
   const ShaderBytecodeCache &cache)
 {
   auto &cachedShader = cache.resolveEntry(c);
-  dag::ConstSpan<unsigned> *dst[HLSL_COUNT] = {&pass.fsh, &pass.vpr, &pass.cs, &pass.ds, &pass.hs, &pass.gs, &pass.vpr, &pass.gs};
-  *dst[stage] = cachedShader.getShaderOutCode(stage);
+  ShaderStageData *dst[HLSL_COUNT] = {&pass.fsh, &pass.vpr, &pass.cs, &pass.ds, &pass.hs, &pass.gs, &pass.vpr, &pass.gs};
+  dst[stage]->bytecode = cachedShader.getShaderOutCode(stage);
+  dst[stage]->metadata = cachedShader.getShaderOutMetadata(stage);
   if (item_is_in(stage, {HLSL_CS, HLSL_AS, HLSL_MS}))
   {
     pass.threadGroupSizes[0] = cachedShader.getComputeShaderInfo().threadGroupSizeX;

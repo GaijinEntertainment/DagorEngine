@@ -1,0 +1,8 @@
+ERROR: expression of type 'number|string' cannot be assigned to type 'function|null'
+testData/diagnostics/compilation_errors/type_inference/test_complex_mega.nut:53:0
+
+// declared type: function|null => mismatch!
+local v_fail: function|null = get_flag() ? sqrf(4.3) : fn(3)
+^-----------------------------------------------------------
+
+

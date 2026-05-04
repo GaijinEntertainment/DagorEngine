@@ -3,13 +3,13 @@
 #include <projectiveDecals/projectiveDecals.h>
 
 
-void RingBufferDecals::init_buffer(uint32_t maximum_size)
+void RingBufferDecalsBase::init_buffer(uint32_t maximum_size, size_t instance_struct_size)
 {
   ringBufferCapacity = maximum_size;
-  ProjectiveDecals::init_buffer(maximum_size);
+  ProjectiveDecalsBase::init_buffer(maximum_size, instance_struct_size);
 }
 
-int RingBufferDecals::allocate_decal_id()
+int RingBufferDecalsBase::allocate_decal_id()
 {
   G_ASSERT(ringBufferCapacity > 0);
   int decalId = ringBufferIndex;
@@ -19,8 +19,16 @@ int RingBufferDecals::allocate_decal_id()
   return decalId;
 }
 
-void RingBufferDecals::clear()
+void RingBufferDecalsBase::clear()
 {
   decalsToRender = 0;
   ringBufferIndex = 0;
+}
+
+int RingBufferDecalsBase::addDecal(dag::Span<Point4> decal_data)
+{
+  int decal_id = allocate_decal_id();
+  setDecalId(decal_data, decal_id);
+  updateDecal(decal_data);
+  return decal_id;
 }

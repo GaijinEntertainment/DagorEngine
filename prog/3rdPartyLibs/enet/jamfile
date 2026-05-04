@@ -9,6 +9,7 @@ Target      = 3rdPartyLibs/enet.lib ;
 Sources =
   callbacks.c
   compress.c
+  enet_dagor.c
   host.c
   list.c
   packet.c

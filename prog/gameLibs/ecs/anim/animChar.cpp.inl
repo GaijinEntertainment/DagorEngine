@@ -1,9 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/anim/anim.h>
-#include <ecs/core/entitySystem.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/animState.h>
 #include <ecs/anim/slotAttach.h>
@@ -25,6 +29,7 @@
 #include <ecs/anim/animcharUpdateEvent.h>
 #include <daECS/core/componentType.h>
 #include <ecs/anim/animchar_visbits.h>
+#include <ecs/anim/animCharRefHolder.h>
 
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
 static CONSOLE_BOOL_VAL("animchar", perf_markers_names, false);
@@ -55,11 +60,10 @@ static bool is_tex_harmonization_required()
 static inline void reset_animchar_resource(AnimV20::AnimcharRendComponent &animchar_render,
   const AnimV20::AnimcharBaseComponent &animchar, const char *animchar_res)
 {
-  GameResHandle handle = GAMERES_HANDLE_FROM_STRING(animchar_res);
-  AnimV20::IAnimCharacter2 *animCharSource = (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(handle, CharacterGameResClassId);
+  AnimV20::IAnimCharacter2 *animCharSource = (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(animchar_res, CharacterGameResClassId);
   G_ASSERTF_RETURN(animCharSource, , "%s animChar resource '%s' not found", __FUNCTION__, animchar_res);
   animCharSource->rendComp().cloneTo(&animchar_render, false, animchar.getNodeTree());
-  ::release_game_resource(handle);
+  ::release_game_resource_ex(animCharSource, CharacterGameResClassId);
 }
 
 static inline void replace_animchar_resource(AnimV20::AnimcharRendComponent &animchar_render,
@@ -100,18 +104,18 @@ public:
   AnimcharBaseConstruct(ecs::EntityManager &mgr, ecs::EntityId eid)
   {
     const char *animCharRes = mgr.getOr(eid, ECS_HASH("animchar__res"), ecs::nullstr);
-    GameResHandle handle = GAMERES_HANDLE_FROM_STRING(animCharRes);
-    if (DAGOR_UNLIKELY(!is_game_resource_loaded(handle, CharacterGameResClassId)))
+    if (DAGOR_UNLIKELY(!is_game_resource_loaded(animCharRes, CharacterGameResClassId)))
       logerr("<%s> is expected to be loaded in %s while creating %d<%s>", animCharRes, __FUNCTION__, (ecs::entity_id_t)eid,
         mgr.getEntityTemplateName(eid)); // Note: `requestResources` should ensure that
-    AnimV20::IAnimCharacter2 *animCharSource = (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(handle, CharacterGameResClassId);
+    AnimV20::IAnimCharacter2 *animCharSource =
+      (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(animCharRes, CharacterGameResClassId);
     if (DAGOR_UNLIKELY(!animCharSource))
     {
       logerr("Failed to get gameres '%s' while creating %d<%s>", animCharRes, (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
       return;
     }
     animCharSource->baseComp().cloneTo(this, false);
-    ::release_game_resource(handle);
+    ::release_game_resource_ex(animCharSource, CharacterGameResClassId);
 
 
     // Don't set `eid` setTraceContext here - as might be (incorrectly) used as pointer on actual `trace_static_multiray` calls
@@ -188,28 +192,6 @@ bool AnimcharNodesMat44::onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid)
   return true;
 }
 
-// Holds reference to original animchar resource, while entity is alive. Avoid cleaning it up right after being loaded,
-// and then reloading it again, when unused resources are being freed, while creating several similar entities.
-// It is also used to fix leak of AnimData in same scenario, until the core issue is fixed.
-struct AnimcharResourceReferenceHolder
-{
-  EA_NON_COPYABLE(AnimcharResourceReferenceHolder);
-  AnimcharResourceReferenceHolder(ecs::EntityManager &mgr, ecs::EntityId eid)
-  {
-    if (const char *animCharResName = mgr.getOr(eid, ECS_HASH("animchar__res"), ecs::nullstr))
-      animcharRes =
-        (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(animCharResName), CharacterGameResClassId);
-  }
-  AnimcharResourceReferenceHolder(AnimcharResourceReferenceHolder &&rhs) : animcharRes(eastl::exchange(rhs.animcharRes, nullptr)) {}
-  ~AnimcharResourceReferenceHolder()
-  {
-    if (animcharRes)
-      ::release_game_resource((GameResource *)animcharRes);
-  }
-
-  AnimV20::IAnimCharacter2 *animcharRes = nullptr;
-};
-
 // currently we can't use template magic, because object is actually created within onLoaded.
 // After we refactor it to requestResourse / create, it will be just InplaceCreator
 ECS_REGISTER_MANAGED_TYPE(AnimV20::AnimcharBaseComponent, nullptr,
@@ -218,7 +200,6 @@ ECS_REGISTER_MANAGED_TYPE(AnimV20::AnimcharRendComponent, nullptr,
   typename ecs::CreatorSelector<AnimV20::AnimcharRendComponent ECS_COMMA AnimcharRendConstruct>::type);
 ECS_REGISTER_RELOCATABLE_TYPE(AnimcharNodesMat44, nullptr);
 
-ECS_DECLARE_RELOCATABLE_TYPE(AnimcharResourceReferenceHolder);
 ECS_REGISTER_RELOCATABLE_TYPE(AnimcharResourceReferenceHolder, nullptr);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimcharResourceReferenceHolder, "animchar__resRefHolder", nullptr, 0, "animchar__res")
 
@@ -243,11 +224,11 @@ ECS_DEF_PULL_VAR(animchar);
 
 
 template <typename Callable>
-inline void animchar_pre_update_ecs_query(Callable c);
+inline void animchar_pre_update_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
 // Using chunk of size 1 since animchars have extremely non-uniform update times (*) due to skipped updates.
 // (*) On xb1 it's in 3us-300us range.
-inline void animchar_update_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 1));
+inline void animchar_update_ecs_query(ecs::EntityManager &manager, Callable ECS_CAN_PARALLEL_FOR(c, 1));
 
 struct AnimcharAttachRec
 {
@@ -327,21 +308,22 @@ ECS_REGISTER_EVENT(UpdateAnimcharEvent);
 
 ECS_AFTER(before_animchar_update_sync)
 ECS_BEFORE(after_animchar_update_sync)
-static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info)
+static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info, ecs::EntityManager &manager)
 {
   dag::RelocatableFixedVector<AnimcharAttachRec, 128, /*bOverflow*/ true, framemem_allocator> attachRecords;
 
   // Set attachement to the slot for update time
   {
     TIME_PROFILE_DEV(assemble_attaches);
-    animchar_pre_update_ecs_query([&](ecs::EntityId eid, int slot_attach__slotId, AnimV20::AnimcharBaseComponent &animchar,
-                                    ecs::EntityId animchar_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
+    animchar_pre_update_ecs_query(manager, [&](ecs::EntityId eid, int slot_attach__slotId, AnimV20::AnimcharBaseComponent &animchar,
+                                             ecs::EntityId animchar_attach__attachedTo ECS_REQUIRE(ecs::Tag attachmentUpdate)) {
       if (slot_attach__slotId < 0)
         return;
-      ECS_GET_ENTITY_COMPONENT_RW(AnimV20::AnimcharBaseComponent, animCharAttachedTo, animchar_attach__attachedTo, animchar);
+      AnimV20::AnimcharBaseComponent *animCharAttachedTo =
+        ECS_GET_NULLABLE_RW_MGR(manager, AnimV20::AnimcharBaseComponent, animchar_attach__attachedTo, animchar); //-V1003
       if (animCharAttachedTo)
       {
-        int aid = animCharAttachedTo->setAttachedChar(slot_attach__slotId, ecs::entity_id_t(eid), &animchar, /*recalcable*/ false);
+        int aid = animCharAttachedTo->setAttachedChar(slot_attach__slotId, ecs::entity_id_t(eid), animchar, /*recalcable*/ false);
         attachRecords.emplace_back(animCharAttachedTo, aid, animchar_attach__attachedTo);
       }
     });
@@ -351,12 +333,12 @@ static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info)
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
   volatile int nacts = 0, nfullacts = 0, ncalcwtms = 0;
 #endif
-  animchar_update_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand) ECS_REQUIRE_NOT(ecs::Tag animchar__physSymDependence)
-                                  AnimV20::AnimcharBaseComponent &animchar,
-                              float *animchar__accumDt, const float *animchar__dtThreshold,
-                              AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
-                              vec3f *animchar_render__root_pos,      // always on client, never on server
-                              const TMatrix &transform, bool animchar__updatable = true, bool animchar__turnDir = false) {
+  animchar_update_ecs_query(manager, [&](ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand) ECS_REQUIRE_NOT(
+                                           ecs::Tag animchar__physSymDependence) AnimV20::AnimcharBaseComponent &animchar,
+                                       float *animchar__accumDt, const float *animchar__dtThreshold,
+                                       AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+                                       vec3f *animchar_render__root_pos,      // always on client, never on server
+                                       const TMatrix &transform, bool animchar__updatable = true, bool animchar__turnDir = false) {
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
     interlocked_increment(nacts);
     if (!animchar__updatable)
@@ -389,15 +371,16 @@ static __forceinline void update_animchar_on_create_es_event_handler(const ecs::
 }
 
 ECS_TRACK(animchar__animStateNames)
-static __forceinline void animchar_update_animstate_es_event_handler(const ecs::Event &, ecs::EntityId eid,
-  const AnimV20::AnimcharBaseComponent &animchar, const ecs::Object &animchar__animStateNames, ecs::Object &animchar__animState)
+static __forceinline void animchar_update_animstate_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
+  ecs::EntityId eid, const AnimV20::AnimcharBaseComponent &animchar, const ecs::Object &animchar__animStateNames,
+  ecs::Object &animchar__animState)
 {
   const auto animGraph = animchar.getAnimGraph();
   animchar__animState.clear();
   for (auto &stateName : animchar__animStateNames)
   {
     ecs::HashedConstString hashedString = ECS_HASH_SLOW(stateName.first.c_str());
-    g_entity_mgr->sendEventImmediate(eid, EventChangeAnimState(hashedString, animGraph->getStateIdx(stateName.second.getStr())));
+    manager.sendEventImmediate(eid, EventChangeAnimState(hashedString, animGraph->getStateIdx(stateName.second.getStr())));
   }
 }
 

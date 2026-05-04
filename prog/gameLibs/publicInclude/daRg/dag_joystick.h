@@ -44,9 +44,11 @@ public:
   }
   int processPendingBtnStack(IGuiScene *scene) { return processPendingBtnStack(make_span_const(&scene, 1)); }
 
+  int16_t getLastActiveJoystickOrdId() { return lastActiveJoyOrdId; }
+
 private:
-  HumanInput::IGenJoystick *curJoy = nullptr;
-  int16_t curJoyOrdId = -1;
+  HumanInput::IGenJoystick *lastActiveJoy = nullptr;
+  int16_t lastActiveJoyOrdId = -1;
   bool lastProcessSkipped = false;
   dag::RelocatableFixedVector<HumanInput::ButtonBits, 8> btnStack;
 

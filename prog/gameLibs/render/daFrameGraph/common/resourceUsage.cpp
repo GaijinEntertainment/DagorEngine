@@ -113,6 +113,17 @@ const char *to_string(History history)
   return "Invalid";
 }
 
+const char *to_string(DesiredActivationBehaviour behavior)
+{
+  switch (behavior)
+  {
+    case DesiredActivationBehaviour::Discard: return "Discard";
+    case DesiredActivationBehaviour::Clear: return "Clear";
+  }
+
+  return "Invalid";
+}
+
 static eastl::string access_conjunction_name(uint32_t access_conjunction)
 {
   eastl::string result;
@@ -134,12 +145,12 @@ static eastl::string access_conjunction_name(uint32_t access_conjunction)
   return result;
 }
 
-static bool set_check_activation(History history, eastl::optional<ResourceActivationAction> &activation,
+static bool set_check_activation(DesiredActivationBehaviour behaviour, eastl::optional<ResourceActivationAction> &activation,
   eastl::optional<ResourceActivationAction> discard_activation, eastl::optional<ResourceActivationAction> clear_activation)
 {
   // NOTE: If our usage type has several bits set for now we would like to make sure that they all use the same activation action
   eastl::optional<ResourceActivationAction> new_activation =
-    (history == History::DiscardOnFirstFrame) ? discard_activation : clear_activation;
+    (behaviour == DesiredActivationBehaviour::Discard) ? discard_activation : clear_activation;
 
   if (new_activation != eastl::nullopt)
   {
@@ -152,20 +163,13 @@ static bool set_check_activation(History history, eastl::optional<ResourceActiva
   return true;
 }
 
-ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, History history)
+ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, DesiredActivationBehaviour behavior, bool is_int)
 {
   if (usage.type == Usage::UNKNOWN)
   {
     if (usage.stage != Stage::UNKNOWN)
     {
       G_ASSERTF(false, "Usage with UNKNOWN type has non-zero stage. Resource usage initialization may be wrong!");
-      return ValidateUsageResult::Invalid;
-    }
-
-    if (history != History::No)
-    {
-      logerr("daFG: Resource requested a history action but no usage is provided!"
-             " This may cause driver validation errors! Please, provide a usage.");
       return ValidateUsageResult::Invalid;
     }
 
@@ -260,14 +264,10 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, H
     return ValidateUsageResult::Invalid;
   }
 
-
-  // Check if all usages have the same activation function if any
-  if (history == History::No)
-    return ValidateUsageResult::OK;
-
   // Let's first check activation and then, if it's empty, complain to logger
   eastl::optional<ResourceActivationAction> activation = eastl::nullopt;
   bool compatible_activations = true;
+  const auto clear_as_uav = is_int ? ResourceActivationAction::CLEAR_I_AS_UAV : ResourceActivationAction::CLEAR_F_AS_UAV;
   mask = eastl::to_underlying(usage.type);
   while (mask)
   {
@@ -281,21 +281,15 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, H
       case Usage::DEPTH_ATTACHMENT:
       case Usage::RESOLVE_ATTACHMENT:
       case Usage::BLIT:
-        compatible_activations &= set_check_activation(history, activation, ResourceActivationAction::DISCARD_AS_RTV_DSV,
+        compatible_activations &= set_check_activation(behavior, activation, ResourceActivationAction::DISCARD_AS_RTV_DSV,
           ResourceActivationAction::CLEAR_AS_RTV_DSV);
-        break;
-
-      case Usage::VRS_RATE_TEXTURE:
-        compatible_activations &=
-          set_check_activation(history, activation, eastl::nullopt, ResourceActivationAction::CLEAR_AS_RTV_DSV);
         break;
 
       case Usage::SHADER_RESOURCE:
         if ((usage.access == Access::READ_WRITE) || (res_type == ResourceType::Buffer))
-          compatible_activations &= set_check_activation(history, activation, ResourceActivationAction::DISCARD_AS_UAV,
-            ResourceActivationAction::CLEAR_I_AS_UAV);
+          compatible_activations &= set_check_activation(behavior, activation, ResourceActivationAction::DISCARD_AS_UAV, clear_as_uav);
         else if (res_type == ResourceType::Texture)
-          compatible_activations &= set_check_activation(history, activation, ResourceActivationAction::DISCARD_AS_RTV_DSV,
+          compatible_activations &= set_check_activation(behavior, activation, ResourceActivationAction::DISCARD_AS_RTV_DSV,
             ResourceActivationAction::CLEAR_AS_RTV_DSV);
         else
         {
@@ -304,20 +298,17 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, H
         }
         break;
 
+      case Usage::VRS_RATE_TEXTURE:
       case Usage::CONSTANT_BUFFER:
-        compatible_activations &= set_check_activation(history, activation, ResourceActivationAction::DISCARD_AS_UAV,
-          ResourceActivationAction::CLEAR_I_AS_UAV);
-        break;
-
       case Usage::INDEX_BUFFER:
       case Usage::VERTEX_BUFFER:
       case Usage::INDIRECTION_BUFFER:
-        compatible_activations &= set_check_activation(history, activation, eastl::nullopt, ResourceActivationAction::CLEAR_I_AS_UAV);
+        compatible_activations &= set_check_activation(behavior, activation, ResourceActivationAction::DISCARD_AS_UAV, clear_as_uav);
         break;
 
       case Usage::COPY:
-        compatible_activations &= set_check_activation(history, activation, ResourceActivationAction::REWRITE_AS_COPY_DESTINATION,
-          ResourceActivationAction::CLEAR_I_AS_UAV);
+        compatible_activations &=
+          set_check_activation(behavior, activation, ResourceActivationAction::REWRITE_AS_COPY_DESTINATION, clear_as_uav);
         break;
 
       default: break;
@@ -327,7 +318,7 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, H
 
   if (!compatible_activations)
   {
-    logerr("daFG: Provided usage type was '%s', provided history was '%s'", to_string(usage.type), to_string(history));
+    logerr("daFG: Provided usage type was '%s', desired behavior was '%s'", to_string(usage.type), to_string(behavior));
     return ValidateUsageResult::IncompatibleActivation;
   }
 
@@ -372,7 +363,7 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, H
       mask &= ~(1u << bit_index);
     }
 
-    logerr("daFG: Provided usage type was '%s', provided history was '%s'", to_string(usage.type), to_string(history));
+    logerr("daFG: Provided usage type was '%s', desired behavior was '%s'", to_string(usage.type), to_string(behavior));
     return ValidateUsageResult::EmptyActivation;
   }
 
@@ -464,19 +455,15 @@ ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before,
   return resource_barrier;
 }
 
-eastl::optional<ResourceActivationAction> get_activation_from_usage(History history, intermediate::ResourceUsage usage,
-  ResourceType res_type)
+eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour behavior,
+  intermediate::ResourceUsage usage, ResourceType res_type, bool is_int)
 {
   if (usage.type == Usage::UNKNOWN)
-  {
     return eastl::nullopt;
-  }
 
-  switch (history)
+  switch (behavior)
   {
-    case History::No: return eastl::nullopt;
-
-    case History::DiscardOnFirstFrame:
+    case DesiredActivationBehaviour::Discard:
     {
       uint32_t mask = uint32_t(usage.type);
       while (mask)
@@ -517,8 +504,9 @@ eastl::optional<ResourceActivationAction> get_activation_from_usage(History hist
     }
     break;
 
-    case History::ClearZeroOnFirstFrame:
+    case DesiredActivationBehaviour::Clear:
     {
+      const auto clear_as_uav = is_int ? ResourceActivationAction::CLEAR_I_AS_UAV : ResourceActivationAction::CLEAR_F_AS_UAV;
       uint32_t mask = uint32_t(usage.type);
       while (mask)
       {
@@ -532,7 +520,7 @@ eastl::optional<ResourceActivationAction> get_activation_from_usage(History hist
           case Usage::CONSTANT_BUFFER:
           case Usage::VERTEX_BUFFER:
           case Usage::INDEX_BUFFER:
-          case Usage::INDIRECTION_BUFFER: return ResourceActivationAction::CLEAR_I_AS_UAV;
+          case Usage::INDIRECTION_BUFFER: return clear_as_uav;
 
           case Usage::BLIT:
           case Usage::COLOR_ATTACHMENT:
@@ -542,11 +530,11 @@ eastl::optional<ResourceActivationAction> get_activation_from_usage(History hist
 
           case Usage::SHADER_RESOURCE:
             if (usage.access == Access::READ_WRITE)
-              return ResourceActivationAction::CLEAR_I_AS_UAV;
+              return clear_as_uav;
             else if (res_type == ResourceType::Texture)
               return ResourceActivationAction::CLEAR_AS_RTV_DSV;
             else if (res_type == ResourceType::Buffer)
-              return ResourceActivationAction::CLEAR_I_AS_UAV;
+              return clear_as_uav;
             break;
 
           default: break;
@@ -560,11 +548,12 @@ eastl::optional<ResourceActivationAction> get_activation_from_usage(History hist
   return {};
 }
 
-ResourceActivationAction get_history_activation(History history, ResourceActivationAction res_activaton, bool is_int)
+ResourceActivationAction get_history_activation(DesiredActivationBehaviour behavior, ResourceActivationAction res_activaton,
+  bool is_int)
 {
-  switch (history)
+  switch (behavior)
   {
-    case History::DiscardOnFirstFrame:
+    case DesiredActivationBehaviour::Discard:
     {
       switch (res_activaton)
       {
@@ -574,14 +563,15 @@ ResourceActivationAction get_history_activation(History history, ResourceActivat
 
         case ResourceActivationAction::REWRITE_AS_UAV:
         case ResourceActivationAction::DISCARD_AS_UAV:
-        case ResourceActivationAction::CLEAR_I_AS_UAV: return ResourceActivationAction::DISCARD_AS_UAV;
+        case ResourceActivationAction::CLEAR_I_AS_UAV:
+        case ResourceActivationAction::CLEAR_F_AS_UAV: return ResourceActivationAction::DISCARD_AS_UAV;
 
         default: break;
       }
     }
     break;
 
-    case History::ClearZeroOnFirstFrame:
+    case DesiredActivationBehaviour::Clear:
     {
       switch (res_activaton)
       {
@@ -592,13 +582,13 @@ ResourceActivationAction get_history_activation(History history, ResourceActivat
         case ResourceActivationAction::REWRITE_AS_UAV:
         case ResourceActivationAction::DISCARD_AS_UAV:
         case ResourceActivationAction::CLEAR_I_AS_UAV:
+        case ResourceActivationAction::CLEAR_F_AS_UAV:
           return is_int ? ResourceActivationAction::CLEAR_I_AS_UAV : ResourceActivationAction::CLEAR_F_AS_UAV;
 
         default: break;
       }
     }
     break;
-    default: break;
   }
   G_ASSERTF(false, "History is not set! This should never happen!");
   return {};
@@ -617,17 +607,19 @@ static uint32_t get_creation_flags_from_usage(ResourceUsage usage, ResourceType 
     {
       case Usage::COPY:
       case Usage::BLIT:
-        if (usage.access == Access::READ_WRITE)
-          flags |= TEXCF_UPDATE_DESTINATION;
+        if (res_type == ResourceType::Texture)
+          flags |= usage.access == Access::READ_WRITE ? TEXCF_UPDATE_DESTINATION : 0;
         break;
       case Usage::COLOR_ATTACHMENT:
       case Usage::DEPTH_ATTACHMENT:
       case Usage::RESOLVE_ATTACHMENT: flags |= TEXCF_RTARGET; break;
       case Usage::SHADER_RESOURCE:
-        if (res_type == ResourceType::Texture && usage.access == Access::READ_WRITE)
-          flags |= TEXCF_UNORDERED;
+        if (res_type == ResourceType::Texture)
+          flags |= usage.access == Access::READ_WRITE ? TEXCF_UNORDERED : 0;
         else if (res_type == ResourceType::Buffer)
-          flags |= SBCF_BIND_UNORDERED;
+          flags |= usage.access == Access::READ_WRITE  ? SBCF_BIND_UNORDERED
+                   : usage.access == Access::READ_ONLY ? SBCF_BIND_SHADER_RES
+                                                       : 0;
         break;
       case Usage::VERTEX_BUFFER: flags |= SBCF_BIND_VERTEX; break;
       case Usage::INDEX_BUFFER: flags |= SBCF_BIND_INDEX; break;

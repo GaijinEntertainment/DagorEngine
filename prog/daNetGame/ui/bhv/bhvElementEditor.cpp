@@ -67,13 +67,8 @@ void BhvElementEditor::onDetach(Element *elem, DetachMode)
   }
 }
 
-int BhvElementEditor::touchEvent(ElementTree *,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
+int BhvElementEditor::pointingEvent(
+  ElementTree *, Element *elem, darg::InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   if (event != INP_EV_PRESS && event != INP_EV_RELEASE && event != INP_EV_POINTER_MOVE)
     return 0;
@@ -88,15 +83,15 @@ int BhvElementEditor::touchEvent(ElementTree *,
 
   if (event == INP_EV_PRESS && (elementEditorState->touchIdx == NO_TOUCH || elementEditorState->secondTouchIdx == NO_TOUCH))
   {
-    touchBegin(elementEditorState, elem, touch_idx, accum_res, Point2(touch.x, touch.y));
-    if (!(accum_res & R_PROCESSED) && elem->hitTest(touch.x, touch.y))
+    touchBegin(elementEditorState, elem, touch_idx, accum_res, pos);
+    if (!(accum_res & R_PROCESSED) && elem->hitTest(pos))
       return R_PROCESSED;
   }
   else if (event == INP_EV_POINTER_MOVE)
   {
     if (elementEditorState->touchIdx == touch_idx || elementEditorState->secondTouchIdx == touch_idx)
     {
-      touchMove(elementEditorState, touch_idx, Point2(touch.x, touch.y));
+      touchMove(elementEditorState, touch_idx, pos);
 
       if (elem->transform)
       {
@@ -116,13 +111,13 @@ int BhvElementEditor::touchEvent(ElementTree *,
         }
         else if (elementEditorState->touchIdx != NO_TOUCH && !elementEditorState->blockMove)
         {
-          Point2 dPos = Point2(touch.x, touch.y) - elementEditorState->startPointerPos;
+          Point2 dPos = pos - elementEditorState->startPointerPos;
           elem->transform->translate = elementEditorState->startTranslate + dPos;
         }
         onElementEdited(elem, elem->transform->translate, elem->transform->scale);
       }
     }
-    if (elem->hitTest(touch.x, touch.y))
+    if (elem->hitTest(pos))
       return R_PROCESSED;
   }
   else if (event == INP_EV_RELEASE)
@@ -130,7 +125,7 @@ int BhvElementEditor::touchEvent(ElementTree *,
     touchEnd(elementEditorState, elem, touch_idx);
     if (elementEditorState->touchIdx == touch_idx)
       elem->clearGroupStateFlags(Element::S_TOUCH_ACTIVE);
-    if (elem->hitTest(touch.x, touch.y))
+    if (elem->hitTest(pos))
       return R_PROCESSED;
   }
   return 0;

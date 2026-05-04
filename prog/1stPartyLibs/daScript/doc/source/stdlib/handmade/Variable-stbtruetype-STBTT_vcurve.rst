@@ -1,0 +1,1 @@
+Vertex type constant for a quadratic Bezier curve segment.

@@ -328,7 +328,8 @@ public:
   //! checks visibility and renders scene;
   //! render_id<0 forces full render, other values (0..7) are context for visibility finder
   void render(const VisibilityFinder &vf, int render_id = 0, unsigned render_flags_mask = 0xFFFFFFFFU);
-  void render_trans();
+  void render_trans(bool draw_all = false);
+  bool isMaterialInited(int stage) const;
 
   struct ElemCallback
   {
@@ -443,7 +444,4 @@ protected:
 private:
   RenderScene(const RenderScene &);
   RenderScene &operator=(const RenderScene &);
-
-public:
-  static bool useSRVBuffers;
 };

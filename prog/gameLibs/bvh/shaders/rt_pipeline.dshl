@@ -1,0 +1,225 @@
+macro USE_PAYLOAD_PACKING(stage)
+  hlsl(stage) {
+    template<uint bits, uint shift>
+    void set_packed(inout uint s, uint v)
+    {
+      const uint mask = ((1U << bits) - 1) << shift;
+      s &= ~mask;
+      s |= v << shift;
+    }
+    template<uint bits, uint shift>
+    uint get_packed(uint v)
+    {
+      uint mask = (1U << bits) - 1;
+      return (v >> shift) & mask;
+    }
+    template<uint bits, uint shift>
+    void set_packed_float(inout uint s, float v)
+    {
+      uint packd = v * ((1U << bits) - 1);
+      set_packed<bits, shift>(s, packd);
+    }
+    template<uint bits, uint shift>
+    float get_packed_float(uint v)
+    {
+      uint packd = get_packed<bits, shift>(v);
+      return float(packd) / ((1U << bits) - 1);
+    }
+    float3x4 invert_orthonormal(float3x4 M)
+    {
+        // Extract rotation (3x3) and translation (float3)
+      float3 r0 = M[0].xyz;
+      float3 r1 = M[1].xyz;
+      float3 r2 = M[2].xyz;
+      float3 t = float3(M[0].w, M[1].w, M[2].w);
+
+        // Transpose rotation (inverse of orthonormal rotation)
+      float3x3 Rinv = float3x3(r0.x, r1.x, r2.x, r0.y, r1.y, r2.y, r0.z, r1.z, r2.z);
+
+        // Inverse translation = -R^T * t
+      float3 tinv = mul(-t, Rinv);
+
+        // Assemble inverse 3x4 matrix
+      float3x4 Minv;
+      Minv[0] = float4(Rinv[0], tinv.x);
+      Minv[1] = float4(Rinv[1], tinv.y);
+      Minv[2] = float4(Rinv[2], tinv.z);
+
+      return Minv;
+    }
+  }
+endmacro
+
+macro USE_DISTANCE_PAYLOAD(stage)
+  USE_PAYLOAD_PACKING(stage)
+
+  hlsl(stage) {
+    struct RayPayload
+    {
+      float distance;
+      uint lod_callCounter; // 4_28
+    };
+
+    float pl_get_distance(RayPayload pl)
+    {
+      return pl.distance;
+    }
+    uint pl_get_lod(RayPayload pl)
+    {
+      return get_packed<4, 28>(pl.lod_callCounter);
+    }
+    uint pl_get_call_counter(RayPayload pl)
+    {
+      return get_packed<28, 0>(pl.lod_callCounter);
+    }
+
+    void pl_set_distance(inout RayPayload pl, float distance)
+    {
+      pl.distance = distance;
+    }
+    void pl_set_lod(inout RayPayload pl, uint lod)
+    {
+      set_packed<4, 28>(pl.lod_callCounter, lod);
+    }
+    void pl_set_call_counter(inout RayPayload pl, uint C)
+    {
+      return set_packed<28, 0>(pl.lod_callCounter, C);
+    }
+  }
+endmacro
+
+macro USE_GI_PAYLOAD(stage)
+  USE_PAYLOAD_PACKING(stage)
+
+  hlsl(stage) {
+    struct RayPayload
+    {
+      uint albedo_reflectance_metalness; // 24_4_4
+      uint normal_smoothness_iswater_isimpostor_isfoliage; // 24_5_1_1_1
+      uint callcounter_distance; //16_half
+    };
+
+    #define RAY_PAYLOAD_DEFINED 1
+
+    // GET
+    float3 pl_get_albedo(RayPayload pl)
+    {
+      const uint3 shiftBits = uint3(24, 16, 8);
+      uint3 packd = (pl.albedo_reflectance_metalness.xxx >> shiftBits) & 255.xxx;
+      return float3(packd) / 255;
+    }
+    float pl_get_reflectance(RayPayload pl)
+    {
+      return get_packed_float<4, 4>(pl.albedo_reflectance_metalness);
+    }
+    float pl_get_metalness(RayPayload pl)
+    {
+      return get_packed_float<4, 0>(pl.albedo_reflectance_metalness);
+    }
+    float pl_get_smoothness(RayPayload pl)
+    {
+      return get_packed_float<5, 3>(pl.normal_smoothness_iswater_isimpostor_isfoliage);
+    }
+    float3 pl_get_normal(RayPayload pl)
+    {
+      const uint3 shiftBits = uint3(24, 16, 8);
+      uint3 packd = (pl.normal_smoothness_iswater_isimpostor_isfoliage.xxx >> shiftBits) & 255.xxx;
+      return float3(packd / 255.0f) * 2 - 1;
+    }
+    bool pl_get_is_water(RayPayload pl)
+    {
+      return get_packed<1, 2>(pl.normal_smoothness_iswater_isimpostor_isfoliage);
+    }
+    bool pl_get_is_impostor(RayPayload pl)
+    {
+      return get_packed<1, 1>(pl.normal_smoothness_iswater_isimpostor_isfoliage);
+    }
+    bool pl_get_is_foliage(RayPayload pl)
+    {
+      return get_packed<1, 0>(pl.normal_smoothness_iswater_isimpostor_isfoliage);
+    }
+    float pl_get_distance(RayPayload pl)
+    {
+      return f16tof32(pl.callcounter_distance);
+    }
+    uint pl_get_call_counter(RayPayload pl)
+    {
+      return get_packed<16, 16>(pl.callcounter_distance);
+    }
+
+    // SET
+    void pl_set_albedo(inout RayPayload pl, float3 A)
+    {
+      const uint3 shiftBits = uint3(16, 8, 0);
+      uint3 packd = uint3(A * 255) << shiftBits;
+      set_packed<24, 8>(pl.albedo_reflectance_metalness, packd.x | packd.y | packd.z);
+    }
+    void pl_set_reflectance(inout RayPayload pl, float R)
+    {
+      set_packed_float<4, 4>(pl.albedo_reflectance_metalness, R);
+    }
+    void pl_set_metalness(inout RayPayload pl, float M)
+    {
+      set_packed_float<4, 0>(pl.albedo_reflectance_metalness, M);
+    }
+    void pl_set_smoothness(inout RayPayload pl, float S)
+    {
+      set_packed_float<5, 3>(pl.normal_smoothness_iswater_isimpostor_isfoliage, S);
+    }
+    void pl_set_normal(inout RayPayload pl, float3 N)
+    {
+      const uint3 shiftBits = uint3(24, 16, 8);
+      uint3 packd = uint3((N * 0.5 + 0.5) * 255) << shiftBits;
+      set_packed<24, 8>(pl.normal_smoothness_iswater_isimpostor_isfoliage, packd.x | packd.y | packd.z);
+    }
+    void pl_set_is_water(inout RayPayload pl, bool W)
+    {
+      set_packed<1, 2>(pl.normal_smoothness_iswater_isimpostor_isfoliage, W ? 1 : 0);
+    }
+    void pl_set_is_impostor(inout RayPayload pl, bool I)
+    {
+      set_packed<1, 1>(pl.normal_smoothness_iswater_isimpostor_isfoliage, I ? 1 : 0);
+    }
+    void pl_set_is_foliage(inout RayPayload pl, bool F)
+    {
+      set_packed<1, 0>(pl.normal_smoothness_iswater_isimpostor_isfoliage, F ? 1 : 0);
+    }
+    void pl_set_distance(inout RayPayload pl, float D)
+    {
+      set_packed<16, 0>(pl.callcounter_distance, f32tof16(D));
+    }
+    void pl_set_call_counter(inout RayPayload pl, uint C)
+    {
+      return set_packed<16, 16>(pl.callcounter_distance, C);
+    }
+  }
+endmacro
+
+macro USE_GENERIC_RAYGEN_AHS(stage, handle_translucent)
+  hlsl(stage)
+  {
+    [shader("anyhit")]
+    void AnyHitShader(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attr)
+    {
+      uint callCounter = pl_get_call_counter(payload);
+      if (callCounter < bvh_max_ahs_calls)
+      {
+        pl_set_call_counter(payload, callCounter + 1);
+
+        float3 ray_origin = WorldRayOrigin();
+        float3 ray_direction = WorldRayDirection();
+        float ray_t = RayTCurrent();
+        uint instanceId = InstanceID();
+        uint triangleIx = PrimitiveIndex();
+        uint geometryIndex = GeometryIndex();
+        uint instanceIndex = InstanceIndex();
+        float2 barycentrics2 = attr.barycentrics;
+        #if handle_translucent
+          float lodT = calc_mip_level(ray_t, false, true);
+          if (AHS_Hit != alpha_test_ahs_lod(ray_origin, ray_direction, pl_get_lod(payload) + lodT, ray_t, triangleIx, instanceId, geometryIndex, barycentrics2, instanceIndex, 0.5))
+            IgnoreHit();
+        #endif
+      }
+    }
+  }
+endmacro

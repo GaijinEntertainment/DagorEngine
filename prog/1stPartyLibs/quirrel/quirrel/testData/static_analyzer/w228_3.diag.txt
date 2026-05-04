@@ -1,9 +1,9 @@
 WARNING: w228 (declared-never-used) variable 'f' was declared but never used.
-testData/static_analyzer/w228_3.nut:4:2
+testData/static_analyzer/w228_3.nut:4:8
 
-function fn() { //-declared-never-used
+function _fn() {
   local f = 123
-  ^----
+        ^
   local c = { f = 3 }
 
 

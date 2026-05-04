@@ -97,11 +97,12 @@ declare_struct("DafxSparksGlobalParams", 2,
 ]);
 
 // DafxSparksOptionalModifiers is used for anything that is not directly binded to ParentSimData/ParentRenData structs.
-declare_struct("DafxSparksOptionalModifiers", 3,
+declare_struct("DafxSparksOptionalModifiers", 4,
 [
   { name="widthOverLife", type="SparkFxValueCurveOpt" },
   { name="allowScreenProjDiscard", type="bool", defVal=1 },
   { name="collision", type="list", list=["default", "disabled", "relaxed"] },
+  { name="smoothFadeEnabled", type="bool", defVal=1 },
 ]);
 
 

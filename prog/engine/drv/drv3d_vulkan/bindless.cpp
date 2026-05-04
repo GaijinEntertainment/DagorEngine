@@ -17,7 +17,7 @@
 #include "dummy_resources.h"
 #include "physical_device_set.h"
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "device_context.h"
 #include "wrapped_command_buffer.h"
 #include "sampler_cache.h"
@@ -297,7 +297,7 @@ void BindlessManagerBackend::resetSets()
     actualSetId = i;
     for (uint32_t j = 0; j < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX]; j++)
     {
-      updateBindlessTexture(j, nullptr, {}, false, false);
+      updateBindlessTexture(j, nullptr, nullptr, {});
     }
     for (uint32_t j = 0; j < setLimits[spirv::bindless::BUFFER_DESCRIPTOR_SET_ACTUAL_INDEX]; j++)
     {
@@ -399,7 +399,7 @@ void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image
 
   G_ASSERTF(imageSlots[index].img == image, "vulkan: trying to cleanup bindless slot (%u) for image %p:%s that does not own it!",
     index, image, image->getDebugName());
-  imageSlots[index].img = nullptr;
+  imageSlots[index] = {nullptr, {}, nullptr};
 
   VkDescriptorImageInfo descriptorImageInfo{};
   const auto &dummyResourceTable = Globals::dummyResources.getTable();
@@ -415,7 +415,7 @@ void BindlessManagerBackend::cleanupBindlessTexture(uint32_t index, Image *image
   markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 }
 
-void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub)
+void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view)
 {
   D3D_CONTRACT_ASSERTF(index < setLimits[spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX],
     "vulkan: updating bindless resource (%s) is out of range: id=%u, "
@@ -424,7 +424,7 @@ void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, co
 
   VkDescriptorImageInfo descriptorImageInfo{};
 
-  imageSlots[index] = {image, view, stub};
+  imageSlots[index] = {image, view, owner};
 
   if (image)
   {
@@ -452,17 +452,17 @@ void BindlessManagerBackend::setBindlessTexture(uint32_t index, Image *image, co
   markDirtyRange(spirv::bindless::TEXTURE_DESCRIPTOR_SET_ACTUAL_INDEX, index);
 }
 
-bool BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub, bool stub_swap)
+bool BindlessManagerBackend::isBindlessTextureOwnedBy(uint32_t index, void *owner)
 {
   auto iter = imageSlots.find(index);
-  bool activeSlot = iter != imageSlots.end();
+  void *slotOwner = iter != imageSlots.end() ? iter->second.owner : nullptr;
+  return owner == slotOwner;
+}
 
-  // if stub swap was queued for texture A and while it was loading slot was used for texture B
-  // we must filter stub swap logic for this slot
-  if (activeSlot && stub_swap && !iter->second.stub)
-    return false;
-
-  Image *oldImage = activeSlot ? iter->second.img : nullptr;
+bool BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view)
+{
+  auto iter = imageSlots.find(index);
+  Image *oldImage = iter != imageSlots.end() ? iter->second.img : nullptr;
   if (oldImage != image)
   {
     if (oldImage)
@@ -473,7 +473,7 @@ bool BindlessManagerBackend::updateBindlessTexture(uint32_t index, Image *image,
   else if (image && iter->second.viewState == view)
     return false;
 
-  setBindlessTexture(index, image, view, stub);
+  setBindlessTexture(index, image, owner, view);
 
   return true;
 }
@@ -674,17 +674,17 @@ void BindlessManagerBackend::copyBindlessDescriptors(D3DResourceType type, uint3
   markDirtyRange(setIdx, dst, count);
 }
 
-void BindlessManagerBackend::bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout)
+void BindlessManagerBackend::bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout, uint8_t sets_to_use)
 {
-  if (!enabled)
+  if (!enabled || !sets_to_use)
     return;
 
   VulkanDescriptorSetHandle sets[spirv::bindless::MAX_SETS];
-  for (int i = 0; i < spirv::bindless::MAX_SETS; ++i)
+  for (int i = 0; i < sets_to_use; ++i)
     sets[i] = bufferedSets[actualSetId][i].set;
 
-  Backend::cb.wCmdBindDescriptorSets(bindPoint, pipelineLayout, spirv::bindless::FIRST_DESCRIPTOR_SET_ACTUAL_INDEX,
-    spirv::bindless::MAX_SETS, ary(sets), 0, nullptr);
+  Backend::cb.wCmdBindDescriptorSets(bindPoint, pipelineLayout, spirv::bindless::FIRST_DESCRIPTOR_SET_ACTUAL_INDEX, sets_to_use,
+    ary(sets), 0, nullptr);
 }
 
 void BindlessManagerBackend::advance()

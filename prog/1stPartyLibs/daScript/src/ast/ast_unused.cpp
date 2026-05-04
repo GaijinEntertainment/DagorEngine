@@ -9,7 +9,7 @@ namespace das {
     class TrackVariableFlags : public Visitor {
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         // global let
         virtual void preVisitGlobalLet ( const VariablePtr & var ) override {
@@ -291,7 +291,7 @@ namespace das {
             }
         }
         uint32_t getSideEffects ( const FunctionPtr & fnc ) {
-            if ( fnc->isTemplate || fnc->builtIn || fnc->knownSideEffects ) {
+            if ( fnc->stub || fnc->isTemplate || fnc->builtIn || fnc->knownSideEffects ) {
                 return fnc->sideEffectFlags;
             }
             if ( asked.find(fnc.get())!=asked.end() ) {
@@ -369,7 +369,7 @@ namespace das {
         }
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
@@ -673,13 +673,19 @@ namespace das {
 
 
     class RemoveUnusedLocalVariables : public PassVisitor {
+    public:
+        using PassVisitor::PassVisitor;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return funcIsDirty(fun) && !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
+        virtual bool canVisitStructure ( Structure * st ) override { return false; }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * fun ) override { return false; }
+        virtual bool canVisitEnumeration ( Enumeration * en ) override { return false; }
+
     // ExprLet
         virtual VariablePtr visitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
             if ( !var->access_get && !var->access_ref && !var->access_init && !var->access_pass ) {
@@ -785,10 +791,10 @@ namespace das {
         faf.MarkSideEffects(*thisModule);
     }
 
-    bool Program::optimizationUnused(TextWriter & logs) {
+    bool Program::optimizationUnused(TextWriter & logs, int32_t round) {
         buildAccessFlags(logs);
         // remove itselft
-        RemoveUnusedLocalVariables context;
+        RemoveUnusedLocalVariables context(round);
         visit(context);
         return context.didAnything();
     }

@@ -4,19 +4,22 @@
 #include "gpuVendorAmd.h"
 #include "gpuVendorNvidia.h"
 
-
-#include <memory/dag_framemem.h>
-#include <ioSys/dag_dataBlock.h>
-#include <startup/dag_globalSettings.h>
-#include <osApiWrappers/dag_miscApi.h>
-#include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
-#include <util/dag_string.h>
-#include <osApiWrappers/dag_localConv.h>
 #if _TARGET_PC_WIN
 #include <d3d11.h>
 #endif
+
+#include <ioSys/dag_dataBlock.h>
+#include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_info.h>
+#include <util/dag_string.h>
+#include <util/dag_finally.h>
+#include <dag/dag_vector.h>
+
 
 using namespace gpu;
 
@@ -30,9 +33,6 @@ static bool gpu_driver_engine_inited = false;
 
 GpuDriverConfig::GpuDriverConfig() { memset(this, 0, sizeof(*this)); }
 
-void (*update_gpu_driver_config)(GpuDriverConfig &) = [](GpuDriverConfig &) {};
-
-#if _TARGET_PC_WIN
 #if HAS_NVAPI
 static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
 {
@@ -45,14 +45,12 @@ static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettin
   NvLogicalGpuHandle nvLogicalGPUHandle[NVAPI_MAX_LOGICAL_GPUS] = {0};
   NvPhysicalGpuHandle nvPhysicalGPUHandles[NVAPI_MAX_PHYSICAL_GPUS] = {0};
   NvU32 logicalGPUCount = 0, physicalGPUCount = 0;
-  ;
   NvAPI_EnumLogicalGPUs(nvLogicalGPUHandle, &logicalGPUCount);
   NvAPI_EnumPhysicalGPUs(nvPhysicalGPUHandles, &physicalGPUCount);
 
   NvU32 physicalFrameBufferSize = 0;
   if (get_nv_physical_gpu())
     NvAPI_GPU_GetPhysicalFrameBufferSize(get_nv_physical_gpu(), &physicalFrameBufferSize);
-  out_cfg.physicalFrameBufferSize = (unsigned int)(physicalFrameBufferSize / 1024);
 
   if (video.disableNvTweaks)
     return true;
@@ -84,8 +82,7 @@ static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettin
   processPath[sizeof(processPath) / sizeof(wchar_t) - 1] = 0;
   NvAPI_UnicodeString appName;
   memcpy(appName, processPath, (wcslen(processPath) + 1) * sizeof(wchar_t));
-  NVDRS_APPLICATION appl = {0};
-  appl.version = NVDRS_APPLICATION_VER;
+  NVDRS_APPLICATION appl = {.version = NVDRS_APPLICATION_VER};
   status = NvAPI_DRS_FindApplicationByName(hSession, appName, &hProfile[2], &appl);
 
   bool changed = false;
@@ -95,9 +92,7 @@ static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettin
     if (!hProfile[profileNo])
       continue;
 
-    NVDRS_SETTING drsSetting = {0};
-    drsSetting.version = NVDRS_SETTING_VER;
-
+    NVDRS_SETTING drsSetting = {.version = NVDRS_SETTING_VER};
     status = NvAPI_DRS_GetSetting(hSession, hProfile[profileNo], FXAA_ENABLE_ID, &drsSetting);
     if (status == NVAPI_OK && drsSetting.u32CurrentValue != FXAA_ENABLE_OFF)
     {
@@ -119,6 +114,22 @@ static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettin
       if (status != NVAPI_OK)
         debug("NvAPI_DRS_SetSetting failed");
     }
+
+    if (video.drvCode.is(d3d::windows && d3d::vulkan))
+    {
+      uint32_t targetPresentMode =
+        video.vulkanNVnativePresent ? OGL_CPL_PREFER_DXPRESENT_PREFER_DISABLED : OGL_CPL_PREFER_DXPRESENT_AUTO;
+      status = NvAPI_DRS_GetSetting(hSession, hProfile[profileNo], OGL_CPL_PREFER_DXPRESENT_ID, &drsSetting);
+      if (status == NVAPI_OK && drsSetting.u32CurrentValue != targetPresentMode)
+      {
+        debug("NV: vk/gl present preference %d changed to %d", drsSetting.u32CurrentValue, targetPresentMode);
+        changed = true;
+        drsSetting.u32CurrentValue = targetPresentMode;
+        status = NvAPI_DRS_SetSetting(hSession, hProfile[profileNo], &drsSetting);
+        if (status != NVAPI_OK)
+          debug("NvAPI_DRS_SetSetting failed");
+      }
+    }
   }
 
   if (changed)
@@ -131,47 +142,48 @@ static bool verify_nvidia_settings(GpuVendor active_vendor, const GpuVideoSettin
   NvAPI_DRS_DestroySession(hSession);
   return true;
 }
+
+void d3d::disable_sli()
+{
+  if (init_nvapi())
+  {
+    NvAPI_Status status = NvAPI_D3D_ImplicitSLIControl(DISABLE_IMPLICIT_SLI);
+    if (status != NVAPI_OK)
+      debug("NvAPI_D3D_ImplicitSLIControl failed (%d)", status);
+  }
+}
+#else
+void d3d::disable_sli() {}
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4191)
-#endif
+#if HAS_ADL
 
 static bool verify_ati_settings(GpuVendor active_vendor, const GpuVideoSettings &video, GpuDriverConfig &out_cfg)
 {
-  if (!init_ati())
+  if (!init_adl())
     return false;
+
+  Finally closeAdl{[] { close_adl(); }};
 
   if (ADL_Main_Control_Create(ADL_Main_Memory_Alloc, 0) != ADL_OK)
   {
-    close_ati();
     return false;
   }
 
-  int mgpuCount = AtiMultiGPUAdapters();
-  if (mgpuCount < 1)
-  {
-    ADL_Main_Control_Destroy();
-    close_ati();
-    return false;
-  }
+  Finally destroyControl{[] { ADL_Main_Control_Destroy(); }};
 
   int numAdapters = 0;
   ADL_Adapter_NumberOfAdapters_Get(&numAdapters);
   if (numAdapters <= 0)
   {
-    ADL_Main_Control_Destroy();
-    close_ati();
     return false;
   }
 
   if (active_vendor != GpuVendor::ATI)
     return true;
 
-  AdapterInfo *adapterInfo = new AdapterInfo[numAdapters];
-  memset(adapterInfo, 0, sizeof(AdapterInfo) * numAdapters);
-  ADL_Adapter_AdapterInfo_Get(adapterInfo, sizeof(AdapterInfo) * numAdapters);
+  dag::Vector<AdapterInfo> adapterInfo(numAdapters);
+  ADL_Adapter_AdapterInfo_Get(adapterInfo.data(), sizeof(AdapterInfo) * numAdapters);
 
   unsigned int adapterNo = 0;
   for (; adapterNo < numAdapters; adapterNo++)
@@ -183,96 +195,23 @@ static bool verify_ati_settings(GpuVendor active_vendor, const GpuVideoSettings 
 
   if (adapterNo == numAdapters)
   {
-    delete[] adapterInfo;
-    ADL_Main_Control_Destroy();
-    close_ati();
     return true;
   }
 
-  HKEY hUmdKey;
-  String keyPathUmd(1000, "SYSTEM\\CurrentControlSet\\Control\\Class\\%s\\UMD", adapterInfo[adapterNo].strDriverPathExt);
-  if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyPathUmd, 0, KEY_READ, &hUmdKey) != ERROR_SUCCESS)
-  {
-    delete[] adapterInfo;
-    ADL_Main_Control_Destroy();
-    close_ati();
-    return true;
-  }
-
-  ADLMemoryInfo memoryInfo;
-  memset(&memoryInfo, 0, sizeof(memoryInfo));
+  ADLMemoryInfo memoryInfo{};
   ADL_Adapter_MemoryInfo_Get(adapterInfo[adapterNo].iAdapterIndex, &memoryInfo);
 
-  ADLMVPUStatus mvpuStatus;
-  memset(&mvpuStatus, 0, sizeof(mvpuStatus));
-  mvpuStatus.iSize = sizeof(mvpuStatus);
+  ADLMVPUStatus mvpuStatus{.iSize = sizeof(mvpuStatus)};
   ADL_Display_MVPUStatus_Get(adapterInfo[adapterNo].iAdapterIndex, &mvpuStatus);
   debug("ADL_Display_MVPUStatus_Get: %d, %d", mvpuStatus.iActiveAdapterCount, mvpuStatus.iStatus);
 
-  ADLMVPUCaps mvpuCaps;
-  memset(&mvpuCaps, 0, sizeof(mvpuCaps));
-  mvpuCaps.iSize = sizeof(mvpuCaps);
+  ADLMVPUCaps mvpuCaps{.iSize = sizeof(mvpuCaps)};
   ADL_Display_MVPUCaps_Get(adapterInfo[adapterNo].iAdapterIndex, &mvpuCaps);
   debug("ADL_Display_MVPUCaps_Get: %d, 0x%02X, 0x%02X", mvpuCaps.iAdapterCount, mvpuCaps.iPossibleMVPUMasters,
     mvpuCaps.iPossibleMVPUSlaves);
 
-  out_cfg.physicalFrameBufferSize = (unsigned int)(memoryInfo.iMemorySize / 1024 / 1024);
-
-  if (video.disableAtiTweaks)
-  {
-    RegCloseKey(hUmdKey);
-    delete[] adapterInfo;
-    ADL_Main_Control_Destroy();
-    close_ati();
-    return true;
-  }
-
-  DWORD AntiAlias = 0x0030;
-  DWORD AntiAliasSize = sizeof(DWORD);
-  RegQueryValueEx(hUmdKey, "AntiAlias", NULL, NULL, (LPBYTE)&AntiAlias, &AntiAliasSize);
-
-  DWORD EQAA = 0x0030;
-  DWORD EQAASize = sizeof(DWORD);
-  RegQueryValueEx(hUmdKey, "EQAA", NULL, NULL, (LPBYTE)&EQAA, &EQAASize);
-
-  RegCloseKey(hUmdKey);
-
-  if ((AntiAlias >= 0x0032 || EQAA >= 0x0031))
-    out_cfg.vendorAAisOn = true;
-
-  if (mgpuCount > 1)
-  {
-    debug("Crossfire support disabled"); // On 2016/04/04 8.17.10.1452 RT lock returns data from GPU that is not current and has
-                                         // outdated RT.
-    out_cfg.forceFullscreenToWindowed = true;
-  }
-
-  delete[] adapterInfo;
-
-  ADL_Main_Control_Destroy();
-  close_ati();
   return true;
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-void d3d::disable_sli()
-{
-#if HAS_NVAPI
-  if (init_nvapi())
-  {
-    NvAPI_Status status = NvAPI_D3D_ImplicitSLIControl(DISABLE_IMPLICIT_SLI);
-    if (status != NVAPI_OK)
-      debug("NvAPI_D3D_ImplicitSLIControl failed (%d)", status);
-  }
-#endif
-}
-
-#else
-
-void d3d::disable_sli() {}
 
 #endif
 
@@ -282,6 +221,11 @@ static void check_intel_driver(const GpuVideoSettings &video, const char *gpu_de
   G_UNREFERENCED(driver_date);
   G_UNREFERENCED(gpu_desc);
   G_UNREFERENCED(video);
+
+#if _TARGET_PC_MACOSX
+  // force compatibility on intel macs otherwise it crashes gpu
+  out_cfg.fallbackToCompatibilty = true;
+#endif
 
   // sbuffers (on effects specifically) broken right now on most intel drivers
   // falling back to non-sbuffer (tbuffer for example)
@@ -344,16 +288,6 @@ static void check_intel_driver(const GpuVideoSettings &video, const char *gpu_de
     out_cfg.outdatedDriver = out_cfg.fallbackToCompatibilty = true; // Show outdated driver message box.
     debug("Fallback to compatibility on outdated Intel driver.");
   }
-
-  OSVERSIONINFOEXW osvi;
-  get_version_ex(&osvi);
-
-  if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 1) // Windows 7
-  {
-    out_cfg.disableTexArrayCompression = true; // bugged even with latest (early 2017) win7 drivers
-    debug("Disable texarray compression");
-  }
-
 #endif
 
   if (video.configCompatibilityMode)                    // Make compatibility more safer, avoid hungs on DX11 driver.
@@ -371,14 +305,6 @@ static void check_ati_driver(const GpuVideoSettings &video, const char *gpu_desc
 {
   G_UNREFERENCED(video);
   G_UNREFERENCED(driver_date);
-
-  // False negative survey results. Tested on R9 380 with 2016/10/25 8.17.10.1484 <aticfx32.dll>. Not reproduced with
-  // 2019/08/26 8.17.10.1669 driver.
-  if (driver_version[0] == 8 && driver_version[1] == 17 && driver_version[2] == 10 && driver_version[3] < 1669)
-  {
-    debug("flushBeforeSurvey enabled on outdated ATI driver");
-    out_cfg.flushBeforeSurvey = true;
-  }
 
   // 2009/07/14 8.15.10.163 crash in atidxx32.dll (In 2012 drivers numbering started from 1000).
   if (driver_version[0] == 8 && driver_version[1] == 15 && driver_version[2] == 10 && driver_version[3] < 1000)
@@ -400,31 +326,17 @@ static void check_nvidia_driver(const GpuVideoSettings &video, const char *gpu_d
   int nvidiaDriverVersion = driver_version[2] % 10 * 10000 + driver_version[3];
 
 #if _TARGET_PC_WIN
-  OSVERSIONINFOEXW osvi;
-  ZeroMemory(&osvi, sizeof(osvi));
-  osvi.dwOSVersionInfoSize = sizeof(osvi);
-  get_version_ex(&osvi);
   // 341.81 on Windows 10 - CreateTexture2D E_OUTOFMEMORY, DEVICE_REMOVED-DXGI_ERROR_DEVICE_RESET.
-  if (osvi.dwMajorVersion >= 10 && nvidiaDriverVersion > 0 && nvidiaDriverVersion < 34192)
+  if (auto version = *get_windows_version(true); version.major >= 10 && nvidiaDriverVersion > 0 && nvidiaDriverVersion < 34192)
   {
     out_cfg.outdatedDriver = true;
     debug("Old Nvidia GPU with outdated driver on Windows 10.");
   }
 #endif
 
-  // 551.23 is causing some weird issues on multpiple CopySubresourceRegion to one target. Didnt happens before this version
-  // TODO: re-check with newer nvidia driver version (when it will be available), NV migth fix it.
-  // Addition: 551.52 seems to have same problem, so assume all version >=551.23 for now
-  if (nvidiaDriverVersion >= 55123)
-  {
-    out_cfg.multipleCopySubresourceWorkaround = true;
-    debug("Multiple CopySubresourceRegion workaround for NV driver");
-  }
-
   // 347.88 and older - UAV causes VB Map to return random invalid pointers.
   if (nvidiaDriverVersion > 0 && nvidiaDriverVersion <= 34788)
   {
-    out_cfg.disableUav = true;
     out_cfg.fallbackToCompatibilty = true; // UAV is required for normal DX11 shaders.
     debug("Disable UAV on outdated Nvidia driver.");
   }
@@ -435,7 +347,6 @@ static void check_nvidia_driver(const GpuVideoSettings &video, const char *gpu_d
   mac_get_model(macModel);
   debug("Mac nvidia check: model=%s web driver=%d code=%c%c%c%c", macModel.str(), macWebDriver, _DUMP4C(video.drvCode.asFourCC()));
 #endif
-  out_cfg.flushBeforeSepAblendAndBlendFactorForRT1 = String(gpu_desc).toLower().find("rtx 50") != nullptr;
 }
 
 static void check_gpu_driver(const GpuVideoSettings &video, GpuVendor active_vendor, const String &gpu_desc,
@@ -565,16 +476,11 @@ static void update_gpu_settings()
     debug("should_fallback_to_compatibility");
     gpu_driver_config.fallbackToCompatibilty = true;
   }
-
-  if (gpu_driver_config.primaryVendor == GpuVendor::UNKNOWN)
-  {
-    update_gpu_driver_config(gpu_driver_config);
-  }
 }
 
 void d3d_apply_gpu_settings(const GpuVideoSettings &video)
 {
-  if (video.drvCode.is(d3d::windows && (d3d::dx12 || d3d::vulkan)))
+  if (video.drvCode.is(d3d::windows && (d3d::dx12)))
     return;
 
   String gpuDescription;
@@ -585,11 +491,11 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
 
   // Verify vendor user settings
   gpu_driver_config.primaryVendor = GpuVendor::UNKNOWN;
-#if _TARGET_PC_WIN
 #if HAS_NVAPI
   if (verify_nvidia_settings(activeVendor, video, gpu_driver_config))
     gpu_driver_config.primaryVendor = GpuVendor::NVIDIA;
 #endif
+#if HAS_ADL
   if (gpu_driver_config.primaryVendor == GpuVendor::UNKNOWN && verify_ati_settings(activeVendor, video, gpu_driver_config))
     gpu_driver_config.primaryVendor = GpuVendor::ATI;
 #endif
@@ -621,13 +527,6 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
     // all use dx12, so here if the vendor is intel, we can assume that the gpu is an integrated one.
     gpu_driver_config.usedSlowIntegrated = true;
 
-  if (gpu_driver_config.integrated && activeVendor == GpuVendor::INTEL && video.drvCode.is(d3d::dx11))
-  {
-    // On some intels we have problems with z testing if the texture with a depth format was written manually or updated
-    // from some other texture
-    gpu_driver_config.disableDepthCopyResource = true;
-  }
-
   const DataBlock *debugBlk = ::dgs_get_settings()->getBlockByNameEx("debug");
   if (debugBlk->getBool("isOldHardware", false))
   {
@@ -658,7 +557,6 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
   debug("gpu_driver_config.oldHardware=%d", gpu_driver_config.oldHardware);
   debug("gpu_driver_config.usedSlowIntegrated=%d", gpu_driver_config.usedSlowIntegrated);
   debug("gpu_driver_config.usedSlowIntegratedSwitchableGpu=%d", gpu_driver_config.usedSlowIntegratedSwitchableGpu);
-  debug("gpu_driver_config.disableDepthCopyResource=%d", gpu_driver_config.disableDepthCopyResource);
 
   // Count systems with only DX10 support for statistics.
 #if _TARGET_PC_WIN
@@ -691,6 +589,7 @@ void d3d_apply_gpu_settings(const GpuVideoSettings &video)
 void d3d_read_gpu_video_settings(const DataBlock &blk, GpuVideoSettings &out_video)
 {
   const DataBlock *graphicsBlk = blk.getBlockByNameEx("graphics");
+  const DataBlock *oldHardwareBlk = blk.getBlockByNameEx("oldHardware");
   const DataBlock *videoBlk = blk.getBlockByNameEx("video");
   const DataBlock *debugBlk = blk.getBlockByNameEx("debug");
 
@@ -700,14 +599,14 @@ void d3d_read_gpu_video_settings(const DataBlock &blk, GpuVideoSettings &out_vid
   out_video.ignoreOutdatedDriver = debugBlk->getBool("ignoreOutdatedDriver", false);
   out_video.configCompatibilityMode = videoBlk->getBool("compatibilityMode", false);
   out_video.allowDx10Fallback = videoBlk->getBool("allowDx10Fallback", false);
-  const DataBlock *oldHardwareBlk = blk.getBlockByNameEx("oldHardware");
+  out_video.adjustVideoSettings = debugBlk->getBool("adjustVideoSettings", true);
+  out_video.vulkanNVnativePresent = videoBlk->getBool("vulkanNVnativePresent", false);
   out_video.oldHardwareList.resize(oldHardwareBlk->paramCount());
   for (int oldHardwareNo = 0; oldHardwareNo < oldHardwareBlk->paramCount(); oldHardwareNo++)
   {
     out_video.oldHardwareList[oldHardwareNo] = oldHardwareBlk->getStr(oldHardwareNo);
     out_video.oldHardwareList[oldHardwareNo].toLower();
   }
-  out_video.adjustVideoSettings = debugBlk->getBool("adjustVideoSettings", true);
   out_video.lowVideoMemMb = graphicsBlk->getInt("lowVideoMemMb", 0);
   out_video.ultraLowVideoMemMb = graphicsBlk->getInt("ultraLowVideoMemMb", 1024);
   out_video.lowSystemMemAtMb = graphicsBlk->getInt("lowSystemMemAtMb", 3072);
@@ -732,8 +631,3 @@ const GpuUserConfig &d3d_get_gpu_cfg()
 }
 
 const GpuDriverConfig &get_gpu_driver_cfg() { return gpu_driver_config; }
-
-String GpuUserConfig::generateDriverVersionString() const
-{
-  return String(0, "%d.%d.%d.%d", driverVersion[0], driverVersion[1], driverVersion[2], driverVersion[3]);
-}

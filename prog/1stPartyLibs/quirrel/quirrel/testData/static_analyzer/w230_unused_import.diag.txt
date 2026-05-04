@@ -1,0 +1,44 @@
+WARNING: w230 (imported-never-used) Imported field 'cos' was never used.
+testData/static_analyzer/w230_unused_import.nut:2:24
+
+// Test for unused imported fields diagnostic
+from "math" import sin, cos, tan
+                        ^--
+from "string" import format, printf
+
+
+WARNING: w230 (imported-never-used) Imported field 'tan' was never used.
+testData/static_analyzer/w230_unused_import.nut:2:29
+
+// Test for unused imported fields diagnostic
+from "math" import sin, cos, tan
+                             ^--
+from "string" import format, printf
+
+
+WARNING: w230 (imported-never-used) Imported field 'printf' was never used.
+testData/static_analyzer/w230_unused_import.nut:3:29
+
+from "math" import sin, cos, tan
+from "string" import format, printf
+                             ^-----
+from "io" import *
+
+
+WARNING: w230 (imported-never-used) Imported field 'datetime' was never used.
+testData/static_analyzer/w230_unused_import.nut:5:7
+
+from "io" import *
+import "datetime"
+       ^-------
+import "debug" as Debug
+
+
+WARNING: w230 (imported-never-used) Imported field 'Debug' was never used.
+testData/static_analyzer/w230_unused_import.nut:6:18
+
+import "datetime"
+import "debug" as Debug
+                  ^----
+
+

@@ -18,7 +18,8 @@ Location  = prog/tools/maxplug ;
 #MaxVer ?= Max2022 ;
 #MaxVer ?= Max2023 ;
 #MaxVer ?= Max2024 ;
-MaxVer ?= Max2025 ;
+#MaxVer ?= Max2025 ;
+MaxVer ?= Max2026 ;
 
 TargetType = dll ;
 Target     = $(MaxVer)Plugin/dagor.dlu ;
@@ -55,7 +56,6 @@ Sources =
   polyBumpUtil.cpp
   rbDummy.cpp
   rolluppanel.cpp
-  str.cpp
   ta.cpp
   Timer.cpp
   util.cpp

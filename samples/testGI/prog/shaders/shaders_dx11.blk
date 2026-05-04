@@ -28,6 +28,7 @@ Compile
 {
   fsh:t = 5.0
   assume_vars {
+    normal_repacking_needed:i = 0
     dagi_sp_has_exposure_assume:i = 1 // we can't rely that our target HW has RGBE textures support. On Dx11, PS4, XboxOne it doesn't. On Scarlett it is, on DX12 - may be, so we just sample texture anyway
     supports_sh_6_1:i = 0
     use_hw_rt_gi:i=0
@@ -44,7 +45,6 @@ Compile
     hero_ao:i = 0
     num_of_cascades:i=4
     compatibility_mode:i = 0
-    mobile_render:i=0
     render_inline_raytracing:i = 0
     use_postfx:i = 1
     use_extended_global_frame_block:i=0

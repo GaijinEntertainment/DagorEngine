@@ -74,6 +74,7 @@ enum EditorCoreCM
   CM_REDO,
   CM_SELECT_ALL,
   CM_DESELECT_ALL,
+  CM_INVERT_SELECTION,
 
   CM_GIZMO_X,
   CM_GIZMO_Y,
@@ -104,8 +105,9 @@ enum EditorCoreCM
   CM_STATS_SETTINGS_CAMERA_POS,
   CM_STATS_SETTINGS_CAMERA_DIST,
   CM_STATS_SETTINGS_CAMERA_FOV,
-  CM_STATS_SETTINGS_CAMERA_SPEED,
-  CM_STATS_SETTINGS_CAMERA_TURBO_SPEED,
+  CM_STATS_SETTINGS_FLY_CAMERA_GROUP,
+  CM_STATS_SETTINGS_FLY_CAMERA_SPEED,
+  CM_STATS_SETTINGS_FLY_CAMERA_TURBO_SPEED,
 
   // ObjectEditor commands. Put it between CM_OBJED_FIRST and CM_OBJED_LAST enum keys.
   CM_OBJED_FIRST,
@@ -134,3 +136,63 @@ enum EditorCoreCM
 
   CM__LAST_USED_BY_CORE
 };
+
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *ZOOM_AND_CENTER = "Main.ZoomAndCenter";
+static constexpr const char *ZOOM_AND_CENTER_IN_FLY_MODE = "Main.ZoomAndCenterInFlyMode";
+static constexpr const char *NAVIGATE = "Main.NavigationHelp";
+static constexpr const char *STATS = "Main.ShowLevelStatistics";
+static constexpr const char *CHANGE_VIEWPORT = "Main.ChangeViewport";
+static constexpr const char *CONSOLE = "Main.Console";
+static constexpr const char *CAMERAS_FREE = "Main.Camera.Free";
+static constexpr const char *CAMERAS_FPS = "Main.Camera.FPS";
+static constexpr const char *CAMERAS_TPS = "Main.Camera.TPS";
+static constexpr const char *CAMERAS_CAR = "Main.Camera.Car";
+static constexpr const char *CHANGE_FOV = "Main.ChangeFov";
+static constexpr const char *CREATE_SCREENSHOT = "Main.CreateScreenshot";
+static constexpr const char *CREATE_CUBE_SCREENSHOT = "Main.CreateCubeScreenshot";
+static constexpr const char *ENVIRONMENT_SETTINGS = "Main.EnvironmentSettings";
+static constexpr const char *PALETTE = "Main.Palette";
+static constexpr const char *VR_ENABLE = "Main.ToggleVR";
+static constexpr const char *THEME_TOGGLE = "Main.ToggleTheme";
+
+static constexpr const char *OBJED_SELECT_BY_NAME = "ObjectEditor.SelectByName";
+static constexpr const char *OBJED_OBJPROP_PANEL = "ObjectEditor.TogglePropertiesPanel";
+static constexpr const char *OBJED_MODE_SELECT = "ObjectEditor.Mode.Select";
+static constexpr const char *OBJED_MODE_MOVE = "ObjectEditor.Mode.Move";
+static constexpr const char *OBJED_MODE_SURF_MOVE = "ObjectEditor.Mode.SurfMove";
+static constexpr const char *OBJED_MODE_ROTATE = "ObjectEditor.Mode.Rotate";
+static constexpr const char *OBJED_MODE_SCALE = "ObjectEditor.Mode.Scale";
+static constexpr const char *OBJED_DROP = "ObjectEditor.Drop";
+static constexpr const char *OBJED_DELETE = "ObjectEditor.Delete";
+static constexpr const char *OBJED_CANCEL_GIZMO_TRANSFORM = "ObjectEditor.CancelGizmoTransform";
+
+static constexpr const char *VIEW_GRID_MOVE_SNAP = "Main.Grid.MoveSnap";
+static constexpr const char *VIEW_GRID_ANGLE_SNAP = "Main.Grid.AngleSnap";
+static constexpr const char *VIEW_GRID_SCALE_SNAP = "Main.Grid.ScaleSnap";
+
+static constexpr const char *VIEW_GRID_SHOW = "Viewport.ToggleGrid";
+static constexpr const char *VIEW_WIREFRAME = "Viewport.ToggleWireframe";
+static constexpr const char *VIEW_PERSPECTIVE = "Viewport.View.Perspective";
+static constexpr const char *VIEW_FRONT = "Viewport.View.Front";
+static constexpr const char *VIEW_BACK = "Viewport.View.Back";
+static constexpr const char *VIEW_TOP = "Viewport.View.Top";
+static constexpr const char *VIEW_BOTTOM = "Viewport.View.Bottom";
+static constexpr const char *VIEW_LEFT = "Viewport.View.Left";
+static constexpr const char *VIEW_RIGHT = "Viewport.View.Right";
+
+} // namespace EditorCommandIds
+
+namespace WindowIds
+{
+
+static constexpr const char *MAIN_SETTINGS_CAMERA = "Main.Settings.Camera";
+static constexpr const char *MAIN_SETTINGS_SCREENSHOT = "Main.Settings.Screenshot";
+static constexpr const char *VIEWPORT_GRID_SETTINGS_PREFIX = "Viewport.GridSettings."; // Not the full ID.
+static constexpr const char *VIEWPORT_STAT_SETTINGS_PREFIX = "Viewport.StatSettings."; // Not the full ID.
+static constexpr const char *VIEWPORT_GIZMO_SETTINGS = "Viewport.GizmoSettings";
+
+} // namespace WindowIds

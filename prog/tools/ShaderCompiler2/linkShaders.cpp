@@ -40,6 +40,11 @@
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #endif
 
+static bool compare_data(const auto &lhs, const auto &rhs)
+{
+  return lhs.size() == rhs.size() && (lhs.data() == rhs.data() || mem_eq(rhs, lhs.data()));
+}
+
 void close_shader_class() { ShaderParser::clear_per_file_caches(); }
 
 void add_shader_class(ShaderClass *sc, shc::TargetContext &ctx)
@@ -49,106 +54,138 @@ void add_shader_class(ShaderClass *sc, shc::TargetContext &ctx)
   ctx.storage().shaderClass.push_back(sc);
 }
 
-int add_fshader(dag::ConstSpan<unsigned> code, shc::TargetContext &ctx)
+int add_fshader(const ShaderStageData &code, shc::TargetContext &ctx)
 {
   ShaderTargetStorage &stor = ctx.storage();
 
-  if (!code.size())
+  if (code.empty())
     return -1;
 
   for (int i = stor.shadersFsh.size() - 1; i >= 0; i--)
   {
-    if (stor.shadersFsh[i].size() == code.size() &&
-        (stor.shadersFsh[i].data() == code.data() || mem_eq(code, stor.shadersFsh[i].data())))
+    if (compare_data(stor.shadersFsh[i], code.bytecode) && compare_data(stor.shadersFshMetadata[i], code.metadata))
     {
       return i;
     }
   }
 
-  stor.shadersFsh.push_back(code);
+  stor.shadersFsh.push_back(code.bytecode);
+  stor.shadersFshMetadata.push_back(code.metadata);
+
   return stor.shadersFsh.size() - 1;
 }
 
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 
-int add_vprog(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs,
+int add_vprog(const ShaderStageData &vs, const ShaderStageData &hs, const ShaderStageData &ds, const ShaderStageData &gs,
   shc::TargetContext &ctx)
 {
   ShaderTargetStorage &stor = ctx.storage();
 
-  if (!vs.size())
+  if (vs.empty())
     return -1;
-  dag::ConstSpan<unsigned> code = vs;
+  ShaderStageData sh = vs;
   SmallTab<unsigned, TmpmemAlloc> *comp_prog = NULL;
+  SmallTab<unsigned, TmpmemAlloc> *comp_meta = NULL;
 #if _CROSS_TARGET_METAL
-  G_ASSERT(hs.size() == 0);
-  G_ASSERT(ds.size() == 0);
-  G_ASSERT(vs.size());
+  G_ASSERT(hs.empty());
+  G_ASSERT(ds.empty());
+  G_ASSERT(!vs.empty());
   // if its mesh shader and company
-  if (vs[0] == _MAKE4C('D11v'))
+  if (vs.type() == _MAKE4C('D11v'))
   {
-    uint32_t header = _MAKE4C('DX9v'), new_header = _MAKE4C('MTLM'), ms_size = data_size(vs), as_size = data_size(gs);
-    size_t combo_size = sizeof(header) + sizeof(new_header) + sizeof(ms_size) + ms_size + sizeof(as_size) + as_size;
+    uint32_t header = _MAKE4C('DX9v'), new_header = _MAKE4C('MTLM');
+    uint32_t ms_size = data_size(vs.bytecode), as_size = data_size(gs.bytecode);
+    uint64_t ms_hash = 0, as_hash = 0;
+    uint32_t new_metadata_size =
+      data_size(vs.metadata) + sizeof(new_header) + sizeof(ms_size) + sizeof(as_size) + sizeof(ms_hash) + sizeof(as_hash);
+
+    memcpy(&ms_hash, vs.metadata.data() + 4 * 3, sizeof(ms_hash));
+    if (as_size)
+      memcpy(&as_hash, gs.metadata.data() + 4 * 3, sizeof(as_hash));
+
+    comp_meta = new SmallTab<unsigned, TmpmemAlloc>;
+    clear_and_resize(*comp_meta, (new_metadata_size + sizeof(unsigned) - 1) / sizeof(unsigned));
+
+    uint8_t *meta_data = (uint8_t *)comp_meta->data();
+    memcpy(meta_data, &header, sizeof(header));
+    meta_data += sizeof(header);
+
+    memcpy(meta_data, &new_header, sizeof(new_header));
+    meta_data += sizeof(new_header);
+
+    memcpy(meta_data, &ms_size, sizeof(ms_size));
+    meta_data += sizeof(ms_size);
+
+    memcpy(meta_data, &ms_hash, sizeof(ms_hash));
+    meta_data += sizeof(ms_hash);
+
+    memcpy(meta_data, &as_size, sizeof(as_size));
+    meta_data += sizeof(as_size);
+
+    memcpy(meta_data, &as_hash, sizeof(as_hash));
+    meta_data += sizeof(as_hash);
+
+    memcpy(meta_data, vs.metadata.data() + 4, data_size(vs.metadata) - 4);
+
+    size_t combo_size = ms_size + as_size;
 
     comp_prog = new SmallTab<unsigned, TmpmemAlloc>;
     clear_and_resize(*comp_prog, (combo_size + sizeof(unsigned) - 1) / sizeof(unsigned));
 
-    uint32_t offset = 0;
     uint8_t *data = (uint8_t *)comp_prog->data();
-    memcpy(data + offset, &header, sizeof(header));
-    offset += sizeof(header);
 
-    memcpy(data + offset, &new_header, sizeof(new_header));
-    offset += sizeof(new_header);
+    memcpy(data, vs.bytecode.data(), ms_size);
+    data += ms_size;
 
-    memcpy(data + offset, &ms_size, sizeof(ms_size));
-    offset += sizeof(ms_size);
-    memcpy(data + offset, vs.data(), ms_size);
-    offset += ms_size;
-
-    memcpy(data + offset, &as_size, sizeof(as_size));
-    offset += sizeof(as_size);
     if (as_size)
-    {
-      memcpy(data + offset, gs.data(), as_size);
-      offset += as_size;
-    }
+      memcpy(data, gs.bytecode.data(), as_size);
 
-    code = make_span(*comp_prog);
+    sh.metadata = make_span_const((uint8_t *)comp_meta->data(), comp_meta->size() * sizeof(unsigned));
+    sh.bytecode = make_span(*comp_prog);
   }
 #elif !_CROSS_TARGET_EMPTY
-  if (hs.size() || ds.size() || gs.size() || vs[0] == _MAKE4C('D11v'))
+  if (!hs.empty() || !ds.empty() || !gs.empty() || vs.type() == _MAKE4C('D11v'))
   {
 #if _CROSS_TARGET_SPIRV
     constexpr size_t cacheEntryPreamble = sizeof(uint32_t) * 1;
     // just concatenates each blob and adds some chunk headers for type and location data
-    size_t comboSize =
-      sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(spirv::CombinedChunk) + data_size(vs) - cacheEntryPreamble;
+    size_t comboSize = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(spirv::CombinedChunk) + data_size(vs.metadata) -
+                       cacheEntryPreamble;
     uint32_t chunkCount = 1;
-    if (hs.size())
+    if (!hs.empty())
     {
-      comboSize += sizeof(spirv::CombinedChunk) + data_size(hs) - cacheEntryPreamble;
+      comboSize += sizeof(spirv::CombinedChunk) + data_size(hs.metadata) - cacheEntryPreamble;
       ++chunkCount;
     }
-    if (ds.size())
+    if (!ds.empty())
     {
-      comboSize += sizeof(spirv::CombinedChunk) + data_size(ds) - cacheEntryPreamble;
+      comboSize += sizeof(spirv::CombinedChunk) + data_size(ds.metadata) - cacheEntryPreamble;
       ++chunkCount;
     }
-    if (gs.size())
+    if (!gs.empty())
     {
-      comboSize += sizeof(spirv::CombinedChunk) + data_size(gs) - cacheEntryPreamble;
+      comboSize += sizeof(spirv::CombinedChunk) + data_size(gs.metadata) - cacheEntryPreamble;
       ++chunkCount;
     }
+
+    comp_meta = new SmallTab<unsigned, TmpmemAlloc>;
+    clear_and_resize(*comp_meta, (comboSize + sizeof(unsigned) - 1) / sizeof(unsigned));
+
+    size_t comboSizeData = data_size(vs.bytecode) + data_size(hs.bytecode) + data_size(ds.bytecode) + data_size(gs.bytecode);
+
     comp_prog = new SmallTab<unsigned, TmpmemAlloc>;
-    clear_and_resize(*comp_prog, (comboSize + sizeof(unsigned) - 1) / sizeof(unsigned));
-    auto pre = reinterpret_cast<uint32_t *>(comp_prog->data());
+    clear_and_resize(*comp_prog, (comboSizeData + sizeof(unsigned) - 1) / sizeof(unsigned));
+
+    uint8_t *data = (uint8_t *)comp_prog->data();
+
+    auto pre = reinterpret_cast<uint32_t *>(comp_meta->data());
     auto magic = reinterpret_cast<uint32_t *>(pre + 1);
     auto count = reinterpret_cast<uint32_t *>(magic + 1);
     auto comboChunks = reinterpret_cast<spirv::CombinedChunk *>(count + 1);
     auto comboData = reinterpret_cast<uint8_t *>(comboChunks + chunkCount);
-    auto comboDataStart = comboData;
+    uint32_t comboDataStart = 0;
 
     // add fake pre id to pass as a normal shader
     // TODO: this results in wrong shader used bytes statistics at the end
@@ -156,107 +193,145 @@ int add_vprog(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs, dag::Con
     *magic = spirv::SPIR_V_COMBINED_BLOB_IDENT;
     *count = chunkCount;
     comboChunks->stage = VK_SHADER_STAGE_VERTEX_BIT;
-    comboChunks->offset = comboData - comboDataStart;
-    comboChunks->size = static_cast<uint32_t>(data_size(vs) - cacheEntryPreamble);
+    comboChunks->offset = 0;
+    comboChunks->size = static_cast<uint32_t>(data_size(vs.metadata) - cacheEntryPreamble);
+    comboChunks->bytecode_size = data_size(vs.bytecode);
     // always skip over first uint32 as it stores the shader type magic id
-    memcpy(comboData, reinterpret_cast<const uint8_t *>(vs.data()) + cacheEntryPreamble, data_size(vs) - cacheEntryPreamble);
-    comboData += data_size(vs) - cacheEntryPreamble;
+    memcpy(comboData, reinterpret_cast<const uint8_t *>(vs.metadata.data()) + cacheEntryPreamble,
+      data_size(vs.metadata) - cacheEntryPreamble);
+    comboData += data_size(vs.metadata) - cacheEntryPreamble;
+    memcpy(data, vs.bytecode.data(), data_size(vs.bytecode));
+    data += data_size(vs.bytecode);
+    comboDataStart += data_size(vs.bytecode);
     ++comboChunks;
 
-    if (hs.size())
+    if (!hs.empty())
     {
       comboChunks->stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-      comboChunks->offset = comboData - comboDataStart;
-      comboChunks->size = static_cast<uint32_t>(data_size(hs) - cacheEntryPreamble);
+      comboChunks->offset = comboDataStart;
+      comboChunks->size = static_cast<uint32_t>(data_size(hs.metadata) - cacheEntryPreamble);
+      comboChunks->bytecode_size = data_size(hs.bytecode);
       // always skip over first uint32 as it stores the shader type magic id
-      memcpy(comboData, reinterpret_cast<const uint8_t *>(hs.data()) + cacheEntryPreamble, data_size(hs) - cacheEntryPreamble);
-      comboData += data_size(hs) - cacheEntryPreamble;
+      memcpy(comboData, reinterpret_cast<const uint8_t *>(hs.metadata.data()) + cacheEntryPreamble,
+        data_size(hs.metadata) - cacheEntryPreamble);
+      comboData += data_size(hs.metadata) - cacheEntryPreamble;
+      memcpy(data, hs.bytecode.data(), data_size(hs.bytecode));
+      data += data_size(hs.bytecode);
+      comboDataStart += data_size(hs.bytecode);
       ++comboChunks;
     }
-    if (ds.size())
+    if (!ds.empty())
     {
       comboChunks->stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-      comboChunks->offset = comboData - comboDataStart;
-      comboChunks->size = static_cast<uint32_t>(data_size(ds) - cacheEntryPreamble);
+      comboChunks->offset = comboDataStart;
+      comboChunks->size = static_cast<uint32_t>(data_size(ds.metadata) - cacheEntryPreamble);
+      comboChunks->bytecode_size = data_size(ds.bytecode);
       // always skip over first uint32 as it stores the shader type magic id
-      memcpy(comboData, reinterpret_cast<const uint8_t *>(ds.data()) + cacheEntryPreamble, data_size(ds) - cacheEntryPreamble);
-      comboData += data_size(ds) - cacheEntryPreamble;
+      memcpy(comboData, reinterpret_cast<const uint8_t *>(ds.metadata.data()) + cacheEntryPreamble,
+        data_size(ds.metadata) - cacheEntryPreamble);
+      comboData += data_size(ds.metadata) - cacheEntryPreamble;
+      memcpy(data, ds.bytecode.data(), data_size(ds.bytecode));
+      data += data_size(ds.bytecode);
+      comboDataStart += data_size(ds.bytecode);
       ++comboChunks;
     }
-    if (gs.size())
+    if (!gs.empty())
     {
       comboChunks->stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-      comboChunks->offset = comboData - comboDataStart;
-      comboChunks->size = static_cast<uint32_t>(data_size(gs) - cacheEntryPreamble);
+      comboChunks->offset = comboDataStart;
+      comboChunks->size = static_cast<uint32_t>(data_size(gs.metadata) - cacheEntryPreamble);
+      comboChunks->bytecode_size = data_size(gs.bytecode);
       // always skip over first uint32 as it stores the shader type magic id
-      memcpy(comboData, reinterpret_cast<const uint8_t *>(gs.data()) + cacheEntryPreamble, data_size(gs) - cacheEntryPreamble);
-      comboData += data_size(gs) - cacheEntryPreamble;
+      memcpy(comboData, reinterpret_cast<const uint8_t *>(gs.metadata.data()) + cacheEntryPreamble,
+        data_size(gs.metadata) - cacheEntryPreamble);
+      comboData += data_size(gs.metadata) - cacheEntryPreamble;
+      memcpy(data, gs.bytecode.data(), data_size(gs.bytecode));
+      data += data_size(gs.bytecode);
+      comboDataStart += data_size(gs.bytecode);
       ++comboChunks;
     }
-    code = make_span(*comp_prog);
+    sh.metadata = make_span_const((uint8_t *)comp_meta->data(), comp_meta->size() * sizeof(unsigned));
+    sh.bytecode = make_span(*comp_prog);
 #elif _CROSS_TARGET_DX12
     comp_prog = new SmallTab<unsigned, TmpmemAlloc>;
+    comp_meta = new SmallTab<unsigned, TmpmemAlloc>;
     // skip over first uint32_t with cache tag
-    dx12::dxil::combineShaders(*comp_prog, make_span(vs).subspan(1), make_span(hs).subspan(hs.size() ? 1 : 0),
-      make_span(ds).subspan(ds.size() ? 1 : 0), make_span(gs).subspan(gs.size() ? 1 : 0), _MAKE4C('DX9v'));
-    code = make_span(*comp_prog);
+    ShaderStageData vsSkippedTag = {vs.metadata.subspan(sizeof(uint32_t)), vs.bytecode};
+    ShaderStageData hsSkippedTag = {hs.metadata.subspan(hs.empty() ? 0 : sizeof(uint32_t)), hs.bytecode};
+    ShaderStageData dsSkippedTag = {ds.metadata.subspan(ds.empty() ? 0 : sizeof(uint32_t)), ds.bytecode};
+    ShaderStageData gsSkippedTag = {gs.metadata.subspan(gs.empty() ? 0 : sizeof(uint32_t)), gs.bytecode};
+    dx12::dxil::combineShaders(*comp_meta, *comp_prog, vsSkippedTag, hsSkippedTag, dsSkippedTag, gsSkippedTag, _MAKE4C('DX9v'));
+    sh.metadata = make_span_const((uint8_t *)comp_meta->data(), comp_meta->size() * sizeof(unsigned));
+    sh.bytecode = make_span(*comp_prog);
 #else
-    int vs_len = vs.size() - 4, hs_len = hs.size() - 4, ds_len = ds.size() - 4, gs_len = gs.size() - 4;
+    int vs_len = vs.bytecode.size(), hs_len = hs.bytecode.size(), ds_len = ds.bytecode.size(), gs_len = gs.bytecode.size();
 
-    if (hs_len < 0)
-      hs_len = 0;
-    else
-      G_ASSERT(hs[0] == _MAKE4C('D11h'));
-    if (ds_len < 0)
-      ds_len = 0;
-    else
-      G_ASSERT(ds[0] == _MAKE4C('D11d'));
-    if (gs_len < 0)
-      gs_len = 0;
-    else
-      G_ASSERT(gs[0] == _MAKE4C('D11g'));
-    G_ASSERT(vs[0] == _MAKE4C('DX9v'));
-
-    Tab<unsigned> comp_unp;
-    comp_unp.resize(9 + vs_len + hs_len + ds_len + gs_len);
-    mem_set_0(comp_unp);
-    comp_unp[0] = _MAKE4C('DX11');
-    comp_unp[1] = data_size(comp_unp) - elem_size(comp_unp) * 4;
-    comp_unp[2] = vs[2];
-    comp_unp[3] = vs[3];
-    comp_unp[4] = _MAKE4C('DX11');
-    comp_unp[5] = vs_len;
-    comp_unp[6] = hs_len | (hs.size() ? hs[2] & 0xFF000000 : 0);
-    comp_unp[7] = ds_len;
-    comp_unp[8] = gs_len;
-    memcpy(&comp_unp[9], &vs[4], elem_size(vs) * vs_len);
     if (hs_len)
-      memcpy(&comp_unp[9 + vs_len], &hs[4], elem_size(hs) * hs_len);
+      G_ASSERT(hs.type() == _MAKE4C('D11h'));
     if (ds_len)
-      memcpy(&comp_unp[9 + vs_len + hs_len], &ds[4], elem_size(ds) * ds_len);
+      G_ASSERT(ds.type() == _MAKE4C('D11d'));
     if (gs_len)
-      memcpy(&comp_unp[9 + vs_len + hs_len + ds_len], &gs[4], elem_size(gs) * gs_len);
-    code = comp_unp;
+      G_ASSERT(gs.type() == _MAKE4C('D11g'));
+    G_ASSERT(vs.type() == _MAKE4C('DX9v'));
+
+    comp_meta = new SmallTab<unsigned, TmpmemAlloc>;
+    clear_and_resize(*comp_meta, 9);
 
     comp_prog = new SmallTab<unsigned, TmpmemAlloc>;
-    clear_and_resize(*comp_prog, code.size());
-    mem_copy_from(*comp_prog, code.data());
-    code = make_span(*comp_prog);
+    clear_and_resize(*comp_prog, vs_len + hs_len + ds_len + gs_len);
+    uint8_t *data = (uint8_t *)comp_prog->data();
+
+    const uint32_t *vs_meta = (const uint32_t *)vs.metadata.data();
+    const uint32_t *hs_meta = hs.empty() ? nullptr : (const uint32_t *)hs.metadata.data();
+
+    uint32_t *comp_unp = comp_meta->data();
+    comp_unp[0] = _MAKE4C('DX11');
+    comp_unp[1] = (vs_len + hs_len + ds_len + gs_len) * sizeof(uint32_t);
+    comp_unp[2] = vs_meta[2];
+    comp_unp[3] = vs_meta[3];
+    comp_unp[4] = _MAKE4C('DX11');
+    comp_unp[5] = vs_len;
+    comp_unp[6] = hs_len | (!hs.empty() ? hs_meta[2] & 0xFF000000 : 0);
+    comp_unp[7] = ds_len;
+    comp_unp[8] = gs_len;
+    memcpy(data, vs.bytecode.data(), data_size(vs.bytecode));
+    data += data_size(vs.bytecode);
+    if (hs_len)
+    {
+      memcpy(data, hs.bytecode.data(), data_size(hs.bytecode));
+      data += data_size(hs.bytecode);
+    }
+    if (ds_len)
+    {
+      memcpy(data, ds.bytecode.data(), data_size(ds.bytecode));
+      data += data_size(ds.bytecode);
+    }
+    if (gs_len)
+    {
+      memcpy(data, gs.bytecode.data(), data_size(gs.bytecode));
+      data += data_size(gs.bytecode);
+    }
+    sh.metadata = make_span_const((uint8_t *)comp_meta->data(), comp_meta->size() * sizeof(unsigned));
+    sh.bytecode = make_span(*comp_prog);
 #endif
   }
 #endif
   // NOTE: if this changes finalize_xbox_one_shaders has to be updated too!
   for (int i = stor.shadersVpr.size() - 1; i >= 0; i--)
-    if (stor.shadersVpr[i].size() == code.size() &&
-        (stor.shadersVpr[i].data() == code.data() || mem_eq(code, stor.shadersVpr[i].data())))
+    if (compare_data(stor.shadersVpr[i], sh.bytecode) && compare_data(stor.shadersVprMetadata[i], sh.metadata))
     {
       if (comp_prog)
         delete comp_prog;
+      if (comp_meta)
+        delete comp_meta;
       return i;
     }
   if (comp_prog)
     stor.shadersCompProg.push_back(comp_prog);
-  stor.shadersVpr.push_back(code);
+  if (comp_meta)
+    stor.shadersCompProg.push_back(comp_meta);
+  stor.shadersVpr.push_back(sh.bytecode);
+  stor.shadersVprMetadata.push_back(sh.metadata);
   return stor.shadersVpr.size() - 1;
 }
 
@@ -269,18 +344,20 @@ static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel:
 #define REPORT(...)
 #endif
 
-VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, dag::ConstSpan<unsigned> ps,
-  SemanticShaderPass::EnableFp16State enableFp16, shc::TargetContext &ctx)
+VertexProgramAndPixelShaderIdents add_phase_one_progs(ShaderStageData vs, ShaderStageData hs, ShaderStageData ds, ShaderStageData gs,
+  ShaderStageData ps, SemanticShaderPass::EnableFp16State enableFp16, shc::TargetContext &ctx)
 {
   ShaderTargetStorage &stor = ctx.storage();
 
   VertexProgramAndPixelShaderIdents result{-1, -1};
-  auto vShaderData = make_span(vs).subspan(vs.size() ? 1 : 0);
-  auto hShaderData = make_span(hs).subspan(hs.size() ? 1 : 0);
-  auto dShaderData = make_span(ds).subspan(ds.size() ? 1 : 0);
-  auto gShaderData = make_span(gs).subspan(gs.size() ? 1 : 0);
-  auto pShaderData = make_span(ps).subspan(ps.size() ? 1 : 0);
+
+  // Skip 'DX??' in metadata
+  constexpr size_t HLSL_CACHE_STAMP_SIZE = sizeof(uint32_t);
+  vs.metadata = vs.metadata.subspan(vs.metadata.empty() ? 0 : HLSL_CACHE_STAMP_SIZE);
+  hs.metadata = hs.metadata.subspan(hs.metadata.empty() ? 0 : HLSL_CACHE_STAMP_SIZE);
+  ds.metadata = ds.metadata.subspan(ds.metadata.empty() ? 0 : HLSL_CACHE_STAMP_SIZE);
+  gs.metadata = gs.metadata.subspan(gs.metadata.empty() ? 0 : HLSL_CACHE_STAMP_SIZE);
+  ps.metadata = ps.metadata.subspan(ps.metadata.empty() ? 0 : HLSL_CACHE_STAMP_SIZE);
 
   // @TODO: this might not be an actual hard requirement, but only of our API, need to check
   if (enableFp16.vsOrMs != enableFp16.hs || enableFp16.hs != enableFp16.ds || enableFp16.ds != enableFp16.gsOrAs)
@@ -293,11 +370,11 @@ VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> v
   }
 
   auto rootSignatureDefinition =
-    dx12::dxil::generateRootSignatureDefinition(vShaderData, hShaderData, dShaderData, gShaderData, pShaderData);
+    dx12::dxil::generateRootSignatureDefinition(vs.metadata, hs.metadata, ds.metadata, gs.metadata, ps.metadata);
 
   for (int i = stor.shadersVpr.size() - 1; i >= 0; i--)
   {
-    if (dx12::dxil::comparePhaseOneVertexProgram(stor.shadersVpr[i], vShaderData, hShaderData, dShaderData, gShaderData,
+    if (dx12::dxil::comparePhaseOneVertexProgram({stor.shadersVprMetadata[i], stor.shadersVpr[i]}, vs, hs, ds, gs,
           rootSignatureDefinition))
     {
       result.vprog = i;
@@ -307,7 +384,7 @@ VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> v
 
   for (int i = stor.shadersFsh.size() - 1; i >= 0; i--)
   {
-    if (dx12::dxil::comparePhaseOnePixelShader(stor.shadersFsh[i], pShaderData, rootSignatureDefinition))
+    if (dx12::dxil::comparePhaseOnePixelShader({stor.shadersFshMetadata[i], stor.shadersFsh[i]}, ps, rootSignatureDefinition))
     {
       result.fsh = i;
       break;
@@ -323,21 +400,24 @@ VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> v
   compileOptions.enableFp16 = enableFp16.vsOrMs;
   if (-1 == result.vprog)
   {
-    auto packed = dx12::dxil::combinePhaseOneVertexProgram(vShaderData, hShaderData, dShaderData, gShaderData, rootSignatureDefinition,
-      _MAKE4C('DX9v'), compileOptions);
+    auto packed = dx12::dxil::combinePhaseOneVertexProgram(vs, hs, ds, gs, rootSignatureDefinition, _MAKE4C('DX9v'), compileOptions);
     result.vprog = stor.shadersVpr.size();
-    stor.shadersVpr.push_back(*packed);
-    stor.shadersCompProg.push_back(packed.release());
+    stor.shadersVprMetadata.push_back(make_span_const((const uint8_t *)packed.metadata->data(), data_size(*packed.metadata)));
+    stor.shadersVpr.push_back(*packed.bytecode);
+    stor.shadersCompProg.push_back(packed.metadata.release());
+    stor.shadersCompProg.push_back(packed.bytecode.release());
   }
 
   compileOptions.enableFp16 = enableFp16.psOrCs;
   if (-1 == result.fsh)
   {
-    auto packed = dx12::dxil::combinePhaseOnePixelShader(pShaderData, rootSignatureDefinition, _MAKE4C('DX9p'), !gShaderData.empty(),
-      !hShaderData.empty() && !dShaderData.empty(), compileOptions);
+    auto packed = dx12::dxil::combinePhaseOnePixelShader(ps, rootSignatureDefinition, _MAKE4C('DX9p'), !gs.empty(),
+      !hs.empty() && !ds.empty(), compileOptions);
     result.fsh = stor.shadersFsh.size();
-    stor.shadersFsh.push_back(*packed);
-    stor.shadersCompProg.push_back(packed.release());
+    stor.shadersFshMetadata.push_back(make_span_const((const uint8_t *)packed.metadata->data(), data_size(*packed.metadata)));
+    stor.shadersFsh.push_back(*packed.bytecode);
+    stor.shadersCompProg.push_back(packed.metadata.release());
+    stor.shadersCompProg.push_back(packed.bytecode.release());
   }
 
   return result;
@@ -350,9 +430,10 @@ struct RecompileJobBase : shc::Job
   struct MappingFileLayout
   {
     uint32_t ilSize;
-    uint32_t byteCodeVersion;
-    uint32_t byteCodeSize;
-    uint8_t byteCodeHash[HASH_SIZE];
+    uint32_t version;
+    uint32_t metadataSize;
+    uint32_t bytecodeSize;
+    uint8_t hash[HASH_SIZE];
   };
   size_t compileTarget;
   uint8_t ilHash[HASH_SIZE];
@@ -360,7 +441,7 @@ struct RecompileJobBase : shc::Job
   shc::TargetContext &ctx;
   RecompileJobBase(size_t ct, shc::TargetContext &cref) : compileTarget{ct}, ctx{cref} {}
 
-  eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> load_cache(dag::ConstSpan<unsigned> uncompiled, const char *type_name)
+  dx12::dxil::CombinedShaderStorage load_cache(dx12::dxil::CombinedShaderData uncompiled, const char *type_name)
   {
     if (!shc::config().useSha1Cache)
       return {};
@@ -368,7 +449,8 @@ struct RecompileJobBase : shc::Job
     const char *profile_name = dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform ? "x" : "xs";
     HASH_CONTEXT ctx;
     HASH_INIT(&ctx);
-    HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.data()), data_size(uncompiled));
+    HASH_UPDATE(&ctx, uncompiled.metadata.data(), data_size(uncompiled.metadata));
+    HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.bytecode.data()), data_size(uncompiled.bytecode));
     HASH_FINISH(&ctx, ilHash);
     SNPRINTF(ilPath, sizeof(ilPath), "%s/il/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
       HASH_LIST(ilHash));
@@ -381,75 +463,80 @@ struct RecompileJobBase : shc::Job
     MappingFileLayout mappingFile{};
     auto readSize = df_read(file, &mappingFile, sizeof(mappingFile));
     df_close(file);
-    if (readSize < sizeof(mappingFile) || mappingFile.ilSize != data_size(uncompiled) ||
-        mappingFile.byteCodeVersion != sha1_cache_version)
+    if (readSize < sizeof(mappingFile) || mappingFile.ilSize != (data_size(uncompiled.metadata) + data_size(uncompiled.bytecode)) ||
+        mappingFile.version != sha1_cache_version)
     {
       return {};
     }
 
-    char byteCodePath[420];
-    SNPRINTF(byteCodePath, sizeof(byteCodePath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
-      HASH_LIST(mappingFile.byteCodeHash));
-    auto byteCodeFile = df_open(byteCodePath, DF_READ);
-    if (!byteCodeFile)
+    char codePath[420];
+    SNPRINTF(codePath, sizeof(codePath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
+      HASH_LIST(mappingFile.hash));
+    auto codeFile = df_open(codePath, DF_READ);
+    if (!codeFile)
     {
       return {};
     }
-    auto fileSize = df_length(byteCodeFile);
-    if (fileSize != mappingFile.byteCodeSize + sizeof(uint32_t))
+    auto fileSize = df_length(codeFile);
+    if (fileSize != mappingFile.metadataSize + mappingFile.bytecodeSize + sizeof(uint32_t))
     {
-      df_close(byteCodeFile);
+      df_close(codeFile);
       return {};
     }
 
     // need to store the version or we might use outdated bins, if the final format did change.
     uint32_t version = 0;
-    df_read(byteCodeFile, &version, sizeof(version));
+    df_read(codeFile, &version, sizeof(version));
     if (version != sha1_cache_version)
     {
-      df_close(byteCodeFile);
+      df_close(codeFile);
       return {};
     }
 
-    auto result = eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>();
-    clear_and_resize(*result, mappingFile.byteCodeSize / sizeof(unsigned));
-    readSize = df_read(byteCodeFile, result->data(), data_size(*result));
-    df_close(byteCodeFile);
-    if (readSize != data_size(*result))
+    dx12::dxil::CombinedShaderStorage result{
+      eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>(), eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>()};
+    clear_and_resize(*result.metadata, mappingFile.metadataSize / sizeof(unsigned));
+    readSize = df_read(codeFile, result.metadata->data(), data_size(*result.metadata));
+    clear_and_resize(*result.bytecode, mappingFile.bytecodeSize / sizeof(unsigned));
+    readSize += df_read(codeFile, result.bytecode->data(), data_size(*result.bytecode));
+    df_close(codeFile);
+    if (readSize != (data_size(*result.metadata) + data_size(*result.bytecode)))
     {
       return {};
     }
     return result;
   }
 
-  void store_cache(dag::ConstSpan<unsigned> uncompiled, dag::ConstSpan<unsigned> compiled, const char *type_name)
+  void store_cache(dx12::dxil::CombinedShaderData uncompiled, dx12::dxil::CombinedShaderData compiled, const char *type_name)
   {
     if (!shc::config().writeSha1Cache)
       return;
 
     const char *profile_name = dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform ? "x" : "xs";
     MappingFileLayout mappingFile{};
-    mappingFile.ilSize = data_size(uncompiled);
-    mappingFile.byteCodeSize = data_size(compiled);
-    mappingFile.byteCodeVersion = sha1_cache_version;
+    mappingFile.ilSize = data_size(uncompiled.metadata) + data_size(uncompiled.bytecode);
+    mappingFile.metadataSize = data_size(compiled.metadata);
+    mappingFile.bytecodeSize = data_size(compiled.bytecode);
+    mappingFile.version = sha1_cache_version;
     HASH_CONTEXT ctx;
     HASH_INIT(&ctx);
-    HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.data()), data_size(uncompiled));
-    HASH_FINISH(&ctx, mappingFile.byteCodeHash);
-    char bcPath[420];
-    SNPRINTF(bcPath, sizeof(bcPath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
-      HASH_LIST(mappingFile.byteCodeHash));
+    HASH_UPDATE(&ctx, uncompiled.metadata.data(), data_size(uncompiled.metadata));
+    HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.bytecode.data()), data_size(uncompiled.bytecode));
+    HASH_FINISH(&ctx, mappingFile.hash);
+    char codePath[420];
+    SNPRINTF(codePath, sizeof(codePath), "%s/bc/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
+      HASH_LIST(mappingFile.hash));
 
-    DagorStat bcInfo;
+    DagorStat codeInfo;
     char tempPath[DAGOR_MAX_PATH];
-    if (df_stat(bcPath, &bcInfo) != -1)
+    if (df_stat(codePath, &codeInfo) != -1)
     {
-      // if (bcInfo.size != mappingFile.byteCodeSize) {}
+      // if (codeInfo.size != mappingFile.bytecodeSize) {}
     }
     else
     {
       SNPRINTF(tempPath, sizeof(tempPath), "%s/%s_bc_%s_" HASH_TEMP_STRING "XXXXXX", shc::config().sha1CacheDir, type_name,
-        profile_name, HASH_LIST(mappingFile.byteCodeHash));
+        profile_name, HASH_LIST(mappingFile.hash));
       auto file = df_mkstemp(tempPath);
       if (!file)
       {
@@ -458,16 +545,17 @@ struct RecompileJobBase : shc::Job
       // store the version so that we can identify if a cache blob is outdated.
       uint32_t version = sha1_cache_version;
       df_write(file, &version, sizeof(version));
-      auto written = df_write(file, compiled.data(), data_size(compiled));
+      auto written = df_write(file, compiled.metadata.data(), data_size(compiled.metadata));
+      written += df_write(file, compiled.bytecode.data(), data_size(compiled.bytecode));
       df_close(file);
-      if (written != data_size(compiled))
+      if (written != (data_size(compiled.metadata) + data_size(compiled.bytecode)))
       {
         dd_erase(tempPath);
         return;
       }
 
-      dd_mkpath(bcPath);
-      if (!dd_rename(tempPath, bcPath))
+      dd_mkpath(codePath);
+      if (!dd_rename(tempPath, codePath))
       {
         dd_erase(tempPath);
         return;
@@ -506,11 +594,12 @@ struct RecompileVPRogJob : RecompileJobBase
 
     static const char cache_name[] = "vp";
     bool writeCache = false;
-    auto recompiledVProgBlob = load_cache(stor.shadersVpr[compileTarget], cache_name);
-    if (!recompiledVProgBlob)
+    dx12::dxil::CombinedShaderData uncompiled{stor.shadersVprMetadata[compileTarget], stor.shadersVpr[compileTarget]};
+    auto recompiledVProgBlob = load_cache(uncompiled, cache_name);
+    if (!recompiledVProgBlob.metadata || !recompiledVProgBlob.bytecode)
     {
       writeCache = true;
-      auto recompiledVProg = dx12::dxil::recompileVertexProgram(stor.shadersVpr[compileTarget], shc::config().targetPlatform,
+      auto recompiledVProg = dx12::dxil::recompileVertexProgram(uncompiled.metadata, shc::config().targetPlatform,
         shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledVProg)
       {
@@ -518,24 +607,37 @@ struct RecompileVPRogJob : RecompileJobBase
       }
       recompiledVProgBlob = eastl::move(*recompiledVProg);
     }
-    if (recompiledVProgBlob)
+    if (recompiledVProgBlob.metadata && recompiledVProgBlob.bytecode)
     {
-      auto ref = eastl::find_if(eastl::begin(stor.shadersCompProg), eastl::end(stor.shadersCompProg),
-        [cmp = stor.shadersVpr[compileTarget].data()](auto tab) { return cmp == tab->data(); });
+      auto ref = stor.shadersCompProg.begin();
+      for (; ref != stor.shadersCompProg.end(); ref += 2)
+      {
+        if ((uint8_t *)(*ref)->data() == uncompiled.metadata.data() && (*(ref + 1))->data() == uncompiled.bytecode.data())
+        {
+          break;
+        }
+      }
 
-      REPORT("vprog size %u -> %u", data_size(stor.shadersVpr[compileTarget]), data_size(*recompiledVProgBlob));
+      REPORT("vprog size %u -> %u", data_size(uncompiled.metadata) + data_size(uncompiled.bytecode),
+        data_size(recompiledVProgBlob.metadata) + data_size(recompiledVProgBlob.bytecode));
 
+      dx12::dxil::CombinedShaderData compiled{
+        make_span_const((uint8_t *)recompiledVProgBlob.metadata->data(), data_size(*recompiledVProgBlob.metadata)),
+        *recompiledVProgBlob.bytecode};
       if (writeCache)
       {
-        store_cache(stor.shadersVpr[compileTarget], *recompiledVProgBlob, cache_name);
+        store_cache(uncompiled, compiled, cache_name);
       }
-      stor.shadersVpr[compileTarget] = *recompiledVProgBlob;
+      stor.shadersVprMetadata[compileTarget] = compiled.metadata;
+      stor.shadersVpr[compileTarget] = compiled.bytecode;
 
       G_ASSERT(ref != eastl::end(stor.shadersCompProg));
       if (ref != eastl::end(stor.shadersCompProg))
       {
         delete *ref;
-        *ref = recompiledVProgBlob.release();
+        *ref = recompiledVProgBlob.metadata.release();
+        delete *(ref + 1);
+        *(ref + 1) = recompiledVProgBlob.bytecode.release();
       }
     }
   }
@@ -552,11 +654,12 @@ struct RecompilePShJob : RecompileJobBase
 
     static const char cache_name[] = "fs";
     bool writeCache = false;
-    auto recompiledFShBlob = load_cache(stor.shadersFsh[compileTarget], cache_name);
-    if (!recompiledFShBlob)
+    dx12::dxil::CombinedShaderData uncompiled{stor.shadersFshMetadata[compileTarget], stor.shadersFsh[compileTarget]};
+    auto recompiledFShBlob = load_cache(uncompiled, cache_name);
+    if (!recompiledFShBlob.metadata || !recompiledFShBlob.bytecode)
     {
       writeCache = true;
-      auto recompiledFSh = dx12::dxil::recompilePixelSader(stor.shadersFsh[compileTarget], shc::config().targetPlatform,
+      auto recompiledFSh = dx12::dxil::recompilePixelShader(uncompiled.metadata, shc::config().targetPlatform,
         shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledFSh)
       {
@@ -564,24 +667,37 @@ struct RecompilePShJob : RecompileJobBase
       }
       recompiledFShBlob = eastl::move(*recompiledFSh);
     }
-    if (recompiledFShBlob)
+    if (recompiledFShBlob.metadata && recompiledFShBlob.bytecode)
     {
-      auto ref = eastl::find_if(eastl::begin(stor.shadersCompProg), eastl::end(stor.shadersCompProg),
-        [cmp = stor.shadersFsh[compileTarget].data()](auto tab) { return cmp == tab->data(); });
+      auto ref = stor.shadersCompProg.begin();
+      for (; ref != stor.shadersCompProg.end(); ref += 2)
+      {
+        if ((uint8_t *)(*ref)->data() == uncompiled.metadata.data() && (*(ref + 1))->data() == uncompiled.bytecode.data())
+        {
+          break;
+        }
+      }
 
-      REPORT("fsh size %u -> %u", data_size(stor.shadersFsh[compileTarget]), data_size(*recompiledFShBlob));
+      REPORT("fsh size %u -> %u", data_size(uncompiled.metadata) + data_size(uncompiled.bytecode),
+        data_size(*recompiledFShBlob.metadata) + data_size(*recompiledFShBlob.bytecode));
 
+      dx12::dxil::CombinedShaderData compiled{
+        make_span_const((uint8_t *)recompiledFShBlob.metadata->data(), data_size(*recompiledFShBlob.metadata)),
+        *recompiledFShBlob.bytecode};
       if (writeCache)
       {
-        store_cache(stor.shadersFsh[compileTarget], *recompiledFShBlob, cache_name);
+        store_cache(uncompiled, compiled, cache_name);
       }
-      stor.shadersFsh[compileTarget] = *recompiledFShBlob;
+      stor.shadersFshMetadata[compileTarget] = compiled.metadata;
+      stor.shadersFsh[compileTarget] = compiled.bytecode;
 
       G_ASSERT(ref != eastl::end(stor.shadersCompProg));
       if (ref != eastl::end(stor.shadersCompProg))
       {
         delete *ref;
-        *ref = recompiledFShBlob.release();
+        *ref = recompiledFShBlob.metadata.release();
+        delete *(ref + 1);
+        *(ref + 1) = recompiledFShBlob.bytecode.release();
       }
     }
   }
@@ -595,11 +711,14 @@ struct IndexReplacmentInfo
   size_t old;
 };
 
-static eastl::vector<IndexReplacmentInfo> dedup_table(Tab<dag::ConstSpan<unsigned>> &table, const char *name)
+static eastl::vector<IndexReplacmentInfo> dedup_table(Tab<dag::ConstSpan<unsigned>> &table,
+  Tab<dag::ConstSpan<uint8_t>> &metadata_table, const char *name)
 {
   eastl::vector<IndexReplacmentInfo> result;
   if (table.empty())
     return result;
+
+  G_ASSERT(table.size() == metadata_table.size());
 
   REPORT("Looking for recompiled %s duplicates...", name);
 
@@ -608,16 +727,24 @@ static eastl::vector<IndexReplacmentInfo> dedup_table(Tab<dag::ConstSpan<unsigne
     auto &base = table[o];
     if (base.empty())
       continue;
+    auto &baseMeta = metadata_table[o];
 
     for (size_t d = o + 1; d < table.size(); ++d)
     {
       auto &cmp = table[d];
       if (cmp.size() != base.size())
         continue;
+      auto &cmpMeta = metadata_table[d];
+      if (cmpMeta.size() != baseMeta.size())
+        continue;
+
       if (!mem_eq(cmp, base.data()))
+        continue;
+      if (!cmpMeta.empty() && !mem_eq(cmpMeta, baseMeta.data()))
         continue;
 
       cmp.reset();
+      metadata_table[d].reset();
 
       IndexReplacmentInfo r;
       r.target = o;
@@ -634,15 +761,21 @@ static eastl::vector<IndexReplacmentInfo> dedup_table(Tab<dag::ConstSpan<unsigne
   REPORT("Found %u duplicates...", result.size());
 
   while (table.back().empty())
+  {
     table.pop_back();
+    metadata_table.pop_back();
+  }
   return result;
 }
 
-static eastl::vector<IndexReplacmentInfo> empty_fill_table(Tab<dag::ConstSpan<unsigned>> &table, const char *name)
+static eastl::vector<IndexReplacmentInfo> empty_fill_table(Tab<dag::ConstSpan<unsigned>> &table,
+  Tab<dag::ConstSpan<uint8_t>> &metadata_table, const char *name)
 {
   eastl::vector<IndexReplacmentInfo> result;
   if (table.empty())
     return result;
+
+  G_ASSERT(table.size() == metadata_table.size());
 
   REPORT("Filling empty slots for %s...", name);
 
@@ -660,6 +793,8 @@ static eastl::vector<IndexReplacmentInfo> empty_fill_table(Tab<dag::ConstSpan<un
 
     base = table.back();
     table.pop_back();
+    metadata_table[i] = metadata_table.back();
+    metadata_table.pop_back();
   }
 
   return result;
@@ -703,8 +838,8 @@ static void dedup_shaders(shc::TargetContext &ctx)
   auto vproCount = stor.shadersVpr.size();
   auto fshCount = stor.shadersFsh.size();
 
-  auto vprogDups = dedup_table(stor.shadersVpr, "vprog");
-  auto fshDups = dedup_table(stor.shadersFsh, "fsh");
+  auto vprogDups = dedup_table(stor.shadersVpr, stor.shadersVprMetadata, "vprog");
+  auto fshDups = dedup_table(stor.shadersFsh, stor.shadersFshMetadata, "fsh");
 
   if (vprogDups.empty() && fshDups.empty())
   {
@@ -714,8 +849,8 @@ static void dedup_shaders(shc::TargetContext &ctx)
 
   patch_passes(vprogDups, fshDups, ctx);
 
-  vprogDups = empty_fill_table(stor.shadersVpr, "vprog");
-  fshDups = empty_fill_table(stor.shadersFsh, "fsh");
+  vprogDups = empty_fill_table(stor.shadersVpr, stor.shadersVprMetadata, "vprog");
+  fshDups = empty_fill_table(stor.shadersFsh, stor.shadersFshMetadata, "fsh");
 
   patch_passes(vprogDups, fshDups, ctx);
 
@@ -764,7 +899,7 @@ void recompile_shaders(shc::TargetContext &ctx)
 
     size_t issueCount = 0;
     while (issueCount < allJobs.size())
-      shc::add_job(allJobs[issueCount++], shc::JobMgrChoiceStrategy::LEAST_BUSY_COOPERATIVE);
+      shc::add_job(allJobs[issueCount++]);
 
     shc::await_all_jobs();
   }
@@ -904,7 +1039,7 @@ int add_render_state(const SemanticShaderPass &state, shc::TargetContext &ctx)
   return add_render_state(rs, ctx);
 }
 
-static int ld_add_fshader(TabFsh &code, int upper, shc::TargetContext &ctx)
+static int ld_add_fshader(TabFsh &code, TabShaderMetadata &metadata, int upper, shc::TargetContext &ctx)
 {
   ShaderTargetStorage &stor = ctx.storage();
 
@@ -912,17 +1047,21 @@ static int ld_add_fshader(TabFsh &code, int upper, shc::TargetContext &ctx)
     return -1;
 
   for (int i = 0; i < upper; ++i)
-    if (stor.shadersFsh[i].size() == code.size() && mem_eq(code, stor.shadersFsh[i].data()))
+    if (compare_data(stor.shadersFsh[i], code) && compare_data(stor.shadersFshMetadata[i], metadata))
       return i;
 
   int i = append_items(stor.ldShFsh, 1);
   stor.ldShFsh[i] = eastl::move(code);
   stor.ldShFsh[i].shrink_to_fit();
   stor.shadersFsh.push_back(stor.ldShFsh[i]);
+  G_VERIFY(append_items(stor.ldShFshMetadata, 1) == i);
+  stor.ldShFshMetadata[i] = eastl::move(metadata);
+  stor.ldShFshMetadata[i].shrink_to_fit();
+  stor.shadersFshMetadata.push_back(stor.ldShFshMetadata[i]);
   return stor.shadersFsh.size() - 1;
 }
 
-static int ld_add_vprog(TabVpr &code, int upper, shc::TargetContext &ctx)
+static int ld_add_vprog(TabVpr &code, TabShaderMetadata &metadata, int upper, shc::TargetContext &ctx)
 {
   ShaderTargetStorage &stor = ctx.storage();
 
@@ -930,13 +1069,17 @@ static int ld_add_vprog(TabVpr &code, int upper, shc::TargetContext &ctx)
     return -1;
 
   for (int i = 0; i < upper; ++i)
-    if (stor.shadersVpr[i].size() == code.size() && mem_eq(code, stor.shadersVpr[i].data()))
+    if (compare_data(stor.shadersVpr[i], code) && compare_data(stor.shadersVprMetadata[i], metadata))
       return i;
 
   int i = append_items(stor.ldShVpr, 1);
   stor.ldShVpr[i] = eastl::move(code);
   stor.ldShVpr[i].shrink_to_fit();
   stor.shadersVpr.push_back(stor.ldShVpr[i]);
+  G_VERIFY(append_items(stor.ldShVprMetadata, 1) == i);
+  stor.ldShVprMetadata[i] = eastl::move(metadata);
+  stor.ldShVprMetadata[i].shrink_to_fit();
+  stor.shadersVprMetadata.push_back(stor.ldShVprMetadata[i]);
   return stor.shadersVpr.size() - 1;
 }
 
@@ -971,14 +1114,14 @@ static void link_shaders_fsh_and_vpr(ShadersBindump &bindump, Tab<int> &fsh_lnkt
   fsh_lnktbl.resize(fshNum);
   int upper = stor.shadersFsh.size();
   for (int i = 0; i < fshNum; i++)
-    fsh_lnktbl[i] = ld_add_fshader(bindump.shadersFsh[i], upper, ctx);
+    fsh_lnktbl[i] = ld_add_fshader(bindump.shadersFsh[i], bindump.shadersFshMetadata[i], upper, ctx);
 
   // load VPR
   int vprNum = bindump.shadersVpr.size();
   vpr_lnktbl.resize(vprNum);
   upper = stor.shadersVpr.size();
   for (int i = 0; i < vprNum; i++)
-    vpr_lnktbl[i] = ld_add_vprog(bindump.shadersVpr[i], upper, ctx);
+    vpr_lnktbl[i] = ld_add_vprog(bindump.shadersVpr[i], bindump.shadersVprMetadata[i], upper, ctx);
 }
 
 bool load_shaders_bindump(ShadersBindump &shaders, bindump::IReader &full_file_reader, shc::TargetContext &ctx)
@@ -1036,7 +1179,7 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   ctx.globVars().link(shaders.variable_list, shaders.intervals, global_var_link_table, interval_link_table);
 
   Tab<int> smp_link_table;
-  ctx.samplers().link(shaders.static_samplers, smp_link_table);
+  ctx.samplers().link(shaders.static_samplers, shaders.immutable_samplers, global_var_link_table, smp_link_table);
 
   // Link stcode, stblkcode.
   Tab<int> stcode_lnktbl(tmpmem);
@@ -1245,7 +1388,7 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
     compressed.dependency_files.emplace_back(files[i].c_str());
 
   shaders.variable_list = eastl::move(ctx.globVars().getMutableVariableList());
-  shaders.static_samplers = ctx.samplers().releaseSamplers();
+  eastl::tie(shaders.static_samplers, shaders.immutable_samplers) = ctx.samplers().releaseSamplers();
   shaders.intervals = eastl::move(ctx.globVars().getMutableIntervalList());
   shaders.empty_block = ctx.blocks().releaseEmptyBlock();
   shaders.state_blocks = ctx.blocks().release();
@@ -1271,43 +1414,47 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   shaders.cppcodeRegisterTableOffsets = eastl::move(ctx.cppStcode().regTable.offsets);
 
   // save FSH
-  for (const auto &fsh : ctx.storage().shadersFsh)
+  for (size_t i = 0; i < ctx.storage().shadersFsh.size(); ++i)
   {
-    Tab<uint32_t> code(fsh, tmpmem_ptr());
+    Tab<uint32_t> code(ctx.storage().shadersFsh[i], tmpmem_ptr());
+    Tab<uint8_t> meta(ctx.storage().shadersFshMetadata[i], tmpmem_ptr());
     shaders.shadersFsh.push_back(eastl::move(code));
+    shaders.shadersFshMetadata.push_back(eastl::move(meta));
   }
 
   // save VPR
-  for (const auto &vpr : ctx.storage().shadersVpr)
+  for (size_t i = 0; i < ctx.storage().shadersVpr.size(); ++i)
   {
-    Tab<uint32_t> code(vpr, tmpmem_ptr());
+    Tab<uint32_t> code(ctx.storage().shadersVpr[i], tmpmem_ptr());
+    Tab<uint8_t> meta(ctx.storage().shadersVprMetadata[i], tmpmem_ptr());
     shaders.shadersVpr.push_back(eastl::move(code));
+    shaders.shadersVprMetadata.push_back(eastl::move(meta));
   }
 
   // 4gb, cause eastl asserts this size, dag::Vector with default settings uses 32bit indices, and a lot of the bindump library code
   // also assumes 32 bits is enough
   constexpr size_t MAX_UNCOMPRESSED_SIZE = (1ull << 32) - 1;
 
-  bindump::SizeMetter sizeChecker;
-  bindump::streamWrite(shaders, sizeChecker);
+  bindump::ReservingVectorWriter writer;
 
-  if (sizeChecker.mSize > MAX_UNCOMPRESSED_SIZE)
+  writer.prepareLayoutSize(shaders);
+
+  if (writer.mSizer.mSize > MAX_UNCOMPRESSED_SIZE)
   {
     sh_debug(SHLOG_FATAL,
       "The shaders bindump is too large (%llu bytes uncompressed, doesn't fit into 32-bit indexing), "
       "consider disabling global debug info options, or reducing the shader set",
-      sizeChecker.mSize);
+      writer.mSizer.mSize);
     return;
   }
 
-  bindump::VectorWriter mem_writer;
-  bindump::streamWrite(shaders, mem_writer);
-
-  if (mem_writer.mData.size() > (1u << 30))
+  if (writer.mSizer.mSize > (1u << 30))
   {
-    compressed.compressed_shaders.resize(zstd_compress_bound(mem_writer.mData.size()));
+    writer.writeLayout(shaders);
+
+    compressed.compressed_shaders.resize(zstd_compress_bound(writer.mData.size()));
     size_t compressed_size = zstd_compress(compressed.compressed_shaders.data(), compressed.compressed_shaders.size(),
-      mem_writer.mData.data(), mem_writer.mData.size(), 9);
+      writer.mData.data(), writer.mData.size(), 9);
 
     const size_t maxCompressedSize = 0x20000000;
     if (shc::config().constrainCompressedBindumpSize && compressed_size > maxCompressedSize)
@@ -1315,17 +1462,19 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
       sh_debug(SHLOG_FATAL,
         "Compressed bindump size is too large, zstd_compress() returns %lld (0x%llx), srcDataSz=%llu destBufSz=%llu, "
         "while cap is %llu, consider disabling global debug info options, or reducing the shader set",
-        (ptrdiff_t)compressed_size, compressed_size, mem_writer.mData.size(), compressed.compressed_shaders.size(), maxCompressedSize);
+        (ptrdiff_t)compressed_size, compressed_size, writer.mData.size(), compressed.compressed_shaders.size(), maxCompressedSize);
       return;
     }
 
     compressed.compressed_shaders.resize(compressed_size);
-    compressed.decompressed_size = mem_writer.mData.size();
+    compressed.decompressed_size = writer.mData.size();
   }
   else
   {
-    compressed.compressed_shaders.resize(mem_writer.mData.size());
-    eastl::copy(mem_writer.mData.begin(), mem_writer.mData.end(), compressed.compressed_shaders.begin());
+    bindump::MemoryWriter evecBackedWriter;
+    evecBackedWriter.mData.reserve(writer.mSizer.mSize);
+    bindump::streamWrite(shaders, evecBackedWriter);
+    compressed.compressed_shaders = eastl::move(evecBackedWriter.mData);
     compressed.decompressed_size = 0;
   }
 

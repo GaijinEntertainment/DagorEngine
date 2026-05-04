@@ -17,9 +17,9 @@ static ecs::CompileTimeQueryDesc set_irq_pos_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_irq_pos_ecs_query(Callable function)
+inline void set_irq_pos_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_irq_pos_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_irq_pos_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

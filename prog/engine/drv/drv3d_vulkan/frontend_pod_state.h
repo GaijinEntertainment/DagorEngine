@@ -19,6 +19,9 @@ struct FrontendPODState
   uint32_t drawsCount = 0;
   // counts passed native render passes, always incrementing for simplicity
   uint32_t nativeRenderPassesCount = 0;
+
+  // debug flush triggers counter, for range based bisect debugging
+  uint64_t debugFlushCount = 0;
 };
 
 } // namespace drv3d_vulkan

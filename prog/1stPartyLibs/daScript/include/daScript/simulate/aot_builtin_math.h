@@ -74,7 +74,7 @@ namespace das {
 #else
 #define DAS_FINITE_MATH
 #endif
-#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__) && !defined(_TARGET_C3)
+#if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
@@ -107,7 +107,7 @@ namespace das {
     ___noinline DAS_FINITE_MATH inline bool   disfinite(double  a) { return __builtin_isfinite(a); }
 #endif
 #undef DAS_FINITE_MATH
-#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__) && !defined(_TARGET_C3)
+#if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
 #pragma float_control(pop)
 #endif
 #else
@@ -132,12 +132,16 @@ namespace das {
     __forceinline double dcos  (double a){return cos(a);}
     __forceinline double dasin (double a){return asin(a);}
     __forceinline double dacos (double a){return acos(a);}
+    __forceinline double dsafe_asin (double a){return asin(a >= -1.0 ? (a <= 1.0 ? a : 1.0) : -1.0);}
+    __forceinline double dsafe_acos (double a){return acos(a >= -1.0 ? (a <= 1.0 ? a : 1.0) : -1.0);}
     __forceinline double dtan  (double a){return tan(a);}
     __forceinline double datan (double a){return atan(a);}
     __forceinline double datan2(double a,double b){return atan2(a,b);}
 
     __forceinline float fasin (float a){return asin(a);}
     __forceinline float facos (float a){return acos(a);}
+    __forceinline float fsafe_asin (float a){return asin(a >= -1.0f ? (a <= 1.0f ? a : 1.0f) : -1.0f);}
+    __forceinline float fsafe_acos (float a){return acos(a >= -1.0f ? (a <= 1.0f ? a : 1.0f) : -1.0f);}
     __forceinline float fatan (float a){return atan(a);}
     __forceinline float fatan_est (float a){return v_extract_x(v_atan_est_x(v_set_x(a)));}
     __forceinline float fatan2(float a,float b){return atan2(a,b);}
@@ -145,6 +149,8 @@ namespace das {
 
     __forceinline vec4f vasin(vec4f a){return v_asin(a);}
     __forceinline vec4f vacos(vec4f a){return v_acos(a);}
+    __forceinline vec4f vsafe_asin(vec4f a){return v_safe_asin(a);}
+    __forceinline vec4f vsafe_acos(vec4f a){return v_safe_acos(a);}
     __forceinline vec4f vatan(vec4f a){return v_atan(a);}
     __forceinline vec4f vatan_est(vec4f a){return v_atan_est(a);}
     __forceinline vec4f vatan2(vec4f a, vec4f b){return v_atan2(a,b);}

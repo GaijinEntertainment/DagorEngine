@@ -75,7 +75,7 @@ macro SP_SCREEN_RAY_CAST(code)
         float3 historyRadiance;
         bool hasValidHistoryRadiance = false;
         if (sp_is_valid_history())
-          hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, hitUVW, hitCamPos, allow_uncertaincy, historyRadiance);
+          hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, hitUVW, hitCamPos, worldDir, allow_uncertaincy, historyRadiance);
 
         if (hasValidHistoryRadiance)
         {

@@ -10,6 +10,7 @@
 #include <dasModules/aotEcs.h>
 #include <dasModules/aotDagorMath.h>
 #include "bitStreamWalker.h"
+#include "daScript/misc/arraytype.h"
 
 
 MAKE_TYPE_FACTORY(BitStream, danet::BitStream)
@@ -74,10 +75,7 @@ inline void bitstream_data(danet::BitStream &stream, const das::TBlock<void, con
   das::Context *ctx, das::LineInfoArg *at)
 {
   das::Array arr;
-  arr.data = (char *)stream.GetData();
-  arr.size = stream.GetNumberOfBytesUsed();
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, stream.GetData(), stream.GetNumberOfBytesUsed());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   ctx->invoke(blk, &arg, nullptr, at);

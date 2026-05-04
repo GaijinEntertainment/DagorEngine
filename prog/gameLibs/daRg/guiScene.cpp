@@ -31,7 +31,7 @@
 #include <drv/hid/dag_hiPointingData.h>
 #include <drv/hid/dag_hiGlobals.h>
 
-#include <sqModules/sqModules.h>
+#include <quirrel/bindQuirrelEx/sqModulesDagor.h>
 
 #include <gui/dag_visualLog.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
@@ -53,8 +53,11 @@
 #include "eventData.h"
 #include "behaviorHelpers.h"
 #include "panelRenderer.h"
+#include "panelMath3d.h"
 #include "elementRef.h"
 #include "canvasDraw.h"
+#include "dirPadNav.h"
+#include "xmb.h"
 
 #include "textLayout.h"
 #include "dargDebugUtils.h"
@@ -62,8 +65,6 @@
 #include <daRg/robjWorldBlur.h>
 
 #include <sqstdaux.h>
-
-#include <util/dag_convar.h>
 
 #include <math/dag_mathAng.h>
 #include <math/dag_mathUtils.h>
@@ -83,6 +84,7 @@
 
 #include "dasScripts.h"
 
+#include <util/dag_convar.h>
 
 #if _TARGET_C1 | _TARGET_C2
 
@@ -120,9 +122,9 @@ static void enable_kb_layout_and_locks_tracking()
 namespace darg
 {
 
-CONSOLE_BOOL_VAL("darg", debug_xmb, false);
-CONSOLE_BOOL_VAL("darg", debug_dirpad_nav, false);
-CONSOLE_BOOL_VAL("darg", debug_input_stack, false);
+CONSOLE_BOOL_VAL("darg", debug_cursor, false);
+
+static constexpr int MAIN_SCREEN_ID = 999;
 
 static constexpr unsigned MAX_JOY_AXIS_OBSERVABLES = 15;
 
@@ -133,13 +135,7 @@ static const int rebuild_stacks_flags =
   ElementTree::RESULT_ELEMS_ADDED_OR_REMOVED | ElementTree::RESULT_INVALIDATE_RENDER_LIST | ElementTree::RESULT_INVALIDATE_INPUT_STACK;
 
 
-struct DebugRenderBox
-{
-  BBox2 box;
-  E3DCOLOR fillColor, borderColor;
-  float lifeTime, timeLeft;
-};
-
+static const Point2 out_of_screen_pos(-99, -99); // to be removed or reworked
 
 #if DAGOR_DBGLEVEL > 0
 
@@ -187,7 +183,7 @@ public:
 #endif
 
 
-IGuiScene *create_gui_scene(StdGuiRender::GuiContext *ctx)
+IGuiScene *create_gui_scene()
 {
   {
     using namespace HumanInput;
@@ -197,24 +193,18 @@ IGuiScene *create_gui_scene(StdGuiRender::GuiContext *ctx)
     G_STATIC_ASSERT(int(DIR_RIGHT) == int(JOY_XINPUT_REAL_BTN_D_RIGHT));
   }
 
-  return new GuiScene(ctx);
+  return new GuiScene();
 }
 
 
-GuiScene::GuiScene(StdGuiRender::GuiContext *gui_ctx) : gamepadCursor(this), config(this)
+GuiScene::GuiScene() : config(this), gamepadCursor(config), kbFocus(this)
 {
   yuvRenderer.init();
 
-  if (gui_ctx)
-    guiContext = gui_ctx;
-  else
-  {
-    ownGuiContext = true;
-    const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_quads", 64 << 10);
-    const int numExtraIndices = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_extra", 1024);
-    guiContext = new StdGuiRender::GuiContext();
-    G_VERIFY(guiContext->createBuffer(0, NULL, numQuads, numExtraIndices, "daRg.guibuf"));
-  }
+  const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_quads", 64 << 10);
+  const int numExtraIndices = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_extra", 1024);
+  guiContext.reset(new StdGuiRender::GuiContext());
+  G_VERIFY(guiContext->createBuffer(0, NULL, numQuads, numExtraIndices, "daRg.guibuf"));
 
   const char *dargProject = ::dgs_get_settings()->getStr("game_darg_project_script", nullptr);
   dasScriptsData.reset(new DasScriptsData(dargProject));
@@ -237,11 +227,12 @@ GuiScene::~GuiScene()
   clear(true);
 
   sceneScriptHandlers.releaseFunctions();
+  // Native nodes must be destroyed before sq_close() in shutdownScript().
+  // Order: clear() already called frpGraph->shutdown() which released script refs;
+  // destroyNativeWatches() frees native-owned slots; then sq_close() destroys
+  // remaining script handles (resolve -> null -> no-op) and asserts nodeCount()==0.
   destroyNativeWatches();
   shutdownScript();
-
-  if (ownGuiContext)
-    delete guiContext;
 }
 
 
@@ -251,55 +242,39 @@ void GuiScene::initDasEnvironment(TGuiInitDas init_callback) { dasScriptsData->i
 void GuiScene::shutdownDasEnvironment() { dasScriptsData->shutdownDasEnvironment(); }
 
 
-static void create_scene_observable(const eastl::unique_ptr<sqfrp::ObservablesGraph> &frpGraph,
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> &ptr)
-{
-  ptr.reset(frpGraph->allocScriptValueObservable());
-  ptr->generation = -1;
-}
-
 void GuiScene::createNativeWatches()
 {
-  create_scene_observable(frpGraph, cursorPresent);
-  create_scene_observable(frpGraph, cursorOverStickScroll);
-  create_scene_observable(frpGraph, cursorOverClickable);
-  create_scene_observable(frpGraph, hoveredClickableInfo);
-  create_scene_observable(frpGraph, keyboardLayout);
-  create_scene_observable(frpGraph, keyboardLocks);
-  create_scene_observable(frpGraph, isXmbModeOn);
-  create_scene_observable(frpGraph, updateCounter);
+  sqfrp::ObservablesGraph *g = frpGraph.get();
+  cursorPresent.create(g, Sqrat::Object(false, sqvm).GetObject());
+  cursorOverStickScroll.create(g, Sqrat::Object(SQInteger(0), sqvm).GetObject());
+  cursorOverClickable.create(g, Sqrat::Object(false, sqvm).GetObject());
+  hoveredClickableInfo.create(g, Sqrat::Object(sqvm).GetObject());
+  keyboardLayout.create(g, Sqrat::Object("", sqvm).GetObject());
+  keyboardLocks.create(g, Sqrat::Object(SQInteger(0), sqvm).GetObject());
+  isXmbModeOn.create(g, Sqrat::Object(false, sqvm).GetObject());
+  updateCounter.create(g, Sqrat::Object(actsCount, sqvm).GetObject());
 
-  String errMsg;
-
-  if (!cursorPresent->setValue(Sqrat::Object(false, sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!cursorOverStickScroll->setValue(Sqrat::Object(SQInteger(0), sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!cursorOverClickable->setValue(Sqrat::Object(false, sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!hoveredClickableInfo->setValue(Sqrat::Object(sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!keyboardLayout->setValue(Sqrat::Object("", sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!keyboardLocks->setValue(Sqrat::Object(SQInteger(0), sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!isXmbModeOn->setValue(Sqrat::Object(false, sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
-  if (!updateCounter->setValue(Sqrat::Object(actsCount, sqvm), errMsg))
-    darg_immediate_error(sqvm, errMsg);
+  for (auto &obs : joyAxisObservables)
+  {
+    HSQOBJECT initial;
+    sq_resetobject(&initial);
+    obs.id = frpGraph->createWatched(initial);
+  }
 }
 
 void GuiScene::destroyNativeWatches()
 {
-  cursorPresent.reset();
-  cursorOverStickScroll.reset();
-  cursorOverClickable.reset();
-  hoveredClickableInfo.reset();
-  keyboardLayout.reset();
-  keyboardLocks.reset();
-  isXmbModeOn.reset();
-  updateCounter.reset();
+  cursorPresent.destroy();
+  cursorOverStickScroll.destroy();
+  cursorOverClickable.destroy();
+  hoveredClickableInfo.destroy();
+  keyboardLayout.destroy();
+  keyboardLocks.destroy();
+  isXmbModeOn.destroy();
+  updateCounter.destroy();
 
+  for (auto &obs : joyAxisObservables)
+    obs.graph = nullptr;
   joyAxisObservables.clear();
 }
 
@@ -309,7 +284,7 @@ void GuiScene::initScript()
   sqvm = sq_open(1024);
   G_ASSERT(sqvm);
 
-  moduleMgr.reset(new SqModules(sqvm));
+  moduleMgr.reset(new SqModules(sqvm, &sq_modules_dagor_file_access));
   frpGraph.reset(new ObservablesGraph(sqvm, "darg"));
 
   SqStackChecker stackCheck(sqvm);
@@ -351,7 +326,7 @@ void GuiScene::shutdownScript()
     sqvm = nullptr;
   }
 
-  G_ASSERT(frpGraph->allObservables.empty());
+  G_ASSERT(frpGraph->nodeCount() == 0);
   frpGraph.reset();
 
   G_ASSERT(allCursors.empty());
@@ -362,7 +337,10 @@ void GuiScene::clearCursors(bool exiting)
 {
   G_UNUSED(exiting);
 
+  activeCursor = nullptr;
+
   config.defaultCursor.Release();
+  forcedCursor.Release();
 
   for (;;)
   {
@@ -380,21 +358,10 @@ void GuiScene::clearCursors(bool exiting)
     if (finished)
       break;
   }
-  activeCursor = nullptr;
 
-  for (auto &itPanelData : panels)
-    for (PanelPointer &ptr : itPanelData.second->panel->pointers)
+  for (auto &itPanel : panels)
+    for (PanelPointer &ptr : itPanel.second->pointers)
       ptr.cursor = nullptr;
-}
-
-
-void Screen::clear()
-{
-  etree.clear();
-  renderList.clear();
-  inputStack.clear();
-  cursorStack.clear();
-  eventHandlersStack.clear();
 }
 
 
@@ -422,12 +389,18 @@ void GuiScene::clear(bool exiting)
   invalidatedElements.clear();
   pressedClickButtons.clear();
 
+  kbFocus.reset();
+
   for (VrPointer &vrPtr : vrPointers)
     vrPtr = {};
   spatialInteractionState = {};
   panels.clear();
   screens.clear();
   focusedScreen = nullptr;
+  G_ASSERT(!xmbFocus);
+  xmbFocus = nullptr; // just in case
+  G_ASSERT(keptXmbFocus.empty());
+  keptXmbFocus.clear();
 
   clear_all_ptr_items_and_shrink(timers);
   clear_all_ptr_items_and_shrink(scriptHandlersQueue);
@@ -436,9 +409,12 @@ void GuiScene::clear(bool exiting)
     sceneScriptHandlers.onShutdown();
 
   clearCursors(exiting);
-  pointerPos.onShutdown();
+  mousePointer.onShutdown();
 
   touchPointers.reset();
+
+  lastCameraTransform = TMatrix::IDENT;
+  lastCameraFrustum = {};
 
   clear_all_ptr_items_and_shrink(timers);
 
@@ -454,23 +430,19 @@ void GuiScene::clear(bool exiting)
   isClearing = false;
 
   darg_panel_renderer::clean_up();
-
-  G_ASSERT(keptXmbFocus.empty());
 }
 
 
-Sqrat::Array GuiScene::getAllObservables()
+Sqrat::Array GuiScene::getAllObservables() const
 {
-  Sqrat::Array res(sqvm, frpGraph->allObservables.size());
+  Sqrat::Array res(sqvm, frpGraph->nodeCount());
   SQInteger idx = 0;
-  for (auto obs : frpGraph->allObservables)
-  {
-    G_ASSERT_BREAK(idx < frpGraph->allObservables.size());
+  frpGraph->forEachNode([&](sqfrp::NodeId id, const sqfrp::NodeSlot &) {
     Sqrat::Table item(sqvm);
-    obs->fillInfo(item);
+    frpGraph->fillInfo(id, item);
     res.SetValue(idx, item);
     ++idx;
-  }
+  });
   return res;
 }
 
@@ -482,10 +454,11 @@ void GuiScene::setSceneErrorRenderMode(SceneErrorRenderMode mode)
 }
 
 
-void GuiScene::moveMouseToTarget(float dt)
+bool GuiScene::getErrorText(eastl::string &text) const
 {
-  if (pointerPos.moveMouseToTarget(dt))
-    updateHover();
+  ApiThreadCheck atc(this);
+  status.errorMsg.join(text);
+  return !text.empty();
 }
 
 
@@ -497,64 +470,118 @@ void GuiScene::forceFrpUpdateDeferred()
     return;
 
   SqStackChecker stackCheck(sqvm);
-  String frpErrMsg;
-  if (!frpGraph->updateDeferred(frpErrMsg))
-    logerr("FRP update deferred: %s", frpErrMsg.c_str());
+  frpGraph->updateDeferred();
 }
 
-void GuiScene::update(float dt)
+
+void GuiScene::repeatDirPadNav(float dt)
 {
-  ApiThreadCheck atc(this);
-
-  if (status.isShowingFullErrorDetails)
-    return;
-
-  AutoProfileScope profile(profiler, M_UPDATE_TOTAL);
-  SqStackChecker stackCheck(sqvm);
-  String frpErrMsg;
-
-  // need to do this before any element may change
-  applyPendingHoverUpdate();
-
-  if (!frpGraph->updateDeferred(frpErrMsg))
-    logerr("FRP update deferred: %s", frpErrMsg.c_str());
-
-  actsCount++;
-  updateCounter->setValue(Sqrat::Object(actsCount, sqvm), frpErrMsg);
-
-  processPostedEvents();
-
-  joystickHandler.processPendingBtnStack(this);
-
-  if (lastDirPadNavDir >= 0)
+  if (lastDirPadNavBtn >= 0)
   {
     if (dirPadNavRepeatTimeout <= 0.0f)
     {
       dirPadNavRepeatTimeout = config.dirPadRepeatTime;
-      dirPadNavigate(Direction(lastDirPadNavDir));
+      dirPadNavigate(dirpadnav::gamepad_button_to_dir(lastDirPadNavBtn));
     }
     else
       dirPadNavRepeatTimeout -= dt;
   }
+}
 
-  bool prevNeedToMoveOnNextFrame = pointerPos.needToMoveOnNextFrame; //==
-  if (isInputActive())
-    pointerPos.update(dt);
-  if (prevNeedToMoveOnNextFrame) //== This is workaround for XMB hover update on XBox - temporary, to be rewritten
-    updateHover();
 
-  cursorPresent->setValue(Sqrat::Object(!pointerPos.mouseWasRelativeOnLastUpdate && activeCursor != nullptr, sqvm), frpErrMsg);
-
+void GuiScene::updatePointers(float dt, bool &hover_dirty)
+{
+  // Apply deferred jumps (internal state only)
   if (isInputActive())
   {
-    if (auto activeScreen = getFocusedScreen(); activeScreen && activeScreen->etree.root && activeCursor)
+    if (activePointingDevice == DEVID_MOUSE)
     {
-      if (config.gamepadCursorControl)
-        gamepadCursor.update(activeScreen, dt);
-      else if (HumanInput::IGenJoystick *joy = getJoystick(); joy && config.gamepadStickAsDirpad)
-        gamepadCursor.scroll(activeScreen, joy, dt);
+      if (::dgs_app_active)
+      {
+        bool mouseJumped = mousePointer.hasNextFramePos();
+        mousePointer.syncMouseCursorLocation();
+        mousePointer.applyNextFramePos();
+        if (mouseJumped)
+        {
+          mousePointer.markNeedsDriverSync();
+          hover_dirty = true;
+        }
+      }
     }
 
+    if (activePointingDevice == DEVID_JOYSTICK)
+    {
+      bool gpJumped = gamepadCursor.hasNextFramePos();
+      gamepadCursor.applyNextFramePos();
+      if (gpJumped)
+        hover_dirty = true;
+    }
+  }
+
+  // Device-specific movement
+  updateGamepadCursor(dt, hover_dirty);
+  updateVrStickScroll(dt);
+
+  updateJoystickAxesObservables();
+  if (activePointingDevice == DEVID_MOUSE && mousePointer.moveToTarget(dt))
+    hover_dirty = true;
+  if (activePointingDevice == DEVID_JOYSTICK && gamepadCursor.moveToTarget(dt))
+    hover_dirty = true;
+
+  // Sync mouse to OS driver (one-way out)
+  if (activePointingDevice == DEVID_MOUSE)
+    mousePointer.commitToDriver();
+}
+
+
+void GuiScene::updateGamepadCursor(float dt, bool &hover_dirty)
+{
+  if (!isInputActive())
+    return;
+
+  HumanInput::IGenJoystick *joy = getJoystick();
+  bool haveCursor = activeCursor || (focusedScreen && focusedScreen->panel && focusedScreen->panel->hasActiveCursors());
+  if (!haveCursor)
+    return;
+
+  if (config.gamepadCursorControl && ::dgs_app_active)
+  {
+    if (gamepadCursor.isStickActive(joy, focusedScreen))
+    {
+      // Switch device if needed - before computing movement
+      if (activePointingDevice != DEVID_JOYSTICK)
+      {
+        gamepadCursor.syncPosFrom(mousePointer);
+        activePointingDevice = DEVID_JOYSTICK;
+      }
+
+      if (gamepadCursor.updateCursorPos(joy, focusedScreen, lastCameraTransform, lastCameraFrustum, dt))
+      {
+        doSetXmbFocus(nullptr);
+        hover_dirty = true;
+
+        // Dispatch POINTER_MOVE directly with DEVID_JOYSTICK
+        for (auto &[id, screen] : screens)
+        {
+          Point2 local;
+          if (!screen->displayToLocal(gamepadCursor.pos, lastCameraTransform, lastCameraFrustum, local))
+            local = out_of_screen_pos;
+          onMouseEventInternal(screen.get(), INP_EV_POINTER_MOVE, DEVID_JOYSTICK, 0, local, 0, 0);
+        }
+      }
+    }
+  }
+
+  auto scrollDelta = gamepadCursor.scroll(joy, dt);
+  if (scrollDelta)
+    doJoystickScroll(scrollDelta.value());
+}
+
+
+void GuiScene::updateVrStickScroll(float dt)
+{
+  if (isInputActive())
+  {
     for (int hand = 0; hand < NUM_VR_POINTERS; ++hand)
     {
       const VrPointer &vrPtr = vrPointers[hand];
@@ -564,8 +591,8 @@ void GuiScene::update(float dt)
         Point2 scrollDelta = vrPtr.stickScroll * scrollStep;
         if (vrPtr.activePanel)
         {
-          Panel *panel = vrPtr.activePanel->panel.get();
-          if (panel && panel->pointers[hand].isPresent)
+          Panel *panel = vrPtr.activePanel;
+          if (panel->pointers[hand].isPresent)
           {
             if (panel->screen->etree.doJoystickScroll(panel->screen->inputStack, panel->pointers[hand].pos, scrollDelta))
             {
@@ -578,9 +605,47 @@ void GuiScene::update(float dt)
       }
     }
   }
+}
 
-  updateJoystickAxesObservables();
-  moveMouseToTarget(dt);
+
+void GuiScene::update(float dt)
+{
+  ApiThreadCheck atc(this);
+
+  if (status.isShowingFullErrorDetails)
+    return;
+
+  AutoProfileScope profile(profiler, M_UPDATE_TOTAL);
+  SqStackChecker stackCheck(sqvm);
+
+  // need to do this before any element may change
+  applyPendingHoverUpdate();
+
+  applyDeferredRecalLayout();
+
+  frpGraph->updateDeferred();
+
+  actsCount++;
+  updateCounter.setValue(Sqrat::Object(actsCount, sqvm));
+
+  processPostedEvents();
+
+  joystickHandler.processPendingBtnStack(this);
+
+  repeatDirPadNav(dt);
+
+  bool hoverDirty = false;
+  updatePointers(dt, hoverDirty);
+
+  bool cursorIsPresent;
+  if (activePointingDevice == DEVID_JOYSTICK)
+    cursorIsPresent = activeCursor != nullptr;
+  else
+    cursorIsPresent = !mousePointer.mouseWasRelativeOnLastUpdate && activeCursor != nullptr;
+  cursorPresent.setValue(Sqrat::Object(cursorIsPresent, sqvm));
+
+  if (hoverDirty)
+    updateGlobalHover();
   updateTimers(dt);
 
   stackCheck.check();
@@ -596,38 +661,39 @@ void GuiScene::update(float dt)
 
   stackCheck.check();
 
-  auto activeScreen = getFocusedScreen();
-  if (activeScreen)
+  // The same logic as in rebuildInvalidatedParts()
+
+  int prevInteractiveFlags = calcInteractiveFlags();
+  bool stacksRebuilt = false, hotkeysModified = false;
+
+  for (auto &[id, screen] : screens)
   {
-    int updRes = activeScreen->etree.update(dt);
+    int updRes = screen->etree.update(dt);
     if (updRes & rebuild_stacks_flags)
     {
-      rebuildElemStacks(updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
-      updateHover();
+      screen->rebuildStacks();
+      stacksRebuilt = true;
     }
+    if (updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED)
+      hotkeysModified = true;
     if (updRes & ElementTree::RESULT_NEED_XMB_REBUILD)
-      rebuildXmb();
+      screen->rebuildXmb();
   }
 
-  for (auto &[id, sc] : screens)
-  {
-    if (sc.get() == activeScreen)
-      continue;
-    int updRes = sc->etree.update(dt);
-    if (updRes & rebuild_stacks_flags)
-      sc->rebuildStacks();
-  }
+  if (stacksRebuilt || hotkeysModified)
+    applyInteractivityChange(prevInteractiveFlags, hotkeysModified, /*update_global_hover*/ true);
 
   if (activeCursor)
     activeCursor->update(dt);
 
-  for (auto &itPanelData : panels)
-    itPanelData.second->panel->update(dt);
+  for (auto &itPanel : panels)
+    itPanel.second->update(dt);
 
   if (profiler.get())
     profiler->afterUpdate();
 
-  updateDebugRenderBoxes(dt);
+  for (auto &[id, sc] : screens)
+    sc->updateDebugRenderBoxes(dt);
 }
 
 
@@ -645,7 +711,7 @@ void GuiScene::mainThreadBeforeRender()
 
   framesCount++;
 
-  if (HumanInput::IGenPointing *mouse = getMouse())
+  if (HumanInput::IGenPointing *mouse = MousePointer::get_mouse())
     mouse->fetchLastState();
 }
 
@@ -732,20 +798,24 @@ void GuiScene::renderThreadBeforeRender()
     return;
 
   scrollToXmbFocus(dt);
-  updateActiveCursor();
+  updateGlobalActiveCursor();
+
+  int prevInteractiveFlags = calcInteractiveFlags();
+  bool stacksRebuilt = false;
 
   {
-    for (auto &[id, sc] : screens)
+    for (auto &[id, screen] : screens)
     {
       int brRes = 0;
       {
         AutoProfileScope profile(profiler, M_ETREE_BEFORE_RENDER);
-        brRes = sc->etree.beforeRender(dt);
+        brRes = screen->etree.beforeRender(dt);
       }
       if (brRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
       {
         AutoProfileScope profile(profiler, M_RENDER_LIST_REBUILD);
-        sc->rebuildStacks();
+        screen->rebuildStacks();
+        stacksRebuilt = true;
       }
     }
     if (activeCursor)
@@ -765,9 +835,9 @@ void GuiScene::renderThreadBeforeRender()
 
   if (!panels.empty())
   {
-    for (auto &itPanelData : panels)
+    for (auto &itPanel : panels)
     {
-      Panel *panel = itPanelData.second->panel.get();
+      Panel *panel = itPanel.second.get();
       G_ASSERT(panel->screen->etree.rebuildFlagsAccum == 0);
 
       panel->updateActiveCursors();
@@ -793,9 +863,9 @@ void GuiScene::renderThreadBeforeRender()
     }
   }
 
+  bool hasFinishedAnims = false;
   if (dt > 0)
   {
-    bool hasFinishedAnims = false;
     for (auto &[id, sc] : screens)
     {
       sc->etree.updateAnimations(dt, &hasFinishedAnims);
@@ -809,9 +879,9 @@ void GuiScene::renderThreadBeforeRender()
       activeCursor->etree.updateTransitions(dt);
     }
 
-    for (auto &itPanelData : panels)
+    for (auto &itPanel : panels)
     {
-      Panel *panel = itPanelData.second->panel.get();
+      Panel *panel = itPanel.second.get();
       for (PanelPointer &ptr : panel->pointers)
       {
         if (ptr.cursor)
@@ -821,39 +891,18 @@ void GuiScene::renderThreadBeforeRender()
         }
       }
     }
-
-    if (hasFinishedAnims)
-      updateHover();
   }
+
+  if (stacksRebuilt)
+    applyInteractivityChange(prevInteractiveFlags, false, hasFinishedAnims);
+  else if (hasFinishedAnims)
+    updateGlobalHover();
 
   for (auto &[id, sc] : screens)
   {
     G_UNUSED(id);
     G_ASSERT(sc->etree.rebuildFlagsAccum == 0);
   }
-}
-
-
-BBox2 GuiScene::calcXmbViewport(Element *node, Element **nearest_xmb_viewport) const
-{
-  BBox2 viewport(0, 0, StdGuiRender::screen_width(), StdGuiRender::screen_height());
-  if (!node->xmb)
-    return viewport;
-  for (Element *e = node->xmb->xmbParent; e; e = e->parent)
-  {
-    bool isXmbViewport = e->xmb && e->xmb->nodeDesc.RawGetSlotValue(stringKeys->isViewport, false);
-
-    if (isXmbViewport && nearest_xmb_viewport && !*nearest_xmb_viewport)
-      *nearest_xmb_viewport = e;
-
-    if (e->hasFlags(Element::F_CLIP_CHILDREN) || isXmbViewport)
-    {
-      BBox2 b = e->calcTransformedBboxPadded();
-      viewport.lim[0] = ::max(viewport.lim[0], b.lim[0]);
-      viewport.lim[1] = ::min(viewport.lim[1], b.lim[1]);
-    }
-  }
-  return viewport;
 }
 
 
@@ -868,11 +917,11 @@ void GuiScene::tryRestoreSavedXmbFocus()
     if (!elem->xmb) // just in case of some rebuild
       continue;
 
-    if (isXmbNodeInputCovered(elem)) // nothing to do yet
+    if (xmb::is_xmb_node_input_covered(elem)) // nothing to do yet
       break;
 
     erase_items(keptXmbFocus, i, keptXmbFocus.size() - i);
-    setXmbFocus(elem);
+    doSetXmbFocus(elem);
     break;
   }
 
@@ -880,66 +929,16 @@ void GuiScene::tryRestoreSavedXmbFocus()
 }
 
 
-bool GuiScene::isXmbNodeInputCovered(Element *node) const
-{
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return false;
-
-  int focusInputStackDepth = -1, focusZOrder = 0;
-  for (size_t iItem = 0, nItems = screen->inputStack.stack.size(); iItem < nItems; ++iItem)
-  {
-    const InputEntry &ie = screen->inputStack.stack[iItem];
-    if (ie.elem == node)
-    {
-      focusInputStackDepth = iItem;
-      focusZOrder = ie.zOrder;
-      break;
-    }
-  }
-
-  if (focusInputStackDepth < 0)
-    return false;
-
-  BBox2 viewport = calcXmbViewport(node, nullptr);
-  const float edgeThreshold = StdGuiRender::screen_height() * 0.01f;
-
-  for (size_t iItem = 0; iItem < focusInputStackDepth; ++iItem)
-  {
-    const InputEntry &ie = screen->inputStack.stack[iItem];
-    if (ie.zOrder >= focusZOrder)
-    {
-      if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
-      {
-        BBox2 bbox = ie.elem->transformedBbox;
-        if (bbox.isempty() || bbox.width().x < 0.1f || bbox.width().y < 0.1f)
-          bbox = ie.elem->calcTransformedBbox();
-
-        if (bbox.left() <= viewport.left() + edgeThreshold && bbox.top() <= viewport.top() + edgeThreshold &&
-            bbox.right() >= viewport.right() - edgeThreshold && bbox.bottom() >= viewport.bottom() - edgeThreshold)
-        {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
 void GuiScene::validateOverlaidXmbFocus()
 {
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
-  // visuallog::logmsg("validateOverlaidXmbFocus()");
-  if (screen->etree.xmbFocus)
+  if (xmbFocus)
   {
-    if (isXmbNodeInputCovered(screen->etree.xmbFocus))
+    if (xmb::is_xmb_node_input_covered(xmbFocus))
     {
       G_ASSERT_RETURN(keptXmbFocus.size() < 100, );
-      erase_item_by_value(keptXmbFocus, screen->etree.xmbFocus); // should not happen, but for safety add each element only once
-      keptXmbFocus.push_back(screen->etree.xmbFocus);            // push to top
-      setXmbFocus(nullptr);
+      erase_item_by_value(keptXmbFocus, xmbFocus); // should not happen, but for safety add each element only once
+      keptXmbFocus.push_back(xmbFocus);            // push to top
+      doSetXmbFocus(nullptr);
     }
   }
   else
@@ -957,15 +956,19 @@ void GuiScene::buildRender()
   guiContext->start_render();
 
   if (status.isShowingFullErrorDetails)
-    status.renderError(guiContext);
+    status.renderError(guiContext.get());
   else
   {
     {
       AutoProfileScope profileListRender(profiler, M_RENDER_LIST_RENDER);
+      Screen *mainScreen = getGuiScreen(MAIN_SCREEN_ID);
+      if (mainScreen)
+      {
+        G_ASSERT(mainScreen->isMainScreen);
+        mainScreen->renderList.render(*guiContext);
+        mainScreen->renderDebugInfo();
+      }
 
-      for (auto &[id, sc] : screens)
-        if (sc->isMainScreen)
-          sc->renderList.render(*guiContext);
       if (activeCursor)
         activeCursor->renderList.render(*guiContext);
       else if (isCursorForcefullyEnabled())
@@ -973,15 +976,10 @@ void GuiScene::buildRender()
     }
 
     if (status.isShowingError)
-      status.renderError(guiContext);
+      status.renderError(guiContext.get());
   }
 
   G_ASSERT(!guiContext->restore_viewport());
-
-  renderXmbDebug();
-  renderDirPadNavDebug();
-  renderInputStackDebug();
-  drawDebugRenderBoxes();
 
   if (profiler)
   {
@@ -989,36 +987,55 @@ void GuiScene::buildRender()
     renderProfileStats();
   }
 
-#if 0
-  if (getMouse())
+
+  if (debug_cursor)
   {
-    const HumanInput::PointingRawState::Mouse &rs = getMouse()->getRawState().mouse;
     String msg;
     guiContext->set_font(0);
+    float yPos = 30;
     {
-      msg.printf(32, "mousePos = %.f, %.f, raw cursor = %.f, %.f", P2D(pointerPos.mousePos), rs.x, rs.y);
+      Point2 rawPos(-999, -999);
+      if (MousePointer::get_mouse())
+      {
+        const HumanInput::PointingRawState::Mouse &rs = MousePointer::get_mouse()->getRawState().mouse;
+        rawPos = {rs.x, rs.y};
+      }
+
+      msg.printf(32, "mousePos = %.f, %.f, raw cursor = %.f, %.f", P2D(mousePointer.pos), rawPos.x, rawPos.y);
       auto bbox = StdGuiRender::get_str_bbox(msg, msg.length(), guiContext->curRenderFont);
-      guiContext->goto_xy(guiContext->screen_width()-bbox.width().x-10, 30);
-      guiContext->set_color(200,200,0);
+      guiContext->goto_xy(guiContext->screen_width() - bbox.width().x - 10, yPos);
+      guiContext->set_color(200, 200, 0);
       guiContext->draw_str(msg);
+      yPos += ceilf(bbox.width().y * 1.25f);
     }
     {
-      msg.printf(32, "have activeCursor = %d, translate = %.f, %.f",
-        activeCursor!=nullptr,
-        activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform
-          ? activeCursor->etree.root->transform->translate.x : -999.0f,
-        activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform
-          ? activeCursor->etree.root->transform->translate.y : -999.0f
-      );
+      msg.printf(32, "gamepad cursor pos = %.f, %.f", P2D(gamepadCursor.pos));
       auto bbox = StdGuiRender::get_str_bbox(msg, msg.length(), guiContext->curRenderFont);
-      guiContext->goto_xy(guiContext->screen_width()-bbox.width().x-10, 30+(bbox.width().y*1.25f));
-      guiContext->set_color(200,200,0);
+      guiContext->goto_xy(guiContext->screen_width() - bbox.width().x - 10, yPos);
+      guiContext->set_color(200, 200, 0);
+      guiContext->draw_str(msg);
+      yPos += ceilf(bbox.width().y * 1.25f);
+    }
+    {
+      msg.printf(32, "have activeCursor = %d, device = %d, translate = %.f, %.f", activeCursor != nullptr, activePointingDevice,
+        activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform
+          ? activeCursor->etree.root->transform->translate.x
+          : -999.0f,
+        activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform
+          ? activeCursor->etree.root->transform->translate.y
+          : -999.0f);
+      auto bbox = StdGuiRender::get_str_bbox(msg, msg.length(), guiContext->curRenderFont);
+      guiContext->goto_xy(guiContext->screen_width() - bbox.width().x - 10, yPos);
+      guiContext->set_color(200, 200, 0);
       guiContext->draw_str(msg);
     }
   }
-#endif
 
-  pointerPos.debugRender(guiContext);
+  if (debug_cursor)
+  {
+    mousePointer.debugRenderState(guiContext.get(), E3DCOLOR(255, 0, 200), E3DCOLOR(120, 120, 20, 40));
+    gamepadCursor.debugRenderState(guiContext.get(), E3DCOLOR(0, 200, 255), E3DCOLOR(20, 120, 80, 40));
+  }
 
   StdGuiRender::release();
 
@@ -1027,131 +1044,10 @@ void GuiScene::buildRender()
 }
 
 
-void GuiScene::renderXmbDebug()
-{
-  if (!debug_xmb)
-    return;
-
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
-
-  for (const InputEntry &ie : screen->inputStack.stack)
-  {
-    if (ie.elem->xmb)
-    {
-      BBox2 bbox = ie.elem->calcTransformedBbox();
-      if (!bbox.isempty())
-      {
-        guiContext->set_color(160, 130, 120, 120);
-        guiContext->render_frame(bbox.left() + 1, bbox.top() + 1, bbox.right() - 1, bbox.bottom() - 1, 2);
-      }
-    }
-  }
-
-  if (screen->etree.xmbFocus)
-  {
-    BBox2 bbox = screen->etree.xmbFocus->calcTransformedBbox();
-    bool isInInputStack = false;
-    for (const InputEntry &ie : screen->inputStack.stack)
-    {
-      if (ie.elem == screen->etree.xmbFocus)
-      {
-        isInInputStack = true;
-        break;
-      }
-    }
-    if (isInInputStack)
-      guiContext->set_color(220, 200, 0, 180);
-    else
-      guiContext->set_color(240, 50, 0, 180);
-    guiContext->render_frame(bbox.left(), bbox.top(), bbox.right(), bbox.bottom(), 2);
-
-    BBox2 viewport = calcXmbViewport(screen->etree.xmbFocus, nullptr);
-    guiContext->set_color(20, 200, 0, 180);
-    guiContext->render_frame(viewport.left(), viewport.top(), viewport.right(), viewport.bottom(), 2);
-  }
-}
-
-
-void GuiScene::renderDirPadNavDebug()
-{
-  if (!debug_dirpad_nav)
-    return;
-
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
-
-  static E3DCOLOR colors[] = {
-    E3DCOLOR(120, 120, 0, 160),
-    E3DCOLOR(120, 0, 120, 160),
-    E3DCOLOR(0, 120, 120, 160),
-    E3DCOLOR(20, 100, 160, 160),
-    E3DCOLOR(160, 20, 100, 160),
-    E3DCOLOR(100, 160, 20, 160),
-  };
-
-  for (const InputEntry &ie : screen->inputStack.stack)
-  {
-    Element *elem = ie.elem;
-
-    if (!elem->isDirPadNavigable())
-      continue;
-
-    const BBox2 &bbox = elem->clippedScreenRect;
-    if (bbox.isempty() || bbox.width().x < 1 || bbox.width().y < 1)
-      continue;
-
-    const int nColors = sizeof(colors) / sizeof(colors[0]);
-    guiContext->set_color(colors[elem->getHierDepth() % nColors]);
-    guiContext->render_frame(bbox.left(), bbox.top(), bbox.right(), bbox.bottom(), 2);
-  }
-}
-
-
-void GuiScene::renderInputStackDebug()
-{
-  if (!debug_input_stack)
-    return;
-
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
-
-  for (const InputEntry &ie : screen->inputStack.stack)
-  {
-    Element *elem = ie.elem;
-    if (!elem->behaviorsSummaryFlags)
-      continue;
-
-    const BBox2 &bbox = elem->clippedScreenRect;
-    if (bbox.isempty())
-      continue;
-
-    E3DCOLOR color(20, 20, 20, 200);
-    if (elem->hasFlags(Element::F_INPUT_PASSIVE))
-      color = E3DCOLOR(120, 160, 160, 200);
-    else
-    {
-      if (elem->hasBehaviors(Behavior::F_HANDLE_MOUSE))
-        color.r = 200;
-      if (elem->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
-        color.g = 200;
-      if (!elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_HANDLE_KEYBOARD))
-        color.b = 200;
-    }
-
-    guiContext->set_color(color);
-    guiContext->render_frame(bbox.left(), bbox.top(), bbox.right(), bbox.bottom(), 2);
-  }
-}
-
-
 void GuiScene::renderInternalCursor()
 {
   StdGuiRender::GuiContext &ctx = *guiContext;
-  Point2 pos = getMousePos();
+  Point2 pos = activePointerPos();
   ctx.set_color(50, 100, 70, 100);
   float sz = ::min(deviceScreenSize.x, deviceScreenSize.y) * 0.01f;
   ctx.draw_line(pos.x - sz, pos.y, pos.x + sz, pos.y, 3);
@@ -1167,27 +1063,39 @@ void GuiScene::buildPanelRender(int panel_idx)
   guiContext->resetFrame();
   guiContext->start_render();
 
-  auto itPanelData = panels.find(panel_idx);
+  auto itPanel = panels.find(panel_idx);
 
-  if (itPanelData == panels.end())
+  if (itPanel == panels.end())
   {
     // guiContext->set_color(20, 200, 50);
     // guiContext->render_box(0, 0, 2000, 2000);
   }
   else if (status.isShowingFullErrorDetails)
-    status.renderError(guiContext);
+    status.renderError(guiContext.get());
   else
   {
-    Panel *panel = itPanelData->second->panel.get();
+    Panel *panel = itPanel->second.get();
     panel->screen->renderList.render(*guiContext);
-    for (PanelPointer &ptr : panel->pointers)
+    panel->screen->renderDebugInfo();
+
+    for (size_t iPtr = 0; iPtr < Panel::MAX_POINTERS; ++iPtr)
     {
+      const PanelPointer &ptr = panel->pointers[iPtr];
       if (ptr.cursor)
       {
         if (ptr.cursor->etree.root && ptr.cursor->etree.root->transform)
-          ptr.cursor->etree.root->transform->translate = ptr.pos;
+          ptr.cursor->etree.root->transform->translate = ptr.pos - ptr.cursor->hotspot;
 
         ptr.cursor->renderList.render(*guiContext);
+
+        if (debug_cursor)
+        {
+          guiContext->set_font(0);
+          guiContext->set_color(E3DCOLOR(100, 200, 100, 200));
+          guiContext->goto_xy(ptr.pos + Point2(20, 20));
+          String msg(0, "%d", iPtr);
+          guiContext->draw_str_scaled(2, msg.c_str(), msg.length());
+        }
       }
     }
   }
@@ -1240,47 +1148,144 @@ void GuiScene::applyPendingHoverUpdate()
 {
   if (updateHoverRequestState == UpdateHoverRequestState::NeedToUpdate)
   {
-    updateHover();
+    updateGlobalHover();
     updateHoverRequestState = UpdateHoverRequestState::None;
   }
 }
 
-
-void GuiScene::updateHover()
+// removes roots from the array which have any parent with given flag
+static void removeRootsWithParentFlag(dag::Vector<Element *> &roots, Element::Flags flag)
 {
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
+  roots.erase(eastl::remove_if(roots.begin(), roots.end(),
+                [&](Element *e) {
+                  for (Element *p = e->parent; p; p = p->parent)
+                    if (p->hasFlags(flag))
+                    {
+                      e->updFlags(flag, false);
+                      return true;
+                    }
+                  return false;
+                }),
+    roots.end());
+}
 
+void GuiScene::applyDeferredRecalLayout()
+{
+  TIME_PROFILE(applyDeferredRecalLayout);
+
+  if (DAGOR_LIKELY(deferredRecalcLayout.empty()))
+  {
+    return;
+  }
+
+  // swap into temporary set just in case original set is changed somewhere down in the callstack
+  eastl::vector_set<Element *> thisFrameUpdate;
+  thisFrameUpdate.swap(deferredRecalcLayout);
+
+  layoutRecalcFixedSizeRoots.reserve(thisFrameUpdate.size());
+  layoutRecalcSizeRoots.reserve(thisFrameUpdate.size());
+  layoutRecalcFlowRoots.reserve(thisFrameUpdate.size());
+
+  for (Element *elem : thisFrameUpdate)
+  {
+    Element *fixedSizeRoot, *sizeRoot, *flowRoot;
+    elem->getSizeRoots(fixedSizeRoot, sizeRoot, flowRoot);
+
+    if (!fixedSizeRoot->hasFlags(Element::F_LAYOUT_RECALC_PENDING_FIXED_SIZE))
+    {
+      layoutRecalcFixedSizeRoots.push_back(fixedSizeRoot);
+      fixedSizeRoot->updFlags(Element::F_LAYOUT_RECALC_PENDING_FIXED_SIZE, true);
+    }
+
+    if (!sizeRoot->hasFlags(Element::F_LAYOUT_RECALC_PENDING_SIZE))
+    {
+      layoutRecalcSizeRoots.push_back(sizeRoot);
+      sizeRoot->updFlags(Element::F_LAYOUT_RECALC_PENDING_SIZE, true);
+    }
+
+    if (!flowRoot->hasFlags(Element::F_LAYOUT_RECALC_PENDING_FLOW))
+    {
+      layoutRecalcFlowRoots.push_back(flowRoot);
+      flowRoot->updFlags(Element::F_LAYOUT_RECALC_PENDING_FLOW, true);
+    }
+  }
+
+  removeRootsWithParentFlag(layoutRecalcFixedSizeRoots, Element::F_LAYOUT_RECALC_PENDING_FIXED_SIZE);
+  removeRootsWithParentFlag(layoutRecalcSizeRoots, Element::F_LAYOUT_RECALC_PENDING_SIZE);
+  removeRootsWithParentFlag(layoutRecalcFlowRoots, Element::F_LAYOUT_RECALC_PENDING_FLOW);
+
+  recalcLayoutFromRoots(make_span(layoutRecalcFixedSizeRoots), make_span(layoutRecalcSizeRoots), make_span(layoutRecalcFlowRoots));
+
+  layoutRecalcFixedSizeRoots.clear();
+  layoutRecalcSizeRoots.clear();
+  layoutRecalcFlowRoots.clear();
+}
+
+void GuiScene::updateGlobalHover()
+{
   G_ASSERT(!dbgIsInUpdateHover);
   dbgIsInUpdateHover = true;
 
   dag::Vector<Point2, framemem_allocator> pointers;
   dag::Vector<SQInteger, framemem_allocator> stickScrollFlags;
 
-  bool haveVisualPointer = activeCursor != nullptr || config.ignorePointerVisibilityForHovers;
-  int numVisualPtrs = haveVisualPointer ? 1 : 0;
+  bool haveVisualPointer = false;
 
-  const size_t nPtrs = numVisualPtrs + touchPointers.activePointers.size();
-  pointers.resize(nPtrs);
-  stickScrollFlags.resize(nPtrs);
+  // Panel hovers are updated independently via VR input events
+  if (focusedScreen && focusedScreen->isMainScreen)
+  {
+    haveVisualPointer = activeCursor != nullptr || config.ignorePointerVisibilityForHovers;
+    int numVisualPtrs = haveVisualPointer ? 1 : 0;
 
-  if (haveVisualPointer)
-    pointers[0] = pointerPos.mousePos;
-  for (size_t i = 0, n = touchPointers.activePointers.size(); i < n; ++i)
-    pointers[i + numVisualPtrs] = touchPointers.activePointers[i].pos;
+    const size_t nPtrs = numVisualPtrs + touchPointers.activePointers.size();
+    pointers.resize(nPtrs);
+    stickScrollFlags.resize(nPtrs);
 
-  if (nPtrs)
-    screen->etree.updateHover(screen->inputStack, nPtrs, &pointers[0], &stickScrollFlags[0]);
-  else
-    screen->etree.updateHover(screen->inputStack, 0, nullptr, nullptr); // prevent assert in [] operator
+    if (haveVisualPointer)
+      pointers[0] = activePointerPos();
+    for (size_t i = 0, n = touchPointers.activePointers.size(); i < n; ++i)
+      pointers[i + numVisualPtrs] = touchPointers.activePointers[i].pos;
+
+    focusedScreen->etree.updateHover(focusedScreen->inputStack, nPtrs, pointers.data(), stickScrollFlags.data());
+  }
+  else if (focusedScreen && focusedScreen->panel)
+  {
+    // Special processing for daRg screen space cursor interacting with panels
+    // Allow it to work on panels, too
+    Panel *panel = focusedScreen->panel;
+    constexpr int ptrId = SpatialSceneData::AimOrigin::Internal;
+
+    auto isPointInPanel = [](Panel *panel, Point2 pos) {
+      IPoint2 canvasSize;
+      G_ASSERT_RETURN(panel->getCanvasSize(canvasSize), false);
+      return pos.x >= 0 && pos.y >= 0 && pos.x < canvasSize.x && pos.y < canvasSize.y;
+    };
+
+    Point2 localPos;
+    if (focusedScreen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos) &&
+        isPointInPanel(panel, localPos))
+    {
+      panel->setCursorState(ptrId, true, localPos);
+      vrPointers[ptrId].activePanel = panel;
+    }
+    else
+    {
+      panel->setCursorState(ptrId, false);
+      if (vrPointers[ptrId].activePanel == panel)
+        vrPointers[ptrId].activePanel = nullptr;
+    }
+  }
+
+  //
+  // For now, support clickable info only for main sub-scene
+  //
 
   Sqrat::Object clickableInfo(sqvm);
 
   bool willHandleClick = false;
-  if (haveVisualPointer)
+  if (haveVisualPointer && focusedScreen && focusedScreen->isMainScreen)
   {
-    for (Element *elem : screen->etree.topLevelHovers)
+    for (Element *elem : focusedScreen->etree.topLevelHovers)
     {
       if (elem->hasBehaviors(Behavior::F_CAN_HANDLE_CLICKS))
       {
@@ -1297,18 +1302,17 @@ void GuiScene::updateHover()
     }
   }
 
-  bool cursorWasOverStickScroll = cursorOverStickScroll->getValueRef().Cast<SQInteger>() != 0;
+  bool cursorWasOverStickScroll = cursorOverStickScroll.getValue().Cast<SQInteger>() != 0;
   bool cursorIsOverStickScroll = haveVisualPointer && stickScrollFlags[0] != 0;
 
-  String frpErrMsg;
-  cursorOverStickScroll->setValue(Sqrat::Object(haveVisualPointer ? stickScrollFlags[0] : 0, sqvm), frpErrMsg);
-  cursorOverClickable->setValue(Sqrat::Object(willHandleClick, sqvm), frpErrMsg);
-  hoveredClickableInfo->setValue(clickableInfo, frpErrMsg);
+  cursorOverStickScroll.setValue(Sqrat::Object(haveVisualPointer ? stickScrollFlags[0] : 0, sqvm));
+  cursorOverClickable.setValue(Sqrat::Object(willHandleClick, sqvm));
+  hoveredClickableInfo.setValue(clickableInfo);
 
   if (cursorWasOverStickScroll != cursorIsOverStickScroll)
     notifyInputConsumersCallback();
 
-  validateOverlaidXmbFocus();
+  validateOverlaidXmbFocus(); // TODO: Move it from here to after input stack rebuild
 
   dbgIsInUpdateHover = false;
 }
@@ -1321,17 +1325,17 @@ void GuiScene::removeCursor(Cursor *c)
   allCursors.erase(c);
   if (c == activeCursor)
     activeCursor = nullptr;
-  for (auto &itPanelData : panels)
-    itPanelData.second->panel->onRemoveCursor(c);
+  for (auto &itPanel : panels)
+    itPanel.second->onRemoveCursor(c);
 }
 
 
-void GuiScene::updateActiveCursor()
+void GuiScene::updateGlobalActiveCursor()
 {
   Cursor *prevCursor = activeCursor;
   activeCursor = nullptr;
 
-  Point2 mousePos = pointerPos.mousePos;
+  Point2 mousePos = activePointerPos();
 
   if (HumanInput::stg_pnt.emuTouchScreenWithMouse)
   {
@@ -1343,15 +1347,17 @@ void GuiScene::updateActiveCursor()
     // Also for daRg we ideally should not use mouse emulation at all - behavior
     // should process all the pointer devices in unified manner, so we may just switch to
     // mouse input for development on PC
-    if (HumanInput::IGenPointing *mouse = pointerPos.getMouse())
+    if (HumanInput::IGenPointing *mouse = MousePointer::get_mouse())
       mousePos.set(mouse->getRawState().mouse.x, mouse->getRawState().mouse.y);
   }
 
-  if (!isCursorForcefullyDisabled())
+  bool haveFallbackCursor = config.useDefaultCursor || forcedCursor.GetType() == OT_INSTANCE;
+
+  if (!isCursorForcefullyDisabled() && !haveActiveCursorOnPanels())
   {
+    Screen *screen = getGuiScreen(MAIN_SCREEN_ID);
     bool matched = false;
-    auto screen = getFocusedScreen();
-    if (screen && !haveActiveCursorOnPanels())
+    if (screen)
     {
       for (const InputEntry &ie : screen->cursorStack.stack)
       {
@@ -1363,78 +1369,53 @@ void GuiScene::updateActiveCursor()
             break;
           }
 
-          if (config.useDefaultCursor && ie.elem->hasFlags(Element::F_STOP_MOUSE | Element::F_STOP_HOVER))
+          if (haveFallbackCursor && ie.elem->hasFlags(Element::F_STOP_POINTING | Element::F_STOP_HOVER))
             break;
         }
       }
     }
 
-    if (!matched && config.useDefaultCursor)
-      activeCursor = config.defaultCursor.Cast<Cursor *>();
-
-    if (activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform)
-      activeCursor->etree.root->transform->translate = cursorPosition(activeCursor);
+    if (!matched)
+    {
+      if (forcedCursor.GetType() == OT_INSTANCE)
+        activeCursor = forcedCursor.Cast<Cursor *>();
+      else if (config.useDefaultCursor)
+        activeCursor = config.defaultCursor.Cast<Cursor *>();
+    }
   }
+
+  if (activeCursor && activeCursor->etree.root && activeCursor->etree.root->transform)
+    activeCursor->etree.root->transform->translate = activePointerPos() - activeCursor->hotspot;
 
   if (prevCursor && prevCursor != activeCursor)
     prevCursor->etree.skipAllOneShotAnims();
 }
 
 
-Point2 GuiScene::cursorPosition(Cursor *cursor) const
+CursorPosState &GuiScene::activePointerState()
 {
-  Point2 result(pointerPos.mousePos);
-
-  if (!shouldIgnoreDeviceCursorPos)
-  {
-    if (HumanInput::IGenPointing *mouse = getMouse())
-    {
-      result.x = mouse->getRawState().mouse.x;
-      result.y = mouse->getRawState().mouse.y;
-    }
-  }
-
-  result.x -= cursor->hotspot.x;
-  result.y -= cursor->hotspot.y;
-
-  return result;
+  return activePointingDevice == DEVID_JOYSTICK ? static_cast<CursorPosState &>(gamepadCursor)
+                                                : static_cast<CursorPosState &>(mousePointer);
 }
 
-
-void GuiScene::setMousePos(const Point2 &p, bool reset_target)
+const CursorPosState &GuiScene::activePointerState() const
 {
-  Point2 prevMousePos = pointerPos.mousePos;
-  pointerPos.setMousePos(p, reset_target);
-
-#if _TARGET_XBOX
-
-  // xbox mouse driver doesn't send MOUSE_MOVE events
-  const float moveFactor = lengthSq(prevMousePos - pointerPos.mousePos);
-  if (moveFactor > 0.01f)
-    onMouseEvent(darg::INP_EV_POINTER_MOVE, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 0);
-
-#else
-
-  if (!getMouse()) // since we won't get into mouse move event handler
-  {
-    const float moveFactor = lengthSq(prevMousePos - pointerPos.mousePos);
-    if (moveFactor > 0.5f)
-      updateHover();
-  }
-
-#endif
+  return activePointingDevice == DEVID_JOYSTICK ? static_cast<const CursorPosState &>(gamepadCursor)
+                                                : static_cast<const CursorPosState &>(mousePointer);
 }
 
+Point2 GuiScene::activePointerPos() const { return activePointerState().pos; }
 
-HumanInput::IGenPointing *GuiScene::getMouse()
-{
-  HumanInput::IGenPointing *mouse = nullptr;
-  if (::global_cls_drv_pnt)
-    mouse = ::global_cls_drv_pnt->getDevice(0);
-  return mouse;
-}
 
-HumanInput::IGenJoystick *GuiScene::getJoystick()
+void GuiScene::setMousePos(const Point2 &p, bool reset_target) { mousePointer.setMousePos(p, reset_target); }
+
+
+void GuiScene::requestActivePointerNextFramePos(const Point2 &p) { activePointerState().requestNextFramePos(p); }
+
+void GuiScene::requestActivePointerTargetPos(const Point2 &p) { activePointerState().requestTargetPos(p); }
+
+
+HumanInput::IGenJoystick *get_fallback_joystick()
 {
   if (::global_cls_composite_drv_joy)
     return ::global_cls_composite_drv_joy->getDefaultJoystick();
@@ -1444,18 +1425,26 @@ HumanInput::IGenJoystick *GuiScene::getJoystick()
 }
 
 
-void GuiScene::moveMouseCursorToElem(Element *elem, bool use_transform)
+HumanInput::IGenJoystick *GuiScene::getJoystick(int16_t ord_id) const
+{
+  if (guiSceneCb && guiSceneCb->isJoystickManagedExternally())
+    return guiSceneCb->getActiveJoystick(ord_id);
+  return get_fallback_joystick();
+}
+
+
+void GuiScene::moveActiveCursorToElem(Element *elem, bool use_transform)
 {
   BBox2 bbox;
   if (use_transform)
     bbox = elem->calcTransformedBbox();
   else
     bbox = BBox2(elem->screenCoord.screenPos, elem->screenCoord.screenPos + elem->screenCoord.size);
-  moveMouseCursorToElemBox(elem, bbox, true);
+  moveActiveCursorToElemBox(elem, bbox, true);
 }
 
 
-void GuiScene::moveMouseCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump)
+void GuiScene::moveActiveCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump)
 {
   Point2 anchor;
   Point2 nextPos;
@@ -1463,18 +1452,25 @@ void GuiScene::moveMouseCursorToElemBox(Element *elem, const BBox2 &bbox, bool j
     nextPos = min(max(floor(bbox.leftTop() + anchor), bbox.leftTop()), bbox.rightBottom());
   else
     nextPos = floor(bbox.center());
-  if (jump)
-    pointerPos.requestNextFramePos(nextPos);
-  else
-    pointerPos.requestTargetPos(nextPos);
+
+  Point2 nextPosGlobal = nextPos;
+
+  Screen *screen = elem->etree->screen;
+  bool convOk = screen->localToDisplay(nextPos, lastCameraTransform, lastCameraFrustum, nextPosGlobal);
+
+  if (convOk)
+  {
+    if (jump)
+      requestActivePointerNextFramePos(nextPosGlobal);
+    else
+      requestActivePointerTargetPos(nextPosGlobal);
+  }
 }
 
 
-int GuiScene::handleMouseClick(InputEvent event, InputDevice device, int btn_idx, short mx, short my, int buttons, int accum_res)
+int GuiScene::handleMouseClick(Screen *screen, InputEvent event, InputDevice device, int btn_idx, Point2 pos, int accum_res)
 {
-  auto screen = getFocusedScreen();
-  if (!screen || !screen->etree.root)
-    return 0;
+  G_ASSERT_RETURN(screen, 0);
 
   const int pointerId = 0;
 
@@ -1484,27 +1480,28 @@ int GuiScene::handleMouseClick(InputEvent event, InputDevice device, int btn_idx
 
   for (const InputEntry &ie : screen->inputStack.stack)
   {
-    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
+    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || ie.elem->hasFlags(Element::F_STOP_POINTING))
     {
-      bool isHit = ie.elem->hitTest(mx, my);
+      bool isHit = ie.elem->hitTest(pos);
 
       // set keyboard focus on click release
       if (isHit && !buttonDown && (btn_idx == 0 || btn_idx == 1) && ie.elem->hasBehaviors(Behavior::F_FOCUS_ON_CLICK) &&
-          !screen->etree.hasCapturedKbFocus() && !(summaryRes & R_PROCESSED))
-        screen->etree.setKbFocus(ie.elem);
+          !kbFocus.hasCapturedFocus() && !(summaryRes & R_PROCESSED))
+        kbFocus.setFocus(ie.elem);
 
       for (Behavior *bhv : ie.elem->behaviors)
       {
         if (bhv->flags & Behavior::F_HANDLE_MOUSE)
-          summaryRes |= bhv->mouseEvent(&screen->etree, ie.elem, device, event, pointerId, btn_idx, mx, my, buttons, summaryRes);
+          summaryRes |= bhv->pointingEvent(&screen->etree, ie.elem, device, event, pointerId, btn_idx, pos, summaryRes);
       }
 
-      if (isHit && ie.elem->hasFlags(Element::F_STOP_MOUSE))
+      if (isHit && ie.elem->hasFlags(Element::F_STOP_POINTING))
         summaryRes |= R_PROCESSED | R_STOPPED;
 
       // release keyboard focus on click outside of element
-      if (ie.elem == screen->etree.kbFocus && !isHit && !screen->etree.hasCapturedKbFocus())
-        screen->etree.setKbFocus(nullptr);
+      if (ie.elem == kbFocus.focus && !isHit && !kbFocus.hasCapturedFocus())
+        kbFocus.setFocus(nullptr);
+      // ^ if we allow clicking multiple screens, this logic to unfocus element should be revised
     }
   }
 
@@ -1516,14 +1513,65 @@ int GuiScene::onMouseEvent(InputEvent event, int data, short mx, short my, int b
 {
   ApiThreadCheck atc(this);
 
-  return onMouseEventInternal(event, DEVID_MOUSE, data, mx, my, buttons, prev_result);
+  if (event == INP_EV_POINTER_MOVE)
+  {
+    auto mouse = MousePointer::get_mouse();
+    if (mouse && mouse->getRelativeMovementMode())
+      return prev_result;
+
+    // isProgrammaticMove: setMousePos() on Windows triggers a synchronous
+    // WM_MOUSEMOVE via mouse->setPosition().  If that reentrant event reached
+    // this block it would call setMousePos() recursively.  Skip the switch
+    // when the POINTER_MOVE originates from our own programmatic warp.
+    if (activePointingDevice != DEVID_MOUSE && !mousePointer.isProgrammaticMove())
+    {
+      // Set device BEFORE setMousePos to prevent reentry from the same path.
+      activePointingDevice = DEVID_MOUSE;
+      // Warp OS cursor to where the gamepad cursor was - no visual jump
+      mousePointer.setMousePos(gamepadCursor.pos, /*reset_target*/ true);
+      // This event's (mx, my) is the stale pre-warp OS cursor position.
+      // Discard it. The next real mouse move carries post-warp coords.
+      updateGlobalHover();
+      return prev_result;
+    }
+
+    if (!mousePointer.isProgrammaticMove())
+      doSetXmbFocus(nullptr);
+
+    mousePointer.onMouseMoveEvent(Point2(mx, my));
+
+    updateGlobalHover();
+  }
+
+  int accumRes = prev_result;
+  for (auto &[id, screen] : screens)
+  {
+    if (!doesScreenAcceptInput(screen.get()) && event != INP_EV_POINTER_MOVE)
+      continue;
+
+    Point2 local;
+    if (!screen->displayToLocal(Point2(mx, my), lastCameraTransform, lastCameraFrustum, local))
+      local = out_of_screen_pos;
+    accumRes |= onMouseEventInternal(screen.get(), event, DEVID_MOUSE, data, local, buttons, accumRes);
+  }
+
+  callScriptHandlers(); // call handlers early for faster response
+
+  if (accumRes & R_PROCESSED) // document could possibly be updated from handlers
+    rebuildInvalidatedParts();
+
+  return accumRes;
 }
 
 
-int GuiScene::onMouseEventInternal(InputEvent event, InputDevice device, int data, short mx, short my, int buttons, int prev_result)
+int GuiScene::onMouseEventInternal(Screen *screen, InputEvent event, InputDevice device, int data, Point2 pos, int buttons,
+  int prev_result)
 {
-  DEBUG_TRACE_INPDEV("GuiScene::onMouseEvent(event=%d, device=%d, data=%d, mx=%d, my=%d, buttons=%d)", event, device, data, mx, my,
-    buttons);
+  G_UNUSED(buttons);
+  DEBUG_TRACE_INPDEV("GuiScene::onMouseEvent(event=%d, device=%d, data=%d, pos=%.f, %.f, buttons=%d)", event, device, data, pos.x,
+    pos.y, buttons);
+
+  G_ASSERT_RETURN(screen, 0);
 
   const int pointerId = 0;
 
@@ -1545,94 +1593,63 @@ int GuiScene::onMouseEventInternal(InputEvent event, InputDevice device, int dat
   // else if (event == INP_EV_POINTER_MOVE)
   //   visuallog::logmsg("---  INP_EV_POINTER_MOVE  ---");
 
-  if (event == INP_EV_POINTER_MOVE && gamepadCursor.isMovingMouse)
-    device = DEVID_JOYSTICK;
-
-  if (event == INP_EV_POINTER_MOVE)
-  {
-    auto mouse = getMouse();
-    if (mouse && mouse->getRelativeMovementMode())
-      return 0;
-
-    if (!pointerPos.isSettingMousePos)
-      setXmbFocus(nullptr);
-
-    pointerPos.onMouseMoveEvent(Point2(mx, my));
-
-    updateHover();
-  }
-
   int summaryRes = prev_result;
 
-  if (auto screen = getFocusedScreen(); screen && screen->etree.root)
+  if (event == INP_EV_PRESS || event == INP_EV_RELEASE)
   {
-    if (event == INP_EV_PRESS || event == INP_EV_RELEASE)
-    {
-      if (updateHotkeys())
-        summaryRes |= R_PROCESSED;
+    if (updateHotkeys())
+      summaryRes |= R_PROCESSED;
 
-      summaryRes |= handleMouseClick(event, device, data, mx, my, buttons, summaryRes);
-    }
-    else if (event == INP_EV_MOUSE_WHEEL)
-    {
-      Element *startHandler = nullptr;
+    summaryRes |= handleMouseClick(screen, event, device, data, pos, summaryRes);
+  }
+  else if (event == INP_EV_MOUSE_WHEEL)
+  {
+    Element *startHandler = nullptr;
 
-      for (const InputEntry &ie : screen->inputStack.stack)
+    for (const InputEntry &ie : screen->inputStack.stack)
+    {
+      if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE) || ie.elem->hasFlags(Element::F_STOP_POINTING))
       {
-        if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
-        {
-          // If some element was initially hit, only its parents are allowed to process wheel events
-          // We need to pass mouse wheel event through input stack to allow
-          // scrolling containers that contain mouse-blocking children
-          if (startHandler && !ie.elem->isAscendantOf(startHandler))
-            continue;
+        // If some element was initially hit, only its parents are allowed to process wheel events
+        // We need to pass mouse wheel event through input stack to allow
+        // scrolling containers that contain mouse-blocking children
+        if (startHandler && !ie.elem->isAscendantOf(startHandler))
+          continue;
 
-          for (Behavior *bhv : ie.elem->behaviors)
-          {
-            if (bhv->flags & Behavior::F_HANDLE_MOUSE)
-              summaryRes |= bhv->mouseEvent(&screen->etree, ie.elem, device, event, pointerId, data, mx, my, buttons, summaryRes);
-          }
-
-          if (startHandler == nullptr && ie.elem->hitTest(mx, my))
-            startHandler = ie.elem;
-        }
-      }
-    }
-    else if (event == INP_EV_POINTER_MOVE)
-    {
-      for (const InputEntry &ie : screen->inputStack.stack)
-      {
-        if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE))
+        for (Behavior *bhv : ie.elem->behaviors)
         {
-          for (Behavior *bhv : ie.elem->behaviors)
-            summaryRes |= bhv->mouseEvent(&screen->etree, ie.elem, device, event, pointerId, data, mx, my, buttons, summaryRes);
+          if (bhv->flags & Behavior::F_HANDLE_MOUSE)
+            summaryRes |= bhv->pointingEvent(&screen->etree, ie.elem, device, event, pointerId, data, pos, summaryRes);
         }
-        if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(mx, my))
-          summaryRes |= R_PROCESSED | R_STOPPED;
+
+        if (startHandler == nullptr && ie.elem->hitTest(pos))
+          startHandler = ie.elem;
       }
     }
   }
-
-  callScriptHandlers();
-
-  if (summaryRes & R_PROCESSED)
+  else if (event == INP_EV_POINTER_MOVE)
   {
-    // document could possibly be updated from handlers
-    rebuildInvalidatedParts();
+    for (const InputEntry &ie : screen->inputStack.stack)
+    {
+      if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE))
+      {
+        for (Behavior *bhv : ie.elem->behaviors)
+          summaryRes |= bhv->pointingEvent(&screen->etree, ie.elem, device, event, pointerId, data, pos, summaryRes);
+      }
+      if (ie.elem->hasFlags(Element::F_STOP_POINTING) && ie.elem->hitTest(pos))
+        summaryRes |= R_PROCESSED | R_STOPPED;
+    }
   }
 
   if (summaryRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-  {
-    rebuildElemStacks(false);
-    updateHover();
-  }
+    rebuildStacksAndNotify(screen, /*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
 
   return summaryRes;
 }
 
 
 int GuiScene::onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputDevice device, int button_id, short mx, short my,
-  int buttons, int prev_result)
+  int prev_result)
 {
   // Mouse emulation for now
   DEBUG_TRACE_INPDEV("GuiScene::onPanelMouseEvent(hand=%d, event=%d, pos=%d, %d)", hand, event, mx, my);
@@ -1660,14 +1677,14 @@ int GuiScene::onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputD
 
   for (const InputEntry &ie : panel->screen->inputStack.stack)
   {
-    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
+    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE) || ie.elem->hasFlags(Element::F_STOP_POINTING))
     {
       for (Behavior *bhv : ie.elem->behaviors)
       {
         if (bhv->flags & Behavior::F_HANDLE_MOUSE)
-          summaryRes |= bhv->mouseEvent(&panel->screen->etree, ie.elem, device, event, hand, button_id, mx, my, buttons, summaryRes);
+          summaryRes |= bhv->pointingEvent(&panel->screen->etree, ie.elem, device, event, hand, button_id, Point2(mx, my), summaryRes);
       }
-      if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(mx, my))
+      if (ie.elem->hasFlags(Element::F_STOP_POINTING) && ie.elem->hitTest(mx, my))
         summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
@@ -1684,24 +1701,9 @@ int GuiScene::onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputD
   }
 
   if (summaryRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-    panel->rebuildStacks();
+    rebuildStacksAndNotify(panel->screen, /*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
 
   return summaryRes & R_PROCESSED;
-}
-
-
-static HumanInput::PointingRawState::Touch fill_touch_data(Panel *panel, int hand, short x, short y)
-{
-  static unsigned last_touch_ord_id = 0;
-  // DaRg does not use extra-data yet... And I am hesitant to cache previous touches in full
-  HumanInput::PointingRawState::Touch out;
-  out.x = x;
-  out.y = y;
-  out.touchSrc = HumanInput::PointingRawState::Touch::TS_touchScreen;
-  if (!panel->touchPointers.contains(hand))
-    out.touchOrdId = ++last_touch_ord_id;
-
-  return out;
 }
 
 
@@ -1714,31 +1716,29 @@ int GuiScene::onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short 
   if (status.isShowingFullErrorDetails || !isInputActive())
     return 0;
 
-  HumanInput::PointingRawState::Touch touch = fill_touch_data(panel, hand, tx, ty);
-
   int summaryRes = prev_result;
   for (const InputEntry &ie : panel->screen->inputStack.stack)
   {
-    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_TOUCH) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
+    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_TOUCH) || ie.elem->hasFlags(Element::F_STOP_POINTING))
     {
       for (Behavior *bhv : ie.elem->behaviors)
       {
         if (bhv->flags & Behavior::F_HANDLE_TOUCH)
-          summaryRes |= bhv->touchEvent(&panel->screen->etree, ie.elem, event, nullptr, hand, touch, summaryRes);
+          summaryRes |= bhv->pointingEvent(&panel->screen->etree, ie.elem, DEVID_TOUCH, event, hand, 0, Point2(tx, ty), summaryRes);
       }
 
-      if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(Point2(touch.x, touch.y)))
+      if (ie.elem->hasFlags(Element::F_STOP_POINTING) && ie.elem->hitTest(Point2(tx, ty)))
         summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
 
   if (event == INP_EV_POINTER_MOVE)
   {
-    setXmbFocus(nullptr);
+    doSetXmbFocus(nullptr);
     panel->updateHover();
   }
 
-  panel->touchPointers.updateState(event, hand, touch);
+  panel->touchPointers.updateState(event, hand, Point2(tx, ty));
 
   callScriptHandlers();
 
@@ -1746,13 +1746,13 @@ int GuiScene::onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short 
     rebuildInvalidatedParts();
 
   if (summaryRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-    panel->rebuildStacks();
+    rebuildStacksAndNotify(panel->screen, /*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
 
   return summaryRes & R_PROCESSED;
 }
 
 
-int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *pnt, int touch_idx,
+int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *, int touch_idx,
   const HumanInput::PointingRawState::Touch &touch, int prev_result)
 {
   ApiThreadCheck atc(this);
@@ -1773,28 +1773,30 @@ int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *pnt, int 
   if (!screen)
     return 0;
 
+  Point2 pos(touch.x, touch.y);
+
   int summaryRes = prev_result;
 
   for (const InputEntry &ie : screen->inputStack.stack)
   {
-    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_TOUCH) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
+    if (ie.elem->hasBehaviors(Behavior::F_HANDLE_TOUCH) || ie.elem->hasFlags(Element::F_STOP_POINTING))
     {
       for (Behavior *bhv : ie.elem->behaviors)
       {
         if (bhv->flags & Behavior::F_HANDLE_TOUCH)
-          summaryRes |= bhv->touchEvent(&screen->etree, ie.elem, event, pnt, touch_idx, touch, summaryRes);
+          summaryRes |= bhv->pointingEvent(&screen->etree, ie.elem, DEVID_TOUCH, event, touch_idx, 0, pos, summaryRes);
       }
 
-      if (ie.elem->hasFlags(Element::F_STOP_MOUSE) && ie.elem->hitTest(Point2(touch.x, touch.y)))
+      if (ie.elem->hasFlags(Element::F_STOP_POINTING) && ie.elem->hitTest(pos))
         summaryRes |= R_PROCESSED | R_STOPPED;
     }
   }
 
   if (event == INP_EV_POINTER_MOVE)
-    setXmbFocus(nullptr);
+    doSetXmbFocus(nullptr);
 
-  touchPointers.updateState(event, touch_idx, touch);
-  updateHover();
+  touchPointers.updateState(event, touch_idx, pos);
+  updateGlobalHover();
 
   callScriptHandlers();
 
@@ -1805,7 +1807,7 @@ int GuiScene::onTouchEvent(InputEvent event, HumanInput::IGenPointing *pnt, int 
   }
 
   if (summaryRes & R_REBUILD_RENDER_AND_INPUT_LISTS)
-    rebuildElemStacks(false);
+    rebuildStacksAndNotify(screen, /*refresh_hotkeys_nav*/ false, /*update_global_hover*/ false);
 
   return summaryRes;
 }
@@ -1853,34 +1855,46 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
   int resFlags = prev_result;
 
   eastl::vector_set<HotkeyButton>::iterator itClickBtn;
+
   if (config.kbCursorControl && event == INP_EV_RELEASE &&
       (itClickBtn = pressedClickButtons.find(HotkeyButton(DEVID_KEYBOARD, key_idx))) != pressedClickButtons.end())
   {
-    resFlags = handleMouseClick(INP_EV_RELEASE, DEVID_KEYBOARD, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
+    for (auto &[id, screen] : screens)
+    {
+      if (!doesScreenAcceptInput(screen.get()))
+        continue;
+
+      Point2 localPos;
+      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+        localPos = out_of_screen_pos;
+      resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_KEYBOARD, 0, localPos, resFlags);
+    }
+
     pressedClickButtons.erase(itClickBtn);
   }
 
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return 0;
-
-  Element *focused = screen->etree.kbFocus;
-  if (focused && focused->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
+  if (kbFocus.focus && kbFocus.focus->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
   {
-    for (Behavior *bhv : focused->behaviors)
+    for (Behavior *bhv : kbFocus.focus->behaviors)
       if (bhv->flags & Behavior::F_HANDLE_KEYBOARD)
-        resFlags |= bhv->kbdEvent(&screen->etree, focused, event, key_idx, repeat, wc, resFlags);
+        resFlags |= bhv->kbdEvent(kbFocus.focus->etree, kbFocus.focus, event, key_idx, repeat, wc, resFlags);
   }
 
-  if ((screen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
+  for (auto &[id, screen] : screens)
   {
-    for (const InputEntry &ie : screen->inputStack.stack)
+    if (!doesScreenAcceptInput(screen.get()))
+      continue;
+
+    if ((screen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
     {
-      if (ie.elem != focused && ie.elem->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
+      for (const InputEntry &ie : screen->inputStack.stack)
       {
-        for (Behavior *bhv : ie.elem->behaviors)
-          if ((bhv->flags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
-            resFlags |= bhv->kbdEvent(&screen->etree, ie.elem, event, key_idx, repeat, wc, resFlags);
+        if (ie.elem != kbFocus.focus && ie.elem->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
+        {
+          for (Behavior *bhv : ie.elem->behaviors)
+            if ((bhv->flags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
+              resFlags |= bhv->kbdEvent(&screen->etree, ie.elem, event, key_idx, repeat, wc, resFlags);
+        }
       }
     }
   }
@@ -1891,7 +1905,17 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
 
   if (config.kbCursorControl && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_KEYBOARD, key_idx))
   {
-    resFlags |= handleMouseClick(INP_EV_PRESS, DEVID_KEYBOARD, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
+    for (auto &[id, screen] : screens)
+    {
+      if (!doesScreenAcceptInput(screen.get()))
+        continue;
+
+      Point2 localPos;
+      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+        localPos = out_of_screen_pos;
+      resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_KEYBOARD, 0, localPos, resFlags);
+    }
+
     pressedClickButtons.insert(HotkeyButton(DEVID_KEYBOARD, key_idx));
   }
 
@@ -1916,8 +1940,8 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
 
   if (resFlags & R_REBUILD_RENDER_AND_INPUT_LISTS)
   {
-    rebuildElemStacks(false);
-    updateHover();
+    // TODO: not always need to update all screens
+    rebuildAllScreensStacksAndNotify(/*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
   }
 
   return resFlags;
@@ -1934,32 +1958,43 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
   if (status.isShowingFullErrorDetails || !isInputActive())
     return 0;
 
+  if (event == INP_EV_PRESS && activePointingDevice != DEVID_JOYSTICK)
+  {
+    gamepadCursor.syncPosFrom(mousePointer);
+    activePointingDevice = DEVID_JOYSTICK;
+  }
+
   int resFlags = prev_result;
 
-  if (event == INP_EV_RELEASE && btn_idx == lastDirPadNavDir)
-    lastDirPadNavDir = -1;
+  if (event == INP_EV_RELEASE && btn_idx == lastDirPadNavBtn)
+    lastDirPadNavBtn = -1;
 
   eastl::vector_set<HotkeyButton>::iterator itClickBtn;
   if (event == INP_EV_RELEASE &&
       (itClickBtn = pressedClickButtons.find(HotkeyButton(DEVID_JOYSTICK, btn_idx))) != pressedClickButtons.end())
   {
-    resFlags = handleMouseClick(INP_EV_RELEASE, DEVID_JOYSTICK, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
+    for (auto &[id, screen] : screens)
+    {
+      if (!doesScreenAcceptInput(screen.get()))
+        continue;
+
+      Point2 localPos;
+      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+        localPos = out_of_screen_pos;
+      resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_JOYSTICK, 0, localPos, resFlags);
+    }
     pressedClickButtons.erase(itClickBtn);
   }
 
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return 0;
-
-  if (screen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_JOYSTICK)
+  if (focusedScreen && (focusedScreen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_JOYSTICK))
   {
-    for (const InputEntry &ie : screen->inputStack.stack)
+    for (const InputEntry &ie : focusedScreen->inputStack.stack)
     {
       if (ie.elem->hasBehaviors(Behavior::F_HANDLE_JOYSTICK))
       {
         for (Behavior *bhv : ie.elem->behaviors)
           if (bhv->flags & Behavior::F_HANDLE_JOYSTICK)
-            resFlags |= bhv->joystickBtnEvent(&screen->etree, ie.elem, joy, event, btn_idx, device_number, buttons, resFlags);
+            resFlags |= bhv->joystickBtnEvent(&focusedScreen->etree, ie.elem, joy, event, btn_idx, device_number, buttons, resFlags);
       }
     }
   }
@@ -1970,26 +2005,32 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
 
   if (::dgs_app_active && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_JOYSTICK, btn_idx))
   {
-    resFlags |= handleMouseClick(INP_EV_PRESS, DEVID_JOYSTICK, 0, pointerPos.mousePos.x, pointerPos.mousePos.y, 1, resFlags);
+    for (auto &[id, screen] : screens)
+    {
+      if (!doesScreenAcceptInput(screen.get()))
+        continue;
+
+      Point2 localPos;
+      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+        localPos = out_of_screen_pos;
+      resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_JOYSTICK, 0, localPos, resFlags);
+    }
     pressedClickButtons.insert(HotkeyButton(DEVID_JOYSTICK, btn_idx));
   }
 
   if (::dgs_app_active && (event == INP_EV_PRESS) && !(resFlags & R_PROCESSED))
   {
-    using namespace HumanInput;
-    bool isDirPad = btn_idx == JOY_XINPUT_REAL_BTN_D_UP || btn_idx == JOY_XINPUT_REAL_BTN_D_DOWN ||
-                    btn_idx == JOY_XINPUT_REAL_BTN_D_LEFT || btn_idx == JOY_XINPUT_REAL_BTN_D_RIGHT;
-    bool isStickNav = btn_idx == JOY_XINPUT_REAL_BTN_L_THUMB_UP || btn_idx == JOY_XINPUT_REAL_BTN_L_THUMB_DOWN ||
-                      btn_idx == JOY_XINPUT_REAL_BTN_L_THUMB_LEFT || btn_idx == JOY_XINPUT_REAL_BTN_L_THUMB_RIGHT;
+    using namespace dirpadnav;
+    bool isDirPad = is_dir_pad_button(btn_idx);
+    bool isStickNav = is_stick_dir_button(btn_idx);
     if (isDirPad || (!config.gamepadCursorControl && config.gamepadStickAsDirpad && isStickNav))
     {
-      static constexpr Direction stickDirs[] = {DIR_RIGHT, DIR_LEFT, DIR_UP, DIR_DOWN};
-      dirPadNavigate(Direction(isDirPad ? btn_idx : stickDirs[btn_idx - JOY_XINPUT_REAL_BTN_L_THUMB_RIGHT]));
+      dirPadNavigate(gamepad_button_to_dir(btn_idx));
 
       float delay = ::max(config.dirPadRepeatDelay, config.dirPadRepeatTime);
       if (delay > 0)
       {
-        lastDirPadNavDir = btn_idx;
+        lastDirPadNavBtn = btn_idx;
         dirPadNavRepeatTimeout = delay;
       }
     }
@@ -2002,138 +2043,39 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
 
   if (resFlags & R_REBUILD_RENDER_AND_INPUT_LISTS)
   {
-    rebuildElemStacks(false);
-    updateHover();
+    // TODO: not always need to update all screens
+    rebuildAllScreensStacksAndNotify(/*refresh_hotkeys_nav*/ false, /*update_global_hover*/ true);
   }
 
   return resFlags;
 }
 
 
-static Element *dir_pad_new_pos_trace(const InputStack &inputStack, const Point2 &pt)
-{
-  for (const InputEntry &ie : inputStack.stack)
-  {
-    if (ie.elem->hitTest(pt))
-    {
-      if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
-        return ie.elem;
-    }
-  }
-  return nullptr;
-}
-
-// return absolute value
-static Point2 distance_to_box(const Point2 &p, const BBox2 &bbox)
-{
-  Point2 d(0, 0);
-
-  if (bbox.left() > p.x)
-    d.x = bbox.left() - p.x;
-  else if (bbox.right() < p.x)
-    d.x = p.x - bbox.right();
-
-  if (bbox.top() > p.y)
-    d.y = bbox.top() - p.y;
-  else if (bbox.bottom() < p.y)
-    d.y = p.y - bbox.bottom();
-
-  return d;
-}
-
-static float weighted_nav_distance(float dx, float dy)
-{
-  return sqrtf(dx * dx + dy * dy);
-  // return powf(dx*dx + dy*dy, 0.75f);
-}
-
-
-static float out_of_cone_penalty(float dist) { return dist * 5.0f + 10000.0f; }
-
-static float other_side_penalty(float dist) { return dist * 20.0f + 50000.0f; }
-
-
-static float calc_dir_nav_distance(const Point2 &from, const BBox2 &bbox, Direction dir, bool allow_reverse)
-{
-  const float anisotropyMul = 4.0f;
-  const float coneAtanLim = 1.2f;
-
-  float distance = 1e9f;
-  ;
-  Point2 delta = distance_to_box(from, bbox);
-  if (dir == DIR_RIGHT)
-  {
-    float d = weighted_nav_distance(delta.x, delta.y * anisotropyMul);
-    if (bbox.left() > from.x)
-    {
-      if (delta.y > delta.x * coneAtanLim)
-        distance = out_of_cone_penalty(d);
-      else
-        distance = d;
-    }
-    else if (allow_reverse)
-      distance = other_side_penalty(d);
-  }
-  else if (dir == DIR_LEFT)
-  {
-    float d = weighted_nav_distance(delta.x, delta.y * anisotropyMul);
-    if (bbox.right() < from.x)
-    {
-      if (delta.y > delta.x * coneAtanLim)
-        distance = out_of_cone_penalty(d);
-      else
-        distance = d;
-    }
-    else if (allow_reverse)
-      distance = other_side_penalty(d);
-  }
-  else if (dir == DIR_DOWN)
-  {
-    float d = weighted_nav_distance(delta.x * anisotropyMul, delta.y);
-    if (bbox.top() > from.y)
-    {
-      if (delta.x > delta.y * coneAtanLim)
-        distance = out_of_cone_penalty(d);
-      else
-        distance = d;
-    }
-    else if (allow_reverse)
-      distance = other_side_penalty(d);
-  }
-  else
-  {
-    G_ASSERT(dir == DIR_UP);
-    float d = weighted_nav_distance(delta.x * anisotropyMul, delta.y);
-    if (bbox.bottom() < from.y)
-    {
-      if (delta.x > delta.y * coneAtanLim)
-        distance = out_of_cone_penalty(d);
-      else
-        distance = d;
-    }
-    else if (allow_reverse)
-      distance = other_side_penalty(d);
-  }
-  return distance;
-}
-
-
 void GuiScene::dirPadNavigate(Direction dir)
 {
   using namespace HumanInput;
+  using namespace dirpadnav;
 
-  if (dir != DIR_RIGHT && dir != DIR_LEFT && dir != DIR_DOWN && dir != DIR_UP)
+  if (dir != DIR_RIGHT && dir != DIR_LEFT && dir != DIR_DOWN && dir != DIR_UP) //-V560
+  {
+    G_ASSERTF(0, "dir = %d", dir);
     return;
+  }
+
+  if (isXmbModeOn.getValue().Cast<bool>())
+  {
+    if (xmbNavigate(dir) || xmbFocus)
+      return;
+  }
 
   auto screen = getFocusedScreen();
   if (!screen)
     return;
 
-  if (isXmbModeOn->getValueRef().Cast<bool>())
-  {
-    if (xmbNavigate(dir) || screen->etree.xmbFocus)
-      return;
-  }
+  Point2 pointerLocalPos;
+  bool convOk = screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, pointerLocalPos);
+  if (!convOk)
+    return;
 
   float minDistance = 1e9f;
   Element *target = nullptr;
@@ -2152,7 +2094,7 @@ void GuiScene::dirPadNavigate(Direction dir)
     if (dir_pad_new_pos_trace(screen->inputStack, bbox.center()) != elem)
       continue;
 
-    float distance = calc_dir_nav_distance(pointerPos.mousePos, bbox, dir, true);
+    float distance = calc_dir_nav_distance(pointerLocalPos, bbox, dir, true);
 
     if (distance < minDistance)
     {
@@ -2161,24 +2103,20 @@ void GuiScene::dirPadNavigate(Direction dir)
     }
   }
 
-  bool xmbFocusSet = false;
   if (target && target->xmb && (target->xmb->xmbParent || !target->xmb->xmbChildren.empty()))
-    xmbFocusSet = trySetXmbFocus(target);
+    trySetXmbFocus(target);
   else
-    setXmbFocus(nullptr);
+    doSetXmbFocus(nullptr);
 
-  if (target && !xmbFocusSet)
-    moveMouseCursorToElemBox(target, target->clippedScreenRect, false);
+  if (target && (target != xmbFocus))
+    moveActiveCursorToElemBox(target, target->clippedScreenRect, false);
 }
 
 
-bool GuiScene::trySetXmbFocus(Element *target)
+void GuiScene::trySetXmbFocus(Element *target)
 {
   G_ASSERT(!isClearing);
   G_ASSERT(!target || target->etree);
-
-  // if (target && !target->etree->screen->isMainScreen)
-  //   return false;
 
   Element *newFocus = nullptr;
   if (DAGOR_UNLIKELY(target && target->isDetached()))
@@ -2187,112 +2125,49 @@ bool GuiScene::trySetXmbFocus(Element *target)
   }
   else if (target && target->xmb)
   {
-    if (target->xmb->calcCanFocus())
+    if (target->xmb->calcCanFocus() && (target->etree->screen == focusedScreen))
       newFocus = target;
   }
-  setXmbFocus(newFocus);
-  return newFocus != nullptr;
+  doSetXmbFocus(newFocus);
 }
 
 
-void GuiScene::setXmbFocus(Element *elem)
+void GuiScene::doSetXmbFocus(Element *elem)
 {
-  // if (elem && !elem->etree->screen->isMainScreen)
-  //   return;
-
-  auto screen = getFocusedScreen();
-  if (!screen || screen->etree.xmbFocus == elem)
+  if (xmbFocus == elem)
     return;
 
-  if (DAGOR_UNLIKELY(elem && elem->isDetached()))
+  if (DAGOR_UNLIKELY(elem && elem->etree->screen != focusedScreen))
+  {
+    G_ASSERT(!"Setting XMB focus to non-focused screen");
+    xmbFocus = nullptr;
+  }
+  else if (DAGOR_UNLIKELY(elem && elem->isDetached()))
   {
     G_ASSERT(!"Setting XMB focus to detached element");
-    screen->etree.xmbFocus = nullptr;
+    xmbFocus = nullptr;
   }
   else if (DAGOR_UNLIKELY(elem && !elem->xmb))
   {
     G_ASSERT(!"Setting XMB focus to non-XMB element");
-    screen->etree.xmbFocus = nullptr;
+    xmbFocus = nullptr;
   }
   else
   {
-    screen->etree.xmbFocus = elem;
+    xmbFocus = elem;
   }
 
-  String errMsg;
-  isXmbModeOn->setValue(Sqrat::Object(screen->etree.xmbFocus != nullptr, sqvm), errMsg);
-}
-
-
-bool GuiScene::xmbGridNavigate(Direction dir)
-{
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return false;
-
-  G_ASSERT_RETURN(screen->etree.xmbFocus, false);
-  G_ASSERT_RETURN(screen->etree.xmbFocus->xmb, false);
-  Element *xmbParent = screen->etree.xmbFocus->xmb->xmbParent;
-  G_ASSERT_RETURN(xmbParent, false);
-  G_ASSERT_RETURN(xmbParent->xmb, false);
-  Element *xmbGrandParent = xmbParent->xmb->xmbParent;
-  if (!xmbGrandParent || !xmbGrandParent->xmb)
-    return false;
-  if (!xmbParent->xmb->nodeDesc.RawGetSlotValue("isGridLine", false))
-    return false;
-  G_ASSERT_RETURN(xmbParent->layout.flowType == FLOW_HORIZONTAL || xmbParent->layout.flowType == FLOW_VERTICAL, false);
-
-  bool horiz = (dir == DIR_LEFT || dir == DIR_RIGHT);
-  if ((xmbParent->layout.flowType == FLOW_HORIZONTAL) == horiz)
-    return false;
-  if ((xmbGrandParent->layout.flowType == FLOW_HORIZONTAL) != horiz)
-    return false;
-
-  auto curCellIt = eastl::find(xmbParent->xmb->xmbChildren.begin(), xmbParent->xmb->xmbChildren.end(), screen->etree.xmbFocus);
-  G_ASSERT_RETURN(curCellIt != xmbParent->xmb->xmbChildren.end(), false);
-  ptrdiff_t curCellIdx = eastl::distance(xmbParent->xmb->xmbChildren.begin(), curCellIt);
-
-  auto curLineIt = eastl::find(xmbGrandParent->xmb->xmbChildren.begin(), xmbGrandParent->xmb->xmbChildren.end(), xmbParent);
-  G_ASSERT_RETURN(curLineIt != xmbGrandParent->xmb->xmbChildren.end(), false);
-  ptrdiff_t curLineIdx = eastl::distance(xmbGrandParent->xmb->xmbChildren.begin(), curLineIt);
-
-  int delta = (dir == DIR_LEFT || dir == DIR_UP) ? -1 : 1;
-
-  int newLineIdx = curLineIdx + delta;
-  bool wrap = xmbGrandParent->xmb->nodeDesc.RawGetSlotValue<bool>("wrap", true);
-  if (wrap)
-    newLineIdx = (newLineIdx + xmbGrandParent->xmb->xmbChildren.size()) % xmbGrandParent->xmb->xmbChildren.size();
-
-  if (newLineIdx < 0 || newLineIdx >= xmbGrandParent->xmb->xmbChildren.size())
-    return false;
-
-  Element *newLine = xmbGrandParent->xmb->xmbChildren[newLineIdx];
-  if (newLine->xmb->xmbChildren.empty())
-    return false;
-  if ((newLine->layout.flowType == FLOW_HORIZONTAL) == horiz)
-    return false;
-
-  Element *newCell = newLine->xmb->xmbChildren[::clamp(int(curCellIdx), 0, int(newLine->xmb->xmbChildren.size() - 1))];
-  setXmbFocus(newCell);
-  return true;
+  isXmbModeOn.setValue(Sqrat::Object(xmbFocus != nullptr, sqvm));
 }
 
 
 bool GuiScene::xmbNavigate(Direction dir)
 {
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return false;
+  G_ASSERT_RETURN(xmbFocus, false);
+  G_ASSERT_RETURN(xmbFocus->xmb, false);
+  G_ASSERT_RETURN(xmbFocus->etree->screen == focusedScreen, false);
 
-  G_ASSERT_RETURN(screen->etree.xmbFocus, false);
-
-  bool horiz = (dir == DIR_LEFT || dir == DIR_RIGHT);
-  int delta = (dir == DIR_LEFT || dir == DIR_UP) ? -1 : 1;
-
-  G_UNUSED(horiz);
-  Element *focus = screen->etree.xmbFocus;
-  G_ASSERT_RETURN(focus->xmb, false);
-  Element *xmbParent = focus->xmb->xmbParent;
+  Element *xmbParent = xmbFocus->xmb->xmbParent;
 
   bool isLeaving = false;
 
@@ -2301,66 +2176,22 @@ bool GuiScene::xmbNavigate(Direction dir)
     G_ASSERT_RETURN(xmbParent->xmb, false);
     if (xmbParent->layout.flowType == FLOW_PARENT_RELATIVE || xmbParent->xmb->nodeDesc.RawGetSlotValue("screenSpaceNav", false))
     {
-      float minDistance = 1e9f;
-      Element *target = nullptr;
-      Point2 srcPos = focus->calcTransformedBbox().center();
-      for (Element *elem : xmbParent->xmb->xmbChildren)
-      {
-        G_ASSERT_CONTINUE(elem->xmb);
-        if (elem == focus)
-          continue;
-        if (!elem->xmb->calcCanFocus())
-          continue;
-
-        const BBox2 &bbox = elem->calcTransformedBbox();
-        if (bbox.isempty() || bbox.width().x < 1 || bbox.width().y < 1)
-          continue;
-
-        float distance = calc_dir_nav_distance(srcPos, bbox, dir, false);
-        if (distance < minDistance)
-        {
-          target = elem;
-          minDistance = distance;
-        }
-      }
-
+      Element *target = xmb::xmb_screen_space_navigate(xmbFocus, dir);
       if (target)
-        setXmbFocus(target);
+        doSetXmbFocus(target);
       else
         isLeaving = true;
     }
     else
     {
-      int newIdx = -1;
+      Element *newFocus = xmb::xmb_grid_navigate(xmbFocus, dir);
+      if (!newFocus)
+        newFocus = xmb::xmb_siblings_navigate(xmbFocus, dir);
 
-      if (!xmbGridNavigate(dir))
-      {
-        if ((xmbParent->layout.flowType == FLOW_HORIZONTAL && horiz) || (xmbParent->layout.flowType == FLOW_VERTICAL && !horiz))
-        {
-          XmbData *parentXmbData = xmbParent->xmb;
-          G_ASSERT(parentXmbData);
-          auto prevIt = eastl::find(parentXmbData->xmbChildren.begin(), parentXmbData->xmbChildren.end(), screen->etree.xmbFocus);
-          G_ASSERT(prevIt != parentXmbData->xmbChildren.end());
-          if (prevIt != parentXmbData->xmbChildren.end())
-          {
-            ptrdiff_t prevIdx = eastl::distance(parentXmbData->xmbChildren.begin(), prevIt);
-            newIdx = prevIdx + delta;
-            bool wrap = parentXmbData->nodeDesc.RawGetSlotValue<bool>("wrap", true);
-            if (wrap)
-              newIdx = (newIdx + parentXmbData->xmbChildren.size()) % parentXmbData->xmbChildren.size();
-            else if (newIdx < 0 || newIdx >= parentXmbData->xmbChildren.size())
-              newIdx = -1;
-          }
-        }
-
-        if (newIdx >= 0)
-        {
-          Element *newFocus = xmbParent->xmb->xmbChildren[newIdx];
-          setXmbFocus(newFocus);
-        }
-        else
-          isLeaving = true;
-      }
+      if (newFocus)
+        doSetXmbFocus(newFocus);
+      else
+        isLeaving = true;
     }
   }
 
@@ -2368,45 +2199,19 @@ bool GuiScene::xmbNavigate(Direction dir)
   if (isLeaving)
   {
     XmbCode xmbRes = XMB_CONTINUE;
-    Sqrat::Function onLeave(screen->etree.xmbFocus->xmb->nodeDesc, "onLeave");
+    Sqrat::Function onLeave(xmbFocus->xmb->nodeDesc, "onLeave");
     if (!onLeave.IsNull())
     {
-      Sqrat::Object res;
-      if (onLeave.Evaluate(dir, res) && res.GetType() == OT_INTEGER)
-        xmbRes = res.Cast<XmbCode>();
+      auto res = onLeave.Eval<Sqrat::Object>(dir);
+      if (res && res.value().GetType() == OT_INTEGER)
+        xmbRes = res.value().Cast<XmbCode>();
     }
     stopProcessing = xmbRes == XMB_STOP;
     if (xmbRes == XMB_CONTINUE)
-      setXmbFocus(nullptr);
+      doSetXmbFocus(nullptr);
   }
 
   return stopProcessing;
-}
-
-
-void GuiScene::rebuildXmb()
-{
-  if (auto screen = getFocusedScreen(); screen && screen->etree.root)
-    rebuildXmb(screen->etree.root, nullptr);
-}
-
-
-void GuiScene::rebuildXmb(Element *node, Element *xmb_parent)
-{
-  if (xmb_parent)
-    G_ASSERT(xmb_parent->xmb);
-
-  if (node->xmb)
-  {
-    if (xmb_parent)
-      xmb_parent->xmb->xmbChildren.push_back(node);
-    node->xmb->xmbParent = xmb_parent;
-    node->xmb->xmbChildren.clear();
-  }
-
-  Element *nextXmbParent = node->xmb ? node : xmb_parent;
-  for (Element *child : node->children)
-    rebuildXmb(child, nextXmbParent);
 }
 
 
@@ -2523,17 +2328,16 @@ static void read_2_axis_props(T dest[2], Sqrat::Object src)
 
 void GuiScene::scrollToXmbFocus(float dt)
 {
-  auto screen = getFocusedScreen();
-  if (!screen || !screen->etree.xmbFocus)
+  if (!xmbFocus)
     return;
 
-  G_ASSERT_RETURN(screen->etree.xmbFocus->xmb, );
+  G_ASSERT_RETURN(xmbFocus->xmb, );
 
   float scrollSpeed[2] = {1.0f, 1.0f};
   bool scrollToEdge[2] = {false, false};
-  if (screen->etree.xmbFocus->xmb->xmbParent)
+  if (xmbFocus->xmb->xmbParent)
   {
-    XmbData *pxmb = screen->etree.xmbFocus->xmb->xmbParent->xmb;
+    XmbData *pxmb = xmbFocus->xmb->xmbParent->xmb;
     G_ASSERT(pxmb);
     if (pxmb)
     {
@@ -2546,15 +2350,15 @@ void GuiScene::scrollToXmbFocus(float dt)
   Point2 maxScroll(dt * StdGuiRender::screen_height() * scrollSpeed[0], dt * StdGuiRender::screen_height() * scrollSpeed[1]);
 
   Element *scrollRoot = nullptr;
-  BBox2 viewport = calcXmbViewport(screen->etree.xmbFocus, &scrollRoot);
+  BBox2 viewport = xmb::calc_xmb_viewport(xmbFocus, &scrollRoot);
 
   bool scrolled = false;
 
   if (scrollToEdge[0] == scrollToEdge[1])
   {
     // both directions simultaneously
-    scrolled = scrollToEdge[0] ? scrollIntoView(screen->etree.xmbFocus, viewport, maxScroll, scrollRoot)
-                               : scrollIntoViewCenter(screen->etree.xmbFocus, viewport, maxScroll, scrollRoot);
+    scrolled = scrollToEdge[0] ? scrollIntoView(xmbFocus, viewport, maxScroll, scrollRoot)
+                               : scrollIntoViewCenter(xmbFocus, viewport, maxScroll, scrollRoot);
   }
   else
   {
@@ -2562,23 +2366,23 @@ void GuiScene::scrollToXmbFocus(float dt)
     Point2 separateMaxScroll[2] = {Point2(maxScroll[0], 0), Point2(0, maxScroll[1])};
     for (int axis = 0; axis < 2; ++axis)
     {
-      bool res = scrollToEdge[axis] ? scrollIntoView(screen->etree.xmbFocus, viewport, separateMaxScroll[axis], scrollRoot)
-                                    : scrollIntoViewCenter(screen->etree.xmbFocus, viewport, separateMaxScroll[axis], scrollRoot);
+      bool res = scrollToEdge[axis] ? scrollIntoView(xmbFocus, viewport, separateMaxScroll[axis], scrollRoot)
+                                    : scrollIntoViewCenter(xmbFocus, viewport, separateMaxScroll[axis], scrollRoot);
       if (res)
         scrolled = true;
     }
   }
 
-  BBox2 bbox = screen->etree.xmbFocus->calcTransformedBbox();
+  BBox2 bbox = xmbFocus->calcTransformedBbox();
   if (!scrolled)
   {
-    if (!screen->etree.xmbFocus->clippedScreenRect.isempty())
-      moveMouseCursorToElemBox(screen->etree.xmbFocus, bbox, false);
+    if (!xmbFocus->clippedScreenRect.isempty())
+      moveActiveCursorToElemBox(xmbFocus, bbox, false);
   }
   else
   {
     bool needCursorMove = false;
-    Point2 targetCursorPos = getMousePos();
+    Point2 targetCursorPos = activePointerPos();
     Point2 vpCenter = viewport.center();
 
     if ((bbox.right() < vpCenter.x && targetCursorPos.x > vpCenter.x) || (bbox.left() > vpCenter.x && targetCursorPos.x < vpCenter.x))
@@ -2594,7 +2398,7 @@ void GuiScene::scrollToXmbFocus(float dt)
     }
 
     if (needCursorMove)
-      pointerPos.requestTargetPos(targetCursorPos);
+      requestActivePointerTargetPos(targetCursorPos);
 
     requestHoverUpdate();
   }
@@ -2605,22 +2409,28 @@ void GuiScene::doJoystickScroll(const Point2 &delta)
 {
   auto screen = getFocusedScreen();
 
-  if (!screen || !screen->etree.root || !activeCursor)
+  if (!screen || !screen->etree.root)
     return;
 
-  Point2 mousePos = getMousePos();
+  bool canScroll = activeCursor || (screen->panel && screen->panel->hasActiveCursors());
+  if (!canScroll)
+    return;
 
-  if (screen->etree.doJoystickScroll(screen->inputStack, mousePos, delta))
+  Point2 localPos;
+  bool transformValid = screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos);
+
+  bool hasScrolled = transformValid && screen->etree.doJoystickScroll(screen->inputStack, localPos, delta);
+
+  if (hasScrolled)
   {
     // turn off xmb mode if focus is outside of the viewport or moved away from center
     // to avoid it bouncing back
-    Element *xmbFocus = screen->etree.xmbFocus;
     if (xmbFocus)
       G_ASSERT(xmbFocus->xmb);
-    if (xmbFocus && xmbFocus->xmb && !xmbFocus->transformedBbox.isempty())
+    if (xmbFocus && xmbFocus->xmb && !xmbFocus->transformedBbox.isempty() && xmbFocus->etree->screen == screen)
     {
       if (xmbFocus->clippedScreenRect.isempty())
-        setXmbFocus(nullptr);
+        doSetXmbFocus(nullptr);
       else
       {
         bool scrollToEdge = false;
@@ -2635,20 +2445,20 @@ void GuiScene::doJoystickScroll(const Point2 &delta)
 
         if (scrollToEdge)
         {
-          BBox2 viewport = calcXmbViewport(xmbFocus, nullptr);
+          BBox2 viewport = xmb::calc_xmb_viewport(xmbFocus, nullptr);
           BBox2 elemBbox = xmbFocus->calcTransformedBboxPadded();
           if (elemBbox.top() < viewport.top() || elemBbox.bottom() > viewport.bottom() || elemBbox.left() < viewport.left() ||
               elemBbox.right() > viewport.right())
           {
-            setXmbFocus(nullptr);
+            doSetXmbFocus(nullptr);
           }
         }
         else
-          setXmbFocus(nullptr); // not bouncing back to center
+          doSetXmbFocus(nullptr); // not bouncing back to center
       }
     }
 
-    updateHover();
+    updateGlobalHover();
   }
 }
 
@@ -2724,44 +2534,58 @@ static bool is_hotkeys_subset(const HotkeyCombo *selected_combo, Element *candid
 
 bool GuiScene::updateHotkeys()
 {
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return false;
-  G_ASSERT(screen->etree.rebuildFlagsAccum == 0);
-
   Tab<eastl::pair<HotkeyCombo *, Element *>> updatedCombos(framemem_ptr());
+  Tab<eastl::pair<HotkeyCombo *, Element *>> releasedCombos(framemem_ptr());
+
   size_t maxButtons = 0;
 
-  for (const InputEntry &ie : screen->inputStack.stack)
+  for (auto &[id, screen] : screens)
   {
-    for (auto &combo : ie.elem->hotkeyCombos)
+    G_ASSERT(screen->etree.rebuildFlagsAccum == 0);
+
+    if (!doesScreenAcceptInput(screen.get()))
+      continue;
+
+    bool isStopped = false;
+
+    for (const InputEntry &ie : screen->inputStack.stack)
     {
-      if (combo->updateOnCombo())
+      for (auto &combo : ie.elem->hotkeyCombos)
       {
-        auto cmp = [&combo](eastl::pair<HotkeyCombo *, Element *> &item) { return is_hotkeys_subset(item.first, combo.get(), false); };
-        bool isFirstUnique = eastl::find_if(updatedCombos.begin(), updatedCombos.end(), cmp) == updatedCombos.end();
-        if (isFirstUnique)
+        if (!isStopped)
         {
-          updatedCombos.push_back(eastl::make_pair(combo.get(), ie.elem));
-          maxButtons = ::max<size_t>(maxButtons, combo->buttons.size());
+          if (combo->updateOnCombo(getJoystick()))
+          {
+            auto cmp = [&combo](eastl::pair<HotkeyCombo *, Element *> &item) {
+              return is_hotkeys_subset(item.first, combo.get(), false);
+            };
+            bool isFirstUnique = eastl::find_if(updatedCombos.begin(), updatedCombos.end(), cmp) == updatedCombos.end();
+            if (isFirstUnique)
+            {
+              updatedCombos.push_back(eastl::make_pair(combo.get(), ie.elem));
+              maxButtons = ::max<size_t>(maxButtons, combo->buttons.size());
+            }
+          }
+        }
+        else
+        {
+          if (combo->forceReleaseButtons())
+            releasedCombos.push_back(eastl::make_pair(combo.get(), ie.elem));
         }
       }
-    }
 
-    if (ie.elem->hasFlags(Element::F_STOP_HOTKEYS))
-      break;
+      if (ie.elem->hasFlags(Element::F_STOP_HOTKEYS))
+        isStopped = true;
+    }
   }
 
-  for (auto comboPair : updatedCombos)
+  for (auto &[combo, comboElem] : updatedCombos)
   {
-    HotkeyCombo *combo = comboPair.first;
-    Element *comboElem = comboPair.second;
-
     if (combo->buttons.size() >= maxButtons)
     {
       if (combo->isPressed)
       {
-        for (const InputEntry &ie : screen->inputStack.stack)
+        for (const InputEntry &ie : comboElem->etree->screen->inputStack.stack)
           if (ie.elem != comboElem && !ie.elem->hotkeyCombos.empty() && is_hotkeys_subset(combo, ie.elem, true))
             ie.elem->clearGroupStateFlags(Element::S_HOTKEY_ACTIVE);
       }
@@ -2769,6 +2593,9 @@ bool GuiScene::updateHotkeys()
       combo->triggerOnCombo(this, comboElem);
     }
   }
+
+  for (auto &[combo, comboElem] : releasedCombos)
+    comboElem->clearGroupStateFlags(Element::S_HOTKEY_ACTIVE);
 
   return !updatedCombos.empty();
 }
@@ -2825,6 +2652,9 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
   // Let's see if any panels we own accept the hotkey
   for (auto &[_, sc] : screens)
   {
+    if (!doesScreenAcceptInput(sc.get()))
+      continue;
+
     if (handleInputEvent(sc->inputStack))
     {
       processed = true;
@@ -2842,6 +2672,10 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
     sq_pop(sqvm, 1);
 
     for (auto &[_, sc] : screens)
+    {
+      if (!doesScreenAcceptInput(sc.get()))
+        continue;
+
       for (const InputEntry &ie : sc->eventHandlersStack.stack)
       {
         if (ie.elem->isDetached())
@@ -2857,11 +2691,11 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
         processed = true;
 
         Sqrat::Function handler(sqvm, desc, funcObj);
-        Sqrat::Object result;
-        bool succeeded = handler.Evaluate(data, result);
-        if (succeeded && (result.Cast<int>() != EVENT_CONTINUE))
+        auto result = handler.Eval<Sqrat::Object>(data);
+        if (result && (result.value().Cast<int>() != EVENT_CONTINUE))
           break;
       }
+    }
   }
 
   callScriptHandlers();
@@ -2890,14 +2724,6 @@ void GuiScene::processPostedEvents()
     sendEvent(it.first.c_str(), jsoncpp_to_quirrel(sqvm, it.second));
 
   workingPostedEventsQueue.clear();
-}
-
-
-void GuiScene::setKbFocus(Element *elem)
-{
-  ApiThreadCheck atc(this);
-  if (auto screen = getFocusedScreen())
-    screen->etree.setKbFocus(elem);
 }
 
 
@@ -2963,21 +2789,7 @@ void GuiScene::invalidateElement(Element *elem)
 }
 
 
-// removes roots from the array which have any parent with given flag
-static void removeRootsWithParentFlag(dag::Vector<Element *> &roots, Element::Flags flag)
-{
-  roots.erase(eastl::remove_if(roots.begin(), roots.end(),
-                [&](Element *e) {
-                  for (Element *p = e->parent; p; p = p->parent)
-                    if (p->hasFlags(flag))
-                    {
-                      e->updFlags(flag, false);
-                      return true;
-                    }
-                  return false;
-                }),
-    roots.end());
-}
+void GuiScene::deferredRecalLayout(Element *elem) { deferredRecalcLayout.emplace(elem); }
 
 
 void GuiScene::rebuildInvalidatedParts()
@@ -2986,8 +2798,7 @@ void GuiScene::rebuildInvalidatedParts()
 
   if (invalidatedElements.empty())
   {
-    if (auto screen = getFocusedScreen())
-      screen->etree.applyNextKbFocus();
+    kbFocus.applyNextFocus();
     return;
   }
 
@@ -3103,28 +2914,27 @@ void GuiScene::rebuildInvalidatedParts()
 
   isRebuildingInvalidatedParts = false;
 
-  auto activeScreen = getFocusedScreen();
-  if (activeScreen)
+  // The same logic as in update()
+  int prevInteractiveFlags = calcInteractiveFlags();
+  bool stacksRebuilt = false, hotkeysModified = false;
+
+  for (auto &[id, screen] : screens)
   {
-    if (activeScreen->etree.rebuildFlagsAccum & rebuild_stacks_flags)
+    int updRes = screen->etree.rebuildFlagsAccum;
+    if (updRes & rebuild_stacks_flags)
     {
-      rebuildElemStacks(activeScreen->etree.rebuildFlagsAccum & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
-      updateHover();
+      screen->rebuildStacks();
+      stacksRebuilt = true;
     }
-    if (activeScreen->etree.rebuildFlagsAccum & ElementTree::RESULT_NEED_XMB_REBUILD)
-      rebuildXmb();
-
-    activeScreen->etree.rebuildFlagsAccum = 0;
+    if (updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED)
+      hotkeysModified = true;
+    if (updRes & ElementTree::RESULT_NEED_XMB_REBUILD)
+      screen->rebuildXmb();
+    screen->etree.rebuildFlagsAccum = 0;
   }
 
-  for (auto &[id, sc] : screens)
-  {
-    if (sc.get() == activeScreen)
-      continue;
-    if (sc->etree.rebuildFlagsAccum & rebuild_stacks_flags)
-      sc->rebuildStacks();
-    sc->etree.rebuildFlagsAccum = 0;
-  }
+  if (stacksRebuilt || hotkeysModified)
+    applyInteractivityChange(prevInteractiveFlags, hotkeysModified, /*update_global_hover*/ true);
 
   for (Cursor *c : allCursors)
   {
@@ -3134,8 +2944,7 @@ void GuiScene::rebuildInvalidatedParts()
     c->etree.rebuildFlagsAccum = 0;
   }
 
-  if (activeScreen)
-    activeScreen->etree.applyNextKbFocus();
+  kbFocus.applyNextFocus();
 }
 
 
@@ -3175,7 +2984,12 @@ void GuiScene::onElementDetached(Element *elem)
   if (it != invalidatedElements.end())
     invalidatedElements.erase(it);
 
+  if (elem == xmbFocus)
+    doSetXmbFocus(nullptr);
+
   erase_item_by_value(keptXmbFocus, elem);
+
+  deferredRecalcLayout.erase(elem);
 }
 
 
@@ -3204,6 +3018,19 @@ void GuiScene::checkCursorHotspotUpdate(Element *elem_rebuilt)
   }
 }
 
+static void ensure_no_modules_loaded_yet(SqModules *module_mgr)
+{
+  eastl::vector<eastl::string> loadedModules;
+  module_mgr->getLoadedModules(loadedModules);
+
+  // G_ASSERTF(!moduleMgr->modules.size(), "Expected empty modules list on script run");
+  if (!loadedModules.empty())
+  {
+    DEBUG_CTX("daRg: non-empty modules list on scene startup:");
+    for (auto &name : loadedModules)
+      DEBUG_CTX("  * %s", name.c_str());
+  }
+}
 
 void GuiScene::runScriptScene(const char *fn)
 {
@@ -3214,15 +3041,9 @@ void GuiScene::runScriptScene(const char *fn)
 
   enable_kb_layout_and_locks_tracking();
 
-  pointerPos.initMousePos();
+  mousePointer.initMousePos();
 
-  // G_ASSERTF(!moduleMgr->modules.size(), "Expected empty modules list on script run");
-  if (!moduleMgr->modules.empty())
-  {
-    DEBUG_CTX("daRg: non-empty modules list on scene startup:");
-    for (auto &module : moduleMgr->modules)
-      DEBUG_CTX("  * %s", module.fn.c_str());
-  }
+  ensure_no_modules_loaded_yet(moduleMgr.get());
 
   reloadScript(fn);
 }
@@ -3236,8 +3057,11 @@ void GuiScene::reloadScript(const char *fn)
 
   clear(false);
   dasScriptsData->resetBeforeReload();
-  frpGraph->generation++;
   frpGraph->setName(fn);
+
+  G_ASSERT(screens.empty());
+  Screen *screen = createGuiScreen(MAIN_SCREEN_ID);
+  screen->isMainScreen = true;
 
   // Ensure that string is always valid in this scope.
   // This may be too paranoid but in practice it happenned that the provided pointer to the string
@@ -3245,7 +3069,7 @@ void GuiScene::reloadScript(const char *fn)
   String fnCopy(fn);
 
   Sqrat::Object rootDesc;
-  String errMsg;
+  Sqrat::string errMsg;
   if (!moduleMgr->reloadModule(fnCopy.c_str(), true, SqModules::__main__, rootDesc, errMsg))
   {
     String msg;
@@ -3260,44 +3084,44 @@ void GuiScene::reloadScript(const char *fn)
   // frpGraph->checkLeaks();
 #endif
 
-
   int rebuildResult = 0;
 
-  auto screen = createGuiScreen(MAIN_SCREEN_ID);
-  if (!screen)
-    darg_immediate_error(sqvm, String(0, "failed to create main screen for %s", fnCopy.c_str()));
-
-  if (screen)
   {
-    screen->isMainScreen = true;
     Component root;
     G_VERIFY(Component::build_component(root, rootDesc, stringKeys, rootDesc));
     screen->etree.root = screen->etree.rebuild(sqvm, screen->etree.root, root, nullptr, root.scriptBuilder, 0, rebuildResult);
   }
 
-
   sq_collectgarbage(sqvm);
 
 #if DAGOR_DBGLEVEL > 0
-  logPrevReloadObservableLeftovers();
+  {
+    // Log graph stats
+    sqfrp::ObservablesGraph::Stats s = frpGraph->gatherGraphStats();
+    DEBUG_CTX("[daRg][FRP] after %s reload and rebuild: "
+              "Watched: %d (%d unused, %d not subscribed), Computed: %d (%d unused, %d not subscribed), "
+              "%d subscribers, %d watchers",
+      fn, s.watchedTotal, s.watchedUnused, s.watchedUnsubscribed, s.computedTotal, s.computedUnused, s.computedUnsubscribed,
+      s.totalSubscribers, s.totalWatchers);
+  }
 #endif
 
-  if (!screen || screen->etree.root == nullptr)
+  if (screen->etree.root == nullptr)
     darg_immediate_error(sqvm, String(0, "reloadScript failed: %s", fnCopy.c_str()));
 
-  if (screen && screen->etree.root)
+  if (screen->etree.root)
   {
     screen->etree.root->recalcLayout();
     screen->etree.root->callScriptAttach(this);
   }
 
   if (rebuildResult & rebuild_stacks_flags)
-    rebuildElemStacks(rebuildResult & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED);
+    rebuildStacksAndNotify(screen, /*refresh_hotkeys_nav*/ rebuildResult & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED,
+      /*update_global_hover*/ true);
   if (rebuildResult & ElementTree::RESULT_NEED_XMB_REBUILD)
-    rebuildXmb();
+    screen->rebuildXmb();
 
-  if (screen)
-    screen->etree.rebuildFlagsAccum = 0;
+  screen->etree.rebuildFlagsAccum = 0;
 
   dasScriptsData->cleanupAfterReload();
 
@@ -3306,93 +3130,103 @@ void GuiScene::reloadScript(const char *fn)
 }
 
 
-void GuiScene::logPrevReloadObservableLeftovers()
-{
-  int numLeft = 0;
-  String infoStr;
-  for (BaseObservable *o : frpGraph->allObservables)
-  {
-    if (o->generation == frpGraph->generation - 1)
-    {
-      o->fillInfo(infoStr);
-      debug("[FRP]: remaining observable: %s", infoStr.c_str());
-      ++numLeft;
-    }
-  }
-  debug("[FRP] %d observables left from reload step #%d", numLeft, frpGraph->generation - 1);
-}
-
-
-bool GuiScene::hasInteractiveElements()
+bool GuiScene::hasInteractiveElements() const
 {
   ApiThreadCheck atc(this);
   return hasInteractiveElements(Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE | Behavior::F_INTERNALLY_HANDLE_GAMEPAD_STICKS);
 }
 
-bool GuiScene::hasInteractiveElements(int bhv_flags)
+
+bool GuiScene::hasInteractiveElements(int bhv_flags) const
 {
-  auto screen = getFocusedScreen();
-  if (!screen)
+  if (status.isShowingFullErrorDetails || !isInputActive())
     return false;
-  return (screen->inputStack.summaryBhvFlags & bhv_flags) != 0 && !status.isShowingFullErrorDetails && isInputActive();
+
+  int res = 0;
+  for (auto &[id, screen] : screens)
+  {
+    if (!doesScreenAcceptInput(screen.get()))
+      continue;
+
+    res |= screen->inputStack.summaryBhvFlags;
+  }
+  return (res & bhv_flags) != 0;
 }
 
-int GuiScene::calcInteractiveFlags()
+
+int GuiScene::calcInteractiveFlags() const
 {
+  if (status.isShowingFullErrorDetails || !isInputActive())
+    return 0;
+
   int iflags = 0;
 
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return iflags;
-
-  if ((hasInteractiveElements(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || isCursorForcefullyEnabled()) &&
-      !isCursorForcefullyDisabled())
+  for (auto &[id, screen] : screens)
   {
-    iflags |= IGuiSceneCallback::IF_MOUSE;
-    if ((screen->inputStack.summaryBhvFlags & Behavior::F_OVERRIDE_GAMEPAD_STICK) == 0)
-      iflags |= IGuiSceneCallback::IF_GAMEPAD_AS_MOUSE;
+    if (!doesScreenAcceptInput(screen.get()))
+      continue;
+
+    const int bhvFlags = screen->inputStack.summaryBhvFlags;
+    if (((bhvFlags & (Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK)) || isCursorForcefullyEnabled()) &&
+        !isCursorForcefullyDisabled())
+    {
+      iflags |= IGuiSceneCallback::IF_MOUSE;
+      if ((bhvFlags & Behavior::F_OVERRIDE_GAMEPAD_STICK) == 0)
+        iflags |= IGuiSceneCallback::IF_GAMEPAD_AS_MOUSE;
+    }
+    if (bhvFlags & Behavior::F_HANDLE_KEYBOARD)
+      iflags |= IGuiSceneCallback::IF_KEYBOARD;
+    if (bhvFlags & Behavior::F_INTERNALLY_HANDLE_GAMEPAD_STICKS)
+      iflags |= IGuiSceneCallback::IF_GAMEPAD_STICKS;
+    if (screen.get() == focusedScreen && screen->inputStack.isDirPadNavigable)
+      iflags |= IGuiSceneCallback::IF_DIRPAD_NAV;
   }
-  if (hasInteractiveElements(Behavior::F_HANDLE_KEYBOARD))
-    iflags |= IGuiSceneCallback::IF_KEYBOARD;
-  if (hasInteractiveElements(Behavior::F_INTERNALLY_HANDLE_GAMEPAD_STICKS))
-    iflags |= IGuiSceneCallback::IF_GAMEPAD_STICKS;
-  if (screen->inputStack.isDirPadNavigable)
-    iflags |= IGuiSceneCallback::IF_DIRPAD_NAV;
 
   return iflags;
 }
 
-void GuiScene::rebuildElemStacks(bool refresh_hotkeys_nav)
+
+void GuiScene::rebuildStacksAndNotify(Screen *screen, bool refresh_hotkeys_nav, bool update_global_hover)
 {
-  TIME_PROFILE(rebuildElemStacks);
+  TIME_PROFILE(rebuildStacksAndNotify);
 
   int prevInteractiveFlags = calcInteractiveFlags();
+  screen->rebuildStacks();
+  applyInteractivityChange(prevInteractiveFlags, refresh_hotkeys_nav, update_global_hover);
+}
 
-  if (auto screen = getFocusedScreen())
+
+void GuiScene::rebuildAllScreensStacksAndNotify(bool refresh_hotkeys_nav, bool update_global_hover)
+{
+  TIME_PROFILE(rebuildAllScreensStacksAndNotify);
+
+  int prevInteractiveFlags = calcInteractiveFlags();
+  for (auto &[id, screen] : screens)
     screen->rebuildStacks();
+  applyInteractivityChange(prevInteractiveFlags, refresh_hotkeys_nav, update_global_hover);
+}
 
-  // validateOverlaidXmbFocus();
 
+void GuiScene::applyInteractivityChange(int prev_iflags, bool refresh_hotkeys_nav, bool update_global_hover)
+{
+  TIME_PROFILE(applyInteractivityChange);
   int curInteractiveFlags = calcInteractiveFlags();
-  bool mouseFlagsChanged = (curInteractiveFlags & IGuiSceneCallback::IF_MOUSE) != (prevInteractiveFlags & IGuiSceneCallback::IF_MOUSE);
-  bool dirPadNavChanged =
-    (curInteractiveFlags & IGuiSceneCallback::IF_DIRPAD_NAV) != (prevInteractiveFlags & IGuiSceneCallback::IF_DIRPAD_NAV);
+  bool mouseFlagsChanged = (curInteractiveFlags & IGuiSceneCallback::IF_MOUSE) != (prev_iflags & IGuiSceneCallback::IF_MOUSE);
+  bool dirPadNavChanged = (curInteractiveFlags & IGuiSceneCallback::IF_DIRPAD_NAV) != (prev_iflags & IGuiSceneCallback::IF_DIRPAD_NAV);
 
   if (refresh_hotkeys_nav)
   {
     TIME_PROFILE(refreshHotkeysNav);
     refreshHotkeysNav();
-    notifyInputConsumersCallback();
-  }
-  else if (mouseFlagsChanged || dirPadNavChanged)
-  {
-    notifyInputConsumersCallback();
   }
 
-  if (mouseFlagsChanged)
-    updateHover();
+  if (refresh_hotkeys_nav || mouseFlagsChanged || dirPadNavChanged)
+    notifyInputConsumersCallback();
 
-  if (guiSceneCb && curInteractiveFlags != prevInteractiveFlags)
+  if (mouseFlagsChanged || update_global_hover)
+    updateGlobalHover();
+
+  if (guiSceneCb && curInteractiveFlags != prev_iflags)
     guiSceneCb->onToggleInteractive(curInteractiveFlags);
 }
 
@@ -3429,9 +3263,25 @@ void GuiScene::applyInputActivityChange()
     guiSceneCb->onToggleInteractive(calcInteractiveFlags());
 
   if (isInputActive())
-    pointerPos.onActivateSceneInput();
+    mousePointer.onActivateSceneInput();
+  else
+  {
+    for (auto &[id, screen] : screens)
+      screen->etree.deactivateAllInput();
+    pressedClickButtons.clear();
+  }
 
   notifyInputConsumersCallback();
+}
+
+bool GuiScene::doesScreenAcceptInput(const Screen *screen) const
+{
+  // TODO: the logic is to be reviewed
+  if (!screen->etree.canHandleInput)
+    return false;
+  if (config.allScreensAcceptInput)
+    return true;
+  return screen->isMainScreen || screen == focusedScreen;
 }
 
 
@@ -3439,12 +3289,9 @@ void GuiScene::refreshHotkeysNav()
 {
   if (sceneScriptHandlers.onHotkeysNav.IsNull())
     return;
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
 
   HumanInput::IGenJoystick *joy = getJoystick();
-  HumanInput::IGenPointing *mouse = getMouse();
+  HumanInput::IGenPointing *mouse = MousePointer::get_mouse();
   HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr;
 
   eastl::vector_set<int> collected;
@@ -3477,70 +3324,76 @@ void GuiScene::refreshHotkeysNav()
       G_ASSERTF(0, "Unexpected device id %d", btn.devId);
   };
 
-  for (const InputEntry &ie : screen->inputStack.stack)
+  for (auto &[id, screen] : screens)
   {
-    Element *elem = ie.elem;
-    if (elem->isDetached())
-    {
-      LOGWARN_CTX("Detached element found in input stack");
+    if (!doesScreenAcceptInput(screen.get()))
       continue;
-    }
 
-    for (const auto &combo : elem->hotkeyCombos)
+    for (const InputEntry &ie : screen->inputStack.stack)
     {
-      if (!combo->eventName.empty())
+      Element *elem = ie.elem;
+      if (elem->isDetached())
       {
-        Sqrat::Table item(sqvm);
-        item.SetValue(stringKeys->eventName, combo->eventName.c_str());
-        item.SetValue(stringKeys->description, combo->description);
-        item.SetValue(stringKeys->devId, nullObj);
-        item.SetValue(stringKeys->btnId, nullObj);
-        item.SetValue(stringKeys->btnName, nullObj);
-        item.SetValue(stringKeys->buttons, nullObj);
-        item.SetValue(stringKeys->action, Sqrat::Object(combo->handler.GetFunc(), sqvm));
-        res.Append(item);
+        LOGWARN_CTX("Detached element found in input stack");
+        continue;
       }
-      else if (combo->buttons.size())
+
+      for (const auto &combo : elem->hotkeyCombos)
       {
-        if (combo->buttons.size() == 1)
+        if (!combo->eventName.empty())
         {
-          HotkeyButton &btn = combo->buttons[0];
-          int uniqueKey = (btn.devId << 24) | (btn.btnId & 0xFFFFFF);
-          if (collected.find(uniqueKey) != collected.end())
-            continue;
-          collected.insert(uniqueKey);
-          // No check for multi-button shortcuts yet
-          // Pass them all to the script for all positions in the input stack
+          Sqrat::Table item(sqvm);
+          item.SetValue(csk->eventName, combo->eventName.c_str());
+          item.SetValue(csk->description, combo->description);
+          item.SetValue(csk->devId, nullObj);
+          item.SetValue(csk->btnId, nullObj);
+          item.SetValue(csk->btnName, nullObj);
+          item.SetValue(csk->buttons, nullObj);
+          item.SetValue(csk->action, Sqrat::Object(combo->handler.GetFunc(), sqvm));
+          res.Append(item);
         }
-
-        Sqrat::Table item(sqvm);
-        if (combo->buttons.size() == 1)
-          save_hotkey_button_to_sq_table(item, combo->buttons[0]);
-        else
+        else if (combo->buttons.size())
         {
-          item.SetValue(stringKeys->devId, nullObj);
-          item.SetValue(stringKeys->btnId, nullObj);
-          item.SetValue(stringKeys->btnName, nullObj);
-        }
+          if (combo->buttons.size() == 1)
+          {
+            HotkeyButton &btn = combo->buttons[0];
+            int uniqueKey = (btn.devId << 24) | (btn.btnId & 0xFFFFFF);
+            if (collected.find(uniqueKey) != collected.end())
+              continue;
+            collected.insert(uniqueKey);
+            // No check for multi-button shortcuts yet
+            // Pass them all to the script for all positions in the input stack
+          }
 
-        Sqrat::Array buttons(sqvm, combo->buttons.size());
-        for (int iBtn = 0, nBtns = combo->buttons.size(); iBtn < nBtns; ++iBtn)
-        {
-          Sqrat::Table btnSq(sqvm);
-          save_hotkey_button_to_sq_table(btnSq, combo->buttons[iBtn]);
-          buttons.SetValue(SQInteger(iBtn), btnSq);
-        }
-        item.SetValue(stringKeys->buttons, buttons);
-        item.SetValue(stringKeys->description, combo->description);
-        item.SetValue(stringKeys->eventName, nullObj);
-        item.SetValue(stringKeys->action, Sqrat::Object(combo->handler.GetFunc(), sqvm));
+          Sqrat::Table item(sqvm);
+          if (combo->buttons.size() == 1)
+            save_hotkey_button_to_sq_table(item, combo->buttons[0]);
+          else
+          {
+            item.SetValue(csk->devId, nullObj);
+            item.SetValue(csk->btnId, nullObj);
+            item.SetValue(csk->btnName, nullObj);
+          }
 
-        res.Append(item);
+          Sqrat::Array buttons(sqvm, combo->buttons.size());
+          for (int iBtn = 0, nBtns = combo->buttons.size(); iBtn < nBtns; ++iBtn)
+          {
+            Sqrat::Table btnSq(sqvm);
+            save_hotkey_button_to_sq_table(btnSq, combo->buttons[iBtn]);
+            buttons.SetValue(SQInteger(iBtn), btnSq);
+          }
+          item.SetValue(csk->buttons, buttons);
+          item.SetValue(csk->description, combo->description);
+          item.SetValue(csk->eventName, nullObj);
+          item.SetValue(csk->action, Sqrat::Object(combo->handler.GetFunc(), sqvm));
+
+          res.Append(item);
+        }
       }
+
+      if (elem->hasFlags(Element::F_STOP_HOTKEYS))
+        break;
     }
-
-    if (elem->hasFlags(Element::F_STOP_HOTKEYS))
-      break;
   }
 
   sceneScriptHandlers.onHotkeysNav(res);
@@ -3556,68 +3409,74 @@ void GuiScene::notifyInputConsumersCallback()
   if (!guiSceneCb || !guiSceneCb->useInputConsumersCallback())
     return;
 
-  auto screen = getFocusedScreen();
-  if (!screen)
-    return;
-
   Tab<HotkeyButton> buttons(framemem_ptr());
   Tab<String> events(framemem_ptr());
 
-  for (const InputEntry &ie : screen->inputStack.stack)
+  for (auto &[id, screen] : screens)
   {
-    Element *elem = ie.elem;
-    if (elem->isDetached())
-    {
-      LOGWARN_CTX("Detached element found in input stack");
+    if (!doesScreenAcceptInput(screen.get()))
       continue;
-    }
 
-    for (const auto &combo : elem->hotkeyCombos)
+    for (const InputEntry &ie : screen->inputStack.stack)
     {
-      if (combo->ignoreConsumerCallback)
+      Element *elem = ie.elem;
+      if (elem->isDetached())
+      {
+        LOGWARN_CTX("Detached element found in input stack");
         continue;
-
-      if (!combo->eventName.empty())
-        events.push_back(combo->eventName);
-      else
-      {
-        for (const HotkeyButton &btn : combo->buttons)
-          buttons.push_back(btn);
       }
+
+      for (const auto &combo : elem->hotkeyCombos)
+      {
+        if (combo->ignoreConsumerCallback)
+          continue;
+
+        if (!combo->eventName.empty())
+          events.push_back(combo->eventName);
+        else
+        {
+          for (const HotkeyButton &btn : combo->buttons)
+            buttons.push_back(btn);
+        }
+      }
+
+      for (Behavior *bhv : elem->behaviors)
+        bhv->collectConsumableButtons(elem, buttons);
+
+      if (elem->hasFlags(Element::F_STOP_HOTKEYS))
+        break;
     }
 
-    for (Behavior *bhv : elem->behaviors)
-      bhv->collectConsumableButtons(elem, buttons);
-
-    if (elem->hasFlags(Element::F_STOP_HOTKEYS))
-      break;
-  }
-
-  for (const InputEntry &ie : screen->inputStack.stack)
-  {
-    if (ie.elem->hitTest(pointerPos.mousePos))
+    Point2 localPos;
+    if (screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
     {
-      if (ie.elem->hasFlags(Element::F_JOYSTICK_SCROLL) && ie.elem->getAvailableScrolls() != 0)
+      for (const InputEntry &ie : screen->inputStack.stack)
       {
-        buttons.push_back(HotkeyButton(DEVID_JOYSTICK_AXIS, config.joystickScrollAxisH));
-        buttons.push_back(HotkeyButton(DEVID_JOYSTICK_AXIS, config.joystickScrollAxisV));
-        break;
+        if (ie.elem->hitTest(localPos))
+        {
+          if (ie.elem->hasFlags(Element::F_JOYSTICK_SCROLL) && ie.elem->getAvailableScrolls() != 0)
+          {
+            buttons.push_back(HotkeyButton(DEVID_JOYSTICK_AXIS, config.joystickScrollAxisH));
+            buttons.push_back(HotkeyButton(DEVID_JOYSTICK_AXIS, config.joystickScrollAxisV));
+            break;
+          }
+          if (ie.elem->hasFlags(Element::F_STOP_HOVER | Element::F_STOP_POINTING))
+            break;
+        }
       }
-      if (ie.elem->hasFlags(Element::F_STOP_HOVER | Element::F_STOP_MOUSE))
-        break;
     }
-  }
 
-  if (screen->inputStack.isDirPadNavigable)
-  {
-    buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_RIGHT));
-    buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_LEFT));
-    buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_DOWN));
-    buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_UP));
+    if (screen.get() == focusedScreen && screen->inputStack.isDirPadNavigable)
+    {
+      buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_RIGHT));
+      buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_LEFT));
+      buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_DOWN));
+      buttons.push_back(HotkeyButton(DEVID_JOYSTICK, JOY_XINPUT_REAL_BTN_D_UP));
+    }
   }
 
   bool consumeMouse = hasInteractiveElements(Behavior::F_HANDLE_MOUSE) || isCursorForcefullyEnabled();
-  bool consumeTextInput = screen->etree.kbFocus && is_text_input(screen->etree.kbFocus);
+  bool consumeTextInput = kbFocus.focus && is_text_input(kbFocus.focus);
 
   if (consumeMouse)
     append_items(buttons, config.clickButtons.size(), config.clickButtons.data());
@@ -3670,18 +3529,39 @@ SQInteger GuiScene::call_anim_method(HSQUIRRELVM vm)
   Sqrat::Object trigger(triggerObj, vm);
   GuiScene *self = get_from_sqvm(vm);
 
-  // TODO: Optimize, trigger animation in a specific ElementTree only
   for (auto &[id, sc] : self->screens)
     (sc->etree.*method)(trigger);
 
   return 0;
 }
 
+
+SQInteger GuiScene::anim_pause(HSQUIRRELVM vm)
+{
+  HSQOBJECT triggerObj;
+  G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, 2, &triggerObj)));
+
+  if (sq_type(triggerObj) == OT_NULL)
+    return 0;
+
+  SQBool setPause = true;
+  if (sq_gettop(vm) >= 3)
+    sq_tobool(vm, 3, &setPause);
+
+  Sqrat::Object trigger(triggerObj, vm);
+  GuiScene *self = get_from_sqvm(vm);
+
+  for (auto &[id, sc] : self->screens)
+    sc->etree.pauseAnimation(trigger, setPause);
+
+  return 0;
+}
+
+
 static Element *find_input_stack_elem_by_cb(InputStack &input_stack, Sqrat::Function &cb)
 {
-  bool res = false;
   for (InputEntry &ie : input_stack.stack)
-    if (cb.Evaluate(ie.elem, ie.elem->props.scriptDesc, res) && res)
+    if (cb.Eval<bool>(ie.elem, ie.elem->props.scriptDesc).value_or(false))
       return ie.elem;
 
   return nullptr;
@@ -3707,11 +3587,10 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
   SQObjectType tp = sq_type(obj);
 
   GuiScene *self = get_from_sqvm(vm);
-  auto screen = self->getFocusedScreen();
 
   if (tp == OT_NULL)
   {
-    screen->etree.setKbFocus(nullptr, capture);
+    self->kbFocus.setFocus(nullptr, capture);
     sq_pushbool(vm, SQTrue);
     return 1;
   }
@@ -3720,7 +3599,7 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
     ElementRef *ref = ElementRef::get_from_stack(vm, 2);
     if (!ref || !ref->elem)
       return sq_throwerror(vm, "Invalid ElementRef");
-    screen->etree.setKbFocus(ref->elem, capture);
+    self->kbFocus.setFocus(ref->elem, capture);
 
     sq_pushbool(vm, SQTrue);
     return 1;
@@ -3730,24 +3609,32 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
     Sqrat::Function f(vm, Sqrat::Object(vm), obj);
     G_ASSERT(!f.IsNull());
 
-    self->rebuildElemStacks(false);
-    Element *elem = find_input_stack_elem_by_cb(screen->inputStack, f);
-    if (elem)
+    self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    for (auto &[id, screen] : self->screens)
     {
-      screen->etree.setKbFocus(elem, capture);
-      sq_pushbool(vm, SQTrue);
-      return 1;
+      if (!self->doesScreenAcceptInput(screen.get()))
+        continue;
+      if (Element *elem = find_input_stack_elem_by_cb(screen->inputStack, f))
+      {
+        self->kbFocus.setFocus(elem, capture);
+        sq_pushbool(vm, SQTrue);
+        return 1;
+      }
     }
   }
   else
   {
-    self->rebuildElemStacks(false);
-    Element *elem = find_input_stack_elem_by_key(vm, screen->inputStack, obj);
-    if (elem)
+    self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    for (auto &[id, screen] : self->screens)
     {
-      screen->etree.setKbFocus(elem, capture);
-      sq_pushbool(vm, SQTrue);
-      return 1;
+      if (!self->doesScreenAcceptInput(screen.get()))
+        continue;
+      if (Element *elem = find_input_stack_elem_by_key(vm, screen->inputStack, obj))
+      {
+        self->kbFocus.setFocus(elem, capture);
+        sq_pushbool(vm, SQTrue);
+        return 1;
+      }
     }
   }
 
@@ -3784,7 +3671,7 @@ SQInteger GuiScene::move_mouse_cursor(HSQUIRRELVM vm)
     ElementRef *ref = ElementRef::get_from_stack(vm, 2);
     if (!ref || !ref->elem)
       return sq_throwerror(vm, "Invalid ElementRef");
-    self->moveMouseCursorToElem(ref->elem, useTransform);
+    self->moveActiveCursorToElem(ref->elem, useTransform);
     sq_pushbool(vm, SQTrue);
     return 1;
   }
@@ -3793,26 +3680,32 @@ SQInteger GuiScene::move_mouse_cursor(HSQUIRRELVM vm)
     Sqrat::Function f(vm, Sqrat::Object(vm), obj);
     G_ASSERT(!f.IsNull());
 
-    self->rebuildElemStacks(false);
-    auto screen = self->getFocusedScreen();
-    Element *elem = find_input_stack_elem_by_cb(screen->inputStack, f);
-    if (elem)
+    self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    for (auto &[id, screen] : self->screens)
     {
-      self->moveMouseCursorToElem(elem, useTransform);
-      sq_pushbool(vm, SQTrue);
-      return 1;
+      if (!self->doesScreenAcceptInput(screen.get()))
+        continue;
+      if (Element *elem = find_input_stack_elem_by_cb(screen->inputStack, f))
+      {
+        self->moveActiveCursorToElem(elem, useTransform);
+        sq_pushbool(vm, SQTrue);
+        return 1;
+      }
     }
   }
   else
   {
-    self->rebuildElemStacks(false);
-    auto screen = self->getFocusedScreen();
-    Element *elem = find_input_stack_elem_by_key(vm, screen->inputStack, obj);
-    if (elem)
+    self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    for (auto &[id, screen] : self->screens)
     {
-      self->moveMouseCursorToElem(elem, useTransform);
-      sq_pushbool(vm, SQTrue);
-      return 1;
+      if (!self->doesScreenAcceptInput(screen.get()))
+        continue;
+      if (Element *elem = find_input_stack_elem_by_key(vm, screen->inputStack, obj))
+      {
+        self->moveActiveCursorToElem(elem, useTransform);
+        sq_pushbool(vm, SQTrue);
+        return 1;
+      }
     }
   }
 
@@ -3875,8 +3768,8 @@ SQInteger GuiScene::add_panel(HSQUIRRELVM vm)
     return sqstd_throwerrorf(vm, "Panel with id %d already exists", idx);
 
   Sqrat::Var<Sqrat::Object> desc(vm, 3);
-  PanelData *panelData = new PanelData(*scene, desc.value, idx);
-  scene->panels[idx].reset(panelData);
+  Panel *panel = new Panel(*scene, desc.value, idx);
+  scene->panels[idx].reset(panel);
 
   return 0;
 }
@@ -3900,9 +3793,9 @@ SQInteger GuiScene::remove_panel(HSQUIRRELVM vm)
   if (it == scene->panels.end())
     return 0;
 
-  auto &panelData = it->second;
+  auto &panel = it->second;
   for (int hand = 0; hand < NUM_VR_POINTERS; ++hand)
-    if (panelData.get() == scene->vrPointers[hand].activePanel)
+    if (panel.get() == scene->vrPointers[hand].activePanel)
       scene->vrPointers[hand].activePanel = nullptr;
 
   scene->spatialInteractionState.forgetPanel(idx);
@@ -4086,7 +3979,7 @@ static SQInteger calc_comp_size(HSQUIRRELVM vm)
       return sq_throwerror(vm, "Failed to build components tree");
 
     ElementTree etree(scene, nullptr);
-    etree.watchesAllowed = false;
+    etree.isInternalTemporaryTree = true;
     etree.canHandleInput = false;
 
     int rebuildResult = 0;
@@ -4095,7 +3988,7 @@ static SQInteger calc_comp_size(HSQUIRRELVM vm)
     etree.root->recalcLayout();
 
     if (etree.root->children.size() != 1)
-      return sq_throwerror(vm, String(32, "Enexpected root children count = %d", etree.root->children.size()));
+      return sq_throwerror(vm, String(32, "Unexpected root children count = %d", etree.root->children.size()));
 
     Element *elem = etree.root->children[0];
     G_ASSERT_RETURN(elem, sq_throwerror(vm, "Empty root"));
@@ -4117,8 +4010,8 @@ static SQInteger get_mouse_cursor_pos(HSQUIRRELVM vm)
   GuiScene *self = (GuiScene *)get_scene_from_sqvm(vm);
 
   Sqrat::Table result(vm);
-  result.SetValue("x", self->getMousePos().x);
-  result.SetValue("y", self->getMousePos().y);
+  result.SetValue("x", self->activePointerPos().x);
+  result.SetValue("y", self->activePointerPos().y);
 
   if (sq_gettop(vm) == 1)
   {
@@ -4136,8 +4029,8 @@ static SQInteger get_mouse_cursor_pos(HSQUIRRELVM vm)
     return 1;
   }
 
-  int relXPx = int(floor(self->getMousePos().x) - eref->elem->screenCoord.screenPos.x);
-  int relYPx = int(floor(self->getMousePos().y) - eref->elem->screenCoord.screenPos.y);
+  int relXPx = int(floor(self->activePointerPos().x) - eref->elem->screenCoord.screenPos.x);
+  int relYPx = int(floor(self->activePointerPos().y) - eref->elem->screenCoord.screenPos.y);
 
   result.SetValue("relXPx", relXPx);
   result.SetValue("relYPx", relYPx);
@@ -4252,8 +4145,8 @@ IWndProcComponent::RetCode GuiScene::process(void * /*hwnd*/, unsigned msg, uint
   {
     if (uint16_t(wParam) != GPCMP1_Inactivate)
     {
-      pointerPos.onAppActivate();
-      updateHover();
+      mousePointer.onAppActivate();
+      updateGlobalHover();
     }
     updateHotkeys(); // to compensate skipped joystick presses
   }
@@ -4261,6 +4154,13 @@ IWndProcComponent::RetCode GuiScene::process(void * /*hwnd*/, unsigned msg, uint
   else if (msg == WM_WINDOWPOSCHANGED || msg == WM_DISPLAYCHANGE)
   {
     queryCurrentScreenResolution();
+  }
+  else if (msg == WM_SYSCOMMAND)
+  {
+    if ((wParam & 0xFFF0) == SC_CLOSE)
+    {
+      kbFocus.sysCloseRequested = true;
+    }
   }
 #endif
   return PROCEED_OTHER_COMPONENTS;
@@ -4341,16 +4241,14 @@ void GuiScene::doUpdateJoystickAxesObservables()
 void GuiScene::onKeyboardLayoutChanged(const char *layout)
 {
   ApiThreadCheck atc(this);
-  String frpErrMsg;
-  keyboardLayout->setValue(Sqrat::Object(layout, sqvm), frpErrMsg);
+  keyboardLayout.setValue(Sqrat::Object(layout, sqvm));
 }
 
 
 void GuiScene::onKeyboardLocksChanged(unsigned locks)
 {
   ApiThreadCheck atc(this);
-  String frpErrMsg;
-  keyboardLocks->setValue(Sqrat::Object(locks, sqvm), frpErrMsg);
+  keyboardLocks.setValue(Sqrat::Object(locks, sqvm));
 }
 
 
@@ -4386,111 +4284,23 @@ bool GuiScene::haveActiveCursorOnPanels() const
 }
 
 
-static constexpr float max_aim_distance = 8.f;
-static constexpr float max_touch_distance = 0.02f;
-static constexpr float new_touch_threshold = 0.25f * max_touch_distance;
-struct PanelIntersection
-{
-  float distance = max_aim_distance + 1.f;
-  Point2 uv;
-};
-using PossiblePanelIntersection = eastl::optional<PanelIntersection>;
-
-
-static bool get_valid_uv_from_intersection_point(const TMatrix &panel_tm, const Point3 &panel_size, const Point3 &point,
-  Point2 &out_uv)
-{
-  Point3 dir = point - panel_tm.getcol(3);
-  Point2 pos{dir * normalize(panel_tm.getcol(0)), dir * normalize(panel_tm.getcol(1))};
-  out_uv.set((pos.x + 0.5f * panel_size.x) / panel_size.x, 1.f - (pos.y + 0.5f * panel_size.y) / panel_size.y);
-  return out_uv.x >= 0.f && out_uv.x < 1.f && out_uv.y >= 0.f && out_uv.y < 1.f;
-}
-
-
-static Point2 uv_to_panel_pixels(const PanelData &panel_data, const Point2 &uv)
-{
-  if (panel_data.canvas)
-  {
-    TextureInfo tinfo;
-    panel_data.canvas->getTex()->getinfo(tinfo);
-    return {uv.x * tinfo.w, uv.y * tinfo.h};
-  }
-
-  return Point2::ZERO;
-}
-
-
-static PossiblePanelIntersection cast_at_rectangle(const Panel &panel, const Point3 &src, const Point3 &target)
-{
-  const TMatrix &transform = panel.renderInfo.transform;
-  Point3 planeP = transform.getcol(3);
-  Point3 planeZ = transform.getcol(2);
-  planeZ.normalize();
-
-  Point2 uv;
-  Plane3 plane(planeZ, planeP);
-  Point3 isect = plane.calcLineIntersectionPoint(src, target);
-  if (isect != src && get_valid_uv_from_intersection_point(transform, panel.spatialInfo.size, isect, uv))
-    return PossiblePanelIntersection({(isect - src).length(), uv});
-
-  return {};
-}
-
-
-static PossiblePanelIntersection project_at_rectangle(const Panel &panel, const Point3 &point, float max_dist)
-{
-  const TMatrix &panelTm = panel.renderInfo.transform;
-  const Point3 panelOrigin = panelTm.getcol(3);
-  const Point3 panelNormal = normalize(panelTm.getcol(2));
-  Plane3 plane(panelNormal, panelOrigin);
-
-  Point2 uv;
-  Point3 projectedPoint = plane.project(point);
-  float dist = -plane.distance(point); // FIXME: plane.distance(point) gives negative value... Wrong normals?
-  if (dist > max_dist)
-    return {};
-
-  if (get_valid_uv_from_intersection_point(panelTm, panel.spatialInfo.size, projectedPoint, uv))
-    return PossiblePanelIntersection({dist, uv});
-
-  return {};
-}
-
-
-static PossiblePanelIntersection cast_at_hit_panel(const Panel &panel, const Point3 &world_from_pos, const Point3 &world_target_pos)
-{
-  switch (panel.spatialInfo.geometry)
-  {
-    case PanelGeometry::Rectangle: return cast_at_rectangle(panel, world_from_pos, world_target_pos);
-
-    default: DAG_FATAL("Implement casting for this type of geometry!"); return {};
-  }
-}
-
-
-static PossiblePanelIntersection project_at_hit_panel(const Panel &panel, const Point3 &point, float max_dist)
-{
-  G_ASSERTF_RETURN(panel.spatialInfo.geometry == PanelGeometry::Rectangle, {}, "Touching non-rectangular panels is not implemented");
-  return project_at_rectangle(panel, point, max_dist);
-}
-
-
 bool GuiScene::worldToPanelPixels(int panel_idx, const Point3 &world_target_pos, const Point3 &world_cam_pos, Point2 &out_panel_pos)
 {
+  using namespace panelmath3d;
+
   const auto &found = panels.find(panel_idx);
   if (found == panels.end())
     return false;
 
-  const auto &panelData = found->second;
-  if (!panelData->needRenderInWorld())
+  const auto &panel = found->second;
+  if (!panel->needRenderInWorld())
     return false;
 
-  if (const Panel *panel = panelData->panel.get())
-    if (const auto hit = cast_at_hit_panel(*panel, world_cam_pos, world_target_pos); hit.has_value())
-    {
-      out_panel_pos = uv_to_panel_pixels(*panelData, hit->uv);
-      return true;
-    }
+  if (const auto hit = cast_at_hit_panel(*panel, world_cam_pos, world_target_pos); hit.has_value())
+  {
+    out_panel_pos = uv_to_panel_pixels(*panel, hit->uv);
+    return true;
+  }
 
   return false;
 }
@@ -4511,16 +4321,15 @@ void GuiScene::renderPanelTo(int panel_idx, BaseTexture *dst)
   ApiThreadCheck atc(this);
 
   auto it = panels.find(panel_idx);
-  if (it == panels.end() || !it->second->panel)
+  if (it == panels.end())
     return;
 
-  auto &panelData = it->second;
-  panelData->panel->spatialInfo.renderRedirection = true;
-  panelData->panel->updateSpatialInfoFromScript();
+  auto &panel = it->second;
+  panel->spatialInfo.renderRedirection = true;
   ensurePanelBufferInitialized();
   int oldBuffer = getGuiContext()->currentBufferId;
   getGuiContext()->setBuffer(panel_render_buffer_index);
-  panelData->updateTexture(*this, dst);
+  panel->updateTexture(*this, dst);
   getGuiContext()->setBuffer(oldBuffer);
 
   refreshGuiContextState();
@@ -4529,46 +4338,44 @@ void GuiScene::renderPanelTo(int panel_idx, BaseTexture *dst)
 void GuiScene::updateSpatialElements(const SpatialSceneData &spatial_scene)
 {
   ApiThreadCheck atc(this);
+  TIME_PROFILE(GuiScene_updateSpatialElements);
 
-  int panelsToRender = 0;
-  for (auto &itPanelData : panels)
+  // Store camera transform and frustum for later use
+  lastCameraTransform = spatial_scene.camera;
+  lastCameraFrustum = spatial_scene.cameraFrustum;
+
+  dag::Vector<Panel *, framemem_allocator> panelsToRender;
+  panelsToRender.reserve(panels.size());
+
+  for (auto &itPanel : panels)
   {
-    auto &panelData = itPanelData.second;
-    if (panelData->panel)
+    Panel *panel = itPanel.second.get();
+    if (panel->needRenderInWorld()) // Ensures there is anchor/geo to resolve spatially
     {
-      panelData->panel->updateSpatialInfoFromScript();
-      if (panelData->needRenderInWorld())
-        ++panelsToRender;
-      else
-        panelData->panel->renderInfo.isValid = false;
+      darg_panel_renderer::panel_spatial_resolver(spatial_scene, panel->spatialInfo, panel->renderInfo.transform);
+
+      if (panel->spatialInfo.visible)
+        panelsToRender.emplace_back(panel);
     }
+    else
+      panel->renderInfo.isValid = false;
   }
 
-  if (panelsToRender == 0)
+  if (panelsToRender.empty())
     return;
 
+  TIME_PROFILE(GuiScene_drawSpatialElements);
   ensurePanelBufferInitialized();
   int oldBuffer = getGuiContext()->currentBufferId;
   getGuiContext()->setBuffer(panel_render_buffer_index);
 
   //--- update render state -------------
 
-  for (auto &itPanelData : panels)
+  for (Panel *panel : panelsToRender)
   {
-    auto &panelData = itPanelData.second;
-    if (!panelData->needRenderInWorld())
-      continue;
-
-    panelData->updateTexture(*this, nullptr);
-
-    Panel *panel = panelData->panel.get();
-
+    panel->updateTexture(*this, nullptr);
     panel->renderInfo.isValid = true;
-    panel->renderInfo.texture = panelData->canvas->getId();
-    panel->updateRenderInfoParamsFromScript();
-    panel->renderInfo.resetPointer();
-
-    darg_panel_renderer::panel_spatial_resolver(spatial_scene, panel->spatialInfo, panel->renderInfo.transform);
+    panel->renderInfo.texture = panel->canvas->getId();
   }
 
   getGuiContext()->setBuffer(oldBuffer);
@@ -4587,21 +4394,19 @@ void GuiScene::refreshVrCursorProjections()
 }
 
 
-bool GuiScene::hasAnyPanels()
+bool GuiScene::hasAnyPanels() const
 {
   ApiThreadCheck atc(this);
 
-  int actualPanels = 0;
-  for (auto &itPanelData : panels)
-    if (itPanelData.second->panel)
-      ++actualPanels;
-
-  return actualPanels > 0;
+  return !panels.empty();
 }
 
 
 void GuiScene::updateSpatialInteractionState(const SpatialSceneData &spatial_scene)
 {
+  TIME_PROFILE(GuiScene_updateSpatialInteractions);
+  using namespace panelmath3d;
+
   using Aim = SpatialSceneData::AimOrigin;
   eastl::array<float, NUM_VR_POINTERS> minHitDistance;
   minHitDistance.fill(max_aim_distance + 1.f);
@@ -4618,9 +4423,9 @@ void GuiScene::updateSpatialInteractionState(const SpatialSceneData &spatial_sce
 
   Point2 panelHitUvs[NUM_VR_POINTERS];
   int closestHitPanelIdxs[NUM_VR_POINTERS] = {-1, -1, -1};
-  for (const auto &itPanelData : panels)
+  for (const auto &itPanel : panels)
   {
-    const Panel *panel = itPanelData.second->panel.get();
+    const Panel *panel = itPanel.second.get();
     if (!panel->renderInfo.isValid)
       continue;
 
@@ -4649,7 +4454,7 @@ void GuiScene::updateSpatialInteractionState(const SpatialSceneData &spatial_sce
       if (hit.has_value() && hit->distance < threshold)
       {
         minHitDistance[src] = hit->distance;
-        closestHitPanelIdxs[src] = itPanelData.first;
+        closestHitPanelIdxs[src] = itPanel.first;
         panelHitUvs[src] = hit->uv;
       }
     }
@@ -4660,7 +4465,7 @@ void GuiScene::updateSpatialInteractionState(const SpatialSceneData &spatial_sce
   {
     auto panelIt = panels.find(closestHitPanelIdxs[src]);
     G_ASSERT(closestHitPanelIdxs[src] < 0 || panelIt != panels.end());
-    bool useTouchThresh = closestHitPanelIdxs[src] >= 0 && panelIt->second->panel->spatialInfo.canBeTouched;
+    bool useTouchThresh = closestHitPanelIdxs[src] >= 0 && panelIt->second->spatialInfo.canBeTouched;
     if (minHitDistance[src] < (useTouchThresh ? max_touch_distance : max_aim_distance))
     {
       auto &sis = spatialInteractionState;
@@ -4682,53 +4487,48 @@ void GuiScene::updateSpatialInteractionState(const SpatialSceneData &spatial_sce
 
 int GuiScene::onVrInputEvent(InputEvent event, int hand, int button_id, int prev_result)
 {
+  //
+  // TODO: handle processing result flags properly
+  //
+
+  using namespace panelmath3d;
+
   G_UNUSED(prev_result);
 
   ApiThreadCheck atc(this);
 
   G_ASSERT_RETURN(hand >= 0 && hand < NUM_VR_POINTERS, 0);
 
-  int result = 0;
+  int result = prev_result;
   if (status.isShowingFullErrorDetails || !isInputActive())
     return result;
-
-  if (event == INP_EV_PRESS)
-    vrActiveHand = hand;
-
-  auto &sis = spatialInteractionState;
-  const Point2 &cursorLocation = sis.hitPos[hand];
-
-  auto screen = getFocusedScreen();
-
-  if (hand == vrActiveHand && sis.wasVrSurfaceHit(vrActiveHand) && screen &&
-      screen->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
-    result = onMouseEventInternal(event, DEVID_VR, 0, cursorLocation.x, cursorLocation.y, 0, 0);
 
   VrPointer &vrPtr = vrPointers[hand];
   int closestPanelIdx = spatialInteractionState.closestHitPanelIdxs[hand];
   auto closestPanelIt = panels.find(closestPanelIdx);
-  PanelData *closestPanelData = closestPanelIt != panels.end() ? closestPanelIt->second.get() : nullptr;
-  if (vrPtr.activePanel != closestPanelData)
+  Panel *closestPanel = closestPanelIt != panels.end() ? closestPanelIt->second.get() : nullptr;
+  if (vrPtr.activePanel != closestPanel)
   {
     if (vrPtr.activePanel)
     {
-      Panel *panel = vrPtr.activePanel->panel.get();
-      if (const auto touch = panel->touchPointers.get(hand))
-        onPanelTouchEvent(panel, hand, INP_EV_RELEASE, touch->pos.x, touch->pos.y);
-      vrPtr.activePanel->setCursorStatus(hand, false);
-      int resFlags = vrPtr.activePanel->panel->screen->etree.deactivateInput(DEVID_VR, hand);
+      if (const auto touch = vrPtr.activePanel->touchPointers.get(hand))
+        onPanelTouchEvent(vrPtr.activePanel, hand, INP_EV_RELEASE, touch->pos.x, touch->pos.y);
+      vrPtr.activePanel->setCursorState(hand, false);
+      int resFlags = vrPtr.activePanel->screen->etree.deactivateInput(DEVID_VR, hand);
       if (resFlags & R_REBUILD_RENDER_AND_INPUT_LISTS)
-        vrPtr.activePanel->panel->rebuildStacks();
+        vrPtr.activePanel->rebuildStacks();
     }
-    vrPtr.activePanel = closestPanelData;
+    vrPtr.activePanel = closestPanel;
     if (vrPtr.activePanel)
-      vrPtr.activePanel->setCursorStatus(hand, true);
+      vrPtr.activePanel->setCursorState(hand, true);
   }
 
-  if (closestPanelData)
+  auto &sis = spatialInteractionState;
+  const Point2 &cursorLocation = sis.hitPos[hand];
+
+  if (closestPanel)
   {
-    Panel *panel = closestPanelData->panel.get();
-    G_ASSERT(panel);
+    Panel *panel = closestPanel;
     // The closest hit panel can only be touched or pointed at (see how hit detection is performed).
     if (panel->spatialInfo.canBeTouched)
     { // If we get here, we have already detected a touch in this frame.
@@ -4736,7 +4536,7 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int button_id, int prev
       float curDist = sis.hitDistances[hand].value();
       bool canRegisterTouch = existingTouch || (curDist > 0.f && curDist < new_touch_threshold); // Avoid double activation
       bool touchNow =
-        canRegisterTouch && panel->screen->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_TOUCH, Element::F_STOP_MOUSE);
+        canRegisterTouch && panel->screen->inputStack.hitTest(cursorLocation, Behavior::F_HANDLE_TOUCH, Element::F_STOP_POINTING);
       sis.isHandTouchingPanel[hand] = touchNow;
       if (existingTouch && touchNow)
         result = onPanelTouchEvent(panel, hand, INP_EV_POINTER_MOVE, cursorLocation.x, cursorLocation.y);
@@ -4745,8 +4545,10 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int button_id, int prev
       // else if (existingTouch) - Release is handled above, when we're no longer touching old activePanel, once.
     }
     else if (panel->spatialInfo.canBePointedAt)
-      result = onPanelMouseEvent(panel, hand, event, DEVID_VR, button_id, cursorLocation.x, cursorLocation.y, 0);
+      result = onPanelMouseEvent(panel, hand, event, DEVID_VR, button_id, cursorLocation.x, cursorLocation.y);
   }
+
+  callScriptHandlers(); // call handlers early for faster response
 
   return result;
 }
@@ -4760,44 +4562,7 @@ void GuiScene::setVrStickScroll(int hand, const Point2 &scroll)
 }
 
 
-void GuiScene::spawnDebugRenderBox(const BBox2 &box, E3DCOLOR fillColor, E3DCOLOR borderColor, float life_time)
-{
-  debugRenderBoxes.push_back(DebugRenderBox{box, fillColor, borderColor, life_time, life_time});
-}
-
-
-void GuiScene::updateDebugRenderBoxes(float dt)
-{
-  for (int i = int(debugRenderBoxes.size()) - 1; i >= 0; --i)
-  {
-    debugRenderBoxes[i].timeLeft -= dt;
-    if (debugRenderBoxes[i].timeLeft < 0)
-      debugRenderBoxes.erase(debugRenderBoxes.begin() + i);
-  }
-}
-
-
-void GuiScene::drawDebugRenderBoxes()
-{
-  for (DebugRenderBox &box : debugRenderBoxes)
-  {
-    float k = box.timeLeft / box.lifeTime;
-    k = (1 - 2 * k);
-    k = k * k;
-    k = k * k * k;
-    k = 1.0f - k; // apply easing
-    k = clamp(k, 0.0f, 1.0f);
-
-    guiContext->set_color(e3dcolor_lerp(0, box.fillColor, k));
-    guiContext->render_box(box.box.left(), box.box.top(), box.box.right(), box.box.bottom());
-
-    guiContext->set_color(e3dcolor_lerp(0, box.borderColor, k));
-    guiContext->render_frame(box.box.left(), box.box.top(), box.box.right(), box.box.bottom(), 2);
-  }
-}
-
-
-Point2 GuiScene::getVrStickState(int hand)
+Point2 GuiScene::getVrStickState(int hand) const
 {
   G_ASSERT_RETURN(hand >= 0 && hand < NUM_VR_POINTERS, Point2(0, 0));
   return vrPointers[hand].stickScroll;
@@ -4818,23 +4583,26 @@ static SQInteger set_config_props(HSQUIRRELVM vm)
 }
 
 
-bool GuiScene::getForcedCursorMode(bool &out_value)
+bool GuiScene::getForcedCursorMode(bool &out_value) const
 {
-  if (forcedCursorMode.IsNull())
+  if (forcedCursor.IsNull())
     return false;
-  const HSQOBJECT &ho = forcedCursorMode.GetObject();
-  out_value = sq_objtobool(&ho);
+  const HSQOBJECT &ho = forcedCursor.GetObject();
+  if (sq_type(ho) == OT_INSTANCE)
+    out_value = true;
+  else
+    out_value = sq_objtobool(&ho);
   return true;
 }
 
 
-bool GuiScene::isCursorForcefullyEnabled()
+bool GuiScene::isCursorForcefullyEnabled() const
 {
   bool val = false;
   return getForcedCursorMode(val) && val;
 }
 
-bool GuiScene::isCursorForcefullyDisabled()
+bool GuiScene::isCursorForcefullyDisabled() const
 {
   bool val = false;
   return getForcedCursorMode(val) && !val;
@@ -4844,25 +4612,25 @@ bool GuiScene::isCursorForcefullyDisabled()
 SQInteger GuiScene::force_cursor_active(HSQUIRRELVM vm)
 {
   GuiScene *scene = GuiScene::get_from_sqvm(vm);
-  Sqrat::Object newMode = Sqrat::Var<Sqrat::Object>(vm, 2).value;
+  Sqrat::Object newVal = Sqrat::Var<Sqrat::Object>(vm, 2).value;
 
-  if (are_sq_obj_equal(vm, scene->forcedCursorMode, newMode))
+  if (newVal.GetType() == OT_INSTANCE && !Sqrat::ClassType<Cursor>::IsClassInstance(newVal))
+    return sq_throwerror(vm, "Forced cursor must be: null (disable override), false, true, or Cursor instance");
+
+  if (are_sq_obj_equal(vm, scene->forcedCursor, newVal))
     return 0;
 
-  scene->forcedCursorMode = newMode;
-  scene->updateActiveCursor();
+  scene->forcedCursor = newVal;
+  scene->updateGlobalActiveCursor();
   scene->applyInputActivityChange();
 
   return 0;
 }
 
 
-Element *GuiScene::traceInputHit(InputDevice device, Point2 pos)
+Element *GuiScene::traceInputHit(ElementTree *etree, InputDevice device, Point2 pos)
 {
-  if (auto screen = getFocusedScreen())
-    return Element::trace_input_stack(this, screen->inputStack, device, pos);
-  else
-    return nullptr;
+  return Element::trace_input_stack(this, etree->screen->inputStack, device, pos);
 }
 
 
@@ -4910,9 +4678,17 @@ bool GuiScene::destroyGuiScreen(int id)
 
 bool GuiScene::setFocusedScreen(Screen *screen)
 {
+  // also see applyInputActivityChange()
   if (focusedScreen == screen)
     return false;
+  if (focusedScreen)
+    focusedScreen->etree.deactivateAllInput();
   focusedScreen = screen;
+
+  pressedClickButtons.clear();
+  kbFocus.setFocus(nullptr);
+  keptXmbFocus.clear();
+
   return true;
 }
 
@@ -4920,32 +4696,21 @@ bool GuiScene::destroyGuiScreen(Screen *screen) { return destroyGuiScreen(getGui
 
 bool GuiScene::setFocusedScreenById(int id) { return setFocusedScreen(getGuiScreen(id)); }
 
-int GuiScene::getFocusedScreenId() const { return getGuiScreenId(focusedScreen); }
-
-
-Screen::Screen(GuiScene *gui_scene) : etree(gui_scene, this), renderList() {}
-
-void Screen::rebuildStacks()
+SQInteger GuiScene::sqGetFocusedScreen(HSQUIRRELVM vm)
 {
-  renderList.clear();
-  inputStack.clear();
-  cursorStack.clear();
-  eventHandlersStack.clear();
+  // returns screen id or null if no focused screen
+  GuiScene *scene = GuiScene::get_from_sqvm(vm);
+  Screen *s = scene->focusedScreen;
+  auto it = eastl::find_if(scene->screens.begin(), scene->screens.end(), [s](const auto &p) { return p.second.get() == s; });
 
-  if (etree.root)
+  if (it != scene->screens.end())
   {
-    ElemStacks stacks;
-    ElemStackCounters counters;
-    stacks.rlist = &renderList;
-    stacks.input = &inputStack;
-    stacks.cursors = &cursorStack;
-    stacks.eventHandlers = &eventHandlersStack;
-    etree.root->putToSortedStacks(stacks, counters, 0, false);
+    sq_pushinteger(vm, it->first);
+    return 1;
   }
-
-  renderList.afterRebuild();
+  else
+    return 0;
 }
-
 
 void GuiScene::bindScriptClasses()
 {
@@ -5005,7 +4770,7 @@ void GuiScene::bindScriptClasses()
     .SquirrelFunc("getCompAABBbyKey", &GuiScene::get_comp_aabb_by_key, 2)
     .SquirrelFunc("setConfigProps", set_config_props, 2, ".t")
     .Func("setFocusedScreen", &GuiScene::setFocusedScreenById)
-    .Prop("focusedScreenId", &GuiScene::getFocusedScreenId)
+    .SquirrelFunc("getFocusedScreen", &GuiScene::sqGetFocusedScreen, 1, "x")
     .Func("haveActiveCursorOnPanels", &GuiScene::haveActiveCursorOnPanels)
     .Func("clearTimer", &GuiScene::clearTimer)
     .Prop("config", &GuiScene::getConfig)
@@ -5021,7 +4786,7 @@ void GuiScene::bindScriptClasses()
     .Prop("xmbMode", &GuiScene::getIsXmbModeOn)
     .Func("getJoystickAxis", &GuiScene::getJoystickAxis)
     .Func("enableInput", &GuiScene::scriptSetSceneInputActive)
-    .SquirrelFunc("forceCursorActive", &GuiScene::force_cursor_active, 2, "x b|o")
+    .SquirrelFunc("forceCursorActive", &GuiScene::force_cursor_active, 2, "x b|o|x")
     /**/;
 
 #define V(x) .Var(#x, &SceneConfig::x)
@@ -5080,8 +4845,10 @@ void GuiScene::bindScriptClasses()
     V(useDefaultCursor)
     ///@var defaultCursor
     V(defaultCursor)
-    ///@var clickPriority
+    ///@var actionClickByBehavior
     V(actionClickByBehavior)
+    ///@var allScreensAcceptInput
+    V(allScreensAcceptInput)
     ///@var moveClickThreshold
     V(moveClickThreshold)
     .Prop("defSceneBgColor", &SceneConfig::getDefSceneBgColor, &SceneConfig::setDefSceneBgColor)
@@ -5097,6 +4864,7 @@ void GuiScene::bindScriptClasses()
     .SquirrelFunc("anim_request_stop", GuiScene::call_anim_method<&ElementTree::requestAnimStop>, 2)
     .SquirrelFunc("anim_skip", GuiScene::call_anim_method<&ElementTree::skipAnim>, 2)
     .SquirrelFunc("anim_skip_delay", GuiScene::call_anim_method<&ElementTree::skipAnimDelay>, 2)
+    .SquirrelFunc("anim_pause", GuiScene::anim_pause, -2, "..b")
     .SquirrelFunc("set_kb_focus", set_kb_focus, 2)
     .SquirrelFunc("capture_kb_focus", capture_kb_focus, 2)
     .SquirrelFunc("calc_comp_size", calc_comp_size, 2, ".o|t|c|x|y")

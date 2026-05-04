@@ -8,9 +8,6 @@ float terraform_min_physics_error = -100.0;
 
 texture terraform_hmap_saved;
 
-int terraform_enabled = 0;
-interval terraform_enabled: terraform_enabled_off < 1, terraform_enabled_on;
-
 texture tform_height_mask;
 float4 tform_height_mask_scale_offset = (1, 1, 0, 0);
 
@@ -34,7 +31,10 @@ macro USE_TERRAFORM_HEIGHT(code)
 endmacro
 
 macro USE_TFORM_COMMON(code)
-  bool use_tform = terraform_enabled == terraform_enabled_on && in_editor_assume == no;
+  BEGIN_ONCE(use_tfrom_declared)
+  bool use_tform = tform_height_mask != NULL && in_editor_assume == no;
+  END_ONCE()
+
   if (use_tform)
   {
     INIT_TERRAFORM_HEIGHT(code)
@@ -51,27 +51,24 @@ macro USE_TFORM_COMMON(code)
   hlsl(code) {
     #define TERRAFORM_TRACKDIRT_REMOVAL_SCALE 4.0f
 
-    half eval_tform_height(float2 worldXZ, float hmap_height, half tform_tex_height, half weight, out half tform_height)
-    {
     ##if use_tform
-      tform_height = abs(tform_tex_height - tformParams_pherr.z) < 0.5/255.0 ? 0 : tformParams_pherr.y * tform_tex_height + tformParams_pherr.x;
-      half tformHeightBase = tex2Dlod(terraform_hmap_saved, float4(worldXZ * tform_world_to_hmap_low.xy + tform_world_to_hmap_low.zw, 0, 0)).r;
-      tformHeightBase = tformHeightBase * tform_heightmap_scale.x + tform_heightmap_scale.y;
-      half deltaHt = max(min(tform_height - (hmap_height - tformHeightBase), tformParams_pherr.w), terraform_min_physics_error);
-      tform_height = lerp(0, tform_height, weight);
-      return lerp(0, deltaHt, weight);
-    ##else
-      tform_height = 0;
-      return 0;
+      half eval_tform_height(float2 worldXZ, float hmap_height, half tform_tex_height, half weight, out half tform_height)
+      {
+        tform_height = abs(tform_tex_height - tformParams_pherr.z) < 0.5/255.0 ? 0 : tformParams_pherr.y * tform_tex_height + tformParams_pherr.x;
+        half tformHeightBase = tex2Dlod(terraform_hmap_saved, float4(worldXZ * tform_world_to_hmap_low.xy + tform_world_to_hmap_low.zw, 0, 0)).r;
+        tformHeightBase = tformHeightBase * tform_heightmap_scale.x + tform_heightmap_scale.y;
+        half deltaHt = max(min(tform_height - (hmap_height - tformHeightBase), tformParams_pherr.w), terraform_min_physics_error);
+        tform_height = lerp(0, tform_height, weight);
+        return lerp(0, deltaHt, weight);
+      }
     ##endif
-    }
   }
 endmacro
 
 macro USE_TFORM_HEIGHT_MASK(code)
   USE_TFORM_COMMON(code)
 
-  if (tform_height_mask != NULL)
+  if (use_tform)
   {
     (code) {
       tform_height_mask@smp2d = tform_height_mask;
@@ -83,22 +80,11 @@ macro USE_TFORM_HEIGHT_MASK(code)
 
       half get_tform_height_mask(float2 worldXZ, float hmap_height, out float tform_height)
       {
-      ##if use_tform
         float2 heightMaskUV = worldXZ * tform_height_mask_scale_offset.xy + tform_height_mask_scale_offset.zw;
         half texHeight = tex2Dlod(tform_height_mask, float4(heightMaskUV, 0, 0)).r;
         float2 heightMaskFadeOut = saturate((abs(heightMaskUV.xy - 0.5) - (0.5 - FADE_BORDER)) / FADE_BORDER);
         return eval_tform_height(worldXZ, hmap_height, texHeight, 1.0 - min(dot(heightMaskFadeOut, heightMaskFadeOut), 1), tform_height);
-      ##else
-        tform_height = 0;
-        return 0;
-      ##endif
       }
-    }
-  }
-  else
-  {
-    hlsl(code) {
-      #define get_tform_height_mask(worldXZ, hmap_height, tform_height) 0
     }
   }
 endmacro

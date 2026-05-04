@@ -98,6 +98,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(rendinst::getRiGenExtraResCount)>(*this, lib, "rendinst_getRiGenExtraResCount",
       das::SideEffects::accessExternal, "rendinst::getRiGenExtraResCount");
+    das::addExtern<DAS_BIND_FUN(rendinst::isRiExtraLoaded)>(*this, lib, "rendinst_isRiExtraLoaded", das::SideEffects::accessExternal,
+      "rendinst::isRiExtraLoaded");
     das::addExtern<DAS_BIND_FUN(find_ri_extra_eid)>(*this, lib, "find_ri_extra_eid", das::SideEffects::accessExternal,
       "find_ri_extra_eid");
     das::addExtern<DAS_BIND_FUN(replace_ri_extra_res)>(*this, lib, "replace_ri_extra_res", das::SideEffects::modifyExternal,
@@ -150,6 +152,8 @@ public:
       "rendinst::setRIGenExtraImmortal");
     das::addExtern<DAS_BIND_FUN(rendinst::getInitialHP)>(*this, lib, "riex_getInitialHP", das::SideEffects::accessExternal,
       "rendinst::getInitialHP");
+    das::addExtern<DAS_BIND_FUN(rendinst::isInvincible)>(*this, lib, "riex_isInvincible", das::SideEffects::accessExternal,
+      "rendinst::isInvincible");
     das::addExtern<DAS_BIND_FUN(rendinst::isPaintFxOnHit)>(*this, lib, "riex_isPaintFxOnHit", das::SideEffects::accessExternal,
       "rendinst::isPaintFxOnHit");
     das::addExtern<DAS_BIND_FUN(rendinst::isRiGenExtraValid)>(*this, lib, "riex_isRiGenExtraValid", das::SideEffects::accessExternal,
@@ -192,6 +196,8 @@ public:
       "draw_debug_collisions");
     das::addExtern<DAS_BIND_FUN(damage_ri_in_sphere)>(*this, lib, "damage_ri_in_sphere", das::SideEffects::modifyExternal,
       "bind_dascript::damage_ri_in_sphere");
+    das::addExtern<DAS_BIND_FUN(damage_ri_in_sphere_with_dest_setting)>(*this, lib, "damage_ri_in_sphere_with_dest_setting",
+      das::SideEffects::invoke, "bind_dascript::damage_ri_in_sphere_with_dest_setting");
     das::addExtern<DAS_BIND_FUN(doRIGenDamage)>(*this, lib, "rendinst_doRIGenDamage", das::SideEffects::modifyExternal,
       "bind_dascript::doRIGenDamage");
     das::addExtern<DAS_BIND_FUN(doRendinstDamage)>(*this, lib, "rendinst_doRendinstDamage", das::SideEffects::modifyExternal,
@@ -226,6 +232,8 @@ public:
       "rendinst::delRIGenExtra");
     das::addExtern<DAS_BIND_FUN(rendinst_foreachInBox)>(*this, lib, "rendinst_foreachInBox", das::SideEffects::accessExternal,
       "bind_dascript::rendinst_foreachInBox");
+    das::addExtern<DAS_BIND_FUN(rendinst_foreachInSphere)>(*this, lib, "rendinst_foreachInSphere", das::SideEffects::accessExternal,
+      "bind_dascript::rendinst_foreachInSphere");
     das::addExtern<DAS_BIND_FUN(rendinst::setMaxNumRiCollisionCb)>(*this, lib, "setMaxNumRiCollisionCb",
       das::SideEffects::modifyExternal, "rendinst::setMaxNumRiCollisionCb");
     das::addExtern<DAS_BIND_FUN(rendinst::moveToOriginalScene)>(*this, lib, "rendinst_moveToOriginalScene",

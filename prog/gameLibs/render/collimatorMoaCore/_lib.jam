@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_collimatorMoaCore_pull ;
+  UseProgLibs += gameLibs/render/collimatorMoaCore ;
+}

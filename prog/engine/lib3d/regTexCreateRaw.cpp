@@ -173,7 +173,7 @@ public:
       if (flen <= 0)
         return NULL;
 
-      t = d3d::create_tex(NULL, width, height, format, 1, fn);
+      t = d3d::create_tex(NULL, width, height, format, 1, fn, RESTAG_REGTEX);
 
       if (t)
       {

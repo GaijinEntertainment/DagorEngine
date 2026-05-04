@@ -15,9 +15,11 @@
 #include "hotkeys.h"
 #include <daRg/dag_joystick.h>
 #include "panel.h"
-#include "pointerPosition.h"
+#include "screen.h"
+#include "mousePointer.h"
 #include "sceneStatus.h"
 #include "touchPointers.h"
+#include "kbFocus.h"
 
 #include <drv/hid/dag_hiDecl.h>
 #include <drv/hid/dag_hiXInputMappings.h>
@@ -27,16 +29,14 @@
 #include <EASTL/unique_ptr.h>
 #include <memory/dag_fixedBlockAllocator.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <quirrel/frp/dag_frp.h>
 
 class SqModules;
 class TextureIDHolder;
 
 namespace sqfrp
 {
-class BaseObservable;
-class ScriptValueObservable;
 class IStateWatcher;
-class ObservablesGraph;
 } // namespace sqfrp
 
 
@@ -52,43 +52,14 @@ class Cursor;
 class Profiler;
 class Timer;
 class Panel;
-struct DebugRenderBox;
+class Screen;
 class DasScriptsData;
 
 
 struct VrPointer
 {
-  PanelData *activePanel = nullptr;
+  Panel *activePanel = nullptr;
   Point2 stickScroll = Point2(0, 0);
-};
-
-
-class Screen
-{
-public:
-  ElementTree etree;
-  RenderList renderList;
-  InputStack inputStack;
-  InputStack cursorStack;
-  InputStack eventHandlersStack;
-  Panel *panel = nullptr;
-
-  bool isMainScreen = false;
-
-  ElementTree *getElementTree() { return &etree; }
-  InputStack &getInputStack() { return inputStack; }
-
-  void rebuildStacks();
-
-  Screen(const Screen &) = delete;
-  Screen &operator=(const Screen &) = delete;
-
-protected:
-  friend class GuiScene;
-
-  Screen(GuiScene *gui_scene);
-  ~Screen() { clear(); }
-  void clear();
 };
 
 
@@ -102,7 +73,7 @@ public:
   };
 
 public:
-  GuiScene(StdGuiRender::GuiContext *gui_ctx);
+  GuiScene();
   ~GuiScene();
 
   virtual void setCallback(IGuiSceneCallback *cb) override { guiSceneCb = cb; }
@@ -144,14 +115,17 @@ public:
   virtual void onKeyboardLayoutChanged(const char *layout) override;
   virtual void onKeyboardLocksChanged(unsigned locks) override;
 
-  virtual Element *traceInputHit(InputDevice device, Point2 pos) override;
+  virtual Element *traceInputHit(ElementTree *etree, InputDevice device, Point2 pos) override;
 
   virtual void queueScriptHandler(BaseScriptHandler *h) override;
   virtual void callScriptHandlers(bool is_shutdown = false) override final;
 
   virtual void forceFrpUpdateDeferred() override final;
 
-  virtual void setKbFocus(Element *elem) override;
+  virtual void inspectSceneTree(eastl::string &out, int max_depth, const char *filter_text, bool include_hidden, bool skip_non_visual,
+    int max_elements) override;
+  virtual void inspectElementsAtPos(eastl::string &out, int x, int y) override;
+  virtual void findElementsByText(eastl::string &out, const char *text, bool case_sensitive, int max_results) override;
 
   virtual void setSceneInputActive(bool active) override;
   virtual void skipRender() override;
@@ -159,13 +133,16 @@ public:
   virtual IWndProcComponent::RetCode process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam, intptr_t &result) override;
 
   void invalidateElement(Element *elem);
+  void deferredRecalLayout(Element *elem);
 
   void rebuildInvalidatedParts();
   void recalcLayoutFromRoots(dag::Span<Element *> fixed_size_roots, dag::Span<Element *> size_roots, dag::Span<Element *> flow_roots);
   void onElementDetached(Element *elem);
   void validateAfterRebuild(Element *elem);
 
-  void rebuildElemStacks(bool refresh_hotkeys_nav);
+  void rebuildStacksAndNotify(Screen *screen, bool refresh_hotkeys_nav, bool update_global_hover);
+  void rebuildAllScreensStacksAndNotify(bool refresh_hotkeys_nav, bool update_global_hover);
+  void applyInteractivityChange(int prev_iflags, bool refresh_hotkeys_nav, bool update_global_hover);
   void refreshHotkeysNav();
   virtual void notifyInputConsumersCallback() override;
 
@@ -174,7 +151,7 @@ public:
 
   virtual SqModules *getModuleMgr() const override { return moduleMgr.get(); }
   virtual StringKeys *getStringKeys() const override { return stringKeys; }
-  virtual StdGuiRender::GuiContext *getGuiContext() const override { return guiContext; }
+  virtual StdGuiRender::GuiContext *getGuiContext() const override { return guiContext.get(); }
 
   const Hotkeys &getHotkeys() const { return hotkeys; }
   virtual IEventList &getEvents() override { return *this; }
@@ -185,24 +162,26 @@ public:
   int getFramesCount() const { return framesCount; }
   int getActsCount() const { return actsCount; }
 
-  virtual bool hasInteractiveElements() override;
-  virtual bool hasInteractiveElements(int bhv_flags) override;
-  int calcInteractiveFlags();
+  virtual bool hasInteractiveElements() const override;
+  virtual bool hasInteractiveElements(int bhv_flags) const override;
+  int calcInteractiveFlags() const;
 
   // for WT mouse mode management
-  virtual bool hasActiveCursor() override { return activeCursor != nullptr; }
-  virtual bool getForcedCursorMode(bool &out_value) override;
+  virtual bool hasActiveCursor() const override { return activeCursor != nullptr; }
+  virtual bool getForcedCursorMode(bool &out_value) const override;
 
   virtual void activateProfiler(bool on) override;
-  virtual Profiler *getProfiler() override { return profiler.get(); }
+  virtual Profiler *getProfiler() const override { return profiler.get(); }
   IGuiSceneCallback *getCb() const { return guiSceneCb; }
 
-  Point2 getMousePos() const { return pointerPos.mousePos; }
+  CursorPosState &activePointerState();
+  const CursorPosState &activePointerState() const;
+  Point2 activePointerPos() const;
   void setMousePos(const Point2 &p, bool reset_target);
-  void moveMouseCursorToElem(Element *elem, bool use_transform);
-  void moveMouseCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump);
+  void moveActiveCursorToElem(Element *elem, bool use_transform);
+  void moveActiveCursorToElemBox(Element *elem, const BBox2 &bbox, bool jump);
 
-  void updateHover();
+  void updateGlobalHover();
 
   virtual bool sendEvent(const char *id, const Sqrat::Object &data) override;
   virtual void postEvent(const char *id, const Json::Value &data) override;
@@ -211,8 +190,9 @@ public:
   SceneConfig *getConfig() { return &config; }
 
   virtual void setSceneErrorRenderMode(SceneErrorRenderMode mode) override;
+  virtual bool getErrorText(eastl::string &text) const override;
 
-  Sqrat::Array getAllObservables();
+  Sqrat::Array getAllObservables() const;
 
   void addCursor(Cursor *c);
   void removeCursor(Cursor *c);
@@ -220,35 +200,31 @@ public:
   void onPictureLoaded(const Picture *pic);
   virtual void setPictureDiscardAllowed(bool discardAllowed) override { pictureDiscardAllowed = discardAllowed; }
 
-  static HumanInput::IGenJoystick *getJoystick();
+  HumanInput::IGenJoystick *getJoystick(int16_t ord_id = -1) const override;
 
   bool useCircleAsActionButton() const;
   bool isInputActive() const { return isInputEnabledByHost && isInputEnabledByScript; }
 
-  void setXmbFocus(Element *elem);
-  bool trySetXmbFocus(Element *elem);
-  BBox2 calcXmbViewport(Element *node, Element **nearest_xmb_viewport) const;
+  void doSetXmbFocus(Element *elem);
+  void trySetXmbFocus(Element *elem);
 
-  virtual void ignoreDeviceCursorPos(bool on) override { shouldIgnoreDeviceCursorPos = on; }
-
-  void doJoystickScroll(const Point2 &delta);
-  Point2 getVrStickState(int hand);
+  Point2 getVrStickState(int hand) const;
 
   IPoint2 getDeviceScreenSize() const { return deviceScreenSize; }
 
   void renderPanelTo(int panel_idx, BaseTexture *dst) override;
   void updateSpatialElements(const SpatialSceneData &spatial_scene) override;
   void refreshVrCursorProjections() override;
-  bool hasAnyPanels() override;
+  bool hasAnyPanels() const override;
   bool worldToPanelPixels(int panel_idx, const Point3 &world_target_pos, const Point3 &world_cam_pos, Point2 &out_panel_pos) override;
 
-  const eastl::vector_map<int, eastl::unique_ptr<PanelData>> &getPanels() const { return panels; }
+  const eastl::vector_map<int, eastl::unique_ptr<Panel>> &getPanels() const { return panels; }
 
 
   const darg::PanelSpatialInfo *getPanelSpatialInfo(int id) const override
   {
     if (const auto &found = panels.find(id); found != panels.end())
-      return &found->second->panel->spatialInfo;
+      return &found->second->spatialInfo;
     return nullptr;
   }
 
@@ -256,8 +232,6 @@ public:
   bool haveActiveCursorOnPanels() const override;
   bool isAnyPanelPointedAtWithHand(int hand) const override { return spatialInteractionState.wasPanelHit(hand); }
   bool isAnyPanelTouchedWithHand(int hand) const override { return spatialInteractionState.isHandTouchingPanel[hand]; }
-
-  void spawnDebugRenderBox(const BBox2 &box, E3DCOLOR fillColor, E3DCOLOR borederColor, float life_time);
 
   Screen *createGuiScreen(int id);
   Screen *getGuiScreen(int id) const;
@@ -267,7 +241,7 @@ public:
   bool setFocusedScreenById(int id);
   bool setFocusedScreen(Screen *screen);
   Screen *getFocusedScreen() const { return focusedScreen; }
-  int getFocusedScreenId() const;
+  static SQInteger sqGetFocusedScreen(HSQUIRRELVM vm);
 
 private:
   void blurWorld();
@@ -280,8 +254,7 @@ private:
   void bindScriptClasses();
   void saveToSqVm();
 
-  Point2 cursorPosition(Cursor *cursor) const;
-  void updateActiveCursor();
+  void updateGlobalActiveCursor();
   bool updateHotkeys();
   void doUpdateJoystickAxesObservables();
   void updateJoystickAxesObservables()
@@ -298,39 +271,38 @@ private:
   void flushRenderImpl(FlushPart part);
 
   void renderProfileStats();
-  void renderXmbDebug();
-  void renderDirPadNavDebug();
-  void renderInputStackDebug();
   void renderInternalCursor();
 
   static SQInteger set_timer(HSQUIRRELVM vm, bool periodic, bool reuse);
   void clearTimer(const Sqrat::Object &id_);
   void updateTimers(float dt);
 
-  static HumanInput::IGenPointing *getMouse();
   void dirPadNavigate(Direction dir);
+  void repeatDirPadNav(float dt);
   bool xmbNavigate(Direction dir); //< return true if event was processed and consumed
-  bool xmbGridNavigate(Direction dir);
-  void moveMouseToTarget(float dt);
   void checkCursorHotspotUpdate(Element *elem_rebuilt);
+  void doJoystickScroll(const Point2 &delta);
+  void updatePointers(float dt, bool &hover_dirty);
+  void updateGamepadCursor(float dt, bool &hover_dirty);
+  void requestActivePointerNextFramePos(const Point2 &p);
+  void requestActivePointerTargetPos(const Point2 &p);
+  void updateVrStickScroll(float dt);
   bool scrollIntoView(Element *elem, const BBox2 &viewport, const Point2 &max_scroll, const Element *scroll_root);
   bool scrollIntoViewCenter(Element *elem, const BBox2 &viewport, const Point2 &max_scroll, const Element *scroll_root);
   bool hierScroll(Element *elem, Point2 delta, const Element *scroll_root);
   void scrollToXmbFocus(float dt);
   void validateOverlaidXmbFocus();
   void tryRestoreSavedXmbFocus();
-  bool isXmbNodeInputCovered(Element *node) const;
-  void rebuildXmb();
-  void rebuildXmb(Element *node, Element *xmb_parent);
 
-  int handleMouseClick(InputEvent event, InputDevice device, int btn_idx, short mx, short my, int buttons, int accum_res);
-  int onMouseEventInternal(InputEvent event, InputDevice device, int data, short mx, short my, int buttons, int accum_res);
-  int onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputDevice device, int button_id, short mx, short my, int buttons,
+  int handleMouseClick(Screen *screen, InputEvent event, InputDevice device, int btn_idx, Point2 pos, int accum_res);
+  int onMouseEventInternal(Screen *screen, InputEvent event, InputDevice device, int data, Point2 pos, int buttons, int accum_res);
+  int onPanelMouseEvent(Panel *panel, int hand, InputEvent event, InputDevice device, int button_id, short mx, short my,
     int prev_result = 0);
   int onPanelTouchEvent(Panel *panel, int hand, InputEvent event, short tx, short ty, int prev_result = 0);
 
   template <void (ElementTree::*method)(const Sqrat::Object &)>
   static SQInteger call_anim_method(HSQUIRRELVM vm);
+  static SQInteger anim_pause(HSQUIRRELVM vm);
 
   static SQInteger set_kb_focus_impl(HSQUIRRELVM vm, bool capture);
   static SQInteger set_kb_focus(HSQUIRRELVM vm);
@@ -345,38 +317,36 @@ private:
   static SQInteger force_cursor_active(HSQUIRRELVM vm);
   static SQInteger get_comp_aabb_by_key(HSQUIRRELVM vm);
 
-  sqfrp::ScriptValueObservable *getCursorPresentObservable() { return cursorPresent.get(); }
-  sqfrp::ScriptValueObservable *getCursorOverScrollObservable() { return cursorOverStickScroll.get(); }
-  sqfrp::ScriptValueObservable *getCursorOverClickableObservable() { return cursorOverClickable.get(); }
-  sqfrp::ScriptValueObservable *getHoveredClickableInfoObservable() { return hoveredClickableInfo.get(); }
+  sqfrp::NativeWatched *getCursorPresentObservable() { return &cursorPresent; }
+  sqfrp::NativeWatched *getCursorOverScrollObservable() { return &cursorOverStickScroll; }
+  sqfrp::NativeWatched *getCursorOverClickableObservable() { return &cursorOverClickable; }
+  sqfrp::NativeWatched *getHoveredClickableInfoObservable() { return &hoveredClickableInfo; }
   JoystickAxisObservable *getJoystickAxis(int axis);
-  sqfrp::ScriptValueObservable *getKeyboardLayoutObservable() { return keyboardLayout.get(); }
-  sqfrp::ScriptValueObservable *getKeyboardLocksObservable() { return keyboardLocks.get(); }
-  sqfrp::ScriptValueObservable *getIsXmbModeOn() { return isXmbModeOn.get(); }
-  sqfrp::ScriptValueObservable *getUpdateCounterObservable() { return updateCounter.get(); }
+  sqfrp::NativeWatched *getKeyboardLayoutObservable() { return &keyboardLayout; }
+  sqfrp::NativeWatched *getKeyboardLocksObservable() { return &keyboardLocks; }
+  sqfrp::NativeWatched *getIsXmbModeOn() { return &isXmbModeOn; }
+  sqfrp::NativeWatched *getUpdateCounterObservable() { return &updateCounter; }
 
   void createNativeWatches();
   void destroyNativeWatches();
-
-  void logPrevReloadObservableLeftovers();
-
-  void updateDebugRenderBoxes(float dt);
-  void drawDebugRenderBoxes();
 
   void queryCurrentScreenResolution();
 
   void scriptSetSceneInputActive(bool active);
   void applyInputActivityChange();
 
-  bool isCursorForcefullyEnabled();
-  bool isCursorForcefullyDisabled();
+  bool isCursorForcefullyEnabled() const;
+  bool isCursorForcefullyDisabled() const;
+
+  bool doesScreenAcceptInput(const Screen *screen) const;
 
   void requestHoverUpdate();
   void applyPendingHoverUpdate();
+  void applyDeferredRecalLayout();
 
 public:
   eastl::unique_ptr<sqfrp::ObservablesGraph> frpGraph;
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> isXmbModeOn;
+  sqfrp::NativeWatched isXmbModeOn;
   bool hotkeysStackModified = false;
 
   SceneConfig config;
@@ -391,9 +361,17 @@ public:
 
   eastl::unique_ptr<DasScriptsData> dasScriptsData;
 
+  KbFocus kbFocus;
+  Element *xmbFocus = nullptr;
+
+  TMatrix lastCameraTransform = TMatrix::IDENT;
+  Frustum lastCameraFrustum;
+
+  const GamepadCursor &getGamepadCursor() const { return gamepadCursor; }
+  const Cursor *getActiveCursor() const { return activeCursor; }
+
 private:
-  StdGuiRender::GuiContext *guiContext = nullptr;
-  bool ownGuiContext = false;
+  eastl::unique_ptr<StdGuiRender::GuiContext> guiContext;
 
   struct ScreenDeleter
   {
@@ -403,9 +381,10 @@ private:
   eastl::vector_map<int, eastl::unique_ptr<Screen, ScreenDeleter>> screens;
   Screen *focusedScreen = nullptr;
 
+  // Devices for controlling the cursor (seamlessly switched by activity)
+  MousePointer mousePointer;
   GamepadCursor gamepadCursor;
-
-  PointerPosition pointerPos;
+  InputDevice activePointingDevice = DEVID_MOUSE;
 
   eastl::vector_set<HotkeyButton> pressedClickButtons;
 
@@ -417,11 +396,14 @@ private:
   StringKeys *stringKeys = nullptr;
 
   Cursor *activeCursor = nullptr;
-  Sqrat::Object forcedCursorMode; // null|false|true
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> cursorPresent, cursorOverStickScroll, cursorOverClickable;
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> hoveredClickableInfo;
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> keyboardLayout, keyboardLocks;
-  eastl::unique_ptr<sqfrp::ScriptValueObservable> updateCounter;
+  Sqrat::Object forcedCursor; // null|false|true|Cursor(instance)
+  sqfrp::NativeWatched cursorPresent;
+  sqfrp::NativeWatched cursorOverStickScroll;
+  sqfrp::NativeWatched cursorOverClickable;
+  sqfrp::NativeWatched hoveredClickableInfo;
+  sqfrp::NativeWatched keyboardLayout;
+  sqfrp::NativeWatched keyboardLocks;
+  sqfrp::NativeWatched updateCounter;
   dag::Vector<JoystickAxisObservable> joyAxisObservables;
   eastl::vector_set<Cursor *> allCursors;
 
@@ -430,6 +412,7 @@ private:
   dag::Vector<Element *> layoutRecalcSizeRoots;
   dag::Vector<Element *> layoutRecalcFlowRoots;
   dag::Vector<Element *> allRebuiltElems;
+  eastl::vector_set<Element *> deferredRecalcLayout;
 
   Tab<BaseScriptHandler *> scriptHandlersQueue;
   Tab<Element *> keptXmbFocus;
@@ -451,15 +434,13 @@ private:
 
   int lastRenderTimestamp = 0;
 
-  int lastDirPadNavDir = -1;
+  int lastDirPadNavBtn = -1;
   float dirPadNavRepeatTimeout = 0.0f;
 
   SceneStatus status;
 
   bool isInputEnabledByHost = true;
   bool isInputEnabledByScript = true;
-
-  bool shouldIgnoreDeviceCursorPos = false;
 
   IPoint2 deviceScreenSize = IPoint2(0, 0);
 
@@ -472,7 +453,7 @@ private:
 
   UpdateHoverRequestState updateHoverRequestState = UpdateHoverRequestState::None;
 
-  eastl::vector_map<int, eastl::unique_ptr<PanelData>> panels;
+  eastl::vector_map<int, eastl::unique_ptr<Panel>> panels;
 
   static constexpr int NUM_VR_POINTERS = SpatialSceneData::AimOrigin::Total;
   struct SpatialInteractionState
@@ -499,14 +480,11 @@ private:
   void updateSpatialInteractionState(const SpatialSceneData &vr_scene);
 
   VrPointer vrPointers[NUM_VR_POINTERS];
-  int vrActiveHand = 1; //< temporary for mapping to mouse
 
   TouchPointers touchPointers;
 
   bool panelBufferInitialized = false;
   void ensurePanelBufferInitialized();
-
-  eastl::vector<DebugRenderBox> debugRenderBoxes;
 
   mutable volatile int apiThreadId = 0;
   mutable void *threadCheckCallStack[32];
@@ -519,6 +497,8 @@ private:
   WinCritSec postedEventsQueueCs;
 
   bool pictureDiscardAllowed = true;
+
+  friend class Screen; // for localToDisplay/displayToLocal, to be removed later
 };
 
 } // namespace darg

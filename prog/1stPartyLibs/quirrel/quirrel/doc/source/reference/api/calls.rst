@@ -49,7 +49,7 @@ pushes the last error in the stack.
 
 .. _sq_getlocal:
 
-.. c:function:: const SQChar * sq_getlocal(HSQUIRRELVM v, SQUnsignedInteger level, SQUnsignedInteger nseq)
+.. c:function:: const char * sq_getlocal(HSQUIRRELVM v, SQUnsignedInteger level, SQUnsignedInteger nseq)
 
     :param HSQUIRRELVM v: the target VM
     :param SQUnsignedInteger level: the function index in the calls stack, 0 is the current function
@@ -111,10 +111,10 @@ resumes the generator at the top position of the stack.
 
 .. _sq_throwerror:
 
-.. c:function:: SQRESULT sq_throwerror(HSQUIRRELVM v, const SQChar * err)
+.. c:function:: SQRESULT sq_throwerror(HSQUIRRELVM v, const char * err)
 
     :param HSQUIRRELVM v: the target VM
-    :param const SQChar * err: the description of the error that has to be thrown
+    :param const char * err: the description of the error that has to be thrown
     :returns: the value that has to be returned by a native closure in order to throw an exception in the virtual machine.
 
 sets the last error in the virtual machine and returns the value that has to be returned by a native closure in order to trigger an exception in the virtual machine.

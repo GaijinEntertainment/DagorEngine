@@ -1,8 +1,27 @@
 WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
-testData/static_analyzer/w233.nut:4:19
+testData/static_analyzer/w233.nut:8:21
 
-::flags <- 0x2040
-::aspect_ratio <- (::flags && 0x40)
-                   ^--------------
+  ::flags <- 0x2040
+  ::aspect_ratio <- (::flags && 0x40)
+                     ^--------------
+}
+
+
+WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
+testData/static_analyzer/w233.nut:14:14
+
+  let flags = 0x2040
+  let _res = (flags && 0x40)
+              ^------------
+}
+
+
+WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
+testData/static_analyzer/w233.nut:21:16
+
+  local flags = 0x2040
+  local _res = (flags && 0x40)
+                ^------------
+}
 
 

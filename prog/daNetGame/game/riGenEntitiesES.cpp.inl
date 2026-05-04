@@ -1,9 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/io/blk.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/io/blk.h>
 #include <util/dag_simpleString.h>
 #include <generic/dag_tab.h>
 #include <rendInst/rendInstExtra.h>
@@ -23,9 +27,10 @@ ECS_REGISTER_RELOCATABLE_TYPE(RiExtraGen, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(RiExtraGen, "ri_extra_gen", nullptr, 0);
 
 template <typename Callable>
-static ecs::QueryCbResult find_overall_game_zone_ecs_query(Callable c);
+static ecs::QueryCbResult find_overall_game_zone_ecs_query(ecs::EntityManager &manager, Callable c);
 
-static __forceinline int gen_riextra_entities(dag::ConstSpan<rendinst::riex_handle_t> handles,
+static __forceinline int gen_riextra_entities(ecs::EntityManager &mgr,
+  dag::ConstSpan<rendinst::riex_handle_t> handles,
   const char *template_name,
   const DataBlock &blk,
   const Point2 &zone_pos,
@@ -53,7 +58,7 @@ static __forceinline int gen_riextra_entities(dag::ConstSpan<rendinst::riex_hand
     // ECS_INIT(attrs, initialTransform, transform);
     for (int i = 0; i < blk.paramCount(); ++i)
       attrs[ECS_HASH_SLOW(blk.getParamName(i))] = ecs::load_comp_from_blk(blk, i);
-    g_entity_mgr->createEntityAsync(template_name, eastl::move(attrs));
+    mgr.createEntityAsync(template_name, eastl::move(attrs));
     createdCount++;
   }
   return createdCount;
@@ -62,7 +67,7 @@ static __forceinline int gen_riextra_entities(dag::ConstSpan<rendinst::riex_hand
 bool get_overall_zone(Point2 &pos, float &radius_sq)
 {
   const float zoneMargin = 75.f;
-  return find_overall_game_zone_ecs_query(
+  return find_overall_game_zone_ecs_query(*g_entity_mgr,
            [&](const Point2 &shrinkedZonePos, float shrinkZoneRadius ECS_REQUIRE(ecs::Tag disableExternalArea)) {
              pos = shrinkedZonePos;
              radius_sq = sqr(shrinkZoneRadius + zoneMargin);
@@ -72,6 +77,7 @@ bool get_overall_zone(Point2 &pos, float &radius_sq)
 
 ECS_TAG(server)
 static __forceinline void ri_extra_gen_es_event_handler(const EventLevelLoaded &,
+  ecs::EntityManager &manager,
   RiExtraGen &ri_extra_gen,
   const ecs::string &ri_extra_gen__riName,
   const ecs::string &ri_extra_gen__template)
@@ -96,7 +102,8 @@ static __forceinline void ri_extra_gen_es_event_handler(const EventLevelLoaded &
     if (get_overall_zone(zonePos, zoneRadiusSq))
       debug("ri_extra_gen: don't create entities outside of overall zone %.2f %.2f radius %.1f", P2D(zonePos), sqrtf(zoneRadiusSq));
 
-    createdCount = gen_riextra_entities(handles, ri_extra_gen__template.c_str(), DataBlock::emptyBlock, zonePos, zoneRadiusSq);
+    createdCount =
+      gen_riextra_entities(manager, handles, ri_extra_gen__template.c_str(), DataBlock::emptyBlock, zonePos, zoneRadiusSq);
   }
   debug("ri_extra_gen: created %i/%i (%.1f%%) of ri_extra entities inside of overall game zone", createdCount, handles.size(),
     safediv(float(createdCount), handles.size()) * 100.f);
@@ -104,6 +111,7 @@ static __forceinline void ri_extra_gen_es_event_handler(const EventLevelLoaded &
   ri_extra_gen.loaded = true;
 }
 
+ECS_TAG(dngRenderIsActive) // needed to omit this es in non-dng mode in tools
 ECS_ON_EVENT(on_appear)
 static __forceinline void ri_extra_gen_mark_dynamic_es_event_handler(const ecs::Event &, const ecs::string &ri_extra_gen__blk)
 {
@@ -119,13 +127,14 @@ static __forceinline void ri_extra_gen_mark_dynamic_es_event_handler(const ecs::
 ECS_TAG(server)
 ECS_ON_EVENT(EventLevelLoaded, EventRIGenExtraRequested)
 static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &evt,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   RiExtraGen &ri_extra_gen,
   const ecs::string &ri_extra_gen__blk,
   const ecs::string *ri_extra_gen__createEntityWhenDone = nullptr)
 {
-  debug("ri_extra_gen: %@ <%@>: on event <%@> (ri_extra_gen.loaded=%@)", (ecs::entity_id_t)eid,
-    g_entity_mgr->getEntityTemplateName(eid), evt.getName(), ri_extra_gen.loaded);
+  debug("ri_extra_gen: %@ <%@>: on event <%@> (ri_extra_gen.loaded=%@)", (ecs::entity_id_t)eid, manager.getEntityTemplateName(eid),
+    evt.getName(), ri_extra_gen.loaded);
 
   if (ri_extra_gen.loaded)
     return;
@@ -143,7 +152,7 @@ static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &ev
   float zoneRadiusSq = 0.0f;
   if (get_overall_zone(zonePos, zoneRadiusSq))
     debug("ri_extra_gen: %@ <%@> don't create entities outside of overall zone %@ radius %.1f", (ecs::entity_id_t)eid,
-      g_entity_mgr->getEntityTemplateName(eid), zonePos, sqrtf(zoneRadiusSq));
+      manager.getEntityTemplateName(eid), zonePos, sqrtf(zoneRadiusSq));
 
   int createdCount = 0, totalCount = 0;
 
@@ -164,13 +173,15 @@ static __forceinline void ri_extra_gen_blk_es_event_handler(const ecs::Event &ev
     rendinst::getRiGenExtraInstances(handles, resIdx);
     if (handles.empty())
       continue;
-    createdCount += gen_riextra_entities(handles, templ, *blk.getBlockByNameEx(asset), zonePos, zoneRadiusSq);
+    createdCount += gen_riextra_entities(manager, handles, templ, *blk.getBlockByNameEx(asset), zonePos, zoneRadiusSq);
     totalCount += handles.size();
   }
   debug("ri_extra_gen: %@ <%@> created %i/%i (%.1f%%) of ri_extra entities inside of overall game zone %@ radius %.1f",
-    (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid), createdCount, totalCount,
+    (ecs::entity_id_t)eid, manager.getEntityTemplateName(eid), createdCount, totalCount,
     safediv(float(createdCount), totalCount) * 100.f, zonePos, sqrtf(zoneRadiusSq));
   if (ri_extra_gen__createEntityWhenDone && !ri_extra_gen__createEntityWhenDone->empty())
-    g_entity_mgr->createEntityAsync(ri_extra_gen__createEntityWhenDone->c_str());
+    manager.createEntityAsync(ri_extra_gen__createEntityWhenDone->c_str());
   ri_extra_gen.loaded = true;
 }
+
+static __forceinline void ri_extra_gen_on_scene_unloaded_es(const ecs::EventEntityManagerBeforeClear &) { rendinst::before_clear(); }

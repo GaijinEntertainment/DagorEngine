@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <drv_log_defs.h>
 #include "render_state_system.h"
 #include "globals.h"
 #include "device_context.h"
 #include "physical_device_set.h"
 #include "translate_d3d_to_vk.h"
-#include <drv_log_defs.h>
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
@@ -27,11 +28,7 @@ GraphicsPipelineStaticState RenderStateSystemBackend::extractStaticState(const s
   ret.depthBoundsEnable = state.depthBoundsEnable;
   ret.colorMask = state.colorWr;
   ret.alphaToCoverage = state.alphaToCoverage;
-
-  if (Globals::VK::phy.features.depthClamp != VK_FALSE)
-  {
-    ret.depthClipEnable = state.zClip;
-  }
+  ret.depthClipEnable = state.zClip;
 
   if (state.stencil.func > 0)
   {
@@ -149,15 +146,12 @@ void RenderStateSystemBackend::setRenderStateData(shaders::DriverRenderStateId i
   auto &stateRef = states[intId];
   stateRef.staticIdx = addOrReusePart(staticParts, staticPart);
   stateRef.dynamicIdx = addOrReusePart(dynamicParts, dynamicPart);
-
-  debug("vulkan: added render state %u -> [s %u, d %u], total [s %u, d %u]", intId, stateRef.staticIdx, stateRef.dynamicIdx,
-    staticParts.size(), dynamicParts.size());
 }
 
 shaders::DriverRenderStateId RenderStateSystem::registerState(DeviceContext &ctx, const shaders::RenderState &state)
 {
   auto newId = shaders::DriverRenderStateId{++maxId};
 
-  ctx.addRenderState(newId, state);
+  ctx.dispatchCmd<CmdAddRenderState>({newId, state});
   return newId;
 }

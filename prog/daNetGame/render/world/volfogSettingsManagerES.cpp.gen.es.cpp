@@ -43,7 +43,8 @@ static void volfog_convar_change_es_all_events(const ecs::Event &__restrict evt,
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     volfog_convar_change_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(volfog_convar_change_es_comps, "render_settings__HQVolfog", bool)
+        , components.manager()
+    , ECS_RW_COMP(volfog_convar_change_es_comps, "render_settings__HQVolfog", bool)
     , ECS_RW_COMP(volfog_convar_change_es_comps, "render_settings__volumeFogQuality", ecs::string)
     );
   while (++comp != compE);
@@ -59,7 +60,7 @@ static ecs::EntitySystemDesc volfog_convar_change_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"dev,render",nullptr,"*");
+,"dev,render",nullptr,nullptr,"animchar_before_render_es");
 static constexpr ecs::ComponentDesc volfog_change_settings_es_comps[] =
 {
 //start of 3 ro components at [0]

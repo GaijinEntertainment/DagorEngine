@@ -124,7 +124,6 @@ third-party component as follows:
   prog/3rdPartyLibs/libcurl/COPYING
   prog/3rdPartyLibs/libev/LICENSE
   prog/3rdPartyLibs/libunwind/LICENSE.TXT
-  prog/3rdPartyLibs/lottie/COPYING
   prog/3rdPartyLibs/math/carve/LICENSE
   prog/3rdPartyLibs/math/clipper-4.x/license.txt
   prog/3rdPartyLibs/math/DelaunayTriangulator/LICENSE
@@ -132,7 +131,6 @@ third-party component as follows:
   prog/3rdPartyLibs/math/poly2tri/LICENSE
   prog/3rdPartyLibs/math/vhacd/LICENSE
   prog/3rdPartyLibs/meshoptimizer/LICENSE.md
-  prog/3rdPartyLibs/metal/glslang/LICENSE
   prog/3rdPartyLibs/metal/SPIRV-Headers/LICENSE
   prog/3rdPartyLibs/metal/spirv-tools/LICENSE
   prog/3rdPartyLibs/metal/spirv-tools/utils/vscode/src/lsp/LICENSE
@@ -158,9 +156,6 @@ third-party component as follows:
   prog/3rdPartyLibs/udis86/LICENSE
   prog/3rdPartyLibs/unittest-cpp/LICENSE
   prog/3rdPartyLibs/uriparser/COPYING
-  prog/3rdPartyLibs/vulkan/glslang/LICENSE
-  prog/3rdPartyLibs/vulkan/hlslcc/license.txt
-  prog/3rdPartyLibs/vulkan/hlslcc/src/cbstring/license.txt
   prog/3rdPartyLibs/vulkan/smol-v/LICENSE
   prog/3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/LICENSE
   prog/3rdPartyLibs/vulkan/spirv-tools/LICENSE

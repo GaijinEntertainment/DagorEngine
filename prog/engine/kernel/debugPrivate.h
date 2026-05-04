@@ -5,13 +5,14 @@
 #include <stdarg.h>
 #include <debug/dag_log.h>
 #include <debug/dag_logSys.h>
+#include <osApiWrappers/dag_atomic_types.h>
 #include "writeStream.h"
 
 #define FORCE_THREAD_IDS _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
 
 namespace debug_internal
 {
-extern bool flush_debug;
+extern dag::AtomicInteger<bool> flush_debug;
 extern bool always_flush_debug;
 extern bool level_files;
 extern bool append_files;

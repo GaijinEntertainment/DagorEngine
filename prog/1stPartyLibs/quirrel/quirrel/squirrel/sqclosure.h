@@ -149,7 +149,7 @@ struct SQNativeClosure : public CHAINABLE_OBJ
 {
 private:
     SQNativeClosure(SQSharedState *ss,SQFUNCTION func) :
-      _typecheck(ss->_alloc_ctx), _purefunction(false)
+      _typecheck(ss->_alloc_ctx), _purefunction(false), _nodiscard(false)
     {
       _function=func;INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this); _env = NULL;
     }
@@ -161,7 +161,9 @@ public:
         new (nc) SQNativeClosure(ss,func);
         nc->_outervalues = (SQObjectPtr *)(nc + 1);
         nc->_noutervalues = nouters;
+        nc->_result_type_mask = ~0u;
         nc->_purefunction = false;
+        nc->_nodiscard = false;
         _CONSTRUCT_VECTOR(SQObjectPtr,nc->_noutervalues,nc->_outervalues);
         return nc;
     }
@@ -172,9 +174,11 @@ public:
         if(ret->_env) __ObjAddRef(ret->_env);
         ret->_name = _name;
         _COPY_VECTOR(ret->_outervalues,_outervalues,_noutervalues);
+        ret->_result_type_mask = _result_type_mask;
         ret->_typecheck.copy(_typecheck);
         ret->_nparamscheck = _nparamscheck;
         ret->_purefunction = _purefunction;
+        ret->_nodiscard = _nodiscard;
         return ret;
     }
     ~SQNativeClosure()
@@ -197,7 +201,9 @@ public:
 #endif
     SQInteger _nparamscheck;
     SQUnsignedInteger32 _noutervalues;
+    SQUnsignedInteger32 _result_type_mask;
     bool _purefunction;
+    bool _nodiscard;
     SQIntVec _typecheck;
     SQObjectPtr *_outervalues;
     SQWeakRef *_env;

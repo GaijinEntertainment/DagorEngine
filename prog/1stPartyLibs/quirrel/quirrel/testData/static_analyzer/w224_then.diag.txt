@@ -1,5 +1,5 @@
-WARNING: w224 (empty-body) 'then' operator has an empty body.
-testData/static_analyzer/w224_then.nut:4:11
+WARNING: w224 (empty-body) 'then' branch of 'if' has an empty body.
+testData/static_analyzer/w224_then.nut:3:11
 
 if (x == 5);
            ^

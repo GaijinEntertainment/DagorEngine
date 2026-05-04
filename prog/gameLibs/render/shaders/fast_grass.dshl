@@ -13,6 +13,9 @@ include "fast_grass_inc.dshl"
 texture perlin_noise3d;
 include "wind/wind_simulation_inc.dshl"
 
+texture noise_64_tex;
+int shadow_frame;
+
 texture grass_far_mask_tex;
 texture grass_far_color_tex;
 float4 world_to_far_grass     = (1.0/512, 1.0/512, 0, 0);
@@ -20,41 +23,11 @@ float4 world_to_far_grass_ofs = (1.0/512, 1.0/512, 0, 0);
 
 float4 camera_base_offset = (0, 0, 0, 0);
 
-macro USE_FAST_GRASS_CLIP_RECTS(code)
-  (code)
-  {
-    FGClipRects@cbuf = fast_grass_clip_rects hlsl {
-      #include <grassInstance.hlsli>
-      cbuffer FGClipRects@cbuf
-      {
-        float4 fast_grass_clip_rects[FAST_GRASS_MAX_CLIPMAP_CASCADES*2+1];
-      };
-    };
-  }
-  hlsl(code) {
-    float4 _get_fast_grass_clip_rect(uint i)
-    {
-      ##assert(i < FAST_GRASS_MAX_CLIPMAP_CASCADES*2+1, "fast_grass_clip_rects OOB (%d)", i);
-      return fast_grass_clip_rects[i];
-    }
-    float4 get_world_to_fg_clip(uint cascade)
-    {
-      return _get_fast_grass_clip_rect(cascade*2);
-    }
-    float4 get_fg_clip_to_world(uint cascade)
-    {
-      return _get_fast_grass_clip_rect(cascade*2+1);
-    }
-  }
-endmacro
-
 shader fast_grass
 {
   supports global_const_block;
   supports global_frame;
 
-  ENABLE_ASSERT(ps)
-  HEIGHTMAP_DECODE_EDGE_TESSELATION()
   INIT_HMAP_HOLES(vs)
   USE_HMAP_HOLES(vs)
 
@@ -121,10 +94,11 @@ shader fast_grass
       {
         float4 proj = get_world_to_fg_clip(clip);
         float2 tc = proj.xy * xz + proj.zw;
-        if (all(tc == clamp(tc, pre_half_texel*3, 1 - 5*pre_half_texel)) || clip + 1u == pre_levels)
-          return float3(tc, clip);
+        float2 clamped = clamp(tc, pre_half_texel*3, 1 - 5*pre_half_texel);
+        if (all(tc == clamped) || clip + 1u == pre_levels)
+          return float3(clamped, clip);
       }
-      return float3(-1, -1, 0);
+      return float3(0, 0, 0);
     }
 
     float sampleHeight(float3 worldPos)
@@ -138,16 +112,6 @@ shader fast_grass
   INIT_ZNZFAR()
 
   hlsl(vs) {
-    float2 decodeWorldPosXZ(int2 inPos input_used_instance_id)
-    {
-      float4 instance_const = heightmap_scale_offset[instance_id.x];
-      uint4 border = decode_edge_tesselation(instance_const);
-
-      inPos.y = adapt_edge_tesselation(inPos.y, inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
-      inPos.x = adapt_edge_tesselation(inPos.x, inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1));
-      return decodeWorldPosXZConst(instance_const, inPos);
-    }
-
     bool hasGrassAt(float3 wpos)
     {
       float3 tc = computePrecompTC(wpos.xz);
@@ -239,10 +203,12 @@ shader fast_grass
       return wind * heightFactor;
     }
 
-    void sampleGrassPS(float3 pre_tc,
+    void sampleGrassPS(float2 pos,
       out uint grassChannel, out half maskScale, out half3 landColor)
     {
+      float3 pre_tc = computePrecompTC(pos);
       grassChannel = pre_gmap_tex.Load(int4(pre_tc.xy * pre_dim, pre_tc.z, 0));
+      grassChannel = min(grassChannel, GRASS_MAX_CHANNELS);
       half4 cmap = tex3Dlod(pre_cmap_tex, float4(pre_tc, 0));
       maskScale = cmap.a;
       landColor = cmap.rgb;
@@ -268,14 +234,14 @@ shader fast_grass
       baseFade = saturate(1 - dot(vignette, vignette));
 
     #define FAST_GRASS_PS_SAMPLE \
-      half4 random4_high = tex2Dlod(noise_64_tex, float4(dot(curPos.xz, sliceTang)*0.171, curPos.y*0.171, 0, 0)); \
-      float3 pre_tc = computePrecompTC(curPos.xz + (random4_high.zw*2 - 1) * startSliceStep); \
-      uint grassChannel; \
-      half maskScale; \
-      half3 grassColor; \
+      uint grassChannel0, grassChannel1; \
+      half maskScale0, maskScale1; \
+      half3 grassColor0, grassColor1; \
       bool isDecal = false; \
       bool isFarLod = false; \
-      sampleGrassPS(pre_tc, grassChannel, maskScale, grassColor);
+      sampleGrassPS(samplePos0, grassChannel0, maskScale0, grassColor0); \
+      sampleGrassPS(samplePos1, grassChannel1, maskScale1, grassColor1); \
+      half3 grassColor = lerp(grassColor0, grassColor1, ut);
 
     #define FAST_GRASS_PS_HIT \
       landColor = grassColor;
@@ -301,9 +267,7 @@ shader fast_grass
       fastGrassPixelShader(screenpos, input, worldPos, worldNormal,
         grassAlbedo, smoothness, reflectance, translucency, ao, shadow);
 
-    ##if mobile_render == off
       apply_wetness_by_porosity(grass_porosity, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
-    ##endif
 
       UnpackedGbuffer result;
       init_gbuffer(result);
@@ -362,7 +326,6 @@ shader fast_grass_precomp
     }
   }
 
-  ENABLE_ASSERT(cs)
   USE_GRASS_TC(cs)
   INIT_HEIGHTMAP_OFS(cs)
   USE_HEIGHTMAP_OFS(cs)

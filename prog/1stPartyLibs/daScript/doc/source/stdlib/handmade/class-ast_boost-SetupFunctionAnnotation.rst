@@ -1,0 +1,1 @@
+Base class for creating function annotations via the ``[function_macro]`` structure annotation; registers an ``AstFunctionAnnotation`` with the compiler.

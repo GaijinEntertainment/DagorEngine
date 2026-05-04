@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Verdana, sans-serif; }
+  </style>
+  <title>[[EXE_NAME]] - Web UI</title>
+</head>
+<body>
+  <div id="div_port" style="display: none;"></div>
+  <h1>[[EXE_NAME]] - [[PLATFORM_ID]]</h1>
+  <table>
+    [[LINKS]]
+  </table>
+  <p>
+  [[FOOTER]]
+  </p>
+
+  <script>
+    const IGNORE_PORT = null;
+    const ignorePort = [[IGNORE_PORT]];
+    const startPort = 23456;
+    const endPort = 23466;
+
+    document.getElementById('div_port').style.display = 'block';
+    document.getElementById('div_port').innerHTML = `<h2>Web UI on port ${ignorePort}:</h2>`;
+
+    for (let port = startPort; port <= endPort; port++) {
+      if (port === ignorePort)
+        continue;
+      const div = document.createElement('div');
+      div.id = `div_webui_port_${port}`;
+      div.style.display = 'none';
+      document.body.appendChild(div);
+    }
+
+    const fetchWithTimeout = (url, timeout = 3000) => {
+      return Promise.race([
+        fetch(url),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), timeout)
+        )
+      ]);
+    };
+
+    const processPort = async (port) => {
+      const url = `http://127.0.0.1:${port}`;
+
+      try {
+        const response = await fetchWithTimeout(url);
+        let text = await response.text();
+
+        if (!text.includes('<html>'))
+          return;
+
+        const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch)
+          text = bodyMatch[1];
+
+        text = text.replace(/(href|src)="(?!https?:\/\/|\/|data:)([^"]*)"/gi, `$1="http://127.0.0.1:${port}/$2"`);
+        text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+
+        const container = document.createElement('div');
+        container.innerHTML = `<hr><h2>Local Web UI on port ${port}:</h2>`;
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = text;
+        container.appendChild(contentDiv);
+        const targetDiv = document.getElementById(`div_webui_port_${port}`);
+        if (targetDiv) {
+          targetDiv.appendChild(container);
+          targetDiv.style.display = 'block';
+        }
+      } catch (error) {}
+    };
+
+    for (let port = startPort; port <= endPort; port++)
+      if (port !== ignorePort)
+        processPort(port);
+  </script>
+
+</body>
+</html>

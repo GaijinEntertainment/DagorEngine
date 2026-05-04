@@ -12,12 +12,12 @@ endmacro
 
 macro LAYERED_PS()
     (ps) {
-      basetex@static      = basetex;
-      tile1diffuse@static = tile1diffuse;
-      tile2diffuse@static = tile2diffuse;
-      basenormal@static   = basenormal;
-      tile1normal@static  = tile1normal;
-      tile2normal@static  = tile2normal;
+      basetex@staticSmp = basetex;
+      tile1diffuse@staticSmp = tile1diffuse;
+      tile2diffuse@staticSmp = tile2diffuse;
+      basenormal@staticSmp = basenormal;
+      tile1normal@staticSmp = tile1normal;
+      tile2normal@staticSmp = tile2normal;
     }
     USE_PIXEL_TANGENT_SPACE()
     USE_NORMAL_DETAIL()
@@ -264,12 +264,12 @@ shader simple_aces, simple_vertical
 
   (ps) {
     detail_scale@f3 = (detail_tile_u,detail_tile_v,0,0);
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
   }
   if (reflectance != NULL)
   {
-    (ps) {reflectance_tex@static = reflectance; }
+    (ps) {reflectance_tex@staticSmp = reflectance; }
   }
   USE_PIXEL_TANGENT_SPACE()
   USE_INTERPOLATED_MICRODETAIL_ID()
@@ -288,9 +288,6 @@ shader simple_aces, simple_vertical
       init_gbuffer(gbuffer);
       half smoothness;
       half3 worldNormal = normalize(BGR_SWIZZLE(input.normal));
-      //##if shader == simple_vertical//todo: make vertical texture
-        //applyVerticalTexture(worldNormal, worldNormal, diffuseColor, world_view_pos-input.pointToEye, true);
-      //##endif
       ##if normal != NULL
         half3 point2EyeNrm = normalize(input.pointToEye);
         half2 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord).rg;
@@ -318,7 +315,6 @@ shader simple_aces, simple_vertical
       init_smoothness(gbuffer, reflectance_ao_detailNo_smoothness.w);
       init_reflectance(gbuffer, reflectance_ao_detailNo_smoothness.x);
       init_normal(gbuffer, worldNormal);
-      init_ao(gbuffer, 1);
 
       return encode_gbuffer(gbuffer, input.pointToEye, GET_SCREEN_POS(input.pos));
     }
@@ -414,8 +410,8 @@ shader prefab_simple
   }
 
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
   }
   USE_PIXEL_TANGENT_SPACE()
 
@@ -532,7 +528,7 @@ shader ablend
     };
   }
 
-  (ps) { diffuse_tex@static = tex; }
+  (ps) { diffuse_tex@staticSmp = tex; }
 
   //fsh_const[3] = (atest / 255.0, 0, 0, 0);
 

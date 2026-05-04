@@ -1,0 +1,10 @@
+// "sep_client" stub for "sqfullcompile" CI job.
+
+return {
+  rpcRequest            = @(...) null
+  clearRpcRequests      = @() null
+  generateMessageId     = @() 1001
+  generateTransactionId = @() 1002
+  updateAuthToken       = @(...) null
+  isEnabled             = @() false
+}

@@ -256,10 +256,12 @@ static void load_save_override_blk_polar_1(gamephys::PolaresProps &props, DataBl
   blkutil::loadSaveBlk(blk, "AfterCritDeclineCoeff", props.declineCoeff, load);
   blkutil::loadSaveBlk(blk, "AfterCritMaxDistanceAngle", props.maxDistAng, load);
   blkutil::loadSaveBlk(blk, "CxAfterCoeff", props.cdAfterCoeff, 0.01f, load);
-
   if (load)
+  {
     props.clAfterCritH = blk->getReal("ClAfterCrit", props.clAfterCritH);
-  blkutil::loadSaveBlk(blk, "ClAfterCritHigh", props.clAfterCritH, props.clAfterCritH, load);
+    blk_obsolete_param_logerr(blk, "ClAfterCrit", DataBlock::TYPE_REAL);
+  }
+  blkutil::loadSaveBlk(blk, "ClAfterCritHigh", props.clAfterCritH, load);
   blkutil::loadSaveBlk(blk, "ClAfterCritLow", props.clAfterCritL, -props.clAfterCritH, load);
 
   blkutil::loadSaveBlkEnum(blk, "MachFactor", props.machFactorMode, load);

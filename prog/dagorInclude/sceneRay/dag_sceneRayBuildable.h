@@ -50,7 +50,7 @@ public:
 class SceneRayBuildContext;
 
 template <typename FI>
-class BuildableStaticSceneRayTracerT : public StaticSceneRayTracerT<FI>
+class BuildableStaticSceneRayTracerT final : public StaticSceneRayTracerT<FI>
 {
 public:
   using typename StaticSceneRayTracerT<FI>::RTface;
@@ -72,11 +72,12 @@ protected:
   using typename StaticSceneRayTracerT<FI>::Leaf;
   using typename StaticSceneRayTracerT<FI>::LNode;
   using typename StaticSceneRayTracerT<FI>::Dump;
-  using StaticSceneRayTracerT<FI>::v_rtBBox;
 
 public:
+  static constexpr int VER_MAGIC = 0xB01DAB1E;
+
   BuildableStaticSceneRayTracerT(const Point3 &lsz, int lev);
-  virtual ~BuildableStaticSceneRayTracerT();
+  ~BuildableStaticSceneRayTracerT();
 
   //! Adds mesh into scene
   bool addmesh(const Point3 *vert, int vcount, const unsigned *face, unsigned stride, int fn, const unsigned *face_flags,

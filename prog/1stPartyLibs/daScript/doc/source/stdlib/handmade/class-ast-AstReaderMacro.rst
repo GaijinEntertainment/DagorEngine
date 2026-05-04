@@ -1,0 +1,1 @@
+Macro for implementing custom parsing syntax using the ``%MacroName~`` notation. The reader macro controls the start and end of the custom parsing region and produces an AST expression from the parsed content.

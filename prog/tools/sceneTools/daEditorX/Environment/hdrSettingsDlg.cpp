@@ -31,8 +31,8 @@ HdrViewSettingsDialog::HdrViewSettingsDialog(DataBlock *hdr_blk, bool if_aces_pl
   G_ASSERT(hdrBlk && "HDR blk is NULL!");
 
   DataBlock app_blk;
-  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
   const DataBlock &blk = *app_blk.getBlockByNameEx("hdr_mode");
 
   PropPanel::ContainerPropertyControl *panel = dlg->getPanel();

@@ -28,17 +28,22 @@ public: // VrInput interface
   bool completeActionsInit() override;
 
   Bindings getCurrentBindings() const override { return {}; }
-  HumanInput::ButtonBits getCurrentBindingsMask(ActionId a) const override;
-  ActionBindings getCurrentBindings(ActionId a) const override;
+  HumanInput::ButtonBits getCurrentBindingsMask(ActionIndex a) const override;
+  ActionBindings getCurrentBindings(ActionIndex idx) const override;
   eastl::string getBindingName(ActionBindingId b) const override;
   eastl::string getLocalizedBindingName(ActionBindingId b) const override;
 
   DigitalAction getDigitalActionState(ActionId a) const override;
+  DigitalAction getDigitalActionStateByIdx(ActionIndex idx) const override;
   AnalogAction getAnalogActionState(ActionId a) const override;
-  Controller getControllerState(Hands side) const override;
+  AnalogAction getAnalogActionStateByIdx(ActionIndex idx) const override;
   StickAction getStickActionState(ActionId a) const override;
+  StickAction getStickActionStateByIdx(ActionIndex idx) const override;
   PoseAction getPoseActionState(ActionId a) const override;
+  PoseAction getPoseActionStateByIdx(ActionIndex idx) const override;
   Hand getTrackedHand(Hands side) const override;
+
+  Controller getControllerState(Hands side) const override;
 
   void applyHapticFeedback(Hands side, const HapticSettings &settings = {}) const override;
   void stopHapticFeedback(Hands side) const override;

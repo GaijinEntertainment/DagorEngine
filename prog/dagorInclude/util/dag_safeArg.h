@@ -20,8 +20,7 @@ typedef long long __vec4i __attribute__((__vector_size__(16), __may_alias__));
 typedef __attribute__((neon_vector_type(4))) float __vec4f;
 typedef __attribute__((neon_vector_type(4))) int __vec4i;
 #elif defined(_MSC_VER)
-typedef struct __declspec(intrin_type) __declspec(align(16)) __vec4f;
-typedef struct __declspec(intrin_type) __declspec(align(16)) __vec4i;
+typedef union __declspec(intrin_type) __declspec(align(16)) __n128 __vec4f;
 #endif
 #endif
 
@@ -40,9 +39,6 @@ typedef struct __declspec(intrin_type) __declspec(align(16)) __vec4i;
 
 namespace eastl
 {
-class allocator;
-template <typename T, typename A>
-class basic_string;
 template <typename T>
 class basic_string_view;
 } // namespace eastl
@@ -168,9 +164,23 @@ struct DSA
     varValue.s = s;
     varType = TYPE_STR;
   }
-  DSA_KRNLIMP void set(const ::String &s);
-  DSA_KRNLIMP void set(const ::SimpleString &s);
-  DSA_KRNLIMP void set(const eastl::basic_string<char, eastl::allocator> &s);
+
+  DSA(const wchar_t *s)
+  {
+    varValue.ws = s;
+    varType = TYPE_WSTR;
+  }
+  void set(const wchar_t *s)
+  {
+    varValue.ws = s;
+    varType = TYPE_WSTR;
+  }
+
+  template <typename S, typename = decltype(&S::c_str)>
+  void set(const S &s)
+  {
+    set(s.c_str());
+  }
   DSA_KRNLIMP void set(const eastl::basic_string_view<char> &s); // Note: string_view is assumed to be null-terminated
 
   DSA_KRNLIMP void set(const E3DCOLOR &c);
@@ -245,11 +255,13 @@ struct DSA
     varValue.p4 = (const Point4 *)&v;
     varType = TYPE_P4;
   }
+#if !(_TARGET_SIMD_NEON && !defined(_clang__) && defined(_MSC_VER))
   void set(const __vec4i &v)
   {
     varValue.ip4 = (const IPoint4 *)&v;
-    varType = TYPE_P4;
+    varType = TYPE_IP4;
   }
+#endif
 
   DSA(const DebugPrinter &v)
   {
@@ -281,6 +293,7 @@ public:
   {
     TYPE_VOID = 0,
     TYPE_STR,
+    TYPE_WSTR,
     TYPE_INT,
     TYPE_DOUBLE,
     TYPE_COL,
@@ -308,6 +321,7 @@ public:
     double d;
     const void *p;
     const char *s;
+    const wchar_t *ws;
     const Color4 *c4;
     const Color3 *c3;
     const Point2 *p2;

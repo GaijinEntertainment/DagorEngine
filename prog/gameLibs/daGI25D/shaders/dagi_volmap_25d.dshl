@@ -34,13 +34,16 @@ shader gi_mark_intersected_25d_cs_2, gi_mark_intersected_25d_cs_4
   USE_VOXELS_25D(cs)
   SAMPLE_VOXELS_25D(cs)
   INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
-  ENABLE_ASSERT(cs)
 
-  (cs) { gi_25d_volmap_invalid_start_width@f4 = gi_25d_volmap_invalid_start_width; }
+  (cs) {
+    gi_25d_volmap_invalid_start_width@f4 = gi_25d_volmap_invalid_start_width;
+    intersected@uav : register(0) hlsl {
+      RWByteAddressBuffer intersected@uav;
+    }
+  }
 
   hlsl(cs) {
     #include <dagi_volmap_buffer_encode.hlsl>
-    RWByteAddressBuffer intersected:register(u0);
     bool checkCoord(float2 coordF, float coordY, uint2 wrapCoord)
     {
       uint3 coordPart = uint3(frac(float3(coordF.xy, coordY))*2)&1;
@@ -145,20 +148,21 @@ shader gi_compute_light_25d_cs_4_4, gi_compute_light_25d_cs_4_8, gi_compute_ligh
   RAY_CAST_VOXELS_25D(cs)
   INIT_LIGHT_25D_HELPERS(cs)
   GI_INIT_25D_BUFFER(cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     gi_25d_volmap_invalid_start_width@f4 = gi_25d_volmap_invalid_start_width;
     envi_probe_specular@smpCube = envi_probe_specular;
+    gi_25d_ambient_volmap@uav : register(0) hlsl {
+      ##if gi_quality == only_ao
+        RWTexture3D<float> gi_25d_ambient_volmap@uav;
+      ##else
+        RWTexture3D<float3> gi_25d_ambient_volmap@uav;
+      ##endif
+    }
   }
 
   VOLMAP_INTERSECTION_25D(cs)
 
   hlsl(cs) {
-##if gi_quality == only_ao
-    RWTexture3D<float>  gi_25d_ambient_volmap : register(u0);
-##else
-    RWTexture3D<float3>  gi_25d_ambient_volmap : register(u0);
-##endif
 
     #include <fibonacci_sphere.hlsl>
     #include <dagi_integrate_ambient_cube.hlsl>

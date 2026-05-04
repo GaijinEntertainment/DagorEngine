@@ -13,7 +13,7 @@ let info = {
   text = @"Use arrows to navigate.
     Press Space to reorder XMB nodes.
     Their traverse order will not be recalculated."
-  size = static [pw(80), SIZE_TO_CONTENT]
+  size = const [pw(80), SIZE_TO_CONTENT]
   halign = ALIGN_CENTER
 }
 

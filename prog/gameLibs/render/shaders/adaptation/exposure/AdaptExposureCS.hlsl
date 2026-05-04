@@ -18,8 +18,6 @@
 #include "PostEffectsRS.hlsli"
 #include "ShaderUtility.hlsli"
 
-RWTexture2D<float> exposureNormalizationFactor : register(u1);
-
 #define HISTOGRAM_SIZE 256
 
 float computeEV100FromAvgLuminance ( float avgLuminance )
@@ -43,8 +41,8 @@ float convertEV100ToMaxLuminance(float EV100)
   // Reference : http://en.wikipedia.org/wiki/Film_speed
   return 1.2f * exp2(EV100);
 }
-
 groupshared float gs_Accum[HISTOGRAM_SIZE];
+
 
 // HistogramPosition 0..1
 float ComputeHistogramPositionFromLuminance(float Luminance)
@@ -67,28 +65,82 @@ float ComputeEyeAdaptation(float OldExposure, float TargetExposure, float FrameT
   return OldExposure + Diff * Factor;
 }
 
+void calc_weighted_sum_with_luminance_borders(const uint GI, float min_luminance, float max_luminance,
+                                              out float weighted_sum, out float total_weight)
+{
+  const float lowTrimmingBinPos = ComputeHistogramPositionFromLuminance(min_luminance);
+  const float highTrimminBinPos = ComputeHistogramPositionFromLuminance(max_luminance);
+
+  const uint lowBinIdx = max(1u, (uint)(saturate(lowTrimmingBinPos) * HISTOGRAM_SIZE));
+  const uint highBinIdx = min(HISTOGRAM_SIZE - 1u, (uint)(saturate(highTrimminBinPos) * HISTOGRAM_SIZE));
+
+  const uint threadBinIdx = lowBinIdx + GI;
+  const bool inTrimmingRange = threadBinIdx <= highBinIdx;
+
+  const float cHist = inTrimmingRange ? Histogram[min(threadBinIdx, HISTOGRAM_SIZE - 1u)] : 0;
+  const float logLuminanceH = inTrimmingRange
+                            ? ComputeLogLuminanceFromHistogramPosition(threadBinIdx/(float)HISTOGRAM_SIZE)
+                            : -1e12;
+
+  float weightedSum = logLuminanceH * cHist;
+  UNROLL
+  for (uint i = 1; i < 256; i *= 2)
+  {
+      gs_Accum[GI] = weightedSum;
+      GroupMemoryBarrierWithGroupSync();
+      weightedSum += gs_Accum[(GI + i) % 256];
+      GroupMemoryBarrierWithGroupSync();
+  }
+
+  float totalWeight = cHist;
+  UNROLL
+  for (uint j = 1; j < 256; j *= 2)
+  {
+      gs_Accum[GI] = totalWeight;
+      GroupMemoryBarrierWithGroupSync();
+      totalWeight += gs_Accum[(GI + j) % 256];
+      GroupMemoryBarrierWithGroupSync();
+  }
+
+  weighted_sum = weightedSum;
+  total_weight = totalWeight;
+}
+
+void calc_weighted_sum(const uint GI, float total_pixels, out float weighted_sum, out float total_weight)
+{
+  const float cHist = Histogram[GI];
+  const float logLuminanceH = ComputeLogLuminanceFromHistogramPosition(GI/(float)HISTOGRAM_SIZE);
+  float weightedSum = GI == 0 ? 0 : logLuminanceH * cHist;
+  UNROLL
+  for (uint i = 1; i < 256; i *= 2)
+  {
+      gs_Accum[GI] = weightedSum;                 // Write
+      GroupMemoryBarrierWithGroupSync();          // Sync
+      weightedSum += gs_Accum[(GI + i) % 256];    // Read
+      GroupMemoryBarrierWithGroupSync();          // Sync
+  }
+  weighted_sum = weightedSum;
+  total_weight = total_pixels - cHist;
+}
+
 [numthreads( 256, 1, 1 )]
 void main( uint GI : SV_GroupIndex )
 {
-    const float cHist = Histogram[GI];
-    const float logLuminanceH = ComputeLogLuminanceFromHistogramPosition(GI/(float)HISTOGRAM_SIZE);
-    float weightedSum = GI == 0 ? 0 : logLuminanceH * cHist;
+    float weightedSum;
+    float totalWeight;
+    BRANCH
+    if (adaptation_use_luminance_trimming > 0.0f && EyeAdaptationParams[0].y > EyeAdaptationParams[0].x)
+      calc_weighted_sum_with_luminance_borders(GI, EyeAdaptationParams[0].x, EyeAdaptationParams[0].y, weightedSum, totalWeight);
+    else
+      calc_weighted_sum(GI, EyeAdaptationParams[2].z, weightedSum, totalWeight);
 
-    UNROLL
-    for (uint i = 1; i < 256; i *= 2)
+    bool enoughSamples = totalWeight >= adaptation__minSamples;
+    if (GI == 0 && enoughSamples)
     {
-        gs_Accum[GI] = weightedSum;                 // Write
-        GroupMemoryBarrierWithGroupSync();          // Sync
-        weightedSum += gs_Accum[(GI + i) % 256];    // Read
-        GroupMemoryBarrierWithGroupSync();          // Sync
-    }
-
-    if (GI == 0)
-    {
-      const float totalPixels = EyeAdaptationParams[2].z;
-      const float sum = totalPixels - cHist;
       const float exposureOffsetMultipler = EyeAdaptationParams[1].x;
-      const float avgLogLuminance = sum > 0 ? weightedSum/sum : -1e12; // default to some very low value instead of NaN
+      const float avgLogLuminance = totalWeight > 0
+                                      ? weightedSum/totalWeight
+                                      : -1e12;
       const float currentLuminance = exp2(avgLogLuminance);
       const float oldLuminance = Exposure[1]*exposureOffsetMultipler;
       const float frameTime = max(0, EyeAdaptationParams[1].y);

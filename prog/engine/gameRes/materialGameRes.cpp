@@ -73,13 +73,15 @@ public:
   virtual bool isResLoaded(int res_id) { return findRes(res_id) >= 0; }
   virtual bool checkResPtr(GameResource *res) { return findMatData(res) >= 0; }
 
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL rrl, int res_id)
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -134,13 +136,13 @@ public:
     return id >= 0;
   }
 
-  virtual bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/)
+  virtual bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/)
   {
     bool result = false;
 
     for (int i = matList.size() - 1; i >= 0; --i)
     {
-      if (!matList[i].mat || get_refcount_game_resource_pack_by_resid(matList[i].resId) > 0)
+      if (!matList[i].mat || (rrl && is_res_required(rrl, matList[i].resId)))
         continue;
 
       if (matList[i].mat->getRefCount() > 1)
@@ -195,7 +197,7 @@ public:
     mat.resId = res_id;
   }
 
-  void createGameResource(int res_id, const int *reference_ids, int num_refs) override
+  void createGameResource(RRL, int res_id, const int *reference_ids, int num_refs) override
   {
     WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);

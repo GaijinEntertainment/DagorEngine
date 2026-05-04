@@ -3,6 +3,7 @@
 
 #include "vulkan_device.h"
 #include "util/masked_slice.h"
+#include <atomic>
 
 namespace drv3d_vulkan
 {
@@ -150,6 +151,7 @@ private:
   Tab<uint32_t> classTypes[uint32_t(DeviceMemoryClass::COUNT)];
   VkDeviceSize deviceLocalLimit = 0;
   VkDeviceSize hostLocalLimit = 0;
+  VkDeviceSize evictedSysCopiesSize = 0;
 #if !_TARGET_C3
   DeviceMemoryConfiguration memoryConfig = DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY;
 #endif
@@ -159,8 +161,11 @@ private:
   uint32_t lastAllocationCount = 0;
   uint32_t lastFreeCount = 0;
 
+  std::atomic<uint32_t> lastInternalDeviceMemoryUsageKb;
+
   void initClassType(DeviceMemoryClass cls);
   DeviceMemoryTypeRange selectMemoryType(VkDeviceSize size, uint32_t mask, DeviceMemoryClass memory_class) const;
+  void updateInternalDeviceMemoryUsageKb();
 
 public:
   DeviceMemoryPool() = default;
@@ -169,8 +174,8 @@ public:
   DeviceMemoryPool(const DeviceMemoryPool &) = delete;
   DeviceMemoryPool &operator=(const DeviceMemoryPool &) = delete;
 
-  DeviceMemoryPool(DeviceMemoryPool &&) = default;
-  DeviceMemoryPool &operator=(DeviceMemoryPool &&) = default;
+  DeviceMemoryPool(DeviceMemoryPool &&) = delete;
+  DeviceMemoryPool &operator=(DeviceMemoryPool &&) = delete;
 
   void init(const VkPhysicalDeviceMemoryProperties &mem_info);
 #if VK_EXT_memory_budget
@@ -215,6 +220,7 @@ public:
   bool hasDedicatedMemory() const { return memoryConfig == DeviceMemoryConfiguration::DEDICATED_DEVICE_MEMORY; }
 #endif
 
+  uint32_t getInternalDeviceMemoryUsageKb() const;
 
   DeviceMemoryConfiguration getMemoryConfiguration() const
   {
@@ -246,6 +252,7 @@ public:
 
   void printStats();
   uint32_t getCurrentAvailableDeviceKb();
+  void onResidencySysCopyChange(VkDeviceSize sz, bool alloc);
 };
 } // namespace drv3d_vulkan
 

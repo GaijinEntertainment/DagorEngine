@@ -1,0 +1,8 @@
+ERROR: integer constant overflow
+testData/diagnostics/compilation_errors/lex_errors/literal_overflow.nut:2:8
+
+// EXPECT_ERROR: "constant overflow"
+let x = 99999999999999999999999999999999999999999999
+        ^-------------------------------------------
+
+

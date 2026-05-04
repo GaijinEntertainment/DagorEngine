@@ -77,6 +77,76 @@ def draw_debug_arrow_buffered(from, to : float3; color : E3DCOLOR = DEFAULT_DEBU
   _builtin_draw_debug_arrow_buffered(from, to, color, frames)
 
 [generic]
+def draw_cached_debug_line(p0, p1 : float3; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_line(p0, p1, color)
+
+[generic]
+def draw_cached_debug_line(arr : array<float3> | float3[]; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  verify(length(arr) > 0)
+  _builtin_draw_cached_debug_line_arr(unsafe(addr(arr[0])), length(arr), color)
+
+[generic]
+def draw_cached_debug_box(box : BBox3; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_box(box, color)
+
+[generic]
+def draw_cached_debug_box(p1, p2 : float3; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  let box = BBox3(p1, p2)
+  _builtin_draw_cached_debug_box(box, color)
+
+[generic]
+def draw_cached_debug_box(p0, ax, ay, az : float3; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_box(p0, ax, ay, az, color)
+
+[generic]
+def draw_cached_debug_sphere(p0 : float3; radius)
+  _builtin_draw_cached_debug_sphere(p0, float(radius), DEFAULT_DEBUG_COLOR, 24)
+
+[generic]
+def draw_cached_debug_sphere(p0 : float3; radius; color : E3DCOLOR; segments : int)
+  _builtin_draw_cached_debug_sphere(p0, float(radius), color, segments)
+
+[generic]
+def draw_cached_debug_sphere(p : float3x4; radius; color : E3DCOLOR; segments : int)
+  _builtin_draw_cached_debug_sphere(p[3], float(radius), color, segments)
+
+[generic]
+def draw_cached_debug_sphere(p0 : float3; radius; color : E3DCOLOR)
+  _builtin_draw_cached_debug_sphere(p0, float(radius), color, 12)
+
+[generic]
+def draw_cached_debug_sphere(p : float3x4; radius; color : E3DCOLOR)
+  _builtin_draw_cached_debug_sphere(p[3], float(radius), color, 12)
+
+[generic]
+def draw_cached_debug_circle(pos, axis1, axis2 : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segments : int = 24)
+  _builtin_draw_cached_debug_circle(pos, axis1, axis2, float(radius), color, segments)
+
+[generic]
+def draw_cached_debug_xz_circle(pos : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segments : int = 24)
+  _builtin_draw_cached_debug_xz_circle(pos, float(radius), color, segments)
+
+[generic]
+def draw_cached_debug_cone(p0, p1 : float3; angle; color : E3DCOLOR = DEFAULT_DEBUG_COLOR; segs : int = 24)
+  _builtin_draw_cached_debug_cone(p0, p1, float(angle), color, segs)
+
+[generic]
+def draw_cached_debug_capsule_w(p0, p1 : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_capsule_w(p0, p1, float(radius), color)
+
+[generic]
+def draw_cached_debug_capsule_w(cap : Capsule; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_capsule_w(cap, color)
+
+[generic]
+def draw_cached_debug_capsule(cap : Capsule; color : E3DCOLOR; tm : float3x4)
+  _builtin_draw_cached_debug_capsule(cap, color, tm)
+
+[generic]
+def draw_cached_debug_hex(view_itm : float3x4; pos : float3; radius; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
+  _builtin_draw_cached_debug_hex(view_itm, pos, float(radius), color)
+
+[generic]
 def draw_cached_debug_quad(p0, p1, p2, p3 : float3; color : E3DCOLOR = DEFAULT_DEBUG_COLOR)
   _builtin_draw_cached_debug_quad(p0, p1, p2, p3, color)
 

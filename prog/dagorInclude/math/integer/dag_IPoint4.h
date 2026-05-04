@@ -166,6 +166,8 @@ INLINE IPoint4 clamp(IPoint4 t, const IPoint4 min_val, const IPoint4 max_val)
 {
   return min(max(t, min_val), max_val);
 }
+INLINE IPoint4 mul(const IPoint4 &a, const IPoint4 &b) { return IPoint4(a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w); }
+INLINE IPoint4 div(const IPoint4 &a, const IPoint4 &b) { return IPoint4(a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w); }
 
 INLINE IPoint4 ipoint4(const Point4 &p) { return IPoint4(real2int(p.x), real2int(p.y), real2int(p.z), real2int(p.w)); }
 INLINE Point4 point4(const IPoint4 &p) { return Point4(p.x, p.y, p.z, p.w); }

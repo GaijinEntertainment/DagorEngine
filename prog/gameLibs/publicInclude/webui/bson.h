@@ -34,59 +34,45 @@ public:
 };
 } // namespace dag
 
-template <typename T>
+template <typename T, typename E = void>
 struct BsonType
 {
   static const uint8_t type = 0xFF;
-  static void add(Tab<uint8_t> &stream, const T &value);
 };
 
-template <>
-struct BsonType<int>
+template <typename T>
+struct BsonTypeSmallInt
 {
   static const uint8_t type = 0x10;
-  static void add(Tab<uint8_t> &stream, const int &value) { append_items(stream, 4, (const uint8_t *)&value); }
-};
-template <>
-struct BsonType<uint32_t>
-{
-  static const uint8_t type = 0x10;
-  static void add(Tab<uint8_t> &stream, const uint32_t &value) { append_items(stream, 4, (const uint8_t *)&value); }
-};
-template <>
-struct BsonType<uint16_t>
-{
-  static const uint8_t type = 0x10;
-  static void add(Tab<uint8_t> &stream, const uint16_t &value)
+  static void add(Tab<uint8_t> &stream, const T &value)
   {
-    uint32_t v = value;
-    BsonType<uint32_t>::add(stream, v);
+    if constexpr (sizeof(T) == sizeof(int))
+      append_items(stream, 4, (const uint8_t *)&value);
+    else
+    {
+      uint32_t v = value;
+      append_items(stream, 4, (const uint8_t *)&v);
+    }
   }
 };
+template <typename T>
+struct BsonType<T, eastl::enable_if_t<eastl::is_integral_v<T> && !eastl::is_same_v<T, bool> && sizeof(T) <= sizeof(int)>>
+  : public BsonTypeSmallInt<T>
+{};
 template <>
-struct BsonType<int64_t>
+struct BsonType<int64_t, void>
 {
   static const uint8_t type = 0x11;
   static void add(Tab<uint8_t> &stream, const int64_t &value) { append_items(stream, 8, (const uint8_t *)&value); }
 };
 template <>
-struct BsonType<uint8_t>
-{
-  static const uint8_t type = 0x10;
-  static void add(Tab<uint8_t> &stream, const uint8_t &value)
-  {
-    uint32_t v = value;
-    BsonType<uint32_t>::add(stream, v);
-  }
-};
-template <>
-struct BsonType<double>
+struct BsonType<double, void>
 {
   static const uint8_t type = 0x01;
   static void add(Tab<uint8_t> &stream, const double &value) { append_items(stream, 8, (const uint8_t *)&value); }
 };
 template <>
-struct BsonType<float>
+struct BsonType<float, void>
 {
   static const uint8_t type = 0x01;
   static void add(Tab<uint8_t> &stream, const float &value)
@@ -96,7 +82,7 @@ struct BsonType<float>
   }
 };
 template <>
-struct BsonType<bool>
+struct BsonType<bool, void>
 {
   static const uint8_t type = 0x08;
   static void add(Tab<uint8_t> &stream, const bool &value)
@@ -106,7 +92,7 @@ struct BsonType<bool>
   }
 };
 template <>
-struct BsonType<const char *>
+struct BsonType<const char *, void>
 {
   static const uint8_t type = 0x02;
   static void add(Tab<uint8_t> &stream, const char *const &value)

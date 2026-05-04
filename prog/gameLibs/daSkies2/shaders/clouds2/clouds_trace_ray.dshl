@@ -61,13 +61,16 @@ int trace_rays_count;
 
 shader trace_clouds_cs
 {
-  ENABLE_ASSERT(cs)
   TRACE_CLOUDS(cs)
-  (cs) { trace_rays_count@f1 = (trace_rays_count); }
+  (cs) {
+    trace_rays_count@f1 = (trace_rays_count);
+    output@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> output@uav;
+    }
+  }
   hlsl(cs) {
     #pragma wave32
     float4 rays[32*2]:register(c8);
-    RWStructuredBuffer<uint> output : register(u0);
     [numthreads(32, 1, 1)]
     void cs_main(uint dtid : SV_DispatchThreadID) {
       if (dtid >= uint(trace_rays_count))

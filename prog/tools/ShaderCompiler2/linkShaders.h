@@ -25,6 +25,7 @@ struct ShadersBindump
 {
   SerializableTab<ShaderGlobal::Var> variable_list;
   SerializableTab<Sampler> static_samplers;
+  SerializableTab<ImmutableSamplerRef> immutable_samplers;
   IntervalList intervals;
   bindump::Ptr<ShaderStateBlock> empty_block;
   SerializableTab<ShaderStateBlock *> state_blocks;
@@ -32,6 +33,8 @@ struct ShadersBindump
   SerializableTab<shaders::RenderState> renderStates;
   SerializableTab<TabFsh> shadersFsh;
   SerializableTab<TabVpr> shadersVpr;
+  SerializableTab<TabShaderMetadata> shadersFshMetadata;
+  SerializableTab<TabShaderMetadata> shadersVprMetadata;
   SerializableTab<TabStcode> shadersStcode;
   SerializableTab<CryptoHash> dynamicCppcodeHashes;
   SerializableTab<CryptoHash> staticCppcodeHashes;
@@ -64,8 +67,8 @@ void close_shader_class();
 
 void add_shader_class(ShaderClass *sc, shc::TargetContext &ctx);
 
-int add_fshader(dag::ConstSpan<unsigned> code, shc::TargetContext &ctx);
-int add_vprog(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs,
+int add_fshader(const ShaderStageData &code, shc::TargetContext &ctx);
+int add_vprog(const ShaderStageData &vs, const ShaderStageData &hs, const ShaderStageData &ds, const ShaderStageData &gs,
   shc::TargetContext &ctx);
 int add_render_state(const SemanticShaderPass &state, shc::TargetContext &ctx);
 
@@ -96,8 +99,7 @@ struct VertexProgramAndPixelShaderIdents
   int vprog;
   int fsh;
 };
-VertexProgramAndPixelShaderIdents add_phase_one_progs(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, dag::ConstSpan<unsigned> ps,
-  SemanticShaderPass::EnableFp16State enableFp16, shc::TargetContext &ctx);
+VertexProgramAndPixelShaderIdents add_phase_one_progs(ShaderStageData vs, ShaderStageData hs, ShaderStageData ds, ShaderStageData gs,
+  ShaderStageData ps, SemanticShaderPass::EnableFp16State enableFp16, shc::TargetContext &ctx);
 void recompile_shaders(shc::TargetContext &ctx);
 #endif

@@ -1,0 +1,1 @@
+Smart pointer to a `VariantMacro` object. Used for registering and managing custom variant dispatch macros.

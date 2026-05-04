@@ -16,7 +16,8 @@ static void capsules_ao_es_all_events(const ecs::Event &__restrict evt, const ec
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     capsules_ao_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(capsules_ao_es_comps, "capsules_ao", CapsulesAOHolder)
+        , components.manager()
+    , ECS_RW_COMP(capsules_ao_es_comps, "capsules_ao", CapsulesAOHolder)
     , ECS_RO_COMP_OR(capsules_ao_es_comps, "capsules_ao__max_units_per_cell", int(32))
     );
   while (++comp != compE);
@@ -50,9 +51,9 @@ static ecs::CompileTimeQueryDesc get_capsules_ecs_query_desc
   empty_span(),
   make_span(get_capsules_ecs_query_comps+3, 1)/*no*/);
 template<typename Callable>
-inline void get_capsules_ecs_query(Callable function)
+inline void get_capsules_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_capsules_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_capsules_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

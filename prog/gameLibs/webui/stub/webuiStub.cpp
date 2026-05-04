@@ -4,6 +4,8 @@
 #include <webui/editVarPlugin.h>
 #include <webui/shaderEditors.h>
 
+class SqModules;
+
 void de3_webui_init() {}
 bool de3_webui_check_inited() { return false; }
 void de3_webui_term() {}
@@ -17,9 +19,10 @@ void de3_webui_build_c(const struct GuiControlDescWebUi *arr, int c)
   }
 }
 
-void on_sqdebug_internal(int, struct webui::RequestInfo *) {}
-
-webui::HttpPlugin shader_graph_editor_http_plugin;
+namespace darg
+{
+struct IGuiScene;
+}
 
 namespace webui
 {
@@ -27,6 +30,9 @@ HttpPlugin *plugin_lists[MAX_PLUGINS_LISTS] = {
   nullptr,
 };
 HttpPlugin dagor_http_plugins[] = {
+  {nullptr},
+};
+HttpPlugin darg_mcp_http_plugins[] = {
   {nullptr},
 };
 HttpPlugin webview_http_plugins[] = {
@@ -37,7 +43,9 @@ HttpPlugin webview_files_http_plugins[] = {
 };
 
 HttpPlugin profiler_http_plugin;
+HttpPlugin screenshot_http_plugin;
 HttpPlugin shader_http_plugin;
+HttpPlugin shader_graph_editor_http_plugin;
 HttpPlugin colorpicker_http_plugin;
 HttpPlugin curveeditor_http_plugin;
 HttpPlugin color_pipette_http_plugin;
@@ -55,6 +63,16 @@ void init_dmviewer_plugin() {}
 void init_ecsviewer_plugin() {}
 void set_ecsviewer_entity_manager(ecs::EntityManager *) {}
 uint16_t get_binded_port() { return 0; }
+
+void register_quirrel_debugger(SqModules *, const char *, const char *) {}
+void shutdown_quirrel_debugger(SqModules *) {}
+
+void html_response(SocketType, const char *, HttpCode) {}
+void html_response_raw(SocketType, const char *, int, HttpCode) {}
+void text_response(SocketType, const char *, int) {}
+void json_response(SocketType, const char *, int) {}
+
+void set_darg_mcp_scene_provider(darg::IGuiScene *(*)()) {}
 } // namespace webui
 
 EditableVariablesNotifications::~EditableVariablesNotifications() {}
@@ -71,5 +89,7 @@ void EditableVariablesNotifications::registerIPoint3Editbox(IPoint3 *, const cha
 void EditableVariablesNotifications::registerE3dcolor(E3DCOLOR *, const char *, const char *) {}
 void EditableVariablesNotifications::registerCurve(EditorCurve *, const char *, const char *) {}
 void EditableVariablesNotifications::removeVariable(void *) {}
+
+webui::HttpPlugin get_envi_cover_shader_graph_editor_http_plugin() { return {}; }
 
 void update_fog_shader_recompiler(float) {}

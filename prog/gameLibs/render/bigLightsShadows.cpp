@@ -72,7 +72,7 @@ void BigLightsShadows::init(int w_, int h_, unsigned int maxCnt_, const char *pr
   {
     targetTex[i].close();
     String name(128, "%s_big_lights_shadows_tex_%d", prefix ? prefix : "", i);
-    targetTex[i] = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, name);
+    targetTex[i] = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, name, RESTAG_SHADOW);
   }
   {
     d3d::SamplerInfo smpInfo;
@@ -100,12 +100,12 @@ void BigLightsShadows::render(const Point4 *pos_rad, uint32_t cnt)
   SCOPE_RENDER_TARGET;
   const uint32_t gen = get_d3d_reset_counter();
   for (int i = 0; i < cnt; ++i)
-    ShaderGlobal::set_color4(big_light_posVarIds[i], P4D(pos_rad[i]));
+    ShaderGlobal::set_float4(big_light_posVarIds[i], P4D(pos_rad[i]));
   for (int i = cnt; i < MAX_COUNT; ++i)
-    ShaderGlobal::set_color4(big_light_posVarIds[i], 0, 0, 0, -1);
+    ShaderGlobal::set_float4(big_light_posVarIds[i], 0, 0, 0, -1);
   ShaderGlobal::set_int(big_shadows_cntVarId, cnt);
 
-  ShaderGlobal::set_real(big_light_reset_temporalVarId, resetGen != gen ? 2 : 0);
+  ShaderGlobal::set_float(big_light_reset_temporalVarId, resetGen != gen ? 2 : 0);
   resetGen = gen;
   const uint32_t current = frame & 1;
   frame++;
@@ -154,7 +154,7 @@ BigLightsShadows *create_big_lights_shadows(int w, int h, unsigned int maxCnt, c
 
 void destroy_big_lights_shadows(BigLightsShadows *&r)
 {
-  ShaderGlobal::set_color4(big_light_posVarIds[0], 0, 10000, 0, -1);
+  ShaderGlobal::set_float4(big_light_posVarIds[0], 0, 10000, 0, -1);
   ShaderGlobal::set_int(big_shadows_cntVarId, 0);
   del_it(r);
 }

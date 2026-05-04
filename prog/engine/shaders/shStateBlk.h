@@ -16,13 +16,15 @@ void unregister_material(ScriptedShaderMaterial *mat);
 void register_mat_elem(ScriptedShaderElement *elem);
 void unregister_mat_elem(ScriptedShaderElement *elem);
 
-bool reload_shaders_materials(ScriptedShadersBinDumpOwner &prev_sh_owner);
+void cleanup_shaders_on_reload(ScriptedShadersBinDumpOwner &prev_sh_owner);
+bool reload_shaders_materials(                                                     //
+  ScriptedShadersBinDumpOwner &new_sh_owner, ScriptedShadersGlobalData *new_gdata, //
+  ScriptedShadersBinDumpOwner &prev_sh_owner, ScriptedShadersGlobalData *prev_gdata);
 bool reload_shaders_materials_on_driver_reset();
 void reset_shaders_state_blocks();
 
 void init_stateblocks();
 void close_stateblocks();
-void close_shader_block_stateblocks(bool final);
 void close_vprog();
 void close_fshader();
 void close_cshader();
@@ -37,9 +39,6 @@ public:
 };
 
 extern volatile int cached_state_block;
-
-extern ska::flat_hash_set<ScriptedShaderMaterial *> shader_mats;
-extern ska::flat_hash_set<ScriptedShaderElement *> shader_mat_elems;
 
 extern bool shader_reload_allowed;
 extern int nan_counter;

@@ -31,6 +31,7 @@
 #include <3d/dag_quadIndexBuffer.h>
 #include <util/dag_console.h>
 #include <debug/dag_debug3d.h>
+#include <EASTL/unique_ptr.h>
 
 static const char *clipmap_decals_config_filename = "gamedata/clipmap_decals.blk";
 
@@ -90,6 +91,7 @@ void ClipmapDecals::init(bool stub_render_mode, const char *shader_name)
   useDisplacementMaskVarId = ::get_shader_variable_id("clipmap_decal_use_displacement_mask", true);
   displacementMaskVarId = ::get_shader_variable_id("clipmap_decal_displacement_mask", true);
   displacementFalloffRadiusVarId = ::get_shader_variable_id("clipmap_decals_displacement_falloff_radius", true);
+  decalEmissionScaleVarId = ::get_shader_variable_id("land_decal_emission_scale", true);
 
   if (dd_file_exists(clipmap_decals_config_filename))
   {
@@ -162,28 +164,29 @@ void ClipmapDecals::initDecalTypes(const DataBlock &blk)
     decalType.microdetail = decalTypeParams.getInt("microdetail", 0) / 255.0;
     decalType.displacementFalloffRadius = decalTypeParams.getReal("displacementFalloffRadius", -1.0);
     decalType.sizeScale = decalTypeParams.getReal("sizeScale", 1.0);
+    decalType.emissionScale = decalTypeParams.getReal("emissionScale", 0);
     if (decalType.activeCount)
       decalType.needUpdate = true;
     if (decalTypeParams.getBool("displacementMask", false))
     {
       String bufName;
       bufName.printf(0, "decal_displacement_mask_type%d", decalTypeId);
-      decalType.displacementMaskBuf =
-        dag::buffers::create_persistent_sr_byte_address(decalsCount * sizeof(DisplacementMask), bufName.c_str());
+      decalType.displacementMaskBuf = dag::buffers::create_persistent_sr_byte_address(decalsCount * sizeof(DisplacementMask),
+        bufName.c_str(), d3d::buffers::Init::No, RESTAG_DECALS);
       decalType.displacementMasks.resize(decalsCount);
       decalType.displacementMaskSizes.resize(decalsCount);
     }
     if (!updateOnly)
     {
       createDecalType(decalType.diffuseTex.getTexId(), decalType.normalTex.getTexId(), BAD_TEXTUREID, decalsCount, nullptr, false,
-        decalTypeId);
+        decalTypeId, decalType.emissionScale);
       createDecalSubType(decalTypeId, Point4(0.0, 0.0, 1.0, 1.0), 1, nullptr, nullptr, nullptr);
     }
   }
 }
 
 int ClipmapDecals::createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTUREID m_tex_id, int decals_count,
-  const char *shader_name, bool use_array_textures, int existing_decal_type)
+  const char *shader_name, bool use_array_textures, int existing_decal_type, float emission_scale, unsigned writemask)
 {
   decals_count = min<int>(MAX_DECALS_PER_TYPE, decals_count);
   int newDecalType = existing_decal_type;
@@ -209,7 +212,7 @@ int ClipmapDecals::createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTU
   bufferName.printf(0, "decal_data_vs_type%d", newDecalType);
 
   decalType.decalDataVS = dag::buffers::create_persistent_sr_tbuf(decals_count * sizeof(InstData) / sizeof(Point4),
-    TEXFMT_A32B32G32R32F, bufferName, dag::buffers::Init::Zero);
+    TEXFMT_A32B32G32R32F, bufferName, dag::buffers::Init::Zero, RESTAG_DECALS);
 
   decalType.dtex = d_tex_id;
   decalType.ntex = n_tex_id;
@@ -220,8 +223,13 @@ int ClipmapDecals::createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTU
   unsigned writeMaterial = m_tex_id != BAD_TEXTUREID ? (WRITEMASK_RED2 | WRITEMASK_GREEN2 | WRITEMASK_BLUE2) : 0;
 
   shaders::OverrideState state;
-  state.colorWr = writeAlbedo | writeNormal | writeMaterial;
+  if (writemask == 0)
+    state.colorWr = writeAlbedo | writeNormal | writeMaterial;
+  else
+    state.colorWr = writemask;
   decalType.decalOverride = shaders::overrides::create(state);
+
+  decalType.emissionScale = emission_scale;
 
   typesCount = newDecalType + 1;
   return typesCount - 1;
@@ -426,34 +434,35 @@ void ClipmapDecals::createDecal(int decalType, const Point2 &pos, float rot, con
     decal.tc.y = subtype;
 
   float square = (box[1].x - box[0].x) * (box[1].y - box[0].y);
-  float treshold = delayedRegionSizeFactor * length(pos - Point2(cameraPosition.x, cameraPosition.z));
-  treshold *= treshold;
-  // too large decal
-  if (square > treshold && delayed_regions.size() < maxDelayedRegionsCount && useDelayedRegions)
+  float relativeSize = sqrt(square);
+  float treshold = delayedRegionSizeFactor * (1.0f + length(pos - Point2(cameraPosition.x, cameraPosition.z)));
+  // too large decal, postpone it to next frames
+  if (relativeSize > treshold && delayed_regions.size() < maxDelayedRegionsCount && useDelayedRegions)
   {
-    BBox2 delayedBox;
-    // extremely large decal
-    if (square > 8 * treshold)
+    int delayedSizeX = ceil(relativeSize / treshold);
+    int delayedSizeY = round(relativeSize / treshold);
+
+    Point2 delayedBoxSize = Point2((box[1].x - box[0].x) / delayedSizeX, (box[1].y - box[0].y) / delayedSizeY);
+
+    for (int i = 0; i < delayedSizeX; i++)
     {
-      delayedBox = box;
-      delayedBox[1].x = (box[0].x + box[1].x) * 0.5;
-      delayedBox[1].y = (box[0].y + box[1].y) * 0.5;
-      delayed_regions.push_back(delayedBox);
+      for (int j = 0; j < delayedSizeY; j++)
+      {
+        BBox2 delayedBox;
 
-      delayedBox[0].x = (box[0].x + box[1].x) * 0.5;
-      delayedBox[1].x = box[1].x;
-      delayed_regions.push_back(delayedBox);
+        delayedBox[0].x = box[0].x + i * delayedBoxSize.x;
+        delayedBox[0].y = box[0].y + j * delayedBoxSize.y;
 
-      // shrink original box to half
-      box[0].y = (box[0].y + box[1].y) * 0.5;
+        delayedBox[1].x = delayedBox[0].x + delayedBoxSize.x;
+        delayedBox[1].y = delayedBox[0].y + delayedBoxSize.y;
+
+        delayed_regions.push_back(delayedBox);
+      }
     }
-    delayedBox = box;
-    delayedBox[1].x = (box[0].x + box[1].x) * 0.5;
-    delayed_regions.push_back(delayedBox);
-    box[0].x = (box[0].x + box[1].x) * 0.5;
   }
+  else
+    updated_regions.push_back(box);
 
-  updated_regions.push_back(box);
   type.newDecal++;
   type.needUpdate = true;
 }
@@ -525,10 +534,11 @@ void ClipmapDecals::render(bool override_writemask)
     {
       updateBuffers(i);
       ShaderGlobal::set_int(useArrayTexVar, decalType.arrayTextures ? 1 : 0);
-      ShaderGlobal::set_color4(alphaHeightScaleVarId, decalType.alphaThreshold, decalType.displacementMin, decalType.displacementMax,
+      ShaderGlobal::set_float4(alphaHeightScaleVarId, decalType.alphaThreshold, decalType.displacementMin, decalType.displacementMax,
         decalType.displacementScale);
-      ShaderGlobal::set_color4(decalParametersVarId, decalType.microdetail, decalType.ao, decalType.reflectance, decalType.sizeScale);
-      ShaderGlobal::set_real(displacementFalloffRadiusVarId, decalType.displacementFalloffRadius);
+      ShaderGlobal::set_float4(decalParametersVarId, decalType.microdetail, decalType.ao, decalType.reflectance, decalType.sizeScale);
+      ShaderGlobal::set_float(displacementFalloffRadiusVarId, decalType.displacementFalloffRadius);
+      ShaderGlobal::set_float(decalEmissionScaleVarId, decalType.emissionScale);
       ShaderGlobal::set_int(useDisplacementMaskVarId, decalType.displacementMaskBuf.getBuf() != nullptr);
       ShaderGlobal::set_buffer(displacementMaskVarId, decalType.displacementMaskBuf.getBufId());
 
@@ -574,10 +584,13 @@ void ClipmapDecals::clear_updated_regions()
 {
   updated_regions.clear();
   // add delayed regions to next frame update
-  if (delayed_regions.size() > 0)
+  if (useDelayedRegions)
   {
-    updated_regions.push_back(delayed_regions[0]);
-    erase_items(delayed_regions, 0, 1);
+    for (int i = delayed_regions.size() - 1; i >= 0 && updated_regions.size() < maxRegionsPerFrame; i--)
+    {
+      updated_regions.push_back(delayed_regions[i]);
+      erase_items_fast(delayed_regions, i, 1);
+    }
   }
 }
 
@@ -669,12 +682,13 @@ int getDecalTypeIdByName(const char *decal_type_name)
 // if array, positive values of d_tex_id and n_tex_id means creation
 // of diffuse and normal arrays
 int createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTUREID m_tex_id, int decals_count, const char *shader_name,
-  bool use_array)
+  bool use_array, float emission_scale, unsigned writemask)
 {
   if (!clipmapDecals)
     return -1;
 
-  return clipmapDecals->createDecalType(d_tex_id, n_tex_id, m_tex_id, decals_count, shader_name, use_array);
+  return clipmapDecals->createDecalType(d_tex_id, n_tex_id, m_tex_id, decals_count, shader_name, use_array, -1, emission_scale,
+    writemask);
 }
 
 // if array, diffuse_name and normal_name must be specified
@@ -736,10 +750,10 @@ void after_reset()
     clipmapDecals->afterReset();
 }
 
-void set_delayed_regions_params(bool use_delayed_regions, int max_count, float size_factor)
+void set_delayed_regions_params(bool use_delayed_regions, int max_regions_per_frame, int max_delayed_reg_count, float size_factor)
 {
   if (clipmapDecals)
-    clipmapDecals->setDelayedRegionsParams(use_delayed_regions, max_count, size_factor);
+    clipmapDecals->setDelayedRegionsParams(use_delayed_regions, max_regions_per_frame, max_delayed_reg_count, size_factor);
 }
 void set_camera_position(Point3 pos)
 {

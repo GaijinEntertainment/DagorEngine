@@ -5,6 +5,7 @@
 #include "ec_outlinerModel.h"
 #include <gui/dag_imguiUtil.h>
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <propPanel/colors.h>
 #include <propPanel/constants.h>
 #include <propPanel/focusHelper.h>
@@ -423,7 +424,8 @@ PropPanel::IconId OutlinerWindow::getObjectAssetTypeIcon(RenderableEditableObjec
   eastl::optional<PropPanel::IconId> &assetTypeIcon = assetTypeIcons[assetType];
   if (!assetTypeIcon.has_value())
   {
-    const String iconName(0, "asset_%s", assetTypeName);
+    String iconName(0, "asset_%s", assetTypeName);
+    dd_strlwr(iconName);
     assetTypeIcons[assetType] = PropPanel::load_icon(iconName);
   }
 
@@ -482,7 +484,7 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
   G_STATIC_ASSERT(sizeof(ImGuiSelectionUserData) == sizeof(&tree_item));
   ImGui::SetNextItemSelectionUserData(reinterpret_cast<ImGuiSelectionUserData>(&tree_item));
 
-  ImGuiTreeNodeFlags typeTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere | ImGuiTreeNodeFlags_SpanAvailWidth |
+  ImGuiTreeNodeFlags typeTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth |
                                          ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_OpenOnDoubleClick;
   if (tree_item.filteredLayers.empty())
     typeTreeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
@@ -491,7 +493,8 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), typeTreeNodeFlags, endData, true, false);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), typeTreeNodeFlags, endData, true);
+  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(endData, false);
 
   updateSelectionHead(tree_item);
 
@@ -588,7 +591,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
   G_STATIC_ASSERT(sizeof(ImGuiSelectionUserData) == sizeof(&tree_item));
   ImGui::SetNextItemSelectionUserData(reinterpret_cast<ImGuiSelectionUserData>(&tree_item));
 
-  ImGuiTreeNodeFlags layerTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere | ImGuiTreeNodeFlags_SpanAvailWidth |
+  ImGuiTreeNodeFlags layerTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth |
                                           ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_OpenOnDoubleClick;
   if (tree_item.filteredSortedObjects.empty())
     layerTreeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
@@ -599,7 +602,8 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), layerTreeNodeFlags, endData, true, false);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), layerTreeNodeFlags, endData, true);
+  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(endData, false);
 
   updateSelectionHead(tree_item);
 
@@ -644,7 +648,7 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
       ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); // Using this instead of BeginDisabled to avoid dimming.
       PropPanel::ImguiHelper::imageButtonFrameless(layerButtonId, layerIcon, fontSizedIconSize);
       ImGui::PopItemFlag();
-      PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)layerButtonId), "This layer is locked.");
+      PropPanel::set_previous_imgui_control_tooltip(layerButtonId, "This layer is locked.");
     }
     else
     {
@@ -753,7 +757,7 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
     return false;
   }
 
-  ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere | ImGuiTreeNodeFlags_SpanAvailWidth;
+  ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth;
   if (!has_child)
     treeFlags |= ImGuiTreeNodeFlags_Leaf;
   if (selected)
@@ -771,7 +775,8 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
   if (label == nullptr || *label == 0)
     label = "<empty>";
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(nodeId, treeFlags, label, nullptr, endData, true, false);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(nodeId, treeFlags, label, nullptr, endData, true);
+  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(endData, false);
 
   updateSelectionHead(tree_item);
 
@@ -844,7 +849,8 @@ bool OutlinerWindow::showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_i
 
   PropPanel::ImguiHelper::TreeNodeWithSpecialHoverBehaviorEndData endData;
   const bool isExpanded =
-    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), treeFlags, endData, true, false);
+    PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(tree_item.getLabel(), treeFlags, endData, true);
+  PropPanel::ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(endData, false);
 
   updateSelectionHead(tree_item);
 
@@ -1091,7 +1097,100 @@ void OutlinerWindow::updateSelectionHead(OutlinerTreeItem &tree_item)
   }
 }
 
-void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
+void OutlinerWindow::renderTreeItem(OutlinerTreeItem &tree_item, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
+  ImGuiMultiSelectIO *multi_select_io)
+{
+  const int treeItemLevel = outlinerModel->getTreeItemLevel(tree_item);
+  const float totalIndentSpace = ImGui::GetStyle().IndentSpacing * treeItemLevel;
+  if (treeItemLevel > 0)
+    ImGui::Indent(totalIndentSpace);
+
+  ImGui::PushID(&tree_item);
+
+  G_STATIC_ASSERT((int)OutlinerTreeItem::ItemType::Count == 4);
+  const OutlinerTreeItem::ItemType itemType = tree_item.getType();
+  if (itemType == OutlinerTreeItem::ItemType::ObjectType)
+  {
+    ObjectTypeTreeItem *objectTypeTreeItem = static_cast<ObjectTypeTreeItem *>(&tree_item);
+    const ObjectTypeTreeItem::RenderCache &objectTypeRenderCache = objectTypeTreeItem->renderCache;
+    const int typeIndex = objectTypeTreeItem->objectTypeIndex;
+
+    if (showTypeControls(*objectTypeTreeItem, typeIndex, objectTypeRenderCache.typeVisible, objectTypeRenderCache.typeLocked,
+          objectTypeRenderCache.dimTypeColor, dimmed_text_color, action_buttons_total_width))
+      ImGui::TreePop();
+
+    if (typeIndex == addingLayerToType)
+      showAddLayerControls();
+  }
+  else if (itemType == OutlinerTreeItem::ItemType::Layer)
+  {
+    G_ASSERT(tree_item.getParent()->getType() == OutlinerTreeItem::ItemType::ObjectType);
+    ObjectTypeTreeItem *objectTypeTreeItem = static_cast<ObjectTypeTreeItem *>(tree_item.getParent());
+    const int typeIndex = objectTypeTreeItem->objectTypeIndex;
+
+    LayerTreeItem *layerTreeItem = static_cast<LayerTreeItem *>(&tree_item);
+    const LayerTreeItem::RenderCache &layerRenderCache = layerTreeItem->renderCache;
+    const int layerIndex = layerTreeItem->perTypeLayerIndex;
+
+    if (showLayerControls(*layerTreeItem, typeIndex, layerIndex, layerRenderCache.layerVisible, layerRenderCache.layerLocked,
+          layerRenderCache.dimLayerColor, dimmed_text_color, action_buttons_total_width, multi_select_io))
+      ImGui::TreePop();
+  }
+  else if (itemType == OutlinerTreeItem::ItemType::Object)
+  {
+    G_ASSERT(tree_item.getParent()->getType() == OutlinerTreeItem::ItemType::Layer);
+    LayerTreeItem *layerTreeItem = static_cast<LayerTreeItem *>(tree_item.getParent());
+    const LayerTreeItem::RenderCache &layerRenderCache = layerTreeItem->renderCache;
+    const int layerIndex = layerTreeItem->perTypeLayerIndex;
+
+    G_ASSERT(layerTreeItem->getParent()->getType() == OutlinerTreeItem::ItemType::ObjectType);
+    ObjectTypeTreeItem *objectTypeTreeItem = static_cast<ObjectTypeTreeItem *>(layerTreeItem->getParent());
+    const int typeIndex = objectTypeTreeItem->objectTypeIndex;
+
+    ObjectTreeItem *objectTreeItem = static_cast<ObjectTreeItem *>(&tree_item);
+    ObjectAssetNameTreeItem *objectAssetNameTreeItem = objectTreeItem->objectAssetNameTreeItem.get();
+    const bool hasAssetName = objectAssetNameTreeItem != nullptr;
+
+    if (layerRenderCache.dimLayerChildColor)
+      ImGui::PushStyleColor(ImGuiCol_Text, dimmed_text_color);
+
+    if (showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName))
+      ImGui::TreePop();
+
+    if (layerRenderCache.dimLayerChildColor)
+      ImGui::PopStyleColor();
+  }
+  else if (itemType == OutlinerTreeItem::ItemType::ObjectAssetName)
+  {
+    G_ASSERT(tree_item.getParent()->getType() == OutlinerTreeItem::ItemType::Object);
+    ObjectTreeItem *objectTreeItem = static_cast<ObjectTreeItem *>(tree_item.getParent());
+
+    G_ASSERT(objectTreeItem->getParent()->getType() == OutlinerTreeItem::ItemType::Layer);
+    LayerTreeItem *layerTreeItem = static_cast<LayerTreeItem *>(objectTreeItem->getParent());
+    const LayerTreeItem::RenderCache &layerRenderCache = layerTreeItem->renderCache;
+
+    ObjectAssetNameTreeItem *objectAssetNameTreeItem = static_cast<ObjectAssetNameTreeItem *>(&tree_item);
+
+    if (layerRenderCache.dimLayerChildColor)
+      ImGui::PushStyleColor(ImGuiCol_Text, dimmed_text_color);
+
+    showObjectAssetNameControls(*objectAssetNameTreeItem, *objectTreeItem->renderableEditableObject);
+
+    if (layerRenderCache.dimLayerChildColor)
+      ImGui::PopStyleColor();
+  }
+  else
+  {
+    G_ASSERT(false);
+  }
+
+  ImGui::PopID();
+
+  if (treeItemLevel > 0)
+    ImGui::Unindent(totalIndentSpace);
+}
+
+void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multi_select_io)
 {
   G_ASSERT(treeInterface);
 
@@ -1108,80 +1207,96 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
   const float actionButtonsTotalWidth =
     (PropPanel::ImguiHelper::getFontSizedIconSize().x + ImGui::GetStyle().ItemSpacing.x) * actionButtonCount;
 
+  void *oldSelectionHead = outlinerModel->getSelectionHead();
   outlinerModel->setSelectionHead(nullptr);
 
+  // Use a simple render cache for frequently needed visible data. It makes renderTreeItem() faster and clearer.
   for (ObjectTypeTreeItem *objectTypeTreeItem : outlinerModel->filteredObjectTypes)
   {
     const int typeIndex = objectTypeTreeItem->objectTypeIndex;
 
-    ImGui::PushID(typeIndex);
-
-    const bool typeVisible = treeInterface->isTypeVisible(typeIndex);
-    const bool typeLocked = treeInterface->isTypeLocked(typeIndex);
-    const bool dimTypeColor = !typeVisible;
-    const bool dimTypeChildColor = dimTypeColor || typeLocked;
-
-    const bool typeOpen = showTypeControls(*objectTypeTreeItem, typeIndex, typeVisible, typeLocked, dimTypeColor, dimmedTextColor,
-      actionButtonsTotalWidth);
-
-    if (typeIndex == addingLayerToType)
-      showAddLayerControls();
-
-    if (!typeOpen)
-    {
-      ImGui::PopID();
-      continue;
-    }
+    ObjectTypeTreeItem::RenderCache &objectTypeRenderCache = objectTypeTreeItem->renderCache;
+    objectTypeRenderCache.typeVisible = treeInterface->isTypeVisible(typeIndex);
+    objectTypeRenderCache.typeLocked = treeInterface->isTypeLocked(typeIndex);
+    objectTypeRenderCache.dimTypeColor = !objectTypeRenderCache.typeVisible;
 
     for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->filteredLayers)
     {
       const int layerIndex = layerTreeItem->perTypeLayerIndex;
 
-      ImGui::PushID(layerIndex);
-
-      const bool layerVisible = treeInterface->isLayerVisible(typeIndex, layerIndex);
-      const bool layerLocked = treeInterface->isLayerLocked(typeIndex, layerIndex);
-      const bool dimLayerColor = dimTypeChildColor || !layerVisible;
-      const bool dimLayerChildColor = dimLayerColor || layerLocked;
-
-      const bool layerOpen = showLayerControls(*layerTreeItem, typeIndex, layerIndex, layerVisible, layerLocked, dimLayerColor,
-        dimmedTextColor, actionButtonsTotalWidth, multiSelectIo);
-
-      if (!layerOpen)
-      {
-        ImGui::PopID();
-        continue;
-      }
-
-      if (dimLayerChildColor)
-        ImGui::PushStyleColor(ImGuiCol_Text, dimmedTextColor);
-
-      for (ObjectTreeItem *objectTreeItem : layerTreeItem->filteredSortedObjects)
-      {
-        ObjectAssetNameTreeItem *objectAssetNameTreeItem = objectTreeItem->objectAssetNameTreeItem.get();
-        const bool hasAssetName = objectAssetNameTreeItem != nullptr;
-        if (!showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName))
-          continue;
-
-        if (hasAssetName)
-          showObjectAssetNameControls(*objectAssetNameTreeItem, *objectTreeItem->renderableEditableObject);
-
-        ImGui::TreePop();
-      }
-
-      if (dimLayerChildColor)
-        ImGui::PopStyleColor();
-
-      ImGui::TreePop();
-      ImGui::PopID();
+      LayerTreeItem::RenderCache &layerRenderCache = layerTreeItem->renderCache;
+      layerRenderCache.layerVisible = treeInterface->isLayerVisible(typeIndex, layerIndex);
+      layerRenderCache.layerLocked = treeInterface->isLayerLocked(typeIndex, layerIndex);
+      layerRenderCache.dimLayerColor =
+        objectTypeRenderCache.dimTypeColor || objectTypeRenderCache.typeLocked || !layerRenderCache.layerVisible;
+      layerRenderCache.dimLayerChildColor = layerRenderCache.dimLayerColor || layerRenderCache.layerLocked;
     }
-
-    ImGui::TreePop();
-    ImGui::PopID();
   }
 
+  const dag::Span<OutlinerTreeItem *> linearizedTreeItems = outlinerModel->getLinearizedTreeItems();
+  ImGuiListClipper clipper;
+  clipper.Begin(linearizedTreeItems.size());
+
+  // The visible requested item cannot be clipped otherwise jumping to it will not work.
+  if (ensureVisibleRequested != EnsureVisibleRequestState::NoRequest)
+  {
+    // Prefer the selection head, and then the first selected item. See updateSelectionHead().
+    int selectionHeadIndex = -1;
+    int selectionIndex = -1;
+    for (int i = 0; i < linearizedTreeItems.size(); ++i)
+    {
+      const OutlinerTreeItem *treeItem = linearizedTreeItems[i];
+      if (treeItem->isSelected() && treeItem->getType() == OutlinerTreeItem::ItemType::Object)
+      {
+        if (treeItem == oldSelectionHead)
+        {
+          selectionHeadIndex = i;
+          break;
+        }
+        else if (selectionIndex < 0)
+          selectionIndex = i;
+      }
+    }
+
+    if (selectionHeadIndex >= 0)
+      clipper.IncludeItemByIndex(selectionHeadIndex);
+    else if (selectionIndex >= 0)
+      clipper.IncludeItemByIndex(selectionIndex);
+  }
+
+  // Include a screenful of items around the selection's head item when the user is moving the cursor with keys,
+  // otherwise up/down/page up/page down do not work as expected if the user has scrolled away and the cursor is off screen.
+  // This should not be needed, ImGuiListClipper_StepInternal() does something similar, but it does not work correctly.
+  // See https://github.com/ocornut/imgui/issues/9079.
+  if (multi_select_io && multi_select_io->RangeSrcItem != 0)
+  {
+    // ImGuiListClipper_StepInternal() uses this condition to check whether the user has requested a cursor move.
+    ImGuiContext &g = *ImGui::GetCurrentContext();
+    ImGuiWindow *window = ImGui::GetCurrentWindowRead();
+    const bool isNavRequest = g.NavMoveScoringItems && g.NavWindow && g.NavWindow->RootWindowForNav == window->RootWindowForNav;
+    if (isNavRequest)
+    {
+      const OutlinerTreeItem *rangeSrcItemNode = reinterpret_cast<OutlinerTreeItem *>(multi_select_io->RangeSrcItem);
+      auto it = eastl::find(linearizedTreeItems.begin(), linearizedTreeItems.end(), rangeSrcItemNode);
+      if (it != linearizedTreeItems.end())
+      {
+        const int rangeSrcItemIndex = it - linearizedTreeItems.begin();
+        const float windowInnerHeight = ImGui::GetCurrentWindowRead()->InnerRect.GetHeight();
+        const float totalItemHeight = ImGui::GetTextLineHeightWithSpacing();
+        const int itemsPerPage = (int)ceilf(windowInnerHeight / totalItemHeight);
+        const int startIndex = max(rangeSrcItemIndex - itemsPerPage, 0);
+        const int endIndex = min(rangeSrcItemIndex + itemsPerPage, (int)linearizedTreeItems.size());
+        clipper.IncludeItemsByIndex(startIndex, endIndex);
+      }
+    }
+  }
+
+  while (clipper.Step())
+    for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index)
+      renderTreeItem(*linearizedTreeItems[index], dimmedTextColor, actionButtonsTotalWidth, multi_select_io);
+
   // If there are no search results then show the no results message at the center of the tree control.
-  if (!outlinerModel->textToSearch.empty() && ImGui::GetItemID() == lastItemIdAtStart)
+  if (!outlinerModel->textToSearch.empty() && linearizedTreeItems.empty())
   {
     const char *message = "No results found";
     const ImVec2 textSize = ImGui::CalcTextSize(message, nullptr);
@@ -1191,7 +1306,7 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multiSelectIo)
     posMin.y = max(posMin.y, posMin.y + (((posMax.y - posMin.y) - textSize.y) * 0.5f));
     posMax.x = min(posMax.x, posMin.x + textSize.x);
     posMax.y = min(posMax.y, posMin.y + textSize.y);
-    ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), posMin, posMax, posMax.x, posMax.x, message, nullptr, &textSize);
+    ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), posMin, posMax, posMax.x, message, nullptr, &textSize);
   }
 
   ImGui::Dummy(ImVec2(0.0f, 0.0f)); // This is here to prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
@@ -1512,16 +1627,15 @@ void OutlinerWindow::showSettingsPanel(const char *popup_id)
   for (int typeIndex = 0; typeIndex < typeCount; ++typeIndex)
   {
     bool &show = outlinerModel->objectTypes[typeIndex]->objectTypeVisible;
-    const bool pressed = ImGui::Checkbox(treeInterface->getTypeName(typeIndex), &show);
+    const bool pressed = PropPanel::ImguiHelper::checkboxWithDragSelection(treeInterface->getTypeName(typeIndex), &show);
     if (pressed)
       outlinerModel->onFilterChanged(*treeInterface);
   }
 
   ImGui::NewLine();
   bool showAssetNameUnderObjects = outlinerModel->getShowAssetNameUnderObjects();
-  const bool showAssetNamePressed = ImGui::Checkbox("Show asset names", &showAssetNameUnderObjects);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()),
-    "Display the object's asset name below the object in the tree.");
+  const bool showAssetNamePressed = PropPanel::ImguiHelper::checkboxWithDragSelection("Show asset names", &showAssetNameUnderObjects);
+  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Display the object's asset name below the object in the tree.");
 
   if (showAssetNamePressed)
     outlinerModel->setShowAssetNameUnderObjects(*treeInterface, showAssetNameUnderObjects);
@@ -1627,7 +1741,7 @@ void OutlinerWindow::updateImgui()
 
   const bool pressedAddLayer =
     ImGui::ImageButton("addLayer", PropPanel::get_im_texture_id_from_icon_id(icons.layerAdd), fontSizedIconSize);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Add new layer");
+  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Add new layer");
 
   if (selectedType < 0)
     ImGui::EndDisabled();
@@ -1651,7 +1765,7 @@ void OutlinerWindow::updateImgui()
   const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? icons.settingsOpen : icons.settings;
   const bool settingsButtonPressed =
     PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
+  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
 
   if (settingsButtonPressed)
   {
@@ -1708,7 +1822,7 @@ void OutlinerWindow::updateImgui()
     if (startedSelecting)
       treeInterface->endObjectSelection();
 
-    if (contextMenu && (contextMenu->getItemCount(PropPanel::ROOT_MENU_ITEM) == 0 || !PropPanel::render_context_menu(*contextMenu)))
+    if (contextMenu && !PropPanel::render_context_menu(*contextMenu))
       resetContextMenu();
   }
   ImGui::EndChild();

@@ -5,11 +5,13 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_resetDevice.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <render/computeShaderFallback/voltexRenderer.h>
 #include <osApiWrappers/dag_miscApi.h>
 
 #include "shaders/clouds2/cloud_settings.hlsli"
+
+bool CloudsLightRenderer::isRendered() const { return resetGen != 0; }
 
 void CloudsLightRenderer::init()
 {
@@ -23,13 +25,14 @@ void CloudsLightRenderer::init()
                                                                                                           : TEXFMT_A16B16G16R16F;
   if (VoltexRenderer::is_compute_supported() && d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput)
     texfmt = TEXFMT_A32B32G32R32F;
-  clouds_light_color = dag::create_voltex(8, 8, 2 * CLOUDS_LIGHT_TEXTURE_WIDTH, texfmt | texflags, 1, "clouds_light_color");
+  clouds_light_color = dag::create_voltex(8, 8, 2 * CLOUDS_LIGHT_TEXTURE_WIDTH, texfmt | texflags | TEXCF_CLEAR_ON_CREATE, 1,
+    "clouds_light_color", RESTAG_DASKIES2);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = d3d::AddressMode::Clamp;
   smpInfo.address_mode_v = d3d::AddressMode::Clamp;
   smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_light_color_samplerstate"), d3d::request_sampler(smpInfo));
-  resetGen = 0;
+  invalidate();
 }
 
 CloudsChangeFlags CloudsLightRenderer::render(const Point3 &main_light_dir, const Point3 &second_light_dir)

@@ -1,5 +1,6 @@
 #include <drv/3d/dag_interface_table.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_bindless.h>
@@ -23,6 +24,7 @@
 #include <drv/3d/dag_resUpdateBuffer.h>
 #include <drv/3d/dag_shaderLibrary.h>
 #include <drv/3d/dag_capture.h>
+#include <drv/3d/dag_resourceTag.h>
 
 #if _TARGET_PC
 #include <drv/3d/dag_platform_pc.h>
@@ -95,7 +97,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(settex_vs);
 
   FILL_ENTRY2(create_program_0, create_program);
-  FILL_ENTRY2(create_program_1, create_program);
   FILL_ENTRY2(create_program_cs, create_program_cs);
 
   FILL_ENTRY(set_program);
@@ -109,8 +110,8 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(set_const);
   FILL_ENTRY(set_immediate_const);
 
-  FILL_ENTRY(set_vs_constbuffer_size);
-  FILL_ENTRY(set_cs_constbuffer_size);
+  FILL_ENTRY(set_vs_constbuffer_register_count);
+  FILL_ENTRY(set_cs_constbuffer_register_count);
 
   FILL_ENTRY(create_pixel_shader);
   FILL_ENTRY(create_pixel_shader_dagor);
@@ -125,8 +126,11 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(allocate_bindless_resource_range);
   FILL_ENTRY(resize_bindless_resource_range);
   FILL_ENTRY(free_bindless_resource_range);
+  FILL_ENTRY(update_bindless_resource_range);
   FILL_ENTRY(update_bindless_resource);
   FILL_ENTRY(update_bindless_resources_to_null);
+  FILL_ENTRY(add_bindless_resource);
+  FILL_ENTRY(add_bindless_resources);
 
   FILL_ENTRY(set_tex);
   FILL_ENTRY(set_rwtex);
@@ -191,7 +195,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(clearview);
 
   FILL_ENTRY(update_screen);
-  FILL_ENTRY(wait_for_async_present);
   FILL_ENTRY(begin_frame);
   FILL_ENTRY(mark_simulation_start);
   FILL_ENTRY(mark_simulation_end);
@@ -206,8 +209,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(draw_base);
   FILL_ENTRY(drawind_base);
-  FILL_ENTRY(draw_up);
-  FILL_ENTRY(drawind_up);
   FILL_ENTRY(draw_indirect);
   FILL_ENTRY(draw_indexed_indirect);
   FILL_ENTRY(multi_draw_indirect);
@@ -216,6 +217,7 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(dispatch_indirect);
   FILL_ENTRY(dispatch_mesh);
   FILL_ENTRY(dispatch_mesh_indirect);
+  FILL_ENTRY(dispatch_mesh_indirect_count);
 
   FILL_ENTRY(insert_fence);
   FILL_ENTRY(insert_wait_on_fence);
@@ -271,6 +273,8 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(endEvent);
   FILL_ENTRY(get_backbuffer_tex);
   FILL_ENTRY(get_secondary_backbuffer_tex);
+
+  FILL_ENTRY(get_dedicated_gpu_memory_system_internal_overhead_kb);
 
 #if D3D_HAS_RAY_TRACING
   // raytrace interface ->
@@ -344,6 +348,8 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(start_capture);
   FILL_ENTRY(stop_capture);
+
+  FILL_ENTRY(visit_tagged_resources);
 
   FILL_ENTRY_PC(set_present_wnd);
 

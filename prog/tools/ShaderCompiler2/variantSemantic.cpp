@@ -6,6 +6,7 @@
 #include "shExprParser.h"
 #include <shaders/shUtils.h>
 #include "defer.h"
+#include "semUtils.h"
 
 namespace semantic
 {
@@ -336,6 +337,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     def.nameSpaceTerm = state_block.reg->var->nameSpace;
     def.hlsl = state_block.reg->hlsl_var_text;
     def.shaderVarTerm = state_block.reg->shader_var;
+    def.literalReg = state_block.reg->literal_id;
   }
   else if (state_block.reg_arr)
   {
@@ -344,6 +346,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     def.hlsl = state_block.reg_arr->hlsl_var_text;
     def.shaderVarTerm = state_block.reg_arr->shader_var;
     def.sizeVarTerm = state_block.reg_arr->size_shader_var;
+    def.literalReg = state_block.reg_arr->literal_id;
+    def.literalSize = state_block.reg_arr->literal_size;
   }
   else
     G_ASSERTF(0, "Invalid/unsupported state_block_stat type");
@@ -415,12 +419,16 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
   if (def.type != VariableType::f44 && state_block.arr && !state_block.arr->par)
     report_error(parser, def.varTerm, "Array initializer for single named constants is only allowed for @f44 type");
 
-  // @TODO: enable and test for other types if need be
-  if (def.type != VariableType::f4 && def.type != VariableType::i4 && def.type != VariableType::u4 && def.type != VariableType::f44 &&
-      def.type != VariableType::uav && ((state_block.arr && state_block.arr->par) || state_block.reg_arr))
+#define TYPE(type) VariableType::type,
+  if (!item_is_in(def.type, {ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST}) &&
+      ((state_block.arr && state_block.arr->par) || state_block.reg_arr))
   {
-    report_error(parser, def.varTerm, "variable <%s> is of type <%s> and not @f4, @f44, @i4, @u4, @uav and so can't be array",
-      def.baseName, def.nameSpaceTerm->text);
+#undef TYPE
+#define TYPE(type) "@" #type ", "
+    report_error(parser, def.varTerm,
+      "variable <%s> is of type <%s> and not " ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST "and so can't be array", def.baseName,
+      def.nameSpaceTerm->text);
+#undef TYPE
   }
 
   def.isBindless = vt_is_static_texture(def.type) && shc::config().enableBindless;
@@ -480,27 +488,36 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       needPairSampler = true;
       def.pairSamplerIsShadow = def.type == VariableType::shd || def.type == VariableType::shdArray;
       break;
-    case VariableType::staticSampler:
-    case VariableType::staticCube:
-    case VariableType::staticCubeArray:
+    case VariableType::staticTex:
+    case VariableType::staticSmp:
+    case VariableType::staticTexCube:
+    case VariableType::staticSmpCube:
+    case VariableType::staticTexCubeArray:
+    case VariableType::staticSmpCubeArray:
     case VariableType::staticTexArray:
+    case VariableType::staticSmpArray:
     case VariableType::staticTex3D:
+    case VariableType::staticSmp3D:
       def.shvarType = SHVT_TEXTURE;
       def.regSpace = def.isBindless ? HLSL_RSPACE_C : HLSL_RSPACE_T;
-      needPairSampler = !def.isBindless;
+      needPairSampler = !def.isBindless && semantic::vt_is_static_sampled_texture(def.type);
       switch (def.type)
       {
-        case VariableType::staticSampler: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_2D; break;
-        case VariableType::staticTex3D: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_3D; break;
-        case VariableType::staticCube: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_CUBE; break;
-        case VariableType::staticTexArray: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_2D_ARRAY; break;
-        case VariableType::staticCubeArray: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_CUBE_ARRAY; break;
+        case VariableType::staticTex:
+        case VariableType::staticSmp: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_2D; break;
+        case VariableType::staticTex3D:
+        case VariableType::staticSmp3D: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_3D; break;
+        case VariableType::staticTexCube:
+        case VariableType::staticSmpCube: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_CUBE; break;
+        case VariableType::staticTexArray:
+        case VariableType::staticSmpArray: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_2D_ARRAY; break;
+        case VariableType::staticTexCubeArray:
+        case VariableType::staticSmpCubeArray: def.shvarTexType = ShaderVarTextureType::SHVT_TEX_CUBE_ARRAY; break;
         default: break;
       }
       break;
     case VariableType::sampler:
-      if (def.stage != STAGE_PS && def.stage != STAGE_CS)
-        report_error(parser, def.varTerm, "@sampler is supported only in ps/cs stage");
+    case VariableType::cmpSampler:
       def.shvarType = SHVT_SAMPLER;
       def.regSpace = HLSL_RSPACE_S;
       break;
@@ -542,26 +559,40 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
   {
     def.isDynamic = true;
 
-    auto getConstIntFromShadervar = [&](Terminal *t) -> int {
-      auto [vi, reg_type, is_global] = lookup_state_var(*t, ctx);
-      G_ASSERT(vi >= 0);
-      if (reg_type != SHVT_INT)
+    auto getConstIntFromShadervarOrLit = [&](Terminal *t, SHTOK_intnum *i) -> int {
+      if (t)
       {
-        report_error(parser, t, "Hardcoded register %s must be of type `int`, but found %s", t->text,
-          ShUtils::shader_var_type_name(reg_type));
-      }
-      if (is_global)
-      {
-        ctx.tgtCtx().globVars().getVar(vi).isImplicitlyReferenced = true;
-        return ctx.tgtCtx().globVars().getVar(vi).value.i;
+        G_ASSERT(!i);
+        auto [vi, reg_type, is_global] = lookup_state_var(*t, ctx);
+        G_ASSERT(vi >= 0);
+        if (reg_type != SHVT_INT)
+        {
+          report_error(parser, t, "Hardcoded register %s must be of type `int`, but found %s", t->text,
+            ShUtils::shader_var_type_name(reg_type));
+        }
+        if (is_global)
+        {
+          ctx.tgtCtx().globVars().getVar(vi).isImplicitlyReferenced = true;
+          return ctx.tgtCtx().globVars().getVar(vi).value.i;
+        }
+        else
+        {
+          report_error(parser, t, "Only global variables for hardcoded registers are supported");
+          return -1;
+        }
       }
       else
-        report_error(parser, t, "Only global variables for hardcoded registers are supported");
-      return -1;
+      {
+        G_ASSERT(i);
+        int res = -1;
+        if (!semutils::try_int_number(i->text, res))
+          report_error(parser, i, "Invalid int literal '%s' for explicit register/size", i->text);
+        return res;
+      }
     };
 
-    def.hardcodedRegister = getConstIntFromShadervar(def.shaderVarTerm);
-    def.registerSize = state_block.reg ? 1 : getConstIntFromShadervar(def.sizeVarTerm);
+    def.hardcodedRegister = getConstIntFromShadervarOrLit(def.shaderVarTerm, def.literalReg);
+    def.registerSize = state_block.reg ? 1 : getConstIntFromShadervarOrLit(def.sizeVarTerm, def.literalSize);
     def.arrayElemCount = def.registerSize;
     if (state_block.reg_arr && state_block.reg_arr->hlsl_var_text)
     {
@@ -570,15 +601,6 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
         // @TODO: enable once implemented
         report_error(parser, state_block.reg_arr->var,
           "Hardcoded register arrays with custom hlsl for type @f4 (arrays of structs) are not implemented yet");
-        return eastl::nullopt;
-      }
-      else if (def.type != VariableType::uav)
-      {
-        // @TODO: enable and test for other types if need be
-        report_error(parser, state_block.reg_arr->var,
-          "Hardcoded register arrays with custom hlsl not supported for type %s. For arrays of structs, use @f4 (not implemented "
-          "yet)",
-          state_block.reg_arr->var->nameSpace->text);
         return eastl::nullopt;
       }
     }
@@ -856,7 +878,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
 #undef TMPMEM_ALLOC
 }
 
-eastl::optional<LocalVarDefInfo> parse_local_var_decl(local_var_decl &decl, shc::VariantContext &ctx,
+eastl::optional<LocalVarDefInfo> parse_local_var_decl(const local_var_decl &decl, shc::VariantContext &ctx,
   bool ignore_color_dimension_mismatch, bool allow_override)
 {
   using namespace ShaderParser;

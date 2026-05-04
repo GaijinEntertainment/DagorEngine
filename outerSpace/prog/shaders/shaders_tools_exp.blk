@@ -1,2 +1,6 @@
 include "../../../prog/daNetGame/shaders/_build/shaders_tools_exp.blk"
+"@override:source" {
+  file:t = "../dynamic_emissive.dshl"
+  file:t = "../dynamic_glass.dshl"
+}
 "@override:outMiniDumpName":t="../../tools/tools.exp"

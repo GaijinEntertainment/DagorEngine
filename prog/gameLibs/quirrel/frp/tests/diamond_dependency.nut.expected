@@ -1,0 +1,7 @@
+a=1, b=2, c=11, d=13
+a=5, b=10, c=15, d=25
+d sub count: 1
+d sub val: 40
+d=40
+wide diamond: r=13
+wide diamond after w=3: r=19

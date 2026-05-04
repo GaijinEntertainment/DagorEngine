@@ -2,7 +2,9 @@
 
 #include <util/dag_console.h>
 #include <gamePhys/collision/collisionLib.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 using namespace console;
 static bool phys_console_handler(const char *argv[], int argc)

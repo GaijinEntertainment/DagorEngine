@@ -1,0 +1,8 @@
+import:t="%gameLibs/render/collimatorMoaCore/templates/collimator_moa_core.template.blk"
+
+collimator_moa_fg{
+   _singleton:b=yes
+  _tags:t="render"
+
+  "collimator_moa_render__lens_render_node:dafg::NodeHandle"{}
+}

@@ -4,7 +4,9 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_color.h>
 #include <util/dag_simpleString.h>

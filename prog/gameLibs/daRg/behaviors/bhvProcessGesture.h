@@ -29,8 +29,8 @@ class BhvProcessGesture : public darg::Behavior
 public:
   BhvProcessGesture();
 
-  virtual int touchEvent(ElementTree *, Element *, InputEvent /*event*/, HumanInput::IGenPointing * /*pnt*/, int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/, int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice, InputEvent, int /*touch_idx*/, int /*btn_id*/, Point2 pos,
+    int /*accum_res*/) override;
 
 private:
   int processGesture(Element *elem, InputEvent event, int pointer_id, const Point2 &pos, int accum_res);

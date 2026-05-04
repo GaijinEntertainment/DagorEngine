@@ -45,7 +45,8 @@ public:
 
   inline const char *getName() const { return name; }
   inline const char *getAppDir() const { return appDir; }
-  inline const char *getAppPath() const { return appPath; }
+  inline const char *getAppBlkPath() const { return appBlkPath; }
+  inline const char *getAppBlkShortName() const { return appBlkShortName; }
   inline const char *getSdkDir() const { return sdkDir; }
   inline const char *getLibDir() const { return libDir; }
   inline const char *getLevelsDir() const { return levelsDir; }
@@ -56,8 +57,8 @@ public:
   inline const char *getLevelsBinDir() const { return levelsBinDir; }
   inline const char *getPhysmatPath() const { return physmatPath; }
   inline const char *getScriptLibrary() const { return scriptLibrary; }
-
   inline const char *getCollisionName() const { return collisionName; }
+  inline const char *getSceneDir() const { return sceneDir; }
 
   inline const Tab<String> &getDagorEdDisabled() const { return deDisabled; }
   inline const Tab<String> &getResourceEdDisabled() const { return reDisabled; }
@@ -67,6 +68,8 @@ public:
   static const char *getPlatformNameFromId(unsigned plt);
 
   inline float getMaxTraceDistance() const { return maxTraceDistance; }
+
+  const Tab<String> &getMountPoints() const { return mountPoints; }
 
 protected:
   String blkPath;
@@ -96,7 +99,8 @@ protected:
 private:
   String name;
   String appDir;
-  String appPath;
+  String appBlkPath;
+  String appBlkShortName;
 
   String sdkDir;
   String libDir;
@@ -110,6 +114,7 @@ private:
   String scriptLibrary;
 
   String collisionName;
+  String sceneDir;
 
   Tab<String> deDisabled;
   Tab<String> reDisabled;
@@ -117,6 +122,8 @@ private:
   Tab<unsigned> platforms;
 
   float maxTraceDistance;
+
+  Tab<String> mountPoints;
 
   DataBlock *findWspBlk(DataBlock &blk, const char *wsp_name, bool create_new);
 

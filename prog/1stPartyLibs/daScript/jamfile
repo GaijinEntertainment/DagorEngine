@@ -45,6 +45,11 @@ if $(daScript_sanitizer) = 1 {
   CPPopt += -DDAS_SANITIZER=$(daScript_sanitizer) ;
 }
 
+if $(daScript_debugger) = 1 {
+  Target = $(Target:S=~deb$(daScript_debugger).lib) ;
+  CPPopt += -DDAS_DEBUGGER=$(daScript_debugger) ;
+}
+
 if $(daScript_keepalive) = 1 {
   Target = $(Target:S=~ka$(daScript_keepalive).lib) ;
   CPPopt += -DDAS_ENABLE_KEEPALIVE=$(daScript_keepalive) ;
@@ -56,6 +61,10 @@ if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
 
+if $(Config) in rel irel {
+  CPPopt += -DDAS_NO_ASSERTIONS=1 ;
+}
+
 # Fix for fmt library Unicode compilation errors
 CPPopt += -DFMT_UNICODE=0 ;
 
@@ -63,14 +72,6 @@ if $(daScript_ConsoleExe) = yes {
   Target = $(Target:S=~s$(Target:S)) ;
   CPPopt += -DDAS_DEFAULT_STDOUT ;
 }
-
-BuiltinFolder = src/builtin ;
-StringifySourceFile $(BuiltinFolder)/rtti.das : $(BuiltinFolder)/rtti.das.inc : $(BuiltinFolder)/module_builtin_rtti.cpp : "--full-string" ;
-StringifySourceFile $(BuiltinFolder)/fio.das : $(BuiltinFolder)/fio.das.inc : $(BuiltinFolder)/module_builtin_fio.cpp : "--full-string" ;
-StringifySourceFile $(BuiltinFolder)/builtin.das : $(BuiltinFolder)/builtin.das.inc : $(BuiltinFolder)/module_builtin_das.cpp : "--full-string" ;
-StringifySourceFile $(BuiltinFolder)/ast.das : $(BuiltinFolder)/ast.das.inc : $(BuiltinFolder)/module_builtin_ast.cpp : "--full-string" ;
-StringifySourceFile $(BuiltinFolder)/network.das : $(BuiltinFolder)/network.das.inc : $(BuiltinFolder)/module_builtin_network.cpp : "--full-string" ;
-StringifySourceFile $(BuiltinFolder)/debugger.das : $(BuiltinFolder)/debugger.das.inc : $(BuiltinFolder)/module_builtin_debugger.cpp : "--full-string" ;
 
 local AllSrcFolder_CPP = 
   src/ast

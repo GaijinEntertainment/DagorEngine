@@ -58,13 +58,14 @@ shader debug_lights, debug_spot_lights
         ##else
         RenderSpotLight sl = spot_lights_cb[id];
         ##endif
-        float4 pos_and_radius    = sl.lightPosRadius;
+        float4 pos_and_radius    = decode_spot_light_pos_radius(sl);
         float4 color_and_attenuation = sl.lightColorAngleScale;
         float4 dir_angle = sl.lightDirectionAngleOffset;
 
         const float lightAngleScale = color_and_attenuation.a;
         const float lightAngleOffset = dir_angle.a;
-        float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+        float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+        float lightRollAngle = decode_light_roll_angle(sl);
 
         float cosOuter = -lightAngleOffset/lightAngleScale;
         float halfTan = sqrt(1/(cosOuter*cosOuter)-1);
@@ -76,9 +77,9 @@ shader debug_lights, debug_spot_lights
         if (input.pos.z!=0)
           color_and_attenuation/=8;
         color_and_attenuation.a =
-          applyPhotometryIntensity(
+          applySpotLightPhotometry(
             normalize(worldPos - pos_and_radius.xyz),
-            dir_angle.xyz, texId_scale.x, texId_scale.y, color_and_attenuation.a);
+            dir_angle.xyz, lightRollAngle, texId_scale.x, texId_scale.y, color_and_attenuation.a);
       ##endif
       output.pos = mul(float4(worldPos, 1), globtm);
       output.point2Eye = worldPos-world_view_pos;

@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "collisionTraces.h"
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <ecs/phys/collRes.h>
 #include <daECS/core/sharedComponent.h>
@@ -8,14 +11,14 @@
 #include <game/capsuleApproximation.h>
 
 template <typename Callable>
-static void entity_collres_eid_ecs_query(ecs::EntityId, Callable);
+static void entity_collres_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 template <typename Callable>
-static void capsule_approximation_eid_ecs_query(ecs::EntityId, Callable);
+static void capsule_approximation_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 bool trace_to_collision_nodes(
   const Point3 &from, ecs::EntityId target, IntersectedEntities &intersected_entities, SortIntersections do_sort, float ray_tolerance)
 {
-  entity_collres_eid_ecs_query(target,
+  entity_collres_eid_ecs_query(*g_entity_mgr, target,
     [&](const CollisionResource &collres, const TMatrix &transform, const AnimV20::AnimcharBaseComponent *animchar = nullptr) {
       mat44f tm;
       v_mat44_make_from_43cu_unsafe(tm, transform.array);
@@ -25,7 +28,8 @@ bool trace_to_collision_nodes(
       {
         mat44f nodeTm;
         collres.getCollisionNodeTm(&allNodes[i], tm, geomTree, nodeTm);
-        vec3f vTo = v_mat44_mul_vec3p(nodeTm, v_ldu(&allNodes[i].boundingSphere.c.x));
+        BSphere3 nodeBSph = collres.getNodeBSphere(allNodes[i].nodeIndex);
+        vec3f vTo = v_mat44_mul_vec3p(nodeTm, v_ldu(&nodeBSph.c.x));
         vec3f vDir = v_sub(vTo, v_ldu(&from.x));
         vec4f vT = v_length3(vDir);
         vDir = v_safediv(vDir, vT);
@@ -59,7 +63,7 @@ bool trace_to_capsule_approximation(
   const Point3 &from, ecs::EntityId target, IntersectedEntities &intersected_entities, SortIntersections do_sort, float ray_tolerance)
 {
   bool isTraced = false;
-  capsule_approximation_eid_ecs_query(target,
+  capsule_approximation_eid_ecs_query(*g_entity_mgr, target,
     [&](const AnimV20::AnimcharBaseComponent &animchar, ECS_SHARED(CapsuleApproximation) capsule_approximation) {
       isTraced = !capsule_approximation.capsuleDatas.empty();
       for (const auto &data : capsule_approximation.capsuleDatas)
@@ -108,7 +112,7 @@ bool trace_to_capsule_approximation(
 bool rayhit_to_collision_nodes(const Point3 &from, ecs::EntityId target, float ray_tolerance)
 {
   bool isHit = false;
-  entity_collres_eid_ecs_query(target,
+  entity_collres_eid_ecs_query(*g_entity_mgr, target,
     [&](const CollisionResource &collres, const TMatrix &transform, const AnimV20::AnimcharBaseComponent *animchar) {
       mat44f tm;
       v_mat44_make_from_43cu_unsafe(tm, transform.array);
@@ -118,7 +122,8 @@ bool rayhit_to_collision_nodes(const Point3 &from, ecs::EntityId target, float r
       {
         mat44f nodeTm;
         collres.getCollisionNodeTm(&allNodes[i], tm, geomTree, nodeTm);
-        vec3f vTo = v_mat44_mul_vec3p(nodeTm, v_ldu(&allNodes[i].boundingSphere.c.x));
+        BSphere3 nodeBSph = collres.getNodeBSphere(allNodes[i].nodeIndex);
+        vec3f vTo = v_mat44_mul_vec3p(nodeTm, v_ldu(&nodeBSph.c.x));
         vec3f vDir = v_sub(vTo, v_ldu(&from.x));
         vec4f vT = v_length3(vDir);
         vDir = v_safediv(vDir, vT);
@@ -139,7 +144,7 @@ bool rayhit_to_collision_nodes(const Point3 &from, ecs::EntityId target, float r
 bool rayhit_to_capsule_approximation(const Point3 &from, ecs::EntityId target, float ray_tolerance)
 {
   bool isTraced = false, isHit = false;
-  capsule_approximation_eid_ecs_query(target,
+  capsule_approximation_eid_ecs_query(*g_entity_mgr, target,
     [&](const AnimV20::AnimcharBaseComponent &animchar, ECS_SHARED(CapsuleApproximation) capsule_approximation) {
       isTraced = true;
       for (const auto &data : capsule_approximation.capsuleDatas)

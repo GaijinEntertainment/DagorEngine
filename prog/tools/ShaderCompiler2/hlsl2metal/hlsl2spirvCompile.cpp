@@ -8,14 +8,11 @@
 #include <unordered_map>
 
 #include <spirv/compiler.h>
-#include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include <osApiWrappers/dag_localConv.h>
 
 #include <debug/dag_debug.h>
 
 #include <spirv.hpp>
-#include <SPIRV/disassemble.h>
-#include <vulkan/vulkan.h>
 
 #include <spirv-tools/libspirv.hpp>
 #include <spirv-tools/optimizer.hpp>

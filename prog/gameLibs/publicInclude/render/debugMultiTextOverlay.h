@@ -25,7 +25,7 @@ struct DebugMultiTextOverlay
   unsigned int borderColor = 0xccffffff;
 };
 
-void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, HudPrimitives *imm_prim,
-  const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg);
+void draw_debug_multitext_overlay_simple(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names,
+  HudPrimitives *imm_prim, const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg);
 void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names,
   dag::ConstSpan<int> complexities, HudPrimitives *imm_prim, const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg);

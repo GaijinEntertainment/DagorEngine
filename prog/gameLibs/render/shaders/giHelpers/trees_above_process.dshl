@@ -13,7 +13,7 @@ shader trees2d_depth_write_to_alpha
   color_write = a;
   (ps) {
     trees2d_depth@smp2d = trees2d_depth;
-    trees2d_depth_min@smp2d = trees2d_depth_min;
+    trees2d_depth_min@tex2d = trees2d_depth_min;
     trees2d_depth_region@i2 = trees2d_depth_region;
     world_to_trees_tex_ofs@f4 = world_to_trees_tex_ofs;
     world_to_trees_tex_mul@f4 = world_to_trees_tex_mul;

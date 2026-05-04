@@ -1,8 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "spline.h"
+#include <de3_lightService.h>
+#include <de3_assetService.h>
+#include <libTools/staticGeom/geomObject.h>
+#include <libTools/staticGeom/staticGeometryContainer.h>
+#include <libTools/ObjCreator3d/objCreator3d.h>
+
 using splineclass::Attr;
 
-static void recalcLoftLighting(StaticGeometryContainer &geom)
+void SplineGenEntity::recalcGeomLighting(StaticGeometryContainer &geom)
 {
   ISceneLightService *ltService = EDITORCORE->queryEditorInterface<ISceneLightService>();
   if (!ltService)
@@ -144,11 +151,11 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
 
           if (loft.loftLayerOrder)
           {
-            node->script.setInt("layer", loft.loftLayerOrder);
+            node->script.setInt("layer", node->layer = loft.loftLayerOrder);
             hasNonZeroLayers = true;
           }
           if (loft.stage)
-            node->script.setInt("stage", loft.stage);
+            node->script.setInt("stage", node->stage = loft.stage);
           if (!loft.layerTag.empty())
             node->script.setStr("layerTag", loft.layerTag);
           loftGeometry.getGeometryContainer()->addNode(new (tmpmem) StaticGeometryNode(*node));
@@ -159,7 +166,7 @@ void SplineGenEntity::generateLoftSegments(BezierSpline3d &effSpline, const char
     }
   }
   loftGeometry.setTm(TMatrix::IDENT);
-  recalcLoftLighting(*loftGeometry.getGeometryContainer());
+  SplineGenEntity::recalcGeomLighting(*loftGeometry.getGeometryContainer());
   loftGeometry.notChangeVertexColors(true);
   loftGeometry.recompile();
   loftGeometry.notChangeVertexColors(false);

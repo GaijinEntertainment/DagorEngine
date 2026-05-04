@@ -14,6 +14,19 @@ spline_gen_geometry{
     _tags:t="render"
   }
 
+  "spline_gen_geometry__first_normal:p3"{
+    _info { desc:t="Normal vector for the first point of the spline. This is used to orient / rotate the spline." }
+    value:p3=0, 1, 0
+  }
+  "spline_gen_geometry__first_bitangent:p3"{
+    _info { desc:t="NOTE: This is only in use if the first tangent (first 2 points' difference) is too similar to the first normal. Bitangent vector for the first point of the spline. This is also used to orient / rotate the spline." }
+    value:p3=1, 0, 0
+  }
+  "spline_gen_geometry__use_last_point_to_orient_spline:b"{
+    _info { desc:t="By default the first (root) point's bitangent is used to orient the spline, however if this setting is enabled, then the last point of the spline will be used to orient the spline instead." }
+    value:b=no
+  }
+
   "spline_gen_geometry__lods_eid:eid"{}
   "spline_gen_geometry__points:list<p3>"{}
   "spline_gen_geometry__radii:list<p2>"{
@@ -28,6 +41,48 @@ spline_gen_geometry{
     _info { desc:t="Color of the emissive points. Default is white. (The absolute value of) Alpha is maximum emission (intensity from the emissive points are clamped to this and MAX_EMISSION). The sign of alpha determines whether masking is done by 'mask' or '1 - mask' (mask comes from the blue channel of the normalmap)." }
     value:p4=1, 1, 1, 1
   }
+  "spline_gen_geometry__cylinder_start_offset:r"{
+    _info { desc:t="Offset to move where the vertices of a stripe begin. By default the first vertex (and thus 0 UV) starts at the right side of the spline, and the UV grows clockwise. With this parameter the start vertex can be moved clockwise by the given amount. (This is useful when we are transitioning between a given shape and the default cylinder, and we want the shape's first point to also be the cylinder's starting point)" }
+    value:r=0
+  }
+  "spline_gen_geometry__used_shapes:list<t>"{
+    _info { desc:t="List of names of the used shapes (spline_gen_shape__shape_name). " }
+  }
+  "spline_gen_geometry__shape_positions:list<p2>"{
+    _info { desc:t="List of shape indices and positions. First coordinate is position on spline (0 to 1), second is index of the shape from `spline_gen_geometry__used_shapes`." }
+  }
+  "spline_gen_geometry__index_of_refraction:r"{
+    _info { desc:t="For refractive splineGen. Index of Refraction for the splineGenGeometry medium. Default is 1.33 (water)." }
+    value:r=1.33
+  }
+  "spline_gen_geometry__surface_opaqueness:r"{
+    _info { desc:t="For refractive splineGen. Surface opaqueness value between 0 and 1. 0 means fully transparent, 1 means fully opaque." }
+    value:r=0.0
+  }
+  "spline_gen_geometry__additional_thickness_bounds:p2"{
+    _info { desc:t="For refractive splineGen. First value is min added thickness, second is max added thickness. Overall thickness is then calculated as `radius + lerp(min thickness, max thickness, normalmap's b channel's value)`." }
+    value:p2=0, 0
+  }
+  "spline_gen_geometry__uv_scroll_first_offset_and_scale:p4"{
+    _info { desc:t="(First) UV scroll direction and scale (for refractive splineGen). First two coordinates are the direction, second two coordinates are the scale. The offsets are multiplied by the animation time, added to regular texcoord, (which is multiplied by the scales) and are used to sample the displacement map." }
+    value:p4=0, 0, 1, 1
+  }
+  "spline_gen_geometry__uv_scroll_second_offset_and_scale:p4"{
+    _info { desc:t="(Second) UV scroll direction and scale (for refractive splineGen). Similar to `spline_gen_geometry__uv_scroll_first_offset_and_scale`" }
+    value:p4=0, 0, 1, 1
+  }
+  "spline_gen_geometry__uv_scroll_interpolation_value:r"{
+    _info { desc:t="UV scroll interpolation value (for refractive splineGen). Value between 0 and 1 that determines how much of each scroll direction is used. 0 means only the first direction is used, 1 means only the second direction is used." }
+    value:r=0.5
+  }
+
+  // Variables for caching
+  //---------------------------------------------------------------
+  "spline_gen_geometry__cached_shape_ofs_data:list<ip2>"{
+    _tags:t="render"
+    _info { desc:t="Don't modify by hand; Cached list of offsets into the shape buffer, as well as number of segments for that shape. (Position in this list corresponds to `spline_gen_geometry__used_shapes`, so this serves as a dictionary)." }
+  }
+  spline_gen_geometry__used_shapes_changed:b=yes // on by default, so that the cache is built on first use
 }
 
 spline_gen_template{
@@ -37,7 +92,7 @@ spline_gen_template{
   spline_gen_template__stripes:i=0
   "spline_gen_template__shader_type:t"{
     value:t="regular"
-    _info { desc:t="The name of the splineGen shader(s). Supported values: 'regular' (default value), 'emissive' and 'skin'." }
+    _info { desc:t="The name of the splineGen shader(s). Supported values: 'regular' (default value), 'emissive', 'skin' and 'refractive'." }
   }
   spline_gen_template__diffuse_name:t="" //optional
   spline_gen_template__normal_name:t=""
@@ -71,6 +126,12 @@ spline_gen_repository{
   spline_gen_repository{
     _tags:t="render"
   }
+}
+
+spline_gen_shape{
+  _use:t="replicating"
+  spline_gen_shape__shape_name:t=""
+  "spline_gen_shape__points:list<p4>"{}
 }
 
 spline_gen_test{

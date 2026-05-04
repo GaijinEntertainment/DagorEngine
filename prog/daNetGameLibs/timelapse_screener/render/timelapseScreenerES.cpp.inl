@@ -1,15 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <gamePhys/props/atmosphere.h>
 #include "render/skies.h"
 #include "render/screencap.h"
 
 template <typename Callable>
-static void query_camera_pos_ecs_query(Callable c);
+static void query_camera_pos_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 static void timelapse_screener_es(const ecs::UpdateStageInfoAct &info,
+  ecs::EntityManager &manager,
   float &timelapse_screener__curTime,
   float &timelapse_screener__curWaitTimer,
   int &timelapse_screener__sequenceNum,
@@ -33,7 +36,7 @@ static void timelapse_screener_es(const ecs::UpdateStageInfoAct &info,
   timelapse_screener__curWaitTimer = timelapse_screener__curWaitTimer + info.dt;
   if (timelapse_screener__curWaitTimer > timelapse_screener__waitTime)
   {
-    query_camera_pos_ecs_query([&](TMatrix &transform ECS_REQUIRE(eastl::true_type camera__active)) {
+    query_camera_pos_ecs_query(manager, [&](TMatrix &transform ECS_REQUIRE(eastl::true_type camera__active)) {
       transform.setcol(3, transform * timelapse_screener__deltaPos);
     });
     timelapse_screener__curWaitTimer = 0.f;

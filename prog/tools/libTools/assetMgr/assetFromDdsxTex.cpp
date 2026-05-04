@@ -12,6 +12,7 @@
 
 bool DagorAssetMgr::mountBuiltDdsxTex(const char *mount_folder_name)
 {
+  WriteGuard guard(mutex);
   if (!folders.size())
   {
     folders.push_back(new DagorAssetFolder(-1, "Root", NULL));
@@ -45,7 +46,7 @@ bool DagorAssetMgr::mountBuiltDdsxTex(const char *mount_folder_name)
       if (!ca)
         ca = new DagorAssetPrivate(*this);
 
-      ca->setNames(assetNames.addNameId(nm), nsid, true);
+      ca->setNames(addAssetNameId(nm), nsid, true);
       if (perTypeNameIds[texAssetType].addInt(ca->getNameId()))
       {
         DataBlock &blk = ca->props;

@@ -41,7 +41,11 @@ void *create_global_map_shared_mem(const char *shared_mem_fname, void *base_addr
   if (out_fd < 0)
     return NULL;
   if (ftruncate(out_fd, sz) < 0)
+  {
+    close(out_fd);
+    out_fd = -1;
     return NULL;
+  }
   void *resv = mmap(0, 16 << 20, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
   void *p = mmap(base_addr, sz, PROT_READ | PROT_WRITE, MAP_SHARED, out_fd, 0);
   if (resv != MAP_FAILED)

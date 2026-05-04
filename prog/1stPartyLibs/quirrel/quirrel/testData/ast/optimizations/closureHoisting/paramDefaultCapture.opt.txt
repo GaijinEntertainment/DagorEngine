@@ -1,0 +1,64 @@
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let', name = '$ch0', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'foo', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 1
+|     | |-Parameter #1 name = 'vargv', type = 'any'  (vararg)
+|     | `-Vararg...
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             LiteralExpr LK_STRING "xyz"
+|-VarDecl 'let', name = 'root', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'root', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|         |-VarDecl 'let', name = 'foo', type = 'any'
+|         |   Initializer
+|         |     Id '$ch0'
+|         |-VarDecl 'let', name = 'bar', type = 'any'
+|         |   Initializer
+|         |     FunctionExpr name = 'bar', pure = 0, nodiscard = 0, resultType = 'any'
+|         |     |-Parameters count = 1
+|         |     |   Parameter #1 name = 'source', type = 'any'  (has default)
+|         |     |     DefaultValue
+|         |     |       Id 'foo'
+|         |     `-Body
+|         |         Block isRoot = 0, isBody = 1
+|         |           ReturnStatement
+|         |             Id 'source'
+|         `-ReturnStatement
+|             CallExpr
+|               Callee
+|                 Id 'bar'
+`-VarDecl 'let', name = 'outer', type = 'any'
+    Initializer
+      FunctionExpr name = 'outer', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 0
+      `-Body
+          Block isRoot = 0, isBody = 1
+          |-VarDecl 'let', name = 'x', type = 'any'
+          |   Initializer
+          |     LiteralExpr LK_INT 1
+          |-VarDecl 'let', name = 'inner', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 1
+          |     |   Parameter #1 name = 'a', type = 'any'  (has default)
+          |     |     DefaultValue
+          |     |       Id 'x'
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |         |-VarDecl 'let', name = 'x', type = 'any'
+          |         |   Initializer
+          |         |     LiteralExpr LK_INT 2
+          |         `-ReturnStatement
+          |             BinExpr '+'
+          |             |-Left
+          |             |   Id 'a'
+          |             `-Right
+          |                 Id 'x'
+          `-ReturnStatement
+              Id 'inner'

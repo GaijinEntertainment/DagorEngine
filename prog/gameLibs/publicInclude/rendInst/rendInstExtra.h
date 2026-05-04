@@ -8,6 +8,7 @@
 #include <rendInst/rendInstDesc.h>
 #include <rendInst/constants.h>
 #include <rendInst/layerFlags.h>
+#include <rendInst/ccExtra.h>
 
 #include <vecmath/dag_vecMath.h>
 #include <generic/dag_tab.h>
@@ -51,7 +52,7 @@ dag::Vector<BBox3, framemem_allocator> getRIGenExtraInstancesWorldBboxesByGrid(i
 bbox3f getRIGenExtraOverallInstancesWorldBbox(int res_idx);
 
 const char *getRIGenExtraName(uint32_t res_idx);
-void iterateRIExtraMap(eastl::fixed_function<sizeof(void *) * 3, void(int, const char *)> cb);
+void iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &cb);
 int getRIExtraMapSize();
 
 int getRIExtraPoolRef(int res_idx);
@@ -67,6 +68,8 @@ riex_handle_t addRIGenExtra43(int res_idx, mat43f_cref tm, bool collision, int o
 riex_handle_t addRIGenExtra44(int res_idx, mat44f_cref tm, bool collision, int orig_cell, int orig_offset, int add_data_dwords = 0,
   const int32_t *add_data = nullptr, bool on_loading = false);
 void processDelayedGridAdds(int cell_idx);
+
+riex_handle_t replaceRIGenWithRIExtra(const RendInstDesc &desc);
 
 void moveToOriginalScene(riex_handle_t id);
 void removeFromTiledScene(riex_handle_t id);
@@ -173,7 +176,10 @@ void decodeRiExtraPerInstanceRenderData(uint32_t data, uint32_t &offset, uint32_
 void clearAllRiPerInstanceRenderAdditionalData();
 void clearRiPerInstanceRenderAdditionalData(uint32_t scene, uint32_t node_id);
 
+void prepare_instances();
+void before_culling();
 void before_render();
+void before_clear();
 
 struct RiGenCollidableData;
 using riex_collidable_t = dag::RelocatableFixedVector<riex_handle_t, 64, true, framemem_allocator>;
@@ -186,6 +192,7 @@ void gatherRIGenExtraCollidableMin(riex_collidable_t &out_handles, bbox3f_cref b
 void gatherRIGenExtraCollidableMax(riex_collidable_t &out_handles, const BSphere3 &sphere, float max_bsph_rad);
 void gatherRIGenExtraCollidable(dag::RelocatableFixedVector<RiGenCollidableData, 64, true, framemem_allocator> &out_data,
   const Point3 &pos, float radius, bool read_lock);
+void gatherRIGenExtraAllSlow(riex_collidable_t &out_handles, const BBox3 &box, bool read_lock);
 
 // if res_idx == nullptr, would get all, otherwise only those with res_idx in sorted_res_idx array.
 // if fast, it will be checked using spheres only
@@ -208,6 +215,8 @@ struct pos_and_render_info_t
 };
 typedef dag::RelocatableFixedVector<pos_and_render_info_t, 128, true /*overflow*/> riex_pos_and_ri_tab_t;
 void gatherRIGenExtraRenderableNotCollidable(riex_pos_and_ri_tab_t &out, bbox3f_cref box, bool fast, SceneSelection s);
+void gatherRIGenExtraRenderableNotCollidable(bbox3f_cref box, bool fast, SceneSelection s,
+  const eastl::fixed_function<sizeof(void *) * 2, void(scene::node_index, mat44f_cref)> &cb);
 bool gatherRIGenExtraBboxes(const RiGenVisibility *main_visibility, mat44f_cref volume_box,
   eastl::function<void(mat44f_cref, const BBox3 &, const char *)> callback);
 
@@ -229,25 +238,6 @@ void updateRiExtraBBoxScalesForPrepasses(const DataBlock &blk);
 void updateRiExtraForceDisableShadowList(const DataBlock &blk);
 
 bool hasRIExtraOnLayers(const RiGenVisibility *visibility, LayerFlags layer_flags);
-
-
-void riex_lock_write(const char *locker_nm = nullptr);
-void riex_unlock_write();
-
-void riex_lock_read();
-void riex_unlock_read();
-
-struct ScopedRIExtraWriteLock
-{
-  ScopedRIExtraWriteLock(const char *n = "riEx::wr") { riex_lock_write(n); }
-  ~ScopedRIExtraWriteLock() { riex_unlock_write(); }
-};
-
-struct ScopedRIExtraReadLock
-{
-  ScopedRIExtraReadLock() { riex_lock_read(); }
-  ~ScopedRIExtraReadLock() { riex_unlock_read(); }
-};
 
 void rigrid_debug_pos(const Point3 &pos, const Point3 &camera_pos);
 

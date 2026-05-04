@@ -54,9 +54,11 @@ if len(BUILD_COMPONENTS) == 0:
 
 # get target architecture from commandline if any (and using default when none specified)
 BUILD_TARGET_ARCH = ""
+JAM_BUILD_TARGET_ARCH_OPTIONS = []
 for s in sys.argv[1:]:
   if s.startswith('arch:'):
     BUILD_TARGET_ARCH = s[5:]
+    JAM_BUILD_TARGET_ARCH_OPTIONS = ['-sPlatformArch='+BUILD_TARGET_ARCH]
     break
 
 def run(cmd, cwd='.'):

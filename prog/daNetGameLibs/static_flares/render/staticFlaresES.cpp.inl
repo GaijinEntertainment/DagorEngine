@@ -32,14 +32,15 @@ ECS_REGISTER_RELOCATABLE_TYPE(StaticFlareInstances, nullptr);
 
 template <typename Callable>
 ECS_REQUIRE(eastl::true_type static_flares__visible)
-static void get_static_flares_ecs_query(Callable);
+static void get_static_flares_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void add_static_flare_ecs_query(Callable);
+static void add_static_flare_ecs_query(ecs::EntityManager &manager, Callable);
 
 
 ECS_ON_EVENT(on_appear)
 static void init_static_flares_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   int static_flares__maxCount,
   UniqueBufHolder &static_flares__instancesBuf,
   StaticFlareInstances &static_flares__instances,
@@ -49,7 +50,7 @@ static void init_static_flares_es(const ecs::Event &,
   static_flares__instancesBuf = dag::create_sbuffer(sizeof(StaticFlareInstance), static_flares__maxCount,
     SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, "static_flares_buf");
 
-  static_flares__node = dafg::register_node("static_flares_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  static_flares__node = dafg::register_node("static_flares_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
     registry.read("downsampled_depth_with_early_after_envi_water")
       .texture()
       .atStage(dafg::Stage::PS)
@@ -57,12 +58,13 @@ static void init_static_flares_es(const ecs::Event &,
 
     request_common_published_transparent_state(registry);
 
-    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto camera = registry.readBlob<CameraParams>("current_camera");
+    auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
     registry.requestState().setFrameBlock("global_frame");
 
-    return [cameraHndl]() {
-      get_static_flares_ecs_query(
+    return [cameraHndl, &manager]() {
+      get_static_flares_ecs_query(manager,
         [&](const ShadersECS &static_flares__shader, float static_flares__minSize, float static_flares__maxSize,
           ShaderVar static_flares_ctg_min_max, int static_flares__copiedCount) {
           if (!static_flares__copiedCount)
@@ -72,10 +74,9 @@ static void init_static_flares_es(const ecs::Event &,
           float fov = atan(fov_scale);
           Color4 currentCtgMinMax(1.0 / tan(0.5 * fov), // ctg for formula screen_size = real_size / distance * ctg(fov/2)
             static_flares__minSize, static_flares__maxSize, 0);
-          static_flares_ctg_min_max.set_color4(currentCtgMinMax);
+          static_flares_ctg_min_max.set_float4(currentCtgMinMax);
 
           index_buffer::use_quads_16bit();
-          set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
           static_flares__shader.shElem->setStates();
           d3d_err(d3d::setvsrc(0, 0, 0));
           d3d_err(d3d::drawind(PRIM_TRILIST, 0, static_flares__copiedCount * 2, 0));
@@ -100,7 +101,7 @@ void add_static_flare(const TMatrix &tm,
   float vert_dir_deg,
   float vert_delta_deg)
 {
-  add_static_flare_ecs_query(
+  add_static_flare_ecs_query(*g_entity_mgr,
     [&](StaticFlareInstances &static_flares__instances, int static_flares__maxCount, int &static_flares__count) {
       if (static_flares__count >= static_flares__maxCount)
       {

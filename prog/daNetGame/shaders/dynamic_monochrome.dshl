@@ -6,7 +6,6 @@ include "monochrome_inc.dshl"
 
 shader dynamic_monochrome
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   if (in_editor_assume == no) { NO_DYNSTCODE() }
 
@@ -36,7 +35,11 @@ shader dynamic_monochrome
 
   DYNAMIC_SIMPLE_VS_ATEST_USE()
 
-  if (dyn_model_render_pass != render_pass_normal)
+  if (is_triangle_size_debug)
+  {
+    DYNAMIC_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (dyn_model_render_pass != render_pass_normal)
   {
     compile("ps_null", "null_ps");
   }
@@ -47,6 +50,6 @@ shader dynamic_monochrome
     }
 
     WRITE_GBUFFER()
-    MONOCHROME_PS()
+    MONOCHROME_PS(GBUFFER_ORDER_DYNAMIC)
   }
 }

@@ -3,7 +3,7 @@ options indenting = 4
 
 module fs shared
 
-require fio
+require daslib/fio
 require strings
 require uriparser
 
@@ -47,7 +47,7 @@ def join_path(a, path_b : string) : string {
     if (length(b) == 0) {
         return fix_path(a)
     }
-    var res = build_string() <| $(builder) {
+    var res = build_string() $(builder) {
         builder |> write(a)
         let ends = ends_with_separator(a)
         let starts = starts_with_separator(b)
@@ -70,11 +70,18 @@ def fix_path(path : string) : string {
 
 
 def scan_dir(path : string; var cache : table<string; void?>; var res : array<string>; suffix = ".das") : bool {
+    return scan_dir(path, cache, res, suffix) $(n) {
+        return true
+    }
+}
+
+def scan_dir(path : string; var cache : table<string; void?>; var res : array<string>; suffix = ".das";
+             dir_filter : block<(name : string) : bool>) : bool {
     let dirStat = stat(path)
     if (!dirStat.is_dir) {
         return false
     }
-    fio::dir(path) <| $(n) {
+    fio::dir(path) $(n) {
         if (n == "." || n == "..") {
             return
         }
@@ -84,8 +91,11 @@ def scan_dir(path : string; var cache : table<string; void?>; var res : array<st
             return
         }
         if (fStat.is_dir) {
-            f |> scan_dir(cache, res, suffix)
-        } elif (fStat.is_reg && f |> ends_with(suffix) && !cache |> key_exists(f)) {
+            if (n |> starts_with("_") || !invoke(dir_filter, n)) {
+                return
+            }
+            f |> scan_dir(cache, res, suffix, dir_filter)
+        } elif (fStat.is_reg && f |> ends_with(suffix) && !(n |> starts_with("_")) && !cache |> key_exists(f)) {
             cache |> insert(f, null)
             res |> push(f)
         }

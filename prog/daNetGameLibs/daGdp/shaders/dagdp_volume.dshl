@@ -151,7 +151,6 @@ endmacro
 
 shader dagdp_volume_mesh_process_tri
 {
-  ENABLE_ASSERT(cs)
   GPU_OBJECTS_LOAD_MESH_TRIANGLE()
 
   hlsl(cs) {
@@ -204,8 +203,6 @@ shader dagdp_volume_mesh_process_tri
 
 shader dagdp_volume_mesh_process_up
 {
-  ENABLE_ASSERT(cs)
-
   hlsl(cs) {
     groupshared float gs_storage[DAGDP_PREFIX_SUM_GROUP_SIZE];
   }
@@ -243,8 +240,6 @@ shader dagdp_volume_mesh_process_up
 
 shader dagdp_volume_mesh_process_down
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     areas_bottom_offset@i1 = dagdp_volume__areas_bottom_offset;
     areas_top_offset@i1 = dagdp_volume__areas_top_offset;
@@ -277,7 +272,6 @@ shader dagdp_volume_mesh_process_down
 
 shader dagdp_volume_set_args
 {
-  ENABLE_ASSERT(cs)
   MESH_PLACER_UTILS()
 
   (cs) {
@@ -398,7 +392,6 @@ shader dagdp_volume_set_args
 
 shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
 {
-  ENABLE_ASSERT(cs)
   GPU_OBJECTS_LOAD_MESH_TRIANGLE()
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
 
@@ -515,7 +508,7 @@ shader dagdp_volume_place_stage0, dagdp_volume_place_stage1
         // Early exit if the optimistic placement already did the job.
         const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0u;
 
-        ##if hardware.dx11
+        ##if hardware.dx11 || hardware.dx12
           // Work around compiler assuming varying flow control.
           BRANCH
           if (threadGroupAnyTrue(isEarlyExit, tId))

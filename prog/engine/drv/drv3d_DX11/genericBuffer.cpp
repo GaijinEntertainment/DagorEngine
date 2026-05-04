@@ -1,11 +1,20 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "genericBuffer.h"
+
 #include "validation.h"
+#include "drv_assert_defs.h"
+#include "drv_log_defs.h"
 
 #include "driver.h"
+#include "render_state.h"
 #include "buffers.h"
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <memory/dag_framemem.h>
+#include <perfMon/dag_graphStat.h>
+
+using namespace drv3d_dx11;
 
 static void set_buffer_name(ID3D11Buffer *buffer, const char *name)
 {
@@ -54,8 +63,6 @@ extern void removeHandleFromList(int handle);
 GenericBuffer::~GenericBuffer()
 {
   removeHandleFromList(handle);
-  // if (sysMemBuf)
-  //   memfree(sysMemBuf, tmpmem);
   removeFromStates();
   // release calls 'getSize' virtual function indirectly. It is not recommended from desctructor
   // but GenericBuffer is final class, so it should be fine
@@ -66,10 +73,8 @@ GenericBuffer::~GenericBuffer()
 
 bool GenericBuffer::createBuf()
 {
-  if ((bufFlags & SBCF_CPU_ACCESS_MASK) == (SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE) && !bindFlags && !miscFlags)
-  {
+  if ((bufFlags & SBCF_STAGING_BUFFER) == SBCF_STAGING_BUFFER && !bindFlags && !miscFlags)
     return createStagingBuffer(buffer);
-  }
   D3D11_BUFFER_DESC bd = {};
   bd.ByteWidth = (UINT)bufSize;
   if ((bufFlags & SBCF_DYNAMIC) && bufSize >= (16 << 20))
@@ -78,6 +83,8 @@ bool GenericBuffer::createBuf()
   bd.Usage = (bufFlags & SBCF_DYNAMIC) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
   bd.BindFlags = bindFlags;
   bd.MiscFlags = miscFlags;
+  static_assert((SBCF_CPU_ACCESS_WRITE << 2) == D3D11_CPU_ACCESS_WRITE);
+  static_assert((SBCF_CPU_ACCESS_READ << 2) == D3D11_CPU_ACCESS_READ);
   bd.CPUAccessFlags = (bufFlags & SBCF_CPU_ACCESS_MASK) << 2;
   if ((bufFlags & SBCF_DYNAMIC))
     bd.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
@@ -98,10 +105,10 @@ bool GenericBuffer::createBuf()
   D3D_CONTRACT_ASSERTF(!(bd.CPUAccessFlags & D3D11_CPU_ACCESS_READ),
     "CPU read access is only supported for staging buffers. %s has usage 0x%x", getName(), bd.Usage);
 
-  if (bufFlags & SBCF_ZEROMEM && !sysMemBuf)
+  if (bufFlags & SBCF_ZEROMEM)
     return create_zeromem_buffer(bd, getName(), buffer);
   else
-    return create_buffer(bd, getName(), sysMemBuf, buffer);
+    return create_buffer(bd, getName(), nullptr, buffer);
 }
 
 bool GenericBuffer::createSrv()
@@ -152,7 +159,7 @@ bool GenericBuffer::createSrv()
     HRESULT hr = dx_device->CreateShaderResourceView(buffer, &srv_desc, &srv);
     if (FAILED(hr))
     {
-      if (!device_should_reset(last_hres, "CreateShaderResourceView"))
+      if (!device_should_reset(hr, "CreateShaderResourceView"))
       {
         DXFATAL(hr, "CreateShaderResourceView");
         return false;
@@ -251,7 +258,7 @@ bool GenericBuffer::create(uint32_t bufsize, int buf_flags, UINT bind_flags, con
     structSize = 4;
   }
   setBufName(statName_);
-  TEXQL_ON_BUF_ALLOC(this);
+  TEXQL_ON_PERSISTENT_ALLOC(this);
 
   if (buf_flags & SBCF_DYNAMIC)
   {
@@ -280,7 +287,7 @@ bool GenericBuffer::createStructured(uint32_t struct_size, uint32_t elements, ui
   this->bindFlags = (buf_flags & SBCF_BIND_MASK) >> 16;
   this->miscFlags = (buf_flags & SBCF_MISC_MASK) >> 20;
   setBufName(statName_);
-  TEXQL_ON_BUF_ALLOC(this);
+  TEXQL_ON_PERSISTENT_ALLOC(this);
 
   return createBuf();
 }
@@ -288,7 +295,7 @@ bool GenericBuffer::createStructured(uint32_t struct_size, uint32_t elements, ui
 bool GenericBuffer::recreateBuf(Sbuffer *sb)
 {
   bool result = true;
-  TEXQL_ON_BUF_ALLOC(this);
+  TEXQL_ON_PERSISTENT_ALLOC(this);
   if (!(bufFlags & SBCF_DYNAMIC) && rld)
     ; // delayed recreation, don't alloc buffer here
   else if (bufFlags & (SBCF_BIND_INDEX | SBCF_BIND_VERTEX))
@@ -304,19 +311,10 @@ bool GenericBuffer::recreateBuf(Sbuffer *sb)
 
   if (rld)
   {
-    TEXQL_ON_BUF_ALLOC(this);
+    TEXQL_ON_PERSISTENT_ALLOC(this);
     rld->reloadD3dRes(sb);
     return true;
   }
-
-  if (!systemCopy)
-  {
-    return true;
-  }
-
-  TEXQL_ON_BUF_ALLOC(this);
-  lock(0, bufSize, VBLOCK_WRITEONLY);
-  unlock();
 
   return true;
 }
@@ -337,34 +335,17 @@ void GenericBuffer::release()
 
   if (buffer)
   {
-    TEXQL_ON_BUF_RELEASE(this);
+    TEXQL_ON_PERSISTENT_RELEASE(this);
     buffer->Release();
     buffer = NULL;
   }
 
-  if (stagingBuffer)
-  {
-    stagingBuffer->Release();
-    stagingBuffer = NULL;
-  }
-
-  if (!systemCopy && sysMemBuf)
-  {
-    delete[] sysMemBuf;
-  }
-  sysMemBuf = NULL;
+  releaseStagingBuffer();
 
   if (resetting_device_now)
   {
     return;
   }
-
-  if (systemCopy)
-  {
-    delete[] systemCopy;
-  }
-
-  systemCopy = NULL;
 }
 
 void GenericBuffer::destroyObject() { delete this; }
@@ -400,55 +381,10 @@ bool GenericBuffer::copyTo(Sbuffer *dest)
   GenericBuffer *destvb = (GenericBuffer *)dest;
   if (!destvb->buffer)
     return false;
-  ContextAutoLock contextLock;
-  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-    "DX11: GenericBuffer::copyTo uses CopyResource inside a generic render pass");
-  disable_conditional_render_unsafe();
-  dx_context->CopyResource(destvb->buffer, buffer);
+  copyInternal(destvb->buffer, buffer);
   destvb->internalState = UPDATED_BY_COPYTO;
   return true;
 }
-
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-void GenericBuffer::checkBlockingUpdate(size_t offset, size_t size, bool write)
-{
-  for (UpdateHistoryElement &i : updateHistory)
-  {
-    i.completed = d3d::get_event_query_status(i.completion, false);
-    if ((offset >= i.offset && offset < (i.offset + i.size)) || (i.offset >= offset && i.offset < (offset + size)))
-    {
-      if (!i.completed)
-      {
-        D3D_ERROR("dx11: buffer %p:%s %s called on range %u-%u when there is pending %s on range %u-%u", this, getName(),
-          write ? "WRITE" : "READ", offset, offset + size, i.write ? "WRITE" : "READ", i.offset, i.offset + i.size);
-      }
-    }
-  }
-}
-
-void GenericBuffer::trackUpdate(size_t offset, size_t size, bool write)
-{
-  bool pushed = false;
-  for (UpdateHistoryElement &i : updateHistory)
-  {
-    if (!i.completed)
-      continue;
-    d3d::issue_event_query(i.completion);
-    i.completed = false;
-    i.offset = offset;
-    i.size = size;
-    i.write = write;
-    pushed = true;
-    break;
-  }
-  if (!pushed)
-  {
-    updateHistory.push_back({false, write, d3d::create_event_query(), offset, size});
-    d3d::issue_event_query(updateHistory.back().completion);
-  }
-}
-
-#endif
 
 bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags)
 {
@@ -464,24 +400,18 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
       D3D_ERROR("buffer lock in updateData during reset %s", getName());
     return false;
   }
-  if (!buffer && (bufFlags & SBCF_DYNAMIC) == 0)
-    createBuf();
-  if (!buffer)
-  {
-    if ((bufFlags & SBCF_DYNAMIC) == 0)
-      return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags); // case of delayed create.
-    D3D_ERROR("buffer not created %s", getName());
-    return false;
-  }
-  if ((bufFlags &
-        (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE)) || // dynamic and immutable are not updateable,
-                                                   // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476486(v=vs.85).aspx
-      (lockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)))
-  {
-    return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
-  }
 
-  checkBlockingUpdate(ofs_bytes, size_bytes, true);
+  if (!ensureBufferCreated())
+    return false;
+
+  bool isCb = bufFlags & SBCF_BIND_CONSTANT;
+
+  // dynamic and immutable are not updateable,
+  // https://msdn.microsoft.com/en-us/library/windows/desktop/ff476486(v=vs.85).aspx
+  // also seems like CPU writable is not updateable well too, despite no notes in docs
+  // so use CPU writable condition for locking path
+  if (isCPUWritable() || (lockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) || (isCb && ofs_bytes > 0))
+    return updateDataWithLock(ofs_bytes, size_bytes, src, lockFlags);
 
   {
     ContextAutoLock contextLock;
@@ -495,287 +425,236 @@ bool GenericBuffer::updateData(uint32_t ofs_bytes, uint32_t size_bytes, const vo
     disable_conditional_render_unsafe();
     VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
       "DX11: GenericBuffer::updateData uses UpdateSubresource inside a generic render pass");
-    dx_context->UpdateSubresource(buffer, 0, &box, src, 0, 0);
+
+    // https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11devicecontext-updatesubresource
+    // For a shader-constant buffer; set pDstBox to NULL.
+    // It is not possible to use this method to partially update a shader-constant buffer.
+    dx_context->UpdateSubresource(buffer, 0, !isCb ? &box : nullptr, src, 0, 0);
+    internalState = UPDATED_BY_COPYTO;
   }
 
-  trackUpdate(ofs_bytes, size_bytes, true);
   return true;
 }
-int GenericBuffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags)
+
+D3D11_MAP GenericBuffer::mapTypeFromFlags(int flags)
 {
-#ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
-  updated = true;
-#endif
-  LLLOG("vb-lock (%d; +%d [%d] %08x)", handle, ofs_bytes, size_bytes, flags);
-  checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
-  if (!ptr)
-  {
-    lock(ofs_bytes, size_bytes, VBLOCK_DELAYED);
-    return 1;
-  }
+  if (flags & VBLOCK_DISCARD)
+    return D3D11_MAP_WRITE_DISCARD;
+  else if (flags & VBLOCK_NOOVERWRITE)
+    return D3D11_MAP_WRITE_NO_OVERWRITE;
+
+  if (flags & VBLOCK_WRITEONLY)
+    return bufFlags & SBCF_DYNAMIC ? D3D11_MAP_WRITE_NO_OVERWRITE : D3D11_MAP_WRITE;
   else
+    return flags & VBLOCK_READONLY ? D3D11_MAP_READ : D3D11_MAP_READ_WRITE;
+}
+
+bool GenericBuffer::ensureStagingBuffer()
+{
+  if (!stagingBuffer)
   {
-    *ptr = lock(ofs_bytes, size_bytes, flags);
-    return *ptr ? 1 : 0;
+    TIME_PROFILE(dx11_create_buffer_staging)
+    createStagingBuffer(stagingBuffer);
+    if (!stagingBuffer)
+    {
+      D3D_ERROR("Could not create staging buffer");
+      return false;
+    }
+  }
+  return true;
+}
+
+void GenericBuffer::releaseStagingBuffer()
+{
+  if (stagingBuffer)
+  {
+    TIME_PROFILE(dx11_release_buffer_staging)
+    stagingBuffer->Release();
+    stagingBuffer = NULL;
   }
 }
 
-// TODO: support VBLOCK_WRITEONLY
+void GenericBuffer::copyInternal(ID3D11Buffer *dst, ID3D11Buffer *src)
+{
+  ContextAutoLock contextLock;
+  disable_conditional_render_unsafe();
+  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+    "DX11: GenericBuffer::lock uses CopyResource inside a generic render pass");
+  dx_context->CopyResource(dst, src);
+}
+
+bool GenericBuffer::ensureBufferCreated()
+{
+  if (buffer)
+    return true;
+
+  if (createBuf())
+    return true;
+
+  D3D_ERROR("can't create delayed buffer: name %s err %s", getName(), dx11_error(last_hres));
+  return false;
+}
+
+void GenericBuffer::unmapBuffer(ID3D11Buffer *target_buf)
+{
+  ContextAutoLock contextLock;
+  G_ASSERT(lockMsr.pData != NULL);
+  dx_context->Unmap(target_buf, NULL);
+}
+
+bool GenericBuffer::isCPUWritable()
+{
+  // SBCF_CPU_ACCESS_WRITE does not make buffer writable! only dynamic and staging does! surprise!
+  return bufFlags & SBCF_DYNAMIC || ((bufFlags & SBCF_STAGING_BUFFER) == SBCF_STAGING_BUFFER);
+}
+
 //  lock buffer; returns 0 on error
 //  size_bytes==0 means entire buffer
-void *GenericBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags)
+int GenericBuffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags)
 {
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-  activeLockFlags = flags;
-#endif
+  LLLOG("vb-lock (%d; +%d [%d] %08x)", handle, ofs_bytes, size_bytes, flags);
 #ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
   updated = true;
 #endif
+  checkLockParams(ofs_bytes, size_bytes, flags, bufFlags, getName(), bufSize);
   // implication ~A || B
   D3D_CONTRACT_ASSERTF(((flags & VBLOCK_DISCARD) == 0) || ((bufFlags & (SBCF_DYNAMIC | SBCF_BIND_CONSTANT)) != 0),
     "Buffer %s is not dynamic or constant, so discard update is forbidden for the buffer", getName());
   D3D_CONTRACT_ASSERTF(((flags & VBLOCK_NOOVERWRITE) == 0) || ((bufFlags & SBCF_DYNAMIC) != 0),
     "Buffer %s is not dynamic, so nooverwrite update is forbidden for the buffer", getName());
+  D3D_CONTRACT_ASSERTF((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) != (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE),
+    "Buffer %s can't be locked with discard and nooverwrite at same time");
   D3D_CONTRACT_ASSERTF(((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) == 0) || ((flags & VBLOCK_WRITEONLY) != 0),
-    "Buffer %s can't be locked for writing (VBLOCK_DISCARD or VBLOCK_NOOVERWRITE) without VBLOCK_WRITEONLY flag.");
-  if (bufSize == 0)
-  {
-    return NULL;
-  }
-
-  if (ofs_bytes + size_bytes > bufSize)
-  {
-    D3D_CONTRACT_ASSERT_FAIL("Lock beyond the buffer end: %d + %d > %d", ofs_bytes, size_bytes, bufSize);
-    G_ASSERT_LOG(0, "[E] Lock beyond the buffer end: %d + %d > %d", ofs_bytes, size_bytes, bufSize);
-    return NULL;
-  }
+    "Buffer %s can't be locked for writing (VBLOCK_DISCARD or VBLOCK_NOOVERWRITE) without VBLOCK_WRITEONLY flag.", getName());
+  D3D_CONTRACT_ASSERTF((flags & (VBLOCK_WRITEONLY | VBLOCK_READONLY)) != (VBLOCK_WRITEONLY | VBLOCK_READONLY),
+    "Buffer %s can't be locked for RW with both *ONLY flags set, use 0 flag", getName());
+  D3D_CONTRACT_ASSERTF_RETURN(ofs_bytes + size_bytes <= bufSize, 0, "Lock beyond the buffer end: %d + %d > %d", ofs_bytes, size_bytes,
+    bufSize);
 
   if (size_bytes == 0)
-  {
     size_bytes = bufSize - ofs_bytes;
-    D3D_CONTRACT_ASSERT(size_bytes != 0); // nothing to lock
-  }
+  D3D_CONTRACT_ASSERTF(size_bytes != 0, "Nothing to lock");
+
+  lockMsr.pData = nullptr;
 
   if (device_is_lost != S_OK)
   {
     if (gpuAcquireRefCount && gpuThreadId == GetCurrentThreadId())
       D3D_ERROR("buffer lock during reset %s", getName());
-    return NULL;
+    return 0;
   }
 
-  ID3D11Buffer *bufferToLock = buffer;
-  D3D11_MAP mapType = D3D11_MAP_WRITE;
-  // D3D_CONTRACT_ASSERT(uav || !structSize);
-  if (uav || (structSize && !(bufFlags & SBCF_DYNAMIC))) //==
+  ID3D11Buffer *bufferToMap = buffer;
+  bool cpuReadable = bufFlags & SBCF_CPU_ACCESS_READ;
+  bool cpuWritable = isCPUWritable();
+  bool gpuWritable = uav;
+  bool needStaging =
+    // common "optimized" case that GPU writable resources are living on GPU and GPU only visible
+    // also copying to staging is base requirements to non-blockingly get resources from GPU
+    gpuWritable ||
+    // when we ask to W/R/RW and don't have CPU W/R/RW access use staging
+    (!cpuWritable && (flags & VBLOCK_WRITEONLY)) ||                                             //
+    (!cpuReadable && (flags & VBLOCK_READONLY)) ||                                              //
+    (!(cpuReadable && cpuWritable) && ((flags & (VBLOCK_WRITEONLY | VBLOCK_READONLY)) == 0)) || //
+    // if buffer is not yet allocated, use staging for simplicity
+    !buffer;
+
+  if (needStaging)
   {
-    if (
-      ((bufFlags & SBCF_CPU_ACCESS_MASK) == SBCF_CPU_ACCESS_MASK) || ((bufFlags & SBCF_CPU_ACCESS_READ) && (flags & VBLOCK_READONLY)))
-    {
-      // bufferToLock = buffer;
-    }
-    else
-    {
-      if (!stagingBuffer)
-      {
-        createStagingBuffer(stagingBuffer);
-        if (!stagingBuffer)
-        {
-          D3D_ERROR("Could not create staging buffer");
-          return nullptr;
-        }
-      }
-      bufferToLock = stagingBuffer;
-    }
-    if (flags & VBLOCK_DISCARD)
-    {
-      mapType = D3D11_MAP_WRITE_DISCARD;
-    }
-    else if (flags & VBLOCK_NOOVERWRITE)
-    {
-      mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
-    }
-    else
-    {
-      mapType = (flags & VBLOCK_WRITEONLY) ? D3D11_MAP_WRITE : (flags & VBLOCK_READONLY) ? D3D11_MAP_READ : D3D11_MAP_READ_WRITE;
-    }
-    lockMsr.pData = NULL;
-  }
-  else
-  {
-    if (buffer && !(bufFlags & SBCF_DYNAMIC))
-    {
-      buffer->Release();
-      buffer = NULL;
-      bufFlags |= SBCF_DYNAMIC;
-      if (!systemCopy)
-        systemCopy = new char[bufSize];
-      logwarn("Locked an immutable buffer: '%s' ", getName());
-    }
-
-    if (buffer == NULL && ((bufFlags & SBCF_DYNAMIC) == 0)) // not allocated?
-    {
-      if (sysMemBuf == NULL)
-      {
-        if (!systemCopy)
-        {
-          sysMemBuf = new char[bufSize];
-        }
-        else
-        {
-          sysMemBuf = systemCopy;
-        }
-      }
-
-      return (void *)((uint8_t *)sysMemBuf + ofs_bytes);
-    }
-
-    D3D_CONTRACT_ASSERT((flags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) != (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE));
-    if ((flags & VBLOCK_READONLY) || systemCopy)
-    {
-      lockMsr.pData = NULL;
-      if (!(flags & VBLOCK_READONLY))
-      {
-        sysMemBuf = systemCopy;
-      }
-
-      if (systemCopy)
-      {
-        return systemCopy + ofs_bytes;
-      }
-
-      return NULL;
-    }
-
-    if (flags & VBLOCK_WRITEONLY && bufFlags & SBCF_DYNAMIC)
-    {
-      mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
-    }
-
-    if (flags & VBLOCK_DISCARD)
-    {
-      mapType = D3D11_MAP_WRITE_DISCARD;
-    }
-    else if (flags & VBLOCK_NOOVERWRITE)
-    {
-      mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
-    }
+    if (!ensureStagingBuffer())
+      return 0;
+    bufferToMap = stagingBuffer;
   }
 
-  if (bufferToLock == stagingBuffer)
+  if (bufferToMap == stagingBuffer)
   {
-    // clang-format off
-    if ( (!(flags & VBLOCK_WRITEONLY) && ((internalState != BUFFER_COPIED) || (flags & VBLOCK_DELAYED)))
-      || (internalState == UPDATED_BY_COPYTO) )
+    // try to avoid useless readbacks if we can,
+    // but always readback gpuWritable resources on readback-start lock because we don't track GPU writes now
+    // note: VBLOCK_NOSYSLOCK with valid pointer will still read stale data because we can't differentiate
+    // between initial lock and tries loop
+    bool nonBlockingReadbackRequest = gpuWritable && !ptr;
+    if ((!(flags & VBLOCK_WRITEONLY) && ((internalState != BUFFER_COPIED) || nonBlockingReadbackRequest)) ||
+        (internalState == UPDATED_BY_COPYTO))
     {
-      ContextAutoLock contextLock;
-      disable_conditional_render_unsafe();
-      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-    "DX11: GenericBuffer::lock uses CopyResource inside a generic render pass");
-      dx_context->CopyResource(stagingBuffer, buffer);
+      copyInternal(stagingBuffer, buffer);
       internalState = BUFFER_COPIED;
     }
-    if (flags & VBLOCK_DELAYED)
-    {
-      return NULL;
-    }
-    // clang-format on
   }
 
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-  if ((activeLockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) == 0)
-  {
-    // we map whole buffer regardless
-    checkBlockingUpdate(0, bufSize, activeLockFlags & VBLOCK_READONLY ? false : true);
-  }
-#endif
+  if (!ptr)
+    return 0;
 
+  D3D11_MAP mapType = mapTypeFromFlags(flags);
   ContextAutoLock contextLock;
-  HRESULT hr = dx_context->Map(bufferToLock, NULL, mapType, 0, &lockMsr);
+  // D3D11_MAP_FLAG_DO_NOT_WAIT cannot be used with D3D11_MAP_WRITE_DISCARD or D3D11_MAP_WRITE_NO_OVERWRITE.
+  bool allowsNonBlocking = mapType != D3D11_MAP_WRITE_NO_OVERWRITE && mapType != D3D11_MAP_WRITE_DISCARD;
+  bool requestedNonBlocking = (flags & VBLOCK_NOSYSLOCK);
+#if DETECT_AND_PROFILE_BLOCKING_LOCK > 0
+  bool shouldNonBlock = allowsNonBlocking;
+#else
+  bool shouldNonBlock = allowsNonBlocking && requestedNonBlocking;
+#endif
+  HRESULT hr = dx_context->Map(bufferToMap, NULL, mapType, shouldNonBlock ? D3D11_MAP_FLAG_DO_NOT_WAIT : 0, &lockMsr);
+  // resource is in use by GPU now, process according to provided lock flags
+  if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
+  {
+    if (requestedNonBlocking)
+      return 0;
 
-  internalState = (bufferToLock == stagingBuffer)
+#if DETECT_AND_PROFILE_BLOCKING_LOCK > 1
+    D3D_ERROR("dx11: blocking buffer lock of %p:%s", this, getName());
+#endif
+#if DAGOR_DBGLEVEL > 0
+    TIME_PROFILE_NAME(dx11_blocking_buffer_lock, String(64, "dx11_blocking_lock of %s", getName()));
+#else
+    TIME_PROFILE(dx11_blocking_buffer_lock);
+#endif
+    hr = dx_context->Map(bufferToMap, NULL, mapType, 0, &lockMsr);
+  }
+
+  internalState = (bufferToMap == stagingBuffer)
                     ? (!(flags & VBLOCK_READONLY) ? STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED : STAGING_BUFFER_LOCKED)
                     : BUFFER_LOCKED;
 #if DAGOR_DBGLEVEL > 0
   DXFATAL(hr, "Map failed, <%s> mapType %d", getName(), mapType);
 #endif
   if (FAILED(hr))
-    return nullptr;
+    return 0;
   Stat3D::updateLockVIBuf();
-  return lockMsr.pData ? (void *)((uint8_t *)lockMsr.pData + ofs_bytes) : NULL;
+
+  bool ret = lockMsr.pData != nullptr;
+  // ptr guarantied to be valid due to early exit check
+  if (ret)
+    *ptr = (void *)((uint8_t *)lockMsr.pData + ofs_bytes);
+  return ret ? 1 : 0;
 }
 
 int GenericBuffer::unlock()
 {
   LLLOG("vb-unlk (%d)", handle);
 
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-  bool needTrackUpdate = lockMsr.pData && (activeLockFlags & (VBLOCK_NOOVERWRITE | VBLOCK_DISCARD)) == 0 && !sysMemBuf;
-#endif
-
-  if (sysMemBuf)
+  if (!ensureBufferCreated())
   {
-    if (!buffer)
-    {
-      if (!createBuf())
-        D3D_ERROR("can't create delayed buffer: %s", dx11_error(last_hres));
-    }
-    else
-    {
-      D3D_CONTRACT_ASSERTF(bufFlags & (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE),
-        "Cannot lock buffer '%s', because it has no cpu write access!", getName());
-
-      ContextAutoLock contextLock;
-      HRESULT hr = dx_context->Map(buffer, NULL, D3D11_MAP_WRITE_DISCARD, 0, &lockMsr);
-      DXFATAL(hr, "Sys Map failed");
-      memcpy(lockMsr.pData, sysMemBuf, bufSize);
-      dx_context->Unmap(buffer, NULL);
-      internalState = BUFFER_INVALID;
-      lockMsr.pData = NULL;
-    }
-    if (!systemCopy && sysMemBuf)
-      delete[] ((char *)sysMemBuf);
-    sysMemBuf = NULL;
-    setRld(rld); // force memory release for reloadable buffers
-  }
-  else if (uav || (structSize && !(bufFlags & SBCF_DYNAMIC)))
-  {
-    G_ASSERT(stagingBuffer || (bufFlags & SBCF_CPU_ACCESS_MASK));
-    ContextAutoLock contextLock;
-    if (internalState == BUFFER_LOCKED)
-    {
-      G_ASSERT(lockMsr.pData != NULL);
-      dx_context->Unmap(buffer, NULL);
-      internalState = BUFFER_INVALID;
-    }
-    else if (internalState == STAGING_BUFFER_LOCKED || internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED)
-    {
-      G_ASSERT(lockMsr.pData != NULL);
-      dx_context->Unmap(stagingBuffer, NULL);
-      if (internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED)
-      {
-        disable_conditional_render_unsafe();
-        VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-          "DX11: GenericBuffer::unlock uses CopyResource inside a generic render pass");
-        dx_context->CopyResource(buffer, stagingBuffer); // only if locked for writing
-      }
-      internalState = BUFFER_INVALID;
-    }
-  }
-  else if (bufFlags & SBCF_DYNAMIC && lockMsr.pData)
-  {
-    G_ASSERT(buffer);
-    ContextAutoLock contextLock;
-    G_ASSERT(internalState == BUFFER_LOCKED);
-    dx_context->Unmap(buffer, NULL);
-    internalState = BUFFER_INVALID;
+    G_ASSERT(internalState == STAGING_BUFFER_LOCKED || internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED);
+    unmapBuffer(stagingBuffer);
+    return 0;
   }
 
+  if (internalState == BUFFER_LOCKED)
+    unmapBuffer(buffer);
+  else if (internalState == STAGING_BUFFER_LOCKED || internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED)
+  {
+    unmapBuffer(stagingBuffer);
+    if (internalState == STAGING_BUFFER_LOCKED_SHOULD_BE_COPIED)
+      copyInternal(buffer, stagingBuffer);
+  }
+  else
+    G_ASSERTF(0, "dx11: buffer %p:%s was unlocked with ill state %u", this, getName(), internalState);
+  internalState = BUFFER_INVALID;
   lockMsr.pData = NULL;
 
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-  if (needTrackUpdate)
-    trackUpdate(0, bufSize, activeLockFlags & VBLOCK_READONLY ? false : true);
-#endif
+  // due to fact that staging should be consitent between various locks we keep it allocated
+  // TODO: try to deallocate it using some strong logic or non-fragile heuristic, if it necessary to conserve RAM
 
   return 1;
 }
@@ -788,22 +667,22 @@ void GenericBuffer::setRld(Sbuffer::IReloadData *_rld)
   }
 
   rld = _rld;
-
-  if (systemCopy && rld)
-  {
-    delete[] systemCopy;
-    systemCopy = NULL;
-  }
 }
 
 void GenericBuffer::removeFromStates()
 {
+  bool forceResetActiveVertexInput = false;
   for (int i = 0; i < MAX_VERTEX_STREAMS; i++)
   {
     if (g_render_state.nextVertexInput.vertexStream[i].source == this)
     {
       D3D_CONTRACT_ERROR("Deleting buffer that is still in render '%s'", getName());
       d3d::setvsrc_ex(i, nullptr, 0, 0);
+    }
+    if (g_render_state.currVertexInput.vertexStream[i].source == this)
+    {
+      d3d::setvsrc_ex(i, nullptr, 0, 0);
+      forceResetActiveVertexInput = true;
     }
   }
 
@@ -812,6 +691,15 @@ void GenericBuffer::removeFromStates()
     D3D_CONTRACT_ERROR("Deleting buffer that is still in render '%s'", getName());
     d3d::setind(nullptr);
   }
+  if (g_render_state.currVertexInput.indexBuffer == this)
+  {
+    d3d::setind(nullptr);
+    forceResetActiveVertexInput = true;
+  }
+
+  if (forceResetActiveVertexInput)
+    flush_buffers(g_render_state);
+
   if (buffer && (bufFlags & SBCF_BIND_CONSTANT))
   {
     ResAutoLock resLock; // Thredsafe state.resources access.

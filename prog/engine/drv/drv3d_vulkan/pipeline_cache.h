@@ -21,6 +21,7 @@ class PipelineCache
   std::atomic<bool> asyncInProgress{false};
 
   void waitAsyncStoreComplete();
+  bool isCacheTooBig(size_t byte_count);
 
 public:
   PipelineCache() = default;

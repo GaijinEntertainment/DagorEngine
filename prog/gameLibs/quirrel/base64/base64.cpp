@@ -8,7 +8,7 @@
 #include <quirrel_json/quirrel_json.h>
 #include <EASTL/string.h>
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqstdblob.h>
 
 
@@ -71,6 +71,21 @@ static SQInteger encode_blob(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger decode_blob(HSQUIRRELVM vm)
+{
+  const char *b64str = nullptr;
+  if (SQ_FAILED(sq_getstring(vm, 2, &b64str)))
+    return sq_throwerror(vm, "Invalid base64 string");
+
+  Base64 b64Coder(b64str);
+  SQUserPointer resultPtr = sqstd_createblob(vm, b64Coder.decodeLength());
+  if (resultPtr == nullptr)
+    return sq_throwerror(vm, "Failed to create blob");
+
+  b64Coder.decode((uint8_t *)resultPtr);
+  return 1;
+}
+
 
 namespace bindquirrel
 {
@@ -86,7 +101,8 @@ void bind_base64_utils(SqModules *mgr)
     .Func("decodeUrlString", decode_base64_url)
     .Func("encodeJson", obj_to_base64)
     .Func("encodeBlk", blk_to_base64)
-    .SquirrelFunc("encodeBlob", encode_blob, 2, ".x")
+    .SquirrelFuncDeclString(encode_blob, "encodeBlob(b: instance): string")
+    .SquirrelFuncDeclString(decode_blob, "decodeBlob(s: string): instance")
     /**/;
 
   mgr->addNativeModule("base64", b64);

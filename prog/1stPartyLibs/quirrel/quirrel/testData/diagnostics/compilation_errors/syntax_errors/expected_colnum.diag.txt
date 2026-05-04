@@ -1,0 +1,9 @@
+ERROR: expected column number after #pos:<line>:
+testData/diagnostics/compilation_errors/syntax_errors/expected_colnum.nut:2:0
+
+// EXPECT_ERROR: "expected column number after #pos:"
+#pos:1:abc
+^
+let x = 1
+
+

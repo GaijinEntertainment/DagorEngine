@@ -76,7 +76,7 @@ There are two ways to assign these parameters:
 Let's review the full list of parameters using daNetGame-based project as an
 example:
 
-```text
+```blk
 script{
 // Common parameters
   renderable:b=yes    // Display the visual geometry of the node
@@ -1725,7 +1725,7 @@ Collision resources, like all other assets, are processed by the engine through
 the `.folder.blk` configuration file. A typical collision processing block looks
 like this:
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*)\.lod02\.dag$"
   className:t="collision"
@@ -1767,7 +1767,7 @@ collision geometry is placed.
 
    For example:
 
-   .. code-block:: text
+   .. code-block:: blk
 
       virtual_res_blk{
         find:t="^(.*)\.lod02\.dag$"
@@ -1794,7 +1794,7 @@ collision geometry is placed.
    To include collision processing for a specific LOD, simply add the relevant
    include file to your ``.folder.blk``. For example:
 
-   .. code-block:: text
+   .. code-block:: blk
 
       include "#/develop/assets/_ri_collision_lod1.blk"
 
@@ -1810,14 +1810,14 @@ collision geometry is placed.
 
 **Exclusion Example:**
 
-```text
+```blk
 include "#/develop/assets/_ri_collision_lod2.blk"
-"@override-last"{ exclude:t ="^(.*sign.*)\.lod02\.dag$"; }
+"@override-last"{ exclude:t="^(.*sign.*)\.lod02\.dag$"; }
 ```
 
 **Name-Based Search Example:**
 
-```text
+```blk
 include "#/develop/assets/_ri_collision_lod1.blk"
 "@override-last"{ "@override:find":t="^(.*pos_a.*|.*pos_b.*|.*pos_c.*|.*sign.*)\.lod01\.dag$"; }
 ```
@@ -1825,5 +1825,4 @@ include "#/develop/assets/_ri_collision_lod1.blk"
 In both cases, we use `@override-last` to modify the behavior of the previously
 included blocks, allowing for custom exclusions or searches based on specific
 patterns.
-
 

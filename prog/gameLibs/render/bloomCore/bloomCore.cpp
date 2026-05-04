@@ -31,33 +31,33 @@ static eastl::string gen_downsample_target_tex_name(uint32_t mip_to_gen)
   return eastl::string("raw_bloom_mip_") + eastl::to_string(mip_to_gen);
 }
 
-void regenerate_downsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, bool use_esram, RenderCallback cb)
+void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, bool use_esram,
+  RenderCallback cb)
 {
   nodes.clear();
 
-  const auto ns = dafg::root() / "bloom";
   nodes.push_back(ns.registerNode("setup_samplers", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Linear;
-      registry.create("downsample_hq_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("downsample_hq_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
     }
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
       smpInfo.filter_mode = d3d::FilterMode::Linear;
-      registry.create("downsample_lq_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("downsample_lq_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
     }
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-      registry.create("blur_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("blur_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
     }
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      registry.create("upsample_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("upsample_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
     }
   }));
 
@@ -70,7 +70,7 @@ void regenerate_downsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t 
       const eastl::string targetTexName = gen_downsample_target_tex_name(mip);
 
       registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
-      registry.create(targetTexName.c_str(), dafg::History::No)
+      registry.create(targetTexName.c_str())
         .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | (use_esram ? TEXCF_ESRAM_ONLY : 0U),
           registry.getResolution<2>("post_fx", 0.25f / (1 << mip))});
       registry.requestRenderPass().color({targetTexName.c_str()});
@@ -96,7 +96,7 @@ void regenerate_downsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t 
 
           registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
           registry.read("blur_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("blur_src_tex_samplerstate");
-          registry.create(targetTexName.c_str(), dafg::History::No)
+          registry.create(targetTexName.c_str())
             .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | (use_esram ? TEXCF_ESRAM_ONLY : 0U),
               registry.getResolution<2>("post_fx", 0.25f / (1 << mip))});
           registry.requestRenderPass().color({targetTexName.c_str()});
@@ -109,12 +109,10 @@ void regenerate_downsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t 
   }
 }
 
-void regenerate_upsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, float upsample_factor,
+void regenerate_upsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, float upsample_factor,
   const Color3 &halation_color, float halation_mip_factor, int halation_end_mip_ofs, RenderCallback cb)
 {
   nodes.clear();
-
-  const auto ns = dafg::root() / "bloom";
 
   for (uint32_t mip = mips_count - 1; mip > 0; --mip)
   {
@@ -128,15 +126,14 @@ void regenerate_upsample_chain(dag::Vector<dafg::NodeHandle> &nodes, uint32_t mi
         registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
         registry.read("upsample_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("blur_src_tex_samplerstate");
 
-        registry.requestRenderPass().color(
-          {registry.rename(targetTexOriginName.c_str(), targetTexFinalName.c_str(), dafg::History::No).texture()});
+        registry.requestRenderPass().color({registry.rename(targetTexOriginName.c_str(), targetTexFinalName.c_str()).texture()});
 
         return [mip, mips_count, upsample_factor, halation_color, halation_mip_factor, halation_end_mip_ofs,
                  renderer = PostFxRenderer("bloom_upsample"), cb] {
           const int lastMipWithHalation = clamp<int>(mips_count - halation_end_mip_ofs, 0, mips_count);
           const float dstMipAddTint = mip - 1 >= lastMipWithHalation ? 0 : exp2f(-halation_mip_factor * (mip - 1));
           Color3 dstColorTint = (Color3(1, 1, 1) + halation_color * dstMipAddTint) * (1 - upsample_factor);
-          ShaderGlobal::set_color4(bloom_upsample_mip_scaleVarId, upsample_factor, upsample_factor, upsample_factor, 0);
+          ShaderGlobal::set_float4(bloom_upsample_mip_scaleVarId, upsample_factor, upsample_factor, upsample_factor, 0);
           d3d::set_blend_factor(e3dcolor(dstColorTint, 255));
 
           cb([&renderer]() { renderer.render(); });

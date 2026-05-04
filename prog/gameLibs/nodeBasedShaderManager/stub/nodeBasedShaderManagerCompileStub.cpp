@@ -2,7 +2,9 @@
 
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 
+String NodeBasedShaderManager::toolsPath;
+String NodeBasedShaderManager::rootPath;
+
 void NodeBasedShaderManager::initCompilation() {}
-bool NodeBasedShaderManager::compileShaderProgram(const DataBlock &, String &, PLATFORM) { return false; }
-void NodeBasedShaderManager::saveToFile(const String &, PLATFORM) const {}
+bool NodeBasedShaderManager::compileScriptedShaders(const String &, const DataBlock &, String &) { return false; }
 void NodeBasedShaderManager::getShadersBinariesFileNames(const String &, Tab<String> &, PLATFORM) const {}

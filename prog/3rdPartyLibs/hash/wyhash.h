@@ -160,6 +160,57 @@ static inline uint64_t wyhash(const void *key, size_t len, uint64_t seed, const 
   return  _wymix(a^secret[0]^len,b^secret[1]);
 }
 
+//streaming wyhash: produces the same result as one-shot wyhash() for any data length.
+//usage: wyhash_state s = wyhash_init(seed); wyhash_add(s, p1, l1); wyhash_add(s, p2, l2); uint64_t h = wyhash_finish(s);
+struct wyhash_state{
+  uint64_t seed, see1, see2;
+  size_t total_len;
+  alignas(8) uint8_t buf[48];
+  alignas(8) uint8_t tail[16];
+  uint8_t buf_len;
+};
+static inline wyhash_state wyhash_init(uint64_t seed, const uint64_t *secret=_wyp){
+  wyhash_state s;
+  s.seed=seed^_wymix(seed^secret[0],secret[1]);
+  s.see1=s.seed; s.see2=s.seed;
+  s.total_len=0; s.buf_len=0;
+  return s;
+}
+static inline void _wyhash_flush48(wyhash_state &s, const uint8_t *p, const uint64_t *secret=_wyp){
+  s.seed=_wymix(_wyr8(p)^secret[1],_wyr8(p+8)^s.seed);
+  s.see1=_wymix(_wyr8(p+16)^secret[2],_wyr8(p+24)^s.see1);
+  s.see2=_wymix(_wyr8(p+32)^secret[3],_wyr8(p+40)^s.see2);
+  memcpy(s.tail,p+32,16);
+}
+static inline void wyhash_add(wyhash_state &s, const void *data, size_t len, const uint64_t *secret=_wyp){
+  const uint8_t *p=(const uint8_t *)data;
+  s.total_len+=len;
+  if(_likely_(s.buf_len+len<=48)){ memcpy(s.buf+s.buf_len,p,len); s.buf_len+=(uint8_t)len; return; }
+  if(s.buf_len<48){ uint8_t fill=48-s.buf_len; memcpy(s.buf+s.buf_len,p,fill); p+=fill; len-=fill; }
+  _wyhash_flush48(s,s.buf,secret); s.buf_len=0;
+  while(len>48){ _wyhash_flush48(s,p,secret); p+=48; len-=48; }
+  memcpy(s.buf,p,len); s.buf_len=(uint8_t)len;
+}
+static inline uint64_t wyhash_finish(const wyhash_state &s, const uint64_t *secret=_wyp){
+  uint64_t seed=s.seed, a, b;
+  if(s.total_len>48) seed^=s.see1^s.see2;
+  const uint8_t *p=s.buf; size_t i=s.buf_len;
+  while(i>16){ seed=_wymix(_wyr8(p)^secret[1],_wyr8(p+8)^seed); p+=16; i-=16; }
+  if(s.total_len<=16){
+    if(s.buf_len>=4){ a=(_wyr4(s.buf)<<32)|_wyr4(s.buf+((s.buf_len>>3)<<2)); b=(_wyr4(s.buf+s.buf_len-4)<<32)|_wyr4(s.buf+s.buf_len-4-((s.buf_len>>3)<<2)); }
+    else if(s.buf_len>0){ a=_wyr3(s.buf,s.buf_len); b=0; }
+    else a=b=0;
+  }else if(s.buf_len>=16){
+    a=_wyr8(s.buf+s.buf_len-16); b=_wyr8(s.buf+s.buf_len-8);
+  }else{
+    alignas(8) uint8_t tmp[16]; uint8_t ft=16-(uint8_t)s.buf_len;
+    memcpy(tmp,s.tail+16-ft,ft); memcpy(tmp+ft,s.buf,s.buf_len);
+    a=_wyr8(tmp); b=_wyr8(tmp+8);
+  }
+  a^=secret[1]; b^=seed; _wymum(&a,&b);
+  return _wymix(a^secret[0]^s.total_len,b^secret[1]);
+}
+
 //a useful 64bit-64bit mix function to produce deterministic pseudo random numbers that can pass BigCrush and PractRand
 static inline uint64_t wyhash64(uint64_t A, uint64_t B){ A^=0xa0761d6478bd642full; B^=0xe7037ed1a0b428dbull; _wymum(&A,&B); return _wymix(A^0xa0761d6478bd642full,B^0xe7037ed1a0b428dbull);}
 

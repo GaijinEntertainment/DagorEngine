@@ -194,15 +194,33 @@ inline void decode_unordered_access_views(const ShaderResourceUsageTable &header
   clb.endUnorderedAccessViews();
 }
 
+struct ComputeRootSignatureExtraProperties
+{
+  bool hasAccelerationStructure : 1 = false;
+  bool useResourceDescriptorHeapIndexing : 1 = false;
+  bool useSamplerDescriptorHeapIndexing : 1 = false;
+};
+
 // Helper to uniformly generate a root signature from a shader head of a compute shader
 template <typename T>
-inline void decode_compute_root_signature(bool has_acceleration_structure, const ShaderResourceUsageTable &header, T &clb)
+inline void decode_compute_root_signature(ComputeRootSignatureExtraProperties properties, const ShaderResourceUsageTable &header,
+  T &clb)
 {
   clb.begin();
 
   clb.beginFlags();
-  if (has_acceleration_structure)
+  if (properties.hasAccelerationStructure)
+  {
     clb.hasAccelerationStructure();
+  }
+  if (properties.useResourceDescriptorHeapIndexing)
+  {
+    clb.useResourceDescriptorHeapIndexing();
+  }
+  if (properties.useSamplerDescriptorHeapIndexing)
+  {
+    clb.useSamplerDescriptorHeapIndexing();
+  }
   clb.endFlags();
 
   decode_special_constants(header.specialConstantsMask, clb);
@@ -218,18 +236,27 @@ inline void decode_compute_root_signature(bool has_acceleration_structure, const
   clb.end();
 }
 
+struct GraphicsRootSignatureExtraProperties
+{
+  bool hasVertexInputs : 1 = false;
+  bool hasStreamOutput : 1 = false;
+  bool hasAccelerationStructure : 1 = false;
+  bool useResourceDescriptorHeapIndexing : 1 = false;
+  bool useSamplerDescriptorHeapIndexing : 1 = false;
+};
+
 // Helper to uniformly generate a root signature from a set of shaders for the graphics pipeline.
 template <typename T>
-inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_acceleration_structure, const ShaderResourceUsageTable &vs,
+inline void decode_graphics_root_signature(GraphicsRootSignatureExtraProperties properties, const ShaderResourceUsageTable &vs,
   const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable &hs, const ShaderResourceUsageTable &ds,
-  const ShaderResourceUsageTable &gs, bool has_stream_output, T &clb)
+  const ShaderResourceUsageTable &gs, T &clb)
 {
   clb.begin();
 
   clb.beginFlags();
-  if (vs_has_inputs)
+  if (properties.hasVertexInputs)
     clb.hasVertexInputs();
-  if (has_acceleration_structure)
+  if (properties.hasAccelerationStructure)
     clb.hasAccelerationStructure();
   if (!any_registers_used(vs))
     clb.noVertexShaderResources();
@@ -241,8 +268,18 @@ inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_accelera
     clb.noDomainShaderResources();
   if (!any_registers_used(gs))
     clb.noGeometryShaderResources();
-  if (has_stream_output)
+  if (properties.hasStreamOutput)
+  {
     clb.hasStreamOutput();
+  }
+  if (properties.useResourceDescriptorHeapIndexing)
+  {
+    clb.useResourceDescriptorHeapIndexing();
+  }
+  if (properties.useSamplerDescriptorHeapIndexing)
+  {
+    clb.useSamplerDescriptorHeapIndexing();
+  }
   clb.endFlags();
 
   // Calling order is important, because in the end it will also be the order of root parameters.
@@ -250,7 +287,6 @@ inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_accelera
   // needs to spill parts of it from registers into memory. This is why we construct root signature
   // this way, i.e. going through constant buffers for all stages first, then moving on to
   // decode_samplers for all stages, then to SRVs, etc.
-
   uint8_t specialConstantsMask =
     ps.specialConstantsMask | vs.specialConstantsMask | hs.specialConstantsMask | ds.specialConstantsMask | gs.specialConstantsMask;
   decode_special_constants(specialConstantsMask, clb);
@@ -304,28 +340,48 @@ inline void decode_graphics_root_signature(bool vs_has_inputs, bool has_accelera
   clb.end();
 }
 
+struct GraphicsMeshRootSignatureExtraProperties
+{
+  bool hasStreamOutput : 1 = false;
+  bool hasAccelerationStructure : 1 = false;
+  bool useResourceDescriptorHeapIndexing : 1 = false;
+  bool useSamplerDescriptorHeapIndexing : 1 = false;
+};
+
 // Helper to uniformly generate a root signature from a set of shaders for the graphics pipeline using mesh shader stage.
 // Unlike other decoders pass nullptr if no amplification stage is used by the pipeline, otherwise the root signature
 // may be not optimal for mesh shader only pipelines.
 template <typename T>
-inline void decode_graphics_mesh_root_signature(bool has_acceleration_structure, const ShaderResourceUsageTable &ms,
-  const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable *as, bool has_stream_output, T &clb)
+inline void decode_graphics_mesh_root_signature(GraphicsMeshRootSignatureExtraProperties properties,
+  const ShaderResourceUsageTable &ms, const ShaderResourceUsageTable &ps, const ShaderResourceUsageTable *as, T &clb)
 {
   clb.begin();
 
   clb.beginFlags();
   if (as)
     clb.hasAmplificationStage();
-  if (has_acceleration_structure)
+  if (properties.hasAccelerationStructure)
+  {
     clb.hasAccelerationStructure();
+  }
   if (!any_registers_used(ms))
     clb.noMeshShaderResources();
   if (!any_registers_used(ps))
     clb.noPixelShaderResources();
   if (!as || !any_registers_used(*as))
     clb.noAmplificationShaderResources();
-  if (has_stream_output)
+  if (properties.hasStreamOutput)
+  {
     clb.hasStreamOutput();
+  }
+  if (properties.useResourceDescriptorHeapIndexing)
+  {
+    clb.useResourceDescriptorHeapIndexing();
+  }
+  if (properties.useSamplerDescriptorHeapIndexing)
+  {
+    clb.useSamplerDescriptorHeapIndexing();
+  }
   clb.endFlags();
 
   // Calling order is important, because in the end it will also be the order of root parameters.

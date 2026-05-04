@@ -1,12 +1,14 @@
 from "%darg/ui_imports.nut" import *
 
-let WND_PARAMS = static {
+let { getNumberOfRegisteredWindows } = require("%daeditor/components/window.nut")
+
+let WND_PARAMS = const {
   key = null //generate automatically when not set
-  children= null
+  children = null
   onClick = null //remove current modal window when not set
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  rendObj = ROBJ_WORLD_BLUR
+  rendObj = ROBJ_WORLD_BLUR_PANEL
   size = flex()
   behavior = Behaviors.Button
   stopMouse = true
@@ -22,18 +24,24 @@ let modalWindows = []
 let modalWindowsGeneration = Watched(0)
 let hasModalWindows = Computed(@() modalWindowsGeneration.get() >= 0 && modalWindows.len() > 0)
 
+let nextModalGeneration = @() modalWindowsGeneration.modify(@(v) v + 1)
+
 function removeModalWindow(key) {
   let idx = modalWindows.findindex(@(w) w.key == key)
   if (idx == null)
     return false
+
   modalWindows.remove(idx)
-  modalWindowsGeneration.modify(@(v) v+1)
+  nextModalGeneration()
   return true
 }
 
 local lastWndIdx = 0
 function addModalWindow(wnd = null) {
-  wnd = wnd ? WND_PARAMS.__merge(wnd) : WND_PARAMS
+  wnd = WND_PARAMS.__merge(wnd ?? {})
+  if (wnd?.zOrder == null) {
+    wnd.zOrder <- getNumberOfRegisteredWindows() + 1
+  }
   if (wnd.key != null)
     removeModalWindow(wnd.key)
   else {
@@ -42,19 +50,20 @@ function addModalWindow(wnd = null) {
   }
   wnd.onClick = wnd.onClick ?? @() removeModalWindow(wnd.key)
   modalWindows.append(wnd)
-  modalWindowsGeneration.modify(@(v) v+1)
+  nextModalGeneration()
 }
 
 function hideAllModalWindows() {
   if (modalWindows.len() == 0)
     return
+
   modalWindows.clear()
-  modalWindowsGeneration.modify(@(v) v+1)
+  nextModalGeneration()
 }
 
 let modalWindowsComponent = @() {
   watch = modalWindowsGeneration
-  size = static flex()
+  size = const flex()
   children = modalWindows
 }
 

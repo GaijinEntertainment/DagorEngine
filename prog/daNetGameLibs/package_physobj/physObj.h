@@ -57,7 +57,7 @@ template <>
 void PHYSOBJ_ACTOR::processSnapshotNoEntity(uint16_t netPhysId, BasePhysSnapshot &&basesnap);
 
 template <>
-void PHYSOBJ_ACTOR::updateRemoteShadow(float remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
+void PHYSOBJ_ACTOR::updateRemoteShadow(double remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
 
 extern template class PHYSOBJ_ACTOR;
 typedef PHYSOBJ_ACTOR PhysObjActor;

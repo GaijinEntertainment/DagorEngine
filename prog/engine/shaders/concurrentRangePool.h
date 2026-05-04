@@ -153,9 +153,9 @@ public:
   /// indices are **sequential**.
   /// @param r The range to get the chunk of.
   /// @return The chunk that contains \p r.
-  ChunkIdx chunkOf(Range r) const /* requires ALIGN_TO_CHUNK */
+  ChunkIdx chunkOf(Range r) const
+    requires ALIGN_TO_CHUNKS
   {
-    G_FAST_ASSERT(ALIGN_TO_CHUNKS);
     const auto [size, bucket, offset] = break_range(r);
     G_FAST_ASSERT(size > 0);
     return ChunkIdx{(1 << bucket) - 1 + offset / INITIAL_CAPACITY};

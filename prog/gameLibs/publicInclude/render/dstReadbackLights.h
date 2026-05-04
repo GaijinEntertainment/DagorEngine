@@ -33,4 +33,5 @@ class DistanceReadbackLights
 public:
   DistanceReadbackLights(ShadowSystem *shadowSystem, SpotLightsManager *spotLights, const char *name_suffix);
   void update(eastl::fixed_function<sizeof(void *) * 2, RenderStaticCallback> render_static);
+  void afterResetDevice();
 };

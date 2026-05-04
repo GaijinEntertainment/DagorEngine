@@ -50,7 +50,6 @@ endmacro
 /*include "radiance_cache_sample.dshl"
 shader dagi_world_scene_radiance_cache_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   DEPTH_OUTPUT_DX11()
@@ -94,13 +93,11 @@ shader dagi_world_scene_radiance_cache_debug
 
 shader dagi_world_scene_voxel_scene_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   hlsl {
     //#define DAGI_RADIANCE_AT_SKIP_ALBEDO float3(-1,0,0)
   }
-  ENABLE_ASSERT(ps)
 
   DEPTH_OUTPUT_DX11()
 
@@ -122,7 +119,7 @@ shader dagi_world_scene_voxel_scene_debug
       if (!debug_trace_sdf(input, 1400, r))
         discard;
       output.color.a = 0;
-      output.color.rgb = dagi_get_radiance_at(r.worldPos, r.norm);//- r.rayDir*world_sdf_voxel_size(r.cascade)*0.5
+      output.color.rgb = dagi_get_radiance_at(r.worldPos, r.norm, float4(-r.rayDir, r.t));
       if (output.color.r < 0)
         discard;
       FLATTEN
@@ -141,9 +138,7 @@ shader dagi_world_scene_voxel_scene_debug
 
 shader dagi_world_scene_albedo_scene_debug
 {
-  supports global_const_block;
   supports global_frame;
-  ENABLE_ASSERT(ps)
   //supports none;//fixme: in DNG wont compile due to emission
   DEPTH_OUTPUT_DX11()
 

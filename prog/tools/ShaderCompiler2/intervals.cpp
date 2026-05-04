@@ -93,15 +93,21 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
 // add new interval (return false, if interval exists)
 bool IntervalList::addInterval(const Interval &interval)
 {
-  const Interval *oldInterval = getIntervalByNameId(interval.getNameId());
+  Interval *oldInterval = getIntervalByNameId(interval.getNameId());
 
   if (oldInterval)
   {
     // intervals not identical - report error
     if (*oldInterval != interval)
+    {
       return false;
+    }
     else
+    {
+      if (interval.isAlwaysReferenced())
+        oldInterval->makeAlwaysReferenced();
       return true;
+    }
   }
 
   intervals.push_back().create(interval);
@@ -111,12 +117,12 @@ bool IntervalList::addInterval(const Interval &interval)
 // return true, if interval exists
 bool IntervalList::intervalExists(int name_id) const { return name_id != -1 && getIntervalIndex(name_id) != INTERVAL_NOT_INIT; }
 
-const Interval *IntervalList::getIntervalByNameId(int name_id) const
+Interval *IntervalList::getIntervalByNameId(int name_id)
 {
   for (int i = 0; i < intervals.size(); i++)
     if (intervals[i]->getNameId() == name_id)
       return intervals[i];
-  return NULL;
+  return nullptr;
 }
 
 ShaderVariant::ExtType IntervalList::getIntervalIndex(int name_id) const

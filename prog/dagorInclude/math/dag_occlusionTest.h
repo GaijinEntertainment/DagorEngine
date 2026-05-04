@@ -214,7 +214,7 @@ protected:
           for (; x < xEnd4; x += 4, zbufferP += 4)
           {
             vec4f passTest = occlusion_depth_vcmp(closestPoint, v_ldu(zbufferP));
-            if (v_signmask(passTest))
+            if (v_check_xyzw_any_true(passTest))
             {
               // debug("entry: %dx%d 0x%X mask (%f %f %f %f)", x, y, _mm_movemask_ps(passTest), V4D(v_ldu(zbuffer)));
               return 1;
@@ -237,7 +237,7 @@ protected:
           const float *zbufferP = (float *)zbufferRow;
           // int mask = 0;
           for (int x = xMin; x < xEnd4; x += 4, zbufferP += 4)
-            if (v_signmask(occlusion_depth_vcmp(closestPoint, v_ldu(zbufferP))))
+            if (v_check_xyzw_any_true(occlusion_depth_vcmp(closestPoint, v_ldu(zbufferP))))
               return 1;
         }
     }

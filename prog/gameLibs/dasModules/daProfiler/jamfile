@@ -22,6 +22,11 @@ if $(Platform) in windows {
   CPPopt += /wd4548 ; # devtools\win.sdk.100\Include\10.0.10586.0\ucrt\malloc.h(160): warning C4548: expression before comma has no effect; expected expression with side-effect
 }
 
+if $(daScript_debugger) = 1 {
+  Target = $(Target:S=~deb$(daScript_debugger).lib) ;
+  CPPopt += -DDAS_DEBUGGER=$(daScript_debugger) ;
+}
+
 UseProgLibs =
   1stPartyLibs/daScript
   engine/perfMon

@@ -10,17 +10,17 @@ var
 
 let
   commonMountPointPrefixes <- {
-    "ecs" => "%dasGameLibs/ecs",
-    "docs" => "%dasGameLibs/docs",
-    "math" => "%dasGameLibs/math",
-    "daFrameGraph" => "%dasGameLibs/daFrameGraph",
+    "ecs" => "%gameLibs/das/ecs",
+    "docs" => "%gameLibs/das/docs",
+    "math" => "%gameLibs/das/math",
+    "daFrameGraph" => "%gameLibs/das/daFrameGraph",
     "daslib" => "%daslib",
     "imgui" => "%dasImgui",
     "debug" => "%dngdas/debug",
     "remote" => "%dngdas/remote"
   }
   commonAliasPath <- {
-    "daFrameGraph" => "%dasGameLibs/daFrameGraph.daFG.das"
+    "daFrameGraph" => "%gameLibs/das/daFrameGraph.daFG.das"
   }
 
 

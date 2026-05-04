@@ -6,9 +6,15 @@ options strict_smart_pointers = true
 
 module ast_block_to_loop shared private
 
+//! Block-to-loop transformation utilities.
+//!
+//! Provides AST visitors that convert inline-block patterns into
+//! equivalent loop constructs for macro code generation.
+
 require daslib/ast_boost
 
 class B2LVisitor : AstVisitor {
+    //! AST visitor that converts block expressions to loop form.
     inClosure : int
     inArchetype : int
     failOnReturn : bool

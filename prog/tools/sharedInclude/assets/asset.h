@@ -5,6 +5,8 @@
 #pragma once
 
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_simpleString.h>
+#include <util/dag_string.h>
 
 
 class DagorAssetMgr;
@@ -20,6 +22,7 @@ public:
   int getNameSpaceId() const { return nspaceId; }
   bool isVirtual() const { return virtualBlk; }
   bool isGloballyUnique() const { return globUnique; }
+  unsigned getRuleIdx() const { return ruleIdx; }
 
   DagorAssetMgr &getMgr() const { return mgr; }
 
@@ -62,7 +65,7 @@ public:
   const char *getCustomPackageName(const char *target, const char *profile, bool full = true);
 
   //! returns destination pack name
-  const char *getDestPackName(bool dabuild_collapse_packs = false, bool pure_name = false, bool allow_grouping = true);
+  String getDestPackName(bool dabuild_collapse_packs = false, bool pure_name = false, bool allow_grouping = true);
 
   //! returns string where assetName is constructed from filepath reference
   //! (folder path and 3-letter extension are removed, e.g. "c:\my\tex.dds" - > "tex")
@@ -71,13 +74,30 @@ public:
 public:
   DataBlock props;
 
+  dag::ConstSpan<SimpleString> getSrcIncludes() const { return srcIncludes; }
+
+  bool reloadBlk(const char *fname)
+  {
+    struct IncludeCapture : DataBlock::IFileNotify
+    {
+      dag::Vector<SimpleString, eastl::allocator, false> paths;
+      void onFileLoaded(const char *included_fname) override { paths.push_back() = included_fname; }
+    } capture;
+    bool res = dblk::load(props, fname, dblk::ReadFlags(), &capture);
+    capture.paths.shrink_to_fit();
+    srcIncludes = eastl::move(capture.paths);
+    return res;
+  }
+
 protected:
   int nameId, fileNameId;
   short folderIdx;
   short assetType;
-  short nspaceId;
+  signed char nspaceId;
+  unsigned char ruleIdx = 0xFF;
   unsigned short globUnique : 1, virtualBlk : 1, userFlags : 14;
   DagorAssetMgr &mgr;
+  dag::Vector<SimpleString, eastl::allocator, false> srcIncludes;
 
   DagorAsset(DagorAssetMgr &m) :
     mgr(m), folderIdx(-1), assetType(-1), nameId(-1), nspaceId(-1), fileNameId(-1), globUnique(0), virtualBlk(0), userFlags(0)

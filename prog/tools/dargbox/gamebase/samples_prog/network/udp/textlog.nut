@@ -45,8 +45,8 @@ function textLog(log_state, options) {
     size
     color
     rendObj = ROBJ_FRAME
-    borderWidth = static [hdpx(1), 0]
-    padding = static [hdpx(1), 0]
+    borderWidth = const [hdpx(1), 0]
+    padding = const [hdpx(1), 0]
 
     children = [
       makeVertScroll(logContent(log_state, scrollHandler), {scrollHandler})

@@ -4,16 +4,19 @@ float4 toroidalPuddles_world_offsets = (1, 1, 0, 0);
 
 texture toroidal_puddles_texarray;
 
-macro INIT_TOROIDAL_PUDDLES(code)
+macro INIT_TOROIDAL_PUDDLES(code, use_sampler)
   (code) {
-    toroidal_puddles_texarray@smpArray = toroidal_puddles_texarray;
     toroidalPuddles_world2uv_1@f4 = toroidalPuddles_world2uv_1;
     toroidalPuddles_world2uv_2@f4 = toroidalPuddles_world2uv_2;
     toroidalPuddles_world_offsets@f4 = toroidalPuddles_world_offsets;
   }
-
-  hlsl{
-    #define PUDDLE_DEFAULT 0.0f
+  if (use_sampler)
+  {
+    (code) { toroidal_puddles_texarray@smpArray = toroidal_puddles_texarray; }
+  }
+  else
+  {
+    (code) { toroidal_puddles_texarray@texArray = toroidal_puddles_texarray; }
   }
 endmacro
 
@@ -26,6 +29,10 @@ macro FALLBACK_TOROIDAL_PUDDLES(code)
     }
   }
 endmacro
+
+hlsl{
+  #define PUDDLE_DEFAULT 0.0f
+}
 
 macro USE_TOROIDAL_PUDDLES(code)
   hlsl(code)

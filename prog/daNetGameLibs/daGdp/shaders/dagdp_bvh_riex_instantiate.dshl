@@ -1,0 +1,206 @@
+include "shader_global.dshl"
+include "wind/wind_simulation_inc.dshl"
+include "wind/apply_tree_wind_inc.dshl"
+include "rt/grass_generate_rt_inc.dshl"
+
+int dagdp_bvh_max_count;
+buffer dagdp_bvh_counter;
+buffer dagdp_bvh_instances;
+buffer dagdp_bvh_mappings;
+
+int dagdp_bvh_draw_args_dwords;
+buffer dagdp_bvh_draw_args;
+buffer dagdp_bvh_instance_data;
+buffer dagdp_riex__patches;
+
+int dagdp_bvh_drawcalls;
+buffer dagdp_bvh_indirect_args;
+
+float tree_wind_branch_amp = 0.5;
+float tree_wind_detail_amp = 0.5;
+float tree_wind_speed = 0.1;
+texture perlin_noise3d;
+
+hlsl
+{
+  #define DISPATCH_Y 32
+}
+
+macro INIT_BVH_MAPPING()
+  (cs)
+  {
+    dagdp_bvh_mappings@buf = dagdp_bvh_mappings hlsl
+    {
+      #include "dagdp_bvh_mapping.hlsli"
+      StructuredBuffer<DagdpBvhMapping> dagdp_bvh_mappings@buf;
+    };
+  }
+endmacro
+
+shader dagdp_bvh_make_indirect_args
+{
+  (cs)
+  {
+    dagdp_bvh_drawcalls@i1 = dagdp_bvh_drawcalls;
+    dagdp_bvh_draw_args_dwords@i1 = dagdp_bvh_draw_args_dwords;
+    dagdp_bvh_draw_args@buf = dagdp_bvh_draw_args hlsl {
+      ByteAddressBuffer dagdp_bvh_draw_args@buf;
+    };
+    dagdp_bvh_indirect_args@uav = dagdp_bvh_indirect_args hlsl { RWByteAddressBuffer dagdp_bvh_indirect_args@uav; };
+  }
+  INIT_BVH_MAPPING()
+
+  hlsl(cs)
+  {
+    [numthreads(32, 1, 1)]
+    void make_instanceargs(uint dtid : SV_DispatchThreadID)
+    {
+      uint type = dtid;
+      if (type >= dagdp_bvh_drawcalls)
+        return;
+
+      DagdpBvhMapping bvhMapping = structuredBufferAt(dagdp_bvh_mappings, type);
+      if (all(bvhMapping.blas == 0))
+        return;
+
+      uint instanceCountIndex = dagdp_bvh_draw_args_dwords * type + dagdp_bvh_draw_args_dwords - 4;
+      uint instanceCount = loadBuffer(dagdp_bvh_draw_args, instanceCountIndex * 4);
+
+      uint groups = (instanceCount + DISPATCH_Y - 1) / DISPATCH_Y;
+
+      dagdp_bvh_indirect_args.InterlockedMax(4, groups);
+    }
+  }
+
+  compile("target_cs", "make_instanceargs");
+}
+
+shader dagdp_bvh_riex_instantiate
+{
+  // For output
+  hlsl {
+    static const uint bvhGroupGPUFoliage  = 1 << 1;
+    static const uint bvhGroupRi = 1 << 2;
+  }
+  (cs) {
+    dagdp_bvh_max_count@i1 = dagdp_bvh_max_count;
+
+    dagdp_bvh_counter@uav = dagdp_bvh_counter hlsl { RWByteAddressBuffer dagdp_bvh_counter@uav; };
+    dagdp_bvh_instances@uav = dagdp_bvh_instances hlsl
+    {
+      #include <RTHWInstance.hlsli>
+      RWStructuredBuffer<RTHWInstance> dagdp_bvh_instances@uav;
+    };
+  }
+  INIT_BVH_MAPPING()
+
+  // For input
+  (cs) {
+    dagdp_bvh_draw_args_dwords@i1 = dagdp_bvh_draw_args_dwords;
+    dagdp_bvh_draw_args@buf = dagdp_bvh_draw_args hlsl {
+      ByteAddressBuffer dagdp_bvh_draw_args@buf;
+    };
+    dagdp_bvh_instance_data@buf = dagdp_bvh_instance_data hlsl {
+      Buffer<float4> dagdp_bvh_instance_data@buf;
+    };
+    patches@buf = dagdp_riex__patches hlsl
+    {
+      #include "dagdp_riex.hlsli"
+      StructuredBuffer<RiexPatch> patches@buf;
+    }
+  }
+  assume gpu_grass_bvh_range = grass_on; // So that we can reuse grass code
+  INIT_GPU_GRASS_BVH_BURNING(cs)
+  USE_GPU_GRASS_BVH_BURNING(cs)
+
+  // Tree animation
+  (cs)
+  {
+    tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
+  INIT_FLUID_WIND(cs)
+  INIT_AMBIENT_WIND(cs)
+  USE_COMBINED_WIND(cs)
+  USE_APPLY_TREE_WIND_BASE(cs)
+  hlsl(cs)
+  {
+    void tree_animation_on_transform_matrix(inout RTHWInstance bvhInstance, float3 wind_channel_strength)
+    {
+      float3 worldLocalPos = float3(bvhInstance.transform0.w, bvhInstance.transform1.w, bvhInstance.transform2.w);
+      float3 input_pos = float3(bvhInstance.transform0.y, bvhInstance.transform1.y, bvhInstance.transform2.y); // Just animate the top point
+      float3 world_pos = worldLocalPos + input_pos;
+      float dissolveVal = 1;
+      float3 windVcol = float3(1,1,1) * wind_channel_strength.xyz; // Can't read real vertex data here...
+      float3 world_normal = float3(1,1,1); // Apply offset on all axes
+      input_pos += ApplyTreeWind(windVcol, tree_wind_params, worldLocalPos, world_pos.xyz, input_pos, world_normal, dissolveVal, 1);
+      bvhInstance.transform0.y = input_pos.x;
+      bvhInstance.transform1.y = input_pos.y;
+      bvhInstance.transform2.y = input_pos.z;
+    }
+
+    #include <rendInst/packedMultidrawParams.hlsli>
+    [numthreads(1,DISPATCH_Y,1)]
+    void make_rthwinstance_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      uint type = dtid.x;
+      uint localInstance = dtid.y;
+
+      uint instanceCountIndex = dagdp_bvh_draw_args_dwords * type + dagdp_bvh_draw_args_dwords - 4;
+      uint instanceCount = loadBuffer(dagdp_bvh_draw_args, instanceCountIndex * 4);
+      if (localInstance >= instanceCount)
+        return;
+
+      DagdpBvhMapping bvhMapping = structuredBufferAt(dagdp_bvh_mappings, type);
+      if (all(bvhMapping.blas == 0))
+        return;
+
+      RiexPatch patch = structuredBufferAt(patches, type);
+      uint startInstanceLocationIndex = dagdp_bvh_draw_args_dwords * type + dagdp_bvh_draw_args_dwords - 1;
+      uint drawCallIdIndex = dagdp_bvh_draw_args_dwords * type; // Only valid if dagdp_bvh_draw_args_dwords == 6
+      uint startInstanceLocation = 0;
+      BRANCH
+      if (patch.flags & RIEX_PATCH_FLAG_BIT_PACKED)
+      {
+        BRANCH
+        if (patch.flags & RIEX_PATCH_FLAG_BIT_EXTENDED_ARGS)
+        {
+          startInstanceLocation = loadBuffer(dagdp_bvh_draw_args, drawCallIdIndex * 4);
+        }
+        else
+        {
+          startInstanceLocation = loadBuffer(dagdp_bvh_draw_args, startInstanceLocationIndex * 4);
+        }
+        startInstanceLocation = startInstanceLocation >> MATRICES_OFFSET_SHIFT;
+      }
+      else
+      {
+        startInstanceLocation = loadBuffer(dagdp_bvh_draw_args, startInstanceLocationIndex * 4);
+      }
+      uint instanceIndex = localInstance + startInstanceLocation;
+      uint groupMask = bvhMapping.isFoliage ? bvhGroupGPUFoliage : bvhGroupRi;
+
+      RTHWInstance bvhInstance;
+      bvhInstance.transform0 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 0);
+      bvhInstance.transform1 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 1);
+      bvhInstance.transform2 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 2);
+      bvhInstance.instanceId_mask = bvhMapping.metaIndex | (groupMask << 24);
+      bvhInstance.instanceOffset_flags = 0;
+      bvhInstance.blas = bvhMapping.blas;
+
+      if (bvhMapping.isFoliage && discard_burnt_grass(float3(bvhInstance.transform0.w, bvhInstance.transform1.w, bvhInstance.transform2.w)))
+        return;
+
+      uint outputLocation;
+      dagdp_bvh_counter.InterlockedAdd(0, 1u, outputLocation);
+      if (outputLocation >= dagdp_bvh_max_count)
+        return;
+
+      if (bvhMapping.isFoliage)
+        tree_animation_on_transform_matrix(bvhInstance, bvhMapping.wind_channel_strength);
+
+      structuredBufferAt(dagdp_bvh_instances, outputLocation) = bvhInstance;
+    }
+  }
+  compile("target_cs", "make_rthwinstance_cs");
+}

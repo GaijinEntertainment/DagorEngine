@@ -8,9 +8,9 @@ macro INIT_AND_USE_EMISSIVE_ANIM( illum_program_texno, phase_shift_texno)
 
   if (phase_shift != NULL)
   {
-    (ps) { phase_shift@static = phase_shift; }
+    (ps) { phase_shift@staticSmp = phase_shift; }
   }
-  (ps) { illum_program@static = illum_program; }
+  (ps) { illum_program@staticSmp = illum_program; }
   (ps) { scroll_param@f3 = (illum_scroll_speed, illum_scroll_scale-1.0, use_additive_blend, 0); }
 
   hlsl(ps) {
@@ -26,6 +26,9 @@ macro INIT_AND_USE_EMISSIVE_ANIM( illum_program_texno, phase_shift_texno)
       float phase = in_time*get_scroll_param().x*(phaseShift.b*get_scroll_param().y + 1.0f) + phaseShift.r;
       float3 emissionColor = tex2DLodBindless(get_illum_program(), float4(frac(phase), phaseShift.g, 0.0f, 0.0f)).rgb * diffuseColor.a;
       emissionStrength = length(emissionColor.rgb);
+      #if HAS_EMISSION_MULTIPLIER
+        emissionStrength *= get_emission_strength_multiplier();
+      #endif
       emissionColor.rgb+=0.0001f; // to avoid zero value
       BRANCH
       if (get_scroll_param().z > 0.0f)
@@ -46,9 +49,9 @@ macro INIT_AND_USE_EMISSIVE_FRAMES( illum_program_texno, distortion_texno)
 
   if (distortion_tex != NULL)
   {
-    (ps) { distortion_tex@static = distortion_tex; }
+    (ps) { distortion_tex@staticSmp = distortion_tex; }
   }
-  (ps) { illum_program@static = illum_program; }
+  (ps) { illum_program@staticSmp = illum_program; }
   (ps) { scroll_param@f4 = (illum_scroll_speed, 1.0/illum_frame_count, illum_frame_count, use_additive_blend); }
 
 

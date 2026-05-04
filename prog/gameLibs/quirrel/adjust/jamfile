@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/adjust ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/adjust.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+Sources = adjust_binding.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

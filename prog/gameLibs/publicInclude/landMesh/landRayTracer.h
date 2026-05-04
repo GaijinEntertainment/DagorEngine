@@ -11,7 +11,6 @@
 #include <math/dag_mathUtils.h>
 #include <math/dag_traceRayTriangle.h>
 #include <generic/dag_tab.h>
-#include <osApiWrappers/dag_sharedMem.h>
 
 class IGenLoad;
 class IGenSave;
@@ -311,17 +310,11 @@ public:
 
   //! setup-once shared memory storage to be used to allocate dumps; when allocated in shared memory, dump is never released
   static GlobalSharedMemStorage *sharedMem;
+  static constexpr unsigned SM_DATA_TAG = _MAKE4C('LRT');
 
   // BaseLandRayTracer(IMemAlloc* allocator = midmem);
   BaseLandRayTracer(IMemAlloc *allocator = midmem) : mem(allocator), bindump(NULL), bindumpSz(0), buildStor(NULL), cells(allocator) {}
-  ~BaseLandRayTracer()
-  {
-    if (!sharedMem || !sharedMem->doesPtrBelong(bindump))
-      mem->free(bindump);
-    bindump = NULL;
-    bindumpSz = 0;
-    del_it(buildStor);
-  }
+  ~BaseLandRayTracer();
   const BBox3 &getBBox() const { return bbox; }
   uint32_t dataSize()
   {

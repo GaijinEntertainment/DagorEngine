@@ -151,14 +151,20 @@ public:
     return append(static_cast<ValueType>(value));
   }
 
-  bool append(float value)
+  bool append(double value)
   {
+    if (rapidjson::internal::Double(value).IsNanOrInf())
+    {
+      setLastError("attempt to write nan or inf value, writing zero instead");
+      value = 0;
+    }
+
     return wrap(&TJsonWriter::Double, value);
   }
 
-  bool append(double value)
+  bool append(float value)
   {
-    return wrap(&TJsonWriter::Double, value);
+    return append(double(value));
   }
 
   bool append(const char * value)

@@ -1,0 +1,22 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/perFrameStat ;
+
+TargetType  = lib ;
+Target      = gameLibs/perFrameStat.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/engine/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  perFrameStat.cpp
+;
+
+UseProgLibs +=
+  engine/workCycle
+  gameLibs/render
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

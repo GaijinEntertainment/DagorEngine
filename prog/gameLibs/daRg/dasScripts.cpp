@@ -41,7 +41,42 @@ struct DargContext final : das::Context
       ::logmessage(logLevel, "daRg-das: %s", message);
   }
 
+  virtual uint32_t unlock() override
+  {
+    const uint32_t res = das::Context::unlock();
+    if (insideContext == 0 && !persistent)
+    {
+#if DAGOR_DBGLEVEL > 0
+      if (reportHeap && heap->totalAlignedMemoryAllocated() > heapLimit)
+      {
+
+        reportHeap = false;
+        ::logerr("%@: heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
+                 "Delete allocated array or tables or use `var inscope` to limit their lifetime.\n"
+                 "Alternative: consider switching to a persistent_heap with gc.",
+          name.c_str(), heap->totalAlignedMemoryAllocated(), heapLimit);
+      }
+      if (reportStringHeap && stringHeap->totalAlignedMemoryAllocated() > stringHeapLimit)
+      {
+        reportStringHeap = false;
+        ::logerr("%@: string heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
+                 "Delete allocated strings or use `var inscope` to limit their lifetime.\n"
+                 "Alternative: consider switching to a persistent_heap with gc.",
+          name.c_str(), stringHeap->totalAlignedMemoryAllocated(), stringHeapLimit);
+      }
+#endif
+      restartHeaps();
+    }
+    return res;
+  }
+
   GuiScene *scene = nullptr;
+#if DAGOR_DBGLEVEL > 0
+  uint64_t heapLimit = 512 * 1024;
+  uint64_t stringHeapLimit = 512 * 1024;
+  bool reportHeap = true;
+  bool reportStringHeap = true;
+#endif
 };
 
 
@@ -68,9 +103,19 @@ public:
   virtual das::ModuleInfo getModuleInfo(const das::string &req, const das::string &from) const override;
 };
 
-
-das::FileInfo *DargFileAccess::getNewFileInfo(const das::string &fname)
+static bool hasDaslibMountPoint()
 {
+  static const bool hasDaslibMountPoint_ = (bool)dd_get_named_mount_path("daslib");
+  return hasDaslibMountPoint_;
+}
+
+das::FileInfo *DargFileAccess::getNewFileInfo(const das::string &file_name)
+{
+  das::string fname = file_name;
+  if (hasDaslibMountPoint() && das::string_view(fname).starts_with("./daslib/"))
+  {
+    fname = das::string(das::string::CtorSprintf(), "%%%s", fname.c_str() + 2);
+  }
   if (!dd_file_exist(fname.c_str()))
   {
     logerr("sq: Script file %s not found", fname.c_str());
@@ -264,7 +309,9 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   eastl::string strFileName(filename);
 
+#if DAGOR_DBGLEVEL > 0
   dasMgr->fAccess->invalidateFileInfo(strFileName); // force reload, let quirrel script manage lifetime
+#endif
 
   ProgramPtr program;
   {
@@ -299,26 +346,44 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   auto ctx = make_smart<DargContext>(guiScene, program->getContextStackSize());
 
-  if (!program->simulate(*ctx, guiScene->dasScriptsData->logWriter))
   {
-    eastl::string details(eastl::string::CtorSprintf{}, "Failed to simulate '%s'", filename);
+    NoDebugStackCollector noStackCollector;
 
-    for (const Error &e : program->errors)
+    if (!program->simulate(*ctx, guiScene->dasScriptsData->logWriter))
     {
-      details += "\n=============\n";
-      details += reportError(e.at, e.what, e.extra, e.fixme, e.cerr);
-    }
+      eastl::string details(eastl::string::CtorSprintf{}, "Failed to simulate '%s'", filename);
 
-    guiScene->errorMessageWithCb(details.c_str());
-    return 0;
+      for (const Error &e : program->errors)
+      {
+        details += "\n=============\n";
+        details += reportError(e.at, e.what, e.extra, e.fixme, e.cerr);
+      }
+
+      guiScene->errorMessageWithCb(details.c_str());
+      return 0;
+    }
   }
+
+#if DAGOR_DBGLEVEL > 0
+  if (const uint64_t heapLimit = ctx->heap->getLimit())
+  {
+    ctx->heapLimit = heapLimit;
+    ::debug("daScript: set heap limit %@ for script <%s>", heapLimit, filename);
+  }
+  if (const uint64_t stringHeapLimit = ctx->stringHeap->getLimit())
+  {
+    ctx->stringHeapLimit = stringHeapLimit;
+    ::debug("daScript: set string heap limit %@ for script <%s>", stringHeapLimit, filename);
+  }
+#endif
 
   process_loaded_script(*ctx, filename);
 
   DasScript *s = new DasScript();
   s->ctx = ctx;
+  s->ctx->name = dd_get_fname(filename);
 
-  if (program->options.getBoolOption("rtti", false))
+  if (program->options.getBoolOption("rtti", program->policies.rtti))
   {
     logerr("daScript: script <%s> uses RTTI, which is not supported in rgui scripts. Remove this error if you are sure you need RTTI",
       filename);
@@ -366,7 +431,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
 
   // Sqrat::ClassType<DasScript>::PushNativeInstance(vm, s);
 
-  sq_pushobject(vm, Sqrat::ClassType<DasScript>::getClassData(vm)->classObj);
+  sq_pushobject(vm, Sqrat::ClassType<DasScript>::getClassData(vm)->classObj); //-V522
   G_VERIFY(SQ_SUCCEEDED(sq_createinstance(vm, -1)));
   Sqrat::ClassType<DasScript>::SetManagedInstance(vm, -1, s);
 

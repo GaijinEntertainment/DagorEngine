@@ -56,13 +56,13 @@ void create_billboard_blases()
     {Point3(0, -1, 1), Point2(0, 0)},
   };
 
-  const BillboardIndex indices[] = {0, 1, 2, 0, 2, 3, /**/ 4, 5, 6, 5, 6, 7};
+  const BillboardIndex indices[] = {0, 1, 2, 0, 2, 3, /**/ 4, 5, 6, 4, 6, 7};
 
-  billboard_ib =
-    dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardIndex) * countof(indices), 4), "bvh_billboard_ib");
+  billboard_ib = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardIndex) * countof(indices), 4),
+    "bvh_billboard_ib", d3d::buffers::Init::No, RESTAG_BVH);
   HANDLE_LOST_DEVICE_STATE(billboard_ib, );
-  billboard_vb =
-    dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardVertex) * countof(vertices), 4), "bvh_billboard_vb");
+  billboard_vb = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(BillboardVertex) * countof(vertices), 4),
+    "bvh_billboard_vb", d3d::buffers::Init::No, RESTAG_BVH);
   HANDLE_LOST_DEVICE_STATE(billboard_vb, );
 
   billboard_ib->updateData(0, sizeof(indices), indices, 0);
@@ -80,7 +80,7 @@ void create_billboard_blases()
   desc.data.triangles.indexOffset = 0;
   desc.data.triangles.flags = RaytraceGeometryDescription::Flags::NONE;
 
-  RaytraceBuildFlags buildFlags = RaytraceBuildFlags::FAST_TRACE;
+  RaytraceBuildFlags buildFlags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
   billboard_blas = UniqueBLAS::create(&desc, 1, buildFlags);
   HANDLE_LOST_DEVICE_STATE(billboard_blas, );
@@ -174,7 +174,8 @@ struct BVHConnection : public bvh::BVHConnection
 
     if (!particleData && maxCount)
     {
-      particleData = dag::buffers::create_ua_sr_structured(sizeof(ModfxBVHParticleData), maxCount, "bvh_fx_particle_data");
+      particleData = dag::buffers::create_ua_sr_structured(sizeof(ModfxBVHParticleData), maxCount, "bvh_fx_particle_data",
+        d3d::buffers::Init::No, RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(particleData, false);
       ShaderGlobal::set_buffer(bvh_particle_dataVarId, particleData);
     }
@@ -205,7 +206,7 @@ void on_unload_scene(ContextId context_id)
 {
   for (auto &meta : context_id->particleMeta)
   {
-    context_id->releaseTexure(meta.second.textureId);
+    context_id->releaseTexture(meta.second.textureId);
     context_id->freeMetaRegion(meta.second.metaAllocId);
   }
   context_id->particleMeta.clear();

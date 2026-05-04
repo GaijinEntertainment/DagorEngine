@@ -42,6 +42,7 @@ struct ScreenSpaceProbes
   ~ScreenSpaceProbes();
   void afterReset();
   void resetHistoryAge();
+  void invalidateFrustum(const Frustum &invalid_frustum);
 
 protected:
   void calc_probes_back_colors();
@@ -63,6 +64,7 @@ protected:
   eastl::unique_ptr<ComputeShaderElement> clear_additional_screenspace_probes_count_cs, initial_probes_placement_cs,
     additional_probes_placement_cs, rearrange_additional_probes_placement_cs, dagi_probes_back_color_cs;
   eastl::unique_ptr<ComputeShaderElement> screenspace_probes_create_dispatch_indirect_cs;
+  eastl::unique_ptr<ComputeShaderElement> screenspace_probes_invalidate_cs;
   float additionalPlanesAllocation = 0.5; // over allocation, we probably need no more than 25%
 
   int radianceRes = 8, radianceTraceRes = 6;

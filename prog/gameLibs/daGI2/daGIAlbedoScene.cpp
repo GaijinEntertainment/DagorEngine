@@ -22,7 +22,6 @@ CONSOLE_INT_VAL("gi", gi_albedo_scene_update_from_gbuf_speed_count, 8192, 0, 256
 #define GLOBAL_VARS_LIST                                 \
   VAR(dagi_albedo_atlas_reg_no)                          \
   VAR(dagi_albedo_indirection__free_indices_list_reg_no) \
-  VAR(dagi_albedo_clipmap_update_old_lt)                 \
   VAR(dagi_albedo_scene_stable_update)                   \
   VAR(dagi_albedo_scene_update_count)                    \
   VAR(dagi_albedo_clipmap_update_lt_coord)               \
@@ -34,8 +33,7 @@ CONSOLE_INT_VAL("gi", gi_albedo_scene_update_from_gbuf_speed_count, 8192, 0, 256
   VAR(dagi_albedo_clipmap_sizei)                         \
   VAR(dagi_albedo_clipmap_sizei_np2)                     \
   VAR(dagi_albedo_inv_atlas_size_blocks_texels)          \
-  VAR(dagi_albedo_internal_block_size_tc_border)         \
-  VAR(dagi_albedo_atlas_samplerstate)
+  VAR(dagi_albedo_internal_block_size_tc_border)
 
 static ShaderVariableInfo dagi_albedo_clipmap_lt_coordVarId[DAGI_MAX_ALBEDO_CLIPS];
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -76,7 +74,7 @@ void DaGIAlbedoScene::afterReset()
   for (int i = 0; i < DAGI_MAX_ALBEDO_CLIPS; ++i)
     ShaderGlobal::set_int4(dagi_albedo_clipmap_lt_coordVarId[i], -1000000, 1000000, 10000000, bitwise_cast<uint32_t>(1e9f));
   validHistory = false;
-  clipmap.assign(clipmap.size(), Clip());
+  clipmap.assign(clipmap.size(), VoxelClip());
 }
 
 void DaGIAlbedoScene::close()
@@ -141,14 +139,13 @@ void DaGIAlbedoScene::init(uint8_t w, uint8_t d, uint8_t c, float voxel0, float 
     (DAGI_ALBEDO_INTERNAL_BLOCK_SIZE << (c - 1)) * w * voxel0, (DAGI_ALBEDO_INTERNAL_BLOCK_SIZE << (c - 1)) * w * voxel0,
     (DAGI_ALBEDO_INTERNAL_BLOCK_SIZE << (c - 1)) * d * voxel0, atlasInBlocksW, atlasInBlocksW, atlasInBlocksD, voxel0);
   dagi_albedo_atlas = dag::create_voltex(atlasW * DAGI_ALBEDO_BLOCK_SIZE, atlasW * DAGI_ALBEDO_BLOCK_SIZE,
-    atlasD * DAGI_ALBEDO_BLOCK_SIZE, TEXCF_UNORDERED | TEXCF_SRGBREAD, 1, "dagi_albedo_atlas"); //
-  ShaderGlobal::set_sampler(dagi_albedo_atlas_samplerstateVarId, d3d::request_sampler({}));
+    atlasD * DAGI_ALBEDO_BLOCK_SIZE, TEXCF_UNORDERED | TEXCF_SRGBREAD, 1, "dagi_albedo_atlas", RESTAG_DAGI2); //
   ShaderGlobal::set_int4(dagi_albedo_atlas_sizeiVarId, atlasInBlocksW - 1, atlasShiftInBlocks, atlasShiftInBlocks * 2, atlasInBlocksD);
-  ShaderGlobal::set_color4(dagi_albedo_inv_atlas_size_blocks_texelsVarId, 1.f / atlasW, 1.f / atlasD,
+  ShaderGlobal::set_float4(dagi_albedo_inv_atlas_size_blocks_texelsVarId, 1.f / atlasW, 1.f / atlasD,
     1.f / (atlasW * DAGI_ALBEDO_BLOCK_SIZE), 1.f / (atlasD * DAGI_ALBEDO_BLOCK_SIZE));
 
   const float usefulSpaceLinear = float(DAGI_ALBEDO_INTERNAL_BLOCK_SIZE) / DAGI_ALBEDO_BLOCK_SIZE;
-  ShaderGlobal::set_color4(dagi_albedo_internal_block_size_tc_borderVarId, usefulSpaceLinear / atlasW, usefulSpaceLinear / atlasD,
+  ShaderGlobal::set_float4(dagi_albedo_internal_block_size_tc_borderVarId, usefulSpaceLinear / atlasW, usefulSpaceLinear / atlasD,
     DAGI_ALBEDO_BORDER / (atlasW * DAGI_ALBEDO_BLOCK_SIZE), DAGI_ALBEDO_BORDER / (atlasD * DAGI_ALBEDO_BLOCK_SIZE));
 
   voxel0Size = voxel0;
@@ -162,10 +159,11 @@ void DaGIAlbedoScene::init(uint8_t w, uint8_t d, uint8_t c, float voxel0, float 
   const uint32_t atlasSize = atlasW * atlasW * atlasD;
   const uint32_t freeListSize = atlasSize + 1, updatedListSize = atlasSize + 1;
   dagi_albedo_indirection__free_indices_list = dag::create_sbuffer(sizeof(uint32_t), atlasOfs + freeListSize + updatedListSize,
-    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "dagi_albedo_indirection__free_indices_list");
+    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "dagi_albedo_indirection__free_indices_list",
+    RESTAG_DAGI2);
 
   dagi_albedo_indirect_args = dag::create_sbuffer(sizeof(uint32_t), 3, SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT, 0,
-    "dagi_albedo_indirect_args");
+    "dagi_albedo_indirect_args", RESTAG_DAGI2);
 
   debug("dagi_albedo_indirection__free_indices_list = freeListSize(%d) + atlasOfs(%d) + updatedListSize(%d)", freeListSize, atlasOfs,
     updatedListSize);
@@ -181,31 +179,25 @@ void DaGIAlbedoScene::init(uint8_t w, uint8_t d, uint8_t c, float voxel0, float 
 
 float DaGIAlbedoScene::getInternalBlockSizeClip(uint32_t clip) const { return voxel0Size * (DAGI_ALBEDO_INTERNAL_BLOCK_SIZE << clip); }
 
-bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t clip_no, const IPoint3 &lt, float newBlockSize)
+bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t clip_no, const Point3 &world_pos)
 {
   DA_PROFILE_GPU;
+
+  float blockSize = getInternalBlockSizeClip(clip_no);
   auto &clip = clipmap[clip_no];
-
-  carray<IBBox3, 6> changed;
-  const IPoint3 sz(clipW, clipW, clipD);
-  const float oldSz = clip.internalBlockSize;
-  const IPoint3 oldLt = (clip.internalBlockSize != newBlockSize) ? clip.lt - sz * 2 : clip.lt;
-  if (oldLt == lt)
+  auto changed = clip.updatePos<ALBEDO_MOVE_THRESHOLD>(world_pos, clipW, clipD, blockSize);
+  int changedCnt = changed.size();
+  if (changedCnt == 0)
     return false;
-  dag::Span<IBBox3> changedSpan(changed.data(), changed.size());
-  const int changedCnt = move_box_toroidal(lt, oldLt, sz, changedSpan);
-  clip.lt = lt;
-  clip.internalBlockSize = newBlockSize;
 
-  setClipVars(clip_no);
+  setClipVars(clip_no, blockSize);
   IBBox3 allBox;
   for (int ui = 0; ui < changedCnt; ++ui)
     allBox += changed[ui];
 
   const IPoint3 allSz = allBox.width();
   ShaderGlobal::set_int4(dagi_albedo_clipmap_update_box_ltVarId, allBox[0].x, allBox[0].y, allBox[0].z, clip_no);
-  ShaderGlobal::set_int4(dagi_albedo_clipmap_update_box_szVarId, allSz.x, allSz.y, allSz.z, bitwise_cast<uint32_t>(newBlockSize));
-  ShaderGlobal::set_int4(dagi_albedo_clipmap_update_old_ltVarId, oldLt.x, oldLt.y, oldLt.z, bitwise_cast<uint32_t>(oldSz));
+  ShaderGlobal::set_int4(dagi_albedo_clipmap_update_box_szVarId, allSz.x, allSz.y, allSz.z, bitwise_cast<uint32_t>(blockSize));
   // d3d::resource_barrier(
   //   {dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
 
@@ -254,10 +246,10 @@ bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t cl
   d3d::resource_barrier({dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | stageAll});
   d3d::resource_barrier({dagi_albedo_atlas.getVolTex(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | stageAll, 0, 0});
   validateClipmap("toroidal");
-  BBox3 worldBox{Point3::xzy(allBox[0]) * newBlockSize, Point3::xzy(allBox[1] + IPoint3(1, 1, 1)) * newBlockSize};
+  BBox3 worldBox{Point3::xzy(allBox[0]) * blockSize, Point3::xzy(allBox[1] + IPoint3(1, 1, 1)) * blockSize};
   uintptr_t handle = 0; // fixme
 
-  if (cb(worldBox, newBlockSize / DAGI_ALBEDO_INTERNAL_BLOCK_SIZE, handle) == UpdateAlbedoStatus::RENDERED)
+  if (cb(worldBox, blockSize / DAGI_ALBEDO_INTERNAL_BLOCK_SIZE, handle) == UpdateAlbedoStatus::RENDERED)
   {
     d3d::resource_barrier({dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_PIXEL | stageAll});
     d3d::resource_barrier({dagi_albedo_atlas.getVolTex(), RB_FLUSH_UAV | RB_SOURCE_STAGE_PIXEL | stageAll, 0, 0});
@@ -316,17 +308,17 @@ void DaGIAlbedoScene::validateClipmap(const char *n)
   }
 }
 
-void DaGIAlbedoScene::setClipVars(int clip_no) const
+void DaGIAlbedoScene::setClipVars(int clip_no, float internal_block_size) const
 {
   auto &clip = clipmap[clip_no];
   ShaderGlobal::set_int4(dagi_albedo_clipmap_lt_coordVarId[clip_no], clip.lt.x, clip.lt.y, clip.lt.z,
-    bitwise_cast<uint32_t>(clip.internalBlockSize));
+    bitwise_cast<uint32_t>(internal_block_size));
 #if DAGOR_DBGLEVEL > 0
   if (!is_pow_of2(clipW) || !is_pow_of2(clipD))
   {
     IPoint4 l = dagi_albedo_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.y)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.y ||
-        l.w < -clip.lt.z)
+    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
+        l.w < -clip.lt.y)
     {
       LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
     }
@@ -356,56 +348,25 @@ void DaGIAlbedoScene::initHistory()
   validHistory = true;
 }
 
-inline IPoint3 DaGIAlbedoScene::getNewClipLT(uint32_t clip, const Point3 &world_pos) const
-{
-  return ipoint3(floor(Point3::xzy(world_pos) / getInternalBlockSizeClip(clip) + 0.5)) - IPoint3(clipW, clipW, clipD) / 2;
-}
-
 bool DaGIAlbedoScene::update(const Point3 &world_pos, bool update_all, const dagi_albedo_rasterize_cb &cb)
 {
   if (!clipmap.size())
     return false;
   initHistory();
 
-  StaticTab<eastl::pair<int, Clip>, DAGI_MAX_ALBEDO_CLIPS> updatedClipmaps;
-  for (int i = clipmap.size() - 1; i >= 0; --i)
-  {
-    auto &clip = clipmap[i];
-    const IPoint3 lt = getNewClipLT(i, world_pos);
-    const IPoint3 move = lt - clip.lt, absMove = abs(move);
-    const float internalBlockSize = getInternalBlockSizeClip(i);
-    const int maxMove = max(max(absMove.x, absMove.y), absMove.z);
-    if (maxMove > ALBEDO_MOVE_THRESHOLD || clip.internalBlockSize != internalBlockSize)
-    {
-      IPoint3 useMove{0, 0, 0};
-      const Point3 relMove = div(point3(absMove), Point3(clipW, clipW, clipD));
-      if (clip.internalBlockSize != internalBlockSize ||      // everything has changed
-          max(max(relMove.x, relMove.y), relMove.z) >= 1.f || // we moved one axis in more than full direction
-          relMove.x + relMove.y + relMove.z >= 1) // trigger full update anyway, as we have moved enough. This decrease number of
-                                                  // spiked frames after teleport
-        useMove = move;
-      else if (absMove.x == maxMove)
-        useMove.x = move.x;
-      else if (absMove.y == maxMove)
-        useMove.y = move.y;
-      else
-        useMove.z = move.z;
-      updatedClipmaps.emplace_back(i, Clip{clip.lt + useMove, internalBlockSize});
-      if (!update_all)
-        break;
-    }
-  }
-
-  if (updatedClipmaps.empty())
-    return false;
   DA_PROFILE_GPU;
   setUAV(STAGE_PS);
   setUAV(STAGE_CS);
-  for (auto &clip : updatedClipmaps)
-    updateClip(cb, clip.first, clip.second.lt, clip.second.internalBlockSize);
+  bool updatedAny = false;
+  for (int i = clipmap.size() - 1; i >= 0; --i)
+  {
+    updatedAny |= updateClip(cb, i, world_pos);
+    if (updatedAny && !update_all)
+      break;
+  }
   resetUAV(STAGE_PS);
   resetUAV(STAGE_CS);
-  return true;
+  return updatedAny;
 }
 
 void DaGIAlbedoScene::fixBlocks()
@@ -485,4 +446,20 @@ void DaGIAlbedoScene::debugRenderScreen()
   if (!dagi_albedo_scene_debug.getElem())
     dagi_albedo_scene_debug.init("dagi_albedo_scene_debug");
   dagi_albedo_scene_debug.render();
+}
+
+void DaGIAlbedoScene::invalidateBox(const BBox3 &box)
+{
+  for (int clipNo = 0; clipNo < clipmap.size(); clipNo++)
+    clipmap[clipNo].invalidateBox(box, clipW, clipD, getInternalBlockSizeClip(clipNo));
+}
+
+bool DaGIAlbedoScene::isValid() const
+{
+  for (auto &clip : clipmap)
+  {
+    if (!clip.isValid())
+      return false;
+  }
+  return true;
 }

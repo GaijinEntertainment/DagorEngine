@@ -230,7 +230,6 @@ struct ResourceCompileResult
 {
   VkDescriptorType descriptorType;
   VkImageViewType imageViewType;
-  uint32_t registerBase;
   uint8_t missingIndex;
   CheckType checkType;
 };
@@ -256,7 +255,6 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
   else if (is<NodeOpTypeAccelerationStructureKHR>(valueType))
   {
     result.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-    result.registerBase = T_ACCELERATION_STRUCTURE_OFFSET;
     result.checkType = CheckType::AccelerationStructure;
     result.missingIndex = MISSING_TLAS_INDEX;
     return result;
@@ -276,7 +274,6 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
     if (imageType->dim == Dim::Buffer)
     {
       result.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-      result.registerBase = T_BUFFER_SAMPLED_IMAGE_OFFSET;
       result.missingIndex = MISSING_BUFFER_SAMPLED_IMAGE_INDEX;
     }
     else
@@ -284,7 +281,6 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
       result.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       if (!isDepthImage)
       {
-        result.registerBase = T_SAMPLED_IMAGE_OFFSET;
         if (imageType->dim == Dim::Dim2D)
         {
           if (!isArrayed)
@@ -306,7 +302,6 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
       }
       else
       {
-        result.registerBase = T_SAMPLED_IMAGE_OFFSET;
         if (imageType->dim == Dim::Dim2D)
         {
           if (!isArrayed)
@@ -333,13 +328,11 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
     if (imageType->dim == Dim::Buffer)
     {
       result.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
-      result.registerBase = U_BUFFER_IMAGE_OFFSET;
       result.missingIndex = MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX;
     }
     else
     {
       result.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      result.registerBase = U_IMAGE_OFFSET;
 
       if (imageType->dim == Dim::Dim2D)
       {
@@ -404,7 +397,6 @@ ResourceCompileResult compile_resource_image(const VariableToCompileInfo &info,
   {
     result.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
     result.missingIndex = MISSING_IS_FATAL_INDEX;
-    result.registerBase = T_INPUT_ATTACHMENT_OFFSET;
     result.checkType = CheckType::InputAttachment;
   }
 
@@ -423,7 +415,6 @@ ResourceCompileResult compile_resource_buffer(const VariableToCompileInfo &info,
   if (BufferKind::Uniform == kind)
   {
     result.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    result.registerBase = B_CONST_BUFFER_OFFSET;
     result.missingIndex = info.binding->bindingPoint.value == 0 ? FALLBACK_TO_C_GLOBAL_BUFFER : MISSING_CONST_BUFFER_INDEX;
     result.checkType = CheckType::ConstBuffer;
   }
@@ -432,15 +423,9 @@ ResourceCompileResult compile_resource_buffer(const VariableToCompileInfo &info,
     result.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     result.checkType = CheckType::Buffer;
     if (BufferKind::ReadOnlyStorage == kind)
-    {
-      result.registerBase = T_BUFFER_OFFSET;
       result.missingIndex = MISSING_BUFFER_INDEX;
-    }
     else
-    {
-      result.registerBase = U_BUFFER_OFFSET;
       result.missingIndex = MISSING_STORAGE_BUFFER_INDEX;
-    }
   }
   else
   {
@@ -477,14 +462,15 @@ void compile_separate_samplers(eastl::vector<TaggedSamplerBind> &samplers, Shade
       e_handler.onFatalError(err.c_str());
       return;
     }
-    header.inputAttachmentIndex[header.registerCount] = INVALID_INPUT_ATTACHMENT_INDEX;
-    header.descriptorTypes[header.registerCount] = VK_DESCRIPTOR_TYPE_SAMPLER;
-    header.imageViewTypes[header.registerCount] = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-    header.registerIndex[header.registerCount] = S_SAMPLER_OFFSET + sourceBindingIndex;
+    header.descriptorTypes[header.registerCount].set(VK_DESCRIPTOR_TYPE_SAMPLER);
+    header.registerToSlotMapping[header.registerCount].slot = sourceBindingIndex;
+    header.registerToSlotMapping[header.registerCount].type = EngineSlotMapping::REG_S;
+    header.slotToRegisterMapping[REGISTER_MAPPING_S_OFFSET + sourceBindingIndex] = header.registerCount;
     header.missingTableIndex[header.registerCount] = MISSING_IS_FATAL_INDEX;
-    uint32_t descTypeIndex = spirv::descrior_type_to_index(VK_DESCRIPTOR_TYPE_SAMPLER);
-    if (descTypeIndex < (sizeof(counter_info.descriptorCounts) / sizeof(counter_info.descriptorCounts[0])))
-      ++counter_info.descriptorCounts[descTypeIndex];
+    spirv::CompressedVkDescriptorType cdescType;
+    cdescType.set(VK_DESCRIPTOR_TYPE_SAMPLER);
+    if (cdescType.value < (sizeof(counter_info.descriptorCounts) / sizeof(counter_info.descriptorCounts[0])))
+      ++counter_info.descriptorCounts[cdescType.value];
     binding->bindingPoint.value = header.registerCount;
     ++header.registerCount;
     if (header.registerCount >= REGISTER_ENTRIES)
@@ -511,6 +497,8 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
     if (setv >= bindless::FIRST_DESCRIPTOR_SET_META_INDEX && setv <= bindless::MAX_DESCRIPTOR_SET_META_INDEX)
     {
       setv -= bindless::FIRST_DESCRIPTOR_SET_META_INDEX;
+      if (setv + 1 > header.bindlessSetsUsed)
+        header.bindlessSetsUsed = setv + 1;
       G_ASSERTF(setv <= bindless::MAX_DESCRIPTOR_SET_ACTUAL_INDEX, "unknown bindless descriptor set %u", setv);
       return;
     }
@@ -556,7 +544,28 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
     const int maxTbinding = REGISTER_ENTRIES * 3;
     fitsRegLimits &= sourceBindingIndex < T_REGISTER_INDEX_MAX;
     fitsRegLimits &= info.binding->bindingPoint.value < maxTbinding;
-    header.tRegisterUseMask |= 1u << sourceBindingIndex;
+    if (!info.inputAttachment)
+      header.tRegisterUseMask |= 1u << sourceBindingIndex;
+    uint64_t typeMaskBits = 0;
+    switch (resourceCompileInfo.checkType)
+    {
+      case CheckType::AccelerationStructure: typeMaskBits = ResourceTypeMask::AS; break;
+      case CheckType::Buffer: typeMaskBits = ResourceTypeMask::BUF; break;
+      case CheckType::BufferView: typeMaskBits = ResourceTypeMask::BUF_VIEW; break;
+      case CheckType::Image: typeMaskBits = ResourceTypeMask::IMG; break;
+      case CheckType::InputAttachment: break;
+      default:
+      {
+        eastl::string err;
+        PropertyName *name = find_property<PropertyName>(info.var);
+        err.sprintf("compileHeader: Unable to compute T resource mask for var %u, name: %s", info.var->resultId,
+          name ? name->name.c_str() : "<unknown>");
+        e_handler.onFatalError(err.c_str());
+        return;
+      }
+      break;
+    }
+    header.resTypeMask.t |= typeMaskBits << (sourceBindingIndex * ResourceTypeMask::BIT_COUNT);
   }
   else if (info.registerType == SourceRegisterType::U)
   {
@@ -565,12 +574,30 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
     fitsRegLimits &= sourceBindingIndex < U_REGISTER_INDEX_MAX;
     fitsRegLimits &= info.binding->bindingPoint.value < maxUbinding;
     header.uRegisterUseMask |= 1u << sourceBindingIndex;
+    uint64_t typeMaskBits = 0;
+    switch (resourceCompileInfo.checkType)
+    {
+      case CheckType::Buffer: typeMaskBits = ResourceTypeMask::BUF; break;
+      case CheckType::BufferView: typeMaskBits = ResourceTypeMask::BUF_VIEW; break;
+      case CheckType::Image: typeMaskBits = ResourceTypeMask::IMG; break;
+      default:
+      {
+        eastl::string err;
+        PropertyName *name = find_property<PropertyName>(info.var);
+        err.sprintf("compileHeader: Unable to compute U resource mask for var %u, name: %s", info.var->resultId,
+          name ? name->name.c_str() : "<unknown>");
+        e_handler.onFatalError(err.c_str());
+        return;
+      }
+      break;
+    }
+    header.resTypeMask.u |= typeMaskBits << (sourceBindingIndex * ResourceTypeMask::BIT_COUNT);
   }
   else
   {
     eastl::string err;
     PropertyName *name = find_property<PropertyName>(info.var);
-    err.sprintf("compileHeader: Unable to deduce source register (b, t or u) for var %u, name: %s",
+    err.sprintf("compileHeader: Unable to deduce source register (b, t or u) for var %u, name: %s", info.var->resultId,
       name ? name->name.c_str() : "<unknown>");
     e_handler.onFatalError(err.c_str());
     return;
@@ -587,25 +614,48 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
   }
 
   if (info.inputAttachment)
-    ++header.inputAttachmentCount;
-  header.inputAttachmentIndex[header.registerCount] =
-    info.inputAttachment ? (uint8_t)info.inputAttachment->attachmentIndex.value : INVALID_INPUT_ATTACHMENT_INDEX;
-
-  header.imageViewTypes[header.registerCount] = resourceCompileInfo.imageViewType;
-  header.registerIndex[header.registerCount] = resourceCompileInfo.registerBase + sourceBindingIndex;
-  header.missingTableIndex[header.registerCount] = resourceCompileInfo.missingIndex;
-
-  switch (resourceCompileInfo.checkType)
   {
-    case CheckType::Image: header.imageCheckIndices[header.imageCount++] = header.registerCount; break;
-    case CheckType::BufferView: header.bufferViewCheckIndices[header.bufferViewCount++] = header.registerCount; break;
-    case CheckType::Buffer: header.bufferCheckIndices[header.bufferCount++] = header.registerCount; break;
-    case CheckType::ConstBuffer: header.constBufferCheckIndices[header.constBufferCount++] = header.registerCount; break;
-    case CheckType::AccelerationStructure:
-      header.accelerationStructureCheckIndices[header.accelerationStructureCount++] = header.registerCount;
-      break;
-    default: break;
+    if (header.inputAttachmentCount >= T_INPUT_ATTACHMENT_INDEX_MAX)
+    {
+      eastl::string err;
+      PropertyName *name = find_property<PropertyName>(info.var);
+      err.sprintf("compileHeader: Too much input attachments (>%u) binding %u (raw %u) for var %u, name: %s",
+        T_INPUT_ATTACHMENT_INDEX_MAX, sourceBindingIndex, info.binding->bindingPoint.value, info.var->resultId,
+        name ? name->name.c_str() : "<unknown>");
+      e_handler.onFatalError(err.c_str());
+      return;
+    }
+    header.inputAttachmentIndexRegPairs[header.inputAttachmentCount] = {
+      (uint8_t)info.inputAttachment->attachmentIndex.value, (uint8_t)sourceBindingIndex};
+    ++header.inputAttachmentCount;
   }
+
+  header.registerToSlotMapping[header.registerCount].slot = sourceBindingIndex;
+  switch (info.registerType)
+  {
+    case SourceRegisterType::B:
+      header.slotToRegisterMapping[REGISTER_MAPPING_B_OFFSET + sourceBindingIndex] = header.registerCount;
+      header.registerToSlotMapping[header.registerCount].type = EngineSlotMapping::REG_B;
+      break;
+    case SourceRegisterType::T:
+      if (!info.inputAttachment)
+        header.slotToRegisterMapping[REGISTER_MAPPING_T_OFFSET + sourceBindingIndex] = header.registerCount;
+      header.registerToSlotMapping[header.registerCount].type = EngineSlotMapping::REG_T;
+      break;
+    case SourceRegisterType::U:
+      header.slotToRegisterMapping[REGISTER_MAPPING_U_OFFSET + sourceBindingIndex] = header.registerCount;
+      header.registerToSlotMapping[header.registerCount].type = EngineSlotMapping::REG_U;
+      break;
+    default:
+      eastl::string err;
+      PropertyName *name = find_property<PropertyName>(info.var);
+      err.sprintf("compileHeader: Unknown register type %u at binding %u (raw %u) for var %u, name: %s", info.registerType,
+        sourceBindingIndex, info.binding->bindingPoint.value, info.var->resultId, name ? name->name.c_str() : "<unknown>");
+      e_handler.onFatalError(err.c_str());
+      return;
+      break;
+  }
+  header.missingTableIndex[header.registerCount] = resourceCompileInfo.missingIndex;
 
   info.set->descriptorSet.value = d_set;
   info.binding->bindingPoint.value = header.registerCount;
@@ -639,10 +689,11 @@ void compile_resource(const VariableToCompileInfo &info, const eastl::vector<Nod
       resourceCompileInfo.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
   }
 
-  uint32_t descTypeIndex = spirv::descrior_type_to_index(resourceCompileInfo.descriptorType);
-  if (descTypeIndex < (sizeof(counter_info.descriptorCounts) / sizeof(counter_info.descriptorCounts[0])))
-    ++counter_info.descriptorCounts[descTypeIndex];
-  header.descriptorTypes[header.registerCount] = resourceCompileInfo.descriptorType;
+  spirv::CompressedVkDescriptorType cdescType;
+  cdescType.set(resourceCompileInfo.descriptorType);
+  if (cdescType.value < (sizeof(counter_info.descriptorCounts) / sizeof(counter_info.descriptorCounts[0])))
+    ++counter_info.descriptorCounts[cdescType.value];
+  header.descriptorTypes[header.registerCount].set(resourceCompileInfo.descriptorType);
 
   ++header.registerCount;
 }
@@ -654,8 +705,8 @@ void compile_descriptor_count_table(const CounterInfo &counter_info, ShaderHeade
     if (0 == counter_info.descriptorCounts[i])
       continue;
 
-    VkDescriptorPoolSize &target = header.descriptorCounts[header.descriptorCountsCount++];
-    target.type = descriptor_index_to_type(i);
+    CompressedVkDescriptorPoolSize &target = header.descriptorCounts[header.descriptorCountsCount++];
+    target.type.setIndex(i);
     target.descriptorCount = counter_info.descriptorCounts[i];
   }
 }
@@ -728,6 +779,8 @@ void find_all_combined_samplers(ModuleBuilder &builder, eastl::vector<VariableTo
 ShaderHeader spirv::compileHeader(ModuleBuilder &builder, CompileFlags flags, ErrorHandler &e_handler)
 {
   ShaderHeader result = {};
+
+  memset(result.slotToRegisterMapping, 0xFF, sizeof(result.slotToRegisterMapping));
 
   ExecutionModel execModel = ExecutionModel::Max;
   builder.enumerateEntryPoints([&](auto, auto em, auto, auto &) { execModel = em; });

@@ -11,13 +11,25 @@ namespace das {
     struct Feature {
         void *              data = nullptr;
         TypeInfo *          type = nullptr;
-        shared_ptr<Context> from;
+        Context *           from = nullptr;
+        shared_ptr<Context> fromShared;
         Feature() {}
-        __forceinline Feature ( void * d, TypeInfo * ti, Context * c) : data(d), type(ti), from(c ? c->shared_from_this() : nullptr) {}
+        __forceinline Feature ( void * d, TypeInfo * ti, Context * c) : data(d), type(ti) {
+            setFrom(c);
+        }
+        __forceinline void setFrom ( Context * c ) {
+            from = c;
+            if ( c && c->sharedPtrContext ) {
+                fromShared = c->shared_from_this();
+            } else {
+                fromShared.reset();
+            }
+        }
         __forceinline void clear() {
             data = nullptr;
             type = nullptr;
-            from.reset();
+            from = nullptr;
+            fromShared.reset();
         }
     };
 
@@ -33,7 +45,7 @@ namespace das {
         void peek ( TT && tt ) {
             lock_guard<mutex> guard(mCompleteMutex);
             if ( box.data ) {
-                tt(box.data, box.type, box.from.get());
+                tt(box.data, box.type, box.from);
             }
         }
     protected:
@@ -53,8 +65,10 @@ namespace das {
 
     typedef AtomicTT<int32_t> AtomicInt;
     typedef AtomicTT<int64_t> AtomicInt64;
+    using Atomic32 = AtomicTT<int32_t>;
+    using Atomic64 = AtomicTT<int64_t>;
 
-    class Channel : public JobStatus {
+    class DAS_API Channel : public JobStatus {
     public:
         Channel( Context * ctx ) : owner(ctx) {}
         Channel( Context * ctx, int count) : owner(ctx) { mRemaining = count; }
@@ -62,6 +76,8 @@ namespace das {
         void push ( void * data, TypeInfo * ti, Context * context );
         void pushBatch ( void ** data, int count, TypeInfo * ti, Context * context );
         void pop ( const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
+        bool tryPop ( const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
+        bool popWithTimeout ( int timeoutMs, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
         bool isEmpty() const;
         int total() const;
         Context * getOwner() { return owner; }
@@ -70,14 +86,14 @@ namespace das {
         void for_each_item ( TT && tt ) {
             lock_guard<mutex> guard(mCompleteMutex);
             for ( auto & f : pipe ) {
-                tt(f.data, f.type, f.from ? f.from.get() : owner);
+                tt(f.data, f.type, f.from ? f.from : owner);
             }
         }
         template <typename TT>
         void gather ( TT && tt ) {
             lock_guard<mutex> guard(mCompleteMutex);
             for ( auto & f : pipe ) {
-                tt(f.data, f.type, f.from ? f.from.get() : owner);
+                tt(f.data, f.type, f.from ? f.from : owner);
             }
             pipe.clear();
         }
@@ -85,7 +101,7 @@ namespace das {
         void gatherEx ( Context * ctx, TT && tt ) {
             lock_guard<mutex> guard(mCompleteMutex);
             for ( auto f = pipe.begin(); f != pipe.end(); ) {
-                auto itOwner = f->from ? f->from.get() : owner;
+                auto itOwner = f->from ? f->from : owner;
                 if ( itOwner == ctx ) {
                     tt(f->data, f->type, itOwner);
                     f = pipe.erase(f);
@@ -98,7 +114,7 @@ namespace das {
         void gather_and_forward ( Channel * that, TT && tt ) {
             lock_guard<mutex> guard(mCompleteMutex);
             for ( auto & f : pipe ) {
-                tt(f.data, f.type, f.from ? f.from.get() : owner);
+                tt(f.data, f.type, f.from ? f.from : owner);
             }
             lock_guard<mutex> guard2(that->mCompleteMutex);
             for ( auto & f : pipe ) {
@@ -114,51 +130,55 @@ namespace das {
         Context *           owner = nullptr;
     };
 
-    bool is_job_que_shutting_down();
-    void new_job_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
-    void new_thread_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
-    void withJobQue ( const TBlock<void> & block, Context * context, LineInfoArg * lineInfo );
-    int getTotalHwJobs( Context * context, LineInfoArg * at );
-    int getTotalHwThreads ();
-    void withJobStatus ( int32_t total, const TBlock<void,JobStatus *> & block, Context * context, LineInfoArg * lineInfo );
-    void jobStatusAddRef ( JobStatus * status, Context * context, LineInfoArg * at );
-    void jobStatusReleaseRef ( JobStatus * & status, Context * context, LineInfoArg * at );
-    JobStatus * jobStatusCreate( Context * context, LineInfoArg * );
-    void jobStatusRemove( JobStatus * & ch, Context * context, LineInfoArg * at );
-    void waitForJob ( JobStatus * status, Context * context, LineInfoArg * at );
-    void notifyJob ( JobStatus * status, Context * context, LineInfoArg * at );
-    void notifyAndReleaseJob ( JobStatus * & status, Context * context, LineInfoArg * at );
-    vec4f channelPush ( Context & context, SimNode_CallBase * call, vec4f * args );
-    vec4f channelPushBatch ( Context & context, SimNode_CallBase * call, vec4f * args );
-    void channelPop ( Channel * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
-    int jobAppend ( JobStatus * ch, int size, Context * context, LineInfoArg * at );
-    void withChannel ( const TBlock<void,Channel *> & blk, Context * context, LineInfoArg * lineinfo );
-    void withChannelEx ( int32_t count, const TBlock<void,Channel *> & blk, Context * context, LineInfoArg * lineinfo );
-    Channel* channelCreate( Context * context, LineInfoArg * at);
-    void channelRemove(Channel * & ch, Context * context, LineInfoArg * at);
-    void channelGather ( Channel * ch, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
-    void channelGatherEx ( Channel * ch, const TBlock<void,void *,const TypeInfo *,Context &> & blk, Context * context, LineInfoArg * at );
-    void channelGatherAndForward ( Channel * ch, Channel * toCh, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
-    void channelPeek ( Channel * ch, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
-    void channelVerify ( Channel * ch, Context * context, LineInfoArg * at );
-    LockBox * lockBoxCreate( Context *, LineInfoArg * );
-    void lockBoxRemove( LockBox * & ch, Context * context, LineInfoArg * at );
-    void withLockBox ( const TBlock<void,LockBox *> & blk, Context * context, LineInfoArg * at );
-    vec4f lockBoxSet ( Context & context, SimNode_CallBase * call, vec4f * args );
-    void lockBoxGet ( LockBox * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
-    void lockBoxUpdate ( LockBox * ch, TypeInfo * ti, const TBlock<void *,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API bool is_job_que_shutting_down();
+    DAS_API void new_job_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API void new_thread_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo );
+    DAS_API void withJobQue ( const TBlock<void> & block, Context * context, LineInfoArg * lineInfo );
+    DAS_API int getTotalHwJobs( Context * context, LineInfoArg * at );
+    DAS_API int getTotalHwThreads ();
+    DAS_API void withJobStatus ( int32_t total, const TBlock<void,JobStatus *> & block, Context * context, LineInfoArg * lineInfo );
+    DAS_API void jobStatusAddRef ( JobStatus * status, Context * context, LineInfoArg * at );
+    DAS_API void jobStatusReleaseRef ( JobStatus * & status, Context * context, LineInfoArg * at );
+    DAS_API JobStatus * jobStatusCreate( Context * context, LineInfoArg * );
+    DAS_API void jobStatusRemove( JobStatus * & ch, Context * context, LineInfoArg * at );
+    DAS_API void waitForJob ( JobStatus * status, Context * context, LineInfoArg * at );
+    DAS_API void notifyJob ( JobStatus * status, Context * context, LineInfoArg * at );
+    DAS_API void notifyAndReleaseJob ( JobStatus * & status, Context * context, LineInfoArg * at );
+    DAS_API vec4f channelPush ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API vec4f channelPushBatch ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API void channelPop ( Channel * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API bool channelTryPop ( Channel * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API bool channelPopWithTimeout ( Channel * ch, int32_t timeoutMs, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API int jobAppend ( JobStatus * ch, int size, Context * context, LineInfoArg * at );
+    DAS_API void withChannel ( const TBlock<void,Channel *> & blk, Context * context, LineInfoArg * lineinfo );
+    DAS_API void withChannelEx ( int32_t count, const TBlock<void,Channel *> & blk, Context * context, LineInfoArg * lineinfo );
+    DAS_API Channel* channelCreate( Context * context, LineInfoArg * at);
+    DAS_API void channelRemove(Channel * & ch, Context * context, LineInfoArg * at);
+    DAS_API void channelGather ( Channel * ch, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
+    DAS_API void channelGatherEx ( Channel * ch, const TBlock<void,void *,const TypeInfo *,Context &> & blk, Context * context, LineInfoArg * at );
+    DAS_API void channelGatherAndForward ( Channel * ch, Channel * toCh, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
+    DAS_API void channelPeek ( Channel * ch, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at );
+    DAS_API void channelVerify ( Channel * ch, Context * context, LineInfoArg * at );
+    DAS_API LockBox * lockBoxCreate( Context *, LineInfoArg * );
+    DAS_API void lockBoxRemove( LockBox * & ch, Context * context, LineInfoArg * at );
+    DAS_API void withLockBox ( const TBlock<void,LockBox *> & blk, Context * context, LineInfoArg * at );
+    DAS_API vec4f lockBoxSet ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API void lockBoxGet ( LockBox * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at );
+    DAS_API void lockBoxUpdate ( LockBox * ch, TypeInfo * ti, const TBlock<void *,void*> & blk, Context * context, LineInfoArg * at );
 
     template <typename TT>
     AtomicTT<TT> * atomicCreate( Context *, LineInfoArg * ) {
         auto ch = new AtomicTT<TT>();
+        ch->set(0);
         ch->addRef();
         return ch;
     }
 
     template <typename TT>
     void atomicRemove( AtomicTT<TT> * & ch, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "atomicRemove: atomic is null");
         if (!ch->isValid()) context->throw_error_at(at, "atomic is invalid (already deleted?)");
-        if (ch->releaseRef()) context->throw_error_at(at, "atomic beeing deleted while being used");
+        if (ch->releaseRef()) context->throw_error_at(at, "atomic being deleted while being used");
         delete ch;
         ch = nullptr;
     }
@@ -167,10 +187,11 @@ namespace das {
     void withAtomic ( const TBlock<void,AtomicTT<TT> *> & blk, Context * context, LineInfoArg * at ) {
         using TAtomic = AtomicTT<TT>;
         TAtomic ch;
+        ch.set(0);
         ch.addRef();
         das::das_invoke<void>::invoke<TAtomic *>(context, at, blk, &ch);
         if ( ch.releaseRef() ) {
-            context->throw_error_at(at, "atomic box beeing deleted while being used");
+            context->throw_error_at(at, "atomic box being deleted while being used");
         }
     }
 

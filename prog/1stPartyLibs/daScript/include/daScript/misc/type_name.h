@@ -5,6 +5,15 @@
 #include "daScript/misc/rangetype.h"
 
 namespace das {
+    template <typename T>
+    const char *debug_type_name() {
+#if defined(_MSC_VER)
+        return __FUNCSIG__;
+#else
+        return __PRETTY_FUNCTION__;
+#endif
+    }
+
 
     template <typename TT>
     struct typeName;
@@ -26,6 +35,9 @@ namespace das {
     template <> struct typeName<int32_t>  { constexpr static const char * name() { return "int"; } };
     template <> struct typeName<uint32_t> { constexpr static const char * name() { return "uint"; } };
     template <> struct typeName<Bitfield> { constexpr static const char * name() { return "bitfield"; } };
+    template <> struct typeName<Bitfield8> { constexpr static const char * name() { return "bitfield8"; } };
+    template <> struct typeName<Bitfield16> { constexpr static const char * name() { return "bitfield16"; } };
+    template <> struct typeName<Bitfield64> { constexpr static const char * name() { return "bitfield64"; } };
     template <> struct typeName<int8_t>   { constexpr static const char * name() { return "int8"; } };
     template <> struct typeName<uint8_t>  { constexpr static const char * name() { return "uint8"; } };
     template <> struct typeName<int16_t>  { constexpr static const char * name() { return "int16"; } };

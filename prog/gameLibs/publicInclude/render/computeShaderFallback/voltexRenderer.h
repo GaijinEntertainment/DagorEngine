@@ -39,7 +39,8 @@ public:
   bool initVoltex(TexHolderType &voltex, int w, int h, int d, int flags, int levels, const char *texname)
   {
     voltex.close();
-    voltex = dag::create_voltex(w, h, d, flags | (shaderCs ? TEXCF_UNORDERED : TEXCF_RTARGET), levels, texname);
+    voltex =
+      dag::create_voltex(w, h, d, flags | (shaderCs ? TEXCF_UNORDERED : TEXCF_RTARGET), levels, texname, RESTAG_VOLTEX_RENDERER);
     return (bool)voltex;
   }
 

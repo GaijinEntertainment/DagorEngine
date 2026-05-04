@@ -21,14 +21,12 @@
 #include <util/dag_fastStrMap.h>
 #include <util/dag_fastIntList.h>
 #include <util/dag_globDef.h>
+#include <util/dag_jobPool.h>
 #include <math/dag_e3dColor.h>
 #include <memory/dag_memStat.h>
 #include <perfMon/dag_statDrv.h>
 // #include <debug/dag_debug.h>
 
-static FastIntList tempList;
-static Tab<int> tempTab(tmpmem);
-static String tmpPath;
 static NullMsgPipe nullPipe;
 static bool get_split_not_sep_for_asset(DagorAsset *a);
 
@@ -56,11 +54,13 @@ DagorAssetMgr::~DagorAssetMgr()
 {
   clear();
   enableChangesTracker(false);
+  WriteGuard guard(mutex);
   del_it(sharedAssetNameMapOwner);
 }
 
 void DagorAssetMgr::clear()
 {
+  WriteGuard guard(mutex);
   for (int i = 0; i < perTypeExp.size(); i++)
     if (perTypeExp[i])
       perTypeExp[i]->onUnregister();
@@ -88,10 +88,6 @@ void DagorAssetMgr::clear()
     enableChangesTracker(true);
   }
 
-  clear_and_shrink(tempTab);
-  tempList.reset(true);
-  clear_and_shrink(tmpPath);
-
   defDxpPath = NULL;
   defGrpPath = NULL;
   locDefDxp = NULL;
@@ -104,6 +100,7 @@ void DagorAssetMgr::clear()
 
 IDagorAssetMsgPipe *DagorAssetMgr::setMsgPipe(IDagorAssetMsgPipe *pipe)
 {
+  WriteGuard guard(mutex);
   IDagorAssetMsgPipe *old = (msgPipe == &nullPipe) ? NULL : msgPipe;
   msgPipe = pipe ? pipe : &nullPipe;
   return old;
@@ -111,6 +108,7 @@ IDagorAssetMsgPipe *DagorAssetMgr::setMsgPipe(IDagorAssetMsgPipe *pipe)
 
 void DagorAssetMgr::setupAllowedTypes(const DataBlock &blk, const DataBlock *exp_blk)
 {
+  WriteGuard guard(mutex);
   int nid = blk.getNameId("type");
   for (int i = 0; i < blk.paramCount(); i++)
     if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
@@ -148,14 +146,173 @@ void DagorAssetMgr::setupAllowedTypes(const DataBlock &blk, const DataBlock *exp
   post_msg(*msgPipe, msgPipe->NOTE, "registered %d allowed asset types", typeNames.nameCount());
 }
 
+static bool asset_name_less(const char *a, const char *b)
+{
+  int cmp = stricmp(a, b);
+  if (cmp == 0)
+    cmp = strcmp(a, b);
+  return cmp < 0;
+}
+
+struct DagorAssetMgr::LoadedFolder
+{
+  Tab<DagorAssetPrivate *> assets;
+  Tab<LoadedFolder *> subFolders;
+  LoadedFolder *parent;
+  DagorAssetFolder *folder;
+  uint32_t subAssetCount = 0;
+
+  LoadedFolder(DagorAssetFolder *f, LoadedFolder *p) : folder(f), parent(p), assets(tmpmem), subFolders(tmpmem) {}
+
+  ~LoadedFolder()
+  {
+    G_ASSERT(assets.empty());
+    clear_all_ptr_items(assets);
+    clear_all_ptr_items(subFolders);
+    del_it(folder);
+  }
+
+  void addSub(LoadedFolder *sub_folder)
+  {
+    G_ASSERT(sub_folder);
+    G_ASSERT(!sub_folder->parent || sub_folder->parent == this);
+    sub_folder->parent = this;
+    subFolders.push_back(sub_folder);
+  }
+};
+
+struct DagorAssetMgr::LoadingPool : threadpool::JobPool
+{
+  Tab<LoadedFolder *> DAG_TS_GUARDED_BY(mutex) folders;
+
+  LoadingPool(int num_workers) : JobPool(num_workers), folders(tmpmem) { folders.reserve(1024); }
+
+  void addFolder(LoadedFolder *loaded)
+  {
+    OSSpinlockScopedLock guard(mutex);
+    folders.push_back(loaded);
+  }
+
+  void finish(DagorAssetMgr &mgr)
+  {
+    OSSpinlockScopedLock guard(mutex);
+    G_ASSERT(queue.empty());
+
+    uint32_t numFolders = 1;
+    for (int fi = folders.size() - 1; fi >= 0; fi--)
+    {
+      auto loaded = folders[fi];
+
+      // remove empty folders and count assets
+      for (int i = loaded->subFolders.size() - 1; i >= 0; i--)
+      {
+        LoadedFolder *sub = loaded->subFolders[i];
+        if (sub->assets.empty() && sub->subFolders.empty())
+        {
+          post_msg(*mgr.msgPipe, mgr.msgPipe->REMARK, "remove empty subtree %s", sub->folder->folderPath);
+          loaded->subFolders.erase_unsorted(loaded->subFolders.begin() + i);
+          delete sub;
+        }
+        else
+        {
+          loaded->subAssetCount += sub->assets.size() + sub->subAssetCount;
+          numFolders++;
+        }
+      }
+
+      // sort folders by name
+      eastl::sort(loaded->subFolders.begin(), loaded->subFolders.end(),
+        [](const LoadedFolder *a, const LoadedFolder *b) { return asset_name_less(a->folder->folderName, b->folder->folderName); });
+    }
+
+    WriteGuard mgrGuard(mgr.mutex);
+    mgr.folders.reserve(mgr.folders.size() + numFolders);
+  }
+};
+
+int DagorAssetMgr::addAssetNameId(const char *nm)
+{
+  WriteGuard guard(mutex);
+  auto prev_sz = assetNames.nameCount();
+  int id = assetNames.addNameId(nm);
+  if (id < prev_sz)
+  {
+    if (id >= tmpDupAssetNameMarks.size())
+      tmpDupAssetNameMarks.resize(id + 1);
+    tmpDupAssetNameMarks.set(id);
+  }
+  return id;
+}
+void DagorAssetMgr::addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded)
+{
+  if (!loaded)
+    return;
+  WriteGuard guard(mutex);
+
+  int fidx = folders.size();
+  folders.push_back(loaded->folder);
+  loaded->folder->parentIdx = parent_folder_idx;
+  G_ASSERT(perFolderStartAssetIdx.size() == fidx);
+  perFolderStartAssetIdx.push_back(assets.size());
+  folders[parent_folder_idx]->subFolderIdx.push_back(fidx);
+
+  dag::Span<DagorAssetPrivate *> loaded_assets = make_span((DagorAssetPrivate **)assets.data(), assets.size());
+  for (auto &ca : loaded->assets)
+    if (ca->getNameId() >= tmpDupAssetNameMarks.size() || !tmpDupAssetNameMarks.get(ca->getNameId()) ||
+        checkAssetNotDuplicated(static_cast<DagorAssetPrivate *&>(ca), folders[fidx], folders[fidx]->folderPath,
+          assetFileNames.getName(ca->getFileNameId()), ca->getType(), loaded_assets, nullptr))
+    {
+      ca->setFolder(fidx);
+      assets.push_back(ca);
+    }
+    else if (ca)
+      del_it(ca);
+
+  for (auto sub : loaded->subFolders)
+    addLoadedFolders(fidx, sub);
+
+  // clear stuff because we moved assets and db folder, and deleted loaded sub-folders
+  loaded->assets.clear();
+  loaded->subFolders.clear();
+  loaded->folder = nullptr;
+  delete loaded;
+}
+
 bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_space)
 {
   TIME_PROFILE(loadAssetsBase);
+  struct InitThreadPoolOnDemand
+  {
+    bool cpujobsInitedLocally = false;
+    bool threadpoolInitedLocally = false;
+    InitThreadPoolOnDemand(bool shared_nm)
+    {
+      if ((threadpoolInitedLocally = !shared_nm && threadpool::get_num_workers() == 0) != false)
+      {
+        if ((cpujobsInitedLocally = !cpujobs::is_inited()) != false)
+          cpujobs::init();
+        threadpool::init(eastl::min(cpujobs::get_core_count(), 16), 1024, 128 << 10);
+      }
+    }
+    ~InitThreadPoolOnDemand()
+    {
+      if (threadpoolInitedLocally)
+        threadpool::shutdown();
+      if (cpujobsInitedLocally)
+        cpujobs::term(true);
+    }
+  } init_threadpool_if_needed(sharedAssetNameMapOwner != nullptr);
+
   int64_t startTime = profile_ref_ticks();
-  int nsid = nspaceNames.addNameId(name_space);
+  int nsid;
+  {
+    WriteGuard guard(mutex);
+    nsid = nspaceNames.addNameId(name_space);
+  }
   size_t old_ptrs = dagor_memory_stat::get_memchunk_count(true);
   size_t old_mem = dagor_memory_stat::get_memory_allocated(true);
 
+  String tmpPath;
   tmpPath = assets_folder;
   dd_simplify_fname_c(tmpPath);
   tmpPath.resize(strlen(tmpPath) + 1);
@@ -163,20 +320,24 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
     erase_items(tmpPath, tmpPath.length() - 1, 1);
 
   assets_folder = NULL;
-  for (int i = baseRoots.size() - 1; i >= 0; i--)
-    if (dd_stricmp(baseRoots[i].folder, tmpPath) == 0)
-    {
-      if (baseRoots[i].nsId != nsid)
+  {
+    ReadGuard guard(mutex);
+    for (int i = baseRoots.size() - 1; i >= 0; i--)
+      if (dd_stricmp(baseRoots[i].folder, tmpPath) == 0)
       {
-        post_error(*msgPipe, "base already contains root <%s> marked as <%s>, not <%s>", baseRoots[i].folder.str(),
-          nspaceNames.getName(baseRoots[i].nsId), name_space);
-        return false;
+        if (baseRoots[i].nsId != nsid)
+        {
+          post_error(*msgPipe, "base already contains root <%s> marked as <%s>, not <%s>", baseRoots[i].folder.str(),
+            nspaceNames.getName(baseRoots[i].nsId), name_space);
+          return false;
+        }
+        assets_folder = baseRoots[i].folder;
+        break;
       }
-      assets_folder = baseRoots[i].folder;
-      break;
-    }
+  }
   if (!assets_folder)
   {
+    WriteGuard guard(mutex);
     RootEntryRec &r = baseRoots.push_back();
     r.folder = tmpPath;
     r.nsId = nsid;
@@ -185,22 +346,57 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
 
   post_msg(*msgPipe, msgPipe->NOTE, "loading asset base from %s%s...", assets_folder,
     sharedAssetNameMapOwner ? " [using shared namemap]" : "");
-  if (!folders.size())
+
   {
-    DagorAssetFolder *rf = new DagorAssetFolder(-1, "Root", NULL);
-    folders.push_back(rf);
-    perFolderStartAssetIdx.push_back(0);
+    WriteGuard guard(mutex);
+    if (!folders.size())
+    {
+      DagorAssetFolder *rf = new DagorAssetFolder(-1, "Root", NULL);
+      folders.push_back(rf);
+      perFolderStartAssetIdx.push_back(0);
+    }
   }
 
-  int err_count = msgPipe->getErrorCount();
-  int s_assets = assets.size();
+  int err_count;
+  int s_assets;
+  {
+    ReadGuard guard(mutex);
+    err_count = msgPipe->getErrorCount();
+    s_assets = assets.size();
+  }
   {
     TIME_PROFILE(loadAssets);
-    loadAssets(0, assets_folder, nsid);
+    LoadingPool jobPool(sharedAssetNameMapOwner ? 1 : 16);
+    auto f = new (midmem) DagorAssetFolder(0, ::dd_get_fname(assets_folder), assets_folder);
+    auto loaded = new (tmpmem) LoadedFolder(f, nullptr);
+    loadAssets(jobPool, loaded, nsid);
+    jobPool.stop();
+    jobPool.finish(*this);
+
+    WriteGuard guard(mutex);
+    assets.reserve(assets.size() + loaded->assets.size() + loaded->subAssetCount);
+    addLoadedFolders(0, loaded);
+  }
+  // tmpDupAssetNameMarks.clear(); // not needed after addLoadedFolders(), but loadAssetsBase() can be called several times
+
+  // dump loaded asset / folder order
+  if (0)
+  {
+    ReadGuard guard(mutex);
+    DataBlock mainBlk;
+    auto assetBlk = mainBlk.addBlock("assets");
+    for (const auto a : assets)
+      assetBlk->addStr("asset", a->getName());
+    auto folderBlk = mainBlk.addBlock("folders");
+    for (uint32_t i = 0, n = folders.size(); i < n; i++)
+      folderBlk->addInt(folders[i]->folderPath, perFolderStartAssetIdx[i]);
+    folderBlk->addInt("__end__", assets.size());
+    mainBlk.saveToTextFile("assetOrderDump.blk");
   }
 
   updateGlobUniqueFlags();
 
+  WriteGuard guard(mutex);
   bool loaded_ok = true;
   if (msgPipe->getErrorCount() > err_count)
     loaded_ok = false;
@@ -395,7 +591,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
             continue;
           }
 
-        int id = assetNames.addNameId(String(0, "%s$hq", assets[i]->getName()));
+        int id = addAssetNameId(String(0, "%s$hq", assets[i]->getName()));
         if (id < 0)
         {
           logerr("can't split %s", assets[i]->getName());
@@ -458,8 +654,8 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
             get_split_not_sep_for_asset(assets[i]))
         {
           ca->props.setStr("forcePackage", asset_pkg ? asset_pkg : "*");
-          if (const char *pk = assets[i]->getDestPackName(false, true, false))
-            ca->props.setStr("ddsxTexPack", String(0, "%s-hq", pk));
+          if (String pk = assets[i]->getDestPackName(false, true, false); !pk.empty())
+            ca->props.setStr("ddsxTexPack", String(0, "%s-hq", pk.str()));
         }
         else if ((asset_pkg && strcmp(asset_pkg, basePkg) != 0) && pkg_suff)
           ca->props.setStr("forcePackage", String(0, "%s%s", asset_pkg, pkg_suff));
@@ -468,8 +664,8 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
         else
         {
           ca->props.removeParam("forcePackage");
-          if (const char *pk = assets[i]->getDestPackName(false, true, false))
-            ca->props.setStr("ddsxTexPack", String(0, "%s-hq"));
+          if (String pk = assets[i]->getDestPackName(false, true, false); !pk.empty())
+            ca->props.setStr("ddsxTexPack", String(0, "%s-hq", pk.str()));
         }
         ca->props.compact();
 
@@ -515,7 +711,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
     for (int i = s_assets; i < pre_hq_split_assets_count; i++)
       if (assets[i]->getType() == texAssetType && !assets[i]->props.getBool("splitHigh", false))
       {
-        int id = assetNames.addNameId(String(0, "%s$tq", assets[i]->getName()));
+        int id = addAssetNameId(String(0, "%s$tq", assets[i]->getName()));
         if (id < 0)
         {
           logerr("can't split %s", assets[i]->getName());
@@ -569,6 +765,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
 
 bool DagorAssetMgr::startMountAssetsDirect(const char *folder_name, int parent_folder_idx)
 {
+  WriteGuard guard(mutex);
   if (!folders.size())
   {
     parent_folder_idx = folders.size();
@@ -587,6 +784,8 @@ bool DagorAssetMgr::startMountAssetsDirect(const char *folder_name, int parent_f
 
 void DagorAssetMgr::updateGlobUniqueFlags()
 {
+  WriteGuard guard(mutex);
+  Tab<int> tempTab(tmpmem);
   tempTab.resize(assetNames.nameCount());
   mem_set_0(tempTab);
   for (int i = 0; i < assets.size(); i++)
@@ -598,25 +797,27 @@ void DagorAssetMgr::updateGlobUniqueFlags()
 
 DagorAsset *DagorAssetMgr::loadAssetDirect(const char *folder, const char *file_name)
 {
+  WriteGuard guard(mutex);
   DagorAssetFolder *f = new DagorAssetFolder(-1, ::dd_get_fname(folder), folder);
   DagorAssetPrivate *ca = NULL;
   DataBlock folders_blk;
   int start_rule_idx = 0;
 
   // read and apply .folder.blk
+  String tmpPath;
   tmpPath.printf(260, "%s/.folder.blk", folder);
   {
     FullFileLoadCB crd(tmpPath, DF_READ | DF_IGNORE_MISSING);
     if (crd.fileHandle)
     {
       if (folders_blk.loadFromStream(crd, tmpPath, crd.getTargetDataSize()))
-        readFoldersBlk(*f, folders_blk);
+        readFoldersBlk(*f, nullptr, folders_blk);
       else
         post_error(*msgPipe, "error loading %s", tmpPath.str());
     }
   }
 
-  if (addAsset(folder, file_name, -1, ca, f, -1, start_rule_idx, false))
+  if (addAsset(folder, file_name, -1, ca, f, nullptr, start_rule_idx, false))
   {
     delete f;
     return ca;
@@ -629,6 +830,7 @@ DagorAsset *DagorAssetMgr::loadAssetDirect(const char *folder, const char *file_
 
 DagorAsset *DagorAssetMgr::makeAssetDirect(const char *asset_name, const DataBlock &props, int atype)
 {
+  WriteGuard guard(mutex);
   int fidx = folders.size() - 1;
   if (!folders.size())
   {
@@ -638,7 +840,7 @@ DagorAsset *DagorAssetMgr::makeAssetDirect(const char *asset_name, const DataBlo
   }
 
   DagorAssetPrivate *ca = new DagorAssetPrivate(*this);
-  ca->setNames(assetNames.addNameId(asset_name), -1, true);
+  ca->setNames(addAssetNameId(asset_name), -1, true);
   ca->setAssetData(fidx, assetFileNames.addNameId(asset_name), atype);
   ca->props = props;
   assets.push_back(ca);
@@ -647,49 +849,80 @@ DagorAsset *DagorAssetMgr::makeAssetDirect(const char *asset_name, const DataBlo
   return ca;
 }
 
-void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nspace_id)
+void DagorAssetMgr::loadAssets(LoadingPool &job_pool, LoadedFolder *loaded, int nspace_id)
 {
-  DagorAssetFolder *f;
-  DataBlock folders_blk;
-  DagorAssetPrivate *ca = NULL;
-
-  // create folder
-  f = new DagorAssetFolder(parent_fidx, ::dd_get_fname(folder_path), folder_path);
-  int fidx = folders.size();
-  folders.push_back(f);
-  G_ASSERT(perFolderStartAssetIdx.size() == fidx);
-  perFolderStartAssetIdx.push_back(assets.size());
+  job_pool.addFolder(loaded);
+  const char *folder_path = loaded->folder->folderPath;
+  auto f = loaded->folder;
 
   // read and apply .folder.blk
+  String tmpPath;
   tmpPath.printf(260, "%s/.folder.blk", folder_path);
   {
     FullFileLoadCB crd(tmpPath, DF_READ | DF_IGNORE_MISSING);
     if (crd.fileHandle)
     {
+      DataBlock folders_blk;
       if (folders_blk.loadFromStream(crd, tmpPath, crd.getTargetDataSize()))
-        readFoldersBlk(*f, folders_blk);
+        readFoldersBlk(*f, loaded->parent ? loaded->parent->folder : nullptr, folders_blk);
       else
         post_error(*msgPipe, "error loading %s", tmpPath.str());
     }
   }
 
+  // scan folder once, building lists, to avoid holding finder resources
+  Tab<SimpleString> fileNames(tmpmem);
+
+  if ((f->flags & f->FLG_SCAN_FOLDERS) == 0)
+    post_msg(*msgPipe, msgPipe->REMARK, "skip scanning folders in %s", folder_path);
+  if ((f->flags & f->FLG_SCAN_ASSETS) == 0)
+    post_msg(*msgPipe, msgPipe->REMARK, "skip scanning assets in %s", folder_path);
+
+  if (f->flags & (f->FLG_SCAN_FOLDERS | f->FLG_SCAN_ASSETS))
+  {
+    tmpPath.printf(260, "%s/*", folder_path);
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE | DA_SUBDIR))
+    {
+      if (ff.attr & DA_SUBDIR)
+      {
+        if ((f->flags & f->FLG_SCAN_FOLDERS) == 0)
+          continue;
+        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
+          continue;
+
+        auto path = String(260, "%s/%s", folder_path, ff.name);
+        auto sf = new (midmem) DagorAssetFolder(-1, ff.name, path);
+        auto sub = new (tmpmem) LoadedFolder(sf, loaded);
+        loaded->addSub(sub);
+      }
+      else
+      {
+        if ((f->flags & f->FLG_SCAN_ASSETS) == 0)
+          continue;
+        if (ff.name[0] == '.')
+          continue;
+        fileNames.emplace_back(ff.name);
+      }
+    }
+  }
+
+  eastl::sort(fileNames.begin(), fileNames.end(), [](const auto &a, const auto &b) { return asset_name_less(a, b); });
+
   if (f->flags & f->FLG_SCAN_ASSETS)
   {
     // scan for assets (*.res.bljk, *.blk, *.*)
+    DagorAssetPrivate *ca = nullptr;
     tmpPath.printf(260, "%s/*", folder_path);
-    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
+    for (const auto &fileName : fileNames)
     {
-      if (ff.name[0] == '.')
-        continue;
-
-      DagorAssetFolder *va_f = f;
+      LoadedFolder *va_f = loaded;
 
     check_virtual_asset_rules:
       int s_rule_idx = 0;
       do
-        while (addAsset(folder_path, ff.name, nspace_id, ca, va_f, fidx, s_rule_idx, true))
+        while (addAsset(folder_path, fileName.c_str(), nspace_id, ca, va_f->folder, loaded, s_rule_idx, true))
         {
-          assets.push_back(ca);
+          loaded->assets.push_back(ca);
           ca = NULL;
           if (s_rule_idx == -1)
             goto end_check_rules;
@@ -699,10 +932,10 @@ void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nsp
       if (s_rule_idx == -2)
         goto end_check_rules;
 
-      while ((va_f->flags & va_f->FLG_INHERIT_RULES) && va_f->parentIdx != -1)
+      while ((va_f->folder->flags & DagorAssetFolder::FLG_INHERIT_RULES) && va_f->parent != nullptr)
       {
-        va_f = folders[va_f->parentIdx];
-        if (va_f->vaRuleCount)
+        va_f = va_f->parent;
+        if (va_f->folder->vaRuleCount)
           goto check_virtual_asset_rules;
       }
 
@@ -711,52 +944,28 @@ void DagorAssetMgr::loadAssets(int parent_fidx, const char *folder_path, int nsp
     if (ca)
       delete ca;
   }
-  else
-    post_msg(*msgPipe, msgPipe->REMARK, "skip scanning assets in %s", folder_path);
 
-  if (f->flags & f->FLG_SCAN_FOLDERS)
+  // start sub-folder jobs
+  for (uint32_t i = 0, n = loaded->subFolders.size(); i < n; i++)
   {
-    // scan for sub-folders
-    tmpPath.printf(260, "%s/*", folder_path);
-    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
-    {
-      if (ff.attr & DA_SUBDIR)
-      {
-        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0)
-          continue;
-
-        loadAssets(fidx, String(260, "%s/%s", folder_path, ff.name), nspace_id);
-      }
-    }
-  }
-  else
-    post_msg(*msgPipe, msgPipe->REMARK, "skip scanning folders in %s", folder_path);
-
-  // check empty subtree
-  if (assets.size() > perFolderStartAssetIdx[fidx])
-    folders[parent_fidx]->subFolderIdx.push_back(fidx);
-  else
-  {
-    post_msg(*msgPipe, msgPipe->REMARK, "remove empty subtree %s", folder_path);
-    erase_ptr_items(folders, fidx, folders.size() - fidx);
-    perFolderStartAssetIdx.resize(fidx);
+    auto sub = loaded->subFolders[i];
+    job_pool.add([this, sub, nspace_id, &job_pool] { loadAssets(job_pool, sub, nspace_id); });
   }
 }
 
 bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nspace_id, DagorAssetPrivate *&ca, DagorAssetFolder *f,
-  int fidx, int &start_rule_idx, bool reg)
+  LoadedFolder *loaded, int &start_rule_idx, bool reg)
 {
   bool asset_load_success = false;
   int asset_name_id = -1, asset_type = -1;
-  bool ignore_duplicate_asset = false;
-  bool override_duplicate_asset = false;
 
+  String tmpPath;
   if (trail_stricmp(fname, ".res.blk"))
   {
     start_rule_idx = -1;
     tmpPath = fname;
     erase_items(tmpPath, tmpPath.length() - 8, 8);
-    asset_name_id = assetNames.addNameId(tmpPath);
+    asset_name_id = addAssetNameId(tmpPath);
 
     if (!ca)
       ca = new DagorAssetPrivate(*this);
@@ -765,6 +974,7 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
 
     if (asset_load_success)
     {
+      ReadGuard guard(mutex);
       const char *type_name = ca->props.getStr("className", NULL);
       asset_type = type_name ? typeNames.getNameId(type_name) : -1;
 
@@ -786,7 +996,7 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
     start_rule_idx = -1;
     tmpPath = fname;
     erase_items(tmpPath, p - fname, fname + tmpPath.length() - p);
-    asset_name_id = assetNames.addNameId(tmpPath);
+    asset_name_id = addAssetNameId(tmpPath);
 
     if (!ca)
       ca = new DagorAssetPrivate(*this);
@@ -795,6 +1005,7 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
 
     if (asset_load_success)
     {
+      ReadGuard guard(mutex);
       tmpPath = p + 1;
       erase_items(tmpPath, tmpPath.length() - 4, 4);
       asset_type = typeNames.getNameId(tmpPath);
@@ -809,16 +1020,21 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
   else
   process_va_rules:
     for (int i = start_rule_idx; i < f->vaRuleCount; i++)
-      if (vaRule[f->startVaRuleIdx + i]->testRule(fname, tmpPath))
+    {
+      DagorVirtualAssetRule *rule;
       {
-        asset_name_id = assetNames.addNameId(tmpPath);
-        ignore_duplicate_asset = vaRule[f->startVaRuleIdx + i]->shouldIgnoreDuplicateAsset();
-        override_duplicate_asset = vaRule[f->startVaRuleIdx + i]->shouldOverrideDuplicateAsset();
+        ReadGuard guard(mutex);
+        rule = vaRule[f->startVaRuleIdx + i];
+      }
+      OSSpinlockScopedLock ruleGuard(rule->mutex);
+      if (rule->testRule(fname, folder_path, tmpPath))
+      {
+        asset_name_id = addAssetNameId(tmpPath);
 
         if (!ca)
           ca = new DagorAssetPrivate(*this);
 
-        if (vaRule[f->startVaRuleIdx + i]->shouldAddSrcBlk())
+        if (rule->shouldAddSrcBlk())
         {
           tmpPath.printf(260, "%s/%s", folder_path, fname);
           asset_load_success = ca->loadResBlk(asset_name_id, tmpPath, nspace_id);
@@ -831,12 +1047,12 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
 
         if (asset_load_success)
         {
-          ca->setNames(asset_name_id, nspace_id, true);
-          vaRule[f->startVaRuleIdx + i]->applyRule(ca->props, String(0, "%s/%s", folder_path, fname));
+          ca->setNames(asset_name_id, nspace_id, true, i);
+          rule->applyRule(ca->props, String(0, "%s/%s", folder_path, fname));
           ca->props.compact();
 
           const char *type_name = ca->props.getStr("className", NULL);
-          const char *type_name2 = vaRule[f->startVaRuleIdx + i]->getTypeName();
+          const char *type_name2 = rule->getTypeName();
           if (type_name && type_name2)
           {
             if (stricmp(type_name, type_name2) != 0)
@@ -851,6 +1067,7 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
           else if (type_name2)
             type_name = type_name2;
 
+          ReadGuard guard(mutex);
           asset_type = type_name ? typeNames.getNameId(type_name) : -1;
 
           if (asset_type < 0)
@@ -858,9 +1075,10 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
               ca->getName());
         }
 
-        start_rule_idx = vaRule[f->startVaRuleIdx + i]->shouldStopProcessing() ? -1 : i + 1;
+        start_rule_idx = rule->shouldStopProcessing() ? -1 : i + 1;
         break;
       }
+    }
 
   if (asset_name_id < 0)
     start_rule_idx = -1;
@@ -869,83 +1087,120 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
   {
     if (!reg)
     {
-      ca->setAssetData(fidx, assetFileNames.addNameId(fname), asset_type);
+      WriteGuard guard(mutex);
+      ca->setAssetData(-1, assetFileNames.addNameId(fname), asset_type);
       return true;
     }
 
-    if (perTypeNameIds[asset_type].addInt(asset_name_id))
+    bool added;
     {
-      ca->setAssetData(fidx, assetFileNames.addNameId(fname), asset_type);
+      WriteGuard guard(mutex);
+      added = perTypeNameIds[asset_type].addInt(asset_name_id);
+    }
+    if (added)
+    {
+      WriteGuard guard(mutex);
+      ca->setAssetData(-1, assetFileNames.addNameId(fname), asset_type);
       return true;
     }
-    else
-    {
-      int pa_idx = -1;
-      for (int i = assets.size() - 1; i >= 0; i--)
-        if (assets[i]->getNameId() == asset_name_id && assets[i]->getType() == asset_type)
-        {
-          pa_idx = i;
-          break;
-        }
-
-      G_ASSERT(pa_idx != -1);
-      if (!assets[pa_idx]->isVirtual() && ca->isVirtual() && assets[pa_idx]->getFolderIndex() == fidx)
-      {
-        if (start_rule_idx == -1)
-          start_rule_idx = -2;
-        return false;
-      }
-
-      if (assets[pa_idx]->isVirtual() && !ca->isVirtual() && assets[pa_idx]->getFolderIndex() == fidx)
-      {
-        DagorAssetPrivate *tmp = (DagorAssetPrivate *)assets[pa_idx];
-        ca->setAssetData(fidx, assetFileNames.addNameId(fname), asset_type);
-        /*
-        SimpleString tgt1(ca->getTargetFilePath());
-        SimpleString tgt2(tmp->getTargetFilePath());
-        if (stricmp(tgt1, tgt2) != 0)
-          post_msg_a(*msgPipe, msgPipe->WARNING, ca,
-            "explicit asset  %s of type <%s> doesn't point to the same target as virtual asset\n"
-            "<%s> != <%s>",
-            assetNames.getName(asset_name_id), typeNames.getName(asset_type),
-            tgt1.str(), tgt2.str());
-        */
-
-        assets[pa_idx] = ca;
-        ca = tmp;
-        if (start_rule_idx == -1)
-          start_rule_idx = -2;
-        return false;
-      }
-      if (assets[pa_idx]->isVirtual() && ca->isVirtual() && assets[pa_idx]->getFolderIndex() == fidx && ignore_duplicate_asset)
-        return false;
-      if (assets[pa_idx]->isVirtual() && ca->isVirtual() && assets[pa_idx]->getFolderIndex() == fidx && override_duplicate_asset)
-      {
-        DagorAssetPrivate *tmp = (DagorAssetPrivate *)assets[pa_idx];
-        ca->setAssetData(fidx, assetFileNames.addNameId(fname), asset_type);
-
-        assets[pa_idx] = ca;
-        ca = tmp;
-        if (start_rule_idx == -1)
-          start_rule_idx = -2;
-        return false;
-      }
-
-      post_error_f(*msgPipe, folder_path, fname,
-        "duplicate %s asset %s of type <%s>,"
-        " existing is %s asset from %s",
-        ca->isVirtual() ? "virtual" : "BLK", assetNames.getName(asset_name_id), typeNames.getName(asset_type),
-        assets[pa_idx]->isVirtual() ? "virtual" : "BLK", assets[pa_idx]->getSrcFilePath());
-    }
+    G_ASSERT(loaded);
+    return checkAssetNotDuplicated(ca, f, folder_path, fname, asset_type, make_span(loaded->assets), &start_rule_idx);
   }
   return false;
 }
+bool DagorAssetMgr::checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFolder *f, const char *folder_path, const char *fname,
+  int asset_type, dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx)
+{
+  int asset_name_id = ca->getNameId();
+  int pa_idx = -1;
+  for (int i = loaded_assets.size() - 1; i >= 0; i--)
+    if (loaded_assets[i]->getNameId() == asset_name_id && loaded_assets[i]->getType() == asset_type)
+    {
+      pa_idx = i;
+      break;
+    }
 
-void DagorAssetMgr::readFoldersBlk(DagorAssetFolder &f, const DataBlock &blk)
+  if (pa_idx == -1)
+  {
+    WriteGuard guard(mutex);
+    ca->setAssetData(-1, assetFileNames.addNameId(fname), asset_type);
+    return true;
+  }
+
+  if (!loaded_assets[pa_idx]->isVirtual() && ca->isVirtual())
+  {
+    if (!start_rule_idx)
+      del_it(ca);
+    else if (*start_rule_idx == -1)
+      *start_rule_idx = -2;
+    return false;
+  }
+
+  if (loaded_assets[pa_idx]->isVirtual() && !ca->isVirtual())
+  {
+    DagorAssetPrivate *tmp = loaded_assets[pa_idx];
+    {
+      WriteGuard guard(mutex);
+      ca->setAssetData(-1, assetFileNames.addNameId(fname), asset_type);
+    }
+    /*
+    SimpleString tgt1(ca->getTargetFilePath());
+    SimpleString tgt2(tmp->getTargetFilePath());
+    if (stricmp(tgt1, tgt2) != 0)
+      post_msg_a(*msgPipe, msgPipe->WARNING, ca,
+        "explicit asset  %s of type <%s> doesn't point to the same target as virtual asset\n"
+        "<%s> != <%s>",
+        assetNames.getName(asset_name_id), typeNames.getName(asset_type),
+        tgt1.str(), tgt2.str());
+    */
+
+    loaded_assets[pa_idx] = ca;
+    ca = tmp;
+    if (!start_rule_idx)
+      del_it(ca);
+    else if (*start_rule_idx == -1)
+      *start_rule_idx = -2;
+    return false;
+  }
+  unsigned rule_idx = ca->getRuleIdx();
+  bool ignore_duplicate_asset = false, override_duplicate_asset = false;
+  if (ca->isVirtual() && rule_idx < f->vaRuleCount)
+  {
+    ReadGuard guard(mutex);
+    ignore_duplicate_asset = vaRule[f->startVaRuleIdx + rule_idx]->shouldIgnoreDuplicateAsset();
+    override_duplicate_asset = vaRule[f->startVaRuleIdx + rule_idx]->shouldOverrideDuplicateAsset();
+  }
+  if (loaded_assets[pa_idx]->isVirtual() && ca->isVirtual() && ignore_duplicate_asset)
+    return false;
+  if (loaded_assets[pa_idx]->isVirtual() && ca->isVirtual() && override_duplicate_asset)
+  {
+    DagorAssetPrivate *tmp = loaded_assets[pa_idx];
+    {
+      WriteGuard guard(mutex);
+      ca->setAssetData(-1, assetFileNames.addNameId(fname), asset_type);
+    }
+
+    loaded_assets[pa_idx] = ca;
+    ca = tmp;
+    if (!start_rule_idx)
+      del_it(ca);
+    else if (*start_rule_idx == -1)
+      *start_rule_idx = -2;
+    return false;
+  }
+
+  ReadGuard guard(mutex);
+  post_error_f(*msgPipe, folder_path, fname, "duplicate %s asset %s of type <%s>, existing is %s asset from %s/%s",
+    ca->isVirtual() ? "virtual" : "BLK", assetNames.getName(asset_name_id), typeNames.getName(asset_type),
+    loaded_assets[pa_idx]->isVirtual() ? "virtual" : "BLK", folder_path, loaded_assets[pa_idx]->getSrcFileName());
+  return false;
+}
+
+void DagorAssetMgr::readFoldersBlk(DagorAssetFolder &f, DagorAssetFolder *parent, const DataBlock &blk)
 {
   if (blk.getBool("inherit_flags", false))
-    if (f.parentIdx != -1)
-      f.flags = folders[f.parentIdx]->flags;
+    if (parent)
+      f.flags = parent->flags;
 
   if (blk.getBool("exported", true))
     f.flags |= f.FLG_EXPORT_ASSETS;
@@ -971,7 +1226,7 @@ void DagorAssetMgr::readFoldersBlk(DagorAssetFolder &f, const DataBlock &blk)
   f.exportProps.compact();
 
   int vrb_nid = blk.getNameId("virtual_res_blk");
-  int start_rule_idx = vaRule.size();
+  Tab<DagorVirtualAssetRule *> rules(tmpmem);
 
   for (int i = 0; i < blk.blockCount(); i++)
     if (blk.getBlock(i)->getBlockNameId() == vrb_nid)
@@ -979,8 +1234,7 @@ void DagorAssetMgr::readFoldersBlk(DagorAssetFolder &f, const DataBlock &blk)
       DagorVirtualAssetRule *vr = new (midmem) DagorVirtualAssetRule(getSharedNm());
       if (vr->load(*blk.getBlock(i), *msgPipe))
       {
-        vaRule.push_back(vr);
-        f.vaRuleCount++;
+        rules.push_back(vr);
       }
       else
       {
@@ -989,8 +1243,13 @@ void DagorAssetMgr::readFoldersBlk(DagorAssetFolder &f, const DataBlock &blk)
       }
     }
 
-  if (f.vaRuleCount)
-    f.startVaRuleIdx = start_rule_idx;
+  if (!rules.empty())
+  {
+    WriteGuard guard(mutex);
+    f.startVaRuleIdx = vaRule.size();
+    f.vaRuleCount = rules.size();
+    vaRule.insert(vaRule.end(), rules.cbegin(), rules.cend());
+  }
 }
 
 static void save_asset_props_stripped(const DataBlock &blk, IGenSave &cwr, bool is_tex_asset)
@@ -1023,6 +1282,7 @@ static void save_asset_props_stripped(const DataBlock &blk, IGenSave &cwr, bool 
 
 bool DagorAssetMgr::saveAssetsMetadata(int folder_idx)
 {
+  ReadGuard guard(mutex);
   if (folder_idx < -1 || folder_idx >= (int)folders.size())
   {
     post_error(*msgPipe, "invalid folder idx=%d in saveAssetsMetadata", folder_idx);
@@ -1039,6 +1299,7 @@ bool DagorAssetMgr::saveAssetMetadata(DagorAsset &a)
   if (a.isVirtual())
     return false;
 
+  ReadGuard guard(mutex);
   int f_idx0 = -1, f_idx1 = -1, idx = -1;
   getFolderAssetIdxRange(a.getFolderIndex(), f_idx0, f_idx1);
   if (f_idx0 >= 0 && f_idx0 < f_idx1)
@@ -1053,6 +1314,7 @@ bool DagorAssetMgr::saveAssetMetadata(DagorAsset &a)
 }
 bool DagorAssetMgr::saveAssetsMetadataImpl(int start_idx, int end_idx)
 {
+  ReadGuard guard(mutex);
   DynamicMemGeneralSaveCB cwr_new(tmpmem, 0, 4 << 10), cwr_old(tmpmem, 0, 4 << 10);
   DataBlock blk;
 
@@ -1143,6 +1405,7 @@ static bool check_asset_changed(const DagorAsset &a, DynamicMemGeneralSaveCB &cw
 
 bool DagorAssetMgr::isAssetMetadataChanged(const DagorAsset &a)
 {
+  ReadGuard guard(mutex);
   DynamicMemGeneralSaveCB cwr_new(tmpmem, 0, 4 << 10), cwr_old(tmpmem, 0, 4 << 10);
   return check_asset_changed(a, cwr_new, cwr_old, texAssetType, nspaceNames.getNameId("texHQ"));
 }
@@ -1150,6 +1413,7 @@ bool DagorAsset::isMetadataChanged() const { return mgr.isAssetMetadataChanged(*
 
 bool DagorAssetMgr::isAssetsMetadataChanged()
 {
+  ReadGuard guard(mutex);
   DynamicMemGeneralSaveCB cwr_new(tmpmem, 0, 4 << 10), cwr_old(tmpmem, 0, 4 << 10);
   DataBlock blk;
 
@@ -1160,9 +1424,19 @@ bool DagorAssetMgr::isAssetsMetadataChanged()
   return false;
 }
 
-dag::ConstSpan<int> DagorAssetMgr::getFilteredFolders(dag::ConstSpan<int> types)
+int DagorAssetMgr::getFolderIndex(const DagorAssetFolder &folder) const
 {
-  tempList.reset();
+  ReadGuard guard(mutex);
+  for (int i = 0; i < folders.size(); ++i)
+    if (folders[i] == &folder)
+      return i;
+  return -1;
+}
+
+Tab<int> DagorAssetMgr::getFilteredFolders(dag::ConstSpan<int> types)
+{
+  ReadGuard guard(mutex);
+  FastIntList tempList;
   for (int i = 0; i < assets.size(); i++)
   {
     int t = assets[i]->getType();
@@ -1184,11 +1458,13 @@ dag::ConstSpan<int> DagorAssetMgr::getFilteredFolders(dag::ConstSpan<int> types)
         more_iter |= tempList.addInt(folders[tempList.getList()[i]]->parentIdx);
   } while (more_iter);
 
-  return tempList.getList();
+  return Tab<int>(tempList.getList());
 }
-dag::ConstSpan<int> DagorAssetMgr::getFilteredAssets(dag::ConstSpan<int> types, int folder_idx) const
+
+Tab<int> DagorAssetMgr::getFilteredAssets(dag::ConstSpan<int> types, int folder_idx) const
 {
-  tempTab.clear();
+  ReadGuard guard(mutex);
+  Tab<int> tempTab(tmpmem);
   if (types.size() == 0)
     return tempTab;
   if (folder_idx >= 0 && folder_idx >= folders.size())
@@ -1247,6 +1523,7 @@ dag::ConstSpan<int> DagorAssetMgr::getFilteredAssets(dag::ConstSpan<int> types, 
 
 bool DagorAssetMgr::registerAssetExporter(IDagorAssetExporter *exp)
 {
+  WriteGuard guard(mutex);
   int type = typeNames.getNameId(exp->getAssetType());
   if (type == -1)
   {
@@ -1268,8 +1545,10 @@ bool DagorAssetMgr::registerAssetExporter(IDagorAssetExporter *exp)
   exp->onRegister();
   return true;
 }
+
 bool DagorAssetMgr::unregisterAssetExporter(IDagorAssetExporter *exp)
 {
+  WriteGuard guard(mutex);
   int type = typeNames.getNameId(exp->getAssetType());
   if (type == -1)
   {
@@ -1302,6 +1581,7 @@ bool DagorAssetMgr::unregisterAssetExporter(IDagorAssetExporter *exp)
 
 bool DagorAssetMgr::registerAssetRefProvider(IDagorAssetRefProvider *exp)
 {
+  WriteGuard guard(mutex);
   int type = typeNames.getNameId(exp->getAssetType());
   if (type == -1)
   {
@@ -1323,8 +1603,10 @@ bool DagorAssetMgr::registerAssetRefProvider(IDagorAssetRefProvider *exp)
   exp->onRegister();
   return true;
 }
+
 bool DagorAssetMgr::unregisterAssetRefProvider(IDagorAssetRefProvider *exp)
 {
+  WriteGuard guard(mutex);
   int type = typeNames.getNameId(exp->getAssetType());
   if (type == -1)
   {
@@ -1369,6 +1651,7 @@ static const char *get_custom_package_name1(DagorAsset *a, const char *pName, co
   }
   return p;
 }
+
 static const char *get_package_name1(DagorAssetMgr &mgr, int fidx, const char *paramName, const char *target_str, const char *profile,
   const char *_pname)
 {
@@ -1396,6 +1679,7 @@ static const char *get_package_name1(DagorAssetMgr &mgr, int fidx, const char *p
 }
 
 static const char *resolve_pkname(const char *p, bool full) { return full ? ((p && strcmp(p, "*") == 0) ? NULL : p) : p; }
+
 const char *DagorAsset::getCustomPackageName(const char *target, const char *profile, bool full)
 {
   const char *pName = assetType == mgr.getTexAssetTypeId() ? "ddsxTex" : "gameRes";
@@ -1414,16 +1698,17 @@ const char *DagorAsset::getCustomPackageName(const char *target, const char *pro
     return mgr.getBasePkg();
   return pkg_name;
 }
+
 const char *DagorAssetMgr::getPackageName(int fidx, const char *pName, const char *target, const char *profile)
 {
+  ReadGuard guard(mutex);
   return resolve_pkname(get_package_name1(*this, fidx, pName, target, profile, "package"), true);
 }
 
 // pack name resolution
 static void makeRelFolderPath(String &tmpFolderPath, DagorAssetMgr &mgr, int fidx)
 {
-  static Tab<int> p(tmpmem);
-  p.clear();
+  Tab<int> p(tmpmem);
   while (fidx != 0)
   {
     p.push_back(fidx);
@@ -1435,7 +1720,8 @@ static void makeRelFolderPath(String &tmpFolderPath, DagorAssetMgr &mgr, int fid
     tmpFolderPath.aprintf(64, "%s/", mgr.getFolder(p[i]).folderName.str());
   tmpFolderPath.aprintf(64, "%s", mgr.getFolder(p[0]).folderName.str());
 }
-static const char *get_pack_name_internal(DagorAssetMgr &mgr, int fidx, const char *paramName, const char *prefixParamName,
+
+static String get_pack_name_internal(DagorAssetMgr &mgr, int fidx, const char *paramName, const char *prefixParamName,
   const char *pack_suffix, const char *def_val, const char *root_def_val, const char *asset_pack_override, IDagorAssetMsgPipe &pipe)
 {
   const char *prefix = "";
@@ -1456,15 +1742,13 @@ static const char *get_pack_name_internal(DagorAssetMgr &mgr, int fidx, const ch
     p = mgr.getFolder(fidx).exportProps.getStr(paramName, def_val);
   for (;;) // infinite loop with explicit break
   {
-    static String buf, buf2;
-
     if (!p)
     {
       post_error(pipe, "'%s' is NULL in %s/.folder.blk", paramName, mgr.getFolder(fidx).folderPath.str());
-      return NULL;
+      return {};
     }
     if (!p[0])
-      return NULL;
+      return {};
     if (!prefix[0] && prefixParamName)
       prefix = mgr.getFolder(fidx).exportProps.getStr(prefixParamName, "");
 
@@ -1476,11 +1760,10 @@ static const char *get_pack_name_internal(DagorAssetMgr &mgr, int fidx, const ch
     if (p[0] != '*')
     {
       if (p[0] == '/')
-        return p + 1;
+        return String(p + 1);
       if (!prefix[0])
-        return p;
-      buf.printf(260, "%s%s", prefix, p);
-      return buf;
+        return String(p);
+      return String::mk_str_cat(prefix, p);
     }
 
     if (stricmp(p, "*parent") == 0)
@@ -1495,51 +1778,45 @@ static const char *get_pack_name_internal(DagorAssetMgr &mgr, int fidx, const ch
       break;
     }
     else if (stricmp(p, "*name") == 0)
-    {
-      buf.printf(260, "%s%s%s", prefix, mgr.getFolder(fidx).folderName.str(), pack_suffix);
-      return buf;
-    }
+      return String(0, "%s%s%s", prefix, mgr.getFolder(fidx).folderName.str(), pack_suffix);
     else if (stricmp(p, "*name_src") == 0)
-    {
-      buf.printf(260, "%s%s%s", prefix, mgr.getFolder(src_fidx).folderName.str(), pack_suffix);
-      return buf;
-    }
+      return String(0, "%s%s%s", prefix, mgr.getFolder(src_fidx).folderName.str(), pack_suffix);
     else if (stricmp(p, "*path") == 0)
     {
+      String buf;
       makeRelFolderPath(buf, mgr, fidx);
-      buf2.printf(260, "%s%s%s", prefix, buf.str(), pack_suffix);
-      return buf2;
+      return String(0, "%s%s%s", prefix, buf.str(), pack_suffix);
     }
     else if (stricmp(p, "*path_src") == 0)
     {
+      String buf;
       makeRelFolderPath(buf, mgr, src_fidx);
-      buf2.printf(260, "%s%s%s", prefix, buf.str(), pack_suffix);
-      return buf2;
+      return String(0, "%s%s%s", prefix, buf.str(), pack_suffix);
     }
 
     post_error(pipe, "'%s' is undefined '%s' in %s/.folder.blk", paramName, p, mgr.getFolder(fidx).folderPath.str());
-    return NULL;
+    return {};
   }
 
-  return root_def_val;
+  return String(root_def_val);
 }
-static inline const char *get_pack_name(DagorAssetMgr &mgr, int fidx, const char *paramName, const char *prefixParamName,
+
+static inline String get_pack_name(DagorAssetMgr &mgr, int fidx, const char *paramName, const char *prefixParamName,
   const char *pack_suffix, const char *def_val, const char *root_def_val, const char *asset_pack_override, bool dabuild_collapse_packs,
   IDagorAssetMsgPipe &pipe)
 {
-  const char *nm =
+  String nm =
     get_pack_name_internal(mgr, fidx, paramName, prefixParamName, pack_suffix, def_val, root_def_val, asset_pack_override, pipe);
-  if (!nm || !dabuild_collapse_packs)
+  if (nm.empty() || !dabuild_collapse_packs)
     return nm;
-  static String buf;
-  buf.printf(260, "allres%s", pack_suffix);
-  return buf;
+  return String::mk_str_cat("allres", pack_suffix);
 }
 
-const char *DagorAsset::getDestPackName(bool dabuild_collapse_packs, bool pure_name, bool allow_grouping)
+String DagorAsset::getDestPackName(bool dabuild_collapse_packs, bool pure_name, bool allow_grouping)
 {
   bool is_tex = (assetType == mgr.getTexAssetTypeId());
   const char *explicit_nm = mgr.getPackNameForType(assetType, props.getStr(is_tex ? "ddsxTexPack" : "gameResPack", NULL));
+  String grp_nm;
   if (allow_grouping && !mgr.getPackNameForType(assetType) &&
       props.getBool(is_tex ? "ddsxTexPackAllowGrouping" : "gameResPackAllowGrouping", true))
   {
@@ -1554,44 +1831,35 @@ const char *DagorAsset::getDestPackName(bool dabuild_collapse_packs, bool pure_n
         texGrpParam = "ddsxTexPackGroupTQ";
     }
 
-    const char *nm = get_pack_name(mgr, folderIdx, is_tex ? texGrpParam : "gameResPackGroup", NULL, suffix, "*parent", NULL, NULL,
+    grp_nm = get_pack_name(mgr, folderIdx, is_tex ? texGrpParam : "gameResPackGroup", NULL, suffix, "*parent", NULL, NULL,
       dabuild_collapse_packs, mgr.getMsgPipe());
-    if (nm && *nm && nm[0] != '*')
+    if (!grp_nm.empty() && grp_nm[0] != '*')
     {
-      static String buf;
-      if (trail_strcmp(nm, suffix))
-        buf.printf(0, "%.*s", strlen(nm) - strlen(suffix), nm);
-      else
-        buf = nm;
-      explicit_nm = buf;
+      if (trail_strcmp(grp_nm, suffix))
+        grp_nm.chop(strlen(suffix));
+      explicit_nm = grp_nm;
     }
   }
 
   return mgr.getFolderPackName(folderIdx, is_tex, explicit_nm, dabuild_collapse_packs, pure_name, assetType);
 }
-const char *DagorAssetMgr::getFolderPackName(int folder_idx, bool for_tex, const char *asset_pack_override,
-  bool dabuild_collapse_packs, bool pure_name, int a_type)
+
+String DagorAssetMgr::getFolderPackName(int folder_idx, bool for_tex, const char *asset_pack_override, bool dabuild_collapse_packs,
+  bool pure_name, int a_type)
 {
-  static String buf;
   const char *suffix = for_tex ? ".dxp.bin" : ".grp";
-  const char *nm = get_pack_name(*this, folder_idx, for_tex ? "ddsxTexPack" : "gameResPack",
+  String nm = get_pack_name(*this, folder_idx, for_tex ? "ddsxTexPack" : "gameResPack",
     (pure_name || getPackNameForType(a_type)) ? NULL : (for_tex ? "ddsxTexPackPrefix" : "gameResPackPrefix"), suffix,
     for_tex ? getLocDefDxp() : getLocDefGrp(), for_tex ? getDefDxpPath() : getDefGrpPath(), asset_pack_override,
     dabuild_collapse_packs, getMsgPipe());
-  if (!nm)
+  if (nm.empty())
     return nm;
 
   bool has_suffix = trail_strcmp(nm, suffix);
   if (has_suffix && pure_name)
-  {
-    buf.printf(0, "%.*s", strlen(nm) - strlen(suffix), nm);
-    return buf;
-  }
+    nm.chop(strlen(suffix));
   else if (!has_suffix && !pure_name)
-  {
-    buf.printf(0, "%s%s", nm, suffix);
-    return buf;
-  }
+    nm.append(suffix);
   return nm;
 }
 

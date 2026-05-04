@@ -45,7 +45,7 @@ public:
     pathType = PID_TYPE_START;
     pathScale = 1.0;
 
-    DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+    DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
     viewShapes = *appBlk.getBlockByNameEx("csgEntityView");
     if (!viewShapes.blockCount())
     {

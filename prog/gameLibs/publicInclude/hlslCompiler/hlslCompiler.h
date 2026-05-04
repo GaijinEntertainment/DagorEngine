@@ -37,7 +37,7 @@ bool try_init_dynlib(const char *dll_root);
 void deinit_dynlib();
 
 bool compile_compute_shader(Platform platform, dag::ConstSpan<char> hlsl_src, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err);
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err);
 
 // Not implemented
 inline bool compile_pixel_shader(Platform, dag::ConstSpan<char>, const char *, const char *, Tab<uint32_t> &, String &)

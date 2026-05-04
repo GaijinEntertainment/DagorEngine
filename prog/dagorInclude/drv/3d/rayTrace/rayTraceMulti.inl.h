@@ -2,23 +2,26 @@
 #if D3D_HAS_RAY_TRACING
 // raytrace interface ->
 static inline RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc,
-  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes,
+  ResourceTagType tag = nullptr)
 {
   return d3di.create_raytrace_bottom_acceleration_structure_0(desc, count, flags, build_scratch_size_in_bytes,
-    update_scratch_size_in_bytes);
+    update_scratch_size_in_bytes, tag);
 }
-static inline RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(uint32_t size)
+static inline RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(uint32_t size,
+  ResourceTagType tag = nullptr)
 {
-  return d3di.create_raytrace_bottom_acceleration_structure_1(size);
+  return d3di.create_raytrace_bottom_acceleration_structure_1(size, tag);
 }
 static inline void delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as)
 {
   return d3di.delete_raytrace_bottom_acceleration_structure(as);
 }
 static inline RaytraceTopAccelerationStructure *create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag = nullptr)
 {
-  return d3di.create_raytrace_top_acceleration_structure(elements, flags, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
+  return d3di.create_raytrace_top_acceleration_structure(elements, flags, build_scratch_size_in_bytes, update_scratch_size_in_bytes,
+    tag);
 }
 static inline void delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *as)
 {

@@ -17,8 +17,9 @@ void GI3D::VolmapCommonData::initEnviCube()
 {
   ssgi_calc_envi_ambient_cube_cs.reset(new_compute_shader("ssgi_calc_envi_ambient_cube_cs"));
   ssgi_average_ambient_cube_cs.reset(new_compute_shader("ssgi_average_ambient_cube_cs"));
-  enviCube = dag::buffers::create_ua_sr_structured(sizeof(AmbientCube), 1, "gi_ambient_cube");
-  enviCubes = dag::buffers::create_ua_sr_structured(sizeof(AmbientCube), NUM_ENVI_CALC_CUBES, "gi_ambient_cubes");
+  enviCube = dag::buffers::create_ua_sr_structured(sizeof(AmbientCube), 1, "gi_ambient_cube", d3d::buffers::Init::No, RESTAG_DAGI);
+  enviCubes = dag::buffers::create_ua_sr_structured(sizeof(AmbientCube), NUM_ENVI_CALC_CUBES, "gi_ambient_cubes",
+    d3d::buffers::Init::No, RESTAG_DAGI);
   enviCubeValid = false;
 }
 

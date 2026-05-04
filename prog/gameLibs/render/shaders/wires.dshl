@@ -1,8 +1,8 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
-include "wires_helper.dshl"
 include "static_shadow.dshl"
 include "vr_multiview.dshl"
+include "use_volfog.dshl"
 
 buffer cables_buf;
 buffer bvh_cables_vertices_buf;
@@ -16,6 +16,26 @@ float4 global_wires_albedo_color = (0, 0, 0, 0);
 
 int cables_render_pass = 1;
 interval cables_render_pass : cables_render_pass_shadow < 1, cables_render_pass_opaque < 2, cables_render_pass_trans < 3, cables_render_pass_bvh;
+
+macro CABLES_FOG_VS()
+  INIT_ZNZFAR_STAGE(vs) // needed for USE_VOLUMETRIC_LIGHT
+  INIT_BRUNETON_FOG(vs)
+  INIT_VOLUMETRIC_LIGHT(vs)
+  USE_BRUNETON_FOG_VS()
+  USE_VOLUMETRIC_LIGHT(vs)
+
+  hlsl(vs) {
+    void get_cables_fog(float3 pointToEye, float4 pos, out half3 fogMul, out half3 fogAdd)
+    {
+      BRANCH
+      if (pos.w > 0)
+      {
+        float2 screenTc = float2(pos.xy / pos.w * float2(0.5,-0.5) + 0.5);
+        get_volfog_with_scattering(screenTc, screenTc, pointToEye, pos.w, fogMul, fogAdd);
+      }
+    }
+  }
+endmacro
 
 shader wires
 {
@@ -80,7 +100,6 @@ shader wires
   }
 
   VR_MULTIVIEW_RENDERING(cables_render_pass == cables_render_pass_opaque, true)
-  ENABLE_ASSERT(ps)
 
   hlsl(vs) {
     VsOutput cables_vs(uint vertex_id : SV_VertexID USE_VIEW_ID)

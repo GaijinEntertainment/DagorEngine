@@ -19,7 +19,7 @@ static SQInteger _datetime_time(HSQUIRRELVM v)
     return 1;
 }
 
-static void _set_integer_slot(HSQUIRRELVM v,const SQChar *name,SQInteger val)
+static void _set_integer_slot(HSQUIRRELVM v,const char *name,SQInteger val)
 {
     sq_pushstring(v,name,-1);
     sq_pushinteger(v,val);
@@ -47,42 +47,34 @@ static SQInteger _datetime_date(HSQUIRRELVM v)
     else
         date = localtime(&t);
     if(!date)
-        return sq_throwerror(v,_SC("crt api failure"));
+        return sq_throwerror(v,"crt api failure");
     sq_newtable(v);
-    _set_integer_slot(v, _SC("sec"), date->tm_sec);
-    _set_integer_slot(v, _SC("min"), date->tm_min);
-    _set_integer_slot(v, _SC("hour"), date->tm_hour);
-    _set_integer_slot(v, _SC("day"), date->tm_mday);
-    _set_integer_slot(v, _SC("month"), date->tm_mon);
-    _set_integer_slot(v, _SC("year"), date->tm_year+1900);
-    _set_integer_slot(v, _SC("wday"), date->tm_wday);
-    _set_integer_slot(v, _SC("yday"), date->tm_yday);
+    _set_integer_slot(v, "sec", date->tm_sec);
+    _set_integer_slot(v, "min", date->tm_min);
+    _set_integer_slot(v, "hour", date->tm_hour);
+    _set_integer_slot(v, "day", date->tm_mday);
+    _set_integer_slot(v, "month", date->tm_mon);
+    _set_integer_slot(v, "year", date->tm_year+1900);
+    _set_integer_slot(v, "wday", date->tm_wday);
+    _set_integer_slot(v, "yday", date->tm_yday);
     return 1;
 }
 
 
 
-#define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_datetime_##name,nparams,pmask}
-static const SQRegFunction datetimelib_funcs[]={
-    _DECL_FUNC(clock,0,NULL),
-    _DECL_FUNC(time,1,NULL),
-    _DECL_FUNC(date,-1,_SC(".nn")),
-    {NULL,(SQFUNCTION)0,0,NULL}
+static const SQRegFunctionFromStr datetimelib_funcs[] = {
+    { _datetime_clock, "pure clock(): float", "Returns CPU time used by the process in seconds" },
+    { _datetime_time,  "time(): int", "Returns the current time as seconds since the Unix epoch" },
+    { _datetime_date,  "date([time: int, format: int]): table", "Returns a table with date fields (sec,min,hour,day,month,year,wday,yday); format 'l' for local, 'u' for UTC" },
+    { NULL, NULL, NULL }
 };
-#undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_datetimelib(HSQUIRRELVM v)
 {
-    SQInteger i=0;
-    while(datetimelib_funcs[i].name!=0)
-    {
-        const SQRegFunction &rf = datetimelib_funcs[i];
-        sq_pushstring(v, rf.name, -1);
-        sq_newclosure(v, rf.f, 0);
-        sq_setparamscheck(v, rf.nparamscheck, rf.typemask);
-        sq_setnativeclosurename(v, -1, rf.name);
-        sq_newslot(v, -3, SQFalse);
+    SQInteger i = 0;
+    while (datetimelib_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, datetimelib_funcs[i].f, 0, datetimelib_funcs[i].declstring, datetimelib_funcs[i].docstring);
         i++;
     }
     return SQ_OK;

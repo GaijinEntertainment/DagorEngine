@@ -26,7 +26,7 @@ public:
   unsigned __stdcall getGameResClassId() const override { return RendInstGameResClassId; }
   unsigned __stdcall getGameResVersion() const override
   {
-    const int ord_ver = 9;
+    const int ord_ver = 10;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }

@@ -67,7 +67,7 @@ namespace drv3d_metal
     {
       texture = nullptr;
     }
-    TEXQL_ON_BUF_ALLOC(this);
+    TEXQL_ON_PERSISTENT_ALLOC(this);
 
     BufferProxyPtr e;
     e.obj = this;
@@ -108,7 +108,7 @@ namespace drv3d_metal
       else
         g_buffer_memory_used -= bufsize;
     }
-    TEXQL_ON_BUF_RELEASE(this);
+    TEXQL_ON_PERSISTENT_RELEASE(this);
 
     g_buffers.lock();
     if (g_buffers.isIndexValid(tid))
@@ -183,7 +183,7 @@ namespace drv3d_metal
         pTexDesc.usage |= MTLTextureUsageShaderWrite;
     }
 
-    checkLockParams(0, bufSize, VBLOCK_DISCARD, bufFlags);
+    checkLockParams(0, bufSize, VBLOCK_DISCARD, bufFlags, getName(), bufSize);
     isDynamic = bufFlags & SBCF_DYNAMIC;
     fast_discard = bufFlags & SBCF_FRAMEMEM;
 
@@ -284,7 +284,7 @@ namespace drv3d_metal
   {
     D3D_CONTRACT_ASSERT(locked_offset == -1);
     D3D_CONTRACT_ASSERT(locked_size == -1);
-    checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
+    checkLockParams(ofs_bytes, size_bytes, flags, bufFlags, getName(), bufSize);
     if (!ptr)
     {
       last_locked_submit = render.submits_scheduled;
@@ -311,32 +311,43 @@ namespace drv3d_metal
     if (fast_discard)
     {
       D3D_CONTRACT_ASSERT(offset_bytes == 0);
-#if DAGOR_DBGLEVEL > 0
-      if (render.validate_framemem_bounds)
+      G_ASSERT(!(flags & VBLOCK_READONLY) || (bufFlags & (SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE)) == (SBCF_CPU_ACCESS_READ | SBCF_CPU_ACCESS_WRITE));
+      if (flags & VBLOCK_READONLY)
       {
-        String name;
-        name.printf(0, "dynamic for %s %llu", getName(), render.frame);
-
-        uint32_t s = bufFlags & SBCF_BIND_CONSTANT ? bufSize : locked_size;
-        dynamic_buffer = [render.device newBufferWithLength : s
-                                                    options : MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
-        dynamic_buffer.label = [NSString stringWithUTF8String : name.c_str()];
-        dynamic_offset = 0;
-        render.queueResourceForDeletion(dynamic_buffer);
+        D3D_CONTRACT_ASSERT(dynamic_buffer);
+        D3D_CONTRACT_ASSERT(dynamic_frame == render.frame);
+        D3D_CONTRACT_ASSERT(dynamic_size >= locked_size);
       }
       else
+      {
+#if DAGOR_DBGLEVEL > 0
+        if (render.validate_framemem_bounds)
+        {
+          String name;
+          name.printf(0, "dynamic for %s %llu", getName(), render.frame);
+
+          uint32_t s = bufFlags & SBCF_BIND_CONSTANT ? bufSize : locked_size;
+          dynamic_buffer = [render.device newBufferWithLength : s
+                                                      options : MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared];
+          dynamic_buffer.label = [NSString stringWithUTF8String : name.c_str()];
+          dynamic_offset = 0;
+          render.queueResourceForDeletion(dynamic_buffer);
+        }
+        else
 #endif
-        dynamic_buffer = render.AllocateDynamicBuffer(locked_size, dynamic_offset, bufSize);
+          dynamic_buffer = render.AllocateDynamicBuffer(locked_size, dynamic_offset, bufSize);
+
+        dynamic_frame = render.frame;
+        dynamic_size = locked_size;
+
+        if (render.isRenderAcquiredInThisThread())
+          render.markBufferDirty(this);
+
+        cur_render_buffer = cur_buffer;
+      }
       G_ASSERT(dynamic_buffer);
-      dynamic_frame = render.frame;
 
-      if (render.acquire_depth.load())
-        render.markBufferDirty(this);
-
-      cur_render_buffer = cur_buffer;
-
-      uint8_t *ret = (uint8_t*)dynamic_buffer.contents + dynamic_offset + offset_bytes;
-      return ret;
+      return (uint8_t*)dynamic_buffer.contents + dynamic_offset + offset_bytes;
     }
 
     if (isDynamic)
@@ -366,7 +377,7 @@ namespace drv3d_metal
 
           cur_buffer = buf;
 
-          if (render.acquire_depth.load())
+          if (render.isRenderAcquiredInThisThread())
             render.markBufferDirty(this);
         }
         else if (render.submits_completed < cur_buffer->last_submit)
@@ -379,7 +390,7 @@ namespace drv3d_metal
           render.flush(true);
           render.releaseOwnership();
         }
-        else if (render.acquire_depth.load())
+        else if (render.isRenderAcquiredInThisThread())
           render.markBufferDirty(this);
       }
 
@@ -439,9 +450,8 @@ namespace drv3d_metal
     if (use_upload_buffer && upload_buffer)
     {
       D3D_CONTRACT_ASSERT(upload_buffer);
-      D3D_CONTRACT_ASSERT(cur_buffer->initialized);
       D3D_CONTRACT_ASSERT(!fast_discard);
-      render.queueCopyBuffer(this, upload_buffer, upload_buffer_offset, cur_buffer->buffer, locked_offset, locked_size);
+      render.queueCopyBuffer(this, cur_buffer, upload_buffer, upload_buffer_offset, cur_buffer->buffer, locked_offset, locked_size);
       render.queueResourceForDeletion(upload_buffer);
       upload_buffer = nil;
       upload_buffer_offset = 0;
@@ -457,10 +467,7 @@ namespace drv3d_metal
   {
     D3D_CONTRACT_ASSERT_RETURN(size_bytes != 0, false);
 
-    uint64_t cur_thread = 0;
-    pthread_threadid_np(NULL, &cur_thread);
-
-    bool from_thread = render.acquire_depth == 0 || cur_thread != render.cur_thread;
+    bool from_thread = !render.isRenderAcquiredInThisThread();
     if ((lockFlags & (VBLOCK_DISCARD | VBLOCK_NOOVERWRITE)) || isDynamic || fast_discard || from_thread)
     {
       // in those cases we need to use locking to keep everything consistent

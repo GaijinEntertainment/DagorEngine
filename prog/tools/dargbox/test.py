@@ -7,7 +7,7 @@ def gather_files_to_check(path, relative="", cwd=None):
   files2check=[]
   for root,dirs,files in os.walk(path):
     dirs[:] = [d for d in dirs if d not in ["zbugs"]]
-    files[:] = [f for f in files if not f in ["images_advanced.ui.nut","svg.ui.nut","svg_advanced.ui.nut","input.ui.nut"] and f.endswith(".nut")]
+    files[:] = [f for f in files if not f in ["images_advanced.ui.nut","svg.ui.nut","input.ui.nut","robj_shader.ui.nut","nu_pogodi.ui.nut", "all_ui.ui.nut"] and f.endswith(".nut")]
     for file in files:
       path = os.path.join(root,file).replace("\\","/")
       files2check.append({"rel":os.path.relpath(path, relative), "direct":path, "cwd":cwd})
@@ -29,7 +29,12 @@ def check(file_info):
       failedBy = "dargbox"
       failText = failText + result.stdout + "\n" + result.stderr + "\n"
 
-  return (failedBy == "", "{file}".format(file=file_info["direct"]), failedBy, failText.strip())
+  return {
+    "success": (failedBy == ""),
+    "fileInfo": file_info,
+    "failedBy": failedBy,
+    "failText": failText.strip()
+  }
 
 
 def rerun_dargbox(dargboxFailedScript):
@@ -69,18 +74,18 @@ if __name__ == "__main__":
   failed = []
   dargboxFailedScript = ""
   for r in res.get(timeout=60):
-    if not r[0]:
-      failedBy = r[2]
-      failedText = r[3]
-      failed.append(r[1] + "\n" + failedText + "\n")
+    if not r["success"]:
+      failedBy = r["failedBy"]
+      failed.append(r["fileInfo"]["direct"] + "\n" + r["failText"] + "\n")
       if failedBy == "dargbox":
-        dargboxFailedScript = r[1]
+        dargboxFailedScript = r["fileInfo"]["rel"]
     else:
-      success.append(r[1])
+      success.append(r["fileInfo"]["direct"])
+
   if len(success)>0:
     print("SUCCESS:")
-    for r in success:
-      print(r)
+    for fn in success:
+      print(fn)
   print("")
 
   if len(failed)>0:
@@ -89,8 +94,8 @@ if __name__ == "__main__":
       rerun_dargbox(dargboxFailedScript)
 
     print("FAILED:")
-    for r in failed:
-      print(r)
+    for fn in failed:
+      print(fn)
 
   os.chdir(oldir)
   sys.exit(1 if len(failed)>0 else 0)

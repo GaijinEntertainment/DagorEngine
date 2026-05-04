@@ -120,6 +120,25 @@ struct FaceNGr
 #define FACEFLG_ALLEDGES (FACEFLG_EDGE0 | FACEFLG_EDGE1 | FACEFLG_EDGE2)
 #define FACEFLG_HIDDEN   8
 
+struct BoneIndices
+{
+  int16_t x, y, z, w;
+  BoneIndices() = default;
+  BoneIndices(int16_t ix, int16_t iy, int16_t iz, int16_t iw) : x(ix), y(iy), z(iz), w(iw) {}
+  bool operator==(const BoneIndices &rhs) const = default;
+  BoneIndices operator-(const BoneIndices &rhs)
+  {
+    BoneIndices res;
+    res.x = x - rhs.x;
+    res.y = y - rhs.y;
+    res.z = z - rhs.z;
+    res.w = w - rhs.w;
+    return res;
+  }
+};
+
+inline float lengthSq(const BoneIndices &a) { return (float)a.x * a.x + (float)a.y * a.y + (float)a.z * a.z + (float)a.w * a.w; }
+
 class MeshData
 {
 public:
@@ -147,6 +166,7 @@ public:
     CHT_FLOAT3,
     CHT_FLOAT4,
     CHT_E3DCOLOR,
+    CHT_SHORT4
   };
 
   struct ExtraChannel

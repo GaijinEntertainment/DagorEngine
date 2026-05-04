@@ -2,7 +2,7 @@
 #ifndef _SQFUNCTION_H_
 #define _SQFUNCTION_H_
 
-#include "sqopcodes.h"
+#include "opcodes.h"
 
 enum SQOuterType {
     otLOCAL = 0,
@@ -19,8 +19,9 @@ enum SQLangFeature {
     // code generation stage
     LF_DISABLE_OPTIMIZER = 0x000200,
     LF_FORBID_GLOBAL_CONST_REWRITE = 0x000400,
-    LF_FORBID_IMPLICIT_DEF_DELEGATE = 0x000800,
+    LF_FORBID_IMPLICIT_TYPE_METHODS = 0x000800,
     LF_ALLOW_AUTO_FREEZE = 0x001000,
+    LF_ALLOW_COMPILER_INTERNALS = 0x002000,
 
     LF_STRICT = LF_FORBID_ROOT_TABLE |
                 LF_FORBID_DELETE_OP
@@ -78,23 +79,39 @@ struct SQLocalVarInfo
     char _varFlags;
 };
 
-struct SQLineInfo
+struct SQLineInfosHeader
 {
-    int32_t _op;
-    unsigned _line: 31;
-    unsigned _is_line_op: 1;
+    unsigned _first_line: 31;
+    unsigned _is_compressed: 1;
+};
+
+struct SQFullLineInfo
+{
+    uint32_t _op;
+    uint32_t _line_offset: 31;
+    uint32_t _is_dbg_step_point: 1;
+};
+
+struct SQCompressedLineInfo
+{
+    uint8_t _op;
+    uint8_t _line_offset: 7;
+    uint8_t _is_dbg_step_point: 1;
 };
 
 typedef sqvector<SQOuterVar> SQOuterVarVec;
 typedef sqvector<SQLocalVarInfo> SQLocalVarInfoVec;
-typedef sqvector<SQLineInfo> SQLineInfoVec;
+typedef sqvector<SQFullLineInfo> SQFullLineInfoVec;
 
-#define _FUNC_SIZE(ni,nl,nparams,nfuncs,nouters,nlineinf,localinf,defparams,nstaticmemos) (sizeof(SQFunctionProto) \
-        +(((ni)-1)*sizeof(SQInstruction))+((nl)*sizeof(SQObjectPtr)) \
+#define SQ_ALIGN_TO(n, t) (((n) + alignof(t) - 1) & ~(alignof(t) - 1))
+
+#define _FUNC_SIZE(ni,nl,nparams,nfuncs,nouters,nlineinf,compressed,localinf,defparams,nstaticmemos) (sizeof(SQFunctionProto) \
+        +SQ_ALIGN_TO(((ni)-1)*sizeof(SQInstruction), SQObjectPtr)+((nl)*sizeof(SQObjectPtr)) \
         +((nparams)*sizeof(SQObjectPtr))+((nfuncs)*sizeof(SQObjectPtr)) \
-        +((nouters)*sizeof(SQOuterVar))+((nlineinf)*sizeof(SQLineInfo)) \
-        +((localinf)*sizeof(SQLocalVarInfo))+((defparams)*sizeof(SQInteger)) \
-        +((nstaticmemos)*sizeof(SQObjectPtr)) )
+        +((nouters)*sizeof(SQOuterVar)) \
+        +SQ_ALIGN_TO(sizeof(SQLineInfosHeader)+(nlineinf)*(compressed ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQLocalVarInfo) \
+        +((localinf)*sizeof(SQLocalVarInfo))+((defparams)*sizeof(SQInt32))+((nparams)*sizeof(SQUnsignedInteger32)) \
+        +((nstaticmemos)*sizeof(SQObjectPtr)))
 
 
 struct SQFunctionProto : public CHAINABLE_OBJ
@@ -109,35 +126,67 @@ public:
         SQInteger ninstructions,
         SQInteger nliterals,SQInteger nparameters,
         SQInteger nfunctions,SQInteger noutervalues,
-        SQInteger nlineinfos,SQInteger nlocalvarinfos,
+        SQInteger nlineinfos, bool compressedLineInfos,
+        SQInteger nlocalvarinfos,
         SQInteger ndefaultparams,SQInteger nstaticmemos
         )
     {
         SQFunctionProto *f;
         //I compact the whole class and members in a single memory allocation
-        f = (SQFunctionProto *)sq_vm_malloc(ss->_alloc_ctx,
-            _FUNC_SIZE(ninstructions,nliterals,nparameters,nfunctions,noutervalues,nlineinfos,nlocalvarinfos,ndefaultparams,nstaticmemos));
+        size_t fnSize = _FUNC_SIZE(ninstructions,nliterals,nparameters,nfunctions,noutervalues,nlineinfos,compressedLineInfos,nlocalvarinfos,ndefaultparams,nstaticmemos);
+        f = (SQFunctionProto *)sq_vm_malloc(ss->_alloc_ctx, fnSize);
 
         new (f) SQFunctionProto(ss);
+        char *ptr = (char *)f->_instructions;
+
+        f->_result_type_mask = ~0u;
+
         f->_alloc_ctx = ss->_alloc_ctx;
         f->lang_features = lang_features;
         f->_ninstructions = ninstructions;
-        f->_literals = (SQObjectPtr*)&f->_instructions[ninstructions];
+        ptr += SQ_ALIGN_TO(ninstructions * sizeof(SQInstruction), SQLocalVarInfo);
+
+        assert(size_t(ptr) % alignof(SQObjectPtr) == 0);
+        f->_literals = (SQObjectPtr*)ptr;
         f->_nliterals = nliterals;
-        f->_parameters = (SQObjectPtr*)&f->_literals[nliterals];
+        ptr += nliterals * sizeof(SQObjectPtr);
+
+        f->_parameters = (SQObjectPtr*)ptr;
         f->_nparameters = nparameters;
-        f->_functions = (SQObjectPtr*)&f->_parameters[nparameters];
+        ptr += nparameters * sizeof(SQObjectPtr);
+
+        f->_functions = (SQObjectPtr*)ptr;
         f->_nfunctions = nfunctions;
-        f->_staticmemos = (SQObjectPtr*)&f->_functions[nfunctions];
+        ptr += nfunctions * sizeof(SQObjectPtr);
+
+        f->_staticmemos = (SQObjectPtr*)ptr;
         f->_nstaticmemos = nstaticmemos;
-        f->_outervalues = (SQOuterVar*)&f->_staticmemos[nstaticmemos];
+        ptr += nstaticmemos * sizeof(SQObjectPtr);
+
+        assert(size_t(ptr) % alignof(SQOuterVar) == 0);
+        f->_outervalues = (SQOuterVar*)ptr;
         f->_noutervalues = noutervalues;
-        f->_lineinfos = (SQLineInfo *)&f->_outervalues[noutervalues];
+        ptr += noutervalues * sizeof(SQOuterVar);
+
+        assert(size_t(ptr) % alignof(SQLineInfosHeader) == 0);
+        f->_lineinfos = (SQLineInfosHeader *)ptr;
         f->_nlineinfos = nlineinfos;
-        f->_localvarinfos = (SQLocalVarInfo *)&f->_lineinfos[nlineinfos];
+        ptr += SQ_ALIGN_TO(sizeof(SQLineInfosHeader) + nlineinfos * (compressedLineInfos ? sizeof(SQCompressedLineInfo) : sizeof(SQFullLineInfo)), SQLocalVarInfo);
+
+        assert(size_t(ptr) % alignof(SQLocalVarInfo) == 0);
+        f->_localvarinfos = (SQLocalVarInfo *)ptr;
         f->_nlocalvarinfos = nlocalvarinfos;
-        f->_defaultparams = (SQInteger *)&f->_localvarinfos[nlocalvarinfos];
+        ptr += nlocalvarinfos * sizeof(SQLocalVarInfo);
+
+        assert(size_t(ptr) % alignof(SQInt32) == 0);
+        f->_defaultparams = (SQInt32 *)ptr;
         f->_ndefaultparams = ndefaultparams;
+        ptr += ndefaultparams * sizeof(SQInt32);
+
+        f->_param_type_masks = (SQUnsignedInteger32 *)ptr;
+        ptr += nparameters * sizeof(SQUnsignedInteger32);
+
+        assert(ptr - (char *)f == fnSize);
 
         _CONSTRUCT_VECTOR(SQObjectPtr,f->_nliterals,f->_literals);
         _CONSTRUCT_VECTOR(SQObjectPtr,f->_nparameters,f->_parameters);
@@ -156,15 +205,15 @@ public:
         _DESTRUCT_VECTOR(SQOuterVar,_noutervalues,_outervalues);
         //_DESTRUCT_VECTOR(SQLineInfo,_nlineinfos,_lineinfos); //not required are 2 integers
         _DESTRUCT_VECTOR(SQLocalVarInfo,_nlocalvarinfos,_localvarinfos);
-        SQInteger size = _FUNC_SIZE(_ninstructions,_nliterals,_nparameters,_nfunctions,_noutervalues,_nlineinfos,_nlocalvarinfos,_ndefaultparams,_nstaticmemos);
+        SQInteger size = _FUNC_SIZE(_ninstructions,_nliterals,_nparameters,_nfunctions,_noutervalues,_nlineinfos,_lineinfos->_is_compressed,_nlocalvarinfos,_ndefaultparams,_nstaticmemos);
         SQAllocContext ctx = _alloc_ctx;
         this->~SQFunctionProto();
         sq_vm_free(ctx, this, size);
     }
 
-    const SQChar* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
-    static SQInteger GetLine(SQLineInfo * lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_line_op = nullptr);
-    SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_line_op = nullptr);
+    const char* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
+    static SQInteger GetLine(SQLineInfosHeader *lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_dbg_step_point = nullptr);
+    SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_dbg_step_point = nullptr);
     bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
     static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR
@@ -175,43 +224,50 @@ public:
     }
     SQObjectType GetType() {return OT_FUNCPROTO;}
 #endif
+    SQAllocContext _alloc_ctx;
     SQObjectPtr _sourcename;
     SQObjectPtr _name;
-    SQUnsignedInteger   lang_features;
-    SQInteger _stacksize;
-    SQInteger _hoistingLevel;
+    SQUnsignedInteger32 lang_features;
+    SQUnsignedInteger32 _result_type_mask;
+    bool _inside_hoisted_scope;
     bool _bgenerator;
     bool _purefunction;
-    SQInteger _varparams;
+    bool _nodiscard;
+    SQInt32 _stacksize;
+    SQInt32 _varparams;
 
-    SQAllocContext _alloc_ctx;
+    // Struct field order optimized for 64-bit platform memory alignment
+    // General principle: Group pointers (8-byte) together, then two integers (4-byte),
+    // to minimize padding and cache misses
 
-    SQInteger _nlocalvarinfos;
+    SQInt32 _nlineinfos;
+    SQLineInfosHeader *_lineinfos;
+
+    SQObjectPtr* _staticmemos;
+    SQInt32 _nstaticmemos;
+
+    SQInt32 _nlocalvarinfos;
     SQLocalVarInfo *_localvarinfos;
 
-    SQInteger _nlineinfos;
-    SQLineInfo *_lineinfos;
-
-    SQInteger _nliterals;
     SQObjectPtr *_literals;
+    SQInt32 _nliterals;
 
-    SQInteger _nstaticmemos;
-    SQObjectPtr *_staticmemos;
-
-    SQInteger _nparameters;
-    SQObjectPtr *_parameters;
-
-    SQInteger _nfunctions;
+    SQInt32 _nfunctions;
     SQObjectPtr *_functions;
 
-    SQInteger _noutervalues;
+    SQObjectPtr* _parameters;
+    SQInt32 _nparameters;
+
+    SQInt32 _noutervalues;
     SQOuterVar *_outervalues;
 
-    SQInteger _ndefaultparams;
-    SQInteger *_defaultparams;
+    SQUnsignedInteger32* _param_type_masks;
 
-    SQInteger _ninstructions;
-    SQInstruction _instructions[1];
+    SQInt32* _defaultparams;
+    SQInt32 _ndefaultparams;
+
+    SQInt32 _ninstructions;
+    alignas(8) SQInstruction _instructions[1];
 };
 
 void Dump(SQFunctionProto *func, int instruction_index = -1);

@@ -20,16 +20,16 @@
 <button type="button" onclick="onStartProfiler()" id="start_stop_profiler">Start Profiler</button>
 <button type="button" onclick="onDisasm()" id="show_disasm">Disasm</button>
 <div id="attached_state">...</div> <div id="full_file_name">...</div>
-<table style="height:600px; border: 1px solid black;">
+<table style="width:100%; table-layout:fixed; height:600px; border:1px solid black;">
   <tr>
-    <td style="vertical-align: top;">
+    <td style="width:190px; vertical-align:top;">
       <input id="file_filter" type="text" style="width:175px; height:15px" oninput="updateSourcesList()">
       <div id="file_list" style="width: 180px; height:579px; vertical-align: top; white-space:pre; overflow-x:auto; overflow-y:scroll;">
       ...
       </div>
     </td>
-    <td style="vertical-align:top;">
-      <div id="code_div" style="width: 1000px; height:600px; vertical-align:top; overflow-x:auto; overflow-y:scroll;">
+    <td style="width:70%; vertical-align:top;">
+      <div id="code_div" style="height:600px; vertical-align:top; overflow-x:auto; overflow-y:scroll;">
       <table style="vertical-align:top;">
       <tr>
         <td style="width: 40px; vertical-align: top;">
@@ -51,8 +51,8 @@
       </table>
       </div>
     </td>
-    <td style="vertical-align: top;">
-      <div id="local_vars" style="width: 320px; height:600px; vertical-align: top; white-space:pre; overflow-x:auto; overflow-y:scroll;">
+    <td style="width:30%; vertical-align:top;">
+      <div id="local_vars" style="height:600px; vertical-align: top; white-space:pre; overflow-x:auto; overflow-y:scroll;">
       ...
       </div>
     </td>

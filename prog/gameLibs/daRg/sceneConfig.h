@@ -62,6 +62,7 @@ public:
   Tab<HotkeyButton> clickButtons;
 
   bool actionClickByBehavior = false;
+  bool allScreensAcceptInput = false;
 
   void setDefSceneBgColor(SQInteger color) { defSceneBgColor = E3DCOLOR((unsigned int)color); }
   SQInteger getDefSceneBgColor() const { return defSceneBgColor.u; }

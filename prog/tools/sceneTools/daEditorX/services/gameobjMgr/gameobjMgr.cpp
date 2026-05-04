@@ -15,7 +15,9 @@
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
 #include <EditorCore/ec_interface.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <anim/dag_animBlend.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
@@ -710,7 +712,7 @@ public:
 
       boxSize = Point3(length(col_x), length(col_y), length(col_z));
 
-      real width = min(boxSize.x, min(boxSize.y, boxSize.z));
+      real width = min(boxSize.x, boxSize.y);
       real radius = width * 0.5f;
 
       draw_cached_debug_cylinder_w(tm_a, tm_b, radius, color);
@@ -775,7 +777,7 @@ public:
       return;
     begin_draw_cached_debug_lines();
     int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     dag::ConstSpan<GameObjEntity *> ent = objPool.getEntities();
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(subtypeMask, lh_mask))
@@ -917,7 +919,7 @@ public:
 
     dag::ConstSpan<GameObjEntity *> ent = objPool.getEntities();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < ent.size(); i++)
       if (ent[i] && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
       {

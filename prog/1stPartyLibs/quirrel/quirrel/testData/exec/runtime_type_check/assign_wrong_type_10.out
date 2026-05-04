@@ -1,0 +1,11 @@
+
+AN ERROR HAS OCCURRED [default param (2) type 'null' differs from the declared type 'string|table']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_10.nut:3
+
+LOCALS
+[x] NULL
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_10.nut (testData/exec/runtime_type_check/assign_wrong_type_10.nut)]

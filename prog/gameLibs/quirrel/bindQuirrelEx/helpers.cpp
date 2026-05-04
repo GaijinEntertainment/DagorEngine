@@ -3,7 +3,7 @@
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 
 namespace bindquirrel

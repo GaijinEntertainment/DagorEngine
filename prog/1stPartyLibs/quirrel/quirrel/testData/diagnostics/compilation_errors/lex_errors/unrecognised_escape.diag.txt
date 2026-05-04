@@ -1,0 +1,8 @@
+ERROR: unrecognised escape char
+testData/diagnostics/compilation_errors/lex_errors/unrecognised_escape.nut:2:8
+
+// EXPECT_ERROR: "unrecognised escape char"
+let x = "\q"
+        ^-
+
+

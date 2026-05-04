@@ -8,6 +8,7 @@ include "get_additional_ao.dshl"
 include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_resolution.dshl"
 
 float gtao_cutoff_radius_mul = 1.68;
 float gtao_cutoff_smoothness = 0.8;
@@ -28,7 +29,6 @@ float4 globtm_no_ofs_psf_2;
 float4 globtm_no_ofs_psf_3;
 
 float contact_shadow_min_len = 0.25;
-sampler global_linear_clamp_sampler;
 
 hlsl{
   float decode_depth(float depth, float2 decode_depth)
@@ -76,11 +76,11 @@ macro GTAO_MAIN_CORE(code)
 
   INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_HALF_RES_CLOSE_DEPTH_NORMALS(code)
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
   INIT_ZNZFAR_STAGE(code)
   (code) {
     downsampled_far_depth_tex_exists@i1 = exists_tex(downsampled_far_depth_tex);
     downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
-    global_linear_clamp_sampler@sampler = global_linear_clamp_sampler;
   }
 
   hlsl(code) {
@@ -95,7 +95,8 @@ macro GTAO_MAIN_CORE(code)
   USE_PACK_SSAO_BASE(code)
   INIT_READ_IS_HERO_COCKPIT(code)
   USE_READ_IS_HERO_COCKPIT(code)
-  ENABLE_ASSERT(code)
+
+  INIT_DYNAMIC_RESOLUTION(code)
 
   hlsl(code) {
     half3 GetCameraVec(half2 uv)
@@ -105,7 +106,7 @@ macro GTAO_MAIN_CORE(code)
 
     half3 GetPosition(half2 uv)
     {
-      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv.xy, 0, 0)).x, zn_zfar.zw);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv.xy * current_dynamic_resolution_scale, 0, 0)).x, zn_zfar.zw);
       return GetCameraVec(uv) * sceneDepth;
     }
 
@@ -129,8 +130,8 @@ macro GTAO_MAIN_CORE(code)
     void SliceSample(half2 tc_base, half2 aoDir, int i, float targetMip, half3 ray, half3 v,
       float cutoff_radius, float inv_falloff_range, inout float closest)
     {
-      half2 uv = clamp(tc_base + aoDir * i,float2(0.001,0.001),float2(0.999,0.999));
-      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, targetMip)).x;
+      half2 uv = tc_base + aoDir * i;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy * current_dynamic_resolution_scale, 0, targetMip)).x;
 
       ##if (maybe(screen_mask_enabled))
         if (rawDepth >= 1)
@@ -170,7 +171,7 @@ macro GTAO_MAIN_CORE(code)
     {
 
       // Vector from camera to the current pixel's position
-      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(tc_original.xy, 0, 0)).x, zn_zfar.zw);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(tc_original.xy * current_dynamic_resolution_scale, 0, 0)).x, zn_zfar.zw);
       half3 ray = GetCameraVec(tc_original) * sceneDepth;
 
       float3 normal = normalize(float3(
@@ -251,13 +252,13 @@ macro GTAO_MAIN_CORE(code)
       #else
         #define GTAO_VALUE_X gtao_value.x
       #endif
-      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord, 0, 0)).x;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord * current_dynamic_resolution_scale, 0, 0)).x;
       BRANCH
       if (rawDepth <= 0 || rawDepth >= 1)//why not just rawDepth <= 0
         return 1;
 
       float depth1 = decode_depth(rawDepth, zn_zfar.zw);
-      half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord, 0, 0)).xyz * 2 - 1);
+      half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord * current_dynamic_resolution_scale, 0, 0)).xyz * 2 - 1);
       float3 cameraToPoint = depth1 * viewVect;
       float w = depth1;
       float3 pixelPos = cameraToPoint + world_view_pos;
@@ -290,7 +291,7 @@ macro GTAO_MAIN_CORE(code)
                 cameraToPoint, -from_sun_direction,
                 max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
                 filteredSteps, steps, dither - 0.5,
-                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0)
+                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(current_dynamic_resolution_scale.xy,0,0)
               );
             }
             else
@@ -300,7 +301,7 @@ macro GTAO_MAIN_CORE(code)
                 cameraToPoint, -from_sun_direction,
                 max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
                 filteredSteps, steps, dither - 0.5,
-                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0)
+                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(current_dynamic_resolution_scale.xy,0,0)
               );
             }
 
@@ -308,14 +309,14 @@ macro GTAO_MAIN_CORE(code)
             gtao_value.CONTACT_SHADOWS_ATTR *= lerp (1, contactShadow, shadow_strength);
           }
         }
-        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, texcoord, w);
+        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, texcoord * current_dynamic_resolution_scale, w);
       }
       ##endif
 
 
       ##if gbuffer_has_hero_cockpit
         BRANCH
-        if (isGbufferHeroCockpit(texcoord))
+        if (isGbufferHeroCockpit(texcoord * current_dynamic_resolution_scale))
         {
           float fade = saturate(dot(float4(pixelPos, 1), hero_cockpit_vec));
           GTAO_VALUE_X = lerp(GTAO_VALUE_X, 1.0f, fade);
@@ -365,7 +366,6 @@ shader gtao_main_cs
     #define NO_GRADIENTS_IN_SHADER 1
   }
 
-  ENABLE_ASSERT(cs)
   USE_AND_INIT_VIEW_VEC_CS()
   GTAO_MAIN_CORE(cs)
 
@@ -379,7 +379,7 @@ shader gtao_main_cs
         return;
 
       float2 pixelCenter = DTid.xy + 0.5;
-      float2 texcoord    = pixelCenter * gtao_texel_size.xy;
+      float2 texcoord = pixelCenter * gtao_texel_size.xy * current_inv_dynamic_resolution_scale;
 
       DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord.xy);
 
@@ -398,12 +398,13 @@ macro GTAO_SPATIAL_CORE(code)
   INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_VIEW_VEC_STAGE(code)
   USE_VIEW_VEC_STAGE(code)
-  ENABLE_ASSERT(code)
 
   local float4 halfResTexSize = get_dimensions(raw_gtao_tex, 0);
+  local int4 halfResTexSizeInt = get_dimensions(raw_gtao_tex, 0);
   (code) {
     raw_gtao_tex@smp2d = raw_gtao_tex;
     gtao_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
+    gtao_texture_size@i2 = (halfResTexSizeInt.x, halfResTexSizeInt.y);
   }
 
   hlsl(code) {
@@ -467,22 +468,194 @@ shader gtao_spatial
 
 shader gtao_spatial_cs
 {
-  ENABLE_ASSERT(cs)
   GTAO_SPATIAL_CORE(cs)
 
   hlsl(cs) {
+    #include "pixelPacking/Half2ToUint.hlsl"
+
     RWTexture2D<SSAO_TYPE> gtao_target : register(u0);
 
-    [numthreads( 8, 8, 1 )]
-    void gtao_spatial_cs(uint3 DTid : SV_DispatchThreadID)
+##if hardware.dx12 && !hardware.xbox && !hardware.scarlett
+    #define USE_OPTIMIZED_CODE WAVE_INTRINSICS
+##else
+    #define USE_OPTIMIZED_CODE 0
+##endif
+
+    #define TG_WIDTH 8
+    #define TG_HEIGHT 8
+
+#if USE_OPTIMIZED_CODE
+    // LG_ states for LANE_GROUP_
+    #define LG_WIDTH 8
+    #define LG_HEIGHT 4
+    #define LG_SIZE (LG_WIDTH*LG_HEIGHT)
+    #define LG_MASK (LG_SIZE - 1)
+
+    #define LG_WIDTH_MASK (LG_WIDTH - 1)
+    #define LG_WIDTH_BIT_COUNT 3
+    #define LG_BIT_COUNT 5
+
+    #define FILTER_WIDTH 4
+    #define FILTER_HEIGHT 4
+    #define FILTER_OFFSET 2
+
+    #define CACHE_LINES_COUNT 2
+
+    struct WaveCache
     {
-      if (any(DTid.xy >= gtao_texel_size.zw))
+      float depth;
+      uint  packedAoXY;
+    ##if ssao_has_blue
+      float aoZ;
+    ##endif
+    };
+
+    //  the structure of cache is 11x7, each iteration we load and use only 2 horizontal cache lines
+    // ----------------------------------               ----------------------------------
+    // |00|02|04|06|08|10|12|14|16|18|20| <- y=0        |  |  |  |  |  |  |  |  |  |  |  |
+    // |  |  |  |  |  |  |  |  |  |  |  |               |00|02|04|06|08|10|12|14|16|18|20| <- y=1
+    // |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |               |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |
+    // |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |               |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |
+    // |01|03|05|07|09|11|13|15|17|19|21|               |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |
+    // |  |  |XX|XX|XX|XX|XX|XX|XX|XX|  |               |01|03|05|07|09|11|13|15|17|19|21|
+    // |  |  |  |  |  |  |  |  |  |  |  |               |  |  |  |  |  |  |  |  |  |  |  |
+    // |  |  |  |  |  |  |  |  |  |  |  |               |  |  |  |  |  |  |  |  |  |  |  |
+    // ----------------------------------               ----------------------------------
+    int2 get_cache_local_offset(uint laneIndex, int y)
+    {
+      return int2(laneIndex >> 1, (laneIndex&1)*FILTER_HEIGHT + y);
+    }
+
+    //  the example of access to cache using cache load lane
+    // ----------------------------------
+    // |00|02|04|06|08|10|12|14|16|18|20|
+    // |  |  |  |  |  |  |  |  |  |  |  |
+    // |  |  |  |  |  |  |  |  |  |  |  |
+    // |  |  -------------  |  |  |  |  |
+    // |01|03|05 07 09 11|13|15|17|19|21|
+    // |  |  -------------  |  |  |  |  |
+    // |  |  |  |  |  |  |  |  |  |  |  |
+    // |  |  |  |  |  |  |  |  |  |  |  |
+    // ----------------------------------
+    uint get_base_cache_load_lane(uint2 laneOffset, int y)
+    {
+      uint selectedCacheLine = (laneOffset.y <= y ? 0 : 1);
+      return laneOffset.x*CACHE_LINES_COUNT + selectedCacheLine;
+    }
+
+    WaveCache create_wave_cache_for_lane(uint laneIndex, int y, uint2 waveEdge)
+    {
+      int2 cachePixelOffset = int2(waveEdge) - FILTER_OFFSET;
+
+      int2 localOffset = get_cache_local_offset(laneIndex, y);
+      int2 pixelOffset = clamp(cachePixelOffset + localOffset, int2(0, 0), gtao_texture_size - 1);
+
+      SSAO_TYPE ao = texelFetch(raw_gtao_tex, pixelOffset, 0).SSAO_ATTRS;
+
+      WaveCache cache;
+      cache.depth = decode_depth(texelFetch(half_res_close_depth, pixelOffset, 0).r, zn_zfar.zw);
+      cache.packedAoXY = packHalf2ToUint(ao.xy);
+      ##if ssao_has_blue
+        cache.aoZ = ao.z;
+      ##endif
+
+      return cache;
+    }
+
+    bool is_third_ao_component_used(WaveCache cache)
+    {
+      ##if ssao_has_blue
+        return WaveActiveAnyTrue(cache.aoZ != 0.0);
+      ##else
+        return false;
+      ##endif
+    }
+
+    void accumulate_ao_horizontal(bool useAoZ, uint baseCacheLoadLane, WaveCache cache, float invDepth, inout float weightsSpatial, inout SSAO_TYPE ao)
+    {
+      UNROLL
+      for (int x = 0; x < FILTER_WIDTH; x++)
+      {
+        uint cacheLoadLane = baseCacheLoadLane + x*CACHE_LINES_COUNT;
+
+        float localDepth = WaveReadLaneAt(cache.depth, cacheLoadLane);
+        float localWeight = max(0.0, 1.0 - 10.0*abs(localDepth*invDepth - 1.0));
+        weightsSpatial += localWeight;
+
+        half2 localAoXY = (half2) unpackHalf2FromUint(WaveReadLaneAt(cache.packedAoXY, cacheLoadLane));
+        ao.xy += localAoXY*localWeight;
+        ##if ssao_has_blue
+          if (useAoZ)
+            ao.z  += WaveReadLaneAt(cache.aoZ, cacheLoadLane)*localWeight;
+        ##endif
+      }
+    }
+
+    #define SHOULD_USE_FALLBACK ((WaveGetLaneCount() & LG_MASK) != 0)
+#else
+    #define SHOULD_USE_FALLBACK (true)
+#endif // USE_OPTIMIZED_CODE
+
+    [numthreads( TG_WIDTH, TG_HEIGHT, 1 )]
+    void gtao_spatial_cs(uint2 GrId : SV_GroupID, uint2 GTId : SV_GroupThreadID, uint3 DTid : SV_DispatchThreadID)
+    {
+      if (SHOULD_USE_FALLBACK)
+      {
+        if (any(DTid.xy >= gtao_texel_size.zw))
+          return;
+
+        float2 pixelCenter = DTid.xy + 0.5;
+        float2 texcoord    = pixelCenter * gtao_texel_size.xy;
+        SSAO_TYPE ao = gtao_spatial(texcoord);
+        texture2DAt(gtao_target, DTid.xy) = ao;
+
+        return;
+      }
+
+#if USE_OPTIMIZED_CODE
+      // use this code to split 8x8 thread group on 2 lane groups of size 8x4
+      uint waveIndex = (WaveActiveAnyTrue((GTId.x + GTId.y) == 0) ? WaveGetLaneIndex() >> LG_BIT_COUNT : 1);
+      uint2 waveEdge = uint2(GrId.x*TG_WIDTH, GrId.y*TG_HEIGHT + waveIndex*LG_HEIGHT);
+
+      // lane index is bound to values inside current lane group (remove wave32/wave64 code dependency)
+      uint  laneIndex = (WaveGetLaneIndex() & LG_MASK);
+      uint2 laneOffset = uint2(laneIndex & LG_WIDTH_MASK, laneIndex >> LG_WIDTH_BIT_COUNT);
+
+      // use this patch index to fix lane index value for wave64 setup
+      uint laneIndexPatch = WaveGetLaneIndex() & (1 << LG_BIT_COUNT);
+
+      uint2 outputPos = waveEdge + laneOffset;
+
+      float rawDepth = texelFetch(half_res_close_depth, min(outputPos, gtao_texture_size - 1), 0).r;
+      bool isInvalidDepth = (rawDepth >= 1 || rawDepth <= 0);
+
+      BRANCH
+      if (WaveActiveAllTrue(isInvalidDepth))
         return;
 
-      float2 pixelCenter = DTid.xy + 0.5;
-      float2 texcoord    = pixelCenter * gtao_texel_size.xy;
-      SSAO_TYPE ao = gtao_spatial(texcoord);
-      texture2DAt(gtao_target, DTid.xy) = ao;
+      const float depth = decode_depth(rawDepth, zn_zfar.zw);
+      const float invDepth = rcp(depth);
+
+      float weightsSpatial = 0.0;
+      SSAO_TYPE ao = 0.0;
+
+      LOOP
+      for(int y = 0; y < FILTER_HEIGHT; ++y)
+      {
+        WaveCache cache = create_wave_cache_for_lane(laneIndex, y, waveEdge);
+        uint baseCacheLoadLane = laneIndexPatch + get_base_cache_load_lane(laneOffset, y);
+
+        BRANCH
+        if (is_third_ao_component_used(cache))
+          accumulate_ao_horizontal(true, baseCacheLoadLane, cache, invDepth, weightsSpatial, ao);
+        else
+          accumulate_ao_horizontal(false, baseCacheLoadLane, cache, invDepth, weightsSpatial, ao);
+      }
+      ao *= rcp(weightsSpatial);
+
+      if (all(outputPos < gtao_texel_size.zw))
+        texture2DAt(gtao_target, outputPos) = ao;
+#endif // USE_OPTIMIZED_CODE
     }
   }
 
@@ -497,11 +670,10 @@ macro GTAO_TEMPORAL_CORE(code)
   INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_VIEW_VEC_STAGE(code)
   USE_VIEW_VEC_STAGE(code)
-  ENABLE_ASSERT(code)
 
   local float4 halfResTexSize = get_dimensions(gtao_tex, 0);
   (code) {
-    gtao_tex@smp2d = gtao_tex;
+    gtao_tex@tex2d = gtao_tex;
     gtao_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
     gtao_limit_sample@f2 = (halfResTexSize.x - 1, halfResTexSize.y - 1,0,0);
   }
@@ -601,7 +773,6 @@ shader gtao_temporal
 
 shader gtao_temporal_cs
 {
-  ENABLE_ASSERT(cs)
   GTAO_TEMPORAL_CORE(cs)
 
   hlsl(cs) {

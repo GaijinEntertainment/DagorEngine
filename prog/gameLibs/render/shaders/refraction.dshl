@@ -17,8 +17,7 @@ macro REFRACTION_INIT()
   {
     INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
     SQ_INIT_CLOUDS_SHADOW(ps)
-    //INIT_STATIC_SHADOW() // not enough vsmp for both cascades
-    INIT_STATIC_SHADOW_BASE_ONE_CASCADE(ps) //we would better use! INIT_STATIC_SHADOW_BASE_SECOND_CASCADE()
+    INIT_STATIC_SHADOW_BLOCK_PS()
   }
   INIT_SKY_DIFFUSE()
   INIT_LOCAL_SPECULAR()
@@ -28,9 +27,19 @@ macro REFRACTION_INIT()
 endmacro
 
 macro USE_FETCH_REFRACTED_PIXEL(stage)
+  USE_FETCH_REFRACTED_PIXEL_IMPL(stage)
+  hlsl(stage) {
+    float4 fetchRefractedPixel(float2 screenUV, float3 cameraToPoint, float3 worldRayDir, float rayLen, float roughnessMip)
+    {
+      return fetchRefractedPixel_impl(screenUV, cameraToPoint, worldRayDir, rayLen, roughnessMip);
+    }
+  }
+endmacro
+
+macro USE_FETCH_REFRACTED_PIXEL_IMPL(stage)
   USE_HDR(stage)
 hlsl(stage) {
-  float4 fetchRefractedPixel(float2 screenUV, float3 cameraToPoint, float3 worldRayDir, float rayLen, float roughnessMip)
+  float4 fetchRefractedPixel_impl(float2 screenUV, float3 cameraToPoint, float3 worldRayDir, float rayLen, float roughnessMip)
   {
     float4 ndcSamplePosition = mul(float4(cameraToPoint + worldRayDir*rayLen, 1.0), viewProjectionMatrixNoOfs);
     float2 refractUV = (ndcSamplePosition.xy/ndcSamplePosition.w);
@@ -46,7 +55,7 @@ macro REFRACTION_USE()
   if (in_editor_assume == no)
   {
     SQ_CLOUDS_SHADOW(ps)
-    USE_STATIC_SHADOW_ONE_CASCADE(ps)
+    USE_STATIC_SHADOW()
     USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   }
 endmacro

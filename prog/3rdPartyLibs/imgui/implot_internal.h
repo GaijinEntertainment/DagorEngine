@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
 // You may use this file to debug, understand or extend ImPlot features but we
 // don't provide any guarantee of forward compatibility!
@@ -31,13 +32,13 @@
 
 #pragma once
 
-#include <time.h>
-#include "imgui_internal.h"
-
 #ifndef IMPLOT_VERSION
 #error Must include implot.h before implot_internal.h
 #endif
 
+#ifndef IMGUI_DISABLE
+#include <time.h>
+#include "imgui_internal.h"
 
 // Support for pre-1.84 versions. ImPool's GetSize() -> GetBufSize()
 #if (IMGUI_VERSION_NUM < 18303)
@@ -51,7 +52,7 @@
 // Constants can be changed unless stated otherwise. We may move some of these
 // to ImPlotStyleVar_ over time.
 
-// Mimimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
+// Minimum allowable timestamp value 01/01/1970 @ 12:00am (UTC) (DO NOT DECREASE THIS)
 #define IMPLOT_MIN_TIME  0
 // Maximum allowable timestamp value 01/01/3000 @ 12:00am (UTC) (DO NOT INCREASE THIS)
 #define IMPLOT_MAX_TIME  32503680000
@@ -198,7 +199,7 @@ static inline ImU32 ImMixU32(ImU32 a, ImU32 b, ImU32 s) {
 #endif
 }
 
-// Lerp across an array of 32-bit collors given t in [0.0 1.0]
+// Lerp across an array of 32-bit colors given t in [0.0 1.0]
 static inline ImU32 ImLerpU32(const ImU32* colors, int size, float t) {
     int i1 = (int)((size - 1 ) * t);
     int i2 = i1 + 1;
@@ -420,6 +421,7 @@ struct ImPlotColormapData {
 // ImPlotPoint with positive/negative error values
 struct ImPlotPointError {
     double X, Y, Neg, Pos;
+    ImPlotPointError() { X = 0; Y = 0; Neg = 0; Pos = 0; }
     ImPlotPointError(double x, double y, double neg, double pos) {
         X = x; Y = y; Neg = neg; Pos = pos;
     }
@@ -486,6 +488,14 @@ struct ImPlotTag {
     ImU32  ColorBg;
     ImU32  ColorFg;
     int    TextOffset;
+
+    ImPlotTag() {
+        Axis       = 0;
+        Value      = 0;
+        ColorBg    = 0;
+        ColorFg    = 0;
+        TextOffset = 0;
+    }
 };
 
 struct ImPlotTagCollection {
@@ -539,6 +549,17 @@ struct ImPlotTick
     bool   ShowLabel;
     int    Level;
     int    Idx;
+
+    ImPlotTick() {
+        PlotPos      = 0;
+        PixelPos     = 0;
+        LabelSize    = ImVec2(0,0);
+        TextOffset   = -1;
+        Major        = false;
+        ShowLabel    = false;
+        Level        = 0;
+        Idx          = -1;
+    }
 
     ImPlotTick(double value, bool major, int level, bool show_label) {
         PixelPos     = 0;
@@ -966,9 +987,11 @@ struct ImPlotLegend
     ImPlotLegendFlags PreviousFlags;
     ImPlotLocation    Location;
     ImPlotLocation    PreviousLocation;
+    ImVec2            Scroll;
     ImVector<int>     Indices;
     ImGuiTextBuffer   Labels;
     ImRect            Rect;
+    ImRect            RectClamped;
     bool              Hovered;
     bool              Held;
     bool              CanGoInside;
@@ -978,6 +1001,7 @@ struct ImPlotLegend
         CanGoInside  = true;
         Hovered      = Held = false;
         Location     = PreviousLocation = ImPlotLocation_NorthWest;
+        Scroll       = ImVec2(0,0);
     }
 
     void Reset() { Indices.shrink(0); Labels.Buf.shrink(0); }
@@ -1215,9 +1239,6 @@ struct ImPlotContext {
     ImPlotAnnotationCollection Annotations;
     ImPlotTagCollection        Tags;
 
-    // Flags
-    bool ChildWindowMade;
-
     // Style and Colormaps
     ImPlotStyle                 Style;
     ImVector<ImGuiColorMod>     ColorModifiers;
@@ -1414,13 +1435,15 @@ IMPLOT_API void ShowAxisContextMenu(ImPlotAxis& axis, ImPlotAxis* equal_axis, bo
 
 // Gets the position of an inner rect that is located inside of an outer rect according to an ImPlotLocation and padding amount.
 IMPLOT_API ImVec2 GetLocationPos(const ImRect& outer_rect, const ImVec2& inner_size, ImPlotLocation location, const ImVec2& pad = ImVec2(0,0));
-// Calculates the bounding box size of a legend
+// Calculates the bounding box size of a legend _before_ clipping.
 IMPLOT_API ImVec2 CalcLegendSize(ImPlotItemGroup& items, const ImVec2& pad, const ImVec2& spacing, bool vertical);
+// Clips calculated legend size
+IMPLOT_API bool ClampLegendRect(ImRect& legend_rect, const ImRect& outer_rect, const ImVec2& pad);
 // Renders legend entries into a bounding box
 IMPLOT_API bool ShowLegendEntries(ImPlotItemGroup& items, const ImRect& legend_bb, bool interactable, const ImVec2& pad, const ImVec2& spacing, bool vertical, ImDrawList& DrawList);
-// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window!).
+// Shows an alternate legend for the plot identified by #title_id, outside of the plot frame (can be called before or after of Begin/EndPlot but must occur in the same ImGui window! This is not thoroughly tested nor scrollable!).
 IMPLOT_API void ShowAltLegend(const char* title_id, bool vertical = true, const ImVec2 size = ImVec2(0,0), bool interactable = true);
-// Shows an legends's context menu.
+// Shows a legend's context menu.
 IMPLOT_API bool ShowLegendContextMenu(ImPlotLegend& legend, bool visible);
 
 //-----------------------------------------------------------------------------
@@ -1562,11 +1585,24 @@ IMPLOT_API tm* GetLocTime(const ImPlotTime& t, tm* ptm);
 // NB: The following functions only work if there is a current ImPlotContext because the
 // internal tm struct is owned by the context! They are aware of ImPlotStyle.UseLocalTime.
 
+// // Make a UNIX timestamp from a tm struct according to the current ImPlotStyle.UseLocalTime setting.
+static inline ImPlotTime MkTime(struct tm *ptm) {
+    if (GetStyle().UseLocalTime) return MkLocTime(ptm);
+    else                         return MkGmtTime(ptm);
+}
+// Get a tm struct from a UNIX timestamp according to the current ImPlotStyle.UseLocalTime setting.
+static inline tm* GetTime(const ImPlotTime& t, tm* ptm) {
+    if (GetStyle().UseLocalTime) return GetLocTime(t,ptm);
+    else                         return GetGmtTime(t,ptm);
+}
+
 // Make a timestamp from time components.
 // year[1970-3000], month[0-11], day[1-31], hour[0-23], min[0-59], sec[0-59], us[0,999999]
 IMPLOT_API ImPlotTime MakeTime(int year, int month = 0, int day = 1, int hour = 0, int min = 0, int sec = 0, int us = 0);
 // Get year component from timestamp [1970-3000]
 IMPLOT_API int GetYear(const ImPlotTime& t);
+// Get month component from timestamp [0-11]
+IMPLOT_API int GetMonth(const ImPlotTime& t);
 
 // Adds or subtracts time from a timestamp. #count > 0 to add, < 0 to subtract.
 IMPLOT_API ImPlotTime AddTime(const ImPlotTime& t, ImPlotTimeUnit unit, int count);
@@ -1578,6 +1614,11 @@ IMPLOT_API ImPlotTime CeilTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 IMPLOT_API ImPlotTime RoundTime(const ImPlotTime& t, ImPlotTimeUnit unit);
 // Combines the date of one timestamp with the time-of-day of another timestamp.
 IMPLOT_API ImPlotTime CombineDateTime(const ImPlotTime& date_part, const ImPlotTime& time_part);
+
+// Get the current time as a timestamp.
+static inline ImPlotTime Now() { return ImPlotTime::FromDouble((double)time(nullptr)); }
+// Get the current date as a timestamp.
+static inline ImPlotTime Today() { return ImPlot::FloorTime(Now(), ImPlotTimeUnit_Day); }
 
 // Formats the time part of timestamp t into a buffer according to #fmt
 IMPLOT_API int FormatTime(const ImPlotTime& t, char* buffer, int size, ImPlotTimeFmt fmt, bool use_24_hr_clk);
@@ -1659,9 +1700,11 @@ static inline int Formatter_Time(double, char* buff, int size, void* data) {
 // [SECTION] Locator
 //------------------------------------------------------------------------------
 
-void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
-void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Default(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Time(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_Log10(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
+IMPLOT_API void Locator_SymLog(ImPlotTicker& ticker, const ImPlotRange& range, float pixels, bool vertical, ImPlotFormatter formatter, void* formatter_data);
 
 } // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE

@@ -59,7 +59,8 @@ void update_listener(float dt, const TMatrix &listener_tm);
 void set_time_speed(float time_speed);
 void begin_update(float dt);
 void end_update(float dt);
-void lazy_update();
+void sync_update();
+void gpu_update();
 
 void override_time_speed(float time_speed); // should be > 0 to override value provided within update(float dt, float time_speed = 1.f)
 
@@ -69,6 +70,7 @@ TMatrix get_3d_listener();
 Point3 get_3d_listener_vel();
 
 void reset_3d_listener();
+void get_command_buffer_size(int &current, int &peak, int &capacity, int &stallcount, int &studio_handle_hapacity);
 
 void set_volume(const char *vca_name, float volume);
 float get_volume(const char *vca_name);

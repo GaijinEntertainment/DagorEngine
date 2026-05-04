@@ -5,7 +5,7 @@ let mkAnimation = function(delay) {
   let trigger = {}
   let totalD = delay+0.3
   return [
-    { prop=AnimProp.translate, from=static [0,-sh(30)], to=static [0,0], duration=0.2, easing=InCubic, play=true, delay}
+    { prop=AnimProp.translate, from=const [0,-sh(30)], to=const [0,0], duration=0.2, easing=InCubic, play=true, delay}
 //    { prop=AnimProp.opacity, from=0, to=1, duration=0.3, easing=InCubic, trigger}
     { prop=AnimProp.opacity, from=0, to=1, duration=totalD, easing=function(t) {
         let ct = t*totalD
@@ -16,7 +16,7 @@ let mkAnimation = function(delay) {
         return s*s
       }, play=true, onFinish = trigger}
 
-    { prop=AnimProp.translate, from=static [0,0], to=static [0,sh(20)], duration=0.2, easing=InCubic, playFadeOut=true, delay=delay/2}
+    { prop=AnimProp.translate, from=const [0,0], to=const [0,sh(20)], duration=0.2, easing=InCubic, playFadeOut=true, delay=delay/2}
     { prop=AnimProp.opacity, from=1, to=0, duration=0.18, easing=InCubic, playFadeOut=true, delay=delay/2}
   //  { prop=AnimProp.opacity, from=1, to=1, duration=delay/2, easing=OutCubic, playFadeOut=true}
   ]
@@ -30,7 +30,7 @@ function mkAnim(ch, i, total){
     key = {}
     animations = mkAnimation(delay)
     fontSize = hdpx(100)
-    transform = {}
+    transform = true
   }
 }
 let show = Watched(true)

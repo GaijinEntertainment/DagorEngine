@@ -105,8 +105,9 @@ static void solve_for_target(dag::Span<vec3f> chain, vec3f target)
   simple_solve_fabrik_chain(chain.data(), chain.size(), target, 4, 0.001f, 0.0005f, -1);
 }
 
-void AnimV20::MultiChainFABRIKCtrl::reset(IPureAnimStateHolder &st)
+void AnimV20::MultiChainFABRIKCtrl::clearAllocatedMemory(IPureAnimStateHolder &st)
 {
+  G_UNUSED(st);
 #if ALLOW_DBG_CHAIN_STORE
   for (int i = 0; i < 2; i++)
     if (dbgVarId[i] >= 0)
@@ -116,6 +117,12 @@ void AnimV20::MultiChainFABRIKCtrl::reset(IPureAnimStateHolder &st)
         clear_and_shrink(*dbg);
     }
 #endif
+}
+
+void AnimV20::MultiChainFABRIKCtrl::setDefaultState(IPureAnimStateHolder &st)
+{
+  clearAllocatedMemory(st);
+
   if (perAnimStateDataVarId >= 0)
     memset(st.getInlinePtr(perAnimStateDataVarId), 0, sizeof(PerAnimStateData));
 }

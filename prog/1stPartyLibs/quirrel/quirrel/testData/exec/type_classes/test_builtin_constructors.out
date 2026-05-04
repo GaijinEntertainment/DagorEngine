@@ -1,0 +1,39 @@
+Integer(): 0
+Integer(42): 42
+Integer(3.14): 3
+Integer("100"): 100
+Integer(true): 1
+
+Float(): 0
+Float(42): 42
+Float(3.14): 3.14
+Float("3.14"): 3.14
+Float(true): 1
+
+Bool(): false
+Bool(0): false
+Bool(1): true
+Bool(3.14): true
+Bool(null): false
+Bool("hello"): true
+Bool(""): true
+
+String(42): 42
+String(3.14): 3.14
+String(true): true
+String(null): null
+
+Array(0): []
+Array(5): [null, null, null, null, null]
+Array(3, "hello"): [hello, hello, hello]
+
+Table(): {}
+After adding keys: {[y]=20, [x]=10}
+
+Null(): null
+
+type(WeakRef(obj)): weakref
+wr.ref(): {[foo]=bar}
+
+x = Integer("42"): 42 type: integer
+x instanceof Integer: true

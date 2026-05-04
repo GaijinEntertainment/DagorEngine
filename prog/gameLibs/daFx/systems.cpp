@@ -49,16 +49,30 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   bool isProxyNode =
     desc.emitterData.type == dafx::EmitterType::FIXED && desc.emitterData.fixedData.count == 0 && !desc.subsystems.empty();
   unsigned int emLimit = get_emitter_limit(desc.emitterData, false);
-  G_ASSERT_RETURN(emLimit > 0 || isProxyNode, false);
 
   emLimit = isProxyNode ? 0 : max((int)(round(emLimit * max(ctx.cfg.emission_factor, desc.emitterData.minEmissionFactor))), 1);
 
-  G_ASSERT_RETURN(emLimit < ctx.cfg.emission_limit && emLimit < ctx.cfg.emission_max_limit, false);
+  if (emLimit == 0 && !isProxyNode)
+  {
+    logerr("dafx: sys: %s, emLimit = 0", name);
+    return false;
+  }
+
+  if (emLimit >= ctx.cfg.emission_limit || emLimit >= Config::emission_max_limit)
+  {
+    logerr("dafx: sys: %s, emission is over the limits - %d (%d)", name, emLimit);
+    return false;
+  }
 
   sys.depth = depth;
   sys.refFlags = SYS_VALID | SYS_ENABLED | (isProxyNode ? 0 : SYS_EMITTER_REQ);
+
   if (desc.specialFlags & SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD)
     sys.refFlags |= SYS_SKIP_SCREEN_PROJ_CULL_DISCARD;
+
+  if (desc.specialFlags & SystemDesc::FLAG_DISABLE_CULLING)
+    sys.refFlags |= SYS_DISABLE_CULLING;
+
   if (!(desc.specialFlags & SystemDesc::FLAG_DISABLE_SIM_LODS))
     sys.refFlags |= SYS_ALLOW_SIMULATION_LODS;
   sys.qualityFlags = desc.qualityFlags;
@@ -291,11 +305,58 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
   return true;
 }
 
-SystemId get_system_by_name(ContextId cid, const eastl::string &name)
+bool match_system_descs(const SystemTemplate &a, const SystemDesc &b)
+{
+  if (a.qualityFlags != b.qualityFlags || a.gameResId != b.gameResId || a.renderPrimPerPart != b.renderPrimPerPart ||
+      a.renderSortDepth != b.renderSortDepth)
+  {
+    logerr("dafx: match_system_descs mismatch: qualityFlags(a=%u b=%u), gameResId(a=%d b=%d), renderPrimPerPart(a=%d b=%d), "
+           "renderSortDepth(a=%d b=%d)",
+      a.qualityFlags, b.qualityFlags, a.gameResId, b.gameResId, a.renderPrimPerPart, b.renderPrimPerPart, a.renderSortDepth,
+      b.renderSortDepth);
+    return false;
+  }
+
+  if (a.renderElemSize != b.renderElemSize || a.simulationElemSize != b.simulationElemSize || a.serviceDataSize != b.serviceDataSize)
+  {
+    logerr("dafx: match_system_descs mismatch: renderElemSize(a=%d b=%d), simulationElemSize(a=%d b=%d), serviceDataSize(a=%d b=%d), "
+           "gameResId=%d",
+      a.renderElemSize, b.renderElemSize, a.simulationElemSize, b.simulationElemSize, a.serviceDataSize, b.serviceDataSize,
+      a.gameResId);
+    return false;
+  }
+
+  if (a.subsystems.size() != b.subsystems.size())
+  {
+    logerr("dafx: match_system_descs mismatch: subsystems size(a=%d b=%d), gameResId=%d", (int)a.subsystems.size(),
+      (int)b.subsystems.size(), a.gameResId);
+    return false;
+  }
+
+  for (int i = 0; i < a.subsystems.size(); ++i)
+    if (!match_system_descs(a.subsystems[i], b.subsystems[i]))
+      return false;
+
+  return true;
+}
+
+SystemId get_system_by_name(ContextId cid, const eastl::string &name, const SystemDesc *match_desc_opt)
 {
   GET_CTX_RET(SystemId());
   SystemNameMap::iterator sysNameIt = ctx.systems.nameMap.find(name);
-  return sysNameIt != ctx.systems.nameMap.end() ? sysNameIt->second : SystemId();
+  SystemId sysId = sysNameIt != ctx.systems.nameMap.end() ? sysNameIt->second : SystemId();
+  if (!sysId || !match_desc_opt)
+    return sysId;
+
+  SYS_LOCK_GUARD;
+  SystemTemplate *sys = ctx.systems.list.get(sysId);
+  G_ASSERT_RETURN(sys, SystemId());
+
+  sysId = match_system_descs(*sys, *match_desc_opt) ? sysId : SystemId();
+  if (!sysId)
+    logerr("dafx: get_system_by_name layout mismatch. gameResId: %d", sys->gameResId);
+
+  return sysId;
 }
 
 SystemId get_dummy_system_id(ContextId cid)

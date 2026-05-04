@@ -21,7 +21,8 @@ define_macro_if_not_defined APPLY_ADDITIONAL_SHADOWS(code)
       if (swrt_checkerboard_frame)
       {
         uint rand = pcg3d_hash_16bit(uint3(coord, swrt_checkerboard_frame)).x;
-        int2 ofs = select(bool2(rand&1, 1-(rand&1)), (rand&2) - 1, int2(0,0));
+        int randOfs = ((int)(rand&2)) - 1;
+        int2 ofs = select(bool2(rand&1, 1-(rand&1)), int2(randOfs, randOfs), int2(0,0));
         ofs = select(clamp(int2(coord) + ofs, 0, swrt_shadow_target_size.xy) == int2(coord) + ofs, ofs, -ofs);
         FLATTEN
         if ((swrt_checkerboard_frame & 1) != (coord.y & 1))// this is pixel obtained on current frame

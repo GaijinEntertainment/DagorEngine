@@ -8,6 +8,7 @@ extern int dll_pull_osapiwrappers_timed_critsec;
 extern int dll_pull_osapiwrappers_dbgStr;
 extern int dll_pull_osapiwrappers_dbgStrFmt;
 extern int dll_pull_osapiwrappers_directoryService;
+extern int dll_pull_osapiwrappers_directoryUtils;
 extern int dll_pull_osapiwrappers_directory_watch;
 extern int dll_pull_osapiwrappers_findFile;
 extern int dll_pull_osapiwrappers_getRealFname;
@@ -36,8 +37,11 @@ extern int dll_pull_osapiwrappers_sockets;
 extern int dll_pull_osapiwrappers_mmap;
 extern int dll_pull_osapiwrappers_virtualMem;
 extern int dll_pull_osapiwrappers_cpuFeatures;
+extern int dll_pull_osapiwrappers_versionQuery;
+extern int dll_pull_osapiwrappers_winVersionQuery;
 
 extern int dll_pull_kernel_cpuFreq;
+extern int dll_pull_kernel_dagorHwBreakpoint;
 extern int dll_pull_kernel_dagorHwExcept;
 extern int dll_pull_kernel_debug;
 extern int dll_pull_kernel_fatalerr;
@@ -49,6 +53,7 @@ extern int dll_pull_kernel_perfTimer;
 extern int dll_pull_perfMon_daProfilerLogDump;
 
 extern int dll_pull_memory_dagmem;
+extern int dll_pull_memory_profile;
 extern int dll_pull_memory_mspaceAlloc;
 extern int dll_pull_memory_framemem;
 extern int dll_pull_memory_physmem;

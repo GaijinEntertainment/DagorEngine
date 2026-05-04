@@ -62,6 +62,18 @@ int does_line_intersect_box_side(const BBox3 &box, const Point3 &line_start, con
   return v_segment_box_intersection_side(v_ldu(&line_start.x), v_ldu(&line_end.x), v_ldu_bbox3(box), at, atMax);
 }
 
+bool does_line_intersect_box(const BBox3 &box, const Point3 &line_start, const Point3 &line_end, real &at)
+{
+  vec4f vStart = v_ldu(&line_start.x);
+  vec4f vEnd = v_ldu(&line_end.x);
+  vec4f dir = v_sub(vEnd, vStart);
+  vec4f t = V_C_ONE;
+  bool hit = v_ray_box_intersection(vStart, dir, t, v_ldu_bbox3(box));
+  if (hit)
+    at = v_extract_x(t);
+  return hit;
+}
+
 bool clip_homogeneous(Point4 &p0, Point4 &p1)
 {
   if (p0.w < 0.0f && p1.w < 0.0f)

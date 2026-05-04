@@ -4,6 +4,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_driver.h>
+#include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
@@ -17,18 +18,19 @@ static const float MAX_DROPS_ALIVE_TIME = 20.0f;
 static const int MAX_DROPS_PER_BATCH = 64;
 
 
-WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float water_displacement_max, bool use_flowmap) :
+WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float water_displacement_max, bool use_flowmap,
+  bool use_distortion) :
   worldSize(world_size), texSize(simulation_tex_size), steps(), texBuffers(), drops(midmem)
 {
   drops.reserve(MAX_DROPS_PER_BATCH);
-  texBuffers[0] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_0");
-  texBuffers[1] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_1");
-  texBuffers[2] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_2");
+  texBuffers[0] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_0", RESTAG_WATER);
+  texBuffers[1] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_1", RESTAG_WATER);
+  texBuffers[2] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_2", RESTAG_WATER);
 
   // normal texture 2 times larger than solution texture
-  heightNormalTexture =
-    UniqueTexHolder(dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal"),
-      get_shader_variable_id("water_ripples_normal", true));
+  heightNormalTexture = UniqueTexHolder(
+    dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal", RESTAG_WATER),
+    get_shader_variable_id("water_ripples_normal", true));
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -36,7 +38,24 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
     ShaderGlobal::set_sampler(::get_shader_glob_var_id("water_ripples_normal_samplerstate", true), d3d::request_sampler(smpInfo));
   }
 
-  dropsBuf = dag::buffers::create_one_frame_cb(MAX_DROPS_PER_BATCH, "water_ripples_drops_buf");
+  if (use_distortion)
+  {
+    distortionTexBuffers[0] =
+      dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_distortion_0", RESTAG_WATER);
+    distortionTexBuffers[1] =
+      dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_distortion_1", RESTAG_WATER);
+
+    // distortion result texture is same size as solution, but has simplier format (R8) and needed for proper work of flowmap
+    distortionTexture =
+      dag::create_tex(NULL, texSize, texSize, TEXFMT_R8 | TEXCF_RTARGET, 1, "water_ripples_distortion", RESTAG_WATER);
+  }
+  else
+  {
+    // stub texture
+    distortionTexture = dag::create_tex(NULL, 1, 1, TEXFMT_R8 | TEXCF_RTARGET, 1, "water_ripples_distortion", RESTAG_WATER);
+  }
+
+  dropsBuf = dag::buffers::create_one_frame_cb(MAX_DROPS_PER_BATCH, "water_ripples_drops_buf", RESTAG_WATER);
 
   lastStepOrigin[1] = Point2(0, 0);
   lastStepOrigin[0] = Point2(0, 0);
@@ -47,9 +66,10 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   texelSize = world_size / texSize;
 
   useFlowmap = use_flowmap;
+  useDistortion = use_distortion;
 
   waterRipplesOnVarId = ::get_shader_glob_var_id("water_ripples_on", true);
-  ShaderGlobal::set_real(waterRipplesOnVarId, 0.0f);
+  ShaderGlobal::set_float(waterRipplesOnVarId, 0.0f);
 
   waterRipplesDropCountVarId = ::get_shader_glob_var_id("water_ripples_drop_count");
   waterRipplesOriginVarId = ::get_shader_glob_var_id("water_ripples_origin");
@@ -60,17 +80,23 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   waterRipplesT1_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_t1_samplerstate");
   waterRipplesT2VarId = ::get_shader_glob_var_id("water_ripples_t2");
   waterRipplesT2_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_t2_samplerstate");
-  waterRipplesDropsVarId = ::get_shader_glob_var_id("water_ripples_drops");
 
+  waterRipplesDistortT1VarId = ::get_shader_glob_var_id("water_ripples_distort_t1");
+  waterRipplesDistortT1_samplerstateVarId = ::get_shader_glob_var_id("water_ripples_distort_t1_samplerstate");
+
+  waterRipplesDropsVarId = ::get_shader_glob_var_id("water_ripples_drops");
   waterRipplesFrameNoVarId = ::get_shader_glob_var_id("water_ripples_frame_no");
   waterRipplesFlowmapFrameCountVarId = ::get_shader_glob_var_id("water_ripples_flowmap_frame_count");
   waterRipplesFlowmapVarId = ::get_shader_glob_var_id("water_ripples_flowmap", true);
+  waterRipplesResolveModeVarId = ::get_shader_glob_var_id("water_ripples_resolve_mode");
+  waterRipplesGenDistortionVarId = ::get_shader_glob_var_id("water_ripples_gen_distortion");
 
-  ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_pixel_size"), 1.0f / texSize);
-  ShaderGlobal::set_real(::get_shader_glob_var_id("water_ripples_size"), worldSize);
-  ShaderGlobal::set_real(waterRipplesDisplaceMaxVarId, water_displacement_max);
+  ShaderGlobal::set_float(::get_shader_glob_var_id("water_ripples_pixel_size"), 1.0f / texSize);
+  ShaderGlobal::set_float(::get_shader_glob_var_id("water_ripples_size"), worldSize);
+  ShaderGlobal::set_float(waterRipplesDisplaceMaxVarId, water_displacement_max);
   ShaderGlobal::set_int(waterRipplesFlowmapFrameCountVarId, flowmapFrameCount);
   ShaderGlobal::set_int(waterRipplesFlowmapVarId, useFlowmap ? 1 : 0);
+  ShaderGlobal::set_int(waterRipplesGenDistortionVarId, useDistortion ? 1 : 0);
 
   {
     d3d::SamplerInfo smpInfo;
@@ -82,28 +108,31 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   }
   ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesPointSampler);
   ShaderGlobal::set_sampler(waterRipplesT2_samplerstateVarId, waterRipplesPointSampler);
+  ShaderGlobal::set_sampler(waterRipplesDistortT1_samplerstateVarId, waterRipplesPointSampler);
 }
 
-WaterRipples::~WaterRipples() { ShaderGlobal::set_real(waterRipplesOnVarId, 0.0f); }
+WaterRipples::~WaterRipples() { ShaderGlobal::set_float(waterRipplesOnVarId, 0.0f); }
 
-void WaterRipples::placeDrop(const Point2 &pos, float strength, float radius)
+void WaterRipples::placeDrop(const Point2 &pos, float strength, float distortion, float radius)
 {
   G_ASSERT_RETURN(radius > 0.0f, );
 
-  Point4 &drop = drops.push_back();
-  drop = Point4(pos.x, pos.y, radius / texSize, strength);
+  WaterRipplesDrop &drop = drops.push_back();
+  drop.data = Point4(pos.x, pos.y, radius / texSize, 0);
+  drop.strength = (static_cast<uint32_t>(float_to_half(strength)) << 16) | float_to_half(distortion);
   addDropInst(1);
 }
 
 void WaterRipples::placeSolidBox(const Point2 &pos, const Point2 &size, const Point2 &local_x, const Point2 &local_y, float strength,
-  float radius)
+  float distortion, float radius)
 {
   G_ASSERT(radius > 0.0f);
 
-  Point4 &drop = drops.push_back();
-  drop = Point4(pos.x, pos.y, -radius / texSize, strength);
-  Point4 &localXY = drops.push_back();
-  localXY = Point4(local_x.x * size.x, local_x.y * size.x, local_y.x * size.y, local_y.y * size.y) * 0.5f / worldSize;
+  WaterRipplesDrop &drop = drops.push_back();
+  drop.data = Point4(pos.x, pos.y, -radius / texSize, 0);
+  drop.strength = (static_cast<uint32_t>(float_to_half(strength)) << 16) | float_to_half(distortion);
+  WaterRipplesDrop &localXY = drops.push_back();
+  localXY.data = Point4(local_x.x * size.x, local_x.y * size.x, local_y.x * size.y, local_y.y * size.y) * 0.5f / worldSize;
   addDropInst(2);
 }
 
@@ -111,15 +140,15 @@ void WaterRipples::placeSolidBox(const Point2 &pos, const Point2 &size, const Po
 // Cant change this in the original functions as that would affect WT, and as the values were
 // set up with this error in mind, it would mess up WT ripples.
 // This should be fixen in WT later.
-void WaterRipples::placeDropCorrected(const Point2 &pos, float strength, float radius)
+void WaterRipples::placeDropCorrected(const Point2 &pos, float strength, float distortion, float radius)
 {
-  placeDrop(pos, strength, (radius / worldSize) * texSize);
+  placeDrop(pos, strength, distortion, (radius / worldSize) * texSize);
 }
 
 void WaterRipples::placeSolidBoxCorrected(const Point2 &pos, const Point2 &size, const Point2 &local_x, const Point2 &local_y,
-  float strength, float radius)
+  float strength, float distortion, float radius)
 {
-  placeSolidBox(pos, size, local_x, local_y, strength, (radius / worldSize) * texSize);
+  placeSolidBox(pos, size, local_x, local_y, strength, distortion, (radius / worldSize) * texSize);
 }
 
 void WaterRipples::reset()
@@ -200,18 +229,19 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
       if (!cleared)
         clearRts();
       dropsAliveTime = 0.0f;
-      ShaderGlobal::set_real(waterRipplesOnVarId, 0.0f);
+      ShaderGlobal::set_float(waterRipplesOnVarId, 0.0f);
     }
     return;
   }
   else if (inSleep)
   {
     inSleep = false;
-    ShaderGlobal::set_real(waterRipplesOnVarId, 1.0f);
+    ShaderGlobal::set_float(waterRipplesOnVarId, 1.0f);
   }
   dropsAliveTime -= dt;
 
   heightNormalTexture.setVar();
+  distortionTexture.setVar();
 
   SCOPE_RENDER_TARGET;
 
@@ -219,6 +249,7 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
 
   for (int stepNo = 0; stepNo < nextNumSteps; ++stepNo)
   {
+    TIME_D3D_PROFILE(water_ripples_step);
     Point2 originDelta1(0.0f, 0.0f);
     Point2 originDelta2(0.0f, 0.0f);
     {
@@ -244,17 +275,23 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
 
     ShaderGlobal::set_int(waterRipplesFrameNoVarId, frameNo);
 
-    ShaderGlobal::set_color4(waterRipplesOriginVarId, Color4(origin.x, 0.0f, origin.y, 0.0f));
-    ShaderGlobal::set_color4(waterRipplesOriginDeltaVarId, originDelta1.x, originDelta1.y, originDelta2.x, originDelta2.y);
+    ShaderGlobal::set_float4(waterRipplesOriginVarId, Color4(origin.x, 0.0f, origin.y, 0.0f));
+    ShaderGlobal::set_float4(waterRipplesOriginDeltaVarId, originDelta1.x, originDelta1.y, originDelta2.x, originDelta2.y);
 
     // if we using flowmap, on some steps we need smooth filtering of texture buffers
     if (useFlowmap)
     {
-      // N'th step has only reading with linear filtering
+      // N'th step has only one reading with linear filtering
       if (frameNo == 0)
+      {
         ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesLinearSampler);
+        ShaderGlobal::set_sampler(waterRipplesDistortT1_samplerstateVarId, waterRipplesLinearSampler);
+      }
       else
+      {
         ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesPointSampler);
+        ShaderGlobal::set_sampler(waterRipplesDistortT1_samplerstateVarId, waterRipplesPointSampler);
+      }
 
       // (N-1)'th step has two readings with linear filtering
       if (frameNo <= 1)
@@ -265,22 +302,41 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
 
     ShaderGlobal::set_texture(waterRipplesT1VarId, texBuffers[get_buf_idx(curBuffer, 1)].getTexId());
     ShaderGlobal::set_texture(waterRipplesT2VarId, texBuffers[get_buf_idx(curBuffer, 2)].getTexId());
+    if (useDistortion)
+      ShaderGlobal::set_texture(waterRipplesDistortT1VarId, distortionTexBuffers[1 - curDistortionBuffer].getTexId());
 
     d3d::set_render_target(texBuffers[curBuffer].getTex2D(), 0);
+    if (useDistortion)
+      d3d::set_render_target(1, distortionTexBuffers[curDistortionBuffer].getTex2D(), 0);
     updateRenderer.render();
     d3d::resource_barrier({texBuffers[curBuffer].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (useDistortion)
+      d3d::resource_barrier({distortionTexBuffers[curDistortionBuffer].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
-    if (stepNo == 0) // update normal texture only once per update cycle
+    if (stepNo == 0) // update normal and distortion texture only once per update cycle
     {
+      TIME_D3D_PROFILE(water_ripples_resolve);
       d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
       ShaderGlobal::set_texture(waterRipplesT1VarId, texBuffers[get_buf_idx(curBuffer, 0)].getTexId());
       ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesLinearSampler);
+      ShaderGlobal::set_int(waterRipplesResolveModeVarId, 0);
       resolveRenderer.render();
-
       d3d::resource_barrier({heightNormalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+      if (useDistortion)
+      {
+        TIME_D3D_PROFILE(water_ripples_resolve_distortion);
+        d3d::set_render_target(distortionTexture.getTex2D(), 0);
+        ShaderGlobal::set_texture(waterRipplesDistortT1VarId, distortionTexBuffers[curDistortionBuffer].getTexId());
+        ShaderGlobal::set_sampler(waterRipplesDistortT1_samplerstateVarId, waterRipplesLinearSampler);
+        ShaderGlobal::set_int(waterRipplesResolveModeVarId, 1);
+        resolveRenderer.render();
+        d3d::resource_barrier({distortionTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      }
     }
 
     curBuffer = get_buf_idx(curBuffer + 1, 0);
+    curDistortionBuffer = 1 - curDistortionBuffer;
     frameNo = (frameNo + 1) % flowmapFrameCount;
   }
 }
@@ -299,12 +355,30 @@ void WaterRipples::clearRts()
   d3d::set_render_target(0, texBuffers[0].getTex2D(), 0);
   d3d::set_render_target(1, texBuffers[1].getTex2D(), 0);
   d3d::set_render_target(2, texBuffers[2].getTex2D(), 0);
+  if (useDistortion)
+  {
+    d3d::set_render_target(3, distortionTexBuffers[0].getTex2D(), 0);
+    d3d::set_render_target(4, distortionTexBuffers[1].getTex2D(), 0);
+    d3d::set_render_target(5, distortionTexture.getTex2D(), 0);
+  }
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(127, 127, 127), 0, 0);
+  if (!useDistortion) // clear stub texture then
+  {
+    d3d::set_render_target(distortionTexture.getTex2D(), 0);
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+    d3d::resource_barrier({distortionTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  }
 
   d3d::resource_barrier({texBuffers[0].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({texBuffers[1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({texBuffers[2].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({heightNormalTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  if (useDistortion)
+  {
+    d3d::resource_barrier({distortionTexBuffers[0].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({distortionTexBuffers[1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({distortionTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  }
 }

@@ -13,8 +13,9 @@
 namespace spirv
 {
 
-constexpr uint32_t HEADER_MAGIC_VER = 0x73680006;
-constexpr uint32_t HEADER_MAGIC_VER_PREV = 0x73680005;
+constexpr uint32_t HEADER_MAGIC_VER = 0x7368000A;
+constexpr uint32_t HEADER_MAGIC_VER_8 = 0x73680008;
+constexpr uint32_t HEADER_MAGIC_VER_7 = 0x73680007;
 
 struct HashValue
 {
@@ -106,7 +107,8 @@ using namespace desktop;
 
 // do not set above 32! this directly maps to header.*RegisterUseMask 32bit field!
 //  limit for b register entries, this is for the renderer to store the bindings
-const uint32_t B_REGISTER_INDEX_MAX = 8;
+const uint32_t B_REGISTER_INDEX_MAX_V7 = 8;
+const uint32_t B_REGISTER_INDEX_MAX = 12; // no point to be less than MAX_UNIFORM_BUFFERS_PER_STAGE
 // limit for t register entries, this is for the renderer to store the bindings
 const uint32_t T_REGISTER_INDEX_MAX = 32;
 // limit for s register entries, this is for the renderer to store the bindings
@@ -119,28 +121,34 @@ const uint32_t T_INPUT_ATTACHMENT_INDEX_MAX = 8;
 
 // total combination of b, t and u register entries
 const uint32_t REGISTER_ENTRIES = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX + S_REGISTER_INDEX_MAX;
+const uint32_t REGISTER_ENTRIES_V7 = B_REGISTER_INDEX_MAX_V7 + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX + S_REGISTER_INDEX_MAX;
+
+const uint32_t REGISTER_MAPPING_B_OFFSET = 0;
+const uint32_t REGISTER_MAPPING_T_OFFSET = B_REGISTER_INDEX_MAX;
+const uint32_t REGISTER_MAPPING_U_OFFSET = REGISTER_MAPPING_T_OFFSET + T_REGISTER_INDEX_MAX;
+const uint32_t REGISTER_MAPPING_S_OFFSET = REGISTER_MAPPING_U_OFFSET + U_REGISTER_INDEX_MAX;
+
+const uint32_t REGISTER_MAPPING_T_OFFSET_V7 = B_REGISTER_INDEX_MAX_V7;
+const uint32_t REGISTER_MAPPING_U_OFFSET_V7 = REGISTER_MAPPING_T_OFFSET_V7 + T_REGISTER_INDEX_MAX;
+const uint32_t REGISTER_MAPPING_S_OFFSET_V7 = REGISTER_MAPPING_U_OFFSET_V7 + U_REGISTER_INDEX_MAX;
 
 const uint32_t WORK_GROUP_SIZE_X_CONSTANT_ID = 1;
 const uint32_t WORK_GROUP_SIZE_Y_CONSTANT_ID = 2;
 const uint32_t WORK_GROUP_SIZE_Z_CONSTANT_ID = 3;
 
-const uint32_t B_CONST_BUFFER_OFFSET = 0;
+const uint32_t B_CONST_BUFFER_OFFSET_V7 = 0;
+const uint32_t T_SAMPLED_IMAGE_OFFSET_V7 = B_CONST_BUFFER_OFFSET_V7 + B_REGISTER_INDEX_MAX_V7;
+const uint32_t T_BUFFER_SAMPLED_IMAGE_OFFSET_V7 = T_SAMPLED_IMAGE_OFFSET_V7 + T_REGISTER_INDEX_MAX;
+const uint32_t T_BUFFER_OFFSET_V7 = T_BUFFER_SAMPLED_IMAGE_OFFSET_V7 + T_REGISTER_INDEX_MAX;
+const uint32_t T_INPUT_ATTACHMENT_OFFSET_V7 = T_BUFFER_OFFSET_V7 + T_REGISTER_INDEX_MAX;
+const uint32_t S_SAMPLER_OFFSET_V7 = T_INPUT_ATTACHMENT_OFFSET_V7 + T_INPUT_ATTACHMENT_INDEX_MAX;
+const uint32_t U_IMAGE_OFFSET_V7 = S_SAMPLER_OFFSET_V7 + S_REGISTER_INDEX_MAX;
+const uint32_t U_BUFFER_IMAGE_OFFSET_V7 = U_IMAGE_OFFSET_V7 + U_REGISTER_INDEX_MAX;
+const uint32_t U_BUFFER_OFFSET_V7 = U_BUFFER_IMAGE_OFFSET_V7 + U_REGISTER_INDEX_MAX;
+const uint32_t T_ACCELERATION_STRUCTURE_OFFSET_V7 = U_BUFFER_OFFSET_V7 + U_REGISTER_INDEX_MAX;
 
-const uint32_t T_SAMPLED_IMAGE_OFFSET = B_CONST_BUFFER_OFFSET + B_REGISTER_INDEX_MAX;
-const uint32_t T_BUFFER_SAMPLED_IMAGE_OFFSET = T_SAMPLED_IMAGE_OFFSET + T_REGISTER_INDEX_MAX;
-const uint32_t T_BUFFER_OFFSET = T_BUFFER_SAMPLED_IMAGE_OFFSET + T_REGISTER_INDEX_MAX;
-const uint32_t T_INPUT_ATTACHMENT_OFFSET = T_BUFFER_OFFSET + T_REGISTER_INDEX_MAX;
-
-const uint32_t S_SAMPLER_OFFSET = T_INPUT_ATTACHMENT_OFFSET + T_INPUT_ATTACHMENT_INDEX_MAX;
-
-const uint32_t U_IMAGE_OFFSET = S_SAMPLER_OFFSET + S_REGISTER_INDEX_MAX;
-const uint32_t U_BUFFER_IMAGE_OFFSET = U_IMAGE_OFFSET + U_REGISTER_INDEX_MAX;
-const uint32_t U_BUFFER_OFFSET = U_BUFFER_IMAGE_OFFSET + U_REGISTER_INDEX_MAX;
-
-// like dx12RT acceleration structure are put in t namespace for now
-const uint32_t T_ACCELERATION_STRUCTURE_OFFSET = U_BUFFER_OFFSET + U_REGISTER_INDEX_MAX;
-
-const uint32_t TOTAL_REGISTER_COUNT = T_ACCELERATION_STRUCTURE_OFFSET + T_REGISTER_INDEX_MAX;
+const uint32_t T_INPUT_ATTACHMENT_DESCRIPTOR_TABLE_OFFSET = REGISTER_ENTRIES;
+const uint32_t DESCRIPTOR_TABLE_SIZE = REGISTER_ENTRIES + T_INPUT_ATTACHMENT_INDEX_MAX;
 
 const uint32_t FALLBACK_TO_C_GLOBAL_BUFFER = 0x00;
 const uint32_t MISSING_CONST_BUFFER_INDEX = 0x01;
@@ -166,72 +174,186 @@ const uint32_t MISSING_STORAGE_BUFFER_INDEX = 0x14;
 const uint32_t MISSING_IS_FATAL_INDEX = 0x15;
 const uint32_t MISSING_TLAS_INDEX = 0x16;
 const uint32_t MISSING_INDEX_COUNT = 0x17;
-const uint8_t INVALID_INPUT_ATTACHMENT_INDEX = 0xFF;
+const uint32_t INVALID_SHADER_REGISTER = 0xFF;
 
-#define VK_DESCRIPTOR_TYPE_BEGIN_RANGE VK_DESCRIPTOR_TYPE_SAMPLER
-#define VK_DESCRIPTOR_TYPE_END_RANGE   VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-#define VK_DESCRIPTOR_TYPE_RANGE_SIZE  (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT - VK_DESCRIPTOR_TYPE_SAMPLER + 1)
+#define VK_DESCRIPTOR_TYPE_BEGIN_RANGE   VK_DESCRIPTOR_TYPE_SAMPLER
+#define VK_DESCRIPTOR_TYPE_END_RANGE     VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+#define VK_COMPRESSED_DESCRIPTOR_TYPE_AS (VK_DESCRIPTOR_TYPE_END_RANGE + 1)
+#define VK_DESCRIPTOR_TYPE_RANGE_SIZE    (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT - VK_DESCRIPTOR_TYPE_SAMPLER + 1)
 
 // plus one for raytrace acceleration structures
 const uint32_t SHADER_HEADER_DECRIPTOR_COUNT_SIZE = VK_DESCRIPTOR_TYPE_RANGE_SIZE + 1;
 
-inline uint32_t descrior_type_to_index(VkDescriptorType type)
+struct InputAttachmentIndexRegPair
 {
-#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  if (type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
-    return uint32_t(VK_DESCRIPTOR_TYPE_END_RANGE) + 1;
-#endif
-  return uint32_t(type);
-}
+  uint8_t index;
+  uint8_t flatBinding;
+};
 
-inline VkDescriptorType descriptor_index_to_type(uint32_t index)
+struct EngineSlotMapping
 {
+  enum
+  {
+    REG_T = 0,
+    REG_U = 1,
+    REG_B = 2,
+    REG_S = 3
+  };
+
+  uint8_t slot : 6;
+  uint8_t type : 2;
+};
+
+// each slot can have only one resource type, this masks define what type is bound to slot
+struct ResourceTypeMask
+{
+  enum
+  {
+    IMG = 0,
+    BUF_VIEW = 1,
+    BUF = 2,
+    AS = 3,
+    BIT_MASK = 3,
+    BIT_COUNT = 2
+  };
+
+  static_assert(T_REGISTER_INDEX_MAX * BIT_COUNT <= 64);
+  static_assert(U_REGISTER_INDEX_MAX * BIT_COUNT <= 32);
+  uint32_t u;
+  uint64_t t;
+
+  uint8_t forTSlot(uint8_t slot) const { return ((t >> (slot * BIT_COUNT)) & BIT_MASK); }
+
+  uint8_t forUSlot(uint8_t slot) const { return ((u >> (slot * BIT_COUNT)) & BIT_MASK); }
+};
+
+struct CompressedVkDescriptorType
+{
+  void setIndex(uint8_t index) { value = index; }
+
+  void set(VkDescriptorType type)
+  {
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  if (index == (uint32_t(VK_DESCRIPTOR_TYPE_END_RANGE) + 1))
-    return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    if (type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      value = VK_COMPRESSED_DESCRIPTOR_TYPE_AS;
+    }
+    else
 #endif
-  return VkDescriptorType(index);
-}
+      value = uint8_t(type);
+  }
+
+  VkDescriptorType get() const
+  {
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+    if (value == VK_COMPRESSED_DESCRIPTOR_TYPE_AS)
+      return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+#endif
+    return VkDescriptorType(value);
+  }
+
+  uint8_t value;
+};
+
+struct CompressedVkDescriptorPoolSize
+{
+  CompressedVkDescriptorType type;
+  uint8_t descriptorCount;
+};
 
 struct ShaderHeader
 {
   uint32_t verMagic;
-  VkDescriptorType descriptorTypes[REGISTER_ENTRIES];
-  VkImageViewType imageViewTypes[REGISTER_ENTRIES];
-  VkDescriptorPoolSize descriptorCounts[SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
+  uint8_t inputAttachmentCount;
+  uint8_t descriptorCountsCount;
+  uint8_t registerCount;
+  uint8_t pushConstantsCount;
+  uint8_t bindlessSetsUsed;
   uint32_t maxConstantCount;
-  uint32_t bonesConstantsUsed;
   uint32_t tRegisterUseMask;
   uint32_t uRegisterUseMask;
   uint32_t bRegisterUseMask;
   uint32_t sRegisterUseMask;
   uint32_t inputMask;
   uint32_t outputMask;
-  uint8_t inputAttachmentIndex[REGISTER_ENTRIES];
-  uint8_t registerIndex[REGISTER_ENTRIES];
-  uint8_t imageCheckIndices[REGISTER_ENTRIES];
-  uint8_t bufferCheckIndices[REGISTER_ENTRIES];
-  uint8_t bufferViewCheckIndices[T_REGISTER_INDEX_MAX];
-  uint8_t constBufferCheckIndices[B_REGISTER_INDEX_MAX];
-  uint8_t accelerationStructureCheckIndices[T_REGISTER_INDEX_MAX];
+  uint32_t smolvSize;
+  ResourceTypeMask resTypeMask;
+  InputAttachmentIndexRegPair inputAttachmentIndexRegPairs[T_INPUT_ATTACHMENT_INDEX_MAX];
+  EngineSlotMapping registerToSlotMapping[REGISTER_ENTRIES];
+  uint8_t slotToRegisterMapping[REGISTER_ENTRIES];
   uint8_t missingTableIndex[REGISTER_ENTRIES];
-  uint8_t inputAttachmentCount;
-  uint8_t imageCount;
-  uint8_t bufferCount;
-  uint8_t bufferViewCount;
-  uint8_t constBufferCount;
-  uint8_t accelerationStructureCount;
-  uint8_t descriptorCountsCount;
-  uint8_t registerCount;
-  uint8_t pushConstantsCount;
+
+  CompressedVkDescriptorType descriptorTypes[REGISTER_ENTRIES];
+  CompressedVkDescriptorPoolSize descriptorCounts[SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
+
+  uint8_t engineSlotToRegister(uint8_t slot, uint8_t reg_type) const
+  {
+    switch (reg_type)
+    {
+      case EngineSlotMapping::REG_B: return slotToRegisterMapping[REGISTER_MAPPING_B_OFFSET + slot];
+      case EngineSlotMapping::REG_T: return slotToRegisterMapping[REGISTER_MAPPING_T_OFFSET + slot];
+      case EngineSlotMapping::REG_U: return slotToRegisterMapping[REGISTER_MAPPING_U_OFFSET + slot];
+      case EngineSlotMapping::REG_S: return slotToRegisterMapping[REGISTER_MAPPING_S_OFFSET + slot];
+      default: return -1;
+    }
+  }
+
+  uint32_t getDescriptorTableIndex(uint32_t register_idx) const
+  {
+    if (inputAttachmentCount == 0)
+      return register_idx;
+    if (descriptorTypes[register_idx].value != VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
+      return register_idx;
+    else
+    {
+      uint32_t flatBinding = registerToSlotMapping[register_idx].slot;
+      return flatBinding + spirv::T_INPUT_ATTACHMENT_DESCRIPTOR_TABLE_OFFSET;
+    }
+  }
 };
 
-const uint32_t REGISTER_ENTRIES_OLD = B_REGISTER_INDEX_MAX + T_REGISTER_INDEX_MAX + U_REGISTER_INDEX_MAX;
 struct ShaderHeaderPrev
 {
   uint32_t verMagic;
-  VkDescriptorType descriptorTypes[REGISTER_ENTRIES_OLD];
-  VkImageViewType imageViewTypes[REGISTER_ENTRIES_OLD];
+  uint8_t inputAttachmentCount;
+  uint8_t descriptorCountsCount;
+  uint8_t registerCount;
+  uint8_t pushConstantsCount;
+  uint8_t bindlessSetsUsed;
+  uint32_t maxConstantCount;
+  uint32_t tRegisterUseMask;
+  uint32_t uRegisterUseMask;
+  uint32_t bRegisterUseMask;
+  uint32_t sRegisterUseMask;
+  uint32_t inputMask;
+  uint32_t outputMask;
+  ResourceTypeMask resTypeMask;
+  InputAttachmentIndexRegPair inputAttachmentIndexRegPairs[T_INPUT_ATTACHMENT_INDEX_MAX];
+  EngineSlotMapping registerToSlotMapping[REGISTER_ENTRIES_V7];
+  uint8_t slotToRegisterMapping[REGISTER_ENTRIES_V7];
+  uint8_t missingTableIndex[REGISTER_ENTRIES_V7];
+
+  CompressedVkDescriptorType descriptorTypes[REGISTER_ENTRIES_V7];
+  CompressedVkDescriptorPoolSize descriptorCounts[SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
+
+  uint8_t engineSlotToRegister(uint8_t slot, uint8_t reg_type) const
+  {
+    switch (reg_type)
+    {
+      case EngineSlotMapping::REG_B: return slotToRegisterMapping[REGISTER_MAPPING_B_OFFSET + slot];
+      case EngineSlotMapping::REG_T: return slotToRegisterMapping[REGISTER_MAPPING_T_OFFSET_V7 + slot];
+      case EngineSlotMapping::REG_U: return slotToRegisterMapping[REGISTER_MAPPING_U_OFFSET_V7 + slot];
+      case EngineSlotMapping::REG_S: return slotToRegisterMapping[REGISTER_MAPPING_S_OFFSET_V7 + slot];
+      default: return -1;
+    }
+  }
+};
+
+struct ShaderHeaderPrevV7
+{
+  uint32_t verMagic;
+  VkDescriptorType descriptorTypes[REGISTER_ENTRIES_V7];
+  VkImageViewType imageViewTypes[REGISTER_ENTRIES_V7];
   VkDescriptorPoolSize descriptorCounts[SHADER_HEADER_DECRIPTOR_COUNT_SIZE];
   uint32_t maxConstantCount;
   uint32_t bonesConstantsUsed;
@@ -241,14 +363,14 @@ struct ShaderHeaderPrev
   uint32_t sRegisterUseMask;
   uint32_t inputMask;
   uint32_t outputMask;
-  uint8_t inputAttachmentIndex[REGISTER_ENTRIES_OLD];
-  uint8_t registerIndex[REGISTER_ENTRIES_OLD];
-  uint8_t imageCheckIndices[REGISTER_ENTRIES_OLD];
-  uint8_t bufferCheckIndices[REGISTER_ENTRIES_OLD];
+  uint8_t inputAttachmentIndex[REGISTER_ENTRIES_V7];
+  uint8_t registerIndex[REGISTER_ENTRIES_V7];
+  uint8_t imageCheckIndices[REGISTER_ENTRIES_V7];
+  uint8_t bufferCheckIndices[REGISTER_ENTRIES_V7];
   uint8_t bufferViewCheckIndices[T_REGISTER_INDEX_MAX];
-  uint8_t constBufferCheckIndices[B_REGISTER_INDEX_MAX];
+  uint8_t constBufferCheckIndices[B_REGISTER_INDEX_MAX_V7];
   uint8_t accelerationStructureCheckIndices[T_REGISTER_INDEX_MAX];
-  uint8_t missingTableIndex[REGISTER_ENTRIES_OLD];
+  uint8_t missingTableIndex[REGISTER_ENTRIES_V7];
   uint8_t inputAttachmentCount;
   uint8_t imageCount;
   uint8_t bufferCount;
@@ -258,6 +380,7 @@ struct ShaderHeaderPrev
   uint8_t descriptorCountsCount;
   uint8_t registerCount;
   uint8_t pushConstantsCount;
+  uint8_t bindlessSetsUsed;
 };
 
 inline bool operator==(const ShaderHeader &l, const ShaderHeader &r) { return 0 == (memcmp(&l, &r, sizeof(ShaderHeader))); }
@@ -337,9 +460,10 @@ const uint32_t SPIR_V_COMBINED_BLOB_IDENT = _MAKE4C('SVc1');
 
 struct CombinedChunk
 {
-  VkShaderStageFlagBits stage;
-  uint32_t offset;
-  uint32_t size;
+  VkShaderStageFlagBits stage = VkShaderStageFlagBits(0);
+  uint32_t offset = 0;
+  uint32_t size = 0;
+  uint32_t bytecode_size = 0;
 };
 
 enum class ChunkType : uint32_t
@@ -459,6 +583,6 @@ inline void do_trigger_static_assert_if_not_matching()
   G_STATIC_ASSERT(graphics::MAX_SETS <= platform::MAX_DESCRIPTOR_SET_COUNT);
   G_STATIC_ASSERT(compute::MAX_SETS <= platform::MAX_DESCRIPTOR_SET_COUNT);
   // have to bump register index type to next bigger int if this complains
-  G_STATIC_ASSERT(TOTAL_REGISTER_COUNT < 256);
+  G_STATIC_ASSERT(REGISTER_ENTRIES < 256);
 }
 } // namespace spirv

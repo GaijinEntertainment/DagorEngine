@@ -60,6 +60,7 @@
 #include <EASTL/memory.h>
 #include <EASTL/initializer_list.h>
 #include <EASTL/bonus/compressed_pair.h>
+#include <EASTL/tuple.h> // For pack indexing (TODO: rewrite without tuple with c++26 `__cpp_pack_indexing`)
 
 #ifndef DAG_VECTOR_DEFAULT_NAME
   #define DAG_VECTOR_DEFAULT_NAME "dag vector" // Unless the user overrides something, this is "dag vector".
@@ -260,7 +261,7 @@ class Vector
     if (n > used())  // We expect that more often than not, resizes will be upsizes.
     {
       if (n > allocated())
-        DoGrow(eastl::max(GetNewCapacity(used()), n));
+        DoGrow(eastl::max(GetNewCapacity(used()), n), /* may_realloc */ !isInDataRange(value));
       eastl::uninitialized_fill_n(mpBegin() + used(), n-used(), value);
     } else
       eastl::destruct(mpBegin() + n, end());
@@ -439,8 +440,12 @@ protected:
 
     if (used() == allocated())  // if we need to expand our capacity
     {
+      bool mayRealloc = true;
+      IF_CONSTEXPR(sizeof...(args) == 1)
+        IF_CONSTEXPR(eastl::is_same_v<eastl::remove_cvref_t<eastl::tuple_element_t<0, eastl::tuple<Args...>>>, value_type>)
+          mayRealloc = !isInDataRange(eastl::get<0>(eastl::tie(args...)));
       size_type nNewCap = GetNewCapacity(used()), nDestPos = destPosition - mpBegin();
-      if (DoReallocate(nNewCap))
+      if (DoReallocate(nNewCap, mayRealloc))
       {
         destPosition = mpBegin() + nDestPos;
         allocated() = nNewCap;
@@ -513,7 +518,7 @@ protected:
     if (size_type nu = used() + n; nu > allocated()) // if we need to expand our capacity
     {
       size_type nNewCap = eastl::max(nu, GetNewCapacity(used())), nDestPos = destPosition - mpBegin();
-      if (DoReallocate(nNewCap))
+      if (DoReallocate(nNewCap, /* may_realloc */ !isInDataRange(value)))
       {
         destPosition = mpBegin() + nDestPos;
         allocated() = nNewCap;
@@ -651,7 +656,7 @@ protected:
   {
     pointer mpEnd = end();
     if (size_type nu = used() + n; nu > allocated())
-      DoGrow(eastl::max(nu, GetNewCapacity(used())));
+      DoGrow(eastl::max(nu, GetNewCapacity(used())), /* may_realloc */ !isInDataRange(value));
     eastl::uninitialized_fill_n(mpEnd, n, value);
     used() += n;
   }
@@ -758,8 +763,11 @@ protected:
     const size_type n = (size_type)eastl::distance(first, last);
     if (size_type nu = used() + n; nu > allocated()) // if we need to expand our capacity
     {
+      bool mayRealloc = true;
+      IF_CONSTEXPR(eastl::is_same_v<typename eastl::iterator_traits<BidirectionalIterator>::value_type, value_type>)
+        mayRealloc = !isInDataRange(*first);
       size_type nNewSize = eastl::max(nu, GetNewCapacity(used())), nDestPos = destPosition - mpBegin();
-      if (DoReallocate(nNewSize))
+      if (DoReallocate(nNewSize, mayRealloc))
       {
         destPosition = mpBegin() + nDestPos;
         allocated() = nNewSize;
@@ -837,7 +845,7 @@ protected:
     if (n > allocated()) // If n > capacity ...
     {
       size_type a = n;
-      if (!DoReallocate(a))
+      if (!DoReallocate(a, /* may_realloc */ !isInDataRange(value)))
       {
         this_type temp(n, value, internalAllocator()); // We have little choice but to reallocate with new memory.
         swap(temp);
@@ -883,9 +891,9 @@ protected:
     eastl::swap(used(),    x.used());
     eastl::swap(allocated(), x.allocated());
   }
-  void DoGrow(size_type n)
+  void DoGrow(size_type n, bool may_realloc = true)
   {
-    if (DoReallocate(n))
+    if (DoReallocate(n, may_realloc))
       ;
     else if (used())
     {
@@ -931,7 +939,6 @@ protected:
   template <typename AT>
   class HasRealloc
   {
-    // Note: intentionally without exact signature match in order catch incompatible declarations of 'requestResources' in compile-time
     template<typename U> static eastl::yes_type SFINAE(decltype(&U::realloc));
     template<typename U> static eastl::no_type SFINAE(...);
   public:
@@ -946,7 +953,6 @@ protected:
   template <typename AT>
   class HasExpand
   {
-    // Note: intentionally without exact signature match in order catch incompatible declarations of 'requestResources' in compile-time
     template<typename U> static eastl::yes_type SFINAE(decltype(&U::resizeInplace));
     template<typename U> static eastl::no_type SFINAE(...);
   public:
@@ -954,13 +960,13 @@ protected:
     static constexpr size_t min_size = value ? get_min_expand_size<AT>::min_expand_size : size_t(~size_t(0));
   };
 
-  value_type* DoReallocate(size_type &n)
+  value_type* DoReallocate(size_type &n, bool may_realloc = true)
   {
     if (!mpBegin())
       return nullptr;
     IF_CONSTEXPR(alignof(value_type) <= EA_PLATFORM_MIN_MALLOC_ALIGNMENT && is_type_relocatable<value_type>::value)
     {
-      if (!empty()) // Don't try realloc empty array
+      if (!empty() && may_realloc) // Don't try realloc empty array
         return usingStdAllocator ?
           DoStdRealloc<value_type, usingStdAllocator>(n) :
           DoRealloc<value_type, HasRealloc<allocator_type>::value>(n);
@@ -1021,6 +1027,8 @@ protected:
   }
 
   template <typename VT, bool allowed> typename eastl::disable_if<allowed, VT*>::type DoStdRealloc(size_type &) { return nullptr; }
+
+  bool isInDataRange(const value_type &v) const { return &v >= mpBegin() && &v < end(); }
 
   T* DoAllocate(size_type &n)
   {
@@ -1133,28 +1141,22 @@ Vector<T, Allocator, init_constructing, Counter>::back() const
 template <typename T, typename Allocator, bool init_constructing, typename Counter>
 inline T& Vector<T, Allocator, init_constructing, Counter>::push_back(const value_type& value)
 {
-  if (DAGOR_UNLIKELY(allocated() == used()))
-    DoGrow(GetNewCapacity(used()));
-  return *::new((void*)(mpBegin() + (used()++))) value_type(value);
+  return emplace_back(value);
 }
 
 template <typename T, typename Allocator, bool init_constructing, typename Counter>
 inline T& Vector<T, Allocator, init_constructing, Counter>::push_back(value_type&& value)
 {
-  if (DAGOR_UNLIKELY(allocated() == used()))
-    DoGrow(GetNewCapacity(used()));
-  return *::new((void*)(mpBegin() + (used()++))) value_type(eastl::move(value));
+  return emplace_back(eastl::move(value));
 }
 
 template <typename T, typename Allocator, bool init_constructing, typename Counter>
-inline T&
-Vector<T, Allocator, init_constructing, Counter>::push_back()
+inline T& Vector<T, Allocator, init_constructing, Counter>::push_back()
 {
   if (DAGOR_UNLIKELY(allocated() == used()))
     DoGrow(GetNewCapacity(used()));
   return *Construct<init_constructing, T>(mpBegin() + (used()++));
 }
-
 
 template <typename T, typename Allocator, bool init_constructing, typename Counter>
 inline T& Vector<T, Allocator, init_constructing, Counter>::push_back_noinit()
@@ -1188,10 +1190,14 @@ inline typename Vector<T, Allocator, init_constructing, Counter>::reference
 Vector<T, Allocator, init_constructing, Counter>::emplace_back(Args&&... args)
 {
   if (DAGOR_UNLIKELY(allocated() == used()))
-    DoGrow(GetNewCapacity(used()));
-  ::new((void*)(mpBegin() + used())) value_type(eastl::forward<Args>(args)...);
-  ++used();
-  return back();
+  {
+    bool mayRealloc = true;
+    IF_CONSTEXPR(sizeof...(args) == 1)
+      IF_CONSTEXPR(eastl::is_same_v<eastl::remove_cvref_t<eastl::tuple_element_t<0, eastl::tuple<Args...>>>, value_type>)
+        mayRealloc = !isInDataRange(eastl::get<0>(eastl::tie(args...)));
+    DoGrow(GetNewCapacity(used()), mayRealloc);
+  }
+  return *::new((void*)(mpBegin() + (used()++))) value_type(eastl::forward<Args>(args)...);
 }
 
 template <typename T, typename Allocator, bool init_constructing, typename Counter>
@@ -1202,13 +1208,18 @@ Vector<T, Allocator, init_constructing, Counter>::emplace(const_iterator positio
   const intptr_t n = position - mpBegin(); // Save this because we might reallocate.
 
   if (n != used())
-    DoInsertValue(position, eastl::forward<Args>(args)...);//not implemented
+    DoInsertValue(position, eastl::forward<Args>(args)...);
   else
   {
     if (used() == allocated())
-      DoGrow(GetNewCapacity(used()));
-    ::new((void*)(mpBegin()+used())) value_type(eastl::forward<Args>(args)...);
-    used()++;
+    {
+      bool mayRealloc = true;
+      IF_CONSTEXPR(sizeof...(args) == 1)
+        IF_CONSTEXPR(eastl::is_same_v<eastl::remove_cvref_t<eastl::tuple_element_t<0, eastl::tuple<Args...>>>, value_type>)
+          mayRealloc = !isInDataRange(eastl::get<0>(eastl::tie(args...)));
+      DoGrow(GetNewCapacity(used()), mayRealloc);
+    }
+    ::new((void*)(mpBegin() + (used()++))) value_type(eastl::forward<Args>(args)...);
   }
 
   return mpBegin() + n;
@@ -1332,9 +1343,9 @@ Vector<T, Allocator, init_constructing, Counter>::insert(const_iterator position
   else
   {
     if (used() == allocated())
-      DoGrow(GetNewCapacity(used()));
+      DoGrow(GetNewCapacity(used()), /* may_realloc */ !isInDataRange(value));
     ::new((void*)end()) value_type(value);
-    ++used(); // Increment this after the construction above in case the construction throws an exception.
+    ++used();
   }
 
   return mpBegin() + n;

@@ -17,6 +17,7 @@ Project source code is available at https://github.com/GaijinEntertainment/quirr
    language/generators.rst
    language/constants_and_enumerations.rst
    language/destructuring_assignment.rst
+   language/type_annotations.rst
    language/string_interpolation.rst
    language/threads.rst
    language/weak_references.rst

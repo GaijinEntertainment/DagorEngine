@@ -24,6 +24,9 @@ static void fill_scope_nodes(dag::Vector<dafg::NodeHandle> &nodes)
   nodes.push_back(makeRenderLensFrameNode());
   nodes.push_back(makeRenderLensOpticsNode());
   nodes.push_back(makeRenderCrosshairNode());
+  nodes.push_back(makeRenderCrosshairGUINode());
+
+  nodes.push_back(makeRenderReflectionsNode());
 
   if (renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA))
   {
@@ -56,9 +59,6 @@ ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures, SetFxQuality)
 static void full_deferred_scope_render_features_changed_es_event_handler(const ecs::Event &evt,
   dag::Vector<dafg::NodeHandle> &scope__full_deferred_fg_nodes)
 {
-  if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-    return;
-
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
   {
     if (!(changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA) || changedFeatures->isFeatureChanged(UPSCALE_SAMPLING_TEX)))

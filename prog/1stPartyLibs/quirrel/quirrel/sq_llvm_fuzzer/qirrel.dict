@@ -153,8 +153,8 @@
 "#allow-clone-operator"
 "#forbid-switch-statement"
 "#allow-switch-statement"
-"#forbid-implicit-default-delegates"
-"#allow-implicit-default-delegates"
+"#forbid-implicit-type-methods"
+"#allow-implicit-type-methods"
 "#forbid-auto-freeze"
 "#allow-auto-freeze"
 

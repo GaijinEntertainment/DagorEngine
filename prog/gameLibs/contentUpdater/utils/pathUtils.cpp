@@ -14,7 +14,8 @@
 #include <EASTL/unique_ptr.h>
 
 
-eastl::string updater::fs::simplify_path(const char *path)
+template <typename Allocator>
+eastl::basic_string<char, Allocator> updater::fs::simplify_path(const char *path)
 {
   eastl::array<char, DAGOR_MAX_PATH> buffer;
   eastl::fill(buffer.begin(), buffer.end(), 0);
@@ -23,11 +24,12 @@ eastl::string updater::fs::simplify_path(const char *path)
 
   dd_simplify_fname_c(buffer.data());
 
-  return eastl::string{buffer.data()};
+  return eastl::basic_string<char, Allocator>{buffer.data()};
 }
 
 
-eastl::string updater::fs::join_path(std::initializer_list<const char *> parts)
+template <typename Allocator>
+eastl::basic_string<char, Allocator> updater::fs::join_path(std::initializer_list<const char *> parts)
 {
   if (parts.size() == 0)
     return {};
@@ -38,13 +40,14 @@ eastl::string updater::fs::join_path(std::initializer_list<const char *> parts)
   for (auto it = parts.begin() + 1, end = parts.end(); it != end; ++it)
     path.append_sprintf("%c%s", PATH_DELIM, *it);
 
-  return simplify_path(path.c_str());
+  return simplify_path<Allocator>(path.c_str());
 }
 
 
-eastl::string updater::fs::normalize_path(const char *path)
+template <typename Allocator>
+eastl::basic_string<char, Allocator> updater::fs::normalize_path(const char *path)
 {
-  eastl::string res = simplify_path(path);
+  eastl::basic_string<char, Allocator> res = simplify_path<Allocator>(path);
   if (res.back() != PATH_DELIM)
     res.push_back(PATH_DELIM);
   return res;
@@ -72,7 +75,7 @@ eastl::string updater::fs::read_file_content(const char *path)
 
 bool updater::fs::write_file_with_content(const char *path, const char *content)
 {
-  eastl::unique_ptr<void, DagorFileCloser> fp{df_open(path, DF_WRITE | DF_CREATE)};
+  eastl::unique_ptr<void, DagorFileCloser> fp{df_open(path, DF_WRITE | DF_CREATE | DF_IGNORE_MISSING)};
   if (fp)
   {
     const size_t len = ::strlen(content);
@@ -80,3 +83,11 @@ bool updater::fs::write_file_with_content(const char *path, const char *content)
   }
   return false;
 }
+
+
+template eastl::basic_string<char, EASTLAllocatorType> updater::fs::join_path(std::initializer_list<const char *> parts);
+template eastl::basic_string<char, framemem_allocator> updater::fs::join_path(std::initializer_list<const char *> parts);
+template eastl::basic_string<char, EASTLAllocatorType> updater::fs::simplify_path(const char *path);
+template eastl::basic_string<char, framemem_allocator> updater::fs::simplify_path(const char *path);
+template eastl::basic_string<char, EASTLAllocatorType> updater::fs::normalize_path(const char *path);
+template eastl::basic_string<char, framemem_allocator> updater::fs::normalize_path(const char *path);

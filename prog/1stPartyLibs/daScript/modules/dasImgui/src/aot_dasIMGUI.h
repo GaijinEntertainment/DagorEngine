@@ -36,7 +36,7 @@ namespace das {
     bool PassFilter ( ImGuiTextFilter & filter, const char* text );
     char* text_range_string(ImGuiTextFilter::ImGuiTextRange &r, das::Context *context, das::LineInfoArg *at);
     void AddText( ImDrawList & drawList, const ImVec2& pos, ImU32 col, const char* text );
-    void AddText2( ImDrawList & drawList, const ImFont* font, float font_size, const ImVec2& pos, ImU32 col,
+    void AddText2( ImDrawList & drawList, ImFont* font, float font_size, const ImVec2& pos, ImU32 col,
         const char* text_begin, float wrap_width = 0.0f, const ImVec4* cpu_fine_clip_rect = nullptr);
     ImColor HSV(float h, float s, float v, float a = 1.0f);
     void ImGTB_Append ( ImGuiTextBuffer & buf, const char * txt );

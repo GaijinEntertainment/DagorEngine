@@ -7,8 +7,10 @@
 
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #define CPPSTCODE_DLL_EXPORT extern "C" __declspec(dllexport)
-#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX | _TARGET_ANDROID | _TARGET_C3 | _TARGET_IOS
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX | _TARGET_C3 | _TARGET_IOS
 #define CPPSTCODE_DLL_EXPORT extern "C"
+#elif _TARGET_ANDROID
+#define CPPSTCODE_DLL_EXPORT extern "C" __attribute__((visibility("default")))
 #else
 #define CPPSTCODE_DLL_EXPORT extern "C" __attribute__((dllexport))
 #endif

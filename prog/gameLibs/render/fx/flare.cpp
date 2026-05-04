@@ -5,13 +5,15 @@
 #include <ioSys/dag_dataBlock.h>
 #include <drv/3d/dag_renderTarget.h>
 
-#define GLOBAL_VARS_LIST     \
-  VAR(flare_enabled)         \
-  VAR(flare_use_covering)    \
-  VAR(flareSrc)              \
-  VAR(flareSrc_samplerstate) \
-  VAR(flareSrcGlob)          \
-  VAR(texelOffset)           \
+#define GLOBAL_VARS_LIST                \
+  VAR(flare_enabled)                    \
+  VAR(flare_use_covering)               \
+  VAR(flareSrc)                         \
+  VAR(flareSrc_samplerstate)            \
+  VAR(flareSrcDownsampled)              \
+  VAR(flareSrcDownsampled_samplerstate) \
+  VAR(flareSrcGlob)                     \
+  VAR(texelOffset)                      \
   VAR(duv1duv2)
 
 #define VAR(a) static int a##VarId = -1;
@@ -61,7 +63,7 @@ void Flare::init(const Point2 low_res_size, const char *lense_covering_tex_name,
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Point;
-    flareDownsample->getMat()->set_sampler_param(flareSrc_samplerstateVarId, d3d::request_sampler(smpInfo));
+    ShaderGlobal::set_sampler(flareSrcDownsampled_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
   flareFeature = new PostFxRenderer();
   flareFeature->init("flare_feature");
@@ -74,7 +76,7 @@ void Flare::init(const Point2 low_res_size, const char *lense_covering_tex_name,
 }
 
 
-void Flare::apply(Texture *src_tex, TEXTUREID src_id)
+void Flare::apply(Texture *src_tex)
 {
   if (!flareBlur)
   {
@@ -111,10 +113,10 @@ void Flare::apply(Texture *src_tex, TEXTUREID src_id)
     // texture is same size, don't need to downsample
 
     flareDownsample->getMat()->set_color4_param(texelOffsetVarId, texelOffset);
-    flareDownsample->getMat()->set_texture_param(flareSrcVarId, src_id);
+    ShaderGlobal::set_texture(flareSrcDownsampledVarId, src_tex);
     flareDownsample->render();
-    flareDownsample->getMat()->set_texture_param(flareSrcVarId, BAD_TEXTUREID);
     d3d::resource_barrier({tmpFlareTex->getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    ShaderGlobal::set_texture(flareSrcDownsampledVarId, nullptr);
   }
 
   // feature

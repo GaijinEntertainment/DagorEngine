@@ -1,6 +1,5 @@
 from "%darg/ui_imports.nut" import *
 import "dagor.profiler" as profiler
-from "datetime" import clock
 
 let cursors = require("samples_prog/_cursors.nut")
 
@@ -148,19 +147,19 @@ let Box = kwarg(function(
 
 function mkResearchItem(idx) {
   return Box({
-    size = static [sh(15),sh(5)]
-    margin=static [0,hdpx(10),hdpx(20),hdpx(10)]
+    size = const [sh(15),sh(5)]
+    margin = const [0,hdpx(10),hdpx(20),hdpx(10)]
     borderColor = Color(20,20,20)
     borderWidth = 2
     children = [
-      Box(static {size=[hdpx(30),hdpx(10)] vplace=ALIGN_BOTTOM pos=[hdpx(10),hdpx(10)] fillColor = Color(10,100,10)})//crew button
+      Box(const {size=[hdpx(30),hdpx(10)] vplace=ALIGN_BOTTOM pos=[hdpx(10),hdpx(10)] fillColor = Color(10,100,10)})//crew button
       Box({ size = flex()
         fillColor = Color(30,30,30)
         children = [
           Container({ //images
             size = flex()
             children = [
-              Image(static {size = flex(), image=units["a-20g"]})
+              Image({size = flex(), image=units["a-20g"]})
               Image({
                 size = hdpx(40)
                 hplace = ALIGN_RIGHT
@@ -172,7 +171,7 @@ function mkResearchItem(idx) {
           Container({  //plane name
             flow = FLOW_VERTICAL
             size = flex()
-            padding=static [hdpx(4),hdpx(4),0,0]
+            padding = const [hdpx(4),hdpx(4),0,0]
             valign=ALIGN_CENTER
 
             children = [
@@ -183,7 +182,7 @@ function mkResearchItem(idx) {
                 gap = hdpx(4)
                 children = [
                   Text({text=100*idx })//price or research_progress
-                  static {size = [hdpx(5),flex(1)]}
+                  const{size = [hdpx(5),flex(1)]}
                   Text({text="1.3" })//BR
                   Text({text="*"})//type
                 ]
@@ -193,7 +192,7 @@ function mkResearchItem(idx) {
 
         ]
       })
-      Box(static {size=hdpx(10) hplace = ALIGN_CENTER vplace=ALIGN_TOP pos=[hdpx(10),0] fillColor = Color(120,0,0)})//crew button
+      Box(const {size=hdpx(10) hplace = ALIGN_CENTER vplace=ALIGN_TOP pos=[hdpx(10),0] fillColor = Color(120,0,0)})//crew button
     ]
   })
 }
@@ -202,7 +201,7 @@ function researchLine(_,r) {
   return Box({
     flow = FLOW_HORIZONTAL
     halign = ALIGN_CENTER
-    size = static [flex(),SIZE_TO_CONTENT]
+    size = const [flex(),SIZE_TO_CONTENT]
     borderWidth = hdpx(1)
     borderColor = Color(5,25,5)
     children = array(9).map(@(_, i) mkResearchItem(i+r*100))
@@ -213,12 +212,12 @@ function researchTree() {
   return Container({
     flow = FLOW_VERTICAL
     gap = hdpx(10)
-    size = static [sw(80),SIZE_TO_CONTENT]
+    size = const [sw(80),SIZE_TO_CONTENT]
     children = array(20).map(researchLine)
-    transform = static {
+    transform = const {
       pivot = [0, 1]
     }
-    animations = static [
+    animations = const [
       { prop=AnimProp.translate, to=[0,0], from=[0, 500], duration=0.5, play=true, easing=OutCubic }
       { prop=AnimProp.scale, from=[0.01,1], to=[1,1], duration=0.5, play=true, easing=OutCubic }
       { prop=AnimProp.scale, from=[1,1], to=[0.01,1], duration=0.5, playFadeOut=true, easing=OutCubic }
@@ -228,7 +227,7 @@ function researchTree() {
 
 function researchTreeBlock(key) {
   return Container({
-    size = static [sw(80),sh(80)]
+    size = const [sw(80),sh(80)]
     hplace = ALIGN_CENTER
     vplace = ALIGN_CENTER
     key
@@ -248,11 +247,13 @@ function updateGen(){
     dlog("profiler stopped")
   }
 }
-let start = function start(){
+
+function start(){
   dlog("profiler started")
   profiler.start()
   updateGen()
 }
+
 let btn = {
   behavior = Behaviors.Button
   onClick = start

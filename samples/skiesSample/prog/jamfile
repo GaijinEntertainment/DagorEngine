@@ -1,18 +1,14 @@
-#Platform ?= macOS ;
-
 Root    ?= ../../.. ;
 Location = samples/skiesSample/prog ;
 UseD3DMulti ?= yes ;
 
-PlatformArch_windows ?= x86_64 ;
+PlatformArch_windows ?= host_arch ;
 PlatformSpec_windows ?= clang ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = exe ;
-Target      = samples/skiesSample-$(LegacyPlatformSuffix) ;
-
-#UseQuirrel = sq3r ;
+Target      = samples/skiesSample-$(Platform)-$(PlatformArch) ;
 
 if $(Platform) && $(Platform) in ps4 ps5 xboxOne scarlett nswitch { # too slow for consoles
   CheckedContainers ?= no ;
@@ -114,7 +110,6 @@ if $(Platform) in windows {
   UseProgLibs +=
     engine/drv/hid_sony
     engine/drv/drv3d_ps4
-    engine/drv/hid_nulldrv
   ;
 
   include $(Root)/prog/_jBuild/$(Platform)/bundle_prx.jam ;
@@ -125,7 +120,6 @@ if $(Platform) in windows {
 
   UseProgLibs +=
     engine/drv/hid_sony
-    engine/drv/hid_nulldrv
     engine/drv/drv3d_ps5
   ;
 

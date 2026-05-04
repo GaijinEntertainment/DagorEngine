@@ -1,14 +1,17 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/game/zones/levelRegions.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/updateStage.h>
 
 #include <util/dag_convar.h>
+#include <util/dag_string.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/bindQuirrelEx/autoBind.h>
 
 #include <math/dag_math2d.h>
@@ -124,14 +127,15 @@ void create_level_regions(dag::ConstSpan<levelsplines::Spline> splines, const Da
 }
 
 template <typename Callable>
-static void level_splines_ecs_query(Callable c);
+static void level_splines_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void clean_up_level_entities()
 {
   debug("clean_up_level_entities - regions, roads, splines.");
   g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("level_regions")));
   g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("level_roads")));
-  level_splines_ecs_query([](ECS_REQUIRE(ecs::auto_type level_spline__name) ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
+  level_splines_ecs_query(*g_entity_mgr,
+    [](ECS_REQUIRE(ecs::auto_type level_spline__name) ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
 }
 
 const splineregions::SplineRegion *get_region_by_pos(const Point2 &pos)

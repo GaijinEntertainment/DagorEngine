@@ -56,15 +56,15 @@ public:
     return -1;
   }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -116,12 +116,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool ret = false;
     for (int i = gameData.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(gameData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, gameData[i].resId))
         continue;
       if (gameData[i].refCount != 0)
       {
@@ -143,7 +143,7 @@ public:
   void loadGameResourceData(int /*res_id*/, IGenLoad & /*cb*/) override {}
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     {
@@ -165,8 +165,8 @@ public:
         a2d_list.push_back(NULL);
       else
       {
-        a2d_list.push_back((AnimV20::AnimData *)::get_game_resource(ref_ids[i]));
-        ::release_game_resource(ref_ids[i]);
+        a2d_list.push_back((AnimV20::AnimData *)get_game_resource(ref_ids[i], rrl));
+        ::release_game_resource_ex(a2d_list.back(), Anim2DataGameResClassId);
       }
 
     WinAutoLock lock2(cs);
@@ -182,7 +182,7 @@ public:
 
 /****************************************************************************/
 
-class AnimCharGameResFactory final : public GameResourceFactory
+class AnimGraphGameResFactory final : public GameResourceFactory
 {
 public:
   struct ResData
@@ -201,7 +201,7 @@ public:
   {
     int resId = NULL_GAMERES_ID;
     int refCount = 0;
-    eastl::unique_ptr<AnimCharData> charData;
+    eastl::unique_ptr<AnimGraphResData> agData;
   };
 
   eastl::vector<ResData> resData;
@@ -228,40 +228,42 @@ public:
     return -1;
   }
 
-  int findGameRes(AnimCharData *res) const
+  int findGameRes(AnimGraphResData *res) const
   {
     for (int i = 0; i < gameRes.size(); ++i)
-      if (gameRes[i].charData.get() == res)
+      if (gameRes[i].agData.get() == res)
         return i;
 
     return -1;
   }
 
-  unsigned getResClassId() override { return AnimCharGameResClassId; }
+  unsigned getResClassId() override { return AnimGraphGameResClassId; }
 
-  const char *getResClassName() override { return "AnimChar"; }
+  const char *getResClassName() override { return "AnimGraph"; }
 
   bool isResLoaded(int res_id) override { return findGameRes(res_id) >= 0; }
-  bool checkResPtr(GameResource *res) override { return findGameRes((AnimCharData *)res) >= 0; }
+  bool checkResPtr(GameResource *res) override { return findGameRes((AnimGraphResData *)res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findGameRes(res_id);
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findGameRes(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findGameRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
     gameRes[id].refCount++;
-    return (GameResource *)(void *)(gameRes[id].charData.get());
+    return (GameResource *)(void *)(gameRes[id].agData.get());
   }
 
 
   bool addRefGameResource(GameResource *resource) override
   {
-    int id = findGameRes((AnimCharData *)resource);
+    int id = findGameRes((AnimGraphResData *)resource);
     if (id < 0)
       return false;
 
@@ -281,7 +283,7 @@ public:
 
   bool releaseGameResource(GameResource *resource) override
   {
-    int id = findGameRes((AnimCharData *)resource);
+    int id = findGameRes((AnimGraphResData *)resource);
     if (id < 0)
       return false;
 
@@ -290,12 +292,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = gameRes.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(gameRes[i].resId) > 0)
+      if (rrl && is_res_required(rrl, gameRes[i].resId))
         continue;
       if (gameRes[i].refCount > 0)
       {
@@ -322,7 +324,7 @@ public:
           used = true;
           break;
         }
-      if (used || get_refcount_game_resource_pack_by_resid(rid) > 0)
+      if (used || (rrl && is_res_required(rrl, rid)))
         continue;
 
       resData.erase(resData.begin() + i);
@@ -383,7 +385,7 @@ public:
   }
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     String name;
@@ -411,8 +413,8 @@ public:
 
     GameRes gr;
     gr.resId = res_id;
-    gr.charData.reset(new AnimCharData);
-    gr.charData->agResName = agResName;
+    gr.agData.reset(new AnimGraphResData);
+    gr.agData->agResName = agResName;
 
     Tab<int> nodesWithIgnoredAnimation(tmpmem);
 
@@ -425,13 +427,13 @@ public:
         if (ref_ids[i] != NULL_GAMERES_ID)
         {
           int res_id_ = ref_ids[i];
-          a2d_list[i] = (AnimV20::AnimData *)::get_game_resource(res_id_);
+          a2d_list[i] = (AnimV20::AnimData *)get_game_resource(res_id_, rrl);
           G_ASSERTF(!(i == 0 && !a2d_list[i] && is_ignoring_unavailable_resources()) || !warnAboutMissingAnimRes,
             "%s can't load animation #0 to ignore unavailable resources (see log)", __FUNCTION__);
           if (!a2d_list[i] && is_ignoring_unavailable_resources() && i)
           {
             res_id_ = ref_ids[0];
-            a2d_list[i] = (AnimV20::AnimData *)::get_game_resource(res_id_);
+            a2d_list[i] = (AnimV20::AnimData *)get_game_resource(res_id_, rrl);
             nodesWithIgnoredAnimation.push_back(i);
           }
 #if DAGOR_DBGLEVEL > 0
@@ -447,22 +449,22 @@ public:
           a2d_list[i] = NULL;
       }
 
-      gr.charData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, a2d_list, nodesWithIgnoredAnimation);
+      gr.agData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, a2d_list, nodesWithIgnoredAnimation);
 
       for (int i = 0; i < a2d_list.size(); i++)
         if (a2d_list[i])
-          ::release_game_resource((GameResource *)a2d_list[i]);
+          ::release_game_resource_ex(a2d_list[i], Anim2DataGameResClassId);
     }
     else
     {
-      Tab<AnimV20::AnimData *> *a2d_list = (Tab<AnimV20::AnimData *> *)::get_game_resource(ref_ids[0]);
+      Tab<AnimV20::AnimData *> *a2d_list = (Tab<AnimV20::AnimData *> *)get_game_resource(ref_ids[0], rrl);
 
-      gr.charData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, *a2d_list, nodesWithIgnoredAnimation);
-      ::release_game_resource(ref_ids[0]);
+      gr.agData->graph = AnimResManagerV20::loadUniqueAnimGraph(*blk, *a2d_list, nodesWithIgnoredAnimation);
+      ::release_game_resource_ex(a2d_list, AnimBnlGameResClassId);
     }
-    if (gr.charData->graph)
+    if (gr.agData->graph)
     {
-      gr.charData->graph->resId = res_id;
+      gr.agData->graph->resId = res_id;
     }
 
     {
@@ -481,7 +483,7 @@ public:
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(gameRes, resId, refCount)
 };
 
-static InitOnDemand<AnimCharGameResFactory> char_factory;
+static InitOnDemand<AnimGraphGameResFactory> ag_factory;
 static InitOnDemand<AnimBnlGameResFactory> bnl_factory;
 
 void register_animchar_gameres_factory(bool warn_about_missing_anim)
@@ -489,7 +491,7 @@ void register_animchar_gameres_factory(bool warn_about_missing_anim)
   bnl_factory.demandInit();
   ::add_factory(bnl_factory);
 
-  char_factory.demandInit();
-  char_factory->warnAboutMissingAnimRes = warn_about_missing_anim;
-  ::add_factory(char_factory);
+  ag_factory.demandInit();
+  ag_factory->warnAboutMissingAnimRes = warn_about_missing_anim;
+  ::add_factory(ag_factory);
 }

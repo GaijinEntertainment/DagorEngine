@@ -23,7 +23,10 @@ public:
   {
     G_ASSERT(locked_object);
     // TODO: It is necessary to prohibit having count == 0
-    G_ASSERT(!count || ofs_bytes + sizeof(T) * count <= locked_object->getSize());
+    G_ASSERTF(!count || ofs_bytes + sizeof(T) * count <= locked_object->getSize(),
+      "The locked range is either 0, or it's outside of the buffer's bounds! ofs_bytes=%u, sizeofT=%u, count=%u, "
+      "buffer_size=%u",
+      ofs_bytes, sizeof(T), count, locked_object->getSize());
     uint32_t size_bytes = count ? sizeof(T) * count : mLockedObject->getSize() - ofs_bytes;
     G_ASSERT(size_bytes % sizeof(T) == 0);
     mCount = size_bytes / sizeof(T);

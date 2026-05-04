@@ -128,6 +128,7 @@ public:
   virtual void doRumble(float lowFreq, float highFreq);
 
   virtual bool isConnected();
+  bool isXinputCompatible() const override { return true; }
 
   virtual bool isStickDeadZoneSetupSupported() const { return true; }
   virtual float getStickDeadZoneScale(int stick_idx) const override

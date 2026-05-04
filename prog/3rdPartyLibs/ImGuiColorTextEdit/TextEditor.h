@@ -19,8 +19,9 @@ enum ImguiTextEditorRequests
 {
 	EDITOR_REQ_NONE = 0,
 	EDITOR_REQ_SAVE = 1,
-	EDITOR_REQ_AUTO_FORMAT = 2,
-	EDITOR_REQ_AUTOCOMPLETE_TRIGGER = 3,
+	EDITOR_REQ_SAVE_ALL = 2,
+	EDITOR_REQ_AUTO_FORMAT = 3,
+	EDITOR_REQ_AUTOCOMPLETE_TRIGGER = 4,
 };
 
 
@@ -90,9 +91,10 @@ public:
 	void SelectAll();
 	void SelectLine(int aLine);
 	void SelectRegion(int aStartLine, int aStartChar, int aEndLine, int aEndChar);
-	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive = true, bool aWholeWords = false);
+	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, bool aCaseSensitive = true, bool aWholeWords = false, bool reverse = false);
 	void SelectAllOccurrencesOf(const char* aText, int aTextSize, bool aCaseSensitive = true, bool aWholeWords = false);
-	bool Replace(const char * find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool aWholeWords, bool all);
+	bool Replace(const char * find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool aWholeWords);
+	bool ReplaceAll(const char * find, int findLength, const char * replaceWith, int replaceLength, bool aCaseSensitive, bool aWholeWords);
 	bool AnyCursorHasSelection() const;
 	bool AllCursorsHaveSelection() const;
 	void ClearExtraCursors();
@@ -118,10 +120,10 @@ public:
 	inline bool CanRedo() const { return !mReadOnly && mUndoIndex < (int)mUndoBuffer.size(); };
 	inline int GetUndoIndex() const { return mUndoIndex; };
 
-	void SetText(const eastl::string& aText);
+	void SetText(const eastl::string& aText, bool resetUndo = true);
 	eastl::string GetText() const;
 
-	void SetTextLines(const eastl::vector<eastl::string>& aLines);
+	void SetTextLines(const eastl::vector<eastl::string>& aLines, bool resetUndo = true);
 	eastl::vector<eastl::string> GetTextLines() const;
 
 	bool Render(const char* aTitle, bool aParentIsFocused = false, bool aMenuIsFocused = false, const ImVec2& aSize = ImVec2(), bool aBorder = false);
@@ -136,7 +138,8 @@ public:
 
 	// UI
 
-	bool OnImGui(bool windowIsOpen, uint32_t &currentDockId);
+	bool OnImGui(bool windowIsOpen, uint32_t &currentDockId, bool &isFocused);
+	void OnIndirectSave();
 	void SetCursorPosition(int line, int column, bool center_view);
 //	void SetSelection(int startLine, int startChar, int endLine, int endChar);
 	void CenterViewAtLine(int line);
@@ -173,7 +176,7 @@ public:
 		eastl::vector<eastl::string>& descriptions);
 	eastl::string getAssociatedFile() { return associatedFile; }
 	void CancelAutocomplete();
-
+	bool HasUnsavedChanges() const { return GetUndoIndex() != undoIndexInDisk; }
 private:
 	// ------------- Generic utils ------------- //
 
@@ -431,9 +434,10 @@ private:
 	void SetSelection(Coordinates aStart, Coordinates aEnd, int aCursor = -1);
 	void SetSelection(int aStartLine, int aStartChar, int aEndLine, int aEndChar, int aCursor = -1);
 
-	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor = -1, bool aCaseSensitive = true, bool aWholeWords = false);
-	void AddCursorForNextOccurrence(bool aCaseSensitive = true, bool aWholeWords = false);
+	bool SelectNextOccurrenceOf(const char* aText, int aTextSize, int aCursor = -1, bool aCaseSensitive = true, bool aWholeWords = false, bool reverse = false);
+	void AddCursorForNextOccurrence(bool aCaseSensitive = true, bool aWholeWords = false, bool reverse = false);
 	bool FindNextOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive = true, bool aWholeWords = false);
+	bool FindPrevOccurrence(const char* aText, int aTextSize, const Coordinates& aFrom, Coordinates& outStart, Coordinates& outEnd, bool aCaseSensitive = true, bool aWholeWords = false);
 	bool FindMatchingBracket(int aLine, int aCharIndex, Coordinates& out);
 	void ChangeCurrentLinesIndentation(bool aIncrease);
 	void ChangeSingleLineIndentation(UndoRecord &u, int line, bool aIncrease);
@@ -503,6 +507,8 @@ private:
 	bool mShowWhitespaces = true;
 	bool mShowLineNumbers = true;
 	bool mShortTabs = false;
+	bool mSearchBarOpen = false;
+	bool mReplaceBarOpen = false;
 
 	int mSetViewAtLine = -1;
 	SetViewAtLineMode mSetViewAtLineMode;
@@ -529,6 +535,8 @@ private:
 	float mScrollY = 0.0f;
 	bool mPanning = false;
 	bool mDraggingSelection = false;
+	bool mRequestingFind = false;
+	bool mRequestingReplace = false;
 	ImVec2 mLastMousePos;
 	bool mCursorPositionChanged = false;
 	bool mCursorOnBracket = false;
@@ -549,6 +557,7 @@ private:
 	void ClearHighlights();
 	void AddHighlight(int line, int start, int end);
 	void HighlightSelectedText();
+	int HighlightSelectedText(bool aroundLine, int highlightedCount = 0);
 
 	eastl::string mLineBuffer;
 	eastl::string tabString;
@@ -576,6 +585,7 @@ private:
 	void OnReloadCommand();
 	void OnLoadFromCommand();
 	void OnSaveCommand();
+	void OnSaveAllCommand();
 
 
 	int id = -1;

@@ -35,7 +35,7 @@ if $(Platform) in windows xboxOne scarlett
   CPPopt = /bigobj ;
 }
 
-if [ GLOB $(Root)/prog/gameLibs/daECS/net : * ] {
+if [ GLOB $(Root)/prog/engine/daECS/net : * ] {
   CPPopt += -DHAS_DANET ;
 }
 

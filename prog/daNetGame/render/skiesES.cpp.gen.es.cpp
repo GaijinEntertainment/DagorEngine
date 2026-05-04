@@ -71,7 +71,8 @@ static void sky_settings_altitude_ofs_es_event_handler_all_events(const ecs::Eve
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     sky_settings_altitude_ofs_es_event_handler(evt
-        , ECS_RO_COMP(sky_settings_altitude_ofs_es_event_handler_comps, "sky_coord_frame__altitude_offset", float)
+        , components.manager()
+    , ECS_RO_COMP(sky_settings_altitude_ofs_es_event_handler_comps, "sky_coord_frame__altitude_offset", float)
     );
   while (++comp != compE);
 }
@@ -109,3 +110,41 @@ static ecs::EntitySystemDesc invalidate_skies_es_es_desc
   ecs::EventSetBuilder<CmdSkiesInvalidate>::build(),
   0
 );
+static constexpr ecs::ComponentDesc set_level_skies_data_ecs_query_comps[] =
+{
+//start of 6 rw components at [0]
+  {ECS_HASH("level__timeOfDay"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("level__latitude"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("level__longtitude"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("level__day"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("level__month"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("level__year"), ecs::ComponentTypeInfo<int>()}
+};
+static ecs::CompileTimeQueryDesc set_level_skies_data_ecs_query_desc
+(
+  "set_level_skies_data_ecs_query",
+  make_span(set_level_skies_data_ecs_query_comps+0, 6)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void set_level_skies_data_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, set_level_skies_data_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__timeOfDay", float)
+            , ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__latitude", float)
+            , ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__longtitude", float)
+            , ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__day", int)
+            , ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__month", int)
+            , ECS_RW_COMP(set_level_skies_data_ecs_query_comps, "level__year", int)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}

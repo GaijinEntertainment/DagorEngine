@@ -8,6 +8,7 @@
 #include <drv/3d/dag_consts.h>
 #include <3d/dag_resPtr.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_carray.h>
 #include <math/dag_TMatrix4.h>
 #include <math/integer/dag_IPoint2.h>
 
@@ -39,12 +40,45 @@ struct ILandMaskRenderHelper
 class LandMask
 {
 public:
-  LandMask(const DataBlock &level_blk, int tex_align, bool need_grass);
+  enum
+  {
+    SHV_VIEWPORT,
+    SHV_CELL_INV_SCALE,
+    SHV_GRASS_HEIGHTMAP_PARAMS,
+    SHV_HEIGHT_TO_WORLD,
+
+    SHV_OPT_VARS_START,
+    SHV_WORLD_TO_GRASS = SHV_OPT_VARS_START,
+    SHV_GRASS_MASK_BIOMES,
+    SHV_TMP_GRASS_MASK,
+
+    SHV_VARS_COUNT,
+
+    SHV_LAND_HEIGHT_TEX = SHV_VARS_COUNT,
+    SHV_GRASS_HEIGHTMAP,
+    SHV_GRASS_HEIGHTMAP_SAMPLERSTATE,
+
+    SHV_LAND_GRASS_TYPE_TEX,
+    SHV_LAND_GRASS_TYPE_TEX_SAMPLERSTATE,
+
+    SHV_LAND_COLOR_TEX,
+    SHV_GRASS_LAND_COLOR_MASK,
+    SHV_GRASS_LAND_COLOR_MASK_SAMPLERSTATE,
+    SHV_TMP_GRASS_TEX,
+
+    SHV_NAME_COUNT
+  };
+
+  static const carray<const char *, SHV_NAME_COUNT> defaultShaderVarNames;
+
+  LandMask(const DataBlock &level_blk, int tex_align, bool need_grass,
+    const carray<const char *, SHV_NAME_COUNT> &custom_shader_vars = defaultShaderVarNames);
   ~LandMask();
 
   void loadParams(const DataBlock &level_blk);
   void invalidate();
 
+  void setUseBlur(bool use) { useBlur = use; }
   void beforeRender(const Point3 &center_pos, ILandMaskRenderHelper &render_helper, bool force_update = false);
 
   Texture *getLandHeightTex() const { return landHeightTex.getTex2D(); }
@@ -95,15 +129,20 @@ protected:
   UniqueTexHolder landHeightTex;
   UniqueTexHolder landColorTex;
   UniqueTexHolder grassTypeTex;
+  UniqueTex tmpMaskTex;
   int landTexSize;
 
   PostFxRenderer *filterRenderer = NULL;
+  PostFxRenderer *blurRenderer = NULL;
+  PostFxRenderer *copyMaskRenderer = NULL;
 
-  Tab<int> shaderVars;
+  carray<int, SHV_VARS_COUNT> shaderVars;
+  int filterHmapInputVar, filterTypeInputVar, filterMaskInputVar;
   Tab<IBBox2> invalidRegions;
   Tab<ToroidalQuadRegion> quadRegions;
 
   int status;
+  bool useBlur = false;
   ToroidalHelper torHelper;
   ToroidalGatherCallback::RegionTab regions;
   shaders::UniqueOverrideStateId flipCullDepthOnlyOverride;

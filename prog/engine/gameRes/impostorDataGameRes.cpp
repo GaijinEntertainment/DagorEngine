@@ -48,13 +48,15 @@ public:
   bool isResLoaded(int res_id) override { return findRes(res_id) >= 0; }
   bool checkResPtr(GameResource *res) override { return findData(res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return nullptr;
 
@@ -94,13 +96,13 @@ public:
     resList[id].refCount--;
   }
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
 
     for (int i = (int)resList.size() - 1; i >= 0; --i)
     {
-      if (!resList[i].data || get_refcount_game_resource_pack_by_resid(resList[i].resId) > 0)
+      if (!resList[i].data || (rrl && is_res_required(rrl, resList[i].resId)))
         continue;
 
       if (resList[i].refCount > 0)
@@ -142,7 +144,7 @@ public:
     resList.push_back(eastl::move(data));
   }
 
-  void createGameResource(int, const int *, int) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
 
   void reset() override { resList.clear(); }
 

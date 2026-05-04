@@ -20,29 +20,12 @@ namespace rendinst
 struct RIOcclusionData;
 }
 
-enum class CameraViewVisibilityFlags : uint8_t
-{
-  None = 0,
-  DontReprojectCockpitOcclusion = 1
-};
-
-inline CameraViewVisibilityFlags operator|(const CameraViewVisibilityFlags a, const CameraViewVisibilityFlags b)
-{
-  return static_cast<CameraViewVisibilityFlags>(eastl::to_underlying(a) | eastl::to_underlying(b));
-}
-
-inline CameraViewVisibilityFlags operator&(const CameraViewVisibilityFlags a, const CameraViewVisibilityFlags b)
-{
-  return static_cast<CameraViewVisibilityFlags>(eastl::to_underlying(a) & eastl::to_underlying(b));
-}
-
 class CameraViewVisibilityMgr
 {
 public:
-  CameraViewVisibilityMgr(const int ri_extra_vb_ctx_id,
-    const char *cam_prefix,
-    const CameraViewVisibilityFlags vis_flags = CameraViewVisibilityFlags::None) :
-    flags(vis_flags), riExtraRenderJob(ri_extra_vb_ctx_id), cameraPrefix(cam_prefix)
+  CameraViewVisibilityMgr(
+    const int ri_extra_vb_ctx_id, const char *cam_prefix, const CockpitReprojectionMode cockpit_mode = COCKPIT_REPROJECT_ANIMATED) :
+    cockpitMode(cockpit_mode), riExtraRenderJob(ri_extra_vb_ctx_id), cameraPrefix(cam_prefix)
   {}
 
   ~CameraViewVisibilityMgr() { close(); }
@@ -82,6 +65,7 @@ public:
     const float hmap_camera_height,
     const float water_level,
     const int displacement_sub_div,
+    const float displacement_radius,
     const CameraParams &cur_frame_camera);
 
   void startGroundReflectionVisibility(LandMeshManager *lmesh_mgr,
@@ -120,8 +104,10 @@ public:
 
   void updateLodsScaling(const float ri_dist_mul, const float impostors_dist_mul);
 
+  void setCockpitReprojectionMode(CockpitReprojectionMode mode) { cockpitMode = mode; }
+
 private:
-  const CameraViewVisibilityFlags flags = CameraViewVisibilityFlags::None;
+  CockpitReprojectionMode cockpitMode;
   const char *cameraPrefix = nullptr;
 
   Occlusion occlusion;

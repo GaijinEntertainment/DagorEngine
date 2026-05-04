@@ -6,7 +6,8 @@
 
 #include <EASTL/string.h>
 #include <3d/dag_resPtr.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
+
 
 struct SbufferHeapManager
 {
@@ -24,20 +25,19 @@ struct SbufferHeapManager
   }
   bool canCopyInSameHeap() const { return overlappedCopy; }
   bool canCopyOverlapped() const { return overlappedRegionCopy; }
-  bool create(Heap &h, size_t sz)
+  bool create(Heap &h, size_t sz, ResourceTagType tag)
   {
-    overlappedCopy = d3d::get_driver_desc().caps.hasBufferOverlapCopy;              // do it each create. not too often and safer
-                                                                                    // than constructor for static variable
-    overlappedRegionCopy = d3d::get_driver_desc().caps.hasBufferOverlapRegionsCopy; // do it each create. not too
-                                                                                    // often and safer than
-                                                                                    // constructor for static
-                                                                                    // variable
+    auto &caps = d3d::get_driver_desc().caps;
+    overlappedCopy = caps.hasBufferOverlapCopy; // do it each create. not too often and safer  than constructor for static variable
+    overlappedRegionCopy = caps.hasBufferOverlapRegionsCopy; // do it each create. not too often and safer than constructor for static
+                                                             // variable
+
     h.close();
     if (sz > 0) // resize with 0 closes the buffer on-demand
     {
       eastl::string name;
       name.sprintf("%s_%d", baseName.c_str(), id++);
-      h = dag::create_sbuffer(elementSize, (sz + elementSize - 1) / elementSize, flags, texfmt, name.c_str());
+      h = dag::create_sbuffer(elementSize, (sz + elementSize - 1) / elementSize, flags, texfmt, name.c_str(), tag);
       generation++;
     }
     return (bool)h;

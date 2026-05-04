@@ -1,0 +1,77 @@
+include "shader_global.dshl"
+include "clouds_weather.dshl"
+include "clouds_alt_fraction.dshl"
+include "clouds_rain_map.dshl"
+
+float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
+texture clouds_field_volume;
+float4 clouds_rain_map_render_offset_xz__scale__resolution;
+
+shader clouds_rain_map_cs
+{
+  USE_CLOUDS_HOLE_POS(cs)
+  SIMPLIFIED_CLOUDS_ALT_FRACTION(cs)
+  (cs)
+  {
+    clouds_field_volume@smp3d = clouds_field_volume;
+    clouds_start_altitude@f1 = clouds_start_altitude2 * 1000;
+    inverse_weather_size@f1 = 1/clouds_weather_size;
+    texel_size_helpers@f3 = (clouds_weather_size / clouds_field_res.x,  clouds_thickness2*1000/(clouds_field_res.y), 0)
+
+    clouds_rain_map_tex@uav = clouds_rain_map_tex hlsl{ RWTexture2D<float2> clouds_rain_map_tex@uav; }
+    clouds_rain_map_max_height@f1 = clouds_rain_map_max_height;
+    rain_map_scale@f1 = clouds_rain_map_render_offset_xz__scale__resolution.z;
+    rain_map_offset@f2 = (clouds_rain_map_render_offset_xz__scale__resolution.x + clouds_origin_offset.x, clouds_rain_map_render_offset_xz__scale__resolution.y + clouds_origin_offset.y);
+    rain_map_resolution@f1 = clouds_rain_map_render_offset_xz__scale__resolution.w;
+  }
+  hlsl(cs)
+  {
+    float3 getTc(float3 sample_pos)
+    {
+      float2 tcXZ = sample_pos.xz * inverse_weather_size + 0.5;
+      float tcY = simplified_alt_fraction_in_clouds_y(sample_pos.y);
+      return float3(tcXZ, tcY);
+    }
+    float2 traceCloudsHeight(float3 start_pos, float3 ray_step, float step_size, float max_distance)
+    {
+      float3 samplePos = start_pos;
+      float cloudHeight = 0.f;
+      float cloudDensity = 0.f;
+      for(float distance = 0; distance < max_distance; distance += step_size, samplePos += ray_step)
+      {
+
+        float density = tex3Dlod(clouds_field_volume, float4(getTc(samplePos), 0)).x;
+        cloudDensity += density;
+        FLATTEN
+        if (density > 0 && cloudHeight == 0.f)
+          cloudHeight = clouds_rain_map_max_height - samplePos.y;
+
+      }
+      return float2(cloudHeight, cloudDensity);
+    }
+
+    [numthreads(8, 8, 1)]
+    void main_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId >= int(rain_map_resolution)))
+        return;
+
+      float3 startPos = float3(0, clouds_start_altitude, 0);
+      float texel_size = min(texel_size_helpers.x, texel_size_helpers.y);
+      startPos.xz = rain_map_offset + dtId * rain_map_scale;
+
+      const float safeTexelJump = 0.95f;
+      float3 rayDir = float3(0, 1, 0); // Possibly add wind influence
+      float stepSize = safeTexelJump * texel_size;
+      float3 rayStep = stepSize * rayDir;
+      float3 clouds_hole_offset = get_clouds_hole_pos_vec();
+      startPos += clouds_hole_offset;
+
+      clouds_rain_map_tex[dtId] = traceCloudsHeight(startPos, rayStep, stepSize, clouds_rain_map_max_height - startPos.y);
+    }
+  }
+  compile("cs_5_0", "main_cs");
+}
+
+
+

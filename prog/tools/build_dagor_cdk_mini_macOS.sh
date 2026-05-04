@@ -1,3 +1,7 @@
+if [ "$1" = "x86_64" ] || [ "$1" = "arm64" ]; then
+  export PlatformArch=$1
+fi
+
 # dabuild
 jam -s Root=../.. -f libTools/daKernel/jamfile
 jam -s Root=../.. -f sceneTools/assetExp/jamfile

@@ -1,43 +1,47 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "variantAssembly.h"
+#include "preshaderCompilation.h"
 #include "codeBlocks.h"
 #include "shExpr.h"
 #include "shExprParser.h"
 #include <shaders/shOpcode.h>
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shUtils.h>
+#include <EASTL/array.h>
 
 namespace assembly
 {
 
 template <StcodeBuildFlags FLAGS>
 void assemble_local_var(LocalVar *var, ShaderParser::ComplexExpression *rootExpr, ShaderTerminal::SHTOK_ident *decl_name,
-  shc::VariantContext &ctx)
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode)
 {
   bool isDynamic = rootExpr->isDynamic();
 
   if constexpr (FLAGS & StcodeBuildFlagsBits::BYTECODE)
   {
-    Tab<int> &code = ctx.stBytecode().get_alt_curstcode(isDynamic);
+    G_ASSERT(out_bytecode);
+    Tab<int> &code = out_bytecode->get_alt_curstcode(isDynamic);
 
     Register varReg;
     if (var->valueType == shexpr::VT_REAL)
-      varReg = ctx.stBytecode().regAllocator->add_reg();
+      varReg = out_bytecode->regAllocator->add_reg();
     else
-      varReg = ctx.stBytecode().regAllocator->add_vec_reg();
+      varReg = out_bytecode->regAllocator->add_vec_reg();
 
-    rootExpr->assembleBytecode(code, varReg, *ctx.stBytecode().regAllocator, var->isInteger);
+    rootExpr->assembleBytecode(code, varReg, *out_bytecode->regAllocator, var->isInteger);
     var->reg = eastl::move(varReg).release();
   }
 
   if constexpr (FLAGS & StcodeBuildFlagsBits::CPP)
   {
-    StcodeRoutine &cppStcode = isDynamic ? (StcodeRoutine &)ctx.cppStcode().cppStcode : (StcodeRoutine &)ctx.cppStcode().cppStblkcode;
+    G_ASSERT(out_cppstcode);
+    StcodeRoutine &routine = isDynamic ? (StcodeRoutine &)out_cppstcode->cppStcode : (StcodeRoutine &)out_cppstcode->cppStblkcode;
 
     StcodeExpression expr;
     rootExpr->assembleCpp(expr, var->isInteger);
-    cppStcode.setVarValue(decl_name->text, eastl::move(expr));
+    routine.setVarValue(decl_name->text, eastl::move(expr));
   }
 }
 
@@ -70,8 +74,78 @@ static eastl::string build_placement_specifier(int dest_reg, bool is_array, int 
   return res;
 }
 
+void validate_hlsl_block_for_invalid_symbols(eastl::string_view hlsl_block, eastl::span<const char> invalid_symbols, Parser &parser,
+  const semantic::NamedConstDefInfo &def)
+{
+  bool inSingleLineComment = false;
+  int multilineCommentDepth = 0;
+  size_t index = 0;
+
+  while (index < hlsl_block.size())
+  {
+    char current = hlsl_block[index];
+    char next = (index + 1 < hlsl_block.size()) ? hlsl_block[index + 1] : '\0';
+
+    // close single line comment
+    if (inSingleLineComment && (current == '\n' || current == '\r'))
+    {
+      inSingleLineComment = false;
+      ++index;
+      continue;
+    }
+
+    // close multi line comment
+    if (multilineCommentDepth > 0 && current == '*' && next == '/')
+    {
+      --multilineCommentDepth;
+      index += 2;
+      continue;
+    }
+
+    // open single line comment
+    if (!inSingleLineComment && multilineCommentDepth == 0)
+    {
+      if (current == '/' && next == '/')
+      {
+        inSingleLineComment = true;
+        index += 2;
+        continue;
+      }
+    }
+
+    // open multi line comment
+    if (!inSingleLineComment)
+    {
+      if (current == '/' && next == '*')
+      {
+        ++multilineCommentDepth;
+        index += 2;
+        continue;
+      }
+    }
+
+
+    // check restricted symbols outside the comments
+    if (!inSingleLineComment && multilineCommentDepth == 0)
+    {
+      for (const auto symbol : invalid_symbols)
+      {
+        if (current == symbol)
+        {
+          report_error(parser, def.varTerm, "Invalid symbol <%c> found in named const <%s> HLSL hlsl definition", symbol,
+            def.varTerm->text);
+        }
+      }
+    }
+
+    ++index;
+  }
+}
+
+
 eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const semantic::NamedConstDefInfo &def,
-  shc::VariantContext &ctx, int dest_register, const ShaderParser::VariablesMerger &var_merger)
+  shc::VariantContext &ctx, int dest_register, const ShaderParser::VariablesMerger::MergedVarsMapsPerStage &var_merger_per_stage_maps,
+  const ShaderParser::VariablesMerger::MergedVarsMap &var_merger_global_blk_map)
 {
   using semantic::VariableType;
   static const char *profiles[STAGE_MAX] = {"cs", "ps", "vs"};
@@ -89,63 +163,69 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
 
   const bool isGlobalConstBlock = ctx.shCtx().blockLevel() == ShaderBlockLevel::GLOBAL_CONST;
 
-  const char *var_type_str = nullptr;
+  const char *varTypeStr = nullptr;
   const char *samplerTypeStr = nullptr;
   switch (def.type)
   {
-    case VariableType::f1: var_type_str = "float"; break;
-    case VariableType::f2: var_type_str = "float2"; break;
-    case VariableType::f3: var_type_str = "float3"; break;
-    case VariableType::f4: var_type_str = "float4"; break;
-    case VariableType::i1: var_type_str = "int"; break;
-    case VariableType::i2: var_type_str = "int2"; break;
-    case VariableType::i3: var_type_str = "int3"; break;
-    case VariableType::i4: var_type_str = "int4"; break;
-    case VariableType::u1: var_type_str = "uint"; break;
-    case VariableType::u2: var_type_str = "uint2"; break;
-    case VariableType::u3: var_type_str = "uint3"; break;
-    case VariableType::u4: var_type_str = "uint4"; break;
-    case VariableType::f44: var_type_str = "float4x4"; break;
-    case VariableType::tex2d: var_type_str = "Texture2D"; break;
+    case VariableType::f1: varTypeStr = "float"; break;
+    case VariableType::f2: varTypeStr = "float2"; break;
+    case VariableType::f3: varTypeStr = "float3"; break;
+    case VariableType::f4: varTypeStr = "float4"; break;
+    case VariableType::i1: varTypeStr = "int"; break;
+    case VariableType::i2: varTypeStr = "int2"; break;
+    case VariableType::i3: varTypeStr = "int3"; break;
+    case VariableType::i4: varTypeStr = "int4"; break;
+    case VariableType::u1: varTypeStr = "uint"; break;
+    case VariableType::u2: varTypeStr = "uint2"; break;
+    case VariableType::u3: varTypeStr = "uint3"; break;
+    case VariableType::u4: varTypeStr = "uint4"; break;
+    case VariableType::f44: varTypeStr = "float4x4"; break;
+    case VariableType::tex2d: varTypeStr = "Texture2D"; break;
+    case VariableType::staticSmpArray:
     case VariableType::staticTexArray:
     case VariableType::texArray:
-      var_type_str = "Texture2DArray";
+      varTypeStr = "Texture2DArray";
       samplerTypeStr = "TextureArraySampler";
       break;
     case VariableType::staticTex3D:
+    case VariableType::staticSmp3D:
     case VariableType::tex3d:
-      var_type_str = "Texture3D";
+    case VariableType::smp3d:
+      varTypeStr = "Texture3D";
       samplerTypeStr = "Texture3DSampler";
       break;
-    case VariableType::staticCube:
+    case VariableType::smpCube:
     case VariableType::texCube:
-      var_type_str = "TextureCube";
+    case VariableType::staticSmpCube:
+    case VariableType::staticTexCube:
+      varTypeStr = "TextureCube";
       samplerTypeStr = "TextureSamplerCube";
       break;
-    case VariableType::staticCubeArray:
+    case VariableType::staticSmpCubeArray:
+    case VariableType::staticTexCubeArray:
     case VariableType::texCubeArray:
-      var_type_str = "TextureCubeArray";
+      varTypeStr = "TextureCubeArray";
       samplerTypeStr = "TextureCubeArraySampler";
       break;
-    case VariableType::staticSampler:
+    case VariableType::staticSmp:
+    case VariableType::staticTex:
     case VariableType::smp2d:
-      var_type_str = "Texture2D";
+      varTypeStr = "Texture2D";
       samplerTypeStr = "TextureSampler";
       break;
-    case VariableType::smp3d: var_type_str = "Texture3D"; break;
-    case VariableType::smpCube: var_type_str = "TextureCube"; break;
 #if (_CROSS_TARGET_C1 | _CROSS_TARGET_C2)
 
 
 
 #else
     case VariableType::shdArray:
-    case VariableType::smpArray: var_type_str = "Texture2DArray"; break;
-    case VariableType::smpCubeArray: var_type_str = "TextureCubeArray"; break;
+    case VariableType::smpArray: varTypeStr = "Texture2DArray"; break;
+    case VariableType::smpCubeArray: varTypeStr = "TextureCubeArray"; break;
 #endif
-    case VariableType::sampler: var_type_str = "SamplerState"; break;
-    case VariableType::shd: var_type_str = "Texture2D"; break;
-    case VariableType::tlas: var_type_str = "RaytracingAccelerationStructure"; break;
+    case VariableType::sampler: varTypeStr = "SamplerState"; break;
+    case VariableType::cmpSampler: varTypeStr = "SamplerComparisonState"; break;
+    case VariableType::shd: varTypeStr = "Texture2D"; break;
+    case VariableType::tlas: varTypeStr = "RaytracingAccelerationStructure"; break;
   }
 
   {
@@ -155,22 +235,22 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
     if (!hlsl.definition.empty())
       hlsl.definition.replaceAll(def.nameSpaceTerm->text, regSpecification.c_str());
 
-    if (var_type_str)
+    if (varTypeStr)
     {
       if (!hlsl.definition.empty())
         hlsl.definition += '\n';
       if (def.isBindless)
         hlsl.definition.aprintf(0, "uint2 %s%s;", mangledVarName, regSpecification.c_str());
       else
-        hlsl.definition.aprintf(0, "%s %s%s;", var_type_str, baseVarName, regSpecification.c_str());
+        hlsl.definition.aprintf(0, "%s %s%s;", varTypeStr, baseVarName, regSpecification.c_str());
     }
   }
 
   if (!hlsl.definition.empty())
   {
     // validate names in HLSL block
-    if (strchr(hlsl.definition.c_str(), '@'))
-      report_error(parser, def.varTerm, "Unresolved placeholder @ found in named const <%s> HLSL hlsl definition", baseVarName);
+    constexpr auto restrictedSymbols = eastl::array<const char>{'@'};
+    validate_hlsl_block_for_invalid_symbols(hlsl.definition.c_str(), restrictedSymbols, parser, def);
 
     char tempbufLine[256];
     tempbufLine[0] = 0;
@@ -221,49 +301,73 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
 
   if (def.isBindless)
   {
+    G_ASSERT(semantic::vt_is_static_texture(def.type));
 #if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
 
 #else
-    const char *sampleSuffix = (def.type == VariableType::staticCube)        ? "_cube"
-                               : (def.type == VariableType::staticCubeArray) ? "_cube_array"
-                               : (def.type == VariableType::staticTex3D)     ? "3d"
-                               : (def.type == VariableType::staticTexArray)  ? "_array"
-                                                                             : "";
+    const bool isStaticCube = def.type == VariableType::staticTexCube || def.type == VariableType::staticSmpCube;
+    const bool isStaticCubeArray = def.type == VariableType::staticTexCubeArray || def.type == VariableType::staticSmpCubeArray;
+    const bool isStatic3D = def.type == VariableType::staticTex3D || def.type == VariableType::staticSmp3D;
+    const bool isStaticArray = def.type == VariableType::staticTexArray || def.type == VariableType::staticSmpArray;
+    const char *sampleSuffix = isStaticCube        ? "_cube"
+                               : isStaticCubeArray ? "_cube_array"
+                               : isStatic3D        ? "3d"
+                               : isStaticArray     ? "_array"
+                                                   : "";
 #endif
-    hlsl.postfix.aprintf(0,
-      "#ifndef BINDLESS_GETTER_%s\n"
-      "#define BINDLESS_GETTER_%s\n"
-      "%s get_%s()\n"
-      "{\n"
-      "  %s texSamp;\n"
-      "  texSamp.tex = static_textures%s[get_%s().x];\n"
-      "  texSamp.smp = static_samplers[get_%s().y];\n"
-      "  return texSamp;\n"
-      "}\n"
-      "#endif\n",
-      baseVarName, baseVarName, samplerTypeStr, baseVarName, samplerTypeStr, sampleSuffix, mangledVarName, mangledVarName);
+    if (semantic::vt_is_static_sampled_texture(def.type))
+    {
+      hlsl.postfix.aprintf(0,
+        "#ifndef BINDLESS_GETTER_%s\n"
+        "#define BINDLESS_GETTER_%s\n"
+        "%s get_%s()\n"
+        "{\n"
+        "  %s texSamp;\n"
+        "  texSamp.tex = static_textures%s[get_%s().x];\n"
+        "  texSamp.smp = static_samplers[get_%s().y];\n"
+        "  return texSamp;\n"
+        "}\n"
+        "#endif\n",
+        baseVarName, baseVarName, samplerTypeStr, baseVarName, samplerTypeStr, sampleSuffix, mangledVarName, mangledVarName);
+    }
+    else
+    {
+      hlsl.postfix.aprintf(128,
+        "#ifndef BINDLESS_GETTER_%s\n"
+        "#define BINDLESS_GETTER_%s\n"
+        "%s get_%s() { return static_textures%s[get_%s().x]; }\n"
+        "#endif\n",
+        baseVarName, baseVarName, varTypeStr, baseVarName, sampleSuffix, mangledVarName);
+    }
   }
   else if (semantic::vt_is_static_texture(def.type)) // Static textures, but not compiled as bindless
   {
-    hlsl.postfix.aprintf(0,
-      "\n%s get_%s()\n"
-      "{\n"
-      "  %s texSamp;\n"
-      "  texSamp.tex = %s;\n"
-      "  texSamp.smp = %s_samplerstate;\n"
-      "  return texSamp;\n"
-      "}\n",
-      samplerTypeStr, baseVarName, samplerTypeStr, baseVarName, baseVarName);
+    if (semantic::vt_is_static_sampled_texture(def.type))
+    {
+      hlsl.postfix.aprintf(0,
+        "\n%s get_%s()\n"
+        "{\n"
+        "  %s texSamp;\n"
+        "  texSamp.tex = %s;\n"
+        "  texSamp.smp = %s_samplerstate;\n"
+        "  return texSamp;\n"
+        "}\n",
+        samplerTypeStr, baseVarName, samplerTypeStr, baseVarName, baseVarName);
+    }
+    else
+    {
+      hlsl.postfix.aprintf(64, "\n%s get_%s() { return %s; }\n", varTypeStr, baseVarName, baseVarName);
+    }
   }
 
   if ((def.shvarType == SHVT_COLOR4 || def.shvarType == SHVT_INT4) && def.isDynamic)
   {
     if ((def.type == VariableType::f44 && def.registerSize == 4) || def.initializer.size() == 1)
-      hlsl.postfix.aprintf(0, "%s get_%s() { return %s; }", var_type_str, baseVarName, baseVarName);
-    if (const auto *vars = isGlobalConstBlock ? var_merger.findOriginalBufferedVarsInfo(baseVarName)
-                                              : var_merger.findOriginalConstVarsInfo(baseVarName, def.stage))
+      hlsl.postfix.aprintf(0, "%s get_%s() { return %s; }", varTypeStr, baseVarName, baseVarName);
+    const auto &varMergerMap = (isGlobalConstBlock ? var_merger_global_blk_map : var_merger_per_stage_maps[def.stage]);
+    if (const auto varsIt = varMergerMap.find(baseVarName); varsIt != varMergerMap.end())
     {
-      for (const auto &info : *vars)
+      for (const auto &info : varsIt->second)
       {
         hlsl.postfix.aprintf(0, " static %s %s = (%s).%s; %s get_%s() { return %s; }", info.getType(), info.name.c_str(), baseVarName,
           info.getSwizzle(), info.getType(), info.name.c_str(), info.name.c_str());
@@ -281,13 +385,19 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
 
 template <StcodeBuildFlags FLAGS>
 bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int dest_register, shc::VariantContext &ctx,
-  IMemAlloc *tmp_memory, bool add_sampler_vars)
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode,
+  dag::FixedMoveOnlyFunction<32, bool(int, void *)> register_sampler_var_id, IMemAlloc *tmp_memory, bool add_sampler_vars)
 {
   using semantic::VariableType;
   using namespace ShaderParser;
 
   constexpr bool BUILD_BYTECODE = FLAGS & StcodeBuildFlagsBits::BYTECODE;
   constexpr bool BUILD_CPP = FLAGS & StcodeBuildFlagsBits::CPP;
+
+  if constexpr (BUILD_BYTECODE)
+    G_ASSERT(out_bytecode);
+  if constexpr (BUILD_CPP)
+    G_ASSERT(out_cppstcode);
 
   static_assert(BUILD_BYTECODE || BUILD_CPP);
 
@@ -297,19 +407,16 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
   Parser &parser = ctx.tgtCtx().sourceParseState().parser;
   ExpressionParser exprParser{ctx};
 
-  auto &stBytecodeAccum = ctx.stBytecode();
-  auto &stCppcodeAccum = ctx.cppStcode();
-
   auto registerConstSettingForValidation = [&](int reg, int float_count) {
     if (DAGOR_UNLIKELY(shc::config().generateCppStcodeValidationData && def.isDynamic))
     {
-      G_ASSERT(stCppcodeAccum.cppStcode.constMask);
-      stCppcodeAccum.cppStcode.constMask->add(reg, float_count, def.stage);
+      G_ASSERT(out_cppstcode->cppStcode.constMask);
+      out_cppstcode->cppStcode.constMask->add(reg, float_count, def.stage);
 
       if (def.stage != STAGE_CS && def.regSpace == HLSL_RSPACE_C && ctx.shCtx().blockLevel() == ShaderBlockLevel::GLOBAL_CONST)
       {
         ShaderStage otherStage = def.stage == STAGE_VS ? STAGE_PS : STAGE_VS;
-        stCppcodeAccum.cppStcode.constMask->add(reg, float_count, otherStage);
+        out_cppstcode->cppStcode.constMask->add(reg, float_count, otherStage);
       }
     }
   };
@@ -321,17 +428,23 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
   {
     static const int float4_to_cod[STAGE_MAX] = {SHCOD_CS_CONST, SHCOD_FSH_CONST, SHCOD_VPR_CONST};
+    static const int rwtex_to_cod[STAGE_MAX] = {SHCOD_RWTEX_CS, SHCOD_RWTEX_PS, SHCOD_RWTEX_VS};
+    static const int rwbuf_to_cod[STAGE_MAX] = {SHCOD_RWBUF_CS, SHCOD_RWBUF_PS, SHCOD_RWBUF_VS};
 
     if (def.isBindless)
       shcod = SHCOD_REG_BINDLESS;
     else if (def.type == VariableType::uav)
     {
-      shcod = def.shvarType == SHVT_TEXTURE ? SHCOD_RWTEX : SHCOD_RWBUF;
+      // @TODO: fixme, bundle with tools update. Is still correct as stcode for shaders ignores RW instr stage.
+      if (ctx.shCtx().blockLevel() == ShaderBlockLevel::SHADER)
+        shcod = def.shvarType == SHVT_TEXTURE ? SHCOD_RWTEX_PS : SHCOD_RWBUF_PS;
+      else
+        shcod = def.shvarType == SHVT_TEXTURE ? rwtex_to_cod[def.stage] : rwbuf_to_cod[def.stage];
       resType = def.shvarType == SHVT_TEXTURE ? StcodeRoutine::ResourceType::RWTEX : StcodeRoutine::ResourceType::RWBUF;
     }
     else if (def.shvarType == SHVT_TEXTURE)
     {
-      shcod = def.stage == STAGE_VS ? SHCOD_TEXTURE_VS : SHCOD_TEXTURE;
+      shcod = def.stage == STAGE_VS ? SHCOD_TEXTURE_VS : (def.stage == STAGE_CS ? SHCOD_TEXTURE_CS : SHCOD_TEXTURE);
       resType = StcodeRoutine::ResourceType::TEXTURE;
     }
     else if (def.shvarType == SHVT_SAMPLER)
@@ -351,7 +464,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
       shcod = SHCOD_TLAS;
       resType = StcodeRoutine::ResourceType::TLAS;
     }
-    else if (def.type == VariableType::sampler)
+    else if (def.type == VariableType::sampler || def.type == VariableType::cmpSampler)
     {
       shcod = SHCOD_GLOB_SAMPLER;
       resType = StcodeRoutine::ResourceType::SAMPLER;
@@ -366,7 +479,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
   for (int initI = 0; initI < def.initializer.size(); ++initI)
   {
     if constexpr (BUILD_BYTECODE)
-      ctx.stBytecode().regAllocator->dropCachedStvars();
+      out_bytecode->regAllocator->dropCachedStvars();
 
     const auto &value = def.initializer[initI];
     const int elemDestReg = dest_register + initI;
@@ -398,11 +511,11 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
         }
         if constexpr (BUILD_CPP)
         {
-          stCppcodeAccum.cppStcode.addShaderGlobMatrix(def.stage, gmTypeForCpp, varName, elemDestReg);
+          out_cppstcode->cppStcode.addShaderGlobMatrix(def.stage, gmTypeForCpp, varName, dest_register, initI);
           registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::f44));
         }
         if constexpr (BUILD_BYTECODE)
-          stBytecodeAccum.push_stcode(shaderopcode::makeOp2_8_16(SHCOD_G_TM, gmType, elemDestReg));
+          out_bytecode->push_stcode(shaderopcode::makeOp2_8_16(SHCOD_G_TM, gmType, elemDestReg));
         continue;
       }
       int builtin_v = -1, builtin_cp = 0;
@@ -447,15 +560,15 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
       if constexpr (BUILD_BYTECODE)
       {
-        Register cr = stBytecodeAccum.regAllocator->add_vec_reg();
-        stBytecodeAccum.push_stcode(shaderopcode::makeOp2(builtin_v, int(cr), builtin_cp));
-        stBytecodeAccum.push_stcode(shaderopcode::makeOp2(shcod, elemDestReg, int(cr)));
+        Register cr = out_bytecode->regAllocator->add_vec_reg();
+        out_bytecode->push_stcode(shaderopcode::makeOp2(builtin_v, int(cr), builtin_cp));
+        out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg, int(cr)));
       }
       if constexpr (BUILD_CPP)
       {
-        stCppcodeAccum.cppStcode.addShaderGlobVec(def.stage,
-          builtin_v == SHCOD_LVIEW ? StcodeRoutine::GlobVecType::VIEW : StcodeRoutine::GlobVecType::WORLD, varName, elemDestReg,
-          builtin_cp);
+        out_cppstcode->cppStcode.addShaderGlobVec(def.stage,
+          builtin_v == SHCOD_LVIEW ? StcodeRoutine::GlobVecType::VIEW : StcodeRoutine::GlobVecType::WORLD, varName, dest_register,
+          builtin_cp, initI);
         registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::f4));
       }
       continue;
@@ -467,15 +580,15 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
       if constexpr (BUILD_BYTECODE)
       {
         Tab<int> cod(tmpmem);
-        Register dr = stBytecodeAccum.regAllocator->add_vec_reg();
+        Register dr = out_bytecode->regAllocator->add_vec_reg();
 
         if (value.isArithmConst())
           Expression::assembleBytecodeForConstant(cod, value.arithmConst(), int(dr));
         else
-          value.arithmExpr().assembleBytecode(cod, dr, *ctx.stBytecode().regAllocator, def.shvarType == SHVT_INT4);
+          value.arithmExpr().assembleBytecode(cod, dr, *out_bytecode->regAllocator, def.shvarType == SHVT_INT4);
 
         cod.push_back(shaderopcode::makeOp2(shcod, elemDestReg, int(dr)));
-        stBytecodeAccum.append_alt_stcode(def.isDynamic, cod);
+        out_bytecode->append_alt_stcode(def.isDynamic, cod);
       }
 
       if constexpr (BUILD_CPP)
@@ -488,12 +601,12 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
         if (def.isDynamic)
         {
-          stCppcodeAccum.cppStcode.addShaderConst(def.stage, def.shvarType, def.type, varName, dest_register, eastl::move(cppExpr),
+          out_cppstcode->cppStcode.addShaderConst(def.stage, def.shvarType, def.type, varName, dest_register, eastl::move(cppExpr),
             initI);
         }
         else
         {
-          stCppcodeAccum.cppStblkcode.addShaderConst(def.shvarType, def.type, varName, dest_register, eastl::move(cppExpr), initI);
+          out_cppstcode->cppStblkcode.addShaderConst(def.shvarType, def.type, varName, dest_register, eastl::move(cppExpr), initI);
         }
 
         // In this codepath matrices are set row-by-row, so clamp by f4
@@ -511,11 +624,12 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
           const char *samplerName = value.varName();
           Sampler *smp = ctx.tgtCtx().samplers().get(samplerName);
           G_ASSERT(smp);
-          if (smp->mIsStaticSampler)
+          if (smp->mIsStaticSampler && register_sampler_var_id(smp->mId, def.varTerm))
           {
             String bcName{}, amName{}, mbName{};
             int bcReg = -1, amReg = -1, mbReg = -1;
-            bool bcIsConst = false, amIsConst = false, mbIsConst = false;
+            bool bcIsConst = true, amIsConst = true, mbIsConst = true;
+            Color4 bcConstFloatValue{};
 
             if (smp->mBorderColor)
             {
@@ -529,12 +643,14 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
               if (variable->isConst)
               {
+                bcConstFloatValue = Color4{variable->cv.c.r, variable->cv.c.g, variable->cv.c.b, variable->cv.c.a};
                 smp->mSamplerInfo.border_color = static_cast<d3d::BorderColor::Color>(
                   (variable->cv.c.a ? 0xFF000000 : 0) | ((variable->cv.c.r || variable->cv.c.g || variable->cv.c.b) ? 0x00FFFFFF : 0));
               }
               else
               {
-                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_bc_stat->local_decl->name, ctx);
+                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_bc_stat->local_decl->name, out_cppstcode,
+                  out_bytecode);
                 G_ASSERT(!BUILD_BYTECODE || variable->reg >= 0);
                 bcReg = variable->reg;
               }
@@ -554,7 +670,8 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
                 smp->mSamplerInfo.anisotropic_max = variable->cv.r;
               else
               {
-                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_am_stat->local_decl->name, ctx);
+                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_am_stat->local_decl->name, out_cppstcode,
+                  out_bytecode);
                 G_ASSERT(!BUILD_BYTECODE || variable->reg >= 0);
                 amReg = variable->reg;
               }
@@ -574,70 +691,89 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
                 smp->mSamplerInfo.mip_map_bias = variable->cv.r;
               else
               {
-                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_mb_stat->local_decl->name, ctx);
+                assembly::assemble_local_var<FLAGS>(variable, rootExpr.get(), local_mb_stat->local_decl->name, out_cppstcode,
+                  out_bytecode);
                 G_ASSERT(!BUILD_BYTECODE || variable->reg >= 0);
                 mbReg = variable->reg;
               }
             }
 
-            if constexpr (BUILD_BYTECODE)
+            const bool samplerIsImmutable = bcIsConst && amIsConst && mbIsConst;
+
+            // If the sampler is immutable, we won't request it in code at all, but pre-fill the shadervar
+            if (samplerIsImmutable)
             {
-              stBytecodeAccum.push_stcode(shaderopcode::makeOp3(SHCOD_CALL_FUNCTION, functional::BF_REQUEST_SAMPLER, smp->mId, 4));
-              stBytecodeAccum.push_stcode(value.globVarId());
-              stBytecodeAccum.push_stcode(bcReg);
-              stBytecodeAccum.push_stcode(amReg);
-              stBytecodeAccum.push_stcode(mbReg);
+              // @TODO: target context write access. Will have to remove when parallelizing.
+              ctx.tgtCtx().samplers().reportImmutableSampler(smp->mId, value.globVarId());
             }
-
-            if constexpr (BUILD_CPP)
+            else
             {
-              eastl::string exprTemplate{
-                eastl::string::CtorSprintf{}, "*(uint64_t *)%s = %c", samplerName, StcodeExpression::EXPR_ELEMENT_PLACEHOLDER};
 
-              StcodeExpression expr{exprTemplate.c_str()};
-              const size_t argCnt = 4;
-              const int ZERO = 0;
-              const float FZERO = 0.f;
+              if constexpr (BUILD_BYTECODE)
+              {
+                out_bytecode->push_stcode(
+                  shaderopcode::makeOpFunctionCall(SHCOD_CALL_FUNCTION, functional::BF_REQUEST_SAMPLER, smp->mId, 4));
+                out_bytecode->push_stcode(value.globVarId());
+                out_bytecode->push_stcode(bcReg);
+                out_bytecode->push_stcode(amReg);
+                out_bytecode->push_stcode(mbReg);
+              }
 
-              expr.specifyNextExprElement(StcodeExpression::ElementType::FUNC, "request_sampler", &argCnt);
-              expr.specifyNextExprElement(StcodeExpression::ElementType::INT_CONST, &smp->mId);
+              if constexpr (BUILD_CPP)
+              {
+                eastl::string exprTemplate{
+                  eastl::string::CtorSprintf{}, "*(uint64_t *)%s = %c", samplerName, StcodeExpression::EXPR_ELEMENT_PLACEHOLDER};
 
-              auto addParam = [&](bool exists, void *val, const char *name, bool is_const, StcodeExpression::ElementType const_type) {
-                const void *defval = const_type == StcodeExpression::ElementType::INT_CONST ? (void *)&ZERO : (void *)&FZERO;
-                if (exists)
-                {
+                StcodeExpression expr{exprTemplate.c_str()};
+
+                String samplerIdVarName{0, "%s__id", samplerName};
+
+                // @TODO: target context write access. Will have to remove when parallelizing.
+                ctx.tgtCtx().cppStcode().globVars.setVar(SHVT_INT, samplerIdVarName.c_str(), false);
+
+                const size_t argCnt = 4;
+
+                expr.specifyNextExprElement(StcodeExpression::ElementType::FUNC, "request_sampler", &argCnt);
+                expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, samplerIdVarName.c_str());
+                expr.specifyNextExprUnaryOp(shexpr::UOP_POSITIVE);
+
+                auto addParam = [&](void *val, const char *name, bool is_const, StcodeExpression::ElementType const_type,
+                                  const char *var_cast) {
                   if (is_const)
                     expr.specifyNextExprElement(const_type, val);
                   else
                   {
-                    expr.specifyNextExprElement(StcodeExpression::ElementType::LOCVAR, name);
+                    expr.specifyNextExprElement(StcodeExpression::ElementType::LOCVAR, name, var_cast);
                     expr.specifyNextExprUnaryOp(shexpr::UOP_POSITIVE);
                   }
+                };
+
+                if (bcIsConst)
+                {
+                  expr.specifyNextExprElement(StcodeExpression::ElementType::COLOR_CONST, //
+                    &bcConstFloatValue.r, &bcConstFloatValue.g, &bcConstFloatValue.b, &bcConstFloatValue.a);
                 }
                 else
-                  expr.specifyNextExprElement(const_type, defval);
-              };
+                {
+                  addParam(nullptr, bcName, false, StcodeExpression::ElementType::COLOR_CONST, nullptr);
+                }
 
-              addParam(smp->mBorderColor, &smp->mSamplerInfo.border_color, bcName, bcIsConst,
-                StcodeExpression::ElementType::INT_CONST);
-              addParam(smp->mAnisotropicMax, &smp->mSamplerInfo.anisotropic_max, amName, amIsConst,
-                StcodeExpression::ElementType::REAL_CONST);
-              addParam(smp->mMipmapBias, &smp->mSamplerInfo.mip_map_bias, mbName, mbIsConst,
-                StcodeExpression::ElementType::REAL_CONST);
+                addParam(&smp->mSamplerInfo.anisotropic_max, amName, amIsConst, StcodeExpression::ElementType::REAL_CONST, "float");
+                addParam(&smp->mSamplerInfo.mip_map_bias, mbName, mbIsConst, StcodeExpression::ElementType::REAL_CONST, "float");
 
-              stCppcodeAccum.cppStcode.addStmt(expr.releaseAssembledCode().c_str());
+                out_cppstcode->cppStcode.addStmt(expr.releaseAssembledCode().c_str());
+              }
             }
           }
 
           if constexpr (BUILD_BYTECODE)
           {
-            stBytecodeAccum.push_stcode(
-              shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, def.stage, dest_register, value.globVarId()));
+            out_bytecode->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, def.stage, elemDestReg, value.globVarId()));
           }
           if constexpr (BUILD_CPP)
           {
-            stCppcodeAccum.cppStcode.addGlobalShaderResource(def.stage, StcodeRoutine::ResourceType::SAMPLER, def.varTerm->text,
-              value.varName(), dest_register);
+            out_cppstcode->cppStcode.addGlobalShaderResource(def.stage, StcodeRoutine::ResourceType::SAMPLER, def.varTerm->text,
+              value.varName(), dest_register, initI);
           }
           continue;
         }
@@ -650,37 +786,36 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
           {
             case SHVT_TEXTURE:
               gc = SHCOD_GET_GTEX;
-              reg = stBytecodeAccum.regAllocator->add_reg(def.shvarType);
+              reg = out_bytecode->regAllocator->add_reg(def.shvarType);
               break;
             case SHVT_BUFFER:
               gc = SHCOD_GET_GBUF;
-              reg = stBytecodeAccum.regAllocator->add_reg(def.shvarType);
+              reg = out_bytecode->regAllocator->add_reg(def.shvarType);
               break;
             case SHVT_TLAS:
               gc = SHCOD_GET_GTLAS;
-              reg = stBytecodeAccum.regAllocator->add_reg(def.shvarType);
+              reg = out_bytecode->regAllocator->add_reg(def.shvarType);
               break;
             case SHVT_FLOAT4X4:
               gc = SHCOD_GET_GMAT44;
-              reg = stBytecodeAccum.regAllocator->add_vec_reg(4);
+              reg = out_bytecode->regAllocator->add_vec_reg(4);
               break;
             default: G_ASSERT(0);
           }
 
-          stBytecodeAccum.push_stcode(shaderopcode::makeOp2(gc, int(reg), value.globVarId()));
+          out_bytecode->push_stcode(shaderopcode::makeOp2(gc, int(reg), value.globVarId()));
           if (shcod == SHCOD_BUFFER || shcod == SHCOD_CONST_BUFFER || shcod == SHCOD_TLAS)
           {
-            G_ASSERT(initI == 0);
-            stBytecodeAccum.push_stcode(shaderopcode::makeOpStageSlot(shcod, def.stage, dest_register, int(reg)));
+            out_bytecode->push_stcode(shaderopcode::makeOpStageSlot(shcod, def.stage, elemDestReg, int(reg)));
           }
           else
           {
-            stBytecodeAccum.push_stcode(shaderopcode::makeOp2(shcod, elemDestReg, int(reg)));
+            out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg, int(reg)));
             if (def.shvarType == SHVT_FLOAT4X4)
             {
-              stBytecodeAccum.push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 1, int(reg) + 1 * 4));
-              stBytecodeAccum.push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 2, int(reg) + 2 * 4));
-              stBytecodeAccum.push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 3, int(reg) + 3 * 4));
+              out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 1, int(reg) + 1 * 4));
+              out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 2, int(reg) + 2 * 4));
+              out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 3, int(reg) + 3 * 4));
             }
           }
         }
@@ -692,7 +827,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
             StcodeExpression expr;
             expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, value.varName(), nullptr, (void *)true);
             expr.specifyNextExprUnaryOp(shexpr::UOP_POSITIVE);
-            stCppcodeAccum.cppStcode.addShaderConst(def.stage, SHVT_FLOAT4X4, VariableType::f44, varName, dest_register,
+            out_cppstcode->cppStcode.addShaderConst(def.stage, SHVT_FLOAT4X4, VariableType::f44, varName, elemDestReg,
               eastl::move(expr));
 
             registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::f44));
@@ -700,7 +835,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
           else
           {
             G_ASSERT(resType != StcodeRoutine::ResourceType::UNKNOWN);
-            stCppcodeAccum.cppStcode.addGlobalShaderResource(def.stage, resType, varName, value.varName(), dest_register);
+            out_cppstcode->cppStcode.addGlobalShaderResource(def.stage, resType, varName, value.varName(), dest_register, initI);
           }
         }
       }
@@ -712,11 +847,11 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
 
         if constexpr (BUILD_BYTECODE)
         {
-          Register reg = stBytecodeAccum.regAllocator->add_reg(def.shvarType);
+          Register reg = out_bytecode->regAllocator->add_reg(def.shvarType);
           buffer[0] = shaderopcode::makeOp2(SHCOD_GET_TEX, int(reg), value.materialVarId());
           buffer[1] = shaderopcode::makeOp2(shcod, elemDestReg, int(reg));
 
-          stBytecodeAccum.append_alt_stcode(def.isDynamic, make_span_const(buffer, 2));
+          out_bytecode->append_alt_stcode(def.isDynamic, make_span_const(buffer, 2));
         }
 
         if constexpr (BUILD_CPP)
@@ -724,17 +859,17 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
           // @NOTE: stage gets manually changed to PS for bindless textures, for cpp stcode we need the original
           if (def.isDynamic)
           {
-            stCppcodeAccum.cppStcode.addDynamicShaderResource(def.stage, StcodeRoutine::ResourceType::TEXTURE, varName,
-              value.varName(), elemDestReg);
+            out_cppstcode->cppStcode.addDynamicShaderResource(def.stage, StcodeRoutine::ResourceType::TEXTURE, varName,
+              value.varName(), dest_register, initI);
           }
           else if (shc::config().enableBindless)
           {
-            stCppcodeAccum.cppStblkcode.addBindlessShaderTexture(varName, value.varName(), elemDestReg);
+            out_cppstcode->cppStblkcode.addBindlessShaderTexture(varName, value.varName(), elemDestReg);
             registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::i2));
           }
           else
           {
-            stCppcodeAccum.cppStblkcode.addStaticShaderTex(def.stage, varName, value.varName(), elemDestReg);
+            out_cppstcode->cppStblkcode.addStaticShaderTex(def.stage, varName, value.varName(), elemDestReg);
           }
         }
       }
@@ -744,7 +879,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
   return true;
 }
 
-String build_hlsl_for_pair_sampler(const char *const_name, bool is_shadow, int dest_register, shc::VariantContext &ctx)
+String build_hlsl_for_pair_sampler(const char *const_name, bool is_shadow, int dest_register)
 {
   String res{};
   if (is_shadow)
@@ -755,40 +890,33 @@ String build_hlsl_for_pair_sampler(const char *const_name, bool is_shadow, int d
 }
 
 template <StcodeBuildFlags FLAGS>
-void build_stcode_for_pair_sampler(const char *const_name, const char *var_name, int dest_register, ShaderStage stage, int var_id,
-  bool is_global, shc::VariantContext &ctx)
+void build_stcode_for_pair_sampler(const char *const_name, const char *var_name, int dest_reg, ShaderStage stage, int var_id,
+  bool is_global, StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode)
 {
   if constexpr (FLAGS & StcodeBuildFlagsBits::BYTECODE)
   {
     if (is_global)
-      ctx.stBytecode().push_stcode(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, stage, dest_register, var_id));
+      out_bytecode->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, stage, dest_reg, var_id));
     else
-      ctx.stBytecode().push_stcode(shaderopcode::makeOpStageSlot(SHCOD_SAMPLER, 0, dest_register, var_id));
+      out_bytecode->push_stcode(shaderopcode::makeOpStageSlot(SHCOD_SAMPLER, 0, dest_reg, var_id));
   }
 
   if constexpr (FLAGS & StcodeBuildFlagsBits::CPP)
   {
     if (is_global)
-    {
-      ctx.cppStcode().cppStcode.addGlobalShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER, const_name, var_name,
-        dest_register);
-    }
+      out_cppstcode->cppStcode.addGlobalShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER, const_name, var_name, dest_reg);
     else
-    {
-      ctx.cppStcode().cppStcode.addDynamicShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER, const_name, var_name,
-        dest_register);
-    }
+      out_cppstcode->cppStcode.addDynamicShaderResource(stage, StcodeRoutine::ResourceType::SAMPLER, const_name, var_name, dest_reg);
   }
 }
 
-void build_cpp_declarations_for_used_local_vars(shc::VariantContext &ctx)
+void build_cpp_declarations_for_used_local_vars(StcodePass &out_cppstcode, const shc::VariantContext &ctx)
 {
   for (const LocalVar &lvar : ctx.localStcodeVars().getVars())
   {
     if (!lvar.isConst)
     {
-      StcodeRoutine &routine =
-        lvar.isDynamic ? (StcodeRoutine &)ctx.cppStcode().cppStcode : (StcodeRoutine &)ctx.cppStcode().cppStblkcode;
+      StcodeRoutine &routine = lvar.isDynamic ? (StcodeRoutine &)out_cppstcode.cppStcode : (StcodeRoutine &)out_cppstcode.cppStblkcode;
 
       routine.addLocalVarDecl(stcode::shexpr_value_to_shadervar_type(lvar.valueType, lvar.isInteger),
         ctx.tgtCtx().varNameMap().getName(lvar.varNameId));
@@ -796,26 +924,28 @@ void build_cpp_declarations_for_used_local_vars(shc::VariantContext &ctx)
   }
 }
 
-void build_cpp_declarations_for_used_bool_vars(shc::VariantContext &ctx)
+void build_cpp_declarations_for_used_bool_vars(StcodePass &out_cppstcode, const shc::VariantContext &ctx)
 {
   ctx.localBoolVars().iterateBoolVars([&](const char *name, const BoolVar &) {
-    ctx.cppStcode().cppStcode.addBoolVarDecl(name);
-    ctx.cppStcode().cppStblkcode.addBoolVarDecl(name);
+    out_cppstcode.cppStcode.addBoolVarDecl(name);
+    out_cppstcode.cppStblkcode.addBoolVarDecl(name);
   });
 }
 
 // Explicit insantiations, added once they are needed
 template void assemble_local_var<StcodeBuildFlagsBits::ALL>(LocalVar *, ShaderParser::ComplexExpression *,
-  ShaderTerminal::SHTOK_ident *, shc::VariantContext &);
+  ShaderTerminal::SHTOK_ident *, StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode);
 template void assemble_local_var<StcodeBuildFlagsBits::CPP>(LocalVar *, ShaderParser::ComplexExpression *,
-  ShaderTerminal::SHTOK_ident *, shc::VariantContext &);
+  ShaderTerminal::SHTOK_ident *, StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode);
 template bool build_stcode_for_named_const<StcodeBuildFlagsBits::ALL>(const semantic::NamedConstDefInfo &, int, shc::VariantContext &,
-  IMemAlloc *, bool);
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode, dag::FixedMoveOnlyFunction<32, bool(int, void *)>, IMemAlloc *,
+  bool);
 template bool build_stcode_for_named_const<StcodeBuildFlagsBits::CPP>(const semantic::NamedConstDefInfo &, int, shc::VariantContext &,
-  IMemAlloc *, bool);
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode, dag::FixedMoveOnlyFunction<32, bool(int, void *)>, IMemAlloc *,
+  bool);
 template void build_stcode_for_pair_sampler<StcodeBuildFlagsBits::ALL>(const char *, const char *, int, ShaderStage, int, bool,
-  shc::VariantContext &);
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode);
 template void build_stcode_for_pair_sampler<StcodeBuildFlagsBits::CPP>(const char *, const char *, int, ShaderStage, int, bool,
-  shc::VariantContext &);
+  StcodePass *out_cppstcode, StcodeBytecodeAccumulator *out_bytecode);
 
 } // namespace assembly

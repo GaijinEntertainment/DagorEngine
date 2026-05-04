@@ -4,7 +4,7 @@ KernelLinkage ?= dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
-Target      = tools/sceneTools/daEditorX/occluders.dll ;
+Target      = tools/sceneTools/daEditorX/occluders ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude

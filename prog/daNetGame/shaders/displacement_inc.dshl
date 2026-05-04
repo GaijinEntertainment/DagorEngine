@@ -68,7 +68,7 @@ macro USE_HEIGHTMAP_DISPLACEMENT()
 
     half get_displacement_relief(float2 worldXZ, float thickness, float offset)
     {
-      half height =  displacementParams.y * sample_tor_height_vs(worldXZ, displacementParams.z) + displacementParams.x;
+      half height =  displacementParams.y * sample_tor_height(worldXZ, displacementParams.z) + displacementParams.x;
       return get_phys_height(height, thickness, offset);
     }
  }

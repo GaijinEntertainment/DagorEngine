@@ -11,6 +11,7 @@ AddIncludes =
 
 Sources =
   enviCover.cpp
+  enviCoverVars.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

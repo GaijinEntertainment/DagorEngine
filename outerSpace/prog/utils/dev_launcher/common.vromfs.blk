@@ -47,6 +47,7 @@ folder {
   scan_folder:b=true
   scan_subfolders:b=true
   wildcard:t=*.ttf
+  wildcard:t=*.otf
   wildcard:t=*.blk
 }
 

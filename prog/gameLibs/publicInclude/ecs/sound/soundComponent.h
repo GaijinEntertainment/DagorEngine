@@ -7,6 +7,7 @@
 #include <soundSystem/events.h>
 #include <soundSystem/streams.h>
 #include <soundSystem/varId.h>
+#include <soundSystem/occlusionGPU.h>
 #include <daECS/core/componentType.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <EASTL/vector.h>
@@ -36,6 +37,22 @@ struct SoundComponent
   bool abandonOnReset = false;
   // game code specific(tag), useful to store event state
   bool enabled = false;
+};
+
+struct SoundOcclusionBlob
+{
+  SoundOcclusionBlob() = default;
+  SoundOcclusionBlob(SoundOcclusionBlob &&) = default;
+  ~SoundOcclusionBlob() { reset(); }
+
+  inline void reset(sndsys::OcclusionBlobHandle new_value = {})
+  {
+    if (handle != new_value && (bool)handle)
+      sndsys::occlusion_gpu::delete_blob(handle);
+    handle = new_value;
+  }
+
+  sndsys::OcclusionBlobHandle handle;
 };
 
 struct SoundEventsPreload
@@ -102,5 +119,6 @@ using SoundVarId = sndsys::VarId;
 
 ECS_DECLARE_RELOCATABLE_TYPE(SoundEvent);
 ECS_DECLARE_RELOCATABLE_TYPE(SoundStream);
+ECS_DECLARE_RELOCATABLE_TYPE(SoundOcclusionBlob);
 ECS_DECLARE_RELOCATABLE_TYPE(SoundVarId);
 ECS_DECLARE_RELOCATABLE_TYPE(SoundEventsPreload);

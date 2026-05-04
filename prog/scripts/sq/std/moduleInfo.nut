@@ -11,8 +11,8 @@ let typesByTypechecks ={
   [0x00000020] = "table",
   [0x00000040] = "array",
   [0x00000080] = "userdata",
-  [0x00000100] = "closure",
-  [0x00000200] = "nativeclosure",
+  [0x00000100] = "function",//closure
+  [0x00000200] = "function",//nativeclosure
   [0x00000400] = "generator",
   [0x00000800] = "userpointer",
   [0x00001000] = "thread",
@@ -27,15 +27,17 @@ function mkAssertStr(x, argname, verbose=false){
     log("type", x, "argname", argname)
   if (x < 0 || argname == null)
     return ""
-  let types = (typesByTypechecks.filter(@(_, bits) (x & bits)!=0)).values()
-  let typestr = "[{0}]".subst(", ".join(types.map(@(v) $"\"{v}\"")))
+
+  let types = (typesByTypechecks.filter(@(_, bits) (x & bits)!=0)).values().totable().keys()
+  //let typestr = "[{0}]".subst(", ".join(types.map(@(v) $"\"{v}\"")))
+  let typestr = "".concat("{", ",".join(types.totable().keys().map(@(v) $"\"{v}\":1")), "}")//"[{0}]".subst(", ".join(types.map(@(v) $"\"{v}\"")))
   let infostr = " ".join(types.map(@(v) $"'{v}'"))
 
-  return $"  assert({typestr}.contains(type({argname})), @() $\"type of argument should be one of: {infostr}\")"
+  return $"  assert(type({argname}) in {typestr}, @() $\"type of argument should be one of: {infostr}\")"
 }
 
-function typeCheckArrToStringCheck(mask, arguments, verbose = false) {
-  return "\n  ".join(mask.map(@(x, i) mkAssertStr(x, arguments?[i], verbose)).filter(@(v) v!=""))
+function typeCheckArrToStringCheck(mask, arguments, indentStr="  ", verbose = false) {
+  return $"\n{indentStr}".join(mask.map(@(x, i) mkAssertStr(x, arguments?[i], verbose)).filter(@(v) v!=""))
 }
 
 let valuesByTypechecks ={
@@ -48,7 +50,7 @@ let valuesByTypechecks ={
   [0x00000040] = "[]",
   [0x00000080] = "userdata",
   [0x00000100] = "@(...) null",
-  [0x00000200] = "nativeclosure",
+  [0x00000200] = "function",//nativeclosure
   [0x00000400] = "generator",
   [0x00000800] = "userpointer",
   [0x00001000] = "thread",
@@ -58,6 +60,7 @@ let valuesByTypechecks ={
   [0x00010000] = "weakref",
   [0x00020000] = "outer", //internal type
 }
+
 function typeBitsToStringFirst(x) {
   if (x==null || x < 0)
     return "null"
@@ -70,46 +73,54 @@ const INDENT_SYM = "  "
 
 function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null){
   let infos = func.getfuncinfos()
+  let {paramscheck, typecheck, varargs, return_type_mask, pure, doc} = infos
+
   let indentStr = "".join(array(indent, INDENT_SYM))
-  local retValueStr = manualModInfo?[name].returnStr
-  if (retValueStr)
+  local retValueStr = manualModInfo?[name].returnStr ?? ""
+  if (retValueStr!="")
     retValueStr = $"\n{indentStr}{INDENT_SYM}return {retValueStr}\n{indentStr}"
-  else
-    retValueStr = " "
+  else {
+    let all_ret_types = return_type_mask!=-1 ? typesByTypechecks.keys().filter(@(k) k & return_type_mask) : [""]
+    let first_ret_type_from_mask = return_type_mask!=-1 ? all_ret_types.findvalue(@(_) true) : ""
+    let ret_comment = $" //return_type_mask={return_type_mask}, ret_types={", ".join(all_ret_types.map(@(v) typesByTypechecks?[v] ?? "unknown_return_type"))}"
+    retValueStr = "".concat($"\n{indentStr}{INDENT_SYM}return ", return_type_mask==-1 ? "null" : valuesByTypechecks?[first_ret_type_from_mask] ?? "null", ret_comment, $"\n{indentStr}")
+  }
   let argumentsNames = manualModInfo?[name].arguments ?? def_params_names
-  let {paramscheck, typecheck} = infos
   name = name ?? infos.name
   name = name!=null ? $" {name}" : ""
-  if (typecheck!=null)
+  name = pure ? "".concat(" [pure]", name) : name
+  if ((typecheck?.len() ?? 0) > 0)
     typecheck.remove(0)
   let actParams = paramscheck == 0
     ? paramscheck
     : paramscheck > 0
       ? paramscheck-1
       : ((-paramscheck)-1)
-  let varargs = paramscheck > 0
+  let varargs_str = !varargs || paramscheck > 0
     ? ""
     : paramscheck < -1
       ? ", ..."
       : "..."
-  local args = array(math.max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
+  let args = array(math.max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
   let defined_args = args.map(function(arg, i){
     let isOptional = paramscheck < 0 && i >= actParams && varargs != ""
     return isOptional
       ? $"{arg} = {typeBitsToStringFirst(typecheck[i])}"
       : arg
   })
-  let args_string = "{0}{1}".subst(", ".join(defined_args), varargs)
+  let args_string = "{0}{1}".subst(", ".join(defined_args), varargs_str)
   if (verbose)
     log(name, args, infos)
-  let typechecks = typecheck!=null ? typeCheckArrToStringCheck(typecheck, args, verbose) : ""
-  return name == " constructor"
-    ? $"constructor({args_string})\{\}"
-    : typechecks == ""
-      ? $"function{name}({args_string}) \{{retValueStr}\}"
-      : retValueStr != " "
-        ? $"function{name}({args_string}) \{\n{indentStr}{typechecks}{retValueStr}\}"
-        : $"function{name}({args_string}) \{\n{indentStr}{typechecks}\n{indentStr}\}"
+  let typechecks = typecheck!=null ? typeCheckArrToStringCheck(typecheck, args, indentStr, verbose) : ""
+  let funcname = name == " constructor"
+      ? $"constructor({args_string})\{\}"
+      : $"function{name}({args_string})"
+  let docstr = (doc??"")!="" ? $"\n{indentStr}@@\"\"\"{doc}\"\"\"\n" : ""
+  return typechecks == ""
+      ? $"{funcname}\{{docstr}{retValueStr}\}"
+      : retValueStr != ""
+        ? $"{funcname} \{\n{docstr}{indentStr}{typechecks}{retValueStr}\}"
+        : $"{funcname} \{\n{docstr}{indentStr}{typechecks}\n{indentStr}\}"
 }
 function topairs(val) {
   let sorted = []

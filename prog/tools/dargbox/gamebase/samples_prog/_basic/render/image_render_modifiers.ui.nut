@@ -19,7 +19,7 @@ let mkRow = @(headerTexts, ctor) {
   children = [{
     vplace = ALIGN_CENTER
     flow = FLOW_VERTICAL
-    padding = static [0, hdpx(20), 0, 0]
+    padding = const [0, hdpx(20), 0, 0]
     children = headerTexts.map(@(text) { rendObj = ROBJ_TEXT, text, color = 0xFFFFFFFF , fontScale = 0.8 })
   }]
     .extend(ovrList.map(ctor))

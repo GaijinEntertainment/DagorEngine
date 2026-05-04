@@ -145,6 +145,12 @@ inline void mark_resource_externally_consumed(const char *res_name) { dafg::root
  */
 inline void unmark_resource_externally_consumed(const char *res_name) { dafg::root().unmarkResourceExternallyConsumed(res_name); }
 
+/**
+ * \brief Resets specified shadervar to zero after the node is executed
+ * must be called before binding shadervars in nodes
+ */
+void reset_shadervar_after_use(const char *name);
+
 //@}
 
 } // namespace dafg

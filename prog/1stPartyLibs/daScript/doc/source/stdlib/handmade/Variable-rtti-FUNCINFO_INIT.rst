@@ -1,0 +1,1 @@
+Bit flag constant on ``FuncInfo.flags`` indicating that the function runs during ``Context`` initialization (``[init]`` attribute).

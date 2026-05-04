@@ -2,7 +2,8 @@
 
 #include <api/das/frameGraphModule.h>
 #include <api/das/bindingHelper.h>
-
+#include <render/daFrameGraph/resourceView.h>
+#include <dasModules/dasDagorResPtr.h>
 
 struct TextureResourceAnnotation final : das::ManagedStructureAnnotation<TextureResourceDescription>
 {
@@ -71,12 +72,21 @@ struct VrsStateRequirementsAnnotation final : das::ManagedStructureAnnotation<da
   virtual bool isLocal() const override { return true; }
 };
 
+struct CreatedResourceDataAnnotation final : das::ManagedStructureAnnotation<dafg::CreatedResourceData>
+{
+  CreatedResourceDataAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("CreatedResourceData", ml, "dafg::CreatedResourceData")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(type)>("resType", "type");
+  }
+};
+
 struct ResourceDataAnnotation final : das::ManagedStructureAnnotation<dafg::ResourceData>
 {
   ResourceDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ResourceData", ml, "dafg::ResourceData")
   {
     addField<DAS_BIND_MANAGED_FIELD(history)>("history");
-    addField<DAS_BIND_MANAGED_FIELD(type)>("resType", "type");
+    addField<DAS_BIND_MANAGED_FIELD(createdResData)>("createdResData");
   }
 };
 
@@ -155,10 +165,22 @@ struct BlobViewAnnotation final : das::ManagedValueAnnotation<dafg::BlobView>
   bool hasNonTrivialCtor() const override { return false; }
 };
 
+struct TextureViewAnnotation final : das::ManagedValueAnnotation<dafg::TextureView>
+{
+  TextureViewAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "TextureView", "dafg::TextureView") {}
+  bool hasNonTrivialCtor() const override { return false; }
+};
+
+struct BufferViewAnnotation final : das::ManagedValueAnnotation<dafg::BufferView>
+{
+  BufferViewAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "BufferView", "dafg::BufferView") {}
+  bool hasNonTrivialCtor() const override { return false; }
+};
+
 namespace bind_dascript
 {
 
-void setResolution(dafg::ResourceData &res, const dafg::AutoResolutionData &data) { res.resolution = data; }
+void setResolution(dafg::ResourceData &res, const dafg::AutoResolutionData &data) { res.createdResData->resolution = data; }
 
 void setTextureDescription(dafg::ResourceData &res, TextureResourceDescription &desc)
 {
@@ -168,7 +190,7 @@ void setTextureDescription(dafg::ResourceData &res, TextureResourceDescription &
   info.creationFlags = desc.cFlags;
   info.mipLevels = desc.mipLevels;
   info.resolution = IPoint2{(int)desc.width, (int)desc.height};
-  res.creationInfo = info;
+  res.createdResData->creationInfo = info;
 }
 
 void setBufferDescription(dafg::ResourceData &res, const BufferResourceDescription &desc)
@@ -180,7 +202,7 @@ void setBufferDescription(dafg::ResourceData &res, const BufferResourceDescripti
   info.elementCount = desc.elementCount;
   info.flags = desc.cFlags;
   info.format = desc.viewFormat;
-  res.creationInfo = info;
+  res.createdResData->creationInfo = info;
 }
 
 void DaFgCoreModule::addStructureAnnotations(das::ModuleLibrary &lib)
@@ -190,6 +212,7 @@ void DaFgCoreModule::addStructureAnnotations(das::ModuleLibrary &lib)
   addAnnotation(das::make_smart<ArrayTextureResourceAnnotation>(lib));
   addAnnotation(das::make_smart<CubeTextureResourceAnnotation>(lib));
   addAnnotation(das::make_smart<ArrayCubeTextureResourceAnnotation>(lib));
+  addAnnotation(das::make_smart<CreatedResourceDataAnnotation>(lib));
   addAnnotation(das::make_smart<ResourceDataAnnotation>(lib));
   addAnnotation(das::make_smart<AutoResolutionDataAnnotation>(lib));
   addAnnotation(das::make_smart<ShaderBlockLayersInfoAnnotation>(lib));
@@ -200,6 +223,8 @@ void DaFgCoreModule::addStructureAnnotations(das::ModuleLibrary &lib)
   addAnnotation(das::make_smart<ResourceRequestAnnotation>(lib));
   addAnnotation(das::make_smart<BufferResourceDescriptionAnnotation>(lib));
   addAnnotation(das::make_smart<BlobViewAnnotation>(lib));
+  addAnnotation(das::make_smart<TextureViewAnnotation>(lib));
+  addAnnotation(das::make_smart<BufferViewAnnotation>(lib));
 
   BIND_FUNCTION(bind_dascript::setResolution, "setResolution", das::SideEffects::modifyArgumentAndExternal);
   BIND_FUNCTION(bind_dascript::setBufferDescription, "setDescription", das::SideEffects::modifyArgumentAndExternal);

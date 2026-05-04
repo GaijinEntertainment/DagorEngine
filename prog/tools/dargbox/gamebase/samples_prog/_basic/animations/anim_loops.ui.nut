@@ -4,9 +4,12 @@ let cursors = require("samples_prog/_cursors.nut")
 
 let DURATION = 1
 
+const animId = {}
+local isPaused = false
+
 let function makeAnim(params) {
   return [
-    { prop=AnimProp.rotate, from=0, to=90, duration=DURATION, play=true, easing=InOutCubic, loop=true }.__merge(params)
+    { prop=AnimProp.rotate, from=0, to=90, duration=DURATION, play=true, easing=InOutCubic, loop=true, trigger=animId }.__merge(params)
   ]
 }
 
@@ -18,7 +21,7 @@ function makeRow(animations) {
       size = sh(10)
       rendObj = ROBJ_SOLID
       color = Color(220, 180, 120)
-      transform = {}
+      transform = true
       animations
     })
   }
@@ -35,6 +38,12 @@ let content = {
   flow = FLOW_VERTICAL
   gap = sh(5)
   children = anims.map(@(a) makeRow(a))
+
+  behavior = Behaviors.Button
+  onClick = function() {
+    isPaused = !isPaused
+    anim_pause(animId, isPaused)
+  }
 }
 
 

@@ -33,7 +33,6 @@ shader voxelize_trees_albedo
   INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(ps)
   SSGE_SCENE_25D_COMMON_INIT_WRITE_PS()
   SSGE_SCENE_25D_COMMON_WRITE_PS()
-  ENABLE_ASSERT(ps)
   (ps) {
     voxelize_box0@f3 = voxelize_box0;
     voxelize_box1@f3 = (1 / voxelize_box1.x, 1 / voxelize_box1.y, 1 / voxelize_box1.z, 0);

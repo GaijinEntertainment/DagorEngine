@@ -43,11 +43,11 @@ GLOBAL_VARS_LIST
 
 static void set_frame_info(const DaGIFrameInfo &fi)
 {
-  ShaderGlobal::set_color4(gi_froxels_world_view_posVarId, P3D(fi.world_view_pos), 0);
-  ShaderGlobal::set_color4(gi_froxels_view_vecLTVarId, Color4(&fi.viewVecLT.x));
-  ShaderGlobal::set_color4(gi_froxels_view_vecRTVarId, Color4(&fi.viewVecRT.x));
-  ShaderGlobal::set_color4(gi_froxels_view_vecLBVarId, Color4(&fi.viewVecLB.x));
-  ShaderGlobal::set_color4(gi_froxels_zn_zfarVarId, fi.znear, fi.zfar, 1.f / fi.zfar, (fi.zfar - fi.znear) / (fi.znear * fi.zfar));
+  ShaderGlobal::set_float4(gi_froxels_world_view_posVarId, P3D(fi.world_view_pos), 0);
+  ShaderGlobal::set_float4(gi_froxels_view_vecLTVarId, Color4(&fi.viewVecLT.x));
+  ShaderGlobal::set_float4(gi_froxels_view_vecRTVarId, Color4(&fi.viewVecRT.x));
+  ShaderGlobal::set_float4(gi_froxels_view_vecLBVarId, Color4(&fi.viewVecLB.x));
+  ShaderGlobal::set_float4(gi_froxels_zn_zfarVarId, fi.znear, fi.zfar, 1.f / fi.zfar, (fi.zfar - fi.znear) / (fi.znear * fi.zfar));
 }
 
 void VolumetricGI::resetHistoryAge() { validHistory = false; }
@@ -64,21 +64,31 @@ void VolumetricGI::afterReset()
   }
   gi_froxels_sph0[0].dropAliases();
   gi_froxels_sph1[0].dropAliases();
+
   if (gi_froxels_sph0[1])
   {
     gi_froxels_sph0[1].dropAliases();
     gi_froxels_sph1[1].dropAliases();
+
+    // calc increments temporal frame and binds prev frame tex after reading from current bound prev tex
+    // so for frame 0 we should read prev sph from slot 1
+    d3d::clear_rwtexf(gi_froxels_sph0[1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+    d3d::clear_rwtexf(gi_froxels_sph1[1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+    ShaderGlobal::set_texture(gi_prev_froxels_sph0VarId, gi_froxels_sph0[1].getTexId());
+    ShaderGlobal::set_texture(gi_prev_froxels_sph1VarId, gi_froxels_sph1[1].getTexId());
   }
-  d3d::clear_rwtexf(gi_froxels_sph0[temporalFrame & 1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
-  d3d::clear_rwtexf(gi_froxels_sph1[temporalFrame & 1].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+  d3d::clear_rwtexf(gi_froxels_sph0[0].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+  d3d::clear_rwtexf(gi_froxels_sph1[0].getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+  ShaderGlobal::set_texture(gi_froxels_sph0VarId, gi_froxels_sph0[0].getTexId());
+  ShaderGlobal::set_texture(gi_froxels_sph1VarId, gi_froxels_sph1[0].getTexId());
 }
 
 static void set_prev_frame_info(const VolumetricGI::FrameInfo &prev, const VolumetricGI::FrameInfo &cur, float blur_texel, int d)
 {
   TMatrix4 globTm = get_reprojection_campos_to_unjittered_history(cur, prev).transpose();
   ShaderGlobal::set_float4x4(gi_froxels_jittered_current_to_unjittered_historyVarId, globTm);
-  ShaderGlobal::set_color4(gi_froxels_history_blur_ofsVarId, blur_texel / prev.res.w, blur_texel / prev.res.h, blur_texel / d, 0);
-  ShaderGlobal::set_color4(gi_froxels_prev_zn_zfarVarId, prev.znear, prev.zfar, 1.f / prev.zfar,
+  ShaderGlobal::set_float4(gi_froxels_history_blur_ofsVarId, blur_texel / prev.res.w, blur_texel / prev.res.h, blur_texel / d, 0);
+  ShaderGlobal::set_float4(gi_froxels_prev_zn_zfarVarId, prev.znear, prev.zfar, 1.f / prev.zfar,
     (prev.zfar - prev.znear) / (prev.znear * prev.zfar));
 }
 
@@ -147,22 +157,22 @@ void VolumetricGI::allocate(uint32_t tile_sz, uint32_t max_sw_, uint32_t max_sh_
     debug("create volumetric GI radiance resolution %dx%dx%d : %d^2 spatial=%d", w, h, tracedSlices, radianceRes, spatialPasses);
     // this is actually not better than a buffer, since we don't sample it
     gi_froxels_radiance[0] = dag::create_voltex(w * radianceRes, h * radianceRes, tracedSlices, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1,
-      "gi_froxels_radiance0");
+      "gi_froxels_radiance0", RESTAG_DAGI2);
     if (spatialPasses)
     {
       gi_froxels_radiance[1] = dag::create_voltex(w * radianceRes, h * radianceRes, tracedSlices, TEXCF_UNORDERED | TEXFMT_R11G11B10F,
-        1, "gi_froxels_radiance1");
+        1, "gi_froxels_radiance1", RESTAG_DAGI2);
     }
   }
   else
     ShaderGlobal::set_texture(gi_current_froxels_radianceVarId, BAD_TEXTUREID);
   debug("create volumetric GI irradiance resolution %dx%dx%d, history %d", w, h, d, reproject_history);
-  gi_froxels_sph0[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_0");
-  gi_froxels_sph1[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_0");
+  gi_froxels_sph0[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_0", RESTAG_DAGI2);
+  gi_froxels_sph1[0] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_0", RESTAG_DAGI2);
   if (reproject_history)
   {
-    gi_froxels_sph0[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_1");
-    gi_froxels_sph1[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_1");
+    gi_froxels_sph0[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "gi_froxels_sph0_1", RESTAG_DAGI2);
+    gi_froxels_sph1[1] = dag::create_voltex(w, h, d, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "gi_froxels_sph1_1", RESTAG_DAGI2);
   }
 #define CS(a) a.reset(new_compute_shader(#a))
   CS(calc_current_gi_froxels_cs);
@@ -182,7 +192,7 @@ void VolumetricGI::init(uint32_t tile_sz, uint32_t sw, uint32_t sh, uint32_t max
 {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
   GLOBAL_VARS_LIST
 #undef VAR
   allocate(tile_sz, max_sw, max_sh, res, spatial_passes, irradiance_probe_size, irradiance_clip_w, reproject_history, z_distr);
@@ -239,7 +249,7 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
   set_prev_frame_info(validHistory ? prevFrameInfo : cFrameInfo, cFrameInfo, historyBlurTexelOfs, d);
 
   prevFrameInfo = cFrameInfo;
-  ShaderGlobal::set_color4(gi_froxels_distVarId, 1.f / zParams.zMul, -zParams.zAdd / zParams.zMul, 1.f / zParams.zExpMul,
+  ShaderGlobal::set_float4(gi_froxels_distVarId, 1.f / zParams.zMul, -zParams.zAdd / zParams.zMul, 1.f / zParams.zExpMul,
     1.f / (zParams.zExpMul * d));
   const uint32_t frames = 8;
   ShaderGlobal::set_int4(gi_froxels_temporal_frameVarId, temporalFrame % frames, validHistory, frames, temporalFrame);
@@ -250,7 +260,7 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
       {
         TIME_D3D_PROFILE(volumetric_gi_radiance);
         d3d::set_rwtex(STAGE_CS, 0, gi_froxels_radiance[0].getVolTex(), 0, 0);
-        calc_current_gi_froxels_cs->dispatchThreads(w * radianceRes * h * radianceRes * d, 1, 1);
+        calc_current_gi_froxels_cs->dispatchThreads(w * radianceRes * h * radianceRes * tracedSlices, 1, 1);
         d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
       }
       for (int i = 0; i < spatialPasses; ++i)
@@ -259,7 +269,7 @@ void VolumetricGI::calc(const TMatrix &viewItm, const TMatrix4 &projTm, float zn
         d3d::resource_barrier({gi_froxels_radiance[i & 1].getVolTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, 0, 0});
         ShaderGlobal::set_texture(gi_current_froxels_radianceVarId, gi_froxels_radiance[i & 1].getTexId());
         d3d::set_rwtex(STAGE_CS, 0, gi_froxels_radiance[(i + 1) & 1].getVolTex(), 0, 0);
-        spatial_filter_gi_froxels_cs->dispatchThreads(w * radianceRes * h * radianceRes * d, 1, 1);
+        spatial_filter_gi_froxels_cs->dispatchThreads(w * radianceRes * h * radianceRes * tracedSlices, 1, 1);
         d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
       }
       d3d::resource_barrier(

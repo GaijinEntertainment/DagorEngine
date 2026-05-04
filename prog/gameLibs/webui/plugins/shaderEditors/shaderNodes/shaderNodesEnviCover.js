@@ -20,7 +20,6 @@ var gbuffer_type_dict =
   "reactive":"float",
   "material":"material_t",
   "dynamic":"bool",
-  "autoMotionVecs":"bool",
   "sss_profile":"uint",
   "isLandscape":"bool",
   "isHeroCockpit":"bool",
@@ -54,7 +53,7 @@ var GE_nodeDescriptionsAdditional =
     category:"Output",
     synonyms:"gbuffer, output",
     pins:[
-      {name:"gbuffer", caption:"Gbuffer", types:["NBSGbuffer"], singleConnect:true, role:"in", data:{code:"writeNBSGbuffer($gbuffer$, dtId)"}},
+      {name:"gbuffer", caption:"Gbuffer", types:["NBSGbuffer"], singleConnect:true, role:"in", data:{code:"nbsGbuffer = $gbuffer$"}},
     ],
     properties:[],
     allowLoop:false,
@@ -66,6 +65,17 @@ var GE_nodeDescriptionsAdditional =
     synonyms:"gbuffer, input",
     pins:[
       {name:"gbuffer", caption:"Gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"nbsGbuffer"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
+  {
+    name:"gbuffer original input",
+    category:"Input",
+    synonyms:"gbuffer, input, original",
+    pins:[
+      {name:"gbuffer", caption:"Gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"initialNBSGbuffer"}}
     ],
     properties:[],
     allowLoop:false,
@@ -114,12 +124,11 @@ var GE_nodeDescriptionsAdditional =
       {name:"ao", caption:"ao", types:["float"], singleConnect:true, role:"in", data:{def_val:"%ao%"}},
       {name:"shadow", caption:"shadow", types:["float"], singleConnect:true, role:"in", data:{def_val:"%shadow%"}},
       {name:"dynamic", caption:"dynamic", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%dynamic%"}},
-      {name:"autoMotionVecs", caption:"autoMotionVecs", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%autoMotionVecs%"}},
       {name:"isLandscape", caption:"isLandscape", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isLandscape%"}},
       {name:"isHeroCockpit", caption:"isHeroCockpit", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isHeroCockpit%"}},
       {name:"layer", caption:"Layer", types:["Layer_t"], singleConnect:false, role:"out", data:{code:
         "createMetallicLayer(half3($albedo$), float3($normal$), half3($motion$), $smoothness$, $metalness$, $reflectance$, $ao$, $shadow$, $reactive$,"+
-        "$dynamic$, $autoMotionVecs$, $isLandscape$, $isHeroCockpit$)"}},
+        "$dynamic$, $isLandscape$, $isHeroCockpit$)"}},
     ],
     properties:[
       {name:"albedo", type:"float3", minVal:"0", maxVal:"1", step:"0.01", val:"0.5, 0.5, 0.5"},
@@ -132,7 +141,6 @@ var GE_nodeDescriptionsAdditional =
       {name:"ao", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"1"},
       {name:"shadow", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"1"},
       {name:"dynamic", type:"bool", val:"false"},
-      {name:"autoMotionVecs", type:"bool", val:"true"},
       {name:"isLandscape", type:"bool", val:"false"},
       {name:"isHeroCockpit", type:"bool", val:"false"},
     ],
@@ -154,12 +162,11 @@ var GE_nodeDescriptionsAdditional =
       {name:"ao", caption:"ao", types:["float"], singleConnect:true, role:"in", data:{def_val:"%ao%"}},
       {name:"shadow", caption:"shadow", types:["float"], singleConnect:true, role:"in", data:{def_val:"%shadow%"}},
       {name:"dynamic", caption:"dynamic", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%dynamic%"}},
-      {name:"autoMotionVecs", caption:"autoMotionVecs", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%autoMotionVecs%"}},
       {name:"isLandscape", caption:"isLandscape", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isLandscape%"}},
       {name:"isHeroCockpit", caption:"isHeroCockpit", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isHeroCockpit%"}},
       {name:"layer", caption:"Layer", types:["Layer_t"], singleConnect:false, role:"out", data:{code:
         "createFoliageLayer(half3($albedo$), float3($normal$), half3($motion$), $smoothness$, $translucency$, $reflectance$, $ao$, $shadow$, $reactive$,"+
-        "$dynamic$, $autoMotionVecs$, $isLandscape$, $isHeroCockpit$)"}},
+        "$dynamic$, $isLandscape$, $isHeroCockpit$)"}},
     ],
     properties:[
       {name:"albedo", type:"float3", minVal:"0", maxVal:"1", step:"0.01", val:"0.5, 0.5, 0.5"},
@@ -172,7 +179,6 @@ var GE_nodeDescriptionsAdditional =
       {name:"ao", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"1"},
       {name:"shadow", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"1"},
       {name:"dynamic", type:"bool", val:"false"},
-      {name:"autoMotionVecs", type:"bool", val:"true"},
       {name:"isLandscape", type:"bool", val:"false"},
       {name:"isHeroCockpit", type:"bool", val:"false"},
     ],
@@ -195,12 +201,11 @@ var GE_nodeDescriptionsAdditional =
       {name:"sheen", caption:"sheen", types:["float"], singleConnect:true, role:"in", data:{def_val:"%sheen%"}},
       {name:"sss_profile", caption:"sss_profile", types:["uint"], singleConnect:true, role:"in", data:{def_val:"%sss_profile%"}},
       {name:"dynamic", caption:"dynamic", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%dynamic%"}},
-      {name:"autoMotionVecs", caption:"autoMotionVecs", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%autoMotionVecs%"}},
       {name:"isLandscape", caption:"isLandscape", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isLandscape%"}},
       {name:"isHeroCockpit", caption:"isHeroCockpit", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isHeroCockpit%"}},
       {name:"layer", caption:"Layer", types:["Layer_t"], singleConnect:false, role:"out", data:{code:
         "createSubsurfaceLayer(half3($albedo$), float3($normal$), half3($motion$), $smoothness$, $translucency$, $reflectance$, $sheen$, $ao$, $reactive$,"+
-        "$dynamic$, $autoMotionVecs$, $sss_profile$, $isLandscape$, $isHeroCockpit$)"}},
+        "$dynamic$, $sss_profile$, $isLandscape$, $isHeroCockpit$)"}},
     ],
     properties:[
       {name:"albedo", type:"float3", minVal:"0", maxVal:"1", step:"0.01", val:"0.5, 0.5, 0.5"},
@@ -214,7 +219,6 @@ var GE_nodeDescriptionsAdditional =
       {name:"sheen", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
       {name:"sss_profile", type:"combobox", items:gbufferSSSProfiles, val:gbufferSSSProfiles[0]},
       {name:"dynamic", type:"bool", val:"false"},
-      {name:"autoMotionVecs", type:"bool", val:"true"},
       {name:"isLandscape", type:"bool", val:"false"},
       {name:"isHeroCockpit", type:"bool", val:"false"},
     ],
@@ -236,12 +240,11 @@ var GE_nodeDescriptionsAdditional =
       {name:"reflectance", caption:"reflectance", types:["float"], singleConnect:true, role:"in", data:{def_val:"%reflectance%"}},
       {name:"shadow", caption:"shadow", types:["float"], singleConnect:true, role:"in", data:{def_val:"%shadow%"}},
       {name:"dynamic", caption:"dynamic", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%dynamic%"}},
-      {name:"autoMotionVecs", caption:"autoMotionVecs", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%autoMotionVecs%"}},
       {name:"isLandscape", caption:"isLandscape", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isLandscape%"}},
       {name:"isHeroCockpit", caption:"isHeroCockpit", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isHeroCockpit%"}},
       {name:"layer", caption:"Layer", types:["Layer_t"], singleConnect:false, role:"out", data:{code:
         "createEmissiveLayer(half4($emission_color$), half3($albedo$), float3($normal$), half3($motion$), $smoothness$, $emission_strength$, $reflectance$, $shadow$, $reactive$,"+
-        "$dynamic$, $autoMotionVecs$, $isLandscape$, $isHeroCockpit$)"}},
+        "$dynamic$, $isLandscape$, $isHeroCockpit$)"}},
     ],
     properties:[
       {name:"emission_color", type:"float4", minVal:"0", maxVal:"1", step:"0.01", val:"0.5, 0.5, 0.5, 0.5"},
@@ -254,7 +257,6 @@ var GE_nodeDescriptionsAdditional =
       {name:"reflectance", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
       {name:"shadow", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"1"},
       {name:"dynamic", type:"bool", val:"false"},
-      {name:"autoMotionVecs", type:"bool", val:"true"},
       {name:"isLandscape", type:"bool", val:"false"},
       {name:"isHeroCockpit", type:"bool", val:"false"},
     ],
@@ -281,12 +283,11 @@ var GE_nodeDescriptionsAdditional =
       {name:"sss_profile", caption:"sss_profile", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%sss_profile%"}},
       {name:"sheen", caption:"sheen", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%sheen%"}},
       {name:"dynamic", caption:"dynamic", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%dynamic%"}},
-      {name:"autoMotionVecs", caption:"autoMotionVecs", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%autoMotionVecs%"}},
       {name:"isLandscape", caption:"isLandscape", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isLandscape%"}},
       {name:"isHeroCockpit", caption:"isHeroCockpit", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%isHeroCockpit%"}},
       {name:"material", caption:"material", types:["bool"], singleConnect:true, role:"in", data:{def_val:"%material%"}},
       {name:"mask", caption:"mask", types:["mask_t"],singleConnect:false, role:"out", data:{code: "createLayerMask($albedo$, $normal$, $motion$, $reactive$, $smoothness$, $reflectance$,"+
-       "$shadow$, $ao$, $emission_color$, $metalness$, $translucency$, $emission_strength$, $sss_profile$, $sheen$, $dynamic$, $autoMotionVecs$, $isLandscape$, $isHeroCockpit$, $material$)"}}
+       "$shadow$, $ao$, $emission_color$, $metalness$, $translucency$, $emission_strength$, $sss_profile$, $sheen$, $dynamic$, $isLandscape$, $isHeroCockpit$, $material$)"}}
     ],
     properties:[
       {name:"albedo", type:"bool", val:"true"},
@@ -304,7 +305,6 @@ var GE_nodeDescriptionsAdditional =
       {name:"sss_profile", type:"bool", val:"false"},
       {name:"sheen", type:"bool", val:"false"},
       {name:"dynamic", type:"bool", val:"false"},
-      {name:"autoMotionVecs", type:"bool", val:"false"},
       {name:"isLandscape", type:"bool", val:"false"},
       {name:"isHeroCockpit", type:"bool", val:"false"},
       {name:"material", type:"bool", val:"true"},
@@ -353,7 +353,8 @@ var GE_nodeDescriptionsAdditional =
       {name:"layer", caption:"layer", types:["Layer_t"], singleConnect:true, role:"in"},
       {name:"mask", caption:"mask", types:["mask_t"], singleConnect:true, role:"in"},
       {name:"overwrite", caption:"shouldOverwrite", types:["bool"], singleConnect:true, role:"in",  data:{def_val:"%shouldOverwrite%", code:"overwriteWithLayer($gbuffer$, $layer$, $mask$, $overwrite$)"}},
-      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}}
+      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}},
+      { name: "control", types: ["ctrl_t"], singleConnect: true, role: "ctrl" }
     ],
     properties:[
       {name:"shouldOverwrite", type:"bool", val:"true"},
@@ -371,7 +372,8 @@ var GE_nodeDescriptionsAdditional =
       {name:"mask", caption:"mask", types:["mask_t"], singleConnect:true, role:"in"},
       {name:"weight", caption:"weight", types:["float"], singleConnect:true, role:"in",  data:{def_val:"%weight%"}},
       {name:"allowOverwrite", caption:"allowOverwrite", types:["bool"], singleConnect:true, role:"in",  data:{def_val:"%allowOverwrite%", code:"lerpWithLayer($gbuffer$, $layer$, $mask$, $weight$, $allowOverwrite$)"}},
-      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}}
+      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}},
+      { name: "control", types: ["ctrl_t"], singleConnect: true, role: "ctrl" }
     ],
     properties:[
       {name:"weight", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
@@ -390,7 +392,8 @@ var GE_nodeDescriptionsAdditional =
       {name:"mask", caption:"mask", types:["mask_t"], singleConnect:true, role:"in"},
       {name:"weight", caption:"weight", types:["float"], singleConnect:true, role:"in",  data:{def_val:"%weight%"}},
       {name:"bias", caption:"bias", types:["float"], singleConnect:true, role:"in",  data:{def_val:"%bias%", code:"ditherWithLayer($gbuffer$, $layer$, $mask$, $weight$, $bias$, dtId)"}},
-      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}}
+      {name:"output", caption:"out-gbuffer", types:["NBSGbuffer"], singleConnect:false, role:"out", data:{code:"$gbuffer$"}},
+      { name: "control", types: ["ctrl_t"], singleConnect: true, role: "ctrl" }
     ],
     properties:[
       {name:"weight", type:"float", minVal:"0", maxVal:"1", step:"0.01", val:"0.5"},
@@ -441,6 +444,164 @@ var GE_nodeDescriptionsAdditional =
     allowLoop:false,
     width:150
   },
+  {
+    name:"quality control",
+    category:"Control",
+    synonyms:"quality, control, filter",
+    pins:[
+      {name:"quality", types:["int"], singleConnect:true, role:"in", data:{def_val:"%quality%"}},
+      {name:"control", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"NBS_QUALITY == $quality$"}}
+    ],
+    properties:[
+      {name:"quality", type:"int", minVal:"0", maxVal:"2", val:"1"}
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"x <= water level",
+    category:"Control",
+    synonyms:"water, control, filter",
+    pins:[
+      {name:"height", types:["float"], singleConnect:true, makeInternalVar:true, hidden:true, role:"in"},
+      {name:"x", types:["float"], singleConnect:true, role:"in", data:{code:"sample_water_heightmap_pages(world_pos.xz, $height$)"}},
+      {name:"x <= water level", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$x$ <= $height$"}}
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"x > water level",
+    category:"Control",
+    synonyms:"water, control, filter",
+    pins:[
+      {name:"height", types:["float"], singleConnect:true, makeInternalVar:true, hidden:true, role:"in"},
+      {name:"x", types:["float"], singleConnect:true, role:"in", data:{code:"sample_water_heightmap_pages(world_pos.xz, $height$)"}},
+      {name:"x > water level", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$x$ > $height$"}}
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"x <= ground level",
+    category:"Control",
+    synonyms:"ground, control, filter",
+    pins:[
+      {name:"x", types:["float"], singleConnect:true, role:"in"},
+      {name:"x <= ground level", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$x$ <= get_ground_height_lod(world_pos, 1)"}}
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"x > ground level",
+    category:"Control",
+    synonyms:"ground, control, filter",
+    pins:[
+      {name:"x", types:["float"], singleConnect:true, role:"in"},
+      {name:"x > ground level", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$x$ > get_ground_height_lod(world_pos, 1)"}}
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"distance control",
+    category:"Control",
+    synonyms:"distance, control, filter",
+    pins:[
+      {name:"x", types:["float"], singleConnect:true, role:"in", data:{def_val:"%x%"}},
+      {name:"distance < x", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"distSq(world_view_pos.xyz - world_pos) < $x$ * $x$"}}
+    ],
+    properties:[
+      {name:"x", type:"float", minVal:"0", maxVal:"5000", step:"1", val:"100"},
+    ],
+    allowLoop:false,
+    width:150
+
+  },
+  {
+    name: "control OR",
+    category:"Control",
+    synonyms:"or, control, filter",
+    pins:[
+      {name:"a", types:["ctrl_t"], singleConnect:true, role:"in"},
+      {name:"b", types:["ctrl_t"], singleConnect:true, role:"in"},
+      {name:"a OR b", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$a$ || $b$"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150
+  },
+    {
+    name: "control AND",
+    category:"Control",
+    synonyms:"and, control, filter",
+    pins:[
+      {name:"a", types:["ctrl_t"], singleConnect:true, role:"in"},
+      {name:"b", types:["ctrl_t"], singleConnect:true, role:"in"},
+      {name:"a AND b", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$a$ && $b$"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name: "control NOT",
+    category:"Control",
+    synonyms:"not, control, filter",
+    pins:[
+      {name:"a", types:["ctrl_t"], singleConnect:true, role:"in"},
+      {name:"NOT a", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"!$a$"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name: "bool to control (carefully!)",
+    category:"Control",
+    synonyms:"bool, control, filter",
+    pins:[
+      {name:"bool", types:["bool"], singleConnect:true, role:"in"},
+      {name:"ctrl", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"$bool$"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"depth above control",
+    category:"Control",
+    synonyms:"control, filter, depth, above",
+    pins:[
+      {name:"texture", types:["texture2DArray"], singleConnect:true, role:"in"},
+      {name:"vig", caption:"vig", types:["float"], singleConnect:true, role:"in", hidden:true, makeInternalVar:true},
+      {name:"covered", types:["ctrl_t"], singleConnect:false, role:"out", data:{code:"get_depth_above_impl(world_pos, false, $texture$, $texture$_samplerstate, $vig$) - world_pos.y >= 0"}},
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:150
+  },
+  {
+    name:"view vec",
+    category:"Input",
+    synonyms:"view, vec",
+    pins:[
+      {name:"view vec", caption: "view_vec", types:["float3"], singleConnect:false, role:"out", data:{code:"viewVec"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150
+  }
 ];
 
 var GE_defaultExternalsAdditional =
@@ -453,6 +614,7 @@ var GE_defaultExternalsAdditional =
   {type:"float4", name:"rendering_res"},
   {type:"int", name:"envi_cover_is_temporal_aa"},
   {type:"int", name:"envi_cover_frame_idx"},
+  {type:"int", name:"packed_gbuf_normals"},
 
   {type:"float4", name:"camera_in_camera_prev_vp_ellipse_center"},
   {type:"float4", name:"camera_in_camera_prev_vp_ellipse_xy_axes"},

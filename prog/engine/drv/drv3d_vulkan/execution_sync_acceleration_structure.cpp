@@ -85,7 +85,7 @@ template <>
 void ExecutionSyncTracker::AccelerationStructureOpsArray::removeRoSeal(RaytraceAccelerationStructure *obj)
 {
   // we don't know actual caller here
-  arr[lastProcessed] = AccelerationStructureSyncOp(SyncOpUid::next(), {}, obj->getRoSealReads(), obj, {});
+  arr[lastProcessed] = AccelerationStructureSyncOp(SyncOpUid::next(obj), {}, obj->getRoSealReads(), obj, {});
 }
 
 template <>

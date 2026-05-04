@@ -380,7 +380,7 @@ void nvsoftinput::hide()
     s_Jni->CallStaticVoidMethod(s_NvSoftInputClass, s_HideID);
     if (ime_finish_cb)
     {
-      ime_finish_cb(ime_finish_userdata, "", 0, -1);
+      ime_finish_cb(ime_finish_userdata, "", 0, HumanInput::IME_STATUS_ERROR);
       ime_finish_cb = NULL;
       ime_finish_userdata = NULL;
     }
@@ -427,7 +427,8 @@ extern "C" // private static native void nativeTextReport(String text, boolean i
     };
 
     const char *text_utf8 = jni->GetStringUTFChars(text, NULL);
-    FinishAction *a = new FinishAction(text_utf8, cursorPos, isCancelled ? 0 : 1);
+    FinishAction *a =
+      new FinishAction(text_utf8, cursorPos, isCancelled ? HumanInput::IME_STATUS_CANCELLED : HumanInput::IME_STATUS_CLOSED);
     jni->ReleaseStringUTFChars(text, text_utf8);
 
     ime_started = false;

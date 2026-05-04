@@ -5,7 +5,7 @@
 #include "render_pass_resource.h"
 #include "globals.h"
 #include "pipeline_cache.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "physical_device_set.h"
 #include "backend.h"
 #include "wrapped_command_buffer.h"
@@ -54,35 +54,44 @@ void ComputePipeline::onDelayedCleanupFinish<CleanupTag::DESTROY>()
 
 } // namespace drv3d_vulkan
 
-ComputePipeline::ComputePipeline(ProgramID prog, VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
-  DebugAttachedPipeline(l)
+ComputePipeline::ComputePipeline(ProgramID prog, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &info) :
+  DebugAttachedPipeline(l), blob(*info.sci), prog(prog)
 {
-  ComputePipelineCompileScratchData localScratch;
-  compileScratch = info.allowAsyncCompile ? new ComputePipelineCompileScratchData() : &localScratch;
-  compileScratch->allocated = info.allowAsyncCompile;
-
-  compileScratch->vkModule = Globals::pipelines.makeVkModule(info.sci);
-  compileScratch->vkLayout = layout->handle;
-  compileScratch->vkCache = cache;
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  compileScratch->name = info.sci->name;
-#endif
-  compileScratch->progIdx = prog.get();
-
-  if (info.allowAsyncCompile)
-    Backend::pipelineCompiler.queue(this);
-  else
-    compile();
+  afterDeviceReset(info.allowAsyncCompile);
 }
 
 VulkanPipelineHandle ComputePipeline::getHandleForUse()
 {
   if (checkCompiled() == PipelineCompileStatus::PENDING)
     Backend::pipelineCompiler.waitFor(this);
-#if VULKAN_LOG_PIPELINE_ACTIVITY > 1
-  debug("vulkan: bind compute cs %s", debugInfo.cs().name);
+#if VULKAN_LOG_PIPELINE_ACTIVITY
+  if (Globals::cfg.bits.logPipelineBinds)
+    debug("vulkan: bind compute cs %s", debugInfo.cs().name);
 #endif
   return getHandle();
+}
+
+void ComputePipeline::onDeviceReset() { shutdown(); }
+
+void ComputePipeline::afterDeviceReset(bool async)
+{
+  ComputePipelineCompileScratchData localScratch;
+  compileScratch = async ? new ComputePipelineCompileScratchData() : &localScratch;
+  compileScratch->allocated = async;
+
+  spirv::HashValue hv;
+  compileScratch->vkModule = Globals::pipelines.makeVkModule(&blob, hv);
+  compileScratch->vkLayout = layout->handle;
+  compileScratch->vkCache = Globals::pipeCache.getHandle();
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  compileScratch->name = debugInfo.cs().name;
+#endif
+  compileScratch->progIdx = prog.get();
+
+  if (async)
+    Backend::pipelineCompiler.queue(this);
+  else
+    compile();
 }
 
 void ComputePipeline::compile()
@@ -108,6 +117,8 @@ void ComputePipeline::compile()
   int64_t compilationTime = 0;
   VkResult compileResult = VK_ERROR_UNKNOWN;
   VulkanPipelineHandle retHandle;
+  if (!compileScratch->allocated)
+    Backend::interop.blockingPipelineCompilation.store(true);
   {
     WinAutoLockOpt pipeCacheLock(Globals::pipeCache.getMutex());
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
@@ -122,24 +133,31 @@ void ComputePipeline::compile()
 
   if (is_null(retHandle) && VULKAN_OK(compileResult))
   {
-    D3D_ERROR("vulkan: pipeline [compute:%u] not compiled but result was ok (%u)", compileScratch->progIdx, compileResult);
+    debug("vulkan: pipeline [compute:%u] not compiled but result was ok (%u)", compileScratch->progIdx, compileResult);
     compileResult = VK_ERROR_UNKNOWN;
   }
 
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   if (VULKAN_FAIL(compileResult))
-    D3D_ERROR("vulkan: pipeline [compute:%u] cs: %s failed to compile with error %u:%s", compileScratch->progIdx, compileScratch->name,
+  {
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+    D3D_ERROR("vulkan: pipeline [compute:%u] cs: %s failed to compile with error %i:%s", compileScratch->progIdx, compileScratch->name,
       compileResult, vulkan_error_string(compileResult));
-  Globals::Dbg::naming.setPipelineName(retHandle, compileScratch->name);
+#else
+    D3D_ERROR("vulkan: pipeline [compute:%u] failed to compile with error code %i:%s", compileScratch->progIdx, compileResult,
+      vulkan_error_string(compileResult));
+#endif
+    ignore = true;
+  }
+
+#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
+  if (!is_null(retHandle))
+    Globals::Dbg::naming.setPipelineName(retHandle, compileScratch->name);
   Globals::Dbg::naming.setPipelineLayoutName(getLayout()->handle, compileScratch->name);
   totalCompilationTime = compilationTime;
   variantCount = 1;
 #endif
-  VULKAN_EXIT_ON_FAIL(compileResult);
 
-#if VULKAN_LOG_PIPELINE_ACTIVITY < 1
-  if (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD && !compileScratch->allocated)
-#endif
+  if ((compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD_US || Globals::cfg.bits.logPipelineCompile) && !compileScratch->allocated)
   {
     debug("vulkan: pipeline [compute:%u] compiled in %u us", compileScratch->progIdx, compilationTime);
     crFeedback.logFeedback();
@@ -160,6 +178,7 @@ void ComputePipeline::compile()
   }
   else
   {
+    Backend::interop.blockingPipelineCompilation.store(false);
     setHandle(retHandle);
     compileScratch = nullptr;
   }
@@ -198,7 +217,13 @@ static VkSampleCountFlagBits checkSampleCount(unsigned int count, uint8_t colorM
 static VkDynamicState grPipeDynamicStateList[] = //
   {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_DEPTH_BOUNDS,
     VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK, VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-    VK_DYNAMIC_STATE_BLEND_CONSTANTS};
+    VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+#if VK_KHR_fragment_shading_rate
+    VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR
+#else
+    0
+#endif
+};
 
 static const VkRect2D grPipeStaticRect = {{0, 0}, {1, 1}};
 static const VkViewport grPipeStaticViewport = {0.f, 0.f, 1.f, 1.f, 0.f, 1.f};
@@ -206,8 +231,50 @@ static const VkViewport grPipeStaticViewport = {0.f, 0.f, 1.f, 1.f, 0.f, 1.f};
 static const VkPipelineViewportStateCreateInfo grPipeViewportStates = //
   {VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0, 1, &grPipeStaticViewport, 1, &grPipeStaticRect};
 
+
+void GraphicsPipeline::checkAndFixMissingInputs(GraphicsPipelineCompileScratchData &csd, InputLayout &input_layout)
+{
+  uint32_t inputMask = layout->registers.vs().header.inputMask;
+  for (int32_t i = 0; i < input_layout.attribs.size(); ++i)
+    if (input_layout.attribs[i].used)
+      inputMask &= ~(1 << input_layout.attribs[i].location);
+
+  if (inputMask == 0)
+    return;
+
+  // fake data source for warmup or complain otherwise, because we should provide data properly
+  if (csd.nonDrawCompile)
+  {
+    for (int32_t i = 0; i < input_layout.attribs.size(); ++i)
+    {
+      if (input_layout.attribs[i].used)
+        continue;
+
+      for (uint32_t j : LsbVisitor{inputMask})
+      {
+        VertexAttributeDesc &attrib = input_layout.attribs[i];
+        attrib.used = 1;
+        attrib.location = j;
+        // TODO: provide proper format from shader
+        attrib.formatIndex = VK_FORMAT_R32G32B32A32_UINT;
+        attrib.binding = 0;
+        attrib.offset = 0;
+        ++i;
+        G_ASSERT(i < input_layout.attribs.size());
+      }
+      break;
+    }
+    input_layout.streams.used[0] = 1;
+  }
+  else
+  {
+    D3D_ERROR("vulkan: missing inputs for pipeline %s mask %X, from %s", csd.getFullDebugName(), inputMask,
+      Backend::ctx.getCurrentCmdCaller());
+  }
+}
+
 GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
-  BasePipeline(l), dynStateMask(info.dynStateMask), ignore(false)
+  BasePipeline(l), dynStateMask(info.dynStateMask)
 {
   GraphicsPipelineCompileScratchData &csd = *info.scratch;
   compileScratch = info.scratch;
@@ -259,6 +326,8 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
 
   InputLayout inputLayout = Globals::shaderProgramDatabase.getInputLayoutFromId(info.varDsc.state.inputLayout);
 
+  checkAndFixMissingInputs(csd, inputLayout);
+
   for (uint32_t i = 0; i < MAX_VERTEX_INPUT_STREAMS; ++i)
     if (inputLayout.streams.used[i])
       csd.inputStreams[lss++] = inputLayout.streams.toVulkan(i, info.varDsc.state.strides[i]);
@@ -283,15 +352,10 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
             // this error means that vertex shader input declaration or vdecl or vb binds are wrong
             // can be due to shader setup error in caller code or wrong assets
             // ignore such pipelines to avoid crashes!
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-            const char *pipeDebugName = csd.fullDebugName;
-#else
-            const char *pipeDebugName = "<unknown>";
-#endif
             D3D_ERROR(
               "vulkan: ignored pipe with vtx IA outside of IS location %u binding %u offset %u stride %u for pipe %s at caller %s",
               inputLayout.attribs[i].location, inputLayout.attribs[i].binding, inputLayout.attribs[i].offset,
-              csd.inputStreams[j].stride, pipeDebugName, Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
+              csd.inputStreams[j].stride, csd.getFullDebugName(), Backend::ctx.getCurrentCmdCaller());
             ignore = true;
             return;
           }
@@ -327,7 +391,7 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
   csd.raster.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   csd.raster.pNext = NULL;
   csd.raster.flags = 0;
-  if (!Globals::cfg.bits.disableDepthClamp)
+  if (!Globals::cfg.bits.disableDepthClamp && Globals::VK::phy.features.depthClamp != VK_FALSE)
     csd.raster.depthClampEnable = staticState.depthClipEnable ? VK_FALSE : VK_TRUE;
   else
     csd.raster.depthClampEnable = VK_FALSE;
@@ -488,7 +552,8 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
   csd.dynamicStates.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   csd.dynamicStates.pNext = NULL;
   csd.dynamicStates.flags = 0;
-  csd.dynamicStates.dynamicStateCount = array_size(grPipeDynamicStateList);
+  bool hasShadingRateAndUsesShadingRate = info.varDsc.nonDefaultShadingRate && Globals::VK::phy.hasPipelineFragmentShadingRate;
+  csd.dynamicStates.dynamicStateCount = eastl::size(grPipeDynamicStateList) - (hasShadingRateAndUsesShadingRate ? 0 : 1);
   csd.dynamicStates.pDynamicStates = grPipeDynamicStateList;
 
   if (!layout->hasTC() && info.varDsc.topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
@@ -553,6 +618,8 @@ void GraphicsPipeline::compile()
 #else
     TIME_PROFILE(vulkan_gr_pipeline_compile)
 #endif
+    if (!compileScratch->allocated)
+      Backend::interop.blockingPipelineCompilation.store(true);
     retHandle = createPipelineObject(crFeedback);
   }
 
@@ -580,9 +647,8 @@ void GraphicsPipeline::compile()
       Globals::Dbg::naming.setPipelineLayoutName(getLayout()->handle, compileScratch->fullDebugName.c_str());
 #endif
 
-#if VULKAN_LOG_PIPELINE_ACTIVITY < 1
-    if (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD && !compileScratch->allocated)
-#endif
+    if (
+      (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD_US || Globals::cfg.bits.logPipelineCompile) && !compileScratch->allocated)
     {
       debug("vulkan: pipeline [gfx:%u:%u(%u)] compiled in %u us", compileScratch->progIdx, compileScratch->varIdx,
         compileScratch->varTotal, compilationTime);
@@ -605,6 +671,7 @@ void GraphicsPipeline::compile()
   }
   else
   {
+    Backend::interop.blockingPipelineCompilation.store(false);
     setCompiledHandle(retHandle);
     setHandle(retHandle);
     compileScratch = nullptr;

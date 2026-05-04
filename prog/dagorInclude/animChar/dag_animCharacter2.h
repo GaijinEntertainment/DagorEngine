@@ -13,15 +13,17 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 #include <math/dag_bounds3.h>
+#include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/bitvector.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomTreeMap.h>
 
 // forward declarations for external classes and structures
 class DynamicRenderableSceneLodsResource;
-class DynamicSceneWithTreeResource;
 class FastPhysSystem;
 class PhysicsResource;
+class DynamicPhysObjectData;
 class DynamicRenderableSceneInstance;
 class DataBlock;
 class Occlusion;
@@ -30,7 +32,7 @@ struct RoDataBlock;
 struct Point3_vec4;
 struct Frustum;
 
-struct AnimCharData
+struct AnimGraphResData
 {
   Ptr<AnimV20::AnimationGraph> graph;
   const char *agResName = nullptr;
@@ -38,6 +40,19 @@ struct AnimCharData
 
 namespace AnimV20
 {
+
+struct AnimcharDebugContext
+{
+  AnimV20::AnimcharDumpBlenderDataContext *dumpBlenderDataContext = nullptr;
+  eastl::bitvector<> pbcWtHasOverride;
+  dag::Vector<float> pbcWtOverride;
+
+  void disablePbcOverride(int pbcIndex);
+  void setPbcOverride(int pbcIndex, float value);
+  bool getPbcOverrideEnabled(int pbcIndex);
+  float getPbcOverrideValue(int pbcIndex);
+};
+
 struct AnimMap
 {
   dag::Index16 geomId;
@@ -45,20 +60,6 @@ struct AnimMap
 };
 typedef unsigned attachment_uid_t;
 static constexpr int INVALID_ATTACHMENT_UID = 0;
-
-class GenericAnimStatesGraph : public IAnimStateDirector2
-{
-protected:
-  IPureAnimStateHolder *st;
-
-public:
-  GenericAnimStatesGraph() { st = 0; }
-
-  // to be implemented by descendants
-  virtual bool init(AnimationGraph *anim, IPureAnimStateHolder *st) = 0;
-  virtual void advance() = 0;
-  virtual void atIrq(int irq_type, IAnimBlendNode *src) = 0;
-};
 
 class IAnimCharPostController
 {
@@ -79,10 +80,9 @@ struct IAnimCharacter2Info
 //
 struct AnimCharCreationProps
 {
-  SimpleString centerNode;
-  eastl::unique_ptr<RoDataBlock> props;
-
+  eastl::string centerNode;
   SimpleString rootNode;
+  eastl::unique_ptr<RoDataBlock> props;
   float pyOfs, pxScale, pyScale, pzScale;
   float sScale;
   bool useCharDep;
@@ -106,7 +106,10 @@ struct AnimcharIrqHandler : public IGenericIrq
   void *a = nullptr;
 
   AnimcharIrqHandler(IrqFunc *_f, void *_a) : f(_f), a(_a) {}
-  intptr_t irq(int t, intptr_t p1, intptr_t p2, intptr_t p3) override { return f ? f(t, p1, p2, p3, a) : GIRQR_NoResponse; }
+  intptr_t irq(int t, intptr_t p1, intptr_t p2, intptr_t p3, ecs::EntityManager *) override
+  {
+    return f ? f(t, p1, p2, p3, a) : GIRQR_NoResponse;
+  }
 };
 
 struct AnimcharFinalMat44
@@ -169,15 +172,9 @@ public:
 
   const AnimationGraph *getAnimGraph() const { return animGraph; }
   AnimationGraph *getAnimGraph() { return animGraph; }
-  const IAnimStateHolder *getAnimState() const { return animState; }
-  IAnimStateHolder *getAnimState() { return animState; }
+  const IAnimStateHolder *getAnimState() const { return animState.get(); }
+  IAnimStateHolder *getAnimState() { return animState.get(); }
   const Tab<AnimMap> &getAnimMap() const { return animMap; }
-
-  // returns state director (if any) and sets up animState for it
-  IAnimStateDirector2 *getAnimStateDirector() const { return stateDirector; }
-
-  void enableAnimStateDirector(bool en) { stateDirectorEnabled = en; }
-  bool isAnimStateDirectorEnabled() { return stateDirectorEnabled; }
 
   // advance animation state and invalidate animation
   void act(real dt, bool calc_anim);
@@ -213,8 +210,7 @@ public:
   void updateFastPhys(float dt);
   void resetFastPhysWtmOfs(vec3f wofs);
 
-  void setPhysicsResource(PhysicsResource *phSys) { physSys = phSys; }
-  PhysicsResource *getPhysicsResource() const { return physSys; }
+  PhysicsResource *getPhysicsResource() const;
 
   IAnimCharPostController *getPostController() const { return postCtrl; }
   void setPostController(IAnimCharPostController *ctrl);
@@ -223,7 +219,7 @@ public:
   void setMotionMatchingController(IMotionMatchingController *controller) { motionMatchingController = controller; }
 
   //! attach animchar to named slot. return attachment_idx >= 0 in case success or negative otherwise
-  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true);
+  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent &attChar, bool recalcable = true);
   void releaseAttachment(int attachment_idx);
 
   //! returns animchar attached to named slot
@@ -249,8 +245,9 @@ public:
   //! returns skeleton node's index for named slot (returns -1 when node is not set)
   dag::Index16 getSlotNodeIdx(int slot_id) const;
 
-  void createDebugBlenderContext(bool dump_all_nodes = false);
-  void destroyDebugBlenderContext();
+  AnimcharDebugContext *createOrReturnExistingDebugContext();
+  void createDumpBlenderDataContext(bool dump_all_nodes = false);
+  void destroyDumpBlenderDataContext();
   const DataBlock *getDebugBlenderState(bool dump_tm = false);
   const DataBlock *getDebugNodemasks();
 
@@ -272,7 +269,8 @@ public:
     return updateCharDepScales(charDepBasePYofs * scale, scale, scale, scale, scale);
   }
 
-  bool load(const AnimCharCreationProps &props, int skelId, int acId, int physId);
+  bool load(const AnimCharCreationProps &props, GeomNodeTree *skeleton, const AnimGraphResData *agRes,
+    const DynamicPhysObjectData *physRes);
   void cloneTo(AnimcharBaseComponent *as, bool reset_anim) const;
 
   vec4f copyNodesTo(AnimcharFinalMat44 &finalWtm) const // returns base bounding sphere
@@ -292,8 +290,7 @@ protected:
   GeomNodeTree nodeTree, *originalNodeTree;
 
   Ptr<AnimationGraph> animGraph;
-  AnimCommonStateHolder *animState;
-  GenericAnimStatesGraph *stateDirector;
+  eastl::unique_ptr<AnimCommonStateHolder> animState;
 
   Tab<AnimMap> animMap;
   Tab<vec4f> animMapPRS;
@@ -301,7 +298,7 @@ protected:
   AnimBlender::CharNodeModif node0;
   float charDepBasePYofs;
   dag::Index16 charDepNodeId;
-  uint16_t stateDirectorEnabled : 1, animValid : 1, forceAnimUpdate : 1;
+  uint16_t animValid : 1, forceAnimUpdate : 1;
   static constexpr unsigned MAGIC_BITS = 13, MAGIC_VALUE = 1511;
   G_STATIC_ASSERT(MAGIC_VALUE < (1 << MAGIC_BITS));
   uint16_t magic : MAGIC_BITS;
@@ -327,10 +324,14 @@ protected:
   Tab<IrqTab> irqHandlers;
 
   FastPhysSystem *fastPhysSystem;
-  PhysicsResource *physSys;
+  const DynamicPhysObjectData *physObjData = nullptr; // Note: For its `physRes` member
   IAnimCharPostController *postCtrl;
   IMotionMatchingController *motionMatchingController;
-  AnimDbgCtx *animDbgCtx;
+
+public:
+  AnimcharDebugContext *animcharDebugContext;
+
+protected:
   IAnimCharacter2Info creationInfo;
 
 protected:
@@ -344,7 +345,6 @@ protected:
   void resetAnim();
   void setOriginalNodeTreeRes(GeomNodeTree *n);
   void loadData(const AnimCharCreationProps &props, GeomNodeTree *skeleton, AnimationGraph *ag);
-  bool loadAnimGraphCpp(const char *res_name);
 
   friend class ::CharacterGameResFactory;
 };
@@ -358,7 +358,8 @@ public:
     VISFLG_IN_RANGE = (1 << 1),
     VISFLG_BSPH = (1 << 2),
     VISFLG_MAIN = (1 << 3),
-    VISFLG_SHADOW = (1 << 4)
+    VISFLG_SHADOW = (1 << 4),
+    VISFLG_BVH = (1 << 5)
   };
 
 public:
@@ -371,6 +372,7 @@ public:
   //! computes worldbox using current animated nodetree (no anim recalc even when invalid)
   bool calcWorldBox(bbox3f &out_wbb, const AnimcharFinalMat44 &finalWtm, bool accurate = true) const;
   vec4f prepareSphere(const AnimcharFinalMat44 &finalWtm) const;
+  vec4f prepareSphereAndCalcBox(bbox3f &out_wbb, const AnimcharFinalMat44 &finalWtm) const;
   float getRenderDistanceSq() const { return noRenderDistSq; }
   float getAnimDistanceSq() const { return noAnimDist2; }
 
@@ -387,7 +389,7 @@ public:
   // computes visibility and returns visBits
   uint16_t beforeRenderLegacy(const AnimcharFinalMat44 &finalWtm, vec4f &out_rendBsph, bbox3f &out_rendBbox, float lodDistMul);
   uint16_t beforeRender(const AnimcharFinalMat44 &finalWtm, vec4f &out_rendBsph, bbox3f &out_rendBbox, const Frustum &f,
-    float inv_wk_sq, Occlusion *occl, const Point3 &cameraPos, float lodDistMul = 1.0f);
+    const Frustum *bf, float inv_wk_sq, Occlusion *occl, const Point3 &cameraPos, float lodDistMul = 1.0f);
   Point3 getNodePosForBone(uint32_t bone_id) const;
 
   void render(const Point3 &view_pos, real tr = 1.f);
@@ -415,7 +417,8 @@ public:
     v_mat44_transpose_to_mat43(ownerTm, m4);
   }
 
-  bool load(const AnimCharCreationProps &props, int modelId, const GeomNodeTree &tree, const AnimcharFinalMat44 &finalWtm);
+  bool load(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model, const GeomNodeTree &tree,
+    const AnimcharFinalMat44 &finalWtm);
   void cloneTo(AnimcharRendComponent *as, bool create_inst, const GeomNodeTree &tree) const;
 
   bool shouldBeAnimatedLegacy(mat44f &root_wtm, const Point3 &view_pos) const
@@ -467,13 +470,14 @@ public:
   void destroy() { delete this; }
   const IAnimCharacter2Info *getCreateInfo() const { return base.getCreateInfo(); }
 
-  bool load(const AnimCharCreationProps &props, int modelId, int skelId, int acId, int physId)
+  bool load(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model, GeomNodeTree *skel,
+    const AnimGraphResData *ag, const DynamicPhysObjectData *phys)
   {
-    if (!base.load(props, skelId, acId, physId))
+    if (!base.load(props, skel, ag, phys))
       return false;
     clear_and_resize(finalWtm.nwtm, base.getNodeTree().nodeCount());
     rendBsph = copyNodes();
-    return rend.load(props, modelId, base.getNodeTree(), finalWtm);
+    return rend.load(props, model, base.getNodeTree(), finalWtm);
   }
 
   void cloneTo(IAnimCharacter2 *as, bool create_visual_instance = true, bool reset_anim = false) const
@@ -539,10 +543,6 @@ public:
   const AnimationGraph *getAnimGraph() const { return base.getAnimGraph(); }
   IAnimStateHolder *getAnimState() { return base.getAnimState(); }
   const IAnimStateHolder *getAnimState() const { return base.getAnimState(); }
-  IAnimStateDirector2 *getAnimStateDirector() const { return base.getAnimStateDirector(); }
-
-  void enableAnimStateDirector(bool en) { base.enableAnimStateDirector(en); }
-  bool isAnimStateDirectorEnabled() { return base.isAnimStateDirectorEnabled(); }
 
   IAnimCharPostController *getPostController() const { return base.getPostController(); }
   void setPostController(IAnimCharPostController *ctrl) { base.setPostController(ctrl); }
@@ -552,10 +552,11 @@ public:
   FastPhysSystem *getFastPhysSystem() const { return base.getFastPhysSystem(); }
   PhysicsResource *getPhysicsResource() const { return base.getPhysicsResource(); }
 
-  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable = true)
+  int setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent &attChar, bool recalcable = true)
   {
     return base.setAttachedChar(slot_id, uid, attChar, recalcable);
   }
+  void releaseAttachment(int attachment_idx) { return base.releaseAttachment(attachment_idx); }
   AnimcharBaseComponent *getAttachedChar(int slot_id) { return base.getAttachedChar(slot_id); }
   const mat44f *getSlotNodeWtm(int slot_id) const { return base.getSlotNodeWtm(slot_id); }
   const mat44f *getAttachmentTm(int slot_id) const { return base.getAttachmentTm(slot_id); }
@@ -574,11 +575,6 @@ public:
   {
     return base.updateCharDepScales(pyOfs, pxScale, pyScale, pzScale, sScale);
   }
-
-  void createDebugBlenderContext(bool dump_all_nodes = false) { base.createDebugBlenderContext(dump_all_nodes); }
-  void destroyDebugBlenderContext() { base.destroyDebugBlenderContext(); }
-  const DataBlock *getDebugBlenderState(bool dump_tm = false) { return base.getDebugBlenderState(dump_tm); }
-  const DataBlock *getDebugNodemasks() { return base.getDebugNodemasks(); }
 
   // render component
   Point3 getCenterPos()
@@ -604,9 +600,9 @@ public:
   {
     return (rend.beforeRenderLegacy(finalWtm, rendBsph, rendBbox, lodDistMul) & rend.VISFLG_MAIN) != 0;
   }
-  bool beforeRender(const Frustum &f, float inv_wk_sq, Occlusion *occl, const Point3 &cam_pos)
+  bool beforeRender(const Frustum &f, const Frustum *bf, float inv_wk_sq, Occlusion *occl, const Point3 &cam_pos)
   {
-    return (rend.beforeRender(finalWtm, rendBsph, rendBbox, f, inv_wk_sq, occl, cam_pos) & rend.VISFLG_MAIN) != 0;
+    return (rend.beforeRender(finalWtm, rendBsph, rendBbox, f, bf, inv_wk_sq, occl, cam_pos) & rend.VISFLG_MAIN) != 0;
   }
   void render(const Point3 &view_pos, real tr = 1)
   {
@@ -648,8 +644,10 @@ protected:
 namespace AnimCharV20
 {
 using namespace AnimV20;
-void prepareGlobTm(bool is_main_camera, const Frustum &culling_frustum, float hk, const Point3 &viewPos, Occlusion *occlusion);
-void prepareFrustum(bool is_main_camera, const Frustum &culling_frustum, const Point3 &viewPos, Occlusion *occlusion);
+void prepareGlobTm(bool is_main_camera, const Frustum &culling_frustum, const Frustum *bvh_frustum, float hk, const Point3 &viewPos,
+  Occlusion *occlusion);
+void prepareFrustum(bool is_main_camera, const Frustum &culling_frustum, const Frustum *bvh_frustum, const Point3 &viewPos,
+  Occlusion *occlusion);
 
 int getSlotId(const char *slot_name);
 int addSlotId(const char *slot_name);
@@ -667,6 +665,4 @@ struct alignas(16) LegsIkRay
 
 extern bool (*trace_static_multiray)(dag::Span<LegsIkRay> traces, bool down, intptr_t ctx);
 
-// registers factory for loading statesGraph from compiled-in source code
-void registerGraphCppFactory();
 } // end of namespace AnimCharV20

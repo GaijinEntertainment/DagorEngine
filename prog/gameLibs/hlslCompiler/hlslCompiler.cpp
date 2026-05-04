@@ -17,7 +17,7 @@
 namespace hlsl_compiler
 {
 
-using CompileFunction = bool (*)(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
+using CompileFunction = bool (*)(const char *hlsl_text, unsigned len, const char *entry, const char *profile, Tab<uint8_t> &metadata,
   Tab<uint32_t> &shader_bin, String &out_err);
 using InitSettingsFunction = void (*)(debug_log_callback_t);
 
@@ -110,7 +110,7 @@ void deinit_dynlib()
 }
 
 bool compile_compute_shader(Platform platform, dag::ConstSpan<char> hlsl_src, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err)
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
 {
   G_ASSERT(is_initialized());
 
@@ -146,7 +146,7 @@ bool compile_compute_shader(Platform platform, dag::ConstSpan<char> hlsl_src, co
     return false;
   }
 
-  return compFunc(hlsl_src.cbegin(), hlsl_src.size(), entry, profile, shader_bin, out_err);
+  return compFunc(hlsl_src.cbegin(), hlsl_src.size(), entry, profile, metadata, shader_bin, out_err);
 }
 
 } // namespace hlsl_compiler

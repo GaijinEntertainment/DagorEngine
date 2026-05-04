@@ -12,7 +12,7 @@ static const float PROBE_BOX_OFFSET_FOR_BIG_BOX = 0.25; //(in meter)
 static const float PROBE_BOX_PADDING = 0.2f; //(in meter) for continuous transition between outside/inside the box
 
 static const float GRID_CELL_SIZE = 6;
-static const float GRID_CELL_HEIGHT = 3;
+static const float GRID_CELL_HEIGHT = 4;
 static const int GRID_HEIGHT = 8;
 static const float SKY_PROBE_FADE_DIST = 0.05; // defined as fraction of cell dimensions
 static const float SKY_PROBE_FADE_DIST_WS = 4.0; // defined in world-space units

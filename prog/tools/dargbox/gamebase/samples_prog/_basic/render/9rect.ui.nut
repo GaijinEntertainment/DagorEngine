@@ -41,7 +41,7 @@ let mkGrad = @(header, ovr) {
   valign = ALIGN_CENTER
   children = [
     {
-      size = static [flex(1.5), SIZE_TO_CONTENT]
+      size = const [flex(1.5), SIZE_TO_CONTENT]
       rendObj = ROBJ_TEXTAREA
       behavior = Behaviors.TextArea
       halign = ALIGN_RIGHT

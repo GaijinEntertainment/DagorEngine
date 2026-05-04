@@ -3,6 +3,7 @@ heat_haze_renderer {
   _tags:t="render"
   "heat_haze__manager:HeatHazeManager"{}
   "heat_haze__render_clear_node:dafg::NodeHandle"{}
+  "heat_haze__render_before_particles_node:dafg::NodeHandle"{}
   "heat_haze__render_particles_node:dafg::NodeHandle"{}
   "heat_haze__apply_node:dafg::NodeHandle"{}
   heat_haze__lod:i=-1

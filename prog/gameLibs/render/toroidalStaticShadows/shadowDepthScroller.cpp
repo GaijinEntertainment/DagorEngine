@@ -46,7 +46,7 @@ bool ShadowDepthScroller::translateDepth(Texture *tex, int layer, float scale, f
   }
   TIME_D3D_PROFILE(st_shadows_change_depth);
   shaders::overrides::set(scrollStateId);
-  ShaderGlobal::set_color4(tile_change_depth_scale_ofsVarId, scale, ofs, (float)layer, 0);
+  ShaderGlobal::set_float4(tile_change_depth_scale_ofsVarId, scale, ofs, (float)layer, 0);
   ShaderGlobal::set_int(tile_read_depth_2dVarId, (layer < 0) ? 1 : 0);
   TextureInfo tinfo;
   tex->getinfo(tinfo);
@@ -113,6 +113,6 @@ void ShadowDepthScroller::init()
   scrollStateId = shaders::overrides::create(state);
 
   const char *name = "static_shadow_depth_tile_patch";
-  tileTex.set(d3d::create_tex(NULL, tileSizeW, tileSizeH, TEXCF_RTARGET | TEXFMT_L16, 1, name), name);
+  tileTex.set(d3d::create_tex(NULL, tileSizeW, tileSizeH, TEXCF_RTARGET | TEXFMT_L16, 1, name, RESTAG_SHADOW), name);
   tileTex.setVar();
 }

@@ -17,6 +17,7 @@ namespace darg
 class SceneStatus
 {
 public:
+  SceneStatus();
   void reset();
   void appendErrorText(const char *msg);
   void dismissShownError();

@@ -184,4 +184,8 @@ inline void tiled_scene_boxCull(const scene::TiledScene &scene,
     },
     at);
 }
+inline unsigned das_tiled_scene_get_node_flags(const scene::TiledScene &scene, scene::node_index ni)
+{
+  return scene::get_node_flags(scene.getNode(ni));
+}
 } // namespace bind_dascript

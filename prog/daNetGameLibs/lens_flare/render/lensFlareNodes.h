@@ -7,5 +7,7 @@
 
 class LensFlareRenderer;
 
-dafg::NodeHandle create_lens_flare_render_node(const LensFlareRenderer *renderer, const LensFlareQualityParameters &quality);
-dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *renderer);
+dafg::NodeHandle create_lens_flare_per_camera_res_node(const LensFlareQualityParameters &quality);
+dafg::NodeHandle create_lens_flare_render_node(
+  const LensFlareRenderer *renderer, const LensFlareQualityParameters &quality, const int view_id);
+dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *renderer, const int view_id);

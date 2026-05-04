@@ -30,10 +30,8 @@ ElementRef *ElementRef::get_from_stack(HSQUIRRELVM vm, int idx)
     return nullptr;
   }
 
-  AbstractStaticClassData *classType = ClassType<ElementRef>::getStaticClassData().lock().get();
-
   ElementRef *instance = nullptr;
-  if (SQ_FAILED(sq_getinstanceup(vm, idx, (SQUserPointer *)&instance, classType)))
+  if (SQ_FAILED(sq_getinstanceup(vm, idx, (SQUserPointer *)&instance, TypeTag<ElementRef>::get())))
   {
     G_ASSERT(!"Instance of ElementRef required");
     return nullptr;
@@ -41,9 +39,9 @@ ElementRef *ElementRef::get_from_stack(HSQUIRRELVM vm, int idx)
 
   G_ASSERT_RETURN(instance, nullptr);
 
-  AbstractStaticClassData *actualType = nullptr;
+  TypeTagBase *actualType = nullptr;
   sq_gettypetag(vm, idx, (SQUserPointer *)&actualType);
-  G_ASSERT_RETURN(classType == actualType, nullptr);
+  G_ASSERT_RETURN(actualType == TypeTag<ElementRef>::get(), nullptr);
   return instance;
 }
 
@@ -142,7 +140,22 @@ static SQInteger elem_get_over_scroll_offs_y(HSQUIRRELVM vm)
   return 1;
 }
 
-static SQInteger on_delete_elemref_instance(SQUserPointer ptr, SQInteger size)
+static SQInteger elem_get_scroll_range(HSQUIRRELVM vm, int index)
+{
+  GET_EREF;
+  const Point2 &range = ref->elem->getScrollRange(index);
+  Sqrat::Array res(vm);
+  res.Append(range.x);
+  res.Append(range.y);
+  sq_pushobject(vm, res.GetObject());
+  return 1;
+}
+
+static SQInteger elem_get_scroll_range_x(HSQUIRRELVM vm) { return elem_get_scroll_range(vm, 0); }
+
+static SQInteger elem_get_scroll_range_y(HSQUIRRELVM vm) { return elem_get_scroll_range(vm, 1); }
+
+static SQInteger on_delete_elemref_instance(HSQUIRRELVM, SQUserPointer ptr, SQInteger size)
 {
   G_UNUSED(size);
   ElementRef *ref = reinterpret_cast<ElementRef *>(ptr);
@@ -161,7 +174,7 @@ Sqrat::Object ElementRef::createScriptInstance(HSQUIRRELVM vm)
 
   using namespace Sqrat;
   ClassData<ElementRef> *cd = ClassType<ElementRef>::getClassData(vm);
-  sq_pushobject(vm, cd->classObj);
+  sq_pushobject(vm, cd->classObj); //-V522
   G_VERIFY(SQ_SUCCEEDED(sq_createinstance(vm, -1)));
 
   G_VERIFY(SQ_SUCCEEDED(sq_setinstanceup(vm, -1, this)));
@@ -191,6 +204,8 @@ void ElementRef::bind_script(HSQUIRRELVM vm)
     .SquirrelFunc("getScrollOffsX", elem_get_scroll_offs_x, 1, "x")
     .SquirrelFunc("getScrollOffsY", elem_get_scroll_offs_y, 1, "x")
     .SquirrelFunc("getOverScrollOffsY", elem_get_over_scroll_offs_y, 1, "x")
+    .SquirrelFunc("getScrollRangeX", elem_get_scroll_range_x, 1, "x")
+    .SquirrelFunc("getScrollRangeY", elem_get_scroll_range_y, 1, "x")
     /**/;
 }
 

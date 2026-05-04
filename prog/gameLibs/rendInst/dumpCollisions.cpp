@@ -47,24 +47,28 @@ void dumpAllCollisions(IGenSave &cb)
         indices.resize(indices.size() + COLLISION_BOX_INDICES_NUM);
         vertices.resize(vertices.size() + COLLISION_BOX_VERTICES_NUM);
 
+        BBox3 nodeBBox = collRes->getNodeBBox(ni);
         for (int vertNo = 0; vertNo < COLLISION_BOX_VERTICES_NUM; ++vertNo, vAt++)
-          vertices[vAt] = to_coll_vert(node->modelBBox.point(vertNo ^ 1)); // xor 1 to invert culling
+          vertices[vAt] = to_coll_vert(nodeBBox.point(vertNo ^ 1)); // xor 1 to invert culling
 
         for (int ii = 0; ii < COLLISION_BOX_INDICES_NUM; ++ii)
           indices[iAt + ii] = boxIndices[ii] + firstVertex;
       }
-      else if (node->indices.size() > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
+      else if (
+        collRes->getNodeFaceCount(ni) > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
       {
-        indices.resize(indices.size() + node->indices.size());
-        vertices.resize(vertices.size() + node->vertices.size());
-        G_ASSERT_CONTINUE(elem_size(node->vertices) == sizeof(vec4f));
-        const vec4f *__restrict verts = (const vec4f *)node->vertices.data();
+        int fc = collRes->getNodeFaceCount(ni);
+        int vc = collRes->getNodeVertCount(ni);
+        indices.resize(indices.size() + fc * 3);
+        vertices.resize(vertices.size() + vc);
         mat44f nodeTm;
-        v_mat44_make_from_43cu_unsafe(nodeTm, node->tm[0]);
-        for (const vec4f *__restrict ve = verts + node->vertices.size(); verts != ve; ++verts, ++vAt)
-          vertices[vAt] = to_coll_vert(v_mat44_mul_vec3p(nodeTm, *verts));
-        for (int ii = 0, ie = node->indices.size(); ii < ie; ++ii)
-          indices[iAt + ii] = node->indices[ii] + firstVertex;
+        v_mat44_make_from_43cu_unsafe(nodeTm, collRes->getNodeTm(node->nodeIndex)[0]);
+        collRes->iterateNodeVerts(ni, [&](int, vec4f v) { vertices[vAt++] = to_coll_vert(v_mat44_mul_vec3p(nodeTm, v)); });
+        collRes->iterateNodeFaces(ni, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+          indices[iAt++] = i0 + firstVertex;
+          indices[iAt++] = i1 + firstVertex;
+          indices[iAt++] = i2 + firstVertex;
+        });
       }
       else
         continue;

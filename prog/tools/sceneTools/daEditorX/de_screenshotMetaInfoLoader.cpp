@@ -5,43 +5,11 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
 #include <image/dag_jpeg.h>
+#include <image/dag_png.h>
 #include <image/dag_texPixel.h>
 #include <libTools/util/filePathname.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
-
-bool ScreenshotMetaInfoLoader::loadMetaInfo(const char *screenshot_path, DataBlock &meta_info, String &error_message)
-{
-  FullFileLoadCB crd(screenshot_path);
-  if (!crd.fileHandle)
-  {
-    error_message = "Cannot read screenshot.";
-    return false;
-  }
-
-  eastl::string comment;
-  TexImage32 *img = load_jpeg32(crd, stdmem_ptr(), &comment);
-  if (!img)
-  {
-    error_message = "Cannot parse screenshot.";
-    return false;
-  }
-  delete img;
-
-  if (comment.empty())
-  {
-    error_message = "No meta info in screenshot.";
-    return false;
-  }
-
-  if (!meta_info.loadText(comment.c_str(), comment.size(), screenshot_path))
-  {
-    error_message = "Cannot load meta info from screenshot.";
-    return false;
-  }
-
-  return true;
-}
 
 bool ScreenshotMetaInfoLoader::getExportPathFromProjectFile(const char *project_file_path, String &export_path)
 {
@@ -178,8 +146,7 @@ void ScreenshotMetaInfoLoader::processDaNetGameSceneBlkImports(DataBlock &scene_
   }
 }
 
-bool ScreenshotMetaInfoLoader::getLevelBlkFromDaNetGameScene(const char *scene_file_path, const DataBlock &scene_blk,
-  String &level_blk_path)
+bool ScreenshotMetaInfoLoader::getLevelBlkFromDaNetGameScene(const char *, const DataBlock &scene_blk, String &level_blk_path)
 {
   const int entityNid = scene_blk.getNameId("entity");
   for (int blockIndex = 0; blockIndex < scene_blk.blockCount(); ++blockIndex)

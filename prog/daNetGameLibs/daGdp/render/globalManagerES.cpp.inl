@@ -1,9 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_console.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <drv/3d/dag_info.h>
 #include <render/renderer.h>
 #include <render/renderEvent.h>
@@ -42,12 +48,10 @@ static GlobalConfig get_current_config()
   if (!wr)
     return {};
 
-  FeatureRenderFlagMask renderFeatures = get_current_render_features();
-  DeviceDriverCapabilities caps = d3d::get_driver_desc().caps;
-  bool isForward = renderFeatures.test(FeatureRenderFlags::FORWARD_RENDERING);
+  auto &caps = d3d::get_driver_desc().caps;
 
   GlobalConfig config;
-  config.enabled = !g_forceDisable && caps.hasWellSupportedIndirect && !isForward;
+  config.enabled = !g_forceDisable && caps.hasWellSupportedIndirect;
   // Not supporting forward rendering, which may be used on mobile.
   // TODO: more fine-grained configuration based on graphics settings.
 
@@ -88,59 +92,62 @@ static void dagdp_on_level_unload_es(const UnloadLevel &, dagdp::GlobalManager &
 }
 
 template <typename Callable>
-static inline void level_settings_ecs_query(Callable);
+static inline void level_settings_ecs_query(ecs::EntityManager &manager, Callable);
 
 void GlobalManager::queryLevelSettings(RulesBuilder &rules_builder)
 {
-  level_settings_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects, int dagdp__max_triangles,
-                             int dagdp__max_meshes, int dagdp__max_tiles, int dagdp__max_volumes, int dagdp__default_target_mesh_lod) {
-    rules_builder.maxObjects = dagdp__max_objects;
-    rules_builder.maxTriangles = dagdp__max_triangles;
-    rules_builder.maxMeshes = dagdp__max_meshes;
-    rules_builder.maxTiles = dagdp__max_tiles;
-    rules_builder.maxVolumes = dagdp__max_volumes;
-    rules_builder.targetMeshLod = dagdp__default_target_mesh_lod;
-  });
+  level_settings_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects, int dagdp__max_triangles, int dagdp__max_meshes,
+      int dagdp__max_tiles, int dagdp__max_volumes, int dagdp__default_target_mesh_lod) {
+      rules_builder.maxObjects = dagdp__max_objects;
+      rules_builder.maxTriangles = dagdp__max_triangles;
+      rules_builder.maxMeshes = dagdp__max_meshes;
+      rules_builder.maxTiles = dagdp__max_tiles;
+      rules_builder.maxVolumes = dagdp__max_volumes;
+      rules_builder.targetMeshLod = dagdp__default_target_mesh_lod;
+    });
 }
 
 template <typename Callable>
-static inline void object_groups_named_ecs_query(Callable);
+static inline void object_groups_named_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void object_groups_nameless_ecs_query(Callable);
+static inline void object_groups_nameless_ecs_query(ecs::EntityManager &manager, Callable);
 
 void GlobalManager::accumulateObjectGroups(RulesBuilder &rules_builder)
 {
-  object_groups_named_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag dagdp_placer) ECS_REQUIRE(ecs::Tag dagdp_object_group) ecs::EntityId eid,
-                                  const ecs::string &dagdp__name) {
-    uint32_t hash = NameMap::string_hash(dagdp__name.data(), dagdp__name.size());
-    if (rules_builder.objectGroupNameMap.getNameId(dagdp__name.data(), dagdp__name.size(), hash) >= 0)
-    {
-      logerr("daGdp: duplicate object group name %s. Skipping it.", dagdp__name.c_str());
-      return;
-    }
-    rules_builder.objectGroupNameMap.addNameId(dagdp__name.data(), dagdp__name.size(), hash);
-    rules_builder.objectGroupsWithNames.push_back(eid);
-    rules_builder.objectGroups.insert({eid});
-  });
+  object_groups_named_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE_NOT(ecs::Tag dagdp_placer) ECS_REQUIRE(ecs::Tag dagdp_object_group) ecs::EntityId eid,
+      const ecs::string &dagdp__name) {
+      uint32_t hash = NameMap::string_hash(dagdp__name.data(), dagdp__name.size());
+      if (rules_builder.objectGroupNameMap.getNameId(dagdp__name.data(), dagdp__name.size(), hash) >= 0)
+      {
+        logerr("daGdp: duplicate object group name %s. Skipping it.", dagdp__name.c_str());
+        return;
+      }
+      rules_builder.objectGroupNameMap.addNameId(dagdp__name.data(), dagdp__name.size(), hash);
+      rules_builder.objectGroupsWithNames.push_back(eid);
+      rules_builder.objectGroups.insert({eid});
+    });
 
-  object_groups_nameless_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer) ECS_REQUIRE(ecs::Tag dagdp_object_group) ecs::EntityId eid) {
-    if (rules_builder.objectGroups.find(eid) != rules_builder.objectGroups.end())
-    {
-      logerr("daGdp: placer with EID %u can have only one anonymous object group. Skipping it.", static_cast<unsigned int>(eid));
-      return;
-    }
-    rules_builder.objectGroups.insert({eid});
-  });
+  object_groups_nameless_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_placer) ECS_REQUIRE(ecs::Tag dagdp_object_group) ecs::EntityId eid) {
+      if (rules_builder.objectGroups.find(eid) != rules_builder.objectGroups.end())
+      {
+        logerr("daGdp: placer with EID %u can have only one anonymous object group. Skipping it.", static_cast<unsigned int>(eid));
+        return;
+      }
+      rules_builder.objectGroups.insert({eid});
+    });
 }
 
 template <typename Callable>
-static inline void placers_ecs_query(Callable);
+static inline void placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 void GlobalManager::accumulatePlacers(RulesBuilder &rules_builder)
 {
-  placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer) ecs::EntityId eid, const ecs::StringList &dagdp__object_groups,
-                      const ecs::string &dagdp__name) {
+  placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer) ecs::EntityId eid,
+                                     const ecs::StringList &dagdp__object_groups, const ecs::string &dagdp__name) {
     bool ignoreMissingObjectGroups = false;
     PlacerInfo placerInfo;
 
@@ -192,16 +199,27 @@ void GlobalManager::accumulatePlacers(RulesBuilder &rules_builder)
 }
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear, on_disappear)
+ECS_TRACK(dagdp__csm_max_cascades)
+ECS_REQUIRE(int dagdp__csm_max_cascades)
+ECS_REQUIRE(ecs::Tag dagdp_level_settings)
+static void dagdp_track_csm_cascade_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  manager_ecs_query(manager,
+    [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.reconfigure(get_current_config()); });
+}
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
 ECS_TRACK(dagdp__name, dagdp__object_groups)
 ECS_REQUIRE(ecs::Tag dagdp_placer, const ecs::string &dagdp__name, const ecs::StringList &dagdp__object_groups)
-static void dagdp_placer_changed_es(const ecs::Event &)
+static void dagdp_placer_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 ECS_TAG(render)
@@ -216,9 +234,26 @@ ECS_REQUIRE(ecs::Tag dagdp_level_settings,
   int dagdp__max_tiles,
   int dagdp__max_volumes,
   int dagdp__default_target_mesh_lod)
-static void dagdp_level_settings_changed_es(const ecs::Event &)
+static void dagdp_level_settings_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+}
+
+template <typename Callable>
+static inline void grass_range_mul_ecs_query(ecs::EntityManager &manager, Callable);
+
+static float get_grass_range_mul()
+{
+  float mul = 1;
+  grass_range_mul_ecs_query(*g_entity_mgr,
+    [&mul](float &render_settings__grassRendInstRangeMul) { mul = render_settings__grassRendInstRangeMul; });
+  return mul;
+}
+
+static void set_grass_range_mul(float mul)
+{
+  grass_range_mul_ecs_query(*g_entity_mgr,
+    [mul](float &render_settings__grassRendInstRangeMul) { render_settings__grassRendInstRangeMul = mul; });
 }
 
 } // namespace dagdp
@@ -235,7 +270,14 @@ static bool dagdp_console_handler(const char *argv[], int argc)
     else
       console::print_d("daGDP re-enabled.");
 
-    manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.reconfigure(get_current_config()); });
+    manager_ecs_query(*g_entity_mgr,
+      [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.reconfigure(get_current_config()); });
+  }
+  CONSOLE_CHECK_NAME("dagdp", "grassRendInstRangeMul", 1, 2)
+  {
+    if (argc > 1)
+      set_grass_range_mul(console::to_real(argv[1]));
+    console::print("dagdp.grassRendInstRangeMul: %f", get_grass_range_mul());
   }
   return found;
 }

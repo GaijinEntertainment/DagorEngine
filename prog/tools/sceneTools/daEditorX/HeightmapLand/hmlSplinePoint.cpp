@@ -13,7 +13,6 @@
 #include <libTools/util/strUtil.h>
 
 #include "hmlCm.h"
-#include "common.h"
 #include <de3_genObjAlongSpline.h>
 
 #include <propPanel/control/container.h>
@@ -414,7 +413,11 @@ void SplinePointObject::onPPChange(int pid, bool edit_finished, PropPanel::Conta
       if (pid == PID_SCALE_H)
         o->props.attr.scale_h = val;
       if (pid == PID_SCALE_W)
-        o->props.attr.scale_w = val;
+      {
+        o->props.attr.scale_w = max(val, 1e-3f);
+        if (o->spline)
+          o->spline->markModifChangedWhenUsed();
+      }
       if (pid == PID_OPACITY)
         o->props.attr.opacity = val;
       if (pid == PID_TC3U)
@@ -593,7 +596,7 @@ void SplinePointObject::loadProps(SplinePointObject::Props &props, const DataBlo
   props.relIn = blk.getPoint3("in", Point3(0, 0, 0));
   props.relOut = blk.getPoint3("out", Point3(0, 0, 0));
   props.attr.scale_h = blk.getReal("scale_h", 1.0f);
-  props.attr.scale_w = blk.getReal("scale_w", 1.0f);
+  props.attr.scale_w = max(blk.getReal("scale_w", 1.0f), 1e-3f);
   props.attr.opacity = blk.getReal("opacity", 1.0f);
   props.attr.tc3u = blk.getReal("tc3u", 1.0f);
   props.attr.tc3v = blk.getReal("tc3v", 1.0f);
@@ -746,7 +749,7 @@ void SplinePointObject::moveObject(const Point3 &delta, IEditorCoreEngine::Basis
     spline->putObjTransformUndo();
   RenderableEditableObject::moveObject(delta, basis);
 
-  objectWasMoved = true;
+  SplineObject::objectWasMoved = true;
 
   if (dagInput->isCtrlKeyDown())
   {
@@ -789,6 +792,7 @@ void SplinePointObject::scaleObject(const Point3 &delta, const Point3 &origin, I
     props.attr.scale_w += delta.x - 1.0f;
   else
     props.attr.scale_w += delta.z - 1.0f;
+  props.attr.scale_w = max(props.attr.scale_w, 1e-3f);
 
   if (((old_h != props.attr.scale_h) || (old_w != props.attr.scale_w)) && (ppanel_ptr))
   {
@@ -911,7 +915,7 @@ void SplinePointObject::importGenerationParams(const char *blkname, FastNameMap 
   IAssetService *srv = DAGORED2->queryEditorInterface<IAssetService>();
   splineclass::AssetData *a = srv ? srv->getSplineClassData(blkname) : NULL;
 
-  gen->splineLayer = spline->getLayer();
+  gen->layerOrder = spline->getLayer();
   setEditLayerIdx(spline->getEditLayerIdx());
   if (gen->splineClass != a)
   {

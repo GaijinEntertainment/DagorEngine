@@ -35,6 +35,18 @@ static bool __stdcall ri_land_get_height(Point3 &pos, Point3 *out_norm)
     return false;
   return HmapLandPlugin::self->getHeight(Point2::xz(pos), pos.y, out_norm);
 }
+static int get_skip_ri_attr_id()
+{
+  if (HmapLandPlugin::hmlService && HmapLandPlugin::self && HmapLandPlugin::self->getLayersHandle())
+    return HmapLandPlugin::hmlService->getBitLayerAttrId(HmapLandPlugin::self->getLayersHandle(), "skipRI");
+  return -1;
+}
+static bool check_layer_attr(int i, int attr_id)
+{
+  if (HmapLandPlugin::hmlService && HmapLandPlugin::self && HmapLandPlugin::self->getLayersHandle())
+    return attr_id != -1 && HmapLandPlugin::hmlService->testBitLayerAttr(HmapLandPlugin::self->getLayersHandle(), i, attr_id);
+  return false;
+}
 
 LandClassSlotsManager::LandClassSlotsManager(int layer_count)
 {
@@ -115,15 +127,26 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
 {
   if (!rigenSrv || !HmapLandPlugin::self)
     return;
-  if (!HmapLandPlugin::self->getlandClassMap().isFileOpened() && !HmapLandPlugin::self->isPseudoPlane())
+  // landClsMap is RAM-only now (commit f4a5c848); isFileOpened() is always
+  // false for it. The "ready" signal we need here is that the map has been
+  // sized (resizeLandClassMapFile ran), not that generateLandColors has
+  // populated its pixels -- reinitRIGen only consumes getMapSizeX/Y, never
+  // the pixel data. A stricter landClsMapGenerated gate would suppress the
+  // PID_LCMAP_SUBDIV resize path in hmlPlugin and the initial project-load
+  // call, both of which legitimately call reinitRIGen before the first
+  // generateLandColors pass; the RI-gen tables would then stay unbuilt
+  // until some unrelated later refresh. Export readiness still checks
+  // landClsMapGenerated directly (hmlIGenEditorPlugin::acceptObjects).
+  if (HmapLandPlugin::self->getlandClassMap().getMapSizeX() <= 0 && !HmapLandPlugin::self->isPseudoPlane())
     return;
 
   Tab<rendinst::gen::land::AssetData *> land_cls;
 
   rigenSrv->releaseRtRIGenData();
+  int skip_ri_attr = get_skip_ri_attr_id();
   for (int i = 0; i < layers.size(); i++)
   {
-    if (!layers[i])
+    if (!layers[i] || check_layer_attr(i, skip_ri_attr))
       continue;
     PerLayer &pl = *layers[i];
     for (int j = 0; j < pl.cls.size(); j++)
@@ -138,7 +161,7 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
 
   for (int i = 0; i < layers.size(); i++)
   {
-    if (!layers[i])
+    if (!layers[i] || check_layer_attr(i, skip_ri_attr))
       continue;
     PerLayer &pl = *layers[i];
     for (int j = 0; j < pl.cls.size(); j++)
@@ -149,7 +172,7 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
       }
   }
 
-  DataBlock appBlk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
   int lcmap_w = HmapLandPlugin::self->getlandClassMap().getMapSizeX(), lcmap_h = HmapLandPlugin::self->getlandClassMap().getMapSizeY();
 
   float gridCellSize = grid2world;
@@ -194,7 +217,7 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
   rigenSrv->createRtRIGenData(w0x, w0y, grid2world, ri_cell_sz, msq_stride, msq_plane / msq_stride, land_cls, world0x, world0y);
   for (int i = 0; i < layers.size(); i++)
   {
-    if (!layers[i])
+    if (!layers[i] || check_layer_attr(i, skip_ri_attr))
       continue;
     PerLayer &pl = *layers[i];
     for (int j = 0; j < pl.cls.size(); j++)
@@ -209,7 +232,7 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
 
       for (int i = layers.size() - 1; i >= 0; i--)
       {
-        if (!layers[i])
+        if (!layers[i] || check_layer_attr(i, skip_ri_attr))
           continue;
 
         PerLayer &pl = *layers[i];
@@ -366,6 +389,7 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
   }
 
   int grass_attr = HmapLandPlugin::hmlService->getBitLayerAttrId(HmapLandPlugin::self->getLayersHandle(), "grass");
+  int skip_ri_attr = get_skip_ri_attr_id();
   for (int i = layers.size() - 1; i >= 0; i--)
   {
     if (!layers[i])
@@ -436,7 +460,7 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
 
           for (int i = layers.size() - 1; i >= 0; i--)
           {
-            if (!layers[i])
+            if (!layers[i] || check_layer_attr(i, skip_ri_attr))
               continue;
 
             PerLayer &pl = *layers[i];
@@ -492,9 +516,9 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
             tile.resize(tile.TILED, rec[c]->landClass->tiled->data.size());
 
           tile.beginGenerate(tile.TILED);
-          objgenerator::generateTiledEntitiesInMaskedRect(*rec[c]->landClass->tiled, tiledByLandclassSubTypeId, 62,
-            HmapLandPlugin::self, tile.pool[tile.TILED], bmps[c], world2grid, tx * box_sz, ty * box_sz, box_sz, box_sz, world0x,
-            world0y, rendInst_atype);
+          objgenerator::generateTiledEntitiesInMaskedRect(*rec[c]->landClass->tiled, tiledByLandclassSubTypeId,
+            LayerHiddenMask::BIT_COUNT - 2, HmapLandPlugin::self, tile.pool[tile.TILED], bmps[c], world2grid, tx * box_sz, ty * box_sz,
+            box_sz, box_sz, world0x, world0y, rendInst_atype);
           tile.endGenerate(tile.TILED);
         }
 
@@ -507,9 +531,9 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
             tile.resize(tile.PLANTED, rec[c]->landClass->planted->ent.size());
 
           tile.beginGenerate(tile.PLANTED);
-          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, tiledByLandclassSubTypeId, 62,
-            HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c], world2grid, tx * box_sz, ty * box_sz, box_sz, box_sz, world0x,
-            world0y, 0, rendInst_atype);
+          objgenerator::generatePlantedEntitiesInMaskedRect(*rec[c]->landClass->planted, tiledByLandclassSubTypeId,
+            LayerHiddenMask::BIT_COUNT - 2, HmapLandPlugin::self, tile.pool[tile.PLANTED], bmps[c], world2grid, tx * box_sz,
+            ty * box_sz, box_sz, box_sz, world0x, world0y, 0, rendInst_atype);
           tile.endGenerate(tile.PLANTED);
         }
 
@@ -551,7 +575,7 @@ void LandClassSlotsManager::onLandRegionChanged(int x0, int y0, int x1, int y1, 
     for (int c = 0; c < rec.size(); c++)
       rec[c]->changed = false;
     if (rigenSrv && HmapLandPlugin::self && (rigen_changed || all_classes))
-      rigenSrv->discardRIGenRect(x0, y0, x1, y1);
+      rigenSrv->discardRIGenRect(x0 + outer_border, y0 + outer_border, x1 + outer_border, y1 + outer_border);
   }
   if (con_shown)
     con.endProgress();
@@ -622,7 +646,7 @@ void LandClassSlotsManager::exportEntityGenDataToFile(MapStorage<uint32_t> &land
   if (!rigenSrv)
     return;
 
-  DataBlock appBlk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
   String base;
   DAGORED2->getProjectFolderPath(base);
   dd_mkdir(String(260, "%s/DoNotCommitMe", base.str()));
@@ -686,9 +710,10 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
   debug("riCell: %d (%.1f m), meshCell=%.1f m (number of ri cells: %d) minGridCellSize=%.0f minGridCellCount=%d", ri_cell_sz,
     ri_cell_sz * gridCellSize, meshCellSize, msq_plane, minGridCellSize, minGridCellCount);
 
+  int skip_ri_attr = get_skip_ri_attr_id();
   for (int i = layers.size() - 1; i >= 0; i--)
   {
-    if (!layers[i])
+    if (!layers[i] || check_layer_attr(i, skip_ri_attr))
       continue;
     PerLayer &pl = *layers[i];
     for (int j = pl.cls.size() - 1; j >= 0; j--)
@@ -720,7 +745,7 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
 
       for (int i = layers.size() - 1; i >= 0; i--)
       {
-        if (!layers[i])
+        if (!layers[i] || check_layer_attr(i, skip_ri_attr))
           continue;
 
         PerLayer &pl = *layers[i];
@@ -743,7 +768,7 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
 
   for (int i = layers.size() - 1; i >= 0; i--)
   {
-    if (!layers[i])
+    if (!layers[i] || check_layer_attr(i, skip_ri_attr))
       continue;
     PerLayer &pl = *layers[i];
     for (int j = pl.cls.size() - 1; j >= 0; j--)

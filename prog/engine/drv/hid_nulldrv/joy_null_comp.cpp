@@ -12,6 +12,11 @@ int HumanInput::CompositeJoystickClassDriver::getRealDeviceCount(bool) const { r
 const char *HumanInput::CompositeJoystickClassDriver::getRealDeviceName(int) const { return NULL; }
 const char *HumanInput::CompositeJoystickClassDriver::getRealDeviceID(int) const { return NULL; }
 bool HumanInput::CompositeJoystickClassDriver::getRealDeviceDesc(int, DataBlock &) const { return false; }
+HumanInput::CompositeJoystickClassDriver::DeviceDescription HumanInput::CompositeJoystickClassDriver::getRealDeviceDesc(
+  int real_dev_idx) const
+{
+  return {};
+}
 int HumanInput::CompositeJoystickClassDriver::remapAbsButtonId(int, int &) const { return -1; }
 int HumanInput::CompositeJoystickClassDriver::remapRelButtonId(int, int) const { return -1; }
 int HumanInput::CompositeJoystickClassDriver::remapAbsAxisId(int, int &) const { return -1; }

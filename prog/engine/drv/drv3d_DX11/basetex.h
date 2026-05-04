@@ -1,14 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver_defs.h"
 #include <util/dag_globDef.h>
 #include <generic/dag_smallTab.h>
 #include <generic/dag_fixedMoveOnlyFunction.h>
 #include <3d/ddsxTex.h>
 #include <DXGIFormat.h>
-#include "generic/dag_tabExt.h"
 #include <3d/tql.h>
 #include "basetexture.h"
+#include "keyMapPools.h"
 
 #define MAX_STAT_NAME 64
 #define MAX_MIPLEVELS 16
@@ -143,6 +144,7 @@ public:
   uint16_t wasCopiedToStage : 1;
   uint16_t dirtyRt : 1;
   uint16_t wasUsed : 1;
+  uint16_t backbufferCount : 3 = 1; // > 1 for swapchain created textures
 
   static BaseTex *create_tex(uint32_t cflg, D3DResourceType type);
   static void destroy_tex(BaseTex *);
@@ -197,7 +199,7 @@ public:
 
   bool markTexelsUninitialized() const;
 
-  inline bool isTexResEqual(BaseTexture *bt) const;
+  bool isTexResEqual(BaseTexture *bt) const { return bt && (((BaseTex *)bt)->tex.texRes == tex.texRes); }
 
   int lockimg(void **p, int &stride, int lev, unsigned flags);
   int lockimg(void **p, int &stride, int face, int level, unsigned flags);

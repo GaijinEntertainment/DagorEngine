@@ -3,6 +3,7 @@ import "math" as math
 import "dagor.debug" as dagorDebug
 import "string.nut" as string
 from "string" import split_by_chars
+from "underscore.nut" import flatten
 
 let tostring_r = string.tostring_r
 let join = string.join //like join, but skip emptylines
@@ -70,29 +71,27 @@ function Log(tostringfunc=null) {
     return @(...) dlog.acall([null, prefix].extend(vargv))  //disable: -dlog-warn
   }
 
-  function wlog(watched, prefix = null, transform=null, logger = log) {
-    local ftransform = transform ?? @(v) v
-    local fprefix = prefix
-    if (type(prefix) == "function") {
-      ftransform = prefix
-      fprefix = transform
+  function mkwlog(logger=log) {
+    return function(...) {
+      let transform = vargv.findvalue(@(v) type(v)=="function") ?? @(v) v
+      let prefix = vargv.findvalue(@(v) type(v)=="string")
+      let watched = flatten(vargv).filter(@(v) type(v) == "instance" && "subscribe" in v) ?? []
+      if (watched.len()==0)
+        dagorDebug.logerr("no observables in wlog!")
+      if (prefix != null)
+        foreach (w in watched) {
+          logger(prefix, transform(w.get()))
+          w.subscribe(@(v) logger(prefix, transform(v)))
+        }
+      else
+        foreach (w in watched) {
+          logger(transform(w.get()))
+          w.subscribe(@(v) logger(transform(v)))
+        }
     }
-    if (type(transform) == "string")
-      fprefix = transform
-    if (type(watched) != "array")
-      watched = [watched]
-    fprefix = fprefix != "" ? fprefix : null
-    if (fprefix != null)
-      foreach (w in watched) {
-        logger(fprefix, ftransform(w.get()))
-        w.subscribe(@(v) logger(fprefix, ftransform(v)))
-      }
-    else
-      foreach (w in watched) {
-        logger(ftransform(w.get()))
-        w.subscribe(@(v) logger(ftransform(v)))
-      }
   }
+  let wlog = mkwlog()
+  let wdlog = mkwlog(dlog) //disable: -dlog-warn
 
   return {
     vlog
@@ -106,6 +105,8 @@ function Log(tostringfunc=null) {
     with_prefix
     dlog_prefix
     wlog
+    wdlog
+    mkwlog
     //lowlevel dagor functions
     debug = dagorDebug.debug
     logerr = dagorDebug.logerr

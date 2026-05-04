@@ -32,7 +32,7 @@ bool compare_hw_token(int tok, const shc::CompilationContext &ctx)
     case SHADER_TOKENS::SHTOK_pc: // backward comp
 #if _CROSS_TARGET_DX12
       return shc::config().targetPlatform == dx12::dxil::Platform::PC;
-#elif _CROSS_TARGET_DX11 | _CROSS_TARGET_EMPTY
+#elif _CROSS_TARGET_DX11 || _CROSS_TARGET_EMPTY
       return true;
 #elif _CROSS_TARGET_SPIRV
       return shc::config().usePcToken;
@@ -45,7 +45,7 @@ bool compare_hw_token(int tok, const shc::CompilationContext &ctx)
 
     // @TODO: exclude _CROSS_TARGET_DX12 from here (but some obscure stuff could break, so careful)
     case SHADER_TOKENS::SHTOK_dx11:
-#if _CROSS_TARGET_DX11 | _CROSS_TARGET_EMPTY
+#if _CROSS_TARGET_DX11 || _CROSS_TARGET_EMPTY
       return true;
 #else
       return false;
@@ -108,6 +108,13 @@ bool compare_hw_token(int tok, const shc::CompilationContext &ctx)
       return false;
 #endif
 
+    case SHADER_TOKENS::SHTOK_android:
+#if _CROSS_TARGET_SPIRV
+      return !shc::config().usePcToken;
+#else
+      return false;
+#endif
+
     case SHADER_TOKENS::SHTOK_mesh:
 #if _CROSS_TARGET_DX12
       // Not all DX12 targets support mesh shaders, this depends on the target platform
@@ -131,12 +138,7 @@ static bool hlsl_profile_is_valid(const char *profile, size_t len)
   constexpr eastl::array VALID_PROFILES = {'p', 'c', 'v', 'h', 'd', 'g', 'm', 'a', 'e', 'l'};
   constexpr char NULL_SUFF[] = "s_null";
   constexpr char TARGET_SUFF[] = "s_#_#"; // # := any digit
-
-  if (eastl::find(VALID_PROFILES.begin(), VALID_PROFILES.end(), profile[0]) == VALID_PROFILES.end())
-    return false;
-
-  ++profile;
-  --len;
+  constexpr char LIB_TEMPLATE[] = "lib_#_#";
 
   auto compare = []<size_t N>(const char *profile, size_t len, const char(&required)[N]) {
     auto isNum = [](char c) { return c >= '0' && c <= '9'; };
@@ -150,6 +152,18 @@ static bool hlsl_profile_is_valid(const char *profile, size_t len)
     }
     return true;
   };
+
+  // lib is special, try it first as it does not share a infix ("s_") with others.
+  if (compare(profile, len, LIB_TEMPLATE))
+  {
+    return true;
+  }
+
+  if (eastl::find(VALID_PROFILES.begin(), VALID_PROFILES.end(), profile[0]) == VALID_PROFILES.end())
+    return false;
+
+  ++profile;
+  --len;
 
   // Check if @s_null
   if (compare(profile, len, NULL_SUFF))

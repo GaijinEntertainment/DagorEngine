@@ -1,0 +1,127 @@
+include "gbuffer.dshl"
+include "burnt_ground_inc.dshl"
+
+int burnt_ground_animated_decals_enabled = 1;
+interval burnt_ground_animated_decals_enabled : off<1, on;
+
+int burnt_ground_landmesh_active = 0;
+buffer burnt_ground_decals_indices_buf;
+buffer burnt_ground_decals_buf;
+
+texture burnt_ground_decal_tex_d;
+texture burnt_ground_decal_tex_n;
+texture burnt_ground_decal_tex_m;
+
+macro INIT_BURNT_GROUND(need_perlin_noise)
+  if (in_editor_assume == no && burnt_ground_animated_decals_enabled == on)
+  {
+    INIT_BURNT_GROUND_COMMON(need_perlin_noise)
+    (ps) {
+      burnt_ground_landmesh_active@i1 = burnt_ground_landmesh_active;
+      burnt_ground_decals_buf@buf = burnt_ground_decals_buf hlsl {
+        #include "burnt_ground.hlsli"
+        StructuredBuffer<BurntGroundDecal> burnt_ground_decals_buf@buf;
+      };
+      burnt_ground_decals_indices_buf@buf = burnt_ground_decals_indices_buf hlsl {
+        StructuredBuffer<uint> burnt_ground_decals_indices_buf@buf;
+      };
+      burnt_ground_decal_tex_d@tex2d = burnt_ground_decal_tex_d;
+      burnt_ground_decal_tex_n@tex2d = burnt_ground_decal_tex_n;
+      burnt_ground_decal_tex_m@tex2d = burnt_ground_decal_tex_m;
+    }
+  }
+endmacro
+
+macro USE_BURNT_GROUND()
+  if (in_editor_assume == no && burnt_ground_animated_decals_enabled == on)
+  {
+    USE_BURNT_GROUND_COMMON()
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+    hlsl (ps) {
+      #define burnt_ground_decal_tex_d_samplerstate global_linear_wrap_sampler
+      #define BURNT_GROUND_ENABLED 1
+      #include "burnt_ground.hlsli"
+
+      float get_burnt_ground_decal_alpha(float3 worldPos, in BurntGroundDecal decal_params)
+      {
+        float progress = saturate(decal_params.progress);
+        float alpha = saturate(2.0-decal_params.progress);
+
+        alpha *= getBurntGroundMask(worldPos.xz, decal_params.posXZ.xy, decal_params.radius, progress);
+        return alpha;
+      }
+
+      float get_burnt_decal_biome_filter(float3 worldPos)
+      {
+        return getBurntGroundBiomeMask(worldPos);
+      }
+
+      void apply_burnt_ground_decal(float3 worldPos, float alpha, inout UnpackedGbuffer gbuffer, inout DetailDesc detailDesc)
+      {
+        BRANCH
+        if (alpha < 0.001)
+          return;
+
+        float2 tc = getBurntGroundTc(worldPos.xz);
+
+        float4 diffuse_displacement = tex2D(burnt_ground_decal_tex_d, tc);
+        float3 normalMap = restore_normal(burnt_ground_decal_tex_n.Sample(burnt_ground_decal_tex_d_samplerstate, tc).xy);
+        float4 material_params = burnt_ground_decal_tex_m.Sample(burnt_ground_decal_tex_d_samplerstate, tc);
+
+        float3 albedo = diffuse_displacement.rgb;
+        float reflectance = material_params.r;
+        float ao = material_params.g;
+        float smoothness = material_params.a;
+        // use alpha as max variance to fade out smoothly the emission animation
+        float emission = getBurntGroundEmission(albedo, worldPos.xz, alpha) * alpha;
+        float3 worldNormal = normalize(normalMap.xzy);
+
+        gbuffer.albedo.xyz = lerp(gbuffer.albedo, albedo, alpha);
+        gbuffer.normal = normalize(lerp(gbuffer.normal, worldNormal, alpha));
+        gbuffer.smoothness = lerp(gbuffer.smoothness, smoothness, alpha);
+        gbuffer.ao = lerp(gbuffer.ao, ao, alpha);
+        gbuffer.reflectance = lerp(gbuffer.reflectance, reflectance, alpha);
+
+        BRANCH
+        if (emission > 0.0)
+        {
+          init_material(gbuffer, SHADING_SELFILLUM);
+          init_emission(gbuffer, emission * MAX_EMISSION);
+          init_emission_color(gbuffer, half4(albedo, 0));
+        }
+
+        float topDetailId = detailDesc.lerpFactor.y < 0.5
+                               ? (detailDesc.lerpFactor.x < 0.5 ? detailDesc.id.w : detailDesc.id.z)
+                               : (detailDesc.lerpFactor.x < 0.5 ? detailDesc.id.x : detailDesc.id.y);
+        detailDesc.id = float2(topDetailId, material_params.b).yyxx;
+        detailDesc.lerpFactor = float2(0, alpha);
+      }
+
+      void apply_burnt_ground(float3 worldPos, inout UnpackedGbuffer gbuffer, inout DetailDesc detailDesc)
+      {
+        int2 tileCoord = int2((worldPos.xz - world_view_pos.xz) * (1.0 / BURNT_GROUND_TILE_SIZE));
+        tileCoord += int2(BURNT_GROUND_TILE_COUNT/2, BURNT_GROUND_TILE_COUNT/2);
+        BRANCH
+        if (burnt_ground_landmesh_active == 0 || any(tileCoord < 0) || any(tileCoord >= BURNT_GROUND_TILE_COUNT))
+          return;
+
+        float biomeAlpha = get_burnt_decal_biome_filter(worldPos);
+
+        uint tileIndex = uint(tileCoord.y) * BURNT_GROUND_TILE_COUNT + uint(tileCoord.x);
+        uint offset_count = burnt_ground_decals_indices_buf[tileIndex];
+        uint offset = offset_count >> 16;
+        uint count = offset_count & 0xFF;
+
+        BRANCH
+        if (biomeAlpha < 0.001 || count == 0)
+          return;
+
+        float alpha = 0.0;
+        for (uint i = 0; i < count; ++i)
+          alpha = max(alpha, get_burnt_ground_decal_alpha(worldPos, burnt_ground_decals_buf[i+offset]));
+
+        apply_burnt_ground_decal(worldPos, biomeAlpha * alpha, gbuffer, detailDesc);
+      }
+    }
+  }
+endmacro

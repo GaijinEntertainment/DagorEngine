@@ -1,0 +1,31 @@
+Root           ?= ../../../../.. ;
+Location        = prog/gameLibs/websocketJsonRpc/tests/testHelpers ;
+StrictCompile   = yes ;
+TargetType      = lib ;
+Target          = gameLibs/websocketJsonRpc_testHelpers.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/3rdPartyLibs/catch2/src
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/websocketJsonRpc/tests
+;
+
+UseProgLibs +=
+  gameLibs/websocket
+  gameLibs/websocketJsonRpc
+;
+
+local AllSrcFolder_CPP =
+  .
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp : Sources ;
+
+if $(Platform) in windows {
+  CPPopt += /FC ;        # enable full path in __FILE__ macro (useful when navigating output with for IDE)
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

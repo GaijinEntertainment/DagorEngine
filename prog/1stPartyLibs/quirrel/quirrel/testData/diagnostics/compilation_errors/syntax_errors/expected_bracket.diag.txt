@@ -1,0 +1,8 @@
+ERROR: expected ']'
+testData/diagnostics/compilation_errors/syntax_errors/expected_bracket.nut:2:31
+
+// EXPECT_ERROR: "expected ']'"
+let a = [1, 2, 3]; let x = a[0
+                               ^
+
+

@@ -8,13 +8,20 @@ options strict_smart_pointers = true
 
 module rst_comment shared private
 
+//! Documentation comment extractor.
+//!
+//! Implements the ``[comment_reader]`` annotation that collects
+//! ``//!`` doc-comments from source files and writes per-symbol
+//! RST snippets to the ``detail/`` directory.
+
 require daslib/ast_boost
 require docs/rst
-require fio
+require daslib/fio
 require strings
 require daslib/strings_boost
 
 enum ParserState
+    //! State of the documentation comment parser.
     none
     structure
     field
@@ -50,13 +57,13 @@ def panic_rst ( s : string )
     panic("panic")
 
 [macro_function]
-def private get_macro_name ( st:StructurePtr; mtype:string )
+def private get_macro_name ( st:StructurePtr; mtype:string ) : string
     for ann in st.annotations
         if ann.annotation.name==mtype
             for arg in ann.arguments
                 if arg.name=="name"
                     return string(arg.sValue)
-    return ""
+    return string(st.name)
 
 
 var private modName : function<(): string>
@@ -72,6 +79,7 @@ def get_module_name(prog, mod)
 
 [comment_reader]
 class RstComment : AstCommentReader
+    //! Comment reader that extracts `//!` doc comments.
     chars : array<uint8>
     state : ParserState = ParserState.none
     comment : string
@@ -285,6 +293,11 @@ class RstComment : AstCommentReader
                 elif ann.annotation.name=="capture_macro"
                     let ann_name = get_macro_name(st,"capture_macro")
                     write_to_detail("capture_macro-{get_module_name(prog, mod)}-{ann_name}", structure_comment)
+                    is_annotation = true
+                    break
+                elif ann.annotation.name=="enumeration_macro"
+                    let ann_name = get_macro_name(st,"enumeration_macro")
+                    write_to_detail("enumeration_macro-{get_module_name(prog, mod)}-{ann_name}", structure_comment)
                     is_annotation = true
                     break
                 // else

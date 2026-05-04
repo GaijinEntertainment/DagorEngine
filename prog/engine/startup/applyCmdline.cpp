@@ -6,14 +6,13 @@
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_debug.h>
 #include <memory/dag_framemem.h>
+#include <EASTL/fixed_string.h>
 
 static bool apply_blk_from_cli_arg(DataBlock *target, const char *value)
 {
-  char tmpOpt[256];
-  strncpy(tmpOpt, value, sizeof(tmpOpt));
-  tmpOpt[sizeof(tmpOpt) - 1] = '\0';
+  eastl::fixed_string<char, 256, true, framemem_allocator> tmpOpt = value;
 
-  char *assign_sep = strchr(tmpOpt, '=');
+  char *assign_sep = strchr(tmpOpt.data(), '=');
   if (assign_sep)
     *assign_sep = '\0';
 
@@ -22,7 +21,7 @@ static bool apply_blk_from_cli_arg(DataBlock *target, const char *value)
   do
   {
     prevTok = curTok;
-    curTok = strtok(curTok ? NULL : tmpOpt, "/");
+    curTok = strtok(curTok ? NULL : tmpOpt.data(), "/");
     if (!curTok)
       break;
     else if (prevTok)
@@ -42,12 +41,26 @@ static bool apply_blk_from_cli_arg(DataBlock *target, const char *value)
   return false;
 }
 
+const char *dgs_cli_arg_value_for_log(const char *arg, char *buf, int buf_size)
+{
+  const char *eq = strchr(arg, '=');
+  if (eq)
+    for (const char *pat : {"login:", "password:"})
+      if (const char *p = strstr(arg, pat); p && (p == arg || p[-1] == '/' || p[-1] == '-'))
+      {
+        snprintf(buf, buf_size, "%.*s=<hidden>", (int)(eq - arg), arg);
+        return buf;
+      }
+  return arg;
+}
+
 void dgs_apply_command_line_arg_to_blk(DataBlock *target, const char *value, const char *target_desc)
 {
+  char buf[256];
   if (apply_blk_from_cli_arg(target, value))
-    debug("applied '%s' to '%s'", value, target_desc);
+    debug("applied '%s' to '%s'", dgs_cli_arg_value_for_log(value, buf, sizeof(buf)), target_desc);
   else
-    logwarn("can't apply '%s' to '%s'", value, target_desc);
+    logwarn("can't apply '%s' to '%s'", dgs_cli_arg_value_for_log(value, buf, sizeof(buf)), target_desc);
 }
 
 OverrideFilter gen_default_override_filter(const SettingsHashMap *changed_settings)
@@ -62,14 +75,9 @@ OverrideFilter gen_default_override_filter(const SettingsHashMap *changed_settin
   return [accumulatedChangedSettingsPtr](const char *setting) {
     if (accumulatedChangedSettingsPtr->nameCount() == 0)
       return true;
-    char tmpOpt[256];
-    strncpy(tmpOpt, setting, sizeof(tmpOpt));
-    tmpOpt[sizeof(tmpOpt) - 1] = '\0';
-    char *nameEnd = strchr(tmpOpt, ':');
-    if (!nameEnd)
-      return true;
-    *nameEnd = '\0';
-    return accumulatedChangedSettingsPtr->getNameId(tmpOpt) < 0;
+    const char *nameEnd = strchr(setting, ':');
+    size_t nameLen = nameEnd ? (nameEnd - setting) : strlen(setting);
+    return accumulatedChangedSettingsPtr->getNameId(setting, nameLen) < 0;
   };
 }
 

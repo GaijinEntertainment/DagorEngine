@@ -1,0 +1,31 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/quirrelHost ;
+
+TargetType  = lib ;
+local TargetLib = gameLibs/quirrel/quirrelHost ;
+if $(SqVarTrace) = yes { TargetLib = $(TargetLib)~vt ; }
+Target = $(TargetLib).lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/internal
+;
+
+include $(Root)/prog/_jBuild/add_quirrel.jam ;
+
+Sources =
+  memtrace.cpp
+  sqmem_dagor.cpp
+;
+
+if $(Sanitize) in address hwaddress {} else { opt on sqmem_dagor.cpp += -DENABLE_RE_USE=0 ; }
+
+if $(SqVarTrace) = yes {
+  CPPopt += -DSQ_VAR_TRACE_ENABLED ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -25,8 +25,8 @@
 #include <ADT/spatialHash.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <memory/dag_fixedBlockAllocator.h>
-#include "gridEvent.h"
-#include <ecs/delayedAct/actInThread.h>
+#include <ecs/game/generic/gridEvent.h>
+#include <daECS/delayedAct/actInThread.h>
 
 ECS_REGISTER_EVENT(CmdUpdateGrid);
 
@@ -37,13 +37,15 @@ ECS_AUTO_REGISTER_COMPONENT(GridHolder, "grid_holder", nullptr, 0);
 CONSOLE_BOOL_VAL("grid", draw_bsph, false);
 
 template <typename Callable>
-static void all_grid_holders_ecs_query(Callable fn);
+static void all_grid_holders_ecs_query(ecs::EntityManager &manager, Callable fn);
 template <typename Callable>
-static void all_grid_holders_with_type_ecs_query(Callable fn);
+static void all_grid_holders_with_type_ecs_query(ecs::EntityManager &manager, Callable fn);
 template <typename Callable>
-static void all_grid_objects_ecs_query(Callable fn);
+static void all_grid_objects_ecs_query(ecs::EntityManager &manager, Callable fn);
 template <typename Callable>
-static void all_doors_ecs_query(Callable fn);
+static void all_doors_ecs_query(ecs::EntityManager &manager, Callable fn);
+template <typename Callable>
+static void level_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static ecs::HashedConstString invalid_grid_holder_hints[] = {ECS_HASH("human"), ECS_HASH("humans"), ECS_HASH("vehicle"),
   ECS_HASH("vehicles"), ECS_HASH("stationary_guns"), ECS_HASH("interactable"), ECS_HASH("loot"), ECS_HASH("attract_point"),
@@ -98,11 +100,17 @@ GridHolder *find_grid_holder(uint32_t grid_name_hash)
   {
     if (hint.hash == grid_name_hash)
     {
-      grid_logerr("Invalid grid type %s passed to grid query, grid holder not found", hint.str);
+      level_ecs_query(*g_entity_mgr, [&](const ecs::string *level__sceneBlk) {
+        grid_logerr("Invalid grid type %s passed to grid query, grid holder not found (scene: %s)", hint.str,
+          level__sceneBlk ? level__sceneBlk->c_str() : "");
+      });
       return nullptr;
     }
   }
-  grid_logerr("Invalid grid type hash %u passed to grid query, grid holder not found", grid_name_hash);
+  level_ecs_query(*g_entity_mgr, [&](const ecs::string *level__sceneBlk) {
+    grid_logerr("Invalid grid type hash %u passed to grid query, grid holder not found (scene: %s)", grid_name_hash,
+      level__sceneBlk ? level__sceneBlk->c_str() : "");
+  });
   return nullptr;
 }
 
@@ -117,13 +125,14 @@ GridHolder *find_grid_holder(ecs::HashedConstString grid_name_hash)
 
 void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb)
 {
-  all_grid_holders_ecs_query([&](const GridHolder &grid_holder) { cb(grid_holder); });
+  all_grid_holders_ecs_query(*g_entity_mgr, [&](const GridHolder &grid_holder) { cb(grid_holder); });
 }
 
 ECS_ON_EVENT(on_disappear)
-void grid_holder_destroyed_es_event_handler(const ecs::Event &, const GridHolder &grid_holder, int grid_holder__typeHash)
+static void grid_holder_destroyed_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, const GridHolder &grid_holder,
+  int grid_holder__typeHash)
 {
-  all_grid_objects_ecs_query([&](GridObjComponent &grid_obj) {
+  all_grid_objects_ecs_query(manager, [&](GridObjComponent &grid_obj) {
     if (grid_obj.ownerGrid == &grid_holder)
     {
       grid_obj.removeFromGrid();
@@ -140,7 +149,7 @@ GridObjComponent::GridObjComponent(const ecs::EntityManager &mgr, ecs::EntityId 
   inserted = false;
   hidden = mgr.getOr(eid_, ECS_HASH("grid_obj__hidden"), 0) != 0;
   const char *gridType = mgr.getOr(eid_, ECS_HASH("grid_obj__gridType"), "default");
-  uint32_t gridTypeHash = str_hash_fnv1(gridType);
+  uint32_t gridTypeHash = ecs_str_hash(gridType);
   allocatorKey = uint16_t(gridTypeHash);
   ownerGrid = find_grid_holder_by_hash_impl(gridTypeHash);
 }
@@ -222,12 +231,12 @@ ECS_AUTO_REGISTER_COMPONENT_DEPS(GridObjComponent, "grid_obj", nullptr, 0, "?ani
 
 ECS_TAG(server)
 ECS_ON_EVENT(on_appear)
-static void grid_obj_verify_server_es(const ecs::Event &, ecs::EntityId eid, GridObjComponent &grid_obj,
-  ecs::string grid_obj__gridType = "default")
+static void grid_obj_verify_server_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid, GridObjComponent &grid_obj,
+  const ecs::string *grid_obj__gridType)
 {
   if (!grid_obj.ownerGrid)
-    logerr("can't find grid of <%s> type in %i:<%s>", grid_obj__gridType.c_str(), (ecs::entity_id_t)eid,
-      g_entity_mgr->getEntityTemplateName(eid));
+    logerr("can't find grid of <%s> type in %i:<%s>", (grid_obj__gridType ? grid_obj__gridType->c_str() : "default"),
+      (ecs::entity_id_t)eid, manager.getEntityTemplateName(eid));
 }
 
 ECS_ON_EVENT(on_appear)
@@ -247,9 +256,10 @@ ECS_ON_EVENT(EventOnEntityTeleported)
 ECS_ON_EVENT(CmdUpdateGrid)
 ECS_REQUIRE_NOT(ecs::Tag grid_obj__updateAlways) // TODO: remove
 ECS_AFTER(animchar_act_on_phys_teleport_es)
-void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid_obj, const TMatrix &transform,
-  const CollisionResource *collres = nullptr, const RiExtraComponent *ri_extra = nullptr, float grid_obj__fixedTmScale = -1.f,
-  const ecs::Tag *grid_obj__scaledBoxBounding = nullptr)
+void grid_obj_update_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, GridObjComponent &grid_obj,
+  const TMatrix &transform, const CollisionResource *collres = nullptr, const RiExtraComponent *ri_extra = nullptr,
+  float grid_obj__fixedTmScale = -1.f, const ecs::Tag *grid_obj__scaledBoxBounding = nullptr,
+  const ecs::Tag *grid_obj__bigObject = nullptr)
 {
   if (DAGOR_UNLIKELY(grid_obj.hidden))
     return;
@@ -271,15 +281,17 @@ void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid
         boundingScale = v_extract_x(v_mat44_max_scale43_x(tm));
       scaledBoundingRad = max(boundingRad * boundingScale, FLT_EPSILON);
 
+      G_UNUSED(grid_obj__bigObject);
+      G_UNUSED(manager);
 #if DAGOR_DBGLEVEL > 0
-      if (DAGOR_UNLIKELY(isnan(boundingRad) || boundingRad > MAX_VALID_BOUNDING_RADIUS))
+      if (DAGOR_UNLIKELY(isnan(boundingRad) || (boundingRad > MAX_VALID_BOUNDING_RADIUS && !grid_obj__bigObject)))
       {
         const char *resName = nullptr;
         if (ri_extra)
           resName = rendinst::getRIGenExtraName(rendinst::handle_to_ri_type(ri_extra->handle));
 
         grid_logerr("Grid entity %i (%s) update error: bounding radius %f is too big or NaN (resName=%s)",
-          ecs::entity_id_t(grid_obj.eid), g_entity_mgr->getEntityTemplateName(grid_obj.eid), boundingRad, resName ? resName : "n/a");
+          ecs::entity_id_t(grid_obj.eid), manager.getEntityTemplateName(grid_obj.eid), boundingRad, resName ? resName : "n/a");
         boundingRad = FLT_EPSILON;
       }
 #endif
@@ -287,7 +299,7 @@ void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid
   }
   else if (grid_obj__scaledBoxBounding)
   {
-    float boundingRad = 0.5f;
+    float boundingRad = 0.5f * sqrtf(3.f); // half-diagonal of the unit cube
     float boundingScale = grid_obj__fixedTmScale;
     if (DAGOR_UNLIKELY(boundingScale < 0.f))
       boundingScale = v_extract_x(v_mat44_max_scale43_x(tm));
@@ -298,7 +310,7 @@ void grid_obj_update_es_event_handler(const ecs::Event &, GridObjComponent &grid
 }
 
 void grid_obj_update_with_animchar(GridObjComponent &grid_obj, const TMatrix &transform, const GeomNodeTree *geom_node_tree,
-  const CollisionResource &collres, float grid_obj__fixedTmScale)
+  const CollisionResource &collres, float grid_obj__fixedTmScale, const ecs::Tag *grid_obj__bigObject)
 {
   if (!grid_obj.hidden)
   {
@@ -311,7 +323,7 @@ void grid_obj_update_with_animchar(GridObjComponent &grid_obj, const TMatrix &tr
       if (DAGOR_UNLIKELY(boundingScale < 0.f))
         boundingScale = v_extract_x(v_mat44_max_scale43_x(tm));
       float boundingRad = sqrtf(v_extract_w(collres.vBoundingSphere));
-      if (DAGOR_UNLIKELY(isnan(boundingRad) || boundingRad > MAX_VALID_BOUNDING_RADIUS))
+      if (DAGOR_UNLIKELY(isnan(boundingRad) || (boundingRad > MAX_VALID_BOUNDING_RADIUS && !grid_obj__bigObject)))
       {
         grid_logerr("Grid entity %i (%s) update error: bounding radius %f is too big or NaN", ecs::entity_id_t(grid_obj.eid),
           g_entity_mgr->getEntityTemplateName(grid_obj.eid), boundingRad);
@@ -328,28 +340,34 @@ ECS_AFTER(after_animchar_update_sync)
 ECS_REQUIRE(const ecs::Tag grid_obj__updateAlways)
 ECS_REQUIRE_NOT(const ecs::Tag grid_obj__updateInMainThread)
 void grid_obj_update_with_animchar_es(const ParallelUpdateFrameDelayed &, GridObjComponent &grid_obj, const TMatrix &transform,
-  const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f)
+  const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f,
+  const ecs::Tag *grid_obj__bigObject = nullptr)
 {
-  grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale);
+  grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale,
+    grid_obj__bigObject);
 }
 
 ECS_AFTER(after_animchar_update_sync)
 ECS_REQUIRE(const ecs::Tag grid_obj__updateAlways)
 ECS_REQUIRE(const ecs::Tag grid_obj__updateInMainThread)
 void grid_obj_update_main_with_animchar_es(const ecs::UpdateStageInfoAct &, GridObjComponent &grid_obj, const TMatrix &transform,
-  const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f)
+  const AnimV20::AnimcharBaseComponent *animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f,
+  const ecs::Tag *grid_obj__bigObject = nullptr)
 {
-  grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale);
+  grid_obj_update_with_animchar(grid_obj, transform, animchar ? &animchar->getNodeTree() : nullptr, collres, grid_obj__fixedTmScale,
+    grid_obj__bigObject);
 }
 
 // TODO: remove that duplicating es
 ECS_ON_EVENT(EventOnEntityTeleported)
+ECS_ON_EVENT(CmdUpdateGrid)
 ECS_REQUIRE(const ecs::Tag grid_obj__updateAlways)
 ECS_AFTER(animchar_act_on_phys_teleport_es)
 void grid_obj_update_with_animchar_evt_es(const ecs::Event &, GridObjComponent &grid_obj, const TMatrix &transform,
-  const AnimV20::AnimcharBaseComponent &animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f)
+  const AnimV20::AnimcharBaseComponent &animchar, const CollisionResource &collres, float grid_obj__fixedTmScale = -1.f,
+  const ecs::Tag *grid_obj__bigObject = nullptr)
 {
-  grid_obj_update_with_animchar(grid_obj, transform, &animchar.getNodeTree(), collres, grid_obj__fixedTmScale);
+  grid_obj_update_with_animchar(grid_obj, transform, &animchar.getNodeTree(), collres, grid_obj__fixedTmScale, grid_obj__bigObject);
 }
 
 ECS_ON_EVENT(on_disappear)
@@ -379,25 +397,27 @@ ECS_ON_EVENT(on_appear)
 static void grid_holder_created_es(const ecs::Event &, GridHolder &grid_holder, const ecs::string &grid_holder__type,
   int &grid_holder__typeHash, int grid_holder__cellSize = SPATIAL_HASH_DEFAULT_CELL_SIZE)
 {
-  grid_holder__typeHash = mem_hash_fnv1(grid_holder__type.c_str(), grid_holder__type.length());
+  grid_holder__typeHash = ecs_mem_hash(grid_holder__type.c_str(), grid_holder__type.length());
   grid_holder.setCellSizeWithoutObjectsReposition(grid_holder__cellSize);
   G_VERIFY(grid_holder_by_hash_map.emplace(grid_holder__typeHash, &grid_holder).second);
 }
 
 template <typename Callable>
-static void grid_object_assigned_grid_ecs_query(Callable c);
+static void grid_object_assigned_grid_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(netClient)
 ECS_ON_EVENT(on_appear)
-static void grid_holder_created_client_es(const ecs::Event &, GridHolder &grid_holder, const ecs::string &grid_holder__type)
+static void grid_holder_created_client_es(const ecs::Event &, ecs::EntityManager &manager, GridHolder &grid_holder,
+  const ecs::string &grid_holder__type)
 {
-  grid_object_assigned_grid_ecs_query([&](ecs::EntityId eid, GridObjComponent &grid_obj, ecs::string grid_obj__gridType = "default") {
-    if (!grid_obj.ownerGrid && grid_obj__gridType == grid_holder__type)
-    {
-      grid_obj.ownerGrid = &grid_holder;
-      g_entity_mgr->sendEvent(eid, CmdUpdateGrid());
-    }
-  });
+  grid_object_assigned_grid_ecs_query(manager,
+    [&](ecs::EntityId eid, GridObjComponent &grid_obj, const ecs::string *grid_obj__gridType) {
+      if (!grid_obj.ownerGrid && grid_holder__type == (grid_obj__gridType ? grid_obj__gridType->c_str() : "default"))
+      {
+        grid_obj.ownerGrid = &grid_holder;
+        manager.sendEvent(eid, CmdUpdateGrid());
+      }
+    });
 }
 
 static void save_grid_map(FILE *fp, const GridHolder &grid_holder, const ecs::string &grid_holder__type)
@@ -446,7 +466,7 @@ static bool grid_console_handler(const char *argv[], int argc)
       return false;
     }
 
-    all_grid_holders_with_type_ecs_query(
+    all_grid_holders_with_type_ecs_query(*g_entity_mgr,
       [&](GridHolder &grid_holder, const ecs::string &grid_holder__type) { save_grid_map(fp, grid_holder, grid_holder__type); });
 
     fclose(fp);
@@ -505,7 +525,7 @@ static bool grid_console_handler(const char *argv[], int argc)
     volatile bool volatile_var;
 
     int totalDoorsCount = 0;
-    all_doors_ecs_query([&](const TMatrix &transform, float net__scopeDistanceSq ECS_REQUIRE(bool isDoor)) {
+    all_doors_ecs_query(*g_entity_mgr, [&](const TMatrix &transform, float net__scopeDistanceSq ECS_REQUIRE(bool isDoor)) {
       G_UNUSED(transform);
       G_UNUSED(net__scopeDistanceSq);
       totalDoorsCount++;
@@ -558,7 +578,7 @@ static bool grid_console_handler(const char *argv[], int argc)
         int64_t ref = ref_time_ticks();
         for (int i = 0; i < launchCount / 100; i++)
         {
-          all_doors_ecs_query([&](const TMatrix &transform, float net__scopeDistanceSq ECS_REQUIRE(bool isDoor)) {
+          all_doors_ecs_query(*g_entity_mgr, [&](const TMatrix &transform, float net__scopeDistanceSq ECS_REQUIRE(bool isDoor)) {
             vec3f vPos = v_ldu(&transform.getcol(3).x);
             volatile_var = v_extract_x(v_length3_sq_x(v_sub(vPos, vQueryCenter))) < net__scopeDistanceSq;
           });
@@ -578,27 +598,39 @@ static bool grid_console_handler(const char *argv[], int argc)
 }
 
 REGISTER_CONSOLE_HANDLER(grid_console_handler);
+dag::Vector<Point3_vec4> grid_debug_spheres;
 
 ECS_NO_ORDER
 ECS_TAG(render, dev)
 ECS_REQUIRE(eastl::true_type camera__active)
-static void grid_debug_draw_es(const ecs::UpdateStageInfoRenderDebug &, const TMatrix &transform)
+static void grid_debug_collect_es(const ParallelUpdateFrameDelayed &, const TMatrix &transform)
 {
   if (!draw_bsph.get())
     return;
-  begin_draw_cached_debug_lines();
   for_each_grid_holder([&](const GridHolder &grid_holder) {
     BSphere3 bsph(transform.getcol(3), 64.f);
     grid_find_entity(grid_holder, bsph, GridEntCheck::POS, [](ecs::EntityId, vec3f wbsph) {
       float radius = v_extract_w(wbsph);
       if (radius > 0.1f)
       {
-        Point3_vec4 center;
-        v_st(&center.x, wbsph);
-        draw_cached_debug_sphere(center, radius, E3DCOLOR_MAKE(255, 255, 32, 255));
+        Point3_vec4 sph;
+        v_st(&sph.x, wbsph);
+        grid_debug_spheres.push_back(sph);
       }
       return false;
     });
   });
+}
+
+ECS_NO_ORDER
+ECS_TAG(render, dev)
+static void grid_debug_draw_es(const ecs::UpdateStageInfoRenderDebug &)
+{
+  if (grid_debug_spheres.empty())
+    return;
+  begin_draw_cached_debug_lines();
+  for (Point3_vec4 sph : grid_debug_spheres)
+    draw_cached_debug_sphere(sph, sph.resv, E3DCOLOR_MAKE(255, 255, 32, 255));
   end_draw_cached_debug_lines();
+  grid_debug_spheres.clear();
 }

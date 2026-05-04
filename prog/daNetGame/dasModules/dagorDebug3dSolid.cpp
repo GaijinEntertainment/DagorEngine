@@ -21,6 +21,8 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::draw_debug_cube_buffered");
     das::addExtern<DAS_BIND_FUN(bind_dascript::draw_debug_triangle_buffered)>(*this, lib, "_builtin_draw_debug_triangle_buffered",
       das::SideEffects::modifyExternal, "bind_dascript::draw_debug_triangle_buffered");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::draw_debug_tehedron_buffered)>(*this, lib,
+      "_builtin_draw_debug_tehedron_solid_buffered", das::SideEffects::modifyExternal, "bind_dascript::draw_debug_tehedron_buffered");
     das::addExtern<DAS_BIND_FUN(bind_dascript::draw_debug_quad_buffered_4point)>(*this, lib, "_builtin_draw_debug_quad_buffered",
       das::SideEffects::modifyExternal, "bind_dascript::draw_debug_quad_buffered_4point");
     das::addExtern<DAS_BIND_FUN(bind_dascript::draw_debug_quad_buffered_halfvec)>(*this, lib, "_builtin_draw_debug_quad_buffered",

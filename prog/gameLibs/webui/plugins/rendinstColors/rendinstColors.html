@@ -23,6 +23,9 @@
 <div id="table_div" style="-moz-user-select: none; -webkit-user-select: none; -ms-user-select:none; user-select:none;-o-user-select:none;">
 ...
 </div>
+<div id="top_right_menu" style="position:fixed; top:1em; right:1em;" >
+  <button id="copy_selected_entities" onclick=" copySelectedEntities(); event.stopPropagation()"> Copy Selected Entities </button>
+</div>
 
 
 
@@ -37,6 +40,10 @@ var errorState = false;
 var attached = false;
 var queryQueue = [];
 var lastRespondTime = null;
+var copyColor = null;
+var isCtrlPressed = false;
+var copyPasteHistory = []
+var redoPasteHistory = []
 
 var rendinstNames = [];
 var marked = [];
@@ -142,13 +149,36 @@ function onDetach()
   attached = false;
 }
 
+function copyPasteColor(name)
+{
+  var colorId = "id_" + name;
+  if (isCtrlPressed)
+  {
+    copyColor = document.getElementById(colorId).dataset.color;
+  }
+  else if (copyColor)
+  {
+    var vegName = name.split(':')[2];
+    var _fromId = "id_:colorFrom:" + vegName;
+    var _toId = "id_:colorTo:" + vegName;
+    copyPasteHistory.push({"name":vegName, "from":document.getElementById(_fromId).dataset.color, "to":document.getElementById(_toId).dataset.color});
+    redoPasteHistory = [];
 
+    document.getElementById(colorId).dataset.color = copyColor;
+    document.getElementById(colorId).style.backgroundColor = "#" + copyColor.slice(0, 6);
+
+    var _fromColorHex = document.getElementById(_fromId).dataset.color;
+    var _toColorHex = document.getElementById(_toId).dataset.color;
+    submitColor(vegName, _fromColorHex, _toColorHex);
+  }
+}
 
 function makeButtonHtml(name, colorHex)
 {
   return "<button id=\"id_" + name + "\" style=\"background-color:#" + colorHex.slice(0, 6) + "\" data-color=\"" + colorHex +
          "\", name=\"id_" + name + "\"" +
-         "onclick=\"show_color_picker_hex(this, 'id_" + name + "', onColorChanged); event.stopPropagation();\" onmousedown=\"event.stopPropagation();\">" +
+         "onclick=\"show_color_picker_hex(this, 'id_" + name + "', onColorChanged); event.stopPropagation();\" onmousedown=\"event.stopPropagation();\"" +
+         "oncontextmenu = \"event.preventDefault(); copyPasteColor('" + name + "'); event.stopPropagation();\" >" +
          "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" +
          "</button>";
 }
@@ -156,11 +186,12 @@ function makeButtonHtml(name, colorHex)
 function makeRendinstHtml(name, colorHexFrom, colorHexTo, num)
 {
   return "<div id=\"div_" + num + "\" class=\"notSelected\" onmousedown=\"on_ri_mouse_down(" + num +
-         ", event)\" onmousemove=\"on_ri_mouse_move(" + num + ", event)\"  onmouseup=\"on_ri_mouse_up(" + num + ", event); event.stopPropagation();\" >" +
+         ", event); event.stopPropagation()\" onmousemove=\"on_ri_mouse_move(" + num + ", event); event.stopPropagation();\"  onmouseup=\"on_ri_mouse_up(" + num + ", event); event.stopPropagation();\" >" +
          "<span style=\"width:350px; display:inline-block;\">" + name + "</span>" +
          makeButtonHtml(":colorFrom:" + name, colorHexFrom) +
          makeButtonHtml(":colorTo:" + name, colorHexTo) +
-         "<button onmousedown=\"event.stopPropagation();\" onclick=\"copyToClipboard('" + name + "'); event.stopPropagation();\">Copy to Clipboard</button>" +
+         "<button onmousedown=\"event.stopPropagation();\" onclick=\"copyToClipboard('" + name + "', " + false + "); event.stopPropagation();\">Copy to Clipboard</button>" +
+         "<button onmousedown=\"event.stopPropagation();\" onclick=\"copyToClipboard('" + name + "', " + true + "); event.stopPropagation();\">Copy Entity to Clipboard</button>"
          "</div>";
 }
 
@@ -172,28 +203,70 @@ function colorHexToE3dcolor(c)
               parseInt(c.slice(6, 8), 16);
 }
 
-function copyToClipboard(name)
+function systemCopyClipboard(str)
 {
-  var systemCopyClipboard = function(str)
-  {
-    const el = document.createElement('textarea');
-    el.value = str;
-    el.setAttribute('readonly', '');
-    el.style.position = 'absolute';
-    el.style.left = '-9999px';
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-  };
+  const el = document.createElement('textarea');
+  el.value = str;
+  el.setAttribute('readonly', '');
+  el.style.position = 'absolute';
+  el.style.left = '-9999px';
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+};
 
+
+function entityString(name)
+{
   var fromId = "id_:colorFrom:" + name;
   var toId = "id_:colorTo:" + name;
   var fromColorHex = document.getElementById(fromId).dataset.color;
   var toColorHex = document.getElementById(toId).dataset.color;
-  var s = "  colorFrom:c = " + colorHexToE3dcolor(fromColorHex) + "\n";
-  s += "  colorTo:c = " + colorHexToE3dcolor(toColorHex);
+
+  var s = "entity{\n" +
+    "  _template:t=\"ri_color_override\"\n"+
+    "  ri_color_override__name:t = \"" + name + "\"\n" +
+    "  ri_color_override__from:c = " + colorHexToE3dcolor(fromColorHex) + "\n" +
+    "  ri_color_override__to:c = " + colorHexToE3dcolor(toColorHex) + "\n" +
+    "}\n\n"
+
+  return s;
+}
+
+function copyToClipboard(name, toEntity)
+{
+  var fromId = "id_:colorFrom:" + name;
+  var toId = "id_:colorTo:" + name;
+  var fromColorHex = document.getElementById(fromId).dataset.color;
+  var toColorHex = document.getElementById(toId).dataset.color;
+  if (!toEntity)
+  {
+    var s = "  colorFrom:c = " + colorHexToE3dcolor(fromColorHex) + "\n";
+    s += "  colorTo:c = " + colorHexToE3dcolor(toColorHex);
+    systemCopyClipboard(s);
+  }
+  else
+  {
+    systemCopyClipboard(entityString(name));
+  }
+}
+
+function copySelectedEntities()
+{
+  var s = "";
+  for (var i = 0; i < marked.length; i++)
+  {
+    if (marked[i])
+      s += entityString(rendinstNames[i]);
+  }
   systemCopyClipboard(s);
+}
+
+function submitColor(name, fromColorHex, toColorHex)
+{
+  var q = "setcolor&" + name + "&" + fromColorHex + "&" + toColorHex;
+  query(q);
 }
 
 function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
@@ -211,8 +284,7 @@ function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
 
   if (!marked[divNum])
   {
-    var q = "setcolor&" + name + "&" + _fromColorHex + "&" + _toColorHex;
-    query(q);
+    submitColor(name, _fromColorHex, _toColorHex);
   }
   else
   {
@@ -227,8 +299,7 @@ function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
         document.getElementById(fromId).dataset.color = _fromColorHex;
         document.getElementById(toId).dataset.color = _toColorHex;
 
-        var q = "setcolor&" + name + "&" + _fromColorHex + "&" + _toColorHex;
-        query(q);
+        submitColor(name, _fromColorHex, _toColorHex);
       }
   }
 }
@@ -236,7 +307,7 @@ function onColorChanged(color4FloatStr, e3dcolorHexStr, varId)
 
 var first_ri = -1;
 var last_ri = -1;
-var ctrlPressed = false;
+var selectionWithControl = false;
 
 function updateSelection()
 {
@@ -244,7 +315,7 @@ function updateSelection()
   var mx = Math.max(first_ri, last_ri);
   for (var i = 0; i < marked.length; i++)
   {
-    var m = ctrlPressed ? marked[i] : false;
+    var m = selectionWithControl ? marked[i] : false;
 
     if (i >= mn && i <= mx)
       newMarked[i] = true;
@@ -263,7 +334,7 @@ function on_ri_mouse_down(n, e)
 
   first_ri = n;
   last_ri = n;
-  ctrlPressed = e.ctrlKey;
+  selectionWithControl = e.ctrlKey;
   updateSelection();
 }
 
@@ -294,13 +365,13 @@ function bakeMarked()
 {
   for (var i = 0; i < marked.length; i++)
   {
-    if (ctrlPressed)
+    if (selectionWithControl)
       marked[i] ^= newMarked[i];
     else
       marked[i] = newMarked[i];
 
     newMarked[i] = false;
-  }  
+  }
 }
 
 window.addEventListener("mouseup", function(e) {
@@ -315,6 +386,67 @@ window.addEventListener("mouseup", function(e) {
     last_ri = -1;
   }
 });
+
+function applyHistoryItem(historyItem)
+{
+  var vegName = historyItem["name"];
+  var colorFrom = historyItem["from"];
+  var colorTo = historyItem["to"];
+
+  var _fromId = "id_:colorFrom:" + vegName;
+  var _toId = "id_:colorTo:" + vegName;
+  var saveColorFrom = document.getElementById(_fromId).dataset.color;
+  var saveColorTo = document.getElementById(_toId).dataset.color;
+  document.getElementById(_fromId).dataset.color = colorFrom;
+  document.getElementById(_toId).dataset.color  = colorTo;
+  document.getElementById(_fromId).style.backgroundColor = "#" + colorFrom.slice(0, 6);
+  document.getElementById(_toId).style.backgroundColor  = "#" + colorTo.slice(0, 6);
+
+  submitColor(vegName, colorFrom, colorTo);
+  return {"name":vegName, "from":saveColorFrom, "to":saveColorTo};
+}
+
+function popFromHistory()
+{
+  if (copyPasteHistory.length == 0)
+    return;
+
+  var historyItem = copyPasteHistory.pop();
+  redoPasteHistory.push(applyHistoryItem(historyItem));
+}
+
+function popFromRedo()
+{
+  if (redoPasteHistory.length == 0)
+    return;
+
+  var historyItem = redoPasteHistory.pop();
+  copyPasteHistory.push(applyHistoryItem(historyItem));
+}
+
+window.onkeydown = function(e)
+{
+  if (e.ctrlKey)
+    isCtrlPressed = true;
+
+  if (e.ctrlKey && e.code === "KeyZ")
+  {
+    popFromHistory();
+    e.preventDafault();
+  }
+
+  if (e.ctrlKey && e.code === "KeyY")
+  {
+    popFromRedo();
+    e.preventDafault();
+  }
+}
+
+window.onkeyup = function(e)
+{
+  if (!e.ctrlKey)
+    isCtrlPressed = false;
+}
 
 function queryAllData()
 {

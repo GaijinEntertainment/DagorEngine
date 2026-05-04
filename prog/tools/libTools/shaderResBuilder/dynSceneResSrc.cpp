@@ -76,6 +76,7 @@ bool dynmodel_exp_empty_bone_names_allowed = false;
 bool DynamicRenderableSceneLodsResSrc::optimizeForCache = true;
 int DynamicRenderableSceneLodsResSrc::limitBonePerVertex = -1;
 int DynamicRenderableSceneLodsResSrc::setBonePerVertex = -1;
+bool DynamicRenderableSceneLodsResSrc::use16BitBoneIndices = false;
 bool (*DynamicRenderableSceneLodsResSrc::process_scene)(const char *fn, int lod_n, AScene &sc, float start_range,
   const DataBlock &props) = NULL;
 DataBlock *DynamicRenderableSceneLodsResSrc::buildResultsBlk = NULL;
@@ -472,6 +473,9 @@ static void gatherSkinNodeUsedBones(Node *n_, MeshBones &nmb)
       DataBlock node_blk;
       dblk::load_text(node_blk, make_span_const(n.script), dblk::ReadFlag::ROBUST, "Node::script");
       int limit_bpv = node_blk.getInt("limitBonePerVertex", DynamicRenderableSceneLodsResSrc::limitBonePerVertex);
+      int max_skin_bones = node_blk.getInt("setBonePerVertex", DynamicRenderableSceneLodsResSrc::setBonePerVertex);
+      if (max_skin_bones <= 0)
+        max_skin_bones = 4;
 
       int bcount = mh.bones->boneNames.size();
       int vcount = mesh.getVert().size();
@@ -483,7 +487,7 @@ static void gatherSkinNodeUsedBones(Node *n_, MeshBones &nmb)
 
       for (int i = 0; i < vcount; i++)
       {
-        for (int j = 0; j < MAX_SKINBONES; j++)
+        for (int j = 0; j < max_skin_bones; j++)
         {
           real bw = 0;
           int bb = -1;
@@ -690,11 +694,13 @@ void DynamicRenderableSceneLodsResSrc::addSkinNode(Lod &lod, Node *n_, LodsEqual
         dblk::load_text(node_blk, make_span_const(n.script), dblk::ReadFlag::ROBUST, "Node::script");
         int limit_bpv = node_blk.getInt("limitBonePerVertex", limitBonePerVertex);
         int set_bpv = node_blk.getInt("setBonePerVertex", setBonePerVertex);
+        bool use16Bits = node_blk.getBool("use16BitBoneIndices", use16BitBoneIndices);
 
         if (limit_bpv > 0)
           meshData->limitBonesPerVertex(limit_bpv);
         if (set_bpv > 0)
-          meshData->setBonesPerVertex(set_bpv);
+          meshData->setBonesPerVertex(min(set_bpv, MAX_SKINBONES));
+        meshData->setUse16BitBoneIndices(use16Bits);
 
         Mesh localMesh = mesh;
         bool needToPackVcolor = false;

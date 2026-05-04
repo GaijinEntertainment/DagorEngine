@@ -132,7 +132,8 @@ bool BiomeQueryCtx::init()
     return false;
   }
 
-  biomeGroupIndicesBuffer = dag::buffers::create_persistent_sr_structured(sizeof(int), MAX_BIOMES, "biome_group_indices_buffer");
+  biomeGroupIndicesBuffer = dag::buffers::create_persistent_sr_structured(sizeof(int), MAX_BIOMES, "biome_group_indices_buffer",
+    d3d::buffers::Init::No, RESTAG_LAND);
   setBiomeGroupIndicesBufferData();
 
   return true;
@@ -154,6 +155,12 @@ void biome_query::init()
   }
 }
 
+bool biome_query::is_inited()
+{
+  BIOME_QUERY_BLOCK;
+  return biome_query_ctx != nullptr;
+}
+
 void BiomeQueryCtx::initLandClass(TEXTUREID lc_texture, float tile, dag::ConstSpan<const char *> biome_group_names,
   dag::ConstSpan<int> biome_group_indices)
 {
@@ -170,7 +177,7 @@ void BiomeQueryCtx::initLandClass(TEXTUREID lc_texture, float tile, dag::ConstSp
   G_ASSERT(biomeTexInfo.w == biomeTexInfo.h);
 
   minSampleScaleRadius = (1.0f / (tile * biomeTexInfo.w)) * MIN_SAMPLE_SCALE_RADIUS_TEXEL_SPACE;
-  ShaderGlobal::set_real(minSampleScaleRadiusVarId, minSampleScaleRadius);
+  ShaderGlobal::set_float(minSampleScaleRadiusVarId, minSampleScaleRadius);
 
   numBiomeGroups = min<int>(MAX_BIOME_GROUPS, biome_group_names.size());
   G_ASSERT(numBiomeGroups <= MAX_BIOME_GROUPS);
@@ -383,7 +390,7 @@ GpuReadbackResultState BiomeQueryCtx::getQueryResult(int query_id, BiomeQueryRes
       grqSystem->getQueryInput(query_id, qInput);
       logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_ERR : LOGLEVEL_WARN,
         "Biome query result is out of range! firstIdx: %d, secondIdx: %d, maxIdx: %d, pos (%f %f %f),  radius %f", firstIdx, secondIdx,
-        maxIdx, qInput.worldPos.x, maxIdx, qInput.worldPos.y, maxIdx, qInput.worldPos.z, qInput.radius);
+        maxIdx, qInput.worldPos.x, qInput.worldPos.y, qInput.worldPos.z, qInput.radius);
       resultOutOfRangeLogged = true;
     }
     result.mostFrequentBiomeGroupIndex = clamp(firstIdx, 0, maxIdx);

@@ -6,6 +6,7 @@ include "dagi_media_scene_common.dshl"
 include "dagi_media_project_defined.dshl"
 include "dagi_lit_scene_helper.dshl"
 include "project_is_dynamic_point.dshl"
+include "dynamic_resolution.dshl"
 
 int4 dagi_media_scene_update_count;
 
@@ -21,12 +22,13 @@ macro MEDIA_SCENE_MARK_FROM_GBUF(code)
   PROJECT_LIGHT_POINT_SCREEN_VOXEL_MEDIA_SCENE(code)
   PROJECT_GI_MEDIA(code)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   (code) {
     globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     world_view_pos@f3 = world_view_pos;
   }
 
-  if (hardware.dx11 && !hardware.dx12)
+  if (hardware.dx11)
   {
     hlsl(code) {
       #pragma force_min_opt_level 4
@@ -97,7 +99,7 @@ macro MEDIA_SCENE_MARK_FROM_GBUF(code)
       {
         clipSpacePt.xy = saturate(clipSpacePt.xy*float2(0.5, -0.5)/clipSpacePt.w + 0.5);
         uint2 tcI = clamp(floor(dim*clipSpacePt.xy), 0, dim-1);
-        float rawDepth = texture2DAt(depth_gbuf, tcI).x;
+        float rawDepth = texture2DAt(depth_gbuf, tcI * current_dynamic_resolution_scale).x;
         if (tid == 0 && rawDepth == 0)
         {
           rawDepth = baseRawDepth;
@@ -115,7 +117,7 @@ macro MEDIA_SCENE_MARK_FROM_GBUF(code)
           bool isSameVoxel = all(floor(worldPos.xzy/baseVoxelSize) == baseVoxelCoord);
           if (isSameVoxel)// if (worldpos_prj.w <= voxelIntersectionRay.y)
           {
-            ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+            ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI * current_dynamic_resolution_scale);
             shouldShare = gbuf.translucency > 0 && get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) != POINT_DYNAMIC;
             if (shouldShare)
             {
@@ -168,13 +170,13 @@ shader dagi_media_scene_from_gbuf_cs
 {
   INIT_ZNZFAR_STAGE(cs)
 
-  ENABLE_ASSERT(cs)
   (cs) {
     globtm_inv@f44 = globtm_inv;
     dagi_media_scene_update_count@i2 = dagi_media_scene_update_count;
     depth_gbuf@tex2d = depth_gbuf;
     depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
   }
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   MEDIA_SCENE_MARK_FROM_GBUF(cs)
 
   hlsl(cs) {
@@ -189,7 +191,7 @@ shader dagi_media_scene_from_gbuf_cs
       uint2 tcI = pseudo_random_screen_coord(pixelIndex, dagi_media_scene_update_count.x, dim, random.x);
 
 
-      float rawDepth = texture2DAt(depth_gbuf, tcI).x; // this is same for all vertical group
+      float rawDepth = texture2DAt(depth_gbuf, tcI * current_dynamic_resolution_scale).x; // this is same for all vertical group
       if (rawDepth<=0)
         return;
       float2 tc = (tcI+0.5)/dim;

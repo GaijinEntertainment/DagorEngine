@@ -10,7 +10,6 @@ include "dynamic_metatex_inc.dshl"
 
 shader dynamic_refraction_metatex
 {
-  ENABLE_ASSERT(ps)
   hlsl {
     #define IS_DYNAMIC_GLASS 1
   }
@@ -20,7 +19,7 @@ shader dynamic_refraction_metatex
   }
 
   DYNAMIC_BLOCK_TRANS()
-  INIT_REFRACTION_GLASS()
+  INIT_REFRACTION_GLASS(false)
 
   if (render_to_icon != yes && gi_quality != off)
   {
@@ -54,7 +53,7 @@ shader dynamic_refraction_metatex
   OPTIONAL_SKINNING_SHADER()
   USE_UNPACK_UNIT_VECTOR_VS()
 
-  if (render_to_icon == yes && glass_normal_pass != no) {
+  if (render_to_icon == yes && rendinst_transparent_gbuffer_pass > off) {
     dont_render;
   }
   INIT_AND_USE_GLASS_ICON_RENDER(ps)
@@ -112,7 +111,7 @@ shader dynamic_refraction_metatex
 
   if (render_to_icon == no)
   {
-    USE_CSM_SHADOW_DEF_NUM()
+    USE_CSM_SHADOW_DEF_NUM_DEFAULT()
     hlsl (ps) {
       #define USE_CSM_SHADOWS 1
       float getCSMShadow(float3 pointToEye)
@@ -124,10 +123,9 @@ shader dynamic_refraction_metatex
 
   INIT_METATEX_REFRACTIVE()
 
-  DYNAMIC_SIMPLE_SHARED_DECL(ps) // needed for dynmat metadata
   SET_DYNMAT_METATEX_PARAM_GETTERS()
 
-  INIT_GLASS_TRANSP()
+  INIT_GLASS_TRANSP_NO_TEX()
   USE_GLASS(false)
   APPLY_METATEX()
 

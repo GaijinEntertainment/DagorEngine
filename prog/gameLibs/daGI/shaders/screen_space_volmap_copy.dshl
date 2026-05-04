@@ -21,7 +21,6 @@ int ssgi_copy_from_volmap_cs_voxelColors_uav_no = 6;
 
 shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_VOXELS(cs)
   USE_VOXELS(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)
@@ -35,7 +34,7 @@ shader ssgi_copy_to_volmap_cs, ssgi_copy_from_volmap_cs
   {
     (cs) {
       gi_ambient_volmap@smp3d = gi_ambient_volmap;
-      ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+      ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
       voxelColors@uav : register(ssgi_copy_from_volmap_cs_voxelColors_uav_no) hlsl {
         RWStructuredBuffer<uint> voxelColors@uav;
       };

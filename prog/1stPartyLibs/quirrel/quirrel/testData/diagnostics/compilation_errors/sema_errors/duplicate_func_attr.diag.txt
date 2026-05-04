@@ -1,0 +1,8 @@
+ERROR: duplicate attribute 'pure'
+testData/diagnostics/compilation_errors/sema_errors/duplicate_func_attr.nut:2:16
+
+// EXPECT_ERROR: "duplicate attribute"
+let f = @[pure, pure](x) x + 1
+                ^---
+
+

@@ -26,7 +26,7 @@ __forceinline void get_projtm(float4x4 *out) { internalCbTable.getProjTm(out); }
 __forceinline void get_viewprojtm(float4x4 *out) { internalCbTable.getViewProjTm(out); }
 __forceinline void get_lview(int component, float4 *out) { internalCbTable.getLocalViewComponent(component, out); }
 __forceinline void get_lworld(int component, float4 *out) { internalCbTable.getLocalWorldComponent(component, out); }
-__forceinline real get_shader_global_time_phase(float period, float offset)
+__forceinline float get_shader_global_time_phase(float period, float offset)
 {
   return internalCbTable.getShaderGlobalTimePhase(period, offset);
 }
@@ -35,7 +35,7 @@ __forceinline int get_buf_size(const void *bufptr) { return internalCbTable.getB
 __forceinline float4 get_viewport() { return internalCbTable.getViewport(); }
 __forceinline int exists_tex(const void *texptr) { return internalCbTable.texExists(texptr); }
 __forceinline int exists_buf(const void *bufptr) { return internalCbTable.bufExists(bufptr); }
-__forceinline uint64_t request_sampler(int smp_id, float4 border_color, int anisotropic_max, int mipmap_bias)
+__forceinline uint64_t request_sampler(int smp_id, float4 border_color, float anisotropic_max, float mipmap_bias)
 {
   return internalCbTable.requestSampler(smp_id, border_color, anisotropic_max, mipmap_bias);
 }
@@ -48,12 +48,20 @@ __forceinline void get_shadervar_ptrs_from_dump(const ShadervarPtrInitInfo *out_
 
 __forceinline void reg_bindless(void *texptr, int reg, void *ctx) { internalCbTable.regBindless(texptr, reg, ctx); }
 
-__forceinline void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed, const uint *ps_tex, uint16_t ps_tex_range_packed,
+__forceinline void create_state(const uint *vs_tex, uint32_t vs_tex_range_packed, const uint *ps_tex, uint32_t ps_tex_range_packed,
   const void *consts, int const_cnt, bool multidraw_cbuf, void *ctx)
 {
   internalCbTable.createState(vs_tex, vs_tex_range_packed, ps_tex, ps_tex_range_packed, consts, const_cnt, multidraw_cbuf, ctx);
 }
 
 __forceinline uint acquire_tex(void *texptr) { return internalCbTable.acquireTex(texptr); }
+
+__forceinline void fatal(const char *fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+  internalCbTable.fatal(fmt, args);
+  va_end(args);
+}
 
 } // namespace stcode::cpp

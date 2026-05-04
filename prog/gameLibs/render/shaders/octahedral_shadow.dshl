@@ -14,7 +14,6 @@ shader octahedral_shadow_packer
   no_ablend;
 
   POSTFX_VS_TEXCOORD(0, texcoord)
-  ENABLE_ASSERT(ps)
 
   (ps)
   {

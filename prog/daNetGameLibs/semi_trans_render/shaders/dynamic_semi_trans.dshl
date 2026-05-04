@@ -5,41 +5,32 @@ include "camera_in_camera.dshl"
 shader dynamic_semi_trans
 {
   IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
   static int num_bones = 0;
   interval num_bones: no_bones<1, four_bones;
-  channel float3 pos=pos;
-  channel color8 norm=norm unsigned_pack;
 
   blend_src = one;  blend_dst = isa;
 
-  if (num_bones != no_bones)
-  {
-    channel color8 tc[4] = extra[0];
-    channel color8 tc[5] = extra[1];
-  }
-  INIT_NO_SKINNING()
+  INIT_OPTIONAL_SKINNING()
+  DYNAMIC_SIMPLE_VS_INPUT()
+  OPTIONAL_SKINNING_SHADER()
+
   hlsl {
     struct VsOutput
     {
-      VS_OUT_POSITION(pos)
+      PRECISE VS_OUT_POSITION(pos)
       float3 normal                 : TEXCOORD1;
       float3 pointToEye             : TEXCOORD2;
-      float3 placingColor           : TEXCOORD3;
+      float4 placingColor           : TEXCOORD3;
     };
   }
-  hlsl(vs) {
-    struct VsInput
-    {
-      float3 pos                  : POSITION;
-      float4 normal               : NORMAL;
-      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
-    };
-  }
-  NO_SKINNING_VS()
+
   USE_FLOAT_POS_PACKING()
   USE_UNPACK_UNIT_VECTOR_VS()
+  (vs)
+  {
+    params_validation_debug_color@f4 = params_validation_debug_color;
+  }
   hlsl(vs) {
     VsOutput dynamic_semi_trans_vs(VsInput input)
     {
@@ -67,11 +58,11 @@ shader dynamic_semi_trans
         worldDv);
 
       uint2 offsetCount = get_offset_count_additional_data(AAD_RAW_PLACING_COLOR);
-      float4 placingColor = get_additional_data(offsetCount, 0);
+      float4 placingColor = get_additional_data_with_default(offsetCount, 0, params_validation_debug_color);
 
       output.pointToEye.xyz = -eyeToPoint;
       output.normal.xyz = normalize(worldNormal);
-      output.placingColor = placingColor.xyz;
+      output.placingColor = placingColor;
       return output;
     }
   }

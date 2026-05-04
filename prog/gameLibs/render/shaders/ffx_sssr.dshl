@@ -1,7 +1,9 @@
+include "dynamic_resolution.dshl"
 
 int ffxMinTraversalOccupancy = 4;
 
 macro FFX_RAYMARCH_INIT(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   (code) {
     ffxMinTraversalOccupancy@i1 = ffxMinTraversalOccupancy;
   }
@@ -22,7 +24,7 @@ macro FFX_RAYMARCH_USE(code)
     #include "../../../3rdPartyLibs/ffx/ffx_core_hlsl.h"
 
     FfxFloat32 FFX_SSSR_LoadDepth(FfxInt32x2 pixel_coordinate, FfxInt32 mip) {
-      return texelFetch(downsampled_close_depth_tex, pixel_coordinate, mip).r;
+      return texelFetch(downsampled_close_depth_tex, pixel_coordinate * current_dynamic_resolution_scale, mip).r;
     }
 
     FfxBoolean IsMirrorReflection(FfxFloat32 roughness) {

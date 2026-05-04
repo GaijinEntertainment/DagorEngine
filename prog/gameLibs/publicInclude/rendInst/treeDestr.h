@@ -35,6 +35,8 @@ struct BranchDestr
   float horizontalSpeedMul = 1.0f;
   float maxVisibleDistance = 100.0f;
   float fallThroughGroundIfBigger = 1.6f;
+  float bendStrength = 0.05f; // how much the tree bends when falling
+  bool forcePyramidCanopy = false;
 
   void apply(const BranchDestr &other);
 };
@@ -71,6 +73,13 @@ struct TreeDestr
   float collisionDistLimit = 6.0f;
   float collisionAngleLimit = 65.0f;
   bool useBoxAsCanopyCollision = false;
+  float bendLinDamping = 5.0f;
+  float bendAngDamping = 0.4f;
+  float bendSpringStiffness = 70.0f;
+  float bendMass = 2.0f;
+  float maxAngularVelocity = 1.0f;
+  int maxDestroyedTreeCount = 100;
+  int maxCutTreeCount = 20;
 
   BranchDestr branchDestrFromDamage, branchDestrOther;
 

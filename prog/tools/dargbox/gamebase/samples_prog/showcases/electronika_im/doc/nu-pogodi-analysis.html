@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+</head>
+<body><h1><a name="header"></a><a name="content"></a><a name="Xbaf51f156014dbe37e9d3894ccf12948fea98b0"></a>
+Technical and Historical Analysis of the Soviet <i>“Nu, pogodi!”</i>
+Handheld Game (Elektronika IM-02)</h1>
+<h2><a name="X5e0ee4e469407f564033ffe72d73d62e015168c"></a>
+Game Algorithm and Egg-Generation Behavior</h2>
+<p class="first-paragraph">Despite its simple concept, <i>“Nu,
+pogodi!”</i> (like the original Egg game) implements a carefully
+crafted algorithm for egg generation, timing, scoring, and difficulty
+progression. The gameplay is as follows: Four hens (two on an upper
+row, two on a lower row) lay eggs that roll down four chutes (paths)
+toward the screen’s center. The player controls the wolf, who can
+move to four positions to catch eggs in his basket before they hit
+the ground. Key aspects of the <b>game’s algorithm and behavior</b>
+include:</p>
+<ul>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Sequential
+	Game Loop:</b> The game runs in a continuous loop driven by the
+	microcontroller’s clock. Each loop cycle corresponds to a small
+	time step; after a certain number of cycles (a “wait loop”
+	threshold), an egg movement/update happens. Initially, the delay
+	between updates is relatively long, making eggs fall slowly. As the
+	score increases, this delay shortens (eggs fall faster), up to a
+	minimum cap to keep the game human-playable<font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=380%20decrement%20wait_loop_max%20381%20if,wait_loop_max%20%3D%206%20383%20endif">[26]</a></font>.
+	In the code, a counter <font face="Consolas, serif"><font size="2" style="font-size: 11pt">wait_loop_counter</font></font>
+	increments each CPU cycle and the game logic update triggers when it
+	exceeds <font face="Consolas, serif"><font size="2" style="font-size: 11pt">wait_loop_max</font></font>
+	(which starts at a high value and decreases with
+	difficulty)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=111%20if%20%28wait_loop_counter%20,none">[27]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=377%20increment%20wait_loop_max%20by%207,%28tens%20of%20current_score">[28]</a></font>.
+	This effectively throttles the game speed.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Egg
+	Movement:</b> On each update step, every egg on screen advances one
+	position down its respective chute. Each chute has 5 discrete
+	positions (segments for the egg graphic). The data for egg positions
+	can be visualized as four arrays (one per chute) of five
+	slots<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=14%2015%20current_hen%20%3B%20enumeration%3A,right">[29]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=55%20wait_loop_counter%20%3D%200%2056,00000%2062%20right_down_eggs%20%3D%2000000">[30]</a></font>.
+	An egg in the 5th (last) position is at the brink of falling to the
+	floor. The game logic checks for this condition: if an egg reaches
+	the end of a chute, it is flagged as an <b>“egg in danger”</b>
+	for that chute<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=291%20SUB%20Shift_Eggs_Of_Current_Hen%20292%20if,egg_in_danger%20%3D%20current_hen%20294%20endif">[31]</a></font>.
+	This means that on the next update, if the wolf is not in position
+	to catch it, it will drop and count as a miss.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Egg
+	Generation Algorithm:</b> The crux of the gameplay is the generation
+	of new eggs from the hens. The algorithm uses a <b>pseudo-random
+	selection</b> process combined with deterministic rules to decide
+	when and where a new egg will appear. In each cycle where an update
+	occurs, the program picks a <b>current hen</b> (one of the four) –
+	in Game B this is chosen at random, whereas in Game A there are some
+	constraints (described below) on which hen can lay eggs at a given
+	time<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%98%D0%B3%D1%80%D0%B0%20%D0%B8%D0%BC%D0%B5%D0%B5%D1%82%20%D0%B4%D0%B2%D0%B5%20%D1%81%D1%82%D0%B5%D0%BF%D0%B5%D0%BD%D0%B8%20%D1%81%D0%BB%D0%BE%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%2C,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[32]</a></font>.
+	A random number generator (seeded by a free-running hardware timer)
+	produces a value 0–15 each cycle<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=315%20FUNC%20Generate_Random_Number%20%3B%20returns,hardware%20timer%20in%20original%20game">[33]</a></font>,
+	and this is used to derive a random hen index and a random boolean
+	condition. Specifically, the logic does something equivalent to:</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Select a
+	Hen:</b> Compute a random hen index 0–3 (e.g. via <font face="Consolas, serif"><font size="2" style="font-size: 11pt">random_number
+	mod 4</font></font>) for the next potential egg<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=343%20FUNC%20Get_Random_Hen_Position%20344%20localvar,4%20346%20347%20return%20random_number">[34]</a></font>.
+	This defines the “current hen” whose chute will be considered
+	for egg dropping in this loop. (On some cycles, especially in Game
+	A, this hen might be overridden or ignored – see below.)</p></li>
+	<li><p class="compact"><b>Determine Egg Drop:</b> If the chosen
+	hen’s chute is clear at the start (no egg currently in the first
+	position) and the total number of eggs on screen is below the
+	allowed maximum, the game will attempt to spawn a new egg. A random
+	boolean is used to decide whether an egg is actually laid this
+	cycle<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=136%20,138%20increment%20spawned_egg_counter%20139%20endif">[35]</a></font>.
+	In pseudocode from the extracted ROM, the condition is roughly: <font face="Consolas, serif"><font size="2" style="font-size: 11pt">if
+	(RandomBool == TRUE) or (no eggs have been spawned yet) then lay a
+	new egg in current hen’s first position<a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=136%20,138%20increment%20spawned_egg_counter%20139%20endif">[36]</a></font></font>.
+	The second condition ensures the game always starts by spawning an
+	egg if none exist (so the game isn’t stuck in a no-egg state).</p></li>
+	<li><p class="compact"><b>Spawn and Tracking:</b> When an egg is
+	“laid,” the first segment of that hen’s chute is activated (an
+	egg appears at the top of the chute) and a global counter of active
+	eggs (<font face="Consolas, serif"><font size="2" style="font-size: 11pt">spawned_egg_counter</font></font>)
+	is incremented<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=136%20,138%20increment%20spawned_egg_counter%20139%20endif">[36]</a></font>.
+	The newly spawned egg will begin moving down on subsequent updates.</p></li>
+</ul>
+<p class="first-paragraph">The pseudo-random generator in these
+Elektronika games is very primitive – it essentially samples the
+low bits of an internal timer to get a semi-random sequence<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=315%20FUNC%20Generate_Random_Number%20%3B%20returns,hardware%20timer%20in%20original%20game">[33]</a></font>.
+This means the pattern of eggs, while unpredictable to the player, is
+determined by the initial state and timing of the device.
+Reverse-engineered code confirms that the random function returns
+both a 4-bit random number and a boolean flag used for decisions<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=315%20FUNC%20Generate_Random_Number%20%3B%20returns,hardware%20timer%20in%20original%20game">[33]</a></font>.</p>
+<ul>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Game A vs
+	Game B (Difficulty Modes):</b> As with the Nintendo original, <i>Nu,
+	pogodi!</i> offers two game modes. <b>Game A</b> is the easier mode,
+	and <b>Game B</b> is a faster, more difficult mode. The primary
+	difference lies in the egg generation pattern:</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in">In <b>Game A</b>,
+	at any given time <b>only three of the four chutes are
+	active</b><font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%98%D0%B3%D1%80%D0%B0%20%D0%B8%D0%BC%D0%B5%D0%B5%D1%82%20%D0%B4%D0%B2%D0%B5%20%D1%81%D1%82%D0%B5%D0%BF%D0%B5%D0%BD%D0%B8%20%D1%81%D0%BB%D0%BE%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%2C,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[32]</a></font>.
+	One hen is effectively “idle,” not laying eggs, which reduces
+	the cognitive load on the player. Interestingly, the inactive chute
+	in Game A is not fixed; it depends on the number of misses (penalty
+	points) the player currently has. When the game starts (0 misses),
+	the bottom-left chute will produce no eggs<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D0%BD%D0%B0%D1%8E%D1%82%20%D0%BA%D0%B0%D1%82%D0%B8%D1%82%D1%8C%D1%81%D1%8F%20%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%BF%D0%BE%20%D1%82%D1%80%D1%91%D0%BC,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[37]</a></font>.
+	If the player incurs a miss (or half-miss), the game switches which
+	chute is inactive: for 0.5 or 1.0 miss, the bottom-right chute goes
+	idle; at 1.5–2 misses, the top-left goes idle; and at 2.5 misses
+	(i.e. a third miss in blink state), the top-right becomes
+	inactive<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D0%BD%D0%B0%D1%8E%D1%82%20%D0%BA%D0%B0%D1%82%D0%B8%D1%82%D1%8C%D1%81%D1%8F%20%D1%82%D0%BE%D0%BB%D1%8C%D0%BA%D0%BE%20%D0%BF%D0%BE%20%D1%82%D1%80%D1%91%D0%BC,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[37]</a></font>.
+	In essence, <b>whenever misses are added or cleared, the algorithm
+	rotates which hen is being ignored</b>, always keeping only 3
+	active. This clever mechanism gives a slight break to the player
+	after each mistake (by removing the chute where the mistake occurred
+	or balancing the load), while also cycling through all chutes over
+	the course of the game. The result is that Game A is forgiving and
+	somewhat patterned, never throwing eggs from all four directions at
+	once<font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a></font>.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in">In <b>Game B</b>,
+	<b>all four chutes are active</b> all the time, and eggs can come
+	from any of the four hens at random<font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a></font>.
+	There is no “ignore hen” rule in this mode<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%98%D0%B3%D1%80%D0%B0%20%D0%B8%D0%BC%D0%B5%D0%B5%D1%82%20%D0%B4%D0%B2%D0%B5%20%D1%81%D1%82%D0%B5%D0%BF%D0%B5%D0%BD%D0%B8%20%D1%81%D0%BB%D0%BE%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%2C,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[32]</a></font>.
+	This effectively increases the maximum on-screen chaos and makes the
+	game more challenging. Additionally, Game B typically starts at a
+	slightly faster base speed. In the code, for example, the initial
+	wait-loop delay is set shorter for Game B (e.g. <font face="Consolas, serif"><font size="2" style="font-size: 11pt">wait_loop_max
+	= 25</font></font> in Game B vs <font face="Consolas, serif"><font size="2" style="font-size: 11pt">31</font></font>
+	in Game A)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=213%20wait_loop_max%20%3D%2031%20214,wait_loop_max%20%3D%2025%20216%20endif">[38]</a></font>,
+	causing eggs to move a bit quicker even at the outset.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Difficulty
+	Progression (Egg Speed &amp; Quantity):</b> <i>Nu, pogodi!</i>
+	gradually increases the difficulty as the player scores points, both
+	by <b>speeding up the egg drops</b> and by <b>allowing more eggs on
+	screen simultaneously</b>:</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><i>Speed
+	Increase:</i> The interval between egg movements shortens as score
+	rises. Internally, every time the player’s <b>tens digit in the
+	score changes</b> (i.e. every 10 points), the game makes the eggs
+	fall slightly faster by reducing the delay counter by 1 (down to a
+	minimum threshold)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=380%20decrement%20wait_loop_max%20381%20if,wait_loop_max%20%3D%206%20383%20endif">[26]</a></font>.
+	This means the game smoothly accelerates throughout each 0–99
+	point span. However, at each <b>hundred-point milestone (100, 200,
+	etc.)</b>, the game gives a brief reprieve: the speed is <i>slightly
+	reduced</i> again, making the eggs fall slower immediately after
+	crossing the hundred<font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BA%D0%B0%D0%BA%20%D0%BC%D0%BE%D0%B6%D0%BD%D0%BE%20%D0%B1%D0%BE%D0%BB%D1%8C%D1%88%D0%B5%20%D1%8F%D0%B8%D1%86%20%D0%B2,%D0%BE%D1%87%D0%BA%D0%BE%D0%B2%20%D1%82%D0%B5%D0%BC%D0%BF%20%D0%B8%D0%B3%D1%80%D1%8B%20%D0%BD%D0%B5%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%20%D0%B7%D0%B0%D0%BC%D0%B5%D0%B4%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F">[39]</a></font>.
+	In fact, the code shows that on crossing a hundred (except 900→0
+	rollover), the delay counter is increased by a fixed amount (e.g. 7
+	units) to significantly slow the pace<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=match%20at%20L412%20377%20increment,378%20endif">[40]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=377%20increment%20wait_loop_max%20by%207,%28tens%20of%20current_score">[28]</a></font>.
+	This creates a momentary breather for the player before the speed
+	ramps up again. For example, if you reach 100 points, the speed
+	almost resets to what it was at the game start, then begins
+	increasing anew<font><a href="https://itizso.itch.io/elektronika-nu-pogodi#:~:text=In%20Game%20A%2C%20eggs%20will,the%20game%20before%20increasing%20again">[25]</a></font>.
+	These “slowdown” events at 100, 200, 300, etc., were also
+	present in Nintendo’s original game as a reward mechanism. By 900+
+	points, the game is extremely fast; after 999 it rolls over to 000
+	but retains the high speed (slowing only a little)<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%BE%D1%81%D1%82%D0%B0%D1%91%D1%82%D1%81%D1%8F%20%D1%87%D0%B8%D1%81%D0%BB%D0%BE%20999">[10]</a></font>,
+	making the second loop even more challenging.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><i>Concurrent
+	Eggs:</i> The game limits how many eggs can be in play at the same
+	time, and this limit rises with the score. At the very start, only 1
+	or 2 eggs can be rolling at once. But as the player proves skill by
+	scoring points, the internal <font face="Consolas, serif"><font size="2" style="font-size: 11pt"><b>max_eggs</b></font></font>
+	value increases stepwise. Reverse-engineered logic shows that
+	<font face="Consolas, serif"><font size="2" style="font-size: 11pt">max_eggs</font></font>
+	is computed from the score’s higher digits<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=223%20224%20if%20%28big_score%20,16">[41]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=233%20max_eggs%20%3D%204%20234,9">[42]</a></font>.
+	In general, after a few points it becomes 3, then 4, 5, and so on.
+	For instance, once the player scores 5 points, the game may allow up
+	to 4 eggs concurrently on screen; after 9 points, up to 5 eggs;
+	after 11 points, 7 eggs; and ultimately it can allow well over 9
+	eggs at once at the highest difficulties<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=229%20max_eggs%20%3D%207%20230,5">[43]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=225%20max_eggs%20%3D%2012%20226,11">[44]</a></font>.
+	(The exact thresholds in the code use a formula based on the sum of
+	the tens and hundreds digits of the score<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=221%20SUB%20Compute_Max_Eggs%20222%20localvar,16">[45]</a></font>.)
+	In practical terms, the higher the score, the more overlapping eggs
+	the player must juggle, which dramatically increases difficulty. In
+	the absolute hardest phase, the limit <font face="Consolas, serif"><font size="2" style="font-size: 11pt">max_eggs</font></font>
+	reaches 12 concurrent eggs<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=223%20224%20if%20%28big_score%20,16">[41]</a></font>,
+	though in normal play the effective number rarely gets that high
+	before a miss occurs.</p></li>
+</ul>
+<p class="first-paragraph">Together, the increasing speed and number
+of eggs ensure that the game becomes very challenging at high scores,
+preventing players from playing indefinitely. As noted above, the
+game does <i>not</i> truly end at 999 points – it wraps around, but
+by then the speed is so high that surviving beyond 1000 is mostly
+theoretical. (The high-score memory will still display “999” as
+the record<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%BE%D1%81%D1%82%D0%B0%D1%91%D1%82%D1%81%D1%8F%20%D1%87%D0%B8%D1%81%D0%BB%D0%BE%20999">[10]</a></font>.)</p>
+<ul>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Scoring and
+	Misses:</b> Each caught egg awards <b>1 point</b> to the score<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%A7%D0%B5%D1%82%D1%8B%D1%80%D0%B5%20%D0%BA%D1%83%D1%80%D0%B8%D1%86%D1%8B%20%2C%20%D1%81%D0%B8%D0%B4%D1%8F%D1%89%D0%B8%D0%B5%20%D0%BD%D0%B0,%D0%BE%D1%87%D0%BA%D0%BE%D0%B2%20%D1%82%D0%B5%D0%BC%D0%BF%20%D0%B8%D0%B3%D1%80%D1%8B%20%D0%BD%D0%B5%D0%BC%D0%BD%D0%BE%D0%B3%D0%BE%20%D0%B7%D0%B0%D0%BC%D0%B5%D0%B4%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F">[46]</a></font>.
+	If the wolf fails to catch an egg, it “falls” and breaks on the
+	ground – this counts as a <b>miss</b> (a penalty). Misses are
+	visually indicated by a small broken egg or chick icon on the
+	screen. Uniquely, <i>Nu, pogodi!</i> (and the Egg game) implement a
+	concept of <b>half-misses</b> under certain conditions:</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in">A standard
+	miss (egg falls with no special condition) gives a full penalty. The
+	LCD will display a static broken egg/chick symbol (often at either
+	the left or right bottom corner, depending on which side was missed)
+	to represent that miss. Miss counter increases by 1.</p></li>
+	<li><p class="compact">If a miss happens <b>while the hare is
+	present on screen</b>, the player is penalized with only <b>half a
+	miss</b><font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%92%20%D1%81%D0%BB%D1%83%D1%87%D0%B0%D0%B5%20%D0%BF%D0%B0%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F%20%D1%8F%D0%B9%D1%86%D0%B0%20%D0%BD%D0%B0,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[5]</a></font>.
+	In this case, instead of a full broken egg, the LCD shows a little
+	chick hatching from the broken egg and that icon <b>blinks</b> to
+	indicate the half-miss state<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%92%20%D1%81%D0%BB%D1%83%D1%87%D0%B0%D0%B5%20%D0%BF%D0%B0%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F%20%D1%8F%D0%B9%D1%86%D0%B0%20%D0%BD%D0%B0,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[5]</a></font>.
+	What is happening in-game is that the hare (Zayats) occasionally
+	peeks out of a window in the top-left corner of the screen to
+	“distract” the wolf. If the player misses an egg during that
+	moment, the game treats it more leniently: internally a half-miss is
+	recorded (the code sets a flag <font face="Consolas, serif"><font size="2" style="font-size: 11pt">half_miss
+	= true</font></font>)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=163%20increment%20miss_counter%20164%20half_miss,true%20165%20endif%20166%20else">[47]</a><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%92%20%D1%81%D0%BB%D1%83%D1%87%D0%B0%D0%B5%20%D0%BF%D0%B0%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F%20%D1%8F%D0%B9%D1%86%D0%B0%20%D0%BD%D0%B0,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[5]</a></font>.
+	This means the miss hasn’t fully counted against the 3-miss limit
+	yet.</p></li>
+</ul>
+<p class="first-paragraph">The half-miss will eventually turn into a
+full miss if the player makes another mistake or after some time
+passes. In the program’s logic, a half miss is basically a miss
+that is awaiting confirmation. If the player does not drop another
+egg immediately, the half miss will “finalize” as a full miss
+after a short interval (the chick icon stops blinking and stays on,
+<font face="Consolas, serif"><font size="2" style="font-size: 11pt">half_miss</font></font>
+flag cleared)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=167%20if%20%28miss_counter%20,169%20else%20170%20increment%20miss_counter">[48]</a></font>.
+However, if another egg is missed while a half-miss is still
+blinking, that half-miss <b>and</b> the new miss might combine to
+count as one and a half or two misses total (depending on
+sequence)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=match%20at%20L184%20167%20if,169%20else%20170%20increment%20miss_counter">[49]</a><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%98%D0%B3%D1%80%D0%B0%20%D0%B8%D0%BC%D0%B5%D0%B5%D1%82%20%D0%B4%D0%B2%D0%B5%20%D1%81%D1%82%D0%B5%D0%BF%D0%B5%D0%BD%D0%B8%20%D1%81%D0%BB%D0%BE%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%2C,%D0%BF%D0%BE%20%D0%BD%D0%B5%D0%BC%D1%83%20%D1%81%D0%BA%D0%B0%D1%82%D1%8B%D0%B2%D0%B0%D1%8E%D1%82%D1%81%D1%8F%20%D0%B2%D1%81%D0%B5%20%D1%8F%D0%B9%D1%86%D0%B0">[32]</a></font>.
+This system is a bit complex, but effectively it gives the player one
+extra hit buffer: the very first miss in presence of the hare only
+counts as 0.5, so the player could technically miss 4 times (if one
+is half) before game over. Thematically, the hare’s presence
+“softens” the penalty – a nice touch connecting to the cartoon
+(where the hare always outwits the wolf).</p>
+<ul>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in">The game ends
+	when the player accumulates <b>3 full miss points</b><font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=174%20if%20%28miss_counter%20,to%20speed%20of%20your%20system">[50]</a></font>.
+	On the third full miss, a game-over sound plays and the game resets
+	to clock/demo mode<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=174%20if%20%28miss_counter%20,to%20speed%20of%20your%20system">[50]</a></font>.
+	Due to half-miss mechanics, it’s possible to drop 5 or 6 eggs
+	before losing (for example, 2 full misses + 2 half-misses count as 3
+	total). The Soviet manual describes this as “from three to six
+	fallen eggs ends the game” because of the half-point system<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[51]</a></font>.
+	After game over, the score display resets and the player can start a
+	new game.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in">There is a
+	<b>miss reset bonus</b>: upon reaching <b>200 points and 500 points</b>,
+	any accumulated misses are cleared (all penalty icons removed)<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[51]</a></font>.
+	This is another element inherited from Nintendo’s design (many G&amp;W
+	games forgive misses at certain score milestones). It allows skilled
+	players who last that long to continue without the burden of earlier
+	mistakes. Notably, the half-miss state is also cleared at these
+	checkpoints. The Soviet documentation confirms that at 200 and 500
+	caught eggs, the “penalty points are annulled”<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%B2%20%D0%B4%D0%B0%D0%BB%D1%8C%D0%BD%D0%B5%D0%B9%D1%88%D0%B5%D0%BC%20%D0%BC%D0%BE%D0%B6%D0%B5%D1%82">[51]</a></font>.
+	After 999 and rollover, misses are <i>not</i> automatically cleared
+	(only another 200 points into the next loop would clear them
+	again)<font><a href="https://ru.wikipedia.org/wiki/%D0%9D%D1%83,_%D0%BF%D0%BE%D0%B3%D0%BE%D0%B4%D0%B8!_(%D1%8D%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F_%D0%B8%D0%B3%D1%80%D0%B0)#:~:text=%D0%BD%D0%B0%D1%87%D0%B8%D1%81%D0%BB%D1%8F%D0%B5%D1%82%D1%81%D1%8F%20%D1%86%D0%B5%D0%BB%D0%BE%D0%B5%20%D1%88%D1%82%D1%80%D0%B0%D1%84%D0%BD%D0%BE%D0%B5%20%D0%BE%D1%87%D0%BA%D0%BE,%D0%BE%D1%81%D1%82%D0%B0%D1%91%D1%82%D1%81%D1%8F%20%D1%87%D0%B8%D1%81%D0%BB%D0%BE%20999">[10]</a></font>.</p></li>
+	<li><p style="margin-top: 0in; margin-bottom: 0.14in"><b>Hare
+	Appearance and Idle Periods:</b> One subtle aspect of the algorithm
+	is how and when the hare (Zayats) appears in the window – which
+	correlates with periods of no eggs being spawned. The program keeps
+	an <font face="Consolas, serif"><font size="2" style="font-size: 11pt">idle_hen_counter</font></font>
+	to track consecutive cycles where no new egg was laid<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=142%20idle_hen_counter%20%3D%200%20143,144%20else%20145%20increment%20idle_hen_counter">[52]</a></font>.
+	If eggs haven’t been generated for a few cycles in a row (meaning
+	a brief lull in gameplay), the hare will pop out, presenting the
+	distraction opportunity. In code, after 3 consecutive “idle”
+	cycles the loop breaks and likely triggers the hare’s appearance
+	routine (this matches anecdotal gameplay where the hare shows up
+	during slower moments)<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=142%20idle_hen_counter%20%3D%200%20143,144%20else%20145%20increment%20idle_hen_counter">[52]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=149%20until%20,endif%20151%20endif%20152%20else">[53]</a></font>.
+	As soon as an egg is laid, the idle counter resets and the hare
+	retreats. This interplay ensures that the hare (and the chance for
+	half-miss) tends to appear when the action is relatively calm –
+	providing a kind of catch-up mechanic or at least a dynamic visual
+	element. It’s an interesting design that adds personality to the
+	game without altering the core egg-catching mechanic.</p></li>
+</ul>
+<p class="first-paragraph">In summary, the game algorithm for <i>“Nu,
+pogodi!”</i> is a faithful replication of the Game &amp; Watch <i>Egg</i>
+logic with a few thematic enhancements. The <b>pseudo-code of the
+original ROM</b> (reconstructed by enthusiasts) clearly shows the
+structured loop: choose hen -&gt; shift eggs -&gt; possibly spawn new
+egg (if random and under limit) -&gt; check catches/misses -&gt;
+update score and speed<font><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=136%20,138%20increment%20spawned_egg_counter%20139%20endif">[35]</a><a href="https://www.septimus.sk/p1/EggAlgorithm.pdf#:~:text=133%20call%20Shift_Eggs_Of_Current_Hen%20134%20135,spawned_egg_counter">[54]</a></font>.
+The Soviet clone did not fundamentally change the logic, aside from
+integrating the hare character for the half-miss feature (Nintendo’s
+Mickey version had a similar idea with Minnie Mouse, so this too was
+likely analogous to the original). All of these behaviors – random
+egg drops, increasing speed, limited concurrent eggs, the miss system
+– work in concert to create a game that starts easy and becomes
+frenetic, challenging the player’s reflexes and concentration.</p>
+<h2><a name="Xd9f7051d70f3c4c8c987736c5d42bc5c32a7f76"></a>
+</body>
+</html>

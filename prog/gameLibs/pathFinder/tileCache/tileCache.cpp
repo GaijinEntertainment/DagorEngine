@@ -5,7 +5,7 @@
 #include <pathFinder/tileRICommon.h>
 #include <pathFinder/tileCacheUtil.h>
 #include <pathFinder/pathFinder.h>
-#include <detourCommon.h>
+#include <DetourCommon.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <debug/dag_debug3d.h>
 #include <math/dag_mathUtils.h>
@@ -171,7 +171,7 @@ static bool tilecache_step()
     }
     else if (!dtStatusDetail(status, DT_BUFFER_TOO_SMALL))
     {
-      logerr("failed to add navmesh obstacle!");
+      logerr("failed to add navmesh obstacle! (2) reason=%X cnt=%d obstaclesToAdd=%d", (int)status, cnt, (int)obstaclesToAdd.size());
     }
     else
       break;
@@ -228,7 +228,7 @@ static obstacle_handle_t obstacle_add_impl(obstacle_handle_t handle, const Point
     }
     if (!dtStatusDetail(status, DT_BUFFER_TOO_SMALL) || upToDate)
     {
-      logerr("failed to add navmesh obstacle!");
+      logerr("failed to add navmesh obstacle! (1) reason=%X upToDate=%d", (int)status, upToDate ? 1 : 0);
       handle = 0;
       ref = 0;
       break;

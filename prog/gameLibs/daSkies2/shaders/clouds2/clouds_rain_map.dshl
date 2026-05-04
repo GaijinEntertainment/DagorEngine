@@ -1,0 +1,48 @@
+texture clouds_rain_map_tex always_referenced;
+sampler clouds_rain_map_tex_samplerstate{
+  mipmap_mode = point;
+  filter = linear;
+  address_u = border;
+  address_v = border;
+  address_w = border;
+} always_referenced;
+
+float4 clouds_rain_map_offset_scale always_referenced;
+int clouds_rain_map_valid = 0 always_referenced;
+float clouds_rain_map_max_height;
+float nbs_clouds_start_altitude2_meters = 100000;
+
+
+macro INIT_CLOUDS_RAIN_MAP(code)
+  (code){
+    clouds_rain_map_tex@tex2d = clouds_rain_map_tex;
+    clouds_rain_map_tex_samplerstate@sampler = clouds_rain_map_tex_samplerstate;
+
+    clouds_rain_map_valid@i1 = clouds_rain_map_valid;
+    clouds_rain_map_max_height@f1 = clouds_rain_map_max_height;
+    nbs_clouds_start_altitude2_meters@f1 = nbs_clouds_start_altitude2_meters;
+
+    clouds_rain_map_offset_scale@f3 = clouds_rain_map_offset_scale.xyz;
+  }
+endmacro
+
+macro USE_CLOUDS_RAIN_MAP(code)
+hlsl(code)
+{
+  #include "clouds_rain_map.hlsl"
+  float2 getRainMapUv(float3 pos)
+  {
+    return getRainMapUv_impl(pos);
+  }
+
+  float getRainCoverage(float3 pos, float density_lim)
+  {
+    return getRainCoverage_impl(pos, density_lim);
+  }
+
+  float getAccurateCloudStart(float3 pos)
+  {
+    return getAccurateCloudStart_impl(pos);
+  }
+}
+endmacro

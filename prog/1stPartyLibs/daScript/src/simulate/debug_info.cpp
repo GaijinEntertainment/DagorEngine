@@ -40,6 +40,9 @@ namespace das
         {   Type::tInt4,        "int4"  },
         {   Type::tUInt,        "uint"  },
         {   Type::tBitfield,    "bitfield"  },
+        {   Type::tBitfield8,   "bitfield8"  },
+        {   Type::tBitfield16,  "bitfield16"  },
+        {   Type::tBitfield64,  "bitfield64"  },
         {   Type::tUInt2,       "uint2" },
         {   Type::tUInt3,       "uint3" },
         {   Type::tUInt4,       "uint4" },
@@ -82,7 +85,7 @@ namespace das
     }
 
     void TypeInfo::resolveAnnotation() const {
-        if ( (*daScriptEnvironment::bound)->modules ) Module::resolveAnnotation(this);
+        if ( daScriptEnvironment::getBound()->modules ) Module::resolveAnnotation(this);
     }
 
 
@@ -119,6 +122,9 @@ namespace das
             case tInt4:         return sizeof(int4);
             case tUInt:         return sizeof(uint32_t);
             case tBitfield:     return sizeof(uint32_t);
+            case tBitfield8:    return sizeof(uint8_t);
+            case tBitfield16:   return sizeof(uint16_t);
+            case tBitfield64:   return sizeof(uint64_t);
             case tUInt2:        return sizeof(uint2);
             case tUInt3:        return sizeof(uint3);
             case tUInt4:        return sizeof(uint4);
@@ -142,8 +148,11 @@ namespace das
             case tVariant:      return 0;
             case fakeContext:   return 0;
             case fakeLineInfo:  return 0;
+            case alias:         // sometimes its requestd by generic
+            case option:
+            case autoinfer:     return 0;
             default:
-                DAS_ASSERTF(0, "not implemented. likely new built-intype been added, and support has not been updated.");
+                DAS_VERIFYF(0, "not implemented. likely new built-intype been added, and support has not been updated.");
                 return 0;
         }
     }
@@ -173,6 +182,9 @@ namespace das
             case tInt4:         return alignof(int4);
             case tUInt:         return alignof(uint32_t);
             case tBitfield:     return alignof(uint32_t);
+            case tBitfield8:    return alignof(uint8_t);
+            case tBitfield16:   return alignof(uint16_t);
+            case tBitfield64:   return alignof(uint64_t);
             case tUInt2:        return alignof(uint2);
             case tUInt3:        return alignof(uint3);
             case tUInt4:        return alignof(uint4);
@@ -196,8 +208,11 @@ namespace das
             case tVariant:      return 1;
             case fakeContext:   return 1;
             case fakeLineInfo:  return 1;
+            case alias:         // sometimes its requestd by generic
+            case option:
+            case autoinfer:     return 0;
             default:
-                DAS_ASSERTF(0, "not implemented. likely new built-intype been added, and support has not been updated.");
+                DAS_VERIFYF(0, "not implemented. likely new built-intype been added, and support has not been updated.");
                 return 1;
         }
     }
@@ -248,7 +263,7 @@ namespace das
         return -1;
     }
 
-    int getVariantAlign ( TypeInfo * info ) {
+    static int getVariantAlign ( TypeInfo * info ) {
         int al = getTypeBaseAlign(Type::tInt);
         for ( uint32_t i=0, is=info->argCount; i!=is; ++i ) {
             al = das::max ( al, getTypeAlign(info->argTypes[i]) );
@@ -256,7 +271,7 @@ namespace das
         return al;
     }
 
-    int getVariantSize ( TypeInfo * info ) {
+    static int getVariantSize ( TypeInfo * info ) {
         int maxSize = 0;
         int al = getVariantAlign(info) - 1;
         for ( uint32_t i=0, is=info->argCount; i!=is; ++i ) {
@@ -539,8 +554,14 @@ namespace das
                 stream << debug_type(info->firstType);
             }
             stream << ">";
-        } else if ( info->type==Type::tBitfield ) {
+        } else if ( info->type==Type::tBitfield || info->type==Type::tBitfield8 || info->type==Type::tBitfield16 || info->type==Type::tBitfield64 ) {
             stream << "bitfield";
+            switch ( info->type ) {
+                case Type::tBitfield8:    stream << ":uint8"; break;
+                case Type::tBitfield16:   stream << ":uint16"; break;
+                case Type::tBitfield64:   stream << ":uint64"; break;
+                default: break;
+            }
             if ( info->argNames ) {
                 stream << "<";
                 for ( uint32_t ai=0, ais=info->argCount; ai!=ais; ++ai ) {

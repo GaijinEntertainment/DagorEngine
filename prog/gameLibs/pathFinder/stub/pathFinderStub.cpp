@@ -51,6 +51,7 @@ bool project_to_nearest_navmesh_point_no_obstacles_ex(int, Point3 &, const Point
 bool navmesh_point_has_obstacle(const Point3 &, const CustomNav *) { return {}; }
 bool query_navmesh_projections(const Point3 &, const Point3 &, Tab<Point3> &, int, const CustomNav *) { return {}; }
 bool query_navmesh_projections(const Point3 &, const Point3 &, Tab<Point3> &, Tab<dtPolyRef> &, int, const CustomNav *) { return {}; }
+bool query_navmesh_polys(const Point3 &, const Point3 &, Tab<dtPolyRef> &, int, const CustomNav *) { return {}; }
 float get_distance_to_wall(const Point3 &, float, float, const CustomNav *) { return {}; }
 float get_distance_to_wall(const Point3 &, float, float, Point3 &, const CustomNav *) { return {}; }
 bool find_random_point_around_circle(const Point3 &, float, Point3 &, const CustomNav *) { return {}; }
@@ -96,9 +97,11 @@ bool get_triangle_by_poly(const dtPolyRef, NavMeshTriangle &) { return {}; }
 bool find_nearest_triangle_by_pos(const Point3 &, const dtPolyRef, float, NavMeshTriangle &) { return {}; }
 int squash_jumplinks(const TMatrix &, const BBox3 &) { return {}; }
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &, const Point3 &, float, float) { return {}; }
+bool is_navmesh_position_suitable_ex(int, const Point3 &, float, float, int, int) { return true; }
 void clear_nav_mesh(int, bool) {}
 bool load_nav_mesh_ex(int, const char *, IGenLoad &, NavMeshType, tile_check_cb_t, const char *) { return {}; }
 void init_weights_ex(int, const DataBlock *) {}
+void override_weights_ex(int, const DataBlock &) {}
 bool is_loaded_ex(int) { return {}; }
 FindPathResult find_path_ex(int, Tab<Point3> &, FindRequest &, float, float, const CustomNav *) { return {}; }
 FindPathResult find_path_ex(int, const Point3 &, const Point3 &, Tab<Point3> &, float, float, float, const CustomNav *,

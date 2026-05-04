@@ -1,15 +1,14 @@
-texture burning_map_tex;
+texture burning_map_tex always_referenced;
+texture baked_burning_map_tex always_referenced;
 texture perlin_noise3d;
 
 float4 world_to_burn_mask = (0, 0, 0, 0);
 
 macro INIT_BURNING_FOLIAGE()
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(vs)
   (vs) {
-    burning_map_tex@smp2d = burning_map_tex;
+    burning_map_tex@tex2d = burning_map_tex;
     world_to_burn_mask@f4 = world_to_burn_mask;
-  }
-  (ps) {
-    burn_noise3d@smp3d = perlin_noise3d;
   }
 endmacro
 
@@ -18,6 +17,7 @@ macro USE_BURNING_FOLIAGE()
   {
     hlsl(vs)
     {
+      #define burning_map_tex_samplerstate global_linear_wrap_sampler
       float4 sample_burning_mask(float3 pos, float3 input_pos, float scale)
       {
         float2 tc = pos.xz*world_to_burn_mask.xy + world_to_burn_mask.zw;
@@ -37,7 +37,7 @@ macro USE_BURNING_FOLIAGE()
       {
         float2 decodedBurnFactor = float2(frac(input.burnParams.w), 0.001 * int(input.burnParams.w));
         perlin_coords.xz += 0.5*perlin_coords.y;
-        perlin = tex3Dlod(burn_noise3d, float4(perlin_coords, 0)).xyz;
+        perlin = tex3Dlod(perlin_noise3d, float4(perlin_coords, 0)).xyz;
         float burnFactor = max(0, (2.3 - 2*perlin.y)*decodedBurnFactor.x * length(input.burnParams.xz) + decodedBurnFactor.x);
         float flameFactor = decodedBurnFactor.y;
         return float2(burnFactor, flameFactor);

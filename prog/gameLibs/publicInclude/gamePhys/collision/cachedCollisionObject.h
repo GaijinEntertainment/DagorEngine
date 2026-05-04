@@ -28,7 +28,7 @@ struct CachedCollisionObjectInfo : public gamephys::CollisionObjectInfo
 
   virtual float onImpulse(float impulse, const Point3 & /*dir*/, const Point3 & /*pos*/, float /*point_vel*/,
     const Point3 & /*collision_normal*/, uint32_t flags = CIF_NONE, int32_t /* user_data */ = -1,
-    gamephys::ImpulseLogFunc /*log_func*/ = nullptr, const char * /*actor_name*/ = nullptr) override
+    const char * /*actor_name*/ = nullptr) override
   {
     if (flags & CIF_NO_DAMAGE)
       return impulse;

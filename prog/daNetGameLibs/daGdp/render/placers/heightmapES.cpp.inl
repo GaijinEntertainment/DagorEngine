@@ -1,7 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <generic/dag_enumerate.h>
 #include <math/dag_hlsl_floatx.h>
 #include "../../shaders/dagdp_heightmap.hlsli"
@@ -19,13 +25,13 @@ static inline uint32_t divUp(uint32_t size, uint32_t stride) { return (size + st
 static constexpr float TILE_LIMIT_MULTIPLIER = 2.0f;
 
 template <typename Callable>
-static inline void heightmap_placers_ecs_query(Callable);
+static inline void heightmap_placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void heightmap_density_masks_ecs_query(Callable);
+static inline void heightmap_density_masks_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 struct MergeEntry
 {
@@ -93,19 +99,19 @@ static bool same_grid(const MergeEntry &a, const MergeEntry &b)
 ECS_NO_ORDER
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ecs::Tag dagdp_density_mask)
-static inline void heightmap_density_mask_disappeared_es(const ecs::Event &)
+static inline void heightmap_density_mask_disappeared_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 ECS_NO_ORDER
-static inline void heightmap_initialize_density_mask_es(const dagdp::EventInitialize &,
-  dagdp::HeightmapManager &dagdp__heightmap_manager)
+static inline void heightmap_initialize_density_mask_es(
+  const dagdp::EventInitialize &, ecs::EntityManager &manager, dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   auto &currentBuilder = dagdp__heightmap_manager.currentBuilder;
 
-  heightmap_density_masks_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_density_mask) const ecs::string &dagdp__density_mask_res,
-                                      const Point4 &dagdp__density_mask_left_top_right_bottom) {
+  heightmap_density_masks_ecs_query(manager, [&](ECS_REQUIRE(ecs::Tag dagdp_density_mask) const ecs::string &dagdp__density_mask_res,
+                                               const Point4 &dagdp__density_mask_left_top_right_bottom) {
     currentBuilder.densityMask = dag::get_tex_gameres(dagdp__density_mask_res.c_str());
 
     // The default left top right bottom values are (-2048, 2048, 2048, -2048), this results
@@ -136,7 +142,8 @@ static inline void heightmap_initialize_density_mask_es(const dagdp::EventInitia
 }
 
 ECS_NO_ORDER
-static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt, dagdp::HeightmapManager &dagdp__heightmap_manager)
+static inline void heightmap_view_process_es(
+  const dagdp::EventViewProcess &evt, ecs::EntityManager &manager, dagdp::HeightmapManager &dagdp__heightmap_manager)
 {
   FRAMEMEM_REGION;
 
@@ -145,7 +152,7 @@ static inline void heightmap_view_process_es(const dagdp::EventViewProcess &evt,
   auto &builder = dagdp__heightmap_manager.currentBuilder;
 
   dag::Vector<MergeEntry, framemem_allocator> entries;
-  heightmap_placers_ecs_query(
+  heightmap_placers_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes, float dagdp__density,
       int dagdp__seed, float dagdp__jitter, float dagdp__displacement_noise_scale, float dagdp__displacement_strength,
       float dagdp__placement_noise_scale, bool dagdp__heightmap_lower_level, bool dagdp__heightmap_allow_unoptimal_grids,
@@ -433,7 +440,7 @@ ECS_NO_ORDER static inline void heightmap_view_finalize_es(const dagdp::EventVie
 }
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
@@ -467,9 +474,9 @@ ECS_REQUIRE(ecs::Tag dagdp_placer_heightmap,
   bool dagdp__discard_on_grass_erasure,
   float dagdp__sample_range,
   float dagdp__heightmap_cell_size)
-static void dagdp_placer_heightmap_changed_es(const ecs::Event &)
+static void dagdp_placer_heightmap_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 } // namespace dagdp

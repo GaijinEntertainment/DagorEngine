@@ -5,6 +5,7 @@
 #include <locale.h>
 #include "dagor.h"
 #include "enumnode.h"
+#include "common.h"
 #include "resource.h"
 #include <string>
 
@@ -12,8 +13,6 @@
 
 std::string wideToStr(const TCHAR *sw);
 M_STD_STRING strToWide(const char *sz);
-
-int get_save_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, TSTR &exp_fname);
 
 class FontUtil : public UtilityObj
 {

@@ -1,0 +1,67 @@
+include "adaptation/adaptation_inc.dshl"
+
+int adaptation_function_type = 0;
+interval adaptation_function_type: center_weighted <1, piecewise;
+assume_if_not_assumed adaptation_function_type = center_weighted;
+
+float adaptation_samples_count;
+float adaptation_uniform_samples_count;
+float adaptation_uniform_func_tan;
+float4 adaptation_nonlinear_func_fma;
+float adaptation_nonlinear_func_pow;
+float4 adaptation_sample_tm_xy = (0.5, 0, 0, 0.5);
+float4 adaptation_sample_tm_a = (0.5, 0.5, 0, 0);
+
+macro ADAPTATION_PIECEWISE_TC_FUNCTION(code)
+  (code) {
+    adaptation_samples_count@f1 = adaptation_samples_count;
+    adaptation_uniform_samples_count@f1 = adaptation_uniform_samples_count;
+    adaptation_uniform_func_tan@f1 = adaptation_uniform_func_tan;
+    adaptation_nonlinear_func_fma@f2 = adaptation_nonlinear_func_fma.xy;
+    adaptation_nonlinear_func_pow@f1 = adaptation_nonlinear_func_pow;
+    adaptation_sample_tm_xy@f4 = adaptation_sample_tm_xy;
+    adaptation_sample_tm_a@f2 = adaptation_sample_tm_a.xy;
+  }
+
+  hlsl(code) {
+    // piecewise function that maps sample_index to TC
+    // 1. f(x) = k * sqrt(x), x ∊ [0: s]
+    // 2. f(x) = R - (R - k * √s ) *  ((1-x)/(1-s))^p  x ∊ (s: 1]
+    //   where
+    //    s: uniform_samples_count / samples_count
+    //    R: non linear distribution radius
+    //    r: uniform distribution radius
+    //    p: non linear curviness
+    //    k: r / √s
+    //    r < R
+    //    f(s-) = f(s+)
+    float2 getAdaptationSampleTC(int index)
+    {
+      const float k = adaptation_uniform_func_tan;
+      const float a = adaptation_nonlinear_func_fma.x;
+      const float b = adaptation_nonlinear_func_fma.y;
+      const float p = adaptation_nonlinear_func_pow;
+
+      const float t = index / adaptation_samples_count;
+      const float normalizedRadiusLen = index < adaptation_uniform_samples_count ?
+                                        k * sqrt(t) :
+                                        a + b * pow((1-t), p);
+
+      const float goldenRatio = 0.6180339887498949;
+      const float angle = frac(index * goldenRatio) * PI * 2.0;
+      const float2 dir = float2(sin(angle), cos(angle));
+
+      float2 tc = dir * normalizedRadiusLen;
+      tc = tc.x * adaptation_sample_tm_xy.xy + tc.y * adaptation_sample_tm_xy.zw + adaptation_sample_tm_a;
+      return saturate(tc);
+    }
+  }
+endmacro
+
+macro PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(code)
+  if (adaptation_function_type == center_weighted) {
+    ADAPTATION_CENTER_WEIGHTED_TC_FUNCTION(code)
+  } else {
+    ADAPTATION_PIECEWISE_TC_FUNCTION(code)
+  }
+endmacro

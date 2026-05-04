@@ -2,7 +2,7 @@ require ecs
 require app
 require soundEvent
 require soundSystem
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 require DagorMath
 
 

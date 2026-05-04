@@ -13,3 +13,6 @@ class FTab : public Tab<T>
 public:
   FTab() : Tab<T>(framemem_ptr()) {}
 };
+
+template <typename T>
+using FVec = dag::Vector<T, framemem_allocator, false, uint32_t>;

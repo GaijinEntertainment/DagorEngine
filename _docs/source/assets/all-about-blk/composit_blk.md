@@ -38,7 +38,7 @@ Composite objects consist of an enumeration of objects with certain parameters:
 
 ## Example of Declaring a Single Object
 
-```text
+```blk
 className:t="composit"
 node{
   name:t="obj_name:rendInst"
@@ -59,7 +59,7 @@ In this example:
 If there are no "duplicates" (objects with the same name but different types),
 you can simply specify the name without a type:
 
-```text
+```blk
 name:t="obj_name"
 ```
 
@@ -117,7 +117,7 @@ future edits).
 
 This is the matrix of the object:
 
-```text
+```blk
 tm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 ```
 
@@ -145,7 +145,7 @@ always the case. More on this later.
 If we want one of several variants to be placed in the specified coordinates
 instead of one particular asset, then we need to specify the node differently.
 
-```text
+```blk
 node{
   ent{
     name:t="obj_name1"; weight:r=1;
@@ -160,7 +160,7 @@ Here, instead of always having the same asset, we randomly choose one of the two
 with equal probability. There can also be other parameters inside `node{}`, such
 as a matrix. Only `"name:t"` cannot be specified at the same time as `ent{}`.
 
-```text
+```blk
 ent{}
 ```
 
@@ -191,7 +191,7 @@ also by jumping to the new line. The two methods in the example below are
 equivalent. Tabulation is used only to improve readability, in fact it will work
 without indentation, and all blocks are separated only by curly braces.
 
-```text
+```blk
 ent{name:t="obj_name"; weight:r=1;}
 
 ent{
@@ -207,7 +207,7 @@ What should we do if we want to sometimes not spawn anything? Add the empty
 entity mentioned earlier. As we remember, an empty name or no `name:t` parameter
 will give us an empty node:
 
-```text
+```blk
 node{
   ent{
     name:t="obj_name1"; weight:r=1;
@@ -240,19 +240,17 @@ Let's reinforce our knowledge by going through the same steps multiple times. In
 practice, it's unnecessary to use different node formats side by side (as it can
 complicate readability), but each method works.
 
-```text
+```blk
 className:t="composit"
 
-// Standard object declaration. Without a specified matrix, it will have zero
-rotation, zero offset, and a scale of `1`:
-
+/* Standard object declaration. Without a specified matrix, it will have zero
+   rotation, zero offset, and a scale of `1`: */
 node{
   name:t="obj_name0"
 }
 
-// Random entity with a single option behaves the same as the block above.
-The "default" matrix is identical to its absence:
-
+/* Random entity with a single option behaves the same as the block above.
+   The "default" matrix is identical to its absence: */
 node{
   ent{
     name:t="obj_name1"; weight:r=1;
@@ -261,14 +259,13 @@ node{
 }
 
 // One of the objects or nothing is chosen with equal probability:
-
 node{
   ent{
-    name:t="obj_name2" // Parameters can be separated by line breaks.
+    name:t="obj_name2"              // parameters can be separated by line breaks
     weight:r=1
   }
   ent{
-    name:t="obj_name3"; weight:r=1; // Or by semicolons.
+    name:t="obj_name3"; weight:r=1; // or by semicolons
   }
   ent{
     name:t=""; weight:r=1;
@@ -285,7 +282,7 @@ than a matrix, we use special parameters.
 
 ### Available Parameters for Randomization
 
-```text
+```blk
 node{
   offset_x:p2=0, 0
   offset_y:p2=0, 0
@@ -327,7 +324,7 @@ the angle, you'd have to go through all references to these shutters in every
 composite – slow and prone to error. To avoid this, parameters can be placed in
 a separate `.blk`.
 
-### Structure of a File with Random Transforms and Naming Conventions
+### Structure of File with Random Transforms and Naming Conventions
 
 Technically, the composite will accept any name, but since people will work with
 them, the file name should be meaningful. Common suffixes are `_rot.blk` for
@@ -338,16 +335,17 @@ directions, add the suffixes `_l` and `_r` accordingly.
 For example, for left window shutters, it makes sense to create a file
 `_shutter_rot_l.blk` with:
 
-```text
+```blk
 rot_y:p2=85, 5
 rot_z:p2=0, 0.8
 ```
+
 And for the right ones, `_shutter_rot_r.blk` with the corresponding rotations
 for the right side. This file can then be included in the composite of the
 shutter, for example,
 `name_city_house_window_shutter_1200x1900_a_l_cmp.composit.blk`:
 
-```text
+```blk
 className:t="composit"
 
 node{
@@ -377,7 +375,7 @@ node{
 
 - **Avoid Doing This in the "Outer" Composite, Though It Works:**
 
-```text
+```blk
 className:t="composit"
 node{
   name:t="name_city_house_window_shutter_1200x1900_a_l"
@@ -408,19 +406,18 @@ blind manual `.blk` editing – not the most convenient or fastest method.
 
 Here's how inattentiveness can break things:
 
-```text
+```blk
 className:t="composit"
 node{
   name:t="name_city_house_window_shutter_1200x1900_a_l"
-  rot_y:p2=90, 0  // First transformation specified before include, shutter will
-  include "_shutter_rot_l.blk" // always stick at 90°, ignoring Y randomization
+  rot_y:p2=90, 0                // First transformation specified before include, shutter will
+  include "_shutter_rot_l.blk"  // always stick at 90°, ignoring Y randomization
 }
 node{
   name:t="name_city_house_window_shutter_1200x1900_a_l"
   include "_shutter_rot_l.blk"
-  rot_y:p2=90, 0 // Second declaration of a parameter already present in the
-                 // include – attempting to rotate an additional 90° on Y will
-                 // be ignored.
+  rot_y:p2=90, 0  // Second declaration of a parameter already present in the include,
+                  // attempting to rotate an additional 90° on Y will be ignored.
 }
 ```
 
@@ -431,7 +428,7 @@ Another `node{}` can be placed inside. In this case, the inner node is
 considered a child, and its transforms are calculated not from zero but from the
 parent's matrix.
 
-```text
+```blk
 className:t="composit"
 
 node{
@@ -464,7 +461,7 @@ also be chosen randomly, placed near one side, and shifted only along the
 table's length. They should also rotate and, perhaps, sometimes not appear at
 all. We can implement this as follows:
 
-```text
+```blk
 className:t="composit"
 
 node{
@@ -550,7 +547,7 @@ tables, chairs, shelves, and cabinets.
 
 ### Example Node Description
 
-```text
+```blk
 node{
   name:t="loot_box:gameObj"
   tm:m=[[0.3, 0, 0] [0, 0.3, 0] [0, 0, 0.3] [0, 0.6, 0]]
@@ -577,7 +574,7 @@ your scene/editor and then export them into a composite. The placement process
 is identical to that of regular render instances. However, all these cubes will
 initially be recorded as:
 
-```text
+```blk
 name:t="loot_box"
 ```
 
@@ -616,10 +613,9 @@ This means:
 
 - *Children* cannot destroy *parents*.
 - *Children* **cannot** destroy other *children*. Only those *children* whose
-collisions intersect the bounding box of the *parent* will be destroyed.
+  collisions intersect the bounding box of the *parent* will be destroyed.
 - No subsequent chain of destruction will occur; the system is rigid and does
-not support additional logic beyond these rules.
-
+  not support additional logic beyond these rules.
 ```
 
 #### Examples
@@ -929,7 +925,7 @@ You might have noticed that when exporting composites from the editor, they
 often include an additional parameter, `place_type:i=1`, in the nodes. For
 example:
 
-```text
+```blk
 node{
   name:t="fachwerk_horse_cart_a_cmp"
   tm:m=[[0.999018, 0, -0.0443057] [0, 1, 0] [0.0443057, 0, 0.999018] [-6.7688, 0.0028134, -1.22241]]
@@ -1084,7 +1080,7 @@ always fails to align with the visual geometry.
 This parameter forces the prefab to align exactly with the coordinates of the
 render instance.
 
-```text
+```blk
 className:t="composit"
 quantizeTm:b=yes
 node{
@@ -1130,7 +1126,7 @@ will have a different seed, but the objects within it will share a single seed.
 **Correct Example**: The shoe and its box will have different seeds and
 therefore different colors.
 
-```text
+```blk
 node{
   name:t="is_high_heel_shoe_a"
   ignoreParentInstSeed:b=yes
@@ -1147,13 +1143,14 @@ node{
 different seed from the main composite, all items within it will share the same
 seed.
 
-```text
+```blk
 node{
   name:t="city_1_department_store_shops_stuff_cmp"
   ignoreParentInstSeed:b=yes
   tm:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 }
 ```
+
 ```{important}
 **Summary**
 
@@ -1442,5 +1439,4 @@ the objects that will be randomized in the node.
 
 To configure the randomization itself, further refinement of the composite by
 other methods is necessary.
-
 

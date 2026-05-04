@@ -48,8 +48,3 @@ The call stack information are retrieved through sq_getstackinfos()::
 While the local variables info through sq_getlocal()::
 
     SQInteger sq_getlocal(HSQUIRRELVM v,SQUnsignedInteger level,SQUnsignedInteger nseq);
-
-In order to receive line callbacks the scripts have to be compiled with debug infos enabled
-this is done through sq_enabledebuginfo(); ::
-
-    void sq_enabledebuginfo(HSQUIRRELVM v, SQInteger debuginfo);

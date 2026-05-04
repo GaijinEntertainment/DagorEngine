@@ -2,7 +2,7 @@
 
 #include <util/dag_string.h>
 #include <sqrat.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <yup_parse/yup.h>
 
 
@@ -41,8 +41,8 @@ void register_yupfile_module(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   ///@module yupfile_parse
   exports //
-    .SquirrelFunc("getStr", get_str, 3, ".ss")
-    .SquirrelFunc("getInt", get_int, 3, ".ss")
+    .SquirrelFuncDeclString(get_str, "getStr(yupfilename: string, key: string): string")
+    .SquirrelFuncDeclString(get_int, "getInt(yupfilename: string, key: string): int")
     /**/;
   module_mgr->addNativeModule("yupfile_parse", exports);
 }

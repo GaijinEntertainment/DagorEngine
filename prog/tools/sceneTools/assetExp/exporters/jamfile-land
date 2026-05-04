@@ -6,7 +6,7 @@ Target = tools/sceneTools/landClsExp ;
 
 include $(Root)/$(Location)/../dabuild_plugin_common.jam ;
 
-Sources = landClsExp.cpp ;
+Sources = landClsExp.cpp landClsExpStubs.cpp ;
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude

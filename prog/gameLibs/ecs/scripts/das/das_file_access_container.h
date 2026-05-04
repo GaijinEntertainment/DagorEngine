@@ -19,14 +19,15 @@ struct DagFileAccessContainer
 
   DagFileAccess *get()
   {
-    if (!access.value && !dasProject.empty())
-      access.value = eastl::make_unique<DagFileAccess>(dasProject.c_str(), hotReloadMode);
-    return access.value.get();
+    auto &value = access.getTLSValue();
+    if (!value && !dasProject.empty())
+      value = eastl::make_unique<DagFileAccess>(dasProject.c_str(), hotReloadMode);
+    return value.get();
   }
   void freeSourceData()
   {
-    if (access.value)
-      access.value->freeSourceData();
+    if (auto &value = access.getTLSValue(); value)
+      value->freeSourceData();
     for (auto &fa : access.cache)
       fa->freeSourceData();
   }

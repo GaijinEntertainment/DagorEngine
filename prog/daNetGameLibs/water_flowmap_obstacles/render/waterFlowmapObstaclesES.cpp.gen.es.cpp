@@ -13,7 +13,8 @@ static void attempt_to_enable_water_flowmap_obstacles_es_all_events(const ecs::E
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     attempt_to_enable_water_flowmap_obstacles_es(evt
-        , ECS_RW_COMP(attempt_to_enable_water_flowmap_obstacles_es_comps, "water", FFTWater)
+        , components.manager()
+    , ECS_RW_COMP(attempt_to_enable_water_flowmap_obstacles_es_comps, "water", FFTWater)
     );
   while (++comp != compE);
 }
@@ -39,9 +40,9 @@ static constexpr ecs::ComponentDesc disable_water_flowmap_obstacles_es_comps[] =
 };
 static void disable_water_flowmap_obstacles_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   disable_water_flowmap_obstacles_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc disable_water_flowmap_obstacles_es_es_desc
 (
@@ -66,7 +67,8 @@ static void update_water_flowmap_obstacles_es_all_events(const ecs::Event &__res
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_flowmap_obstacles_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(update_water_flowmap_obstacles_es_comps, "water", FFTWater)
+        , components.manager()
+    , ECS_RW_COMP(update_water_flowmap_obstacles_es_comps, "water", FFTWater)
     );
   while (++comp != compE);
 }

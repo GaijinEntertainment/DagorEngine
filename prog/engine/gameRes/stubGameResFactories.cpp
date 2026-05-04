@@ -76,7 +76,7 @@ static OAHashNameMap<false> DAG_TS_GUARDED_BY(stubResLock) resMap;
 static Tab<unsigned> DAG_TS_GUARDED_BY(stubResLock) resTypes;
 static Tab<GameResourceFactory *> stub_gameres_factories;
 
-static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id);
+static bool stub_resolve_res_handle(const char *resname, unsigned class_id, int &out_res_id);
 static int stub_resolve_res_id(int res_id)
 {
   if (res_id >= STUB_RESID_BASE)
@@ -109,7 +109,7 @@ struct StubGameResFactory : public GameResourceFactory
     return reportAsLoaded;
   }
   virtual bool checkResPtr(GameResource *res) { return isStubRes(res); }
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL, int res_id)
   {
     stubRes.addRef();
     dumpCreate(res_id);
@@ -129,10 +129,10 @@ struct StubGameResFactory : public GameResourceFactory
     stubRes.delRef();
     return true;
   }
-  virtual bool freeUnusedResources(bool, bool) { return false; }
+  virtual bool freeUnusedResources(RRL, bool, bool) { return false; }
 
   void loadGameResourceData(int, IGenLoad &) override {}
-  void createGameResource(int, const int *, int) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
   virtual void reset()
   {
     if (stubRes->getRefCount() > 1)
@@ -162,7 +162,7 @@ struct StubGameResArrayFactory : public GameResourceFactory
   {
     stub_types.addInt(CLS);
     for (int i = 0, res_id = 0; i < desc.blockCount(); i++)
-      stub_resolve_res_handle((GameResHandle)desc.getBlock(i)->getBlockName(), CLS, res_id);
+      stub_resolve_res_handle(desc.getBlock(i)->getBlockName(), CLS, res_id);
   }
   virtual ~StubGameResArrayFactory() { reset(); }
 
@@ -175,7 +175,7 @@ struct StubGameResArrayFactory : public GameResourceFactory
     return reportAsLoaded;
   }
   virtual bool checkResPtr(GameResource *res) { return isStubRes(res); }
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL, int res_id)
   {
     if (T *res = findRes(res_id, true))
     {
@@ -197,10 +197,10 @@ struct StubGameResArrayFactory : public GameResourceFactory
     reinterpret_cast<T *>(res)->delRef();
     return true;
   }
-  virtual bool freeUnusedResources(bool, bool) { return false; }
+  virtual bool freeUnusedResources(RRL, bool, bool) { return false; }
 
   void loadGameResourceData(int, IGenLoad &) override {}
-  void createGameResource(int, const int *, int) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
   virtual void reset()
   {
     for (int i = 0; i < stubRes.size(); i++)
@@ -283,12 +283,12 @@ static GameResourceFactory *findFactory(dag::Span<GameResourceFactory *> f, unsi
   return NULL;
 }
 
-static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id)
+static bool stub_resolve_res_handle(const char *resname, unsigned class_id, int &out_res_id)
 {
   stubResLock.lockRead();
   if (class_id == 0)
   {
-    int id = resMap.getNameId((const char *)rh);
+    int id = resMap.getNameId(resname);
     stubResLock.unlockRead();
     if (id < 0)
       return false;
@@ -300,12 +300,12 @@ static bool stub_resolve_res_handle(GameResHandle rh, unsigned class_id, int &ou
     return false;
 
   stubResLock.lockWrite();
-  out_res_id = resMap.addNameId((const char *)rh);
+  out_res_id = resMap.addNameId(resname);
   if (out_res_id >= resTypes.size())
   {
     G_ASSERT(out_res_id == resTypes.size());
     resTypes.push_back(class_id);
-    // debug("add %s %08X as %d+STUB_RESID_BASE", (const char*)rh, class_id, out_res_id);
+    // debug("add %s %08X as %d+STUB_RESID_BASE", resname, class_id, out_res_id);
   }
   const unsigned resType = resTypes[out_res_id];
   stubResLock.unlockWrite();
@@ -336,7 +336,7 @@ static bool stub_get_game_res_class_id(int res_id, unsigned &out_class_id)
   stubResLock.unlockRead();
   return true;
 }
-static bool stub_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
+static bool stub_get_game_resource(int res_id, gameres_rrl_cptr_t rrl, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
 {
   res_id = stub_resolve_res_id(res_id);
   if (res_id < STUB_RESID_BASE) //== fallback for old resources built separately
@@ -353,7 +353,7 @@ static bool stub_get_game_resource(int res_id, dag::Span<GameResourceFactory *> 
   }
   stubResLock.unlockRead();
 
-  out_res = fac->getGameResource(res_id);
+  out_res = fac->getGameResource(rrl, res_id);
   return true;
 }
 
@@ -368,7 +368,7 @@ static void ri_stub_on_load_res_packs(const char *pack_list_blk_fname, bool load
   debug("ri_stub_on_load_res_packs for (%s, grp=%d, tex=%d), gameres_rendinst_desc=%d", pack_list_blk_fname, load_grp, load_tex,
     gameres_rendinst_desc.blockCount());
   for (int i = 0, res_id = 0; i < gameres_rendinst_desc.blockCount(); i++)
-    stub_resolve_res_handle((GameResHandle)gameres_rendinst_desc.getBlock(i)->getBlockName(), RendInstGameResClassId, res_id);
+    stub_resolve_res_handle(gameres_rendinst_desc.getBlock(i)->getBlockName(), RendInstGameResClassId, res_id);
 }
 
 void register_stub_gameres_factories(dag::ConstSpan<unsigned> stubbed_types, bool report_stubs_as_loaded)

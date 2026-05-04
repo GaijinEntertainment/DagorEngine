@@ -55,17 +55,6 @@ DataBlock load_microdetail_settings(ecs::EntityId eid)
   return microdetailBlock;
 }
 
-void update_land_micro_details_sampler(eastl::optional<float> mip_bias = {})
-{
-  static float lastMipBias = 0.f;
-  lastMipBias = mip_bias.value_or(lastMipBias);
-
-  d3d::SamplerInfo smpInfo;
-  smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
-  smpInfo.mip_map_bias = lastMipBias;
-  ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate"), d3d::request_sampler(smpInfo));
-}
-
 TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback)
 {
   DataBlock loadedMicrodetailSettings;
@@ -109,25 +98,24 @@ TEXTUREID load_land_micro_details(const DataBlock &microdetail_settings_fallback
       const DataBlock *paramBlk = micro.getBlockByName(micro.getStr(i));
       if (!paramBlk)
       {
-        ShaderGlobal::set_color4(get_shader_variable_id(buf, true), *(Color4 *)&def);
+        ShaderGlobal::set_float4(get_shader_variable_id(buf, true), def);
         continue;
       }
       param.clear();
       create_constant_buffer(scheme, *paramBlk, param);
-      ShaderGlobal::set_color4(get_shader_variable_id(buf, true), *(Color4 *)&param[0]);
+      ShaderGlobal::set_float4(get_shader_variable_id(buf, true), param[0]);
     }
   }
   ShaderGlobal::set_texture(land_micro_detailsVarId, landMicrodetailsId);
-  update_land_micro_details_sampler();
 
   int land_micro_details_countVarId = get_shader_variable_id("land_micro_details_count", true);
   if (land_micro_details_countVarId >= 0)
     ShaderGlobal::set_int(land_micro_details_countVarId, microDetailCount);
   int land_micro_details_cnt_scaleVarId = get_shader_variable_id("land_micro_details_cnt_scale", true);
   if (land_micro_details_cnt_scaleVarId >= 0)
-    ShaderGlobal::set_real(land_micro_details_cnt_scaleVarId, microDetailCount > 1 ? 255.f / (255 / (microDetailCount - 1)) : 0.f);
+    ShaderGlobal::set_float(land_micro_details_cnt_scaleVarId, microDetailCount > 1 ? 255.f / (255 / (microDetailCount - 1)) : 0.f);
 
-  ShaderGlobal::set_real(get_shader_variable_id("land_micro_details_uv_scale", true),
+  ShaderGlobal::set_float(get_shader_variable_id("land_micro_details_uv_scale", true),
     micro.getReal("land_micro_details_uv_scale", 2.01));
 
   // invoke flash after the loading to propagate changes to the main context if it was called from a thread
@@ -151,5 +139,5 @@ void close_land_micro_details(TEXTUREID &id)
 
   int land_micro_details_cnt_scaleVarId = get_shader_variable_id("land_micro_details_cnt_scale", true);
   if (land_micro_details_cnt_scaleVarId >= 0)
-    ShaderGlobal::set_real(land_micro_details_cnt_scaleVarId, 0.f);
+    ShaderGlobal::set_float(land_micro_details_cnt_scaleVarId, 0.f);
 }

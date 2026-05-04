@@ -14,6 +14,7 @@
 struct ID3DXBuffer;
 struct TmpmemAlloc;
 typedef int VPRTYPE;
+struct ShaderStageData;
 
 namespace dx12
 {
@@ -30,16 +31,39 @@ inline bool platform_has_mesh_support(Platform p) { return Platform::XBOX_ONE !=
 
 inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p); }
 
+struct CompilationOptions
+{
+  bool optimize;
+  bool skipValidation;
+  bool debugInfo;
+  bool scarlettW32;
+  bool hlsl2021;
+  bool enableFp16;
+};
+
+struct CompileInputs
+{
+  const char *name;
+  const char *profile;
+  const char *entry;
+  dag::ConstSpan<char> source;
+  bool needDisasm;
+  int maxConstantsNo;
+  Platform platform;
+  bool warningsAsErrors;
+  bool embedSource;
+  DebugLevel debugLevel;
+  CompilationOptions compilationOptions;
+  wchar_t *PDBDir;
+  dag::ConstSpan<::dxil::StreamOutputComponentInfo> streamOutputComponents;
+};
 // NOTE: platform has to be the same for each call for the currently running instance
 // otherwise the selected platform is undefined, especially when multiple threads at
 // the same time call this function.
-CompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm, bool hlsl2021,
-  bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no, const char *name,
-  Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source,
-  dag::ConstSpan<::dxil::StreamOutputComponentInfo> stream_output_components);
+CompileResult compileShader(const CompileInputs &inputs);
 
-void combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, unsigned id);
+void combineShaders(SmallTab<unsigned, TmpmemAlloc> &meta, SmallTab<unsigned, TmpmemAlloc> &bytecode, const ShaderStageData &vs,
+  const ShaderStageData &hs, const ShaderStageData &ds, const ShaderStageData &gs, unsigned id);
 
 struct RootSignatureStore
 {
@@ -53,38 +77,40 @@ struct RootSignatureStore
   bool hasAmplificationStage;
   bool hasAccelerationStructure;
   bool hasStreamOutput;
+  bool useResourceDescriptorHeapIndexing;
+  bool useSamplerDescriptorHeapIndexing;
 };
 
-struct CompilationOptions
+RootSignatureStore generateRootSignatureDefinition(dag::ConstSpan<uint8_t> vs_metadata, dag::ConstSpan<uint8_t> hs_metadata,
+  dag::ConstSpan<uint8_t> ds_metadata, dag::ConstSpan<uint8_t> gs_metadata, dag::ConstSpan<uint8_t> ps_metadata);
+
+struct CombinedShaderData
 {
-  bool optimize;
-  bool skipValidation;
-  bool debugInfo;
-  bool scarlettW32;
-  bool hlsl2021;
-  bool enableFp16;
+  dag::ConstSpan<uint8_t> metadata;
+  dag::ConstSpan<unsigned> bytecode;
 };
 
-RootSignatureStore generateRootSignatureDefinition(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, dag::ConstSpan<unsigned> ps);
+struct CombinedShaderStorage
+{
+  eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> metadata{};
+  eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> bytecode{};
+};
 
-bool comparePhaseOneVertexProgram(dag::ConstSpan<unsigned> combined_vprog, dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, const RootSignatureStore &signature);
+bool comparePhaseOneVertexProgram(CombinedShaderData combined_vprog, const ShaderStageData &vs, const ShaderStageData &hs,
+  const ShaderStageData &ds, const ShaderStageData &gs, const RootSignatureStore &signature);
 
-bool comparePhaseOnePixelShader(dag::ConstSpan<unsigned> combined_psh, dag::ConstSpan<unsigned> ps,
-  const RootSignatureStore &signature);
+bool comparePhaseOnePixelShader(CombinedShaderData combined_psh, const ShaderStageData &ps, const RootSignatureStore &signature);
 
-eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> combinePhaseOneVertexProgram(dag::ConstSpan<unsigned> vs,
-  dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, const RootSignatureStore &signature,
-  unsigned id, CompilationOptions options);
+CombinedShaderStorage combinePhaseOneVertexProgram(const ShaderStageData &vs, const ShaderStageData &hs, const ShaderStageData &ds,
+  const ShaderStageData &gs, const RootSignatureStore &signature, unsigned id, CompilationOptions options);
 
-eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> combinePhaseOnePixelShader(dag::ConstSpan<unsigned> ps,
-  const RootSignatureStore &signature, unsigned id, bool has_gs, bool has_ts, CompilationOptions options);
+CombinedShaderStorage combinePhaseOnePixelShader(const ShaderStageData &ps, const RootSignatureStore &signature, unsigned id,
+  bool has_gs, bool has_ts, CompilationOptions options);
 
-eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> recompileVertexProgram(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source);
+eastl::optional<CombinedShaderStorage> recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir,
+  DebugLevel debug_level, bool embed_source);
 
-eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> recompilePixelSader(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source);
+eastl::optional<CombinedShaderStorage> recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir,
+  DebugLevel debug_level, bool embed_source);
 } // namespace dxil
 } // namespace dx12

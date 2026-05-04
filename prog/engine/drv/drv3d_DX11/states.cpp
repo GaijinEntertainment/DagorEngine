@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "driver.h"
+
 #include <EASTL/vector_map.h>
+#include <EASTL/optional.h>
 #include <generic/dag_tab.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
@@ -12,20 +15,20 @@
 #include <util/dag_generationReferencedData.h>
 #include <convertHelper.h>
 
+#include "drv_assert_defs.h"
+#include "drv_log_defs.h"
 #include "sampler.h"
-#include "driver.h"
 #include "clear.h"
+#include "driver_state.h"
 #if HAS_NVAPI
 #include <nvapi.h>
 #endif
-#include <AmdDxExtDepthBoundsApi.h>
 #include <d3d11_3.h>
 #include <perfMon/dag_statDrv.h>
 
 using namespace drv3d_dx11;
-
-static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
-// #define g_frameState g_render_state
+#define g_frameState g_render_state
+#include "render_state.h"
 #include "frameStateTM.inc.cpp"
 #include <drv/3d/dag_sampler.h>
 #include <drv/3d/dag_rwResource.h>
@@ -38,8 +41,7 @@ static RenderState &g_frameState = g_render_state; // ok for strict aliasing?
 #include <drv/3d/dag_streamOutput.h>
 #include <drv/3d/dag_shader.h>
 #include <gpuConfig.h>
-// #undef g_frameState
-
+#undef g_frameState
 
 #define MINIMUM_REPRESENTABLE_D32 3e-10
 #define MINIMUM_REPRESENTABLE_D24 33e-8
@@ -76,13 +78,14 @@ shaders::DriverRenderStateId current_render_state;
 shaders::DriverRenderStateId stretch_prepare_render_state;
 eastl::vector_map<int, shaders::DriverRenderStateId> clear_view_states;
 
-KeyMapWideHashed<COMProxyPtr<ID3D11BlendState>, BlendState::Key, 128> blend_state_cache; // currently we have ~70 in game, so we use
-                                                                                         // hash
-KeyMapWideHashed<COMProxyPtr<ID3D11RasterizerState>, RasterizerState::Key, 32> rasterizer_state_cache;
+// currently we have ~70 in game, so we use hash
+KeyMapWideHashed<drv3d_generic::COMProxyPtr<ID3D11BlendState>, BlendState::Key, 128> blend_state_cache;
+KeyMapWideHashed<drv3d_generic::COMProxyPtr<ID3D11RasterizerState>, RasterizerState::Key, 32> rasterizer_state_cache;
 static int rasterizer_state_cacheCount = 0;
-KeyMap<COMProxyPtr<ID3D11DepthStencilState>, DepthStencilState::Key, 16> depth_stencil_state_cache; // currently we have ~10 depth
-                                                                                                    // sencil states. Keep it linear.
-KeyMapWideHashed<COMProxyPtr<ID3D11SamplerState>, SamplerKey, 128> texture_fetch_state_cache;
+
+// currently we have ~10 depth stencil states. Keep it linear.
+KeyMap<drv3d_generic::COMProxyPtr<ID3D11DepthStencilState>, DepthStencilState::Key, 16> depth_stencil_state_cache;
+KeyMapWideHashed<drv3d_generic::COMProxyPtr<ID3D11SamplerState>, SamplerKey, 128> texture_fetch_state_cache;
 void get_states_mem_used(String &str)
 {
   str.printf(128, "blend_state_cache.size() =%d\n", blend_state_cache.size());
@@ -133,11 +136,12 @@ static BOOL toBOOL(bool b) { return b ? TRUE : FALSE; }
 
 static DriverRenderState create_default_rstate()
 {
-  DriverRenderState state;
-  state.enableDepthBounds = false;
-  state.rasterState = RasterizerState().getStateObject();
-  state.blendState = BlendState().getStateObject();
-  state.depthStencilState = DepthStencilState().getStateObject();
+  DriverRenderState state{
+    .blendState = BlendState().getStateObject(),
+    .rasterState = RasterizerState().getStateObject(),
+    .depthStencilState = DepthStencilState().getStateObject(),
+    .enableDepthBounds = false,
+  };
   return state;
 }
 
@@ -198,13 +202,15 @@ void flush_states(RenderState &rs)
       rz.viewport.maxz = 1.0f;
     }
 
-    D3D11_VIEWPORT viewport;
-    viewport.TopLeftX = (float)rz.viewport.x;
-    viewport.TopLeftY = (float)rz.viewport.y;
-    viewport.Width = (float)rz.viewport.w;
-    viewport.Height = (float)rz.viewport.h;
-    viewport.MinDepth = rz.viewport.minz;
-    viewport.MaxDepth = rz.viewport.maxz;
+    D3D11_VIEWPORT viewport{
+      .TopLeftX = (float)rz.viewport.x,
+      .TopLeftY = (float)rz.viewport.y,
+      .Width = (float)rz.viewport.w,
+      .Height = (float)rz.viewport.h,
+      .MinDepth = rz.viewport.minz,
+      .MaxDepth = rz.viewport.maxz,
+    };
+
     rs.viewModified = VIEWMOD_NOCHANGES;
 
     ContextAutoLock contextLock;
@@ -247,7 +253,7 @@ void flush_states(RenderState &rs)
       ContextAutoLock contextLock;
       dx_context->OMSetBlendState(s, rs.blendFactor, 0xffffffff);
     }
-    if (get_gpu_driver_cfg().flushBeforeSepAblendAndBlendFactorForRT1 && rs.nextRtState.isColorUsed(1))
+    if (flush_before_sep_ablend_and_blend_factor_for_RT1 && rs.nextRtState.isColorUsed(1))
     {
       const auto sourceState = render_states.get(current_render_state)->sourceShaderRenderState;
 
@@ -282,9 +288,10 @@ void flush_states(RenderState &rs)
       if (nv_dbt_supported)
         NvAPI_D3D11_SetDepthBoundsTest(dx_device, is_depth_bounds_test_enabled, depth_bounds_test_min, depth_bounds_test_max);
 #endif
-
+#if HAS_AMD_DX_EXT
       if (ati_dbt_supported)
         amdDepthBoundsExtension->SetDepthBounds(is_depth_bounds_test_enabled, depth_bounds_test_min, depth_bounds_test_max);
+#endif
 
       was_depth_bounds_test_enabled = is_depth_bounds_test_enabled;
     }
@@ -331,7 +338,7 @@ ID3D11RasterizerState *RasterizerState::getStateObject()
 {
   int depthBiasInt = (int)(depthBias / MINIMUM_REPRESENTABLE_D16);
   Key k = makeKey(depthBiasInt);
-  COMProxyPtr<ID3D11RasterizerState> *proxy = rasterizer_state_cache.find(k);
+  drv3d_generic::COMProxyPtr<ID3D11RasterizerState> *proxy = rasterizer_state_cache.find(k);
   if (proxy != NULL)
   {
     G_ASSERT(proxy->obj != NULL);
@@ -339,21 +346,21 @@ ID3D11RasterizerState *RasterizerState::getStateObject()
     return proxy->obj;
   }
 
-  COMProxyPtr<ID3D11RasterizerState> p;
-  D3D11_RASTERIZER_DESC_NEXT rd;
-  ZeroMemory(&rd, sizeof(rd));
-  rd.FillMode = wire ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID;
-  rd.CullMode = getCullMode();
-  rd.FrontCounterClockwise = FALSE;
-  rd.DepthBias = depthBiasInt;
-  rd.DepthBiasClamp = 0.f; // Disable.
-  rd.SlopeScaledDepthBias = slopeDepthBias;
-  rd.DepthClipEnable = toBOOL(depthClip);
-  rd.ScissorEnable = toBOOL(scissorEnable);
-  rd.MultisampleEnable = true;
-  rd.AntialiasedLineEnable = false;
-  rd.ForcedSampleCount = forcedSampleCount;
-  rd.ConservativeRaster = conservativeRaster ? D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+  drv3d_generic::COMProxyPtr<ID3D11RasterizerState> p;
+  D3D11_RASTERIZER_DESC_NEXT rd{
+    .FillMode = wire ? D3D11_FILL_WIREFRAME : D3D11_FILL_SOLID,
+    .CullMode = getCullMode(),
+    .FrontCounterClockwise = FALSE,
+    .DepthBias = depthBiasInt,
+    .DepthBiasClamp = 0.f, // Disable.
+    .SlopeScaledDepthBias = slopeDepthBias,
+    .DepthClipEnable = toBOOL(depthClip),
+    .ScissorEnable = toBOOL(scissorEnable),
+    .MultisampleEnable = true,
+    .AntialiasedLineEnable = false,
+    .ForcedSampleCount = forcedSampleCount,
+    .ConservativeRaster = conservativeRaster ? D3D11_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D11_CONSERVATIVE_RASTERIZATION_MODE_OFF,
+  };
 
   {
     HRESULT hr;
@@ -386,19 +393,19 @@ ID3D11RasterizerState *RasterizerState::getStateObject()
 ID3D11BlendState *BlendState::getStateObject()
 {
   Key k = makeKey();
-  COMProxyPtr<ID3D11BlendState> *proxy = blend_state_cache.find(k);
+  drv3d_generic::COMProxyPtr<ID3D11BlendState> *proxy = blend_state_cache.find(k);
   if (proxy != NULL)
   {
     G_ASSERT(proxy->obj != NULL);
     return proxy->obj;
   }
 
-  COMProxyPtr<ID3D11BlendState> p;
-  D3D11_BLEND_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
+  drv3d_generic::COMProxyPtr<ID3D11BlendState> p;
+  D3D11_BLEND_DESC desc{
+    .AlphaToCoverageEnable = toBOOL(alphaToCoverage),
+    .IndependentBlendEnable = independentBlendEnabled,
+  };
 
-  desc.AlphaToCoverageEnable = toBOOL(alphaToCoverage);
-  desc.IndependentBlendEnable = independentBlendEnabled;
   for (int i = 1; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
     desc.IndependentBlendEnable |= (writeMask[0] != writeMask[i]);
@@ -473,32 +480,38 @@ ID3D11BlendState *BlendState::getStateObject()
 ID3D11DepthStencilState *DepthStencilState::getStateObject()
 {
   Key k = makeKey(is_depth_bounds_test_enabled);
-  COMProxyPtr<ID3D11DepthStencilState> *proxy = depth_stencil_state_cache.find(k);
+  drv3d_generic::COMProxyPtr<ID3D11DepthStencilState> *proxy = depth_stencil_state_cache.find(k);
   if (proxy != NULL)
   {
     G_ASSERT(proxy->obj != NULL);
     return proxy->obj;
   }
 
-  COMProxyPtr<ID3D11DepthStencilState> p;
-  D3D11_DEPTH_STENCIL_DESC desc;
-  ZeroMemory(&desc, sizeof(desc));
-  desc.DepthEnable = toBOOL(depthEnable);
-  desc.DepthWriteMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-  desc.DepthFunc = (D3D11_COMPARISON_FUNC)depthFunc;
-  desc.StencilEnable = toBOOL(stencilEnable);
-  desc.StencilReadMask = stencilReadMask;
-  desc.StencilWriteMask = stencilWriteMask;
+  drv3d_generic::COMProxyPtr<ID3D11DepthStencilState> p;
+  D3D11_DEPTH_STENCIL_DESC desc{
+    .DepthEnable = toBOOL(depthEnable),
+    .DepthWriteMask = depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO,
+    .DepthFunc = (D3D11_COMPARISON_FUNC)depthFunc,
+    .StencilEnable = toBOOL(stencilEnable),
+    .StencilReadMask = stencilReadMask,
+    .StencilWriteMask = stencilWriteMask,
 
-  desc.FrontFace.StencilFailOp = (D3D11_STENCIL_OP)stencilFail;
-  desc.FrontFace.StencilDepthFailOp = (D3D11_STENCIL_OP)stencilDepthFail;
-  desc.FrontFace.StencilPassOp = (D3D11_STENCIL_OP)stencilDepthPass;
-  desc.FrontFace.StencilFunc = (D3D11_COMPARISON_FUNC)stencilFunc;
+    .FrontFace =
+      D3D11_DEPTH_STENCILOP_DESC{
+        .StencilFailOp = (D3D11_STENCIL_OP)stencilFail,
+        .StencilDepthFailOp = (D3D11_STENCIL_OP)stencilDepthFail,
+        .StencilPassOp = (D3D11_STENCIL_OP)stencilDepthPass,
+        .StencilFunc = (D3D11_COMPARISON_FUNC)stencilFunc,
+      },
 
-  desc.BackFace.StencilFailOp = (D3D11_STENCIL_OP)stencilBackFail;
-  desc.BackFace.StencilDepthFailOp = (D3D11_STENCIL_OP)stencilBackDepthFail;
-  desc.BackFace.StencilPassOp = (D3D11_STENCIL_OP)stencilBackDepthPass;
-  desc.BackFace.StencilFunc = (D3D11_COMPARISON_FUNC)stencilBackFunc;
+    .BackFace =
+      D3D11_DEPTH_STENCILOP_DESC{
+        .StencilFailOp = (D3D11_STENCIL_OP)stencilBackFail,
+        .StencilDepthFailOp = (D3D11_STENCIL_OP)stencilBackDepthFail,
+        .StencilPassOp = (D3D11_STENCIL_OP)stencilBackDepthPass,
+        .StencilFunc = (D3D11_COMPARISON_FUNC)stencilBackFunc,
+      },
+  };
 
   {
     HRESULT hr = dx_device->CreateDepthStencilState(&desc, &p.obj);
@@ -518,15 +531,14 @@ ID3D11SamplerState *TextureFetchState::Resources::getStateObject(const SamplerKe
   uint8_t anisotropyLevel =
     override_max_anisotropy_level > 0 ? min(override_max_anisotropy_level, uint8_t(key.anisotropyLevel)) : key.anisotropyLevel;
 
-  COMProxyPtr<ID3D11SamplerState> *proxy = texture_fetch_state_cache.find(key);
+  drv3d_generic::COMProxyPtr<ID3D11SamplerState> *proxy = texture_fetch_state_cache.find(key);
   if (proxy != NULL)
   {
     G_ASSERT(proxy->obj != NULL);
     return proxy->obj;
   }
 
-  COMProxyPtr<ID3D11SamplerState> p;
-  D3D11_SAMPLER_DESC desc;
+  drv3d_generic::COMProxyPtr<ID3D11SamplerState> p;
 
   int texFilter = key.texFilter;
   int mipFilter = key.mipFilter;
@@ -570,20 +582,20 @@ ID3D11SamplerState *TextureFetchState::Resources::getStateObject(const SamplerKe
     D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,       // TEXFILTER_COMPARE
   };
 
-  desc.Filter = (D3D11_FILTER)filterMode[mipFilter][texFilter];
-  desc.AddressU = (D3D11_TEXTURE_ADDRESS_MODE)key.addrU;
-  desc.AddressV = (D3D11_TEXTURE_ADDRESS_MODE)key.addrV;
-  desc.AddressW = (D3D11_TEXTURE_ADDRESS_MODE)key.addrW;
-  desc.MipLODBias = key.lodBias;
-  desc.MaxAnisotropy = anisotropyLevel;
-  desc.ComparisonFunc = texFilter == TEXFILTER_COMPARE ? D3D11_COMPARISON_LESS_EQUAL : D3D11_COMPARISON_ALWAYS;
-  desc.BorderColor[0] = normalizeColor(key.borderColor.r);
-  desc.BorderColor[1] = normalizeColor(key.borderColor.g);
-  desc.BorderColor[2] = normalizeColor(key.borderColor.b);
-  desc.BorderColor[3] = normalizeColor(key.borderColor.a);
-  // set in resview
-  desc.MinLOD = 0;
-  desc.MaxLOD = FLT_MAX;
+  D3D11_SAMPLER_DESC desc{
+    .Filter = (D3D11_FILTER)filterMode[mipFilter][texFilter],
+    .AddressU = (D3D11_TEXTURE_ADDRESS_MODE)key.addrU,
+    .AddressV = (D3D11_TEXTURE_ADDRESS_MODE)key.addrV,
+    .AddressW = (D3D11_TEXTURE_ADDRESS_MODE)key.addrW,
+    .MipLODBias = key.lodBias,
+    .MaxAnisotropy = anisotropyLevel,
+    .ComparisonFunc = texFilter == TEXFILTER_COMPARE ? D3D11_COMPARISON_LESS_EQUAL : D3D11_COMPARISON_ALWAYS,
+    .BorderColor = {normalizeColor(key.borderColor.r), normalizeColor(key.borderColor.g), normalizeColor(key.borderColor.b),
+      normalizeColor(key.borderColor.a)},
+    // set in resview
+    .MinLOD = 0,
+    .MaxLOD = FLT_MAX,
+  };
 
   {
     HRESULT hr = dx_device->CreateSamplerState(&desc, &p.obj);
@@ -618,8 +630,7 @@ bool TextureFetchState::Resources::flush(unsigned shader_stage, bool force, ID3D
 
   const uint32_t relevantSamplersMask = samplersModifiedMask & SAMPLERS_SLOT_MASK;
 
-  // Necessary for access to g_sampler_keys; lock once.
-  SamplerKeysAutoLock lock;
+  eastl::optional<SamplerKeysAutoLock> samplerKeysMbLock;
 
   for (ResourceSlotState &ss : resources)
   {
@@ -679,8 +690,11 @@ bool TextureFetchState::Resources::flush(unsigned shader_stage, bool force, ID3D
     {
       if (ss.samplerHandle != d3d::INVALID_SAMPLER_HANDLE)
       {
-        // See `SamplerKeysAutoLock lock;` above.
-        ss.stateObject = getStateObject(g_sampler_keys[uint64_t(ss.samplerHandle) - 1]);
+        if (!samplerKeysMbLock)
+          samplerKeysMbLock.emplace();
+        auto ski = uint64_t(ss.samplerHandle) - (uint64_t(d3d::INVALID_SAMPLER_HANDLE) == 0);
+        G_FAST_ASSERT(ski < g_sampler_keys.size());
+        ss.stateObject = getStateObject(g_sampler_keys[ski]);
       }
       else
       {
@@ -867,6 +881,9 @@ void MiniRenderStateUnsafe::store()
 {
   RenderState &rs = g_render_state;
   tex0 = rs.texFetchState.resources[STAGE_PS].resources.size() > 0 ? rs.texFetchState.resources[STAGE_PS].resources[0].texture : NULL;
+  buf0 = (rs.texFetchState.resources[STAGE_PS].resources.size() > 0 && !tex0)
+           ? rs.texFetchState.resources[STAGE_PS].resources[0].buffer
+           : NULL;
   d3d::get_render_target(rt);
   nextRasterizerState = rs.nextRasterizerState;
   stencilRef = rs.stencilRef;
@@ -889,6 +906,8 @@ void MiniRenderStateUnsafe::restore()
   rs.depthStencilModified = true;
 
   d3d::set_tex(STAGE_PS, 0, tex0);
+  if (buf0)
+    d3d::set_buffer(STAGE_PS, 0, buf0);
   d3d::set_sampler(STAGE_PS, 0, d3d::request_sampler({}));
   d3d::set_program(BAD_PROGRAM);
   if (memcmp(&rt, &g_render_state.nextRtState, sizeof(rt)) != 0)
@@ -1022,7 +1041,7 @@ bool d3d::set_blend_factor(E3DCOLOR c)
 
 DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const shaders::RenderState &state)
 {
-  BlendState blendState;
+  BlendState blendState{};
   blendState.independentBlendEnabled = state.independentBlendEnabled;
 
   auto translateParam = [](BlendState::BlendParams &dst, const auto &src) {
@@ -1050,7 +1069,7 @@ DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const s
   for (size_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; i++, writeMask >>= 4)
     blendState.writeMask[i] = writeMask & 0xF;
 
-  RasterizerState rasterState;
+  RasterizerState rasterState{};
   rasterState.depthClip = state.zClip;
   rasterState.cullMode = state.cull;
   rasterState.depthBias = state.zBias;
@@ -1059,7 +1078,7 @@ DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const s
   rasterState.conservativeRaster = state.conservativeRaster;
   rasterState.scissorEnable = state.scissorEnabled;
 
-  DepthStencilState depthStencilState;
+  DepthStencilState depthStencilState{};
   depthStencilState.depthEnable = state.ztest;
   depthStencilState.depthWrite = state.zwrite;
   depthStencilState.depthFunc = state.zFunc;
@@ -1074,14 +1093,15 @@ DriverRenderState drv3d_dx11::shader_render_state_to_driver_render_state(const s
     depthStencilState.stencilDepthPass = depthStencilState.stencilBackDepthPass = state.stencil.pass;
   }
 
-  DriverRenderState renderState;
-  renderState.enableDepthBounds = state.depthBoundsEnable;
-  renderState.blendState = blendState.getStateObject();
-  renderState.rasterState = rasterState.getStateObject();
-  renderState.depthStencilState = depthStencilState.getStateObject();
-  renderState.scissorEnabled = state.scissorEnabled;
+  DriverRenderState renderState{
+    .blendState = blendState.getStateObject(),
+    .rasterState = rasterState.getStateObject(),
+    .depthStencilState = depthStencilState.getStateObject(),
+    .enableDepthBounds = static_cast<bool>(state.depthBoundsEnable),
+    .scissorEnabled = static_cast<bool>(state.scissorEnabled),
+  };
 
-  RasterizerState wireRasterState;
+  RasterizerState wireRasterState{};
   wireRasterState.depthClip = state.zClip;
   wireRasterState.cullMode = state.cull;
   wireRasterState.depthBias = state.zBias;
@@ -1135,10 +1155,17 @@ bool d3d::set_render_state(shaders::DriverRenderStateId state_id)
     const bool blendUpdated = driverState.blendState != previousState.blendState;
     ;
     const bool depthStencilUpdated = driverState.depthStencilState != previousState.depthStencilState;
+    const bool dualSourceChanged =
+      driverState.sourceShaderRenderState.dualSourceBlendEnabled != previousState.sourceShaderRenderState.dualSourceBlendEnabled;
     g_render_state.rasterizerModified |= rasterUpdated;
     g_render_state.alphaBlendModified |= blendUpdated;
     g_render_state.depthStencilModified |= depthStencilUpdated;
-    g_render_state.modified |= rasterUpdated || blendUpdated || depthStencilUpdated;
+    if (dualSourceChanged)
+    {
+      g_render_state.dualSourceBlendActive = driverState.sourceShaderRenderState.dualSourceBlendEnabled;
+      g_render_state.rtModified = true;
+    }
+    g_render_state.modified |= rasterUpdated || blendUpdated || depthStencilUpdated || dualSourceChanged;
     current_render_state = state_id;
   }
   return true;
@@ -1149,6 +1176,7 @@ void d3d::clear_render_states()
   OSSpinlockScopedLock lock(render_states_mutex);
   render_states.clear();
   current_render_state = render_states.emplaceOne(create_default_rstate());
+  g_render_state.dualSourceBlendActive = false;
   clear_view_states.clear();
   stretch_prepare_render_state.reset();
 }
@@ -1214,8 +1242,7 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex)
   return true;
 }
 
-
-void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler)
+NO_UBSAN void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle sampler)
 {
   ResAutoLock resLock;
   TextureFetchState::Resources &resources = g_render_state.texFetchState.resources[shader_stage];
@@ -1232,8 +1259,7 @@ void d3d::set_sampler(unsigned shader_stage, unsigned slot, d3d::SamplerHandle s
   g_render_state.modified = true;
 }
 
-
-uint32_t d3d::register_bindless_sampler(SamplerHandle)
+NO_UBSAN uint32_t d3d::register_bindless_sampler(SamplerHandle)
 {
   G_ASSERTF(false, "d3d::register_bindless_sampler called on API without support");
   return 0;
@@ -1256,6 +1282,11 @@ void d3d::free_bindless_resource_range(D3DResourceType, uint32_t, uint32_t)
   G_ASSERTF(false, "d3d::free_bindless_resource_range called on API without support");
 }
 
+void d3d::update_bindless_resource_range(D3DResourceType, uint32_t, const dag::ConstSpan<D3dResource *> &)
+{
+  G_ASSERTF(false, "d3d::update_bindless_resource_range called on API without support");
+}
+
 bool d3d::update_bindless_resource(D3DResourceType, uint32_t, D3dResource *)
 {
   G_ASSERTF(false, "d3d::update_bindless_resource called on API without support");
@@ -1265,6 +1296,18 @@ bool d3d::update_bindless_resource(D3DResourceType, uint32_t, D3dResource *)
 void d3d::update_bindless_resources_to_null(D3DResourceType, uint32_t, uint32_t)
 {
   G_ASSERTF(false, "d3d::update_bindless_resource_to_null called on API without support");
+}
+
+uint32_t d3d::add_bindless_resource(D3DResourceType type, D3dResource *res)
+{
+  G_ASSERTF(false, "d3d::add_bindless_resource called on API without support");
+  return 0;
+}
+
+void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType>, dag::StridedConstSpan<D3dResource *>,
+  dag::StridedSpan<uint32_t>)
+{
+  G_ASSERTF(false, "d3d::add_bindless_resources called on API without support");
 }
 
 bool d3d::clear_rwtexi(BaseTexture *tex, const unsigned val[4], uint32_t face, uint32_t mip_level)

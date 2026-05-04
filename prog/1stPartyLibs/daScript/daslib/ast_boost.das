@@ -6,14 +6,25 @@ options strict_smart_pointers
 
 module ast_boost shared public
 
-require rtti
-require ast public
+//! AST macro authoring toolkit.
+//!
+//! Re-exports ``rtti`` and ``ast`` and provides the core annotations used by
+//! macro authors: ``[macro]``, ``[reader_macro]``, ``[call_macro]``,
+//! ``[function_macro]``, ``[block_macro]``, ``[variant_macro]``,
+//! ``[tag_function]``, ``[tag_structure]``, ``[infer_macro]``,
+//! ``[optimization_macro]``, ``[lint_macro]``, ``[global_lint_macro]``,
+//! and ``[macro_function]``.
+
+require daslib/rtti
+require daslib/ast public
 require strings
 require daslib/strings_boost
 
+//! Smart pointer type alias for AnnotationDeclaration.
 typedef AnnotationDeclarationPtr = smart_ptr<AnnotationDeclaration>
 
 def isVectorType(typ : Type) {
+    //! Returns true if `typ` is a vector type (int/uint/float 2/3/4, range, urange).
     return (
         typ == Type.tInt2   || typ == Type.tInt3   || typ == Type.tInt4   ||
         typ == Type.tUInt2  || typ == Type.tUInt3  || typ == Type.tUInt4  ||
@@ -24,10 +35,12 @@ def isVectorType(typ : Type) {
 }
 
 def describe(list : AnnotationArgumentList) {
+    //! Returns a comma-separated string description of an annotation argument list.
     return join([ for (arg in list); "{arg.name}={get_annotation_argument_value(arg)}" ], ",")
 }
 
 def describe(ann : AnnotationDeclaration) {
+    //! Returns a string description of an annotation declaration including its arguments.
     if (ann.arguments |> length != 0) {
         return "{ann.annotation.name}({describe(ann.arguments)})"
     } else {
@@ -36,14 +49,17 @@ def describe(ann : AnnotationDeclaration) {
 }
 
 def describe(list : AnnotationList) {
+    //! Returns a comma-separated string description of an annotation list.
     return join([ for (arg in list); describe(*arg) ], ",")
 }
 
 def describe(vvar : VariablePtr) {
+    //! Returns a string description of a variable with its name and type.
     return vvar._type != null ? "{vvar.name}:{describe(vvar._type)}" : "{vvar.name}:null"
 }
 
 def describe_bitfield(bf; merger : string = "") {
+    //! Returns a string listing the set bits of a bitfield value.
     static_if (typeinfo is_bitfield(bf)) {
         var inscope bftd <- typeinfo ast_typedecl(bf)
         return join([ for (name, bit in bftd.argNames, range(32)); "[{name}]";
@@ -54,6 +70,7 @@ def describe_bitfield(bf; merger : string = "") {
 }
 
 def describe_function_short(func : FunctionPtr | Function?) {
+    //! Returns a short human-readable description of a function signature.
     var args <- [for (x in func.arguments); "{x.name}:{describe(x._type,false)}" ]
     let res = "{func.name} ({join(args,";")}) : {describe(func.result,false)}"
     delete args
@@ -61,12 +78,13 @@ def describe_function_short(func : FunctionPtr | Function?) {
 }
 
 def isExpression(t : TypeDeclPtr; top : bool = true) : bool {
+    //! Returns true if the type declaration refers to an AST expression node type.
     if (t == null) {
         return false
     } elif (t.dim |> length != 0) {
         return false
     } elif (t.baseType == Type.tHandle) {
-        if (t.annotation._module.name == "ast") {
+        if (t.annotation._module.name == "ast_core") {
             return starts_with("{t.annotation.name}", "Expr")
         } else {
             return false
@@ -79,6 +97,7 @@ def isExpression(t : TypeDeclPtr; top : bool = true) : bool {
 }
 
 def is_same_or_inherited(parent, child : Structure const?) {
+    //! Returns true if `child` structure is the same as or inherits from `parent`.
     var ch = child
     while (ch != null) {
         if (parent == ch) {
@@ -90,6 +109,7 @@ def is_same_or_inherited(parent, child : Structure const?) {
 }
 
 def is_class_method(cinfo : StructurePtr; finfo : TypeDeclPtr) {
+    //! Returns true if the function type declaration is a method of the given class structure.
     if (finfo.baseType != Type.tFunction) {
         return false
     }
@@ -112,22 +132,27 @@ def is_class_method(cinfo : StructurePtr; finfo : TypeDeclPtr) {
 }
 
 def emplace_new(var vec : dasvector`smart_ptr`Expression; var ptr : smart_ptr<Expression>) {
+    //! Emplaces a smart pointer to an Expression into a vector.
     emplace(vec, ptr)
 }
 
 def emplace_new(var vec : dasvector`smart_ptr`TypeDecl; var ptr : smart_ptr<TypeDecl>) {
+    //! Emplaces a smart pointer to a TypeDecl into a vector.
     emplace(vec, ptr)
 }
 
 def emplace_new(var vec : dasvector`smart_ptr`Variable; var ptr : smart_ptr<Variable>) {
+    //! Emplaces a smart pointer to a Variable into a vector.
     emplace(vec, ptr)
 }
 
 def emplace_new(var vec : MakeStruct; var ptr : smart_ptr<MakeFieldDecl>) {
+    //! Emplaces a smart pointer to a MakeFieldDecl into a MakeStruct.
     emplace(vec, ptr)
 }
 
 def override_method(var str : StructurePtr; name, funcName : string) : bool {
+    //! Overrides a structure field initializer with an address-of cast to the named function.
     for (fld in str.fields) {
         if (fld.name == name) {
             var inscope vcast <- new ExprCast(at = str.at,
@@ -142,7 +167,9 @@ def override_method(var str : StructurePtr; name, funcName : string) : bool {
 }
 
 class MacroMacro : AstFunctionAnnotation {
+    //! Function annotation that guards the function body with an is_compiling_macros check.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        //! Wraps function body in an `is_compiling_macros` guard and marks program as needing macro module.
         compiling_program().flags |= ProgramFlags.needMacroModule
         func.flags |= FunctionFlags.macroInit
         var inscope blk <- new ExprBlock(at = func.at)
@@ -155,7 +182,9 @@ class MacroMacro : AstFunctionAnnotation {
 }
 
 class TagFunctionAnnotation : AstFunctionAnnotation {
+    //! Function annotation that validates tag_function arguments are boolean tag names.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        //! Validates that tag_function annotation arguments are boolean tag names.
         for (arg in args) {
             let val = get_annotation_argument_value(arg)
             if (!(val is tBool)) {
@@ -168,7 +197,9 @@ class TagFunctionAnnotation : AstFunctionAnnotation {
 }
 
 class TagStructureAnnotation : AstStructureAnnotation {
+    //! Structure annotation that validates tag_structure arguments are boolean tag names.
     def override apply(var str : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        //! Validates that tag_structure annotation arguments are boolean tag names.
         for (arg in args) {
             let val = get_annotation_argument_value(arg)
             if (!(val is tBool)) {
@@ -181,7 +212,7 @@ class TagStructureAnnotation : AstStructureAnnotation {
 }
 
 def private for_each_tag_function(mod : Module?; tag : string; blk : block<(var func : FunctionPtr) : void>) {
-    for_each_function(mod, "") <| $(func) {
+    for_each_function(mod, "") $(func) {
         for (ann in func.annotations) {
             if (ann != null && ann.annotation.name == "tag_function") {
                 for (t in ann.arguments) {
@@ -192,7 +223,7 @@ def private for_each_tag_function(mod : Module?; tag : string; blk : block<(var 
             }
         }
     }
-    for_each_generic(mod, "") <| $(func) {
+    for_each_generic(mod, "") $(func) {
         for (ann in func.annotations) {
             if (ann != null && ann.annotation.name == "tag_function") {
                 for (t in ann.arguments) {
@@ -207,6 +238,7 @@ def private for_each_tag_function(mod : Module?; tag : string; blk : block<(var 
 
 [deprecated]
 def find_arg(argn : string; args : AnnotationArgumentList) : RttiValue {
+    //! Finds an annotation argument value by name. Deprecated in favor of find_arg(args, argn).
     for (a in args) {
         if (a.name == argn) {
             return get_annotation_argument_value(a)
@@ -216,6 +248,7 @@ def find_arg(argn : string; args : AnnotationArgumentList) : RttiValue {
 }
 
 def find_arg(args : AnnotationArgumentList; argn : string) : RttiValue {
+    //! Finds an annotation argument value by name in the argument list.
     for (a in args) {
         if (a.name == argn) {
             return get_annotation_argument_value(a)
@@ -226,11 +259,11 @@ def find_arg(args : AnnotationArgumentList; argn : string) : RttiValue {
 
 def private apply_tag_annotation(tag : string; var ann : FunctionAnnotationPtr) {
     var inscope funcs : array<FunctionPtr>
-    for_each_tag_function(this_module(), tag) <| $(func) {
+    for_each_tag_function(this_module(), tag) $(func) {
         funcs |> push_clone(func)
     }
     for (func in funcs) {
-        if (true) {
+        {
             var inscope tagAnn := ann
             add_function_annotation(func, tagAnn)
         }
@@ -238,15 +271,17 @@ def private apply_tag_annotation(tag : string; var ann : FunctionAnnotationPtr) 
 }
 
 def setup_tag_annotation(name, tag : string; var classPtr) {
+    //! Creates and registers a function annotation associated with a tag.
     var inscope ann <- make_function_annotation(name, classPtr)
     apply_tag_annotation(tag, ann)
     this_module() |> add_function_annotation(ann)
 }
 
 def find_unique_function(mod : Module?; name : string; canfail : bool = false) {
+    //! Finds a unique non-generic function by name in a module; panics if more than one found.
     var inscope res : FunctionPtr
     var count = 0
-    for_each_function(mod, name) <| $(func) {
+    for_each_function(mod, name) $(func) {
         res := func
         count ++
     }
@@ -260,9 +295,10 @@ def find_unique_function(mod : Module?; name : string; canfail : bool = false) {
 }
 
 def find_unique_generic(mod : Module?; name : string; canfail : bool = false) {
+    //! Finds a unique generic function by name in a module; panics if more than one found.
     var inscope res : FunctionPtr
     var count = 0
-    for_each_generic(mod, name) <| $(func) {
+    for_each_generic(mod, name) $(func) {
         res := func
         count ++
     }
@@ -276,6 +312,7 @@ def find_unique_generic(mod : Module?; name : string; canfail : bool = false) {
 }
 
 def setup_call_list(name : string; at : LineInfo; subblock : block<(var fn : FunctionPtr) : void>) : ExprBlock? {
+    //! Creates or retrieves a shared function for collecting call expressions, invoking subblock on initial setup.
     var inscope fn <- compiling_module() |> find_unique_function(name)
     if (fn == null) {
         move_new(fn) <| new Function(at = at, atDecl = at, name := "{name}",
@@ -297,7 +334,8 @@ def setup_call_list(name : string; at : LineInfo; subblock : block<(var fn : Fun
 }
 
 def setup_call_list(name : string; at : LineInfo; isInit : bool = false; isPrivate : bool = true; isLateInit : bool = false) : ExprBlock? {
-    return setup_call_list(name, at) <| $(fn) {
+    //! Creates or retrieves a shared init/private function for collecting call expressions.
+    return setup_call_list(name, at) $(fn) {
         if (isInit) {
             fn.flags |= FunctionFlags.init
             if (isLateInit) {
@@ -311,6 +349,7 @@ def setup_call_list(name : string; at : LineInfo; isInit : bool = false; isPriva
 }
 
 def setup_macro(name : string; at : LineInfo) : ExprBlock? {
+    //! Sets up a macro initialization function guarded by `is_compiling_macros_in_module`.
     compiling_program().flags |= ProgramFlags.needMacroModule
     var inscope fn <- compiling_module() |> find_unique_function(name)
     if (fn == null) {
@@ -350,12 +389,15 @@ def setup_macro(name : string; at : LineInfo) : ExprBlock? {
 }
 
 class SetupAnyAnnotation : AstStructureAnnotation {
+    //! Base structure annotation for auto-registering macro classes via generated setup calls.
     annotation_function_call : string = ""
     name : string
     def setup_call(var st : StructurePtr; var cll : smart_ptr<ExprCall>) {
+        //! Populates the annotation setup call with the structure name argument.
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := name))
     }
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        //! Registers the annotated structure as a macro by generating the setup call.
         let argName = args |> find_arg("name")
         if (argName is nothing) {
             name = "{st.name}"
@@ -378,89 +420,111 @@ class SetupAnyAnnotation : AstStructureAnnotation {
 }
 
 class SetupFunctionAnnotation : SetupAnyAnnotation {
+    //! Registers annotated structure as a function annotation macro.
     override annotation_function_call : string = "add_new_function_annotation"
 }
 
 class SetupBlockAnnotation : SetupAnyAnnotation {
+    //! Registers annotated structure as a block annotation macro.
     override annotation_function_call : string = "add_new_block_annotation"
 }
 
 class SetupStructureAnnotation : SetupAnyAnnotation {
+    //! Registers annotated structure as a structure annotation macro.
     override annotation_function_call : string = "add_new_structure_annotation"
 }
 
 class SetupEnumerationAnnotation : SetupAnyAnnotation {
+    //! Registers annotated structure as an enumeration annotation macro.
     override annotation_function_call : string = "add_new_enumeration_annotation"
 }
 
 class SetupContractAnnotation : SetupAnyAnnotation {
+    //! Registers annotated structure as a contract annotation macro.
     override annotation_function_call : string = "add_new_contract_annotation"
 }
 
 class SetupReaderMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a reader macro.
     override annotation_function_call : string = "add_new_reader_macro"
 }
 
 class SetupCommentReader : SetupAnyAnnotation {
+    //! Registers annotated structure as a comment reader macro.
     override annotation_function_call : string = "add_new_comment_reader"
 }
 
 class SetupVariantMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a variant macro.
     override annotation_function_call : string = "add_new_variant_macro"
 }
 
 class SetupForLoopMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a for-loop macro.
     override annotation_function_call : string = "add_new_for_loop_macro"
 }
 
 class SetupCaptureMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a capture macro.
     override annotation_function_call : string = "add_new_capture_macro"
 }
 
 class SetupTypeMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a type macro.
     override annotation_function_call : string = "add_new_type_macro"
 }
 
 class SetupSimulateMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a simulate macro.
     override annotation_function_call : string = "add_new_simulate_macro"
 }
 
 class SetupCallMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a call macro.
     override annotation_function_call : string = "add_new_call_macro"
 }
 
 class SetupTypeInfoMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a typeinfo macro.
     override annotation_function_call : string = "add_new_typeinfo_macro"
 }
 
 class SetupInferMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as an infer macro.
     override annotation_function_call : string = "add_new_infer_macro"
 }
 
 class SetupDirtyInferMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a dirty infer macro.
     override annotation_function_call : string = "add_new_dirty_infer_macro"
 }
 
 class SetupLintMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a lint macro.
     override annotation_function_call : string = "add_new_lint_macro"
 }
 
 class SetupGlobalLintMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as a global lint macro.
     override annotation_function_call : string = "add_new_global_lint_macro"
 }
 
 class SetupOptimizationMacro : SetupAnyAnnotation {
+    //! Registers annotated structure as an optimization macro.
     override annotation_function_call : string = "add_new_optimization_macro"
 }
 
 class TagFunctionMacro : SetupAnyAnnotation {
+    //! Setup annotation that registers a tag-based function annotation with name and tag arguments.
     override annotation_function_call : string = "setup_tag_annotation"
     tag : string
     def override setup_call(var st : StructurePtr; var cll : smart_ptr<ExprCall>) {
+        //! Populates the annotation setup call with both name and tag arguments.
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := name))
         emplace_new(cll.arguments, new ExprConstString(at = st.at, value := tag))
     }
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
+        //! Validates the tag argument and registers the structure as a tag function macro.
         let argTag = args |> find_arg("tag")
         if (argTag is nothing) {
             errors := "missing tag argument"
@@ -475,6 +539,7 @@ class TagFunctionMacro : SetupAnyAnnotation {
 }
 
 def public panic_expr_as : void ? {
+    //! Panics with an error when an `as` variant expression fails or encounters a null pointer.
     panic("invalid 'as' expression or null pointer dereference")
     return null
 }
@@ -521,9 +586,11 @@ def private makeAsOrSafeAs(expr; var enull : ExpressionPtr) {
 }
 
 // replacing ExprIsVariant(value,name) => ExprOp2('==",value.__rtti,"name")
-// if value is ast::Expr*
+// if value is ast_core::Expr*
 class BetterRttiVisitor : AstVariantMacro {
+    //! Variant macro that optimizes `is` checks on AST expression types to __rtti string comparison.
     def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprIsVariant>) : ExpressionPtr {
+        //! Replaces `is` variant checks on AST expression types with __rtti string comparison.
         if (isExpression(expr.value._type)) {
             var inscope vdr <- new ExprField(at = expr.at, name := "__rtti", value <- clone_expression(expr.value))
             var inscope cna <- new ExprConstString(at = expr.at, value := expr.name)
@@ -533,12 +600,14 @@ class BetterRttiVisitor : AstVariantMacro {
         return <- default<ExpressionPtr>
     }
     def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprAsVariant>) : ExpressionPtr {
+        //! Replaces `as` variant casts on AST expression types with __rtti-guarded reinterpret casts.
         if (isExpression(expr.value._type)) {
             return <- makeAsOrSafeAs(expr, new ExprCall(at = expr.at, name := "panic_expr_as"))
         }
         return <- default<ExpressionPtr>
     }
     def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprSafeAsVariant>) : ExpressionPtr {
+        //! Replaces safe `as` variant casts on AST expression types with __rtti-guarded casts returning null on mismatch.
         if (isExpression(expr.value._type)) {
             return <- makeAsOrSafeAs(expr, new ExprConstPtr(at = expr.at))
         }
@@ -547,72 +616,88 @@ class BetterRttiVisitor : AstVariantMacro {
 }
 
 def operator is BuiltInFunction(anything) {
+    //! Fallback overload; returns false for any non-Function type.
     return false
 }
 
 def operator is BuiltInFunction(foo : Function?) {
+    //! Returns true if the function is a built-in function.
     return foo.flags.builtIn
 }
 
 def operator as BuiltInFunction(foo : Function?) {
+    //! Casts a Function pointer to BuiltInFunction pointer after verifying it is built-in.
     verify(foo is BuiltInFunction)
     return unsafe(reinterpret<BuiltInFunction?>(foo));
 }
 
 def operator is ExternalFnBase(anything) {
+    //! Fallback overload; returns false for any non-Function type.
     return false
 }
 
 def operator is ExternalFnBase(foo : Function?) {
+    //! Returns true if the function is a built-in property function.
     return foo.moreFlags.propertyFunction && foo.flags.builtIn
 }
 
 def operator as ExternalFnBase(foo : Function?) {
+    //! Casts a Function pointer to ExternalFnBase pointer after verification.
     verify(foo is ExternalFnBase)
     return unsafe(reinterpret<ExternalFnBase?>(foo));
 }
 
 def operator is FunctionAnnotation(anything) {
+    //! Fallback overload; returns false for any non-Annotation type.
     return false
 }
 
 def operator is FunctionAnnotation(foo : Annotation?) {
+    //! Returns true if the annotation is a function annotation.
     return foo.isFunctionAnnotation
 }
 
 def operator is FunctionAnnotation(foo : smart_ptr<Annotation>) {
+    //! Returns true if the smart_ptr annotation is a function annotation.
     return foo.isFunctionAnnotation
 }
 
 def operator as FunctionAnnotation(foo : Annotation?) {
+    //! Casts an Annotation pointer to FunctionAnnotation pointer after verification.
     verify(foo is FunctionAnnotation)
     return unsafe(reinterpret<FunctionAnnotation?>(foo));
 }
 
 def operator as FunctionAnnotation(foo : smart_ptr<Annotation>) {
+    //! Casts a smart_ptr Annotation to FunctionAnnotation pointer after verification.
     verify(foo is FunctionAnnotation)
     return unsafe(reinterpret<FunctionAnnotation?>(foo.get_ptr()));
 }
 
 
 def operator is StructureAnnotation(anything) {
+    //! Fallback overload; returns false for any non-Annotation type.
     return false
 }
 
 def operator is StructureAnnotation(foo : Annotation?) {
+    //! Returns true if the annotation is a structure annotation.
     return foo.isStructureAnnotation
 }
 
 def operator is StructureAnnotation(foo : smart_ptr<Annotation>) {
+    //! Returns true if the smart_ptr annotation is a structure annotation.
     return foo.isStructureAnnotation
 }
 
 def operator as StructureAnnotation(foo : Annotation?) {
+    //! Casts an Annotation pointer to StructureAnnotation pointer after verification.
     verify(foo is StructureAnnotation)
     return unsafe(reinterpret<StructureAnnotation?>(foo));
 }
 
 def operator as StructureAnnotation(foo : smart_ptr<Annotation>) {
+    //! Casts a smart_ptr Annotation to StructureAnnotation pointer after verification.
     verify(foo is StructureAnnotation)
     return unsafe(reinterpret<StructureAnnotation?>(foo.get_ptr()));
 }
@@ -622,7 +707,7 @@ def private walk_and_convert_array(data : uint8 const?; info : TypeDeclPtr; at :
     if (total != 0) {
         let stride = info.firstType.sizeOf
         var inscope mkArr <- new ExprMakeArray(at = at, makeType <- clone_type(info.firstType))
-        any_array_foreach(data, stride) <| $(value) {
+        any_array_foreach(data, stride) $(value) {
             emplace_new(mkArr.values) <| walk_and_convert(value, info.firstType, at)
         }
         push(mkArr.makeType.dim, total)
@@ -715,7 +800,7 @@ def private walk_and_convert_table(data : uint8 const?; info : TypeDeclPtr; at :
         var inscope mkArr <- new ExprMakeArray(at = at, makeType <- clone_type(tupT))
         let key_stride = info.firstType.sizeOf
         let value_stride = info.secondType.sizeOf
-        any_table_foreach(data, key_stride, value_stride) <| $(pkey, pvalue) {
+        any_table_foreach(data, key_stride, value_stride) $(pkey, pvalue) {
             var inscope key <- walk_and_convert(pkey, info.firstType, at)
             var inscope value <- walk_and_convert(pvalue, info.secondType, at)
             var inscope mkTup <- new ExprMakeTuple(at = at, recordType <- clone_type(tupT), isKeyValue = true)
@@ -766,8 +851,11 @@ def private walk_and_convert_basic(data : uint8 const?; info : TypeDeclPtr; at :
             return new ExprConstURange64(at = at, value = *reinterpret<urange64?> data)
         } elif (info.baseType == Type.tString) {
             return new ExprConstString(at = at, value := *reinterpret<string?> data)
-        } elif (info.baseType == Type.tBitfield) {
-            return new ExprConstBitfield(at = at, value = *reinterpret<bitfield?> data)
+        } elif (info.baseType == Type.tBitfield8
+                || info.baseType == Type.tBitfield16
+                || info.baseType == Type.tBitfield
+                || info.baseType == Type.tBitfield64) {
+            return new ExprConstBitfield(at = at, value = *reinterpret<bitfield?> data, bitfieldType := info)
         } else {
             panic("unsupported {info.baseType}")
             return default<ExpressionPtr>
@@ -796,6 +884,7 @@ def private walk_and_convert_enumeration(data : uint8 const?; info : TypeDeclPtr
 }
 
 def walk_and_convert(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : ExpressionPtr {
+    //! Recursively converts raw data to an AST expression based on type information.
     // print("0x{intptr(data)} {describe(info)}\n")
     if (info.dim |> length != 0) {
         return <- walk_and_convert_dim(data, info, at)
@@ -827,6 +916,7 @@ def walk_and_convert(data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : E
 }
 
 def convert_to_expression(var value : auto& ==const; at : LineInfo) {
+    //! Converts a mutable reference value to an AST expression at the given source location.
     var inscope info <- typeinfo ast_typedecl(value)
     unsafe {
         let pval = addr(value)
@@ -835,6 +925,7 @@ def convert_to_expression(var value : auto& ==const; at : LineInfo) {
 }
 
 def convert_to_expression(value : auto ==const; at : LineInfo) {
+    //! Converts a constant value to an AST expression at the given source location.
     var inscope info <- typeinfo ast_typedecl(value)
     unsafe {
         let pval = addr(value)
@@ -843,20 +934,23 @@ def convert_to_expression(value : auto ==const; at : LineInfo) {
 }
 
 def convert_to_expression(var value : auto ==const) {
+    //! Converts a mutable value to an AST expression with default source location.
     return <- convert_to_expression(value, LineInfo())
 }
 
 def convert_to_expression(value : auto ==const) {
+    //! Converts a constant value to an AST expression with default source location.
     return <- convert_to_expression(value, LineInfo())
 }
 
 def find_annotation(mod_name, ann_name : string) : Annotation const? {
+    //! Finds an annotation by module name and annotation name in the compiling program.
     var mod = find_compiling_module(mod_name)
     if (mod == null) {
         return null
     }
     var ann : Annotation const?
-    module_for_each_annotation(mod) <| $(value) {
+    module_for_each_annotation(mod) $(value) {
         if (value.name == ann_name) {
             unsafe {
                 ann = addr(value)
@@ -867,6 +961,7 @@ def find_annotation(mod_name, ann_name : string) : Annotation const? {
 }
 
 def append_annotation(mod_name, ann_name : string; args : array< tuple<argname : string; argvalue : RttiValue> >) {
+    //! Creates an AnnotationDeclaration with the specified arguments from the given annotation.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- new AnnotationDeclaration(uninitialized)
@@ -883,13 +978,14 @@ def append_annotation(mod_name, ann_name : string; args : array< tuple<argname :
         } elif (arg is tString) {
             decl.arguments |> add_annotation_argument(argName, arg as tString)
         } else {
-            panic("Invalid rtti value")
+            panic("Invalid rtti value {arg} for annotation argument {argName}")
         }
     }
     return <- decl
 }
 
 def append_annotation(mod_name, ann_name : string) {
+    //! Creates an AnnotationDeclaration from the given module and annotation name.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- new AnnotationDeclaration(uninitialized)
@@ -898,6 +994,7 @@ def append_annotation(mod_name, ann_name : string) {
 }
 
 def append_annotation(var func : FunctionPtr; mod_name, ann_name : string) {
+    //! Appends an annotation to a function by module and annotation name.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name)
@@ -905,6 +1002,7 @@ def append_annotation(var func : FunctionPtr; mod_name, ann_name : string) {
 }
 
 def append_annotation(var blk : smart_ptr<ExprBlock>; mod_name, ann_name : string) {
+    //! Appends an annotation to an expression block by module and annotation name.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name)
@@ -912,6 +1010,7 @@ def append_annotation(var blk : smart_ptr<ExprBlock>; mod_name, ann_name : strin
 }
 
 def append_annotation(var st : smart_ptr<Structure>; mod_name, ann_name : string) {
+    //! Appends an annotation to a structure by module and annotation name.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name)
@@ -919,6 +1018,7 @@ def append_annotation(var st : smart_ptr<Structure>; mod_name, ann_name : string
 }
 
 def append_annotation(var func : FunctionPtr; mod_name, ann_name : string; args : array< tuple<argname : string; argvalue : RttiValue> >) {
+    //! Appends an annotation with arguments to a function.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name, args)
@@ -926,6 +1026,7 @@ def append_annotation(var func : FunctionPtr; mod_name, ann_name : string; args 
 }
 
 def append_annotation(var blk : smart_ptr<ExprBlock>; mod_name, ann_name : string; args : array< tuple<argname : string; argvalue : RttiValue> >) {
+    //! Appends an annotation with arguments to an expression block.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name, args)
@@ -933,6 +1034,7 @@ def append_annotation(var blk : smart_ptr<ExprBlock>; mod_name, ann_name : strin
 }
 
 def append_annotation(var st : smart_ptr<Structure>; mod_name, ann_name : string; args : array< tuple<argname : string; argvalue : RttiValue> >) {
+    //! Appends an annotation with arguments to a structure.
     var ann = find_annotation(mod_name, ann_name)
     assert(ann != null)
     var inscope decl <- append_annotation(mod_name, ann_name, args)
@@ -940,6 +1042,7 @@ def append_annotation(var st : smart_ptr<Structure>; mod_name, ann_name : string
 }
 
 def add_annotation_argument(var arguments : AnnotationArgumentList; argName : string; val : bool) {
+    //! Adds a boolean annotation argument to an argument list.
     let argIdx = arguments |> add_annotation_argument(argName)
     arguments[argIdx].basicType = Type.tBool
     arguments[argIdx].bValue = val
@@ -947,6 +1050,7 @@ def add_annotation_argument(var arguments : AnnotationArgumentList; argName : st
 }
 
 def add_annotation_argument(var arguments : AnnotationArgumentList; argName : string; val : int) {
+    //! Adds an integer annotation argument to an argument list.
     let argIdx = arguments |> add_annotation_argument(argName)
     arguments[argIdx].basicType = Type.tInt
     arguments[argIdx].iValue = val
@@ -954,6 +1058,7 @@ def add_annotation_argument(var arguments : AnnotationArgumentList; argName : st
 }
 
 def add_annotation_argument(var arguments : AnnotationArgumentList; argName : string; val : float) {
+    //! Adds a float annotation argument to an argument list.
     let argIdx = arguments |> add_annotation_argument(argName)
     arguments[argIdx].basicType = Type.tFloat
     arguments[argIdx].fValue = val
@@ -961,6 +1066,7 @@ def add_annotation_argument(var arguments : AnnotationArgumentList; argName : st
 }
 
 def add_annotation_argument(var arguments : AnnotationArgumentList; argName : string; val : string) {
+    //! Adds a string annotation argument to an argument list.
     let argIdx = arguments |> add_annotation_argument(argName)
     arguments[argIdx].basicType = Type.tString
     arguments[argIdx].sValue := val
@@ -968,6 +1074,7 @@ def add_annotation_argument(var arguments : AnnotationArgumentList; argName : st
 }
 
 def add_annotation_argument(var arguments : AnnotationArgumentList; ann : rtti::AnnotationArgument) {
+    //! Adds an annotation argument by copying from an existing AnnotationArgument.
     let argIdx = arguments |> add_annotation_argument(string(ann.name))
     arguments[argIdx].basicType = ann.basicType
     if (ann.basicType == Type.tBool) {
@@ -985,6 +1092,7 @@ def add_annotation_argument(var arguments : AnnotationArgumentList; ann : rtti::
 }
 
 def get_for_source_index(expr : smart_ptr<ExprFor>; svar : VariablePtr) {
+    //! Returns the index of an iterator variable in a for-loop expression, or -1 if not found.
     for (v, t in expr.iteratorVariables, count()) {
         if (v == svar) {
             return t
@@ -994,6 +1102,7 @@ def get_for_source_index(expr : smart_ptr<ExprFor>; svar : VariablePtr) {
 }
 
 def get_for_source_index(expr : smart_ptr<ExprFor>; source : ExpressionPtr) {
+    //! Returns the index of a source expression in a for-loop expression, or -1 if not found.
     for (s, t in expr.sources, count()) {
         if (s == source) {
             return t
@@ -1004,6 +1113,7 @@ def get_for_source_index(expr : smart_ptr<ExprFor>; source : ExpressionPtr) {
 
 [macro_function]
 def make_static_assert_false(text : string; at : LineInfo) {
+    //! Creates a static_assert(false, text) expression for compile-time error reporting.
     var inscope esa <- new ExprStaticAssert(at = at)
     esa.arguments |> emplace_new <| new ExprConstBool(at = at, value = false)
     esa.arguments |> emplace_new <| new ExprConstString(at = at, value := text)
@@ -1042,6 +1152,7 @@ def private setup {
 
 
 def public function_to_type(fn : FunctionPtr) : TypeDeclPtr {
+    //! Converts a function declaration to a function-type TypeDecl.
     var inscope td <- new TypeDecl(baseType = Type.tFunction,
         firstType <- fn.result != null ? clone_type(fn.result) : new TypeDecl(baseType = Type.autoinfer)
     )
@@ -1054,20 +1165,24 @@ def public function_to_type(fn : FunctionPtr) : TypeDeclPtr {
 }
 
 def public visit_finally(blk : ExprBlock?; adapter : smart_ptr<VisitorAdapter>) {
+    //! Visits the finally section of an ExprBlock using the given visitor adapter.
     unsafe {
         visit_finally(reinterpret<smart_ptr<ExprBlock>> blk, adapter)
     }
 }
 
 def public isCMRES(fun : FunctionPtr) : bool {
+    //! Returns true if the function returns by copy or move (CMRES).
     return fun.flags.copyOnReturn || fun.flags.moveOnReturn
 }
 
 def public isCMRES(fun : Function?) : bool {
+    //! Returns true if the function returns by copy or move (CMRES).
     return fun.flags.copyOnReturn || fun.flags.moveOnReturn
 }
 
 def public isMakeLocal(expr : ExpressionPtr) {
+    //! Returns true if the expression is a make-local expression (struct, variant, array, or tuple).
     return ((expr.__rtti == "ExprMakeLocal")
         ||  (expr.__rtti == "ExprMakeStruct")
         ||  (expr.__rtti == "ExprMakeVariant")
@@ -1076,6 +1191,7 @@ def public isMakeLocal(expr : ExpressionPtr) {
 }
 
 def public isExprCallFunc(expr : ExpressionPtr) {
+    //! Returns true if the expression is a function call expression (call, op, or new).
     return ((expr.__rtti == "ExprCallFunc")
         ||  (expr.__rtti == "ExprOp")
         ||  (expr.__rtti == "ExprNew")
@@ -1083,19 +1199,25 @@ def public isExprCallFunc(expr : ExpressionPtr) {
 }
 
 def public get_workhorse_types {
+    //! Returns a fixed array of all commonly used base types.
     return fixed_array(
-        Type.tBool,             Type.tInt8,             Type.tUInt8,            Type.tInt16,
-        Type.tUInt16,           Type.tInt64,            Type.tUInt64,           Type.tEnumeration,
-        Type.tEnumeration8,     Type.tEnumeration16,    Type.tEnumeration64,    Type.tInt,              Type.tInt2,
-        Type.tInt3,             Type.tInt4,             Type.tUInt,             Type.tBitfield,
-        Type.tUInt2,            Type.tUInt3,            Type.tUInt4,            Type.tFloat,
-        Type.tFloat2,           Type.tFloat3,           Type.tFloat4,           Type.tRange,
-        Type.tURange,           Type.tRange64,          Type.tURange64,         Type.tString,
-        Type.tDouble,           Type.tPointer
+        Type.tBool,
+        Type.tString,           Type.tPointer,
+        Type.tFloat,            Type.tDouble,
+        Type.tEnumeration,      Type.tEnumeration8,     Type.tEnumeration16,    Type.tEnumeration64,
+        Type.tBitfield,         Type.tBitfield8,        Type.tBitfield16,       Type.tBitfield64,
+        Type.tInt,              Type.tInt8,             Type.tInt16,            Type.tInt64,
+        Type.tUInt,             Type.tUInt8,            Type.tUInt16,           Type.tUInt64,
+        Type.tInt2,             Type.tInt3,             Type.tInt4,
+        Type.tUInt2,            Type.tUInt3,            Type.tUInt4,
+        Type.tFloat2,           Type.tFloat3,           Type.tFloat4,
+        Type.tRange,            Type.tRange64,
+        Type.tURange,           Type.tURange64,
     )
 }
 
 def public find_argument_index(typ : TypeDeclPtr; name : string) {
+    //! Returns the index of a named argument in a type declaration, or -1 if not found.
     for (a, ai in typ.argNames, count()) {
         if (a == name) {
             return ai
@@ -1105,11 +1227,14 @@ def public find_argument_index(typ : TypeDeclPtr; name : string) {
 }
 
 def public isCMRESType(blockT : TypeDeclPtr) {
+    //! Returns true if the type is a reference type not passed by ref (CMRES pattern).
     return blockT != null && blockT.isRefType && !blockT.flags.ref
 }
 
 bitfield DebugExpressionFlags {
-    refCount
+    //! Flags controlling debug expression output formatting.
+    refCount,
+    lineInfo
 }
 
 def private debug_expression_impl(var writer : StringBuilderWriter; expr : ExpressionPtr; deFlags : DebugExpressionFlags; tabs : int) {
@@ -1125,6 +1250,19 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
     if (deFlags.refCount) {
         writer |> write("<{smart_ptr_use_count(expr)}>")
     }
+    if (deFlags.lineInfo) {
+        let e = get_ptr(expr)
+        writer |> write(" at={int(e.at.line)}:{int(e.at.column)}-{int(e.at.last_line)}:{int(e.at.last_column)}")
+        if (e.at.fileInfo != null) {
+            writer |> write(" file=\"{e.at.fileInfo.name}\"")
+        }
+        if (string(e.__rtti) == "ExprCall" || string(e.__rtti) == "ExprInvoke") {
+            let enc = unsafe(reinterpret<ExprLooksLikeCall?> e)
+            if (int(enc.atEnclosure.line) != 0 || int(enc.atEnclosure.last_line) != 0) {
+                writer |> write(" atEnclosure={int(enc.atEnclosure.line)}:{int(enc.atEnclosure.column)}-{int(enc.atEnclosure.last_line)}:{int(enc.atEnclosure.last_column)}")
+            }
+        }
+    }
     if (string(expr.__rtti) |> starts_with("ExprConst")) {
         writer |> write(" {describe(expr)})")
         return
@@ -1134,14 +1272,14 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
         writer |> write(")")
         return
     }
-    for_each_field(*ann) <| $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, offset) {
         if (offset != -1u) {
             let tstr = describe(xtype)
             var p8 : int8?
             unsafe {
                 p8 = (reinterpret<int8?> expr) + int(offset)
             }
-            if (tstr == "smart_ptr<ast::Expression>") {
+            if (tstr == "smart_ptr<ast_core::Expression>") {
                 let pv = unsafe(reinterpret<ExpressionPtr?> p8)
                 let ts = repeat("  ", tabs + 2)
                 writer |> write("\n{ts}({name} ")
@@ -1173,7 +1311,7 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
         }
     }
                 // writer |> write(" {name}={describe(xtype)}")
-    for_each_field(*ann) <| $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, offset) {
         if (offset != -1u) {
             let tstr = describe(xtype)
             var p8 : int8?
@@ -1219,24 +1357,28 @@ def private debug_expression_impl(var writer : StringBuilderWriter; expr : Expre
 }
 
 def public debug_expression(expr : ExpressionPtr; deFlags : DebugExpressionFlags = bitfield(0)) {
-    return build_string <| $(writer) {
+    //! Returns a debug S-expression string representation of an AST expression.
+    return build_string() $(writer) {
         debug_expression_impl(writer, expr, deFlags, 0)
     }
 }
 
 def public debug_expression(expr : Expression?) {
+    //! Returns a debug S-expression string representation of an AST expression from a raw pointer.
     unsafe {
         return debug_expression(reinterpret<ExpressionPtr> expr)
     }
 }
 
 def public describe(expr : Expression?) {
+    //! Returns a string description of an AST expression from a raw pointer.
     unsafe {
         return describe(reinterpret<ExpressionPtr> expr)
     }
 }
 
 def getVectorElementCount(bt : Type) {
+    //! Returns the number of elements in a vector base type (2, 3, or 4), or 0 if not a vector.
     return 2 if (bt == Type.tFloat2 || bt == Type.tInt2 || bt == Type.tUInt2 || bt == Type.tRange || bt == Type.tURange || bt == Type.tRange64 || bt == Type.tURange64)
     return 3 if (bt == Type.tFloat3 || bt == Type.tInt3 || bt == Type.tUInt3)
     return 4 if (bt == Type.tFloat4 || bt == Type.tInt4 || bt == Type.tUInt4)
@@ -1244,11 +1386,13 @@ def getVectorElementCount(bt : Type) {
 }
 
 def getVectorElementSize(bt : Type) {
+    //! Returns the byte size of a single element in a vector base type.
     return 8 if (bt == Type.tRange64 || bt == Type.tURange64)
     return 4
 }
 
 def getVectorElementType(bt : Type) {
+    //! Returns the scalar element type of a vector base type.
     return Type.tFloat if (bt == Type.tFloat2 || bt == Type.tFloat3 || bt == Type.tFloat4)
     return Type.tInt if (bt == Type.tInt2 || bt == Type.tInt3 || bt == Type.tInt4 || bt == Type.tRange)
     return Type.tUInt if (bt == Type.tUInt2 || bt == Type.tUInt3 || bt == Type.tUInt4 || bt == Type.tURange)
@@ -1258,6 +1402,7 @@ def getVectorElementType(bt : Type) {
 }
 
 def getVectorOffset(bt : Type; ident : string) {
+    //! Returns the element index for a vector swizzle identifier (x/y/z/w or r/g/b/a), or -1 if invalid.
     var ofs = -1
     if (ident == "x" || ident == "X" || ident == "r" || ident == "R") {
         ofs = 0

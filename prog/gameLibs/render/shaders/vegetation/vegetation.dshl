@@ -3,7 +3,11 @@ include "global_consts.dshl"
 include "tree_ellipsoid_normal.dshl"
 
 int impostor_normal_mip = 0;
-int treeCrown_buf_slot = 17;
+int treeCrown_buf_slot = 20;
+
+int use_simplified_vegetation = 0;
+interval use_simplified_vegetation: no<1, yes;
+assume_if_not_assumed use_simplified_vegetation = no;
 
 macro INIT_WEIGHT_FOR_AO()
   static float ao_weight = 1.0;
@@ -29,16 +33,16 @@ macro RESERVE_TREE_CROWN_SLOT()
   }
 endmacro
 
-macro FILL_CURRENT_GBUFFER(is_impostorbaker)
+macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
     impostor_normal_mip@i1 = impostor_normal_mip;
   }
   if (is_impostorbaker) {
     RESERVE_TREE_CROWN_SLOT()
   }
-  if (in_editor_assume == no)
+  if (in_editor_assume == no && is_rendinst)
   {
     (ps) {immediate_dword_count = 3;}
   }
@@ -90,7 +94,7 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker)
           diffuseColor = translucency < (get_back_view_dep() > 0.4 ? 0.316 : 0.01) ? diffuseColor : diffuseColor * input.colorMul;
         #endif
         ##if in_editor_assume == no
-          #if !MOBILE_DEVICE
+          ##if (is_rendinst && use_simplified_vegetation == no)
           half2 crown_transmittance_falloff_stop_distance = UnpackFloat16(get_immediate_dword_2());
           float pointToEyeLen = length(input.pointToEye.xyz);
           uint impostor_data_offset = get_immediate_dword_0();
@@ -116,7 +120,7 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker)
             init_gbuffer_ao(gbuffer, ao1*input.normal.a);
           }
           else
-          #endif //!MOBILE_DEVICE
+          ##endif //(is_rendinst && use_simplified_vegetation == no)
           init_gbuffer_ao(gbuffer, input.normal.a);
         ##else
           ##if is_impostorbaker
@@ -139,7 +143,7 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker)
                 ao2 = length(float4((input.localPos.xyz - crown_center2.xyz) * inv_crown_rad2, crown_transmittance_brightness_falloff_start.x));
               }
               ao1 = smoothstep(crown_transmittance_brightness_falloff_start.y, crown_transmittance_falloff_stop_distance.x, min(ao1, ao2));
-              float vignette = saturate(pointToEyeLen - crown_transmittance_falloff_stop_distance.y) * 10 - 9;
+              float vignette = saturate((pointToEyeLen - crown_transmittance_falloff_stop_distance.y) * 10 - 9);
               ao1 = lerp(1, ao1, vignette);
               init_gbuffer_ao(gbuffer, ao1*input.normal.a);
             }
@@ -156,7 +160,7 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker)
       init_material(gbuffer, translucency > 0 ? SHADING_FOLIAGE : SHADING_NORMAL);
 
       #ifdef MOTION_VECTORS_ENABLED
-        init_motion_vector(gbuffer, encode_motion_vector(input.out_pos, input.out_pos_prev));
+        init_motion_vector(gbuffer, encode_motion_vector(input.out_pos.xyw, input.out_pos_prev.xyw));
       #endif
       init_smoothness(gbuffer, smoothness);
       init_normal(gbuffer, worldNormal);
@@ -174,12 +178,12 @@ USE_FAST_NOISE()
 hlsl(ps) {
   half clip_dissolve_func(float3 tc)
   {
-    #if !MOBILE_DEVICE
+    ##if use_simplified_vegetation == no
       half val = clamp(dot(fast_noise2(tc.xy), 0.2f), -0.5, 0.5);
       return saturate(val + tc.z);
-    #else
+    ##else
       return tc.z;
-    #endif
+    ##endif
   }
 }
 endmacro
@@ -188,7 +192,7 @@ hlsl{
   #define DISSOLVE_ANGLE 4
 }
 
-macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate)
+macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate, alpha_clip_is_on, need_tree_burning, order)
   supports global_const_block;
   hlsl(ps) {
   #include <interleavedGradientNoise.hlsl>
@@ -200,14 +204,14 @@ macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate)
       float leaves_fade = saturate(abs(DISSOLVE_ANGLE*leaves_fade_vert));
       alpha *= leaves_fade;
     }
-    #if !MOBILE_DEVICE
+    ##if use_simplified_vegetation == no
       float lodDissolveValue = interleavedGradientNoiseFramed(tc.xy, dissolve_frame) + tc.z;
       clip(min(alpha - 0.5, lodDissolveValue));
-    #else
+    ##else
       //no dissolve for vegatation, leave dissolve only on impostors
       //gives good enough results while keeping shader simple & fast
       clip(alpha - 0.5);
-    #endif
+    ##endif
   }
 
   ##if is_render_depth_pass
@@ -221,9 +225,17 @@ macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate)
       #endif
       float4 screenpos = GET_SCREEN_POS(input.pos);
       ##if alpha_clip_is_separate
-        alpha_clip(tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+        float alpha = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x;
       ##else
-        alpha_clip(tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).a, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+        float alpha = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy).a;
+      ##endif
+      #if BURNT_GRASS_ENABLED
+        float burntProgress = get_burnt_grass_progress(input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, input.burnt_tc, input.burnt_tc.y);
+        apply_burnt_grass_alpha(burntProgress, alpha);
+      #endif
+      alpha_clip(alpha, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+      ##if need_tree_burning
+        apply_tree_burning_additional_data(input);
       ##endif
     }
   ##else
@@ -236,16 +248,28 @@ macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate)
       #ifndef IS_DYNAMIC
         #define IS_DYNAMIC 0
       #endif
-      #ifndef FORCE_AUTO_MOTION_VECTOR
-        #define FORCE_AUTO_MOTION_VECTOR 0
-      #endif
       half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
-      ##if atest_is_on
+      #if BURNT_GRASS_ENABLED
+        float burntProgress = get_burnt_grass_progress(input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, input.burnt_tc, input.burnt_tc.y);
+      #endif
+      ##if atest_is_on && alpha_clip_is_on
         ##if alpha_clip_is_separate
-          alpha_clip(tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+          float alpha = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord.xy).x;
         ##else
-          alpha_clip(diffuseColor.a, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+          float alpha = diffuseColor.a;
         ##endif
+      ##else
+        float alpha = 1;
+      ##endif
+      #if BURNT_GRASS_ENABLED
+        apply_burnt_grass_alpha(burntProgress, alpha);
+      #endif
+      ##if atest_is_on && alpha_clip_is_on
+        alpha_clip(alpha, float3(screenpos.xy, input.diffuseTexcoord.z), input.pointToEye.w);
+      ##else
+        #if BURNT_GRASS_ENABLED
+          clip(alpha - 0.5);
+        #endif
       ##endif
       input.normal.xyz = MUL_VFACE(input.normal.xyz);
       #ifdef NEED_ELLIPSOID_NORMAL
@@ -259,11 +283,24 @@ macro VEGETATION_PS(is_render_depth_pass, atest_is_on, alpha_clip_is_separate)
         float leaves_fade2 = saturate(abs(2 * input.pointToEye.w));
         gbuffer.reflectance *= leaves_fade2;
       ##endif
+      #if GRASS_COLORING
+        init_shadow(gbuffer, input.ellipsoidNormal.w);
+      #endif
       if (input.localPos.w > 0) {
         init_dynamic(gbuffer, IS_DYNAMIC);
-        init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
       }
-      init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+      init_order(gbuffer, order);
+
+      ##if need_tree_burning
+        ##if atest_is_on // leaves
+          apply_tree_burning_additional_data(input, gbuffer);
+        ##else // trunk
+          apply_tree_burning_additional_data(input, gbuffer, get_diffuse_tex().smp);
+        ##endif
+      ##endif
+      #if BURNT_GRASS_ENABLED
+        apply_burnt_grass(burntProgress, gbuffer);
+      #endif
       return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
     }
   ##endif

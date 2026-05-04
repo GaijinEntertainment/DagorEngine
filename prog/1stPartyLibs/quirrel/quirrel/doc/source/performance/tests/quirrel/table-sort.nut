@@ -1,4 +1,5 @@
 // Public domain, ported from lua
+//-file:plus-string
 
 function create_rng(seed) {
     local Rm = array(17, 0);  // Initialize an array of 17 zeros
@@ -25,13 +26,13 @@ function create_rng(seed) {
 local rand = create_rng(12345);
 
 local n = 100000;  // No direct `arg` equivalent in Squirrel; set manually
-local t = [];
+local t = array(n);
 for (local i = 0; i < n; i++) {
-    t.append(rand());
+    t[i] = rand();
 }
 
 function cmp(lhs, rhs) {
-  return lhs > rhs;
+  return rhs - lhs
 }
 
 local profile_it
@@ -43,7 +44,7 @@ try {
 
 function test(){
   local arr = clone t
-  t.sort(cmp)
+  arr.sort(cmp)
 }
 
 print("\"sort\", " + profile_it(10, test) + ", 10\n");

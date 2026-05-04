@@ -32,43 +32,68 @@ namespace das
     };
 
     int32_t get_character_at ( const char * str, int32_t index, Context * context, LineInfoArg * at ) {
-        const uint32_t strLen = stringLengthSafe ( *context, str );
-        if ( uint32_t(index)>=strLen ) {
-            context->throw_error_at(at, "string character index out of range, %u of %u", uint32_t(index), strLen);
+        if ( !str || index<0 ) {
+            context->throw_error_at(at, "string character index out of range, %u", uint32_t(index));
+        }
+        for ( int32_t i = 0; i <= index; ++i ) {
+            if ( str[i]==0 ) {
+                context->throw_error_at(at, "string character index out of range, %u", uint32_t(index));
+            }
         }
         return ((uint8_t *)str)[index];
+    }
+
+    int32_t get_first_character ( const char * str, Context * context, LineInfoArg * at ) {
+        if ( !str || str[0]==0 ) {
+            context->throw_error_at(at, "string is empty");
+        }
+        return ((uint8_t *)str)[0];
+    }
+
+    int32_t get_first_character_ds ( const string & str, Context * context, LineInfoArg * at ) {
+        if ( str.empty() ) {
+            context->throw_error_at(at, "string is empty");
+        }
+        return ((uint8_t *)str.c_str())[0];
+    }
+
+    void with_das_string ( const TBlock<void,TTemporary<string>> & block, Context * context, LineInfoArg * at ) {
+        string tmp;
+        vec4f args[1];
+        args[0] = cast<string&>::from(tmp);
+        context->invoke(block, args, nullptr, at);
     }
 
     bool builtin_string_endswith ( const char * str, const char * cmp, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         const uint32_t cmpLen = stringLengthSafe ( *context, cmp );
-        return (cmpLen > strLen) ? false : memcmp(&str[strLen - cmpLen], cmp, cmpLen) == 0;
+        return cmpLen == 0 || ((cmpLen <= strLen) && memcmp(&str[strLen - cmpLen], cmp, cmpLen) == 0);
     }
 
     bool builtin_string_startswith ( const char * str, const char * cmp, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         const uint32_t cmpLen = stringLengthSafe ( *context, cmp );
-        return (cmpLen > strLen) ? false : memcmp(str, cmp, cmpLen) == 0;
+        return cmpLen == 0 || ((cmpLen <= strLen) && memcmp(str, cmp, cmpLen) == 0);
     }
 
     bool builtin_string_startswith2 ( const char * str, const char * cmp, uint32_t cmpLen, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         cmpLen = min(cmpLen, stringLengthSafe ( *context, cmp ));
-        return (cmpLen > strLen) ? false : memcmp(str, cmp, cmpLen) == 0;
+        return cmpLen == 0 || ((cmpLen <= strLen) && memcmp(str, cmp, cmpLen) == 0);
     }
 
     bool builtin_string_startswith3 ( const char * str, int32_t offset, const char * cmp, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         if ( offset<0 || uint32_t(offset)>=strLen ) return  false;
         const uint32_t cmpLen = stringLengthSafe ( *context, cmp );
-        return (cmpLen > strLen) ? false : memcmp(str + offset, cmp, cmpLen) == 0;
+        return cmpLen == 0 || ((cmpLen <= strLen - uint32_t(offset)) && memcmp(str + offset, cmp, cmpLen) == 0);
     }
 
     bool builtin_string_startswith4 ( const char * str, int32_t offset, const char * cmp, uint32_t cmpLen, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         if ( offset<0 || uint32_t(offset)>=strLen ) return  false;
         cmpLen = min(cmpLen, stringLengthSafe ( *context, cmp ));
-        return (cmpLen > strLen) ? false : memcmp(str + offset, cmp, cmpLen) == 0;
+        return cmpLen == 0 || ((cmpLen <= strLen - uint32_t(offset)) && memcmp(str + offset, cmp, cmpLen) == 0);
     }
 
     __forceinline bool is_space ( char c ) {
@@ -137,12 +162,49 @@ namespace das
         return ret ? int(ret-str) : -1;
     }
 
+    int builtin_string_rfind1 ( const char *str, const char *substr, int start, Context * context ) {
+        if (!str || !substr)
+            return -1;
+        const uint32_t strLen = stringLengthSafe ( *context, str );
+        if (!strLen)
+            return -1;
+        const uint32_t subLen = uint32_t(strlen(substr));
+        if (!subLen)
+            return clamp_int(start, 0, strLen);
+        int from = clamp_int(start, 0, strLen);
+        if ( from + int(subLen) > int(strLen) )
+            from = int(strLen) - int(subLen);
+        for ( int i = from; i >= 0; --i ) {
+            if ( memcmp(str + i, substr, subLen) == 0 )
+                return i;
+        }
+        return -1;
+    }
+
+    int builtin_string_rfind2 (const char *str, const char *substr) {
+        if (!str || !substr)
+            return -1;
+        const uint32_t strLen = uint32_t(strlen(str));
+        const uint32_t subLen = uint32_t(strlen(substr));
+        if (!strLen || !subLen || subLen > strLen)
+            return -1;
+        for ( int i = int(strLen) - int(subLen); i >= 0; --i ) {
+            if ( memcmp(str + i, substr, subLen) == 0 )
+                return i;
+        }
+        return -1;
+    }
+
     int builtin_string_length ( const char *str, Context * context ) {
         return stringLengthSafe ( *context, str );
     }
 
     char* builtin_string_chop(const char* str, int start, int length, Context* context, LineInfoArg * at) {
         if ( !str || length<=0 ) return nullptr;
+        const int32_t strLen = int32_t(stringLengthSafe(*context, str));
+        if ( start < 0 ) start = 0;
+        if ( start >= strLen ) return nullptr;
+        if ( length > strLen - start ) length = strLen - start;
         return context->allocateString(str + start, length, at);
     }
 
@@ -226,6 +288,24 @@ namespace das
             pch++;
         }
         return str;
+    }
+
+    int builtin_string_stricmp( const char *a, const char *b )
+    {
+        if ( !a && !b ) return 0;
+        if ( !a ) return -1;
+        if ( !b ) return 1;
+        int d;
+        for (;; ++a, ++b){
+            d = to_lower(*a) - to_lower(*b);
+            if ( d ) {
+              return d;
+            }
+            if ( !*a || !*b ) {
+              break;
+            }
+        }
+        return d;
     }
 
     template <typename TT>
@@ -412,7 +492,7 @@ namespace das
         return res;
     }
 
-    vector<string> split ( const char * str, const char * delim ) {
+    DAS_API vector<string> split ( const char * str, const char * delim ) {
         if ( !str ) str = "";
         if ( !delim ) delim = "";
         vector<const char *> tokens;
@@ -469,10 +549,7 @@ namespace das
         }
         if ( tokens.empty() ) tokens.push_back("");
         Array arr;
-        arr.data = (char *) tokens.data();
-        arr.capacity = arr.size = uint32_t(tokens.size());
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, (char *)tokens.data(), uint32_t(tokens.size()));
         vec4f args[1];
         args[0] = cast<Array *>::from(&arr);
         context->invoke(block, args, nullptr, at);
@@ -508,10 +585,7 @@ namespace das
         }
         if ( tokens.empty() ) tokens.push_back("");
         Array arr;
-        arr.data = (char *) tokens.data();
-        arr.capacity = arr.size = uint32_t(tokens.size());
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, (char *)tokens.data(), uint32_t(tokens.size()));
         vec4f args[1];
         args[0] = cast<Array *>::from(&arr);
         context->invoke(block, args, nullptr, at);
@@ -623,7 +697,6 @@ namespace das
     // TODO: do we need a corresponding delete?
     char * builtin_reserve_string_buffer ( const char * str, int32_t length, Context * context ) {
         auto buf = context->allocate(length);
-        if ( !buf ) context->throw_out_of_memory(false, length);
         if ( str ) {
             auto slen = min ( int32_t(strlen(str)), length-1 );
             memcpy ( buf, str, slen );
@@ -698,10 +771,7 @@ namespace das
     void builtin_string_peek ( const char * str, const TBlock<void,TTemporary<TArray<uint8_t> const>> & block, Context * context, LineInfoArg * at ) {
         if ( !str ) return;
         Array arr;
-        arr.data = (char *) str;
-        arr.capacity = arr.size = uint32_t(strlen(str));
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, (char *)str, uint32_t(strlen(str)));
         vec4f args[1];
         args[0] = cast<Array *>::from(&arr);
         context->invoke(block, args, nullptr, at);
@@ -713,10 +783,7 @@ namespace das
         char * cstr = context->allocateString(str, len, at);
         memcpy(cstr, str, len);
         Array arr;
-        arr.data = cstr;
-        arr.capacity = arr.size = len;
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, cstr, uint32_t(len));
         vec4f args[1];
         args[0] = cast<Array *>::from(&arr);
         context->invoke(block, args, nullptr, at);
@@ -757,14 +824,15 @@ namespace das
             return TT();
         }
         TT value = 0;
-        while ( is_white_space(str[offset]) ) offset++;
+        const char * original = str;
+        while ( is_white_space(*str) ) str++;
         if ( hex && str[0]=='0' && (str[1]=='x' || str[1]=='X') ) str += 2;
-        auto res = fast_float::from_chars(str+offset, str+strlen(str), value, hex ? 16 : 10);
+        auto res = fast_float::from_chars(str, str+strlen(str), value, hex ? 16 : 10);
         if (res.ec != std::errc()) {
             result = ConversionResult(res.ec);
             return TT();
         }
-        offset = int32_t(res.ptr - str);
+        offset = int32_t(res.ptr - original);
         return value;
     }
 
@@ -879,6 +947,12 @@ namespace das
                 SideEffects::none, "get_character_at")->args({"str","idx","context","at"});
             addExtern<DAS_BIND_FUN(get_character_uat)>(*this, lib, "character_uat",
                 SideEffects::none, "get_character_uat")->args({"str","idx"})->unsafeOperation = true;
+            addExtern<DAS_BIND_FUN(get_first_character)>(*this, lib, "first_character",
+                SideEffects::none, "get_first_character")->args({"str","context","at"});
+            addExtern<DAS_BIND_FUN(get_first_character_ds)>(*this, lib, "first_character",
+                SideEffects::none, "get_first_character_ds")->args({"str","context","at"});
+            addExtern<DAS_BIND_FUN(with_das_string)>(*this, lib, "with_das_string",
+                SideEffects::invoke, "with_das_string")->args({"block","context","at"});
             addExtern<DAS_BIND_FUN(string_repeat)>(*this, lib, "repeat",
                 SideEffects::none, "string_repeat")->args({"str","count","context","at"});
             addExtern<DAS_BIND_FUN(to_string_char)>(*this, lib, "to_char",
@@ -915,6 +989,10 @@ namespace das
                 SideEffects::none, "builtin_find_first_char_of")->args({"str","substr","context"});
             addExtern<DAS_BIND_FUN(builtin_find_first_char_of2)>(*this, lib, "find",
                 SideEffects::none, "builtin_find_first_char_of2")->args({"str","substr", "start", "context"});
+            addExtern<DAS_BIND_FUN(builtin_string_rfind1)>(*this, lib, "rfind",
+                SideEffects::none, "builtin_string_rfind1")->args({"str","substr","start","context"});
+            addExtern<DAS_BIND_FUN(builtin_string_rfind2)>(*this, lib, "rfind",
+                SideEffects::none, "builtin_string_rfind2")->args({"str","substr"});
             addExtern<DAS_BIND_FUN(builtin_string_length)>(*this, lib, "length",
                 SideEffects::none, "builtin_string_length")->args({"str","context"});
             addExtern<DAS_BIND_FUN(builtin_string_reverse)>(*this, lib, "reverse",
@@ -965,6 +1043,8 @@ namespace das
                 SideEffects::none, "fast_to_uint8")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
             addExtern<DAS_BIND_FUN(fast_to_int16)>(*this, lib, "to_int16",
                 SideEffects::none, "fast_to_int16")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
+            addExtern<DAS_BIND_FUN(fast_to_uint16)>(*this, lib, "to_uint16",
+                SideEffects::none, "fast_to_uint16")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
             addExtern<DAS_BIND_FUN(fast_to_int)>(*this, lib, "to_int",
                 SideEffects::none, "fast_to_int")->args({"value","hex"})->arg_init(1,make_smart<ExprConstBool>(false));
             addExtern<DAS_BIND_FUN(fast_to_uint)>(*this, lib, "to_uint",
@@ -1017,27 +1097,6 @@ namespace das
                 SideEffects::none, "builtin_string_ltrim")->args({"str","context","at"});
             addExtern<DAS_BIND_FUN(builtin_string_trim)>(*this, lib, "trim",
                 SideEffects::none, "builtin_string_trim")->args({"str","context","at"});
-            // fmt
-            addExtern<DAS_BIND_FUN(fmt_i8)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_i8")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_u8)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_u8")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_i16)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_i16")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_u16)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_u16")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_i32)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_i32")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_u32)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_u32")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_i64)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_i64")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_u64)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_u64")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_f)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_f")->args({"format","value","context","at"});
-            addExtern<DAS_BIND_FUN(fmt_d)>(*this, lib, "fmt",
-                SideEffects::none, "fmt_d")->args({"format","value","context","at"});
             // format (deprecated)
             addExtern<DAS_BIND_FUN(format<int32_t>)> (*this, lib, "format",
                 SideEffects::none, "format<int32_t>")->args({"format","value","context","at"})->setDeprecated("use fmt() instead");
@@ -1073,6 +1132,9 @@ namespace das
                 SideEffects::none,"char_set_total")->arg("Charset");
             addExtern<DAS_BIND_FUN(char_set_element)>(*this, lib, "set_element",
                 SideEffects::none,"char_set_element")->args({"Character","Charset"});
+            // case-insensitive comparison
+            addExtern<DAS_BIND_FUN(builtin_string_stricmp)>(*this, lib, "compare_ignore_case",
+                SideEffects::none, "builtin_string_stricmp")->args({"a","b"});
             // string buffer
             addExtern<DAS_BIND_FUN(builtin_reserve_string_buffer)>(*this, lib, "reserve_string_buffer",
                 SideEffects::none,"builtin_reserve_string_buffer")->args({"str","length","context"});

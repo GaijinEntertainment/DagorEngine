@@ -12,6 +12,7 @@ LightShadowParams::LightShadowParams(const LightfxShadowParams &shadowParams) :
   supportsDynamicObjects(shadowParams.shadows_for_dynamic_objects),
   supportsGpuObjects(shadowParams.shadows_for_gpu_objects),
   approximateStatic(shadowParams.sdf_shadows),
+  isTwoSided(FX_LIGHTS_IS_TWO_SIDED),
   quality(shadowParams.quality),
   shadowShrink(shadowParams.shrink),
   priority(shadowParams.priority)

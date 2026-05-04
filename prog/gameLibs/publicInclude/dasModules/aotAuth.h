@@ -6,20 +6,16 @@
 
 #include <daScript/daScript.h>
 #include <EASTL/string.h>
-#include <cstdint>
 
-namespace auth
-{
-eastl::string get_country_code();
-}
-
+extern void auth_get_country_code(eastl::string &country);
 
 namespace bind_dascript
 {
 
 inline const char *get_country_code(das::Context *context, das::LineInfoArg *at)
 {
-  eastl::string country{auth::get_country_code()};
+  eastl::string country{};
+  auth_get_country_code(country);
   return context->allocateString(country, at);
 }
 

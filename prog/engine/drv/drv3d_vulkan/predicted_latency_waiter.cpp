@@ -93,7 +93,8 @@ void PredictedLatencyWaiter::asyncWait()
   int64_t correctedWaitTimeUs;
   {
     WinAutoLock lock(asyncWaitMutex);
-    correctedWaitTimeUs = asyncTimeToWaitUs - profile_time_usec(asyncWaitStartTicks);
+    int64_t asyncPassedTimeUs = profile_time_usec(asyncWaitStartTicks);
+    correctedWaitTimeUs = asyncTimeToWaitUs > asyncPassedTimeUs ? asyncTimeToWaitUs - asyncPassedTimeUs : 0;
     asyncWaitStartTicks = 0;
   }
   wait(correctedWaitTimeUs);

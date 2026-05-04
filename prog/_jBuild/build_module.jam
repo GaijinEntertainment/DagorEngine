@@ -28,7 +28,7 @@ if $(NeedDasAotCompile) != yes { module_m = $(module_m)~no-aot ; }
 UseD3DMulti       ?= yes ;
 CheckedContainers ?= yes ;
 Exceptions        ?= no ;
-UseQuirrel        ?= sq3r ;
+UseQuirrel        ?= yes ;
 
 Target = $(ModulePrefix)-$(module_m).lib ;
 module_m = ;

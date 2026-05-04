@@ -1,0 +1,7 @@
+idle=true, busy=false, error=false
+idle=false, busy=true, error=false
+math=90, eng=85, sci=70
+math=95, eng=85, sci=80
+avg: 86
+factory array: 10, 20, 30, 40, 50
+factory array after: 3, 6, 9, 12, 15

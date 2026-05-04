@@ -20,12 +20,21 @@ interval ssao_mode:immediate<1, temporal;
 int blur_quality = 0;
 interval blur_quality:poor<0, ok<1, good;
 
+float ssao_blur_sharpness = 15.0;
+
 int4 temporal_shadow_frame;
 
 int contact_shadows_num_steps = 20;
 // SSAO tweaking parameters are:
-float ssao_radius_factor = 64.0;                        // smaller - bigger radius ~32..512
+float ssao_cutoff_radius_mul = 16.0;
+float ssao_cutoff_smoothness = 1.0;
+float ssao_world_radius = 0;
+float ssao_screen_radius = 1.0 / 32.0;
+float ssao_max_pixel_radius = 64;
+float ssao_half_hfov_tan = 1.0;
 float ssao_ambient_cutoff = 0.18;                        // cutoff angle factor  ~0.05..0.3
+float ssao_angle_bias_cos = 0.0;
+float ssao_occlusion_mul = 1.4; // A hack parameter to approximately preserve the old look after changing depth cutoff calculation.
 float4 ssao_blur_weights = (0.9, 0.75, 0.5, 0.25);      // weights for each blur distance
 float   ssao_blur_depth_near = 0.05;                      // depth threshold up-close: meters
 float   ssao_blur_depth_far = 0.002;                     // depth threshold at z-far: percentage of zfar!
@@ -40,7 +49,6 @@ float contact_shadow_min_len = 0.25;
 
 float ssao_strength = 1.0;
 interval ssao_strength:modulated<1, full_strength;
-sampler global_linear_clamp_sampler;
 
 //bnao
 float sampleRadius = 0.075;
@@ -372,7 +380,6 @@ macro SS_BENT_CONES()
       if (dot(bentNormal, 1) != 0.0) {
         bentNormal *= rcp(visibilityRays);
         resultNormal.xyz = bentNormal-wsNormal;
-        //resultNormal.xyz = clamp(bentNormal-wsNormal,-1,1);//outBNAO.xyz = encodeNormal(bentNormal-wsNormal);
       }
       outBNAO = encodeBNAO(resultNormal, resultAO);
       outBNAO.w*=outBNAO.w;
@@ -383,14 +390,23 @@ macro SS_BENT_CONES()
   }
 endmacro
 
-float g_scale = 4;
 macro INIT_AWESOME_SSAO_PARAMS()
+  local float pixelToTan = 2.0 * ssao_half_hfov_tan / lowres_rt_params.x;
   (ps) {
     depth_rescale@f4 = (1 / zn_zfar.y, 0, zn_zfar.x, zn_zfar.y);
     ssao_pixel_size@f2 = ( 1./(lowres_rt_params.x), 1./(lowres_rt_params.y), 0.0, 0.0 );
-    ssao_radius@f4 = ( lowres_rt_params.x/ssao_radius_factor, 1.0/ssao_radius_factor, lowres_rt_params.x/(lowres_rt_params.y*ssao_radius_factor), lowres_rt_params.y/lowres_rt_params.x );
     ssao_ambient_inv_cutoff@f1 = (1.0 / ssao_ambient_cutoff, 0, 0, 0);
-    g_scale@f1 = (g_scale,0,0,0);
+    ssao_apply_angle_bias@f2 = (1 / (1 - ssao_angle_bias_cos), -ssao_angle_bias_cos / (1 - ssao_angle_bias_cos), 0, 0);
+
+    ssao_cutoff_radius_mul@f1 = ssao_cutoff_radius_mul;
+    ssao_cutoff_smoothness@f1 = ssao_cutoff_smoothness;
+    ssao_world_radius@f1 = ssao_world_radius;
+
+    ssao_occlusion_mul@f1 = ssao_occlusion_mul;
+
+    tan_to_screen_radius@f2 = (1.0 / (pixelToTan * lowres_rt_params.x), 1.0 / (pixelToTan * lowres_rt_params.y));
+    depth_to_radius_limit_max_pixel_radius@f1 = ssao_max_pixel_radius * pixelToTan;
+    depth_to_radius_limit_min_screen_radius@f1 = ssao_screen_radius * lowres_rt_params.y * pixelToTan;
   }
   INIT_HALF_RES_CLOSE_DEPTH_NORMALS(ps)
 
@@ -653,26 +669,24 @@ macro USE_AWESOME_SSAO()
         lerp(view_vecLB, view_vecRB, curViewTc.x),
         curViewTc.y);
     }
-    half getSSDO(float2 tc, float lod, float invPos, float3 wsPos, float3 wsNormal)
+    half getSSDO(float2 tc, float lod, float invPos, float3 wsPos, float3 wsNormal, float cutoff_radius, float inv_falloff_range)
     {
       float2 tcClamped = clamp(tc, min_max_depth_tc.xy, min_max_depth_tc.zw);
       float3 diff = getPosition(tcClamped, RetrieveDepth(tcClamped, lod)) - wsPos;
-      float diffLen2 = dot(diff,diff);
-      float invDiffLen = rsqrt(diffLen2);
-      float3 v = diff*invDiffLen;
-      //float d = rcp(invDiffLen)*invPos*g_scale;
-      float bias = 0.5;
-      half ao = saturate(dot(wsNormal,v)*rcp(bias+diffLen2*pow2(invPos*g_scale)));
-      //half ao = saturate(dot(wsNormal,v)*(1.0/(1.0+pow2(d))));
-      //half ao = saturate(dot(wsNormal,v));
-      return ao;
-      //return 1-pow2(1-ao);
+      float diffLen = length(diff);
+      float3 v = diff * rcp(diffLen);
+
+      float falloff = saturate((cutoff_radius - diffLen) * inv_falloff_range);
+      float aoBase = dot(wsNormal, v) * ssao_apply_angle_bias.x + ssao_apply_angle_bias.y;
+      return saturate(aoBase * falloff);
     }
     ##endif
-    half GetOcclusion ( float pos, float invPos, float2 coord, float2 dudv, float lod, float3 wsPos, float3 wsNormal )
+    half GetOcclusion ( float pos, float invPos, float2 coord, float2 dudv, float lod, float3 wsPos, float3 wsNormal,
+      float cutoff_radius, float inv_falloff_range )
     {
       ##if (ssao_quality == ssao_normals)
-        return getSSDO(coord + dudv,lod, invPos, wsPos, wsNormal)+getSSDO(coord - dudv, lod, invPos, wsPos, wsNormal);
+        return (getSSDO(coord + dudv,lod, invPos, wsPos, wsNormal, cutoff_radius, inv_falloff_range) +
+          getSSDO(coord - dudv, lod, invPos, wsPos, wsNormal, cutoff_radius, inv_falloff_range));
       ##else
         float pPos = RetrieveDepth(coord + dudv, lod);
         float SSnorm = RetrieveDepth(coord - dudv, lod);
@@ -701,49 +715,67 @@ macro USE_AWESOME_SSAO()
 
       half occlusion = 0.0;
 
+      float worldRadiusLimitMaxPixelRadius = pos * depth_to_radius_limit_max_pixel_radius;
+      float worldRadiusLimitMinScreenRadius = pos * depth_to_radius_limit_min_screen_radius;
+
+      float worldRadius = min(worldRadiusLimitMaxPixelRadius, max(ssao_world_radius, worldRadiusLimitMinScreenRadius));
+      float2 screenRadius = worldRadius / pos * tan_to_screen_radius;
+
+      float cutoffRadius = max(ssao_world_radius, worldRadiusLimitMinScreenRadius) * ssao_cutoff_radius_mul;
+      float invFalloffRange = rcp(cutoffRadius * ssao_cutoff_smoothness);
+
       ##if ssao_mode == immediate
+        float randRotSin, randRotCos;
+        sincos(rand(coord) * PI, randRotSin, randRotCos);
+        float2x2 randRot = float2x2(randRotCos, randRotSin, -randRotSin, randRotCos);
         for (int tap = 0; tap < TAPS_NUM; ++tap)
         {
-          float2 uv = poisson_values[tap].xy * ssao_radius.yz;
-          occlusion += GetOcclusion ( pos, invPos, coord, uv, 0, cameraToPoint, wsNormal );
+          float2 poissonSample = poisson_values[tap].xy;
+          float2 offset = mul(poissonSample, randRot);
+          float2 uv = offset * screenRadius;
+          occlusion += GetOcclusion ( pos, invPos, coord, uv, 0, cameraToPoint, wsNormal, cutoffRadius, invFalloffRange );
         }
         occlusion = saturate(1 - occlusion * poisson_all_sample_count_inv);
       ##else
         #define POISSON 1
         #if POISSON == 1
 
-        uint baseId = ((ssao_frame_no.x%1024) + float(ssC.x)*1213 + float(ssC.y) * 1217)%FRAMES_NUM;
+        // Easier this way than computing by a formula.
+        int4 offsets[4] = { {0, 1, 4, 5}, {3, 2, 7, 6}, {12, 13, 8, 9}, {15, 14, 11, 10} };
+        uint baseId = (offsets[ssC.y % 4][ssC.x % 4] + int(ssao_frame_no.x % 1024)) % FRAMES_NUM;
         baseId*=SAMPLE_NUM;
-        float2 uv1 = poisson_values[baseId+0].xy * ssao_radius.yz;
-        float2 uv2 = poisson_values[baseId+1].xy * ssao_radius.yz;
-        float2 uv3 = poisson_values[baseId+2].xy * ssao_radius.yz;
-        float2 uv4 = poisson_values[baseId+3].xy * ssao_radius.yz;
+        float2 uv1 = poisson_values[baseId + 0].xy * screenRadius;
+        float2 uv2 = poisson_values[baseId + 1].xy * screenRadius;
+        float2 uv3 = poisson_values[baseId + 2].xy * screenRadius;
+        float2 uv4 = poisson_values[baseId + 3].xy * screenRadius;
         #elif POISSON == 2
 
         // Hash function used in the HPG12 AlchemyAO paper
         float spinAngle = ((3 * ssC.x ^ ssC.y + ssC.x * ssC.y) * 10 + ssao_frame_no.x*0.51);
         //spin = ssao_frame_no.y;
-        float2 uv1 = tapLocation(0.125, spinAngle) * ssao_radius.yz;
-        float2 uv2 = tapLocation(0.375, spinAngle) * ssao_radius.yz;
-        float2 uv3 = tapLocation(0.625, spinAngle) * ssao_radius.yz;
-        float2 uv4 = tapLocation(0.875, spinAngle) * ssao_radius.yz;
+        float2 uv1 = tapLocation(0.125, spinAngle) * screenRadius;
+        float2 uv2 = tapLocation(0.375, spinAngle) * screenRadius;
+        float2 uv3 = tapLocation(0.625, spinAngle) * screenRadius;
+        float2 uv4 = tapLocation(0.875, spinAngle) * screenRadius;
         #else
 
         float  frameRandom = ssao_frame_no.y;
         float4 randcoord4 = rand4(coord+frameRandom);
         float4 noise0 = randcoord4 * 3.0 - 1.5;
-        float2 uv1 = noise0.xy * ssao_radius.yz;
-        float2 uv2 = noise0.yz * ssao_radius.yz;
-        float2 uv3 = noise0.zw * ssao_radius.yz;
-        float2 uv4 = noise0.wx * ssao_radius.yz;
+        float2 uv1 = noise0.xy * screenRadius;
+        float2 uv2 = noise0.yz * screenRadius;
+        float2 uv3 = noise0.zw * screenRadius;
+        float2 uv4 = noise0.wx * screenRadius;
         #endif
 
-        occlusion  = GetOcclusion ( pos, invPos, coord, uv1, 0, cameraToPoint, wsNormal );
+        occlusion  = GetOcclusion ( pos, invPos, coord, uv1, 0, cameraToPoint, wsNormal, cutoffRadius, invFalloffRange );
         ##if ssao_quality != depth_only_simplified
-          occlusion += GetOcclusion ( pos, invPos, coord, uv2, 0, cameraToPoint, wsNormal );
-          occlusion += GetOcclusion ( pos, invPos, coord, uv3, 0, cameraToPoint, wsNormal );
-          occlusion += GetOcclusion ( pos, invPos, coord, uv4, 0, cameraToPoint, wsNormal );
+          occlusion += GetOcclusion ( pos, invPos, coord, uv2, 0, cameraToPoint, wsNormal, cutoffRadius, invFalloffRange );
+          occlusion += GetOcclusion ( pos, invPos, coord, uv3, 0, cameraToPoint, wsNormal, cutoffRadius, invFalloffRange );
+          occlusion += GetOcclusion ( pos, invPos, coord, uv4, 0, cameraToPoint, wsNormal, cutoffRadius, invFalloffRange );
         ##endif
+
+        occlusion *= ssao_occlusion_mul;
 
         ##if ssao_quality==ssao_normals
           occlusion *= 0.125;
@@ -775,13 +807,12 @@ shader ssao
 
   assume_if_not_assumed use_contact_shadows = use_shadows;
 
-
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
   (ps) {
     world_view_pos@f3 = world_view_pos;
     lowres_rt_params@f4 = lowres_rt_params;
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     ssao_frame_no@f4 = ssao_frame_no;
-    screen_pos_to_texcoord@f2 = screen_pos_to_texcoord;
     shadow_frame@f1 = temporal_shadow_frame.x;
     contact_shadow_len@f1 = contact_shadow_len;
     contact_shadow_min_len@f1 = (contact_shadow_min_len);
@@ -792,12 +823,10 @@ shader ssao
   (ps) {
     downsampled_far_depth_tex_exists@i1 = exists_tex(downsampled_far_depth_tex);
     downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
-    global_linear_clamp_sampler@sampler = global_linear_clamp_sampler;
   }
 
   INIT_HALF_RES_CLOSE_DEPTH(ps)
   INIT_ZNZFAR()
-  ENABLE_ASSERT(ps)
   hlsl(ps) {
     float RetrieveDepth ( float2 tc, float lod )
     {
@@ -893,24 +922,24 @@ shader ssao
       if (depth1 >= zn_zfar.y*0.99)
         return 1;
 
-      //float2 viewScreenTC = (scrpos.xy*2)*screen_pos_to_texcoord;
-      //float3 cameraWorldPos = lerp(lerp(view_vecLT,view_vecRT, viewScreenTC.x),lerp(view_vecLB,view_vecRB, viewScreenTC.x), viewScreenTC.y) * depth1;
-      //actually: this will work ONLY for even screen resolutions
       float3 cameraToPoint = IN.viewVect * depth1;
       SSAO_TYPE ssao = (SSAO_TYPE)1;
+
       ##if (ssao_quality > depth_only)
         float3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(screenTC,0,0)).xyz*2-1);
-        #if BENT_CONES_ON
-        calcBentNormals(screenTC, int2(screenTC*lowres_rt_params.xy), cameraToPoint, wsNormal, depth1, viewProjectionMatrixNoOfs, ssao);
-        #elif CRYTEK_ON
-        ssao.x = crytek_ao(screenTC, int2(screenTC*lowres_rt_params.xy), depth1, cameraToPoint, wsNormal);
-        #else
-        ssao.x = def_SSAO(scrpos.xy, depth1, screenTC, cameraToPoint, wsNormal).x;
-        #endif
-      ##else
+      ##elif ssao_wsao
         float3 wsNormal = reconstruct_normal_from_depth(screenTC, depth1, cameraToPoint);
-        ssao.x = def_SSAO(scrpos.xy, depth1, screenTC, cameraToPoint, 0).x;
+      ##else
+        float3 wsNormal = 0; // Not used in depth_only mode.
       ##endif
+
+      #if BENT_CONES_ON
+        calcBentNormals(screenTC, int2(screenTC*lowres_rt_params.xy), cameraToPoint, wsNormal, depth1, viewProjectionMatrixNoOfs, ssao);
+      #elif CRYTEK_ON
+        ssao.x = crytek_ao(screenTC, int2(screenTC*lowres_rt_params.xy), depth1, cameraToPoint, wsNormal);
+      #else
+        ssao.x = def_SSAO(scrpos.xy, depth1, screenTC, cameraToPoint, wsNormal).x;
+      #endif
       ##if (ssao_quality != depth_only_simplified)
         ssao.x = getAdditionalAmbientOcclusion(ssao.x, world_view_pos + cameraToPoint, wsNormal, screenTC);
       ##endif
@@ -974,7 +1003,6 @@ shader ssao
 
 shader ssao_blur
 {
-
   cull_mode=none;
   z_write=false;
   color_write = rgb;
@@ -984,6 +1012,7 @@ shader ssao_blur
     depth_rescale@f4 = (1 / zn_zfar.y, -10 / zn_zfar.y, zn_zfar.x, zn_zfar.y);
     ssao_blur_depth_cutoff@f2 = (ssao_blur_depth_near, ssao_blur_depth_far*zn_zfar.y, 0, 0);
     ssao_blur_weights_1234@f4 = ssao_blur_weights;
+    ssao_blur_sharpness_sq@f1 = ssao_blur_sharpness * ssao_blur_sharpness; // To not set too big values to ssao_blur_sharpness.
   }
   INIT_HALF_RES_CLOSE_DEPTH(ps)
 
@@ -1000,37 +1029,34 @@ shader ssao_blur
     (ps) { offset0@f4 = (texelOffset.w, 2*texelOffset.w, 3*texelOffset.w, 4*texelOffset.w); }
   }
   hlsl(ps) {
+    ##if !hardware.ps4 && !hardware.ps5
+      #if WAVE_INTRINSICS
+        #define ENABLE_WAVE_OPTIMIZATION 1
+      #endif
+    ##endif
+
     ##if ssaoBlurVertical == horizontal
       #define OFFSET_1 float2(offset0.x,0)
       #define OFFSET_2 float2(offset0.y,0)
       #define OFFSET_3 float2(offset0.z,0)
+
+      #if ENABLE_WAVE_OPTIMIZATION
+        #define OFFSET_SIGN_LANE_MASK 1u
+        #define READ_NEIGHBOR(expr) QuadReadAcrossX(expr)
+      #endif
     ##else
       #define OFFSET_1 float2(0,offset0.x)
       #define OFFSET_2 float2(0,offset0.y)
       #define OFFSET_3 float2(0,offset0.z)
+
+      #if ENABLE_WAVE_OPTIMIZATION
+        #define OFFSET_SIGN_LANE_MASK 2u
+        #define READ_NEIGHBOR(expr) QuadReadAcrossY(expr)
+      #endif
     ##endif
   }
 
-
-  hlsl {
-    struct VsOutput
-    {
-      VS_OUT_POSITION(pos)
-      float2 texcoord        : TEXCOORD0;
-    };
-  }
-  USE_POSTFX_VERTEX_POSITIONS()
-
-  hlsl(vs) {
-    VsOutput ssao_blur_vs(uint vertex_id : SV_VertexID)
-    {
-      VsOutput output;
-      float2 pos = getPostfxVertexPositionById(vertex_id);
-      output.pos = float4(pos.x, pos.y, 0, 1);
-      output.texcoord = pos*RT_SCALE_HALF+texelOffset.xy;
-      return output;
-    }
-  }
+  POSTFX_VS_TEXCOORD(0, texcoord)
 
   INIT_ZNZFAR()
   hlsl(ps) {
@@ -1039,78 +1065,82 @@ shader ssao_blur
     #define RetrieveDepthOffset(tc, ofs) linearize_z(tex2Dlod(half_res_close_depth, float4(tc+ofs,0,0)).x, zn_zfar.zw)
     #define RetrieveSSAO(tc) (tex2Dlod(srcTex, float4(tc,0,0)). SSAO_ATTRS)
     #define RetrieveSSAOOffset(tc, ofs) (tex2Dlod(srcTex, float4(tc+ofs,0,0)). SSAO_ATTRS)
-    SSAO_TYPE DepthBlurGaussian(float2 texcoord)
+
+    #define MAX_BLUR_ITERATION_COUNT 3
+    #define MAX_SAMPLES_COUNT (2*MAX_BLUR_ITERATION_COUNT + 1)
+
+    static float depths[MAX_SAMPLES_COUNT];
+    static SSAO_TYPE ssaoSamples[MAX_SAMPLES_COUNT];
+    static float depthCenter;
+    static float depthCenterInv;
+
+    void load_depth_and_ssao_samples(int blurIterationIndex, float2 tc, float2 offset)
     {
-        float rawDepth = RetrieveRawDepth(texcoord);
-        BRANCH
-        if (rawDepth >= 1)
-          return 1;
+      ##assert(blurIterationIndex < MAX_BLUR_ITERATION_COUNT, "Blur iteration index is out-of-bounds (%d of %d)", blurIterationIndex, MAX_BLUR_ITERATION_COUNT);
+      const int sampleIndex = blurIterationIndex*2 + 1;
 
-        float dCur = ConvertRawDepth(rawDepth);
+  #if ENABLE_WAVE_OPTIMIZATION
+      // we exploit sample sharing of each 2 neighbor samples: [L3][L2][L1] CL|CR [R1][R2][R3]
+      // Left(down) samples: CL, CR, L1, R1, L2, R2, L3
+      // Right(up)  samples: CR, CL, R1, L1, R2, L2, R3
 
-        float nZ = saturate(dCur*depth_rescale.x + depth_rescale.y);
-        float depthThreshold = lerp(ssao_blur_depth_cutoff.x, ssao_blur_depth_cutoff.y, sqrt(nZ));
-        float depthThresholdInv = 1.0 / depthThreshold;
+      static const float offsetSign = (WaveGetLaneIndex() & OFFSET_SIGN_LANE_MASK) ? +1 : -1;
+      depths[sampleIndex] = READ_NEIGHBOR(depths[sampleIndex - 1]);
+      ssaoSamples[sampleIndex] = READ_NEIGHBOR(ssaoSamples[sampleIndex - 1]);
 
-        // start with current sample at weight 1
-        SSAO_TYPE color = RetrieveSSAO(texcoord);
-        half counter = 1.0;
+      depths[sampleIndex + 1] = RetrieveDepthOffset(tc, offset*offsetSign);
+      ssaoSamples[sampleIndex + 1] = RetrieveSSAOOffset(tc, offset*offsetSign);
+  #else
+      depths[sampleIndex] = RetrieveDepthOffset(tc, -offset);
+      ssaoSamples[sampleIndex] = RetrieveSSAOOffset(tc, -offset);
 
-        // looks like the compiler does not unroll loops by hand
-        // as soon as they exceed certain length
+      depths[sampleIndex + 1] = RetrieveDepthOffset(tc, +offset);
+      ssaoSamples[sampleIndex + 1] = RetrieveSSAOOffset(tc, +offset);
+  #endif
+    }
 
-        // 1
-        float d_m2 = RetrieveDepthOffset(texcoord, -OFFSET_2);
-        float d_m1 = RetrieveDepthOffset(texcoord, -OFFSET_1);
-        float d_p1 = RetrieveDepthOffset(texcoord, OFFSET_1);
-        float d_p2 = RetrieveDepthOffset(texcoord, OFFSET_2);
+    void apply_blur_iteration(int blurIterationIndex, inout SSAO_TYPE ssao, inout float weightSum)
+    {
+      ##assert(blurIterationIndex < MAX_BLUR_ITERATION_COUNT, "Blur iteration index is out-of-bounds (%d of %d)", blurIterationIndex, MAX_BLUR_ITERATION_COUNT);
+      const int sampleIndex = blurIterationIndex*2 + 1;
 
-        SSAO_TYPE c_m2 = RetrieveSSAOOffset(texcoord, -OFFSET_2);
-        SSAO_TYPE c_m1 = RetrieveSSAOOffset(texcoord, -OFFSET_1);
-        SSAO_TYPE c_p1 = RetrieveSSAOOffset(texcoord, OFFSET_1);
-        SSAO_TYPE c_p2 = RetrieveSSAOOffset(texcoord, OFFSET_2);
-        {
-            half weight1 = ssao_blur_weights_1234.x - saturate(abs(dCur - d_p1)*depthThresholdInv)*ssao_blur_weights_1234.x;
-            half weight2 = ssao_blur_weights_1234.x - saturate(abs(dCur - d_m1)*depthThresholdInv)*ssao_blur_weights_1234.x;
-            color += c_p1*weight1;
-            color += c_m1*weight2;
-            counter += weight1 + weight2;
-        }
-        ##if blur_quality!=poor
-        // 2
-        {
-            half weight1 = ssao_blur_weights_1234.y - saturate(abs(dCur - d_p2)*depthThresholdInv)*ssao_blur_weights_1234.y;
-            half weight2 = ssao_blur_weights_1234.y - saturate(abs(dCur - d_m2)*depthThresholdInv)*ssao_blur_weights_1234.y;
-            color += c_p2*weight1;
-            color += c_m2*weight2;
-            counter += weight1 + weight2;
-        }
-        ##endif
-        ##if blur_quality==good
-        // 3
-        {
-            float d2 = RetrieveDepthOffset(texcoord, -OFFSET_3);
-            float d1 = RetrieveDepthOffset(texcoord, OFFSET_3);
-            SSAO_TYPE c2 = RetrieveSSAOOffset(texcoord, -OFFSET_3);
-            SSAO_TYPE c1 = RetrieveSSAOOffset(texcoord, OFFSET_3);
-            half weight1 = ssao_blur_weights_1234.z - saturate(abs(dCur - d1)*depthThresholdInv)*ssao_blur_weights_1234.z;
-            half weight2 = ssao_blur_weights_1234.z - saturate(abs(dCur - d2)*depthThresholdInv)*ssao_blur_weights_1234.z;
-            color += c1*weight1;
-            color += c2*weight2;
-            counter += weight1 + weight2;
-        }
-        ##endif
-        color *= rcp(counter);
-        return color;
+      float2 depths2 = {depths[sampleIndex], depths[sampleIndex + 1]};
+      float2 weights2 = ssao_blur_weights_1234[blurIterationIndex] * exp2(-abs(depthCenter - depths2) * ssao_blur_sharpness_sq * depthCenterInv);
+      ssao += ssaoSamples[sampleIndex] * weights2.x + ssaoSamples[sampleIndex + 1] * weights2.y;
+      weightSum += dot(weights2, 1.0);
     }
 
     OUT_TYPE ssao_blur_ps(VsOutput IN): SV_Target
     {
-      return DepthBlurGaussian(IN.texcoord);
+      float rawDepth = RetrieveRawDepth(IN.texcoord);
+      BRANCH
+      if (rawDepth >= 1)
+        return 1;
+
+      depths[0] = ConvertRawDepth(rawDepth);
+      ssaoSamples[0] = RetrieveSSAO(IN.texcoord);
+
+      depthCenter = depths[0];
+      depthCenterInv = rcp(depthCenter);
+
+      SSAO_TYPE ssao = ssaoSamples[0];
+      float weightSum = 1.0;
+
+      load_depth_and_ssao_samples(0, IN.texcoord, OFFSET_1);
+      apply_blur_iteration(0, ssao, weightSum);
+##if blur_quality > poor
+      load_depth_and_ssao_samples(1, IN.texcoord, OFFSET_2);
+      apply_blur_iteration(1, ssao, weightSum);
+##endif
+##if blur_quality > ok
+      load_depth_and_ssao_samples(2, IN.texcoord, OFFSET_3);
+      apply_blur_iteration(2, ssao, weightSum);
+##endif
+
+      return ssao/weightSum;
     }
   }
 
-  compile("target_vs", "ssao_blur_vs");
   compile("target_ps", "ssao_blur_ps");
 }
 

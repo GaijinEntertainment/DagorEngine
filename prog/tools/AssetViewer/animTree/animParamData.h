@@ -11,3 +11,10 @@ struct AnimParamData
   String name;
   bool dependent = false;
 };
+
+struct DependentParamData
+{
+  int pid = 0;
+  int dependentParamPid = 0;
+  bool dependent = false;
+};

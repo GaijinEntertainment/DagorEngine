@@ -154,6 +154,7 @@ private:
   SimpleString fontName, fileName;
   int fileOfs, fileVer;
   Tab<Tex> texCopy;
+  Tab<hb_feature_t> fontFeatureSettingsList;
 
 public:
   inline void init()
@@ -175,6 +176,8 @@ public:
   static void loadDynFonts(FontArray &fonts, const DataBlock &desc, int scr_height = -1);
   static void loadFonts(FontArray &fonts, const char *fn_prefix, int scr_height = -1);
   static void loadFontsStream(IGenLoad &crd, FontArray &fonts, const char *fname_prefix, bool dynamic_font);
+
+  void loadFontFeatureSettingsList(const DataBlock &font_desc);
 
   void discard();
   void doFetch();

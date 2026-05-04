@@ -9,6 +9,7 @@
 #include <generic/dag_span.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
+#include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_vromfs.h>
@@ -16,6 +17,9 @@
 #include <util/dag_base64.h>
 #include <util/dag_strUtil.h>
 #include <util/dag_texMetaData.h>
+#include <util/dag_jobPool.h>
+#include <hash/md5.h>
+#include <hash/xxh3.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <rendInst/rendInstGen.h>
@@ -33,6 +37,7 @@
 #include <assets/assetRefs.h>
 
 #include <fstream>
+#include <mutex>
 
 #define CSV_HEADER                                                                                                              \
   "Asset;Type;Width;Height;Slice Width;Slice Height;Quality improvement;X scale; Min Y scale; Max Y scale; Albedo Similarity, " \
@@ -71,18 +76,23 @@ void ImpostorGenerator::loadCharacterMicroDetails(const DataBlock *micro)
   if (!micro)
     return;
 
-  int microDetailCount = 0;
-  characterMicrodetailsId = load_texture_array_immediate("character_micro_details*", "micro_detail", *micro, microDetailCount);
-  ShaderGlobal::set_texture(get_shader_variable_id("character_micro_details"), characterMicrodetailsId);
+  microdetails.count = 0;
+  microdetails.tid = load_texture_array_immediate("character_micro_details_gen*", "micro_detail", *micro, microdetails.count);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
-    ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true), d3d::request_sampler(smpInfo));
+    microdetails.ss = d3d::request_sampler(smpInfo);
   }
-  ShaderGlobal::set_int(get_shader_variable_id("character_micro_details_count", true), microDetailCount);
 }
 
-void ImpostorGenerator::closeCharacterMicroDetails() { close_acquired_texture(characterMicrodetailsId); }
+void ImpostorGenerator::closeCharacterMicroDetails()
+{
+  if (!microdetails.tid)
+    return;
+
+  close_acquired_texture(microdetails.tid);
+  microdetails.tid = BAD_TEXTUREID;
+}
 
 ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, DagorAssetMgr *asset_manager, ILogWriter *log_writer,
   bool display, ExportImpostorsCB _callback) :
@@ -93,13 +103,23 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
   assetsBlk = appBlkCopy.getBlockByNameEx("assets");
   const DataBlock *game_blk = appBlkCopy.getBlockByName("game");
   const DataBlock *impostorBlock = assetsBlk->getBlockByName("impostor");
+  const DataBlock *dyanmicDefferedBlk = appBlkCopy.getBlockByName("dynamicDeferred");
 
   appDir = app_dir;
 
   String folder;
   if (impostorBlock)
   {
-    G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in application.blk");
+    // the 14 first micro details of character_micro_details_infantry follows the 14 character_micro_details.
+    // So we can load the biggest package
+    const DataBlock *microDetailsBlock = dyanmicDefferedBlk->getBlockByName("character_micro_details_infantry");
+    if (!microDetailsBlock)
+      microDetailsBlock = impostorBlock->getBlockByName("character_micro_details");
+    if (microDetailsBlock)
+      loadCharacterMicroDetails(microDetailsBlock);
+
+    G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in %s",
+      app_blk.resolveFilename(true));
     folder = String(0, "%s/%s/", app_dir, impostorBlock->getStr("data_folder"));
     int readParams = 1; // for data_folder
     int readBlocks = 0;
@@ -193,6 +213,10 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
       impostorBaker.setDefaultTextureQualityLevels(eastl::move(qualityLevels));
       readBlocks++;
     }
+    if (const DataBlock *textureQualityLevels = impostorBlock->getBlockByName("character_micro_details_infantry"))
+      readBlocks++;
+    if (const DataBlock *textureQualityLevels = impostorBlock->getBlockByName("character_micro_details"))
+      readBlocks++;
     if (const DataBlock *ddsxPackNamePatterns = impostorBlock->getBlockByName("ddsxPackNamePatterns"))
     {
       int count = ddsxPackNamePatterns->blockCount();
@@ -215,11 +239,11 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
       readParams++;
     }
     if (impostorBlock->paramCount() != readParams || impostorBlock->blockCount() != readBlocks)
-      impostorBaker.conerror("There are unknown param(s) or block(s) in the application.blk assets/impostor block");
+      impostorBaker.conerror("There are unknown param(s) or block(s) in the %s assets/impostor block", app_blk.resolveFilename(true));
   }
   else
   {
-    G_ASSERTF(assetsBlk->paramExists("impostor_data_folder"), "Add the assets/impostor block to application.blk");
+    G_ASSERTF(assetsBlk->paramExists("impostor_data_folder"), "Add the assets/impostor block to %s", app_blk.resolveFilename(true));
     folder = String(0, "%s/%s/", app_dir, assetsBlk->getStr("impostor_data_folder"));
   }
 
@@ -230,9 +254,6 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
   impostorDataFile = String(0, "%simpostor_data.impostorData.blk", folder.c_str());
   if (::dd_file_exists(impostorDataFile.c_str()))
     impostorDataBlk.load(impostorDataFile.c_str());
-
-  // Character microdetails are not used currently
-  // loadCharacterMicroDetails(character_micro_detailsBlock.getBlockByName("character_micro_details"));
 }
 
 ImpostorGenerator::~ImpostorGenerator()
@@ -255,6 +276,7 @@ ImpostorGenerator::GenerateResponse ImpostorGenerator::asset_export_callback(con
 
 void ImpostorGenerator::cleanUp(const ImpostorOptions &options)
 {
+  DA_PROFILE;
   dag::ConstSpan<DagorAsset *> assets = assetManager->getAssets();
   impostorBaker.clean(assets, options);
   for (int i = 0; i < assets.size(); ++i)
@@ -274,29 +296,71 @@ void ImpostorGenerator::cleanUp(const ImpostorOptions &options)
   saveImpostorData();
 }
 
+struct ThreadSafeAssetList
+{
+  dag::Vector<DagorAsset *> list;
+  std::mutex mutex;
+
+  void add(DagorAsset *a)
+  {
+    std::lock_guard guard(mutex);
+    list.push_back(a);
+  }
+};
+
 dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBaking(bool forceRebake)
 {
+  DA_PROFILE;
   dag::ConstSpan<DagorAsset *> assets = assetManager->getAssets();
-  dag::Vector<DagorAsset *> assetsForBaking = {};
+  ThreadSafeAssetList assetsForBaking;
+  threadpool::JobPool pool(16);
   for (auto &asset : assets)
-    if (impostorBaker.isSupported(asset) && (hasAssetChanged(asset) || forceRebake))
-      assetsForBaking.push_back(asset);
-  return assetsForBaking;
+  {
+    if (!impostorBaker.isSupported(asset))
+      continue;
+    if (forceRebake)
+      assetsForBaking.add(asset);
+    else
+    {
+      pool.add([this, &assetsForBaking, asset] {
+        if (hasAssetChanged(asset))
+          assetsForBaking.add(asset);
+      });
+    }
+  }
+  pool.wait();
+  return assetsForBaking.list;
 }
 
 dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs, bool forceRebake)
 {
+  DA_PROFILE;
   dag::ConstSpan<DagorAsset *> assets = assetManager->getAssets();
-  dag::Vector<DagorAsset *> assetsForBaking = {};
-  for (auto &asset : assets)
-    if (impostorBaker.isSupported(asset) && packs.count(eastl::string{asset->getDestPackName()}) > 0 &&
-        (hasAssetChanged(asset) || forceRebake))
-      assetsForBaking.push_back(asset);
-  return assetsForBaking;
+  ThreadSafeAssetList assetsForBaking;
+  threadpool::JobPool pool(16);
+  for (auto asset : assets)
+  {
+    if (!impostorBaker.isSupported(asset))
+      continue;
+    if (packs.count(eastl::string{asset->getDestPackName()}) <= 0)
+      continue;
+    if (forceRebake)
+      assetsForBaking.add(asset);
+    else
+    {
+      pool.add([this, &assetsForBaking, asset] {
+        if (hasAssetChanged(asset))
+          assetsForBaking.add(asset);
+      });
+    }
+  }
+  pool.wait();
+  return assetsForBaking.list;
 }
 
 dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingFromArgs(const eastl::vector<eastl::string> &assetsToBuild)
 {
+  DA_PROFILE;
   dag::Vector<DagorAsset *> assetsForBaking = {};
   for (const eastl::string &assetName : assetsToBuild)
   {
@@ -323,6 +387,32 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingFromArgs(const e
 
 bool ImpostorGenerator::run(const ImpostorOptions &options)
 {
+  DA_PROFILE;
+  struct CharacterMicrodetailsSetupRaii
+  {
+    int svid_cmd = get_shader_variable_id("character_micro_details");
+    int svid_cmd_ss = get_shader_variable_id("character_micro_details_samplerstate", true);
+    int svid_cmd_cnt = get_shader_variable_id("character_micro_details_count", true);
+    CharacterMicrodetails prev;
+
+    CharacterMicrodetailsSetupRaii(CharacterMicrodetails needed)
+    {
+      prev.tid = ShaderGlobal::get_texture(svid_cmd);
+      prev.ss = ShaderGlobal::get_sampler(svid_cmd_ss);
+      prev.count = ShaderGlobal::get_int(svid_cmd_cnt);
+
+      ShaderGlobal::set_texture(svid_cmd, needed.tid);
+      ShaderGlobal::set_sampler(svid_cmd_ss, needed.ss);
+      ShaderGlobal::set_int(svid_cmd_cnt, needed.count);
+    }
+    ~CharacterMicrodetailsSetupRaii()
+    {
+      ShaderGlobal::set_texture(svid_cmd, prev.tid);
+      ShaderGlobal::set_sampler(svid_cmd_ss, prev.ss);
+      ShaderGlobal::set_int(svid_cmd_cnt, prev.count);
+    }
+  } cmd_raii(microdetails);
+
   interrupted = false;
   if (options.clean)
     cleanUp(options);
@@ -331,6 +421,7 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
 
   impostorBaker.computeDDSxPackSizes(assetManager->getAssets());
   {
+    TIME_PROFILE(update_tex_blk);
     int a_num = 0, a_changed = 0;
     for (auto *asset : assetManager->getAssets())
       if (impostorBaker.isSupported(asset))
@@ -364,10 +455,11 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
       return false;
     }
     qualitySummary.push_back(quality);
-    riDataBlock(asset, *impostorBlk);
+    riDataBlock(asset, *impostorBlk, false);
     return true;
   };
 
+  ::win32_set_window_title("Scanning...");
   dag::Vector<DagorAsset *> assets = {};
   if (options.assetsToBuild.size() > 0)
   {
@@ -562,20 +654,93 @@ void ImpostorGenerator::gatherSourceFiles(DagorAsset *asset, eastl::set<String, 
     addProxyMatTextureSourceFiles(srcFilePath, asset->getName(), files);
 }
 
-static void combine_hash(unsigned char target[AssetExportCache::HASH_SZ], const unsigned char hash[AssetExportCache::HASH_SZ])
+static constexpr uint32_t HASH_SZ = 16;
+
+static void combine_hash(unsigned char target[HASH_SZ], const unsigned char hash[HASH_SZ])
 {
-  for (uint32_t i = 0; i < AssetExportCache::HASH_SZ; ++i)
+  for (uint32_t i = 0; i < HASH_SZ; ++i)
     target[i] ^= hash[i];
 }
 
-static Base64 encode_hash(const unsigned char hash[AssetExportCache::HASH_SZ])
+static Base64 encode_hash(const unsigned char hash[HASH_SZ])
 {
   Base64 base64;
-  base64.encode(static_cast<const uint8_t *>(hash), AssetExportCache::HASH_SZ);
+  base64.encode(static_cast<const uint8_t *>(hash), HASH_SZ);
   return base64;
 }
 
-bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk) const
+static void getFileHash(const char *fname, unsigned char out_hash[HASH_SZ], bool compute_md5)
+{
+  FullFileLoadCB crd(fname);
+  memset(out_hash, 0, HASH_SZ);
+
+  if (!crd.fileHandle)
+    return;
+
+  DAGOR_TRY
+  {
+    XXH3_state_t hashState;
+    md5_state_t md5s;
+    if (compute_md5)
+      ::md5_init(&md5s);
+    else
+      ::XXH3_128bits_reset(&hashState);
+
+    unsigned char buf[32768];
+    int len, size = df_length(crd.fileHandle);
+    while (size > 0)
+    {
+      len = size > 32768 ? 32768 : size;
+      int rd = crd.tryRead(buf, len);
+      for (int retry = 16; len && !rd && retry; retry--)
+      {
+        logwarn("failed to read any of %d bytes at %d, wait and retry, rest=%d->%d", len, crd.tell(), size,
+          df_length(crd.fileHandle) - crd.tell());
+        size = df_length(crd.fileHandle) - crd.tell();
+        if (!size)
+          goto finish;
+        sleep_msec(1);
+        rd = crd.tryRead(buf, len = size > 32768 ? 32768 : size);
+      }
+      if (rd != len)
+        logwarn("tryRead(%d)=%d, rest=%d", len, rd, size);
+      if (!rd)
+      {
+        logerr("failed to read '%s'", fname);
+        return;
+      }
+      size -= rd;
+
+      if (compute_md5)
+        ::md5_append(&md5s, buf, rd);
+      else
+        ::XXH3_128bits_update(&hashState, buf, rd);
+    }
+
+  finish:
+    if (compute_md5)
+      ::md5_finish(&md5s, out_hash);
+    else
+      ::XXH128_canonicalFromHash((XXH128_canonical_t *)out_hash, ::XXH3_128bits_digest(&hashState));
+  }
+  DAGOR_CATCH(const IGenLoad::LoadException &exc) { logerr("failed to read '%s', exc", fname); }
+}
+
+static void getDataHash(const void *data, int data_len, unsigned char out_hash[HASH_SZ], bool compute_md5)
+{
+  if (compute_md5)
+  {
+    md5_state_t md5s;
+    memset(out_hash, 0, HASH_SZ);
+    ::md5_init(&md5s);
+    ::md5_append(&md5s, (const unsigned char *)data, data_len);
+    ::md5_finish(&md5s, out_hash);
+  }
+  else
+    ::XXH128_canonicalFromHash((XXH128_canonical_t *)out_hash, ::XXH3_128bits(data, data_len));
+}
+
+bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk, bool compute_md5) const
 {
   if (!asset)
     return false;
@@ -583,36 +748,36 @@ bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk) const
   G_ASSERT(e);
   eastl::set<String, ImpostorBaker::StrLess> exportedFiles;
   impostorBaker.gatherExportedFiles(asset, exportedFiles);
-  unsigned char exportHash[AssetExportCache::HASH_SZ] = {0};
+  unsigned char exportHash[HASH_SZ] = {0};
 
   for (const String &file : exportedFiles)
   {
     if (!::dd_file_exist(file.c_str()))
       return false;
-    unsigned char h[AssetExportCache::HASH_SZ];
-    AssetExportCache::getFileHash(file.c_str(), h);
+    unsigned char h[HASH_SZ];
+    getFileHash(file.c_str(), h, compute_md5);
     combine_hash(exportHash, h);
   }
 
   eastl::set<String, ImpostorBaker::StrLess> sourceFiles;
   gatherSourceFiles(asset, sourceFiles);
-  unsigned char sourceHash[AssetExportCache::HASH_SZ] = {0};
+  unsigned char sourceHash[HASH_SZ] = {0};
 
   for (const String &file : sourceFiles)
   {
-    unsigned char h[AssetExportCache::HASH_SZ];
-    AssetExportCache::getFileHash(file.c_str(), h);
+    unsigned char h[HASH_SZ];
+    getFileHash(file.c_str(), h, compute_md5);
     combine_hash(sourceHash, h);
   }
 
   DynamicMemGeneralSaveCB cwr(tmpmem, 4 << 10, 4 << 10);
   asset->props.saveToTextStream(cwr);
-  unsigned char propsHash[AssetExportCache::HASH_SZ];
-  AssetExportCache::getDataHash(cwr.data(), cwr.size(), propsHash);
+  unsigned char propsHash[HASH_SZ];
+  getDataHash(cwr.data(), cwr.size(), propsHash, compute_md5);
 
-  blk.setStr("exportHash", encode_hash(exportHash).c_str());
-  blk.setStr("sourceHash", encode_hash(sourceHash).c_str());
-  blk.setStr("propsHash", encode_hash(propsHash).c_str());
+  blk.setStr(compute_md5 ? "exportHash" : "exportHashXXH3", encode_hash(exportHash).c_str());
+  blk.setStr(compute_md5 ? "sourceHash" : "sourceHashXXH3", encode_hash(sourceHash).c_str());
+  blk.setStr(compute_md5 ? "propsHash" : "propsHashXXH3", encode_hash(propsHash).c_str());
   blk.setInt("impostorBakerVersion", ImpostorTextureManager::GenerationData::VERSION_NUMBER);
   DataBlock *hashesBlk = blk.addBlock("hashes");
   hashesBlk->clearData();
@@ -621,8 +786,9 @@ bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk) const
   return true;
 }
 
-bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset) const
+bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
 {
+  DA_PROFILE;
   if (!context.rendintsRefProvider)
   {
     static bool logged = false;
@@ -636,7 +802,7 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset) const
   IDagorAssetExporter *e = context.assetMgr->getAssetExporter(asset->getType());
   G_ASSERT(e);
   bool verbose = true;
-  const DataBlock *storedBlock = impostorDataBlk.getBlockByName(asset->getName());
+  DataBlock *storedBlock = impostorDataBlk.getBlockByName(asset->getName());
   if (storedBlock == nullptr)
   {
     if (verbose)
@@ -644,7 +810,7 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset) const
     return true;
   }
   DataBlock assetBlk;
-  if (!riDataBlock(asset, assetBlk))
+  if (!riDataBlock(asset, assetBlk, false))
   {
     impostorBaker.conwarning("Baking asset <%s>, because exported textures are not present "
                              "(impostor_data.impostorData.blk might "
@@ -690,7 +856,23 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset) const
       }
     }
   }
-  if (strcmp(assetBlk.getStr("exportHash", ""), storedBlock->getStr("exportHash", "-")) != 0)
+
+  if (!storedBlock->paramExists("exportHashXXH3"))
+  {
+    riDataBlock(asset, assetBlk, true); // compute old MD5 hashes
+    if (strcmp(assetBlk.getStr("exportHash", ""), storedBlock->getStr("exportHash", "-")) == 0 &&
+        strcmp(assetBlk.getStr("sourceHash", ""), storedBlock->getStr("sourceHash", "-")) == 0 &&
+        strcmp(assetBlk.getStr("propsHash", ""), storedBlock->getStr("propsHash", "-")) == 0)
+    {
+      if (verbose)
+        impostorBaker.conlog("Asset <%s> had MD5 hashes, added new ones", asset->getName());
+      storedBlock->setStr("exportHashXXH3", assetBlk.getStr("exportHashXXH3"));
+      storedBlock->setStr("sourceHashXXH3", assetBlk.getStr("sourceHashXXH3"));
+      storedBlock->setStr("propsHashXXH3", assetBlk.getStr("propsHashXXH3"));
+    }
+  }
+
+  if (strcmp(assetBlk.getStr("exportHashXXH3", ""), storedBlock->getStr("exportHashXXH3", "-")) != 0)
   {
     impostorBaker.conwarning("Baking asset <%s>, because exported textures are inconsistent with "
                              "impostor_data.impostorData.blk "
@@ -698,13 +880,13 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset) const
       asset->getName());
     return true;
   }
-  if (strcmp(assetBlk.getStr("sourceHash", ""), storedBlock->getStr("sourceHash", "-")) != 0)
+  if (strcmp(assetBlk.getStr("sourceHashXXH3", ""), storedBlock->getStr("sourceHashXXH3", "-")) != 0)
   {
     if (verbose)
       impostorBaker.conlog("Baking asset <%s>, because the source files have changed", asset->getName());
     return true;
   }
-  if (strcmp(assetBlk.getStr("propsHash", ""), storedBlock->getStr("propsHash", "-")) != 0)
+  if (strcmp(assetBlk.getStr("propsHashXXH3", ""), storedBlock->getStr("propsHashXXH3", "-")) != 0)
   {
     if (verbose)
       impostorBaker.conlog("Baking asset <%s>, because asset properties have changed", asset->getName());

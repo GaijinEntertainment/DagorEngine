@@ -11,14 +11,26 @@ namespace PropPanel
 
 struct ColorOverride
 {
-  enum
+  enum ColorIndex
   {
+    // No color.
+    NONE = -1,
+
     // Color of the dialogs title and tab title texts.
     DIALOG_TITLE,
     // Color of the dialog close buttons when active.
     DIALOG_CLOSE_ACTIVE,
     // Color of the dialog close buttons when hovered.
     DIALOG_CLOSE_HOVERED,
+
+    // Color of the modal dialogs title texts.
+    MODAL_TITLE,
+    // Color of the modal dialog title bars.
+    MODAL_TITLE_BACKGROUND,
+    // Color of the modal dialog title bars when active.
+    MODAL_TITLE_BACKGROUND_ACTIVE,
+    // Color of the modal window border.
+    MODAL_BORDER,
 
     // Color of the tab title texts on tab bars.
     TAB_BAR_TITLE,
@@ -59,10 +71,31 @@ struct ColorOverride
     // The color of the track-bar frame background when hovered.
     TRACKBAR_BACKGROUND_HOVERED,
 
+    // Background color for toast message windows.
+    TOAST_BACKGROUND,
+    // Border and icon tint colors for various toast message types.
+    TOAST_TINT_NONE,
+    TOAST_TINT_ALERT,
+    TOAST_TINT_SUCCESS,
+
     // Text color of filter buttons.
     FILTER_TEXT,
     // Background color for the filter buttons.
     FILTER_BUTTON,
+
+    // Background color used for individual tags.
+    TAG_BACKGROUND,
+    // Border color used for individual tags.
+    TAG_BORDER,
+    // Text color for invalid tag notification texts.
+    TAG_ERROR_TEXT,
+    // Background color for the invalid tag names.
+    TAG_ERROR_BACKGROUND,
+
+    // Text color for toggled tag filters
+    TAG_FILTER_TEXT,
+    // Background color for toggled tag filters
+    TAG_FILTER_BACKGROUND,
 
     // Foreground color of the log messages in the console.
     CONSOLE_LOG_TEXT,
@@ -74,6 +107,10 @@ struct ColorOverride
     CONSOLE_LOG_REMARK_TEXT,
     // Background color of the log messages in the console.
     CONSOLE_LOG_BACKGROUND,
+    // Background color of selected text if the window is not focused.
+    CONSOLE_LOG_SELECTED_TEXT_BACKGROUND,
+    // Background color of selected text if the window is focused.
+    CONSOLE_LOG_SELECTED_TEXT_BACKGROUND_FOCUSED,
     // Foreground color of the command input edit box in the console.
     CONSOLE_EDIT_BOX_TEXT,
     // Background color of the command input edit box in the console.
@@ -87,6 +124,21 @@ struct ColorOverride
     AXIS_Y,
     AXIS_Z,
 
+    // Background color for edit boxes that are highlighted because they contain a wrong value.
+    EDIT_BOX_WRONG_VALUE_BACKGROUND,
+
+    // Background color for edit boxes that are highlighted because they contain a non-default value.
+    EDIT_BOX_NON_DEFAULT_VALUE_BACKGROUND,
+
+    // Background color for edit boxes that are using a highlight as a manually controllable indicator.
+    EDIT_BOX_INDICATOR_BACKGROUND,
+
+    // Background color of the asset browser items when they are hovered.
+    ASSET_BROWSER_ITEM_BACKGROUND_HOVERED,
+
+    // Background color of the asset browser items when they are selected.
+    ASSET_BROWSER_ITEM_BACKGROUND_SELECTED,
+
     COUNT
   };
 
@@ -94,7 +146,7 @@ struct ColorOverride
   const char *name;
   const int defaultIdx;
 
-  ColorOverride() : defaultIdx(0), name("") {}
+  ColorOverride() : name(""), defaultIdx(0) {}
 
   ColorOverride(const char *_name, int _defaultIdx) : name(_name), defaultIdx(_defaultIdx) {}
 
@@ -118,6 +170,7 @@ enum ColorOverrideGroup : int
   COLORS_TOOL_BAR = 2,
   COLORS_TITLE_BAR = 3,
   COLORS_TRACK_BAR = 3,
+  COLORS_MODAL_WINDOW = 6,
 };
 
 inline ColorOverrideGroup pushToolBarColorOverrides()
@@ -148,5 +201,18 @@ inline ColorOverrideGroup pushTrackBarColorOverrides()
 }
 
 inline void popTrackBarColorOverrides() { ImGui::PopStyleColor(ColorOverrideGroup::COLORS_TRACK_BAR); }
+
+inline ColorOverrideGroup pushModalWindowColorOverrides()
+{
+  ImGui::PushStyleColor(ImGuiCol_Text, getOverriddenColor(ColorOverride::MODAL_TITLE));
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, getOverriddenColor(ColorOverride::MODAL_TITLE_BACKGROUND));
+  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, getOverriddenColor(ColorOverride::MODAL_TITLE_BACKGROUND_ACTIVE));
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, getOverriddenColor(ColorOverride::DIALOG_CLOSE_ACTIVE));
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, getOverriddenColor(ColorOverride::DIALOG_CLOSE_HOVERED));
+  ImGui::PushStyleColor(ImGuiCol_Border, getOverriddenColor(ColorOverride::MODAL_BORDER));
+  return ColorOverrideGroup::COLORS_MODAL_WINDOW;
+}
+
+inline void popModalWindowColorOverrides() { ImGui::PopStyleColor(ColorOverrideGroup::COLORS_MODAL_WINDOW); }
 
 } // namespace PropPanel

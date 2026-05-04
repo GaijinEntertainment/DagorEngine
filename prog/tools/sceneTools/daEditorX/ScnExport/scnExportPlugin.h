@@ -35,6 +35,8 @@ public:
   void unregistered() override {}
   void beforeMainLoop() override {}
 
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
+  void registerMenuAccelerators() override;
   bool begin(int toolbar_id, unsigned menu_id) override;
   bool end() override { return true; }
 
@@ -57,6 +59,7 @@ public:
 
   void selectAll() override {}
   void deselectAll() override {}
+  void invertSelection() override {}
 
   void actObjects(float dt) override {}
   void beforeRenderObjects(IGenViewportWnd *vp) override {}

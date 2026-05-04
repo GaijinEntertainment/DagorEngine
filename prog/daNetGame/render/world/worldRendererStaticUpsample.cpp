@@ -4,10 +4,9 @@
 #include "private_worldRenderer.h"
 #include <perfMon/dag_statDrv.h>
 #include <render/resolution.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_renderTarget.h>
-#if _TARGET_PC
-#include <3d/dag_gpuConfig.h>
-#endif
+
 
 #define STATIC_UPSAMPLE_GLOBAL_VARS \
   VAR(upsampling_quality)           \
@@ -32,7 +31,7 @@ void WorldRenderer::initStaticUpsample(const IPoint2 &origResolution, const IPoi
 
   if (scaledResolution != origResolution)
   {
-    if (dgs_get_settings()->getBlockByName("video")->getBool("upscaleInPostfx", false))
+    if (dgs_get_settings()->getBlockByNameEx("video")->getBool("upscaleInPostfx", false))
     {
       debug("Static resolution scaling will be done in postfx shader.");
       resolutionScaleMode = RESOLUTION_SCALE_POSTFX;
@@ -47,9 +46,9 @@ void WorldRenderer::initStaticUpsample(const IPoint2 &origResolution, const IPoi
 
     applyStaticUpsampleQuality();
 
-    ShaderGlobal::set_color4(upsampling_target_sizeVarId, origResolution.x, origResolution.y, 1.0f / origResolution.x,
+    ShaderGlobal::set_float4(upsampling_target_sizeVarId, origResolution.x, origResolution.y, 1.0f / origResolution.x,
       1.0f / origResolution.y);
-    ShaderGlobal::set_color4(upsampling_source_sizeVarId, scaledResolution.x, scaledResolution.y, 1.0f / scaledResolution.x,
+    ShaderGlobal::set_float4(upsampling_source_sizeVarId, scaledResolution.x, scaledResolution.y, 1.0f / scaledResolution.x,
       1.0f / scaledResolution.y);
 
     resolutionScaleMode = RESOLUTION_SCALE_SUB;
@@ -63,8 +62,7 @@ float get_default_static_resolution_scale()
 {
 // TODO should be determined by benchmark result instead
 #if _TARGET_PC
-  auto gpuCfg = d3d_get_gpu_cfg();
-  if (gpuCfg.integrated && gpuCfg.primaryVendor == GpuVendor::INTEL)
+  if (auto &drvDesc = d3d::get_driver_desc(); drvDesc.info.isUMA && drvDesc.info.vendor == GpuVendor::INTEL)
   {
     int w, h;
     d3d::get_screen_size(w, h);

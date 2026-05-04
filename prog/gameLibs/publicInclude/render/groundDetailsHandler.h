@@ -77,6 +77,8 @@ protected:
   int forceUpdateCounter = 0;
 };
 
+////////////////
+
 class LandmeshPhysmatsCPU
 {
 public:
@@ -107,5 +109,45 @@ protected:
   RingCPUTextureLock ringTextures;
 
   Tab<uint8_t> loadedPhysmats;
+  int forceUpdateCounter = 0;
+};
+
+////////////////
+
+class PuddlesWetnessCPU
+{
+public:
+  PuddlesWetnessCPU();
+  ~PuddlesWetnessCPU();
+  void init(int tex_size = 128, float puddle_texel_size = 0.2f, float invalidation_scale = 0.3f);
+  void update(const Point3 &center_pos);
+  float getPuddlesWetness(const Point3 &world_pos);
+  bool isPuddlesAround(const Point3 &world_pos) const;
+  void invalidate();
+  const float maxSpeedUp = 0.75f;
+  const float maxSpeedDown = -0.35f;
+
+protected:
+  bool process(float *destData, uint32_t &frame);
+  __forceinline float getPixel(int x, int y) const
+  {
+    x = clamp(x, 0, bufferSize - 1);
+    y = clamp(y, 0, bufferSize - 1);
+    return loadedPuddles[x + y * bufferSize];
+  }
+  PostFxRenderer renderPuddles;
+  float texelSize = 0.2f;
+  int bufferSize = 128;
+  float worldSize = 25.6f;
+  float invalidationScale = 0.3f;
+  Point2 origin;
+  Point2 curOrigin;
+  Point4 worldToPuddles;
+  Point3 physDetailsOrigin;
+  Point3 physDetailsCurOrigin;
+  RingCPUTextureLock ringTextures;
+  TextureIDHolder groundPhysDetailsTex;
+  TextureIDHolderWithVar GPUgroundPhysDetailsTex;
+  Tab<float> loadedPuddles;
   int forceUpdateCounter = 0;
 };

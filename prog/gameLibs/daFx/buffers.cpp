@@ -3,7 +3,10 @@
 #include "buffers.h"
 #include "context.h"
 #include <drv/3d/dag_buffers.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
+
+#define DAFX_DEBUG_CPU_MEM_PAGES_DEBUG_FILL 0
+#define DAFX_DEBUG_CPU_MEM_PAGES_KEEP_ALIVE 0
 
 namespace dafx
 {
@@ -12,7 +15,7 @@ bool create_gpu_res(GpuResourcePtr &res, unsigned int elem_size, unsigned int el
   G_ASSERT_RETURN(elem_size % DAFX_ELEM_STRIDE == 0, false);
   DBG_OPT("create_gpu_res, elem_size:%d, elem_count:%d", elem_size, elem_count);
 
-  Sbuffer *ptr = d3d::create_sbuffer(elem_size, elem_count, flags, fmt, name);
+  Sbuffer *ptr = d3d::create_sbuffer(elem_size, elem_count, flags, fmt, name, RESTAG_FX);
 
   if (!ptr)
   {
@@ -51,6 +54,7 @@ bool create_gpu_cb_res(GpuResourcePtr &res, unsigned int elem_size, unsigned int
 bool create_cpu_res(CpuResourcePtr &res, unsigned int elem_size, unsigned int elem_count, const char *)
 {
   G_ASSERT_RETURN(elem_size % DAFX_ELEM_STRIDE == 0, false);
+  G_ASSERT(!res);
   DBG_OPT("create_cpu_res, elem_size:%d, elem_count:%d", elem_size, elem_count);
 
   unsigned char *ptr = (unsigned char *)allocator_type::alloc(elem_size * elem_count);
@@ -60,7 +64,7 @@ bool create_cpu_res(CpuResourcePtr &res, unsigned int elem_size, unsigned int el
 }
 
 template <typename T, typename F>
-typename T::Page *create_gen_buffer(T &dst, unsigned int sz, typename T::Buffer &out, F create_cb)
+typename T::Page *create_gen_buffer(const Context &ctx, T &dst, unsigned int sz, typename T::Buffer &out, F create_cb, const char *tag)
 {
   G_ASSERT_RETURN(sz > 0, nullptr);
   sz = get_aligned_size(sz);
@@ -94,7 +98,8 @@ typename T::Page *create_gen_buffer(T &dst, unsigned int sz, typename T::Buffer 
     page->available = dst.pageSize;
     page->garbage = 0;
 
-    DBG_OPT("dafx: data buffer append, %s", name.c_str());
+    if (ctx.cfg.debug_page_allocs)
+      debug("dafx: allocate new %s page. total pages: %d", tag, dst.pages.totalSize() - dst.pages.freeIndicesSize());
   }
 
   typename T::Page *page = dst.pages.get(cid);
@@ -110,23 +115,40 @@ typename T::Page *create_gen_buffer(T &dst, unsigned int sz, typename T::Buffer 
   return page;
 }
 
-bool create_gpu_buffer(GpuBufferPool &dst, unsigned int sz, GpuBuffer &out)
+bool create_gpu_buffer(Context &ctx, unsigned int sz, GpuBuffer &out)
 {
-  GpuPage *page = create_gen_buffer(dst, sz, out, create_gpu_sb_res);
+  GpuBufferPool &dst = ctx.gpuBufferPool;
+  GpuPage *page = create_gen_buffer(ctx, dst, sz, out, create_gpu_sb_res, "gpu");
   out.directPtr = page ? page->res.getBuf() : nullptr;
   out.resId = page ? page->res.getId() : BAD_D3DRESID;
   return page;
 }
 
-bool create_cpu_buffer(CpuBufferPool &dst, unsigned int sz, CpuBuffer &out)
+bool create_cpu_buffer(Context &ctx, unsigned int sz, CpuBuffer &out)
 {
-  CpuPage *page = create_gen_buffer(dst, sz, out, create_cpu_res);
+  CpuBufferPool &dst = ctx.cpuBufferPool;
+  CpuPage *page = create_gen_buffer(ctx, dst, sz, out, create_cpu_res, "cpu");
   out.directPtr = page ? page->res.get() : nullptr;
+
+#if DAFX_DEBUG_CPU_MEM_PAGES_DEBUG_FILL
+  if (out.directPtr)
+    memset(out.directPtr + out.offset, 0xff, sz);
+#endif
+
   return page;
 }
 
+void report_cpu_buffer_allocation_for_sid(CpuBufferPool &dst, const CpuBuffer &buf, int root_sid)
+{
+  if (root_sid == queue_instance_sid || root_sid == dummy_instance_sid)
+    return;
+  CpuPage *page = dst.pages.get(buf.pageId);
+  if (page)
+    page->allocations.push_back({buf.offset, buf.size, root_sid});
+}
+
 template <typename T>
-void release_buffer(T &dst, typename T::Buffer &buf, bool delayed_destroy)
+void release_buffer(T &dst, typename T::Buffer &buf, auto &&destroy_page_cb)
 {
   G_ASSERT_RETURN(buf.size > 0, );
 
@@ -141,28 +163,82 @@ void release_buffer(T &dst, typename T::Buffer &buf, bool delayed_destroy)
   G_ASSERT_RETURN(page->garbage <= page->size, );
   if (page->garbage == page->size - page->available)
   {
-    if (delayed_destroy)
-    {
-      page->available = 0;
-      dst.pagesToDestroy.push_back(buf.pageId);
-    }
-    else
-      dst.pages.destroyReference(buf.pageId);
+    destroy_page_cb(page);
     DBG_OPT("free page");
   }
 
   buf.pageId = typename T::PageId();
 }
 
-void release_gpu_buffer(GpuBufferPool &dst, GpuBuffer &buf, bool delayed_destroy) { release_buffer(dst, buf, delayed_destroy); }
-
-void release_cpu_buffer(CpuBufferPool &dst, CpuBuffer &buf) { release_buffer(dst, buf, false); }
-
-void exec_delayed_page_destroy(GpuBufferPool &dst)
+void release_gpu_buffer(Context &ctx, GpuBuffer &buf, bool delayed_destroy)
 {
+  GpuBufferPool &dst = ctx.gpuBufferPool;
+  release_buffer(dst, buf, [&](GpuPage *page) {
+    if (delayed_destroy)
+    {
+      page->available = 0;
+      dst.pagesToDestroy.push_back(buf.pageId);
+      if (ctx.cfg.debug_page_allocs)
+        debug("dafx: added delayed release gpu page");
+    }
+    else
+    {
+      dst.pages.destroyReference(buf.pageId);
+      if (ctx.cfg.debug_page_allocs)
+        debug("dafx: release gpu page. total pages: %d", dst.pages.totalSize() - dst.pages.freeIndicesSize());
+    }
+  });
+}
+
+void release_cpu_buffer(Context &ctx, CpuBuffer &buf)
+{
+  CpuBufferPool &dst = ctx.cpuBufferPool;
+
+#if DAFX_DEBUG_CPU_MEM_PAGES_DEBUG_FILL
+  if (buf.directPtr)
+    memset(buf.directPtr + buf.offset, 0xee, buf.size);
+#endif
+
+  release_buffer(dst, buf, [&](CpuPage *page) {
+
+#if DAFX_DEBUG_CPU_MEM_PAGES_KEEP_ALIVE
+    page->garbage = 0;
+    page->available = page->size;
+#else
+    G_UNUSED(page);
+    dst.pages.destroyReference(buf.pageId);
+#endif
+    if (ctx.cfg.debug_page_allocs)
+      debug("dafx: release cpu page. total pages: %d", dst.pages.totalSize() - dst.pages.freeIndicesSize());
+  });
+}
+
+void report_all_cpu_subbuffers_released(CpuBufferPool &dst, CpuPageId page_id, int root_sid)
+{
+  auto *page = dst.pages.get(page_id);
+  if (!page)
+    return;
+
+  auto it = eastl::find_if(page->allocations.begin(), page->allocations.end(), [=](const auto &a) { return a.rootSid == root_sid; });
+  G_ASSERT(it != page->allocations.end());
+  page->allocations.erase(it);
+
+#if !DAFX_DEBUG_CPU_MEM_PAGES_KEEP_ALIVE
+  G_ASSERT(!page->allocations.empty());
+#endif
+}
+
+void exec_delayed_gpu_page_destroy(Context &ctx)
+{
+  GpuBufferPool &dst = ctx.gpuBufferPool;
   for (GpuPageId pageId : dst.pagesToDestroy)
+  {
     if (!dst.pages.destroyReference(pageId))
       logerr("dafx: invalid page id in delayed destroy queue");
+
+    if (ctx.cfg.debug_page_allocs)
+      debug("dafx: release delayed gpu page. total pages: %d", dst.pages.totalSize() - dst.pages.freeIndicesSize());
+  }
 
   dst.pagesToDestroy.clear();
 }
@@ -216,8 +292,8 @@ unsigned char *start_updating_render_buffer(Context &ctx, int tag)
   // workaound for DX12 spam D3DD Active texture buffer <dafx_cpu_render_buffer> (stage 2, slot 21) deleted...
   if (recreate && buf.res.getBuf())
   {
-    const Driver3dDesc &desc = d3d::get_driver_desc();
-    for (int i = 0; i < desc.maxsimtex; ++i)
+    auto &drvDesc = d3d::get_driver_desc();
+    for (int i = 0; i < drvDesc.maxsimtex; ++i)
     {
       d3d::set_buffer(STAGE_VS, i, nullptr);
       d3d::set_buffer(STAGE_PS, i, nullptr);

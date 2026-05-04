@@ -8,6 +8,7 @@
 #include <render/spotLightsManager.h>
 #include <render/frustumClusters.h>
 #include <render/tiledLights.h>
+#include <render/clusteredLightsGrid.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <math/dag_TMatrix4.h>
@@ -78,7 +79,7 @@ struct ClusteredLights
   void changeShadowResolution(uint32_t shadows_quality, bool dynamic_shadow_32bit);
   void close();
   void cullFrustumLights(vec3f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear, Occlusion *occlusion,
-    SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask);
+    SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask, float light_cutoff_dist_sq = 0.f);
   void prepareTiledLights(const bool clear_lights = true)
   {
     if (tiledLights)
@@ -86,7 +87,7 @@ struct ClusteredLights
   }
   void toggleTiledLights(bool use_tiled);
   bool hasDeferredLights() const { return renderFarOmniLights.size() + renderFarSpotLights.size() != 0; }
-  bool hasClusteredLights() const { return clustersOmniGrid.size() + clustersSpotGrid.size() != 0; }
+  bool hasClusteredLights() const { return renderOmniLights.size() + renderSpotLights.size() != 0; }
   int getVisibleNotClusteredSpotsCount() const { return renderFarSpotLights.size(); }
   int getVisibleNotClusteredOmniCount() const { return renderFarOmniLights.size(); }
   int getVisibleClusteredSpotsCount() const { return renderSpotLights.size(); } // fixme
@@ -97,12 +98,13 @@ struct ClusteredLights
     OmniLightMaskType omni_light_mask); // cull without any grid
   void setShadowBias(float z_bias, float slope_z_bias, float shader_z_bias, float shader_slope_z_bias);
   void getShadowBias(float &z_bias, float &slope_z_bias, float &shader_z_bias, float &shader_slope_z_bias) const;
+  void setRetainShadowSizeMul(float mul);
 
   void renderOtherLights();
-  void setBuffersToShader();
+  void fillAndSetInsideOfFrustumLightsBuffers();
   void setEmptyOutOfFrustumLights();
   void setOutOfFrustumLightsToShader();
-  void setInsideOfFrustumLightsToShader();
+  void setInsideOfFrustumLightsToShader() const;
 
   void renderDebugSpotLights();
   void renderDebugOmniLights();
@@ -112,13 +114,18 @@ struct ClusteredLights
 
   void destroyLight(uint32_t id);
   uint32_t addOmniLight(const OmniLight &light, OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT);
+  void setLightNoLock(uint32_t id, const OmniLight &light, bool invalidate_shadow) DAG_TS_REQUIRES(lightLock);
   void setLight(uint32_t id, const OmniLight &light, bool invalidate_shadow);
   void setLightWithMask(uint32_t id, const OmniLight &light, OmniLightMaskType mask, bool invalidate_shadow);
+  const OmniLight &getOmniLightNoLock(uint32_t id) const DAG_TS_REQUIRES(lightLock);
   OmniLight getOmniLight(uint32_t id) const;
 
+  void setLightNoLock(uint32_t id_, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow) DAG_TS_REQUIRES(lightLock);
   void setLight(uint32_t id_, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow);
   uint32_t addSpotLight(const SpotLight &light, SpotLightMaskType mask);
+  const SpotLight &getSpotLightNoLock(uint32_t id_) const DAG_TS_REQUIRES(lightLock);
   SpotLight getSpotLight(uint32_t id_) const;
+  void getSpotLightShadowViewProj(uint32_t id, mat44f &view_itm, mat44f &proj);
 
   bool isLightVisible(uint32_t id) const;
 
@@ -137,8 +144,8 @@ struct ClusteredLights
   bool addShadowToLight(uint32_t id, bool only_static_casters, bool hint_dynamic, uint16_t quality, uint8_t priority,
     uint8_t shadow_size_srl, DynamicShadowRenderGPUObjects render_gpu_objects)
   {
-    return addShadowToLight(id, only_static_casters ? STATIC_CASTERS : DYNAMIC_CASTERS, hint_dynamic, quality, priority,
-      shadow_size_srl, render_gpu_objects);
+    return addShadowToLight(id, only_static_casters ? ShadowCastersFlag::None : ShadowCastersFlag::Dynamic, hint_dynamic, quality,
+      priority, shadow_size_srl, render_gpu_objects);
   }
 
   void removeShadow(uint32_t id);
@@ -150,8 +157,8 @@ struct ClusteredLights
     SPOT_LIGHT_FLAG = (1 << 30),
     INVALID_LIGHT = 0xFFFFFFFF & (~SPOT_LIGHT_FLAG)
   };
-  void invalidateAllShadows();                   //{ lightShadows->invalidateAllVolumes(); }
-  void invalidateStaticObjects(bbox3f_cref box); // invalidate static content within box
+  void invalidateAllShadows() DAG_TS_REQUIRES(lightLock); //{ lightShadows->invalidateAllVolumes(); }
+  void invalidateStaticObjects(bbox3f_cref box);          // invalidate static content within box
 
   using StaticRenderCallback = void(mat44f_cref globTm, mat44f_cref projTm, const TMatrix &itm, int updateIndex, int viewIndex,
     DynamicShadowRenderGPUObjects render_gpu_objects);
@@ -164,11 +171,12 @@ struct ClusteredLights
     eastl::fixed_function<sizeof(void *) * 2, StaticRenderCallback> renderStatic,
     eastl::fixed_function<sizeof(void *) * 2, DynamicRenderCallback> renderDynamic);
 
-  void updateShadowBuffers();
+  void updateShadowBuffers() DAG_TS_REQUIRES(lightLock);
 
   dynamic_shadow_render::QualityParams getQualityParams() const;
 
-  void afterReset();
+  void beforeResetDevice();
+  void afterResetDevice();
   void setResolution(uint32_t width, uint32_t height);
   void changeResolution(uint32_t width, uint32_t height);
 
@@ -179,7 +187,9 @@ struct ClusteredLights
   void setNeedSsss(bool need_ssss);
   void setMaxShadowsToUpdateOnFrame(int max_shadows) { maxShadowsToUpdateOnFrame = max_shadows; }
 
-  void resetShadows();
+  void resetShadows() DAG_TS_REQUIRES(lightLock);
+
+  mutable OSSpinlock lightLock;
 
 protected:
   Tab<uint16_t> visibleSpotLightsId;
@@ -188,18 +198,19 @@ protected:
   eastl::bitset<SpotLightsManager::MAX_LIGHTS> visibleSpotLightsIdSet;
 
   FrustumClusters clusters; //-V730_NOINIT
-  static constexpr int MAX_FRAMES = 2;
   static const float MARK_SMALL_LIGHT_AS_FAR_LIMIT;
 
   // At least on win7 we have a limit for 64k of cb buffer size
   // But drivers requires to keep cb buffer size under 64k on all platforms.
   // So we limit it for all platforms.
-  static constexpr int MAX_VISIBLE_FAR_LIGHTS = 65536 / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
+  // Reserve one Point4 for the element count constant that ReallocatableConstantBuffer
+  // prepends when store_elems_count is true (see reallocate()).
+  static constexpr int MAX_VISIBLE_FAR_LIGHTS = (65536 - sizeof(Point4)) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
 
   static bool reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size_in_constants, const char *stat_name,
     bool permanent = false);
   static bool updateConsts(Sbuffer *buf, void *data, int data_size, int elems_count);
-  void changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit);
+  void changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit) DAG_TS_REQUIRES(lightLock);
 
   template <int elem_size_in_constants, bool store_elems_count>
   struct ReallocatableConstantBuffer
@@ -222,7 +233,9 @@ protected:
     {
       wasWritten = false;
       int targetSizeInElems = min(target_size_in_elems, max_size_in_elems);
-      if (d3d::get_driver_code().is(d3d::metal)) // this is because metal validator. buffer size should match shader code
+      // on both metal and vulkan OOB access is validation complain/device lost/crash
+      // so allocate max possible
+      if (d3d::get_driver_code().is(d3d::metal || d3d::vulkan))
         targetSizeInElems = max_size_in_elems;
       int targetSizeInConstants = targetSizeInElems * ELEM_SIZE + (store_elems_count ? 1 : 0);
       if (!targetSizeInConstants || size >= targetSizeInConstants)
@@ -280,7 +293,6 @@ protected:
   Tab<RenderOmniLight> renderOmniLights, renderFarOmniLights;
   Tab<RenderSpotLight> renderSpotLights, renderFarSpotLights;
   Tab<TMatrix4> renderSpotLightsShadows;
-  Tab<uint32_t> clustersOmniGrid, clustersSpotGrid;
   Tab<SpotLightMaskType> visibleSpotLightsMasks;
   Tab<OmniLightMaskType> visibleOmniLightsMasks;
   ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> visibleOmniLightsCB, visibleFarOmniLightsCB;
@@ -293,24 +305,15 @@ protected:
   ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> outOfFrustumOmniLightsCB;
   ReallocatableConstantBuffer<sizeof(RenderSpotLight) / 16, true> outOfFrustumVisibleSpotLightsCB;
   ReallocatableConstantBuffer<1, false> outOfFrustumCommonLightsShadowsCB;
+  // true if we already filled empty buffer. we only should do it once since buffer is persistent
+  bool commonLightsShadowsAreEmpty = false;
   Point4 omniOOFBox[2], spotOOFBox[2];
   UniqueBufHolder outOfFrustumLightsFullGridCB;
   eastl::unique_ptr<ComputeShaderElement> cull_out_of_frustum_lights_cs, clear_out_of_frustum_grid_cs;
-
-  eastl::array<UniqueBuf, MAX_FRAMES> lightsFullGridCB;
-  carray<uint32_t, MAX_FRAMES> currentIndicesSize;
-  enum
-  {
-    NO_CLUSTERED_LIGHTS,
-    HAS_CLUSTERED_LIGHTS,
-    NOT_INITED
-  } gridFrameHasLights = NOT_INITED;
   shaders::UniqueOverrideStateId depthBiasOverrideId;
+  shaders::UniqueOverrideStateId depthBiasTwoSidedOverrideId;
   shaders::OverrideState depthBiasOverrideState;
   float shaderShadowZBias = 0.001f, shaderShadowSlopeZBias = 0.005f;
-
-  void validateDensity(uint32_t words);
-  uint32_t lightsGridFrame = 0, allocatedWords = 0;
 
   ShaderMaterial *pointLightsMat = 0, *pointLightsDebugMat = 0;
   ShaderElement *pointLightsElem = 0, *pointLightsDebugElem = 0;
@@ -321,46 +324,42 @@ protected:
   UniqueBuf coneSphereIb;
   static constexpr int INVALID_VOLUME = 0xFFFF;
 
-  OmniLightsManager omniLights;                                            //-V730_NOINIT
-  SpotLightsManager spotLights;                                            //-V730_NOINIT
+  OmniLightsManager omniLights DAG_TS_GUARDED_BY(lightLock);               //-V730_NOINIT
+  SpotLightsManager spotLights DAG_TS_GUARDED_BY(lightLock);               //-V730_NOINIT
   float closeSliceDist = 4, maxClusteredDist = 500;                        //?
   int maxShadowsToUpdateOnFrame = DEFAULT_MAX_SHADOWS_TO_UPDATE_PER_FRAME; // quality param
   float maxShadowDist = 120.f;                                             // quality and scene param
-  eastl::unique_ptr<ShadowSystem> lightShadows;
+  eastl::unique_ptr<ShadowSystem> lightShadows DAG_TS_PT_GUARDED_BY(lightLock);
   eastl::unique_ptr<DistanceReadbackLights> dstReadbackLights;
-  StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> dynamicSpotLightsShadows; //-V730_NOINIT
-  StaticTab<uint16_t, OmniLightsManager::MAX_LIGHTS> dynamicOmniLightsShadows; //-V730_NOINIT
-  eastl::bitset<SpotLightsManager::MAX_LIGHTS + OmniLightsManager::MAX_LIGHTS> dynamicLightsShadowsVolumeSet;
+  StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> dynamicSpotLightsShadows DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
+  StaticTab<uint16_t, OmniLightsManager::MAX_LIGHTS> dynamicOmniLightsShadows DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
+  eastl::bitset<SpotLightsManager::MAX_LIGHTS + OmniLightsManager::MAX_LIGHTS> dynamicLightsShadowsVolumeSet DAG_TS_GUARDED_BY(
+    lightLock);
   bool buffersFilled = false;
   bool lightsInitialized = false;
-  void setSpotLightShadowVolume(int spot_light_id);
-  void setOmniLightShadowVolume(int omni_light_id);
+  void setSpotLightShadowVolume(int spot_light_id) DAG_TS_REQUIRES(lightLock);
+  void setOmniLightShadowVolume(int omni_light_id) DAG_TS_REQUIRES(lightLock);
+  void setRenderSpotLightShadowAtlasRect(RenderSpotLight &sl, int spot_light_id) const DAG_TS_REQUIRES(lightLock);
 
   void initClustered(int initial_light_density);
-  void clusteredCullLights(mat44f_cref view, mat44f_cref proj, float znear, float minDist, float maxDist,
-    dag::ConstSpan<RenderOmniLight> omni_lights, dag::ConstSpan<SpotLightsManager::RawLight> spot_lights,
-    dag::ConstSpan<vec4f> spot_light_bounds, Occlusion *occlusion, bool &has_omni, bool &has_spot, uint32_t *omni, uint32_t omni_words,
-    uint32_t *spot, uint32_t spot_words);
-  bool fillClusteredCB(uint32_t *omni, uint32_t omni_words, uint32_t *spot, uint32_t spot_words);
   void closeOmni();
   void closeSpot();
-  void closeOmniShadows();
-  void closeSpotShadows();
+  void closeOmniShadows() DAG_TS_REQUIRES(lightLock);
+  void closeSpotShadows() DAG_TS_REQUIRES(lightLock);
   void initConeSphere();
+  void closeConeSphere();
   void initOmni();
   void initSpot();
   void initDebugOmni();
   void closeDebugOmni();
   void closeDebugSpot();
   void initDebugSpot();
-  void fillBuffers();
 
-  void setBuffers();
-  void resetBuffers();
   void renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID replaced_buffer, int inst_count, int vstart, int vcount,
     int index_start, int fcount);
 
   eastl::unique_ptr<TiledLights> tiledLights;
+  ClusteredLightsGrid lightsGrid;
 
   eastl::string nameSuffix;
   mutable eastl::string resNameTmp;

@@ -14,7 +14,8 @@ namespace dngsound
 {
 void init();
 void close();
-void update(float dt);
+void sync_update(float dt);
+void gpu_update();
 void apply_config_volumes();
 void debug_draw();
 void reset_listener();

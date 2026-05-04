@@ -24,6 +24,8 @@ public:
   virtual void onDetach(Element *elem, DetachMode);
   virtual void onDelete(Element *elem);
   virtual void onElemSetup(Element *, SetupMode);
+  virtual void onRecalcLayout(Element *);
+  virtual void contributeChildren(Element *, dag::Vector<Sqrat::Object, framemem_allocator> &children);
 
   static void recalc_content(const Element *elem, int axis, const Point2 &elem_size, Point2 &out_size);
   static int get_preformatted_flags(const Element *elem, Sqrat::Object &preformatted);

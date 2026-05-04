@@ -1,18 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "render/fx/effectEntity.h"
 #include <effectManager/effectManager.h>
 
 
 template <typename Callable>
-inline void get_wind_strength_ecs_query(Callable c);
+inline void get_wind_strength_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_BEFORE(bound_camera_effect_es)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(*)
 static void storm_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   TMatrix &transform,
   float storm__speed,
   float storm__width,
@@ -26,7 +29,7 @@ static void storm_es_event_handler(const ecs::Event &,
   float spawnRate = storm__density / storm__maxDensity;
   float windPower;
   Point3 windDir;
-  get_wind_strength_ecs_query([&](float wind__strength, float wind__dir) {
+  get_wind_strength_ecs_query(manager, [&](float wind__strength, float wind__dir) {
     windPower = wind__strength;
     windDir = Point3(cosf(DegToRad(wind__dir)), 0.0f, sinf(DegToRad(wind__dir)));
   });

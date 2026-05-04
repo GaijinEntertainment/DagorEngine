@@ -1,14 +1,16 @@
   half lightAngleScale = lightColor.a;
   half lightAngleOffset = lightDirection.a;
 
-  half geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
+  float geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
   spot_light_params(worldPos.xyz, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
 
+  #if !NO_AREA_SPOTLIGHTS
   const float inFrontOfIlluminatingPlane = saturate(sign(dot(-point2light, lightDirection.xyz) - illuminatingPlaneOffset));
   geomAttenuation *= inFrontOfIlluminatingPlane;
+  #endif
 
   half NoL = dot(half3(gbuffer.normal), dirFromLight);
-  half attenuation = calc_micro_shadow(NoL, ao)*geomAttenuation;
+  float attenuation = calc_micro_shadow(NoL, ao)*geomAttenuation;
   half ggx_alpha = max(1e-4, gbuffer.linearRoughness*gbuffer.linearRoughness);
 
   #if DYNAMIC_LIGHTS_EARLY_EXIT
@@ -40,15 +42,28 @@
   #if !RT_DYNAMIC_LIGHTS && (SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC))
     if (lightShadowTC.w > 1e-6)
     {
+      bool shadowTcValid;
       lightShadowTC.xyz /= lightShadowTC.w;
+      {
+        uint2 shadowRectOfsI = uint2(shadowAtlasRectBits & SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_MASK,
+          (shadowAtlasRectBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS) & SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_MASK);
+        uint shadowRectExp = shadowAtlasRectBits >> (SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS * 2u);
+        float2 shadowRectOfs = asfloat((127u << 23u) | (shadowRectOfsI << (23u - shadowRectExp))) - 1;
+        float shadowRectSize = asfloat((127u - shadowRectExp) << 23u);
+        float4 shadowTcRect = float4(shadowRectOfs, shadowRectOfs + shadowRectSize);
+        shadowTcValid = all(lightShadowTC.xy == clamp(lightShadowTC.xy, shadowTcRect.xy, shadowTcRect.zw));
+      }
+
       #if SPOT_SHADOWS
         #ifdef SIMPLE_PCF_SHADOW
-          spotShadow = 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
+          if (shadowTcValid)
+            spotShadow = 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
         #else
           #ifndef shadow_frame
           float shadow_frame = 0;
           #endif
-          spotShadow = 1-dynamic_shadow_sample_8tap(screenpos, lightShadowTC.xy, lightShadowTC.z, 1.5*shadowAtlasTexel.x*(0.75+saturate(0.3*length(point2light))), shadow_frame);
+          if (shadowTcValid)
+            spotShadow = 1-dynamic_shadow_sample_8tap(screenpos, lightShadowTC.xy, lightShadowTC.z, 1.5*shadowAtlasTexel.x*(0.75+saturate(0.3*length(point2light))), shadow_frame);
         #endif
       #endif
       #ifdef SPOT_CONTACT_SHADOWS_CALC
@@ -94,8 +109,7 @@
       half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
     #endif
   #endif
-    attenuation = applyPhotometryIntensity(-dirFromLight, lightDirection.xyz, texId_scale.x,
-                                            texId_scale.y, attenuation);
+    attenuation = applySpotLightPhotometry(-dirFromLight, lightDirection.xyz, lightRollAngle, texId_scale.x, texId_scale.y, attenuation);
     lightBRDF *= attenuation * lightColor.xyz;
   #if WAVE_INTRINSICS || !DYNAMIC_LIGHTS_EARLY_EXIT
     FLATTEN

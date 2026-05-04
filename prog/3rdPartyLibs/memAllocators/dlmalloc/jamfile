@@ -1,0 +1,25 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/memAllocators/dlmalloc ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/dlmalloc-2.8.4.lib ;
+
+UseMemoryDebugLevel ?= def ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude # FIXME_BROKEN_DEP
+;
+Sources =
+  dlmalloc-2.8.4.c
+  winapiMoreCore.cpp
+  allocStep.cpp
+;
+
+if $(UseMemoryDebugLevel) in dbg dbg2 {
+  CPPopt = -DMEM_DEBUGALLOC ;
+  Target = $(Target:S=-d.lib) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

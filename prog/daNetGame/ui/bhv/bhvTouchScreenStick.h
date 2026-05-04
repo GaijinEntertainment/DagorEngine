@@ -13,6 +13,7 @@ struct TouchStickState
   dainput::action_handle_t hh = dainput::BAD_ACTION_HANDLE;
   bool isStick = true;
   bool useDeltaMove = false;
+  Point2 startPos = Point2();
   Point2 prevPos = Point2();
   Point2 accumulation = Point2();
   bool acceleration = false;
@@ -47,13 +48,9 @@ public:
   virtual void onDetach(darg::Element *, DetachMode) override;
   virtual int update(UpdateStage, darg::Element *elem, float /*dt*/) override final;
 
-  virtual int touchEvent(darg::ElementTree *,
-    darg::Element *,
-    darg::InputEvent /*event*/,
-    HumanInput::IGenPointing * /*pnt*/,
-    int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/,
-    int /*accum_res*/) override;
+  virtual int pointingEvent(
+    darg::ElementTree *, darg::Element *, darg::InputDevice, darg::InputEvent, int pointer_id, int btn_id, Point2 pos, int accum_res)
+    override;
 
 protected:
   bool updateAction(TouchStickState *stickState, darg::Element *elem, const CachedStrings *strings);

@@ -8,7 +8,7 @@ the math lib provides basic mathematic routines. The library mimics the
 C runtime library implementation.
 
 ------------
-Squirrel API
+Quirrel API
 ------------
 
 +++++++++++++++
@@ -73,7 +73,7 @@ Global Symbols
 
 .. sq:function:: sin(x)
 
-    rreturns the sine of `x`
+    returns the sine of `x`
 
 .. sq:function:: sqrt(x)
 

@@ -45,7 +45,7 @@ public:
     if (availableSpaceForLabel > 0.0f)
     {
       ImGui::SetNextItemWidth(availableSpaceForLabel);
-      ImguiHelper::labelOnly(controlCaption);
+      labelWithTooltip(controlCaption.begin(), controlCaption.end());
 
       ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
     }

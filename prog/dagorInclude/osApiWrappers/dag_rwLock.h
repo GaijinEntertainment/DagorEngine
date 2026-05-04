@@ -6,6 +6,7 @@
 
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_threadSafety.h>
 #include <debug/dag_assert.h>
 
@@ -106,8 +107,8 @@ public:
   }
 };
 
-// Note: it's slower then OSReadWriteLock, both read & write reentrancy (recursion) supported,
-// but intermixing different kind of locks isn't
+// Note: it's slower then OSReadWriteLock, both read & write reentrancy (recursion) supported.
+// Supports write-then-read reentrancy within the same thread (strict LIFO nesting required); read-then-write will deadlock.
 // On Windows/Xbox max number of instances is limited by number of TLS slots (~1088)
 class DAG_TS_CAPABILITY("mutex") OSReentrantReadWriteLock
 {
@@ -115,10 +116,8 @@ class DAG_TS_CAPABILITY("mutex") OSReentrantReadWriteLock
 #if _TARGET_PC_WIN | _TARGET_XBOX
   // "Note that no thread identifier will ever be 0" according to
   // https://learn.microsoft.com/en-us/windows/win32/procthread/thread-handles-and-identifiers
-  /* DWORD */ volatile unsigned long wtid = 0;
-  unsigned long getWriteThreadId() const { return wtid; }
-  void setWriteThreadId(unsigned long tid = 0) { wtid = tid; }
-
+  static constexpr unsigned INVALID_WTID = 0;
+  /* DWORD */ volatile unsigned wtid = INVALID_WTID;
   /* DWORD */ unsigned long rtls; // MS platform's SRW locks doesn't support reentrant (recursive) read (shared) locks
   void rtlsCreate()
   {
@@ -129,17 +128,8 @@ class DAG_TS_CAPABILITY("mutex") OSReentrantReadWriteLock
   size_t rtlsGet(size_t = 0) { return (size_t)TlsGetValue(rtls); }
   void rtlsSet(size_t v) { TlsSetValue(rtls, (void *)v); }
 #else
-  volatile int64_t wtid = 0; // 0 is used to init std::thread::id on all platforms
-  int64_t getWriteThreadId() const
-  {
-    return __atomic_load_n(&wtid, __ATOMIC_RELAXED);
-  } // Note: write is always happens under lock (hence relaxed)
-  void setWriteThreadId(int64_t tid)
-  {
-    G_FAST_ASSERT(tid != 0);
-    __atomic_store_n(&wtid, tid, __ATOMIC_RELAXED);
-  }
-  void setWriteThreadId() { __atomic_store_n(&wtid, 0, __ATOMIC_RELAXED); }
+  static constexpr int64_t INVALID_WTID = 0; // 0 is used to init std::thread::id on all platforms
+  volatile int64_t wtid = INVALID_WTID;
 #if _TARGET_APPLE // Apple's read locks are also not reentrant in presense of writer
   pthread_key_t rtls;
   void rtlsCreate() { G_VERIFY(pthread_key_create(&rtls, NULL) == 0); }
@@ -158,6 +148,14 @@ class DAG_TS_CAPABILITY("mutex") OSReentrantReadWriteLock
 #endif
 #endif
   int wcount = 0;
+
+  auto getWriteThreadId() const { return interlocked_relaxed_load(wtid); }
+  void setWriteThreadId(decltype(INVALID_WTID) tid) { interlocked_relaxed_store(wtid, tid); }
+  bool currentThreadHoldsWrite() const
+  {
+    auto w = getWriteThreadId();
+    return w != INVALID_WTID && w == (decltype(w))get_current_thread_id();
+  }
 
 public:
   OSReentrantReadWriteLock()
@@ -200,11 +198,11 @@ public:
   }
   void unlockWrite() DAG_TS_RELEASE()
   {
-    G_FAST_ASSERT(wcount > 0 && getWriteThreadId() == get_current_thread_id()); // if triggered then it's attempt to unlock unowned
-                                                                                // lock
+    // if triggered then it's attempt to unlock unowned lock
+    G_FAST_ASSERT(wcount > 0 && getWriteThreadId() == get_current_thread_id());
     if (--wcount == 0)
     {
-      setWriteThreadId(/*invalid*/);
+      setWriteThreadId(INVALID_WTID);
       os_rwlock_release_write_lock(lock);
     }
   }
@@ -212,7 +210,9 @@ public:
   void lockRead(::da_profiler::desc_id_t profile_token = ::da_profiler::DescReadLock) DAG_TS_ACQUIRE_SHARED()
   {
     size_t rcount = rtlsGet();
-    if (!rcount && (!LOCK_PROFILER_ENABLED || !os_rwlock_try_acquire_read_lock(lock))) //-V547
+    if (currentThreadHoldsWrite())
+      /* pass */;
+    else if (!rcount && (!LOCK_PROFILER_ENABLED || !os_rwlock_try_acquire_read_lock(lock))) //-V547
     {
       ScopeLockProfiler<da_profiler::NoDesc> lp(profile_token);
       os_rwlock_acquire_read_lock(lock);
@@ -222,7 +222,9 @@ public:
   bool tryLockRead() DAG_TS_TRY_ACQUIRE_SHARED(true)
   {
     size_t rcount = rtlsGet();
-    if (!rcount && !os_rwlock_try_acquire_read_lock(lock))
+    if (currentThreadHoldsWrite())
+      /* pass */;
+    else if (!rcount && !os_rwlock_try_acquire_read_lock(lock))
       return false;
     rtlsSet(++rcount);
     return true;
@@ -230,9 +232,9 @@ public:
   void unlockRead() DAG_TS_RELEASE_SHARED()
   {
     size_t rcount = rtlsGet(1);
-    G_FAST_ASSERT(rcount != 0); // if triggered then it's attempt to unlock not locked for read (by this thread) lock (or lock/unlock
-                                // inbalance)
-    if (--rcount == 0)
+    // if triggered then it's attempt to unlock not locked for read (by this thread) lock (or lock/unlock inbalance)
+    G_FAST_ASSERT(rcount != 0);
+    if (--rcount == 0 && !currentThreadHoldsWrite())
       os_rwlock_release_read_lock(lock);
     rtlsSet(rcount);
   }

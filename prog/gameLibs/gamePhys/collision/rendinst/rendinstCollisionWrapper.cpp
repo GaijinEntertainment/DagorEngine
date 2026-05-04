@@ -2,14 +2,13 @@
 
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
-
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/collision/collisionInstances.h>
 #include <gamePhys/collision/rendinstCollision.h>
-
 #include <gamePhys/collision/rendinstCollisionWrapper.h>
 #include <gamePhys/collision/rendinstContactResultWrapper.h>
+#include "riUserInfo.h"
 
 
 CollisionObject WrapperRendInstCollisionImplCB::processCollisionInstance(const rendinst::CollisionInfo &coll_info,
@@ -49,7 +48,6 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
   userInfo.tm = normalizedTm;
   userInfo.bushBehaviour = coll_info.bushBehaviour;
   userInfo.treeBehaviour = coll_info.treeBehaviour;
-  userInfo.collRes = coll_info.collRes;
   if (coll_info.isDestr && shouldProvideCollisionInfo)
   {
     CachedCollisionObjectInfo *objInfo = rendinstdestr::get_or_add_cached_collision_object(coll_info.desc, atTime, coll_info);
@@ -58,11 +56,13 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
     userInfo.objInfoData = objInfo;
   }
 
-  void *prevUserPtr = cobj.body->getUserData();
-  cobj.body->setUserData((void *)&userInfo);
+  userInfo.prevUserPtrB = cobj.body->getUserData();
+  cobj.body->setUserData(&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
   physWorld->contactTestPair(objA.body, cobj.body, resultCallback);
+  cobj.body->setUserData(userInfo.prevUserPtrB); // Restore
+
 #if DAGOR_DBGLEVEL > 0
   if (physdbg::isInDebugMode(physWorld))
   {
@@ -70,7 +70,6 @@ void WrapperRendInstCollisionImplCB::addCollisionCheck(const rendinst::Collision
     physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
   }
 #endif
-  cobj.body->setUserData(prevUserPtr);
 }
 
 void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo &coll_info)
@@ -118,7 +117,7 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
       objInfo->thresImpulse = objInfo->originalThreshold;
     userInfo.objInfoData = objInfo;
   }
-  void *prevUserPtr = obj.body->getUserData();
+  userInfo.prevUserPtrB = obj.body->getUserData();
   obj.body->setUserData((void *)&userInfo);
   PhysWorld *physWorld = dacoll::get_phys_world();
   physWorld->fetchSimRes(true);
@@ -131,5 +130,5 @@ void WrapperRendInstCollisionImplCB::addTreeCheck(const rendinst::CollisionInfo 
     physdbg::renderOneBody(physWorld, objA.body, physdbg::RenderFlag::BODIES, 0xFF0000);
   }
 #endif
-  obj.body->setUserData(prevUserPtr);
+  obj.body->setUserData(userInfo.prevUserPtrB);
 }

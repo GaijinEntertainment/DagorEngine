@@ -25,18 +25,16 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
   else
     scaleTm = TMatrix::IDENT;
 
-  bodies.reserve(resource->bodies.size());
-  int jcnt = resource->rdBallJoints.size() + resource->rdHingeJoints.size() + resource->revoluteJoints.size() +
-             resource->sphericalJoints.size();
-  for (auto &rb : resource->bodies)
+  bodies.reserve(resource->getBodies().size());
+  int jcnt = resource->getRdBallJoints().size() + resource->getRdHingeJoints().size() + resource->getRevoluteJoints().size() +
+             resource->getSphericalJoints().size();
+  for (auto &rb : resource->getBodies())
     bodies.emplace_back(rb, world, tm, userData, fgroup, fmask, jcnt > 0);
 
   joints.reserve(jcnt);
 
-  for (int i = 0; i < resource->rdBallJoints.size(); ++i)
+  for (const auto &jnt : resource->getRdBallJoints())
   {
-    PhysicsResource::RdBallJoint &jnt = resource->rdBallJoints[i];
-
     PhysJoint *j = world->createRagdollBallJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jnt.tm, jnt.minLimit,
       jnt.maxLimit, jnt.damping, jnt.twistDamping, jnt.stiffness);
 
@@ -46,10 +44,8 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
       logerr("can't create RagBall Joint");
   }
 
-  for (int i = 0; i < resource->rdHingeJoints.size(); ++i)
+  for (const auto &jnt : resource->getRdHingeJoints())
   {
-    PhysicsResource::RdHingeJoint &jnt = resource->rdHingeJoints[i];
-
     PhysJoint *j = world->createRagdollHingeJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jnt.pos, jnt.axis,
       jnt.midAxis, jnt.xAxis, jnt.angleLimit, jnt.damping, jnt.stiffness);
 
@@ -59,10 +55,8 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
       logerr("can't create Hinge Joint");
   }
 
-  for (int i = 0; i < resource->revoluteJoints.size(); ++i)
+  for (const auto &jnt : resource->getRevoluteJoints())
   {
-    PhysicsResource::RevoluteJoint &jnt = resource->revoluteJoints[i];
-
     PhysJoint *j = world->createRevoluteJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jnt.pos, jnt.axis,
       jnt.minAngle, jnt.maxAngle, jnt.minRestitution, jnt.maxRestitution, jnt.spring, jnt.projType, jnt.projAngle, jnt.projDistance,
       jnt.damping, jnt.flags);
@@ -73,10 +67,8 @@ PhysSystemInstance::PhysSystemInstance(PhysicsResource *res, PhysWorld *world, c
       logerr("can't create Revolution Joint");
   }
 
-  for (int i = 0; i < resource->sphericalJoints.size(); ++i)
+  for (const auto &jnt : resource->getSphericalJoints())
   {
-    PhysicsResource::SphericalJoint &jnt = resource->sphericalJoints[i];
-
     PhysJoint *j = world->createSphericalJoint(bodies[jnt.body1].body.get(), bodies[jnt.body2].body.get(), jnt.pos, jnt.dir, jnt.axis,
       jnt.minAngle, jnt.maxAngle, jnt.minRestitution, jnt.maxRestitution, jnt.swingValue, jnt.swingRestitution, jnt.spring,
       jnt.damping, jnt.swingSpring, jnt.swingDamping, jnt.twistSpring, jnt.twistDamping, jnt.projType, jnt.projDistance, jnt.flags);
@@ -129,7 +121,7 @@ static inline bool filter_out_joints(const T &res_joints, Tab<PhysJoint *> &join
 
 int PhysSystemInstance::findBodyIdByName(const char *name) const
 {
-  auto &resbodies = resource->getBodies();
+  dag::ConstSpan<PhysicsResource::Body> resbodies = resource->getBodies();
   for (int i = 0; i < resbodies.size(); ++i)
     if (dd_stricmp(resbodies[i].name, name) == 0)
       return i;
@@ -150,7 +142,7 @@ void PhysSystemInstance::setJointsMotorSettings(float twistFrequeny, float twist
 
 void PhysSystemInstance::driveBodiesToAnimcharPose(const dag::Span<mat44f *> &skeletonWtms)
 {
-  auto &res_joints = resource->rdBallJoints;
+  dag::ConstSpan<PhysicsResource::RdBallJoint> res_joints = resource->getRdBallJoints();
   for (int i = 0; i < joints.size(); ++i)
   {
     PhysRagdollBallJoint *joint = PhysRagdollBallJoint::cast(joints[i]);
@@ -197,8 +189,8 @@ void PhysSystemInstance::driveBodiesToAnimcharPose(const dag::Span<mat44f *> &sk
 
     // One body might guide multiple skeleton nodes, i.e. hand body has all finger nodes and the hand itself.
     // But the first helper is always for the node we are attached to, hence the 0 index.
-    TMatrix &helper1Tm = resource->bodies[res_joints[i].body1].tmHelpers[0].tm;
-    TMatrix &helper2Tm = resource->bodies[res_joints[i].body2].tmHelpers[0].tm;
+    const TMatrix &helper1Tm = resource->getBodies()[res_joints[i].body1].tmHelpers[0].tm;
+    const TMatrix &helper2Tm = resource->getBodies()[res_joints[i].body2].tmHelpers[0].tm;
 
     mat44f res, h1, h2;
     v_mat44_make_from_43cu(h1, helper1Tm.array);
@@ -231,13 +223,13 @@ bool PhysSystemInstance::removeJoint(const char *body1, const char *body2)
     return false;
 
   int j = 0;
-  if (filter_out_joints(resource->rdBallJoints, joints, bodyIdx1, bodyIdx2, j))
+  if (filter_out_joints(resource->getRdBallJoints(), joints, bodyIdx1, bodyIdx2, j))
     return true;
-  if (filter_out_joints(resource->rdHingeJoints, joints, bodyIdx1, bodyIdx2, j))
+  if (filter_out_joints(resource->getRdHingeJoints(), joints, bodyIdx1, bodyIdx2, j))
     return true;
-  if (filter_out_joints(resource->revoluteJoints, joints, bodyIdx1, bodyIdx2, j))
+  if (filter_out_joints(resource->getRevoluteJoints(), joints, bodyIdx1, bodyIdx2, j))
     return true;
-  if (filter_out_joints(resource->sphericalJoints, joints, bodyIdx1, bodyIdx2, j))
+  if (filter_out_joints(resource->getSphericalJoints(), joints, bodyIdx1, bodyIdx2, j))
     return true;
 
   return false;
@@ -247,9 +239,9 @@ void PhysSystemInstance::removeJoint(const char *name)
 {
   int j = 0;
 
-  for (int i = 0; i < resource->rdBallJoints.size(); ++i, ++j)
+  for (int i = 0; i < resource->getRdBallJoints().size(); ++i, ++j)
   {
-    PhysicsResource::RdBallJoint &jnt = resource->rdBallJoints[i];
+    const PhysicsResource::RdBallJoint &jnt = resource->getRdBallJoints()[i];
     if (dd_stricmp(jnt.name, name) == 0)
     {
       del_it(joints[j]);
@@ -257,9 +249,9 @@ void PhysSystemInstance::removeJoint(const char *name)
     }
   }
 
-  for (int i = 0; i < resource->rdHingeJoints.size(); ++i, ++j)
+  for (int i = 0; i < resource->getRdHingeJoints().size(); ++i, ++j)
   {
-    PhysicsResource::RdHingeJoint &jnt = resource->rdHingeJoints[i];
+    const PhysicsResource::RdHingeJoint &jnt = resource->getRdHingeJoints()[i];
     if (dd_stricmp(jnt.name, name) == 0)
     {
       del_it(joints[j]);
@@ -267,9 +259,9 @@ void PhysSystemInstance::removeJoint(const char *name)
     }
   }
 
-  for (int i = 0; i < resource->revoluteJoints.size(); ++i, ++j)
+  for (int i = 0; i < resource->getRevoluteJoints().size(); ++i, ++j)
   {
-    PhysicsResource::RevoluteJoint &jnt = resource->revoluteJoints[i];
+    const PhysicsResource::RevoluteJoint &jnt = resource->getRevoluteJoints()[i];
     if (dd_stricmp(jnt.name, name) == 0)
     {
       del_it(joints[j]);
@@ -277,9 +269,9 @@ void PhysSystemInstance::removeJoint(const char *name)
     }
   }
 
-  for (int i = 0; i < resource->sphericalJoints.size(); ++i, ++j)
+  for (int i = 0; i < resource->getSphericalJoints().size(); ++i, ++j)
   {
-    PhysicsResource::SphericalJoint &jnt = resource->sphericalJoints[i];
+    const PhysicsResource::SphericalJoint &jnt = resource->getSphericalJoints()[i];
     if (dd_stricmp(jnt.name, name) == 0)
     {
       del_it(joints[j]);
@@ -296,7 +288,7 @@ void PhysSystemInstance::resetTm(const TMatrix &tm)
   scaleTm.setcol(2, Point3(0.f, 0.f, length(tm.getcol(2))));
   for (int i = 0; i < bodies.size(); ++i)
   {
-    TMatrix unscaledTransform = tm * resource->bodies[i].tm;
+    TMatrix unscaledTransform = tm * resource->getBodies()[i].tm;
     unscaledTransform.setcol(0, normalize(unscaledTransform.getcol(0)));
     unscaledTransform.setcol(1, normalize(unscaledTransform.getcol(1)));
     unscaledTransform.setcol(2, normalize(unscaledTransform.getcol(2)));
@@ -311,7 +303,7 @@ TMatrix *PhysSystemInstance::getTmHelper(const char *name)
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
-    int j = resource->bodies[i].findTmHelper(name);
+    int j = resource->getBodies()[i].findTmHelper(name);
     if (j < 0)
       continue;
 
@@ -325,7 +317,7 @@ TMatrix *PhysSystemInstance::getTmHelper(const char *name)
 PhysBody *PhysSystemInstance::getBody(const char *name) const
 {
   for (int i = 0; i < bodies.size(); ++i)
-    if (dd_stricmp(resource->bodies[i].name, name) == 0)
+    if (dd_stricmp(resource->getBodies()[i].name, name) == 0)
       return bodies[i].body.get();
 
   return NULL;
@@ -334,7 +326,7 @@ PhysBody *PhysSystemInstance::getBody(const char *name) const
 void PhysSystemInstance::updateTms()
 {
   for (int i = 0; i < bodies.size(); ++i)
-    bodies[i].updateTms(resource->bodies[i], scaleTm);
+    bodies[i].updateTms(resource->getBodies()[i], scaleTm);
 }
 
 
@@ -342,11 +334,11 @@ bool PhysSystemInstance::setBodyTmByTmHelper(const char *name, const TMatrix &wt
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
-    int id = resource->bodies[i].findTmHelper(name);
+    int id = resource->getBodies()[i].findTmHelper(name);
     if (id < 0)
       continue;
 
-    TMatrix tm = wtm * inverse(resource->bodies[i].tmHelpers[id].tm);
+    TMatrix tm = wtm * inverse(resource->getBodies()[i].tmHelpers[id].tm);
     bodies[i].body->setTm(tm);
 
     return true;
@@ -360,11 +352,11 @@ bool PhysSystemInstance::setBodyTmAndVelByTmHelper(const char *name, const TMatr
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
-    int id = resource->bodies[i].findTmHelper(name);
+    int id = resource->getBodies()[i].findTmHelper(name);
     if (id < 0)
       continue;
 
-    TMatrix itm = inverse(resource->bodies[i].tmHelpers[id].tm);
+    TMatrix itm = inverse(resource->getBodies()[i].tmHelpers[id].tm);
 
     TMatrix tm_prev = wtm_prev * itm;
     TMatrix tm = wtm * itm;
@@ -395,8 +387,8 @@ SimpleString PhysSystemInstance::getBodyMaterialName(PhysBody *body) const
 }
 
 
-PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup,
-  uint16_t fmask, bool has_joints)
+PhysSystemInstance::Body::Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData,
+  uint16_t fgroup, uint16_t fmask, bool has_joints)
 {
   tmHelpers.resize(res_body.tmHelpers.size());
   for (int i = 0; i < tmHelpers.size(); ++i)
@@ -409,7 +401,7 @@ PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world
   // sphere collisions
   for (int i = 0; i < res_body.sphColl.size(); ++i)
   {
-    PhysicsResource::SphColl &c = res_body.sphColl[i];
+    const PhysicsResource::SphColl &c = res_body.sphColl[i];
 
     TMatrix tm;
     tm.identity();
@@ -427,7 +419,7 @@ PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world
   // box collisions
   for (int i = 0; i < res_body.boxColl.size(); ++i)
   {
-    PhysicsResource::BoxColl &c = res_body.boxColl[i];
+    const PhysicsResource::BoxColl &c = res_body.boxColl[i];
 
     cmat_id = c.materialName.length() ? (int)PhysMat::getMaterialId(c.materialName) : -1;
     if (IsPhysMatID_Valid(cmat_id))
@@ -437,14 +429,13 @@ PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world
     else
       cmat_id = -1;
 
-    PhysCollision::normalizeBox(c.size, c.tm);
     coll.addChildCollision(new PhysBoxCollision(c.size.x, c.size.y, c.size.z), c.tm);
   }
 
   // capsule collisions
   for (int i = 0; i < res_body.capColl.size(); ++i)
   {
-    PhysicsResource::CapColl &c = res_body.capColl[i];
+    const PhysicsResource::CapColl &c = res_body.capColl[i];
 
     real ext = length(c.extent);
 
@@ -509,7 +500,7 @@ PhysSystemInstance::Body::Body(PhysicsResource::Body &res_body, PhysWorld *world
 }
 
 
-void PhysSystemInstance::Body::updateTms(PhysicsResource::Body &res_body, const TMatrix &scale_tm)
+void PhysSystemInstance::Body::updateTms(const PhysicsResource::Body &res_body, const TMatrix &scale_tm)
 {
   TMatrix wtm;
   body->getTm(wtm);

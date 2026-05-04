@@ -5,10 +5,12 @@
 #include <oldEditor/de_workspace.h>
 #include <de3_interface.h>
 #include <EditorCore/ec_interface_ex.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/io/blk.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/io/blk.h>
 #include <ecs/renderEvents.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
 #include <debug/dag_debug3d.h>
@@ -44,17 +46,19 @@ public:
       if (ignore_all_bad_types)
         debug("ecs will ignore all unknown types");
       else if (ignoreTypeNm.nameCount())
-        debug("ecs will ignore %d types specified in %s", ignoreTypeNm.nameCount(), "application.blk");
+        debug("ecs will ignore %d types specified in %s", ignoreTypeNm.nameCount(), app_blk.resolveFilename(true));
       if (ignore_all_bad_comps)
         debug("ecs will ignore all components with unknown type");
       else if (ignoreCompNm.nameCount())
-        debug("ecs will ignore %d component names specified in %s", ignoreCompNm.nameCount(), "application.blk");
+        debug("ecs will ignore %d component names specified in %s", ignoreCompNm.nameCount(), app_blk.resolveFilename(true));
     }
 
     g_entity_mgr.demandInit();
     G_ASSERT(g_entity_mgr.get());
     g_entity_mgr->setFilterTags(ecs_tools_get_global_tags_context());
+    g_entity_mgr->setEsTags(ecs_tools_get_global_tags_context());
     g_entity_mgr->getMutableTemplateDBInfo().resetMetaInfo();
+    g_entity_mgr->resetEsOrder();
     DataBlock entities;
     if (entities_path && entities.load(entities_path))
     {

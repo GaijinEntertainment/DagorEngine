@@ -1,0 +1,1 @@
+The ``[lint_macro]`` structure annotation — registers an ``AstPassMacro`` subclass that is invoked during the lint compilation pass.

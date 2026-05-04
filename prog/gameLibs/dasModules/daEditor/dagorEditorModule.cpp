@@ -33,6 +33,9 @@ public:
 
     das::addExtern<DAS_BIND_FUN(::EntityObjEditor::saveComponent)>(*this, lib, "entity_obj_editor_saveComponent",
       das::SideEffects::accessExternal, "::EntityObjEditor::saveComponent");
+    das::addExtern<DAS_BIND_FUN(::EntityObjEditor::getChangedComponentsToDataBlock)>(*this, lib,
+      "entity_obj_editor_getChangedComponentsToDataBlock", das::SideEffects::accessExternal,
+      "::EntityObjEditor::getChangedComponentsToDataBlock");
 
     das::addExtern<DAS_BIND_FUN(::EntityObjEditor::saveAddTemplate)>(*this, lib, "entity_obj_editor_saveAddTemplate",
       das::SideEffects::accessExternal, "::EntityObjEditor::saveAddTemplate");

@@ -7,55 +7,31 @@ Locks
 
 .. index:: single: locks
 
-There are several locking mechanisms available in Daslang. They are designed to ensure runtime safety of the code.
+There are several locking mechanisms available in Daslang, designed to ensure the runtime safety of the code.
 
 ----------------
 Context locks
 ----------------
 
-`Context` can be locked and unlocked via `lock` and `unlock` functions from the C++ side.
-When locked `Context` can not be restarted. `tryRestartAndLock` restarts context if its not locked, and then locks it regardless.
-The main reason to lock context is when data on the heap is accessed externally. Heap collection is safe to do on a locked context.
+A ``Context`` can be locked and unlocked via the ``lock`` and ``unlock`` functions from the C++ side.
+When locked, a ``Context`` cannot be restarted. ``tryRestartAndLock`` restarts the context if it is not locked, and then locks it regardless.
+The main reason to lock a context is when data on the heap is accessed externally. Heap collection is safe to perform on a locked context.
 
 ------------------------------
 Array and Table locks
 ------------------------------
 
-`Array` or `Table` can be locked and unlocked explicitly. When locked, they can't be modified.
-Calling `resize`, `reserve`, `push`, `emplace`, `erase`, etc on the locked `Array`` will cause `panic`.
-Accessing locked `Table` elements via [] operation would cause `panic`.
+An ``Array`` or ``Table`` can be locked and unlocked explicitly. When locked, they cannot be modified.
+Calling ``resize``, ``reserve``, ``push``, ``emplace``, ``erase``, etc. on a locked ``Array`` will cause a ``panic``.
+Accessing a locked ``Table``'s elements via the ``[]`` operator will also cause a ``panic``.
 
-`Arrays` are locked when iterated over. This is done to prevent modification of the array while it is being iterated over.
-`keys` and `values` iterators lock `Table` as well. `Tables` are also locked during the `find*` operations.
+Arrays are locked when iterated over, preventing modification during iteration.
+The ``keys`` and ``values`` iterators lock a ``Table`` as well. Tables are also locked during ``find*`` operations.
 
-------------------------------
-Array and Table lock checking
-------------------------------
+The following operations perform lock checks on data structures:
 
-`Array` and `Table` lock checking occurs on the data structures, which internally contain other `Arrays` or `Tables`.
+.. code-block:: text
 
-Consider the following example::
-
-    var a : array < array<int> >
-    ...
-    for ( b in a[0] ) {
-        a |> resize(100500)
-    }
-
-The `resize` operation on the `a` array will cause `panic` because `a[0]` is locked during the iteration.
-This test, however, can only happen in runtime. The compiler generates custom `resize` code, which verifies locks::
-
-    def private builtin`resize ( var Arr:array<array<int> aka numT> explicit; newSize:int const ) {
-        _builtin_verify_locks(Arr)
-        __builtin_array_resize(Arr,newSize,24,__context__)
-    }
-
-The `_builtin_verify_locks` iterates over provided data, and for each `Array` or `Table` makes sure it does not lock.
-If its locked `panic` occurs.
-
-Custom operations will only be generated, if the underlying type needs lock checks.
-
-Here are the list of operations, which perform lock check on the data structures::
     * a <- b
     * return <- a
     * resize
@@ -67,13 +43,12 @@ Here are the list of operations, which perform lock check on the data structures
     * erase
     * clear
     * insert
-    * a[b] for the `Table`
+    * for the ``Table``
 
-Lock checking can be explicitly disabled
-    * for the `Array` or the `Table` by using `set_verify_array_locks` and `set_verify_table_locks` functions.
-    * for a structure type with the [skip_field_lock_check] structure annotation
-    * for the entire function with the [skip_lock_check] function annotation
-    * for the entire context with the `options skip_lock_checks`
-    * for the entire context with the `set_verify_context_locks` function
+.. seealso::
+
+    :ref:`Arrays <arrays>` and :ref:`Tables <tables>` for the container types that support locking,
+    :ref:`Iterators <iterators>` for iteration patterns that lock containers,
+    :ref:`Contexts <contexts>` for context-level locking.
 
 

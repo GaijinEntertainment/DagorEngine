@@ -1,7 +1,6 @@
 include "gbuffer_forward.dshl"
 include "gbuffer_thin.dshl"
 include "gbuffer_packing_inc.dshl"
-include "gbuffer_mobile_deferred.dshl"
 
 texture albedo_gbuf;
 texture normal_gbuf;
@@ -14,11 +13,6 @@ texture bvh_gbuf;
 int4 gbuffer_view_size = (1, 1, 0, 0);
 
 hlsl {
-  ##if mobile_render == deferred
-    #define DEFERRED_MOBILE 1
-  ##else
-    #define DEFERRED_MOBILE 0
-  ##endif
   #include "gbuffer_header_DNG.hlsl"
 }
 
@@ -36,16 +30,17 @@ macro USE_NO_LIGHTING_EMISSIVE_SHADING(code)
   hlsl(code) {
     void init_no_lighting_emissive_shading(inout UnpackedGbuffer gbuffer, float3 color, float emission_strength)
     {
-      // TODO: replace this hack and store it in more bits after the gbuffer normal packing optimization
-      static const float EMISSION_SCALE_THRESHOLD = 0.1; // below this, everything turns to shit (above too, in different ways)
-      float maxColor = max4(color.x, color.y, color.z, EMISSION_SCALE_THRESHOLD); // albedo is [0,1] range, but we can store a scaling factor in emission_strength
+      // We need a threshold, due to precision limit especially at low values without normal packing
+      static const float EMISSION_SCALE_THRESHOLD = 0.1;
+      // albedo is [0,1] range, but we can store a scaling factor in emission_strength
+      float maxColor = max4(color.x, color.y, color.z, packed_gbuf_normals ? 0 : 0.1);
       FLATTEN
       if (maxColor < 1)
         maxColor = sqrt(maxColor); // it gives a much more natural look for scaling, if it's also gamma corrected
       color /= maxColor;
       emission_strength *= maxColor;
 
-      init_material(gbuffer, SHADING_SELFILLUM);
+      init_material(gbuffer, SHADING_NO_LIGHT_EMISSIVE);
       init_normal(gbuffer, 0); // only emission based shading
       init_reflectance(gbuffer, 0);
       init_albedo(gbuffer, color);
@@ -58,6 +53,11 @@ macro USE_NO_LIGHTING_EMISSIVE_SHADING(code)
       init_no_lighting_emissive_shading(gbuffer, color, emissiveStrength);
     }
   }
+endmacro
+
+macro INIT_PACK_UNPACK_DYNSTCODE(code)
+// Only required if does not support global_consts
+(code) { packed_gbuf_normals@i1 = packed_gbuf_normals; }
 endmacro
 
 macro PACK_UNPACK_GBUFFER_BASE(code)
@@ -91,19 +91,16 @@ hlsl(code) {
     half reflectance;
     half3 emissionColor;
     uint material;
-#define GBUFFER_HAS_DYNAMIC_BIT
     uint dynamic;
-    uint autoMotionVecs;
     uint sss_profile;//&SSS_PROFILE_MASK!. Currently SSS_PROFILE_EYE || 0
     uint isLandscape;
     uint isHeroCockpit;
 
     // Dummy
-    bool isTwoSided;
     bool isGlass;
     bool isGrass;
     bool isFoliage;
-    bool isUnstable;
+    bool isFacingSun;
   };
 
   ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
@@ -124,14 +121,15 @@ hlsl(code) {
     gbuffer.sheen = gbuf.sss_profile == SSS_PROFILE_CLOTH ? gbuf.translucency : 0;
     gbuffer.shadow = gbuf.shadow;
     gbuffer.dynamic = gbuf.dynamic;
-    gbuffer.autoMotionVecs = gbuf.autoMotionVecs;
     gbuffer.isHeroCockpit = gbuf.isHeroCockpit;
     gbuffer.specularColor = decodeSpecularColor(gbuf.reflectance, gbuffer.metalness, gbuf.albedo);
     gbuffer.reflectance = gbuf.reflectance;
     gbuffer.ao = gbuf.ao;
     gbuffer.sss_profile = gbuf.sss_profile;
     gbuffer.isLandscape = gbuf.isLandscape;
-    gbuffer.isTwoSided = gbuffer.isGlass = gbuffer.isGrass = gbuffer.isFoliage = gbuffer.isUnstable = false;
+    gbuffer.isGrass = gbuffer.isLandscape && gbuffer.material == SHADING_FOLIAGE;
+    gbuffer.isFoliage = gbuffer.material == SHADING_FOLIAGE;
+    gbuffer.isGlass = gbuffer.isFacingSun = false;
     return gbuffer;
   }
 
@@ -145,17 +143,17 @@ hlsl(code) {
     result.smoothness = result.metalness = result.translucency = 0;
     result.emission_color = result.emission_strength = 0;
     result.dynamic = 0;
-    result.autoMotionVecs = 0;
     result.ao = result.shadow = 1;
     result.material = SHADING_NORMAL;
     result.reflectance = 0.5h;
     result.sss_profile = 0;
     result.isLandscape = 0;
     result.isHeroCockpit = GBUFFER_IS_HERO_COCKPIT;
+    result.dynamicMask = 0;
     result.motion = 0;
     result.reactive = 0;
     result.sheen = 0;
-    result.isTwoSided = result.isGlass = result.isGrass = result.isFoliage = result.isUnstable = false;
+    result.isGlass = result.isGrass = result.isFoliage = result.isFacingSun = result.isSnow = false;
     result.impostorMask = 0;
   }
   void init_albedo(inout UnpackedGbuffer result, half3 albedo)
@@ -182,11 +180,9 @@ hlsl(code) {
   void init_dynamic(inout UnpackedGbuffer result, bool dynamic)
     {result.dynamic = dynamic;}
   void init_order(inout UnpackedGbuffer result, uint order)
-    {}
-  void init_auto_motion_vector(inout UnpackedGbuffer result, bool need_auto_motion_vectors)
-    {result.autoMotionVecs = need_auto_motion_vectors;}
+    {result.dynamicMask = order;}
   void init_emission(inout UnpackedGbuffer result, float emission_strength)
-    {result.emission_strength = half(emission_strength);}
+    {result.emission_strength = emission_strength;}
   void init_emission_color(inout UnpackedGbuffer result, half4 emission_color) // emission_color.a is emission_albedo_mult
     {result.emission_color = emission_color;}
   void init_reflectance(inout UnpackedGbuffer result, float reflectance)
@@ -206,14 +202,7 @@ hlsl(code) {
 endmacro
 
 macro PACK_UNPACK_GBUFFER()
-  if (mobile_render == deferred)
-  {
-    MOBILE_DEFERRED_PACK_UNPACK_GBUFFER_BASE(ps)
-  }
-  else
-  {
-    PACK_UNPACK_GBUFFER_BASE(ps)
-  }
+  PACK_UNPACK_GBUFFER_BASE(ps)
 endmacro
 
 macro WRITE_GBUFFER_ALBEDO_AO()
@@ -243,18 +232,7 @@ macro WRITE_GBUFFER()
   PACK_UNPACK_GBUFFER()
   if (compatibility_mode == compatibility_mode_on)
   {
-    if (mobile_render == deferred)
-    {
-      WRITE_GBUFFER_MOBILE_DEFERRED()
-    }
-    else if (mobile_render == forward)
-    {
-      WRITE_GBUFFER_FORWARD()
-    }
-    else
-    {
-      WRITE_GBUFFER_THIN()
-    }
+    WRITE_GBUFFER_THIN()
   } else
   {
     hlsl(ps) {
@@ -348,6 +326,12 @@ macro INIT_READ_GBUFFER_MATERIAL(code)
   END_ONCE()
 endmacro
 
+macro INIT_LOAD_GBUFFER_MATERIAL(code)
+  BEGIN_ONCE(material_gbuf_load_included)
+  (code) { material_gbuf_load@tex2d= material_gbuf; }
+  END_ONCE()
+endmacro
+
 macro INIT_READ_DYNAMIC_FLAG(code)
   INIT_READ_GBUFFER_MATERIAL(code)
 endmacro
@@ -358,6 +342,10 @@ endmacro
 
 macro INIT_READ_IS_HERO_COCKPIT(code)
   INIT_READ_GBUFFER_MATERIAL(code)
+endmacro
+
+macro INIT_LOAD_IS_HERO_COCKPIT(code)
+  INIT_LOAD_GBUFFER_MATERIAL(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
@@ -471,44 +459,54 @@ macro USE_READ_GBUFFER_NORMAL_BASE(code)
   hlsl(code) {
     uint readUnpackedGbufferMaterial(float2 tc)
     {
-      return uint(tex2Dlod(normal_gbuf_read, float4(tc,0,0)).w*(MATERIAL_COUNT-0.50001f));
+      half4 normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
+      uint material, _unused_extra;
+      unpackMaterialExtra(normal_material, _unused_extra, material);
+      return material;
     }
-    //gbuffer.material, gbuffer.normal, gbuffer.smoothness, gbuffer.albedo and gbuffer.ao has to be inited already
-    void readPackedGbufferTranslucencyChannel(float2 tc, inout UnpackedGbuffer gbuffer)
+    void readSSSParams(float2 tc, uint material, out half translucency, out uint sss_profile)
     {
-      half4 smoothness_reflectance_metallTranslucency_shadow = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
-      half emission_albedo_mult;
-      unpackGbufferTranslucencyChannel(gbuffer, smoothness_reflectance_metallTranslucency_shadow, emission_albedo_mult);
+      half4 gbuf3 = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
+      half _unused_shadow;
+      uint _unused_bitfield, _unused_sss_profile_or_shadow;
+      unpackSSSProfileShadowAndBitflied(gbuf3, material, sss_profile, _unused_shadow, _unused_bitfield, _unused_sss_profile_or_shadow);
+      unpackTranslucency(gbuf3, material, sss_profile, translucency);
+    }
+
+    void readSSSParams(float2 tc, out half translucency, out uint sss_profile)
+    {
+      uint material = readUnpackedGbufferMaterial(tc);
+      readSSSParams(tc, material, translucency, sss_profile);
+    }
+    float3 readPackedNormal(float2 tc, uint material)
+    {
+      half4 normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
+      float3 normal;
+      unpackNormal(normal_material, material, normal);
+      return normal;
+    }
+    float3 readPackedNormal(float2 tc)
+    {
+      uint material = readUnpackedGbufferMaterial(tc);
+      return readPackedNormal(tc, material);
     }
     void readPackedGbufferNormalSmoothness(float2 tc, out float3 normal, out half smoothness)
     {
-      PackedGbuffer gbuf;
-      gbuf.normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
+      normal = readPackedNormal(tc);
       #if NO_SMOOTHNESS
-        gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
+        smoothness = 0;
       #else
-        gbuf.smoothness_reflectance_metallTranslucency_shadow = half4(tex2Dlod(material_gbuf_read, float4(tc,0,0)));
+        unpackSmoothness(tex2Dlod(material_gbuf_read, float4(tc,0,0)), smoothness);
       #endif
-      unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
     }
     float3 loadGbufferNormal(uint2 coord)
     {
-      PackedGbuffer gbuf;
-      gbuf.normal_material = texelFetch(normal_gbuf_read, coord, 0);
-      gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
-      half smoothness;
+      half4 normal_material = texelFetch(normal_gbuf_read, coord, 0);
+      uint material, _unused_extra;
+      unpackMaterialExtra(normal_material, _unused_extra, material);
+
       float3 normal;
-      unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
-      return normal;
-    }
-    float3 readPackedGbufferNormal(float2 tc)
-    {
-      PackedGbuffer gbuf;
-      gbuf.normal_material = tex2Dlod(normal_gbuf_read, float4(tc,0,0));
-      gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
-      half smoothness;
-      float3 normal;
-      unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
+      unpackNormal(normal_material, material, normal);
       return normal;
     }
   }
@@ -532,23 +530,24 @@ hlsl(code) {
 END_ONCE()
 endmacro
 
-macro USE_READ_AUTOGEN_MOTION_VECTOR(code)
-hlsl(code) {
-  uint autoGenMotionVectorGbuffer(float2 uv)
-  {
-    float shadow = tex2Dlod(material_gbuf_read, float4(uv, 0, 0)).w;
-    uint shadowAndDynamic = uint(shadow * 255 + 0.1);
-    return (shadowAndDynamic & 3) != 1;
-  }
-}
-endmacro
-
 macro USE_READ_IS_HERO_COCKPIT(code)
 bool gbuffer_has_hero_cockpit = true;
 hlsl(code) {
   uint isGbufferHeroCockpit(float2 uv)
   {
     float shadow = tex2Dlod(material_gbuf_read, float4(uv, 0, 0)).w;
+    uint shadowAndDynamic = uint(shadow * 255 + 0.1);
+    return (shadowAndDynamic & 4) >> 2;
+  }
+}
+endmacro
+
+macro USE_LOAD_IS_HERO_COCKPIT(code)
+bool gbuffer_has_hero_cockpit = true;
+hlsl(code) {
+  uint isGbufferHeroCockpit(float2 uv)
+  {
+    float shadow = texelFetch(material_gbuf_load, uv, 0).w;
     uint shadowAndDynamic = uint(shadow * 255 + 0.1);
     return (shadowAndDynamic & 4) >> 2;
   }
@@ -584,26 +583,34 @@ hlsl(code){
   }
   uint loadUnpackedPackedGbufferMaterial(uint2 coord)
   {
-    return uint(texelFetch(normal_gbuf_load, coord, 0).w*(MATERIAL_COUNT-0.50001f));
+    half4 normal_material = texelFetch(normal_gbuf_load, coord, 0);
+    uint material, _unused_extra;
+    unpackMaterialExtra(normal_material, _unused_extra, material);
+    return material;
   }
   void loadPackedGbufferNormal(uint2 coord, out float3 normal)
   {
-    PackedGbuffer gbuf;
-    gbuf.normal_material = texelFetch(normal_gbuf_load, coord, 0);
-    gbuf.smoothness_reflectance_metallTranslucency_shadow = 0;
-    float smoothness;
-    unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
+    half4 normal_material = texelFetch(normal_gbuf_load, coord, 0);
+    uint material = loadUnpackedPackedGbufferMaterial(coord);
+    unpackNormal(normal_material, material, normal);
   }
   void loadPackedGbufferNormalSmoothness(uint2 coord, out float3 normal, out half smoothness)
   {
-    PackedGbuffer gbuf;
-    gbuf.normal_material = texelFetch(normal_gbuf_load, coord, 0);
-    gbuf.smoothness_reflectance_metallTranslucency_shadow = texelFetch(material_gbuf_load, coord, 0);
-    unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
+    loadPackedGbufferNormal(coord, normal);
+
+    half4 packedGbuf2 = (half4)texelFetch(material_gbuf_load, coord, 0);
+    unpackSmoothness(packedGbuf2, smoothness);
   }
   ProcessedGbuffer loadProcessedGbuffer(int2 tc)
   {
     return processGbuffer(unpackGbuffer(loadPackedGbuffer(tc)));
+  }
+  half loadSmoothness(uint2 coord)
+  {
+    half4 packedGbuf2 = (half4)texelFetch(material_gbuf_load, coord, 0);
+    half smoothness;
+    unpackSmoothness(packedGbuf2, smoothness);
+    return smoothness;
   }
 }
 endmacro
@@ -678,7 +685,7 @@ macro USE_READ_MOTION_BUFFER_BASE(code)
   hlsl(code) {
     float4 readMotionBuffer(float2 tc)
     {
-      return tex2Dlod(resolved_motion_vectors, float4(tc,0,0));
+      return tex2Dlod(motion_gbuf_read, float4(tc,0,0));
     }
     float4 readMotionBuffer(float t, float c)
     {
@@ -695,7 +702,7 @@ macro USE_READ_RESOLVED_MOTION_BUFFER_BASE(code)
   hlsl(code) {
     float4 readResolvedMotionBuffer(float2 tc)
     {
-      return tex2Dlod(motion_gbuf_read, float4(tc,0,0));
+      return tex2Dlod(resolved_motion_vectors, float4(tc,0,0));
     }
     float4 readResolvedMotionBuffer(float t, float c)
     {
@@ -708,46 +715,6 @@ macro USE_READ_RESOLVED_MOTION_BUFFER()
   USE_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
 endmacro
 
-macro INIT_SUBPASS_LOAD_OPAQUE_MASK(reg, mask_iatt)
-  hlsl(ps) {
-    SUBPASS_RESOURCE(ao_materialDmask, reg, mask_iatt);
-  }
-endmacro
-
-macro USE_SUBPASS_LOAD_OPAQUE_MASK()
-  hlsl(ps) {
-    uint read_dmask(float2 tc)
-    {
-      uint gbuf = uint(SUBPASS_LOAD(ao_materialDmask, tc).y * 255);
-    ##if mobile_simplified_materials == yes
-      return (gbuf >> 1) & 0x1;
-    ##else
-      return gbuf & 0x1;
-    ##endif
-    }
-
-    void clip_by_static_opaque_mask(float2 tc)
-    {
-      if (read_dmask(tc) == GBUFFER_ORDER_DYNAMIC)
-        discard;
-    }
-
-    void clip_by_dynamic_opaque_mask(float2 tc)
-    {
-      if (read_dmask(tc) != GBUFFER_ORDER_DYNAMIC)
-        discard;
-    }
-  }
-endmacro
-
-macro USE_MOBILE_EMISSIVE()
-  hlsl(ps) {
-  ##if mobile_render == deferred
-    #define MOBILE_EMISSIVE
-  ##endif
-  }
-endmacro
-
 macro INIT_LOAD_BVH_FLAGS_BASE(code)
 endmacro
 
@@ -755,7 +722,11 @@ macro USE_LOAD_BVH_FLAGS_BASE(code)
   hlsl(code) {
     uint loadBvhFlags(uint2 tci)
     {
-      return 0;
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(tci));
+      uint bvhFlags = 0;
+      bvhFlags |= gbuffer.isLandscape && gbuffer.material == SHADING_FOLIAGE ? BVH_GRASS : 0;
+      bvhFlags |= gbuffer.material == SHADING_FOLIAGE ? BVH_FOLIAGE : 0;
+      return bvhFlags;
     }
   }
 endmacro

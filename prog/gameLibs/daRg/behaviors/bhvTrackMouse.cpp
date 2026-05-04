@@ -28,8 +28,8 @@ static const int update_stage = 0;
 BhvTrackMouse::BhvTrackMouse() : Behavior(update_stage, F_HANDLE_MOUSE) {}
 
 
-int BhvTrackMouse::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/, int data,
-  short mx, short my, int /*buttons*/, int accum_res)
+int BhvTrackMouse::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
+  int button_id, Point2 pos, int accum_res)
 {
 #if _TARGET_XBOX
 
@@ -37,44 +37,40 @@ int BhvTrackMouse::mouseEvent(ElementTree *etree, Element *elem, InputDevice dev
   G_UNUSED(elem);
   G_UNUSED(device);
   G_UNUSED(event);
-  G_UNUSED(data);
-  G_UNUSED(mx);
-  G_UNUSED(my);
+  G_UNUSED(button_id);
+  G_UNUSED(pos);
   G_UNUSED(accum_res);
 
   return 0;
 
 #else
 
-  int result = 0;
+  if (device != DEVID_MOUSE)
+    return 0;
 
   if (event == INP_EV_MOUSE_WHEEL)
   {
-    if (elem->hitTest(mx, my) && !(accum_res & R_PROCESSED))
+    if (elem->hitTest(pos) && !(accum_res & R_PROCESSED))
     {
-      if (call_mouse_wheel_handler(etree->guiScene, elem, data, mx, my))
+      int scroll = button_id; // special case
+      if (call_mouse_wheel_handler(etree->guiScene, elem, scroll, pos.x, pos.y))
       {
         if (!elem->props.getBool(elem->csk->eventPassThrough, false))
-          result = R_PROCESSED;
+          return R_PROCESSED;
       }
     }
-
-    return result;
   }
 
-  if (event != INP_EV_POINTER_MOVE || device == DEVID_VR)
-    return 0;
-
-  if (elem->hitTest(mx, my) && !(accum_res & R_PROCESSED))
+  if (event == INP_EV_POINTER_MOVE && elem->hitTest(pos) && !(accum_res & R_PROCESSED))
   {
-    if (call_mouse_move_handler(etree->guiScene, elem, mx, my))
+    if (call_mouse_move_handler(etree->guiScene, elem, pos.x, pos.y))
     {
       if (!elem->props.getBool(elem->csk->eventPassThrough, false))
-        result = R_PROCESSED;
+        return R_PROCESSED;
     }
   }
 
-  return result;
+  return 0;
 
 #endif
 }
@@ -87,7 +83,7 @@ int BhvTrackMouse::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
   // This is a workaround against XBox mouse driver not sending MOUSEMOVE events
 
   GuiScene *guiScene = elem->etree->guiScene;
-  Point2 mousePos = guiScene->getMousePos();
+  Point2 mousePos = guiScene->activePointerPos();
 
   Sqrat::Table &pprops = elem->props.storage;
   Sqrat::Object lastX = pprops.RawGetSlot("xbox-trackmouse-x");

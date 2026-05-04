@@ -5,17 +5,18 @@ buffer gpu_objects_counter;
 
 shader gpu_objects_get_group_count_cs
 {
-  ENABLE_ASSERT(cs)
   (cs)
   {
     max_triangles@i1 = (gpu_objects_max_triangles);
     counter@buf = gpu_objects_counter hlsl { ByteAddressBuffer counter@buf; }
+
+    group_count@uav : register(0) hlsl {
+      RWByteAddressBuffer group_count@uav;
+    }
   }
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    RWByteAddressBuffer group_count : register(u0);
 
     [numthreads(1, 1, 1)]
     void get_group_count()
@@ -47,6 +48,13 @@ shader gpu_objects_sum_area_cs, gpu_objects_mesh_sum_area_cs
     {
       max_triangles@i1 = (gpu_objects_max_triangles);
       counter@buf = gpu_objects_counter hlsl { ByteAddressBuffer counter@buf; }
+
+      triangles@uav : register(0) hlsl {
+        #include "gpuObjects/gpu_objects_const.hlsli"
+        RWStructuredBuffer<GeometryTriangle> triangles@uav;
+
+        #define AREA(face_id) structuredBufferAt(triangles, face_id).areaDoubled
+      }
     }
   }
   if (shader == gpu_objects_mesh_sum_area_cs)
@@ -54,20 +62,18 @@ shader gpu_objects_sum_area_cs, gpu_objects_mesh_sum_area_cs
     (cs)
     {
       mesh_params@f4 = gpu_objects_rendinst_mesh_params;
+
+      areas@uav : register(0) hlsl {
+        #include "gpuObjects/gpu_objects_const.hlsli"
+        RWStructuredBuffer<float> areas@uav;
+
+        #define AREA(face_id) structuredBufferAt(areas, face_id)
+      }
     }
   }
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    ##if shader == gpu_objects_sum_area_cs
-      RWStructuredBuffer<GeometryTriangle> triangles : register(u0);
-      #define AREA(face_id) structuredBufferAt(triangles, face_id).areaDoubled
-    ##elif shader == gpu_objects_mesh_sum_area_cs
-      RWStructuredBuffer<float> areas: register(u0);
-      #define AREA(face_id) structuredBufferAt(areas, face_id)
-    ##endif
 
     groupshared float temp[MAX_GATHERED_TRIANGLES_SQRT];
 

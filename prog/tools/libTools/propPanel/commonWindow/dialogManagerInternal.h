@@ -15,6 +15,7 @@ class DialogManager
 public:
   void showDialog(DialogWindow &dialog);
   void hideDialog(DialogWindow &dialog);
+  bool isAnyModalDialogOpen() const;
   void updateImgui();
 
 private:

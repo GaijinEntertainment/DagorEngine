@@ -19,6 +19,13 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, 
   if (!srcTex || !dstTex)
     return false;
 
+  // this would work only if layers == depth and need special handling, drop such requests for now as they look strange on their own
+  if (srcTex->pars.isVolume() ^ dstTex->pars.isVolume())
+  {
+    D3D_ERROR("vulkan: trying to blit volume texture with non volume one. src %s dst %s", srcTex->getName(), dstTex->getName());
+    return false;
+  }
+
   Image *srcImg = srcTex->image;
   Image *dstImg = dstTex->image;
 
@@ -32,44 +39,64 @@ bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, 
   blit.dstSubresource.baseArrayLayer = 0;
   blit.dstSubresource.layerCount = 1;
 
+  VkExtent3D srcExt = srcTex->pars.getMipExtent(0);
+  blit.srcOffsets[1] = toOffset(srcExt);
+  if (blit.srcOffsets[1].z < 1)
+    blit.srcOffsets[1].z = 1;
+
   if (rsrc)
   {
     blit.srcOffsets[0].x = rsrc->left;
     blit.srcOffsets[0].y = rsrc->top;
     blit.srcOffsets[0].z = 0;
-    blit.srcOffsets[1].x = rsrc->right;
-    blit.srcOffsets[1].y = rsrc->bottom;
-    blit.srcOffsets[1].z = 1;
+    blit.srcOffsets[1].x = min((uint32_t)rsrc->right, srcExt.width);
+    blit.srcOffsets[1].y = min((uint32_t)rsrc->bottom, srcExt.height);
   }
   else
   {
     blit.srcOffsets[0].x = 0;
     blit.srcOffsets[0].y = 0;
     blit.srcOffsets[0].z = 0;
-    blit.srcOffsets[1] = toOffset(srcTex->pars.getMipExtent(0));
-    if (blit.srcOffsets[1].z < 1)
-      blit.srcOffsets[1].z = 1;
   }
+
+  VkExtent3D dstExt = dstTex->pars.getMipExtent(0);
+  blit.dstOffsets[1] = toOffset(dstExt);
+  if (blit.dstOffsets[1].z < 1)
+    blit.dstOffsets[1].z = 1;
 
   if (rdst)
   {
     blit.dstOffsets[0].x = rdst->left;
     blit.dstOffsets[0].y = rdst->top;
     blit.dstOffsets[0].z = 0;
-    blit.dstOffsets[1].x = rdst->right;
-    blit.dstOffsets[1].y = rdst->bottom;
-    blit.dstOffsets[1].z = 1;
+
+    // if user wants to stretch over image boundary, do that by reducing src rect size and clamping dst one
+    blit.dstOffsets[1].x = min((uint32_t)rdst->right, dstExt.width);
+    blit.dstOffsets[1].y = min((uint32_t)rdst->bottom, dstExt.height);
+
+    if (rdst->right > dstExt.width)
+    {
+      int fullDstSz = rdst->right - rdst->left;
+      int clampDstSz = blit.dstOffsets[1].x - blit.dstOffsets[0].x;
+      int srcSz = blit.srcOffsets[1].x - blit.srcOffsets[0].x;
+      blit.srcOffsets[1].x = blit.srcOffsets[0].x + srcSz * clampDstSz / fullDstSz;
+    }
+
+    if (rdst->bottom > dstExt.height)
+    {
+      int fullDstSz = rdst->bottom - rdst->top;
+      int clampDstSz = blit.dstOffsets[1].y - blit.dstOffsets[0].y;
+      int srcSz = blit.srcOffsets[1].y - blit.srcOffsets[0].y;
+      blit.srcOffsets[1].y = blit.srcOffsets[0].y + srcSz * clampDstSz / fullDstSz;
+    }
   }
   else
   {
     blit.dstOffsets[0].x = 0;
     blit.dstOffsets[0].y = 0;
     blit.dstOffsets[0].z = 0;
-    blit.dstOffsets[1] = toOffset(dstTex->pars.getMipExtent(0));
-    if (blit.dstOffsets[1].z < 1)
-      blit.dstOffsets[1].z = 1;
   }
 
-  Globals::ctx.blitImage(srcImg, dstImg, blit, /*whole_subres*/ rdst == nullptr);
+  Globals::ctx.dispatchCmd<CmdBlitImage>({srcImg, dstImg, blit, /*whole_subres*/ rdst == nullptr});
   return true;
 }

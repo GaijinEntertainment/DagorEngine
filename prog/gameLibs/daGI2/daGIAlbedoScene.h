@@ -9,6 +9,7 @@
 #include <math/integer/dag_IPoint3.h>
 #include <shaders/dag_computeShaders.h>
 #include <EASTL/fixed_function.h>
+#include <render/voxelClip.h>
 
 class BBox3;
 
@@ -39,6 +40,8 @@ struct DaGIAlbedoScene
   void setTemporalFromGbufStable(bool on) { temporalStable = on; } // if on, there is no randomization inside each voxel
   void fixBlocks();
   void afterReset();
+  void invalidateBox(const BBox3 &box);
+  bool isValid() const;
 
 protected:
   void close();
@@ -46,11 +49,9 @@ protected:
   void resetUAV(uint32_t);
   void validateClipmap(const char *n);
   float getInternalBlockSizeClip(uint32_t clip) const;
-  bool updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t clip_no, const IPoint3 &lt, float newBlockSize);
-  void setClipVars(int clip_no) const;
+  bool updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t clip_no, const Point3 &world_pos);
+  void setClipVars(int clip_no, float internal_block_size) const;
   void initHistory(); // called after reset
-
-  IPoint3 getNewClipLT(uint32_t clip, const Point3 &world_pos) const;
 
   PostFxRenderer dagi_albedo_scene_debug;
   PostFxRenderer dagi_world_scene_albedo_scene_debug;
@@ -70,10 +71,6 @@ protected:
   bool validHistory = false;
   bool temporalStable = true;
   float temporalSpeed = 0.125;
-  struct Clip
-  {
-    IPoint3 lt = {-100000, -100000, 100000};
-    float internalBlockSize = 0;
-  };
-  dag::Vector<Clip> clipmap;
+
+  dag::Vector<VoxelClip> clipmap;
 };

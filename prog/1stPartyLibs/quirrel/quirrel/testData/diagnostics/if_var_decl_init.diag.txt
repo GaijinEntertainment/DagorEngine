@@ -1,0 +1,8 @@
+ERROR: Initialization required
+testData/diagnostics/if_var_decl_init.nut:1:11
+
+if (local x)
+           ^
+    println("fail")
+
+

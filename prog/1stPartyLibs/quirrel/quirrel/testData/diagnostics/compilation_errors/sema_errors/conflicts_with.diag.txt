@@ -1,0 +1,8 @@
+ERROR: Local variable name 'foo' conflicts with existing local variable
+testData/diagnostics/compilation_errors/sema_errors/conflicts_with.nut:3:0
+
+function foo() { return 1 }
+local foo = 2
+^------------
+
+

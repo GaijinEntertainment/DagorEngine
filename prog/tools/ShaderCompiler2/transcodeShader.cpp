@@ -19,29 +19,39 @@
 #include "hlsl11transcode/asmShaders11.h"
 #endif
 
-dag::ConstSpan<uint32_t> transcode_vertex_shader(dag::ConstSpan<uint32_t> vpr)
+dag::ConstSpan<uint32_t> transcode_vertex_shader(uint32_t type, dag::ConstSpan<uint32_t> vpr)
 {
   if (!vpr.size())
     return {};
-  G_ASSERT(vpr.size() > 1);
+  G_ASSERT(vpr.size() > 0);
 
-  if (vpr[0] == _MAKE4C('DX9v') || vpr[0] == _MAKE4C('DX11'))
-    return make_span_const((const uint32_t *)&vpr[1], vpr.size() - 1);
-  G_ASSERTF(0, "obsolete/corrupt vertex shader? %c%c%c%c", DUMP4C(vpr[0]));
+  if (type == _MAKE4C('DX9v') || type == _MAKE4C('DX11'))
+    return vpr;
+  G_ASSERTF(0, "obsolete/corrupt vertex shader? %c%c%c%c", DUMP4C(type));
   return {};
 }
 
-dag::ConstSpan<uint32_t> transcode_pixel_shader(dag::ConstSpan<uint32_t> fsh)
+dag::ConstSpan<uint32_t> transcode_pixel_shader(uint32_t type, dag::ConstSpan<uint32_t> fsh)
 {
   if (!fsh.size())
     return {};
-  G_ASSERT(fsh.size() > 1);
+  G_ASSERT(fsh.size() > 0);
 
-  if (fsh[0] == _MAKE4C('DX9p') || fsh[0] == _MAKE4C('D11c'))
-    return dag::ConstSpan<uint32_t>((const uint32_t *)&fsh[1], fsh.size() - 1);
+
+  if (type == _MAKE4C('DX9p') || type == _MAKE4C('D11c'))
+    return fsh;
 
   G_ASSERT(0 && "obsolete/corrupt pixel shader?");
   return {};
+}
+
+dag::ConstSpan<uint8_t> transcode_metadata(dag::ConstSpan<uint8_t> meta)
+{
+  if (!meta.size())
+    return {};
+
+  G_ASSERT(meta.size() > 4);
+  return make_span_const(meta.data() + 4, meta.size() - 4);
 }
 
 dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
@@ -69,9 +79,14 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
       case SHCOD_SAMPLER:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
+      case SHCOD_TEXTURE_CS:
       case SHCOD_REG_BINDLESS:
-      case SHCOD_RWTEX:
-      case SHCOD_RWBUF:
+      case SHCOD_RWTEX_CS:
+      case SHCOD_RWTEX_PS:
+      case SHCOD_RWTEX_VS:
+      case SHCOD_RWBUF_CS:
+      case SHCOD_RWBUF_PS:
+      case SHCOD_RWBUF_VS:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
       case SHCOD_TLAS:
@@ -120,16 +135,19 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
         i++;
         st[i] = mkbindump::le2be32(stcode[i]);
         break;
-
-      case SHCOD_MAKE_VEC:
       case SHCOD_STATIC_BLOCK:
+        st[i + 1] = mkbindump::le2be32(stcode[i + 1]);
+        st[i + 2] = mkbindump::le2be32(stcode[i + 2]);
+        i += 2;
+        break;
+      case SHCOD_MAKE_VEC:
         i++;
         st[i] = mkbindump::le2be32(stcode[i]);
         break;
 
       case SHCOD_CALL_FUNCTION:
       {
-        int pnum = shaderopcode::getOp3p3(stcode[i]);
+        int pnum = shaderopcode::getOpFunctionCall_ArgCount(stcode[i]);
         while (pnum > 0)
         {
           i++;

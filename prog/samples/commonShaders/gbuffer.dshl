@@ -12,11 +12,26 @@ hlsl {
 #define SHADING_FOLIAGE 2
 #define SHADING_SELFILLUM 3
 #define MAX_EMISSION 4.0f
+half2 oct_wrap_so( half2 v )
+{
+    return half2(( 1.0h - abs( v.yx ) ) * select( v.xy >= 0.0h, 1.0h, -1.0h ));
+}
+half2 pack_normal_so(half3 n)
+{
+    n /= (abs( n.x ) + abs( n.y ) + abs( n.z ));
+    n.xy = half2(n.z >= 0.0h ? n.xy : oct_wrap_so( n.xy ));
+    n.xy = half2(n.xy * 0.5h + 0.5h);
+    return n.xy;
+}
 
 bool isSubSurfaceShader(float material) {return material == SHADING_FOLIAGE || material == SHADING_SUBSURFACE;}
 bool isEmissiveShader(float material) {return material == SHADING_SELFILLUM;}
 bool isMetallicShader(float material) {return material == SHADING_NORMAL;}
 }
+
+macro INIT_PACK_UNPACK_DYNSTCODE(code)
+//Dummy binding
+endmacro
 
 macro PACK_UNPACK_GBUFFER_BASE(code)
 hlsl(code) {
@@ -46,6 +61,7 @@ hlsl(code) {
     bool isTwoSided;
     bool isGlass;
     bool isGrass;
+    bool isFoliage;
     bool isUnstable;
   };
 
@@ -54,7 +70,7 @@ hlsl(code) {
     half3 albedo;
     half smoothness;
     float3 normal;
-    
+
     half metallness;//either translucent or metallic or emission
     half translucency;//either translucent or metallic or emission
     half emission_part;//either translucent or metallic or emission
@@ -71,6 +87,7 @@ hlsl(code) {
     bool isTwoSided;
     bool isGlass;
     bool isGrass;
+    bool isFoliage;
     bool isUnstable;
   };
 
@@ -198,6 +215,7 @@ hlsl(code) {
     result.isTwoSided = false;
     result.isGlass = false;
     result.isGrass = false;
+    result.isFoliage = false;
     result.isUnstable = false;
   }
   void init_dynamic(inout UnpackedGbuffer result, bool dynamic)
@@ -292,6 +310,9 @@ macro INIT_READ_DYNAMIC_FLAG(code)
 endmacro
 
 macro INIT_READ_IS_HERO_COCKPIT(code)
+endmacro
+
+macro INIT_LOAD_IS_HERO_COCKPIT(code)
 endmacro
 
 macro INIT_READ_GBUFFER_SIMPLE_BASE(code)
@@ -407,6 +428,10 @@ macro USE_READ_IS_HERO_COCKPIT(code)
 bool gbuffer_has_hero_cockpit = false;
 endmacro
 
+macro USE_LOAD_IS_HERO_COCKPIT(code)
+bool gbuffer_has_hero_cockpit = false;
+endmacro
+
 macro INIT_LOAD_GBUFFER_BASE(code)
   (code) {
     albedo_gbuf_load@tex2d = albedo_gbuf;
@@ -442,6 +467,13 @@ macro USE_LOAD_GBUFFER_BASE(code, bvh)
       PackedGbuffer gbuf;
       gbuf.normal_smoothness_material = texelFetch(normal_gbuf_load, coord, 0);
       unpackGbufferNormalSmoothness(gbuf, normal, smoothness);
+    }
+    half loadSmoothness(uint2 coord)
+    {
+      float3 normal;
+      half smoothness;
+      loadPackedGbufferNormalSmoothness(coord, normal, smoothness);
+      return smoothness;
     }
     ProcessedGbuffer loadProcessedGbuffer(int2 tc)
     {
@@ -505,6 +537,29 @@ macro USE_LOAD_MOTION_BUFFER_BASE(code)
     float3 loadMotionBuffer(uint2 scr)
     {
       return texelFetch(motion_gbuf_load, scr, 0).xyz;
+    }
+  }
+endmacro
+
+macro INIT_LOAD_BVH_FLAGS_BASE(code)
+endmacro
+
+macro USE_LOAD_BVH_FLAGS_BASE(code)
+  hlsl(code) {
+    uint loadBvhFlags(uint2 tci)
+    {
+      #ifndef BVH_GRASS
+        #define BVH_GRASS 0
+      #endif
+      #ifndef BVH_FOLIAGE
+        #define BVH_FOLIAGE 0
+      #endif
+
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(tci));
+      uint bvhFlags = 0;
+      bvhFlags |= gbuffer.isLandscape && gbuffer.material == SHADING_FOLIAGE ? BVH_GRASS : 0;
+      bvhFlags |= gbuffer.material == SHADING_FOLIAGE ? BVH_FOLIAGE : 0;
+      return bvhFlags;
     }
   }
 endmacro

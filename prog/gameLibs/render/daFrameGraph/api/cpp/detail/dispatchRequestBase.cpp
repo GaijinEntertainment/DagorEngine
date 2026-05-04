@@ -72,7 +72,7 @@ void DispatchRequestBase::indirect(const char *buffer)
   const auto resNameId = registry->knownNames.addNameId<ResNameId>(nodeNsId, buffer);
 
   node.readResources.insert(resNameId);
-  node.resourceRequests.emplace(resNameId, ResourceRequest{ResourceUsage{Usage::INDIRECTION_BUFFER, Access::READ_ONLY}});
+  node.resourceRequests.emplace(resNameId, ResourceRequest{ResourceUsage{Usage::INDIRECTION_BUFFER, Access::READ_ONLY, Stage::CS}});
 
   args.res = resNameId;
 }

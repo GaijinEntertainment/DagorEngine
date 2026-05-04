@@ -1,0 +1,1 @@
+Releases the server's reference to a response writer, allowing it to be destroyed. Call this after ``end_response`` or ``close_writer`` to free the writer's resources.

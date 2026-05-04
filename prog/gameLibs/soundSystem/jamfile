@@ -44,6 +44,7 @@ Sources =
   eventInstanceStealing.cpp
   visualLabels.cpp
   occlusion.cpp
+  occlusionGPU.cpp
 ;
 
 if $(Config) = rel {
@@ -63,6 +64,7 @@ if $(Platform) in iOS {
 UseProgLibs =
   engine/coreUtil
   $(FmodUseProgLib)
+  gameLibs/soundOcclusionGPU
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

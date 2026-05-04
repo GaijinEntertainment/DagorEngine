@@ -187,7 +187,7 @@ shader rendinst_liana
         output.pointToEye.w = worldPos.y - worldLocalPos.y;
 ##endif
       #else
-##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+##if (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
         output.normal.w = worldPos.y - worldLocalPos.y;
 ##endif
       #endif
@@ -204,24 +204,24 @@ shader rendinst_liana
         clip(input.phaseOfGrowth);
       }
     }
-  } else
+  }
+  else if(!is_triangle_size_debug)
   {
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()
     (ps) {
-      diffuse_tex@static = tex;
-      normal_tex@static = normal;
+      diffuse_tex@staticSmp = tex;
+      normal_tex@staticSmp = normal;
     }
 
     USE_CHARACTER_MICRODETAIL()
-    ENABLE_ASSERT(ps)
 
     hlsl(ps) {
 
-      #define parallax_tex_sampler(tex, tc) tex2DBindless(tex, tc.xy)
+      #define parallax_tex_sampler(sample, tex, tc) sample = tex2DBindless(tex, tc.xy)
       #define PARALLAX_TEX get_diffuse_tex()
       #define PARALLAX_ATTR a
-      #include "./parallax.hlsl"
+      #include <parallax.hlsl>
       GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)//, out float depth : SV_DepthLessEqual)
       {
         #if SET_UP_MULTIDRAW
@@ -291,7 +291,14 @@ shader rendinst_liana
       }
     }
   }
-  compile("target_ps", "simple_ps");
+  if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "simple_ps");
+  }
   compile("target_vs", "simple_vs");
 }
 

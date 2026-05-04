@@ -105,6 +105,7 @@ class PipelineCompiler
   bool shouldWaitThreads = false;
   std::atomic<size_t> pendingWorkers{0};
   std::atomic<size_t> queueLength = 0;
+  std::atomic<size_t> totalCompiledPipes = 0;
   os_event_t secondaryWorkersFinishEvent; //-V730_NOINIT
   void loadConfig();
 
@@ -125,6 +126,7 @@ public:
   bool processQueued();
 
   size_t getQueueLength();
+  size_t getCompiledPipes();
 
   void compileBlock(dag::Vector<PipelineCompileQueueItem> &block);
   void asyncCompileLoop();

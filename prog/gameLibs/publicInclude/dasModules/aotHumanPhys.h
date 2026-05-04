@@ -45,8 +45,11 @@ DAS_BIND_VECTOR(HumanControlStateTab, HumanControlStateTab, HumanControlState, "
 using HumanWeaponParamsArray = carray<HumanWeaponParams, EWS_NUM>;
 DAS_BIND_ARRAY(HumanWeaponParamsArray, HumanWeaponParamsArray, HumanWeaponParams);
 
-using HumanPhysAlignSpeedsArray = carray<float, ESS_NUM>;
-DAS_BIND_ARRAY(HumanPhysAlignSpeedsArray, HumanPhysAlignSpeedsArray, float);
+using HumanPhysESSArray = carray<float, ESS_NUM>;
+DAS_BIND_ARRAY(HumanPhysESSArray, HumanPhysESSArray, float);
+
+using HumanPhysEMSArray = carray<float, EMS_NUM>;
+DAS_BIND_ARRAY(HumanPhysEMSArray, HumanPhysEMSArray, float);
 
 namespace bind_dascript
 {
@@ -278,10 +281,7 @@ inline void human_phys_state_get_torso_contacts(const HumanPhysState &state,
   das::LineInfoArg *at)
 {
   das::Array arr;
-  arr.data = (char *)state.torsoContacts.data();
-  arr.size = state.numTorsoContacts;
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)state.torsoContacts.data(), state.numTorsoContacts);
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

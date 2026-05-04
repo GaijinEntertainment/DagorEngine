@@ -41,7 +41,8 @@ extern const int USE_DEBUG_GBUFFER_MODE;
 constexpr auto DEBUG_RENDER_GBUFFER_SHADER_NAME = "debug_final_gbuffer";
 constexpr auto DEBUG_RENDER_GBUFFER_WITH_VECTORS_SHADER_NAME = "debug_final_gbuffer_vec";
 
-void debug_render_gbuffer(const class PostFxRenderer &debugRenderer, DeferredRT &gbuffer, int mode = USE_DEBUG_GBUFFER_MODE);
+void debug_render_gbuffer(const class PostFxRenderer &debugRenderer, DeferredRT &gbuffer, Texture *depth = nullptr,
+  int mode = USE_DEBUG_GBUFFER_MODE);
 void debug_render_gbuffer(const class PostFxRenderer &debugRenderer, Texture *depth, int mode = USE_DEBUG_GBUFFER_MODE);
 
 void debug_render_gbuffer_with_vectors(const class DynamicShaderHelper &debugVecShader, DeferredRT &gbuffer,

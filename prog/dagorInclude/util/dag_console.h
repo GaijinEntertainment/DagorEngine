@@ -29,6 +29,9 @@ enum LineType
   CONSOLE_DEFAULT,
 };
 
+// Priority of ConsoleConProc, the built-in command processor.
+static constexpr int CONSOLE_CON_PROC_PRIORITY = 1000;
+
 extern unsigned main_background_color;
 extern unsigned tips_background_color;
 extern unsigned pinned_commands_background_color;

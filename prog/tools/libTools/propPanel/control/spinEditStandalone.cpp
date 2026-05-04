@@ -20,7 +20,7 @@ SpinEditControlStandalone::SpinEditControlStandalone(float in_min, float in_max,
 
 void SpinEditControlStandalone::setValue(float value)
 {
-  if (textInputFocused) // don't allow to overwrite our value from external source while it's being edited
+  if (textInputFocused && textInputActive) // don't allow to overwrite our value from external source while it's being edited
     return;
 
   setValueInternal(value);
@@ -119,7 +119,9 @@ bool SpinEditControlStandalone::spinButton(SpinnerButtonId button, float &step_m
   const ImGuiDir dir = button == SpinnerButtonId::Up ? ImGuiDir_Up : ImGuiDir_Down;
   const ImVec2 buttonSize = getSpinButtonsSize();
   const float arrowSize = ImMax(1.0f, buttonSize.y - 4.0f); // Two pixel padding on both sides. Style.FramePadding.y is too much.
+  ImGui::PushItemFlag(ImGuiItemFlags_NoTabStop, true);
   const bool spinButtonPressed = ImguiHelper::arrowButtonExWithSize(buttonId, dir, buttonSize, ImVec2(arrowSize, arrowSize));
+  ImGui::PopItemFlag();
 
   if (ImGui::IsItemActive())
   {
@@ -192,8 +194,10 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
 
   const char *inputLabel = "";
   const bool textInputWasFocused = textInputFocused;
+  const bool textInputWasActive = textInputActive;
   const bool textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, &textValue, textInputWasFocused);
   textInputFocused = ImGui::IsItemFocused();
+  textInputActive = ImGui::IsItemActive();
 
   if (tooltip && !tooltip->empty())
     tooltip_helper.setPreviousImguiControlTooltip(tooltip_owner, tooltip->begin(), tooltip->end());
@@ -233,7 +237,7 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
     if (textChanged)
       onTextChanged();
 
-    if (textInputWasFocused && !textInputFocused)
+    if ((textInputWasFocused && !textInputFocused) || (textInputWasActive && !textInputActive))
       sendWcChangeIfVarChanged(event_handler);
   }
 

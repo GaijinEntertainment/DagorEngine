@@ -21,6 +21,7 @@ class LodGrid
 {
 public:
   LodGrid() : lodsCount(8), lodStep(1), lastLodRad(1), lod0SubDiv(0), lastLodExtension(0.0f) {}
+  LodGrid(const LodGrid &) = default;
   LodGrid &operator=(const LodGrid &) = default;
   ~LodGrid() {}
   void init(int numLod, int lod0, int lod0_sub_div, int last_lod_rad, float last_lod_extension = 0.0f)

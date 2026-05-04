@@ -58,7 +58,7 @@ public:
       allocatedDrawcallsInBuffer = drawcalls_data.size();
       buffer.close();
       buffer = dag::create_sbuffer(sizeof(uint32_t), allocatedDrawcallsInBuffer * dwordsCountPerDrawcall(),
-        fill_on_gpu == FillOnGPU::No ? SBCF_INDIRECT : SBCF_UA_INDIRECT, 0, bufferName.c_str());
+        fill_on_gpu == FillOnGPU::No ? SBCF_INDIRECT : SBCF_UA_INDIRECT, 0, bufferName.c_str(), RESTAG_ENGINE);
     }
 
     const uint32_t LOCK_FLAGS = VBLOCK_WRITEONLY | (useDiscardOnFill() ? VBLOCK_DISCARD : 0);

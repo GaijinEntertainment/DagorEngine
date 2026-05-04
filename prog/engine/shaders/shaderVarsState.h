@@ -73,9 +73,11 @@ public:
     const auto offsets = recalc_layout(dump.globVars);
 
     {
-      const size_t storageAlign = *eastl::max_element(SHVAR_TYPE_ALIGNMENTS.begin(), SHVAR_TYPE_ALIGNMENTS.end());
+#define X(SHVT, Type) G_STATIC_ASSERT(alignof(Type) <= 16);
+      SHVAR_TYPES
+#undef X
       const size_t storageSize = offsets.back();
-      storage.reset(static_cast<char *>(memalloc_aligned_default(storageSize, storageAlign)));
+      storage.reset(static_cast<char *>(memalloc_default(storageSize)));
     }
 
     const d3d::SamplerHandle defaultSamplerHnd = d3d::request_sampler({});
@@ -127,14 +129,9 @@ public:
 private:
   dag::Vector<VarDescription> variables;
 
-  struct AlignedDeleter
-  {
-    void operator()(void *ptr) const { memfree_aligned_default(ptr); }
-  };
-
   // Single contiguous storage with order preserved from the original
   // layout increases probability of cache hits
-  eastl::unique_ptr<char[], AlignedDeleter> storage;
+  eastl::unique_ptr<char[]> storage;
 };
 
 #undef SHVAR_TYPES

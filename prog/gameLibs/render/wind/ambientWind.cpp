@@ -59,9 +59,9 @@ void AmbientWind::setWindParametersToShader(float wind_noise_strength_multiplier
     noiseScale = 0;
   }
 
-  ShaderGlobal::set_color4(ambient_wind_noise__speed__scale__perpendicular__strengthVarId,
+  ShaderGlobal::set_float4(ambient_wind_noise__speed__scale__perpendicular__strengthVarId,
     Color4(-windNoiseSpeed, noiseScale, noisePerpendicular, noiseStrength));
-  ShaderGlobal::set_color4(ambient_wind_map_scale__offsetVarId,
+  ShaderGlobal::set_float4(ambient_wind_map_scale__offsetVarId,
     Color4(1.0 / (wind_map_borders.z - wind_map_borders.x), 1.0 / (wind_map_borders.w - wind_map_borders.y),
       -wind_map_borders.x / (wind_map_borders.z - wind_map_borders.x),
       -wind_map_borders.y / (wind_map_borders.w - wind_map_borders.y)));
@@ -83,7 +83,7 @@ void AmbientWind::setWindParametersToShader(const AmbientWindParameters &params)
   {
     grassNoiseScale = 0;
   }
-  ShaderGlobal::set_color4(ambient_wind_grass_noise__speed__scale__perpendicular__strengthVarId,
+  ShaderGlobal::set_float4(ambient_wind_grass_noise__speed__scale__perpendicular__strengthVarId,
     Color4(-windGrassNoiseSpeed, grassNoiseScale, grassNoisePerpendicular, grassNoiseStrength));
 
   setWindParametersToShader(params.windNoiseStrength, params.windNoiseSpeed, params.windNoiseScale, params.windNoisePerpendicular,
@@ -152,7 +152,6 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
   if (needReset)
   {
     noisemapName = wind_noisemap_name;
-    NodeBasedShaderManager::clearAllCachedResources();
 
     if (hasNoiseMap)
     {
@@ -167,15 +166,17 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
       hasNoiseMap ? get_texture_separate_sampler(noisemapGameresTex.getTexId()) : d3d::INVALID_SAMPLER_HANDLE);
   }
 
-  needReset = flowmapName != wind_flowmap_name || !flowmapTexFallback;
+  bool nameChanged = flowmapName != wind_flowmap_name;
+  bool missingTexFallback = !flowmapTexFallback;
+  needReset = nameChanged || missingTexFallback;
   bool hasFlowmap = wind_flowmap_name && wind_flowmap_name[0];
+
   if (needReset)
   {
-    flowmapName = wind_flowmap_name;
-    NodeBasedShaderManager::clearAllCachedResources();
-
-    if (!flowmapTexFallback)
-      flowmapTexFallback = dag::create_tex(nullptr, 1, 1, TEXFMT_A8R8G8B8, 1, "ambient_wind_tex_fallback");
+    if (nameChanged)
+      flowmapName = wind_flowmap_name;
+    if (missingTexFallback)
+      flowmapTexFallback = dag::create_tex(nullptr, 1, 1, TEXFMT_A8R8G8B8, 1, "ambient_wind_tex_fallback", RESTAG_WIND);
 
     if (hasFlowmap)
     {
@@ -198,6 +199,12 @@ void AmbientWind::setWindTextures(const char *wind_flowmap_name, const char *win
       logwarn("Setting flowmap fallback with default wind dir parameter - Point2(%.2f, %.2f)", windDir.x, windDir.y);
     fillFlowmapTexFallback(windDir);
   }
+}
+
+void AmbientWind::afterDeviceReset()
+{
+  if (flowmapTexFallback && !flowmapGameresTex)
+    fillFlowmapTexFallback(windDir);
 }
 
 void AmbientWind::close()
@@ -223,7 +230,7 @@ void AmbientWind::update()
   float previousTime = windParams.g;
   windParams =
     Color4(windSpeed, get_shader_global_time_phase(AMBIENT_WIND_PERIOD_SECONDS, 0) * AMBIENT_WIND_PERIOD_SECONDS, previousTime, 0);
-  ShaderGlobal::set_color4(ambient_wind__speed__current_time__previous_timeVarId, windParams);
+  ShaderGlobal::set_float4(ambient_wind__speed__current_time__previous_timeVarId, windParams);
 }
 
 void AmbientWind::enable() { enabled = true; }
@@ -232,7 +239,7 @@ void AmbientWind::disable()
   enabled = false;
   float time = get_shader_global_time_phase(AMBIENT_WIND_PERIOD_SECONDS, 0) * AMBIENT_WIND_PERIOD_SECONDS;
   Color4 params = Color4(0, time, time, 0);
-  ShaderGlobal::set_color4(ambient_wind__speed__current_time__previous_timeVarId, params);
+  ShaderGlobal::set_float4(ambient_wind__speed__current_time__previous_timeVarId, params);
 }
 
 
@@ -281,4 +288,9 @@ void disable_ambient_wind()
 {
   if (ambient_wind)
     ambient_wind->disable();
+}
+void after_device_reset_ambient_wind()
+{
+  if (ambient_wind)
+    ambient_wind->afterDeviceReset();
 }

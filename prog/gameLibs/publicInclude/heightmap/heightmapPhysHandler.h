@@ -41,6 +41,7 @@ struct HeightmapPhysHandlerInfo // -V730
   float hScaleRaw = 1;
   IPoint2 hmapWidth = {1, 1};
   IBBox2 excludeBounding = {{0, 0}, {0, 0}};
+  bool mirror = false;
 };
 
 class HeightmapPhysHandler : public HeightmapPhysHandlerInfo
@@ -55,12 +56,16 @@ public:
     BLOCK_CHANGED = 2,
   };
 
+  //! setup-once settings for using GlobalSharedMemStorage
+  static GlobalSharedMemStorage *sharedMem;
+  static bool dumpSharingReadOnly;
+  static constexpr unsigned SM_DATA_TAG = _MAKE4C('HMAP');
+
   ~HeightmapPhysHandler() { close(); }
-  HeightmapPhysHandler() // -V730
-  {}
+  HeightmapPhysHandler() {} // -V730
 
   void close();
-  bool loadDump(IGenLoad &loadCb, GlobalSharedMemStorage *sharedMem, int skip_mips);
+  bool loadDump(IGenLoad &loadCb, int skip_mips);
   bool checkOrAllocateOwnData();
 
   int traceDownMultiRay(bbox3f_cref rayBox, vec4f *ray_pos_mint, vec4f *v_out_norm, int cnt) const;
@@ -259,7 +264,7 @@ public:
   }
   UpdateHtResult setHeightmapHeightUnsafe(const IPoint2 &cell, uint16_t ht)
   {
-    G_ASSERTF(hmap_data, "need own data for deformations, use checkOrAllocateOwnData");
+    G_ASSERTF(isDataOwned(), "need own data for deformations, use checkOrAllocateOwnData");
 
     auto ret = UpdateHtResult::UNCHANGED;
     G_ASSERT(uint32_t(cell.x) < hmapWidth.x && uint32_t(cell.y) < hmapWidth.y);
@@ -326,6 +331,8 @@ protected:
   void finalizeLoad();
   void updateBlockMinMax(uint32_t blockId, uint16_t ht, float updateBlockMinMax = 1.f);
   Point3 getClippedOrigin(const Point3 &origin_pos) const;
+  bool isDataOwned() const;
+
   CompressedHeightmap compressed;
   void *hmap_data = nullptr;
 };

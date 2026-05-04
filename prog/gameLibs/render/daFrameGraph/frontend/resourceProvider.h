@@ -17,7 +17,7 @@ namespace dafg
 
 struct MissingOptionalResource
 {};
-using ProvidedResource = eastl::variant<MissingOptionalResource, ManagedTexView, ManagedBufView, BlobView>;
+using ProvidedResource = eastl::variant<MissingOptionalResource, BaseTexture *, Sbuffer *, BlobView>;
 using ProvidedResolution = eastl::variant<IPoint2, IPoint3>;
 
 struct ResourceProvider

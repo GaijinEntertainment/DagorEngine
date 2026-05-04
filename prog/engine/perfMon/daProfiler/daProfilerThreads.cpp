@@ -59,7 +59,7 @@ RegisterThreadResult ProfilerData::addThreadData(uint32_t description)
       // this is "resurrected" thread. Someone called unregister and then register again
       // set global tls_storage to storage to this thread and restore it
     }
-#if DAPROFILER_DEBUGLEVEL > 0
+#if DAPROFILER_DEBUGLEVEL != 0
     report_logerr("adding different threads with same id shouldn't be happening!");
 #endif
     return RegisterThreadResult::Error;
@@ -158,12 +158,12 @@ bool ProfilerData::removeCurrentThread()
   interlocked_release_store_ptr(tls_storage, (ThreadStorage *)nullptr);
   const int idx = findThreadIndexUnsafe(get_current_thread_id());
   if (idx < 0 || !threadsData[idx] || !threadsData[idx]->tlsStorage)
-    report_logerr("could not be happening, assert, thread wasn not registered!");
-  else
   {
-    threadsData[idx]->tlsStorage = nullptr;                                   // tls variable is not valid anymore
-    threadsData[idx]->storage.threadId = ~threadsData[idx]->storage.threadId; // tid can be recyled after thread shudown
+    report_logerr("could not be happening, assert, thread wasn not registered!");
+    return false;
   }
+  threadsData[idx]->tlsStorage = nullptr;                                   // tls variable is not valid anymore
+  threadsData[idx]->storage.threadId = ~threadsData[idx]->storage.threadId; // tid can be recyled after thread shudown
   u64_interlocked_release_store(threadsData[idx]->removedTick, cpu_current_ticks());
   interlocked_increment(threadsGeneration); // so sampling thread knows, that it has to arrange new threads
   interlocked_increment(removedThreadsCount);
@@ -205,7 +205,7 @@ ThreadStorage *ProfilerData::initializeFrameThread()
     start_network_dump_server(0);
     add_default_messages(); // we only receive messages from network
 #endif
-#if _TARGET_PC
+#if _TARGET_PC || _TARGET_ANDROID
     start_file_dump_server(get_default_file_dir());
 #endif
   }

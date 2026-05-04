@@ -41,7 +41,7 @@ int BhvMoveToArea::update(UpdateStage /*stage*/, darg::Element *elem, float dt)
   ScreenCoord &psc = elem->parent->screenCoord;
   Layout &layout = elem->layout;
   Layout &playout = elem->parent->layout;
-  Point2 offs = ::max(layout.margin.lt(), playout.padding.lt());
+  Point2 offs = ::max(layout.margin().lt(), playout.padding().lt());
 
   elem->setHidden(false);
   if (wasHidden)

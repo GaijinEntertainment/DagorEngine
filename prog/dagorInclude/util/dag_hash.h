@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <stdint.h>
+#include <EASTL/type_traits.h>
 
 #ifdef _MSC_VER
 // '*': integral constant overflow. It's ok. overflow is a part of the algorithm
@@ -36,73 +36,74 @@ template <int HashBits>
 using HashVal = typename FNV1Params<HashBits>::HashVal;
 
 template <int HashBits>
-static inline HashVal<HashBits> fnv1_step(uint32_t c, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
+constexpr HashVal<HashBits> fnv1_step(uint32_t c, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
 {
   return (result * FNV1Params<HashBits>::prime) ^ c;
 }
+
 template <int HashBits>
-static inline HashVal<HashBits> fnv1a_step(uint32_t c, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
+constexpr HashVal<HashBits> fnv1a_step(uint32_t c, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
 {
   return (result ^ c) * FNV1Params<HashBits>::prime;
 }
 
-#if (defined(_MSC_VER) && _MSC_VER > 1900) || __cplusplus >= 201402L // CPP14_CONSTEXPR
-template <int HashBits>
-constexpr HashVal<HashBits> str_hash_fnv1(const char *s, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
+template <int HashBits, typename F = decltype(fnv1_step<HashBits>)>
+constexpr HashVal<HashBits> str_hash_fnv1(const char *s, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis,
+  F step_cb = fnv1_step<HashBits>)
 {
-  HashVal<HashBits> c = 0;
+  uint32_t c;
   while ((c = (uint8_t)*s++) != 0)
-    result = (result * FNV1Params<HashBits>::prime) ^ c;
+    result = step_cb(c, result);
   return result;
 }
 
-template <int HashBits>
-constexpr HashVal<HashBits> mem_hash_fnv1(const char *b, size_t len, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
+template <int HashBits, typename F = decltype(fnv1_step<HashBits>)>
+constexpr HashVal<HashBits> mem_hash_fnv1(const char *b, size_t len, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis,
+  F step_cb = fnv1_step<HashBits>)
 {
   for (size_t i = 0; i < len; ++i)
-  {
-    HashVal<HashBits> c = (uint8_t)b[i];
-    result = (result * FNV1Params<HashBits>::prime) ^ c;
-  }
+    result = step_cb((uint8_t)b[i], result);
   return result;
 }
 
-#else
-template <int HashBits>
-constexpr HashVal<HashBits> mem_hash_fnv1_recursive(const char *b, size_t len,
-  HashVal<HashBits> h = FNV1Params<HashBits>::offset_basis)
-{
-  return len == 0
-           ? h
-           : mem_hash_fnv1_recursive<HashBits>(b + 1, len - 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>((uint8_t)*b));
-}
-
-template <int HashBits>
-constexpr HashVal<HashBits> str_hash_fnv1_recursive(const char *s, HashVal<HashBits> h = FNV1Params<HashBits>::offset_basis)
-{
-  return *s == 0
-           ? h
-           : str_hash_fnv1_recursive<HashBits>(s + 1, (h * FNV1Params<HashBits>::prime) ^ HashVal<HashBits>((uint8_t)*s);
-}
-
-template <int HashBits>
-constexpr HashVal<HashBits> str_hash_fnv1(const char *str, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
-{
-  return str_hash_fnv1_recursive<HashBits>(str, result);
-}
-
-template <int HashBits>
-constexpr HashVal<HashBits> mem_hash_fnv1(const char *bytes, size_t len, HashVal<HashBits> result = FNV1Params<HashBits>::offset_basis)
-{
-  return mem_hash_fnv1_recursive<HashBits>(bytes, len, result);
-}
-
-#endif // CPP14_CONSTEXPR
-
-// by default use 32-bit FNV1
 constexpr HashVal<32> str_hash_fnv1(const char *s) { return str_hash_fnv1<32>(s); }
-
 constexpr HashVal<32> mem_hash_fnv1(const char *b, size_t len) { return mem_hash_fnv1<32>(b, len); }
+constexpr HashVal<32> str_hash_fnv1a(const char *s) { return str_hash_fnv1<32>(s, FNV1Params<32>::offset_basis, fnv1a_step<32>); }
+constexpr HashVal<32> mem_hash_fnv1a(const char *b, size_t len)
+{
+  return mem_hash_fnv1<32>(b, len, FNV1Params<32>::offset_basis, fnv1a_step<32>);
+}
+
+constexpr HashVal<32> operator""_h(const char *str, size_t len) { return mem_hash_fnv1<32>(str, len); }
+
+
+namespace ska
+{
+struct power_of_two_hash_policy;
+}
+
+template <typename T>
+struct Hash
+{
+  typedef ska::power_of_two_hash_policy hash_policy;
+  constexpr HashVal<32> operator()(const T &s) const
+  {
+    if constexpr (requires { s.c_str(); })
+      return str_hash_fnv1a(s.c_str());
+    else
+      return mem_hash_fnv1a(s.data(), s.size());
+  }
+};
+
+template <>
+struct Hash<const char *>
+{
+  typedef ska::power_of_two_hash_policy hash_policy;
+  constexpr HashVal<32> operator()(const char *str) const { return str_hash_fnv1a(str); }
+};
+
+template <typename T = const char *>
+using HashFNV1A = Hash<T>;
 
 inline uint32_t hash_int(uint32_t x)
 {
@@ -113,19 +114,3 @@ inline uint32_t hash_int(uint32_t x)
   x ^= x >> 15;
   return x;
 }
-
-constexpr HashVal<32> operator""_h(const char *str, size_t len) { return mem_hash_fnv1<32>(str, len); }
-
-template <class T>
-struct Hash;
-
-// Hash functor for using in std/eastl containers. Still constexpr for const char* and may
-// calculate hash for strings in compile-time. obj["mykey"] <- here hash will be
-// calculated in compile-time then compiling with optimization enabled
-template <>
-struct Hash<const char *>
-{
-  constexpr HashVal<32> operator()(const char *str) const { return str_hash_fnv1(str); }
-};
-
-typedef Hash<const char *> HashFNV1;

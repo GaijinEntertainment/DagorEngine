@@ -1,0 +1,125 @@
+include_optional "gbuffer_with_mixing.dshl"
+include "depth_above.dshl"
+include "skyLightParams.dshl"
+include "envi_cover_inc.dshl"
+
+macro USE_ENVI_COVER_STANDALONE(packed_normals)
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+
+  INIT_SKYLIGHT_PARAMS(cs)
+  USE_SKYLIGHT_PARAMS(cs)
+
+  if (packed_normals)
+  {
+    hlsl { #define GBUFFER_NORMALS_PACKED 1 }
+  }
+
+  INIT_BLURRED_DEPTH_ABOVE(cs)
+  USE_BLURRED_DEPTH_ABOVE(cs)
+
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_RW_GBUFFERS(false)
+  USE_PARTIAL_PACK_UNPACK_GBUFF(cs)
+
+  INIT_ENVI_COVER(cs, true, false, 0, true)
+  USE_ENVI_COVER(cs, true)
+
+  (cs) {
+    from_sun_direction@f3 = from_sun_direction;
+  }
+
+  hlsl(cs) {
+    struct EnviChangeValues
+    {
+      half3 albedo;
+      half smoothness;
+      half reflectance;
+      half translucency;
+      uint material;
+      //Save for encoding
+      uint dynamicFlags;
+      uint shadow;
+      half ao;
+      #if GBUFFER_NORMALS_PACKED
+        half normalAlpha;
+        uint savedExtraBits;
+      #endif
+    };
+
+    bool preLoadShouldExit(uint2 tc, out PackedGbuffer gbuf, out EnviChangeValues enviChangeValues, out float3 normal)
+    {
+      gbuf = (PackedGbuffer)0;
+      enviChangeValues = (EnviChangeValues)0;
+
+      gbuf.smoothness_reflectance_metallTranslucency_shadow = readGbuffReflectance(tc);
+      unpackGbufTranslucencyChannelW(gbuf.smoothness_reflectance_metallTranslucency_shadow.w, enviChangeValues.dynamicFlags, enviChangeValues.shadow);
+
+      BRANCH
+      if(isLandscape(enviChangeValues.dynamicFlags))
+        return true;
+
+
+      #if GBUFFER_NORMALS_PACKED
+        float4 extra_bits = readGbuffExtraBits(tc);
+        unpackExtraBitsAndMaterial(extra_bits, enviChangeValues.savedExtraBits, enviChangeValues.material);
+      #else
+        gbuf.normal_material = readGbuffNormalMat(tc);
+        unpackGbufNormalMaterial(gbuf.normal_material, normal, enviChangeValues.material);
+      #endif
+
+      if(isEmissiveShader(enviChangeValues.material) || (isDynamic(enviChangeValues.dynamicFlags) && !isFoliageShader(enviChangeValues.material)))
+        return true;
+
+      #if GBUFFER_NORMALS_PACKED
+        float4 normalAndAlpha = readGbuffNormal(tc);
+        normal = normalAndAlpha.xyz * 2 - 1;
+        enviChangeValues.normalAlpha = normalAndAlpha.w;
+      #endif
+
+      return false;
+    }
+
+    void unpackEnviChangeValues(uint2 tc, inout EnviChangeValues enviChangeValues, PackedGbuffer gbuf)
+    {
+      unpackGbufAlbedoAO(readGbuffAlbedoAO(tc), enviChangeValues.albedo, enviChangeValues.ao);
+
+      //Special unpacking needed, due to material assumptions and optimizations
+      half translucencyorMetalness = gbuf.smoothness_reflectance_metallTranslucency_shadow.z;
+      enviChangeValues.translucency = isSubSurfaceShader(enviChangeValues.material) ? translucencyorMetalness : 0;
+      enviChangeValues.smoothness = gbuf.smoothness_reflectance_metallTranslucency_shadow.x;
+      enviChangeValues.reflectance = gbuf.smoothness_reflectance_metallTranslucency_shadow.y;
+    }
+
+    void writeEnviChangeValues(EnviChangeValues enviChangeValues, float3 normal, uint2 tc)
+    {
+      writeGbuffAlbedoAO(tc, half4(enviChangeValues.albedo, enviChangeValues.ao)); // We know that it won't be emissive
+
+      #if GBUFFER_NORMALS_PACKED
+        writeGbuffExtraBits(tc, packExtraBitsNormalAndMaterial(normal, packExtraBits(enviChangeValues.savedExtraBits, enviChangeValues.material), enviChangeValues.material));
+      #else
+        writeGbuffNormalMat(tc, packGbufNormalMaterial(normal, enviChangeValues.material));
+      #endif
+
+      uint sssProfileOrShadow = enviChangeValues.material == SHADING_FOLIAGE ? enviChangeValues.shadow : SSS_PROFILE_NEUTRAL_TRANSLUCENT;
+      half4 gbuf3 = packGbufSmoothnessReflectancMetallTranslucencyShadow(enviChangeValues.smoothness, enviChangeValues.reflectance, enviChangeValues.translucency,
+                            enviChangeValues.dynamicFlags, sssProfileOrShadow);
+
+      writeGbuffReflectance(tc, gbuf3);
+    }
+
+    void applyStandaloneEnviCover(uint2 dtId, float4 worldPos, float3 normal, PackedGbuffer packedGbuf, EnviChangeValues enviChangeV)
+    {
+      float enviInfluence = 0;
+      EnviSnowParams enviParams = fillEnviSnowParams();
+      BRANCH
+      if(calculate_envi_cover_influence(worldPos.xyz, normal, enviParams, enviInfluence))
+        return;
+
+      unpackEnviChangeValues(dtId, enviChangeV, packedGbuf);
+
+      lerp_envi_cover(worldPos.xyz, normal, skylight_progress, enviInfluence, enviParams, enviChangeV.albedo, enviChangeV.reflectance,
+                      enviChangeV.smoothness, enviChangeV.translucency, enviChangeV.material);
+      writeEnviChangeValues(enviChangeV, normal, dtId);
+    }
+  }
+endmacro

@@ -30,6 +30,7 @@ public:
   void insertEntBlock(int index);
   void insertNodeBlock(int index);
   void convertSingleRandomEntityNodeToRegularNode(bool isRootNode);
+  size_t nodeCount() const { return nodes.size(); }
 
   DataBlock params;
   dag::Vector<eastl::unique_ptr<CompositeEditorTreeDataNode>> nodes;

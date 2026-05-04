@@ -45,7 +45,7 @@ int global_mutex_enter(void *mutex, int timeout_msec)
   if (timeout_msec >= 0 && sem)
   {
     int64_t end_reft = rel_ref_time_ticks(ref_time_ticks(), timeout_msec);
-    while ((ret = sem_wait(sem)) != 0 && ref_time_ticks() < end_reft)
+    while ((ret = sem_trywait(sem)) != 0 && ref_time_ticks() < end_reft)
       sleep_msec(1);
   }
 #else
@@ -81,7 +81,9 @@ int global_mutex_destroy(void *mutex, const char *mutex_name)
     int ret = sem_close(sem);
     if (ret)
       return ret;
-    return sem_unlink(mutex_name);
+    char name[260];
+    SNPRINTF(name, sizeof(name), "/%s", mutex_name);
+    return sem_unlink(name);
   }
   else
     return -1;

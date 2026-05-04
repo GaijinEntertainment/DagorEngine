@@ -38,7 +38,8 @@ static void distant_haze_settings_tracking_es_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     distant_haze_settings_tracking_es(evt
-        , ECS_RO_COMP(distant_haze_settings_tracking_es_comps, "render_settings__haze", bool)
+        , components.manager()
+    , ECS_RO_COMP(distant_haze_settings_tracking_es_comps, "render_settings__haze", bool)
     );
   while (++comp != compE);
 }
@@ -76,9 +77,9 @@ static ecs::CompileTimeQueryDesc set_shader_params_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_shader_params_ecs_query(Callable function)
+inline void set_shader_params_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_shader_params_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_shader_params_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -123,9 +124,9 @@ static ecs::CompileTimeQueryDesc is_active_ecs_query_desc
   make_span(is_active_ecs_query_comps+1, 9)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void is_active_ecs_query(Callable function)
+inline void is_active_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_active_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_active_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -151,9 +152,9 @@ static ecs::CompileTimeQueryDesc get_heat_haze_lod_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_heat_haze_lod_ecs_query(Callable function)
+inline void get_heat_haze_lod_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_heat_haze_lod_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_heat_haze_lod_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -181,9 +182,9 @@ static ecs::CompileTimeQueryDesc distant_haze_node_init_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void distant_haze_node_init_ecs_query(ecs::EntityId eid, Callable function)
+inline void distant_haze_node_init_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, distant_haze_node_init_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, distant_haze_node_init_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

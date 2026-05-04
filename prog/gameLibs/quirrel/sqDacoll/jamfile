@@ -1,8 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/sqDacoll ;
 StrictCompile = yes ;
-UseQuirrel = sq3+ sq3r sq3r+ ;
-ProjectUseQuirrel ?= sq3r+ ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/sqDacoll.lib ;
@@ -20,13 +19,8 @@ if $(Platform) in ps4 ps5 {
 }
 
 Sources =
+  sqDacoll.cpp
 ;
-
-if $(ProjectUseQuirrel) in sq3r sq3r+ {
-  Sources +=
-    sqDacoll.cpp
-  ;
-}
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

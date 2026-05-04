@@ -16,6 +16,7 @@ public:
   void validate();
   bool isValid() const { return currentCount == activeList.size(); }
   void invalidate() { centerPos += Point3(10000, -1000, 10000); }
+  void afterReset();
   void updatePos(const Point3 &pos);
   eastl::unique_ptr<class scene::TiledScene> windows;
   Point3 centerPos = {-10000, 1000, -10000};

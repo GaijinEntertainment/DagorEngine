@@ -1,0 +1,6 @@
+initial received: true
+first curVal: FRP_INITIAL
+c value: 20
+c2 initial: 11
+c2 after change: 21
+second curVal was: 11

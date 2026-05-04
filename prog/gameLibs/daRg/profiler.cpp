@@ -9,11 +9,13 @@
 namespace darg
 {
 
-const char *profiler_metric_names[NUM_PROFILER_METRICS] = {
+static const char *const profiler_metric_names_arr[] = {
   "Render total",
   "Before render total",
   "Render text",
   "Render 9rect",
+  "Render textarea",
+  "Recalc textarea",
   "Update total",
   "Component script",
   "RList rebuild",
@@ -24,7 +26,8 @@ const char *profiler_metric_names[NUM_PROFILER_METRICS] = {
   "Recalc layout *",
   "<dbg>",
 };
-
+static_assert(countof(profiler_metric_names_arr) == NUM_PROFILER_METRICS);
+const char *const *profiler_metric_names = profiler_metric_names_arr;
 
 static bool is_metric_cumulative(ProfilerMetricId m)
 {
@@ -35,8 +38,6 @@ static bool is_metric_cumulative(ProfilerMetricId m)
 
 Metric::Metric()
 {
-  G_ASSERT(profiler_metric_names[NUM_PROFILER_METRICS - 1]);
-
   memset(history, 0, sizeof(history));
   count = 0;
   firstPos = 0;

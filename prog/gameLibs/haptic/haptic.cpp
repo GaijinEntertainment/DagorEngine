@@ -71,3 +71,12 @@ void haptic::stopHapticEffects()
   stopHapticEffects_android();
 #endif
 }
+
+void haptic::useGamepadHaptic(bool useGamepad)
+{
+#if _TARGET_IOS
+  useGamepadHaptic_iOS(useGamepad);
+#elif _TARGET_ANDROID
+  useGamepadHaptic_android(useGamepad);
+#endif
+}

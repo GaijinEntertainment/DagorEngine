@@ -1,0 +1,6 @@
+mutated: [1, 2, 3, 4]
+mutate sub: [1, 2, 3, 4]
+modified: 15
+modify sub val: 15
+table mutated: x=1, y=2
+modify replaced: world

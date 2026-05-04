@@ -19,3 +19,9 @@ adaptation__debugger {
   _tags:t="render,dev"
   "adaptation__debug:AdaptationDebug"{}
 }
+
+postfx_levels__debugger {
+  _singleton:b=true
+  _tags:t="render,dev"
+  "postfx_levels__debug:PostfxLevelsDebug"{}
+}

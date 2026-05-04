@@ -97,7 +97,7 @@ function mkPieMenu(params=defParams){
   let internalIdx = Watched(null)
   let curIdx = params?.curIdx ?? Watched(null)
   let curAngle = Watched(null)
-  internalIdx.subscribe(function(v) { if (v != null) curIdx(v)})
+  internalIdx.subscribe_with_nasty_disregard_of_frp_update(function(v) { if (v != null) curIdx.set(v)})
   let children = place_by_circle({
     radius=radius, objects=objs.map(@(v, i) v?.ctor?(curIdx, i) ?? mDefCtor(v?.text)(curIdx, i) ), offset=3.0/4
   })

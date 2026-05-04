@@ -16,17 +16,25 @@ Sources =
   ec_init3d.cpp
   ec_viewportAxis.cpp
   ec_ViewportWindow.cpp
+  ec_ViewportWindowGridSettingsDialogController.cpp
   ec_ViewportWindowStatSettingsDialog.cpp
+  ec_ViewportWindowStatSettingsDialogController.cpp
   ec_GizmoSettingsDialog.cpp
   ec_camera_elem.cpp
   ec_camera_dlg.cpp
+  ec_editorCommand.cpp
+  ec_editorCommandSystem.cpp
   ec_geneditordata.cpp
+  ec_hotkeyEditorContextMenu.cpp
   ec_imguiInitialization.cpp
   ec_imguiInputHandler.cpp
   ec_input.cpp
+  ec_mainMenu.cpp
   ec_mainWindow_common.cpp
+  ec_modelessWindowControllerList.cpp
   ec_outliner.cpp
   ec_outlinerModel.cpp
+  ec_singleHotkeyEditor.cpp
   ec_screenshot.cpp
   ec_screenshotSettingsDialog.cpp
   ec_workspace.cpp
@@ -34,6 +42,7 @@ Sources =
   ec_gridobject.cpp
   ec_world_elem.cpp
   ec_application_creator.cpp
+  ec_startup.cpp
   ec_stat3d.cpp
   ec_wndGlobal.cpp
   captureCursor.cpp
@@ -47,6 +56,7 @@ Sources =
   ec_selwindow.cpp
   ec_status_bar.cpp
   ec_car_camera_elem_stub.cpp
+  ec_shaders.cpp
 ;
 
 if $(Platform) = windows {
@@ -61,7 +71,7 @@ else if $(Platform) = linux {
     ec_mainWindow_linux.cpp
   ;
 
-  AddLibs += -lXcursor ;
+  UseProgLibs += engine/osApiWrappers/linuxGUI ;
 }
 
 UseProgLibs =

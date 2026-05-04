@@ -3,7 +3,7 @@ options persistent_heap
 
 require ecs
 require daslib/debug
-require debugapi
+require daslib/debugger
 require strings
 require daslib/strings_boost
 require DagorSystem

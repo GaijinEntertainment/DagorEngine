@@ -12,10 +12,12 @@
 #include <startup/dag_globalSettings.h>
 #include <math/random/dag_random.h>
 #include "render/animatedSplashScreen.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "net/net.h" // net_stop
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 
 

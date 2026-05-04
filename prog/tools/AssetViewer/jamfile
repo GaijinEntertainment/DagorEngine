@@ -1,15 +1,17 @@
 Root    ?= ../../.. ;
 Location = prog/tools/AssetViewer ;
-KernelLinkage = dynamic ;
+KernelLinkage ?= dynamic ;
 BuildingTools = yes ;
 PhysName = Jolt ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
-UseD3DMultiList_windows = DX11 stub ;
-UseD3DMultiList_linux   = vulkan stub ;
+if ! $(UseD3DMultiList) {
+  UseD3DMultiList_windows = DX11 DX12 vulkan ;
+  UseD3DMultiList_linux   = vulkan ;
+}
 
-if $(Platform) = windows {
+if $(Platform) = windows && ! $(Sanitize) {
   PlatformSpec = vc17 ;
 }
 
@@ -25,7 +27,7 @@ HaveSound = no ;
 HaveSoundNet = no ;
 include $(Root)/prog/daNetGame/setup.jam ;
 
-UseQuirrel = sq3r+ ;
+UseQuirrel = yes ;
 
 VRDeviceSupport = yes ;
 VRDeviceOptional = yes ;
@@ -42,7 +44,7 @@ DagorFastPhys_MEASURE_PERF_FRAMES = 1000 ;
 DafxGravityZone ?= yes ;
 
 TargetType  = exe ;
-Target      = tools/assetViewer2.exe ;
+Target      = tools/assetViewer2 ;
 include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -65,13 +67,18 @@ Sources =
   av_version.cpp
   av_appwnd.cpp
   av_engine.cpp
+  av_assetSearchResultsWindow.cpp
+  av_assetSearchResultsListControl.cpp
+  av_consoleCommandProcessor.cpp
   av_mainAssetSelector.cpp
   av_tree.cpp
   av_srvEngine.cpp
   av_dagored2stub.cpp
   av_environment.cpp
   av_plugins.cpp
+  av_preferencesDialog.cpp
   av_viewportWindow.cpp
+  av_workCycleActRateDialog.cpp
 
   assetBuildCache.cpp
 
@@ -82,6 +89,7 @@ Sources =
 
   badRefFinder.cpp
   compositeAssetCreator.cpp
+  suboptimalAssetCollector.cpp
 ;
 
 if $(Platform) = windows {
@@ -188,9 +196,8 @@ UseProgLibs =
   gameLibs/textureUtil
   gameLibs/render/dof
   gameLibs/render/wind
-  gameLibs/render/volumetricLights/stub
   gameLibs/ecs/rendInst/stub
-  gameLibs/ecs/delayedAct
+  engine/daECS/delayedAct
 
   gameLibs/quirrel/bindQuirrelEx
   commonFx/commonFxGame
@@ -268,7 +275,7 @@ gamePulls +=
   actInThread_pull
 ;
 
-include $(Root)/$(Location)/_dng_libs.jam ;
+include $(Root)/$(Location)/_libs.jam ;
 
 gamePulls_action = make_module_pull_cpp ;
 Sources += gamePulls.jamvar ;
@@ -292,9 +299,15 @@ gameMain =
   int get_fps_limit(){return 0;}
   void set_corrected_fps_limit(int){}
   void exit_game(const char *){}
-  void (*get_memcollect_cur_thread_cb())(){ return nullptr;}
-  void update_float_exceptions(){}
 ;
+if $(KernelLinkage) = dynamic {
+  gameMain +=
+    void (*get_memcollect_cur_thread_cb())(){ return nullptr;}
+    void update_float_exceptions(){}
+  ;
+
+  ImportsRelativeDir = . ;
+}
 gameVersion =
   unsigned get_exe_version32(){return 0;}
   char const *get_exe_version_str(){return \"0.0.0.0\";}
@@ -302,5 +315,13 @@ gameVersion =
 ;
 Sources += dng_pulls.cpp ;
 opt on dng_pulls.cpp = -I$(Root)/prog/daNetGameLibs ;
+
+if $(KernelLinkage) != dynamic {
+  include $(Root)/prog/tools/sceneTools/assetExp/dabuild_static.jam ;
+  Dependencies += $(Root)/prog/tools/sceneTools/assetExp/jamfile-lib.jam ;
+
+  ImportProgLibs = ;
+  opt on main.cpp = -I $(Root)/prog/tools/libTools/daKernel ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

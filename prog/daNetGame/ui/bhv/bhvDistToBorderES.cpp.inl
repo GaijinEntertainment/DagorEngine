@@ -26,13 +26,13 @@ using namespace darg;
 SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvDistToBorder, bhv_dist_to_border, cstr);
 
 template <typename Callable>
-static bool get_poly_capzone_ecs_query(ecs::EntityId, Callable c);
+static bool get_poly_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static bool get_sphere_capzone_ecs_query(ecs::EntityId, Callable c);
+static bool get_sphere_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static bool get_box_capzone_ecs_query(ecs::EntityId, Callable c);
+static bool get_box_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 static float distance_to_polyCapzone(
   const Point2 *areaPoints, size_t numPoints, const Point3 &fromPos, float minHeight, float maxHeight)
@@ -44,7 +44,7 @@ static float distance_to_polyCapzone(
   for (const Point2 *pb = point, *pe = point + numPoints; pb != pe; a = b, ++pb)
   {
     b = *pb;
-    float distanceSquare = distance_point_to_line_segment_square(Point2::xz(fromPos), a, b);
+    float distanceSquare = sq_distance_point_to_line_segment(Point2::xz(fromPos), a, b);
     if (distanceSquare < minSquareDist)
       minSquareDist = distanceSquare;
   }
@@ -65,14 +65,14 @@ static float distance_to_polyCapzone(
 
 static bool calc_distance_to_capzone_border(ecs::EntityId targetCapzoneEid, const Point3 &fromPos, float &distOut)
 {
-  if (get_poly_capzone_ecs_query(targetCapzoneEid,
+  if (get_poly_capzone_ecs_query(*g_entity_mgr, targetCapzoneEid,
         [&](const ecs::Point2List &capzone__areaPoints, const float capzone__minHeight, const float capzone__maxHeight) {
           distOut = distance_to_polyCapzone(capzone__areaPoints.data(), capzone__areaPoints.size(), fromPos, capzone__minHeight,
             capzone__maxHeight);
         }))
     return true;
 
-  if (get_box_capzone_ecs_query(targetCapzoneEid, [&](ECS_REQUIRE(ecs::Tag box_zone) const TMatrix &transform) {
+  if (get_box_capzone_ecs_query(*g_entity_mgr, targetCapzoneEid, [&](ECS_REQUIRE(ecs::Tag box_zone) const TMatrix &transform) {
         BBox3 box = transform * BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
         const size_t numPoints = 4;
         Point2 boxPoints[numPoints];
@@ -90,7 +90,7 @@ static bool calc_distance_to_capzone_border(ecs::EntityId targetCapzoneEid, cons
       }))
     return true;
 
-  if (get_sphere_capzone_ecs_query(targetCapzoneEid, [&](const TMatrix &transform, const float sphere_zone__radius) {
+  if (get_sphere_capzone_ecs_query(*g_entity_mgr, targetCapzoneEid, [&](const TMatrix &transform, const float sphere_zone__radius) {
         distOut = length(transform.getcol(3) - fromPos) - sphere_zone__radius;
       }))
     return true;

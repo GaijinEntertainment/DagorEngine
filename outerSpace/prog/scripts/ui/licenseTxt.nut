@@ -82,7 +82,7 @@ function licenseUi() {
     children = [
       @() {rendObj = ROBJ_TEXT text = licenseTxtFname fontSize = hdpx(30) color = Color(220,200, 150) hplace = ALIGN_LEFT}
       {
-        size = static [sw(60), flex()]
+        size = const [sw(60), flex()]
         children = makeVertScroll({
           size=FLEX_H
           rendObj = ROBJ_SOLID
@@ -97,7 +97,7 @@ function licenseUi() {
            preformatted = FMT_KEEP_SPACES
         }})
       }
-      menuBtn("Accept", acceptLicense)
+      menuBtn("Accept", acceptLicense, {hotkeys=[["Enter"]]})
     ]
   }
 }

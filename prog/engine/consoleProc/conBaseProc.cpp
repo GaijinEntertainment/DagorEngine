@@ -61,7 +61,7 @@ static void delayedCommandsUpdate(void *)
 class ConsoleConProc : public console::ICommandProcessor
 {
 public:
-  ConsoleConProc() : console::ICommandProcessor(1000) {}
+  ConsoleConProc() : console::ICommandProcessor(console::CONSOLE_CON_PROC_PRIORITY) {}
   virtual void destroy() { unregister_regular_action_to_idle_cycle(delayedCommandsUpdate, nullptr); }
 
   static bool tobool(const char *s)

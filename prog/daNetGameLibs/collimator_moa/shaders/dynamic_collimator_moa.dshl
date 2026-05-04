@@ -1,0 +1,20 @@
+include "dynamic_trans_inc.dshl"
+include "collimatorMoaCore/dynamic_collimator_moa_inc.dshl"
+
+shader dynamic_collimator_moa
+{
+  blend_src = sa; blend_dst=isa;
+
+  COLLIMATOR_MOA_BASE()
+
+  if (in_editor_assume == yes) {
+    DYNAMIC_BLOCK_TRANS()
+    COLLIMATOR_MOA_EDITOR()
+  } else {
+    SDF_POLICY_RUNTIME_GENERATION()
+    COLLIMATOR_MOA_LENS()
+  }
+
+  compile("target_vs", "dynamic_collimator_moa_vs");
+  compile("target_ps", "dynamic_collimator_moa_ps");
+}

@@ -1,3 +1,5 @@
+//-file:named-like-should-return
+
 let o = {}
 
 function startswith(_a, _b) { return false }

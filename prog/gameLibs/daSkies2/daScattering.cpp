@@ -7,6 +7,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_textureIDHolder.h>
 #include <drv/3d/dag_resetDevice.h>
@@ -22,6 +23,7 @@
 #include <daSkies2/daScattering.h>
 #include "preparedSkies.h"
 #include <math/dag_Point3.h>
+#include <math/dag_mathUtils.h>
 #include "shaders/clouds2/cloud_settings.hlsli"
 #include "shaders/atmosphere/texture_sizes.hlsli"
 
@@ -120,22 +122,22 @@ void DaScattering::initMsApproximation()
   const uint32_t flags = checkComputeUse() ? TEXCF_UNORDERED : TEXCF_RTARGET;
   if (!skies_transmittance_texture)
   {
-    skies_transmittance_texture =
-      dag::create_tex(NULL, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, flags | fmt, 1, "skies_transmittance_texture");
+    skies_transmittance_texture = dag::create_tex(NULL, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT, flags | fmt, 1,
+      "skies_transmittance_texture", RESTAG_DASKIES2);
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_transmittance_texture_samplerstate"), clampSamplerHndl);
   }
 
   if (!skies_irradiance_texture)
   {
-    skies_irradiance_texture =
-      dag::create_tex(NULL, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, flags | fmt, 1, "skies_irradiance_texture");
+    skies_irradiance_texture = dag::create_tex(NULL, IRRADIANCE_TEXTURE_WIDTH, IRRADIANCE_TEXTURE_HEIGHT, flags | fmt, 1,
+      "skies_irradiance_texture", RESTAG_DASKIES2);
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_irradiance_texture_samplerstate"), clampSamplerHndl);
   }
 
   if (!skies_ms_texture)
   {
-    skies_ms_texture =
-      dag::create_tex(NULL, SKIES_MULTIPLE_SCATTERING_APPROX, SKIES_MULTIPLE_SCATTERING_APPROX, flags | fmt, 1, "skies_ms_texture");
+    skies_ms_texture = dag::create_tex(NULL, SKIES_MULTIPLE_SCATTERING_APPROX, SKIES_MULTIPLE_SCATTERING_APPROX, flags | fmt, 1,
+      "skies_ms_texture", RESTAG_DASKIES2);
     ShaderGlobal::set_sampler(::get_shader_variable_id("skies_ms_texture_samplerstate"), clampSamplerHndl);
   }
 }
@@ -169,23 +171,18 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
   {
     const int prepared_texsize = 32 * clamp(params.transmittanceColorQuality, 1, 4);
     name.printf(128, "%s_loss", base_name);
-    skies->preparedLoss = dag::create_tex(NULL, prepared_texsize, prepared_texsize, flg | fmtLoss, 1, name);
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = d3d::AddressMode::Clamp;
-    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-    smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("preparedLoss_samplerstate"), d3d::request_sampler(smpInfo));
+    skies->preparedLoss = dag::create_tex(NULL, prepared_texsize, prepared_texsize, flg | fmtLoss, 1, name, RESTAG_DASKIES2);
   }
   const int wMul = skies->panoramic ? 3 : 1;
   // if (params.scatteringScreenQuality > 0)
   {
     const int scatteringQuality = clamp(params.scatteringScreenQuality, 1, 8);
-    const int slices = clamp(params.scatteringDepthSlices, 8, 128);
+    const int slices = div_ceil(clamp(params.scatteringDepthSlices, 8, 128), SCATTERING_PARALLEL_Z) * SCATTERING_PARALLEL_Z;
     for (int i = 0; i < (reprojection ? skies->scatteringVolume.size() : 1); ++i)
     {
       name.printf(0, "%s_skies_frustum_scattering%d", base_name, i);
       skies->scatteringVolume[i] = dag::create_voltex(16 * wMul * scatteringQuality, (skies->panoramic ? 12 : 24) * scatteringQuality,
-        slices, fmtOut | flg, 1, name.c_str());
+        slices, fmtOut | flg, 1, name.c_str(), RESTAG_DASKIES2);
       d3d::resource_barrier({skies->scatteringVolume[i].getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     }
     d3d::SamplerInfo smpInfo;
@@ -213,11 +210,11 @@ PreparedSkies *create_prepared_skies(const char *base_name, const PreparedSkiesP
     for (int i = 0; i < (reprojection ? skies->skiesLutTex.size() : 1); ++i)
     {
       name.printf(0, "%s_skies_lut_tex_%d", base_name, i);
-      skies->skiesLutTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str()); // noAlphaHdrFmt
+      skies->skiesLutTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str(), RESTAG_DASKIES2); // noAlphaHdrFmt
 
       name.printf(0, "%s_skies_lut_mie_tex_%d", base_name, i);
       skies->skiesLutMieTex[i].close();
-      skies->skiesLutMieTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str());
+      skies->skiesLutMieTex[i] = dag::create_tex(NULL, w, h, fmtOut | flg, 1, name.c_str(), RESTAG_DASKIES2);
     }
     skies->skiesLutRestartTemporal = true;
     skies->resetGen = 0;
@@ -250,14 +247,14 @@ void use_prepared_skies(PreparedSkies *skies, PreparedSkies *panorama_skies)
     TextureInfo info;
     skies->scatteringVolume[0]->getinfo(info, 0);
     ShaderGlobal::set_int4(skies_froxels_resolutionVarId, info.w, info.h, info.d, 0);
-    ShaderGlobal::set_real(skies_froxels_distVarId, skies->froxelsMaxDist);
+    ShaderGlobal::set_float(skies_froxels_distVarId, skies->froxelsMaxDist);
   }
   ShaderGlobal::set_float4x4(skies_globtmVarId, skies->prevGlobTm);
-  ShaderGlobal::set_color4(prepare_originVarId, P3D(skies->preparedScatteringOrigin), 0);
-  ShaderGlobal::set_color4(preparedScatteringDistToTcVarId, skies->precomputedTcDist);
+  ShaderGlobal::set_float4(prepare_originVarId, P3D(skies->preparedScatteringOrigin), 0);
+  ShaderGlobal::set_float4(preparedScatteringDistToTcVarId, skies->precomputedTcDist);
   ShaderGlobal::set_int(skies_panoramic_scatteringVarId, skies->panoramic ? 1 : 0);
-  ShaderGlobal::set_color4(skies_min_max_horizon_muVarId, skies->skiesParams);
-  ShaderGlobal::set_real(skies_frustum_scattering_last_tzVarId,
+  ShaderGlobal::set_float4(skies_min_max_horizon_muVarId, skies->skiesParams);
+  ShaderGlobal::set_float(skies_frustum_scattering_last_tzVarId,
     (skies->panoramic || panorama_skies != nullptr) ? 1.0f : skies->skiesLastTcZ);
 }
 
@@ -273,7 +270,7 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
   set_viewvecs_to_shader(viewVecLT, viewVecRT, viewVecLB, viewVecRB, view_tm, proj_tm);
   set_reprojection(view_tm, proj_tm, skies.prevProjTm, skies.prevWorldPos, skies.prevGlobTm, skies.prevViewVecLT, skies.prevViewVecRT,
     skies.prevViewVecLB, skies.prevViewVecRB, nullptr);
-  ShaderGlobal::set_real(skies_frustum_scattering_last_tzVarId,
+  ShaderGlobal::set_float(skies_frustum_scattering_last_tzVarId,
     (skies.panoramic || panorama_skies != nullptr) ? 1.0f : skies.skiesLastTcZ);
   if (skies.scatteringVolume[1])
   {
@@ -320,8 +317,8 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
   // isEncodingInvalid makes LUT to be very ineffective, causing significant jump of quality
   const bool isEncodingInvalid = muMax == muMin;
   skies.skiesParams = Color4{muMin, muMed, muMax, isEncodingInvalid ? -1 : belowHorizonPartTc};
-  ShaderGlobal::set_color4(skies_min_max_horizon_muVarId, skies.skiesParams);
-  ShaderGlobal::set_color4(prev_skies_min_max_horizon_muVarId, skies.prevSkiesParams);
+  ShaderGlobal::set_float4(skies_min_max_horizon_muVarId, skies.skiesParams);
+  ShaderGlobal::set_float4(prev_skies_min_max_horizon_muVarId, skies.prevSkiesParams);
   skies.prevSkiesParams = skies.skiesParams;
   ShaderGlobal::set_texture(prev_skies_view_lut_texVarId, skies.skiesLutTex[1 - cFrame]);
   ShaderGlobal::set_texture(prev_skies_view_lut_mie_texVarId, skies.skiesLutMieTex[1 - cFrame]);
@@ -338,7 +335,7 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
 
     TextureInfo info;
     skies.skiesLutTex[cFrame]->getinfo(info, 0);
-    ShaderGlobal::set_color4(prepare_resolutionVarId, info.w, info.h, 0, 0);
+    ShaderGlobal::set_float4(prepare_resolutionVarId, info.w, info.h, 0, 0);
     ShaderGlobal::set_int(skies_continue_temporalVarId,
       restart_temporal || dot(primary_dir, skies.preparedScatteringPrimaryLight) < 0.9 ? 0 : 1);
     if (skies_view_lut_tex_prepare_cs)
@@ -365,7 +362,7 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
   {
     TIME_D3D_PROFILE(scatteringVolumeRender)
     // static int zn_zfarVarId = get_shader_variable_id("zn_zfar", true);
-    // debug("zn_zfar = %@", ShaderGlobal::get_color4_fast(zn_zfarVarId));
+    // debug("zn_zfar = %@", ShaderGlobal::get_float4(zn_zfarVarId));
     ShaderGlobal::set_texture(prev_skies_frustum_scatteringVarId, skies.scatteringVolume[1 - cFrame]);
     ShaderGlobal::set_sampler(prev_skies_frustum_scattering_samplerstateVarId, skies.scatteringVolumeSampler);
     ShaderGlobal::set_int(skies_continue_temporalVarId, restart_temporal ? 0 : 1);
@@ -390,8 +387,8 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
       maxDist = max(skies.minRange, maxFarDist * info.d / (info.d - 0.5f) * skies.rangeScale);
     }
     ShaderGlobal::set_int4(skies_froxels_resolutionVarId, info.w, info.h, info.d, 0);
-    ShaderGlobal::set_real(skies_froxels_distVarId, maxDist);
-    ShaderGlobal::set_real(skies_froxels_prev_distVarId, skies.froxelsMaxDist);
+    ShaderGlobal::set_float(skies_froxels_distVarId, maxDist);
+    ShaderGlobal::set_float(skies_froxels_prev_distVarId, skies.froxelsMaxDist);
     skies.froxelsMaxDist = maxDist;
 
     if (skies_integrate_froxel_scattering_cs)
@@ -449,7 +446,7 @@ bool DaScattering::prepareSkyForAltitude(const Point3 &origin, float tolerance, 
   }
   if (updateScattering)
   {
-    ShaderGlobal::set_color4(prepare_originVarId, P3D(origin), 0);
+    ShaderGlobal::set_float4(prepare_originVarId, P3D(origin), 0);
     prepareFrustumScattering(*skies, panorama_skies, primary_dir, view_tm, proj_tm, resetTemporalScattering);
     skies->preparedScatteringOrigin = origin;
     skies->preparedScatteringPrimaryLight = primary_dir;
@@ -470,9 +467,9 @@ bool DaScattering::prepareSkyForAltitude(const Point3 &origin, float tolerance, 
     1 - skies->fullDist * badQualityScale - offset * badQualityScale);
   TextureInfo ti;
   skies->preparedLoss->getinfo(ti, 0);
-  ShaderGlobal::set_color4(prepare_originVarId, P3D(origin), 0);
-  ShaderGlobal::set_color4(preparedScatteringDistToTcVarId, skies->precomputedTcDist);
-  ShaderGlobal::set_color4(prepare_resolutionVarId, ti.w, ti.h, 0, 0);
+  ShaderGlobal::set_float4(prepare_originVarId, P3D(origin), 0);
+  ShaderGlobal::set_float4(preparedScatteringDistToTcVarId, skies->precomputedTcDist);
+  ShaderGlobal::set_float4(prepare_resolutionVarId, ti.w, ti.h, 0, 0);
 
   TIME_D3D_PROFILE(prepareLoss);
   if (skies_prepare_transmittance_for_altitude_cs)
@@ -538,7 +535,7 @@ bool DaScattering::finishGpuReadback(bool force_sync_readback)
   TIME_PROFILE(skies_updateCPUIrradiance);
   // use sync readback in case of unfinished gpu readback before precompute_ms_approximation
   const uint32_t readbackLockFlags = force_sync_readback ? 0 : TEXLOCK_NOSYSLOCK;
-  if (auto lockedTex = lock_texture_ro(skies_irradiance_texture.getTex2D(), 0, TEXLOCK_READ | readbackLockFlags))
+  if (auto lockedTex = lock_texture<const ImageRawBytes>(skies_irradiance_texture.getTex2D(), 0, TEXLOCK_READ | readbackLockFlags))
   {
 #if DAGOR_DBGLEVEL > 0
     debug("updateCPUIrradiance from GPU");
@@ -616,7 +613,6 @@ void DaScattering::precompute(bool invalidateCpu)
 
   if (invalidateCpu)
     invalidateCPUData();
-  multipleScatteringGeneration++;
 }
 
 #include <math/dag_mathUtils.h>
@@ -627,15 +623,16 @@ void DaScattering::setParamsToShader()
 {
   setCPUConsts();
   AtmosphereParameters atmosphere = getAtmosphere();
-  ShaderGlobal::set_color4(skies_mie_extrapolating_coefVarId, P3D(atmosphere.mie_extrapolation_coef), 0);
-  ShaderGlobal::set_color4(skies_mie_phase_constsVarId, P4D(atmosphere.mie_phase_consts));
-  ShaderGlobal::set_real(skies_planet_radiusVarId, atmosphere.bottom_radius);
-  ShaderGlobal::set_real(skies_atmosphere_radiusVarId, atmosphere.top_radius);
+  ShaderGlobal::set_float4(skies_mie_extrapolating_coefVarId, P3D(atmosphere.mie_extrapolation_coef), 0);
+  ShaderGlobal::set_float4(skies_mie_phase_constsVarId, P4D(atmosphere.mie_phase_consts));
+  ShaderGlobal::set_float(skies_planet_radiusVarId, atmosphere.bottom_radius);
+  ShaderGlobal::set_float(skies_atmosphere_radiusVarId, atmosphere.top_radius);
 
   // Recreating buffer to avoid an error message related to incorret usage of the persistent buffer.
   // This is ok because, we recreate it only several times during initialization
   gpuAtmosphereCb.close();
-  gpuAtmosphereCb = dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<AtmosphereParameters>(), "atmosphere_cb");
+  gpuAtmosphereCb =
+    dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<AtmosphereParameters>(), "atmosphere_cb", RESTAG_DASKIES2);
   // FIXME: sort out create_persistent_cb underlying meaning and upload methods
   // for vulkan we use writeonly here because discard can't be happening in parallel to d3d::update_screen
   const int lockFlags = d3d::get_driver_code().is(d3d::vulkan) ? VBLOCK_WRITEONLY : VBLOCK_DISCARD;

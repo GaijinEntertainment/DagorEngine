@@ -12,6 +12,9 @@
 #include <drv/3d/dag_sampler.h>
 
 #include <mutex>
+#include <vector>
+#include <string>
+#include <unordered_map>
 
 #include "indicesManager.h"
 
@@ -78,15 +81,6 @@ struct ResourceHeap
 namespace drv3d_metal
 {
 
-enum
-{
-  // STAGE_CS, STAGE_PS, STAGE_VS
-  // artificial stage to be able to bind STAGE_VS resources to mesh and object shaders
-  STAGE_MS = 3,
-  STAGE_OS = 4,
-  STAGE_TOTAL
-};
-
 struct RenderAttachment
 {
   Texture *texture = nullptr;
@@ -113,7 +107,7 @@ enum
   Query = 1 << 6,
   BlendFactor = 1 << 7,
   DepthClip = 1 << 8,
-  Fill = 1 << 9,
+  Fill = 1 << 9
 };
 }
 
@@ -197,10 +191,15 @@ public:
   // there's 32kb limit for query buffer so use it
   static constexpr int MAX_SAMPLE_SAMPLES = 32768 / sizeof(MTLCounterResultTimestamp);
 
+  static constexpr uint32_t BINDLESS_TEXTURE_COUNT = 4096;
+  static constexpr uint32_t BINDLESS_BUFFER_COUNT = 16384;
+  static constexpr uint32_t BINDLESS_SAMPLER_COUNT = 512;
+
   struct Caps
   {
     bool readWriteTextureTier1 = true;
     bool readWriteTextureTier2 = true;
+    bool hasClampToBorder = true;
   };
 
   enum class CommandType : uint8_t
@@ -310,7 +309,7 @@ public:
     uint32_t offset_only : 1 = 0;
     Type resource_type : 8 = Type::Buffer;
   };
-  typedef eastl::vector<Render::Resource, framemem_allocator> ResourceArray;
+  typedef dag::Vector<Render::Resource, framemem_allocator> ResourceArray;
   static_assert(sizeof(Resource) == 24);
 
   struct ClearTexOnCreate
@@ -454,6 +453,7 @@ public:
   struct CopyBuf
   {
     Buffer *dst_ptr = nullptr;
+    Buffer::BufTex *buf_tex = nullptr;
     id<MTLBuffer> src = nil;
     id<MTLBuffer> dst = nil;
     int src_offset = 0;
@@ -543,7 +543,10 @@ public:
           if (constant_buffers_free.size() > max_const_buffers)
           {
             for (int i = max_const_buffers; i < constant_buffers_free.size(); i++)
+            {
+              TEXQL_ON_PERSISTENT_RELEASE_SZ(RingBufferItem::max_constant_size);
               [constant_buffers_free[i].buf release];
+            }
             constant_buffers_free.resize(max_const_buffers);
           }
         });
@@ -552,6 +555,7 @@ public:
       {
         constant_buffer.buf = createBuffer(RingBufferItem::max_constant_size,
           MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, "ring buffer");
+        TEXQL_ON_PERSISTENT_ALLOC_SZ(RingBufferItem::max_constant_size);
       }
       else
       {
@@ -587,7 +591,10 @@ public:
           if (dynamic_buffers_free.size() > max_dynamic_buffers)
           {
             for (int i = max_dynamic_buffers; i < dynamic_buffers_free.size(); i++)
+            {
+              TEXQL_ON_PERSISTENT_RELEASE_SZ(RingBufferItem::max_dynamic_size);
               [dynamic_buffers_free[i].buf release];
+            }
             dynamic_buffers_free.resize(max_dynamic_buffers);
           }
         });
@@ -596,6 +603,7 @@ public:
       {
         dynamic_buffer.buf = createBuffer(RingBufferItem::max_dynamic_size,
           MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared, "ring dynamic buffer");
+        TEXQL_ON_PERSISTENT_ALLOC_SZ(RingBufferItem::max_dynamic_size);
       }
       else
       {
@@ -658,11 +666,11 @@ public:
   eastl::deque<Encoder *> free_encoders;
   bool manual_hazard_tracking = true;
 
+  bool use_separate_command_buffer_for_each_encoder = false;
+
   Encoder *current_encoder = nil;
-  Encoder *current_enqueued_encoder = nullptr;
   eastl::vector<eastl::pair<uint32_t, uint64_t>> last_encoders;
   eastl::vector<eastl::pair<uint32_t, uint64_t>> last_encoders_current;
-  uint32_t current_enqueued_resources = 0;
   eastl::vector<bool> encoders_to_wait;
   eastl::vector<bool> encoders_to_wait_vs;
 
@@ -718,15 +726,6 @@ public:
     enc = nullptr;
   }
 
-  void track_resource_write_enqueued(HazardTracker &resource)
-  {
-    if (!manual_hazard_tracking)
-      return;
-    G_ASSERT(resource.heap == nullptr);
-    G_ASSERT(current_enqueued_encoder);
-    current_enqueued_resources++;
-  }
-
   // marks that resource is being set as rw/rt in current encoder
   void track_resource_write(HazardTracker &resource, bool is_from_vs = false)
   {
@@ -760,7 +759,7 @@ public:
 
   void track_resource_read_impl(const HazardEncoder &enc, bool is_from_vs = false)
   {
-    if (enc.encoder == 0 || enc.submit <= submits_completed)
+    if (enc.submit <= submits_completed)
       return;
 
     if (encoders_to_wait[enc.encoder] && encoders_to_wait_vs[enc.encoder] >= is_from_vs)
@@ -845,6 +844,7 @@ public:
   {
     RenderAttachment colors[Program::MAX_SIMRT];
     RenderAttachment depth;
+    RenderAttachment stencil;
     Viewport vp;
 
     bool isFullscreenViewport() const;
@@ -880,6 +880,9 @@ public:
     uint8_t cbuffer[MAX_CBUFFER_SIZE];
     int cbuffer_num_bound = 0;
 
+    float sampler_biases[16 + BINDLESS_SAMPLER_COUNT] = {};
+    int samplers_bound = 0;
+
     uint32_t stage = STAGE_TOTAL;
 
     bool is_vertex() const { return stage == STAGE_VS || stage == STAGE_MS || stage == STAGE_OS; }
@@ -896,6 +899,8 @@ public:
       cbuffer_num_bound = 0;
       immediate_slot = -1;
       immediate_dword_count = 0;
+
+      samplers_bound = 0;
 
       buffer_dirty_mask = ~0ull;
       sampler_dirty_mask = ~0ull;
@@ -950,19 +955,10 @@ public:
     uint32_t immediate_dwords[4] = {0};
     uint32_t immediate_dword_count = 0;
 
-    enum class SamplerSource : uint8_t
-    {
-      None = 0,
-      Texture,
-      Sampler
-    };
-
     struct TextureSlot
     {
       Texture *texture = nullptr;
-      bool read_stencil = false;
       bool as_uint = false;
-      SamplerSource source = SamplerSource::None;
       uint8_t mip_level = 0;
       uint8_t slice = 0;
     };
@@ -973,22 +969,25 @@ public:
     TextureSlot textures[MAX_STAGE_TEXTURES];
 
     id<MTLSamplerState> samplers[MAX_STAGE_TEXTURES];
+    float sampler_biases[16] = {};
+    float sampler_biases_remapped[16 + BINDLESS_SAMPLER_COUNT] = {};
 
     ConstBuffer cbuffer;
 
-    __forceinline void setTex(StageStorage &storage, int slot, Texture *tex, bool read_stencil = false, int mip = 0, int slice = 0,
+    __forceinline void setTex(StageStorage &storage, Shader *shader, int slot, Texture *tex, int mip = 0, int slice = 0,
       bool as_uint = false)
     {
       G_ASSERT(slot < MAX_STAGE_TEXTURES);
       G_ASSERT(!as_uint || slot >= MAX_SHADER_TEXTURES);
       auto &cache = textures[slot];
 
-      if (cache.texture != tex || cache.read_stencil != read_stencil || cache.as_uint != as_uint || cache.mip_level != mip ||
-          cache.slice != slice)
-        storage.texture_dirty_mask |= 1ull << slot;
+      if ((cache.texture != tex || cache.as_uint != as_uint || cache.mip_level != mip || cache.slice != slice) && shader)
+      {
+        if (shader->tex_slot_remap[slot] >= 0)
+          storage.texture_dirty_mask |= 1ull << shader->tex_slot_remap[slot];
+      }
 
       cache.texture = tex;
-      cache.read_stencil = read_stencil;
       cache.as_uint = as_uint;
       cache.mip_level = mip;
       cache.slice = slice;
@@ -1002,24 +1001,30 @@ public:
       {
         if (samplers[slot] != sampler)
           storage.sampler_dirty_mask |= 1ull << slot;
-        textures[slot].source = SamplerSource::Sampler;
       }
       samplers[slot] = sampler;
+      sampler_biases[slot] = bias;
     }
 
-    __forceinline void setBuf(StageStorage &storage, int slot, Buffer *buf, int offset = 0)
+    __forceinline void setBuf(StageStorage &storage, Shader *shader, int slot, Buffer *buf, int offset = 0)
     {
       G_ASSERT(slot < BUFFER_POINT_COUNT);
       if (buffers[slot])
         buffers[slot]->bound_slots &= ~(1ull << slot);
 
       int check_offset = buf ? buf->getDynamicOffset() + offset : offset;
-      if (buffers[slot] != buf || buffers_offset[slot] != check_offset)
+      if ((buffers[slot] != buf || buffers_offset[slot] != check_offset) && shader)
       {
         if (buf && buf->getTexture())
-          storage.texture_dirty_mask |= 1ull << slot;
+        {
+          if (shader->tex_slot_remap[slot] >= 0)
+            storage.texture_dirty_mask |= 1ull << shader->tex_slot_remap[slot];
+        }
         else
-          storage.buffer_dirty_mask |= 1ull << slot;
+        {
+          if (shader->buf_slot_remap[slot] >= 0)
+            storage.buffer_dirty_mask |= 1ull << shader->buf_slot_remap[slot];
+        }
       }
 
       buffers[slot] = buf;
@@ -1042,6 +1047,7 @@ public:
     void apply_textures(StageStorage &storage, Shader *shader, ResourceArray &resources);
     void apply_samplers(StageStorage &storage, Shader *shader, ResourceArray &resources);
     void apply_acceleration_structs(StageStorage &storage, Shader *shader, ResourceArray &resources);
+    void apply_biases(StageStorage &storage, Shader *shader, ResourceArray &resources);
 
     void reset();
     void removeBuf(Buffer *buf);
@@ -1074,22 +1080,64 @@ public:
     {.stage = STAGE_CS}, {.stage = STAGE_PS}, {.stage = STAGE_VS}, {.stage = STAGE_MS}, {.stage = STAGE_OS}};
   BindlessManager bindlessManager;
 
-  __forceinline void markDirty(StageStorage &storage, Buffer *buf)
+  __forceinline void markDirty(StageStorage &storage, Shader *shader, Texture *tex)
+  {
+    G_ASSERT(tex);
+
+    for (uint32_t slot = 0; slot < MAX_SHADER_TEXTURES; ++slot)
+    {
+      auto &cache = stages[storage.stage].textures[slot];
+      if (cache.texture == tex && shader->tex_slot_remap[slot] >= 0)
+        storage.texture_dirty_mask |= 1ull << shader->tex_slot_remap[slot];
+    }
+  }
+
+  __forceinline void markDirty(StageStorage &storage, Shader *shader, Buffer *buf)
   {
     G_ASSERT(buf);
-    if (buf && buf->getTexture())
-      storage.texture_dirty_mask |= buf->bound_slots;
-    else
-      storage.buffer_dirty_mask |= buf->bound_slots;
+    for (uint32_t i = 0; i < 64; ++i)
+    {
+      if (!(buf->bound_slots & (1ull << i)))
+        continue;
+      if (buf && buf->getTexture())
+      {
+        if (shader->tex_slot_remap[i] >= 0)
+          storage.texture_dirty_mask |= (1ull << shader->tex_slot_remap[i]);
+      }
+      else
+      {
+        if (shader->buf_slot_remap[i] >= 0)
+          storage.buffer_dirty_mask |= (1ull << shader->buf_slot_remap[i]);
+      }
+    }
   }
 
   void markBufferDirty(Buffer *buf)
   {
-    markDirty(storages[STAGE_VS], buf);
-    markDirty(storages[STAGE_MS], buf);
-    markDirty(storages[STAGE_OS], buf);
-    markDirty(storages[STAGE_PS], buf);
-    markDirty(storages[STAGE_CS], buf);
+    if (cur_prog && cur_prog->vshader)
+      markDirty(storages[STAGE_VS], cur_prog->vshader, buf);
+    if (cur_prog && cur_prog->mshader)
+      markDirty(storages[STAGE_MS], cur_prog->mshader, buf);
+    if (cur_prog && cur_prog->ashader)
+      markDirty(storages[STAGE_OS], cur_prog->ashader, buf);
+    if (cur_prog && cur_prog->pshader)
+      markDirty(storages[STAGE_PS], cur_prog->pshader, buf);
+    if (cur_prog && cur_prog->cshader)
+      markDirty(storages[STAGE_CS], cur_prog->cshader, buf);
+  }
+
+  void markTextureDirty(Texture *tex)
+  {
+    if (cur_prog && cur_prog->vshader)
+      markDirty(storages[STAGE_VS], cur_prog->vshader, tex);
+    if (cur_prog && cur_prog->mshader)
+      markDirty(storages[STAGE_MS], cur_prog->mshader, tex);
+    if (cur_prog && cur_prog->ashader)
+      markDirty(storages[STAGE_OS], cur_prog->ashader, tex);
+    if (cur_prog && cur_prog->pshader)
+      markDirty(storages[STAGE_PS], cur_prog->pshader, tex);
+    if (cur_prog && cur_prog->cshader)
+      markDirty(storages[STAGE_CS], cur_prog->cshader, tex);
   }
 
   bool forceClearOnCreate = false;
@@ -1132,8 +1180,6 @@ public:
 
   bool validate_framemem_bounds = false;
 
-  uint32_t number_of_frames_to_skip_after_error = 0;
-  uint32_t max_number_of_frames_to_skip_after_error = 0;
   bool report_gpu_errors = false;
   std::atomic<int> hadError;
 
@@ -1171,10 +1217,6 @@ public:
   IndicesManager<VDecl> vdecls;
 
   ShadersPreCache shadersPreCache;
-
-  static constexpr uint32_t BINDLESS_TEXTURE_COUNT = 4096;
-  static constexpr uint32_t BINDLESS_BUFFER_COUNT = 16384;
-  static constexpr uint32_t BINDLESS_SAMPLER_COUNT = 512;
 
   struct BindlessTextureCache
   {
@@ -1235,7 +1277,7 @@ public:
   BindlessBufferCache bindlessBuffers;
 
   Buffer *bindlessSamplerIdBuffer = nullptr;
-  eastl::vector<id<MTLSamplerState>> bindlessSamplers;
+  eastl::vector<float> bindlessSamplerBiases;
   eastl::vector<uint64_t> bindlessSamplersCache;
 
   API_AVAILABLE(ios(18.0), macos(15.0)) id<MTLResidencySet> residencySet = nil;
@@ -1275,7 +1317,8 @@ public:
     id<MTLBuffer> buf, int pitch, int imageSize);
   void queueResourceForDeletion(id<MTLResource> buf);
   void queueHeapForDeletion(id<MTLHeap> heap);
-  void queueCopyBuffer(Buffer *dst_buf, id<MTLBuffer> src, int src_offset, id<MTLBuffer> dst, int dst_offset, int size);
+  void queueCopyBuffer(Buffer *dst_buf, Buffer::BufTex *buf_tex, id<MTLBuffer> src, int src_offset, id<MTLBuffer> dst, int dst_offset,
+    int size);
   void queueUpdateBuffer(id<MTLBuffer> src, int src_offset, Buffer *dst_buf, int dst_offset, int size);
 
   void setTexture(unsigned stage, int slot, Texture *tex, int mip_level, int slice, bool as_uint);
@@ -1291,8 +1334,8 @@ public:
   void copyBuffer(Sbuffer *src, int srcOffset, Sbuffer *dst, int dstOffset, int size);
 
   void doTexCopyRegion(const TexCopyRegion &cmd);
-  void doClear(Texture *dst, int dst_level, int dst_layer, float z, float color[4], bool clear_int, bool color_write,
-    bool depth_write);
+  void doClear(Texture *dst, int dst_level, int dst_layer, float z, uint8_t stencil, float color[4], bool clear_int, bool color_write,
+    bool depth_write, bool stencil_write);
   void doClearTexture(uint16_t width, uint16_t height, uint8_t slices, uint8_t depth, uint8_t levels, id<MTLTexture> tex,
     int base_format, bool use_dxt);
   void doDispatch(Buffer *indirect_buffer, int offset, int tx, int ty, int tz);
@@ -1309,10 +1352,10 @@ public:
 
   uint64_t getTimestampResult(uint64_t timestamp);
 
-  int createVertexShader(const uint8_t *code);
+  int createVertexShader(const uint8_t *code, const uint8_t *meta = nullptr, const char *name = nullptr);
   void deleteVertexShader(int vs);
 
-  int createPixelShader(const uint8_t *code);
+  int createPixelShader(const uint8_t *code, const uint8_t *meta = nullptr, const char *name = nullptr);
   void deletePixelShader(int ps);
 
   int createVDdecl(VSDTYPE *d);
@@ -1325,7 +1368,7 @@ public:
 
   void setRenderPass(bool set);
 
-  int createComputeProgram(const uint8_t *code);
+  int createComputeProgram(const uint8_t *code, const uint8_t *meta = nullptr);
   void deleteComputeProgram(int cs);
 
   void clearBuffer(Buffer *buf, Buffer::BufTex *buff);
@@ -1385,7 +1428,7 @@ public:
   int getSupportedMTLVersion(void *mtl_version);
 
   void setRT(int index, const RenderAttachment &attach);
-  void setDepth(const RenderAttachment &attach);
+  void setDepth(const RenderAttachment &depth, const RenderAttachment &stencil);
 
   void restoreRT();
   void restoreDepth();
@@ -1411,6 +1454,8 @@ public:
   void MetalfxUpscale(Texture *color, Texture *output, uint32_t colorMode);
   void PrepareMetalfxUpscale(Texture *color, Texture *output, uint32_t colorMode);
 
+  static bool isRenderAcquiredInThisThread();
+
   enum class EncoderType
   {
     None = 0,
@@ -1424,6 +1469,8 @@ public:
 
   inline void ensureHaveEncoderExceptRenderFrontend(EncoderType type)
   {
+    bool do_flush = (type != encoder_type && encoder_type != EncoderType::None) || type == EncoderType::Render;
+
     if (type != EncoderType::Render)
     {
       if (type != EncoderType::None)
@@ -1437,8 +1484,22 @@ public:
       storages[STAGE_CS].reset();
       current_cs_pipeline = nullptr;
     }
+
+    if (use_separate_command_buffer_for_each_encoder && do_flush)
+    {
+      // so we don't do multiple flushes
+      encoder_type = EncoderType::None;
+      Program *backup_prog = cur_prog;
+      flush(false);
+      cur_prog = backup_prog;
+    }
     encoder_type = type;
   }
+
+  std::mutex command_buffer_mutex;
+  std::vector<std::string> command_buffer_labels;
+  std::unordered_map<void *, std::vector<std::string>> command_buffers;
+  bool enable_postmortem = false;
 
   inline void ensureHaveEncoderExceptRender(id<MTLCommandBuffer> commandBuffer, EncoderType type, const char *label = nullptr)
   {
@@ -1479,27 +1540,30 @@ public:
     if (type == EncoderType::Blit && !blitEncoder)
     {
       blitEncoder = [commandBuffer blitCommandEncoder];
-#if DAGOR_DBGLEVEL > 0
-      blitEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_blit")];
-#endif
+      if (enable_postmortem || DAGOR_DBGLEVEL > 0)
+        blitEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_blit")];
+      if (enable_postmortem)
+        command_buffer_labels.push_back(label ? label : "default_blit");
       if (blitEncoder == nil)
         DAG_FATAL("Failed to allocate blit encoder");
     }
     if (type == EncoderType::Compute && !computeEncoder)
     {
       computeEncoder = [commandBuffer computeCommandEncoder];
-#if DAGOR_DBGLEVEL > 0
-      computeEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_compute")];
-#endif
+      if (enable_postmortem || DAGOR_DBGLEVEL > 0)
+        computeEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_compute")];
+      if (enable_postmortem)
+        command_buffer_labels.push_back(label ? label : "default_compute");
       if (computeEncoder == nil)
         DAG_FATAL("Failed to allocate compute encoder");
     }
     if (type == EncoderType::Acceleration && !accelerationEncoder)
     {
       accelerationEncoder = [commandBuffer accelerationStructureCommandEncoder];
-#if DAGOR_DBGLEVEL > 0
-      accelerationEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_accel")];
-#endif
+      if (enable_postmortem || DAGOR_DBGLEVEL > 0)
+        accelerationEncoder.label = [NSString stringWithUTF8String:(label ? label : "default_accel")];
+      if (enable_postmortem)
+        command_buffer_labels.push_back(label ? label : "default_accel");
       if (accelerationEncoder == nil)
         DAG_FATAL("Failed to allocate compute encoder");
     }

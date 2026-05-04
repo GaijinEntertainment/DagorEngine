@@ -11,6 +11,7 @@ movable_rendinst {
   decals__bulletHoleMatrixId:i=0
   decals__sprayMatrixId:i=0
   decals__bloodPuddlesMatrixId:i=0
+  decals__explosionPatchMatrixId:i=0
 }
 
 moved_rendinst {

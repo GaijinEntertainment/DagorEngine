@@ -23,7 +23,6 @@ float4 prev_view_vecLB;
 float4 move_world_view_pos;
 
 texture prev_downsampled_close_depth_tex;
-texture ssao_prev_tex;
 
 shader render_big_light_shadows
 {
@@ -96,7 +95,7 @@ shader render_big_light_shadows
           float3 rayPos = startPos + dist*rayDir;
           float vignette_effect;
           float rayHeightmap = get_depth_above_fast(rayPos, vignette_effect);
-          if (vignette_effect<0.99 && rayHeightmap - 0.25/dist > rayPos.y)// && rayHeightmap < rayPos.y + 2 + dist)//disocclusion
+          if (vignette_effect<0.85 && rayHeightmap - 0.25/dist > rayPos.y)// && rayHeightmap < rayPos.y + 2 + dist)//disocclusion
           {
             //shadow *= exp2(-0.1*dist);
             shadow *= exp2(4*(rayPos.y - (rayHeightmap - 0.25/dist)));
@@ -162,7 +161,7 @@ shader temporal_big_light_shadows
     world_view_pos@f3 = world_view_pos;
     downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;//downsampled_close_dept\h_tex;
     big_shadows_tex@smp2d = big_shadows_tex;
-    //big_shadows_prev_tex@smp2d = big_shadows_prev_tex;
+    big_shadows_prev_tex@smp2d = big_shadows_prev_tex;
     big_light_pos_rads2@f4[] = {big_light_pos_rad_0, big_light_pos_rad_1, big_light_pos_rad_2, big_light_pos_rad_3};
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
 
@@ -171,7 +170,6 @@ shader temporal_big_light_shadows
     prev_view_vecLB_minus_view_vecLT@f3 = (prev_view_vecLB-prev_view_vecLT);
     prev_move_world_view_pos@f3= (-move_world_view_pos.xyz,0);
     prev_downsampled_close_depth_tex@smp2d = prev_downsampled_close_depth_tex;
-    ssao_prev_tex@smp2d = ssao_prev_tex;
   }
   hlsl {
     ##if big_shadows_cnt == one
@@ -356,9 +354,8 @@ shader temporal_big_light_shadows
         }
       }
       #endif
-      //
 
-      float4 historySample = tex2Dlod(ssao_prev_tex, float4(historyUV, 0, 0));//big_shadows_prev_tex
+      float4 historySample = tex2Dlod(big_shadows_prev_tex, float4(historyUV, 0, 0));
       //todo: add discontiniuity validation
       float motionTolerance = max(saturate(1-length(motionVector*screenSize)), saturate(1-length(prevCameraPos - cameraPos)*invRadius*4))*0.25;
 

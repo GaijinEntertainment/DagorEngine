@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
+include_optional "gbuffer_with_mixing.dshl"
 include "frustum.dshl"
 include "projectiveDecals/projective_decals_common.dshl"
 include "static_shadow.dshl"
@@ -14,17 +15,16 @@ shader projective_decal_decals_generator
       #include <projectiveDecals/projective_decals.hlsli>
       RWStructuredBuffer<ProjectiveDecalInstance> decals@uav;
     };
+    decalsToUpdateBuf@cbuf : register(1) hlsl {
+      cbuffer decalsToUpdateBuf@cbuf
+      {
+        #include <projectiveDecals/projective_decals_const.hlsli>
+        ProjectiveToUpdate decalsToUpdate[MAX_DECALS_TO_UPDATE];
+      };
+    }
   }
 
   hlsl(cs) {
-    // TODO: move it to (cs) when related compiler feature will be done
-    ProjectiveToUpdate decalsToUpdate[MAX_DECALS_TO_UPDATE] : register(c1);
-##if !hardware.metal
-    #if !SHADER_COMPILER_DXC
-    float4 last:register(c61);//compiler inability to determ size of arrays workaround
-    #endif
-##endif
-
     [numthreads( MAX_DECALS_TO_UPDATE, 1, 1 )]
     void main(uint3 dtId : SV_DispatchThreadID)
     {
@@ -39,14 +39,14 @@ shader projective_decal_decals_generator
         uint2 normal_du = encode_normal_up(decalsToUpdate[id].normal, decalsToUpdate[id].up);
         uint tex_id__matrix_id = decalsToUpdate[id].tid_mid_flags & 0xffff0000;
         decals[destId].normal_du_id_matrixId = uint2(normal_du.x, normal_du.y | tex_id__matrix_id);
-        decals[destId].params = encode_float4(decalsToUpdate[id].params);
+        decals[destId].params = packHalf2ToUint(decalsToUpdate[id].params);
       }
       else
       {
-        float4 old_params = decode_float4(decals[destId].params);
+        float4 old_params = unpackHalf2FromUint(decals[destId].params);
         if (flags & UPDATE_PARAM_Z)
           old_params.z = decalsToUpdate[id].params.z;
-        decals[destId].params = encode_float4(old_params);
+        decals[destId].params = packHalf2ToUint(old_params);
       }
     }
   }
@@ -55,7 +55,6 @@ shader projective_decal_decals_generator
 
 shader projective_decal_create_indirect
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     count@uav : register(projective_decals_target_count_uav_no) hlsl {
       RWByteAddressBuffer count@uav;
@@ -76,7 +75,6 @@ shader projective_decal_cull
 {
   INIT_AND_USE_FRUSTUM_CHECK_CS()
   PROJECTIVE_DECALS_MATRICES(spray_decal_matrices, SPRAY_DECALS_MAX_MATRICES_COUNT, cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     numDecals@u4 : register(projective_decals_original_count_const_no);
     original@uav : register(projective_decals_original_uav_no) hlsl {
@@ -138,7 +136,6 @@ texture spray_diff_tex;
 
 shader projective_decal_decals
 {
-  supports global_const_block;
   supports global_frame;
   z_write = false;
   z_test = true;
@@ -156,11 +153,6 @@ shader projective_decal_decals
   {
     static int projective_decal_writemask = 119;//RT0 rgb | RT1 rgb
     color_write = static projective_decal_writemask;
-
-    if (mobile_render != off)
-    {
-      INIT_STATIC_SHADOW_PS()
-    }
   }
 
   hlsl {
@@ -197,7 +189,7 @@ shader projective_decal_decals
       float decalSize = decals[decalId].pos_size.w;
       uint2 normal_du_id_matrixId = decals[decalId].normal_du_id_matrixId;
       float width = 0.3;
-      float4 params = decode_float4(decals[decalId].params);
+      float4 params = unpackHalf2FromUint(decals[decalId].params);
       float3 normal, du;
       decode_normal_up(normal_du_id_matrixId, normal, du);
       uint id = (normal_du_id_matrixId.y>>16)&127, matrixId = (normal_du_id_matrixId.y>>(16+7))&511;
@@ -222,10 +214,8 @@ shader projective_decal_decals
     }
   }
 
-  REDUCE_GBUFFER_MRT_MOBILE()
-  WRITE_GBUFFER()
+  WRITE_GBUFFER_WITH_MIXING(true, false, true)
   PROJECTIVE_DECALS_PS_COMMON()
-  ENABLE_ASSERT(ps)
 
   (ps) {
     spray_diff_tex@smpArray = spray_diff_tex;
@@ -236,9 +226,6 @@ shader projective_decal_decals
     GBUFFER_OUTPUT projective_decals_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 screen = GET_SCREEN_POS(input.pos);
-    ##if mobile_render == deferred
-      clip_by_static_opaque_mask(screen.xy);
-    ##endif
 
       float3 worldPos = get_decal_world_pos(GET_SCREEN_POS(input.pos));
       float3 sceneNormal = normalize(cross(ddx(worldPos), ddy(worldPos)));

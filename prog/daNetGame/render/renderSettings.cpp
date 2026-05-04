@@ -118,6 +118,8 @@ bool update_settings_entity(const DataBlock *level_override)
         *render_settings__inited = true;
       }
     }
+
+    g_entity_mgr->broadcastEventImmediate(OnRenderSettingsUpdated(eid));
     return true;
   }
 
@@ -207,4 +209,12 @@ void apply_united_vdata_settings(const DataBlock *scene_blk)
 
   if (!applied)
     prepare_united_vdata_setup();
+}
+
+ecs::EntityId get_render_settings(const ecs::Event &e)
+{
+  if (const auto *updEvent = e.cast<OnRenderSettingsUpdated>())
+    return updEvent->get<0>();
+
+  return g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
 }

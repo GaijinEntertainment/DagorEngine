@@ -472,6 +472,7 @@ struct LRUCachedFilesOpen
       crd = best.crd = new FullFileLoadCB(fname, DF_READ | DF_IGNORE_MISSING);
     if (DAGOR_UNLIKELY(!crd->fileHandle))
     {
+      best.fname = nullptr;
       dd_dump_base_paths();
       logerr("cannot restore buffer, file is missing: %s", fname);
       return nullptr;

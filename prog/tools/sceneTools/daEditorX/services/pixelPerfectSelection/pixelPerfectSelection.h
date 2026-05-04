@@ -5,6 +5,7 @@
 #include <3d/dag_textureIDHolder.h>
 #include <dag/dag_vector.h>
 #include <de3_pixelPerfectSelectionService.h>
+#include <EASTL/unique_ptr.h>
 
 class DynamicRenderableSceneInstance;
 class IGenViewportWnd;

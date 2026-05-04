@@ -8,6 +8,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <supp/_platform.h>
 #include <debug/dag_debug.h>
+#include <EASTL/algorithm.h>
 #include <stdio.h>
 #include <io.h>
 #include <malloc.h>
@@ -17,14 +18,19 @@
 #include <math/random/dag_random.h>
 #endif
 
+#define MAX_RETRIES_ON_READ_ERROR 3
+#define SLEEP_MSEC_ON_READ_ERROR  50
+
 static CritSecStorage critSec;
 static bool critSecInited = false;
 
 struct AsyncReadContext : public OVERLAPPED
 {
-  int bytesRead;
-  bool complete;
   void *bufPtr;
+  int bytesRead;
+  uint8_t retryCount;
+  bool complete;
+  bool errReported;
 };
 
 static AsyncReadContext ovPool[64];
@@ -180,12 +186,27 @@ static void __stdcall file_io_cr(unsigned long dwErrorCode, unsigned long dwNumb
     ctx->bytesRead = dwNumberOfBytesTransfered;
   else
   {
-    int len = ctx->bytesRead;
-    ctx->bytesRead = -(int)dwErrorCode; // store negative error code for future retrieval by dfa_check_complete
-    if (dag_on_read_error_cb)
-      dag_on_read_error_cb(ctx->hEvent, (int)ctx->Offset, len); // TODO: pass errcode to callback
+    ctx->InternalHigh = ctx->bytesRead;
+    ctx->bytesRead = -(int)dwErrorCode; // Store negative error code for future retrieval by `dfa_check_complete`
   }
   ctx->complete = true;
+}
+
+static inline bool place_read_request(AsyncReadContext &ctx)
+{
+  while (1)
+  {
+    BOOL ret = ReadFileEx(ctx.hEvent, ctx.bufPtr, ctx.bytesRead, &ctx, file_io_cr);
+    if (int err = ret ? ERROR_SUCCESS : GetLastError(); err != ERROR_SUCCESS)
+    {
+      logwarn("error placing async ReadFileEx(h=%p, ofs=%d, len=%d, buf=%p)=%d", ctx.hEvent, ctx.Offset, ctx.bytesRead, ctx.bufPtr,
+        err);
+      if (dag_on_read_error_cb && dag_on_read_error_cb(ctx.hEvent, ctx.Offset, ctx.bytesRead))
+        continue;
+      return false;
+    }
+    return true;
+  }
 }
 
 bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, int len)
@@ -203,24 +224,12 @@ bool dfa_read_async(void *handle, int asyncdata_handle, int offset, void *buf, i
 
   AsyncReadContext &p = ovPool[asyncdata_handle];
   memset(&p, 0, sizeof(p));
-
   p.Offset = offset;
   p.hEvent = handle; // "The ReadFileEx function ignores the OVERLAPPED structure's hEvent member."
   p.bufPtr = buf;
   p.bytesRead = len;
 
-place_req:
-  int ret = ReadFileEx(handle, buf, len, &p, file_io_cr);
-  if (!ret && GetLastError() != ERROR_SUCCESS)
-  {
-    DEBUG_CTX("error starting async read ReadFileEx(h=%p, ofs=%d, len=%d, buf=%p); ret=%d err=0x%p", handle, offset, len, buf, ret,
-      GetLastError());
-    if (dag_on_read_error_cb && dag_on_read_error_cb(handle, offset, len))
-      goto place_req;
-    return false;
-  }
-
-  return true;
+  return place_read_request(p);
 }
 
 bool dfa_check_complete(int asyncdata_handle, int *read_len)
@@ -234,6 +243,33 @@ bool dfa_check_complete(int asyncdata_handle, int *read_len)
     if (!ovPool[asyncdata_handle].complete)
       return false;
   }
+
+  if (auto ctx = &ovPool[asyncdata_handle]; ctx->bytesRead < 0) [[unlikely]] // Error condition?
+  {
+    // Limited retry count with small chance of error being transient
+    static constexpr int transientErrCodes[] = {
+      ERROR_IO_DEVICE, ERROR_CRC, ERROR_SEM_TIMEOUT, ERROR_IO_INCOMPLETE, ERROR_DEVICE_NOT_CONNECTED};
+    using namespace eastl;
+    int maxRetries = 1;
+    if (find(begin(transientErrCodes), end(transientErrCodes), -ctx->bytesRead) != end(transientErrCodes))
+      maxRetries = MAX_RETRIES_ON_READ_ERROR;
+    if (ctx->retryCount < maxRetries)
+    {
+      logwarn("ReadFileEx(h=%p, ofs=%d, len=%d, buf=%p) failed with %d, sleep %d ms and do %d-th retry", ctx->hEvent, ctx->Offset,
+        (int)ctx->InternalHigh, ctx->bufPtr, -ctx->bytesRead, SLEEP_MSEC_ON_READ_ERROR << ctx->retryCount, ctx->retryCount);
+      Sleep(SLEEP_MSEC_ON_READ_ERROR << ctx->retryCount++);
+      ctx->bytesRead = (int)ctx->InternalHigh;
+      ctx->Internal = ctx->InternalHigh = 0;
+      ctx->complete = false;
+      if (place_read_request(*ctx))
+        return false;
+      else
+        ctx->complete = true;
+    }
+    if (dag_on_read_error_cb && !eastl::exchange(ctx->errReported, true))
+      dag_on_read_error_cb(ctx->hEvent, (int)ctx->Offset, (int)ctx->InternalHigh);
+  }
+
   // DEBUG_CTX("asyncdata_handle=%d complete=%d errCode=%p bytesRed=%d",
   //   asyncdata_handle, ovPool[asyncdata_handle].complete, ovPool[asyncdata_handle].errCode, ovPool[asyncdata_handle].bytesRead);
 

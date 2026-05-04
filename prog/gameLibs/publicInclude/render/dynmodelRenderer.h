@@ -90,7 +90,8 @@ struct BasePerInstanceRenderData
   uint32_t flags = RENDER_OPAQUE | RENDER_DECAL | RENDER_TRANS | RENDER_DISTORTION; // For compatibility with deprecated renderer.
   Intervals intervals;
   shaders::OverrideStateId overrideStateId;
-  D3DRESID constDataBuf;
+  D3DRESID constDataId;
+  Sbuffer *constDataBuf = nullptr;
 };
 struct PerInstanceRenderData : public BasePerInstanceRenderData
 {
@@ -143,7 +144,7 @@ void set_check_shader_names(bool check);
 
 void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, const InitialNodes *optional_initial_nodes = NULL,
   const dynrend::PerInstanceRenderData *optional_render_data = NULL, dag::Span<int> *node_list = NULL,
-  const TMatrix4 *customProj = NULL, bool relative_to_camera = false);
+  const TMatrix4 *customProj = NULL, bool relative_to_camera = false, const Point3 *custom_camera_offset = NULL);
 
 void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj);
 void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, int &instanceToChunkOffset,
@@ -162,6 +163,8 @@ void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage);
 void clear(ContextId context_id);
 
 void clear_all_contexts();
+
+void after_device_reset();
 
 void set_reduced_render(ContextId context_id, float min_elem_radius, bool render_skinned);
 void set_prev_view_proj(const TMatrix4_vec4 &prev_view, const TMatrix4_vec4 &prev_proj);
@@ -224,7 +227,7 @@ bool can_render(const DynamicRenderableSceneInstance *instance);
 Statistics &get_statistics();
 void reset_statistics();
 
-using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &,
-  const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, int, void *);
+using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &, bool,
+  const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, const dynrend::InitialNodes *, int, void *);
 void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data);
 } // namespace dynrend

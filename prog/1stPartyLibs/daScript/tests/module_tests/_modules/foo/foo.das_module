@@ -1,0 +1,42 @@
+// foo.das_module — Module registration descriptor for the "foo" module family
+//
+// This file is included by project.das_project via `include foo/foo.das_module`.
+// It defines a custom module resolver function `module_foo` and registers it
+// in the global `modules` array at initialization time via [init].
+//
+// Resolution rules:
+//   - `require foo`         → module name "foo",       path DAS_PAK_ROOT + "foo/foo_main.das"
+//   - `require foo.random`  → module name "foo_random", path DAS_PAK_ROOT + "foo/foo_random.das"
+//   - Any other foo.X where X is in foo_files → "foo_X", DAS_PAK_ROOT + "foo/foo_X.das"
+//   - Non-foo requests      → ("", "", "") meaning "not handled, try next resolver"
+//
+// DAS_PAK_ROOT is set by the C++ ModuleFileAccess to the directory containing
+// the .das_project file, so paths resolve correctly regardless of working directory.
+
+options gen2
+let {
+    foo_files = fixed_array(
+        "random"
+    )
+}
+
+def module_foo(req, from : string) : module_info {
+    let request <- split_by_chars(req, "./")
+    if (request[0] != "foo") {
+        return ("", "", "")
+    }
+    if (length(request) == 1) {
+        return ("foo", DAS_PAK_ROOT + "foo/foo_main.das", "")
+    }
+    if (length(request) == 2) {
+        if (has_value(foo_files, request[1])) {
+            return ("foo_" + request[1], DAS_PAK_ROOT + "foo/foo_" + request[1] + ".das", "")
+        }
+    }
+    return ("", "", "")
+}
+
+[init]
+def register_foo {
+    push(modules, @@module_foo)
+}

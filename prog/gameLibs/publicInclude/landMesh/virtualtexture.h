@@ -6,6 +6,7 @@
 
 #include <3d/dag_resPtr.h>
 #include <math/integer/dag_IPoint2.h>
+#include <EASTL/unique_ptr.h>
 
 class ClipmapImpl;
 class TMatrix4;
@@ -18,7 +19,6 @@ enum class HWFeedbackMode
 {
   DEFAULT = 0,
   OPTIMIZED = 1,
-  DEBUG_COMPARE = 2,
   INVALID = -1,
 };
 
@@ -65,6 +65,38 @@ struct FeedbackProperties
   bool useFeedbackTexFilter; // = false
 };
 
+struct ZoomFeeedbackParams
+{
+  float height = 1.f;
+  float wk = 1.f;
+  int minimumZoom = 1;
+
+  // mipsCutoff parameters allow us to decrease mip levels to mipsCutoff.texMips on zoom levels equal or greater than mipsCutoff.zoom.
+  struct
+  {
+    int zoom = -1;
+    int texMips = -1;
+
+    bool isSet() const { return zoom > 0 && texMips > 0; }
+  } mipsCutoff;
+};
+
+struct SoftwareFeedbackParams
+{
+  TMatrix viewItm = TMatrix::IDENT;
+  float maxDist0 = 0.f;
+  float maxDist1 = 0.f;
+  float approxHt = 0.f;
+};
+
+struct DynamicDDScaleParams
+{
+  float targetAtlasUsageRatio = 0.0f;
+  float atlasUsageRatioHysteresisLow = 0.3f;
+  float atlasUsageRatioHysteresisHigh = 0.9f;
+  float proportionalTerm = 0.1f;
+};
+
 class Clipmap
 {
 public:
@@ -73,6 +105,9 @@ public:
     SOFTWARE_FEEDBACK,
     CPU_HW_FEEDBACK
   };
+
+  static constexpr int MAX_TEXTURES = 4;
+  static constexpr uint32_t BAD_TEX_FLAGS = -1;
 
   static const IPoint2 FEEDBACK_DEFAULT_SIZE;
   static const int MAX_TEX_MIP_CNT;
@@ -83,22 +118,23 @@ public:
   static bool isCompressionAvailable(uint32_t format);
   static bool is_uav_supported();
 
-  void initVirtualTexture(int cacheDimX, int cacheDimY, float maxEffectiveTargetResolution);
+  void initVirtualTexture(int cacheDimX, int cacheDimY, int tex_tile_size, int virtual_texture_mip_cnt, int virtual_texture_anisotropy,
+    float maxEffectiveTargetResolution);
   void closeVirtualTexture();
 
   // fallbackTexelSize is fallbackPage size in meters
-  // can be set to something like max(4, (1<<(getAlignMips()-1))*getPixelRatio*8) - 8 times bigger texel than last aligned clip, but
+  // can be set to something like max(4, (1<<(getMaxTexMips()-1))*getPixelRatio*8) - 8 times bigger texel than last clip, but
   // not less than 4 meters if we allocate two pages, it results in minimum 4*256*2 == 1024meters (512 meters radius) of fallback
   // pages_dim*pages_dim is amount of pages allocated for fallback
   void initFallbackPage(int pages_dim, float fallback_texel_size);
 
-  int getTexMips() const;
-  int getAlignMips() const;
+  int getMaxTexMips() const;
+  int getCurrentTexMips() const;
   void setMaxTileUpdateCount(int count);
   int getZoom() const;
   float getPixelRatio() const;
 
-  void setTexMips(int tex_mips);
+  void setMaxTexMips(int tex_mips);
 
   Clipmap(bool use_uav_feedback = true);
   ~Clipmap();
@@ -106,14 +142,7 @@ public:
   // sz - texture size of each clip, clip_count - number of clipmap stack. multiplayer - size of next clip
   // size in meters of latest clip, virtual_texture_mip_cnt - amount of mips(lods) of virtual texture containing tiles
   void init(float st_texel_size, uint32_t feedbackType, FeedbackProperties feedback_properties = getDefaultFeedbackProperties(),
-    int texMips = 6,
-#if _TARGET_IOS || _TARGET_ANDROID || _TARGET_C3
-    int tex_tile_size = 128
-#else
-    int tex_tile_size = 256
-#endif
-    ,
-    int virtual_texture_mip_cnt = 1, int virtual_texture_anisotropy = ::dgs_tex_anisotropy);
+    int texMips = 6, bool use_own_buffers = true);
   void close();
 
   // returns bits of rendered clip, or 0 if no clip was rendered
@@ -123,16 +152,17 @@ public:
   void setStartTexelSize(float st_texel_size);
 
   void setTargetSize(int w, int h, float mip_bias);
-  void prepareRender(ClipmapRenderer &render, bool turn_off_decals_on_fallback = false);
-  void prepareFeedback(const Point3 &viewer_pos, const TMatrix &view_itm, const TMatrix4 &globtm, float height, float maxDist0 = 0.f,
-    float maxDist1 = 0.f, float approx_ht = 0.f, bool force_update = false,
-    UpdateFeedbackThreadPolicy thread_policy = UpdateFeedbackThreadPolicy::PRIO_LOW); // for software feeback only
+  void prepareRender(ClipmapRenderer &render, dag::Span<Texture *> buffer_tex = {}, dag::Span<Texture *> compressor_tex = {},
+    bool turn_off_decals_on_fallback = false);
+  void prepareFeedback(const Point3 &viewer_pos, const TMatrix4 &globtm, const TMatrix4 *mirror_globtm_opt,
+    const ZoomFeeedbackParams &zoom_params, const SoftwareFeedbackParams &software_fb = {}, bool force_update = false,
+    UpdateFeedbackThreadPolicy thread_policy = UpdateFeedbackThreadPolicy::PRIO_LOW);
   void renderFallbackFeedback(ClipmapRenderer &renderer, const TMatrix4 &globtm);
   void finalizeFeedback();
 
-  void invalidatePointi(int tx, int ty, int lastMip = 0xFF); // not forces redraw!  (int tile coords)
-  void invalidatePoint(const Point2 &world_xz);              // not forces redraw!
-  void invalidateBox(const BBox2 &world_xz);                 // not forces redraw!
+  void invalidatePointi(const IPoint2 &ti, int lastMip = 0xFF); // not forces redraw!  (int tile coords)
+  void invalidatePoint(const Point2 &world_xz);                 // not forces redraw!
+  void invalidateBox(const BBox2 &world_xz);                    // not forces redraw!
   void invalidate(bool force_redraw = true);
 
   void recordCompressionErrorStats(bool enable);
@@ -154,15 +184,26 @@ public:
   void createCaches(const uint32_t *formats, const uint32_t *uncompressed_formats, uint32_t cnt, const uint32_t *buffer_formats,
     uint32_t buffer_cnt);
 
+  String getCacheBufferName(int idx);
+  IPoint2 getCacheBufferDim();
+  dag::ConstSpan<uint32_t> getCacheBufferFlags();
+  dag::ConstSpan<uint32_t> getCacheCompressorFlags();
+  int getCacheBufferMips();
+
   // Used to temporarily reduce amount of caches/buffers used in baking without complete reinit
   // For example, when transitioned to a unit type where full clipmap is unnecessary (plane)
   // Negative arguments signal to restore original cache/buffer count, previously registered in createCaches
   void setCacheBufferCount(int cache_count, int buffer_count);
 
-  // The gradients used for feedback/rendering mip resolution will be scaled to keep used/total tile ratio below targetAtlasUsageRatio
-  // newDDScale = oldDDScale + proportionalTerm * (currentAtlasUsageRatio - targetAtlasUsageRatio)
-  // The feature is enabled when targetAtlasUsageRatio > 0
-  void setDynamicDDScale(float targetAtlasUsageRatio, float proportionalTerm);
+  // Gradients used for feedback/rendering mip resolution will be scaled to keep used/total tile ratio below
+  // params.targetAtlasUsageRatio newDDScale = oldDDScale + proportionalTerm * (currentAtlasUsageRatio - params.targetAtlasUsageRatio)
+  // The feature is enabled when params.targetAtlasUsageRatio > 0
+  void setDynamicDDScale(const DynamicDDScaleParams &params);
+
+  // This function attempts to set anisotropy level (used for sampling and internal calculations) with minimal changes
+  // Returns true on success
+  // Returned false means that changing anisotropy without complete clipmap reinit (init + createCaches) is not possible
+  bool setAnisotropy(int anisotropy);
 
   void beforeReset();
   void afterReset();

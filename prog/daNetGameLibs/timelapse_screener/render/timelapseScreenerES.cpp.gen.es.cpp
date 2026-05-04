@@ -21,6 +21,7 @@ static void timelapse_screener_es_all(const ecs::UpdateStageInfo &__restrict inf
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     timelapse_screener_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RW_COMP(timelapse_screener_es_comps, "timelapse_screener__curTime", float)
     , ECS_RW_COMP(timelapse_screener_es_comps, "timelapse_screener__curWaitTimer", float)
     , ECS_RW_COMP(timelapse_screener_es_comps, "timelapse_screener__sequenceNum", int)
@@ -58,9 +59,9 @@ static ecs::CompileTimeQueryDesc query_camera_pos_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_camera_pos_ecs_query(Callable function)
+inline void query_camera_pos_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_camera_pos_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_camera_pos_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

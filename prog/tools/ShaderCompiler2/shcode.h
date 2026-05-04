@@ -23,29 +23,6 @@ namespace shc
 class TargetContext;
 }
 
-class SerializableSlice
-{
-  bindump::Address<int> mPtr;
-  uint32_t mCount;
-
-public:
-  void set(int *p, intptr_t n)
-  {
-    mPtr = p;
-    mCount = n;
-  }
-  void reset()
-  {
-    mPtr = nullptr;
-    mCount = 0;
-  }
-  const int *data() const { return mPtr; }
-  intptr_t size() const { return mCount; }
-
-  const int &operator[](int idx) const { return mPtr.get()[idx]; }
-  int &operator[](int idx) { return mPtr.get()[idx]; }
-};
-
 class ShaderCode
 {
 public:
@@ -138,12 +115,19 @@ public:
     StVarValue() : i4{0, 0, 0, 0} {}
   };
 
+  enum VarFlags
+  {
+    VF_HAS_STUB_COLOR = 1
+  };
+
   class Var
   {
   public:
     NameId<VarMapAdapter> nameId;
     ShaderVarType type;
     StVarValue defval;
+    uint32_t additionalFlags = 0;
+    uint32_t stubColor = 0;
     Var() { memset(&defval, 0, sizeof(defval)); }
   };
   SerializableTab<Var> stvar;

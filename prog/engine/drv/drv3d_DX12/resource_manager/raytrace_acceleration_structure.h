@@ -11,6 +11,13 @@ namespace drv3d_dx12
 {
 struct RaytraceAccelerationStructure
 {
+  enum class Type
+  {
+    Undefined,
+    Top,
+    Bottom,
+    OpacityMicroMap,
+  };
   // Warning: ASes are suballocated, this resource may also contain other ASes!
   ID3D12Resource *asHeapResource = {};
   // Only present for top-level ASes
@@ -23,6 +30,9 @@ struct RaytraceAccelerationStructure
   // Stuff required for graceful deallocation
   uint16_t slotInAsHeap = {};
   uint16_t asHeapIdx = {};
+  ResourceTagType tag = nullptr;
+  Type type = Type::Undefined;
+  bool isAlive = true;
 };
 
 struct RayTraceAccelerationStructurePool
@@ -31,6 +41,8 @@ struct RayTraceAccelerationStructurePool
   D3D12_GPU_VIRTUAL_ADDRESS baseAddress = {};
   uint32_t sizeInBytes = 0;
   ObjectPool<RaytraceAccelerationStructure> subStructures;
+  eastl::string debugName;
+  bool isDriverPool = false;
 };
 
 } // namespace drv3d_dx12

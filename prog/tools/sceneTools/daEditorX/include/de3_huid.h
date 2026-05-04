@@ -23,6 +23,7 @@ static constexpr unsigned HUID_IWriteAddLtinputData = 0xFDB7238Du;  // IWriteAdd
 static constexpr unsigned HUID_IBinaryDataBuilder = 0x0B2E4A51u;    // IBinaryDataBuilder
 static constexpr unsigned HUID_IOnExportNotify = 0xB301BE83u;       // IOnExportNotify
 static constexpr unsigned HUID_IPluginAutoSave = 0xF5D85BF6u;       // IPluginAutoSave
+static constexpr unsigned HUID_IPluginBeforeClose = 0x3F8B2D01u;    // IPluginBeforeClose
 static constexpr unsigned HUID_IGatherStaticGeometry = 0x148BAFE8u; // IGatherStaticGeometry
 static constexpr unsigned HUID_ILightingChangeClient = 0x73E29D7Cu; // ILightingChangeClient
 static constexpr unsigned HUID_IRenderOnCubeTex = 0x43625504u;      // IRenderOnCubeTex

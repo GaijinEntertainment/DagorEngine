@@ -26,7 +26,7 @@ extern bool lq_not_more_than_split_bq_difftex;
 
 extern void (*on_tex_created)(BaseTexture *t);
 extern void (*on_tex_released)(BaseTexture *t);
-extern void (*on_buf_changed)(bool add, int delta_sz_kb);
+extern void (*on_persistent_changed)(bool add, int delta_sz_kb);
 extern void (*unload_on_drv_shutdown)();
 extern void (*on_frame_finished)();
 extern unsigned (*get_tex_lfu)(TEXTUREID texId);
@@ -118,18 +118,18 @@ inline bool isTexStub(BaseTexture *t) { return find_value_idx(texStub, t) >= 0; 
 #define TEXQL_ON_ALLOC(BT)   tql::on_tex_created(BT)
 #define TEXQL_ON_RELEASE(BT) tql::on_tex_released(BT)
 
-#define TEXQL_ON_BUF_ALLOC(B)                               \
-  do                                                        \
-  {                                                         \
-    tql::on_buf_changed(true, tql::sizeInKb(B->getSize())); \
+#define TEXQL_ON_PERSISTENT_ALLOC(B)                               \
+  do                                                               \
+  {                                                                \
+    tql::on_persistent_changed(true, tql::sizeInKb(B->getSize())); \
   } while (0)
-#define TEXQL_ON_BUF_RELEASE(B) tql::on_buf_changed(false, -tql::sizeInKb(B->getSize()))
+#define TEXQL_ON_PERSISTENT_RELEASE(B) tql::on_persistent_changed(false, -tql::sizeInKb(B->getSize()))
 
-#define TEXQL_ON_BUF_ALLOC_SZ(sz)                 \
-  do                                              \
-  {                                               \
-    tql::on_buf_changed(true, tql::sizeInKb(sz)); \
+#define TEXQL_ON_PERSISTENT_ALLOC_SZ(sz)                 \
+  do                                                     \
+  {                                                      \
+    tql::on_persistent_changed(true, tql::sizeInKb(sz)); \
   } while (0)
-#define TEXQL_ON_BUF_RELEASE_SZ(sz) tql::on_buf_changed(false, -tql::sizeInKb(sz))
+#define TEXQL_ON_PERSISTENT_RELEASE_SZ(sz) tql::on_persistent_changed(false, -tql::sizeInKb(sz))
 
 #define TEXQL_SHUTDOWN_TEX() tql::unload_on_drv_shutdown()

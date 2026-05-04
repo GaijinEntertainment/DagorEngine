@@ -1,4 +1,7 @@
 float4 colorSaturation = (1,1,1,1);
+float4 colorSaturationLow = (1,1,1,1);
+float4 colorSaturationHigh = (1,1,1,1);
+float colorSaturationHighVsLowCurve = 1;
 float4 colorContrast   = (1,1,1,1);
 float4 colorGamma      = (1,1,1,1);
 float4 colorGain       = (1,1,1,1);
@@ -30,12 +33,15 @@ float4 hueToSaturationValueAdd = (0,0,0,0);
 
 macro COLOR_GRADING_PARAMS(code)
   (code) {
-    colorSaturation @f4  = colorSaturation;
-    colorContrast   @f4  = colorContrast;
-    colorGamma      @f4  = colorGamma;
-    colorGain       @f4  = colorGain;
-    colorOffset     @f4  = colorOffset;
-    hueToSaturation @f4  = (hueToSaturationKey.r,hueToSaturationKey.g,hueToSaturationKey.b,hueToSaturationKeyFalloff);
+    colorSaturation @f4    = colorSaturation;
+    colorSaturationLow@f4  = colorSaturationLow;
+    colorSaturationHigh@f4 = colorSaturationHigh;
+    colorSaturationHighVsLowCurve@f1 = colorSaturationHighVsLowCurve;
+    colorContrast   @f4    = colorContrast;
+    colorGamma      @f4    = colorGamma;
+    colorGain       @f4    = colorGain;
+    colorOffset     @f4    = colorOffset;
+    hueToSaturation @f4    = (hueToSaturationKey.r,hueToSaturationKey.g,hueToSaturationKey.b,hueToSaturationKeyFalloff);
     hueToSaturationValueMul @f4 = hueToSaturationValueMul;
     hueToSaturationValueAdd @f4 = hueToSaturationValueAdd;
 
@@ -93,6 +99,9 @@ macro COLOR_GRADING_PARAMS(code)
 
       float3 gradedColor =  colorCorrectSMH(balancedColor,luma,
         max(0, colorSaturation*lerp(float4(1,1,1,1), hueToSaturationValueMul, hueSaturationEffect) + lerp(float4(0,0,0,0),hueToSaturationValueAdd,hueSaturationEffect)),
+        colorSaturationLow,
+        colorSaturationHigh,
+        colorSaturationHighVsLowCurve,
         colorContrast  ,
         colorGamma     ,
         colorGain      ,

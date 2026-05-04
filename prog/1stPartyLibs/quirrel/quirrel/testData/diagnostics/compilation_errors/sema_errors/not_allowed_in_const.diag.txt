@@ -1,0 +1,8 @@
+ERROR: increment expression is not allowed in constant
+testData/diagnostics/compilation_errors/sema_errors/not_allowed_in_const.nut:3:10
+
+local i = 0
+const X = i++
+          ^--
+
+

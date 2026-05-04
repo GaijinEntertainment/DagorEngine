@@ -10,6 +10,7 @@
 
 class DataBlock;
 class String;
+class WinAutoLock;
 
 // Picture id type
 typedef int PICTUREID;
@@ -83,6 +84,7 @@ bool load_tex_atlas_data(const char *ta_fn, DataBlock &out_ta_blk, String &out_t
 bool is_picture_in_dynamic_atlas(const char *file_name, bool *out_premul_alpha = NULL);
 
 
+struct PictureRenderContext;
 struct PictureRenderFactory
 {
   PictureRenderFactory *next = NULL; // slist
@@ -97,9 +99,16 @@ struct PictureRenderFactory
   virtual void unregistered() = 0;
   virtual void clearPendReq() = 0;
   virtual bool match(const DataBlock &pic_props, int &out_w, int &out_h) = 0;
-  virtual bool render(Texture *to, int x, int y, int w, int h, const DataBlock &pic_props, PICTUREID pid) = 0;
+  virtual void queueRender(PictureRenderContext &ctx, WinAutoLock *lock) = 0;
   virtual void updatePerFrame() {}
 };
+
+struct PictureDelayedRenderFactory : public PictureRenderFactory
+{
+  void queueRender(PictureRenderContext &ctx, WinAutoLock *lock) final;
+  virtual bool doRender(Texture *to, int x, int y, int w, int h, const DataBlock &pic_props, PICTUREID pid) = 0;
+};
+
 void register_pic_render_factory(PictureRenderFactory *f);
 void unregister_pic_render_factory(PictureRenderFactory *f);
 } // namespace PictureManager

@@ -1,1 +1,0 @@
-Generates random file name.

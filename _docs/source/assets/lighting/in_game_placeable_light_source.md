@@ -45,40 +45,38 @@ example, templates can be stored in:
 
 ## Example Configuration: Dynmodel with Rendinst and Light
 
-```text
-is_ring_light_tripod_stand_a_on_flicker{
-                          // General template name for the object placed in the game.
-                          // This example represents a tripod stand with a flickering light.
+```blk
+is_ring_light_tripod_stand_a_on_flicker{  /* General template name for the object placed in the game.
+                                             This example represents a tripod stand with a flickering light. */
 
-  _use:t="entity_prefab"  // Required. Provides the base for relative transforms using local
-                          // coordinates relative to the rendinst.
-                          // Example matrix: [[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]].
+  _use:t="entity_prefab"  /* Required. Provides the base for relative transforms using local
+                             coordinates relative to the rendinst.
+                             Example matrix: [[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]. */
 
   _use:t="replicating"    // Required. Enables server-side replication of the entity.
 
-  _use:t="placeable_rendinst"  // Required only when using a rendinst.
-                               // Not needed for dynmodel-only setups.
+  _use:t="placeable_rendinst"  /* Required only when using a rendinst.
+                                  Not needed for dynmodel-only setups. */
 
   _use:t="is_ring_light_tripod_stand_a_flicker_mesh_a"
-                          // Required. Includes both the light template and dynmodel:
-                          // - Light: 'is_ring_light_tripod_stand_a_flicker_light_a_template'
-                          // - Dynmodel: 'animchar__res:t="is_ring_light_tripod_stand_a_flicker_char"'
+                               /* Required. Includes both the light template and dynmodel:
+                                  - Light: 'is_ring_light_tripod_stand_a_flicker_light_a_template'
+                                  - Dynmodel: 'animchar__res:t="is_ring_light_tripod_stand_a_flicker_char"' */
 
   ri_extra__name:t="is_ring_light_tripod_stand_a_base"
-                          // Reference to the rendinst (e.g., a tripod base without emissive parts).
-                          // This component is separate from the dynmodel.
+                               /* Reference to the rendinst (e.g., a tripod base without emissive parts).
+                                  This component is separate from the dynmodel. */
 
-  "entity_prefab__templatesToCreate:shared:object"{
-                          // Override for the light's relative transform.
+  "entity_prefab__templatesToCreate:shared:object"{  // Override for the light's relative transform.
 
     "is_ring_light_tripod_stand_a_flicker_light_a:object"{
-                          // Ensure the light name matches the reference in the dynmodel template.
-                          // In this example, the light 'is_ring_light_tripod_stand_a_flicker_mesh_a'
-                          // is referenced.
+                               /* Ensure the light name matches the reference in the dynmodel template.
+                                  In this example, the light 'is_ring_light_tripod_stand_a_flicker_mesh_a'
+                                  is referenced. */
 
       relativeTransform:m=[    // Local transform matrix relative to the parent rendinst.
-        [-1, 0, -8.9407e-08]   // This positions and orients the light as it would be configured
-        [0, 1, 0]              // in a composite setup.
+        [-1, 0, -8.9407e-08]   // This positions and orients the light as it would be configured in a composite setup.
+        [0, 1, 0]
         [2.98023e-07, 0, -4.82543]
         [-3.3617e-05, 1.53435, -0.119995]
       ]
@@ -89,19 +87,17 @@ is_ring_light_tripod_stand_a_on_flicker{
 
 ## Example Configuration: Static Light Fixture with Rendinst Only
 
-```text
-sovmod_electric_a_collet_a_lamp_on_light{
-                               // General template name for a static light fixture.
-                               // Combines a rendinst (lightbulb mesh) and a light source.
+```blk
+sovmod_electric_a_collet_a_lamp_on_light{  /* General template name for a static light fixture.
+                                              Combines a rendinst (lightbulb mesh) and a light source. */
   _use:t="entity_prefab"
   _use:t="replicating"
   _use:t="placeable_rendinst"
   ri_extra__name:t="sovmod_electric_a_collet_a_lamp_on"
 
   "entity_prefab__templatesToCreate:shared:object"{
-    "omni_light_fluorescent_2_5_warm_a:object"{
-                               // Adds the light source as a child object via override.
-                               // No prior definition is required in this template.
+    "omni_light_fluorescent_2_5_warm_a:object"{  /* Adds the light source as a child object via override.
+                                                    No prior definition is required in this template. */
       relativeTransform:m=[
         [1, 0, 0]
         [0, 1, 0]
@@ -172,7 +168,7 @@ sovmod_electric_a_collet_a_lamp_on_light{
   If needed, you can embed additional parameters such as color or intensity
   directly within the light override block:
 
-  ```text
+  ```blk
   "entity_prefab__templatesToCreate:shared:object"{
     "omni_light_fluorescent_2_5_warm_a:object"{
       relativeTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, -0.57, 0]]

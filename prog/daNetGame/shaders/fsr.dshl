@@ -1,7 +1,6 @@
 include "hardware_defines.dshl"
 shader fsr_upsampling, fsr_sharpening
 {
-  ENABLE_ASSERT(cs)
   hlsl(cs)
   {
     #define WIDTH 64

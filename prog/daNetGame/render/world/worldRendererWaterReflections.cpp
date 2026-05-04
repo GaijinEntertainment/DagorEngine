@@ -39,14 +39,14 @@ void WorldRenderer::initWaterPlanarReflection()
   refl_pov_data = get_daskies()->createSkiesData("refl", reflectionSkiesParams);
 
   planarReflectionMipRenderer = eastl::make_unique<GaussMipRenderer>();
-  planarReflectionMipRenderer->init();
+  planarReflectionMipRenderer->init(d3d::AddressMode::Clamp);
 
   waterPlanarReflectionCloudsNode =
     dafg::register_node("water_planar_reflection_clouds_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       registry.multiplex(dafg::multiplexing::Mode::None);
 
       auto waterPlanarReflection = registry
-                                     .createTexture2d("water_planar_reflection_clouds", dafg::History::No,
+                                     .createTexture2d("water_planar_reflection_clouds",
                                        {TEXFMT_A16B16G16R16F | TEXCF_RTARGET,
                                          registry.getResolution<2>("main_view", 1.0f / WATER_PLANAR_REFLECTION_RESOLUTION_DIV), 5})
                                      .atStage(dafg::Stage::POST_RASTER)
@@ -55,7 +55,7 @@ void WorldRenderer::initWaterPlanarReflection()
 
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      registry.create("water_planar_reflection_clouds_sampler", dafg::History::No).blob(d3d::request_sampler(smpInfo));
+      registry.create("water_planar_reflection_clouds_sampler").blob(d3d::request_sampler(smpInfo));
       return [this, waterPlanarReflection]() {
         FRAME_LAYER_GUARD(-1);
 
@@ -64,13 +64,13 @@ void WorldRenderer::initWaterPlanarReflection()
         Point3 reflectionPos = waterPlanarReflectionViewItm.getcol(3);
         Point3 reflectionDir = waterPlanarReflectionViewItm.getcol(2);
 
-        d3d::set_render_target(waterPlanarReflection.get(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{waterPlanarReflection.get(), 0, 0}});
 
         d3d::settm(TM_VIEW, waterPlanarReflectionViewTm);
         d3d::settm(TM_PROJ, &waterPlanarReflectionProjTm);
         set_viewvecs_to_shader(waterPlanarReflectionViewTm, waterPlanarReflectionProjTm);
 
-        get_daskies()->renderEnvi(true, dpoint3(reflectionPos), dpoint3(reflectionDir), 0, UniqueTex{}, UniqueTex{}, BAD_TEXTUREID,
+        get_daskies()->renderEnvi(true, dpoint3(reflectionPos), dpoint3(reflectionDir), 0, UniqueTex{}, UniqueTex{}, nullptr,
           refl_pov_data, waterPlanarReflectionViewTm, waterPlanarReflectionProjTm, waterPlanarReflectionPersp);
 
         planarReflectionMipRenderer->render(waterPlanarReflection.get());
@@ -89,13 +89,13 @@ void WorldRenderer::initWaterPlanarReflectionTerrainNode()
       // Avoid waiting in renderLmeshReflection(); since PRIO_AS_LATE_AS_POSSIBLE doesn't work
       registry.orderMeAfter("resolve_gbuffer_node");
       auto waterPlanarReflection = registry
-                                     .createTexture2d("water_planar_reflection_terrain", dafg::History::No,
+                                     .createTexture2d("water_planar_reflection_terrain",
                                        {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f), 1})
                                      .atStage(dafg::Stage::POST_RASTER)
                                      .useAs(dafg::Usage::COLOR_ATTACHMENT)
                                      .handle();
       auto waterPlanarReflectionDepth = registry
-                                          .createTexture2d("water_planar_reflection_terrain_depth", dafg::History::No,
+                                          .createTexture2d("water_planar_reflection_terrain_depth",
                                             {TEXFMT_DEPTH16 | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f), 1})
                                           .atStage(dafg::Stage::POST_RASTER)
                                           .useAs(dafg::Usage::DEPTH_ATTACHMENT)
@@ -104,8 +104,7 @@ void WorldRenderer::initWaterPlanarReflectionTerrainNode()
       auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
       return [this, waterPlanarReflection, waterPlanarReflectionDepth, cameraHndl]() {
         FRAME_LAYER_GUARD(-1);
-        d3d::set_render_target(waterPlanarReflection.get(), 0);
-        d3d::set_depth(waterPlanarReflectionDepth.get(), DepthAccess::RW);
+        d3d::set_render_target({waterPlanarReflectionDepth.get(), 0, 0}, DepthAccess::RW, {{waterPlanarReflection.get(), 0, 0}});
         d3d::clearview(CLEAR_ZBUFFER | CLEAR_TARGET, 0, 0, 0);
 
         d3d::settm(TM_VIEW, waterPlanarReflectionViewTm);
@@ -161,25 +160,26 @@ void WorldRenderer::calcWaterPlanarReflectionMatrix()
   Point3 reflectionDir = waterPlanarReflectionViewItm.getcol(2);
   Point3 farPlanePoint = reflectionPos + reflectionDir * waterPlanarReflectionPersp.zf;
 
-  ShaderGlobal::set_color4(var::water_planar_reflection_dir, reflectionDir, 0);
-  ShaderGlobal::set_color4(var::water_planar_reflection_far_plane_pos, farPlanePoint, 0);
+  ShaderGlobal::set_float4(var::water_planar_reflection_dir, reflectionDir, 0);
+  ShaderGlobal::set_float4(var::water_planar_reflection_far_plane_pos, farPlanePoint, 0);
   ShaderGlobal::set_float4x4(var::water_planar_reflection_view_proj,
     TMatrix4(waterPlanarReflectionViewTm) * waterPlanarReflectionProjTm);
 }
 
-void WorldRenderer::setupSkyPanoramaAndReflectionFromSetting(bool first_init)
+void WorldRenderer::setupSkyPanoramaAndReflectionFromSetting()
 {
   const DataBlock &blk = *originalLevelBlk.getBlockByNameEx("skies");
-  panoramaPosition = blk.getPoint3("panoramaPosition", Point3(0, 10, 0)); // by default, set at 10meters above sea level
+  Point3 panoramaPosition = blk.getPoint3("panoramaPosition", Point3(0, 10, 0)); // by default, set at 10meters above sea level
+  get_daskies()->setStaticPanoramaOrigin(panoramaPosition);
   bool usePanoramaLevel = blk.getBool("usePanorama", true);
   const char *cloudsQuality = ::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("cloudsQuality", "default");
-  bool volumetricClouds = strcmp(cloudsQuality, "volumetric") == 0;
-  bool usePanorama = is_panorama_forced() || (isForwardRender() ? true : (usePanoramaLevel && !volumetricClouds));
+  bool volumetricClouds = strcmp(cloudsQuality, "volumetric") == 0 || strcmp(cloudsQuality, "movie") == 0;
+  bool usePanorama = is_panorama_forced() || (usePanoramaLevel && !volumetricClouds);
 
-  setupSkyPanoramaAndReflection(usePanorama, first_init);
+  setupSkyPanoramaAndReflection(usePanorama);
 }
 
-void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama, bool first_init)
+void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama)
 {
   // Close both, just in case the console command made the actual state inconsistent with the graphics setting
   get_daskies()->closePanorama();
@@ -194,7 +194,9 @@ void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama, bool first_
   {
     const DataBlock &blk = *originalLevelBlk.getBlockByNameEx("skies");
     eastl::string cloudsQuality = ::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("cloudsQuality", "default");
-    int panoramaScale = (cloudsQuality == "highres" || cloudsQuality == "volumetric") ? 2 : 1; // Use highres when panorama is forced
+
+    // Use highres when panoram is enforced
+    int panoramaScale = (cloudsQuality == "highres" || cloudsQuality == "volumetric" || cloudsQuality == "movie") ? 2 : 1;
     bool panoramaBlending = blk.getBool("panoramaBlending", false);
     int panoramaResolution = blk.getInt("panoramaResolution", 2048) * panoramaScale;
     bool compressPanorama = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("compress_panorama", false);
@@ -202,25 +204,10 @@ void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama, bool first_
     debug("Initializing panorama sky with scale %d", panoramaScale);
     get_daskies()->initPanorama(main_pov_data, panoramaBlending, panoramaResolution, 0, compressPanorama);
     get_daskies()->invalidatePanorama(true);
-    if (!first_init)
-    {
-      TMatrix viewTm = TMatrix::IDENT;
-      viewTm.setcol(3, panoramaPosition);
-      Driver3dPerspective persp{1, 1, 0.001, 10000};
-      TMatrix4 projTm;
-      d3d::calcproj(persp, projTm);
-      // This is to reinit panorama with a good looking position.
-      // If this weren't here, panorama could be rendered from an airplane within a cloud, and that looks really bad.
-      d3d::GpuAutoLock lock;
-      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-      get_daskies()->prepareSkyAndClouds(true, dpoint3(panoramaPosition), DPoint3(1, 0, 0), 3, TextureIDPair(), TextureIDPair(),
-        main_pov_data, viewTm, projTm, UpdateSky::OnWithoutCloudsVisibilityCheck, false);
-    }
   }
 
   // Envi node depends on panorama
-  if (!isForwardRender())
-    createEnvironmentNode();
+  requestFgRecreation("setupSkyPanoramaAndReflection");
 
   validate_volumetric_clouds_settings();
 }
@@ -229,7 +216,7 @@ void WorldRenderer::setupSkyPanoramaAndReflection(bool use_panorama, bool first_
 void WorldRenderer::switchVolumetricAndPanoramicClouds()
 {
   bool usePanorama = !get_daskies()->panoramaEnabled();
-  setupSkyPanoramaAndReflection(usePanorama, false);
+  setupSkyPanoramaAndReflection(usePanorama);
   if (usePanorama)
     console::print_d("switching to panoramic clouds");
   else

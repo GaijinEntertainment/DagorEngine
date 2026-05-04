@@ -58,15 +58,17 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
 
   //  unsigned flags = TEXFMT_A8R8G8B8 | TEXCF_RTARGET; //???
 
-  Texture *localRt1 = d3d::create_tex(NULL, picWidth, linesPerPart, flags | TEXCF_SRGBWRITE, 1, "temp_part_dxt_tex1");
-  Texture *localRt1n = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex1n");
-  Texture *localRt1ao = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex1ao");
+  Texture *localRt1 =
+    d3d::create_tex(NULL, picWidth, linesPerPart, flags | TEXCF_SRGBWRITE, 1, "temp_part_dxt_tex1", RESTAG_PARTIAL_DXT);
+  Texture *localRt1n = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex1n", RESTAG_PARTIAL_DXT);
+  Texture *localRt1ao = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex1ao", RESTAG_PARTIAL_DXT);
 
 #if !_TARGET_PC
-  Texture *localRt2 = d3d::create_tex(NULL, picWidth, linesPerPart, flags | TEXCF_SRGBWRITE, 1, "temp_part_dxt_tex2");
+  Texture *localRt2 =
+    d3d::create_tex(NULL, picWidth, linesPerPart, flags | TEXCF_SRGBWRITE, 1, "temp_part_dxt_tex2", RESTAG_PARTIAL_DXT);
   Texture *localRt2n = NULL;
   if (rtn)
-    localRt2n = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex2n");
+    localRt2n = d3d::create_tex(NULL, picWidth, linesPerPart, flags, 1, "temp_part_dxt_tex2n", RESTAG_PARTIAL_DXT);
 #endif
 
     // For PS3 we don't want to allocate 16 Mb of memory for whole image.
@@ -151,9 +153,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
     {
       INTERNAL_START_RENDER;
 
-      d3d::set_render_target(localRt1, 0);
-      d3d::set_render_target(1, localRt1n, 0);
-      d3d::set_render_target(2, localRt1ao, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{localRt1, 0, 0}, {localRt1n, 0, 0}, {localRt1ao, 0, 0}});
       renderFunc(y, linesPerPart, picHeight, user_data, view_pos);
 
       INTERNAL_END_RENDER;
@@ -165,9 +165,8 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       // render next slice picWidth x linesPerPart.
       INTERNAL_START_RENDER;
 
-      d3d::set_render_target(localRt2, 0);
-      if (rtn)
-        d3d::set_render_target(1, localRt2n, 0);
+      RenderTarget rts[] = {{localRt2, 0, 0}, {localRt2n, 0, 0}};
+      d3d::set_render_target({}, DepthAccess::RW, make_span_const(rts, rtn ? 2 : 1));
 
       renderFunc(y + linesPerPart, linesPerPart, picHeight, user_data, view_pos);
 
@@ -224,9 +223,7 @@ void PartialDxtRender(Texture *rt, Texture *rtn, int linesPerPart, int picWidth,
       d3d::GpuAutoLock gpuLock;
       d3d::get_render_target(prevRt);
 
-      d3d::set_render_target(localRt1, 0);
-      d3d::set_render_target(1, localRt1n, 0);
-      d3d::set_render_target(2, localRt1ao, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{localRt1, 0, 0}, {localRt1n, 0, 0}, {localRt1ao, 0, 0}});
       renderFunc(y, linesPerPart, picHeight, user_data, view_pos);
 
       d3d::set_render_target(prevRt);

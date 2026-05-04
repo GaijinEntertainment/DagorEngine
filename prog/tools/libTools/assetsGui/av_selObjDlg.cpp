@@ -9,6 +9,7 @@
 #include <assetsGui/av_recentlyUsedTab.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <assets/assetHlp.h>
 #include <assets/assetUtils.h>
 #include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_clipboard.h>
@@ -31,8 +32,39 @@ using PropPanel::ROOT_MENU_ITEM;
 #include <Shlobj.h>
 #endif
 
+class SelectAssetDlgAssetBrowser : public PropPanel::DialogWindow, public PropPanel::ICustomControl
+{
+public:
+  explicit SelectAssetDlgAssetBrowser(IAssetBrowserHost &host, const char *caption) :
+    DialogWindow(nullptr, _pxScaled(125), _pxScaled(250), caption), assetBrowser(host)
+  {
+    showButtonPanel(false);
+    propertiesPanel->createCustomControlHolder(CustomControlHolderId, this);
+
+    if (!hasEverBeenShown())
+      setWindowSize(IPoint2(hdpi::_pxS(220), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
+  }
+
+  PropPanel::IMenu &createContextMenu() { return assetBrowser.createContextMenu(); }
+  void setAssets(dag::Span<DagorAsset *> assets, DagorAsset *selected_asset) { assetBrowser.setAssets(assets, selected_asset); }
+  int getThumbnailImageSize() const { return assetBrowser.getThumbnailImageSize(); }
+  void setThumbnailImageSize(int size) { assetBrowser.setThumbnailImageSize(size); }
+
+private:
+  // PropPanel::ICustomControl
+  void customControlUpdate(int id) override
+  {
+    G_ASSERT(id == CustomControlHolderId);
+    assetBrowser.updateImgui();
+  }
+
+  static constexpr int CustomControlHolderId = 1;
+
+  AssetBrowser assetBrowser;
+};
+
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *caption, const char *sel_btn_caption,
-  const char *reset_btn_caption, dag::ConstSpan<int> filter) :
+  const char *reset_btn_caption, dag::ConstSpan<int> filter, const char *asset_browser_caption) :
 
   DialogWindow(phandle, _pxScaled(DEFAULT_MINIMUM_WIDTH), _pxScaled(SelectAssetDlg::DEFAULT_MINIMUM_HEIGHT), caption),
   client(nullptr),
@@ -45,12 +77,12 @@ SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, const char *c
   _bp->setCaption(PropPanel::DIALOG_ID_OK, sel_btn_caption);
   _bp->setCaption(PropPanel::DIALOG_ID_CANCEL, reset_btn_caption);
 
-  commonConstructor(filter);
+  commonConstructor(filter, asset_browser_caption);
 }
 
 
 SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, IAssetBaseViewClient *cli, const char *caption,
-  dag::ConstSpan<int> filter) :
+  dag::ConstSpan<int> filter, const char *asset_browser_caption) :
 
   DialogWindow(phandle, _pxScaled(DEFAULT_MINIMUM_WIDTH), _pxScaled(SelectAssetDlg::DEFAULT_MINIMUM_HEIGHT), caption),
   client(cli),
@@ -62,11 +94,11 @@ SelectAssetDlg::SelectAssetDlg(void *phandle, DagorAssetMgr *_mgr, IAssetBaseVie
 
   showButtonPanel(false);
 
-  commonConstructor(filter);
+  commonConstructor(filter, asset_browser_caption);
 }
 
 
-void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
+void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter, const char *asset_browser_caption)
 {
   AssetSelectorCommon::initialize(*mgr);
 
@@ -78,7 +110,7 @@ void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
   PropPanel::ContainerPropertyControl *tabPanel = panel->createTabPanel(AssetsGuiIds::TabPanel, "");
   PropPanel::ContainerPropertyControl *allTabPage = tabPanel->createTabPage(AssetsGuiIds::AllPage, "All");
 
-  view = new AssetBaseView(this, this);
+  view = new AssetBaseView(this, this, *this);
 
   PropPanel::ContainerPropertyControl *favoritesTabPage = tabPanel->createTabPage(AssetsGuiIds::FavoritesPage, "Favorites");
   PropPanel::ContainerPropertyControl *recentlyUsedTabPage = tabPanel->createTabPage(AssetsGuiIds::RecentlyUsedPage, "Recently used");
@@ -91,8 +123,11 @@ void SelectAssetDlg::commonConstructor(dag::ConstSpan<int> filter)
 
   if (!hasEverBeenShown())
     setWindowSize(IPoint2(hdpi::_pxS(DEFAULT_WIDTH), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
-}
 
+  if (!asset_browser_caption)
+    asset_browser_caption = "Asset Browser##AssetBrowserModal";
+  assetBrowserDlg.reset(new SelectAssetDlgAssetBrowser(*this, asset_browser_caption));
+}
 
 DagorAsset *SelectAssetDlg::getSelectedAsset() const
 {
@@ -148,9 +183,113 @@ bool SelectAssetDlg::onOk()
   return true;
 }
 
+void SelectAssetDlg::assetBrowserFill()
+{
+  if (!assetBrowserIsOpen())
+    return;
+
+  const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
+  dag::Vector<DagorAsset *> assets;
+  if (currentPage == AssetsGuiIds::AllPage)
+    view->getFilteredAssetsFromTheCurrentFolder(assets);
+  else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
+    favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets);
+  else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
+    recentlyUsedTab->getFilteredAssetsFromTheCurrentFolder(assets);
+
+  assetBrowserDlg->setAssets(make_span(assets), getSelectedAsset());
+}
+
+bool SelectAssetDlg::assetBrowserIsOpen() const { return assetBrowserDlg && assetBrowserDlg->isVisible(); }
+
+void SelectAssetDlg::assetBrowserSetOpen(bool open)
+{
+  if (!assetBrowserDlg || assetBrowserDlg->isVisible() == open)
+    return;
+
+  if (open)
+  {
+    if (!assetBrowserDlg->hasEverBeenShown())
+      assetBrowserDlg->positionBesideWindow(getCaption());
+
+    assetBrowserDlg->show();
+    assetBrowserFill();
+  }
+  else
+  {
+    assetBrowserDlg->hide();
+  }
+}
+
+void SelectAssetDlg::assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked)
+{
+  if (!asset)
+    return;
+
+  const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
+  if (currentPage == AssetsGuiIds::AllPage)
+    view->selectAsset(*asset, true);
+  else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
+    favoritesTab->setSelectedAsset(asset);
+  else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
+    recentlyUsedTab->setSelectedAsset(asset);
+
+  if (double_clicked)
+    onAvAssetDblClick(const_cast<DagorAsset *>(asset), getAssetNameWithTypeIfNeeded(*asset));
+}
+
+void SelectAssetDlg::assetBrowserOnContextMenu(DagorAsset *asset)
+{
+  // Because the context menu click handlers work with the selected tree item we must ensure that the asset matches the selection.
+  if (!assetBrowserDlg || !asset || asset != getSelectedAsset())
+    return;
+
+  PropPanel::IMenu &menu = assetBrowserDlg->createContextMenu();
+  onAssetSelectorContextMenu(menu, asset, nullptr);
+}
+
+void SelectAssetDlg::setAssetTagsView(IAssetTagsView *asset_tags_view)
+{
+  if (view)
+    view->setAssetTagsView(asset_tags_view);
+}
+
+
+AssetTagManager *SelectAssetDlg::getTagManager()
+{
+  if (view)
+  {
+    IAssetTagsView *tagsView = view->getAssetTagsView();
+    if (tagsView)
+      return tagsView->getVisibleTagManager();
+  }
+  return nullptr;
+}
+
+
+AssetTagManager *SelectAssetDlg::getVisibleTagManager() { return tagsDlg != nullptr ? tagsDlg->getTagManager() : nullptr; }
+
+
+void SelectAssetDlg::showTagManager(bool show) { PropPanel::request_delayed_callback(*this); }
+
+
+void SelectAssetDlg::onImguiDelayedCallback(void *data)
+{
+  DagorAsset *selectedAsset = getSelectedAsset();
+  AssetTagsDlg dlg(0, selectedAsset);
+  dlg.getTagManager()->onAvSelectAsset(selectedAsset, getSelObjName());
+  tagsDlg = &dlg;
+  dlg.showDialog();
+  tagsDlg = nullptr;
+}
+
 
 void SelectAssetDlg::onAvClose()
 {
+  AssetTagManager *tagManager = getTagManager();
+  if (tagManager)
+    tagManager->onAvClose();
+
   if (client)
     client->onAvClose();
 }
@@ -163,6 +302,10 @@ void SelectAssetDlg::onAvAssetDblClick(DagorAsset *asset, const char *obj_name)
 
   lastSelectedAsset = asset;
 
+  AssetTagManager *tagManager = getTagManager();
+  if (tagManager)
+    tagManager->onAvAssetDblClick(asset, obj_name);
+
   if (client)
     client->onAvAssetDblClick(asset, obj_name);
   else
@@ -172,18 +315,28 @@ void SelectAssetDlg::onAvAssetDblClick(DagorAsset *asset, const char *obj_name)
 
 void SelectAssetDlg::onAvSelectAsset(DagorAsset *asset, const char *asset_name)
 {
-  if (!asset)
-    return;
+  if (asset)
+  {
+    lastSelectedAsset = asset;
 
-  lastSelectedAsset = asset;
+    AssetTagManager *tagManager = getTagManager();
+    if (tagManager)
+      tagManager->onAvSelectAsset(asset, asset_name);
 
-  if (client)
-    client->onAvSelectAsset(asset, asset_name);
+    if (client)
+      client->onAvSelectAsset(asset, asset_name);
+  }
+
+  assetBrowserFill();
 }
 
 
 void SelectAssetDlg::onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name)
 {
+  AssetTagManager *tagManager = getTagManager();
+  if (tagManager)
+    tagManager->onAvSelectFolder(asset_folder, asset_folder_name);
+
   if (client)
     client->onAvSelectFolder(asset_folder, asset_folder_name);
 }
@@ -220,6 +373,11 @@ int SelectAssetDlg::onMenuItemClick(unsigned id)
     else if (const DagorAssetFolder *folder = view->getSelectedAssetFolder())
       AssetSelectorCommon::copyAssetFolderNameToClipboard(*folder);
   }
+  else if (id == AssetsGuiIds::CopyAssetTagsMenuItem)
+  {
+    if (const DagorAsset *asset = view->getSelectedAsset())
+      AssetSelectorCommon::copyAssetTagsToClipboard(*asset);
+  }
   else if (id == AssetsGuiIds::RevealInExplorerMenuItem)
   {
     if (const DagorAsset *asset = view->getSelectedAsset())
@@ -243,42 +401,55 @@ int SelectAssetDlg::onMenuItemClick(unsigned id)
   return 0;
 }
 
-bool SelectAssetDlg::onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
+bool SelectAssetDlg::onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder)
 {
   const int currentPage = getPanel()->getInt(AssetsGuiIds::TabPanel);
-  if (currentPage != AssetsGuiIds::AllPage)
-    return false;
 
-  PropPanel::IMenu &menu = tree.createContextMenu();
-  menu.setEventHandler(this);
-
-  if (const DagorAssetFolder *folder = view->getSelectedAssetFolder())
+  if (currentPage == AssetsGuiIds::AllPage)
   {
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::ExpandChildrenMenuItem, "Expand children");
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CollapseChildrenMenuItem, "Collapse children");
-    menu.addSeparator(ROOT_MENU_ITEM);
+    menu.setEventHandler(this);
 
-    if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
+    if (asset_folder)
     {
-      menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
-      menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
-      menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::ExpandChildrenMenuItem, "Expand children");
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CollapseChildrenMenuItem, "Collapse children");
+      menu.addSeparator(ROOT_MENU_ITEM);
+
+      if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
+      {
+        menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+      }
+      else
+      {
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+      }
+
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
     }
-    else
+    else if (asset)
     {
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+      const bool hasTags = assettags::getTagIds(*asset).size() > 0;
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
+      AssetBaseView::addCommonMenuItems(menu, hasTags);
     }
 
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
+    return true;
   }
-  else
+  else if (currentPage == AssetsGuiIds::FavoritesPage && favoritesTab)
   {
-    menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
-    AssetBaseView::addCommonMenuItems(menu);
+    favoritesTab->fillContextMenu(menu, asset, asset_folder);
+    return true;
+  }
+  else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
+  {
+    recentlyUsedTab->fillContextMenu(menu, asset);
+    return true;
   }
 
-  return true;
+  return false;
 }
 
 void SelectAssetDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
@@ -329,6 +500,8 @@ void SelectAssetDlg::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
       if (lastSelectedAsset)
         view->selectAsset(*lastSelectedAsset, true);
     }
+
+    assetBrowserFill();
   }
 }
 
@@ -365,8 +538,11 @@ void SelectAssetDlg::goToAsset(const DagorAsset &asset)
 
 void SelectAssetDlg::onSelectionChanged(const DagorAsset *asset)
 {
+  String name;
   if (asset)
-    onAvSelectAsset(const_cast<DagorAsset *>(asset), getAssetNameWithTypeIfNeeded(*asset));
+    name = getAssetNameWithTypeIfNeeded(*asset);
+
+  onAvSelectAsset(const_cast<DagorAsset *>(asset), name);
 }
 
 void SelectAssetDlg::onSelectionDoubleClicked(const DagorAsset *asset)
@@ -442,6 +618,18 @@ const DagorAsset *SelectAssetDlg::getAssetByName(const char *_name, dag::ConstSp
   return mgr->findAsset(name, asset_types);
 }
 
+void SelectAssetDlg::saveAssetBrowserSettings(DataBlock &blk) const
+{
+  blk.setInt("thumbnailImageSize", assetBrowserDlg->getThumbnailImageSize());
+  blk.setBool("open", assetBrowserIsOpen());
+}
+
+void SelectAssetDlg::loadAssetBrowserSettings(DataBlock &blk)
+{
+  assetBrowserDlg->setThumbnailImageSize(blk.getInt("thumbnailImageSize", assetBrowserDlg->getThumbnailImageSize()));
+  assetBrowserOpeningRequested = blk.getBool("open", assetBrowserOpeningRequested);
+}
+
 void SelectAssetDlg::customControlUpdate(int id)
 {
   const float panelHeight = getButtonPanelHeight();
@@ -456,4 +644,46 @@ void SelectAssetDlg::customControlUpdate(int id)
     favoritesTab->updateImgui();
   else if (currentPage == AssetsGuiIds::RecentlyUsedPage && recentlyUsedTab)
     recentlyUsedTab->updateImgui();
+}
+
+void SelectAssetDlg::updateImguiDialog()
+{
+  DialogWindow::updateImguiDialog();
+
+  // Delay the displaying of the asset browser dialog because its position is based on the asset selector dialog's position and size.
+  if (assetBrowserOpeningRequested && !ImGui::IsWindowAppearing())
+  {
+    assetBrowserOpeningRequested = false;
+    assetBrowserSetOpen(true);
+  }
+}
+
+eastl::unique_ptr<SelectAssetDlg> assets_gui_create_asset_selector_dialog(const SelectAssetDlgOptions &options, DagorAssetMgr &mgr)
+{
+  eastl::unique_ptr<SelectAssetDlg> dlg(
+    new SelectAssetDlg(nullptr, &mgr, options.dialogCaption.empty() ? "Select asset" : options.dialogCaption,
+      options.selectButtonCaption.empty() ? "Select asset" : options.selectButtonCaption,
+      options.resetButtonCaption.empty() ? "Reset asset" : options.resetButtonCaption, options.selectableAssetTypes));
+
+  dlg->setAssetTagsView(dlg.get());
+  dlg->setManualModalSizingEnabled();
+
+  if (!options.initiallySelectedAsset.empty())
+    dlg->selectObj(options.initiallySelectedAsset);
+
+  if (options.openAllGroups)
+  {
+    Tab<bool> gr;
+    dlg->getTreeNodesExpand(gr);
+    mem_set_ff(gr);
+    dlg->setTreeNodesExpand(gr);
+  }
+
+  if (!options.filter.empty())
+    dlg->setFilterStr(options.filter);
+
+  if (!options.positionBesideWindow.empty() && !dlg->hasEverBeenShown())
+    dlg->positionBesideWindow(options.positionBesideWindow);
+
+  return dlg;
 }

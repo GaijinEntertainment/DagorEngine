@@ -65,7 +65,8 @@ static void screen_effect_render_es_all_events(const ecs::Event &__restrict evt,
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     screen_effect_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__buffer", UniqueBufHolder)
+        , components.manager()
+    , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__buffer", UniqueBufHolder)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__countVar", int)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__texVars", ecs::IntList)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect_renderer__enable", bool)
@@ -162,9 +163,9 @@ static ecs::CompileTimeQueryDesc screen_effect_renderer_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void screen_effect_renderer_ecs_query(ecs::EntityId eid, Callable function)
+inline void screen_effect_renderer_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, screen_effect_renderer_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, screen_effect_renderer_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -201,9 +202,9 @@ static ecs::CompileTimeQueryDesc get_screen_effect_renderer_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_screen_effect_renderer_ecs_query(Callable function)
+inline void get_screen_effect_renderer_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_screen_effect_renderer_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_screen_effect_renderer_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

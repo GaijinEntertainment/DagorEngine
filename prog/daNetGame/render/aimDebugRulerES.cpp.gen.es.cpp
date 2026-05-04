@@ -22,32 +22,32 @@ static ecs::EntitySystemDesc debug_physmap_decals_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoRenderDebug::STAGE)
 ,"dev,render",nullptr,"*");
-static constexpr ecs::ComponentDesc debug_physmap_appear_es_event_handler_comps[] =
+static constexpr ecs::ComponentDesc debug_physmap_appear_es_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("phys_map_tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
 //start of 1 ro components at [1]
-  {ECS_HASH("drawPhysMap"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("aim_ruler__drawPhysMap"), ecs::ComponentTypeInfo<bool>()}
 };
-static void debug_physmap_appear_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void debug_physmap_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    debug_physmap_appear_es_event_handler(evt
-        , ECS_RW_COMP(debug_physmap_appear_es_event_handler_comps, "phys_map_tex", UniqueTexHolder)
-    , ECS_RO_COMP(debug_physmap_appear_es_event_handler_comps, "drawPhysMap", bool)
+    debug_physmap_appear_es(evt
+        , ECS_RW_COMP(debug_physmap_appear_es_comps, "phys_map_tex", UniqueTexHolder)
+    , ECS_RO_COMP(debug_physmap_appear_es_comps, "aim_ruler__drawPhysMap", bool)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc debug_physmap_appear_es_event_handler_es_desc
+static ecs::EntitySystemDesc debug_physmap_appear_es_es_desc
 (
   "debug_physmap_appear_es",
   "prog/daNetGame/render/aimDebugRulerES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, debug_physmap_appear_es_event_handler_all_events),
-  make_span(debug_physmap_appear_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(debug_physmap_appear_es_event_handler_comps+1, 1)/*ro*/,
+  ecs::EntitySystemOps(nullptr, debug_physmap_appear_es_all_events),
+  make_span(debug_physmap_appear_es_comps+0, 1)/*rw*/,
+  make_span(debug_physmap_appear_es_comps+1, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,"dev,render","drawPhysMap");
+,"dev,render","aim_ruler__drawPhysMap");

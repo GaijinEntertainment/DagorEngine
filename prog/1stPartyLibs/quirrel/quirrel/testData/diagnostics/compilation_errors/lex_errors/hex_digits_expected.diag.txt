@@ -1,0 +1,8 @@
+ERROR: expected hex digits after '0x'
+testData/diagnostics/compilation_errors/lex_errors/hex_digits_expected.nut:2:8
+
+// EXPECT_ERROR: "expected hex digits after '0x'"
+let x = 0xGG
+        ^-
+
+

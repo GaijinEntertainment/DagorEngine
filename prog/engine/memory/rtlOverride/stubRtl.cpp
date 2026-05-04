@@ -1,114 +1,64 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#ifndef __GNUC__
-#include <malloc.h>
-#endif
-#include <string.h>
-
-class IMemAlloc
-{
-public:
-  virtual void destroy() = 0;
-  virtual bool isEmpty() = 0;
-  virtual unsigned getSize(void *p) = 0;
-  virtual void *alloc(size_t sz) = 0;
-  virtual void *tryAlloc(size_t sz) = 0;
-  virtual void *allocAligned(size_t sz, size_t alignment) = 0;
-  virtual bool resizeInplace(void *p, size_t sz) = 0;
-  virtual void *realloc(void *p, size_t sz) = 0;
-  virtual void free(void *p) = 0;
-  virtual void freeAligned(void *p) = 0;
-};
-
-#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
-#define _STD_RTL_MEMORY 1
-#endif
-
-#include <supp/dag_define_KRNLIMP.h>
-extern "C" KRNLIMP void *memalloc_default(size_t sz);
-extern "C" KRNLIMP void memfree_default(void *);
-extern "C" KRNLIMP void *memalloc_aligned_default(size_t sz, size_t alignment);
-extern "C" KRNLIMP void memfree_aligned_default(void *p);
-extern "C" KRNLIMP int memresizeinplace_default(void *p, size_t sz);
-extern "C" KRNLIMP void *memrealloc_default(void *, size_t sz);
-extern "C" KRNLIMP void *memcalloc_default(size_t, size_t);
-extern "C" KRNLIMP void memfree_anywhere(void *p);
-
-#if !_TARGET_STATIC_LIB
-extern KRNLIMP IMemAlloc *defaultmem;
-#endif
-#include <supp/dag_undef_KRNLIMP.h>
-
-#if !_TARGET_STATIC_LIB
-#include "../dlmalloc-setup.h"
 #if _TARGET_PC_WIN
 #include <windows.h>
+#define DAG_OVERRIDE_MALLOC_FAMILY  1
+#define DAG_IMPLEMENT_STRDUP_FAMILY 1
+#define DAG_DECLARE_IMPORT_STUBS    _DLL
+#elif _TARGET_APPLE
+#include <malloc/malloc.h>
+static void real_init_memory() {}
 #endif
+#include "../mallocMinAlignment.h"
 
-static inline void real_init_memory() {}
-static inline void *mt_dlmemalign(size_t sz, size_t al) { return defaultmem->allocAligned(sz, al); }
-static inline void *mt_dlrealloc(void *ptr, size_t sz) { return defaultmem->realloc(ptr, sz); }
-#if _TARGET_PC_WIN
-extern "C" __declspec(dllimport) void *mt_dlmalloc_crt(size_t bytes);
-extern "C" __declspec(dllexport) void *mt_dlmemalign_crt(size_t bytes, size_t alignment);
-extern "C" __declspec(dllimport) void *mt_dlrealloc_crt(void *mem, size_t bytes);
-extern "C" __declspec(dllimport) void mt_dlfree_crt(void *mem);
-#endif
 
-#if defined(_STD_RTL_MEMORY)
-static inline size_t dlmalloc_usable_size(void *mem) { return defaultmem->getSize(mem); }
+#if USE_DLMALLOC
+#include <dlmalloc/dlmalloc_usable_size.h>
 #else
-// extracts from dlmalloc code, for fastest dlmalloc_usable_size()
-typedef struct malloc_chunk
-{
-  size_t prev_foot; /* Size of previous chunk (if free).  */
-  size_t head;      /* Size and inuse bits. */
-  malloc_chunk *fd; /* double links -- used only if free. */
-  malloc_chunk *bk;
-} *mchunkptr;
-
-#define SIZE_T_SIZE (sizeof(size_t))
-
-#define SIZE_T_ONE       ((size_t)1)
-#define SIZE_T_TWO       ((size_t)2)
-#define SIZE_T_FOUR      ((size_t)4)
-#define TWO_SIZE_T_SIZES (SIZE_T_SIZE << 1)
-
-#if FOOTERS
-#define CHUNK_OVERHEAD (TWO_SIZE_T_SIZES)
-#else
-#define CHUNK_OVERHEAD (SIZE_T_SIZE)
+static inline size_t dagmem_malloc_usable_size(void *mem) { return stdmem->getSize(mem); }
 #endif
 
-#define MMAP_CHUNK_OVERHEAD (TWO_SIZE_T_SIZES)
-
-#define PINUSE_BIT (SIZE_T_ONE)
-#define CINUSE_BIT (SIZE_T_TWO)
-#define FLAG4_BIT  (SIZE_T_FOUR)
-#define INUSE_BITS (PINUSE_BIT | CINUSE_BIT)
-#define FLAG_BITS  (PINUSE_BIT | CINUSE_BIT | FLAG4_BIT)
-
-#define CHUNKSIZE(p)    ((p)->head & ~(FLAG_BITS))
-#define IS_INUSE(p)     (((p)->head & INUSE_BITS) != PINUSE_BIT)
-#define IS_MMAPPED(p)   (((p)->head & INUSE_BITS) == 0)
-#define OVERHEAD_FOR(p) (IS_MMAPPED(p) ? MMAP_CHUNK_OVERHEAD : CHUNK_OVERHEAD)
-
-#define MEM2CHUNK(mem) ((mchunkptr)((char *)(mem) - TWO_SIZE_T_SIZES))
-
-static inline size_t dlmalloc_usable_size(void *mem)
+#if !_TARGET_PC_LINUX
+#include <string.h>
+static inline void *dagmem_malloc(size_t sz) { return stdmem->alloc(sz); }
+static inline void *dagmem_calloc(size_t nelem, size_t elemsz)
 {
-  if (mem != 0)
-  {
-    mchunkptr p = MEM2CHUNK(mem);
-    if (IS_INUSE(p))
-      return CHUNKSIZE(p) - OVERHEAD_FOR(p);
-  }
-  return 0;
+#if MALLOC_MIN_ALIGNMENT < 16
+  void *ptr = stdmem->allocAligned(nelem * elemsz, MALLOC_MIN_ALIGNMENT);
+#else
+  void *ptr = stdmem->alloc(nelem * elemsz);
+#endif
+  if (ptr)
+    memset(ptr, 0, nelem * elemsz);
+  return ptr;
 }
-#endif
+static inline void *dagmem_realloc(void *ptr, size_t sz) { return stdmem->realloc(ptr, sz); }
+static inline void *dagmem_recalloc(void *ptr, size_t nelem, size_t elemsz)
+{
+  size_t old_size = dagmem_malloc_usable_size(ptr);
+  size_t new_size = nelem * elemsz;
+
+  void *new_p = stdmem->realloc(ptr, new_size);
+
+  // If the reallocation succeeded and the new block is larger, zero-fill the new bytes:
+  if (new_p && old_size < new_size)
+    memset(static_cast<char *>(new_p) + old_size, 0, new_size - old_size);
+  return new_p;
+}
+static inline void *dagmem_expand(void *const block, size_t const size)
+{
+  return stdmem->resizeInplace(block, size) ? block : nullptr;
+}
+static inline void dagmem_free(void *ptr) { stdmem->free(ptr); }
+static inline void *dagmem_memalign(size_t al, size_t sz) { return stdmem->allocAligned(sz, al); }
+static inline void dagmem_free_aligned(void *ptr) { stdmem->freeAligned(ptr); }
 
 // implement stubs for different compiler runtime
 #include "../stubRtlAlloc.inc.cpp"
+#if _TARGET_PC_WIN && USE_RTL_ALLOC
+MEMEXP3 size_t __cdecl _msize_base(void *const mem) MEMEXP_NOEXCEPT { return dagmem_malloc_usable_size(mem); }
+MEMEXP void *__cdecl _recalloc_base(void *ptr, size_t nelem, size_t elemsz) { return _recalloc(ptr, nelem, elemsz); }
+#endif
 #endif
 
 int pull_rtlOverride_stubRtl = 0;

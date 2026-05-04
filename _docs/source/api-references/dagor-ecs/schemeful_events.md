@@ -21,7 +21,7 @@ network routing, if needed, which is covered below.
 
 **Example:** `events_<game>.das`
 
-```
+```das
 [event(unicast)]
 struct CmdCreateMapPoint
   x: float
@@ -97,7 +97,7 @@ assist in adapting the protocol if the stream content changes significantly.
 
 **Example:** `code.das`
 
-```
+```das
 [event(broadcast, version=1)]
 struct TestEvent {}
 ```
@@ -112,7 +112,7 @@ Here's an example of sending such an event from daScript:
 
 **Example:** `code.das`
 
-```
+```das
 [event(broadcast)]
 struct TestEvent
   str : string
@@ -135,7 +135,7 @@ Sending events from Quirrel follows a similar process:
 
 **Example:** `code.nut`
 
-```text
+```quirrel
 let {CompObject} = require("ecs")
 let {TestEvent, broadcastNetEvent} = require("dasevents")
 ...
@@ -182,7 +182,7 @@ script or C++ code.
 
 **Example:** `describe_event.nut`
 
-```text
+```quirrel
 local function describeEvent(evt) {
   if (evt == null) {
     ::dlog("null event")
@@ -223,7 +223,7 @@ restrictions (fields must be basic ECS types or compatible containers only).
 
 **Example:** `events_<game>.das`
 
-```
+```das
 [cpp_event(unicast, with_scheme)]
 struct EventOnPlayerDash
   from: float3
@@ -274,7 +274,7 @@ is an example filter implemented in Squirrel:
 
 **Example:** `sq_filter.nut`
 
-```text
+```quirrel
 local filtered_by_team_query = ecs.SqQuery("filtered_by_team_query", {comps_ro=[["team", ecs.TYPE_INT], ["connid",ecs.TYPE_INT]], comps_rq=["player"], comps_no=["playerIsBot"]})
 
 local function filter_connids_by_team(team){
@@ -290,7 +290,7 @@ And here is an example of sending an event using this filter:
 
 **Example:** `sq_send_event.nut`
 
-```text
+```quirrel
 sendNetEvent(eid, RequestNextRespawnEntity({memberEid=eid}), filter_connids_by_team(target_team))
 ```
 

@@ -116,44 +116,44 @@ struct ShaderVarBindingValidationHelper<DirectX::XMMATRIX, DirectX::XMMATRIX>
   static bool validate(const DirectX::XMMATRIX &a, const DirectX::XMMATRIX &b);
 };
 
-#define SHV_BIND_BLOB_LIST                                                                                                           \
-  SHV_CASE(SHVT_INT)                                                                                                                 \
-  TAG_CASE(int, static_cast<bool (*)(int, int)>(&ShaderGlobal::set_int), static_cast<int (*)(int)>(&ShaderGlobal::get_int))          \
-  TAG_CASE(bool, static_cast<bool (*)(int, bool)>(&set_bool_helper), static_cast<bool (*)(int)>(&get_bool_helper))                   \
-  SHV_CASE_END(SHVT_INT)                                                                                                             \
-  SHV_CASE(SHVT_REAL)                                                                                                                \
-  TAG_CASE(float, static_cast<bool (*)(int, float)>(&ShaderGlobal::set_real), static_cast<float (*)(int)>(&ShaderGlobal::get_real))  \
-  SHV_CASE_END(SHVT_REAL)                                                                                                            \
-  SHV_CASE(SHVT_COLOR4)                                                                                                              \
-  TAG_CASE(Color3, static_cast<bool (*)(int, const Color3 &)>(&set_color3_helper), static_cast<Color3 (*)(int)>(&get_color3_helper)) \
-  TAG_CASE(Color4, static_cast<bool (*)(int, const Color4 &)>(&ShaderGlobal::set_color4),                                            \
-    static_cast<Color4 (*)(int)>(&ShaderGlobal::get_color4))                                                                         \
-  TAG_CASE(Point2, static_cast<bool (*)(int, const Point2 &)>(&set_point2_helper), static_cast<Point2 (*)(int)>(&get_point2_helper)) \
-  TAG_CASE(Point3, static_cast<bool (*)(int, const Point3 &)>(&set_point3_helper), static_cast<Point3 (*)(int)>(&get_point3_helper)) \
-  TAG_CASE(Point4, static_cast<bool (*)(int, const Point4 &)>(&ShaderGlobal::set_color4),                                            \
-    static_cast<Point4 (*)(int)>(&get_point4_helper))                                                                                \
-  TAG_CASE(E3DCOLOR, static_cast<bool (*)(int, E3DCOLOR)>(&ShaderGlobal::set_color4),                                                \
-    static_cast<E3DCOLOR (*)(int)>(&get_e3dcolor_helper))                                                                            \
-  TAG_CASE(XMFLOAT4, static_cast<bool (*)(int, const XMFLOAT4 &)>(&ShaderGlobal::set_color4),                                        \
-    static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))                                                                            \
-  TAG_CASE(XMVECTOR, static_cast<bool (*)(int, FXMVECTOR)>(&ShaderGlobal::set_color4),                                               \
-    static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))                                                                            \
-  TAG_CASE(vec4f, static_cast<bool (*)(int, vec4f)>(&set_vec4f_helper), static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))        \
-  SHV_CASE_END(SHVT_COLOR4)                                                                                                          \
-  SHV_CASE(SHVT_INT4)                                                                                                                \
-  TAG_CASE(IPoint4, static_cast<bool (*)(int, const IPoint4 &)>(&ShaderGlobal::set_int4),                                            \
-    static_cast<IPoint4 (*)(int)>(&ShaderGlobal::get_int4))                                                                          \
-  SHV_CASE_END(SHVT_INT4)                                                                                                            \
-  SHV_CASE(SHVT_FLOAT4X4)                                                                                                            \
-  TAG_CASE(TMatrix4, static_cast<bool (*)(int, const TMatrix4 &)>(&ShaderGlobal::set_float4x4),                                      \
-    static_cast<TMatrix4 (*)(int)>(&ShaderGlobal::get_float4x4))                                                                     \
-  TAG_CASE(XMFLOAT4X4, static_cast<bool (*)(int, const XMFLOAT4X4 &)>(&ShaderGlobal::set_float4x4),                                  \
-    static_cast<XMFLOAT4X4 (*)(int)>(&get_xmfloat4x4_helper))                                                                        \
-  TAG_CASE(FXMMATRIX, static_cast<bool (*)(int, FXMMATRIX)>(&ShaderGlobal::set_float4x4),                                            \
-    static_cast<XMMATRIX (*)(int)>(&get_xmmatrix_helper))                                                                            \
-  SHV_CASE_END(SHVT_FLOAT4X4)                                                                                                        \
-  SHV_CASE(SHVT_SAMPLER)                                                                                                             \
-  TAG_CASE(d3d::SamplerHandle, static_cast<bool (*)(int, d3d::SamplerHandle)>(&ShaderGlobal::set_sampler),                           \
-    static_cast<d3d::SamplerHandle (*)(int)>(&ShaderGlobal::get_sampler))                                                            \
+#define SHV_BIND_BLOB_LIST                                                                                                            \
+  SHV_CASE(SHVT_INT)                                                                                                                  \
+  TAG_CASE(int, static_cast<bool (*)(int, int)>(&ShaderGlobal::set_int), static_cast<int (*)(int)>(&ShaderGlobal::get_int))           \
+  TAG_CASE(bool, static_cast<bool (*)(int, bool)>(&set_bool_helper), static_cast<bool (*)(int)>(&get_bool_helper))                    \
+  SHV_CASE_END(SHVT_INT)                                                                                                              \
+  SHV_CASE(SHVT_REAL)                                                                                                                 \
+  TAG_CASE(float, static_cast<bool (*)(int, float)>(&ShaderGlobal::set_float), static_cast<float (*)(int)>(&ShaderGlobal::get_float)) \
+  SHV_CASE_END(SHVT_REAL)                                                                                                             \
+  SHV_CASE(SHVT_COLOR4)                                                                                                               \
+  TAG_CASE(Color3, static_cast<bool (*)(int, const Color3 &)>(&set_color3_helper), static_cast<Color3 (*)(int)>(&get_color3_helper))  \
+  TAG_CASE(Color4, static_cast<bool (*)(int, const Color4 &)>(&ShaderGlobal::set_float4),                                             \
+    static_cast<Color4 (*)(int)>(&ShaderGlobal::get_float4))                                                                          \
+  TAG_CASE(Point2, static_cast<bool (*)(int, const Point2 &)>(&set_point2_helper), static_cast<Point2 (*)(int)>(&get_point2_helper))  \
+  TAG_CASE(Point3, static_cast<bool (*)(int, const Point3 &)>(&set_point3_helper), static_cast<Point3 (*)(int)>(&get_point3_helper))  \
+  TAG_CASE(Point4, static_cast<bool (*)(int, const Point4 &)>(&ShaderGlobal::set_float4),                                             \
+    static_cast<Point4 (*)(int)>(&get_point4_helper))                                                                                 \
+  TAG_CASE(E3DCOLOR, static_cast<bool (*)(int, E3DCOLOR)>(&ShaderGlobal::set_float4),                                                 \
+    static_cast<E3DCOLOR (*)(int)>(&get_e3dcolor_helper))                                                                             \
+  TAG_CASE(XMFLOAT4, static_cast<bool (*)(int, const XMFLOAT4 &)>(&ShaderGlobal::set_float4),                                         \
+    static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))                                                                             \
+  TAG_CASE(XMVECTOR, static_cast<bool (*)(int, FXMVECTOR)>(&ShaderGlobal::set_float4),                                                \
+    static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))                                                                             \
+  TAG_CASE(vec4f, static_cast<bool (*)(int, vec4f)>(&set_vec4f_helper), static_cast<XMFLOAT4 (*)(int)>(&get_xmfloat4_helper))         \
+  SHV_CASE_END(SHVT_COLOR4)                                                                                                           \
+  SHV_CASE(SHVT_INT4)                                                                                                                 \
+  TAG_CASE(IPoint4, static_cast<bool (*)(int, const IPoint4 &)>(&ShaderGlobal::set_int4),                                             \
+    static_cast<IPoint4 (*)(int)>(&ShaderGlobal::get_int4))                                                                           \
+  SHV_CASE_END(SHVT_INT4)                                                                                                             \
+  SHV_CASE(SHVT_FLOAT4X4)                                                                                                             \
+  TAG_CASE(TMatrix4, static_cast<bool (*)(int, const TMatrix4 &)>(&ShaderGlobal::set_float4x4),                                       \
+    static_cast<TMatrix4 (*)(int)>(&ShaderGlobal::get_float4x4))                                                                      \
+  TAG_CASE(XMFLOAT4X4, static_cast<bool (*)(int, const XMFLOAT4X4 &)>(&ShaderGlobal::set_float4x4),                                   \
+    static_cast<XMFLOAT4X4 (*)(int)>(&get_xmfloat4x4_helper))                                                                         \
+  TAG_CASE(FXMMATRIX, static_cast<bool (*)(int, FXMMATRIX)>(&ShaderGlobal::set_float4x4),                                             \
+    static_cast<XMMATRIX (*)(int)>(&get_xmmatrix_helper))                                                                             \
+  SHV_CASE_END(SHVT_FLOAT4X4)                                                                                                         \
+  SHV_CASE(SHVT_SAMPLER)                                                                                                              \
+  TAG_CASE(d3d::SamplerHandle, static_cast<bool (*)(int, d3d::SamplerHandle)>(&ShaderGlobal::set_sampler),                            \
+    static_cast<d3d::SamplerHandle (*)(int)>(&ShaderGlobal::get_sampler))                                                             \
   SHV_CASE_END(SHVT_SAMPLER)
 } // namespace dafg

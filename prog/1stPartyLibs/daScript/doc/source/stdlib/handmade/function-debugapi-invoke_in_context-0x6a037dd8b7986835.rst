@@ -1,0 +1,1 @@
+Calls a function in another context.  Accepts a `Context` reference and either a function name (string), a `function` pointer, or a `lambda`, plus up to 10 extra arguments.  Target functions must be marked `[export, pinvoke]`.

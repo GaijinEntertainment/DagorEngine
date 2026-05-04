@@ -222,7 +222,7 @@ static void dagor_add_base_path_default()
 
 #elif _TARGET_ANDROID
   char path[DAGOR_MAX_PATH];
-  if (dagor_android_external_path)
+  if (dagor_android_external_path && dagor_android_external_path[0])
   {
     strcpy(path, dagor_android_external_path);
     strcat(path, "/");

@@ -143,7 +143,7 @@ static int virtual_button_axis_sign(unsigned xinput_button)
 
 static const float VIRTUAL_THUMBKEY_PRESS_THRESHOLD = 0.5f;
 
-bool HidJoystickDeviceXInput::device_xinput_compatable(HidJoystickDevice *device)
+bool HidJoystickDeviceXInput::device_xinput_compatible(HidJoystickDevice *device)
 {
   dag::ConstSpan<AxisData> axes = device->getAxesInfo();
   for (unsigned axis : XinputMapping::required_axes)

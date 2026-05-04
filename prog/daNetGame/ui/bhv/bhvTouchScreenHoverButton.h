@@ -10,12 +10,13 @@ class BhvTouchScreenHoverButton : public BhvTouchScreenButton
 public:
   BhvTouchScreenHoverButton();
 
-  virtual int touchEvent(darg::ElementTree *,
+  virtual int pointingEvent(darg::ElementTree *,
     darg::Element *,
+    darg::InputDevice,
     darg::InputEvent /*event*/,
-    HumanInput::IGenPointing * /*pnt*/,
-    int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/,
+    int touch_idx,
+    int btn_id,
+    Point2 pos,
     int /*accum_res*/) override;
 };
 

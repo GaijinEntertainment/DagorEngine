@@ -1,0 +1,9 @@
+ERROR: expression of type 'function' cannot be assigned to type 'array'
+testData/diagnostics/compilation_errors/type_inference/test_const_function.nut:3:0
+
+const function fn2() {}
+let x: array = true ? fn1 : fn2
+^------------------------------
+return x
+
+

@@ -132,9 +132,9 @@ static ecs::CompileTimeQueryDesc selected_light_entity_ecs_query_desc
   make_span(selected_light_entity_ecs_query_comps+1, 2)/*rq*/,
   make_span(selected_light_entity_ecs_query_comps+3, 1)/*no*/);
 template<typename Callable>
-inline void selected_light_entity_ecs_query(Callable function)
+inline void selected_light_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, selected_light_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, selected_light_entity_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

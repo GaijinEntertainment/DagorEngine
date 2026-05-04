@@ -1,5 +1,6 @@
+include "triangle_size_debug_transparent.dshl"
+
 macro DYNAMIC_COLLIMATOR_SHADER()
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
   texture tex = material.texture.diffuse;
   render_trans;
@@ -19,7 +20,7 @@ macro DYNAMIC_COLLIMATOR_SHADER()
     dont_render;
   }
   SUPPORT_MULTIDRAW(false)
-  (ps){ diffuse_tex@static = tex; }
+  (ps){ diffuse_tex@staticSmp = tex; }
   if (two_sided)
   {
     cull_mode = none;
@@ -142,5 +143,12 @@ macro DYNAMIC_COLLIMATOR_SHADER()
       return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
     }
   }
-  compile("target_ps", "dynamic_simple_ps");
+  if (is_transparent_triangle_debug)
+  {
+    TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else
+  {
+    compile("target_ps", "dynamic_simple_ps");
+  }
 endmacro

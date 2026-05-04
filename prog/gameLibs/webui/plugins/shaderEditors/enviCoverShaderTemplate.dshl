@@ -1,0 +1,91 @@
+include "node_based_envi_cover_common.dshl"
+include "common.dshl"
+
+// [[dshl_gvars]]
+
+shader
+// [[shader_name]]
+{
+  supports nbs_envi_cover_block;
+
+  (cs) {
+    // [[dshl_preshader]]
+  }
+
+  hlsl (cs) {
+    ##if envi_cover_shader_pack_norms
+    #include "enviCoverNormsPacked.hlsl"
+    ##endif
+
+    #include "../../../daSDF/shaders/world_sdf.hlsli" // Needs to be before globalHlsl
+    #include "enviCoverDefines.hlsli"
+    #include "../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"
+    #include "../../../publicInclude/render/nbs_spheres.hlsli"
+    #include "globalHlslFunctions.hlsl"
+    #include "../../../publicInclude/render/light_consts.hlsli"
+    #include "../../../render/shaders/camera_in_camera.hlsl"
+    #include "../../../render/shaders/noise/Value3D.hlsl"
+    #include "../../../render/shaders/pixelPacking/ColorSpaceUtility.hlsl"
+    #include "../../../render/shaders/hsv_rgb_conversion.hlsl"
+    #include "../../../render/shaders/gbuffer_header_DNG.hlsl"
+    #include "../../../render/shaders/gbuffer_rw_init_DNG.hlsl"
+    #include "../../../render/shaders/gbuffer_packing_inc_DNG.hlsl"
+    #include "../../../render/shaders/gbuffer_pack_unpack_DNG.hlsl"
+    #include "../../../render/shaders/gbuffer_partial_unpacking_DNG.hlsl"
+    #include "../../../render/shaders/sparkles.hlsl"
+    #include "../../../render/shaders/depth_above.hlsl"
+    #include "../../../fftWater/shaders/water_heigtmap.hlsl"
+    #include "enviCoverCommon.hlsl"
+    #include "nbsSDF.hlsl"
+    #include "../../../render/shaders/gravity_zones_funcs.hlsl"
+    #include "../../../daSDF/shaders/world_sdf_math.hlsl"
+    #include "../../../daSDF/shaders/world_sdf_use.hlsl"
+    #include "../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"
+    #include "../../../publicInclude/render/enviCover/enviCoverThread.hlsli"
+
+    ##if envi_cover_shader_is_combined
+    #include "../../../render/shaders/reprojected_motion_vectors.hlsl"
+    ##endif
+
+    // [[shader_local_functions]]
+
+    [numthreads(ENVI_COVER_THREADS_X, ENVI_COVER_THREADS_Y, ENVI_COVER_THREADS_Z)]
+    void node_based_envi_cover_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      float2 screenCoordCenter = dtId + 0.5;
+      float2 tc = screenCoordCenter * rendering_res.zw;
+
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
+
+      NBSGbuffer initialNBSGbuffer = init_NBSGbuffer(dtId);
+      //Need to save initial version for reads in permutation
+      NBSGbuffer nbsGbuffer = initialNBSGbuffer;
+
+      float rawDepth = texelFetch(depth_gbuf, dtId, 0).r;
+
+      float w = linearize_z(rawDepth, get_transformed_zn_zfar().zw);
+
+      float2 viewVecTc = saturate(tc);
+      float3 viewVec = lerp_view_vec(viewVecTc);
+
+      float3 pointToEye = -viewVec * w;
+      float4 world_pos = float4(world_view_pos.xyz - pointToEye, 1);
+
+      // [[shader_code]]
+
+    ##if envi_cover_shader_is_combined
+      BRANCH
+      if (!nbsGbuffer.unpackedGbuffer.dynamic && rawDepth < 1)
+      {
+        float3 motionInUvSpace = get_reprojected_motion_vector1(float3(viewVecTc, w), -pointToEye, jitteredCamPosToUnjitteredHistoryClip);
+        invalidate_mvec_to_invalid_view_area(viewVecTc, motionInUvSpace.xy);
+        writeGbuffMotionVecs(dtId, float4(motionInUvSpace, 0));
+      }
+    ##endif
+
+      writeNBSGbuffer(nbsGbuffer, dtId);
+    }
+  }
+
+  compile("target_cs", "node_based_envi_cover_cs");
+}

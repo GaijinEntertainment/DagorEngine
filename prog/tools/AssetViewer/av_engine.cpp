@@ -38,6 +38,7 @@
 #include <gameRes/dag_gameResSystem.h>
 
 #include <propPanel/control/panelWindow.h>
+#include <propPanel/control/toolbarContainer.h>
 
 #include <EASTL/vector_set.h>
 
@@ -60,7 +61,7 @@ extern void *get_visibility_finder_service();
 
 extern void terminate_interface_de3();
 extern InitOnDemand<DebugTexOverlay> av_show_tex_helper;
-
+extern EditorCommandSystem editor_command_system;
 
 static int worldViewPosVarId = -2;
 
@@ -91,9 +92,9 @@ static void getAssetReferencesRecursively(DagorAsset &asset, eastl::vector_set<D
 
 static bool hasAssetBeenLoadedPreviouslyInThisSession(DagorAsset &asset)
 {
-  const int resId = dabuildcache::get_asset_res_id(asset);
-  const int classId = get_game_res_class_id(resId);
-  return classId != 0 && is_game_resource_loaded(GAMERES_HANDLE_FROM_STRING(asset.getName()), classId);
+  auto resId = dabuildcache::get_asset_res_id(asset);
+  auto classId = get_game_res_class_id(resId);
+  return classId != 0 && is_game_resource_loaded(asset.getName(), classId);
 }
 
 static void logAssetBuildWarningsForASingleAsset(DagorAsset &asset)
@@ -147,6 +148,8 @@ void AssetViewerApp::terminateInterface()
     del_it(plugin[i]);
   }
 
+  free_unused_game_resources();
+  reset_game_resources();
   terminate_interface_de3();
   IEditorCoreEngine::set(NULL);
 }
@@ -191,19 +194,24 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
   if (huid == HUID_IVisibilityFinderProvider)
     return get_visibility_finder_service();
 
+  if (huid == IEditorCommandSystem::HUID)
+    return &editor_command_system;
+
   RETURN_INTERFACE(huid, IMainWindowImguiRenderingService);
+  RETURN_INTERFACE(huid, IEditorCommandKeyChordChangeEventHandler);
+  RETURN_INTERFACE(huid, IGridSettingChangeEventHandler);
 
   return NULL;
 }
 
-void AssetViewerApp::screenshotRender(bool skip_debug_objects)
+void AssetViewerApp::screenshotRender(const Driver3dPerspective &persp, bool is_ortho, bool skip_debug_objects)
 {
   const bool lastSkipDebugObjects = skipRenderObjects;
 
   skipRenderObjects = skip_debug_objects;
   skipSetViewProj = true;
 
-  queryEditorInterface<IDynRenderService>()->renderScreenshot();
+  queryEditorInterface<IDynRenderService>()->renderScreenshot(persp, is_ortho, skipRenderObjects);
 
   skipSetViewProj = false;
   skipRenderObjects = lastSkipDebugObjects;
@@ -303,8 +311,9 @@ void AssetViewerApp::switchToPlugin(int id)
   if (next && !next->begin(curAsset))
   {
     curPluginId = oldCur;
-    showAdditinalToolWindow(cur->haveToolPanel());
-    cur->begin(curAsset);
+    showAdditinalToolWindow(cur && cur->haveToolPanel());
+    if (cur)
+      cur->begin(curAsset);
     return;
   }
 
@@ -412,6 +421,15 @@ PropPanel::DialogWindow *AssetViewerApp::createDialog(hdpi::Px w, hdpi::Px h, co
 void AssetViewerApp::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
 
 
+eastl::unique_ptr<PropPanel::IMenu> AssetViewerApp::createContextMenu()
+{
+  return eastl::unique_ptr<PropPanel::IMenu>(PropPanel::create_context_menu());
+}
+
+
+bool AssetViewerApp::renderContextMenu(PropPanel::IMenu &menu) { return PropPanel::render_context_menu(menu); }
+
+
 //==============================================================================
 void AssetViewerApp::updateViewports() { shouldUpdateViewports = true; }
 
@@ -456,6 +474,16 @@ bool AssetViewerApp::getSelectionBox(BBox3 &box)
   IGenEditorPlugin *current = curPlugin();
 
   return current ? current->getSelectionBox(box) : false;
+}
+
+//==============================================================================
+bool AssetViewerApp::getGlobalBox(BBox3 &box)
+{
+  box.setempty();
+
+  IGenEditorPlugin *current = curPlugin();
+
+  return current ? current->getGlobalBox(box) : false;
 }
 
 //==============================================================================
@@ -549,7 +577,8 @@ void AssetViewerApp::actObjects(real dt)
 //==============================================================================
 void AssetViewerApp::beforeRenderObjects()
 {
-  ddsx::tex_pack2_perform_delayed_data_loading();
+  if (!is_managed_textures_streaming_load_on_demand())
+    ddsx::tex_pack2_perform_delayed_data_loading();
   ViewportWindow *vpw = ged.getRenderViewport();
   if (vpw)
   {
@@ -567,7 +596,7 @@ void AssetViewerApp::beforeRenderObjects()
   if (worldViewPosVarId == -2)
     worldViewPosVarId = ::get_shader_variable_id("world_view_pos");
   if (worldViewPosVarId >= 0)
-    ShaderGlobal::set_color4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
 
   plugin[0]->beforeRenderObjects();
   if (curPlug)

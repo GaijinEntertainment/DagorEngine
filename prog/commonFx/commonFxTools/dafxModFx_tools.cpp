@@ -195,6 +195,18 @@ ScriptHelpers::TunedElement *FxInitPosCone::createTunedElement(const char *name)
 }
 
 
+ScriptHelpers::TunedElement *FxRainMapUsage::createTunedElement(const char *name)
+{
+  Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
+  elems.reserve(2);
+
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("min_cloud_density", 0.5));
+
+  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+}
+
+
 ScriptHelpers::TunedElement *FxInitGpuPlacement::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
@@ -227,13 +239,13 @@ ScriptHelpers::TunedElement *FxPosHeightLimit::createTunedElement(const char *na
 ScriptHelpers::TunedElement *FxPos::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(12);
+  elems.reserve(13);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", true));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("attach_last_part_to_emitter", false));
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(5);
+    enumEntries.resize(6);
 
     enumEntries[0].name = "sphere";
     enumEntries[0].value = 0;
@@ -245,6 +257,8 @@ ScriptHelpers::TunedElement *FxPos::createTunedElement(const char *name)
     enumEntries[3].value = 3;
     enumEntries[4].name = "sphere_sector";
     enumEntries[4].value = 4;
+    enumEntries[5].name = "spline_based";
+    enumEntries[5].value = 5;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("type", enumEntries));
   }
@@ -256,9 +270,10 @@ ScriptHelpers::TunedElement *FxPos::createTunedElement(const char *name)
   elems.push_back(FxInitPosBox::createTunedElement("box"));
   elems.push_back(FxInitPosSphereSector::createTunedElement("sphere_sector"));
   elems.push_back(FxInitGpuPlacement::createTunedElement("gpu_placement"));
+  elems.push_back(FxRainMapUsage::createTunedElement("rain_map_based_density"));
   elems.push_back(FxPosHeightLimit::createTunedElement("height_limit"));
 
-  return ScriptHelpers::create_tuned_struct(name, 7, elems);
+  return ScriptHelpers::create_tuned_struct(name, 8, elems);
 }
 
 
@@ -841,7 +856,7 @@ ScriptHelpers::TunedElement *FxTranslucency::createTunedElement(const char *name
 ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(10);
+  elems.reserve(9);
 
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
@@ -866,7 +881,6 @@ ScriptHelpers::TunedElement *FxLighting::createTunedElement(const char *name)
   elems.push_back(ScriptHelpers::create_tuned_bool_param("specular_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("specular_power", 1));
   elems.push_back(ScriptHelpers::create_tuned_real_param("specular_strength", 1));
-  elems.push_back(ScriptHelpers::create_tuned_bool_param("ambient_enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("external_lights_enabled", false));
   elems.push_back(FxTranslucency::createTunedElement("translucency"));
 
@@ -1120,9 +1134,10 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
   elems.push_back(ScriptHelpers::create_tuned_bool_param("reverse_part_order", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("shadow_caster", false));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allow_screen_proj_discard", true));
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("has_distortion_as_a_component", false));
   {
     Tab<ScriptHelpers::EnumEntry> enumEntries(tmpmem);
-    enumEntries.resize(8);
+    enumEntries.resize(7);
 
     enumEntries[0].name = "modfx_default";
     enumEntries[0].value = 0;
@@ -1134,12 +1149,10 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
     enumEntries[3].value = 3;
     enumEntries[4].name = "modfx_bboard_rain";
     enumEntries[4].value = 4;
-    enumEntries[5].name = "modfx_bboard_rain_distortion";
+    enumEntries[5].name = "modfx_bboard_xray";
     enumEntries[5].value = 5;
-    enumEntries[6].name = "modfx_bboard_xray";
+    enumEntries[6].name = "modfx_bboard_water_fx";
     enumEntries[6].value = 6;
-    enumEntries[7].name = "modfx_bboard_water_fx";
-    enumEntries[7].value = 7;
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("shader", enumEntries));
   }
@@ -1148,11 +1161,10 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
   elems.push_back(FxRenderShaderDistortion::createTunedElement("modfx_bboard_distortion"));
   elems.push_back(FxRenderShaderVolShape::createTunedElement("modfx_bboard_vol_shape"));
   elems.push_back(FxRenderShaderDummy::createTunedElement("modfx_bboard_rain"));
-  elems.push_back(FxRenderShaderDistortion::createTunedElement("modfx_bboard_rain_distortion"));
   elems.push_back(FxRenderShaderXray::createTunedElement("modfx_bbboard_render_xray"));
   elems.push_back(FxRenderShaderWater::createTunedElement("modfx_bboard_water_fx"));
 
-  return ScriptHelpers::create_tuned_struct(name, 14, elems);
+  return ScriptHelpers::create_tuned_struct(name, 16, elems);
 }
 
 

@@ -21,9 +21,9 @@ static ecs::CompileTimeQueryDesc rotate_menu_cam_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void rotate_menu_cam_ecs_query(Callable function)
+inline void rotate_menu_cam_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, rotate_menu_cam_ecs_query_desc.getHandle(),
+  perform_query(&manager, rotate_menu_cam_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -58,9 +58,9 @@ static ecs::CompileTimeQueryDesc rotate_menu_cam_target_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void rotate_menu_cam_target_ecs_query(Callable function)
+inline void rotate_menu_cam_target_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, rotate_menu_cam_target_ecs_query_desc.getHandle(),
+  perform_query(&manager, rotate_menu_cam_target_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -94,9 +94,9 @@ static ecs::CompileTimeQueryDesc rotate_spectator_cam_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void rotate_spectator_cam_ecs_query(Callable function)
+inline void rotate_spectator_cam_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, rotate_spectator_cam_ecs_query_desc.getHandle(),
+  perform_query(&manager, rotate_spectator_cam_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -130,9 +130,9 @@ static ecs::CompileTimeQueryDesc rotate_spectator_free_cam_ecs_query_desc
   make_span(rotate_spectator_free_cam_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void rotate_spectator_free_cam_ecs_query(Callable function)
+inline void rotate_spectator_free_cam_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, rotate_spectator_free_cam_ecs_query_desc.getHandle(),
+  perform_query(&manager, rotate_spectator_free_cam_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -164,9 +164,9 @@ static ecs::CompileTimeQueryDesc change_spectator_camera_tps_speed_ecs_query_des
   make_span(change_spectator_camera_tps_speed_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void change_spectator_camera_tps_speed_ecs_query(Callable function)
+inline void change_spectator_camera_tps_speed_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, change_spectator_camera_tps_speed_ecs_query_desc.getHandle(),
+  perform_query(&manager, change_spectator_camera_tps_speed_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

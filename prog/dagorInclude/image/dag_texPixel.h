@@ -123,6 +123,7 @@ struct TexImage
 struct TexImage32 : public TexImage
 {
   inline TexPixel32 *getPixels() { return (TexPixel32 *)(this + 1); }
+  inline const TexPixel32 *getPixels() const { return reinterpret_cast<const TexPixel32 *>(this + 1); }
   static TexImage32 *create(int w, int h, IMemAlloc *mem = NULL);
   static TexImage32 *tryCreate(int w, int h, IMemAlloc *mem = NULL); // Returns nullptr if tryAlloc() failed
 };
@@ -130,24 +131,28 @@ struct TexImage32 : public TexImage
 struct TexImage8a : public TexImage
 {
   inline TexPixel8a *getPixels() { return (TexPixel8a *)(this + 1); }
+  inline const TexPixel8a *getPixels() const { return reinterpret_cast<const TexPixel8a *>(this + 1); }
   static TexImage8a *create(int w, int h, IMemAlloc *mem = NULL);
 };
 
 struct TexImage8 : public TexImage // uint8_t pixels
 {
   inline unsigned char *getPixels() { return (unsigned char *)(this + 1); }
+  inline const unsigned char *getPixels() const { return reinterpret_cast<const unsigned char *>(this + 1); }
   static TexImage8 *create(int w, int h, IMemAlloc *mem = NULL);
 };
 
 struct TexImageR : public TexImage // real pixels
 {
   inline float *getPixels() { return (float *)(this + 1); }
+  inline const float *getPixels() const { return reinterpret_cast<const float *>(this + 1); } // -V1032
   static TexImageR *create(int w, int h, IMemAlloc *mem = NULL);
 };
 
 struct TexImageF : public TexImage // Color3 pixels
 {
   inline Color3 *getPixels() { return (Color3 *)(this + 1); }
+  inline const Color3 *getPixels() const { return reinterpret_cast<const Color3 *>(this + 1); }
   static TexImageF *create(int w, int h, IMemAlloc *mem = NULL);
 };
 

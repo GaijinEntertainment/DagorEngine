@@ -155,7 +155,6 @@ static bool try_change_tickrate(float meanFrameTime)
 namespace workcycle_internal
 {
 void set_title(const char *, bool) {}
-void set_title_tooltip(const char *, const char *, bool) {}
 void idle_loop()
 {
   if (!is_level_loaded())

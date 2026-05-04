@@ -6,48 +6,53 @@ options strict_smart_pointers = true
 
 module ast_used shared private
 
+//! Used-type collection visitor.
+//!
+//! Walks the AST and collects all structure and enumeration types
+//! that are actually referenced, producing an ``OnlyUsedTypes`` set.
+//! Used by code generators to emit only the types that are needed.
+
 require daslib/ast_boost
 
 struct public OnlyUsedTypes {
     //! Collection of all structure and enumeration types that are used in the AST.
-    st : table<Structure?; bool>
-    en : table<Enumeration?; bool>
+    st : table<Structure?>   //! all structure types used
+    en : table<Enumeration?>   //! all enumeration types used
 }
 
 class TypeVisitor : AstVisitor {
-    usedTypes : OnlyUsedTypes
+    //! AST visitor that collects referenced types and structures.
+    usedTypes : OnlyUsedTypes //! collected used types
     def TypeVisitor {
         pass
     }
     def collect(typ : TypeDeclPtr) {
-        unsafe {
-            if (typ.baseType == Type.tStructure) {
-                if (usedTypes.st |> key_exists(reinterpret<Structure?> typ.structType)) {
-                    return
-                }
+        if (typ.baseType == Type.tStructure) {
+            if (usedTypes.st |> key_exists(typ.structType)) {
+                return
             }
-            if (typ.structType != null) {
-                usedTypes.st[reinterpret<Structure?> typ.structType] = true
-                for (fld in typ.structType.fields) {
-                    self->collect(fld._type)
-                }
+        }
+        if (typ.structType != null) {
+            insert(usedTypes.st, typ.structType)
+            for (fld in typ.structType.fields) {
+                collect(fld._type)
             }
-            if (typ.enumType != null) {
-                usedTypes.en[reinterpret<Enumeration?> typ.enumType] = true
-            }
+        }
+        if (typ.enumType != null) {
+            insert(usedTypes.en, typ.enumType)
         }
         if (typ.firstType != null) {
-            self->collect(typ.firstType)
+            collect(typ.firstType)
         }
         if (typ.secondType != null) {
-            self->collect(typ.secondType)
+            collect(typ.secondType)
         }
         for (arg in typ.argTypes) {
-            self->collect(arg)
+            collect(arg)
         }
     }
     def override preVisitTypeDecl(typ : TypeDeclPtr) : void {
-        self->collect(typ)
+        collect(typ)
     }
 }
 

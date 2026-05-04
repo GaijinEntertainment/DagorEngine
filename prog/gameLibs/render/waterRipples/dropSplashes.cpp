@@ -164,10 +164,10 @@ DropSplashes::DropSplashes(const DataBlock &blk) : splashRendElem(nullptr), spri
   initSplashShader();
   initSpriteShader();
 
-  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, 0, "splashVb");
+  splashVb = dag::create_vb(VERTICES_PER_SPLASH * sizeof(float) * 3, 0, "splashVb", RESTAG_WATER);
   G_ASSERT(splashVb);
 
-  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), 0, "splashIb");
+  splashIb = dag::create_ib(INDICES_PER_SPLASH * sizeof(uint16_t), 0, "splashIb", RESTAG_WATER);
   G_ASSERT(splashIb);
   fillBuffers();
 
@@ -186,19 +186,19 @@ DropSplashes::DropSplashes(const DataBlock &blk) : splashRendElem(nullptr), spri
 void DropSplashes::setTimeToLive(const float time_to_live)
 {
   splashTimeToLive = time_to_live;
-  ShaderGlobal::set_real_fast(::get_shader_variable_id("splash_time_to_live"), splashTimeToLive);
+  ShaderGlobal::set_float(::get_shader_variable_id("splash_time_to_live"), splashTimeToLive);
 }
 
 void DropSplashes::setIterationTime(const float iteration_time)
 {
   iterationTime = iteration_time;
-  ShaderGlobal::set_real_fast(::get_shader_variable_id("splash_iteration_time"), iterationTime);
+  ShaderGlobal::set_float(::get_shader_variable_id("splash_iteration_time"), iterationTime);
 }
 
 void DropSplashes::setDistance(const float dist)
 {
   distance = dist;
-  ShaderGlobal::set_real_fast(::get_shader_variable_id("splashes_distance"), distance);
+  ShaderGlobal::set_float(::get_shader_variable_id("splashes_distance"), distance);
 }
 
 void DropSplashes::update(const float dt, const Point3 &view_pos)
@@ -211,10 +211,10 @@ void DropSplashes::update(const float dt, const Point3 &view_pos)
   if (currentTime > iterationTime)
   {
     currentTime = currentTime - floor(currentTime / iterationTime) * iterationTime;
-    ShaderGlobal::set_color4(hero_position_oldVarId, ShaderGlobal::get_color4_fast(hero_position_currentVarId));
-    ShaderGlobal::set_color4(hero_position_currentVarId, Color4(view_pos.x, view_pos.z, 0, 0));
+    ShaderGlobal::set_float4(hero_position_oldVarId, ShaderGlobal::get_float4(hero_position_currentVarId));
+    ShaderGlobal::set_float4(hero_position_currentVarId, Color4(view_pos.x, view_pos.z, 0, 0));
   }
-  ShaderGlobal::set_real_fast(splash_current_timeVarId, currentTime);
+  ShaderGlobal::set_float(splash_current_timeVarId, currentTime);
 }
 
 void DropSplashes::render()
@@ -229,7 +229,7 @@ void DropSplashes::render()
 
   {
     TIME_D3D_PROFILE(render_volumetric_drop_splashes);
-    ShaderGlobal::set_real_fast(splash_scaleVarId, volumetricSplashScale);
+    ShaderGlobal::set_float(splash_scaleVarId, volumetricSplashScale);
 
     splashRendElem->shElem->setStates(0, true);
     d3d::setvdecl(splashRendElem->vDecl);
@@ -245,7 +245,7 @@ void DropSplashes::render()
     const uint32_t spritesCount = getSpritesCount();
     if (spritesCount > 0)
     {
-      ShaderGlobal::set_real_fast(splash_scaleVarId, spriteSplashScale);
+      ShaderGlobal::set_float(splash_scaleVarId, spriteSplashScale);
       spriteRendElem->shElem->setStates(0, true);
       d3d::setvdecl(spriteRendElem->vDecl);
 
@@ -262,9 +262,9 @@ void DropSplashes::setPartOfSprites(const float part)
 
 uint32_t DropSplashes::getSpritesCount() const { return splashesCount * partOfSprites; }
 
-void DropSplashes::setSpriteYPos(const float pos) { ShaderGlobal::set_real_fast(::get_shader_variable_id("sprite_y_pos"), pos); }
+void DropSplashes::setSpriteYPos(const float pos) { ShaderGlobal::set_float(::get_shader_variable_id("sprite_y_pos"), pos); }
 
-float DropSplashes::getSpriteYPos() const { return ShaderGlobal::get_real_fast(::get_shader_variable_id("sprite_y_pos")); }
+float DropSplashes::getSpriteYPos() const { return ShaderGlobal::get_float(::get_shader_variable_id("sprite_y_pos")); }
 
 DropSplashes::~DropSplashes()
 {

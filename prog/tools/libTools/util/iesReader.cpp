@@ -45,7 +45,7 @@ static IesReader::Real get_angular_distance(const IesReader::SphericalCoordinate
   get_dir(a, ax, ay, az);
   get_dir(b, bx, by, bz);
   IesReader::Real cosAngle = ax * bx + ay * by + az * bz; // dot
-  return norm_s_ang(acos(cosAngle));
+  return norm_s_ang(safe_acos(cosAngle));
 }
 
 static IesReader::Texcoords inv_map_octahedral(const IesReader::SphericalCoordinates &coords)

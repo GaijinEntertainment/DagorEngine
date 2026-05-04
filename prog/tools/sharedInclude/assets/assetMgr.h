@@ -5,9 +5,11 @@
 #pragma once
 
 #include <generic/dag_tab.h>
-#include <util/dag_oaHashNameMap.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_string.h>
+#include <util/dag_bitArray.h>
 #include <EASTL/vector.h>
 
 
@@ -24,12 +26,19 @@ class IDagorAssetBaseChangeNotify;
 class IDagorAssetExporter;
 class IDagorAssetRefProvider;
 class FastIntList;
-class String;
+namespace threadpool
+{
+struct JobPool;
+}
 
 
 class DagorAssetMgr
 {
 public:
+  mutable OSReentrantReadWriteLock mutex;
+  using ReadGuard = ScopedLockReadTemplate<OSReentrantReadWriteLock>;
+  using WriteGuard = ScopedLockWriteTemplate<OSReentrantReadWriteLock>;
+
   explicit DagorAssetMgr(bool use_shared_name_map_for_assets = false);
   ~DagorAssetMgr();
   DagorAssetMgr(const DagorAssetMgr &) = delete;
@@ -43,7 +52,11 @@ public:
   IDagorAssetMsgPipe *setMsgPipe(IDagorAssetMsgPipe *pipe);
 
   //! returns current message pipe
-  IDagorAssetMsgPipe &getMsgPipe() const { return *msgPipe; }
+  IDagorAssetMsgPipe &getMsgPipe() const
+  {
+    ReadGuard guard(mutex);
+    return *msgPipe;
+  }
 
   //! scans assets folder for *.res.blk and creates list of assets
   bool loadAssetsBase(const char *assets_folder, const char *name_space);
@@ -120,14 +133,29 @@ public:
     dag::ConstSpan<DagorAsset *> removed_assets) const;
 
 
-  //! returns array of assets (array itself cannot be modified, assets can be)
+#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wthread-safety-reference"
+#endif
+  //! returns array of assets (array itself cannot be modified, assets can be, use mutex unless you know what you're doing)
   dag::ConstSpan<DagorAsset *> getAssets() const { return assets; }
+#if defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
   //! returns number of assets in loaded base
-  int getAssetCount() const { return assets.size(); }
+  int getAssetCount() const
+  {
+    ReadGuard guard(mutex);
+    return assets.size();
+  }
 
   //! returns reference to asset by index
-  DagorAsset &getAsset(int idx) const { return *assets[idx]; }
+  DagorAsset &getAsset(int idx) const
+  {
+    ReadGuard guard(mutex);
+    return *assets[idx];
+  }
 
 
   //! finds asset by name and returns pointer to it or NULL if asset does not exsit
@@ -141,26 +169,36 @@ public:
 
 
   //! returns pointer to root folder of assets base
-  const DagorAssetFolder *getRootFolder() const { return folders.size() > 0 ? folders[0] : NULL; }
+  const DagorAssetFolder *getRootFolder() const
+  {
+    ReadGuard guard(mutex);
+    return folders.size() > 0 ? folders[0] : NULL;
+  }
 
   //! returns pointer to any folder of assets base by index or NULL if does not exist
   const DagorAssetFolder *getFolderPtr(int folder_idx) const
   {
+    ReadGuard guard(mutex);
     return unsigned(folder_idx) < unsigned(folders.size()) ? folders[folder_idx] : NULL;
   }
 
   //! returns reference to any folder of assets base by index
   DagorAssetFolder &getFolder(int i)
   {
+    ReadGuard guard(mutex);
     G_ASSERT((unsigned)i < folders.size());
     return *folders[i];
   }
 
+  //! Returns with the folder's index or -1 if it is not found.
+  //! It searches through all folders, so avoid using it if possible.
+  int getFolderIndex(const DagorAssetFolder &folder) const;
+
   //! gather folder indices which cointain assets for specified types (returns pointer to temporary buffer)
-  dag::ConstSpan<int> getFilteredFolders(dag::ConstSpan<int> types);
+  Tab<int> getFilteredFolders(dag::ConstSpan<int> types);
 
   //! gather asset indices for specified types, optionally restricted by folder (returns pointer to temporary buffer)
-  dag::ConstSpan<int> getFilteredAssets(dag::ConstSpan<int> types, int folder_idx = -1) const;
+  Tab<int> getFilteredAssets(dag::ConstSpan<int> types, int folder_idx = -1) const;
 
   //! returns range of asset indices for specified folder
   void getFolderAssetIdxRange(int folder_idx, int &out_start_idx, int &out_end_idx) const;
@@ -175,17 +213,19 @@ public:
   //! returns custom pack name for type
   const char *getPackNameForType(int a_type, const char *def = NULL)
   {
+    ReadGuard guard(mutex);
     return (a_type >= 0 && a_type < perTypePack.size() && !perTypePack[a_type].empty()) ? perTypePack[a_type].str() : def;
   }
 
   //! returns custom package name for type
   const char *getPkgNameForType(int a_type)
   {
+    ReadGuard guard(mutex);
     return (a_type >= 0 && a_type < perTypePkg.size() && !perTypePkg[a_type].empty()) ? perTypePkg[a_type].str() : NULL;
   }
 
   //! returns pack name for folder (.dxp.bin is for_tex=true and .grp if for_tex=false)
-  const char *getFolderPackName(int folder_idx, bool for_tex, const char *asset_pack_override, bool dabuild_collapse_packs = false,
+  String getFolderPackName(int folder_idx, bool for_tex, const char *asset_pack_override, bool dabuild_collapse_packs = false,
     bool pure_name = false, int asset_type = -1);
 
   //! registers asset exporter
@@ -196,6 +236,7 @@ public:
   //! returns asset exporter registered for given asset type
   IDagorAssetExporter *getAssetExporter(int asset_type_id) const
   {
+    ReadGuard guard(mutex);
     if (asset_type_id < 0 || asset_type_id >= perTypeExp.size())
       return NULL;
     return perTypeExp[asset_type_id];
@@ -210,6 +251,7 @@ public:
   //! returns asset reference provider registered for given asset type
   IDagorAssetRefProvider *getAssetRefProvider(int asset_type_id) const
   {
+    ReadGuard guard(mutex);
     if (asset_type_id < 0 || asset_type_id >= perTypeRefProv.size())
       return NULL;
     return perTypeRefProv[asset_type_id];
@@ -224,28 +266,61 @@ public:
   DagorAsset *makeAssetDirect(const char *asset_name, const DataBlock &props, int atype);
 
   //! returns type name is string form by type ID
-  const char *getAssetTypeName(int type_id) const { return typeNames.getName(type_id); }
+  const char *getAssetTypeName(int type_id) const
+  {
+    ReadGuard guard(mutex);
+    return typeNames.getName(type_id);
+  }
 
   //! returns namespace from id
-  const char *getAssetNameSpace(int nspace_id) const { return nspaceNames.getName(nspace_id); }
+  const char *getAssetNameSpace(int nspace_id) const
+  {
+    ReadGuard guard(mutex);
+    return nspaceNames.getName(nspace_id);
+  }
 
   //! returns type id by typename
-  int getAssetTypeId(const char *type_name) const { return typeNames.getNameId(type_name); }
+  int getAssetTypeId(const char *type_name) const
+  {
+    ReadGuard guard(mutex);
+    return typeNames.getNameId(type_name);
+  }
 
   //! returns type id for "tex" (cached!)
   int getTexAssetTypeId() const { return texAssetType; }
 
   //! returns count of allowed types
-  int getAssetTypesCount() const { return typeNames.nameCount(); }
+  int getAssetTypesCount() const
+  {
+    ReadGuard guard(mutex);
+    return typeNames.nameCount();
+  }
 
   //! returns namespace id by namespace name
-  int getAssetNameSpaceId(const char *nspace) const { return nspaceNames.getNameId(nspace); }
+  int getAssetNameSpaceId(const char *nspace) const
+  {
+    ReadGuard guard(mutex);
+    return nspaceNames.getNameId(nspace);
+  }
 
-  const char *getAssetName(int name_id) const { return assetNames.getName(name_id); }
-  const char *getAssetFile(int file_id) const { return assetFileNames.getName(file_id); }
+  const char *getAssetName(int name_id) const
+  {
+    ReadGuard guard(mutex);
+    return assetNames.getName(name_id);
+  }
+
+  const char *getAssetFile(int file_id) const
+  {
+    ReadGuard guard(mutex);
+    return assetFileNames.getName(file_id);
+  }
 
   //! returns nameId for given asset name; -1 means that asset with such name is surely not present in base
-  int getAssetNameId(const char *name) const { return assetNames.getNameId(name); }
+  int getAssetNameId(const char *name) const
+  {
+    ReadGuard guard(mutex);
+    return assetNames.getNameId(name);
+  }
 
   const char *getDefDxpPath() const { return defDxpPath.empty() ? NULL : defDxpPath.str(); }
   const char *getDefGrpPath() const { return defGrpPath.empty() ? NULL : defGrpPath.str(); }
@@ -253,7 +328,11 @@ public:
   const char *getLocDefGrp() const { return locDefGrp.empty() ? NULL : locDefGrp.str(); }
   const char *getBasePkg() const { return basePkg.empty() ? nullptr : basePkg.str(); }
 
-  DataBlock *getSharedNm() { return sharedAssetNameMapOwner; }
+  DataBlock *getSharedNm()
+  {
+    ReadGuard guard(mutex);
+    return sharedAssetNameMapOwner;
+  }
 
 protected:
   struct RootEntryRec;
@@ -267,23 +346,24 @@ protected:
     bool operator<(const AssetMap &b) const { return name < b.name; }
   };
 
-  Tab<DagorAsset *> assets;
-  Tab<DagorVirtualAssetRule *> vaRule;
-  Tab<DagorAssetFolder *> folders;
-  OAHashNameMap<true> assetNames, assetFileNames, typeNames, nspaceNames;
-  mutable eastl::vector<AssetMap> amap;
-  Tab<FastIntList> perTypeNameIds;
-  Tab<int> perFolderStartAssetIdx;
-  Tab<IDagorAssetExporter *> perTypeExp;
-  Tab<IDagorAssetRefProvider *> perTypeRefProv;
+  Tab<DagorAsset *> DAG_TS_GUARDED_BY(mutex) assets;
+  Tab<DagorVirtualAssetRule *> DAG_TS_GUARDED_BY(mutex) vaRule;
+  Tab<DagorAssetFolder *> DAG_TS_GUARDED_BY(mutex) folders;
+  OAHashNameMap<true> DAG_TS_GUARDED_BY(mutex) assetNames, assetFileNames, typeNames, nspaceNames;
+  mutable eastl::vector<AssetMap> DAG_TS_GUARDED_BY(mutex) amap;
+  Tab<FastIntList> DAG_TS_GUARDED_BY(mutex) perTypeNameIds;
+  Tab<int> DAG_TS_GUARDED_BY(mutex) perFolderStartAssetIdx;
+  Tab<IDagorAssetExporter *> DAG_TS_GUARDED_BY(mutex) perTypeExp;
+  Tab<IDagorAssetRefProvider *> DAG_TS_GUARDED_BY(mutex) perTypeRefProv;
   IDagorAssetMsgPipe *msgPipe;
 
-  Tab<IDagorAssetBaseChangeNotify *> updBaseNotify;
-  Tab<IDagorAssetChangeNotify *> updNotify;
-  Tab<PerAssetIdNotifyTab> perTypeNotify;
-  Tab<SimpleString> perTypePkg, perTypePack;
+  Tab<IDagorAssetBaseChangeNotify *> DAG_TS_GUARDED_BY(mutex) updBaseNotify;
+  Tab<IDagorAssetChangeNotify *> DAG_TS_GUARDED_BY(mutex) updNotify;
+  Tab<PerAssetIdNotifyTab> DAG_TS_GUARDED_BY(mutex) perTypeNotify;
+  Tab<SimpleString> DAG_TS_GUARDED_BY(mutex) perTypePkg, perTypePack;
+  Bitarray tmpDupAssetNameMarks;
 
-  Tab<RootEntryRec> baseRoots;
+  Tab<RootEntryRec> DAG_TS_GUARDED_BY(mutex) baseRoots;
   ChangesTracker *tracker;
   int texAssetType;
   bool texRtMipGenAllowed;
@@ -292,11 +372,17 @@ protected:
   SimpleString basePkg;
   DataBlock *sharedAssetNameMapOwner;
 
-  void loadAssets(int parent_folder_idx, const char *folder_name, int nspace_id);
-  void readFoldersBlk(DagorAssetFolder &f, const DataBlock &blk);
+  struct LoadedFolder;
+  struct LoadingPool;
 
-  bool addAsset(const char *folder_path, const char *fname, int nspace_id, DagorAssetPrivate *&ca, DagorAssetFolder *f, int fidx,
-    int &start_rule_idx, bool reg);
+  void loadAssets(LoadingPool &job_pool, LoadedFolder *loaded, int nspace_id);
+  void addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded);
+  void readFoldersBlk(DagorAssetFolder &f, DagorAssetFolder *parent, const DataBlock &blk);
+  bool checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFolder *f, const char *folder_path, const char *fname, int asset_type,
+    dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx);
+
+  bool addAsset(const char *folder_path, const char *fname, int nspace_id, DagorAssetPrivate *&ca, DagorAssetFolder *f,
+    LoadedFolder *loaded, int &start_rule_idx, bool reg);
 
   void fillGameResFolder(const char *type_name, int root_fidx, int nsid, dag::ConstSpan<String> names, unsigned res_classid);
   void fillGameResFolder(int pfidx, int nsid, const DataBlock &folder, dag::ConstSpan<ClassidToAssetMap> map);
@@ -308,4 +394,5 @@ protected:
 
   inline eastl::vector<AssetMap>::const_iterator findAssetByName(unsigned name) const;
   void rebuildAssetMap() const;
+  int addAssetNameId(const char *nm);
 };

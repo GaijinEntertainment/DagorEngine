@@ -371,17 +371,18 @@ static inline void biome_query_calculate_replacement_id_es(
 }
 
 template <typename Callable>
-static void get_replacement_color_ecs_query(Callable c);
+static void get_replacement_color_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_TRACK(biome_query__state)
 static inline void create_fx_based_on_biome_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   TMatrix transform,
   int biome_query__state,
   int biome_query__groupId,
   Point4 &biome_query__color,
-  const ecs::string &hit_fx_name,
+  const ecs::string &fx_name_to_spawn,
   const ecs::string &biome_query__desiredBiomeName = "")
 {
   if (biome_query__state == int(GpuReadbackResultState::IN_PROGRESS))
@@ -393,30 +394,31 @@ static inline void create_fx_based_on_biome_es(const ecs::Event &,
     if (!biome_query__desiredBiomeName.empty() &&
         biome_query__groupId != biome_query::get_biome_group_id(biome_query__desiredBiomeName.c_str()))
     {
-      g_entity_mgr->destroyEntity(eid);
+      manager.destroyEntity(eid);
     }
     else
     {
-      get_replacement_color_ecs_query([&biome_query__color, &biome_query__groupId](const ecs::IntList &biome_query__biomeReplaceIdList,
-                                        const Point4 &biome_query__mudBiomeColor) {
-        for (int biomeClassId : biome_query__biomeReplaceIdList)
-        {
-          if (biome_query__groupId == biomeClassId)
+      get_replacement_color_ecs_query(manager,
+        [&biome_query__color, &biome_query__groupId](const ecs::IntList &biome_query__biomeReplaceIdList,
+          const Point4 &biome_query__mudBiomeColor) {
+          for (int biomeClassId : biome_query__biomeReplaceIdList)
           {
-            biome_query__color = biome_query__mudBiomeColor;
-            break;
+            if (biome_query__groupId == biomeClassId)
+            {
+              biome_query__color = biome_query__mudBiomeColor;
+              break;
+            }
           }
-        }
-      });
+        });
       ecs::ComponentsInitializer attrs;
       attrs[ECS_HASH("transform")] = transform;
       attrs[ECS_HASH("paint_color")] = biome_query__color;
-      g_entity_mgr->reCreateEntityFromAsync(eid, hit_fx_name.c_str(), eastl::move(attrs));
+      manager.reCreateEntityFromAsync(eid, fx_name_to_spawn.c_str(), eastl::move(attrs));
     }
   }
   else
   {
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
   }
 }
 
@@ -473,7 +475,7 @@ static inline void destroy_effects_es(const ecs::EventEntityManagerBeforeClear &
 ECS_TAG(dev, render)
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE(ecs::Tag autodeleteEffectEntity, float effect__emit_range_limit)
-static inline void validate_emit_range_limit_es(const ecs::Event &, ecs::EntityId eid)
+static inline void validate_emit_range_limit_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid)
 {
   logerr("effect__emit_range_limit doesn't work for autodelete effects; "
          "entities will be destroyed right after pause and cannot be resumed: eid=%d, template='%s'\n"
@@ -482,7 +484,7 @@ static inline void validate_emit_range_limit_es(const ecs::Event &, ecs::EntityI
          "range_pauseable_effect makes sense only for permanent environment effects\n"
          "Set spawn_range_limit in effect game resource (in av) instead of effect__emit_range_limit "
          "for entities temporary effects with 'autodeleteEffectEntity' tag",
-    static_cast<ecs::entity_id_t>(eid), g_entity_mgr->getEntityTemplateName(eid));
+    static_cast<ecs::entity_id_t>(eid), manager.getEntityTemplateName(eid));
 }
 
 ECS_TAG(render)
@@ -513,7 +515,7 @@ static inline void pause_effects_set_sq_es(const ecs::Event &,
 }
 
 template <typename Callable>
-static void pause_effects_ecs_query(Callable c);
+static void pause_effects_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_AFTER(after_camera_sync)
@@ -522,34 +524,35 @@ static inline void pause_effects_es(const ecs::UpdateStageInfoAct &, ecs::Entity
   const TMatrix &camItm = get_cam_itm();
   const Point3 &cameraPos = camItm.getcol(3);
 
-  pause_effects_ecs_query([&cameraPos, &manager](ecs::EntityId eid, const TMatrix &transform, float effect__emit_range_limit_start_sq,
-                            float effect__emit_range_limit_stop_sq, TheEffect &effect, bool &effect__is_paused) {
-    if (effect__emit_range_limit_start_sq <= 0)
-      return;
+  pause_effects_ecs_query(manager,
+    [&cameraPos, &manager](ecs::EntityId eid, const TMatrix &transform, float effect__emit_range_limit_start_sq,
+      float effect__emit_range_limit_stop_sq, TheEffect &effect, bool &effect__is_paused) {
+      if (effect__emit_range_limit_start_sq <= 0)
+        return;
 
-    const Point3 &effectPos = transform.getcol(3);
-    float distanceSq = lengthSq(effectPos - cameraPos);
+      const Point3 &effectPos = transform.getcol(3);
+      float distanceSq = lengthSq(effectPos - cameraPos);
 
-    if (!effect__is_paused)
-    {
-      if (distanceSq > effect__emit_range_limit_stop_sq)
+      if (!effect__is_paused)
       {
-        // Pause effect
-        effect__is_paused = true;
-        effect.reset();
+        if (distanceSq > effect__emit_range_limit_stop_sq)
+        {
+          // Pause effect
+          effect__is_paused = true;
+          effect.reset();
+        }
       }
-    }
-    else
-    {
-      if (distanceSq < effect__emit_range_limit_start_sq)
+      else
       {
-        // Restart effect
-        effect__is_paused = false; // This line should be before TheEffect() constructor,
-                                   // because TheEffect() checks component effect__is_paused of eid
-        effect = TheEffect(manager, eid);
+        if (distanceSq < effect__emit_range_limit_start_sq)
+        {
+          // Restart effect
+          effect__is_paused = false; // This line should be before TheEffect() constructor,
+                                     // because TheEffect() checks component effect__is_paused of eid
+          effect = TheEffect(manager, eid);
+        }
       }
-    }
-  });
+    });
 }
 
 ECS_TAG(render)

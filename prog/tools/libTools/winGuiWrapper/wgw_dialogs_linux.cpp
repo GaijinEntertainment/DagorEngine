@@ -76,11 +76,26 @@ static int message_box_internal(int flags, const char *caption, const char *text
 int message_box(int flags, const char *caption, const char *text, const DagorSafeArg *arg, int anum)
 {
   if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
+  {
+    if (!eventHandler->allowShowingModalDialog())
+      return get_default_ret_value(flags);
+
     eventHandler->beforeModalDialogShown();
+  }
 
   String formattedText;
   formattedText.vprintf(2048, text, arg, anum);
-  const int result = message_box_internal(flags, caption, formattedText);
+
+  int result = 0;
+
+  bool builtInDialog = false;
+  if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
+    builtInDialog = eventHandler->tryShowingMessageBox(flags, caption, formattedText, result);
+
+  if (!builtInDialog)
+  {
+    result = message_box_internal(flags, caption, formattedText);
+  }
 
   if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
     eventHandler->afterModalDialogShown();

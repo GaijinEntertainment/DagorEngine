@@ -12,9 +12,9 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 
-#include <sqplus.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_sort.h>
+#include <util/dag_stlqsort.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -22,8 +22,16 @@
 #include <EditorCore/ec_IEditorCore.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <propPanel/commonWindow/dialogWindow.h>
+#include <generic/dag_relocatableFixedVector.h>
+#include <memory/dag_framemem.h>
 #include <util/dag_oaHashNameMap.h>
+#include <math/dag_intrin.h>
 #include <debug/dag_debug.h>
+#include <landClassEval/lcExprFusion.h>
+#include <landClassEval/lcExprGenLayerConvert.h>
+#include "hmlExprFactory.h"
+#include "smooth_noise.h"
+#include <math/dag_Point2.h>
 #include <stdio.h>
 
 #if _TARGET_PC_WIN
@@ -40,95 +48,136 @@ using editorcore_extapi::dagRender;
 using hdpi::_pxScaled;
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
+
+// Editor-local builtins registered via hml_lcexpr_factory on top of the gameLibs
+// landClassEval defaults. See init() below.
+//
+// Per-octave domain transform shared by both fbm variants: rotate the sample point by
+// ~36.87 degrees (cos = 0.8, sin = 0.6) and scale by 2. det = 4 = 2^2, so frequency
+// doubles each octave; the rotation keeps the 64-cell LUT grid from realigning with
+// itself across octaves, which is what produces visible "noise grid" artefacts.
+// Matches the matrix used by gameLibs/heightmap/heightProvider/vtexElevation.cpp so a
+// single named function would render the same height field on either path.
+static inline void lcexpr_fbm_step(double &x, double &y)
+{
+  const double nx = x * 1.6 - y * 1.2;
+  const double ny = x * 1.2 + y * 1.6;
+  x = nx;
+  y = ny;
+}
+
+// Plain value-noise FBM: sum of octaves of noise(p) at doubling frequencies / halving
+// amplitudes, normalised to ~[0, 1]. fbm needs a loop, so the body lives in a helper
+// that the node's expression calls -- same shape as SqrtNode/PowNode in lcExprNodes.h
+// calling sqrtf/powf.
+static float lcexpr_fbm_impl(float x_, float y_, float octavesF)
+{
+  int oct = (int)octavesF;
+  if (oct < 1)
+    oct = 1;
+  else if (oct > 8)
+    oct = 8;
+  double x = x_, y = y_;
+  double amp = 1.0, totalAmp = 0.0, sum = 0.0;
+  for (int i = 0; i < oct; i++)
+  {
+    sum += amp * smooth_noise::noise_value_2d(DPoint2(x, y));
+    totalAmp += amp;
+    lcexpr_fbm_step(x, y);
+    amp *= 0.5;
+  }
+  return totalAmp > 0.0 ? (float)(sum / totalAmp) : 0.f;
+}
+
+// Slope-attenuated FBM (after Inigo Quilez's "FBM with derivatives" / used by
+// vtexElevation.cpp): same accumulation as plain fbm, but each octave's contribution
+// is divided by 1 + |accumulated gradient|^2. Steep regions get LESS detail, which
+// produces a natural eroded / weathered look on terrain.
+//
+// smooth_noise::noise() returns vec4f (value, dvalue/dx, dvalue/dy, _) -- we read all
+// three lanes and accumulate the gradient across octaves.
+static float lcexpr_eroded_fbm_impl(float x_, float y_, float octavesF)
+{
+  int oct = (int)octavesF;
+  if (oct < 1)
+    oct = 1;
+  else if (oct > 16)
+    oct = 16;
+  double x = x_, y = y_;
+  double amp = 1.0, totalAmp = 0.0, sum = 0.0;
+  double accDx = 0.0, accDy = 0.0;
+  for (int i = 0; i < oct; i++)
+  {
+    vec4f n = smooth_noise::noise(DPoint2(x, y));
+    alignas(16) float lanes[4];
+    v_st(lanes, n);
+    accDx += lanes[1];
+    accDy += lanes[2];
+    const double atten = 1.0 / (1.0 + accDx * accDx + accDy * accDy);
+    sum += amp * lanes[0] * atten;
+    totalAmp += amp;
+    lcexpr_fbm_step(x, y);
+    amp *= 0.5;
+  }
+  return totalAmp > 0.0 ? (float)(sum / totalAmp) : 0.f;
+}
+
+// step(edge, x): s0=edge, s1=x
+HML_LC_USER_BINARY(LcExprStepNode, s1 >= s0 ? 1.f : 0.f);
+HML_LC_USER_BINARY(LcExprLength2Node, sqrtf(s0 *s0 + s1 * s1));
+HML_LC_USER_BINARY(LcExprSmoothNoiseNode, smooth_noise::noise_value_2d(DPoint2(s0, s1)));
+HML_LC_USER_TERNARY(LcExprFbmNode, lcexpr_fbm_impl(s0, s1, s2));
+HML_LC_USER_TERNARY(LcExprErodedFbmNode, lcexpr_eroded_fbm_impl(s0, s1, s2));
+
+struct LcExprContext
+{
+  enum VarSlot : uint16_t
+  {
+    VAR_HEIGHT = 0,
+    VAR_ANGLE,
+    VAR_CURVATURE,
+    VAR_MASK,
+    VAR_WORLD_X,
+    VAR_WORLD_Y,
+    VAR_COUNT
+  };
+  static_assert(VAR_COUNT <= 32, "exprVarMask is a 32-bit bitset; widen it (or computeVarMask) before raising VAR_COUNT");
+  lcexpr::NameMap varMap;
+  lcexpr::FuncParseMap parseMap;
+  lcexpr::NodeEmitMap emitMap;
+  lcexpr::FusionRule fusionRules[16] = {};
+  int numFusionRules = 0;
+  uint16_t nextVarId = 0;
+  bool inited = false;
+
+  void init()
+  {
+    if (inited)
+      return;
+    inited = true;
+    parseMap = lcexpr::make_default_func_parse_map();
+    emitMap = lcexpr::make_default_node_emit_map();
+    numFusionRules = lcexpr::make_default_fusion_rules(fusionRules, 16);
+
+    hml_lcexpr_factory::register_binary(parseMap, emitMap, "step", &lcexpr::emitBinaryFn<LcExprStepNode>);
+    hml_lcexpr_factory::register_binary(parseMap, emitMap, "length2", &lcexpr::emitBinaryFn<LcExprLength2Node>);
+    hml_lcexpr_factory::register_binary(parseMap, emitMap, "noise", &lcexpr::emitBinaryFn<LcExprSmoothNoiseNode>);
+    hml_lcexpr_factory::register_ternary(parseMap, emitMap, "fbm", &lcexpr::emitTernaryFn<LcExprFbmNode>);
+    hml_lcexpr_factory::register_ternary(parseMap, emitMap, "eroded_fbm", &lcexpr::emitTernaryFn<LcExprErodedFbmNode>);
+    smooth_noise::init();
+
+    nextVarId = 0;
+    lcexpr::register_var(varMap, nextVarId, "height");
+    lcexpr::register_var(varMap, nextVarId, "angle");
+    lcexpr::register_var(varMap, nextVarId, "curvature");
+    lcexpr::register_var(varMap, nextVarId, "mask");
+    lcexpr::register_var(varMap, nextVarId, "world_x");
+    lcexpr::register_var(varMap, nextVarId, "world_y");
+  }
+};
+static LcExprContext g_lcExpr;
+
 const int PID_STATIC_OFFSET = 10000;
-
-
-static char defScript[] = "\r\n"
-                          "let function degToRad(a)\r\n"
-                          "{\r\n"
-                          "  return a*PI/180;\r\n"
-                          "}\r\n"
-                          "\r\n"
-                          "\r\n"
-                          "::getParamsList <- function getParamsList()\r\n"
-                          "{\r\n"
-                          "  local list=\r\n"
-                          "  [\r\n"
-                          "    {name= \"fullGrassAngle\", type=\"real\", value=20},\r\n"
-                          "    {name=\"startGrassAngle\", type=\"real\", value=40},\r\n"
-                          "\r\n"
-                          "    {name=\"sandCurvature\", type=\"real\", value=50},\r\n"
-                          "\r\n"
-                          "    {name=\"dirtColor\" , type=\"color\", value=makeColor(120,  90,  40, 0)},\r\n"
-                          "    {name=\"sandColor\" , type=\"color\", value=makeColor(160, 150, 120, 0)},\r\n"
-                          "    {name=\"grassColor\", type=\"color\", value=makeColor(120, 120,  30, 1)},\r\n"
-                          "  ];\r\n"
-                          "  return list;\r\n"
-                          "}\r\n"
-                          "\r\n"
-                          "\r\n"
-                          "::getGenerator <- function getGenerator()\r\n"
-                          "{\r\n"
-                          "  local  fullGrassCos=cos(degToRad( fullGrassAngle));\r\n"
-                          "  local startGrassCos=cos(degToRad(startGrassAngle));\r\n"
-                          "\r\n"
-                          "  local sandCurv=sandCurvature/100.0;\r\n"
-                          "\r\n"
-                          "  return function(lcMap)\r\n"
-                          "    : (\r\n"
-                          "      getNormalY,\r\n"
-                          "      getHeight,\r\n"
-                          "      getCurvature,\r\n"
-                          "      sampleImage,\r\n"
-                          "      sampleImageAt,\r\n"
-                          "      sampleMask,\r\n"
-                          "      sampleMaskAlpha,\r\n"
-                          "      sampleMaskRed,\r\n"
-                          "      sampleMaskGreen,\r\n"
-                          "      sampleMaskBlue,\r\n"
-                          "      sampleMaskAt,\r\n"
-                          "      sampleMaskAlphaAt,\r\n"
-                          "      sampleMaskRedAt,\r\n"
-                          "      sampleMaskGreenAt,\r\n"
-                          "      sampleMaskBlueAt,\r\n"
-                          "      setMask,\r\n"
-                          "      mulColors,\r\n"
-                          "      mulColors2x,\r\n"
-                          "      blendColors,\r\n"
-                          "      dissolveOver,\r\n"
-                          "      calcBlendK,\r\n"
-                          "      smoothStep,\r\n"
-                          "\r\n"
-                          "      fullGrassCos,\r\n"
-                          "      startGrassCos,\r\n"
-                          "      sandCurv,\r\n"
-                          "\r\n"
-                          "      dirtColor,\r\n"
-                          "      sandColor,\r\n"
-                          "      grassColor\r\n"
-                          "    )\r\n"
-                          "  {\r\n"
-                          "    local normalY=getNormalY();\r\n"
-                          "    local height=getHeight();\r\n"
-                          "    local curvature=getCurvature();\r\n"
-                          "\r\n"
-                          "    // base 'dirt' / 'stone'\r\n"
-                          "    local res=dirtColor;\r\n"
-                          "\r\n"
-                          "    // add 'sand' by curvature\r\n"
-                          "    res=blendColors(res, sandColor, calcBlendK(0.0, sandCurv, curvature));\r\n"
-                          "\r\n"
-                          "    // add 'grass' by angle\r\n"
-                          "    res=blendColors(res, grassColor,\r\n"
-                          "      smoothStep(calcBlendK(startGrassCos, fullGrassCos, normalY)));\r\n"
-                          "\r\n"
-                          "    lcMap[0] = getType(res);\r\n"
-                          "    return res;\r\n"
-                          "  }\r\n"
-                          "}\r\n";
-
-
-// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
 
 class ScriptParamInt : public HmapLandPlugin::ScriptParam
@@ -155,15 +204,6 @@ public:
   void save(DataBlock &blk) override { blk.setInt(paramName, value); }
 
   void load(const DataBlock &blk) override { value = blk.getInt(paramName, value); }
-
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushinteger(vm, value);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
 };
 
 
@@ -191,15 +231,6 @@ public:
   void save(DataBlock &blk) override { blk.setReal(paramName, value); }
 
   void load(const DataBlock &blk) override { value = blk.getReal(paramName, value); }
-
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushfloat(vm, value);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
 };
 
 
@@ -227,15 +258,6 @@ public:
   void save(DataBlock &blk) override { blk.setE3dcolor(paramName, value); }
 
   void load(const DataBlock &blk) override { value = blk.getE3dcolor(paramName, value); }
-
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushinteger(vm, value);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
 };
 
 
@@ -300,15 +322,6 @@ public:
   void save(DataBlock &main_blk) override {}
 
   void load(const DataBlock &main_blk) override {}
-
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushuserpointer(vm, this);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
 
   virtual void finishEdit(PropPanel::ContainerPropertyControl &panel) { panel.setCaption(editButtonPid, "Edit"); }
 
@@ -529,15 +542,6 @@ public:
     showMask = blk.getBool("showMask", true);
   }
 
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushuserpointer(vm, this);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
-
   void finishEdit(PropPanel::ContainerPropertyControl &panel) override
   {
     panel.setCaption(editButtonPid, "Edit");
@@ -668,25 +672,6 @@ public:
     if (name)
       asset = name;
     registerAsset();
-  }
-
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    int det_layer_id = HmapLandPlugin::self->getDetLayerIdx();
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_newarray(vm, perLayerAssetIdx.size());
-    for (int i = 0; i < perLayerAssetIdx.size(); i++)
-    {
-      sq_pushinteger(vm, i);
-      sq_pushinteger(vm, (i == det_layer_id) ? detailIdx : perLayerAssetIdx[i]);
-      sq_rawset(vm, -3);
-    }
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-
-    for (int i = 0; i < images.size(); i++)
-      images[i]->setToScript(vm);
   }
 
   void registerAsset()
@@ -866,15 +851,6 @@ public:
     registerDetTex();
   }
 
-  void setToScript(HSQUIRRELVM vm) override
-  {
-    sq_pushroottable(vm);
-    sq_pushstring(vm, paramName, -1);
-    sq_pushinteger(vm, p.detailSlot);
-    sq_newslot(vm, -3, false);
-    sq_pop(vm, 1);
-  }
-
   void registerDetTex()
   {
     int det_layer_id = HmapLandPlugin::self->getDetLayerIdx();
@@ -890,6 +866,28 @@ public:
 };
 
 
+// Deterministic color from a layer name -- used as the default tint in the
+// "Show landclass weights (color)" overlay so a fresh BLK already has visually
+// distinct per-layer colors. FNV-1a -> rgb, then boost the brightest channel
+// to 255 (and scale the others) so dim hashes still map to vivid colors.
+static E3DCOLOR defaultLayerColor(const char *name)
+{
+  uint32_t h = 2166136261u;
+  for (const char *p = name ? name : ""; *p; ++p)
+    h = (h ^ (uint8_t)*p) * 16777619u;
+  uint32_t r = (h >> 0) & 0xFF;
+  uint32_t g = (h >> 8) & 0xFF;
+  uint32_t b = (h >> 16) & 0xFF;
+  uint32_t m = max(r, max(g, b));
+  if (m == 0)
+    return E3DCOLOR(128, 128, 128, 255);
+  r = (r * 255) / m;
+  g = (g * 255) / m;
+  b = (b * 255) / m;
+  return E3DCOLOR(r, g, b, 255);
+}
+
+
 class PostScriptParamLandLayer : public HmapLandPlugin::ScriptParam, public IAssetUpdateNotify
 {
 public:
@@ -903,6 +901,8 @@ public:
     PID_SEL_MASK,
     PID_EDIT_MASK,
     PID_SEL_GRASS_MASK,
+    PID_EXPR_SUMMARY,
+    PID_LAYER_COLOR,
     PID_ELC_EDIT_MASK_BASE,
     PID_ELC_EDIT_MASK_LAST = PID_ELC_EDIT_MASK_BASE + 10,
     PID__COUNT
@@ -923,7 +923,7 @@ public:
   int slotIdx, pidBase, landIdx;
   int detIdx;
   bool enabled;
-  bool sumWeights;
+  int wtMode; // 0=multiply, 1=sum, 2=max(mask, terrain product)
   bool badDetTex;
 
   enum
@@ -947,10 +947,139 @@ public:
   int maskConv;
   bool detRectMappedMask;
 
-  WtRange ht, ang, curv;
-  bool writeDetTex, writeLand1, writeLand2, writeImportance;
-  float writeDetTexThres, writeLand1Thres, writeLand2Thres;
+  union
+  {
+    struct
+    {
+      WtRange ht, ang, curv;
+    };
+    WtRange ht_ang_curv[3];
+  };
+  bool writeDetTex = true, writeLand1 = true, writeLand2 = false, writeImportance = false;
+  float writeDetTexThres = 0, writeLand1Thres = 0, writeLand2Thres = 0;
   bool editableLandClass;
+
+  // Tint used by the "Show landclass weights (color)" terrain overlay. Default is
+  // a deterministic hash of paramName so a fresh BLK already shows distinct colors.
+  E3DCOLOR layerColor;
+
+  // Expression evaluator
+  SimpleString exprText;
+  lcexpr::Arena exprArena;
+  uint32_t exprRoot = 0;
+  uint32_t exprVarMask = 0;
+  bool useExpr = false;
+  bool exprValid = false;
+
+  // shrink_arena: reclaim unused arena capacity at the end. Set to false on the UI
+  // slider-drag rebuild path (rebuildExprFromOldFormat) where compileExpr runs many
+  // times per second and the realloc cost dominates.
+  void compileExpr(bool shrink_arena = true)
+  {
+    g_lcExpr.init();
+    exprArena.clear();
+    exprValid = false;
+    exprRoot = 0;
+    exprVarMask = 0;
+
+    Tab<lcexpr::IRNode> ir;
+    lcexpr::NameMap vm(g_lcExpr.varMap);
+    uint16_t nv = g_lcExpr.nextVarId;
+    eastl::string err;
+    int irRoot = lcexpr::parseToIR(exprText.str(), ir, g_lcExpr.parseMap, g_lcExpr.emitMap, vm, nv, err);
+    if (irRoot < 0)
+    {
+      DAEDITOR3.conError("layer '%s' expression parse error: %s (expr='%s')", paramName.str(), err.c_str(), exprText.str());
+      updateExprDisplay();
+      return;
+    }
+    // eval reads exprVars[] unchecked, so reject any expression that references a variable
+    // beyond the fixed VAR_COUNT slots we supply. This replaces what used to be a per-pixel
+    // bounds check inside the node evaluators.
+    int maxVarId = lcexpr::computeMaxVarId(ir, irRoot);
+    if (maxVarId >= (int)LcExprContext::VAR_COUNT)
+    {
+      DAEDITOR3.conError("layer '%s' expression references unknown variable (max varId %d, only %d supplied): %s", paramName.str(),
+        maxVarId, (int)LcExprContext::VAR_COUNT, exprText.str());
+      updateExprDisplay();
+      return;
+    }
+    exprVarMask = lcexpr::computeVarMask(ir, irRoot);
+    uint32_t fused = lcexpr::tryFuse(ir, irRoot, exprArena, g_lcExpr.fusionRules, g_lcExpr.numFusionRules);
+    uint32_t root = (fused != lcexpr::PARSE_ERROR) ? fused : lcexpr::compile(ir, irRoot, exprArena, g_lcExpr.emitMap);
+    if (root == lcexpr::PARSE_ERROR)
+    {
+      DAEDITOR3.conError("layer '%s' compile failed: %s", paramName.str(), exprText.str());
+      exprArena.clear();
+      exprVarMask = 0;
+      updateExprDisplay();
+      return;
+    }
+    exprRoot = root;
+    exprValid = true;
+    if (shrink_arena)
+      exprArena.shrink_to_fit();
+    updateExprDisplay();
+  }
+
+  eastl::string buildExprFromOldFormat() const
+  {
+    return lcexpr::genLayerToExpr({maskConv, ht.conv, ang.conv, curv.conv, ht.v0, ht.dv, ang.v0, ang.dv, curv.v0, curv.dv, wtMode});
+  }
+
+  void rebuildExprFromOldFormat()
+  {
+    if (useExpr)
+      return;
+    exprText = buildExprFromOldFormat().c_str();
+    compileExpr(false); // UI slider-drag path: skip shrink_to_fit to avoid per-keystroke realloc.
+                        // compileExpr() itself calls updateExprDisplay on every exit.
+  }
+
+  // Shared core of PID_SEL_MASK handling used by the PropsDlg button AND the outer panel
+  // button (both previously had their own copy). Returns true if the user picked a name
+  // (i.e. didn't cancel). Callers are responsible for syncing their own panel widgets.
+  // maskConv is updated to track whether a mask is selected even in expression mode,
+  // because the surrounding UI (PID_EDIT_MASK, PID_MASK_REFSYS, the SEL_MASK enabled
+  // state) keys off maskConv. At runtime the expression decides whether mask is read,
+  // not maskConv, so toggling maskConv here does not affect evaluation.
+  bool pickMaskAndApplyState()
+  {
+    const char *name = HmapLandPlugin::self->pickScriptImage(maskName, 8);
+    if (!name)
+      return false;
+    maskName = name;
+    if (*name && maskConv == WtRange::WMT_one)
+      maskConv = WtRange::WMT_asIs;
+    else if (!*name && maskConv != WtRange::WMT_one)
+      maskConv = WtRange::WMT_one;
+    imageIndex = HmapLandPlugin::self->getScriptImage(maskName, 1, -1);
+    imageBpp = HmapLandPlugin::self->getScriptImageBpp(imageIndex);
+    rebuildExprFromOldFormat();
+    return true;
+  }
+
+  void updateExprDisplay()
+  {
+    const char *text = exprText.empty() ? "1" : exprText.str();
+    if (dlg)
+    {
+      if (dlg->dlg->getPanel()->getById(PropsDlg::PID_EXPR_DISPLAY))
+        dlg->dlg->getPanel()->setText(PropsDlg::PID_EXPR_DISPLAY, text);
+    }
+    // pidBase is assigned in fillParams(); compileExpr() / rebuildExprFromOldFormat() can
+    // fire before that from load() / addGenLayer(). pidBase + PID_EXPR_SUMMARY with
+    // pidBase == -1 would alias some unrelated control id on the open panel and overwrite
+    // its caption, so skip the outer-panel update until the layer has been placed.
+    if (pidBase >= 0)
+    {
+      if (PropPanel::ContainerPropertyControl *pp = HmapLandPlugin::self->getPropPanel())
+      {
+        if (pp->getById(pidBase + PID_EXPR_SUMMARY))
+          pp->setCaption(pidBase + PID_EXPR_SUMMARY, text);
+      }
+    }
+  }
 
   struct PropsDlg : public PropPanel::ControlEventHandler
   {
@@ -980,6 +1109,11 @@ public:
       PID_WRITE_DET,
       PID_WRITE_DET_THRES,
       PID_WRITE_IM,
+      PID_EXPR_DISPLAY,
+      PID_EXPR_EDIT,
+      PID_EXPR_APPLY,
+      PID_CONVERT_TO_EXPR,
+      PID_EXPR_HELP,
       PID_LAYER_ELC_ADD,
       PID_BASE,
     };
@@ -1039,30 +1173,55 @@ public:
       PropPanel::ContainerPropertyControl &pCalc = *panel.createGroup(PID_LAYER_WEIGHTCALC, "Weight formula");
       PropPanel::ContainerPropertyControl &pOut = *panel.createGroup(PID_LAYER_OUTPUT, "Output and thresholds");
 
-      pCalc.createCheckBox(PID_LAYER_SUMWT, "Sum weights (instead of multiply)", gl.sumWeights);
+      // Expression display (always shown)
+      if (gl.useExpr)
+      {
+        pCalc.createEditBox(PID_EXPR_EDIT, "Expression:", gl.exprText, true);
+        pCalc.createButton(PID_EXPR_APPLY, "Apply expression");
+        if (!gl.exprValid)
+          pCalc.createStatic(-1, gl.slotIdx == 0 ? "** PARSE ERROR -- layer 0 falls back to weight=1 (full coverage) **"
+                                                 : "** PARSE ERROR -- layer evaluates as 0 **");
+      }
+      else
+      {
+        pCalc.createStatic(PID_EXPR_DISPLAY, gl.exprText.empty() ? "1" : gl.exprText.str());
+        pCalc.createButton(PID_CONVERT_TO_EXPR, "Convert to expression");
+      }
+      pCalc.createButton(PID_EXPR_HELP, "Print expression help to console");
       pCalc.createSeparator(0);
 
-      pCalc.createStatic(-1, "Mask weight conv");
-      pCalc.createCombo(PID_WTR_MASK_CONV, "", wtConv, gl.maskConv, true, false);
-      pCalc.createCheckBox(PID_MASK_REFSYS, "Mapped to detailed area", gl.detRectMappedMask);
-      pCalc.setEnabledById(PID_MASK_REFSYS, HmapLandPlugin::self->hasDetaledRect() && gl.maskConv);
-      pCalc.createButton(PID_SEL_MASK, gl.maskName.empty() ? "-- no mask --" : gl.maskName, gl.maskConv);
-      pCalc.createSeparator(0);
+      if (!gl.useExpr)
+      {
+        Tab<String> wtModeConv(tmpmem);
+        wtModeConv.push_back() = "Multiply";
+        wtModeConv.push_back() = "Sum";
+        wtModeConv.push_back() = "Max(mask, terrain)";
+        pCalc.createStatic(-1, "Weight combination mode");
+        pCalc.createCombo(PID_LAYER_SUMWT, "", wtModeConv, gl.wtMode, true, false);
+        pCalc.createSeparator(0);
 
-      pCalc.createStatic(-1, "Height weight conv");
-      pCalc.createCombo(PID_WTR_HT_CONV, "", wtConv, gl.ht.conv, true, false);
-      pCalc.createEditFloat(PID_WTR_HT_V0, "base", gl.ht.v0, 2, gl.ht.conv);
-      pCalc.createEditFloat(PID_WTR_HT_DV, "delta", gl.ht.dv, 2, gl.ht.conv, false);
+        pCalc.createStatic(-1, "Mask weight conv");
+        pCalc.createCombo(PID_WTR_MASK_CONV, "", wtConv, gl.maskConv, true, false);
+        pCalc.createCheckBox(PID_MASK_REFSYS, "Mapped to detailed area", gl.detRectMappedMask);
+        pCalc.setEnabledById(PID_MASK_REFSYS, HmapLandPlugin::self->hasDetaledRect() && gl.maskConv);
+        pCalc.createButton(PID_SEL_MASK, gl.maskName.empty() ? "-- no mask --" : gl.maskName, gl.maskConv);
+        pCalc.createSeparator(0);
 
-      pCalc.createStatic(-1, "Angle weight conv");
-      pCalc.createCombo(PID_WTR_ANG_CONV, "", wtConv, gl.ang.conv, true, false);
-      pCalc.createEditFloat(PID_WTR_ANG_V0, "base", gl.ang.v0, 2, gl.ang.conv);
-      pCalc.createEditFloat(PID_WTR_ANG_DV, "delta", gl.ang.dv, 2, gl.ang.conv, false);
+        pCalc.createStatic(-1, "Height weight conv");
+        pCalc.createCombo(PID_WTR_HT_CONV, "", wtConv, gl.ht.conv, true, false);
+        pCalc.createEditFloat(PID_WTR_HT_V0, "base", gl.ht.v0, 2, gl.ht.conv);
+        pCalc.createEditFloat(PID_WTR_HT_DV, "delta", gl.ht.dv, 2, gl.ht.conv, false);
 
-      pCalc.createStatic(-1, "Curv. weight conv");
-      pCalc.createCombo(PID_WTR_CURV_CONV, "", wtConv, gl.curv.conv, true, false);
-      pCalc.createEditFloat(PID_WTR_CURV_V0, "base", gl.curv.v0, 2, gl.ht.conv);
-      pCalc.createEditFloat(PID_WTR_CURV_DV, "delta", gl.curv.dv, 2, gl.ht.conv, false);
+        pCalc.createStatic(-1, "Angle weight conv");
+        pCalc.createCombo(PID_WTR_ANG_CONV, "", wtConv, gl.ang.conv, true, false);
+        pCalc.createEditFloat(PID_WTR_ANG_V0, "base", gl.ang.v0, 2, gl.ang.conv);
+        pCalc.createEditFloat(PID_WTR_ANG_DV, "delta", gl.ang.dv, 2, gl.ang.conv, false);
+
+        pCalc.createStatic(-1, "Curv. weight conv");
+        pCalc.createCombo(PID_WTR_CURV_CONV, "", wtConv, gl.curv.conv, true, false);
+        pCalc.createEditFloat(PID_WTR_CURV_V0, "base", gl.curv.v0, 2, gl.curv.conv);
+        pCalc.createEditFloat(PID_WTR_CURV_DV, "delta", gl.curv.dv, 2, gl.curv.conv, false);
+      }
 
       pOut.createCheckBox(PID_WRITE_DET, "Write weight to DetTex", gl.writeDetTex);
       pOut.createEditFloat(PID_WRITE_DET_THRES, "DetTex weight threshold", gl.writeDetTexThres, 2, gl.writeDetTex);
@@ -1174,7 +1333,7 @@ public:
     void onChange(int pid, PropPanel::ContainerPropertyControl *panel) override
     {
       if (pid == PID_LAYER_SUMWT)
-        gl.sumWeights = panel->getBool(pid);
+        gl.wtMode = panel->getInt(pid);
       else if (pid == PID_MASK_REFSYS)
         gl.detRectMappedMask = panel->getBool(pid);
       else if (pid == PID_WTR_AREA)
@@ -1222,7 +1381,12 @@ public:
         gl.curv.v0 = panel->getFloat(pid);
       else if (pid == PID_WTR_CURV_DV)
         gl.curv.dv = panel->getFloat(pid);
-      else if (pid == PID_WRITE_LC1)
+
+      // Recompile expression from old-format params when they change
+      if (!gl.useExpr && pid >= PID_LAYER_SUMWT && pid <= PID_WTR_CURV_CONV)
+        gl.rebuildExprFromOldFormat();
+
+      if (pid == PID_WRITE_LC1)
       {
         gl.writeLand1 = panel->getBool(pid);
         panel->setEnabledById(PID_WRITE_LC1_THRES, gl.writeLand1);
@@ -1289,6 +1453,85 @@ public:
     }
     void onClick(int pid, PropPanel::ContainerPropertyControl *panel) override
     {
+      if (pid == PID_EXPR_HELP)
+      {
+        static const char *help = "=== Landclass Expression Language ===\n"
+                                  "Variables: height, angle, curvature, mask, world_x, world_y\n"
+                                  "Operators: + - * / < > <= >= == != && || !\n"
+                                  "Functions:\n"
+                                  "  max(a, b)  min(a, b)  clamp(x, lo, hi)  saturate(x)\n"
+                                  "  ramp(val, from, to)        -- linear ramp, saturated\n"
+                                  "  smooth_ramp(val, from, to) -- smoothstep ramp, saturated\n"
+                                  "  smoothstep(x)              -- 3x^2 - 2x^3\n"
+                                  "  pow(base, exp)  sqrt(x)  abs(x)  lerp(a, b, t)  frac(x)\n"
+                                  "  select(bool_cond, a, b)    -- first arg must be bool\n"
+                                  "  step(edge, x)              -- 1 if x >= edge else 0\n"
+                                  "  length2(x, y)              -- sqrt(x*x + y*y)\n"
+                                  "  noise(x, y)                -- 64-cell tiled LUT noise, [0,1]\n"
+                                  "  fbm(x, y, octaves)         -- fractal sum of noise, [0,1]\n"
+                                  "  eroded_fbm(x, y, octaves)  -- fbm with slope attenuation (eroded look), [0,1]\n"
+                                  "Examples:\n"
+                                  "  mask\n"
+                                  "  max(mask, ramp(height,16,26) * smooth_ramp(angle,2,22))\n"
+                                  "  mask * smooth_ramp(angle, 17, 12)\n"
+                                  "  mask + ramp(height, 1, -2)\n"
+                                  "  1 - pow(0.65, max(15 - height, 0))\n"
+                                  "  ramp(length2(world_x - 500, world_y - 300), 50, 80)\n"
+                                  "  fbm(world_x * 0.01, world_y * 0.01, 4)";
+        DAEDITOR3.conNote(help);
+        return;
+      }
+      if (pid == PID_CONVERT_TO_EXPR)
+      {
+        // One-way migration: once a layer becomes an expression there is no revert path.
+        // The confirmation exists to stop accidental single-click conversions; users who
+        // need the old behavior must re-enter the values in a fresh layer.
+        int r = wingw::message_box(wingw::MBS_YESNO | wingw::MBS_QUEST, "Convert to expression",
+          "Switch this layer to expression mode?\n\n"
+          "This is a one-way migration: you cannot switch back to the simple ht/ang/curv UI "
+          "without recreating the layer.");
+        if (r != wingw::MB_ID_YES)
+          return;
+        gl.useExpr = true;
+        gl.exprText = gl.buildExprFromOldFormat().c_str();
+        gl.compileExpr();
+        hide();
+        // Layout structure changes between simple and expression modes; drop any saved
+        // widget state so stale pOffset / collapsed-group state does not carry over.
+        panelState.reset();
+        show();
+        HmapLandPlugin::self->refillPanel();
+        return;
+      }
+      if (pid == PID_EXPR_APPLY)
+      {
+        g_lcExpr.init(); // defensive: guarantee maps are built before we use them
+        SimpleString newText = panel->getText(PID_EXPR_EDIT);
+        Tab<lcexpr::IRNode> ir;
+        lcexpr::NameMap vm(g_lcExpr.varMap);
+        uint16_t nv = g_lcExpr.nextVarId;
+        eastl::string err;
+        int irRoot = lcexpr::parseToIR(newText.str(), ir, g_lcExpr.parseMap, g_lcExpr.emitMap, vm, nv, err);
+        if (irRoot < 0)
+        {
+          wingw::message_box(wingw::MBS_EXCL, "Parse error", "Expression error: %s", err.c_str());
+          return;
+        }
+        int maxVarId = lcexpr::computeMaxVarId(ir, irRoot);
+        if (maxVarId >= (int)LcExprContext::VAR_COUNT)
+        {
+          wingw::message_box(wingw::MBS_EXCL, "Unknown variable",
+            "Expression references a variable that is not supplied.\n"
+            "Only height, angle, curvature, mask, world_x, world_y are available.");
+          return;
+        }
+        gl.exprText = newText;
+        gl.compileExpr();
+        hide();
+        show();
+        HmapLandPlugin::self->refillPanel();
+        return;
+      }
       if (pid == -PropPanel::DIALOG_ID_CLOSE)
       {
         windowPosition = dlg->getWindowPosition();
@@ -1312,27 +1555,19 @@ public:
           HmapLandPlugin::self->editScriptImage(&gl);
           HmapLandPlugin::self->setShowBlueWhiteMask();
         }
-        const char *name = HmapLandPlugin::self->pickScriptImage(gl.maskName, 8);
-        if (name)
+        if (gl.pickMaskAndApplyState())
         {
-          gl.maskName = name;
-          if (*name && gl.maskConv == WtRange::WMT_one)
-            gl.maskConv = WtRange::WMT_asIs;
-          else if (!*name && gl.maskConv != WtRange::WMT_one)
-            gl.maskConv = WtRange::WMT_one;
-
+          const char *caption = !gl.maskName.empty() ? gl.maskName.str() : "-- no mask --";
           panel->setInt(PID_WTR_MASK_CONV, gl.maskConv);
           panel->setEnabledById(PID_MASK_REFSYS, HmapLandPlugin::self->hasDetaledRect() && gl.maskConv);
           panel->setEnabledById(PID_SEL_MASK, gl.maskConv);
-          panel->setCaption(pid, *name ? name : "-- no mask --");
+          panel->setCaption(pid, caption);
           if (PropPanel::ContainerPropertyControl *pp = HmapLandPlugin::self->getPropPanel())
           {
-            pp->setCaption(gl.pidBase + gl.PID_SEL_MASK, *name ? name : "-- no mask --");
+            pp->setCaption(gl.pidBase + gl.PID_SEL_MASK, caption);
             pp->setEnabledById(gl.pidBase + gl.PID_SEL_MASK, true);
             pp->setEnabledById(gl.pidBase + gl.PID_EDIT_MASK, gl.maskConv);
           }
-          gl.imageIndex = HmapLandPlugin::self->getScriptImage(gl.maskName, 1, -1);
-          gl.imageBpp = HmapLandPlugin::self->getScriptImageBpp(gl.imageIndex);
         }
       }
       else if (pid == PID_LAYER_ELC_ADD)
@@ -1507,7 +1742,7 @@ public:
     memset(&ht, 0, sizeof(ht));
     memset(&ang, 0, sizeof(ang));
     memset(&curv, 0, sizeof(curv));
-    sumWeights = false;
+    wtMode = 0;
     badDetTex = false;
     detIdx = slotIdx;
     detRectMappedMask = false;
@@ -1515,8 +1750,12 @@ public:
     drdHandle = NULL;
     elcMaskCurIdx = elcMaskImageIndex = elcMaskImageBpp = -1;
     areaSelect = 0;
-    writeDetTex = writeLand1 = writeLand2 = writeImportance = false;
+    // Defaults mirror load() / save() asymmetry: writeDetTex and writeLand1 are common
+    // (save only writes them when cleared), writeLand2 and writeImportance are rare.
+    writeDetTex = writeLand1 = true;
+    writeLand2 = writeImportance = false;
     writeDetTexThres = writeLand1Thres = writeLand2Thres = 1e-3;
+    layerColor = defaultLayerColor(nm);
     LandClassSlotsManager::subscribeLandClassUpdateNotify(this);
     dlg = new PropsDlg(*this);
   }
@@ -1541,6 +1780,8 @@ public:
 
     panel.createCheckBox(pidBase + PID_LAYER_ENABLED, "Layer enabled", enabled);
     panel.createButton(pidBase + PID_EDIT_PROPS, "Props...", true, false);
+    panel.createStatic(pidBase + PID_EXPR_SUMMARY, exprText.empty() ? "1" : exprText.str());
+    panel.createColorBox(pidBase + PID_LAYER_COLOR, "Color (weights overlay)", layerColor);
     panel.createButton(pidBase + PID_SEL_LC1, lc1.asset.empty() ? "-- no land#1 --" : ::dd_get_fname(lc1.asset));
     panel.createButton(pidBase + PID_SEL_LC2, lc2.asset.empty() ? "-- no land#2 --" : ::dd_get_fname(lc2.asset));
 
@@ -1628,6 +1869,12 @@ public:
   {
     if (pid == pidBase + PID_LAYER_ENABLED)
       enabled = panel.getBool(pid);
+    else if (pid == pidBase + PID_LAYER_COLOR)
+    {
+      layerColor = panel.getColor(pid);
+      if (HmapLandPlugin::self->isShowingLandClassColors())
+        HmapLandPlugin::self->refreshLandClassColorsTex();
+    }
   }
 
   void onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &panel) override
@@ -1640,7 +1887,9 @@ public:
       {
         lc1.asset = lc_asset;
         panel.setCaption(pid, lc_asset);
-        registerAsset(lc1);
+        // Changing lc1 re-shuffles the plugin-wide lex order, so recompute and
+        // re-register every layer rather than just this one.
+        HmapLandPlugin::self->rebuildLandSlots();
         updateEditableLandClassFlag();
 
         HmapLandPlugin::self->getLandClassMgr().regenerateObjects(HmapLandPlugin::self->getlandClassMap());
@@ -1655,7 +1904,8 @@ public:
       {
         lc2.asset = lc_asset;
         panel.setCaption(pid, lc_asset);
-        registerAsset(lc2);
+        // Changing lc2 can also shift the lex order across all layers.
+        HmapLandPlugin::self->rebuildLandSlots();
 
         HmapLandPlugin::self->getLandClassMgr().regenerateObjects(HmapLandPlugin::self->getlandClassMap());
         HmapLandPlugin::hmlService->invalidateClipmap(true);
@@ -1686,23 +1936,18 @@ public:
         HmapLandPlugin::self->editScriptImage(this);
         HmapLandPlugin::self->setShowBlueWhiteMask();
       }
-      const char *name = HmapLandPlugin::self->pickScriptImage(maskName, 8);
-      if (name)
+      if (pickMaskAndApplyState())
       {
-        if (*name && maskConv == WtRange::WMT_one)
-          maskConv = WtRange::WMT_asIs;
-        else if (!*name && maskConv != WtRange::WMT_one)
-          maskConv = WtRange::WMT_one;
-
-        maskName = name;
-        panel.setCaption(pid, *name ? name : "-- no mask --");
-        dlg->dlg->getPanel()->setCaption(dlg->PID_SEL_MASK, *name ? name : "-- no mask --");
-        dlg->dlg->getPanel()->setInt(dlg->PID_WTR_MASK_CONV, maskConv);
-        dlg->dlg->getPanel()->setEnabledById(dlg->PID_MASK_REFSYS, HmapLandPlugin::self->hasDetaledRect() && maskConv);
-        dlg->dlg->getPanel()->setEnabledById(dlg->PID_SEL_MASK, maskConv);
+        const char *caption = !maskName.empty() ? maskName.str() : "-- no mask --";
+        panel.setCaption(pid, caption);
         panel.setEnabledById(pidBase + PID_EDIT_MASK, maskConv);
-        imageIndex = HmapLandPlugin::self->getScriptImage(maskName, 1, -1);
-        imageBpp = HmapLandPlugin::self->getScriptImageBpp(imageIndex);
+        if (dlg && dlg->dlg)
+        {
+          dlg->dlg->getPanel()->setCaption(dlg->PID_SEL_MASK, caption);
+          dlg->dlg->getPanel()->setInt(dlg->PID_WTR_MASK_CONV, maskConv);
+          dlg->dlg->getPanel()->setEnabledById(dlg->PID_MASK_REFSYS, HmapLandPlugin::self->hasDetaledRect() && maskConv);
+          dlg->dlg->getPanel()->setEnabledById(dlg->PID_SEL_MASK, maskConv);
+        }
       }
     }
     else if (pid == pidBase + PID_EDIT_MASK)
@@ -1881,16 +2126,28 @@ public:
     blk.setStr("name", paramName);
     if (!enabled)
       blk.setBool("enabled", enabled);
-    if (sumWeights)
-      blk.setBool("sumWt", sumWeights);
+    if (wtMode > 0)
+      blk.setInt("wtMode", wtMode);
     if (!lc1.asset.empty())
       blk.setStr("lc1", lc1.asset);
     if (!lc2.asset.empty())
       blk.setStr("lc2", lc2.asset);
-    blk.setInt("lcIdx", landIdx);
+    // lcIdx is no longer persisted: slot is derived from lex-sorted lc1/lc2 names
+    // in HmapLandPlugin::rebuildLandSlots().
 
     if (areaSelect)
       blk.setInt("area_select", areaSelect);
+
+    if (layerColor != defaultLayerColor(paramName))
+      blk.setE3dcolor("color", layerColor);
+
+    // The expression string is authoritative when useExpr is set, but we keep writing the
+    // legacy data-driven fields too (until legacy support is removed). That way older
+    // binaries and tools that only understand the legacy format can still load the file,
+    // and a user who clears `wt` in the .blk recovers the original layer configuration
+    // instead of a factory-reset zeroed layer.
+    if (useExpr)
+      blk.setStr("wt", exprText);
 
     if (maskConv)
       blk.setInt("mask_conv", maskConv);
@@ -1945,7 +2202,8 @@ public:
   {
     paramName = blk.getStr("name", "");
     enabled = blk.getBool("enabled", true);
-    sumWeights = blk.getBool("sumWt", false);
+    layerColor = blk.getE3dcolor("color", defaultLayerColor(paramName));
+    wtMode = blk.getInt("wtMode", blk.getBool("sumWt", false) ? 1 : 0);
     lc1.asset = blk.getStr("lc1", NULL);
     lc2.asset = blk.getStr("lc2", NULL);
     landIdx = blk.getInt("lcIdx", -1);
@@ -1983,9 +2241,21 @@ public:
         elcLayers.addNewBlock(blk.getBlock(i));
 
     dlg->updateTitle();
-  }
 
-  void setToScript(HSQUIRRELVM vm) override {}
+    // Expression evaluator
+    const char *wtStr = blk.getStr("wt", "");
+    if (wtStr[0])
+    {
+      useExpr = true;
+      exprText = wtStr;
+    }
+    else
+    {
+      useExpr = false;
+      exprText = buildExprFromOldFormat().c_str();
+    }
+    compileExpr();
+  }
 
   void registerAssets()
   {
@@ -2005,6 +2275,25 @@ public:
     updateEditableLandClassFlag();
   }
 
+  void swapSlotIdx(PostScriptParamLandLayer &other)
+  {
+    unregisterAsset(lc1);
+    unregisterAsset(lc2);
+    other.unregisterAsset(other.lc1);
+    other.unregisterAsset(other.lc2);
+    int tmp = slotIdx;
+    slotIdx = other.slotIdx;
+    other.slotIdx = tmp;
+    registerAsset(lc1);
+    registerAsset(lc2);
+    other.registerAsset(other.lc1);
+    other.registerAsset(other.lc2);
+    dlg->updateTitle();
+    other.dlg->updateTitle();
+    updateEditableLandClassFlag();
+    other.updateEditableLandClassFlag();
+  }
+
 
   void registerAsset(LandClassRec &lc)
   {
@@ -2017,21 +2306,21 @@ public:
     if (lc_li >= 0 && landIdx >= 0)
       HmapLandPlugin::self->getLandClassMgr().setLandClass(lc_li, lc_base - landIdx, lc.asset);
 
-    int phys_li = HmapLandPlugin::hmlService->getBitLayerIndexByName(handle, "phys");
-    if (phys_li >= 0 && landIdx >= 0)
-      HmapLandPlugin::self->getLandClassMgr().setLandClass(phys_li, landIdx, lc.asset);
+    if (&lc == &lc1)
+    {
+      int phys_li = HmapLandPlugin::hmlService->getBitLayerIndexByName(handle, "phys");
+      int phys_li_base = phys_li < 0 ? 0 : (1 << HmapLandPlugin::hmlService->getBitLayersList(handle)[phys_li].bitCount) - 1;
+      if (phys_li >= 0 && landIdx >= 0)
+        HmapLandPlugin::self->getLandClassMgr().setLandClass(phys_li, phys_li_base - landIdx, lc.asset);
+    }
 
     regetAsset(lc);
     if (&lc == &lc2)
       return;
 
     int det_layer_id = HmapLandPlugin::self->getDetLayerIdx();
-    int det_base =
-      (det_layer_id < 0 || !HmapLandPlugin::self->usesGenScript())
-        ? 0
-        : (1 << HmapLandPlugin::hmlService->getBitLayersList(HmapLandPlugin::self->getLayersHandle())[det_layer_id].bitCount) - 1;
     if (det_layer_id >= 0 && slotIdx >= 0 && lc.assetData)
-      HmapLandPlugin::self->setDetailTexSlot(detIdx = (det_base ? det_base - slotIdx : slotIdx), lc.asset);
+      HmapLandPlugin::self->setDetailTexSlot(detIdx = slotIdx, lc.asset);
     else
       detIdx = -1;
     badDetTex = det_layer_id < 0; //    badDetTex = det_layer_id < 0 || !lc.assetData->detTex;
@@ -2053,16 +2342,20 @@ public:
     if (lc_li >= 0 && landIdx >= 0)
       HmapLandPlugin::self->getLandClassMgr().setLandClass(lc_li, lc_base - landIdx, NULL);
 
+    if (&lc == &lc1)
+    {
+      int phys_li = HmapLandPlugin::hmlService->getBitLayerIndexByName(handle, "phys");
+      int phys_li_base = phys_li < 0 ? 0 : (1 << HmapLandPlugin::hmlService->getBitLayersList(handle)[phys_li].bitCount) - 1;
+      if (phys_li >= 0 && landIdx >= 0)
+        HmapLandPlugin::self->getLandClassMgr().setLandClass(phys_li, phys_li_base - landIdx, NULL);
+    }
+
     if (&lc == &lc2)
       return;
 
     int det_layer_id = HmapLandPlugin::self->getDetLayerIdx();
-    int det_base =
-      (det_layer_id < 0 || !HmapLandPlugin::self->usesGenScript())
-        ? 0
-        : (1 << HmapLandPlugin::hmlService->getBitLayersList(HmapLandPlugin::self->getLayersHandle())[det_layer_id].bitCount) - 1;
     if (det_layer_id >= 0 && slotIdx >= 0)
-      HmapLandPlugin::self->setDetailTexSlot(detIdx = (det_base ? det_base - slotIdx : slotIdx), NULL);
+      HmapLandPlugin::self->setDetailTexSlot(detIdx = slotIdx, NULL);
     else
       detIdx = -1;
     badDetTex = true;
@@ -2130,35 +2423,237 @@ bool HmapLandPlugin::loadGenLayers(const DataBlock &blk)
 {
   int nid = blk.getNameId("layer");
   genLayers.clear();
-  Tab<bool> usedIdx(tmpmem);
-  int lc1_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "land");
-  int bits = lc1_li < 0 ? 0 : hmlService->getBitLayersList(getLayersHandle())[lc1_li].bitCount;
-  usedIdx.resize((1 << bits) - 1);
-  mem_set_0(usedIdx);
 
+  // Pass 1: load every layer and decide whether this .blk is in the legacy
+  // format. New-format saves never emit lcIdx:i=, so any post-load
+  // landIdx >= 0 on any layer means we are reading an older file that
+  // still needs the donor-search migration.
+  bool isLegacy = false;
   for (int i = 0, idx = 0; i < blk.blockCount(); i++)
     if (blk.getBlock(i)->getBlockNameId() == nid)
     {
       PostScriptParamLandLayer *l = new PostScriptParamLandLayer(idx, 0, "");
       l->load(*blk.getBlock(i));
-      if (l->landIdx < 0 || l->landIdx >= usedIdx.size() || usedIdx[l->landIdx])
-      {
-        l->landIdx = find_value_idx(usedIdx, false);
-        DAEDITOR3.conWarning("replaced layer[%d].landIdx with %d", idx, l->landIdx);
-      }
       if (l->landIdx >= 0)
-        usedIdx[l->landIdx] = true;
+        isLegacy = true;
       genLayers.push_back(l);
-      l->registerAssets();
       idx++;
     }
+
+  // Pass 2 (legacy-only): a layer that has lcIdx:i= but no lc1:t= (e.g. old
+  // noobjects / importance slots that were only identified by index) adopts
+  // the lc1 of any sibling layer sharing the same legacy lcIdx. This is
+  // O(N^2) but N is small (<= ~20) and only runs on first open of an old
+  // save; once the file is re-written in the new format (which never emits
+  // lcIdx) isLegacy stays false and the whole pass is skipped.
+  if (isLegacy)
+    for (int i = 0; i < genLayers.size(); i++)
+    {
+      auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+      if (!gl->lc1.asset.empty() || gl->landIdx < 0)
+        continue;
+      for (int j = 0; j < genLayers.size(); j++)
+      {
+        if (i == j)
+          continue;
+        auto *donor = static_cast<PostScriptParamLandLayer *>(genLayers[j].get());
+        if (donor->landIdx == gl->landIdx && !donor->lc1.asset.empty())
+        {
+          gl->lc1.asset = donor->lc1.asset;
+          DAEDITOR3.conNote("loadGenLayers: layer[%d] adopted lc1=\"%s\" from layer[%d] via legacy lcIdx=%d", i,
+            donor->lc1.asset.str(), j, gl->landIdx);
+          break;
+        }
+      }
+    }
+
+  // Pass 3 + 4: lex-sort unique lc1 / lc2 names (independently), assign each
+  // layer its derived landIdx / landIdx2, then register every layer's asset
+  // at its new slot pair.
+  rebuildLandSlots();
+
   return true;
+}
+
+void HmapLandPlugin::rebuildLandSlots()
+{
+  // Reentrancy note: called from PostScriptParamLandLayer::onPPBtnPressed UI
+  // callbacks (lc1/lc2 picker), but none of register/unregister/reget below
+  // synchronously re-enter that callback. setLandClass / getLandClassData
+  // mutate LandClassSlotsManager / LandClassAssetMgr state only;
+  // onLandClassAssetChanged notifications fire from asset-file-watcher paths
+  // (onAssetChanged / onAssetRemoved), not from these register calls.
+  // Even if they did fire, onLandClassAssetChanged reads lc1/lc2 assetData
+  // but does not mutate lc1.asset / lc2.asset names, so the sort stream
+  // below stays valid.
+  // (name, owning-layer-index, which-slot) triple used by the union lex sort
+  // below. `which == 0` means the name came from the layer's lc1 field;
+  // `which == 1` means lc2. The dedup pass uses `which` to route the
+  // assigned slot into one of two per-layer arrays so landIdx derivation
+  // (prefer lc1, fall back to lc2) stays O(1) per layer.
+  // name borrows into the owning layer's lc1.asset / lc2.asset SimpleString
+  // buffers -- no lc1/lc2 mutation may happen between the entries.push_back
+  // loop below and the end of the sort/scan.
+  struct LcEntry
+  {
+    const char *name;
+    int layerIdx;
+    uint8_t which;
+  };
+
+  // Step 1: unregister every layer's current (possibly stale) slot so old
+  // entries don't linger in the LandClassSlotsManager after the slots shift.
+  for (int i = 0; i < genLayers.size(); i++)
+  {
+    auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+    gl->unregisterAsset(gl->lc1);
+    gl->unregisterAsset(gl->lc2);
+  }
+
+  // Step 2: gather (name, layerIdx, which) triples for every non-empty lc1
+  // and lc2 across the layer set. lc1 and lc2 feed the SAME sort stream --
+  // same union-of-names semantics as before -- but carrying the owning layer
+  // index on every entry means the dedup pass below can back-propagate each
+  // slot to its layer(s) without a second linear search.
+  const int nLayers = genLayers.size();
+  Tab<LcEntry> entries(tmpmem);
+  entries.reserve(nLayers * 2);
+  for (int i = 0; i < nLayers; i++)
+  {
+    auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+    if (!gl->lc1.asset.empty())
+      entries.push_back({gl->lc1.asset.str(), i, uint8_t(0)});
+    if (!gl->lc2.asset.empty())
+      entries.push_back({gl->lc2.asset.str(), i, uint8_t(1)});
+  }
+
+  // Step 3: lex-ascending sort via stlsort (introsort). O(N log N).
+  stlsort::sort(entries.begin(), entries.end(), [](const LcEntry &a, const LcEntry &b) { return strcmp(a.name, b.name) < 0; });
+
+  // Step 4: one pass over the sorted stream. Each unique name gets the next
+  // ascending slot; the slot is written back into per-layer arrays keyed by
+  // which == 0 (lc1) vs which == 1 (lc2). Total cost O(N log N) for the
+  // sort + O(N) for this scan, replacing the previous per-layer linear
+  // strcmp search over the full names list (O(N^2) overall).
+  SmallTab<int, TmpmemAlloc> lc1Slot, lc2Slot;
+  clear_and_resize(lc1Slot, nLayers);
+  clear_and_resize(lc2Slot, nLayers);
+  for (int i = 0; i < nLayers; i++)
+  {
+    lc1Slot[i] = -1;
+    lc2Slot[i] = -1;
+  }
+  const char *prev = nullptr;
+  int uniqN = 0;
+  for (const LcEntry &e : entries)
+  {
+    if (!prev || strcmp(prev, e.name) != 0)
+    {
+      ++uniqN;
+      prev = e.name;
+    }
+    (e.which == 0 ? lc1Slot : lc2Slot)[e.layerIdx] = uniqN - 1;
+  }
+
+  // Step 5: placeholder slots for nameless layers. A layer with neither lc1
+  // nor lc2 (e.g. "noobjects") still writes a distinct marker to the land
+  // bit-sublayer when writeLand1/writeLand2 is set, so it needs a unique
+  // slot that does not collide with any named layer. We hand out the next
+  // ascending slots after the lex-sorted ones -- this mirrors the legacy
+  // find_value_idx(usedIdx, false) fallback that kept every layer's landIdx
+  // distinct regardless of whether it had an asset.
+  int lc1_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "land");
+  int bits = lc1_li < 0 ? 0 : hmlService->getBitLayersList(getLayersHandle())[lc1_li].bitCount;
+  // cap matches the validation in generateLandColors: landIdx < lc1_base.
+  // Slot 0 is reserved (write value lc1_base - 0 = lc1_base is the "layer X"
+  // marker for slot 0, write value 0 means "no layer here").
+  int cap = (bits > 0) ? ((1 << bits) - 1) : 0;
+  int totalSlots = uniqN;
+  for (int i = 0; i < nLayers; i++)
+    if (lc1Slot[i] < 0 && lc2Slot[i] < 0)
+    {
+      if (cap <= 0 || totalSlots >= cap)
+        break;
+      lc1Slot[i] = totalSlots++;
+    }
+
+  // Step 6: transitional slot cap. Until landClsMap is blockified, the
+  // "land" bit-sublayer holds lc1_base slots and setLandClass wraps on
+  // overflow. Log the overflow loudly and drop the tail assets.
+  if (cap > 0 && totalSlots > cap)
+  {
+    DAEDITOR3.conError("genLayers: %d lc1/lc2/nameless slots exceed land bit-layer capacity (%d slots); extras dropped", totalSlots,
+      cap);
+    for (int i = 0; i < nLayers; i++)
+    {
+      if (lc1Slot[i] >= cap)
+        lc1Slot[i] = -1;
+      if (lc2Slot[i] >= cap)
+        lc2Slot[i] = -1;
+    }
+  }
+
+  // Step 7: derive each layer's landIdx. Preserve the original rule: lc1
+  // wins if the layer has one, otherwise fall back to lc2's slot. That is
+  // the same priority the previous linear search used when picking its key.
+  for (int i = 0; i < nLayers; i++)
+  {
+    auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+    gl->landIdx = lc1Slot[i] >= 0 ? lc1Slot[i] : lc2Slot[i];
+  }
+
+  // Step 7.5: loud-fail on lc2 asset collisions. Two layers that share lc1
+  // (or more generally end up with the same landIdx) register their lc2
+  // assets into the same "adds" sublayer slot (lc_base - landIdx); the
+  // second registration overwrites the first. Currently no shipping level
+  // has lc2 at all, so this is a guard for a future regression -- warn
+  // instead of silently dropping.
+  for (int i = 0; i < nLayers; i++)
+  {
+    auto *gi = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+    if (gi->landIdx < 0 || gi->lc2.asset.empty())
+      continue;
+    for (int j = i + 1; j < nLayers; j++)
+    {
+      auto *gj = static_cast<PostScriptParamLandLayer *>(genLayers[j].get());
+      if (gj->landIdx != gi->landIdx || gj->lc2.asset.empty())
+        continue;
+      if (strcmp(gi->lc2.asset, gj->lc2.asset) != 0)
+        DAEDITOR3.conError("genLayers[%d] and [%d] share landIdx=%d but have distinct lc2 "
+                           "(\"%s\" vs \"%s\"); the \"adds\" slot keeps only the last-registered asset. "
+                           "Align lc2 or use a distinct lc1.",
+          i, j, gi->landIdx, gi->lc2.asset.str(), gj->lc2.asset.str());
+    }
+  }
+
+  // Step 8: register every layer at its fresh landIdx.
+  for (int i = 0; i < nLayers; i++)
+  {
+    auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
+    gl->registerAssets();
+  }
 }
 bool HmapLandPlugin::saveGenLayers(DataBlock &blk)
 {
   for (int i = 0; i < genLayers.size(); i++)
     genLayers[i]->save(*blk.addNewBlock("layer"));
   return true;
+}
+bool HmapLandPlugin::isDetTexSlotWritten(int slot_idx) const
+{
+  // Mirror of the blendDetTex() predicate in generateLandColors (see the
+  // "gl.writeDetTex && !gl.badDetTex" gate at the bottom of this file):
+  // any layer that targets this slot and actually writes detTex weights
+  // counts. registerAsset() publishes the slot name regardless of the
+  // writeDetTex flag, so the exporter needs this filter to avoid flagging
+  // a legitimate land-only layer as "final weights all 0".
+  for (int i = 0; i < genLayers.size(); i++)
+  {
+    auto *gl = PostScriptParamLandLayer::cast(genLayers[i].get());
+    if (gl && gl->detIdx == slot_idx && gl->writeDetTex && !gl->badDetTex)
+      return true;
+  }
+  return false;
 }
 void HmapLandPlugin::prepareEditableLandClasses()
 {
@@ -2168,27 +2663,22 @@ void HmapLandPlugin::prepareEditableLandClasses()
 }
 void HmapLandPlugin::addGenLayer(const char *name, int insert_before)
 {
-  Tab<bool> usedIdx(tmpmem);
-  int lc1_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "land");
-  int bits = lc1_li < 0 ? 0 : hmlService->getBitLayersList(getLayersHandle())[lc1_li].bitCount;
-  usedIdx.resize((1 << bits) - 1);
-  mem_set_0(usedIdx);
-  for (int i = 0; i < genLayers.size(); i++)
-  {
-    PostScriptParamLandLayer &gl = *static_cast<PostScriptParamLandLayer *>(genLayers[i].get());
-    if (gl.landIdx >= 0)
-      usedIdx[gl.landIdx] = true;
-  }
-
-  PostScriptParamLandLayer *l = new PostScriptParamLandLayer(genLayers.size(), find_value_idx(usedIdx, false), name);
+  // A brand-new layer has no lc1/lc2 yet; rebuildLandSlots assigns a
+  // placeholder slot based on the layer's final position in genLayers, so
+  // it must run AFTER any insert_before reorder -- moveGenLayer() rebuilds
+  // at each swap, which also handles the placeholder-slot shift.
+  PostScriptParamLandLayer *l = new PostScriptParamLandLayer(genLayers.size(), -1, name);
+  l->exprText = l->buildExprFromOldFormat().c_str();
+  l->compileExpr();
   genLayers.push_back(l);
-  if (genLayers.size() == 1)
-    l->writeDetTex = l->writeLand1 = true;
+  // writeDetTex / writeLand1 now default true in the constructor (aligned with load()),
+  // so no need to special-case the first layer here.
 
-  l->registerAssets();
   if (insert_before != -1)
     for (int i = genLayers.size() - 1; i > insert_before; i--)
       moveGenLayer(genLayers[i], true);
+  else
+    rebuildLandSlots();
 }
 bool HmapLandPlugin::moveGenLayer(ScriptParam *gl, bool up)
 {
@@ -2200,8 +2690,12 @@ bool HmapLandPlugin::moveGenLayer(ScriptParam *gl, bool up)
         Ptr<ScriptParam> tmp = genLayers[i];
         genLayers[i] = genLayers[i - 1];
         genLayers[i - 1] = tmp;
-        static_cast<PostScriptParamLandLayer *>(genLayers[i - 1].get())->changeSlotIdx(i - 1);
-        static_cast<PostScriptParamLandLayer *>(genLayers[i].get())->changeSlotIdx(i);
+        static_cast<PostScriptParamLandLayer *>(genLayers[i - 1].get())
+          ->swapSlotIdx(*static_cast<PostScriptParamLandLayer *>(genLayers[i].get()));
+        // Placeholder landIdx for unnamed layers is assigned in genLayers
+        // order, so reordering shifts those slots. Named layers are stable
+        // under reorder but re-registering is cheap for N<=20 layers.
+        rebuildLandSlots();
         return true;
       }
       else if (!up && i + 1 < genLayers.size())
@@ -2209,8 +2703,9 @@ bool HmapLandPlugin::moveGenLayer(ScriptParam *gl, bool up)
         Ptr<ScriptParam> tmp = genLayers[i];
         genLayers[i] = genLayers[i + 1];
         genLayers[i + 1] = tmp;
-        static_cast<PostScriptParamLandLayer *>(genLayers[i].get())->changeSlotIdx(i);
-        static_cast<PostScriptParamLandLayer *>(genLayers[i + 1].get())->changeSlotIdx(i + 1);
+        static_cast<PostScriptParamLandLayer *>(genLayers[i].get())
+          ->swapSlotIdx(*static_cast<PostScriptParamLandLayer *>(genLayers[i + 1].get()));
+        rebuildLandSlots();
         return true;
       }
       break;
@@ -2225,6 +2720,8 @@ bool HmapLandPlugin::delGenLayer(ScriptParam *gl)
       erase_items(genLayers, i, 1);
       for (; i < genLayers.size(); i++)
         static_cast<PostScriptParamLandLayer *>(genLayers[i].get())->changeSlotIdx(i);
+      // Dropping a layer may shrink the unique lc1/lc2 set and shift lex slots.
+      rebuildLandSlots();
       return true;
     }
   return false;
@@ -2368,7 +2865,11 @@ static unsigned blendColors(unsigned u1, unsigned u2, float t)
   return E3DCOLOR(real2int(c1.r * (1 - t) + c2.r * t), real2int(c1.g * (1 - t) + c2.g * t), real2int(c1.b * (1 - t) + c2.b * t),
     (t <= 0.5f ? c1.a : c2.a));
 }
-static bool blendedInvalidLandClasses = false;
+// Bit i set when slot i emitted a non-zero quantized weight in the just-
+// completed generateLandColors pass (idx clamped to bit 63 as overflow).
+// Drives both the lmDump-staleness rebuild trigger and the post-pass
+// invalid/inactive classification, replacing the old two-pass loop.
+static uint64_t lcActiveMask = 0;
 static void resetBlendDetTex() { blendTex.clear(); }
 
 static void blendDetTex(unsigned idx, float t)
@@ -2378,8 +2879,6 @@ static void blendDetTex(unsigned idx, float t)
 
   if (!blendTex.size() || t > 1.0f)
     t = 1.0f;
-  if (idx >= HmapLandPlugin::self->lcRemap.size() || HmapLandPlugin::self->lcRemap[idx] == 0xFF)
-    blendedInvalidLandClasses = true;
 
   int id = -1;
   for (int i = 0; i < blendTex.size(); i++)
@@ -2406,7 +2905,7 @@ static void applyBlendDetTex(int x, int y, int def_det_tex)
   float sum = 0;
   if (!blendTex.size())
   {
-    if (!HmapLandPlugin::self->getDetTexIdxMap())
+    if (!HmapLandPlugin::self->getDetTexMap())
       return;
     WeighedTexIdx &w = blendTex.push_back();
     w.idx = def_det_tex;
@@ -2414,44 +2913,62 @@ static void applyBlendDetTex(int x, int y, int def_det_tex)
   }
   else
   {
-    sort(blendTex, &WeighedTexIdx::cmp);
-    // if (blendTex.size() > HmapLandPlugin::HMAX_DET_TEX_NUM)
-    //   blendTex.resize(HmapLandPlugin::HMAX_DET_TEX_NUM);
-    for (int i = 0; i < blendTex.size(); i++)
+    // Sum positive contributions and locate the dominant entry. The dominant
+    // index is what the landClsMap detLayer records as this pixel's
+    // representative texture (hmlGenColorMap.cpp reads blendTex[0].idx
+    // after this call), so we swap the heaviest entry into slot 0.
+    // w<=0 entries are dropped silently in the quantize loop below (they
+    // would also quantize to 0 anyway).
+    int maxI = 0;
+    float maxW = 0;
+    for (int i = 0, ie = blendTex.size(); i < ie; ++i)
       if (blendTex[i].w > 0)
-        sum += blendTex[i].w;
-      else
       {
-        blendTex.resize(i);
-        break;
+        sum += blendTex[i].w;
+        if (blendTex[i].w > maxW)
+        {
+          maxW = blendTex[i].w;
+          maxI = i;
+        }
       }
-    /*if (blendTex.size() > 1)
-      debug("blend %d tex, sum=%.4f, %.3f,%.3f,%.3f", blendTex.size(), sum,
-        blendTex[0].w, blendTex[1].w, blendTex[2].w);*/
+    if (sum <= 0)
+      return; // nothing positive to emit; pixel keeps whatever was there
+    if (maxI != 0)
+      eastl::swap(blendTex[0], blendTex[maxI]);
   }
 
-  MapStorage<uint64_t> *map_idx = HmapLandPlugin::self->getDetTexIdxMap();
-  MapStorage<uint64_t> *map_wt = HmapLandPlugin::self->getDetTexWtMap();
-  if (!map_idx)
+  // prepareDetTexMaps() was already called at the top of generateLandColors,
+  // so detMap is non-null and correctly sized for the current heightmap.
+  hmap_storage::BlockedDetTexMap *detMap = HmapLandPlugin::self->getDetTexMap();
+  if (!detMap)
+    return;
+
+  // Quantize weights into uint8 (0..255) and stream every nonzero (idx, wt)
+  // pair into the block. setAt is order-independent and getPackedAtLocal
+  // does its own descending top-8 at read time, so we don't need to sort or
+  // pre-truncate here -- just compact in the same loop that quantizes,
+  // skipping w<=0 (negative/dropped blends) and qw==0 (sub-1/255 weights
+  // that would only pollute the block's slot table).
+  dag::RelocatableFixedVector<uint8_t, 31, true, framemem_allocator, uint8_t, false> wIdxBuf;
+  const int n = blendTex.size();
+  wIdxBuf.resize(n << 1);
+  auto wtBuf = wIdxBuf.data(), idxBuf = wIdxBuf.data() + n;
+  float wSum255 = 255.0f / sum;
+  int nCnt = 0;
+  for (int i = 0; i < n; i++)
   {
-    HmapLandPlugin::self->prepareDetTexMaps();
-    map_idx = HmapLandPlugin::self->getDetTexIdxMap();
-    map_wt = HmapLandPlugin::self->getDetTexWtMap();
+    if (blendTex[i].w <= 0)
+      continue;
+    uint8_t qw = uint8_t(floorf(blendTex[i].w * wSum255));
+    if (!qw)
+      continue;
+    unsigned tx = blendTex[i].idx;
+    idxBuf[nCnt] = uint8_t(tx & 0xFF);
+    wtBuf[nCnt] = qw;
+    lcActiveMask |= 1ULL << (tx < 63 ? tx : 63);
+    ++nCnt;
   }
-
-  uint64_t p_idx = 0;
-  uint64_t p_wt = 0;
-  for (int i = 0; i < blendTex.size(); i++)
-  {
-    p_wt |= (uint64_t(floorf(blendTex[i].w / sum * 255.0f)) & 0xFF) << (i * 8);
-    p_idx |= (uint64_t(blendTex[i].idx) & 0xFF) << (i * 8);
-  }
-  /*if (blendTex.size() > 1)
-    debug("wt=%08X%08X idx=%08X%08X",
-      unsigned(p_wt>>32), unsigned(p_wt), unsigned(p_idx>>32), unsigned(p_idx));*/
-
-  map_idx->setData(x, y, p_idx);
-  map_wt->setData(x, y, p_wt);
+  detMap->setAt(x, y, idxBuf, wtBuf, nCnt);
 }
 
 static unsigned mulColors(unsigned u1, unsigned u2)
@@ -2518,112 +3035,7 @@ static float smoothStep(float t)
     return 1;
   return (3 - 2 * t) * t * t;
 }
-
-static unsigned sampleImage(SqPlus::SQAnythingPtr ptr)
-{
-  if (!ptr)
-    return E3DCOLOR(255, 255, 255, 0);
-
-  E3DCOLOR c = ((ScriptParamImage *)ptr)->sampleImage();
-  return c;
-}
-
-static float sampleImage1(SqPlus::SQAnythingPtr ptr) { return ptr ? ((ScriptParamImage *)ptr)->sampleImage1() : 1.0; }
-
-static float sampleImage8(SqPlus::SQAnythingPtr ptr) { return ptr ? ((ScriptParamImage *)ptr)->sampleImage8() : 1.0; }
-
-static unsigned sampleImageAt(SqPlus::SQAnythingPtr ptr, float u, float v)
-{
-  if (!ptr)
-    return E3DCOLOR(255, 255, 255, 0);
-
-  E3DCOLOR c = ((ScriptParamImage *)ptr)->sampleImageAt(u, v);
-  return c;
-}
-
-static bool saveImage(SqPlus::SQAnythingPtr ptr) { return ((ScriptParamImage *)ptr)->saveImage(); }
-
-static void setMask(SqPlus::SQAnythingPtr ptr, float val)
-{
-  ScriptParamMask &m = *(ScriptParamMask *)ptr;
-  if (m.bitsPerPixel == 1)
-    m.setMask1(val > 0);
-  else if (m.bitsPerPixel == 8)
-    m.setMask8((unsigned char)(val * 255.0));
-}
-
-static void setMask1(SqPlus::SQAnythingPtr ptr, float val)
-{
-  if (!ptr)
-    return;
-  ((ScriptParamMask *)ptr)->setMask1(val > 0);
-}
-
-static void setMask8(SqPlus::SQAnythingPtr ptr, float val)
-{
-  if (!ptr)
-    return;
-  ((ScriptParamMask *)ptr)->setMask8((unsigned char)(val * 255.0));
-}
-
-static float sampleMask(SqPlus::SQAnythingPtr ptr)
-{
-  ScriptParamMask &m = *(ScriptParamMask *)ptr;
-  if (m.bitsPerPixel == 1)
-    return m.sampleMask1();
-  if (m.bitsPerPixel == 8)
-    return m.sampleMask8();
-  if (m.bitsPerPixel == 32)
-  {
-    E3DCOLOR c = ((ScriptParamImage *)ptr)->sampleImage();
-    return ((int)c.r + (int)c.g + (int)c.b) / 3.0 / 255.0;
-  }
-  return 1.0;
-}
-
-static float sampleMask1(SqPlus::SQAnythingPtr ptr) { return ptr ? ((ScriptParamMask *)ptr)->sampleMask1() : 1.0; }
-
-static float sampleMask8(SqPlus::SQAnythingPtr ptr) { return ptr ? ((ScriptParamMask *)ptr)->sampleMask8() : 1.0; }
-
-static void registerInScript(HSQUIRRELVM vm)
-{
-#define REG(func) SqPlus::RegisterGlobal(vm, func, _T(#func))
-
-  REG(getNormalX);
-  REG(getNormalY);
-  REG(getNormalZ);
-  REG(getHeight);
-  REG(getCurvature);
-  REG(getHeightMapX);
-  REG(getHeightMapZ);
-  REG(getHeightMapSizeX);
-  REG(getHeightMapSizeZ);
-  REG(makeColor);
-  REG(setType);
-  REG(getType);
-  REG(blendColors);
-  REG(blendDetTex);
-  REG(mulColors);
-  REG(mulColors2x);
-  REG(dissolveOver);
-  REG(calcBlendK);
-  REG(smoothStep);
-  REG(sampleImage);
-  REG(sampleImage1);
-  REG(sampleImage8);
-  REG(sampleImageAt);
-  REG(setMask);
-  REG(setMask1);
-  REG(setMask8);
-  REG(sampleMask);
-  REG(sampleMask1);
-  REG(sampleMask8);
-  REG(saveImage);
-
-#undef REG
-}
 }; // namespace LandColorGenData
-
 
 void ScriptParamImage::calcMapping(real x, real z, Point2 &p)
 {
@@ -2857,434 +3269,50 @@ inline float PostScriptParamLandLayer::calcWeight(float height, float angDiff, f
   }
 
   w++;
-  if (ht.conv == WtRange::WMT_zero)
-    *w = 0;
-  else if (ht.conv != WtRange::WMT_one)
+  const float htAngCurv[3] = {height, angDiff, curvature};
+  G_STATIC_ASSERT(countof(htAngCurv) == countof(ht_ang_curv));
+  for (int i = 0; i < countof(ht_ang_curv); ++i, ++w)
   {
-    if (fabsf(ht.dv) < 1e-4)
-      *w = (fabsf(height - ht.v0) < 1e-4);
-    else
-      *w = clamp((height - ht.v0) / ht.dv, 0.0f, 1.0f);
-    if (ht.conv == WtRange::WMT_smoothStep)
-      *w = LandColorGenData::smoothStep(*w);
+    auto val = htAngCurv[i];
+    auto fun = ht_ang_curv[i];
+    if (fun.conv == WtRange::WMT_zero)
+      *w = 0;
+    else if (fun.conv != WtRange::WMT_one)
+    {
+      if (fabsf(fun.dv) < 1e-4)
+        *w = (fabsf(val - fun.v0) < 1e-4) ? 1.0f : 0.0f;
+      else
+        *w = clamp((val - fun.v0) / fun.dv, 0.0f, 1.0f);
+      if (fun.conv == WtRange::WMT_smoothStep)
+        *w = LandColorGenData::smoothStep(*w);
+    }
   }
 
-  w++;
-  if (ang.conv == WtRange::WMT_zero)
-    *w = 0;
-  else if (ang.conv != WtRange::WMT_one)
-  {
-    if (fabsf(ang.dv) < 1e-4)
-      *w = (fabsf(angDiff - ang.v0) < 1e-4);
-    else
-      *w = clamp((angDiff - ang.v0) / ang.dv, 0.0f, 1.0f);
-    if (ang.conv == WtRange::WMT_smoothStep)
-      *w = LandColorGenData::smoothStep(*w);
-  }
-
-  w++;
-  if (curv.conv == WtRange::WMT_zero)
-    *w = 0;
-  else if (curv.conv != WtRange::WMT_one)
-  {
-    if (fabsf(curv.dv) < 1e-4)
-      *w = (fabsf(curvature - curv.v0) < 1e-4);
-    else
-      *w = clamp((curvature - curv.v0) / curv.dv, 0.0f, 1.0f);
-    if (curv.conv == WtRange::WMT_smoothStep)
-      *w = LandColorGenData::smoothStep(*w);
-  }
-
-  return sumWeights ? (wt[0] + wt[1] + wt[2] + wt[3]) : (wt[0] * wt[1] * wt[2] * wt[3]);
+  if (wtMode == 2) // max(mask, terrain product)
+    return max(wt[0], wt[1] * wt[2] * wt[3]);
+  return wtMode == 1 ? (wt[0] + wt[1] + wt[2] + wt[3]) : (wt[0] * wt[1] * wt[2] * wt[3]);
 }
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
-static void scriptPrintFunc(HSQUIRRELVM v, const SQChar *s, ...)
-{
-  static char temp[2048];
-  va_list vl;
-  va_start(vl, s);
-  vsprintf(temp, s, vl);
-  va_end(vl);
 
-  int len = (int)strlen(temp);
-  if (temp[len] == '\n')
-    temp[len] = 0;
-
-  CoolConsole &con = DAGORED2->getConsole();
-  con.addMessage(ILogWriter::WARNING, "Script: %s", temp);
-}
-
-static const char *skipBom(const char *in)
-{
-  if (in && (strncmp(in, "\xef\xbb\xbf", 3) == 0))
-    return in + 3;
-  return in;
-}
-
-bool HmapLandPlugin::compileAndRunColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func)
-{
-  if (!heightMap.isFileOpened())
-    return false;
-
-  was_inited = SquirrelVM::IsInitialized();
-
-  if (!was_inited)
-    SquirrelVM::Init();
-
-  old_print_func = sq_getprintfunc(SquirrelVM::GetVMPtr());
-  old_err_func = sq_geterrorfunc(SquirrelVM::GetVMPtr());
-  sq_setprintfunc(SquirrelVM::GetVMPtr(), ::scriptPrintFunc, ::scriptPrintFunc);
-
-  try
-  {
-    LandColorGenData::registerInScript(SquirrelVM::GetVMPtr());
-
-    String scriptFilename(colorGenScriptFilename);
-    file_ptr_t f = df_open(scriptFilename, DF_READ | DF_IGNORE_MISSING);
-    if (!f)
-    {
-      scriptFilename.append(".nut");
-      f = df_open(scriptFilename, DF_READ | DF_IGNORE_MISSING);
-    }
-
-    if (!f)
-    {
-      LOGERR_CTX("failed to open script file %s", scriptFilename.str());
-      return false;
-    }
-
-    Tab<char> sqBuf;
-    sqBuf.resize(df_length(f) + 1);
-    df_read(f, sqBuf.data(), data_size(sqBuf) - 1);
-    sqBuf.back() = '\0';
-
-    SquirrelObject sqInst, ret;
-    if (!SquirrelVM::CompileBuffer(skipBom(sqBuf.data()), sqInst, nullptr, scriptFilename))
-      throw SquirrelError();
-
-    if (!SquirrelVM::RunScript(sqInst, ret))
-      throw SquirrelError();
-  }
-  catch (SquirrelError e)
-  {
-    CoolConsole &con = DAGORED2->getConsole();
-    con.addMessage(ILogWriter::ERROR, "Script error: %s", e.desc);
-    return false;
-  }
-
-  return true;
-}
-
-
-bool HmapLandPlugin::createDefaultScript(const char *path) const
-{
-  file_ptr_t f = ::df_open(path, DF_WRITE | DF_CREATE);
-  if (f)
-  {
-    ::df_write(f, ::defScript, (int)strlen(::defScript));
-    ::df_close(f);
-    return true;
-  }
-
-  return false;
-}
-
-
-void HmapLandPlugin::closeColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func)
-{
-  sq_setprintfunc(SquirrelVM::GetVMPtr(), old_print_func, old_err_func);
-
-  if (was_inited)
-    SquirrelVM::Shutdown();
-}
-
-
-bool HmapLandPlugin::getColorGenVarsFromScript()
-{
-  if (!heightMap.isFileOpened())
-    return false;
-
-  if (colorGenScriptFilename.empty() && genLayers.size())
-    return true; // allow gen-layers only setup
-  if (!usesGenScript())
-  {
-    DAEDITOR3.conWarning("Script not used");
-    return true;
-  }
-
-  CoolConsole &con = DAGORED2->getConsole();
-  con.startLog();
-
-  con.addMessage(ILogWriter::NOTE, "getting parameters from generator script...");
-
-  // save old tuned values first
-  for (int i = 0; i < colorGenParams.size(); ++i)
-    colorGenParams[i]->save(*colorGenParamsData);
-
-  SimpleString editedImageName;
-  if (editedScriptImage)
-  {
-    editedImageName = editedScriptImage->paramName;
-    editedScriptImage = NULL;
-  }
-
-  detailedLandMask = NULL;
-  colorGenParams.clear();
-
-  bool wasSqInited;
-  SQPRINTFUNCTION oldPrintFunc, oldErrFunc;
-
-  if (!compileAndRunColorGenScript(wasSqInited, oldPrintFunc, oldErrFunc))
-  {
-    con.addMessage(ILogWriter::ERROR, "Error running generator script");
-    return false;
-  }
-
-  try
-  {
-    SqPlus::SquirrelFunction<SquirrelObject> func(_T("getParamsList"));
-
-    if (!func.func.IsNull())
-    {
-      SquirrelObject list = func();
-      int len = list.Len();
-
-      con.addMessage(ILogWriter::NOTE, "%d script params in the list", len);
-
-      const SQChar *defName = _T("value");
-      const SQChar *layersName = _T("layers");
-
-      for (int pi = 0; pi < len; ++pi)
-      {
-        SquirrelObject param = list.GetValue(pi);
-
-        const char *name = param.GetString(_T("name"));
-        if (!name)
-        {
-          con.addMessage(ILogWriter::WARNING, "param #%d has no name - skipped", pi);
-          continue;
-        }
-
-        const char *typeName = param.GetString(_T("type"));
-        if (!typeName)
-        {
-          con.addMessage(ILogWriter::WARNING, "param #%d has no type - skipped", pi);
-          continue;
-        }
-
-        if (stricmp(typeName, "int") == 0 || stricmp(typeName, "integer") == 0)
-        {
-          int val = 0;
-          if (param.Exists(defName))
-            val = param.GetInt(defName);
-          colorGenParams.push_back(new ScriptParamInt(name, val));
-        }
-        else if (stricmp(typeName, "real") == 0 || stricmp(typeName, "float") == 0)
-        {
-          real val = 0;
-          if (param.Exists(defName))
-            val = param.GetFloat(defName);
-          colorGenParams.push_back(new ScriptParamReal(name, val));
-        }
-        else if (stricmp(typeName, "color") == 0)
-        {
-          E3DCOLOR val = E3DCOLOR(255, 255, 255, 0);
-          if (param.Exists(defName))
-            val = param.GetInt(defName);
-          colorGenParams.push_back(new ScriptParamColor(name, val));
-        }
-        else if (stricmp(typeName, "image") == 0)
-        {
-          ScriptParamImage::DefParams def;
-          if (param.Exists(defName))
-          {
-            SquirrelObject defValues = param.GetValue(defName);
-
-            if (defValues.GetType() == OT_TABLE)
-            {
-              if (defValues.Exists("imageName"))
-                def.imageName = defValues.GetString("imageName");
-              if (defValues.Exists("mappingType"))
-                def.mappingType = defValues.GetInt("mappingType");
-              if (defValues.Exists("detailType"))
-                def.detailType = defValues.GetInt("detailType");
-              if (defValues.Exists("tileX"))
-                def.tile.x = defValues.GetFloat("tileX");
-              if (defValues.Exists("tileY"))
-                def.tile.y = defValues.GetFloat("tileY");
-              if (defValues.Exists("offsetX"))
-                def.offset.x = defValues.GetFloat("offsetX");
-              if (defValues.Exists("offsetY"))
-                def.offset.y = defValues.GetFloat("offsetY");
-              if (defValues.Exists("clampU"))
-                def.clampU = defValues.GetBool("clampU");
-              if (defValues.Exists("clampV"))
-                def.clampV = defValues.GetBool("clampV");
-              if (defValues.Exists("flipU"))
-                def.flipU = defValues.GetBool("flipU");
-              if (defValues.Exists("flipV"))
-                def.flipV = defValues.GetBool("flipV");
-              if (defValues.Exists("swapUV"))
-                def.swapUV = defValues.GetBool("swapUV");
-            }
-            else if (defValues.GetType() == OT_STRING)
-              def.imageName = defValues.ToString();
-          }
-          colorGenParams.push_back(new ScriptParamImage(name, def));
-        }
-        else if (stricmp(typeName, "mask1") == 0 || stricmp(typeName, "mask8") == 0)
-        {
-          int bpp = stricmp(typeName, "mask1") == 0 ? 1 : 8;
-          int div = 0;
-          bool det = false;
-          if (strcmp(name, "$detailedLandMask") == 0)
-          {
-            if (param.Exists(_T("step")))
-              div = getGridCellSize() / param.GetFloat(_T("step"));
-            else if (param.Exists(_T("divisor")))
-              div = param.GetFloat(_T("divisor"));
-          }
-          else if (detailedLandMask && param.Exists(_T("detailed")))
-            det = param.GetBool(_T("detailed"));
-
-          if (div > 1)
-            colorGenParams.push_back(detailedLandMask = new ScriptParamMask(name, bpp, true, div));
-          else
-          {
-            div = detailedLandMask ? static_cast<ScriptParamMask *>(detailedLandMask.get())->divisor : 1;
-            colorGenParams.push_back(new ScriptParamMask(name, bpp, det, div));
-          }
-        }
-        else if (stricmp(typeName, "grid") == 0)
-        {
-          con.addMessage(ILogWriter::ERROR, "obsolete grid-type parameter '%s'", name);
-        }
-        else if (stricmp(typeName, "landClass") == 0)
-        {
-          ScriptParamLandClass::DefParams def;
-          clear_and_resize(def.layerIdx, landClsLayer.size());
-          mem_set_ff(def.layerIdx);
-          int lcs_attr_id = hmlService->getBitLayerAttrId(getLayersHandle(), "landClassSlot");
-
-          if (param.Exists(layersName))
-          {
-            SquirrelObject defValues = param.GetValue(layersName);
-
-            if (defValues.GetType() == OT_TABLE && defValues.BeginIteration())
-            {
-              SquirrelObject key, value;
-              while (defValues.Next(key, value))
-              {
-                int id = hmlService->getBitLayerIndexByName(getLayersHandle(), key.ToString());
-                if (id < 0)
-                {
-                  con.addMessage(ILogWriter::ERROR, "Unknown layer '%s' in parameter '%s'", key.ToString(), name);
-                  continue;
-                }
-
-                if (id == getDetLayerIdx())
-                  def.detailIdx = value.ToInteger();
-
-                if (hmlService->testBitLayerAttr(getLayersHandle(), id, lcs_attr_id))
-                  def.layerIdx[id] = value.ToInteger();
-              }
-              defValues.EndIteration();
-            }
-          }
-
-          if (param.Exists(defName))
-          {
-            SquirrelObject defValues = param.GetValue(defName);
-
-            if (defValues.GetType() == OT_TABLE)
-            {
-              if (defValues.Exists("asset"))
-                def.asset = defValues.GetString("asset");
-            }
-            else if (defValues.GetType() == OT_STRING)
-              def.asset = defValues.ToString();
-          }
-
-          colorGenParams.push_back(new ScriptParamLandClass(name, def));
-        }
-        else if (stricmp(typeName, "detailTex") == 0)
-        {
-          if (!param.Exists("slot"))
-          {
-            con.addMessage(ILogWriter::ERROR, "parameter '%s' type '%s' must have 'slot' property", name, typeName);
-            continue;
-          }
-
-          ScriptParamDetailTex::DefParams def;
-          def.detailSlot = param.GetInt("slot");
-          if (param.Exists(defName))
-          {
-            SquirrelObject defValues = param.GetValue(defName);
-
-            if (defValues.GetType() == OT_TABLE)
-            {
-              if (defValues.Exists("asset"))
-                def.blkName = defValues.GetString("asset");
-            }
-            else if (defValues.GetType() == OT_STRING)
-              def.blkName = defValues.ToString();
-          }
-          colorGenParams.push_back(new ScriptParamDetailTex(name, def));
-        }
-        else
-        {
-          con.addMessage(ILogWriter::ERROR, "Unknown parameter '%s' type '%s'", name, typeName);
-        }
-      }
-    }
-  }
-  catch (SquirrelError e)
-  {
-    con.addMessage(ILogWriter::ERROR, "Script error: %s", e.desc);
-  }
-
-  closeColorGenScript(wasSqInited, oldPrintFunc, oldErrFunc);
-
-  ScriptParam *imageParam = NULL;
-
-  for (int i = 0; i < colorGenParams.size(); ++i)
-  {
-    colorGenParams[i]->load(*colorGenParamsData);
-
-    if (strcmp(colorGenParams[i]->paramName, editedImageName) == 0)
-      imageParam = colorGenParams[i];
-  }
-
-  editScriptImage(imageParam);
-  con.endLog();
-
-  return true;
-}
-
-
-void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
+void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished, bool may_rebuild_lmesh_if_needed)
 {
   if (!heightMap.isFileOpened())
     return;
+
+  // Clear readiness up front so an early return below (bad landIdx/detIdx on
+  // any genLayer, missing heightmap, etc.) leaves landClsMapGenerated=false.
+  // The flag is otherwise sticky across calls: without this reset a later
+  // validation failure would inherit the previous pass's success and let
+  // buildAndWrite() export stale derived maps. Set to true at the end of the
+  // pass once we know we ran to completion.
+  landClsMapGenerated = false;
 
   CoolConsole &con = DAGORED2->getConsole();
   con.startLog();
 
   updateScriptImageList();
-
-  bool wasSqInited;
-  SQPRINTFUNCTION oldPrintFunc, oldErrFunc;
-  bool use_script = usesGenScript();
-
-  if (!use_script && genLayers.size())
-    ; // allow gen-layers only setup
-  else if (!compileAndRunColorGenScript(wasSqInited, oldPrintFunc, oldErrFunc))
-  {
-    con.addMessage(ILogWriter::ERROR, "Error running generator script");
-    return;
-  }
 
   if (!in_rect)
   {
@@ -3293,6 +3321,24 @@ void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
     createColormapFile(con);
     resizeLandClassMapFile(DAGORED2->getConsole());
   }
+
+  // Ensure detTexMap exists AND matches the current heightmap extent before
+  // any applyBlendDetTex writes. prepareDetTexMaps is idempotent when the
+  // size already matches, and on resize it calls reset() to rebuild the
+  // block grid. The per-pixel applyBlendDetTex path used to create the map
+  // only when the pointer was null, so a heightmap resize mid-session would
+  // leave the grid stuck at the old extent and setAt() silently dropped
+  // writes outside it.
+  prepareDetTexMaps();
+
+  // Full-pass rebuild: wipe the per-block slot tables so dead zero-weight
+  // slots do not accumulate across regen passes (setAt only appends slots;
+  // nothing prunes them mid-session). The sub-rectangle path intentionally
+  // skips this: untouched blocks outside the dirty rect must keep their
+  // existing detail-tex data, since the loop below only overwrites pixels
+  // inside the rect.
+  if (!in_rect && detTexMap)
+    detTexMap->reset(heightMap.getMapSizeX(), heightMap.getMapSizeY());
 
   int time0 = ::get_time_msec();
 
@@ -3315,8 +3361,7 @@ void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
   using LandColorGenData::FSZ;
 
   double wtSum = 0, kSum = 0;
-  int samples_processed = 0;
-  LandColorGenData::blendedInvalidLandClasses = false;
+  LandColorGenData::lcActiveMask = 0;
   LandColorGenData::hmap = &heightMap;
   LandColorGenData::hmapDet = &heightMapDet;
   LandColorGenData::detDiv = detDivisor;
@@ -3328,7 +3373,7 @@ void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
   int lc1_base = lc1_li < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[lc1_li].bitCount) - 1;
   int lc2_base = lc2_li < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[lc2_li].bitCount) - 1;
   int phys_li = hmlService->getBitLayerIndexByName(getLayersHandle(), "phys");
-  int phys_li_max = phys_li < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[phys_li].bitCount) - 1;
+  int phys_base = phys_li < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[phys_li].bitCount) - 1;
   int imp_scale = impLayerIdx < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[impLayerIdx].bitCount) - 1;
   int det_val_max = detLayerIdx < 0 ? 0 : (1 << hmlService->getBitLayersList(getLayersHandle())[detLayerIdx].bitCount) - 1;
   layerVal.resize(landClsLayer.size());
@@ -3381,215 +3426,247 @@ void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
           DAEDITOR3.conError("Bad landIdx=%d in layer %d \"%s\",  maxLand[2]=%d", gl->landIdx, l, gl->paramName, lc2_base);
           return;
         }
+      if (phys_base)
+        if (gl->landIdx < 0 || gl->landIdx >= phys_base)
+        {
+          DAEDITOR3.conError("Bad landIdx=%d in layer %d \"%s\",  max_phys=%d", gl->landIdx, l, gl->paramName, phys_base);
+          return;
+        }
     }
 
-  bool layers_use_curv = false;
+  uint32_t anyVarMask = 0;
   for (int l = 0; l < genLayers.size(); l++)
-    if (static_cast<PostScriptParamLandLayer *>(genLayers[l].get())->enabled &&
-        static_cast<PostScriptParamLandLayer *>(genLayers[l].get())->curv.conv != PostScriptParamLandLayer::WtRange::WMT_one)
-    {
-      layers_use_curv = true;
-      break;
-    }
-
-  try
   {
-    SqPlus::SquirrelFunction<unsigned> genFunc;
-    SquirrelObject layers;
+    auto *gl = static_cast<PostScriptParamLandLayer *>(genLayers[l].get());
+    if (gl->enabled)
+      anyVarMask |= gl->exprVarMask;
+  }
+  bool layers_use_curv = (anyVarMask & (1u << LcExprContext::VAR_CURVATURE)) != 0;
 
-    if (use_script)
+  int x0 = 0, x1 = heightMap.getMapSizeX();
+  int y0 = 0, y1 = heightMap.getMapSizeY();
+  if (in_rect)
+  {
+    x0 = in_rect->lim[0].x;
+    x1 = in_rect->lim[1].x;
+    y0 = in_rect->lim[0].y + 1;
+    y1 = in_rect->lim[1].y + 1;
+  }
+
+  // generate landclass map and colors
+  for (int y = y0; y < y1; ++y)
+  {
+    LandColorGenData::curv_dy = y - FC;
+
+    for (int x = x0; x < x1; ++x)
     {
-      for (int i = 0; i < colorGenParams.size(); ++i)
-        colorGenParams[i]->save(*colorGenParamsData);
+      real h = LandColorGenData::sampleHeight(x, y);
 
-      HSQUIRRELVM vm = SquirrelVM::GetVMPtr();
-      for (int i = 0; i < colorGenParams.size(); ++i)
-        colorGenParams[i]->setToScript(vm);
-      for (int i = 0; i < landClsLayer.size(); i++)
-      {
-        sq_pushroottable(vm);
-        sq_pushstring(vm, String(32, "_%s", hmlService->getBitLayerName(landClsLayersHandle, i)), -1);
-        sq_pushinteger(vm, i);
-        sq_newslot(vm, -3, false);
-        sq_pop(vm, 1);
-      }
+      real hu = (LandColorGenData::sampleHeight(x + 1, y) - LandColorGenData::sampleHeight(x - 1, y)) * 0.5f;
+      real hv = (LandColorGenData::sampleHeight(x, y + 1) - LandColorGenData::sampleHeight(x, y - 1)) * 0.5f;
 
-      SqPlus::SquirrelFunction<SquirrelObject> getGenFunc(_T("getGenerator"));
-      genFunc.v = SquirrelVM::GetVMPtr();
-      genFunc.object = SquirrelVM::GetRootTable();
-      genFunc.func = getGenFunc();
-      layers = SquirrelVM::CreateArray(landClsLayer.size());
-    }
+      real d = gridCellSize;
 
-    int x0 = 0, x1 = heightMap.getMapSizeX();
-    int y0 = 0, y1 = heightMap.getMapSizeY();
+      Point3 normal(-hu, d, -hv);
 
-    if (in_rect)
-    {
-      x0 = in_rect->lim[0].x;
-      x1 = in_rect->lim[1].x;
-      y0 = in_rect->lim[0].y + 1;
-      y1 = in_rect->lim[1].y + 1;
-    }
+      real len = sqrtf(d * d + hu * hu + hv * hv);
+      normal /= len;
 
-    for (int y = y0, cnt = 0; y < y1; ++y)
-    {
-      if (--cnt <= 0)
-        cnt = heightMap.getElemSize();
+      LandColorGenData::normal = normal;
+      float angDiff = acos(normal.y) * 180 / PI;
+      LandColorGenData::height = h;
 
-      LandColorGenData::curv_dy = y - FC;
+      LandColorGenData::curv_dx = x - FC;
+      LandColorGenData::curvatureReady = false;
 
-      for (int x = x0; x < x1; ++x)
-      {
-        real h = LandColorGenData::sampleHeight(x, y);
+      for (int ly = 0; ly < lcmScale; ly++)
+        for (int lx = 0; lx < lcmScale; lx++)
+        {
+          LandColorGenData::heightMapX = x + float(lx) / lcmScale;
+          LandColorGenData::heightMapZ = y + float(ly) / lcmScale;
 
-        real hu = (LandColorGenData::sampleHeight(x + 1, y) - LandColorGenData::sampleHeight(x - 1, y)) * 0.5f;
-        real hv = (LandColorGenData::sampleHeight(x, y + 1) - LandColorGenData::sampleHeight(x, y - 1)) * 0.5f;
+          LandColorGenData::resetBlendDetTex();
+          mem_set_0(layerVal);
+          int detIdx = 0;
 
-        real d = gridCellSize;
+          float curv = layers_use_curv ? LandColorGenData::getCurvature() : 0;
+          bool in_det = detDivisor ? insideDetRectC(x * detDivisor, y * detDivisor) : false;
 
-        Point3 normal(-hu, d, -hv);
+          float exprVars[LcExprContext::VAR_COUNT];
+          exprVars[LcExprContext::VAR_HEIGHT] = h;
+          exprVars[LcExprContext::VAR_ANGLE] = angDiff;
+          exprVars[LcExprContext::VAR_CURVATURE] = curv;
+          exprVars[LcExprContext::VAR_MASK] = 0;
+          exprVars[LcExprContext::VAR_WORLD_X] =
+            LandColorGenData::heightMapX * LandColorGenData::gridCellSize + LandColorGenData::heightMapOffset.x;
+          exprVars[LcExprContext::VAR_WORLD_Y] =
+            LandColorGenData::heightMapZ * LandColorGenData::gridCellSize + LandColorGenData::heightMapOffset.y;
 
-        real len = sqrtf(d * d + hu * hu + hv * hv);
-        normal /= len;
-
-        LandColorGenData::normal = normal;
-        float angDiff = acos(normal.y) * 180 / PI;
-        LandColorGenData::height = h;
-
-        LandColorGenData::curv_dx = x - FC;
-        LandColorGenData::curvatureReady = false;
-
-        for (int ly = 0; ly < lcmScale; ly++)
-          for (int lx = 0; lx < lcmScale; lx++)
+          // --- Expression eval pass ---
+          for (int l = 0; l < genLayers.size(); l++)
           {
-            LandColorGenData::heightMapX = x + float(lx) / lcmScale;
-            LandColorGenData::heightMapZ = y + float(ly) / lcmScale;
+            PostScriptParamLandLayer &gl = *static_cast<PostScriptParamLandLayer *>(genLayers[l].get());
+            if (!gl.enabled)
+              continue;
+            if (gl.areaSelect == gl.AREA_main && in_det)
+              continue;
+            if (gl.areaSelect == gl.AREA_det && !in_det)
+              continue;
 
-            LandColorGenData::resetBlendDetTex();
-            mem_set_0(layerVal);
-            int detIdx = 0;
-
-            if (use_script)
+            if (gl.exprVarMask & (1u << LcExprContext::VAR_MASK))
             {
-              unsigned res = genFunc(layers) & 0x00FFFFFF;
-              if (hasColorTex && !lx && !ly)
-                colorMap.setData(x, y, res);
-
-              if (!LandColorGenData::blendTex.size())
-                detIdx = layers.GetInt(detLayerIdx);
-
-              for (int l = 0; l < landClsLayer.size(); l++)
-              {
-                if (l == detLayerIdx)
-                  continue;
-                layerVal[l] = layers.GetInt(l);
-                layers.SetValue(l, 0);
-              }
+              float fx = LandColorGenData::heightMapX / LandColorGenData::heightMapSizeX;
+              float fy = LandColorGenData::heightMapZ / LandColorGenData::heightMapSizeZ;
+              exprVars[LcExprContext::VAR_MASK] = gl.getMask(fx, fy);
             }
+            else
+              exprVars[LcExprContext::VAR_MASK] = 0;
 
-            float curv = layers_use_curv ? LandColorGenData::getCurvature() : 0;
-            bool in_det = detDivisor ? insideDetRectC(x * detDivisor, y * detDivisor) : false;
-            int physSplattingLc = 0;
-            double maxPhysWeight = -1.0;
-            for (int l = 0; l < genLayers.size(); l++)
+            // Raw weight (no upper clamp). Sum-mode expressions legitimately produce
+            // wt > 1; we preserve that for the importance channel so it matches the
+            // pre-expression calcWeight path. Saturation happens below only for the
+            // [0,1]-expected consumers (landclass gate thresholds, detTex blend).
+            double wt =
+              gl.exprValid ? lcexpr::evalFinite(gl.exprArena, gl.exprRoot, exprVars, LcExprContext::VAR_COUNT) : (l == 0 ? 1.0 : 0.0);
+            double wtSat = wt > 1.0 ? 1.0 : wt;
+
+// Regression tripwire: validate that the expression path agrees with the legacy
+// data-driven calcWeight. Gated off by default; build with -DLCEXPR_COMPARE_WITH_OLD=1
+// (or just flip to 1 here during local testing) to turn it on. Skipped for useExpr
+// layers because the user-authored expression has no legacy equivalent to compare with.
+#ifndef LCEXPR_COMPARE_WITH_OLD
+#define LCEXPR_COMPARE_WITH_OLD 0
+#endif
+#if LCEXPR_COMPARE_WITH_OLD
+            if (!gl.useExpr)
             {
-              PostScriptParamLandLayer &gl = *static_cast<PostScriptParamLandLayer *>(genLayers[l].get());
-              if (!gl.enabled)
-                continue;
-              if (gl.areaSelect == gl.AREA_main && in_det)
-                continue;
-              if (gl.areaSelect == gl.AREA_det && !in_det)
-                continue;
-
-              double wt = gl.calcWeight(h, angDiff, curv);
-              if (!lx && !ly && gl.writeDetTex && !gl.badDetTex)
-                LandColorGenData::blendDetTex(gl.detIdx, wt);
-              if (gl.writeLand1 && wt > gl.writeLand1Thres && lc1_li >= 0)
-                layerVal[lc1_li] = lc1_base - gl.landIdx;
-              if (gl.writeLand2 && wt > gl.writeLand2Thres && lc2_li >= 0)
-                layerVal[lc2_li] = lc2_base - gl.landIdx;
-              if (gl.writeImportance && impLayerIdx >= 0)
-                layerVal[impLayerIdx] = wt * imp_scale;
-              if (gl.writeDetTex && (wt >= maxPhysWeight) && (gl.landIdx < phys_li_max)) // physmat "splatting" (choose lc with biggest
-                                                                                         // weight)
-              {
-                maxPhysWeight = wt;
-                physSplattingLc = gl.landIdx;
-              }
+              double wtOld = gl.calcWeight(h, angDiff, curv);
+              // Both wtOld and wt are raw (unclamped). Sum-mode layers can exceed 1 on
+              // both sides, so comparing raw-vs-raw is the correct invariant.
+              if (fabs(wtOld - wt) > 0.01)
+                DAEDITOR3.conError("EXPR/OLD MISMATCH at (%d,%d) layer %d '%s': expr=%.4f old=%.4f expr='%s'", x, y, l,
+                  gl.paramName.str(), wt, wtOld, gl.exprText.str());
             }
-            if (phys_li >= 0)
-              layerVal[phys_li] = physSplattingLc;
+#endif
 
-            if (!lx && !ly)
-              LandColorGenData::applyBlendDetTex(x, y, detIdx);
-
-            unsigned w = 0;
-            if (detLayerIdx >= 0)
-              w = landClsLayer[detLayerIdx].setLayerData(w,
-                (getDetTexIdxMap() && LandColorGenData::blendTex.size()) ? LandColorGenData::blendTex[0].idx : detIdx);
-
-            for (int l = 0; l < landClsLayer.size(); l++)
-              if (l != detLayerIdx)
-                w = landClsLayer[l].setLayerData(w, layerVal[l]);
-
-            samples_processed++;
-            landClsMap.setData(x * lcmScale + lx, y * lcmScale + ly, w);
+            if (!lx && !ly && gl.writeDetTex && !gl.badDetTex && wtSat > gl.writeDetTexThres)
+              LandColorGenData::blendDetTex(gl.detIdx, wtSat);
+            if (gl.writeLand1 && wtSat > gl.writeLand1Thres && lc1_li >= 0)
+              layerVal[lc1_li] = lc1_base - gl.landIdx;
+            if (gl.writeLand2 && wtSat > gl.writeLand2Thres && lc2_li >= 0)
+              layerVal[lc2_li] = lc2_base - gl.landIdx;
+            if (gl.writeImportance && impLayerIdx >= 0)
+              layerVal[impLayerIdx] = wt * imp_scale;
+            if (gl.writeDetTex && wtSat > gl.writeDetTexThres && phys_li >= 0)
+              layerVal[phys_li] = phys_base - gl.landIdx;
           }
-      }
 
-      if (!in_rect && cnt == heightMap.getElemSize())
+          if (!lx && !ly)
+            LandColorGenData::applyBlendDetTex(x, y, detIdx);
+
+          unsigned w = 0;
+          if (detLayerIdx >= 0)
+            w = landClsLayer[detLayerIdx].setLayerData(w,
+              (getDetTexMap() && LandColorGenData::blendTex.size()) ? LandColorGenData::blendTex[0].idx : detIdx);
+
+          for (int l = 0; l < landClsLayer.size(); l++)
+            if (l != detLayerIdx)
+              w = landClsLayer[l].setLayerData(w, layerVal[l]);
+
+          landClsMap.setData(x * lcmScale + lx, y * lcmScale + ly, w);
+        }
+    }
+
+    if (!in_rect)
+      con.incDone();
+  }
+
+  int samples_processed = (y1 - y0) * (x1 - x0) * lcmScale * lcmScale;
+
+  // Mark derived maps populated *before* the optional rebuild below: by here
+  // we have run to completion, and rebuildLandmeshPhysMap -> buildAndWritePhysMap
+  // re-enters generateLandColors with may_rebuild_lmesh_if_needed=false and
+  // gates that inner call on landClsMapGenerated. Without flipping it now, the
+  // entry-time landClsMapGenerated=false (which makes early returns leave the
+  // flag cleared) would let the inner call run a second full regen.
+  landClsMapGenerated = true;
+
+  // Single-pass classify: lcActiveMask now records which slots emitted >=1/255
+  // anywhere. Errors and warnings derive from comparing it against the
+  // statically-known configured-slot set (detailTexBlkName non-empty), so
+  // we no longer need to recurse to validate against a freshly built lmDump.
+  // Trigger a one-shot lmDump/landmesh rebuild only when an active configured
+  // slot is missing from the current lcRemap (lmDump genuinely stale because
+  // a layer was added/removed since the last rebuild).
+  // Always re-derive lmDump (and friends) for full-regen calls. lmDump is an
+  // in-memory buffer; the cost is bounded (one detTexMap scan + mesh dump
+  // serialize, well under a second) and dominated by generateLandColors
+  // itself, which we're already paying. Doing it unconditionally drops the
+  // stale-lcRemap detection problem entirely: there's nothing to detect
+  // because lcRemap and lmDump are always rebuilt to match the just-written
+  // detTexMap. Callers that already do their own external rebuild after
+  // generateLandColors (notably beforeMainLoop, which re-triangulates
+  // landMeshMap before its rebuild) opt out via
+  // may_rebuild_lmesh_if_needed=false.
+  if (may_rebuild_lmesh_if_needed && !in_rect)
+  {
+    rebuildLandmeshDump();
+    rebuildLandmeshManager();
+    delayedResetRenderer();
+    hmlService->invalidateClipmap(true);
+    pendingLandmeshRebuild = false;
+    // rebuildLandmeshPhysMap -> buildAndWritePhysMap calls generateLandColors
+    // with may_rebuild_lmesh_if_needed=false; the landClsMapGenerated=true set
+    // above makes that inner call short-circuit, so it can't re-enter here.
+    rebuildLandmeshPhysMap();
+  }
+
+  if (landMeshManager)
+  {
+    // Error: a slot got non-zero quantized weight but has no configured
+    // landclass asset (no detail texture) -> the runtime can't render it.
+    for (uint64_t bw = LandColorGenData::lcActiveMask; bw; bw = __blsr(bw))
+    {
+      unsigned i = __ctz_unsafe(bw);
+      bool configured = (i < detailTexBlkName.size() && !detailTexBlkName[i].empty());
+      if (!configured)
       {
-        if (hasColorTex && !colorMap.flushData())
-          con.addMessage(ILogWriter::ERROR, "Error writing data to color map file");
-        if (!landClsMap.flushData())
-          con.addMessage(ILogWriter::ERROR, "Error writing data to land-class map file");
-
-        heightMap.unloadUnchangedData(y + 1);
-        landClsMap.unloadUnchangedData(y * lcmScale + 1);
-        if (hasColorTex)
-          colorMap.unloadUnchangedData(y + 1);
+        if (i < detailTexBlkName.size())
+          con.addMessage(ILogWriter::ERROR, "land class blended without detail texture: <slot %u>", i);
+        else
+          con.addMessage(ILogWriter::ERROR, "land class blended without detail texture: <unknown idx >=%u>", i);
       }
-
-      if (!in_rect)
-        con.incDone();
+    }
+    // Warning (full regen only): a slot has a configured asset but every
+    // pixel quantized to 0, so it contributes nothing to the export and is
+    // dead BLK. Bit 63 is the >=63 catch-all so warnings for slot 63+ may
+    // false-negative when several high-idx slots collide on it; not an
+    // issue for any current level (slot count well under 64).
+    if (!in_rect)
+    {
+      const int n = detailTexBlkName.size();
+      for (int i = 0; i < n; ++i)
+      {
+        if (detailTexBlkName[i].empty())
+          continue;
+        unsigned bit = i < 63 ? unsigned(i) : 63u;
+        if (!(LandColorGenData::lcActiveMask & (1ULL << bit)))
+          con.addMessage(ILogWriter::WARNING, "land class <%s> never reaches export threshold (quantized weight 0 everywhere)",
+            detailTexBlkName[i].str());
+      }
     }
   }
-  catch (SquirrelError e)
-  {
-    con.addMessage(ILogWriter::ERROR, "Script error: %s", e.desc);
-  }
-  if (LandColorGenData::blendedInvalidLandClasses)
-    con.addMessage(ILogWriter::ERROR, "Some of empty land classes were blend as textures!");
 
   if (!in_rect)
   {
     heightMap.unloadAllUnchangedData();
-
-    if (!landClsMap.flushData())
-      con.addMessage(ILogWriter::ERROR, "Error writing data to land-class map file");
-    if (hasColorTex && !colorMap.flushData())
-      con.addMessage(ILogWriter::ERROR, "Error writing data to color map file");
+    // landClsMap / colorMap are RAM-only (commit cb65d22e4f9b); skip the
+    // flushData calls that used to write them to disk.
     landClsMap.unloadAllUnchangedData();
     if (hasColorTex)
       colorMap.unloadAllUnchangedData();
-  }
-
-  if (use_script)
-  {
-    SqPlus::SquirrelFunction<SquirrelObject> endGenerator(_T("endGenerator"));
-    if (!endGenerator.func.IsNull())
-    {
-      SqPlus::SquirrelFunction<SquirrelObject> endGeneratorFunc(SquirrelVM::GetRootTable(), endGenerator());
-      if (!endGeneratorFunc.func.IsNull())
-        endGeneratorFunc();
-    }
-
-    closeColorGenScript(wasSqInited, oldPrintFunc, oldErrFunc);
-  }
-
-  if (!in_rect)
     con.endProgress();
+  }
 
   int genTime = ::get_time_msec() - time0;
   con.addMessage(ILogWriter::NOTE, "generated in %d msec (%d samples)", genTime, samples_processed);
@@ -3600,6 +3677,9 @@ void HmapLandPlugin::generateLandColors(const IBBox2 *in_rect, bool finished)
       (*in_rect)[1].y * lcmScale + 1, finished);
   else
     onLandRegionChanged(0, 0, landClsMap.getMapSizeX(), landClsMap.getMapSizeY(), finished);
+
+  if (showLandClassColors)
+    updateLandClassColorsTex();
 }
 
 
@@ -3629,17 +3709,35 @@ bool HmapLandPlugin::showEditedMask() const
 void HmapLandPlugin::setShowBlueWhiteMask()
 {
   static int blueWhiteMaskVarId = dagGeom->getShaderVariableId("blue_white_mask_tex");
-  bool show = (editedScriptImage && showEditedMask()) && showBlueWhiteMask;
-  if (show)
+  static int worldToBwMaskVarId = dagGeom->getShaderVariableId("world_to_bw_mask");
+  bool show = false;
+  Color4 world_to_bw_mask;
+  // Mask edit takes precedence: when a mask is being painted the user needs to see
+  // the brush surface, not the colorize overlay. Colorize is the fallback when no
+  // mask is active.
+  if ((editedScriptImage && showEditedMask()) && showBlueWhiteMask)
   {
-    Color4 world_to_bw_mask;
+    show = true;
     world_to_bw_mask.r = 1.f / (esiGridW * esiGridStep);
     world_to_bw_mask.g = 1.f / (esiGridH * esiGridStep);
     world_to_bw_mask.b = (-esiOrigin.x + 0.5) * world_to_bw_mask.r;
     world_to_bw_mask.a = (-esiOrigin.y + 0.5) * world_to_bw_mask.g;
-
-    dagGeom->shaderGlobalSetColor4(dagGeom->getShaderVariableId("world_to_bw_mask"), world_to_bw_mask);
   }
+  else if (showLandClassColors && bluewhiteTex && detTexMap)
+  {
+    show = true;
+    const int W = detTexMap->getMapSizeX();
+    const int H = detTexMap->getMapSizeY();
+    const float worldW = float(W) * gridCellSize;
+    const float worldH = float(H) * gridCellSize;
+    world_to_bw_mask.r = 1.f / worldW;
+    world_to_bw_mask.g = 1.f / worldH;
+    // +0.5 cell shifts the sample to texel centres, matching the mask path
+    world_to_bw_mask.b = (-heightMapOffset.x + 0.5f * gridCellSize) * world_to_bw_mask.r;
+    world_to_bw_mask.a = (-heightMapOffset.y + 0.5f * gridCellSize) * world_to_bw_mask.g;
+  }
+  if (show)
+    dagGeom->shaderGlobalSetColor4(worldToBwMaskVarId, world_to_bw_mask);
   dagGeom->shaderGlobalSetTexture(blueWhiteMaskVarId, show ? bluewhiteTexId : BAD_TEXTUREID);
 }
 
@@ -3715,12 +3813,99 @@ void HmapLandPlugin::updateGenerationMask(const IBBox2 *rect)
   }
 }
 
+// Fill bluewhiteTex with the per-pixel weighted blend of layer colors taken from
+// detTexMap. Sized to detTexMap dims; bound via the same blue_white_mask_tex
+// shader var as the mask overlay.
+void HmapLandPlugin::updateLandClassColorsTex()
+{
+  static int blueWhiteMaskVarId = dagGeom->getShaderVariableId("blue_white_mask_tex");
+  if (!detTexMap)
+    return;
+  const int W = detTexMap->getMapSizeX();
+  const int H = detTexMap->getMapSizeY();
+  if (W <= 0 || H <= 0)
+    return;
+
+  if (bluewhiteTex)
+  {
+    TextureInfo ti;
+    bluewhiteTex->getinfo(ti, 0);
+    if (ti.w != W || ti.h != H || (ti.cflg & TEXFMT_MASK) != TEXFMT_A8R8G8B8 || !(ti.cflg & TEXCF_SRGBREAD))
+    {
+      dagGeom->shaderGlobalSetTexture(blueWhiteMaskVarId, BAD_TEXTUREID);
+      dagRender->releaseManagedTexVerified(bluewhiteTexId, bluewhiteTex);
+    }
+  }
+  if (!bluewhiteTex)
+  {
+    // SRGBREAD: layer colors are picked in sRGB; init_albedo wants linear, so let the
+    // sampler do sRGB->linear conversion. Without this the colors look washed out.
+    bluewhiteTex = d3d::create_tex(NULL, W, H, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC | TEXCF_SRGBREAD, 1, "blueWhite");
+    G_ASSERT(bluewhiteTex);
+    bluewhiteTexId = dagRender->registerManagedTex("bluewhiteTex", bluewhiteTex);
+  }
+
+  // Build a per-detail-slot color table from layer colors. Multiple layers may
+  // share a slot (lex-sorted lc1 collapse); the last-written wins.
+  E3DCOLOR slotColors[256];
+  for (int i = 0; i < 256; ++i)
+    slotColors[i] = E3DCOLOR(96, 96, 96, 255);
+  for (int i = 0; i < genLayers.size(); ++i)
+    if (PostScriptParamLandLayer *gl = PostScriptParamLandLayer::cast(genLayers[i]))
+      if (gl->detIdx >= 0 && gl->detIdx < 256)
+        slotColors[gl->detIdx] = gl->layerColor;
+
+  uint8_t *imgPtr = nullptr;
+  int stride = 0;
+  if (!bluewhiteTex->lockimg((void **)&imgPtr, stride, 0, TEXLOCK_READWRITE) || stride < W * 4)
+  {
+    if (imgPtr)
+      bluewhiteTex->unlockimg();
+    setShowBlueWhiteMask();
+    hmlService->invalidateClipmap(false);
+    return;
+  }
+
+  for (int y = 0; y < H; ++y)
+  {
+    E3DCOLOR *row = (E3DCOLOR *)(imgPtr + y * stride);
+    for (int x = 0; x < W; ++x)
+    {
+      uint64_t pi = 0, pw = 0;
+      detTexMap->getPackedAt(x, y, pi, pw);
+      unsigned aR = 0, aG = 0, aB = 0, sumW = 0;
+      while (pw)
+      {
+        const unsigned w = pw & 0xFF;
+        const E3DCOLOR c = slotColors[pi & 0xFF];
+        aR += c.r * w;
+        aG += c.g * w;
+        aB += c.b * w;
+        sumW += w;
+        pi >>= 8;
+        pw >>= 8;
+      }
+      row[x] = sumW ? E3DCOLOR(aR / sumW, aG / sumW, aB / sumW, 255) : E3DCOLOR(0, 0, 0, 255);
+    }
+  }
+  bluewhiteTex->unlockimg();
+
+  setShowBlueWhiteMask();
+  hmlService->invalidateClipmap(false);
+}
+
 void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
 {
   static int blueWhiteMaskVarId = dagGeom->getShaderVariableId("blue_white_mask_tex");
   if (!(editedScriptImage && showEditedMask()))
   {
-    setShowBlueWhiteMask();
+    // No mask being edited: colorize takes precedence when enabled, otherwise unbind.
+    // updateGenerationMask still has to run so per-layer editable mask textures stay
+    // refreshed (used by the brush regardless of overlay mode).
+    if (showLandClassColors)
+      updateLandClassColorsTex();
+    else
+      setShowBlueWhiteMask();
     updateGenerationMask(rect);
     hmlService->invalidateClipmap(false);
     return;
@@ -3729,7 +3914,7 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
   {
     TextureInfo ti;
     bluewhiteTex->getinfo(ti, 0);
-    if (ti.w != esiGridW || ti.h != esiGridH)
+    if (ti.w != esiGridW || ti.h != esiGridH || (ti.cflg & TEXFMT_MASK) != TEXFMT_A8R8G8B8 || !(ti.cflg & TEXCF_SRGBREAD))
     {
       dagGeom->shaderGlobalSetTexture(blueWhiteMaskVarId, BAD_TEXTUREID);
       dagRender->releaseManagedTexVerified(bluewhiteTexId, bluewhiteTex);
@@ -3737,7 +3922,7 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
   }
   if (!bluewhiteTex)
   {
-    bluewhiteTex = d3d::create_tex(NULL, esiGridW, esiGridH, TEXFMT_R8 | TEXCF_READABLE | TEXCF_DYNAMIC, 1, "blueWhite");
+    bluewhiteTex = d3d::create_tex(NULL, esiGridW, esiGridH, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC | TEXCF_SRGBREAD, 1, "blueWhite");
     G_ASSERT(bluewhiteTex);
 
     bluewhiteTexId = dagRender->registerManagedTex("bluewhiteTex", bluewhiteTex);
@@ -3760,22 +3945,25 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
   uint8_t *imgPtr;
   int stride;
 
-  // fill color texture
+  // fill color texture (RGBA8: write blue-white as (v, v, 255, 255) so the shader's
+  // .rgb sample reproduces the legacy half4(mask, mask, 1, 1) look)
   if (bluewhiteTex->lockimg((void **)&imgPtr, stride, 0, TEXLOCK_READWRITE))
   {
-    if (stride < x1 - x0 + 1)
+    if (stride < (x1 - x0 + 1) * 4)
     {
-      logerr("invalid update bluewhite");
+      logerr("invalid update bluewhite (rgba) stride=%d w=%d", stride, x1 - x0 + 1);
       bluewhiteTex->unlockimg();
       return;
     }
 
-    imgPtr += stride * y0 + x0;
-    int use_stride = stride - (x1 - x0 + 1);
-    for (int y = y0; y <= y1; ++y, imgPtr += use_stride)
+    for (int y = y0; y <= y1; ++y)
     {
-      for (int x = x0; x <= x1; ++x, ++imgPtr)
-        *imgPtr = real2uchar(getBrushImageData(x, y, getEditedChannel()));
+      E3DCOLOR *row = (E3DCOLOR *)(imgPtr + y * stride);
+      for (int x = x0; x <= x1; ++x)
+      {
+        uint8_t v = real2uchar(getBrushImageData(x, y, getEditedChannel()));
+        row[x] = E3DCOLOR(v, v, 255, 255);
+      }
     }
 
     bluewhiteTex->unlockimg();

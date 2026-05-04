@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <generic/dag_sort.h>
+#include <osApiWrappers/dag_stackHlp.h>
 #include "globals.h"
 #include "device_memory.h"
 #include "resource_manager.h"
@@ -65,7 +66,7 @@ void check_leaks(ObjectPool<ResTypeName> &pool)
 }
 
 template <typename ResTypeName>
-bool try_evict_from_pool(ExecutionContext &ctx, ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size, bool evict_used)
+bool try_evict_from_pool(ObjectPool<ResTypeName> &pool, VkDeviceSize &desired_size, bool evict_used)
 {
   // eviction may allocate resources inside pool, breaking iterator, so buffer up
   dag::Vector<ResTypeName *> evictionCandidates;
@@ -78,7 +79,7 @@ bool try_evict_from_pool(ExecutionContext &ctx, ObjectPool<ResTypeName> &pool, V
   for (ResTypeName *i : evictionCandidates)
   {
     ResourceAlgorithm<ResTypeName> alg(*i);
-    VkDeviceSize evictionSize = alg.tryEvict(ctx, evict_used);
+    VkDeviceSize evictionSize = alg.tryEvict(evict_used);
 
     if (!evictionSize)
       continue;
@@ -116,10 +117,31 @@ VulkanDeviceMemoryHandle ResourceMemory::deviceMemorySlow() const
   return Globals::Mem::res.getDeviceMemoryHandle(index);
 }
 
+#if DAGOR_DBGLEVEL > 0
+void ResourceMemory::profilerOnAllocation()
+{
+  if (!Globals::cfg.bits.profileResourceMemUsage)
+    return;
+  static constexpr int skip = 3;
+  void *localStack[64 + skip];
+  const unsigned len = max<int>(stackhlp_fill_stack(localStack, countof(localStack), 0) - skip, 0);
+  profilerData = da_profiler::profile_allocation(size, localStack + skip, len);
+}
+
+void ResourceMemory::profilerOnFree()
+{
+  if (!Globals::cfg.bits.profileResourceMemUsage)
+    return;
+  da_profiler::profile_deallocation(size, profilerData);
+  profilerData = da_profiler::invalid_memory_profile;
+}
+#endif
+
 void ResourceManager::init(const PhysicalDeviceSet &dev_set)
 {
   uint32_t memTypesCount = dev_set.memoryProperties.memoryTypeCount;
-  allowMixedPages = dev_set.properties.limits.bufferImageGranularity <= 1024;
+  allowMixedPages = dev_set.properties.limits.bufferImageGranularity <=
+                    Globals::cfg.getPerDriverPropertyBlock("mixedPages")->getInt("granularityLimit", 1024);
   allowBufferSuballoc = Globals::cfg.getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
   allowAligmentTailOverlap = Globals::cfg.getPerDriverPropertyBlock("memoryAligmentTailOverlap")->getBool("enable", true);
   debug("vulkan: %s type mixed allocators", allowMixedPages ? "using" : "not using");
@@ -133,8 +155,7 @@ void ResourceManager::init(const PhysicalDeviceSet &dev_set)
 
 void ResourceManager::onDeviceReset()
 {
-  for (int i = 0; i < hotMemPoolCount; ++i)
-    processHotMem();
+  clearHotMem();
 
   for (ResourceMemory &i : resAllocationsPool)
   {
@@ -173,17 +194,16 @@ void ResourceManager::shutdown()
   });
   resPool<SamplerResource>().freeAll();
 
-  for (int i = 0; i < hotMemPoolCount; ++i)
-    processHotMem();
-
+  clearHotMem();
   for (ResourceMemory &i : resAllocationsPool)
   {
     if (i.isValid())
     {
-      debug("vulkan: res mem %u leaked", i.index);
+      D3D_ERROR("vulkan: res mem %u leaked", i.index);
       freeMemory(i.index);
     }
   }
+  clearHotMem();
 
   clear_and_shrink(freeMemPool);
 
@@ -303,7 +323,7 @@ ResourceMemoryId ResourceManager::allocFromHotMem(const AllocationDesc &desc, co
       if (mem.isDeviceMemory() != desc.isSharedHandleAllowed())
         continue;
 
-      if (((1 << mem.memType) && memClassMaskedReqMemTypeBits) == 0)
+      if (((1 << mem.memType) & memClassMaskedReqMemTypeBits) == 0)
         continue;
 
       if (!prio.isAllocatorAllowed(mem.allocator))
@@ -368,6 +388,7 @@ ResourceMemoryId ResourceManager::allocAliasedMemory(ResourceMemoryId src_memory
   mem.allocator = AllocationMethodName::USER_MEMORY_HEAP;
   mem.memType = srcMem.memType;
   mem.originalSize = srcMem.originalSize;
+  mem.profilerOnAllocation();
   return ret;
 }
 
@@ -376,6 +397,7 @@ void ResourceManager::freeAliasedMemory(ResourceMemoryId memory_id)
   ResourceMemory &mem = resAllocationsPool[memory_id];
   G_ASSERT(mem.isValid());
   G_ASSERT(mem.allocator == AllocationMethodName::USER_MEMORY_HEAP);
+  mem.profilerOnFree();
   mem.invalidate();
   freeMemPool.push_back(memory_id);
 }
@@ -395,7 +417,10 @@ ResourceMemoryId ResourceManager::allocMemory(AllocationDesc desc)
   // try to reuse hot memory to hide allocation CPU costs
   ResourceMemoryId ret = allocFromHotMem(desc, list);
   if (ret != -1)
+  {
+    resAllocationsPool[ret].profilerOnAllocation();
     return ret;
+  }
 
   ret = getUnusedMemoryId();
   ResourceMemory &mem = resAllocationsPool[ret];
@@ -410,13 +435,12 @@ ResourceMemoryId ResourceManager::allocMemory(AllocationDesc desc)
   if (!allocMemoryIter(desc, list, mem, memoryTypes))
   {
     // if we cant - clear hot memory and try again
-    for (int i = 0; i < hotMemPoolCount; ++i)
-    {
-      processHotMem();
-      if (allocMemoryIter(desc, list, mem, memoryTypes))
-        break;
-    }
+    clearHotMem();
+    allocMemoryIter(desc, list, mem, memoryTypes);
   }
+
+  if (mem.allocator != AllocationMethodName::INVALID)
+    mem.profilerOnAllocation();
 
   // return whatever we got, even empty memory that is used for object baked allocations
   return ret;
@@ -424,12 +448,22 @@ ResourceMemoryId ResourceManager::allocMemory(AllocationDesc desc)
 
 uint32_t ResourceManager::hotMemClearIdx() { return (hotMemPushIdx + (hotMemPoolCount - 1)) % hotMemPoolCount; }
 
+void ResourceManager::clearHotMem()
+{
+  for (Tab<ResourceMemoryId> &hotPool : hotMemPools)
+  {
+    for (ResourceMemoryId &i : hotPool)
+      shutdownMemory(i);
+    hotPool.clear();
+  }
+}
+
 void ResourceManager::processHotMem()
 {
   Tab<ResourceMemoryId> &hotPool = hotMemPools[hotMemClearIdx()];
   for (ResourceMemoryId &i : hotPool)
     shutdownMemory(i);
-  clear_and_shrink(hotPool);
+  hotPool.clear();
   hotMemPushIdx = (hotMemPushIdx + 1) % hotMemPoolCount;
 }
 
@@ -445,6 +479,8 @@ void ResourceManager::shutdownMemory(ResourceMemoryId memory_id)
 void ResourceManager::freeMemory(ResourceMemoryId memory_id)
 {
   ResourceMemory &mem = resAllocationsPool[memory_id];
+  mem.profilerOnFree();
+
   // do not hot pool empty memory
   if (!mem.isValid())
   {
@@ -473,14 +509,14 @@ VulkanDeviceMemoryHandle ResourceManager::getDeviceMemoryHandle(ResourceMemoryId
   return perMemoryTypeMethods[(int)mem.memType].getDeviceMemoryHandle(mem);
 }
 
-bool ResourceManager::evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desired_size, bool evict_used)
+bool ResourceManager::evictResourcesFor(VkDeviceSize desired_size, bool evict_used)
 {
-  if (try_evict_from_pool(ctx, resPool<Image>(), desired_size, evict_used))
+  if (try_evict_from_pool(resPool<Image>(), desired_size, evict_used))
     return true;
-  if (try_evict_from_pool(ctx, resPool<Buffer>(), desired_size, evict_used))
+  if (try_evict_from_pool(resPool<Buffer>(), desired_size, evict_used))
     return true;
 #if VULKAN_HAS_RAYTRACING
-  if (try_evict_from_pool(ctx, resPool<RaytraceAccelerationStructure>(), desired_size, evict_used))
+  if (try_evict_from_pool(resPool<RaytraceAccelerationStructure>(), desired_size, evict_used))
     return true;
 #endif
 

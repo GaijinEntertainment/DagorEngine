@@ -93,7 +93,7 @@ function requestLogin(onSuccess = null, onFail=null){
       onFail?(v)
     }
     else {
-      gsidData(v?.gsid)
+      gsidData.set(v?.gsid)
       onSuccess?(v)
     }
   })

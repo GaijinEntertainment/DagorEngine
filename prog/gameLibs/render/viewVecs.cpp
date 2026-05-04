@@ -48,18 +48,18 @@ void set_viewvecs_to_shader(Point4 &view_vec_lt, Point4 &view_vec_rt, Point4 &vi
   view_vec_lb = viewVecs.viewVecLB;
   view_vec_rb = viewVecs.viewVecRB;
 
-  ShaderGlobal::set_color4(view_vecLTVarId, Color4(&view_vec_lt.x));
-  ShaderGlobal::set_color4(view_vecRTVarId, Color4(&view_vec_rt.x));
-  ShaderGlobal::set_color4(view_vecLBVarId, Color4(&view_vec_lb.x));
-  ShaderGlobal::set_color4(view_vecRBVarId, Color4(&view_vec_rb.x));
+  ShaderGlobal::set_float4(view_vecLTVarId, Color4(&view_vec_lt.x));
+  ShaderGlobal::set_float4(view_vecRTVarId, Color4(&view_vec_rt.x));
+  ShaderGlobal::set_float4(view_vecLBVarId, Color4(&view_vec_lb.x));
+  ShaderGlobal::set_float4(view_vecRBVarId, Color4(&view_vec_rb.x));
 }
 
 void set_viewvecs_to_shader(const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb)
 {
-  ShaderGlobal::set_color4(view_vecLTVarId, Color4(&view_vec_lt.x));
-  ShaderGlobal::set_color4(view_vecRTVarId, Color4(&view_vec_rt.x));
-  ShaderGlobal::set_color4(view_vecLBVarId, Color4(&view_vec_lb.x));
-  ShaderGlobal::set_color4(view_vecRBVarId, Color4(&view_vec_rb.x));
+  ShaderGlobal::set_float4(view_vecLTVarId, Color4(&view_vec_lt.x));
+  ShaderGlobal::set_float4(view_vecRTVarId, Color4(&view_vec_rt.x));
+  ShaderGlobal::set_float4(view_vecLBVarId, Color4(&view_vec_lb.x));
+  ShaderGlobal::set_float4(view_vecRBVarId, Color4(&view_vec_rb.x));
 }
 
 

@@ -29,7 +29,8 @@
 
 #include <stdlib.h>
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
 #include <ecs/anim/anim.h>
 #include <ecs/gameres/commonLoadingJobMgr.h>
 #include <gameRes/dag_stdGameResId.h>
@@ -48,6 +49,7 @@ float get_camera_fov();
 extern void set_up_show_shadows_entity(int show_shadows);
 extern void set_up_show_gbuffer_entity();
 extern void set_up_debug_indoor_probes_on_screen_entity(bool render);
+extern void set_up_show_depth_above_entity(bool render, bool show_normal);
 
 class RendererConsole : public console::ICommandProcessor
 {
@@ -95,7 +97,7 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     ((WorldRenderer *)get_world_renderer())->setEnviProbePos(itm.getcol(3));
     ((WorldRenderer *)get_world_renderer())->reloadCube(false);
   }
-  CONSOLE_CHECK_NAME("render", "reinit_cube", 1, 2)
+  CONSOLE_CHECK_NAME("render", "reinit_cube", 2, 2)
   {
     console::command("render.reload_shaders");
     ((WorldRenderer *)get_world_renderer())->reinitCube(atoi(argv[1]), itm.getcol(3));
@@ -115,6 +117,28 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     }
   }
   CONSOLE_CHECK_NAME("render", "prepareLastClip", 1, 1) { ((WorldRenderer *)get_world_renderer())->prepareLastClip(); }
+  CONSOLE_CHECK_NAME("clipmap", "current_tex_mips", 1, 2)
+  {
+    Clipmap *clipmap = ((WorldRenderer *)get_world_renderer())->clipmap;
+    if (argc > 1 && clipmap)
+    {
+      clipmap->setMaxTexMips(atoi(argv[1]));
+      ((WorldRenderer *)get_world_renderer())->clipmapCutoffZoom = -1;
+      ((WorldRenderer *)get_world_renderer())->clipmapCutoffMipsCnt = -1;
+    }
+    console::print_d("currentTexMips %d", clipmap ? clipmap->getMaxTexMips() : -1);
+  }
+  CONSOLE_CHECK_NAME("clipmap", "set_tex_mips_cutoff", 1, 3)
+  {
+    int &zoom = ((WorldRenderer *)get_world_renderer())->clipmapCutoffZoom;
+    int &mips = ((WorldRenderer *)get_world_renderer())->clipmapCutoffMipsCnt;
+    if (argc > 1)
+      zoom = atoi(argv[1]);
+    if (argc > 2)
+      mips = atoi(argv[2]);
+
+    console::print_d("cutoff zoom: %d cutoff mips: %d", zoom, mips);
+  }
   CONSOLE_CHECK_NAME("render", "clipmap_invalidate", 1, 2)
   {
     ((WorldRenderer *)get_world_renderer())->invalidateClipmap(argc > 1 ? to_bool(argv[1]) : false);
@@ -168,9 +192,7 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
           const char *riName = riBlk.getParamName(i);
           if (rendinst::getRIGenExtraResIdx(riName) != -1)
             continue; // skip already loaded
-          RenderableInstanceLodsResource *riRes =
-            (RenderableInstanceLodsResource *)::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(riName), RendInstGameResClassId);
-          release_game_resource((GameResource *)riRes);
+          release_game_resource_ex(::get_one_game_resource_ex(riName, RendInstGameResClassId), RendInstGameResClassId);
           riToLoad--;
           loaded++;
         }
@@ -239,12 +261,47 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     console::print_d("96 lights added");
   }
 
-  CONSOLE_CHECK_NAME("render", "show_gbuffer", 1, 3)
+  eastl::vector<console::CommandOptions> showGbufferModes;
+  for (eastl::string_view mode : gbuffer_debug_options)
+  {
+    // assume that mode string is null terminated
+    showGbufferModes.emplace_back(mode.data());
+  }
+  CONSOLE_CHECK_NAME_WITH_OPTIONS("render", "show_gbuffer", 1, 3, showGbufferModes)
   {
     setDebugGbufferMode(argc > 1 ? argv[1] : nullptr);
-    ShaderGlobal::set_real(get_shader_variable_id("gbuf_debug_scale"), argc > 2 ? console::to_real(argv[2]) : 1.f);
+    ShaderGlobal::set_float(get_shader_variable_id("gbuf_debug_scale"), argc > 2 ? console::to_real(argv[2]) : 1.f);
     set_up_show_gbuffer_entity();
     console::print("usage: show_gbuffer (%s)", getDebugGbufferUsage().c_str());
+  }
+  CONSOLE_CHECK_NAME("render", "show_depth_above", 1, 2)
+  {
+    static bool show_depth_above = false;
+    static bool show_normal = false;
+    if (argc == 1)
+      show_depth_above = !show_depth_above;
+    else
+    {
+      int mode = console::to_int(argv[1]);
+      switch (mode)
+      {
+        default:
+        case 0:
+          show_depth_above = false;
+          show_normal = false;
+          break;
+        case 1:
+          show_depth_above = true;
+          show_normal = false;
+          break;
+        case 2:
+          show_depth_above = true;
+          show_normal = true;
+          break;
+      }
+    }
+    set_up_show_depth_above_entity(show_depth_above, show_normal);
+    console::print("show_depth_above %s %s", show_depth_above ? "on" : "off", show_normal ? "with normals" : "without normals");
   }
   CONSOLE_CHECK_NAME("render", "show_gbuffer_with_vectors", 1, 4)
   {
@@ -343,15 +400,17 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     if (clipmap)
       clipmap->setDebugColorMode((Clipmap::DebugMode)(debugMode));
   }
-  CONSOLE_CHECK_NAME_EX("fx", "spawn", 2, 4, "Spawns visual effect in front of you",
-    "<effect_name> [distance from camera in front = 0.0] [is_player = true]")
+  CONSOLE_CHECK_NAME_EX("fx", "spawn", 2, 5, "Spawns visual effect in front of you",
+    "<effect_name> [distance from camera in front = 0.0] [is_player = true] [number of effects = 1]")
   {
     int fxType = acesfx::get_type_by_name(argv[1]);
     if (fxType >= 0)
     {
       const float offset = argc > 2 ? to_real(argv[2]) : 0.0f;
       const bool isPlayer = argc > 3 ? to_bool(argv[3]) : true;
-      acesfx::start_effect_pos(fxType, itm.getcol(3) + offset * itm.getcol(2), isPlayer);
+      const int nrOfEffects = argc > 4 ? to_int(argv[4]) : 1;
+      for (int i = 0; i < nrOfEffects; ++i)
+        acesfx::start_effect_pos(fxType, itm.getcol(3) + offset * itm.getcol(2), isPlayer);
     }
     else
     {
@@ -393,19 +452,6 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
 
       dafx::set_instance_value_opt(cid, (dafx::InstanceId)to_int(argv[1]), argv[2], v, (argc - 3) * sizeof(float));
     }
-  }
-  CONSOLE_CHECK_NAME("render", "taa_upsampling_ratio", 2, 2)
-  {
-    DataBlock blk;
-    blk.addBlock("video")->setReal("temporalUpsamplingRatio", console::to_real(argv[1]));
-    ::dgs_apply_config_blk(blk, false, false);
-    ((WorldRenderer *)get_world_renderer())->applySettingsChanged();
-  }
-  CONSOLE_CHECK_NAME("render", "dlss_toggle", 1, 1)
-  {
-    extern bool dlss_toggle;
-    dlss_toggle = !dlss_toggle;
-    ((WorldRenderer *)get_world_renderer())->applySettingsChanged();
   }
   CONSOLE_CHECK_NAME("render", "toggle_voxel_reflections", 1, 1)
   {
@@ -543,11 +589,6 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     }
   }
 #endif
-  CONSOLE_CHECK_NAME_EX("render", "profile_stcode", 1, 1,
-    "On the first execution the command starts profiling. On the others it dumps profiling results to a log.", "")
-  {
-    dump_exec_stcode_time();
-  }
   CONSOLE_CHECK_NAME("render", "get_rendering_res", 1, 1)
   {
     int w = 0, h = 0;
@@ -564,14 +605,6 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
     }
   }
   CONSOLE_CHECK_NAME("render", "printResolutionScaleInfo", 1, 1) { wr->printResolutionScaleInfo(); }
-  CONSOLE_CHECK_NAME("render", "mobile_terrain_quality", 1, 2)
-  {
-    if (argc > 1)
-    {
-      const int quality = console::to_int(argv[1]);
-      wr->setMobileTerrainQuality((WorldRenderer::MobileTerrainQuality)quality);
-    }
-  }
   CONSOLE_CHECK_NAME("render", "get_managed_res_refcount", 2, 2)
   {
     D3DRESID resId = get_managed_res_id(argv[1]);
@@ -581,6 +614,18 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("render", "printFeatureFlags", 1, 1)
   {
     console::print_d("Feature flags: %s", render_features_to_string(wr->getFeatures()));
+  }
+  CONSOLE_CHECK_NAME("render", "start_driver_optimizations", 1, 1)
+  {
+    const auto mode = DriverBackgroundProcessingMode::ALLOW_INTRUSIVE_MEASUREMENTS;
+    const auto action = DriverMeasurementsAction::KEEP_ALL;
+    d3d::driver_command(Drv3dCommand::DRIVER_BACKGROUND_PROCESSING_MODE, (void *)&mode, (void *)&action);
+  }
+  CONSOLE_CHECK_NAME("render", "commit_driver_optimizations", 1, 1)
+  {
+    const auto mode = DriverBackgroundProcessingMode::DISABLE_PROFILING_BY_SYSTEM;
+    const auto action = DriverMeasurementsAction::COMMIT_RESULTS_HIGH_PRIORITY;
+    d3d::driver_command(Drv3dCommand::DRIVER_BACKGROUND_PROCESSING_MODE, (void *)&mode, (void *)&action);
   }
   CONSOLE_CHECK_NAME("biome_query", "queryPos", 1, 5) { biome_query::console_query_pos(argv, argc); }
   CONSOLE_CHECK_NAME("biome_query", "queryCameraPos", 1, 2) { biome_query::console_query_camera_pos(argv, argc, ::grs_cur_view.itm); }

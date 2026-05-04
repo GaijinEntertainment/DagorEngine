@@ -64,7 +64,7 @@ function onStartButtonClick() {
 let startButton = @() {
   rendObj = ROBJ_SOLID
   color = Color(0,25,205)
-  size = static [pw(20), SIZE_TO_CONTENT]
+  size = const [pw(20), SIZE_TO_CONTENT]
   behavior = Behaviors.Button
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
@@ -78,11 +78,11 @@ let startButton = @() {
 
 let ctrlPanel = @() {
   flow = FLOW_HORIZONTAL
-  size = static [pw(100), SIZE_TO_CONTENT]
+  size = const [pw(100), SIZE_TO_CONTENT]
   children = [
     startButton
     {
-      size = static [pw(10), flex()]
+      size = const [pw(10), flex()]
     }
     {
       flow = FLOW_HORIZONTAL
@@ -94,7 +94,7 @@ let ctrlPanel = @() {
           text = "Echo UDP port:"
         }
         {
-          size = static [pw(20), flex()]
+          size = const [pw(20), flex()]
           children = textInput(echoPort, {
             margin=0
             textmargin = hdpx(4)
@@ -108,11 +108,11 @@ let ctrlPanel = @() {
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = static [pw(100), ph(100)]
+  size = const [pw(100), ph(100)]
   children = {
     flow = FLOW_VERTICAL
     pos = [pw(5), ph(5)]
-    size = static [pw(90), ph(90)]
+    size = const [pw(90), ph(90)]
     gap = sh(2)
     children = [
         ctrlPanel
@@ -120,7 +120,7 @@ return {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
           size = flex()
-          children = textLog(logMessages, {size = static [pw(100), ph(100)]})
+          children = textLog(logMessages, {size = const [pw(100), ph(100)]})
         }
     ]
   }

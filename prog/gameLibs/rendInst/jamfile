@@ -98,6 +98,7 @@ else
 if $(PlatformSpec) in gcc clang {
   local xclang = - ;
   if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
+  if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for `-ffp-contract=off` after `-ffast-math`
   CPPopt += $(xclang)ffp-contract=off ;
   if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 }

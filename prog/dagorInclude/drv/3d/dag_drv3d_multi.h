@@ -22,8 +22,8 @@ typedef D3dEventQuery EventQuery;
 bool init_driver();
 bool is_inited();
 
-bool init_video(void *hinst, main_wnd_f *f, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd, void *hicon,
-  const char *title, Driver3dInitCallback *cb);
+bool init_video(void *hinst, main_wnd_f *f, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon, const char *title,
+  Driver3dInitCallback *cb);
 
 void release_driver();
 bool fill_interface_table(D3dInterfaceTable &d3dit);
@@ -38,7 +38,6 @@ static inline bool device_lost(bool *can_reset_now) { return d3di.device_lost(ca
 static inline bool reset_device() { return d3di.reset_device(); }
 
 static inline bool update_screen(uint32_t frame_id = 0, bool app_active = true) { return d3di.update_screen(frame_id, app_active); }
-static inline void wait_for_async_present(bool force = false) { return d3di.wait_for_async_present(force); }
 static inline void begin_frame(uint32_t frame_id, bool allow_wait) { d3di.begin_frame(frame_id, allow_wait); }
 static inline void mark_simulation_start(uint32_t frame_id) { d3di.mark_simulation_start(frame_id); }
 static inline void mark_simulation_end(uint32_t frame_id) { d3di.mark_simulation_end(frame_id); }
@@ -108,8 +107,6 @@ static inline bool set_capture_full_frame_buffer(bool ison) { return d3di.set_ca
 static inline unsigned get_texture_format(const BaseTexture *tex) { return d3di.get_texture_format(tex); }
 static inline const char *get_texture_format_str(const BaseTexture *tex) { return d3di.get_texture_format_str(tex); }
 static inline void *get_native_surface(BaseTexture *tex) { return d3di.get_native_surface(tex); }
-
-dag::ConstSpan<DriverCode> get_supported_graphics_apis();
 } // namespace pcwin
 #endif
 }; // namespace d3d

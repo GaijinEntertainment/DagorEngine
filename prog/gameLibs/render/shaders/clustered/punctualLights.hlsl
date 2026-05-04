@@ -1,6 +1,6 @@
 #include <clustered/punctualLightsMath.hlsl>
 
-half3 perform_point_light(float3 worldPos, half3 view, half NoV, ProcessedGbuffer gbuffer, half3 specularColor, half dynamicLightsSpecularStrength, half ao, float4 pos_and_radius, half4 color_and_attenuation, half4 shadowTcToAtlas, half2 screenpos)
+half3 perform_point_light(float3 worldPos, half3 view, half NoV, ProcessedGbuffer gbuffer, half3 specularColor, half dynamicLightsSpecularStrength, half ao, float4 pos_and_radius, half4 color_and_attenuation, half4 shadowTcToAtlas, float2 shadow_zn_zfar, half2 screenpos)
 {
   #if DYNAMIC_LIGHTS_EARLY_EXIT
   #define EXIT_STATEMENT return 0

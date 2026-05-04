@@ -380,32 +380,44 @@ public:
 #define VULKAN_GET_CORE_FUNCTION_POINTER_MEMBER(name) *reinterpret_cast<PFN_vkVoidFunction *>(&name)
 #endif
 
-#define VULKAN_MAKE_CORE_FUNCTION_DEF(name)                    \
-  struct T##name                                               \
-  {                                                            \
-    VULKAN_MAKE_CORE_FUNCTION_POINTER_MEMBER(name);            \
-    template <typename T>                                      \
-    void inspect(T t)                                          \
-    {                                                          \
-      VULKAN_CORE_FUNCTION_POINTER_INSPECT_HELPER;             \
-      t(#name, VULKAN_GET_CORE_FUNCTION_POINTER_MEMBER(name)); \
-    }                                                          \
+#define VULKAN_MAKE_CORE_FUNCTION_DEF(name)                           \
+  struct T##name                                                      \
+  {                                                                   \
+    VULKAN_MAKE_CORE_FUNCTION_POINTER_MEMBER(name);                   \
+    template <typename T>                                             \
+    void inspect(T t)                                                 \
+    {                                                                 \
+      VULKAN_CORE_FUNCTION_POINTER_INSPECT_HELPER;                    \
+      t(#name, VULKAN_GET_CORE_FUNCTION_POINTER_MEMBER(name), false); \
+    }                                                                 \
   };
 
 #define VULKAN_EXTENSION_FUNCTION_POINTER_INSPECT_HELPER
 #define VULKAN_MAKE_EXTENSION_FUNCTION_POINTER_MEMEBER(name) PFN_##name name = nullptr
 #define VULKAN_GET_EXTENSION_FUNCTION_POINTER_MEMBER(name)   *reinterpret_cast<PFN_vkVoidFunction *>(&name)
 
-#define VULKAN_MAKE_EXTENSION_FUNCTION_DEF(name)                    \
-  struct T##name                                                    \
-  {                                                                 \
-    VULKAN_MAKE_EXTENSION_FUNCTION_POINTER_MEMEBER(name);           \
-    template <typename T>                                           \
-    void inspect(T t)                                               \
-    {                                                               \
-      VULKAN_EXTENSION_FUNCTION_POINTER_INSPECT_HELPER;             \
-      t(#name, VULKAN_GET_EXTENSION_FUNCTION_POINTER_MEMBER(name)); \
-    }                                                               \
+#define VULKAN_MAKE_EXTENSION_FUNCTION_DEF(name)                           \
+  struct T##name                                                           \
+  {                                                                        \
+    VULKAN_MAKE_EXTENSION_FUNCTION_POINTER_MEMEBER(name);                  \
+    template <typename T>                                                  \
+    void inspect(T t)                                                      \
+    {                                                                      \
+      VULKAN_EXTENSION_FUNCTION_POINTER_INSPECT_HELPER;                    \
+      t(#name, VULKAN_GET_EXTENSION_FUNCTION_POINTER_MEMBER(name), false); \
+    }                                                                      \
+  };
+
+#define VULKAN_MAKE_INSTANCE_EXTENSION_FUNCTION_DEF(name)                 \
+  struct T##name                                                          \
+  {                                                                       \
+    VULKAN_MAKE_EXTENSION_FUNCTION_POINTER_MEMEBER(name);                 \
+    template <typename T>                                                 \
+    void inspect(T t)                                                     \
+    {                                                                     \
+      VULKAN_EXTENSION_FUNCTION_POINTER_INSPECT_HELPER;                   \
+      t(#name, VULKAN_GET_EXTENSION_FUNCTION_POINTER_MEMBER(name), true); \
+    }                                                                     \
   };
 
 struct TFunctionTerminate

@@ -16,6 +16,7 @@
 #include <3d/dag_texMgr.h>
 #include <drv/3d/dag_texture.h>
 #include <util/dag_texMetaData.h>
+#include <gui/dag_imguiUtil.h>
 
 namespace PropPanel
 {
@@ -949,7 +950,7 @@ void GradientPlotControl::draw()
   }
 
   if (gradientTextureId != BAD_TEXTUREID)
-    drawList->AddImage((ImTextureID)((uintptr_t)((unsigned)gradientTextureId)), ImVec2(x0, y0) + viewOffset,
+    drawList->AddImage(ImGuiDagor::EncodeTexturePtr(D3dResManagerData::getBaseTex(gradientTextureId)), ImVec2(x0, y0) + viewOffset,
       ImVec2(x1, y1) + viewOffset);
 
   drawList->AddRect(ImVec2(x0 - 1, y0 - 1), ImVec2(x1, y1), IM_COL32(0, 0, 0, 255));

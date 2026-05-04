@@ -16,7 +16,15 @@
 #include <physMap/physMapLoad.h>
 #include <math/integer/dag_IPoint2.h>
 #include <physMap/physMatSwRenderer.h>
+#include <dag/dag_vectorSet.h>
 #include <supp/dag_alloca.h>
+
+// #define UNIT_TEST_DATA 1
+#if UNIT_TEST_DATA
+#include <image/dag_tga.h>
+#include <perfMon/dag_perfTimer.h>
+#include <util/dag_string.h>
+#endif
 
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 
@@ -30,12 +38,9 @@ void make_grid_decals(PhysMap &phys_map, int sz)
   Tab<int> gridIndex;
   gridIndex.resize(sz * sz);
 
-  size_t indicesCount = 0;
-  for (const PhysMap::DecalMesh &mesh : phys_map.decals)
-    indicesCount += mesh.matIndices.size();
+  debug("[physmap] Making grid for decals, num of decals %d", phys_map.decals.size());
 
-  debug("[physmap] Making grid for decals, num of decals %d, num of indices %d", phys_map.decals.size(), indicesCount);
-
+  size_t nverts = 0, ntverts = 0, ntris = 0, nttris = 0;
   for (const PhysMap::DecalMesh &mesh : phys_map.decals)
   {
     mem_set_ff(gridIndex);
@@ -87,11 +92,13 @@ void make_grid_decals(PhysMap &phys_map, int sz)
             }
 
             // Push to this grid indices
+            ntris += 3;
             gridMesh.matIndices[matIdx].indices.push_back(i0);
             gridMesh.matIndices[matIdx].indices.push_back(i1);
             gridMesh.matIndices[matIdx].indices.push_back(i2);
             if (indices.tindices.size())
             {
+              nttris += 3;
               gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 0]);
               gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 1]);
               gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 2]);
@@ -112,17 +119,16 @@ void make_grid_decals(PhysMap &phys_map, int sz)
         continue; // This mesh is not included in this grid cell
 
       PhysMap::DecalMesh &cellMesh = phys_map.gridDecals[i][cellId];
-      Tab<uint16_t> usedIndices;
-      Tab<uint16_t> usedTIndices;
+      cellMesh.matIndices.shrink_to_fit();
+      dag::VectorSet<uint16_t> usedIndices;
+      dag::VectorSet<uint16_t> usedTIndices;
       for (const PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
       {
         for (uint16_t idx : mi.indices)
-          usedIndices.push_back(idx);
+          usedIndices.insert(idx);
         for (uint16_t idx : mi.tindices)
-          usedTIndices.push_back(idx);
+          usedTIndices.insert(idx);
       }
-      stlsort::sort(usedIndices.begin(), usedIndices.end(), [](const uint16_t &lhs, const uint16_t &rhs) { return lhs < rhs; });
-      stlsort::sort(usedTIndices.begin(), usedTIndices.end(), [](const uint16_t &lhs, const uint16_t &rhs) { return lhs < rhs; });
 
       Tab<uint16_t> verticesRemap;
       Tab<uint16_t> texCoordsRemap;
@@ -139,27 +145,74 @@ void make_grid_decals(PhysMap &phys_map, int sz)
 
       // populate vertices and texcoords (separated from previous step for better
       // readability)
+      cellMesh.vertices.reserve(usedIndices.size());
       for (size_t j = 0; j < usedIndices.size(); ++j)
       {
         const Point2 &v = mesh.vertices[usedIndices[j]];
         cellMesh.vertices.push_back(v);
         cellMesh.box += v;
       }
+      ntverts += usedTIndices.size();
+      nverts += usedIndices.size();
+
+      cellMesh.texCoords.reserve(usedTIndices.size());
       for (size_t j = 0; j < usedTIndices.size(); ++j)
         cellMesh.texCoords.push_back(mesh.texCoords[usedTIndices[j]]);
-
       // complete a remap in matIndices
+      bool areSame = true;
       for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
       {
         for (uint16_t &idx : mi.indices)
           idx = verticesRemap[idx];
         for (uint16_t &idx : mi.tindices)
           idx = texCoordsRemap[idx];
+        areSame &= (mi.indices == mi.tindices);
+      }
+      if (areSame)
+      {
+        cellMesh.flags |= cellMesh.TINDICES_SAME_AS_INDICES;
+        for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
+        {
+          nttris -= mi.tindices.size();
+          clear_and_shrink(mi.tindices);
+        }
+      }
+      for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
+      {
+        mi.tindices.shrink_to_fit();
+        mi.indices.shrink_to_fit();
       }
     }
   }
+  for (auto &gridMeshes : phys_map.gridDecals)
+    gridMeshes.shrink_to_fit();
+  debug("[physmap] Made grid for decals, tris = %d ttris = %d, verts = %d tverts = %d sz = %d", ntris, nttris, nverts, ntverts, sz);
   // Clear original decals
   clear_and_shrink(phys_map.decals);
+
+#if UNIT_TEST_DATA
+  static constexpr int width = 64;
+  Tab<uint8_t> ids(width * width);
+  int64_t total = 0;
+  const int quads = 512;
+  float quadsScale = float(phys_map.size) / quads * phys_map.scale;
+  for (int i = 0, ie = quads * quads; i < ie; ++i)
+  {
+    int x = i % quads, y = i / quads;
+    Point2 lt = Point2(x, y) * quadsScale + phys_map.worldOffset;
+    BBox2 region(lt, lt + Point2(quadsScale, quadsScale));
+    RenderDecalMaterials<width, width> decalRenderer(make_span(ids));
+    int64_t ref = profile_ref_ticks();
+    decalRenderer.renderPhysMap(phys_map, region);
+    total += profile_ref_ticks() - ref;
+
+#if UNIT_TEST_DATA == 2
+    if (eastl::find_if(ids.begin(), ids.end(), [&](auto a) { return a != 0xFF; }) != ids.end())
+      save_tga8(String(64, "physmap/physmap_%03d.tga", i), ids.begin(), width, width, width);
+#endif
+  }
+  debug("rendererd in %dus", profile_usec_from_ticks_delta(total));
+#endif
 }
 
 PhysMap *load_phys_map(IGenLoad &crd, bool is_lmp2)
@@ -296,15 +349,18 @@ PhysMap *load_phys_map(IGenLoad &crd, bool is_lmp2)
 
 PhysMap *load_phys_map_with_decals(IGenLoad &crd, bool is_lmp2)
 {
-  const int decal_render_reg = 128;
-
   PhysMap *physMap = load_phys_map(crd, is_lmp2);
-  if (physMap->size == 0)
-    return physMap;
+  if (physMap->size != 0)
+    load_phys_map_decals(physMap);
+  return physMap;
+}
 
+void load_phys_map_decals(PhysMap *physMap)
+{
+  const int decal_render_reg = 128;
   int sz = physMap->size;
   int regions = sz / decal_render_reg;
-  G_ASSERT_RETURN((sz % decal_render_reg) == 0, physMap);
+  G_ASSERT_RETURN((sz % decal_render_reg) == 0, );
 
   Tab<int> matIdsRemap(framemem_ptr());
   for (int i = 0; i < physMap->materials.size(); ++i)
@@ -342,7 +398,8 @@ PhysMap *load_phys_map_with_decals(IGenLoad &crd, bool is_lmp2)
       {
         for (int px = 0; px < decal_render_reg; ++px)
         {
-          resultPhysData[(py + ofsy) * sz + ofsx + px] = matIdsRemap[decalRegData[py * decal_render_reg + px]];
+          uint8_t matId = decalRegData[py * decal_render_reg + px];
+          resultPhysData[(py + ofsy) * sz + ofsx + px] = matId < matIdsRemap.size() ? matIdsRemap[matId] : 0xff;
         }
       }
     }
@@ -356,6 +413,4 @@ PhysMap *load_phys_map_with_decals(IGenLoad &crd, bool is_lmp2)
     defaultmem->free(resultPhysData);
   else
     free_phys_mem(resultPhysData);
-
-  return physMap;
 }

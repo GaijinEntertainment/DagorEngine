@@ -43,7 +43,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
   G_ASSERT_RETURN(grass_blk, );
   srv = service;
   blk = grass_blk;
-  grassPanel = panel.createGroup(PID_GPU_GRASS_GROUP, "Grass");
+  grassPanel = panel.createGroup(PID_GPU_GRASS_GROUP, service->isSmallGrass() ? "Small Grass" : "Grass");
   grassPanel->createCheckBox(PID_GPU_GRASS_ENABLE, "Enable grass", srv->isGrassEnabled());
   grassPanel->createButton(PID_GPU_GRASS_LOADFROM_LEVELBLK, "Load from level.blk");
   grassPanel->createFileEditBox(PID_GPU_GRASS_TYPES, "Types", blk->getStr("grass_types", ""));
@@ -52,8 +52,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
   grassPanel->createEditFloat(PID_GPU_GRASS_DISTANCE, "Distance", blk->getReal("grass_distance"));
   grassPanel->createEditInt(PID_GPU_GRASS_MASK_RESOLUTION, "Mask resolution", blk->getInt("grassMaskResolution"));
   grassPanel->createEditFloat(PID_GPU_GRASS_HOR_SIZE_MUL, "Horizontal size mul", blk->getReal("hor_size_mul"));
-  grassPanel->createStatic(0, "Type");
-  grassPanel->createSeparator(0, false);
+  grassPanel->createSeparatorText(0, "Type");
   grassPanel->createButton(PID_GPU_GRASS_ADD_TYPE, "Add...", srv->getTypeCount() < GRASS_MAX_TYPES);
   grassPanel->createButton(PID_GPU_GRASS_REMOVE_TYPE, "Remove...", srv->getTypeCount(), false);
   grassPanel->createButton(PID_GPU_GRASS_RENAME_TYPE, "Rename...", srv->getTypeCount(), false);
@@ -98,8 +97,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
     typePanel->createCheckBox(basePID + (int)GPUGrassTypePID::UNDERWATER, "Underwater", type.underwater);
   }
 
-  grassPanel->createStatic(0, "Decal");
-  grassPanel->createSeparator(0, false);
+  grassPanel->createSeparatorText(0, "Decal");
   grassPanel->createButton(PID_GPU_GRASS_ADD_DECAL, "Add...", srv->getDecalCount() < GRASS_MAX_CHANNELS);
   grassPanel->createButton(PID_GPU_GRASS_REMOVE_DECAL, "Remove...", srv->getDecalCount(), false);
   grassPanel->createButton(PID_GPU_GRASS_RENAME_DECAL, "Rename...", srv->getDecalCount(), false);
@@ -604,7 +602,7 @@ bool GPUGrassPanel::showMultiListDialog(const char *title, const Tab<String> &en
 
 bool GPUGrassPanel::showListDialog(const char *title, const Tab<String> &entries, int &res)
 {
-  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(200), title));
+  eastl::unique_ptr<PropPanel::DialogWindow> dialog(DAGORED2->createDialog(_pxScaled(250), _pxScaled(240), title));
   PropPanel::ContainerPropertyControl *dlgPanel = dialog->getPanel();
   enum
   {

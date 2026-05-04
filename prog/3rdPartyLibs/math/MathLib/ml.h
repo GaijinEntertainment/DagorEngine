@@ -9,19 +9,18 @@ IMPORTANT:
 
 #pragma once
 
-#define ML_VERSION_MAJOR 1
-#define ML_VERSION_MINOR 2
-#define ML_VERSION_DATE "7 March 2025"
+#define ML_VERSION      10
+#define ML_VERSION_DATE "9 January 2026"
 
 //======================================================================================================================
 // Constants
 //======================================================================================================================
 
-// Intrinsic level
-#define ML_INTRINSIC_SSE3 0 // +SSSE3
-#define ML_INTRINSIC_SSE4 1 // 4.2 and below
-#define ML_INTRINSIC_AVX1 2 // +FP16C
-#define ML_INTRINSIC_AVX2 3 // +FMA3, +bit shift, +swizzle
+// Intrinsic levels (everything above "ML_INTRINSIC_LEVEL" is emulated)
+#define ML_INTRINSIC_SSE3 0 // +SSE1, +SSE2, +SSE3, +SSSE3 ("-mssse3" in GCC/Clang)
+#define ML_INTRINSIC_SSE4 1 // +SSE4.1, +SSE4.2 ("-msse4.2" in GCC/Clang)
+#define ML_INTRINSIC_AVX1 2 // +AVX1, +FP16C ("-mf16c" in GCC/Clang)
+#define ML_INTRINSIC_AVX2 3 // +AVX2, +FMA3, +bit shift, +swizzle ("-mavx2 -mfma" in GCC/Clang)
 
 //======================================================================================================================
 // Settings
@@ -32,22 +31,27 @@ IMPORTANT:
 // #define ML_NAMESPACE
 #endif
 
-// Allowed HW intrinsics (emulated if not supported)
-#ifndef ML_INTRINSIC_LEVEL // see above
-#    if defined(__AVX2__)
+// Select intrinsic level (try to guess)
+#ifndef ML_INTRINSIC_LEVEL
+#    if (defined(__AVX2__) && defined(__FMA__))
 #        define ML_INTRINSIC_LEVEL ML_INTRINSIC_AVX2
-#    elif defined(__AVX__)
+#    elif defined(__F16C__)
 #        define ML_INTRINSIC_LEVEL ML_INTRINSIC_AVX1
-#    elif defined(__SSE4_2__) || defined(__SSE4_1__)
+#    elif defined(__SSE4_2__)
 #        define ML_INTRINSIC_LEVEL ML_INTRINSIC_SSE4
 #    else
 #        define ML_INTRINSIC_LEVEL ML_INTRINSIC_SSE3
 #    endif
 #endif
 
+// ARM?
+#if (defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM))
+#    define ML_ARM
+#endif
+
 // SVML availability
 #ifndef ML_SVML_AVAILABLE
-#    if defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM)
+#    ifdef ML_ARM
 #        define ML_SVML_AVAILABLE 0
 #    else
 #        define ML_SVML_AVAILABLE (_MSC_VER >= 1920 && __clang__ == 0)
@@ -67,6 +71,11 @@ IMPORTANT:
 // Only for debugging (generate exeptions in rounding operations, only for SSE4)
 #ifndef ML_EXEPTIONS
 #    define ML_EXEPTIONS 0
+#endif
+
+// Only for debugging (no need to disable this)
+#ifndef ML_ALLOW_HW_FP16
+#    define ML_ALLOW_HW_FP16 1
 #endif
 
 // Reversed depth
@@ -133,7 +142,7 @@ IMPORTANT:
 
 #if (defined(__i386__) || defined(__x86_64__) || defined(__SCE__))
 #    include <x86intrin.h>
-#elif (defined(__arm__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM))
+#elif (defined(ML_ARM))
 #    include "sse2neon.h"
 #else
 #    include <mmintrin.h>
@@ -147,10 +156,12 @@ IMPORTANT:
 #endif
 
 // Misc
-
-#define ML_Unused(...) ((void)(__VA_ARGS__))
+#define ML_Unused(...) \
+    do { \
+        (void)sizeof(__VA_ARGS__); \
+    } while (0)
 #define ML_Stringify_(token) #token
-#define ML_Stringify(token) ML_Stringify_(token)
+#define ML_Stringify(token)  ML_Stringify_(token)
 
 #if ML_EXEPTIONS
 #    define ML_ROUNDING_EXEPTIONS_MASK _MM_FROUND_RAISE_EXC
@@ -165,10 +176,10 @@ IMPORTANT:
 #ifdef _DEBUG
 #    include <assert.h> // assert
 
-#    define ML_Assert(x) assert(x)
+#    define ML_Assert(x)         assert(x)
 #    define ML_AssertMsg(x, msg) assert(msg&& x)
 #else
-#    define ML_Assert(x) ((void)0)
+#    define ML_Assert(x)         ((void)0)
 #    define ML_AssertMsg(x, msg) ((void)0)
 #endif
 
@@ -176,8 +187,8 @@ IMPORTANT:
 
 #if ML_OGL // Depth range [-1; 1], origin "lower left"
 #    define ML_NDC_NEAR_NO_REVERSE -1.0f
-#    define ML_DEPTH_C0 (0.5f * (ML_DEPTH_RANGE_FAR - ML_DEPTH_RANGE_NEAR))
-#    define ML_DEPTH_C1 (0.5f * (ML_DEPTH_RANGE_FAR + ML_DEPTH_RANGE_NEAR))
+#    define ML_DEPTH_C0            (0.5f * (ML_DEPTH_RANGE_FAR - ML_DEPTH_RANGE_NEAR))
+#    define ML_DEPTH_C1            (0.5f * (ML_DEPTH_RANGE_FAR + ML_DEPTH_RANGE_NEAR))
 
 template <class T>
 ML_INLINE T ML_ModifyProjZ(bool isReversed, T c2, T c3) {
@@ -186,8 +197,8 @@ ML_INLINE T ML_ModifyProjZ(bool isReversed, T c2, T c3) {
 
 #else // Depth range [0; 1], origin "upper left"
 #    define ML_NDC_NEAR_NO_REVERSE 0.0f
-#    define ML_DEPTH_C0 (ML_DEPTH_RANGE_FAR - ML_DEPTH_RANGE_NEAR)
-#    define ML_DEPTH_C1 ML_DEPTH_RANGE_NEAR
+#    define ML_DEPTH_C0            (ML_DEPTH_RANGE_FAR - ML_DEPTH_RANGE_NEAR)
+#    define ML_DEPTH_C1            ML_DEPTH_RANGE_NEAR
 
 template <class T>
 ML_INLINE T ML_ModifyProjZ(bool isReversed, T c2, T c3) {
@@ -199,12 +210,12 @@ ML_INLINE T ML_ModifyProjZ(bool isReversed, T c2, T c3) {
 #define ML_NDC_FAR_NO_REVERSE 1.0f
 
 #if ML_DEPTH_REVERSED
-#    define ML_NDC_NEAR ML_NDC_FAR_NO_REVERSE
-#    define ML_NDC_FAR ML_NDC_NEAR_NO_REVERSE
+#    define ML_NDC_NEAR  ML_NDC_FAR_NO_REVERSE
+#    define ML_NDC_FAR   ML_NDC_NEAR_NO_REVERSE
 #    define ML_DEPTH_EPS -1e-7f
 #else
-#    define ML_NDC_NEAR ML_NDC_NEAR_NO_REVERSE
-#    define ML_NDC_FAR ML_NDC_FAR_NO_REVERSE
+#    define ML_NDC_NEAR  ML_NDC_NEAR_NO_REVERSE
+#    define ML_NDC_FAR   ML_NDC_FAR_NO_REVERSE
 #    define ML_DEPTH_EPS 1e-7f
 #endif
 
@@ -483,11 +494,11 @@ union uDouble {
     ML_INLINE C operator op(const C& v) const { \
         return C(x op v.x, y op v.y); \
     } \
-    ML_INLINE C operator op(T c) const { \
-        return C(x op c, y op c); \
-    } \
     ML_INLINE friend C operator op(T c, const C& v) { \
         return C(c op v.x, c op v.y); \
+    } \
+    ML_INLINE friend C operator op(const C& v, T c) { \
+        return C(v.x op c, v.y op c); \
     } \
     ML_INLINE void operator opeq(const C& v) { \
         x opeq v.x; \
@@ -502,11 +513,11 @@ union uDouble {
     ML_INLINE C operator op(const C& v) const { \
         return f(reg, v.reg); \
     } \
-    ML_INLINE C operator op(T c) const { \
-        return f(reg, broadcast(c)); \
-    } \
     ML_INLINE friend C operator op(T c, const C& v) { \
         return f(broadcast(c), v.reg); \
+    } \
+    ML_INLINE friend C operator op(const C& v, T c) { \
+        return f(v.reg, broadcast(c)); \
     } \
     ML_INLINE void operator opeq(const C& v) { \
         reg = f(reg, v.reg); \
@@ -526,7 +537,8 @@ union uDouble {
 #include "Guts/u32.h"
 
 // Float
-#include "Guts/f16.h"
+#include "Guts/fsmall.h"
+
 #include "Guts/f32.h"
 #include "Guts/f64.h"
 
@@ -542,10 +554,10 @@ union uDouble {
 #undef ML_SWIZZLE_3
 #undef ML_SWIZZLE_4
 
-#undef _X
-#undef _Y
-#undef _Z
-#undef _W
+#undef ML_X
+#undef ML_Y
+#undef ML_Z
+#undef ML_W
 
 //======================================================================================================================
 // Misc
@@ -1031,8 +1043,8 @@ ML_INLINE void DecomposeProjection(eStyle originStyle, eStyle depthStyle, const 
 
     // const float3& col2 = bReversedZ ? proj.col3 : proj.col2;
     float4 clip = proj * float4(0.0f, 0.0f, fNearZ, 1.0f);
-    float3 col2 = bIsOrtho ? float3(proj.col2) * (bReversedZ ? -1.0f : 1.0f) : float3(0.0f, 0.0f, clip.w > 0.0f ? 1.0f : -1.0f);
-    bool cmp = dot(cross(float3(proj.col0), float3(proj.col1)), col2.xyz) > 0.0f;
+    float3 col2 = bIsOrtho ? float3(proj.Col(2)) * (bReversedZ ? -1.0f : 1.0f) : float3(0.0f, 0.0f, clip.w > 0.0f ? 1.0f : -1.0f);
+    bool cmp = dot(cross(float3(proj.Col(0)), float3(proj.Col(1))), col2.xyz) > 0.0f;
     bool bLeftHanded = proj.a11 > 0.0f ? cmp : !cmp;
 
     if (puiFlags) {

@@ -27,7 +27,7 @@ Antialiasing::Antialiasing()
   resolution_params_id = ::get_shader_glob_var_id("resolution", true);
   int aa_varid = ::get_shader_glob_var_id("fxaa_params", true);
   if (VariableMap::isGlobVariablePresent(aa_varid))
-    ShaderGlobal::set_color4_fast(aa_varid, antialiasingBlk->getReal("fxaaQualitySubpix", 0.5f),
+    ShaderGlobal::set_float4(aa_varid, antialiasingBlk->getReal("fxaaQualitySubpix", 0.5f),
       antialiasingBlk->getReal("fxaaQualityEdgeThreshold", 0.166f), antialiasingBlk->getReal("fxaaQualityEdgeThresholdMin", 0.0833f),
       0.f);
 
@@ -39,36 +39,34 @@ Antialiasing::Antialiasing()
 Antialiasing::~Antialiasing() { del_it(antialiasingRenderer); }
 
 
-void Antialiasing::apply(TEXTUREID source_color_tex_id, TEXTUREID source_depth_tex_id, const Point4 &tc_scale_offset)
+void Antialiasing::apply(Texture *source_color_tex, Texture *source_depth_tex, const Point4 &tc_scale_offset)
 {
   if (resolution_params_id >= 0)
   {
-    Texture *sourceTex = (Texture *)(::acquire_managed_tex(source_color_tex_id));
-    G_ASSERT(sourceTex);
+    G_ASSERT(source_color_tex);
 
     TextureInfo info;
-    sourceTex->getinfo(info);
-    release_managed_tex(source_color_tex_id);
+    source_color_tex->getinfo(info);
 
-    ShaderGlobal::set_color4_fast(resolution_params_id, info.w, info.h, 1.f / info.w, 1.f / info.h);
+    ShaderGlobal::set_float4(resolution_params_id, info.w, info.h, 1.f / info.w, 1.f / info.h);
   }
 
   static int fxaaTcScaleOffsetVarId = get_shader_glob_var_id("fxaa_tc_scale_offset");
-  ShaderGlobal::set_color4(fxaaTcScaleOffsetVarId, Color4::xyzw(tc_scale_offset));
+  ShaderGlobal::set_float4(fxaaTcScaleOffsetVarId, Color4::xyzw(tc_scale_offset));
 
   // One pass.
   if (sourceDepthTexVarId >= 0)
-    ShaderGlobal::set_texture_fast(sourceDepthTexVarId, source_depth_tex_id);
+    ShaderGlobal::set_texture(sourceDepthTexVarId, source_depth_tex);
 
   if (sourceColorTexVarId >= 0)
-    ShaderGlobal::set_texture_fast(sourceColorTexVarId, source_color_tex_id);
+    ShaderGlobal::set_texture(sourceColorTexVarId, source_color_tex);
   antialiasingRenderer->render();
 
   if (sourceDepthTexVarId >= 0)
-    ShaderGlobal::set_texture_fast(sourceDepthTexVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_texture(sourceDepthTexVarId, BAD_TEXTUREID);
 
   if (sourceColorTexVarId >= 0)
-    ShaderGlobal::set_texture_fast(sourceColorTexVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_texture(sourceColorTexVarId, BAD_TEXTUREID);
 }
 
 
@@ -81,5 +79,5 @@ void Antialiasing::setType(FxaaType type)
 void Antialiasing::setColorMul(const Color4 &color)
 {
   static int fxaa_color_mulVarId = get_shader_variable_id("fxaa_color_mul");
-  ShaderGlobal::set_color4(fxaa_color_mulVarId, color);
+  ShaderGlobal::set_float4(fxaa_color_mulVarId, color);
 }

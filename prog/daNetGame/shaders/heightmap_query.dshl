@@ -27,13 +27,16 @@ shader heightmap_query_cs
 
   INIT_DEFORM_HMAP(cs)
   USE_DEFORM_HMAP(cs)
-  ENABLE_ASSERT(cs)
 
   (cs) {
     input_buffer@buf = heightmap_query_input_buf hlsl {
       #include "landMesh/heightmap_query.hlsli"
       StructuredBuffer<HeightmapQueryInput> input_buffer@buf;
     };
+    resultsBuffer@uav : register(0) hlsl {
+      #include "landMesh/heightmap_query.hlsli"
+      RWStructuredBuffer<HeightmapQueryResult> resultsBuffer@uav;
+    }
   }
 
   hlsl(cs) {
@@ -41,7 +44,6 @@ shader heightmap_query_cs
 
     uint dispatchCnt : register(c15);
     uint resultsOffset : register(c16);
-    RWStructuredBuffer<HeightmapQueryResult> resultsBuffer : register(u0);
 
     float3 projectPointOntoPlane(float3 normal, float3 pointOnPlane, float3 worldPos)
     {

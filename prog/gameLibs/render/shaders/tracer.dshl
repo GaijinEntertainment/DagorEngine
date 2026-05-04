@@ -89,7 +89,6 @@ block(scene) tracer_frame
 
 shader fx_create_cmd_cs
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     commands_count@i1 = tracer_batch_size;
     if (fx_create_cmd == fx_create_tracer)
@@ -248,19 +247,27 @@ shader tracer_head2
   }
   compile("target_ps", "tracer_head_ps");
 
+  (vs) {
+    // FX_HEAD_MAXIUM_REGISTERS = FX_HEAD_MINIMUM_SUPPORTED_REGISTERS = 256-70 = 186
+    headData@f4[186] : register(70);
+    if (fx_instancing_type == fx_instancing_sbuf)
+    {
+      tracerDynamicBuffer@buf : register(2) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer@buf;
+      }
+      segmentBuffer@buf : register(3) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFxSegment> segmentBuffer@buf;
+      }
+      tracerTypeBuffer@buf : register(4) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFXTracerType> tracerTypeBuffer@buf;
+      }
+    }
+  }
+
   hlsl(vs) {
-##if fx_instancing_type == fx_instancing_sbuf
-    float4 headData[FX_HEAD_MAXIUM_REGISTERS]: register(c70);
-    StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer : register(t2);
-    StructuredBuffer<GPUFxSegment> segmentBuffer : register(t3);
-    StructuredBuffer<GPUFXTracerType> tracerTypeBuffer : register(t4);
-##else
-    float4 headData[FX_HEAD_MINIMUM_SUPPORTED_REGISTERS]: register(c70);
-##endif
-
-    float4 headDataLastReg: register(c319);
-    // 319 = FX_HEAD_MAXIUM_REGISTERS + 70 = FX_HEAD_MINIMUM_SUPPORTED_REGISTERS + 70, ensure that dsc sees the vs const range correctly
-
     struct VsInput
     {
       HW_BASE_VERTEX_ID_OPTIONAL
@@ -426,7 +433,6 @@ shader tracer_tail
     };
   }
 
-  ENABLE_ASSERT(ps)
   hlsl(ps) {
     float4 tracer_tail_ps(VsOutput input) : SV_Target
     {
@@ -451,17 +457,41 @@ shader tracer_tail
 
   if (tracer_tails_batched_render == on)
   {
-    (vs) { immediate_dword_count = 1; }
-    hlsl(vs) { StructuredBuffer<uint2> tailInstancesBuffer : register(t5); }
+    (vs) {
+      tailInstancesBuffer@buf : register(5) hlsl {
+        StructuredBuffer<uint2> tailInstancesBuffer@buf;
+      }
+    }
+    (vs) {
+      immediate_dword_count = 1;
+    }
+  }
+
+  (vs) {
+    if (fx_instancing_type == fx_instancing_sbuf)
+    {
+      tailParticles@buf : register(0) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<TailParticle> tailParticles@buf;
+      }
+      tracerBuffer@buf : register(1) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFxTracer> tracerBuffer@buf;
+      }
+      tracerDynamicBuffer@buf : register(2) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer@buf;
+      }
+      segmentBuffer@buf : register(3) hlsl {
+        #include "../tracer/tracer.hlsli"
+        StructuredBuffer<GPUFxSegment> segmentBuffer@buf;
+      }
+
+    }
   }
 
   hlsl(vs) {
-##if fx_instancing_type == fx_instancing_sbuf
-    StructuredBuffer<TailParticle> tailParticles : register(t0);
-    StructuredBuffer<GPUFxTracer> tracerBuffer : register(t1);
-    StructuredBuffer<GPUFxTracerDynamic> tracerDynamicBuffer : register(t2);
-    StructuredBuffer<GPUFxSegment> segmentBuffer : register(t3);
-##else
+##if fx_instancing_type != fx_instancing_sbuf
     float4 tracerData[FX_TRACER_DATA_NUM_REGISTERS]: register(c70);
 ##endif
 

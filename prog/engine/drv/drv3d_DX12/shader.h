@@ -10,19 +10,15 @@
 #include "tagged_handles.h"
 
 #include <perfMon/dag_autoFuncProf.h>
+#include <perfMon/dag_cpuFreq.h>
 #include <dag/dag_vectorSet.h>
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
-#include <drv/shadersMetaData/dxil/utility.h>
 #include "drv_log_defs.h"
-#include "drv_assert_defs.h"
 #include <EASTL/array.h>
-#include <EASTL/sort.h>
-#include <EASTL/unordered_set.h>
 #include <EASTL/variant.h>
 #include <generic/dag_bitset.h>
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_atomic.h>
-#include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <shadersBinaryData.h>
 #include <util/dag_hashedKeyMap.h>
@@ -273,10 +269,11 @@ struct StageShaderModuleHeader
 
 struct StageShaderModule : StageShaderModuleHeader
 {
-  eastl::unique_ptr<uint8_t[]> byteCode;
-  size_t byteCodeSize = 0;
+  ShaderSource source;
+  uint32_t bytecodeOffset = 0;
+  uint32_t bytecodeSize = 0;
 
-  explicit operator bool() const { return 0 != byteCodeSize; }
+  explicit operator bool() const { return 0 != bytecodeSize; }
 };
 
 struct VertexShaderModule : StageShaderModule
@@ -504,8 +501,11 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
   {
     return;
   }
+
+  int64_t tSetup = ref_time_ticks();
   inspector.vertexShaderCount(v2->vprCount);
   inspector.pixelOrComputeShaderCount(v2->fshCount);
+  int setupUsec = get_time_usec(tSetup);
 
   static constexpr uint32_t BucketCount = 32;
   class UniquePrograms
@@ -530,23 +530,55 @@ void inspect_scripted_shader_bin_dump(ScriptedShadersBinDumpOwner *dump, T inspe
     }
   } uniquePrograms;
 
+  uint32_t totalRefs = 0, uniqueCount = 0;
+  uint32_t graphicsCount = 0, graphicsNullPsCount = 0, computeCount = 0;
+  int64_t dedupUsec = 0, graphicsUsec = 0, graphicsNullPsUsec = 0, computeUsec = 0;
+
   for (auto &cls : v2->classes)
   {
     for (auto &prog : cls.shrefStorage)
     {
       ::watchdog_kick(); // REMOVEME: dirty, dirty hack to work around watchdog killing us during pipeline cache loading
 
-      if (!uniquePrograms.tryAddProgram(prog.vprId, prog.fshId))
+      ++totalRefs;
+      int64_t tDedup = ref_time_ticks();
+      bool isNew = uniquePrograms.tryAddProgram(prog.vprId, prog.fshId);
+      dedupUsec += get_time_usec(tDedup);
+
+      if (!isNew)
         continue;
+      ++uniqueCount;
 
       if (prog.vprId != 0xFFFF && prog.fshId != 0xFFFF)
+      {
+        int64_t t0 = ref_time_ticks();
         inspector.addGraphicsProgram(prog.vprId, prog.fshId);
+        graphicsUsec += get_time_usec(t0);
+        ++graphicsCount;
+      }
       else if (prog.vprId != 0xFFFF)
+      {
+        int64_t t0 = ref_time_ticks();
         inspector.addGraphicsProgramWithNullPixelShader(prog.vprId);
+        graphicsNullPsUsec += get_time_usec(t0);
+        ++graphicsNullPsCount;
+      }
       else
+      {
+        int64_t t0 = ref_time_ticks();
         inspector.addComputeProgram(prog.fshId);
+        computeUsec += get_time_usec(t0);
+        ++computeCount;
+      }
     }
   }
+
+  logdbg("DX12: inspect_scripted_shader_bin_dump breakdown:"
+         " setup=%dus, totalRefs=%u, unique=%u,"
+         " dedup=%lldus,"
+         " graphics=%u/%lldus, graphicsNullPs=%u/%lldus, compute=%u/%lldus",
+    setupUsec, totalRefs, uniqueCount, dedupUsec, graphicsCount, graphicsUsec, graphicsNullPsCount, graphicsNullPsUsec, computeCount,
+    computeUsec);
 }
 
 class ShaderProgramGroup
@@ -1156,9 +1188,9 @@ public:
   }
 };
 
-StageShaderModule shader_layout_to_module(const bindump::Mapper<dxil::Shader> &layout);
+StageShaderModule shader_layout_to_module(const bindump::Mapper<dxil::Shader> &layout, const ShaderSource &source);
 template <typename ModuleType>
-inline ModuleType decode_shader_layout(const void *data)
+inline ModuleType decode_shader_layout(const void *data, const ShaderSource &source)
 {
   ModuleType result;
   auto *container = bindump::map<dxil::ShaderContainer>((const uint8_t *)data);
@@ -1179,7 +1211,7 @@ inline ModuleType decode_shader_layout(const void *data)
     {
       if (auto *combined = bindump::map<dxil::VertexShaderPipeline>(containerData.data()))
       {
-        result = shader_layout_to_module(*combined->vertexShader);
+        result = shader_layout_to_module(*combined->vertexShader, source);
         if (programWithSo)
         {
           result.streamOutputDesc.resize(programWithSo->streamOutputComponents.size());
@@ -1190,15 +1222,15 @@ inline ModuleType decode_shader_layout(const void *data)
         result.ident.shaderSize = containerData.size();
         if (combined->geometryShader)
         {
-          result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->geometryShader));
+          result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->geometryShader, source));
         }
         if (combined->hullShader)
         {
-          result.hullShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->hullShader));
+          result.hullShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->hullShader, source));
         }
         if (combined->domainShader)
         {
-          result.domainShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->domainShader));
+          result.domainShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->domainShader, source));
         }
       }
       else
@@ -1213,7 +1245,7 @@ inline ModuleType decode_shader_layout(const void *data)
     {
       if (auto *combined = bindump::map<dxil::MeshShaderPipeline>(containerData.data()))
       {
-        result = shader_layout_to_module(*combined->meshShader);
+        result = shader_layout_to_module(*combined->meshShader, source);
         if (programWithSo)
         {
           result.streamOutputDesc.resize(programWithSo->streamOutputComponents.size());
@@ -1224,7 +1256,8 @@ inline ModuleType decode_shader_layout(const void *data)
         result.ident.shaderSize = containerData.size();
         if (combined->amplificationShader)
         {
-          result.geometryShader = eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->amplificationShader));
+          result.geometryShader =
+            eastl::make_unique<StageShaderModule>(shader_layout_to_module(*combined->amplificationShader, source));
         }
       }
       else
@@ -1237,7 +1270,7 @@ inline ModuleType decode_shader_layout(const void *data)
   {
     if (auto *shader = bindump::map<dxil::Shader>(containerData.data()))
     {
-      result = shader_layout_to_module(*shader);
+      result = shader_layout_to_module(*shader, source);
       if constexpr (eastl::is_same_v<ModuleType, VertexShaderModule>)
         if (programWithSo)
         {
@@ -1255,12 +1288,13 @@ inline ModuleType decode_shader_layout(const void *data)
   }
   return result;
 }
-StageShaderModule decode_shader_binary(const void *data, uint32_t size);
-eastl::unique_ptr<VertexShaderModule> decode_vertex_shader(const void *data, uint32_t size);
-eastl::unique_ptr<PixelShaderModule> decode_pixel_shader(const void *data, uint32_t size);
+StageShaderModule decode_shader_binary(const void *data, uint32_t size, const ShaderSource &source);
+eastl::unique_ptr<VertexShaderModule> decode_vertex_shader(const ShaderSource &source);
+eastl::unique_ptr<PixelShaderModule> decode_pixel_shader(const ShaderSource &source);
 
 struct StageShaderModuleInBinaryRef : StageShaderModuleHeader
 {
+  eastl::span<const uint8_t> metadata;
   eastl::span<const uint8_t> byteCode;
 };
 inline uint32_t offset_to_base(const void *base, const StageShaderModuleInBinaryRef &shader)
@@ -1278,9 +1312,9 @@ struct VertexShaderModuleInBinaryRef : StageShaderModuleInBinaryRef
   eastl::span<const dxil::StreamOutputComponentInfo> streamOutputDesc;
 };
 
-StageShaderModuleInBinaryRef shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> &layout);
+StageShaderModuleInBinaryRef shader_layout_to_module_ref(const bindump::Mapper<dxil::Shader> &layout, const uint8_t *bytecode);
 template <typename ModuleType>
-inline ModuleType decode_shader_layout_ref(const void *data)
+inline ModuleType decode_shader_layout_ref(const void *data, const uint8_t *bytecode)
 {
   ModuleType result;
   auto *container = bindump::map<dxil::ShaderContainer>((const uint8_t *)data);
@@ -1301,22 +1335,22 @@ inline ModuleType decode_shader_layout_ref(const void *data)
     {
       if (auto *combined = bindump::map<dxil::VertexShaderPipeline>(containerData.data()))
       {
-        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->vertexShader);
+        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->vertexShader, bytecode);
         if (programWithSo)
           result.streamOutputDesc = programWithSo->streamOutputComponents;
         result.ident.shaderHash = container->dataHash;
         result.ident.shaderSize = containerData.size();
         if (combined->geometryShader)
         {
-          result.geometryShader = shader_layout_to_module_ref(*combined->geometryShader);
+          result.geometryShader = shader_layout_to_module_ref(*combined->geometryShader, bytecode);
         }
         if (combined->hullShader)
         {
-          result.hullShader = shader_layout_to_module_ref(*combined->hullShader);
+          result.hullShader = shader_layout_to_module_ref(*combined->hullShader, bytecode);
         }
         if (combined->domainShader)
         {
-          result.domainShader = shader_layout_to_module_ref(*combined->domainShader);
+          result.domainShader = shader_layout_to_module_ref(*combined->domainShader, bytecode);
         }
       }
       else
@@ -1331,14 +1365,14 @@ inline ModuleType decode_shader_layout_ref(const void *data)
     {
       if (auto *combined = bindump::map<dxil::MeshShaderPipeline>(containerData.data()))
       {
-        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->meshShader);
+        static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*combined->meshShader, bytecode);
         if (programWithSo)
           result.streamOutputDesc = programWithSo->streamOutputComponents;
         result.ident.shaderHash = container->dataHash;
         result.ident.shaderSize = containerData.size();
         if (combined->amplificationShader)
         {
-          result.geometryShader = shader_layout_to_module_ref(*combined->amplificationShader);
+          result.geometryShader = shader_layout_to_module_ref(*combined->amplificationShader, bytecode);
         }
       }
       else
@@ -1351,7 +1385,7 @@ inline ModuleType decode_shader_layout_ref(const void *data)
   {
     if (auto *shader = bindump::map<dxil::Shader>(containerData.data()))
     {
-      static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*shader);
+      static_cast<StageShaderModuleInBinaryRef &>(result) = shader_layout_to_module_ref(*shader, bytecode);
       if constexpr (eastl::is_same_v<ModuleType, VertexShaderModuleInBinaryRef>)
         if (programWithSo)
           result.streamOutputDesc = programWithSo->streamOutputComponents;
@@ -1366,9 +1400,9 @@ inline ModuleType decode_shader_layout_ref(const void *data)
   return result;
 }
 
-StageShaderModuleInBinaryRef decode_shader_binary_ref(const void *data, uint32_t size);
-VertexShaderModuleInBinaryRef decode_vertex_shader_ref(const void *data, uint32_t size);
-PixelShaderModuleInBinaryRef decode_pixel_shader_ref(const void *data, uint32_t size);
+StageShaderModuleInBinaryRef decode_shader_binary_ref(const void *data, uint32_t size, const uint8_t *bytecode);
+VertexShaderModuleInBinaryRef decode_vertex_shader_ref(const void *data, uint32_t size, const uint8_t *bytecode);
+PixelShaderModuleInBinaryRef decode_pixel_shader_ref(const void *data, uint32_t size, const uint8_t *bytecode);
 
 struct InputLayoutIDWithHash
 {
@@ -1390,11 +1424,9 @@ class ShaderProgramDatabase
 
   void initDebugProgram(DeviceContext &ctx);
   void initNullPixelShader(DeviceContext &ctx);
-  ShaderID newRawVertexShader(DeviceContext &ctx, const dxil::ShaderHeader &header, dag::ConstSpan<uint8_t> byte_code);
-  ShaderID newRawPixelShader(DeviceContext &ctx, const dxil::ShaderHeader &header, dag::ConstSpan<uint8_t> byte_code);
 
 public:
-  ProgramID newComputeProgram(DeviceContext &ctx, const void *data, CSPreloaded preloaded);
+  ProgramID newComputeProgram(DeviceContext &ctx, const ShaderSource &source, CSPreloaded preloaded);
   ProgramID newGraphicsProgram(DeviceContext &ctx, InputLayoutID vdecl, ShaderID vs, ShaderID ps);
   InputLayoutID getInputLayoutForGraphicsProgram(ProgramID program);
   GraphicsProgramUsageInfo getGraphicsProgramForStateUpdate(ProgramID program);
@@ -1402,12 +1434,14 @@ public:
   InputLayoutID registerInputLayout(DeviceContext &ctx, const InputLayout &layout);
   void setup(DeviceContext &ctx, bool disable_precache);
   void shutdown(DeviceContext &ctx);
-  ShaderID newVertexShader(DeviceContext &ctx, const void *data);
-  ShaderID newPixelShader(DeviceContext &ctx, const void *data);
+  ShaderID newVertexShader(DeviceContext &ctx, const ShaderSource &source);
+  ShaderID newPixelShader(DeviceContext &ctx, const ShaderSource &source);
   ProgramID getDebugProgram();
   void removeProgram(DeviceContext &ctx, ProgramID prog);
   void deleteVertexShader(DeviceContext &ctx, ShaderID shader);
   void deletePixelShader(DeviceContext &ctx, ShaderID shader);
+  ShaderID newRawVertexShader(DeviceContext &ctx, const dxil::ShaderHeader &header, dag::ConstSpan<uint8_t> byte_code);
+  ShaderID newRawPixelShader(DeviceContext &ctx, const dxil::ShaderHeader &header, dag::ConstSpan<uint8_t> byte_code);
   void updateVertexShaderName(DeviceContext &ctx, ShaderID shader, const char *name);
   void updatePixelShaderName(DeviceContext &ctx, ShaderID shader, const char *name);
 
@@ -1517,18 +1551,15 @@ public:
 class ScriptedShadersBinDumpManager
 {
   using UncompressedMemoryProvider = Tab<uint8_t>;
-  struct DecompressedGroup
-  {
-    UncompressedMemoryProvider uncompressed;
-    bindump::Mapper<shader_layout::ShGroup> *shaderGroup = nullptr;
-  };
   struct ScriptedShadersBinDumpState
   {
     ScriptedShadersBinDumpOwner *owner = nullptr;
-    eastl::unique_ptr<DecompressedGroup[]> decompressedGroups;
+    eastl::unique_ptr<UncompressedMemoryProvider[]> decompressedShaders;
+    size_t decompressedShadersSize = 0;
     eastl::string name;
   };
   ScriptedShadersBinDumpState dumps[max_scripted_shaders_bin_groups]{};
+  OSSpinlock decompressionCacheLock;
 
 public:
   ScriptedShadersBinDumpOwner *getDump(uint32_t group) { return dumps[group].owner; }
@@ -1564,49 +1595,72 @@ public:
   {
     auto &target = dumps[shaderGroup];
     target.owner = dump;
-    target.decompressedGroups = eastl::make_unique<DecompressedGroup[]>(dump->getDump()->shGroups.size());
+    target.decompressedShaders = eastl::make_unique<UncompressedMemoryProvider[]>(dump->getDump()->shaders.size());
+    target.decompressedShadersSize = 0;
     target.name = name;
   }
   void resetDumpOfGroup(uint32_t shaderGroup)
   {
     auto &target = dumps[shaderGroup];
     target.owner = nullptr;
-    target.decompressedGroups.reset();
+    target.decompressedShaders.reset();
+    target.decompressedShadersSize = 0;
     target.name.clear();
   }
   // returned memory range is valid until the end of the frame, after that its undefined.
-  eastl::span<uint8_t> getShaderByteCode(uint32_t shaderGroup, uint32_t compression_group, uint32_t compression_index)
+  struct GetShaderByteCodeResult
   {
+    eastl::span<const uint8_t> byteCode;
+    bool cacheHit;
+  };
+  struct GetShaderByteCodeResultMeta
+  {
+    eastl::span<const uint8_t> metadata;
+    eastl::span<uint8_t> byteCode;
+    bool cacheHit;
+  };
+  GetShaderByteCodeResultMeta getShaderByteCode(uint32_t shaderGroup, uint32_t compression_index)
+  {
+    OSSpinlockScopedLock lock{decompressionCacheLock};
     auto &dump = dumps[shaderGroup];
-    if (!dump.decompressedGroups)
+    if (!dump.decompressedShaders)
     {
-      return {nullptr, nullptr};
+      return {.byteCode = {nullptr, nullptr}, .cacheHit = false};
     }
-    auto &compGroup = dump.decompressedGroups[compression_group];
-    if (!compGroup.shaderGroup)
+    auto src = dump.owner->getCodeById(compression_index);
+    auto &shader = dump.decompressedShaders[compression_index];
+    bool cacheHit = true;
+    if (!shader.size())
     {
-      logdbg("DX12: Decompressing shader shaderGroup %u of dump %p...", compression_group, dump.owner);
-      compGroup.shaderGroup = dump.owner->getDump()->shGroups[compression_group].decompress(compGroup.uncompressed,
-        bindump::BehaviorOnUncompressed::Reference, dump.owner->getDecompressionDict());
-      ByteUnits uncompressedByteSize = compGroup.uncompressed.size();
-      logdbg("DX12: ...decompressed into %.2f %s...", uncompressedByteSize.units(), uncompressedByteSize.name());
+      auto src = dump.owner->getCodeById(compression_index);
+      src.uncompress(shader);
+      dump.decompressedShadersSize += shader.size();
+      ByteUnits uncompressedByteSize = shader.size();
+      cacheHit = false;
     }
-    auto &shader = compGroup.shaderGroup->shaders[compression_index];
-    return {shader.begin(), shader.end()};
+    return {.metadata = src.metadata, .byteCode = {shader.begin(), shader.end()}, .cacheHit = cacheHit};
   }
-  // currently always evicts cache
+
   void evictDecompressionCache()
   {
+    OSSpinlockScopedLock lock{decompressionCacheLock};
     for (auto &dump : dumps)
     {
-      if (!dump.decompressedGroups)
+      if (!dump.decompressedShaders)
         continue;
-      for (uint32_t i = 0; i < dump.owner->getDump()->shGroups.size(); ++i)
-      {
-        UncompressedMemoryProvider{}.swap(dump.decompressedGroups[i].uncompressed);
-        dump.decompressedGroups[i].shaderGroup = nullptr;
-      }
+      for (uint32_t i = 0; i < dump.owner->getDump()->shaders.size(); ++i)
+        UncompressedMemoryProvider{}.swap(dump.decompressedShaders[i]);
+      dump.decompressedShadersSize = 0;
     }
+  }
+
+  size_t getBytecodeCacheMemoryUsage()
+  {
+    OSSpinlockScopedLock lock{decompressionCacheLock};
+    size_t totalMemory = 0;
+    for (const auto &dump : dumps)
+      totalMemory += dump.decompressedShadersSize;
+    return totalMemory;
   }
 
   const eastl::string &getGroupName(uint32_t group) const { return dumps[group].name; }
@@ -1688,7 +1742,7 @@ public:
         continue;
       }
       auto shaderIndexOffset = v2->vprCount;
-      auto shaderCount = v2->shGroupsMapping.size() - shaderIndexOffset;
+      auto shaderCount = v2->shaders.size() - shaderIndexOffset;
       for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
       {
         if (v2->shaderHashes[shaderIndexOffset + shaderIndex] == hash)
@@ -1778,8 +1832,9 @@ public:
 
 struct StageShaderModuleBytecode
 {
-  eastl::unique_ptr<uint8_t[]> bytecode;
-  size_t bytecodeSize = 0;
+  ShaderSource source;
+  uint32_t bytecodeOffset = 0;
+  uint32_t bytecodeSize = 0;
 };
 
 struct VertexShaderModuleBytecode : StageShaderModuleBytecode
@@ -1807,7 +1862,6 @@ struct StageShaderModuleBytcodeInDumpOffsets
 
 struct StageShaderModuleBytcodeInDump : StageShaderModuleBytcodeInDumpOffsets
 {
-  uint16_t compressionGroup = 0;
   uint16_t compressionIndex = 0;
 };
 
@@ -1854,6 +1908,16 @@ struct VertexShaderModuleRefStore
 {
   VertexShaderModuleHeader &header;
   eastl::variant<VertexShaderModuleBytecodeRef, VertexShaderModuleBytcodeInDumpRef> bytecode;
+
+  const uint8_t *uncompress(Tab<uint8_t> &tmpstorage) const
+  {
+    if (auto *vs = eastl::get_if<VertexShaderModuleBytecodeRef>(&bytecode))
+    {
+      vs->bytecode->source.uncompress(tmpstorage);
+      return tmpstorage.data();
+    }
+    return nullptr;
+  }
 };
 
 inline const dxil::ShaderHeader *get_gs(const VertexShaderModuleRefStore &ref)
@@ -1890,6 +1954,16 @@ struct PixelShaderModuleRefStore
 {
   const PixelShaderModuleHeader &header;
   eastl::variant<PixelShaderModuleBytecodeRef, PixelShaderModuleBytcodeInDumpRef> bytecode;
+
+  const uint8_t *uncompress(Tab<uint8_t> &tmpstorage) const
+  {
+    if (auto *ps = eastl::get_if<PixelShaderModuleBytecodeRef>(&bytecode))
+    {
+      ps->bytecode->source.uncompress(tmpstorage);
+      return tmpstorage.data();
+    }
+    return nullptr;
+  }
 };
 
 class PipelineNameGenerator : public ScriptedShadersBinDumpManager
@@ -1939,7 +2013,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
         eastl::span<const float> valueRange;
         // intervals usually intervals have about 2-4 indices, instead of having a set with each value, we simply use a bit mask where
         // each bit stands for the used index
-        uint32_t valueMask;
+        uint64_t valueMask;
         bool isEnumeration() const
         {
           if (!valueRange.data())
@@ -1976,7 +2050,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
           {
             return true;
           }
-          return 0 == (valueMask ^ (1u << (valueRange.size() + 1)) - 1);
+          return 0 == (valueMask ^ (1ull << (valueRange.size() + 1)) - 1);
         }
         // has 3 formatting modes:
         // - float interval, all values are appended as float (%f), all except the last index is prefixed with a '<' to match the
@@ -2003,9 +2077,9 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
           {
             isEnum = isEnumeration();
           }
-          for (uint32_t i = 0; i < 32; ++i)
+          for (uint32_t i = 0; i < 64; ++i)
           {
-            if (0 == (valueMask & (1u << i)))
+            if (0 == (valueMask & (1ull << i)))
             {
               continue;
             }
@@ -2050,8 +2124,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
           VariableInfo newValue{name, value_range, 0};
           ref = variables.insert(ref, newValue);
         }
-        G_ASSERT(value < 32);
-        ref->valueMask |= 1u << value;
+        G_ASSERT(value < 64);
+        ref->valueMask |= 1ull << value;
       }
       void appendToString(eastl::string &name)
       {
@@ -2833,7 +2907,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
         [shader = vShader, state = rState](auto &pass) {
           return shader == pass.vprId && 0xFFFF == pass.fshId && state == pass.renderStateNo;
         },
-        false, false, false, false, target);
+        rDist != 0, false, false, false, target);
       while (0 == count)
       {
         auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
@@ -2885,8 +2959,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
       }
 
       auto count = visitMatchingRenderPasses(
-        vGroup, [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; }, false,
-        true, false, false, target);
+        vGroup, [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; },
+        rDist != 0, true, false, false, target);
       while (0 == count)
       {
         auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
@@ -2944,7 +3018,7 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
         [vert = vShader, pix = pShader, state = rState](auto &pass) {
           return vert == pass.vprId && pix == pass.fshId && state == pass.renderStateNo;
         },
-        false, false, false, false, target);
+        rDist != 0, false, false, false, target);
       while (0 == count)
       {
         auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
@@ -2997,8 +3071,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
 
       auto count = visitMatchingRenderPasses(
         vGroup, /*{}, "[with pixel shader override]", out_name,*/
-        [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; }, false, false,
-        true, false, target);
+        [shader = vShader, state = rState](auto &pass) { return shader == pass.vprId && state == pass.renderStateNo; }, rDist != 0,
+        false, true, false, target);
       while (0 == count)
       {
         auto [crGroup, crState, crDist] = walkRenderStates(vGroup, rState + 1, rDist, static_state);
@@ -3052,8 +3126,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
 
       auto count = visitMatchingRenderPasses(
         pGroup, /*{}, {}, out_name,*/
-        [shader = pShader, state = rState](auto &pass) { return shader == pass.fshId && state == pass.renderStateNo; }, false, false,
-        true, true, target);
+        [shader = pShader, state = rState](auto &pass) { return shader == pass.fshId && state == pass.renderStateNo; }, rDist != 0,
+        false, true, true, target);
       while (0 == count)
       {
         auto [crGroup, crState, crDist] = walkRenderStates(pGroup, rState + 1, rDist, static_state);
@@ -3245,76 +3319,82 @@ class ShaderModuleManager : public PipelineNameGenerator
     dag::Vector<eastl::unique_ptr<GroupPixelShaderModule>> pixel;
   } shaderGroup[max_scripted_shaders_bin_groups - 1];
 
-  eastl::span<uint8_t> getBytecode(const PixelShaderModuleBytecodeRef &ref)
+  GetShaderByteCodeResult getBytecode(const PixelShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
   {
-    return {ref.bytecode->bytecode.get(), ref.bytecode->bytecode.get() + ref.bytecode->bytecodeSize};
+    bytecode += ref.bytecode->bytecodeOffset;
+    return {.byteCode = {bytecode, ref.bytecode->bytecodeSize}, .cacheHit = true};
   }
 
-  eastl::span<uint8_t> getBytecode(const PixelShaderModuleBytcodeInDumpRef &ref)
+  GetShaderByteCodeResult getBytecode(const PixelShaderModuleBytcodeInDumpRef &ref, const uint8_t *)
   {
-    auto binary = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionGroup, ref.bytecode->compressionIndex);
-    return binary.subspan(ref.bytecode->shaderOffset, ref.bytecode->shaderSize);
+    auto [meta, byteCode, cacheHit] = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionIndex);
+    return {.byteCode = byteCode.subspan(ref.bytecode->shaderOffset, ref.bytecode->shaderSize), .cacheHit = cacheHit};
   }
 
-  eastl::span<uint8_t> getVsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytecodeRef &ref)
+  GetShaderByteCodeResult getVsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytecodeRef &ref,
+    const uint8_t *bytecode)
   {
-    return {ref.bytecode->bytecode.get(), ref.bytecode->bytecode.get() + ref.bytecode->bytecodeSize};
+    bytecode += ref.bytecode->bytecodeOffset;
+    return {.byteCode = {bytecode, ref.bytecode->bytecodeSize}, .cacheHit = true};
   }
-  eastl::span<uint8_t> getVsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytcodeInDumpRef &ref)
+  GetShaderByteCodeResult getVsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytcodeInDumpRef &ref,
+    const uint8_t *)
   {
-    auto binary = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionGroup, ref.bytecode->compressionIndex);
-    return binary.subspan(ref.bytecode->shaderOffset, ref.bytecode->shaderSize);
+    auto [meta, byteCode, cacheHit] = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionIndex);
+    return {.byteCode = byteCode.subspan(ref.bytecode->shaderOffset, ref.bytecode->shaderSize), .cacheHit = cacheHit};
   }
-  eastl::span<uint8_t> getMsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref)
+  auto getMsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
   {
-    return getVsBytecode(header, ref);
+    return getVsBytecode(header, ref, bytecode);
   }
-  eastl::span<uint8_t> getMsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref)
+  auto getMsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref, const uint8_t *bytecode)
   {
-    return getVsBytecode(header, ref);
+    return getVsBytecode(header, ref, bytecode);
   }
-  eastl::span<uint8_t> getGsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytecodeRef &ref)
+  auto getGsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
+  {
+    return getSubShaderBytecode(0, ref, bytecode);
+  }
+  auto getGsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytcodeInDumpRef &ref, const uint8_t *)
   {
     return getSubShaderBytecode(0, ref);
   }
-  eastl::span<uint8_t> getGsBytecode(const VertexShaderModuleHeader &, const VertexShaderModuleBytcodeInDumpRef &ref)
+  auto getAsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
   {
-    return getSubShaderBytecode(0, ref);
+    return getGsBytecode(header, ref, bytecode);
   }
-  eastl::span<uint8_t> getAsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref)
+  auto getAsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref, const uint8_t *bytecode)
   {
-    return getGsBytecode(header, ref);
+    return getGsBytecode(header, ref, bytecode);
   }
-  eastl::span<uint8_t> getAsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref)
+  auto getHsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
   {
-    return getGsBytecode(header, ref);
+    return getSubShaderBytecode(header.hasGsOrAs ? 1 : 0, ref, bytecode);
   }
-  eastl::span<uint8_t> getHsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref)
+  auto getHsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref, const uint8_t *)
   {
     return getSubShaderBytecode(header.hasGsOrAs ? 1 : 0, ref);
   }
-  eastl::span<uint8_t> getHsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref)
+  auto getDsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref, const uint8_t *bytecode)
   {
-    return getSubShaderBytecode(header.hasGsOrAs ? 1 : 0, ref);
+    return getSubShaderBytecode(header.hasGsOrAs ? 2 : 1, ref, bytecode);
   }
-  eastl::span<uint8_t> getDsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytecodeRef &ref)
+  auto getDsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref, const uint8_t *)
   {
     return getSubShaderBytecode(header.hasGsOrAs ? 2 : 1, ref);
   }
-  eastl::span<uint8_t> getDsBytecode(const VertexShaderModuleHeader &header, const VertexShaderModuleBytcodeInDumpRef &ref)
-  {
-    return getSubShaderBytecode(header.hasGsOrAs ? 2 : 1, ref);
-  }
-  eastl::span<uint8_t> getSubShaderBytecode(uint32_t sub_shader_index, const VertexShaderModuleBytecodeRef &ref)
+  GetShaderByteCodeResult getSubShaderBytecode(uint32_t sub_shader_index, const VertexShaderModuleBytecodeRef &ref,
+    const uint8_t *bytecode)
   {
     auto &subShader = ref.bytecode->subShaders[sub_shader_index];
-    return {subShader.bytecode.get(), subShader.bytecode.get() + subShader.bytecodeSize};
+    bytecode += subShader.bytecodeOffset;
+    return {.byteCode = {bytecode, subShader.bytecodeSize}, .cacheHit = true};
   }
-  eastl::span<uint8_t> getSubShaderBytecode(uint32_t sub_shader_index, const VertexShaderModuleBytcodeInDumpRef &ref)
+  GetShaderByteCodeResult getSubShaderBytecode(uint32_t sub_shader_index, const VertexShaderModuleBytcodeInDumpRef &ref)
   {
     auto &subShader = ref.bytecode->subShaders[sub_shader_index];
-    auto binary = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionGroup, ref.bytecode->compressionIndex);
-    return binary.subspan(subShader.shaderOffset, subShader.shaderSize);
+    auto [meta, byteCode, cacheHit] = getShaderByteCode(ref.shaderGroup, ref.bytecode->compressionIndex);
+    return {.byteCode = byteCode.subspan(subShader.shaderOffset, subShader.shaderSize), .cacheHit = cacheHit};
   }
 
 public:
@@ -3327,39 +3407,39 @@ public:
   VertexShaderModuleRefStore getVertexShader(ShaderID id);
   PixelShaderModuleRefStore getPixelShader(ShaderID id);
 
-  eastl::span<uint8_t> getBytecode(const PixelShaderModuleRefStore &ref)
+  auto getBytecode(const PixelShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this](auto &r) -> eastl::span<uint8_t> { return this->getBytecode(r); }, ref.bytecode);
+    return eastl::visit([this, bytecode](auto &r) { return this->getBytecode(r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getVsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getVsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getVsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getVsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getMsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getMsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getMsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getMsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getGsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getGsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getGsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getGsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getAsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getAsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getAsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getAsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getHsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getHsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getHsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getHsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
-  eastl::span<uint8_t> getDsBytecode(const VertexShaderModuleRefStore &ref)
+  auto getDsBytecode(const VertexShaderModuleRefStore &ref, const uint8_t *bytecode)
   {
-    return eastl::visit([this, &ref](auto &r) -> eastl::span<uint8_t> { return this->getDsBytecode(ref.header, r); }, ref.bytecode);
+    return eastl::visit([this, &ref, bytecode](auto &r) { return this->getDsBytecode(ref.header, r, bytecode); }, ref.bytecode);
   }
 
   using AnyShaderModuleUniquePointer =
@@ -3370,10 +3450,8 @@ public:
   AnyShaderModuleUniquePointer releasePixelShader(ShaderID id);
   void resetDumpOfGroup(uint32_t group_index);
   void reserveVertexShaderRange(uint32_t group_index, uint32_t count);
-  void setVertexShaderCompressionGroup(uint32_t group_index, uint32_t index, const dxil::HashValue &hash, uint32_t compression_group,
-    uint32_t compression_index);
-  void setPixelShaderCompressionGroup(uint32_t group_index, uint32_t index, const dxil::HashValue &hash, uint32_t compression_group,
-    uint32_t compression_index);
+  void setVertexShaderCompressionGroup(uint32_t group_index, uint32_t index, const dxil::HashValue &hash, uint32_t compression_index);
+  void setPixelShaderCompressionGroup(uint32_t group_index, uint32_t index, const dxil::HashValue &hash, uint32_t compression_index);
   ShaderID findVertexShader(const dxil::HashValue &hash) const
   {
     for (uint32_t si = 0; si < shaderGroupZero.vertex.size(); ++si)

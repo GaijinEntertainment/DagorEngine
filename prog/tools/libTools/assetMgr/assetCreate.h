@@ -21,11 +21,12 @@ public:
     virtualBlk = a.isVirtual();
   }
 
-  void setNames(int asset_nid, int nspace_id, bool va)
+  void setNames(int asset_nid, int nspace_id, bool va, unsigned rule_idx = 0xFF)
   {
     nspaceId = nspace_id;
     nameId = asset_nid;
     virtualBlk = va;
+    ruleIdx = rule_idx;
   }
 
   bool loadResBlk(int asset_nid, const char *fname, int nspace_id)
@@ -33,7 +34,7 @@ public:
     nspaceId = nspace_id;
     nameId = asset_nid;
     virtualBlk = false;
-    return props.load(fname);
+    return reloadBlk(fname);
   }
 
   void setAssetData(int folder_idx, int file_nid, int asset_type)
@@ -42,6 +43,8 @@ public:
     fileNameId = file_nid;
     assetType = asset_type;
   }
+
+  void setFolder(int folder_idx) { folderIdx = folder_idx; }
 
   void setGlobUnique(bool unique) { globUnique = unique ? 1 : 0; }
 };

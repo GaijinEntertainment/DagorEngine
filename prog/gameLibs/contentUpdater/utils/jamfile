@@ -4,7 +4,7 @@ Location            = prog/gameLibs/contentUpdater/utils ;
 TargetType          = lib ;
 Target              = gameLibs/contentUpdater/utils.lib ;
 StrictCompile       ?= yes ;
-UseQuirrel         = sq3r ;
+UseQuirrel         = yes ;
 
 Sources =
   pathUtils.cpp

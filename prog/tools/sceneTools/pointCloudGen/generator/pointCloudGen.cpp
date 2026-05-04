@@ -443,7 +443,7 @@ ProcessedPointCloud PointCloudGenerator::collectMaterial(const ShaderMesh &mesh,
 
   rendinst::render::RiShaderConstBuffers cb;
   cb.setBBoxZero();
-  cb.setInstancing(0, 4, 0, 0);
+  cb.setInstancing(0, 4, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, 0);
 
   d3d::settm(TM_VIEW, &TMatrix4::IDENT);
   if (shaders::overrides::get_current() != overrideStateId)

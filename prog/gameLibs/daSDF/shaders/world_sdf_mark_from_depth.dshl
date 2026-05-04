@@ -6,6 +6,8 @@ include "project_is_dynamic_point.dshl"//should at least declare texture gbuf_de
 include "world_sdf_typed_load.dshl"
 include "gpu_occlusion.dshl"
 include "dagi_windows.dshl"
+include "gbuffer.dshl"
+include "dynamic_resolution.dshl"
 
 define_macro_if_not_defined PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
   hlsl(code) {
@@ -25,10 +27,11 @@ shader world_sdf_from_gbuf_cs
   READ_WORLD_SDF_MATH(cs)
   SKIP_RAY_WINDOWS(cs)
 
-  ENABLE_ASSERT(cs)
   if (world_sdf_support_uav_load == off)
   {
-    (cs) { world_sdf_clipmap@smp3d = world_sdf_clipmap;}
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+    (cs) { world_sdf_clipmap@tex3d = world_sdf_clipmap;}
+    hlsl(cs) { #define world_sdf_clipmap_samplerstate global_linear_wrap_sampler }
   }
   (cs) {
     globtm_inv@f44 = globtm_inv;
@@ -36,6 +39,7 @@ shader world_sdf_from_gbuf_cs
     world_sdf_update_buffer_size@i1 = world_sdf_update_buffer_size;
     depth_gbuf@tex2d = depth_gbuf;
   }
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   WSDF_COORD_UPDATE(cs)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
 
@@ -138,7 +142,6 @@ shader world_sdf_from_gbuf_remove_cs
   INIT_ZNZFAR_STAGE(cs)
   READ_WORLD_SDF_MATH(cs)
 
-  ENABLE_ASSERT(cs)
   if (world_sdf_support_uav_load == off)
   {
     dont_render;
@@ -149,11 +152,15 @@ shader world_sdf_from_gbuf_remove_cs
     world_sdf_update_buffer_size@i1 = world_sdf_update_buffer_size;
   }
 
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   WSDF_COORD_UPDATE(cs)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
 
   INIT_AND_USE_GLOBTM(cs)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+
+  INIT_DYNAMIC_RESOLUTION(cs)
+
   (cs) {
     downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
     world_view_pos@f3 = world_view_pos;
@@ -263,7 +270,7 @@ shader world_sdf_from_gbuf_remove_cs
       uint2 dim;
       hzb_tex.GetDimensions(dim.x, dim.y);
       uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
-      float rawDepth = texture2DAt(hzb_tex, tcI).x;
+      float rawDepth = texture2DAt(hzb_tex, tcI * current_dynamic_resolution_scale).x;
 
       float2 tc = (tcI+0.5)/dim;
       float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);
@@ -329,7 +336,6 @@ shader world_sdf_process_marked_gbuf
   INIT_ZNZFAR_STAGE(cs)
   READ_WORLD_SDF_MATH(cs)
 
-  ENABLE_ASSERT(cs)
   //USE_AND_INIT_VIEW_VEC_CS()
   (cs) {
     globtm_inv@f44 = globtm_inv;

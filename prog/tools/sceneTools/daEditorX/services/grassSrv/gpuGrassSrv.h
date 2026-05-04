@@ -30,6 +30,8 @@ class GPUGrassService : public IGPUGrassService
   void enumerateGrassDecals(DataBlock &grassBlk);
   int findFreeDecalId() const;
 
+  bool smallGrass = false;
+
 public:
   bool srvEnabled;
   void createGrass(DataBlock &grassBlk) override;
@@ -55,4 +57,7 @@ public:
   bool findDecalId(int id) const override;
 
   void invalidate() override;
+
+  void setIsSmallGrass(bool flag) override;
+  bool isSmallGrass() const override;
 };

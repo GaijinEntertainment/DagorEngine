@@ -1,0 +1,14 @@
+Root     ?= ../../.. ;
+Location = prog/3rdPartyLibs/wayland ;
+Target   = 3rdPartyLibs/wayland.lib ;
+TargetType  = lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources +=
+    xdg-shell-protocol.c
+    viewporter-protocol.c
+    relative-pointer-unstable-v1-protocol.c
+    pointer-constraints-unstable-v1-protocol.c
+    wayland-protocol.c
+    ;

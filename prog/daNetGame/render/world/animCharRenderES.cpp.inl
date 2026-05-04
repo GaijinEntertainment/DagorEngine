@@ -3,7 +3,11 @@
 #include <perfMon/dag_statDrv.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
-// #include <ecs/core/attributeEx.h>
+// #include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include "render/renderEvent.h"
 #include <ecs/anim/anim.h>
@@ -26,7 +30,7 @@
 #include "global_vars.h"
 #include "dynModelRenderer.h"
 #include <ecs/anim/animchar_visbits.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 
@@ -44,26 +48,26 @@
 ECS_REGISTER_EVENT(AnimcharRenderAsyncEvent)
 
 template <typename Callable>
-static inline void attach_bbox_bsph_ecs_query(ecs::EntityId eid, Callable fn);
+static inline void attach_bbox_bsph_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable fn);
 template <typename Callable>
-static inline void attach_bsph_ecs_query(ecs::EntityId eid, Callable fn);
+static inline void attach_bsph_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable fn);
 template <typename Callable>
-inline void vehicle_cockpit_show_hide_ecs_query(Callable c);
+inline void vehicle_cockpit_show_hide_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void animchar_csm_distance_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 4));
+inline void animchar_csm_distance_ecs_query(ecs::EntityManager &manager, Callable ECS_CAN_PARALLEL_FOR(c, 4));
 template <typename Callable>
-inline void animchar_csm_visibility_ecs_query(Callable ECS_CAN_PARALLEL_FOR(c, 50));
+inline void animchar_csm_visibility_ecs_query(ecs::EntityManager &manager, Callable ECS_CAN_PARALLEL_FOR(c, 50));
 template <typename Callable>
-inline void animchar_attaches_inherit_visibility_ecs_query(ecs::EntityId eid, Callable c);
+inline void animchar_attaches_inherit_visibility_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 template <typename Callable>
-inline void draw_shadow_occlusion_boxes_ecs_query(Callable c);
+inline void draw_shadow_occlusion_boxes_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void process_animchar_ecs_query(ecs::EntityId eid, Callable c);
+inline void process_animchar_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 template <typename Callable>
-inline void count_animchar_renderer_ecs_query(Callable c);
+inline void count_animchar_renderer_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void gather_animchar_renderer_ecs_query(Callable c);
+inline void gather_animchar_renderer_ecs_query(ecs::EntityManager &manager, Callable c);
 
 class AnimCharShadowOcclusionManager;
 AnimCharShadowOcclusionManager *get_animchar_shadow_occlusion();
@@ -125,17 +129,17 @@ static void prepare_for_render(AnimV20::AnimcharRendComponent &animchar_render)
 
 
 template <class T>
-inline void animchar_render_objects_prepare_ecs_query(T ECS_CAN_PARALLEL_FOR(b, 4));
+inline void animchar_render_objects_prepare_ecs_query(ecs::EntityManager &manager, T ECS_CAN_PARALLEL_FOR(b, 4));
 template <class T>
-inline void animchar_process_objects_in_shadow_ecs_query(T);
+inline void animchar_process_objects_in_shadow_ecs_query(ecs::EntityManager &manager, T);
 template <class T>
-inline void animchar_render_update_lod_ecs_query(T);
+inline void animchar_render_update_lod_ecs_query(ecs::EntityManager &manager, T);
 template <typename T>
-static inline void update_animchar_hmap_deform_ecs_query(T cb);
+static inline void update_animchar_hmap_deform_ecs_query(ecs::EntityManager &manager, T cb);
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeRender &stg)
+static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeRender &stg, ecs::EntityManager &manager)
 {
   const Point3 &lodChoosePos = stg.camPos;
   vec4f camPos = v_ldu(&lodChoosePos.x);
@@ -149,7 +153,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 
   vec4f dirFromSunV = v_ldu(&stg.dirFromSun.x);
 
-  animchar_render_objects_prepare_ecs_query(
+  animchar_render_objects_prepare_ecs_query(manager,
     [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm,
       const float &animchar_render__dist_sq, vec3f &animchar_render__root_pos, bbox3f *animchar_attaches_bbox,
       const bbox3f *animchar_attaches_bbox_precalculated, vec4f &animchar_bsph, const vec4f *animchar_bsph_precalculated,
@@ -222,7 +226,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 
   if (activeShadowVolumeUsed) // it's practically for dynamic lights only
   {
-    animchar_process_objects_in_shadow_ecs_query(
+    animchar_process_objects_in_shadow_ecs_query(manager,
       [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, bbox3f &animchar_bbox,
         const vec4f &animchar_bsph, animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true) {
         if (!animchar_render__enabled || (animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) ||
@@ -247,15 +251,15 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
     TIME_PROFILE(deform_hmap_update_geom_tree)
     vec4f hmapDeformRect = // same as in RenderHmapDeform
       v_make_vec4f(hmapDeformRectOpt->z, hmapDeformRectOpt->w, -hmapDeformRectOpt->x, -hmapDeformRectOpt->y);
-    update_animchar_hmap_deform_ecs_query(
-      [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar)
+    update_animchar_hmap_deform_ecs_query(manager,
+      [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender) ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar)
             AnimV20::AnimcharRendComponent &animchar_render,
         const AnimcharNodesMat44 &animchar_node_wtm, const bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits,
         const ecs::Tag *animchar__actOnDemand, const ecs::Tag *slot_attach, bool animchar__updatable = true) {
         if ((!animchar__updatable || animchar__actOnDemand != nullptr) && slot_attach == nullptr)
           return;
         bool isInDeformRect =
-          v_signmask(v_cmp_gt(hmapDeformRect, v_perm_xzac(animchar_bbox.bmin, v_neg(animchar_bbox.bmax)))) == 0b1111;
+          v_check_xyzw_all_true(v_cmp_gt(hmapDeformRect, v_perm_xzac(animchar_bbox.bmin, v_neg(animchar_bbox.bmax))));
         if (!isInDeformRect)
           return;
         animchar_visbits |= VISFLG_HMAP_DEFORM;
@@ -270,7 +274,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 }
 
 template <typename Callable>
-static void preprocess_visible_animchars_in_frustum_ecs_query(Callable c);
+static void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void preprocess_visible_animchars_in_frustum(
   // Before render stage is needed, because it holds the correct rounded camera positions (those are NOT the same as the eye pos)
@@ -279,7 +283,7 @@ void preprocess_visible_animchars_in_frustum(
   const vec3f &eye_pos,
   AnimcharVisbits custom_flag_to_add)
 {
-  preprocess_visible_animchars_in_frustum_ecs_query(
+  preprocess_visible_animchars_in_frustum_ecs_query(*g_entity_mgr,
     [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph,
       animchar_visbits_t &animchar_visbits, bool animchar_render__enabled) {
       if (!animchar_render__enabled || !(animchar_visbits & VISFLG_WITHIN_RANGE))
@@ -309,11 +313,11 @@ void preprocess_visible_animchars_in_frustum(
 }
 
 template <typename T>
-static inline void gather_animchar_ecs_query(T cb);
+static inline void gather_animchar_ecs_query(ecs::EntityManager &manager, T cb);
 template <typename T>
-static inline void find_animchar_single_ecs_query(ecs::EntityId, T cb);
+static inline void find_animchar_single_ecs_query(ecs::EntityManager &manager, ecs::EntityId, T cb);
 template <typename T>
-static inline void ignore_occlusion_visibility_ecs_query(T cb);
+static inline void ignore_occlusion_visibility_ecs_query(ecs::EntityManager &manager, T cb);
 
 static float get_shadow_distance(const Point3 &from_sun_dir, bbox3f_cref object_bbox, float csm_shadows_max_dist)
 {
@@ -340,7 +344,7 @@ void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float
 {
   TIME_D3D_PROFILE(update_csm_length);
   const AnimCharShadowOcclusionManager *animCharShadowOcclMgr = get_animchar_shadow_occlusion();
-  animchar_csm_distance_ecs_query(
+  animchar_csm_distance_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph,
       const bbox3f &animchar_bbox, const bbox3f &animchar_shadow_cull_bbox, float &animchar_render__shadow_cast_dist,
       const ecs::EidList *attaches_list, ecs::EntityId animchar_attach__attachedTo = ecs::INVALID_ENTITY_ID) {
@@ -370,7 +374,7 @@ void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float
 void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_sun)
 {
   TIME_D3D_PROFILE(csm_occlusion);
-  animchar_csm_visibility_ecs_query(
+  animchar_csm_visibility_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE_NOT(ecs::Tag cockpitEntity) ECS_REQUIRE_NOT(ecs::Tag attachedToParent) animchar_visbits_t &animchar_visbits,
       const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const float &animchar_render__shadow_cast_dist,
       const ecs::EidList *attaches_list, const ecs::EntityId *animchar_attach__attachedTo) {
@@ -384,7 +388,7 @@ void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_s
         animchar_visbits &= ~VISFLG_MAIN_AND_SHADOW_VISIBLE;
         if (attaches_list)
           for (ecs::EntityId aeid : *attaches_list)
-            animchar_attaches_inherit_visibility_ecs_query(aeid,
+            animchar_attaches_inherit_visibility_ecs_query(*g_entity_mgr, aeid,
               [&](animchar_visbits_t &animchar_visbits) { animchar_visbits &= ~VISFLG_MAIN_AND_SHADOW_VISIBLE; });
       }
     });
@@ -392,7 +396,7 @@ void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_s
 
 void debug_draw_shadow_occlusion_bboxes(const Point3 &dir_from_sun, bool final_extend)
 {
-  draw_shadow_occlusion_boxes_ecs_query(
+  draw_shadow_occlusion_boxes_ecs_query(*g_entity_mgr,
     [&](const animchar_visbits_t &animchar_visbits, bbox3f &animchar_bbox, float &animchar_render__shadow_cast_dist,
       const bbox3f *animchar_attaches_bbox, const ecs::EntityId *animchar_attach__attachedTo) {
       if (animchar_render__shadow_cast_dist < 0.0f || !(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) ||
@@ -417,11 +421,11 @@ void debug_draw_shadow_occlusion_bboxes(const Point3 &dir_from_sun, bool final_e
 }
 
 template <class T>
-inline void gather_animchar_async_ecs_query(T b);
+inline void gather_animchar_async_ecs_query(ecs::EntityManager &manager, T b);
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
+static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg, ecs::EntityManager &manager)
 {
   DynModelRenderingState &state = stg.state;
 
@@ -429,45 +433,45 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg)
   const animchar_visbits_t check_bits = stg.check_bits;
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
-  const bool needPreviousMatrices = stg.needPrevious;
+  const auto needPreviousMatrices =
+    stg.needPrevious ? dynmodel_renderer::NeedPreviousMatrices::Yes : dynmodel_renderer::NeedPreviousMatrices::No;
 
   //< store visibility result for render trans
   const Occlusion *occlusion = stg.occlusion;
 
   // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
-  gather_animchar_async_ecs_query([&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) ecs::EntityId eid,
-                                    const ecs::Tag *invisibleUpdatableAnimchar, animchar_visbits_t &animchar_visbits,
-                                    const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
-                                    const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
-                                    const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
-                                    bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
-    if (
-      stg.eidFilter > AnimcharRenderAsyncFilter::ARF_ANY_IDX &&
-      (hash_int(ecs::entity_id_t(eid)) & ecs::entity_id_t(AnimcharRenderAsyncFilter::ARF_IDX_MASK)) != ecs::entity_id_t(stg.eidFilter))
-      return;
+  gather_animchar_async_ecs_query(manager,
+    [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender) ecs::EntityId eid, const ecs::Tag *invisibleUpdatableAnimchar,
+      animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
+      const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
+      const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+      bool animchar__renderPriority = false) {
+      if (stg.eidFilter > AnimcharRenderAsyncFilter::ARF_ANY_IDX &&
+          (hash_int(ecs::entity_id_t(eid)) & ecs::entity_id_t(AnimcharRenderAsyncFilter::ARF_IDX_MASK)) !=
+            ecs::entity_id_t(stg.eidFilter))
+        return;
 
-    // Check visibility
-    if (!(interlocked_relaxed_load(animchar_visbits) & check_bits) ||
-        !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
-        (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
-                        animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
-      return;
-    interlocked_or(animchar_visbits, add_vis_bits);
-    if (invisibleUpdatableAnimchar)
-      return;
-    const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-    G_ASSERT_RETURN(scene != nullptr, );
+      // Check visibility
+      if (!(interlocked_relaxed_load(animchar_visbits) & check_bits) ||
+          !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
+          (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
+                          animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
+        return;
+      interlocked_or(animchar_visbits, add_vis_bits);
+      if (invisibleUpdatableAnimchar)
+        return;
+      const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
+      G_ASSERT_RETURN(scene != nullptr, );
 
-    // add to render list, and process bones
-    const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-    const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-    G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
+      // add to render list, and process bones
+      auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+      G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
 
-    state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
-      needPreviousMatrices, nullptr, filter, pathFilterSize, stg.filterMask, needImmediateConstPS,
-      animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT,
-      stg.globVarsState, stg.texCtx);
-  });
+      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+        needPreviousMatrices, {}, filter, stg.filterMask,
+        animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT,
+        stg.globVarsState, stg.texCtx);
+    });
 }
 
 template <class ConstState>
@@ -515,7 +519,9 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
 
-  const bool needPreviousMatrices = (stg.hints & UpdateStageInfoRender::RENDER_MOTION_VECS) ? true : false;
+  const auto needPreviousMatrices = (stg.hints & UpdateStageInfoRender::RENDER_MOTION_VECS)
+                                      ? dynmodel_renderer::NeedPreviousMatrices::Yes
+                                      : dynmodel_renderer::NeedPreviousMatrices::No;
 
   //< store visibility result for render trans
   const Occlusion *occlusion = (stg.hints & stg.RENDER_SHADOW) ? NULL : stg.occlusion;
@@ -524,7 +530,7 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
   auto process_one = [&](animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
                        const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
                        const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
-                       const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority, bool needImmediateConstPS) {
+                       const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority) {
     if (!(animchar_visbits & check_bits) || !stg.cullingFrustum.testSphereB(animchar_bsph, v_splat_w(animchar_bsph)) ||
         (occlusion && !occlusion->isVisibleBox(animchar_attaches_bbox ? animchar_attaches_bbox->bmin : animchar_bbox.bmin,
                         animchar_attaches_bbox ? animchar_attaches_bbox->bmax : animchar_bbox.bmax)))
@@ -539,38 +545,35 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
     G_ASSERT_RETURN(scene != nullptr, );
 
     // Render
-    const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-    const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-    G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
+    auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+    G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
     state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
-      needPreviousMatrices, nullptr, filter, pathFilterSize, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN), needImmediateConstPS,
+      needPreviousMatrices, {}, filter, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN),
       animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
       stg.texCtx);
   };
 
   if (eid)
   {
-    find_animchar_single_ecs_query(eid,
-      [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) animchar_visbits_t &animchar_visbits,
-        const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
-        const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
-        const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *invisibleUpdatableAnimchar,
-        bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
+    find_animchar_single_ecs_query(*g_entity_mgr, eid,
+      [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender) animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph,
+        const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
+        const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+        const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority = false) {
         process_one(animchar_visbits, animchar_bsph, animchar_bbox, animchar_attaches_bbox, animchar_render, additional_data,
-          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority, needImmediateConstPS);
+          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority);
       });
   }
   else
   {
     // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
-    gather_animchar_ecs_query(
-      [&](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor) animchar_visbits_t &animchar_visbits,
-        const vec4f &animchar_bsph, const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox,
-        const AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data,
-        const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *invisibleUpdatableAnimchar,
-        bool animchar__renderPriority = false, bool needImmediateConstPS = false) {
+    gather_animchar_ecs_query(*g_entity_mgr,
+      [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender) animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph,
+        const bbox3f &animchar_bbox, const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
+        const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
+        const ecs::Tag *invisibleUpdatableAnimchar, bool animchar__renderPriority = false) {
         process_one(animchar_visbits, animchar_bsph, animchar_bbox, animchar_attaches_bbox, animchar_render, additional_data,
-          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority, needImmediateConstPS);
+          animchar_render__nodeVisibleStgFilters, invisibleUpdatableAnimchar, animchar__renderPriority);
       });
   }
 
@@ -604,17 +607,17 @@ ECS_NO_ORDER
 static void animchar_render_opaque_es(const UpdateStageInfoRender &stg) { animchar_render_opaque({}, stg); }
 
 template <typename T>
-static inline void gather_animchar_vehicle_cockpit_ecs_query(T cb);
+static inline void gather_animchar_vehicle_cockpit_ecs_query(ecs::EntityManager &manager, T cb);
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpitPrepass &event)
+static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpitPrepass &event, ecs::EntityManager &manager)
 {
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-  gather_animchar_vehicle_cockpit_ecs_query(
+  gather_animchar_vehicle_cockpit_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag cockpitEntity) ECS_REQUIRE(ecs::EntityId cockpit__vehicleEid)
           const AnimV20::AnimcharRendComponent &animchar_render,
-      const ecs::Point4List *additional_data, const animchar_visbits_t &animchar_visbits, bool needImmediateConstPS = false) {
+      const ecs::Point4List *additional_data, const animchar_visbits_t &animchar_visbits) {
       // Use interlocked load b/c it's might intersect with `animchar_render_main_job` which adds bits
       if (!(interlocked_relaxed_load(animchar_visbits) & VISFLG_MAIN_AND_SHADOW_VISIBLE))
         return;
@@ -623,8 +626,9 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
       G_ASSERT_RETURN(scene != nullptr, );
 
       // Render
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data), false,
-        nullptr, nullptr, 0, 0, needImmediateConstPS);
+      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+        dynmodel_renderer::NeedPreviousMatrices::No, {}, dynmodel_renderer::PathFilterView::NULL_FILTER, 0,
+        dynmodel_renderer::RenderPriority::DEFAULT, nullptr, event.texCtx);
     });
   if (state.empty())
     return;
@@ -637,30 +641,29 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
 }
 
 ECS_TAG(render)
-static void copy_hero_crawling_es(const UpdateStageInfoBeforeRender &, bool &is_hero_crawling)
+static void copy_hero_crawling_es(const UpdateStageInfoBeforeRender &, ecs::EntityManager &manager, bool &is_hero_crawling)
 {
   // Copy to render entity to avoid data race with ParallelUpdateFrameDelayed
-  const bool isHeroCrawling = g_entity_mgr->getOr<bool>(game::get_controlled_hero(), ECS_HASH("human_net_phys__isCrawl"), false);
+  const bool isHeroCrawling = manager.getOr<bool>(game::get_controlled_hero(), ECS_HASH("human_net_phys__isCrawl"), false);
   is_hero_crawling = isHeroCrawling;
 }
 
 template <typename T>
-static inline void render_animchar_hmap_deform_ecs_query(T cb);
+static inline void render_animchar_hmap_deform_ecs_query(ecs::EntityManager &manager, T cb);
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es) // This ES is event one but it's still assumed to be called after
-static void animchar_render_hmap_deform_es(const RenderHmapDeform &event)
+static void animchar_render_hmap_deform_es(const RenderHmapDeform &event, ecs::EntityManager &manager)
 {
   TIME_D3D_PROFILE(animchar_render_hmap_deform);
 
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-  const ecs::EntityId heroCockpitRenderer = g_entity_mgr->getSingletonEntity(ECS_HASH("hero_cockpit_renderer"));
-  const bool isHeroCrawling = g_entity_mgr->getOr<bool>(heroCockpitRenderer, ECS_HASH("is_hero_crawling"), false);
-  const ecs::EidList *heroCockpitEntities =
-    g_entity_mgr->getNullable<ecs::EidList>(heroCockpitRenderer, ECS_HASH("hero_cockpit_entities"));
+  const ecs::EntityId heroCockpitRenderer = manager.getSingletonEntity(ECS_HASH("hero_cockpit_renderer"));
+  const bool isHeroCrawling = manager.getOr<bool>(heroCockpitRenderer, ECS_HASH("is_hero_crawling"), false);
+  const ecs::EidList *heroCockpitEntities = manager.getNullable<ecs::EidList>(heroCockpitRenderer, ECS_HASH("hero_cockpit_entities"));
 
   // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
-  render_animchar_hmap_deform_ecs_query(
-    [&state, isHeroCrawling, heroCockpitEntities](ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor)
+  render_animchar_hmap_deform_ecs_query(manager,
+    [&state, isHeroCrawling, heroCockpitEntities](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender)
                                                     ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
       AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t animchar_visbits, const ecs::Point4List *additional_data,
       const int *forced_lod_for_hmap_deform, const ecs::UInt8List *vehicle_trails__nodesFilter = nullptr,
@@ -683,10 +686,9 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event)
 
       // Render
       const DynamicRenderableSceneResource *lodResource = scene->getLodsResource()->lods[deformLod].scene;
-      const uint8_t *filter = vehicle_trails__nodesFilter ? vehicle_trails__nodesFilter->data() : nullptr;
-      int filter_size = vehicle_trails__nodesFilter ? vehicle_trails__nodesFilter->size() : 0;
+      auto filter = dynmodel_renderer::PathFilterView(vehicle_trails__nodesFilter);
       state.process_animchar(0, ShaderMesh::STG_opaque, scene, lodResource,
-        animchar_additional_data::get_optional_data(additional_data), false, nullptr, filter, filter_size, 1);
+        animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter, 1);
     });
 
   TMatrix itm = event.viewItm;
@@ -696,13 +698,13 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event)
 }
 
 template <typename Callable>
-__forceinline void animchar_render_trans_first_ecs_query(Callable c);
+__forceinline void animchar_render_trans_first_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-__forceinline void animchar_render_trans_second_ecs_query(Callable c);
+__forceinline void animchar_render_trans_second_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-__forceinline void animchar_render_distortion_ecs_query(Callable c);
+__forceinline void animchar_render_distortion_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-__forceinline ecs::QueryCbResult animchar_render_find_any_visible_distortion_ecs_query(Callable c);
+__forceinline ecs::QueryCbResult animchar_render_find_any_visible_distortion_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static inline bool isRenderableInStage(uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene)
 {
@@ -732,7 +734,7 @@ static inline bool isRenderableInStage(uint32_t start_stage, uint32_t end_stage,
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE_NOT(ecs::Tag late_transparent_render)
 ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar)
-ECS_REQUIRE_NOT(const Point3 semi_transparent__placingColor)
+ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender)
 ECS_REQUIRE_NOT(ecs::Tag requires_trans_render)
 static void animchar_render_trans_init_es_event_handler(const ecs::Event &,
   ecs::EntityId eid,
@@ -762,22 +764,23 @@ static void animchar_render_trans_init_es_event_handler(const ecs::Event &,
 }
 
 ECS_TAG(render)
-static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTrans &stg)
+static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTrans &stg, ecs::EntityManager &manager)
 {
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
 
-  animchar_render_trans_first_ecs_query(
+  animchar_render_trans_first_ecs_query(manager,
     [&state, &stg](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render)
                      AnimV20::AnimcharRendComponent &animchar_render,
-      animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
+      const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
+      const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-        const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-        G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, animchar_additional_data::get_null_data(), false,
-          nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::HIGH, nullptr, stg.texCtx);
+        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
+        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
+          animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+          UpdateStageInfoRender::RENDER_MAIN, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
@@ -789,22 +792,21 @@ static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTr
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRenderDistortion &stg)
+static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRenderDistortion &stg, ecs::EntityManager &manager)
 {
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
 
-  animchar_render_distortion_ecs_query(
+  animchar_render_distortion_ecs_query(manager,
     [&state, &stg](ECS_REQUIRE(ecs::Tag requires_distortion_render) AnimV20::AnimcharRendComponent &animchar_render,
       animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-        const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-        G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
+        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
         state.process_animchar(ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene,
-          animchar_additional_data::get_null_data(), false, nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false,
-          RenderPriority::HIGH, nullptr, stg.texCtx);
+          animchar_additional_data::get_null_data(), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+          UpdateStageInfoRender::RENDER_MAIN, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
@@ -816,11 +818,11 @@ static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRen
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static void animchar_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion &e)
+static void animchar_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion &e, ecs::EntityManager &manager)
 {
   if (e.needed)
     return;
-  e.needed |= animchar_render_find_any_visible_distortion_ecs_query(
+  e.needed |= animchar_render_find_any_visible_distortion_ecs_query(manager,
                 [](ECS_REQUIRE(ecs::Tag requires_distortion_render) animchar_visbits_t animchar_visbits) {
                   if (animchar_visbits & VISFLG_MAIN_VISIBLE)
                     return ecs::QueryCbResult::Stop;
@@ -830,26 +832,46 @@ static void animchar_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion
 
 void render_mainhero_trans(const TMatrix &view_tm)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  DynModelRenderingState &heroState = dynmodel_renderer::get_immediate_state();
+  DynModelRenderingState &heroCockpitState = *dynmodel_renderer::create_state("immediate_hero_trans_cockpit");
 
-  animchar_render_trans_second_ecs_query(
-    [&state](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
-      animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
+  animchar_render_trans_second_ecs_query(*g_entity_mgr,
+    [&heroState, &heroCockpitState](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
+      const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
+      const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *watchedPlayerItem = nullptr) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        const uint8_t *filter = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->begin() : nullptr;
-        const uint32_t pathFilterSize = animchar_render__nodeVisibleStgFilters ? animchar_render__nodeVisibleStgFilters->size() : 0;
-        G_ASSERT(!animchar_render__nodeVisibleStgFilters || pathFilterSize == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene, animchar_additional_data::get_null_data(), false,
-          nullptr, filter, pathFilterSize, UpdateStageInfoRender::RENDER_MAIN, false, RenderPriority::DEFAULT, nullptr,
-          ((WorldRenderer *)get_world_renderer())->getTexCtx());
+        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
+
+        DynModelRenderingState &targetState = watchedPlayerItem ? heroCockpitState : heroState;
+
+        if (watchedPlayerItem)
+          ShaderGlobal::set_int(is_hero_cockpitVarId, 1);
+
+        targetState.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
+          animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+          UpdateStageInfoRender::RENDER_MAIN, RenderPriority::DEFAULT, nullptr, ((WorldRenderer *)get_world_renderer())->getTexCtx());
+
+        ShaderGlobal::set_int(is_hero_cockpitVarId, 0);
       }
     });
 
   TMatrix vtm = view_tm;
   vtm.setcol(3, 0, 0, 0);
-  render_state(state, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+
+  {
+    TIME_D3D_PROFILE(hero_late_transparents)
+    render_state(heroState, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+  }
+  {
+    TIME_D3D_PROFILE(hero_transparent_cockpit);
+    ShaderGlobal::set_int(is_hero_cockpitVarId, 1);
+    render_state(heroCockpitState, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+    ShaderGlobal::set_int(is_hero_cockpitVarId, 0);
+  }
+
   d3d::settm(TM_VIEW, view_tm);
 }
 
@@ -860,15 +882,15 @@ static void close_animchar_bindpose_buffer_es(const EventOnGameShutdown &)
 }
 
 template <typename Callable>
-static void get_animchars_with_moved_decals_ecs_query(Callable c);
+static void get_animchars_with_moved_decals_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-static void mark_animchar_for_reactive_mask_ecs_query(ecs::EntityId eid, Callable c);
+static void mark_animchar_for_reactive_mask_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 static int last_decal_movement_frame_id = 0;
 
 void mark_animchar_for_reactive_mask_pass(ecs::EntityId eid)
 {
-  mark_animchar_for_reactive_mask_ecs_query(eid, [&](int &needsRenderToReactiveMask) {
+  mark_animchar_for_reactive_mask_ecs_query(*g_entity_mgr, eid, [&](int &needsRenderToReactiveMask) {
     last_decal_movement_frame_id = ::dagor_frame_no();
     needsRenderToReactiveMask = ::dagor_frame_no();
   });
@@ -876,13 +898,14 @@ void mark_animchar_for_reactive_mask_pass(ecs::EntityId eid)
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-static void init_vehicle_reactive_mask_node_es_event_handler(const ecs::Event &, dafg::NodeHandle &reactiveMaskNode)
+static void init_vehicle_reactive_mask_node_es_event_handler(
+  const ecs::Event &, ecs::EntityManager &manager, dafg::NodeHandle &reactiveMaskNode)
 {
-  reactiveMaskNode = dafg::register_node("render", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  reactiveMaskNode = dafg::register_node("render_vehicle_reactive_mask", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
     shaders::OverrideState state;
     state.set(shaders::OverrideState::Z_BIAS);
     state.zBias = 0.00025;
-    auto cameraHndl = use_camera_in_camera(registry);
+    auto cameraHndl = use_camera_in_camera(registry).handle();
     use_camera_in_camera_jitter_frustum_plane_shader_vars(registry);
     registry.requestState().setFrameBlock("global_frame").allowWireframe().enableOverride(state);
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
@@ -893,7 +916,7 @@ static void init_vehicle_reactive_mask_node_es_event_handler(const ecs::Event &,
 
     return [cameraHndl, depthHndl, reactiveMaskHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass"),
              animchar_reactive_mask_passVarId = ::get_shader_variable_id("animchar_reactive_mask_pass"),
-             animchar_reactive_mask_valueVarId = ::get_shader_variable_id("animchar_reactive_mask_value")]() {
+             animchar_reactive_mask_valueVarId = ::get_shader_variable_id("animchar_reactive_mask_value"), &manager]() {
       if (last_decal_movement_frame_id != ::dagor_frame_no() || reactiveMaskHndl.get() == nullptr)
         return;
 
@@ -904,9 +927,9 @@ static void init_vehicle_reactive_mask_node_es_event_handler(const ecs::Event &,
       const auto &camera = cameraHndl.ref();
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
       ShaderGlobal::set_int(animchar_reactive_mask_passVarId, 1);
-      ShaderGlobal::set_real(animchar_reactive_mask_valueVarId, 1);
+      ShaderGlobal::set_float(animchar_reactive_mask_valueVarId, 1);
 
-      get_animchars_with_moved_decals_ecs_query([&](int needsRenderToReactiveMask, ecs::EntityId eid) {
+      get_animchars_with_moved_decals_ecs_query(manager, [&](int needsRenderToReactiveMask, ecs::EntityId eid) {
         if (needsRenderToReactiveMask != ::dagor_frame_no())
           return;
         uint32_t hints = UpdateStageInfoRender::RENDER_COLOR;
@@ -915,7 +938,7 @@ static void init_vehicle_reactive_mask_node_es_event_handler(const ecs::Event &,
             camera.viewItm.getcol(3), camera.negRoundedCamPos, camera.negRemainderCamPos, nullptr, RENDER_MAIN));
       });
 
-      ShaderGlobal::set_real(animchar_reactive_mask_valueVarId, 0);
+      ShaderGlobal::set_float(animchar_reactive_mask_valueVarId, 0);
       ShaderGlobal::set_int(animchar_reactive_mask_passVarId, 0);
     };
   });
@@ -937,76 +960,77 @@ static bool animchar_console_handler(const char *argv[], int argc)
                              "\n";
     eastl::vector_map<ecs::string, IPoint2> nameCountMap;
 
-    count_animchar_renderer_ecs_query([&](const ecs::string &animchar__res, animchar_visbits_t animchar_visbits) {
+    count_animchar_renderer_ecs_query(*g_entity_mgr, [&](const ecs::string &animchar__res, animchar_visbits_t animchar_visbits) {
       IPoint2 &count_rendered = nameCountMap[animchar__res];
       count_rendered.x += 1;
       count_rendered.y +=
         (animchar_visbits & (VISFLG_MAIN_CAMERA_RENDERED | VISFLG_SEMI_TRANS_RENDERED | VISFLG_COCKPIT_VISIBLE)) != 0;
     });
 
-    gather_animchar_renderer_ecs_query([&](const AnimV20::AnimcharRendComponent &animchar_render, const ecs::string &animchar__res) {
-      auto lodsResources = animchar_render.getSceneInstance()->getLodsResource();
-      if (!lodsResources)
-        return;
-      IPoint2 &count_rendered_ref = nameCountMap[animchar__res];
-      IPoint2 count_rendered = count_rendered_ref;
-      if (count_rendered.x == 0) // already processed animchars with that name
-        return;
-      count_rendered_ref.x = 0;
-      Point3 bboxWidth = lodsResources->bbox.width();
-      float maxBoxEdge = max(max(bboxWidth.x, bboxWidth.y), bboxWidth.z) * 0.5f; // half of edge like a radius
+    gather_animchar_renderer_ecs_query(*g_entity_mgr,
+      [&](const AnimV20::AnimcharRendComponent &animchar_render, const ecs::string &animchar__res) {
+        auto lodsResources = animchar_render.getSceneInstance()->getLodsResource();
+        if (!lodsResources)
+          return;
+        IPoint2 &count_rendered_ref = nameCountMap[animchar__res];
+        IPoint2 count_rendered = count_rendered_ref;
+        if (count_rendered.x == 0) // already processed animchars with that name
+          return;
+        count_rendered_ref.x = 0;
+        Point3 bboxWidth = lodsResources->bbox.width();
+        float maxBoxEdge = max(max(bboxWidth.x, bboxWidth.y), bboxWidth.z) * 0.5f; // half of edge like a radius
 
-      cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "%s;%d;%d;%f;", animchar__res.c_str(), count_rendered.x,
-        count_rendered.y, maxBoxEdge);
-
-
-      struct LodInfo
-      {
-        int totalTris, totalDrawcalls;
-        int skinTris, skinDrawcalls, rigidsTris, rigidsDrawcalls;
-        float lodDistance, screenPercent;
-        LodInfo() = default;
-      };
-      constexpr int MAX_LODS = 4;
-      eastl::fixed_vector<LodInfo, MAX_LODS> lodsInfo;
+        cvs_dump += eastl::string(eastl::string::CtorSprintf{}, "%s;%d;%d;%f;", animchar__res.c_str(), count_rendered.x,
+          count_rendered.y, maxBoxEdge);
 
 
-      for (const auto &lod : lodsResources->lods)
-      {
-        LodInfo info = LodInfo();
-        for (const auto &skin : lod.scene->getSkins())
+        struct LodInfo
         {
-          skin->getMesh()->bonesCount();
-          const auto &mesh = skin->getMesh()->getShaderMesh();
-          info.skinTris += mesh.calcTotalFaces();
-          info.skinDrawcalls += mesh.getAllElems().size();
-        }
-        for (const auto &rigid : lod.scene->getRigidsConst())
-        {
-          const auto &mesh = *rigid.mesh->getMesh();
-          info.rigidsTris += mesh.calcTotalFaces();
-          info.rigidsDrawcalls += mesh.getAllElems().size();
-        }
+          int totalTris, totalDrawcalls;
+          int skinTris, skinDrawcalls, rigidsTris, rigidsDrawcalls;
+          float lodDistance, screenPercent;
+          LodInfo() = default;
+        };
+        constexpr int MAX_LODS = 4;
+        eastl::fixed_vector<LodInfo, MAX_LODS> lodsInfo;
 
-        float lodDistance = lod.range;
-        float sizeScale = 2.f / (tg * lodDistance);
-        // float spherePartOfScreen = bSphereRad * sizeScale;
-        float boxPartOfScreen = maxBoxEdge * sizeScale;
-        info.totalTris = info.rigidsTris + info.skinTris;
-        info.totalDrawcalls = info.rigidsDrawcalls + info.skinDrawcalls;
-        info.screenPercent = boxPartOfScreen * 100;
-        info.lodDistance = lodDistance;
-        lodsInfo.emplace_back(info);
-      }
+
+        for (const auto &lod : lodsResources->lods)
+        {
+          LodInfo info = LodInfo();
+          for (const auto &skin : lod.scene->getSkins())
+          {
+            skin->getMesh()->bonesCount();
+            const auto &mesh = skin->getMesh()->getShaderMesh();
+            info.skinTris += mesh.calcTotalFaces();
+            info.skinDrawcalls += mesh.getAllElems().size();
+          }
+          for (const auto &rigid : lod.scene->getRigidsConst())
+          {
+            const auto &mesh = *rigid.mesh->getMesh();
+            info.rigidsTris += mesh.calcTotalFaces();
+            info.rigidsDrawcalls += mesh.getAllElems().size();
+          }
+
+          float lodDistance = lod.range;
+          float sizeScale = 2.f / (tg * lodDistance);
+          // float spherePartOfScreen = bSphereRad * sizeScale;
+          float boxPartOfScreen = maxBoxEdge * sizeScale;
+          info.totalTris = info.rigidsTris + info.skinTris;
+          info.totalDrawcalls = info.rigidsDrawcalls + info.skinDrawcalls;
+          info.screenPercent = boxPartOfScreen * 100;
+          info.lodDistance = lodDistance;
+          lodsInfo.emplace_back(info);
+        }
 #define DUMP(format, var_name)                  \
   for (uint32_t lod = 0; lod < MAX_LODS; lod++) \
     cvs_dump += lod < lodsInfo.size() ? eastl::string(eastl::string::CtorSprintf{}, format, lodsInfo[lod].var_name) : ";";
-      DUMP("%d;", totalDrawcalls)
-      DUMP("%d;", totalTris)
-      DUMP("%.0f;", lodDistance)
-      DUMP("%.1f;", screenPercent)
-      cvs_dump += "\n";
-    });
+        DUMP("%d;", totalDrawcalls)
+        DUMP("%d;", totalTris)
+        DUMP("%.0f;", lodDistance)
+        DUMP("%.1f;", screenPercent)
+        cvs_dump += "\n";
+      });
     FullFileSaveCB cb("animchar_profiling_statistic.csv", DF_WRITE | DF_CREATE);
     cb.write(cvs_dump.c_str(), cvs_dump.size() - 1);
   }

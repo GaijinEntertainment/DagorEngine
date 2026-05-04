@@ -7,9 +7,18 @@ include "clouds_shadow.dshl"
 include "static_shadow.dshl"
 include "water_heightmap.dshl"
 
-float water_depth_above = 0;
 int shadow_frame;
 texture water_heightmap_lowres;
+
+// This parameters should me matched with (UNDERWATER_FOG_BASE_DIFFUSE, UNDERWATER_FOG_NORMAL_DIFFUSE) in water shader
+// TODO refactor this to reuse water shader parameters with water after 128 PS registers limit is lifted
+float underwater_fog_base_diffuse = 0.6;
+float underwater_fog_normal_diffuse = 0.4;
+
+float underwater_fog_base_spec = 0.3;
+float underwater_fog_strong_spec = 0.2;
+float underwater_fog_caustic = 0.5;
+float underwater_fog_base_ambient = 0.3;
 
 shader underwater_fog
 {
@@ -28,8 +37,6 @@ shader underwater_fog
   }
 
   DECL_POSTFX_TC_VS_SCR()
-  //USE_AND_INIT_VIEW_VEC_VS()
-  //INIT_STATIC_SHADOW_VS_ONE_CASCADE() // not enough vsmp for both cascades
   INIT_STATIC_SHADOW_VS()
   USE_STATIC_SHADOW_VS()
   (vs) {
@@ -43,7 +50,6 @@ shader underwater_fog
     VsOutput postfx_vs(uint vertexId : SV_VertexID)
     {
       VsOutput output;
-      //float2 inpos = input.pos.xy;
       float2 inpos = get_fullscreen_inpos(vertexId);
 
       output.pos = float4(inpos,0,1);
@@ -67,25 +73,62 @@ shader underwater_fog
   INIT_UNDERWATER_FOG(ps)
   GET_UNDERWATER_FOG()
 
-  INIT_STATIC_SHADOW() // not enough vsmp for both cascades
+  INIT_STATIC_SHADOW()
   USE_STATIC_SHADOW()
 
   INIT_SKYLIGHT_PARAMS(ps)
   USE_SKYLIGHT_PARAMS(ps)
   INIT_SKY_UP_DIFFUSE(ps)
-  local float4 vertical_fade_exponent = (underwater_fade * (world_view_pos.y - water_level));
-  local float4 sun_fade_exponent = (vertical_fade_exponent / max(0.001, -from_sun_direction.y));
-  local float e = 2.7182821828459045;
   (ps) {
-    water_level@f3 = (world_view_pos.y-water_level, -water_depth_above,world_view_pos.y,0);
+    water_level_ocean@f1 = water_level;
     frame@f1 = (shadow_frame);
-    underwater_fade@f3 = (underwater_fade.x, underwater_fade.y, underwater_fade.z, 0);
-    sun_color_0@f4 = (sun_color_0.x, sun_color_0.y, sun_color_0.z, -from_sun_direction.y);
+    underwater_fade@f3 = underwater_fade;
+    sun_color_0@f3 = sun_color_0;
+    from_sun_direction@f3 = from_sun_direction;
     water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    fog_base_diffuse@f1 = underwater_fog_base_diffuse;
+    fog_normal_diffuse@f1 = underwater_fog_normal_diffuse;
+    fog_base_spec@f1 = underwater_fog_base_spec;
+    fog_strong_spec@f1 = underwater_fog_strong_spec;
+    fog_caustic@f1 = underwater_fog_caustic;
+    fog_base_ambient@f1 = underwater_fog_base_ambient;
   }
   INIT_WORLD_TO_WATER_HEIGHTMAP(ps)
   hlsl(ps) {
     #include <interleavedGradientNoise.hlsl>
+
+    float3 fog_brdf(float3 point_to_eye, float3 ambient, float caustic, float shadow)
+    {
+      float SoV = dot(from_sun_direction.xyz, point_to_eye.xyz);
+      // lift ambient luma to fog_base_ambient floor. two steps:
+      //  1. desat near-black: lerp(grey, ambient, saturate(luma*20)).
+      //     fade chroma over luma 0..0.05. always on, independent of
+      //     floor. defence: lifting one tiny channel alone = neon poison,
+      //     grey shadow better than acid shadow.
+      //  2. mul lift: scale = max(floor, luma) / luma. above floor
+      //     scale=1, below pull all channels uniform.
+      // 1e-4 eps on luma keeps rcp finite. floor=0 near-noop: ~1e-4 luma
+      // grey leak on pure-black input, sub-perceptual.
+      float ambient_luma = max(luminance(ambient), 1e-4f);
+      float3 rescaled_ambient = lerp(ambient_luma.xxx, ambient, saturate(ambient_luma * 20.0f));
+      rescaled_ambient *= max(fog_base_ambient, ambient_luma) * rcp(ambient_luma);
+      float3 diffuse = rescaled_ambient + sun_color_0 * (fog_base_diffuse + fog_normal_diffuse * (1.0f + SoV)) * (caustic + 0.5f) * shadow;
+      float SoV9 = pow3(pow3(saturate(SoV)));
+      float specular = (fog_base_spec * SoV9 + fog_strong_spec * pow3(SoV9)) * caustic * shadow;
+
+      return (diffuse + specular);
+    }
+
+    float get_water_height(float3 worldPos)
+    {
+      float water_level = water_level_ocean;
+      ##if water_heightmap_lowres != NULL
+        float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+        water_level = tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv, 0, 0)).r;
+      ##endif
+      return worldPos.y - water_level;
+    }
+
     float4 postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float4 pos = GET_SCREEN_POS(input.pos);
@@ -93,21 +136,9 @@ shader underwater_fog
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, input.tc.x), lerp(view_vecLB, view_vecRB, input.tc.x), input.tc.y);
       float3 pointToEye = -viewVect * w;
-      float3 view = normalize(pointToEye);
       float dist = length(pointToEye);
-      float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
-      float water_height = water_level.x;
-      ##if water_heightmap_lowres != NULL
-      float2 water_heightmap_lowres_uv = worldPos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
-      water_height = water_level.z - tex2Dlod(water_heightmap_lowres, float4(water_heightmap_lowres_uv,0,0)).r;
-      if (water_height > 0)
-        water_height = 0;
-      ##endif
-      float3 vertical_fade_exponent = underwater_fade * water_height;
-      float3 sun_fade_exponent = (vertical_fade_exponent / max(0.001, sun_color_0.w));
-      float3 sun_color = sun_color_0.xyz * exp(sun_fade_exponent);
+      float3 vertical_fade_exponent = min(underwater_fade * get_water_height(world_view_pos), 0.0);  // TODO need to calculate proper extinction in each sample
       float3 enviFade = exp(vertical_fade_exponent);
-
       float waterDepth = dist; // Assumes that water writes depth
 
 
@@ -126,23 +157,10 @@ shader underwater_fog
       }
       half4 accumulatedScattering;
       averageShadow*=1./(STEPS+viewPointWeight);
-      float3 sunLight = sun_color * averageShadow * input.shadow.y;
-      float3 evironmentLight = enviUp * enviFade;
-      accumulatedScattering.rgb = (sunLight + evironmentLight) * (1 - waterVolumeFog) * oceanColor.rgb / 4;
+      float3 environmentLight = enviUp * enviFade;
+      accumulatedScattering.rgb = oceanColor.rgb * fog_brdf(normalize(pointToEye), environmentLight, fog_caustic, averageShadow * input.shadow.y) * (1 - waterVolumeFog);
       accumulatedScattering.a = pow(waterVolumeFog, 1/2.2);
-      //return half4(waterVolumeFog.xxx,0);
       return accumulatedScattering;
-      //averageShadow/=(STEPS+1);
-      //half3 lighting = sun_color_0 * averageShadow*input.shadow.y + enviUp;
-      //return float4(oceanColor.rgb*lighting/4, waterVolumeFog);//todo: lit
-      //half3 underwater_loss, underwater_inscatter;
-      //get_underwater_fog(world_view_pos, worldPos, view, waterDepth, 1, 0, underwater_loss, underwater_inscatter);
-      //return float4(underwater_inscatter, underwater_loss.g);
-      //float3 waterDensity = -0.95;
-      //float waterVolumeFog = exp2(waterDensity*waterDepth);//*waterFilter
-      //float3 waterFilter = float3(0.15, 0.5, 0.6);
-      //float3 water = exp2(waterDensity*waterDepth*waterFilter);
-      //return float4(waterFilter, 1-waterVolumeFog);
     }
   }
 

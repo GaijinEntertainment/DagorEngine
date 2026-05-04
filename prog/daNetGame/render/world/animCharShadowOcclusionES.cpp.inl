@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <generic/dag_tab.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <ecs/anim/anim.h>
@@ -113,21 +115,21 @@ ECS_REGISTER_RELOCATABLE_TYPE(AnimCharShadowOcclusionManager, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(AnimCharShadowOcclusionManager, "animchar_shadow_occlusion_manager", nullptr, 0);
 
 template <typename Callable>
-inline void animchar_shadow_occlusion_manager_ecs_query(Callable c);
+inline void animchar_shadow_occlusion_manager_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void test_box_half_size_ecs_query(Callable c);
+inline void test_box_half_size_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void gather_soldier_bboxes_to_cull_ecs_query(Callable c);
+inline void gather_soldier_bboxes_to_cull_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void expand_bbox_by_attach_ecs_query(ecs::EntityId eid, Callable c);
+inline void expand_bbox_by_attach_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 AnimCharShadowOcclusionManager *get_animchar_shadow_occlusion()
 {
   AnimCharShadowOcclusionManager *result = nullptr;
-  animchar_shadow_occlusion_manager_ecs_query(
+  animchar_shadow_occlusion_manager_ecs_query(*g_entity_mgr,
     [&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) { result = &animchar_shadow_occlusion_manager; });
   return result;
 }
@@ -146,7 +148,7 @@ static void expand_bbox_by_attaches(bbox3f &bbox, ecs::EntityId owner_eid, const
 
   for (ecs::EntityId attachedEid : *attaches_list)
   {
-    expand_bbox_by_attach_ecs_query(attachedEid,
+    expand_bbox_by_attach_ecs_query(*g_entity_mgr, attachedEid,
       [&](const bbox3f &animchar_shadow_cull_bbox, const animchar_visbits_t &animchar_visbits,
         ecs::EntityId animchar_attach__attachedTo ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
         // we process shadow visibility in same time in other thread. it adds _other_ bit
@@ -185,7 +187,7 @@ bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
   float maxTestingDist = csmShadowsMaxDist;
   vec4f testBboxExpandSize = v_zero();
   vec4f testBboxMaxHalfSize = v_zero();
-  test_box_half_size_ecs_query(
+  test_box_half_size_ecs_query(*g_entity_mgr,
     [&](const Point3 &soldier_bbox_expand_size,
       const Point3 &soldier_bbox_max_half_size ECS_REQUIRE(const AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager)) {
       testBboxExpandSize = v_make_vec4f(soldier_bbox_expand_size.x, soldier_bbox_expand_size.y, soldier_bbox_expand_size.z, 0.0f);
@@ -195,7 +197,7 @@ bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
   float expandSizeShadows = getStaticShadowsBiggestTexelSize() * 0.5f;
   vec4f bboxExpandSize = v_add(v_make_vec4f(expandSizeShadows, expandSizeShadows, expandSizeShadows, 0.0f), testBboxExpandSize);
 
-  gather_soldier_bboxes_to_cull_ecs_query(
+  gather_soldier_bboxes_to_cull_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid, const AnimV20::AnimcharRendComponent &animchar_render, const vec4f &animchar_bsph,
       const bbox3f &animchar_shadow_cull_bbox, const animchar_visbits_t &animchar_visbits,
       const ecs::EidList *attaches_list ECS_REQUIRE(eastl::true_type animchar_render__enabled = true) ECS_REQUIRE(ecs::Tag human)) {
@@ -245,7 +247,7 @@ bbox3f ShadowsManager::gatherBboxesForAnimcharShadowCull(const Point3 &cam_pos,
 void ShadowsManager::setAnimcharShadowCullBboxes(dag::Span<bbox3f> tested_bboxes, const Point3 &cam_pos)
 {
   vec4f vExpandSize = v_splats(getStaticShadowsBiggestTexelSize() * 0.5f);
-  animchar_shadow_occlusion_manager_ecs_query([&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) {
+  animchar_shadow_occlusion_manager_ecs_query(*g_entity_mgr, [&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) {
     // We need to transform back the tested bbox to the original bbox.
     for (bbox3f &bbox : tested_bboxes)
     {
@@ -258,7 +260,7 @@ void ShadowsManager::setAnimcharShadowCullBboxes(dag::Span<bbox3f> tested_bboxes
 
 void ShadowsManager::invalidateAnimCharShadowOcclusionBox(const BBox3 &box)
 {
-  animchar_shadow_occlusion_manager_ecs_query([&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) {
+  animchar_shadow_occlusion_manager_ecs_query(*g_entity_mgr, [&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) {
     bbox3f vBox;
     vBox.bmin = v_make_vec4f(box[0].x, box[0].y, box[0].z, 0.0f);
     vBox.bmax = v_make_vec4f(box[1].x, box[1].y, box[1].z, 0.0f);
@@ -268,7 +270,7 @@ void ShadowsManager::invalidateAnimCharShadowOcclusionBox(const BBox3 &box)
 
 static void invalidate_animchar_shadow_occlusion()
 {
-  animchar_shadow_occlusion_manager_ecs_query(
+  animchar_shadow_occlusion_manager_ecs_query(*g_entity_mgr,
     [&](AnimCharShadowOcclusionManager &animchar_shadow_occlusion_manager) { animchar_shadow_occlusion_manager.invalidate(); });
 }
 

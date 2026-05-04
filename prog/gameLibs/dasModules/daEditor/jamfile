@@ -1,4 +1,4 @@
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 Root    ?= ../../../.. ;
 local LibPath = gameLibs/dasModules/daEditor ;

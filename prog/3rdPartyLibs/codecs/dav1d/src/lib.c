@@ -156,8 +156,10 @@ COLD int dav1d_open(Dav1dContext **const c_out, const Dav1dSettings *const s) {
 
     pthread_attr_t thread_attr;
     if (pthread_attr_init(&thread_attr)) return DAV1D_ERR(ENOMEM);
-    size_t stack_size = 1024 * 1024 + get_stack_size_internal(&thread_attr);
-
+    size_t stack_size = 256 * 1024 + get_stack_size_internal(&thread_attr);
+#if ARCH_X86 || ARCH_X86_64
+    if (!(dav1d_get_cpu_flags() & DAV1D_X86_CPU_FLAG_SSSE3)) stack_size *= 2;
+#endif
     pthread_attr_setstacksize(&thread_attr, stack_size);
 
 #if defined(_TARGET_C1)

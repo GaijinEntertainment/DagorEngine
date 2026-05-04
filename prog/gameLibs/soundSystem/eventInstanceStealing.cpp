@@ -9,9 +9,9 @@
 #include <soundSystem/soundSystem.h>
 #include <soundSystem/eventInstanceStealing.h>
 #include "internal/fmodCompatibility.h"
-#include "internal/delayed.h"
-#include "internal/events.h"
-#include "internal/debug.h"
+#include "internal/delayed_internal.h"
+#include "internal/events_internal.h"
+#include "internal/debug_internal.h"
 
 namespace sndsys
 {

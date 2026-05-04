@@ -504,7 +504,7 @@ void SphereLightObject::clearMats()
 MaterialData *SphereLightObject::makeMat(const char *class_name, const Color4 &emis, const Color4 &amb_emis, real power)
 {
   for (int i = 0; i < sharedMats.size(); i++)
-    if (sharedMats[i] && stricmp(sharedMats[i]->className, class_name) == NULL && sharedMats[i]->mat.emis == emis &&
+    if (sharedMats[i] && stricmp(sharedMats[i]->className, class_name) == 0 && sharedMats[i]->mat.emis == emis &&
         sharedMats[i]->mat.amb == amb_emis && sharedMats[i]->mat.power == power)
       return sharedMats[i];
 
@@ -527,7 +527,7 @@ MaterialData *SphereLightObject::makeMat(const char *class_name, const Color4 &e
 StaticGeometryMaterial *SphereLightObject::makeMat2(const char *class_name, const Color4 &emis, const Color4 &amb_emis, real power)
 {
   for (int i = 0; i < sharedMats2.size(); i++)
-    if (sharedMats2[i] && stricmp(sharedMats2[i]->className, class_name) == NULL && sharedMats2[i]->emis == emis &&
+    if (sharedMats2[i] && stricmp(sharedMats2[i]->className, class_name) == 0 && sharedMats2[i]->emis == emis &&
         sharedMats2[i]->amb == amb_emis && sharedMats2[i]->power == power)
       return sharedMats2[i];
 

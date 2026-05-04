@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_motionMatching_pull gameLibs_motionMatching_DAS_pull_AOT MotionMatchingModule_pull ;
+  UseProgLibs += gameLibs/anim/motionMatching ;
+}

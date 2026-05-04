@@ -14,6 +14,7 @@ namespace dedicated_matching
 namespace state_data
 {
 extern bool (*generate_peer_auth)(matching::UserId user_id, void const *room_secret, size_t secret_size, matching::AuthKey &output);
+extern void (*try_start_relay_and_subscribe)(void(__cdecl *relay_status_subscribe)(bool enabled));
 } // namespace state_data
 } // namespace dedicated_matching
 

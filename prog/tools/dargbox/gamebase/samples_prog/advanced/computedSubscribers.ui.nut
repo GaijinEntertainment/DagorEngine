@@ -47,8 +47,8 @@ gui_scene.setInterval(1.0, @() everySecond.set(everySecond.get() + 1))
 
 let mkHeader = @(text) {
   rendObj = ROBJ_FRAME
-  padding = static [3, 5]
-  borderWidth = static [0, 0, 1, 0]
+  padding = const [3, 5]
+  borderWidth = const [0, 0, 1, 0]
   children = {
     rendObj = ROBJ_TEXT
     text
@@ -59,7 +59,7 @@ let mkObservable = @(label, observe) @() {
   watch = observe
   rendObj = ROBJ_TEXT
   text = $"{label} : {observe.get()}"
-  padding = static [3, 5]
+  padding = const [3, 5]
 }
 
 return {

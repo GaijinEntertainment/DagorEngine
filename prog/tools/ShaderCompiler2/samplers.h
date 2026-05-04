@@ -4,6 +4,8 @@
 #include "shsyn.h"
 #include "shlexterm.h"
 #include "globVar.h"
+#include "shaderSave.h"
+#include "hash.h"
 #include <generic/dag_tab.h>
 #include <drv/3d/dag_sampler.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -26,12 +28,14 @@ class Sampler
 
 public:
   Sampler() = default;
+
   int mId = 0;
-  int mNameId = 0;
-  d3d::SamplerInfo mSamplerInfo;
+  NameId<VarMapAdapter> mNameId;
+  d3d::SamplerInfo mSamplerInfo{};
   ShaderTerminal::arithmetic_expr *mBorderColor = nullptr;
   ShaderTerminal::arithmetic_expr *mAnisotropicMax = nullptr;
   ShaderTerminal::arithmetic_expr *mMipmapBias = nullptr;
+  bindump::Ptr<CryptoHash> mSourceHash{};
   bool mIsStaticSampler = false;
 
   Sampler &operator=(const Sampler &) = default;
@@ -40,9 +44,19 @@ public:
   friend void add_dynamic_sampler_for_stcode(ShaderSemCode &, ShaderClass &, ShaderTerminal::sampler_decl &, Parser &, VarNameMap &);
 };
 
+struct ImmutableSamplerRef
+{
+  int samplerId = -1;
+  int globalVarId = -1;
+
+  friend inline bool operator==(ImmutableSamplerRef r1, ImmutableSamplerRef r2) = default;
+  friend inline bool operator!=(ImmutableSamplerRef r1, ImmutableSamplerRef r2) = default;
+};
+
 class SamplerTable
 {
   Tab<Sampler> mSamplers;
+  Tab<ImmutableSamplerRef> mImmutableSamplers;
   ska::flat_hash_map<eastl::string, int> mSamplerIds;
   VarNameMap &varNameMap;
   ShaderGlobal::VarTable &globvars;
@@ -54,15 +68,23 @@ public:
   {}
 
   void add(ShaderTerminal::sampler_decl &smp_decl, Parser &parser);
-  void link(const Tab<Sampler> &new_samplers, Tab<int> &smp_link_table);
+  void link(dag::ConstSpan<Sampler> new_samplers, dag::ConstSpan<ImmutableSamplerRef> new_immutable_samplers,
+    dag::ConstSpan<int> gvar_link_table, Tab<int> &smp_link_table);
   Sampler *get(const char *name);
 
-  void emplaceSamplers(Tab<Sampler> &&samplers)
+  // @TODO: support static (and immutable) samplers for materials
+  void reportImmutableSampler(int id, int gvar_id);
+
+  void emplaceSamplers(Tab<Sampler> &&samplers, Tab<ImmutableSamplerRef> &&immutable_samplers)
   {
-    G_ASSERT(mSamplers.empty() && mSamplerIds.empty());
+    G_ASSERT(mSamplers.empty() && mImmutableSamplers.empty() && mSamplerIds.empty());
     mSamplers = eastl::move(samplers);
+    mImmutableSamplers = eastl::move(immutable_samplers);
   }
-  Tab<Sampler> releaseSamplers();
+  eastl::pair<Tab<Sampler>, Tab<ImmutableSamplerRef>> releaseSamplers();
+
+  dag::ConstSpan<Sampler> getSamplers() const { return mSamplers; }
+  dag::ConstSpan<ImmutableSamplerRef> getImmutableSamplers() const { return mImmutableSamplers; }
 
   void clear();
 };

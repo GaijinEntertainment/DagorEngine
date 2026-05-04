@@ -128,9 +128,6 @@ protected:
   TEXTUREID vertTexId;
   TEXTUREID vertNmTexId;
   TEXTUREID vertDetTexId;
-  d3d::SamplerHandle vertTexSmp = d3d::INVALID_SAMPLER_HANDLE;
-  d3d::SamplerHandle vertNmTexSmp = d3d::INVALID_SAMPLER_HANDLE;
-  d3d::SamplerHandle vertDetTexSmp = d3d::INVALID_SAMPLER_HANDLE;
   LandRayTracer *landTracer;
   bool useVertTexforHMAP;
   bool toolsInternal;
@@ -184,7 +181,7 @@ public:
   void updateOverrideSamplers();
   void setHmapLodDistance(int lodD);
   int getHmapLodDistance() const;
-  bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data);
+  bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data, float water_level = -1000000, float shore_error_meters = 2.0f);
   PhysMap *loadPhysMap(IGenLoad &loadCb, bool lmp2);
   void filterHeighLandmeshDecals(const DataBlock &levelBlk);
   const carray<Tab<TEXTUREID>, NUM_TEXTURES_STACK> &getMegaDetailsId() const { return megaDetailsId; }
@@ -332,7 +329,15 @@ public:
   Tab<LandClassDetailTextures> &getLandClasses() { return landClasses; }
   const Tab<int> &getDetailGroupsToPhysMats() const { return detailGroupsToPhysMats; }
 
+  void replaceHeightmapHandler(HeightmapHandler *h, bool need_land_tracer);
+
+  static carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> getDecalsTexReferencesForSamplers();
+  static carray<d3d::SamplerHandle, DECALS_OVERRIDE_SAMPLERS_COUNT> getOverrideSamplers(const ShaderMesh::RElem &re,
+    const carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> &tex_refs);
+
 private:
+  void initHmapCullingState();
+
   eastl::optional<LandMeshHolesManager> holesMgr; // Meant to be last member (since it might be absent)
 };
 DAG_DECLARE_RELOCATABLE(LandMeshManager::CellData);

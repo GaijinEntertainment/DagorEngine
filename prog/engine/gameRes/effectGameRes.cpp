@@ -85,15 +85,15 @@ public:
   bool isResLoaded(int res_id) override { return findRes(res_id) >= 0; }
   bool checkResPtr(GameResource *res) override { return findGameRes(res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -146,12 +146,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = gameRes.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(gameRes[i].resId) > 0)
+      if (rrl && is_res_required(rrl, gameRes[i].resId))
         continue;
       if (gameRes[i].refCount != 0)
       {
@@ -210,7 +210,7 @@ public:
   }
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     BaseEffectFactory *factory;
@@ -240,8 +240,9 @@ public:
       const int *refIds;
       int numRefs;
       int selfId;
+      RRL rrl;
 
-      LoadCB(const int *ref_ids, int num_refs, int self_id) : refIds(ref_ids), numRefs(num_refs), selfId(self_id) {}
+      LoadCB(const int *ref_ids, int num_refs, int self_id, RRL r) : refIds(ref_ids), numRefs(num_refs), selfId(self_id), rrl(r) {}
 
       int getSelfGameResId() override { return selfId; }
       void *getReference(int id) override
@@ -249,46 +250,41 @@ public:
         if (id < 0 || id >= numRefs)
           return NULL;
 
-        if (get_gameres_sys_ver() == 2)
+        textag_mark_begin(TEXTAG_FX);
+        ::get_game_resource_name(refIds[id], tmpStr);
+        tmpStr += "*";
+        TEXTUREID texid = ::get_managed_texture_id(tmpStr);
+
+        if (texid != BAD_TEXTUREID)
         {
-          textag_mark_begin(TEXTAG_FX);
-          ::get_game_resource_name(refIds[id], tmpStr);
-          tmpStr += "*";
-          TEXTUREID texid = ::get_managed_texture_id(tmpStr);
+          String tmp_storage;
+          dagor_set_sm_tex_load_ctx_type(EffectGameResClassId);
+          dagor_set_sm_tex_load_ctx_name(NULL);
+          if (const char *name = IShaderMatVdataTexLoadCtrl::preprocess_tex_name(tmpStr, tmp_storage))
+            texid = ::get_managed_texture_id(name);
+          else
+            texid = BAD_TEXTUREID;
+          dagor_reset_sm_tex_load_ctx();
 
-          if (texid != BAD_TEXTUREID)
+          BaseTexture *tex = acquire_managed_tex(texid);
+          if (tex)
           {
-            String tmp_storage;
-            dagor_set_sm_tex_load_ctx_type(EffectGameResClassId);
-            dagor_set_sm_tex_load_ctx_name(NULL);
-            if (const char *name = IShaderMatVdataTexLoadCtrl::preprocess_tex_name(tmpStr, tmp_storage))
-              texid = ::get_managed_texture_id(name);
-            else
-              texid = BAD_TEXTUREID;
-            dagor_reset_sm_tex_load_ctx();
-
-            BaseTexture *tex = acquire_managed_tex(texid);
-            if (tex)
-            {
-              add_anisotropy_exception(texid);
-            }
-            textag_mark_end();
-            return (void *)(uintptr_t) unsigned(texid);
+            add_anisotropy_exception(texid);
           }
           textag_mark_end();
-          int cls = get_game_res_class_id(refIds[id]);
-          if (cls && cls != EffectGameResClassId)
-          {
-            ::get_game_resource_name(refIds[id], tmpStr);
-            logerr("bad FX ref[%d]: id=%d name=%s cls=%08X", id, refIds[id], tmpStr, cls);
-            return NULL;
-          }
-          return ::get_game_resource(refIds[id]);
+          return (void *)(uintptr_t) unsigned(texid);
         }
-
-        return ::get_game_resource(refIds[id]);
+        textag_mark_end();
+        unsigned cls = get_game_res_class_id(refIds[id]);
+        if (cls && cls != EffectGameResClassId)
+        {
+          ::get_game_resource_name(refIds[id], tmpStr);
+          logerr("bad FX ref[%d]: id=%d name=%s cls=%08X", id, refIds[id], tmpStr, cls);
+          return NULL;
+        }
+        return get_game_resource(refIds[id], rrl);
       }
-    } loadCb(ref_ids, num_refs, res_id);
+    } loadCb(ref_ids, num_refs, res_id, rrl);
 
     auto object = factory ? (BaseEffectObject *)factory->createObject() : nullptr;
     if (object)

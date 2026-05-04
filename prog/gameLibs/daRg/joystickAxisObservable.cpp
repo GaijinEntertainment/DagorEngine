@@ -9,7 +9,15 @@
 namespace darg
 {
 
-JoystickAxisObservable::JoystickAxisObservable(GuiScene *gui_scene) : BaseObservable(gui_scene->frpGraph.get()) { generation = -1; }
+JoystickAxisObservable::JoystickAxisObservable(GuiScene *gui_scene)
+{
+  graph = gui_scene->frpGraph.get();
+  HSQOBJECT initial;
+  sq_resetobject(&initial);
+  initial._type = OT_FLOAT;
+  initial._unVal.fFloat = 0.0f;
+  id = graph->createWatched(initial);
+}
 
 
 void JoystickAxisObservable::update(float val)
@@ -21,16 +29,8 @@ void JoystickAxisObservable::update(float val)
   if (fabsf(value - lastNotifiedVal) > resolution * 0.5f)
   {
     lastNotifiedVal = value;
-    String errMsg;
-    triggerRoot(errMsg);
+    graph->setValue(id, Sqrat::Object(value, graph->vm));
   }
 }
-
-
-Sqrat::Object JoystickAxisObservable::getValueForNotify() const { return Sqrat::Object(value, graph->vm); }
-
-void JoystickAxisObservable::fillInfo(Sqrat::Table &t) const { t.SetValue("value", value); }
-
-void JoystickAxisObservable::fillInfo(String &s) const { s.printf(0, "value = %.3f", value); }
 
 } // namespace darg

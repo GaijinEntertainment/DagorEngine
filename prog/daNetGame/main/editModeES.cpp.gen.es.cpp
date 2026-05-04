@@ -22,9 +22,9 @@ static ecs::CompileTimeQueryDesc make_animchar_not_updatable_ecs_query_desc
   make_span(make_animchar_not_updatable_ecs_query_comps+1, 1)/*rq*/,
   make_span(make_animchar_not_updatable_ecs_query_comps+2, 2)/*no*/);
 template<typename Callable>
-inline void make_animchar_not_updatable_ecs_query(Callable function)
+inline void make_animchar_not_updatable_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, make_animchar_not_updatable_ecs_query_desc.getHandle(),
+  perform_query(&manager, make_animchar_not_updatable_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

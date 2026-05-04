@@ -233,6 +233,9 @@ void VisibilityPrepareJob::finalize()
 
   // will be needed after CSM, but before lights
   G_ASSERT(rendinstMainVisibility);
+  rendinst::setRIGenVisibilityRendering(rendinstMainVisibility,
+    rendinst::VisibilityRenderingFlag::All | rendinst::VisibilityRenderingFlag::AllowSeparateRendering);
+  jobs->riExtraRenderJob->renderingSubset = rendinst::RiExtraRenderingSubset::OnlyStatic;
   jobs->rendinstExtraVisibilityJobs[RENDER_MAIN_JOB].start(jobs, occlusion, (mat44f &)globtm, itm.getcol(3),
     transparentPartitionSphere, rendinstMainVisibility, false, threadpool::PRIO_NORMAL, target, RI_EXTRA_VIS_MAIN_JOB);
   jobs->rendinstVisibilityJobs[RENDER_MAIN_JOB].start(occlusion, frustum, itm.getcol(3), rendinstMainVisibility, false,
@@ -264,6 +267,7 @@ void GroundCullingJob::start(const VisibilityJobsContext *jc,
   const float hmap_camera_height,
   const float water_level,
   const int displacement_sub_div,
+  const float displacement_radius,
   threadpool::JobPriority prio)
 {
   threadpool::wait(this, 0, threadpool::NUM_PRIO);
@@ -282,14 +286,20 @@ void GroundCullingJob::start(const VisibilityJobsContext *jc,
   hmapCameraHeight = hmap_camera_height;
   waterLevel = water_level;
   displacementSubDiv = displacement_sub_div;
+  displacementRadius = displacement_radius;
   threadpool::add(this, prio, /*wake*/ false);
 }
 
 void GroundCullingJob::doJob()
 {
   threadpool::wait(jobs->visibilityJob, 0, threadpool::NUM_PRIO);
+  HeightmapMetricsQuality mq = {proj_to_distance_scale(viewProj)};
+  mq.maxRelativeTexelTess = displacementSubDiv;
+  mq.displacementDist = displacementRadius;
+  mq.displacementFalloff = 0.25f;
+
   lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{viewPos, hmapCameraHeight, waterLevel, frustum, occlusion, 0, displacementSubDiv, 1, viewProj});
+    HeightmapFrustumCullingInfo{viewPos, hmapCameraHeight, waterLevel, frustum, occlusion, nullptr, 0, displacementSubDiv, 1, mq});
 }
 
 void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
@@ -324,8 +334,8 @@ void GroundReflectionCullingJob::doJob()
 {
   threadpool::wait(jobs->visibilityJob, 0, threadpool::NUM_PRIO);
   lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{
-      viewPos, hmapCameraHeight, waterLevel, frustum, nullptr, 0, 0, 1, viewProj, 0.5, HeightmapFrustumCullingInfo::FASTEST});
+    HeightmapFrustumCullingInfo{viewPos, hmapCameraHeight, waterLevel, frustum, nullptr, nullptr, 0, 0, 1,
+      {proj_to_distance_scale(viewProj), -1, HeightmapMetricsQuality::FASTEST}});
 }
 
 void LightsCullingJob::start(Occlusion *occlusion_, const CameraParams &cur_frame_camera, threadpool::JobPriority prio)

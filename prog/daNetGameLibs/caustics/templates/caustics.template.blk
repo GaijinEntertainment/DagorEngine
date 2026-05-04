@@ -11,9 +11,6 @@ caustics{
   "combined_shadows__additional_textures:list<t>"{
     item:t="caustics_tex"
   }
-  "combined_shadows__additional_samplers:list<t>"{
-    item:t="caustics_tex_samplerstate"
-  }
 }
 
 caustics_settings{

@@ -16,7 +16,8 @@ static void update_water_level_values_es_all_events(const ecs::Event &__restrict
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_level_values_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(update_water_level_values_es_comps, "water", FFTWater)
+        , components.manager()
+    , ECS_RW_COMP(update_water_level_values_es_comps, "water", FFTWater)
     , ECS_RW_COMP(update_water_level_values_es_comps, "is_underwater", bool)
     , ECS_RW_COMP(update_water_level_values_es_comps, "water_level", float)
     );
@@ -47,9 +48,9 @@ static ecs::CompileTimeQueryDesc get_is_underwater_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_is_underwater_ecs_query(Callable function)
+inline void get_is_underwater_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_is_underwater_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_is_underwater_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -75,9 +76,9 @@ static ecs::CompileTimeQueryDesc is_water_hidden_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void is_water_hidden_ecs_query(Callable function)
+inline void is_water_hidden_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_water_hidden_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_water_hidden_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -103,9 +104,9 @@ static ecs::CompileTimeQueryDesc get_waterlevel_for_camera_pos_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_waterlevel_for_camera_pos_ecs_query(Callable function)
+inline void get_waterlevel_for_camera_pos_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_waterlevel_for_camera_pos_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_waterlevel_for_camera_pos_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -138,9 +139,9 @@ static ecs::CompileTimeQueryDesc retrieve_dof_entity_for_underwater_dof_ecs_quer
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void retrieve_dof_entity_for_underwater_dof_ecs_query(Callable function)
+inline void retrieve_dof_entity_for_underwater_dof_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, retrieve_dof_entity_for_underwater_dof_ecs_query_desc.getHandle(),
+  perform_query(&manager, retrieve_dof_entity_for_underwater_dof_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -187,9 +188,9 @@ static ecs::CompileTimeQueryDesc toggle_underwater_dof_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void toggle_underwater_dof_ecs_query(Callable function)
+inline void toggle_underwater_dof_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, toggle_underwater_dof_ecs_query_desc.getHandle(),
+  perform_query(&manager, toggle_underwater_dof_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

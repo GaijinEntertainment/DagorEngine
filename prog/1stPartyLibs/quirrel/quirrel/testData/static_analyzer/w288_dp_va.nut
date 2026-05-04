@@ -1,6 +1,7 @@
 if (__name__ == "__analysis__")
   return
 
+//-file:declared-never-used
 
 function comp(...) {}
 

@@ -42,6 +42,7 @@
 #include <util/fnameMap.h>
 #include <supp/dag_alloca.h>
 #include <physMap/physMapLoad.h>
+#include <osApiWrappers/dag_sharedMem.h>
 
 #define MIN_TILE_SIZE 0.5
 
@@ -96,10 +97,13 @@ static void set_land_selfillum_parameters_to_shaders(const DataBlock &params_blk
   int foundDetailIndex = pos < land.lcDetailGroupNames.end() ? pos - land.lcDetailGroupNames.begin() : -1;
 
   Point4 color = params_blk.getPoint4("autodetect_color", Point4(10.0f, 10.0f, 10.0f, -100.0f));
-  ShaderGlobal::set_color4(get_shader_variable_id("autodetect_land_selfillum_color", true),
+  ShaderGlobal::set_float4(get_shader_variable_id("autodetect_land_selfillum_color", true),
     Color4(color.x, color.y, color.z, color.w));
-  ShaderGlobal::set_real(get_shader_variable_id("land_selfillum_strength", true), params_blk.getReal("strength", 4.0f));
-  ShaderGlobal::set_real(get_shader_variable_id("land_selfillum_worldscale", true), params_blk.getReal("world_scale", 0.9f));
+  Point4 tolerance = params_blk.getPoint4("autodetect_tolerance", Point4(0.0f, 0.0f, 0.0f, -100.0f));
+  ShaderGlobal::set_float4(get_shader_variable_id("autodetect_land_selfillum_tolerance", true),
+    Color4(tolerance.x, tolerance.y, tolerance.z, tolerance.w));
+  ShaderGlobal::set_float(get_shader_variable_id("land_selfillum_strength", true), params_blk.getReal("strength", 4.0f));
+  ShaderGlobal::set_float(get_shader_variable_id("land_selfillum_worldscale", true), params_blk.getReal("world_scale", 0.9f));
   ShaderGlobal::set_int(get_shader_variable_id("land_selfillum_biome_group_id", true), foundDetailIndex);
   ShaderGlobal::set_int(get_shader_variable_id("land_selfillum_microdetail_id", true), params_blk.getInt("microdetail_index", -1));
 }
@@ -170,6 +174,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
     land.waterDecalBumpScale = Point4(blk.getReal("waterDecalBumpScale", 1.0f), 0, 0, 0);
     const char *defaultPhysmat = blk.getStr("physMat", NULL);
     land.physmatIds = IPoint4(PhysMat::getMaterialId(defaultPhysmat), 0, 0, 0);
+    land.finalColorMul = blk.getPoint4("finalColorMul", Point4(1, 1, 1, 1));
 
     if (blk.getStr("shader", 0))
     {
@@ -203,7 +208,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
         }
         else
         {
-          land.weighMapMulOffset = {1 / size.x, 1 / size.y, offset.x / size.x, offset.y / size.x};
+          land.weighMapMulOffset = {1 / size.x, 1 / size.y, offset.x / size.x, offset.y / size.y};
         }
 
         if (noiseScale < 0)
@@ -361,7 +366,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
         if (bufSize > maxDetailElements)
           logerr("detail cbuffer in shader have %u elements max while asked for %u", maxDetailElements, bufSize);
 
-        land.detailsCB = d3d::buffers::create_persistent_cb(bufSize, "lcDetails");
+        land.detailsCB = d3d::buffers::create_persistent_cb(bufSize, "lcDetails", RESTAG_LAND);
         G_ASSERT_LOG(land.detailsCB, "Can't create constant buffer for landclass %s", name);
         if (land.detailsCB)
         {
@@ -370,6 +375,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
           {
             G_ASSERT_LOG(0, "Can't write constant buffer for landclass %s", name);
             land.detailsCB->destroy();
+            land.detailsCB = nullptr;
           }
         }
       }
@@ -495,11 +501,11 @@ void LandMeshManager::DetailMap::load(IGenLoad &cb, int base_ofs, bool tools_int
     for (int i = 0; i < cells.size(); ++i)
     {
       mem_set_ff(cells[i].detTexIds);
-      cells[i].tex1 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1);
+      cells[i].tex1 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1, RESTAG_LAND);
       d3d_err(cells[i].tex1);
       cells[i].tex1Id = ::register_managed_tex(String(32, "land_tex#%d", i), cells[i].tex1);
 
-      cells[i].tex2 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1);
+      cells[i].tex2 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1, RESTAG_LAND);
       d3d_err(cells[i].tex2);
       cells[i].tex2Id = ::register_managed_tex(String(32, "land_tex2#%d", i), cells[i].tex2);
     }
@@ -1137,11 +1143,11 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
   }
   debug("total vb size = %d, ib size=%d", vbsz, ibsz);
 
-  ShaderGlobal::set_real(get_shader_variable_id("landCellSize", true), landCellSize);
-  ShaderGlobal::set_color4(get_shader_variable_id("landCellShortDecodeXZ", true),
+  ShaderGlobal::set_float(get_shader_variable_id("landCellSize", true), landCellSize);
+  ShaderGlobal::set_float4(get_shader_variable_id("landCellShortDecodeXZ", true),
     Color4(0.5 / 32767. * landCellSize, landCellSize, landCellSize * (origin.x + 0.5f) + offset.x,
       landCellSize * (origin.y + 0.5f) + offset.z));
-  ShaderGlobal::set_color4(get_shader_variable_id("landCellShortDecodeY", true), Color4(yscale / 32767., yofs, 0, 0));
+  ShaderGlobal::set_float4(get_shader_variable_id("landCellShortDecodeY", true), Color4(yscale / 32767., yofs, 0, 0));
 
   return true;
 }
@@ -1267,38 +1273,53 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
     hmapHandler->afterDeviceReset();
 }
 
-void LandMeshManager::updateOverrideSamplers()
+/*static*/
+carray<int, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> LandMeshManager::getDecalsTexReferencesForSamplers()
 {
-  // When drawing decals on clipmap (lmesh_rendering_mode == rendering_clipmap) we need samplers without additional mipbias.
-  carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> decals_overrideSampler_tex_ref;
+  carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> texRefs;
   for (int i = 0; i < DECALS_OVERRIDE_SAMPLERS_COUNT; ++i)
   {
     String texRefVarName(64, "decals_overrideSampler_%i_tex_ref", i);
     int varId = ::get_shader_variable_id(texRefVarName, true);
 
-    decals_overrideSampler_tex_ref[i] = VariableMap::isVariablePresent(varId) ? ShaderGlobal::get_int(varId) : -1;
+    texRefs[i] = VariableMap::isVariablePresent(varId) ? ShaderGlobal::get_int(varId) : -1;
   }
+
+  return texRefs;
+}
+
+/*static*/
+carray<d3d::SamplerHandle, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> LandMeshManager::getOverrideSamplers(
+  const ShaderMesh::RElem &re, const carray<int, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> &tex_refs)
+{
+  carray<d3d::SamplerHandle, DECALS_OVERRIDE_SAMPLERS_COUNT> samplers;
+  eastl::fill(samplers.begin(), samplers.end(), d3d::SamplerHandle::Invalid);
+  for (int k = 0; k < samplers.size(); ++k)
+  {
+    int materialTexRef = tex_refs[k];
+    if (materialTexRef < 0)
+      continue;
+
+    TEXTUREID tid = re.mat->get_texture(materialTexRef);
+    if (tid != BAD_TEXTUREID)
+      samplers[k] = d3d::request_sampler(LandMeshRenderer::getTextureSamplerInfo(tid));
+  }
+
+  return samplers;
+}
+
+void LandMeshManager::updateOverrideSamplers()
+{
+  // When drawing decals on clipmap (lmesh_rendering_mode == rendering_clipmap) we need samplers without additional mipbias.
+  carray<int, DECALS_OVERRIDE_SAMPLERS_COUNT> texRefs = getDecalsTexReferencesForSamplers();
+
   for (CellData &cell : cells)
   {
     cell.decalsNoMipbiasSamplers.clear();
 
     for (const ShaderMesh::RElem &re : cell.decal->getAllElems())
-    {
-      carray<d3d::SamplerHandle, DECALS_OVERRIDE_SAMPLERS_COUNT> samplers;
-      eastl::fill(samplers.begin(), samplers.end(), d3d::SamplerHandle::Invalid);
-      for (int k = 0; k < samplers.size(); ++k)
-      {
-        int materialTexRef = decals_overrideSampler_tex_ref[k];
-        if (materialTexRef < 0)
-          continue;
+      cell.decalsNoMipbiasSamplers.emplace_back(getOverrideSamplers(re, texRefs));
 
-        TEXTUREID tid = re.mat->get_texture(materialTexRef);
-        if (tid != BAD_TEXTUREID)
-          samplers[k] = d3d::request_sampler(LandMeshRenderer::getTextureSamplerInfo(tid));
-      }
-
-      cell.decalsNoMipbiasSamplers.emplace_back(samplers);
-    }
     cell.decalsNoMipbiasSamplers.shrink_to_fit();
   }
 }
@@ -1375,15 +1396,9 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
       float worldLcTexelSize = landSize / lcTexInfo.w;
 
       ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), landClasses[i].lcTextures[0]);
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.filter_mode = d3d::FilterMode::Point;
-        smpInfo.mip_map_mode = d3d::MipMapMode::Disabled;
-        ShaderGlobal::set_sampler(::get_shader_variable_id("biomeIndicesTex_samplerstate", true), d3d::request_sampler(smpInfo));
-      }
-      ShaderGlobal::set_color4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
+      ShaderGlobal::set_float4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
         1.0f / lcTexInfo.h);
-      ShaderGlobal::set_color4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
+      ShaderGlobal::set_float4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
         (landClasses[i].offset.x - offset.x + 0.5f * worldLcTexelSize) * landClasses[i].tile,
         (landClasses[i].offset.y - offset.z + 0.5f * worldLcTexelSize) * -landClasses[i].tile);
 
@@ -1429,7 +1444,6 @@ void LandMeshManager::loadLandClasses(IGenLoad &cb)
       ArrayTexture *array = (ArrayTexture *)::acquire_managed_tex(megaDetailsArrayId[detailType]);
     }
   }
-  ShaderGlobal::set_texture(::get_shader_variable_id("biomeDetailAlbedoTexArray", true), megaDetailsArrayId[0]);
 }
 
 void LandMeshManager::loadDetailData(IGenLoad &cb)
@@ -1566,11 +1580,13 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       void *dump = NULL;
       int dump_sz = 0;
       bool need_load = true;
+      char sm_ptr_name[256];
+      SNPRINTF(sm_ptr_name, sizeof(sm_ptr_name), "%s:%X", loadCb.getTargetName(), loadCb.tell());
 
-      if (sm && (dump = sm->findPtr(loadCb.getTargetName(), _MAKE4C('LRT'))) != NULL)
+      if (sm && (dump = sm->findPtr(sm_ptr_name, LandRayTracer::SM_DATA_TAG)) != NULL)
       {
         dump_sz = (int)sm->getPtrSize(dump);
-        logmessage(_MAKE4C('SHMM'), "reusing LRT dump from shared mem: : %p, %dK, '%s'", dump, dump_sz >> 10, loadCb.getTargetName());
+        logmessage(_MAKE4C('SHMM'), "reusing LRT dump from shared mem: : %p, %dK, '%s'", dump, dump_sz >> 10, sm_ptr_name);
         landTracer = new LandRayTracer(rayTracerAllocator);
         landTracer->load(dump, dump_sz);
         loadCb.beginBlock();
@@ -1600,16 +1616,15 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
         dump_sz += 7 * 16;
         if (sm)
         {
-          dump = sm->allocPtr(loadCb.getTargetName(), _MAKE4C('LRT'), dump_sz);
+          dump = sm->allocPtr(sm_ptr_name, LandRayTracer::SM_DATA_TAG, dump_sz);
           if (dump)
             logmessage(_MAKE4C('SHMM'), "allocated LRT dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d)", dump,
-              dump_sz >> 10, loadCb.getTargetName(), ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10,
-              sm->getRecUsed());
+              dump_sz >> 10, sm_ptr_name, ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10, sm->getRecUsed());
           else
             logmessage(_MAKE4C('SHMM'),
               "failed to allocate LRT dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d); "
               "falling back to conventional allocator",
-              dump, dump_sz >> 10, loadCb.getTargetName(), ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10,
+              dump, dump_sz >> 10, sm_ptr_name, ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10,
               sm->getRecUsed());
         }
         if (!dump && landTracer)
@@ -1711,7 +1726,6 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       {
         vertTexId = ::get_managed_texture_id_pp(vertTexName);
         ::acquire_managed_tex(vertTexId);
-        vertTexSmp = d3d::request_sampler({});
       }
 
       vertNmTexId = BAD_TEXTUREID;
@@ -1719,48 +1733,31 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       if (getRenderDataNeeded() & (LC_DETAIL_DATA | LC_NORMAL_DATA))
       {
         vertNmTexId = ::get_managed_texture_id_pp(vertNmTexName);
-        BaseTexture *tex = ::acquire_managed_tex(vertNmTexId);
-        if (tex)
-        {
-          add_anisotropy_exception(vertNmTexId);
-          d3d::SamplerInfo smpInfo;
-          smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-          smpInfo.anisotropic_max = 1;
-          vertNmTexSmp = d3d::request_sampler(smpInfo);
-        }
+        ::acquire_managed_tex(vertNmTexId);
 
         vertDetTexId = ::get_managed_texture_id_pp(vertDetTexName);
-        tex = ::acquire_managed_tex(vertDetTexId);
-        if (tex)
-        {
-          d3d::SamplerInfo smpInfo;
-          smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-          vertDetTexSmp = d3d::request_sampler(smpInfo);
-        }
+        ::acquire_managed_tex(vertDetTexId);
       }
       else if (getRenderDataNeeded() & LC_SWAP_VERTICAL_DETAIL)
       {
         vertTexId = ::get_managed_texture_id_pp(vertDetTexName);
-        BaseTexture *tex = ::acquire_managed_tex(vertTexId);
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-        vertTexSmp = d3d::request_sampler(smpInfo);
+        ::acquire_managed_tex(vertTexId);
       }
 
       dagor_set_sm_tex_load_ctx_name(NULL);
 
-      ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param"), verticalScaleXZ, -verticalScaleY,
+      ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param"), verticalScaleXZ, -verticalScaleY,
         1.f / (blendFromY - blendToY), -blendToY / (blendFromY - blendToY));
 
-      ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param_2"), horizontalBlend, vertTexYOffset, 0.f, 0.f);
+      ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param_2"), horizontalBlend, vertTexYOffset, 0.f, 0.f);
 
-      ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param_3", true), // in compatibility this param does not exist
+      ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param_3", true), // in compatibility this param does not exist
         vertDetTexXZtile, -vertDetTexYtile, vertDetTexYOffset, 0.f);
 
 
       if (getRenderDataNeeded() & LC_SWAP_VERTICAL_DETAIL)
       {
-        ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param"), vertDetTexXZtile, -vertDetTexYtile,
+        ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param"), vertDetTexXZtile, -vertDetTexYtile,
           1.f / (blendFromY - blendToY), -blendToY / (blendFromY - blendToY));
       }
     }
@@ -1768,9 +1765,9 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
     {
       if (load_render_data)
       {
-        ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param", true), 0.f, 0.f, 0.f, 1.f);
-        ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param_2", true), 0.f, 0.f, 0.f, 1.f);
-        ShaderGlobal::set_color4(::get_shader_variable_id("vertical_param_3", true), 0.f, 0.f, 0.f, 1.f);
+        ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param", true), 0.f, 0.f, 0.f, 1.f);
+        ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param_2", true), 0.f, 0.f, 0.f, 1.f);
+        ShaderGlobal::set_float4(::get_shader_variable_id("vertical_param_3", true), 0.f, 0.f, 0.f, 1.f);
       }
       vertTexId = BAD_TEXTUREID;
       vertNmTexId = BAD_TEXTUREID;
@@ -1794,23 +1791,49 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
   return true;
 }
 
-bool LandMeshManager::loadHeightmapDump(IGenLoad &loadCb, bool load_render_data)
+void LandMeshManager::replaceHeightmapHandler(HeightmapHandler *h, bool need_land_tracer)
 {
+  if (hmapHandler)
+    debug("replacing existing loaded heightmap");
   del_it(hmapHandler);
-  hmapHandler = new HeightmapHandler;
-  if (load_render_data)
-    hmapHandler->init();
-  if (!hmapHandler->loadDump(loadCb, load_render_data, LandRayTracer::sharedMem))
+  hmapHandler = h;
+  if (hmapHandler && !need_land_tracer &&
+      non_empty_boxes_inclusive(
+        BBox2(Point2::xz(landBbox[0]), Point2::xz(landBbox[1]) - Point2(hmapHandler->hmapCellSize, hmapHandler->hmapCellSize)),
+        hmapHandler->worldBox2))
   {
-    del_it(hmapHandler);
-    return false;
+    debug("removing landTracer as hmap box %@ is bigger than landBbox %@ xz", hmapHandler->worldBox2, landBbox);
+    del_it(landTracer);
   }
+  initHmapCullingState();
+}
+
+void LandMeshManager::initHmapCullingState()
+{
+  if (!hmapHandler)
+    return;
   cullingState.exclBox = hmapHandler->getExcludeBounding();
   cullingState.exclBox[0] += getCellOrigin();
   cullingState.exclBox[1] += getCellOrigin();
-  landBbox += hmapHandler->getWorldBox();
   cullingState.useExclBox = true;
+  landBbox += hmapHandler->getWorldBox();
   debug("load hmapHandler %@ %@", cullingState.exclBox, getCellOrigin());
+}
+
+bool LandMeshManager::loadHeightmapDump(IGenLoad &loadCb, bool load_render_data, float water_level, float shore_error_meters)
+{
+  del_it(hmapHandler);
+  auto h = new HeightmapHandler;
+  if (load_render_data)
+    h->init();
+  if (!h->loadDump(loadCb, load_render_data, water_level, shore_error_meters))
+  {
+    del_it(h);
+    return false;
+  }
+  else
+    replaceHeightmapHandler(h, !h->isMirror()); // to keep behavior as it was before this commit, we explicitly say we need landTracer.
+                                                // Replace with false if we ok with it being infinite
   return true;
 }
 
@@ -1843,8 +1866,8 @@ bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_re
 
 LandMeshRenderer *LandMeshManager::createRenderer()
 {
-  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, biomeLandClassIdx, vertTexId, vertTexSmp, vertNmTexId,
-    vertNmTexSmp, vertDetTexId, vertDetTexSmp, tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
+  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, biomeLandClassIdx, vertTexId, vertNmTexId, vertDetTexId,
+    tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
 
   return renderer;
 }

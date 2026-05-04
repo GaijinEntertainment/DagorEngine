@@ -9,3 +9,4 @@
 #include <util/dag_simpleString.h>
 
 ECS_UNICAST_EVENT_TYPE(EventChangeAnimState, ecs::HashedConstString /* stateName */, int /* stateIdx */);
+ECS_UNICAST_EVENT_TYPE(EventChangeAnimStateFull, int /* stateIdx */);

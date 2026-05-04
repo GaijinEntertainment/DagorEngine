@@ -3,8 +3,7 @@ let nameFilter = require("nameFilter.nut")
 
 return @(filterString, selectedCompName) nameFilter(filterString, {
   placeholder = "Filter by name"
-
-  function onChange(text) {
+  onChange = function(text) {
     filterString.set(text)
 
     if ((text.len() > 0 ) && selectedCompName.get()
@@ -12,16 +11,9 @@ return @(filterString, selectedCompName) nameFilter(filterString, {
       selectedCompName.set(null)
     }
   }
-
-  function onEscape() {
-    set_kb_focus(null)
-  }
-
-  function onReturn() {
-    set_kb_focus(null)
-  }
-
-  function onClear() {
+  onEscape = @() set_kb_focus(null)
+  onReturn = @() set_kb_focus(null)
+  onClear = function() {
     filterString.set("")
     set_kb_focus(null)
   }

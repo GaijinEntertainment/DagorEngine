@@ -4,6 +4,7 @@
 #include "box_csg.h"
 #include "plugin.h"
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <coolConsole/coolConsole.h>
@@ -29,6 +30,12 @@ enum
   CM_CREATE_OCCLUDER_BOX,
 };
 
+namespace EditorCommandIds
+{
+
+static constexpr const char *CREATE_OCCLUDER_BOX = "Plugin.CSG.CreateOccluderBox";
+
+}
 
 ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 {
@@ -41,12 +48,18 @@ ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 
 ObjEd::~ObjEd() { dagRender->deleteDynRenderBuffer(ptDynBuf); }
 
+void ObjEd::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  ObjectEditor::registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::CREATE_OCCLUDER_BOX, ImGuiKey_1);
+}
 
 void ObjEd::registerViewportAccelerators(IWndManager &wndManager)
 {
   ObjectEditor::registerViewportAccelerators(wndManager);
 
-  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, ImGuiKey_1);
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX);
 }
 
 
@@ -54,7 +67,8 @@ void ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
 
-  addButton(tb1, CM_CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder (1)", true);
+  addEditorCommandButton(tb1, CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder",
+    true);
 
   tb1->createSeparator();
 

@@ -26,7 +26,7 @@ Sources =
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
-  $(Root)/prog/3rdPartyLibs/nvapi
+  $(Root)/prog/3rdPartyLibs
 ;
 
 CPPopt = -DINSIDE_DRIVER -DUSE_MULTI_D3D_$(UseD3DMultiList) ;
@@ -39,11 +39,6 @@ UseProgLibs =
 if $(Platform) in windows {
   if DX11 in $(UseD3DMultiList) || DX12 in $(UseD3DMultiList) { Sources += hlsl_dx.cpp ; }
   else { Sources += hlsl_stub.cpp ; }
-}
-
-if $(Platform) = linux && ( vulkan in $(UseD3DMultiList) ) {
-  CPPopt += -DUSE_X11 ;
-  Sources += x11.cpp ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

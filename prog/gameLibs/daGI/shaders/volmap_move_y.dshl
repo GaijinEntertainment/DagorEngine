@@ -7,7 +7,6 @@ buffer frustum_visible_ambient_voxels;
 
 shader move_y_from_cs, move_y_to_cs
 {
-  ENABLE_ASSERT(cs)
   GI_USE_AMBIENT_VOLMAP(cs)
   (cs) {
     ssgi_copy_y_indices0@f4 = ssgi_copy_y_indices0;
@@ -17,7 +16,13 @@ shader move_y_from_cs, move_y_to_cs
   {
     (cs) {
       gi_ambient_volmap@smp3d = gi_ambient_volmap;
-      ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+      ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
+      gi_ambient_volmap@uav : register(6) hlsl {
+        RWTexture3D<float3> gi_ambient_volmap@uav;
+      }
+      ssgi_ambient_volmap_temporal@uav : register(7) hlsl {
+        RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+      }
     }
   }
   else
@@ -26,17 +31,14 @@ shader move_y_from_cs, move_y_to_cs
       voxelColors@buf = frustum_visible_ambient_voxels hlsl{
         StructuredBuffer<uint> voxelColors@buf;
       };
+      voxelColors@uav : register(6) hlsl {
+        RWStructuredBuffer<uint> voxelColors@uav;
+      }
     }
   }
 
   hlsl(cs) {
     #include <pixelPacking/PixelPacking_R11G11B10.hlsl>
-    ##if (shader == move_y_to_cs)
-      RWTexture3D<float3>  gi_ambient_volmap : register(u6);
-      RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
-    ##else
-      RWStructuredBuffer<uint> voxelColors: register(u6);
-    ##endif
 
     [numthreads(8, 8, 1)]
     void ssgi_copy_volmap_cs( uint3 gId : SV_GroupID, uint3 dtId : SV_DispatchThreadID )//uint3 gId : SV_GroupId,
@@ -90,14 +92,23 @@ shader move_y_from_cs, move_y_to_cs
 shader ssgi_clear_volmap_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
-  (cs) { ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs; }
+  (cs) {
+    ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+    color_x@uav : register(4) hlsl {
+      RWTexture3D<float3> color_x@uav;
+    }
+    color_y@uav : register(5) hlsl {
+      RWTexture3D<float3> color_y@uav;
+    }
+    color_z@uav : register(6) hlsl {
+      RWTexture3D<float3> color_z@uav;
+    }
+    ssgi_ambient_volmap_temporal@uav : register(7) hlsl {
+      RWTexture3D<float> ssgi_ambient_volmap_temporal@uav;
+    }
+  }
 
   hlsl(cs) {
-    RWTexture3D<float3>  color_x : register(u4);
-    RWTexture3D<float3>  color_y : register(u5);
-    RWTexture3D<float3>  color_z : register(u6);
-    RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
-
     //StructuredBuffer<AmbientCube> ambient_cube: register(t15);
 
     [numthreads(4, 4, 4)]

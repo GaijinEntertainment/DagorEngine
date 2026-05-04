@@ -12,6 +12,11 @@ shader rendinst_distortion
     dont_render;
   }
 
+  if (is_triangle_size_debug)
+  {
+    dont_render;
+  }
+
   channel float3 pos   = pos;
   channel color8 norm  = norm unsigned_pack;
   channel float2 tc[0] = tc[0];

@@ -106,6 +106,7 @@ class INotificationHandler
 public:
   virtual ~INotificationHandler() = default;
   virtual void showCopyNotification(const char *text) = 0;
+  virtual void showNotification(const char *text) { showCopyNotification(text); }
 };
 
 // Provides non-intrusive feedback to the user
@@ -136,6 +137,23 @@ public:
   {
     if (toast)
       toast->show(text, DEFAULT_TOAST_DURATION);
+  }
+
+  void showNotification(const char *text) override
+  {
+    if (toast)
+      toast->show(text, DEFAULT_TOAST_DURATION);
+  }
+
+  void update()
+  {
+    if (toast)
+      toast->update();
+  }
+  void draw()
+  {
+    if (toast)
+      toast->draw();
   }
 };
 
@@ -172,85 +190,121 @@ private:
   void executeCopy(const CopyResult &result, const CopyRequest & /* request */);
 };
 
-// Interface for data export operations
-class IExporter
+struct LpExportColumn
 {
-public:
-  virtual ~IExporter() = default;
-
-  virtual bool exportData(ConstProfilerStringSpan items) = 0;
-
-  virtual const char *getFormatName() const = 0;
+  int id = -1;
+  ProfilerString header;
 };
 
-// CSV file exporter implementation
-class CSVExporter : public IExporter
+struct LpExportSnapshot
 {
-public:
-  CSVExporter(TextureModule *texture_module);
-  virtual ~CSVExporter() = default;
-
-  bool exportData(ConstProfilerStringSpan items) override;
-  const char *getFormatName() const override { return "CSV File"; }
-
-private:
-  TextureModule *textureModule = nullptr; // For texture data access
+  eastl::vector<LpExportColumn> columns;
+  eastl::vector<size_t> rowIndices;
+  bool isValid() const { return !columns.empty() && !rowIndices.empty(); }
 };
 
-// Markdown table exporter implementation
-class MarkdownExporter : public IExporter
+class ILpTableExportSource
 {
 public:
-  MarkdownExporter(TextureModule *texture_module);
-  virtual ~MarkdownExporter() = default;
-
-  bool exportData(ConstProfilerStringSpan items) override;
-  const char *getFormatName() const override { return "Markdown Table"; }
-
-private:
-  TextureModule *textureModule = nullptr; // For texture data access
+  virtual ~ILpTableExportSource() = default;
+  virtual bool buildSnapshot(LpExportSnapshot &out) const = 0;
+  virtual void getCell(int column_id, size_t filtered_row_index, ProfilerString &out_value) const = 0;
+  virtual const char *getExportTableName() const = 0;
 };
 
-// Manages exporters for different formats
+enum class LpExportTargetType
+{
+  File,
+  Clipboard
+};
+
+struct LpExportTarget
+{
+  LpExportTargetType type = LpExportTargetType::Clipboard;
+  const char *filePath = nullptr;
+};
+
+struct LpExportOptions
+{
+  bool includeHeader = true;
+};
+
+class ILpExportFormatter
+{
+public:
+  virtual ~ILpExportFormatter() = default;
+  virtual bool begin(const LpExportSnapshot &snap, const ILpTableExportSource &src, const LpExportTarget &target) = 0;
+  virtual void writeHeader(const LpExportSnapshot &snap) = 0;
+  virtual void writeRow(const eastl::vector<ProfilerString> &cells) = 0;
+  virtual bool end() = 0;
+  virtual const char *formatName() const = 0;
+};
+
+eastl::unique_ptr<ILpExportFormatter> createExportFormatter(ExportFormat fmt);
+
+class LpTableExportEngine
+{
+public:
+  bool exportTable(const ILpTableExportSource &source, ExportFormat format, const LpExportTarget &target, const LpExportOptions &opts,
+    ProfilerString &errorMsg);
+};
+
+class LpTextureTable;
+class LpRiTable;
+bool exportTextureTable(const LpTextureTable &table, ExportFormat fmt, bool toClipboard, ProfilerString &errorMsg,
+  const char *filenameBaseOverride = nullptr);
+bool exportRiTable(const LpRiTable &table, ExportFormat fmt, bool toClipboard, ProfilerString &errorMsg,
+  const char *filenameBaseOverride = nullptr);
+
 class ProfilerExporter
 {
 public:
-  ProfilerExporter(TextureModule *texture_module);
-  ~ProfilerExporter();
+  explicit ProfilerExporter(TextureModule *texture_module) : textureModule(texture_module) {}
 
-  template <typename Container>
-  bool exportData(const Container &items)
-  {
-    int index = getExporterIndex();
-    if (index < 0 || static_cast<size_t>(index) >= exporters.size())
-    {
-      toast.show("Export error: Invalid format", DEFAULT_TOAST_DURATION);
-      return false;
-    }
-
-    bool success = false;
-    if (exporters[index])
-      success = exporters[index]->exportData(ConstProfilerStringSpan(items));
-
-    toast.show(success ? "Export successful" : "Export error", DEFAULT_TOAST_DURATION);
-    return success;
-  }
-
-  void drawExportButton();
-  void drawExportMenu();
-
-  void setFormat(ExportFormat format);
+  void setFormat(ExportFormat f) { currentFormat = f; }
   ExportFormat getFormat() const { return currentFormat; }
 
   ToastNotification &getToast() { return toast; }
+  void setTextureTable(const LpTextureTable *tbl) { textureTable = tbl; }
+  void setRiTable(const LpRiTable *tbl) { riTable = tbl; }
+  void setNotificationHandler(INotificationHandler *handler) { notificationHandler = handler; }
+  void drawExportButton();
+  void drawExportMenu();
+  void setFilenameBase(const ProfilerString &base) { filenameBase = base; }
+  const ProfilerString &getFilenameBase() const { return filenameBase; }
+
+  bool exportTextureTableView(const LpTextureTable *table, bool toClipboard)
+  {
+    if (!table)
+      return false;
+    ProfilerString err;
+    const char *fnameBase = filenameBase.empty() ? nullptr : filenameBase.c_str();
+    bool ok = exportTextureTable(*table, currentFormat, toClipboard, err, fnameBase);
+    lastError = err;
+    return ok;
+  }
+
+  bool exportRiTableView(const LpRiTable *table, bool toClipboard)
+  {
+    if (!table)
+      return false;
+    ProfilerString err;
+    bool ok = exportRiTable(*table, currentFormat, toClipboard, err, filenameBase.c_str());
+    lastError = err;
+    return ok;
+  }
+
+  const ProfilerString &getLastError() const { return lastError; }
 
 private:
   TextureModule *textureModule = nullptr;
   ExportFormat currentFormat = ExportFormat::CSV_File;
-  eastl::vector<eastl::unique_ptr<IExporter>> exporters;
+  ProfilerString lastError;
   ToastNotification toast;
-
-  int getExporterIndex() const;
+  const LpTextureTable *textureTable = nullptr;
+  const LpRiTable *riTable = nullptr;
+  INotificationHandler *notificationHandler = nullptr;
+  ProfilerString filenameBase;
 };
 
 } // namespace levelprofiler

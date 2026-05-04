@@ -2,13 +2,13 @@ from "%darg/ui_imports.nut" import *
 
 let cursor = Cursor({ rendObj = ROBJ_IMAGE size = 32 image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
 
-local elems = [].resize(12,1)
+local elems = array(12, 1)
 foreach (i, _ in elems)
   elems[i]=i
 
 elems = elems.map(@(i) {rendObj = ROBJ_TEXT text = i key=i})
 let wrapped = {
-  size = static [hdpx(100),hdpx(200)]
+  size = const [hdpx(100),hdpx(200)]
   rendObj=ROBJ_FRAME
   children = wrap(elems, {
     width=hdpx(100)

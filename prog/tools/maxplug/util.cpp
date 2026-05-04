@@ -10,12 +10,14 @@
 #include <mnmath.h>
 #include <splshape.h>
 #include <ilayer.h>
-#include <ilayerproperties.h>
+#include <ILayerProperties.h>
 
 #include <vector>
 #include <string>
 #include <sstream>
 #include <memory>
+#include <algorithm>
+#include <unordered_set>
 
 #include "dagor.h"
 #include "enumnode.h"
@@ -25,10 +27,10 @@
 #include "cfg.h"
 #include "mathAng.h"
 #include "dag_auto_ptr.h"
-
-#include "layout.h"
+#include "datablk.h"
 #include "common.h"
 
+#include "layout.h"
 
 #define ERRMSG_DELAY 3000
 
@@ -39,7 +41,11 @@ static Tab<char *> dagpath;
 char dagor_path[256] = "";
 void debug(char *s, ...);
 
+void explog(const TCHAR *s, ...);
+
 void import_milkshape_anim(Interface *ip, HWND hpanel);
+
+std::vector<std::wstring> get_blk_shader_list(const DataBlock *dataBlk);
 
 class Dag2DagnewCB : public ENodeCB
 {
@@ -47,28 +53,10 @@ public:
   Interface *ip;
   TimeValue time;
   bool onImport;
-  CfgShader *cfg;
 
   std::map<Mtl *, Mtl *> convertedMat;
 
-  Dag2DagnewCB(Interface *iptr, bool on_import)
-  {
-    ip = iptr;
-    time = ip->GetTime();
-
-    onImport = on_import;
-
-    if (onImport)
-    {
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-      cfg = new CfgShader(filename);
-    }
-    else
-    {
-      cfg = NULL;
-    }
-  }
+  Dag2DagnewCB(Interface *iptr, bool on_import) : ip(iptr), time(iptr->GetTime()), onImport(on_import) {}
 
   ~Dag2DagnewCB() override {}
 
@@ -78,22 +66,6 @@ public:
     if (cid == DagorMat_CID)
     {
       IDagorMat *d = (IDagorMat *)m->GetInterface(I_DAGORMAT);
-
-      if (onImport && d->get_classname() != NULL && d->get_classname()[0] != 0)
-      {
-        StringVector *shaders = cfg->GetShaderNames();
-        bool found = false;
-        for (unsigned int shaderNo = 0; shaderNo < shaders->size(); shaderNo++)
-        {
-          if (!_tcsicmp(d->get_classname(), shaders->at(shaderNo).c_str()))
-          {
-            found = true;
-            break;
-          }
-        }
-        if (!found)
-          return NULL;
-      }
 
       Mtl *nm = (Mtl *)CreateInstance(MATERIAL_CLASS_ID, DagorMat2_CID);
       IDagorMat *nd = (IDagorMat *)nm->GetInterface(I_DAGORMAT);
@@ -105,25 +77,25 @@ public:
       nd->set_emis(d->get_emis());
       nd->set_power(d->get_power());
       nd->set_spec(d->get_spec());
-      nd->set_script(d->get_script());
 
       if (onImport && (d->get_classname() == NULL || d->get_classname()[0] == 0))
-      {
-        nd->set_classname(_T("simple"));
-        nd->set_script(_T("lighting=lightmap\r\n"));
-      }
+        nd->set_classname(_T("gi_black"));
 
       nm->SetName(m->GetName());
 
-
-      for (int i = 0; i < NUMTEXMAPS; ++i)
+      if (!isProxymatName(nd->get_classname()))
       {
-        Texmap *tex = m->GetSubTexmap(i);
-        if (tex)
-          nm->SetSubTexmap(i, tex);
+        nd->set_script(d->get_script());
 
-        // nd->set_param(i, d->get_param(i));
-        // nd->set_texname(i, d->get_texname(i));
+        for (int i = 0; i < NUMTEXMAPS; ++i)
+        {
+          Texmap *tex = m->GetSubTexmap(i);
+          if (tex)
+            nm->SetSubTexmap(i, tex);
+
+          // nd->set_param(i, d->get_param(i));
+          // nd->set_texname(i, d->get_texname(i));
+        }
       }
 
       m->ReleaseInterface(I_DAGORMAT, d);
@@ -138,7 +110,6 @@ public:
     if (!n)
       return ECB_CONT;
     Mtl *m = n->GetMtl();
-    char cnv = 0;
     if (m)
     {
       if (m->IsMultiMtl())
@@ -328,6 +299,12 @@ public:
   TCHAR clsname[MAX_CLSNAME];
   ICustEdit *eclsname;
 
+  // export to json (UE5)
+  HWND exportToJsonRoll;
+  TSTR exp_fname;
+  bool exp_selected;
+  std::wstring asset_prefix;
+
 protected:
   bool editableMeshFound;
   unsigned int degenerateFacesRemovedNum;
@@ -343,6 +320,7 @@ public:
 
   BOOL dagor_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   BOOL materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
+  BOOL export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   BOOL uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   BOOL spline_and_smooth_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
   BOOL scatter_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -387,6 +365,10 @@ public:
   void collapse();
   void convert();
   void enumerate();
+
+  // export to json
+  void resolveNamesForJson();
+  void exportToJson();
 
 protected:
   void dagor_util_update_ui(HWND hw);
@@ -1017,6 +999,60 @@ BOOL DagUtil::materials_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam
 #undef reled
 }
 
+static INT_PTR CALLBACK export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  return util.export_to_json_dlg_proc(hw, msg, wParam, lParam);
+}
+
+BOOL DagUtil::export_to_json_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+      SetWindowText(GetDlgItem(hw, IDC_ASSET_PREFIX), asset_prefix.data());
+      CheckDlgButton(hw, IDC_EXPSEL, exp_selected);
+      break;
+
+    case WM_COMMAND:
+
+      // resolve
+
+      if (wParam == MAKEWPARAM(IDC_ASSET_PREFIX, EN_SETFOCUS))
+        DisableAccelerators();
+
+      else if (wParam == MAKEWPARAM(IDC_ASSET_PREFIX, EN_KILLFOCUS))
+      {
+        EnableAccelerators();
+        int len = GetWindowTextLength(GetDlgItem(hw, IDC_ASSET_PREFIX));
+        asset_prefix.resize(len);
+        GetDlgItemText(hw, IDC_ASSET_PREFIX, const_cast<LPWSTR>(asset_prefix.data()), MAX_PATH);
+      }
+
+      else if (wParam == MAKEWPARAM(IDC_RESOLVE_NAMES, BN_CLICKED))
+        resolveNamesForJson();
+
+      // export
+
+      else if (LOWORD(wParam) == IDC_EXPSEL)
+        exp_selected = IsDlgButtonChecked(hw, LOWORD(wParam));
+
+      else if (wParam == MAKEWPARAM(IDC_EXPORT, BN_CLICKED))
+      {
+        FilterList fl;
+        fl.Append(_T("JSON"));
+        fl.Append(_T("*.json"));
+        if (get_save_filename(exportToJsonRoll, _T("Export Dagor materials to JSON"), fl, _T("json"), exp_fname))
+          exportToJson();
+      }
+
+      break;
+
+    default: return FALSE;
+  }
+  return TRUE;
+#undef reled
+}
+
 static INT_PTR CALLBACK uv_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   return util.uv_util_dlg_proc(hw, msg, wParam, lParam);
@@ -1333,6 +1369,9 @@ DagUtil::DagUtil()
   materialsRoll = NULL;
   _tcscpy(clsname, _T(""));
   eclsname = NULL;
+
+  // export to json
+  exportToJsonRoll = NULL;
 }
 
 void DagUtil::BeginEditParams(Interface *ip, IUtil *iu)
@@ -1342,6 +1381,8 @@ void DagUtil::BeginEditParams(Interface *ip, IUtil *iu)
 
   dagorUtilRoll = add_rollup_page(ip, IDD_DAGUTIL, ::dagor_util_dlg_proc, GetString(IDS_DAGUTIL_ROLL));
   materialsRoll = add_rollup_page(ip, IDD_MATERIALS, ::materials_dlg_proc, GetString(IDS_MATERIALS_ROLL), 0, APPENDROLL_CLOSED);
+  exportToJsonRoll =
+    add_rollup_page(ip, IDD_EXPORT_MAT_TO_JSON, ::export_to_json_dlg_proc, GetString(IDS_EXPORT_TO_JSON), 0, APPENDROLL_CLOSED);
   uvUtilsRoll = add_rollup_page(ip, IDD_UV_UTILS, ::uv_util_dlg_proc, GetString(IDS_UV_UTILS_ROLL), 0, APPENDROLL_CLOSED);
   splinesAndSmoothRoll = add_rollup_page(ip, IDD_SPLINES_AND_SMOOTH, ::spline_and_smooth_dlg_proc,
     GetString(IDS_SPLINES_AND_SMOOTH_ROLL), 0, APPENDROLL_CLOSED);
@@ -1355,6 +1396,7 @@ void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
 
   delete_rollup_page(ip, &dagorUtilRoll);
   delete_rollup_page(ip, &materialsRoll);
+  delete_rollup_page(ip, &exportToJsonRoll);
   delete_rollup_page(ip, &uvUtilsRoll);
   delete_rollup_page(ip, &splinesAndSmoothRoll);
   delete_rollup_page(ip, &scatterRoll);
@@ -1905,23 +1947,6 @@ typedef std::vector<MtlPtr> MtlVec;
 typedef std::map<M_STD_STRING, M_STD_STRING> StrMap;
 
 
-M_STD_STRING CfgReplace(M_STD_STRING str, M_STD_STRING dst, M_STD_STRING src)
-{
-  M_STD_STRING res;
-
-  res = str;
-
-  size_t pos = 0;
-
-  while ((pos = res.find(dst, pos)) != std::string::npos)
-  {
-    res.replace(pos, dst.length(), src);
-    pos += src.length();
-  }
-
-  return res;
-}
-
 class Dag2EnumeratorCB : public ENodeCB
 {
 public:
@@ -2366,6 +2391,256 @@ void DagUtil::convert()
   FILE *f = fopen("d:/materials_conv.txt", "w+t");
   fwrite(buffer.c_str(), 1, buffer.length(), f);
   fclose(f);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+static std::wstring sanitize_material_name(std::wstring name)
+{
+  std::replace_if(
+    name.begin(), name.end(),
+    [](wchar_t c) {
+      // latin
+      if ((L'A' <= c && c <= L'Z') || (L'a' <= c && c <= L'z'))
+        return false; // keep
+
+      // digits
+      if (L'0' <= c && c <= L'9')
+        return false; // keep
+
+      // delimiters
+      if (c == '_' || c == '-' || c == '+')
+        return false; // keep
+
+      // cyrillic (enable later)
+      // if ((0x410 <= c && c <= 0x42F) || (0x430 <= c && c <= 0x44f))
+      //  return false; // keep
+
+      return true; // replace otherwise
+    },
+    L'_');
+  return name;
+}
+
+class Dag2EnumMatCB : public ENodeCB
+{
+public:
+  Interface *ip;
+  std::unordered_set<Mtl *> materials;
+
+  Dag2EnumMatCB(Interface *iptr) : ip(iptr) {}
+  ~Dag2EnumMatCB() override {}
+
+  int proc(INode *n) override
+  {
+    if (!n)
+      return ECB_CONT;
+
+    if (util.exp_selected && !n->Selected())
+    {
+      if (_tcsicmp(n->GetName(), _T("ORIGIN")) == 0)
+        explog(_T("skip non-selected origin\r\n" ));
+
+      return ECB_CONT;
+    }
+
+    Mtl *m = n->GetMtl();
+    if (!m)
+      return ECB_CONT;
+
+    if (m->IsMultiMtl())
+    {
+      int num = m->NumSubMtls();
+      for (int i = 0; i < num; ++i)
+      {
+        Mtl *sm = m->GetSubMtl(i);
+        if (!sm)
+          continue;
+
+        Class_ID cid = sm->ClassID();
+        if (cid != DagorMat2_CID)
+          continue;
+
+        materials.insert(sm);
+      }
+    }
+    else
+    {
+      Class_ID cid = m->ClassID();
+      if (cid != DagorMat2_CID)
+        return ECB_CONT;
+
+      materials.insert(m);
+    }
+
+    return ECB_CONT;
+  }
+};
+
+void DagUtil::resolveNamesForJson()
+{
+  if (!ip)
+    return;
+
+  Dag2EnumMatCB cb(ip);
+  enum_nodes(ip->GetRootNode(), &cb);
+
+  if (cb.materials.empty())
+    return;
+
+  std::unordered_set<std::wstring> names;
+
+  for (Mtl *m : cb.materials)
+  {
+    std::wstring name = m->GetName().data();
+
+    {
+      std::wstring mangled_name = name;
+      for (int i = 0; names.find(mangled_name) != names.end(); ++i)
+      {
+        mangled_name = name;
+        if (name.back() != L'_')
+          mangled_name += L'_';
+        mangled_name += (L'a' + i); // a, b, ...
+      }
+      name = mangled_name;
+    }
+
+    names.insert(name);
+
+    if (name.substr(0, asset_prefix.size()) != asset_prefix)
+    {
+      std::wstring prefix = asset_prefix;
+      if (asset_prefix.back() != L'_')
+        prefix += L'_';
+      name = prefix + name;
+    }
+
+    m->SetName(sanitize_material_name(name).data());
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+struct ExpEnumTexCB : IDagorMat2::EnumTexCB
+{
+  std::ofstream &os;
+  int count;
+
+  ExpEnumTexCB(std::ofstream &ofs) : os(ofs), count(0) {}
+  int proc(const TCHAR *name, const TCHAR *path) override
+  {
+    if (count++)
+      os << ',';
+    os << "\"" << wideToStr(name) << "\":\"" << escape_string(wideToStr(extract_filename(path).data())) << '\"';
+    return ECB_CONT;
+  }
+};
+
+struct ExpEnumParamCB : IDagorMat2::EnumParamCB
+{
+  std::ofstream &os;
+  int count;
+
+  ExpEnumParamCB(std::ofstream &ofs) : os(ofs), count(0) {}
+  int proc(const TCHAR *group, const TCHAR *name, int type, const TCHAR *value) override
+  {
+    auto t = DataBlock::ParamType(type);
+    if (t == DataBlock::ParamType::TYPE_STRING || t == DataBlock::ParamType::TYPE_MATRIX)
+      return ECB_CONT;
+
+    if (count++)
+      os << ',';
+
+    os << "\"" << wideToStr(name) << "\":";
+
+    switch (t)
+    {
+      case DataBlock::ParamType::TYPE_BOOL:
+        os << "{\"type\":\"scalar\",\"value\":" << (iequal(value, L"no") || iequal(value, L"false") || iequal(value, L"0") ? 0 : 1)
+           << '}';
+        break;
+
+      case DataBlock::ParamType::TYPE_INT:
+      case DataBlock::ParamType::TYPE_REAL: os << "{\"type\":\"scalar\",\"value\":" << parse_param_value<float>(value) << '}'; break;
+
+      case DataBlock::ParamType::TYPE_IPOINT2:
+      case DataBlock::ParamType::TYPE_POINT2:
+      {
+        Point2 p2 = parse_param_value<Point2, 2>(value);
+        os << "{\"type\":\"vector\",\"value\":" << "{\"x\":" << p2.x << ",\"y\": " << p2.y << ",\"z\": 0,\"w\": 0}}";
+      }
+      break;
+
+      case DataBlock::ParamType::TYPE_IPOINT3:
+      case DataBlock::ParamType::TYPE_POINT3:
+      {
+        Point3 p3 = parse_param_value<Point3, 3>(value);
+        os << "{\"type\":\"vector\",\"value\": " << "{\"x\":" << p3.x << ",\"y\": " << p3.y << ",\"z\": " << p3.z << ",\"w\":0}}";
+      }
+      break;
+
+      case DataBlock::ParamType::TYPE_POINT4:
+      case DataBlock::ParamType::TYPE_E3DCOLOR:
+      {
+        Point4 p4 = parse_param_value<Point4, 4>(value);
+        os << "{\"type\":\"vector\",\"value\":" << "{\"x\":" << p4.x << ",\"y\": " << p4.y << ",\"z\": " << p4.z << ",\"w\": " << p4.w
+           << "}}";
+      }
+      break;
+
+      default: break;
+    }
+
+    return ECB_CONT;
+  }
+};
+
+void DagUtil::exportToJson()
+{
+  if (!ip)
+    return;
+
+  std::ofstream os(exp_fname, std::ios::binary);
+  if (!os)
+  {
+    explog(_T("cant open '%s' file for writing"), exp_fname.data());
+    return;
+  }
+
+  Dag2EnumMatCB cb(ip);
+  enum_nodes(ip->GetRootNode(), &cb);
+
+  os << "{";
+
+  int count = 0;
+  for (Mtl *m : cb.materials)
+  {
+    IDagorMat2 *d = (IDagorMat2 *)m->GetInterface(I_DAGORMAT2);
+    if (!d)
+      continue;
+
+    if (count++)
+      os << ',';
+
+    os << "\"" << m->GetName() << "\":{";
+    os << "\"class\":\"" << wideToStr(d->get_classname()) << "\",";
+
+    Color cold = m->GetDiffuse();
+    os << "\"diff\":{\"x\":" << cold.r << ",\"y\": " << cold.g << ",\"z\": " << cold.b << ",\"w\":0},";
+
+    ExpEnumTexCB tcb(os);
+    os << "\"textures\":{";
+    d->enumerate_textures(tcb);
+    os << "},";
+
+    ExpEnumParamCB pcb(os);
+    os << "\"parameters\":{";
+    d->enumerate_parameters(pcb);
+    os << "}}";
+  }
+
+  os << '}' << std::endl;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -4874,7 +5149,7 @@ struct TQuad
   TVFace tf[MESHSMOOTHMAPS_SUPPORT][2];
   int v2v1[3], v2v2[3];
   // int t2t1[3],t2t2[3];
-  TQuad() {}
+  TQuad() {};
   TQuad(int vr[4], int fc1, int fc2, Mesh &m)
   {
     //,AdjEdgeList &ae,int ed1,int ed2//int tr[4],

@@ -39,7 +39,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeFsrNodes()
 
     auto displayRes = registry.getResolution<2>("display");
 
-    auto targetHndl = registry.create("fsr_upscaled_frame", dafg::History::No)
+    auto targetHndl = registry.create("fsr_upscaled_frame")
                         .texture(dafg::Texture2dCreateInfo{determine_format() | TEXCF_UNORDERED, displayRes, 1})
                         .atStage(dafg::Stage::CS)
                         .useAs(dafg::Usage::SHADER_RESOURCE)
@@ -74,7 +74,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeFsrNodes()
     auto targetHndl =
       hdrrender::is_hdr_enabled()
         ? registry.modify("frame_after_postfx").texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).handle()
-        : registry.create("fsr_sharpened_frame", dafg::History::No)
+        : registry.create("fsr_sharpened_frame")
             .texture(dafg::Texture2dCreateInfo{determine_format() | TEXCF_UNORDERED, registry.getResolution<2>("display"), 1})
             .atStage(dafg::Stage::CS)
             .useAs(dafg::Usage::SHADER_RESOURCE)

@@ -10,7 +10,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/vector_map.h>
 #include <daECS/core/internal/typesAndLimits.h>
-#include <ecs/core/utility/ecsBlkUtils.h>
+#include <daECS/core/utility/ecsBlkUtils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_fileIo.h>
@@ -78,6 +78,14 @@ extern bool events_perf_markers;
 #endif
 #if DAGOR_DBGLEVEL > 0 // ComponentDesc.nameStr does not exists otherwise
 
+namespace ecs
+{
+#if DAECS_EXTENSIVE_CHECKS
+extern bool log_unchaged_track_components_marked_as_changed;
+extern dag::VectorMap<int, int> component_index_to_unchanged_track_count;
+#endif
+}; // namespace ecs
+
 // returns parents from latest to earliest (deepest)
 static void flatten_parents(const ecs::Template *root, eastl::vector<uint32_t> &result)
 {
@@ -110,7 +118,7 @@ static ecs::ComponentsMap gather_all_components(const char *template_name)
     return result;
   }
 
-  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().buildTemplateByName(template_name);
   if (!templ)
   {
     console::print_d("Template '%s' not found", template_name);
@@ -710,7 +718,7 @@ static void who_modifies_tracked_components_of_template(const char *template_nam
 {
   const ecs::ComponentsMap compMap = gather_all_components(template_name);
 
-  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().buildTemplateByName(template_name);
   if (!templ)
     return;
   eastl::vector_set<ecs::component_t> tracked = gather_all_tracked(templ);
@@ -796,9 +804,9 @@ static constexpr ecs::ComponentDesc iterate_through_all_entities_ecs_query_comps
 static ecs::CompileTimeQueryDesc iterate_through_all_entities_ecs_query_desc("iterate_through_all_entities_ecs_query", empty_span(),
   make_span(iterate_through_all_entities_ecs_query_comps + 0, 1) /*ro*/, empty_span(), empty_span());
 template <typename Callable>
-inline void iterate_through_all_entities_ecs_query(Callable function)
+inline void iterate_through_all_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, iterate_through_all_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, iterate_through_all_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView &__restrict components) {
       auto comp = components.begin(), compE = components.end();
       G_ASSERT(comp != compE);
@@ -814,13 +822,13 @@ static void search_for_eid_in_entities(int raw_eid)
 {
   ecs::EntityId parsedEid = ecs::EntityId(raw_eid);
   int count = 0;
-  iterate_through_all_entities_ecs_query([&](ecs::EntityId eid) {
+  iterate_through_all_entities_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid) {
     G_UNUSED(eid);
     count++;
   });
   debug("Total entities count is %d", count);
   int matchCount = 0;
-  iterate_through_all_entities_ecs_query([&](ecs::EntityId eid) {
+  iterate_through_all_entities_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid) {
     auto compsIter = g_entity_mgr->getComponentsIterator(eid);
     const char *prev = nullptr;
     while (compsIter)
@@ -925,6 +933,46 @@ static void print_explored_template_routine(const eastl::vector<ParentStats> &al
   }
 }
 
+static void who_added_component_to_template(const char *component_name, const char *template_name)
+{
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().buildTemplateByName(template_name);
+  if (!templ)
+  {
+    console::print_d("Template '%s' not found", template_name);
+    return;
+  }
+
+  ecs::component_t compHash = ECS_HASH_SLOW(component_name).hash;
+
+  auto hasComponent = [&](const ecs::Template *t) {
+    for (auto &c : t->getComponentsMap())
+      if (c.first == compHash)
+        return true;
+    return false;
+  };
+
+  eastl::vector<const char *> sources;
+  if (hasComponent(templ))
+    sources.push_back(templ->getName());
+
+  eastl::vector<uint32_t> parents;
+  flatten_parents(templ, parents);
+  for (uint32_t p : parents)
+  {
+    const ecs::Template *pt = g_entity_mgr->getTemplateDB().getTemplateById(p);
+    if (pt && hasComponent(pt))
+      sources.push_back(pt->getName());
+  }
+
+  if (sources.size() == 0)
+    console::print_d("Component '%s' does nto exist in '%s'", component_name, template_name);
+  else
+  {
+    for (const char *name : sources)
+      console::print_d("\t%s", name);
+  }
+}
+
 static void explore_template_structure(const char *template_name)
 {
   if (!template_name)
@@ -933,7 +981,7 @@ static void explore_template_structure(const char *template_name)
     return;
   }
 
-  const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(template_name);
+  const ecs::Template *templ = g_entity_mgr->getTemplateDB().buildTemplateByName(template_name);
   if (!templ)
   {
     console::print_d("Template '%s' not found", template_name);
@@ -1496,7 +1544,46 @@ static bool ecs_console_handler(const char *argv[], int argc)
     who_modifies_tracked_components_of_template(argv[1]);
   }
   CONSOLE_CHECK_NAME("ecs", "explore_template_structure", 2, 2) { explore_template_structure(argv[1]); }
+  CONSOLE_CHECK_NAME("ecs", "who_added_component_to_template", 3, 3) { who_added_component_to_template(argv[1], argv[2]); }
+  CONSOLE_CHECK_NAME("ecs", "who_added_component_to_selected_entity", 2, 2)
+  {
+    ecs::EntityId selectedEid = query_selected_eid();
+    if (selectedEid == ecs::INVALID_ENTITY_ID)
+      console::print_d("No entity is selected");
+    else
+      who_added_component_to_template(argv[1], g_entity_mgr->getEntityTemplateName(selectedEid));
+  }
   CONSOLE_CHECK_NAME("ecs", "serialize_entity", 3, 3) { serialize_entity(atoi(argv[1]), argv[2]); }
+  CONSOLE_CHECK_NAME_EX("ecs", "log_tracked_unchanged_components", 1, 2,
+    "Logs components which were marked as possibly changed but the underlying data was the same.", "")
+  {
+#if DAECS_EXTENSIVE_CHECKS
+    ecs::log_unchaged_track_components_marked_as_changed =
+      argc < 2 ? !ecs::log_unchaged_track_components_marked_as_changed : to_bool(argv[1]);
+    if (ecs::log_unchaged_track_components_marked_as_changed)
+      console::print("Logging of components is now on");
+    else
+    {
+      eastl::vector<eastl::pair<int, int>> sortedComps;
+      sortedComps.reserve(ecs::component_index_to_unchanged_track_count.size());
+      for (auto &c : ecs::component_index_to_unchanged_track_count)
+      {
+        sortedComps.push_back(c);
+      }
+      eastl::sort(sortedComps.begin(), sortedComps.end(),
+        [](const eastl::pair<int, int> &a, const eastl::pair<int, int> &b) { return a.second > b.second; });
+      ecs::component_index_to_unchanged_track_count.clear();
+
+      for (auto &c : sortedComps)
+        debug("Component was marked changed but wasnt %d times for <%s>(%d)", c.second,
+          g_entity_mgr->getDataComponents().getComponentNameById(c.first), c.first);
+
+      console::print("Logging of unchaged components marked as changed is now off. See log for report.");
+    }
+#else
+    console::print("This command requires the game to be build with DAECS_EXTENSIVE_CHECKS flag.");
+#endif
+  }
 #endif
   return found;
 }

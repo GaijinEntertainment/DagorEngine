@@ -22,7 +22,6 @@ source
 common_valid_variants
 {
   include variants.blk
-  invalid {hasTexture:i=4;}
 }
 
 common_assume_vars {}
@@ -33,6 +32,7 @@ Compile
   group_size_in_kb:i=128
   assume_vars {
     include common_assumes.blk
+    "@override:film_grain":i=0
     supports_sh_6_1:i = 0
     static_shadows_custom_fxaa:i=0
     grass_use_quads:i=0

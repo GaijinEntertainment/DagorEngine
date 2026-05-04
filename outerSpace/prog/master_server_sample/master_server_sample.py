@@ -17,6 +17,7 @@ import random
 from hashlib import sha256
 import hmac
 import argparse
+import platform
 
 json_b64 = lambda x: base64.b64encode(json.dumps(x).encode()).decode("utf-8", "ignore")
 # Lists of adjectives and nouns
@@ -184,7 +185,7 @@ def home():
     </head>
     <body>
         <h1>Welcome to Outer Space Master Server Sample!</h1>
-        <b>This is an admin\debug panel</b>
+        <b>This is an admin|debug panel</b>
         <p>Server IP is <b>{get_master_server_str()}</b>, use it in master server url in client</p>
         <p><b>ATTENTION!</b><br/>Check that your master-server is available from clients by its url. Check that it's UDP ports in {globalparams["portrange_base"]}-{globalparams["portrange_base"]+globalparams["portrange_num"]} are also available</p>
         <p>Check that server can launch host process for session</p>
@@ -204,6 +205,7 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
+    print("request to login:", request.form)
     username = request.form.get('username') or generate_username()
     userid = add_user(username)
     payload = {
@@ -315,6 +317,7 @@ def periodic_task():
     while True:
         # Task that runs every 10 seconds
         ctime = c_time()
+        utcnow = datetime.datetime.utcnow().timestamp()
         print("Periodic cleaner task running...", ctime)
         roomsToDelete = []
         for room in roomsList:
@@ -325,9 +328,10 @@ def periodic_task():
             } #10 seconds to kick non active users
             if len(room['users']) == 0 or \
               (room['lastTimeUsed'] + 30) <= ctime or \
-              (room.get('timeSessionStarted', ctime) + 5) <= ctime or \
-              (room.get('timeCreated', ctime) + 3600) <= ctime:
-               #30 seconds for non active rooms, 5 for rooms with started sessions
+              (room.get('timeSessionStarted', ctime) + 15) <= ctime or \
+              (room.get('timeCreated', utcnow) + 3600) <= utcnow:
+                #30 seconds for non active rooms, 5 for rooms with started sessions
+                print("room to delete:  ", room['roomId'])
                 roomsToDelete.append(room['roomId'])
         for roomId in roomsToDelete:
             destroyRoom(roomId)
@@ -588,7 +592,7 @@ def room_info():
                       roomInfo["users"][userid] = mk_user_info_for_room(userid, nick, curUserRoomInfo["status"])
             return mk_room_info_for_user(roomId, userid, nick), 200
         else:
-           return jsonify({'status': "ROOM DOESNT EXIST"}), 409
+          return jsonify({'status': "ROOM DOESNT EXIST"}), 409
     return render_template_string(f"""
     <!DOCTYPE html>
     <html>
@@ -629,4 +633,5 @@ if __name__ == '__main__':
     ip_for_browser = args.listen_ip if args.listen_ip!="0.0.0.0" else "127.0.0.1"
     if not args.debug:
       threading.Timer(1.0, lambda: webbrowser.open(f"http://{ip_for_browser}:{args.listen_port or 5000}")).start()
-    app.run(debug=args.debug, host=args.listen_ip, port = args.listen_port)
+    ssl_context = ('server.crt', 'server.key')#certificate and key files
+    app.run(debug=args.debug, host=args.listen_ip, port = args.listen_port) #ssl_context=ssl_context

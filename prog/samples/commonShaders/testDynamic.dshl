@@ -26,8 +26,8 @@ shader dynamic_simple, dynamic_simple_atest, dynamic_simple_paint, dynamic_simpl
     texture tex = material.texture.diffuse;
     texture normalMap = material.texture[2];
 
-    (ps) { tex@static = tex; }
-    if (normalMap != NULL) { (ps) { normalmap@static = normalMap; } }
+    (ps) { tex@staticSmp = tex; }
+    if (normalMap != NULL) { (ps) { normalmap@staticSmp = normalMap; } }
   }
 
   (vs) {

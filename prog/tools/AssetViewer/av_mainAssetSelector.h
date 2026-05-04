@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <assetsGui/av_assetBrowser.h>
 #include <assetsGui/av_view.h>
 #include <EASTL/unique_ptr.h>
 
@@ -11,14 +12,20 @@ class DagorAssetMgr;
 class IAssetBaseViewClient;
 class FavoritesTab;
 class RecentlyUsedTab;
+class IAssetTagsView;
+class AssetTagManager;
 
-class MainAssetSelector : public IAssetBaseViewClient, public IAssetSelectorFavoritesRecentlyUsedHost
+class MainAssetSelector : public IAssetBaseViewClient,
+                          public IAssetSelectorContextMenuHandler,
+                          public IAssetSelectorFavoritesRecentlyUsedHost,
+                          public IAssetBrowserHost,
+                          public IAssetTagsView
 {
 public:
   class MainAllAssetsTab
   {
   public:
-    MainAllAssetsTab(IAssetBaseViewClient &client, IAssetSelectorContextMenuHandler &asset_menu_handler);
+    explicit MainAllAssetsTab(MainAssetSelector &client);
 
     void fillTree(DagorAssetMgr &asset_mgr, const DataBlock *expansion_state);
     void refillTree();
@@ -40,6 +47,11 @@ public:
     void selectAsset(const DagorAsset &asset) { allAssetsTab.selectAsset(asset, true); }
     DagorAsset *getSelectedAsset() const;
     DagorAssetFolder *getSelectedAssetFolder() const;
+
+    void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+    {
+      allAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets);
+    }
 
     AllAssetsTree &getTree() { return allAssetsTab.getTree(); }
     const AllAssetsTree &getTree() const { return allAssetsTab.getTree(); }
@@ -66,6 +78,9 @@ public:
   MainAllAssetsTab &getAllAssetsTab() { return mainAllAssetsTab; }
   const MainAllAssetsTab &getAllAssetsTab() const { return mainAllAssetsTab; }
 
+  void saveAssetBrowserSettings(DataBlock &blk) const;
+  void loadAssetBrowserSettings(DataBlock &blk);
+
   void updateImgui();
 
 private:
@@ -82,10 +97,26 @@ private:
   void onAvSelectAsset(DagorAsset *asset, const char *asset_name) override;
   void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
 
+  // IAssetSelectorContextMenuHandler
+  bool onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder) override;
+
   // IAssetSelectorFavoritesRecentlyUsedHost
   dag::ConstSpan<int> getAllowedTypes() const override;
   void onSelectionChanged(const DagorAsset *asset) override;
   void onSelectionDoubleClicked(const DagorAsset *asset) override;
+  IAssetBrowserHost &getAssetBrowserHost() override { return *this; }
+  IAssetSelectorContextMenuHandler &getAssetSelectorContextMenuHandler() override { return *this; }
+
+  // IAssetBrowserHost
+  void assetBrowserFill() override;
+  bool assetBrowserIsOpen() const override;
+  void assetBrowserSetOpen(bool open) override;
+  void assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked) override;
+  void assetBrowserOnContextMenu(DagorAsset *asset) override;
+
+  // IAssetTagsView
+  AssetTagManager *getVisibleTagManager() override;
+  void showTagManager(bool show) override;
 
   void setActiveTab(ActiveTab tab);
 
@@ -94,13 +125,16 @@ private:
   static bool tabPage(const char *title, bool selected);
 
   IAssetBaseViewClient &client;
+  IAssetSelectorContextMenuHandler &menuEventHandler;
   MainAllAssetsTab mainAllAssetsTab;
   eastl::unique_ptr<FavoritesTab> favoritesTab;
   eastl::unique_ptr<RecentlyUsedTab> recentlyUsedTab;
+  AssetBrowser assetBrowser;
   DagorAssetMgr *assetMgr = nullptr;
   ActiveTab activeTab = ActiveTab::All;
   const DagorAsset *lastSelectedAsset = nullptr;
   int favoritesFilledGenerationId = -1;
   int recentlyUsedFilledGenerationId = -1;
   bool allowChangingRecentlyUsedList = true;
+  bool assetBrowserOpen = false;
 };

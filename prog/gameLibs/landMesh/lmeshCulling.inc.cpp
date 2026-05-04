@@ -48,7 +48,7 @@ bool LandMeshCullingState::calcCellBox(LandMeshManager &provider, int borderX, i
 }
 
 void LandMeshCullingState::cullCell(LandMeshManager &provider, int borderX, int borderY, int x0, int y0, int x1, int y1,
-  const Frustum &frustum, const Occlusion *occlusion, LandMeshCullingData &data)
+  const Frustum &frustum, const vec3f *frustumPoints, const bbox3f &frustumBox, const Occlusion *occlusion, LandMeshCullingData &data)
 {
   if (provider.isInTools() && useExclBox && borderX >= exclBox[0].x && borderY >= exclBox[0].y && borderX < exclBox[1].x &&
       borderY < exclBox[1].y)
@@ -62,13 +62,14 @@ void LandMeshCullingState::cullCell(LandMeshManager &provider, int borderX, int 
     if (!renderInBBox.isempty() && !(bbox & renderInBBox))
       return;
 
-    // Test bbox vs. frustum.
+    bool frustumCheck = frustum.testBoxCorrect(bbox, frustumPoints, frustumBox) != Frustum::OUTSIDE;
+    if (!frustumCheck)
+      return;
+
     vec4f bmin = v_ld(&bbox[0].x);
     vec4f bmax = v_ldu(&bbox[1].x);
     vec4f center2 = v_add(bmax, bmin);
     vec4f extent2 = v_sub(bmax, bmin);
-    if (!frustum.testBoxExtentB(center2, extent2))
-      return;
     if (occlusion && occlusion->isOccludedBoxExtent2(center2, extent2))
       return;
   }
@@ -254,9 +255,13 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
     }
     else
     {
+      vec3f frustumPoints[8];
+      fi.frustum.generateAllPointFrustm(frustumPoints);
+      bbox3f frustumBbox = fi.frustum.calcFrustumBBox(frustumPoints);
+
       for (int y = cellBox.lim[0].y; y <= cellBox.lim[1].y; y++)
         for (int x = cellBox.lim[0].x; x <= cellBox.lim[1].x; x++)
-          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
     }
   }
   else
@@ -266,9 +271,14 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
     {
       provider.getHmapHandler()->frustumCulling(data.heightmapData, fi);
     }
+
+    vec3f frustumPoints[8];
+    fi.frustum.generateAllPointFrustm(frustumPoints);
+    bbox3f frustumBbox = fi.frustum.calcFrustumBBox(frustumPoints);
+
     startCell.x = max(cellBox.lim[0].x, min(cellBox.lim[1].x, startCell.x));
     startCell.y = max(cellBox.lim[0].y, min(cellBox.lim[1].y, startCell.y));
-    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
 
     for (int radius = 1; radius <= maxRadius; ++radius)
     {
@@ -277,19 +287,19 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
 
       if (minY >= cellBox.lim[0].y && minY <= cellBox.lim[1].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
 
       if (maxY <= cellBox.lim[1].y && maxY >= cellBox.lim[0].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
 
       if (minX >= cellBox.lim[0].x && minX <= cellBox.lim[1].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
 
       if (maxX <= cellBox.lim[1].x && maxX >= cellBox.lim[0].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, fi.occlusion, data);
+          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
     }
   }
 }

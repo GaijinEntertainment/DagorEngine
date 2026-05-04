@@ -28,20 +28,41 @@ Sources =
 AddIncludes =
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
-  $(Root)/prog/3rdPartyLibs/nvapi
-  $(Root)/prog/3rdPartyLibs/aftermath/2025.4.0.250729/include
-  $(Root)/prog/3rdPartyLibs/adl_sdk
-  $(Root)/prog/engine/drv/drv3d_DX11
 ;
 
 AddLibs += Version.lib ;
 
 CPPopt = -DINSIDE_DRIVER -FId3d_config.h ;
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
-if [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] { CPPopt += -DHAS_GF_AFTERMATH ; }
-if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
 
-AddIncludes += $(Root)/prog/3rdPartyLibs/streamline/include ;
+if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
+  AddIncludes += $(_DEVTOOL)/nvapi-$(NvApiVer) ;
+  CPPopt += -DHAS_NVAPI ;
+}
+
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/adl_sdk : * ] {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/adl_sdk/include ;
+  CPPopt += -DHAS_ADL ;
+}
+
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/AmdDxExt : * ] {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/AmdDxExt ;
+  CPPopt += -DHAS_AMD_DX_EXT ;
+}
+
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/aftermath : * ] {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/aftermath/2025.5.0.251114/include ;
+  CPPopt += -DHAS_GF_AFTERMATH ;
+}
+
+if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/streamline/include ;
+}
 
 UseProgLibs = engine/drv/drv3d_commonCode ;
 

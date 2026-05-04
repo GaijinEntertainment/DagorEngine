@@ -10,6 +10,8 @@ interval sp_harm_type : from_sky_box < 1, from_panorama;
 
 float sp_harm_gamma;
 
+sampler StaticDefaultSampler;
+
 hlsl(cs)
 {
   #include "spherical_harmonics_consts.hlsli"
@@ -87,20 +89,27 @@ shader spherical_harmonics_reduction_cs
   (cs) {
     width__half_step__step__face@f4 = (sp_harm_cube_face_width , 1. / sp_harm_cube_face_width, 2. / sp_harm_cube_face_width, sp_harm_face_number);
     gamma__mip_number@f2 = (sp_harm_gamma, sp_harm_mip_number);
+
+    if (sp_harm_type == from_sky_box) {
+      cube_tex@texCube : register(1);
+      cube_tex_samplerstate@sampler = StaticDefaultSampler;
+    } else {
+      panorama_tex@tex2d : register(1);
+      panorama_tex_samplerstate@sampler = StaticDefaultSampler;
+    }
+    harmonicsValues@uav : register(0) hlsl {
+      #include "spherical_harmonics_consts.hlsli"
+      RWStructuredBuffer<HarmCoefs> harmonicsValues@uav;
+    };
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
 
     #define gamma gamma__mip_number.x
     #define mip_number gamma__mip_number.y
 
-    RWStructuredBuffer<HarmCoefs> harmonicsValues: register(u0);
     groupshared HarmCoefsPacked coefsToReduct[THREADS_PER_GROUP_AXIS * THREADS_PER_GROUP_AXIS];
 
   ##if (sp_harm_type == from_sky_box)
-
-    TextureCube cube_tex : register(t1);
-    SamplerState cube_tex_samplerstate : register(s1);
 
     float3 getEnviValue(float3 direction)
     {
@@ -108,9 +117,6 @@ shader spherical_harmonics_reduction_cs
     }
 
   ##else //from_panorama
-
-    Texture2D panorama_tex : register(t1);
-    SamplerState panorama_tex_samplerstate : register(s1);
 
     float3 getEnviValue(float3 direction)
     {
@@ -191,13 +197,20 @@ shader spherical_harmonics_reduction_cs
 
 shader final_harmonics_reduction_cs
 {
-  (cs) { final_reduction_size@f1 = (sp_harm_final_reduction_size); }
-  ENABLE_ASSERT(cs)
+  (cs) {
+    final_reduction_size@f1 = (sp_harm_final_reduction_size);
+
+    harmonicsValuesFinal@uav : register(0) hlsl {
+      #include "spherical_harmonics_consts.hlsli"
+      RWStructuredBuffer<HarmCoefs> harmonicsValuesFinal@uav;
+    };
+    harmonicsValues@buf : register(0) hlsl {
+      #include "spherical_harmonics_consts.hlsli"
+      StructuredBuffer<HarmCoefs> harmonicsValues@buf;
+    };
+  }
   hlsl(cs)
   {
-    RWStructuredBuffer<HarmCoefs> harmonicsValuesFinal: register(u0);
-    StructuredBuffer<HarmCoefs> harmonicsValues: register(t0);
-
     groupshared HarmCoefsPacked coefsToReduct[FINAL_REDUCTION_HIGH_THREADS_COUNT];
 
     [numthreads(FINAL_REDUCTION_HIGH_THREADS_COUNT, 1, 1)]

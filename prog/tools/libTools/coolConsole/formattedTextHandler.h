@@ -5,7 +5,6 @@
 
 #include <gui/dag_imgui.h>
 #include <math/dag_e3dColor.h>
-#include <propPanel/colors.h>
 #include <util/dag_string.h>
 
 #include <imgui/imgui.h>
@@ -18,6 +17,7 @@ public:
   {
     fullText.clear();
     textLines.clear();
+    textLinesSizeValid = false;
     clearSelection();
   }
 
@@ -59,6 +59,8 @@ public:
       start_new_line = true;
       text = nextLine;
     }
+
+    textLinesSizeValid = false;
   }
 
   const String &getAsString() const { return fullText; }
@@ -79,6 +81,12 @@ public:
     return String(fullText.c_str() + orderedCharacterSelectionStart, length);
   }
 
+  const ImVec2 &getTextLinesSize(float wrap_width)
+  {
+    updateTextCache(wrap_width);
+    return textLinesSize;
+  }
+
   void onHit(const char *hit_text, bool clicked)
   {
     const int textIndex = hit_text - fullText.c_str();
@@ -96,7 +104,7 @@ public:
     }
   }
 
-  void updateImgui()
+  void updateImgui(float wrap_width, ImGuiID &item_id, bool &item_focused)
   {
     const char *selectionStart = nullptr;
     const char *selectionEnd = nullptr;
@@ -112,86 +120,89 @@ public:
       }
     }
 
-    const ImVec2 startCursorPos = ImGui::GetCursorScreenPos();
-    const ImVec2 contentSize = ImGui::GetCurrentWindowRead()->ContentSize;
-    const ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-    ImGui::InvisibleButton("OutputText", ImVec2(max(contentSize.x, regionAvail.x), max(contentSize.y, regionAvail.y)));
+    updateTextCache(wrap_width);
+    G_ASSERT(textLinesSizeValid);
 
-    if (ImGui::IsItemHovered())
+    const ImVec2 startCursorPos = ImGui::GetCursorScreenPos();
+    const ImVec2 regionAvail = ImGui::GetContentRegionAvail();
+    // Allow using right click to focus the control.
+    ImGui::InvisibleButton("OutputText", ImVec2(max(textLinesSize.x, regionAvail.x), max(textLinesSize.y, regionAvail.y)),
+      ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+
+    // But do not change selection with the right click.
+    const bool leftClicked = ImGui::IsItemActivated() && !ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const bool select = leftClicked || (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left));
+
+    item_id = ImGui::GetItemID();
+    item_focused = ImGui::IsItemFocused();
+
+    const bool itemHovered = ImGui::IsItemHovered();
+    if (itemHovered)
       ImGui::SetMouseCursor(ImGuiMouseCursor_TextInput);
 
     ImGui::SetCursorScreenPos(startCursorPos);
 
-    ImGui::PushTextWrapPos(0.0f);
-
     const ImRect &clipRect = ImGui::GetCurrentWindowRead()->ClipRect;
-    const bool clicked = ImGui::IsItemActivated();
-    const bool select = clicked || (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left));
     const float mousePosY = ImGui::GetMousePos().y;
-    const float scrollY = ImGui::GetScrollY();
-    const char *text = fullText.c_str();
+
+    updateFirstVisibleLine(startCursorPos, clipRect.Min.y);
+    G_ASSERT(firstVisibleLineIndexValid);
+    if (firstVisibleLineIndex < 0)
+      return;
+
+    const char *text = fullText.c_str() + firstVisibleLineFullTextOffset;
+    float nextLineStartY = clipRect.Max.y; // Give it an invalid value but it will be always set by the loop.
     bool foundHit = false;
-
-    SelectionHighlighterTextHandler selectionHighlighter(ImGui::GetTextLineHeightWithSpacing(), selectionStart, selectionEnd);
-
-    for (const TextLine &line : textLines)
+    for (int lineIndex = firstVisibleLineIndex; lineIndex < textLines.size(); ++lineIndex)
     {
-      const ImVec2 lineStartCursorPos = ImGui::GetCursorScreenPos();
-      const char *lineStartText = text;
+      const TextLine &line = textLines[lineIndex];
+      G_ASSERT(line.boundsValid);
 
-      if (select && !foundHit && mousePosY < lineStartCursorPos.y &&
-          (lineStartCursorPos.y + ImGui::GetTextLineHeightWithSpacing()) >= clipRect.Min.y)
+      const ImVec2 lineStartCursorPos = ImVec2(startCursorPos.x, startCursorPos.y + line.relativeBounds.Min.y);
+      nextLineStartY = lineStartCursorPos.y + line.relativeBounds.GetHeight();
+      const char *const lineStartText = text;
+      text += line.getLength();
+
+      lineGlyphs.clear();
+      getLineGlyphs(line, lineStartCursorPos, lineStartText, lineGlyphs, wrap_width);
+
+      if (select && !foundHit && mousePosY < lineStartCursorPos.y)
       {
         foundHit = true;
-        onHit(text, clicked);
+        onHit(lineStartText, leftClicked);
       }
-
-      for (const TextSpan &span : line.textSpans)
-      {
-        if (span.length == 0)
-          continue;
-
-        if (span.bold)
-          ImGui::PushFont(imgui_get_bold_font());
-
-        ImGui::PushStyleColor(ImGuiCol_Text, PropPanel::getOverriddenColor(span.colorIndex));
-        ImGui::TextUnformatted(text, text + span.length);
-        ImGui::PopStyleColor();
-
-        if (span.bold)
-          ImGui::PopFont();
-
-        text += span.length;
-      }
-
-      if (select && !foundHit && mousePosY >= lineStartCursorPos.y && mousePosY < ImGui::GetCursorScreenPos().y)
-        if (const char *hitText = getHitTextByMousePosition(line, lineStartCursorPos, lineStartText))
-        {
-          foundHit = true;
-          onHit(hitText, clicked);
-        }
 
       if (selectionStart && selectionStart <= text && selectionEnd >= lineStartText)
-        drawSelectionRectangle(selectionHighlighter, line, lineStartCursorPos, lineStartText);
+        LineGlyphHelper::drawSelectionRectangle(lineGlyphs, lineStartText, selectionStart, selectionEnd, item_focused);
 
-      if (ImGui::GetCursorScreenPos().y > clipRect.Max.y)
+      LineGlyphHelper::drawText(lineGlyphs);
+
+      if (select && !foundHit && mousePosY >= lineStartCursorPos.y && mousePosY < nextLineStartY)
+        if (const char *hitText = LineGlyphHelper::getHitTextByMousePosition(lineGlyphs, lineStartCursorPos, lineStartText))
+        {
+          foundHit = true;
+          onHit(hitText, leftClicked);
+        }
+
+      if (nextLineStartY > clipRect.Max.y) // next line is no longer visible
         break;
     }
 
-    ImGui::PopTextWrapPos();
-
     // Select the entire last drawn line if the click is below it.
-    if (select && !foundHit && mousePosY > ImGui::GetCursorScreenPos().y &&
-        (ImGui::GetCursorScreenPos().y - ImGui::GetTextLineHeightWithSpacing()) < clipRect.Max.y)
+    if (select && !foundHit && mousePosY > nextLineStartY && nextLineStartY < clipRect.Max.y)
     {
       foundHit = true;
-      onHit(text, clicked);
+      onHit(text, leftClicked);
     }
 
-    if (ImGui::GetMouseClickedCount(ImGuiMouseButton_Left) == 2)
-      extendSelectionToWordOrLine(false);
-    else if (ImGui::GetMouseClickedCount(ImGuiMouseButton_Left) == 3)
-      extendSelectionToWordOrLine(true);
+    if (itemHovered)
+    {
+      const int clickCount = ImGui::GetMouseClickedCount(ImGuiMouseButton_Left);
+      if (clickCount == 2)
+        extendSelectionToWordOrLine(false);
+      else if (clickCount == 3)
+        extendSelectionToWordOrLine(true);
+    }
   }
 
 private:
@@ -217,6 +228,8 @@ private:
       {
         textSpans.back().length += text_length;
       }
+
+      boundsValid = false;
     }
 
     unsigned getLength() const
@@ -228,6 +241,22 @@ private:
     }
 
     dag::Vector<TextSpan> textSpans;
+    ImRect relativeBounds; // relative to the cursor's start position
+    bool boundsValid = false;
+  };
+
+  struct TextCacheInfluencingSettings
+  {
+    void fill(float wrap_width)
+    {
+      wrapWidth = wrap_width;
+      fontSize = ImGui::GetFontSize();
+    }
+
+    bool operator==(const TextCacheInfluencingSettings &) const = default;
+
+    float wrapWidth = 0.0f;
+    float fontSize = 0.0f;
   };
 
   void getOrderedSelection(int &ordered_start, int &ordered_end) const
@@ -262,26 +291,10 @@ private:
     return nullptr;
   }
 
-  static const char *getHitTextByMousePositionInternal(ImVec2 &cursor_position, const char *text, unsigned text_length,
-    const ImVec2 &mouse_position)
+  static void getLineGlyphs(const TextLine &line, const ImVec2 &line_start_cursor_pos, const char *line_start_text,
+    dag::Vector<LineGlyph> &glyphs, float wrap_width)
   {
-    G_ASSERT(text_length > 0);
-
-    const ImGuiWindow *window = ImGui::GetCurrentWindow();
-    const float wrapPosX = window->DC.TextWrapPos;
-    const bool wrapEnabled = wrapPosX >= 0.0f;
-    const float wrapWidth = wrapEnabled ? ImGui::CalcWrapWidthForPos(cursor_position, wrapPosX) : 0.0f;
-    const float lineHeight = ImGui::GetTextLineHeightWithSpacing();
-    const ImVec4 clipRect = window->DrawList->_CmdHeader.ClipRect;
-
-    HitFinderTextHandler hitHandler(mouse_position, lineHeight);
-    cursor_position = hitHandler.processText(cursor_position, clipRect, text, text + text_length, wrapWidth);
-    return hitHandler.getHitCharacter();
-  }
-
-  const char *getHitTextByMousePosition(const TextLine &line, const ImVec2 &line_start_cursor_pos, const char *line_start_text)
-  {
-    const ImVec2 mousePosition = ImGui::GetMousePos();
+    const float fontScale = ImGui::GetFontSize() / ImGui::GetFontBaked()->Size;
     ImVec2 handlerCursorPosition = line_start_cursor_pos;
     const char *handlerText = line_start_text;
     for (const TextSpan &span : line.textSpans)
@@ -290,58 +303,100 @@ private:
         continue;
 
       if (span.bold)
-        ImGui::PushFont(imgui_get_bold_font());
+        ImGui::PushFont(imgui_get_bold_font(), 0.0f);
 
-      const char *hitText = getHitTextByMousePositionInternal(handlerCursorPosition, handlerText, span.length, mousePosition);
+      ImguiTextGlyphIterator glyphIterator(line_start_cursor_pos.x, wrap_width, handlerCursorPosition.x, handlerCursorPosition.y,
+        handlerText, handlerText + span.length);
+      while (true)
+      {
+        const char *textPos = glyphIterator.getTextPos();
+        if (!glyphIterator.iterate())
+          break;
+
+        LineGlyph &glyph = glyphs.push_back();
+        glyph.glyph = glyphIterator.getGlyph();
+        glyph.advanceX = (glyph.glyph ? glyph.glyph->AdvanceX : ImGui::GetFontBaked()->GetCharAdvance((ImWchar)' ')) * fontScale;
+        glyph.x = handlerCursorPosition.x;
+        glyph.y = handlerCursorPosition.y;
+        glyph.characterIndex = textPos - line_start_text;
+        glyph.colorIndex = span.colorIndex;
+
+        handlerCursorPosition.x = glyphIterator.getX();
+        handlerCursorPosition.y = glyphIterator.getY();
+      }
 
       if (span.bold)
         ImGui::PopFont();
 
-      if (hitText)
-        return hitText;
-
       handlerText += span.length;
     }
-
-    return nullptr;
   }
 
-  static void drawSelectionRectangleInternal(SelectionHighlighterTextHandler &handler, ImVec2 &cursor_position, const char *text,
-    unsigned text_length)
+  void updateTextCache(float wrap_width)
   {
-    G_ASSERT(text_length > 0);
+    TextCacheInfluencingSettings textCacheInfluencingSettings;
+    textCacheInfluencingSettings.fill(wrap_width);
+    const bool invalidateEverything = textCacheInfluencingSettings != lastTextCacheInfluencingSettings;
+    if (textLinesSizeValid && !invalidateEverything)
+      return;
 
-    const ImGuiWindow *window = ImGui::GetCurrentWindow();
-    const float wrapPosX = window->DC.TextWrapPos;
-    const bool wrapEnabled = wrapPosX >= 0.0f;
-    const float wrapWidth = wrapEnabled ? ImGui::CalcWrapWidthForPos(cursor_position, wrapPosX) : 0.0f;
-    const ImVec4 clipRect = window->DrawList->_CmdHeader.ClipRect;
+    lastTextCacheInfluencingSettings = textCacheInfluencingSettings;
 
-    cursor_position = handler.processText(cursor_position, clipRect, text, text + text_length, wrapWidth);
-  }
-
-  void drawSelectionRectangle(SelectionHighlighterTextHandler &handler, const TextLine &line, const ImVec2 &line_start_cursor_pos,
-    const char *line_start_text)
-  {
-    ImVec2 handlerCursorPosition = line_start_cursor_pos;
-    const char *handlerText = line_start_text;
-    for (const TextSpan &span : line.textSpans)
+    float cursorPosY = 0.0f;
+    float maxX = 0.0f;
+    const char *text = fullText.c_str();
+    for (TextLine &line : textLines)
     {
-      if (span.length == 0)
-        continue;
+      if (!line.boundsValid || invalidateEverything)
+      {
+        lineGlyphs.clear();
+        getLineGlyphs(line, ImVec2(0.0f, cursorPosY), text, lineGlyphs, wrap_width);
 
-      if (span.bold)
-        ImGui::PushFont(imgui_get_bold_font());
+        const float nextCursorPosY = (lineGlyphs.empty() ? cursorPosY : lineGlyphs.back().y) + ImGui::GetTextLineHeightWithSpacing();
 
-      drawSelectionRectangleInternal(handler, handlerCursorPosition, handlerText, span.length);
+        line.relativeBounds.Min.x = 0.0f;
+        line.relativeBounds.Min.y = cursorPosY;
+        line.relativeBounds.Max.x = LineGlyphHelper::getMaxXFromLineGlyphs(lineGlyphs);
+        line.relativeBounds.Max.y = nextCursorPosY;
+        line.boundsValid = true;
+      }
 
-      if (span.bold)
-        ImGui::PopFont();
-
-      handlerText += span.length;
+      cursorPosY += line.relativeBounds.GetHeight();
+      maxX = max(maxX, line.relativeBounds.GetWidth());
+      text += line.getLength();
     }
 
-    handler.onEnd(handlerCursorPosition.x, handlerCursorPosition.y);
+    textLinesSize = ImVec2(maxX, cursorPosY);
+    textLinesSizeValid = true;
+    firstVisibleLineIndexValid = false;
+  }
+
+  void updateFirstVisibleLine(const ImVec2 &cursor_start_pos, float clip_rect_min_y)
+  {
+    const float scrollY = ImGui::GetScrollY();
+    if (firstVisibleLineIndexValid && scrollY == firstVisibleLineLastScrollPositionY)
+      return;
+
+    firstVisibleLineLastScrollPositionY = scrollY;
+    firstVisibleLineIndex = -1;
+    firstVisibleLineFullTextOffset = 0;
+
+    for (int lineIndex = 0; lineIndex < textLines.size(); ++lineIndex)
+    {
+      const TextLine &line = textLines[lineIndex];
+      G_ASSERT(line.boundsValid);
+
+      const float nextLineStartY = cursor_start_pos.y + line.relativeBounds.Max.y;
+      if (nextLineStartY >= clip_rect_min_y)
+      {
+        firstVisibleLineIndex = lineIndex;
+        break;
+      }
+
+      firstVisibleLineFullTextOffset += line.getLength();
+    }
+
+    firstVisibleLineIndexValid = true;
   }
 
   void extendSelectionToLeft(int &index, bool use_line_separator)
@@ -385,7 +440,7 @@ private:
   static bool isWordSeparator(unsigned c)
   {
     return ImCharIsBlankW(c) || c == ',' || c == ';' || c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']' ||
-           c == '|' || c == '\n' || c == '\r' || c == '.' || c == '!' || c == '\\' || c == '/';
+           c == '<' || c == '>' || c == '|' || c == '\n' || c == '\r' || c == '.' || c == '!' || c == '\\' || c == '/';
   }
 
   static bool isLineSeparator(unsigned c) { return c == '\n' || c == '\r'; }
@@ -394,6 +449,16 @@ private:
 
   String fullText;
   dag::Vector<TextLine> textLines;
-  int characterSelectionStart = -1; // inclusive
-  int characterSelectionEnd = -1;   // not inclusive
+  dag::Vector<LineGlyph> lineGlyphs; // temporary buffer
+  int characterSelectionStart = -1;  // inclusive
+  int characterSelectionEnd = -1;    // not inclusive
+
+  // caching
+  TextCacheInfluencingSettings lastTextCacheInfluencingSettings;
+  ImVec2 textLinesSize;
+  bool textLinesSizeValid = false;
+  int firstVisibleLineIndex = -1;
+  bool firstVisibleLineIndexValid = false;
+  float firstVisibleLineLastScrollPositionY = 0.0f;
+  int firstVisibleLineFullTextOffset = 0;
 };

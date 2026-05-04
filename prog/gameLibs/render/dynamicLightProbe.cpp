@@ -7,8 +7,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
-#include <math/dag_mathUtils.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_resPtr.h>
 #include <render/lightCube.h>
 #include <util/dag_string.h>
@@ -88,7 +87,7 @@ void DynamicLightProbe::init(unsigned int size, const char *name, unsigned fmt, 
   if (blendCubesRenderer)
   {
     int mip_count = light_probe::getManagedTex(probe[0])->getCubeTex()->level_count();
-    result = dag::create_cubetex(size, fmt | TEXCF_RTARGET, mip_count, String(128, "%s_result_specular_cube", name));
+    result = dag::create_cubetex(size, fmt | TEXCF_RTARGET, mip_count, String(128, "%s_result_specular_cube", name), RESTAG_LIGHTS);
   }
   else
     logwarn("no blend_light_probes shader");
@@ -218,7 +217,7 @@ void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit
     G_ASSERTF(valid & (VALID0 | VALID1), "make light probe blending");
     currentBlendTime -= dt;
     float blend = totalBlendTime ? clamp(1.0f - currentBlendTime / totalBlendTime, 0.0f, 1.0f) : 1;
-    ShaderGlobal::set_real(dynamic_cube_tex_blendVarId, blend);
+    ShaderGlobal::set_float(dynamic_cube_tex_blendVarId, blend);
     const ManagedTex *probe1 = light_probe::getManagedTex(probe[currentProbeId]);
     const ManagedTex *probe2 = light_probe::getManagedTex(probe[1 - currentProbeId]);
     const ManagedTex *blendTo = &result;
@@ -227,7 +226,7 @@ void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit
 
     for (int level = 0; level < (*blendTo)->level_count(); ++level)
     {
-      ShaderGlobal::set_real(dynamic_cube_tex_levelVarId, level);
+      ShaderGlobal::set_float(dynamic_cube_tex_levelVarId, level);
       G_ASSERT(d3d::get_driver_desc().maxSimRT >= 6);
       for (int f = 0; f < 6; ++f)
         d3d::set_render_target(f, blendTo->getCubeTex(), f, level);

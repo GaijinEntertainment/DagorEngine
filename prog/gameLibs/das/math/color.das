@@ -6,10 +6,9 @@ require math
 
 [generic]
 def rnd_color(var seed : int&)
-  let r1 = uint(_rnd(seed))
-  let r2 = uint(_rnd(seed))
-  let rgbValue = (r1 << 8u) | (r2 >> 8u)
-  let forceBits = (0xC0 << (8u * (r2 % 3u))) | 0xFF000000
+  let r = uint(_rnd(seed))
+  let rgbValue = r & 0xFFFFFFu
+  let forceBits = (0xC0 << (8u * ((r >> 24u) % 3u))) | 0xFF000000u
   return E3DCOLOR(rgbValue | forceBits)
 
 [generic]

@@ -47,11 +47,55 @@ struct RenderBuffer
   GpuResourcePtr res;
 };
 
-template <typename Tx, typename Ty>
-struct BufferPool
+struct RenderDispatchBuffer
 {
-  using res_t = Tx;
-  using element_t = Ty;
+  int validElementsCount = 0;
+  GpuResourcePtr res;
+};
+
+struct CpuBufferPool
+{
+  using res_t = CpuResourcePtr;
+  using element_t = unsigned char;
+
+  struct AllocationRecord
+  {
+    int offset;
+    int size;
+    int rootSid;
+  };
+
+  struct Page
+  {
+    res_t res;
+    unsigned int size;
+    unsigned int garbage;
+    unsigned int available;
+    eastl::vector<AllocationRecord> allocations;
+  };
+  using PageId = GenerationRefId<8, Page>;
+
+  struct Buffer
+  {
+    Buffer() : pageId(PageId()), directPtr(nullptr), offset(0), size(0) {}
+    PageId pageId;
+    element_t *directPtr;
+    int offset;
+    int size;
+  };
+
+  int pageSize;
+  GenerationReferencedData<PageId, Page> pages;
+};
+
+using CpuPage = CpuBufferPool::Page;
+using CpuPageId = CpuBufferPool::PageId;
+using CpuBuffer = CpuBufferPool::Buffer;
+
+struct GpuBufferPool
+{
+  using res_t = GpuResourcePtr;
+  using element_t = Sbuffer;
 
   struct Page
   {
@@ -77,15 +121,9 @@ struct BufferPool
   eastl::vector<PageId> pagesToDestroy;
 };
 
-using GpuBufferPool = BufferPool<GpuResourcePtr, Sbuffer>;
 using GpuPage = GpuBufferPool::Page;
 using GpuPageId = GpuBufferPool::PageId;
 using GpuBuffer = GpuBufferPool::Buffer;
-
-using CpuBufferPool = BufferPool<CpuResourcePtr, unsigned char>;
-using CpuPage = CpuBufferPool::Page;
-using CpuPageId = CpuBufferPool::PageId;
-using CpuBuffer = CpuBufferPool::Buffer;
 
 template <typename T>
 bool init_buffer_pool(T &dst, size_t page_sz)
@@ -95,11 +133,13 @@ bool init_buffer_pool(T &dst, size_t page_sz)
   return true;
 }
 
-bool create_gpu_buffer(GpuBufferPool &dst, unsigned int sz, GpuBuffer &out);
-bool create_cpu_buffer(CpuBufferPool &dst, unsigned int sz, CpuBuffer &out);
-void release_gpu_buffer(GpuBufferPool &dst, GpuBuffer &buf, bool delayed_destroy);
-void release_cpu_buffer(CpuBufferPool &dst, CpuBuffer &buf);
-void exec_delayed_page_destroy(GpuBufferPool &dst);
+bool create_gpu_buffer(Context &ctx, unsigned int sz, GpuBuffer &out);
+bool create_cpu_buffer(Context &ctx, unsigned int sz, CpuBuffer &out);
+void report_cpu_buffer_allocation_for_sid(CpuBufferPool &dst, const CpuBuffer &buf, int root_sid);
+void release_gpu_buffer(Context &ctx, GpuBuffer &buf, bool delayed_destroy);
+void release_cpu_buffer(Context &ctx, CpuBuffer &buf);
+void report_all_cpu_subbuffers_released(CpuBufferPool &dst, CpuPageId page_id, int root_sid);
+void exec_delayed_gpu_page_destroy(Context &ctx);
 
 bool create_gpu_rb_res(GpuResourcePtr &res, unsigned int elem_size, unsigned int elem_count, const char *name);
 bool create_gpu_sb_res(GpuResourcePtr &res, unsigned int elem_size, unsigned int elem_count, const char *name);

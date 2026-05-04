@@ -405,7 +405,7 @@ By default, all asset-related errors (loggers) will be output to the console. If
 you need to control these locally, you can add the following block to your
 `application.blk`:
 
-```text
+```blk
 logerr_to_con{
   assetViewer{
     include_re:t=... // only loggers matching this regex will be shown
@@ -416,7 +416,7 @@ logerr_to_con{
 
 **Example:**
 
-```text
+```blk
 logerr_to_con{
   assetViewer{
     exclude_re:t="(warning: node <occluder_box> from)|(Shader 'land_mesh_combined' not found in bin dump)|(has mesh with 0 faces)|(degenerate tri)|(degenerate mesh node)" // loggers matching this regex will be excluded

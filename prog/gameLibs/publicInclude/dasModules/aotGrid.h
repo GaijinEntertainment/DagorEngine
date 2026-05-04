@@ -24,10 +24,7 @@ inline void _builtin_gather_entities_in_grid_box(uint32_t grid_name_hash, const 
   gather_entities_in_grid(grid_name_hash, bbox, check_type, entities);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = entities.size();
-  arr.capacity = entities.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -40,10 +37,7 @@ inline void _builtin_gather_entities_in_grid_sphere(uint32_t grid_name_hash, con
   gather_entities_in_grid(grid_name_hash, bsphere, check_type, entities);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = entities.size();
-  arr.capacity = entities.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -57,10 +51,7 @@ inline void _builtin_gather_entities_in_grid_capsule(uint32_t grid_name_hash, co
   gather_entities_in_grid(grid_name_hash, from, dir, len, radius, check_type, entities);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = entities.size();
-  arr.capacity = entities.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -74,10 +65,7 @@ inline void _builtin_gather_entities_in_grid_tm_box(uint32_t grid_name_hash, con
   gather_entities_in_grid(grid_name_hash, transform, bbox, check_type, entities);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = entities.size();
-  arr.capacity = entities.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

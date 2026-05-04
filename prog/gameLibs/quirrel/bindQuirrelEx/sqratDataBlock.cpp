@@ -10,7 +10,7 @@
 #include <math/integer/dag_IPoint3.h>
 #include <math/dag_Point4.h>
 #include <memory/dag_framemem.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <osApiWrappers/dag_direct.h>
 #include <EASTL/set.h>
 
@@ -101,26 +101,6 @@ static SQInteger blk_get_param_type_annotation(HSQUIRRELVM v)
   return 1;
 }
 
-static SQInteger blk_get_int(HSQUIRRELVM v)
-{
-  if (!Sqrat::check_signature<DataBlock *>(v))
-    return SQ_ERROR;
-
-  SQInteger nargs = sq_gettop(v);
-  Sqrat::Var<DataBlock *> self(v, 1);
-  Sqrat::Var<const char *> name(v, 2);
-  if (nargs == 2)
-  {
-    Sqrat::PushVar(v, self.value->getInt64(name.value));
-  }
-  else
-  {
-    Sqrat::Var<SQInteger> defval(v, 3);
-    Sqrat::PushVar(v, self.value->getInt64(name.value, defval.value));
-  }
-  return 1;
-}
-
 static SQInteger blk_get(HSQUIRRELVM v)
 {
   if (!Sqrat::check_signature<DataBlock *>(v))
@@ -181,15 +161,15 @@ static SQInteger blk_set(HSQUIRRELVM v)
     case OT_NULL: self->removeParam(key); break;
     case OT_INTEGER:
     {
-      SQInteger value = sq_direct_tointeger(&valObj);
+      SQInteger value = sq_objtointeger(&valObj);
       if (value != (int32_t)value)
         self->setInt64(key, value);
       else
         self->setInt(key, value);
       break;
     }
-    case OT_FLOAT: self->setReal(key, sq_direct_tofloat(&valObj)); break;
-    case OT_BOOL: self->setBool(key, sq_direct_tobool(&valObj)); break;
+    case OT_FLOAT: self->setReal(key, sq_objtofloat(&valObj)); break;
+    case OT_BOOL: self->setBool(key, sq_obj_is_true(&valObj)); break;
     case OT_STRING:
     {
       const char *s = nullptr;
@@ -318,15 +298,15 @@ static SQInteger blk_newslot(HSQUIRRELVM v)
     case OT_NULL: self->removeParam(key); break;
     case OT_INTEGER:
     {
-      SQInteger value = sq_direct_tointeger(&valObj);
+      SQInteger value = sq_objtointeger(&valObj);
       if (value != (int32_t)value)
         self->addInt64(key, value);
       else
         self->addInt(key, value);
       break;
     }
-    case OT_FLOAT: self->addReal(key, sq_direct_tofloat(&valObj)); break;
-    case OT_BOOL: self->addBool(key, sq_direct_tobool(&valObj)); break;
+    case OT_FLOAT: self->addReal(key, sq_objtofloat(&valObj)); break;
+    case OT_BOOL: self->addBool(key, sq_obj_is_true(&valObj)); break;
     case OT_STRING:
     {
       const char *s = nullptr;
@@ -506,16 +486,21 @@ static SQInteger blk_load_from_text(HSQUIRRELVM v)
   Sqrat::Var<DataBlock *> selfSq(v, 1);
   DataBlock *self = selfSq.value;
   const char *text = NULL;
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 2, &text)));
   SQInteger text_length = 0;
-  G_VERIFY(SQ_SUCCEEDED(sq_getinteger(v, 3, &text_length)));
+  G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(v, 2, &text, &text_length)));
 
+  if (sq_gettop(v) >= 3 && sq_gettype(v, 3) == OT_INTEGER)
+    G_VERIFY(SQ_SUCCEEDED(sq_getinteger(v, 3, &text_length)));
+
+  dblk::set_flag(*self, dblk::ReadFlag::ROBUST);
   BlkErrReporter rep;
   DataBlock::InstallReporterRAII irep(&rep);
-  sq_pushbool(v, self->loadText(text, text_length));
-  if (!rep.err.empty())
-    return sqstd_throwerrorf(v, "Failed to load BLK\n%s", rep.err.str());
-  return 1;
+  if (self->loadText(text, text_length))
+  {
+    sq_pushbool(v, true);
+    return 1;
+  }
+  return sqstd_throwerrorf(v, "Failed to load BLK\n%s", rep.err.str());
 }
 
 static int set_int(DataBlock *blk, const char *key, SQInteger value)
@@ -525,8 +510,6 @@ static int set_int(DataBlock *blk, const char *key, SQInteger value)
   return blk->setInt(key, value);
 }
 
-static int set_int64(DataBlock *blk, const char *key, SQInteger value) { return blk->setInt64(key, value); }
-
 static int add_int(DataBlock *blk, const char *key, SQInteger value)
 {
   if (value != (int32_t)value)
@@ -534,15 +517,7 @@ static int add_int(DataBlock *blk, const char *key, SQInteger value)
   return blk->addInt(key, value);
 }
 
-static IPoint3 get_IPoint3(const DataBlock *blk, const char *name, const IPoint3 &defval) { return blk->getIPoint3(name, defval); }
-
-static int set_IPoint3(DataBlock *blk, const char *name, const IPoint3 &val) { return blk->setIPoint3(name, val); }
-
 static int add_IPoint3(DataBlock *blk, const char *name, const IPoint3 &val) { return blk->addIPoint3(name, val); }
-
-static IPoint4 get_IPoint4(const DataBlock *blk, const char *name, const IPoint4 &defval) { return blk->getIPoint4(name, defval); }
-
-static int set_IPoint4(DataBlock *blk, const char *name, const IPoint4 &val) { return blk->setIPoint4(name, val); }
 
 static int add_IPoint4(DataBlock *blk, const char *name, const IPoint4 &val) { return blk->addIPoint4(name, val); }
 
@@ -676,8 +651,124 @@ static SQInteger datablock_ctor(HSQUIRRELVM vm)
     blk = new DataBlock(*src.value);
   }
   Sqrat::ClassType<DataBlock>::SetManagedInstance(vm, 1, blk);
+  dblk::set_flag(*blk, dblk::ReadFlag::ROBUST);
   return 0;
 }
+
+// --- Type-match interception helpers ---
+
+static inline bool is_int_type(int t) { return t == DataBlock::TYPE_INT || t == DataBlock::TYPE_INT64; }
+
+static bool check_type_match(const DataBlock *blk, const char *name, int expected_type, int &out_idx, int &out_actual_type)
+{
+  int idx = blk->findParam(name);
+  if (idx < 0)
+    return true;
+  int actual_type = blk->getParamType(idx);
+  out_idx = idx;
+  out_actual_type = actual_type;
+  return actual_type == expected_type;
+}
+
+// --- Safe set wrappers (log + coerce on type mismatch) ---
+// Registered via .GlobalFunc() -- Sqrat handles arg extraction automatically.
+
+#define DEF_SAFE_SET(Name, BlkType, ValType, call)                                                                            \
+  static int safe_set_##Name(DataBlock *blk, const char *name, ValType val)                                                   \
+  {                                                                                                                           \
+    int idx, at;                                                                                                              \
+    if (!check_type_match(blk, name, BlkType, idx, at))                                                                       \
+    {                                                                                                                         \
+      logwarn("DataBlock.set" #Name "('%s'): type mismatch (existing: %s, new: %s), replacing", name, dblk::resolve_type(at), \
+        dblk::resolve_type(BlkType));                                                                                         \
+      blk->removeParam(uint32_t(idx));                                                                                        \
+    }                                                                                                                         \
+    return call;                                                                                                              \
+  }
+
+DEF_SAFE_SET(Str, DataBlock::TYPE_STRING, const char *, blk->setStr(name, val))
+DEF_SAFE_SET(Real, DataBlock::TYPE_REAL, float, blk->setReal(name, val))
+DEF_SAFE_SET(Bool, DataBlock::TYPE_BOOL, bool, blk->setBool(name, val))
+DEF_SAFE_SET(Int64, DataBlock::TYPE_INT64, SQInteger, blk->setInt64(name, val))
+DEF_SAFE_SET(Point2, DataBlock::TYPE_POINT2, const Point2 &, blk->setPoint2(name, val))
+DEF_SAFE_SET(Point3, DataBlock::TYPE_POINT3, const Point3 &, blk->setPoint3(name, val))
+DEF_SAFE_SET(Point4, DataBlock::TYPE_POINT4, const Point4 &, blk->setPoint4(name, val))
+DEF_SAFE_SET(IPoint3, DataBlock::TYPE_IPOINT3, const IPoint3 &, blk->setIPoint3(name, val))
+DEF_SAFE_SET(IPoint4, DataBlock::TYPE_IPOINT4, const IPoint4 &, blk->setIPoint4(name, val))
+DEF_SAFE_SET(Tm, DataBlock::TYPE_MATRIX, const TMatrix &, blk->setTm(name, val))
+DEF_SAFE_SET(E3dcolor, DataBlock::TYPE_E3DCOLOR, E3DCOLOR, blk->setE3dcolor(name, val))
+#undef DEF_SAFE_SET
+
+// Int is special: uses set_int() which dispatches to setInt/setInt64 based on value size
+static int safe_set_Int(DataBlock *blk, const char *name, SQInteger val)
+{
+  int expected_type = (val != (int32_t)val) ? (int)DataBlock::TYPE_INT64 : (int)DataBlock::TYPE_INT;
+  int idx, at;
+  if (!check_type_match(blk, name, expected_type, idx, at))
+  {
+    logwarn("DataBlock.setInt('%s'): type mismatch (existing: %s, new: %s), replacing", name, dblk::resolve_type(at),
+      dblk::resolve_type(expected_type));
+    blk->removeParam(uint32_t(idx));
+  }
+  return set_int(blk, name, val);
+}
+
+// --- Safe get wrappers (log + return default on type mismatch) ---
+
+#define DEF_SAFE_GET(Name, BlkType, RetType, DefType, call)                                                            \
+  static RetType safe_get_##Name(const DataBlock *blk, const char *name, DefType defval)                               \
+  {                                                                                                                    \
+    int idx, at;                                                                                                       \
+    if (!check_type_match(blk, name, BlkType, idx, at))                                                                \
+    {                                                                                                                  \
+      logwarn("DataBlock.get" #Name "('%s'): type mismatch (stored: %s, requested: %s)", name, dblk::resolve_type(at), \
+        dblk::resolve_type(BlkType));                                                                                  \
+      return defval;                                                                                                   \
+    }                                                                                                                  \
+    return call;                                                                                                       \
+  }
+
+DEF_SAFE_GET(Str, DataBlock::TYPE_STRING, const char *, const char *, blk->getStr(name, defval))
+DEF_SAFE_GET(Real, DataBlock::TYPE_REAL, float, float, blk->getReal(name, defval))
+DEF_SAFE_GET(Bool, DataBlock::TYPE_BOOL, bool, bool, blk->getBool(name, defval))
+DEF_SAFE_GET(Point2, DataBlock::TYPE_POINT2, Point2, const Point2 &, blk->getPoint2(name, defval))
+DEF_SAFE_GET(Point3, DataBlock::TYPE_POINT3, Point3, const Point3 &, blk->getPoint3(name, defval))
+DEF_SAFE_GET(Point4, DataBlock::TYPE_POINT4, Point4, const Point4 &, blk->getPoint4(name, defval))
+DEF_SAFE_GET(IPoint3, DataBlock::TYPE_IPOINT3, IPoint3, const IPoint3 &, blk->getIPoint3(name, defval))
+DEF_SAFE_GET(IPoint4, DataBlock::TYPE_IPOINT4, IPoint4, const IPoint4 &, blk->getIPoint4(name, defval))
+DEF_SAFE_GET(Tm, DataBlock::TYPE_MATRIX, TMatrix, const TMatrix &, blk->getTm(name, defval))
+DEF_SAFE_GET(E3dcolor, DataBlock::TYPE_E3DCOLOR, E3DCOLOR, E3DCOLOR, blk->getE3dcolor(name, defval))
+#undef DEF_SAFE_GET
+
+// getInt/getInt64 are special: optional default value, use getInt64 internally.
+// int/int64 cross-read is allowed (getInt reads int64 and vice versa).
+static SQInteger blk_safe_getInt_impl(HSQUIRRELVM v, int expected_type)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+  SQInteger nargs = sq_gettop(v);
+  Sqrat::Var<DataBlock *> self(v, 1);
+  Sqrat::Var<const char *> name(v, 2);
+  SQInteger defval = 0;
+  if (nargs >= 3)
+    defval = Sqrat::Var<SQInteger>(v, 3).value;
+  int idx, at;
+  if (!check_type_match(self.value, name.value, expected_type, idx, at) && !is_int_type(at))
+  {
+    logwarn("DataBlock.getInt('%s'): type mismatch (stored: %s, requested: %s)", name.value, dblk::resolve_type(at),
+      dblk::resolve_type(expected_type));
+    sq_pushinteger(v, defval);
+    return 1;
+  }
+  if (nargs == 2)
+    Sqrat::PushVar(v, self.value->getInt64(name.value));
+  else
+    Sqrat::PushVar(v, self.value->getInt64(name.value, defval));
+  return 1;
+}
+
+static SQInteger blk_safe_getInt(HSQUIRRELVM v) { return blk_safe_getInt_impl(v, DataBlock::TYPE_INT); }
+static SQInteger blk_safe_getInt64(HSQUIRRELVM v) { return blk_safe_getInt_impl(v, DataBlock::TYPE_INT64); }
 
 void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
 {
@@ -689,26 +780,37 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
   Sqrat::Class<DataBlock> sqDataBlock(vm, "DataBlock");
   (void)sqDataBlock //
     .SquirrelCtor(datablock_ctor, -1, "xx")
-    .SquirrelFunc("formatAsString", blk_formatAsString, -1, "x t|n n n")
+    .SquirrelFuncDeclString(blk_formatAsString,
+      "instance.formatAsString([opts: table|number, max_level_depth: int, max_out_line_num: int]): string")
     .Func("getBlock", (const DataBlock *(DataBlock::*)(uint32_t) const) & DataBlock::getBlock)
     .Func("addBlock", (DataBlock * (DataBlock::*)(const char *)) & DataBlock::addBlock)
     .Func("addNewBlock", (DataBlock * (DataBlock::*)(const char *)) & DataBlock::addNewBlock)
-    .Func("getStr", (const char *(DataBlock::*)(const char *, const char *) const) & DataBlock::getStr)
-    .Func("getBool", (bool(DataBlock::*)(const char *, bool) const) & DataBlock::getBool)
-    .Func("getReal", (float(DataBlock::*)(const char *, float) const) & DataBlock::getReal)
-    .Func("getPoint4", (Point4(DataBlock::*)(const char *, const Point4 &) const) & DataBlock::getPoint4)
-    .Func("getPoint3", (Point3(DataBlock::*)(const char *, const Point3 &) const) & DataBlock::getPoint3)
-    .Func("getPoint2", (Point2(DataBlock::*)(const char *, const Point2 &) const) & DataBlock::getPoint2)
-    .Func("getTm", (TMatrix(DataBlock::*)(const char *, const TMatrix &) const) & DataBlock::getTm)
-    .Func("getE3dcolor", (E3DCOLOR(DataBlock::*)(const char *, E3DCOLOR) const) & DataBlock::getE3dcolor)
-    .Func("setStr", (int(DataBlock::*)(const char *, const char *)) & DataBlock::setStr)
-    .Func("setBool", (int(DataBlock::*)(const char *, bool)) & DataBlock::setBool)
-    .Func("setReal", (int(DataBlock::*)(const char *, float)) & DataBlock::setReal)
-    .Func("setPoint4", (int(DataBlock::*)(const char *, const Point4 &)) & DataBlock::setPoint4)
-    .Func("setPoint3", (int(DataBlock::*)(const char *, const Point3 &)) & DataBlock::setPoint3)
-    .Func("setPoint2", (int(DataBlock::*)(const char *, const Point2 &)) & DataBlock::setPoint2)
-    .Func("setTm", (int(DataBlock::*)(const char *, const TMatrix &)) & DataBlock::setTm)
-    .Func("setE3dcolor", (int(DataBlock::*)(const char *, E3DCOLOR)) & DataBlock::setE3dcolor)
+    // Safe get/set with type-mismatch detection (log + coerce)
+    .GlobalFunc("getStr", safe_get_Str)
+    .GlobalFunc("getBool", safe_get_Bool)
+    .GlobalFunc("getReal", safe_get_Real)
+    .GlobalFunc("getPoint4", safe_get_Point4)
+    .GlobalFunc("getPoint3", safe_get_Point3)
+    .GlobalFunc("getPoint2", safe_get_Point2)
+    .GlobalFunc("getIPoint3", safe_get_IPoint3)
+    .GlobalFunc("getIPoint4", safe_get_IPoint4)
+    .GlobalFunc("getTm", safe_get_Tm)
+    .GlobalFunc("getE3dcolor", safe_get_E3dcolor)
+    .GlobalFunc("setStr", safe_set_Str)
+    .GlobalFunc("setBool", safe_set_Bool)
+    .GlobalFunc("setReal", safe_set_Real)
+    .GlobalFunc("setPoint4", safe_set_Point4)
+    .GlobalFunc("setPoint3", safe_set_Point3)
+    .GlobalFunc("setPoint2", safe_set_Point2)
+    .GlobalFunc("setIPoint3", safe_set_IPoint3)
+    .GlobalFunc("setIPoint4", safe_set_IPoint4)
+    .GlobalFunc("setTm", safe_set_Tm)
+    .GlobalFunc("setE3dcolor", safe_set_E3dcolor)
+    .GlobalFunc("setInt", safe_set_Int)
+    .GlobalFunc("setInt64", safe_set_Int64)
+    .SquirrelFuncDeclString(blk_safe_getInt, "instance.getInt(name: string, [defval: int]): int")
+    .SquirrelFuncDeclString(blk_safe_getInt64, "instance.getInt64(name: string, [defval: int]): int")
+    // add* (no type-mismatch check needed for new params)
     .Func("addStr", (int(DataBlock::*)(const char *, const char *)) & DataBlock::addStr)
     .Func("addBool", (int(DataBlock::*)(const char *, bool)) & DataBlock::addBool)
     .Func("addReal", (int(DataBlock::*)(const char *, float)) & DataBlock::addReal)
@@ -717,11 +819,14 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .Func("addPoint2", (int(DataBlock::*)(const char *, const Point2 &)) & DataBlock::addPoint2)
     .Func("addTm", (int(DataBlock::*)(const char *, const TMatrix &)) & DataBlock::addTm)
     .Func("addE3dcolor", (int(DataBlock::*)(const char *, E3DCOLOR)) & DataBlock::addE3dcolor)
+    .GlobalFunc("addInt", add_int)
+    .GlobalFunc("addIPoint3", add_IPoint3)
+    .GlobalFunc("addIPoint4", add_IPoint4)
     .Func("removeParam", (bool(DataBlock::*)(const char *)) & DataBlock::removeParam)
     .Func("removeParamById", (bool(DataBlock::*)(uint32_t)) & DataBlock::removeParam)
     .Func("removeBlock", (bool(DataBlock::*)(const char *)) & DataBlock::removeBlock)
     .Func("removeBlockById", (bool(DataBlock::*)(uint32_t)) & DataBlock::removeBlock)
-    .SquirrelFunc("__getVersion", blk_get_version, 1, "x")
+    .SquirrelFuncDeclString(blk_get_version, "instance.__getVersion(): int")
 
     .GlobalFunc("findParam", find_param)
     .GlobalFunc("paramExists", param_exists)
@@ -731,15 +836,6 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .GlobalFunc("setParamFrom", set_param_from)
     .GlobalFunc("setParamsFrom", set_params_from)
     .GlobalFunc("setFrom", set_from)
-    .GlobalFunc("setInt", set_int)
-    .GlobalFunc("setInt64", set_int64)
-    .GlobalFunc("addInt", add_int)
-    .GlobalFunc("getIPoint3", get_IPoint3)
-    .GlobalFunc("setIPoint3", set_IPoint3)
-    .GlobalFunc("addIPoint3", add_IPoint3)
-    .GlobalFunc("getIPoint4", get_IPoint4)
-    .GlobalFunc("setIPoint4", set_IPoint4)
-    .GlobalFunc("addIPoint4", add_IPoint4)
     /// @function clearData
     .FUNC(clearData)
     /// @function reset
@@ -755,16 +851,16 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     /// @function getParamName
     .FUNC(getParamName)
 
-    .SquirrelFunc("len", blk_len, 1, "x")
-    .SquirrelFunc("getParamTypeAnnotation", blk_get_param_type_annotation, 2, "xi")
-    .SquirrelFunc("getParamValue", blk_get_param_value, 2, "xi")
-    .SquirrelFunc("getInt", blk_get_int, -2, "xs")
-    .SquirrelFunc("_set", blk_set, 3, "xs")
-    .SquirrelFunc("_get", blk_get, 2, "x")
-    .SquirrelFunc("_modulo", blk_modulo, 2, "xs")
-    .SquirrelFunc("_newslot", blk_newslot, 3, "xs")
-    .SquirrelFunc("_nexti", blk_nexti, 0)
-    .SquirrelFunc("loadFromText", blk_load_from_text, 3, "xsi")
+    .SquirrelFuncDeclString(blk_len, "instance.len(): int")
+    .SquirrelFuncDeclString(blk_get_param_type_annotation, "instance.getParamTypeAnnotation(idx: int): string|null")
+    .SquirrelFuncDeclString(blk_get_param_value, "instance.getParamValue(idx: int): any")
+
+    .SquirrelFuncDeclString(blk_set, "instance._set(key: string, value: any): null")
+    .SquirrelFuncDeclString(blk_get, "instance._get(key: any): any")
+    .SquirrelFuncDeclString(blk_modulo, "instance._modulo(other: string): any")
+    .SquirrelFuncDeclString(blk_newslot, "instance._newslot(key: string, value: any): null")
+    .SquirrelFuncDeclString(blk_nexti, "instance._nexti(prev: any): any")
+    .SquirrelFuncDeclString(blk_load_from_text, "instance.loadFromText(text: string, [text_length: int]): bool")
 
     .StaticFunc("set_root", DataBlock::setRootIncludeResolver)
     .StaticFunc("setParseIncludesAsParams", set_parseIncludesAsParams)
@@ -780,19 +876,19 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
   if (allow_file_access)
   {
     (void)sqDataBlock //
-      .SquirrelFunc("load", blk_load, 2, "xs")
-      .SquirrelFunc("tryLoad", blk_try_load, -2, "xs")
-      .SquirrelFunc("saveToTextFile", blk_saveToTextFile, 2, "xs")
-      .SquirrelFunc("saveToTextFileCompact", blk_saveToTextFileCompact, 2, "xs")
+      .SquirrelFuncDeclString(blk_load, "instance.load(path: string): bool")
+      .SquirrelFuncDeclString(blk_try_load, "instance.tryLoad(path: string, [robust: bool]): bool")
+      .SquirrelFuncDeclString(blk_saveToTextFile, "instance.saveToTextFile(path: string): bool")
+      .SquirrelFuncDeclString(blk_saveToTextFileCompact, "instance.saveToTextFileCompact(path: string): bool")
       /**/;
   }
   else
   {
     (void)sqDataBlock //
-      .SquirrelFunc("load", blk_fs_NA, 2, "xs")
-      .SquirrelFunc("tryLoad", blk_fs_NA, -2, "xs")
-      .SquirrelFunc("saveToTextFile", blk_fs_NA, 2, "xs")
-      .SquirrelFunc("saveToTextFileCompact", blk_fs_NA, 2, "xs")
+      .SquirrelFuncDeclString(blk_fs_NA, "instance.load(path: string): bool")
+      .SquirrelFuncDeclString(blk_fs_NA, "instance.tryLoad(path: string, [robust: bool]): bool")
+      .SquirrelFuncDeclString(blk_fs_NA, "instance.saveToTextFile(path: string): bool")
+      .SquirrelFuncDeclString(blk_fs_NA, "instance.saveToTextFileCompact(path: string): bool")
       /**/;
   }
 #undef FUNC

@@ -260,7 +260,7 @@ public:
     m[3][0] = m[3][1] = m[3][2] = 0;
   }
 
-  INLINE real getScalingFactor() const { return cbrt(abs(det())); }
+  INLINE real getScalingFactor() const { return cbrt_approx_nonneg(abs(det())); }
 
   void orthonormalize() // Remove scale.
   {

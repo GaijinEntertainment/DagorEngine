@@ -29,8 +29,8 @@ HmapLandBrush::HmapLandBrush(IBrushClient *client, IHmapBrushImage &height_map) 
   if (!defProps.paramCount())
   {
     DataBlock app_blk;
-    if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-      DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+    if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+      DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
 
     defProps = *app_blk.getBlockByNameEx("heightMap")->getBlockByNameEx("brush");
     defProps.setBool("defauldPropsInited", true);

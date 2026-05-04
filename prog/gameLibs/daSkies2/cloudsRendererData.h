@@ -3,13 +3,17 @@
 
 #include <daSkies2/daSkies.h>
 #include <resourcePool/resourcePool.h>
+#include <shaders/dag_dynamicResolutionStcode.h>
 
 #include "shaders/clouds2/cloud_settings.hlsli"
 
 struct CloudsRendererData
 {
-  int w = 0, h = 0;
+  IPoint2 cloudTexRes = IPoint2::ZERO;
+  eastl::optional<DynRes> prevDynRes;
+
   bool useBlurredClouds = false;
+  CloudsResolution cloudResolution = CloudsResolution::Default;
 
   RTargetPool::Ptr cloudsColorPoolRT;
   RTargetPool::Ptr cloudsColorBlurPoolRT;
@@ -25,15 +29,18 @@ struct CloudsRendererData
   UniqueTex clouds_color_close;
   UniqueTex clouds_tile_distance, clouds_tile_distance_tmp;
   UniqueBuf clouds_close_layer_is_outside;
+  UniqueBuf clouds_sub_view_close_layer_is_outside; // todo: must be initialized only when needed.
   UniqueBuf cloudsIndirectBuffer;
 
   bool useCompute = true, taaUseCompute = false;
   bool lowresCloseClouds = true;
 
+  bool lastFrameInfiniteSkies = false;
+
   void clearTemporalData(uint32_t gen);
   void close();
-  void setVars();
-  void init(int width, int height, const char *name_prefix, bool can_be_in_clouds, CloudsResolution clouds_resolution,
+  void setVars(const bool is_main_view);
+  void init(const IPoint2 &resolution, const char *name_prefix, bool can_be_in_clouds, CloudsResolution clouds_resolution,
     bool use_blurred_clouds);
 
   void update(const DPoint3 &dir, const DPoint3 &origin);

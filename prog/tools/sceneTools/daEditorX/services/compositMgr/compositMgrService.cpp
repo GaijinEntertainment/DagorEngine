@@ -16,6 +16,7 @@
 #include <de3_genObjUtil.h>
 #include <de3_splineGenSrv.h>
 #include <de3_entityUserData.h>
+#include <de3_circularDepsChecker.h>
 #include <EditorCore/ec_interface.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
@@ -28,6 +29,7 @@
 using namespace objgenerator; // prng
 
 static int compositEntityClassId = -1;
+static constexpr float POS_NOT_INITED_XZ = 1e6f;
 
 class CompositEntity;
 class CompositEntityPool;
@@ -108,7 +110,13 @@ public:
     boxId = -2;
     rndSeed = 123;
     autoRndSeed = true;
+    entIdx = BAD_ENT_IDX;
+    initTm();
+  }
+  inline void initTm()
+  {
     tm.identity();
+    tm.m[3][0] = tm.m[3][2] = POS_NOT_INITED_XZ;
   }
 
   void setTm(const TMatrix &_tm) override;
@@ -119,7 +127,7 @@ public:
     instSeed = 0;
     rndSeed = 123;
     autoRndSeed = true;
-    tm.identity();
+    initTm();
   }
   void setSubtype(int t) override;
   void setEditLayerIdx(int t) override;
@@ -138,6 +146,7 @@ public:
   // ICompositObj interface
   int getCompositSubEntityCount() override;
   IObjEntity *getCompositSubEntity(int idx) override;
+  dag::Span<IObjEntity *> getCompositSubEntities() override;
   const ICompositObj::Props &getCompositSubEntityProps(int idx) override;
   int getCompositSubEntityIdxByLabel(const char *label) override;
   void setCompositPlaceTypeOverride(int placeType) override;
@@ -169,7 +178,8 @@ public:
 
 public:
   TMatrix tm;
-  int entIdx : 30;
+  static constexpr unsigned BAD_ENT_IDX = 0x3FFFFFFFu;
+  unsigned entIdx : 30;
   unsigned autoRndSeed : 1, gizmoEnabled : 1;
   int rndSeed;
   int instSeed = 0;
@@ -338,6 +348,7 @@ public:
     int realEntCnt = comp.size() - emptyComponents;
     if (realEntCnt <= 0)
       return;
+    G_ASSERTF(e->entIdx == e->BAD_ENT_IDX, "e->entIdx=%d", e->entIdx);
     e->entIdx = ePool.addEntities(realEntCnt);
 
     int seed = 0, pos_seed = (!forceInstSeed0 && e->instSeed) ? e->instSeed : mem_hash_fnv1((const char *)&e->tm.m[3][0], 12);
@@ -429,13 +440,28 @@ public:
   void releaseSubEnt(CompositEntity *e)
   {
     int realEntCnt = comp.size() - emptyComponents;
-    if (realEntCnt > 0)
+    if (realEntCnt > 0 && e->entIdx != e->BAD_ENT_IDX)
     {
       for (int i = 0; i < realEntCnt; i++)
         if (ePool.ent[e->entIdx + i])
           ePool.ent[e->entIdx + i]->destroy();
       ePool.delEntities(e->entIdx, realEntCnt);
+      e->entIdx = e->BAD_ENT_IDX;
     }
+  }
+  void updateSubEntSeed(CompositEntity *e, int rnd_seed)
+  {
+    G_ASSERT_RETURN(e->entIdx != e->BAD_ENT_IDX, );
+    for (int i = 0, j = 0; i < comp.size(); i++)
+      if (!comp[i].empty())
+      {
+        G_ASSERT(j < comp.size() - emptyComponents);
+        rnd(rnd_seed);
+        if (auto *ce = ePool.ent[e->entIdx + j])
+          if (IRandomSeedHolder *irsh = ce->queryInterface<IRandomSeedHolder>())
+            irsh->setSeed(rnd_seed);
+        j++;
+      }
   }
 
   void addEntityRaw(CompositEntity *e)
@@ -491,6 +517,8 @@ public:
         k++;
       }
     }
+    if (ceBbox.isempty())
+      ceBbox += Point3(0, 0, 0);
 
     boxCache[boxId].bbox = ceBbox;
     boxCache[boxId].setBsph(ceBsph);
@@ -499,6 +527,8 @@ public:
 
   void setTm(const TMatrix &tm, int ent_idx, CompositEntity *ce)
   {
+    if (tm.m[3][0] >= POS_NOT_INITED_XZ)
+      return;
     int realEntCnt = comp.size() - emptyComponents;
 
     if (realEntCnt <= 0)
@@ -576,6 +606,8 @@ public:
             IWaterService *waterService = EDITORCORE->queryEditorInterface<IWaterService>();
             p.y = waterService ? waterService->get_level() : 0.0f;
           }
+          G_ASSERTF_AND_DO(!check_nan(p.x) && !check_nan(p.y) && !check_nan(p.z), p = stm.getcol(3),
+            "%p=%s[%d].place -> p=%@, current stm=%@", this, getObjAssetName(), ent_idx, p, stm);
           stm.setcol(3, p);
         }
 
@@ -658,6 +690,11 @@ public:
         idx--;
       }
     return NULL;
+  }
+  dag::Span<IObjEntity *> getCompositSubEntities(int ent_idx)
+  {
+    int realEntCnt = comp.size() - emptyComponents;
+    return make_span(&ePool.ent[ent_idx], realEntCnt);
   }
   const ICompositObj::Props &getCompositSubEntityProps(int idx)
   {
@@ -811,6 +848,7 @@ public:
       }
     }
   }
+  bool isSubEntGenerated() const { return generated; }
 
 protected:
   struct ObjCoordData
@@ -1255,8 +1293,13 @@ void CompositEntity::setSeed(int new_seed)
 void CompositEntity::recreateSubent()
 {
   CompositEntityPool *cPool = pool->getPools()[poolIdx];
-  cPool->releaseSubEnt(this);
-  cPool->createSubEnt(this);
+  if (cPool->isSubEntGenerated() || entIdx == BAD_ENT_IDX)
+  {
+    cPool->releaseSubEnt(this);
+    cPool->createSubEnt(this);
+  }
+  else
+    cPool->updateSubEntSeed(this, rndSeed);
   cPool->setTm(tm, entIdx, this);
   cPool->setSubtype(subType, entIdx);
   cPool->setEditLayerIdx(editLayerIdx, entIdx);
@@ -1268,9 +1311,12 @@ void CompositEntity::recreateSubent()
 
 void CompositEntity::setTm(const TMatrix &_tm)
 {
+  G_ASSERTF_RETURN(!check_nan(_tm.getcol(3).x) && !check_nan(_tm.getcol(3).y) && !check_nan(_tm.getcol(3).z), ,
+    "%p=%s[%d].setTm(_tm=%@), current tm=%@", getPool(), getPool()->getObjAssetName(), entIdx, _tm, tm);
   tm = _tm;
+  int prev_rnd = rndSeed;
   if (autoRndSeed)
-    rndSeed = *(int *)&tm.m[3][0] + *(int *)&tm.m[3][1] + *(int *)&tm.m[3][2];
+    rndSeed += *(int *)&tm.m[3][0] + *(int *)&tm.m[3][1] + *(int *)&tm.m[3][2];
 
 #define QUANTIZE_R(V) (V) = floorf((V) * 256.0f) / 256.0f
 #define QUANTIZE_P(V) (V) = floorf((V) * 32.0f) / 32.0f
@@ -1293,6 +1339,8 @@ void CompositEntity::setTm(const TMatrix &_tm)
 #undef QUANTIZE_P
 
   pool->getPools()[poolIdx]->setTm(tm, entIdx, this);
+  if (autoRndSeed)
+    rndSeed = prev_rnd;
 }
 void CompositEntity::setPerInstanceSeed(int seed)
 {
@@ -1323,6 +1371,7 @@ bool CompositEntity::supportsColor() { return pool->getPools()[poolIdx]->support
 
 int CompositEntity::getCompositSubEntityCount() { return pool->getPools()[poolIdx]->getCompositSubEntityCount(entIdx); }
 IObjEntity *CompositEntity::getCompositSubEntity(int idx) { return pool->getPools()[poolIdx]->getCompositSubEntity(entIdx, idx); }
+dag::Span<IObjEntity *> CompositEntity::getCompositSubEntities() { return pool->getPools()[poolIdx]->getCompositSubEntities(entIdx); }
 const ICompositObj::Props &CompositEntity::getCompositSubEntityProps(int idx)
 {
   return pool->getPools()[poolIdx]->getCompositSubEntityProps(idx);
@@ -1394,8 +1443,10 @@ public:
 
   IObjEntity *createEntity(const DagorAsset &asset, bool virtual_ent) override
   {
-    CircularDependenceChecker chk;
+    static int cdc_depth_cnt = 0;
+    static Tab<const DagorAsset *> cdc_assets_list;
 
+    CircularDependenceChecker chk(cdc_depth_cnt, cdc_assets_list);
     if (chk.isCyclicError(asset))
       return NULL;
 
@@ -1413,6 +1464,7 @@ public:
     if (!ent)
       ent = new CompositEntity(compositEntityClassId);
 
+    ent->initTm();
     ent->rndSeed = 123;
 
     cPool.addEntity(ent, pool_idx);
@@ -1430,6 +1482,7 @@ public:
     if (!ent)
       ent = new CompositEntity(o->getAssetTypeId());
 
+    ent->initTm();
     ent->rndSeed = 124;
 
     cPool.addEntity(ent, o->poolIdx);
@@ -1439,39 +1492,6 @@ public:
 
 protected:
   MultiCompositEntityPool cPool;
-
-  struct CircularDependenceChecker
-  {
-    CircularDependenceChecker()
-    {
-      if (depthCnt == 0)
-        assets.clear();
-      depthCnt++;
-    }
-    ~CircularDependenceChecker()
-    {
-      G_ASSERT(depthCnt > 0);
-      depthCnt--;
-      assets.pop_back();
-    }
-
-    bool isCyclicError(const DagorAsset &a)
-    {
-      for (int i = assets.size() - 1; i >= 0; i--)
-        if (assets[i] == &a)
-        {
-          DAEDITOR3.conError("asset <%s> contains circular dependencies, e.g. to %s", assets[0]->getNameTypified(),
-            a.getNameTypified());
-          assets.push_back(NULL);
-          return true;
-        }
-      assets.push_back(&a);
-      return false;
-    }
-
-    static int depthCnt;
-    static Tab<const DagorAsset *> assets;
-  };
 
   void enumerateGameObjHierarchy()
   {
@@ -1517,8 +1537,6 @@ protected:
     }
   }
 };
-int CompositEntityManagementService::CircularDependenceChecker::depthCnt = 0;
-Tab<const DagorAsset *> CompositEntityManagementService::CircularDependenceChecker::assets(tmpmem);
 
 
 void init_composit_mgr_service(const DataBlock &app_blk)

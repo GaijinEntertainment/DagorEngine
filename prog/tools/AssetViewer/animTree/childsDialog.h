@@ -23,7 +23,8 @@ public:
   void clear();
   void setTreePanels(PropPanel::ContainerPropertyControl *panel, DagorAsset *cur_asset, PropPanel::ControlEventHandler *event_handler);
   void fillChildsTree(PropPanel::TLeafHandle leaf);
-  void fillStateChilds(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf, const DataBlock &enum_root_props);
+  void fillStateChilds(PropPanel::ContainerPropertyControl *tree, AnimStatesData &data, const DataBlock &enum_root_props);
+  void fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *tree, AnimStatesData &data, const DataBlock &enum_root_props);
   void fillCtrlChilds(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle parent, AnimCtrlData &leaf_data,
     const String &prefix_name, dag::Vector<CachedInclude> &includes, const DataBlock &enum_root_props);
   String getChildNameFromSettings(const DataBlock &settings, CtrlType type, int idx);

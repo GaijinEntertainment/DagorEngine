@@ -75,21 +75,21 @@ void ShaderGlobal::set_vars_from_blk(const DataBlock &blk, bool loadTexures, boo
         break;
 
       case DataBlock::TYPE_REAL:
-        saved_vars.emplace(name, ShaderGlobal::get_real(id));
-        ShaderGlobal::set_real(id, blk.getReal(i));
+        saved_vars.emplace(name, ShaderGlobal::get_float(id));
+        ShaderGlobal::set_float(id, blk.getReal(i));
         break;
 
       case DataBlock::TYPE_POINT3:
       {
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
         Point3 v = blk.getPoint3(i);
-        ShaderGlobal::set_color4(id, Color4(v.x, v.y, v.z));
+        ShaderGlobal::set_float4(id, Color4(v.x, v.y, v.z));
       }
       break;
 
       case DataBlock::TYPE_POINT4:
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
-        ShaderGlobal::set_color4(id, Color4::xyzw(blk.getPoint4(i)));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
+        ShaderGlobal::set_float4(id, Color4::xyzw(blk.getPoint4(i)));
         break;
 
       case DataBlock::TYPE_IPOINT4:
@@ -99,13 +99,13 @@ void ShaderGlobal::set_vars_from_blk(const DataBlock &blk, bool loadTexures, boo
 
       case DataBlock::TYPE_E3DCOLOR:
       {
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
         real mul = blk.getReal(String("__mul_") + blk.getParamName(i), 1.0f);
         Color4 v = color4(blk.getE3dcolor(i));
         v.r *= mul;
         v.g *= mul;
         v.b *= mul;
-        ShaderGlobal::set_color4(id, v);
+        ShaderGlobal::set_float4(id, v);
       }
       break;
 
@@ -173,32 +173,32 @@ void ShaderGlobal::set_vars_from_blk(const RoDataBlock &blk)
         break;
 
       case RoDataBlock::TYPE_REAL:
-        saved_vars.emplace(name, ShaderGlobal::get_real(id));
-        ShaderGlobal::set_real(id, blk.getReal(i));
+        saved_vars.emplace(name, ShaderGlobal::get_float(id));
+        ShaderGlobal::set_float(id, blk.getReal(i));
         break;
 
       case RoDataBlock::TYPE_POINT3:
       {
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
         Point3 v = blk.getPoint3(i);
-        ShaderGlobal::set_color4(id, Color4(v.x, v.y, v.z));
+        ShaderGlobal::set_float4(id, Color4(v.x, v.y, v.z));
       }
       break;
 
       case RoDataBlock::TYPE_POINT4:
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
-        ShaderGlobal::set_color4(id, Color4::xyzw(blk.getPoint4(i)));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
+        ShaderGlobal::set_float4(id, Color4::xyzw(blk.getPoint4(i)));
         break;
 
       case RoDataBlock::TYPE_E3DCOLOR:
       {
-        saved_vars.emplace(name, ShaderGlobal::get_color4(id));
+        saved_vars.emplace(name, ShaderGlobal::get_float4(id));
         real mul = blk.getReal(String("__mul_") + blk.getParamName(i), 1.0f);
         Color4 v = color4(blk.getE3dcolor(i));
         v.r *= mul;
         v.g *= mul;
         v.b *= mul;
-        ShaderGlobal::set_color4(id, v);
+        ShaderGlobal::set_float4(id, v);
       }
       break;
     }
@@ -220,9 +220,11 @@ void ShaderGlobal::reset_vars_from_blk()
     {
       case SHVT_INT: ShaderGlobal::set_int(id, var.second.intVal); break;
 
-      case SHVT_REAL: ShaderGlobal::set_real(id, var.second.floatVal); break;
+      case SHVT_REAL: ShaderGlobal::set_float(id, var.second.floatVal); break;
 
-      case SHVT_COLOR4: ShaderGlobal::set_color4(id, var.second.colorVal); break;
+      case SHVT_COLOR4: ShaderGlobal::set_float4(id, var.second.colorVal); break;
+
+      case SHVT_INT4: ShaderGlobal::set_int4(id, var.second.ip4val); break;
     }
   }
 }

@@ -828,7 +828,6 @@ void ContactSolver::update(double at_time, double dt)
 
   atTick = gamephys::nearestPhysicsTickNumber(at_time + dt, dt);
 
-  Bitarray checked(framemem_ptr());
   Tab<int> testPairs(framemem_ptr());
 
   const int bodiesCount = bodies.size();
@@ -841,30 +840,24 @@ void ContactSolver::update(double at_time, double dt)
     if (!curBodyPhys)
       continue;
 
+    if (!(curBody.flags & Flags::ProcessBody))
+      continue;
+
     gamephys::Loc curLoc = curBodyPhys->getCurrentStateLoc();
 
-    for (int testNo = 0; testNo < bodiesCount; testNo++)
+    for (int testNo = curNo + 1; testNo < bodiesCount; testNo++)
     {
-      if (curNo == testNo)
-        continue;
-
       Body &testBody = bodies[testNo];
 
       const int layerNo = curBody.layer + testBody.layer * MAX_LAYERS_NUM;
       if (!layersMask[layerNo])
         continue;
 
-      const int pair0Idx = curNo + testNo * bodiesCount;
-      const int pair1Idx = testNo + curNo * bodiesCount;
-
-      if (pair0Idx < checked.size() && pair1Idx < checked.size() && checked[pair0Idx] && checked[pair1Idx])
-        continue;
-
       IPhysBase *testBodyPhys = testBody.phys;
       if (!testBodyPhys)
         continue;
 
-      if (!(curBody.flags & Flags::ProcessBody) || !(testBody.flags & Flags::ProcessBody))
+      if (!(testBody.flags & Flags::ProcessBody))
         continue;
 
       if (curBodyPhys->isAsleep() && testBodyPhys->isAsleep())
@@ -878,13 +871,6 @@ void ContactSolver::update(double at_time, double dt)
       testPairs.reserve(8);
       testPairs.push_back() = curNo;
       testPairs.push_back() = testNo;
-
-      const int maxIdx = max(pair0Idx, pair1Idx);
-      if (maxIdx >= checked.size())
-        checked.resize(maxIdx + 1);
-
-      checked.set(pair0Idx);
-      checked.set(pair1Idx);
     }
   }
 

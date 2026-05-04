@@ -1,4 +1,4 @@
-include "antialiasing_type.inc.dshl"
+include "antialiasing_type_inc.dshl"
 include "postfx_common.dshl"
 include "dof/dof_composite.dshl"
 include "distortion_postfx_inc.dshl"
@@ -12,6 +12,7 @@ include "vignette_inc.dshl"
 include "flare_inc.dshl"
 include "postfx_modifier.dshl"
 include "contrast_adaptive_sharpening.dshl"
+include "screenEffects/concussion_effect.dshl"
 
 texture lut_tex;
 
@@ -20,6 +21,7 @@ texture blood_texture;
 texture fire_on_screen_tex;
 texture flash_blind_screen_tex;
 texture smoke_blackout_tex;
+texture film_grain;
 
 float dash_ability_factor = 0;
 
@@ -54,6 +56,16 @@ float4 projection_center = (0, 0, 0, 0);
 float4 redout_blackout_color = (0, 0, 0, 0);
 
 int fsr_on = 1;
+
+define_macro_if_not_defined INIT_POSTFX_UV_MODIFIER()
+endmacro
+
+define_macro_if_not_defined USE_POSTFX_UV_MODIFIER()
+  hlsl(ps)
+  {
+    void apply_postfx_uv_modifiers(inout float2 screen_uv) {}
+  }
+endmacro
 
 define_macro_if_not_defined INIT_POSTFX_MODIFIER()
 endmacro
@@ -90,18 +102,11 @@ endmacro
 
 shader postfx
 {
-  if (mobile_render != off)
-  {
-    dont_render;
-  }
-
   hlsl(ps)
   {
-    ##if antialiasing_type == dlss
-      #define DOF_FAR_POSTFX_DLSS 1
-    ##elif antialiasing_type == taa
-      #define DOF_FAR_POSTFX_TAA 1
-    ##else
+    ##if antialiasing_type == temporal
+      #define DOF_FAR_POSTFX_9_TAP 1
+    ##elif antialiasing_type == tsr
       #define DOF_FAR_POSTFX_TSR 1
     ##endif
   }
@@ -133,10 +138,7 @@ shader postfx
     flash_blind_screen_tex@smp2d = flash_blind_screen_tex;
     fire_on_screen_texture@smp2d = fire_on_screen_tex;
     fire_on_screen_horizontal_delta@f1=(fire_on_screen_horizontal_delta)
-    concussion_shake_intensity@f1=(concussion_shake_intensity)
-    concussion_flash_fire_times@f4 = (
-      // concussion_time@f1
-      (time_phase(0, 0) - concussion_effect_time_start) / concussion_effect_duration,
+    flash_fire_times@f3 = (
       // flash_blind_remaining_time@f1
       flash_blind_remaining_time,
       // fire_on_screen_time@f2
@@ -151,14 +153,23 @@ shader postfx
     smoke_blackout_tex@smp2d = smoke_blackout_tex;
   }
   INIT_LOCAL_TONE_MAPPING(ps)
+  INIT_POSTFX_UV_MODIFIER()
   INIT_POSTFX_MODIFIER()
   INIT_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
   INIT_SHADER_GAMMA()
   USE_SHADER_GAMMA()
   INIT_VIGNETTE()
   USE_VIGNETTE()
-  INIT_FILM_GRAIN(true)
-  USE_FILM_GRAIN()
+  if (film_grain == NULL)
+  {
+    INIT_FILM_GRAIN(true)
+    USE_FILM_GRAIN()
+  }
+  else
+  {
+    INIT_BAKED_FILM_GRAIN()
+    USE_BAKED_FILM_GRAIN()
+  }
   if (cinematic_mode_on == on)
   {
     INIT_FLARE_TEXTURES(blood_texture_samplerstate)
@@ -173,17 +184,15 @@ shader postfx
   hlsl(ps) { #define blackoutSmokeAnimationTimer smoke_blackout_effect_intensity.w }
 
   hlsl(ps) {
-    #define concussion_time concussion_flash_fire_times.x
-    #define flash_blind_remaining_time concussion_flash_fire_times.y
-    #define fire_on_screen_time concussion_flash_fire_times.zw
-    #define concussion_offset_time concussion_flash_fire_times.z
+    #define flash_blind_remaining_time flash_fire_times.x
+    #define fire_on_screen_time flash_fire_times.yz
   }
 
   COMMON_POSTFX()
   HDR_PS_OUTPUT(POSTFX_OUTPUT, float4)
-  ENABLE_ASSERT(ps)
   INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
   USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  INIT_AND_USE_CONCUSSION_EFFECT(ps, frame_tex)
 
   hlsl(ps) {
     #include <noise/Value2D.hlsl>
@@ -199,12 +208,12 @@ shader postfx
       return 0.25f * (c00 + c10 + c01 + c11);
     }
 
-    #if MOBILE_DEVICE
+    ##if use_dng_mobile_optimizations == yes
       void sampleSceneColor(float2 uv, out half3 color)
       {
         color = h4tex2Dlod(frame_tex, float4(uv, 0.0, 0.0)).xyz;
       }
-    #else
+    ##else
       half3 sampleSceneColor(float2 uv)
       {
         if(contrast_adaptive_sharpening < -0.125)
@@ -212,7 +221,7 @@ shader postfx
         else
           return tex2Dlod(frame_tex, float4(uv,0,0)).rgb;
       }
-    #endif //MOBILE_DEVICE
+    ##endif //use_dng_mobile_optimizations == yes
   }
 
   if (in_editor_assume == yes) {
@@ -222,6 +231,7 @@ shader postfx
     USE_DISTORTION_POSTFX()
   }
 
+  USE_POSTFX_UV_MODIFIER()
   USE_POSTFX_MODIFIER()
   USE_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
   USE_LOCAL_TONE_MAPPING(ps)
@@ -291,14 +301,6 @@ shader postfx
 
     color = lerp(color, 0.7 * blackoutBackColor, saturate(0.7 * pow2(intensity * (1 - activeSmokeRatio))));
     color = lerp(color, 0.7 * smoke.rgb, saturate(0.7 * pow2(smoke.w * intensity * activeSmokeRatio)));
-    }
-
-    void concussion_effect(float2 screen_uv, inout float3 color)
-    {
-      float2 noise_vec = float2(noise_value1D(concussion_offset_time*2.0), noise_value1D(concussion_offset_time*1.1))*2.0 - 1.0;
-      float intensity = concussion_shake_intensity*(1.0 - concussion_time);
-      float3 image_moved = h4tex2Dlod(frame_tex, half4(screen_uv + noise_vec*intensity, 0.0, 0.0)).rgb;
-      color = lerp(image_moved, color, (1.0 + pow2(concussion_time))*0.5);
     }
 
     void confusion_effect(float2 screen_uv, inout float3 color)
@@ -398,7 +400,11 @@ shader postfx
     {
       BRANCH
       if (film_grain_params.x > 0.0)
+      ##if (film_grain == NULL)
         result = apply_film_grain(result, pos);
+      ##else
+        result = apply_film_grain_baked(result, texelFetch(film_grain, pos % 128, 0).xyz);
+      ##endif
       ##if cinematic_mode_on == on
         BRANCH
         if ((flare_params.x > 0.0 || flare_params.y > 0.0) && flare_enabled())
@@ -436,17 +442,19 @@ shader postfx
     {
       float4 pos = GET_SCREEN_POS(input.pos);
 
+      apply_postfx_uv_modifiers(input.tc);
+
       float2 sceneUV = input.tc;
       half3 frame;
-    #if MOBILE_DEVICE
+    ##if use_dng_mobile_optimizations == yes
       sampleSceneColor(sceneUV, frame);
-    #else
+    ##else
       ##if (in_editor_assume == yes)
         frame = apply_distortion_postfx(input);
       ##else
         frame = sampleSceneColor(sceneUV);
       ##endif
-    #endif
+    ##endif
 
       apply_dof_effect(input.tc, frame);
 

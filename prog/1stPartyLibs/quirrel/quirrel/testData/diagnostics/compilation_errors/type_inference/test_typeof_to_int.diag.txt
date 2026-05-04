@@ -1,0 +1,9 @@
+ERROR: expression of type 'string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_typeof_to_int.nut:2:0
+
+// EXPECTED: compile-time error - typeof produces string, not int
+local x: int = typeof 42
+^-----------------------
+return x
+
+

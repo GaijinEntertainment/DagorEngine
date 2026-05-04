@@ -21,6 +21,7 @@
 #include "scriptUtil.h"
 #include "textUtil.h"
 #include "profiler.h"
+#include "kbFocus.h"
 
 #include "dargDebugUtils.h"
 #include <util/dag_convar.h>
@@ -43,14 +44,6 @@ static bool is_same_tbl_component(const Element *elem, const Component &new_comp
   return !elem->hasScriptBuilder() && new_comp.scriptBuilder.IsNull() && new_comp.scriptDesc.IsEqual(elem->props.scriptDesc);
 }
 
-
-static void enable_kb_ime(bool on)
-{
-  run_action_on_main_thread([on]() {
-    if (auto kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr)
-      kbd->enableIme(on);
-  });
-}
 
 ElementTree::ElementTree(GuiScene *gui_scene, Screen *sc) : guiScene(gui_scene), screen(sc)
 {
@@ -383,6 +376,8 @@ Element *ElementTree::rebuild(HSQUIRRELVM vm, Element *existing, const Component
   const Sqrat::Object &childrensParentBuilder = comp.scriptBuilder.IsNull() ? parent_builder : comp.scriptBuilder;
 
   comp.readChildrenObjects(childrensParentBuilder, csk, childrenDescObjs);
+  for (Behavior *bhv : elem->behaviors)
+    bhv->contributeChildren(elem, childrenDescObjs);
 
   newChildrenSrc.resize(childrenDescObjs.size());
   mem_set_0(newChildrenSrc);
@@ -557,9 +552,6 @@ int ElementTree::detachElement(Element *elem)
   if (!elem || elem->isDetached())
     return 0;
 
-  if (elem == xmbFocus)
-    guiScene->setXmbFocus(nullptr);
-
   int resFlags = RESULT_ELEMS_ADDED_OR_REMOVED;
   if (!elem->hotkeyCombos.empty())
     resFlags |= RESULT_HOTKEYS_STACK_MODIFIED;
@@ -583,16 +575,9 @@ int ElementTree::detachElement(Element *elem)
     (void)found;
     G_ASSERT(found);
   }
-  if (elem == kbFocus)
-  {
-    G_ASSERT(canHandleInput);
-    if (kbFocus->hasBehaviors(Behavior::F_DISPLAY_IME))
-      enable_kb_ime(false);
-    kbFocus = nullptr;
-    kbFocusCaptured = false;
-  }
-  if (elem == nextKbFocus)
-    nextKbFocus = nullptr;
+
+  guiScene->kbFocus.onElementDetached(elem);
+
   auto itTopHover = topLevelHovers.find(elem);
   if (itTopHover != topLevelHovers.end())
   {
@@ -695,13 +680,7 @@ void ElementTree::clear()
   }
   animated.clear();
   clear_and_shrink(withBehaviors);
-  kbFocus = nullptr;
-  kbFocusCaptured = false;
   topLevelHovers.clear();
-  nextKbFocus = nullptr;
-  nextKbFocusQueued = false;
-  nextKbFocusNeedCapture = false;
-  xmbFocus = nullptr;
   sceneStateFlags = 0;
 }
 
@@ -897,76 +876,15 @@ void ElementTree::callAnimMethod(const Sqrat::Object &trigger, void (Animation::
 }
 
 
-bool ElementTree::hasCapturedKbFocus() const { return kbFocus && kbFocusCaptured; }
-
-void ElementTree::applyNextKbFocus()
+void ElementTree::pauseAnimation(const Sqrat::Object &trigger, bool set_pause)
 {
-  G_ASSERT(!guiScene->isRebuildingInvalidatedParts);
-  if (nextKbFocusQueued)
-  {
-    setKbFocus(nextKbFocus, nextKbFocusNeedCapture);
-    nextKbFocusQueued = false;
-    nextKbFocus = nullptr;
-    nextKbFocusNeedCapture = false;
-  }
-}
-
-
-void ElementTree::setKbFocus(Element *elem, bool capture)
-{
-  if (!canHandleInput)
+  if (trigger.IsNull())
     return;
 
-  if (kbFocus == elem)
-  {
-    kbFocusCaptured = capture;
-    return;
-  }
-
-  if (guiScene->isRebuildingInvalidatedParts)
-  {
-    nextKbFocus = elem;
-    nextKbFocusQueued = true;
-    nextKbFocusNeedCapture = capture;
-    return;
-  }
-
-  bool wasTextInput = kbFocus && is_text_input(kbFocus);
-  bool hadIME = kbFocus && kbFocus->hasBehaviors(Behavior::F_DISPLAY_IME);
-
-  if (kbFocus)
-  {
-    kbFocus->clearGroupStateFlags(Element::S_KB_FOCUS);
-
-    Sqrat::Object scriptDesc = kbFocus->props.scriptDesc;
-    Sqrat::Function onBlur(scriptDesc.GetVM(), scriptDesc, scriptDesc.RawGetSlot(kbFocus->csk->onBlur));
-    if (!onBlur.IsNull())
-      guiScene->queueScriptHandler(new ScriptHandlerSqFunc<>(onBlur));
-  }
-
-  kbFocus = elem;
-  kbFocusCaptured = capture;
-
-  if (kbFocus)
-  {
-    kbFocus->setGroupStateFlags(Element::S_KB_FOCUS);
-
-    Sqrat::Object scriptDesc = elem->props.scriptDesc;
-    Sqrat::Function onFocus(scriptDesc.GetVM(), scriptDesc, scriptDesc.RawGetSlot(elem->csk->onFocus));
-    if (!onFocus.IsNull())
-      guiScene->queueScriptHandler(new ScriptHandlerSqFunc<>(onFocus));
-
-    // if (elem->hasFlags(Element::F_STICK_CURSOR))
-    //   guiScene->moveMouseCursorTo(elem);
-  }
-
-  bool isTextInput = kbFocus && is_text_input(kbFocus);
-  bool hasIME = kbFocus && kbFocus->hasBehaviors(Behavior::F_DISPLAY_IME);
-  if (wasTextInput || isTextInput)
-    guiScene->notifyInputConsumersCallback();
-
-  if (hadIME != hasIME)
-    enable_kb_ime(hasIME);
+  for (Element *elem : animated)
+    for (auto &animation : elem->animations)
+      if (animation->desc.trigger.IsEqual(trigger))
+        animation->setPause(set_pause);
 }
 
 
@@ -1031,7 +949,7 @@ void ElementTree::updateHover(InputStack &input_stack, size_t npointers, const P
             newHoverGroups.insert(ie.elem->group);
         }
 
-        stopHover = ie.elem->hasFlags(Element::F_STOP_HOVER | Element::F_STOP_MOUSE);
+        stopHover = ie.elem->hasFlags(Element::F_STOP_HOVER | Element::F_STOP_POINTING);
       }
 
       // stick scroll state -----
@@ -1041,7 +959,7 @@ void ElementTree::updateHover(InputStack &input_stack, size_t npointers, const P
         if (ie.elem->hasFlags(Element::F_JOYSTICK_SCROLL) && (!scrollStopElem || ie.elem->isAscendantOf(scrollStopElem)))
           stick_scroll_flags[hand] |= ie.elem->getAvailableScrolls();
 
-        if (!scrollStopElem && ie.elem->hasFlags(Element::F_STOP_MOUSE))
+        if (!scrollStopElem && ie.elem->hasFlags(Element::F_STOP_POINTING))
           scrollStopElem = ie.elem;
       }
     }
@@ -1085,7 +1003,7 @@ bool ElementTree::doJoystickScroll(InputStack &input_stack, const Point2 &pointe
 
   for (const InputEntry &ie : input_stack.stack)
   {
-    if (ie.elem->hitTest(pointer_pos))
+    if (ie.elem->hitTest(pointer_pos) || ie.elem->props.getBool(ie.elem->csk->globalScroll))
     {
       if (ie.elem->hasFlags(Element::F_JOYSTICK_SCROLL) && (!scrollStopElem || ie.elem->isAscendantOf(scrollStopElem)))
       {
@@ -1093,7 +1011,7 @@ bool ElementTree::doJoystickScroll(InputStack &input_stack, const Point2 &pointe
         return true;
       }
 
-      if (!scrollStopElem && ie.elem->hasFlags(Element::F_STOP_MOUSE))
+      if (!scrollStopElem && ie.elem->hasFlags(Element::F_STOP_POINTING))
         scrollStopElem = ie.elem;
     }
   }
@@ -1112,6 +1030,15 @@ int ElementTree::deactivateInput(InputDevice device, int pointer_id)
       resAccum |= bhv->onDeactivateInput(elem, device, pointer_id);
     }
   }
+  return resAccum;
+}
+
+int ElementTree::deactivateAllInput()
+{
+  int resAccum = 0;
+  for (Element *elem : withBehaviors)
+    for (Behavior *bhv : elem->behaviors)
+      resAccum |= bhv->onDeactivateAllInput(elem);
   return resAccum;
 }
 

@@ -4,14 +4,15 @@
 #if D3D_HAS_RAY_TRACING
 // deprecated use raytrace::create_acceleration_structure instead
 RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc, uint32_t count,
-  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes,
+  ResourceTagType tag = nullptr);
 // deprecated use raytrace::create_acceleration_structure instead
-RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(uint32_t size);
+RaytraceBottomAccelerationStructure *create_raytrace_bottom_acceleration_structure(uint32_t size, ResourceTagType tag = nullptr);
 // deprecated use raytrace::destroy_acceleration_structure instead
 void delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as);
 // deprecated use raytrace::create_acceleration_structure instead
 RaytraceTopAccelerationStructure *create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag = nullptr);
 // deprecated use raytrace::destroy_acceleration_structure instead
 void delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *as);
 void set_top_acceleration_structure(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as);

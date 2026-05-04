@@ -1,0 +1,9 @@
+ERROR: Invalid type name 'UnknownType'
+testData/diagnostics/compilation_errors/syntax_errors/invalid_type_name.nut:2:16
+
+// EXPECT_ERROR: "Invalid type name"
+function foo(x: UnknownType) {
+                ^----------
+    return x
+
+

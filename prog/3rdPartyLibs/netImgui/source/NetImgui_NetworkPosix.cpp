@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/tcp.h> // Required for TCP_NODELAY
+#include <netinet/in.h> // Gaijin: Required for IPPROTO_TCP on android
 
 #include "NetImgui_CmdPackets.h"
 

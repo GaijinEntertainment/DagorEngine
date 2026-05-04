@@ -8,7 +8,7 @@
 namespace das
 {
     static TypeInfo lambda_type_info (Type::tLambda, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, nullptr,
-        TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC | TypeInfo::flag_lockCheck, sizeof(Lambda), 0 );
+        TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC, sizeof(Lambda), 0 );
 
     char * presentStr ( char * buf, char * ch, int size );
 
@@ -29,11 +29,15 @@ namespace das
         int32_t            gcFlags = TypeInfo::flag_stringHeapGC | TypeInfo::flag_heapGC;
         int32_t            gcStructFlags = StructInfo::flag_stringHeapGC | StructInfo::flag_heapGC;
 
-        virtual bool canVisitStructure ( char * ps, StructInfo * info ) override {
+        BaseGcDataWalker() {
+            collecting = true;
+            reading = false;
+        }
+        virtual bool canVisitStructure ( char * /*ps*/, StructInfo * info ) override {
             if ( !(info->flags & gcStructFlags) ) return false;
             return true;
         }
-        virtual bool canVisitHandle ( char * ps, TypeInfo * info ) override {
+        virtual bool canVisitHandle ( char * /*ps*/, TypeInfo * info ) override {
             if ( !(info->flags & gcFlags) ) return false;
             return true;
         }
@@ -479,7 +483,7 @@ namespace das
         virtual void afterTuple ( char *, TypeInfo * ) override {
             popRange();
         }
-        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, int idx, bool ) override {
+        virtual void beforeTupleEntry ( char *, TypeInfo * /*ti*/, char *, int idx, bool ) override {
             history.push_back(to_string(static_cast<uint32_t>(idx)));
         }
         virtual void afterTupleEntry ( char *, TypeInfo *, char *, int, bool ) override {
@@ -507,11 +511,11 @@ namespace das
             keys.pop_back();
             history.pop_back();
         }
-        virtual bool canVisitStructure ( char * ps, StructInfo * info ) override {
+        virtual bool canVisitStructure ( char * /*ps*/, StructInfo * info ) override {
             if ( !((info->flags | gcAlways) & gcStructFlags) ) return false;
             return true;
         }
-        virtual bool canVisitHandle ( char * ps, TypeInfo * info ) override {
+        virtual bool canVisitHandle ( char * /*ps*/, TypeInfo * info ) override {
             if ( !((info->flags | gcAlways) & gcFlags) ) return false;
             return true;
         }
@@ -1052,5 +1056,72 @@ namespace das
             auto etext = allocateString(tw.str(),at);
             throw_error_at(at, "%s", etext);
         }
+    }
+
+    // this one frees data from under arrays and tables only
+    struct  GcPod : public DataWalker {
+        enum {
+            gcFlags = TypeInfo::flag_heapGC,
+            gcStructFlags = StructInfo::flag_heapGC
+        };
+        Context *  __context__ = nullptr;
+        LineInfo * __at__ = nullptr;
+        GcPod ( Context * ctx, LineInfo * at ) : __context__(ctx), __at__(at) {}
+        virtual bool canVisitHandle ( char *, TypeInfo * ) override { return false; }
+        virtual bool canVisitStructure ( char *, StructInfo * ) override { return true; }
+        virtual bool canVisitTuple ( char *, TypeInfo * ) override { return true; }
+        virtual bool canVisitVariant ( char *, TypeInfo * ) override { return true; }
+        virtual bool canVisitPointer ( TypeInfo * ) override { return false; }
+        virtual bool canVisitLambda ( TypeInfo * ) override { return false; }
+        virtual bool canVisitIterator ( TypeInfo * ) override { return true; }
+        virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t ) override {
+            return ti->flags & gcFlags;
+        }
+        virtual bool canVisitTableData ( TypeInfo * ti ) override {
+            return (ti->secondType->flags & gcFlags);
+        }
+        virtual void afterArray ( Array * pa, TypeInfo * ti ) override {
+            if ( pa->data ) {
+                if ( !pa->isLocked() || pa->hopeless ) {
+                    uint32_t oldSize = pa->capacity*ti->firstType->size;
+                    __context__->free(pa->data, oldSize, __at__);
+                } else {
+                    __context__->throw_error_at(__at__, "can't delete locked array");
+                }
+                if ( pa->hopeless ) {
+                    memset ( pa, 0, sizeof(Array) );
+                    pa->hopeless = true;
+                } else {
+                    memset ( pa, 0, sizeof(Array) );
+                }
+            }
+        }
+        virtual void afterTable ( Table * pa, TypeInfo * ti ) override {
+            if ( pa->data ) {
+                if ( !pa->isLocked() || pa->hopeless ) {
+                    uint32_t oldSize = pa->capacity*(ti->firstType->size+ti->secondType->size+sizeof(TableHashKey));
+                    __context__->free(pa->data, oldSize, __at__);
+                } else {
+                    __context__->throw_error_at(__at__, "can't delete locked table");
+                }
+                if ( pa->hopeless ) {
+                    memset ( pa, 0, sizeof(Table) );
+                    pa->hopeless = true;
+                } else {
+                    memset ( pa, 0, sizeof(Table) );
+                }
+            }
+        }
+    };
+
+    vec4f builtin_collect_local_and_zero ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        if ( context.persistent ) {  // only doing any work if its a persistent heap
+            GcPod gcpod(&context, &call->debugInfo);
+            gcpod.walk(args[0], call->types[0]);
+            auto ptr = cast<void *>::to(args[0]);
+            auto tsize = cast<uint32_t>::to(args[1]);
+            memset ( ptr, 0, tsize );
+        }
+        return v_zero();
     }
 }

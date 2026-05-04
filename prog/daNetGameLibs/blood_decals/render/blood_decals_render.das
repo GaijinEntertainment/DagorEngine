@@ -1,6 +1,6 @@
 require ecs
 require danetlibs.blood_decals.render.blood_decals_common
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 require ProjectiveDecals
 require DagorMath
 require DagorShaders
@@ -12,7 +12,7 @@ let FLOAT_SIZEOF = typeinfo sizeof(type<float>)
 
 [es(tag=gameClient, on_appear)]
 def blood_decals_init(evt : Event;
-                      var blood_decals_manager : RingBufferDecals;
+                      var blood_decals_manager : RingBufferDecalManager;
                       var blood_decals_depth_atlas : UniqueTexHolder;
                       var blood_decals_traces_buf : UniqueBufHolder;
                       blood_decals_init_shader : string;
@@ -42,7 +42,7 @@ def blood_decals_init(evt : Event;
   DagorShaders::set_sampler(get_shader_variable_id("blood_decals_depth_atlas_tex_samplerstate", true), sampler)
 
 
-  set_color4(get_shader_variable_id("blood_decal_timings", true),
+  set_float4(get_shader_variable_id("blood_decal_timings", true),
     safeinv(blood_decals_splash_appear_time),
     -(blood_decals_splash_appear_time + blood_decals_splash_stay_fresh_time),
     safeinv(blood_decals_splash_drying_time),
@@ -52,7 +52,7 @@ def blood_decals_init(evt : Event;
 
 [es(tag=gameClient, after=animchar_before_render_es)] //require for execute animchar_before_render_es as early as possible
 def blood_decals_prepare_render(stg : UpdateStageInfoBeforeRender;
-                                var blood_decals_manager : RingBufferDecals;
+                                var blood_decals_manager : RingBufferDecalManager;
                                 var blood_decals_traces_result : ecs::FloatList;
                                 blood_decals_traces_buf : UniqueBufHolder;
                                 var blood_decals_traces_queue : ecs::IPoint2List;
@@ -81,14 +81,14 @@ def blood_decals_prepare_render(stg : UpdateStageInfoBeforeRender;
 
 
 [es(tag=gameClient)]
-def blood_decals_render(evt : OnRenderDecals; var blood_decals_manager : RingBufferDecals)
+def blood_decals_render(evt : OnRenderDecals; var blood_decals_manager : RingBufferDecalManager)
 
   profile_gpu_block("blood_decals_render") <| $()
     blood_decals_manager |> render()
 
 
 [es(tag=gameClient)]
-def blood_decals_after_reset(evt : AfterDeviceReset; var blood_decals_manager : RingBufferDecals; var blood_decals_decals_count : int&)
+def blood_decals_after_reset(evt : AfterDeviceReset; var blood_decals_manager : RingBufferDecalManager; var blood_decals_decals_count : int&)
 
   blood_decals_decals_count = 0
   blood_decals_manager |> clear()

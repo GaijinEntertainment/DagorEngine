@@ -28,13 +28,21 @@ struct obstacle_settings_t
   eastl::vector<RiObstacleSetup> setups;
   ska::flat_hash_map<uint32_t, int> mapPools;
   ska::flat_hash_map<eastl::string, int> mapNames;
-  const RiObstacleSetup *find(int resIdx);
+  inline const RiObstacleSetup *find(int pool_index, bool riex, int rigen_layer);
+  inline const RiObstacleSetup *findRiEx(int resIdx) { return find(resIdx, true, 0); }
+  inline const RiObstacleSetup *findDesc(const rendinst::RendInstDesc &desc) { return find(desc.pool, desc.isRiExtra(), desc.layer); }
+
+  bool logObstacles = false;
+  ska::flat_hash_map<uint32_t, int> logCounts;
+  ska::flat_hash_map<uint32_t, eastl::string> logNames;
+  int logNumAddedObstacles = 0;
 };
 bool load_obstacle_settings(const char *obstacle_settings_path, rendinst::obstacle_settings_t &obstacle_settings);
 
 struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
 {
-  Bitarray &pools;
+  static constexpr int RIGEN_INDEX_OFFSET = 0x10000;
+  Bitarray &poolsToIgnore;
   ska::flat_hash_map<int, uint32_t> &obstaclePools;
   ska::flat_hash_map<int, uint32_t> &materialPools;
   rendinst::obstacle_settings_t &obstaclesSettings;
@@ -55,21 +63,19 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       return coll_info.desc.isRiExtra() == desc.isRiExtra() && coll_info.desc.pool == desc.pool;
     }
 
-    void buildMeshNode(const CollisionNode *node)
+    void buildMeshNode(const CollisionResource *coll_res, const CollisionNode *node)
     {
       int idxBase = vertices.size();
       mat44f nodeTm;
-      v_mat44_make_from_43cu_unsafe(nodeTm, node->tm.array);
-      vertices.reserve(idxBase + node->vertices.size());
-      for (int i = 0, size = node->vertices.size(); i < size; ++i)
-        vertices.push_back(v_mat44_mul_vec3p(nodeTm, v_ldu(&node->vertices[i].x)));
-      indices.reserve(indices.size() + node->indices.size());
-      for (int i = 0, size = node->indices.size() / 3; i < size; ++i)
-      {
-        indices.push_back(idxBase + int(node->indices[i * 3 + 0]));
-        indices.push_back(idxBase + int(node->indices[i * 3 + 1]));
-        indices.push_back(idxBase + int(node->indices[i * 3 + 2]));
-      }
+      v_mat44_make_from_43cu_unsafe(nodeTm, coll_res->getNodeTm(node->nodeIndex).array);
+      vertices.reserve(idxBase + coll_res->getNodeVertCount(node->nodeIndex));
+      coll_res->iterateNodeVerts(node->nodeIndex, [&](int, vec4f v) { vertices.push_back(v_mat44_mul_vec3p(nodeTm, v)); });
+      indices.reserve(indices.size() + coll_res->getNodeFaceCount(node->nodeIndex) * 3);
+      coll_res->iterateNodeFaces(node->nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+        indices.push_back(idxBase + int(i0));
+        indices.push_back(idxBase + int(i1));
+        indices.push_back(idxBase + int(i2));
+      });
     }
 
     void build(const rendinst::CollisionInfo &coll_info)
@@ -77,28 +83,30 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       if (!coll_info.collRes)
         return;
       desc = coll_info.desc;
-      for (const CollisionNode *node = coll_info.collRes->meshNodesHead; node; node = node->nextNode)
-        if (node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-          buildMeshNode(node);
+      coll_info.collRes->forEachMeshNode([&](const CollisionNode &node) {
+        if (node.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+          buildMeshNode(coll_info.collRes, &node);
+      });
       for (const CollisionNode *node = coll_info.collRes->boxNodesHead; node; node = node->nextNode)
       {
         if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
         int idxBase = vertices.size();
         vertices.reserve(vertices.size() + 8);
+        BBox3 nodeBBox = coll_info.collRes->getNodeBBox(node->nodeIndex);
         for (int i = 0; i < 8; ++i)
         {
-          Point3_vec4 boxPt = node->modelBBox.point(i);
+          Point3_vec4 boxPt = nodeBBox.point(i);
           vertices.push_back(v_ld(&boxPt.x));
         }
         /*
-              7+------+3
-              /|     /|
+             7+------+3
+             /|     /|
             / |   2/ |
           6+------+  |
-            | 5+---|--+1
-            | /    | /
-            |/     |/
+           | 5+---|--+1
+           | /    | /
+           |/     |/
           4+------+0
         */
         indices.reserve(indices.size() + 6 * 2 * 3);
@@ -148,33 +156,37 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
   Tab<RiData *> riCache;
   Tab<rendinst::CollisionInfo> collCache;
 
-  RendinstVertexDataCbBase(Tab<Point3> &verts, Tab<int> &inds, Bitarray &pools, ska::flat_hash_map<int, uint32_t> &obstaclePools,
-    ska::flat_hash_map<int, uint32_t> &materialPools, rendinst::obstacle_settings_t &obstaclesSettings) :
+  RendinstVertexDataCbBase(Tab<Point3> &verts, Tab<int> &inds, Bitarray &pools_to_ignore,
+    ska::flat_hash_map<int, uint32_t> &obstaclePools, ska::flat_hash_map<int, uint32_t> &materialPools,
+    rendinst::obstacle_settings_t &obstaclesSettings) :
     vertices(verts),
     indices(inds),
-    pools(pools),
+    poolsToIgnore(pools_to_ignore),
     obstaclePools(obstaclePools),
     materialPools(materialPools),
     obstaclesSettings(obstaclesSettings)
   {}
   ~RendinstVertexDataCbBase() { clear_all_ptr_items(riCache); }
 
+  static int make_pool_id(int pool, bool ri_extra) { return ri_extra ? pool : pool + RIGEN_INDEX_OFFSET; }
+  static int make_pool_id(const rendinst::RendInstDesc &desc) { return make_pool_id(desc.pool, desc.isRiExtra()); }
+
   void pushCollision(const rendinst::CollisionInfo &coll_info)
   {
     if (!coll_info.collRes)
       return;
 
-    if (pools.size() && pools[coll_info.desc.pool])
+    int pool_id = make_pool_id(coll_info.desc);
+    if (pool_id < poolsToIgnore.size() && poolsToIgnore[pool_id])
       return;
 
     collCache.push_back(coll_info);
-    for (const CollisionNode *node = coll_info.collRes->meshNodesHead; node; node = node->nextNode)
-    {
-      if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-        continue;
-      vertNum += node->vertices.size();
-      indNum += node->indices.size();
-    }
+    coll_info.collRes->forEachMeshNode([&](const CollisionNode &node) {
+      if (!node.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+        return;
+      vertNum += coll_info.collRes->getNodeVertCount(node.nodeIndex);
+      indNum += coll_info.collRes->getNodeFaceCount(node.nodeIndex) * 3;
+    });
     for (const CollisionNode *node = coll_info.collRes->boxNodesHead; node; node = node->nextNode)
     {
       if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
@@ -216,6 +228,8 @@ inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst:
   obstacle_settings.mapPools.reserve(reserveCount);
   obstacle_settings.mapNames.reserve(reserveCount);
 
+  obstacle_settings.logObstacles = obstacleSettingsBlk.getBool("logObstacles", false);
+
   for (int blkIt = 0; blkIt < obstacleSettingsBlk.blockCount(); blkIt++)
   {
     const DataBlock *blk = obstacleSettingsBlk.getBlock(blkIt);
@@ -255,7 +269,7 @@ inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst:
         obstacle_settings.mapNames.emplace(riName, setupIdx);
         const int resIdx = rendinst::getRIGenExtraResIdx(riName);
         if (resIdx >= 0)
-          obstacle_settings.mapPools.emplace(resIdx, setupIdx);
+          obstacle_settings.mapPools.emplace(RendinstVertexDataCbBase::make_pool_id(resIdx, true), setupIdx);
       }
       else
       {
@@ -267,22 +281,22 @@ inline bool load_obstacle_settings(const char *obstacle_settings_path, rendinst:
   return true;
 }
 
-inline const RiObstacleSetup *obstacle_settings_t::find(int resIdx)
+inline const RiObstacleSetup *obstacle_settings_t::find(int pool_index, bool riex, int rigen_layer)
 {
-  if (resIdx < 0)
-    return nullptr;
-  auto it = mapPools.find(resIdx);
+  int pool_id = RendinstVertexDataCbBase::make_pool_id(pool_index, riex);
+  auto it = mapPools.find(pool_id);
   if (it != mapPools.end())
     return &setups[it->second];
-  rendinst::RendInstDesc desc(rendinst::make_handle(resIdx, 0));
-  const char *riName = rendinst::getRIGenResName(desc);
+
+  const char *riName =
+    riex ? rendinst::getRIGenExtraName(pool_index) : rendinst::getRIGenResName(RendInstDesc{0, 0, pool_index, 0, rigen_layer});
   if (!riName || !*riName)
     return nullptr;
   auto it2 = mapNames.find(riName);
   if (it2 == mapNames.end())
     return nullptr;
   const int setupIdx = it2->second;
-  mapPools.emplace(resIdx, setupIdx);
+  mapPools.emplace(pool_id, setupIdx);
   return &setups[setupIdx];
 }
 } // namespace rendinst

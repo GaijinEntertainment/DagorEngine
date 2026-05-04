@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let textButton = require("%daeditor/components/textButton.nut")
 let {msgboxComponent=null, showMsgbox=null} = require_optional("%daeditor/components/msgbox.nut")
 
-let panelElemsButtonStyle = static { boxStyle = { normal = { fillColor = Color(0,0,0,80) } } }
+let panelElemsButtonStyle = const { boxStyle = { normal = { fillColor = Color(0,0,0,80) } } }
 
 return {
   panelElemsLayout = @(elems) { size = SIZE_TO_CONTENT, hplace = ALIGN_RIGHT, flow = FLOW_HORIZONTAL,

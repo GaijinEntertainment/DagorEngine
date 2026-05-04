@@ -4,9 +4,10 @@
 //
 #pragma once
 
-#include <util/dag_globDef.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/numeric_limits.h>
+#include <util/dag_globDef.h>
+
 
 namespace lowlatency
 {

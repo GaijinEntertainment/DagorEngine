@@ -5,7 +5,7 @@
 #pragma once
 
 #include <squirrel.h>
-#include <sqplus.h>
+#include <sqrat.h>
 #include <util/dag_simpleString.h>
 #include <generic/dag_tab.h>
 
@@ -14,11 +14,6 @@ class CSQPanelWrapper;
 class ScriptPanelTargetCB;
 class ScriptPanelContainer;
 
-namespace SqPlus
-{
-template <typename RT>
-struct SquirrelFunction;
-}
 
 class ScriptPanelParam
 {
@@ -36,10 +31,10 @@ public:
 
   virtual ~ScriptPanelParam();
 
-  void fillParameter(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
+  void fillParameter(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param);
   void getFromScript();
 
-  virtual void setToScript(SquirrelObject &param);
+  virtual void setToScript(Sqrat::Table &param);
   virtual void callChangeScript(bool script_update_flag);
   virtual void updateParams() {}
   virtual void validate() {}
@@ -66,7 +61,7 @@ public:
 
 protected:
   virtual void createControl() {}
-  virtual void getValueFromScript(SquirrelObject param);
+  virtual void getValueFromScript(Sqrat::Table param);
 
   virtual void setupParameter(PropPanel::ContainerPropertyControl *panel, int &pid);
   virtual void removeControl();
@@ -78,8 +73,8 @@ protected:
   bool mVisible, mEnabled;
   PropPanel::ContainerPropertyControl *mPanel;
   ScriptPanelContainer *mParent;
-  SqPlus::SquirrelFunction<void> *onChangeCallback;
-  SquirrelObject mParam;
+  Sqrat::Function *onChangeCallback;
+  Sqrat::Table mParam;
 };
 
 
@@ -89,7 +84,7 @@ public:
   ScriptPanelContainer(CSQPanelWrapper *wrapper, ScriptPanelContainer *parent, const char *name, const char *caption);
   ~ScriptPanelContainer() override;
 
-  virtual void fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
+  virtual void fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param);
   void callChangeScript(bool script_update_flag) override;
   void updateParams() override;
   void validate() override;
@@ -107,20 +102,20 @@ public:
   int getNextVisiblePid(int pid);
   CSQPanelWrapper *getWrapper() { return mPanelWrapper; }
 
-  const char *getParamType(SquirrelObject param);
-  virtual bool getParamVisible(SquirrelObject param);
+  const char *getParamType(Sqrat::Table param);
+  virtual bool getParamVisible(Sqrat::Table param);
 
   int findPidByName(const char *name);
   void sendMessage(int pid, int message, void *arg) override;
 
 protected:
-  void scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
-  virtual bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param);
+  void scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param);
+  virtual bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param);
 
-  const char *getParamName(SquirrelObject param);
-  const char *getParamCaption(SquirrelObject param, const char *name);
-  const char *getTooltipLocalizationKey(SquirrelObject param);
-  const char *getDefaultTooltip(SquirrelObject param);
+  const char *getParamName(Sqrat::Table param);
+  const char *getParamCaption(Sqrat::Table param, const char *name);
+  const char *getTooltipLocalizationKey(Sqrat::Table param);
+  const char *getDefaultTooltip(Sqrat::Table param);
 
   void removeControl() override;
 

@@ -1,20 +1,93 @@
-{
-  let $ch0 = FUNCTION (externalSymbol.nut:8)(g, h) {
-    println(g / h)
-  }
-  let $ch1 = FUNCTION (externalSymbol.nut:6)(e, f) {
-    println(e * f)
-    RETURN $ch0
-  }
-  let $ch2 = FUNCTION (externalSymbol.nut:4)(c, d) {
-    println(c - d)
-    RETURN $ch1
-  }
-  let $ch3 = FUNCTION (externalSymbol.nut:2)(a, b) {
-    println(a + b)
-    RETURN $ch2
-  }
-  let foo = FUNCTION foo(x, y) {
-    RETURN $ch3
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let', name = '$ch0', type = 'any'
+|   Initializer
+|     FunctionExpr name = '(externalSymbol.nut:8)', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 2
+|     | |-Parameter #1 name = 'g', type = 'any'
+|     | `-Parameter #2 name = 'h', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ExprStatement
+|             CallExpr
+|             |-Callee
+|             |   Id 'println'
+|             `-Arguments
+|                 Argument #1
+|                   BinExpr '/'
+|                   |-Left
+|                   |   Id 'g'
+|                   `-Right
+|                       Id 'h'
+|-VarDecl 'let', name = '$ch1', type = 'any'
+|   Initializer
+|     FunctionExpr name = '(externalSymbol.nut:6)', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 2
+|     | |-Parameter #1 name = 'e', type = 'any'
+|     | `-Parameter #2 name = 'f', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|         |-ExprStatement
+|         |   CallExpr
+|         |   |-Callee
+|         |   |   Id 'println'
+|         |   `-Arguments
+|         |       Argument #1
+|         |         BinExpr '*'
+|         |         |-Left
+|         |         |   Id 'e'
+|         |         `-Right
+|         |             Id 'f'
+|         `-ReturnStatement
+|             Id '$ch0'
+|-VarDecl 'let', name = '$ch2', type = 'any'
+|   Initializer
+|     FunctionExpr name = '(externalSymbol.nut:4)', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 2
+|     | |-Parameter #1 name = 'c', type = 'any'
+|     | `-Parameter #2 name = 'd', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|         |-ExprStatement
+|         |   CallExpr
+|         |   |-Callee
+|         |   |   Id 'println'
+|         |   `-Arguments
+|         |       Argument #1
+|         |         BinExpr '-'
+|         |         |-Left
+|         |         |   Id 'c'
+|         |         `-Right
+|         |             Id 'd'
+|         `-ReturnStatement
+|             Id '$ch1'
+|-VarDecl 'let', name = '$ch3', type = 'any'
+|   Initializer
+|     FunctionExpr name = '(externalSymbol.nut:2)', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 2
+|     | |-Parameter #1 name = 'a', type = 'any'
+|     | `-Parameter #2 name = 'b', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|         |-ExprStatement
+|         |   CallExpr
+|         |   |-Callee
+|         |   |   Id 'println'
+|         |   `-Arguments
+|         |       Argument #1
+|         |         BinExpr '+'
+|         |         |-Left
+|         |         |   Id 'a'
+|         |         `-Right
+|         |             Id 'b'
+|         `-ReturnStatement
+|             Id '$ch2'
+`-VarDecl 'let', name = 'foo', type = 'any'
+    Initializer
+      FunctionExpr name = 'foo', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 2
+      | |-Parameter #1 name = 'x', type = 'any'
+      | `-Parameter #2 name = 'y', type = 'any'
+      `-Body
+          Block isRoot = 0, isBody = 1
+            ReturnStatement
+              Id '$ch3'

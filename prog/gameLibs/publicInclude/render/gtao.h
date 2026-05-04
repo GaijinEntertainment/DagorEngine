@@ -12,6 +12,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
 #include <render/viewDependentResource.h>
+#include <shaders/dag_dynamicResolutionStcode.h>
 
 // Following class implements "Ground Truth Ambient Occlusion" algorithm
 // Easiest way to understand the concept of it is to read
@@ -34,19 +35,20 @@ public:
 
   void setCurrentView(int viewIndex);
 
-  void renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, const ManagedTex *ssao_tex, const DPoint3 *world_pos);
-  void applyGTAOFilter(const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex,
-    SubFrameSample sub_sample = SubFrameSample::Single);
+  void renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssao_tex, const DPoint3 *world_pos,
+    const DynRes *dynamic_resolution = nullptr);
+  void applyGTAOFilter(BaseTexture *ssao_tex, BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex,
+    SubFrameSample sub_sample = SubFrameSample::Single, const DynRes *dynamic_resolution = nullptr);
 
 private:
-  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
-    const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex, const DPoint3 *world_pos,
-    SubFrameSample sub_sample = SubFrameSample::Single) override;
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, BaseTexture *ssaoTex,
+    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single,
+    const DynRes *dynamic_resolution = nullptr) override;
 
   void updateCurFrameIdxs();
-  void renderGTAO(const ManagedTex &rawTex);
-  void applySpatialFilter(const ManagedTex &rawTex, const ManagedTex &spatialTex);
-  void applyTemporalFilter(const ManagedTex &rawTex, const ManagedTex &prevGtaoTex, const ManagedTex &spatialTex);
+  void renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolution);
+  void applySpatialFilter(BaseTexture *rawTex, BaseTexture *spatialTex, const DynRes *dynamic_resolution);
+  void applyTemporalFilter(BaseTexture *rawTex, BaseTexture *prevGtaoTex, BaseTexture *spatialTex, const DynRes *dynamic_resolution);
 
   static constexpr const char *gtao_sh_name = "gtao_main";
   static constexpr const char *spatial_filter_sh_name = "gtao_spatial";
@@ -77,4 +79,6 @@ private:
   ViewDependentResource<Afr, 2> afrs;
   bool useOwnTextures;
   bool useOwnReprojectionParams;
+
+  eastl::optional<DynRes> prevDynRes;
 };

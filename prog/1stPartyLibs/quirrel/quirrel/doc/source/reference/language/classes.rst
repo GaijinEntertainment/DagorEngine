@@ -13,6 +13,11 @@ however because of its dynamic nature it differs in several aspects.
 Classes are first class objects like integer or strings and can be stored in
 table slots local variables, arrays and passed as function parameters.
 
+All Quirrel values are instances of classes. Fundamental types (integers, floats, strings, arrays, tables, etc.)
+have built-in type classes (``Integer``, ``Float``, ``String``, ``Array``, ``Table``, etc.) available through
+the ``types`` module. These can be used with ``instanceof`` just like user-defined classes.
+See :ref:`Built-in Type Classes <builtin_type_classes>` for details.
+
 -----------------
 Class Declaration
 -----------------
@@ -195,7 +200,7 @@ The syntax for a derived class is the following: ::
 When a derived class is declared, Quirrel first copies all base's members in the
 new class then proceeds with evaluating the rest of the declaration.
 
-A derived class inherit all members and properties of it's base, if the derived class
+A derived class inherits all members and properties of its base, if the derived class
 overrides a base function the base implementation is shadowed.
 It's possible to access a overridden method of the base class by fetching the method from it
 through the 'base' keyword.

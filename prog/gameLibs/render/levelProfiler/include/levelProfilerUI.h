@@ -6,7 +6,9 @@
 #include "levelProfilerInterface.h"
 #include "levelProfilerExporter.h"
 #include "levelProfilerTextureTable.h"
+#include "levelProfilerRiTable.h"
 #include "levelProfilerFilter.h"
+#include "levelProfilerWidgets.h"
 
 namespace levelprofiler
 {
@@ -39,6 +41,7 @@ public:
 
   ProfilerExporter &getExporter() { return exporter; }
   TextureFilterManager &getFilterManager() { return filterManager; }
+  const TextureFilterManager &getFilterManager() const { return filterManager; }
 
 private:
   TextureModule *textureModule = nullptr;
@@ -47,6 +50,9 @@ private:
   ProfilerExporter exporter;
   eastl::unique_ptr<LpTextureTable> textureTable;
   ProfilerString selectedAssetName;
+
+  LpSplitter horizontalSplitter;
+  LpSplitter verticalSplitter;
 
   // Tab rename popup
   bool isShowRenamePopup = false;
@@ -67,6 +73,7 @@ public:
   virtual ~RIProfilerUI();
 
   RIModule *getRIModule() const { return riModule; }
+  LpRiTable *getRiTable() const { return riTable.get(); }
 
   void init() override;
   void shutdown() override;
@@ -79,6 +86,14 @@ public:
 
 private:
   RIModule *riModule = nullptr;
+  eastl::unique_ptr<LpRiTable> riTable;
+  ProfilerString selectedRiName;
+
+  void collectAndDisplayData();
+  void updateFilter();
+
+  GlobalCopyManager *getCopyManager() const;
+  ProfilerString generateFullRiInfo(const ProfilerString &ri_name) const;
 };
 
 class LevelProfilerUI : public ILevelProfiler
@@ -94,7 +109,9 @@ public:
   void drawUI() override;
   void collectData() override;
   void clearData() override;
-  void addTab(const char *name, IProfilerModule *module_ptr) override;
+  void collectTextureData();
+  void collectRiData();
+  void addTab(const char *name, IProfilerModule *module_ptr, void (*collectFn)(LevelProfilerUI *) = nullptr) override;
   int getTabCount() const override { return static_cast<int>(tabs.size()); }
   ProfilerTab *getTab(int index) override;
   void renameTab(int index, const char *new_name) override;

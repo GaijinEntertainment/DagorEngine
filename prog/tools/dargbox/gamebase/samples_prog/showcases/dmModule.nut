@@ -45,7 +45,7 @@ function dmModule(count_total_state, count_broken_state) {
     return {
       size = SIZE_TO_CONTENT
       flow = FLOW_VERTICAL
-      margin = static [sh(0.7), 0]
+      margin = const [sh(0.7), 0]
       watch = [
         count_total_state
         count_broken_state

@@ -375,7 +375,11 @@ public:
       }
 
       mkbindump::BinDumpSaveCB mcwr(17 << 20, cwr.getTarget(), false);
-      write_built_dds_final(mcwr.getRawWriter(), *ma, cwr.getTarget(), cwr.getProfile(), &log);
+      if (write_built_dds_final(mcwr.getRawWriter(), *ma, cwr.getTarget(), cwr.getProfile(), &log) <= 0 || mcwr.getSize() == 0)
+      {
+        log.addMessage(log.ERROR, "%s: internal error, write_built_dds_final(%s) failed", a.getName(), ma->getName());
+        return false;
+      }
 
       MemoryLoadCB mcrd(mcwr.getRawWriter().takeMem(), true);
       DDSURFACEDESC2 base_dds_hdr;

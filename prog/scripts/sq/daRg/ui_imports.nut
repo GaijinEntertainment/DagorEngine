@@ -1,6 +1,6 @@
 import "%sqstd/log.nut" as logLib
 from "%sqstd/string.nut" import tostring_r
-from "%sqstd/frp.nut" import Watched, Computed, ComputedImmediate, FRP_INITIAL, FRP_DONT_CHECK_NESTED, set_nested_observable_debug, make_all_observables_immutable, isObservable, isComputed
+from "%sqstd/frp.nut" import Watched, Computed, ComputedImmediate, FRP_INITIAL, make_all_observables_immutable, isObservable, isComputed
 
 let log = logLib([
   {
@@ -26,7 +26,7 @@ let logs = {
   console_print = log.console_print
   logerr = log.logerr
   wlog = log.wlog
-  wdlog = @(watched, prefix = null, transform=null) log.wlog(watched, prefix, transform, log.dlog) //disable: -dlog-warn
+  wdlog = log.wdlog //disable: -dlog-warn
 }
 
 let frpExtras = {
@@ -36,8 +36,6 @@ let frpExtras = {
   isComputed
   isObservable
   FRP_INITIAL
-  FRP_DONT_CHECK_NESTED
-  set_nested_observable_debug
   make_all_observables_immutable
 }
 

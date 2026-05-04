@@ -87,8 +87,6 @@ using FxTypeByNameCallback = int (*)(const char *);
 void initRiGenDebris(const DataBlock &ri_blk, FxTypeByNameCallback get_fx_type_by_name, bool init_sec_ri_extra_here = true);
 void initRiGenDebrisSecondary(const DataBlock &ri_blk, FxTypeByNameCallback get_fx_type_by_name);
 void updateRiDestrFxIds(FxTypeByNameCallback get_fx_type_by_name);
-void initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
-  const dag::ConstSpan<eastl::pair<const char *, float>> &occluders);
 float debugGetSoundOcclusion(const char *ri_name, float def_value);
 
 void precomputeRIGenCellsAndPregenerateRIExtra();
@@ -102,14 +100,13 @@ bool hasRiLayer(int res_idx, LayerFlag layer);
 
 CollisionResource *getRIGenCollInfo(const rendinst::RendInstDesc &desc);
 
+float getMaxRiGenLoadingDistance();
 void registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list);
 int scheduleRIGenPrepare(dag::ConstSpan<Point3> poi);
 bool isRIGenPrepareFinished();
 
-using ri_added_from_rigendata_cb = void (*)(riex_handle_t handle);
-void registerRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb);
-bool unregisterRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb);
-void onRiExtraAddedFromGenData(riex_handle_t id);
+using ri_added_from_rigendata_cb_t = void (*)(riex_handle_t handle);                        // Warn: called in thread
+ri_added_from_rigendata_cb_t setRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb_t cb); // Returns prev cb
 
 using ri_gen_cell_loaded_cb = void (*)(int layer_idx, int cell_idx, int x, int z, bool loaded, bool last_job);
 void registerRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb);
@@ -203,5 +200,8 @@ void iterate_apex_destructible_rendinst_data(RiApexIterationCallback callback);
 
 bool should_init_ri_damage_model();
 void dm_iter_all_ri_layers(eastl::fixed_function<20, void(int, const dag::ConstSpan<const char *> &)> cb);
+
+using ImpostorTextureCallback = void (*)(const RenderableInstanceLodsResource *);
+void set_impostor_iexture_callback(ImpostorTextureCallback callback);
 
 }; // namespace rendinst

@@ -6,6 +6,8 @@ function_name([arg2_name: float, arg3_name: float])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 function_name([arg2_name: float, arg3_name: float], ...)
 function_name([arg2_name: float, arg3_name: float], ...)
@@ -15,6 +17,8 @@ function_name([arg2_name: float, arg3_name: float], ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
 function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
@@ -24,6 +28,8 @@ function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string
   ellipsisArgTypeMask: 0x10
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: bool|null)
 FunctionName(arg1_Name: bool|null)
@@ -33,6 +39,8 @@ FunctionName(arg1_Name: bool|null)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
 function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
@@ -42,6 +50,8 @@ function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
   ellipsisArgTypeMask: 0x0
   requiredArgs: 3
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
 function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
@@ -51,6 +61,8 @@ function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|nu
   ellipsisArgTypeMask: 0x0
   requiredArgs: 3
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name, [arg2_name, arg3_name])
 function_name(arg1_name, [arg2_name, arg3_name])
@@ -60,6 +72,8 @@ function_name(arg1_name, [arg2_name, arg3_name])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
 function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
@@ -69,6 +83,8 @@ function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 3
+  pure: false
+  nodiscard: false
 
 instance.function_name()
 instance.function_name()
@@ -78,6 +94,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 (userpointer|instance).function_name()
 (userpointer|instance).function_name()
@@ -87,6 +105,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 (table|class).function_name()
 (table|class).function_name()
@@ -96,6 +116,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(...)
 function_name(...)
@@ -105,6 +127,8 @@ function_name(...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: int, ...)
 function_name(arg1_name: int, ...)
@@ -114,6 +138,8 @@ function_name(arg1_name: int, ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
@@ -123,6 +149,8 @@ function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 string.function_name(int: float, [string: number, string: generator])
 string.function_name(int: float, [string: number, string: generator])
@@ -132,6 +160,8 @@ string.function_name(int: float, [string: number, string: generator])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
 function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
@@ -141,6 +171,8 @@ function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
 function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
@@ -150,6 +182,8 @@ function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name()
 function_name()
@@ -159,6 +193,8 @@ function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(): int
 function_name(): int
@@ -168,6 +204,8 @@ function_name(): int
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name)
 function_name(arg1_name)
@@ -177,6 +215,8 @@ function_name(arg1_name)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: int|null)
 FunctionName(arg1_Name: int|null)
@@ -186,6 +226,8 @@ FunctionName(arg1_Name: int|null)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: table|array)
 FunctionName(arg1_Name: table|array)
@@ -195,6 +237,8 @@ FunctionName(arg1_Name: table|array)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 function_name([arg2_name: float, arg3_name: float])
 function_name([arg2_name: float, arg3_name: float])
@@ -204,6 +248,8 @@ function_name([arg2_name: float, arg3_name: float])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 function_name([arg2_name: float, arg3_name: float], ...)
 function_name([arg2_name: float, arg3_name: float], ...)
@@ -213,6 +259,8 @@ function_name([arg2_name: float, arg3_name: float], ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: string, [arg2_name: int, arg3_name: table, ...: string]) : any
 function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string): any
@@ -222,6 +270,8 @@ function_name(arg1_name: string, [arg2_name: int, arg3_name: table], ...: string
   ellipsisArgTypeMask: 0x10
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: ( null | bool ) )
 FunctionName(arg1_Name: bool|null)
@@ -231,6 +281,8 @@ FunctionName(arg1_Name: bool|null)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: int, arg2_name: string, arg3_name: any): float | null
 function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
@@ -240,6 +292,8 @@ function_name(arg1_name: int, arg2_name: string, arg3_name): float|null
   ellipsisArgTypeMask: 0x0
   requiredArgs: 3
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: table, arg2_name: array, arg3_name: class): (function | null)
 function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|null
@@ -249,6 +303,8 @@ function_name(arg1_name: table, arg2_name: array, arg3_name: class): function|nu
   ellipsisArgTypeMask: 0x0
   requiredArgs: 3
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: any, [arg2_name: any, arg3_name: any])
 function_name(arg1_name, [arg2_name, arg3_name])
@@ -258,6 +314,8 @@ function_name(arg1_name, [arg2_name, arg3_name])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
 function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
@@ -267,6 +325,8 @@ function_name([arg1_name: instance, arg2_name: class, arg3_name: int]): table
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 3
+  pure: false
+  nodiscard: false
 
 instance.function_name()
 instance.function_name()
@@ -276,6 +336,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 (instance|userpointer).function_name()
 (userpointer|instance).function_name()
@@ -285,6 +347,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
  ( table | class ) . function_name ( )
 (table|class).function_name()
@@ -294,6 +358,8 @@ instance.function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(...: any)
 function_name(...)
@@ -303,6 +369,8 @@ function_name(...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(...)
 function_name(...)
@@ -312,6 +380,8 @@ function_name(...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: int, ...)
 function_name(arg1_name: int, ...)
@@ -321,6 +391,8 @@ function_name(arg1_name: int, ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
@@ -330,6 +402,8 @@ function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...)
   ellipsisArgTypeMask: 0xffffffff
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 string.function_name(int: float, [string: number, string: generator])
 string.function_name(int: float, [string: number, string: generator])
@@ -339,6 +413,8 @@ string.function_name(int: float, [string: number, string: generator])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name:bool,[arg2_name:string,arg3_name:float])
 function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
@@ -348,6 +424,8 @@ function_name(arg1_name: bool, [arg2_name: string, arg3_name: float])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
    function_name ( arg1_name :int ,[ arg2_name: int,   arg3_name : int ] )
 function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
@@ -357,6 +435,8 @@ function_name(arg1_name: int, [arg2_name: int, arg3_name: int])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 3
+  pure: false
+  nodiscard: false
 
 function_name()
 function_name()
@@ -366,6 +446,8 @@ function_name()
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(): int
 function_name(): int
@@ -375,6 +457,8 @@ function_name(): int
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 0
+  pure: false
+  nodiscard: false
 
 function_name(arg1_name: any)
 function_name(arg1_name)
@@ -384,6 +468,8 @@ function_name(arg1_name)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: int|null)
 FunctionName(arg1_Name: int|null)
@@ -393,6 +479,8 @@ FunctionName(arg1_Name: int|null)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
 
 FunctionName(arg1_Name: (table|array))
 FunctionName(arg1_Name: table|array)
@@ -402,4 +490,51 @@ FunctionName(arg1_Name: table|array)
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 1
+  pure: false
+  nodiscard: false
+
+pure function_name(x)
+pure function_name(x)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+  pure: true
+  nodiscard: false
+
+  nodiscard   function_name(x)
+nodiscard function_name(x)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+  pure: false
+  nodiscard: true
+
+pure nodiscard function_name(x)
+pure nodiscard function_name(x)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+  pure: true
+  nodiscard: true
+
+ nodiscard   pure   function_name(x)
+
+pure nodiscard function_name(x)
+  functionName: function_name
+  returnTypeMask: 0x1
+  objectTypeMask: 0xffffffff
+  ellipsisArgTypeMask: 0x0
+  requiredArgs: 1
+  argCount: 1
+  pure: true
+  nodiscard: true
 

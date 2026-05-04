@@ -208,7 +208,7 @@ void HidJoystickClassDriver::onDeviceAction(const UDev::Device &dev, UDev::Actio
     {
       eastl::unique_ptr<HidJoystickDevice> hidDev(new HidJoystickDevice(dev));
 
-      bool isXinputCompat = HidJoystickDeviceXInput::device_xinput_compatable(hidDev.get());
+      bool isXinputCompat = HidJoystickDeviceXInput::device_xinput_compatible(hidDev.get());
       eastl::unique_ptr<UDevJoystick> hidDevXinput;
       if (remapAsX360 && isXinputCompat)
         hidDevXinput.reset(new HidJoystickDeviceXInput(eastl::move(hidDev)));

@@ -100,7 +100,7 @@ private:
     textureData.resize(sizeof(format) + map_byte_size);
     memcpy(textureData.data(), cached_data, textureData.size());
 
-    Texture *temp_tex = d3d::create_tex(NULL, w, h, format, 1, "temp_cache");
+    Texture *temp_tex = d3d::create_tex(NULL, w, h, format, 1, "temp_cache", RESTAG_TEXGEN);
     G_ASSERT(temp_tex);
 
     if (temp_tex)

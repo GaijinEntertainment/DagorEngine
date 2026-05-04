@@ -1,27 +1,27 @@
 WARNING: w212 (duplicate-if-expression) Detected pattern 'if (A) {...} else if (A) {...}'. Branch unreachable.
-testData/static_analyzer/w212.nut:10:9
+testData/static_analyzer/w212.nut:9:9
 
-  ::print("2")
+  print("2")
 else if (x == 1) // OK
          ^-----
-  ::print("3")
+  print("3")
 
 
 WARNING: w212 (duplicate-if-expression) Detected pattern 'if (A) {...} else if (A) {...}'. Branch unreachable.
-testData/static_analyzer/w212.nut:27:8
+testData/static_analyzer/w212.nut:26:8
 
     ;
     if (x == 1) // OK
         ^-----
-        ::print("3");
+        print("3");
 
 
 WARNING: w212 (duplicate-if-expression) Detected pattern 'if (A) {...} else if (A) {...}'. Branch unreachable.
-testData/static_analyzer/w212.nut:36:9
+testData/static_analyzer/w212.nut:35:9
 
-  ::print("2")
+  print("2")
 else if (x == 1) // OK
          ^-----
-    ::print("3");;;
+    print("3");;;
 
 

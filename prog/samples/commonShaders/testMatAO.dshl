@@ -58,9 +58,9 @@ shader testMaterialAO
 
   (ps)
   {
-    tex@static = tex;
-    normalmap@static = normalmap;
-    aotex@static = ao;
+    tex@staticSmp = tex;
+    normalmap@staticSmp = normalmap;
+    aotex@staticSmp = ao;
   }
   hlsl(ps) {
     #define PARALLAX_TEX get_tex()

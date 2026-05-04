@@ -82,13 +82,8 @@ void BhvTouchScreenStick::setActionValue(TouchStickState *stick_state, Point2 va
   }
 }
 
-int BhvTouchScreenStick::touchEvent(ElementTree *,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
+int BhvTouchScreenStick::pointingEvent(
+  ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);
@@ -109,19 +104,17 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
 
   int result = 0;
 
-  const float fullDx = touch.x - touch.x0;
-  const float fullDy = touch.y - touch.y0;
   const int emptyTouchIndex = -1;
 
-  if (
-    event == INP_EV_PRESS && elem->hitTest(touch.x, touch.y) && !(accum_res & R_PROCESSED) && stickState->touchIdx == emptyTouchIndex)
+  if (event == INP_EV_PRESS && elem->hitTest(pos) && !(accum_res & R_PROCESSED) && stickState->touchIdx == emptyTouchIndex)
   {
     updateStickValues(stickState, elem, strings);
     if (!updateAction(stickState, elem, strings))
       return 0;
 
+    stickState->startPos = pos;
     if (stickState->useDeltaMove)
-      stickState->prevPos = Point2(touch.x, touch.y);
+      stickState->prevPos = pos;
     if (stickState->touchIdx < 0)
       stickState->touchIdx = touch_idx;
 
@@ -130,28 +123,31 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
     {
       stickImage->setHidden(false);
       stickImage->props.setCurrentOpacity(1.0f);
-      stickImage->transform->translate = Point2(touch.x0, touch.y0) - elem->screenCoord.screenPos;
+      stickImage->transform->translate = pos - elem->screenCoord.screenPos;
     }
 
     if (!onMove.IsNull())
-      onMove(Point2(touch.x, touch.y), Point2(0, 0), Point2(0, 0));
+      onMove(pos, Point2(0, 0), Point2(0, 0));
     if (!onShow.IsNull())
-      onShow(Point2(touch.x0, touch.y0));
+      onShow(pos);
 
     result = R_PROCESSED;
   }
 
   if (stickState->touchIdx == touch_idx)
   {
+    const float fullDx = pos.x - stickState->startPos.x;
+    const float fullDy = pos.y - stickState->startPos.y;
+
     if (event == INP_EV_POINTER_MOVE)
     {
       Point2 dlt;
       if (stickState->useDeltaMove)
       {
-        const float dx = touch.x - stickState->prevPos.x;
-        const float dy = touch.y - stickState->prevPos.y;
+        const float dx = pos.x - stickState->prevPos.x;
+        const float dy = pos.y - stickState->prevPos.y;
         const float sy = StdGuiRender::screen_height();
-        stickState->prevPos = Point2(touch.x, touch.y);
+        stickState->prevPos = pos;
 
         dlt.x = ::clamp(dx / sy, -1.0f, 1.0f);
         dlt.y = -::clamp(dy / sy, -1.0f, 1.0f);
@@ -170,7 +166,7 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
 
 
       if (!onMove.IsNull())
-        onMove(Point2(touch.x, touch.y), Point2(fullDx, fullDy), dlt);
+        onMove(pos, Point2(fullDx, fullDy), dlt);
 
       if (!stickState->useDeltaMove)
         setActionValue(stickState, dlt);
@@ -181,8 +177,7 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
     {
       if (!freezeOnTouchEndMode.IsNull())
       {
-        Sqrat::Object retValue;
-        if (freezeOnTouchEndMode.Evaluate(retValue) && retValue.GetType() == OT_BOOL && retValue.GetVar<bool>().value)
+        if (freezeOnTouchEndMode.Eval<bool>().value_or(false))
         {
           float stickDif = fabs(fullDx * fullDx) + fabs(fullDy * fullDy);
           float stickFreezeDif = stickState->stickFreezeMinVal * stickState->stickFreezeMinVal;
@@ -196,11 +191,11 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
       }
       if (!onHide.IsNull())
       {
-        Sqrat::Object retValue;
-        if (onHide.Evaluate(retValue) && retValue.GetType() != OT_NULL)
+        auto retValue = onHide.Eval<Sqrat::Object>();
+        if (retValue && retValue.value().GetType() != OT_NULL)
         {
-          G_ASSERT_RETURN(retValue.GetType() == OT_TABLE, R_PROCESSED);
-          const Sqrat::Table params(retValue);
+          G_ASSERT_RETURN(retValue.value().GetType() == OT_TABLE, R_PROCESSED);
+          const Sqrat::Table params(retValue.value());
           const bool skipAction = params.GetSlotValue<bool>("skipAction", false);
 
           if (skipAction)
@@ -209,7 +204,7 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
 
             const bool resetX = params.GetSlotValue("resetX", false);
             if (resetX)
-              setActionValue(stickState, Point2(0.0f, touch.y));
+              setActionValue(stickState, Point2(0.0f, pos.y));
 
             return R_PROCESSED;
           }
@@ -217,7 +212,7 @@ int BhvTouchScreenStick::touchEvent(ElementTree *,
       }
 
       if (!onMove.IsNull())
-        onMove(Point2(touch.x, touch.y), Point2(fullDx, fullDy), Point2(0, 0));
+        onMove(pos, Point2(fullDx, fullDy), Point2(0, 0));
 
       stickState->touchIdx = emptyTouchIndex;
       setActionValue(stickState, Point2(0, 0));

@@ -14,6 +14,9 @@ void TooltipHelper::afterNewFrame()
   // Prevent the tooltip if any mouse button is currently down.
   preventTooltips = ImGui::IsAnyMouseDown();
 
+  // Prevent showing the tooltip when navigating with the keyboard.
+  preventTooltips |= ImGui::GetCurrentContext()->NavHighlightItemUnderNav;
+
   // Prevent the tooltip for the currently hovered control if there was a mouse click or keyboard press till the next
   // re-hovering. (Handled in beforeEndFrame.)
   if (!preventTooltips)
@@ -41,22 +44,27 @@ void TooltipHelper::beforeEndFrame()
     preventTooltipForControl = nullptr;
 }
 
-void TooltipHelper::setPreviousImguiControlTooltip(const void *control, const char *text, const char *text_end)
+bool TooltipHelper::isImguiControlHovered(const void *control)
 {
-  if (!text || *text == 0)
-    return;
-
   // The ImGuiHoveredFlags_AllowWhenBlockedByActiveItem flag is needed becase we really want to know if it is actually hovered.
   if (!ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
-    return;
+    return false;
 
   G_ASSERT(control);
   lastHoveredControl = control;
 
   if (preventTooltips || control == preventTooltipForControl)
+    return false;
+
+  return ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled | ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal);
+}
+
+void TooltipHelper::setPreviousImguiControlTooltip(const void *control, const char *text, const char *text_end)
+{
+  if (!text || *text == 0)
     return;
 
-  if (!ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled | ImGuiHoveredFlags_Stationary | ImGuiHoveredFlags_DelayNormal))
+  if (!isImguiControlHovered(control))
     return;
 
   if (!ImGui::BeginTooltipEx(ImGuiTooltipFlags_OverridePrevious, ImGuiWindowFlags_None))

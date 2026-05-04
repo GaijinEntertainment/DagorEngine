@@ -10,17 +10,17 @@
 
 #include <util/dag_string.h>
 
-#include "iConsoleCmd.h"
-
 class DataBlock;
+struct ImRect;
 
 class CoolConsole : public ILogWriter,
                     public IGenericProgressIndicator,
-                    public IConsoleCmd,
                     public console::IVisualConsoleDriver,
                     public PropPanel::IDelayedCallbackHandler
 {
 public:
+  using IsRedrawAllowedCallback = bool (*)(CoolConsole &c);
+
   CoolConsole();
   ~CoolConsole() override;
 
@@ -30,6 +30,7 @@ public:
   inline bool isCanClose() const { return flags & CC_CAN_CLOSE; }
   inline bool isCanMinimize() const { return flags & CC_CAN_MINIMIZE; }
   inline bool isProgress() const { return flags & CC_PROGRESS; }
+  inline bool isProgressBarVisible() const { return isProgress() || progressMaxPosition > 0; }
   inline bool isCountMessages() const { return flags & CC_COUNT_MESSAGES; }
 
   bool isVisible() const;
@@ -47,12 +48,8 @@ public:
   inline int getGlobalErrorsCounter() const { return globErrCnt; }
   inline int getGlobalFatalsCounter() const { return globFatalCnt; }
 
-  // registers command
-  bool registerCommand(const char *cmd, IConsoleCmd *handler);
-  // unregisters command if it was registered to mentioned handler
-  bool unregisterCommand(const char *cmd, IConsoleCmd *handler);
   // runs command line 'cmd'
-  bool runCommand(const char *cmd);
+  bool runCommand(const char *cmd, bool silent = false);
 
   bool initConsole();
   void destroyConsole();
@@ -80,13 +77,23 @@ public:
     endProgress();
   }
 
-  // IConsoleCmd
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
-  const char *onConsoleCommandHelp(const char *cmd) override;
+  void yield();
+
+  // Newly arriving log messages and progress bar changes can cause an instant redraw to make these appear even when
+  // the application is busy. This can cause unexpected call orders. With this callback redrawing can be limited.
+  // The callback must return true if redrawing is allowed.
+  // If no callback is specified then redrawing is always allowed.
+  void setIsRedrawAllowedCallback(IsRedrawAllowedCallback cb) { isRedrawAllowedCallback = cb; }
 
   String onCmdArrowKey(bool up, const char *current_command);
   void saveCmdHistory(DataBlock &blk) const;
   void loadCmdHistory(const DataBlock &blk);
+
+  // The "help" console command executes this function.
+  void runHelp(const char *command);
+
+  // The "list" console command executes this function.
+  void runCmdList(const char *filter = "");
 
   // IVisualConsoleDriver
   void puts(const char *str, console::LineType type = console::CONSOLE_DEBUG) override;
@@ -129,13 +136,13 @@ private:
   int globWarnCnt, globErrCnt, globFatalCnt;
   int limitOutputLinesLeft = -1;
 
-  Tab<String> cmdNames;
-  StriMap<IConsoleCmd *> commands;
-
   String commandInputText;
+  String commandToRun;
   Tab<String> cmdHistory;
   bool cmdHistoryLastUnfinished;
   int cmdHistoryPos;
+
+  IsRedrawAllowedCallback isRedrawAllowedCallback = nullptr;
 
   enum
   {
@@ -150,15 +157,14 @@ private:
 
   void onImguiDelayedCallback(void *user_data) override;
 
-  void runHelp(const char *command);
-  void runCmdList();
-
-  void getCmds(const char *prefix, Tab<String> &cmds) const;
-
   void addTextToLog(const char *text, int color_index, bool bold = false, bool start_new_line = true);
 
-  void renderLogTextUI(float height);
-  void renderCommandInputUI();
+  void fillAutocompletePopup(bool show_on_empty_input = false);
+
+  void renderLogTextUI(float height, ImRect &log_window_rect);
+  void renderCommandInputUI(const ImRect &log_window_rect);
+
+  void callIdleCycleSeldom(bool important = false);
 
   static int compareCmd(const String *s1, const String *s2);
 };

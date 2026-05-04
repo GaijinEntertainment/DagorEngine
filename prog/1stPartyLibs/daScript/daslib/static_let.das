@@ -6,13 +6,27 @@ options strict_smart_pointers = true
 
 module static_let shared private
 
-require ast
-require rtti
+//! Static variable declarations.
+//!
+//! ``static_let`` promotes local variable declarations to global scope, so they are
+//! initialized once and persist across function calls (like C ``static``). The variable
+//! is renamed under the hood to avoid collisions. ``static_let_finalize`` additionally
+//! deletes the variable on context shutdown.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 
 [tag_function(static_let_tag)]
 def public static_let(blk : block) {
+    //! Given a scope with the variable declarations, this function will make those variables global.
+    //! Variable will be renamed under the hood, and all local access to it will be renamed as well.
+    pass
+}
+
+[tag_function(static_let_tag)]
+def public static_let(name : string; blk : block) {
     //! Given a scope with the variable declarations, this function will make those variables global.
     //! Variable will be renamed under the hood, and all local access to it will be renamed as well.
     pass
@@ -43,14 +57,35 @@ def private make_shutdown_function(varname : string; at : LineInfo) {
 class StaticLetMacro : AstFunctionAnnotation {
     //! This macro implements the `static_let` and `static_let_finalize` functions.
     def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
-        assert(call.arguments[0] is ExprMakeBlock)
-        let mblk = call.arguments[0] as ExprMakeBlock
+        var mblk : ExprMakeBlock?
+        var prefix = "`static`at_line_{int(call.at.line)}`"
+        if (length(call.arguments) == 1) {
+            if (!(call.arguments[0] is ExprMakeBlock)) {
+                errors := "expecting block as argument"
+                return <- default<ExpressionPtr>
+            }
+            mblk = call.arguments[0] as ExprMakeBlock
+        } elif (length(call.arguments) == 2) {
+            if (!(call.arguments[0] is ExprConstString)) {
+                errors := "expecting string as first argument"
+                return <- default<ExpressionPtr>
+            }
+            if (!(call.arguments[1] is ExprMakeBlock)) {
+                errors := "expecting block as second argument"
+                return <- default<ExpressionPtr>
+            }
+            mblk = call.arguments[1] as ExprMakeBlock
+            let pname = call.arguments[0] as ExprConstString
+            prefix = "{pname.value}{prefix}"
+        } else {
+            errors := "expecting static_let(block) or static_let(name, block)"
+            return <- default<ExpressionPtr>
+        }
         var blk = mblk._block as ExprBlock
         if (blk.finalList |> length != 0) {
             errors := "not expecting finally section in the static_let"
             return <- default<ExpressionPtr>
         }
-        let prefix = "`static`at_line_{int(call.at.line)}`"
         var inscope renames : array<tuple<old_name : string; new_name : string>>
         for (ex in blk.list) {
             if (!(ex is ExprLet)) {
@@ -59,7 +94,7 @@ class StaticLetMacro : AstFunctionAnnotation {
             }
             var lexpr = ex as ExprLet
             for (vvar in lexpr.variables) {
-                if (true) {
+                {
                     var inscope vclone <- clone_variable(vvar)
                     vclone.flags |= VariableFlags.private_variable
                     vclone.flags |= VariableFlags.generated
@@ -81,14 +116,14 @@ class StaticLetMacro : AstFunctionAnnotation {
             }
         }
         var success = true
-        compiling_program() |> get_ast_context(call) <| $(valid, astc) {
+        compiling_program() |> get_ast_context(call) $(valid, astc) {
             if (!valid) {
                 errors := "can't get valid program context"
                 success = false
             } else {
-                apply_template(astc.scopes[astc.scopes |> length - 1]) <| $(rules) {
+                apply_template(astc.scopes[astc.scopes |> length - 1]) $(rules) {
                     for (r in renames) {
-                        rules |> renameVariable(r.old_name) <| r.new_name
+                        rules |> renameVariable(r.old_name) <| "_::{r.new_name}"
                     }
                 }
             }
@@ -96,7 +131,7 @@ class StaticLetMacro : AstFunctionAnnotation {
         if (!success) {
             return <- default<ExpressionPtr>
         }
-        return <- quote <| $() {
+        return <- quote() {
             pass
         }
     }

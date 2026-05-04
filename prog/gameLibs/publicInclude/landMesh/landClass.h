@@ -63,6 +63,7 @@ struct LandClassDetailTextures
   char shader_name[64] = {0};
 
   IPoint4 physmatIds;
+  Point4 finalColorMul;
 
   enum
   {

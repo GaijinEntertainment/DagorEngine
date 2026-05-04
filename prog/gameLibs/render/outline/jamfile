@@ -1,4 +1,4 @@
-Root    ?= ../../.. ;
+Root    ?= ../../../.. ;
 Location = prog/gameLibs/render/outline ;
 
 TargetType  = lib ;

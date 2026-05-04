@@ -3,56 +3,79 @@
 #include "dependencyDataCalculator.h"
 
 #include <frontend/dumpInternalRegistry.h>
-#include <frontend/recompilationData.h>
+
 
 namespace dafg
 {
 
-void DependencyDataCalculator::recalculateResourceLifetimes()
+DependencyDataCalculator::ResourcesChanged DependencyDataCalculator::recalculateResourceLifetimes(const NodesChanged &node_changed)
 {
+  DependencyDataCalculator::ResourcesChanged result;
+  result.resize(registry.knownNames.nameCount<ResNameId>(), false);
+
+  FRAMEMEM_VALIDATE;
+
   auto &lifetimes = depData.resourceLifetimes;
-  const auto &resourceRequestsForNodeUnchagned = frontendRecompilationData.resourceRequestsForNodeUnchanged;
 
-  // wipe about changed nodes for old resources
-  for (auto &lifetime : lifetimes)
+  for (auto [resId, lifetime] : lifetimes.enumerate())
   {
-    if (!resourceRequestsForNodeUnchagned.test(lifetime.introducedBy, false))
+    if (node_changed.test(lifetime.introducedBy, false))
+    {
       lifetime.introducedBy = NodeNameId::Invalid;
+      result.set(resId, true);
+    }
 
-    if (!resourceRequestsForNodeUnchagned.test(lifetime.consumedBy, false))
+    if (node_changed.test(lifetime.consumedBy, false))
+    {
       lifetime.consumedBy = NodeNameId::Invalid;
+      result.set(resId, true);
+    }
 
-    const auto removeIfRequestsChanged = [&resourceRequestsForNodeUnchagned](NodeNameId nodeId) {
-      return !resourceRequestsForNodeUnchagned[nodeId];
-    };
-    eastl::erase_if(lifetime.modificationChain, removeIfRequestsChanged);
-    eastl::erase_if(lifetime.readers, removeIfRequestsChanged);
+    const auto nodeChanged = [&node_changed](NodeNameId nodeId) { return node_changed[nodeId]; };
+
+    if (eastl::erase_if(lifetime.modificationChain, nodeChanged) > 0)
+      result.set(resId, true);
+    if (eastl::erase_if(lifetime.readers, nodeChanged) > 0)
+      result.set(resId, true);
   }
-  // Don't free memory pre-allocated inside lifetime objects
-  lifetimes.resize(registry.knownNames.nameCount<ResNameId>());
 
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  lifetimes.resize(registry.knownNames.nameCount<ResNameId>());
+  depDataClone.resourceLifetimes.resize(registry.knownNames.nameCount<ResNameId>());
+
+  for (auto nodeId : node_changed.trueKeys())
   {
-    if (resourceRequestsForNodeUnchagned[nodeId])
-      continue;
+    auto &nodeData = registry.nodes[nodeId];
 
     auto markIntroducedByCurrent = [&, nodeId = nodeId](ResNameId resource) {
       auto &lifetime = lifetimes[resource];
 
-      G_ASSERT_DO_AND_LOG(lifetime.introducedBy == NodeNameId::Invalid, dump_internal_registry(registry),
-        "Virtual resource '%s' was introduced twice: by '%s' and by '%s'!", registry.knownNames.getName(resource),
-        registry.knownNames.getName(nodeId), registry.knownNames.getName(lifetime.introducedBy));
+      if (lifetime.introducedBy == NodeNameId::Invalid)
+        lifetime.introducedBy = nodeId;
+      else
+        lifetime.erroneousIntroducers.insert(nodeId);
 
-      lifetime.introducedBy = nodeId;
       // See comment about nodes that both introduce and modify below.
       eastl::erase(lifetime.modificationChain, nodeId);
+
+      result.set(resource, true);
     };
 
     for (const auto &resId : nodeData.createdResources)
       markIntroducedByCurrent(resId);
 
     for (const auto &unresolvedResId : nodeData.readResources)
-      lifetimes[nameResolver.resolve(unresolvedResId)].readers.push_back(nodeId);
+    {
+      const auto resId = nameResolver.resolve(unresolvedResId);
+      lifetimes[resId].readers.push_back(nodeId);
+      result.set(resId, true);
+    }
+
+    for (const auto &resRequest : nodeData.historyResourceReadRequests)
+    {
+      const auto resId = nameResolver.resolve(resRequest.first);
+      lifetimes[resId].historyReaders.push_back(nodeId);
+      result.set(resId, true);
+    }
 
     // Note that if the introductor/consumer node also modifies this
     // resource, we ignore the modification. This happens when a
@@ -63,6 +86,7 @@ void DependencyDataCalculator::recalculateResourceLifetimes()
       const auto resId = nameResolver.resolve(unresolvedResId);
       if (lifetimes[resId].introducedBy != nodeId && lifetimes[resId].consumedBy != nodeId)
         lifetimes[resId].modificationChain.emplace_back(nodeId);
+      result.set(resId, true);
     }
 
     for (auto [produced, unresolvedConsumed] : nodeData.renamedResources)
@@ -76,16 +100,31 @@ void DependencyDataCalculator::recalculateResourceLifetimes()
 
       markIntroducedByCurrent(produced);
 
-      G_ASSERT_DO_AND_LOG(consumedLifetime.consumedBy == NodeNameId::Invalid, dump_internal_registry(registry),
-        "Virtual resource '%s' (resolved from '%s') was consumed twice: by '%s' and by '%s'!", registry.knownNames.getName(consumed),
-        registry.knownNames.getName(unresolvedConsumed), registry.knownNames.getName(nodeId),
-        registry.knownNames.getName(consumedLifetime.consumedBy));
+      if (consumedLifetime.consumedBy == NodeNameId::Invalid)
+        consumedLifetime.consumedBy = nodeId;
+      else
+        consumedLifetime.erroneousConsumers.insert(nodeId);
 
-      consumedLifetime.consumedBy = nodeId;
       // See comment about nodes that both introduce/consume and modify above.
       eastl::erase(consumedLifetime.modificationChain, nodeId);
+
+      result.set(consumed, true);
     }
   }
+
+  for (auto [resId, lifetime] : lifetimes.enumerate())
+  {
+    if (!result[resId])
+      continue;
+
+    auto &prevLifetime = depDataClone.resourceLifetimes[resId];
+    if (lifetime == prevLifetime)
+      result.set(resId, false);
+    else // Manual loop fusion to do less memory reads/writes.
+      prevLifetime = lifetime;
+  }
+
+  return result;
 }
 
 void DependencyDataCalculator::resolveRenaming()
@@ -118,30 +157,11 @@ void DependencyDataCalculator::resolveRenaming()
   }
 }
 
-void DependencyDataCalculator::updateRenamedResourceProperties()
+DependencyDataCalculator::ResourcesChanged DependencyDataCalculator::recalculate(const NodesChanged &node_changed)
 {
-  for (auto [resId, repId] : depData.renamingRepresentatives.enumerate())
-    if (resId != repId)
-    {
-      // TODO: I kind of hate this now, gotta rework it one day
-      // The internal registry state may contain out of date or
-      // invalid states, the types don't really model how this system
-      // actually works.
-      // Idea to try: make registry.resources contain
-      // variant<ResourceData, ResNameId> where the second one means
-      // "redirection" to a different resource.
-      auto &res = registry.resources[resId];
-      const auto &rep = registry.resources[repId];
-      res.type = rep.type;
-      res.resolution = rep.resolution;
-    }
-}
-
-void DependencyDataCalculator::recalculate()
-{
-  recalculateResourceLifetimes();
+  auto result = recalculateResourceLifetimes(node_changed);
   resolveRenaming();
-  updateRenamedResourceProperties();
+  return result;
 }
 
 } // namespace dafg

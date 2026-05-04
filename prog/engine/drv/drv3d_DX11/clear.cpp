@@ -4,9 +4,15 @@
 
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_renderStateId.h>
+#include <drv/3d/dag_renderStates.h>
 
 #include "driver.h"
-#include "texture.h"
+#include "render_state.h"
+#include "shaders.h"
+
+extern bool draw_up(int prim_type, int numprim, const void *ptr, int stride_bytes);
 
 namespace drv3d_dx11
 {
@@ -71,7 +77,7 @@ void clear_slow(int write_mask, const float (&color_value)[4], float z_value, ui
     rs.modified = true;
   }
 
-  d3d::draw_up(PRIM_TRISTRIP, 1, tri, sizeof(ClearVertex));
+  draw_up(PRIM_TRISTRIP, 1, tri, sizeof(ClearVertex));
 
   if (psUavsUsed)
   {

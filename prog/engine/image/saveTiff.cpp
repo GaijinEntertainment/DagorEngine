@@ -33,17 +33,23 @@ static int tiff_nullMapProc(thandle_t, void **, toff_t *)
 }
 static void tiff_nullUnmapProc(thandle_t, void *, toff_t) { G_ASSERT(0); }
 
-static bool save_tiff(const char *fn, const TexPixel32 *img, int width, int height, int chan_cnt, int stride, unsigned char *app_data,
-  unsigned int app_data_len)
+static bool save_tiff(const char *fn, const TexPixel32 *img, int width, int height, int chan_cnt, int stride,
+  const unsigned char *app_data, unsigned int app_data_len)
 {
   G_ASSERTF_RETURN(chan_cnt == 3 || chan_cnt == 4, false, "%s: unsupported chan_cnt=%d", fn, chan_cnt);
   file_ptr_t fp = df_open(fn, DF_CREATE | DF_WRITE);
+  if (!fp)
+  {
+    logerr("Could not open <%s> for TIFF writing", fn);
+    return false;
+  }
   TIFF *tif = TIFFClientOpen(fn, "w", reinterpret_cast<thandle_t>(fp), &tiff_ReadProc, &tiff_WriteProc, &tiff_SeekProc,
     &tiff_CloseProc, &tiff_SizeProc, &tiff_nullMapProc, &tiff_nullUnmapProc);
 
   if (!tif)
   {
-    logerr("Could create TIFF <%s> writing", fn);
+    df_close(fp);
+    logerr("Could not create TIFF <%s> writing", fn);
     return false;
   }
 
@@ -117,21 +123,23 @@ static bool save_tiff(const char *fn, const TexPixel32 *img, int width, int heig
   return true;
 }
 
-bool save_tiff32(const char *fn, const TexPixel32 *img, int w, int h, int stride, unsigned char *app_data, unsigned int app_data_len)
+bool save_tiff32(const char *fn, const TexPixel32 *img, int w, int h, int stride, const unsigned char *app_data,
+  unsigned int app_data_len)
 {
   return save_tiff(fn, img, w, h, 4, stride, app_data, app_data_len);
 }
 
-bool save_tiff24(const char *fn, const TexPixel32 *img, int w, int h, int stride, unsigned char *app_data, unsigned int app_data_len)
+bool save_tiff24(const char *fn, const TexPixel32 *img, int w, int h, int stride, const unsigned char *app_data,
+  unsigned int app_data_len)
 {
   return save_tiff(fn, img, w, h, 3, stride, app_data, app_data_len);
 }
 
-bool save_tiff32(const char *fn, TexImage32 *img, unsigned char *app_data, unsigned int app_data_len)
+bool save_tiff32(const char *fn, const TexImage32 *img, const unsigned char *app_data, unsigned int app_data_len)
 {
   return save_tiff(fn, img->getPixels(), img->w, img->h, 4, img->w * 4, app_data, app_data_len);
 }
-bool save_tiff24(const char *fn, TexImage32 *img, unsigned char *app_data, unsigned int app_data_len)
+bool save_tiff24(const char *fn, const TexImage32 *img, const unsigned char *app_data, unsigned int app_data_len)
 {
   return save_tiff(fn, img->getPixels(), img->w, img->h, 3, img->w * 4, app_data, app_data_len);
 }

@@ -27,7 +27,6 @@ shader light_ss_ambient_voxels_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
   RAY_CAST_VOXELS_AND_INLINE_RT_INIT(cs)
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #define AVERAGE_CUBE_WARP_SIZE LIGHT_WARP_SIZE
     #include <parallel_average_cube.hlsl>
@@ -51,8 +50,10 @@ shader light_ss_ambient_voxels_cs
     };
   }
   hlsl(cs) {
+##if !hardware.scarlett
     #define __XBOX_REGALLOC_VGPR_LIMIT 16//found by pix
     #define __XBOX_ENABLE_LIFETIME_SHORTENING 1//found by pix
+##endif
     #define POISSON_USE_CB 1
     #include <fibonacci_sphere.hlsl>
     #include <dagi_integrate_ambient_cube.hlsl>
@@ -125,7 +126,6 @@ shader light_ss_combine_ambient_voxels_cs
   {
     #define NO_GRADIENTS_IN_SHADER 1
   }
-  ENABLE_ASSERT(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)
 
   hlsl(cs) {

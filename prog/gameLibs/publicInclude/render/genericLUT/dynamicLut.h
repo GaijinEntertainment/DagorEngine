@@ -18,7 +18,7 @@ struct DynamicLutManager
   void loadBlk(const DataBlock &weatherBlk);
   DynamicLutParams getLerpedLutParams(const Tab<DynamicLutParams> &dynamicLut_array, float time, float lerping_power) const;
 
-#if DAGOR_DBGLEVEL > 0
+#if DAGOR_DBGLEVEL != 0
   char imGuiWeatherPath[255];
   void setImGuiWeatherPath(const char *path);
 

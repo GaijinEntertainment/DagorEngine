@@ -11,7 +11,6 @@
 #include <drv/3d/dag_resId.h>
 #include <gui/dag_imguiUtil.h>
 #include <libTools/util/hdpiUtil.h>
-#include <imgui/imgui_internal.h>
 #include <drv/3d/dag_sampler.h>
 
 using namespace ImGui;
@@ -22,10 +21,16 @@ namespace PropPanel
 bool ImguiHelper::checkboxDragSelectionInProgress = false;
 bool ImguiHelper::checkboxDragSelectionValue = false;
 
+bool ImguiHelper::buttonDragSelectionInProgress = false;
+bool ImguiHelper::buttonDragSelectionValue = false;
+
 void ImguiHelper::afterNewFrame()
 {
   if (checkboxDragSelectionInProgress && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
     checkboxDragSelectionInProgress = false;
+
+  if (buttonDragSelectionInProgress && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    buttonDragSelectionInProgress = false;
 }
 
 float ImguiHelper::getDefaultRightSideEditWidth()
@@ -44,7 +49,7 @@ static void TreeNodeStoreStackData(ImGuiTreeNodeFlags flags)
   ImGuiTreeNodeStackData *tree_node_data = &g.TreeNodeStack.back();
   tree_node_data->ID = g.LastItemData.ID;
   tree_node_data->TreeFlags = flags;
-  tree_node_data->InFlags = g.LastItemData.InFlags;
+  tree_node_data->ItemFlags = g.LastItemData.ItemFlags;
   tree_node_data->NavRect = g.LastItemData.NavRect;
   window->DC.TreeHasStackDataDepthMask |= (1 << window->DC.TreeDepth);
 }
@@ -106,53 +111,91 @@ bool ImguiHelper::checkboxWithDragSelection(const char *label, bool *value)
   return changed;
 }
 
+bool ImguiHelper::toggleButtonWithDragSelection(const char *label, bool *value, float hovered_border_size, ImU32 col_text_active)
+{
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  const ImGuiID id = window->GetID(label);
+  const ImVec2 p = ImGui::GetCursorScreenPos();
+  const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+  ImGuiStyle &style = ImGui::GetStyle();
+  ImVec2 size =
+    ImGui::CalcItemSize(ImVec2(0, 0), label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+  const bool hasValue = value != nullptr;
+  const bool oldValue = hasValue && (*value);
+  bool changed = ImGui::InvisibleButton(label, size, ImGuiButtonFlags_PressedOnClick);
+  if (changed && hasValue)
+    *value = !oldValue;
+
+  if (!buttonDragSelectionInProgress && ImGui::IsItemActivated() && ImGui::IsItemClicked(ImGuiMouseButton_Left))
+  {
+    buttonDragSelectionInProgress = true;
+    buttonDragSelectionValue = !oldValue;
+
+    // Prevent double checking with drag selection. Without this dragging from toggle-button A to B, and then back to A
+    // would toggle A twice (first by the drag selection, then by ImGui::InvisibleButton on mouse release).
+    ImGui::ClearActiveID();
+  }
+
+  if (buttonDragSelectionInProgress && ImGui::IsItemHovered())
+  {
+    if (hasValue && (*value != buttonDragSelectionValue))
+    {
+      *value = buttonDragSelectionValue;
+      changed = true;
+    }
+  }
+
+  ImRect bb(p, p + size);
+  ImU32 backgroundColor = ImGui::GetColorU32(ImGuiCol_Button);
+  bool border = false;
+  if (ImGui::IsItemHovered())
+  {
+    border = !ImGui::IsItemFocused();
+    backgroundColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, hovered_border_size);
+  }
+  const bool isToggled = (hasValue && (*value));
+  if (isToggled)
+  {
+    backgroundColor = ImGui::GetColorU32(ImGuiCol_ButtonActive);
+    ImGui::PushStyleColor(ImGuiCol_Text, col_text_active);
+  }
+
+  ImGui::RenderNavCursor(bb, id);
+  ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor, border, style.FrameRounding);
+
+  ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, nullptr, &label_size,
+    style.ButtonTextAlign, &bb);
+
+  if (isToggled)
+    ImGui::PopStyleColor(1);
+  if (ImGui::IsItemHovered())
+    ImGui::PopStyleVar(1);
+
+  return changed;
+}
+
 bool ImguiHelper::inputTextWithEnterWorkaround(const char *label, String *str, bool focused, ImGuiInputTextFlags flags,
   ImGuiInputTextCallback callback, void *user_data)
 {
-  class ImGuiKeyDownHider
-  {
-  public:
-    explicit ImGuiKeyDownHider(ImGuiKey key)
-    {
-      keyData = ImGui::GetKeyData(key);
-      if (keyData->Down)
-      {
-        originalKeyData = *keyData;
-        keyData->Down = false;
-        keyData->DownDuration = -1.0f;
-        keyData->DownDurationPrev = -1.0f;
-      }
-      else
-      {
-        originalKeyData.Down = false;
-      }
-    }
-
-    ~ImGuiKeyDownHider()
-    {
-      if (originalKeyData.Down)
-        *keyData = originalKeyData;
-    }
-
-  private:
-    ImGuiKeyData *keyData;
-    ImGuiKeyData originalKeyData;
-  };
-
   if (!focused)
     return ImGuiDagor::InputText(label, str, flags, callback, user_data);
 
-  ImGuiKeyDownHider enterKeyHider(ImGuiKey_Enter);
-  ImGuiKeyDownHider keypadEnterHider(ImGuiKey_KeypadEnter);
+  KeyDownHider enterKeyHider(ImGuiKey_Enter);
+  KeyDownHider keypadEnterHider(ImGuiKey_KeypadEnter);
   return ImGuiDagor::InputText(label, str, flags, callback, user_data);
 }
 
 // Based on ImGui::LabelText.
-void ImguiHelper::labelOnly(const char *label, const char *label_end, bool use_text_width)
+bool ImguiHelper::labelOnly(const char *label, const char *label_end, bool use_text_width)
 {
   ImGuiWindow *window = GetCurrentWindow();
   if (window->SkipItems)
-    return;
+    return false;
 
   const ImGuiStyle &style = GImGui->Style;
   const ImVec2 pos = window->DC.CursorPos;
@@ -161,9 +204,12 @@ void ImguiHelper::labelOnly(const char *label, const char *label_end, bool use_t
   const ImRect bb(pos, pos + ImVec2(use_text_width ? size.x : width, size.y + (style.FramePadding.y * 2)));
   ItemSize(bb, style.FramePadding.y);
   if (!ItemAdd(bb, 0))
-    return;
+    return false;
 
-  RenderTextClipped(bb.Min + ImVec2(0.0f, style.FramePadding.y), bb.Max, label, label_end, &size);
+  const ImVec2 posMin(bb.Min.x, bb.Min.y + style.FramePadding.y); // Align vertically to the text in edit controls.
+  const float clipPosX = min(bb.Max.x, window->ContentRegionRect.Max.x + window->Scroll.x);
+  ImGui::RenderTextEllipsis(window->DrawList, posMin, ImVec2(clipPosX, bb.Max.y), clipPosX, label, label_end, &size);
+  return true;
 }
 
 bool ImguiHelper::collapsingHeaderWidth(const char *label, float width, ImGuiTreeNodeFlags flags)
@@ -192,9 +238,24 @@ bool ImguiHelper::collapsingHeaderWidth(const char *label, float width, ImGuiTre
   return returnValue;
 }
 
+// Draw the left bottom of the frame with an optionally rounded corner.
+void ImguiHelper::drawHalfFrame(float line_left_x, float line_top_y, float line_right_x, float line_bottom_y)
+{
+  const ImU32 lineColor = getOverriddenColorU32(ColorOverride::GROUP_BORDER);
+  if ((lineColor & IM_COL32_A_MASK) == 0)
+    return;
+
+  const float rounding = ImGui::GetStyle().FrameRounding;
+  ImDrawList *drawList = ImGui::GetWindowDrawList();
+  drawList->PathLineTo(ImVec2(line_left_x + 0.5f, line_top_y - rounding + 0.5f));
+  drawList->PathArcToFast(ImVec2(line_left_x + rounding + 0.5f, line_bottom_y - rounding + 0.5f), rounding, 6, 3);
+  drawList->PathLineTo(ImVec2(line_right_x + 0.5f, line_bottom_y + 0.5f));
+  drawList->PathStroke(lineColor);
+}
+
 // Based on ImGui::TreeNodeBehavior. Taken from imgui_widgets.cpp. Modified parts are marked with GAIJIN.
 // clang-format off
-bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNodeFlags flags, const char* label, const char* label_end, TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover, bool show_arrow)
+bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNodeFlags flags, const char* label, const char* label_end, TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover)
 {
     // GAIJIN {
     using namespace ImGui;
@@ -223,7 +284,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     ImRect frame_bb;
     frame_bb.Min.x = span_all_columns ? window->ParentWorkRect.Min.x : (flags & ImGuiTreeNodeFlags_SpanFullWidth) ? window->WorkRect.Min.x : window->DC.CursorPos.x;
     frame_bb.Min.y = window->DC.CursorPos.y;
-    frame_bb.Max.x = span_all_columns ? window->ParentWorkRect.Max.x : (flags & ImGuiTreeNodeFlags_SpanTextWidth) ? window->DC.CursorPos.x + text_width + padding.x : window->WorkRect.Max.x;
+    frame_bb.Max.x = span_all_columns ? window->ParentWorkRect.Max.x : (flags & ImGuiTreeNodeFlags_SpanLabelWidth) ? window->DC.CursorPos.x + text_width + padding.x : window->WorkRect.Max.x;
     frame_bb.Max.y = window->DC.CursorPos.y + frame_height;
     if (display_frame)
     {
@@ -237,11 +298,11 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
 
     // For regular tree nodes, we arbitrary allow to click past 2 worth of ItemSpacing
     ImRect interact_bb = frame_bb;
-    if ((flags & (ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_SpanTextWidth | ImGuiTreeNodeFlags_SpanAllColumns)) == 0)
+    if ((flags & (ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_SpanLabelWidth | ImGuiTreeNodeFlags_SpanAllColumns)) == 0)
        interact_bb.Max.x = frame_bb.Min.x + text_width + (label_size.x > 0.0f ? style.ItemSpacing.x * 2.0f : 0.0f);
 
     // Compute open and multi-select states before ItemAdd() as it clear NextItem data.
-    ImGuiID storage_id = (g.NextItemData.Flags & ImGuiNextItemDataFlags_HasStorageID) ? g.NextItemData.StorageId : id;
+    ImGuiID storage_id = (g.NextItemData.HasFlags & ImGuiNextItemDataFlags_HasStorageID) ? g.NextItemData.StorageId : id;
     bool is_open = TreeNodeUpdateNextOpen(storage_id, flags);
 
     bool is_visible;
@@ -271,14 +332,14 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HasDisplayRect;
     g.LastItemData.DisplayRect = frame_bb;
 
-    // If a NavLeft request is happening and ImGuiTreeNodeFlags_NavLeftJumpsBackHere enabled:
+    // If a NavLeft request is happening and ImGuiTreeNodeFlags_NavLeftJumpsToParent enabled:
     // Store data for the current depth to allow returning to this node from any child item.
     // For this purpose we essentially compare if g.NavIdIsAlive went from 0 to 1 between TreeNode() and TreePop().
-    // It will become tempting to enable ImGuiTreeNodeFlags_NavLeftJumpsBackHere by default or move it to ImGuiStyle.
+    // It will become tempting to enable ImGuiTreeNodeFlags_NavLeftJumpsToParent by default or move it to ImGuiStyle.
     bool store_tree_node_stack_data = false;
     if (!(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
     {
-        if ((flags & ImGuiTreeNodeFlags_NavLeftJumpsBackHere) && is_open && !g.NavIdIsAlive)
+        if ((flags & ImGuiTreeNodeFlags_NavLeftJumpsToParent) && is_open && !g.NavIdIsAlive)
             if (g.NavMoveDir == ImGuiDir_Left && g.NavWindow == window && NavMoveRequestButNoResultYet())
                 store_tree_node_stack_data = true;
     }
@@ -302,7 +363,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     }
 
     ImGuiButtonFlags button_flags = ImGuiTreeNodeFlags_None;
-    if ((flags & ImGuiTreeNodeFlags_AllowOverlap) || (g.LastItemData.InFlags & ImGuiItemFlags_AllowOverlap))
+    if ((flags & ImGuiTreeNodeFlags_AllowOverlap) || (g.LastItemData.ItemFlags & ImGuiItemFlags_AllowOverlap))
         button_flags |= ImGuiButtonFlags_AllowOverlap;
     if (!is_leaf)
         button_flags |= ImGuiButtonFlags_PressedOnDragDropHold;
@@ -334,7 +395,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     const bool was_selected = selected;
 
     // Multi-selection support (header)
-    const bool is_multi_select = (g.LastItemData.InFlags & ImGuiItemFlags_IsMultiSelect) != 0;
+    const bool is_multi_select = (g.LastItemData.ItemFlags & ImGuiItemFlags_IsMultiSelect) != 0;
     if (is_multi_select)
     {
         // Handle multi-select + alter button flags for it
@@ -348,7 +409,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     else
     {
         if (window != g.HoveredWindow || !is_mouse_x_over_arrow)
-            button_flags |= ImGuiButtonFlags_NoKeyModifiers;
+            button_flags |= ImGuiButtonFlags_NoKeyModsAllowed;
     }
 
     bool hovered, held;
@@ -380,7 +441,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
             if ((flags & (ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick)) == 0 || (g.NavActivateId == id && !is_multi_select))
                 toggled = true;
             if (flags & ImGuiTreeNodeFlags_OpenOnArrow)
-                toggled |= is_mouse_x_over_arrow && !g.NavDisableMouseHover; // Lightweight equivalent of IsMouseHoveringRect() since ButtonBehavior() already did the job
+                toggled |= is_mouse_x_over_arrow && !g.NavHighlightItemUnderNav; // Lightweight equivalent of IsMouseHoveringRect() since ButtonBehavior() already did the job
             if ((flags & ImGuiTreeNodeFlags_OpenOnDoubleClick) && g.IO.MouseClickedCount[0] == 2)
                 toggled = true;
         }
@@ -427,59 +488,59 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
         g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_ToggledSelection;
 
     // Render
-    {
-        const ImU32 text_col = GetColorU32(ImGuiCol_Text);
-        ImGuiNavHighlightFlags nav_highlight_flags = ImGuiNavHighlightFlags_Compact;
-        if (is_multi_select)
-            nav_highlight_flags |= ImGuiNavHighlightFlags_AlwaysDraw; // Always show the nav rectangle
-        if (display_frame)
-        {
-            // Framed type
-            const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-            RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, true, style.FrameRounding);
-            RenderNavHighlight(frame_bb, id, nav_highlight_flags);
-            if (flags & ImGuiTreeNodeFlags_Bullet)
-                RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f), text_col);
-            else if (!is_leaf)
-                RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 1.0f);
-            else // Leaf without bullet, left-adjusted text
-                text_pos.x -= text_offset_x - padding.x;
-            if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
-                frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
-            if (g.LogEnabled)
-                LogSetNextTextDecoration("###", "###");
-        }
-        else
-        {
-            // Unframed typed for tree nodes
-            if (hovered || selected)
-            {
-                const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
-                RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, false);
-            }
-            RenderNavHighlight(frame_bb, id, nav_highlight_flags);
-            if (flags & ImGuiTreeNodeFlags_Bullet)
-                RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f), text_col);
-            // GAIJIN {
-            // else if (!is_leaf)
-            else if (!is_leaf && show_arrow)
-            // GAIJIN }
-                RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 0.70f);
-            if (g.LogEnabled)
-                LogSetNextTextDecoration(">", NULL);
-        }
+    // GAIJIN {
+    //     const ImU32 text_col = GetColorU32(ImGuiCol_Text);
+    //     ImGuiNavHighlightFlags nav_highlight_flags = ImGuiNavHighlightFlags_Compact;
+    //     if (is_multi_select)
+    //         nav_highlight_flags |= ImGuiNavHighlightFlags_AlwaysDraw; // Always show the nav rectangle
+    //     if (display_frame)
+    //     {
+    //         // Framed type
+    //         const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+    //         RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, true, style.FrameRounding);
+    //         RenderNavHighlight(frame_bb, id, nav_highlight_flags);
+    //         if (flags & ImGuiTreeNodeFlags_Bullet)
+    //             RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f), text_col);
+    //         else if (!is_leaf)
+    //             RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 1.0f);
+    //         else // Leaf without bullet, left-adjusted text
+    //             text_pos.x -= text_offset_x - padding.x;
+    //         if (flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
+    //             frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
+    //         if (g.LogEnabled)
+    //             LogSetNextTextDecoration("###", "###");
+    //     }
+    //     else
+    //     {
+    //         // Unframed typed for tree nodes
+    //         if (hovered || selected)
+    //         {
+    //             const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_HeaderActive : hovered ? ImGuiCol_HeaderHovered : ImGuiCol_Header);
+    //             RenderFrame(frame_bb.Min, frame_bb.Max, bg_col, false);
+    //         }
+    //         RenderNavHighlight(frame_bb, id, nav_highlight_flags);
+    //         if (flags & ImGuiTreeNodeFlags_Bullet)
+    //             RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f), text_col);
+    //         // GAIJIN {
+    //         // else if (!is_leaf)
+    //         else if (!is_leaf && show_arrow)
+    //         // GAIJIN }
+    //             RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f), text_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 0.70f);
+    //         if (g.LogEnabled)
+    //             LogSetNextTextDecoration(">", NULL);
+    //     }
 
-        if (span_all_columns)
-            TablePopBackgroundChannel();
+    //     if (span_all_columns)
+    //         TablePopBackgroundChannel();
 
-        // GAIJIN {
-        // // Label
-        // if (display_frame)
-        //     RenderTextClipped(text_pos, frame_bb.Max, label, label_end, &label_size);
-        // else
-        //     RenderText(text_pos, label, label_end, false);
-        // GAIJIN }
-    }
+    //     // GAIJIN {
+    //     // // Label
+    //     // if (display_frame)
+    //     //     RenderTextClipped(text_pos, frame_bb.Max, label, label_end, &label_size);
+    //     // else
+    //     //     RenderText(text_pos, label, label_end, false);
+    //     // GAIJIN }
+    // GAIJIN }
 
     // GAIJIN {
     // if (store_tree_node_stack_data && is_open)
@@ -498,6 +559,14 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     end_data.textPos = text_pos;
     end_data.isOpen = is_open;
     end_data.storeTreeNodeStackData = store_tree_node_stack_data;
+    end_data.isMultiSelect = is_multi_select;
+    end_data.displayFrame = display_frame;
+    end_data.held = held;
+    end_data.frameBB = frame_bb;
+    end_data.selected = selected;
+    end_data.textOffset = ImVec2(text_offset_x, text_offset_y);
+    end_data.padding = padding;
+    end_data.spanAllColumns = span_all_columns;
     // GAIJIN }
 
     return is_open;
@@ -505,13 +574,82 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
 // clang-format on
 
 bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(const char *label, ImGuiTreeNodeFlags flags,
-  TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover, bool show_arrow)
+  TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover)
 {
   ImGuiWindow *window = ImGui::GetCurrentWindow();
   if (window->SkipItems)
     return false;
   ImGuiID id = window->GetID(label);
-  return treeNodeWithSpecialHoverBehaviorStart(id, flags, label, nullptr, end_data, allow_blocked_hover, show_arrow);
+  return treeNodeWithSpecialHoverBehaviorStart(id, flags, label, nullptr, end_data, allow_blocked_hover);
+}
+
+void ImguiHelper::treeNodeWithSpecialHoverBehaviorRender(TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow)
+{
+  if (!end_data.draw)
+  {
+    return;
+  }
+
+  ImGuiWindow *window = GetCurrentWindow();
+  ImGuiContext &g = *GImGui;
+  const ImGuiStyle &style = g.Style;
+  const bool is_leaf = (end_data.flags & ImGuiTreeNodeFlags_Leaf) != 0;
+
+  const ImU32 text_col = GetColorU32(ImGuiCol_Text);
+  ImGuiNavRenderCursorFlags nav_highlight_flags = ImGuiNavRenderCursorFlags_Compact;
+  if (end_data.isMultiSelect)
+    nav_highlight_flags |= ImGuiNavRenderCursorFlags_AlwaysDraw; // Always show the nav rectangle
+  if (end_data.displayFrame)
+  {
+    // Framed type
+    const ImU32 bg_col = GetColorU32((end_data.held && end_data.hovered) ? ImGuiCol_HeaderActive
+                                     : end_data.hovered                  ? ImGuiCol_HeaderHovered
+                                                                         : ImGuiCol_Header);
+    RenderFrame(end_data.frameBB.Min, end_data.frameBB.Max, bg_col, true, style.FrameRounding);
+    RenderNavCursor(end_data.frameBB, end_data.id, nav_highlight_flags);
+    if (end_data.flags & ImGuiTreeNodeFlags_Bullet)
+      RenderBullet(window->DrawList,
+        ImVec2(end_data.textPos.x - end_data.textOffset.x * 0.60f, end_data.textPos.y + g.FontSize * 0.5f), text_col);
+    else if (!is_leaf)
+      RenderArrow(window->DrawList, ImVec2(end_data.textPos.x - end_data.textOffset.x + end_data.padding.x, end_data.textPos.y),
+        text_col,
+        end_data.isOpen ? ((end_data.flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right,
+        1.0f);
+    else // Leaf without bullet, left-adjusted text
+      end_data.textPos.x -= end_data.textOffset.x - end_data.padding.x;
+    if (end_data.flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton)
+      end_data.frameBB.Max.x -= g.FontSize + style.FramePadding.x;
+    if (g.LogEnabled)
+      LogSetNextTextDecoration("###", "###");
+  }
+  else
+  {
+    // Unframed typed for tree nodes
+    if (end_data.hovered || end_data.selected)
+    {
+      const ImU32 bg_col = GetColorU32((end_data.held && end_data.hovered) ? ImGuiCol_HeaderActive
+                                       : end_data.hovered                  ? ImGuiCol_HeaderHovered
+                                                                           : ImGuiCol_Header);
+      RenderFrame(end_data.frameBB.Min, end_data.frameBB.Max, bg_col, false);
+    }
+    RenderNavCursor(end_data.frameBB, end_data.id, nav_highlight_flags);
+    if (end_data.flags & ImGuiTreeNodeFlags_Bullet)
+      RenderBullet(window->DrawList, ImVec2(end_data.textPos.x - end_data.textOffset.x * 0.5f, end_data.textPos.y + g.FontSize * 0.5f),
+        text_col);
+    // GAIJIN {
+    // else if (!is_leaf)
+    else if (!is_leaf && show_arrow)
+      // GAIJIN }
+      RenderArrow(window->DrawList,
+        ImVec2(end_data.textPos.x - end_data.textOffset.x + end_data.padding.x, end_data.textPos.y + g.FontSize * 0.15f), text_col,
+        end_data.isOpen ? ((end_data.flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right,
+        0.70f);
+    if (g.LogEnabled)
+      LogSetNextTextDecoration(">", NULL);
+  }
+
+  if (end_data.spanAllColumns)
+    TablePopBackgroundChannel();
 }
 
 void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialHoverBehaviorEndData &end_data,
@@ -523,7 +661,7 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
   const float finalLabelClipMaxX = label_clip_max_x ? *label_clip_max_x : treeNodeWithSpecialHoverBehaviorGetLabelClipMaxX();
   const ImVec2 posMin = end_data.textPos;
   const ImVec2 posMax(finalLabelClipMaxX, end_data.textPos.y + end_data.labelSize.y);
-  ImGui::RenderTextEllipsis(g.CurrentWindow->DrawList, posMin, posMax, posMax.x, posMax.x, end_data.label, end_data.labelEnd,
+  ImGui::RenderTextEllipsis(g.CurrentWindow->DrawList, posMin, posMax, posMax.x, end_data.label, end_data.labelEnd,
     &end_data.labelSize);
 
   if (end_data.storeTreeNodeStackData && end_data.isOpen)
@@ -535,7 +673,7 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
     g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
 
   if (end_data.labelSize.x > (posMax.x - posMin.x))
-    set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), end_data.label, end_data.labelEnd);
+    set_previous_imgui_control_tooltip(ImGui::GetItemID(), end_data.label, end_data.labelEnd);
 }
 
 float ImguiHelper::treeNodeWithSpecialHoverBehaviorGetLabelClipMaxX()
@@ -596,7 +734,7 @@ bool ImguiHelper::arrowButtonExWithSize(const char* str_id, ImGuiDir dir, ImVec2
     // Render
     const ImU32 bg_col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
     const ImU32 text_col = GetColorU32(ImGuiCol_Text);
-    RenderNavHighlight(bb, id);
+    RenderNavCursor(bb, id);
     RenderFrame(bb.Min, bb.Max, bg_col, true, g.Style.FrameRounding);
 
 // GAIJIN {
@@ -674,7 +812,7 @@ bool ImguiHelper::imageButtonFrameless(ImGuiID id, ImTextureID texture_id, const
   bool hovered, held;
   const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
 
-  ImGui::RenderNavHighlight(bb, id);
+  ImGui::RenderNavCursor(bb, id);
 
   if (held || hovered)
   {
@@ -697,7 +835,7 @@ bool ImguiHelper::imageButtonFrameless(ImGuiID id, IconId icon_id, const ImVec2 
 bool ImguiHelper::imageButtonFrameless(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, const char *tooltip)
 {
   const bool pressed = imageButtonFrameless(ImGui::GetCurrentWindow()->GetID(str_id), texture_id, image_size);
-  set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), tooltip, nullptr);
+  set_previous_imgui_control_tooltip(ImGui::GetItemID(), tooltip, nullptr);
   return pressed;
 }
 
@@ -727,20 +865,25 @@ bool ImguiHelper::imageButtonFramelessOrPlaceholder(const char *str_id, IconId i
 bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, bool checked,
   const char *tooltip)
 {
-  // Not exactly the same as PropPanel::ToolbarToggleButtonPropertyControl.
+  // Match the style of PropPanel::ToolbarToggleButtonPropertyControl.
   if (checked)
     ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
   else
-    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(0, 0, 0, 0));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
   ImGui::PushStyleColor(ImGuiCol_Border, getOverriddenColor(ColorOverride::TOGGLE_BUTTON_CHECKED_BORDER));
 
   const bool pressed = ImGui::ImageButton(str_id, texture_id, image_size);
 
-  ImGui::PopStyleColor(3);
+  ImGui::PopStyleColor(2);
 
-  set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), tooltip, nullptr);
+  if (checked)
+    ImGui::PopStyleColor();
+  else
+    ImGui::PopStyleVar();
+
+  set_previous_imgui_control_tooltip(ImGui::GetItemID(), tooltip, nullptr);
 
   return pressed;
 }
@@ -751,6 +894,8 @@ bool ImguiHelper::imageCheckButtonWithBackground(const char *str_id, IconId icon
   const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
   return imageCheckButtonWithBackground(str_id, textureId, image_size, checked, tooltip);
 }
+
+ImVec2 ImguiHelper::getImageButtonSize(const ImVec2 &image_size) { return ImVec2(image_size + GImGui->Style.FramePadding * 2.0f); }
 
 ImVec2 ImguiHelper::getImageButtonWithDownArrowSizeInternal(const ImVec2 &image_size, float &default_height, ImVec2 &arrow_half_size)
 {
@@ -808,7 +953,7 @@ bool ImguiHelper::imageButtonWithArrow(const char *str_id, ImTextureID texture_i
   else
     bgColor = ImGui::GetColorU32(ImGuiCol_Button);
 
-  ImGui::RenderNavHighlight(bb, id);
+  ImGui::RenderNavCursor(bb, id);
   ImGui::RenderFrame(bb.Min, bb.Max, bgColor, true, g.Style.FrameRounding);
 
   const ImVec2 imagePos = bb.Min + ImVec2(g.Style.FramePadding.x, ImMax(0.0f, (size.y - g.FontSize) * 0.5f));
@@ -902,7 +1047,7 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
 
 // The changed parts compared to ImGui::MenuItemEx are marked with GAIJIN.
 // clang-format off
-bool ImguiHelper::menuItemExWithLeftSideCheckmark(const char *label, const char *icon, const char *shortcut, bool selected, bool enabled, bool bullet)
+bool ImguiHelper::menuItemExWithLeftSideCheckmark(const char *label, const char *icon, const char *shortcut, bool selected, bool enabled, bool bullet, bool menu_item_selected)
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)
@@ -961,7 +1106,10 @@ bool ImguiHelper::menuItemExWithLeftSideCheckmark(const char *label, const char 
 
         float min_w = window->DC.MenuColumns.DeclColumns(icon_w, label_size.x, shortcut_w, checkmark_w); // Feedback for next frame
         float stretch_w = ImMax(0.0f, GetContentRegionAvail().x - min_w);
-        pressed = Selectable("", false, selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, label_size.y));
+        // GAIJIN {
+        // pressed = Selectable("", false, selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, label_size.y));
+        pressed = Selectable("", menu_item_selected, selectable_flags | ImGuiSelectableFlags_SpanAvailWidth, ImVec2(min_w, label_size.y));
+        // GAIJIN }
         if (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_Visible)
         {
             // GAIJIN {
@@ -1028,7 +1176,7 @@ bool ImguiHelper::beginMenuExWithLeftSideCheckmark(const char* label, const char
     if (g.MenusIdSubmittedThisFrame.contains(id))
     {
         if (menu_is_open)
-            menu_is_open = BeginPopupEx(id, window_flags); // menu_is_open can be 'false' when the popup is completely clipped (e.g. zero size display)
+            menu_is_open = BeginPopupMenuEx(id, label, window_flags); // menu_is_open can be 'false' when the popup is completely clipped (e.g. zero size display)
         else
             g.NextWindowData.ClearFlags();          // we behave like Begin() and need to consume those values
         return menu_is_open;
@@ -1108,7 +1256,7 @@ bool ImguiHelper::beginMenuExWithLeftSideCheckmark(const char* label, const char
     if (!enabled)
         EndDisabled();
 
-    const bool hovered = (g.HoveredId == id) && enabled && !g.NavDisableMouseHover;
+    const bool hovered = (g.HoveredId == id) && enabled && !g.NavHighlightItemUnderNav;
     if (menuset_is_open)
         PopItemFlag();
 
@@ -1143,11 +1291,11 @@ bool ImguiHelper::beginMenuExWithLeftSideCheckmark(const char* label, const char
         // The 'HovereWindow == window' check creates an inconsistency (e.g. moving away from menu slowly tends to hit same window, whereas moving away fast does not)
         // But we also need to not close the top-menu menu when moving over void. Perhaps we should extend the triangle check to a larger polygon.
         // (Remember to test this on BeginPopup("A")->BeginMenu("B") sequence which behaves slightly differently as B isn't a Child of A and hovering isn't shared.)
-        if (menu_is_open && !hovered && g.HoveredWindow == window && !moving_toward_child_menu && !g.NavDisableMouseHover && g.ActiveId == 0)
+        if (menu_is_open && !hovered && g.HoveredWindow == window && !moving_toward_child_menu && !g.NavHighlightItemUnderNav && g.ActiveId == 0)
             want_close = true;
 
         // Open
-        // (note: at this point 'hovered' actually includes the NavDisableMouseHover == false test)
+        // (note: at this point 'hovered' actually includes the NavHighlightItemUnderNav == false test)
         if (!menu_is_open && pressed) // Click/activate to open
             want_open = true;
         else if (!menu_is_open && hovered && !moving_toward_child_menu) // Hover to open
@@ -1158,7 +1306,7 @@ bool ImguiHelper::beginMenuExWithLeftSideCheckmark(const char* label, const char
         {
             want_open = want_open_nav_init = true;
             NavMoveRequestCancel();
-            NavRestoreHighlightAfterMove();
+            SetNavCursorVisibleAfterMove();
         }
     }
     else
@@ -1204,7 +1352,7 @@ bool ImguiHelper::beginMenuExWithLeftSideCheckmark(const char* label, const char
         ImGuiLastItemData last_item_in_parent = g.LastItemData;
         SetNextWindowPos(popup_pos, ImGuiCond_Always);                  // Note: misleading: the value will serve as reference for FindBestWindowPosForPopup(), not actual pos.
         PushStyleVar(ImGuiStyleVar_ChildRounding, style.PopupRounding); // First level will use _PopupRounding, subsequent will use _ChildRounding
-        menu_is_open = BeginPopupEx(id, window_flags);                  // menu_is_open can be 'false' when the popup is completely clipped (e.g. zero size display)
+        menu_is_open = BeginPopupMenuEx(id, label, window_flags);                  // menu_is_open can be 'false' when the popup is completely clipped (e.g. zero size display)
         PopStyleVar();
         if (menu_is_open)
         {
@@ -1251,6 +1399,27 @@ void ImguiHelper::setDefaultSampler()
 {
   static d3d::SamplerHandle smp = d3d::request_sampler({});
   ImGuiDagor::Sampler(smp);
+}
+
+bool ImguiHelper::isKeyChordPressedOwned(ImGuiKeyChord key_chord, ImGuiID canvas_id)
+{
+  if (!ImGui::IsKeyChordPressed(key_chord, ImGuiKeyOwner_Any))
+    return false;
+
+  ImGui::SetKeyOwnersForKeyChord(key_chord, canvas_id);
+  return true;
+}
+
+void ImguiHelper::resetWindowLayout()
+{
+  // Use ClearWindowSettings to call InitOrLoadWindowSettings. Calling that is is needed to reset ImGuiCond_FirstUseEver.
+  ImGuiContext *context = ImGui::GetCurrentContext();
+  for (ImGuiWindow *window : context->Windows)
+    ImGui::ClearWindowSettings(window->Name);
+
+  // Prevent ImGui getting confused and duplicate window settings. (ClearWindowSettings marks the setting WantDelete,
+  // another setting entry is created, but later the original setting entry's WantDelete would be reseted.)
+  ImGui::ClearIniSettings();
 }
 
 } // namespace PropPanel

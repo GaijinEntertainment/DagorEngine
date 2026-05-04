@@ -24,10 +24,6 @@
 #include <shaders/dag_shaderVarsUtils.h>
 #include <math/integer/dag_IPoint3.h>
 
-
-// Tools don't have depth prepass for trees.
-#define USE_DEPTH_PREPASS_FOR_TREES !(_TARGET_PC_TOOLS_BUILD)
-
 template <class>
 class DynVariantsCache;
 
@@ -35,6 +31,7 @@ namespace rendinst::render
 {
 
 extern int ri_vertex_data_no;
+extern bool is_tool_shaders;
 
 static constexpr uint32_t RI_RES_ORDER_COUNT_SHIFT = 14, RI_RES_ORDER_COUNT_MASK = (1 << RI_RES_ORDER_COUNT_SHIFT) - 1;
 
@@ -52,6 +49,8 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
   bool isVoxelizationPass;
   bool isDecalPass;
   bool isTransparentPass;
+  bool allowTreeDepthPrepass;
+  bool useExternalPerDrawCb;
 
   struct PackedDrawCallsRange
   {
@@ -73,7 +72,8 @@ public:
   void init(const int size_to_reserve, LayerFlag layer_, RenderPass render_pass,
     OptimizeDepthPrepass optimization_depth_prepass = OptimizeDepthPrepass::No,
     OptimizeDepthPass optimization_depth_pass = OptimizeDepthPass::No,
-    IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No, uint32_t count_multiply = 1)
+    IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No, uint32_t count_multiply = 1,
+    bool use_external_per_draw_cb = false)
   {
     layer = layer_, instanceCountMultiply = eastl::max(1u, count_multiply);
     isDepthPass = render_pass == RenderPass::ToShadow || render_pass == RenderPass::Depth;
@@ -82,6 +82,9 @@ public:
     isDecalPass = layer == LayerFlag::Decals;
     isTransparentPass = layer == LayerFlag::Transparent;
 
+    // Tool shaders don't have depth prepass for trees.
+    allowTreeDepthPrepass = !rendinst::render::is_tool_shaders;
+    useExternalPerDrawCb = use_external_per_draw_cb;
     list.clear();
     list.reserve(size_to_reserve);
     multidrawList.clear();
@@ -213,18 +216,19 @@ public:
     G_FAST_ASSERT(unitedvdata::riUnitedVdata.getIB()); // Can't be 0 if list isnt empty
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
-    RiShaderConstBuffers cb;
-    cb.setInstancing(0, 4, 0x5, 0);
-    cb.flushPerDraw();
+    if (!useExternalPerDrawCb)
+    {
+      RiShaderConstBuffers cb;
+      cb.setInstancing(0, 4, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER, 0);
+      cb.flushPerDraw();
+    }
 
-#if USE_DEPTH_PREPASS_FOR_TREES
     shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
     bool currentDepthPrepass = false;
     const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
     const bool validOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::CULL_NONE ||
                                hasStencilTestStateOverride || shaders::overrides::get(previousOverrideId).bits == 0;
     G_UNUSED(validOverride);
-#endif
 
     for (const auto dcParams : drawcallRanges)
     {
@@ -232,21 +236,20 @@ public:
       Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(rl.vbIdx);
       d3d_err(d3d::setvsrc(0, vb, rl.vstride));
 
-#if USE_DEPTH_PREPASS_FOR_TREES
       RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
-      const bool needDepthPrepass = (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass);
+      const bool needDepthPrepass =
+        (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass);
 
-      if (needDepthPrepass != currentDepthPrepass)
+      if (eastl::exchange(currentDepthPrepass, needDepthPrepass) != currentDepthPrepass)
       {
         G_ASSERTF(validOverride, "Only [disabled backface culling or stencil test] are available overrides here in colored pass");
-        currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
           shaders::overrides::set(hasStencilTestStateOverride ? afterDepthPrepassWithStencilTestOverride : afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
-#endif
+
       debug_mesh::set_debug_value(rl.lod);
 
       rl.curShader->setReqTexLevel(rl.texLevel);
@@ -254,13 +257,11 @@ public:
 
       multiDrawRenderer.render(PRIM_TRILIST, dcParams.start, dcParams.count);
     }
-#if USE_DEPTH_PREPASS_FOR_TREES
     if (currentDepthPrepass)
     {
       shaders::overrides::reset();
       shaders::overrides::set(previousOverrideId);
     }
-#endif
 
     debug_mesh::reset_debug_value();
   }
@@ -274,21 +275,19 @@ public:
       return;
 
     TIME_D3D_PROFILE(ri_extra_render_sorted_meshes);
-
-#if _TARGET_C1 | _TARGET_C2 // workaround: flush caches for indirect args
-
-#endif
-
     G_FAST_ASSERT(unitedvdata::riUnitedVdata.getIB()); // Can't be 0 if list isnt empty
     d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB()));
 
-    RiShaderConstBuffers cb;
-    cb.setInstancing(0, 4, 0x5, 0);
-    cb.flushPerDraw();
+    if (!useExternalPerDrawCb)
+    {
+      RiShaderConstBuffers cb;
+      cb.setInstancing(0, 4, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER, 0);
+      cb.flushPerDraw();
+    }
 
     int cVbIdx = -1, cStride = 0;
     IPoint3 curOfsAndVertexByteStartPerDrawOffset(-1, -1, -1);
-#if USE_DEPTH_PREPASS_FOR_TREES
+
     shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
     bool currentDepthPrepass = false;
     const bool hasStencilTestStateOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::STENCIL;
@@ -296,7 +295,6 @@ public:
     const bool validOverride = shaders::overrides::get(previousOverrideId).bits == shaders::OverrideState::CULL_NONE ||
                                hasStencilTestStateOverride || shaders::overrides::get(previousOverrideId).bits == 0;
     G_UNUSED(validOverride);
-#endif
 
     shaders::RenderStateId curRstate = shaders::RenderStateId();
     ShaderStateBlockId curState = ShaderStateBlockId::Invalid;
@@ -339,21 +337,17 @@ public:
 
       const uint32_t poolId = riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK;
       const RiExtraPool &riPool = riExtra[poolId];
-#if USE_DEPTH_PREPASS_FOR_TREES
-
-      const bool needDepthPrepass =
-        (!isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree && use_ri_depth_prepass && !isTransparentPass);
-      if (needDepthPrepass != currentDepthPrepass)
+      const bool needDepthPrepass = (allowTreeDepthPrepass && !isVoxelizationPass && !isDepthPass && !isDecalPass && riPool.isTree &&
+                                     use_ri_depth_prepass && !isTransparentPass);
+      if (eastl::exchange(currentDepthPrepass, needDepthPrepass) != currentDepthPrepass)
       {
         G_ASSERTF(validOverride, "Only [disabled backface culling or stencil test] are available overrides here in colored pass");
-        currentDepthPrepass = needDepthPrepass;
         shaders::overrides::reset();
         if (needDepthPrepass)
           shaders::overrides::set(hasStencilTestStateOverride ? afterDepthPrepassWithStencilTestOverride : afterDepthPrepassOverride);
         else
           shaders::overrides::set(previousOverrideId);
       }
-#endif
 
       if (debug_mesh::set_debug_value(rl.lod))
         skipApply = false; // stencil must be applied for lod coloring, no matter what
@@ -401,13 +395,11 @@ public:
         curState = ShaderStateBlockId::Invalid;
       }
     }
-#if USE_DEPTH_PREPASS_FOR_TREES
     if (currentDepthPrepass)
     {
       shaders::overrides::reset();
       shaders::overrides::set(previousOverrideId);
     }
-#endif
     debug_mesh::reset_debug_value();
   }
 
@@ -509,14 +501,15 @@ public:
   struct RiExtraElementsToHide
   {
     RiExtraElementsToHide() = default;
-    RiExtraElementsToHide(const SimpleString &materialName, uint16_t poolId,
-      const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide)
+    RiExtraElementsToHide(uint16_t poolId, const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide)
     {
-      if (materialName.empty() || elementsToHide.size() == 0)
-      {
-        shaderName = nullptr;
+      shaderName = nullptr;
+      if (poolId >= riExtra.size())
         return;
-      }
+
+      const SimpleString &materialName = riExtra[poolId].materialMarkedForHiding;
+      if (materialName.empty() || elementsToHide.size() == 0)
+        return;
 
       // This returns the pointer stored in the shaderClass allowing pointer equality checks in the hot path
       shaderName = get_shader_class_name_by_material_name(materialName.c_str());
@@ -565,7 +558,7 @@ public:
     // rendinsts patching heightmap are rendered only with LAYER_RENDINST_HEIGHTMAP_PATCH layer
     if (riPool.patchesHeightmap ^ (layer == LayerFlag::RendinstHeightmapPatch))
       return;
-    const bool renderBrokenTreesToDepth = isDepthPass && riPool.isTree && use_ri_depth_prepass;
+    const bool renderBrokenTreesToDepth = allowTreeDepthPrepass && isDepthPass && riPool.isTree && use_ri_depth_prepass;
     if (optimization_depth_prepass && !ignore_optimization_instances_limits && !optimizationInstances && !renderBrokenTreesToDepth)
       return;
     int count = ofsAndCnt.y;
@@ -598,11 +591,8 @@ public:
 
     int texLevel = texCtx.getTexLevel(riPool.res->getTexScale(lod), dist2);
 
-#if USE_DEPTH_PREPASS_FOR_TREES
     uint32_t correctedEndStage = renderBrokenTreesToDepth ? ShaderMesh::STG_atest : endStage;
-#else
-    uint32_t correctedEndStage = endStage;
-#endif
+
     int counter = lod;
 #if DAGOR_DBGLEVEL > 0
     if (debug_mesh::is_enabled(debug_mesh::Type::drawElements))
@@ -697,10 +687,12 @@ public:
 
   void addObjectsToRender(const RiGenExtraVisibility &v, dag::ConstSpan<uint16_t> riResOrder, TexStreamingContext texCtx,
     OptimizeDepthPrepass optimization_depth_prepass = OptimizeDepthPrepass::No,
-    IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No)
-
+    IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No,
+    RiExtraRenderingSubset ri_extra_subset = RiExtraRenderingSubset::All)
   {
     TIME_D3D_PROFILE(ri_extra_add_objects_to_render);
+    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || (v.rendering & VisibilityRenderingFlag::AllowSeparateRendering));
+    int nextDynamicIdx = 0;
     for (int l = 0; l < RiExtraPool::MAX_LODS; l++)
     {
       if (!(v.riExLodNotEmpty & (1 << l)))
@@ -709,21 +701,38 @@ public:
       for (int k = 0, ke = riResOrder.size(); k < ke; k++)
       {
         int i = riResOrder[k] & RI_RES_ORDER_COUNT_MASK;
-        IPoint2 ofsAndCnt = v.vbOffsets[l][i];
+        IPoint2 ofsAndCnt = IPoint2(v.vbOffsets[l][i], v.vbCounts[l][i]);
+        if (ri_extra_subset == RiExtraRenderingSubset::OnlyStatic && nextDynamicIdx < v.dynamicRiExtraInstances.size() &&
+            v.dynamicRiExtraInstances[nextDynamicIdx].lod == l && v.dynamicRiExtraInstances[nextDynamicIdx].poolId == i)
+        {
+          ofsAndCnt.y = v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset;
+          nextDynamicIdx++;
+        }
+        else if (ri_extra_subset == RiExtraRenderingSubset::OnlyDynamic)
+        {
+          if (nextDynamicIdx < v.dynamicRiExtraInstances.size() && v.dynamicRiExtraInstances[nextDynamicIdx].lod == l &&
+              v.dynamicRiExtraInstances[nextDynamicIdx].poolId == i)
+          {
+            ofsAndCnt.x += v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset * rendinst::RIEXTRA_VECS_COUNT;
+            ofsAndCnt.y -= v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset;
+            nextDynamicIdx++;
+          }
+          else
+            ofsAndCnt.y = 0;
+        }
         if (ofsAndCnt.y == 0)
           continue;
         int optimizationInstances = (riResOrder[k] >> RI_RES_ORDER_COUNT_SHIFT);
         float distSq = v.minSqDistances[l][i];
-        float minDistSq = v.minAllowedSqDistances[l][i];
-        RiExtraElementsToHide elementsToHide(riExtra[i].materialMarkedForHiding, i, v.hideMarkedMaterialsForInstances);
+        float minDistSq = v.approxInvDensities[l][i] * v.invDensityToMinSqAllowedDistance;
+        RiExtraElementsToHide elementsToHide(i, v.hideMarkedMaterialsForInstances);
         addObjectToRender(i, optimizationInstances, optimization_depth_prepass == OptimizeDepthPrepass::Yes,
           ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes, ofsAndCnt, l, k, texCtx, distSq, minDistSq,
           elementsToHide);
       }
     }
+    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || nextDynamicIdx == v.dynamicRiExtraInstances.size());
   }
 };
 
 } // namespace rendinst::render
-
-#undef USE_DEPTH_PREPASS_FOR_TREES

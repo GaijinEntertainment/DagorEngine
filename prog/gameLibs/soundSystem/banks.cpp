@@ -22,13 +22,13 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <startup/dag_globalSettings.h>
 #include "internal/framememString.h"
-#include "internal/attributes.h"
-#include "internal/banks.h"
+#include "internal/attributes_internal.h"
+#include "internal/banks_internal.h"
 #include "internal/banks.verifyMods.h"
 #include "internal/pathHash.h"
-#include "internal/visualLabels.h"
-#include "internal/attributes.h"
-#include "internal/debug.h"
+#include "internal/visualLabels_internal.h"
+#include "internal/attributes_internal.h"
+#include "internal/debug_internal.h"
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
 #endif
@@ -360,7 +360,7 @@ static inline void append_bank(const char *path, Bank::label_t label, bool is_as
 
 static inline bool is_preset_loaded(const Preset &preset)
 {
-  return preset.banks.any() && preset.banks == (preset.banks & (loaded_banks | failed_banks));
+  return preset.banks.any() && (preset.banks & loaded_banks).any() && preset.banks == (preset.banks & (loaded_banks | failed_banks));
 }
 
 using loaded_presets_t = eastl::vector<eastl::pair<str_hash_t /*preset_hash*/, bool /*is_loaded*/>, framemem_allocator>;
@@ -611,7 +611,7 @@ static void add_bank(const char *file_name, const DataBlock &blk, const char *ba
     blk.getBool("loadToMemory", false), blk.getBool("optional", false), isMod || isModAndTagged, preset);
 };
 
-void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs)
+void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs, dag::ConstSpan<const char *> no_mod_banks_names)
 {
   SNDSYS_IS_MAIN_THREAD;
   G_ASSERT_RETURN(sndsys::is_inited(), );
@@ -656,7 +656,16 @@ void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs
     for (int i = 0; i < presetBlk->blockCount(); ++i)
     {
       const DataBlock *bankBlk = presetBlk->getBlock(i);
-      add_bank(bankBlk->getBlockName(), *bankBlk, folder, extension, enableMod, preset);
+      const char *bankName = bankBlk->getBlockName();
+      bool enableModForBank = enableMod;
+      for (const char *noModName : no_mod_banks_names)
+        if (!strcmp(noModName, bankName))
+        {
+          enableModForBank = false;
+          break;
+        }
+
+      add_bank(bankBlk->getBlockName(), *bankBlk, folder, extension, enableModForBank, preset);
     }
 
     for (int i = 0; i < presetBlk->paramCount(); ++i)

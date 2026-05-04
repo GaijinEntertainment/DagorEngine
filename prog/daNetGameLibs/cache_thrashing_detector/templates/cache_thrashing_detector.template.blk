@@ -1,0 +1,7 @@
+cache_thrashing_detector{
+  _tags:t="render,dev"
+  _singleton:b=yes
+  "cache_thrashing_detector__callback_token:CallbackToken"{}
+  cache_thrashing_detector__logerr_at:i=100000
+  cache_thrashing_detector__multiplier:i=2
+}

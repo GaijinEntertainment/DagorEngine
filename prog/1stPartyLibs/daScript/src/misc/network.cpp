@@ -86,12 +86,12 @@ namespace das {
         int val = 1;
         setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
 #endif
-    	if ( ::bind(server_fd, (struct sockaddr *)&address,sizeof(address))<0 ) {
+        if ( ::bind(server_fd, (struct sockaddr *)&address,sizeof(address))<0 ) {
             onError("can't bind", errno);
             closesocket(server_fd);
             return false;
-	    }
-    	if ( listen(server_fd, 3) < 0) {
+        }
+        if ( listen(server_fd, 3) < 0) {
             onError("can't listen", errno);
             closesocket(server_fd);
             return false;

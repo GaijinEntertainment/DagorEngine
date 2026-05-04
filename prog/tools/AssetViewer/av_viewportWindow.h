@@ -10,13 +10,14 @@ class AssetViewerViewportWindow : public ViewportWindow
 {
 public:
   AssetStats &getAssetStats() { return assetStats; }
-  bool needShowAssetStats() const { return showStats && showAssetStats; }
+  bool needShowAssetStats() const { return shownStats.rootStats && showAssetStats; }
 
 private:
+  int onMenuItemClick(unsigned id) override;
   void load(const DataBlock &blk) override;
   void save(DataBlock &blk) const override;
   void paint(int w, int h) override;
-  void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog) override;
+  void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance) override;
   void handleStatSettingsDialogChange(int pcb_id, bool value) override;
   bool canStartInteractionWithViewport() override;
 
@@ -26,6 +27,8 @@ private:
   static int getAssetStatIndexByName(const char *name);
   static void formatGeometryStat(String &statText, const char *stat_name, const AssetStats::GeometryStat &geometry);
 
+  static constexpr bool DEFAULT_SHOW_ASSET_STATS = true;
+
   AssetStats assetStats;
-  bool showAssetStats = false;
+  bool showAssetStats = DEFAULT_SHOW_ASSET_STATS;
 };

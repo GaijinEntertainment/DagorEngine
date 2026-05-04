@@ -5,20 +5,17 @@
 #include <util/dag_compilerDefs.h>
 #include "globals.h"
 #include "device_context.h"
+#include "external_resource_pools.h"
 
 using namespace drv3d_vulkan;
 
-d3d::EventQuery *d3d::create_event_query()
-{
-  auto event = eastl::make_unique<AsyncCompletionState>();
-  return (d3d::EventQuery *)(event.release());
-}
+d3d::EventQuery *d3d::create_event_query() { return (d3d::EventQuery *)Globals::Res::queries.allocate(); }
 
 void d3d::release_event_query(d3d::EventQuery *fence)
 {
   if (DAGOR_UNLIKELY(!fence))
     return;
-  delete (AsyncCompletionState *)fence;
+  Globals::Res::queries.free((AsyncCompletionState *)fence);
 }
 
 bool d3d::issue_event_query(d3d::EventQuery *fence)

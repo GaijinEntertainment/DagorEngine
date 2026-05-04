@@ -237,7 +237,12 @@ public:
 
   UndoAddObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-  virtual void restore(bool /*save_redo*/) { objEd->_removeObjects((EditableObject **)(void *)objects.data(), objects.size(), false); }
+  virtual void restore(bool /*save_redo*/)
+  {
+    auto objectsReversed = objects;
+    eastl::reverse(objectsReversed.begin(), objectsReversed.end());
+    objEd->_removeObjects((EditableObject **)(void *)objectsReversed.data(), objectsReversed.size(), false);
+  }
   virtual void redo() { objEd->_addObjects((EditableObject **)(void *)objects.data(), objects.size(), false); }
 
   virtual size_t size() { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(EditableObject); }
@@ -253,7 +258,12 @@ public:
 
   UndoRemoveObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-  virtual void restore(bool /*save_redo*/) { objEd->_addObjects((EditableObject **)(void *)objects.data(), objects.size(), false); }
+  virtual void restore(bool /*save_redo*/)
+  {
+    auto objectsReversed = objects;
+    eastl::reverse(objectsReversed.begin(), objectsReversed.end());
+    objEd->_addObjects((EditableObject **)(void *)objectsReversed.data(), objectsReversed.size(), false);
+  }
   virtual void redo() { objEd->_removeObjects((EditableObject **)(void *)objects.data(), objects.size(), false); }
 
   virtual size_t size() { return sizeof(*this) + data_size(objects) + objects.size() * sizeof(EditableObject); }

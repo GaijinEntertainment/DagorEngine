@@ -42,6 +42,7 @@ private:
   eastl::unique_ptr<ComputeShaderElement> boxPlacer;
   eastl::unique_ptr<ComputeShaderElement> updateMatrices, clearTerrainObjects, gatherTriangles, computeTerrainObjectsCount,
     onTerrainGeometryPlacer, onRendinstGeometryPlacer, objectRemover, decalMover;
+  eastl::unique_ptr<ComputeShaderElement> matrixCopier;
 
   struct PrefixSumShaders
   {
@@ -121,7 +122,7 @@ public:
   void addEraseBox(const Point3 &box_min, const Point3 &box_max, const TMatrix4 &box_tm);
   void updateVisibility(const Frustum &frustum, ShadowPass for_shadow);
   void copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset, int lod, int layer, eastl::vector<IPoint2> &offsets_and_counts,
-    eastl::vector<uint16_t> &ri_ids);
+    eastl::vector<uint16_t> &ri_ids, bool use_bvh_connection);
   int getNumInstancesToDraw(int layer) { return numInstancesToDraw[layer]; }
   void resetReadbackEntity(ecs::EntityId eid);
   void updateDistanceEmitterMatrices(const ecs::EntityId changed_distance_emitter_id,

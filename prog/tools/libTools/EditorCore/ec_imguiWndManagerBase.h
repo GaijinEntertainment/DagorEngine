@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "ec_editorCommand.h"
+
 #include <EditorCore/ec_wndPublic.h>
 #include <dag/dag_vector.h>
 
@@ -88,14 +90,19 @@ public:
     accelerators.push_back(eastl::move(accelerator));
   }
 
-  void addAcceleratorUp(unsigned cmd_id, ImGuiKeyChord key_chord) override
+  void addAccelerator(unsigned cmd_id, const char *editor_command_id) override
   {
-    G_ASSERT((key_chord & ImGuiMod_Ctrl) == 0);
-    G_ASSERT((key_chord & ImGuiMod_Alt) == 0);
-    G_ASSERT((key_chord & ImGuiMod_Shift) == 0);
+    const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
+    if (!command)
+      return;
 
-    Accelerator accelerator(cmd_id, key_chord);
-    acceleratorUps.push_back(eastl::move(accelerator));
+    for (int i = 0; i < command->getHotkeyCount(); ++i)
+    {
+      Accelerator accelerator(cmd_id, command->getKeyChord(i));
+      accelerators.push_back(eastl::move(accelerator));
+    }
+
+    ec_editor_commands.setCommandCmdId(editor_command_id, cmd_id);
   }
 
   void addViewportAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false) override
@@ -104,10 +111,24 @@ public:
     viewportAccelerators.push_back(eastl::move(accelerator));
   }
 
+  void addViewportAccelerator(unsigned cmd_id, const char *editor_command_id, bool allow_repeat = false) override
+  {
+    const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
+    if (!command)
+      return;
+
+    for (int i = 0; i < command->getHotkeyCount(); ++i)
+    {
+      Accelerator accelerator(cmd_id, command->getKeyChord(i), allow_repeat);
+      viewportAccelerators.push_back(eastl::move(accelerator));
+    }
+
+    ec_editor_commands.setCommandCmdId(editor_command_id, cmd_id);
+  }
+
   void clearAccelerators() override
   {
     accelerators.clear();
-    acceleratorUps.clear();
     viewportAccelerators.clear();
   }
 
@@ -115,12 +136,6 @@ public:
   {
     for (const Accelerator &accelerator : accelerators)
       if (ImGui::Shortcut(accelerator.keyChord, accelerator.inputFlags | ImGuiInputFlags_RouteGlobal))
-        return accelerator.cmdId;
-
-    // NOTE: ImGui porting: this should be ImGuiKeyOwner_NoOwner instead of ImGuiKeyOwner_Any but then CM_TAB_RELEASE
-    // (currently the only one command that uses accelerator up) would not work.
-    for (const Accelerator &accelerator : acceleratorUps)
-      if (ImGui::IsKeyReleased((ImGuiKey)accelerator.keyChord, ImGuiKeyOwner_Any))
         return accelerator.cmdId;
 
     return 0;
@@ -155,6 +170,5 @@ private:
   dag::Vector<void *> windows;
   dag::Vector<IWndManagerWindowHandler *> handlers;
   dag::Vector<Accelerator> accelerators;
-  dag::Vector<Accelerator> acceleratorUps;
   dag::Vector<Accelerator> viewportAccelerators;
 };

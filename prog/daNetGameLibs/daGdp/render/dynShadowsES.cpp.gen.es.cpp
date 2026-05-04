@@ -14,7 +14,8 @@ static void dyn_shadows_recreate_views_es_all_events(const ecs::Event &__restric
   G_FAST_ASSERT(evt.is<dagdp::EventRecreateViews>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::dyn_shadows_recreate_views_es(static_cast<const dagdp::EventRecreateViews&>(evt)
-        , ECS_RW_COMP(dyn_shadows_recreate_views_es_comps, "dagdp__dyn_shadows_manager", dagdp::DynShadowsManager)
+        , components.manager()
+    , ECS_RW_COMP(dyn_shadows_recreate_views_es_comps, "dagdp__dyn_shadows_manager", dagdp::DynShadowsManager)
     );
   while (++comp != compE);
 }
@@ -40,13 +41,13 @@ static constexpr ecs::ComponentDesc spot_lights_changed_es_comps[] =
 };
 static void spot_lights_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
   {
     if ( !(ECS_RO_COMP(spot_lights_changed_es_comps, "light__render_gpu_objects", bool) && ECS_RO_COMP(spot_lights_changed_es_comps, "spot_light__shadows", bool)) )
       continue;
     dagdp::spot_lights_changed_es(evt
-          );
+          , components.manager()
+      );
   } while (++comp != compE);
 }
 static ecs::EntitySystemDesc spot_lights_changed_es_es_desc
@@ -74,13 +75,13 @@ static constexpr ecs::ComponentDesc omni_lights_changed_es_comps[] =
 };
 static void omni_lights_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
   {
     if ( !(ECS_RO_COMP(omni_lights_changed_es_comps, "light__render_gpu_objects", bool) && ECS_RO_COMP(omni_lights_changed_es_comps, "omni_light__shadows", bool)) )
       continue;
     dagdp::omni_lights_changed_es(evt
-          );
+          , components.manager()
+      );
   } while (++comp != compE);
 }
 static ecs::EntitySystemDesc omni_lights_changed_es_es_desc
@@ -113,9 +114,9 @@ static ecs::CompileTimeQueryDesc spot_lights_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::spot_lights_ecs_query(Callable function)
+inline void dagdp::spot_lights_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, spot_lights_ecs_query_desc.getHandle(),
+  perform_query(&manager, spot_lights_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -145,9 +146,9 @@ static ecs::CompileTimeQueryDesc omni_lights_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::omni_lights_ecs_query(Callable function)
+inline void dagdp::omni_lights_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, omni_lights_ecs_query_desc.getHandle(),
+  perform_query(&manager, omni_lights_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -175,9 +176,9 @@ static ecs::CompileTimeQueryDesc manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::manager_ecs_query(Callable function)
+inline void dagdp::manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

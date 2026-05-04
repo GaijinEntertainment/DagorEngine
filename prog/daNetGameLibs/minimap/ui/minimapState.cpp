@@ -36,7 +36,7 @@ MinimapState::MinimapState(const Sqrat::Object &data)
 
   Sqrat::Object shape = data.RawGetSlot(strings->shape);
   G_ASSERT(!shape.IsNull());
-  isSquare = sq_direct_is_equal(shape.GetVM(), &shape.GetObject(), &const_cast<Sqrat::Object &>(strings->square).GetObject());
+  isSquare = sq_obj_is_equal(shape.GetVM(), &shape.GetObject(), &const_cast<Sqrat::Object &>(strings->square).GetObject());
   isViewUp = data.RawGetSlotValue(strings->isViewUp, !isSquare);
   float radius = data.RawGetSlotValue(strings->visibleRadius, MinimapContext::def_visible_radius);
   baseVisibleRadius = currentVisibleRadius = ::max(radius, min_visible_radius);

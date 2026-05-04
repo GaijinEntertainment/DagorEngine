@@ -4,7 +4,6 @@ include "rendinst_vcolor_inc.dshl"
 shader rendinst_vcolor_layered
 {
   NO_DYNSTCODE()
-  ENABLE_ASSERT(ps)
 
   COMMON_RENDINST_VCOLOR_INIT(false, true)
   COMMON_RENDINST_VS_IO_DEFINES()

@@ -17,11 +17,6 @@ assume debug_enable_old_tessellation_factors = off;
 
 macro INIT_PN_TRIANGULATION(smoothing)
 hlsl {
-  //Workarond for hlslcc bug
-  ##if hardware.vulkan
-    #pragma spir-v compiler dxc
-  ##endif
-
   ##if debug_enable_old_tessellation_factors == on
     #define USING_OLD_TESSELLATION_FACTORS
   ##endif
@@ -66,6 +61,67 @@ hlsl {
 
   #define get_absolute_control_point_position(controlPoints, tid) ((tid == 0 ? 0 : controlPoints[tid].pos1) + controlPoints[0].pos1)
 }
+endmacro
+
+// Needs to be defined after the last channel is defined
+// TODO: FIX IT
+macro DECLARE_DOMAINT_UV_CHANNELS()
+  channel float4 tc[1] = extra[56];
+  channel float4 tc[2] = extra[57];
+endmacro
+
+macro INIT_DOMAIN_UV()
+  hlsl
+  {
+    #if HAS_DOMAIN_UV
+      #define DOMAIN_UV_VTX_INPUT_MEMBERS      \
+        float4 domVertexTc : TEXCOORD1;        \
+        float4 domEdgeTc : TEXCOORD2;
+
+      #define DOMAIN_UV_OUTPUT_MEMBERS     \
+        float2 domVertexTc : TEXCOORD9;    \
+        float4 domEdgeTc : TEXCOORD10;
+
+      #define RI_PROXY_FIELD_VALUE_DOMAIN_DATA \
+        PROXY_FIELD_VALUE(domVertexTc);        \
+        PROXY_FIELD_VALUE(domEdgeTc);
+
+      #define RI_FIELD_BARYCENTRIC_VALUE_DOMAIN_DATA \
+        FIELD_BARYCENTRIC_VALUE(domVertexTc);        \
+        FIELD_BARYCENTRIC_VALUE(domEdgeTc);
+    #else
+      #define DOMAIN_UV_VTX_INPUT_MEMBERS
+      #define DOMAIN_UV_OUTPUT_MEMBERS
+      #define RI_PROXY_FIELD_VALUE_DOMAIN_DATA
+      #define RI_FIELD_BARYCENTRIC_VALUE_DOMAIN_DATA
+    #endif
+  }
+endmacro
+
+macro USE_DOMAIN_UV()
+  hlsl(ds)
+  {
+    float2 get_modified_domaint_uv(const OutputPatch<HsControlPoint, 3> input, float2 displacementTC, float3 uvw)
+    {
+      float3 edges = uvw == 0;
+      float intersectingEdgeCnt = dot(edges, 1);
+      if (intersectingEdgeCnt == 1) // edge
+      {
+        BARYCENTRIC_COORDS_UNPACK(uvw)
+        displacementTC =
+          edges.x*(v*input[1].domEdgeTc.xy + w*input[1].domEdgeTc.zw) +
+          edges.y*(w*input[2].domEdgeTc.xy + u*input[2].domEdgeTc.zw) +
+          edges.z*(u*input[0].domEdgeTc.xy + v*input[0].domEdgeTc.zw);
+      }
+      else if (intersectingEdgeCnt == 2) // corner
+      {
+        float3 corners = (edges.yzx + edges.zxy) == 2;
+        displacementTC = corners.x * input[1].domVertexTc + corners.y* input[2].domVertexTc + corners.z * input[0].domVertexTc;
+      }
+
+      return displacementTC;
+    }
+  }
 endmacro
 
 macro INIT_AND_USE_EDGE_LENGTH_BASED_TESS_FACTORS(max_tessellation_factor, tessellation_max_edge_length)

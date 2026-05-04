@@ -93,13 +93,14 @@ void PipelineCompiler::loadConfig()
 {
   int coreCount = cpujobs::get_core_count();
   const DataBlock *cfgBlk = Globals::cfg.getPerDriverPropertyBlock("pipelineCompiler");
-  cfg.maxSecondaryThreads = min(coreCount, cfgBlk->getInt("maxSecondaryThreads", max(2, coreCount - 2)));
+  const int RESERVED_CORES = 3; // for main, vk worker and primary thread
+  cfg.maxSecondaryThreads = min(coreCount, cfgBlk->getInt("maxSecondaryThreads", max(0, coreCount - RESERVED_CORES)));
   cfg.maxSecondaryThreads = min(cfg.maxSecondaryThreads, MAX_THREADS);
   cfg.secondarySpawnThreshold = cfgBlk->getInt("secondarySpawnThreshold", 16);
   cfg.minItemsPerSecondary = cfgBlk->getInt("minItemsPerSecondary", 4);
-  cfg.disable = cfgBlk->getBool("disable", false);
-  debug("vulkan: pipeline compiler: %u threads %u secondary threshold %u min items per secondary", cfg.maxSecondaryThreads,
-    cfg.secondarySpawnThreshold, cfg.minItemsPerSecondary);
+  cfg.disable = cfgBlk->getBool("disable", coreCount <= 2);
+  debug("vulkan: pipeline compiler: %s %u threads %u secondary threshold %u min items per secondary",
+    cfg.disable ? "disabled" : "enabled", cfg.maxSecondaryThreads, cfg.secondarySpawnThreshold, cfg.minItemsPerSecondary);
 }
 
 PipelineCompiler::PipelineCompiler(TimelineManager &tl_man) : timeBlock(tl_man), primaryWorker(*this) { g_compiler = this; }
@@ -163,7 +164,11 @@ void PipelineCompiler::queue(GraphicsPipeline *graphics_pipe)
   ++queueLength;
 }
 
-void PipelineCompiler::onItemCompiled() { --queueLength; }
+void PipelineCompiler::onItemCompiled()
+{
+  --queueLength;
+  ++totalCompiledPipes;
+}
 
 void PipelineCompiler::waitFor(ComputePipeline *compute_pipe)
 {
@@ -216,6 +221,7 @@ bool PipelineCompiler::processQueued()
   return true;
 }
 
+size_t PipelineCompiler::getCompiledPipes() { return totalCompiledPipes.load(); }
 size_t PipelineCompiler::getQueueLength() { return queueLength.load(); }
 
 void PipelineCompiler::compileBlock(dag::Vector<PipelineCompileQueueItem> &block)

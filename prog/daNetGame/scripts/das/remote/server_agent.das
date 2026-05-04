@@ -6,7 +6,7 @@ module server_agent shared
 
 require app
 require strings
-require debugapi
+require daslib/debugger
 
 require daslib/apply_in_context
 

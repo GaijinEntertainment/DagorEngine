@@ -4,7 +4,6 @@
 #define __SUPPRESS_BLK_VALIDATION 1
 #include <startup/dag_mainCon.inc.cpp>
 
-#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 

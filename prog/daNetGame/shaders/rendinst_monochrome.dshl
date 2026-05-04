@@ -2,6 +2,7 @@ include "rendinst_opaque_inc.dshl"
 include "rendinst_voxelize_albedo_inc.dshl"
 include "simple_inc.dshl"
 include "monochrome_inc.dshl"
+include "rendinst_simple_inc.dshl"
 shader rendinst_monochrome
 {
   assume instancing_type = tm_vb;
@@ -38,10 +39,12 @@ shader rendinst_monochrome
   channel float2 tc[0] = tc[0];
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
 
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
+
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
-  ENABLE_ASSERT(ps)
 
   hlsl (ps){
     #if HLSL_FULL_VS_OUTPUT
@@ -66,6 +69,10 @@ shader rendinst_monochrome
       ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
       VSOUT_DRAW_ID
       ##endif
+      #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos                    : TEXCOORD3;
+        float4 out_pos_prev               : TEXCOORD4;
+      #endif
     };
   }
 
@@ -107,6 +114,12 @@ shader rendinst_monochrome
       float3 pointToEye = world_view_pos-worldPos;
       output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
 
+      float3 prev_input_pos = input.pos;
+
+      #ifdef LOAD_RENDINST_MOTION_VECTORS
+        LOAD_RENDINST_MOTION_VECTORS
+      #endif
+
       #if HLSL_FULL_VS_OUTPUT
         output.diffuseTexcoord.xy = input.diffuseTexcoord;
         output.diffuseTexcoord.z = IS_DYNAMIC_RI;
@@ -119,7 +132,7 @@ shader rendinst_monochrome
           output.pointToEye.w = worldPos.y - worldLocalPos.y;
         ##endif
       #else
-        ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
+        ##if !(rendinst_render_pass == rendinst_render_pass_to_shadow || is_triangle_size_debug)
           output.normal.w = worldPos.y - worldLocalPos.y;
           output.normal.xyz = float3(0,0,0); //avoid compilation warnings
         ##endif
@@ -135,13 +148,17 @@ shader rendinst_monochrome
     (ps) {stub@f1 = smoothness; } //FIXME if there is no variables in pixel shader, it does not compile
     compile("ps_null", "rendinst_render_depth_black_ps");
   }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
   else
   {
     if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
     {
       WRITE_GBUFFER()
     }
-    MONOCHROME_PS()
+    MONOCHROME_PS(GBUFFER_ORDER_STATIC)
   }
   COMPILE_RI_VS_TARGET("simple_vs")
 }

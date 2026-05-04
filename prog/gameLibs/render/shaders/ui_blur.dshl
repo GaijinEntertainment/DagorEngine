@@ -45,14 +45,10 @@ macro COMMON_UI_DOWNSAMPLE()
 
   (vs) {
     texSize@f4 = (blur_dst_tex_size.x, blur_dst_tex_size.y, blur_dst_tex_size.x * 2.0, blur_dst_tex_size.y * -2.0);
+    quads@i4[4078] : register(16);
   }
 
   hlsl(vs) {
-    int4 quads[4078]:register(c16);
-    #if !SHADER_COMPILER_DXC
-    int4 last : register(c4095);//compiler inability to determ size
-    #endif
-
     VsOutput main_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
     {
       int4 quad = quads[instance_id.x];
@@ -109,12 +105,19 @@ shader ui_downsample_4x4_and_blend
   COMMON_UI_DOWNSAMPLE()
   (ps) {
     src_tex@smp2d = blur_src_tex;
-    backg_tex@smp2d = blur_background_tex;
+    backg_tex@tex2d = blur_background_tex;
     texSize__bw@f3 = (blur_src_tex_size.x, blur_src_tex_size.y, blur_bw, 0);
   }
   INIT_SHADER_GAMMA()
   USE_SHADER_GAMMA()
+
+  if (!maybe(global_frame_has_linear_clamp_sampler))
+  {
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+  }
+
   hlsl(ps) {
+    #define backg_tex_samplerstate global_linear_clamp_sampler
     float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;

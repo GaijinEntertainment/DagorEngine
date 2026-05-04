@@ -86,6 +86,7 @@ protected:
     float ao = 1.0;
     float microdetail = 0.0;
     float sizeScale = 1.0;
+    float emissionScale = 0.0;
 
     ClipmapDecalType(int decals_count)
     {
@@ -111,6 +112,7 @@ private:
   int useDisplacementMaskVarId = -1;
   int displacementMaskVarId = -1;
   int displacementFalloffRadiusVarId = -1;
+  int decalEmissionScaleVarId = -1;
 
   struct InstData
   {
@@ -136,6 +138,7 @@ private:
   void updateBuffers(int type_no);
 
   int maxDelayedRegionsCount = 0;
+  int maxRegionsPerFrame = 0;
   int rndSeed = 1000;
   float delayedRegionSizeFactor = 5;
   bool useDelayedRegions = false;
@@ -161,9 +164,10 @@ public:
   // remove all
   void clear();
 
-  void setDelayedRegionsParams(bool use_delayed_regions, int max_count, float size_factor)
+  void setDelayedRegionsParams(bool use_delayed_regions, int max_regions_per_frame, int max_delayed_reg_count, float size_factor)
   {
-    maxDelayedRegionsCount = max_count;
+    maxRegionsPerFrame = max_regions_per_frame;
+    maxDelayedRegionsCount = max_delayed_reg_count;
     delayedRegionSizeFactor = size_factor;
     useDelayedRegions = use_delayed_regions;
   }
@@ -181,7 +185,7 @@ public:
   void initDecalTypes(const DataBlock &blk);
   int getDecalTypeIdByName(const char *decal_type_name);
   int createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTUREID m_tex_id, int decals_count, const char *shader_name,
-    bool use_array_textures, int existing_decal_type = -1);
+    bool use_array_textures, int existing_decal_type = -1, float emission_scale = 0.0f, unsigned writemask = 0);
   int createDecalSubType(int decal_type, Point4 tc, int random_count, const char *diffuse_name, const char *normal_name,
     const char *material_name);
 
@@ -215,7 +219,7 @@ bool check_decal_textures_loaded();
 
 int getDecalTypeIdByName(const char *decal_type_name);
 int createDecalType(TEXTUREID d_tex_id, TEXTUREID n_tex_id, TEXTUREID m_tex_id = BAD_TEXTUREID, int decals_count = 1000,
-  const char *shader_name = NULL, bool use_array = false);
+  const char *shader_name = NULL, bool use_array = false, float emission_scale = 0.0f, unsigned writemask = 0);
 int createDecalSubType(int decal_type, Point4 tc, int random_count, const char *diffuse_name = NULL, const char *normal_name = NULL,
   const char *material_name = NULL);
 
@@ -226,7 +230,7 @@ void setup_rendering();
 const Tab<BBox2> &get_updated_regions();
 void clear_updated_regions();
 
-void set_delayed_regions_params(bool use_delayed_regions, int max_count, float size_factor);
+void set_delayed_regions_params(bool use_delayed_regions, int max_regions_per_frame, int max_delayed_reg_count, float size_factor);
 void set_camera_position(Point3 pos);
 
 #if DAGOR_DBGLEVEL > 0

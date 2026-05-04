@@ -202,7 +202,7 @@ struct GreedyScanlinePacker
           // When the allocator fails to allocate space for a resource due to
           // max heap size constraint, it returns a zero size/offset allocation.
           // Hence we simply set the resulting offset to NOT_SCHEDULED here.
-          if (DAGOR_LIKELY(allocation.size == 0 && allocation.offset == 0))
+          if (DAGOR_UNLIKELY(allocation.size == 0 && allocation.offset == 0))
           {
             G_ASSERT(resType != ResType::Pinned);
             calculatedOffsets[resIdx] = PackerOutput::NOT_SCHEDULED;

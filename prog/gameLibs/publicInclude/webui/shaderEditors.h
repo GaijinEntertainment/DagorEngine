@@ -15,7 +15,7 @@
 typedef bool (*ShaderCompilerCallback)(uint32_t variant_id, const String &name, const String &code, const DataBlock &shader_blk,
   String &out_errors);
 
-typedef String (*ShaderGetSrcCallback)(uint32_t variant_id);
+typedef String (*ShaderGetSrcCallback)(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
 
 class ShaderGraphRecompiler
 {
@@ -32,13 +32,17 @@ public:
 
   static ShaderGraphRecompiler *getInstance();
 
-  static String substitute(NodeBasedShaderType shader, uint32_t variant_id, const DataBlock &shader_blk);
-  static String substitutePs4(NodeBasedShaderType shader, uint32_t variant_id, const DataBlock &shader_blk);
-  static String substitutePs5(NodeBasedShaderType shader, uint32_t variant_id, const DataBlock &shader_blk)
+  static String substitute(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality,
+    const DataBlock &shader_blk);
+  static String substitutePs4(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality,
+    const DataBlock &shader_blk);
+  static String substitutePs5(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality,
+    const DataBlock &shader_blk)
   {
-    return substitutePs4(shader, variant_id, shader_blk);
+    return substitutePs4(shader, variant_id, nbs_quality, shader_blk);
   }
   static String substitute(const DataBlock &shader_blk, String shader_template);
+  static String substituteDshl(NodeBasedShaderType shader, const DataBlock &shader_blk);
   static String enumerateLines(const char *s);
 
   static void onShaderGraphEditor(webui::RequestInfo *params);
@@ -54,10 +58,6 @@ protected:
     const char *optional_graphs_dir, ShaderCompilerCallback compiler_callback);
 
   static ShaderGraphRecompiler *activeInstance;
-
-  static ShaderGraphRecompiler *fogInstance;
-
-  static ShaderGraphRecompiler *enviCoverInstance;
 
 private:
   webui::GraphEditor *shader_editor = nullptr;
@@ -85,6 +85,7 @@ private:
 };
 
 String find_shader_editors_path();
+String add_nbs_quality_definition(NodeBasedShaderQuality nbs_quality);
 String collect_template_files(const String &template_dir, const Tab<String> &template_names);
 
 

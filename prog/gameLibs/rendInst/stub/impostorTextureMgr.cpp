@@ -12,3 +12,5 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *, con
 UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLodsResource *) { return {}; }
 bool ImpostorTextureManager::hasBcCompression() const { return false; }
 int ImpostorTextureManager::getPreferredShadowAtlasMipOffset() const { return 0; }
+void ImpostorTextureManager::buildRendinstElems() {}
+void ImpostorTextureManager::afterDeviceReset() {}

@@ -7,12 +7,13 @@
 #include <daSDF/objectsSDF.h>
 #include <shaders/dag_shaders.h>
 #include <drv/3d/dag_renderTarget.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_rwResource.h>
 #include <frustumCulling/frustumPlanes.h>
 #include <render/viewVecs.h>
 #include <render/globTMVars.h>
 #include <math/dag_frustum.h>
+#include <math/dag_mathUtils.h>
 #include "giFrameInfo.h"
 #include "screenSpaceProbes.h"
 #include "volumetricGI.h"
@@ -39,7 +40,6 @@ CONSOLE_BOOL_VAL("gi", gi_remove_sdf_from_depth, true);
 CONSOLE_BOOL_VAL("gi", gi_update_from_gbuf, true);
 CONSOLE_BOOL_VAL("gi", gi_update_from_gbuf_stable, true);
 
-CONSOLE_BOOL_VAL("gi", gi_world_sdf_rt, false);
 CONSOLE_INT_VAL("gi", gi_debug_volumetric_probes_type, 0, 0, 2);
 CONSOLE_INT_VAL("gi", gi_debug_screen_space_probes_type, 0, 0, 8);
 CONSOLE_BOOL_VAL("gi", gi_debug_screen_space_probes_tiles_classificator, false);
@@ -79,12 +79,13 @@ struct DaGIImpl final : public DaGI
   void requestUpdatePosition(const request_sdf_radiance_data_cb &sdf_cb, const cancel_sdf_radiance_data_cb &cancel_sdf_cb,
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb);
   void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb);
-  void setSettings(const DaGI::Settings &s) { nextSettings = s; }
+  void invalidateBox(const BBox3 &box);
+  void invalidateRadianceFrustum(const Frustum &frustum);
+  void setSettings(const DaGISettings &s) { nextSettings = s; }
 
-  void fix(DaGI::Settings &s) const;
-  DaGI::Settings getCurrentSettings() const { return currentSettings; }
-  DaGI::Settings getNextSettings() const { return nextSettings; }
-  void afterSettingsChanged() const;
+  void fix(DaGISettings &s) const;
+  DaGISettings getCurrentSettings() const { return currentSettings; }
+  DaGISettings getNextSettings() const { return nextSettings; }
   const WorldSDF &getWorldSDF() const { return *worldSdf; }
   WorldSDF &getWorldSDF() { return *worldSdf; }
   void beforeRender(uint32_t sw, uint32_t sh, uint32_t maxw, uint32_t maxh, const TMatrix &viewItm, const TMatrix4 &projTm, float zn,
@@ -116,7 +117,7 @@ struct DaGIImpl final : public DaGI
   eastl::unique_ptr<ScreenSpaceProbes> screenProbes;
   eastl::unique_ptr<VolumetricGI> volumetricGI;
 
-  DaGI::Settings currentSettings, nextSettings;
+  DaGISettings currentSettings, nextSettings;
   uint32_t maxSW = 1920, maxSH = 1080;
   struct View : public DaGIFrameInfo
   {
@@ -134,6 +135,15 @@ struct DaGIImpl final : public DaGI
   UniqueBuf commonTempBuffer;
   bool unoderedTypedLoad = true;
   bool positionUpdated = false;
+
+  struct RadianceInvalidation
+  {
+    BBox3 updateBox;
+    Frustum invalidFrustum;
+  };
+
+  dag::Vector<RadianceInvalidation> pendingRadianceInvalidations;
+
   void workAroundUAVslots()
   {
     // Workaround for RW texture stuck in u slot, conflicting with RT on DX11.
@@ -141,25 +151,49 @@ struct DaGIImpl final : public DaGI
       d3d::set_rwtex(STAGE_PS, i, nullptr, 0, 0);
     ShaderElement::invalidate_cached_state_block();
   }
+
+  void processRadianceInvalidation()
+  {
+    if (pendingRadianceInvalidations.empty())
+      return;
+
+    bool allPrimaryDataReady = true;
+    if (albedoScene)
+      allPrimaryDataReady &= albedoScene->isValid();
+    if (mediaScene)
+      allPrimaryDataReady &= mediaScene->isValid();
+    if (worldSdf)
+      allPrimaryDataReady &= worldSdf->isValid();
+    if (!allPrimaryDataReady)
+      return;
+
+    for (const RadianceInvalidation &inv : pendingRadianceInvalidations)
+    {
+      radianceGrid->invalidateFrustum(inv.invalidFrustum, inv.updateBox);
+      if (screenProbes)
+        screenProbes->invalidateFrustum(inv.invalidFrustum);
+    }
+    pendingRadianceInvalidations.clear();
+  }
 };
 
 static void set_view_vars(const DaGIImpl::View &view)
 {
-  ShaderGlobal::set_color4(world_view_posVarId, view.world_view_pos.x, view.world_view_pos.y, view.world_view_pos.z, 0);
+  ShaderGlobal::set_float4(world_view_posVarId, view.world_view_pos.x, view.world_view_pos.y, view.world_view_pos.z, 0);
   set_globtm_to_shader(view.globTm);
   set_frustum_planes(view.frustum);
   set_viewvecs_to_shader(view.viewTm, view.projTm);
 }
 
 
-static const float minTraceDist = 16.f;
+static const float minTraceDistRel = 16.f / 0.15f; // In 0th cascade voxels.
 static float calc_probe0_size(uint16_t clipW, uint16_t clipH, uint16_t clips, uint16_t sdfW, uint16_t sdfH, uint16_t sdf_clips,
   float sdf_voxel0)
 {
   uint32_t w = sdfW & ~7, h = uint32_t(sdfH) & ~7;
   w <<= sdf_clips - 1;
   h <<= sdf_clips - 1;
-  float distW = max(minTraceDist, w * sdf_voxel0 - minTraceDist), distH = max(minTraceDist, h * sdf_voxel0 - minTraceDist);
+  float distW = max(minTraceDistRel, w - minTraceDistRel) * sdf_voxel0, distH = max(minTraceDistRel, h - minTraceDistRel) * sdf_voxel0;
   distW /= clipW << (clips - 1);
   distH /= clipH << (clips - 1);
   return min(distW, distH);
@@ -171,7 +205,7 @@ static inline float calc_albedo_voxel_size(float albedoVoxel0Size, float sdfVoxe
   return clamp(albedoVoxel0Size, minVoxelSize, maxVoxelSize);
 }
 
-void DaGIImpl::fix(DaGI::Settings &s) const
+void DaGIImpl::fix(DaGISettings &s) const
 {
   uint16_t yRes = s.sdf.texWidth * s.sdf.yResScale;
   worldSdf->fixup_settings(s.sdf.texWidth, yRes, s.sdf.clips);
@@ -238,7 +272,7 @@ DaGI *create_dagi() { return new DaGIImpl; }
 void DaGIImpl::debugRenderScreenDepth()
 {
   set_view_vars(view);
-  if (gi_world_sdf_rt)
+  if (worldSdf)
     worldSdf->debugRender();
   if (albedoScene)
     albedoScene->debugRenderScreen();
@@ -300,8 +334,6 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
   if (albedoScene)
     albedoScene->update(pos, false,
       [&](const BBox3 &b, float voxel_size, uintptr_t &h) { return (UpdateAlbedoStatus)albedo_cb(b, voxel_size, h); });
-  if (voxelScene)
-    voxelScene->update();
   if (mediaScene)
     mediaScene->updatePos(pos);
 
@@ -330,6 +362,7 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
 
   if (gi_radiance_grid_update_position && radianceGrid)
   {
+    processRadianceInvalidation();
     radianceGrid->updatePos(pos);
   }
   if (skyVisibility)
@@ -441,8 +474,8 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
                                                                                   // clipping
       Point3 mult = 2. * div(voxelize_aspect_ratio, voxelize_box_sz);
       Point3 add = -mul(voxelize_box0, mult) - voxelize_aspect_ratio;
-      ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_mulVarId, P3D(mult), 0);
-      ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_addVarId, P3D(add), 0);
+      ShaderGlobal::set_float4(voxelize_world_to_rasterize_space_mulVarId, P3D(mult), 0);
+      ShaderGlobal::set_float4(voxelize_world_to_rasterize_space_addVarId, P3D(add), 0);
 
       if (intersectCollision)
       {
@@ -484,6 +517,36 @@ void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const ras
     objectsSdf->checkObjects(UpdateSDFQualityRequest::ASYNC_REQUEST_PRECACHE, mipObjs.data(), mipObjs.size());
   */
   workAroundUAVslots();
+}
+
+void DaGIImpl::invalidateBox(const BBox3 &box)
+{
+  if (mediaScene)
+    mediaScene->invalidateBox(box);
+  if (albedoScene)
+    albedoScene->invalidateBox(box);
+  if (worldSdf)
+    worldSdf->invalidateBox(box);
+}
+
+void DaGIImpl::invalidateRadianceFrustum(const Frustum &frustum)
+{
+  vec4f extrudedNormalizedFrustumPlanes[6];
+  for (int i = 0; i < 6; ++i)
+  {
+    vec4f partialInvalidationRange = v_rcp(v_length3(frustum.camPlanes[i]));
+    vec4f partialInvalidationRangeW = v_perm_xyzd(v_splats(0), partialInvalidationRange);
+    extrudedNormalizedFrustumPlanes[i] = v_madd(frustum.camPlanes[i], partialInvalidationRange, partialInvalidationRangeW);
+  }
+  bbox3f vUpdateBox;
+  v_frustum_box_unsafe(vUpdateBox, extrudedNormalizedFrustumPlanes[0], extrudedNormalizedFrustumPlanes[1],
+    extrudedNormalizedFrustumPlanes[2], extrudedNormalizedFrustumPlanes[3], extrudedNormalizedFrustumPlanes[4],
+    extrudedNormalizedFrustumPlanes[5]);
+
+  RadianceInvalidation inv;
+  inv.invalidFrustum = frustum;
+  v_stu_bbox3(inv.updateBox, vUpdateBox);
+  pendingRadianceInvalidations.push_back(inv);
 }
 
 void DaGIImpl::afterReset()
@@ -542,18 +605,6 @@ void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_upda
   workAroundUAVslots();
 }
 
-void DaGIImpl::afterSettingsChanged() const
-{
-  auto cache = nextSettings.giDatablockCache;
-  const DataBlock *graphicsGI = dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("gi");
-  cache.voxelSceneResScale = graphicsGI->getReal("voxelSceneResScale", 0.5);
-  cache.sdfClips = graphicsGI->getInt("sdfClips", -1);
-  cache.sdfVoxel0 = clamp(graphicsGI->getReal("sdfVoxel0", 0.15), 0.065f, 0.45f);
-  cache.albedoClips = graphicsGI->getInt("albedoClips", 3);
-  cache.radianceGridClipW = graphicsGI->getInt("radianceGridClipW", 28);
-  cache.radianceGridClips = graphicsGI->getInt("radianceGridClips", 4);
-}
-
 void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t maxH, const TMatrix &viewItm, const TMatrix4 &projTm,
   float zn, float zf, RadianceUpdate ru)
 {
@@ -610,6 +661,7 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
       currentSettings.voxelScene.onlyLuma ? DaGIVoxelScene::Radiance::Luma : DaGIVoxelScene::Radiance::Colored);
     voxelScene->setTemporalSpeedFromGbuf(currentSettings.voxelScene.temporalSpeed);
     voxelScene->setTemporalFromGbufStable(gi_update_from_gbuf_stable); // fixme:should be setting
+    voxelScene->doPendingClear();
   }
   if (currentSettings.skyVisibility.clipW && !skyVisibility)
     skyVisibility = eastl::make_unique<SkyVisibility>();
@@ -631,7 +683,7 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
 
     radianceGrid->init(currentSettings.radianceGrid.w, radGridD, currentSettings.radianceGrid.clips, radGridProbe0Size,
       currentSettings.radianceGrid.additionalIrradianceClips, currentSettings.radianceGrid.irradianceProbeDetail,
-      currentSettings.radianceGrid.framesToUpdateOneClip);
+      currentSettings.radianceGrid.temporalSelectBatchCount, currentSettings.radianceGrid.temporalSpeed);
   }
 
   {
@@ -726,7 +778,7 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
   {
     commonTempBuffer.close();
     commonTempBuffer = dag::create_sbuffer(sizeof(uint32_t), requestedCommonBufferSize,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "dagi_common_temp_buffer");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "dagi_common_temp_buffer", RESTAG_DAGI2);
   }
 
   if (skyVisibility)
@@ -830,7 +882,7 @@ void DaGIImpl::beforeFrameLit(float dynamic_quality)
 
 bool is_only_low_gi_supported()
 {
-  constexpr uint32_t FORMARS_TO_CHECK[] = {TEXFMT_R8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F};
+  constexpr uint32_t FORMARS_TO_CHECK[] = {TEXFMT_R8, TEXFMT_A8R8G8B8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F};
   for (int i = 0; i < countof(FORMARS_TO_CHECK); i++)
   {
     if (!(d3d::get_texformat_usage(FORMARS_TO_CHECK[i]) & d3d::USAGE_UNORDERED_LOAD))

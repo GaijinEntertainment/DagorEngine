@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
-
 namespace NetImgui { namespace Internal { struct PendingCom; }}
 
 namespace NetImgui { namespace Internal { namespace Network

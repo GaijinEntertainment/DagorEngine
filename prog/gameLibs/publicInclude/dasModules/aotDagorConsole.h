@@ -54,10 +54,7 @@ inline void console_get_command_history(const das::TBlock<void, const das::TTemp
   auto history = console::get_command_history();
 
   das::Array arr;
-  arr.data = (char *)history.data();
-  arr.size = uint32_t(history.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, history.data(), history.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -100,10 +97,7 @@ inline void visual_log_get_history(const das::TBlock<void, const das::TTemporary
   dag::ConstSpan<SimpleString> history = visuallog::getHistory();
 
   das::Array arr;
-  arr.data = (char *)history.data();
-  arr.size = uint32_t(history.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)history.data(), history.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

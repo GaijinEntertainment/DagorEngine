@@ -18,6 +18,7 @@
 #include <math/dag_color.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <daSkies2/daScattering.h>
+#include <daSkies2/cloudsRenderFlags.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/vector_map.h>
 #include <3d/dag_ringCPUQueryLock.h>
@@ -27,9 +28,8 @@
 
 struct SkiesData;
 struct Clouds2;
-struct AuroraBorealis;
+struct DynRes;
 class SphereRenderer;
-
 
 enum class CloudsResolution
 {
@@ -50,6 +50,12 @@ enum class RenderPrepared
   Off,
   LowresOnFarPlane,
   LowresOnSphere,
+};
+
+enum class CheckCloudVisibility
+{
+  No,
+  Yes
 };
 
 class DaSkies
@@ -219,6 +225,7 @@ public:
 
   bool isPrepareRequired() const;
   bool isCloudsReady() const;
+  bool isScatteringReady() const;
   void prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt);
 
   void cloudsLayersHeightsBarrier();
@@ -257,11 +264,12 @@ public:
         panoramic ? PreparedSkiesParams::Panoramic::ON : PreparedSkiesParams::Panoramic::OFF,
         panoramic ? PreparedSkiesParams::Reprojection::OFF : PreparedSkiesParams::Reprojection::ON});
   }
-  IPoint2 getCloudsResolution(SkiesData *data);
+  IPoint2 getCloudsResolution(const SkiesData *data);
   void skiesDataScatteringVolumeBarriers(SkiesData *data);
   // if sky_quality_div>1, additional textures required
   void changeSkiesData(int sky_detail_level, int clouds_detail_level, bool fly_through_clouds, int targetW, int targetH,
-    SkiesData *data, CloudsResolution clouds_resolution = CloudsResolution::Default, bool use_blurred_clouds = false);
+    SkiesData *data, CloudsResolution clouds_resolution = CloudsResolution::Default, bool use_blurred_clouds = false,
+    bool ignore_panorama_state = false);
   void initSky(int clouds_fog_resolution = 32, uint32_t skyfmt = 0xFFFFFFFF, bool useHole = true);
   void closeSky();
   void updateCloudsOrigin();
@@ -304,54 +312,62 @@ public:
   void useFog(const Point3 &origin, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
     UpdateSky update_sky = UpdateSky::On, float altitude_tolerance = SKY_PREPARE_THRESHOLD);
 
-  // either use renderEnvi or prepareSkyAndClouds + renderSky + renderClouds
-  void renderEnvi(bool infinite, const DPoint3 &origin, const DPoint3 &viewdir, uint32_t render_sun_moon, // we can skip sun rendering
-                                                                                                          // for, say cubic
-    const ManagedTex &cloudsDepth, const ManagedTex &prevCloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth with
-                                                                      // mips, if required lower resolution
-
-    TEXTUREID targetDepth, // targetDepth
-    SkiesData *data,       // if data is null than only sky will be rendered
+  // either use renderEnvi or prepareSkyAndClouds/prepareInfiniteSkyAndClouds + renderSky + renderCloudsToTarget
+  // render_sun_moon: we can skip sun rendering for, say cubic
+  // cloudsDepth/prevCloudsDepth: must be 1/2 of target depth (with mips, if lower resolution is required)
+  // data: if null, only sky will be rendered
+  void renderEnvi(bool can_be_inside_clouds, const DPoint3 &origin, const DPoint3 &viewdir, uint32_t render_sun_moon,
+    const ManagedTex &cloudsDepth, const ManagedTex &prevCloudsDepth, BaseTexture *targetDepth, SkiesData *data,
     const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp, UpdateSky update_sky = UpdateSky::On,
-    bool fixed_offset = false, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr);
+    bool fixed_offset = false, float altitude_tolerance = SKY_PREPARE_THRESHOLD, const DynRes *dynamic_resolution = nullptr);
 
-  // if fixed_offset is true, cloud offset will be 0
-  void prepareSkyAndClouds(bool infinite, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon, // we can skip sun
-                                                                                                               // rendering for, say
-                                                                                                               // cubic
-    const TextureIDPair &cloudsDepth, const TextureIDPair &prevCloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth
-                                                                            // with mips, if required lower resolution
-    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, UpdateSky update_sky, bool fixed_offset,
-    float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr, const bool acquare_new_resource = true,
-    const bool set_camera_vars = true);
+  // fixed_offse: if true, cloud offset will be 0
+  // cloudsDepth/prevCloudsDepth: must be 1/2 of target depth (with mips, if lower resolution is required)
+  // render_sun_moon: we can skip sun rendering for, say cubic
+  void prepareSkyAndClouds(bool can_be_inside_clouds, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon,
+    BaseTexture *cloudsDepth, BaseTexture *prevCloudsDepth, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    UpdateSky update_sky, bool fixed_offset, float altitude_tolerance = SKY_PREPARE_THRESHOLD,
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default, const DynRes *dynamic_resolution = nullptr);
 
+  void prepareSky(const DPoint3 &origin, uint32_t render_sun_moon, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    UpdateSky update_sky, float altitude_tolerance, const CloudsRenderFlags flags);
 
-  // ResPtr variant
-  void prepareSkyAndClouds(bool infinite, const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon,
-    const ManagedTex &cloudsDepth, const ManagedTex &prevCloudsDepth, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm,
-    UpdateSky update_sky, bool fixed_offset, float altitude_tolerance = SKY_PREPARE_THRESHOLD, AuroraBorealis *aurora = nullptr,
-    const bool acquare_new_resource = true, const bool set_camera_vars = true);
+  void prepareClouds(bool can_be_inside_clouds, const DPoint3 &origin, const DPoint3 &dir, BaseTexture *clouds_depth,
+    BaseTexture *prev_clouds_depth, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, UpdateSky update_sky,
+    bool fixed_offset, const CloudsRenderFlags flags, const DynRes *dynamic_resolution = nullptr);
+
+  void prepareSkyAndInfiniteClouds(const DPoint3 &origin, const DPoint3 &dir, uint32_t render_sun_moon, SkiesData *data,
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, UpdateSky update_sky, bool fixed_offset,
+    float altitude_tolerance = SKY_PREPARE_THRESHOLD, const CloudsRenderFlags flags = CloudsRenderFlags::Default,
+    const DynRes *dynamic_resolution = nullptr);
 
   bool isCloudsVisible(SkiesData *data);
 
-  void renderClouds(bool infinite, const ManagedTex &cloudsDepth, TEXTUREID targetDepth, SkiesData *data, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm, const Point4 &targetDepthTransform = Point4(1, 1, 0, 0));
-
-  void renderClouds(bool infinite,
-    const TextureIDPair &cloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth with mips, if required lower resolution
-    TEXTUREID targetDepth, SkiesData *data, // should have prepared data
-    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point4 &targetDepthTransform = Point4(1, 1, 0, 0));
+  // ResPtr variant
+  void renderCloudsToTarget(bool can_be_inside_clouds, BaseTexture *cloudsDepth, BaseTexture *targetDepth, SkiesData *data,
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point4 &targetDepthTransform = Point4(1, 1, 0, 0),
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default);
 
   void renderSky(SkiesData *data, // should have prepared data
     const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp,
-    RenderPrepared render_prepared = RenderPrepared::LowresOnFarPlane, const SphereRenderer *sphere_renderer = nullptr,
-    AuroraBorealis *aurora = nullptr);
+    RenderPrepared render_prepared = RenderPrepared::LowresOnFarPlane, const SphereRenderer *sphere_renderer = nullptr);
+
+  void renderSkyWithoutOverlay(SkiesData *data, // should have prepared data
+    const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp,
+    RenderPrepared render_prepared = RenderPrepared::LowresOnFarPlane, const SphereRenderer *sphere_renderer = nullptr);
+
+  // overlay is basically strata clouds, stars, moon etc.
+  void renderSkyOverlay(SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp,
+    RenderPrepared render_prepared = RenderPrepared::LowresOnFarPlane);
+
   void renderStars(const Driver3dPerspective &persp, const Point3 &origin, float stars_intensity_mul);
   float getCloudsStartAlt(); // effective, i.e. can change based on gpu readback
   float getCloudsTopAlt();   // effective, i.e. can change based on gpu readback
   float getCloudsStartAltSettings() const;
   float getCloudsTopAltSettings() const;
   void setWindDirection(const Point2 &windDir);
+  void setSolidColorMode(bool enabled, const E3DCOLOR &val = E3DCOLOR());
+  bool isSolidColorMode() const { return solidColorMode; }
 
   void renderCelestialObject(const Point3 &dir, float phase, float intensity, float size);
   void renderCelestialObject(TEXTUREID tid, const Point3 &dir, float phase, float intensity, float size);
@@ -426,8 +442,9 @@ public:
   }
   void setAstronomicalSunMoon();
   void calcSunMoonDir(float forward_time, Point3 &sun_dir, Point3 &moon_dir) const;
-  void renderCloudVolume(VolTexture *cloudVolume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm);
-  void invalidatePanorama(bool force = false, bool waitResourcesLoaded = false);
+  void renderCloudVolume(VolTexture *cloudVolume, TEXTUREID prevCloudVolume, float max_dist, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, const TMatrix4 &prev_glob_tm);
+  void invalidatePanorama(bool force = false, bool prefetchDependencies = false);
 
   // void setSkiesRenderData(const Point3 &world_view_pos, const Point3 &sun_light_dir, const Color3 &sun_light_color);
 
@@ -436,6 +453,15 @@ public:
   {
     panoramaReprojectionWeight = clamp(w, 0.f, 1.f);
   } // 1- fully reproject, 0 - no reprojection
+
+  void setStaticPanoramaOrigin(const Point3 &origin)
+  {
+    if (origin != panorama_render_origin)
+      invalidatePanorama();
+    panorama_render_origin = origin;
+    panoramaRenderOriginStatic = true;
+  }
+
   void setSunAndMoonDir(const Point3 &sun_dir, const Point3 &moon_dir);
   bool getMoonIsPrimary() const { return moonIsPrimary; }
 
@@ -485,13 +511,6 @@ protected:
   float getMaxDensityFilteredInt(int x, int z, float fracX, float fracZ) const;
   void calcScatteringParams();
   void setScatteringParams(const SkyAtmosphereParams &params);
-  void prepareRenderClouds(bool infinite, const Point3 &origin, const TextureIDPair &cloudsDepth,
-    const TextureIDPair &prevCloudsDepth, // clouds Depth(s) is supposed to be 1/2 of target depth with mips, if required lower
-                                          // resolution
-    SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool check_cloud_visibility,
-    const bool acquare_new_resource = true, const bool set_camera_vars = true);
-  void renderCloudsToTarget(bool infinite, const Point3 &origin, const TextureIDPair &downsampledDepth, TEXTUREID targetDepth,
-    const Point4 &targetDepthTransform, SkiesData *data, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 
   void closeCloudsTex();
   void initCloudsTex();
@@ -503,11 +522,12 @@ protected:
   void initCloudsRender(bool useHoles);
   void initPerlinNoise();
 
-  void renderStrataClouds(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool panorama);
+  void setStrataCloudsVars() const;
+  void renderStrataClouds(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm);
   void renderCloudsFullRes(const Point3 &origin, TEXTUREID targetDepth);
   void setCloudsVars();
 
-  bool updatePanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  bool updatePanorama(const Point3 &origin);
   void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
   void downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth);
   void createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
@@ -542,6 +562,7 @@ protected:
   uint32_t panoramaValid;
   PostFxRenderer skyPanorama, cloudsPanorama, cloudsAlphaPanorama;
   PostFxRenderer applyCloudsPanorama;
+  PostFxRenderer applySolidColor;
 
   float panoramaRGBMScaleFactor = 1.f;
   // values more than 15 make compression and rgbm artifacts more noticeable
@@ -570,8 +591,6 @@ protected:
   PostFxRenderer cloudsPanoramaMip;
 
   bool panoramaTemporarilyDisabled = false;
-
-  bool panoramaShouldWaitResourcesLoaded = false;
 
   struct PanoramaSavedSettings
   {
@@ -619,6 +638,7 @@ protected:
   Point3 panorama_render_origin = {0, 0, 0};
   float panoramaReprojectionWeight = 0.5f; // 0 - we don't use reprojection, 1 - we fully reproject
   bool panoramaAllowAsyncPipelineFeedback = false;
+  bool panoramaRenderOriginStatic = false;
 
   Point3 real_skies_sun_light_dir;
   float moonEffect = 0, sunEffect = 1;
@@ -651,6 +671,8 @@ protected:
   CloudsRendering cloudsRendering;
 
   bool cpuOnly; // server
+  bool solidColorMode = false;
+  E3DCOLOR solidColor;
   class DaStars *skyStars;
   float moonAge;
   Point3 moonDir;

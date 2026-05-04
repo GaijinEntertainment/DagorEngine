@@ -87,6 +87,7 @@ AnimData::AnimData(AnimData *src_anim, const NameMap &node_list, IMemAlloc *ma) 
   // set source pointer
   src = src_anim;
   animAdditive = src->animAdditive;
+  initialA2dSize = src->initialA2dSize;
 
   // compute size of data to be duplicated and altered
   DumpData &d = src->dumpData;
@@ -263,9 +264,10 @@ bool AnimData::load(IGenLoad &crd, class IMemAlloc *ma)
 
   crd.read(&dumpData, sizeof(dumpData));
   dumpData.patchData(dump);
-  animAdditive = (hdr.ver == 0x301);
+  animAdditive = (hdr.ver == 0x301) ? 1u : 0;
 
   anim.setup(dumpData);
+  initialA2dSize = sizeof(hdr) + hdr.dumpSize + sizeof(dumpData);
   if ((anim.pos.animTracks && anim.pos.animTracks != anim.rot.animTracks) ||
       (anim.scl.animTracks && anim.scl.animTracks != anim.rot.animTracks))
   {

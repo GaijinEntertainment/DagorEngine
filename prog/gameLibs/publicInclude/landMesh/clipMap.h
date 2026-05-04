@@ -5,3 +5,5 @@
 #pragma once
 
 #include "virtualtexture.h"
+
+void show_clipmap_debug_window();

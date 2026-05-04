@@ -1,0 +1,1 @@
+Smart pointer to an `ExprMakeBlock` expression. Wraps block or lambda creation expressions in the AST.

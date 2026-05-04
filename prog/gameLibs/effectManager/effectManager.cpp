@@ -5,6 +5,7 @@
 #include <generic/dag_sort.h>
 #include <fx/dag_baseFxClasses.h>
 #include <gameRes/dag_gameResources.h>
+#include <math/dag_bezier.h>
 #include <math/dag_frustum.h>
 #include <math/random/dag_random.h>
 #include <ADT/threadpoolLocalVector.h>
@@ -273,6 +274,7 @@ enum BuffCmdType
   FX_CMD_LIGHT_BOX,
   FX_CMD_WIND_SCALE,
   FX_CMD_GRAVITY_TM,
+  FX_CMD_SPLINE_GEN,
   FX_CMD_UNLOCK,
   FX_CMD_PAUSE_SOUND,
   FX_CMD_TM,
@@ -293,6 +295,7 @@ struct BuffCommand
   union
   {
     TMatrix tm;
+    TMatrix4 tm4;
     Matrix3 m3;
     Point2 p2;
     Point3 p3;
@@ -668,7 +671,7 @@ void EffectManagerAsyncLoad::doJob()
 
 void EffectManager::initAsync()
 {
-  effectBase = (BaseEffectObject *)get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(params.resName.c_str()), EffectGameResClassId);
+  effectBase = (BaseEffectObject *)get_one_game_resource_ex(params.resName.c_str(), EffectGameResClassId);
   if (!effectBase)
   {
     logerr("Effect resource '%s' referenced in '%s' not found", params.resName.c_str(), params.name.c_str());
@@ -701,7 +704,7 @@ void EffectManager::initAsync()
   initLightEnabledExt();
 }
 
-void EffectManager::createFxRes(AcesEffect::FxId fx_id, const Point3 &pos)
+void EffectManager::createFxRes(AcesEffect::FxId fx_id, bool is_player, const Point3 &pos)
 {
   BaseEffectObject *obj = (BaseEffectObject *)effectBase->clone();
   G_ASSERT_RETURN(obj, );
@@ -721,7 +724,8 @@ void EffectManager::createFxRes(AcesEffect::FxId fx_id, const Point3 &pos)
     setFxLight(*fx);
   }
 
-  BaseEffectEnabled dafxe = {true, length(viewPos - pos) * invMagnification};
+  float distanceToCam = is_player ? 0 : length(viewPos - pos) * invMagnification;
+  BaseEffectEnabled dafxe = {true, distanceToCam};
   fx->obj->setParam(_MAKE4C('PFXE'), &dafxe);
   fx->obj->getParam(_MAKE4C('FXID'), &fx->iid);
 
@@ -744,6 +748,8 @@ void EffectManager::createFxRes(AcesEffect::FxId fx_id, const Point3 &pos)
       setFxWindScale(*fx, pe.windScale);
     setFxGravityTm(*fx, pe.gravityTm);
     setFxColorMult(*fx, pe.colorMult);
+    setFxFakeBrightnessBackgroundPos(*fx, pe.fakeBrightnessBackgroundPos);
+    setFxSplineGenControlPoints(*fx, pe.splineGenData);
 
     setFxTm(*fx, fx->tm, pe.isEmitterTm);
     setFxVisibility(*fx, fx->visibility, true);
@@ -834,9 +840,12 @@ AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_pla
     }
   }
 
-  AcesEffect *extFx = new AcesEffect();
   AcesEffect::FxId fxId = fxList.emplaceOne();
   BaseEffect *fx = fxList.get(fxId);
+  if (!fx)
+    return nullptr;
+
+  AcesEffect *extFx = new AcesEffect();
   extFx->fxId = fxId;
   extFx->mgr = this;
   G_ASSERT(fx->flags == 0);
@@ -853,7 +862,7 @@ AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_pla
 
   if (asyncState == READY)
   {
-    createFxRes(fxId, pos);
+    createFxRes(fxId, is_player, pos);
   }
   else
   {
@@ -919,7 +928,7 @@ void EffectManager::updateLoading()
       const Point3 &pos = fx->tm.getcol(3);
       if (fx->flags & AcesEffect::IS_LOCKED || !hasEnoughEffectsAtPoint(fx->flags & AcesEffect::IS_PLAYER, pos))
       {
-        createFxRes(fxList.getRefByIdx(i), pos);
+        createFxRes(fxList.getRefByIdx(i), fx->flags & AcesEffect::IS_PLAYER, pos);
       }
       else // we only can query hasEnoughEffectsAtPoint after async job is done. so it we overshoot - destroy fx that are over the
            // limit
@@ -1062,7 +1071,7 @@ void EffectManager::shutdown()
 
   if (effectBase)
   {
-    release_game_resource((GameResource *)effectBase);
+    release_game_resource_ex(effectBase, EffectGameResClassId);
     effectBase = nullptr;
   }
 }
@@ -1078,32 +1087,45 @@ void EffectManager::getFxMatrices(dag::Vector<TMatrix, framemem_allocator> &matr
 }
 
 void EffectManager::getDebugInfo(dag::Vector<Point3, framemem_allocator> &positions, dag::Vector<int, framemem_allocator> &elems,
-  dag::Vector<eastl::string_view, framemem_allocator> &names)
-{
-  for (int i = 0; i < fxList.totalSize(); ++i)
-  {
-    BaseEffect *fx = fxList.getByIdx(i);
-    if (fx)
-    {
-      int count = 0;
-      if (fx->obj)
-        fx->obj->getParam(_MAKE4C('FXIC'), &count);
-
-      elems.push_back(count);
-      positions.push_back(fx->tm.getcol(3));
-      names.push_back(params.name);
-    }
-  }
-}
-
-void EffectManager::getResDebugInfo(dag::Vector<Point3, framemem_allocator> &positions,
-  dag::Vector<eastl::string, framemem_allocator> &out_names, dag::Vector<int, framemem_allocator> &out_elems)
+  dag::Vector<eastl::string_view, framemem_allocator> &names, bool only_visible)
 {
   for (int i = 0; i < fxList.totalSize(); ++i)
   {
     BaseEffect *fx = fxList.getByIdx(i);
     if (!fx || !fx->obj)
       continue;
+
+    if (only_visible)
+    {
+      bool visible = true;
+      if (fx->obj->getParam(_MAKE4C('PFXC'), &visible) && !visible)
+        continue;
+    }
+
+    int count = 0;
+    fx->obj->getParam(_MAKE4C('FXIC'), &count);
+
+    elems.push_back(count);
+    positions.push_back(fx->tm.getcol(3));
+    names.push_back(params.name);
+  }
+}
+
+void EffectManager::getResDebugInfo(dag::Vector<Point3, framemem_allocator> &positions,
+  dag::Vector<eastl::string, framemem_allocator> &out_names, dag::Vector<int, framemem_allocator> &out_elems, bool only_visible)
+{
+  for (int i = 0; i < fxList.totalSize(); ++i)
+  {
+    BaseEffect *fx = fxList.getByIdx(i);
+    if (!fx || !fx->obj)
+      continue;
+
+    if (only_visible)
+    {
+      bool visible = true;
+      if (fx->obj->getParam(_MAKE4C('PFXC'), &visible) && !visible)
+        continue;
+    }
 
     dafx::InstanceId iid;
     fx->obj->getParam(_MAKE4C('FXID'), &iid);
@@ -1245,6 +1267,27 @@ bool EffectManager::hasLockedEffects()
   return false;
 }
 
+void EffectManager::teleportAllRandomRad(float r)
+{
+  OSSpinlockScopedLock lock(&mgrSLock);
+  for (int i = 0; i < fxList.totalSize(); ++i)
+  {
+    BaseEffect *fx = fxList.getByIdx(i);
+    if (!fx || (fx->flags & AcesEffect::IS_MARK_AS_DELETED))
+      continue;
+
+    float dist = gfrnd() * r;
+    float yaw = gfrnd() * TWOPI;
+    float pitch = gfrnd() * PI - PI * 0.5f;
+    float cp = cosf(pitch);
+    Point3 offset(cp * cosf(yaw) * dist, cp * sinf(yaw) * dist, sinf(pitch) * dist);
+
+    TMatrix tm = fx->tm;
+    tm.setcol(3, tm.getcol(3) + offset);
+    setFxTm(*fx, tm, false);
+  }
+}
+
 void EffectManager::setFxTmBuff(AcesEffect::FxId fx_id, const TMatrix &tm, bool is_emitter_tm)
 {
   if (push_fx_cmd(this, fx_id, is_emitter_tm ? FX_CMD_EMM_TM : FX_CMD_TM, [&](BuffCommand &cmd) { cmd.tm = tm; }))
@@ -1367,6 +1410,39 @@ void EffectManager::setFxWindScaleBuff(AcesEffect::FxId fx_id, float scale)
   mgrSLock.unlock();
 }
 
+void EffectManager::setFxSplineGenControlPoints(BaseEffect &fx, const TMatrix4 &splineGenData)
+{
+  if (fx.pendingId < 0)
+    fx.obj->setParam(_MAKE4C('SPLN'), (void *)&splineGenData);
+  else
+    pendingList[fx.pendingId].splineGenData = splineGenData;
+}
+
+void EffectManager::setFxSplineControlPointsBuff(AcesEffect::FxId fx_id, const Point4 &p0, const Point4 &p1, const Point4 &p2,
+  const Point4 &p3)
+{
+  TMatrix4 splData = TMatrix4::ZERO;
+  BezierSplineInt<Point4> spline;
+  Point4 splinePoints[4] = {p0, p1, p2, p3};
+  spline.calculate(splinePoints);
+  splData.setrow(0, spline.sk[0]);
+  splData.setrow(1, spline.sk[1]);
+  splData.setrow(2, spline.sk[2]);
+  splData.setrow(3, spline.sk[3]);
+
+  if (push_fx_cmd(this, fx_id, FX_CMD_SPLINE_GEN, [&](BuffCommand &cmd) { cmd.tm4 = splData; }))
+    return;
+  mgrSLock.lock();
+  if (EffectManager::BaseEffect *e = fxList.get(fx_id))
+    setFxSplineGenControlPoints(*e, splData);
+  mgrSLock.unlock();
+}
+
+void AcesEffect::setSplineControlPoints(const Point4 &p0, const Point4 &p1, const Point4 &p2, const Point4 &p3)
+{
+  mgr->setFxSplineControlPointsBuff(fxId, p0, p1, p2, p3);
+}
+
 void EffectManager::setFxGravityTm(BaseEffect &fx, const Matrix3 &tm)
 {
   if (fx.pendingId < 0)
@@ -1469,6 +1545,7 @@ void EffectManager::updateCmdBuff()
       case FX_CMD_WIND_SCALE: cmd.mgr->setFxWindScale(*e, cmd.f); break;
       case FX_CMD_GRAVITY_TM: cmd.mgr->setFxGravityTm(*e, cmd.m3); break;
       case FX_CMD_COLOR_MULT: cmd.mgr->setFxColorMult(*e, cmd.c4); break;
+      case FX_CMD_SPLINE_GEN: cmd.mgr->setFxSplineGenControlPoints(*e, cmd.tm4); break;
       case FX_CMD_STOP:
       {
         OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);

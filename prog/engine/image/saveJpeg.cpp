@@ -20,7 +20,7 @@ METHODDEF(void) dagor_jpeg_error_exit(j_common_ptr cinfo)
   longjmp(myerr->setjmp_buffer, 1);
 }
 
-bool save_jpeg32(unsigned char *ptr, int width, int height, int stride, int quality, IGenSave &cwr, const char *comments)
+bool save_jpeg32(const unsigned char *ptr, int width, int height, int stride, int quality, IGenSave &cwr, const char *comments)
 {
   JSAMPROW row_pointer[1];
   int row_stride;
@@ -90,7 +90,7 @@ bool save_jpeg32(unsigned char *ptr, int width, int height, int stride, int qual
   while (cinfo.next_scanline < cinfo.image_height)
   {
     {
-      TexPixel32 *pix = (TexPixel32 *)ptr;
+      const TexPixel32 *pix = (const TexPixel32 *)ptr;
       for (int bi = 0, i = 0; i < width; ++i, ++pix)
       {
         buf[bi++] = pix->r;
@@ -112,17 +112,17 @@ bool save_jpeg32(unsigned char *ptr, int width, int height, int stride, int qual
   return true;
 }
 
-bool save_jpeg32(struct TexPixel32 *pix, int w, int h, int stride, int quality, const char *fn, const char *comments)
+bool save_jpeg32(const TexPixel32 *pix, int w, int h, int stride, int quality, const char *fn, const char *comments)
 {
   FullFileSaveCB cwr(fn);
   if (!cwr.fileHandle)
     return false;
-  return save_jpeg32((unsigned char *)pix, w, h, stride, quality, cwr, comments);
+  return save_jpeg32((const unsigned char *)pix, w, h, stride, quality, cwr, comments);
 }
 
-bool save_jpeg32(TexImage32 *im, int quality, const char *fn, const char *comments)
+bool save_jpeg32(const TexImage32 *im, int quality, const char *fn, const char *comments)
 {
   if (!im)
     return false;
-  return save_jpeg32((TexPixel32 *)(im + 1), im->w, im->h, im->w * 4, quality, fn, comments);
+  return save_jpeg32((const TexPixel32 *)(im + 1), im->w, im->h, im->w * 4, quality, fn, comments);
 }

@@ -38,4 +38,4 @@ static ecs::EntitySystemDesc camtrack_updater_es_es_desc
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,"*");
-static constexpr ecs::component_t camtrack__filename_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char, eastl::allocator>>::type; }
+static constexpr ecs::component_t camtrack__filename_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char>>::type; }

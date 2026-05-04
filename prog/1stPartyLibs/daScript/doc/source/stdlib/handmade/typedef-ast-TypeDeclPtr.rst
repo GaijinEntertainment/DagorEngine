@@ -1,0 +1,1 @@
+Smart pointer to a `TypeDecl` object. The fundamental handle type for all type declarations in the AST type system.

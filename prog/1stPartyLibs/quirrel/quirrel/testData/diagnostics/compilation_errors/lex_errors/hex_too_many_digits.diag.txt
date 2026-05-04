@@ -1,0 +1,8 @@
+ERROR: too many digits for a hex number
+testData/diagnostics/compilation_errors/lex_errors/hex_too_many_digits.nut:2:8
+
+// EXPECT_ERROR: "too many digits for a hex number"
+let x = 0x100000000000000000
+        ^-------------------
+
+

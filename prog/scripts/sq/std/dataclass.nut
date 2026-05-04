@@ -72,7 +72,7 @@ let addNewline1 = mkAddNewline("  ")
 let addNewline3 = mkAddNewline("      ")
 
 function valToStr(val){
-  assert(["string","null","float","integer", "bool"].indexof(type(val))!=null, "only simple immutable types currently supported")
+  assert(["string","null","float","integer", "bool"].contains(type(val)), "only simple immutable types currently supported")
   if (type(val)=="string")
     val = $"\"{val}\""
   return val
@@ -116,7 +116,7 @@ function mkCtor(fields, args){
 
 let defParams = {name=null, verbose=false}
 function Dataclass(fields, params = defParams){
-  local name = defParams?.name
+  local name = params?.name
   name = (type(name)=="string")
     ? $"static __name__ = \"{name}\"\n"
     : ""

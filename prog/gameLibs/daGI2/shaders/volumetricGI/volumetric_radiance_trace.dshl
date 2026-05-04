@@ -82,7 +82,10 @@ hlsl {
 }
 shader calc_current_gi_froxels_cs
 {
-  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #define DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT 0
+  }
+
   READ_WORLD_SDF(cs)
 
   PROJECT_GET_WORLD_RADIANCE_AT(cs)
@@ -99,9 +102,11 @@ shader calc_current_gi_froxels_cs
     gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;
     gi_froxels_temporal_frame_ofs@f1=(gi_froxels_temporal_framef.x/8,0,0,0);
     inv_gi_froxels_size@f3 = (1./max(gi_froxels_size.x, 1), 1./max(gi_froxels_size.y, 1), 1./max(gi_froxels_size.z, 1),0);
+    radiance_hit@uav : register(0) hlsl {
+      RWTexture3D<float3> radiance_hit@uav;
+    }
   }
   hlsl(cs) {
-    RWTexture3D<float3> radiance_hit: register(u0);
     [numthreads(64, 1, 1)]
     void calc_current_gi_froxels_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -134,6 +139,7 @@ shader calc_current_gi_froxels_cs
       float3 radiance = 0;
       float biasK = 0.;//0..1. 0 means more light leaking but faster
       float t;
+      float distAtRayStart;
       uint clip;
       bool insideSDF = radGridClip < DAGI_MAX_RAD_GRID_CLIPS;// ? world_sdf_closer_to_nearest_surface_than_threshold(worldPos, gridProbeSize) : false;
 
@@ -143,6 +149,7 @@ shader calc_current_gi_froxels_cs
         rayDir,
         maxT,
         t,
+        distAtRayStart,
         clip,
         biasK))
       {
@@ -204,10 +211,13 @@ endmacro
 
 shader spatial_filter_gi_froxels_cs
 {
-  ENABLE_ASSERT(cs)
   GI_VOLUMETRIC_SPATIAL_FILTER(cs)
+  (cs) {
+    radiance_hit@uav : register(0) hlsl {
+      RWTexture3D<float3> radiance_hit@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<float3> radiance_hit: register(u0);
     [numthreads(64, 1, 1)]
     void spatial_filter_gi_froxels_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -231,10 +241,10 @@ macro ENVI_ENCODED_SH1(code)
       (enviSPH0.x + enviSPH1.x + enviSPH2.x)/3, enviSPH0.w);
   }
   hlsl(code) {
-    #include <sh1.hlsl>
-    SH1Encoded getSkySh1Encoded()
+    #include <sh1_encode_luminance.hlsl>
+    SH1LumEncoded getSkySh1Encoded()
     {
-      SH1Encoded sh1E;
+      SH1LumEncoded sh1E;
       sh1E.ambient = enviAmbient;
       sh1E.directional = enviDirectional;
       return sh1E;
@@ -281,7 +291,7 @@ macro DIFFUSE_SH1(code)
       coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_irrad_grid_get_clip_size().xxy)) - 0.5);
       return true;
     }
-    bool dagi_irrad_grid_diffuse_biased_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, inout SH1Encoded sh1)
+    bool dagi_irrad_grid_diffuse_biased_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, inout SH1LumEncoded sh1)
     {
       #if 0
       //we blur result anyway, so no point in accurate between cascade filtering
@@ -289,13 +299,13 @@ macro DIFFUSE_SH1(code)
       if (!dagi_irrad_grid_diffuse_biased_smooth_cascade(worldViewPos, worldPos, toCameraDir, maxCameraDist, 0, 0, cascade, coordF, vignette))
         return false;
 
-      SH1Encoded sh1Base = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade, coordF);
+      SH1LumEncoded sh1Base = encode_sh1_luminance(dagi_irrad_grid_get_sh1_cascade_unsafe(cascade, coordF));
 
       float3 nextLt = dagi_irrad_grid_abs_coord_lt(cascade + 1u);
       coordF = coordF*0.5 - nextLt;
       BRANCH
       if (all(coordF > 0 && coordF < dagi_irrad_grid_get_clip_size().xxy) && vignette > 0)
-        sh1 = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade+1, nextLt + clamp(coordF, 0.5, dagi_irrad_grid_get_clip_size().xxy - 0.5));
+        sh1 = encode_sh1_luminance(dagi_irrad_grid_get_sh1_cascade_unsafe(cascade+1, nextLt + clamp(coordF, 0.5, dagi_irrad_grid_get_clip_size().xxy - 0.5)));
       sh1 = lerp(sh1Base, sh1, vignette);
       return true;
       #else
@@ -304,7 +314,7 @@ macro DIFFUSE_SH1(code)
       if (!dagi_irrad_grid_diffuse_smooth_biased_to_camera_position(worldViewPos, worldPos, toCameraDir, maxCameraDist, cascade, coordF))
         return false;
 
-      sh1 = dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(cascade, coordF);
+      sh1 = encode_sh1_luminance(dagi_irrad_grid_get_sh1_cascade_unsafe(cascade, coordF));
       return true;
       #endif
     }
@@ -314,7 +324,6 @@ endmacro
 float4 gi_froxels_history_blur_ofs;
 shader calc_gi_froxels_irradiance_cs
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     gi_prev_froxels_sph0@smp3d = gi_prev_froxels_sph0;
     gi_prev_froxels_sph1@smp3d = gi_prev_froxels_sph1;
@@ -329,6 +338,12 @@ shader calc_gi_froxels_irradiance_cs
     //gi_froxels_solid_angle@f1 = (solidAngle/PI,0,0,0);
     gi_froxels_norm@f4 = (0.282095*solidAngle, -0.488603*solidAngle*2./3, 0.488603*solidAngle*2./3, -0.488603*solidAngle*2./3);
     gi_froxels_temporal_frame_ofs@f1=((gi_froxels_temporal_framef.x+0.5)/max(1, gi_froxels_temporal_framef.z),0,0,0);
+    irradiance_sph0@uav : register(0) hlsl {
+      RWTexture3D<float3> irradiance_sph0@uav;
+    }
+    irradiance_sph1@uav : register(1) hlsl {
+      RWTexture3D<float4> irradiance_sph1@uav;
+    }
   }
   hlsl(cs) {
     float3 get_gi_froxels_history_ndc(float3 camPos)
@@ -346,14 +361,12 @@ shader calc_gi_froxels_irradiance_cs
   DIFFUSE_SH1(cs)
   PROJECT_VOLUMETRIC_GI_IRRADIANCE(cs)
   hlsl(cs) {
-    RWTexture3D<float3> irradiance_sph0: register(u0);
-    RWTexture3D<float4> irradiance_sph1: register(u1);
     ##if gi_current_froxels_radiance != NULL
     #define USE_TRACED_RADIANCE 1
     ##endif
 
 
-    #include <sh1.hlsl>
+    #include <sh1_encode_luminance.hlsl>
     [numthreads(64, 1, 1)]
     void calc_gi_froxels_irradiance_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -364,7 +377,7 @@ shader calc_gi_froxels_irradiance_cs
       if (volumeProbeCoordinates.z == uint(gi_froxels_sizei.z) - 1)
       {
         // to ensure filtering out to "nothing"
-        SH1Encoded sh1E = getSkySh1Encoded();
+        SH1LumEncoded sh1E = getSkySh1Encoded();
         texture3DAt(irradiance_sph0, volumeProbeCoordinates) = sh1E.ambient;
         texture3DAt(irradiance_sph1, volumeProbeCoordinates) = sh1E.directional;
         return;
@@ -400,7 +413,7 @@ shader calc_gi_froxels_irradiance_cs
       if (volumeProbeCoordinates.z >= uint(gi_froxels_atlas_sizei.z) || !validHistory)
       #endif
       {
-        SH1Encoded sh1E = getSkySh1Encoded();
+        SH1LumEncoded sh1E = getSkySh1Encoded();
         //super simple hack to prevent light bleeding through occluded froxel
         worldPosJittered -= max(0, froxelLinearDepthJittered - max(froxelLinearDepthPrev, linearHZBDepth))*viewVec;
         float dist = length(gi_froxels_world_view_pos - worldPosJittered);
@@ -475,18 +488,22 @@ shader calc_gi_froxels_irradiance_cs
 
 shader calc_gi_froxels_irradiance_simple_cs
 {
-  ENABLE_ASSERT(cs)
   GI_VOLUMETRIC_VIEW_VEC_OPTIMIZED(cs)
   DAGI_IRRADIANCE_GRID_SAMPLE_INIT(cs)
   DAGI_IRRADIANCE_GRID_SAMPLE_USE(cs)
   GI_VOLUMETRIC_COMMON(cs)
   ENVI_ENCODED_SH1(cs)
   DIFFUSE_SH1(cs)
+  (cs) {
+    irradiance_sph0@uav : register(0) hlsl {
+      RWTexture3D<float3> irradiance_sph0@uav;
+    }
+    irradiance_sph1@uav : register(1) hlsl {
+      RWTexture3D<float4> irradiance_sph1@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<float3> irradiance_sph0: register(u0);
-    RWTexture3D<float4> irradiance_sph1: register(u1);
-
-    #include <sh1.hlsl>
+    #include <sh1_encode_luminance.hlsl>
     [numthreads(64, 1, 1)]
     void calc_gi_froxels_irradiance_simple_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -501,7 +518,7 @@ shader calc_gi_froxels_irradiance_simple_cs
       float3 viewVec = gi_froxels_getViewVecOptimized(screenTC.xy);
       float3 worldPos = gi_froxels_world_view_pos + froxelLinearDepth*viewVec;
 
-      SH1Encoded sh1E = getSkySh1Encoded();
+      SH1LumEncoded sh1E = getSkySh1Encoded();
       if (volumeProbeCoordinates.z != uint(gi_froxels_sizei.z) - 1)
         dagi_irrad_grid_diffuse_biased_sh1(gi_froxels_world_view_pos, worldPos, -normalize(viewVec), length(froxelLinearDepth*viewVec), sh1E);
       texture3DAt(irradiance_sph0, volumeProbeCoordinates) = sh1E.ambient;
@@ -516,6 +533,9 @@ int gi_froxels_debug_type;
 
 shader froxels_gi_draw_debug
 {
+  supports global_frame;
+  supports none;
+
   (ps) {
     gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
     gi_froxels_debug_type@i1 = gi_froxels_debug_type;
@@ -566,7 +586,7 @@ shader froxels_gi_draw_debug
   }
 
   hlsl(ps) {
-    #include <sh1.hlsl>
+    #include <sh1_encode_luminance.hlsl>
     half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       if (gi_froxels_debug_type == 0)

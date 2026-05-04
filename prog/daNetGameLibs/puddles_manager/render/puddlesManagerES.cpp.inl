@@ -3,7 +3,9 @@
 #include <main/level.h>
 #include <landMesh/lmeshManager.h>
 #include <render/renderEvent.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <daECS/core/coreEvents.h>
 #include "puddlesManager.h"
@@ -14,6 +16,7 @@ ECS_DECLARE_RELOCATABLE_TYPE(PuddlesManager)
 ECS_REGISTER_RELOCATABLE_TYPE(PuddlesManager, nullptr)
 
 ECS_REGISTER_EVENT(RemovePuddlesInRadius)
+ECS_REGISTER_EVENT(PreparePuddles)
 
 ECS_TAG(render)
 static void init_puddles_manager_es(const OnLevelLoaded &evt, PuddlesManager &puddles__manager, float puddles__bare_minimum_dist)
@@ -31,7 +34,7 @@ static void reinit_puddles_es(const ChangeRenderFeatures &evt, PuddlesManager &p
 }
 
 ECS_TAG(render)
-static void prepare_puddles_es(const BeforeDraw &evt, PuddlesManager &puddles__manager)
+static void prepare_puddles_es(const PreparePuddles &evt, PuddlesManager &puddles__manager)
 {
   puddles__manager.preparePuddles(evt.camPos);
 }

@@ -21,7 +21,7 @@ if $(Platform) = nswitch {
 }
 
 if $(Platform) = linux && $(Sanitize) = thread {
-  Copt += -Wno-tsan ;
+  Copt += -Wno-tsan -fno-sanitize=thread  ;
 }
 
 if $(PlatformSpec) in gcc clang {

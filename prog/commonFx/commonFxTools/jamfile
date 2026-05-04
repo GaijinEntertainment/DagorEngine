@@ -17,6 +17,7 @@ include $(Root)/prog/commonFx/fxList.jam ;
 Sources =
   effectClassTools.cpp
   commonFxTools.cpp
+  outdatedFxTools.cpp
 
   $(fxList)_tools.cpp
   dafxEmitter_tools.cpp

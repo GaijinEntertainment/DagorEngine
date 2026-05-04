@@ -38,7 +38,7 @@ let hints = {children = controlsHints valign = ALIGN_BOTTOM size = flex(), halig
 
 let fpsBar = @(){
   behavior = Behaviors.FpsBar
-  size = static [sw(20), SIZE_TO_CONTENT]
+  size = const [sw(20), SIZE_TO_CONTENT]
   vplace = ALIGN_BOTTOM
   rendObj = ROBJ_TEXT
 }
@@ -82,8 +82,24 @@ ecs.register_es("get_time_limits_ui", {
   ["countdown_to_start_sec", ecs.TYPE_INT],
 ]})
 
+let bots = Watched({})
 let players = Watched({})
 let localPlayerEid = Watched(-1)
+
+ecs.register_es("bots_ui_es", {
+  [["onInit", "onChange"]] = function(_evt, eid, comp) {
+    bots.mutate(function(v){
+      v[eid] <- {name = comp.name, player_score=comp.player__score, player_last_checkpoint_time=comp.player__last_checkpoint_time, is_local = false, is_bot = true, checkpoints = comp.player__checkpoints}
+    })
+  }
+  onDestroy = function(_evt, eid, _comp) {
+    bots.mutate(@(v) v.$rawdelete(eid))
+  },
+}, {comps_track = [
+  ["name", ecs.TYPE_STRING], ["player__score", ecs.TYPE_FLOAT, 0.0],
+  ["player__checkpoints", ecs.TYPE_INT, 0],
+  ["player__last_checkpoint_time", ecs.TYPE_FLOAT, 0.0]
+], comps_rq=["is_bot"]})
 
 ecs.register_es("players_ui_es", {
   [["onInit", "onChange"]] = function(_evt, eid, comp) {
@@ -91,7 +107,7 @@ ecs.register_es("players_ui_es", {
     if (is_local)
       localPlayerEid.set(eid)
     players.mutate(function(v){
-      v[eid] <- {name = comp.name, player_score=comp.player__score, player_last_checkpoint_time=comp.player__last_checkpoint_time, is_local=is_local, checkpoints = comp.player__checkpoints}
+      v[eid] <- {name = comp.name, player_score=comp.player__score, player_last_checkpoint_time=comp.player__last_checkpoint_time, is_local=is_local, is_bot = false, checkpoints = comp.player__checkpoints}
     })
   }
   onDestroy = function(_evt, eid, _comp) {
@@ -125,6 +141,8 @@ ecs.register_es("debriefing_ui_es", {
     sessionResult.mutate(function(v) {
       v.winnerEid <- byPlayer
       v.winner <- players.get()?[byPlayer]
+      if (v.winner == null)
+        v.winner <- bots.get()?[byPlayer]
       v.players <- plinfo
     })
   }
@@ -239,6 +257,7 @@ function mkTextFromPlayerInfo(info){
     flow = FLOW_HORIZONTAL
     gap = hdpx(10)
     children = [
+      {text=info.is_bot ? "[B]" : "[P]", rendObj = ROBJ_TEXT fontSize = FONT_SZ_MAIN}.__update(mainHudTxtStyle, {color})
       {text=info.name, rendObj = ROBJ_TEXT fontSize = FONT_SZ_MAIN}.__update(mainHudTxtStyle, {color})
       {text = info.player_score, rendObj = ROBJ_TEXT fontSize = FONT_SZ_MAIN}.__update(mainHudTxtStyle, {color})
     ]
@@ -273,12 +292,19 @@ function mkPlayersInfo(pinfo){
   return res.sort(@(a,b) b.player_score <=> a.player_score || a.player_last_checkpoint_time <=> b.player_last_checkpoint_time)
 }
 function playersInfo(){
+  let merged = []
+  foreach(info in players.get()){
+    merged.append(info)
+  }
+  foreach(info in bots.get()){
+    merged.append(info)
+  }
   return {
-    watch = players
+    watch = [players, bots]
     flow = FLOW_VERTICAL
     gap = hdpx(10)
     halign = ALIGN_RIGHT
-    children = mkPlayersInfo(players.get()).map(mkTextFromPlayerInfo)
+    children = mkPlayersInfo(merged).map(mkTextFromPlayerInfo)
   }
 }
 function sessionInfo(){
@@ -346,7 +372,7 @@ function markerDist(eid) {
 }
 
 let viewport = freeze({
-  size = static [sw(98), sh(98)]
+  size = const [sw(98), sh(98)]
   data = {
     isViewport = true
   }
@@ -360,7 +386,7 @@ function markers() {
       children.append(marker(eid), markerDist(eid))
   }
   return {
-    size = static [sw(100), sh(100)]
+    size = const [sw(100), sh(100)]
     behavior = DngBhv.Projection
     sortChildren = true
     halign = ALIGN_CENTER
@@ -386,7 +412,7 @@ function mkDebriefingFromPlayerInfo(info) {
 }
 
 function mkDebriefing(show_btn=false) {
-  let gap = freeze({size = static [0, hdpx(20)]})
+  let gap = freeze({size = const [0, hdpx(20)]})
   return function() {
     let res = sessionResult.get()
     let winner = res?.winner.name
@@ -413,7 +439,7 @@ function mkDebriefing(show_btn=false) {
       watch = sessionResult
       size = flex()
       gap = hdpx(10)
-      padding = static [sh(10), hdpx(40), sh(10), hdpx(40)]
+      padding = const [sh(10), hdpx(40), sh(10), hdpx(40)]
       rendObj = res && show_btn? ROBJ_SOLID : null
       color = Color(0,0,0,120)
       hplace = ALIGN_CENTER

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <memory/dag_memStat.h>
 #include <workCycle/dag_workCyclePerf.h>
 
@@ -15,7 +15,7 @@
 #include <squirrel/sqpcheader.h>
 #include <squirrel/sqstring.h>
 #include <squirrel/sqvm.h>
-#include <squirrel/memtrace.h>
+#include <quirrel/quirrelHost/memtrace.h>
 #include <stdio.h>
 
 namespace bindquirrel
@@ -23,9 +23,6 @@ namespace bindquirrel
 extern void logerr_interceptor_bind_api(Sqrat::Table &nsTbl);
 
 static bool console_output = false;
-
-static const char buf_string_key[] = "dbg:string-buf";
-
 
 static void script_debug(const char *msg)
 {
@@ -73,7 +70,7 @@ static SQFloat getAvgCpuOnlyCycleTimeUsec() { return SQFloat(workcycleperf::get_
 
 #if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
 
-static void print_to_debug(HSQUIRRELVM, const SQChar *s, ...)
+static void print_to_debug(HSQUIRRELVM, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -86,28 +83,6 @@ static void print_to_debug(HSQUIRRELVM, const SQChar *s, ...)
   va_end(vl);
 }
 
-
-static void print_to_assert_buf(HSQUIRRELVM vm, const SQChar *s, ...)
-{
-  sq_pushregistrytable(vm);
-  sq_pushstring(vm, buf_string_key, countof(buf_string_key) - 1);
-  if (SQ_FAILED(sq_get(vm, -2)))
-  {
-    sq_pop(vm, 1);
-    return;
-  }
-
-  SQUserPointer up = nullptr;
-  G_VERIFY(SQ_SUCCEEDED(sq_getuserpointer(vm, -1, &up)));
-  sq_pop(vm, 2);
-
-  String *bufStr = (String *)up;
-
-  va_list vl;
-  va_start(vl, s);
-  bufStr->cvaprintf(128, s, vl);
-  va_end(vl);
-}
 
 #endif
 
@@ -126,68 +101,6 @@ static SQInteger debug_dump_callstack(HSQUIRRELVM v)
 #endif
   return 0;
 }
-
-
-static SQInteger script_assert(HSQUIRRELVM v)
-{
-  G_UNUSED(v);
-#if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
-  SQInteger prevTop = sq_gettop(v);
-  G_UNUSED(prevTop);
-
-  SQBool expr = SQFalse;
-  sq_tobool(v, 2, &expr);
-
-  if (!expr)
-  {
-    const char *msg = nullptr;
-    if (sq_gettop(v) < 3 || SQ_FAILED(sq_getstring(v, 3, &msg)))
-      msg = "Script assertion failed";
-
-    String assertBuf(msg);
-
-    sq_pushregistrytable(v);
-    sq_pushstring(v, buf_string_key, countof(buf_string_key) - 1);
-    sq_pushuserpointer(v, &assertBuf);
-    if (SQ_FAILED(sq_newslot(v, -3, SQFalse)))
-    {
-      sq_pop(v, 3); // key + value + regtable
-      G_ASSERT(sq_gettop(v) == prevTop);
-      LOGERR_CTX("Script assert intenal error, msg = %s", msg);
-    }
-    else
-    {
-      sq_pop(v, 1); // registry table
-
-      G_ASSERT(sq_gettop(v) == prevTop);
-
-      SQPRINTFUNCTION pf = sq_getprintfunc(v);
-      SQPRINTFUNCTION ef = sq_geterrorfunc(v);
-
-      sq_setprintfunc(v, print_to_assert_buf, print_to_assert_buf);
-      sqstd_printcallstack(v);
-      sq_setprintfunc(v, pf, ef);
-
-#if DAGOR_DBGLEVEL > 0
-      // Note: the string will stay in the string table forever
-      SQObjectPtr errorStr(SQString::Create(_ss(v), assertBuf.str()));
-      v->CallErrorHandler(errorStr);
-#else
-      logmessage(_MAKE4C('SQRL'), "SQ: %s", assertBuf.str());
-#endif
-    }
-
-    sq_pushregistrytable(v);
-    sq_pushstring(v, buf_string_key, countof(buf_string_key) - 1);
-    G_VERIFY(SQ_SUCCEEDED(sq_deleteslot(v, -2, SQFalse)));
-    sq_pop(v, 1); // registry table
-  }
-
-  G_ASSERT(sq_gettop(v) == prevTop);
-#endif
-  return 0;
-}
-
 
 static void screenlog(const char *msg)
 {
@@ -209,33 +122,30 @@ void sqrat_bind_dagor_logsys(SqModules *module_mgr, bool console_mode)
 
   ///@module dagor.memtrace
   memTraceTbl //
-    .SquirrelFunc(
-      "reset_cur_vm",
-      [](HSQUIRRELVM vm) -> SQInteger {
+    .SquirrelFuncDeclString(
+      +[](HSQUIRRELVM vm) -> SQInteger {
         sqmemtrace::reset_statistics_for_current_vm(vm);
         return 0;
       },
-      1)
-    .SquirrelFunc("get_quirrel_object_size", sqmemtrace::get_quirrel_object_size, 2)
-    .SquirrelFunc("get_quirrel_object_size_as_string", sqmemtrace::get_quirrel_object_size_as_string, 2)
-    .SquirrelFunc("is_quirrel_object_larger_than", sqmemtrace::is_quirrel_object_larger_than, 3, "..i")
+      "reset_cur_vm(): null")
+    .SquirrelFuncDeclString(sqmemtrace::get_quirrel_object_size, "get_quirrel_object_size(obj: any): table")
+    .SquirrelFuncDeclString(sqmemtrace::get_quirrel_object_size_as_string, "get_quirrel_object_size_as_string(obj: any): string")
+    .SquirrelFuncDeclString(sqmemtrace::is_quirrel_object_larger_than, "is_quirrel_object_larger_than(obj: any, size: int): bool")
     .Func("reset_all", sqmemtrace::reset_all)
     .Func("set_huge_alloc_threshold", sqmemtrace::set_huge_alloc_threshold)
     /// @return previously allocation threshold
-    .SquirrelFunc(
-      "dump_cur_vm",
-      [](HSQUIRRELVM vm) -> SQInteger {
+    .SquirrelFuncDeclString(
+      +[](HSQUIRRELVM vm) -> SQInteger {
         SQInteger num_top;
         sq_getinteger(vm, 2, &num_top);
         sqmemtrace::dump_statistics_for_current_vm(vm, num_top);
         return 0;
       },
-      2, ".i")
+      "dump_cur_vm(num_top: int): null")
     .Func("dump_all", sqmemtrace::dump_all)
     .Func("get_memory_allocated_kb", sq_get_memory_allocated_kb)
     /// @return i
     ;
-  logerr_interceptor_bind_api(memTraceTbl);
   module_mgr->addNativeModule("dagor.memtrace", memTraceTbl);
 
 
@@ -246,11 +156,9 @@ void sqrat_bind_dagor_logsys(SqModules *module_mgr, bool console_mode)
     .Func("debug", script_debug)
     .Func("fatal", script_fatal)
     .Func("screenlog", screenlog)
-    .SquirrelFunc("logerr", script_logerr, 2, ".s")
+    .SquirrelFuncDeclString(script_logerr, "logerr(msg: string): null")
     .Func("console_print", &console_print)
-    .SquirrelFunc("debug_dump_stack", debug_dump_callstack, 1, ".")
-    .SquirrelFunc("assert", script_assert, -2, "..s")
-    .SquirrelFunc("assertf", script_assert, 3, "..s")
+    .SquirrelFuncDeclString(debug_dump_callstack, "debug_dump_stack(): null")
     .Func("get_log_filename", get_log_filename)
     /**/;
   logerr_interceptor_bind_api(nsTbl);
@@ -265,7 +173,6 @@ void sqrat_bind_dagor_logsys(SqModules *module_mgr, bool console_mode)
     .Func("reset_summed_cpu_only_cycle_time", []() { workcycleperf::reset_summed_cpu_only_cycle_time(); })
     /**/;
 
-  logerr_interceptor_bind_api(perfTbl);
   module_mgr->addNativeModule("dagor.perf", perfTbl);
 }
 

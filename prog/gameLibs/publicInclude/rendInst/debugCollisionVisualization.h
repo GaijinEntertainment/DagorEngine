@@ -24,8 +24,9 @@ enum class DrawCollisionsFlag : uint32_t
   RendInstCanopy = 1 << 5,
   PhysOnly = 1 << 6,
   TraceOnly = 1 << 7,
+  Occlusion = 1 << 8,
 
-  ALL_FLAGS = All | Wireframe | Opacity | Invisible | RendInstCanopy | PhysOnly | TraceOnly
+  ALL_FLAGS = All | Wireframe | Opacity | Invisible | RendInstCanopy | PhysOnly | TraceOnly | Occlusion
 };
 using DrawCollisionsFlags = BitFlagsMask<DrawCollisionsFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(rendinst::DrawCollisionsFlag);

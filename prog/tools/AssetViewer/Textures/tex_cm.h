@@ -53,3 +53,10 @@ enum
   ID_NEW_OBJ_NAME = 1,
   ID_NEW_OBJ_PATH,
 };
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *TEXTURES_RESET_SCALE = "Plugin.Textures.ResetScale";
+
+}

@@ -11,5 +11,6 @@ namespace rendinst
 {
 struct RendInstDesc;
 
-void draw_rendinst_info(const Point3 &intersection_pos, const TMatrix &cam_tm, const RendInstDesc &desc);
+void draw_rendinst_info(const Point3 &intersection_pos, const TMatrix &cam_tm, const RendInstDesc &desc, int coll_mat_id);
+void draw_rendinst_canopy(const Point3 &intersection_pos, const TMatrix &cam_tm, const RendInstDesc &desc);
 } // namespace rendinst

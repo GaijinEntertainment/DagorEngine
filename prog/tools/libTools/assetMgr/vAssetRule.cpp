@@ -72,17 +72,33 @@ bool DagorVirtualAssetRule::load(const DataBlock &blk, IDagorAssetMsgPipe &msg_p
   replaceStrings = blk.getBool("replaceContentStrings", true);
   ignoreDupAsset = blk.getBool("ignoreDupAsset", false);
   overrideDupAsset = blk.getBool("overrideDupAsset", false);
+  onlyBuildTagged = blk.getBool("onlyBuildTagged", false);
 
   return true;
 }
 
-bool DagorVirtualAssetRule::testRule(const char *fname, String &out_asset_name)
+bool DagorVirtualAssetRule::testRule(const char *fname, const char *folder_path, String &out_asset_name)
 {
   if (!reFind.test(fname))
     return false;
   for (int i = 0; i < reExclude.size(); i++)
     if (reExclude[i]->test(fname))
       return false;
+  if (onlyBuildTagged)
+  {
+    if (!tagNm.nameCount())
+      return false;
+
+    String fn, substr;
+    fn.setStrCat3(folder_path, "/", fname);
+    simplify_fname(fn);
+    fn.toLower();
+    if (iterate_names_breakable(tagNm, [&fn, &substr](int, const char *name) {
+          substr.setStrCat3("/", name, "/");
+          return strstr(fn, substr) ? IterateStatus::StopOk : IterateStatus::Continue;
+        }) != IterateStatus::StopOk)
+      return false;
+  }
 
   char *repl = reFind.replace2(nameTemplate);
   out_asset_name = repl;
@@ -91,9 +107,7 @@ bool DagorVirtualAssetRule::testRule(const char *fname, String &out_asset_name)
 }
 
 
-static RegExp *curReFind = NULL;
-
-static void replaceDataBlockStrings(DataBlock &blk)
+static void replaceDataBlockStrings(DataBlock &blk, RegExp *curReFind)
 {
   if (!blk.getBool("replaceContentStrings", true))
     return;
@@ -118,12 +132,11 @@ static void replaceDataBlockStrings(DataBlock &blk)
 
   num = blk.blockCount();
   for (int i = 0; i < num; ++i)
-    replaceDataBlockStrings(*blk.getBlock(i));
+    replaceDataBlockStrings(*blk.getBlock(i), curReFind);
 }
 
 void DagorVirtualAssetRule::applyRule(DataBlock &blk, const char *full_fn)
 {
-  curReFind = &reFind;
   DataBlock storBlk, &tmpBlk = !addSrcFileAsBlk ? blk : storBlk;
 
   tmpBlk.setFrom(&contents);
@@ -141,9 +154,7 @@ void DagorVirtualAssetRule::applyRule(DataBlock &blk, const char *full_fn)
   }
 
   if (replaceStrings)
-    replaceDataBlockStrings(tmpBlk);
+    replaceDataBlockStrings(tmpBlk, &reFind);
   if (&tmpBlk != &blk)
     merge_data_block(blk, tmpBlk, false, false, NULL);
-
-  curReFind = NULL;
 }

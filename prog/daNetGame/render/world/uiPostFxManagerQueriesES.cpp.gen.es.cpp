@@ -17,9 +17,9 @@ static ecs::CompileTimeQueryDesc get_ui_blur_texid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_ui_blur_texid_ecs_query(Callable function)
+inline void get_ui_blur_texid_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_ui_blur_texid_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_ui_blur_texid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -45,9 +45,9 @@ static ecs::CompileTimeQueryDesc get_ui_blur_sampler_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_ui_blur_sampler_ecs_query(Callable function)
+inline void get_ui_blur_sampler_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_ui_blur_sampler_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_ui_blur_sampler_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -73,9 +73,9 @@ static ecs::CompileTimeQueryDesc get_ui_blur_sdr_texid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_ui_blur_sdr_texid_ecs_query(Callable function)
+inline void get_ui_blur_sdr_texid_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_ui_blur_sdr_texid_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_ui_blur_sdr_texid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -101,9 +101,9 @@ static ecs::CompileTimeQueryDesc get_ui_blur_sdr_sampler_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_ui_blur_sdr_sampler_ecs_query(Callable function)
+inline void get_ui_blur_sdr_sampler_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_ui_blur_sdr_sampler_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_ui_blur_sdr_sampler_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

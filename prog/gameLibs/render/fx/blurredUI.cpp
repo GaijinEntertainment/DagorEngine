@@ -45,7 +45,7 @@ void BlurredUI::setIntermediate(int w, int h, TextureIDPair tex)
     logwarn("can't use texture for blurring of %dx%d", w, h);
   }
 
-  auto texP = d3d::create_tex(NULL, w, h, fmtflags, 1, "ui_intermediate");
+  auto texP = d3d::create_tex(NULL, w, h, fmtflags, 1, "ui_intermediate", RESTAG_GUI);
 
   TEXTUREID texId = register_managed_tex("ui_intermediate", texP);
   intermediate = TextureIDPair(texP, texId);
@@ -56,14 +56,14 @@ void BlurredUI::ensureIntermediate2(int w, int h, int mips)
 {
   const uint32_t uifmtflags = TEXCF_RTARGET | TEXFMT_R11G11B10F | TEXCF_CLEAR_ON_CREATE;
   intermediate2.close();
-  intermediate2.set(d3d::create_tex(NULL, w, h, uifmtflags, mips, "ui_intermediate2"), "ui_intermediate2");
+  intermediate2.set(d3d::create_tex(NULL, w, h, uifmtflags, mips, "ui_intermediate2", RESTAG_GUI), "ui_intermediate2");
 }
 
 void BlurredUI::initSdrTex(int width, int height, int mips)
 {
   const uint32_t uifmtflags = TEXCF_RTARGET | TEXFMT_R11G11B10F | TEXCF_CLEAR_ON_CREATE;
   finalSdr.close();
-  finalSdr.set(d3d::create_tex(NULL, width / 8, height / 8, uifmtflags, mips, "ui_blurred_sdr"), "ui_blurred_sdr");
+  finalSdr.set(d3d::create_tex(NULL, width / 8, height / 8, uifmtflags, mips, "ui_blurred_sdr", RESTAG_GUI), "ui_blurred_sdr");
   finalSdrSampler = d3d::request_sampler({});
 }
 
@@ -71,7 +71,7 @@ void BlurredUI::init(int width, int height, int mips, TextureIDPair interm)
 {
   close();
   const uint32_t uifmtflags = TEXCF_RTARGET | TEXFMT_R11G11B10F | TEXCF_CLEAR_ON_CREATE;
-  final.set(d3d::create_tex(NULL, width / 8, height / 8, uifmtflags, mips, "ui_blurred"), "ui_blurred");
+  final.set(d3d::create_tex(NULL, width / 8, height / 8, uifmtflags, mips, "ui_blurred", RESTAG_GUI), "ui_blurred");
   d3d::resource_barrier({final.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   {
     d3d::SamplerInfo smpInfo;

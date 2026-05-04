@@ -1,0 +1,47 @@
+options gen2
+options indenting = 4
+
+require daslib/rtti
+require strings
+
+[export, pinvoke]
+def can_visit_folder(folder_name : string; var result : bool?) {
+    if (folder_name == "dasHV") {
+        *result = has_module("dashv")
+        return
+    }
+    if (folder_name == "dasPUGIXML") {
+        *result = has_module("pugixml")
+        return
+    }
+    if (folder_name == "stbimage") {
+        *result = has_module("stbimage")
+        return
+    }
+    if (folder_name == "live_host") {
+        *result = has_module("live_host")
+        return
+    }
+    if (folder_name == "strudel") {
+        *result = has_module("audio")
+        return
+    }
+    if (folder_name == "jit_tests" || folder_name == ".jitted_scripts") {
+        let args <- get_command_line_arguments()
+        for (arg in args) {
+            if (arg == "--use-aot") {
+                *result = false
+                return
+            }
+        }
+    }
+    if (folder_name == "ast_match") {
+        let args <- get_command_line_arguments()
+        for (arg in args) {
+            if (arg == "--use-aot" || arg == "-jit") {
+                *result = false
+                return
+            }
+        }
+    }
+}

@@ -6,6 +6,7 @@
 #include <scene/dag_occlusionMap.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <libTools/util/makeBindump.h>
 #include <ioSys/dag_dataBlock.h>
@@ -23,6 +24,13 @@ enum
 {
   CM_SET_VIS_DIST = CM_PLUGIN_BASE + 1,
 };
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *SET_VIS_DIST = "Plugin.Occluders.SetVisibilityForImplicitOccluders";
+
+}
 
 enum
 {
@@ -47,7 +55,10 @@ occplugin::Plugin::~Plugin() { self = NULL; }
 bool occplugin::Plugin::begin(int toolbar_id, unsigned menu_id)
 {
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
-  mainMenu->addItem(menu_id, CM_SET_VIS_DIST, "Implicit occluders visibility...");
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SET_VIS_DIST, EditorCommandIds::SET_VIS_DIST, "Implicit occluders visibility...");
 
   PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
   G_ASSERT(toolbar);
@@ -202,10 +213,19 @@ bool occplugin::Plugin::onPluginMenuClick(unsigned id)
 
 void occplugin::Plugin::handleViewportAcceleratorCommand(unsigned id) { objEd.onClick(id, nullptr); }
 
+void occplugin::Plugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  objEd.registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::SET_VIS_DIST);
+}
+
 void occplugin::Plugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
   objEd.registerViewportAccelerators(wndManager);
+
+  wndManager.addAccelerator(CM_SET_VIS_DIST, EditorCommandIds::SET_VIS_DIST);
 }
 
 void occplugin::Plugin::fillExportPanel(PropPanel::ContainerPropertyControl &params)

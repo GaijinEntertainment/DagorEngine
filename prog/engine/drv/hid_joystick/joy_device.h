@@ -57,40 +57,41 @@ public:
   void applyRemapHats();
 
   // IGenJoystick interface implementation
-  virtual const char *getName() const { return name; }
-  virtual const char *getDeviceID() const { return devID; }
-  virtual bool getDeviceDesc(DataBlock &out_desc) const { return false; }
-  virtual unsigned short getUserId() const { return userId; }
-  virtual const JoystickRawState &getRawState() const { return state; }
-  virtual void setClient(IGenJoystickClient *cli);
-  virtual IGenJoystickClient *getClient() const;
+  const char *getName() const override { return name; }
+  const char *getDeviceID() const override { return devID; }
+  bool getDeviceDesc(DataBlock &out_desc) const override { return false; }
+  unsigned short getUserId() const override { return userId; }
+  const JoystickRawState &getRawState() const override { return state; }
+  void setClient(IGenJoystickClient *cli) override;
+  IGenJoystickClient *getClient() const override;
 
-  virtual int getButtonCount() const;
-  virtual const char *getButtonName(int idx) const;
+  int getButtonCount() const override;
+  const char *getButtonName(int idx) const override;
 
-  virtual int getAxisCount() const;
-  virtual const char *getAxisName(int idx) const;
+  int getAxisCount() const override;
+  const char *getAxisName(int idx) const override;
 
-  virtual int getPovHatCount() const;
-  virtual const char *getPovHatName(int idx) const;
+  int getPovHatCount() const override;
+  const char *getPovHatName(int idx) const override;
 
-  virtual int getButtonId(const char *name) const;
-  virtual int getAxisId(const char *name) const;
-  virtual int getPovHatId(const char *name) const;
-  virtual void setAxisLimits(int axis_id, float min_val, float max_val);
-  virtual bool getButtonState(int btn_id) const;
-  virtual float getAxisPos(int axis_id) const;
-  virtual int getAxisPosRaw(int axis_id) const;
-  virtual int getPovHatAngle(int axis_id) const;
+  int getButtonId(const char *name) const override;
+  int getAxisId(const char *name) const override;
+  int getPovHatId(const char *name) const override;
+  void setAxisLimits(int axis_id, float min_val, float max_val) override;
+  bool getButtonState(int btn_id) const override;
+  float getAxisPos(int axis_id) const override;
+  int getAxisPosRaw(int axis_id) const override;
+  int getPovHatAngle(int axis_id) const override;
 
-  virtual IJoyFfCondition *createConditionFx(int condfx_type, const JoyFfCreateParams &cp);
-  virtual IJoyFfConstForce *createConstForceFx(const JoyFfCreateParams &cp, float force);
-  virtual IJoyFfPeriodic *createPeriodicFx(int period_type, const JoyFfCreateParams &cp);
-  virtual IJoyFfRampForce *createRampForceFx(const JoyFfCreateParams &cp, float start_f, float end_f);
+  IJoyFfCondition *createConditionFx(int condfx_type, const JoyFfCreateParams &cp) override;
+  IJoyFfConstForce *createConstForceFx(const JoyFfCreateParams &cp, float force) override;
+  IJoyFfPeriodic *createPeriodicFx(int period_type, const JoyFfCreateParams &cp) override;
+  IJoyFfRampForce *createRampForceFx(const JoyFfCreateParams &cp, float start_f, float end_f) override;
 
-  virtual void doRumble(float lowFreq, float highFreq) {}
-  virtual void setLight(bool set, unsigned char r, unsigned char g, unsigned char b) {}
-  virtual bool isConnected();
+  void doRumble(float lowFreq, float highFreq) {}
+  void setLight(bool set, unsigned char r, unsigned char g, unsigned char b) {}
+  bool isConnected();
+  bool isXinputCompatible() const override { return shouldRemapAsX360(); }
 
   int getPairedButtonForAxis(int axis_idx) const override;
   int getPairedAxisForButton(int btn_idx) const override;

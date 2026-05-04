@@ -11,7 +11,9 @@
 #include <math/dag_bits.h>
 #include "net/net.h"
 #include <daECS/net/replay.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/net/object.h>
 #include <daECS/net/network.h>
 #include <util/dag_convar.h>
@@ -25,7 +27,7 @@
 #include <stddef.h> // offsetof
 #include <supp/dag_alloca.h>
 #include <daECS/net/netbase.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <daECS/net/msgDecl.h>
 #include <daNet/getTime.h>
 #include "net/netStat.h"
@@ -104,7 +106,7 @@ public:
 };
 
 template <typename Callable>
-static __forceinline void base_phys_actor_eid_ecs_query(ecs::EntityId eid, Callable c);
+static __forceinline void base_phys_actor_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_REQUIRE(ecs::Tag msg_sink)
 ECS_TAG(netClient)
@@ -296,9 +298,9 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
 }
 
 template <typename Callable>
-inline void player_snapshots_ecs_query(Callable c);
+inline void player_snapshots_ecs_query(ecs::EntityManager &manager, Callable c);
 
-static void send_phys_snapshots(float curTime,
+static void send_phys_snapshots(double curTime,
   ecs::EntityId msg_sink_eid,
   dag::ConstSpan<SendRecordsTypeRange> sr_type_ranges,
   dag::ConstSpan<PhysActorSendRecord> send_records)
@@ -307,8 +309,8 @@ static void send_phys_snapshots(float curTime,
   // We serialize time instead of tick since different entities might have different timeStep (hence tick would be different too)
   PhysSnapshotsMsgSender unreliableSender(curTime);
 
-  player_snapshots_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag playerIsBot) ecs::EntityId eid, game::Player &player, int connid,
-                               int &clientNetFlags, int team = TEAM_UNASSIGNED) {
+  player_snapshots_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE_NOT(ecs::Tag playerIsBot) ecs::EntityId eid, game::Player &player,
+                                              int connid, int &clientNetFlags, int team = TEAM_UNASSIGNED) {
     net::IConnection *cptr = (connid != net::INVALID_CONNECTION_ID) ? get_client_connection(connid) : nullptr;
 
     if (!cptr || !(clientNetFlags & CNF_REPLICATE_PHYS_ACTORS))
@@ -351,7 +353,7 @@ static void send_phys_snapshots(float curTime,
 
 extern net::CNetwork *get_net_internal();
 
-void net_send_phys_snapshots(float curTime, float /*dt*/)
+void net_send_phys_snapshots(double curTime, float /*dt*/)
 {
   net::CNetwork *netw = is_server() ? get_net_internal() : nullptr;
   if (!netw)

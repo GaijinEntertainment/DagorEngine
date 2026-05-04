@@ -24,6 +24,7 @@ public:
   static BarrierScope depthW();
   static BarrierScope depthR();
   static BarrierScope depthShaderR();
+  static BarrierScope shadingRateR();
 
   SubpassDep(VkSubpassDependency &target);
 

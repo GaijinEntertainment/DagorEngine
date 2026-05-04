@@ -1,0 +1,10 @@
+src after computed GC: 2
+survivor after sibling GC: 11
+leaf before GC: 102
+root after chain GC: 5
+sub after GC noise: 1
+sub after second set: 2
+trigger fired: 1
+trigger after GC: 2
+final watched: 5
+final computed: 1

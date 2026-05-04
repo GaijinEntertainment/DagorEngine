@@ -9,9 +9,11 @@
 #include "globals.h"
 #include "device_memory.h"
 #include "resource_manager.h"
-#include "buffer_alignment.h"
+#include "buffer_props.h"
 #include "driver_config.h"
 #include "device_context.h"
+#include "backend/cmd/resources.h"
+#include "backend/cmd/misc.h"
 
 using namespace drv3d_vulkan;
 
@@ -156,7 +158,7 @@ ResourceAllocationProperties d3d::get_resource_allocation_properties(const Resou
       const DeviceMemoryClass bufDMC = BufferDescription::memoryClassFromCflags(desc.asBufferRes.cFlags);
       const uint32_t memMask = Globals::Mem::pool.getMemoryTypeMaskForClass(bufDMC);
       ret = {desc.asBufferRes.elementSizeInBytes * desc.asBufferRes.elementCount,
-        useSafeAligment(Globals::VK::bufAlign.getForUsageAndFlags(0, Buffer::getUsage(bufDMC))),
+        useSafeAligment(Globals::VK::bufProps.getAlignForUsageAndFlags(0, Buffer::getUsage(bufDMC))),
         memoryClassToHeapGroup({bufDMC, memMask})};
     }
     break;
@@ -171,7 +173,8 @@ ResourceAllocationProperties d3d::get_resource_allocation_properties(const Resou
   return ret;
 }
 
-ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
+ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags,
+  ResourceTagType /*tag*/)
 {
   if (!size)
     return nullptr;
@@ -200,7 +203,7 @@ void d3d::destroy_resource_heap(ResourceHeap *heap)
 {
   D3D_CONTRACT_ASSERTF(heap, "vulkan: trying to free non existing heap");
   LocalAccessor la;
-  la.ctx.dispatchCommandWithStateSet<CmdDestroyHeap>({reinterpret_cast<MemoryHeapResource *>(heap)});
+  la.ctx.dispatchCmdWithStateSet<CmdDestroyHeap>({reinterpret_cast<MemoryHeapResource *>(heap)});
 }
 
 Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
@@ -225,7 +228,10 @@ Sbuffer *d3d::place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDe
 
     ret->useExternalResource(buf);
   }
-  la.ctx.dispatchCommand(memInfoUpdate);
+  {
+    OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+    Frontend::replay->unorderedAliasedMemoryUpdates.push_back(memInfoUpdate);
+  }
   return ret;
 }
 
@@ -259,8 +265,10 @@ BaseTexture *d3d::place_texture_in_resource_heap(ResourceHeap *heap, const Resou
 
     tex->image = img;
   }
-
-  la.ctx.dispatchCommand(memInfoUpdate);
+  {
+    OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+    Frontend::replay->unorderedAliasedMemoryUpdates.push_back(memInfoUpdate);
+  }
   return tex;
 }
 

@@ -193,7 +193,7 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   unsigned fmt = TEXFMT_A16B16G16R16F; // TEXFMT_A32B32G32R32F;//
 
   // better be replaced with TEXFMT_A16B16G16R16, but with scale
-  ht0 = dag::create_tex(NULL, (N + 1) * tileW, N + 1, TEXCF_RTARGET | fmt, 1, "fftHt0Tex"); // TEXFMT_A16B16G16R16F
+  ht0 = dag::create_tex(NULL, (N + 1) * tileW, N + 1, TEXCF_RTARGET | fmt, 1, "fftHt0Tex", RESTAG_WATER); // TEXFMT_A16B16G16R16F
   // 129*2 * 129*4*4 - bytes
 
   k_texVarId = get_shader_variable_id("k_tex");
@@ -201,8 +201,12 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 
   int gauss_resolution, gauss_stride;
   const cpu_types::float2 *in_gauss = get_global_gauss_data(gauss_resolution, gauss_stride);
-  gauss = dag::create_tex(NULL, gauss_resolution + 1, gauss_resolution + 1, TEXFMT_G32R32F, 1, "gaussTex"); // can be replaced with
-                                                                                                            // G16R16, with scale?
+  gauss = dag::create_tex(NULL, gauss_resolution + 1, gauss_resolution + 1, TEXFMT_G32R32F, 1, "gaussTex", RESTAG_WATER); // can be
+                                                                                                                          // replaced
+                                                                                                                          // with
+                                                                                                                          // G16R16,
+                                                                                                                          // with
+                                                                                                                          // scale?
 
   gauss_texVarId = get_shader_variable_id("gauss_tex");
 
@@ -221,10 +225,10 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   {
     String texName;
     texName.printf(128, "htPingTex%d", i);
-    htPing[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str());
+    htPing[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str(), RESTAG_WATER);
 
     texName.printf(128, "htPongTex%d", i);
-    htPong[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str());
+    htPong[i] = dag::create_tex(NULL, N * tileW, N, TEXCF_RTARGET | fmt, 1, texName.str(), RESTAG_WATER);
   }
   htRenderer.init("update_ht");
   current_water_timeVarId = get_shader_variable_id("current_water_time");
@@ -233,7 +237,7 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   ShaderGlobal::set_sampler(get_shader_variable_id("omega_tex_samplerstate", true), defaultSampler);
 
   // fixme:omega can be replaced with G16R16 but with scale(s)
-  omega = dag::create_tex(NULL, N * tileW, N, TEXFMT_G32R32F, 1, "omegaTex"); // 128*2 * 128*2*4 - bytes
+  omega = dag::create_tex(NULL, N * tileW, N, TEXFMT_G32R32F, 1, "omegaTex", RESTAG_WATER); // 128*2 * 128*2*4 - bytes
   fft_source_texture_no = ShaderGlobal::get_int_fast(get_shader_variable_id("fft_source_texture_no"));
   butterfly_texVarId = get_shader_variable_id("butterfly_tex");
   ShaderGlobal::set_sampler(get_shader_variable_id("butterfly_tex_samplerstate", true), defaultSampler);
@@ -243,7 +247,7 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 
   // can be replaced with argb8 texture (for up to 256x256)! coordinates. weight can be indexed, there are only 2*log2(N) of them.
   // Should be faster, than floats!
-  butterfly = dag::create_tex(NULL, N, miNumButterflies, TEXFMT_A32B32G32R32F, 1, "butterflyIndex");
+  butterfly = dag::create_tex(NULL, N, miNumButterflies, TEXFMT_A32B32G32R32F, 1, "butterflyIndex", RESTAG_WATER);
   if (!butterfly.getTex2D()->lockimg((void **)&data, stride, 0, TEXLOCK_WRITE))
     return false;
 
@@ -273,8 +277,8 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   butterfly.getTex2D()->unlockimg();
   for (int i = 0; i < miNumButterflies; i++)
   {
-    delete aaIndices[i];
-    delete aaWeights[i];
+    delete[] aaIndices[i];
+    delete[] aaWeights[i];
   }
   delete[] aaIndices;
   delete[] aaWeights;
@@ -287,11 +291,11 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   G_ASSERT(h0Mat);
   h0Element = h0Mat->make_elem();
   int num_quads = (numCascades + 1) / 2;
-  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, 0, "ht0Ibuf");
+  ht0Ibuf = d3d::create_ib(sizeof(uint16_t) * 6 * num_quads, 0, "ht0Ibuf", RESTAG_WATER);
   d3d_err(ht0Ibuf);
 
   // create vbuffer for fft/butterflies
-  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, 0, "fftVbuf");
+  fftVbuf = d3d::create_vb(sizeof(Point3) * 3 * miNumButterflies, 0, "fftVbuf", RESTAG_WATER);
   d3d_err(fftVbuf);
   buffersReady = false;
   fftVMat = new_shader_material_by_name("fftV");
@@ -304,14 +308,14 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   small_waves_fractionVarId = get_shader_variable_id("small_waves_fraction");
   updateHt0WindowsVB(fft, numCascades);
 
-  dispArray = dag::create_array_tex(N, N, numCascades, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "water3d_disp_gpu");
+  dispArray = dag::create_array_tex(N, N, numCascades, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, "water3d_disp_gpu", RESTAG_WATER);
   if (!dispArray)
   {
     for (int cascadeNo = 0; cascadeNo < numCascades; ++cascadeNo)
     {
       String texName;
       texName.printf(128, "water3d_disp_gpu%d", cascadeNo);
-      dispGPU[cascadeNo] = dag::create_tex(NULL, N, N, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, texName.str());
+      dispGPU[cascadeNo] = dag::create_tex(NULL, N, N, TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, texName.str(), RESTAG_WATER);
     }
   }
   return true;
@@ -319,11 +323,11 @@ bool GPGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 
 void GPGPUData::updateHt0WindowsVB(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
-  ShaderGlobal::set_real(small_waves_fractionVarId, fft[0].getParams().small_wave_fraction);
+  ShaderGlobal::set_float(small_waves_fractionVarId, fft[0].getParams().small_wave_fraction);
 
   int num_quads = (numCascades + 1) / 2;
   del_d3dres(ht0Vbuf);
-  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, 0, "ht0Vbuf");
+  ht0Vbuf = d3d::create_vb(sizeof(Ht0Vertex) * 4 * num_quads, 0, "ht0Vbuf", RESTAG_WATER);
   d3d_err(ht0Vbuf);
   G_ASSERT(ht0Vbuf);
   h0GPUUpdateRequired = true;
@@ -552,7 +556,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
     d3d::set_render_target(i, htPing[i].getTex2D(), 0);
   ShaderGlobal::set_texture(omega_texVarId, omega);
   ShaderGlobal::set_int(fft_sizeVarId, N);
-  ShaderGlobal::set_real(current_water_timeVarId, time);
+  ShaderGlobal::set_float(current_water_timeVarId, time);
   htRenderer.render();
 
 #if _TARGET_TVOS
@@ -674,7 +678,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
       d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
     // ShaderGlobal::set_texture(fft_source_textureVarId, isPing ? htPongTexId[i] : htPingTexId[i]);
-    // ShaderGlobal::set_real(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
+    // ShaderGlobal::set_float(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 
 #if _TARGET_TVOS
@@ -701,7 +705,7 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
       d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
       d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
-    // ShaderGlobal::set_real(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
+    // ShaderGlobal::set_float(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
     // fftVPass.render();
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 
@@ -825,10 +829,10 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   if (VariableMap::isGlobVariablePresent(choppy_scale0123VarId) && ShaderGlobal::get_var_type(choppy_scale0123VarId) == SHVT_COLOR4 &&
       VariableMap::isGlobVariablePresent(choppy_scale4567VarId) && ShaderGlobal::get_var_type(choppy_scale4567VarId) == SHVT_COLOR4)
   {
-    ShaderGlobal::set_color4(choppy_scale0123VarId,
+    ShaderGlobal::set_float4(choppy_scale0123VarId,
       Color4(numCascades > 0 ? fft[0].getParams().choppy_scale : 1.0f, numCascades > 1 ? fft[1].getParams().choppy_scale : 1.0f,
         numCascades > 2 ? fft[2].getParams().choppy_scale : 1.0f, numCascades > 3 ? fft[3].getParams().choppy_scale : 1.0f));
-    ShaderGlobal::set_color4(choppy_scale4567VarId,
+    ShaderGlobal::set_float4(choppy_scale4567VarId,
       Color4(numCascades > 4 ? fft[4].getParams().choppy_scale : 1.0f, 1.0f, 1.0f, 1.0f));
   }
   displacementsRenderer.render();

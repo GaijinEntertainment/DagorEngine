@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/antiAliasing.h>
+#include <render/antiAliasing_legacy.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
@@ -21,7 +21,6 @@ public:
   };
 
   DeepLearningSuperSampling(const IPoint2 &outputResolution);
-  ~DeepLearningSuperSampling();
 
   void setInputResolution(const IPoint2 &) override { logerr("changing input resolution is not supported"); }
 
@@ -29,28 +28,21 @@ public:
 
   float getLodBias() const override;
 
-  static void load_settings();
-  static bool is_enabled();
-
   Point2 getJitterOffset() const;
 
-  bool isFrameGenerationEnabled() const;
+  bool isFrameGenerationEnabled() const override;
+  bool needsUIBlending() const override { return isFrameGenerationEnabled(); }
 
   bool needMotionVectorHistory() const override { return isFrameGenerationEnabled(); }
   bool needDepthHistory() const override { return isFrameGenerationEnabled(); }
+  bool isAvailable() const override { return available; }
 
 private:
+  bool available;
   dafg::NodeHandle applierNode;
   dafg::NodeHandle frameGenerationNode;
   dafg::NodeHandle lifetimeExtenderNode;
   dafg::NodeHandle rayReconstructionPrepareNode;
-  bool rrEnabled = false;
+  dafg::NodeHandle rayReconstructionWaterRenameNode;
+  dafg::NodeHandle colorBeforeTransparencyNode;
 };
-
-void dlss_render(Texture *in_color,
-  Texture *out_color,
-  Point2 jitter_offset,
-  const AntiAliasing::OptionalInputParams &params,
-  const CameraParams &camera,
-  const CameraParams &prev_camera,
-  uint32_t frame_id);

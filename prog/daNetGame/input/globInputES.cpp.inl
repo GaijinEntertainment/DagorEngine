@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "globInput.h"
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ui/overlay.h>
 #include "render/screencap.h"
 #include "render/renderer.h"
@@ -156,7 +160,7 @@ static bool glob_input_process_top_level_key_up(int key_idx, unsigned key_modif)
           String fname(256, "%s-%04d.%02d.%02d %02d.%02d.%02d.wpix", "GPUCapture", time.year, time.month, time.day, time.hour,
             time.minute, time.second);
           Tab<wchar_t> buf;
-          PIX_GPU_CAPTURE_NEXT_FRAME(D3D11X_PIX_CAPTURE_API, convert_utf8_to_u16_buf(buf, fname.str(), fname.length()));
+          PIX_GPU_CAPTURE_NEXT_FRAME(D3D12XBOX_PIX_CAPTURE_API, convert_utf8_to_u16_buf(buf, fname.str(), fname.length()));
         }
         return true;
       }

@@ -1,0 +1,56 @@
+include "swBLAS.dshl"
+include "swTLAS.dshl"
+buffer bvh_bottom_structures;
+buffer bvh_top_structures;
+
+macro INIT_SW_BVH_RAYTRACING(code)
+  (code)
+  {
+    bvh_bottom_structures@buf = bvh_bottom_structures hlsl
+    {
+      #include "swBVHDefine.hlsli"
+      ByteAddressBuffer bvh_bottom_structures@buf;
+    }
+    bvh_top_structures@buf = bvh_top_structures hlsl
+    {
+      #include "swBVHDefine.hlsli"
+      ByteAddressBuffer bvh_top_structures@buf;
+    }
+  }
+endmacro
+
+macro USE_SW_BVH_RAYTRACING(code)
+hlsl(code) {
+  #define BVH_ORDERED_BLAS 0
+  //#define OPTIMIZE_SMALL_BOXES_SQ_MUL 32//skip too small blas traversal
+}
+USE_SW_BVH_BLAS(code)
+USE_SW_BVH_TLAS(code)
+
+hlsl(code) {
+  bool rayTLAS(float3 rayOrigin, float3 rayDir, float3 rayDirInv, float rayMaxT, out float t, inout float3 triNorm, inout float2 bCoord, out int complex)
+  {
+    return rayTLAS(bvh_top_structures, bvh_bottom_structures, rayOrigin, rayDir, rayDirInv, rayMaxT, t, triNorm, bCoord, complex);
+  }
+  bool rayShadowTLAS(float3 rayOrigin, float3 rayDir, float3 rayDirInv, uint at = 0
+  #if LIMIT_AT_END
+    , uint endAt = 0
+  #endif
+    )
+  {
+    return rayShadowTLAS(bvh_top_structures, bvh_bottom_structures, rayOrigin, rayDir, rayDirInv, at
+    #if LIMIT_AT_END
+      , endAt
+    #endif
+      );
+  }
+  bool isSomethingInFrustum(float4x4 frustum, float4 plane4, inout uint first_leaf)
+  {
+    return isSomethingInFrustum(bvh_top_structures, frustum, plane4, first_leaf);
+  }
+  uint findLastLeafInFrustum(float4x4 frustum, float4 plane4, uint first_leaf_ofs)
+  {
+    return findLastLeafInFrustum(bvh_top_structures, frustum, plane4, first_leaf_ofs);
+  }
+}
+endmacro

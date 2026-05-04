@@ -15,6 +15,8 @@
 #include "modfx_toroidal_movement.hlsli"
 #include "modfx_render_placement.hlsli"
 
+#define DAFX_CULLING_RET_TYPE BBox
+
 DAFX_INLINE
 float4 modfx_get_culling( float3_cref wpos, float radius )
 {
@@ -26,6 +28,11 @@ ModfxDeclCollisionDecay ModfxDeclCollisionDecay_load( BufferData_cref buf, uint 
   ModfxDeclCollisionDecay pp;
   pp.collision_decay_scale = dafx_load_1f( buf, ofs );
   return pp;
+}
+
+float4 sample_cubic_bezier_curve(float4 p0, float4 p1, float4 p2, float4 p3, float t)
+{
+  return ((p3 * t + p2) * t + p1) * t + p0;
 }
 
 DAFX_INLINE
@@ -119,6 +126,21 @@ void modfx_apply_sim(
   if ( attach_last_part )
     rdata.pos = etm_enabled ? etm_pos : float3( 0, 0, 0 );
 
+  if ( parent_sdata.mods_offsets[MODFX_SMOD_POS_SPLINE_BASED] )
+  {
+    uint ofs = parent_sdata.mods_offsets[MODFX_SMOD_POS_SPLINE_BASED];
+    float4x4 splineData = dafx_load_44mat( buf, ofs );
+
+    float4 p0 = float4x4_row(splineData, 0);
+    float4 p1 = float4x4_row(splineData, 1);
+    float4 p2 = float4x4_row(splineData, 2);
+    float4 p3 = float4x4_row(splineData, 3);
+
+    float4 sampledPos = sample_cubic_bezier_curve(p0, p1, p2, p3, sdata.life_norm);
+    rdata.pos = float_xyz(sampledPos);
+    rdata.radius *= sampledPos.w;
+  }
+
   rdata.life_norm = sdata.life_norm;
 
   if ( MOD_ENABLED( parent_sdata.mods, MODFX_SMOD_PART_TRIMMING ) )
@@ -168,7 +190,7 @@ float3 modfx_get_modified_camera_bound_position(
 }
 
 DAFX_INLINE
-BBox dafx_emission_shader_cb(
+DAFX_CULLING_RET_TYPE dafx_emission_shader_cb(
   ComputeCallDesc_cref cdesc,
   BufferData_ref buf,
   DAFX_CREF(ModfxParentRenData) parent_rdata,
@@ -233,7 +255,7 @@ BBox dafx_emission_shader_cb(
       etm[3][1] = etm_pos.y;
       etm[3][2] = etm_pos.z;
 
-      etm_lag_compensated_pos = true;
+      etm_lag_compensated_pos = FLAG_ENABLED(parent_sdata.flags, MODFX_SFLAG_ALLOW_VELOCITY_CALC_IN_EMISSION);
     }
   }
   if ( MODFX_RDECL_UNIQUE_ID_ENABLED( parent_rdata.decls ) )
@@ -253,7 +275,7 @@ BBox dafx_emission_shader_cb(
   float3x3 gravityTm = modfx_gravity_zone_tm(parent_sdata, buf, gdata, rdata.pos);
   bool forceApplyGravityZone = FLAG_ENABLED(parent_sdata.flags, MODFX_SFLAG_FORCE_APPLY_GRAVITY_ZONE);
 
-  if ( !apply_etm || forceApplyGravityZone )
+  if ( forceApplyGravityZone )
     rdata.pos = mul(rdata.pos, gravityTm);
 #endif
 
@@ -270,7 +292,7 @@ BBox dafx_emission_shader_cb(
       sdata.velocity += dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_INIT_ADD_STATIC_VEC] );
 
 #if DAFX_USE_GRAVITY_ZONE
-    if ( !apply_etm || forceApplyGravityZone )
+    if ( forceApplyGravityZone )
       sdata.velocity = mul(sdata.velocity, gravityTm);
 #endif
 
@@ -288,6 +310,7 @@ BBox dafx_emission_shader_cb(
 
 #if MODFX_GPU_FEATURES_ENABLED
   allow_spawn = allow_spawn && modfx_pos_gpu_placement(parent_sdata, buf, etm_pos.y, rdata.pos, gdata);
+  allow_spawn = allow_spawn && modfx_pos_use_rain_map_to_spawn(parent_sdata, buf, rdata.pos, sdata.rnd_seed);
 #endif
 
   if ( parent_sdata.mods_offsets[MODFX_SMOD_SHAPE_STATIC_ALIGNED_INIT] )
@@ -344,6 +367,7 @@ BBox dafx_emission_shader_cb(
   modfx_apply_sim(
     cdesc, buf, parent_rdata, parent_sdata, rdata, sdata, lag_comp * dt, etm, etm_scale, apply_etm, attach_last_part, !etm_lag_compensated_pos, gdata );
   sdata.rnd_seed = stable_rnd_seed;
+
   modfx_save_ren_data(buf, cdesc.dataRenOffsetCurrent, parent_rdata.decls, parent_sdata.flags, true, rdata);
   modfx_save_sim_data(buf, cdesc.dataSimOffsetCurrent, parent_sdata.decls, true, sdata);
 
@@ -377,7 +401,7 @@ BBox dafx_emission_shader_cb(
 }
 
 DAFX_INLINE
-BBox dafx_simulation_shader_cb(
+DAFX_CULLING_RET_TYPE dafx_simulation_shader_cb(
   ComputeCallDesc_cref cdesc,
   BufferData_ref buf,
   DAFX_CREF(ModfxParentRenData) parent_rdata,

@@ -1,12 +1,8 @@
-WARNING: w307 (global-id-redef) Redefinition of existed global name 'g'.
+WARNING: w307 (global-id-redef) Redefinition of existing global name 'g'.
+testData/static_analyzer/w295.nut:7:0
+
+
+WARNING: w307 (global-id-redef) Redefinition of existing global name 'g'.
 testData/static_analyzer/w295.nut:8:0
-
-
-WARNING: w307 (global-id-redef) Redefinition of existed global name 'g'.
-testData/static_analyzer/w295.nut:10:0
-
-
-WARNING: w295 (undefined-global) Undefined global identifier 'h'.
-testData/static_analyzer/w295.nut:12:6
 
 

@@ -9,11 +9,12 @@
 #include <assetsGui/av_recentlyUsedTab.h>
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/colors.h>
+#include <de3_interface.h>
 
-MainAssetSelector::MainAllAssetsTab::MainAllAssetsTab(IAssetBaseViewClient &client,
-  IAssetSelectorContextMenuHandler &asset_menu_handler) :
-  allAssetsTab(&client, &asset_menu_handler)
-{}
+MainAssetSelector::MainAllAssetsTab::MainAllAssetsTab(MainAssetSelector &client) : allAssetsTab(&client, &client, client)
+{
+  allAssetsTab.setAssetTagsView(&client);
+}
 
 DagorAsset *MainAssetSelector::MainAllAssetsTab::getSelectedAsset() const { return getTree().getSelectedAsset(); }
 
@@ -48,7 +49,7 @@ bool MainAssetSelector::MainAllAssetsTab::markExportedTree(int flags)
 }
 
 MainAssetSelector::MainAssetSelector(IAssetBaseViewClient &in_client, IAssetSelectorContextMenuHandler &asset_menu_handler) :
-  client(in_client), mainAllAssetsTab(*this, asset_menu_handler)
+  client(in_client), menuEventHandler(asset_menu_handler), mainAllAssetsTab(*this), assetBrowser(*this)
 {}
 
 MainAssetSelector::~MainAssetSelector() {}
@@ -135,6 +136,8 @@ void MainAssetSelector::setActiveTab(ActiveTab tab)
       mainAllAssetsTab.selectAsset(*lastSelectedAsset);
   }
 
+  assetBrowserFill();
+
   G_ASSERT(!allowChangingRecentlyUsedList);
   allowChangingRecentlyUsedList = true;
 }
@@ -166,20 +169,43 @@ void MainAssetSelector::onAvAssetDblClick(DagorAsset *asset, const char *asset_n
 
 void MainAssetSelector::onAvSelectAsset(DagorAsset *asset, const char *asset_name)
 {
-  if (!asset)
-    return;
+  if (asset)
+  {
+    lastSelectedAsset = asset;
 
-  lastSelectedAsset = asset;
+    client.onAvSelectAsset(asset, asset_name);
 
-  client.onAvSelectAsset(asset, asset_name);
+    if (allowChangingRecentlyUsedList)
+      addAssetToRecentlyUsed(*asset);
+  }
 
-  if (allowChangingRecentlyUsedList)
-    addAssetToRecentlyUsed(*asset);
+  assetBrowserFill();
 }
 
 void MainAssetSelector::onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name)
 {
   client.onAvSelectFolder(asset_folder, asset_folder_name);
+}
+
+bool MainAssetSelector::onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder)
+{
+  if (activeTab == ActiveTab::All)
+  {
+    menuEventHandler.onAssetSelectorContextMenu(menu, asset, asset_folder);
+    return true;
+  }
+  else if (activeTab == ActiveTab::Favorites)
+  {
+    favoritesTab->fillContextMenu(menu, asset, asset_folder);
+    return true;
+  }
+  else if (activeTab == ActiveTab::RecentlyUsed)
+  {
+    recentlyUsedTab->fillContextMenu(menu, asset);
+    return true;
+  }
+
+  return false;
 }
 
 dag::ConstSpan<int> MainAssetSelector::getAllowedTypes() const { return AssetSelectorCommon::getAllAssetTypeIndexes(); }
@@ -195,6 +221,10 @@ void MainAssetSelector::onSelectionChanged(const DagorAsset *asset)
 
 void MainAssetSelector::onSelectionDoubleClicked(const DagorAsset *) {}
 
+AssetTagManager *MainAssetSelector::getVisibleTagManager() { return DAEDITOR3.getVisibleTagManagerWindow(); }
+
+void MainAssetSelector::showTagManager(bool show) { DAEDITOR3.showTagManagerWindow(show); }
+
 bool MainAssetSelector::tabPage(const char *title, bool selected)
 {
   // Use the same style as in TabPanelPropertyControl.
@@ -209,6 +239,70 @@ bool MainAssetSelector::tabPage(const char *title, bool selected)
     ImGui::PopStyleColor();
 
   return pressed;
+}
+
+void MainAssetSelector::assetBrowserFill()
+{
+  if (!assetBrowserIsOpen())
+    return;
+
+  dag::Vector<DagorAsset *> assets;
+  if (activeTab == ActiveTab::All)
+    mainAllAssetsTab.getFilteredAssetsFromTheCurrentFolder(assets);
+  else if (activeTab == ActiveTab::Favorites)
+    favoritesTab->getFilteredAssetsFromTheCurrentFolder(assets);
+  else if (activeTab == ActiveTab::RecentlyUsed)
+    recentlyUsedTab->getFilteredAssetsFromTheCurrentFolder(assets);
+
+  assetBrowser.setAssets(make_span(assets), getSelectedAsset());
+}
+
+bool MainAssetSelector::assetBrowserIsOpen() const { return assetBrowserOpen; }
+
+void MainAssetSelector::assetBrowserSetOpen(bool open)
+{
+  if (open == assetBrowserOpen)
+    return;
+
+  assetBrowserOpen = open;
+
+  if (assetBrowserOpen)
+    assetBrowserFill();
+}
+
+void MainAssetSelector::assetBrowserOnAssetSelected(DagorAsset *asset, bool)
+{
+  if (!asset)
+    return;
+
+  if (activeTab == ActiveTab::All)
+    mainAllAssetsTab.selectAsset(*asset);
+  else if (activeTab == ActiveTab::Favorites)
+    favoritesTab->setSelectedAsset(asset);
+  else if (activeTab == ActiveTab::RecentlyUsed)
+    recentlyUsedTab->setSelectedAsset(asset);
+}
+
+void MainAssetSelector::assetBrowserOnContextMenu(DagorAsset *asset)
+{
+  // Because the context menu click handlers work with the selected tree item we must ensure that the asset matches the selection.
+  if (!asset || asset != getSelectedAsset())
+    return;
+
+  PropPanel::IMenu &menu = assetBrowser.createContextMenu();
+  onAssetSelectorContextMenu(menu, asset, nullptr);
+}
+
+void MainAssetSelector::saveAssetBrowserSettings(DataBlock &blk) const
+{
+  blk.setInt("thumbnailImageSize", assetBrowser.getThumbnailImageSize());
+  blk.setBool("open", assetBrowserOpen);
+}
+
+void MainAssetSelector::loadAssetBrowserSettings(DataBlock &blk)
+{
+  assetBrowser.setThumbnailImageSize(blk.getInt("thumbnailImageSize", assetBrowser.getThumbnailImageSize()));
+  assetBrowserOpen = blk.getBool("open", assetBrowserOpen);
 }
 
 void MainAssetSelector::updateImgui()
@@ -263,4 +357,11 @@ void MainAssetSelector::updateImgui()
   }
 
   ImGui::EndTabBar();
+
+  if (assetBrowserOpen)
+  {
+    DAEDITOR3.imguiBegin("Asset Browser", &assetBrowserOpen);
+    assetBrowser.updateImgui();
+    DAEDITOR3.imguiEnd();
+  }
 }

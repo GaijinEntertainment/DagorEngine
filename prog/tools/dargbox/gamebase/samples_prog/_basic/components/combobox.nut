@@ -67,8 +67,8 @@ function setValueByOptions(opts, wdata, wupdate){
 function popupWrapper(popupContent, dropDirDown) {
   let align = dropDirDown ? ALIGN_TOP : ALIGN_BOTTOM
   let children = [
-    {size = static [flex(), ph(100)]}
-    {size = static [flex(), hdpx(2)]}
+    {size = const [flex(), ph(100)]}
+    {size = const [flex(), hdpx(2)]}
     popupContent
   ]
 

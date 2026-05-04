@@ -14,7 +14,7 @@ struct EditLayerProps
     PLG,
     TYPENUM
   };
-  static const int MAX_LAYERS = 60;
+  static const int MAX_LAYERS = 124;
 
   unsigned lock : 1, hide : 1, renderToMask : 1, exp : 1;
   unsigned renameable : 1; // A new layer is only renameable before the saving of the level.

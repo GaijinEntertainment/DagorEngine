@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_consts_base.h>
 #include <util/dag_globDef.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_TMatrix.h>
@@ -63,6 +65,20 @@ public:
     flags |= framestateflags::V2MTM_OK;
   }
 
+  __forceinline void validate_matrix(mat44f &mat)
+  {
+#if DAGOR_DBGLEVEL > 0
+    G_LOGERR_AND_DO(!v_test_xyzw_nan(mat.col0), return, "NaN detected at mat.col0");
+    G_LOGERR_AND_DO(!v_test_xyzw_nan(mat.col1), return, "NaN detected at mat.col1");
+    G_LOGERR_AND_DO(!v_test_xyzw_nan(mat.col2), return, "NaN detected at mat.col2");
+    G_LOGERR_AND_DO(!v_test_xyzw_nan(mat.col3), return, "NaN detected at mat.col3");
+#else
+    G_UNUSED(mat);
+#endif
+  }
+
+  __forceinline void validate_matrix_in_slot(int which) { validate_matrix(d3d_mat[which]); }
+
   // d3d:: functions
   __forceinline void calcproj(const Driver3dPerspective &p, mat44f &proj_tm)
   {
@@ -120,6 +136,7 @@ public:
   {
     persp = p;
     calcproj(p, d3d_mat[TM_PROJ]);
+    validate_matrix_in_slot(TM_PROJ);
 
     flags &= ~(framestateflags::GLOBTM_OK | framestateflags::PROJTM_OK);
     flags |= framestateflags::PERSP_OK;
@@ -130,6 +147,8 @@ public:
       v_stu(proj_tm->m[1], d3d_mat[TM_PROJ].col1);
       v_stu(proj_tm->m[2], d3d_mat[TM_PROJ].col2);
       v_stu(proj_tm->m[3], d3d_mat[TM_PROJ].col3);
+
+      validate_matrix_in_slot(TM_PROJ);
     }
   }
 
@@ -193,6 +212,7 @@ public:
     globtm.col1 = v_ldu(tm.m[1]);
     globtm.col2 = v_ldu(tm.m[2]);
     globtm.col3 = v_ldu(tm.m[3]);
+    validate_matrix(globtm);
     flags =
       (flags & ~(framestateflags::M2VTM_OK | framestateflags::PROJTM_OK | framestateflags::PERSP_OK)) | framestateflags::GLOBTM_OK;
   }
@@ -218,6 +238,7 @@ public:
     d3d_mat[which].col1 = v_ldu(m->m[1]);
     d3d_mat[which].col2 = v_ldu(m->m[2]);
     d3d_mat[which].col3 = v_ldu(m->m[3]);
+    validate_matrix_in_slot(which);
   }
 
   __forceinline void settm(int which, const TMatrix &t)
@@ -237,6 +258,7 @@ public:
       default: G_ASSERTF(0, "settm(%d) is not allowed", which); return;
     }
     v_mat44_make_from_43cu(d3d_mat[which], &t.m[0][0]);
+    validate_matrix_in_slot(which);
   }
 
   __forceinline void settm(int which, const mat44f &m)
@@ -249,6 +271,7 @@ public:
       default: G_ASSERTF(0, "settm(%d) is not allowed", which); return;
     }
     d3d_mat[which] = m;
+    validate_matrix_in_slot(which);
   }
 
   __forceinline const mat44f &gettm_cref(int which)
@@ -298,6 +321,7 @@ public:
   __forceinline void setglobtm(const mat44f &tm)
   {
     globtm = tm;
+    validate_matrix(globtm);
     flags =
       (flags & ~(framestateflags::M2VTM_OK | framestateflags::PROJTM_OK | framestateflags::PERSP_OK)) | framestateflags::GLOBTM_OK;
   }

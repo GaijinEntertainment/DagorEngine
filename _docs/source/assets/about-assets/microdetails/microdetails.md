@@ -88,7 +88,7 @@ index for the microdetails stored in the B-channel of the texture.
 - This is set in the `level.blk` file and typically appears in the following
   format:
 
-```text
+```blk
 micro_details{
   micro_detail:t=microdetail_stone_a_tex_n
   micro_detail:t=microdetail_scan_gravel_a_tex_n
@@ -192,7 +192,7 @@ To add your new textures, include them in the following file:
 
 Add a line like this in the `character_micro_details{}` block:
 
-```text
+```blk
 micro_detail:t=your_texture_name_tex_n*
 ```
 

@@ -12,6 +12,8 @@
 #include <de3_interface.h>
 #include <EditorCore/ec_rendEdObject.h>
 
+G_STATIC_ASSERT(Outliner::IOutliner::MAXIMUM_SUPPORTED_LAYER_COUNT >= LayerHiddenMask::BIT_COUNT);
+
 HeightmapLandOutlinerInterface::HeightmapLandOutlinerInterface(HmapLandObjectEditor &object_editor) : objectEditor(object_editor) {}
 
 int HeightmapLandOutlinerInterface::getTypeCount() { return EditLayerProps::TYPENUM; }
@@ -81,10 +83,10 @@ void HeightmapLandOutlinerInterface::toggleTypeVisibility(int type)
     if (layerProp.type == type)
     {
       layerProp.hide = !newVisible;
-      if (layerProp.hide)
-        DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() | (1ull << i));
-      else
-        DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() & ~(1ull << i));
+
+      LayerHiddenMask lhMask = DAEDITOR3.getEntityLayerHiddenMask();
+      lhMask.setHidden(i, layerProp.hide);
+      DAEDITOR3.setEntityLayerHiddenMask(lhMask);
     }
   }
 }
@@ -249,10 +251,10 @@ void HeightmapLandOutlinerInterface::toggleLayerVisibility(int type, int per_typ
   EditLayerProps &layerProp = EditLayerProps::layerProps[layerPropsIndex];
 
   layerProp.hide = !layerProp.hide;
-  if (layerProp.hide)
-    DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() | (1ull << layerPropsIndex));
-  else
-    DAEDITOR3.setEntityLayerHiddenMask(DAEDITOR3.getEntityLayerHiddenMask() & ~(1ull << layerPropsIndex));
+
+  LayerHiddenMask lhMask = DAEDITOR3.getEntityLayerHiddenMask();
+  lhMask.setHidden(layerPropsIndex, layerProp.hide);
+  DAEDITOR3.setEntityLayerHiddenMask(lhMask);
 }
 
 void HeightmapLandOutlinerInterface::toggleLayerLock(int type, int per_type_layer_index)

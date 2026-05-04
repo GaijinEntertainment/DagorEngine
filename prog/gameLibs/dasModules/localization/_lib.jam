@@ -1,0 +1,2 @@
+gamePulls += framework_localization_pull LocalizationModule_pull ;
+UseProgLibs += gameLibs/dasModules/localization ;

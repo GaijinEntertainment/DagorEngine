@@ -17,7 +17,6 @@ from docutils.parsers.rst import directives
 from sphinx import addnodes
 from sphinx.directives import ObjectDescription
 from sphinx.domains import Domain, ObjType
-from sphinx.domains.python import _pseudo_parse_arglist
 from sphinx.locale import _
 from sphinx.roles import XRefRole
 from sphinx.util.docfields import Field, GroupedField, TypedField
@@ -96,10 +95,10 @@ class SQObject(ObjectDescription):
             signode += addnodes.desc_addname(mod_name + '.', mod_name + '.')
         signode += addnodes.desc_name(name, name)
         if self.has_arguments:
-            if not arglist:
-                signode += addnodes.desc_parameterlist()
-            else:
-                _pseudo_parse_arglist(signode, arglist)
+            paramlist = addnodes.desc_parameterlist()
+            if arglist:
+                paramlist += addnodes.desc_parameter(arglist, arglist)
+            signode += paramlist
         return fullname, prefix
 
     def add_target_and_index(self, name_obj, sig, signode):
@@ -147,7 +146,7 @@ class SQObject(ObjectDescription):
 
         :py:class:`SQObject` represents Quirrel language constructs. For
         constructs that are nestable, this method will build up a stack of the
-        nesting heirarchy so that it can be later de-nested correctly, in
+        nesting hierarchy so that it can be later de-nested correctly, in
         :py:meth:`after_content`.
 
         For constructs that aren't nestable, the stack is bypassed, and instead

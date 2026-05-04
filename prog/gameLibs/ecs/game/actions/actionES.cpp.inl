@@ -2,8 +2,12 @@
 
 #include <ecs/game/actions/action.h>
 #include <memory/dag_framemem.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animState.h>
 #include <ecs/phys/physVars.h>
@@ -16,7 +20,9 @@
 
 
 ECS_UNICAST_EVENT_TYPE(EventAction, /*actionIdx*/ int, /*propsId*/ int);
+ECS_UNICAST_EVENT_TYPE(EventActionFinished, /*actionIdx*/ int);
 ECS_REGISTER_EVENT(EventAction);
+ECS_REGISTER_EVENT(EventActionFinished);
 
 
 struct NullActionListener final : public IActionListener
@@ -46,7 +52,7 @@ EntityActions::EntityActions(const ecs::EntityManager &mgr, ecs::EntityId eid_)
     EntityAction &act = actions.push_back();
     act.name = object[ECS_HASH("name")].get<ecs::string>();
     if (object.hasMember(ECS_HASH("class")))
-      act.classHash = str_hash_fnv1(object[ECS_HASH("class")].get<ecs::string>().c_str());
+      act.classHash = ecs_str_hash(object[ECS_HASH("class")].get<ecs::string>().c_str());
     act.stateIdx = animGraph->getStateIdx(object[ECS_HASH("state")].get<ecs::string>().c_str());
     act.actionDefTime = object[ECS_HASH("actionTime")].get<float>();
     act.propsId = propsreg::register_net_props(object[ECS_HASH("props")].get<ecs::string>().c_str(), "action");
@@ -54,6 +60,8 @@ EntityActions::EntityActions(const ecs::EntityManager &mgr, ecs::EntityId eid_)
     act.applyAtDef = object[ECS_HASH("applyAt")].get<float>();
     if (object.hasMember(ECS_HASH("blocksSprint")))
       act.blocksSprint = object[ECS_HASH("blocksSprint")].get<bool>();
+    if (object.hasMember(ECS_HASH("isAnimStateFullBody")))
+      act.isAnimStateFullBody = object[ECS_HASH("isAnimStateFullBody")].get<bool>();
     act.actionPeriod = object[ECS_HASH("actionPeriod")].getOr(-1.0f);
   }
 }
@@ -76,8 +84,13 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
       anyActionRunning |= a.timer > 0.f;
       if (a.timer < a.actionTime) // passes the border
       {
-        ecs::HashedConstString stateName = actions__animLayer ? ECS_HASH_SLOW(actions__animLayer->c_str()) : ECS_HASH("upper");
-        manager.sendEventImmediate(eid, EventChangeAnimState(stateName, a.stateIdx));
+        if (!a.isAnimStateFullBody)
+        {
+          ecs::HashedConstString stateName = actions__animLayer ? ECS_HASH_SLOW(actions__animLayer->c_str()) : ECS_HASH("upper");
+          manager.sendEventImmediate(eid, EventChangeAnimState(stateName, a.stateIdx));
+        }
+        else
+          manager.sendEventImmediate(eid, EventChangeAnimStateFull(a.stateIdx));
 
         float relTime = 1.f - (a.timer / a.actionTime);
         phys_vars.setVar(a.varId, relTime);
@@ -101,6 +114,9 @@ static inline void actions_updater_es(const UpdateActionsEvent &info, ecs::Entit
         }
         a.prevRel = relTime;
       }
+
+      if (a.timer <= 0.0)
+        manager.sendEvent(eid, EventActionFinished(i));
     }
   }
   actions.anyActionRunning = anyActionRunning;

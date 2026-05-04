@@ -2,10 +2,13 @@
 
 #include <debug/dag_logSys.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_simpleString.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <generic/dag_tab.h>
+#include <util/dag_string.h>
+
 
 namespace bindquirrel
 {
@@ -28,7 +31,7 @@ struct InterceptorRec
   bool isFuncEqual(const Sqrat::Function &func)
   {
     HSQOBJECT a = cb.GetFunc(), b = func.GetFunc();
-    return sq_direct_is_equal(func.GetVM(), &a, &b);
+    return sq_obj_is_equal(func.GetVM(), &a, &b);
   }
 };
 static Tab<InterceptorRec> interceptors;
@@ -124,7 +127,7 @@ void logerr_interceptor_bind_api(Sqrat::Table &nsTbl)
     // unregister_logerr_interceptor(callback)
     .Func("unregister_logerr_interceptor", unregister_callback_sq)
     // clear_logerr_interceptors()
-    .SquirrelFunc("clear_logerr_interceptors", unregister_all_callback_sq, 1, ".")
+    .SquirrelFuncDeclString(unregister_all_callback_sq, "clear_logerr_interceptors(): null")
     /**/;
 }
 

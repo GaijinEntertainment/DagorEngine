@@ -12,11 +12,10 @@
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiDInput.h>
 #include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiComposite.h>
 #include <ioSys/dag_dataBlock.h>
 #include "main.h"
 
-
-HumanInput::IGenJoystickClassDrv *xinput_cls_drv = NULL;
 
 class JoyRestartProc : public SRestartProc
 {
@@ -26,26 +25,41 @@ public:
 
   void startup() override
   {
-    global_cls_drv_joy = HumanInput::createJoystickClassDriver(true, ::dgs_get_settings()->getBool("joystickRemap360", false));
-
-    if (!global_cls_drv_joy)
-      return;
-
+    ::global_cls_composite_drv_joy = HumanInput::CompositeJoystickClassDriver::create();
+    bool remapAsX360 = ::dgs_get_settings()->getBool("joystickRemap360", false);
+    HumanInput::IGenJoystickClassDrv *drivers[] = {
 #if _TARGET_PC_WIN
-    xinput_cls_drv = HumanInput::createXinputJoystickClassDriver();
-    global_cls_drv_joy->setSecondaryClassDrv(xinput_cls_drv);
+      HumanInput::createXinputJoystickClassDriver(), // XInput first, avoid misinterpretation of btns/axes
+      HumanInput::createJoystickClassDriver(true, remapAsX360),
+#else
+      HumanInput::createJoystickClassDriver(false, remapAsX360),
 #endif
+    };
 
-    if (global_cls_drv_joy->getDeviceCount() > 0)
-      global_cls_drv_joy->enable(true);
+    if (auto composite = ::global_cls_composite_drv_joy)
+    {
+      ::global_cls_drv_joy = composite;
+      for (int i = 0, totalDrivers = countof(drivers); i < totalDrivers; ++i)
+        composite->addClassDrv(drivers[i], i == 0);
+    }
+    else // fallback to chaining the drivers if could not create composite driver
+    {
+      ::global_cls_drv_joy = drivers[0];
+      for (int i = 1; i < countof(drivers); ++i)
+        drivers[i - 1]->setSecondaryClassDrv(drivers[i]);
+    }
+
+    ::global_cls_drv_joy->enable(true); // Some drivers take a long time to populate device list
   }
+
 
   void shutdown() override
   {
-    if (global_cls_drv_joy)
-      global_cls_drv_joy->setSecondaryClassDrv(NULL);
-    destroy_it(global_cls_drv_joy);
-    destroy_it(xinput_cls_drv);
+    if (::global_cls_drv_joy)
+    {
+      ::global_cls_drv_joy->destroy();
+      ::global_cls_drv_joy = nullptr;
+    }
   }
 };
 

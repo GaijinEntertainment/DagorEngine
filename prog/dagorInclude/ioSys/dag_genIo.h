@@ -6,6 +6,7 @@
 
 #include <util/dag_stdint.h>
 #include <generic/dag_span.h>
+#include <EASTL/type_traits.h>
 #include <util/dag_globDef.h>
 #include <debug/dag_except.h>
 
@@ -302,23 +303,38 @@ public:
   }
 
   template <typename T>
+  static auto resizeString(T &s, int len) -> decltype(&T::allocBuffer, void())
+  {
+    if (len)
+      s.allocBuffer(len + 1);
+    else
+      s.clear();
+  }
+
+  template <typename T, typename = eastl::enable_if_t<!eastl::bool_constant<requires { &T::allocBuffer; }>::value>>
+  static void resizeString(T &s, int len)
+  {
+    s.resize(len);
+  }
+
+  template <typename T>
   inline void readString(T &s)
   {
+    char _1;
     int len = readInt();
-
-    s.allocBuffer(len + 1);
-    read(&s[0], len);
+    resizeString(s, len);
+    read(len ? &s[0] : &_1, len);
     alignOnDword(len);
   }
 
   template <typename T>
   inline void readShortString(T &s)
   {
+    char _1;
     unsigned short len = 0;
     read(&len, sizeof(len));
-
-    s.allocBuffer(len + 1);
-    read(&s[0], len);
+    resizeString(s, len);
+    read(len ? &s[0] : &_1, len);
   }
 
   inline void readInt64(int64_t &v) { read(&v, sizeof(int64_t)); }

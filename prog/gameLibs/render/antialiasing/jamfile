@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/antialiasing ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/antialiasing.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseMobileAA ?= no ;
+
+if $(UseMobileAA) = yes {
+  Target = $(Target:S=~mobile.lib) ;
+  CPPopt += -DMOBILE_ANTIALIASING=1 ;
+}
+
+Sources =
+  antialiasing.cpp
+  temporalSuperResolution.cpp
+;
+include $(Root)/prog/_jBuild/build.jam ;

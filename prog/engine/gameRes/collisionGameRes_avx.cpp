@@ -3,17 +3,16 @@
 #include <gameRes/dag_collisionResource.h>
 #include <math/dag_traceRayTriangle.h>
 
-#if defined(__AVX__) && defined(_TARGET_64BIT)
-template <bool check_bounding>
+#if defined(__AVX__) && (defined(_TARGET_64BIT) || !defined(_MSC_VER))
+template <bool check_bounding, uint32_t mainBatchSize>
 bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
   const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm)
 {
+  static_assert(mainBatchSize == 4 || mainBatchSize == 8);
   int resultIdx = -1;
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
-
-  const uint32_t mainBatchSize = 8;
 
   uint32_t i;
   for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
@@ -26,7 +25,11 @@ bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode 
       vert[j][2] = v_ld(&vertices[indices[i + j * 3 + 2]].x);
     }
 
-    int ret = traceray8TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_out_t, vert);
+    int ret;
+    if constexpr (mainBatchSize == 8)
+      ret = traceray8TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_out_t, vert);
+    else
+      ret = traceray4TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_out_t, vert);
     if (ret >= 0)
       resultIdx = i + ret * 3;
   }
@@ -65,15 +68,14 @@ bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode 
   return resultIdx >= 0;
 }
 
-template <bool check_bounding>
+template <bool check_bounding, uint32_t mainBatchSize>
 bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
   const vec4f &v_local_dir, float in_t)
 {
+  static_assert(mainBatchSize == 4 || mainBatchSize == 8);
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
-
-  const uint32_t mainBatchSize = 8;
 
   uint32_t i;
   for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
@@ -86,7 +88,12 @@ bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &n
       vert[j][2] = v_ld(&vertices[indices[i + j * 3 + 2]].x);
     }
 
-    if (rayhit8TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_t, vert))
+    if constexpr (mainBatchSize == 8)
+    {
+      if (rayhit8TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_t, vert))
+        return true;
+    }
+    else if (rayhit4TrianglesCullCCW<check_bounding>(v_local_from, v_local_dir, in_t, vert))
       return true;
   }
 
@@ -116,16 +123,16 @@ bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &n
   return false;
 }
 
-template <bool check_bounding>
+template <bool check_bounding, uint32_t mainBatchSize>
 bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-  const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array)
+  const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array,
+  all_collres_tri_indices_t &tri_indices)
 {
+  static_assert(mainBatchSize == 4 || mainBatchSize == 8);
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
   const uint32_t indicesSize = node.indices.size();
   bool noCull = force_no_cull || node.checkBehaviorFlags(CollisionNode::SOLID);
-
-  constexpr uint32_t mainBatchSize = 8;
 
   uint32_t i;
   for (i = 0; DAGOR_LIKELY(int(i) < int(indicesSize - (mainBatchSize * 3 - 1))); i += mainBatchSize * 3)
@@ -142,7 +149,11 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode 
     }
 
     alignas(32) float outT[mainBatchSize];
-    int ret = traceray8TrianglesMask<check_bounding>(v_local_from, v_local_dir, in_t, outT, vert, noCull);
+    int ret;
+    if constexpr (mainBatchSize == 8)
+      ret = traceray8TrianglesMask<check_bounding>(v_local_from, v_local_dir, in_t, outT, vert, noCull);
+    else
+      ret = traceray4TrianglesMask<check_bounding>(v_local_from, v_local_dir, in_t, outT, vert, noCull);
     if (DAGOR_UNLIKELY(ret != 0))
     {
 #if defined(__clang__) || defined(__GNUC__)
@@ -161,6 +172,7 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode 
             vNorm = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
           }
           ret_array.push_back(v_perm_xyzd(vNorm, v_splats(outT[j])));
+          tri_indices.push_back(int(i / 3 + j));
         }
       }
     }
@@ -205,6 +217,7 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode 
             vNorm = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
           }
           ret_array.push_back(v_perm_xyzd(vNorm, v_splats(outT[j])));
+          tri_indices.push_back(int(i / 3 + j));
         }
       }
     }

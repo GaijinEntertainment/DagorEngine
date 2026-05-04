@@ -158,10 +158,14 @@ shader apply_motion_blur
   z_test = false;
   z_write = false;
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
   (ps)
   {
-    accumulation_tex@smp2d = accumulation_tex;
+    accumulation_tex@tex2d = accumulation_tex;
     alpha_mul_on_apply@f1 = (alpha_mul_on_apply);
+  }
+  hlsl(ps) {
+    #define accumulation_tex_samplerstate global_linear_wrap_sampler
   }
 
 

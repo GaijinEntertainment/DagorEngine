@@ -7,8 +7,9 @@ ShaderGraphRecompiler::~ShaderGraphRecompiler() {}
 void ShaderGraphRecompiler::initialize(NodeBasedShaderType, ShaderCompilerCallback, const char *, const char *, String, const char *)
 {}
 String ShaderGraphRecompiler::substitute(const DataBlock &, String) { return {}; }
-String ShaderGraphRecompiler::substitute(NodeBasedShaderType, uint32_t, const DataBlock &) { return {}; }
-String ShaderGraphRecompiler::substitutePs4(NodeBasedShaderType, uint32_t, const DataBlock &) { return {}; }
+String ShaderGraphRecompiler::substitute(NodeBasedShaderType, uint32_t, NodeBasedShaderQuality, const DataBlock &) { return {}; }
+String ShaderGraphRecompiler::substituteDshl(NodeBasedShaderType, const DataBlock &) { return {}; }
+String ShaderGraphRecompiler::substitutePs4(NodeBasedShaderType, uint32_t, NodeBasedShaderQuality, const DataBlock &) { return {}; }
 String ShaderGraphRecompiler::enumerateLines(const char *) { return {}; }
 void ShaderGraphRecompiler::cleanUp() {}
 void ShaderGraphRecompiler::recompile() {}

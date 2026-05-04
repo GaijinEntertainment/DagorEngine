@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_simpleString.h>
+#include <util/dag_string.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <libTools/util/strUtil.h>
@@ -12,6 +13,8 @@
 #include <direct.h>
 #else
 #include <unistd.h>
+#include <stdlib.h>
+#include <limits.h>
 #endif
 
 namespace sgg
@@ -19,6 +22,7 @@ namespace sgg
 SimpleString mExeDir;
 SimpleString mFullExeDir;
 SimpleString mFullStartDir;
+SimpleString mCommonDataDir;
 
 
 void set_exe_path(const char path[])
@@ -48,9 +52,13 @@ const char *get_exe_path_full()
 
     mFullExeDir = _path;
 #else
-    char *buffer = (char *)memalloc(strlen(dgs_argv[0]) + 1, tmpmem);
+    char resolved[PATH_MAX];
+    const char *exe = dgs_argv[0];
+    if (realpath(exe, resolved))
+      exe = resolved;
+    char *buffer = (char *)memalloc(strlen(exe) + 1, tmpmem);
     *buffer = 0;
-    ::dd_get_fname_location(buffer, dgs_argv[0]);
+    ::dd_get_fname_location(buffer, exe);
     mFullExeDir = buffer;
     memfree(buffer, tmpmem);
 #endif
@@ -60,4 +68,11 @@ const char *get_exe_path_full()
 }
 
 const char *get_start_path() { return mFullStartDir.str(); }
+
+const char *get_common_data_dir()
+{
+  if (mCommonDataDir == "")
+    mCommonDataDir = String(256, "%s/../commonData", get_exe_path_full());
+  return mCommonDataDir.str();
+}
 } // namespace sgg

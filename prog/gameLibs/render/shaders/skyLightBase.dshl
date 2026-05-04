@@ -1,3 +1,5 @@
+include "sky_polarization_filter_term_inc.dshl"
+
 texture envi_probe_specular;
 texture local_light_probe_tex;
 float4 enviSPH0;
@@ -35,6 +37,7 @@ endmacro
 
 define_macro_if_not_defined INIT_ENVI_SPECULAR_BASE(code)
   (code) { envi_probe_specular@smpCube = envi_probe_specular; }
+  INIT_SKY_POLARIZATION_FILTER_TERM(code)
 endmacro
 define_macro_if_not_defined INIT_LOCAL_SPECULAR_BASE(code)
   (code) { envi_probe_specular@smpCube = local_light_probe_tex; }
@@ -69,9 +72,6 @@ hlsl(code) {
     return texCUBElod(envi_probe_specular, tc);
   }
 }
-endmacro
-
-define_macro_if_not_defined FROM_SUN_DIR_SOURCE_COMPAT()
 endmacro
 
 define_macro_if_not_defined INIT_SKY_COMPAT()

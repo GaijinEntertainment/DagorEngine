@@ -30,7 +30,7 @@ let logs = {
   vlog = log.vlog
   console_print = log.console_print
   wlog = log.wlog
-  wdlog = @(watched, prefix = null, transform=null) log.wlog(watched, prefix, transform, log.dlog) //disable: -dlog-warn
+  wdlog = log.wdlog //disable: -dlog-warn
   debugTableData = log.debugTableData
 }
 

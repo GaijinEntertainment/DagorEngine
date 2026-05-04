@@ -10,7 +10,6 @@ macro INIT_INITIAL_GI_AMBIENT_LIGHTING_MODEL(code)
     #define STATIC_SHADOW_NO_VIGNETTE 1
   }
   USE_STATIC_SHADOW_BASE(code)
-  supports global_const_block;
   INIT_SKY_DIFFUSE_BASE(code)
   USE_SKY_DIFFUSE_BASE(code)
 endmacro

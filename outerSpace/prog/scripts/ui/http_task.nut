@@ -78,8 +78,10 @@ function HttpPostTask(url, args=null) {
 
 let mkJsonHttpReq = @(apiUrl, onError, onSuccess) function(data=null, jsondata=null) {
   let params = data != null || jsondata!=null ? {} : null
-  if (data != null && params)
+  if (data && params) {
     params.data <- data
+    params.headers <- {"content-type" : "application/x-www-form-urlencoded"}
+  }
   if (jsondata && params)
     params.json <- jsondata
   HttpPostTask(apiUrl, params)

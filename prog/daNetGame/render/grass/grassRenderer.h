@@ -14,9 +14,13 @@ struct GrassRenderer
   eastl::unique_ptr<Grassify> grassify;
   GPUGrass grass;
   FastGrassRenderer fastGrass;
+  dafg::NodeHandle fastGrassPrecompNode;
+  dafg::NodeHandle fastGrassRenderNode;
   dag::Vector<Point4> grassErasers;
   uint32_t grassErasersIndexToAdd = 0;
   uint32_t grassErasersActualSize = 0;
+  bool useSdfEraser = false;
+  bool needInvalidate = false;
   bool grassErasersModified = false;
   bool fastGrassChanged = false;
   UniqueBufHolder grassEraserBuffer;
@@ -37,9 +41,10 @@ struct GrassRenderer
   void renderGrassVisibilityPass(const GrassView view);
   void resolveGrassVisibility(const GrassView view);
   void renderGrass(const GrassView view);
-  void renderFastGrass(const TMatrix4 &globtm, const Point3 &view_pos);
+  void makeFastGrassNodes();
   void generateGrassPerCamera(const TMatrix &itm);
-  void generateGrassPerView(const GrassView view, const Frustum &frustum, const TMatrix &itm, const Driver3dPerspective &perspective);
+  void generateGrassPerView(
+    const GrassView view, const Frustum &frustum, const TMatrix &itm, const TMatrix &prev_itm, const Driver3dPerspective &perspective);
   void setGrassErasers(int count, const Point4 *erasers);
   void addGrassEraser(const Point3 &world_pos, float radius);
   void clearGrassErasers();

@@ -43,5 +43,3 @@ void save2Lib(std::string &shader);
 
 String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shader_name, const char *entry,
   uint64_t shader_variant_hash);
-
-void compressData(CompileResult &compile_result, const DataAccumulator &header, const std::string_view metal_src_code);

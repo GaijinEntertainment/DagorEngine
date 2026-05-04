@@ -165,6 +165,7 @@ public:
 
   real lodNearVisRange, lodFarVisRange;
   int unwrapScheme;
+  int stage = 0, layer = 0; // cached from DataBlock script. any setInt("layer")/setInt("stage") MUST update both
 
   enum
   {

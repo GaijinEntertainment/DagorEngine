@@ -1,0 +1,8 @@
+ERROR: Only single variable declaration is allowed here
+testData/diagnostics/compilation_errors/sema_errors/only_single_variable_declaration.nut:2:15
+
+// EXPECT_ERROR: "Only single variable declaration is allowed here"
+if (local a = 1, b = 2) {}
+               ^
+
+

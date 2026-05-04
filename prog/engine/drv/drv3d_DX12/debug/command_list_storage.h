@@ -3,6 +3,7 @@
 
 #include <driver.h>
 #include <EASTL/unordered_map.h>
+#include "command_list_identifier.h"
 
 
 namespace drv3d_dx12::debug
@@ -10,13 +11,13 @@ namespace drv3d_dx12::debug
 // Possible improvement:
 // Have a table of "active" buffers in addition to the table of all buffers.
 // This may be needed with big numbers of command lists that are tracked.
-template <typename T>
+template <typename I, typename T>
 class CommandListStorage
 {
-  eastl::unordered_map<ID3D12GraphicsCommandList *, T> table;
+  eastl::unordered_map<I, T> table;
 
 public:
-  T &beginList(ID3D12GraphicsCommandList *cmd)
+  T &beginList(I cmd)
   {
     auto ref = table.find(cmd);
     if (end(table) == ref)
@@ -27,7 +28,7 @@ public:
   }
 
   template <typename... Is>
-  T &beginList(ID3D12GraphicsCommandList *cmd, Is &&...is)
+  T &beginList(I cmd, Is &&...is)
   {
     auto ref = table.find(cmd);
     if (end(table) == ref)
@@ -38,7 +39,7 @@ public:
   }
 
   template <typename C>
-  T &beginListWithCallback(ID3D12GraphicsCommandList *cmd, C clb)
+  T &beginListWithCallback(I cmd, C clb)
   {
     auto ref = table.find(cmd);
     if (end(table) == ref)
@@ -48,10 +49,10 @@ public:
     return ref->second;
   }
 
-  void endList(ID3D12GraphicsCommandList *) {}
+  void endList(I) {}
 
-  T &getList(ID3D12GraphicsCommandList *cmd) { return table[cmd]; }
-  const T *getOptionalList(ID3D12GraphicsCommandList *cmd) const
+  T &getList(I cmd) { return table[cmd]; }
+  const T *getOptionalList(I cmd) const
   {
     auto ref = table.find(cmd);
     return table.end() != ref ? &ref->second : nullptr;

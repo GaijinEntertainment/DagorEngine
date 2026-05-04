@@ -21,8 +21,19 @@ enum class NodeBasedShaderFogVariant : uint32_t
 enum class NodeBasedShaderEnviCoverVariant : uint32_t
 {
   ENVI_COVER,
-  ENVI_COVER_WITH_MOTION_VECS,
+  ENVI_COVER_COMBINED,
+  ENVI_COVER_WITH_NORMS_PACKED,
+  ENVI_COVER_COMBINED_WITH_NORMS_PACKED,
   COUNT,
+};
+
+
+enum class NodeBasedShaderQuality : uint32_t
+{
+  Low,
+  Medium,
+  High,
+  COUNT
 };
 
 inline String get_shader_name(NodeBasedShaderType shaderType)
@@ -52,5 +63,15 @@ inline uint32_t get_shader_variant_count(NodeBasedShaderType shaderType)
     case NodeBasedShaderType::Fog: return (uint32_t)NodeBasedShaderFogVariant::COUNT;
     case NodeBasedShaderType::EnviCover: return (uint32_t)NodeBasedShaderEnviCoverVariant::COUNT;
     default: G_ASSERTF(false, "Wrong shader type!"); return 1;
+  }
+}
+
+inline char const *get_shader_type_block_name(NodeBasedShaderType shaderType)
+{
+  switch (shaderType)
+  {
+    case NodeBasedShaderType::Fog: return "nbs_fog_block";
+    case NodeBasedShaderType::EnviCover: return "nbs_envi_cover_block";
+    default: G_ASSERTF(false, "Wrong shader type!"); return nullptr;
   }
 }

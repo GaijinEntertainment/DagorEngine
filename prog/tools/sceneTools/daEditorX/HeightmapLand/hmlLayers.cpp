@@ -51,7 +51,7 @@ void EditLayerProps::loadLayersConfig(const DataBlock &blk, const DataBlock &loc
       *layersBlk_local.getBlockByNameEx(lptype_name[layerProps[lidx].type])->getBlockByNameEx(b.getBlockName());
     layerProps[lidx].lock = b_local.getBool("lock", false);
     layerProps[lidx].hide = b_local.getBool("hide", false);
-    layerProps[lidx].renderToMask = b_local.getBool("renderToMask", true);
+    layerProps[lidx].renderToMask = b.getBool("renderToMask", true);
     layerProps[lidx].exp = b.getBool("export", true);
     layerProps[lidx].renameable = false;
   }
@@ -63,10 +63,10 @@ void EditLayerProps::loadLayersConfig(const DataBlock &blk, const DataBlock &loc
     if (activeLayerIdx[i] < 0)
       activeLayerIdx[i] = i;
 
-  uint64_t lh_mask = 0;
+  LayerHiddenMask lh_mask;
   for (int i = 0; i < layerProps.size(); i++)
     if (layerProps[i].hide)
-      lh_mask |= 1ull << i;
+      lh_mask.setHidden(i);
   DAEDITOR3.setEntityLayerHiddenMask(lh_mask);
 }
 void EditLayerProps::saveLayersConfig(DataBlock &blk, DataBlock &local_data)
@@ -86,7 +86,8 @@ void EditLayerProps::saveLayersConfig(DataBlock &blk, DataBlock &local_data)
       b.setInt("type", layerProps[i].type);
       b_local.setBool("lock", layerProps[i].lock);
       b_local.setBool("hide", layerProps[i].hide);
-      b_local.setBool("renderToMask", layerProps[i].renderToMask);
+      if (!layerProps[i].renderToMask)
+        b.setBool("renderToMask", layerProps[i].renderToMask);
       if (!layerProps[i].exp)
         b.setBool("export", layerProps[i].exp);
     }

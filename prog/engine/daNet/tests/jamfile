@@ -1,0 +1,32 @@
+Root            ?= ../../../.. ;
+Location        = prog/engine/daNet/tests ;
+ConsoleExe      = yes ;
+TargetType      = exe ;
+Target          = danet-tests ;
+AddIncludes     =
+  $(Root)/prog/3rdPartyLibs/catch2/src
+;
+OutDir          = $(Root)/$(Location) ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Sources =
+  main.cpp
+  bitStream.cpp
+;
+
+UseProgLibs +=
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/math
+  engine/perfMon/daProfilerStub
+
+  3rdPartyLibs/eastl
+  3rdPartyLibs/catch2
+  engine/daNet
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

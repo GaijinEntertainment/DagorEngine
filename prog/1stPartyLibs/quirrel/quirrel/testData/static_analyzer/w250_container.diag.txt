@@ -1,0 +1,7 @@
+WARNING: w250 (cmp-with-container) Comparison with a declaration.
+testData/static_analyzer/w250_container.nut:6:8
+
+return (::a != {})
+        ^--------
+
+

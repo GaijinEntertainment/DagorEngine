@@ -35,12 +35,14 @@ namespace NetImgui
 // Enable default Win32/Posix networking code
 // Note:	By default, netImgui uses Winsock on Windows and Posix sockets on other platforms
 //
-//			The use your own code, turn off both NETIMGUI_WINSOCKET_ENABLED,
-//			NETIMGUI_POSIX_SOCKETS_ENABLED and provide your own implementation of the functions
+//			The use your own code, turn off both NETIMGUI_WINSOCKET_ENABLED, 
+//			NETIMGUI_POSIX_SOCKETS_ENABLED and provide your own implementation of the functions 
 //			declared in 'NetImgui_Network.h'.
 //
 //			As an example, 'SampleCompression' disable default com implementation and use its own
 //=================================================================================================
+// Gaijin:
+/*
 #if !defined(NETIMGUI_WINSOCKET_ENABLED) && !defined(__UNREAL__)
 	#ifdef _WIN32
 		#define NETIMGUI_WINSOCKET_ENABLED	1 // Project needs 'ws2_32.lib' added to input libraries
@@ -52,6 +54,7 @@ namespace NetImgui
 #if !defined(NETIMGUI_POSIX_SOCKETS_ENABLED) && !defined(__UNREAL__)
 	#define NETIMGUI_POSIX_SOCKETS_ENABLED	!(NETIMGUI_WINSOCKET_ENABLED)
 #endif
+*/
 
 //=================================================================================================
 // Various build settings define
@@ -59,4 +62,4 @@ namespace NetImgui
 //=================================================================================================
 //#define NETIMGUI_IMGUI_CALLBACK_ENABLED		(IMGUI_VERSION_NUM >= 18100)	// Not supported pre Dear ImGui 1.81
 //#define NETIMGUI_FORCE_TCP_LISTEN_BINDING		0								// Doesn't seem to be needed on Window/Linux
-//#define NETIMGUI_API							IMGUI_API						// Use same value as defined by Dear ImGui by default
+//#define NETIMGUI_API							IMGUI_API						// Use same value as defined by Dear ImGui by default 

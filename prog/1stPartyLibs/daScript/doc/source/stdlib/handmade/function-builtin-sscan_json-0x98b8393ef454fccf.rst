@@ -1,0 +1,1 @@
+Parses a JSON string directly into `value` using RTTI type information — no intermediate ``JsonValue?`` representation. Returns true on success. Supports structs, pointers, arrays, tables, tuples, variants, enums, bitfields, vector types, and all scalar types. Handles ``@rename`` field annotations. Throws an error for handled types.

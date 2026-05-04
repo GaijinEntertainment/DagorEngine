@@ -1,8 +1,8 @@
 include "decals/deferred_decal_inc.dshl"
+include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
 
-macro MODULATE_2X_DECAL_PS(is_deferred_decal)
-  WRITE_GBUFFER()
-
+macro MODULATE_2X_DECAL_PS(is_deferred_decal, is_dynamic)
   if (compatibility_mode == compatibility_mode_off)
   {
     static int writemask = 1287;//7|((1|4)<<8) - albedo, smoothness and metalness properties
@@ -14,6 +14,8 @@ macro MODULATE_2X_DECAL_PS(is_deferred_decal)
 
   blend_src = dc; blend_dst = sc;
   blend_asrc = 0; blend_adst = 1;
+  WRITE_GBUFFER_WITH_MIXING(true, false, false)
+  DYNAMIC_FILTER_FOR_MIXING(is_dynamic, false)
 
   if (is_deferred_decal)
   {
@@ -23,7 +25,7 @@ macro MODULATE_2X_DECAL_PS(is_deferred_decal)
   static float4 intensity = (1, 0, 1, 0); //intensity clamp_min clamp_max desaturate
   static float4 smoothness_metalness = (0, 0, 0, 0);
   (ps) {
-    diffuse_tex@static = tex;
+    diffuse_tex@staticSmp = tex;
     intensity@f4 = intensity;
     smoothness_metalness@f2 = smoothness_metalness;
   }
@@ -31,6 +33,10 @@ macro MODULATE_2X_DECAL_PS(is_deferred_decal)
   hlsl(ps) {
     GBUFFER_OUTPUT simple_decal_ps(VsOutput input)
     {
+      #if FILTER_DYNAMIC
+        filterDynamic(GET_SCREEN_POS(input.pos).xy);
+      #endif
+
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
       #endif
@@ -60,7 +66,7 @@ macro MODULATE_2X_DECAL_PS(is_deferred_decal)
 
       // in second argument encode_gbuffer() need pass pointToEye for possible forward shading,
       // but it will not work without normal in gbuffer.
-      ##if compatibility_mode == compatibility_mode_on && mobile_render != deferred
+      ##if compatibility_mode == compatibility_mode_on
         GBUFFER_OUTPUT ret;
         ret = apply_gbuffer_rgb(ret, color);
         return ret;

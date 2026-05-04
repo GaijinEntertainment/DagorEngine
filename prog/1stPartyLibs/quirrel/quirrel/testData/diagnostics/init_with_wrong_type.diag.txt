@@ -1,0 +1,8 @@
+ERROR: Assigned null type differs from the declared type
+testData/diagnostics/init_with_wrong_type.nut:1:0
+
+local y: table
+^------
+return y
+
+

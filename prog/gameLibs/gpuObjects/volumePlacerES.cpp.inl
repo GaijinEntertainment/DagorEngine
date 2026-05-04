@@ -26,7 +26,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_lockSbuffer.h>
 #include <ecs/rendInst/riExtra.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
 
 #include <gpuObjects/volumePlacer.h>
 #include <math/dag_hlsl_floatx.h>
@@ -89,7 +89,15 @@ namespace gpu_objects
   VAR(gpu_objects_remove_box_mtx)                      \
   VAR(gpu_objects_remove_box_size)                     \
   VAR(gpu_objects_cutoff_ratio)                        \
-  VAR(gpu_objects_spoofed_decal_size)
+  VAR(gpu_objects_spoofed_decal_size)                  \
+  VAR(gpu_objects_copy_dest_target_offset)             \
+  VAR(gpu_objects_copy_src_offset)                     \
+  VAR(gpu_objects_copy_target_buffer)                  \
+  VAR(gpu_objects_use_bvh)                             \
+  VAR(gpu_objects_bvh_counter)                         \
+  VAR(gpu_objects_bvh_max_count)                       \
+  VAR(gpu_objects_bvh_instances)                       \
+  VAR(gpu_objects_bvh_mappings)
 
 
 #define VAR(a) static int a##VarId = -1;
@@ -125,12 +133,13 @@ VolumePlacer::VolumePlacer()
   computeTerrainObjectsCount.reset(new_compute_shader("gpu_objects_compute_terrain_objects_count_cs", true));
   onTerrainGeometryPlacer.reset(new_compute_shader("gpu_objects_on_terrain_geometry_placer_cs", true));
   onRendinstGeometryPlacer.reset(new_compute_shader("gpu_objects_on_rendinst_geometry_placer_cs", true));
-  counterBuffer =
-    dag::create_sbuffer(sizeof(int), COUNTERS_NUM, SBCF_UA_BYTE_ADDRESS_READBACK | SBCF_BIND_SHADER_RES, 0, "gpu_objects_counter");
+  counterBuffer = dag::create_sbuffer(sizeof(int), COUNTERS_NUM, SBCF_UA_BYTE_ADDRESS_READBACK | SBCF_BIND_SHADER_RES, 0,
+    "gpu_objects_counter", RESTAG_GPUOBJ);
   updateMatrices.reset(new_compute_shader("gpu_objects_update_matrices_cs", true));
   counterReadbackFence.reset(d3d::create_event_query());
   objectRemover.reset(new_compute_shader("gpu_objects_remove_objects_cs", true));
   decalMover.reset(new_compute_shader("gpu_objects_move_decals_into_placer_bbox_cs", true));
+  matrixCopier.reset(new_compute_shader("gpu_objects_copy_matrices_cs", true));
   readbackPending = false;
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
@@ -141,8 +150,8 @@ VolumePlacer::PrefixSumShaders::PrefixSumShaders()
 {
   sumSteps.reset(new_compute_shader("gpu_objects_sum_area_cs", true));
   getGroupCount.reset(new_compute_shader("gpu_objects_get_group_count_cs", true));
-  groupCountIndirect =
-    dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, DISPATCH_INDIRECT_ARGS_NUM, "gpu_objects_group_count");
+  groupCountIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, DISPATCH_INDIRECT_ARGS_NUM,
+    "gpu_objects_group_count", RESTAG_GPUOBJ);
 }
 
 void VolumePlacer::PrefixSumShaders::calculate(Sbuffer *gathered_triangles)
@@ -162,23 +171,23 @@ void VolumePlacer::PrefixSumShaders::calculate(Sbuffer *gathered_triangles)
 }
 
 template <class T>
-inline void gpu_object_placer_fill_ecs_query(T b);
+inline void gpu_object_placer_fill_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_copy_on_expand_ecs_query(T b);
+inline void gpu_object_placer_copy_on_expand_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_visibility_ecs_query(T b);
+inline void gpu_object_placer_visibility_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_invalidate_ecs_query(T b);
+inline void gpu_object_placer_invalidate_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_distance_emitter_update_after_placing_ecs_query(ecs::EntityId id, T b);
+inline void gpu_object_placer_distance_emitter_update_after_placing_ecs_query(ecs::EntityManager &manager, ecs::EntityId id, T b);
 template <class T>
-inline void gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(T b);
+inline void gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_get_current_distance_emitter_position_ecs_query(ecs::EntityId id, T b);
+inline void gpu_object_placer_get_current_distance_emitter_position_ecs_query(ecs::EntityManager &manager, ecs::EntityId id, T b);
 template <class T>
-inline void gpu_object_placer_select_closest_distance_emitter_ecs_query(T b);
+inline void gpu_object_placer_select_closest_distance_emitter_ecs_query(ecs::EntityManager &manager, T b);
 template <class T>
-inline void gpu_object_placer_remove_ecs_query(T b);
+inline void gpu_object_placer_remove_ecs_query(ecs::EntityManager &manager, T b);
 
 
 static void adjust_transform_to_border_offset(const Point2 *offset, int axis_index, TMatrix &transform)
@@ -208,7 +217,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
   if (matricesBuffer.needExpand)
     matricesBuffer.expandBuffer();
 
-  gpu_object_placer_fill_ecs_query(
+  gpu_object_placer_fill_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid, int gpu_object_placer__ri_asset_idx, float gpu_object_placer__visible_distance_squared,
       bool gpu_object_placer__place_on_geometry, bool gpu_object_placer__use_strict_decal_placement,
       const Point2 &gpu_object_placer__spoofed_decal_size, float gpu_object_placer__min_gathered_triangle_size,
@@ -336,7 +345,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
 
   if (!removeBoxList.empty())
   {
-    gpu_object_placer_remove_ecs_query(
+    gpu_object_placer_remove_ecs_query(*g_entity_mgr,
       [&](int &gpu_object_placer__buffer_offset, int &gpu_object_placer__buffer_size,
         int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
         const TMatrix &transform ECS_REQUIRE(ecs::Tag box_zone), bool gpu_object_placer__opaque) {
@@ -353,9 +362,9 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
         for (auto &box : removeBoxList)
         {
           d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
-          ShaderGlobal::set_color4(gpu_objects_remove_box_centerVarId, box.boxCenter);
+          ShaderGlobal::set_float4(gpu_objects_remove_box_centerVarId, box.boxCenter);
           ShaderGlobal::set_float4x4(gpu_objects_remove_box_mtxVarId, box.tm);
-          ShaderGlobal::set_color4(gpu_objects_remove_box_sizeVarId, box.boxSize);
+          ShaderGlobal::set_float4(gpu_objects_remove_box_sizeVarId, box.boxSize);
 
           objectRemover->dispatchThreads(
             (gpu_object_placer__on_rendinst_geometry_count + gpu_object_placer__on_terrain_geometry_count), 1, 1);
@@ -492,11 +501,11 @@ void VolumePlacer::RingBuffer::expandBuffer()
   size = min(size, MAX_MATRICES_COUNT);
   static int bufferIndex = 0;
   auto name = "gpu_objects_matrices_" + eastl::to_string(bufferIndex++);
-  BufPtr newBuf = dag::buffers::create_ua_structured(sizeof(Point4), size * ROWS_IN_MATRIX, name.c_str());
+  BufPtr newBuf = dag::buffers::create_ua_structured(sizeof(Point4), size * ROWS_IN_MATRIX, name.c_str(), RESTAG_GPUOBJ);
   int offset = 0;
   if (dataStart != dataEnd || dataLastUsed)
   {
-    gpu_object_placer_copy_on_expand_ecs_query(
+    gpu_object_placer_copy_on_expand_ecs_query(*g_entity_mgr,
       [&](int &gpu_object_placer__buffer_offset, int gpu_object_placer__buffer_size,
         int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__decal_buffer_size) {
         if (gpu_object_placer__buffer_offset == -1)
@@ -541,7 +550,7 @@ void VolumePlacer::moveDecals(int count, int ri_idx, int buf_offset, const TMatr
   ShaderGlobal::set_int(gpu_objects_matrices_countVarId, count);
   ShaderGlobal::set_int(gpu_objects_ri_pool_id_offsetVarId, ri_idx * rendinst::render::PER_DRAW_VECS_COUNT + 1);
   ShaderGlobal::set_int(gpu_objects_decal_buffer_offsetVarId, decal_offset);
-  ShaderGlobal::set_color4(gpu_objects_spoofed_decal_sizeVarId, spoofed_decal_size);
+  ShaderGlobal::set_float4(gpu_objects_spoofed_decal_sizeVarId, spoofed_decal_size);
 
   set_placer_transform(TMatrix4(transform));
 
@@ -557,6 +566,9 @@ bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatr
   float min_triangle_size, float triangle_edge_length_ratio_cutoff, int on_rendinst_geometry_count, int on_terrain_geometry_count,
   float density, riex_handles &surface_riex_handles, bool need_geometry_gather)
 {
+  if (on_geometry && (need_geometry_gather || on_terrain_geometry_count > 0) && readbackPending)
+    return false;
+
   if (on_geometry && need_geometry_gather)
   {
     if (!gatherGeometryInBox(transform, min_triangle_size, triangle_edge_length_ratio_cutoff, up_vector_threshold, density,
@@ -574,11 +586,28 @@ bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatr
   ShaderGlobal::set_int(gpu_objects_ri_pool_id_offsetVarId, ri_idx * rendinst::render::PER_DRAW_VECS_COUNT + 1);
   int maxTerrainObjectsCount = getMaxTerrainObjectsCount(transform, density);
   ShaderGlobal::set_int(gpu_objects_max_on_terrain_instance_countVarId, maxTerrainObjectsCount);
-  ShaderGlobal::set_color4(gpu_objects_scale_rotateVarId, scale_range.x, scale_range.y, 0, 0);
-  ShaderGlobal::set_color4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
-  ShaderGlobal::set_color4(gpu_objects_scale_radiusVarId, distance_based_scale.x, distance_based_scale.y, min_scale_radius, 0);
+  ShaderGlobal::set_float4(gpu_objects_scale_rotateVarId, scale_range.x, scale_range.y, 0, 0);
+  ShaderGlobal::set_float4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
+  ShaderGlobal::set_float4(gpu_objects_scale_radiusVarId, distance_based_scale.x, distance_based_scale.y, min_scale_radius, 0);
 
   set_placer_transform(TMatrix4(transform));
+
+  auto bvhConnectionLocal = GpuObjects::bvhConnection; // to please the analyzer
+  const bool useBvhConnection =
+    bvhConnectionLocal && bvhConnectionLocal->isReady() && VariableMap::isVariablePresent(gpu_objects_use_bvhVarId);
+
+  if (useBvhConnection && bvhConnectionLocal->prepare())
+  {
+    ShaderGlobal::set_int(gpu_objects_bvh_max_countVarId,
+      bvhConnectionLocal->getInstancesBuffer() ? bvhConnectionLocal->getInstancesBuffer()->getNumElements() : 0);
+    ShaderGlobal::set_buffer(gpu_objects_bvh_counterVarId, bvhConnectionLocal->getInstanceCounter());
+    ShaderGlobal::set_buffer(gpu_objects_bvh_instancesVarId, bvhConnectionLocal->getInstancesBuffer());
+
+    D3DRESID mappingId;
+    bool useBvh = bvhConnectionLocal->translateObjectId(ri_idx, mappingId);
+    ShaderGlobal::set_int(gpu_objects_use_bvhVarId, useBvh ? 1 : 0);
+    ShaderGlobal::set_buffer(gpu_objects_bvh_mappingsVarId, mappingId);
+  }
 
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
 
@@ -605,7 +634,7 @@ bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatr
       d3d::resource_barrier({counterBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
       d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
       Point2 bboxYMinMax = getBboxYMinMax(transform);
-      ShaderGlobal::set_color4(gpu_objects_bbox_y_min_maxVarId, bboxYMinMax);
+      ShaderGlobal::set_float4(gpu_objects_bbox_y_min_maxVarId, bboxYMinMax);
       onTerrainGeometryPlacer->dispatchThreads(maxTerrainObjectsCount, 1, 1);
     }
   }
@@ -614,6 +643,9 @@ bool VolumePlacer::placeInBox(int count, int ri_idx, int buf_offset, const TMatr
     TIME_D3D_PROFILE(VolumePlacer_box_placer)
     boxPlacer->dispatchThreads(count, 1, 1);
   }
+
+  if (useBvhConnection)
+    bvhConnectionLocal->done();
 
   return true;
 }
@@ -631,7 +663,7 @@ int VolumePlacer::getMaxTerrainObjectsCount(const TMatrix &transform, float dens
 bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_triangle_size, float triangle_edge_length_ratio_cutoff,
   const Point4 &up_vector_threshold, float density, riex_handles &surface_riex_handles)
 {
-  if (waitReadbackEntity)
+  if (waitReadbackEntity || readbackPending)
     return false;
   bbox3f bbox;
   mat44f tm;
@@ -690,15 +722,16 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
     if (gatheredTrianglesBufferSize < numFaces)
     {
       gatheredTrianglesBuffer.close();
-      gatheredTrianglesBuffer =
-        dag::buffers::create_ua_sr_structured(sizeof(GeometryTriangle), numFaces, "gpu_objects_gathered_triangles");
+      gatheredTrianglesBuffer = dag::buffers::create_ua_sr_structured(sizeof(GeometryTriangle), numFaces,
+        "gpu_objects_gathered_triangles", d3d::buffers::Init::No, RESTAG_GPUOBJ);
       gatheredTrianglesBufferSize = numFaces;
     }
     if (geometryMeshesBufferSize < geometryMeshes.size() || !geometryMeshesBuffer)
     {
       geometryMeshesBuffer.close();
       geometryMeshesBuffer = dag::create_sbuffer(sizeof(GeometryMesh), max<int>(geometryMeshes.size(), 64),
-        SBCF_BIND_SHADER_RES | SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED, 0, "gpu_objects_geometry_meshes");
+        SBCF_BIND_SHADER_RES | SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED, 0, "gpu_objects_geometry_meshes",
+        RESTAG_GPUOBJ);
       G_ASSERT(geometryMeshesBuffer.getBuf());
       geometryMeshesBufferSize = geometryMeshes.size();
     }
@@ -733,9 +766,9 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
   d3d::zero_rwbufi(counterBuffer.getBuf());
   STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 1, VALUE), counterBuffer.getBuf());
 
-  ShaderGlobal::set_real(gpu_objects_min_gathered_triangle_sizeVarId, min_triangle_size);
-  ShaderGlobal::set_real(gpu_objects_cutoff_ratioVarId, triangle_edge_length_ratio_cutoff);
-  ShaderGlobal::set_color4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
+  ShaderGlobal::set_float(gpu_objects_min_gathered_triangle_sizeVarId, min_triangle_size);
+  ShaderGlobal::set_float(gpu_objects_cutoff_ratioVarId, triangle_edge_length_ratio_cutoff);
+  ShaderGlobal::set_float4(gpu_objects_up_vectorVarId, Color4::xyzw(up_vector_threshold));
   set_placer_transform(TMatrix4(transform));
 
   if (!geometryMeshes.empty())
@@ -765,7 +798,7 @@ bool VolumePlacer::gatherGeometryInBox(const TMatrix &transform, float min_trian
     int maxTerrainObjectsCount = getMaxTerrainObjectsCount(transform, density);
     ShaderGlobal::set_int(gpu_objects_max_on_terrain_instance_countVarId, maxTerrainObjectsCount);
     Point2 bboxYMinMax = getBboxYMinMax(transform);
-    ShaderGlobal::set_color4(gpu_objects_bbox_y_min_maxVarId, bboxYMinMax);
+    ShaderGlobal::set_float4(gpu_objects_bbox_y_min_maxVarId, bboxYMinMax);
     computeTerrainObjectsCount->dispatchThreads(maxTerrainObjectsCount, 1, 1);
   }
   return true;
@@ -845,13 +878,13 @@ void VolumePlacer::drawDebugGeometry(const TMatrix &transform, float min_triangl
     debugGatheredTrianglesRenderer.init("gpu_object_placer_draw_geometry_debug", nullptr, 0, "gpu_object_placer_draw_geometry_debug");
   }
   set_placer_transform(TMatrix4(transform));
-  ShaderGlobal::set_color4(gpu_objects_debug_colorVarId, Color4(1, 0, 0, 0.3));
+  ShaderGlobal::set_float4(gpu_objects_debug_colorVarId, Color4(1, 0, 0, 0.3));
   debugGatheredTrianglesRenderer.shader->setStates(0, true);
   d3d::setvsrc(0, 0, 0);
   d3d::draw(PRIM_TRILIST, 0, gatheredTrianglesBufferSize);
 
   d3d::setwire(true);
-  ShaderGlobal::set_color4(gpu_objects_debug_colorVarId, Color4(1, 0, 0, 1));
+  ShaderGlobal::set_float4(gpu_objects_debug_colorVarId, Color4(1, 0, 0, 1));
   debugGatheredTrianglesRenderer.shader->setStates(0, true);
   d3d::setvsrc(0, 0, 0);
   d3d::draw(PRIM_TRILIST, 0, gatheredTrianglesBufferSize);
@@ -867,7 +900,7 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
   for (int &numInstances : numInstancesToDraw)
     numInstances = 0;
 
-  gpu_object_placer_visibility_ecs_query(
+  gpu_object_placer_visibility_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__filled) int gpu_object_placer__ri_asset_idx,
       int gpu_object_placer__buffer_size, float gpu_object_placer__current_distance_squared, int gpu_object_placer__buffer_offset,
       int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__decal_buffer_size, bool gpu_object_placer__opaque,
@@ -890,7 +923,7 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
         uint32_t layerBits = (gpu_object_placer__opaque << LAYER_OPAQUE) | (gpu_object_placer__decal << LAYER_DECAL) |
                              (gpu_object_placer__distorsion << LAYER_DISTORSION);
         uint32_t key = (riIdx & RI_IDX_MASK) | (layerBits << LAYER_BITS_SHIFT);
-        int lod = rendinst::getRIGenExtraPreferrableLod(riIdx, gpu_object_placer__current_distance_squared);
+        int lod = rendinst::getRIGenExtraPreferableLod(riIdx, gpu_object_placer__current_distance_squared);
 
         G_UNUSED(gpu_object_placer__distance_emitter_eid);
         if (gpu_object_placer__distance_emitter_buffer_size > 0)
@@ -916,9 +949,9 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
 }
 
 void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset, int lod, int layer,
-  eastl::vector<IPoint2> &offsets_and_counts, eastl::vector<uint16_t> &ri_ids)
+  eastl::vector<IPoint2> &offsets_and_counts, eastl::vector<uint16_t> &ri_ids, bool use_bvh_connection)
 {
-  if (d3d::get_driver_code().is(d3d::vulkan))
+  if (d3d::get_driver_code().is(d3d::vulkan) && !use_bvh_connection)
     d3d::driver_command(Drv3dCommand::DELAY_SYNC);
 
   auto visibility = layer == Layers::LAYER_DECAL ? visibilityByLodDecal[lod] : visibilityByLod[lod];
@@ -928,12 +961,35 @@ void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset
     uint16_t layerBits = pair.first >> LAYER_BITS_SHIFT;
     if (!(layerBits & (1 << layer)))
       continue;
+
+    D3DRESID mappingId = BAD_D3DRESID;
+    auto bvhConnectionLocal = GpuObjects::bvhConnection;
+    bool useBvh = use_bvh_connection ? bvhConnectionLocal->translateObjectId(riIdx, mappingId) : false; //-V522
+    if (VariableMap::isVariablePresent(gpu_objects_use_bvhVarId))
+    {
+      ShaderGlobal::set_int(gpu_objects_use_bvhVarId, useBvh ? 1 : 0);
+      ShaderGlobal::set_buffer(gpu_objects_bvh_mappingsVarId, mappingId);
+    }
+
     int count = 0;
     int offset = dst_buffer_offset;
     for (BufferRec bufRec : pair.second)
     {
-      matricesBuffer.getBuf()->copyTo(dst_buffer, dst_buffer_offset * MATRIX_SIZE, bufRec.offset * MATRIX_SIZE,
-        bufRec.size * MATRIX_SIZE);
+      if (useBvh)
+      {
+        ShaderGlobal::set_buffer(gpu_objects_copy_target_bufferVarId, dst_buffer);
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
+
+        ShaderGlobal::set_int(gpu_objects_copy_dest_target_offsetVarId, dst_buffer_offset);
+        ShaderGlobal::set_int(gpu_objects_copy_src_offsetVarId, bufRec.offset);
+        ShaderGlobal::set_int(gpu_objects_matrices_countVarId, bufRec.size);
+
+        matrixCopier->dispatchThreads(bufRec.size, 1, 1);
+      }
+      else
+        matricesBuffer.getBuf()->copyTo(dst_buffer, dst_buffer_offset * MATRIX_SIZE, bufRec.offset * MATRIX_SIZE,
+          bufRec.size * MATRIX_SIZE);
+
       dst_buffer_offset += bufRec.size;
       count += bufRec.size;
     }
@@ -941,7 +997,7 @@ void VolumePlacer::copyMatrices(Sbuffer *dst_buffer, uint32_t &dst_buffer_offset
     offsets_and_counts.emplace_back(offset * ROWS_IN_MATRIX, count);
   }
 
-  if (d3d::get_driver_code().is(d3d::vulkan))
+  if (d3d::get_driver_code().is(d3d::vulkan) && !use_bvh_connection)
     d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 }
 
@@ -949,7 +1005,7 @@ void VolumePlacer::RingBuffer::invalidate()
 {
   if (dataStart != dataEnd || dataLastUsed)
   {
-    gpu_object_placer_invalidate_ecs_query(
+    gpu_object_placer_invalidate_ecs_query(*g_entity_mgr,
       [&](bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset, int &gpu_object_placer__distance_emitter_buffer_size,
         int &gpu_object_placer__decal_buffer_size) {
         gpu_object_placer__filled = false;
@@ -985,7 +1041,7 @@ static DistanceEmitterParameters get_distance_emitter_entity_params(ecs::EntityI
   DistanceEmitterParameters params{};
   if (gpu_object_placer__distance_emitter_eid)
   {
-    gpu_object_placer_distance_emitter_update_after_placing_ecs_query(gpu_object_placer__distance_emitter_eid,
+    gpu_object_placer_distance_emitter_update_after_placing_ecs_query(*g_entity_mgr, gpu_object_placer__distance_emitter_eid,
       [&](const TMatrix &transform, float gpu_objects_distance_emitter__range, float gpu_objects_distance_emitter__scale_factor,
         float gpu_objects_distance_emitter__rotation_factor) {
         params.range = gpu_objects_distance_emitter__range;
@@ -1002,7 +1058,7 @@ static void selectClosestDistanceEmitter(ecs::EntityId &gpu_object_placer__dista
 {
   float smallestDistanceSquared;
   ecs::EntityId smallestDistanceId = INVALID_ENTITY_ID;
-  gpu_object_placer_select_closest_distance_emitter_ecs_query(
+  gpu_object_placer_select_closest_distance_emitter_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(float gpu_objects_distance_emitter__range) const ecs::EntityId &eid, const TMatrix &transform) {
       float distanceSquared = (volumePlacerPosition - transform.getcol(3)).lengthSq();
       if (smallestDistanceId == INVALID_ENTITY_ID || smallestDistanceSquared > distanceSquared)
@@ -1018,7 +1074,7 @@ static void selectClosestDistanceEmitter(ecs::EntityId &gpu_object_placer__dista
 void VolumePlacer::updateDistanceEmitterMatrices(const ecs::EntityId changed_distance_emitter_id,
   const TMatrix &changed_distance_emitter_transform)
 {
-  gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(
+  gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId &gpu_object_placer__distance_emitter_eid, bool &gpu_object_placer__distance_emitter_is_dirty,
       bool gpu_object_placer__use_distance_emitter, const TMatrix &transform) {
       if (gpu_object_placer__use_distance_emitter)
@@ -1035,7 +1091,7 @@ void VolumePlacer::updateDistanceEmitterMatrices(const ecs::EntityId changed_dis
           // not the closest emitter changed, so we need to check if it's the closest now, or the currently selected remains the
           // closest
           Point3 currentDistanceEmitterPosition;
-          gpu_object_placer_get_current_distance_emitter_position_ecs_query(gpu_object_placer__distance_emitter_eid,
+          gpu_object_placer_get_current_distance_emitter_position_ecs_query(*g_entity_mgr, gpu_object_placer__distance_emitter_eid,
             [&](const TMatrix &transform) { currentDistanceEmitterPosition = transform.getcol(3); });
           float changedDistanceEmitterDistanceSquared =
             (volumePlacerPosition - changed_distance_emitter_transform.getcol(3)).lengthSq();
@@ -1075,19 +1131,19 @@ void VolumePlacer::updateDistanceEmitterMatrix(int gpu_object_placer__buffer_off
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), matricesBuffer.getBuf());
     d3d::resource_barrier({matricesBuffer.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     ShaderGlobal::set_int(gpu_objects_distance_affect_decalVarId, gpu_object_placer__distance_affect_decals ? 1 : 0);
-    ShaderGlobal::set_color4(gpu_objects_distance_to_scale_fromVarId, gpu_object_placer__distance_to_scale_from);
-    ShaderGlobal::set_color4(gpu_objects_distance_to_scale_toVarId, finalScaleTo);
-    ShaderGlobal::set_color4(gpu_objects_distance_to_min_scaleVarId, minScale);
-    ShaderGlobal::set_color4(gpu_objects_distance_to_max_scaleVarId, maxScale);
-    ShaderGlobal::set_real(gpu_objects_distance_to_rotation_fromVarId, finalRotationFrom);
-    ShaderGlobal::set_real(gpu_objects_distance_to_rotation_toVarId, finalRotationTo);
-    ShaderGlobal::set_real(gpu_objects_distance_to_min_rotationVarId, minRotation);
-    ShaderGlobal::set_real(gpu_objects_distance_to_max_rotationVarId, maxRotation);
-    ShaderGlobal::set_color4(gpu_objects_distance_to_scale_powVarId, gpu_object_placer__distance_to_scale_pow);
-    ShaderGlobal::set_real(gpu_objects_distance_to_rotation_powVarId, gpu_object_placer__distance_to_rotation_pow);
+    ShaderGlobal::set_float4(gpu_objects_distance_to_scale_fromVarId, gpu_object_placer__distance_to_scale_from);
+    ShaderGlobal::set_float4(gpu_objects_distance_to_scale_toVarId, finalScaleTo);
+    ShaderGlobal::set_float4(gpu_objects_distance_to_min_scaleVarId, minScale);
+    ShaderGlobal::set_float4(gpu_objects_distance_to_max_scaleVarId, maxScale);
+    ShaderGlobal::set_float(gpu_objects_distance_to_rotation_fromVarId, finalRotationFrom);
+    ShaderGlobal::set_float(gpu_objects_distance_to_rotation_toVarId, finalRotationTo);
+    ShaderGlobal::set_float(gpu_objects_distance_to_min_rotationVarId, minRotation);
+    ShaderGlobal::set_float(gpu_objects_distance_to_max_rotationVarId, maxRotation);
+    ShaderGlobal::set_float4(gpu_objects_distance_to_scale_powVarId, gpu_object_placer__distance_to_scale_pow);
+    ShaderGlobal::set_float(gpu_objects_distance_to_rotation_powVarId, gpu_object_placer__distance_to_rotation_pow);
     ShaderGlobal::set_int(gpu_objects_distance_out_of_rangeVarId, gpu_object_placer__distance_out_of_range ? 1 : 0);
-    ShaderGlobal::set_real(gpu_objects_distance_emitter__rangeVarId, params.range);
-    ShaderGlobal::set_color4(gpu_objects_distance_emitter__positionVarId, params.position);
+    ShaderGlobal::set_float(gpu_objects_distance_emitter__rangeVarId, params.range);
+    ShaderGlobal::set_float4(gpu_objects_distance_emitter__positionVarId, params.position);
     ShaderGlobal::set_int(gpu_objects_buffer_offsetVarId, gpu_object_placer__buffer_offset);
     ShaderGlobal::set_int(gpu_objects_distance_emitter_buffer_offsetVarId,
       gpu_object_placer__buffer_offset + gpu_object_placer__buffer_size);

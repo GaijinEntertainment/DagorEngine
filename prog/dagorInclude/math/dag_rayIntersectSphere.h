@@ -48,6 +48,46 @@ __forceinline bool notNormalizedRayIntersectSphere(const Point3 &p, const Point3
 }
 
 // <0 if there is no intersection
+__forceinline float rayIntersectHollowSphereDist(const Point3 &ray_start, const Point3 &ray_normalized_dir,
+  const Point3 &sphere_center, float sphere_radius)
+{
+  Point3 p = ray_start - sphere_center;
+
+  float c = p * p - sphere_radius * sphere_radius;
+  float b = 2.f * (p * ray_normalized_dir);
+  float d = b * b - 4 * c;
+  if (d >= 0)
+  {
+    float sq = sqrtf(d);
+    float v0 = (-b - sq) * 0.5f;
+    float v1 = (-b + sq) * 0.5f;
+
+    return v0 >= 0.f ? v0 : max(v0, v1);
+  }
+
+  return -1.f;
+}
+
+__forceinline float rayIntersectHollowSphereDist(vec3f ray_start, vec3f ray_normalized_dir, vec3f sphere_center, float sphere_radius)
+{
+  vec3f p = v_sub(ray_start, sphere_center);
+
+  float c = v_extract_x(v_length3_sq_x(p)) - sphere_radius * sphere_radius;
+  float b = 2.f * v_extract_x(v_dot3_x(p, ray_normalized_dir));
+  float d = b * b - 4 * c;
+  if (d >= 0)
+  {
+    float sq = sqrtf(d);
+    float v0 = (-b - sq) * 0.5f;
+    float v1 = (-b + sq) * 0.5f;
+
+    return v0 >= 0.f ? v0 : max(v0, v1);
+  }
+
+  return -1.f;
+}
+
+// <0 if there is no intersection, 0.0 if we are inside the sphere
 __forceinline float rayIntersectSphereDist(const Point3 &ray_start, const Point3 &ray_normalized_dir, const Point3 &sphere_center,
   float sphere_radius)
 {

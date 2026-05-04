@@ -104,21 +104,21 @@ shader sponza, simple_aces
     USE_VOXELIZE_SPACE(vs)
   }
 
-  (ps) { diffuse_tex@static = tex; }
+  (ps) { diffuse_tex@staticSmp = tex; }
   if (normal != NULL)
   {
     USE_PIXEL_TANGENT_SPACE()
-    (ps) { normal_tex@static = normal; }
+    (ps) { normal_tex@staticSmp = normal; }
   }
   if (shader == sponza)
   {
     if (spec != NULL)
     {
-      (ps) { spec@static = spec; }
+      (ps) { spec@staticSmp = spec; }
     }
     if (mask != NULL)
     {
-      (ps) { mask@static = mask; }
+      (ps) { mask@staticSmp = mask; }
     }
   } else
   {
@@ -347,8 +347,10 @@ shader gi_black
 
   if (scene_mode == voxelize_sdf)
   {
-    hlsl(ps) {
-      RWTexture3D<float> world_sdf_clipmap : register(u0);
+    (ps) {
+      world_sdf_clipmap@uav : register(0) hlsl {
+        RWTexture3D<float> world_sdf_clipmap@uav;
+      }
     }
     (vs) {voxelize_axis@i1 = (voxelize_axis);}
   } else if (scene_mode == voxelize_albedo)

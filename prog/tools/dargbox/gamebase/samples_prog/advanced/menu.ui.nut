@@ -17,7 +17,7 @@ let defButtonStyle = {
     normal = {
       borderWidth = 0
       fillColor = Color(50,50,50)
-      padding = static [hdpx(2), hdpx(5)]
+      padding = const [hdpx(2), hdpx(5)]
       margin = hdpx(2)
     }
   }
@@ -154,7 +154,7 @@ function breadcrumps(){
         }
       )
     else
-      child = { margin = sh(1) children = {rendObj=ROBJ_TEXT text=bc.text fontSize = hdpx(40) margin=static [sh(1), sh(3)]} key=bc.text}
+      child = { margin = sh(1) children = {rendObj=ROBJ_TEXT text=bc.text fontSize = hdpx(40) margin = const [sh(1), sh(3)]} key=bc.text}
     children.append(child)
   }
   return {

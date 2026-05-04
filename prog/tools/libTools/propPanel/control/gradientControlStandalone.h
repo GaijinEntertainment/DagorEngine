@@ -8,11 +8,14 @@
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_Point2.h>
 #include <util/dag_string.h>
+#include <EASTL/unique_ptr.h>
 
 namespace PropPanel
 {
 
 class GradientControlStandalone;
+class IMenu;
+class GradientControlContextMenuEventHandler;
 
 class TrackGradientButton
 {
@@ -68,6 +71,7 @@ public:
   void getValue(PGradient destGradient) const;
   void reset();
   void updateCycled(TrackGradientButton *button);
+  void processContextMenu(unsigned id);
 
   bool canRemove();
   void setSelected(bool value);
@@ -79,8 +83,12 @@ public:
 private:
   void draw();
   void onLButtonDClick(float x_pos_in_canvas_space);
+  void onRButtonDown();
   void calculateSizes(int total_width, int total_height);
   void cancelColorPickerShowRequest();
+  void handleKeyPresses(unsigned canvas_id);
+  void copyGradient();
+  void pasteGradient();
 
   void onImguiDelayedCallback(void *user_data) override;
 
@@ -99,6 +107,8 @@ private:
   Point2 lastMouseDragPosInCanvas = Point2(-1.0f, -1.0f);
   int mouseClickKeyIndex = -1;
   int showColorPickerForKeyIndex = -1;
+  eastl::unique_ptr<IMenu> contextMenu;
+  eastl::unique_ptr<GradientControlContextMenuEventHandler> contextMenuEventHandler;
 };
 
 } // namespace PropPanel

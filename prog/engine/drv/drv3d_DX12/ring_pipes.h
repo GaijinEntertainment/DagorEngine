@@ -4,7 +4,6 @@
 #include "constants.h"
 #include <atomic>
 #include <osApiWrappers/dag_events.h>
-#include <osApiWrappers/dag_spinlock.h>
 
 #if !defined(_M_ARM64)
 #include <emmintrin.h>
@@ -51,13 +50,15 @@ public:
   T *operator->() { return selectedElement; }
   const T *operator->() const { return selectedElement; }
 
+  uint32_t getIndex() const { return getIndex(selectedElement); }
+
   constexpr size_t size() const { return N; }
 
   void advance() { selectedElement = advancePosition(selectedElement); }
 
   // Iterates all elements of the ring in a unspecified order
-  template <typename T>
-  void iterate(T clb)
+  template <typename C>
+  void iterate(C clb)
   {
     for (auto &&v : elements)
     {
@@ -66,8 +67,8 @@ public:
   }
 
   // Iterates all elements from last to the current element
-  template <typename T>
-  void walkAll(T clb)
+  template <typename C>
+  void walkAll(C clb)
   {
     auto at = advancePosition(selectedElement);
     for (size_t i = 0; i < N; ++i)
@@ -78,8 +79,8 @@ public:
   }
 
   // Iterates all elements from last to the element before the current element
-  template <typename T>
-  void walkUnitlCurrent(T clb)
+  template <typename C>
+  void walkUnitlCurrent(C clb)
   {
     auto at = advancePosition(selectedElement);
     for (size_t i = 0; i < N - 1; ++i)

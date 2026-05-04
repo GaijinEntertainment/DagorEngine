@@ -15,7 +15,6 @@
 #include <damageModel/damageEffects.h>
 #include <damageModel/damageModelParams.h>
 #include <damageModel/damagePart.h>
-#include <ecs/game/dm/collisionData.h>
 #include <damageModel/splashDamage.h>
 #include <damageModel/syntheticShatterDamage.h>
 #include <damageModel/criticalDamageTester.h>
@@ -28,11 +27,9 @@
 #include <damageModel/damagePart.h>
 #include <damageModel/damagePartProps.h>
 #include <damageModel/damageToPartEvent.h>
-#include <damageModel/dmObjectUtils.h>
 #include <damageModel/partNameMaps.h>
-#include <ecs/game/dm/partId.h>
-#include <ecs/game/dm/damageModel.h>
-#include <ecs/game/dm/damageModelData.h>
+#include <damageModelExtras/damagePartProps.h>
+#include <damageModelExtras/damageModelData.h>
 
 typedef dag::Vector<dm::DamagePartProps> DamageModelDataPartProps;
 typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
@@ -40,23 +37,19 @@ typedef dag::Vector<dm::DamagePart> DamageModelDataParts;
 using MetaPartPartIds = dag::VectorSet<dm::PartId>;
 
 DAS_TYPE_DECL(DamageToPartEvent, dm::DamageToPartEvent);
-DAS_TYPE_DECL(ExplosiveProps, dm::ExplosiveProperties);
+DAS_TYPE_DECL_BEGIN(ExplosiveProps, dm::ExplosiveProperties)
+bool isLocal() const override { return true; }
+DAS_TYPE_DECL_END;
 DAS_TYPE_DECL(ExplosiveMassToSplash, dm::ExplosiveMassToSplash);
 DAS_TYPE_DECL(MetaPart, dm::MetaPart);
-DAS_TYPE_DECL(CollisionData, dm::CollisionData);
 DAS_TYPE_DECL(DamageModelData, dm::DamageModelData);
-DAS_TYPE_DECL(DamageModel, dm::DamageModel);
-DAS_TYPE_DECL(HitData, dm::HitData);
 DAS_TYPE_DECL(DamagePart, dm::DamagePart);
-DAS_TYPE_DECL(DamagePartProps, dm::DamagePartProps);
-DAS_BIND_VECTOR(DamageModelDataPartProps, DamageModelDataPartProps, dm::DamagePartProps, "DamageModelDataPartProps");
 DAS_BIND_VECTOR(DamageModelDataParts, DamageModelDataParts, dm::DamagePart, "DamageModelDataParts");
 
 DAS_TYPE_DECL_BEGIN(PartId, dm::PartId)
 bool isLocal() const override { return true; }
 bool isRawPod() const override { return true; }
 DAS_TYPE_DECL_END;
-DAS_BIND_VECTOR(PartIdList, dm::PartIdList, dm::PartId, "::dm::PartIdList");
 
 DAS_TYPE_DECL_BEGIN(SplashParams, dm::splash::Params)
 bool isLocal() const override { return true; }
@@ -66,7 +59,9 @@ DAS_TYPE_DECL(DamageEffectPreset, dm::effect::Preset);
 DAS_TYPE_DECL(DmEffectPresetList, dm::effect::PresetList);
 DAS_TYPE_DECL(MetaPartProp, dm::MetaPartProp);
 DAS_TYPE_DECL(DamageEffectActionCluster, dm::effect::ActionCluster);
-DAS_TYPE_DECL(SplashProps, dm::splash::Properties);
+DAS_TYPE_DECL_BEGIN(SplashProps, dm::splash::Properties)
+bool isLocal() const override { return true; }
+DAS_TYPE_DECL_END;
 
 DAS_BIND_VECTOR_SET(MetaPartPartIds, MetaPartPartIds, dm::PartId, " ::MetaPartPartIds")
 DAS_BIND_VECTOR(MetaPartPropsVector, dm::MetaPartPropsVector, dm::MetaPartProp, " ::dm::MetaPartPropsVector")
@@ -84,18 +79,8 @@ DAS_BIND_ENUM_CAST(dm::KillEffect)
 DAS_BASE_BIND_ENUM(dm::KillEffect, KillEffect, KILL_EFF_NONE, KILL_EFF_INACTIVE, KILL_EFF_DAMAGED, KILL_EFF_SCORCHED, KILL_EFF_SMOKE,
   KILL_EFF_FIRE, KILL_EFF_EXPLOSION, KILL_EFF_DROWN, KILL_EFF_DESTRUCTION, KILL_EFF_WRECKED, KILL_EFF_HULL_BREAK);
 
-DAS_TYPE_DECL(Ray3, Ray3);
-
 namespace bind_dascript
 {
-static inline int dm_read_overrided_preset(dm::effect::PresetList &presets, const DataBlock &blk, const char *preset_param_name,
-  int default_preset_id, const dm::DamageModelData &dm_data)
-{
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
-  return dm::effect::read_overrided_preset_ex(presets, blk, preset_param_name, default_preset_id, dm_data.props.parts, dm_data.parts,
-    nullptr, dataBlockRWHelper);
-}
-
 static inline uint16_t get_rel_hp_fixed(const dm::DamageModelData &dm_data, int part_id)
 {
   return get_part_hp_fixed(dm_data.parts, dm::PartId(part_id, -1));
@@ -103,23 +88,11 @@ static inline uint16_t get_rel_hp_fixed(const dm::DamageModelData &dm_data, int 
 
 static inline const char *get_meta_part_prop_name(const dm::MetaPartProp &prop) { return prop.name.c_str(); }
 
-static inline dm::PartId find_part_id(const dm::DamageModelData &dm_data, const char *part_name)
-{
-  return find_part_id(dm_data.props.parts, dm_data.parts, dm::get_part_names_maps().partNames, part_name);
-}
-
-static inline int find_part_id_by_name(const dm::DamageModel &damage_model, const char *part_name)
-{
-  return find_part_id(damage_model.dmData.props.parts, damage_model.dmData.parts, dm::get_part_names_maps().partNames, part_name).id;
-}
-
 static inline int get_damage_part_id(const dm::DamagePart &dm_part) { return dm_part.partId.id; }
 
 static inline dm::PartId make_part_id(int id, int globalId) { return dm::PartId(static_cast<uint8_t>(id), globalId); }
 
 static inline dm::PartId unpack_part_id(uint32_t packed) { return dm::PartId(packed); }
-
-static inline int collisiondata_getGeomNodeIdByCollNode(const dm::CollisionData &c, int n) { return (int)c.collNodeIdToGeomNodeId[n]; }
 
 static inline int get_part_id_by_coll_node_id(const dm::DamageModelData &dm_data, int coll_node_id)
 {
@@ -160,17 +133,6 @@ static inline int get_part_physmat_id(const dm::DamageModelData &dm_data, int pa
   return props ? props->physMaterialId : -1;
 }
 
-static inline dm::splash::Params calc_splash_params(const dm::ExplosiveProperties &explosive_props,
-  const dm::splash::Properties &splash_properties, bool underwater)
-{
-  dm::splash::Params params;
-  if (explosive_props.mass > 0.f && splash_properties.type != dm::splash::Properties::Type::PREDEFINED)
-    dm::splash::calc_explosive_params(explosive_props, 1.f, params.explosiveParams);
-  dm::splash::calc_params(splash_properties, underwater ? dm::PhysEnvironment::WATER : dm::PhysEnvironment::AIR,
-    dm::get_explosive_settings().massToSplash, params);
-  return params;
-}
-
 static inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(const dm::effect::Preset &preset, bool on_kill,
   int damage_type_id, float damage)
 {
@@ -185,43 +147,6 @@ static inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, c
 {
   const dm::DamagePartProps *props = dm::get_part_props(dm_data.props.parts, part_id);
   return props ? props->hp : 0.f;
-}
-
-static inline const char *das_get_part_name(const dm::DamageModelData &dm_data, int part_id)
-{
-  return dm::get_part_names_maps().partNames.getName(dm_data.props.parts[part_id].partNameId);
-}
-
-static inline bool das_is_coll_node_traceable(const dm::DamageModelData &dm_data, int coll_node_id, bool reverse)
-{
-  return dm::is_coll_node_traceable(dm_data.props.parts, dm_data.parts, dm_data.decorMask, dm_data.collisionNodeIdToPartId,
-    dm_data.collisionNodeExclude, coll_node_id, nullptr, reverse);
-}
-
-static inline void das_load_dm_part_props(dm::DamagePartProps &props, const char *blk_name)
-{
-  DataBlock blk(blk_name);
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
-  props.load(blk, dataBlockRWHelper, dm::get_fire_presets(), true);
-}
-
-static inline void splash_props_load(dm::splash::Properties &props, const DataBlock &blk)
-{
-  dm::DataBlockRWHelper dataBlockRWHelper(dm::get_damage_types(), dm::get_part_names_maps());
-  props.load(blk, dataBlockRWHelper);
-}
-
-static inline void explosive_props_load(dm::ExplosiveProperties &props, const DataBlock &blk, float mass_mult)
-{
-  props.load(blk, dm::get_explosive_settings(), mass_mult);
-}
-
-inline int find_damage_type_id_by_name(const char *name) { return dm::get_damage_types().findTypeByName(name).getIdx(); }
-
-static inline void deal_damage_to_part(dm::DamageModel &dmComp, ecs::EntityId eid, int part_id, int damag_type_id,
-  int damage_effects_mask, float damage, const dm::HitData &hit_data)
-{
-  dm::deal_damage_to_part(dmComp, eid, part_id, damag_type_id, damage_effects_mask, damage, hit_data);
 }
 
 static inline float calc_kinetic_penetration_shift(const InterpolateTabFloat &table, float residual_penetration, float distance,
@@ -263,6 +188,11 @@ inline bool is_part_enabled(const dm::DamageModelData &dm_data, const dm::PartId
   return is_part_enabled(dm_data.parts, part_id);
 }
 
+inline bool is_part_enabled(const dm::DamageModelData &dm_data, int part_id)
+{
+  return is_part_enabled(dm_data.parts, dm::PartId(part_id, -1));
+}
+
 inline dm::DamagePartState get_part_state(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
 {
   return get_part_state(dm_data.parts, part_id);
@@ -281,6 +211,11 @@ inline float get_part_hp_rel(const dm::DamageModelData &dm_data, const dm::PartI
 inline float get_part_hp(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
 {
   return get_part_hp(dm_data.props.parts, dm_data.parts, part_id);
+}
+
+inline float get_part_hp(const dm::DamageModelData &dm_data, int part_id)
+{
+  return get_part_hp(dm_data.props.parts, dm_data.parts, dm::PartId(part_id, -1));
 }
 
 inline bool is_part_alive(const dm::DamageModelData &dm_data, const dm::PartId &part_id)

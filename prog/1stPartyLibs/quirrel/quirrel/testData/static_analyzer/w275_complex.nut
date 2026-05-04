@@ -1,3 +1,8 @@
+if (__name__ == "__analysis__")
+  return
+
+// No warnings here - the switch statement is large, but breaks are in every branch
+
 #allow-switch-statement
 
 function foo(_a, _b) {}
@@ -47,7 +52,6 @@ switch (d.a() & d.M) {
     }
     break
   }
-
-
 }
+
 foo(4, someBound)

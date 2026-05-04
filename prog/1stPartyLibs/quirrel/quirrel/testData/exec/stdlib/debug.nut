@@ -35,3 +35,10 @@ if (info.gc == "enabled") {
 
 println($"getobjflags: {type(getobjflags)}")
 println($"getbuildinfo: {type(dbg.getbuildinfo)}")
+
+function fn(x: int, y: float): float {
+    return x * y
+}
+
+println($"get_function_decl_string: {dbg.get_function_decl_string(fn)}")
+println($"type_mask_to_string(6) = {dbg.type_mask_to_string(6)}")

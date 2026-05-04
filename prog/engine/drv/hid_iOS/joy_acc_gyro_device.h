@@ -53,6 +53,7 @@ public:
 
   // returns device connection status
   bool isConnected() override;
+  bool isXinputCompatible() const override { return true; }
 
   // to call from driver
   void update();
@@ -65,6 +66,8 @@ public:
   }
   void setStickDeadZoneScale(int stick_idx, float scale) override;
   float getStickDeadZoneAbs(int stick_idx) const override;
+
+  bool isDeviceGyro() const override { return gamepad == nullptr; }
 
 private:
   // read input from gamepad

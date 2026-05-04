@@ -2,7 +2,7 @@
 
 #include <dataBlockUtils/blk2sqrat/blk2sqrat.h>
 #include <ioSys/dag_dataBlock.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 #include <squirrel.h>
 #include <userSystemInfo/userSystemInfo.h>

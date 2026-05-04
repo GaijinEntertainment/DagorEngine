@@ -20,12 +20,12 @@ static IPoint2 physmap_selected_grid = IPoint2(-1, -1);
 
 ECS_TAG(render, dev)
 ECS_ON_EVENT(on_appear)
-ECS_TRACK(drawPhysMap)
-static void debug_physmap_appear_es_event_handler(const ecs::Event &, UniqueTexHolder &phys_map_tex, const bool &drawPhysMap)
+ECS_TRACK(aim_ruler__drawPhysMap)
+static inline void debug_physmap_appear_es(const ecs::Event &, UniqueTexHolder &phys_map_tex, const bool &aim_ruler__drawPhysMap)
 {
   phys_map_tex.close();
 
-  if (!drawPhysMap)
+  if (!aim_ruler__drawPhysMap)
     return;
 
   const PhysMap *physMap = dacoll::get_lmesh_phys_map();
@@ -34,7 +34,7 @@ static void debug_physmap_appear_es_event_handler(const ecs::Event &, UniqueTexH
   const int size = physMap->size;
   phys_map_tex = dag::create_tex(nullptr, size, size, TEXFMT_R8UI, 1, "phys_map_tex");
 
-  ShaderGlobal::set_color4(::get_shader_variable_id("phys_map_coords", false), physMap->worldOffset.x, physMap->worldOffset.y,
+  ShaderGlobal::set_float4(::get_shader_variable_id("phys_map_coords", false), physMap->worldOffset.x, physMap->worldOffset.y,
     physMap->invScale, 0);
 
   if (auto data = lock_texture<uint8_t>(phys_map_tex.getTex2D(), 0, TEXLOCK_WRITE))

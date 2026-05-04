@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "joy_enumdev.h"
+
 #include <drv/hid/dag_hiJoystick.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
@@ -17,6 +19,8 @@ class Di8JoystickClassDriver final : public IGenJoystickClassDrv, public IWndPro
   friend AsyncDeviceListChecker;
 
 public:
+  using Di8DeviceList = Tab<Di8JoystickDevice *>;
+
   Di8JoystickClassDriver(bool exclude_xinput, bool remap_360);
   ~Di8JoystickClassDriver();
 
@@ -30,12 +34,10 @@ public:
   virtual void unacquireDevices();
   virtual void destroy();
 
-  bool tryRefreshDeviceList();
-  void refreshDeviceList() override { tryRefreshDeviceList(); }
+  void refreshDeviceList() override;
 
   virtual int getDeviceCount() const { return device.size() + (secDrv ? secDrv->getDeviceCount() : 0); }
   virtual void updateDevices();
-  bool deviceCheckerListRunning() const;
 
   // generic joystick class driver interface
   virtual IGenJoystick *getDevice(int idx) const;
@@ -67,7 +69,7 @@ public:
   }
 
 protected:
-  Tab<Di8JoystickDevice *> device;
+  Di8DeviceList device;
   IGenJoystickClient *defClient;
   IGenJoystickClassDrv *secDrv;
   IGenJoystick *defJoy;
@@ -78,8 +80,6 @@ protected:
   bool enableAutoDef;
   bool excludeXinputDev, remapAsX360;
 
-  void checkDeviceList();
-  volatile int deviceListCheckerIsRunning;
-  eastl::unique_ptr<AsyncDeviceListChecker> deviceListChecker;
+  DeviceEnumerator deviceEnumerator;
 };
 } // namespace HumanInput

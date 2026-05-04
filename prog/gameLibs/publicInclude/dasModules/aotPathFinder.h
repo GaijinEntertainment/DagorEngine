@@ -10,9 +10,10 @@
 #include <pathFinder/pathFinder.h>
 #include <pathFinder/customNav.h>
 #include <math/dag_vecMathCompatibility.h>
+#include "daScript/misc/arraytype.h"
 #include "memory/dag_framemem.h"
 #include <dasModules/aotDagorMath.h>
-#include <detourPathCorridor.h>
+#include <DetourPathCorridor.h>
 #include <dasModules/aotEcs.h>
 #include <dasModules/dasManagedTab.h>
 #include <pathFinder/pathFinder.h>
@@ -43,10 +44,7 @@ inline void find_path_common(Tab<Point3> &path, const das::TBlock<void, const da
 {
   path.reserve(path.size() + 1);
   das::Array arr;
-  arr.data = (char *)path.data();
-  arr.size = uint32_t(path.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, path.data(), path.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -134,6 +132,12 @@ inline bool project_to_nearest_navmesh_point_3d(das::float3 &pos, Point3 extents
 {
   return pathfinder::project_to_nearest_navmesh_point(reinterpret_cast<Point3 &>(pos), extents);
 }
+inline bool project_to_nearest_navmesh_point_avoid_obstacles_3d(das::float3 &pos, Point3 extents)
+{
+  if (pathfinder::project_to_nearest_navmesh_point(reinterpret_cast<Point3 &>(pos), extents))
+    return true;
+  return pathfinder::project_to_nearest_navmesh_point_no_obstacles(reinterpret_cast<Point3 &>(pos), extents);
+}
 inline bool project_to_nearest_navmesh_point_no_obstacles_3d(das::float3 &pos, Point3 extents)
 {
   return pathfinder::project_to_nearest_navmesh_point_no_obstacles(reinterpret_cast<Point3 &>(pos), extents);
@@ -203,10 +207,7 @@ inline bool query_navmesh_projections(const Point3 &pos, das::float3 extents, in
   points.reserve(points_num + 1);
   const bool res = pathfinder::query_navmesh_projections(pos, reinterpret_cast<Point3 &>(extents), points, points_num);
   das::Array arr;
-  arr.data = (char *)points.data();
-  arr.size = uint32_t(points.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, points.data(), points.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -223,21 +224,29 @@ inline bool query_navmesh_projections_with_polys(const Point3 &pos, das::float3 
   Tab<dtPolyRef> polys(framemem_ptr());
   const bool res = pathfinder::query_navmesh_projections(pos, reinterpret_cast<Point3 &>(extents), points, polys, points_num);
   das::Array pointsArr;
-  pointsArr.data = (char *)points.data();
-  pointsArr.size = uint32_t(points.size());
-  pointsArr.capacity = pointsArr.size;
-  pointsArr.lock = 1;
+  das::array_mark_locked(pointsArr, points.data(), points.size());
   pointsArr.flags = 0;
 
   das::Array polysArr;
-  polysArr.data = (char *)polys.data();
-  polysArr.size = uint32_t(polys.size());
-  polysArr.capacity = polysArr.size;
-  polysArr.lock = 1;
+  das::array_mark_locked(polysArr, polys.data(), polys.size());
   polysArr.flags = 0;
 
   eastl::array args = {das::cast<das::Array *>::from(&pointsArr), das::cast<das::Array *>::from(&polysArr)};
   context->invoke(block, args.data(), nullptr, at);
+  return res;
+}
+
+inline bool query_navmesh_polys(const Point3 &pos, das::float3 extents, int max_polys,
+  const das::TBlock<void, const das::TTemporary<const das::TArray<uint64_t>>> &block, das::Context *context, das::LineInfoArg *at)
+{
+  Tab<dtPolyRef> polys(framemem_ptr());
+  polys.reserve(max_polys + 1);
+  const bool res = pathfinder::query_navmesh_polys(pos, reinterpret_cast<Point3 &>(extents), polys, max_polys);
+  das::Array arr;
+  das::array_mark_locked(arr, polys.data(), polys.size());
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
   return res;
 }
 
@@ -252,7 +261,7 @@ inline bool find_random_points_around_circle(const Point3 &pos, float radius, in
   arr.data = (char *)points.data();
   arr.size = uint32_t(points.size());
   arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, points.data(), points.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -266,10 +275,7 @@ inline void das_find_corridor_corners(dtPathCorridor &corridor, int num,
   corners.reserve(num + 1);
   pathfinder::find_corridor_corners(corridor, corners, num);
   das::Array arr;
-  arr.data = (char *)corners.data();
-  arr.size = uint32_t(corners.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, corners.data(), corners.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -283,10 +289,7 @@ inline void das_find_corridor_corners_result(dtPathCorridor &corridor, int num,
   corners.reserve(num + 1);
   pathfinder::FindCornersResult res = pathfinder::find_corridor_corners(corridor, corners, num);
   das::Array arr;
-  arr.data = (char *)corners.data();
-  arr.size = uint32_t(corners.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, corners.data(), corners.size());
   arr.flags = 0;
   vec4f args[] = {das::cast<das::Array *>::from(&arr), das::cast<pathfinder::FindCornersResult &>::from(res)};
   context->invoke(block, args, nullptr, at);
@@ -300,10 +303,7 @@ inline void corridor_get_path(const dtPathCorridor &corridor,
   const dtPolyRef *path = corridor.getPath();
   const int pathSize = corridor.getPathCount();
   das::Array arr;
-  arr.data = (char *)path;
-  arr.size = uint32_t(pathSize);
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)path, pathSize);
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -316,10 +316,7 @@ inline int das_move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, cons
   const int result = pathfinder::move_over_offmesh_link_in_corridor(corridor, pos, extents, ctx, corners, over_link, out_from, out_to);
   corners.reserve(corners.size() + 1);
   das::Array arr;
-  arr.data = (char *)corners.data();
-  arr.size = uint32_t(corners.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, corners.data(), corners.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -331,10 +328,7 @@ inline bool find_polys_in_circle(const Point3 &pos, float radius, float height_h
   dag::Vector<dtPolyRef, framemem_allocator> polyRefs;
   const bool res = pathfinder::find_polys_in_circle(polyRefs, pos, radius, height_half_offset);
   das::Array arr;
-  arr.data = (char *)polyRefs.data();
-  arr.size = uint32_t(polyRefs.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, polyRefs.data(), polyRefs.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -434,6 +428,156 @@ inline void for_each_nmesh_poly(const das::TBlock<void, dtPolyRef> &block, das::
       context->invoke(block, &arg, nullptr, at);
     }
   }
+}
+
+inline void for_each_poly_triangle(const dtPolyRef polyRef, const das::TBlock<void, Point3, Point3, Point3> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return;
+
+  if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+  {
+    const float *v0 = &tile->verts[poly->verts[0] * 3];
+    const float *v1 = &tile->verts[poly->verts[1] * 3];
+    Point3 p0(v0, Point3::CTOR_FROM_PTR);
+    Point3 p1(v1, Point3::CTOR_FROM_PTR);
+    Point3 p2 = p1;
+    vec4f args[] = {das::cast<Point3>::from(p0), das::cast<Point3>::from(p1), das::cast<Point3>::from(p2)};
+    context->invoke(block, args, nullptr, at);
+    return;
+  }
+
+  const unsigned int polyId = (unsigned int)(poly - tile->polys);
+  const dtPolyDetail *pd = &tile->detailMeshes[polyId];
+  for (int i = 0; i < pd->triCount; ++i)
+  {
+    const unsigned char *t = &tile->detailTris[(pd->triBase + i) * 4];
+    Point3 p[3];
+    for (int j = 0; j < 3; ++j)
+    {
+      const float *src =
+        t[j] < poly->vertCount ? &tile->verts[poly->verts[t[j]] * 3] : &tile->detailVerts[(pd->vertBase + t[j] - poly->vertCount) * 3];
+      p[j] = Point3(src, Point3::CTOR_FROM_PTR);
+    }
+    vec4f args[] = {das::cast<Point3>::from(p[0]), das::cast<Point3>::from(p[1]), das::cast<Point3>::from(p[2])};
+    context->invoke(block, args, nullptr, at);
+  }
+}
+
+inline int get_poly_detail_triangle_count(const dtPolyRef polyRef)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return 0;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return 0;
+
+  if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+    return 1;
+
+  const unsigned int polyId = (unsigned int)(poly - tile->polys);
+  const dtPolyDetail *pd = &tile->detailMeshes[polyId];
+  return pd ? pd->triCount : 0;
+}
+
+inline bool get_poly_detail_triangle(const dtPolyRef polyRef, int triIndex, pathfinder::NavMeshTriangle &result)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return false;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return false;
+
+  if (poly->getType() == DT_POLYTYPE_OFFMESH_CONNECTION)
+  {
+    if (triIndex != 0)
+      return false;
+    const float *v0 = &tile->verts[poly->verts[0] * 3];
+    const float *v1 = &tile->verts[poly->verts[1] * 3];
+    result.p0 = Point3(v0, Point3::CTOR_FROM_PTR);
+    result.p1 = Point3(v1, Point3::CTOR_FROM_PTR);
+    result.p2 = result.p1;
+    result.polyRef = polyRef;
+    return true;
+  }
+
+  const unsigned int polyId = (unsigned int)(poly - tile->polys);
+  const dtPolyDetail *pd = &tile->detailMeshes[polyId];
+  if (!pd || triIndex < 0 || triIndex >= pd->triCount)
+    return false;
+
+  const unsigned char *t = &tile->detailTris[(pd->triBase + triIndex) * 4];
+  Point3 *p[3] = {&result.p0, &result.p1, &result.p2};
+  for (int j = 0; j < 3; ++j)
+  {
+    const float *src =
+      t[j] < poly->vertCount ? &tile->verts[poly->verts[t[j]] * 3] : &tile->detailVerts[(pd->vertBase + t[j] - poly->vertCount) * 3];
+    *p[j] = Point3(src, Point3::CTOR_FROM_PTR);
+  }
+  result.polyRef = polyRef;
+  return true;
+}
+
+inline void for_each_poly_vertex(const dtPolyRef polyRef, const das::TBlock<void, Point3> &block, das::Context *context,
+  das::LineInfoArg *at)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return;
+
+  const int vertCount = poly->vertCount;
+  for (int j = 0; j < vertCount; ++j)
+  {
+    const float *v = &tile->verts[poly->verts[j] * 3];
+    Point3 p(v, Point3::CTOR_FROM_PTR);
+    vec4f arg = das::cast<Point3>::from(p);
+    context->invoke(block, &arg, nullptr, at);
+  }
+}
+
+inline int get_poly_vertex_count(const dtPolyRef polyRef)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return 0;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return 0;
+
+  return poly->vertCount;
+}
+
+inline bool get_poly_vertex(const dtPolyRef polyRef, int vertIndex, Point3 &result)
+{
+  if (!pathfinder::getNavMeshPtr())
+    return false;
+
+  const dtMeshTile *tile = nullptr;
+  const dtPoly *poly = nullptr;
+  if (!dtStatusSucceed(pathfinder::getNavMeshPtr()->getTileAndPolyByRef(polyRef, &tile, &poly)) || !tile || !poly)
+    return false;
+
+  if (vertIndex < 0 || vertIndex >= poly->vertCount)
+    return false;
+
+  const float *v = &tile->verts[poly->verts[vertIndex] * 3];
+  result = Point3(v, Point3::CTOR_FROM_PTR);
+  return true;
 }
 
 inline void change_navpolys_flags_in_box(int nav_mesh_idx, const TMatrix &transform, unsigned short set_flags,

@@ -29,7 +29,8 @@ static void startup_white_tex()
   image[0].w = image[0].h = 1;
   *(E3DCOLOR *)(image + 1) = 0xFFFFFFFF;
 
-  white_tex = UniqueTex(dag::create_tex(image, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "gui_whiteTex"), "whiteTex");
+  white_tex = UniqueTex(dag::create_tex(image, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "gui_whiteTex", RESTAG_DEBUG),
+    "whiteTex");
 }
 
 void WhiteRestartProc::shutdown() { white_tex.close(); }

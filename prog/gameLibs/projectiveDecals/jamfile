@@ -13,6 +13,7 @@ AddIncludes =
 ;
 
 Sources =
+  defaultDecalData.cpp
   projectiveDecals.cpp
   projectiveDecalsBuffer.cpp
   resizableProjectiveDecals.cpp

@@ -39,12 +39,7 @@ public:
     return controlCaption.size();
   }
 
-  void clear() override
-  {
-    ContainerPropertyControl::clear();
-
-    minimized = false;
-  }
+  void setValueHighlight(ColorOverride::ColorIndex color) override { valueHighlightColor = color; }
 
   // saving and loading state with datablock
 
@@ -56,8 +51,8 @@ public:
     else
       groupId.printf(64, "group_%d", getID());
 
-    DataBlock *_block = datablk.addNewBlock(groupId.c_str());
-    _block->addBool("minimize", this->getBoolValue());
+    DataBlock *_block = datablk.addBlock(groupId.c_str());
+    _block->setBool("minimize", this->getBoolValue());
 
     for (PropertyControlBase *control : mControlArray)
       control->saveState(*_block, by_name);
@@ -96,12 +91,20 @@ public:
 
     const bool wasMinimized = minimized;
     if (wasMinimized)
-      ImGui::PushFont(imgui_get_bold_font());
+      ImGui::PushFont(imgui_get_bold_font(), 0.0f);
+
+    const bool valueHighlightColorSet = valueHighlightColor != ColorOverride::NONE;
+    if (valueHighlightColorSet)
+      ImGui::PushStyleColor(ImGuiCol_Header, getOverriddenColor(valueHighlightColor));
 
     ImGui::SetNextItemOpen(!minimized);
     minimized = !ImGui::CollapsingHeader(controlCaption);
     setFocusToPreviousImGuiControlAndScrollToItsTopIfRequested();
+    setPreviousImguiControlTooltip();
     showJumpToGroupContextMenuOnRightClick();
+
+    if (valueHighlightColorSet)
+      ImGui::PopStyleColor();
 
     if (wasMinimized)
       ImGui::PopFont();
@@ -186,6 +189,7 @@ private:
   bool controlEnabled = true;
   bool minimized = false;
   void *userData = nullptr;
+  ColorOverride::ColorIndex valueHighlightColor = ColorOverride::NONE;
 };
 
 } // namespace PropPanel

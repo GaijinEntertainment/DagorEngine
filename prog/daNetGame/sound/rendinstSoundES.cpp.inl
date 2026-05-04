@@ -9,7 +9,7 @@
 
 
 template <typename Callable>
-static void rendinst_tree_sound_ecs_query(Callable c);
+static void rendinst_tree_sound_ecs_query(ecs::EntityManager &manager, Callable c);
 
 namespace rendinstsound
 {
@@ -19,7 +19,7 @@ bool rendinst_tree_sound_cb(
   if (TREE_SOUND_CB_INIT == call_type)
   {
     bool isInited = false;
-    rendinst_tree_sound_ecs_query(
+    rendinst_tree_sound_ecs_query(*g_entity_mgr,
       [&](const ecs::string &rendinst_tree_sounds__fallingPath, const ecs::string &rendinst_tree_sounds__falledPath) {
         G_UNREFERENCED(rendinst_tree_sounds__falledPath);
         if (sndsys::should_play(tm.getcol(3)))
@@ -37,7 +37,7 @@ bool rendinst_tree_sound_cb(
 
   if (TREE_SOUND_CB_ON_FALLED == call_type)
   {
-    rendinst_tree_sound_ecs_query(
+    rendinst_tree_sound_ecs_query(*g_entity_mgr,
       [&](const ecs::string &rendinst_tree_sounds__fallingPath, const ecs::string &rendinst_tree_sounds__falledPath) {
         G_UNREFERENCED(rendinst_tree_sounds__fallingPath);
         if (!rendinst_tree_sounds__falledPath.empty())

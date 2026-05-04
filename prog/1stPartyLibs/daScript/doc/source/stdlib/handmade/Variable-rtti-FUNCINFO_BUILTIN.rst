@@ -1,0 +1,1 @@
+Bit flag constant on ``FuncInfo.flags`` indicating that the function is a built-in (C++-bound) function rather than a daslang-defined one.

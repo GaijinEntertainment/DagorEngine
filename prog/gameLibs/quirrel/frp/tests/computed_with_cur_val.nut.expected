@@ -1,0 +1,5 @@
+initial: 1
+after w=2: 3
+after w=3: 6
+combined: 30
+combined after a=100: 120

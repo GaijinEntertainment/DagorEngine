@@ -6,7 +6,12 @@ Target      = gameLibs/fftWater.lib ;
 
 Sources =
   wake.cpp
+  waterRenderCommon.cpp
   waterRender.cpp
+  cpuTexSampler.cpp
+  chopWaterRender.cpp
+  chopWaterPhysics.cpp
+  chopWaterGen.cpp
   waterRenderGpGPU.cpp
   waterRenderCSGPU.cpp
   gpuFetch.cpp

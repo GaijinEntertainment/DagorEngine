@@ -1,0 +1,8 @@
+ERROR: can't assign to binding 'x' (probably declaring using 'local' was intended, but 'let' was used)
+testData/diagnostics/compilation_errors/sema_errors/assign_to_binding.nut:3:0
+
+let x = 10
+x = 20
+^
+
+

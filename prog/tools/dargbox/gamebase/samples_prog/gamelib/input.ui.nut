@@ -34,7 +34,7 @@ function button(text, handler) {
     behavior = Behaviors.Button
     rendObj = ROBJ_SOLID
     color = Color(120, 120, 180)
-    size = static [sh(40), SIZE_TO_CONTENT]
+    size = const [sh(40), SIZE_TO_CONTENT]
     halign = ALIGN_CENTER
     children = {
       rendObj = ROBJ_TEXT

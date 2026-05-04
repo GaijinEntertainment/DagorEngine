@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/anim.h>
 
@@ -20,9 +22,11 @@ struct AnimIrqToEventComponent : public ecs::AnimIrqHandler
     return irqType;
   }
 
-  intptr_t irq(int type, intptr_t, intptr_t, intptr_t) override
+  intptr_t irq(int type, intptr_t, intptr_t, intptr_t, ecs::EntityManager *mgr = nullptr) override
   {
-    g_entity_mgr->sendEvent(eid, EventAnimIrq(type));
+    if (!mgr)
+      mgr = g_entity_mgr;
+    mgr->sendEvent(eid, EventAnimIrq(type));
     return 0;
   }
 };

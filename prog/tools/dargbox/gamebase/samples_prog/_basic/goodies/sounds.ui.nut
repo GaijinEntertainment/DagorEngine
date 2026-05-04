@@ -10,7 +10,7 @@ function extraItem() {
     children.append({
       rendObj = ROBJ_SOLID
       color = Color(0,40,0)
-      size = static [300,200]
+      size = const [300,200]
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
       sound = {
@@ -31,7 +31,7 @@ function sampleButton() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
-    size = static [200,50]
+    size = const [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
@@ -52,7 +52,7 @@ function sampleButton2() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(0,205,25)
-    size = static [200,50]
+    size = const [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER

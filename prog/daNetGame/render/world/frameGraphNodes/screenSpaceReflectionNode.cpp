@@ -13,12 +13,17 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_computeShaders.h>
 
+#define INSIDE_RENDERER 1
+#include "../private_worldRenderer.h"
+
 extern uint32_t get_gi_history_frames();
 
 static ShaderVariableInfo ssr_denoiser_typeVarId("ssr_denoiser_type", true);
 static ShaderVariableInfo ssr_denoiser_tileVarId("ssr_denoiser_tile", true);
+static ShaderVariableInfo filter_high_luminance_changes("filter_high_luminance_changes", true);
 
 int invalidate_ssr_history_frames = 0;
+int luminance_filter_frames = 0;
 static bool is_history_valid = false;
 
 void invalidate_ssr_history(int frames) { invalidate_ssr_history_frames = ::max(invalidate_ssr_history_frames, frames); }
@@ -31,6 +36,14 @@ static inline void update_is_history_valid()
   is_history_valid = invalidate_ssr_history_frames == 0;
   if (invalidate_ssr_history_frames > 0)
     --invalidate_ssr_history_frames;
+}
+
+void luminance_filter_ssr_history(int frames) { luminance_filter_frames = ::max(luminance_filter_frames, frames); }
+static inline void update_is_luminance_filter_required()
+{
+  ShaderGlobal::set_int(filter_high_luminance_changes, luminance_filter_frames > 0);
+  if (luminance_filter_frames > 0)
+    luminance_filter_frames--;
 }
 
 eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
@@ -50,7 +63,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
 
   result.push_back(
     dafg::register_node("ssr_node_camera_res_provider", DAFG_PP_NODE_SRC, [fmt, is_fullres, ssr_quality](dafg::Registry registry) {
-      registry.create("ssr_target_before_denoise", dafg::History::No)
+      registry.create("ssr_target_before_denoise")
         .texture({fmt, registry.getResolution<2>("main_view", is_fullres ? 1.0f : 0.5f),
           (uint32_t)ScreenSpaceReflections::getMipCount(ssr_quality)});
 
@@ -58,7 +71,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
         smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-        registry.create("ssr_target_sampler", dafg::History::No).blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+        registry.create("ssr_target_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
       }
     }));
 
@@ -121,10 +134,11 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
                dafg::multiplexing::Index multiplexing_index) {
         camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref()};
         const auto &camera = cameraHndl.ref();
+        auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
         SubFrameSample subFrameSample = subFrameSampleHndl.ref();
         ShaderGlobal::set_int(ssr_denoiser_typeVarId, denoiser_type == SSR_DENOISER_SIMPLE ? 1 : 0);
-        ManagedTexView ssrTex = ssrTargetHndl.view();
+        BaseTexture *ssrTex = ssrTargetHndl.get();
 
         TextureInfo info;
         ssrTex->getinfo(info);
@@ -132,12 +146,16 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
         // Pixel version worked well without this resolution change, but let it be here for all versions for safety.
         ssr->changeDynamicResolution(info.w, info.h);
 
-        ManagedTexView prevSsrTex = ssrTargetHistHndl.view();
+        BaseTexture *prevSsrTex = ssrTargetHistHndl.get();
         int callId = ::dagor_frame_no() + multiplexing_index.viewport + multiplexing_index.subSample + multiplexing_index.superSample;
 
         if (multiplexing_index == dafg::multiplexing::Index{})
           update_is_history_valid();
         ssr->setHistoryValid(is_history_valid);
+        update_is_luminance_filter_required();
+
+        if (wr.hasSSRAlternateReflections())
+          wr.setGILightsToShader(false /*allow_frustum_lights*/);
 
         ssr->render(camera.viewTm, camera.jitterProjTm, camera.cameraWorldPos, subFrameSample, ssrTex, prevSsrTex, ssrTex, callId);
       };
@@ -147,7 +165,7 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
   {
     // for LQ ssr
     result.push_back(dafg::register_node("ssr_publish_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.renameTexture("ssr_target_before_denoise", "ssr_target", dafg::History::ClearZeroOnFirstFrame);
+      registry.renameTexture("ssr_target_before_denoise", "ssr_target").withHistory(dafg::History::ClearZeroOnFirstFrame);
       return [] {};
     }));
   }
@@ -188,14 +206,12 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeScreenSpaceReflectionNodes(
           .bindToShaderVar("downsampled_motion_vectors_tex_samplerstate")
           .optional();
 
-        registry.create("ssr_target", dafg::History::ClearZeroOnFirstFrame)
+        registry.create("ssr_target")
           .texture({fmt, registry.getResolution<2>("main_view", is_fullres ? 1.0f : 0.5f), 1})
+          .withHistory(dafg::History::ClearZeroOnFirstFrame)
           .atStage(dafg::Stage::PS_OR_CS)
           .bindToShaderVar("ssr_target");
-        registry.read("ssr_target_sampler")
-          .blob<d3d::SamplerHandle>()
-          .bindToShaderVar("ssr_target_before_denoise_samplerstate")
-          .bindToShaderVar("ssr_prev_target_samplerstate");
+        registry.read("ssr_target_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssr_prev_target_samplerstate");
 
         bindHistoryShaderVar("ssr_prev_target", "ssr_target");
         bindShaderVar("ssr_target_before_denoise", "ssr_target_before_denoise");

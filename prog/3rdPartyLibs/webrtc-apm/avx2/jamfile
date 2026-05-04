@@ -1,0 +1,62 @@
+Root           ?= ../../../.. ;
+Location        = prog/3rdPartyLibs/webrtc-apm ;
+
+TargetType      = lib ;
+Target          = 3rdPartyLibs/webrtc-apm-avx2.lib ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/$(Location)/webrtc
+  $(Root)/prog/3rdPartyLibs/abseil
+;
+
+UseProgLibs = 3rdPartyLibs/abseil ;
+
+
+CPPopt += -DWEBRTC_ENABLE_AVX2=1
+          -DWEBRTC_APM_DEBUG_DUMP=0
+          -DWEBRTC_LIBRARY_IMPL=1
+;
+
+if $(Platform) in linux ps4 ps5 macOS iOS tvOS nswitch {
+  CPPopt += -DWEBRTC_POSIX=1 ;
+}
+
+if $(Platform) in linux {
+  CPPopt += -DWEBRTC_LINUX=1 ;
+}
+else if $(Platform) in android {
+  CPPopt += -DWEBRTC_ANDROID=1 ;
+}
+else if $(Platform) in macOS tvOS {
+  CPPopt += -DWEBRTC_MAC=1 ;
+}
+else if $(Platform) in iOS {
+  CPPopt += -DWEBRTC_IOS=1 ;
+}
+else if $(Platform) in windows xboxOne scarlett {
+  CPPopt += -DWEBRTC_WIN=1 ;
+}
+
+if $(PlatformSpec) in clang gcc {
+  CPPopt += -mavx2 -mfma ;
+}
+
+if $(PlatformSpec) = clang {
+  CPPopt += -Wno-nullability-completeness ;
+}
+
+Sources +=
+    webrtc/modules/audio_processing/agc2/rnn_vad/vector_math_avx2.cc
+    webrtc/modules/audio_processing/aec3/matched_filter_avx2.cc
+    webrtc/modules/audio_processing/aec3/vector_math_avx2.cc
+    webrtc/modules/audio_processing/aec3/adaptive_fir_filter_avx2.cc
+    webrtc/modules/audio_processing/aec3/fft_data_avx2.cc
+    webrtc/modules/audio_processing/aec3/adaptive_fir_filter_erl_avx2.cc
+
+    webrtc/common_audio/resampler/sinc_resampler_avx2.cc
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -132,7 +132,7 @@ public:
       }
       else if (ref_list[i].getAsset()->getType() == fx_atype)
       {
-        GameResource *res = get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(ref_list[i].getAsset()->getName()), EffectGameResClassId);
+        GameResource *res = get_game_resource_ex(ref_list[i].getAsset()->getName(), EffectGameResClassId);
         refs[ri].ref = res;
         resRefs.push_back(res);
       }

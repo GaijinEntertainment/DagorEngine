@@ -38,11 +38,11 @@ Video360::Video360(int cube_size, int convergence_frames, float z_near, float z_
   if (!(d3d::get_texformat_usage(fmt) & d3d::USAGE_RTARGET))
     fmt = TEXCF_SRGBREAD | TEXCF_SRGBWRITE;
 
-  envCubeTex = dag::create_cubetex(cubeSize, fmt | TEXCF_RTARGET, 1, "video360_screen_env");
+  envCubeTex = dag::create_cubetex(cubeSize, fmt | TEXCF_RTARGET, 1, "video360_screen_env", "video");
   for (auto [i, face] : enumerate(faces))
   {
     String name = String(0, "video360_%i", i);
-    face = dag::create_tex(nullptr, cubeSize, cubeSize, fmt | TEXCF_RTARGET, 1, name);
+    face = dag::create_tex(nullptr, cubeSize, cubeSize, fmt | TEXCF_RTARGET, 1, name, "video");
   }
 }
 
@@ -96,7 +96,7 @@ void Video360::copyFrame(TEXTUREID renderTargetTexId, int cube_face)
   ShaderGlobal::set_texture(copySourceVarId, renderTargetTexId);
 
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(0, envCubeTex.getCubeTex(), cube_face, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{envCubeTex.getCubeTex(), 0, static_cast<uint32_t>(cube_face)}});
   copyTargetRenderer.render();
 }
 

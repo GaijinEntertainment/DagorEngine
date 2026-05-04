@@ -1,0 +1,8 @@
+ERROR: expression of type 'float' cannot be assigned to type 'function|null'
+testData/diagnostics/compilation_errors/type_inference/test_complex_pure_chain.nut:15:0
+
+local v: function|null = sqrf(4.3) + 3
+^-------------------------------------
+return v
+
+

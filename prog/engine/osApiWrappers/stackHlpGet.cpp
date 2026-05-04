@@ -64,8 +64,8 @@ bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_
   ULONG_PTR offset = 0;
   if (SymGetSymFromAddr(hProcess, dwAddress, &offset, &sym))
   {
-    strncpy(symbolname, sym.Name, max_file_name);
-    symbolname[max_file_name - 1] = 0;
+    strncpy(symbolname, sym.Name, max_symbol_name);
+    symbolname[max_symbol_name - 1] = 0;
   }
   else
     ret = false;
@@ -75,6 +75,106 @@ bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_
 #endif
 
 #if CAN_RESOLVE_SYMBOLS
+
+enum
+{
+  WRITE_ADDR = 1 << 0,
+  WRITE_MODULE = 1 << 1,
+  WRITE_FILE = 1 << 2,
+  WRITE_LINE = 1 << 3,
+  WRITE_WRITE_OFS = 1 << 4,
+  WRITE_ADDR_ON_MISSING = 1 << 5,
+  WRITE_FILE_LINE = WRITE_LINE | WRITE_FILE
+};
+
+static inline void stackhlp_get_call_stack_internal(HANDLE ph, LimitedBufferWriter &lbw, uintptr_t stk_addr, uint32_t flags,
+  const char *file_line_str = "\n    ")
+{
+  struct Sym : public IMAGEHLP_SYMBOL
+  {
+    char nm[256];
+  };
+  IMAGEHLP_MODULE mod;
+  Sym sym;
+  ULONG_PTR ofs;
+  unsigned long col = 0;
+  IMAGEHLP_LINE line;
+  bool sym_ok = false, line_ok = false;
+
+  sym.SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
+  sym.MaxNameLength = sizeof(sym.nm);
+  mod.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
+  line.SizeOfStruct = sizeof(line);
+  // these are not needed, but otherwise compiler generates warning uninitialized local variable used
+  line.FileName = nullptr;
+  line.LineNumber = 0;
+
+  if (SymGetSymFromAddr(ph, stk_addr, &ofs, &sym))
+    sym_ok = true;
+
+  if (flags & WRITE_ADDR)
+    lbw.aprintf("  %-8llX ", (int64_t)stk_addr);
+  if ((flags & WRITE_MODULE) && SymGetModuleInfo(ph, stk_addr, &mod))
+    lbw.aprintf("%s! ", mod.ModuleName);
+
+  if ((flags & WRITE_FILE_LINE) && SymGetLineFromAddr(ph, stk_addr, &col, &line))
+    line_ok = true;
+
+  if (sym_ok)
+  {
+#if _TARGET_XBOX
+    lbw.aprintf("%s", sym.Name);
+#else
+    char n[256];
+    if (!UnDecorateSymbolName(sym.Name, n, 256,
+          UNDNAME_NO_MEMBER_TYPE | UNDNAME_NO_ACCESS_SPECIFIERS | UNDNAME_NO_ALLOCATION_MODEL | UNDNAME_NO_MS_KEYWORDS))
+      if (!SymUnDName(&sym, n, 128))
+        strcpy(n, sym.Name);
+    lbw.aprintf("%s", n);
+#endif
+    if (flags & WRITE_WRITE_OFS)
+      lbw.aprintf("  +%u/%u", ofs, sym.Size);
+    if ((flags & WRITE_FILE_LINE) && line_ok && line.FileName)
+    {
+      const char *fn = line.FileName;
+      while (*fn == '.' || *fn == '\\' || *fn == '/')
+        fn++;
+      if (const char *fnp = strstr(fn, "\\dagor"))
+        if ((fnp = strchr(fnp + 6, '\\')) != NULL)
+          fn = fnp + 1;
+
+      lbw.aprintf("%s", file_line_str);
+      if ((flags & WRITE_FILE))
+        lbw.aprintf("%s", fn);
+      if ((flags & WRITE_LINE))
+        lbw.aprintf("(%d)  +%d", line.LineNumber, col);
+    }
+  }
+
+  if ((flags & WRITE_FILE_LINE) && !sym_ok && (flags & WRITE_ADDR_ON_MISSING))
+  {
+    if (line_ok)
+    {
+      if (!(flags & WRITE_ADDR))
+        lbw.aprintf("%-8llX", (int64_t)stk_addr);
+      lbw.aprintf("  File=%s\n in Line=%d,Col=%d", line.FileName, line.LineNumber, col);
+    }
+    else if (!(flags & WRITE_ADDR))
+      lbw.aprintf(" %-8llX", (int64_t)stk_addr);
+    else
+      lbw.aprintf(" ?");
+  }
+}
+
+const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, uintptr_t stk_addr)
+{
+  LimitedBufferWriter lbw(buf, out_buf_sz);
+  HANDLE ph = GetCurrentProcess();
+
+  OSSpinlockScopedLock lock(dbghelp_spinlock);
+  stackhlp_get_call_stack_internal(ph, lbw, stk_addr, WRITE_LINE, "");
+  return buf;
+}
 
 const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const *stack, unsigned max_size)
 {
@@ -95,69 +195,12 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 
   // All DbgHelp functions are single threaded.
   // https://docs.microsoft.com/en-us/windows/win32/api/dbghelp/nf-dbghelp-undecoratesymbolname
+  HANDLE ph = GetCurrentProcess();
   OSSpinlockScopedLock lock(dbghelp_spinlock);
 
-  HANDLE ph = GetCurrentProcess();
   for (int i = 0; i < stack_size; i++)
   {
-    struct Sym : public IMAGEHLP_SYMBOL
-    {
-      char nm[256];
-    };
-    IMAGEHLP_MODULE mod;
-    Sym sym;
-    ULONG_PTR ofs;
-    unsigned long col = 0;
-    IMAGEHLP_LINE line;
-    bool sym_ok = false, line_ok = false;
-    uintptr_t stk_addr = (uintptr_t)stack[i];
-
-    sym.SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
-    sym.MaxNameLength = sizeof(sym.nm);
-    mod.SizeOfStruct = sizeof(IMAGEHLP_MODULE);
-    line.SizeOfStruct = sizeof(line);
-
-    if (SymGetSymFromAddr(ph, stk_addr, &ofs, &sym))
-      sym_ok = true;
-
-    lbw.aprintf("  %-8llX", (int64_t)stk_addr);
-    if (SymGetModuleInfo(ph, stk_addr, &mod))
-      lbw.aprintf(" %s!", mod.ModuleName);
-
-    if (SymGetLineFromAddr(ph, stk_addr, &col, &line))
-      line_ok = true;
-
-    if (sym_ok)
-    {
-#if _TARGET_XBOX
-      lbw.aprintf(" %s", sym.Name);
-#else
-      char n[256];
-      if (!UnDecorateSymbolName(sym.Name, n, 256,
-            UNDNAME_NO_MEMBER_TYPE | UNDNAME_NO_ACCESS_SPECIFIERS | UNDNAME_NO_ALLOCATION_MODEL | UNDNAME_NO_MS_KEYWORDS))
-        if (!SymUnDName(&sym, n, 128))
-          strcpy(n, sym.Name);
-
-      if (line_ok)
-      {
-        const char *fn = line.FileName;
-        while (*fn == '.' || *fn == '\\' || *fn == '/')
-          fn++;
-        if (const char *fnp = strstr(fn, "\\dagor"))
-          if ((fnp = strchr(fnp + 6, '\\')) != NULL)
-            fn = fnp + 1;
-
-        lbw.aprintf(" %s  +%u/%u\n    %s(%d)  +%d", n, ofs, sym.Size, fn, line.LineNumber, col);
-      }
-      else
-        lbw.aprintf(" %s  +%u/%u", n, ofs, sym.Size);
-#endif
-    }
-
-    if (line_ok && !sym_ok)
-      lbw.aprintf("    File=%s\n in Line=%d,Col=%d", line.FileName, line.LineNumber, col);
-    else if (!line_ok && !sym_ok)
-      lbw.aprintf(" ?");
+    stackhlp_get_call_stack_internal(ph, lbw, (uintptr_t)stack[i], ~0u);
     lbw.aprintf("\n");
   }
 
@@ -165,6 +208,13 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 }
 
 #else // CAN_RESOLVE_SYMBOLS
+
+const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, uintptr_t stk_addr)
+{
+  LimitedBufferWriter lbw(buf, out_buf_sz);
+  lbw.aprintf("%-8llX", (int64_t)stk_addr);
+  return buf;
+}
 
 const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const *stack, unsigned max_size)
 {
@@ -346,6 +396,36 @@ bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_
 }
 
 
+static inline void stackhlp_get_call_stack_internal(LimitedBufferWriter &lbw, const void *addr, bool write_addr)
+{
+  const char *symbol = "";
+
+  Dl_info info;
+  if (dladdr(addr, &info) && info.dli_sname)
+    symbol = info.dli_sname;
+
+  int status = -1;
+  char *demangledName = __cxxabiv1::__cxa_demangle(symbol, nullptr, nullptr, &status);
+
+  if (demangledName != nullptr)
+    symbol = demangledName;
+
+  if (write_addr)
+    lbw.aprintf("%p - %s + 0x%p", addr, symbol, (uintptr_t)addr - (uintptr_t)info.dli_fbase);
+  else
+    lbw.aprintf("%s + 0x%p", symbol, (uintptr_t)addr - (uintptr_t)info.dli_fbase);
+
+  if (demangledName != nullptr)
+    std::free(demangledName);
+}
+
+const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, uintptr_t stk_addr)
+{
+  LimitedBufferWriter lbw(buf, out_buf_sz);
+  stackhlp_get_call_stack_internal(lbw, (const void *)stk_addr, false);
+  return buf;
+}
+
 const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const *stack, unsigned max_size)
 {
   LimitedBufferWriter lbw(buf, out_buf_sz);
@@ -361,24 +441,9 @@ const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, const void *const
 
   for (size_t idx = 0; idx < stack_size; ++idx)
   {
-    const void *addr = stack[idx];
-    const char *symbol = "";
-
-    Dl_info info;
-    if (dladdr(addr, &info) && info.dli_sname)
-      symbol = info.dli_sname;
-
-    int status = -1;
-    char *demangledName = __cxxabiv1::__cxa_demangle(symbol, nullptr, nullptr, &status);
-
-    if (demangledName != nullptr)
-      symbol = demangledName;
-
-    lbw.aprintf(" %d: %p (%p) - %s", idx, addr, (uintptr_t)addr - (uintptr_t)info.dli_fbase, symbol);
+    lbw.aprintf(" ");
+    stackhlp_get_call_stack_internal(lbw, stack[idx], true);
     lbw.aprintf("\n");
-
-    if (demangledName != nullptr)
-      std::free(demangledName);
   }
 
   return buf;
@@ -489,7 +554,7 @@ void dump_all_thread_callstacks() {}
 
 #else
 #include <string.h>
-const char *stackhlp_get_call_stack(char *out_buf, int out_sz, const void *const * /*stack*/, unsigned /*max_size*/)
+const char *stackhlp_get_call_stack(char *buf, int out_buf_sz, uintptr_t /*stk_addr*/)
 {
   if (out_sz >= 4)
   {
@@ -498,6 +563,11 @@ const char *stackhlp_get_call_stack(char *out_buf, int out_sz, const void *const
   else if (out_sz > 0)
     *out_buf = 0;
   return out_buf;
+}
+
+const char *stackhlp_get_call_stack(char *out_buf, int out_sz, const void *const * /*stack*/, unsigned /*max_size*/)
+{
+  return stackhlp_get_call_stack(out_buf, out_sz, 0);
 }
 
 void *stackhlp_get_bp() { return NULL; }

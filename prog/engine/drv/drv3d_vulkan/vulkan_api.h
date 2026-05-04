@@ -7,11 +7,11 @@
 #define VULKAN_LIB_VERSION_SEPERATOR "-"
 #define VULKAN_LIB_NAME_EXT          ".dll"
 #elif _TARGET_PC_LINUX
-#define VULKAN_LIB_NAME_PREFIX   "libvulkan"
+#define VULKAN_LIB_NAME_PREFIX      "libvulkan"
 // #define VK_USE_PLATFORM_MIR_KHR 1
-// #define VK_USE_PLATFORM_WAYLAND_KHR 1
 // #define VK_USE_PLATFORM_XCB_KHR 1
-#define VK_USE_PLATFORM_XLIB_KHR 1
+#define VK_USE_PLATFORM_WAYLAND_KHR 1
+#define VK_USE_PLATFORM_XLIB_KHR    1
 #include <ioSys/dag_dataBlock.h> // to be loaded BEFORE #define Bool ...
 #define VULKAN_LIB_VERSION_SEPERATOR "."
 #define VULKAN_LIB_NAME_EXT          ".so"

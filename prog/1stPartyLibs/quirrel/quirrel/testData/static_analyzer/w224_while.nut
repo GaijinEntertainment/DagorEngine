@@ -1,4 +1,5 @@
-//expect:w224
+//-file:statement-on-same-line
+//-file:invalid-indentation
 
 function foo(x){ //-declared-never-used
   while (x) {

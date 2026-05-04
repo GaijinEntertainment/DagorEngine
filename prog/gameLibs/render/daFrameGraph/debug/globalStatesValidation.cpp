@@ -4,6 +4,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <math/dag_dxmath.h>
 #include <backend/blobBindingHelpers.h>
@@ -12,9 +13,10 @@
 namespace dafg
 {
 
-constexpr auto shaderVarValidationMessage = "Frame graph node %s expected the shader variable %s to be bound to the %s %s, "
-                                            "but it was spuriously changed to %s while executing the node! Please remove the spurious "
-                                            "set, or reset it back to the expected value at the end of the function execution!";
+constexpr auto shaderVarValidationMessage =
+  "Frame graph node %s expected the shader variable %s to be bound to the %s (name: %s, ptr: %s), "
+  "but it was spuriously changed to (name: %s, ptr: %s) while executing the node! Please remove the spurious "
+  "set, or reset it back to the expected value at the end of the function execution!";
 
 constexpr auto shaderBlockValidationMessage =
   "Frame graph node %s expected the %s layer to contain the shader block %s, "
@@ -22,7 +24,7 @@ constexpr auto shaderBlockValidationMessage =
   "or reset it back to the expected value at the end of the function execution!";
 
 constexpr auto shaderVarBlobValidationMessage =
-  "Frame graph node %s spuriously changed a bound shader variable's value %s while executing the node."
+  "Frame graph node %s spuriously changed a bound shader variable's value %s while executing the node. "
   "Please remove the spurious set, or reset it back to the expected value at the end of the function execution!";
 
 template <typename ProjectedType, auto bindGetter>
@@ -50,7 +52,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     if (res.type != BindingType::ShaderVar)
       continue;
 
-    D3DRESID expectedId;
+    D3dResource *expectedPtr = nullptr;
 
     // Shaders dump can be reloaded and some shader vars can be absent in new dump
     if (!VariableMap::isGlobVariablePresent(shVar))
@@ -65,13 +67,13 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
       // and we expect to see BAD_D3DRESID
       if (it != provided.end())
       {
-        if (auto bufPtr = eastl::get_if<ManagedBufView>(&it->second))
+        if (auto bufPtr = eastl::get_if<Sbuffer *>(&it->second))
         {
-          expectedId = bufPtr->getBufId();
+          expectedPtr = *bufPtr;
         }
-        else if (auto texPtr = eastl::get_if<ManagedTexView>(&it->second))
+        else if (auto texPtr = eastl::get_if<BaseTexture *>(&it->second))
         {
-          expectedId = texPtr->getTexId();
+          expectedPtr = *texPtr;
         }
         else if (auto blobView = eastl::get_if<BlobView>(&it->second))
         {
@@ -99,19 +101,19 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
       }
     }
 
-    D3DRESID observedId;
+    D3dResource *observedPtr = nullptr;
     // SV type and resource type mismatch is impossible at this point
     eastl::string_view resTypeStr;
     switch (ShaderGlobal::get_var_type(shVar))
     {
       case SHVT_TEXTURE:
         resTypeStr = "texture";
-        observedId = ShaderGlobal::get_tex(shVar);
+        observedPtr = ShaderGlobal::get_tex_ptr(shVar);
         break;
 
       case SHVT_BUFFER:
         resTypeStr = "buffer";
-        observedId = ShaderGlobal::get_buf(shVar);
+        observedPtr = ShaderGlobal::get_buf_ptr(shVar);
         break;
 
       default:
@@ -119,9 +121,9 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
         continue;
     }
 
-    if (expectedId != observedId)
+    if (expectedPtr != observedPtr)
       logerr(shaderVarValidationMessage, registry.knownNames.getName(nodeId), VariableMap::getVariableName(shVar), resTypeStr,
-        get_managed_res_name(expectedId), get_managed_res_name(observedId));
+        expectedPtr ? expectedPtr->getName() : "null", expectedPtr, observedPtr ? observedPtr->getName() : "null", observedPtr);
   }
 
   auto validateBlock = [&registry, nodeId](int node_block, int global_block, const char *layer) {
@@ -153,8 +155,8 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
 
       BaseTexture *expectedTex = nullptr;
       if (it != provided.end())
-        if (auto view = eastl::get_if<ManagedTexView>(&it->second))
-          expectedTex = view->getBaseTex();
+        if (auto view = eastl::get_if<BaseTexture *>(&it->second))
+          expectedTex = *view;
 
       const auto expectedName = expectedTex ? expectedTex->getTexName() : "NULL";
       const auto observedName = maybeObserved.has_value() && maybeObserved->tex ? maybeObserved->tex->getTexName() : "NULL";

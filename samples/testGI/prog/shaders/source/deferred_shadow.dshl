@@ -275,9 +275,9 @@ shader deferred_shadow_to_buffer
 
       csmShadow = csmShadow*gbuffer.shadow;
       half shadow = csmShadow*otherShadow;
-      #if SSAO_CONTACT_SHADOWS
+      ##if ssao_contact_shadows
       shadow *= ssao.CONTACT_SHADOWS_ATTR;
-      #endif
+      ##endif
       //shadow *= saturate(NoL * 6 - 0.2);//fake: reduce shadow artifacts in specular!
 
       //SUN

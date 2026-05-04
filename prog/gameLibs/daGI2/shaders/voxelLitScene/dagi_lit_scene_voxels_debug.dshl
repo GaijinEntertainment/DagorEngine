@@ -10,14 +10,12 @@ float4 world_sdf_inv_size;
 
 shader dagi_lit_scene_voxels_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   cull_mode = none;
   z_write = true;
   z_test = true;
 
-  ENABLE_ASSERT(ps)
   READ_WORLD_SDF(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_VIEWVEC(1, viewvec)

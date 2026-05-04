@@ -4,6 +4,8 @@
 //
 #pragma once
 
+typedef unsigned int ImGuiID;
+
 #ifndef ImTextureID
 typedef void *ImTextureID;
 #endif
@@ -30,7 +32,9 @@ void before_end_frame();
 // p2util::get_icon_fallback_path(). In case of tools they'll be dagor/tools/dagor_cdk/commonData/icons/{THEME NAME}/
 // and/or dagor/tools/dagor_cdk/commonData/icons/ depending on the theme.
 // filename: name of the icon without extension. E.g.: "close_editor".
-IconId load_icon(const char *filename);
+// size: the icon will be loaded using this size for both width and height. If size is <= 0 then
+//       ImguiHelper::getFontSizedIconSize().x will be used.
+IconId load_icon(const char *filename, int size = 0);
 
 ImTextureID get_im_texture_id_from_icon_id(IconId icon_id);
 
@@ -40,5 +44,6 @@ void reload_all_icons();
 // Similar to ImGui::SetItemTooltip but the tooltip behaves more like Windows tooltips.
 // control: any unique identifier that identifies the control. It can be (const void *)ImGui::GetItemID() too.
 void set_previous_imgui_control_tooltip(const void *control, const char *text, const char *text_end = nullptr);
+void set_previous_imgui_control_tooltip(ImGuiID item_id, const char *text, const char *text_end = nullptr);
 
 } // namespace PropPanel

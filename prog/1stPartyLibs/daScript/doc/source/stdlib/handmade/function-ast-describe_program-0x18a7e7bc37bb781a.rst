@@ -1,0 +1,1 @@
+Returns a textual representation of the entire compiled program, equivalent to the output produced by ``options log``. Includes all types, globals, and functions after macro expansion, template instantiation, and type inference.

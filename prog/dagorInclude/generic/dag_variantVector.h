@@ -266,6 +266,10 @@ public:
   template <typename U>
   void resize(size_t new_size, const U &u)
   {
+    while (count > new_size)
+    {
+      pop_back();
+    }
     reserve(new_size);
     while (count < new_size)
     {

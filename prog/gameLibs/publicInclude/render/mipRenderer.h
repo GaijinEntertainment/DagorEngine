@@ -12,20 +12,28 @@ class TextureIDPair;
 class BaseTexture;
 class ComputeShaderElement;
 
+namespace d3d
+{
+enum class AddressMode : uint32_t;
+enum class FilterMode : uint32_t;
+} // namespace d3d
 class MipRenderer
 {
 protected:
   PostFxRenderer mipRenderer;
   eastl::unique_ptr<ComputeShaderElement> mipRendererCS;
+  d3d::SamplerHandle sampler = d3d::SamplerHandle::Invalid;
 
 public:
   ~MipRenderer();
   MipRenderer();
-  MipRenderer(const char *shader) { init(shader); }
+  MipRenderer(const char *shader, d3d::AddressMode addressMode) { init(shader, addressMode); }
+  MipRenderer(const char *shader, d3d::AddressMode addressMode, d3d::FilterMode filterMode) { init(shader, addressMode, filterMode); }
   MipRenderer(MipRenderer &&) = default;
   MipRenderer &operator=(MipRenderer &&) = default;
   void close();
-  bool init(const char *shader);
+  bool init(const char *shader, d3d::AddressMode addressMode);
+  bool init(const char *shader, d3d::AddressMode addressMode, d3d::FilterMode filterMode);
   void renderTo(BaseTexture *src, BaseTexture *dst, const IPoint2 &target_size) const;
   void render(BaseTexture *tex, uint8_t max_level = 255) const;
 };

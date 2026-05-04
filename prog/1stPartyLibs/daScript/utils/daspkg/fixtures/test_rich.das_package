@@ -1,0 +1,29 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("rich-pkg")
+    package_author("testauthor")
+    package_description("A richly annotated test package")
+    package_license("MIT")
+    package_tag("networking")
+    package_tag("http")
+    package_min_sdk("0.4")
+}
+
+[export]
+def resolve(sdk_version, version : string) {
+    download_tag("v{version}")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("github.com/test/dep-a", ">=1.0")
+}
+
+[export]
+def build() {
+    cmake_build()
+}

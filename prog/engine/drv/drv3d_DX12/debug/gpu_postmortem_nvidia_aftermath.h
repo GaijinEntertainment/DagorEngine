@@ -81,7 +81,7 @@ class Aftermath
   using ContextPointer = eastl::unique_ptr<GFSDK_Aftermath_ContextHandle, ContextDeletor>;
   LibPointer library;
   ApiTable api;
-  CommandListStorage<ContextPointer> commandListTable;
+  CommandListStorage<ID3D12GraphicsCommandList *, ContextPointer> commandListTable;
   HRESULT lastError = S_OK;
   WinCritSec crashWriteMutex;
 
@@ -99,13 +99,13 @@ class Aftermath
   void onCrashDumpGenerate(const void *dump, const uint32_t size, bool manually_send);
   void onShaderDebugInfo(const void *dump, const uint32_t size);
   void onCrashDumpDescription(PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription add_value);
-  void onResolveMarkerCallback(const void *marker_id, uint32_t marker_id_size, void **resolved_marker_data, uint32_t *marker_size);
+  void onResolveMarkerCallback(const void *marker_id, uint32_t marker_id_size, PFN_GFSDK_Aftermath_ResolveMarker resolveMarker);
 
   static void GFSDK_AFTERMATH_CALL onCrashDumpGenerateProxy(const void *dump, const uint32_t size, void *self);
   static void GFSDK_AFTERMATH_CALL onShaderDebugInfoProxy(const void *dump, const uint32_t size, void *self);
   static void GFSDK_AFTERMATH_CALL onCrashDumpDescriptionProxy(PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription add_value, void *self);
   static void GFSDK_AFTERMATH_CALL onResolveMarkerCallbackProxy(const void *marker_id, uint32_t marker_id_size, void *self,
-    void **resolved_marker_data, uint32_t *marker_size);
+    PFN_GFSDK_Aftermath_ResolveMarker resolveMarker);
 
 public:
   // Have to delete move constructor, otherwise compiler / templated stuff of variant tries to be smart and results in compile errors.

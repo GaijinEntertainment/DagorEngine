@@ -21,7 +21,6 @@
 #define __DEBUG_FILEPATH      "*"
 #include <startup/dag_mainCon.inc.cpp>
 #include <perfMon/dag_cpuFreq.h>
-size_t dagormem_max_crt_pool_sz = 256 << 20;
 #endif
 
 bool unpack_vromfs(const char *fileName, char **ppBuf, off_t *pSize)

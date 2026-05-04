@@ -83,3 +83,6 @@ public:
 #ifdef _DEBUG_TAB_
 #undef CARRAY_VALIDATE_IDX
 #endif
+
+template <class T, class... U>
+carray(T, U...) -> carray<T, 1 + sizeof...(U)>;

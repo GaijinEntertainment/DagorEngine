@@ -156,18 +156,18 @@ bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t c
 /**
  * @brief Sets the size of the vertex shader constant buffer that can be filled with set_const call.
  *
- * @param required_size The required size of the constant buffer. If 0, the default size is set.
- * @return The actual size of the constant buffer.
+ * @param required_count The required count of float4 registers of the constant buffer. If 0, the default size is set.
+ * @return The actual count in the constant buffer.
  */
-int set_vs_constbuffer_size(int required_size);
+int set_vs_constbuffer_register_count(int required_count);
 
 /**
  * @brief Sets the size of the compute shader constant buffer that can be filled with set_const call.
  *
- * @param required_size The required size of the constant buffer. If 0, the default size is set.
- * @return The actual size of the constant buffer.
+ * @param required_count The required count of float4 registers of the constant buffer. If 0, the default size is set.
+ * @return The actual count in the constant buffer.
  */
-int set_cs_constbuffer_size(int required_size);
+int set_cs_constbuffer_register_count(int required_count);
 
 /**
  * @brief Sets a constant buffer at slot 0 for the specified stage. Uses the fastest method available on the platform.
@@ -225,8 +225,8 @@ inline bool set_immediate_const(unsigned stage, const uint32_t *data, unsigned n
   return d3di.set_immediate_const(stage, data, num_words);
 }
 
-inline int set_vs_constbuffer_size(int required_size) { return d3di.set_vs_constbuffer_size(required_size); }
-inline int set_cs_constbuffer_size(int required_size) { return d3di.set_cs_constbuffer_size(required_size); }
+inline int set_vs_constbuffer_register_count(int required_count) { return d3di.set_vs_constbuffer_register_count(required_count); }
+inline int set_cs_constbuffer_register_count(int required_count) { return d3di.set_cs_constbuffer_register_count(required_count); }
 
 inline bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
 {

@@ -9,25 +9,33 @@
 namespace dagor_random
 {
 
-#define DAGOR_RAND_MAX 65535
+#define DAGOR_RAND_MAX 0x7FFFFFFF // INT_MAX
 
-__forceinline unsigned mutate_seed(int &seed)
+__forceinline unsigned mutate_seed(int &seed, unsigned nr = 1)
 {
-  unsigned int a = ((unsigned)seed) * 1103515245 + 12345;
-  seed = (int)a;
-  return a;
+  unsigned s = (unsigned)seed + 0x9E3779B9u; // Weyl sequence (golden ratio)
+  seed = (int)s;
+  unsigned long long t = (unsigned long long)(s ^ (s >> 16)) * 0x21f0aaadu; // mum hash round 1
+  unsigned z = (unsigned)(t >> 32) ^ (unsigned)t;
+  if (nr >= 2) // mum hash round 2
+  {
+    t = (unsigned long long)(z ^ (z >> 15)) * 0x735a2d97u;
+    z = (unsigned)(t >> 32) ^ (unsigned)t;
+  }
+  return z;
 }
 
-__forceinline int _rnd(int &seed) { return mutate_seed(seed) >> 16; } // Returns [0, DAGOR_RAND_MAX]
-__forceinline float _frnd(int &s)                                     // Returns [0, 1.0)
+__forceinline int _rnd(int &seed) { return mutate_seed(seed) >> 1; } // Returns [0, DAGOR_RAND_MAX]
+__forceinline float _frnd(int &s)                                    // Returns [0, 1.0)
 {
   return __builtin_bit_cast(float, /*1.0*/ 0x3f800000 | (mutate_seed(s) >> 9)) - 1.f;
 }
 __forceinline float _srnd(int &s) { return _frnd(s) * 2.f - 1.f; } // Returns (-1.0, 1.0)
 __forceinline void _rnd_svec(int &seed, float &x, float &y, float &z) { x = _srnd(seed), y = _srnd(seed), z = _srnd(seed); }
-__forceinline float _rnd_float(int &seed, float a, float b) { return a + (b - a) * _frnd(seed); } // Returns [a, b)
-__forceinline int _rnd_range(int &seed, int a, int b) { return a + int((b - a) * _frnd(seed)); }  // Returns [a, b)
-__forceinline int _rnd_int(int &seed, int a, int b) { return _rnd_range(seed, a, b + 1); }        // Returns [a, b]
+__forceinline float _rnd_float(int &seed, float a, float b) { return a + (b - a) * _frnd(seed); }                 // Returns [a, b)
+__forceinline int _rnd_bound(int &seed, unsigned n) { return ((unsigned long long)mutate_seed(seed) * n) >> 32; } // Returns [0, n)
+__forceinline int _rnd_range(int &seed, int a, int b) { return a + _rnd_bound(seed, b - a); }                     // Returns [a, b)
+__forceinline int _rnd_int(int &seed, int a, int b) { return _rnd_range(seed, a, b + 1); }                        // Returns [a, b]
 
 //
 // Gaussian random number

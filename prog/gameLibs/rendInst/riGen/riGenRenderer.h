@@ -27,7 +27,9 @@ public:
   void render(const RendInstGenData::RtData &rtData, const RiGenVisibility &visibility);
   void sortObjects();
   static void updatePerDrawData(RendInstGenData::RtData &rt_data, int per_inst_data_dwords);
+  static void updatePerDrawDataAtIdx(RendInstGenData::RtData &rt_data, int per_inst_data_dwords, int ri_idx);
   static void updatePackedData(int layer);
+  static void afterDeviceReset();
 
 private:
   struct PackedRenderRange
@@ -60,7 +62,7 @@ private:
     };
     packedRenderRanges.clear();
     packedRenderRanges.emplace_back(PackedRenderRange{0, 1});
-    bindlessStatesToUpdateTexLevels.emplace(packedRenderRecords.front().cstate, 15);
+    bindlessStatesToUpdateTexLevels.emplace(packedRenderRecords.front().cstate, TexStreamingContext::MAX_TEX_LEVEL);
     const auto &firstRecord = packedRenderRecords[0];
     bool prevRecordExceededInstanceLimit =
       firstRecord.visibility == firstRecord.PER_INSTANCE && firstRecord.offset + firstRecord.count >= rendinst::render::MAX_INSTANCES;
@@ -77,7 +79,7 @@ private:
         packedRenderRanges.emplace_back(PackedRenderRange{static_cast<uint16_t>(lastRange.count + lastRange.start), 1});
       const auto iter = bindlessStatesToUpdateTexLevels.find(curRecord.cstate);
       if (iter == bindlessStatesToUpdateTexLevels.end())
-        bindlessStatesToUpdateTexLevels.emplace(curRecord.cstate, 15);
+        bindlessStatesToUpdateTexLevels.emplace(curRecord.cstate, TexStreamingContext::MAX_TEX_LEVEL);
       prevRecordExceededInstanceLimit = isInstanceLimitExceeeded;
     }
   }

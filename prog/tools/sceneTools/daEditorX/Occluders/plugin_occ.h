@@ -54,6 +54,7 @@ public:
   void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
   void selectAll() override { objEd.selectAll(); }
   void deselectAll() override { objEd.unselectAll(); }
+  void invertSelection() override { objEd.invertSelection(); }
 
   void actObjects(float dt) override;
   void beforeRenderObjects(IGenViewportWnd *vp) override;
@@ -64,6 +65,7 @@ public:
 
   bool onPluginMenuClick(unsigned id) override;
   void handleViewportAcceleratorCommand(unsigned id) override;
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerMenuAccelerators() override;
 
   // IGenEventHandler

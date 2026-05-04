@@ -5,6 +5,7 @@
 #pragma once
 
 #include <generic/dag_tabFwd.h>
+#include <supp/dag_math.h>
 class String;
 class DataBlock;
 
@@ -13,6 +14,13 @@ class ISkiesService
 {
 public:
   static constexpr unsigned HUID = 0x2EF40209u; // ISkiesService
+
+  static constexpr float DEFAULT_LONGITUDE = -1.14f;     // normandy, D-Day
+  static constexpr float DEFAULT_LATITUDE = 49.4163601f; // normandy D-Day
+  static constexpr int DEFAULT_YEAR = 1944;
+  static constexpr int DEFAULT_MONTH = 6;
+  static constexpr int DEFAULT_DAY = 6;
+  static constexpr float DEFAULT_LOCALTIME = 12.0f;
 
   virtual void setup(const char *app_dir, const DataBlock &env_blk) = 0;
 
@@ -39,4 +47,17 @@ public:
   virtual bool areCloudTexturesReady() = 0;
 
   virtual void afterD3DReset(bool full_reset) = 0;
+
+public:
+  static inline float gmt_to_localtime(float gmt_time, float longitude)
+  {
+    float ret = fmodf(gmt_time + longitude * (12.f / 180.f), 24.f);
+    return (ret < 0) ? (ret + 24.f) : ret;
+  }
+  static inline float localtime_to_gmt(float local_time, float longitude)
+  {
+    float ret = fmodf(local_time - longitude * (12.f / 180.f), 24.f);
+    return (ret < 0) ? (ret + 24.f) : ret;
+  }
+  static inline float julian_day_to_gmt(double jd) { return fmodf(float((jd - floor(jd)) * 24.f + 12.f), 24.f); }
 };

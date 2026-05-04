@@ -27,7 +27,7 @@ Sources =
   crypto/cpt_err.c
   crypto/cversion.c
   crypto/der_writer.c
-  crypto/dllmain.c
+  #crypto/dllmain.c
   crypto/ebcdic.c
   crypto/ex_data.c
   crypto/info.c

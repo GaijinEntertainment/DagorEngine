@@ -9,15 +9,10 @@ texture dynamic_decals_atlas;
 // to common dynmodels code and used accordingly.
 buffer instance_const_data_buffer;
 
-macro INIT_PLANAR_DECALS()
-  (ps) {
+macro INIT_PLANAR_DECALS_BASE(stage)
+  (stage) {
     atlas@smp2d = dynamic_decals_atlas;
     planar_decal_count@i1 = planar_decal_count;
-  }
-endmacro
-
-macro USE_PLANAR_DECALS()
-  (ps) {
     planar_decals_params@cbuf = instance_const_data_buffer hlsl {
       #include <render/decals/planar_decals_params.hlsli>
       cbuffer planar_decals_params@cbuf
@@ -26,8 +21,16 @@ macro USE_PLANAR_DECALS()
       }
     }
   }
+endmacro
 
-  hlsl(ps) {
+macro INIT_PLANAR_DECALS()
+  INIT_PLANAR_DECALS_BASE(ps)
+endmacro
+
+macro USE_PLANAR_DECALS_BASE(stage, use_gradients, lod_without_gradients)
+  hlsl(stage) {
+    #include <render/decals/planar_decals_params.hlsli>
+
     #define TANK_DECAL_SMOOTHNESS 0.4f
     #define DIFFUSE_TO_DECAL 0.01f
     #define DIFFUSE_MUL_RCP  (1.0f / (DIFFUSE_TO_DECAL * DIFFUSE_TO_DECAL + 1e-6))
@@ -40,17 +43,18 @@ macro USE_PLANAR_DECALS()
       return (half)saturate((influence_raw - minAng80) * influenceMult / (maxAng45 - minAng80));
     }
 
-    half apply_decals(inout half3 diffuseColor, float3 model_pos, float3 model_normal)
+    half apply_decals(inout half3 diffuseColor, float3 model_pos, float3 model_normal,
+                      Texture2D atlas_tex, SamplerState atlas_tex_samplerstate, int decal_count, PlanarDecalsParamsSet decals_params)
     {
       float4 modelPos4 = float4(model_pos, 1);
       half diffMul = saturate(luminance(diffuseColor.rgb) * (half)DIFFUSE_MUL_RCP);
-      half4 decalWidths = (half4)planar_decals_params.decalWidths;
+      half4 decalWidths = (half4)decals_params.decalWidths;
 
       half decalEffectTotalInv = 1.0h;
-      ##assert(planar_decal_count <= MAX_PLANAR_DECALS);
-      for (int decalId = 0; decalId < planar_decal_count; ++decalId)
+      ##assert(decal_count <= MAX_PLANAR_DECALS);
+      for (int decalId = 0; decalId < decal_count; ++decalId)
       {
-        PlanarDecalTransformAndUV tmAndUv = planar_decals_params.tmAndUv[decalId];
+        PlanarDecalTransformAndUV tmAndUv = decals_params.tmAndUv[decalId];
 
         half influenceRaw[2] = {
           dot(model_normal, tmAndUv.tmRow2[0].xyz),
@@ -65,15 +69,21 @@ macro USE_PLANAR_DECALS()
           dot(modelPos4, tmAndUv.tmRow2[sideIdx])
         );
 
-        float4 atlasUvOriginScale = planar_decals_params.tmAndUv[decalId].atlasUvOriginScale;
+        float4 atlasUvOriginScale = decals_params.tmAndUv[decalId].atlasUvOriginScale;
         float2 atlasUv = uvz.xy * atlasUvOriginScale.zw + atlasUvOriginScale.xy;
-        float2 atlasUvDdx = ddx(atlasUv);
-        float2 atlasUvDdy = ddy(atlasUv);
-        // left part - vectorized [0,1] range check
-        float2 l = float2(length(atlasUvDdx), length(atlasUvDdy));
-        if (any(float4(uvz.xy - l, 1, 1) < float4(0, 0, uvz.xy + l)) || abs(uvz.z) >= decalWidths[decalId] - max(l.x, l.y))
-          continue;
-        half4 decal = (half4)tex2Dgrad(atlas, atlasUv, atlasUvDdx, atlasUvDdy);
+        ##if use_gradients
+          float2 atlasUvDdx = ddx(atlasUv);
+          float2 atlasUvDdy = ddy(atlasUv);
+          // left part - vectorized [0,1] range check
+          float2 l = float2(length(atlasUvDdx), length(atlasUvDdy));
+          if (any(float4(uvz.xy - l, 1, 1) < float4(0, 0, uvz.xy + l)) || abs(uvz.z) >= decalWidths[decalId] - max(l.x, l.y))
+            continue;
+          half4 decal = (half4)tex2Dgrad(atlas_tex, atlasUv, atlasUvDdx, atlasUvDdy);
+        ##else
+          if (any(float4(uvz.xy, 1, 1) < float4(0, 0, uvz.xy)) || abs(uvz.z) >= decalWidths[decalId])
+            continue;
+          half4 decal = (half4)tex2Dlod(atlas_tex, float4(atlasUv, 0, lod_without_gradients));
+        ##endif
         half decalEffect = get_influence(influenceRaw[sideIdx]) * decal.a;
         diffuseColor.rgb = lerp(diffuseColor.rgb, diffMul * decal.rgb, decalEffect);
         decalEffectTotalInv *= 1.0h - decalEffect;
@@ -81,5 +91,17 @@ macro USE_PLANAR_DECALS()
 
       return decalEffectTotalInv;
     }
+
+  }
+endmacro
+
+macro USE_PLANAR_DECALS()
+  USE_PLANAR_DECALS_BASE(ps, true, 0)
+
+  hlsl (ps) {
+    half apply_decals(inout half3 diffuseColor, float3 model_pos, float3 model_normal)
+    {
+      return apply_decals(diffuseColor, model_pos, model_normal, atlas, atlas_samplerstate, planar_decal_count, planar_decals_params);
+   }
   }
 endmacro

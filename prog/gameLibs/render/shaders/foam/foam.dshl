@@ -15,6 +15,7 @@ include "shader_global.dshl"
 include "invGlobTm.dshl"
 include "waveWorks.dshl"
 include "gaussian_blur.dshl"
+include "water_foam_params_inc.dshl"
 
 texture foam_mask;
 texture foam_mask_depth;
@@ -43,6 +44,9 @@ interval foam_occlusion_test : no<1, yes;
 int foam_prepare_debug_step = 4;
 interval foam_prepare_debug_step: prepare_step_pattern<1, prepare_step_masked_pattern<2, prepare_step_threshold<3, prepare_step_thresholded_pattern<4, all_prepare_steps;
 
+int water_use_wfx_wake = 0;
+interval water_use_wfx_wake: off <1, on;
+
 texture water_flowmap_tex;
 texture water_flowmap_tex_add_0;
 float4 world_to_flowmap = (1/32,1/32,0.5,0.5);
@@ -55,6 +59,8 @@ float4 water_flowmap_strength_add = (0.5,1,1,0.3); // min distance,max distance,
 float4 water_flowmap_foam = (5,10,0.5,0.1); // power, scale, threshold, reflectivity
 float water_flowmap_foam_tiling = 1;
 float water_flowmap_multiplier = 1;
+
+bool has_water_flowmap = water_flowmap_tex != NULL;
 
 shader foam_prepare
 {
@@ -199,34 +205,33 @@ shader foam_prepare
       float mask = pow(tex2D(foam_mask, input.uv).r, inv_foam_mask_gamma);
 
       // Pattern
-      ##if water_flowmap_tex == NULL
-        float pattern = pow(tex2D(foam_generator_tile, foam_tile_uv_scale*(world_position.xz-foam_distortion_scale*nvsf_normal.xy)).a, inv_foam_pattern_gamma);
+      float2 foamTileDistortion = nvsf_normal.xz * foam_distortion_scale;
+      ##if !has_water_flowmap
+        float pattern = pow(tex2D(foam_generator_tile, (world_position.xz - foamTileDistortion) * foam_tile_uv_scale).a, inv_foam_pattern_gamma);
       ##else
         float3 worldPos = world_position.xyz;
         float2 windVec = wind_dir.xy * cascadesTexelScale * water_wind_strength;
 
         float3 flowmapBias = float3(0.5, 0.5, 0);
         float3 flowmapSample = flowmapBias;
-        ##if water_flowmap_tex != NULL
-          float2 flowmapUV1 = worldPos.xz * world_to_flowmap.xy + world_to_flowmap.zw;
-          if (all(flowmapUV1 >= 0) && all(flowmapUV1 <= 1))
-          {
-            float3 flowmapSample1 = tex2Dlod(water_flowmap_tex, float4(flowmapUV1, 0, 0)).xyz - flowmapBias;
-            float2 flowmapUV2 = flowmapUV1 + flowmapSample1.xy * world_to_flowmap.xy;
-            float3 flowmapSample2 = tex2Dlod(water_flowmap_tex, float4(flowmapUV2, 0, 0)).xyz - flowmapBias;
-            float flowmapFoam = abs(dot(float2(flowmapSample1.x, flowmapSample1.y), float2(flowmapSample2.y, -flowmapSample2.x)));
-            flowmapFoam = saturate(pow(flowmapFoam, water_flowmap_strength.z) * water_flowmap_strength.y);
-            flowmapSample += flowmapSample1 * water_flowmap_strength.x;
-            flowmapSample.z += flowmapFoam;
-          }
-          float2 flowmapUVAdd0 = worldPos.xz * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
-          if (all(flowmapUVAdd0 >= 0) && all(flowmapUVAdd0 <= 1))
-          {
-            float3 flowmapStrengthAdd0 = saturate(worldPosDistance * water_flowmap_strength_add_0.x + water_flowmap_strength_add_0.y) * water_flowmap_strength_add_0.zzw;
-            float3 flowmapSampleAdd0 = tex2Dlod(water_flowmap_tex_add_0, float4(flowmapUVAdd0, 0, 0)).xyz;
-            flowmapSample += flowmapSampleAdd0 * flowmapStrengthAdd0;
-          }
-        ##endif
+        float2 flowmapUV1 = worldPos.xz * world_to_flowmap.xy + world_to_flowmap.zw;
+        if (all(flowmapUV1 >= 0) && all(flowmapUV1 <= 1))
+        {
+          float3 flowmapSample1 = tex2Dlod(water_flowmap_tex, float4(flowmapUV1, 0, 0)).xyz - flowmapBias;
+          float2 flowmapUV2 = flowmapUV1 + flowmapSample1.xy * world_to_flowmap.xy;
+          float3 flowmapSample2 = tex2Dlod(water_flowmap_tex, float4(flowmapUV2, 0, 0)).xyz - flowmapBias;
+          float flowmapFoam = abs(dot(float2(flowmapSample1.x, flowmapSample1.y), float2(flowmapSample2.y, -flowmapSample2.x)));
+          flowmapFoam = saturate(pow(flowmapFoam, water_flowmap_strength.z) * water_flowmap_strength.y);
+          flowmapSample += flowmapSample1 * water_flowmap_strength.x;
+          flowmapSample.z += flowmapFoam;
+        }
+        float2 flowmapUVAdd0 = worldPos.xz * world_to_flowmap_add_0.xy + world_to_flowmap_add_0.zw;
+        if (all(flowmapUVAdd0 >= 0) && all(flowmapUVAdd0 <= 1))
+        {
+          float3 flowmapStrengthAdd0 = saturate(worldPosDistance * water_flowmap_strength_add_0.x + water_flowmap_strength_add_0.y) * water_flowmap_strength_add_0.zzw;
+          float3 flowmapSampleAdd0 = tex2Dlod(water_flowmap_tex_add_0, float4(flowmapUVAdd0, 0, 0)).xyz;
+          flowmapSample += flowmapSampleAdd0 * flowmapStrengthAdd0;
+        }
 
         float2 flowmapVec = (flowmapSample.xy - flowmapBias.xy - windVec) * water_flowmap_fading;
         float flowmapTime = current_time * inv_water_flowmap_fading;
@@ -239,7 +244,6 @@ shader foam_prepare
         worldPos_a.xz += flowmapVec_a * water_flowmap_multiplier;
         worldPos_b.xz += flowmapVec_b * water_flowmap_multiplier;
 
-        float2 foamTileDistortion = nvsf_normal.xy * foam_distortion_scale;
         float flowFoamTileA = pow(tex2D(foam_generator_tile, (worldPos_a.xz - foamTileDistortion) * foam_tile_uv_scale).a, inv_foam_pattern_gamma);
         float flowFoamTileB = pow(tex2D(foam_generator_tile, (worldPos_b.xz - foamTileDistortion) * foam_tile_uv_scale).a, inv_foam_pattern_gamma);
         float crossFade = abs(frac(flowmapTime) * 2 - 1);
@@ -309,8 +313,18 @@ shader foam_combine
   cull_mode = none;
   z_test = false;
   z_write = false;
+  blend_src = one;
+  blend_dst = isa;
+  blend_asrc = zero;
+  blend_adst = isa;
 
   POSTFX_VS_TEXCOORD(1, uv)
+
+  bool output_wfx_details = water_use_wfx_wake == on && compatibility_mode == compatibility_mode_off;
+  if (output_wfx_details)
+  {
+    INIT_FOAM_PARAMS(ps)
+  }
 
   (ps)
   {
@@ -328,7 +342,15 @@ shader foam_combine
     #define foam_underfoam_weight (foam_gamma_weight.y)
     #define foam_overfoam_weight (foam_gamma_weight.z)
 
-    float4 combine_ps(VsOutput input): SV_Target
+    struct PsOutput
+    {
+      float4 color : SV_Target0;
+      ##if output_wfx_details
+        float4 details : SV_Target2;
+      ##endif
+    };
+
+    PsOutput combine_ps(VsOutput input)
     {
       float overfoam_gray = tex2D(foam_overfoam_tex, input.uv).r;
       float underfoam_gray = tex2D(foam_underfoam_tex, input.uv).r;
@@ -340,9 +362,14 @@ shader foam_combine
       underfoam_color *= foam_underfoam_color;
 
       float3 final_color = foam_underfoam_weight*underfoam_color+foam_overfoam_weight*overfoam_color;
-      float final_alpha = foam_underfoam_weight*underfoam_gray+foam_overfoam_weight*overfoam_gray;
+      float final_alpha = saturate(foam_underfoam_weight*underfoam_gray+foam_overfoam_weight*overfoam_gray);
 
-      return float4(final_color, saturate(1.0-final_alpha));
+      PsOutput output;
+      output.color = float4(final_color, final_alpha);
+      ##if output_wfx_details
+        output.details = float4(foam_smoothness, foam_reflectance, foam_scatterCoeff, 1) * saturate(foam_materialAlphaCoeff * final_alpha);
+      ##endif
+      return output;
     }
   }
 

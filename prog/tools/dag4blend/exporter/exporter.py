@@ -1,5 +1,8 @@
-import os
 import mathutils
+
+from os         import makedirs
+from os.path    import exists, join, dirname
+
 import bpy
 from bpy.path                       import ensure_ext
 from mathutils                      import Matrix
@@ -15,8 +18,8 @@ from ..face                         import FaceExp
 from ..node                         import NodeExp
 from ..nodeMaterial                 import MaterialExp
 from ..mesh                         import MeshExp
-from ..helpers.popup                import show_popup
-from ..helpers.basename             import basename
+from ..popup.popup_functions    import show_popup
+from ..helpers.names                import ensure_no_path
 from ..helpers.multiline            import _label_multiline
 from ..helpers.texts                import log
 from ..helpers.version              import get_blender_version
@@ -302,32 +305,43 @@ class DagExporter(Operator, ExportHelper):
         node.objFlg |= DAG_NF_CASTSHADOW
         #<
         DP=o.dagorprops
-        broken=''
+        broken_properties = []
+        scripts = []
         for key in DP.keys():
-            if key!='broken_properties':
-                if key=='renderable:b':
-                    node.objFlg -= DAG_NF_RENDERABLE*int(DP[key]=='no')
-                elif key=='cast_shadows:b':
-                    node.objFlg -= DAG_NF_CASTSHADOW*int(DP[key]=='no')
-                try:
-                    value=str(DP[key].to_list())
-                    value=value.replace('[','')
-                    value=value.replace(']','')
-                except:
-                    value=str(DP[key])
-                    if key.endswith(':t'):
-                        value=value.replace('"','')#to avoid multiple quotes
-                        value='"'+value+'"'
-                line=key+'='+value+'\r\n'
-                #TODO: replace with more complex validation
-                if value.__len__()==0 or (key.endswith(':b') and value not in['yes','no']) or key.find(':')==-1:
-                    broken+=line
+            if key == 'broken_properties:t':
+                broken_properties.append(DP[key])
+                continue
+            if key=='renderable:b':
+                node.objFlg -= DAG_NF_RENDERABLE*int(not DP[key])
+            elif key=='cast_shadows:b':
+                node.objFlg -= DAG_NF_CASTSHADOW*int(not DP[key])
+            try:
+                value=str(DP[key].to_list())
+                value=value.replace('[','')
+                value=value.replace(']','')
+            except:
+                value=str(DP[key])
+                if key.endswith(':t'):
+                    value=value.replace('"','')#to avoid multiple quotes
+                    value='"'+value+'"'
+            if key.endswith(':b'):
+                if f'{DP[key]}'.lower() in ["0", "no", "false"]:
+                    scripts.append(f'{key}=no')
+                elif f'{DP[key]}'.lower() in ["1", "yes", "true"]:
+                    scripts.append(f'{key}=yes')
                 else:
-                    scripts+=line
+                    broken_properties.append(f'{key}={value}')
+                continue
+            script = f'{key}={value}'
+            #TODO: replace with more complex validation
+            if value.__len__()==0 or key.find(':')==-1:
+                broken_properties.append(script)
             else:
-                broken+=DP[key]
-        if broken.__len__()>0:
-            scripts+='broken_properties='+broken
+                scripts.append(script)
+        if broken_properties.__len__() > 0:
+            broken = ";".join(broken_properties)
+            scripts.append(f'broken_properties:t="{broken}"')
+        scripts = "\r\n".join(scripts)
         return scripts
 
     def toMesh(self, o, scene):
@@ -614,7 +628,7 @@ class DagExporter(Operator, ExportHelper):
             if tex.startswith('//'):
                 abs_tex = bpy.path.abspath(tex)
                 if abs_tex[1]!=':':#still doesn't start with drive letter
-                    abs_tex = bpy.path.basename(tex)
+                    abs_tex = ensure_no_path(tex)
                 self.writer.writeDAGString(abs_tex)
             else:
                 self.writer.writeDAGString(tex)
@@ -637,19 +651,22 @@ class DagExporter(Operator, ExportHelper):
                 flags |= DAG_MF_2SIDED
             self.writer.writeDWord(flags)
             for i in range(DAGTEXNUM):
-                attr_name = "tex" + str(i)
-                if hasattr(mat.dagormat.textures, attr_name):
-                    texture_path = getattr(mat.dagormat.textures, attr_name)
-                    if not texture_path:
-                        self.writer.writeUShort(DAGBADMATID)
-                    q = 0
-                    for tex in self.textures:
-                        if texture_path == tex:
-                            self.writer.writeUShort(q)
-                            break
-                        q += 1
+                if DM.is_proxy:
+                        self.writer.writeUShort(DAGBADMATID)  # proxy uses textures from blk, not from dagormat itself
                 else:
-                    self.writer.writeUShort(DAGBADMATID)
+                    attr_name = "tex" + str(i)
+                    if hasattr(mat.dagormat.textures, attr_name):
+                        texture_path = getattr(mat.dagormat.textures, attr_name)
+                        if not texture_path:
+                            self.writer.writeUShort(DAGBADMATID)
+                        q = 0
+                        for tex in self.textures:
+                            if texture_path == tex:
+                                self.writer.writeUShort(q)
+                                break
+                            q += 1
+                    else:
+                        self.writer.writeUShort(DAGBADMATID)
             # _resv
             self.writer.writeUShort(0)
             self.writer.writeUShort(0)
@@ -705,17 +722,17 @@ class DagExporter(Operator, ExportHelper):
 
     def export_dag(self,whole_list,filepath):
         existing_objects = list(ob  for ob  in bpy.data.objects)
-        existing_mats    = list(mat for mat in bpy.data.materials)
-        filename         = basename(filepath)
-        filepath_temp    = bpy.app.tempdir + os.sep + "dag4blend"
-        if not os.path.exists(filepath_temp):
-            os.makedirs(filepath_temp)
-        filepath_temp+=os.sep+filename
-        filepath = bpy.path.ensure_ext(filepath, self.filename_ext)
+        existing_mats = list(mat for mat in bpy.data.materials)
+        filename = ensure_no_path(filepath)
+        dirpath_temp = join(bpy.app.tempdir, "dag4blend")
+        if not exists(dirpath_temp):
+            makedirs(dirpath_temp)
+        filepath_temp = join(dirpath_temp, filename)
+        filepath = ensure_ext(filepath, self.filename_ext)
         log(f'EXPORTING {filepath}\n')
         objs=list(ob for ob in whole_list if ob.parent is None or ob.parent not in whole_list)
-        if objs.__len__()==0:
-            err='No objects to export in '+os.path.basename(filepath)
+        if objs.__len__() == 0:
+            err = 'No objects to export in ' + ensure_no_path(filepath)
             show_popup(message=err,icon='ERROR',title='Error!')
             log(f'{err}\n', type = 'ERROR', show = True)
             return{'CANCELLED'}
@@ -740,14 +757,14 @@ class DagExporter(Operator, ExportHelper):
         dagEndChunkPos = self.writer.beginChunk(DAG_END)
         self.writer.endChunk(dagEndChunkPos)
         self.writer.close()
-        dirpath = os.path.dirname(filepath)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)
+        dirpath = dirname(filepath)
+        if not exists(dirpath):
+            makedirs(dirpath)
         copyfile(filepath_temp,filepath)
         #no need to delete temporary dag, it will be auto-removed with bpy.app.tempdir on blender being closed/crushed
         #cleanup part. Let's remove temporary stuff
-        filename=os.path.basename(filepath)
-        occluders=0
+        filename = ensure_no_path(filepath)
+        occluders = 0
         for obj in bpy.data.objects:
             if obj not in existing_objects:
                 if obj.name.startswith('occluder_box'):
@@ -770,7 +787,7 @@ class DagExporter(Operator, ExportHelper):
             if orphans:
                 for obj in col.objects:
                     if obj.type in SUPPORTED_TYPES:
-                        filepath=os.path.join(dirpath,obj.name+'.dag')
+                        filepath=join(dirpath,obj.name+'.dag')
                         self.export_dag([obj],filepath)
             for child in col.children:
                 self.export_collection(child,dirpath)
@@ -785,9 +802,9 @@ class DagExporter(Operator, ExportHelper):
                 if subpath[1]==':':#drive
                     filepath = subpath
                 else:
-                    filepath = os.path.join(dirpath,subpath)
+                    filepath = join(dirpath,subpath)
             else:
-                filepath=os.path.join(dirpath,col.name)
+                filepath=join(dirpath,col.name)
             whole_list=list(ob for ob in col.objects if ob.type in SUPPORTED_TYPES)
             filepath = bpy.path.ensure_ext(filepath,'.dag')
             self.export_dag(whole_list,filepath)
@@ -795,7 +812,7 @@ class DagExporter(Operator, ExportHelper):
     def execute(self, context):
         mode = self.limits
         filepath = self.filepath
-        dirpath=os.path.dirname(filepath)
+        dirpath=dirname(filepath)
         P = bpy.data.scenes[0].dag4blend.exporter
         try:
             bpy.ops.object.mode_set(mode='OBJECT')
@@ -811,7 +828,7 @@ class DagExporter(Operator, ExportHelper):
         elif mode=='Sel.Separated':
             for obj in VL.objects:
                 if obj.select_get() and obj.type in SUPPORTED_TYPES:
-                    filepath=os.path.join(dirpath,obj.name)
+                    filepath=join(dirpath,obj.name)
                     self.export_dag([obj],filepath)
         elif mode=='Col.Separated':
             dag_col=P.collection
@@ -825,7 +842,7 @@ class DagExporter(Operator, ExportHelper):
                 self.export_collection(dag_col,dirpath)
         elif mode =='Col.Joined':
             dag_col=P.collection
-            filepath=os.path.join(self.filepath,dag_col.name)
+            filepath=join(self.filepath,dag_col.name)
             if dag_col==None:
                 show_popup(message="Doesn't work for Scenre Collection",icon='ERROR')
                 return{'CANCELLED'}

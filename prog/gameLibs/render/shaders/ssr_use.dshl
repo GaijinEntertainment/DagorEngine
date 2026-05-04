@@ -3,6 +3,7 @@ include "upscale_use.dshl"
 texture ssr_target;
 float4 SSRParams = (0.91, -2.5, 0,0);
 float4 ssr_frameNo = (0,0,0,0);
+float4 ssr_target_size = (1280 / 2, 720 / 2, 0, 0);
 
 define_macro_if_not_defined SSR_COMMON_DEFINES()
 endmacro
@@ -10,7 +11,7 @@ endmacro
 macro INIT_USE_SSR_BASE(stage)
   (stage) {
     ssr_target@smp2d = ssr_target;
-    ssr_target_size@f4 = get_dimensions(ssr_target, 0);
+    ssr_target_size@f4 = float4(ssr_target_size.x, ssr_target_size.y, 0, ssr_frameNo.w);
     SSRParams@f4 = SSRParams;
   }
 endmacro

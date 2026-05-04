@@ -51,9 +51,8 @@ struct StateFieldFramebufferAttachment
   VULKAN_TRACKED_STATE_ARRAY_FIELD_CB_DEFENITIONS();
 };
 
-struct StateFieldFramebufferAttachments : TrackedStateFieldArray<StateFieldFramebufferAttachment,
-                                            Driver3dRenderTarget::MAX_SIMRT + 1, //+1 for depth/stencil
-                                            true, true>
+struct StateFieldFramebufferAttachments
+  : TrackedStateFieldArray<StateFieldFramebufferAttachment, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS, true, true>
 {};
 
 struct StateFieldFramebufferSwapchainSrgbWrite : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<bool>

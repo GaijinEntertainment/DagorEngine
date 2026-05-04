@@ -5,7 +5,6 @@ include "esm_shadows_inc.dshl"
 
 shader esm_depth
 {
-  ENABLE_ASSERT(ps)
   cull_mode = none;
   hlsl {
     struct VsOutput
@@ -23,9 +22,11 @@ shader esm_depth
       float4 normal               : NORMAL;
     };
   }
+
+  DYNMODEL_SHARED_DECL_IMMEDIATE()
+  DYNMODEL_SHARED_DECL()
   NO_SKINNING_VS()
   USE_FLOAT_POS_PACKING()
-  DYNAMIC_SIMPLE_VS_SHARED_DECL()
 
   hlsl(vs) {
 

@@ -7,6 +7,8 @@
 #include <assets/assetFolder.h>
 #include <assetsGui/av_allAssetsTree.h>
 #include <assetsGui/av_assetSelectorCommon.h>
+#include <osApiWrappers/dag_localConv.h>
+#include <propPanel/control/treeNode.h>
 #include <util/dag_string.h>
 #include <propPanel/propPanel.h>
 
@@ -22,9 +24,14 @@ void AvTree::loadIcons(DagorAssetMgr &asset_mgr)
   folder_packed_textureId = PropPanel::load_icon("folder_packed");
   folder_changed_textureId = PropPanel::load_icon("folder_changed");
 
+  String iconName;
   asset_changed_textureId.resize(asset_mgr.getAssetTypesCount());
   for (int i = 0; i < asset_mgr.getAssetTypesCount(); i++)
-    asset_changed_textureId[i] = PropPanel::load_icon(String(0, "asset_%s_changed", asset_mgr.getAssetTypeName(i)));
+  {
+    iconName.printf(0, "asset_%s_changed", asset_mgr.getAssetTypeName(i));
+    dd_strlwr(iconName);
+    asset_changed_textureId[i] = PropPanel::load_icon(iconName);
+  }
 }
 
 
@@ -66,19 +73,19 @@ bool AvTree::markExportedTree(AllAssetsTree &tree, PropPanel::TLeafHandle parent
   for (int i = 0; i < childCount; ++i)
   {
     PropPanel::TLeafHandle child = tree.getChild(parent, i);
-    PropPanel::TTreeNode *childTreeNode = tree.getItemNode(child);
+    PropPanel::TreeNode *childTreeNode = tree.getItemNode(child);
 
-    if (const DagorAssetFolder *g = get_dagor_asset_folder(childTreeNode->userData))
+    if (const DagorAssetFolder *g = get_dagor_asset_folder(childTreeNode->getUserData()))
     {
       PropPanel::IconId imidx = (g->flags & g->FLG_EXPORT_ASSETS) ? folder_packed_textureId : folder_textureId;
 
       if (markExportedTree(tree, child, flags))
         imidx = folder_changed_textureId;
 
-      if (imidx != childTreeNode->icon && childTreeNode->item)
+      if (imidx != childTreeNode->getIconId())
         tree.changeItemImage(child, imidx);
     }
-    else if (DagorAsset *a = (DagorAsset *)childTreeNode->userData)
+    else if (DagorAsset *a = (DagorAsset *)childTreeNode->getUserData())
     {
       PropPanel::IconId imidx;
 
@@ -92,7 +99,7 @@ bool AvTree::markExportedTree(AllAssetsTree &tree, PropPanel::TLeafHandle parent
         imidx = AssetSelectorCommon::getAssetTypeIcon(a->getType());
       }
 
-      if (imidx != childTreeNode->icon && childTreeNode->item)
+      if (imidx != childTreeNode->getIconId())
         tree.changeItemImage(child, imidx);
     }
   }

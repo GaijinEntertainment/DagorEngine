@@ -7,6 +7,7 @@ graphics{
   anisotropy:i = 4
   spotShadowBias:p4 = -0.00006, -0.1, 0.001, 0.005 // z, slope z, shader z, shader slope z
   dafx:t="cpu"
+  screenEffect:b=no
 }
 
 vromList {
@@ -105,10 +106,9 @@ mountPoints {
   "%dngdas"     { forSource:t="../../../prog/daNetGame/scripts/das"; forVromfs:t="das"; }
   "%daslib"     { forSource:t="../../../prog/1stPartyLibs/daScript/daslib"; forVromfs:t="daslib"; }
   "%dasImgui"   { forSource:t="../../../prog/1stPartyLibs/daScript/modules/dasImgui/daslib"; forVromfs:t="daslib"; }
-  "%dasGameLibs"{ forSource:t="../../../prog/gameLibs/das"; forVromfs:t="das"; }
-  "%gameLibs"   { forSource:t="../../../prog/gameLibs"; forVromfs:t="gameLibs";}
   "%scripts"    { forSource:t="../prog/scripts"; forVromfs:t="scripts"; }
   "%danetlibs"  { forSource:t="../../../prog/daNetGameLibs"; forVromfs:t="danetlibs"; }
+  "%gameLibs"   { forSource:t="../../../prog/gameLibs"; forVromfs:t="gamelibs"; }
   "%gameBase"   { forSource:t="../prog/gameBase"; forVromfs:t=""; }
 }
 

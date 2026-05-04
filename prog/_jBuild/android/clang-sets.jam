@@ -80,7 +80,7 @@ local _DEF_COM_CMDLINE =
   -ffunction-sections -fno-data-sections
   -ffast-math -ffinite-math-only -mrecip=none
   -D_TARGET_ANDROID -D_TARGET_STATIC_LIB
-  -DANDROID_NDK -DANDROID -D__ANDROID__ -D__ARM_EABI__
+  -DANDROID_NDK -DANDROID
   -D__ANDROID_API__=$(AndroidApiMinVer)
 ;
 
@@ -108,6 +108,10 @@ if $(AndroidHasNeon) = yes {
   _DEF_COM_CMDLINE +=
     -D_TARGET_SIMD_NEON
   ;
+}
+
+if $(Sanitize) != disabled {
+  _DEF_COM_CMDLINE += -fsanitize=$(Sanitize) -fno-omit-frame-pointer ;
 }
 
 switch $(PlatformArch) {
@@ -167,6 +171,9 @@ if $(OS) = NT {
   _GAS_COMPILER = $(_A_TC_PREFIX)clang -g -c --sysroot=$(_A_NDK_SYSROOT) ;
 }
 
+if $(Sanitize) != disabled {
+  _LINK += -fsanitize=$(Sanitize) ;
+}
 
 _INCLUDE      =
   $(Root)/prog/3rdPartyLibs

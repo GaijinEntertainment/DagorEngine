@@ -23,4 +23,6 @@ void render_dialogs();
 
 void set_modal_dialog_events(IModalDialogEventHandler *event_handler);
 
+bool is_any_modal_dialog_open();
+
 } // namespace PropPanel

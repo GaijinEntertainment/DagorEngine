@@ -43,15 +43,19 @@ bool VrEmulatorInputHandler::setupHands(ActionSetId, const char *, const char *,
 void VrEmulatorInputHandler::suggestBinding(ActionId, const char *, const char *) { /* STUB */ }
 bool VrEmulatorInputHandler::completeActionsInit() { return true; }
 
-HumanInput::ButtonBits VrEmulatorInputHandler::getCurrentBindingsMask(ActionId) const { return {}; }
-ActionBindings VrEmulatorInputHandler::getCurrentBindings(ActionId) const { return {}; }
+HumanInput::ButtonBits VrEmulatorInputHandler::getCurrentBindingsMask(ActionIndex) const { return {}; }
+ActionBindings VrEmulatorInputHandler::getCurrentBindings(ActionIndex) const { return {}; }
 eastl::string VrEmulatorInputHandler::getBindingName(ActionBindingId) const { return "undefined"; }
 eastl::string VrEmulatorInputHandler::getLocalizedBindingName(ActionBindingId) const { return "undefined"; }
 
 DigitalAction VrEmulatorInputHandler::getDigitalActionState(ActionId) const { return {}; }
+DigitalAction VrEmulatorInputHandler::getDigitalActionStateByIdx(ActionIndex) const { return {}; }
 AnalogAction VrEmulatorInputHandler::getAnalogActionState(ActionId) const { return {}; }
+AnalogAction VrEmulatorInputHandler::getAnalogActionStateByIdx(ActionIndex) const { return {}; }
 StickAction VrEmulatorInputHandler::getStickActionState(ActionId) const { return {}; }
+StickAction VrEmulatorInputHandler::getStickActionStateByIdx(ActionIndex) const { return {}; }
 
+PoseAction VrEmulatorInputHandler::getPoseActionStateByIdx(ActionIndex) const { return {}; } // FIXME
 PoseAction VrEmulatorInputHandler::getPoseActionState(ActionId a) const
 {
   PoseAction pose = {};

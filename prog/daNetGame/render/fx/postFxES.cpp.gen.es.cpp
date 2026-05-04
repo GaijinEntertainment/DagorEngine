@@ -131,7 +131,8 @@ static void post_fx_reload_es_all_events(const ecs::Event &__restrict evt, const
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     post_fx_reload_es(evt
-        , ECS_RO_COMP(post_fx_reload_es_comps, "post_fx", ecs::Object)
+        , components.manager()
+    , ECS_RO_COMP(post_fx_reload_es_comps, "post_fx", ecs::Object)
     );
   while (++comp != compE);
 }
@@ -205,7 +206,8 @@ if (evt.is<UpdateStageInfoBeforeRender>()) {
   } else {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       hero_dof_es(evt
-            , ECS_RW_COMP(hero_dof_es_comps, "dof_target_id", ecs::EntityId)
+            , components.manager()
+      , ECS_RW_COMP(hero_dof_es_comps, "dof_target_id", ecs::EntityId)
       , ECS_RO_COMP(hero_dof_es_comps, "transform", TMatrix)
       );
     while (++comp != compE);
@@ -240,7 +242,8 @@ static void post_fx_blood_es_all_events(const ecs::Event &__restrict evt, const 
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     post_fx_blood_es(evt
-        , ECS_RO_COMP(post_fx_blood_es_comps, "damage_indicator__thresholds", Point3)
+        , components.manager()
+    , ECS_RO_COMP(post_fx_blood_es_comps, "damage_indicator__thresholds", Point3)
     , ECS_RW_COMP(post_fx_blood_es_comps, "damage_indicator__phase", float)
     , ECS_RW_COMP(post_fx_blood_es_comps, "damage_indicator__stage", int)
     , ECS_RW_COMP(post_fx_blood_es_comps, "damage_indicator__startTime", float)
@@ -303,9 +306,9 @@ static ecs::CompileTimeQueryDesc gather_override_post_fx_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_override_post_fx_ecs_query(Callable function)
+inline void gather_override_post_fx_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_override_post_fx_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_override_post_fx_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -339,9 +342,9 @@ static ecs::CompileTimeQueryDesc animchar_ecs_query_desc
   make_span(animchar_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void animchar_ecs_query(Callable function)
+inline void animchar_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -369,9 +372,9 @@ static ecs::CompileTimeQueryDesc get_hero_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_hero_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_hero_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_hero_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_hero_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

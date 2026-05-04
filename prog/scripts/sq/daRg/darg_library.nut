@@ -41,7 +41,7 @@ function isDargComponent(comp) {
   if (c_type != "table" && c_type != "class")
     return false
   foreach(k, _val in c) {
-    if (k in static ["size","rendObj","children","watch","behavior","halign","valign","flow","pos","hplace","vplace"].totable())
+    if (k in const ["size","rendObj","children","watch","behavior","halign","valign","flow","pos","hplace","vplace"].totable())
       return true
   }
   return false
@@ -59,7 +59,7 @@ let fsh = sh(100) <= sw(75) ? sh : @[pure](v) sw(0.75 * v)
 
 let numerics = Set("float", "integer")
 
-let wrapParams= static {width=0, flowElemProto={}, hGap=null, vGap=0, height=null, flow=FLOW_HORIZONTAL}
+let wrapParams= const {width=0, flowElemProto={}, hGap=null, vGap=0, height=null, flow=FLOW_HORIZONTAL}
 function wrap(elems, params=wrapParams) {
   //TODO: move this to native code
   let paddingLeft=params?.paddingLeft
@@ -67,7 +67,7 @@ function wrap(elems, params=wrapParams) {
   let paddingTop=params?.paddingTop
   let paddingBottom=params?.paddingBottom
   let flow = params?.flow ?? FLOW_HORIZONTAL
-  assert([FLOW_HORIZONTAL, FLOW_VERTICAL].indexof(flow)!=null, "flow should be FLOW_VERTICAL or FLOW_HORIZONTAL")
+  assert([FLOW_HORIZONTAL, FLOW_VERTICAL].contains(flow), "flow should be FLOW_VERTICAL or FLOW_HORIZONTAL")
   let isFlowHor = flow==FLOW_HORIZONTAL
   let height = params?.height ?? SIZE_TO_CONTENT
   let width = params?.width ?? SIZE_TO_CONTENT
@@ -80,7 +80,7 @@ function wrap(elems, params=wrapParams) {
   let secondaryGap = isFlowHor ? vgap : hgap
   if (type(gap) in numerics)
     gap = isFlowHor ? freeze({size=[gap,0]}) : freeze({size=[0,gap]})
-  let flowElemProto = params?.flowElemProto ?? static {}
+  let flowElemProto = params?.flowElemProto ?? const {}
   let flowElems = []
   if (paddingTop && isFlowHor)
     flowElems.append(paddingTop)
@@ -160,7 +160,7 @@ function mkWatched(persistFunc, persistKey, defVal=null, observableInitArg=null)
   return watch
 }
 
-let FLEX_H = static [flex(), SIZE_TO_CONTENT]
+let FLEX_H = const [flex(), SIZE_TO_CONTENT]
 let flex_h = function [pure] (val=null) {
   if (val == null)
     return FLEX_H
@@ -168,7 +168,8 @@ let flex_h = function [pure] (val=null) {
   return [flex(val), SIZE_TO_CONTENT]
 }
 
-let FLEX_V = static [SIZE_TO_CONTENT, flex()]
+let FLEX_V = const [SIZE_TO_CONTENT, flex()]
+let FLEX = const flex()
 let flex_v = function [pure] (val=null) {
   if (val == null)
     return FLEX_H
@@ -194,6 +195,7 @@ return freeze(darg.__merge({
   Set
   FLEX_H
   FLEX_V
+  FLEX
   flex_h
   flex_v
 }))

@@ -13,13 +13,6 @@
 #include <shaders/dag_overrideStates.h>
 #include <ctype.h>
 
-struct FreeTexAtReturn
-{
-  TEXTUREID id;
-  FreeTexAtReturn(TEXTUREID _id) : id(_id) {}
-  ~FreeTexAtReturn() { release_managed_tex(id); }
-};
-
 static const float g_target_to_tex_ratio = 0.333f;
 
 static int cube_indexVarId = -1;
@@ -86,17 +79,21 @@ String DebugTexOverlay::processConsoleCmd(const char *argv[], int argc)
 static int convert_int_param(const char *str, int def) { return (str && str[0] != '_') ? atoi(str) : def; }
 static float convert_float_param(const char *str, float def) { return (str && str[0] != '_') ? atof(str) : def; }
 
-DebugTexOverlay::TextureWrapper::TextureWrapper() : texId(BAD_TEXTUREID), swizzling(), modifiers() {}
+DebugTexOverlay::TextureWrapper::TextureWrapper() : texId(BAD_TEXTUREID), texPtr(nullptr), swizzling(), modifiers() {}
 
 DebugTexOverlay::TextureWrapper::~TextureWrapper()
 {
   if (needToReleaseTex)
+  {
+    G_ASSERT(texId != BAD_TEXTUREID);
     release_managed_tex(texId);
+  }
 }
 
 void DebugTexOverlay::TextureWrapper::reset()
 {
   texId = BAD_TEXTUREID;
+  texPtr = nullptr;
   // the rest is not important (can be garbage)
 }
 
@@ -232,10 +229,15 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
   // worth trying to check shader_vars as well
   varId = ::get_shader_variable_id(name, true);
   const TEXTUREID varTexId = varId > 0 ? ShaderGlobal::get_tex_fast(varId) : BAD_TEXTUREID;
+  BaseTexture *varTexPtr = varId > 0 ? ShaderGlobal::get_tex_ptr_fast(varId) : nullptr;
   if (id == BAD_TEXTUREID)
     id = varTexId;
   else if (id != varTexId)
+  {
     varId = -1;
+    varTexPtr = nullptr;
+  }
+
   if (id == BAD_TEXTUREID)
   {
     id = ::get_tex_gameres(name);
@@ -243,11 +245,17 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
       needToReleaseTex = true;
   }
 
-  if (id == BAD_TEXTUREID)
-    return String(128, "unknown managed texture: %s", name);
+  BaseTexture *tex = varTexPtr;
 
-  BaseTexture *tex = acquire_managed_tex(id);
-  FreeTexAtReturn ftat(id);
+  if (id != BAD_TEXTUREID)
+  {
+    tex = D3dResManagerData::getBaseTex(id);
+  }
+
+  if (!tex)
+  {
+    return String(128, "unknown managed texture: %s", name);
+  }
 
   TextureInfo info;
   tex->getinfo(info);
@@ -335,16 +343,18 @@ String DebugTexOverlay::TextureWrapper::initFromConsoleCmd(const char *argv[], i
     mod[i].y -= ch_range0 * chRangeMul;
   }
 
-  setTexEx(target_size, id, offs, sz, swz, mod, m, f, num, filter);
+  setTexEx(target_size, id, tex, offs, sz, swz, mod, m, f, num, filter);
   const char *formatName = get_tex_format_name(info.cflg);
   return String(0, "    %s %dx%dx%dx%d", formatName ? formatName : "?", info.w, info.h, info.d, info.a);
 }
 
 
-void DebugTexOverlay::TextureWrapper::setTexEx(const Point2 &target_size_, TEXTUREID texId_, const Point2 &offset_,
-  const Point2 &size_, const carray<Point4, 4> &swz_, const carray<Point2, 4> &mod_, int mip_, int face_, int num_slices_, int filter_)
+void DebugTexOverlay::TextureWrapper::setTexEx(const Point2 &target_size_, TEXTUREID texId_, BaseTexture *texPtr_,
+  const Point2 &offset_, const Point2 &size_, const carray<Point4, 4> &swz_, const carray<Point2, 4> &mod_, int mip_, int face_,
+  int num_slices_, int filter_)
 {
   texId = texId_;
+  texPtr = texPtr_;
   mip = mip_;
   face = face_;
   offset = offset_;
@@ -353,19 +363,17 @@ void DebugTexOverlay::TextureWrapper::setTexEx(const Point2 &target_size_, TEXTU
   dataFilter = filter_;
   swizzling = swz_;
   modifiers = mod_;
-  if (texId != BAD_TEXTUREID && (size.x < 0 || size.y < 0))
+  if (texPtr && (size.x < 0 || size.y < 0))
     fixAspectRatio(target_size_);
   origSize = size;
   origOffset = offset;
-  if (texId != BAD_TEXTUREID)
+  if (texPtr)
   {
-    BaseTexture *tex = acquire_managed_tex(texId);
     TextureInfo info;
-    tex->getinfo(info, mip);
+    texPtr->getinfo(info, mip);
     const Point2 csz = Point2(info.w, info.h);
     offsetF = div(offset, csz);
     sizeF = div(size, csz);
-    release_managed_tex(texId);
   }
 }
 
@@ -383,16 +391,38 @@ void DebugTexOverlay::render()
 
 void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const PostFxRenderer &renderer)
 {
-  if (texId == BAD_TEXTUREID)
-    return;
-  if (!D3dResManagerData::isValidID(texId, nullptr))
+  // handle invalid resource by id
+  if (texId != BAD_TEXTUREID)
   {
-    if (varId == -1 || (texId = ShaderGlobal::get_tex_fast(varId)) == BAD_TEXTUREID || !D3dResManagerData::isValidID(texId, nullptr))
+    if (!D3dResManagerData::isValidID(texId, nullptr))
+    {
+      if (varId == -1 || (texId = ShaderGlobal::get_tex_fast(varId)) == BAD_TEXTUREID || !D3dResManagerData::isValidID(texId, nullptr))
+      {
+        reset();
+        return;
+      }
+      else
+      {
+        // it's necessary to update texture pointer after changing id
+        texPtr = D3dResManagerData::getBaseTex(texId);
+      }
+    }
+  }
+
+  if (!texPtr)
+    return;
+
+  // handle invalid unmanaged resource by pointer
+  if (texId == BAD_TEXTUREID)
+  {
+    if (varId == -1 || (texPtr = ShaderGlobal::get_tex_ptr_fast(varId)) == nullptr)
     {
       reset();
       return;
     }
   }
+
+
   static int texVarId = get_shader_variable_id("swizzled_texture");
   static int samplerVarId = get_shader_variable_id("swizzled_texture_samplerstate", true);
   static int texSizeVarId = get_shader_variable_id("swizzled_texture_size");
@@ -404,53 +434,47 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   static int modVarIds[4] = {get_shader_variable_id("tex_mod_r"), get_shader_variable_id("tex_mod_g"),
     get_shader_variable_id("tex_mod_b"), get_shader_variable_id("tex_mod_a")};
 
-  BaseTexture *tex = acquire_managed_tex(texId);
-  FreeTexAtReturn ftat(texId);
-  if (!tex)
-    return;
-
   TextureInfo info;
-  tex->getinfo(info, mip);
+  texPtr->getinfo(info, mip);
   const Point2 csz = Point2(info.w, info.h);
   offset = mul(offsetF, csz);
   size = mul(sizeF, csz);
 
-  ShaderGlobal::set_texture(texVarId, texId);
+  ShaderGlobal::set_texture(texVarId, texPtr);
   ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
 
   for (int i = 0; i < 4; ++i)
   {
-    ShaderGlobal::set_color4(swzVarIds[i], (Color4 &)swizzling[i]);
-    ShaderGlobal::set_color4(modVarIds[i], Color4(modifiers[i].x, modifiers[i].y, 0, 0)); // needs padding
+    ShaderGlobal::set_float4(swzVarIds[i], (Color4 &)swizzling[i]);
+    ShaderGlobal::set_float4(modVarIds[i], Color4(modifiers[i].x, modifiers[i].y, 0, 0)); // needs padding
   }
 
   float faceUse = face;
-  if (tex->getType() == D3DResourceType::TEX)
+  if (texPtr->getType() == D3DResourceType::TEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 0);
   }
-  else if (tex->getType() == D3DResourceType::CUBETEX)
+  else if (texPtr->getType() == D3DResourceType::CUBETEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 1);
   }
-  else if (tex->getType() == D3DResourceType::VOLTEX)
+  else if (texPtr->getType() == D3DResourceType::VOLTEX)
   {
     ShaderGlobal::set_int(texTypeVarId, 3);
     faceUse = (faceUse + .5f) / info.d;
   }
-  else if (tex->getType() == D3DResourceType::ARRTEX)
+  else if (texPtr->getType() == D3DResourceType::ARRTEX)
   {
-    if (tex->isCubeArray())
-    {
-      ShaderGlobal::set_real_fast(cube_indexVarId, static_cast<int>(faceUse) / 6);
-      faceUse = static_cast<float>(static_cast<int>(faceUse) % 6);
-      ShaderGlobal::set_int(texTypeVarId, 6);
-    }
-    else
-      ShaderGlobal::set_int(texTypeVarId, 2);
+    ShaderGlobal::set_int(texTypeVarId, 2);
+  }
+  else if (texPtr->getType() == D3DResourceType::CUBEARRTEX)
+  {
+    ShaderGlobal::set_float(cube_indexVarId, static_cast<int>(faceUse) / 6);
+    faceUse = static_cast<float>(static_cast<int>(faceUse) % 6);
+    ShaderGlobal::set_int(texTypeVarId, 6);
   }
 
-  ShaderGlobal::set_color4(texFaceMipVarId, faceUse, mip, face | dataFilter, numSlices);
+  ShaderGlobal::set_float4(texFaceMipVarId, faceUse, mip, face | dataFilter, numSlices);
 
   Point2 o = Point2(offset.x / target_size.x, offset.y / target_size.y);
   Point2 s = Point2(size.x / target_size.x, size.y / target_size.y);
@@ -459,7 +483,7 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
     resTexSize.x = -resTexSize.x;
   if (flipY)
     resTexSize.y = -resTexSize.y;
-  ShaderGlobal::set_color4(texSizeVarId, resTexSize);
+  ShaderGlobal::set_float4(texSizeVarId, resTexSize);
   if (size.x <= 0 || size.y <= 0 || offset.x >= target_size.x || offset.y >= target_size.y)
   {
     logerr("invalid scissor %@ .. %@", offset, size);
@@ -479,12 +503,11 @@ void DebugTexOverlay::TextureWrapper::fixAspectRatio(const Point2 &targetSize)
   if (size.x < 0)
     size.x = targetSize.x * g_target_to_tex_ratio;
 
-  BaseTexture *tex = acquire_managed_tex(texId);
-
-  if (tex->getType() == D3DResourceType::TEX || tex->getType() == D3DResourceType::VOLTEX || tex->getType() == D3DResourceType::ARRTEX)
+  if (texPtr->getType() == D3DResourceType::TEX || texPtr->getType() == D3DResourceType::VOLTEX ||
+      texPtr->getType() == D3DResourceType::ARRTEX)
   {
     TextureInfo ti;
-    tex->getinfo(ti);
+    texPtr->getinfo(ti);
     float ratio = (float)ti.h / (float)ti.w;
     size.y = size.x * ratio;
   }
@@ -492,6 +515,4 @@ void DebugTexOverlay::TextureWrapper::fixAspectRatio(const Point2 &targetSize)
   {
     size.y = size.x;
   }
-
-  release_managed_tex(texId);
 }

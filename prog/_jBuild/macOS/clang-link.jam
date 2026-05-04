@@ -121,6 +121,7 @@ rule ProcessLinkTarget
     $(Target)__LINK     = $(_LINK) ;
     $(Target)__LINK_OPT = $(LINKopt) ; #-lpthread ;
     $(Target)__IMGBUILD = rem ;
+    on $(Target) if $(need_buildstamp) = yes { LinkExeSetBuildStamp $(Target) ; }
     $(Target)__POSTLINK_CMD += $(_INSTALL_NAME_TOOL) -id $(Target:D=) $(OutDir)/$(Target) "
   " ;
   }

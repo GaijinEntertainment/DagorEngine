@@ -18,6 +18,24 @@ enum class MetalImageType : uint8_t
   Count
 };
 
+enum
+{
+  // STAGE_CS, STAGE_PS, STAGE_VS
+  // artificial stage to be able to bind STAGE_VS resources to mesh and object shaders
+  STAGE_MS = 3,
+  STAGE_OS = 4,
+  STAGE_TOTAL
+};
+
+namespace ShaderFlags
+{
+enum
+{
+  HasSamplerBiases = 1 << 0,
+  HasImmediateConstants = 1 << 1
+};
+}
+
 union EncodedMetalImageType
 {
   struct
@@ -54,8 +72,8 @@ union EncodedBufferRemap
   {
     MetalImageType texture_type;
     BufferType buffer_type;
-    RemapType remap_type = RemapType::Invalid;
-    int8_t slot = -1;
+    RemapType remap_type;
+    int8_t slot;
   };
   int value;
 
@@ -95,6 +113,8 @@ enum BUFFERBINDPOINT
 };
 
 static constexpr int BIND_POINT = GEOM_BUFFER_COUNT;
+static constexpr int IMMEDIATE_BIND_SLOT = BIND_POINT + 2; // backend bind slot
+static constexpr int IMMEDIATE_BIND_POINT = 13;            // hlsl slot
 
 static constexpr int MAX_SHADER_TEXTURES = 32;
 static constexpr int MAX_SHADER_ACCELERATION_STRUCTURES = 32;

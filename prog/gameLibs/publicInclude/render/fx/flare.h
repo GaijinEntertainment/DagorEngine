@@ -13,7 +13,7 @@ struct Flare
   Flare() = default;
   void init(const Point2 low_res_size, const char *lense_covering_tex_name, const char *lense_radial_tex_name);
   void close();
-  void apply(Texture *src_tex, TEXTUREID src_id);
+  void apply(Texture *src_tex);
   void releaseRTs();
 
   void toggleEnabled(bool enabled);

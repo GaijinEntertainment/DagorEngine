@@ -1,0 +1,9 @@
+WARNING: w238 (named-like-should-return) Function name '_must_be_utilized' implies a return value, but its result is never used.
+testData/static_analyzer/w238_sqconfig.nut:4:2
+
+function x() { //-declared-never-used
+  ::a._must_be_utilized(::table2);
+  ^------------------------------
+}
+
+

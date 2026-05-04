@@ -23,7 +23,7 @@ The physmat configuration file is located at:
 The general structure of the physmat configuration file is as follows:
 
 
-```text
+```blk
 PhysMats{          // Container block for all physical materials
   __DefaultParams{ // Default parameters applied to all physmats unless explicitly overridden
     a
@@ -39,31 +39,31 @@ PhysMats{          // Container block for all physical materials
 InteractPropsList{     // Configuration block for player interactions with physical materials
   visibilityCamera{    // Defines physmats that do not collide with the camera
     transparentCamera{ // A physmat excluded from camera collision
-      en:b = no        // 'no' disables collision with the camera
+      en:b= no         // 'no' disables collision with the camera
     }
   }
   visibilityRay{      // Defines physmats that are transparent for ray tracing
                       // For example, through which tank markers should remain visible.
     transparentBeton{ // A physmat through which tank markers remain visible
-      en:b = no       // 'no' disables collision with the tracing ray
+      en:b= no        // 'no' disables collision with the tracing ray
     }
   }
   tankTrack{          // Defines physmats that interact with tank tracks
                       // All driveable physmats must be listed here
     default{          // Physmat entry
-      fk:r = 1.0      // Friction coefficient multiplier; 1.0 is standard, values < 1 simulate slippery surfaces,
-                      // e.g., setting '0.5' simulates ice.
-      rollingFrictionK:r = 0.045  // Rolling friction coefficient; lower values reduce rolling resistance
-                                  // Hard surfaces typically have lower values than soft ones
+      fk:r= 1.0       /* Friction coefficient multiplier; 1.0 is standard, values < 1 simulate slippery surfaces,
+                         e.g., setting '0.5' simulates ice. */
+      rollingFrictionK:r= 0.045   /* Rolling friction coefficient; lower values reduce rolling resistance
+                                     Hard surfaces typically have lower values than soft ones */
     }
   }
-  wheel{              // Defines physmats that interact with vehicle wheels
-                      // All driveable physmats must be listed here
+  wheel{              /* Defines physmats that interact with vehicle wheels
+                         All driveable physmats must be listed here */
     default{          // Physmat entry
-      fk:r = 1.0      // Friction coefficient multiplier; 1.0 is standard, values < 1 simulate slippery surfaces,
-                      // e.g., setting '0.5' simulates ice.
-      rollingFrictionK:r = 0.03  // Rolling friction coefficient; lower values reduce rolling resistance
-                                 // Hard surfaces typically have lower values than soft ones
+      fk:r= 1.0       /  Friction coefficient multiplier; 1.0 is standard, values < 1 simulate slippery surfaces,
+                         e.g., setting '0.5' simulates ice. */
+      rollingFrictionK:r= 0.03   /* Rolling friction coefficient; lower values reduce rolling resistance
+                                    Hard surfaces typically have lower values than soft ones */
     }
   }
 }
@@ -374,19 +374,19 @@ the applied physmat and FX settings, follow the steps below.
 
    For example, in `7_62mm_PKT_user_machinegun.blk`:
 
-   ```text
+   ```blk
    include "#/develop/gameBase/gameData/weapons/bullets/USSR/_7_62mm_shkas_b32_bullet.blk"
    ```
 
    In turn, this bullet definition includes an FX configuration:
 
-   ```text
+   ```blk
    include "#/develop/gameBase/gameData/weapons/fx/_8_11mm_ap_hit_fx.blk"
    ```
 
    Likewise, in `12_7mm_NSV_user_cannon.blk`:
 
-   ```text
+   ```blk
    include "bullets/ussr/_12_7mm_dshk_bzt_44_APIT_bullet.blk"
    include "bullets/ussr/_12_7mm_dshk_mdz_HE_bullet.blk"
    include "bullets/ussr/_12_7mm_dshk_bs41_API_bullet.blk"
@@ -394,7 +394,7 @@ the applied physmat and FX settings, follow the steps below.
 
    These include references like:
 
-   ```text
+   ```blk
    include "#/develop/gameBase/gameData/weapons/fx/_12_18mm_ap_hit_fx.blk"
    ```
 
@@ -404,23 +404,23 @@ the applied physmat and FX settings, follow the steps below.
 
    For example, in `_12_18mm_he_hit_fx.blk`:
 
-   ```text
-   groundCollisionEffect:t = "hit_12_18mm_dirt_he" // Default FX when hitting the ground.
-                                                   // Used if the physmat lacks a defined 'hitFxType:t'.
-   ricochetEffect:t = "hit_12_18mm_metal_ap"       // FX for ricochets on metal surfaces.
-   waterCollisionEffect:t = "hit_12_18mm_water"    // FX for impacts on water surfaces.
-                                                   // Also used when no specific 'hitFxType:t' is provided.
+   ```blk
+   groundCollisionEffect:t= "hit_12_18mm_dirt_he"  /* Default FX when hitting the ground.
+                                                      Used if the physmat lacks a defined 'hitFxType:t'. */
+   ricochetEffect:t= "hit_12_18mm_metal_ap"        // FX for ricochets on metal surfaces.
+   waterCollisionEffect:t= "hit_12_18mm_water"     /* FX for impacts on water surfaces.
+                                                      Also used when no specific 'hitFxType:t' is provided. */
    ```
 
    The file may also contain a collisions block for physmat-specific overrides:
 
-   ```text
+   ```blk
    collisions{
      default{                       // physmat name
-       fx:t = "hit_12_18mm_dirt_he" // Overrides 'hitFxType:t' with a hardcoded FX for this projectile.
+       fx:t= "hit_12_18mm_dirt_he"  // Overrides 'hitFxType:t' with a hardcoded FX for this projectile.
      }
      horLandMesh{
-       fx:t = "hit_12_18mm_dirt_he"
+       fx:t= "hit_12_18mm_dirt_he"
      }
      ...
    }
@@ -438,8 +438,8 @@ environmental effects.
 To assign a physmat to a prefab, append the physmat name to the material
 definition using the `@` symbol:
 
-```text
-name:t = "lake@ice"
+```blk
+name:t= "lake@ice"
 ```
 
 In this example, the material "lake" is associated with the ice physmat.
@@ -449,7 +449,7 @@ In this example, the material "lake" is associated with the ice physmat.
 For decals that require explicit physmat behavior, the physmat can be defined
 using the script parameter in the material properties:
 
-```text
+```blk
 script:t="phmat=concrete" // where "concrete" is the desired physmat type.
 ```
 
@@ -485,8 +485,8 @@ describes object properties. Common files include:
 
 **Example:**
 
-```text
-material:t = "ice"
+```blk
+material:t= "ice"
 ```
 
 This assigns the `ice` physmat to the render instance.
@@ -496,9 +496,9 @@ This assigns the `ice` physmat to the render instance.
 Physmats can also be assigned through the object's collision node by adding a
 script block:
 
-```text
+```blk
 script {
-  phmat:t = "ice"
+  phmat:t= "ice"
 }
 ```
 
@@ -512,8 +512,8 @@ Physmats can be assigned to spline classes in two ways:
 
 Add a `script` parameter to the spline material definition:
 
-```text
-script:t = "phmat=rocks~r~n"
+```blk
+script:t= "phmat=rocks~r~n"
 ```
 
 ```{note}
@@ -526,8 +526,8 @@ to the existing string.
 The more reliable method is to embed the physmat directly into the material name
 using the `@` syntax:
 
-```text
-matName:t = "town_pavement_asphalt_debris_a@ice"
+```blk
+matName:t= "town_pavement_asphalt_debris_a@ice"
 ```
 
 This binds the `ice` physmat to the spline material.
@@ -564,11 +564,11 @@ There are two main approaches for assigning physmats in landclass definitions:
 
 Physmats can be mapped to each color channel of the splatting mask:
 
-```text
-physMatRed:t   = "beton"
-physMatGreen:t = "beton"
-physMatBlue:t  = "beton"
-physMatBlack:t = "beton"
+```blk
+physMatRed:t= "beton"
+physMatGreen:t= "beton"
+physMatBlue:t= "beton"
+physMatBlack:t= "beton"
 ```
 
 ```{note}
@@ -581,9 +581,9 @@ its place.
 To apply a single physmat to the entire land class, use the `physMat` parameter
 at the **root level** of the `.blk` file:
 
-```text
-className:t = "landClass"
-physMat:t   = "beton"
+```blk
+className:t= "landClass"
+physMat:t= "beton"
 ```
 
 ```{note}
@@ -603,13 +603,13 @@ fallback.
 In biomes, landclass physmats can be assigned globally or overridden for
 specific detail indices:
 
-```text
-physMat:t = "roadSoil"   // Global physmat applied to all details by default.
+```blk
+physMat:t= "roadSoil"   // Global physmat applied to all details by default.
 
-physMatIndices {         // Overrides for specific detail indices.
-  detail { index:i = 4;  physMat:t = "roadSand" }
-  detail { index:i = 15; physMat:t = "rocks"     }
-  detail { index:i = 16; physMat:t = "beton"     }
+physMatIndices {        // Overrides for specific detail indices.
+  detail { index:i= 4;  physMat:t= "roadSand" }
+  detail { index:i= 15; physMat:t= "rocks"    }
+  detail { index:i= 16; physMat:t= "beton"    }
 }
 ```
 
@@ -821,8 +821,8 @@ interaction:
 
    Replace the existing physmat (e.g., `"wood"`) with:
 
-   ```text
-   phmat:t = "window_wood"
+   ```blk
+   phmat:t= "window_wood"
    ```
 
    in the collision node or object definition.
@@ -841,8 +841,8 @@ interaction:
 
    Add the following to the corresponding damage instance block `rendinst_dmg{}`:
 
-   ```text
-   material:t = "window_wood"
+   ```blk
+   material:t= "window_wood"
    ```
 
 4. **Rebuild resources**
@@ -851,12 +851,3 @@ interaction:
 
    - Rebuild [Vromfs](../../dagor-tools/building-resources/vromfs.md)
    - Rebuild **collision models** for the updated assets
-
-
-
-
-
-
-
-
-

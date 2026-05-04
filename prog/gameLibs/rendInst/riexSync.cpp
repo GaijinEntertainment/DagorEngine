@@ -50,19 +50,18 @@ static NetSyncData g_pool_sync;
 
 static void add_synced_ri_extra_pool_remap(int server_idx, int client_idx)
 {
-  server_idx -= g_pool_sync.syncedPoolsOffset;
-  client_idx -= g_pool_sync.syncedPoolsOffset;
-  G_ASSERT_RETURN(server_idx >= 0 && client_idx >= 0, );
-  if (g_pool_sync.serverToClientPoolRemap.size() <= server_idx)
-    g_pool_sync.serverToClientPoolRemap.resize(server_idx + 8, -1);
-  g_pool_sync.serverToClientPoolRemap[server_idx] = client_idx;
-  if (g_pool_sync.clientToServerPoolRemap.size() <= client_idx)
-    g_pool_sync.clientToServerPoolRemap.resize(client_idx + 8, -1);
-  g_pool_sync.clientToServerPoolRemap[client_idx] = server_idx;
+  const int serverRemapIdx = server_idx - g_pool_sync.syncedPoolsOffset;
+  const int clientRemapIdx = client_idx - g_pool_sync.syncedPoolsOffset;
+  G_ASSERT_RETURN(serverRemapIdx >= 0 && clientRemapIdx >= 0, );
+  if (g_pool_sync.serverToClientPoolRemap.size() <= serverRemapIdx)
+    g_pool_sync.serverToClientPoolRemap.resize(serverRemapIdx + 8, -1);
+  g_pool_sync.serverToClientPoolRemap[serverRemapIdx] = client_idx;
+  if (g_pool_sync.clientToServerPoolRemap.size() <= clientRemapIdx)
+    g_pool_sync.clientToServerPoolRemap.resize(clientRemapIdx + 8, -1);
+  g_pool_sync.clientToServerPoolRemap[clientRemapIdx] = server_idx;
   if (pool_mapping_change_callback)
     pool_mapping_change_callback();
-  VERBOSE_SYNC_POOL_DATA("    synced pool %i to server pool %i", client_idx + g_pool_sync.syncedPoolsOffset,
-    server_idx + g_pool_sync.syncedPoolsOffset);
+  VERBOSE_SYNC_POOL_DATA("    synced pool %i to server pool %i", client_idx, server_idx);
 }
 
 static void add_synced_ri_extra_pool_impl(int pool_idx, const char *name)

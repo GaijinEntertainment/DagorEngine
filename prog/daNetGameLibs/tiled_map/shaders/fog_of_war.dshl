@@ -1,0 +1,141 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+float4 fog_of_war_constraints;
+int fog_of_war_width;
+int fog_of_war_height;
+buffer fog_of_war_bitset;
+texture perlin_noise3d;
+
+float fog_of_war_df_perlin_uv_scale = 10.0;
+float fog_of_war_df_perlin_phase = 0.01197;
+float fog_of_war_df_perlin_amplitude = 0.3;
+
+float fog_of_war_cell_perlin_uv_scale = 50.0;
+float fog_of_war_cell_perlin_phase = 0.69519;
+float fog_of_war_cell_perlin_amplitude = 1.0;
+
+float fog_of_war_distance_field_reduce = 0.6;
+
+shader fog_of_war
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  hlsl{
+    #define USE_TEXCOORD tc
+  }
+  POSTFX_VS(0)
+  (ps) {
+    fog_of_war_df_perlin_uv_scale@f1 = fog_of_war_df_perlin_uv_scale;
+    fog_of_war_df_perlin_phase@f1 = fog_of_war_df_perlin_phase;
+    fog_of_war_df_perlin_amplitude@f1 = fog_of_war_df_perlin_amplitude;
+
+    fog_of_war_cell_perlin_uv_scale@f1 = fog_of_war_cell_perlin_uv_scale;
+    fog_of_war_cell_perlin_phase@f1 = fog_of_war_cell_perlin_phase;
+    fog_of_war_cell_perlin_amplitude@f1 = fog_of_war_cell_perlin_amplitude;
+
+    fog_of_war_distance_field_reduce@f1 = fog_of_war_distance_field_reduce;
+
+    perlin_noise3d@smp3d = perlin_noise3d;
+
+    fog_of_war_constraints@f4 = fog_of_war_constraints;
+    fog_of_war_size@i3 = (fog_of_war_width, fog_of_war_height, 1);
+    fog_of_war_bitset@buf = fog_of_war_bitset hlsl {
+      StructuredBuffer<uint> fog_of_war_bitset@buf;
+    }
+  }
+  hlsl(ps)
+  {
+    uint getCellFromCoords(int2 coord)
+    {
+      if (any(coord < 0) || any(coord >= fog_of_war_size.xy))
+        return 1;
+
+      int idx = dot(coord, int2(1, fog_of_war_size.x));// should be fog_of_war_size.zx, but compiler fails to init z to 1
+      int word = idx >> 5;
+      int bit = idx % 32;
+      return (structuredBufferAt(fog_of_war_bitset, word) >> bit) & 1;
+    }
+
+    float2 cellCoordFAt(float2 tc)
+    {
+      float2 tc_lt = fog_of_war_constraints.xy;
+      float2 tc_rb = fog_of_war_constraints.zw;
+
+      float2 size = tc_rb - tc_lt;
+
+      float2 viewportToBufferInvScale = size / fog_of_war_size.xy;
+      return (tc - tc_lt) / viewportToBufferInvScale;
+    }
+
+    bool hasFogInCell(int2 cell)
+    {
+      return getCellFromCoords(cell) == 1;
+    }
+
+    #define INF_DF 1000.0
+
+    float getCellDF(float2 current_pos, int2 cell)
+    {
+      bool hasFog = hasFogInCell(cell);
+      if (hasFog)
+        return INF_DF;
+
+      float2 cellCenter = cell + 0.5.xx;
+      float sdf = length(cellCenter - current_pos);
+
+      return sdf;
+    }
+
+    float fogAt(float2 tc)
+    {
+      float2 tc_lt = fog_of_war_constraints.xy;
+      float2 tc_rb = fog_of_war_constraints.zw;
+
+      float2 size = tc_rb - tc_lt;
+
+      if (tc.x < tc_lt.x || tc.x > tc_rb.x || tc.y < tc_lt.y || tc.y > tc_rb.y)
+        return 1.0;
+
+      float2 currentCellPos = cellCoordFAt(tc);
+
+      float2 noiseUV = currentCellPos / fog_of_war_size.xy;
+      float perlinDF = fog_of_war_df_perlin_amplitude
+        * tex3Dlod(perlin_noise3d, float4(noiseUV * fog_of_war_df_perlin_uv_scale, fog_of_war_df_perlin_phase, 0)).x;
+      float2 perlinCellPos = fog_of_war_cell_perlin_amplitude
+        * tex3Dlod(perlin_noise3d, float4(noiseUV * fog_of_war_cell_perlin_uv_scale, fog_of_war_cell_perlin_phase, 0)).xy;
+
+      currentCellPos += perlinCellPos;
+      int2 currentCell = int2(currentCellPos);
+
+      if (!hasFogInCell(currentCell))
+        return 0.0;
+
+      float df = INF_DF;
+      [unroll]
+      for (int x = -1; x <= 1; x++)
+      {
+        [unroll]
+        for (int y = -1; y <= 1; y++)
+        {
+          if (x == 0 && y == 0)
+            continue;
+
+          df = min(df, getCellDF(currentCellPos, currentCell + int2(x,y)));
+        }
+      }
+
+      return saturate(df - perlinDF - fog_of_war_distance_field_reduce);
+    }
+
+    float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float2 tc = input.tc;
+      float alpha = fogAt(tc);
+      return float(alpha);
+    }
+  }
+  compile("target_ps", "postfx_ps");
+}
+

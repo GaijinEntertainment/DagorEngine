@@ -4,7 +4,7 @@ from mathutils          import Matrix, Vector
 from ..face             import FaceExp
 from ..node             import NodeExp
 
-from ..helpers.popup    import show_popup
+from ..popup.popup_functions    import show_popup
 from ..helpers.texts    import log
 
 class DagChunk:

@@ -6,11 +6,15 @@ shader find_max_depth_2d
 {
   (cs) {
     proj_values@f4 = (proj_values);
+
+    shadow_map@tex : register(0) hlsl {
+      Texture2D<float> shadow_map@tex;
+    }
+    maximum@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> maximum@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
-    Texture2D<float> shadow_map : register( t0 );
-    RWStructuredBuffer<uint> maximum : register(u0);
     #include <find_max_depth_2d.hlsli>
     groupshared float max_in_group[FMD2D_WG_SIZE];
 

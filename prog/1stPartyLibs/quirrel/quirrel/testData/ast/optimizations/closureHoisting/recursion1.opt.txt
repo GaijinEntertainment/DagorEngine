@@ -1,11 +1,44 @@
-{
-  let $ch0 = FUNCTION qux(c, d) {
-    RETURN c(d)
-  }
-  let foo = FUNCTION foo(x, y) {
-    let bar = FUNCTION bar(a, b) {
-      let qux = $ch0
-      RETURN qux(bar, b)
-    }
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let', name = '$ch0', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'qux', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 2
+|     | |-Parameter #1 name = 'c', type = 'any'
+|     | `-Parameter #2 name = 'd', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             CallExpr
+|             |-Callee
+|             |   Id 'c'
+|             `-Arguments
+|                 Argument #1
+|                   Id 'd'
+`-VarDecl 'let', name = 'foo', type = 'any'
+    Initializer
+      FunctionExpr name = 'foo', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 2
+      | |-Parameter #1 name = 'x', type = 'any'
+      | `-Parameter #2 name = 'y', type = 'any'
+      `-Body
+          Block isRoot = 0, isBody = 1
+            VarDecl 'let', name = 'bar', type = 'any'
+              Initializer
+                FunctionExpr name = 'bar', pure = 0, nodiscard = 0, resultType = 'any'
+                |-Parameters count = 2
+                | |-Parameter #1 name = 'a', type = 'any'
+                | `-Parameter #2 name = 'b', type = 'any'
+                `-Body
+                    Block isRoot = 0, isBody = 1
+                    |-VarDecl 'let', name = 'qux', type = 'any'
+                    |   Initializer
+                    |     Id '$ch0'
+                    `-ReturnStatement
+                        CallExpr
+                        |-Callee
+                        |   Id 'qux'
+                        `-Arguments
+                          |-Argument #1
+                          |   Id 'bar'
+                          `-Argument #2
+                              Id 'b'

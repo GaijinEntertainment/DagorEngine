@@ -1,0 +1,1 @@
+Reader macro that converts ``%regex~`` literals into precompiled ``regex::Regex`` objects at compilation time. Optional flags can follow a second ``~``: ``%regex~pattern~i%%`` for case-insensitive, ``%regex~pattern~s%%`` for dot-all, ``%regex~pattern~is%%`` for both.

@@ -24,8 +24,10 @@ function dtext(val, params={}, addchildren = null) {
   if (type(val) == "string")  {
     txt = val
   }
+  local obsVal = null
   if (type(val) == "instance" && isObservable(val)) {
     txt = val.get()
+    obsVal = val
     watchedtext = true
   }
   let ret = {
@@ -34,7 +36,13 @@ function dtext(val, params={}, addchildren = null) {
     halign = ALIGN_LEFT
   }.__update(params, {text = txt})
   ret.__update({children=children})
-  if (watch || watchedtext)
+  if (watchedtext) {
+    let baseWatch = watch ? (type(watch) == "array" ? watch : [watch]) : []
+    return function() {
+      return ret.__merge({text = obsVal.get(), watch = [].extend(baseWatch, [obsVal])})
+    }
+  }
+  if (watch)
     return @() ret
   else
     return ret

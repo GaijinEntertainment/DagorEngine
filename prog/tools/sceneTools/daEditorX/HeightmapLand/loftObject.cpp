@@ -11,59 +11,6 @@
 
 using splineclass::Attr;
 
-static void recalcLoftLighting(StaticGeometryContainer &geom)
-{
-  ISceneLightService *ltService = DAGORED2->queryEditorInterface<ISceneLightService>();
-  if (!ltService)
-    return;
-
-  Color3 ltCol1, ltCol2, ambCol;
-  Point3 ltDir1, ltDir2;
-  Point3 normal;
-
-  ltService->getDirectLight(ltDir1, ltCol1, ltDir2, ltCol2, ambCol);
-
-  for (int ni = 0; ni < geom.nodes.size(); ++ni)
-  {
-    const StaticGeometryNode *node = geom.nodes[ni];
-
-    if (node && node->mesh)
-    {
-      Mesh &mesh = node->mesh->mesh;
-
-      if (!mesh.vertnorm.size())
-      {
-        mesh.calc_vertnorms();
-        mesh.calc_ngr();
-      }
-
-      mesh.cvert.resize(mesh.face.size() * 3);
-      mesh.cface.resize(mesh.face.size());
-
-      for (int f = 0; f < mesh.face.size(); ++f)
-      {
-        for (unsigned v = 0; v < 3; ++v)
-        {
-          normal = -mesh.vertnorm[mesh.facengr[f][v]];
-
-          const int vi = f * 3 + v;
-
-          Color3 resColor = ambCol;
-          real k = normal * ltDir1;
-          if (k > 0)
-            resColor += ltCol1 * k;
-          k = normal * ltDir2;
-          if (k > 0)
-            resColor += ltCol2 * k;
-
-          mesh.cvert[vi] = ::color4(resColor, 1);
-          mesh.cface[f].t[v] = vi;
-        }
-      }
-    }
-  }
-}
-
 void SplineObject::generateLoftSegments(int start_idx, int end_idx)
 {
   if (splineInactive)
@@ -77,8 +24,13 @@ void SplineObject::generateLoftSegments(int start_idx, int end_idx)
   for (int i = start_idx; i <= end_idx; i++)
     splineScales.push_back(points[i % points.size()]->getProps().attr);
 
+  if (gen->loftGeom)
+    HmapLandObjectEditor::geomBuildCntLoft++;
+
   gen->generateLoftSegments(getBezierSpline(), name, start_idx, end_idx, (props.modifType == MODIF_SPLINE), splineScales,
     props.scaleTcAlong);
+  if (gen->loftGeom)
+    HmapLandObjectEditor::geomBuildCntLoft++;
   updateLoftBox();
 }
 
@@ -122,8 +74,9 @@ void SplineObject::gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, Tab<Point3> &wa
   }
 
   landclass::PolyGeomGenData *genGeom = NULL;
-  if (poly && landClass && landClass->data)
-    genGeom = landClass->data->genGeom;
+  if (auto *lc = getLandClass())
+    if (lc->data)
+      genGeom = lc->data->genGeom;
 
   if (genGeom && genGeom->waterSurface && water_surf)
   {

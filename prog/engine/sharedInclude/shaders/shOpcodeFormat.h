@@ -60,6 +60,15 @@ __forceinline uint32_t makeOp3(uint8_t op, int p1, int p2, int p3)
   return op | (((uint32_t)p1) << 8) | (((uint32_t)p2) << 16) | (((uint32_t)p3) << 24);
 }
 
+__forceinline uint32_t makeOpFunctionCall(uint8_t op, uint32_t fid, uint32_t out_reg, uint32_t arg_count)
+{
+  G_ASSERTF(fid < (1 << 6), "fid = %d", fid);
+  G_ASSERTF(out_reg < (1 << 14), "out_reg = %d", out_reg);
+  G_ASSERTF(arg_count < (1 << 4), "arg_count = %d", arg_count);
+
+  return op | (fid << 8) | (out_reg << 14) | (arg_count << 28);
+}
+
 
 // replace (patch) 32-bit opcode parameters
 __forceinline uint32_t patchOp2p2(uint32_t opcode, int new_p2)
@@ -118,6 +127,9 @@ __forceinline uint32_t getOp3p2(uint32_t op) { return (op >> 16) & 0xFF; }
 __forceinline uint32_t getOp3p3(uint32_t op) { return (op >> 24) & 0xFF; }
 __forceinline uint32_t getOp2p1_8(uint32_t op) { return (op >> 8) & 0xFF; }
 __forceinline uint32_t getOp2p2_16(uint32_t op) { return (op >> 16) & 0xFFFF; }
+__forceinline uint32_t getOpFunctionCall_FuncId(uint32_t op) { return (op >> 8) & 0x3F; }
+__forceinline uint32_t getOpFunctionCall_OutReg(uint32_t op) { return (op >> 14) & 0x3FFF; }
+__forceinline uint32_t getOpFunctionCall_ArgCount(uint32_t op) { return (op >> 28) & 0xF; }
 
 struct TwoWords
 {

@@ -10,7 +10,7 @@
 
 #define GLOBAL_VARS_LIST VAR(paper_white_nits)
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -21,14 +21,10 @@ constexpr int DEF_PAPER_WHITE_NITS = 200;
 
 static bool int10_hdr_buffer() { return d3d::driver_command(Drv3dCommand::INT10_HDR_BUFFER); }
 
-static void update_paper_white_nits(uint32_t value) { ShaderGlobal::set_real(paper_white_nitsVarId, value); }
+static void update_paper_white_nits(uint32_t value) { ShaderGlobal::set_float(paper_white_nitsVarId, value); }
 
 HDRDecoder::HDRDecoder(const DataBlock &videoCfg)
 {
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_LIST
-#undef VAR
-
   uint32_t paper_white_nits = videoCfg.getInt("paperWhiteNits", DEF_PAPER_WHITE_NITS);
   if (paper_white_nits < MIN_PAPER_WHITE_NITS || paper_white_nits > MAX_PAPER_WHITE_NITS)
     paper_white_nits = DEF_PAPER_WHITE_NITS;
@@ -40,8 +36,8 @@ HDRDecoder::HDRDecoder(const DataBlock &videoCfg)
   int width, height;
   d3d::get_render_target_size(width, height, 0, 0);
   int fpFormat = int10_hdr_buffer() ? TEXFMT_A2B10G10R10 : TEXFMT_A16B16G16R16F;
-  copyTex = dag::create_tex(nullptr, width, height, fpFormat | TEXCF_RTARGET, 1, "hdr_tex");
-  sdrTex = dag::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "sdr_tex");
+  copyTex = dag::create_tex(nullptr, width, height, fpFormat | TEXCF_RTARGET, 1, "hdr_tex", RESTAG_HDR);
+  sdrTex = dag::create_tex(nullptr, width, height, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1, "sdr_tex", RESTAG_HDR);
 }
 
 char *HDRDecoder::LockResult(int &stride, int &w, int &h)

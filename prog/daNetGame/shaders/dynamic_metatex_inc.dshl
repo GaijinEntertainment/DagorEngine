@@ -5,7 +5,6 @@ include "animchar_dynmat_params.dshl"
 macro SET_DYNMAT_METATEX_PARAM_GETTERS()
   if (parameters_channel != from_asset)
   {
-    INIT_PER_INSTANCE_DATA(ps)
     USE_ANIMCHAR_DYNMAT_PARAMS(ps)
     hlsl(ps)
     {

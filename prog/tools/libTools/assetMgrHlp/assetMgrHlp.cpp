@@ -14,6 +14,30 @@ static inline const char *read_str(const DataBlock *b, const char *target_str, c
   return b->getStr(target_str, def);
 }
 
+static bool build_patch_dir(String &out_dir, const char *dir)
+{
+  if (!dir)
+    return false;
+
+  char buf[256] = {};
+  const char *res = strchr(&dir[1], '/');
+  if (res != nullptr)
+  {
+    int sz = res - dir;
+
+    if (sz > sizeof(buf) - 1)
+      return false;
+
+    strncpy(buf, dir, sz);
+    buf[sz] = '\0';
+    out_dir.printf(0, "%s/patch/%s", buf, res + 1);
+  }
+  else
+    out_dir.printf(0, "%s/patch/", dir);
+
+  return true;
+}
+
 bool assethlp::validate_exp_blk(bool has_pkgs, const DataBlock &expBlk, const char *target_str, const char *profile, ILogWriter &log)
 {
   const DataBlock *destBlk = expBlk.getBlockByNameEx("destination");
@@ -31,13 +55,17 @@ bool assethlp::validate_exp_blk(bool has_pkgs, const DataBlock &expBlk, const ch
 }
 
 void assethlp::build_package_dest_strings(String &out_dest_base, String &out_pack_fname_prefix, const DataBlock &expBlk,
-  const char *pkg_name, const char *app_dir, const char *target_str, const char *profile)
+  const char *pkg_name, const char *app_dir, const char *target_str, const char *profile, bool patch_build)
 {
   const DataBlock *destBlk = expBlk.getBlockByNameEx("destination");
+  String patch_dir;
   if (!pkg_name || strcmp(pkg_name, "*") == 0 || strcmp(pkg_name, ".") == 0)
   {
     const char *dest_dir = read_str(destBlk, target_str, profile, NULL);
-    out_dest_base.printf(260, "%s/%s/", app_dir, dest_dir);
+    if (patch_build && build_patch_dir(patch_dir, dest_dir))
+      out_dest_base.printf(260, "%s/%s/", app_dir, patch_dir.str());
+    else
+      out_dest_base.printf(260, "%s/%s/", app_dir, dest_dir);
     out_pack_fname_prefix = "";
   }
   else
@@ -49,8 +77,13 @@ void assethlp::build_package_dest_strings(String &out_dest_base, String &out_pac
     const char *add_packages_suffix = addBlk->getStr("suffix", "");
     const char *gluePackageStr = pkgBlk->getStr("gluePackage", addBlk->getStr("gluePackage", NULL));
 
-    out_dest_base.printf(128, "%s/%s%s/%s/%s", app_dir, add_packages_folder, pkgBlk->getStr("destSuffix", ""), pkg_name,
-      add_packages_suffix);
+    if (patch_build && build_patch_dir(patch_dir, add_packages_folder))
+      out_dest_base.printf(128, "%s/%s%s/%s/%s", app_dir, patch_dir.str(), pkgBlk->getStr("destSuffix", ""), pkg_name,
+        add_packages_suffix);
+    else
+      out_dest_base.printf(128, "%s/%s%s/%s/%s", app_dir, add_packages_folder, pkgBlk->getStr("destSuffix", ""), pkg_name,
+        add_packages_suffix);
+
     if (gluePackageStr && *gluePackageStr)
       out_pack_fname_prefix.printf(128, "%s%s", pkg_name, gluePackageStr);
     else
@@ -60,10 +93,10 @@ void assethlp::build_package_dest_strings(String &out_dest_base, String &out_pac
 }
 
 void assethlp::build_package_dest(String &out_dest_base, const DataBlock &expBlk, const char *pkg_name, const char *app_dir,
-  const char *target_str, const char *profile)
+  const char *target_str, const char *profile, bool patch_build)
 {
   String unused_prefix;
-  assethlp::build_package_dest_strings(out_dest_base, unused_prefix, expBlk, pkg_name, app_dir, target_str, profile);
+  assethlp::build_package_dest_strings(out_dest_base, unused_prefix, expBlk, pkg_name, app_dir, target_str, profile, patch_build);
 }
 
 void assethlp::build_package_pack_fname_prefix(String &out_pack_fname_prefix, const DataBlock &expBlk, const char *pkg_name,

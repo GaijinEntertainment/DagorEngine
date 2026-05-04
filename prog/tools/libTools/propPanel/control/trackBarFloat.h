@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <EASTL/optional.h>
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
@@ -35,18 +36,7 @@ public:
 
   float getFloatValue() const override { return spinEdit.getValue(); }
 
-  void setFloatValue(float value) override
-  {
-    const float step = spinEdit.getStepValue();
-    const float min = spinEdit.getMinValue();
-    const float max = spinEdit.getMaxValue();
-
-    value = clamp(value, min, max);
-    if (step != 0.0f)
-      value = min + (floorf(0.5f + ((value - min) / step)) * step);
-
-    spinEdit.setValue(value);
-  }
+  void setFloatValue(float value) override { spinEdit.setValue(value); }
 
   void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }
 
@@ -61,11 +51,29 @@ public:
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
+  bool isDefaultValueSet() const override { return defaultValue ? *defaultValue == getFloatValue() : true; }
+
+  void applyDefaultValue() override
+  {
+    if (isDefaultValueSet())
+    {
+      return;
+    }
+
+    if (defaultValue)
+    {
+      spinEdit.setValue(*defaultValue);
+      onWcChange(nullptr);
+    }
+  }
+
+  void setDefaultValue(Variant var) override { defaultValue = var.convert<float>(); }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     const float remainingWidthAfterTheLabel = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x;
     const float spinEditWidth = ImguiHelper::getDefaultRightSideEditWidth();
@@ -81,6 +89,14 @@ public:
 
       if (changed)
       {
+        const float step = spinEdit.getStepValue();
+        const float min = spinEdit.getMinValue();
+        const float max = spinEdit.getMaxValue();
+
+        value = clamp(value, min, max);
+        if (step != 0.0f)
+          value = min + (floorf(0.5f + ((value - min) / step)) * step);
+
         // This is here to add stepping. (ImGui currently does not support that. See: https://github.com/ocornut/imgui/issues/1183.)
         setFloatValue(value);
 
@@ -140,6 +156,7 @@ private:
   bool controlEnabled = true;
   const float controlPower;
   SpinEditControlStandalone spinEdit;
+  eastl::optional<float> defaultValue;
 };
 
 } // namespace PropPanel

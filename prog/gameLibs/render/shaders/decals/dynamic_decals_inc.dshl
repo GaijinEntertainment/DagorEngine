@@ -105,6 +105,7 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
     struct DynDecals
     {
       float3 modelPos;
+      float3 posNoise3d;
       float3 modelNormal;
       float2 modelUV;
       float2 dynrend_params_offset_count;
@@ -132,6 +133,9 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       float alphaOutGm;
 
       float cockpitFade;
+
+      float noiseScaleForBurn;
+      float noiseScaleForHoles;
     };
 
     float unpack_value(uint value, float precision, float minValue, float maxValue)
@@ -257,7 +261,7 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       float3 distVec;
     };
 
-    DynSphereResult prepare_dyn_spheres_ground_model(DynDecals decals, int count, int offset, int stride,
+    DynSphereResult prepare_dyn_spheres_ground_model(DynDecals decals, int count, int offset, int stride, float noise_scale,
       out float4 uv_rad, out float4 uv_norm)
     {
       DynSphereResult result = (DynSphereResult)0;
@@ -267,7 +271,7 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       {
         DynSphere sph;
         sph.sphere = GET_DYNREND_PARAM(offset + i * stride, decals.dynrend_params_offset_count);
-        float3 distVec = decals.modelPos.xyz - sph.sphere.xyz;
+        float3 distVec = decals.modelPos.xyz + decals.posNoise3d * noise_scale - sph.sphere.xyz;
         float dist = length(distVec) - sph.sphere.w;
         result.index = dist < result.dist ? i : result.index;
         result.distVec = dist < result.dist ? distVec : result.distVec;
@@ -281,12 +285,12 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       return result;
     }
 
-    bool set_dyn_layer_ground_model(inout DynDecals decals, float dist, float4 uv_rad, float4 uv_norm, bool clip, bool diff, bool rim)
+    bool set_dyn_layer_ground_model(inout DynDecals decals, float dist, float4 uv_rad, float4 uv_norm, bool clip, bool diff, bool rim, float noise_scale = 1.0f)
     {
       float uvOffset = uv_rad.z;
       float radius = abs(uv_rad.w);
       float noiseSample = h4tex2D(dyn_noise, uvOffset + dyn_decals_params.y * uv_rad.xy * radius).a;
-      float radiusNoise = uv_rad.w * (-0.5 + noiseSample) * dyn_decals_params.x;
+      float radiusNoise = noise_scale * uv_rad.w * (-0.5 + noiseSample) * dyn_decals_params.x;
       float distNoise = clamp(radiusNoise, -radius, radius);
       dist += distNoise;
       bool sel = dist < decals.dist;
@@ -328,7 +332,8 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       decals.rimDist = rim ? min(decals.rimDist, rimDist) : decals.rimDist;
     }
 
-    void init_dyn_decals(out DynDecals decals, float3 model_pos, float3 model_normal, float2 dynrend_params_offset_count)
+    void init_dyn_decals(out DynDecals decals, float3 model_pos, float3 model_normal, float2 dynrend_params_offset_count,
+      float3 noise_3d = 0.0f, float noise_scale_for_holes = 0.0f, float noise_scale_for_burn = 0.0f)
     {
       int offset = NUM_GENERIC_PER_INSTANCE_PARAMS;
 
@@ -337,6 +342,10 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
       decals.modelNormal = model_normal;
       decals.modelUV = box_projection(model_pos, model_normal);
       decals.dynrend_params_offset_count = dynrend_params_offset_count;
+
+      decals.posNoise3d = noise_3d;
+      decals.noiseScaleForBurn = noise_scale_for_burn;
+      decals.noiseScaleForHoles = noise_scale_for_holes;
 
       float4 hdr1 = GET_DYNREND_PARAM(offset, decals.dynrend_params_offset_count);
       offset += 1;
@@ -405,7 +414,7 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
     #if sphere_holes
     {
       float4 uv_rad, uv_norm;
-      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.sphereHolesCount, offset, 1, uv_rad, uv_norm);
+      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.sphereHolesCount, offset, 1, decals.noiseScaleForHoles, uv_rad, uv_norm);
 
       set_dyn_layer_ground_model(decals, dynSphere.dist, uv_rad, uv_norm, true, true, false);
     }
@@ -414,9 +423,9 @@ macro USE_DYNAMIC_DECALS(cutting_planes, capsule_holes, sphere_holes, burn_marks
     #if burn_marks
     {
       float4 uv_rad, uv_norm;
-      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.burnMarksCount, offset, 1, uv_rad, uv_norm);
+      DynSphereResult dynSphere = prepare_dyn_spheres_ground_model(decals, decals.burnMarksCount, offset, 1, decals.noiseScaleForBurn, uv_rad, uv_norm);
 
-      set_dyn_layer_ground_model(decals, dynSphere.dist, uv_rad, uv_norm, false, false, true);
+      set_dyn_layer_ground_model(decals, dynSphere.dist, uv_rad, uv_norm, false, false, true, 1.f - decals.noiseScaleForBurn);
     }
     #endif
       offset += decals.burnMarksCount * 1;

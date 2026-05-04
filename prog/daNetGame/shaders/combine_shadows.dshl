@@ -26,7 +26,6 @@ endmacro
 shader combine_shadows
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
-  ENABLE_ASSERT(ps)
 
   supports global_frame;
   no_ablend;

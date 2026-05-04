@@ -1,5 +1,15 @@
 include "static_shadow_stcode.dshl"
 
+sampler StaticShadowPointTexSampler
+{
+  mipmap_mode = point;
+  filter = point;
+};
+
+macro STATIC_SHADOW_INIT_AND_USE_POINT_SAMPLER(code)
+  (code) { static_shadow_tex_point_sampler@sampler = StaticShadowPointTexSampler; }
+endmacro
+
 macro STATIC_SHADOW_DEFINE_SAMPLER_TYPE(code)
   hlsl(code)
   {
@@ -12,12 +22,22 @@ macro STATIC_SHADOW_DEFINE_SAMPLER_TYPE(code)
       {
         return (half)shadow2DArray(tex, float4(uv, layer, z));
       }
+
+      float static_shadow_sample_src(float2 uv, STATIC_SHADOW_TEXTURE_REF tex, SamplerState tex_cmpSampler, float layer)
+      {
+        return tex.SampleLevel(tex_cmpSampler, float3(uv, layer), 0).x;
+      }
     ##else
       #define STATIC_SHADOW_TEXTURE_REF Texture2D<float4>
 
       half static_shadow_sample(float2 uv, float z, STATIC_SHADOW_TEXTURE_REF tex, STATIC_SHADOW_SAMPLER_STATE_REF tex_cmpSampler, float layer)
       {
         return half(shadow2D(tex, float3(uv, z)));
+      }
+
+      float static_shadow_sample_src(float2 uv, STATIC_SHADOW_TEXTURE_REF tex, SamplerState tex_cmpSampler, float layer)
+      {
+        return tex.SampleLevel(tex_cmpSampler, uv, 0).x;
       }
     ##endif
   }
@@ -44,6 +64,11 @@ macro INIT_STATIC_SHADOW_BLOCK_PS()
   INIT_STATIC_SHADOW_BASE_SECOND_CASCADE(ps)
 endmacro
 
+macro INIT_STATIC_SHADOW_BLOCK_VS()
+  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(vs)
+  INIT_STATIC_SHADOW_BASE_SECOND_CASCADE(vs)
+endmacro
+
 macro INIT_STATIC_SHADOW_VS()
   INIT_STATIC_SHADOW_BASE(vs)
 endmacro
@@ -56,27 +81,9 @@ macro INIT_STATIC_SHADOW()
   INIT_STATIC_SHADOW_PS()
 endmacro
 
-macro INIT_STATIC_SHADOW_VS_ONE_CASCADE()
-  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(vs)
-endmacro
-
-macro INIT_STATIC_SHADOW_VS_PS_ONE_CASCADE()
-  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(vs)
-  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(ps)
-endmacro
-
 macro USE_STATIC_SHADOW_BASE_NUM(code, num_cascades)
   STATIC_SHADOW_DEFINE_SAMPLER_TYPE(code)
   USE_STATIC_SHADOW_BASE_INT(code, num_cascades)
-
-  if (mobile_render == forward)
-  {
-    hlsl(code){
-      #ifndef FASTEST_STATIC_SHADOW_PCF
-      # define FASTEST_STATIC_SHADOW_PCF 1
-      #endif
-    }
-  }
 
   hlsl(code){
     #if HAS_STATIC_SHADOW
@@ -103,18 +110,23 @@ macro USE_STATIC_SHADOW_BASE(code)
   }
 endmacro
 
-macro USE_STATIC_SHADOW()
+macro USE_STATIC_SHADOW_STAGE(code)
   if (!hardware.fsh_5_0 && static_shadows_cascades == two)
   {
     dont_render;
   }
 
-  hlsl(ps) {
+  hlsl(code) {
     #define HAS_STATIC_SHADOW 1
   }
-  USE_STATIC_SHADOW_BASE(ps)
+  USE_STATIC_SHADOW_BASE(code)
 endmacro
 
+macro USE_STATIC_SHADOW()
+  USE_STATIC_SHADOW_STAGE(ps)
+endmacro
+
+// only use it for shaders that are guaranteed to be rendered close to the camera
 macro USE_STATIC_SHADOW_ONE_CASCADE(code)
   hlsl(code) { #define HAS_STATIC_SHADOW 1}
   USE_STATIC_SHADOW_BASE_NUM(code, 1)
@@ -122,14 +134,6 @@ endmacro
 
 macro USE_STATIC_SHADOW_VS()
   hlsl(vs) {
-    #define HAS_STATIC_SHADOW 1
-  }
-  USE_STATIC_SHADOW_BASE(vs)
-endmacro
-
-macro USE_STATIC_SHADOW_VS_ONE_CASCADE()
-  hlsl(vs) {
-    #define STATIC_SHADOW_USE_CASCADE_1 0
     #define HAS_STATIC_SHADOW 1
   }
   USE_STATIC_SHADOW_BASE(vs)

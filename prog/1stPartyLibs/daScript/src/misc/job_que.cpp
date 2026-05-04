@@ -128,7 +128,7 @@ namespace das {
             {
                 unique_lock<mutex> lock(mFifoMutex);
                 if ( mCond.wait_for(lock, chrono::milliseconds(mSleepMs), [&]() { return mFifo.size() != 0; }) ) {
-                    DAS_ASSERTF(mFifo.size() > 0, "There must be at least one job available");
+                    DAS_VERIFYF(mFifo.size() > 0, "There must be at least one job available");
                     job = das::move(mFifo.front().function);
                     mThreads[threadIndex].currentPriority = mFifo.front().priority;
                     mThreads[threadIndex].currentCategory = mFifo.front().category;
@@ -236,28 +236,30 @@ namespace das {
     }
 
     JobStatus::~JobStatus() {
-        DAS_ASSERT(mMagic==STATUS_MAGIC);
-        DAS_ASSERT(mRef==0);
+        DAS_VERIFY(mMagic==STATUS_MAGIC);
+        DAS_VERIFY(mRef==0);
         mMagic = 0;
     }
 
-    void JobStatus::Notify() {
+    bool JobStatus::Notify() {
         lock_guard<mutex> guard(mCompleteMutex);
-        DAS_ASSERTF(mRemaining != 0, "Nothing to notify!");
+        if ( mRemaining == 0 ) return false;
         --mRemaining;
         if ( mRemaining==0 ) {
             mCond.notify_all();
         }
+        return true;
     }
 
-    void JobStatus::NotifyAndRelease() {
+    bool JobStatus::NotifyAndRelease() {
         lock_guard<mutex> guard(mCompleteMutex);
         mRef--;
-        DAS_ASSERTF(mRemaining != 0, "Nothing to notify!");
+        if ( mRemaining == 0 ) return false;
         --mRemaining;
         if ( mRemaining==0 ) {
             mCond.notify_all();
         }
+        return true;
     }
 
     void JobStatus::Wait() {
@@ -336,7 +338,7 @@ namespace das {
         case JobPriority::Medium:   winPriority = THREAD_PRIORITY_NORMAL; break;
         case JobPriority::High:     winPriority = THREAD_PRIORITY_ABOVE_NORMAL; break;
         case JobPriority::Maximum:  winPriority = THREAD_PRIORITY_HIGHEST; break;
-        default:					DAS_ASSERTF(0, "Windows takes prefixed priority values"); break;
+        default:                    DAS_VERIFYF(0, "Windows takes prefixed priority values"); break;
         }
         SetThreadPriority(GetCurrentThread(), winPriority);
     }

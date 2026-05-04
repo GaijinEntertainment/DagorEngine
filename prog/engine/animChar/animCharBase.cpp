@@ -18,8 +18,8 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_roDataBlock.h>
-#include "animBranches.h"
-#include "animPdlMgr.h"
+#include <anim/dag_animPureInterface.h>
+#include <animChar/dag_animCharacter2.h>
 
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
@@ -56,10 +56,7 @@ bool (*trace_static_multiray)(dag::Span<AnimCharV20::LegsIkRay> traces, bool dow
 AnimcharBaseComponent::AnimcharBaseComponent() :
   animGraph(NULL),
   animMap(midmem),
-  animState(NULL),
-  stateDirector(NULL),
   originalNodeTree(NULL),
-  stateDirectorEnabled(true),
   animValid(false),
   forceAnimUpdate(false),
   magic(MAGIC_VALUE),
@@ -68,11 +65,10 @@ AnimcharBaseComponent::AnimcharBaseComponent() :
   centerNodeBsphRad(0),
   centerNodeIdx(0),
   fastPhysSystem(NULL),
-  physSys(NULL),
   totalDeltaTime(0),
   postCtrl(NULL),
   motionMatchingController(nullptr),
-  animDbgCtx(NULL)
+  animcharDebugContext(NULL)
 {
   node0.pOfs = v_zero();
   node0.pScale_id = V_C_ONE;
@@ -84,30 +80,20 @@ AnimcharBaseComponent::AnimcharBaseComponent() :
 
 AnimcharBaseComponent::~AnimcharBaseComponent()
 {
-  if (animGraph && animState)
-    animGraph->resetBlendNodes(*animState);
-
   for (int i = 0; i < attachment.size(); i++)
     releaseAttachment(i);
   clear_and_shrink(attachment);
   clear_and_shrink(attachmentSlotId);
 
-  destroyDebugBlenderContext();
+  destroyDumpBlenderDataContext();
   del_it(fastPhysSystem);
   setOriginalNodeTreeRes(NULL);
-  postCtrl = NULL;
-  motionMatchingController = nullptr;
 
-  destroyGraph(stateDirector);
+  if (animcharDebugContext)
+    del_it(animcharDebugContext);
 
-  if (animState)
-  {
-    delete animState;
-    animState = NULL;
-  }
-  animGraph = NULL;
-  centerNodeBsphRad = 0;
-  centerNodeIdx = dag::Index16(0);
+  if (physObjData)
+    release_game_resource_ex(physObjData, PhysObjGameResClassId);
 }
 
 void AnimcharBaseComponent::setFastPhysSystem(FastPhysSystem *system)
@@ -283,6 +269,8 @@ void AnimcharBaseComponent::resetFastPhysWtmOfs(const vec3f wofs)
     fastPhysSystem->reset(wofs);
 }
 
+PhysicsResource *AnimcharBaseComponent::getPhysicsResource() const { return physObjData ? physObjData->physRes.get() : nullptr; }
+
 void AnimcharBaseComponent::recalcWtm()
 {
   if (!nodeTree.isWtmValid(false))
@@ -341,12 +329,7 @@ void AnimcharBaseComponent::act(real dt, bool calc_anim)
 #endif
 
   AnimcharIrqHandler ih{&irq, this};
-  if (stateDirector)
-    stateDirector->setIrqHandler(&ih);
-
   animState->advance(dt);
-  if (stateDirector && stateDirectorEnabled)
-    stateDirector->advance();
   animValid = false;
 
   if (originLinVelStorage || originAngVelStorage)
@@ -356,12 +339,6 @@ void AnimcharBaseComponent::act(real dt, bool calc_anim)
     if (originLinVelStorage && !nodeTree.empty())
     {
       vec3f v = tls.originLinVel;
-      if (stateDirector && stateDirectorEnabled)
-      {
-        Point3_vec4 add_vel;
-        stateDirector->getAddOriginVel(add_vel);
-        v = v_add(v, v_ld(&add_vel.x));
-      }
       v_stu_p3(&originLinVelStorage->x, v_mat44_mul_vec3v(nodeTree.getRootTm(), v));
     }
     if (originAngVelStorage)
@@ -374,8 +351,6 @@ void AnimcharBaseComponent::act(real dt, bool calc_anim)
     }
   }
   calcAnimWtm(forceAnimUpdate || calc_anim);
-  if (stateDirector)
-    stateDirector->setIrqHandler(nullptr);
 #if MEASURE_PERF
   perf_tm.pause();
   perf_cnt++;
@@ -400,33 +375,6 @@ void AnimcharBaseComponent::act(real dt, bool calc_anim)
 #endif
 }
 
-bool AnimcharBaseComponent::loadAnimGraphCpp(const char *res_name)
-{
-  if (!animState)
-    setupAnim();
-
-  stateDirector = makeGraphFromRes(res_name);
-  if (!stateDirector)
-  {
-    DAG_FATAL("can't create state director from graph <%s>", res_name);
-    RETURN_X_AFTER_FATAL(false);
-  }
-
-  if (!stateDirector->init(animGraph, animState))
-  {
-    destroyGraph(stateDirector);
-    DAG_FATAL("can't init state director from graph <%s>", res_name);
-    RETURN_X_AFTER_FATAL(false);
-  }
-
-  if (animState)
-  {
-    animState->reset();
-    animGraph->resetBlendNodes(*animState);
-  }
-  resetAnim();
-  return true;
-}
 
 void AnimcharBaseComponent::resetAnim()
 {
@@ -434,10 +382,8 @@ void AnimcharBaseComponent::resetAnim()
   if (animState)
   {
     animState->reset();
-    animGraph->resetBlendNodes(*animState);
+    animGraph->resetBlendNodesState(*animState);
     animGraph->postBlendInit(*animState, nodeTree);
-    if (stateDirector)
-      stateDirector->reset(true);
     // DEBUG_CTX("animState.size=%d", animState->getSize());
   }
   if (originalNodeTree && nodeTree.nodeCount() > 1)
@@ -447,37 +393,20 @@ void AnimcharBaseComponent::resetAnim()
   }
 }
 
-bool AnimcharBaseComponent::load(const AnimCharCreationProps &props, int skeletonId, int acId, int physId)
+bool AnimcharBaseComponent::load(const AnimCharCreationProps &props, GeomNodeTree *skeleton, const AnimGraphResData *agRes,
+  const DynamicPhysObjectData *physRes)
 {
-  GeomNodeTree *skeleton = (GeomNodeTree *)::get_game_resource(skeletonId);
   if (!skeleton)
     return false;
-  AnimCharData *ac = (acId >= 0) ? (AnimCharData *)::get_game_resource(acId) : NULL;
-  if (acId >= 0 && !ac)
+  loadData(props, skeleton, agRes ? agRes->graph.get() : nullptr);
+
+  if (auto poData = (DynamicPhysObjectData *)physRes; poData && poData->physRes)
   {
-    ::release_game_resource(skeletonId);
-    return false;
+    physObjData = poData;
+    game_resource_add_ref_ex(physObjData, PhysObjGameResClassId);
   }
 
-  AnimationGraph *ag = ac ? ac->graph.get() : nullptr;
-  loadData(props, skeleton, ag);
-
-  if (ac && ac->agResName && ac->agResName[0])
-    loadAnimGraphCpp(ac->agResName);
-
-  if (physId >= 0)
-  {
-    DynamicPhysObjectData *poData = (DynamicPhysObjectData *)::get_game_resource(physId);
-    setPhysicsResource(poData ? poData->physRes : NULL);
-    ::release_game_resource(physId);
-  }
-
-  ::release_game_resource(skeletonId);
-  if (acId >= 0)
-    ::release_game_resource(acId);
-
-  centerNodeIdx =
-    (!props.centerNode || strcmp(props.centerNode, "@root") == 0) ? dag::Index16(0) : nodeTree.findNodeIndex(props.centerNode);
+  centerNodeIdx = props.centerNode.empty() ? dag::Index16(0) : nodeTree.findNodeIndex(props.centerNode.c_str());
   if (!centerNodeIdx)
   {
     logwarn("center node \"%s\" not found, Root is used instead (animchar: %s)", props.centerNode, creationInfo.resName);
@@ -508,8 +437,8 @@ void AnimcharBaseComponent::loadData(const AnimCharCreationProps &props, GeomNod
     p = (float *)&node0.sScale;
     p[0] = p[1] = p[2] = p[3] = props.sScale;
 
-    node0.setChanNodeId(ag->getNodeId(props.rootNode));
-    charDepNodeId = nodeTree.findNodeIndex(props.rootNode);
+    node0.setChanNodeId(ag->getNodeId(props.rootNode.c_str()));
+    charDepNodeId = nodeTree.findNodeIndex(props.rootNode.c_str());
     charDepBasePYofs = props.pyOfs;
   }
 
@@ -582,12 +511,18 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
 {
   TIME_PROFILE_DEV(animchar_clone);
 
+  // Reset animState pointer before animGraph. animState references graph so if the char we are cloning in to was
+  // the last char using this graph, we need to reset it's state before reseting the graph.
+  as->animState.reset(NULL);
+
   as->animGraph = animGraph;
   as->nodeTree = nodeTree;
   as->node0 = node0;
   as->charDepNodeId = charDepNodeId;
   as->charDepBasePYofs = charDepBasePYofs;
-  as->physSys = physSys;
+  as->physObjData = physObjData;
+  if (physObjData)
+    game_resource_add_ref_ex(physObjData, PhysObjGameResClassId);
 
   if (originalNodeTree)
     as->setOriginalNodeTreeRes(originalNodeTree);
@@ -596,12 +531,7 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
   {
     as->animMap = animMap;
     as->animMapPRS = animMapPRS;
-    as->animState = new AnimCommonStateHolder(*animState);
-
-    as->stateDirector = cloneGraph(stateDirector, as->animState);
-    as->stateDirectorEnabled = stateDirectorEnabled;
-    if (as->stateDirector)
-      as->stateDirector->reset(true);
+    as->animState.reset(new AnimCommonStateHolder(*animState));
   }
   as->creationInfo = creationInfo;
   as->centerNodeBsphRad = centerNodeBsphRad;
@@ -623,16 +553,16 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
     as->resetAnim();
 }
 
-int AnimcharBaseComponent::setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent *attChar, bool recalcable)
+int AnimcharBaseComponent::setAttachedChar(int slot_id, attachment_uid_t uid, AnimcharBaseComponent &attChar, bool recalcable)
 {
   int idx = slot_id >= 0 ? find_value_idx(attachmentSlotId, slot_id) : -1;
   if (idx < 0)
     return idx;
   releaseAttachment(idx);
-  attachment[idx].animChar = attChar;
+  attachment[idx].animChar = &attChar;
   attachment[idx].uid = uid;
   attachment[idx].recalcable = recalcable;
-  if (attChar && recalcable && idx < sizeof(recalcableAttachments) * CHAR_BIT)
+  if (recalcable && idx < sizeof(recalcableAttachments) * CHAR_BIT)
     recalcableAttachments |= decltype(recalcableAttachments)(1) << idx;
   return idx;
 }
@@ -734,32 +664,37 @@ void AnimcharBaseComponent::setupAnim()
   animMap.shrink_to_fit();
   animMapPRS.shrink_to_fit();
 
-  animState = new AnimCommonStateHolder(*animGraph);
+  animState.reset(new AnimCommonStateHolder(*animGraph));
   // DEBUG_CTX("setup animGraph: %d/%d nodes", animMap.size(), nmb.totalNodes);
 }
 
-void AnimcharBaseComponent::createDebugBlenderContext(bool dump_all_nodes)
+void AnimcharBaseComponent::createDumpBlenderDataContext(bool dump_all_nodes)
 {
-  destroyDebugBlenderContext();
-  animDbgCtx = animGraph ? animGraph->createDebugBlenderContext(&nodeTree, dump_all_nodes) : NULL;
+  AnimcharDebugContext *debugContext = createOrReturnExistingDebugContext();
+  destroyDumpBlenderDataContext();
+  debugContext->dumpBlenderDataContext = animGraph ? animGraph->createDumpBlenderDataContext(&nodeTree, dump_all_nodes) : NULL;
 }
-void AnimcharBaseComponent::destroyDebugBlenderContext()
+void AnimcharBaseComponent::destroyDumpBlenderDataContext()
 {
-  if (animDbgCtx)
-    animGraph->destroyDebugBlenderContext(animDbgCtx);
-  animDbgCtx = NULL;
+  if (!animcharDebugContext)
+    return;
+  if (animcharDebugContext->dumpBlenderDataContext)
+    animGraph->destroyDumpBlenderDataContext(animcharDebugContext->dumpBlenderDataContext);
+  animcharDebugContext->dumpBlenderDataContext = NULL;
 }
 const DataBlock *AnimcharBaseComponent::getDebugBlenderState(bool dump_tm)
 {
-  if (animGraph && !animDbgCtx)
-    createDebugBlenderContext(false);
-  return animGraph ? animGraph->getDebugBlenderState(animDbgCtx, *animState, dump_tm) : NULL;
+  AnimcharDebugContext *debugContext = createOrReturnExistingDebugContext();
+  if (animGraph && !debugContext->dumpBlenderDataContext)
+    createDumpBlenderDataContext(false);
+  return animGraph ? animGraph->getDebugBlenderState(debugContext->dumpBlenderDataContext, *animState, dump_tm) : NULL;
 }
 const DataBlock *AnimcharBaseComponent::getDebugNodemasks()
 {
-  if (animGraph && !animDbgCtx)
-    createDebugBlenderContext(false);
-  return animGraph ? animGraph->getDebugNodemasks(animDbgCtx) : NULL;
+  AnimcharDebugContext *debugContext = createOrReturnExistingDebugContext();
+  if (animGraph && !debugContext->dumpBlenderDataContext)
+    createDumpBlenderDataContext(false);
+  return animGraph ? animGraph->getDebugNodemasks(debugContext->dumpBlenderDataContext) : NULL;
 }
 
 void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
@@ -872,9 +807,9 @@ void AnimcharBaseComponent::recalcAttachments()
 void AnimcharBaseComponent::setOriginalNodeTreeRes(GeomNodeTree *n)
 {
   if (n)
-    ::game_resource_add_ref((GameResource *)n);
+    ::game_resource_add_ref_ex(n, GeomNodeTreeGameResClassId);
   if (originalNodeTree)
-    ::release_game_resource((GameResource *)originalNodeTree);
+    ::release_game_resource_ex(originalNodeTree, GeomNodeTreeGameResClassId);
   originalNodeTree = n;
 }
 
@@ -886,9 +821,8 @@ intptr_t AnimcharBaseComponent::irq(int type, intptr_t p1, intptr_t p2, intptr_t
   // get_time_msec()/1000.0);
   if (type >= GIRQT_FIRST_SERVICE_IRQ)
   {
-    // route service irqs to states director
-    if (ac->stateDirector && ac->stateDirectorEnabled)
-      ac->stateDirector->atIrq(type, (IAnimBlendNode *)p1);
+    if (ac->animGraph && ac->animState)
+      ac->animGraph->atIrq(type, (IAnimBlendNode *)p1, *ac->animState);
   }
   else if (type == GIRQT_TraceFootStepMultiRay)
   {

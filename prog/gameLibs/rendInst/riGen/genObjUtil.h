@@ -2,6 +2,7 @@
 #pragma once
 
 #include <rendInst/rendInstGen.h>
+#include <rendInst/riexHandle.h>
 #include <rendInst/rotation_palette_consts.hlsli>
 #include <gameMath/objgenPrng.h>
 #include "riGenExtra.h"
@@ -293,6 +294,7 @@ struct SingleEntityPool
   void *topPtr;
   int avail;
   int shortage;
+  int per_inst_data_dwords;
 
   static float ox, oy, oz, cell_xz_sz, cell_y_sz;
   static bbox3f bbox;
@@ -300,7 +302,8 @@ struct SingleEntityPool
   static dag::ConstSpan<const TMatrix *> sweep_boxes_itm;
   static dag::ConstSpan<E3DCOLOR> ri_col_pair;
   static int cur_cell_id, cur_ri_extra_ord;
-  static int per_inst_data_dwords;
+  static int ri_extra_counter;
+  static bool persistent_ri_extra_instances;
 
   static bool intersectWithSweepBoxes(float x, float z)
   {
@@ -367,14 +370,33 @@ struct SingleEntityPool
     }
     else if (avail < 0)
     {
-      if (!posInst && per_inst_data_dwords > 0)
+      int riex_idx = -avail - 1;
+      constexpr bool hasColl = true;
+      if (!persistent_ri_extra_instances)
+      {
+        rendinst::riex_handle_t *ptr = reinterpret_cast<rendinst::riex_handle_t *>(basePtr);
+        if (!ptr)
+        {
+          ri_extra_counter++; // skip creating in precomputeCell() phase, just count them
+          return;
+        }
+        G_FAST_ASSERT(ptr + ri_extra_counter < reinterpret_cast<rendinst::riex_handle_t *>(topPtr));
+        if (!posInst && per_inst_data_dwords > 0)
+        {
+          int instSeed = mem_hash_fnv1((const char *)&tm[3][0], 12);
+          ptr[ri_extra_counter++] = rendinst::addRIGenExtra44(riex_idx, m, hasColl, cur_cell_id, cur_ri_extra_ord, 1, &instSeed);
+        }
+        else
+          ptr[ri_extra_counter++] = rendinst::addRIGenExtra44(riex_idx, m, hasColl, cur_cell_id, cur_ri_extra_ord);
+      }
+      else if (!posInst && per_inst_data_dwords > 0)
       {
         int instSeed = mem_hash_fnv1((const char *)&tm[3][0], 12);
-        rendinst::addRIGenExtra44(-avail - 1, m, true /*has_collision*/, cur_cell_id, cur_ri_extra_ord, 1, &instSeed);
+        rendinst::addRIGenExtra44(riex_idx, m, hasColl, cur_cell_id, cur_ri_extra_ord, 1, &instSeed);
       }
       else
-        rendinst::addRIGenExtra44(-avail - 1, m, true /*has_collision*/, cur_cell_id, cur_ri_extra_ord);
-      cur_ri_extra_ord += 16 * (rendinst::riExtra[-avail - 1].destrDepth + 1);
+        rendinst::addRIGenExtra44(riex_idx, m, hasColl, cur_cell_id, cur_ri_extra_ord);
+      cur_ri_extra_ord += 16 * (rendinst::riExtra[riex_idx].destrDepth + 1);
     }
   }
 };

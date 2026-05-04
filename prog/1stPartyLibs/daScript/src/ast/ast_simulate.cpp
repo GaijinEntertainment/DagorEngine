@@ -437,7 +437,7 @@ namespace das
             }
         } else {
 #if DAS_DEBUGGER
-            if ( context.thisProgram->getDebugger() ) {
+            if ( context.debugger ) {
                 auto sbody = body->simulate(context);
                 if ( !sbody->rtti_node_isBlock() ) {
                     auto block = context.code->makeNode<SimNodeDebug_BlockNF>(sbody->debugInfo);
@@ -516,7 +516,9 @@ namespace das
             int bytes = stride;
             SimNode * init0;
             if ( useCMRES ) {
-                if ( bytes <= 32 ) {
+                if ( bytes==0 ) {
+                    init0 = nullptr;
+                } else if ( bytes <= 32 ) {
                     init0 = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(bytes, at,extraOffset);
                 } else {
                     init0 = context.code->makeNode<SimNode_InitLocalCMRes>(at,extraOffset,bytes);
@@ -526,7 +528,7 @@ namespace das
             } else {
                 init0 = context.code->makeNode<SimNode_InitLocal>(at,stackTop + extraOffset,bytes);
             }
-            simlist.push_back(init0);
+            if (init0) simlist.push_back(init0);
         }
         // now fields
         for ( const auto & decl : variants ) {
@@ -640,7 +642,9 @@ namespace das
             int bytes = das::max(total,1) * stride;
             SimNode * init0;
             if ( useCMRES ) {
-                if ( bytes <= 32 ) {
+                if ( bytes==0 ) {
+                    init0 = nullptr;
+                } else if ( bytes <= 32 ) {
                     init0 = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(bytes, at,extraOffset);
                 } else {
                     init0 = context.code->makeNode<SimNode_InitLocalCMRes>(at,extraOffset,bytes);
@@ -650,7 +654,7 @@ namespace das
             } else {
                 init0 = context.code->makeNode<SimNode_InitLocal>(at,stackTop + extraOffset,bytes);
             }
-            simlist.push_back(init0);
+            if (init0) simlist.push_back(init0);
         }
         if ( makeType->baseType == Type::tStructure ) {
             for ( int index=0; index != total; ++index ) {
@@ -862,7 +866,9 @@ namespace das
             int bytes = total * stride;
             SimNode * init0;
             if ( useCMRES ) {
-                if ( bytes <= 32 ) {
+                if ( bytes==0 ) {
+                    init0 = nullptr;
+                } else if ( bytes <= 32 ) {
                     init0 = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(bytes, at,extraOffset);
                 } else {
                     init0 = context.code->makeNode<SimNode_InitLocalCMRes>(at,extraOffset,bytes);
@@ -872,7 +878,7 @@ namespace das
             } else {
                 init0 = context.code->makeNode<SimNode_InitLocal>(at,stackTop + extraOffset,stride * total);
             }
-            simlist.push_back(init0);
+            if (init0) simlist.push_back(init0);
         }
         for ( int index=0; index != total; ++index ) {
             auto & val = values[index];
@@ -959,7 +965,9 @@ namespace das
             uint32_t sizeOf = makeType->getSizeOf();
             SimNode * init0;
             if ( useCMRES ) {
-                if ( sizeOf <= 32 ) {
+                if ( sizeOf==0 ) {
+                    init0 = nullptr;
+                } else if ( sizeOf <= 32 ) {
                     init0 = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(sizeOf, at,extraOffset);
                 } else {
                     init0 = context.code->makeNode<SimNode_InitLocalCMRes>(at,extraOffset,sizeOf);
@@ -969,7 +977,7 @@ namespace das
             } else {
                 init0 = context.code->makeNode<SimNode_InitLocal>(at,stackTop + extraOffset,sizeOf);
             }
-            simlist.push_back(init0);
+            if (init0) simlist.push_back(init0);
         }
         for ( int index=0; index != total; ++index ) {
             auto & val = values[index];
@@ -1223,7 +1231,7 @@ namespace das
         auto blk = static_pointer_cast<ExprBlock>(block);
         uint32_t argSp = blk->stackTop;
         auto info = context.thisHelper->makeInvokeableTypeDebugInfo(blk->makeBlockType(),blk->at);
-        if ( context.thisProgram->getDebugger() || context.thisProgram->options.getBoolOption("gc",false) ) {
+        if ( context.gcEnabled || context.debugger  ) {
             context.thisHelper->appendLocalVariables(info, (Expression *)this);
         }
         return context.code->makeNode<SimNode_MakeBlock>(at,block->simulate(context),argSp,stackTop,info);
@@ -1242,13 +1250,13 @@ namespace das
             bool foundOffset = false;
             if ( arguments[0]->rtti_isField() ) {
                 auto field = static_pointer_cast<ExprField>(arguments[0]);
-                methodOffset = field->field->offset;
+                methodOffset = field->fieldRef->offset;
                 foundOffset = true;
             } else if ( arguments[0]->rtti_isR2V() ) {
                 auto eR2V = static_pointer_cast<ExprRef2Value>(arguments[0]);
                 if ( eR2V->subexpr->rtti_isField() ) {
                     auto field = static_pointer_cast<ExprField>(eR2V->subexpr);
-                    methodOffset = field->field->offset;
+                    methodOffset = field->fieldRef->offset;
                     foundOffset = true;
                 }
             }
@@ -1668,11 +1676,15 @@ namespace das
                 }
             } else {
                 switch ( type->baseType ) {
-                    case tInt:      return context.code->makeNode<SimNode_AtVector<int32_t>>(at, prv, pidx, range, errorMessage);
+                    case tInt:      return (SimNode *) context.code->makeNode<SimNode_AtVector<int32_t>>(at, prv, pidx, range, errorMessage);
+                    case tInt64:    return (SimNode *) context.code->makeNode<SimNode_AtVector<int64_t>>(at, prv, pidx, range, errorMessage);
                     case tUInt:
                     case tBitfield:
-                                    return context.code->makeNode<SimNode_AtVector<uint32_t>>(at, prv, pidx, range, errorMessage);
-                    case tFloat:    return context.code->makeNode<SimNode_AtVector<float>>(at, prv, pidx, range, errorMessage);
+                                    return (SimNode *) context.code->makeNode<SimNode_AtVector<uint32_t>>(at, prv, pidx, range, errorMessage);
+                    case tUInt64:
+                    case tBitfield64:
+                                    return (SimNode *) context.code->makeNode<SimNode_AtVector<uint64_t>>(at, prv, pidx, range, errorMessage);
+                    case tFloat:    return (SimNode *) context.code->makeNode<SimNode_AtVector<float>>(at, prv, pidx, range, errorMessage);
                     default:
                         DAS_ASSERTF(0, "we should not even be here. infer type should have failed on unsupported_vector[blah]");
                         context.thisProgram->error("internal compilation error, generating vector at for unsupported vector type.", "", "", at);
@@ -1741,10 +1753,22 @@ namespace das
                 auto prv = subexpr->simulate(context);
                 auto pidx = index->simulate(context);
                 uint32_t range = seT->getVectorDim();
-                uint32_t stride = type->getSizeOf();
+                uint32_t stride = type->firstType->getSizeOf();
                 return context.code->makeNode<SimNode_SafeAt>(at, prv, pidx, stride, 0, range);
             } else {
-                DAS_VERIFY(0 && "TODO: safe-at not implemented");
+                // pointer safe-at: null check + pointer arithmetic, no bounds check
+                uint32_t stride = seT->getSizeOf();
+                auto prv = subexpr->simulate(context);
+                auto pidx = index->simulate(context);
+                switch ( index->type->baseType ) {
+                case Type::tInt:    return context.code->makeNode<SimNode_PtrSafeAt<int32_t>>(at, prv, pidx, stride, 0);
+                case Type::tUInt:   return context.code->makeNode<SimNode_PtrSafeAt<uint32_t>>(at, prv, pidx, stride, 0);
+                case Type::tInt64:  return context.code->makeNode<SimNode_PtrSafeAt<int64_t>>(at, prv, pidx, stride, 0);
+                case Type::tUInt64: return context.code->makeNode<SimNode_PtrSafeAt<uint64_t>>(at, prv, pidx, stride, 0);
+                default:
+                    DAS_VERIFY(0 && "unsupported index type for pointer safe-at");
+                    return nullptr;
+                }
             }
         } else {
             const auto & seT = subexpr->type;
@@ -1776,7 +1800,7 @@ namespace das
                 auto prv = subexpr->simulate(context);
                 auto pidx = index->simulate(context);
                 uint32_t range = seT->getVectorDim();
-                uint32_t stride = type->getSizeOf();
+                uint32_t stride = getTypeBaseSize(seT->getVectorBaseType());
                 return context.code->makeNode<SimNode_SafeAt>(at, prv, pidx, stride, 0, range);
             } else {
                 DAS_VERIFY(0 && "TODO: safe-at not implemented");
@@ -1865,13 +1889,13 @@ namespace das
             }
         }
         // TODO: what if list size is 0?
-        if ( simlist.size()!=1 || isClosure || finalList.size() ) {
+        if ( simlist.size()!=1 || isClosure || finalList.size() || (maxLabelIndex!=-1) ) {
             SimNode_Block * block;
             if ( isClosure ) {
                 bool needResult = type!=nullptr && type->baseType!=Type::tVoid;
                 bool C0 = !needResult && simlist.size()==1 && finalList.size()==0;
 #if DAS_DEBUGGER
-                if ( context.thisProgram->getDebugger() ) {
+                if ( context.debugger ) {
                     block = context.code->makeNode<SimNodeDebug_ClosureBlock>(at, needResult, C0, annotationData);
                 } else
 #endif
@@ -1881,7 +1905,7 @@ namespace das
             } else {
                 if ( maxLabelIndex!=-1 ) {
 #if DAS_DEBUGGER
-                    if ( context.thisProgram->getDebugger() ) {
+                    if ( context.debugger ) {
                         block = context.code->makeNode<SimNodeDebug_BlockWithLabels>(at);
                     } else
 #endif
@@ -1892,7 +1916,7 @@ namespace das
                 } else {
                     if ( finalList.size()==0 ) {
 #if DAS_DEBUGGER
-                        if ( context.thisProgram->getDebugger() ) {
+                        if ( context.debugger ) {
                             block = context.code->makeNode<SimNodeDebug_BlockNF>(at);
                         } else
 #endif
@@ -1902,7 +1926,7 @@ namespace das
                         }
                     } else {
 #if DAS_DEBUGGER
-                        if ( context.thisProgram->getDebugger() ) {
+                        if ( context.debugger ) {
                             block = context.code->makeNode<SimNodeDebug_Block>(at);
                         } else
 #endif
@@ -1961,7 +1985,8 @@ namespace das
                 fs[2] = fsz >= 3 ? fields[2] : fields[0];
                 fs[3] = fsz >= 4 ? fields[3] : fields[0];
                 auto simV = value->simulate(context);
-                if ( type->baseType==Type::tRange64 || type->baseType==Type::tURange64 ) {
+                if ( type->baseType==Type::tInt64 || type->baseType==Type::tUInt64
+                    || type->baseType==Type::tRange64 || type->baseType==Type::tURange64 ) {
                     return context.code->makeNode<SimNode_Swizzle64>(at, simV, fs);
                 } else {
                     return context.code->makeNode<SimNode_Swizzle>(at, simV, fs);
@@ -1987,7 +2012,7 @@ namespace das
             return nullptr;
         }
         int fieldOffset = -1;
-        if ( !field && fieldIndex==-1 ) {
+        if ( !fieldRef && fieldIndex==-1 ) {
             fieldOffset = (int) annotation->getFieldOffset(name);
         } else if ( fieldIndex != - 1 ) {
             if ( value->type->isPointer() ) {
@@ -2004,9 +2029,9 @@ namespace das
                 }
             }
         } else {
-            DAS_ASSERTF(field, "field can't be null");
-            if (!field) return nullptr;
-            fieldOffset = field->offset;
+            DAS_ASSERTF(fieldRef, "field can't be null");
+            if (!fieldRef) return nullptr;
+            fieldOffset = fieldRef->offset;
         }
         DAS_ASSERTF(fieldOffset>=0,"field offset is somehow not there");
         if (value->type->isPointer()) {
@@ -2082,7 +2107,7 @@ namespace das
                     fieldOffset = value->type->firstType->getTupleFieldOffset(fieldIndex);
                 }
             } else {
-                fieldOffset = field->offset;
+                fieldOffset = fieldRef->offset;
             }
             DAS_ASSERTF(fieldOffset>=0,"field offset is somehow not there");
         }
@@ -2390,7 +2415,7 @@ namespace das
 
     SimNode * ExprTryCatch::simulate (Context & context) const {
 #if DAS_DEBUGGER
-        if ( context.thisProgram->getDebugger() ) {
+        if ( context.debugger ) {
             return context.code->makeNode<SimNodeDebug_TryCatch>(at,
                                                     try_block->simulate(context),
                                                     catch_block->simulate(context));
@@ -2484,7 +2509,10 @@ namespace das
                 return context.code->makeNode<SimNode_ReturnAndMove>(at, simSubE, subexpr->type->getSizeOf());
             }
         }
-        DAS_VERIFYF(simSubE, "internal error. can't be zero");
+        if ( !simSubE ) {
+            // this is when subexpr produces no expression worth simulating (meaning its internal reported error or internal error)
+            return nullptr;
+        }
         if ( moveSemantics ) {
             if ( subexpr->type->isRef() ) {
                 return context.code->makeValueNode<SimNode_ReturnAndMoveR2V>(subexpr->type->getR2VType(), at, simSubE);
@@ -2509,7 +2537,7 @@ namespace das
         bool condIfZero = false;
         bool match0 = matchEquNequZero(cond, zeroCond, condIfZero);
 #if DAS_DEBUGGER
-        if ( context.thisProgram->getDebugger() ) {
+        if ( context.debugger ) {
             if ( match0 && zeroCond->type->isWorkhorseType() ) {
                 if ( condIfZero ) {
                     if ( if_false ) {
@@ -2599,7 +2627,7 @@ namespace das
     SimNode * ExprWhile::simulate (Context & context) const {
         SimNode_Block * whileNode = nullptr;
 #if DAS_DEBUGGER
-        if ( context.thisProgram->getDebugger() ) {
+        if ( context.debugger ) {
             whileNode = context.code->makeNode<SimNodeDebug_While>(at, cond->simulate(context));
         } else
 #endif
@@ -2651,7 +2679,7 @@ namespace das
         if ( (sourceTypes>1) || hybridRange || nativeIterators || stringChars || /* this is how much we can unroll */ total>MAX_FOR_UNROLL ) {
             SimNode_ForWithIteratorBase * result;
 #if DAS_DEBUGGER
-            if ( context.thisProgram->getDebugger() ) {
+            if ( context.debugger ) {
                 if ( total>MAX_FOR_UNROLL ) {
                     result = (SimNode_ForWithIteratorBase *) context.code->makeNode<SimNodeDebug_ForWithIteratorBase>(at);
                 } else {
@@ -2730,7 +2758,7 @@ namespace das
             auto subB = static_pointer_cast<ExprBlock>(body);
             bool loop1 = (subB->list.size() == 1);
 #if DAS_DEBUGGER
-            if ( context.thisProgram->getDebugger() ) {
+            if ( context.debugger ) {
                 if ( dynamicArrays ) {
                     if (loop1) {
                         result = (SimNode_ForBase *) context.code->makeNodeUnrollNZ_FOR<SimNodeDebug_ForGoodArray1>(total, at);
@@ -2860,7 +2888,9 @@ namespace das
                 init = ExprLet::simulateInit(context, var, true);
             } else if (var->aliasCMRES ) {
                 int bytes = var->type->getSizeOf();
-                if ( bytes <= 32 ) {
+                if ( bytes==0 ) {
+                    init = nullptr;
+                } else if ( bytes <= 32 ) {
                     init = context.code->makeNodeUnrollNZ<SimNode_InitLocalCMResN>(bytes, pLet->at,0);
                 } else {
                     init = context.code->makeNode<SimNode_InitLocalCMRes>(pLet->at,0,bytes);
@@ -2868,8 +2898,7 @@ namespace das
             } else {
                 init = context.code->makeNode<SimNode_InitLocal>(pLet->at, var->stackTop, var->type->getSizeOf());
             }
-            if (init)
-                simlist.push_back(init);
+            if (init) simlist.push_back(init);
         }
         return simlist;
     }
@@ -3143,6 +3172,7 @@ namespace das
             mod->functions.foreach([&](FunctionPtr & fn){
                 if ( fn->builtIn ) return;
                 if ( !fn->used ) return;
+                if ( fn->isTemplate ) return;
                 das_hash_set<Function *> visited;
                 fn->recursive = isRecursive(fn.get(), visited);
             });
@@ -3178,6 +3208,7 @@ namespace das
         context.breakOnException |= policies.debugger;
         context.persistent = options.getBoolOption("persistent_heap", policies.persistent_heap);
         context.gcEnabled = options.getBoolOption("gc", false);
+        context.debugger = getDebugger();
         if ( context.persistent ) {
             context.heap = make_smart<PersistentHeapAllocator>();
             context.stringHeap = make_smart<PersistentStringAllocator>();
@@ -3186,9 +3217,9 @@ namespace das
             context.stringHeap = make_smart<LinearStringAllocator>();
         }
         context.heap->setInitialSize ( options.getIntOption("heap_size_hint", policies.heap_size_hint) );
-        context.heap->setLimit ( options.getUInt64Option("heap_size_limit", policies.max_heap_allocated) );
+        context.heap->setLimit ( options.getUInt64OptionEx("heap_size_limit", "max_heap_allocated", policies.max_heap_allocated) );
         context.stringHeap->setInitialSize ( options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) );
-        context.stringHeap->setLimit ( options.getUInt64Option("string_heap_size_limit", policies.max_string_heap_allocated) );
+        context.stringHeap->setLimit ( options.getUInt64OptionEx("string_heap_size_limit", "max_string_heap_allocated", policies.max_string_heap_allocated) );
         context.constStringHeap = make_shared<ConstStringAllocator>();
         if ( globalStringHeapSize ) {
             context.constStringHeap->setInitialSize(globalStringHeapSize);
@@ -3256,14 +3287,14 @@ namespace das
         }
         context.functions = (SimFunction *) context.code->allocate( totalFunctions*sizeof(SimFunction) );
         context.totalFunctions = totalFunctions;
-        auto debuggerOrGC = getDebugger()  || context.thisProgram->options.getBoolOption("gc",false);
+        auto debuggerOrGC = context.debugger || context.gcEnabled;
         vector<FunctionPtr> lookupFunctionTable;
         das_hash_map<uint64_t,Function *> fnByMnh;
         bool anyPInvoke = false;
         if ( totalFunctions ) {
             for (auto & pm : library.modules) {
                 pm->functions.foreach([&](auto pfun){
-                    if (pfun->index < 0 || !pfun->used)
+                    if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
                         return;
                     if ( (pfun->init || pfun->shutdown) && disableInit ) {
                         error("[init] is disabled in the options or CodeOfPolicies",
@@ -3339,7 +3370,7 @@ namespace das
             }
         }
         // if there is anything pinvoke or the option is set
-        if ( anyPInvoke || policies.threadlock_context || policies.debugger ) {
+        if ( !context.contextMutex && (anyPInvoke || policies.threadlock_context || options.getBoolOption("threadlock_context",false) || policies.debugger) ) {
             context.contextMutex = new recursive_mutex;
         }
         //
@@ -3375,7 +3406,7 @@ namespace das
         das_hash_map<int,Function *> indexToFunction;
         for (auto & pm : library.modules) {
             pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used)
+                if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
                     return;
                 auto & gfun = context.functions[pfun->index];
                 for ( const auto & an : pfun->annotations ) {
@@ -3476,8 +3507,6 @@ namespace das
         } else {
             context.initFunctions = nullptr;
         }
-        // lockchecking
-        context.skipLockChecks = options.getBoolOption("skip_lock_checks",false);
         // run init script and restart
         if ( !folding ) {
             auto time1 = ref_time_ticks();
@@ -3520,16 +3549,16 @@ namespace das
             aotCpp(context,logs);
             registerAotCpp(logs,context);
         }
-        context.debugger = getDebugger();
         isSimulating = false;
         context.thisHelper = &helper;   // note - we may need helper for the 'complete'
-        auto boundProgram = (*daScriptEnvironment::bound)->g_Program;
-        (*daScriptEnvironment::bound)->g_Program = this;   // node - we are calling macros
+        auto bound_env = daScriptEnvironment::getBound();
+        auto boundProgram = bound_env->g_Program;
+        bound_env->g_Program = this;   // node - we are calling macros
         library.foreach_in_order([&](Module * pm) -> bool {
             for ( auto & sm : pm->simulateMacros ) {
                 if ( !sm->preSimulate(this, &context) ) {
                     error("simulate macro " + pm->name + "::" + sm->name + " failed to preSimulate", "", "", LineInfo());
-                    (*daScriptEnvironment::bound)->g_Program = boundProgram;
+                    bound_env->g_Program = boundProgram;
                     return false;
                 }
             }
@@ -3563,14 +3592,14 @@ namespace das
             for ( auto & sm : pm->simulateMacros ) {
                 if ( !sm->simulate(this, &context) ) {
                     error("simulate macro " + pm->name + "::" + sm->name + " failed to simulate", "", "", LineInfo());
-                    (*daScriptEnvironment::bound)->g_Program = boundProgram;
+                    bound_env->g_Program = boundProgram;
                     return false;
                 }
             }
             return true;
         }, thisModule.get());
         context.thisHelper = nullptr;
-        (*daScriptEnvironment::bound)->g_Program = boundProgram;
+        bound_env->g_Program = boundProgram;
         // dispatch about new inited context
         context.announceCreation();
         if ( options.getBoolOption("log_debug_mem",false) ) {
@@ -3587,6 +3616,7 @@ namespace das
         return errors.size() == 0;
     }
 
+    // Unused! Consider removing it.
     uint64_t Program::getInitSemanticHashWithDep( uint64_t initHash ) {
         vector<const Variable *> globs;
         globs.reserve(totalVariables);
@@ -3618,7 +3648,7 @@ namespace das
         das_hash_map<int,Function *> indexToFunction;
         for (auto & pm : library.modules) {
             pm->functions.foreach([&](auto pfun){
-                if (pfun->index < 0 || !pfun->used)
+                if (pfun->index < 0 || !pfun->used || pfun->isTemplate)
                     return;
                 fnn.push_back(pfun.get());
                 indexToFunction[pfun->index] = pfun.get();
@@ -3645,6 +3675,7 @@ namespace das
                     if ( logIt ) logs << "NOT FOUND " << fn.mangledName << " AOT=0x" << HEX << semHash << DEC << "\n";
                     TextWriter tp;
                     tp << "semantic hash is " << HEX << semHash << DEC << "\n";
+                    tp << "// " << getAotHashComment(fnn[fni]) << "\n";
                     printSimFunction(tp, &context, indexToFunction[fni], fn.code, true);
                     linkError(string(fn.mangledName), tp.str() );
                 }

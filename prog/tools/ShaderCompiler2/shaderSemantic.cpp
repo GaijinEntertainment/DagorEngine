@@ -30,8 +30,7 @@ void initialize_debug_mode(shc::ShaderContext &ctx)
   ctx.setDebugModeEnabled(debugModeEnabled);
 }
 
-bool parse_hlsl_source_to_blocks(const PerHlslStage<CodeSourceBlocks *> &dst, ShaderParser::ShaderBoolEvalCB &boolCb,
-  shc::ShaderContext &ctx)
+bool parse_hlsl_source_to_blocks(shc::ShaderContext &ctx, ShaderParser::ShaderBoolEvalCB &boolCb)
 {
   // @TODO: If possible, add filenames from the hlsl in shader into the local messages table, and not global. This would be one step
   // towards parallelism.
@@ -64,9 +63,24 @@ bool parse_hlsl_source_to_blocks(const PerHlslStage<CodeSourceBlocks *> &dst, Sh
   const bool pp_as_comments = shc::config().hlslSavePPAsComments && !ctx.isDebugModeEnabled();
   for (HlslCompilationStage stage : HLSL_ALL_LIST)
   {
-    if (!dst.all[stage]->parseSourceCode(HLSL_ALL_PROFILES[stage], ctx.localHlslSrc().all[stage], proxyBoolCb, pp_as_comments,
-          ctx.tgtCtx()))
+    if (!ctx.hlslCodeBlocks().all[stage].parseSourceCode(HLSL_ALL_PROFILES[stage], ctx.localHlslSrc().all[stage], proxyBoolCb,
+          pp_as_comments, ctx.tgtCtx()))
+    {
       return false;
+    }
+  }
+
+  if (ctx.isDebugModeEnabled())
+  {
+    auto &messages = ctx.messages();
+    auto &stringTable = messages.strings;
+    for (int i = 0; i < stringTable.nameCount(); i++)
+    {
+      if (messages.isFilenameMessage(i))
+        ctx.compiledShader().messages.emplace_back(stringTable.getName(i));
+      else
+        ctx.compiledShader().messages.emplace_back(string_f("%s: %s", ctx.name(), stringTable.getName(i)));
+    }
   }
   return true;
 }

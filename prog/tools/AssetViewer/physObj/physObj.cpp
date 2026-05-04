@@ -7,6 +7,7 @@
 #include "phys_cm.h"
 #include <assets/asset.h>
 #include <de3_interface.h>
+#include <de3_lodController.h>
 #include <de3_objEntity.h>
 #include <de3_randomSeed.h>
 #include <de3_dynRenderService.h>
@@ -84,6 +85,8 @@ static inline int testBits(int in, int bits) { return (in & bits) == bits; }
 class PhysObjViewPlugin : public IGenEditorPlugin, public PropPanel::ControlEventHandler
 {
 public:
+  static constexpr int PHYSOBJ_MAX_LOD_COUNT = 10;
+
   enum
   {
     PID_PHYSOBJ_DRAW_BODIES,
@@ -128,6 +131,11 @@ public:
 
     PID_PHYSOBJ_INSTANCE_COUNT,
     PID_PHYSOBJ_INSTANCE_INTERVAL,
+
+    PID_PHYSOBJ_LODS_GROUP,
+    PID_PHYSOBJ_LOD_AUTO_CHOOSE,
+    PID_PHYSOBJ_LOD_FIRST,                                                    // inclusive
+    PID_PHYSOBJ_LOD_LAST = PID_PHYSOBJ_LOD_FIRST + PHYSOBJ_MAX_LOD_COUNT - 1, // inclusive
   };
 
   PhysObjViewPlugin() :
@@ -153,6 +161,8 @@ public:
   bool begin(DagorAsset *asset) override
   {
     simulationStat.reset();
+    lodCount = 0;
+    forcedRenderLod = -1;
     dasset = asset;
     entity = asset ? DAEDITOR3.createEntity(*asset) : NULL;
     const char *name = asset->getName();
@@ -170,10 +180,14 @@ public:
     if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
       irsh->setPerInstanceSeed(auto_inst_seed0);
 
-    dynPhysObjData = (DynamicPhysObjectData *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), PhysObjGameResClassId);
+    dynPhysObjData = (DynamicPhysObjectData *)get_game_resource_ex(name, PhysObjGameResClassId);
 
     slowSimulate = false;
     ::dagor_game_time_scale = 1.0;
+
+    // We need to store the LOD count because in simulation mode entity is null.
+    ILodController *lodController = entity->queryInterface<ILodController>();
+    lodCount = lodController ? lodController->getLodCount() : 0;
 
     fillPluginPanel();
 
@@ -193,11 +207,86 @@ public:
 
     if (dynPhysObjData)
     {
-      release_game_resource((GameResource *)dynPhysObjData);
+      release_game_resource_ex(dynPhysObjData, PhysObjGameResClassId);
       dynPhysObjData = NULL;
     }
 
     return true;
+  }
+
+  void registerEditorCommands(IEditorCommandSystem &command_system) override
+  {
+    G_STATIC_ASSERT(PHYSOBJ_MAX_LOD_COUNT == 10);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_AUTO, ImGuiKey_Backspace, ImGuiKey_KeypadDecimal);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_0, ImGuiKey_0, ImGuiKey_Keypad0);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_1, ImGuiKey_1, ImGuiKey_Keypad1);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_2, ImGuiKey_2, ImGuiKey_Keypad2);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_3, ImGuiKey_3, ImGuiKey_Keypad3);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_4, ImGuiKey_4, ImGuiKey_Keypad4);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_5, ImGuiKey_5, ImGuiKey_Keypad5);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_6, ImGuiKey_6, ImGuiKey_Keypad6);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_7, ImGuiKey_7, ImGuiKey_Keypad7);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_8, ImGuiKey_8, ImGuiKey_Keypad8);
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_CHANGE_LOD_9, ImGuiKey_9, ImGuiKey_Keypad9);
+  }
+
+  void registerMenuAccelerators() override
+  {
+    IWndManager &wndManager = *EDITORCORE->getWndManager();
+
+    G_STATIC_ASSERT(PHYSOBJ_MAX_LOD_COUNT == 10);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_AUTO, EditorCommandIds::PHYSOBJ_CHANGE_LOD_AUTO);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_0, EditorCommandIds::PHYSOBJ_CHANGE_LOD_0);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_1, EditorCommandIds::PHYSOBJ_CHANGE_LOD_1);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_2, EditorCommandIds::PHYSOBJ_CHANGE_LOD_2);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_3, EditorCommandIds::PHYSOBJ_CHANGE_LOD_3);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_4, EditorCommandIds::PHYSOBJ_CHANGE_LOD_4);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_5, EditorCommandIds::PHYSOBJ_CHANGE_LOD_5);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_6, EditorCommandIds::PHYSOBJ_CHANGE_LOD_6);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_7, EditorCommandIds::PHYSOBJ_CHANGE_LOD_7);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_8, EditorCommandIds::PHYSOBJ_CHANGE_LOD_8);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_CHANGE_LOD_9, EditorCommandIds::PHYSOBJ_CHANGE_LOD_9);
+  }
+
+  void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override
+  {
+    G_STATIC_ASSERT(PHYSOBJ_MAX_LOD_COUNT == 10);
+    if (id == CM_PHYSOBJ_CHANGE_LOD_AUTO)
+      changeLod(-1);
+    else if (id >= CM_PHYSOBJ_CHANGE_LOD_0 && id <= CM_PHYSOBJ_CHANGE_LOD_9)
+      changeLod(id - CM_PHYSOBJ_CHANGE_LOD_0);
+  }
+
+  void updateLodOnPanel()
+  {
+    if (lodCount < 1)
+      return;
+
+    int lod = forcedRenderLod;
+    if (lod >= 0)
+      lod = clamp(lod, 0, lodCount - 1);
+
+    if (PropPanel::ContainerPropertyControl *pluginPanel = getPluginPanel())
+    {
+      if (lod >= 0 && lod < PHYSOBJ_MAX_LOD_COUNT)
+        pluginPanel->setInt(PID_PHYSOBJ_LODS_GROUP, PID_PHYSOBJ_LOD_FIRST + lod);
+      else if (lod < 0)
+        pluginPanel->setInt(PID_PHYSOBJ_LODS_GROUP, PID_PHYSOBJ_LOD_AUTO_CHOOSE);
+    }
+  }
+
+  void changeLod(int lod)
+  {
+    if (lodCount < 1)
+      return;
+
+    forcedRenderLod = lod;
+
+    if (ILodController *lodController = entity ? entity->queryInterface<ILodController>() : nullptr)
+      lodController->setCurLod(lod);
+
+    physsimulator::setRenderLod(lod);
+    updateLodOnPanel();
   }
 
   void clearObjects() override {}
@@ -232,7 +321,7 @@ public:
     if (nowSimulated)
     {
       physsimulator::renderTrans(testBits(getRendSubTypeMask(), collisionMask), false, drawBodies, drawCmass, drawConstraints,
-        drawConstraintRefsys);
+        drawConstraintRefsys, true);
       return;
     }
 
@@ -278,7 +367,7 @@ public:
 
       case STG_RENDER_DYNAMIC_TRANS:
         if (nowSimulated && testBits(getRendSubTypeMask(), rendGeomMask))
-          physsimulator::renderTrans(false, true, false, false, false, false);
+          physsimulator::renderTrans(false, true, false, false, false, false, true);
         break;
 
       default: break;
@@ -314,6 +403,25 @@ public:
     panel.createCheckBox(PID_PHYSOBJ_DRAW_C_MASS, "draw center mass", drawCmass);
     panel.createCheckBox(PID_PHYSOBJ_DRAW_CONSTR, "draw constraints", drawConstraints);
     panel.createCheckBox(PID_PHYSOBJ_DRAW_CONSTR_RS, "draw constraints refSys", drawConstraintRefsys);
+
+    ILodController *lodController = entity->queryInterface<ILodController>();
+    if (lodController && lodCount > 0)
+    {
+      PropPanel::ContainerPropertyControl *radioGroup = panel.createRadioGroup(PID_PHYSOBJ_LODS_GROUP, "Presentation lods:");
+
+      if (lodCount > 1)
+        radioGroup->createRadio(PID_PHYSOBJ_LOD_AUTO_CHOOSE, "auto choose");
+
+      String buffer;
+      for (int i = 0; i < lodCount; ++i)
+      {
+        buffer.printf(64, "lod_%d [%.2f m]", i, lodController->getLodRange(i));
+        radioGroup->createRadio(PID_PHYSOBJ_LOD_FIRST + i, buffer);
+      }
+
+      updateLodOnPanel();
+    }
+
     if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
     {
       panel.createTrackInt(PID_PHYSOBJ_PER_INSTANCE_SEED, "Per-instance seed", irsh->getPerInstanceSeed(), 0, 32767, 1);
@@ -487,6 +595,17 @@ public:
         physType = physsimulator::PHYS_DEFAULT;
       restartSimulation(*panel);
     }
+    else if (pcb_id == PID_PHYSOBJ_LODS_GROUP)
+    {
+      const int radioButtonValue = panel->getInt(PID_PHYSOBJ_LODS_GROUP);
+      if (radioButtonValue == PropPanel::RADIO_SELECT_NONE)
+        return;
+
+      if (radioButtonValue >= PID_PHYSOBJ_LOD_FIRST && radioButtonValue <= PID_PHYSOBJ_LOD_LAST)
+        changeLod(radioButtonValue - PID_PHYSOBJ_LOD_FIRST);
+      else
+        changeLod(-1);
+    }
     else if (pcb_id == PID_PHYSOBJ_SIM_SPRING_FACTOR)
       physsimulator::springFactor = panel->getFloat(pcb_id);
     else if (pcb_id == PID_PHYSOBJ_SIM_DAMPER_FACTOR)
@@ -502,7 +621,6 @@ public:
 
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
-
     if (pcb_id == PID_PHYSOBJ_SIMULATE)
     {
       if (nowSimulated)
@@ -512,7 +630,8 @@ public:
       }
       else
       {
-        if (!physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval))
+        if (!physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
+              physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod))
           return;
         panel->setCaption(pcb_id, "stop simulation");
       }
@@ -650,6 +769,7 @@ protected:
       {
         entity->setSubtype(DAEDITOR3.registerEntitySubTypeId("single_ent"));
         entity->setTm(TMatrix::IDENT);
+        changeLod(forcedRenderLod);
       }
       repaintView();
     }
@@ -680,7 +800,8 @@ protected:
   {
     if (nowSimulated)
       physsimulator::end();
-    return nowSimulated = physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval);
+    return nowSimulated = physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
+             physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod);
   }
 
 protected:
@@ -697,6 +818,8 @@ protected:
   int sceneType = physsimulator::SCENE_TYPE_GROUP;
   int physObjInstanceCount = 1;
   float physObjInstanceInterval = 0;
+  int forcedRenderLod = -1;
+  int lodCount = 0;
 };
 
 
@@ -723,7 +846,7 @@ public:
     steady = false;
     rwd = fwd = rsa = fsa = false;
 
-    DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+    DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
     const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
     load_car_params_block_from(String(260, "%s%s", ::get_app().getWorkspace().getAppDir(), cpBlkPath));
 
@@ -768,17 +891,22 @@ public:
 
     if (dynPhysObjData)
     {
-      release_game_resource((GameResource *)dynPhysObjData);
+      release_game_resource_ex(dynPhysObjData, PhysObjGameResClassId);
       dynPhysObjData = NULL;
     }
 
     return true;
   }
 
+  void registerEditorCommands(IEditorCommandSystem &command_system) override
+  {
+    command_system.addCommand(EditorCommandIds::PHYSOBJ_SIM_TOGGLE_DRIVER, ImGuiKey_Enter);
+  }
+
   void registerMenuAccelerators() override
   {
     IWndManager &wndManager = *EDITORCORE->getWndManager();
-    wndManager.addViewportAccelerator(CM_PHYSOBJ_SIM_TOGGLE_DRIVER, ImGuiKey_Enter);
+    wndManager.addViewportAccelerator(CM_PHYSOBJ_SIM_TOGGLE_DRIVER, EditorCommandIds::PHYSOBJ_SIM_TOGGLE_DRIVER);
   }
 
   void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override
@@ -835,7 +963,7 @@ public:
   void renderObjects() override {}
   void renderTransObjects() override
   {
-    physsimulator::renderTrans(testBits(getRendSubTypeMask(), collisionMask), false, false, false, false, false);
+    physsimulator::renderTrans(testBits(getRendSubTypeMask(), collisionMask), false, false, false, false, false, true);
     if (car)
       car->renderDebug();
   }
@@ -951,7 +1079,8 @@ public:
     if (nowSimulated)
       physsimulator::end();
 
-    if (!physsimulator::begin(NULL, physType, physObjInstanceCount, sceneType, physObjInstanceInterval))
+    if (!physsimulator::begin(NULL, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
+          physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod))
       return nowSimulated = false;
 
     if (physType == physsimulator::PHYS_BULLET)

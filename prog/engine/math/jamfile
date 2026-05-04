@@ -33,6 +33,7 @@ Sources =
   wooray2d.cpp
   wooray3d.cpp
   checkNanTest.cpp
+  sdf_edt.cpp
 ;
 
 UseProgLibs =

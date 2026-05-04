@@ -5,7 +5,6 @@ include "gbuffer.dshl"
 int4 upscale_gbuffer_offset;
 
 macro UPSCALE_SAMPLING_CORE(code)
-  ENABLE_ASSERT(code)
   USE_DECODE_DEPTH_STAGE(code)
   INIT_ZNZFAR_STAGE(code)
   INIT_LOAD_DEPTH_GBUFFER_BASE(code)
@@ -16,7 +15,7 @@ macro UPSCALE_SAMPLING_CORE(code)
   (code) {
     lowres_size@f2 = lowres_size;
     gbuffer_size@f2 = gbuffer_size;
-    inv_gbuffer_size@f2 = (0.5/max(1,lowres_size.x), 0.5/max(1,lowres_size.y),0,0);
+    inv_gbuffer_size@f4 = (0.5/max(1,lowres_size.x), 0.5/max(1,lowres_size.y), 1.0/gbuffer_size.x, 1.0/gbuffer_size.y);
     // todo: we actually need to use this:
     //inv_gbuffer_size@f2 = (1./max(1,gbuffer_size.x), 1./max(1,gbuffer_size.y),0,0);
     // but there is something called "gbuffer_view_size" ?
@@ -29,10 +28,12 @@ macro UPSCALE_SAMPLING_CORE(code)
   }
 
   hlsl(code) {
-    uint encodeMask(float threshold, float linear_depth, float4 halfResLinearDepth)
+    uint encodeMask(float linear_depth, float4 halfResLinearDepth)
     {
+      const float BASE_THRESHOLD = 0.02;
+
       float4 depthDiff = abs(halfResLinearDepth - linear_depth);
-      uint4 depthMatched = depthDiff < threshold * linear_depth;
+      uint4 depthMatched = depthDiff < BASE_THRESHOLD * linear_depth;
       depthMatched = all(depthMatched == 0) ? uint4(depthDiff == min4(depthDiff.x, depthDiff.y, depthDiff.z, depthDiff.w)) : depthMatched;
       return depthMatched.w | (depthMatched.z<<1) | (depthMatched.y<<2) | (depthMatched.x<<3);
     }
@@ -40,13 +41,12 @@ macro UPSCALE_SAMPLING_CORE(code)
     uint upscale_sampling(float2 screenpos)
     {
       // Assumes lowres = floor(highres/2).
-      const float BASE_THRESHOLD = 0.02;
       float rawDepth = loadGbufferDepth(int2(screenpos) + upscale_gbuffer_offset);
       float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
       float2 tc = screenpos * inv_gbuffer_size.xy;
 
-      uint checker = encodeMask(BASE_THRESHOLD, linearDepth, linearize_z4(downsampled_checkerboard_depth_tex.GatherRed(downsampled_checkerboard_depth_tex_samplerstate, tc)));
-      uint close = encodeMask(BASE_THRESHOLD, linearDepth, linearize_z4(downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, tc)));
+      uint checker = encodeMask(linearDepth, linearize_z4(downsampled_checkerboard_depth_tex.GatherRed(downsampled_checkerboard_depth_tex_samplerstate, tc)));
+      uint close = encodeMask(linearDepth, linearize_z4(downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, tc)));
       return checker | (close<<4);
     }
   }
@@ -78,17 +78,63 @@ shader upscale_sampling
 shader upscale_sampling_cs
 {
   UPSCALE_SAMPLING_CORE(cs)
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+
+  (cs) {
+    target@uav : register(0) hlsl {
+      RWTexture2D<uint> target@uav;
+    }
+  }
 
   hlsl(cs) {
-    RWTexture2D<uint> target : register(u0);
+    void store_mask_safe(int2 pixelPos, uint mask)
+    {
+      if (all(pixelPos >= 0) && all(pixelPos < gbuffer_size.xy))
+        texture2DAt(target, pixelPos) = mask;
+    }
 
     [numthreads( 8, 8, 1 )]
-    void upscale_sampling_cs(uint3 DTid : SV_DispatchThreadID)
+    void upscale_sampling_cs(uint2 DTid : SV_DispatchThreadID)
     {
-      if (any(DTid.xy >= gbuffer_size.xy))
-        return;
+      // here we hardly assume that lowres = floor(highres/2).
+      // add one destination pixel offset, to make sample pattern of high-res and low-res textures as on picture
+      // that is why we can use just 3 GatherRed methods with the same texture coordinates to sample all needed data
+      // 1 more pixel should be added to dispatch call resolution to handle it properly
+      //      =========
+      //      |*  |  *|
+      //      |  z|z  |
+      //      ====X====
+      //      |  z|z  |
+      //      |*  |  *|
+      //      =========
+      int2 basePos = DTid.xy*2 - 1;
 
-      texture2DAt(target, DTid.xy) = upscale_sampling(DTid.xy + 0.5);
+      float2 tc = (basePos + 1)*inv_gbuffer_size.zw;
+      float4 depth4 = linearize_z4(depth_gbuf_load.GatherRed(global_linear_clamp_sampler, tc));
+
+      float4 checkerDepth4 = linearize_z4(downsampled_checkerboard_depth_tex.GatherRed(downsampled_checkerboard_depth_tex_samplerstate, tc));
+      float4 closeDepth4   = linearize_z4(downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, tc));
+
+      uint mask00 = encodeMask(depth4.w, checkerDepth4) | (encodeMask(depth4.w, closeDepth4) << 4);
+      uint mask10 = encodeMask(depth4.z, checkerDepth4) | (encodeMask(depth4.z, closeDepth4) << 4);
+      uint mask01 = encodeMask(depth4.x, checkerDepth4) | (encodeMask(depth4.x, closeDepth4) << 4);
+      uint mask11 = encodeMask(depth4.y, checkerDepth4) | (encodeMask(depth4.y, closeDepth4) << 4);
+
+      BRANCH
+      if (all(basePos >= 0) && all(basePos + 1 < gbuffer_size.xy))
+      {
+        texture2DAt(target, basePos + int2(0, 0)) = mask00;
+        texture2DAt(target, basePos + int2(1, 0)) = mask10;
+        texture2DAt(target, basePos + int2(0, 1)) = mask01;
+        texture2DAt(target, basePos + int2(1, 1)) = mask11;
+      }
+      else
+      {
+        store_mask_safe(basePos + int2(0, 0), mask00);
+        store_mask_safe(basePos + int2(1, 0), mask10);
+        store_mask_safe(basePos + int2(0, 1), mask01);
+        store_mask_safe(basePos + int2(1, 1), mask11);
+      }
     }
   }
 

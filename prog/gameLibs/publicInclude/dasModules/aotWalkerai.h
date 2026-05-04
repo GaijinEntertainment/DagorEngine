@@ -100,10 +100,25 @@ inline walkerai::ObstacleSegment make_obstacle_segment(das::float3 start, das::f
   return walkerai::ObstacleSegment(reinterpret_cast<Point3 &>(start), reinterpret_cast<Point3 &>(end),
     reinterpret_cast<Point3 &>(dir));
 }
+inline RealParamProxy make_real_param_proxy(int v) { return RealParamProxy(v); }
 inline void RealParamProxy_loadFromBlk(RealParamProxy &proxy, const DataBlock &blk, const char *ecs_name, ecs::EntityId eid,
   const char *bb_int_name, const char *bb_real_Name, DataBlock &blackBoard)
 {
   proxy.loadFromBlk(&blk, ecs_name, eid, bb_int_name, bb_real_Name, &blackBoard);
+}
+inline void RealParamProxy_loadFromBlkDefault(RealParamProxy &proxy, const DataBlock &blk, const char *ecs_name, ecs::EntityId eid,
+  const char *bb_int_name, const char *bb_real_Name, DataBlock &blackBoard, double default_value, bool use_default_value)
+{
+  proxy.loadFromBlk(&blk, ecs_name, eid, bb_int_name, bb_real_Name, &blackBoard, default_value, use_default_value);
+}
+inline void RealParamProxy_loadLiteral(RealParamProxy &proxy, double value) { proxy.loadLiteral(value); }
+inline void RealParamProxy_preloadEcsParamFromBlk(RealParamProxy &proxy, const DataBlock &blk, const char *ecs_name)
+{
+  proxy.preloadEcsParamFromBlk(&blk, ecs_name);
+}
+inline bool RealParamProxy_fetchEcsParam(RealParamProxy &proxy, ecs::EntityId eid, double default_value, bool use_default_value)
+{
+  return proxy.fetchEcsParam(eid, default_value, use_default_value);
 }
 inline double RealParamProxy_get(RealParamProxy &proxy, ecs::EntityId eid, DataBlock &blackBoard)
 {

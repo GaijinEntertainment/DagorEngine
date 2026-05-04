@@ -42,9 +42,39 @@ struct DagorAssetMgr::ChangesTracker
   ThreadSafeMsgIoEx io;
   static const int IO_BUF_SZ = 256 << 10;
 
+  struct IncludeDepMap
+  {
+    OAHashNameMap<true> pathNames;
+    Tab<FastIntList> pathToAssetIdx;
+  };
+  IncludeDepMap *incDepMap = nullptr;
+
+  static void buildIncludeMap(IncludeDepMap &map, dag::ConstSpan<DagorAsset *> assets)
+  {
+    for (int i = 0; i < assets.size(); i++)
+    {
+      dag::ConstSpan<SimpleString> includes = assets[i]->getSrcIncludes();
+      for (int j = 0; j < includes.size(); j++)
+      {
+        char path[DAGOR_MAX_PATH];
+        strncpy(path, includes[j].str(), sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
+        dd_simplify_fname_c(path);
+        int id = map.pathNames.addNameId(path);
+        if (id >= map.pathToAssetIdx.size())
+          map.pathToAssetIdx.resize(id + 1);
+        map.pathToAssetIdx[id].addInt(i);
+      }
+    }
+  }
+
 public:
   ChangesTracker() : io(IO_BUF_SZ), f(midmem) {}
-  ~ChangesTracker() { startMonitoring({}); }
+  ~ChangesTracker()
+  {
+    startMonitoring({});
+    del_it(incDepMap);
+  }
 
   void addFolderMonitor(const char *foldername, int rootIdx)
   {
@@ -163,6 +193,7 @@ public:
 
 void DagorAssetMgr::enableChangesTracker(bool en)
 {
+  WriteGuard guard(mutex);
   if (!en)
   {
     del_it(tracker);
@@ -196,6 +227,7 @@ static int detectFolder(dag::ConstSpan<DagorAssetFolder *> f, const char *root, 
 
 bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
 {
+  WriteGuard guard(mutex);
   if (!tracker)
     return false;
 
@@ -204,6 +236,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
 
   FastIntList changed_asset_idx, sec_changed_asset_idx;
   Tab<DagorAsset *> added_assets(tmpmem), removed_assets(tmpmem);
+  Tab<String> changed_inc_paths(tmpmem);
   int last_fidx = -1, last_file_id = -1, last_msec = 0;
   char fname[260], fdir[520];
 
@@ -258,6 +291,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
             if (sec_changed_asset_idx[i] > relevant_asset_idx)
               const_cast<int &>(sec_changed_asset_idx.getList()[i])--;
           a_end--;
+          del_it(tracker->incDepMap);
 
           post_msg(*msgPipe, msgPipe->REMARK, "ASSETS: <%s/%s> file was removed", folders[fidx]->folderPath.str(), fn);
           continue;
@@ -285,10 +319,11 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
       {
         DagorAssetPrivate *ca = NULL;
         int start_rule_idx = folders[fidx]->vaRuleCount;
-        if (addAsset(folders[fidx]->folderPath, fn, -1, ca, folders[fidx], fidx, start_rule_idx, false))
+        if (addAsset(folders[fidx]->folderPath, fn, -1, ca, folders[fidx], nullptr, start_rule_idx, false))
         {
           if (!DagorAssetMgr::findAsset(ca->getName(), ca->getType()))
           {
+            ca->setFolder(fidx);
             added_assets.push_back(ca);
             insert_item_at(assets, a_end, ca);
 
@@ -302,6 +337,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
               if (sec_changed_asset_idx[i] >= a_end)
                 const_cast<int &>(sec_changed_asset_idx.getList()[i])++;
             a_end++;
+            del_it(tracker->incDepMap);
 
             post_msg(*msgPipe, msgPipe->REMARK, "ASSETS: <%s/%s> file was added", folders[fidx]->folderPath.str(), fn);
             continue;
@@ -365,17 +401,45 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
             sec_changed_asset_idx.addInt(i);
       }
     }
+    if (fname_id == -1 && trail_stricmp(fn, ".blk"))
+      changed_inc_paths.push_back() = String(0, "%s/%s", baseRoots[rootIdx].folder.str(), fname);
   }
   tracker->io.endRead();
+
+  if (changed_asset_idx.getList().size() + sec_changed_asset_idx.getList().size() > 0)
+    del_it(tracker->incDepMap);
+
+  // mark assets that include any of the changed non-asset BLK files
+  if (!changed_inc_paths.empty())
+  {
+    if (!tracker->incDepMap)
+    {
+      tracker->incDepMap = new ChangesTracker::IncludeDepMap;
+      ChangesTracker::buildIncludeMap(*tracker->incDepMap, assets);
+    }
+
+    for (int p = 0; p < changed_inc_paths.size(); p++)
+    {
+      dd_simplify_fname_c(changed_inc_paths[p]);
+      int inc_id = tracker->incDepMap->pathNames.getNameId(changed_inc_paths[p]);
+      if (inc_id >= 0 && inc_id < tracker->incDepMap->pathToAssetIdx.size())
+        for (int k = 0; k < tracker->incDepMap->pathToAssetIdx[inc_id].getList().size(); k++)
+        {
+          int idx = tracker->incDepMap->pathToAssetIdx[inc_id].getList()[k];
+          if (!changed_asset_idx.hasInt(idx) && !sec_changed_asset_idx.hasInt(idx))
+            sec_changed_asset_idx.addInt(idx);
+        }
+    }
+  }
 
   int changed =
     added_assets.size() + removed_assets.size() + changed_asset_idx.getList().size() + sec_changed_asset_idx.getList().size();
   if (changed && updBaseNotify.size())
   {
-    static Tab<DagorAsset *> tmpAssetList(tmpmem);
+    Tab<DagorAsset *> tmpAssetList(tmpmem);
     int added = added_assets.size(), removed = removed_assets.size();
     int changed = changed_asset_idx.getList().size() + sec_changed_asset_idx.getList().size();
-    tmpAssetList.clear();
+    tmpAssetList.reserve(changed);
 
     // added assets
     for (int i = 0; i < added; i++)
@@ -393,10 +457,10 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
     for (int i = 0; i < sec_changed_asset_idx.getList().size(); i++)
       tmpAssetList.push_back(assets[sec_changed_asset_idx.getList()[i]]);
 
+    mutex.unlockWrite();
     callAssetBaseChangeNotifications(make_span_const(tmpAssetList).subspan(added + removed, changed),
       make_span_const(tmpAssetList).first(added), make_span_const(tmpAssetList).subspan(added, removed));
-
-    tmpAssetList.clear();
+    mutex.lockWrite();
   }
 
   for (int i = 0; i < removed_assets.size(); i++)
@@ -426,7 +490,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
     if (!a.isVirtual())
     {
       strcpy(fname, a.getSrcFilePath());
-      if (!a.props.load(fname))
+      if (!a.reloadBlk(fname))
         post_error(*msgPipe, "can't load asset <%s> blk: %s", a.getNameTypified(), fname);
     }
     else if (a.getFolderIndex() >= 0)
@@ -439,7 +503,7 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
 
     process_virtual_asset_rules:
       for (int i = 0; i < f->vaRuleCount; i++)
-        if (vaRule[f->startVaRuleIdx + i]->testRule(::dd_get_fname(fname), va_name))
+        if (vaRule[f->startVaRuleIdx + i]->testRule(::dd_get_fname(fname), f->folderPath, va_name))
         {
           if (stricmp(va_name, a.getName()) == 0)
           {
@@ -504,11 +568,17 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
         a.props.compact();
       }
 
+    mutex.unlockWrite();
     callAssetChangeNotifications(a, aname, atype);
+    mutex.lockWrite();
   }
 
   for (int i = 0; i < added_assets.size(); i++)
+  {
+    mutex.unlockWrite();
     callAssetChangeNotifications(*added_assets[i], added_assets[i]->getNameId(), added_assets[i]->getType());
+    mutex.lockWrite();
+  }
 
   clear_all_ptr_items(removed_assets);
 
@@ -519,42 +589,60 @@ bool DagorAssetMgr::trackChangesContinuous(int assets_to_check)
     {
       post_msg(*msgPipe, msgPipe->REMARK, "dependant asset <%s> changed", a.getNameTypified());
       strcpy(fname, a.getSrcFilePath());
-      if (!a.props.load(fname))
+      if (!a.reloadBlk(fname))
         post_error(*msgPipe, "can't load asset <%s> blk: %s", a.getNameTypified(), fname);
     }
     int atype = a.getType(), aname = a.getNameId();
+    mutex.unlockWrite();
     callAssetChangeNotifications(a, aname, atype);
+    mutex.lockWrite();
   }
 
-  return changed > 0;
+  return changed > 0; // -V1020
 }
 
 
 void DagorAssetMgr::callAssetChangeNotifications(const DagorAsset &a, int aname, int atype) const
 {
-  if (atype < perTypeNotify.size())
+  Tab<DagorAssetMgr::PerAssetIdNotifyTab::Rec> upd1;
+  Tab<IDagorAssetChangeNotify *> upd2;
+
   {
-    dag::ConstSpan<DagorAssetMgr::PerAssetIdNotifyTab::Rec> upd = perTypeNotify[atype].notify;
-    for (int j = upd.size() - 1; j >= 0; j--)
-      if (upd[j].assetId == -1 || upd[j].assetId == aname)
-        upd[j].client->onAssetChanged(a, aname, atype);
+    ReadGuard guard(mutex);
+    if (atype < perTypeNotify.size())
+    {
+      dag::ConstSpan<DagorAssetMgr::PerAssetIdNotifyTab::Rec> upd = perTypeNotify[atype].notify;
+      for (int j = upd.size() - 1; j >= 0; j--)
+        if (upd[j].assetId == -1 || upd[j].assetId == aname)
+          upd1.push_back(upd[j]);
+    }
+    upd2 = updNotify;
   }
 
-  for (int j = updNotify.size() - 1; j >= 0; j--)
-    updNotify[j]->onAssetChanged(a, aname, atype);
+  for (auto &u : upd1)
+    u.client->onAssetChanged(a, aname, atype);
+  for (auto *u : upd2)
+    u->onAssetChanged(a, aname, atype);
 }
 
 void DagorAssetMgr::callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *> changed_assets,
   dag::ConstSpan<DagorAsset *> added_assets, dag::ConstSpan<DagorAsset *> removed_assets) const
 {
-  for (int i = 0; i < updBaseNotify.size(); ++i)
-    updBaseNotify[i]->onAssetBaseChanged(changed_assets, added_assets, removed_assets);
+  Tab<IDagorAssetBaseChangeNotify *> upd;
+
+  {
+    ReadGuard guard(mutex);
+    upd = updBaseNotify;
+  }
+  for (auto *u : upd)
+    u->onAssetBaseChanged(changed_assets, added_assets, removed_assets);
 }
 
 void DagorAssetMgr::syncTracker() {}
 
 void DagorAssetMgr::subscribeUpdateNotify(IDagorAssetChangeNotify *notify, int asset_name_id, int asset_type)
 {
+  WriteGuard guard(mutex);
   if (asset_type == -1)
   {
     for (int i = updNotify.size() - 1; i >= 0; i--)
@@ -599,6 +687,7 @@ void DagorAssetMgr::subscribeUpdateNotify(IDagorAssetChangeNotify *notify, int a
 }
 void DagorAssetMgr::subscribeBaseUpdateNotify(IDagorAssetBaseChangeNotify *notify)
 {
+  WriteGuard guard(mutex);
   for (int i = updBaseNotify.size() - 1; i >= 0; i--)
     if (updBaseNotify[i] == notify)
       return;
@@ -607,6 +696,7 @@ void DagorAssetMgr::subscribeBaseUpdateNotify(IDagorAssetBaseChangeNotify *notif
 
 void DagorAssetMgr::unsubscribeUpdateNotify(IDagorAssetChangeNotify *notify)
 {
+  WriteGuard guard(mutex);
   for (int i = updNotify.size() - 1; i >= 0; i--)
     if (updNotify[i] == notify)
     {
@@ -629,6 +719,7 @@ void DagorAssetMgr::unsubscribeUpdateNotify(IDagorAssetChangeNotify *notify)
 }
 void DagorAssetMgr::unsubscribeBaseUpdateNotify(IDagorAssetBaseChangeNotify *notify)
 {
+  WriteGuard guard(mutex);
   for (int i = updBaseNotify.size() - 1; i >= 0; i--)
     if (updBaseNotify[i] == notify)
     {

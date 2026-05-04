@@ -18,10 +18,6 @@ function fieldEditText_(params={}) {
   let stateFlags = Watched(0)
   let isValid = Computed(@() isValueTextValid(compType, curText.get()))
 
-  function onChange(text){
-    curText.set(text)
-  }
-
   function updateTextFromEcs() {
     let val = getCompVal(eid, rawComponentName, path)
     let compTextVal = compValToString(val)
@@ -95,25 +91,22 @@ function fieldEditText_(params={}) {
       behavior = curRO ? null : Behaviors.TextInput
       group = group
       watch = [curText, isValid]
-      onChange
-      function onReturn() {
+      onChange = @(text) curText.set(text)
+      onReturn = function() {
         isFocus.set(false)
         doApply()
         set_kb_focus(null)
       }
-
-      function onEscape() {
+      onEscape = function() {
         isFocus.set(false)
         updateTextFromEcs()
         set_kb_focus(null)
       }
-
-      function onFocus() {
+      onFocus = function() {
         isFocus.set(true)
         updateTextFromEcs()
       }
-
-      function onBlur() {
+      onBlur = function() {
         isFocus.set(false)
         doApply()
       }

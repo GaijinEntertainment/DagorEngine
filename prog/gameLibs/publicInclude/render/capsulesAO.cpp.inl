@@ -27,14 +27,14 @@ struct CapsulesAOHolder
       return;
     max_ao_units_count = clamp(max_ao_units_count, uint32_t(1), uint32_t(MAX_AO_UNITS));
     capsuled_units_indirection = dag::create_sbuffer(sizeof(uint), UNITS_AO_GRID_SIZE * UNITS_AO_GRID_SIZE,
-      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_indirection");
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_indirection", RESTAG_AO);
     capsuled_units_ao = dag::create_sbuffer(sizeof(CapsuledAOUnit), maxAOUnitsCount = max_ao_units_count,
-      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_ao");
+      SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0, "capsuled_units_ao", RESTAG_AO);
   }
 
   ~CapsulesAOHolder()
   {
-    ShaderGlobal::set_color4(capsuled_units_ao_world_to_grid_mul_addVarId, 0, 0, -1, -1);
+    ShaderGlobal::set_float4(capsuled_units_ao_world_to_grid_mul_addVarId, 0, 0, -1, -1);
     ShaderGlobal::set_int(capsuled_units_ao_countVarId, 0);
   }
 
@@ -155,7 +155,7 @@ __forceinline void set_capsules_ao(const Point3 &stg_cam_pos, const Frustum &fru
     unitsAo.resize(capsules_ao.maxAOUnitsCount);
     eastl::sort(unitsAo.begin(), unitsAo.end(), sortPredicate);
   }
-  ShaderGlobal::set_color4(capsules_ao.capsuled_units_ao_world_to_grid_mul_addVarId, 0, 0, -1, -1);
+  ShaderGlobal::set_float4(capsules_ao.capsuled_units_ao_world_to_grid_mul_addVarId, 0, 0, -1, -1);
   ShaderGlobal::set_int(capsules_ao.capsuled_units_ao_countVarId, 0);
   if (!unitsAo.size())
     return;
@@ -222,5 +222,5 @@ __forceinline void set_capsules_ao(const Point3 &stg_cam_pos, const Frustum &fru
     return;
   ShaderGlobal::set_int(capsules_ao.capsuled_units_ao_countVarId, unitsAo.size());
 #define V4D(a) v_extract_x(a), v_extract_y(a), v_extract_z(a), v_extract_w(a)
-  ShaderGlobal::set_color4(capsules_ao.capsuled_units_ao_world_to_grid_mul_addVarId, V4D(worldToGridMulAdd));
+  ShaderGlobal::set_float4(capsules_ao.capsuled_units_ao_world_to_grid_mul_addVarId, V4D(worldToGridMulAdd));
 }

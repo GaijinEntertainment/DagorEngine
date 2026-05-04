@@ -9,7 +9,9 @@
 #include <dag/dag_vector.h>
 #include <EASTL/optional.h>
 #include <EASTL/variant.h>
+#include <EASTL/type_traits.h>
 #include <drv/3d/dag_samplerHandle.h>
+#include <drv/3d/dag_tex3d.h>
 
 class DataBlock;
 class BaseTexture;
@@ -73,6 +75,21 @@ inline void EnumCombo(const char *name, T first, T last, T &value, const char *(
 
 void Image(const TEXTUREID &id, Texture *texture, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
 void Image(const TEXTUREID &id, float aspect, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+void Image(const TEXTUREID &id, int width, int height, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+
+void Image(Texture *texture, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+void Image(Texture *texture, float aspect, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+void Image(Texture *texture, int width, int height, const ImVec2 &uv0 = ImVec2(0, 0), const ImVec2 &uv1 = ImVec2(1, 1));
+
 void Sampler(d3d::SamplerHandle smp);
+
+template <typename IdType = ImTextureID>
+// just need to ensure that pointer can fit into IdType
+inline eastl::enable_if_t<sizeof(IdType) >= sizeof(BaseTexture *), IdType> EncodeTexturePtr(BaseTexture *texture_ptr)
+{
+  IdType imTexId = {};
+  *reinterpret_cast<BaseTexture **>(&imTexId) = texture_ptr;
+  return imTexId;
+};
 
 } // namespace ImGuiDagor

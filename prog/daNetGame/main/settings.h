@@ -42,8 +42,7 @@ void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_n
 // apply changes by graphics preset name from settings.blk, to avoid waiting for UI (only "essential" params, ie. texture quality)
 void dgs_apply_essential_pc_preset_params(DataBlock &config_blk, const char *preset_name);
 
-// apply preset params (from pcGraphicalPresets) to config, from commandline
-void dgs_apply_essential_pc_preset_params_to_config_from_cmd();
-
-// apply auto graphical settings based on hardware
-void try_apply_auto_graphical_settings();
+// prepares a BLK with
+// - merged command lines
+// - merged preset params (from pcGraphicalPresets, if present)
+DataBlock dgs_prepare_essential_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter = nullptr);

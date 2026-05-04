@@ -6,6 +6,10 @@ Target      = gameLibs/devices.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
+if ! $(Platform) in windows ps4 ps5 {
+  Exit $(Platform) is not supported: use devices/stub library instead ;
+}
+
 AddIncludes =
   $(Root)/prog/engine/dagorInclude
   $(Root)/prog/gameLibs/publicInclude
@@ -15,19 +19,25 @@ Sources =
   dataExport.cpp
 ;
 
-if $(Platform) in windows {
-  Sources +=
-    jetSeat.cpp
-    trackIR.cpp
-  ;
-} else if $(Platform) in ps4 ps5 {
-  Sources +=
-    ps4HeadTrack.cpp
-    stub/jetSeatStub.cpp
-  ;
-  UseProgLibs += engine/drv/camera_sony ;
+if $(Platform) in ps5 { UseHeadTracking = no ; }
+if ! $(Platform) in windows { UseJetSeat = no ; }
+
+if $(UseHeadTracking) = yes {
+  if $(Platform) in windows {
+    Sources += trackIR.cpp ;
+  }
+  else if $(Platform) in ps4 {
+    Sources += ps4HeadTrack.cpp ;
+    UseProgLibs += engine/drv/camera_sony ;
+  }
 } else {
-  Exit $(Platform) is not supported: use devices/stub library instead ;
+  Sources += stub/trackIRStub.cpp ;
+}
+
+if $(UseJetSeat) = yes {
+  Sources += jetSeat.cpp ;
+} else {
+  Sources += stub/jetSeatStub.cpp ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

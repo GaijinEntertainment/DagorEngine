@@ -13,8 +13,8 @@ void CloudsFormLUT::init()
   clouds_types_lut.close();
   clouds_erosion_lut.close();
 
-  clouds_types_lut =
-    dag::create_tex(NULL, CLOUDS_TYPES_HEIGHT_LUT, CLOUDS_TYPES_LUT, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY, 1, "clouds_types_lut");
+  clouds_types_lut = dag::create_tex(NULL, CLOUDS_TYPES_HEIGHT_LUT, CLOUDS_TYPES_LUT, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY, 1,
+    "clouds_types_lut", RESTAG_DASKIES2);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = d3d::AddressMode::Border;
@@ -23,7 +23,8 @@ void CloudsFormLUT::init()
   }
   gen_clouds_types_lut.init("gen_clouds_types_lut");
 
-  clouds_erosion_lut = dag::create_tex(NULL, 32, 1, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY | TEXFMT_R8G8, 1, "clouds_erosion_lut");
+  clouds_erosion_lut =
+    dag::create_tex(NULL, 32, 1, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY | TEXFMT_R8G8, 1, "clouds_erosion_lut", RESTAG_DASKIES2);
   gen_clouds_erosion_lut.init("gen_clouds_erosion_lut");
   invalidate();
 }

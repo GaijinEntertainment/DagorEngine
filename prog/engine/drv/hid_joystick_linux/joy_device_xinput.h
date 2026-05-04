@@ -13,7 +13,7 @@ public:
   HidJoystickDeviceXInput(eastl::unique_ptr<HidJoystickDevice> device);
   virtual ~HidJoystickDeviceXInput() = default;
 
-  static bool device_xinput_compatable(HidJoystickDevice *device);
+  static bool device_xinput_compatible(HidJoystickDevice *device);
 
   const char *getName() const override { return joydev->getName(); }
   const char *getDeviceID() const override { return joydev->getDeviceID(); }
@@ -42,6 +42,7 @@ public:
   int getPovHatAngle(int axis_id) const override;
 
   bool isConnected() override { return joydev->isConnected(); }
+  bool isXinputCompatible() const override { return true; }
 
   void updateDevice(UDev::Device const &dev) override { joydev->updateDevice(dev); }
   const char *getModel() const override { return joydev->getModel(); }

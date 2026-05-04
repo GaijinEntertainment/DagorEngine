@@ -7,6 +7,9 @@ postfx_color_grading_tonemap{
 
   "color_grading:object"{
     colorSaturation:p4=1, 1, 1, 1
+    colorSaturationLow:p4=1,1,1,1
+    colorSaturationHigh:p4=1,1,1,1
+    colorSaturationHighVsLowCurve:r=1.0
     colorContrast:p4=1, 1, 1, 1
     colorGamma:p4=1, 1, 1, 1
     colorGain:p4=1, 1, 1, 1

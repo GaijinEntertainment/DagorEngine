@@ -84,7 +84,7 @@ public:
 
       if (tex_name)
       {
-        tex.first.set(d3d::create_tex(NULL, texSz.x, texSz.y, tex_fmt, 1, tex_name), String(0, "$%s", tex_name));
+        tex.first.set(d3d::create_tex(NULL, texSz.x, texSz.y, tex_fmt, 1, tex_name, RESTAG_ATLAS), String(0, "$%s", tex_name));
         if (tex.first.getTex2D())
         {
           d3d::SamplerInfo smpInfo;
@@ -323,7 +323,7 @@ protected:
     const char *name = get_managed_texture_name(tex.first.getId());
     if (!t->getinfo(ti))
       return;
-    Texture *tmp_tex = d3d::create_tex(NULL, texSz.x, texSz.y, ti.cflg, 1, name);
+    Texture *tmp_tex = d3d::create_tex(NULL, texSz.x, texSz.y, ti.cflg, 1, name, RESTAG_ATLAS);
     if (!tmp_tex)
     {
       logerr("%s: failed to alloc temp texture %dx%d to rearrange items", name, texSz.x, texSz.y);
@@ -455,7 +455,7 @@ public:
     curSysTex = sysTexCount++;
     SysTexRec &r = sysTex[curSysTex];
     r.tex = (Texture *)d3d::create_tex(NULL, sysTexSz.x, sysTexSz.y,
-      texFmt | TEXCF_SYSMEM | TEXCF_DYNAMIC | TEXCF_READABLE | TEXCF_LINEAR_LAYOUT, 1, "upd-sysTex");
+      texFmt | TEXCF_SYSMEM | TEXCF_DYNAMIC | TEXCF_READABLE | TEXCF_LINEAR_LAYOUT, 1, "upd-sysTex", RESTAG_ATLAS);
     r.pack.Init(sysTexSz.x, sysTexSz.y, false);
     r.frameNo = dagor_frame_no();
   }
@@ -587,7 +587,7 @@ public:
     void init(const IPoint2 &sz, int tex_fmt = TEXFMT_R8)
     {
       tex = d3d::create_tex(NULL, sz.x, sz.y, tex_fmt | TEXCF_SYSMEM | TEXCF_DYNAMIC | TEXCF_READABLE | TEXCF_LINEAR_LAYOUT, 1,
-        "upd-sysTex");
+        "upd-sysTex", RESTAG_ATLAS);
       writeCompeletionFence = d3d::create_event_query();
     }
 

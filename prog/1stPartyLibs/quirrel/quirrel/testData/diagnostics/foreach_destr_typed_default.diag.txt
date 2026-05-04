@@ -1,0 +1,8 @@
+ERROR: expression of type 'string' cannot be assigned to type 'int'
+testData/diagnostics/foreach_destr_typed_default.nut:1:10
+
+foreach ({x: int = "bad"} in [{x = 1}]) {
+          ^-------------
+  println(x)
+
+

@@ -180,7 +180,7 @@ FFX_RaymarchResult FFX_SSSR_HierarchicalRaymarch(FfxFloat32x3 origin, FfxFloat32
 
     bool isRayInsideBorders = is_ray_inside_borders(position);
     int2 resTC = clamp(int2(screen_size * position.xy), int2(0,0), screen_size-1);
-    FfxFloat32 surface_z = texelFetch(downsampled_close_depth_tex, resTC, 0).r;
+    FfxFloat32 surface_z = texelFetch(downsampled_close_depth_tex, resTC * current_dynamic_resolution_scale, 0).r;
 
     bool valid_hit = isRayInsideBorders && (i < max_traversal_intersections) && (current_mip < most_detailed_mip) && (surface_z > 0);
 

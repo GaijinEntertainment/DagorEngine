@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/daECS/utility ;
+
+TargetType  = lib ;
+Target      = engine/daECS/utility.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/eastl/include
+;
+
+Sources =
+  createInstantiated.cpp
+  instantiateDependencies.cpp
+  enumDescription.cpp
+;
+
+UseProgLibs +=
+  engine/daECS/core
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -9,8 +9,6 @@
 
 #include <atomic>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
-#include <generic/dag_tab.h>
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
 #include <EASTL/array.h>
@@ -24,13 +22,6 @@ class Image;
 class Device;
 class DeviceContext;
 
-enum class PresentationMode
-{
-  VSYNCED,
-  CONDITIONAL_VSYNCED,
-  UNSYNCED
-};
-
 struct SwapchainProperties
 {
   Extent2D resolution = {};
@@ -43,7 +34,7 @@ struct SwapchainProperties
 struct SwapchainCreateInfo : SwapchainProperties
 {
   HWND window = nullptr;
-  PresentationMode presentMode = PresentationMode::UNSYNCED;
+  int presentInterval = 0;
   XBOX_MEMBER float frameImmediateThresholdPercent = 100.f;
   XBOX_MEMBER unsigned int freqLevel = 1;
 
@@ -71,7 +62,7 @@ class Swapchain
 #endif
   eastl::array<TargetInfo, max_swapchain_count> targets{};
   uint32_t currentTargetIndex = 0;
-  PresentationMode presentMode = PresentationMode::UNSYNCED;
+  int presentInterval = 0;
 
 public:
   struct SetupInfo
@@ -83,16 +74,16 @@ public:
 #elif _TARGET_PC_WIN
     HandlePointer waitableObject;
 #endif
-    PresentationMode presentMode = PresentationMode::UNSYNCED;
+    int presentInterval = 0;
   };
   void setCurrentSwapchainIndex(uint32_t index) { currentTargetIndex = index; }
   void setup(SetupInfo setup, uint32_t swapchain_index);
   Extent2D getCurrentExtent() const;
   Extent2D getExtent(uint32_t swapchain_index) const;
   void bufferResize(const Extent2D &extent, uint32_t swapchain_index);
-  bool isVsyncOn() const { return PresentationMode::UNSYNCED != presentMode; }
-  PresentationMode getPresentationMode() const { return presentMode; }
-  void changePresentMode(PresentationMode mode) { presentMode = mode; }
+  bool isVsyncOn() const { return presentInterval; }
+  int getPresentationInterval() const { return presentInterval; }
+  void changePresentInterval(int interval) { presentInterval = interval; }
   void waitForFrameStart() const;
 #if _TARGET_PC_WIN
   void disableLatencyWait() { waitableObject.reset(); }
@@ -166,10 +157,10 @@ class Swapchain
   eastl::array<SwapchainInfo, max_swapchain_count> swapchains;
   WIN_MEMBER uint32_t currentSwapchainIndex = 0;
 
-  DescriptorHeap<ShaderResourceViewStagingPolicy> swapchainBufferSRVHeap;
+  DescriptorHeap<ShaderResourceViewStagingPolicy<>> swapchainBufferSRVHeap;
   DescriptorHeap<RenderTargetViewPolicy> swapchainBufferRTVHeap;
 
-  PresentationMode presentMode = PresentationMode::UNSYNCED;
+  int presentInterval = 0;
 
   XBOX_MEMBER float frameImmediateThresholdPercent = 100.f;
   XBOX_MEMBER uint32_t userFreqLevel = 1; // index of 60Hz in freqLevels from swapchain.cpp
@@ -196,7 +187,9 @@ public:
   bool setup(Device &device, frontend::Swapchain &fe, const SwapchainCreateInfo &sci);
 #else
   bool setup(Device &device, frontend::Swapchain &fe, DXGIFactory *factory, ID3D12CommandQueue *queue, SwapchainCreateInfo &&sci,
-    uint32_t swapchain_index, bool disable_frame_latency = false);
+    uint32_t swapchain_index, bool enable_waitable_swapchain = true);
+  bool postSetup(Device &device, frontend::Swapchain &fe, SwapchainCreateInfo &&sci, bool use_waitable_swapchain, DXGIFactory *factory,
+    uint32_t swapchain_index);
   bool adopt(Device &device, frontend::Swapchain &fe, DXGISwapChain *external_swapchain, SwapchainCreateInfo &&sci);
 #endif
   void onFrameBegin(D3DDevice *device, uint32_t swapchain_index);
@@ -239,9 +232,9 @@ public:
   DXGISwapChain *getDxgiSwapchain() const { return getCurrentSwapchain().swapchain.Get(); }
 #endif
   // returns true if there is an active present command submitted
-  bool isVsyncOn() const { return PresentationMode::UNSYNCED != presentMode; }
-  PresentationMode getPresentationMode() const { return presentMode; }
-  void changePresentMode(PresentationMode mode) { presentMode = mode; }
+  bool isVsyncOn() const { return presentInterval; }
+  int getPresentationInterval() const { return presentInterval; }
+  void changePresentInterval(int interval) { presentInterval = interval; }
 
   XBOX_FUNC bool isHfrEnabled() const { return hfrEnabled; }
   XBOX_FUNC bool isHfrSupported() const { return hfrSupported; }
@@ -250,11 +243,6 @@ public:
   bool isVrrSupported() const { return isVrrSupportedValue; }
 #else
   bool isVrrSupported() const { return isTearingSupported; }
-#endif
-
-#if !_TARGET_XBOX
-  bool postSetup(Device &device, frontend::Swapchain &fe, SwapchainCreateInfo &&sci, bool has_waitable_object, DXGIFactory *factory,
-    uint32_t swapchain_index);
 #endif
 };
 } // namespace backend

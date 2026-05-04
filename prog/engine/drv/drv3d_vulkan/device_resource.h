@@ -10,7 +10,6 @@ namespace drv3d_vulkan
 
 struct ResourceMemory;
 class Resource;
-class ExecutionContext;
 class MemoryHeapResource;
 
 enum class ResourceType
@@ -54,7 +53,7 @@ class ResourceAlgorithm
 
   void freeVulkanResource()
   {
-    if (!res.isManaged() || !res.getBaseHandle())
+    if (!res.isManaged())
       return;
 
     if (!res.isHandleShared())
@@ -90,7 +89,10 @@ class ResourceAlgorithm
       // some vulkan objects need buffer suballocation at creation time
       // if resource allocated memory this way - skip binding & alloc steps
       if (res.getMemoryId() != -1)
+      {
+        G_ASSERTF(res.getBaseHandle(), "vulkan: resource was not created, but memory was allocated");
         return true;
+      }
       allocDsc.reqs = res.getMemoryReq();
 
       if (res.tryAllocMemory(allocDsc))
@@ -135,7 +137,14 @@ public:
       // if possible, keep object non resident at creation
       if (!res.nonResidentCreation())
       {
-        res.reportOutOfMemory();
+        VkDeviceSize reqSz = 0;
+        res.createVulkanObject();
+        if (res.getBaseHandle())
+        {
+          reqSz = res.getMemoryReq().requirements.size;
+          destroyVkObj();
+        }
+        res.reportOutOfMemory(reqSz);
         return CreateResult::FAILED;
       }
       return CreateResult::NON_RESIDENT;
@@ -149,7 +158,7 @@ public:
     freeVulkanResource();
   }
 
-  VkDeviceSize tryEvict(ExecutionContext &ctx, bool evict_used)
+  VkDeviceSize tryEvict(bool evict_used)
   {
     if (!res.isResident() || !res.isManaged() || !res.isEvictable() || res.isEvicting())
       return 0;
@@ -161,7 +170,7 @@ public:
         return 0;
     }
 
-    res.makeSysCopy(ctx);
+    res.makeSysCopy();
     res.markForEviction();
     return res.getMemory().size;
   }
@@ -186,7 +195,7 @@ public:
     }
   }
 
-  bool makeResident(ExecutionContext &ctx)
+  bool makeResident()
   {
     G_ASSERT(!res.isResident());
     G_ASSERT(res.isManaged());
@@ -210,7 +219,7 @@ public:
       return false;
 
     G_ASSERT(res.isResident());
-    res.restoreFromSysCopy(ctx);
+    res.restoreFromSysCopy();
     return true;
   }
 
@@ -249,7 +258,9 @@ class Resource
 #endif
 
 #if DAGOR_DBGLEVEL > 0
-  bool emptyAfterDeviceReset : 1;
+  // not merged with bit bools above, because they are accesed from different threads
+  // causing data race if merged
+  bool emptyAfterDeviceReset;
   uint32_t usedInRendering;
 #endif
 
@@ -262,6 +273,7 @@ protected:
   void setHandle(VulkanHandle new_handle);
   void reportToTQL(bool is_allocating);
   void setMemoryId(ResourceMemoryId ext_mem_id) { memoryId = ext_mem_id; }
+  void reportToTQL(bool is_allocating, VkDeviceSize already_tracked_size);
 
 public:
   Resource(const Resource &) = delete;
@@ -288,6 +300,10 @@ public:
   {}
   ~Resource() = default;
 
+#if EXECUTION_SYNC_DEBUG_CAPTURE > 0
+  bool filteredOutForSyncCapture = false;
+#endif
+
 #if VULKAN_RESOURCE_DEBUG_NAMES
   void setDebugName(const char *name) { debugName = name; }
   const char *getDebugName() const { return debugName; }
@@ -309,15 +325,7 @@ public:
 #endif
   }
 #if DAGOR_DBGLEVEL > 0
-  void checkAccessAfterDeviceReset(bool is_write)
-  {
-    if (is_write)
-      emptyAfterDeviceReset = false;
-    else if (emptyAfterDeviceReset)
-    {
-      D3D_ERROR("vulkan: reading garbage left by device reset in %s %p:%s", resTypeString(), this, getDebugName());
-    }
-  }
+  void checkAccessAfterDeviceReset(bool is_write);
 #else
   void checkAccessAfterDeviceReset(bool) {}
 #endif
@@ -369,7 +377,7 @@ public:
   bool isAccelerationStruct() const { return tid == ResourceType::AS; }
 #endif
   const char *resTypeString() const { return resTypeString(tid); }
-  void reportOutOfMemory();
+  void reportOutOfMemory(VkDeviceSize required_size);
 
   static const char *resTypeString(ResourceType type_id);
 };
@@ -417,10 +425,19 @@ struct ResourceBindlessExtend
   bool isUsedInBindless() { return bindlessSlots.size() > 0; }
 
   template <typename CbType>
-  void iterateBindlessSlots(CbType cb)
+  void iterateBindlessSlotsWithRemove(CbType cb)
   {
-    for (uint32_t slot : bindlessSlots)
-      cb(slot);
+    int i = 0;
+    while (i < bindlessSlots.size())
+    {
+      if (cb(bindlessSlots[i]))
+      {
+        bindlessSlots[i] = bindlessSlots.back();
+        bindlessSlots.pop_back();
+        continue;
+      }
+      ++i;
+    }
   }
 
   void clearSlots() { bindlessSlots.clear(); }

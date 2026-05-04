@@ -7,6 +7,7 @@
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_computeShaders.h>
+#include <render/voxelClip.h>
 
 struct SkyVisibility
 {
@@ -38,9 +39,8 @@ protected:
 
   void initHistory(); // called after reset
   void updateTemporal(bool recalc_probes);
-  bool updateClip(uint32_t clip_no, const IPoint3 &lt, float newProbeSize, bool updateLast);
-  void setClipVars(int clip_no) const;
-  IPoint3 getNewClipLT(uint32_t clip, const Point3 &world_pos) const;
+  bool updateClip(uint32_t clip_no, const Point3 &world_pos, bool updateLast);
+  void setClipVars(int clip_no, float probe_size) const;
 
   UniqueTexHolder dagi_sky_visibility_sph;
   UniqueTexHolder dagi_sky_visibility_age;
@@ -53,13 +53,9 @@ protected:
     dagi_sky_visibility_clear_temporal_cs, dagi_sky_visibility_toroidal_movement_spatial_filter_split_cs,
     dagi_sky_visibility_toroidal_movement_spatial_filter_split_apply_cs;
   uint32_t clipW = 1, clipD = 1;
-  struct Clip
-  {
-    IPoint3 lt = {-100000, -100000, 100000};
-    float probeSize = 0;
-  };
+
   dag::Vector<uint32_t> temporalFrames;
-  dag::Vector<Clip> clipmap;
+  dag::Vector<VoxelClip> clipmap;
   uint32_t totalFramesPerClipToUpdate = ~0u, temporalProbesBufferSize = 0, selectedProbesBufferSize = 0;
 
   bool validHistory = false, supportUnorderedLoad = true, replicateToIrradiance = false;

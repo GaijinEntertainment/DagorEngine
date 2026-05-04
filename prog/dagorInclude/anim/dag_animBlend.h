@@ -46,7 +46,7 @@ struct NodeMask
 
 namespace AnimV20
 {
-struct AnimDbgCtx;
+struct AnimcharDumpBlenderDataContext;
 
 // declare classes IDs first
 decl_dclassid(0x20000001, IAnimBlendNode);
@@ -90,7 +90,8 @@ public:
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w) = 0;
-  virtual void reset(IPureAnimStateHolder &st) = 0;
+  virtual void setDefaultState(IPureAnimStateHolder &st) = 0;
+  virtual void clearAllocatedMemory(IPureAnimStateHolder & /*st*/) {}
   virtual bool isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n) { return this == n; }
   virtual real getDuration(IPureAnimStateHolder & /*st*/) { return 1.0; }
   virtual real getAvgSpeed(IPureAnimStateHolder & /*st*/) { return 0.0f; }
@@ -129,6 +130,8 @@ public:
   virtual void checkHasLoop(AnimationGraph & /*graph*/,
     eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> & /*visited_nodes*/)
   {}
+
+  static bool isAnimNodeNameValid(const char *name);
 
 private:
   int abnId;
@@ -190,6 +193,8 @@ public:
 
   virtual const char *class_name() const { return "AnimBlendNodeLeaf"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendNodeLeafCID || IAnimBlendNode::isSubOf(id); }
+
+  void initChilds(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix) override;
 
   static int __cdecl _cmp_rangenames(const void *p1, const void *p2);
 
@@ -502,6 +507,11 @@ private:
   FastNameMap nodeNames;
   PtrTab<IAnimBlendNode> nodePtr;
 
+public:
+  PtrTab<IAnimBlendNode> resetRandomOnIRQFromNode;
+  PtrTab<IAnimBlendNode> resetRandomOnIRQFromNodeTarget;
+
+private:
   FastNameMap rangeNames;
 
   Tab<int> ignoredAnimationNodes;
@@ -541,7 +551,13 @@ public:
   const DataBlock &getEnumList(const char *enum_cls) const;
 
   void replaceRoot(IAnimBlendNode *new_root);
-  void resetBlendNodes(IPureAnimStateHolder &st);
+  // Calls setDefaultState function of all nodes in the graph to set state to the one passed as argument.
+  // For fifo3 nodes also enqueues default state from initState block.
+  void resetBlendNodesState(IPureAnimStateHolder &st);
+  // Calls clearAllocatedMemory function of all nodes in the graph on passed state.
+  // Intention is to clear dynamically allocated memory of array which might be stores in anim state
+  // to avoid leaks.
+  void clearBlendNodeAllocatedMemoryFromState(IPureAnimStateHolder &st);
   void sortPbCtrl(const DataBlock &ord);
   inline void postBlendInit(IPureAnimStateHolder &st, const GeomNodeTree &tree) { blender.postBlendInit(st, tree); }
   inline void postBlendCtrlAdvance(IPureAnimStateHolder &st, float dt)
@@ -679,6 +695,8 @@ public:
     blender.postBlendProcess(tls, st, tree, ctx);
   }
 
+  void atIrq(int irq_type, IAnimBlendNode *src, IPureAnimStateHolder &st);
+
   // Debugging support
   int getParamCount() const { return paramNames.nameCount(); }
   const char *getParamName(int idx) const { return paramNames.getName(idx); }
@@ -716,10 +734,10 @@ public:
   const char *getTagName(int) const { return NULL; }
 #endif
 
-  AnimDbgCtx *createDebugBlenderContext(const GeomNodeTree *gtree, bool dump_all_nodes = false);
-  void destroyDebugBlenderContext(AnimDbgCtx *ctx);
-  const DataBlock *getDebugBlenderState(AnimDbgCtx *ctx, IPureAnimStateHolder &st, bool dump_tm);
-  const DataBlock *getDebugNodemasks(AnimDbgCtx *ctx);
+  AnimcharDumpBlenderDataContext *createDumpBlenderDataContext(const GeomNodeTree *gtree, bool dump_all_nodes = false);
+  void destroyDumpBlenderDataContext(AnimcharDumpBlenderDataContext *ctx);
+  const DataBlock *getDebugBlenderState(AnimcharDumpBlenderDataContext *ctx, IPureAnimStateHolder &st, bool dump_tm);
+  const DataBlock *getDebugNodemasks(AnimcharDumpBlenderDataContext *ctx);
 
   void getUsedBlendNodes(IAnimBlendNode::used_blend_nodes_t &usedNodes);
 
@@ -728,7 +746,7 @@ public:
   virtual bool isSubOf(DClassID id) { return id == AnimationGraphCID; }
 
   friend class AnimCommonStateHolder;
-  friend struct AnimDbgCtx;
+  friend struct AnimcharDumpBlenderDataContext;
 
 protected:
   virtual ~AnimationGraph();
@@ -779,6 +797,11 @@ __forceinline void releaseAnimGraph(AnimationGraph *anim)
   if (anim)
     anim->delRef();
 }
+void add_bnl(AnimationGraph &graph, const DataBlock &blk, AnimData *anim, bool ignoredAnimation, bool def_foreign,
+  const char *nm_suffix);
+
+void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
+
 } // end of namespace AnimResManagerV20
 
 #define BUILD_BLENDING_LIST_PROLOGUE_BNL(BCTX, ST, WT) \

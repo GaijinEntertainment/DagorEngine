@@ -206,7 +206,7 @@ static int do_main(bool debugmode)
   // read application.blk
   if (!appblk.load(__argv[1]))
   {
-    debug("cannot load application.blk from <%s>", __argv[1]);
+    debug("cannot load project settings from <%s>", __argv[1]);
     return false;
   }
 
@@ -302,11 +302,13 @@ static int do_main(bool debugmode)
 
   AssetExportCache gdc;
   String cache_base(260, "%s/%s/", app_dir, exp_blk.getStr("cache", "/develop/.cache"));
+  String cache_base_patch(260, "%spatch/", cache_base);
   String dest_base, pack_fname_prefix;
   String cache_fname, pack_fname;
   const char *addTexPfx = exp_blk.getStr("addTexPrefix", "");
 
   simplify_fname(cache_base);
+  simplify_fname(cache_base_patch);
 
   make_exp_types_mask(expTypesMask, mgr, exp_blk, log);
 
@@ -314,6 +316,8 @@ static int do_main(bool debugmode)
   SimpleString lastProfile;
   unsigned lastTargetCode = 0;
   unsigned last_flush_time = 0, last_idle_reported_time = 0, idle_report_interval = 2000;
+
+  DataBlock *patch_build_blk = out_blk.addBlock("patchBuild");
 
   dabuild_prepare_out_blk(out_blk, mgr, build_blk);
   while (jobMem->pid != 0xFFFFFFFFU)
@@ -380,6 +384,8 @@ static int do_main(bool debugmode)
         bool upToDate = false;
         int i = ctx.packId;
 
+        patch_build_blk->setBool(pkid < 0 ? "main" : addPackages.getName(pkid), ctx.patchBuild);
+
         if (i < 0 || i >= tex_pack.size() || stricmp(tex_pack[i]->packName, ctx.data) != 0)
           for (i = 0; i < tex_pack.size() && stricmp(tex_pack[i]->packName, ctx.data) != 0; i++)
             ;
@@ -392,7 +398,8 @@ static int do_main(bool debugmode)
 
         dest_base = ctx.data + 500;
         pack_fname_prefix = ctx.data + 800;
-        make_cache_fname(cache_fname, cache_base, addPackages.getName(pkid), tex_pack[i]->packName, target_str, profile);
+        make_cache_fname(cache_fname, ctx.patchBuild ? cache_base_patch : cache_base, addPackages.getName(pkid), tex_pack[i]->packName,
+          target_str, profile);
         gdc.load(cache_fname, mgr);
 
         pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), tex_pack[i]->packName.str());
@@ -435,6 +442,8 @@ static int do_main(bool debugmode)
         bool upToDate = false;
         int i = ctx.packId;
 
+        patch_build_blk->setBool(pkid < 0 ? "main" : addPackages.getName(pkid), ctx.patchBuild);
+
         if (i < 0 || i >= grp_pack.size() || stricmp(grp_pack[i]->packName, ctx.data) != 0)
           for (i = 0; i < grp_pack.size() && stricmp(grp_pack[i]->packName, ctx.data) != 0; i++)
             ;
@@ -447,7 +456,8 @@ static int do_main(bool debugmode)
 
         dest_base = ctx.data + 500;
         pack_fname_prefix = ctx.data + 800;
-        make_cache_fname(cache_fname, cache_base, addPackages.getName(pkid), grp_pack[i]->packName, target_str, profile);
+        make_cache_fname(cache_fname, ctx.patchBuild ? cache_base_patch : cache_base, addPackages.getName(pkid), grp_pack[i]->packName,
+          target_str, profile);
         gdc.load(cache_fname, mgr);
 
         pack_fname.printf(260, "%s%s%s", dest_base.str(), pack_fname_prefix.str(), grp_pack[i]->packName.str());

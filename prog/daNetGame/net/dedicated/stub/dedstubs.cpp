@@ -5,7 +5,9 @@
 #include <daECS/net/network.h>
 #include <daECS/net/network.h>
 #include "net/netPrivate.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "net/time.h"
 #include <daECS/net/netEvents.h>
 
@@ -16,7 +18,7 @@ class SqModules;
 namespace dedicated
 {
 
-#if _TARGET_PC
+#if !DAGOR_HOSTED_INTERNAL_SERVER && _TARGET_PC
 bool is_dedicated() { return false; }
 #endif
 void init() {}

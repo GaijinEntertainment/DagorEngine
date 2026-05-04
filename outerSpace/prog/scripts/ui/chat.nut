@@ -127,7 +127,7 @@ function chatUi() {
   return {
     key = "chat"
     flow = FLOW_VERTICAL
-    size = static [sw(20), fsh(20)]
+    size = const [sw(20), fsh(20)]
 //    rendObj = ROBJ_DEBUG
     vplace = ALIGN_BOTTOM
     watch = showChatInput

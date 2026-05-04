@@ -9,12 +9,13 @@
 #include <soundSystem/debug.h>
 #include <soundSystem/banks.h>
 #include <util/dag_hashedKeyMap.h>
-#include "internal/banks.h"
-#include "internal/attributes.h"
-#include "internal/visualLabels.h"
+#include "internal/banks_internal.h"
+#include "internal/attributes_internal.h"
+#include "internal/visualLabels_internal.h"
 #include "internal/pathHash.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/occlusion_internal.h"
+#include "internal/events_internal.h"
+#include "internal/debug_internal.h"
 
 static WinCritSec g_attributes_crit_set;
 #define SNDSYS_ATTRIBUTES_BLOCK WinAutoLock attributesLock(g_attributes_crit_set);
@@ -58,14 +59,14 @@ bool has_occlusion_impl(const FMOD::Studio::EventDescription &event_description)
 {
   TIME_PROFILE_DEV(has_occlusion_impl);
   FMOD_STUDIO_PARAMETER_DESCRIPTION paramDesc;
-  const char *occlusion_param_name = occlusion::get_occlusion_param_name();
-  return occlusion::is_inited() && FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
+  const char *occlusion_param_name = "occlusion"; // occlusion::get_occlusion_param_name();
+  return /*occlusion::is_inited() && */ FMOD_OK == event_description.getParameterDescriptionByName(occlusion_param_name, &paramDesc) &&
          is_event_3d_impl(event_description);
 }
 
-bool is_delayable_impl(const FMOD::Studio::EventDescription &event_description)
+static bool is_delayable_impl(const FMOD::Studio::EventDescription &event_description, bool has_occlusion)
 {
-  if (!is_event_3d_impl(event_description))
+  if (has_occlusion || !is_event_3d_impl(event_description))
     return false;
   FMOD_STUDIO_USER_PROPERTY userProperty;
   const FMOD_RESULT res = event_description.getUserProperty("dstdel", &userProperty);
@@ -82,6 +83,14 @@ float get_event_max_distance_impl(const FMOD::Studio::EventDescription &event_de
   SOUND_VERIFY(event_description.getMinMaxDistance(nullptr, &maxDistance));
 #else
   SOUND_VERIFY(event_description.getMaximumDistance(&maxDistance));
+#endif
+#if DAGOR_DBGLEVEL > 0
+  if ((maxDistance > 8000.f || maxDistance <= 0.f) && is_event_3d_impl(event_description))
+  {
+    const auto name = get_debug_name(event_description);
+    if (strncmp(name.c_str(), "event:/player", strlen("event:/player")) != 0)
+      debug_trace_warn("wrong max distance(%.2f) for event \"%s\"", maxDistance, name.c_str());
+  }
 #endif
   return maxDistance;
 }
@@ -108,9 +117,12 @@ EventAttributes make_event_attributes(const FMOD::Studio::EventDescription &even
   SOUND_VERIFY(event_description.getID(&id));
   G_ASSERT(banks::is_valid_event(*reinterpret_cast<FMODGUID *>(&id)));
 #endif
+  const bool hasOcclusion = has_occlusion_impl(event_description);
+  const bool isDelayable = is_delayable_impl(event_description, hasOcclusion);
+
   return EventAttributes(get_event_max_distance_impl(event_description), is_event_oneshot_impl(event_description),
-    is_event_3d_impl(event_description), has_sustain_point_impl(event_description), has_occlusion_impl(event_description),
-    is_delayable_impl(event_description), get_user_label_idx(event_description));
+    is_event_3d_impl(event_description), has_sustain_point_impl(event_description), hasOcclusion, isDelayable,
+    get_user_label_idx(event_description));
 }
 
 EventAttributes find_event_attributes(const char *path, size_t path_len)

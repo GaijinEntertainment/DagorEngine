@@ -4,7 +4,7 @@
 #include <fmod_studio.hpp>
 #include <osApiWrappers/dag_critSec.h>
 #include <soundSystem/soundSystem.h>
-#include "internal/debug.h"
+#include "internal/debug_internal.h"
 
 namespace sndsys
 {

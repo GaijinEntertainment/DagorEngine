@@ -36,7 +36,7 @@ shader heightmap
   hlsl(vs) {
     #define decode_height(a) ((a)*heightmap_scale.x+heightmap_scale.y)
 
-## if hardware.dx11 || hardware.ps4
+## if hardware.dx11 || hardware.dx12 || hardware.ps4
     #define input_used_instance_id HW_input_used_instance_id
     #define used_instance_id HW_used_instance_id
     #define USED_INSTANCE_ID HW_USED_INSTANCE_ID

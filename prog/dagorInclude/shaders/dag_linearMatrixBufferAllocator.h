@@ -35,10 +35,10 @@ public:
   }
   bool canCopyInSameHeap() const { return sbufferHeapManager.canCopyInSameHeap(); }
   bool canCopyOverlapped() const { return sbufferHeapManager.canCopyOverlapped(); }
-  bool create(Heap &h, size_t sz)
+  bool create(Heap &h, size_t sz, ResourceTagType tag)
   {
     h.bindposeArr.resize(sz); // no clearing, keep data, so it can be copied over
-    return sbufferHeapManager.create(h.buffer, sz * MTX_SIZE);
+    return sbufferHeapManager.create(h.buffer, sz * MTX_SIZE, tag);
   }
   void orphan(Heap &h)
   {

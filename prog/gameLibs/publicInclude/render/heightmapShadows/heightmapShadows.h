@@ -7,6 +7,7 @@
 #include <math/integer/dag_IBBox2.h>
 #include <generic/dag_staticTab.h>
 #include <3d/dag_resPtr.h>
+#include <EASTL/unique_ptr.h>
 
 // is_same = true means that we are continue to render same cascade
 // needed_now is always within needed_for_cascade

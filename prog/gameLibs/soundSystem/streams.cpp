@@ -15,9 +15,9 @@
 #include <memory/dag_framemem.h>
 #include "internal/fmodCompatibility.h"
 #include "internal/framememString.h"
-#include "internal/streams.h"
+#include "internal/streams_internal.h"
 #include "internal/pool.h"
-#include "internal/debug.h"
+#include "internal/debug_internal.h"
 
 namespace sndsys
 {

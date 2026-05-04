@@ -209,6 +209,16 @@ void serve_process_output(ExecutionState &state, ProcessHandle &hnd)
   hnd.hasCommunicated = true;
 }
 
+eastl::string convert_message(eastl::string_view msg)
+{
+  eastl::string out{""};
+  out.reserve(msg.length());
+  for (char c : msg)
+    if (c != '\r')
+      out.push_back(c);
+  return out;
+}
+
 void send_interrupt_signal_to_process(const ProcessHandle &process)
 {
   GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, process.processData->dwProcessId);

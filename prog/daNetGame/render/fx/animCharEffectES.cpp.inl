@@ -5,9 +5,13 @@
 #include "render/fx/effectEntity.h"
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/utility/ecsRecreate.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/utility/ecsRecreate.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/anim/anim.h>
 #include <EASTL/unique_ptr.h>
 
@@ -41,6 +45,7 @@ ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimCharEffectNode, "animchar_effect", nullptr,
 ECS_ON_EVENT(on_appear)
 ECS_NO_ORDER
 void start_animchar_effect_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   AnimCharEffectNode &animchar_effect,
   const ecs::string &animchar_effect__effect,
@@ -50,7 +55,7 @@ void start_animchar_effect_es_event_handler(const ecs::Event &,
   animchar.getNodeTree().getNodeWtmScalar(animchar_effect.effectNodeId, transform);
   ecs::ComponentsInitializer attrs;
   ECS_INIT(attrs, transform, transform);
-  animchar_effect.effectEid = g_entity_mgr->createEntityAsync(animchar_effect__effect.c_str(), eastl::move(attrs));
+  animchar_effect.effectEid = manager.createEntityAsync(animchar_effect__effect.c_str(), eastl::move(attrs));
 
   {
     ecs::ComponentsInitializer comps;
@@ -62,7 +67,7 @@ void start_animchar_effect_es_event_handler(const ecs::Event &,
 
 ECS_ON_EVENT(on_disappear)
 ECS_NO_ORDER
-void end_animchar_effect_es_event_handler(const ecs::Event &, const AnimCharEffectNode &animchar_effect)
+void end_animchar_effect_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, const AnimCharEffectNode &animchar_effect)
 {
-  g_entity_mgr->destroyEntity(animchar_effect.effectEid);
+  manager.destroyEntity(animchar_effect.effectEid);
 }

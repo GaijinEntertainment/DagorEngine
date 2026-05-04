@@ -18,10 +18,16 @@ class INetworkObserver;
 namespace dedicated
 {
 
+#if DAGOR_HOSTED_INTERNAL_SERVER
+inline constexpr bool is_hosted_server_instance() { return true; }
+inline constexpr bool is_dedicated() { return true; }
+#else
+inline constexpr bool is_hosted_server_instance() { return false; }
 #if _TARGET_PC
 bool is_dedicated();
 #else
 inline constexpr bool is_dedicated() { return false; }
+#endif
 #endif
 void update();
 void shutdown();

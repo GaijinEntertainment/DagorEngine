@@ -18,7 +18,7 @@ struct InternalRegistry;
 /// \brief Represents a request for a certain global state to be set during the node's execution.
 class StateRequest
 {
-  friend class Registry;
+  friend class BaseRegistry;
   StateRequest(InternalRegistry *reg, NodeNameId nodeId);
 
 public:

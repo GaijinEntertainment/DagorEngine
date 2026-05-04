@@ -22,6 +22,7 @@
 class ComputeShaderElement;
 class DataBlock;
 class NodeBasedShader;
+enum class NodeBasedShaderQuality : uint32_t;
 
 class VolumeLight
 {
@@ -52,12 +53,13 @@ public:
   void setResolution(int resW, int resH, int resD, int screenW, int screenH);
   void setRange(float range);
   void setCurrentView(int view);
+  void setNbsQuality(NodeBasedShaderQuality nbs_quality);
 
   void switchOff();
   void switchOn();
   void closeShaders();
   void beforeReset();
-  void afterReset();
+  void afterReset(bool reset_shaders = true);
   void invalidate();
 
   bool performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm,
@@ -187,4 +189,89 @@ protected:
   DistantFogQuality distantFogQuality = DistantFogQuality::Disabled;
 
   bool enableVolfogShadows = false;
+
+  struct ShaderVars
+  {
+    ShaderVariableInfo prev_globtm_psf_0 = ShaderVariableInfo("prev_globtm_psf_0");
+    ShaderVariableInfo prev_globtm_psf_1 = ShaderVariableInfo("prev_globtm_psf_1");
+    ShaderVariableInfo prev_globtm_psf_2 = ShaderVariableInfo("prev_globtm_psf_2");
+    ShaderVariableInfo prev_globtm_psf_3 = ShaderVariableInfo("prev_globtm_psf_3");
+    ShaderVariableInfo prev_world_view_pos = ShaderVariableInfo("prev_world_view_pos", true);
+    ShaderVariableInfo globtm_psf_0 = ShaderVariableInfo("globtm_psf_0");
+    ShaderVariableInfo globtm_psf_1 = ShaderVariableInfo("globtm_psf_1");
+    ShaderVariableInfo globtm_psf_2 = ShaderVariableInfo("globtm_psf_2");
+    ShaderVariableInfo globtm_psf_3 = ShaderVariableInfo("globtm_psf_3");
+    ShaderVariableInfo prev_initial_inscatter = ShaderVariableInfo("prev_initial_inscatter");
+    ShaderVariableInfo prev_initial_inscatter_samplerstate = ShaderVariableInfo("prev_initial_inscatter_samplerstate");
+    ShaderVariableInfo prev_initial_extinction = ShaderVariableInfo("prev_initial_extinction");
+    ShaderVariableInfo prev_initial_extinction_samplerstate = ShaderVariableInfo("prev_initial_extinction_samplerstate");
+    ShaderVariableInfo initial_media_samplerstate = ShaderVariableInfo("initial_media_samplerstate");
+    ShaderVariableInfo volfog_prev_range_ratio = ShaderVariableInfo("volfog_prev_range_ratio");
+    ShaderVariableInfo volfog_froxel_volume_res = ShaderVariableInfo("volfog_froxel_volume_res");
+    ShaderVariableInfo inv_volfog_froxel_volume_res = ShaderVariableInfo("inv_volfog_froxel_volume_res");
+    ShaderVariableInfo volfog_froxel_range_params = ShaderVariableInfo("volfog_froxel_range_params");
+    ShaderVariableInfo jitter_ray_offset = ShaderVariableInfo("jitter_ray_offset");
+    ShaderVariableInfo volfog_occlusion = ShaderVariableInfo("volfog_occlusion");
+    ShaderVariableInfo prev_volfog_occlusion = ShaderVariableInfo("prev_volfog_occlusion");
+    ShaderVariableInfo prev_distant_fog_inscatter = ShaderVariableInfo("prev_distant_fog_inscatter");
+    ShaderVariableInfo prev_distant_fog_inscatter_samplerstate = ShaderVariableInfo("prev_distant_fog_inscatter_samplerstate");
+    ShaderVariableInfo prev_distant_fog_reconstruction_weight = ShaderVariableInfo("prev_distant_fog_reconstruction_weight");
+    ShaderVariableInfo prev_distant_fog_reconstruction_weight_samplerstate =
+      ShaderVariableInfo("prev_distant_fog_reconstruction_weight_samplerstate");
+    ShaderVariableInfo distant_fog_result_inscatter = ShaderVariableInfo("distant_fog_result_inscatter");
+    ShaderVariableInfo distant_fog_result_inscatter_samplerstate = ShaderVariableInfo("distant_fog_result_inscatter_samplerstate");
+    ShaderVariableInfo distant_fog_raymarch_resolution = ShaderVariableInfo("distant_fog_raymarch_resolution");
+    ShaderVariableInfo distant_fog_reconstruction_resolution = ShaderVariableInfo("distant_fog_reconstruction_resolution");
+    ShaderVariableInfo fog_raymarch_frame_id = ShaderVariableInfo("fog_raymarch_frame_id");
+    ShaderVariableInfo distant_fog_local_view_z = ShaderVariableInfo("distant_fog_local_view_z");
+    ShaderVariableInfo prev_distant_fog_raymarch_start_weights = ShaderVariableInfo("prev_distant_fog_raymarch_start_weights");
+    ShaderVariableInfo prev_distant_fog_raymarch_start_weights_samplerstate =
+      ShaderVariableInfo("prev_distant_fog_raymarch_start_weights_samplerstate");
+    ShaderVariableInfo volfog_media_fog_input_mul = ShaderVariableInfo("volfog_media_fog_input_mul");
+    ShaderVariableInfo volfog_blended_slice_cnt = ShaderVariableInfo("volfog_blended_slice_cnt");
+    ShaderVariableInfo mip_gen_input_tex = ShaderVariableInfo("mip_gen_input_tex");
+    ShaderVariableInfo mip_gen_input_tex_samplerstate = ShaderVariableInfo("mip_gen_input_tex_samplerstate");
+    ShaderVariableInfo mip_gen_input_tex_size = ShaderVariableInfo("mip_gen_input_tex_size");
+    ShaderVariableInfo volfog_blended_slice_start_depth = ShaderVariableInfo("volfog_blended_slice_start_depth");
+    ShaderVariableInfo distant_fog_use_smart_raymarching_pattern = ShaderVariableInfo("distant_fog_use_smart_raymarching_pattern");
+    ShaderVariableInfo distant_fog_reconstruction_params_0 = ShaderVariableInfo("distant_fog_reconstruction_params_0");
+    ShaderVariableInfo distant_fog_reconstruction_params_1 = ShaderVariableInfo("distant_fog_reconstruction_params_1");
+    ShaderVariableInfo distant_fog_disable_occlusion_check = ShaderVariableInfo("distant_fog_disable_occlusion_check");
+    ShaderVariableInfo distant_fog_disable_temporal_filtering = ShaderVariableInfo("distant_fog_disable_temporal_filtering");
+    ShaderVariableInfo distant_fog_disable_unfiltered_blurring = ShaderVariableInfo("distant_fog_disable_unfiltered_blurring");
+    ShaderVariableInfo distant_fog_reconstruct_current_frame_bilaterally =
+      ShaderVariableInfo("distant_fog_reconstruct_current_frame_bilaterally");
+    ShaderVariableInfo distant_fog_reprojection_type = ShaderVariableInfo("distant_fog_reprojection_type");
+    ShaderVariableInfo distant_fog_use_stable_filtering = ShaderVariableInfo("distant_fog_use_stable_filtering");
+    ShaderVariableInfo distant_fog_raymarch_params_0 = ShaderVariableInfo("distant_fog_raymarch_params_0");
+    ShaderVariableInfo distant_fog_raymarch_params_1 = ShaderVariableInfo("distant_fog_raymarch_params_1");
+    ShaderVariableInfo distant_fog_raymarch_params_2 = ShaderVariableInfo("distant_fog_raymarch_params_2");
+    ShaderVariableInfo channel_swizzle_indices = ShaderVariableInfo("channel_swizzle_indices");
+    ShaderVariableInfo froxel_fog_dispatch_mode = ShaderVariableInfo("froxel_fog_dispatch_mode");
+    ShaderVariableInfo froxel_fog_fading_params = ShaderVariableInfo("froxel_fog_fading_params");
+    ShaderVariableInfo volfog_hardcoded_input_type = ShaderVariableInfo("volfog_hardcoded_input_type");
+    ShaderVariableInfo distant_fog_use_static_shadows = ShaderVariableInfo("distant_fog_use_static_shadows");
+    ShaderVariableInfo prev_volfog_weight = ShaderVariableInfo("prev_volfog_weight");
+    ShaderVariableInfo prev_volfog_weight_samplerstate = ShaderVariableInfo("prev_volfog_weight_samplerstate");
+    ShaderVariableInfo static_shadows_cascades = ShaderVariableInfo("static_shadows_cascades");
+    ShaderVariableInfo froxel_fog_use_experimental_offscreen_reprojection =
+      ShaderVariableInfo("froxel_fog_use_experimental_offscreen_reprojection");
+    ShaderVariableInfo volfog_occlusion_rw = ShaderVariableInfo("volfog_occlusion_rw");
+    ShaderVariableInfo volfog_occlusion_shadow_rw = ShaderVariableInfo("volfog_occlusion_shadow_rw");
+    ShaderVariableInfo volfog_gi_sampling_mode = ShaderVariableInfo("volfog_gi_sampling_mode");
+    ShaderVariableInfo disable_volfog_ff_occlusion = ShaderVariableInfo("disable_volfog_ff_occlusion");
+    ShaderVariableInfo disable_volfog_shadow_occlusion = ShaderVariableInfo("disable_volfog_shadow_occlusion");
+    ShaderVariableInfo global_time_phase = ShaderVariableInfo("global_time_phase");
+
+    ShaderVariableInfo volfog_shadow_res = ShaderVariableInfo("volfog_shadow_res", true);
+    ShaderVariableInfo prev_volfog_shadow = ShaderVariableInfo("prev_volfog_shadow", true);
+    ShaderVariableInfo prev_volfog_shadow_samplerstate = ShaderVariableInfo("prev_volfog_shadow_samplerstate", true);
+    ShaderVariableInfo volfog_shadow_accumulation_factor = ShaderVariableInfo("volfog_shadow_accumulation_factor", true);
+    ShaderVariableInfo volfog_shadow = ShaderVariableInfo("volfog_shadow", true);
+    ShaderVariableInfo volfog_shadow_samplerstate = ShaderVariableInfo("volfog_shadow_samplerstate", true);
+    ShaderVariableInfo view_result_inscatter_samplerstate = ShaderVariableInfo("view_result_inscatter_samplerstate", true);
+  } vars;
+
+  bool hasDistantFogStaticShadows() const;
+  bool hasFroxelFogExperimentalOffscreenReprojection() const;
 };

@@ -29,7 +29,8 @@ struct ProhibitedBankDesc
 };
 using ProhibitedBankDescs = dag::ConstSpan<ProhibitedBankDesc>;
 
-void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs = {});
+void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs = {},
+  dag::ConstSpan<const char *> no_mod_banks_names = {});
 
 using PresetLoadedCallback = eastl::function<void(str_hash_t, bool)>;
 using ErrorCallback = eastl::function<void(const char * /*sndsys_message*/, const char * /*fmod_error_message*/,

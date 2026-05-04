@@ -5,7 +5,7 @@ require soundSystem
 require strings
 require level
 require Dacoll
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 
 
 // ..........................................................

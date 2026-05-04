@@ -5,8 +5,14 @@ hlsl {
   #include "dagdp_common_placer.hlsli"
 }
 
+float dagdp__global_density_mul = 1;
+
 macro USE_DAGDP_COMMON_PLACER()
   READ_WORLD_SDF(cs)
+
+  (cs) {
+    dagdp__global_density_mul@f1 = dagdp__global_density_mul;
+  }
 
   hlsl(cs) {
     #define NO_GRADIENTS_IN_SHADER 1
@@ -28,7 +34,7 @@ macro USE_DAGDP_COMMON_PLACER()
       if (flags & SLOPE_PLACEMENT_IS_INVERTED_BIT)
         w = 1.0 - w;
 
-      return r <= w;
+      return r <= w * dagdp__global_density_mul;
     }
 
     bool checkOcclusion(float occlusionRange, float occlusionMin, float occlusionMax, float3 worldPos, float3 worldNorm, float r)
@@ -37,7 +43,8 @@ macro USE_DAGDP_COMMON_PLACER()
       if (occlusionRange < 0.001)
         return true;
 
-      float occ = compute_simple_sdf_occlusion(worldPos, worldNorm, occlusionRange);
+      const float normalBias = 0.5;
+      float occ = compute_simple_sdf_occlusion(worldPos, worldNorm, occlusionRange, normalBias);
       float w = smoothstep(occlusionMin, occlusionMax, occ);
       return r <= w;
     }
@@ -196,7 +203,7 @@ macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
     {
       // The branch below can confuse FXC and lead to failed uniform flow control checks.
       // This additional sync satifies the compiler, and unlike the previous workaround, prevents device hang on Intel GPUs.
-      ##if hardware.dx11
+      ##if hardware.dx11 || hardware.dx12
         GroupMemoryBarrierWithGroupSync();
       ##endif
 

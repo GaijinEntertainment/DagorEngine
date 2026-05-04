@@ -3,15 +3,16 @@ Location = prog/tools/dargbox ;
 
 #Config = rel ;
 include $(Root)/prog/tools/tools_setup.jam ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 SqVarTrace ?= yes ;
-LinuxUseX11 = yes ;
+LinuxUseGUI = yes ;
 
 Config ?= dev ;
 TargetType  = exe ;
 
 Target      = tools/dargbox ;
 if $(Platform)-$(PlatformArch) = windows-x86_64 { Target = $(Target)-64 ; }
+if $(Platform)-$(PlatformArch) = windows-arm64 { Target = $(Target)-arm64 ; }
 if ! $(Platform) in windows linux { ReproducibleExeBuild = no ; }
 
 if $(Config) = rel { # this is only needed to build with warnings-as-errors
@@ -103,8 +104,6 @@ UseProgLibs =
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/udp
   gameLibs/quirrel/sqDataCache
-  gameLibs/quirrel/lastInputMonitor
-  gameLibs/ecs/input
   engine/perfMon
   engine/consoleProc
   tools/libTools/util
@@ -114,7 +113,6 @@ UseProgLibs =
   3rdPartyLibs/image/jpeg-6b
   3rdPartyLibs/image/avif
   3rdPartyLibs/image/psdRead
-  3rdPartyLibs/lottie
 
   1stPartyLibs/daScript
 ;
@@ -126,6 +124,7 @@ if $(Platform) in windows {
     engine/drv/hid_joystick
     engine/drv/hid_dinput
     engine/drv/hid_gamepad_xinput
+    gameLibs/quirrel/win_registry
   ;
   include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
 }
@@ -277,7 +276,7 @@ if ! $(Platform) in android nswitch {
   }
 }
 
-if $(Platform)-$(PlatformArch) = windows-x86 { UseMemoryDebugLevel = dbg ; }
+if $(Platform) = windows { UseMemoryDebugLevel = dbg ; }
 
 
 if $(VRDeviceSupport) = yes {
@@ -287,6 +286,7 @@ if $(VRDeviceSupport) = yes {
   ;
 }
 if [ GLOB $(Root)/prog/gameLibs/quirrel/matchingModule : jamfile ] {
+  HaveStunChecker = no ;
   UseProgLibs += gameLibs/matchingClient gameLibs/quirrel/matchingModule 1stPartyLibs/matching ;
   CPPopt += -DHAS_MATCHING_MODULE ;
 }

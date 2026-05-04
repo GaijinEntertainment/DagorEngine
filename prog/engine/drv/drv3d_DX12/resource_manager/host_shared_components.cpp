@@ -27,7 +27,7 @@ HostDeviceSharedMemoryRegion UploadRingMemoryProvider::allocateUploadRingMemory(
   auto result = uploadRing.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   if (!result)
   {
-    device.processEmergencyDefragmentation(getPushHeapProperties().raw, true, false, false);
+    device.processEmergencyDefragmentation(getPushHeapProperties().raw, true, false, false, size, false);
     result = uploadRing.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
@@ -51,7 +51,7 @@ HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUpload(D
   HostDeviceSharedMemoryRegion result = tryAllocateTempUpload(adapter, device.getDevice(), size, alignment, should_flush, errorCode);
   if (!result)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, size, false);
     errorCode = S_OK;
     result = tryAllocateTempUpload(adapter, device.getDevice(), size, alignment, should_flush, errorCode);
   }
@@ -97,7 +97,7 @@ HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUploadFo
   HostDeviceSharedMemoryRegion result = tryAllocateTempUploadForUploadBuffer(adapter, device.getDevice(), size, alignment, errorCode);
   if (is_oom_error_code(errorCode))
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, size, false);
     errorCode = S_OK;
     result = tryAllocateTempUploadForUploadBuffer(adapter, device.getDevice(), size, alignment, errorCode);
   }
@@ -115,7 +115,7 @@ HostDeviceSharedMemoryRegion PersistentUploadMemoryProvider::allocatePersistentU
     D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   if (!result)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, size, false);
     result = uploadMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
@@ -134,7 +134,7 @@ HostDeviceSharedMemoryRegion PersistentReadBackMemoryProvider::allocatePersisten
     D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   if (!result)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, size, false);
     result = readBackMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
@@ -153,7 +153,7 @@ HostDeviceSharedMemoryRegion PersistentBidirectionalMemoryProvider::allocatePers
     D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   if (!result)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false);
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, size, false);
     result = bidirectionalMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),

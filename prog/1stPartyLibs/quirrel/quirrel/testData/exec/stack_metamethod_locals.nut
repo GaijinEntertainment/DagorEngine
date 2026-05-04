@@ -34,4 +34,11 @@ function fn1(n, ...) {
 
 }
 
-fn1(10000)
+try {
+  fn1(500)
+  fn1(500)
+  println("OK")
+}
+catch (e) {
+  println("Exception:", e)
+}

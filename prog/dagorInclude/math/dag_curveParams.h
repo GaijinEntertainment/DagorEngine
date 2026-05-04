@@ -133,7 +133,7 @@ public:
   }
 
 
-  real sample(real x)
+  real sample(real x) const
   {
     if (type == 1)
       return ((coef[3] * x + coef[2]) * x + coef[1]) * x + coef[0];

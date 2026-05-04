@@ -5,11 +5,45 @@
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <osApiWrappers/dag_globalMutex.h>
 #include <webui/shaderEditors.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <libTools/util/fileUtils.h>
+#include <ioSys/dag_fileIo.h>
+#include <generic/dag_enumerate.h>
+#include <util/dag_finally.h>
+#include <util/dag_hash.h>
 
 #include "../DebugLevel.h"
+
+#include <shaders/dag_shBindumps.h>
+ShaderBindumpHandle load_additional_shaders_bindump(dag::ConstSpan<uint8_t>, char const *) { return INVALID_BINDUMP_HANDLE; }
+ShaderBindumpHandle load_additional_shaders_bindump(char const *, d3d::shadermodel::Version) { return INVALID_BINDUMP_HANDLE; }
+bool reload_shaders_bindump(ShaderBindumpHandle, dag::ConstSpan<uint8_t>, char const *) { return false; }
+bool reload_shaders_bindump(ShaderBindumpHandle, char const *, d3d::shadermodel::Version) { return false; }
+void unload_shaders_bindump(ShaderBindumpHandle) {}
+uint32_t get_shaders_bindump_generation(ShaderBindumpHandle) { return 0; }
+
+static constexpr struct
+{
+  const char *platform = nullptr;
+  const char *dscSuff = nullptr;
+  const char *dumpSuff = nullptr;
+  const char *additionalArgs = nullptr;
+  bool skip = false;
+} DSC_TABLE[NodeBasedShaderManager::PLATFORM::COUNT] = {
+  {"dx11", "hlsl11", "", ""},
+  {"", "", "", "", true},
+  {"ps4", "ps4", "PS4", ""},
+  {"spirv", "spirv", "SpirV", ""},
+  {"dx12", "dx12", "DX12", ""},
+  {"dx12x", "dx12", "DX12x", "-platform-xbox-one"},
+  {"dx12xs", "dx12", "DX12xs", "-platform-xbox-scarlett"},
+  {"ps5", "ps5", "PS5", ""},
+  {"metal", "metal", "MTL", ""},
+  {"spirvb", "spirv", "SpirV", "-enableBindless:on"},
+  {"metalb", "metal", "MTL", "-enableBindless:on"},
+};
 
 static void show_header()
 {
@@ -22,36 +56,34 @@ static void showUsage()
 {
   show_header();
   printf("\nUsage:\n"
-         "  dsc2-nodeBased-dev.exe <options (-g: and -p: are required)>\n"
+         "  dsc2-nodeBased-dev.exe <options (-p: is required)>\n"
          "\n"
          "Common options:\n"
          "  -v - verbose\n"
          "  -f - force rebuild all files (even if not modified)\n"
-         "  -u - update in-graph shader code\n"
          "  -g:<game folder> - set game folder\n"
          "  -s:<subgraphs folder> - set folder with subgraphs\n"
          "  -p:<plugin name> - set plugin name, for example -p:shader_editor\n"
          "  -singleInputJson:<graph file name> - set single graph file name (.json)\n"
          "  -singleOutputBin:<prefix of compiled shaders> - file name without extension\n"
+         "  -dshlShaderName:<name for runtime usage> - sets shader name for dshl build, required\n"
          "  -listTargets - show all available build targets\n"
          "  -target:<build target> - set build target\n"
-         "  -silent - don't show names of compiled binaries\n"
          "  -optionalGraphs:<graph filename[;other graph filename]> - names for optional graphs for permutations compilation\n");
 }
 
 struct Settings
 {
   bool forceRebuild;
-  bool updateGraphs;
   bool verbose;
   bool listTargets;
-  bool silent;
+  bool depDumpOnly;
   String target;
-  String gameFolder;
   String subgraphsFolder;
   String pluginName;
   String singleInputJson;
   String singleOutputBin;
+  String dshlShaderName;
   NodeBasedShaderManager::PLATFORM platformId;
   String optionalGraphs;
 };
@@ -61,10 +93,9 @@ static Settings settings;
 void processArguments(int argc, char **argv)
 {
   settings.forceRebuild = false;
-  settings.updateGraphs = false;
   settings.verbose = false;
   settings.listTargets = false;
-  settings.silent = false;
+  settings.depDumpOnly = false;
   settings.platformId = NodeBasedShaderManager::PLATFORM::ALL;
 
   for (int i = 1; i < argc; ++i)
@@ -72,20 +103,14 @@ void processArguments(int argc, char **argv)
     if (strcmp(argv[i], "-f") == 0)
       settings.forceRebuild = true;
 
-    if (strcmp(argv[i], "-u") == 0)
-      settings.updateGraphs = true;
-
     if (strcmp(argv[i], "-v") == 0)
       settings.verbose = true;
-
-    if (strcmp(argv[i], "-silent") == 0)
-      settings.silent = true;
 
     if (strcmp(argv[i], "-listTargets") == 0)
       settings.listTargets = true;
 
-    if (strncmp(argv[i], "-g:", 3) == 0)
-      settings.gameFolder.setStr(argv[i] + 3);
+    if (strcmp(argv[i], "-dependencyDumpOnly") == 0)
+      settings.depDumpOnly = true;
 
     if (strncmp(argv[i], "-s:", 3) == 0)
       settings.subgraphsFolder.setStr(argv[i] + 3);
@@ -104,17 +129,18 @@ void processArguments(int argc, char **argv)
 
     if (strncmp(argv[i], "-optionalGraphs:", 16) == 0)
       settings.optionalGraphs.setStr(argv[i] + 16);
+
+    if (strncmp(argv[i], "-dshlShaderName:", 16) == 0)
+      settings.dshlShaderName.setStr(argv[i] + 16);
   }
 
   if (settings.verbose)
   {
     printf("V: forceRebuild=%d\n", int(settings.forceRebuild));
-    printf("V: updateGraphs=%d\n", int(settings.updateGraphs));
     printf("V: verbose=%d\n", int(settings.verbose));
-    printf("V: silent=%d\n", int(settings.silent));
     printf("V: listTargets=%d\n", int(settings.listTargets));
+    printf("V: depDumpOnly=%d\n", int(settings.depDumpOnly));
     printf("V: target=%s\n", settings.target.str());
-    printf("V: gameFolder=%s\n", settings.gameFolder.str());
     printf("V: subgraphsFolder=%s\n", settings.subgraphsFolder.str());
     printf("V: pluginName=%s\n", settings.pluginName.str());
     printf("V: singleInputJson=%s\n", settings.singleInputJson.str());
@@ -123,12 +149,27 @@ void processArguments(int argc, char **argv)
 
   if (settings.listTargets)
   {
-    Tab<String> platforms;
-    NodeBasedShaderManager::getPlatformList(platforms, NodeBasedShaderManager::PLATFORM::ALL);
-    for (int i = 0; i < platforms.size(); i++)
-      printf("%s\n", platforms[i].str());
+    for (const auto &entry : DSC_TABLE)
+      if (!entry.skip)
+        printf("%s\n", entry.platform);
 
     exit(0);
+  }
+
+  if (settings.singleInputJson.empty())
+  {
+    printf("\nERROR: '-singleInputJson:' must be set\n");
+    exit(1);
+  }
+  if (settings.singleOutputBin.empty())
+  {
+    printf("\nERROR: '-singleOutputBin:' must be set\n");
+    exit(1);
+  }
+  if (settings.dshlShaderName.empty())
+  {
+    printf("\nERROR: '-dshlShaderName:' must be set\n");
+    exit(1);
   }
 
   if (!settings.singleOutputBin.empty() && settings.target.empty())
@@ -139,10 +180,8 @@ void processArguments(int argc, char **argv)
 
   if (!settings.target.empty())
   {
-    Tab<String> platforms;
-    NodeBasedShaderManager::getPlatformList(platforms, NodeBasedShaderManager::PLATFORM::ALL);
-    for (int i = 0; i < platforms.size(); i++)
-      if (!strcmp(platforms[i].str(), settings.target.str()))
+    for (const auto &[i, entry] : enumerate(DSC_TABLE))
+      if (!entry.skip && !strcmp(entry.platform, settings.target.str()))
         settings.platformId = NodeBasedShaderManager::PLATFORM(i);
 
     if (settings.platformId == NodeBasedShaderManager::PLATFORM::ALL)
@@ -152,122 +191,8 @@ void processArguments(int argc, char **argv)
     }
   }
 
-  if (settings.singleInputJson.empty() != settings.singleOutputBin.empty())
-  {
-    printf("\nERROR: both arguments -singleInputJson: and -singleOutputBin: must be set\n");
-    exit(1);
-  }
-
-  if (settings.singleInputJson.empty())
-    if (settings.gameFolder.empty())
-    {
-      printf("\nERROR: game folder is not set (-g:)\n");
-      exit(1);
-    }
-
-  if (settings.pluginName.empty())
-  {
-    printf("\nERROR: plugin name is not set (-p:)\n");
-    exit(1);
-  }
-
-  if (settings.subgraphsFolder.empty())
+  if (settings.subgraphsFolder.empty() && !settings.depDumpOnly)
     printf("WARNING: subgraphs folder is not set (-s:)\n");
-}
-
-bool updateGraph(const char *graph_name, const char *output_name)
-{
-  if (settings.verbose)
-    printf("V: update graph %s\n", graph_name);
-
-  String cmd;
-  cmd.aprintf(0, "set \"ROOTJSON=%s\" && ", graph_name);
-  cmd.aprintf(0, "set \"OUTPUTJSON=%s\" && ", output_name);
-  cmd.aprintf(0, "set \"PLUGIN=%s\" && ", settings.pluginName.str());
-  cmd.aprintf(0, "set \"SUBGRAPHSDIR=%s\" && ", settings.subgraphsFolder.str());
-  cmd.aprintf(0, "pushd ..\\..\\graphEditor\\offlineGraphUpdater && call rebuildGraph.bat && popd");
-
-  if (settings.verbose)
-    printf("V: executing: %s\n", cmd.str());
-
-  int res = system(cmd);
-
-  if (settings.verbose)
-    printf("V: result = %d\n", res);
-
-  return res == 0;
-}
-
-eastl::vector<String> findLevelDirectories(const String &game_folder)
-{
-  eastl::vector<String> levelDirectories;
-  const String fileMask = game_folder + "/content/*";
-  for (const alefind_t &file : dd_find_iterator(fileMask, DA_SUBDIR))
-  {
-    levelDirectories.push_back(String(file.name));
-    if (settings.verbose)
-      printf("V: level directory: %s\n", file.name);
-  }
-  return levelDirectories;
-}
-
-String extractFilenameWithoutExt(String filename)
-{
-  char filenameBuffer[270] = {0};
-  dd_get_fname_without_path_and_ext(filenameBuffer, 260, filename.str());
-  do
-  {
-    filename = String(filenameBuffer);
-    dd_get_fname_without_path_and_ext(filenameBuffer, 260, filename.str());
-  } while (filename != String(filenameBuffer));
-  return filename;
-}
-
-struct StringLessComparator
-{
-  bool operator()(const String &s1, const String &s2) const
-  {
-    bool less = true;
-    const int minLength = static_cast<int>(min(s1.size(), s2.size()));
-    for (int i = 0; i < minLength && less; ++i)
-      less &= s1[i] <= s2[i];
-    return less && s1 != s2 && s1.size() <= s2.size();
-  }
-};
-
-eastl::vector<String> findShaderSources(const String &root)
-{
-  eastl::vector<String> shaderFiles;
-  for (const String &levelDir : findLevelDirectories(root))
-  {
-    const String fileDir = root + "/content/" + levelDir + "/shaders/";
-
-    eastl::map<String, int64_t, StringLessComparator> compiledShadersModificationTime;
-    if (!settings.forceRebuild)
-    {
-      const String binFileMask = fileDir + "*.bin";
-      for (const alefind_t &file : dd_find_iterator(binFileMask, DA_FILE))
-        compiledShadersModificationTime[extractFilenameWithoutExt(String(file.name))] = file.mtime;
-    }
-
-    const String fileMask = fileDir + "*.json";
-    for (const alefind_t &file : dd_find_iterator(fileMask, DA_FILE))
-    {
-      String s = fileDir + file.name;
-      if (settings.forceRebuild || compiledShadersModificationTime[extractFilenameWithoutExt(String(file.name))] <= file.mtime)
-      {
-        shaderFiles.push_back(s);
-        if (settings.verbose)
-          printf("V: will be processed: %s\n", s.str());
-      }
-      else
-      {
-        if (settings.verbose)
-          printf("V: will be ignored: %s\n", s.str());
-      }
-    }
-  }
-  return shaderFiles;
 }
 
 static String readFileToString(const char *file_name)
@@ -367,47 +292,6 @@ DataBlock read_shader_data_block(const String &shader_filename, NodeBasedShaderT
   return result;
 }
 
-
-String get_parent_dir_prefix(String filename)
-{
-  String res("");
-  for (int i = 0; i < 16; i++)
-  {
-    if (dd_file_exists(res + filename))
-      return res;
-    res += "..\\";
-  }
-
-  return res;
-}
-
-
-static void get_include_file_names(const String &root_file, Tab<String> &includeGraphNames)
-{
-  // test include
-  String rootGraphDir = root_file;
-  char *p = max(strrchr(rootGraphDir.str(), '\\'), strrchr(rootGraphDir.str(), '/'));
-  if (p)
-    *p = 0;
-  else
-    clear_and_shrink(rootGraphDir);
-
-  includeGraphNames.push_back(String(0, "%s/%s", rootGraphDir.str(), "empty_include_graph.json"));
-}
-
-static String join_str(Tab<String> &arr, const char *delimiter)
-{
-  String res;
-  for (int i = 0; i < arr.size(); i++)
-  {
-    if (!res.empty())
-      res += delimiter;
-    res += arr[i];
-  }
-
-  return res;
-}
-
 static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
 {
   String result;
@@ -425,7 +309,21 @@ static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
   return result;
 }
 
-int DagorWinMain(bool debugmode)
+static NodeBasedShaderType plug_name_to_type(char const *plug_name)
+{
+  if (strcmp(plug_name, FOG_SHADER_EDITOR_PLUGIN_NAME) == 0)
+    return NodeBasedShaderType::Fog;
+  else if (strcmp(plug_name, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
+    return NodeBasedShaderType::EnviCover;
+  else
+  {
+    printf("ERROR: plugin in file '%s' is not recognized as a valid shader editor type!", settings.singleInputJson.str());
+    exit(1);
+    return NodeBasedShaderType::Fog;
+  }
+}
+
+int DagorWinMain(bool)
 {
   // get options
   if (__argc < 2)
@@ -441,36 +339,35 @@ int DagorWinMain(bool debugmode)
   }
 
   processArguments(__argc, __argv);
+  int res = 0;
 
-  NodeBasedShaderManager::initCompilation();
+  char exePath[1024];
+  dag_get_appmodule_dir(exePath, sizeof(exePath));
 
-  if (!settings.singleInputJson.empty()) // soon there will be only this codepass
+  String pluginName;
+  if (settings.depDumpOnly)
   {
-    int res = 0;
+    pluginName = settings.pluginName; // Save file read
+  }
+  else if (!is_correct_plugin(settings.singleInputJson, pluginName))
+  {
+    printf("ERROR: plugin in file '%s' is incorrect, expected '%s'", settings.singleInputJson.str(), settings.pluginName.str());
+    return 1;
+  }
 
-    String pluginName;
-    if (!is_correct_plugin(settings.singleInputJson, pluginName))
-    {
-      printf("ERROR: plugin in file '%s' is incorrect, expected '%s'", settings.singleInputJson.str(), settings.pluginName.str());
-      return 1;
-    }
+  String outputDshl = settings.singleInputJson + "." + settings.target + ".tmp";
+  String outputDscBlk = settings.singleInputJson + "." + settings.target + ".blk.tmp";
 
-    String outputJson = settings.singleInputJson + ".compiled.tmp";
+  // We need to use pluginName to identify shaderType as outputJson does not exist yet.
+  NodeBasedShaderType shaderType = plug_name_to_type(pluginName);
 
-    // We need to use pluginName to identify shaderType as outputJson does not exist yet.
-    NodeBasedShaderType shaderType;
-    if (strcmp(pluginName, FOG_SHADER_EDITOR_PLUGIN_NAME) == 0)
-      shaderType = NodeBasedShaderType::Fog;
-    else if (strcmp(pluginName, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
-      shaderType = NodeBasedShaderType::EnviCover;
-    else
-    {
-      printf("ERROR: plugin in file '%s' is not recognized as a valid shader editor type!", settings.singleInputJson.str());
-      return 1;
-    }
+  String dshl;
+  DataBlock shaderBlk;
 
-    char exePath[1024];
-    dag_get_appmodule_dir(exePath, sizeof(exePath));
+  if (!settings.depDumpOnly)
+  {
+    String outputJson = settings.singleInputJson + "." + settings.target + ".compiled.tmp";
+    FINALLY([&] { dd_erase(outputJson.str()); });
 
     String cmd(0,
       "call %s\\duktape.exe "
@@ -490,114 +387,114 @@ int DagorWinMain(bool debugmode)
     res += system(cmd.str());
     if (res)
     {
-      dd_erase(outputJson.str());
       printf("ERROR: failed to run rebuildShaderCode.js");
       return 1;
     }
 
     String errors;
-    const DataBlock shaderBlk = read_shader_data_block(outputJson, shaderType);
-    NodeBasedShaderManager shaderManager(shaderType, get_shader_name(shaderType), get_shader_suffix(shaderType));
-
-    const bool compilationSuccess = shaderManager.update(shaderBlk, errors, settings.platformId);
-
-    dd_erase(outputJson.str());
-
-    if (!compilationSuccess)
-    {
-      printf("\nERROR: Compilation Error: %s\nExiting...\n", errors.str());
-      exit(1);
-    }
-    else
-    {
-      shaderManager.saveToFile(settings.singleOutputBin, settings.platformId);
-      if (settings.verbose)
-        printf("V: saveShaders %s\n", settings.singleOutputBin.str());
-
-      Tab<String> fileNames;
-      shaderManager.getShadersBinariesFileNames(settings.singleOutputBin, fileNames, settings.platformId);
-      if (!settings.silent)
-        for (int i = 0; i < fileNames.size(); i++)
-          printf("%s\n", fileNames[i].str());
-    }
-
-    return res;
+    shaderBlk = read_shader_data_block(outputJson, shaderType);
   }
 
+  shaderBlk.setStr("shader_name", "\n" + settings.dshlShaderName);
+  // @TODO: remove this lib-level dependency -- header should be enough, the substitution code is trivial
+  dshl = ShaderGraphRecompiler::substituteDshl(shaderType, shaderBlk);
 
-  const eastl::vector<String> shaderFiles = findShaderSources(settings.gameFolder);
+  String dscBlk = String(0,
+    R"(
+          shader_root_dir:t="."
+          outDumpName:t="%s"
+          engineRootDir:t="%s/../../.."
+          compileCppStcode:b=no
+          source {
+            file:t="%s"
+            includePath:t="%s/../../../prog/gameLibs/webui/plugins/shaderEditors"
+            includePath:t="%s/../../../prog/gameLibs/render/shaders"
+            includePath:t="%s/../../../prog/gameLibs/daSDF/shaders"
+          }
+          Compile {
+            fsh:t = 5.0
+            additional_dump:b = yes
+          }
+        )",
+    settings.singleOutputBin, exePath, outputDshl, exePath, exePath, exePath);
 
-  if (settings.verbose)
-    printf("V: total files to build: %d\n", int(shaderFiles.size()));
+  FINALLY([&] {
+    dd_erase(outputDshl.str());
+    dd_erase(outputDscBlk.str());
+  });
 
+  auto writeFile = [](const String &name, const String &content) {
+    FullFileSaveCB file(name.str());
+    if (!file.fileHandle)
+    {
+      G_ASSERTF(0, "Cannot write to file '%s'", name.str());
+      return false;
+    }
 
-  for (String shaderFile : shaderFiles)
+    file.write(content.str(), content.length());
+    return true;
+  };
+
+  if (!writeFile(outputDshl, dshl))
+    return 1;
+  if (!writeFile(outputDscBlk, dscBlk))
+    return 1;
+
+  auto makeHashedName = [](const auto &s) { return String{0, "lsh.%x", str_hash_fnv1<64>(s.c_str())}; };
+
+  char const *forceArgs = settings.forceRebuild ? "-r -no_sha1_cache" : "";
+
+  // @TODO: fork join for speed (separate tmp files will be needed)
+  for (int platformId =
+         (settings.platformId == NodeBasedShaderManager::PLATFORM::ALL ? NodeBasedShaderManager::PLATFORM::DX11 : settings.platformId);
+       platformId < (settings.platformId == NodeBasedShaderManager::PLATFORM::ALL ? NodeBasedShaderManager::PLATFORM::COUNT
+                                                                                  : settings.platformId + 1);
+       ++platformId)
   {
-    bool eraseTmp = false;
-    char shaderName[270] = {0};
-    dd_get_fname_without_path_and_ext(shaderName, 260, shaderFile.str());
-    printf("Shader name: %s\n", dd_get_fname(shaderName));
-    char shaderLocation[270] = {0};
-    dd_get_fname_location(shaderLocation, shaderFile.str());
-
-    String pluginName;
-    if (!is_correct_plugin(shaderFile, pluginName))
-    {
-      if (settings.verbose)
-        printf("V: Plugin mismatch. Skipping...\n");
-
+    if (DSC_TABLE[platformId].skip)
       continue;
+
+    struct Sha1CacheMutex
+    {
+      void *mutex = nullptr;
+      String name{};
+      explicit Sha1CacheMutex(int platform_id) : name{String("dsc_sha1_") + String(DSC_TABLE[platform_id].platform)}
+      {
+        if (!settings.depDumpOnly)
+          mutex = global_mutex_create_enter(name.str());
+      }
+      ~Sha1CacheMutex()
+      {
+        if (!settings.depDumpOnly)
+          global_mutex_leave_destroy(mutex, name.str());
+      }
+    } lock{platformId};
+
+    String cmd(0,
+      "call %s\\dsc2-%s-dev.exe %s -q -shaderOn -nodisassembly -commentPP -codeDumpErr -r -cj0 %s -o "
+      "%s\\..\\..\\..\\_output\\lshader\\shaders~%s~%s -quiet -supressLogs %s",
+      exePath, DSC_TABLE[platformId].dscSuff, outputDscBlk, DSC_TABLE[platformId].additionalArgs, exePath,
+      DSC_TABLE[platformId].platform, makeHashedName(outputDshl).str(), forceArgs);
+
+    if (settings.depDumpOnly)
+    {
+      cmd += " -dependencyDumpMode -dependencyDumpFile ";
+      cmd += settings.singleOutputBin;
     }
 
-    if (settings.updateGraphs)
-    {
-      eraseTmp = true;
-      String outFile;
-      outFile.printf(0, "%s.compiled.tmp", shaderFile.str());
-      updateGraph(shaderFile, outFile);
-      shaderFile = outFile.str();
-    }
+    if (settings.verbose)
+      printf("\nexecuting: %s\n\n", cmd.str());
 
-    String errors;
-    NodeBasedShaderType shaderType;
-    const DataBlock shaderBlk = read_shader_data_block(shaderFile, shaderType);
-    NodeBasedShaderManager shaderManager(shaderType, get_shader_name(shaderType), get_shader_suffix(shaderType));
-    const bool compilationSuccess = shaderManager.update(shaderBlk, errors, settings.platformId);
-
-    if (eraseTmp)
+    res += system(cmd.str());
+    if (res)
     {
-      if (settings.verbose)
-        printf("V: erasing %s\n", shaderFile.str());
-
-      dd_erase(shaderFile);
-    }
-
-    if (!compilationSuccess)
-    {
-      printf("\nERROR: Compilation Error: %s\nExiting...\n", errors.str());
-      exit(1);
-    }
-    else
-    {
-      shaderManager.saveToFile(String(shaderName), settings.platformId);
-      if (settings.verbose)
-        printf("V: saveShaders %s\n", shaderName);
+      printf("ERROR: failed to run dsc");
+      return 1;
     }
   }
 
   if (settings.verbose)
     printf("V: done\n");
 
-  return 0;
+  return res;
 }
-
-// stub for func used in NodeBasedShaderManager::resetCachedResources()
-void release_managed_res(D3DRESID id) {}
-
-#if !HAS_PS4_PS5_TRANSCODE
-bool compile_compute_shader_ps5(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
-bool compile_compute_shader_ps4(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
-#endif
-#if !HAS_XBOX_TRANSCODE
-bool compile_compute_shader_xboxone(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return false; }
-#endif

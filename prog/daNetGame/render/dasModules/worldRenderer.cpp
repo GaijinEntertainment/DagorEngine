@@ -41,7 +41,6 @@ DAS_BASE_BIND_ENUM(FeatureRenderFlags,
   WATER_REFLECTION,
   BLOOM,
   MICRODETAILS,
-  FORWARD_RENDERING,
   POSTFX,
   STATIC_SHADOWS,
   CLUSTERED_LIGHTS,
@@ -108,6 +107,7 @@ public:
     das::addEnumFlagOps<UpdateStageInfoRender::RenderPass>(*this, lib, "UpdateStageInfoRender::RenderPass");
 
     addEnumeration(das::make_smart<EnumerationFeatureRenderFlags>());
+    addEnumeration(das::make_smart<EnumerationCockpitReprojectionMode>());
     das::addExtern<DAS_BIND_FUN(bind_dascript::toggleFeature)>(*this, lib, "toggleFeature", das::SideEffects::modifyExternal,
       "bind_dascript::toggleFeature");
     das::addExtern<DAS_BIND_FUN(UiPostFxManager::setBlurUpdateEnabled)>(*this, lib, "setBlurUpdateEnabled",
@@ -129,6 +129,9 @@ public:
       "bind_dascript::worldRenderer_getDynamicResolutionTargetFps");
     das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_setDaGdpRangeScale)>(*this, lib, "worldRenderer_setDaGdpRangeScale",
       das::SideEffects::modifyExternal, "bind_dascript::worldRenderer_setDaGdpRangeScale");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::worldRenderer_setCockpitReprojectionMode)>(*this, lib,
+      "worldRenderer_setCockpitReprojectionMode", das::SideEffects::modifyExternal,
+      "bind_dascript::worldRenderer_setCockpitReprojectionMode");
     das::addExtern<DAS_BIND_FUN(bind_dascript::does_world_renderer_exist)>(*this, lib, "does_world_renderer_exist",
       das::SideEffects::accessExternal, "bind_dascript::does_world_renderer_exist");
 
@@ -140,6 +143,8 @@ public:
       das::SideEffects::modifyArgument, "::get_postfx_resolution");
     das::addExtern<DAS_BIND_FUN(::invalidate_ssr_history)>(*this, lib, "invalidate_ssr_history", das::SideEffects::modifyExternal,
       "::invalidate_ssr_history");
+    das::addExtern<DAS_BIND_FUN(::luminance_filter_ssr_history)>(*this, lib, "luminance_filter_ssr_history",
+      das::SideEffects::modifyExternal, "::luminance_filter_ssr_history");
 
     G_UNUSED(pf);
 

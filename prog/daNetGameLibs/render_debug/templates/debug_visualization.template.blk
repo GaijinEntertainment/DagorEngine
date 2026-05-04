@@ -21,3 +21,15 @@ debug_indoor_probe_boxes{
   _tags:t="render,dev"
   "debugIndoorProbeBoxesNode:dafg::NodeHandle"{_tags:t="render"}
 }
+
+debug_show_depth_above{
+  _singleton:b=yes
+  _tags:t="render,dev"
+  "debugShowDepthAboveNode:dafg::NodeHandle"{_tags:t="render"}
+}
+
+gpu_driven_debug_render{
+  _singleton:b=yes
+  _tags:t="render,dev"
+  "gpu_driven_debug_render:GpuDrivenDebugRender"{_tags:t="render"}
+}

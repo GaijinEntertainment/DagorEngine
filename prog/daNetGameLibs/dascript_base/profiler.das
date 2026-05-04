@@ -2,7 +2,7 @@ module profiler
 
 require ecs
 require daProfiler
-require debugapi
+require daslib/debugger
 
 // USAGE:
 // 1. add `require %danetlibs.dascript_base.profiler` line to any dascript file

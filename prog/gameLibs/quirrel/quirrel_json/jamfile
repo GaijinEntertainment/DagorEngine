@@ -26,6 +26,6 @@ UseProgLibs =
   3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 include $(Root)/prog/_jBuild/build.jam ;

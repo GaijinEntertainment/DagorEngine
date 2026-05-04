@@ -82,6 +82,7 @@ public:
   volatile bool executingImmediate = false;
   volatile bool breakOnEvent = false;
   bool runtimeErrorState = false;
+  int myIndex = -1;
   int stackDepth = 0;
   String lastRuntimeError = String("");
   DagSqBreakCb breakCallback = nullptr;
@@ -115,10 +116,11 @@ public:
 
   void breakFromNativeCode(const char *function_name);
 
-private:
-  DagSqDebugger() = default;
   void init(SqModules *module_mgr, const char *description);
   void shutdown();
+
+private:
+  DagSqDebugger() = default;
 
   static SQInteger setObjPrintFunction(HSQUIRRELVM vm);
 
@@ -131,13 +133,15 @@ class DagSqDebuggers
   DagSqDebugger debuggers[MAX_SQ_DEBUGGERS];
 
 public:
-  DagSqDebuggers() = default;
+  DagSqDebuggers();
 
-  void initDebugger(int index, SqModules *module_mgr, const char *description);
+  void initDebugger(int index, SqModules *module_mgr, const char *description); // deprecated
+  void shutdownDebugger(HSQUIRRELVM vm);                                        // deprecated
   void shutdownDebugger(int index);
   bool isVmRegistered(HSQUIRRELVM vm);
   DagSqDebugger &get(HSQUIRRELVM vm);
   DagSqDebugger &get(int index);
+  DagSqDebugger *allocate();
   const char *getDescription(HSQUIRRELVM vm);
   const char *getDescription(int index);
 };

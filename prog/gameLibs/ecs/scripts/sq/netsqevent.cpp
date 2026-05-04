@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/scripts/netsqevent.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <daECS/net/schemelessEventSerialize.h>
 #include <daECS/net/msgSink.h>
 #include <daECS/net/netbase.h>
 #include <sqrat.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/net/msgDecl.h>
 #include <daNet/bitStream.h>
 

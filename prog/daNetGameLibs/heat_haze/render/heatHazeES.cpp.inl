@@ -10,6 +10,8 @@
 #include <render/deferredRenderer.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
+#include <render/resolution.h>
+#include <render/renderer.h>
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/cameraViewVisibilityManager.h>
@@ -40,20 +42,31 @@ static dafg::NodeHandle makeHeatHazeRenderClearNode(HeatHazeRenderer *heatHazeRe
     // Only supported in WT
     G_ASSERT(!heatHazeRenderer->isHazeAppliedManual());
 
-    registry.create("haze_rendered", dafg::History::No).blob<bool>(false);
-    registry.createTexture2d("haze_depth", dafg::History::No, {TEXFMT_R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
+    registry.create("haze_rendered").blob<bool>(false);
+    registry.createTexture2d("early_haze_depth", {TEXFMT_R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
       .clear(ResourceClearValue{});
 
-    registry
-      .createTexture2d("haze_offset", dafg::History::No, {TEXFMT_A16B16G16R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
+    registry.createTexture2d("early_haze_offset", {TEXFMT_A16B16G16R16F | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
       .clear(ResourceClearValue{});
 
     bool isColoredHazeSuppored = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("coloredHaze", false);
     if (isColoredHazeSuppored)
     {
-      registry.createTexture2d("haze_color", dafg::History::No, {TEXFMT_DEFAULT | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
+      registry.createTexture2d("early_haze_color", {TEXFMT_DEFAULT | TEXCF_RTARGET | TEXCF_ESRAM_ONLY, hazeResolution})
         .clear(make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
     }
+  });
+}
+
+static dafg::NodeHandle makeHeatHazeRenderBeforeParticlesNode()
+{
+  return dafg::register_node("heat_haze_render_before_particles_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.renameTexture("early_haze_depth", "haze_depth");
+    registry.renameTexture("early_haze_offset", "haze_offset");
+
+    const bool isColoredHazeSupported = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("coloredHaze", false);
+    if (isColoredHazeSupported)
+      registry.renameTexture("early_haze_color", "haze_color");
   });
 }
 
@@ -62,6 +75,7 @@ static dafg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatHa
   return dafg::register_node("heat_haze_render_particles_node", DAFG_PP_NODE_SRC,
     [heatHazeRenderer, heatHazeLod](dafg::Registry registry) {
       registry.orderMeAfter("under_water_fog_node");
+      registry.readBlob<OrderingToken>("acesfx_update_token");
       registry.orderMeBefore("transparent_scene_late_node");
       registry.allowAsyncPipelines();
 
@@ -75,11 +89,21 @@ static dafg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatHa
       const bool hasStencil = hasCamCamFeature;
       const dafg::Usage depthForTransparencyUsage =
         hasCamCamFeature ? dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE : dafg::Usage::SHADER_RESOURCE;
+
+      const int resDivisor = heatHazeRenderer->getHazeResolutionDivisor();
+      G_ASSERTF(resDivisor <= 2 || !hasStencil,
+        "heat_haze_render_particles_node requires depth target to be the same size as RT when stencil test is used. Yet we support "
+        "only full-res or half-res "
+        "depth tex. "
+        "Requested divisor is %d. It's unsupported.",
+        resDivisor);
+      const char *depthTexName = resDivisor == 1 || !hasStencil ? "depth_for_transparency" : "downsampled_depth_with_late_water";
+
       auto depthForTransparencyHndl =
-        registry.readTexture("depth_for_transparency").atStage(dafg::Stage::PS).useAs(depthForTransparencyUsage).handle();
+        registry.readTexture(depthTexName).atStage(dafg::Stage::PS).useAs(depthForTransparencyUsage).handle();
 
       auto texCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
-      auto cameraHndl = use_camera_in_camera(registry, false);
+      auto cameraHndl = use_camera_in_camera(registry, false).handle();
 
       registry.requestState().setFrameBlock("global_frame");
 
@@ -144,7 +168,7 @@ static dafg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatHa
         Texture *stencil = hasStencil ? depthForTransparencyHndl.view().getTex2D() : nullptr;
         acesfx::set_dafx_globaldata(camera.jitterGlobtm, camera.viewItm, camera.viewItm.getcol(3));
 
-        heatHazeRenderer->renderHazeParticles(hazeDepthHndl.get(), hazeOffsetHndl.get(), lodDepth.getTexId(),
+        heatHazeRenderer->renderHazeParticles(hazeDepthHndl.get(), hazeOffsetHndl.get(), lodDepth.getTex2D(),
           eastl::max(heatHazeLod - 1, 0), acesfx::renderTransHaze, riHazeRender, stencil);
 
         if (hazeColorHndl.get())
@@ -174,14 +198,38 @@ static dafg::NodeHandle makeHeatHazeApplyNode(HeatHazeRenderer *heatHazeRenderer
       TextureInfo backBufferInfo;
       depthForTransparencyHndl.view()->getinfo(backBufferInfo);
 
-      heatHazeRenderer->applyHaze(gameTimeHndl.ref(), nullptr, nullptr, BAD_TEXTUREID, depthForTransparencyHndl.view().getTexId(),
-        nullptr, BAD_TEXTUREID, {backBufferInfo.w, backBufferInfo.h});
+      heatHazeRenderer->applyHaze(gameTimeHndl.ref(), nullptr, nullptr, depthForTransparencyHndl.get(), nullptr,
+        {backBufferInfo.w, backBufferInfo.h});
     };
   });
 }
 
+int get_haze_divisor()
+{
+  const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
+  int hazeDivisor = max(graphicsBlk->getInt("hazeDivisor", 4), 1);
+
+  // Get hazeDivisor/divisor with max hazeDivisor/min_res_width, where min_res_width <= max_resolution.x
+  const IPoint2 max_resolution = get_max_possible_rendering_resolution();
+  int blockNum = -1;
+  int curWidth = -1;
+  while ((blockNum = graphicsBlk->findBlock("hazeDivisor", blockNum)) >= 0)
+  {
+    const DataBlock *blk = graphicsBlk->getBlock(blockNum);
+    int min_res_width = blk->getInt("min_res_width", 0);
+    if (curWidth < min_res_width && min_res_width <= max_resolution.x)
+    {
+      curWidth = min_res_width;
+      hazeDivisor = blk->getInt("divisor", hazeDivisor);
+    }
+  }
+
+  return hazeDivisor;
+}
+
 static void setup_heat_haze(HeatHazeManager &heatHazeManager,
   dafg::NodeHandle &heatHazeRenderClearNode,
+  dafg::NodeHandle &heatHazeRenderBeforeParticlesNode,
   dafg::NodeHandle &heatHazeRenderParticlesNode,
   dafg::NodeHandle &heatHazeApplyNode,
   int &heatHazeLod)
@@ -191,46 +239,43 @@ static void setup_heat_haze(HeatHazeManager &heatHazeManager,
 
   heatHazeRenderClearNode = {};
   heatHazeRenderParticlesNode = {};
+  heatHazeRenderBeforeParticlesNode = {};
   heatHazeApplyNode = {};
 
   if (renderer_has_feature(FeatureRenderFlags::HAZE))
   {
-    float hazeDivisor = float(max(::dgs_get_game_params()->getInt("hazeDivisor", 4), 1));
+    float hazeDivisor = get_haze_divisor();
     heatHazeManager.renderer = eastl::make_unique<HeatHazeRenderer>(hazeDivisor);
     heatHazeLod = get_log2w(hazeDivisor);
 
     heatHazeRenderClearNode = makeHeatHazeRenderClearNode(heatHazeManager.renderer.get());
+    heatHazeRenderBeforeParticlesNode = makeHeatHazeRenderBeforeParticlesNode();
     heatHazeRenderParticlesNode = makeHeatHazeRenderParticlesNode(heatHazeManager.renderer.get(), heatHazeLod);
     heatHazeApplyNode = makeHeatHazeApplyNode(heatHazeManager.renderer.get());
   }
 }
 
 ECS_TAG(render)
-ECS_ON_EVENT(OnRenderSettingsReady)
-static void init_heat_haze_es_event_handler(const ecs::Event &,
+ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures, SetResolutionEvent)
+static void init_heat_haze_es(const ecs::Event &evt,
   HeatHazeManager &heat_haze__manager,
   dafg::NodeHandle &heat_haze__render_clear_node,
+  dafg::NodeHandle &heat_haze__render_before_particles_node,
   dafg::NodeHandle &heat_haze__render_particles_node,
   dafg::NodeHandle &heat_haze__apply_node,
   int &heat_haze__lod)
 {
-  setup_heat_haze(heat_haze__manager, heat_haze__render_clear_node, heat_haze__render_particles_node, heat_haze__apply_node,
-    heat_haze__lod);
-}
+  if (!get_world_renderer())
+    return;
 
-ECS_TAG(render)
-ECS_ON_EVENT(ChangeRenderFeatures)
-static void heat_haze_render_features_changed_es_event_handler(const ecs::Event &evt,
-  HeatHazeManager &heat_haze__manager,
-  dafg::NodeHandle &heat_haze__render_clear_node,
-  dafg::NodeHandle &heat_haze__render_particles_node,
-  dafg::NodeHandle &heat_haze__apply_node,
-  int &heat_haze__lod)
-{
-  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
-    if (!(changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE) ||
-          changedFeatures->isFeatureChanged(FeatureRenderFlags::CAMERA_IN_CAMERA)))
-      return;
-  setup_heat_haze(heat_haze__manager, heat_haze__render_clear_node, heat_haze__render_particles_node, heat_haze__apply_node,
-    heat_haze__lod);
+  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>();
+      changedFeatures && !(changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE) ||
+                           changedFeatures->isFeatureChanged(FeatureRenderFlags::CAMERA_IN_CAMERA)))
+    return;
+
+  if (auto *resEvt = evt.cast<SetResolutionEvent>(); resEvt && resEvt->type == SetResolutionEvent::Type::DYNAMIC_RESOLUTION)
+    return;
+
+  setup_heat_haze(heat_haze__manager, heat_haze__render_clear_node, heat_haze__render_before_particles_node,
+    heat_haze__render_particles_node, heat_haze__apply_node, heat_haze__lod);
 }

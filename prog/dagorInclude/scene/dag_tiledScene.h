@@ -147,9 +147,11 @@ public:
     float max_box_to_split_count);
 
   int getTileCountInBox(bbox3f_cref box) const;
+  bbox3f_cref getTileBoxByIdx(uint32_t tile_idx) const { return tileBox[tile_idx]; }
 
 protected:
   node_index reserveOne();
+  __forceinline void clearReserves() { pendingNewNodesCount1 = pendingNewNodesCount2 = pendingNewNodesCount3 = 0; }
   void allocateNodeTile(node_index node, uint16_t pool, uint16_t flags);
   node_index allocateImm(node_index node, const mat44f &transform, uint16_t pool, uint16_t flags);
   void reallocateImm(node_index node, const mat44f &transform, uint16_t pool, uint16_t flags);
@@ -1293,8 +1295,10 @@ void scene::TiledScene::flushDeferredTransformUpdates(F user_cmd_processor)
   if (usedTilesCount == 0) // drop commands added after tile data was terminated
   {
     mDeferredCommand.clear();
+    clearReserves();
     return;
   }
+
   applyReserves();
   for (const DeferredCommand &c : mDeferredCommand)
   {

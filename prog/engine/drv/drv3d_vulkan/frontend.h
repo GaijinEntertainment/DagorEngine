@@ -19,6 +19,7 @@ class FramememBufferManager;
 struct ExecutionSyncCapture;
 struct ResourceReadbacks;
 class Swapchain;
+class SecondarySwapchainStorage;
 
 struct Frontend
 {
@@ -32,6 +33,8 @@ struct Frontend
   static ExecutionSyncCapture syncCapture;
   static ResourceReadbacks readbacks;
   static Swapchain swapchain;
+  static Swapchain *currentSwapchainToPresent;
+  static SecondarySwapchainStorage secondarySwapchains;
 
   struct State
   {

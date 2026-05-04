@@ -9,6 +9,7 @@ using namespace HumanInput;
 IGenJoystickClassDrv *HumanInput::createXinputJoystickClassDriver(bool should_mix_input)
 {
   Xbox360GamepadClassDriver *cd = new (inimem) Xbox360GamepadClassDriver(should_mix_input);
+  debug("[HID][XINP] driver created in %d devices mode", should_mix_input ? "mixed" : "separate");
   if (!cd->init())
   {
     delete cd;

@@ -23,12 +23,28 @@ Constants
 Constants bind a specific value to an identifier. Constants are similar to
 global values, except that they are evaluated compile time and their value cannot be changed.
 
-constants values can only be integers, floats or string literals. No expression are allowed.
-are declared with the following syntax.::
+Constants values can be:
+    * Simple types such as integers, floats, null, string literals
+    * Tables and arrays of simple types (nested table/arrayes are allowed)
+    * Values of other constants
+    * Results of evaluating pure functions
+    * Function declarations
+    * Arithmetic and logical expressions
+
+Constants are declared with the following syntax.::
 
     const foobar = 100
     const floatbar = 1.2
     const stringbar = "I'm a constant string"
+    const nullconst = null
+    const compound = { a = 10, b = "string", c = 1.2, d = [null, 555], e = [1,2,3] }
+    const another = foobar
+    const nested = compound.d[1]
+    const evaluated = foobar + (("a" in compound) ? compound.e[0] : (nullconst ?? floatbar))
+
+::
+    from "math" import max
+    const maxval = max(10, 20)
 
 Constants are locally scoped, from the moment they are declared.
 To make constant global, use the ``global`` keyword.::
@@ -46,9 +62,39 @@ To make constant global, use the ``global`` keyword.::
 Example::
 
   global const foo = 0
-  if ("foo" not in getconsttable()) 
+  if ("foo" not in getconsttable())
     global const foo = 1
   print(foo) //prints 1
+
+-----------------------
+Inline const expression
+-----------------------
+
+A `const` keyword can also be used in an expression to declare a local anonymous constant.
+
+::
+
+    let x = const [5,6,7]
+    println(x[2]) // prints 7
+
+    let y = 2>3 ? const [1,2,3] : const [8,9,0]
+    println(y[2]) // prints 0
+
+Using this method functions can be declared
+
+::
+
+    const lambda = @[pure](x) x*123
+    const foo = function [pure] foo() {}
+
+The latter expression can be written in a shorter form:
+
+::
+
+    const function [pure] foo() {}
+
+Functions declared as compile-time constants can contain nested functions,
+but cannot reference any outer variables.
 
 ---------------
 Enumerations
@@ -92,8 +138,7 @@ Like with constants, to declare globally-scoped enum, use the ``global`` keyword
 Implementation notes
 --------------------
 
-Enumerations and Constants are a compile-time feature. Only integers, string and floats can be declared as const/enum;
-No expressions are allowed (because they would have to be evaluated compile time).
+Enumerations and Constants are a compile-time feature.
 
 If a const or enum is global, when declared it is added compile time to the ``consttable``. This table is stored in the VM shared state
 and is shared by the VM and all its threads.

@@ -4,7 +4,7 @@
 
 // [[shader_local_functions]]
 
-[numthreads( 8, 8, 1)]
+[numthreads(ENVI_COVER_THREADS_X, ENVI_COVER_THREADS_Y, ENVI_COVER_THREADS_Z)]
 void node_based_envi_cover_cs(uint2 dtId : SV_DispatchThreadID)
 {
   float2 screenCoordCenter = dtId + 0.5;
@@ -12,7 +12,9 @@ void node_based_envi_cover_cs(uint2 dtId : SV_DispatchThreadID)
 
   DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
 
-  NBSGbuffer nbsGbuffer = init_NBSGbuffer(dtId);
+  NBSGbuffer initialNBSGbuffer = init_NBSGbuffer(dtId);
+  //Need to save initial version for reads in permutation
+  NBSGbuffer nbsGbuffer = initialNBSGbuffer;
 
   float rawDepth = texelFetch(depth_gbuf, dtId, 0).r;
 
@@ -25,4 +27,6 @@ void node_based_envi_cover_cs(uint2 dtId : SV_DispatchThreadID)
   float4 world_pos = float4(world_view_pos.xyz - pointToEye, 1);
 
   //[[shader_code]]
+
+  writeNBSGbuffer(nbsGbuffer, dtId);
 }

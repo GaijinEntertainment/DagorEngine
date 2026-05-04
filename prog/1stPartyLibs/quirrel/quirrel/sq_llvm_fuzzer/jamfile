@@ -13,12 +13,12 @@ OutDir      = $(Root)/tools/util ;
 if $(Config) = rel
 {
   PlatformSpec ?= clang ;
-  MemLib ?= memory/mimallocMem ;
+  UseMemoryAllocator ?= mimalloc ;
 }
 
 if $(Config) = rel { ForceLogs = yes ; }
 
-include $(Root)/prog/tools/tools_setup.jam ;
+include $(Root)/prog/tools/tools_setup.jam ; # FIXME_BROKEN_DEP
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Sources =
@@ -34,6 +34,7 @@ AddIncludes =
 UseProgLibs =
   engine/osApiWrappers
   engine/kernel
+  engine/memory
   engine/baseUtil
   engine/startup
   engine/ioSys
@@ -44,7 +45,6 @@ UseProgLibs =
   1stPartyLibs/quirrel/quirrel/sqmodules
 ;
 
-if $(MemLib) { UseProgLibs += engine/$(MemLib) ; } else { UseProgLibs += engine/memory ; }
 if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 Copt = $(CPPopt) ;

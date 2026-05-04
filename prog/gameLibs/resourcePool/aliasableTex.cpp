@@ -1,10 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <resourcePool/aliasableTex.h>
 #include <debug/dag_debug.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 #include <drv/3d/dag_texture.h>
 
 namespace resptr_detail
@@ -34,11 +35,12 @@ void AliasableManagedTex2D::recreate(int width, int height, int flags, int level
         "recreated",
     originalTexture->getTexName());
 
-  BaseTexture *previous =
-    eastl::exchange(mResource, d3d::create_tex(nullptr, width, height, flags, levels, originalTexture->getTexName()));
+  BaseTexture *previous = eastl::exchange(mResource,
+    d3d::create_tex(nullptr, width, height, flags, levels, originalTexture->getTexName(), RESTAG_ALIASABLE));
 
   G_ASSERT(mResource);
   change_managed_texture(mResId, mResource);
+  ShaderGlobal::sync_managed_resource(mResId, previous);
 
   currentKey = new_key;
   originalTexture = mResource;
@@ -106,6 +108,7 @@ void AliasableManagedTex2D::alias(int width, int height, int flags, int levels)
 
   change_managed_texture(mResId, mResource);
   d3d::resource_barrier({{previous, mResource}, {RB_ALIAS_FROM, RB_ALIAS_TO_AND_DISCARD}, {0, 0}, {0, 0}});
+  ShaderGlobal::sync_managed_resource(mResId, previous);
 
   currentKey = newKey;
   lastResId = mResId;

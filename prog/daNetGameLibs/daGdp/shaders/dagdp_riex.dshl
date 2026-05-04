@@ -20,8 +20,6 @@ hlsl(cs){
 
 shader dagdp_riex_patch_dynamic
 {
-  ENABLE_ASSERT(cs)
-
   (cs)
   {
     num_patches @i1 = dagdp_riex__num_patches;

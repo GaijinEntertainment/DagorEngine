@@ -5,7 +5,7 @@
 #include "guiScene.h"
 #include "elementRef.h"
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqstdaux.h>
 
 #include <dasModules/dasSystem.h>
@@ -24,7 +24,7 @@ SQInteger DasFunction::script_ctor(HSQUIRRELVM vm)
   G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, 2, &hScript)));
   Sqrat::Object scriptObj(hScript, vm);
 
-  if (sq_type(hScript) != OT_INSTANCE || !Sqrat::ClassType<DasScript>::IsClassInstance(hScript, false))
+  if (sq_type(hScript) != OT_INSTANCE || !Sqrat::ClassType<DasScript>::IsClassInstance(hScript))
     return sq_throwerror(vm, "Invalid 'script' argument for DasFunction constructor");
 
   const char *funcName = nullptr;

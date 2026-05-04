@@ -5,7 +5,7 @@ let {startswith, endswith} = require("string")
 
 function applyParams(func, params){
   let {parameters, defparams, varargs} = func.getfuncinfos()
-  assert(varargs==0, "no varargs allowed")
+  assert(!varargs, "no varargs allowed")
   let arguments = array(parameters.len())
   let defparamsOffset = parameters.len() - defparams.len()
   foreach (idx, paramname in parameters){

@@ -33,7 +33,7 @@ static inline TexPtr create_tex_from_raw_hmap_file(const char *name, int &width)
   int fsize = df_length(cb.fileHandle);
   width = integer_sqrt(fsize / 2);
   G_ASSERTF(width * width * 2 == fsize, "%d fsize %d", width, fsize);
-  ShaderGlobal::set_color4(get_shader_variable_id("tex_hmap_inv_sizes"), 1.0 / width, 1.0 / width, 0, 0);
+  ShaderGlobal::set_float4(get_shader_variable_id("tex_hmap_inv_sizes"), 1.0 / width, 1.0 / width, 0, 0);
 
   uint32_t texFMT = TEXFMT_L16;
   if ((d3d::get_texformat_usage(TEXFMT_L16) & d3d::USAGE_VERTEXTEXTURE))
@@ -181,7 +181,7 @@ static inline TexPtr create_tex_from_mtw(const char *name, float *out_cell_sz = 
 
   int tex_w = get_bigger_pow2(hdr.blkW * hdr.elemPerBlockW);
   int tex_h = get_bigger_pow2(hdr.blkH * hdr.elemPerBlockH);
-  ShaderGlobal::set_color4(get_shader_variable_id("tex_hmap_inv_sizes"), 1.0 / tex_w, 1.0 / tex_h, 0, 0);
+  ShaderGlobal::set_float4(get_shader_variable_id("tex_hmap_inv_sizes"), 1.0 / tex_w, 1.0 / tex_h, 0, 0);
 
   uint32_t texFMT = 0;
   if ((d3d::get_texformat_usage(TEXFMT_R32F) & d3d::USAGE_VERTEXTEXTURE))

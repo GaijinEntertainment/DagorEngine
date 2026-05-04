@@ -1,0 +1,1 @@
+The ``[for_loop_macro]`` structure annotation — registers an ``AstForLoopMacro`` subclass as a named macro that can transform ``for`` loop expressions.

@@ -39,7 +39,7 @@ public:
       OneFrame &b = vBuf.buf[i];
       b.texIdY = b.texIdU = b.texIdV = BAD_TEXTUREID;
 
-      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1);
+      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, RESTAG_VIDEO);
       if (!b.texY)
       {
         DEBUG_CTX("can't create tex %d: w=%d, h=%d, tex_flags=0x%08X", i, w, h, tex_flags);
@@ -51,8 +51,8 @@ public:
       if (ti.w < wd || ti.h < ht)
         return false;
 
-      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1);
-      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1);
+      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, RESTAG_VIDEO);
+      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, RESTAG_VIDEO);
       if (!b.texU || !b.texV)
       {
         DEBUG_CTX("can't create uv tex %d: w=%d, h=%d, tex_flags=0x%08X", i, w / 2, h / 2, tex_flags);

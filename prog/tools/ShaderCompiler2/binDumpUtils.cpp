@@ -24,10 +24,11 @@ template <class T>
 struct TabInd
 {
   Tab<T> slice;
+  Tab<uint8_t> meta;
   int index;
 
-  TabInd(dag::ConstSpan<T> s, int Index) : index(Index), slice(s, tmpmem) {}
-  TabInd() : slice(tmpmem) {}
+  TabInd(dag::ConstSpan<T> s, dag::ConstSpan<uint8_t> m, int Index) : index(Index), slice(s, tmpmem), meta(m, tmpmem) {}
+  TabInd() : slice(tmpmem), meta(tmpmem) {}
 };
 
 template <class T>
@@ -115,10 +116,15 @@ static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx
         case SHCOD_CS_CONST:
         case SHCOD_TEXTURE:
         case SHCOD_TEXTURE_VS:
+        case SHCOD_TEXTURE_CS:
         case SHCOD_SAMPLER:
         case SHCOD_REG_BINDLESS:
-        case SHCOD_RWTEX:
-        case SHCOD_RWBUF:
+        case SHCOD_RWTEX_CS:
+        case SHCOD_RWTEX_PS:
+        case SHCOD_RWTEX_VS:
+        case SHCOD_RWBUF_CS:
+        case SHCOD_RWBUF_PS:
+        case SHCOD_RWBUF_VS:
         case SHCOD_BUFFER:
         case SHCOD_CONST_BUFFER:
         case SHCOD_TLAS:
@@ -144,14 +150,14 @@ static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx
         case SHCOD_COPY_VEC: break;
 
         case SHCOD_STATIC_BLOCK:
-        case SHCOD_STATIC_MULTIDRAW_BLOCK:
+        case SHCOD_STATIC_MULTIDRAW_BLOCK: i += 2; break;
         case SHCOD_IMM_REAL:
         case SHCOD_MAKE_VEC: i++; break;
 
         case SHCOD_IMM_VEC: i += 4; break;
 
         case SHCOD_CALL_FUNCTION:
-          i += shaderopcode::getOp3p3(code[i]); // skip params
+          i += shaderopcode::getOpFunctionCall_ArgCount(code[i]); // skip params
           break;
 
         case SHCOD_GET_GINT:
@@ -208,12 +214,17 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
       case SHCOD_CS_CONST:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
+      case SHCOD_TEXTURE_CS:
       case SHCOD_SAMPLER:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
       case SHCOD_TLAS:
-      case SHCOD_RWTEX:
-      case SHCOD_RWBUF:
+      case SHCOD_RWTEX_CS:
+      case SHCOD_RWTEX_PS:
+      case SHCOD_RWTEX_VS:
+      case SHCOD_RWBUF_CS:
+      case SHCOD_RWBUF_PS:
+      case SHCOD_RWBUF_VS:
       case SHCOD_ADD_REAL:
       case SHCOD_SUB_REAL:
       case SHCOD_MUL_REAL:
@@ -236,7 +247,7 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
       case SHCOD_COPY_VEC: break;
 
       case SHCOD_STATIC_BLOCK:
-      case SHCOD_STATIC_MULTIDRAW_BLOCK:
+      case SHCOD_STATIC_MULTIDRAW_BLOCK: i += 2; break;
       case SHCOD_IMM_REAL:
       case SHCOD_MAKE_VEC: i++; break;
 
@@ -244,21 +255,21 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
 
       case SHCOD_CALL_FUNCTION:
       {
-        int fun = shaderopcode::getOp3p1(code[i]);
+        int fun = shaderopcode::getOpFunctionCall_FuncId(code[i]);
         if (fun == functional::BF_REQUEST_SAMPLER)
         {
           if (!smpTable.empty())
           {
-            int id = shaderopcode::getOp3p2(code[i]);
+            int id = shaderopcode::getOpFunctionCall_OutReg(code[i]);
             G_ASSERT(id >= 0 && id < smpTable.size());
-            code[i] = shaderopcode::makeOp3(op, fun, smpTable[id], shaderopcode::getOp3p3(code[i]));
+            code[i] = shaderopcode::makeOpFunctionCall(op, fun, smpTable[id], shaderopcode::getOpFunctionCall_ArgCount(code[i]));
           }
 
           int vi = code[i + 1];
           G_ASSERT(vi >= 0 && vi < remapTable.size());
           code[i + 1] = remapTable[vi];
         }
-        i += shaderopcode::getOp3p3(code[i]); // skip params
+        i += shaderopcode::getOpFunctionCall_ArgCount(code[i]); // skip params
       }
       break;
 
@@ -300,19 +311,25 @@ void bindumphlp::sortShaders(dag::ConstSpan<ShaderStateBlock *> blocks, shc::Tar
   Tab<TabInd<int32_t>> stIndexes(tmpmem);
 
   for (int i = 0; i < stor.ldShFsh.size(); i++)
-    fshIndexes.push_back(TabInd<uint32_t>(stor.ldShFsh[i], i));
+    fshIndexes.push_back(TabInd<uint32_t>(stor.ldShFsh[i], stor.ldShFshMetadata[i], i));
   sort(fshIndexes, &cmpTabInd);
   for (int i = 0; i < fshIndexes.size(); i++)
+  {
     stor.ldShFsh[i] = fshIndexes[i].slice;
+    stor.ldShFshMetadata[i] = fshIndexes[i].meta;
+  }
 
   for (int i = 0; i < stor.ldShVpr.size(); i++)
-    vprIndexes.push_back(TabInd<uint32_t>(stor.ldShVpr[i], i));
+    vprIndexes.push_back(TabInd<uint32_t>(stor.ldShVpr[i], stor.ldShVprMetadata[i], i));
   sort(vprIndexes, &cmpTabInd);
   for (int i = 0; i < vprIndexes.size(); i++)
+  {
     stor.ldShVpr[i] = vprIndexes[i].slice;
+    stor.ldShVprMetadata[i] = vprIndexes[i].meta;
+  }
 
   for (int i = 0; i < stor.shadersStcode.size(); i++)
-    stIndexes.push_back(TabInd<int32_t>(stor.shadersStcode[i], i));
+    stIndexes.push_back(TabInd<int32_t>(stor.shadersStcode[i], {}, i));
 
   sort(stIndexes, &cmpTabInd);
 

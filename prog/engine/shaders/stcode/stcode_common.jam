@@ -2,6 +2,9 @@ TargetType = dll ;
 Exceptions = no ;
 Config ?= dev ;
 
+BuildDagorEngineIndependentCode = yes ;
+ForcePdb = yes ;
+
 include $(Root)/prog/_jBuild/defPlatform.jam ;
 
 if $(Platform) in windows xboxOne scarlett ps4 ps5 android nswitch macOS iOS {
@@ -27,10 +30,9 @@ if $(Platform) = iOS {
     BundleName = $(Target:B) ;
     BundleTitle = $(BundleName) ;
     BundleID = $(BundleName) ;
+    BundleExe = $(BundleName).dylib ;
   }
 }
-
-BuildDagorEngineIndependentCode = yes ;
 
 include $(Root)/prog/_jBuild/jCommonRules.jam ;
 
@@ -40,7 +42,7 @@ AddIncludes =
 
 Sources += stcode_main.stcode.gen.cpp ;
 
-if $(Platform) in macOS iOS {
+if $(Platform) in macOS iOS ps5 {
   CPPopt += -O3 -ffast-math ;
 } else {
   CPPopt += -Ofast ;

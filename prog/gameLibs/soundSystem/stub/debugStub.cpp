@@ -19,4 +19,5 @@ void set_draw_audibility(bool) {}
 void debug_enum_events() {}
 void debug_enum_events(const char *, eastl::function<void(const char *)> &&) {}
 void debug_init(const DataBlock &) {}
+void set_debug_filter(const char *) {}
 } // namespace sndsys

@@ -26,6 +26,7 @@
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <rendInst/rendInstExtraRender.h>
+#include <rendInst/impostor.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <fx/dag_leavesWind.h>
 #include "../shaders/pack_impostor_texture.hlsl"
@@ -47,17 +48,20 @@ enum PreviewMode
   ROUGHNESS
 };
 
-#define VAR(a) static ShaderVariableInfo a##VarId(#a);
-VAR(texture_size)
-VAR(impostor_depth_scale)
-VAR(imgui_channel_mask)
-VAR(imgui_draw_function)
-VAR(impostor_color_padding)
-VAR(impostor_packed_albedo_alpha)
-VAR(impostor_packed_normal_translucency)
+#define SHADER_VARS_LIST            \
+  VAR(texture_size)                 \
+  VAR(impostor_depth_scale)         \
+  VAR(imgui_channel_mask)           \
+  VAR(imgui_draw_function)          \
+  VAR(impostor_color_padding)       \
+  VAR(impostor_packed_albedo_alpha) \
+  VAR(impostor_packed_normal_translucency)
+
+#define VAR(a) static int a##VarId = -1;
+SHADER_VARS_LIST
 #undef VAR
 
-static constexpr int MIN_RESOLUTION = 8;
+static constexpr int MIN_RESOLUTION = 4;
 
 static IPoint2 resolution(512, 128);
 static char data_folder[DAGOR_MAX_PATH] = "";
@@ -151,13 +155,13 @@ struct BakingData
     {
       for (auto &asset : baking.assets)
       {
-        auto res = get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(asset.blk.getStr("name")), RendInstGameResClassId);
+        auto res = get_one_game_resource_ex(asset.blk.getStr("name"), RendInstGameResClassId);
         if (!res)
           logerr("failed to load '%s' for baking of grass impostor '%s'", asset.blk.getStr("name"), baking.impostor.name.c_str());
         asset.model = reinterpret_cast<RenderableInstanceLodsResource *>(res);
         if (asset.model)
           asset.model->gatherUsedTex(baking.usedTexIds);
-        release_game_resource(res);
+        release_game_resource_ex(res, RendInstGameResClassId);
       }
 
       interlocked_or(baking.ready, 1);
@@ -270,12 +274,23 @@ static void perform_padding(const PostFxRenderer &padder, UniqueTex &src_ad, Uni
   TextureInfo info;
   dst_ad.getTex2D()->getinfo(info, mip);
   d3d::setview(0, 0, info.w, info.h, 0, 1);
-  ShaderGlobal::set_color4(texture_sizeVarId, Color4(info.w, info.h, 0, 0));
+  ShaderGlobal::set_float4(texture_sizeVarId, Color4(info.w, info.h, 0, 0));
   src_ad.getTex2D()->texmiplevel(mip, mip);
   src_nt.getTex2D()->texmiplevel(mip, mip);
   ShaderGlobal::set_texture(impostor_packed_albedo_alphaVarId, src_ad.getTexId());
   ShaderGlobal::set_texture(impostor_packed_normal_translucencyVarId, src_nt.getTexId());
   padder.render();
+}
+
+static void swap_rg(rgba_surface &image)
+{
+  uint8_t *ptr = image.ptr;
+  for (int y = 0, w = image.width, h = image.height, s = image.stride; y < h; y++, ptr += s)
+  {
+    auto p = ptr;
+    for (int x = 0; x < w; x++, p += 4)
+      eastl::swap(p[0], p[2]);
+  }
 }
 
 void fast_grass_baker_on_render()
@@ -310,20 +325,20 @@ void fast_grass_baker_on_render()
 
   int mips = get_log2i(min(resolution.x, resolution.y) / MIN_RESOLUTION) + 1;
   UniqueTex albedo_alpha = dag::create_tex(nullptr, resolution.x, resolution.y,
-    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_rt_albedo_alpha");
+    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_rt_albedo_alpha", RESTAG_GRASS);
   UniqueTex padded_albedo_alpha = dag::create_tex(nullptr, resolution.x, resolution.y,
-    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_padded_albedo_alpha");
+    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_padded_albedo_alpha", RESTAG_GRASS);
   UniqueTex normal_translucency = dag::create_tex(nullptr, resolution.x, resolution.y,
-    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_rt_normal_translucency");
+    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_rt_normal_translucency", RESTAG_GRASS);
   UniqueTex padded_normal_translucency = dag::create_tex(nullptr, resolution.x, resolution.y,
-    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_padded_normal_translucency");
+    TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, mips, "fast_grass_baker_padded_normal_translucency", RESTAG_GRASS);
 
   const static unsigned formats[] = {TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A8R8G8B8, TEXFMT_A8R8G8B8};
   DeferredRT defrt("fast_grass_baker", resolution.x * RENDER_OVERSCALE, resolution.y * RENDER_OVERSCALE,
     DeferredRT::StereoMode::MonoOrMultipass, 0, 3, formats, TEXFMT_DEPTH16);
 
-  eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> rendinstMatrixBuffer(
-    d3d::create_sbuffer(sizeof(Point4), 4u, SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, "fast_grass_baker_matrix_buffer"));
+  eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> rendinstMatrixBuffer(d3d::create_sbuffer(sizeof(Point4), 4u,
+    SBCF_BIND_SHADER_RES, TEXFMT_A32B32G32R32F, "fast_grass_baker_matrix_buffer", RESTAG_GRASS));
 
   PostFxRenderer packTexturesShader;
   PostFxRenderer genMipShader;
@@ -450,12 +465,12 @@ void fast_grass_baker_on_render()
         cb.setBBoxZero();
         cb.setOpacity(0, 1);
         cb.setBoundingSphere(0, 0, 1, 1, 0);
-        cb.setInstancing(0, 3, 0, 0);
+        cb.setInstancing(0, 3, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, 0);
         cb.flushPerDraw();
         d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
-        mesh->render();
-        mesh->render_trans();
+        rendinst::render::impostorRenderer.render(mesh->getElems(ShaderMesh::Stage::STG_opaque, ShaderMesh::Stage::STG_atest));
+        rendinst::render::impostorRenderer.render(mesh->getElems(ShaderMesh::Stage::STG_trans));
       }
     }
 
@@ -481,9 +496,9 @@ void fast_grass_baker_on_render()
     d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO, {{albedo_alpha.getTex2D(), 0}, {normal_translucency.getTex2D(), 0}});
     d3d::setview(0, 0, resolution.x, resolution.y, 0, 1);
     defrt.setVar();
-    ShaderGlobal::set_color4(texture_sizeVarId, Color4(resolution.x, resolution.y, 0, 0));
+    ShaderGlobal::set_float4(texture_sizeVarId, Color4(resolution.x, resolution.y, 0, 0));
     // map -0.5..1 to 0..3 after unpacking z near/far, for better depth representation in 8 bit
-    ShaderGlobal::set_color4(impostor_depth_scaleVarId, Color4((Z_NEAR - Z_FAR) * 2 * 2, Z_FAR * 2 + 1, 0, 0));
+    ShaderGlobal::set_float4(impostor_depth_scaleVarId, Color4((Z_NEAR - Z_FAR) * 2 * 2, Z_FAR * 2 + 1, 0, 0));
     // The STATE_GUARD_NULLPTR macro fails with these expressions
     Texture *const tex1 = defrt.getRt(0);
     Texture *const tex2 = defrt.getRt(1);
@@ -504,7 +519,7 @@ void fast_grass_baker_on_render()
       d3d::set_render_target({nullptr, 0}, DepthAccess::SampledRO,
         {{albedo_alpha.getTex2D(), mip}, {normal_translucency.getTex2D(), mip}});
       d3d::setview(0, 0, resolution.x, resolution.y, 0, 1);
-      ShaderGlobal::set_color4(texture_sizeVarId, Color4(resolution.x, resolution.y, 0, 0));
+      ShaderGlobal::set_float4(texture_sizeVarId, Color4(resolution.x, resolution.y, 0, 0));
       padded_albedo_alpha.getTex2D()->texmiplevel(mip - 1, mip - 1);
       padded_normal_translucency.getTex2D()->texmiplevel(mip - 1, mip - 1);
       ShaderGlobal::set_texture(impostor_packed_albedo_alphaVarId, padded_albedo_alpha.getTexId());
@@ -521,6 +536,11 @@ void fast_grass_baker_on_render()
     return;
   if (!readback_image(baked->baked_nt, padded_normal_translucency.getTex2D()))
     return;
+
+  for (auto &m : baked->baked_ad.mipmaps)
+    swap_rg(m);
+  for (auto &m : baked->baked_nt.mipmaps)
+    swap_rg(m);
 
   update_impostor_image(impostor->makeTextureName("ad"), make_span_const(baked->baked_ad.mipmaps));
   update_impostor_image(impostor->makeTextureName("nt"), make_span_const(baked->baked_nt.mipmaps));
@@ -829,6 +849,8 @@ static void baker_window()
           mipmaps.emplace_back(
             rgba_surface{reinterpret_cast<uint8_t *>(image->getPixels() + x), w, h, int(image->w * sizeof(TexPixel32))});
 
+        for (auto &m : mipmaps)
+          swap_rg(m);
         update_impostor_image(imp.makeTextureName(type), make_span_const(mipmaps));
       }
 
@@ -901,9 +923,13 @@ static void baker_window()
 
     ImGui::GetWindowDrawList()->AddCallback(set_image_mode, nullptr);
     float imw = ImGui::GetContentRegionAvail().x - 2;
-    ImGui::Image(
-      ImTextureID(unsigned(((preview_mode == ALBEDO || preview_mode == DEPTH) ? preview_ad_texid : preview_nt_texid).getTexId())),
-      ImVec2(imw, imw * resolution.y / resolution.x), ImVec2(-0.5f, 0), ImVec2(0.5f, 1), ImVec4(1, 1, 1, 1), ImVec4(1, 1, 1, 1));
+    ImGui::PushStyleVar(ImGuiStyleVar_ImageBorderSize, max(1.0f, ImGui::GetStyle().ImageBorderSize));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1, 1, 1, 1));
+    ImGui::ImageWithBg(ImGuiDagor::EncodeTexturePtr(
+                         ((preview_mode == ALBEDO || preview_mode == DEPTH) ? preview_ad_texid : preview_nt_texid).getBaseTex()),
+      ImVec2(imw, imw * resolution.y / resolution.x), ImVec2(-0.5f, 0), ImVec2(0.5f, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1));
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
     ImGui::GetWindowDrawList()->AddCallback(reset_image_mode, nullptr);
     if (preview_mode == DEPTH)
       ImGui::SetItemTooltip("White - front-clipped, should be minimal.\n"
@@ -1039,6 +1065,10 @@ static void on_imgui_state_change(ImGuiState, ImGuiState new_state)
 
 void init_fast_grass_baker()
 {
+#define VAR(a) a##VarId = ShaderVariableInfo(#a).get_var_id();
+  SHADER_VARS_LIST
+#undef VAR
+
   imgui_register_on_state_change_handler(on_imgui_state_change);
 
   char appFname[DAGOR_MAX_PATH];
@@ -1047,7 +1077,7 @@ void init_fast_grass_baker()
   dd_simplify_fname_c(appFname);
 
   DataBlock appBlk;
-  if (!dd_file_exists(appFname) || !appBlk.load(appFname))
+  if (!dd_file_exists(appFname) || !dblk::load(appBlk, appFname, dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS))
     logwarn("error loading %s", appFname);
 
   auto settingsBlk = appBlk.getBlockByNameEx("assets")->getBlockByNameEx("grass_impostor");

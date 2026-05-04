@@ -126,10 +126,14 @@ public:
   static inline void set(IDaEditor4Engine *eng) { __daeditor4_global_instance = eng; }
   static inline bool inited() { return __daeditor4_global_instance != NULL; }
 
+  void setSuppressUndoRedoEvents(bool flag) { suppressUndoRedoEvents = flag; }
+
 protected:
   int daeditor4InterfaceVer;
   IDaEditor4Engine(UndoSystem &u) : undoSys(u), daeditor4InterfaceVer(DAEDITOR4_VERSION) { __daeditor4_global_instance = this; }
   void resetInstance() { __daeditor4_global_instance = NULL; }
+
+  bool suppressUndoRedoEvents = false;
 
 private:
   static IDaEditor4Engine *__daeditor4_global_instance;

@@ -380,11 +380,11 @@ bool EcGeom::shaderGlobalSetInt(int id, int val) const { return ShaderGlobal::se
 
 
 //==================================================================================================
-bool EcGeom::shaderGlobalSetReal(int id, real val) const { return ShaderGlobal::set_real(id, val); }
+bool EcGeom::shaderGlobalSetReal(int id, real val) const { return ShaderGlobal::set_float(id, val); }
 
 
 //==================================================================================================
-bool EcGeom::shaderGlobalSetColor4(int id, const Color4 &val) const { return ShaderGlobal::set_color4(id, val); }
+bool EcGeom::shaderGlobalSetColor4(int id, const Color4 &val) const { return ShaderGlobal::set_float4(id, val); }
 
 
 //==================================================================================================
@@ -393,8 +393,8 @@ bool EcGeom::shaderGlobalSetSampler(int id, d3d::SamplerHandle val) const { retu
 d3d::SamplerHandle EcGeom::getSeparateSampler(TEXTUREID val) const { return get_texture_separate_sampler(val); }
 
 int EcGeom::shaderGlobalGetInt(int id) const { return ShaderGlobal::get_int_fast(id); }
-real EcGeom::shaderGlobalGetReal(int id) const { return ShaderGlobal::get_real_fast(id); }
-Color4 EcGeom::shaderGlobalGetColor4(int id) const { return ShaderGlobal::get_color4_fast(id); }
+real EcGeom::shaderGlobalGetReal(int id) const { return ShaderGlobal::get_float(id); }
+Color4 EcGeom::shaderGlobalGetColor4(int id) const { return ShaderGlobal::get_float4(id); }
 TEXTUREID EcGeom::shaderGlobalGetTexture(int id) const { return ShaderGlobal::get_tex_fast(id); }
 
 //==================================================================================================
@@ -813,13 +813,3 @@ void EcScene::stdTonemapperSave(StaticSceneBuilder::StdTonemapper &mapper, DataB
 
 //==================================================================================================
 void EcScene::stdTonemapperLoad(StaticSceneBuilder::StdTonemapper &mapper, const DataBlock &blk) const { mapper.load(blk); }
-
-
-//==================================================================================================
-GameResource *EcScene::getGameResource(GameResHandle handle, bool no_factory_fatal) const
-{
-  return ::get_game_resource(handle, no_factory_fatal);
-}
-
-//==================================================================================================
-void EcScene::releaseGameResource(GameResource *resource) const { ::release_game_resource(resource); }

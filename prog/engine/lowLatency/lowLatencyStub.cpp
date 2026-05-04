@@ -18,8 +18,6 @@ void lowlatency::set_latency_mode(LatencyMode, float) {}
 
 void lowlatency::sleep(uint32_t) {}
 
-void lowlatency::mark_flash_indicator() {}
-
 void lowlatency::set_marker(uint32_t, LatencyMarkerType) {}
 
 lowlatency::LatencyData lowlatency::get_statistics_since(uint32_t, uint32_t) { return {}; }

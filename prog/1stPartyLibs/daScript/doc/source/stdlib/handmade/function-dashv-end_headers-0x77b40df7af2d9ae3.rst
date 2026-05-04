@@ -1,0 +1,1 @@
+Sends the response headers through the writer, adding one final header (key/value pair). Call this before writing body chunks or SSE events. Returns 0 on success.

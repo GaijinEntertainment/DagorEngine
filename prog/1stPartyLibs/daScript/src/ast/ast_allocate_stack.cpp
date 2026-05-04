@@ -25,7 +25,7 @@ namespace das {
         virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
         virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
         virtual bool canVisitGlobalVariable ( Variable * var ) override { return isEverything || var->used; }
-        virtual bool canVisitFunction ( Function * fun ) override { return !fun->isTemplate && (isEverything || fun->used); }
+        virtual bool canVisitFunction ( Function * fun ) override { return !fun->isTemplate && !fun->stub && (isEverything || fun->used); }
     // function
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
@@ -69,22 +69,7 @@ namespace das {
             if ( !func->result->isRefType() ) return;
             else if ( expr->subexpr->rtti_isInvoke() ) return;
             else if ( expr->subexpr->rtti_isMakeLocal() ) return;
-            // if its _return_with_lockcheck(X)
-            else if ( expr->subexpr->rtti_isCall() ) {
-                auto ecall = ((ExprCall *)(expr->subexpr.get()));
-                if ( ecall->func && ecall->func->fromGeneric &&
-                     ecall->arguments.size()==1 &&
-                     ecall->func->fromGeneric->module->name=="$" &&
-                     ecall->func->fromGeneric->name == "_return_with_lockcheck" ) {
-                    if ( ecall->arguments[0]->rtti_isVar() ) {
-                        evar = (ExprVar *)(ecall->arguments[0].get());
-                    } else {
-                        return;
-                    }
-                } else {
-                    return;
-                }
-            } // if its return X
+            // if its return X
             else if ( expr->subexpr->rtti_isVar() ) {
                 evar = (ExprVar *)(expr->subexpr.get());
             } else {
@@ -167,6 +152,7 @@ namespace das {
             return true;
         }
         virtual bool canVisitFunction ( Function * fun ) override {
+            if ( fun->stub ) return false;
             if ( fun->isTemplate ) return false;
             if ( fun->stackResolved ) return false;
             if ( !fun->used && !isEverything ) return false;
@@ -277,7 +263,8 @@ namespace das {
                         auto block = static_pointer_cast<ExprBlock>(func->body);
                         if ( func->result->isWorkhorseType() ) {
                             if (block->list.size()==1 && block->finalList.size()==0 && block->list.back()->rtti_isReturn()) {
-                                func->fastCall = true;
+                                auto ret = (ExprReturn *) block->list.back().get();
+                                if ( !ret->moveSemantics ) func->fastCall = true;   // can't fast-call return <-
                             }
                         } else if ( func->result->isVoid() ) {
                             if ( block->list.size()==1 && block->finalList.size()==0 && !block->list.back()->rtti_isBlock() ) {
@@ -610,7 +597,7 @@ namespace das {
                 pushSp(); // Free everything allocated to init let (not let itself)
             }
         }
-        virtual VariablePtr visitLet ( ExprLet * expr, const VariablePtr & var, bool last ) override {
+        virtual VariablePtr visitLet ( ExprLet * /*expr*/, const VariablePtr & var, bool /*last*/ ) override {
             if (!inStruct && !var->type->ref && var->type->baseType != Type::tBlock) {
                 popSp();
             }
@@ -961,13 +948,18 @@ namespace das {
         }
         for (auto & pm : library.modules) {
             for ( auto & func : pm->functions.each() ) {
-                if ( func->used && !func->builtIn ) {
+                if ( func->used && !func->builtIn && !func->isTemplate ) {
                     func->index = totalFunctions++;
                     if ( log ) {
                         logs << "\t" << func->index << "\t" << func->totalStackSize << "\t" << func->getMangledName();
                         if ( func->init ) {
                             logs << " [init";
                             if (func->lateInit ) logs << "(late)";
+                            logs << "]";
+                        }
+                        if ( func->shutdown ) {
+                            logs << " [finalize";
+                            if (func->lateShutdown ) logs << "(late)";
                             logs << "]";
                         }
                         logs << " // " << HEX << func->getMangledNameHash() << DEC;
@@ -1023,6 +1015,14 @@ namespace das {
 
     class RelocatePotentiallyUninitialized : public Visitor {
     protected:
+        virtual void preVisit ( Function * f ) override {
+            Visitor::preVisit(f);
+            func = f;
+        }
+        virtual FunctionPtr visit ( Function * that ) override {
+            func = nullptr;
+            return Visitor::visit(that);
+        }
         virtual void preVisit ( ExprBlock * block ) override {
             Visitor::preVisit(block);
             scopes.push_back(block);
@@ -1054,6 +1054,7 @@ namespace das {
                 }
                 if ( anyNeedRelocate ) {
                     anyWork = true;
+                    if ( func ) func->notInferred();
                     vector<ExpressionPtr> afterThisExpression;
                     for ( auto & var : expr->variables ) {
                         if ( var->init ) {
@@ -1063,10 +1064,23 @@ namespace das {
                             ExpressionPtr assign;
                             if ( var->init_via_move ) {
                                 assign = make_smart<ExprMove>(expr->at, left, right);
+                                ((ExprMove *)assign.get())->allowConstantLValue = true;
                             } else {
                                 assign = make_smart<ExprCopy>(expr->at, left, right);
+                                ((ExprCopy *)assign.get())->allowConstantLValue = true;
                             }
                             assign->alwaysSafe = true;
+                            assign->generated = true;
+                            if ( var->type->constant ) {
+                                auto exprOp2 = (ExprOp2 *)(assign.get());
+                                auto pLeft = exprOp2->left->clone();
+                                auto pLeftType = make_smart<TypeDecl>(*var->type);
+                                pLeftType->constant = false;
+                                auto pLeftCast = make_smart<ExprCast>(exprOp2->left->at, pLeft, pLeftType);
+                                pLeftCast->reinterpret = true;
+                                pLeftCast->alwaysSafe = true;
+                                exprOp2->left = pLeftCast;
+                            }
                             afterThisExpression.push_back(assign);
                         }
                     }
@@ -1096,6 +1110,7 @@ namespace das {
     protected:
         vector<ExprBlock *> scopes;
         vector<vector<ExpressionPtr>> onTopOfTheBlock;
+        Function * func = nullptr;
     public:
         bool anyWork = false;
     };

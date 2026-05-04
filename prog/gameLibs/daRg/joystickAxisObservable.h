@@ -9,14 +9,10 @@ namespace darg
 
 class GuiScene;
 
-class JoystickAxisObservable : public sqfrp::BaseObservable
+class JoystickAxisObservable : public sqfrp::WatchedHandle
 {
 public:
   JoystickAxisObservable(GuiScene *gui_scene);
-
-  virtual Sqrat::Object getValueForNotify() const override;
-  virtual void fillInfo(Sqrat::Table &t) const override;
-  virtual void fillInfo(String &t) const override;
 
   float getValue() { return value; }
   void update(float val);

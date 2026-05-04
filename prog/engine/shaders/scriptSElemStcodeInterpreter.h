@@ -31,18 +31,6 @@ __forceinline bool DEBUG_F(...) { return false; };
 #define VEC_ALIGN(v, a)
 // #define VEC_ALIGN(v, a)  G_ASSERT((v & (a-1)) == 0)
 
-#if MEASURE_STCODE_PERF
-extern bool enable_measure_stcode_perf;
-#include <perfMon/dag_cpuFreq.h>
-#define MEASURE_STCODE_PERF_START volatile __int64 startTime = enable_measure_stcode_perf ? ref_time_ticks() : 0;
-#define MEASURE_STCODE_PERF_END   \
-  if (enable_measure_stcode_perf) \
-  shaderbindump::add_exec_stcode_time(this_elem.shClass, get_time_usec(startTime))
-#else
-#define MEASURE_STCODE_PERF_START
-#define MEASURE_STCODE_PERF_END
-#endif
-
 #if DAGOR_DBGLEVEL > 0
 static void scripted_shader_element_default_before_resource_used_callback(const ShaderElement *selem, const D3dResource *,
   const char *) {};
@@ -53,7 +41,7 @@ static void scripted_shader_element_on_before_resource_used(const ShaderElement 
 #endif
 
 static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::ShaderCode::Pass *__restrict code_cp,
-  const ScriptedShaderElement &__restrict this_elem)
+  ScriptedShadersBinDumpOwner const &__restrict dump_owner, const ScriptedShaderElement &__restrict this_elem)
 {
   alignas(16) real vpr_const[64][4];
   alignas(16) real fsh_const[64][4];
@@ -61,16 +49,41 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
   char *regs = (char *)vregs;
   uint64_t vpr_c_mask = 0, fsh_c_mask = 0;
 
+  ScriptedShadersBinDump const &__restrict dump = *dump_owner.getDump();
+
 #define SHL1(y) 1ull << (y)
 #define SHLF(y) 0xFull << (y)
 
   DYNSTCODE_PROFILE_BEGIN();
 
-  MEASURE_STCODE_PERF_START;
   const vec4f *tm_world_c = NULL, *tm_lview_c = NULL;
 
+  auto doSetTex = [&](uint32_t opc, ShaderStage stage) {
+    const uint32_t ind = shaderopcode::getOp2p1(opc);
+    const uint32_t ofs = shaderopcode::getOp2p2(opc);
+    const auto texData = get_tex_reg(regs, ofs);
+
+    BaseTexture *tex = nullptr;
+    const TEXTUREID *tid = eastl::get_if<TEXTUREID>(&texData);
+    if (tid)
+    {
+      mark_managed_tex_lfu(*tid);
+      tex = D3dResManagerData::getBaseTex(*tid);
+    }
+    else
+    {
+      tex = eastl::get<BaseTexture *>(texData);
+    }
+
+    S_DEBUG("ind=%d ofs=%d tid=0x%X", ind, ofs, unsigned(tid ? *tid : BAD_TEXTUREID));
+    scripted_shader_element_on_before_resource_used(&this_elem, tex, this_elem.shClass.name.data());
+    d3d::set_tex(stage, ind, tex);
+
+    stcode::dbg::record_set_tex(stcode::dbg::RecordType::REFERENCE, stage, ind, tex);
+  };
+
   const uint8_t *vars = this_elem.getVars();
-  dag::ConstSpan<int> cod = shBinDump().stcode[stcodeId];
+  dag::ConstSpan<int> cod = dump.stcode[stcodeId];
   const int *__restrict codp = cod.data(), *__restrict codp_end = codp + cod.size();
   for (; codp < codp_end; codp++)
   {
@@ -82,14 +95,14 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        color4_reg(regs, ro) = shBinDumpOwner().globVarsState.get<Color4>(index);
+        color4_reg(regs, ro) = shGlobalData().globVarsState.get<Color4>(index);
       }
       break;
       case SHCOD_GET_GMAT44:
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        float4x4_reg(regs, ro) = shBinDumpOwner().globVarsState.get<TMatrix4>(index);
+        float4x4_reg(regs, ro) = shGlobalData().globVarsState.get<TMatrix4>(index);
       }
       break;
       case SHCOD_VPR_CONST:
@@ -153,7 +166,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        real_reg(regs, ro) = shBinDumpOwner().globVarsState.get<real>(index);
+        real_reg(regs, ro) = shGlobalData().globVarsState.get<real>(index);
       }
       break;
       case SHCOD_MUL_REAL:
@@ -200,26 +213,13 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         real_reg(regs, ro) = *(real *)&vars[ofs];
       }
       break;
-      case SHCOD_TEXTURE:
-      {
-        const uint32_t ind = shaderopcode::getOp2p1(opc);
-        const uint32_t ofs = shaderopcode::getOp2p2(opc);
-        TEXTUREID tid = tex_reg(regs, ofs);
-        mark_managed_tex_lfu(tid, this_elem.tex_level);
-        S_DEBUG("ind=%d ofs=%d tid=0x%X", ind, ofs, unsigned(tid));
-        BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
-        scripted_shader_element_on_before_resource_used(&this_elem, tex, this_elem.shClass.name.data());
-        d3d::set_tex(this_elem.stageDest, ind, tex);
-
-        stcode::dbg::record_set_tex(stcode::dbg::RecordType::REFERENCE, this_elem.stageDest, ind, tex);
-      }
-      break;
+      case SHCOD_TEXTURE: doSetTex(opc, STAGE_PS); break;
       case SHCOD_GLOB_SAMPLER:
       {
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(opc);
         const uint32_t slot = shaderopcode::getOpStageSlot_Slot(opc);
         const uint32_t id = shaderopcode::getOpStageSlot_Reg(opc);
-        d3d::SamplerHandle smp = shBinDumpOwner().globVarsState.get<d3d::SamplerHandle>(id);
+        d3d::SamplerHandle smp = shGlobalData().globVarsState.get<d3d::SamplerHandle>(id);
 
         d3d::set_sampler(stage, slot, smp);
 
@@ -237,17 +237,8 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         stcode::dbg::record_set_sampler(stcode::dbg::RecordType::REFERENCE, this_elem.stageDest, slot, smp);
       }
       break;
-      case SHCOD_TEXTURE_VS:
-      {
-        TEXTUREID tid = tex_reg(regs, shaderopcode::getOp2p2(opc));
-        mark_managed_tex_lfu(tid, this_elem.tex_level);
-        BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
-        scripted_shader_element_on_before_resource_used(&this_elem, tex, this_elem.shClass.name.data());
-        d3d::set_tex(STAGE_VS, shaderopcode::getOp2p1(opc), tex);
-
-        stcode::dbg::record_set_tex(stcode::dbg::RecordType::REFERENCE, STAGE_VS, shaderopcode::getOp2p1(opc), tex);
-      }
-      break;
+      case SHCOD_TEXTURE_VS: doSetTex(opc, STAGE_VS); break;
+      case SHCOD_TEXTURE_CS: doSetTex(opc, STAGE_CS); break;
       case SHCOD_BUFFER:
       {
         const uint32_t stage = shaderopcode::getOpStageSlot_Stage(opc);
@@ -290,12 +281,27 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         stcode::dbg::record_set_tlas(stcode::dbg::RecordType::REFERENCE, stage, slot, tlas);
       }
       break;
-      case SHCOD_RWTEX:
+      // @NOTE: for shaders, uavs are always set to ps/cs depending on the shader element
+      case SHCOD_RWTEX_CS:
+      case SHCOD_RWTEX_PS:
+      case SHCOD_RWTEX_VS:
       {
         const uint32_t ind = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
-        TEXTUREID tid = tex_reg(regs, ofs);
-        BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
+
+        const auto texData = get_tex_reg(regs, ofs);
+
+        BaseTexture *tex = nullptr;
+        const TEXTUREID *tid = eastl::get_if<TEXTUREID>(&texData);
+        if (tid)
+        {
+          tex = D3dResManagerData::getBaseTex(*tid);
+        }
+        else
+        {
+          tex = eastl::get<BaseTexture *>(texData);
+        }
+
         scripted_shader_element_on_before_resource_used(&this_elem, tex, this_elem.shClass.name.data());
         S_DEBUG("rwtex: ind=%d ofs=%d tex=%X", ind, ofs, tex);
         d3d::set_rwtex(this_elem.stageDest, ind, tex, 0, 0);
@@ -303,7 +309,10 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         stcode::dbg::record_set_rwtex(stcode::dbg::RecordType::REFERENCE, this_elem.stageDest, ind, tex);
       }
       break;
-      case SHCOD_RWBUF:
+      // @NOTE: for shaders, uavs are always set to ps/cs depending on the shader element
+      case SHCOD_RWBUF_CS:
+      case SHCOD_RWBUF_PS:
+      case SHCOD_RWBUF_VS:
       {
         const uint32_t ind = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
@@ -327,7 +336,16 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        tex_reg(regs, reg) = shBinDumpOwner().globVarsState.get<shaders_internal::Tex>(index).texId;
+
+        const auto &tex = shGlobalData().globVarsState.get<shaders_internal::Tex>(index);
+        if (tex.isTextureManaged())
+        {
+          set_tex_reg(tex.texId, regs, reg);
+        }
+        else
+        {
+          set_tex_reg(tex.tex, regs, reg);
+        }
       }
       break;
       case SHCOD_GET_GBUF:
@@ -335,7 +353,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
         Sbuffer *&buf = buf_reg(regs, reg);
-        buf = shBinDumpOwner().globVarsState.get<shaders_internal::Buf>(index).buf;
+        buf = shGlobalData().globVarsState.get<shaders_internal::Buf>(index).buf;
       }
       break;
       case SHCOD_GET_GTLAS:
@@ -343,7 +361,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
         RaytraceTopAccelerationStructure *&tlas = tlas_reg(regs, reg);
-        tlas = shBinDumpOwner().globVarsState.get<RaytraceTopAccelerationStructure *>(index);
+        tlas = shGlobalData().globVarsState.get<RaytraceTopAccelerationStructure *>(index);
       }
       break;
       case SHCOD_G_TM:
@@ -389,7 +407,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         {
 #if DAGOR_DBGLEVEL > 0
           debug("shclass: %s", (const char *)this_elem.shClass.name);
-          ShUtils::shcod_dump(cod, &shBinDump().globVars, &shBinDumpOwner().globVarsState, &this_elem.shClass.localVars,
+          ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
             this_elem.code.stVarMap);
           DAG_FATAL("divide by zero [real] while exec shader code. stopped at operand #%d", codp - cod.data());
 #endif
@@ -401,10 +419,10 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       break;
       case SHCOD_CALL_FUNCTION:
       {
-        int functionName = shaderopcode::getOp3p1(opc);
-        int rOut = shaderopcode::getOp3p2(opc);
-        int paramCount = shaderopcode::getOp3p3(opc);
-        functional::callFunction((functional::FunctionId)functionName, rOut, codp + 1, regs);
+        int functionName = shaderopcode::getOpFunctionCall_FuncId(opc);
+        int rOut = shaderopcode::getOpFunctionCall_OutReg(opc);
+        int paramCount = shaderopcode::getOpFunctionCall_ArgCount(opc);
+        functional::callFunction((functional::FunctionId)functionName, rOut, codp + 1, regs, &dump_owner);
         codp += paramCount;
       }
       break;
@@ -413,7 +431,16 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         const uint32_t reg = shaderopcode::getOp2p1(opc);
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
         ScriptedShaderElement::Tex &t = *(ScriptedShaderElement::Tex *)&vars[ofs];
-        tex_reg(regs, reg) = t.texId;
+
+        if (t.isTextureManaged())
+        {
+          set_tex_reg(t.texId, regs, reg);
+        }
+        else
+        {
+          set_tex_reg(t.tex, regs, reg);
+        }
+
         t.get();
       }
       break;
@@ -499,9 +526,9 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         const uint32_t ofs = shaderopcode::getOp2p2(opc);
         real *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = *(int *)&vars[ofs];
-        reg[1] = *(int *)&vars[ofs + 1];
-        reg[2] = *(int *)&vars[ofs + 2];
-        reg[3] = *(int *)&vars[ofs + 3];
+        reg[1] = *(int *)&vars[ofs + 4];
+        reg[2] = *(int *)&vars[ofs + 8];
+        reg[3] = *(int *)&vars[ofs + 12];
       }
       break;
       case SHCOD_GET_INT:
@@ -544,7 +571,7 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
           if (rvalS[j] == 0)
           {
             debug("shclass: %s", (const char *)this_elem.shClass.name);
-            ShUtils::shcod_dump(cod, &shBinDump().globVars, &shBinDumpOwner().globVarsState, &this_elem.shClass.localVars,
+            ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
               this_elem.code.stVarMap);
             DAG_FATAL("divide by zero [color4[%d]] while exec shader code. stopped at operand #%d", j, codp - cod.data());
           }
@@ -556,21 +583,21 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        int_reg(regs, ro) = shBinDumpOwner().globVarsState.get<int>(index);
+        int_reg(regs, ro) = shGlobalData().globVarsState.get<int>(index);
       }
       break;
       case SHCOD_GET_GINT_TOREAL:
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        real_reg(regs, ro) = shBinDumpOwner().globVarsState.get<int>(index);
+        real_reg(regs, ro) = shGlobalData().globVarsState.get<int>(index);
       }
       break;
       case SHCOD_GET_GIVEC_TOREAL:
       {
         const uint32_t ro = shaderopcode::getOp2p1(opc);
         const uint32_t index = shaderopcode::getOp2p2(opc);
-        const IPoint4 &ivec = shBinDumpOwner().globVarsState.get<IPoint4>(index);
+        const IPoint4 &ivec = shGlobalData().globVarsState.get<IPoint4>(index);
         color4_reg(regs, ro) = Color4(ivec.x, ivec.y, ivec.z, ivec.w);
       }
       break;
@@ -597,8 +624,6 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
     vpr_c_mask &= tmp ? (eastl::numeric_limits<uint64_t>::max() << end) : 0;
     d3d::set_vs_const(start, vpr_const[start], end - start);
   }
-
-  MEASURE_STCODE_PERF_END;
 
   DYNSTCODE_PROFILE_END();
 }

@@ -8,6 +8,7 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
   (code) {
     prev_frame_tex@smp2d = prev_frame_tex;
     prev_downsampled_far_depth_tex@smp2d = prev_downsampled_far_depth_tex;
+    screen_pos_to_lowres_texcoord@f2 = float4(0.5 * lowres_tex_size.z, 0.5 * lowres_tex_size.w, 0., 0.);
   }
   hlsl(code) {
     #define HAS_PREV_FRAME_RADIANCE 1
@@ -16,7 +17,12 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
       return prev_pre_exposure_decode(tex2Dlod(prev_frame_tex, float4(uv,0,0)).xyz);
     }
 
-    bool sample_prev_frame_radiance(float3 prevUVW, float3 currentUVW, float3 camPos, bool allow_uncertaincy, inout float3 radiance)
+    float3 calc_relative_pos(float2 uv, float w)
+    {
+      return sp_getViewVecOptimized(uv) * w;
+    }
+
+    bool sample_prev_frame_radiance(float3 prevUVW, float3 currentUVW, float3 camPos, float3 rayDir, bool allow_uncertaincy, inout float3 radiance)
     {
      //fixme: check certaincy using previous depth and compare with prevUVW.z
       bool canReproject = all(abs(prevUVW.xy*2 - 1) < 1);
@@ -24,9 +30,31 @@ define_macro_if_not_defined PROJECT_PREV_FRAME_SAMPLE_REPROJECT(code)
       {
         if (allow_uncertaincy)
         {
-          float history_linear_depth = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(prevUVW.xy, 0, 0)).r, sp_prev_zn_zfar.zw);//fixme : prev
-          if (abs(prevUVW.z - history_linear_depth) > 0.1*min(prevUVW.z, history_linear_depth))
+          float2 uv0 = prevUVW.xy;
+          float depth0 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv0, 0, 0)).r, sp_prev_zn_zfar.zw);//fixme : prev
+         //check certaincy using previous depth and compare with prevUVW.z
+          if (abs(prevUVW.z - depth0) > 0.1*min(prevUVW.z, depth0))
             return false;
+
+          float2 uv1 = prevUVW.xy + float2(1, 0) * screen_pos_to_lowres_texcoord;
+          float2 uv2 = prevUVW.xy + float2(0, 1) * screen_pos_to_lowres_texcoord;
+
+          float depth1 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv1, 0, 0)).r, sp_prev_zn_zfar.zw);
+          float depth2 = linearize_z(tex2Dlod(prev_downsampled_far_depth_tex, float4(uv2, 0, 0)).r, sp_prev_zn_zfar.zw);
+
+          float3 wm = calc_relative_pos(uv0, depth0);
+          float3 wx = calc_relative_pos(uv1, depth1);
+          float3 wy = calc_relative_pos(uv2, depth2);
+
+          float3 dx = wx - wm;
+          float3 dy = wy - wm;
+
+          float3 restoredWorldNormal = normalize(cross(dx, dy));
+
+          if (dot(restoredWorldNormal, normalize(rayDir)) > 0)
+          {
+            return false;
+          }
         }
         radiance = sample_prev_frame_radiance_unsafe(prevUVW.xy);
         return true;

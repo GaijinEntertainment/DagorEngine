@@ -341,7 +341,7 @@ TEMPLATE_FOR_SIZE(T, 8, void) _msvc_x86_atomic_store__ATOMIC_RELAXED(T volatile 
 
 // __atomic_exchange
 
-#define XCHG_IMPL(type, msvc_exchange, msvc_type) *(msvc_type*)ret = (type) msvc_exchange((msvc_type volatile *) ptr, *(msvc_type*) val);
+#define XCHG_IMPL(type, msvc_exchange, msvc_type) *(ret) = (type) msvc_exchange((msvc_type volatile *) ptr, *(msvc_type*) val);
 
 TEMPLATE_FOR_SIZE(T, 1, void) _msvc_x86_atomic_exchange(T volatile *ptr, const T *val, T* ret) { XCHG_IMPL(T, _InterlockedExchange8      , char     ) }
 TEMPLATE_FOR_SIZE(T, 2, void) _msvc_x86_atomic_exchange(T volatile *ptr, const T *val, T* ret) { XCHG_IMPL(T, _InterlockedExchange16     , short    ) }

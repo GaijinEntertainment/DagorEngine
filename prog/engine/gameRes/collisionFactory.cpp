@@ -53,19 +53,18 @@ public:
   bool isResLoaded(int res_id) override { return findResData(::validate_game_res_id(res_id)) >= 0; }
   bool checkResPtr(GameResource *res) override { return findRes((CollisionResource *)res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
-    // get real-res id
     if (::validate_game_res_id(res_id) == NULL_GAMERES_ID)
       return NULL;
 
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findResData(res_id);
-
-    // no resource - load pack
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findResData(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findResData(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -114,12 +113,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool force, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool force, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = resData.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(resData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, resData[i].resId))
         continue;
       if (!resData[i].resource || resData[i].resource->getRefCount() > 1)
       {
@@ -159,11 +158,11 @@ public:
     rd.resource = resource;
     rd.resId = res_id;
   }
-  void createGameResource(int /*res_id*/, const int * /*reference_ids*/, int /*num_refs*/) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
 
   void reset() override
   {
-    freeUnusedResources(false, false);
+    freeUnusedResources(nullptr, false, false);
     if (!resData.empty())
     {
       logerr("%d leaked Collision", resData.size());
@@ -184,4 +183,8 @@ public:
 
 static InitOnDemand<CollisionGameResFactory> collision_gameres_factory;
 
-void CollisionResource::registerFactory() { add_factory(collision_gameres_factory.demandInit()); }
+void CollisionResource::registerFactory()
+{
+  if (!find_gameres_factory(CollisionGameResClassId))
+    add_factory(collision_gameres_factory.demandInit());
+}

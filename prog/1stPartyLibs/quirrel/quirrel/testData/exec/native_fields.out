@@ -1,0 +1,28 @@
+construct: 1 2 3 42
+write float: 10 20 30
+write int: 100
+int to float: 7
+float to int: 3
+default: 0 0 0 0
+independent: 100 0
+NativeVec(0, 0, 0, 0)
+w after ++: 6
+w after --: 5
+x after ++: 2.5
+x after --: 1.5
+w after +=5: 15
+x after *=3: 6
+clone: 11 22 33 44
+clone independent: 11 0
+foreach has x: true
+foreach has w: true
+foreach x val: 1
+foreach w val: 99
+x in v: true
+w in v: true
+q in v: false
+non-literal get: 77
+err literal: type mismatch in native field assignment
+err non-literal: type mismatch in native field assignment
+err null: type mismatch in native field assignment
+PASSED

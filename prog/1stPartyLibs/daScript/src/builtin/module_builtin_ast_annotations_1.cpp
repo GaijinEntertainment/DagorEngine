@@ -55,6 +55,7 @@ namespace das {
             addProperty<DAS_BIND_MANAGED_PROP(isGoodTupleType)>("isGoodTupleType","isGoodTupleType");
             addProperty<DAS_BIND_MANAGED_PROP(isGoodVariantType)>("isGoodVariantType","isGoodVariantType");
             addProperty<DAS_BIND_MANAGED_PROP(isVoid)>("isVoid","isVoid");
+            addProperty<DAS_BIND_MANAGED_PROP(isAnyType)>("isAnyType","isAnyType");
             addProperty<DAS_BIND_MANAGED_PROP(isRef)>("isRef","isRef");
             addProperty<DAS_BIND_MANAGED_PROP(isRefType)>("isRefType","isRefType");
             addProperty<DAS_BIND_MANAGED_PROP(canWrite)>("canWrite","canWrite");

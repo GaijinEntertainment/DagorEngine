@@ -101,9 +101,9 @@ static ecs::CompileTimeQueryDesc game_objects_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void game_objects_ecs_query(Callable function)
+inline void game_objects_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, game_objects_ecs_query_desc.getHandle(),
+  perform_query(&manager, game_objects_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

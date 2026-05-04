@@ -4,12 +4,14 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_overrideStates.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <render/dag_cur_view.h>
 #include <render/world/wrDispatcher.h>
 #include <landMesh/lmeshManager.h>
 #include <landMesh/lmeshRenderer.h>
 #include <fftWater/fftWater.h>
 #include "landMeshToHeightmapRenderer.h"
+#include <drv/3d/dag_shaderConstants.h>
 
 void render_landmesh_to_heightmap(Texture *heightmap_tex,
   float heightmap_size,
@@ -65,8 +67,7 @@ void render_landmesh_to_heightmap(Texture *heightmap_tex,
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(heightmap_tex, DepthAccess::RW);
+    d3d::set_render_target({heightmap_tex, 0, 0}, DepthAccess::RW, {});
     d3d::clearview(CLEAR_ZBUFFER, 0, 0.f, 0);
 
     lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
@@ -74,6 +75,9 @@ void render_landmesh_to_heightmap(Texture *heightmap_tex,
 
     float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
     lmeshRenderer->setInvGeomLodDist(0.5 / heightmap_size);
+
+    const int HEIGTHMAP_VS_CONST_BUFFFER_SIZE = 512;
+    d3d::set_vs_constbuffer_register_count(HEIGTHMAP_VS_CONST_BUFFFER_SIZE);
 
     lmeshRenderer->prepare(*lmeshMgr, Point3::xVz(origin, 0), 0, water_level);
 
@@ -85,6 +89,7 @@ void render_landmesh_to_heightmap(Texture *heightmap_tex,
     lmeshRenderer->setRenderInBBox(BBox3());
 
     lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
+    d3d::set_vs_constbuffer_register_count(0);
   }
 
   // Restore.

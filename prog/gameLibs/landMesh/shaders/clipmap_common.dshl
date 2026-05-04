@@ -1,16 +1,54 @@
+include "vtex.dshl"
+include "clipmap_feedback_common.dshl"
+
 texture cache_tex0;
+texture cache_tex1;
+texture cache_tex2;
+texture indirection_tex;
+
+int clipmap_tex_mips = 6;
+int clipmap_max_tex_mips = 11;
+
 int cache_tex0_tex_slot;
 int cache_tex0_smp_slot;
+int cache_tex1_tex_slot;
+int cache_tex2_tex_slot;
+int indirection_tex_tex_slot;
+
 texture last_clip_tex;
 int last_clip_tex_tex_slot;
 int last_clip_tex_smp_slot;
 float4 world_to_last_clip = (1/2048,1/2048, 0,0);
+
+int cache_anisotropy = 1;
+
+sampler CacheTex0Sampler
+{
+  anisotropic_max = (cache_anisotropy);
+};
+sampler LastClipTexSampler
+{
+  anisotropic_max = (dgs_tex_anisotropy);
+  address_u = mirror;
+  address_v = mirror;
+  address_w = mirror;
+};
 
 int clipmap_allow_debug = 0;
 interval clipmap_allow_debug : no < 1, yes;
 assume_if_not_assumed clipmap_allow_debug = no;
 
 int clipmap_enable_debug_color = 0;
+
+int uav_feedback_const_no = 7 always_referenced;
+int uav_feedback_exists = 0 always_referenced;
+
+float4 g_VTexDim = (61440.0, 61440.0, 0, 0);
+float4 g_TileSize = (240.0, 1.0/240.0, 256.0, 1.0/256.0);
+float4 landscape2uv = (1, 1, 0, 0);
+int4 mippos_offset = (0, 0, 0, 0);
+
+float4 g_cache2uv;
 
 macro INIT_CLIPMAP_LAST_BASE(code, textures_as_bindless)
   (code) {
@@ -22,7 +60,8 @@ macro INIT_CLIPMAP_LAST_BASE(code, textures_as_bindless)
     }
     else
     {
-      last_clip_tex@smp2d = last_clip_tex;
+      last_clip_tex@tex2d = last_clip_tex;
+      last_clip_tex_samplerstate@sampler = LastClipTexSampler;
     }
   }
 endmacro
@@ -43,12 +82,13 @@ macro USE_CLIPMAP_LAST()
   USE_CLIPMAP_LAST_BASE(ps)
 endmacro
 
+int use_clipmap_fallback_decals = 0;
 float4 fallback_info0;
 float4 fallback_info1;
 
 macro INIT_CLIPMAP_FALLBACK(code)
   (code) {
-    fallback_info0@f3 = fallback_info0;
+    fallback_info0@f4 = (fallback_info0.x, fallback_info0.y, fallback_info0.z, use_clipmap_fallback_decals);
     fallback_info1@f4 = fallback_info1;
   }
 endmacro
@@ -57,7 +97,8 @@ macro INIT_CLIPMAP_FALLBACK_ALBEDO(code)
   INIT_CLIPMAP_LAST_BASE(code, false)
   INIT_CLIPMAP_FALLBACK(code)
   (code) {
-    cache_tex0@smp2d = cache_tex0;
+    cache_tex0@tex2d = cache_tex0;
+    cache_tex0_samplerstate@sampler = CacheTex0Sampler;
   }
 endmacro
 
@@ -94,6 +135,26 @@ macro USE_CLIPMAP_OPT_DEBUG(code)
   bool clipmap_allow_debug_define = clipmap_allow_debug == yes;
   hlsl(code)
   {
+    #define DEBUG_COLORS_COUNT 15
+    static float3 debug_colors[DEBUG_COLORS_COUNT] =
+    {
+      float3(1,0,0),  // 0-red
+      float3(0,1,0),  // 1-green
+      float3(0,0,1),  // 2-blue -- debug_feedback_response, tile_mip == 0
+      float3(1,1,0),  // 3-yellow
+      float3(0,1,1),  // 4-cyan
+      float3(1,0,1),  // 5-magenta
+      float3(1,1,1),  // 6-white
+      float3(0.4,0,0),  // 7 - dark red
+      float3(0,0.4,0),  // 8 - dark green
+      float3(0,0,0.4),  // 9 - dark blue
+      float3(0.5,0.5,0), // 10
+      float3(0,0.5,0.5), // 11
+      float3(0.5,0,0.5), // 12
+      float3(0.25, 0.25, 0.25), // 13-Gray
+      float3(0,0,0),   // 14-black
+    };
+
   ##if clipmap_allow_debug == yes
     // debug color enums
     #define CLIPMAP_DEBUG_FEEDBACK_RESPONSE 1
@@ -101,20 +162,6 @@ macro USE_CLIPMAP_OPT_DEBUG(code)
 
     void get_clipmap_debug_color(out half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend)
     {
-      #define DEBUG_COLORS_COUNT 9
-      float3 debug_colors[DEBUG_COLORS_COUNT] =
-      {
-        float3(1,0,0),  // 0-red
-        float3(0,1,0),  // 1-green
-        float3(0,0,1),  // 2-blue -- debug_feedback_response, tile_mip == 0
-        float3(1,1,0),  // 3-yellow
-        float3(0,1,1),  // 4-cyan
-        float3(1,0,1),  // 5-magenta
-        float3(1,1,1),  // 6-white
-        float3(0.25, 0.25, 0.25), // 7-gray
-        float3(0,0,0),   // 8-black
-      };
-
       if (clipmap_enable_debug_color == CLIPMAP_DEBUG_FEEDBACK_RESPONSE)
       {
         // Feedback should provide tile_mip equal to floor(smooth_mip) (blue color))
@@ -139,4 +186,271 @@ macro USE_CLIPMAP_OPT_DEBUG(code)
     void get_clipmap_debug_color(half3 outCol, float tile_mip, float2 intile_uv, bool is_fb, float smooth_mip, float blend) {}
   ##endif
   }
+endmacro
+
+
+macro INIT_CLIPMAP_NONORMAL_BASE_COMMON(code, textures_as_bindless)
+  INIT_CLIPMAP_LAST_BASE(code, textures_as_bindless)
+  (code) {
+    if (textures_as_bindless)
+    {
+      cache_tex0_tex_slot@i1 = cache_tex0_tex_slot;
+      cache_tex0_smp_slot@i1 = cache_tex0_smp_slot;
+      indirection_tex_tex_slot@i1 = indirection_tex_tex_slot;
+    }
+    else
+    {
+      cache_tex0@tex2d = cache_tex0;
+      cache_tex0_samplerstate@sampler = CacheTex0Sampler;
+      indirection_tex@tex2d = indirection_tex;
+    }
+
+    g_cache2uv@f2 = (g_cache2uv.xy);
+    g_cacheBorderUvOfs@f2 = (g_cache2uv.zw);
+
+    indirection_tex_dims_minus_one@f2 = get_dimensions(indirection_tex, 0) - 1.0;
+  }
+
+  INIT_CLIPMAP_FALLBACK(code)
+  INIT_CLIPMAP_OPT_DEBUG(code)
+endmacro
+
+macro INIT_CLIPMAP_NORMAL_BASE(code, textures_as_bindless)
+  INIT_CLIPMAP_NONORMAL_BASE(code, textures_as_bindless)
+  local float4 cache_tex2_size = get_dimensions(cache_tex2, 0);
+  (code) {
+    if (textures_as_bindless)
+    {
+      cache_tex1_tex_slot@i1 = cache_tex1_tex_slot;
+      cache_tex2_tex_slot@i1 = cache_tex2_tex_slot;
+    }
+    else
+    {
+      cache_tex1@tex2d = cache_tex1;
+      cache_tex2@tex2d = cache_tex2;
+    }
+    cache_tex2_size@f4 = (cache_tex2_size.xy, 1.0/max(1,cache_tex2_size.xy));
+    clipmap_tex_mips@f1 = clipmap_tex_mips;
+  }
+endmacro
+
+macro INIT_CLIPMAP_NONORMAL()
+  INIT_CLIPMAP_NONORMAL_BASE(ps, false)
+endmacro
+
+macro INIT_CLIPMAP_NORMAL()
+  INIT_CLIPMAP_NORMAL_BASE(ps, false)
+endmacro
+
+
+int use_secondary_terrain_vtex = 0;
+float4 secondary_terrain_landscape2uv = (1, 1, 0, 0);
+int4 secondary_terrain_mippos_offset = (0, 0, 0, 0);
+
+define_macro_if_not_defined USE_CLIPMAP_INDIRECTION_OFFSET(stage, use_landclass_params)
+  hlsl (stage) {
+    uint get_clipmap_indirection_offset()
+    {
+      ##if clipmap_use_ri_vtex == yes
+        return use_secondary_terrain_vtex ? RI_VTEX_SECONDARY_OFFSET_START : 0;
+      ##else
+        return 0;
+      ##endif
+    }
+    bool is_clipmap_indirection_invalid(uint offset) {return false;}
+    float4 get_l2uv(int indirection_offset){ return use_secondary_terrain_vtex ? secondary_terrain_landscape2uv : landscape2uv; }
+    int2 get_mippos_offset(int indirection_offset) { return use_secondary_terrain_vtex ? secondary_terrain_mippos_offset : mippos_offset; }
+  }
+endmacro
+
+macro USE_VTEX_MIP_BASE(code, use_indirection_offset, use_landclass_params)
+  if (use_indirection_offset)
+  {
+    USE_CLIPMAP_INDIRECTION_OFFSET(code, use_landclass_params)
+  }
+  else
+  {
+    hlsl (code) {
+      // Stubs for WT
+      bool is_clipmap_indirection_invalid(uint offset) { return false; }
+      uint get_clipmap_indirection_offset() { return 0; }
+    }
+  }
+  hlsl(code) {
+    float tex_mip_level_sample(float4 world_pos_xz_gradients, int indirection_offset)
+    {
+      ##if use_indirection_offset
+        // indirection_dd_scale applies mipmap bias which can be positive (world_dd_scale.zw > 1) to prevent clipmap cache overload.
+        float2 ddScale = get_l2uv(indirection_offset).xy * indirection_dd_scale.xy;
+        float4 worldPosXZscaled_gradients = world_pos_xz_gradients * ddScale.xyxy;
+      ##else
+        // indirection_dd_scale applies mipmap bias which can be positive (world_dd_scale.zw > 1) to prevent clipmap cache overload.
+        float4 worldPosXZscaled_gradients = world_pos_xz_gradients * indirection_dd_scale.xyxy;
+      ##endif
+
+      float2 dtex = worldPosXZscaled_gradients.xz*worldPosXZscaled_gradients.xz + worldPosXZscaled_gradients.yw*worldPosXZscaled_gradients.yw;
+      float minLodX2 = log2(max(min(dtex.x,dtex.y), 1.));
+      float maxLodX2 = log2(max(max(dtex.x,dtex.y), 1.));
+
+      // If ddx(u,v) and ddy(u,v) are perpendicular, then LOD_ = log(sqrt(|dd_(u, v)|^2)) = 0.5*log(|dd_(u, v)|^2)
+      float mip = 0.499*max(minLodX2, maxLodX2 - min( (maxLodX2 - minLodX2), g_LogMaxVtexAnisoX2 ));
+
+      ##if use_indirection_offset
+        FLATTEN if (indirection_offset > 0)
+          mip = min(mip, clipmap_tex_mips - 1);
+      ##endif
+
+      return mip;
+    }
+  }
+endmacro
+
+macro USE_CLIPMAP_MIP_HELPERS(stage)
+  BEGIN_ONCE(use_clipmap_mip_helpers)
+  hlsl(stage) {
+    #include <vtex.hlsli>
+
+    // On XZ coordinates, mip "n" pivot can be 2^n - 1 mip0 tiles away from mip0 pivot.
+    // Mip "n" has length of 2^n mip0 tiles, that means mip "n" pivot can be (float)(2^n - 1)/2^n mip-n tile lengths away from mip0 pivot.
+    // We know (2^n - 1)/2^n < 1. That means at mip "n", pivot is less than 1 tile away from mip0 pivot.
+    // MISALIGN_SLACK scales texcoordinates (texcoord) such that, for mip "n", if -0.5 < texcoord*MISALIGN_SLACK*2^(-n) <= 0.5
+    // then (but NOT only then) texcoord can be looked-upped on mip "n" indirection_tex region.
+    static float MISALIGN_SLACK = log2((float)(TILE_WIDTH / 2) / (float)(TILE_WIDTH / 2 - 1));
+
+    // Computes minimum mip level that a vtex texcoord can have
+    // texcoord: camera-relative tile coordinates (worldPos * landscape2uv + offset)
+    // mippos: camera tile position
+    uint get_minimum_mip_level(float2 texcoord)
+    {
+      float tcSize = max(abs(texcoord.x), abs(texcoord.y));
+      float fmip = max(0, log2(tcSize) + 2 + MISALIGN_SLACK);
+      return (uint)floor(fmip);
+    }
+
+    // Computes the distance pivot of mip-level "mip" has from mip0 pivot.
+    // Distance is normalized to mip0 indirection UVs.
+    // mippos: camera tile position
+    float2 get_mip_distance_from_mip0(uint mip, int2 mippos)
+    {
+      int2 mip_pivot = mippos & (~((1u << mip) - 1u));
+      int2 mip_dist = mip_pivot - mippos;
+      return (float2)(mip_dist) / (float)(TILE_WIDTH);
+    }
+
+    // Computes indirection tile coordinates.
+    // texcoord: camera-relative tile coordinates (worldPos * landscape2uv + offset)
+    // mip: mip level
+    // mippos: camera tile position
+    uint2 compute_tile_coords(float2 texcoord, uint mip, int2 mippos)
+    {
+      float mipScaleInv = exp2(-(float)mip);
+      float2 tc = texcoord - get_mip_distance_from_mip0(mip, mippos);
+      tc = tc * mipScaleInv + 0.5;
+
+      uint2 tileCoords = uint2(floor(tc * TILE_WIDTH));
+      ##assert(all(tileCoords < TILE_WIDTH), "clipmap: Tile coordinates out-of-range. Use get_minimum_mip_level.");
+
+      return tileCoords;
+    }
+
+    struct FeedbackInfo
+    {
+      uint2 tileCoords;
+      uint mip;
+      half smoothMip;
+    };
+  }
+  END_ONCE()
+endmacro
+
+macro USE_CLIPMAP_INDIRECTION_SAMPLING(stage)
+  USE_CLIPMAP_MIP_HELPERS(stage)
+  BEGIN_ONCE(use_clipmap_indirection_sampling)
+  hlsl(stage) {
+    struct ClipmapIndirectionResult
+    {
+      float2 cacheUv;
+      float2 intileUv;
+      float2 tileXY;     // atlas tile (x,y) from indirection entry
+      float tileMip;
+      float fetchMip;    // mip at which indirection_tex was fetched
+      float tcScale;
+      half blend;
+    };
+
+    ClipmapIndirectionResult sample_clipmap_indirection(
+      float2 texcoord,
+      half smoothMip,
+      int2 mippos,
+      uint indirectionOffset,
+      float maxMip)
+    {
+      uint minMip = get_minimum_mip_level(texcoord);
+      float fetchMip = max(smoothMip, (half)minMip); // TODO: Make me an assert.
+      bool outOfBound = fetchMip > maxMip;
+
+      uint2 indirectionXY = compute_tile_coords(texcoord, (uint)fetchMip, mippos);
+      uint2 indirection_index = indirectionXY + uint2((uint)min(fetchMip, maxMip), indirectionOffset) * TILE_WIDTH;
+      float4 tileData = texelFetch(indirection_tex, indirection_index, 0).zyxw * 255.0;
+
+      float tileMip = floor(tileData.z + 0.5);
+
+      half blendCoef = half(saturate((smoothMip - (half)maxMip) * 2 - 1));
+      blendCoef *= blendCoef;
+      blendCoef = saturate(blendCoef * blendCoef);
+      blendCoef = !outOfBound && (tileMip <= maxMip) ? blendCoef : half(1);
+
+      float2 tileTc = texcoord - get_mip_distance_from_mip0((uint)tileMip, mippos);
+      float tcScale = exp2(-tileMip);
+      float2 scaledTC = (tileTc * tcScale + 0.5) * TILE_WIDTH;
+      float2 intileUv = scaledTC - floor(scaledTC);
+      float2 in_cacheTexels = intileUv * g_TileInnerSize.x;
+      float2 cacheUV = (tileData.xy * g_TileSize + in_cacheTexels) * g_cache2uv + g_cacheBorderUvOfs;
+
+      ClipmapIndirectionResult result;
+      result.cacheUv = cacheUV;
+      result.intileUv = intileUv;
+      result.tileXY = tileData.xy;
+      result.tileMip = tileMip;
+      result.fetchMip = fetchMip;
+      result.tcScale = tcScale;
+      result.blend = blendCoef;
+      return result;
+    }
+  }
+  END_ONCE()
+endmacro
+
+
+macro INIT_LAND_NORMALMAP()
+(ps) { lightmap_tex@smp2d = lightmap_tex; }
+endmacro
+
+macro USE_LAND_NORMAL_FROM_NORMALMAP()
+hlsl(ps) {
+  half3 get_land_normal_from_normalmap_tc(float2 lightmapTexcoord, out half ao)
+  {
+    half4 lightmap = sample_ltmaptex_h4(lightmap_tex, lightmapTexcoord);
+    //half3 normal = restore_normal(lightmap.ga).xzy;
+    half3 normal;
+    normal.xz = lightmap.ga * half(2.0) - half(1.0);
+    normal.y = sqrt(saturate(half(1.0) - dot(normal.xz, normal.xz)));
+    ao = lightmap.b;
+    return normal;
+  }
+  half3 get_land_normal_from_normalmap(float3 worldPos, inout half ao)
+  {
+    float2 lightmapTexcoord = worldPos.xz * world_to_lightmap.xy + world_to_lightmap.zw;
+    half lightmapao;
+    half3 normal = get_land_normal_from_normalmap_tc(lightmapTexcoord, lightmapao);
+    ao *= lightmapao;
+    return normal;
+  }
+  half3 get_land_normal_from_normalmap(float3 worldPos)
+  {
+    float2 lightmapTexcoord = worldPos.xz * world_to_lightmap.xy + world_to_lightmap.zw;
+    half lightmapao;
+    return get_land_normal_from_normalmap_tc(lightmapTexcoord, lightmapao);
+  }
+}
 endmacro

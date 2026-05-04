@@ -22,7 +22,7 @@ public:
   void pushCase(int fx_type, float weight);
 
   int getFxType(int seed) const;
-  bool isValid() const { return fxCases.size() > 0; }
+  bool isValid() const { return casesCount > 0; }
 
 private:
   float sumWeight = 0.f;
@@ -52,6 +52,7 @@ int pushCompositeFxNode(const FxNode &fx_node, bool new_template)
   }
   else
   {
+    fxNodes.push_back(fx_node);
     ++fxTemplates.back().nodeCount;
   }
   return fxTemplates.size() - 1;
@@ -77,20 +78,21 @@ void FxNode::pushCase(int template_id, float weight)
 
 int FxNode::getFxType(int seed) const
 {
-  if (fxCases.size() == 1)
-    return fxCases.front().type;
+  if (casesCount == 1)
+    return fxCases[casesOffset].type;
 
   const float arbitraryBigWeight = 8192.0f;
   float w = floorf(_frnd(seed) * sumWeight * arbitraryBigWeight + 0.5f) / arbitraryBigWeight;
-  for (const FxCase fx : fxCases)
+  for (int i = 0; i < casesCount; i++)
   {
+    const FxCase &fx = fxCases[casesOffset + i];
     w -= fx.weight;
     if (w <= 0)
     {
       return fx.type;
     }
   }
-  return fxCases.front().type;
+  return fxCases[casesOffset].type;
 }
 
 int rifx::composite::loadCompositeEntityTemplate(const DataBlock *composite_fx_blk)

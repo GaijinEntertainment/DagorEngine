@@ -47,10 +47,13 @@ first-party component as follows:
   prog/1stPartyLibs/daScript/dastest/LICENSE
   prog/1stPartyLibs/daScript/LICENSE
   prog/1stPartyLibs/daScript/modules/dasImgui/LICENSE
+  prog/1stPartyLibs/daScript/modules/dasLLVM/LICENSE
   prog/1stPartyLibs/daScript/modules/dasQuirrel/LICENSE
   prog/1stPartyLibs/daScript/modules/dasStdDlg/LICENSE
   prog/1stPartyLibs/daScript/modules/dasStdDlg/stub/LICENSE
+  prog/1stPartyLibs/daScript/utils/dasFormatter/LICENSE
   prog/1stPartyLibs/quirrel/quirrel/COPYRIGHT
+  prog/1stPartyLibs/quirrel/quirrel/squirrel/compiler/COPYRIGHT
 
 =======================================================================================
 Third-Party Software Distributed with Dagor Engine: Licensing and Copyright Information
@@ -73,6 +76,7 @@ We recommend consulting the respective LICENSE.txt or equivalent files for your
 guidance. You can find them in the respective directories of each
 third-party component as follows:
 
+  prog/3rdPartyLibs/abseil/LICENSE
   prog/3rdPartyLibs/acl/LICENSE
   prog/3rdPartyLibs/AntiLag2/LICENSE.txt
   prog/3rdPartyLibs/arc/brotli/LICENSE
@@ -91,6 +95,7 @@ third-party component as follows:
   prog/3rdPartyLibs/binPack2D/LICENSE
   prog/3rdPartyLibs/breakpad/LICENSE
   prog/3rdPartyLibs/bsdiff/LICENSE
+  prog/3rdPartyLibs/c-ares/LICENSE
   prog/3rdPartyLibs/cachesim/LICENSE
   prog/3rdPartyLibs/catch2/LICENSE.txt
   prog/3rdPartyLibs/cef3/v4896/libcef_dll/LICENSE
@@ -111,8 +116,8 @@ third-party component as follows:
   prog/3rdPartyLibs/crashpad/third_party/lss/lss/LICENSE
   prog/3rdPartyLibs/crashpad/third_party/mini_chromium/mini_chromium/base/third_party/icu/LICENSE
   prog/3rdPartyLibs/crashpad/third_party/mini_chromium/mini_chromium/LICENSE
-  prog/3rdPartyLibs/Detour/LICENSE
   prog/3rdPartyLibs/doctest/LICENSE.txt
+  prog/3rdPartyLibs/draco/LICENSE
   prog/3rdPartyLibs/eastl/LICENSE
   prog/3rdPartyLibs/enet/LICENSE
   prog/3rdPartyLibs/fast_float/LICENSE
@@ -127,6 +132,7 @@ third-party component as follows:
   prog/3rdPartyLibs/glm/copying.txt
   prog/3rdPartyLibs/hash/BLAKE3/LICENSE
   prog/3rdPartyLibs/hash/LICENSE
+  prog/3rdPartyLibs/hash/SHA3IUF/LICENSE
   prog/3rdPartyLibs/image/avif/LICENSE
   prog/3rdPartyLibs/image/imageresampler/LICENSE
   prog/3rdPartyLibs/image/jpeg-6b/LICENSE
@@ -141,11 +147,11 @@ third-party component as follows:
   prog/3rdPartyLibs/ImGuizmo/LICENSE
   prog/3rdPartyLibs/jsoncpp/LICENSE
   prog/3rdPartyLibs/jsonsl/LICENSE
+  prog/3rdPartyLibs/lexilla/LICENSE
   prog/3rdPartyLibs/libb64/LICENSE
   prog/3rdPartyLibs/libcurl/COPYING
   prog/3rdPartyLibs/libev/LICENSE
   prog/3rdPartyLibs/libunwind/LICENSE.TXT
-  prog/3rdPartyLibs/lottie/COPYING
   prog/3rdPartyLibs/math/carve/LICENSE
   prog/3rdPartyLibs/math/clipper-4.x/license.txt
   prog/3rdPartyLibs/math/DelaunayTriangulator/LICENSE
@@ -153,10 +159,11 @@ third-party component as follows:
   prog/3rdPartyLibs/math/misc/LICENSE
   prog/3rdPartyLibs/math/poly2tri/LICENSE
   prog/3rdPartyLibs/math/vhacd/LICENSE
+  prog/3rdPartyLibs/memAllocators/dlmalloc/LICENSE
+  prog/3rdPartyLibs/memAllocators/mimalloc/LICENSE
   prog/3rdPartyLibs/meshoptimizer/LICENSE.md
   prog/3rdPartyLibs/metal/SPIRV-Headers/LICENSE
   prog/3rdPartyLibs/metal/spirv2Metal/LICENSE
-  prog/3rdPartyLibs/mimalloc/LICENSE
   prog/3rdPartyLibs/minhook/LICENSE
   prog/3rdPartyLibs/miniaudio/LICENSE
   prog/3rdPartyLibs/miniupnpc/LICENSE
@@ -178,7 +185,10 @@ third-party component as follows:
   prog/3rdPartyLibs/poisson-disk-generator/LICENSE
   prog/3rdPartyLibs/rapidjson/license.txt
   prog/3rdPartyLibs/reachability/LICENSE.txt
-  prog/3rdPartyLibs/Recast/LICENSE
+  prog/3rdPartyLibs/recastnavigation/Detour/LICENSE
+  prog/3rdPartyLibs/recastnavigation/DetourTileCache/LICENSE
+  prog/3rdPartyLibs/recastnavigation/Recast/LICENSE
+  prog/3rdPartyLibs/scintilla/LICENSE
   prog/3rdPartyLibs/SMAA/LICENSE.txt
   prog/3rdPartyLibs/SnapdragonSuperResolution/LICENSE.txt
   prog/3rdPartyLibs/stb/LICENSE
@@ -186,10 +196,10 @@ third-party component as follows:
   prog/3rdPartyLibs/unittest-cpp/LICENSE
   prog/3rdPartyLibs/uriparser/COPYING
   prog/3rdPartyLibs/uuidv7/LICENSE
-  prog/3rdPartyLibs/vulkan/glslang/LICENSE
-  prog/3rdPartyLibs/vulkan/hlslcc/license.txt
-  prog/3rdPartyLibs/vulkan/hlslcc/src/cbstring/license.txt
   prog/3rdPartyLibs/vulkan/smol-v/LICENSE
   prog/3rdPartyLibs/vulkan/spirv-tools/external/spirv-headers/LICENSE
   prog/3rdPartyLibs/vulkan/spirv-tools/LICENSE
   prog/3rdPartyLibs/vulkan/spirv-tools/utils/vscode/src/lsp/LICENSE
+  prog/3rdPartyLibs/wayland/LICENSE
+  prog/3rdPartyLibs/webrtc-apm/avx2/LICENSE
+  prog/3rdPartyLibs/webrtc-apm/LICENSE

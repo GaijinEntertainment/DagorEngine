@@ -47,11 +47,14 @@ def add_area(owner = None, dir = 'VERTICAL', fac = 0.3):
     return areas[-1]
 
 #shows text object in last found text_editor area
-def show_text(text):
+def show_text(text, cursor_to_start = False):
     text_area = get_area_by_type('TEXT_EDITOR')
     if text_area is None:
         text_area = add_area()
         text_area.type = 'TEXT_EDITOR'
+    if cursor_to_start:
+        text.update_tag()
+        text.select_set(0,0,0,0)
     text_area.spaces[0].text = text
     return
 

@@ -1,9 +1,9 @@
 WARNING: w215 (ternary-priority) The '?:' operator has lower priority than the '+' operator. Perhaps the '?:' operator works in a different way than it was expected.
-testData/static_analyzer/w215.nut:7:10
+testData/static_analyzer/w215.nut:5:10
 
 local flag = true
 local b = 10 + flag ? 1 : 2
           ^--------
-::print(b)
+print(b)
 
 

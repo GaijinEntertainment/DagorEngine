@@ -1,0 +1,1 @@
+Sends an HTTP request and invokes ``on_body`` with each body chunk as a string as it arrives, then calls ``on_complete`` with the final response. Use this for streaming protocols like SSE where the body is delivered incrementally.

@@ -25,7 +25,7 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
         tm = instance_tm * tm;
 
       if (debug_data.shouldDrawText)
-        add_debug_text_mark(tm.getcol(3), meshNode->name, -1, 0.f);
+        add_debug_text_mark(tm.getcol(3), getNodeName(meshNode->nodeIndex), -1, 0.f);
 
       set_cached_debug_lines_wtm(tm);
       for (unsigned int indexNo = 0; indexNo < meshNode->indices.size(); indexNo += 3)
@@ -78,7 +78,7 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
       draw_cached_debug_sphere(sphereNode->boundingSphere.c, sphereNode->boundingSphere.r, debug_data.color);
 
     for (const CollisionNode *capsuleNode = capsuleNodesHead; capsuleNode; capsuleNode = capsuleNode->nextNode)
-      draw_cached_debug_capsule(capsuleNode->capsule, debug_data.color, TMatrix::IDENT);
+      draw_cached_debug_capsule(capsules[capsuleNode->capsuleIndex], debug_data.color, TMatrix::IDENT);
   }
 #else
   G_UNUSED(instance_tm);

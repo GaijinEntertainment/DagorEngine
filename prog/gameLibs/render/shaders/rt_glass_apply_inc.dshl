@@ -38,6 +38,9 @@ macro RT_GLASS_APPLY_BASE(stage, transparent_target, transparent_depth)
         rtwMinMax.x = min(rtwMinMax.x, rtw4.w > 0 ? rtw4.w : 1000000);
         rtwMinMax.y = max(rtwMinMax.y, rtw4.w > 0 ? rtw4.w : 0);
 
+        float toleranceValue = 0.001;
+
+        rtwMinMax += float2(-toleranceValue, toleranceValue);
         return rtwMinMax;
       }
 

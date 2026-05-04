@@ -49,13 +49,15 @@ public:
       das::SideEffects::accessExternal, "bind_dascript::das_trace_to_collision_nodes");
     das::addExtern<DAS_BIND_FUN(das_trace_to_capsule_approximation)>(*this, lib, "trace_to_capsule_approximation",
       das::SideEffects::accessExternal, "bind_dascript::das_trace_to_capsule_approximation");
+    das::addExtern<DAS_BIND_FUN(trace_to_capsule_approximation)>(*this, lib, "trace_to_capsule_approximation",
+      das::SideEffects::modifyArgument, "::trace_to_capsule_approximation");
     das::addExtern<DAS_BIND_FUN(rayhit_to_collision_nodes)>(*this, lib, "rayhit_to_collision_nodes", das::SideEffects::accessExternal,
       "rayhit_to_collision_nodes");
     das::addExtern<DAS_BIND_FUN(rayhit_to_capsule_approximation)>(*this, lib, "rayhit_to_capsule_approximation",
       das::SideEffects::accessExternal, "rayhit_to_capsule_approximation");
 
     das::addCtorAndUsing<IntersectedEntity>(*this, lib, "IntersectedEntity", "::IntersectedEntity");
-    das::addCtorAndUsing<IntersectedEntities>(*this, lib, "IntersectedEntities", "::IntersectedEntities");
+    das::addUsing<IntersectedEntities>(*this, lib, "::IntersectedEntities");
 
     verifyAotReady();
   }

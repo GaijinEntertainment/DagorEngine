@@ -12,7 +12,7 @@ macro BASE_INIT_VSM_CONSTS(code)
     vsm_shadow_tm_x@f4 = vsm_shadow_tm_x;
     vsm_shadow_tm_y@f4 = vsm_shadow_tm_y;
     vsm_shadow_tm_z@f4 = vsm_shadow_tm_z;
-    vsm_shadow_tex_size@f4 = vsm_shadow_tex_size;
+    vsm_shadow_tex_width@f1 = vsm_shadow_tex_size.x;
   }
 endmacro
 

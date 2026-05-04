@@ -126,10 +126,10 @@ uint32_t HeightmapShadows::renderCascade(const UpdateCascade &update, int steps,
   setVars(); // fixme:should not be called for current
 
   ShaderGlobal::set_int(heightmap_shadow_cascadeVarId, update.cascade);
-  ShaderGlobal::set_color4(heightmap_shadow_shadow_stepVarId, update.from_sun_direction_xz.x * texelSize,
+  ShaderGlobal::set_float4(heightmap_shadow_shadow_stepVarId, update.from_sun_direction_xz.x * texelSize,
     update.from_sun_direction_xz.y * texelSize, update.fromSunDirYTan * texelSize * htScaleOfs.mul, texelSize);
 
-  ShaderGlobal::set_color4(heightmap_shadow_render_penumbraVarId, sunSizeTan * texelSize * htScaleOfs.mul, texelSizeToBest,
+  ShaderGlobal::set_float4(heightmap_shadow_render_penumbraVarId, sunSizeTan * texelSize * htScaleOfs.mul, texelSizeToBest,
     c.maxPenumbra, 1.f / c.maxPenumbra);
   ShaderGlobal::set_int4(heightmap_shadow_moveVarId, startX, endX, moveState, 0);
   const int changedW = endX - startX;
@@ -330,14 +330,19 @@ void HeightmapShadows::init(int w_, int cascades_cnt, float dist0_, float scale_
   if (oldFmt != texFmt || w != w_ || cascades_cnt != cascades.size())
   {
     heightmap_shadow.close();
-    heightmap_shadow = dag::create_array_tex(w_, w_, cascades_cnt, TEXCF_UNORDERED | texFmt, 1, "heightmap_shadow");
+    heightmap_shadow = dag::create_array_tex(w_, w_, cascades_cnt, TEXCF_UNORDERED | texFmt, 1, "heightmap_shadow", RESTAG_SHADOW);
+    {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+      ShaderGlobal::set_sampler(get_shader_variable_id("heightmap_shadow_samplerstate", true), d3d::request_sampler(smpInfo));
+    }
   }
   if (w_ != w)
   {
     const int bufW = FILTER_SIZE * 2 + w_;
     heightmap_shadow_start.close();
     heightmap_shadow_start = dag::create_sbuffer(sizeof(uint32_t), bufW * (2 + MAX_HMAP_SHADOW_CASCADES * 3 * 2),
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW, 0, "heightmap_shadow_start");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW, 0, "heightmap_shadow_start", RESTAG_SHADOW);
   }
 
   w = w_;
@@ -395,13 +400,13 @@ void HeightmapShadows::setVars()
   for (int i = cascades.size(); i < v.size(); ++i)
   {
     v[i] = IPoint4(-10000000, 10000000, 0, 0);
-    tc[i] = Point4(0, 0, -1, 0);
+    tc[i] = Point4(0, 1, 0, 0);
     fromSun[i] = Point4(0, 0, 0, 0);
   }
 
   ShaderGlobal::set_int4_array(heightmap_shadow_world_lt_sziVarId, v.data(), v.size());
-  ShaderGlobal::set_color4_array(heightmap_shadow_tc_ofs_szVarId, tc.data(), tc.size());
-  ShaderGlobal::set_color4_array(heightmap_shadow_dir_from_sunVarId, fromSun.data(), fromSun.size());
+  ShaderGlobal::set_float4_array(heightmap_shadow_tc_ofs_szVarId, tc.data(), tc.size());
+  ShaderGlobal::set_float4_array(heightmap_shadow_dir_from_sunVarId, fromSun.data(), fromSun.size());
 }
 
 void HeightmapShadows::setDist(float d) { dist0 = d; }
@@ -414,7 +419,8 @@ void HeightmapShadows::setMinMax(const Point2 &ht_min_max)
   const float maxTexelSize = powf(scale, cascades.size() - 1) * dist0 / w;
   Point2 htOfs(ht_min_max.y - ht_min_max.x + 2 * maxTexelSize, ht_min_max.x - maxTexelSize);
   htScaleOfs = HtScaleOfs{1.f / max(1e-6f, htOfs.x), -htOfs.y / max(1e-6f, htOfs.x)};
-  ShaderGlobal::set_color4(heightmap_shadow_height_encodingVarId, htScaleOfs.mul, htScaleOfs.ofs, htScaleOfs.mul * constBlurSize, 0);
+  ShaderGlobal::set_float4(heightmap_shadow_height_encodingVarId, htScaleOfs.mul, htScaleOfs.ofs, htScaleOfs.mul * constBlurSize,
+    htOfs.y - 100);
   invalidate();
 }
 

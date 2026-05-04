@@ -147,7 +147,7 @@ specify the texture name and include the appropriate block.
 For example, for the texture `barbwire_tex_d.tif`, the `barbwire_tex_d.tex.blk`
 file would look like this:
 
-```text
+```blk
 name:t="barbwire_tex_d.tif"
 include "#/develop/assets/_srgbx_with_mips.blk"
 ```

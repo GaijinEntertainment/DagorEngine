@@ -6,7 +6,7 @@
 #include <soundSystem/fmodApi.h>
 #include <fmod_studio.hpp>
 #include "internal/framememString.h"
-#include "internal/debug.h"
+#include "internal/debug_internal.h"
 #include <fmod.hpp>
 
 namespace sndsys

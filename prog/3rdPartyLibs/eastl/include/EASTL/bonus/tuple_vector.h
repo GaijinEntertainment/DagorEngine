@@ -225,7 +225,7 @@ struct TupleRecurser<T, Ts...> : TupleRecurser<Ts...>
 	{
 		size_type allocationOffset = CalculatAllocationOffset(offset);
 		size_type allocationSize = CalculateAllocationSize(offset, capacity);
-		vec.TupleVecLeaf<I, T>::mpData = (T*)((uintptr_t)pData + allocationOffset);
+		vec.template TupleVecLeaf<I, T>::mpData = (T*)((uintptr_t)pData + allocationOffset);
 		TupleRecurser<Ts...>::template SetNewData<TupleVecImplType, I + 1>(vec, pData, capacity, allocationSize);
 	}
 
@@ -368,7 +368,7 @@ public:
 	template<typename VecImplType>
 	TupleVecIter(VecImplType* tupleVec, size_type index)
 		: mIndex(index)
-		, mpData{(void*)tupleVec->TupleVecLeaf<Indices, Ts>::mpData...}
+		, mpData{(void*)tupleVec->template TupleVecLeaf<Indices, Ts>::mpData...}
 	{ }
 
 	template <typename OtherIndicesType, typename... Us,

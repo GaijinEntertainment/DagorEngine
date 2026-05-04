@@ -1,0 +1,8 @@
+ERROR: Identifier 'y' is not a compile-time constant
+testData/diagnostics/compilation_errors/sema_errors/id_is_not_const.nut:3:12
+
+local y = 5
+const BAD = y
+            ^
+
+

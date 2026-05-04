@@ -1,19 +1,25 @@
-let { logerr } = require("dagor.debug")
-let { getstackinfos } = require("debug")
-let { DBGLEVEL } = require("dagor.system")
-let dagorLocalize = require("dagor.localize")
+from "dagor.debug" import logerr, console_print
+from "dagor.system" import DBGLEVEL
+from "debug" import getstackinfos
+import "dagor.localize" as dagorLocalize
+from "%sqstd/functools.nut" import memoize
+import "console" as console
+from "nestdb" import ndbTryRead, ndbWrite
+
 let nativeLoc = dagorLocalize.loc
 let {doesLocTextExist} = dagorLocalize
-let {memoize} = require("%sqstd/functools.nut")
-let console = require("console")
 
+let debugLocalizations = DBGLEVEL > 0 && __name__ != "__main__" && "__argv" not in getroottable()
 let unlocalizedStrings = persist("unlocalizedStrings", @() {})
 let defLocalizedStrings = persist("defLocalizedStrings", @() {})
+const __useLocalizations__ = "__useLocalizations__"
+let readUseLocalizations = @() ndbTryRead("__useLocalizations__") ?? true
 
 function locWithCheck(locId, ...) {
   if (locId==null)
     return null
-
+  if (!readUseLocalizations())
+     return locId
   local defaultLoc
   foreach (v in vargv) {
     if (type(v) == "string")
@@ -34,10 +40,18 @@ function hashLocFunc(locId, ...) {
   let keys = ["", ""]
 
   foreach (idx, v in vargv) {
-    if (type(v)=="table")
-      keys[idx] = v.reduce(@(a,val, key) "_".concat(a, key, val), "")
-    else
-      keys[idx] = v ?? ""
+    let t = type(v)
+    if (v==null)
+      keys[idx] = ""
+    else if (t in const (["string", "float", "integer", "boolean"].totable()))
+      keys[idx] = v
+    else {
+      let r = []
+      foreach (k, val in v) {
+        r.append(k, val)
+      }
+      keys[idx] = "_".join(r) //better to replace with fast hash here
+    }
   }
 
   return $"{locId}{keys[0]}{keys[1]}"
@@ -46,7 +60,6 @@ function hashLocFunc(locId, ...) {
 let persistLocCache = persist("persistLocCache", @(){})
 let memoizedLoc = memoize(locWithCheck, hashLocFunc, persistLocCache)
 let checkedLoc = @[pure](locId, defLoc=null, params=null) memoizedLoc(locId, defLoc, params)
-let debugLocalizations = DBGLEVEL > 0 && __name__ != "__main__" && "__argv" not in getroottable()
 
 function dumpLocalizationErrors(){
   let unlocalizedStringsN = unlocalizedStrings.len() + defLocalizedStrings.len()
@@ -65,6 +78,10 @@ function dumpLocalizationErrors(){
 }
 
 console.register_command(dumpLocalizationErrors, "localization.checkErrors", "dump all unlocalized strings")
+console.register_command(function() {
+  ndbWrite(__useLocalizations__, !readUseLocalizations())
+  console_print($"localizations: {readUseLocalizations()}")
+}, "localization.toggle", "toggle localizations on/off")
 
 return freeze({
   nativeLoc,

@@ -2,27 +2,22 @@ import bpy, bmesh
 from   bpy.types    import Operator, Panel
 from   bpy.props    import BoolProperty, FloatProperty
 
-from ..helpers.basename         import basename
-from ..helpers.popup            import show_popup
-from ..helpers.texts            import log
-from ..helpers.get_preferences  import get_preferences
-from  .bmesh_functions          import *
-from  .mesh_tools_functions     import *
+from ..ui.draw_elements     import draw_custom_header
+
+from ..popup.popup_functions    import show_popup
+from ..helpers.texts        import log
+from ..helpers.getters      import get_preferences
+from  .bmesh_functions      import *
+from  .mesh_tools_functions import *
 
 
 classes = []
 
 def draw_vert_cleanup(context, layout):
     box = layout.box()
-    header = box.row(align = True)
-    addon_name = basename(__package__)
     pref = get_preferences()
     props = bpy.data.scenes[0].dag4blend.tools
-    header.prop(pref, 'vert_cleanup_maximized', text = "",
-        icon = 'DOWNARROW_HLT'if pref.vert_cleanup_maximized else 'RIGHTARROW_THIN', emboss = False)
-    header.prop(pref, 'vert_cleanup_maximized', text = "Vertices", emboss = False)
-    header.prop(pref, 'vert_cleanup_maximized', text = "", emboss = False,
-        icon = 'VERTEXSEL')
+    draw_custom_header(box, "Vertices", pref, 'vert_cleanup_maximized', icon = 'VERTEXSEL')
     if not pref.vert_cleanup_maximized:
         return
     mode = box.row(align = True)
@@ -38,15 +33,9 @@ def draw_vert_cleanup(context, layout):
 
 def draw_degenerate_removal(context, layout):
     box = layout.box()
-    header = box.row(align = True)
-    addon_name = basename(__package__)
     pref = get_preferences()
     props = bpy.data.scenes[0].dag4blend.tools
-    header.prop(pref, 'tris_cleanup_maximized', text = "",
-        icon = 'DOWNARROW_HLT'if pref.tris_cleanup_maximized else 'RIGHTARROW_THIN', emboss = False)
-    header.prop(pref, 'tris_cleanup_maximized', text = "Degenerates", emboss = False)
-    header.prop(pref, 'tris_cleanup_maximized', text = "", emboss = False,
-        icon = 'FACESEL')
+    draw_custom_header(box, "Degenerates", pref, 'tris_cleanup_maximized', icon = 'FACESEL')
     if not pref.tris_cleanup_maximized:
         return
     prop_col = box.column(align = True)

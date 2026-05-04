@@ -112,6 +112,11 @@ public:
   KRNLIMP static bool fatalOnBadVarType;   // def= true;
   KRNLIMP static bool fatalOnMissingVar;   // def= true;
 
+  /// Enable strict (fatal) mode for all error categories
+  static KRNLIMP void enableStrictMode();
+  /// Disable strict (fatal) mode for all error categories (the default)
+  static KRNLIMP void disableStrictMode();
+
   //! when true, allows parsing 'param=val' just like 'param:t=val'
   KRNLIMP static bool allowSimpleString; // def= false;
 
@@ -123,6 +128,8 @@ public:
   KRNLIMP static bool parseOverridesIgnored; // def= false;
   //! when true, comments are not removed but added as 'special' string params
   KRNLIMP static bool parseCommentsAsParams; // def= false;
+  //! when true, writes blocks with one param in one line
+  KRNLIMP static bool writeOneParamBlockCompact; // def= false;
 
   //! error reporting pipe
   struct IErrorReporterPipe
@@ -191,7 +198,9 @@ public:
   };
 
   /// Default constructor, constructs empty block.
-  KRNLIMP DataBlock(IMemAlloc *allocator = tmpmem);
+  KRNLIMP DataBlock();
+  explicit DataBlock(IMemAlloc *) : DataBlock() {} // Legacy compat, allocator isnt used anymore
+  DataBlock(decltype(nullptr)) = delete;
 
   /// Constructor that loads DataBlock tree from specified file.
   /// If you want error checking, use default constructor and load().
@@ -840,6 +849,16 @@ KRNLIMP void destroy_db_names(DBNameMap *nm);
 KRNLIMP bool write_names(IGenSave &cwr, const DBNameMap &names, uint64_t *names_hash);
 KRNLIMP bool read_names(IGenLoad &cr, DBNameMap &names, uint64_t *names_hash);
 KRNLIMP int db_names_count(DBNameMap *);
+
+struct ShrinkStats
+{
+  int added = 0;
+  int removed = 0;
+  int placeholders = 0;
+};
+
+//! return new shared name map with strings from src, but use order from order param
+KRNLIMP DBNameMap *shrink_names_saving_order(const DBNameMap &src, const DBNameMap &order, ShrinkStats &stats);
 
 //! returns shared name map for specified vromfs (acquires reference)
 KRNLIMP DBNameMap *get_vromfs_shared_name_map(const VirtualRomFsData *fs);

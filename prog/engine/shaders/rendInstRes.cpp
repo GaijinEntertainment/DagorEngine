@@ -27,6 +27,8 @@ int (*RenderableInstanceLodsResource::get_skip_first_lods_count)(const char *nam
 void (*RenderableInstanceLodsResource::on_higher_lod_required)(RenderableInstanceLodsResource *res, unsigned req_lod,
   unsigned cur_lod) = nullptr;
 
+bool RenderableInstanceLodsResource::always_load_last_tree_geom_lod = false;
+
 RenderableInstanceLodsResource::ImpostorParams RenderableInstanceLodsResource::ImpostorRtData::null_params;
 RenderableInstanceLodsResource::ImpostorTextures RenderableInstanceLodsResource::ImpostorRtData::null_tex;
 
@@ -136,14 +138,14 @@ void RenderableInstanceResource::render(const TMatrix &tm, IRenderWrapperControl
       VariableMap::isGlobVariablePresent(localWorldZGvId))
   {
     Point3 vn = normalize(itm.getcol(0));
-    ShaderGlobal::set_color4_fast(localWorldXGvId, Color4(P3D(vn), 0));
+    ShaderGlobal::set_float4(localWorldXGvId, Color4(P3D(vn), 0));
     vn = normalize(itm.getcol(1));
-    ShaderGlobal::set_color4_fast(localWorldYGvId, Color4(P3D(vn), 0));
+    ShaderGlobal::set_float4(localWorldYGvId, Color4(P3D(vn), 0));
     vn = normalize(itm.getcol(2));
-    ShaderGlobal::set_color4_fast(localWorldZGvId, Color4(P3D(vn), 0));
+    ShaderGlobal::set_float4(localWorldZGvId, Color4(P3D(vn), 0));
   }
 
-  ShaderGlobal::set_color4_fast(worldViewPosGvId, P3D(itm.getcol(3)), 1.f);
+  ShaderGlobal::set_float4(worldViewPosGvId, P3D(itm.getcol(3)), 1.f);
 
 
   rigid.mesh->getMesh()->render();
@@ -153,26 +155,26 @@ void RenderableInstanceResource::renderTrans(const TMatrix &tm, IRenderWrapperCo
 {
   bool need_transp = trans < 0.99f;
   if (need_transp)
-    ShaderGlobal::set_real_fast(globalTransRGvId, trans);
+    ShaderGlobal::set_float(globalTransRGvId, trans);
 
   d3d::settm(TM_WORLD, tm);
 
   TMatrix itm = inverse(tm);
   Point3 vn = normalize(itm.getcol(0));
-  ShaderGlobal::set_color4_fast(localWorldXGvId, Color4(P3D(vn), 0));
+  ShaderGlobal::set_float4(localWorldXGvId, Color4(P3D(vn), 0));
   vn = normalize(itm.getcol(1));
-  ShaderGlobal::set_color4_fast(localWorldYGvId, Color4(P3D(vn), 0));
+  ShaderGlobal::set_float4(localWorldYGvId, Color4(P3D(vn), 0));
   vn = normalize(itm.getcol(2));
-  ShaderGlobal::set_color4_fast(localWorldZGvId, Color4(P3D(vn), 0));
+  ShaderGlobal::set_float4(localWorldZGvId, Color4(P3D(vn), 0));
 
-  ShaderGlobal::set_color4_fast(worldViewPosGvId, P3D(itm.getcol(3)), 1.f);
+  ShaderGlobal::set_float4(worldViewPosGvId, P3D(itm.getcol(3)), 1.f);
 
   if (trans < 1)
     rigid.mesh->getMesh()->render();
   rigid.mesh->getMesh()->renderTrans();
 
   if (need_transp)
-    ShaderGlobal::set_real_fast(globalTransRGvId, 1.0f);
+    ShaderGlobal::set_float(globalTransRGvId, 1.0f);
 }
 
 
@@ -298,13 +300,6 @@ RenderableInstanceLodsResource *RenderableInstanceLodsResource::makeStubRes(cons
   return new (memalloc(sz, midmem), _NEW_INPLACE) StubRendInst(b);
 }
 
-static RenderableInstanceLodsResource::ImpostorTextureCallback impostor_texture_callback = nullptr;
-
-void RenderableInstanceLodsResource::setImpostorTextureCallback(ImpostorTextureCallback callback)
-{
-  impostor_texture_callback = callback;
-}
-
 bool RenderableInstanceLodsResource::isBakedImpostor() const { return getImpostorParams().hasBakedTexture(); }
 
 bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat) const
@@ -325,9 +320,6 @@ bool RenderableInstanceLodsResource::setImpostorVars(ShaderMaterial *mat) const
   if (isBakedImpostor())
     G_ASSERT(impostorTextures.albedo_alpha != BAD_TEXTUREID && impostorTextures.normal_translucency != BAD_TEXTUREID &&
              impostorTextures.ao_smoothness != BAD_TEXTUREID);
-
-  if (impostor_texture_callback)
-    impostor_texture_callback(this);
 
   return res;
 }
@@ -362,8 +354,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
   if (get_resource_type_id("impostor_data") == 0) // when no impostor_data resource present
     return;
 
-  DataBlock *impostorData =
-    reinterpret_cast<DataBlock *>(get_one_game_resource_ex(GAMERES_HANDLE(impostor_data), ImpostorDataGameResClassId));
+  DataBlock *impostorData = reinterpret_cast<DataBlock *>(get_one_game_resource_ex("impostor_data", ImpostorDataGameResClassId));
   if (!impostorData)
   {
     params.horizontalSamples = params.verticalSamples = 0;
@@ -465,7 +456,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
     logerr("An asset is supposed to have baked impostor, but it has runtime impostor shader."
            " Try rebaking impostors and then rebuilding assets using dabuild: <%s>",
       name);
-  release_game_resource(reinterpret_cast<GameResource *>(impostorData));
+  release_game_resource_ex(impostorData, ImpostorDataGameResClassId);
 }
 
 void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd, int flags, const char *name)
@@ -508,10 +499,18 @@ void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd,
     // This is a very commonly used condition in the BVH, so it is cached here.
     auto isTree = [](ShaderMesh::RElem &elem) { return strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0; };
     auto isFlag = [](ShaderMesh::RElem &elem) { return strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0; };
+    auto isTessellated = [](ShaderMesh::RElem &elem) {
+      int pnTrig = 0;
+      static int material_pn_triangulation_var_id = VariableMap::getVariableId("material_pn_triangulation");
+      bool got = elem.mat->getIntVariable(material_pn_triangulation_var_id, pnTrig);
+      return (got && (pnTrig > 0));
+    };
+
     if (auto &scene = lods.front().scene)
     {
       auto elems = scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
       hasTreeOrFlagMaterial = eastl::any_of(elems.begin(), elems.end(), [&](auto &e) { return isTree(e) || isFlag(e); });
+      isTessellatedMaterial = eastl::any_of(elems.begin(), elems.end(), [&](auto &e) { return isTessellated(e); });
     }
   }
 
@@ -591,7 +590,7 @@ void RenderableInstanceLodsResource::prepareTextures(const char *name, uint32_t 
             int preshadowHeight = max(texInfo.h >> shadow_atlas_mip_offset, 1);
 
             Texture *shadowTex = d3d::create_array_tex(preshadowWidth, preshadowHeight, shadow_atlas_size,
-              texture_format_flags | TEXCF_CLEAR_ON_CREATE, levelCount, textureName.c_str());
+              texture_format_flags | TEXCF_CLEAR_ON_CREATE, levelCount, textureName.c_str(), RESTAG_RENDINST);
             if (shadowTex)
             {
               impostorTextures.shadowAtlas = register_managed_tex(textureName, shadowTex);
@@ -646,7 +645,8 @@ RenderableInstanceLodsResource::RenderableInstanceLodsResource(const RenderableI
   impostorDataOfs(from.impostorDataOfs),
   packedFields(interlocked_relaxed_load(from.packedFields) & ~(RES_LD_FLG_MASK << RES_LD_FLG_SHIFT)),
   smvd(from.smvd),
-  hasTreeOrFlagMaterial(from.hasTreeOrFlagMaterial)
+  hasTreeOrFlagMaterial(from.hasTreeOrFlagMaterial),
+  isTessellatedMaterial(from.isTessellatedMaterial)
 {
   uint32_t resSize = (packedFields >> RES_SIZE_SHIFT) & RES_SIZE_MASK;
   // don't touch (write) occl unless (hasOccluderBox|hasOccluderQuad)!=0; resSize MAY BE smaller than offset between lods and end of

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <render/daFrameGraph/registry.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_variableRateShading.h>
 
@@ -19,15 +20,17 @@ enum class VRSRATE : int
 };
 
 inline constexpr auto VRS_RATE_TEXTURE_NAME = "vrs_mask_tex";
+inline constexpr auto SHADING_VRS_RATE_TEXTURE_NAME = "shading_vrs_mask_tex";
 
 inline bool can_use_motion_vrs()
 {
   // NOTE: we can also use it on other platforms, but need to verify that
   // everything works and looks as expected.
-  const Driver3dDesc &drv = d3d::get_driver_desc();
-  return d3d::get_driver_code().is(d3d::dx12 && d3d::windows) && drv.caps.hasVariableRateShadingTexture &&
+  auto &drvDesc = d3d::get_driver_desc();
+  return d3d::get_driver_code().is(d3d::dx12 && d3d::windows) && drvDesc.caps.hasVariableRateShadingTexture &&
          // NOTE: the following is guaranteed by dx12 spec but lets have it checked
          // here explicitly for when we decide to use it on other platforms too.
-         drv.variableRateTextureTileSizeX == drv.variableRateTextureTileSizeY &&
-         (drv.variableRateTextureTileSizeX == 8 || drv.variableRateTextureTileSizeX == 16 || drv.variableRateTextureTileSizeX == 32);
+         drvDesc.variableRateTextureTileSizeX == drvDesc.variableRateTextureTileSizeY &&
+         (drvDesc.variableRateTextureTileSizeX == 8 || drvDesc.variableRateTextureTileSizeX == 16 ||
+           drvDesc.variableRateTextureTileSizeX == 32);
 }

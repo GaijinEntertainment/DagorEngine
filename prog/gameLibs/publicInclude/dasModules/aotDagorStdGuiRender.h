@@ -11,6 +11,7 @@
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::FontFxType, FontFxType);
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::BlendMode, BlendMode);
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::TexFormat, TexFormat);
 
 MAKE_TYPE_FACTORY(GuiContext, StdGuiRender::GuiContext);
 MAKE_TYPE_FACTORY(StdGuiShader, StdGuiRender::StdGuiShader);

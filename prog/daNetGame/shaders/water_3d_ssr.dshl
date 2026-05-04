@@ -376,7 +376,7 @@ macro WATER_SSR()
       color = float4(backSurfaceColor.rgb / weight, backSurfaceColor.a / MaxIteration);
     }
 
-    float4 water_ssr(PS_INPUT In, float4 screenpos, float2 screenTc, float3 worldPos, float3 worldNormal, float3 pointToEye, float3 reflectSampleDir)
+    float4 water_ssr(PsInput input, float4 screenPos, float2 screenTc, float3 worldPos, float3 worldNormal, float3 pointToEye, float3 reflectSampleDir)
     {
       float4 objectReflection = 0;
 
@@ -406,7 +406,7 @@ macro WATER_SSR()
       {
         ##if shader == water_ssr_nv2 && water_planar_reflection_terrain != NULL
           float h = decode_height(getHeightLowLod(calcTcLow(worldPos.xz), 0));
-          bool isAtWaterLevel = abs(In.pos_world_undisplaced.z - water_level) < 0.01;
+          bool isAtWaterLevel = abs(input.worldPosUndisplaced.y - water_level) < 0.01;
           if (isAtWaterLevel && (!isInsideHeightmap(worldPos.xz) || worldPos.y > h))
           {
             float2 reflectionTC = reflectionToPlanarTC(worldPos, reflectSampleDir);
@@ -443,7 +443,7 @@ macro WATER_SSR()
       {
         float3 cameraToPoint = -pointToEye;
         float rayHitDist = 0;
-        get_alternate_reflections(objectReflection, rayHitDist, screenpos.xy, reflectSampleDir, cameraToPoint, worldNormal, false, false);
+        get_alternate_reflections(objectReflection, rayHitDist, screenPos.xy, reflectSampleDir, cameraToPoint, worldNormal, false, false);
         if (objectReflection.a > 0)
         {
           float3 cameraToReflection = (rayHitDist*reflectSampleDir + cameraToPoint);
@@ -451,8 +451,9 @@ macro WATER_SSR()
           applyFogToReflection(cameraToReflection*rcp(max(1e-6,cameraToReflectionLen)), cameraToReflectionLen, objectReflection.rgb);
         }
       }
-      if (backSurfaceBeginPos.w > 0 && !isSkyHit && !isHitValid && objectReflection.a == 0)
-        applyBackSurfaceColorFix(objectReflection, screenpos, backSurfaceBeginPos.xyz, backSurfaceEndPos);
+      BRANCH
+      if (water_quality == water_quality_high && backSurfaceBeginPos.w > 0 && !isSkyHit && !isHitValid && objectReflection.a == 0)
+          applyBackSurfaceColorFix(objectReflection, screenPos, backSurfaceBeginPos.xyz, backSurfaceEndPos);
 
       return objectReflection;
     }
@@ -468,6 +469,7 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
     dont_render;
   }
 
+  cull_mode = none;
 
   bool colorPass = false;
   WATER_3D_COMMON()
@@ -485,15 +487,16 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
   WATER_3D_DEFERRED_COMMON()
   USE_WATER_CASCADES_ROUGHNESS()
 
+  USE_WATER_RAIN_RIPPLES(ps)
+  USE_WATER_NORMALS_PS()
+
   INIT_HDR(ps)
   USE_HDR(ps)
 
   if (water_rt_enabled == no) {WATER_SSR()}
-  if (water_tech == wt) {WATER_RAIN_RIPLES_PS()}
 
   hlsl(ps) {
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
 
     half4 water_reflect_dir(float3 worldNormal, float3 pointToEyeNormalized)
     {
@@ -523,55 +526,37 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       float4 alpha_mask_weight__shadowStrength : SV_Target1; // .rg is for relfection, ba is for shadow
     };
     ##endif
-    ##if water_tech == dng
-    float3 calcWaterNormal(PS_INPUT In, ShoreData shoreData, float3 worldPos, float3 pointToEyeNormalized, float dist)
-    {
-      CascadesTex csc;
-      ##if water_flowmap_tex == NULL || mobile_render != off
-        get_cascades(In.pos_world_undisplaced.xy, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
-      ##else
-        get_cascades(In.worldPosXZ_a, csc.nvsf_tex_coord_cascade01_a, csc.nvsf_tex_coord_cascade23_a, csc.nvsf_tex_coord_cascade45_a);
-        get_cascades(In.worldPosXZ_b, csc.nvsf_tex_coord_cascade01_b, csc.nvsf_tex_coord_cascade23_b, csc.nvsf_tex_coord_cascade45_b);
-      ##endif
 
-      float4 nvsf_blendfactors0123 = 1;
-      float4 nvsf_blendfactors4567 = 1;
-      GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
-                                                                                                  nvsf_blendfactors4567, pointToEyeNormalized);
-      return surfaceAttributes.normal.xzy;
-    }
-    ##else
-    float3 calcWaterNormal(PS_INPUT In, ShoreData shoreData, float3 worldPos, float3 pointToEyeNormalized, float dist)
+    float3 calcWaterNormal(PsInput input, ShoreData shoreData, float3 worldPos, float dist)
     {
       // Todo check perlin noise influence
       float perlinSurfGrad = 1;
       float perlinSpotInfluence = 0;
 
       half3 worldNormal;
-      #if has_water_flowmap
-        float3 worldPos_a, worldPos_b;
-        float viewDist_a, viewDist_b;
-        float crossFade;
-        calcWaterFlowmapParams(worldPos, dist, worldPos_a, worldPos_b, viewDist_a, viewDist_b, crossFade);
+      ##if has_water_flowmap
+        float crossFade = getWaterFlowmapCrossFade();
 
-        GradientsData surfaceAttributes_a = getWaterGradients(worldPos_a, viewDist_a, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
-        GradientsData surfaceAttributes_b = getWaterGradients(worldPos_b, viewDist_b, perlinSurfGrad, float3(1, 1, 1), vd.shoreData, perlinSpotInfluence);
+        float3 worldPos_a = float3(input.worldPosXZ_ab.x, worldPos.y, input.worldPosXZ_ab.y);
+        float3 worldPos_b = float3(input.worldPosXZ_ab.z, worldPos.y, input.worldPosXZ_ab.w);
+
+        GradientsData surfaceAttributes_a = getWaterGradients(worldPos_a, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence);
+        GradientsData surfaceAttributes_b = getWaterGradients(worldPos_b, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence);
 
         worldNormal = normalize(lerp(surfaceAttributes_a.normal, surfaceAttributes_b.normal, crossFade));
-      #else
-        worldNormal = getWaterGradients(worldPos, dist, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence).normal;
-      #endif
+      ##else
+        worldNormal = getWaterGradients(worldPos, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence).normal;
+      ##endif
 
-      return worldNormal.xzy;
+      return worldNormal;
     }
-    ##endif
 
-    WaterOutput water_nv_ps(PS_INPUT In HW_USE_SCREEN_POS INPUT_VFACE)
+    WaterOutput water_nv_ps(PsInput input HW_USE_SCREEN_POS INPUT_VFACE)
     {
-      float4 screenpos = GET_SCREEN_POS(In.pos_clip);
-      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+      float4 screenPos = GET_SCREEN_POS(input.screenPos);
+      float3 pointToEye = getPointToEye(screenPos.xy, screenPos.w);
       float3 worldPos = world_view_pos.xyz-pointToEye;
-      float2 refractionTC = screen_pos_to_lowres_tc(screenpos.xy * 2.f);
+      float2 refractionTC = screen_pos_to_lowres_tc(screenPos.xy * 2.f);
       float distSq = dot(pointToEye, pointToEye);
       float invDist = rsqrt(distSq);
       float dist = distSq*invDist;
@@ -579,13 +564,14 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
       ShoreData shoreData;
       getShoreAttributes(worldPos, shoreData);
 
-      float3 worldNormal = calcWaterNormal(In, shoreData, worldPos, pointToEyeNormalized, dist);
+      float3 worldNormal = calcWaterNormal(input, shoreData, worldPos, dist);
 
-      float4 water_projection_pos = mul(float4(In.pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
-      worldNormal = get_water_normal(shoreData, worldPos, worldNormal, normalize_wfx_tc(water_projection_pos).xy);
+      float4 water_projection_pos = mul(float4(input.worldPosUndisplaced, 1), water_effects_proj_tm);
+      float distortion;
+      worldNormal = get_water_normal(shoreData, worldPos, dist, worldNormal, normalize_wfx_tc(water_projection_pos).xy, distortion);
 
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(In.tangent, cross(In.bitangent, In.tangent), In.bitangent);
+        float3x3 tangentSpace = float3x3(input.tangent, cross(input.bitangent, input.tangent), input.bitangent);
         worldNormal = mul(worldNormal, tangentSpace);
       ##endif
 
@@ -615,7 +601,7 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
         float4 newTarget = 0;
         half4 reflectSampleDir = water_reflect_dir(worldNormal, pointToEyeNormalized);
         if (reflectSampleDir.w > 0)
-          newTarget = water_ssr(In, screenpos, refractionTC, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz);
+          newTarget = water_ssr(input, screenPos, refractionTC, worldPos, worldNormal, pointToEye, reflectSampleDir.xyz);
         half3 oldColor = tex2Dlod(water_reflection_tex, float4(oldUv, 0,0)).rgb;
         half4 oldTarget = half4(oldColor.rgb, oldAlphaStrength.r);
         half4 result = lerp(oldTarget, newTarget, weight);

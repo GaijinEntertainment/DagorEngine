@@ -1,0 +1,9 @@
+ERROR: expression of type 'int' cannot be assigned to type 'table|null'
+testData/exec/runtime_type_check/assign_wrong_type_02.nut:1:0
+
+local y: table|null = 4
+^----------------------
+return y
+
+
+Error [Failed to compile file testData/exec/runtime_type_check/assign_wrong_type_02.nut (testData/exec/runtime_type_check/assign_wrong_type_02.nut)]

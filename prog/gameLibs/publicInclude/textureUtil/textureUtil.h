@@ -27,5 +27,6 @@ enum class TextureRotation
 bool rotate_texture(TEXTUREID source_texture_id, BaseTexture *dest_texture, TextureRotation rotation);
 bool stitch_textures_horizontal(dag::ConstSpan<BaseTexture *> source_textures, BaseTexture *dest_texture);
 bool stitch_textures_vertical(dag::ConstSpan<BaseTexture *> source_textures, BaseTexture *dest_texture);
-TexPtr stitch_textures_horizontal(dag::ConstSpan<TEXTUREID> source_texture_ids, const char *dest_tex_name, int flags);
+TexPtr stitch_textures_horizontal(dag::ConstSpan<TEXTUREID> source_texture_ids, const char *dest_tex_name, int flags,
+  ResourceTagType tag = nullptr);
 } // namespace texture_util

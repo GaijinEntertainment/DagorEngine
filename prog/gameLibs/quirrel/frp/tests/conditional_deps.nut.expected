@@ -1,0 +1,9 @@
+mode=a: 10
+srcA changed: 11
+srcB changed (unused): 11
+mode=b: 99
+srcA changed (now unused): 99
+srcB changed (active): 30
+sel[0]: 100
+sel[2]: 300
+val[2] changed: 300

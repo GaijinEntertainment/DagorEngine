@@ -109,7 +109,8 @@ void Cables::setMaxCables(unsigned int max_cables)
 {
   maxCables = max_cables;
   changed = true;
-  cablesBuf = dag::buffers::create_persistent_sr_structured(sizeof(CableData), maxCables, "cables_buf");
+  cablesBuf =
+    dag::buffers::create_persistent_sr_structured(sizeof(CableData), maxCables, "cables_buf", d3d::buffers::Init::No, RESTAG_CABLE);
 }
 
 int Cables::addCable(const Point3 &p1, const Point3 &p2, float rad, float sag)
@@ -145,7 +146,7 @@ void Cables::setCable(int id, const Point3 &p1, const Point3 &p2, float rad, flo
 
 bool Cables::beforeRender(float pixel_scale)
 {
-  ShaderGlobal::set_real_fast(pixel_scaleVarId, pixel_scale);
+  ShaderGlobal::set_float(pixel_scaleVarId, pixel_scale);
   return beforeRender();
 }
 
@@ -178,7 +179,13 @@ void Cables::render(int render_pass)
   }
 }
 
-void Cables::afterReset() { changed = true; }
+void Cables::markAllCablesDirty()
+{
+  changed = true;
+  dirtyCables.clear();
+  for (int i = 0; i < cables.size(); i++)
+    dirtyCables.emplace(i);
+}
 
 void Cables::onRIExtraDestroyed(const TMatrix &tm, const BBox3 &box) { destroyedRIExtra.push_back({tm, box}); }
 
@@ -221,9 +228,11 @@ void Cables::destroyCables()
 
 uint32_t Cables::getTranglesPerCable() const { return TRIANGLES_PER_CABLE; }
 
-void reset_cables(bool)
+void reset_cables(bool full_reset)
 {
+  if (!full_reset)
+    return;
   if (Cables *cableMgr = get_cables_mgr())
-    cableMgr->afterReset();
+    cableMgr->markAllCablesDirty();
 }
 REGISTER_D3D_AFTER_RESET_FUNC(reset_cables);

@@ -1,11 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "landMesh/vtex.hlsli"
+#include "landMesh/virtualtexture.h"
 #include "clipmapDebug.h"
 #include <util/dag_string.h>
+#include <util/dag_console.h>
 #include <memory/dag_framemem.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
+#include <EASTL/vector.h>
+#include <math/dag_Point2.h>
+#include <generic/dag_initOnDemand.h>
 
 ClipmapDebugStats clipmapDebugStats;
 
@@ -126,3 +131,46 @@ static void clipmapImguiWindow()
 REGISTER_IMGUI_WINDOW("Render", "Clipmap", clipmapImguiWindow);
 
 bool clipmap_should_collect_debug_stats() { return imgui_window_is_visible("Render", "Clipmap"); }
+
+void show_clipmap_debug_window() { imgui_window_set_visible("Render", "Clipmap", true); }
+struct ClipmapRegionsToInvalidate
+{
+  eastl::vector<Point2> worldXZ;
+};
+static ClipmapRegionsToInvalidate clipmapRegionsToInvalidate;
+
+class ClipmapDebugCmdProcessor : public console::ICommandProcessor
+{
+public:
+  ClipmapDebugCmdProcessor() : console::ICommandProcessor() {}
+  void destroy() {}
+
+  virtual bool processCommand(const char *argv[], int argc)
+  {
+    int found = 0;
+    CONSOLE_CHECK_NAME("clipmap", "add_invalid_point", 3, 3)
+    {
+      auto &point = clipmapRegionsToInvalidate.worldXZ.emplace_back();
+      point.x = console::to_real(argv[1]);
+      point.y = console::to_real(argv[2]);
+    }
+    CONSOLE_CHECK_NAME("clipmap", "reset_invalid_points", 1, 1) { clipmapRegionsToInvalidate.worldXZ.clear(); }
+    return found;
+  }
+};
+static InitOnDemand<ClipmapDebugCmdProcessor> clipmapDebugCmdProcessor;
+
+void updateClipmapRegionsToInvalidate(const InvalidatePointFn &invalidatePointFn)
+{
+  if (!clipmapDebugCmdProcessor.get())
+  {
+    clipmapDebugCmdProcessor.demandInit();
+    add_con_proc(clipmapDebugCmdProcessor);
+  }
+  for (const auto &val : clipmapRegionsToInvalidate.worldXZ)
+    invalidatePointFn(val);
+}
+void clipmap_debug_before_prepare_feedback(const InvalidatePointFn &invalidatePointFn)
+{
+  updateClipmapRegionsToInvalidate(invalidatePointFn);
+}

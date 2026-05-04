@@ -2,18 +2,20 @@
 
 #include "temp_buffers.h"
 #include "globals.h"
-#include "buffer_alignment.h"
+#include "buffer_props.h"
 #include "driver_config.h"
 #include "device_context.h"
 #include "global_lock.h"
 #include "frontend_pod_state.h"
+#include "backend/cmd/buffers.h"
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
 void TempBufferManager::setConfig(VkDeviceSize size, uint32_t alignment, uint8_t index)
 {
   G_ASSERT(((alignment - 1) & alignment) == 0);
-  pow2Alignment = max<VkDeviceSize>(Globals::VK::bufAlign.minimal, alignment);
+  pow2Alignment = max<VkDeviceSize>(Globals::VK::bufProps.minimal, alignment);
   maxAllocSize = size;
   managerIndex = index;
 }
@@ -150,10 +152,14 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
   // will also trigger TSAN warning if we try to present in parallel to discard, see assert below,
   // that's invalid for framemem buffer! fix in user code!
   volatile uint32_t frame = Frontend::State::pod.frameIndex;
-  size = Globals::VK::bufAlign.alignSize(size);
+  size = Globals::VK::bufProps.alignSize(size);
+#if DAGOR_DBGLEVEL > 0
+  totalUsage += size;
+#endif
 
+  bool nonMappedRing = (mem_class == DeviceMemoryClass::DEVICE_RESIDENT_BUFFER) && Globals::Mem::pool.hasDedicatedMemory();
   WinAutoLock lock(writeLock);
-  Buffer *&buf = getBuf(mem_class, frame);
+  Buffer *&buf = nonMappedRing ? getNonMappedBuf(mem_class, frame) : getBuf(mem_class, frame);
 
   if (!buf || !buf->onDiscardFramemem(frame, size))
   {
@@ -164,10 +170,7 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
       discardCount += buf->getDiscardBlocks();
       destroyQue.push_back(buf);
     }
-
-    if (discardCount * discardBlockSz < size)
-      // can be increment, but gives more peak reservation
-      discardCount = size / discardBlockSz + 1;
+    discardCount += size / discardBlockSz + 1;
 
     buf = Buffer::create(discardBlockSz, mem_class, discardCount, BufferMemoryFlags::FRAMEMEM);
     // first CmdAddRefFrameMem handled at creation time to avoid lock order inversion
@@ -176,6 +179,8 @@ BufferRef FramememBufferManager::acquire(uint32_t size, DeviceMemoryClass mem_cl
     if (Globals::cfg.debugLevel > 0)
       buf->setDebugName(String(32, "framemem_%u", frameToRingIdx(frame)));
   }
+  if (nonMappedRing)
+    buf->ensureNoMappedMemory();
   BufferRef ret{buf, size};
   // make acquires unique over multiple frames as some framemem buffers may be leaved bound, yet not updated
   // causing discard state replacement to fail, due to non unique buf+offset combos
@@ -197,13 +202,16 @@ void FramememBufferManager::getMemUsageInfo(uint32_t &allocated, uint32_t &used_
 
   allocated = 0;
   used_currently = 0;
+#if DAGOR_DBGLEVEL > 0
+  for (uint32_t i : lastTotalUsages)
+    used_currently += i;
+#endif
 
   for (Buffer *i : buffers)
   {
     if (!i)
       continue;
     allocated += i->getTotalSize();
-    used_currently += i->getCurrentDiscardOffset() + i->getCurrentDiscardVisibleSize();
   }
 }
 
@@ -215,9 +223,8 @@ void FramememBufferManager::purge()
   {
     if (i)
     {
-      CmdReleaseFrameMem cmd{i};
-      Globals::ctx.dispatchCommand(cmd);
-      Globals::ctx.destroyBuffer(i);
+      Globals::ctx.dispatchCmd<CmdReleaseFrameMem>({i});
+      Globals::ctx.dispatchCmd<CmdDestroyBuffer>({i});
     }
     i = nullptr;
   }
@@ -227,12 +234,14 @@ void FramememBufferManager::onFrameEnd()
 {
   WinAutoLock lock(writeLock);
 
+#if DAGOR_DBGLEVEL > 0
+  lastTotalUsages[frameToRingIdx(Frontend::State::pod.frameIndex)] = totalUsage;
+  totalUsage = 0;
+#endif
   for (Buffer *i : destroyQue)
   {
-    CmdReleaseFrameMem releaseCmd{i};
-    Globals::ctx.dispatchCommandNoLock(releaseCmd);
-    CmdDestroyBuffer cmd{i};
-    Globals::ctx.dispatchCommandNoLock(cmd);
+    Globals::ctx.dispatchCmdNoLock<CmdReleaseFrameMem>({i});
+    Globals::ctx.dispatchCmdNoLock<CmdDestroyBuffer>({i});
   }
   destroyQue.clear();
 }
@@ -240,16 +249,8 @@ void FramememBufferManager::onFrameEnd()
 void FramememBufferManager::swapRefCounters(Buffer *src, Buffer *dst)
 {
   if (src)
-  {
-    CmdReleaseFrameMem cmd{src};
-    Globals::ctx.dispatchCommand(cmd);
-  }
-  CmdAddRefFrameMem cmd{dst};
-  Globals::ctx.dispatchCommand(cmd);
+    Globals::ctx.dispatchCmd<CmdReleaseFrameMem>({src});
+  Globals::ctx.dispatchCmd<CmdAddRefFrameMem>({dst});
 }
 
-void FramememBufferManager::release(Buffer *obj)
-{
-  CmdReleaseFrameMem cmd{obj};
-  Globals::ctx.dispatchCommand(cmd);
-}
+void FramememBufferManager::release(Buffer *obj) { Globals::ctx.dispatchCmd<CmdReleaseFrameMem>({obj}); }

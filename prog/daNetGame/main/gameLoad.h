@@ -4,7 +4,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
-#include <EASTL/unordered_map.h>
 
 struct VromLoadInfo;
 namespace net
@@ -33,7 +32,6 @@ struct GamePackage
   eastl::string sceneName;
   eastl::string levelBlkPath;
   eastl::vector<eastl::string> importScenes;
-  eastl::unordered_map<eastl::string, uint32_t> chunksMap;
 
   eastl::string ugmContentID;
   eastl::string ugmContentMount;

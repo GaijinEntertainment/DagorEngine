@@ -165,7 +165,7 @@ eastl::optional<ImGuiDagor::ComboInfo> ImGuiDagor::BeginComboWithFilter(const ch
   if (!popupIsAlreadyOpened)
   {
     const ImU32 frame_col = ImGui::GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
-    ImGui::RenderNavHighlight(frame_bb, popupId);
+    ImGui::RenderNavCursor(frame_bb, popupId);
     if (!(flags & ImGuiComboFlags_NoPreview))
       window->DrawList->AddRectFilled(frame_bb.Min, ImVec2(value_x2, frame_bb.Max.y), frame_col, style.FrameRounding,
         (flags & ImGuiComboFlags_NoArrowButton) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersLeft);
@@ -297,9 +297,9 @@ bool ImGuiDagor::EndComboWithFilter(const char *label, const dag::Vector<eastl::
     const ImGuiID id = wnd->GetID("##inputText");
     ImGuiInputTextState *state = ImGui::GetInputTextState(id);
 
-    const char *buf_end = NULL;
-    state->CurLenW = ImTextStrFromUtf8(state->TextW.Data, state->TextW.Size, input.c_str(), NULL, &buf_end);
-    state->CurLenA = (int)(buf_end - input.c_str());
+    state->TextA.resize(input.length() + 1);
+    memcpy(state->TextA.data(), input.c_str(), input.length() + 1);
+    state->TextLen = input.length();
     state->CursorClamp();
   }
 

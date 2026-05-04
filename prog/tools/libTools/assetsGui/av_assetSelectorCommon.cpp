@@ -5,10 +5,13 @@
 #include <assets/asset.h>
 #include <assets/assetFolder.h>
 #include <assets/assetMgr.h>
+#include <assets/assetHlp.h>
 #include <assets/assetUtils.h>
 #include <libTools/util/strUtil.h>
+#include <util/dag_fastIntList.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <propPanel/propPanel.h>
 
 dag::Vector<PropPanel::IconId> AssetSelectorCommon::assetTypeIcons;
@@ -37,9 +40,14 @@ const char *const AssetSelectorCommon::searchTooltip =
 
 void AssetSelectorCommon::initialize(const DagorAssetMgr &asset_mgr)
 {
+  String iconName;
   assetTypeIcons.resize(asset_mgr.getAssetTypesCount());
   for (int i = 0; i < asset_mgr.getAssetTypesCount(); ++i)
-    assetTypeIcons[i] = PropPanel::load_icon(String(0, "asset_%s", asset_mgr.getAssetTypeName(i)));
+  {
+    iconName.printf(0, "asset_%s", asset_mgr.getAssetTypeName(i));
+    dd_strlwr(iconName);
+    assetTypeIcons[i] = PropPanel::load_icon(iconName);
+  }
 
   allAssetTypeIndexes.resize(asset_mgr.getAssetTypesCount());
   for (int i = 0; i < asset_mgr.getAssetTypesCount(); ++i)
@@ -73,6 +81,22 @@ void AssetSelectorCommon::copyAssetNameToClipboard(const DagorAsset &asset) { cl
 void AssetSelectorCommon::copyAssetFolderNameToClipboard(const DagorAssetFolder &folder)
 {
   clipboard::set_clipboard_ansi_text(folder.folderName);
+}
+
+void AssetSelectorCommon::copyAssetTagsToClipboard(const DagorAsset &asset)
+{
+  String tags("");
+  const FastIntList &tagIds = assettags::getTagIds(asset);
+  for (int i = 0; i < tagIds.size(); ++i)
+  {
+    const char *tagName = assettags::getTagName(tagIds[i]);
+    if (tagName)
+    {
+      tags.append(tagName);
+      tags.append(" ");
+    }
+  }
+  clipboard::set_clipboard_ansi_text(tags.c_str());
 }
 
 const DagorAsset *AssetSelectorCommon::getAssetByName(const DagorAssetMgr &asset_mgr, const char *_name,

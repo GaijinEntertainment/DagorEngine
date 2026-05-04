@@ -1173,7 +1173,7 @@ class flat_hash_set
             T,
             T,
             H,
-            detailv3::functor_storage<hash_size_t, H>,
+            detailv3::functor_storage<size_t, H>,
             E,
             detailv3::functor_storage<bool, E>,
             A
@@ -1184,7 +1184,7 @@ class flat_hash_set
         T,
         T,
         H,
-        detailv3::functor_storage<hash_size_t, H>,
+        detailv3::functor_storage<size_t, H>,
         E,
         detailv3::functor_storage<bool, E>,
         A

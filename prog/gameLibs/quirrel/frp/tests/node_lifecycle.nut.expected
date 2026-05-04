@@ -1,0 +1,14 @@
+watched after create: 3
+computed after create: 2
+watched with temps: 5
+watched after GC: 3
+computed with temp: 3
+computed after GC: 2
+reused slot watched: 40
+reused slot computed: 42
+reused slot after set: 52
+after cycles watched: 4
+after cycles computed: 3
+w1 survived: 1
+c1 survived: 3
+c2 survived: 5

@@ -5,7 +5,6 @@
 #include <animChar/dag_animCharacter2.h>
 #include <ioSys/dag_genIo.h>
 #include <ioSys/dag_roDataBlock.h>
-#include <EASTL/vector.h>
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
@@ -21,7 +20,7 @@ AnimCharCreationProps::AnimCharCreationProps()
 {
   noAnimDist = noRenderDist = 1000;
   bsphRad = 1000;
-  createVisInst = true;
+  createVisInst = false;
 
   useCharDep = false;
   pyOfs = 0;
@@ -31,9 +30,10 @@ AnimCharCreationProps::AnimCharCreationProps()
 
 void AnimCharCreationProps::release()
 {
-  centerNode.setStrRaw(nullptr);
-  props.release();
+  if (centerNode.c_str() != (char *)&centerNode) // ...not SSOed
+    centerNode.detach();
   rootNode.setStrRaw(nullptr);
+  props.release();
 }
 
 } // namespace AnimV20
@@ -41,31 +41,14 @@ void AnimCharCreationProps::release()
 class CharacterGameResFactory final : public GameResourceFactory
 {
 public:
-  struct CharData : public AnimV20::AnimCharCreationProps
+  struct AnimChar : public AnimV20::AnimCharCreationProps
   {
     int resId;
-    CharData(int rid) : resId(rid) {}
-  };
-
-  struct AnimChar
-  {
-    int resId;
-    int refCount;
+    int refCount = 0;
     eastl::unique_ptr<AnimV20::IAnimCharacter2> animChar;
+    AnimChar(int rid) : resId(rid) {}
   };
-
-  eastl::vector<CharData> charData;
-  eastl::vector<AnimChar> animChars;
-
-  int findResData(int res_id)
-  {
-    for (int i = 0; i < charData.size(); ++i)
-      if (charData[i].resId == res_id)
-        return i;
-
-    return -1;
-  }
-
+  dag::Vector<AnimChar> animChars;
 
   int findRes(int res_id)
   {
@@ -90,21 +73,24 @@ public:
   unsigned getResClassId() override { return CharacterGameResClassId; }
   const char *getResClassName() override { return "Character"; }
 
-  bool isResLoaded(int res_id) override { return findRes(res_id) >= 0; }
-  bool checkResPtr(GameResource *res) override { return findAnimChar(res) >= 0; }
-
-  GameResource *getGameResource(int res_id) override
+  bool isResLoaded(int res_id) override
   {
     int id = findRes(res_id);
+    return id >= 0 && animChars[id].animChar;
+  }
+  bool checkResPtr(GameResource *res) override { return findAnimChar(res) >= 0; }
 
+  GameResource *getGameResource(RRL rrl, int res_id) override
+  {
+    WinAutoLock lock(get_gameres_main_cs());
+    int id = findRes(res_id);
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
-
     animChars[id].refCount++;
     return (GameResource *)animChars[id].animChar.get();
   }
@@ -126,7 +112,7 @@ public:
     if (id < 0)
       return;
 
-    if (animChars[id].refCount == 0)
+    if (animChars[id].refCount == 0) [[unlikely]]
     {
       String name;
       get_game_resource_name(animChars[id].resId, name);
@@ -153,12 +139,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = animChars.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(animChars[i].resId) > 0)
+      if (rrl && is_res_required(rrl, animChars[i].resId))
         continue;
       if (animChars[i].refCount > 0)
       {
@@ -183,12 +169,11 @@ public:
 
     {
       WinAutoLock lock(cs);
-      if (findResData(res_id) >= 0)
+      if (findRes(res_id) >= 0)
         return;
     }
 
-    CharData chd(res_id);
-    chd.createVisInst = false;
+    AnimChar chd(res_id);
 
     unsigned ver = cb.readInt();
     if (ver == _MAKE4C('CHR2') || ver == _MAKE4C('CHR1'))
@@ -207,7 +192,11 @@ public:
         cb.readString(chd.rootNode);
         [[fallthrough]];
       case _MAKE4C('CHR1'):
-      case _MAKE4C('chr1'): cb.readString(chd.centerNode); [[fallthrough]];
+      case _MAKE4C('chr1'):
+        cb.readString(chd.centerNode);
+        if (chd.centerNode == "@root")
+          chd.centerNode.clear();
+        [[fallthrough]];
       case _MAKE4C('chr0'):
         chd.noAnimDist = cb.readReal();
         chd.noRenderDist = cb.readReal();
@@ -217,24 +206,29 @@ public:
     };
 
     WinAutoLock lock2(cs);
-    charData.emplace_back(eastl::move(chd));
+    animChars.emplace_back(eastl::move(chd));
   }
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     AnimV20::AnimCharCreationProps animPropsView(AnimV20::AnimCharCreationProps::CtorNoInit{});
     String name;
 
+    int id;
     {
       WinAutoLock lock(cs);
 
-      int id = findRes(res_id);
+      id = findRes(res_id);
       if (id >= 0)
-        return;
+      {
+        if (animChars[id].animChar)
+          return;
+      }
+      else
+        id = findRes(res_id);
 
-      id = findResData(res_id);
       get_game_resource_name(res_id, name);
       if (id < 0)
       {
@@ -243,41 +237,51 @@ public:
       }
 
       if (num_refs < 2)
-      {
-        animChars.emplace_back().resId = res_id;
         return;
-      }
 
-      memcpy(&animPropsView, &charData[id], sizeof(animPropsView)); // -V780
+      memcpy(&animPropsView, &animChars[id], sizeof(animPropsView)); // -V780 To consider: use ref counted ptr instead?
     }
 
     FATAL_CONTEXT_AUTO_SCOPE(name);
 
-    AnimChar ac{res_id, 0, eastl::make_unique<AnimCharV20::IAnimCharacter2>()};
-    ac.animChar->baseComp().creationInfo.resName = name;
+    auto animChar = eastl::make_unique<AnimV20::IAnimCharacter2>();
+    animChar->baseComp().creationInfo.resName = name;
 
-    int modelId = ref_ids[0];
-    int skeletonId = ref_ids[1];
-    //    int agId = num_refs >= 3 ? ref_ids[2] : -1;
-    //    int pdlId = num_refs >= 4 ? ref_ids[3] : -1;
-    int physId = num_refs >= 4 ? ref_ids[3] : -1;
-    int acId = num_refs >= 3 ? ref_ids[2] : -1;
+    auto *modelRes = (DynamicRenderableSceneLodsResource *)get_game_resource(ref_ids[0], rrl);
+    auto *skeletonRes = (GeomNodeTree *)get_game_resource(ref_ids[1], rrl);
+    bool ag_set = (num_refs >= 3 && ref_ids[2] >= 0);
+    auto *agRes = ag_set ? (AnimGraphResData *)get_game_resource(ref_ids[2], rrl) : nullptr;
+    bool phys_set = (num_refs >= 4 && ref_ids[3] >= 0);
+    auto *physRes = phys_set ? (DynamicPhysObjectData *)get_game_resource(ref_ids[3], rrl) : nullptr;
+    bool res_load_failed = !skeletonRes || (ag_set && !agRes);
 
-    ac.animChar->load(animPropsView, modelId, skeletonId, acId, physId);
+    if (!res_load_failed)
+      animChar->load(animPropsView, modelRes, skeletonRes, agRes, physRes);
+
+    if (modelRes)
+      ::release_game_resource_ex(modelRes, DynModelGameResClassId);
+    if (skeletonRes)
+      ::release_game_resource_ex(skeletonRes, GeomNodeTreeGameResClassId);
+    if (agRes)
+      ::release_game_resource_ex(agRes, AnimGraphGameResClassId);
+    if (physRes)
+      ::release_game_resource_ex(physRes, PhysObjGameResClassId);
 
     {
       WinAutoLock lock2(cs);
-      animChars.emplace_back(eastl::move(ac));
+      animChars[id].animChar = eastl::move(animChar);
     }
 
     animPropsView.release();
   }
 
-  void reset() override
+  void iterateGameResources(const eastl::function<void(GameResource *)> &cb)
   {
-    charData.clear();
-    animChars.clear();
+    for (AnimChar &ac : animChars)
+      cb((GameResource *)ac.animChar.get());
   }
+
+  void reset() override { animChars.clear(); }
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(animChars, resId, refCount)
 };

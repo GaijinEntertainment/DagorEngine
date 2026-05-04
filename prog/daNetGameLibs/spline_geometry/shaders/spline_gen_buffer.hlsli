@@ -12,7 +12,22 @@ struct SplineGenSpline
   float3 tangent;
   float emissiveIntensity;
   float3 bitangent;
-  uint padding3;
+
+  // Shape data
+  float distToClosest;
+  int closestShapeOfs;
+  int closestShapeSegmentNr;
+  int secondClosestShapeOfs;
+  int secondClosestShapeSegmentNr;
+};
+
+struct SplineGenVertex
+{
+  float3 worldPos;
+  uint normal;
+  float2 texcoord;
+  uint tangent;
+  uint bitangent;
 };
 
 typedef uint BatchId;
@@ -36,7 +51,27 @@ struct SplineGenInstance
   uint objCount;
 
   float4 emissiveColor;
+
+  float4 uvOffsets;
+  float4 uvScales;
+  float2 glassParams;
+  float uvInterpolationValue;
+
+  float cylinderStartOffset;
+
+  float2 additionalThicknessBounds;
+  float surfaceOpaqueness;
+  uint padding0;
 };
+
+struct SplineGenShapeData
+{
+  // xy - position of point, zw - UV coordinates
+  // (U as in Useless; that's only really here for padding)
+  float4 firstPos;
+  float4 lastPos;
+};
+
 //for flags
 #define PREV_SB_VALID (0x1u)
 #define PREV_ATTACHMENT_DATA_VALID (0x2u)

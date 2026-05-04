@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#if HAS_AMD_GPU_SERVICES
+#if HAS_AGS
 #include <driver.h>
 
 #include <amd_ags.h>

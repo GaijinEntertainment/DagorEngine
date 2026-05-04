@@ -69,7 +69,7 @@ ShaderMatVdata *ShaderMatVdata::create(int tex_num, int mat_num, int vdata_num, 
 void ShaderMatVdata::finalizeMatRefs()
 {
   for (int i = 0; i < mat.size(); i++)
-    if (mat[i]->getRefCount() > 1)
+    if (mat[i] && mat[i]->getRefCount() > 1)
       mat[i]->native().setNonSharedRefCount(mat[i]->getRefCount());
 }
 

@@ -5,19 +5,31 @@
 #pragma once
 
 #include <debug/dag_assert.h>
-#include <supp/dag_define_KRNLIMP.h>
+#include <perfMon/dag_statDrv.h>
 #include <util/dag_preprocessor.h>
+#include <supp/dag_define_KRNLIMP.h>
 
 #if _TARGET_STATIC_LIB && !DAGOR_PREFER_HEAP_ALLOCATION
 extern thread_local class IMemAlloc *thread_framemem;
+inline IMemAlloc **get_thread_framemem() { return &thread_framemem; }
 inline IMemAlloc *framemem_ptr() { return thread_framemem; }
 #else
+IMemAlloc **get_thread_framemem();
 KRNLIMP IMemAlloc *framemem_ptr();
 #endif
 
-KRNLIMP void reset_framemem(); // resets for current thread
+KRNLIMP void reset_framemem_impl(); // resets for current thread
+inline void reset_framemem()
+{
+  // Assume that `_DEBUG_TAB_` & `MEM_DEBUGALLOC > 0` are correlated
+#ifdef _DEBUG_TAB_
+  TIME_PROFILE_DEV(reset_framemem);
+#endif
+  reset_framemem_impl();
+}
 
 KRNLIMP IMemAlloc *alloc_thread_framemem(size_t area_size = 0); // 0 - means default
+IMemAlloc *alloc_threadpool_framemem();
 KRNLIMP void free_thread_framemem();
 struct RAIIThreadFramememAllocator
 {

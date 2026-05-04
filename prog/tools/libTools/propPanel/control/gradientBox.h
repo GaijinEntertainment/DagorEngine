@@ -98,7 +98,7 @@ public:
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     const int width =
       mW > 0 ? min((int)mW, (int)floorf(ImGui::GetContentRegionAvail().x)) : (int)floorf(ImGui::GetContentRegionAvail().x);

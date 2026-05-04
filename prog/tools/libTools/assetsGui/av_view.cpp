@@ -3,6 +3,7 @@
 #include <assetsGui/av_view.h>
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <assets/assetHlp.h>
 #include <assets/assetFolder.h>
 #include <assetsGui/av_allAssetsTree.h>
 #include <assetsGui/av_assetSelectorCommon.h>
@@ -30,8 +31,15 @@ using PropPanel::TLeafHandle;
 //==============================================================================
 // AssetBaseView
 //==============================================================================
-AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContextMenuHandler *menu_event_handler) :
-  eh(client), menuEventHandler(menu_event_handler), curMgr(NULL), curFilter(midmem), filter(midmem), canNotifySelChange(true)
+AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContextMenuHandler *menu_event_handler,
+  IAssetBrowserHost &asset_browser_host) :
+  eh(client),
+  menuEventHandler(menu_event_handler),
+  assetBrowserHost(asset_browser_host),
+  curMgr(NULL),
+  curFilter(midmem),
+  filter(midmem),
+  canNotifySelChange(true)
 {
   assetsTree.reset(new AllAssetsTree(this));
   assetTypeFilterControl.reset(new AssetTypeFilterControl());
@@ -39,6 +47,8 @@ AssetBaseView::AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContext
   searchIcon = PropPanel::load_icon("search");
   settingsIcon = PropPanel::load_icon("filter_default");
   settingsOpenIcon = PropPanel::load_icon("filter_active");
+  tagsToggleIcon = PropPanel::load_icon("tag");
+  assetBrowserToggleIcon = PropPanel::load_icon("table");
 }
 
 
@@ -105,11 +115,14 @@ const char *AssetBaseView::getSelObjName()
 }
 
 
+void AssetBaseView::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+{
+  assetsTree->getFilteredAssetsFromTheCurrentFolder(assets);
+}
+
+
 void AssetBaseView::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel)
 {
-  if (assetsTree->isFolder(new_sel))
-    return;
-
   eh->onAvSelectAsset(getSelectedAsset(), getSelObjName());
 }
 
@@ -130,7 +143,7 @@ bool AssetBaseView::selectAsset(const DagorAsset &asset, bool reset_filter_if_ne
   if (!selected && reset_filter_if_needed)
   {
     resetFilter();
-    assetsTree->refilter();
+    refilterAssetsTree();
     selected = assetsTree->selectAsset(&asset);
   }
 
@@ -213,7 +226,7 @@ void AssetBaseView::setFilterStr(const char *str)
 {
   textToSearch = str;
   assetsTree->setSearchText(str);
-  assetsTree->refilter();
+  refilterAssetsTree();
 }
 
 
@@ -246,11 +259,11 @@ void AssetBaseView::setShownAssetTypeIndexes(dag::ConstSpan<int> shown_type_inde
     }
 
   assetsTree->setShownTypes(shownTypes);
-  assetsTree->refilter();
+  refilterAssetsTree();
 }
 
 
-void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu)
+void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu, bool add_tags)
 {
   menu.addSeparator(ROOT_MENU_ITEM);
   if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
@@ -259,12 +272,16 @@ void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu)
     menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFilePathMenuItem, "File path");
     menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
     menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+    if (add_tags)
+      menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetTagsMenuItem, "Tags");
   }
   else
   {
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFilePathMenuItem, "Copy file path");
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
     menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+    if (add_tags)
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetTagsMenuItem, "Copy tags");
   }
   menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
 }
@@ -272,13 +289,22 @@ void AssetBaseView::addCommonMenuItems(PropPanel::IMenu &menu)
 
 bool AssetBaseView::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree)
 {
-  return menuEventHandler->onAssetSelectorContextMenu(tree_base_window, tree);
+  PropPanel::IMenu &menu = tree.createContextMenu();
+  DagorAsset *asset = getSelectedAsset();
+  DagorAssetFolder *assetFolder = getSelectedAssetFolder();
+  return menuEventHandler->onAssetSelectorContextMenu(menu, asset, assetFolder);
+}
+
+void AssetBaseView::refilterAssetsTree()
+{
+  assetsTree->refilter();
+  assetBrowserHost.assetBrowserFill();
 }
 
 void AssetBaseView::onShownTypeFilterChanged()
 {
   assetsTree->setShownTypes(shownTypes);
-  assetsTree->refilter();
+  refilterAssetsTree();
 }
 
 void AssetBaseView::showSettingsPanel(const char *popup_id)
@@ -301,6 +327,47 @@ void AssetBaseView::showSettingsPanel(const char *popup_id)
   ImGui::EndPopup();
 }
 
+void AssetBaseView::setAssetTagsView(IAssetTagsView *asset_tags_view) { assetTagsView = asset_tags_view; }
+
+void AssetBaseView::setTagsToggled(bool toggled) { tagsToggled = toggled; }
+
+// "Re-implementing" the imgui collapsing header function for two reasons:
+// - The "label_end" property of the TreeNodeBehavior is not accessible in the original function
+//   which is needed in this case to indicate active tag filters as a toggleable "*" suffix
+// - The close button of the collapsing header needs a custom (and properly working) tooltip
+static bool collapsingHeader(const char *label, const char *label_end, bool *p_visible)
+{
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  if (p_visible && !*p_visible)
+    return false;
+
+  ImGuiID id = window->GetID(label);
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_CollapsingHeader;
+  if (p_visible)
+    flags |= ImGuiTreeNodeFlags_AllowOverlap | (ImGuiTreeNodeFlags)ImGuiTreeNodeFlags_ClipLabelForTrailingButton;
+  bool isOpen = ImGui::TreeNodeBehavior(id, flags, label, label_end);
+  if (p_visible != NULL)
+  {
+    ImGuiContext &g = *ImGui::GetCurrentContext();
+    ImGuiLastItemData lastItemBackup = g.LastItemData;
+
+    float buttonSize = g.FontSize;
+    float buttonX = ImMax(g.LastItemData.Rect.Min.x, g.LastItemData.Rect.Max.x - g.Style.FramePadding.x - buttonSize);
+    float buttonY = g.LastItemData.Rect.Min.y + g.Style.FramePadding.y;
+    ImGuiID closeButtonId = ImGui::GetIDWithSeed("#CLOSE", NULL, id);
+    if (ImGui::CloseButton(closeButtonId, ImVec2(buttonX, buttonY)))
+      *p_visible = false;
+    PropPanel::set_previous_imgui_control_tooltip(closeButtonId, "Reset all");
+
+    g.LastItemData = lastItemBackup;
+  }
+
+  return isOpen;
+}
+
 void AssetBaseView::updateImgui(float control_height)
 {
   ImGui::PushID(this);
@@ -315,7 +382,7 @@ void AssetBaseView::updateImgui(float control_height)
   const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
     textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
+  PropPanel::set_previous_imgui_control_tooltip(inputId, AssetSelectorCommon::searchTooltip);
 
   if (inputFocused)
   {
@@ -338,7 +405,7 @@ void AssetBaseView::updateImgui(float control_height)
   if (searchInputChanged)
   {
     assetsTree->setSearchText(textToSearch);
-    assetsTree->refilter();
+    refilterAssetsTree();
   }
 
   ImGui::SameLine();
@@ -346,7 +413,7 @@ void AssetBaseView::updateImgui(float control_height)
   const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
   bool settingsButtonPressed =
     PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-  PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
+  PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
 
   if (settingsPanelOpen)
     showSettingsPanel(popupId);
@@ -359,6 +426,146 @@ void AssetBaseView::updateImgui(float control_height)
     ImGui::OpenPopup(popupId);
     settingsPanelOpen = true;
   }
+
+  bool tagFilterChanged = false;
+  if (curMgr != nullptr)
+  {
+    int version = assettags::getVersion();
+    if (tagsVersion != version)
+    {
+      tagsVersion = version;
+      tagFilterChanged = true;
+      // Tag references may have been deleted...
+      for (int i = tagFilter.size() - 1; i >= 0; --i)
+      {
+        const int tagId = tagFilter[i];
+        if (assettags::getTagRefCount(tagId) <= 0)
+          tagFilter.delInt(tagId);
+      }
+    }
+
+    if (assettags::getReferencedTagCount() > 0)
+    {
+      // Disable window-padding (use indent for the tag toggles instead)
+      // and cache it for restoring right after collapsing header!
+      ImGuiContext &g = *ImGui::GetCurrentContext();
+      ImGuiWindow *window = g.CurrentWindow;
+      float tagIndent = 0.0f;
+      ImVec2 windowPadding = window->WindowPadding;
+      if (window->WindowPadding != ImVec2(0, 0))
+      {
+        window->WindowPadding = ImVec2(0, 0);
+        tagIndent = IM_TRUNC(windowPadding.x * 0.5f);
+      }
+      else if (window->ParentWindow)
+      {
+        tagIndent = IM_TRUNC(window->ParentWindow->WindowPadding.x * 0.5f);
+      }
+
+      bool keepTags = true;
+      const char *tagFilters = "Tag Filters *";
+      const char *tagFiltersEnd = tagFilter.size() == 0 ? tagFilters + 11 : nullptr;
+      if (collapsingHeader(tagFilters, tagFiltersEnd, &keepTags))
+      {
+        window->WindowPadding = windowPadding;
+        ImGui::Indent(tagIndent);
+
+        // Cache the positions here for later group half-frame drawing
+        const ImVec2 buttonTopLeft = g.LastItemData.Rect.Min;
+        const ImVec2 buttonBottomRight = g.LastItemData.Rect.Max;
+
+        int lineIndex = 0;
+        const int count = assettags::getCount();
+        for (int i = 0; i < count; ++i)
+        {
+          if (assettags::getTagRefCount(i) <= 0)
+          {
+            if (tagFilter.delInt(i))
+              tagFilterChanged = true;
+            continue;
+          }
+
+          const char *tagName = assettags::getTagName(i);
+          const ImVec2 tagButtonSize = PropPanel::ImguiHelper::getButtonSize(tagName);
+
+          if (lineIndex > 0)
+            ImGui::SameLine();
+
+          if (ImGui::GetContentRegionAvail().x < tagButtonSize.x && i > 0)
+          {
+            ImGui::NewLine();
+            lineIndex = 0;
+          }
+
+          ImGui::PushStyleColor(ImGuiCol_Border, PropPanel::getOverriddenColor(PropPanel::ColorOverride::TAG_BORDER));
+
+          ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+          ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+          ImGui::PushStyleColor(ImGuiCol_ButtonActive, PropPanel::getOverriddenColor(PropPanel::ColorOverride::TAG_FILTER_BACKGROUND));
+
+          ImU32 colTextFilter = PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TAG_FILTER_TEXT);
+          bool filterForTag = tagFilter.hasInt(i);
+          if (PropPanel::ImguiHelper::toggleButtonWithDragSelection(tagName, &filterForTag, 2.0f, colTextFilter))
+          {
+            if (filterForTag)
+              tagFilter.addInt(i);
+            else
+              tagFilter.delInt(i);
+            tagFilterChanged = true;
+          }
+
+          ImGui::PopStyleColor(4);
+
+          lineIndex++;
+        }
+
+        const ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+        PropPanel::ImguiHelper::drawHalfFrame(buttonTopLeft.x, buttonBottomRight.y, buttonBottomRight.x, cursorPos.y);
+        ImGui::SetCursorScreenPos(ImVec2(cursorPos.x, cursorPos.y + ImGui::GetStyle().ItemSpacing.y));
+        ImGui::Dummy(ImVec2(0.0f, 0.0f)); // Prevent assert in ImGui::ErrorCheckUsingSetCursorPosToExtendParentBoundaries().
+
+        ImGui::Unindent(tagIndent);
+      }
+
+      window->WindowPadding = windowPadding;
+
+      if (!keepTags)
+      {
+        tagFilterChanged = tagFilter.size() > 0;
+        tagFilter.reset();
+      }
+    }
+  }
+  if (tagFilterChanged)
+  {
+    assetsTree->setTagFilter(tagFilter);
+    refilterAssetsTree();
+  }
+
+  if (assetTagsView != nullptr)
+    tagsToggled = (assetTagsView->getVisibleTagManager() != nullptr);
+
+  G_STATIC_ASSERT(AssetTagManager::WINDOW_TOGGLE_HOTKEY == (ImGuiMod_Ctrl | ImGuiKey_T));
+  const bool tagsToggleClicked = PropPanel::ImguiHelper::imageCheckButtonWithBackground("tagsToggle", tagsToggleIcon,
+    fontSizedIconSize, tagsToggled, "Tag Management (Ctrl+T)");
+
+  ImGui::SameLine();
+
+  G_STATIC_ASSERT(AssetBrowser::WINDOW_TOGGLE_HOTKEY == (ImGuiMod_Ctrl | ImGuiKey_B));
+  const bool assetBrowserToggleClicked = PropPanel::ImguiHelper::imageCheckButtonWithBackground("assetBrowserToggle",
+    assetBrowserToggleIcon, fontSizedIconSize, assetBrowserHost.assetBrowserIsOpen(), "Asset Browser (Ctrl+B)");
+
+  if (tagsToggleClicked || ImGui::Shortcut(AssetTagManager::WINDOW_TOGGLE_HOTKEY))
+  {
+    tagsToggled = !tagsToggled;
+    if (assetTagsView != nullptr)
+      assetTagsView->showTagManager(tagsToggled);
+  }
+
+  if (assetBrowserToggleClicked || ImGui::Shortcut(AssetBrowser::WINDOW_TOGGLE_HOTKEY))
+    assetBrowserHost.assetBrowserSetOpen(!assetBrowserHost.assetBrowserIsOpen());
+
+  ImGui::SameLine();
 
   const char *expandAllTitle = "Expand all";
   const char *collapseAllTitle = "Collapse all";

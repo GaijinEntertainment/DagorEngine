@@ -25,7 +25,6 @@ shader volfog_shadow_cs
   INIT_TRANSFORMED_ZNZFAR_STAGE(cs)
   VIEW_VEC_OPTIMIZED(cs)
   USE_PREV_TC(cs)
-  ENABLE_ASSERT(cs)
 
   (cs) {
     world_view_pos@f4 = (world_view_pos.x, world_view_pos.y, world_view_pos.z, time_phase(0,0));

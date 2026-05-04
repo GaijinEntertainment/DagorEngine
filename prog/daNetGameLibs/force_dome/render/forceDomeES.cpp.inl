@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <daECS/core/coreEvents.h>
 
@@ -95,11 +97,11 @@ struct ForceDomeResources
 
   void setParams(const Point4 &color, float texture_scale, float brightness, float edge_thinness, float edge_intensity)
   {
-    ShaderGlobal::set_color4(get_shader_variable_id("forcedome_color", true), color);
-    ShaderGlobal::set_real(get_shader_variable_id("forcedome_texture_scale", true), texture_scale);
-    ShaderGlobal::set_real(get_shader_variable_id("forcedome_brightness", true), brightness);
-    ShaderGlobal::set_real(get_shader_variable_id("forcedome_edge_thinness", true), edge_thinness);
-    ShaderGlobal::set_real(get_shader_variable_id("forcedome_edge_intensity", true), edge_intensity);
+    ShaderGlobal::set_float4(get_shader_variable_id("forcedome_color", true), color);
+    ShaderGlobal::set_float(get_shader_variable_id("forcedome_texture_scale", true), texture_scale);
+    ShaderGlobal::set_float(get_shader_variable_id("forcedome_brightness", true), brightness);
+    ShaderGlobal::set_float(get_shader_variable_id("forcedome_edge_thinness", true), edge_thinness);
+    ShaderGlobal::set_float(get_shader_variable_id("forcedome_edge_intensity", true), edge_intensity);
   }
 };
 
@@ -164,17 +166,18 @@ bool force_dome_is_camera_outside_sphere_mesh(
 }
 
 template <typename Callable>
-static void force_dome_render_ecs_query(Callable fn);
+static void force_dome_render_ecs_query(ecs::EntityManager &manager, Callable fn);
 
 ECS_BEFORE(animchar_render_trans_es)
-void force_dome_field_es(const UpdateStageInfoRenderTrans &stage, ForceDomeResources &force_dome_resources)
+void force_dome_field_es(
+  const UpdateStageInfoRenderTrans &stage, ecs::EntityManager &manager, ForceDomeResources &force_dome_resources)
 {
   TIME_D3D_PROFILE(force_dome);
   eastl::vector<Point4, framemem_allocator> allSpheres, spheresOutside;
 
   Frustum frustum = stage.loadGlobTm();
 
-  force_dome_render_ecs_query([&](const Point3 &force_dome__position, float force_dome__radius) {
+  force_dome_render_ecs_query(manager, [&](const Point3 &force_dome__position, float force_dome__radius) {
     Point3 center = force_dome__position;
     if (!frustum.testSphereB(center, force_dome__radius))
       return;

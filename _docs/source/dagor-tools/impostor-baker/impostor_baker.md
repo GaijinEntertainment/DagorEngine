@@ -26,15 +26,21 @@ assets, so the generated textures get exported as well
 1. To enable baked impostors, look in the `.folder.blk` file for such virtual
    assets:
 
-   `virtual_res_blk{ find:t="^(.*bush.*)\.lod00\.dag$"...}`
+   ```blk
+   virtual_res_blk{ find:t="^(.*bush.*)\.lod00\.dag$"...}
+   ```
 
 2. Replace the line
 
-   `lod { range:r=1000; fname:t="../dynamic_imposter.lod01.dag";}`
+   ```blk
+   lod { range:r=1000; fname:t="../dynamic_imposter.lod01.dag";}
+   ```
 
    to
 
-   `lod { range:r=1000; fname:t="../billboard_octagon_impostor.lod01.dag";}`
+   ```blk
+   lod { range:r=1000; fname:t="../billboard_octagon_impostor.lod01.dag";}
+   ```
 
 3. Add the `impostor{}` block (check the end of the page for more details on
    this).
@@ -182,7 +188,7 @@ been implemented yet.
 
 **Example:**
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*tree_tropic_large_.*)\.lod00\.dag$"
   className:t="rendInst"
@@ -191,7 +197,7 @@ virtual_res_blk{
       textureWidth:i=4096
       textureHeight:i=0 // automatically adjust to width, based on asset height (for trees/bushes)
       rotationPaletteSize:i=3
-      mipCount:i=0 // 0 means generate all until specified smallest mip size (application.blk)
+      mipCount:i=0      // `0` means generate all until specified smallest mip size (application.blk)
     }
     //...
   }
@@ -200,7 +206,7 @@ virtual_res_blk{
 
 or just simply
 
-```text
+```blk
 virtual_res_blk{
   find:t="^(.*tree_tropic_large_.*)\.lod00\.dag$"
   className:t="rendInst"
@@ -299,7 +305,7 @@ The default values can be found in:
 
   **Example**
 
-  ```text
+  ```blk
   impostor{
     data_folder:t="develop/assets/gameres/gameObjects"
     preshadowsEnabled:b=yes
@@ -328,23 +334,27 @@ The default values can be found in:
 
 5. Remove this line (if exists):
 
-   `enableImpostorTextureManager:b=false (default=yes)`
+   ```blk
+   enableImpostorTextureManager:b=false  // default = yes
+   ```
 
 6. Optionally add this line to disable preshadow compression:
 
-   `enableImpostorPreshadowCompression:b = <yes/no> (default=yes)`
+   ```blk
+   enableImpostorPreshadowCompression:b= yes|no  // default = yes
+   ```
 
 7. Configure the parameters for transmittance approximation for outside of
    cascade0:
 
-  ```text
-  treeCrownTransmittance{
-    brightness:r    // default = 0.5
-    falloffStart:r  // default = 0.01
-    falloffStop:r   // default = 1.
-    enabled:b       // default = no
-  }
-  ```
+   ```blk
+   treeCrownTransmittance{
+     brightness:r=    // default = 0.5
+     falloffStart:r=  // default = 0.01
+     falloffStop:r=   // default = 1.
+     enabled:b=       // default = no
+   }
+   ```
 
 ## How to Use ImpostorNormalMip for Smoothness Hack
 
@@ -369,29 +379,29 @@ the edge. 
    Customized mipmap lit color for A channel(smoothness) only for branches
    exclude palms, olives, glossy foliage etc.
 
-     ```text
-     virtual_res_blk{
-       find:t="^(.*branch.*_n?)\.tif$"
-       //exclude glossy foliage here
-       className:t="tex"
-       contents{
-         hqMip:i=1; mqMip:i=2; lqMip:i=3
-         convert:b=yes; fmt:t="BC7"
-         rebuild_bc67:b=yes
-         gamma:r=1
-         stubTexTag:t="smooth0_nx_metal0_ny"
-         mipFilter:t="filterKaiser"; mipFilterAlpha:r=42; mipFilterStretch:r=2 
-         addrU:t="wrap"; addrV:t="wrap"
-         hqMip:i=0; mqMip:i=1; lqMip:i=2
-         swizzleARGB:t="RAGB"
-         mipFade{
-           mipFadeColor:p4=1.0,-1,-1,-1
-           mipFadeStart:c=0,0,0,0
-           mipFadeEnd:c=4,4,4,4
-         }
+   ```blk
+   virtual_res_blk{
+     find:t="^(.*branch.*_n?)\.tif$"
+     //exclude glossy foliage here
+     className:t="tex"
+     contents{
+       hqMip:i=1; mqMip:i=2; lqMip:i=3
+       convert:b=yes; fmt:t="BC7"
+       rebuild_bc67:b=yes
+       gamma:r=1
+       stubTexTag:t="smooth0_nx_metal0_ny"
+       mipFilter:t="filterKaiser"; mipFilterAlpha:r=42; mipFilterStretch:r=2 
+       addrU:t="wrap"; addrV:t="wrap"
+       hqMip:i=0; mqMip:i=1; lqMip:i=2
+       swizzleARGB:t="RAGB"
+       mipFade{
+         mipFadeColor:p4=1.0,-1,-1,-1
+         mipFadeStart:c=0,0,0,0
+         mipFadeEnd:c=4,4,4,4
        }
      }
-     ```
+   }
+   ```
 
 2. Make an export of this export, to apply changes of mipFade feature.
 
@@ -399,34 +409,33 @@ the edge. 
 
    **Example:**
 
-     ```text
-     virtual_res_blk{
-       find:t="^(tree_autumn_.*)\.lod00\.dag$"
-       className:t="rendInst"
-       contents{
-         lod{
-           range:r=80;
-         }
-         lod{
-           range:r=160;
-         }
-         lod{
-           range:r=1500;
-           fname:t="../billboard_octagon_impostor.lod01.dag";
-         }
-         transition_lod{
-           ...
-         }
-         impostor{
-           impostorNormalMip:i=5;
-         }
-         allowProxyMat:b=yes
+   ```blk
+   virtual_res_blk{
+     find:t="^(tree_autumn_.*)\.lod00\.dag$"
+     className:t="rendInst"
+     contents{
+       lod{
+         range:r=80;
        }
+       lod{
+         range:r=160;
+       }
+       lod{
+         range:r=1500;
+         fname:t="../billboard_octagon_impostor.lod01.dag";
+       }
+       transition_lod{
+         ...
+       }
+       impostor{
+         impostorNormalMip:i=5;
+       }
+       allowProxyMat:b=yes
      }
-     ```
+   }
+   ```
 
 4. Run Impostor Baker, to bake the impostors.
 
 5. Export whole data to the game.
-
 

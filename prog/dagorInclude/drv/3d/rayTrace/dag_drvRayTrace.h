@@ -23,19 +23,26 @@ class BaseTexture;
 // as all operations require a execution context.
 struct RaytraceTopAccelerationStructure;
 struct RaytraceBottomAccelerationStructure;
+/// NOTE: As soon a OMM is referenced by a BLAS, it becomes practically immutable and is referenced by the BLAS directly, so its
+/// has to outlive any BLAS it is referenced by. There are some update modes that allow for updates of the OMM data, but as soon
+/// the OMM is updated all referencing BLASes have to be updated as well.
+struct RaytraceOpacityMicroMapTriangleArray;
 
-// Simple wrapper for API functions that can take either top or bottom acceleration structures.
+// Simple wrapper for API functions that can take either top, bottom acceleration structures or opacity micro map triangle array.
+// TODO this should be replaced with a variant
 struct RaytraceAnyAccelerationStructure
 {
   RaytraceTopAccelerationStructure *top = nullptr;
   RaytraceBottomAccelerationStructure *bottom = nullptr;
+  RaytraceOpacityMicroMapTriangleArray *omm = nullptr;
 
   RaytraceAnyAccelerationStructure() = default;
   RaytraceAnyAccelerationStructure(const RaytraceAnyAccelerationStructure &) = default;
   RaytraceAnyAccelerationStructure &operator=(const RaytraceAnyAccelerationStructure &) = default;
   RaytraceAnyAccelerationStructure(RaytraceTopAccelerationStructure *t) : top{t} {}
   RaytraceAnyAccelerationStructure(RaytraceBottomAccelerationStructure *b) : bottom{b} {}
-  explicit operator bool() const { return (nullptr != top) || (nullptr != bottom); }
+  RaytraceAnyAccelerationStructure(RaytraceOpacityMicroMapTriangleArray *m) : omm{m} {}
+  explicit operator bool() const { return (nullptr != top) || (nullptr != bottom) || (nullptr != omm); }
 };
 
 struct RaytraceAccelerationStructureGpuHandle
@@ -44,6 +51,25 @@ struct RaytraceAccelerationStructureGpuHandle
 };
 
 class Sbuffer;
+
+/// Formats for storing OpacityMicroMapState values in a buffer.
+enum class RaytraceOpacityMicroMapFormat
+{
+  /// Single bit format, which can hold FullyTransparent and FullyOpaque values only
+  OpacityCompression1_2State = 0x1,
+  /// Two bit format, which can hold all OpacityCompression1_2State values with additionally UnknownTransparent and UnknownOpaque
+  OpacityCompression1_4State = 0x2,
+};
+
+struct RaytraceOpacityMicroMapDescription
+{
+  /// Number of micro maps
+  uint32_t count = 0;
+  /// Subdivision levels, ranges from 0 to 14
+  uint32_t subdivisionLevel = 0;
+  /// Data format for each OMM
+  RaytraceOpacityMicroMapFormat format = RaytraceOpacityMicroMapFormat::OpacityCompression1_2State;
+};
 
 struct RaytraceGeometryDescription
 {
@@ -58,6 +84,17 @@ struct RaytraceGeometryDescription
     TRIANGLES,
     AABBS,
   };
+  enum class IndexFormat
+  {
+    /// Pulls index format from buffer
+    UseBuffer,
+    /// Forces to interpret index data as 8 bit wide unsigned int
+    U8,
+    /// Forces to interpret index data as 16 bit wide unsigned int
+    U16,
+    /// Forces to interpret index data as 32 bit wide unsigned int
+    U32
+  };
 
   struct AABBsInfo
   {
@@ -67,6 +104,7 @@ struct RaytraceGeometryDescription
     uint32_t offset;
     Flags flags;
   };
+
   struct TrianglesInfo
   {
     Sbuffer *transformBuffer;
@@ -84,6 +122,53 @@ struct RaytraceGeometryDescription
     uint32_t indexOffset;
     Flags flags;
   };
+
+  /// Provides linkage data for opacity micro map triangles
+  struct OpacityMicroMapLinkage
+  {
+    /// Buffer providing indices into triangleArray for each triangle of 'triangles'.
+    /// Can be null, then a 1:1 mapping of OMM data from triangleArray and triangle is assumed.
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag.
+    Sbuffer *indexBuffer;
+    /// Configures the formatting of the index data of 'indexBuffer'.
+    /// When indexBuffer is null, this is ignored.
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag.
+    IndexFormat indexFormat;
+    /// Offset into indexBuffer in index buffer units (eg for u8 its in bytes, for u16 its 2 bytes and so on).
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag.
+    uint32_t indexBufferOffsetInIndexUnits;
+    /// Stride between indices in indexBuffer in index buffer units  (eg for u8 its in bytes, for u16 its 2 bytes and so on).
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag.
+    uint32_t indexBufferStrideInIndexUnits;
+    /// Like a vertex offset but for each triangle info of triangleArray.
+    /// This is always applied.
+    /// When triangleArray is null, this is ignored.
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag.
+    uint32_t triangleArrayOffset;
+    /// Array buffer with OMM data.
+    /// Can be null, then uniform OMM geometry is assumed.
+    /// On updates this has to be identical to the previous build unless BLAS was build with RaytraceBuildFlags::OMM_LINKAGE_UPDATE
+    /// flag. IMPORTANT: The resulting BLAS will reference the underlying RaytraceOpacityMicroMapTriangleArray, deleting it will
+    /// result in a GPU page fault when using the resulting BLAS. Also the contents becomes immutable, any changes to triangleArray
+    /// after build of a BLAS and a usage during a trace will result in undefined behavior (probably GPU hang).
+    RaytraceOpacityMicroMapTriangleArray *triangleArray;
+    /// OMM description for the triangles.
+    dag::ConstSpan<const RaytraceOpacityMicroMapDescription> ommDesc;
+  };
+
+  /// Mask telling which extra data is available and should be used
+  struct ExtendedDataAvailableMask
+  {
+    /// When set to true, 'RaytraceGeometryDescription::ommLinkage' member has to be initialized to provided the OMM linkage data.
+    /// Only valid to use with geometry type 'Type::TRIANGLES'.
+    bool hasOpacityMicroMapLinkage : 1 = false;
+  };
+
   union AnyInfo
   {
     AABBsInfo aabbs;
@@ -91,20 +176,40 @@ struct RaytraceGeometryDescription
   };
 
   Type type = Type::TRIANGLES;
-  AnyInfo data = {};
+  AnyInfo data{};
+  ExtendedDataAvailableMask extraDataAvailableMask{};
+  OpacityMicroMapLinkage ommLinkage{};
 };
 DAGOR_ENABLE_ENUM_BITMASK(RaytraceGeometryDescription::Flags);
 
 enum class RaytraceBuildFlags : uint32_t
 {
   NONE = 0x00,
-  // if you want to update the acceleration
-  // structure then you need to set this flag
+  /// Required flag to be set for acceleration structure to be able to be updated with update builds.
+  /// Valid for TLAS and BLAS only.
   ALLOW_UPDATE = 0x01,
+  /// Allows the resulting acceleration structure to be used as a compaction source to reduce memory usage.
+  /// To obtain the required sizes for a compacted acceleration structure, the build operation need a output
+  /// buffer supplied where the build process will write the require size.
+  /// Not providing a buffer for compaction size feedback may fail the build.
+  /// Valid for TLAS, BLAS and OMM.
   ALLOW_COMPACTION = 0x02,
+  /// Build process should aim for fast trace speeds over everything else.
+  /// Valid for TLAS, BLAS and OMM.
   FAST_TRACE = 0x04,
+  /// Build process should aim for fast build times over everything else.
+  /// Valid for TLAS, BLAS and OMM.
   FAST_BUILD = 0x08,
-  LOW_MEMORY = 0x10
+  /// Build process should aim for low memory usage on resulting acceleration structure.
+  /// Valid for TLAS and BLAS only.
+  LOW_MEMORY = 0x10,
+  /// When set, on BLAS update, its allowed to change OMMs (and OMM data of same OMM), otherwise OMM inputs have to be a exact match as
+  /// the previous build. Requires ALLOW_UPDATE. May degrade performance. Valid for BLAS only.
+  OMM_LINKAGE_UPDATE = 0x40,
+  /// Allows instance flag of disable OMM to be used.
+  /// May degrade performance.
+  /// Valid for BLAS only.
+  OMM_DISABLE = 0x80,
 };
 DAGOR_ENABLE_ENUM_BITMASK(RaytraceBuildFlags);
 
@@ -113,10 +218,18 @@ struct RaytraceGeometryInstanceDescription
   enum Flags
   {
     NONE = 0x00,
+    /// Disable any culling of triangles during BLAS traversal of this instance.
     TRIANGLE_CULL_DISABLE = 0x01,
+    /// Invert winding for culling calculation of triangles during BLAS traversal of this instance.
     TRIANGLE_CULL_FLIP_WINDING = 0x02,
     FORCE_OPAQUE = 0x04,
-    FORCE_NO_OPAQUE = 0x08
+    FORCE_NO_OPAQUE = 0x08,
+    /// Ignores unknown states for 4 state OMMs.
+    /// Has no effect when RaytraceGeometryInstanceDescription::Flags::OMM_DISABLE is set.
+    OMM_2_STATE = 0x10,
+    /// Requires referenced BLAS to have RaytraceBuildFlags::OMM_DISABLE flag to be set.
+    /// Disables use of OMM data on BLAS traversal of this instance.
+    OMM_DISABLE = 0x20,
   };
   float transform[12];
   uint32_t instanceId : 24;
@@ -253,9 +366,9 @@ struct TopAccelerationStructureBuildInfo
 
 struct BatchedTopAccelerationStructureBuildInfo
 {
-  /// The TLAS for an element of a batched BLAS build.
+  /// The TLAS for an element of a batched TLAS build.
   RaytraceTopAccelerationStructure *as = nullptr;
-  /// The TLAS for an element of a batched BLAS build.
+  /// The TLAS for an element of a batched TLAS build.
   TopAccelerationStructureBuildInfo tasbi;
 };
 
@@ -281,6 +394,11 @@ struct AccelerationStructurePoolCreateInfo
   /// A hint on how many BLAS are going to be allocated from the pool.
   /// Drivers can use this hint to pre allocate some BLAS specific data.
   uint32_t bottomLevelStructureCountHint = 0;
+  /// A hint on how many OMMs are going to be allocated from the pool.
+  /// Drivers can use this hint to pre allocate some OMMAS specific data.
+  uint32_t opacityMicroMapTriangleArrayCountHint = 0;
+  /// Optional tag for memory inspection.
+  ResourceTagType tag = nullptr;
 };
 
 /// Creates a new pool for acceleration structures.
@@ -333,13 +451,119 @@ struct BottomAccelerationStructureSizeCalculcationInfo
 {
   /// Array of descriptions of the geometry that is supposed to be represented by the BLAS.
   dag::ConstSpan<const RaytraceGeometryDescription> geometryDesc;
-  /// Build flags that may be used with the TLAS, they may influence some sizes.
+  /// Build flags that may be used with the BLAS, they may influence some sizes.
   RaytraceBuildFlags flags = RaytraceBuildFlags::NONE;
 };
 
-/// Represents either TLAS or BLAS size calculation info.
-using AccelerationStructureSizeCalculcationInfo =
-  eastl::variant<TopAccelerationStructureSizeCalculcationInfo, BottomAccelerationStructureSizeCalculcationInfo>;
+/// A opacity micro map triangle can have up to 4 states
+enum class OpacityMicroMapState
+{
+  /// Triangle is fully transparent.
+  /// Valid for any format.
+  FullyTransparent = 0,
+  /// Triangle is fully opaque.
+  /// Valid for any format.
+  FullyOpaque = 1,
+  /// Triangle is unknown transparent (eg not fully transparent but more transparent than opaque).
+  /// Valid only for 4 state format.
+  UnknownTransparent = 2,
+  /// Triangle is unknown opaque (eg not fully opaque but more opaque than transparent).
+  /// Valid only for 4 state format.
+  UnknownOpaque = 3,
+};
+
+/// This namespace contains special index values that represent opacity micro map triangles that have a single transparency state for
+/// all sub-triangles. Those values can be used as values in
+/// RaytraceGeometryDescription::TrianglesWithOpacityMicroMapInfo::linkage.indexBuffer. Those special index values are preferable over
+/// linkages to opacity micro map triangles.
+namespace opacity_micro_map::index
+{
+/// Represents a triangle with all sub-triangles to be fully transparent
+constexpr inline int fully_transparent = -1;
+/// Represents a triangle with all sub-triangles to be fully opaque
+constexpr inline int fully_opaque = -2;
+/// Represents a triangle with all sub-triangles to be fully unknown transparent
+constexpr inline int fully_unknown_transparent = -3;
+/// Represents a triangle with all sub-triangles to be fully unknown opaque
+constexpr inline int fully_unknown_opaque = -4;
+} // namespace opacity_micro_map::index
+
+using OpacityMicroMapFormat = RaytraceOpacityMicroMapFormat;
+using OpacityMicroMapDescription = RaytraceOpacityMicroMapDescription;
+
+struct OpacityMicroMapTriangleArraySizeCalculationInfo
+{
+  /// Description of micro maps the triangle array should be able to hold.
+  dag::ConstSpan<const OpacityMicroMapDescription> ommDesc;
+  /// Build flags that may be used with the OMMAS, they may influence some sizes.
+  RaytraceBuildFlags flags = RaytraceBuildFlags::NONE;
+};
+
+/// This is the data layout for each entry of OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptions
+struct InBufferOpacityMicroMapDescription
+{
+  /// Byte offset into the inputBuffer
+  uint32_t byteOffset;
+  /// Subdivision levels, ranges from 0 to 14
+  uint16_t subdivisionLevel;
+  /// Data format for each OMM, see OpacityMicroMapFormat for valid values.
+  uint16_t format;
+};
+
+struct OpacityMicroMapTriangleArrayBuildInfo : OpacityMicroMapTriangleArraySizeCalculationInfo
+{
+  /// This stores the 1 bit or 2 bit per triangle opacity information.
+  /// Buffer requires SBCF_OPACITY_MICRO_MAP_TRIANGLE_SOURCE_DATA flag.
+  Sbuffer *inputBuffer = nullptr;
+  /// Byte offset into the inputBuffer, has to be raytrace.opacityMicroMapInputBufferAlignment byte aligned.
+  uint32_t inputBufferOffset = 0;
+  /// For memory layout of each entry see 'InBufferOpacityMicroMapDescription'.
+  /// This has the location in inputBuffer and the data to interpret the data as OMM triangles.
+  Sbuffer *perOpacityMicroMapDescriptions = nullptr;
+  /// Byte offset into perOpacityMicroMapDescriptions, has to be 4 byte aligned.
+  uint32_t perOpacityMicroMapDescriptionsOffset = 0;
+  /// Stride in between each element of perOpacityMicroMapDescriptions, has to be 4 byte aligned.
+  uint32_t perOpacityMicroMapDescriptionsStride = 0;
+  /// Needs to be set when RaytraceBuildFlags::ALLOW_COMPACTION flag is set, otherwise ignored.
+  /// At the end of the build process, the GPU will write the required size of a compacted
+  /// variant of resulting data structure content to this buffer at the offset location.
+  /// This can be used to create smaller compacted acceleration structures.
+  Sbuffer *compactedSizeOutputBuffer = nullptr;
+  /// Ignored when compactedSizeOutputBuffer is nullptr.
+  /// compactedSizeOutputBuffer has to be large enough to store a uint64_t at that offset.
+  /// Offset has to be 64 bit aligned.
+  uint32_t compactedSizeOutputBufferOffsetInBytes = 0;
+  /// Buffer that provides scratch space needed for the build, size requirements are
+  /// derived from scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes.
+  /// @note Multiple builds can safely use the same buffer without synchronization as long as
+  /// they do not overlap in used region of the buffer.
+  /// @note May be nullptr when the corresponding scratch buffer size provided by
+  /// d3d::calculate_acceleration_structure_sizes was 0.
+  /// @note A frame end is a implicit flush of every buffer. So no synchronization in
+  /// between frames is needed.
+  /// @warning Currently this is optional, but this behavior is deprecated until all users
+  /// have updated to provide this buffer when needed.
+  Sbuffer *scratchSpaceBuffer = nullptr;
+  /// Offset into scratchSpaceBuffer, buffer has to be large enough to provide
+  /// space for scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes.
+  uint32_t scratchSpaceBufferOffsetInBytes = 0;
+  /// Usable space of scratchSpaceBuffer, this has to be at least as large as the
+  /// provided build_scratch_size_in_bytes value for the build structure for a rebuild
+  /// or update_scratch_size_in_bytes for updates.
+  uint32_t scratchSpaceBufferSizeInBytes = 0;
+};
+
+struct BatchedOpacityMicroMapTriangleArrayBuildInfo
+{
+  /// The opacity micro map triangle array for an element of a batched opacity micro map triangle array build.
+  RaytraceOpacityMicroMapTriangleArray *omm = nullptr;
+  /// The descriptor for an element of a batched opacity micro map triangle array build.
+  OpacityMicroMapTriangleArrayBuildInfo ommtabi;
+};
+
+/// Represents either TLAS, BLAS or OMMTA size calculation info.
+using AccelerationStructureSizeCalculcationInfo = eastl::variant<TopAccelerationStructureSizeCalculcationInfo,
+  BottomAccelerationStructureSizeCalculcationInfo, OpacityMicroMapTriangleArraySizeCalculationInfo>;
 
 /// Calculates all needed sizes for BLAS or TLAS create, build and update.
 /// Note this may allocate some temporary memory internally to convert some input data arrays to target APIs data structures.
@@ -348,6 +572,7 @@ using AccelerationStructureSizeCalculcationInfo =
 AccelerationStructureSizes calculate_acceleration_structure_sizes(const AccelerationStructureSizeCalculcationInfo &info);
 
 // Alias the types to pull them into the raytrace namespace
+using OpacityMicroMapTriangleArray = RaytraceOpacityMicroMapTriangleArray;
 using BottomAccelerationStructure = RaytraceBottomAccelerationStructure;
 using TopAccelerationStructure = RaytraceTopAccelerationStructure;
 using AnyAccelerationStructure = RaytraceAnyAccelerationStructure;
@@ -368,13 +593,23 @@ struct BottomAccelerationStructurePlacementInfo
   /// Offset where to place the BLAS in the pool. Has to be aligned to
   /// DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment.
   uint32_t offsetInBytes = 0;
-  /// Size if the TLAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool.
+  /// Size if the BLAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool.
   uint32_t sizeInBytes = 0;
 };
 
-/// Placement information of a TLAS or a BLAS in a raytrace acceleration structure pool.
-using AccelerationStructurePlacementInfo =
-  eastl::variant<TopAccelerationStructurePlacementInfo, BottomAccelerationStructurePlacementInfo>;
+/// Placement information of a OMMs in a raytrace acceleration structure pool.
+struct OpacityMicroMapTriangleArrayPlacementInfo
+{
+  /// Offset where to place the OMMAS in the pool. Has to be aligned to
+  /// DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment.
+  uint32_t offsetInBytes = 0;
+  /// Size if the OMMAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool.
+  uint32_t sizeInBytes = 0;
+};
+
+/// Placement information of a TLAS, BLAS or a OMMAS in a raytrace acceleration structure pool.
+using AccelerationStructurePlacementInfo = eastl::variant<TopAccelerationStructurePlacementInfo,
+  BottomAccelerationStructurePlacementInfo, OpacityMicroMapTriangleArrayPlacementInfo>;
 
 /// Creates a TLAS or BLAS at the given location at the offset specified by 'placement_info' in the acceleration structure pool 'pool'
 /// with the size from 'placement_info'. offset and size need to be aligned to the system specific (T/B)LAS alignment values. pool is
@@ -401,18 +636,26 @@ void destroy_acceleration_structure(AccelerationStructurePool pool, AnyAccelerat
 /// Holds all data for a acceleration structure build command.
 /// The structure allows to issue builds of top and bottom structures at the same time.
 /// The execution order of the data structure is as follows:
-/// 1) Build all bottom level structures
-/// 2) Flush bottom level builds, when requested
-/// 3) Build all top level structures
-/// 4) Flush top level builds, when requested
+/// 1) Build all opacity micro map triangle arrays
+/// 2) Flush 1)
+/// 3) Build all bottom level structures
+/// 4) Flush 3), when requested
+/// 5) Build all top level structures
+/// 6) Flush 5), when requested
 struct AccelerationStructureBuildParameters
 {
+  /// Span of opacity micro map triangle arrays to build.
+  /// All builds will be automatically be flushed after all builds of this set where executed.
+  dag::ConstSpan<const BatchedOpacityMicroMapTriangleArrayBuildInfo> opacityMicroMapTriangleArrayBuilds;
   /// Span of bottom level acceleration structures to build
   /// TODO can not be const for the moment...
   eastl::span<BatchedBottomAccelerationStructureBuildInfo> bottomBuilds;
   /// Span of top level acceleration structures to build
   /// TODO can not be const for the moment...
   eastl::span<BatchedTopAccelerationStructureBuildInfo> topBuilds;
+  /// Should the driver automatically insert a barrier to flush all omm builds.
+  /// Beware of that some drivers will always do a flush after a batch of builds.
+  bool flushAfterOpacityMicroMapTriangleArrayBuilds = false;
   /// Should the driver automatically insert a barrier to flush all bottom builds.
   /// Beware of that some drivers will always do a flush after a batch of builds.
   bool flushAfterBottomBuild = false;
@@ -655,7 +898,7 @@ struct PipelineCreateInfo : PipelineExpandInfo
   /// The pipeline should be prepared to add any callable shaders from the set of libraries.
   /// Having a pipeline prepared for any library increases the likelihood that a expand will work and does not require a recreate.
   dag::ConstSpan<const ShaderLibrary> callableForwardReferences;
-  /// Max number of recursion depth, has to be less or equal to Driver3dDesc::raytraceMaxRecursion.
+  /// Max number of recursion depth, has to be less or equal to DriverDesc::raytraceMaxRecursion.
   /// With 0 the driver will try to guess on basis of some meta data of all used shaders.
   /// A min value of 1 means that the RayGen shader is the only shader that can shoot rays.
   uint32_t maxRecursionDepth = 0;

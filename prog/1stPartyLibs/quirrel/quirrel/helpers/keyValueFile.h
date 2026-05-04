@@ -58,7 +58,7 @@ private:
     return c == ' ' || c == '\t';
   }
 
-  std::string trimStr(std::string s)
+  std::string trimStr(const std::string & s)
   {
     int from = 0;
     int to = int(s.length()) - 1;
@@ -332,8 +332,8 @@ public:
         if (kv[i].value.empty())
           errorParam("Value is empty", key);
         const char * v = kv[i].value.c_str();
-        bool isTrue = !strcmp(v, "1") || !strncmp(v, "yes", 3) || !strncmp(v, "true", 4);
-        bool isFalse = !strcmp(v, "0") || !strncmp(v, "no", 2) || !strncmp(v, "false", 5);
+        bool isTrue = !strcmp(v, "1") || !strcmp(v, "yes") || !strcmp(v, "true");
+        bool isFalse = !strcmp(v, "0") || !strcmp(v, "no") || !strcmp(v, "false");
         if (!isTrue && !isFalse)
           errorParam("Invalid boolean value, expected yes,true,1 or no,false,0", key);
 

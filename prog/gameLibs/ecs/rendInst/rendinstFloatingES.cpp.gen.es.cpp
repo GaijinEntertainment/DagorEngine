@@ -41,7 +41,9 @@ ECS_DEF_PULL_VAR(rendinstFloating);
 static void rendinst_floating_render_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    rendinst_floating_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>());
+    rendinst_floating_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc rendinst_floating_render_debug_es_es_desc
 (
@@ -59,7 +61,9 @@ static ecs::EntitySystemDesc rendinst_floating_render_debug_es_es_desc
 static void floating_phys_ripples_render_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    floating_phys_ripples_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>());
+    floating_phys_ripples_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc floating_phys_ripples_render_debug_es_es_desc
 (
@@ -106,7 +110,8 @@ static void update_floating_rendinsts_es_all_events(const ecs::Event &__restrict
   G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_floating_rendinsts_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
-        , ECS_RO_COMP(update_floating_rendinsts_es_comps, "floatingRiSystem__randomWavesAmplitude", float)
+        , components.manager()
+    , ECS_RO_COMP(update_floating_rendinsts_es_comps, "floatingRiSystem__randomWavesAmplitude", float)
     , ECS_RO_COMP(update_floating_rendinsts_es_comps, "floatingRiSystem__randomWavesLength", float)
     , ECS_RO_COMP(update_floating_rendinsts_es_comps, "floatingRiSystem__randomWavesPeriod", float)
     , ECS_RO_COMP(update_floating_rendinsts_es_comps, "floatingRiSystem__randomWavesVelocity", Point2)
@@ -163,7 +168,8 @@ static void init_floating_rendinst_res_group_es_event_handler_all_events(const e
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_floating_rendinst_res_group_es_event_handler(evt
-        , ECS_RO_COMP(init_floating_rendinst_res_group_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(init_floating_rendinst_res_group_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(init_floating_rendinst_res_group_es_event_handler_comps, "floatingRiGroup__resName", ecs::string)
     , ECS_RO_COMP(init_floating_rendinst_res_group_es_event_handler_comps, "floatingRiGroup__inertiaMult", Point3)
     , ECS_RO_COMP(init_floating_rendinst_res_group_es_event_handler_comps, "floatingRiGroup__volumesCount", int)
@@ -231,9 +237,9 @@ static ecs::CompileTimeQueryDesc get_obstacles_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_obstacles_ecs_query(Callable function)
+inline void get_obstacles_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_obstacles_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_obstacles_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -264,9 +270,9 @@ static ecs::CompileTimeQueryDesc get_camera_pos_ecs_query_desc
   make_span(get_camera_pos_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void get_camera_pos_ecs_query(Callable function)
+inline void get_camera_pos_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_camera_pos_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_camera_pos_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -295,9 +301,9 @@ static ecs::CompileTimeQueryDesc find_floatable_group_for_res_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void find_floatable_group_for_res_ecs_query(Callable function)
+inline void find_floatable_group_for_res_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, find_floatable_group_for_res_ecs_query_desc.getHandle(),
+  perform_query(&manager, find_floatable_group_for_res_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -334,9 +340,9 @@ static ecs::CompileTimeQueryDesc update_floating_rendinst_instances_ecs_query_de
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void update_floating_rendinst_instances_ecs_query(Callable function)
+inline void update_floating_rendinst_instances_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, update_floating_rendinst_instances_ecs_query_desc.getHandle(),
+  perform_query(&manager, update_floating_rendinst_instances_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -371,9 +377,9 @@ static ecs::CompileTimeQueryDesc construct_floating_volumes_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void construct_floating_volumes_ecs_query(Callable function)
+inline void construct_floating_volumes_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, construct_floating_volumes_ecs_query_desc.getHandle(),
+  perform_query(&manager, construct_floating_volumes_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -399,9 +405,9 @@ static ecs::CompileTimeQueryDesc draw_rendinst_floating_volumes_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void draw_rendinst_floating_volumes_ecs_query(Callable function)
+inline void draw_rendinst_floating_volumes_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, draw_rendinst_floating_volumes_ecs_query_desc.getHandle(),
+  perform_query(&manager, draw_rendinst_floating_volumes_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -430,9 +436,9 @@ static ecs::CompileTimeQueryDesc draw_floating_phys_ripples_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void draw_floating_phys_ripples_ecs_query(Callable function)
+inline void draw_floating_phys_ripples_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, draw_floating_phys_ripples_ecs_query_desc.getHandle(),
+  perform_query(&manager, draw_floating_phys_ripples_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -457,10 +463,10 @@ static constexpr ecs::component_t floatingRiGroup__interactionType_get_type(){re
 static constexpr ecs::component_t floatingRiGroup__maxShiftDist_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t floatingRiGroup__minDistToGround_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t floatingRiGroup__physUpdateDt_get_type(){return ecs::ComponentTypeInfo<float>::type; }
-static constexpr ecs::component_t floatingRiGroup__resName_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char, eastl::allocator>>::type; }
+static constexpr ecs::component_t floatingRiGroup__resName_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char>>::type; }
 static constexpr ecs::component_t floatingRiGroup__updateDistSq_get_type(){return ecs::ComponentTypeInfo<float>::type; }
 static constexpr ecs::component_t floatingRiGroup__useBoxInertia_get_type(){return ecs::ComponentTypeInfo<bool>::type; }
 static constexpr ecs::component_t floatingRiGroup__viscosity_get_type(){return ecs::ComponentTypeInfo<float>::type; }
-static constexpr ecs::component_t floatingRiGroup__volumePresetName_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char, eastl::allocator>>::type; }
+static constexpr ecs::component_t floatingRiGroup__volumePresetName_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char>>::type; }
 static constexpr ecs::component_t floatingRiGroup__volumesCount_get_type(){return ecs::ComponentTypeInfo<int>::type; }
 static constexpr ecs::component_t floatingRiGroup__wreckageFloatDuration_get_type(){return ecs::ComponentTypeInfo<float>::type; }

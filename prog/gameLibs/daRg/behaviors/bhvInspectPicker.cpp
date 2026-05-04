@@ -58,21 +58,8 @@ static Tab<Element *> trace_elements(ElementTree *etree, Element *picker, const 
 }
 
 
-int BhvInspectPicker::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx, const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-int BhvInspectPicker::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data,
-  short mx, short my, int /*buttons*/, int accum_res)
-{
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-
 int BhvInspectPicker::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
-  int /*button_id*/, const Point2 &p, int /*accum_res*/)
+  int /*button_id*/, Point2 p, int /*accum_res*/)
 {
   HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(0);
   bool includeNoRendObj = kbd && (kbd->getRawState().shifts & HumanInput::KeyboardRawState::CTRL_BITS);

@@ -1,9 +1,9 @@
 WARNING: w221 (result-not-utilized) Result of operation is not used.
-testData/static_analyzer/w221.nut:6:4
+testData/static_analyzer/w221.nut:7:2
 
-    z--
-    ::x == y
-    ^-------
-  }
+  z--
+  ::x == y
+  ^-------
+}
 
 

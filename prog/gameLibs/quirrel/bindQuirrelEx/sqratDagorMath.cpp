@@ -1,10 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqext.h>
 
 #include <sqrat.h>
+#include <util/dag_string.h>
 
 #include <math/dag_color.h>
 #include <math/dag_math3d.h>
@@ -278,7 +279,7 @@ static SQInteger math_flt_vector_ctor(HSQUIRRELVM vm)
   if (top == 2 && !Sqrat::check_signature<T *>(vm, 2))
     return sq_throwerror(vm, "Invalid type passed to copy ctor");
 
-  T *obj = new T();
+  T *obj = Sqrat::ClassType<T>::AllocInstanceData(vm, 1);
   if (top == 1)
     memset(obj, 0, sizeof(T));
   else if (top == 2)
@@ -292,7 +293,6 @@ static SQInteger math_flt_vector_ctor(HSQUIRRELVM vm)
       (*obj)[i] = (decltype((*obj)[0]))f;
     }
   }
-  Sqrat::ClassType<T>::SetManagedInstance(vm, 1, obj);
   return 0;
 }
 
@@ -306,7 +306,7 @@ static SQInteger math_int_vector_ctor(HSQUIRRELVM vm)
   if (top == 2 && !Sqrat::check_signature<T *>(vm, 2))
     return sq_throwerror(vm, "Invalid type passed to copy ctor");
 
-  T *obj = new T();
+  T *obj = Sqrat::ClassType<T>::AllocInstanceData(vm, 1);
   if (top == 1)
     memset(obj, 0, sizeof(T));
   else if (top == 2)
@@ -320,7 +320,6 @@ static SQInteger math_int_vector_ctor(HSQUIRRELVM vm)
       (*obj)[i] = (decltype((*obj)[0]))n;
     }
   }
-  Sqrat::ClassType<T>::SetManagedInstance(vm, 1, obj);
   return 0;
 }
 
@@ -333,13 +332,11 @@ static SQInteger tmatrix_ctor(HSQUIRRELVM vm)
   if (top == 2 && !Sqrat::check_signature<TMatrix *>(vm, 2))
     return sq_throwerror(vm, "Expected source matrix to copy from as argument");
 
-  TMatrix *obj = new TMatrix();
+  TMatrix *obj = Sqrat::ClassType<TMatrix>::AllocInstanceData(vm, 1);
   if (top == 1)
     obj->identity();
   else
     *obj = *Sqrat::Var<TMatrix *>(vm, 2).value;
-
-  Sqrat::ClassType<TMatrix>::SetManagedInstance(vm, 1, obj);
   return 0;
 }
 
@@ -483,9 +480,8 @@ static SQInteger quat_ctor(HSQUIRRELVM vm)
   else
     return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 0, 1 or 4 expected", top - 1);
 
-  Quat *out = new Quat();
+  Quat *out = Sqrat::ClassType<Quat>::AllocInstanceData(vm, 1);
   memcpy(out, &q, sizeof(Quat));
-  Sqrat::ClassType<Quat>::SetManagedInstance(vm, 1, out);
   return 0;
 }
 
@@ -530,7 +526,8 @@ static SQInteger e3dcolor_ctor(HSQUIRRELVM vm)
   else
     return sq_throwerror(vm, "Wrong ctor arguments count");
 
-  Sqrat::ClassType<E3DCOLOR>::SetManagedInstance(vm, 1, new E3DCOLOR(c.u));
+  E3DCOLOR *out = Sqrat::ClassType<E3DCOLOR>::AllocInstanceData(vm, 1);
+  *out = c;
   return 0;
 }
 
@@ -569,7 +566,8 @@ static SQInteger color4_ctor(HSQUIRRELVM vm)
   else
     return sq_throwerror(vm, "Wrong ctor arguments count");
 
-  Sqrat::ClassType<Color4>::SetManagedInstance(vm, 1, new Color4(c));
+  Color4 *out = Sqrat::ClassType<Color4>::AllocInstanceData(vm, 1);
+  *out = c;
   return 0;
 }
 
@@ -579,8 +577,7 @@ static SQInteger catmull_rom_2d_ctor(HSQUIRRELVM vm)
   if (top != 1)
     return sqstd_throwerrorf(vm, "Invalid arguments count: %d provided, 0 expected", top - 1);
 
-  CatmullRomSplineBuilder2D *obj = new CatmullRomSplineBuilder2D();
-  Sqrat::ClassType<CatmullRomSplineBuilder2D>::SetManagedInstance(vm, 1, obj);
+  Sqrat::ClassType<CatmullRomSplineBuilder2D>::AllocInstanceData(vm, 1);
   return 0;
 }
 
@@ -630,199 +627,212 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
 
   Sqrat::Class<Point2> sqPoint2(vm, "Point2");
   ///@class Point2
-  sqPoint2 //
+  sqPoint2
+    .UseInlineUserdata() //
     .SquirrelCtor(math_flt_vector_ctor<Point2, 2>, 0, ".x|nn")
-    .Var("x", &Point2::x)
-    .Var("y", &Point2::y)
+    .NativeVar("x", &Point2::x)
+    .NativeVar("y", &Point2::y)
     .Func("lengthSq", &Point2::lengthSq)
     .Func("length", &Point2::length)
     .Func("normalize", &Point2::normalize)
-    .SquirrelFunc("_add", op_add<Point2>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<Point2>, 2, "xx")
-    .SquirrelFunc("_mul", op_mul<Point2>, 2, "xx|n")
-    .SquirrelFunc("_unm", op_unm<Point2>, 1, "x")
-    .SquirrelFunc("__setstate", raw_float_setstate<Point2>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Point2>, -1, "x.")
+    .SquirrelFuncDeclString(op_add<Point2>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<Point2>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_mul<Point2>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(op_unm<Point2>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_float_setstate<Point2>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Point2>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class Point3
   Sqrat::Class<Point3> sqPoint3(vm, "Point3");
-  sqPoint3 //
+  sqPoint3
+    .UseInlineUserdata() //
     .SquirrelCtor(math_flt_vector_ctor<Point3, 3>, 0, ".x|nnn")
-    .Var("x", &Point3::x)
-    .Var("y", &Point3::y)
-    .Var("z", &Point3::z)
+    .NativeVar("x", &Point3::x)
+    .NativeVar("y", &Point3::y)
+    .NativeVar("z", &Point3::z)
     .Func("lengthSq", &Point3::lengthSq)
     .Func("length", &Point3::length)
     .Func("normalize", &Point3::normalize)
-    .SquirrelFunc("_add", op_add<Point3>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<Point3>, 2, "xx")
-    .SquirrelFunc("_mul", op_mul<Point3>, 2, "xx|n")
-    .SquirrelFunc("_modulo", op_cross<Point3>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<Point3>, 1, "x")
-    .SquirrelFunc("__setstate", raw_float_setstate<Point3>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Point3>, -1, "x.")
+    .SquirrelFuncDeclString(op_add<Point3>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<Point3>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_mul<Point3>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(op_cross<Point3>, "instance._modulo(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<Point3>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_float_setstate<Point3>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Point3>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class DPoint3
   Sqrat::Class<DPoint3> sqDPoint3(vm, "DPoint3");
-  sqDPoint3 //
+  sqDPoint3
+    .UseInlineUserdata() //
     .SquirrelCtor(math_flt_vector_ctor<DPoint3, 3>, 0, ".x|nnn")
-    .Var("x", &DPoint3::x)
-    .Var("y", &DPoint3::y)
-    .Var("z", &DPoint3::z)
+    .NativeVar("x", &DPoint3::x)
+    .NativeVar("y", &DPoint3::y)
+    .NativeVar("z", &DPoint3::z)
     .Func("lengthSq", &DPoint3::lengthSq)
     .Func("length", &DPoint3::length)
     .Func("normalize", &DPoint3::normalize)
-    .SquirrelFunc("__setstate", raw_int32_setstate<DPoint3>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_int32_getstate<DPoint3>, -1, "x.")
+    .SquirrelFuncDeclString(raw_int32_setstate<DPoint3>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_int32_getstate<DPoint3>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class Point4
   Sqrat::Class<Point4> sqPoint4(vm, "Point4");
-  sqPoint4 //
+  sqPoint4
+    .UseInlineUserdata() //
     .SquirrelCtor(math_flt_vector_ctor<Point4, 4>, 0, ".x|nnnn")
-    .Var("x", &Point4::x)
-    .Var("y", &Point4::y)
-    .Var("z", &Point4::z)
-    .Var("w", &Point4::w)
+    .NativeVar("x", &Point4::x)
+    .NativeVar("y", &Point4::y)
+    .NativeVar("z", &Point4::z)
+    .NativeVar("w", &Point4::w)
     .Func("lengthSq", &Point4::lengthSq)
     .Func("length", &Point4::length)
-    .SquirrelFunc("_add", op_add<Point4>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<Point4>, 2, "xx")
-    .SquirrelFunc("_mul", op_mul<Point4>, 2, "xx|n")
-    .SquirrelFunc("_modulo", op_cross<Point4>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<Point4>, 1, "x")
-    .SquirrelFunc("__setstate", raw_float_setstate<Point4>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Point4>, -1, "x.")
+    .SquirrelFuncDeclString(op_add<Point4>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<Point4>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_mul<Point4>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(op_cross<Point4>, "instance._modulo(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<Point4>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_float_setstate<Point4>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Point4>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class TMatrix
   Sqrat::Class<TMatrix> sqTMatrix(vm, "TMatrix");
-  sqTMatrix //
+  sqTMatrix
+    .UseInlineUserdata() //
     .SquirrelCtor(tmatrix_ctor, 0, ".x")
     .Func("orthonormalize", &TMatrix::orthonormalize)
-    .SquirrelFunc("_mul", op_mul_tm<TMatrix, Point3>, 2, "xx|n")
-    .SquirrelFunc("_add", op_add<TMatrix>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<TMatrix>, 2, "xx")
-    .SquirrelFunc("_modulo", op_cross<TMatrix>, 2, "xx")
-    .SquirrelFunc("_set", tm_setcol, -3, "xnx|n")
-    .SquirrelFunc("setcol", tm_setcol, -3, "xnx|n")
-    .SquirrelFunc("_unm", op_unm<TMatrix>, 1, "x")
+    .SquirrelFuncDeclString(op_mul_tm<TMatrix, Point3>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(op_add<TMatrix>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<TMatrix>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_cross<TMatrix>, "instance._modulo(other: instance): instance")
+    .SquirrelFuncDeclString(tm_setcol, "instance._set(col: int, arg: instance|number, ...): null")
+    .SquirrelFuncDeclString(tm_setcol, "instance.setcol(col: int, arg: instance|number, ...): null")
+    .SquirrelFuncDeclString(op_unm<TMatrix>, "instance._unm(): instance")
     .GlobalFunc("inverse", (TMatrix(*)(const TMatrix &))inverse)
-    .SquirrelFunc("_get", tm_getcol, 2, "x")
-    .SquirrelFunc("getcol", tm_getcol, 2, "x")
-    .SquirrelFunc("__setstate", raw_float_setstate<TMatrix>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<TMatrix>, -1, "x.")
+    .SquirrelFuncDeclString(tm_getcol, "instance._get(idx: any): instance")
+    .SquirrelFuncDeclString(tm_getcol, "instance.getcol(idx: any): instance")
+    .SquirrelFuncDeclString(raw_float_setstate<TMatrix>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<TMatrix>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class Quat
   Sqrat::Class<Quat> sqQuat(vm, "Quat");
-  sqQuat //
+  sqQuat
+    .UseInlineUserdata() //
     .SquirrelCtor(quat_ctor, 0, ".x|nnnn")
-    .Var("x", &Quat::x)
-    .Var("y", &Quat::y)
-    .Var("z", &Quat::z)
-    .Var("w", &Quat::w)
-    .SquirrelFunc("_mul", op_mul<Quat, Quat>, 2, "xx|n")
-    .SquirrelFunc("_mul", op_mul_tm<Quat, Point3>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<Quat>, 1, "x")
+    .NativeVar("x", &Quat::x)
+    .NativeVar("y", &Quat::y)
+    .NativeVar("z", &Quat::z)
+    .NativeVar("w", &Quat::w)
+    .SquirrelFuncDeclString(op_mul<Quat, Quat>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(op_mul_tm<Quat, Point3>, "instance._mul(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<Quat>, "instance._unm(): instance")
     .Func("normalize", &Quat::normalize)
-    .SquirrelFunc("__setstate", raw_float_setstate<Quat>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Quat>, -1, "x.")
+    .SquirrelFuncDeclString(raw_float_setstate<Quat>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Quat>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class IPoint2
   Sqrat::Class<IPoint2> sqIPoint2(vm, "IPoint2");
-  sqIPoint2 //
+  sqIPoint2
+    .UseInlineUserdata() //
     .SquirrelCtor(math_int_vector_ctor<IPoint2, 2>, 0, ".x|nn")
-    .Var("x", &IPoint2::x)
-    .Var("y", &IPoint2::y)
-    .SquirrelFunc("_add", op_add<IPoint2>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<IPoint2>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<IPoint2>, 1, "x")
-    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint2>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint2>, -1, "x.")
+    .NativeVar("x", &IPoint2::x)
+    .NativeVar("y", &IPoint2::y)
+    .SquirrelFuncDeclString(op_add<IPoint2>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<IPoint2>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<IPoint2>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_int32_setstate<IPoint2>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_int32_getstate<IPoint2>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class IPoint3
   Sqrat::Class<IPoint3> sqIPoint3(vm, "IPoint3");
-  sqIPoint3 //
+  sqIPoint3
+    .UseInlineUserdata() //
     .SquirrelCtor(math_int_vector_ctor<IPoint3, 3>, 0, ".x|nnn")
-    .Var("x", &IPoint3::x)
-    .Var("y", &IPoint3::y)
-    .Var("z", &IPoint3::z)
-    .SquirrelFunc("_add", op_add<IPoint3>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<IPoint3>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<IPoint3>, 1, "x")
-    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint3>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint3>, -1, "x.")
+    .NativeVar("x", &IPoint3::x)
+    .NativeVar("y", &IPoint3::y)
+    .NativeVar("z", &IPoint3::z)
+    .SquirrelFuncDeclString(op_add<IPoint3>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<IPoint3>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<IPoint3>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_int32_setstate<IPoint3>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_int32_getstate<IPoint3>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class IPoint4
   Sqrat::Class<IPoint4> sqIPoint4(vm, "IPoint4");
-  sqIPoint4 //
+  sqIPoint4
+    .UseInlineUserdata() //
     .SquirrelCtor(math_int_vector_ctor<IPoint4, 4>, 0, ".x|nnnn")
-    .Var("x", &IPoint4::x)
-    .Var("y", &IPoint4::y)
-    .Var("z", &IPoint4::z)
-    .Var("w", &IPoint4::w)
-    .SquirrelFunc("_add", op_add<IPoint4>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<IPoint4>, 2, "xx")
-    .SquirrelFunc("_unm", op_unm<IPoint4>, 1, "x")
-    .SquirrelFunc("__setstate", raw_int32_setstate<IPoint4>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_int32_getstate<IPoint4>, -1, "x.")
+    .NativeVar("x", &IPoint4::x)
+    .NativeVar("y", &IPoint4::y)
+    .NativeVar("z", &IPoint4::z)
+    .NativeVar("w", &IPoint4::w)
+    .SquirrelFuncDeclString(op_add<IPoint4>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<IPoint4>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_unm<IPoint4>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(raw_int32_setstate<IPoint4>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_int32_getstate<IPoint4>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class E3DCOLOR
   Sqrat::Class<E3DCOLOR> sqE3DCOLOR(vm, "E3DCOLOR");
-  sqE3DCOLOR //
+  sqE3DCOLOR
+    .UseInlineUserdata() //
     .SquirrelCtor(e3dcolor_ctor, 0, ".x|nnnn")
     .Var("r", &E3DCOLOR::r)
     .Var("g", &E3DCOLOR::g)
     .Var("b", &E3DCOLOR::b)
     .Var("a", &E3DCOLOR::a)
     .Var("u", &E3DCOLOR::u)
-    .SquirrelFunc("__setstate", raw_int32_setstate<E3DCOLOR>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_int32_getstate<E3DCOLOR>, -1, "x.")
+    .SquirrelFuncDeclString(raw_int32_setstate<E3DCOLOR>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_int32_getstate<E3DCOLOR>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class Color3
   Sqrat::Class<Color3> sqColor3(vm, "Color3");
-  sqColor3 //
+  sqColor3
+    .UseInlineUserdata() //
     .SquirrelCtor(math_flt_vector_ctor<Color3, 3>, 0, ".x|nnnn")
-    .Var("r", &Color3::r)
-    .Var("g", &Color3::g)
-    .Var("b", &Color3::b)
-    .SquirrelFunc("_add", op_add<Color3>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<Color3>, 2, "xx")
-    .SquirrelFunc("_mul", op_mul<Color3, Color3>, 2, "xx|n")
-    .SquirrelFunc("set", c3_set, 3, "nnn")
-    .SquirrelFunc("__setstate", raw_float_setstate<Color3>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Color3>, -1, "x.")
+    .NativeVar("r", &Color3::r)
+    .NativeVar("g", &Color3::g)
+    .NativeVar("b", &Color3::b)
+    .SquirrelFuncDeclString(op_add<Color3>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<Color3>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_mul<Color3, Color3>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(c3_set, "instance.set(r: number, g: number, b: number): any")
+    .SquirrelFuncDeclString(raw_float_setstate<Color3>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Color3>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class Color4
   Sqrat::Class<Color4> sqColor4(vm, "Color4");
-  sqColor4 //
+  sqColor4
+    .UseInlineUserdata() //
     .SquirrelCtor(color4_ctor, 0, ".x|nnnn")
-    .Var("r", &Color4::r)
-    .Var("g", &Color4::g)
-    .Var("b", &Color4::b)
-    .Var("a", &Color4::a)
-    .SquirrelFunc("_add", op_add<Color4>, 2, "xx")
-    .SquirrelFunc("_sub", op_sub<Color4>, 2, "xx")
-    .SquirrelFunc("_mul", op_mul<Color4, Color4>, 2, "xx|n")
-    .SquirrelFunc("set", c4_set, 4, "nnnn")
-    .SquirrelFunc("__setstate", raw_float_setstate<Color4>, -1, "x.")
-    .SquirrelFunc("__getstate", raw_float_getstate<Color4>, -1, "x.")
+    .NativeVar("r", &Color4::r)
+    .NativeVar("g", &Color4::g)
+    .NativeVar("b", &Color4::b)
+    .NativeVar("a", &Color4::a)
+    .SquirrelFuncDeclString(op_add<Color4>, "instance._add(other: instance): instance")
+    .SquirrelFuncDeclString(op_sub<Color4>, "instance._sub(other: instance): instance")
+    .SquirrelFuncDeclString(op_mul<Color4, Color4>, "instance._mul(other: instance|number): instance")
+    .SquirrelFuncDeclString(c4_set, "instance.set(r: number, g: number, b: number, a: number): any")
+    .SquirrelFuncDeclString(raw_float_setstate<Color4>, "instance.__setstate(state: array, [dummy: any]): null")
+    .SquirrelFuncDeclString(raw_float_getstate<Color4>, "instance.__getstate([dummy: any]): array")
     /**/;
 
   /// @class CatmullRomSplineBuilder2D
   Sqrat::Class<CatmullRomSplineBuilder2D> sqCatmullRomSplineBuilder2D(vm, "CatmullRomSplineBuilder2D");
-  sqCatmullRomSplineBuilder2D //
+  sqCatmullRomSplineBuilder2D
+    .UseInlineUserdata() //
     .SquirrelCtor(catmull_rom_2d_ctor, 0, ".")
-    .SquirrelFunc("build", catmull_rom_2d_build, -2, "xabn")
+    .SquirrelFuncDeclString(catmull_rom_2d_build, "instance.build(points: array, [is_closed: bool, tension: number]): bool")
     .Func("getTotalSplineLength", &CatmullRomSplineBuilder2D::getTotalSplineLength)
     .Func("getMonotonicPoint", &CatmullRomSplineBuilder2D::getMonotonicPoint)
     .Func("getRawPoint", &CatmullRomSplineBuilder2D::getRawPoint)

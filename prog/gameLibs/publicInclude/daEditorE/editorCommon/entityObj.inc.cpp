@@ -7,7 +7,7 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/scene/scene.h>
-#include <ecs/core/utility/ecsBlkUtils.h>
+#include <daECS/core/utility/ecsBlkUtils.h>
 #include <ecs/anim/anim.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -101,6 +101,14 @@ void EntityObj::resetEid()
 
 void EntityObj::updateLbb()
 {
+  const Point3 *custom_edit_box__min = g_entity_mgr->getNullable<Point3>(eid, ECS_HASH("custom_edit_box__min"));
+  const Point3 *custom_edit_box__max = g_entity_mgr->getNullable<Point3>(eid, ECS_HASH("custom_edit_box__max"));
+  if (custom_edit_box__min != nullptr && custom_edit_box__max != nullptr)
+  {
+    lbb = BBox3(*custom_edit_box__min, *custom_edit_box__max);
+    return;
+  }
+
   AnimV20::AnimcharRendComponent *animChar =
     g_entity_mgr->getNullableRW<AnimV20::AnimcharRendComponent>(eid, ECS_HASH("animchar_render"));
   if (animChar)
@@ -159,6 +167,22 @@ bool EntityObj::isSelectedByPointClick(int x, int y) const
   if (objectFlags & ENTOBJ_FLAG_IGNORED_EDITABLE)
     return false;
   return hasTransform() ? isBoxSelectedByPointClick(lbb, x, y) : false;
+}
+
+bool EntityObj::mayDelete()
+{
+  if (isLocked())
+  {
+    return false;
+  }
+
+  if (const ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecord(eid))
+  {
+    auto &ed = *static_cast<EntityObjEditor *>(getObjEditor());
+    return !ed.isSceneInLockedHierarchy(pRec->sceneId);
+  }
+
+  return true;
 }
 
 static void proj_point(const TMatrix &wtm, const Point3 &in_from, const Point3 &in_to, Tab<Point3> &points)
@@ -295,7 +319,7 @@ void EntityObj::render()
     ::draw_cached_debug_line(Point3(0, 0, 0), Point3(0, 1, 0), c);
   }
 }
-void EntityObj::save(DataBlock &blk, const ecs::Scene::EntityRecord &erec) const
+void EntityObj::save(DataBlock &blk, const ecs::Scene::EntityRecord &erec)
 {
   G_ASSERT(!erec.templateName.empty());
   blk.setStr("_template", erec.templateName.c_str());
@@ -305,16 +329,18 @@ void EntityObj::save(DataBlock &blk, const ecs::Scene::EntityRecord &erec) const
 
 void EntityObj::onRemove(ObjectEditor *objEd)
 {
-  if (!g_entity_mgr->doesEntityExist(eid))
-    return;
-  if (eid != ecs::INVALID_ENTITY_ID)
-    removedEntData.reset(new EntCreateData(eid));
-  if (const ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecord(eid))
-    removedEntComps.reset(new ecs::ComponentsList(eastl::move(pRec->clist)));
-  static_cast<EntityObjEditor *>(objEd)->destroyEntityDirect(eid);
+  if (g_entity_mgr->doesEntityExist(eid))
+  {
+    if (eid != ecs::INVALID_ENTITY_ID)
+      removedEntData.reset(new EntCreateData(eid));
+    if (const ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecord(eid))
+      removedEntComps.reset(new ecs::ComponentsList(eastl::move(pRec->clist)));
+    static_cast<EntityObjEditor *>(objEd)->destroyEntityDirect(eid);
+    eid = ecs::INVALID_ENTITY_ID;
+    resetObjectFlags();
+  }
+
   sqeventbus::send_event("entity_editor.onEntityRemoved", Json::Value((ecs::entity_id_t)eid));
-  eid = ecs::INVALID_ENTITY_ID;
-  resetObjectFlags();
 }
 
 void EntityObj::onAdd(ObjectEditor *objEd)
@@ -331,10 +357,20 @@ void EntityObj::onAdd(ObjectEditor *objEd)
   {
     makeSafeEntityComponentsRestoredFromUndo(removedEntData.get());
 
+    if (removedEntData->scene != ecs::Scene::C_INVALID_SCENE_ID)
+    {
+      ecs::g_scenes->getActiveScene().setTargetSceneId(removedEntData->scene);
+    }
+
     setupEid(static_cast<EntityObjEditor *>(objEd)->createEntityDirect(removedEntData.get()));
     if (ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecordForModify(eid))
       if (removedEntComps)
         pRec->clist = eastl::move(*removedEntComps);
+
+    if (removedEntData->scene != ecs::Scene::C_INVALID_SCENE_ID)
+    {
+      ecs::g_scenes->setEntityOrder(removedEntData->eid, removedEntData->orderInScene);
+    }
   }
   removedEntData.reset();
   removedEntComps.reset();

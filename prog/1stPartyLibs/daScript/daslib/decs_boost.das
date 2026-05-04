@@ -8,6 +8,13 @@ options strict_smart_pointers = true
 
 module decs_boost shared private
 
+//! DECS query macro and compile-time helpers.
+//!
+//! Implements the ``decs_query`` block macro that generates
+//! type-safe, zero-overhead iteration over ECS archetypes.
+//! Also provides ``[decs_event]`` and ``[decs_template]``.
+//! Requires the ``decs`` module.
+
 require daslib/decs public
 require daslib/ast_boost
 require daslib/templates_boost
@@ -28,15 +35,24 @@ to:
 */
 
 [block_macro(name="REQUIRE")]
-class DecsReq : AstBlockAnnotation /*! This annotation provides list of required components for entity. */ {}
+class DecsReq : AstBlockAnnotation {
+    //! This annotation provides list of required components for entity.
+}
 
 [block_macro(name="REQUIRE_NOT")]
-class DecsReqN : AstBlockAnnotation /*! This annotation provides list of components, which are required to not be part of the entity. */ {}
+class DecsReqN : AstBlockAnnotation {
+    //! This annotation provides list of components, which are required to not be part of the entity.
+}
 
 [structure_macro(name="decs_template")]
 class DecsTemplate : AstStructureAnnotation {
     //! This macro creates a template for the given structure.
-    //! `apply_decs_template` and `remove_decs_template` functions are generated for the structure type.
+    //! The following functions are generated for the structure type:
+    //!
+    //!   * ``apply_decs_template(cmp, src)`` — sets components via ComponentMap
+    //!   * ``remove_decs_template(cmp, src)`` — removes components from ComponentMap
+    //!   * ``apply_decs_template_arch(arch, eidx, eid, src)`` — writes directly into archetype storage
+    //!   * ``create_entities`T(count, blk)`` — bulk creation with direct archetype writes
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (length(st.fields) == 0) {
             errors := "expecting at least one field in the desc_template {st.name}"
@@ -50,17 +66,64 @@ class DecsTemplate : AstStructureAnnotation {
             blkApply |> emplace_new <| qmacro(decs::set(cmp, $v("{prefix}{fld.name}"), src.$f(fld.name)))
             blkErase |> emplace_new <| qmacro(decs::remove(cmp, $v("{prefix}{fld.name}")))
         }
-        var inscope fnApply <- qmacro_function("apply_decs_template") <| $(var cmp : ComponentMap; var src : $t(st)) : void {
+        var inscope fnApply <- qmacro_function("apply_decs_template") $(var cmp : ComponentMap; var src : $t(st)) : void {
             $b(blkApply)
         }
         if (!(compiling_module() |> add_function(fnApply))) {
             panic("failed to add apply_decs_template, can't add function {fnApply.name}")
         }
-        var inscope  fnErase <- qmacro_function("remove_decs_template`{st.name}") <| $(var cmp : ComponentMap; var src : $t(st)) : void {
+        var inscope  fnErase <- qmacro_function("remove_decs_template`{st.name}") $(var cmp : ComponentMap; var src : $t(st)) : void {
             $b(blkErase)
         }
         if (!(compiling_module() |> add_function(fnErase))) {
             panic("failed to add remove_decs_template, can't add function {fnErase.name}")
+        }
+        // Generate apply_decs_template_arch — writes into archetype storage with cached indices.
+        // First call (empty cache) resolves component indices; subsequent calls are O(1) per field.
+        var inscope blkArchSetup : array<ExpressionPtr>
+        var inscope blkArchWrite : array<ExpressionPtr>
+        // eid at cache[0], fields at cache[1..N]
+        blkArchSetup |> emplace_new <| qmacro(cache |> push(decs::find_component_index(arch, "eid")))
+        blkArchWrite |> emplace_new <| qmacro(decs::set_direct_at(arch, cache[0], eidx, eid))
+        for (fld_idx, fld in iter_range(st.fields), st.fields) {
+            let ci = fld_idx + 1
+            blkArchSetup |> emplace_new <| qmacro(cache |> push(decs::find_component_index(arch, $v("{prefix}{fld.name}"))))
+            blkArchWrite |> emplace_new <| qmacro(decs::set_direct_at(arch, cache[$v(ci)], eidx, src.$f(fld.name)))
+        }
+        var inscope fnArch <- qmacro_function("apply_decs_template_arch") $(var arch : Archetype; eidx : int; eid : EntityId; src : $t(st); var cache : array<int>) : void {
+            pass
+        }
+        var blkA = unsafe(reinterpret<ExprBlock?> fnArch.body)
+        blkA.list |> clear()
+        blkA.list |> emplace_new <| qmacro_block() {
+            if (length(cache) == 0) {
+                $b(blkArchSetup)
+            }
+            $b(blkArchWrite)
+        }
+        if (!(compiling_module() |> add_function(fnArch))) {
+            panic("failed to add apply_decs_template_arch, can't add function {fnArch.name}")
+        }
+        // Generate create_entities`T — bulk creation with cached index resolution
+        var inscope fnBulk <- qmacro_function("create_entities`{st.name}") $(count : int; user_blk : block<(eid : decs::EntityId; i : int; var entity : $t(st)) : void>) : void {
+            pass
+        }
+        var blk = unsafe(reinterpret<ExprBlock?> fnBulk.body)
+        blk.list |> clear()
+        blk.list |> emplace_new <| qmacro_block() {
+            var defval := default<$t(st)>
+            var cmp : decs::ComponentMap
+            apply_decs_template(cmp, defval)
+            var cache : array<int>
+            decs::create_entities_from_cmp(count, cmp) <| $(var arch : decs::Archetype; eidx : int; eid : decs::EntityId; i : int) {
+                var entity := default<$t(st)>
+                invoke(user_blk, eid, i, entity)
+                apply_decs_template_arch(arch, eidx, eid, entity, cache)
+            }
+            delete cmp
+        }
+        if (!(compiling_module() |> add_function(fnBulk))) {
+            panic("failed to add create_entities`{st.name}, can't add function {fnBulk.name}")
         }
         return true
     }
@@ -136,7 +199,7 @@ def build_req_from_args(qblk : ExprBlock?) : EcsRequest {
 [macro_function]
 def getter_name(a; const_parent : bool; can_be_optional : bool) {
     var getter = "get_ro"
-    static_if (typeinfo stripped_typename(a) == "ast::FieldDeclaration") {// part of the desc_template
+    static_if (typeinfo stripped_typename(a) == "ast_core::FieldDeclaration") {// part of the desc_template
         if (a.init != null && can_be_optional) {
             getter = "get_default_ro"
         } elif (!const_parent) {
@@ -194,7 +257,9 @@ def private append_iterator(arch_name : string; var qloop : smart_ptr<ExprFor>; 
         var inscope ftype <- clone_type(a._type)
         ftype.flags &= ~TypeDeclFlags.constant
         ftype.flags &= ~TypeDeclFlags.ref
-        qloop.sources |> emplace_new <| qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>)))
+        var inscope it <- qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>)))
+        force_generated(it, true)
+        qloop.sources |> emplace <| it
     }
     return true
 }
@@ -214,7 +279,10 @@ def private append_index_lookup(arch_name : string; var qblock : smart_ptr<ExprB
         var inscope ftype <- clone_type(a._type)
         ftype.flags &= ~TypeDeclFlags.constant
         ftype.flags &= ~TypeDeclFlags.ref
-        move(iget, get_ptr(qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>))[entity_index])))
+        var inscope getFn <- qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>)))
+        getFn.genFlags |= ExprGenFlags.alwaysSafe
+        move(iget, get_ptr(qmacro($e(getFn)[entity_index])))
+        force_generated(iget, true)
     }
     var inscope vlet <- new ExprLet(at = a.at, atInit = a.at)
     vlet.genFlags |= ExprGenFlags.alwaysSafe
@@ -236,13 +304,14 @@ def private append_index_lookup(arch_name : string; var qblock : smart_ptr<ExprB
         name := "{prefix}{a.name}{suffix}",
         _type <- vtype,
         init <- iget,
-        flags = VariableFlags.can_shadow
+        flags = VariableFlags.can_shadow | VariableFlags.generated
         )
     qblock.list |> emplace(vlet)
     return true
 }
 
 enum private DecsQueryType {
+    //! Enum for ECS query types.
     query
     eid_query
     find_query
@@ -250,9 +319,11 @@ enum private DecsQueryType {
 
 [call_macro(name="query")]
 class DecsQueryMacro : AstCallMacro {
-    //! This macro implmenets 'query` functionality. There are 2 types of queries:
-    //!     * query(...) - returns a list of entities matching the query
-    //!     * query(eid) - returns a single entity matching the eid
+    //! This macro implements `query` functionality. There are 2 types of queries:
+    //!
+    //! * query(...) - returns a list of entities matching the query
+    //! * query(eid) - returns a single entity matching the eid
+    //!
     //! For example::
     //!
     //!     query() <| $ ( eid:EntityId; pos, vel : float3 )
@@ -263,6 +334,7 @@ class DecsQueryMacro : AstCallMacro {
     //!
     //!     query(kaboom) <| $ ( var pos:float3&; vel:float3; col:uint=13u )
     //!         pos += vel
+    //!
     //! The query above will add the velocity to the position of an entity with eid kaboom.
     //!
     //! Query can have `REQUIRE` and `REQUIRE_NOT` clauses::
@@ -273,7 +345,7 @@ class DecsQueryMacro : AstCallMacro {
     //!
     //! The query above will add `pos` components of all entities, which also have a `tank` component.
     //!
-    //! Additionally queries can atuomaticall expand components of entities. For example::
+    //! Additionally queries can automatically expand components of entities. For example::
     //!
     //!     [decs_template(prefix="particle")]
     //!     struct Particle
@@ -283,10 +355,10 @@ class DecsQueryMacro : AstCallMacro {
     //!         q.pos += q.vel                  // this is actually particlepos += particlevel
     //!
     //!
-    //! In the example above structure q : Particle does not exist as a variable. Instead it is expanded into accessing individual componentes of the entity.
+    //! In the example above structure q : Particle does not exist as a variable. Instead it is expanded into accessing individual components of the entity.
     //! REQURE section of the query is automatically filled with all components of the template.
-    //! If template prefix is not specified, prefix is taken from the name of the template (would be "Particle_").
-    //! Specifying empty prefix `[decs_template(prefix)]` will result in no prefix beeing added.
+    //! If template prefix is not specified, prefix is taken from the name of the template (would be ``Particle_``).
+    //! Specifying empty prefix `[decs_template(prefix)]` will result in no prefix being added.
     //!
     //! Note: apart from tagging structure as a template, the macro also generates `apply_decs_template` and `remove_decs_template` functions.
     //! `apply_decs_template` is used to add template to an entity, and `remove_decs_template` is used to remove all components of the template from the entity::
@@ -401,13 +473,13 @@ class DecsQueryMacro : AstCallMacro {
             move(qloop.body) <| qlbody
             move(qtop) <| qloop
         }
-        apply_template(qtop) <| $(rules) {
+        apply_template(qtop) $(rules) {
             for (kb in kaboom) {
                 rules |> kaboomVarField(kb._0, kb._1, kb._2)
             }
         }
         if (length(kaboom) > 0) {
-            apply_template(qtop) <| $(rules) {
+            apply_template(qtop) $(rules) {
                 for (kb in kaboom) {
                     rules |> replaceVariable(kb._0) <| make_static_assert_false("decs_template variables can only be accessed by fields", expr.at)
                 }
@@ -416,21 +488,21 @@ class DecsQueryMacro : AstCallMacro {
         var inscope qblock : ExpressionPtr
         unsafe {
             if (qt == DecsQueryType.eid_query) {
-                qblock <- quote() <| $() {
-                    for_eid_archetype(tag_eid, tag_req, tag_erq) <| $(tag_arch, entity_index) {
+                qblock <- quote() {
+                    for_eid_archetype(tag_eid, tag_req, tag_erq) $(tag_arch, entity_index) {
                         tag_loop
                     }
                 }
             } elif (qt == DecsQueryType.find_query) {
-                qblock <- quote() <| $() {
-                    for_each_archetype_find(tag_req, tag_erq) <| $(tag_arch) {
+                qblock <- quote() {
+                    for_each_archetype_find(tag_req, tag_erq) $(tag_arch) {
                         tag_loop
                         return false
                     }
                 }
             } elif (qt == DecsQueryType.query) {
-                qblock <- quote() <| $() {
-                    for_each_archetype(tag_req, tag_erq) <| $(tag_arch) {
+                qblock <- quote() {
+                    for_each_archetype(tag_req, tag_erq) $(tag_arch) {
                         tag_loop
                     }
                 }
@@ -440,7 +512,7 @@ class DecsQueryMacro : AstCallMacro {
             }
         }
         qblock |> force_at(expr.at)
-        apply_template(qblock) <| $(rules) {
+        apply_template(qblock) $(rules) {
             if (qt == DecsQueryType.eid_query) {
                 rules |> replaceVariable("tag_eid") <| clone_expression(expr.arguments[0])
             }
@@ -460,10 +532,12 @@ class DecsQueryMacro : AstCallMacro {
 
 [call_macro(name="find_query")]
 class DecsFindQueryMacro : DecsQueryMacro {
-    //! This macro implmenets 'find_query` functionality.
+    //! This macro implements `find_query` functionality.
     //! It is similar to `query` in most ways, with the main differences being:
-    //!     * there is no eid-based find query
-    //!     * the find_query stops once the first match is found
+    //!
+    //! * there is no eid-based find query
+    //! * the find_query stops once the first match is found
+    //!
     //! For example::
     //!
     //!     let found = find_query <| $ ( pos,dim:float3; obstacle:Obstacle )
@@ -473,7 +547,7 @@ class DecsFindQueryMacro : DecsQueryMacro {
     //!     if is_intersecting(ray, aabb, 0.1, dist)
     //!         return true
     //!
-    //! In the example above the find_query will return `true` once the first intesection is found.
+    //! In the example above the find_query will return `true` once the first intersection is found.
     //! Note: if return is missing, or end of find_query block is reached - its assumed that find_query did not find anything, and will return false.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting find_query($(block_with_arguments))")
@@ -483,7 +557,7 @@ class DecsFindQueryMacro : DecsQueryMacro {
 
 [function_macro(name="decs")]
 class DecsEcsMacro : AstFunctionAnnotation {
-    //! This macro converts a function into a DECS pass stage query. Possible arguments are `stage`, 'REQUIRE', and `REQUIRE_NOT`.
+    //! This macro converts a function into a DECS pass stage query. Possible arguments are `stage`, `REQUIRE`, and `REQUIRE_NOT`.
     //! It has all other properties of a `query` (like ability to operate on templates). For example::
     //!
     //!     [decs(stage=update_ai, REQUIRE=ai_turret)]
@@ -564,5 +638,77 @@ class DecsEcsMacro : AstFunctionAnnotation {
         fblk.list |> emplace(cqq)
         move(func.body, fblk)
         return true
+    }
+}
+
+[call_macro(name="from_decs")]
+class FromDecsMacro : AstCallMacro {
+    //! This macro converts a DECS query into an iterator<tuple<...>>. For example::
+    //!
+    //!     let it = from_decs($(index:int; text:string){})
+    //!     for (item in it) {
+    //!         // process item
+    //!         print("Entity {item.index}: {item.text}\n")
+    //!     }
+    //!
+    //! Internally it generates the following code::
+    //!
+    //!     let it = invoke($() {
+    //!         var res : array<tuple<int,string>>
+    //!         query($(index:int; text:string) {
+    //!             res |> push((index, text))
+    //!         })
+    //!         return res.to_sequence()
+    def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {
+        macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting from_decs($(block_with_arguments))")
+        macro_verify(expr.arguments[0] is ExprMakeBlock, prog, expr.at, "expecting from_decs($(block_with_arguments))")
+        let mblk = expr.arguments[0] as ExprMakeBlock
+        let qblk = mblk._block as ExprBlock
+        macro_verify(length(qblk.arguments) != 0, prog, expr.at, "expecting from_decs($(block_with_arguments)), arguments are missing")
+        for (arg in qblk.arguments) {
+            macro_verify(!arg._type.isAutoOrAlias, prog, expr.at, "argument types are not fully inferred")
+        }
+        // tuple type
+        var inscope tupleType <- new TypeDecl(baseType = Type.tTuple, at = expr.at)
+        tupleType.argNames.resize(qblk.arguments.length())
+        for (arg, idx in qblk.arguments, count()) {
+            tupleType.argTypes |> emplace_new(clone_type(arg._type))
+            tupleType.argTypes[idx].flags &= ~TypeDeclFlags.ref
+            tupleType.argTypes[idx].flags &= ~TypeDeclFlags.constant
+            tupleType.argNames[idx] := arg.name
+
+        }
+        // tuple to push
+        var inscope mkTuple = new ExprMakeTuple(at = expr.at)
+        for (arg in qblk.arguments) {
+            mkTuple.values |> emplace_new <| new ExprVar(at = arg.at, name := arg.name)
+        }
+        // block with arguments
+        var inscope qblock = qmacro(${
+            res |> push($e(mkTuple))
+        })
+        var qba = qblock as ExprMakeBlock
+        var qbb = qba._block as ExprBlock
+        qbb.blockFlags |= ExprBlockFlags.isClosure
+        for (arg, idx in qblk.arguments, count()) {
+            qbb.arguments |> emplace_new <| new Variable(at = arg.at,
+                name := arg.name,
+                _type <- clone_type(arg._type),
+                init <- clone_expression(arg.init)
+            )
+            qbb.arguments[idx]._type.flags &= ~TypeDeclFlags.ref
+            qbb.arguments[idx]._type.flags |= TypeDeclFlags.constant
+        }
+        // call macro query
+        var inscope callquery = make_call(expr.at, "query")
+        (callquery as ExprCallMacro).arguments |> emplace_new <| clone_expression(qblock)
+        // final output
+        return <- qmacro(
+            invoke(${
+                var res : array<$t(tupleType)>
+                $e(callquery)
+                return res.to_sequence()
+            })
+        )
     }
 }

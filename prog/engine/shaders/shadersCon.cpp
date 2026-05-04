@@ -3,6 +3,7 @@
 #include <util/dag_console.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_res.h>
@@ -21,7 +22,6 @@
 #include <startup/dag_globalSettings.h>
 #include "profileStcode.h"
 
-extern void dump_exec_stcode_time();
 class ShadersReloadProcessor : public console::ICommandProcessor
 {
 public:
@@ -36,13 +36,13 @@ public:
     CONSOLE_CHECK_NAME_EX("render", "reload_shaders", 1, 3, "", "[use_fence] [shaders_bindump_name]")
     {
       G_ASSERT(d3d::is_inited());
-      const Driver3dDesc &dsc = d3d::get_driver_desc();
+      auto shaderModel = d3d::get_driver_desc().shaderModel;
       extern const char *last_loaded_shaders_bindump(bool);
       bool useFence = argc > 1 ? console::to_bool(argv[1]) : false;
       const char *shname = argc > 2 ? argv[2] : NULL;
       for (auto version : d3d::smAll)
       {
-        if (dsc.shaderModel < version) // || !dd_file_exist(String(0, "%s.%s.shdump.bin", shname, version.psName))
+        if (shaderModel < version) // || !dd_file_exist(String(0, "%s.%s.shdump.bin", shname, version.psName))
           continue;
         bool reloaded = useFence ? load_shaders_bindump_with_fence(shname ? shname : last_loaded_shaders_bindump(false), version)
                                  : load_shaders_bindump(shname, version);
@@ -81,11 +81,11 @@ public:
       }
       else
       {
-        const Driver3dDesc &dsc = d3d::get_driver_desc();
+        auto shaderModel = d3d::get_driver_desc().shaderModel;
 
         for (auto version : d3d::smAll)
         {
-          if (dsc.shaderModel < version)
+          if (shaderModel < version)
             continue;
 
           bool success = load ? load_shaders_debug_bindump(version) : unload_shaders_debug_bindump(version);
@@ -138,11 +138,11 @@ public:
           case -1: console::print_d(" shaderVar <%s> is undefined", argv[1]); break;
           case SHVT_COLOR4:
             if (argc >= 6)
-              ShaderGlobal::set_color4(id, Color4(atof(argv[2]), atof(argv[3]), atof(argv[4]), atof(argv[5])));
+              ShaderGlobal::set_float4(id, Color4(atof(argv[2]), atof(argv[3]), atof(argv[4]), atof(argv[5])));
             else
               console::print_d(" four components needed");
             break;
-          case SHVT_REAL: ShaderGlobal::set_real(id, atof(argv[2])); break;
+          case SHVT_REAL: ShaderGlobal::set_float(id, atof(argv[2])); break;
           case SHVT_INT: ShaderGlobal::set_int(id, atoi(argv[2])); break;
           case SHVT_INT4:
           {
@@ -180,13 +180,13 @@ public:
           break;
           case SHVT_COLOR4:
           {
-            Color4 color = ShaderGlobal::get_color4_fast(id);
+            Color4 color = ShaderGlobal::get_float4(id);
             console::print_d(" %g %g %g %g", color.r, color.g, color.b, color.a);
           }
           break;
           case SHVT_REAL:
           {
-            float val = ShaderGlobal::get_real_fast(id);
+            float val = ShaderGlobal::get_float(id);
             console::print_d(" %g ", val);
           }
           break;
@@ -204,14 +204,30 @@ public:
           break;
           case SHVT_TEXTURE:
           {
-            TEXTUREID val = ShaderGlobal::get_tex_fast(id);
-            console::print_d(" #%d = <%s> ", val, get_managed_texture_name(val));
+            const auto texId = ShaderGlobal::get_tex_fast(id);
+            const auto *texPtr = ShaderGlobal::get_tex_ptr_fast(id);
+            if (texId == BAD_TEXTUREID && texPtr)
+            {
+              console::print_d(" tex: ptr <%p>", texPtr);
+            }
+            else
+            {
+              console::print_d(" tex:#%d = <%s>", texId, get_managed_texture_name(texId));
+            }
           }
           break;
           case SHVT_BUFFER:
           {
-            D3DRESID val = ShaderGlobal::get_buf_fast(id);
-            console::print_d(" buf:#%d = <%s> ", val, get_managed_res_name(val));
+            const auto bufId = ShaderGlobal::get_buf_fast(id);
+            const auto *bufPtr = ShaderGlobal::get_buf_ptr_fast(id);
+            if (bufId == BAD_D3DRESID && bufPtr)
+            {
+              console::print_d(" buf: ptr <%p>", bufPtr);
+            }
+            else
+            {
+              console::print_d(" buf:#%d = <%s>", bufId, get_managed_res_name(bufId));
+            }
           }
           break;
           case SHVT_SAMPLER:
@@ -273,10 +289,13 @@ public:
       {
         file_ptr_t file = df_open(argv[1], DF_WRITE | DF_CREATE);
         if (file)
+        {
           df_write(file, texStat.str(), texStat.length());
-        df_close(file);
+          df_close(file);
+        }
       }
     }
+    CONSOLE_CHECK_NAME("render", "shader_time", 1, 1) { console::print_d("Current shader time is: %fs", ::get_shader_global_time()); }
     CONSOLE_CHECK_NAME("app", "tex_refs", 1, 1)
     {
       Tab<TEXTUREID> ids;
@@ -369,7 +388,6 @@ public:
       console::print_d("saved %d textures, %dM total", tex_cnt, total_sz >> 20);
     }
 #endif
-    CONSOLE_CHECK_NAME("app", "stcode", 1, 1) { dump_exec_stcode_time(); }
     CONSOLE_CHECK_NAME("app", "stcode_avg_perf_dump", 1, 1) { stcode::profile::dump_avg_time(); }
     CONSOLE_CHECK_NAME("render", "reset_device", 1, 1) { dagor_d3d_force_driver_reset = true; }
     CONSOLE_CHECK_NAME("render", "hang_device", 2, 2)

@@ -1,0 +1,85 @@
+include "shader_global.dshl"
+include "burnt_grass.dshl"
+include "heightmap_common.dshl"
+
+int burnt_grass_tile_id = 0;
+int burnt_grass_fire_source_count = 0;
+float4 burnt_grass_tile = float4(0, 0, 0, 0); // float4(tileCorner.xy, 0, 0)
+buffer burnt_grass_fire_sources_buf;
+
+shader clear_burnt_grass_tile
+{
+  (cs) {
+    burnt_grass_tile_id@i1 = burnt_grass_tile_id;
+    burnt_grass_tiles@uav = burnt_grass_tiles hlsl {
+      RWStructuredBuffer<uint> burnt_grass_tiles@uav;
+    };
+  }
+
+  hlsl(cs) {
+    #include "burnt_grass.hlsli"
+
+    [numthreads(16, 16, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID, uint GI : SV_GroupIndex)
+    {
+      uint2 tc = dtId.xy;
+      if (any(tc >= BURNT_GRASS_TILE_RESOLUTION))
+        return;
+      burnt_grass_tiles[BURNT_GRASS_GET_TEXEL_COORD(tc.x, tc.y, burnt_grass_tile_id)] = BURNT_GRASS_NO_FIRE;
+    }
+  }
+  compile("target_cs", "main");
+}
+
+// this is additive
+shader generate_burnt_grass_tile
+{
+  (cs) {
+    burnt_grass_tile_id@i1 = burnt_grass_tile_id;
+    burnt_grass_fire_source_count@i1 = burnt_grass_fire_source_count;
+    burnt_grass_tile_corner@f2 = burnt_grass_tile;
+    burnt_grass_tiles@uav = burnt_grass_tiles hlsl {
+      RWStructuredBuffer<uint> burnt_grass_tiles@uav;
+    };
+
+    burnt_grass_fire_sources_buf@buf = burnt_grass_fire_sources_buf hlsl {
+      #include "burnt_grass.hlsli"
+      StructuredBuffer<GpuFireSource> burnt_grass_fire_sources_buf@buf;
+    }
+  }
+
+  hlsl(cs) {
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+
+  INIT_WORLD_HEIGHTMAP_BASE(cs)
+  USE_HEIGHTMAP_COMMON_BASE(cs)
+
+  hlsl(cs) {
+    #include "burnt_grass.hlsli"
+
+    [numthreads(16, 16, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint2 coords = dtId.xy;
+      uint fireSourceId = dtId.z;
+      if (any(coords >= BURNT_GRASS_TILE_RESOLUTION) || fireSourceId >= burnt_grass_fire_source_count)
+        return;
+
+      GpuFireSource fireSourceData = burnt_grass_fire_sources_buf[fireSourceId];
+
+      float2 tileCornerWithMargin = burnt_grass_tile_corner.xy - BURNT_GRASS_TILE_MARGIN_WORLD_SPACE;
+      float2 texelLowCorner = tileCornerWithMargin + float2(coords)/BURNT_GRASS_TILE_RESOLUTION*BURNT_GRASS_TILE_SIZE_WITH_MARGIN;
+      float2 texelHighCorner = tileCornerWithMargin + (float2(coords) + float2(1, 1))/BURNT_GRASS_TILE_RESOLUTION*BURNT_GRASS_TILE_SIZE_WITH_MARGIN;
+
+      float2 closestPos = clamp(fireSourceData.pos_radius.xz, texelLowCorner, texelHighCorner);
+
+      if (lengthSq(closestPos-fireSourceData.pos_radius.xz) < fireSourceData.pos_radius.w*fireSourceData.pos_radius.w)
+        InterlockedMin(
+          burnt_grass_tiles[BURNT_GRASS_GET_TEXEL_COORD(coords.x, coords.y, burnt_grass_tile_id)],
+          uint(fireSourceData.time*1000)
+        );
+    }
+  }
+  compile("target_cs", "main");
+}

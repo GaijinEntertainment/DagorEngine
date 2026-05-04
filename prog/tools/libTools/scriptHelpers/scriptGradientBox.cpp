@@ -41,6 +41,16 @@ public:
     initCurveControl(ppcb);
   }
 
+  void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override { panel.setGradient(pid, &values); }
+
+  TunedElement *findById(const int pid, int &cur_pid) override { return pid == ++cur_pid ? cloneElem() : nullptr; }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    ++cur_pid;
+    return false;
+  }
+
   void initCurveControl(PropPanel::ContainerPropertyControl &ppcb) { mPanel->setGradient(controlPid, &values); }
 
   void getControlPoints(PropPanel::PGradient points)

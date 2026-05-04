@@ -12,3 +12,5 @@
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_leaves_vertices.dshl"
   file:t = "../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
 }
+
+incDir:t="../../../prog/3rdPartyLibs/nvapi"

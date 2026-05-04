@@ -10,6 +10,16 @@ public class DagorLogger {
   private static native void nativeWarning(String msg);
   private static native void nativeError(String msg);
 
+  private String prefix;
+
+  public DagorLogger(String prefix) {
+    this.prefix = prefix;
+  }
+
+  public void debug(String msg) {
+    logDebug(prefix+msg);
+  }
+
   public static void logError(String msg) {
     try {
       nativeError(msg);

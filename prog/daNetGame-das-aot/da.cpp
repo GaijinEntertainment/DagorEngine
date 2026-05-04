@@ -8,6 +8,11 @@
 #include <ecs/scripts/dasEs.h>
 #include <dasModules/dasFsFileAccess.h>
 
+namespace das
+{
+void install_das_crash_handler() {}
+} // namespace das
+
 void foo() { dd_get_fname(""); } //== pull in directoryService.obj
 
 void require_project_specific_modules()
@@ -48,11 +53,13 @@ void require_project_specific_modules()
   NEED_MODULE(DagorFindFiles)
   NEED_MODULE(DagorResources)
   NEED_MODULE(DagorEditorModule)
+  NEED_MODULE(RebuildNavMeshModule)
   NEED_MODULE(GridModule)
   NEED_MODULE(Module_JsonWriter)
   NEED_MODULE(Module_RapidJson)
   NEED_MODULE(JsonUtilsModule)
   NEED_MODULE(RegExpModule)
+  NEED_MODULE(AppTimeModule)
   NEED_MODULE(DngAppModule)
   NEED_MODULE(DngLevelModule)
   NEED_MODULE(DngGameObjectModule)
@@ -82,7 +89,6 @@ void require_project_specific_modules()
   NEED_MODULE(GpuReadbackQueryModule)
   NEED_MODULE(HeightmapQueryManagerModule)
   NEED_MODULE(PortalRendererModule)
-  NEED_MODULE(RenderLibsAllowedModule)
   NEED_MODULE(LandMeshModule)
   NEED_MODULE(CollisionTracesModule)
   NEED_MODULE(GridCollisionModule)
@@ -137,6 +143,8 @@ void require_project_specific_modules()
   NEED_MODULE(MatchingModule)
   NEED_MODULE(DngMatchingModule)
   NEED_MODULE(CompressionModule)
+  NEED_MODULE(Module_StdDlg)
+  NEED_MODULE(PerFrameStat)
   das::pull_all_auto_registered_modules();
   extern void pull_game_das();
   pull_game_das();

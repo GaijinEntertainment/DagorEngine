@@ -23,7 +23,6 @@ endmacro
 float4 ambient_voxels_move_ofs;
 
 shader light_initialize_clear_indirect_cs {
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
     [numthreads( 1, 1, 1 )]
@@ -43,17 +42,19 @@ shader light_initialize_culling_cs, light_initialize_culling_check_age_cs
   RAY_CAST_VOXELS(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)
   VOXEL_SCENE_INTERSECTION(cs)
-  ENABLE_ASSERT(cs)
 
   (cs) {
-    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
     ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+    voxelCount@uav : register(0) hlsl {
+      RWByteAddressBuffer voxelCount@uav;
+    }
+    visible_ambient_voxels@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> visible_ambient_voxels@uav;
+    }
   }
 
   hlsl(cs) {
-    RWByteAddressBuffer voxelCount : register( u0 );
-    RWStructuredBuffer<uint> visible_ambient_voxels: register(u1);
-
     [numthreads(4, 4, 4)]
     void light_voxels_cs( uint3 dtId : SV_DispatchThreadID )//
     {
@@ -100,7 +101,6 @@ shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxe
 {
   SAMPLE_INIT_VOLMAP_25D(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #define INIT_RAYS 64
     #define AVERAGE_CUBE_WARP_SIZE INIT_RAYS
@@ -121,6 +121,9 @@ shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxe
 
   (cs) {
     ambient_voxels_move_ofs@f4 = ambient_voxels_move_ofs;
+    gi_ambient_volmap_init@uav : register(6) hlsl {
+      RWTexture3D<float3> gi_ambient_volmap_init@uav;
+    }
   }
 
   if (shader == light_partial_initialize_ambient_voxels_cs)
@@ -133,7 +136,7 @@ shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxe
   }
   else
   {
-    (cs) { ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal; }
+    (cs) { ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal; }
   }
   if (gi_quality != raytracing)
   {
@@ -154,7 +157,6 @@ shader light_initialize_ambient_voxels_cs, light_partial_initialize_ambient_voxe
   }
 
   hlsl(cs) {
-    RWTexture3D<float3>  gi_ambient_volmap_init : register(u6);
     //RWTexture3D<float>   ssgi_ambient_volmap_temporal : register(u7);
 
     #include <fibonacci_sphere.hlsl>

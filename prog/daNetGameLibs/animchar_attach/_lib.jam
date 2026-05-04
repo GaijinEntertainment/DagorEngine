@@ -1,0 +1,3 @@
+UseProgLibs += daNetGameLibs/animchar_attach ;
+
+gamePulls += framework_animchar_attach_pull daNetGameLibs_animchar_attach_DAS_pull_AOT ;

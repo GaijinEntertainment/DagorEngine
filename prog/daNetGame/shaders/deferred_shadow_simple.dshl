@@ -40,7 +40,6 @@ shader deferred_simple, portal_render_resolve, satellite_render_resolve
     #define SPECULAR_DISABLED 1 // fixme; should we use specular anyway?
     //#define BRDF_DIFFUSE DIFFUSE_LAMBERT
   }
-  ENABLE_ASSERT(ps)
   COMMON_RESOLVE_SIMPLE(ps)
   USE_DECODE_DEPTH()
   USE_AND_INIT_VIEW_VEC_VS()
@@ -210,10 +209,6 @@ shader deferred_simple, portal_render_resolve, satellite_render_resolve
       //SUN-
       float3 enviDiffuseLightingNormal = enviLightingNormal;//avoid using view dependent
       half3 enviLight = GetSkySHDiffuse(enviDiffuseLightingNormal);
-      #if MAX_LIGHT_PROBES_COUNT > 0
-      half4 localLightProbes = getLocalLightProbesDiffuse(worldPos.xyz, enviDiffuseLightingNormal.xyz);
-      enviLight = lerp(localLightProbes.rgb, enviLight, localLightProbes.w);
-      #endif
       half3 enviLightUnoccluded = enviLight;
       half3 backLight = GetSkySHDiffuse(-gbuffer.normal);
 
@@ -222,22 +217,13 @@ shader deferred_simple, portal_render_resolve, satellite_render_resolve
         bool hasAmbient = false;
         ##if (gi_quality != off)
           ##if (gi_quality == only_ao)
-            float4 sh1 = dagi_get_sky_visibility_sh1(world_view_pos.xyz, worldPos.xyz, view, dist, gbuffer.normal, 0);
-            if (all(sh1 != 1))
-            {
-              enviLight = GetSHFunctionValueSimple(enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
-              backLight = GetSHFunctionValueSimple(-enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
-            }
+            float vignette;
+            float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, worldPos.xyz, view, dist, gbuffer.normal, 0, vignette);
+            enviLight = lerp(GetSHFunctionValueSimple(enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), enviLight, vignette);
+            backLight = lerp(GetSHFunctionValueSimple(-enviDiffuseLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), backLight, vignette);
           ##else
             hasAmbient = dagi_irrad_grid_diffuse_biased_both_dir(worldPos.xyz, enviDiffuseLightingNormal, view, dist, gbuffer.normal, enviLight, backLight);
           ##endif
-          /*
-          half3 giAmbient = enviLight;
-          half giAmount = get_ambient3d(worldPos.xyz, enviDiffuseLightingNormal, enviLightUnoccluded, giAmbient);
-          half giLuma = luminance(giAmbient), enviLuma = luminance(enviLight);//todo: enviLuma can be calculated once!
-          giAmbient *= max(0.02*enviLuma*rcp(max(giLuma,0.001)), 1);//not less than 50 times darker
-          enviLight = lerp(enviLight, giAmbient, giAmount);
-          */
           enviLight *= skylight_gi_weight_atten;
           backLight *= skylight_gi_weight_atten;
         ##endif

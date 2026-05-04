@@ -4,7 +4,7 @@
 #include "sqpcheader.h"
 #include <math.h>
 #include <stdlib.h>
-#include "sqopcodes.h"
+#include "opcodes.h"
 #include "sqvm.h"
 #include "sqfuncproto.h"
 #include "sqclosure.h"
@@ -14,19 +14,24 @@
 #include "sqarray.h"
 #include "sqclass.h"
 #include "vartrace.h"
+#include "compiler/sqtypeparser.h" // for sq_stringify_type_mask
+#include "sq_safe_shift.h"
 
-//#define TOP() (_stack._vals[_top-1])
-#define TARGET _stack._vals[_stackbase+arg0]
-#define STK(a) _stack._vals[_stackbase+(a)]
+#define TARGET _stkbase[arg0]
+#define STK(a) _stkbase[(a)]
+#define RELOAD_STK() _stkbase = _stack._vals + _stackbase
 
-#define SLOT_RESOLVE_STATUS_OK         0
-#define SLOT_RESOLVE_STATUS_NO_MATCH   1
-#define SLOT_RESOLVE_STATUS_ERROR      2
+#define WATCHDOG_RAREFICATION 8000
 
 static inline void propagate_immutable(const SQObject &obj, SQObject &slot_val)
 {
     if (sq_objflags(obj) & SQOBJ_FLAG_IMMUTABLE)
         slot_val._flags |= SQOBJ_FLAG_IMMUTABLE;
+}
+
+static inline bool check_typemask(SQObjectType tp, SQInteger typemask)
+{
+  return (tp != OT_NULL) ? (typemask & tp) : (typemask & _RT_NULL);
 }
 
 
@@ -40,13 +45,13 @@ bool SQVM::BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,con
             case BW_AND:    res = i1 & i2; break;
             case BW_OR:     res = i1 | i2; break;
             case BW_XOR:    res = i1 ^ i2; break;
-            case BW_SHIFTL: res = i1 << i2; break;
-            case BW_SHIFTR: res = i1 >> i2; break;
-            case BW_USHIFTR:res = (SQInteger)(*((SQUnsignedInteger*)&i1) >> i2); break;
-            default: { Raise_Error(_SC("internal vm error bitwise op failed")); return false; }
+            case BW_SHIFTL: res = sq_safe_shift_left(i1, i2); break;
+            case BW_SHIFTR: res = sq_safe_shift_right(i1, i2); break;
+            case BW_USHIFTR:res = sq_safe_unsigned_shift_right(i1, i2); break;
+            default: { Raise_Error("internal vm error bitwise op failed"); return false; }
         }
     }
-    else { Raise_Error(_SC("bitwise op between '%s' and '%s'"),GetTypeName(o1),GetTypeName(o2)); return false;}
+    else { Raise_Error("bitwise op between '%s' and '%s'",GetTypeName(o1),GetTypeName(o2)); return false;}
     trg = res;
     return true;
 }
@@ -67,8 +72,8 @@ bool SQVM::BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,con
     SQInteger tmask = sq_type(o1)|sq_type(o2); \
     switch(tmask) { \
         case OT_INTEGER: { SQInteger i2 = _integer(o2); \
-            if (i2 == 0) { Raise_Error(_SC("division by zero")); SQ_THROW(); } \
-            else if (i2 == -1 && _integer(o1) == MIN_SQ_INTEGER) { Raise_Error(_SC("integer overflow")); SQ_THROW(); } \
+            if (i2 == 0) { Raise_Error("division by zero"); SQ_THROW(); } \
+            else if (i2 == -1 && _integer(o1) == MIN_SQ_INTEGER) { Raise_Error("integer overflow"); SQ_THROW(); } \
             trg = _integer(o1) op i2; } break; \
         case (OT_FLOAT|OT_INTEGER): \
         case (OT_FLOAT): { SQFloat f2 = tofloat(o2); if(f2 == (SQFloat)0.f) { Raise_Error("float division by zero"); SQ_THROW(); } trg = tofloat(o1) op f2; } break;\
@@ -86,12 +91,12 @@ bool SQVM::ARITH_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,
             switch(op) {
             case '+': res = i1 + i2; break;
             case '-': res = i1 - i2; break;
-            case '/': if (i2 == 0) { Raise_Error(_SC("integer division by zero")); return false; }
-                    else if (i2 == -1 && i1 == MIN_SQ_INTEGER) { Raise_Error(_SC("integer overflow")); return false; }
+            case '/': if (i2 == 0) { Raise_Error("integer division by zero"); return false; }
+                    else if (i2 == -1 && i1 == MIN_SQ_INTEGER) { Raise_Error("integer overflow"); return false; }
                     res = i1 / i2;
                     break;
             case '*': res = i1 * i2; break;
-            case '%': if (i2 == 0) { Raise_Error(_SC("integer modulo by zero")); return false; }
+            case '%': if (i2 == 0) { Raise_Error("integer modulo by zero"); return false; }
                     else if (i2 == -1) { res = 0; break; }
                     res = i1 % i2;
                     break;
@@ -106,12 +111,12 @@ bool SQVM::ARITH_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,
             case '+': res = f1 + f2; break;
             case '-': res = f1 - f2; break;
             case '/':
-              if (f2 == 0.f) { Raise_Error(_SC("float division by zero")); return false; }
+              if (f2 == 0.f) { Raise_Error("float division by zero"); return false; }
               res = f1 / f2;
               break;
             case '*': res = f1 * f2; break;
             case '%':
-              if (f2 == 0.f) { Raise_Error(_SC("float modulo by zero")); return false; }
+              if (f2 == 0.f) { Raise_Error("float modulo by zero"); return false; }
               res = SQFloat(fmod((double)f1,(double)f2));
               break;
             default: res = 0x0f;
@@ -151,6 +156,7 @@ SQVM::SQVM(SQSharedState *ss) :
     _current_thread = -1;
     _get_current_thread_id_func = NULL;
     _sq_call_hook = NULL;
+    _watchdog_hook = NULL;
     _openouters = NULL;
     ci = NULL;
     _releasehook = NULL;
@@ -160,9 +166,9 @@ SQVM::SQVM(SQSharedState *ss) :
 void SQVM::Finalize()
 {
     if (_debughook)
-        CallDebugHook(_SC('x'));
+        CallDebugHook('x');
 
-    if(_releasehook) { _releasehook(_foreignptr,0); _releasehook = NULL; }
+    if(_releasehook) { _releasehook(this,_foreignptr,0); _releasehook = NULL; }
     if(_openouters) CloseOuters(&_stack._vals[0]);
     _roottable.Null();
     _lasterror.Null();
@@ -173,6 +179,7 @@ void SQVM::Finalize()
     _debughook_closure.Null();
     _get_current_thread_id_func = NULL;
     _sq_call_hook = NULL;
+    _watchdog_hook = NULL;
     temp_reg.Null();
     _callstackdata.resize(0);
     SQInteger size=_stack.size();
@@ -190,11 +197,11 @@ bool SQVM::ArithMetaMethod(SQInteger op,const SQObjectPtr &o1,const SQObjectPtr 
 {
     SQMetaMethod mm;
     switch(op){
-        case _SC('+'): mm=MT_ADD; break;
-        case _SC('-'): mm=MT_SUB; break;
-        case _SC('/'): mm=MT_DIV; break;
-        case _SC('*'): mm=MT_MUL; break;
-        case _SC('%'): mm=MT_MODULO; break;
+        case '+': mm=MT_ADD; break;
+        case '-': mm=MT_SUB; break;
+        case '/': mm=MT_DIV; break;
+        case '*': mm=MT_MUL; break;
+        case '%': mm=MT_MODULO; break;
         default: mm = MT_ADD; assert(0); break; //shutup compiler
     }
     if(is_delegable(o1) && _delegable(o1)->_delegate) {
@@ -205,13 +212,12 @@ bool SQVM::ArithMetaMethod(SQInteger op,const SQObjectPtr &o1,const SQObjectPtr 
             return CallMetaMethod(closure,mm,2,dest);
         }
     }
-    Raise_Error(_SC("arith op %c on between '%s' and '%s'"),(char)op,GetTypeName(o1),GetTypeName(o2));
+    Raise_Error("arith op %c on between '%s' and '%s'",(char)op,GetTypeName(o1),GetTypeName(o2));
     return false;
 }
 
 bool SQVM::NEG_OP(SQObjectPtr &trg,const SQObjectPtr &o)
 {
-
     switch(sq_type(o)) {
     case OT_INTEGER:
         trg = -_integer(o);
@@ -229,12 +235,11 @@ bool SQVM::NEG_OP(SQObjectPtr &trg,const SQObjectPtr &o)
                 if(!CallMetaMethod(closure, MT_UNM, 1, temp_reg)) return false;
                 _Swap(trg,temp_reg);
                 return true;
-
             }
         }
     default:break; //shutup compiler
     }
-    Raise_Error(_SC("attempt to negate a %s"), GetTypeName(o));
+    Raise_Error("attempt to negate a %s", GetTypeName(o));
     return false;
 }
 
@@ -252,7 +257,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         case OT_BOOL:
             _RET_SUCCEED((_integer(o1)<_integer(o2))?-1:1);
         case OT_FLOAT:
-            _RET_SUCCEED((_float(o1)<_float(o2))?-1:1);
+            _RET_SUCCEED((_float(o1)<_float(o2))?-1:(_float(o1)==_float(o2))?0:1);
         case OT_TABLE:
         case OT_USERDATA:
         case OT_INSTANCE:
@@ -262,7 +267,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
                     Push(o1);Push(o2);
                     if(CallMetaMethod(closure,MT_CMP,2,res)) {
                         if(sq_type(res) != OT_INTEGER) {
-                            Raise_Error(_SC("_cmp must return an integer"));
+                            Raise_Error("_cmp must return an integer");
                             return false;
                         }
                         _RET_SUCCEED(_integer(res))
@@ -275,10 +280,6 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
             Raise_CompareError(o1, o2);
             return false;
         }
-        assert(0);
-        //if(sq_type(res)!=OT_INTEGER) { Raise_CompareError(o1,o2); return false; }
-        //  _RET_SUCCEED(_integer(res));
-
     }
     else{
         if(sq_isnumeric(o1) && sq_isnumeric(o2)){
@@ -296,10 +297,7 @@ bool SQVM::ObjCmp(const SQObjectPtr &o1,const SQObjectPtr &o2,SQInteger &result)
         else if(t1==OT_NULL) {_RET_SUCCEED(-1);}
         else if(t2==OT_NULL) {_RET_SUCCEED(1);}
         else { Raise_CompareError(o1,o2); return false; }
-
     }
-    assert(0);
-    _RET_SUCCEED(0); //cannot happen
 }
 
 bool SQVM::ObjCmpI(const SQObjectPtr &o1,const SQInteger o2,SQInteger &result)
@@ -403,26 +401,27 @@ bool SQVM::CMP_OP(CmpOP op, const SQObjectPtr &o1,const SQObjectPtr &o2,SQObject
 
 bool SQVM::ToString(const SQObjectPtr &o,SQObjectPtr &res)
 {
+    char buf[48];
+
     switch(sq_type(o)) {
     case OT_STRING:
         res = o;
         return true;
     case OT_FLOAT: {
-            char * p = _sp(NUMBER_MAX_CHAR+1);
-            int i = scsprintf(p, NUMBER_MAX_CHAR, _SC("%g"), _float(o));
+            int i = scsprintf(buf, sizeof(buf), "%g", _float(o));
             for (; i >= 0; i--)
-                if (p[i] == ',')
-                    p[i] = '.';
+                if (buf[i] == ',')
+                    buf[i] = '.';
         }
         break;
     case OT_INTEGER:
-        scsprintf(_sp(NUMBER_MAX_CHAR+1),NUMBER_MAX_CHAR,_PRINT_INT_FMT,_integer(o));
+        scsprintf(buf, sizeof(buf), _PRINT_INT_FMT, _integer(o));
         break;
     case OT_BOOL:
-        scsprintf(_sp(6),6,_integer(o)?_SC("true"):_SC("false"));
+        scsprintf(buf, sizeof(buf), _integer(o) ? "true" : "false");
         break;
     case OT_NULL:
-        scsprintf(_sp(5),5,_SC("null"));
+        scsprintf(buf, sizeof(buf), "null");
         break;
     case OT_TABLE:
     case OT_USERDATA:
@@ -441,10 +440,9 @@ bool SQVM::ToString(const SQObjectPtr &o,SQObjectPtr &res)
             }
         }
     default:
-        scsprintf(_sp((sizeof(void*)*2)+NUMBER_MAX_CHAR),(sizeof(void*)*2)+NUMBER_MAX_CHAR,
-            _SC("(%s : 0x%p)"),GetTypeName(o),(void*)_rawval(o));
+        scsprintf(buf, sizeof(buf), "(%s : 0x%p)", GetTypeName(o), (void*)_rawval(o));
     }
-    res = SQString::Create(_ss(this),_spval);
+    res = SQString::Create(_ss(this), buf);
     return true;
 }
 
@@ -455,7 +453,7 @@ bool SQVM::StringCat(const SQObjectPtr &str,const SQObjectPtr &obj,SQObjectPtr &
     if(!ToString(str, a)) return false;
     if(!ToString(obj, b)) return false;
     SQInteger l = _string(a)->_len , ol = _string(b)->_len;
-    SQChar *s = _sp(l + ol + 1);
+    char *s = _sp(l + ol + 1);
     memcpy(s, _stringval(a), l);
     memcpy(s + l, _stringval(b), ol);
     dest = SQString::Create(_ss(this), _spval, l + ol);
@@ -498,6 +496,7 @@ bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
         _current_thread = friendvm->_current_thread;
         _get_current_thread_id_func = friendvm->_get_current_thread_id_func;
         _sq_call_hook = friendvm->_sq_call_hook;
+        _watchdog_hook = friendvm->_watchdog_hook;
     }
 
 
@@ -517,10 +516,10 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
     {
         paramssize--;
         if (nargs < paramssize) {
-            Raise_Error(_SC("wrong number of parameters passed to '%s' %s:%d (%d passed, at least %d required)"),
-              sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"),
-              sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : _SC("unknown"),
-              int(func->_nlineinfos > 0 ? func->_lineinfos[0]._line : 0),
+            Raise_Error("wrong number of parameters passed to '%s' %s:%d (%d passed, at least %d required)",
+              sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : "unknown",
+              sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : "unknown",
+              int(func->_nlineinfos > 0 ? func->_lineinfos->_first_line : 0),
               (int)nargs, (int)paramssize);
             return false;
         }
@@ -529,7 +528,15 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
         SQInteger nvargs = nargs - paramssize;
         SQArray *arr = SQArray::Create(_ss(this),nvargs);
         SQInteger pbase = stackbase+paramssize;
+        SQUnsignedInteger32 mask = func->_param_type_masks ? func->_param_type_masks[paramssize] : ~0u;
+
         for(SQInteger n = 0; n < nvargs; n++) {
+            if (!check_typemask(sq_type(_stack._vals[pbase]), mask)) {
+                Raise_ParamTypeError(n + paramssize, mask, sq_type(_stack._vals[pbase]),
+                    sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : nullptr);
+                return false;
+            }
+
             arr->_values[n] = _stack._vals[pbase];
             _stack._vals[pbase].Null();
             pbase++;
@@ -547,14 +554,27 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             }
         }
         else {
-            Raise_Error(_SC("wrong number of parameters passed to '%s' %s:%d (%d passed, %d required)"),
-              sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"),
-              sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : _SC("unknown"),
-              int(func->_nlineinfos > 0 ? func->_lineinfos[0]._line : 0),
+            Raise_Error("wrong number of parameters passed to '%s' %s:%d (%d passed, %d required)",
+              sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : "unknown",
+              sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : "unknown",
+              int(func->_nlineinfos > 0 ? func->_lineinfos->_first_line : 0),
               (int)nargs, (int)paramssize);
             return false;
         }
     }
+
+    if (SQUnsignedInteger32 *paramTypeMasks = func->_param_type_masks) {
+        SQInteger len = func->_varparams ? paramssize : nargs;
+        for (SQInteger i = 1; i < len; i++) {
+            SQUnsignedInteger32 mask = paramTypeMasks[i];
+            if (!check_typemask(sq_type(_stack._vals[stackbase + i]), mask)) {
+                Raise_ParamTypeError(i, mask, sq_type(_stack._vals[stackbase + i]),
+                    sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : nullptr);
+                return false;
+            }
+        }
+    }
+
 
     if(closure->_env) {
         _stack._vals[stackbase] = closure->_env->_obj;
@@ -569,7 +589,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
     if constexpr (debughookPresent)
     {
         if (_debughook) {
-            CallDebugHook(_SC('c'));
+            CallDebugHook('c');
         }
     }
 
@@ -580,7 +600,7 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
             return false;
         SQObjectPtr temp;
         Return<debughookPresent>(1, target, temp);
-        STK(target) = gen;
+        _stack._vals[_stackbase + target] = gen;
     }
 
 
@@ -596,7 +616,7 @@ bool SQVM::Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval)
     {
         if (_debughook) {
             for(SQInteger i=0; i<ci->_ncalls; i++) {
-                CallDebugHook(_SC('r'));
+                CallDebugHook('r');
             }
         }
     }
@@ -616,9 +636,9 @@ bool SQVM::Return(SQInteger _arg0, SQInteger _arg1, SQObjectPtr &retval)
         else {
             dest->Null();
         }
-        //*dest = (_arg0 != 0xFF) ? _stack._vals[_stackbase+_arg1] : _null_;
     }
     LeaveFrame();
+
     return _isroot ? true : false;
 }
 
@@ -633,10 +653,10 @@ bool SQVM::PLOCAL_INC(SQInteger op,SQObjectPtr &target, SQObjectPtr &a, SQObject
     return true;
 }
 
-bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjectPtr &key, SQObjectPtr &incr, bool postfix,SQInteger selfidx)
+bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjectPtr &key, SQObjectPtr &incr, bool postfix)
 {
     if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
-        Raise_Error(_SC("trying to modify immutable '%s'"),GetTypeName(self));
+        Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
         return false;
     }
     SQObjectPtr tmp, tself = self, tkey = key;
@@ -648,8 +668,19 @@ bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjec
         const SQTable::_HashNode *n = classType->_members->_Get(tkey);
         if (n && _isfield(n->val))
             instanceValue = instance->_values + _member_idx(n->val);
-    } else if (sq_type(tself) == OT_TABLE)
-    {
+        else if (n && _isnativefield(n->val)) {
+            // read -> arith -> write back for native fields
+            instance->GetNativeField(_member_idx(n->val), tmp);
+            _RET_ON_FAIL(ARITH_OP(op, target, tmp, incr))
+            if (!instance->SetNativeField(_member_idx(n->val), target)) {
+                Raise_Error("type mismatch in native field assignment");
+                return false;
+            }
+            if (postfix)
+                target = tmp;
+            return true;
+        }
+    } else if (sq_type(tself) == OT_TABLE) {
         SQTable::_HashNode *node = _table(tself)->_Get(tkey);
         if (node)
             instanceValue = &node->val;
@@ -666,13 +697,13 @@ bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjec
     else
     {
         //delegates and OT_USERDATA option. Basically FallbackGet/FallbackSet
-        if (!Get(tself, tkey, tmp, 0, selfidx)) { return false; }
+        if (!Get(tself, tkey, tmp, 0)) { return false; }
     }
     _RET_ON_FAIL(ARITH_OP( op , target, tmp, incr))
     if (instanceValue)
         *instanceValue = target;
     else
-        if (!Set(tself, tkey, target,selfidx)) { return false; }
+        if (!Set(tself, tkey, target)) { return false; }
     if (postfix) target = tmp;
     return true;
 }
@@ -689,9 +720,9 @@ bool SQVM::DerefInc(SQInteger op,SQObjectPtr &target, SQObjectPtr &self, SQObjec
 SQRESULT SQVM::Suspend()
 {
     if (_suspended)
-        return sq_throwerror(this, _SC("cannot suspend an already suspended vm"));
+        return sq_throwerror(this, "cannot suspend an already suspended vm");
     if (_nnativecalls!=2)
-        return sq_throwerror(this, _SC("cannot suspend through native calls/metamethods"));
+        return sq_throwerror(this, "cannot suspend through native calls/metamethods");
     return SQ_SUSPEND_FLAG;
 }
 
@@ -699,7 +730,7 @@ SQRESULT SQVM::Suspend()
 #define _FINISH(howmuchtojump) {jump = howmuchtojump; return true; }
 #define _CHECK_FREEZE() { if (o1._flags & SQOBJ_FLAG_IMMUTABLE) { o2._flags |= SQOBJ_FLAG_IMMUTABLE; o3._flags |= SQOBJ_FLAG_IMMUTABLE; } }
 bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
-&o3,SQObjectPtr &o4,SQInteger SQ_UNUSED_ARG(arg_2),int exitpos,int &jump)
+&o3,SQObjectPtr &o4,int exitpos,int &jump)
 {
     SQInteger nrefidx;
     switch(sq_type(o1)) {
@@ -729,8 +760,8 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
                 if(CallMetaMethod(closure, MT_NEXTI, 2, itr)) {
                     o4 = o2 = itr;
                     if(sq_type(itr) == OT_NULL) _FINISH(exitpos);
-                    if(!Get(o1, itr, o3, 0, DONT_FALL_BACK)) {
-                        Raise_Error(_SC("_nexti returned an invalid idx")); // cloud be changed
+                    if(!Get(o1, itr, o3, 0)) {
+                        Raise_Error("_nexti returned an invalid idx");
                         return false;
                     }
                     _CHECK_FREEZE();
@@ -762,15 +793,18 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
             _FINISH(0);
         }
     default:
-        Raise_Error(_SC("cannot iterate %s"), GetTypeName(o1));
+        Raise_Error("cannot iterate %s", GetTypeName(o1));
     }
-    return false; //cannot be hit(just to avoid warnings)
+    return false;
 }
 #undef _CHECK_FREEZE
 
 #define COND_LITERAL (arg3!=0?ci->_literals[arg1]:STK(arg1))
 
-#define SQ_THROW() { goto exception_trap; }
+#define SYNC_IP() do { if (ci) ci->_ip = _ip; } while(0)
+#define RELOAD_IP() do { _ip = ci->_ip; RELOAD_STK(); } while(0)
+
+#define SQ_THROW() { SYNC_IP(); goto exception_trap; }
 
 #define _GUARD(exp) { if(!exp) { SQ_THROW();} }
 
@@ -783,7 +817,7 @@ bool SQVM::CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func)
             SQOuterVar &v = func->_outervalues[i];
             switch(v._type){
             case otLOCAL:
-                FindOuter(closure->_outervalues[i], &STK(_integer(v._src)));
+                FindOuter(closure->_outervalues[i], &_stack._vals[_stackbase + _integer(v._src)]);
                 break;
             case otOUTER:
                 closure->_outervalues[i] = _closure(ci->_closure)->_outervalues[_integer(v._src)];
@@ -796,6 +830,19 @@ bool SQVM::CLOSURE_OP(SQObjectPtr &target, SQFunctionProto *func)
         for(SQInteger i = 0; i < ndefparams; i++) {
             SQInteger spos = func->_defaultparams[i];
             closure->_defaultparams[i] = _stack._vals[_stackbase + spos];
+
+            #if SQ_RUNTIME_TYPE_CHECK
+            int nparams = func->_nparameters;
+            int begin = nparams - ndefparams;
+            if (SQUnsignedInteger32 *paramTypeMasks = func->_param_type_masks)
+                if (!check_typemask(sq_type(closure->_defaultparams[i]), paramTypeMasks[begin + i])) {
+                    char buf[160];
+                    sq_stringify_type_mask(buf, sizeof(buf), paramTypeMasks[begin + i]);
+                    Raise_Error("default param (%d) type '%s' differs from the declared type '%s'",
+                        int(i + begin), GetTypeName(closure->_defaultparams[i]), buf);
+                    return false;
+                }
+            #endif
         }
     }
     target = closure;
@@ -809,7 +856,7 @@ bool SQVM::CLASS_OP(SQObjectPtr &target,SQInteger baseclass)
     SQClass *base = NULL;
     if (baseclass != -1) {
         if (sq_type(_stack._vals[_stackbase+baseclass]) != OT_CLASS) {
-            Raise_Error(_SC("trying to inherit from a %s"),GetTypeName(_stack._vals[_stackbase+baseclass]));
+            Raise_Error("trying to inherit from a %s",GetTypeName(_stack._vals[_stackbase+baseclass]));
             return false;
         }
         base = _class(_stack._vals[_stackbase + baseclass]);
@@ -821,51 +868,73 @@ bool SQVM::CLASS_OP(SQObjectPtr &target,SQInteger baseclass)
     return true;
 }
 
-bool SQVM::IsEqual(const SQObjectPtr &o1,const SQObjectPtr &o2,bool &res)
+bool SQVM::IsEqual(const SQObject &o1,const SQObject &o2)
 {
     SQObjectType t1 = sq_type(o1), t2 = sq_type(o2);
     if(t1 == t2) {
-        if (t1 == OT_FLOAT) {
-            res = (_float(o1) == _float(o2));
-        }
-        else {
-            res = (_rawval(o1) == _rawval(o2));
-        }
+        if (t1 == OT_FLOAT)
+            return (_float(o1) == _float(o2));
+        else
+            return (_rawval(o1) == _rawval(o2));
     }
     else {
-        if(sq_isnumeric(o1) && sq_isnumeric(o2)) {
-            res = (tofloat(o1) == tofloat(o2));
-        }
-        else {
-            res = false;
-        }
+        if(sq_isnumeric(o1) && sq_isnumeric(o2))
+            return (tofloat(o1) == tofloat(o2));
+        else
+            return false;
     }
-    return true;
 }
 
-bool SQVM::IsFalse(const SQObjectPtr &o)
+bool SQVM::IsFalse(const SQObject &o)
 {
-    if(((sq_type(o) & SQOBJECT_CANBEFALSE)
-        && ( ((sq_type(o) == OT_FLOAT) && (_float(o) == SQFloat(0.0))) ))
-#if !defined(SQUSEDOUBLE) || (defined(SQUSEDOUBLE) && defined(_SQ64))
-        || (_integer(o) == 0) )  //OT_NULL|OT_INTEGER|OT_BOOL
-#else
-        || (((sq_type(o) != OT_FLOAT) && (_integer(o) == 0))) )  //OT_NULL|OT_INTEGER|OT_BOOL
-#endif
-    {
-        return true;
+    return _rawval(o) == 0 ||
+        (sq_type(o) == OT_FLOAT && _float(o) == SQFloat(0.0)) ||
+        (sq_type(o) == OT_INTEGER && _integer(o) == 0); // should be optimized out if _SQ64 && sizeof(SQInteger) == 8
+}
+
+bool SQVM::IsInstanceOf(const SQObject &obj, const SQClass *cls)
+{
+    if (sq_type(obj) == OT_INSTANCE) {
+        return _instance(obj)->InstanceOf(cls);
     }
-    return false;
+    else if (cls->_is_builtin_type) {
+        SQObjectType obj_type = sq_type(obj);
+
+        // Special handling for closures and native closures - both map to Function class
+        if (cls->_builtin_type_id == OT_CLOSURE && (obj_type == OT_CLOSURE || obj_type == OT_NATIVECLOSURE))
+            return true;
+
+        return (obj_type == cls->_builtin_type_id);
+    }
+    else
+        return false;
 }
 
 #if defined(SQ_USED_MEM_COUNTER_DECL)
   SQ_USED_MEM_COUNTER_DECL
 #endif
 
+
+#if SQ_WATCHDOG_ENABLED
+#define SQ_WATCHDOG_CHECK() \
+    do { \
+        if (_watchdog_hook && ++watchdogCounter > WATCHDOG_RAREFICATION) { \
+            watchdogCounter = 0; \
+            if (!_watchdog_hook(this, false)) { \
+                Raise_Error("Watchdog: too long execution of quirrel script"); \
+                SQ_THROW(); \
+            } \
+        } \
+    } while (0)
+#else
+#define SQ_WATCHDOG_CHECK()
+#endif
+
+
 extern SQInstructionDesc g_InstrDesc[];
 
 template <bool debughookPresent>
-bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
+bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
 {
     ValidateThreadAccess();
 
@@ -879,11 +948,14 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
     }
     #endif
 
-    if ((_nnativecalls + 1) > MAX_NATIVE_CALLS) { Raise_Error(_SC("Native stack overflow")); return false; }
+    SQUnsignedInteger32 watchdogCounter = 0;
+    (void)watchdogCounter;
+
+    if ((_nnativecalls + 1) > MAX_NATIVE_CALLS) { Raise_Error("Native stack overflow"); return false; }
     _nnativecalls++;
     AutoDec ad(&_nnativecalls);
     SQInteger traps = 0;
-    CallInfo *prevci = ci;
+    SQInteger prevci_idx = _callsstacksize;
 
     switch(et) {
         case ET_CALL: {
@@ -893,8 +965,8 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
                 if(ci == NULL) CallErrorHandler(_lasterror);
                 return false;
             }
-            if(ci == prevci) {
-                outres = STK(_top-nargs);
+            if(_callsstacksize == prevci_idx) {
+                outres = _stack._vals[_stackbase + (_top-nargs)];
                 return true;
             }
             ci->_root = SQTrue;
@@ -912,7 +984,7 @@ bool SQVM::Execute(SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQ
             traps = _suspended_traps;
             ci->_root = _suspended_root;
             _suspended = SQFalse;
-            if(et  == ET_RESUME_THROW_VM) { SQ_THROW(); }
+            if(et  == ET_RESUME_THROW_VM) { goto exception_trap; }
             break;
     }
 
@@ -921,23 +993,28 @@ exception_restore:
     {
         int prevLineNum = -1;
         int lineHint = 0;
+        SQInstruction *_ip = ci->_ip;
+        SQObjectPtr *_stkbase = _stack._vals + _stackbase;
 
         for(;;)
         {
             if constexpr (debughookPresent) {
                 if (_debughook) {
                     SQFunctionProto *funcProto = _closure(ci->_closure)->_function;
-                    bool isLineOp;
-                    int curLineNum = funcProto->GetLine(ci->_ip, &lineHint, &isLineOp);
+                    bool isStepPoint;
+                    int curLineNum = funcProto->GetLine(_ip, &lineHint, &isStepPoint);
                     if (curLineNum != prevLineNum) {
                         prevLineNum = curLineNum;
-                        if (isLineOp)
-                            CallDebugHook(_SC('l'), curLineNum);
+                        if (isStepPoint) {
+                            SYNC_IP();
+                            CallDebugHook('l', curLineNum);
+                            RELOAD_IP();
+                        }
                     }
                 }
             }
 
-            const SQInstruction &_i_ = *ci->_ip++;
+            const SQInstruction &_i_ = *_ip++;
             //dumpstack(_stackbase);
             //printf("\n%s[%d] %s %d %d %d %d\n",_stringval(_closure(ci->_closure)->_function->_name), ci->_ip-1-_closure(ci->_closure)->_function->_instructions,g_InstrDesc[_i_.op].name,arg0,arg1,arg2,arg3);
             switch(_i_.op)
@@ -958,12 +1035,14 @@ exception_restore:
                     && (!_closure(t)->_function->_bgenerator)){
                     SQObjectPtr clo = t;
                     SQInteger last_top = _top;
-                    if(_openouters) CloseOuters(&(_stack._vals[_stackbase]));
+                    if(_openouters) CloseOuters(_stkbase);
                     for (SQInteger i = 0; i < arg3; i++) STK(i) = STK(arg2 + i);
+                    SYNC_IP();
                     _GUARD(StartCall<debughookPresent>(_closure(clo), ci->_target, arg3, _stackbase, true));
                     if (last_top >= _top) {
                       _top = last_top;
                     }
+                    RELOAD_IP();
                     continue;
                 }
                               }
@@ -975,56 +1054,89 @@ exception_restore:
                     bool nullcall = (_i_.op == _OP_NULLCALL);
                     switch (sq_type(clo)) {
                     case OT_CLOSURE:
+                        SYNC_IP();
                         _GUARD(StartCall<debughookPresent>(_closure(clo), tgt0, arg3, _stackbase+arg2, false));
+                        RELOAD_IP();
                         continue;
                     case OT_NATIVECLOSURE: {
                         bool suspend;
                         bool tailcall;
+                        SYNC_IP();
                         _GUARD(CallNative(_nativeclosure(clo), arg3, _stackbase+arg2, clo, tgt0, suspend, tailcall));
+                        RELOAD_STK();
                         if(suspend){
                             _suspended = SQTrue;
                             _suspended_target = tgt0;
                             _suspended_root = ci->_root;
                             _suspended_traps = traps;
                             outres = clo;
+                            SYNC_IP();
                             return true;
                         }
                         if(tgt0 != -1 && !tailcall) {
                             STK(tgt0) = clo;
                         }
+                        RELOAD_IP();
                                            }
                         continue;
                     case OT_CLASS:{
-                        SQObjectPtr inst, ctor;
-                        _GUARD(CreateClassInstance(_class(clo),inst,ctor));
-                        if(tgt0 != -1) {
-                            STK(tgt0) = inst;
-                        }
-                        SQInteger stkbase;
-                        switch(sq_type(ctor)) {
-                            case OT_CLOSURE:
-                                stkbase = _stackbase+arg2;
-                                _stack._vals[stkbase] = inst;
-                                _GUARD(StartCall<debughookPresent>(_closure(ctor), -1, arg3, stkbase, false));
-                                break;
-                            case OT_NATIVECLOSURE:
-                                bool dummy;
-                                stkbase = _stackbase+arg2;
-                                _stack._vals[stkbase] = inst;
-                                _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, -1, dummy, dummy));
-                                break;
-                            case OT_NULL:
-                                if (arg3 > 1) {
-                                    Raise_Error(_SC("cannot call default constructor with arguments"));
-                                    SQ_THROW();
-                                }
-                                break;
-                            default:
-                                // cannot happen, but still...
-                                assert(!"invalid constructor type");
-                                Raise_Error(_SC("invalid constructor type %s"), IdType2Name(sq_type(ctor)));
+                        SQClass *theclass = _class(clo);
+
+                        if (theclass->_is_builtin_type) {
+                            // For built-in types, call the constructor directly (no instance creation)
+                            SQObjectPtr ctor;
+                            if (!theclass->GetConstructor(ctor)) {
+                                Raise_Error("built-in type '%s' has no constructor", IdType2Name(theclass->_builtin_type_id));
                                 SQ_THROW();
-                                break;
+                            }
+
+                            assert(sq_type(ctor) == OT_NATIVECLOSURE);
+                            SQInteger stkbase = _stackbase+arg2;
+                            _stack._vals[stkbase].Null();  // 'this'
+                            bool dummy;
+                            SYNC_IP();
+                            _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, tgt0, dummy, dummy));
+                            RELOAD_STK();
+                            if (tgt0 != -1) {
+                                STK(tgt0) = ctor;
+                            }
+                        } else {
+                            // Regular script class - create instance then call constructor
+                            SQObjectPtr inst, ctor;
+                            _GUARD(CreateClassInstance(theclass,inst,ctor));
+                            if(tgt0 != -1) {
+                                STK(tgt0) = inst;
+                            }
+                            SQInteger stkbase;
+                            switch(sq_type(ctor)) {
+                                case OT_CLOSURE:
+                                    stkbase = _stackbase+arg2;
+                                    _stack._vals[stkbase] = inst;
+                                    SYNC_IP();
+                                    _GUARD(StartCall<debughookPresent>(_closure(ctor), -1, arg3, stkbase, false));
+                                    RELOAD_IP();
+                                    break;
+                                case OT_NATIVECLOSURE:
+                                    bool dummy;
+                                    stkbase = _stackbase+arg2;
+                                    _stack._vals[stkbase] = inst;
+                                    SYNC_IP();
+                                    _GUARD(CallNative(_nativeclosure(ctor), arg3, stkbase, ctor, -1, dummy, dummy));
+                                    RELOAD_STK();
+                                    break;
+                                case OT_NULL:
+                                    if (arg3 > 1) {
+                                        Raise_Error("cannot call default constructor with arguments");
+                                        SQ_THROW();
+                                    }
+                                    break;
+                                default:
+                                    // cannot happen, but still...
+                                    assert(!"invalid constructor type");
+                                    Raise_Error("invalid constructor type %s", IdType2Name(sq_type(ctor)));
+                                    SQ_THROW();
+                                    break;
+                            }
                         }
                         }
                         break;
@@ -1036,13 +1148,14 @@ exception_restore:
                             Push(clo);
                             for (SQInteger i = 0; i < arg3; i++) Push(STK(arg2 + i));
                             if(!CallMetaMethod(mmclosure, MT_CALL, arg3+1, clo)) SQ_THROW();
+                            RELOAD_STK();
                             if(tgt0 != -1) {
                                 STK(tgt0) = clo;
                             }
                             break;
                         }
 
-                        //Raise_Error(_SC("attempt to call '%s'"), GetTypeName(clo));
+                        //Raise_Error("attempt to call '%s'", GetTypeName(clo));
                         //SQ_THROW();
                       }
                     default:
@@ -1051,7 +1164,7 @@ exception_restore:
                                 STK(tgt0).Null();
                             }
                         } else {
-                            Raise_Error(_SC("attempt to call '%s'"), GetTypeName(clo));
+                            Raise_Error("attempt to call '%s'", GetTypeName(clo));
                             SQ_THROW();
                         }
                     }
@@ -1061,7 +1174,7 @@ exception_restore:
             case _OP_PREPCALLK: {
                     SQObjectPtr &key = _i_.op == _OP_PREPCALLK?(ci->_literals)[arg1]:STK(arg1);
                     SQObjectPtr &o = STK(arg2);
-                    if (!Get(o, key, temp_reg,0,arg2)) {
+                    if (!Get(o, key, temp_reg,0)) {
                         SQ_THROW();
                     }
                     STK(arg3) = o;
@@ -1069,20 +1182,20 @@ exception_restore:
                 }
                 continue;
             case _OP_GETK:{
-                SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_DEF_DELEGATE) ? 0 : GET_FLAG_NO_DEF_DELEGATE;
+                SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_TYPE_METHODS) ? 0 : GET_FLAG_NO_TYPE_METHODS;
                 if (arg3 & OP_GET_FLAG_TYPE_METHODS_ONLY)
                     getFlagsByOp |= GET_FLAG_TYPE_METHODS_ONLY;
                 if (arg3 & OP_GET_FLAG_NO_ERROR) {
-                    SQInteger fb = GetImpl(STK(arg2), ci->_literals[arg1], temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
-                    if (fb == SLOT_RESOLVE_STATUS_OK) {
+                    SQInteger fb = GetImpl(STK(arg2), ci->_literals[arg1], temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp);
+                    if (fb == SLOT_STATUS_OK) {
                         _Swap(TARGET,temp_reg);//TARGET = temp_reg;
-                    } else if (fb == SLOT_RESOLVE_STATUS_ERROR) {
+                    } else if (fb == SLOT_STATUS_ERROR) {
                         SQ_THROW();
                     } else if (!(arg3 & OP_GET_FLAG_KEEP_VAL)) {
                         TARGET.Null();
                     }
                 } else {
-                    if (!Get(STK(arg2), ci->_literals[arg1], temp_reg, getFlagsByOp, arg2)) {
+                    if (!Get(STK(arg2), ci->_literals[arg1], temp_reg, getFlagsByOp)) {
                         SQ_THROW();
                     }
                     _Swap(TARGET,temp_reg);//TARGET = temp_reg;
@@ -1091,13 +1204,16 @@ exception_restore:
             }
             case _OP_MOVE: TARGET = STK(arg1); continue;
             case _OP_NEWSLOT:
+                _GUARD(NewSlot(STK(arg2), STK(arg1), STK(arg3), false));
+                if(arg0 != 0xFF) TARGET = STK(arg3);
+                continue;
             case _OP_NEWSLOTK:
-                _GUARD(NewSlot(STK(arg2), _i_.op == _OP_NEWSLOTK ? ci->_literals[arg1] : STK(arg1), STK(arg3),false));
+                _GUARD(NewSlot(STK(arg2), ci->_literals[arg1], STK(arg3), false));
                 if(arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_DELETE: _GUARD(DeleteSlot(STK(arg1), STK(arg2), TARGET)); continue;
             case _OP_SET_LITERAL: {
-                uint64_t *__restrict hintP = ((uint64_t*__restrict )(ci->_ip++));
+                uint64_t *__restrict hintP = ((uint64_t*__restrict )(_ip++)); //-V1032
                 uint64_t hint = *hintP;
                 const SQObjectPtr &from = STK(arg2), &__restrict key = ci->_literals[arg1], &val = STK(arg3);
                 auto sqType = sq_type(from);
@@ -1119,18 +1235,29 @@ exception_restore:
                         //val = hintedMemberIdx ? members->_nodex + hintedMemberIdx-1 : nullptr;
                     } else
                     {
-                        //this is optimized version, can be just memberIdx = members->Get(key, tmp_reg) ? _integer(tmp_reg) : 0u; memberIdx = _isfieldi(memberIdx) ? memberIdx : 0u;
-                        if (!members->GetStrToInt(key, memberIdx) || !_isfieldi(memberIdx))
+                        if (!members->GetStrToInt(key, memberIdx)) {
                             memberIdx = 0u;
+                        } else {
+                            uint32_t kind = memberIdx & MEMBER_KIND_MASK;
+                            if (kind != MEMBER_TYPE_FIELD && kind != MEMBER_TYPE_NATIVE_FIELD)
+                                memberIdx = 0u;
+                        }
                         //store hint back
                         *hintP = ((uint64_t(memberIdx)<<uintptr_t(SQClass::CLASS_BITS))|classTypeId);
                     }
                     if (SQ_LIKELY(memberIdx != 0u))
                     {
-                        instance->SetMemberField(memberIdx, val);
+                        if (_isfieldi(memberIdx))
+                            instance->SetMemberField(memberIdx, val);
+                        else if (SQ_UNLIKELY(!instance->SetNativeField(_member_idxi(memberIdx), val))) {
+                            Raise_Error("type mismatch in native field assignment");
+                            SQ_THROW();
+                        }
                     } else {
-                        if (SQ_UNLIKELY(FallBackSet(from,key,val) != SLOT_RESOLVE_STATUS_OK)) {
-                            Raise_IdxError(key);
+                        SQInteger fb = FallBackSet(from,key,val);
+                        if (SQ_UNLIKELY(fb != SLOT_STATUS_OK)) {
+                            if (fb == SLOT_STATUS_NO_MATCH)
+                                Raise_IdxError(key);
                             SQ_THROW();
                         }
                     }
@@ -1157,28 +1284,28 @@ exception_restore:
                         node->val = val;
                     } else {
                         // fallback no unoptimized version
-                        if (!Set(from, key, val, arg1)) { SQ_THROW(); }
+                        if (!Set(from, key, val)) { SQ_THROW(); }
                     }
                 }
                 else // default implementation
                 {
-                    if (!Set(from, key, val, arg1)) { SQ_THROW(); }
+                    if (!Set(from, key, val)) { SQ_THROW(); }
                 }
                 if (arg0 != 0xFF) TARGET = val;
                 continue;
             }
             case _OP_SET:
-                if (!Set(STK(arg2), STK(arg1), STK(arg3),arg2)) { SQ_THROW(); }
+                if (!Set(STK(arg2), STK(arg1), STK(arg3))) { SQ_THROW(); }
                 if (arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_SETI: case _OP_SETK:
-                if (!Set(STK(arg2), _i_.op == _OP_SETI ? SQObjectPtr(SQInteger(arg1)) : ci->_literals[arg1], STK(arg3),arg2)) { SQ_THROW(); }
+                if (!Set(STK(arg2), _i_.op == _OP_SETI ? SQObjectPtr(SQInteger(arg1)) : ci->_literals[arg1], STK(arg3))) { SQ_THROW(); }
                 if (arg0 != 0xFF) TARGET = STK(arg3);
                 continue;
             case _OP_GET_LITERAL:{
-                uint64_t *__restrict hintP = ((uint64_t*__restrict )(ci->_ip++));
+                uint64_t *__restrict hintP = ((uint64_t*__restrict )(_ip++)); //-V1032
                 uint64_t hint = *hintP;
-                const SQUnsignedInteger getFlagsByOp = GET_FLAG_NO_DEF_DELEGATE;
+                const SQUnsignedInteger getFlagsByOp = GET_FLAG_NO_TYPE_METHODS;
                 const SQObjectPtr &__restrict from = STK(arg2), &__restrict key = ci->_literals[arg1];
                 auto sqType = sq_type(from);
 
@@ -1211,10 +1338,12 @@ exception_restore:
                     {
                         instance->GetMember(memberIdx, temp_reg);
                     } else {
-                       if (SQ_UNLIKELY(FallBackGet(from,key,temp_reg) != SLOT_RESOLVE_STATUS_OK)) {
-                           Raise_IdxError(key);
-                           SQ_THROW();
-                       }
+                        SQInteger fb = FallBackGet(from,key,temp_reg);
+                        if (SQ_UNLIKELY(fb != SLOT_STATUS_OK)) {
+                            if (fb == SLOT_STATUS_NO_MATCH)
+                                Raise_IdxError(key);
+                            SQ_THROW();
+                        }
                     }
                     propagate_immutable(from, temp_reg);
                 }
@@ -1242,14 +1371,14 @@ exception_restore:
                     }
                     else {
                         // fallback no unoptimized version
-                        if (!Get(from, key, temp_reg, getFlagsByOp, arg1)) {
+                        if (!Get(from, key, temp_reg, getFlagsByOp)) {
                             SQ_THROW();
                         }
                     }
                 }
                 else
                 {
-                    if (!Get(from, key, temp_reg, getFlagsByOp, arg1)) {
+                    if (!Get(from, key, temp_reg, getFlagsByOp)) {
                         SQ_THROW();
                     }
                 }
@@ -1257,36 +1386,32 @@ exception_restore:
                 continue;
             }
             case _OP_GET:{
-                SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_DEF_DELEGATE) ? 0 : GET_FLAG_NO_DEF_DELEGATE;
+                SQUnsignedInteger getFlagsByOp = (arg3 & OP_GET_FLAG_ALLOW_TYPE_METHODS) ? 0 : GET_FLAG_NO_TYPE_METHODS;
                 if (arg3 & OP_GET_FLAG_TYPE_METHODS_ONLY)
                     getFlagsByOp |= GET_FLAG_TYPE_METHODS_ONLY;
                 if (arg3 & OP_GET_FLAG_NO_ERROR) {
-                    SQInteger fb = GetImpl(STK(arg2), STK(arg1), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp, DONT_FALL_BACK);
-                    if (fb == SLOT_RESOLVE_STATUS_OK) {
+                    SQInteger fb = GetImpl(STK(arg2), STK(arg1), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | getFlagsByOp);
+                    if (fb == SLOT_STATUS_OK) {
                         _Swap(TARGET,temp_reg);
-                    } else if (fb == SLOT_RESOLVE_STATUS_ERROR) {
+                    } else if (fb == SLOT_STATUS_ERROR) {
                         SQ_THROW();
                     } else if (!(arg3 & OP_GET_FLAG_KEEP_VAL)) {
                         TARGET.Null();
                     }
                 } else {
-                    if (!Get(STK(arg2), STK(arg1), temp_reg, getFlagsByOp, arg2)) {
+                    if (!Get(STK(arg2), STK(arg1), temp_reg, getFlagsByOp)) {
                         SQ_THROW();
                     }
                     _Swap(TARGET,temp_reg);//TARGET = temp_reg;
                 }
                 continue;
             }
-            case _OP_EQ:{
-                bool res;
-                if(!IsEqual(STK(arg2),COND_LITERAL,res)) { SQ_THROW(); }
-                TARGET = res?true:false;
-                }continue;
-            case _OP_NE:{
-                bool res;
-                if(!IsEqual(STK(arg2),COND_LITERAL,res)) { SQ_THROW(); }
-                TARGET = (!res)?true:false;
-                } continue;
+            case _OP_EQ:
+                TARGET = IsEqual(STK(arg2),COND_LITERAL);
+                continue;
+            case _OP_NE:
+                TARGET = !IsEqual(STK(arg2),COND_LITERAL);
+                continue;
             case _OP_ADD:
               _ARITH_(+,TARGET,STK(arg2),STK(arg1));
               continue;
@@ -1297,6 +1422,7 @@ exception_restore:
             case _OP_MOD: _GUARD(ARITH_OP('%',TARGET,STK(arg2),STK(arg1))); continue;
             case _OP_BITW:  _GUARD(BW_OP( arg3,TARGET,STK(arg2),STK(arg1))); continue;
             case _OP_RETURN:
+                SQ_WATCHDOG_CHECK();
                 if((ci)->_generator) {
                     (ci)->_generator->Kill();
                 }
@@ -1306,6 +1432,7 @@ exception_restore:
                     _Swap(outres,temp_reg);
                     return true;
                 }
+                RELOAD_IP();
                 continue;
             case _OP_LOADNULLS:{ SQInt32 n=arg1-1; assert(n>=0); do { STK(arg0+n).Null(); } while (--n >= 0); }continue;
             case _OP_LOADROOT:
@@ -1320,20 +1447,25 @@ exception_restore:
             }
             continue;
             case _OP_DMOVE: STK(arg0) = STK(arg1); STK(arg2) = STK(arg3); continue;
-            case _OP_JMP: ci->_ip += sarg1; continue;
-            //case _OP_JNZ: if(!IsFalse(STK(arg0))) ci->_ip+=(sarg1); continue;
+            case _OP_JMP: _ip += sarg1; continue;
             case _OP_JCMP: {
                 int r;
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),STK(arg0),r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    _ip+=(sarg1);
+                }
                 }
                 continue;
             case _OP_JCMPK: {
                 int r;
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RES((CmpOP)(uArg3&7),STK(arg2),ci->_literals[arg0],r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg1);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    _ip+=(sarg1);
+                }
                 }
                 continue;
             case _OP_JCMPI: {
@@ -1341,7 +1473,10 @@ exception_restore:
                 //todo: optimize comparison with int
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RESI((CmpOP)(uArg3&7),STK(arg2), (SQInteger)sarg1, r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    _ip+=(sarg0);
+                }
                 }
                 continue;
             case _OP_JCMPF: {
@@ -1349,11 +1484,17 @@ exception_restore:
                 //todo: optimize comparison with float
                 const uint8_t uArg3 = arg3;
                 _GUARD(CMP_OP_RESF((CmpOP)(uArg3&7),STK(arg2), farg1, r));
-                if(uint8_t(bool(r)) == (uArg3>>3)) ci->_ip+=(sarg0);
+                if(uint8_t(bool(r)) == (uArg3>>3)) {
+                    SQ_WATCHDOG_CHECK();
+                    _ip+=(sarg0);
+                }
                 }
                 continue;
             case _OP_JZ: {
-              if(uint8_t(IsFalse(STK(arg0))) != arg2) ci->_ip+=(sarg1);
+              SQ_WATCHDOG_CHECK();
+              if(uint8_t(IsFalse(STK(arg0))) != arg2) {
+                  _ip+=(sarg1);
+              }
             } continue;
             case _OP_GETOUTER: {
                 SQClosure *cur_cls = _closure(ci->_closure);
@@ -1374,7 +1515,7 @@ exception_restore:
             continue;
             case _OP_NEWOBJ:
                 switch(arg3) {
-                    case NEWOBJ_TABLE: TARGET = SQTable::Create(_ss(this), arg1); continue;
+                    case NEWOBJ_TABLE: TARGET = SQTable::Create(_ss(this), arg1 ? arg1 + 1 : 0); continue;
                     case NEWOBJ_ARRAY: TARGET = SQArray::Create(_ss(this), 0); _array(TARGET)->Reserve(arg1); continue;
                     case NEWOBJ_CLASS: _GUARD(CLASS_OP(TARGET,arg1)); continue;
                     default: assert(0); continue;
@@ -1414,12 +1555,12 @@ exception_restore:
             case _OP_COMPARITH:
             case _OP_COMPARITH_K: {
                 SQInteger selfidx = (((SQUnsignedInteger)arg1&0xFFFF0000)>>16);
-                _GUARD(DerefInc(arg3, TARGET, STK(selfidx), _i_.op == _OP_COMPARITH_K ? ci->_literals[arg2] : STK(arg2), STK(arg1&0x0000FFFF), false, selfidx));
-                                }
+                _GUARD(DerefInc(arg3, TARGET, STK(selfidx), _i_.op == _OP_COMPARITH_K ? ci->_literals[arg2] : STK(arg2), STK(arg1&0x0000FFFF), false));
+                }
                 continue;
             case _OP_INC: {
                 SQObjectPtr o(sarg3);
-                _GUARD(DerefInc('+',TARGET, STK(arg1), STK(arg2), o, false, arg1));
+                _GUARD(DerefInc('+',TARGET, STK(arg1), STK(arg2), o, false));
                 } continue;
             case _OP_INCL: {
                 SQObjectPtr &a = STK(arg1);
@@ -1427,13 +1568,13 @@ exception_restore:
                     a._unVal.nInteger = _integer(a) + sarg3;
                 }
                 else {
-                    SQObjectPtr o(sarg3); //_GUARD(LOCAL_INC('+',TARGET, STK(arg1), o));
+                    SQObjectPtr o(sarg3);
                     _ARITH_(+,a,a,o);
                 }
-                           } continue;
+                } continue;
             case _OP_PINC: {
                 SQObjectPtr o(sarg3);
-                _GUARD(DerefInc('+',TARGET, STK(arg1), STK(arg2), o, true, arg1));
+                _GUARD(DerefInc('+',TARGET, STK(arg1), STK(arg2), o, true));
                 } continue;
             case _OP_PINCL: {
                 SQObjectPtr &a = STK(arg1);
@@ -1445,19 +1586,20 @@ exception_restore:
                     SQObjectPtr o(sarg3);
                     _GUARD(PLOCAL_INC('+',TARGET, STK(arg1), o));
                 }
-
-                        } continue;
+                } continue;
             case _OP_CMP:   _GUARD(CMP_OP((CmpOP)arg3,STK(arg2),STK(arg1),TARGET))  continue;
-            case _OP_EXISTS: TARGET = Get(STK(arg1), STK(arg2), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_DEF_DELEGATE, DONT_FALL_BACK) ? true : false; continue;
+            case _OP_EXISTS: TARGET = Get(STK(arg1), STK(arg2), temp_reg, GET_FLAG_DO_NOT_RAISE_ERROR | GET_FLAG_NO_TYPE_METHODS); continue;
             case _OP_INSTANCEOF:
-                if(sq_type(STK(arg1)) != OT_CLASS)
-                {Raise_Error(_SC("cannot apply instanceof between a %s and a %s"),GetTypeName(STK(arg1)),GetTypeName(STK(arg2))); SQ_THROW();}
-                TARGET = (sq_type(STK(arg2)) == OT_INSTANCE) ? (_instance(STK(arg2))->InstanceOf(_class(STK(arg1)))?true:false) : false;
+                if (sq_type(STK(arg1)) != OT_CLASS) {
+                    Raise_Error("cannot apply instanceof between a %s and a %s",GetTypeName(STK(arg1)),GetTypeName(STK(arg2)));
+                    SQ_THROW();
+                }
+                TARGET = IsInstanceOf(STK(arg2), _class(STK(arg1)));
                 continue;
             case _OP_AND:{
                 if(IsFalse(STK(arg2))) {
                     TARGET = STK(arg2);
-                    ci->_ip += (sarg1);
+                    _ip += (sarg1);
                 }
 
                 }
@@ -1465,15 +1607,14 @@ exception_restore:
             case _OP_OR:{
                 if(!IsFalse(STK(arg2))) {
                     TARGET = STK(arg2);
-                    ci->_ip += (sarg1);
+                    _ip += (sarg1);
                 }
-
                 }
                 continue;
             case _OP_NULLCOALESCE:
                 if (!sq_isnull(STK(arg2))) {
                     TARGET = STK(arg2);
-                    ci->_ip += (sarg1);
+                    _ip += (sarg1);
                 }
                 continue;
             case _OP_NEG: _GUARD(NEG_OP(TARGET,STK(arg1))); continue;
@@ -1486,7 +1627,7 @@ exception_restore:
                     TARGET = SQInteger(~t);
                     continue;
                 }
-                Raise_Error(_SC("attempt to perform a bitwise op on a %s"), GetTypeName(STK(arg1)));
+                Raise_Error("attempt to perform a bitwise op on a %s", GetTypeName(STK(arg1)));
                 SQ_THROW();
             case _OP_CLOSURE: {
                 SQClosure *c = ci->_closure._unVal.pClosure;
@@ -1497,59 +1638,64 @@ exception_restore:
             case _OP_YIELD:{
                 if(ci->_generator) {
                     if(sarg1 != MAX_FUNC_STACKSIZE) temp_reg = STK(arg1);
-                    if (_openouters) CloseOuters(&_stack._vals[_stackbase]);
+                    if (_openouters) CloseOuters(_stkbase);
+                    SYNC_IP();
                     _GUARD(ci->_generator->Yield(this,arg2));
                     traps -= ci->_etraps;
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }
-                else { Raise_Error(_SC("trying to yield a '%s',only genenerator can be yielded"), GetTypeName(SQObjectPtr(ci->_generator))); SQ_THROW();}
+                else { Raise_Error("trying to yield a '%s', only generator can be yielded", GetTypeName(ci->_closure)); SQ_THROW();}
                 if(Return<debughookPresent>(arg0, arg1, temp_reg)){
                     assert(traps == 0);
                     outres = temp_reg;
                     return true;
                 }
-
+                RELOAD_IP();
                 }
                 continue;
             case _OP_RESUME:
-                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error(_SC("trying to resume a '%s',only genenerator can be resumed"), GetTypeName(STK(arg1))); SQ_THROW();}
+                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error("trying to resume a '%s',only genenerator can be resumed", GetTypeName(STK(arg1))); SQ_THROW();}
+                SYNC_IP();
                 _GUARD(_generator(STK(arg1))->Resume(this, TARGET));
                 traps += ci->_etraps;
+                RELOAD_IP();
                 continue;
             case _OP_PREFOREACH:{
                 STK(arg2).Null();STK(arg2+1).Null();STK(arg2+2).Null();
                 auto &arg0Stack = STK(arg0);
-                const bool isGenerator = sq_type(arg0Stack) == OT_GENERATOR;
                 int tojump;
-                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),arg2,2,tojump));
+                SYNC_IP();
+                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),2,tojump));
+                RELOAD_IP();
                 if (tojump == 1)
-                    ci->_ip ++;
+                    _ip ++;
                 else if (tojump == 2) // empty
-                    ci->_ip += sarg1;
+                    _ip += sarg1;
                 }
                 continue;
             case _OP_POSTFOREACH:
                 assert(sq_type(STK(arg0)) == OT_GENERATOR);
                 if(_generator(STK(arg0))->_state == SQGenerator::eDead)
-                    ci->_ip += sarg1;
+                    _ip += sarg1;
                 continue;
             case _OP_FOREACH:{
                 const int jumpToBodyOffset = sarg1;
                 auto &arg0Stack = STK(arg0);
                 const bool isGenerator = sq_type(arg0Stack) == OT_GENERATOR;
                 if (isGenerator)
-                    ci->_ip += jumpToBodyOffset - 1;  // so generator will resume at postforeach
+                    _ip += jumpToBodyOffset - 1;  // so generator will resume at postforeach
+                SYNC_IP();
                 int tojump;
-                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),arg2,2,tojump));
+                _GUARD(FOREACH_OP(arg0Stack,STK(arg2),STK(arg2+1),STK(arg2+2),2,tojump));
+                RELOAD_IP();
                 assert((tojump == 0 && isGenerator) || (tojump != 0 && !isGenerator));
                 if (tojump == 1)
-                    ci->_ip += jumpToBodyOffset;
+                    _ip += jumpToBodyOffset;
                 }continue;
             case _OP_CLONE: _GUARD(Clone(STK(arg1), TARGET)); continue;
             case _OP_TYPEOF: _GUARD(TypeOf(STK(arg1), TARGET)) continue;
             case _OP_PUSHTRAP:{
-                SQInstruction *_iv = _closure(ci->_closure)->_function->_instructions;
-                _etraps.push_back(SQExceptionTrap(_top,_stackbase, &_iv[(ci->_ip-_iv)+arg1], arg0)); traps++;
+                _etraps.push_back(SQExceptionTrap(_top,_stackbase, _ip+arg1, arg0)); traps++;
                 ci->_etraps++;
                               }
                 continue;
@@ -1596,28 +1742,55 @@ exception_restore:
             case _OP_LOAD_STATIC_MEMO:
                 // _staticmemos[arg1] -> STK(arg0), jump to ((arg2 << 8) + arg3)
                 STK(arg0) = _closure(ci->_closure)->_function->_staticmemos[arg1];
-                ci->_ip += (arg2 << 8) + arg3;  //-V595
+                _ip += (arg2 << 8) + arg3;  //-V595
                 continue;
             case _OP_SAVE_STATIC_MEMO: {
                 // STK(arg0) -> _staticmemos[arg1], STK(arg0) -> STK(loadInstr->_arg0),
                 // modify instruction op at -((arg2 << 8) + arg3) to _OP_LOAD_STATIC_MEMO
                 SQObjectPtr & staticmemo = STK(arg0);
                 SQObjectType tp = sq_type(staticmemo);
-                if (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS || tp == OT_USERDATA)
-                    staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
+                bool isAutoMemo = (arg1 & STATIC_MEMO_AUTO_FLAG) != 0;
+                SQInteger staticIdx = arg1 & STATIC_MEMO_IDX_MASK;
+                if (isAutoMemo && (tp == OT_ARRAY || tp == OT_TABLE || tp == OT_INSTANCE || tp == OT_CLASS)) {
+                    // don't auto-memoize mutable containers - might change observable behavior
+                    // but still copy result to the LOAD instruction's target register if needed
+                    SQInstruction * loadInstr = (_ip - (arg2 << 8) - arg3);
+                    if (loadInstr->_arg0 != arg0)
+                        STK(loadInstr->_arg0) = staticmemo;
+                    continue;
+                }
+                staticmemo._flags |= SQOBJ_FLAG_IMMUTABLE;
 
-                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[arg1]; //-V595
+                SQObjectPtr & storedStatic = _closure(ci->_closure)->_function->_staticmemos[staticIdx]; //-V595
                 storedStatic = staticmemo;
 
-                SQInstruction * loadInstr = (ci->_ip - (arg2 << 8) - arg3);  //-V595
+                if (ISREFCOUNTED(tp)) {
+                #ifdef NO_GARBAGE_COLLECTOR
+                    __AddRef(storedStatic._type, storedStatic._unVal);
+                #else
+                    _ss(this)->_refs_table.AddRef(storedStatic);
+                #endif
+                }
+
+                SQInstruction * loadInstr = (_ip - (arg2 << 8) - arg3);  //-V595
                 if (loadInstr->_arg0 != arg0)
                     STK(loadInstr->_arg0) = staticmemo;
+                loadInstr->_arg1 = staticIdx; // strip STATIC_MEMO_AUTO_FLAG
                 loadInstr->op = _OP_LOAD_STATIC_MEMO;
                 continue;
                 }
             case _OP_FREEZE:
                 STK(arg1)._flags |= SQOBJ_FLAG_IMMUTABLE;
                 TARGET = STK(arg1);
+                continue;
+            case _OP_CHECK_TYPE:
+                if (!check_typemask(sq_type(STK(arg0)), arg1)) {
+                    char buf[160];
+                    sq_stringify_type_mask(buf, sizeof(buf), arg1);
+                    Raise_Error("type '%s' differs from the declared type '%s'", GetTypeName(STK(arg0)), buf);
+                    SQ_THROW();
+                }
+                //TARGET = STK(arg2);
                 continue;
             }
 
@@ -1627,7 +1800,6 @@ exception_trap:
     {
         SQObjectPtr currerror = _lasterror;
 //      dumpstack(_stackbase);
-//      SQInteger n = 0;
         SQInteger last_top = _top;
 
         if ((_ss(this)->_notifyallexceptions || (!traps && invoke_err_handler)) && !sq_isnull(currerror))
@@ -1648,7 +1820,7 @@ exception_trap:
                     //notify debugger of a "return"
                     //even if it really an exception unwinding the stack
                     for(SQInteger i = 0; i < ci->_ncalls; i++) {
-                        CallDebugHook(_SC('r'));
+                        CallDebugHook('r');
                     }
             }
             if(ci->_generator) ci->_generator->Kill();
@@ -1677,27 +1849,34 @@ bool SQVM::CreateClassInstance(SQClass *theclass, SQObjectPtr &__restrict out_in
     return true;
 }
 
-void SQVM::CallErrorHandler(SQObjectPtr &error)
+void SQVM::CallErrorHandler(const SQObjectPtr &error)
 {
   if (ci)
     ci->_ip--;
 
   if (_debughook_native && ci)
   {
+    SQObjectPtr errStrHolder;
+    const char *errStr;
+    if (sq_type(error) == OT_STRING) {
+      errStr = _stringval(error);
+    } else {
+      errStrHolder = PrintObjVal(error);
+      errStr = _stringval(errStrHolder);
+    }
+
     if (ci->_closure._type == OT_NATIVECLOSURE)
     {
-      const SQChar *errStr = _stringval(error);
-      _debughook_native(this, _SC('e'), _SC(""), 0, errStr);
+      _debughook_native(this, 'e', "", 0, errStr);
     }
     else
     {
       SQFunctionProto *func = _closure(ci->_closure)->_function;
       if (func)
       {
-        const SQChar *src = sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : NULL;
-        const SQChar *errStr = _stringval(error);
+        const char *src = sq_type(func->_sourcename) == OT_STRING ? _stringval(func->_sourcename) : NULL;
         SQInteger line = func->GetLine(ci->_ip);
-        _debughook_native(this, _SC('e'), src, line, errStr);
+        _debughook_native(this, 'e', src, line, errStr);
       }
     }
   }
@@ -1720,15 +1899,15 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
     _debughook = false;
     if (!ci) {
         if (_debughook_native)
-            _debughook_native(this, type, _SC(""), -1, _SC(""));
+            _debughook_native(this, type, "", -1, "");
         else {
             SQObjectPtr temp_reg; // -V688
             SQInteger nparams = 5;
             Push(_roottable);
             Push(SQObjectPtr(type));
-            Push(SQObjectPtr(SQString::Create(_ss(this), _SC(""))));
+            Push(SQObjectPtr(SQString::Create(_ss(this), "")));
             Push(SQObjectPtr(SQInteger(-1)));
-            Push(SQObjectPtr(SQString::Create(_ss(this), _SC(""))));
+            Push(SQObjectPtr(SQString::Create(_ss(this), "")));
             Call(_debughook_closure, nparams, _top - nparams, temp_reg, SQFalse);
             Pop(nparams);
         }
@@ -1738,8 +1917,8 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
 
     SQFunctionProto *func=_closure(ci->_closure)->_function;
     if(_debughook_native) {
-        const SQChar *src = sq_type(func->_sourcename) == OT_STRING?_stringval(func->_sourcename):NULL;
-        const SQChar *fname = sq_type(func->_name) == OT_STRING?_stringval(func->_name):NULL;
+        const char *src = sq_type(func->_sourcename) == OT_STRING?_stringval(func->_sourcename):NULL;
+        const char *fname = sq_type(func->_name) == OT_STRING?_stringval(func->_name):NULL;
         SQInteger line = forcedline?forcedline:func->GetLine(ci->_ip);
         _debughook_native(this,type,src,line,fname);
     }
@@ -1763,7 +1942,7 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     SQInteger newtop = newbase + nargs + nclosure->_noutervalues;
 
     if (_nnativecalls + 1 > MAX_NATIVE_CALLS) {
-        Raise_Error(_SC("Native stack overflow"));
+        Raise_Error("Native stack overflow");
         return false;
     }
 
@@ -1771,12 +1950,12 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
         ((nparamscheck < 0) && (nargs < (-nparamscheck)))))
     {
         if (nparamscheck > 0) {
-            Raise_Error(_SC("wrong number of parameters passed to native closure '%s' (%d passed, %d required)"),
-                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : _SC("unknown"),
+            Raise_Error("wrong number of parameters passed to native closure '%s' (%d passed, %d required)",
+                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : "unknown",
                 (int)nargs, (int)nparamscheck);
         } else {
-            Raise_Error(_SC("wrong number of parameters passed to native closure '%s' (%d passed, at least %d required)"),
-                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : _SC("unknown"),
+            Raise_Error("wrong number of parameters passed to native closure '%s' (%d passed, at least %d required)",
+                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : "unknown",
                 (int)nargs, (int)-nparamscheck);
         }
 
@@ -1787,8 +1966,9 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     SQIntVec &tc = nclosure->_typecheck;
     if((tcs = tc.size())) {
         for(SQInteger i = 0; i < nargs && i < tcs; i++) {
-            if((tc._vals[i] != -1) && !(sq_type(_stack._vals[newbase+i]) & tc._vals[i])) {
-                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]));
+            if((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[newbase+i]), tc._vals[i])) {
+                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]),
+                    sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
                 return false;
             }
         }
@@ -1830,8 +2010,24 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     else {
         retval.Null();
     }
-    //retval = ret ? _stack._vals[_top-1] : _null_;
     LeaveFrame();
+
+#if SQ_RUNTIME_TYPE_CHECK
+    if (target != -1) {
+        if (!check_typemask(sq_type(retval), nclosure->_result_type_mask)) {
+            char buf[160];
+            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
+            Raise_Error("Function '%s' returned invalid type '%s', expected '%s'",
+                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
+                GetTypeName(retval), buf);
+            return false;
+        }
+    } else if (nclosure->_nodiscard) {
+        Raise_Error("Discarding return value of function '%s' with 'nodiscard' attribute", sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+        return false;
+    }
+#endif
+
     return true;
 }
 
@@ -1844,7 +2040,7 @@ bool SQVM::TailCall(SQClosure *closure, SQInteger parambase,SQInteger nparams)
         Raise_Error("root calls cannot invoke tailcalls");
         return false;
     }
-    for (SQInteger i = 0; i < nparams; i++) STK(i) = STK(parambase + i);
+    for (SQInteger i = 0; i < nparams; i++) _stack._vals[_stackbase + i] = _stack._vals[_stackbase + parambase + i];
     bool ret = StartCall<true>(closure, ci->_target, nparams, _stackbase, true);
     if (last_top >= _top) {
         _top = last_top;
@@ -1917,50 +2113,50 @@ bool SQVM::GetVarTrace(const SQObjectPtr &self, const SQObjectPtr &key, char * b
 #endif
 }
 
-bool SQVM::Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags, SQInteger selfidx)
+bool SQVM::Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags)
 {
-    SQInteger fb = GetImpl(self, key, dest, getflags, selfidx);
-    return fb == SLOT_RESOLVE_STATUS_OK;
+    SQInteger fb = GetImpl(self, key, dest, getflags);
+    return fb == SLOT_STATUS_OK;
 }
 
-SQInteger SQVM::GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags, SQInteger selfidx)
+SQInteger SQVM::GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags)
 {
     if (getflags & GET_FLAG_TYPE_METHODS_ONLY) {
-        if (InvokeDefaultDelegate(self, key, dest)) {
+        if (InvokeTypeMethod(self, key, dest)) {
           propagate_immutable(self, dest);
-          return SLOT_RESOLVE_STATUS_OK;
+          return SLOT_STATUS_OK;
         }
         if ((getflags & GET_FLAG_DO_NOT_RAISE_ERROR) == 0) Raise_IdxError(key);
-        return SLOT_RESOLVE_STATUS_NO_MATCH;
+        return SLOT_STATUS_NO_MATCH;
     }
     switch(sq_type(self)){
     case OT_TABLE:
         if(_table(self)->Get(key,dest)) {
             propagate_immutable(self, dest);
-            return SLOT_RESOLVE_STATUS_OK;
+            return SLOT_STATUS_OK;
         }
         break;
     case OT_ARRAY:
         if (sq_isnumeric(key)) {
             if (_array(self)->Get(tointeger(key), dest)) {
                 propagate_immutable(self, dest);
-                return SLOT_RESOLVE_STATUS_OK;
+                return SLOT_STATUS_OK;
             }
             if ((getflags & GET_FLAG_DO_NOT_RAISE_ERROR) == 0)
                 Raise_IdxError(key);
-            return SLOT_RESOLVE_STATUS_NO_MATCH;
+            return SLOT_STATUS_NO_MATCH;
         }
         break;
     case OT_INSTANCE:
         if(_instance(self)->Get(key,dest)) {
             propagate_immutable(self, dest);
-            return SLOT_RESOLVE_STATUS_OK;
+            return SLOT_STATUS_OK;
         }
         break;
     case OT_CLASS:
         if(_class(self)->Get(key,dest)) {
             propagate_immutable(self, dest);
-            return SLOT_RESOLVE_STATUS_OK;
+            return SLOT_STATUS_OK;
         }
         break;
     case OT_STRING:
@@ -1970,52 +2166,62 @@ SQInteger SQVM::GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjec
             if (n < 0) { n += len; }
             if (n >= 0 && n < len) {
                 dest = SQInteger(_stringval(self)[n]);
-                return SLOT_RESOLVE_STATUS_OK;
+                return SLOT_STATUS_OK;
             }
             if ((getflags & GET_FLAG_DO_NOT_RAISE_ERROR) == 0) Raise_IdxError(key);
-            return SLOT_RESOLVE_STATUS_NO_MATCH;
+            return SLOT_STATUS_NO_MATCH;
         }
         break;
     default:break; //shut up compiler
     }
     if ((getflags & GET_FLAG_RAW) == 0) {
         switch(FallBackGet(self,key,dest)) {
-            case SLOT_RESOLVE_STATUS_OK:
+            case SLOT_STATUS_OK:
                 propagate_immutable(self, dest);
-                return SLOT_RESOLVE_STATUS_OK; //okie
-            case SLOT_RESOLVE_STATUS_NO_MATCH: break; //keep falling back
-            case SLOT_RESOLVE_STATUS_ERROR: return SLOT_RESOLVE_STATUS_ERROR; // the metamethod failed
+                return SLOT_STATUS_OK; //okie
+            case SLOT_STATUS_NO_MATCH: break; //keep falling back
+            case SLOT_STATUS_ERROR: return SLOT_STATUS_ERROR; // the metamethod failed
         }
     }
-    if (!(getflags & (GET_FLAG_RAW | GET_FLAG_NO_DEF_DELEGATE)))
+    if (!(getflags & (GET_FLAG_RAW | GET_FLAG_NO_TYPE_METHODS)))
     {
-        if(InvokeDefaultDelegate(self,key,dest)) {
+        if(InvokeTypeMethod(self,key,dest)) {
             propagate_immutable(self, dest);
-            return SLOT_RESOLVE_STATUS_OK;
+            return SLOT_STATUS_OK;
         }
     }
     if ((getflags & GET_FLAG_DO_NOT_RAISE_ERROR) == 0) Raise_IdxError(key);
-    return SLOT_RESOLVE_STATUS_NO_MATCH;
+    return SLOT_STATUS_NO_MATCH;
 }
 
-bool SQVM::InvokeDefaultDelegate(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest)
+SQClass* SQVM::GetBuiltInClassForType(SQObjectType type)
 {
-    SQTable *ddel = NULL;
-    switch(sq_type(self)) {
-        case OT_CLASS: ddel = _class_ddel; break;
-        case OT_TABLE: ddel = _table_ddel; break;
-        case OT_ARRAY: ddel = _array_ddel; break;
-        case OT_STRING: ddel = _string_ddel; break;
-        case OT_INSTANCE: ddel = _instance_ddel; break;
-        case OT_INTEGER:case OT_FLOAT:case OT_BOOL: ddel = _number_ddel; break;
-        case OT_GENERATOR: ddel = _generator_ddel; break;
-        case OT_CLOSURE: case OT_NATIVECLOSURE: ddel = _closure_ddel; break;
-        case OT_THREAD: ddel = _thread_ddel; break;
-        case OT_WEAKREF: ddel = _weakref_ddel; break;
-        case OT_USERDATA: ddel = _userdata_ddel; break;
-        default: return false;
+    switch(type) {
+        case OT_INTEGER: return _class(_sharedstate->_integer_class);
+        case OT_FLOAT: return _class(_sharedstate->_float_class);
+        case OT_BOOL: return _class(_sharedstate->_bool_class);
+        case OT_STRING: return _class(_sharedstate->_string_class);
+        case OT_ARRAY: return _class(_sharedstate->_array_class);
+        case OT_TABLE: return _class(_sharedstate->_table_class);
+        case OT_CLOSURE:
+        case OT_NATIVECLOSURE: return _class(_sharedstate->_function_class);
+        case OT_GENERATOR: return _class(_sharedstate->_generator_class);
+        case OT_THREAD: return _class(_sharedstate->_thread_class);
+        case OT_CLASS: return _class(_sharedstate->_class_class);
+        case OT_INSTANCE: return _class(_sharedstate->_instance_class);
+        case OT_WEAKREF: return _class(_sharedstate->_weakref_class);
+        case OT_USERDATA: return _class(_sharedstate->_userdata_class);
+        case OT_NULL: return _class(_sharedstate->_null_class);
+        default: return NULL;
     }
-    return  ddel->Get(key,dest);
+}
+
+bool SQVM::InvokeTypeMethod(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest)
+{
+    SQClass *builtin_class = GetBuiltInClassForType(sq_type(self));
+    if (!builtin_class)
+        return false;
+    return builtin_class->Get(key, dest);
 }
 
 
@@ -2026,10 +2232,10 @@ SQInteger SQVM::FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObj
     case OT_USERDATA:
         //delegation
         if(_delegable(self)->_delegate) {
-            if(Get(SQObjectPtr(_delegable(self)->_delegate),key,dest,0,DONT_FALL_BACK)) return SLOT_RESOLVE_STATUS_OK;
+            if(Get(SQObjectPtr(_delegable(self)->_delegate),key,dest,0)) return SLOT_STATUS_OK;
         }
         else {
-            return SLOT_RESOLVE_STATUS_NO_MATCH;
+            return SLOT_STATUS_NO_MATCH;
         }
         //go through
     case OT_INSTANCE: {
@@ -2040,12 +2246,14 @@ SQInteger SQVM::FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObj
             AutoDec ad(&_nmetamethodscall);
             if(Call(closure, 2, _top - 2, dest, SQFalse)) {
                 Pop(2);
-                return SLOT_RESOLVE_STATUS_OK;
+                return SLOT_STATUS_OK;
             }
             else {
                 Pop(2);
                 if(sq_type(_lasterror) != OT_NULL) { //NULL means "clean failure" (not found)
-                    return SLOT_RESOLVE_STATUS_ERROR;
+                    if (_nmetamethodscall <= 1)
+                        Raise_MetamethodError("_get");
+                    return SLOT_STATUS_ERROR;
                 }
             }
         }
@@ -2054,13 +2262,13 @@ SQInteger SQVM::FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObj
     default: break;//shutup GCC 4.x
     }
     // no metamethod or no fallback type
-    return SLOT_RESOLVE_STATUS_NO_MATCH;
+    return SLOT_STATUS_NO_MATCH;
 }
 
-bool SQVM::Set(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr &val,SQInteger selfidx)
+bool SQVM::Set(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr &val)
 {
     if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
-        Raise_Error(_SC("trying to modify immutable '%s'"),GetTypeName(self));
+        Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
         return false;
     }
 
@@ -2068,11 +2276,21 @@ bool SQVM::Set(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr 
     case OT_TABLE:
         if(_table(self)->Set(key,val)) return true;
         break;
-    case OT_INSTANCE:
-        if(_instance(self)->Set(key,val)) return true;
+    case OT_INSTANCE: {
+        SQInteger res = _instance(self)->Set(key,val);
+        if (res == SLOT_STATUS_OK)
+            return true;
+        if (res == SLOT_STATUS_ERROR) {
+            // This error happens only if SetNativeField() failed.
+            // The only possible cause is type mismatch.
+            Raise_Error("type mismatch in native field assignment");
+            return false;
+        }
+        // SLOT_STATUS_NO_MATCH, fallthrough
         break;
+    }
     case OT_ARRAY:
-        if(!sq_isnumeric(key)) { Raise_Error(_SC("indexing %s with %s"),GetTypeName(self),GetTypeName(key)); return false; }
+        if(!sq_isnumeric(key)) { Raise_Error("indexing %s with %s",GetTypeName(self),GetTypeName(key)); return false; }
         if(!_array(self)->Set(tointeger(key),val)) {
             Raise_IdxError(key);
             return false;
@@ -2080,18 +2298,14 @@ bool SQVM::Set(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr 
         return true;
     case OT_USERDATA: break; // must fall back
     default:
-        Raise_Error(_SC("trying to set '%s'"),GetTypeName(self));
+        Raise_Error("trying to set '%s'",GetTypeName(self));
         return false;
     }
 
     switch(FallBackSet(self,key,val)) {
-        case SLOT_RESOLVE_STATUS_OK: return true; //okie
-        case SLOT_RESOLVE_STATUS_NO_MATCH: break; //keep falling back
-        case SLOT_RESOLVE_STATUS_ERROR: return false; // the metamethod failed
-    }
-    if(selfidx == 0) {
-        if(_table(_roottable)->Set(key,val))
-            return true;
+        case SLOT_STATUS_OK: return true; //okie
+        case SLOT_STATUS_NO_MATCH: break; //keep falling back
+        case SLOT_STATUS_ERROR: return false; // the metamethod failed
     }
     Raise_IdxError(key);
     return false;
@@ -2102,7 +2316,7 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
     switch(sq_type(self)) {
         case OT_TABLE:
             if(_table(self)->_delegate) {
-                if(Set(SQObjectPtr(_table(self)->_delegate),key,val,DONT_FALL_BACK)) return SLOT_RESOLVE_STATUS_OK;
+                if(Set(SQObjectPtr(_table(self)->_delegate),key,val)) return SLOT_STATUS_OK;
             }
             //keps on going
         case OT_INSTANCE:
@@ -2115,12 +2329,14 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
                 AutoDec ad(&_nmetamethodscall);
                 if(Call(closure, 3, _top - 3, t, SQFalse)) {
                     Pop(3);
-                    return SLOT_RESOLVE_STATUS_OK;
+                    return SLOT_STATUS_OK;
                 }
                 else {
                     Pop(3);
                     if(sq_type(_lasterror) != OT_NULL) { //NULL means "clean failure" (not found)
-                        return SLOT_RESOLVE_STATUS_ERROR;
+                        if (_nmetamethodscall <= 1)
+                            Raise_MetamethodError("_set");
+                        return SLOT_STATUS_ERROR;
                     }
                 }
             }
@@ -2129,7 +2345,7 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
         default: break;//shutup GCC 4.x
     }
     // no metamethod or no fallback type
-    return SLOT_RESOLVE_STATUS_NO_MATCH;
+    return SLOT_STATUS_NO_MATCH;
 }
 
 bool SQVM::Clone(const SQObjectPtr &self,SQObjectPtr &target)
@@ -2158,7 +2374,7 @@ cloned_mt:
         return true;
     case OT_USERDATA:
     case OT_CLASS:
-        Raise_Error(_SC("cloning a %s"), GetTypeName(self));
+        Raise_Error("cloning a %s", GetTypeName(self));
         return false;
     default:
         target = self;
@@ -2170,7 +2386,7 @@ cloned_mt:
 bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObjectPtr &val,bool bstatic)
 {
     if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
-        Raise_Error(_SC("trying to modify immutable '%s'"),GetTypeName(self));
+        Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
         return false;
     }
 
@@ -2206,24 +2422,24 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
             }
             break;
         }
-        Raise_Error(_SC("class instances do not support the new slot operator"));
+        Raise_Error("class instances do not support the new slot operator");
         return false;
         break;}
     case OT_CLASS:
         if(!_class(self)->NewSlot(_ss(this),key,val,bstatic)) {
             if(_class(self)->isLocked()) {
-                Raise_Error(_SC("trying to modify a class that has already been instantiated, inherited or is locked manually"));
+                Raise_Error("trying to modify a class that has already been instantiated, inherited or is locked manually");
                 return false;
             }
             else {
                 SQObjectPtr oval(PrintObjVal(key));
-                Raise_Error(_SC("the property '%s' already exists"),_stringval(oval));
+                Raise_Error("the property %s already exists",_stringval(oval));
                 return false;
             }
         }
         break;
     default:
-        Raise_Error(_SC("indexing %s with %s"),GetTypeName(self),GetTypeName(key));
+        Raise_Error("indexing %s with %s",GetTypeName(self),GetTypeName(key));
         return false;
         break;
     }
@@ -2235,7 +2451,7 @@ bool SQVM::NewSlot(const SQObjectPtr &self,const SQObjectPtr &key,const SQObject
 bool SQVM::DeleteSlot(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &res)
 {
     if (self._flags & SQOBJ_FLAG_IMMUTABLE) {
-        Raise_Error(_SC("trying to modify immutable '%s'"),GetTypeName(self));
+        Raise_Error("trying to modify immutable '%s'",GetTypeName(self));
         return false;
     }
 
@@ -2244,7 +2460,6 @@ bool SQVM::DeleteSlot(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr
     case OT_INSTANCE:
     case OT_USERDATA: {
         SQObjectPtr t;
-        //bool handled = false;
         SQObjectPtr closure;
         if(_delegable(self)->_delegate && _delegable(self)->GetMetaMethod(this,MT_DELSLOT,closure)) {
             Push(self);Push(key);
@@ -2261,21 +2476,21 @@ bool SQVM::DeleteSlot(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr
                 }
             }
             else {
-                Raise_Error(_SC("cannot delete a slot from %s"),GetTypeName(self));
+                Raise_Error("cannot delete a slot from %s",GetTypeName(self));
                 return false;
             }
         }
         res = t;
-                }
+        }
         break;
     default:
-        Raise_Error(_SC("attempt to delete a slot from a %s"),GetTypeName(self));
+        Raise_Error("attempt to delete a slot from a %s",GetTypeName(self));
         return false;
     }
     return true;
 }
 
-bool SQVM::Call(SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObjectPtr &outres,SQBool invoke_err_handler)
+bool SQVM::Call(const SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObjectPtr &outres,SQBool invoke_err_handler)
 {
     switch(sq_type(closure)) {
     case OT_CLOSURE:
@@ -2287,27 +2502,42 @@ bool SQVM::Call(SQObjectPtr &closure,SQInteger nparams,SQInteger stackbase,SQObj
         return CallNative(_nativeclosure(closure), nparams, stackbase, outres, -1, dummy, dummy);
     }
     case OT_CLASS: {
-        SQObjectPtr constr;
-        SQObjectPtr temp;
-        if (!CreateClassInstance(_class(closure),outres,constr))
-            return false;
-        SQObjectType ctype = sq_type(constr);
-        if (ctype == OT_NATIVECLOSURE || ctype == OT_CLOSURE) {
-            _stack[stackbase] = outres;
-            return Call(constr,nparams,stackbase,temp,invoke_err_handler);
+        SQClass *theclass = _class(closure);
+
+        if (theclass->_is_builtin_type) {
+            // For built-in types, call the constructor directly (no instance creation)
+            SQObjectPtr constr;
+            if (!theclass->GetConstructor(constr)) {
+                Raise_Error("built-in type '%s' has no constructor", IdType2Name(theclass->_builtin_type_id));
+                return false;
+            }
+
+            assert(sq_type(constr) == OT_NATIVECLOSURE);
+            _stack[stackbase].Null();  // 'this'
+            bool dummy;
+            return CallNative(_nativeclosure(constr), nparams, stackbase, outres, -1, dummy, dummy);
+        } else {
+            // Regular script class - create instance then call constructor
+            SQObjectPtr constr;
+            SQObjectPtr temp;
+            if (!CreateClassInstance(theclass,outres,constr))
+                return false;
+            SQObjectType ctype = sq_type(constr);
+            if (ctype == OT_NATIVECLOSURE || ctype == OT_CLOSURE) {
+                _stack[stackbase] = outres;
+                return Call(constr,nparams,stackbase,temp,invoke_err_handler);
+            }
+            return true;
         }
-        return true;
     }
     default:
-        Raise_Error(_SC("attempt to call '%s'"), GetTypeName(closure));
+        Raise_Error("attempt to call '%s'", GetTypeName(closure));
         return false;
     }
 }
 
 bool SQVM::CallMetaMethod(SQObjectPtr &closure,SQMetaMethod SQ_UNUSED_ARG(mm),SQInteger nparams,SQObjectPtr &outres)
 {
-    //SQObjectPtr closure;
-
     _nmetamethodscall++;
     if(Call(closure, nparams, _top - nparams, outres, SQFalse)) {
         _nmetamethodscall--;
@@ -2315,7 +2545,6 @@ bool SQVM::CallMetaMethod(SQObjectPtr &closure,SQMetaMethod SQ_UNUSED_ARG(mm),SQ
         return true;
     }
     _nmetamethodscall--;
-    //}
     Pop(nparams);
     return false;
 }
@@ -2364,12 +2593,17 @@ bool SQVM::EnterFrame(SQInteger newbase, SQInteger newtop, bool tailcall)
 
     if(newtop + STACK_GROW_THRESHOLD > (SQInteger)_stack.size()) {
         if(!_nmetamethodscall) {
-            _stack.resize(newtop + (STACK_GROW_THRESHOLD << 1));
+            SQInteger newsize = newtop + (STACK_GROW_THRESHOLD << 1);
+            if (newsize > MAX_SQ_STACK_SIZE) {
+                Raise_Error("stack overflow, cannot resize stack");
+                return false;
+            }
+            _stack.resize(newsize);
             RelocateOuters();
         }
         // TODO: this exception should never occur and will be removed soon
         else if(newtop + MIN_STACK_OVERHEAD > (SQInteger)_stack.size()) {
-            Raise_Error(_SC("stack overflow, cannot resize stack while in a metamethod, stack.size = %d, required = %d"),
+            Raise_Error("stack overflow, cannot resize stack while in a metamethod, stack.size = %d, required = %d",
                 int(_stack.size()), int(newtop + MIN_STACK_OVERHEAD));
             return false;
         }
@@ -2453,6 +2687,11 @@ void SQVM::Push(const SQObjectPtr &o) {
 
     _stack[_top++] = o;
 }
+void SQVM::Push(SQObjectPtr &&o) {
+    ValidateThreadAccess();
+
+    _stack[_top++] = std::move(o);
+}
 SQObjectPtr &SQVM::Top() { return _stack[_top-1]; }
 SQObjectPtr &SQVM::PopGet() {
     ValidateThreadAccess();
@@ -2472,37 +2711,37 @@ void SQVM::dumpstack(SQInteger stackbase,bool dumpall)
 {
     SQInteger size=dumpall?_stack.size():_top;
     SQInteger n=0;
-    printf(_SC("\n>>>>stack dump<<<<\n"));
+    printf("\n>>>>stack dump<<<<\n");
     CallInfo &ci=_callsstack[_callsstacksize-1];
-    printf(_SC("IP: %p\n"),ci._ip);
-    printf(_SC("prev stack base: %d\n"),ci._prevstkbase);
-    printf(_SC("prev top: %d\n"),ci._prevtop);
+    printf("IP: %p\n",ci._ip);
+    printf("prev stack base: %d\n",ci._prevstkbase);
+    printf("prev top: %d\n",ci._prevtop);
     for(SQInteger i=0;i<size;i++){
         SQObjectPtr &obj=_stack[i];
-        if(stackbase==i)printf(_SC(">"));else printf(_SC(" "));
-        printf(_SC("[" _PRINT_INT_FMT "]:"),n);
+        if(stackbase==i)printf(">");else printf(" ");
+        printf("[" _PRINT_INT_FMT "]:",n);
         switch(sq_type(obj)){
-        case OT_FLOAT:          printf(_SC("FLOAT %.3f"),_float(obj));break;
-        case OT_INTEGER:        printf(_SC("INTEGER " _PRINT_INT_FMT),_integer(obj));break;
-        case OT_BOOL:           printf(_SC("BOOL %s"),_integer(obj)?"true":"false");break;
-        case OT_STRING:         printf(_SC("STRING %s"),_stringval(obj));break;
-        case OT_NULL:           printf(_SC("NULL"));  break;
-        case OT_TABLE:          printf(_SC("TABLE %p[%p]"),_table(obj),_table(obj)->_delegate);break;
-        case OT_ARRAY:          printf(_SC("ARRAY %p"),_array(obj));break;
-        case OT_CLOSURE:        printf(_SC("CLOSURE [%p]"),_closure(obj));break;
-        case OT_NATIVECLOSURE:  printf(_SC("NATIVECLOSURE"));break;
-        case OT_USERDATA:       printf(_SC("USERDATA %p[%p]"),_userdataval(obj),_userdata(obj)->_delegate);break;
-        case OT_GENERATOR:      printf(_SC("GENERATOR %p"),_generator(obj));break;
-        case OT_THREAD:         printf(_SC("THREAD [%p]"),_thread(obj));break;
-        case OT_USERPOINTER:    printf(_SC("USERPOINTER %p"),_userpointer(obj));break;
-        case OT_CLASS:          printf(_SC("CLASS %p"),_class(obj));break;
-        case OT_INSTANCE:       printf(_SC("INSTANCE %p"),_instance(obj));break;
-        case OT_WEAKREF:        printf(_SC("WEAKREF %p"),_weakref(obj));break;
+        case OT_FLOAT:          printf("FLOAT %.3f",_float(obj));break;
+        case OT_INTEGER:        printf("INTEGER " _PRINT_INT_FMT,_integer(obj));break;
+        case OT_BOOL:           printf("BOOL %s",_integer(obj)?"true":"false");break;
+        case OT_STRING:         printf("STRING %s",_stringval(obj));break;
+        case OT_NULL:           printf("NULL");  break;
+        case OT_TABLE:          printf("TABLE %p[%p]",_table(obj),_table(obj)->_delegate);break;
+        case OT_ARRAY:          printf("ARRAY %p",_array(obj));break;
+        case OT_CLOSURE:        printf("CLOSURE [%p]",_closure(obj));break;
+        case OT_NATIVECLOSURE:  printf("NATIVECLOSURE");break;
+        case OT_USERDATA:       printf("USERDATA %p[%p]",_userdataval(obj),_userdata(obj)->_delegate);break;
+        case OT_GENERATOR:      printf("GENERATOR %p",_generator(obj));break;
+        case OT_THREAD:         printf("THREAD [%p]",_thread(obj));break;
+        case OT_USERPOINTER:    printf("USERPOINTER %p",_userpointer(obj));break;
+        case OT_CLASS:          printf("CLASS %p",_class(obj));break;
+        case OT_INSTANCE:       printf("INSTANCE %p",_instance(obj));break;
+        case OT_WEAKREF:        printf("WEAKREF %p",_weakref(obj));break;
         default:
             assert(0);
             break;
         };
-        printf(_SC("\n"));
+        printf("\n");
         ++n;
     }
 }

@@ -1,0 +1,8 @@
+ERROR: Only single variable declaration is allowed here
+testData/diagnostics/destrucuring_var_decl_in_if.nut:1:10
+
+if (local [x] = [1, 2, 3]; x > 4)
+          ^
+    println("fail")
+
+

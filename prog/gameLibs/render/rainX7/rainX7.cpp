@@ -92,7 +92,7 @@ RainX7::RainX7(const DataBlock &blk) :
   occluderHeightVarId = get_shader_variable_id("rain_x7_occluder_height");
   rain_x7_translucency_factorVarId = get_shader_variable_id("rain_x7_translucency_factor", true);
 
-  ShaderGlobal::set_real(particleBoxVarId, particleBox);
+  ShaderGlobal::set_float(particleBoxVarId, particleBox);
 
   // Create material.
 
@@ -118,11 +118,11 @@ RainX7::RainX7(const DataBlock &blk) :
 
   // VB and IB.
   rendElem.numVert = 4 * numParticles;
-  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, 0, "rainx7_vb");
+  vb = d3d::create_vb(rendElem.numVert * rendElem.stride, 0, "rainx7_vb", RESTAG_RAIN);
   G_ASSERT(vb);
 
   rendElem.numPrim = 2 * numParticles;
-  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), 0, "rainx7_ib");
+  ib = d3d::create_ib(3 * rendElem.numPrim * sizeof(unsigned short int), 0, "rainx7_ib", RESTAG_RAIN);
 
   G_ASSERT(ib);
 
@@ -327,10 +327,10 @@ void RainX7::setConstants(uint32_t view_id, const Point3 &view_pos, const TMatri
     TMatrix4 prevGtm = prevGlobTm[view_id];
     process_tm_for_drv_consts(prevGtm);
 
-    ShaderGlobal::set_color4(prevGlobTmLine0VarId, prevGtm[0][0], prevGtm[0][1], prevGtm[0][2], prevGtm[0][3]);
-    ShaderGlobal::set_color4(prevGlobTmLine1VarId, prevGtm[1][0], prevGtm[1][1], prevGtm[1][2], prevGtm[1][3]);
-    ShaderGlobal::set_color4(prevGlobTmLine2VarId, prevGtm[2][0], prevGtm[2][1], prevGtm[2][2], prevGtm[2][3]);
-    ShaderGlobal::set_color4(prevGlobTmLine3VarId, prevGtm[3][0], prevGtm[3][1], prevGtm[3][2], prevGtm[3][3]);
+    ShaderGlobal::set_float4(prevGlobTmLine0VarId, prevGtm[0][0], prevGtm[0][1], prevGtm[0][2], prevGtm[0][3]);
+    ShaderGlobal::set_float4(prevGlobTmLine1VarId, prevGtm[1][0], prevGtm[1][1], prevGtm[1][2], prevGtm[1][3]);
+    ShaderGlobal::set_float4(prevGlobTmLine2VarId, prevGtm[2][0], prevGtm[2][1], prevGtm[2][2], prevGtm[2][3]);
+    ShaderGlobal::set_float4(prevGlobTmLine3VarId, prevGtm[3][0], prevGtm[3][1], prevGtm[3][2], prevGtm[3][3]);
 
 
     // set vector to control width and height of particles
@@ -343,16 +343,16 @@ void RainX7::setConstants(uint32_t view_id, const Point3 &view_pos, const TMatri
     float verticalZoom = proj_tm[1][1] / normalAspectRatio; // account for fov changes
     float width = parWidth * verticalZoom;
 
-    ShaderGlobal::set_color4(sizeScaleVarId, width, lengthScale, parSpeed > 0.f ? 1.f : 0.f,
+    ShaderGlobal::set_float4(sizeScaleVarId, width, lengthScale, parSpeed > 0.f ? 1.f : 0.f,
       abs(d3d::get_screen_aspect_ratio() - normalAspectRatio)); // take diff to rescale width of snowflake
 
     // set a forward shift vector - this gets a greater portion of the box inside the view frustum
     float boxOffset = particleBox * 0.5f;
     Color4 forward(view_tm[0][2] * boxOffset, view_tm[1][2] * boxOffset, view_tm[2][2] * boxOffset, view_tm[3][2]);
-    ShaderGlobal::set_color4(forwardVarId, forward);
+    ShaderGlobal::set_float4(forwardVarId, forward);
   }
 
-  ShaderGlobal::set_real(rain_x7_translucency_factorVarId, translucencyFactor);
+  ShaderGlobal::set_float(rain_x7_translucency_factorVarId, translucencyFactor);
 }
 
 
@@ -384,22 +384,22 @@ void RainX7::setPassConstants(unsigned int pass_no, float alpha, const Point3 &v
 
   alpha *= parAlpha * alphaFade;
 
-  ShaderGlobal::set_color4(posOffsetVarId, posOffset);
-  ShaderGlobal::set_color4(velocityVarId, velocity);
+  ShaderGlobal::set_float4(posOffsetVarId, posOffset);
+  ShaderGlobal::set_float4(velocityVarId, velocity);
   float passMul = (pass_no % 2) ? perPassMul : 1.f;
-  ShaderGlobal::set_color4(lightingVarId, parLighting.r * passMul, parLighting.g * passMul, parLighting.b * passMul, alpha);
+  ShaderGlobal::set_float4(lightingVarId, parLighting.r * passMul, parLighting.g * passMul, parLighting.b * passMul, alpha);
 }
 
 void RainX7::setOccluder(float x1, float z1, float x2, float z2, float y)
 {
   if (feq(x1, x2) || feq(z1, z2))
   {
-    ShaderGlobal::set_real(occluderHeightVarId, -1e10f);
+    ShaderGlobal::set_float(occluderHeightVarId, -1e10f);
     return;
   }
 
-  ShaderGlobal::set_color4(occluderPosVarId, safediv(1.f, (x2 - x1)), safediv(1.f, (z2 - z1)), safediv(-x1, (x2 - x1)),
+  ShaderGlobal::set_float4(occluderPosVarId, safediv(1.f, (x2 - x1)), safediv(1.f, (z2 - z1)), safediv(-x1, (x2 - x1)),
     safediv(-z1, (z2 - z1)));
 
-  ShaderGlobal::set_real(occluderHeightVarId, y);
+  ShaderGlobal::set_float(occluderHeightVarId, y);
 }

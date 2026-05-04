@@ -66,6 +66,7 @@
   file:t = "light_probes_clusterization.dshl"
   file:t = "texture_util.dshl"
   file:t = "gpu_objects_placer.dshl"
+  file:t = "dafx_utils.dshl"
   file:t = "dafx_sparks.dshl"
   file:t = "dafx_modfx.dshl"
   file:t = "dafx_frame_boundary.dshl"

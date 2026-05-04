@@ -4,10 +4,14 @@
 #include <daECS/core/utility/nullableComponent.h>
 #include <memory/dag_framemem.h>
 #include <EASTL/numeric.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <daECS/net/object.h>
 #include <daECS/net/netbase.h>
 #include <daECS/net/connection.h>
@@ -30,22 +34,22 @@
 #include <daECS/core/baseIo.h>
 
 template <typename Callable>
-inline void players_ecs_query(Callable c);
+inline void players_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void players_connection_ecs_query(Callable c);
+inline void players_connection_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void players_eid_connection_ecs_query(Callable c);
+inline void players_eid_connection_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void players_search_ecs_query(Callable c);
+inline void players_search_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void players_search_by_platfrom_ecs_query(Callable c);
+inline void players_search_by_platfrom_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void players_search_by_name_ecs_query(Callable c);
+inline void players_search_by_name_ecs_query(ecs::EntityManager &manager, Callable c);
 
 namespace game
 {
@@ -150,7 +154,7 @@ Player *find_player_that_possess(ecs::EntityId eid)
 Player *find_player_by_userid(matching::UserId uid)
 {
   Player *result = nullptr;
-  players_search_ecs_query([&](game::Player &player, uint64_t userid) {
+  players_search_ecs_query(*g_entity_mgr, [&](game::Player &player, uint64_t userid) {
     if (userid == uid)
     {
       result = &player;
@@ -164,7 +168,7 @@ Player *find_player_by_userid(matching::UserId uid)
 Player *find_player_by_platform_uid(const eastl::string &platform_uid)
 {
   Player *result = nullptr;
-  players_search_by_platfrom_ecs_query([&](game::Player &player, const eastl::string &platformUid) {
+  players_search_by_platfrom_ecs_query(*g_entity_mgr, [&](game::Player &player, const eastl::string &platformUid) {
     if (!result && platformUid == platform_uid)
     {
       result = &player;
@@ -178,7 +182,7 @@ Player *find_player_by_platform_uid(const eastl::string &platform_uid)
 Player *find_player_by_name(const eastl::string &name_)
 {
   Player *result = nullptr;
-  players_search_by_name_ecs_query([&](game::Player &player, const eastl::string &name) {
+  players_search_by_name_ecs_query(*g_entity_mgr, [&](game::Player &player, const eastl::string &name) {
     if (!result && name == name_)
     {
       result = &player;
@@ -192,7 +196,7 @@ Player *find_player_by_name(const eastl::string &name_)
 int get_num_connected_players()
 {
   int num = 0;
-  players_connection_ecs_query(
+  players_connection_ecs_query(*g_entity_mgr,
     [&](bool disconnected ECS_REQUIRE_NOT(ecs::Tag playerIsBot) ECS_REQUIRE(const game::Player &player)) { num += !disconnected; });
   return num;
 }
@@ -205,7 +209,7 @@ void enum_connections_range_team(Tab<net::IConnection *> &connections,
   bool filter_possessed,
   ecs::EntityId except_possessed)
 {
-  players_eid_connection_ecs_query(
+  players_eid_connection_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid, ecs::EntityId possessed, int connid, bool disconnected ECS_REQUIRE(const game::Player &player)) {
       if ((filter_possessed && possessed == except_possessed) || disconnected)
         return ecs::QueryCbResult::Continue;
@@ -230,7 +234,7 @@ void enum_connections_range_team(Tab<net::IConnection *> &connections,
 
 void gather_players_poi(Tab<Point3> &points)
 {
-  players_ecs_query([&](ecs::EntityId possessed, bool disconnected ECS_REQUIRE(const game::Player &player)) {
+  players_ecs_query(*g_entity_mgr, [&](ecs::EntityId possessed, bool disconnected ECS_REQUIRE(const game::Player &player)) {
     if (!disconnected && g_entity_mgr->doesEntityExist(possessed))
       points.push_back(g_entity_mgr->getOr(possessed, ECS_HASH("transform"), TMatrix::IDENT).getcol(3));
     return ecs::QueryCbResult::Continue;

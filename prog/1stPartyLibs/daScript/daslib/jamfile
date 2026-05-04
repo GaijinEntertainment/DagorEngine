@@ -23,7 +23,6 @@ Sources +=
   debug_eval.das
   defer.das
   enum_trait.das
-  export_constructor.das
   functional.das
   if_not_null.das
   instance_function.das

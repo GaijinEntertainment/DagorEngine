@@ -23,7 +23,6 @@ int apply_per_tile_blur = 0;
 interval apply_per_tile_blur: no < 1, yes;
 
 int skip_each_odd_texel = 0;
-interval skip_each_odd_texel: no < 1, yes;
 
 int mips_cnt = 1;
 interval mips_cnt : one < 2, two < 3, three < 4, four;
@@ -40,14 +39,13 @@ shader local_tone_mapping_downsample
 {
   macro SET_OUTPUT_AND_WEIGHTS_TEX(array_reg_count)
     output@uav[array_reg_count] : register(local_tone_mapping_downsample_output_uav_no) hlsl {
-      RWTexture2D<float3> output@uav;
+      RWTexture2D<float4> output@uav;
     };
     weights_tex@uav[array_reg_count] : register(local_tone_mapping_downsample_weights_tex_uav_no) hlsl {
-      RWTexture2D<float3> weights_tex@uav;
+      RWTexture2D<float4> weights_tex@uav;
     };
   endmacro
 
-  ENABLE_ASSERT(cs)
   INIT_EXPOSURE(cs)
   USE_EXPOSURE(cs)
   INIT_BLOOM(cs)
@@ -65,6 +63,7 @@ shader local_tone_mapping_downsample
     source_mip@i1 = source_mip;
     display_mip@i1 = display_mip;
     dof_rt_size@f4 = dof_rt_size;
+    skip_each_odd_texel@i1 = skip_each_odd_texel;
     if (mips_cnt == one)
     {
       SET_OUTPUT_AND_WEIGHTS_TEX(ONE_MIP_ARRAY_REG_COUNT)
@@ -85,6 +84,7 @@ shader local_tone_mapping_downsample
 
   hlsl(cs) {
     #include "luminance_encoding.hlsl"
+    #include "pixelPacking/Half2ToUint.hlsl"
     ##if mips_cnt == one
     static const uint WINDOW_SIZE_POW = 0;
     ##elif mips_cnt == two
@@ -98,13 +98,120 @@ shader local_tone_mapping_downsample
     static const uint GROUP_SIZE_POW = 3u;
     static const uint GROUP_SIZE = 1u << GROUP_SIZE_POW;
 
-    ##if apply_per_tile_blur == yes
     static const float gaussian_weights[3][3] = {
       { 0.077847, 0.123317, 0.077847 },
       { 0.123317, 0.195346, 0.123317 },
       { 0.077847, 0.123317, 0.077847 }
     };
+
+    ##if apply_per_tile_blur == yes || mips_cnt > one
+    //  load/store combined exposure and weight
+    //-----------------------------------------------------------------------------------------------
+
+    // 64 + 1 to avoid local memory bank conflicts
+    #define CACHE_CHANNEL_SIZE 65
+    #define CACHE_CHANNEL_COUNT 3
+    #define CACHE_SIZE (CACHE_CHANNEL_SIZE*CACHE_CHANNEL_COUNT)
+
+    // exposure and weight are encoded to fp16 and merged per channel into single uint to
+    // reduce load/store bandwidth and instruction count
+    groupshared uint sharedCache[CACHE_SIZE];
+
+    uint get_shared_cache_index(uint channelIndex, uint2 localPos)
+    {
+      ##assert(channelIndex < CACHE_CHANNEL_COUNT, "sharedCache OOB access. channelIndex = %d", channelIndex);
+      ##assert(all(localPos < GROUP_SIZE), "sharedCache OOB access. localPos = (%d, %d)", localPos.x, localPos.y);
+
+      uint offset = localPos.y*GROUP_SIZE + localPos.x;
+      return channelIndex*CACHE_CHANNEL_SIZE + offset;
+    }
+
+    void store_cached_channel_exposure_and_weight(uint channelIndex, uint2 localPos, float exposure, float weight)
+    {
+      sharedCache[get_shared_cache_index(channelIndex, localPos)] = packHalf2ToUint(exposure, weight);
+    }
+
+    void load_cached_channel_exposure_and_weight(uint channelIndex, uint2 localPos, out float exposure, out float weight)
+    {
+      unpackHalf2FromUint(sharedCache[get_shared_cache_index(channelIndex, localPos)], exposure, weight);
+    }
+
+    void store_cached_exposure_and_weight_vec3(uint2 localPos, float3 exposure, float3 weight)
+    {
+      UNROLL for(int channelIndex = 0; channelIndex < 3; ++channelIndex)
+        store_cached_channel_exposure_and_weight(channelIndex, localPos, exposure[channelIndex], weight[channelIndex]);
+    }
+
+    void load_cached_exposure_and_weight_vec3(uint2 localPos, out float3 exposure, out float3 weight)
+    {
+      UNROLL for(int channelIndex = 0; channelIndex < 3; ++channelIndex)
+        load_cached_channel_exposure_and_weight(channelIndex, localPos, exposure[channelIndex], weight[channelIndex]);
+    }
+    //-----------------------------------------------------------------------------------------------
+
+    void apply_gaussian_blur(uint2 localId, int2 clampRange, inout float3 exposure, inout float3 weight)
+    {
+      exposure = 0;
+      weight = 0;
+      UNROLL
+      for (int x = 0; x < 3; ++x)
+          UNROLL
+          for (int y = 0; y < 3; ++y)
+          {
+            uint2 clampedId = clamp(int2(localId) + int2(x - 1, y - 1), clampRange.x, clampRange.y);
+            float3 cachedExposure, cachedWeight;
+            load_cached_exposure_and_weight_vec3(clampedId, cachedExposure, cachedWeight);
+            float gaussianWeight = gaussian_weights[x][y];
+            exposure += cachedExposure * gaussianWeight;
+            weight += cachedWeight * gaussianWeight;
+          }
+    }
+
+    void process_mip(uint divisor_pow, uint2 algoBasedLocalId, uint2 algoBasedGroupId, uint2 groupDataOffset, uint2 localId, inout float3 exposure, inout float3 w)
+    {
+      store_cached_exposure_and_weight_vec3(localId, exposure, w);
+      GroupMemoryBarrierWithGroupSync();
+
+      bool algoLocalIdInWindow = all(algoBasedLocalId < (WINDOW_SIZE >> divisor_pow));
+      if (algoLocalIdInWindow)
+      {
+        exposure = 0;
+        w = 0;
+        UNROLL
+        for (int i = 0; i < 2; ++i)
+          UNROLL
+          for (int j = 0; j < 2; ++j)
+          {
+            float3 exposureTmp, wTmp;
+            load_cached_exposure_and_weight_vec3(algoBasedLocalId * 2 + int2(i, j) + groupDataOffset, exposureTmp, wTmp);
+
+            exposure += exposureTmp;
+            w += wTmp;
+          }
+        exposure /= 4;
+        w /= 4;
+        BRANCH
+        if (display_mip <= divisor_pow)
+        {
+          uint2 finalImageIdx = (algoBasedGroupId << (WINDOW_SIZE_POW - divisor_pow)) + algoBasedLocalId;
+          uint2 outputSize;
+          output[divisor_pow].GetDimensions(outputSize.x, outputSize.y);
+          if (all(finalImageIdx < outputSize))
+          {
+            texture2DAt(output[divisor_pow], finalImageIdx) = float4(exposure,0);
+            texture2DAt(weights_tex[divisor_pow], finalImageIdx) = float4(w,0);
+          }
+        }
+
+        store_cached_exposure_and_weight_vec3(algoBasedLocalId + groupDataOffset, exposure, w);
+      }
+
+    ##if apply_per_tile_blur == yes
+      GroupMemoryBarrierWithGroupSync();
+      apply_gaussian_blur(localId, int2(0, int(GROUP_SIZE >> divisor_pow) - 1), exposure, w);
     ##endif
+    }
+    ##endif // apply_per_tile_blur == yes || mips_cnt > one
 
     float3 compute_weights(float3 exposures)
     {
@@ -123,114 +230,25 @@ shader local_tone_mapping_downsample
       return float3(highlights, midtones, shadows);
     }
 
-    ##if apply_per_tile_blur == yes || mips_cnt > one
-
-    // grouping as linear block of float4 instead of float3 is 4 times faster on vk/dx12
-    // probably dx11 does that internally, while DXC does not
-    groupshared float4 cachedMem[GROUP_SIZE*GROUP_SIZE];
-    groupshared float4 cachedWeights[GROUP_SIZE*GROUP_SIZE];
-
-    float3 get_cached_exposure(uint2 localId)
-    {
-      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure reading", localId.x, localId.y);
-      return cachedMem[localId.x+GROUP_SIZE*localId.y].xyz;
-    }
-    float3 get_cached_weight(uint2 localId)
-    {
-      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on weights reading", localId.x, localId.y);
-      return cachedWeights[localId.x+GROUP_SIZE*localId.y].xyz;
-    }
-    void store_cached_exposure(uint2 localId, float3 exposure)
-    {
-      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on exposure writing", localId.x, localId.y);
-      cachedMem[localId.x+GROUP_SIZE*localId.y] = float4(exposure,0);
-    }
-    void store_cached_weight(uint2 localId, float3 weight)
-    {
-      ##assert(all(localId < GROUP_SIZE), "localId (%f, %f) is out of bounds on weights writing", localId.x, localId.y);
-      cachedWeights[localId.x+GROUP_SIZE*localId.y] = float4(weight,0);
-    }
-
-    void process_mip(uint divisor_pow, uint2 algoBasedLocalId, uint2 algoBasedGroupId, uint2 groupDataOffset, uint2 localId, inout float3 exposure, inout float3 w)
-    {
-      GroupMemoryBarrierWithGroupSync();
-      bool algoLocalIdInWindow = all(algoBasedLocalId < (WINDOW_SIZE >> divisor_pow));
-      if (algoLocalIdInWindow)
-      {
-        exposure = 0;
-        w = 0;
-        UNROLL
-        for (int i = 0; i < 2; ++i)
-          UNROLL
-          for (int j = 0; j < 2; ++j)
-          {
-            exposure += get_cached_exposure(algoBasedLocalId * 2 + int2(i, j) + groupDataOffset);
-            w += get_cached_weight(algoBasedLocalId * 2 + int2(i, j) + groupDataOffset);
-          }
-        exposure /= 4;
-        w /= 4;
-        BRANCH
-        if (display_mip <= divisor_pow)
-        {
-          uint2 finalImageIdx = (algoBasedGroupId << (WINDOW_SIZE_POW - divisor_pow)) + algoBasedLocalId;
-          uint2 outputSize;
-          output[divisor_pow].GetDimensions(outputSize.x, outputSize.y);
-          if (all(finalImageIdx < outputSize))
-          {
-            texture2DAt(output[divisor_pow], finalImageIdx) = exposure;
-            texture2DAt(weights_tex[divisor_pow], finalImageIdx) = w;
-          }
-        }
-      }
-      GroupMemoryBarrierWithGroupSync();
-      if (algoLocalIdInWindow)
-      {
-        store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
-        store_cached_weight(algoBasedLocalId + groupDataOffset, w);
-      }
-      ##if apply_per_tile_blur == yes
-      GroupMemoryBarrierWithGroupSync();
-      exposure = 0;
-      w = 0;
-      UNROLL
-      for (int i = 0; i < 3; ++i)
-        UNROLL
-        for (int j = 0; j < 3; ++j)
-        {
-          uint2 clampedId = clamp(int2(localId) + int2(i - 1, j - 1), 0, int(GROUP_SIZE >> divisor_pow) - 1);
-          float3 cachedExposure = get_cached_exposure(clampedId);
-          float3 cachedWeight = get_cached_weight(clampedId);
-          float gaussianWeight = gaussian_weights[i][j];
-          exposure += cachedExposure * gaussianWeight;
-          w += cachedWeight * gaussianWeight;
-        }
-      store_cached_exposure(localId, exposure);
-      store_cached_weight(localId, w);
-      ##endif
-    }
-    ##endif
-
     [numthreads(GROUP_SIZE, GROUP_SIZE, 1)]
-    void local_tone_mapping_downsample_cs(uint2 dtId : SV_DispatchThreadID, uint2 localId : SV_GroupThreadID, uint2 groupId : SV_GroupID)
+    void local_tone_mapping_downsample_cs(uint2 groupId : SV_GroupID, uint2 localId : SV_GroupThreadID, uint2 dispatchThreadId : SV_DispatchThreadID)
     {
-      uint2 algoBasedLocalId = localId & ((1u << WINDOW_SIZE_POW) - 1);
-      uint2 groupDataOffset = (localId >> WINDOW_SIZE_POW) << WINDOW_SIZE_POW;
-      uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
       float3 exposure = 0;
-      float3 w = 0;
+      float3 weight = 0;
+
       uint2 mipSize;
       uint level;
       src_tex.GetDimensions(source_mip, mipSize.x, mipSize.y, level);
+
+      bool isBase = (source_mip == 0);
+      uint2 multiplier = (skip_each_odd_texel > 0 && isBase) ? 2u : 1u;
       UNROLL
       for (int i = 0; i < 2; ++i)
         UNROLL
         for (int j = 0; j < 2; ++j)
         {
-          uint2 threadTc = dtId * 2 + int2(i, j);
-          ##if skip_each_odd_texel == yes
-          if (source_mip == 0)
-            threadTc *= 2;
-          ##endif
+          uint2 threadTc = dispatchThreadId * 2 + int2(i, j);
+          threadTc *= multiplier;
           threadTc = clamp(threadTc, 0u, mipSize - 1u);
           float3 sampledColor = texelFetch(src_tex, threadTc, source_mip).xyz;
 
@@ -238,64 +256,47 @@ shader local_tone_mapping_downsample
           exposure += currentExp;
           BRANCH
           if (source_mip == 0)
-            w += compute_weights(currentExp);
+            weight += compute_weights(currentExp);
           ##if src_weight_tex != NULL
           else
-            w += texelFetch(src_weight_tex, threadTc, source_mip).xyz;
+            weight += texelFetch(src_weight_tex, threadTc, source_mip).xyz;
           ##endif
         }
+
       exposure /= 4;
-      w /= 4;
+      weight /= 4;
 
-      ##if apply_per_tile_blur == yes || mips_cnt > one
-        store_cached_exposure(algoBasedLocalId + groupDataOffset, exposure);
-        store_cached_weight(algoBasedLocalId + groupDataOffset, w);
-        GroupMemoryBarrierWithGroupSync();
-      ##endif
+    ##if apply_per_tile_blur == yes
+      store_cached_exposure_and_weight_vec3(localId, exposure, weight);
+      GroupMemoryBarrierWithGroupSync();
 
-      ##if apply_per_tile_blur == yes
-        exposure = 0;
-        w = 0;
-        UNROLL
-        for (int x = 0; x < 3; ++x)
-          UNROLL
-          for (int y = 0; y < 3; ++y)
-          {
-            uint2 clampedId = clamp(int2(localId) + int2(x - 1, y - 1), 0, int(GROUP_SIZE) - 1);
-            float3 cachedExposure = get_cached_exposure(clampedId);
-            float3 cachedWeight = get_cached_weight(clampedId);
-            float gaussianWeight = gaussian_weights[x][y];
-            exposure += cachedExposure * gaussianWeight;
-            w += cachedWeight * gaussianWeight;
-          }
-        ##if mips_cnt > one
-          store_cached_exposure(localId, exposure);
-          store_cached_weight(localId, w);
-          //next process mip has GroupMemoryBarrierWithGroupSync(); internally
-        ##endif
-      ##endif
-
+      apply_gaussian_blur(localId, int2(0, int(GROUP_SIZE) - 1), exposure, weight);
+    ##endif
 
       BRANCH
       if (display_mip == 0)
       {
         uint2 outputSize;
         output[0].GetDimensions(outputSize.x, outputSize.y);
-        if (all(dtId < outputSize))
+        if (all(dispatchThreadId < outputSize))
         {
-          texture2DAt(output[0], dtId) = exposure;
-          texture2DAt(weights_tex[0], dtId) = w;
+          texture2DAt(output[0], dispatchThreadId) = float4(exposure,0);
+          texture2DAt(weights_tex[0], dispatchThreadId) = float4(weight,0);
         }
       }
 
+      uint2 algoBasedLocalId = localId & ((1u << WINDOW_SIZE_POW) - 1);
+      uint2 groupDataOffset = (localId >> WINDOW_SIZE_POW) << WINDOW_SIZE_POW;
+      uint2 algoBasedGroupId = (groupId << (GROUP_SIZE_POW - WINDOW_SIZE_POW)) | (localId >> WINDOW_SIZE_POW);
+
       ##if mips_cnt > one
-      process_mip(1, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, w);
+      process_mip(1, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, weight);
       ##endif
       ##if mips_cnt > two
-      process_mip(2, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, w);
+      process_mip(2, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, weight);
       ##endif
       ##if mips_cnt > three
-      process_mip(3, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, w);
+      process_mip(3, algoBasedLocalId, algoBasedGroupId, groupDataOffset, localId, exposure, weight);
       ##endif
     }
   }

@@ -57,16 +57,16 @@ endmacro
 
 macro USE_LAYERED_PS(always_use_normal_details)
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
-    diffuse_tex1@static = tex1;
-    diffuse_tex2@static = tex2;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
+    diffuse_tex1@staticTex = tex1;
+    diffuse_tex2@staticTex = tex2;
   }
   if (always_use_normal_details || (normal != NULL && compatibility_mode == compatibility_mode_off))
   {
     (ps) {
-      normal_tex1@static = normal1;
-      normal_tex2@static = normal2;
+      normal_tex1@staticTex = normal1;
+      normal_tex2@staticTex = normal2;
     }
   }
 endmacro
@@ -188,16 +188,27 @@ macro LAYERED_PS(is_normal_pass)
     #ifndef SAMPLE_TEX
       #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
     #endif
+    #ifndef SAMPLE_TEX_SAMPLER
+      #define SAMPLE_TEX_SAMPLER(tex, smp, tc) tex2DBindlessSampler(tex, smp, tc)
+    #endif
     static const float modulation_detail2_alpha_inv_weight = 0.85;
 
     #ifdef FORCE_EARLY_DEPTH_STENCIL
       FORCE_EARLY_DEPTH_STENCIL
     #endif
 
+    #ifndef IS_DYNAMIC
+      #define IS_DYNAMIC 0
+    #endif
+
     #if VOXELIZE_ALBEDO_PASS
       void simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #else
-      GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
+        #if RI_HMAP_BLEND_ON
+          HW_USE_READ_SHADING_RATE
+        #endif
+        )
     #endif
     {
       #if SET_UP_MULTIDRAW
@@ -209,8 +220,8 @@ macro LAYERED_PS(is_normal_pass)
 
       half4 baseColor = SAMPLE_TEX(get_diffuse_tex(), input.uv12.xy);
       half4 mask      = SAMPLE_TEX(get_mask_tex(), input.uv0mask.zw); //input.
-      half4 detailColor1 = SAMPLE_TEX(get_diffuse_tex1(), input.uv_detail.xy);
-      half4 detailColor2 = SAMPLE_TEX(get_diffuse_tex2(), input.uv_detail.zw);
+      half4 detailColor1 = SAMPLE_TEX_SAMPLER(get_diffuse_tex1(), get_diffuse_tex().smp, input.uv_detail.xy);
+      half4 detailColor2 = SAMPLE_TEX_SAMPLER(get_diffuse_tex2(), get_diffuse_tex().smp, input.uv_detail.zw);
       half3 worldVertexNormal = MUL_VFACE(input.normal_transparency.xyz);
 
       half weight = pow(mask.g, input.pointToEye.w)*baseColor.a;
@@ -222,8 +233,8 @@ macro LAYERED_PS(is_normal_pass)
       half3 point2EyeNrm = normalize(input.pointToEye.xyz);
 
       half4 baseNormalMap = SAMPLE_TEX(get_normal_tex(), input.uv0mask.xy);
-      half4 detailNormal1 = SAMPLE_TEX(get_normal_tex1(), input.uv_detail.xy);
-      half4 detailNormal2 = SAMPLE_TEX(get_normal_tex2(), input.uv_detail.zw);
+      half4 detailNormal1 = SAMPLE_TEX_SAMPLER(get_normal_tex1(), get_normal_tex().smp, input.uv_detail.xy);
+      half4 detailNormal2 = SAMPLE_TEX_SAMPLER(get_normal_tex2(), get_normal_tex().smp, input.uv_detail.zw);
 
       half3 d1n = unpack_ag_normal(detailNormal1);
       half3 d2n = unpack_ag_normal(detailNormal2);
@@ -289,11 +300,13 @@ macro LAYERED_PS(is_normal_pass)
         init_ao(gbuffer, ao);
 
         init_albedo(gbuffer, diffuseColor.rgb);
+        init_dynamic(gbuffer, IS_DYNAMIC);
 
         float4 screenpos = GET_SCREEN_POS(input.pos);
 
         #if RI_HMAP_BLEND_ON
-          blend_with_landscape(gbuffer, screenpos, worldPos, normalize(worldVertexNormal), input.pointToEye.xyz, input.riHmapBlend);
+          blend_with_landscape(gbuffer, screenpos, worldPos, normalize(worldVertexNormal), input.pointToEye.xyz,
+            input.riHmapBlend, GET_SHADING_RATE);
         #endif
         #ifdef PLOD_PS_GEN
           PLOD_PS_GEN(input, pack_gbuffer(gbuffer), baseNormalMap)

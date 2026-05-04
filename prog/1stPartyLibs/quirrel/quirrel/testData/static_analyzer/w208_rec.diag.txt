@@ -1,7 +1,0 @@
-WARNING: w228 (declared-never-used) parameter 'x' was declared but never used.
-testData/static_analyzer/w208_rec.nut:7:14
-
-function bart(x) { return "" }
-              ^
-
-

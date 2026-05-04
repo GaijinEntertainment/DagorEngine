@@ -61,10 +61,9 @@ public:
 
   TextureIDPair downsample(Texture *input_tex, TEXTUREID input_id, const Point4 &input_uv_transform = Point4(1, 1, 0, 0));
 
-  void apply(bool vr_mode, Texture *input_tex, TEXTUREID input_id, Texture *output_tex, TEXTUREID output_id, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm, Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0,
-    const Point4 &target_uv_transform = Point4(1, 1, 0, 0), const RectInt *output_viewport = nullptr,
-    PreCombineFxProc pre_combine_fx_proc = nullptr, TextureIDPair downsampled_color = TextureIDPair());
+  void apply(bool vr_mode, Texture *input_tex, Texture *output_tex, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    Texture *depth_tex = nullptr, int eye = -1, int target_layer = 0, const Point4 &target_uv_transform = Point4(1, 1, 0, 0),
+    const RectInt *output_viewport = nullptr, PreCombineFxProc pre_combine_fx_proc = nullptr, Texture *downsampled_color = nullptr);
 
   void prepareSkyMask(const TMatrix &view_tm); // if we want, we can call it before apply
 
@@ -114,6 +113,7 @@ public:
 
   void setLenseFlareEnabled(bool enabled);
   void setFilmGrainEnabled(bool enabled);
+  void setUnderwaterFilmGrainEnabled(bool enabled);
 
   void delayedCombineFx(TEXTUREID textureId);
 
@@ -131,9 +131,11 @@ public:
   void initLenseFlare(const char *lense_covering_tex_name, const char *lense_radial_tex_name);
   void closeLenseFlare();
 
+  void setGaussianBlurAmount(float blur);
+
 protected:
   bool skyMaskPrepared;
-  void applyLenseFlare(BaseTexture *srcTex, TEXTUREID srcId);
+  void applyLenseFlare(BaseTexture *srcTex);
 
   void calcGlowGraphics();
   void calcGlowCompute();
@@ -171,14 +173,18 @@ protected:
 
   real screenAspect;
 
+  real gaussianBlurAmount = 0;
+
   bool lenseFlareEnabled;
 
   bool filmGrainEnabled;
+  bool underwaterfilmGrainEnabled;
 
   bool useSimpleMode;
   PostFxRenderer downsample4x;
 
   PostFxRenderer glowBlurXFx, glowBlurYFx, glowBlur2XFx, glowBlur2YFx, combineFx, radialBlur1Fx, radialBlur2Fx, render2lut;
+  PostFxRenderer gaussianHBlur;
   eastl::unique_ptr<ComputeShaderElement> glowBlurXFxCS, glowBlurYFxCS, glowBlur2XFxCS, glowBlur2YFxCS;
 
   DemonPostFxSettings current;

@@ -4,8 +4,8 @@ module verify_macro shared private
 
 require EcsUtils
 require ecs
-require ast
-require rtti
+require daslib/ast
+require daslib/rtti
 require strings
 require daslib/ast_boost
 require daslib/templates_boost

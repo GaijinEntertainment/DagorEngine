@@ -6,13 +6,6 @@
 #include <math/dag_mathUtils.h>
 #include <util/dag_globDef.h>
 
-//==============================================================================
-void euler_to_quat(real heading, real attitude, real bank, Quat &quat)
-{
-  vec4f angles = v_make_vec4f(heading, attitude, bank, bank);
-  v_stu(&quat.x, v_quat_from_euler(angles));
-}
-
 void euler_heading_to_quat(real heading, Quat &quat)
 {
   float c1, s1;
@@ -42,17 +35,6 @@ void euler_bank_to_quat(real bank, Quat &quat)
   quat.x = s3;
   quat.y = 0;
   quat.z = 0;
-}
-void euler_heading_attitude_to_quat(real heading, real attitude, Quat &quat)
-{
-  float c1, s1, c2, s2;
-  sincos(heading / 2.f, s1, c1);
-  sincos(attitude / 2.f, s2, c2);
-
-  quat.w = c1 * c2;
-  quat.x = s1 * s2;
-  quat.y = s1 * c2;
-  quat.z = c1 * s2;
 }
 void euler_attitude_bank_to_quat(real attitude, real bank, Quat &quat)
 {
@@ -135,14 +117,14 @@ void matrix_to_euler(const TMatrix &tm, real &heading, real &attitude, real &ban
   m.setcol(1, normalize(tm.getcol(1)));
   m.setcol(2, normalize(tm.getcol(2)));
 
-  if (m[0][1] > 0.9999)
+  if (m[0][1] >= 1.f)
   {
     heading = safe_atan2(m.m[2][0], m.m[2][2]);
     attitude = HALFPI;
     bank = 0;
     return;
   }
-  else if (m[0][1] < -0.9999)
+  else if (m[0][1] <= -1.f)
   {
     heading = -safe_atan2(m.m[2][0], m.m[2][2]);
     attitude = -HALFPI;
@@ -378,8 +360,11 @@ Point3 basis_aware_angles_to_dir(const Point2 &angles, const Point3 &up, const P
 Point2 basis_aware_dir_to_angles(const Point3 &dir, const Point3 &up, const Point3 &fwd)
 {
   vec3f vDir = v_ldu(&dir.x), vUp = v_ldu(&up.x);
-  vec3f dxdz = v_norm3_safe(v_nmsub(vUp, v_dot3(vDir, vUp), vDir), V_C_UNIT_0010);
   vec4f dy = v_dot3_x(vDir, vUp);
+  float s_dy = v_extract_x(dy);
+  if (fabsf(s_dy) >= 1.0f)
+    return Point2(0, sign(s_dy) * HALFPI);
+  vec3f dxdz = v_norm3_safe(v_nmsub(vUp, v_dot3(vDir, vUp), vDir), V_C_UNIT_0010);
   vec4f root2dxdz = v_cross3(v_ldu(&fwd.x), dxdz);
   vec4f sign = v_and(V_CI_SIGN_MASK, v_dot3_x(vUp, root2dxdz));
   return Point2(v_extract_x(v_atan2_x(v_xor(v_length3_x(root2dxdz), sign), v_dot3_x(dxdz, v_ldu(&fwd.x)))), v_extract_x(v_asin_x(dy)));

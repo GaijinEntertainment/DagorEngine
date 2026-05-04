@@ -19,10 +19,18 @@ Sources =
   bson.cpp
 ;
 
+SourceStr =
+  webuiIndexTemplate.html
+;
+
+for s in $(SourceStr) { StringifySourceFile $(s) : $(s).inl : httpserver.cpp ; }
+
+
 local Plugins = gameLibs/webui/plugins ;
 UseProgLibs =
   $(Plugins)/colorpicker
   $(Plugins)/dagor
+  $(Plugins)/dargMcp
   $(Plugins)/editvar
   $(Plugins)/grapheditor
   $(Plugins)/profiler

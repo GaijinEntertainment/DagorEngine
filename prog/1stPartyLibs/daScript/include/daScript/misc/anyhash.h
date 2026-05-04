@@ -21,15 +21,21 @@ namespace das {
         return h <= HASH_KILLED64 ? UINT64_C(1099511628211) : h;
     }
 
+    DAS_SUPPRESS_UB
     static NO_ASAN_INLINE uint64_t hash_blockz64 ( const uint8_t * block ) {
         auto FNV_offset_basis = UINT64_C(14695981039346656037);
         auto FNV_prime = UINT64_C(1099511628211);
         if ( !block ) return FNV_offset_basis;
         auto h = FNV_offset_basis;
 #if DAS_SAFE_HASH
-        while ( *block ) {
-            h ^= *block++;
+        while ( true ) {
+            uint64_t v = block[0];
+            if ( v==0 ) break;
+            v |= uint64_t(block[1])<<8;
+            h ^= v;
             h *= FNV_prime;
+            if ( v < 0x100 ) break;
+            block += 2;
         }
 #else
         while ( true ) {

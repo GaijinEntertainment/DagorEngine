@@ -77,28 +77,28 @@ local float blood_wound_flesh_edge_thickness_width = blood_wound_flesh_begin_thi
 endmacro
 
 macro INIT_BURNED_DIFFUSE_FUNCTION_BLOCK()
-if (compatibility_mode != compatibility_mode_on && mobile_render == off)
+if (compatibility_mode != compatibility_mode_on)
 {
   INIT_BURNED_DIFFUSE_FUNCTION()
 }
 endmacro
 
 macro INIT_PROJECTIVE_WOUNDS_BLOCK()
-if (compatibility_mode != compatibility_mode_on && mobile_render == off)
+if (compatibility_mode != compatibility_mode_on)
 {
   INIT_PROJECTIVE_WOUNDS()
 }
 endmacro
 
 macro INIT_BURNED_DIFFUSE_FUNCTION_SHADER()
-if (!(compatibility_mode != compatibility_mode_on && mobile_render == off))
+if (!(compatibility_mode != compatibility_mode_on))
 {
   INIT_BURNED_DIFFUSE_FUNCTION()
 }
 endmacro
 
 macro INIT_PROJECTIVE_WOUNDS_SHADER()
-if (!(compatibility_mode != compatibility_mode_on && mobile_render == off))
+if (!(compatibility_mode != compatibility_mode_on))
 {
   INIT_PROJECTIVE_WOUNDS()
 }

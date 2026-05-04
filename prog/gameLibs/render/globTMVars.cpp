@@ -17,8 +17,8 @@ VIEW_VARS_LIST
 void set_globtm_to_shader(const TMatrix4 &globtm_)
 {
   TMatrix4 globtm = globtm_.transpose();
-  ShaderGlobal::set_color4(globtm_psf_0VarId, Color4(globtm[0]));
-  ShaderGlobal::set_color4(globtm_psf_1VarId, Color4(globtm[1]));
-  ShaderGlobal::set_color4(globtm_psf_2VarId, Color4(globtm[2]));
-  ShaderGlobal::set_color4(globtm_psf_3VarId, Color4(globtm[3]));
+  ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtm[0]));
+  ShaderGlobal::set_float4(globtm_psf_1VarId, Color4(globtm[1]));
+  ShaderGlobal::set_float4(globtm_psf_2VarId, Color4(globtm[2]));
+  ShaderGlobal::set_float4(globtm_psf_3VarId, Color4(globtm[3]));
 }

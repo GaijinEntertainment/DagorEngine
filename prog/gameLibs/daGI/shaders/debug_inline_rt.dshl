@@ -16,7 +16,6 @@ shader debug_inline_rt_cs
   RAY_CAST_VOXELS_VARS(cs)
   SSGI_INIT_VOLMAP_GI_SEVERAL_CASCADES_CBUF(cs)
   RAY_CAST_INLINE_RT(cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     constants@cbuf = debug_inline_rt_constants hlsl {
       struct ConstantValues

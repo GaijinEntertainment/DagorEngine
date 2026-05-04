@@ -6,6 +6,7 @@
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <util/dag_oaHashNameMap.h>
+#include <osApiWrappers/dag_spinlock.h>
 
 class IDagorAssetMsgPipe;
 
@@ -13,12 +14,15 @@ class IDagorAssetMsgPipe;
 class DagorVirtualAssetRule
 {
 public:
+  OSSpinlock mutex;
+
   DagorVirtualAssetRule(DataBlock *sharedNmBlk) : reExclude(midmem)
   {
     addSrcFileAsBlk = 0;
     stopProcessing = 1;
     replaceStrings = 1;
     ignoreDupAsset = overrideDupAsset = 0;
+    onlyBuildTagged = 0;
     contents.setSharedNameMapAndClearData(sharedNmBlk);
   }
   ~DagorVirtualAssetRule()
@@ -30,7 +34,7 @@ public:
   bool load(const DataBlock &blk, IDagorAssetMsgPipe &msg_pipe);
 
   //! returns true and sets out_asset_name if rule is applicable for given filename
-  bool testRule(const char *fname, String &out_asset_name);
+  bool testRule(const char *fname, const char *folder_path, String &out_asset_name);
 
   //! fills blk with VA content (must be called immediately AFTER testRule() returns true)
   void applyRule(DataBlock &dest_blk, const char *full_fn);
@@ -50,4 +54,5 @@ protected:
   Tab<DataBlock *> tagUpd;
   String nameTemplate, typeName;
   unsigned addSrcFileAsBlk : 1, stopProcessing : 1, replaceStrings : 1, ignoreDupAsset : 1, overrideDupAsset : 1;
+  unsigned onlyBuildTagged : 1;
 };

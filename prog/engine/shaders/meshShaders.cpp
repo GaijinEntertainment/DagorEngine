@@ -3,12 +3,18 @@
 #include <shaders/dag_meshShaders.h>
 #include <osApiWrappers/dag_localConv.h>
 #include "shadersBinaryData.h"
+#include "shBindumpsPrivate.h"
 #include "scriptSMat.h"
 #include "scriptSElem.h"
 
 MeshShaderElement *new_mesh_shader(const char *shader_name, const bool optional)
 {
-  const shaderbindump::ShaderClass *sc = shBinDump().findShaderClass(shader_name);
+  return new_mesh_shader(MAIN_BINDUMP_HANDLE, shader_name, optional);
+}
+MeshShaderElement *new_mesh_shader(ShaderBindumpHandle hnd, char const *shader_name, bool optional)
+{
+  auto const &dump = get_shaders_dump(hnd);
+  const shaderbindump::ShaderClass *sc = dump.findShaderClass(shader_name);
   if (!sc)
   {
     if (!optional)
@@ -20,7 +26,7 @@ MeshShaderElement *new_mesh_shader(const char *shader_name, const bool optional)
     DAG_FATAL("Mesh shader '%s' not found", shader_name);
 
   MaterialData m;
-  ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m);
+  ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m, hnd);
   ScriptedShaderMaterial *mat = ScriptedShaderMaterial::create(*smp);
   delete smp;
 
@@ -48,12 +54,12 @@ bool MeshShaderElement::dispatch(uint32_t groups_x, uint32_t groups_y, uint32_t 
 
 bool MeshShaderElement::dispatchThreads(uint32_t threads_x, uint32_t threads_y, uint32_t threads_z, bool set_states) const
 {
-  return elem->dispatchMesh(threads_x, threads_y, threads_z, set_states);
+  return elem->dispatchMeshThreads(threads_x, threads_y, threads_z, set_states);
 }
 
 bool MeshShaderElement::dispatchIndirect(Sbuffer *args, uint32_t count, uint32_t offset, uint32_t stride, bool set_states) const
 {
-  return elem->dispatchMeshIndirect(args, count, offset, stride, set_states);
+  return elem->dispatchMeshIndirect(args, count, stride, offset, set_states);
 }
 
 bool MeshShaderElement::dispatchIndirectCount(Sbuffer *args, uint32_t args_offset, uint32_t args_stride, Sbuffer *count,

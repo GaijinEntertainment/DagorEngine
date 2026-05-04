@@ -1,0 +1,1 @@
+Uninitialize a limiter.

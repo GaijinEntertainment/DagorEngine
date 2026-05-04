@@ -142,7 +142,7 @@ void TreesAbove::prepareTrees2d(const Point3 &origin, const TMatrix &view_itm, f
   IPoint2 newTexelsOrigin = (ipoint2(floor(alignedOrigin / (texelSize))) + IPoint2(TEXEL_ALIGN / 2, TEXEL_ALIGN / 2));
   newTexelsOrigin = newTexelsOrigin - (newTexelsOrigin % TEXEL_ALIGN);
 
-  ShaderGlobal::set_int(gbuffer_for_treesaboveVarId, 1);
+  STATE_GUARD_0(ShaderGlobal::set_int(gbuffer_for_treesaboveVarId, VALUE), 1);
   static constexpr int THRESHOLD = TEXEL_ALIGN * 4;
   IPoint2 move = abs(trees2dHelper.curOrigin - newTexelsOrigin);
   if (move.x >= THRESHOLD || move.y >= THRESHOLD)
@@ -175,11 +175,10 @@ void TreesAbove::prepareTrees2d(const Point3 &origin, const TMatrix &view_itm, f
 
     d3d::resource_barrier({trees2d.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     d3d::resource_barrier({trees2dDepth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    ShaderGlobal::set_color4(world_to_trees_tex_ofsVarId, minZ - maxZ, maxZ, ofs.x, ofs.y);
-    ShaderGlobal::set_color4(world_to_trees_tex_mulVarId, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
+    ShaderGlobal::set_float4(world_to_trees_tex_ofsVarId, minZ - maxZ, maxZ, ofs.x, ofs.y);
+    ShaderGlobal::set_float4(world_to_trees_tex_mulVarId, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
       -alignedOrigin.y / fullDistance + 0.5, trees2dHelper.texSize);
   }
-  ShaderGlobal::set_int(gbuffer_for_treesaboveVarId, 0);
 }
 
 void TreesAbove::renderAlbedo()
@@ -225,11 +224,12 @@ void TreesAbove::initTrees2d(const DataBlock &settings)
     float treesTexelSize = settings.getReal("treesTexel", 1.); // todo: use gi 25d voxel size
     trees2dDist = ((float)trees2dDRes / 2.0f) * treesTexelSize;
     debug("init trees2d map rex %d^2, %f", trees2dDRes, treesTexelSize);
-    // trees2d.set(d3d::create_tex(NULL, treesRes, treesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "trees2d"), "trees2d");
+    // trees2d.set(d3d::create_tex(NULL, treesRes, treesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "trees2d", RESTAG_TREES2D), "trees2d");
     trees2d.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes,
-                  TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d"),
+                  TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d", RESTAG_TREES2D),
       "trees2d");
-    trees2dDepth.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "trees2d_depth"),
+    trees2dDepth.set(
+      d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "trees2d_depth", RESTAG_TREES2D),
       "trees2d_depth");    // to be removed, we should copy from back buffer
     trees2dDepth.setVar(); // to be removed, we should copy from back buffer
     d3d::SamplerInfo smpInfo;
@@ -249,8 +249,8 @@ void TreesAbove::initTrees2d(const DataBlock &settings)
   }
   else
   {
-    ShaderGlobal::set_color4(world_to_trees_tex_mulVarId, 0, 0, 0, 0);
-    ShaderGlobal::set_color4(world_to_trees_tex_ofsVarId, 0, 0, 0, 0);
+    ShaderGlobal::set_float4(world_to_trees_tex_mulVarId, 0, 0, 0, 0);
+    ShaderGlobal::set_float4(world_to_trees_tex_ofsVarId, 0, 0, 0, 0);
   }
 }
 

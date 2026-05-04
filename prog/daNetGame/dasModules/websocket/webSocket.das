@@ -1,42 +1,93 @@
 require webSocket
+options gen2
 
-require rtti
+require rtti_core
 options indenting = 2
 
-class WebSocket
+def class_info(cl) : StructInfo const? {
+    static_if (typeinfo is_pointer(cl)) {
+        if (cl == null) {
+            return null
+        }
+        static_if (typeinfo is_class(*cl)) {
+            unsafe {
+                return reinterpret<StructInfo const?>((reinterpret<TypeInfo const?>((*cl).__rtti)).structType)
+            }
+        } else {
+            concept_assert(false, "not a pointer to a class")
+            return null
+        }
+    } static_elif (typeinfo is_class(cl)) {
+        unsafe {
+            return reinterpret<StructInfo const?>((reinterpret<TypeInfo const?>(cl.__rtti)).structType)
+        }
+    } static_elif (typeinfo is_lambda(cl)) {
+        unsafe {
+            var l = reinterpret<int8 ??> addr(cl)
+            if (l == null) {
+                return null
+            }
+            var pti = reinterpret<TypeInfo const ??>(l[0] - 16)
+            return (*pti).structType
+        }
+    } else {
+        concept_assert(false, "this type does not have class info. its not a class or a lambda with options rtti")
+        return null
+    }
+}
+
+
+class WebSocket {
   _websocket : smart_ptr<WebSocketServer>
-  def make_server_adapter()
+  def make_server_adapter() {
     let classInfo = class_info(self)
-    unsafe
-      if !make_websocket(addr(self), classInfo)
+    unsafe {
+      if (!make_websocket(addr(self), classInfo)) {
         panic("can't make WebSocket")
-  def init(port : int) : bool
+      }
+    }
+  }
+  def init(port : int) : bool {
     return websocket_init(_websocket, port)
-  def init_path(port : int; document_root : string) : bool
+  }
+  def init_path(port : int; document_root : string) : bool {
     return websocket_init_path(_websocket, port, document_root)
-  def restore(var shared_orphan : smart_ptr<WebSocketServer>&)
+  }
+  def restore(var shared_orphan : smart_ptr<WebSocketServer>&) {
     _websocket |> move() <| shared_orphan
     let classInfo = class_info(self)
-    unsafe
+    unsafe {
       websocket_restore(_websocket, addr(self), classInfo)
-  def save(var shared_orphan : smart_ptr<WebSocketServer>&)
+    }
+  }
+  def save(var shared_orphan : smart_ptr<WebSocketServer>&) {
     shared_orphan |> move() <| _websocket
-  def has_session : bool
+  }
+  def has_session : bool {
     return _websocket != null
-  def is_open : bool
+}
+  def is_open : bool {
     return websocket_is_open(_websocket)
-  def is_connected : bool
+  }
+  def is_connected : bool {
     return websocket_is_connected(_websocket)
-  def finalize()
-    unsafe
+  }
+  def finalize() {
+    unsafe {
       delete _websocket
-  def tick : void
-    if _websocket != null
+    }
+  }
+  def tick : void {
+    if (_websocket != null) {
       websocket_tick(_websocket)
-  def send(data : uint8?; size : int) : bool
+    }
+  }
+  def send(data : uint8?; size : int) : bool {
     return websocket_send(_websocket, data, size)
+  }
   def abstract onConnect : void
   def abstract onDisconnect : void
   def abstract onData(buf : uint8?; size : int) : void
   def abstract onError(msg : string; code : int) : void
 
+}

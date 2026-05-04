@@ -10,8 +10,6 @@ texture hmap_patches_depth_tex;
 
 shader rendinst_heightmap_patch
 {
-  ENABLE_ASSERT(ps)
-
   if (instancing_type != tm_vb)
   {
     dont_render;
@@ -64,12 +62,11 @@ shader process_hmap_patches_depth
   z_test = false;
   cull_mode = none;
 
-  ENABLE_ASSERT(ps)
   POSTFX_VS(1)
 
   (ps)
   {
-    hmap_patches_depth_tex@smp2d = hmap_patches_depth_tex;
+    hmap_patches_depth_tex@tex2d = hmap_patches_depth_tex;
   }
 
   PS4_DEF_TARGET_FMT_32_R()

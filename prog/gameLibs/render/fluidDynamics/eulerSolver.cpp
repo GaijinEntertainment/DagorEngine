@@ -39,20 +39,20 @@ EulerSolver::EulerSolver(const char *solver_shader_name, uint32_t tex_width, uin
   blurCs.reset(new_compute_shader("blur_result_cs"));
   showSolution.init("show_cfd_solution");
 
-  velDensityTex[0] =
-    dag::create_tex(NULL, textureWidth, textureHeight, TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, "velocity_density_tex");
-  velDensityTex[1] =
-    dag::create_tex(NULL, textureWidth, textureHeight, TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, "next_velocity_density_tex");
+  velDensityTex[0] = dag::create_tex(NULL, textureWidth, textureHeight, TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1,
+    "velocity_density_tex", RESTAG_WATER);
+  velDensityTex[1] = dag::create_tex(NULL, textureWidth, textureHeight, TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1,
+    "next_velocity_density_tex", RESTAG_WATER);
 
   ShaderGlobal::set_int4(tex_sizeVarId, IPoint4(textureWidth, textureHeight, 0, 0));
-  ShaderGlobal::set_real(simulation_dxVarId, spatal_step);
+  ShaderGlobal::set_float(simulation_dxVarId, spatal_step);
 }
 
 void EulerSolver::fillInitialConditions(float standard_density, const Point2 &standard_velocity)
 {
   ShaderGlobal::set_texture(velocity_density_texVarId, velDensityTex[0]);
-  ShaderGlobal::set_real(standard_densityVarId, standard_density);
-  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standard_velocity.x, standard_velocity.y, 0.0f, 0.0f));
+  ShaderGlobal::set_float(standard_densityVarId, standard_density);
+  ShaderGlobal::set_float4(standard_velocityVarId, Color4(standard_velocity.x, standard_velocity.y, 0.0f, 0.0f));
 
   initialConditionsCs->dispatchThreads(textureWidth, textureHeight, 1);
 }
@@ -68,8 +68,8 @@ void EulerSolver::solveEquations(float dt, int num_dispatches)
   {
     ShaderGlobal::set_texture(velocity_density_texVarId, velDensityTex[currentIdx]);
     ShaderGlobal::set_texture(next_velocity_density_texVarId, velDensityTex[1 - currentIdx]);
-    ShaderGlobal::set_real(simulation_dtVarId, dt);
-    ShaderGlobal::set_real(simulation_timeVarId, simulationTime);
+    ShaderGlobal::set_float(simulation_dtVarId, dt);
+    ShaderGlobal::set_float(simulation_timeVarId, simulationTime);
     ShaderGlobal::set_int(euler_implicit_modeVarId, currentImplicit);
 
     solverCs->dispatchThreads(textureWidth, textureHeight, 1);
@@ -128,9 +128,9 @@ EulerCascadeSolver::EulerCascadeSolver(const char *solver_shader_name, IPoint3 t
     newCascade.spatialStep = spatial_step * (1 << (NUM_CASCADES - 1 - i));
     newCascade.dtMultiplier = cascadeDtMultipliers[i];
     newCascade.velDensityTex[0] = dag::create_voltex(newCascade.texSize.x, newCascade.texSize.y, tex_size.z,
-      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "velocity_density_cascade_%d_%s", i, solver_name));
+      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "velocity_density_cascade_%d_%s", i, solver_name), RESTAG_WATER);
     newCascade.velDensityTex[1] = dag::create_voltex(newCascade.texSize.x, newCascade.texSize.y, tex_size.z,
-      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "next_velocity_density_cascade_%d_%s", i, solver_name));
+      TEXFMT_A32B32G32R32F | TEXCF_UNORDERED, 1, String(0, "next_velocity_density_cascade_%d_%s", i, solver_name), RESTAG_WATER);
 
     d3d::resource_barrier({cascades[i].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
     d3d::resource_barrier({cascades[i].velDensityTex[1].getBaseTex(), RB_STAGE_COMPUTE | RB_RW_UAV, 0, 0});
@@ -144,8 +144,8 @@ void EulerCascadeSolver::fillInitialConditions(float standard_density, const Poi
   standardDensity = standard_density;
   standardVelocity = standard_velocity;
 
-  ShaderGlobal::set_real(standard_densityVarId, standardDensity);
-  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
+  ShaderGlobal::set_float(standard_densityVarId, standardDensity);
+  ShaderGlobal::set_float4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
 
   initialConditionsCs->dispatchThreads(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth);
   d3d::resource_barrier({cascades[currentCascade].velDensityTex[0].getBaseTex(), RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0});
@@ -162,17 +162,17 @@ bool EulerCascadeSolver::solveEquations(float dt, int base_num_dispatches)
   // const int actualNumDispatches = static_cast<int>(base_num_dispatches * cascadeDispatchNumMultipliers[currentCascade]);
   const int actualNumDispatches = base_num_dispatches;
 
-  ShaderGlobal::set_real(standard_densityVarId, standardDensity);
-  ShaderGlobal::set_color4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
+  ShaderGlobal::set_float(standard_densityVarId, standardDensity);
+  ShaderGlobal::set_float4(standard_velocityVarId, Color4(standardVelocity.x, standardVelocity.y, 0.0f, 0.0f));
 
   while (i < actualNumDispatches)
   {
     const float actualDt = dt * cascades[currentCascade].dtMultiplier;
 
-    ShaderGlobal::set_real(simulation_dtVarId, actualDt);
+    ShaderGlobal::set_float(simulation_dtVarId, actualDt);
     ShaderGlobal::set_int4(tex_sizeVarId,
       IPoint4(cascades[currentCascade].texSize.x, cascades[currentCascade].texSize.y, textureDepth, 0));
-    ShaderGlobal::set_real(simulation_dxVarId, cascades[currentCascade].spatialStep);
+    ShaderGlobal::set_float(simulation_dxVarId, cascades[currentCascade].spatialStep);
 
     int currentIdx = 0;
     int currentImplicit = 0;
@@ -260,7 +260,7 @@ void EulerCascadeSolver::switchToCascade(int cascade)
   ShaderGlobal::set_texture(velocity_density_texVarId, cascades[cascade].velDensityTex[0]);
   ShaderGlobal::set_texture(next_velocity_density_texVarId, cascades[cascade].velDensityTex[1]);
   ShaderGlobal::set_int4(tex_sizeVarId, IPoint4(cascades[cascade].texSize.x, cascades[cascade].texSize.y, textureDepth, 0));
-  ShaderGlobal::set_real(simulation_dxVarId, cascades[cascade].spatialStep);
+  ShaderGlobal::set_float(simulation_dxVarId, cascades[cascade].spatialStep);
 
   if (cascade != 0)
     fillNextCascadeInitialConditions();

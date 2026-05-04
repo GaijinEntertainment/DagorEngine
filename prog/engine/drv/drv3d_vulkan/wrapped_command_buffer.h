@@ -84,7 +84,7 @@ struct WrappedCommandBuffer
   Tab<uint8_t> cmdMem;
 
   template <typename T>
-  struct CmdAndParamater
+  struct CmdAndParameter
   {
     CmdID id;
     T param;
@@ -93,8 +93,8 @@ struct WrappedCommandBuffer
   template <typename T>
   T &pushCmd(const T &val)
   {
-    constexpr size_t sz = sizeof(CmdAndParamater<T>);
-    CmdAndParamater<T> &tgt = *((CmdAndParamater<T> *)cmdMem.append_default(sz));
+    constexpr size_t sz = sizeof(CmdAndParameter<T>);
+    CmdAndParameter<T> &tgt = *((CmdAndParameter<T> *)cmdMem.append_default(sz));
     tgt.id = T::ID;
     tgt.param = val;
     return tgt.param;
@@ -188,8 +188,8 @@ struct WrappedCommandBuffer
   //
   // case $1Parameters::ID:
   // {
-  //   auto& cmdPar = ((CmdAndParamater<$1Parameters>*)cmdPtr)->param;
-  //   cmdPtr += sizeof(CmdAndParamater<$1Parameters>);
+  //   auto& cmdPar = ((CmdAndParameter<$1Parameters>*)cmdPtr)->param;
+  //   cmdPtr += sizeof(CmdAndParameter<$1Parameters>);
   //   Globals::VK::dev.vkCmd$1(cb,
   //     cmdPar.
   //   );
@@ -1254,6 +1254,24 @@ struct WrappedCommandBuffer
       Globals::VK::dev.vkCmdWaitEvents(cb, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers,
         bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
   }
+#if VK_KHR_fragment_shading_rate
+  // vkCmdSetFragmentShadingRateKHR
+  struct SetFragmentShadingRateKHRParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+    VkExtent2D fragmentSize;
+    VkFragmentShadingRateCombinerOpKHR combinerOps[2];
+  };
+  void wCmdSetFragmentShadingRateKHR(VkExtent2D fragmentSize, VkFragmentShadingRateCombinerOpKHR combinerOps[2])
+  {
+    if (reorder)
+      pushCmd<SetFragmentShadingRateKHRParameters>({fragmentSize, {combinerOps[0], combinerOps[1]}});
+    else
+      Globals::VK::dev.vkCmdSetFragmentShadingRateKHR(cb, &fragmentSize, combinerOps);
+  }
+#endif
 };
+
+#undef AUTO_ID
 
 } // namespace drv3d_vulkan

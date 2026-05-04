@@ -1,8 +1,0 @@
-WARNING: w228 (declared-never-used) parameter 'u' was declared but never used.
-testData/static_analyzer/w303_destruct.nut:6:13
-
-function foo() { return "1" }
-function bar(u) {}
-             ^
-
-

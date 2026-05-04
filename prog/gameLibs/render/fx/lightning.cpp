@@ -50,16 +50,16 @@ void Lightning::render()
 void Lightning::setParams(LightningParams p)
 {
   params = p;
-  ShaderGlobal::set_real(lightning_aura_brightness_VarId, params.aura_brightness);
-  ShaderGlobal::set_real(lightning_aura_radius_VarId, params.aura_radius);
-  ShaderGlobal::set_real(lightning_brightnesss_VarId, params.brightness);
-  ShaderGlobal::set_real(lightning_width_VarId, params.width);
+  ShaderGlobal::set_float(lightning_aura_brightness_VarId, params.aura_brightness);
+  ShaderGlobal::set_float(lightning_aura_radius_VarId, params.aura_radius);
+  ShaderGlobal::set_float(lightning_brightnesss_VarId, params.brightness);
+  ShaderGlobal::set_float(lightning_width_VarId, params.width);
   ShaderGlobal::set_int(lightning_seg_num_VarId, params.segment_num);
-  ShaderGlobal::set_real(lightning_seg_len_VarId, params.segment_len);
-  ShaderGlobal::set_real(lightning_pos_VarId, params.pos);
-  ShaderGlobal::set_real(lightning_tremble_freq_VarId, params.tremble_freq);
-  ShaderGlobal::set_color4(lightning_color_VarId, point4(params.color, 1.0));
-  ShaderGlobal::set_real(lightning_deadzone_radius_VarId, params.deadzone_radius);
+  ShaderGlobal::set_float(lightning_seg_len_VarId, params.segment_len);
+  ShaderGlobal::set_float(lightning_pos_VarId, params.pos);
+  ShaderGlobal::set_float(lightning_tremble_freq_VarId, params.tremble_freq);
+  ShaderGlobal::set_float4(lightning_color_VarId, point4(params.color, 1.0));
+  ShaderGlobal::set_float(lightning_deadzone_radius_VarId, params.deadzone_radius);
 }
 
 void LightningParams::write(DataBlock &blk) const

@@ -1,14 +1,15 @@
+if (__name__ == "__analysis__")
+  return
+
 
 function foo() {}
 
 let x =foo()
 let y = x?.y
-
-
-local r = null
-
 let b = {}
 
+local _r = null
+
 if (x && y > 0) {
-    r = b[10] / (y * 60)
+  _r = b[10] / (y * 60)
 }

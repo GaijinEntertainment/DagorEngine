@@ -9,11 +9,11 @@
 #include <propPanel/propPanel.h>
 #include <imgui/imgui.h>
 
-class FavoritesTab
+class FavoritesTab : public PropPanel::IMenuEventHandler
 {
 public:
   explicit FavoritesTab(IAssetSelectorFavoritesRecentlyUsedHost &tab_host, const DagorAssetMgr &asset_mgr) :
-    favoritesTree(tab_host, asset_mgr), assetMgr(asset_mgr)
+    favoritesTree(tab_host, asset_mgr), assetMgr(asset_mgr), tabHost(tab_host)
   {
     closeIcon = PropPanel::load_icon("close_editor");
     searchIcon = PropPanel::load_icon("search");
@@ -26,6 +26,11 @@ public:
   DagorAsset *getSelectedAsset() { return favoritesTree.getSelectedAsset(); }
 
   void setSelectedAsset(const DagorAsset *asset) { favoritesTree.setSelectedAsset(asset); }
+
+  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets)
+  {
+    favoritesTree.getFilteredAssetsFromTheCurrentFolder(assets);
+  }
 
   void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)
   {
@@ -43,6 +48,42 @@ public:
     onShownTypeFilterChanged();
   }
 
+  void fillContextMenu(PropPanel::IMenu &menu, const DagorAsset *asset, const DagorAssetFolder *asset_folder)
+  {
+    using PropPanel::ROOT_MENU_ITEM;
+
+    if (asset)
+    {
+      menu.setEventHandler(this);
+
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RemoveFromFavoritesMenuItem, "Remove from favorites");
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
+      AssetBaseView::addCommonMenuItems(menu);
+    }
+    else if (asset_folder)
+    {
+      menu.setEventHandler(this);
+
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::ExpandChildrenMenuItem, "Expand children");
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CollapseChildrenMenuItem, "Collapse children");
+      menu.addSeparator(ROOT_MENU_ITEM);
+
+      if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
+      {
+        menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
+        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
+      }
+      else
+      {
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
+        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
+      }
+
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
+    }
+  }
+
   void updateImgui()
   {
     ImGui::PushID(this);
@@ -57,7 +98,7 @@ public:
     const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
       textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
+    PropPanel::set_previous_imgui_control_tooltip(inputId, AssetSelectorCommon::searchTooltip);
 
     if (inputFocused)
     {
@@ -88,7 +129,7 @@ public:
     const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
     bool settingsButtonPressed =
       PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
+    PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
 
     if (settingsPanelOpen)
       showSettingsPanel(popupId);
@@ -131,6 +172,69 @@ public:
   }
 
 private:
+  int onMenuItemClick(unsigned id) override
+  {
+    switch (id)
+    {
+      case AssetsGuiIds::GoToAssetInSelectorMenuItem:
+        if (const DagorAsset *asset = getSelectedAsset())
+          tabHost.goToAsset(*asset);
+        return 1;
+
+      case AssetsGuiIds::RemoveFromFavoritesMenuItem:
+        if (const DagorAsset *asset = getSelectedAsset())
+        {
+          if (!AssetSelectorGlobalState::removeFavorite(asset->getNameTypified()))
+            AssetSelectorGlobalState::removeFavorite(String(asset->getName()));
+
+          fillTree(asset);
+        }
+        return 1;
+
+      case AssetsGuiIds::CopyAssetFilePathMenuItem:
+        if (const DagorAsset *asset = getSelectedAsset())
+          AssetSelectorCommon::copyAssetFilePathToClipboard(*asset);
+        return 1;
+
+      case AssetsGuiIds::CopyAssetFolderPathMenuItem:
+      {
+        if (const DagorAsset *asset = getSelectedAsset())
+          AssetSelectorCommon::copyAssetFolderPathToClipboard(*asset);
+        else if (const DagorAssetFolder *assetFolder = favoritesTree.getSelectedAssetFolder())
+          AssetSelectorCommon::copyAssetFolderPathToClipboard(*assetFolder);
+        return 1;
+      }
+
+      case AssetsGuiIds::CopyAssetNameMenuItem:
+      {
+        if (const DagorAsset *asset = getSelectedAsset())
+          AssetSelectorCommon::copyAssetNameToClipboard(*asset);
+        else if (const DagorAssetFolder *assetFolder = favoritesTree.getSelectedAssetFolder())
+          AssetSelectorCommon::copyAssetFolderNameToClipboard(*assetFolder);
+        return 1;
+      }
+
+      case AssetsGuiIds::RevealInExplorerMenuItem:
+      {
+        if (const DagorAsset *asset = getSelectedAsset())
+          AssetSelectorCommon::revealInExplorer(*asset);
+        else if (const DagorAssetFolder *assetFolder = favoritesTree.getSelectedAssetFolder())
+          AssetSelectorCommon::revealInExplorer(*assetFolder);
+        return 1;
+      }
+
+      case AssetsGuiIds::ExpandChildrenMenuItem:
+      case AssetsGuiIds::CollapseChildrenMenuItem:
+      {
+        const bool expand = id == AssetsGuiIds::ExpandChildrenMenuItem;
+        favoritesTree.expandSelected(expand);
+        return 1;
+      }
+    }
+
+    return 0;
+  }
+
   void onShownTypeFilterChanged()
   {
     favoritesTree.setShownTypes(shownTypes);
@@ -160,8 +264,7 @@ private:
 
     bool showHierarchy = favoritesTree.getShowHierarchy();
     const bool showHierarchyPressed = PropPanel::ImguiHelper::checkboxWithDragSelection("Show hierarchy", &showHierarchy);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()),
-      "Show the favorite assets including their hierarchy.");
+    PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Show the favorite assets including their hierarchy.");
 
     if (showHierarchyPressed)
       favoritesTree.setShowHierarchy(showHierarchy);
@@ -170,6 +273,7 @@ private:
   }
 
   const DagorAssetMgr &assetMgr;
+  IAssetSelectorFavoritesRecentlyUsedHost &tabHost;
   FavoritesTree favoritesTree;
   AssetTypeFilterControl assetTypeFilterControl;
   dag::Vector<bool> allowedTypes;

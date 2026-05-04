@@ -1,0 +1,28 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+UseQuirrel = yes ;
+
+Root    ?= ../../.. ;
+Module = auto_graphics ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+UseProgLibs =
+  gameLibs/render/autoGraphics
+;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+;
+
+local AllSrcFolder_CPP = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP =
+    ui
+  ;
+  AddPullVars += auto_graphics_ui ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

@@ -19,7 +19,7 @@ struct Direct3D12Enviroment;
 struct PipelineStageStateBase;
 namespace debug
 {
-union Configuration;
+struct Configuration;
 namespace gpu_postmortem::dagor
 {
 class Trace
@@ -36,12 +36,46 @@ class Trace
     TraceRecording(TraceRecording &&) = default;
     TraceRecording &operator=(TraceRecording &&) = default;
   };
-  CommandListStorage<TraceRecording> commandListTable;
+  CommandListStorage<CommandListIdentifier, TraceRecording> commandListTable;
   CommandListTraceRecorderPool traceRecoderingPool;
   TraceCheckpoint lastCheckpoint = {};
+  // have to keep the last valid checkpoint around to properly handle device resets and the execution of trace capture command
+  // SET_GPU_POSTMORTEM_DATA_TRACE_ENABLED
+  TraceCheckpoint lastValidCheckpoint = {};
+  bool isContinuousTraceMode = false;
+  bool traceEnabled = false;
+
+  class RangeReporter
+  {
+    static constexpr uint32_t MAX_RANGES_COUNT = 16;
+
+    carray<eastl::pair<TraceCheckpoint, TraceCheckpoint>, MAX_RANGES_COUNT> traceRangesRing;
+    int insertIndex = 0;
+
+  public:
+    RangeReporter();
+
+    void markCmdListDataExpired(CommandListIdentifier cmdListId);
+    void beginRange(const TraceCheckpoint &checkpoint);
+    void endRange(const TraceCheckpoint &checkpoint);
+
+    void report(Trace &trace, call_stack::Reporter &reporter);
+  };
+  RangeReporter rangeReporter;
 
   void walkBreadcumbs(call_stack::Reporter &reporter);
-  static bool try_load(const Configuration &config, const Direct3D12Enviroment &d3d_env);
+  static bool checkForContinuousTraceModeFromConfig(const Configuration &config);
+
+  const Trace::TraceRecording *getOptionalListForRange(const TraceCheckpoint &from, const TraceCheckpoint &to) const;
+
+  void updateCheckpoint(const TraceCheckpoint &checkpoint)
+  {
+    if (lastCheckpoint.isValid())
+    {
+      lastValidCheckpoint = lastCheckpoint;
+    }
+    lastCheckpoint = checkpoint;
+  }
 
 public:
   // Have to delete move constructor, otherwise compiler / templated stuff of variant tries to be smart and results in compile errors.
@@ -50,34 +84,38 @@ public:
   Trace() = default;
   ~Trace() { logdbg("DX12: Shutting down DAGOR GPU Trace"); }
   void configure() {}
-  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *);
-  void endCommandBuffer(D3DGraphicsCommandList *);
-  void beginEvent(D3DGraphicsCommandList *, eastl::span<const char>, const eastl::string &);
-  void endEvent(D3DGraphicsCommandList *, const eastl::string &);
-  void marker(D3DGraphicsCommandList *, eastl::span<const char>);
-  void draw(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, const PipelineStageStateBase &,
-    BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t, D3D12_PRIMITIVE_TOPOLOGY);
-  void drawIndexed(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, int32_t, uint32_t,
+  void beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id);
+  void endCommandBuffer(CommandListIdentifier cmd_id);
+  void beginEvent(CommandListIdentifier cmd_id, eastl::span<const char>, const eastl::string &);
+  void endEvent(CommandListIdentifier cmd_id, const eastl::string &);
+  void marker(CommandListIdentifier cmd_id, eastl::span<const char>);
+  void draw(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY);
-  void drawIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &);
-  void drawIndexedIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &);
-  void dispatchIndirect(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
+  void drawIndexed(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t,
+    int32_t, uint32_t, D3D12_PRIMITIVE_TOPOLOGY);
+  void drawIndirect(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, const PipelineStageStateBase &, BasePipeline &, PipelineVariant &,
     const BufferResourceReferenceAndOffset &);
-  void dispatch(const call_stack::CommandData &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &, uint32_t,
-    uint32_t, uint32_t);
-  void dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z);
-  void dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  void drawIndexedIndirect(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, const PipelineStageStateBase &, BasePipeline &, PipelineVariant &,
+    const BufferResourceReferenceAndOffset &);
+  void dispatchIndirect(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, ComputePipeline &, const BufferResourceReferenceAndOffset &);
+  void dispatch(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, ComputePipeline &, uint32_t, uint32_t, uint32_t);
+  void dispatchMesh(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    uint32_t x, uint32_t y, uint32_t z);
+  void dispatchMeshIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count);
-  void blit(const call_stack::CommandData &, D3DGraphicsCommandList *);
+  void blit(const call_stack::CommandData &, CommandListIdentifier cmd_id, D3DGraphicsCommandList *);
 #if D3D_HAS_RAY_TRACING
-  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  void dispatchRays(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
     const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp);
-  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
     const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip);
 #endif
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter);
@@ -100,11 +138,13 @@ public:
   template <typename T>
   static bool load(const Configuration &config, const Direct3D12Enviroment &d3d_env, T &&target)
   {
-    if (!try_load(config, d3d_env))
-    {
-      return false;
-    }
-    target.template emplace<Trace>();
+    G_UNUSED(d3d_env);
+
+    auto isContinuousTraceMode = checkForContinuousTraceModeFromConfig(config);
+    logdbg("DX12: Dagor %s GPU trace is enabled...", isContinuousTraceMode ? "" : "production");
+
+    target.template emplace<Trace>().isContinuousTraceMode = isContinuousTraceMode;
+
     return true;
   }
 
@@ -115,6 +155,14 @@ public:
   }
 
   TraceCheckpoint getCheckpoint() { return lastCheckpoint; }
+  TraceCheckpoint getLastValidCheckpoint()
+  {
+    if (lastCheckpoint.isValid())
+    {
+      return lastCheckpoint;
+    }
+    return lastValidCheckpoint;
+  }
 
   TraceRunStatus getTraceRunStatusFor(const TraceCheckpoint &cp)
   {
@@ -140,6 +188,10 @@ public:
   }
 
   void reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter);
+  bool reportOnlyLaunchedTrace(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter);
+
+  bool isTraceEnabled() const { return isContinuousTraceMode || traceEnabled; }
+  void setTraceEnabled(CommandListIdentifier cmd_id, bool is_enabled);
 };
 
 } // namespace gpu_postmortem::dagor

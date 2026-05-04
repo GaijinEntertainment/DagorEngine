@@ -24,13 +24,8 @@ SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvTouchScreenHoverButton, bhv_touch_scre
 
 BhvTouchScreenHoverButton::BhvTouchScreenHoverButton() : BhvTouchScreenButton() {}
 
-int BhvTouchScreenHoverButton::touchEvent(ElementTree *,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
+int BhvTouchScreenHoverButton::pointingEvent(
+  ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   if (event != INP_EV_PRESS && event != INP_EV_RELEASE && event != INP_EV_POINTER_MOVE)
     return 0;
@@ -47,7 +42,7 @@ int BhvTouchScreenHoverButton::touchEvent(ElementTree *,
 
   if (event == INP_EV_PRESS || event == INP_EV_POINTER_MOVE)
   {
-    if (buttonState->touchIdx < 0 && elem->hitTest(touch.x, touch.y) && !(accum_res & R_PROCESSED))
+    if (buttonState->touchIdx < 0 && elem->hitTest(pos) && !(accum_res & R_PROCESSED))
     {
       buttonState->touchIdx = touch_idx;
       if (!useActionOnTouchEnd)
@@ -56,7 +51,7 @@ int BhvTouchScreenHoverButton::touchEvent(ElementTree *,
       return R_PROCESSED;
     }
 
-    if (buttonState->touchIdx == touch_idx && !elem->hitTest(touch.x, touch.y))
+    if (buttonState->touchIdx == touch_idx && !elem->hitTest(pos))
     {
       buttonState->touchIdx = -1;
       if (!useActionOnTouchEnd)
@@ -67,7 +62,7 @@ int BhvTouchScreenHoverButton::touchEvent(ElementTree *,
   }
   else if (event == INP_EV_RELEASE) //-V547
   {
-    if (buttonState->touchIdx == touch_idx && elem->hitTest(touch.x, touch.y))
+    if (buttonState->touchIdx == touch_idx && elem->hitTest(pos))
     {
       buttonState->touchIdx = -1;
       if (useActionOnTouchEnd)

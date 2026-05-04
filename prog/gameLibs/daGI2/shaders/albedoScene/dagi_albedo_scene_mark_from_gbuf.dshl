@@ -4,6 +4,7 @@ include "globtm.dshl"
 include "assert.dshl"
 include "dagi_albedo_scene_common.dshl"
 include "project_is_dynamic_point.dshl"
+include "dynamic_resolution.dshl"
 
 int dagi_albedo_scene_stable_update = 1;
 interval dagi_albedo_scene_stable_update:off<1, on;
@@ -12,11 +13,12 @@ int4 dagi_albedo_scene_update_count;
 macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
   DAGI_ALBEDO_WRITE(code)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   (code) {
     globtm_psf@f44 = {globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3};
     world_view_pos@f3 = world_view_pos;
   }
-  if (hardware.dx11 && !hardware.dx12)
+  if (hardware.dx11)
   {
     hlsl(code) {
       #pragma force_min_opt_level 4
@@ -36,7 +38,7 @@ macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
     #if !DAGI_ALBEDO_SCENE_STABLE
       void albedo_scene_mark_from_gbuf(float3 worldPos, float linearDepth, float2 tc, uint2 tcI, uint random, int cascade)
       {
-        ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+        ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI * current_dynamic_resolution_scale);
         if (get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf) != POINT_OPAQUE)
           return;
         dagi_albedo_scene_update_color(worldPos, cascade, saturate(gbuf.specularColor + gbuf.diffuseColor));
@@ -75,7 +77,7 @@ macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
         {
           clipSpacePt.xy = saturate(clipSpacePt.xy*float2(0.5, -0.5)/clipSpacePt.w + 0.5);
           uint2 tcI = min(floor(dim*clipSpacePt.xy), dim-1);
-          float rawDepth = texture2DAt(depth_gbuf, tcI).x;
+          float rawDepth = texture2DAt(depth_gbuf, tcI * current_dynamic_resolution_scale).x;
           if (tid == 0 && rawDepth == 0)
           {
             rawDepth = baseRawDepth;
@@ -92,7 +94,7 @@ macro ALBEDO_SCENE_MARK_FROM_GBUF(code)
             if (isSameVoxel)// || tid == 0
             {
               float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
-              ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI);
+              ProcessedGbuffer gbuf = loadProcessedGbuffer(tcI * current_dynamic_resolution_scale);
               half3 albedo = saturate(gbuf.specularColor + gbuf.diffuseColor);
               //todo: WaveInterlockedAdd
               uint tp = get_project_update_from_point(worldPos, linearDepth, tc, tcI, gbuf);
@@ -129,13 +131,13 @@ shader dagi_albedo_scene_from_gbuf_cs
 {
   INIT_ZNZFAR_STAGE(cs)
 
-  ENABLE_ASSERT(cs)
   (cs) {
     globtm_inv@f44 = globtm_inv;
     depth_gbuf@tex2d = depth_gbuf;
     depth_gbuf_dim@f2 = get_dimensions(depth_gbuf, 0);
     dagi_albedo_scene_update_count@i2 = dagi_albedo_scene_update_count;
   }
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   ALBEDO_SCENE_MARK_FROM_GBUF(cs)
 
   hlsl(cs) {
@@ -158,7 +160,7 @@ shader dagi_albedo_scene_from_gbuf_cs
       uint2 random = pcg2d(uint2(pixelIndex, dagi_albedo_scene_update_count.y));
       uint2 tcI = pseudo_random_screen_coord(pixelIndex, dagi_albedo_scene_update_count.x, dim, random.x);
       //uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
-      float rawDepth = texture2DAt(depth_gbuf, tcI).x; // this is same for all vertical group
+      float rawDepth = texture2DAt(depth_gbuf, tcI * current_dynamic_resolution_scale).x; // this is same for all vertical group
       if (rawDepth<=0)
         return;
       float2 tc = (tcI+0.5)/dim;

@@ -154,7 +154,7 @@ public:
   virtual DagorAsset *getAsset() = 0;
   virtual int getAssetNameId() = 0;
   virtual const char *getResourceName() = 0;
-  virtual int getRIIndex() const = 0;
+  virtual int getPregenId() const = 0;
   virtual int getPoolIndex() = 0;
 
   // Gets the transformation matrix that corresponds to the aligned/compressed/quantized
@@ -187,6 +187,18 @@ public:
   static constexpr unsigned HUID = 0xF5D85BF6u; // IPluginAutoSave
 
   virtual void autoSaveObjects(DataBlock &local_data) = 0;
+};
+
+
+class IPluginBeforeClose
+{
+public:
+  static constexpr unsigned HUID = 0x3F8B2D01u; // IPluginBeforeClose
+
+  // Called after project save, while the main window is still visible, to allow
+  // plugins to perform slow finalisation work (e.g. file compression) before the
+  // window is destroyed and the process exits.
+  virtual void beforeClose() = 0;
 };
 
 

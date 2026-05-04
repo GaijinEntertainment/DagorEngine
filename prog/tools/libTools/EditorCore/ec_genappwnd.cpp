@@ -2,11 +2,16 @@
 
 #include <EditorCore/ec_genappwnd.h>
 #include "ec_screenshotSettingsDialog.h"
+#include "ec_screenshotSettingsDialogController.h"
 #include "ec_gizmoRenderer.h"
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_brushfilter.h>
+#include <EditorCore/ec_editorCommandSystem.h>
+#include <EditorCore/ec_menu.h>
+#include <EditorCore/ec_modelessWindowControllerList.h>
 #include <EditorCore/ec_startDlg.h>
 #include <EditorCore/ec_startup.h>
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_wndGlobal.h>
 
@@ -21,10 +26,12 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_basePath.h>
+#include <osApiWrappers/dag_localConv.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_zlibIo.h>
+#include <workCycle/dag_gameScene.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_workCycle.h>
 #include <debug/dag_debug.h>
@@ -49,11 +56,15 @@
 #include <3d/dag_render.h>
 #include <3d/ddsxTex.h>
 #include <3d/dag_lockTexture.h>
+#include <gui/dag_imgui.h>
+#include <propPanel/commonWindow/dialogManager.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
 #include <propPanel/control/menu.h>
 #include <propPanel/colors.h>
 #include <render/dag_cur_view.h>
+#include <util/dag_console.h>
+#include <generic/dag_sort.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <debug/dag_debug3d.h>
@@ -61,20 +72,19 @@
 
 extern void update_visibility_finder(VisibilityFinder &vf);
 
-#define ORTHOGONAL_SCREENSHOT_HEIGHT 1000.f
-
 const float OS_PREVIEW_H = 10000.0;
 const float OS_CAMERA_H = 1000.0;
 const float OSGR_H = 5000.0;
 const float OSSEL_H = OSGR_H;
+const float ORTHOGONAL_SCREENSHOT_HEIGHT = OS_PREVIEW_H * 0.5f;
 
 extern CachedRenderViewports *ec_cached_viewports;
+static ScreenshotSettingsDialogController screenshot_settings_dialog_controller;
 static const char EMPTY_PATH[] = "";
 static const int TEX_SIZES_CNT = 8;
 static int tex_sizes[TEX_SIZES_CNT] = {8192, 4096, 2048, 1024, 512, 256, 128, 64};
 static const int TEX_QUALITY_TYPE_CNT = 4;
 static const char *tex_qt[TEX_QUALITY_TYPE_CNT] = {"tga", "jpeg 100%", "jpeg 90%", "jpeg 40%"};
-static eastl::unique_ptr<ScreenshotSettingsDialog> screenshot_settings_dialog;
 
 enum
 {
@@ -315,16 +325,32 @@ private:
   int shotSz;
 };
 
-struct BaseEditorCoreConsoleCmdHandler : public IConsoleCmd
+namespace
 {
-  CoolConsole *console;
-  BaseEditorCoreConsoleCmdHandler() : console(NULL) {}
+bool saveScreenshot(ScreenshotFormat fmt, const TexPixel32 *tex, int w, int h, int stride, const String &fname, int jpeg_q,
+  bool save_alpha);
+}
 
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override
+static int compare_command_ids(const String *s1, const String *s2) { return dd_stricmp(s1->str(), s2->str()); }
+
+class BaseEditorCoreConsoleCmdHandler : public console::ICommandProcessor
+{
+public:
+  GenericEditorAppWindow *appWnd;
+  BaseEditorCoreConsoleCmdHandler() : appWnd(NULL) {}
+
+  void destroy() override {}
+
+  bool processCommand(const char *argv[], int argc) override
   {
-    if (!console)
+    if (argc < 1 || !appWnd)
       return false;
-    if (!stricmp(cmd, "time.speed"))
+
+    const dag::Span<const char *> params = make_span(&argv[1], argc - 1);
+    int found = 0;
+
+    CoolConsole *console = appWnd->console;
+    CONSOLE_CHECK_NAME_EX("time", "speed", 1, 2, "[scale]", "")
     {
       if (params.size() == 1)
       {
@@ -336,44 +362,118 @@ struct BaseEditorCoreConsoleCmdHandler : public IConsoleCmd
         }
         else
           console->addMessage(ILogWriter::ERROR, "bad time scale: %g (must be >=0)", s);
-        return true;
       }
       else if (params.size() == 0)
       {
         dagor_game_time_scale = dagor_game_time_scale ? 0.0f : 1.0f;
         console->addMessage(ILogWriter::NOTE, "time scale changed to: %g", dagor_game_time_scale);
-        return true;
       }
-      console->addMessage(ILogWriter::ERROR, "%s requires 1 or 0 params, had %d", cmd, params.size());
-      return true;
+      else
+      {
+        console->addMessage(ILogWriter::ERROR, "%s requires 1 or 0 params, had %d", argv[0], params.size());
+      }
     }
-    return false;
-  }
+    CONSOLE_CHECK_NAME("screenshot", "create", 1, 1) { appWnd->createScreenshot(); }
+    CONSOLE_CHECK_NAME("screenshot", "create_cube", 1, 1) { appWnd->createCubeScreenshot(); }
+    CONSOLE_CHECK_NAME("screenshot", "window", 1, 16)
+    {
+      String command;
+      for (int i = 0; i < params.size(); ++i)
+      {
+        command += params[i];
+        if (i != (params.size() - 1))
+          command += " ";
+      }
+      const char *windowTitle = params.size() > 0 ? command.c_str() : nullptr;
+      imgui_capture_window_drawdata(windowTitle, [&](int w, int h, int stride, unsigned int *pixels_rgba) -> void {
+        String fname = appWnd->getScreenshotName(false);
+        ScreenshotConfig &sCfg = appWnd->screenshotCfg;
+        if (::saveScreenshot(sCfg.format, reinterpret_cast<const TexPixel32 *>(pixels_rgba), w, h, stride, fname, sCfg.jpegQuality,
+              sCfg.enableTransparentBackground))
+        {
+          appWnd->console->addMessage(ILogWriter::NOTE, "Screenshot saved to\n\"%s\"", fname.c_str());
+        }
+        else
+        {
+          appWnd->console->addMessage(ILogWriter::ERROR, "Failed to save screenshot to\n\"%s\"", fname.c_str());
+        }
+        delete[] pixels_rgba;
+      });
+    }
+    CONSOLE_CHECK_NAME_EX("editor", "list_commands", 1, 2, "Dumps list of editor command ids. The list can be filtered", "[filter]")
+    {
+      IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+      G_ASSERT(commandSystem);
 
-  const char *onConsoleCommandHelp(const char *cmd) override
-  {
-    if (!console)
-      return NULL;
-    if (!stricmp(cmd, "time.speed"))
-      return "time.speed <scale>";
+      unsigned int count = commandSystem->getCommandCount();
+      const char *filter = params.size() == 1 ? params[0] : "";
+      Tab<String> commandIds;
+      for (unsigned int i = 0; i < count; ++i)
+      {
+        const char *commandId = commandSystem->getCommandId(i);
+        if (commandId && dd_stristr(commandId, filter))
+          commandIds.emplace_back(commandId);
+      }
+      sort(commandIds, compare_command_ids);
 
-    return NULL;
+      console->addMessage(ILogWriter::NOTE, "Editor command count: %d", commandIds.size());
+      for (String &commandId : commandIds)
+      {
+        unsigned int cmdId = commandSystem->getCommandCmdId(commandId.c_str());
+        console->addMessage(ILogWriter::NOTE, "%s (%u)", commandId.c_str(), cmdId);
+      }
+    }
+    CONSOLE_CHECK_NAME_EX("editor", "command", 2, 2, "", "[editor-command-id-name]")
+    {
+      IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+      G_ASSERT(commandSystem);
+
+      const char *name = params[0];
+      unsigned int cmdId = commandSystem->getCommandCmdId(name);
+      if (cmdId != 0)
+      {
+        G_ASSERT((cmdId & GenericEditorAppWindow::DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
+        PropPanel::request_delayed_callback(*appWnd, (void *)((uintptr_t)cmdId));
+        console->addMessage(ILogWriter::NOTE, "Executing editor command \"%s\" (id = %u)", name, cmdId);
+      }
+      else
+      {
+        console->addMessage(ILogWriter::ERROR, "Failed to find editor command id for name: \"%s\"", name);
+      }
+    }
+    CONSOLE_CHECK_NAME_EX("editor", "command_viewport", 2, 2, "", "[editor-command-id-name]")
+    {
+      IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+      G_ASSERT(commandSystem);
+
+      const char *name = params[0];
+      unsigned int cmdId = commandSystem->getCommandCmdId(name);
+      if (cmdId != 0)
+      {
+        G_ASSERT((cmdId & GenericEditorAppWindow::DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT) == 0);
+        cmdId |= GenericEditorAppWindow::DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT;
+        PropPanel::request_delayed_callback(*appWnd, (void *)((uintptr_t)cmdId));
+        console->addMessage(ILogWriter::NOTE, "Executing editor command in viewport \"%s\" (id = %u)", name, cmdId);
+      }
+      else
+      {
+        console->addMessage(ILogWriter::ERROR, "Failed to find editor command id for name: \"%s\"", name);
+      }
+    }
+
+    return found != 0;
   }
-  void registerSelf(CoolConsole *c)
+  void registerSelf(GenericEditorAppWindow *a)
   {
-    console = c;
-#define REGISTER_COMMAND(cmd_name)               \
-  if (!console->registerCommand(cmd_name, this)) \
-    console->addMessage(ILogWriter::ERROR, "[EditorCore] Couldn't register command '" cmd_name "'");
-    REGISTER_COMMAND("time.speed");
-#undef REGISTER_COMMAND
+    appWnd = a;
+    add_con_proc(this);
   }
 };
 static BaseEditorCoreConsoleCmdHandler ec_concmd;
 
 namespace
 {
-bool saveDDSX(const char *fname, TexPixel32 *tex, int size, int line, bool save_alpha)
+bool saveDDSX(const char *fname, const TexPixel32 *tex, int size, int line, bool save_alpha)
 {
   ddsx::Header hdr;
   memset(&hdr, 0, sizeof(hdr));
@@ -389,7 +489,7 @@ bool saveDDSX(const char *fname, TexPixel32 *tex, int size, int line, bool save_
   FullFileSaveCB cwr(fname);
   if (cwr.fileHandle)
   {
-    const auto write = [&cwr, &size, &line, &hdr](TexPixel32 *tex) {
+    const auto write = [&cwr, &size, &line, &hdr](const TexPixel32 *tex) {
       cwr.write(&hdr, sizeof(hdr));
       ZlibSaveCB z_cwr(cwr, ZlibSaveCB::CL_BestSpeed + 5); // ~25Mb/sec
       for (int face = 0; face < 6; ++face)
@@ -431,7 +531,8 @@ bool saveDDSX(const char *fname, TexPixel32 *tex, int size, int line, bool save_
 
 
 //==================================================================================================
-bool saveScreenshot(ScreenshotFormat fmt, TexPixel32 *tex, int w, int h, int stride, const String &fname, int jpeg_q, bool save_alpha)
+bool saveScreenshot(ScreenshotFormat fmt, const TexPixel32 *tex, int w, int h, int stride, const String &fname, int jpeg_q,
+  bool save_alpha)
 {
   switch (fmt)
   {
@@ -448,12 +549,12 @@ bool saveScreenshot(ScreenshotFormat fmt, TexPixel32 *tex, int w, int h, int str
       else
       {
         eastl::unique_ptr<std::byte> imageData(new std::byte[w * h * 3]);
-        std::byte *image32 = reinterpret_cast<std::byte *>(tex);
+        const std::byte *image32 = reinterpret_cast<const std::byte *>(tex);
         for (int i = 0; i < h; ++i)
           for (int j = 0; j < w; ++j)
             for (int h = 0; h < 3; ++h)
               imageData.get()[h + 3 * (j + w * i)] = image32[h + 4 * j + stride * i];
-        return ::save_tga24(fname, reinterpret_cast<char *>(imageData.get()), w, h, w * 3);
+        return ::save_tga24(fname, reinterpret_cast<const char *>(imageData.get()), w, h, w * 3);
       }
     }
     case ScreenshotFormat::PNG:
@@ -480,9 +581,9 @@ bool saveScreenshot(ScreenshotFormat fmt, TexPixel32 *tex, int w, int h, int str
 //==================================================================================================
 bool saveScreenshot(ScreenshotFormat fmt, Texture &tex, const String &fname, int jpeg_q, bool save_alpha)
 {
-  if (auto lockedTex = lock_texture<real>(&tex, 0, TEXLOCK_DEFAULT))
+  if (auto lockedTex = lock_texture<const real>(&tex, 0, TEXLOCK_READ))
   {
-    return saveScreenshot(fmt, reinterpret_cast<TexPixel32 *>(lockedTex.get()), lockedTex.getWidthInElems(),
+    return saveScreenshot(fmt, reinterpret_cast<const TexPixel32 *>(lockedTex.get()), lockedTex.getWidthInElems(),
       lockedTex.getHeightInElems(), lockedTex.getByteStride(), fname, jpeg_q, save_alpha);
   }
 
@@ -532,22 +633,25 @@ GenericEditorAppWindow::GenericEditorAppWindow(const char *open_fname, IWndManag
     shouldLoadFile = true;
   }
 
-  mainMenu.reset(PropPanel::create_menu());
+  mainMenu.reset(ec_create_menu());
   getMainMenu()->setEventHandler(this);
 
   console = new CoolConsole();
+
+  // Limit instant redraws to areas where it is strictly necessary.
+  // Do not allow redraws while showing a fatal error to prevent causing another fatal error.
+  console->setIsRedrawAllowedCallback(
+    [](CoolConsole &c) { return (ec_get_busy() || c.isProgressBarVisible()) && interlocked_relaxed_load(g_debug_is_in_fatal) == 0; });
 }
 
 GenericEditorAppWindow::~GenericEditorAppWindow()
 {
-  ec_concmd.console = NULL;
+  ec_concmd.appWnd = NULL;
   delete console;
 
   del_it(undoSystem);
   del_it(gizmoEH);
   del_it(brushEH);
-
-  closeScreenshotSettingsDialog();
 }
 
 
@@ -568,7 +672,7 @@ void GenericEditorAppWindow::init(const char *select_workspace)
   // ged.setViewportCacheMode(ged.vcmode);
 
   console->initConsole();
-  ec_concmd.registerSelf(console);
+  ec_concmd.registerSelf(this);
 
   fillMenu(getMainMenu());
   setDocTitle();
@@ -583,7 +687,7 @@ void GenericEditorAppWindow::init(const char *select_workspace)
 
 void GenericEditorAppWindow::startWith(const char *select_workspace)
 {
-  startup_editor_core_select_startup_scene();
+  G_ASSERT(dagor_get_current_game_scene()); // startup_editor_core_select_startup_scene() must be called.
 
   // process start dialog
 
@@ -652,46 +756,60 @@ void GenericEditorAppWindow::startWith(const char *select_workspace)
 }
 
 
-void GenericEditorAppWindow::fillCommonToolbar(PropPanel::ContainerPropertyControl &tb)
+void GenericEditorAppWindow::registerCommonEditorCommands(IEditorCommandSystem &command_system)
 {
-  tb.createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Z or Ctrl+Shift+Z)");
+  command_system.addCommand(EditorCommandIds::ZOOM_AND_CENTER, ImGuiKey_Z);
+  command_system.addCommand(EditorCommandIds::ZOOM_AND_CENTER_IN_FLY_MODE, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z);
+  command_system.addCommand(EditorCommandIds::NAVIGATE);
+  command_system.addCommand(EditorCommandIds::CAMERAS_FREE, ImGuiKey_Space);
+  command_system.addCommand(EditorCommandIds::CAMERAS_FPS, ImGuiMod_Ctrl | ImGuiKey_Space);
+  command_system.addCommand(EditorCommandIds::CAMERAS_TPS, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Space);
+  command_system.addCommand(EditorCommandIds::CAMERAS_CAR);
+  command_system.addCommand(EditorCommandIds::CHANGE_FOV);
+  command_system.addCommand(EditorCommandIds::CREATE_SCREENSHOT, ImGuiMod_Ctrl | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::CREATE_CUBE_SCREENSHOT, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::ENVIRONMENT_SETTINGS);
+}
+
+
+void GenericEditorAppWindow::fillCommonToolbar(PropPanel::ContainerPropertyControl &tb, IEditorCommandSystem &command_system)
+{
+  command_system.createToolbarButton(tb, CM_ZOOM_AND_CENTER, EditorCommandIds::ZOOM_AND_CENTER, "Zoom and center");
   tb.setButtonPictures(CM_ZOOM_AND_CENTER, "zoom_and_center");
 
-  tb.createButton(CM_NAVIGATE, "Navigate");
+  command_system.createToolbarButton(tb, CM_NAVIGATE, EditorCommandIds::NAVIGATE, "Navigate");
   tb.setButtonPictures(CM_NAVIGATE, "navigate");
 
   tb.createSeparator();
 
-  tb.createRadio(CM_CAMERAS_FREE, "Fly mode (Spacebar)");
+  command_system.createToolbarRadioButton(tb, CM_CAMERAS_FREE, EditorCommandIds::CAMERAS_FREE, "Fly mode");
   tb.setButtonPictures(CM_CAMERAS_FREE, "freecam");
 
-  tb.createRadio(CM_CAMERAS_FPS, "FPS mode (Ctrl+Spacebar)");
+  command_system.createToolbarRadioButton(tb, CM_CAMERAS_FPS, EditorCommandIds::CAMERAS_FPS, "FPS mode");
   tb.setButtonPictures(CM_CAMERAS_FPS, "fpscam");
 
-  tb.createRadio(CM_CAMERAS_TPS, "TPS mode (Ctrl+Shift+Spacebar)");
+  command_system.createToolbarRadioButton(tb, CM_CAMERAS_TPS, EditorCommandIds::CAMERAS_TPS, "TPS mode");
   tb.setButtonPictures(CM_CAMERAS_TPS, "tpscam");
 
   tb.createSeparator();
 
-  tb.createButton(CM_STATS, "Show level statistics");
-  tb.setButtonPictures(CM_STATS, "stats");
-
   tb.createSeparator();
 
-  tb.createButton(CM_CHANGE_FOV, "Change FOV");
+  command_system.createToolbarButton(tb, CM_CHANGE_FOV, EditorCommandIds::CHANGE_FOV, "Change FOV");
   tb.setButtonPictures(CM_CHANGE_FOV, "change_fov");
 
   tb.createSeparator();
 
-  tb.createButton(CM_CREATE_SCREENSHOT, "Create screenshot (Ctrl+P)");
+  command_system.createToolbarButton(tb, CM_CREATE_SCREENSHOT, EditorCommandIds::CREATE_SCREENSHOT, "Create screenshot");
   tb.setButtonPictures(CM_CREATE_SCREENSHOT, "screenshot");
 
-  tb.createButton(CM_CREATE_CUBE_SCREENSHOT, "Create cube screenshot (Ctrl+Shift+P)");
+  command_system.createToolbarButton(tb, CM_CREATE_CUBE_SCREENSHOT, EditorCommandIds::CREATE_CUBE_SCREENSHOT,
+    "Create cube screenshot");
   tb.setButtonPictures(CM_CREATE_CUBE_SCREENSHOT, "screenshot_cube");
 
   tb.createSeparator();
 
-  tb.createButton(CM_ENVIRONMENT_SETTINGS, "Environment settings");
+  command_system.createToolbarButton(tb, CM_ENVIRONMENT_SETTINGS, EditorCommandIds::ENVIRONMENT_SETTINGS, "Environment settings");
   tb.setButtonPictures(CM_ENVIRONMENT_SETTINGS, "environment_settings");
 }
 
@@ -756,6 +874,12 @@ void GenericEditorAppWindow::handleNotifyEvent ( CtlWndObject *w, CtlEventData &
 }
 */
 
+void GenericEditorAppWindow::getModelessWindowControllers(ModelessWindowControllerList &controllers, ScreenshotDlgMode mode)
+{
+  screenshot_settings_dialog_controller.setConfig(mode, &screenshotCfg, &cubeScreenshotCfg);
+  controllers.addWindowController(screenshot_settings_dialog_controller);
+}
+
 void GenericEditorAppWindow::saveViewportsParams(DataBlock &blk) const
 {
   DataBlock *viewportsBlk = blk.addBlock("ViewportsParams");
@@ -806,6 +930,13 @@ void GenericEditorAppWindow::loadViewportsParams(const DataBlock &blk)
 
 
 void GenericEditorAppWindow::updateUndoRedoMenu() {}
+
+
+void GenericEditorAppWindow::onSnapSettingChanged()
+{
+  ged.tbManager->onSnapSettingChanged();
+  ViewportWindow::onSnapSettingChanged();
+}
 
 
 int GenericEditorAppWindow::onMenuItemClick(unsigned id)
@@ -1012,7 +1143,7 @@ bool GenericEditorAppWindow::canCloseScene(const char *title)
 }
 
 
-bool GenericEditorAppWindow::canClose() { return (canCloseScene("Exit")); }
+bool GenericEditorAppWindow::canClose() { return !PropPanel::is_any_modal_dialog_open() && canCloseScene("Exit"); }
 
 
 class GenericEditorAppWindow::FovDlg : public PropPanel::DialogWindow
@@ -1068,28 +1199,6 @@ void GenericEditorAppWindow::onShowConsole()
 
 //==================================================================================================
 
-void GenericEditorAppWindow::setScreenshotOptions(ScreenshotDlgMode mode)
-{
-  if (!screenshot_settings_dialog)
-  {
-    screenshot_settings_dialog.reset(
-      new ScreenshotSettingsDialog(screenshotCfg, cubeScreenshotCfg, mode, [this](const ScreenshotSettingsDialog &dialog) {
-        screenshotCfg = dialog.getScreenshotCfg();
-        cubeScreenshotCfg = dialog.getCubeScreenshotCfg();
-      }));
-
-    screenshot_settings_dialog->fill();
-  }
-
-  if (screenshot_settings_dialog->isVisible())
-    screenshot_settings_dialog->hide();
-  else
-    screenshot_settings_dialog->show();
-}
-
-
-//==================================================================================================
-
 String GenericEditorAppWindow::getScreenshotName(bool cube) const
 {
   const String fnameMask = getScreenshotNameMask(cube);
@@ -1135,7 +1244,7 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
   if (!tex)
     return NULL;
 
-  d3d::set_render_target(tex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{tex, 0, 0}});
 
 
   const bool cacheUsed = ::ec_cached_viewports->isViewportCacheUsed(curVpIdx);
@@ -1165,6 +1274,7 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
     viewport->getZnearZfar(zNear, zFar);
     float fov = viewport->getFov();
     bool isOrthogonal = viewport->isOrthogonal();
+    Driver3dPerspective persp;
 
     if (should_make_orthogonal_screenshot)
     {
@@ -1178,21 +1288,23 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
       ::grs_cur_view.itm = tm;
       d3d::settm(TM_VIEW, ::grs_cur_view.tm);
 
-      viewport->setProjection(true, 1.f, 1.f, 10000.f);
+      viewport->setProjection(true, 1.f, 1.f, OS_PREVIEW_H);
 
-      projection = matrix_ortho_off_center_lh(world_x0, world_x1, world_z0, world_z1, 10000.0f, 1.f);
-
+      projection = matrix_ortho_off_center_lh(world_x0, world_x1, world_z0, world_z1, OS_PREVIEW_H, 1.f);
       d3d::settm(TM_PROJ, &projection);
+      persp = Driver3dPerspective(projection.m[0][0], projection.m[1][1], OS_PREVIEW_H, 1.f);
+      isOrthogonal = true;
     }
-    else if (viewport->isOrthogonal())
+    else if (isOrthogonal)
     {
       projection = matrix_ortho_lh_reverse(2 * w / viewport->getOrthogonalZoom(), 2 * h / viewport->getOrthogonalZoom(), 1, zFar);
-
       d3d::settm(TM_PROJ, &projection);
+      persp = Driver3dPerspective(projection.m[0][0], projection.m[1][1], zNear, zFar);
     }
     else if (tm)
     {
-      d3d::setpersp(Driver3dPerspective(1, 1, zNear, zFar, 0, 0));
+      persp = Driver3dPerspective(1, 1, zNear, zFar);
+      d3d::setpersp(persp);
     }
     else
     {
@@ -1218,9 +1330,10 @@ Texture *GenericEditorAppWindow::renderInTex(int w, int h, const TMatrix *tm, bo
 
       const TMatrix4 perspective = matrix_perspective_off_center_reverse(left, right, bottom, top, zNear, zFar);
       d3d::settm(TM_PROJ, &perspective);
+      persp = Driver3dPerspective(perspective.m[0][0], perspective.m[1][1], zNear, zFar);
     }
 
-    screenshotRender(skip_debug_objects);
+    screenshotRender(persp, isOrthogonal, skip_debug_objects);
 
     update_visibility_finder(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
     ::ec_cached_viewports->endRender();
@@ -1555,7 +1668,7 @@ int GenericEditorAppWindow::getMaxRTSize()
   int w, h;
   d3d::get_render_target_size(w, h, NULL, 0);
 
-  String ed_set_fn(260, "%s/../commonData/startup_editors.blk", sgg::get_exe_path_full());
+  String ed_set_fn(260, "%s/startup_editors.blk", sgg::get_common_data_dir());
   DataBlock ed_set(ed_set_fn);
   const DataBlock *video_blk = ed_set.getBlockByName("video");
   if (video_blk)
@@ -1650,8 +1763,3 @@ void GenericEditorAppWindow::loadScreenshotSettings(const DataBlock &blk)
     }
   }
 }
-
-
-//==================================================================================================
-
-void GenericEditorAppWindow::closeScreenshotSettingsDialog() { screenshot_settings_dialog.reset(); }

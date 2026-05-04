@@ -1,0 +1,72 @@
+macro CLASSIFY_TILES_COMMON(code)
+  (code) {
+    downsampled_close_depth_tex@tex2d = downsampled_close_depth_tex;
+    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    half_res@f2 = get_dimensions(downsampled_close_depth_tex, 0);
+  }
+
+  hlsl(code) {
+    float2 get_raw_depth_range_2x2(uint2 conner_pix_coords)
+    {
+      uint2 halfCoord = conner_pix_coords/2;
+      if (any(halfCoord >= half_res))
+        return float2(1, 0);
+      return float2(
+        texelFetch(downsampled_close_depth_tex, halfCoord, 0).x,
+        texelFetch(downsampled_far_depth_tex, halfCoord, 0).x);
+    }
+
+    bool has_dynamic_lighting(uint2 light_tile_id, float nearW, float farW)
+    {
+      bool hasLights = false;
+
+ ##if dynamic_lights_count != lights_off
+      uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
+      uint tileOffset = (light_tile_id.x * tiledGridSize.y + light_tile_id.y) * DWORDS_PER_TILE;
+
+##if (dynamic_lights_count != lights_spot_1)
+      uint nearZbinsOmni = z_binning_lookup[depth_to_z_bin(nearW)];
+      uint farZbinsOmni = z_binning_lookup[depth_to_z_bin(farW)];
+      uint2 omniLightRange = uint2(nearZbinsOmni >> 16, farZbinsOmni & 0xFFFF);
+      uint mergedOmniBinsBegin = WAVE_MIN(omniLightRange.x);
+      uint mergedOmniBinsEnd = WAVE_MAX(omniLightRange.y);
+      uint omniLightsBegin = mergedOmniBinsBegin >> 5;
+      uint omniLightsEnd = mergedOmniBinsEnd >> 5;
+      uint omniMaskWidth = clamp((int)omniLightRange.y - (int)omniLightRange.x + 1, 0, 32);
+      uint omniWord = 0;
+
+##if (dynamic_lights_count != lights_omni_1 && dynamic_lights_count != lights_omnispot_1)
+      for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
+##else
+      if (omniLightsBegin <= omniLightsEnd)
+##endif
+      {
+        hasLights = hasLights || (structuredBufferAt(lights_list, tileOffset + omniWord) != 0);
+      }
+##endif
+
+##if (dynamic_lights_count != lights_omni_1)
+      uint nearZbinsSpot = z_binning_lookup[depth_to_z_bin(nearW) + Z_BINS_COUNT];
+      uint farZbinsSpot = z_binning_lookup[depth_to_z_bin(farW) + Z_BINS_COUNT];
+      uint2 spotLightRange = uint2(nearZbinsSpot >> 16, farZbinsSpot & 0xFFFF);
+      uint mergedSpotBinsBegin = WAVE_MIN(spotLightRange.x);
+      uint mergedSpotBinsEnd = WAVE_MAX(spotLightRange.y);
+      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
+      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
+      uint spotMaskWidth = clamp((int)spotLightRange.y - (int)spotLightRange.x + 1, 0, 32);
+      uint spotWord = DWORDS_PER_TILE / 2;
+
+##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
+      for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
+##else
+      if (spotLightsBegin <= spotLightsEnd)
+##endif
+      {
+        hasLights = hasLights || (structuredBufferAt(lights_list, tileOffset + spotWord) != 0);
+      }
+##endif
+##endif
+      return hasLights;
+    }
+  }
+endmacro

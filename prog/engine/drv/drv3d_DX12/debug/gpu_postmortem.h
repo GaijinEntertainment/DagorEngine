@@ -25,7 +25,7 @@
 #endif
 #include "gpu_postmortem_dagor_trace.h"
 #include "gpu_postmortem_microsoft_dred.h"
-#if HAS_AMD_GPU_SERVICES
+#if HAS_AGS
 #include "gpu_postmortem_ags_trace.h"
 #endif
 
@@ -84,7 +84,7 @@ struct Aftermath : NeverInitModule
 } // namespace nvidia
 #endif
 
-#if !HAS_AMD_GPU_SERVICES
+#if !HAS_AGS
 namespace ags
 {
 struct AgsTrace : NeverInitModule
@@ -492,21 +492,27 @@ class PostMortemModuleContainer<T>
     }
   };
 
+  template <bool InvokeOnlyActive>
+  bool canInvoke() const
+  {
+    return container && (!InvokeOnlyActive || container->isTraceEnabled());
+  }
+
 public:
-  template <typename C>
+  template <bool InvokeOnlyActive = true, typename C>
   auto invoke(C &&clb)
   {
     using ResultType = decltype(clb(*container));
     if constexpr (eastl::is_same<ResultType, void>::value)
     {
-      if (container)
+      if (canInvoke<InvokeOnlyActive>())
       {
         clb(*container);
       }
     }
     else
     {
-      return container ? clb(*container) : get_post_mortem_module_default_value<ResultType>();
+      return canInvoke<InvokeOnlyActive>() ? clb(*container) : get_post_mortem_module_default_value<ResultType>();
     }
   }
 
@@ -521,7 +527,7 @@ public:
   template <typename... Is>
   bool onDeviceCreated(D3DDevice *device, Is &&...is)
   {
-    if (invoke([&](auto &module) { return module.onDeviceCreated(device, is...); }))
+    if (invoke<false>([&](auto &module) { return module.onDeviceCreated(device, is...); }))
     {
       return true;
     }
@@ -583,115 +589,121 @@ public:
   }
   void onDeviceShutdown()
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.onDeviceShutdown(); });
+    traceRecorder.invoke<false>([&](auto &recorder) { recorder.onDeviceShutdown(); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.onDeviceShutdown(); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.onDeviceShutdown(); });
   }
-  void beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd)
+  void beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
   {
-    traceRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd); });
+    traceRecorder.invoke<false>([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd_id); });
     pageFaultRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd); });
     vendorExtendedRecorder.invoke([=](auto &recorder) { recorder.beginCommandBuffer(device, cmd); });
   }
-  void endCommandBuffer(D3DGraphicsCommandList *cmd)
+  void endCommandBuffer(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.endCommandBuffer(cmd); });
+    traceRecorder.invoke<false>([&](auto &recorder) { recorder.endCommandBuffer(cmd_id); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.endCommandBuffer(cmd); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.endCommandBuffer(cmd); });
   }
-  void beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
+  void beginEvent(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::span<const char> text,
+    const eastl::string &full_path)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.beginEvent(cmd, text, full_path); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.beginEvent(cmd_id, text, full_path); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.beginEvent(cmd, text, full_path); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.beginEvent(cmd, text, full_path); });
   }
-  void endEvent(D3DGraphicsCommandList *cmd, const eastl::string &full_path)
+  void endEvent(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, const eastl::string &full_path)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.endEvent(cmd, full_path); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.endEvent(cmd_id, full_path); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.endEvent(cmd, full_path); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.endEvent(cmd, full_path); });
   }
-  void marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
+  void marker(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::span<const char> text)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.marker(cmd, text); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.marker(cmd_id, text); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.marker(cmd, text); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.marker(cmd, text); });
   }
-  void draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-    uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+  void draw(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
   {
     traceRecorder.invoke([&](auto &recorder) {
-      recorder.draw(debug_info, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
+      recorder.draw(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
     });
   }
-  void drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-    uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+  void drawIndexed(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+    D3D12_PRIMITIVE_TOPOLOGY topology)
   {
     traceRecorder.invoke([&](auto &recorder) {
-      recorder.drawIndexed(debug_info, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
+      recorder.drawIndexed(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
         first_instance, topology);
     });
   }
-  void drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-    const BufferResourceReferenceAndOffset &buffer)
-  {
-    traceRecorder.invoke([&](auto &recorder) { recorder.drawIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer); });
-  }
-  void drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  void drawIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &buffer)
   {
     traceRecorder.invoke(
-      [&](auto &recorder) { recorder.drawIndexedIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer); });
+      [&](auto &recorder) { recorder.drawIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer); });
   }
-  void dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-    ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
+  void drawIndexedIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    const BufferResourceReferenceAndOffset &buffer)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchIndirect(debug_info, cmd, state, pipeline, buffer); });
+    traceRecorder.invoke(
+      [&](auto &recorder) { recorder.drawIndexedIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer); });
   }
-  void dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &stage,
-    ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
+  void dispatchIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.dispatch(debug_info, cmd, stage, pipeline, x, y, z); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchIndirect(debug_info, cmd_id, cmd, state, pipeline, buffer); });
   }
-  void dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
+  void dispatch(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &stage, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchMesh(debug_info, cmd, vs, ps, pipeline_base, pipeline, x, y, z); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.dispatch(debug_info, cmd_id, cmd, stage, pipeline, x, y, z); });
   }
-  void dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  void dispatchMesh(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    uint32_t x, uint32_t y, uint32_t z)
+  {
+    traceRecorder.invoke(
+      [&](auto &recorder) { recorder.dispatchMesh(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, x, y, z); });
+  }
+  void dispatchMeshIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
   {
     traceRecorder.invoke([&](auto &recorder) {
-      recorder.dispatchMeshIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
+      recorder.dispatchMeshIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
     });
   }
-  void blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd)
+  void blit(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.blit(debug_info, cmd); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.blit(debug_info, cmd_id, cmd); });
   }
 
 #if D3D_HAS_RAY_TRACING
-  void dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  void dispatchRays(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
     const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchRays(debug_info, cmd, dispatch_parameters, rbt, rdp); });
+    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchRays(debug_info, cmd_id, cmd, dispatch_parameters, rbt, rdp); });
   }
 
-  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+  void dispatchRaysIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
     const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.dispatchRaysIndirect(debug_info, cmd, dispatch_parameters, rbt, rdip); });
+    traceRecorder.invoke(
+      [&](auto &recorder) { recorder.dispatchRaysIndirect(debug_info, cmd_id, cmd, dispatch_parameters, rbt, rdip); });
   }
 #endif
 
   void onDeviceRemoved(D3DDevice *device, HRESULT reason, call_stack::Reporter &reporter)
   {
-    traceRecorder.invoke([&](auto &recorder) { recorder.onDeviceRemoved(device, reason, reporter); });
+    traceRecorder.invoke<false>([&](auto &recorder) { recorder.onDeviceRemoved(device, reason, reporter); });
     pageFaultRecorder.invoke([&](auto &recorder) { recorder.onDeviceRemoved(device, reason, reporter); });
     vendorExtendedRecorder.invoke([&](auto &recorder) { recorder.onDeviceRemoved(device, reason, reporter); });
   }
@@ -730,22 +742,27 @@ public:
 
   TraceCheckpoint getTraceCheckpoint()
   {
-    return traceRecorder.invoke([=](auto &module) { return module.getCheckpoint(); });
+    return traceRecorder.invoke<false>([=](auto &module) { return module.getCheckpoint(); });
   }
 
   TraceRunStatus getTraceRunStatusFor(const TraceCheckpoint &cp)
   {
-    return traceRecorder.invoke([=](auto &module) { return module.getTraceRunStatusFor(cp); });
+    return traceRecorder.invoke<false>([=](auto &module) { return module.getTraceRunStatusFor(cp); });
   }
 
   TraceStatus getTraceStatusFor(const TraceCheckpoint &cp)
   {
-    return traceRecorder.invoke([=](auto &module) { return module.getTraceStatusFor(cp); });
+    return traceRecorder.invoke<false>([=](auto &module) { return module.getTraceStatusFor(cp); });
+  }
+
+  void setPostmortemTraceEnabled(CommandListIdentifier cmd_id, bool is_enabled)
+  {
+    traceRecorder.invoke<false>([=](auto &module) { module.setTraceEnabled(cmd_id, is_enabled); });
   }
 
   void reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter)
   {
-    traceRecorder.invoke([=, &from, &to, &reporter](auto &module) { module.reportTraceDataForRange(from, to, reporter); });
+    traceRecorder.invoke<false>([=, &from, &to, &reporter](auto &module) { module.reportTraceDataForRange(from, to, reporter); });
   }
 };
 #else

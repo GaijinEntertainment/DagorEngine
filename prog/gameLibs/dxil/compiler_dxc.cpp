@@ -91,6 +91,63 @@ bool write_to_file(auto blob, const eastl::wstring &path)
   return true;
 }
 
+bool write_to_text_file(auto blob, const eastl::wstring &path)
+{
+  FILE *fp = nullptr;
+  _wfopen_s(&fp, path.c_str(), L"w");
+  if (!fp)
+    return false;
+
+  const char *p = (const char *)blob->GetBufferPointer();
+  size_t len = blob->GetBufferSize();
+  while (len > 0 && p[len - 1] == '\0')
+    --len;
+
+  fwrite(p, len, 1, fp);
+  fclose(fp);
+  return true;
+}
+
+// turns profile string from char to wchar and ensures its 6.0 or later
+// also returns version as fixed point 16bit.16bit value or 0 on error
+uint32_t translate_profile(const char *in_profile, wchar_t *out_profile, uint32_t out_char_max)
+{
+  if (0 == strncmp("lib_", in_profile, 4))
+  {
+    if (out_char_max >= 8)
+    {
+      // lib is converted as is
+      out_profile[0] = L'l';
+      out_profile[1] = L'i';
+      out_profile[2] = L'b';
+      out_profile[3] = L'_';
+      out_profile[4] = in_profile[4];
+      out_profile[5] = L'_';
+      out_profile[6] = in_profile[6];
+      out_profile[7] = L'\0';
+
+      return (uint32_t(in_profile[4] - '0') << 16) | uint32_t(in_profile[6] - '0');
+    }
+  }
+  else
+  {
+    if (out_char_max >= 7)
+    {
+      out_profile[0] = in_profile[0];
+      out_profile[1] = in_profile[1];
+      out_profile[2] = L'_';
+      // if 6.x or greater requested, overwrite defaults
+      out_profile[3] = in_profile[3] >= '6' ? in_profile[3] : L'6';
+      out_profile[4] = L'_';
+      out_profile[5] = in_profile[3] >= '6' ? in_profile[5] : L'0';
+      out_profile[6] = L'\0';
+
+      return (uint32_t(in_profile[3] - '0') << 16) | uint32_t(in_profile[5] - '0');
+    }
+  }
+  return 0;
+}
+
 CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, WrappedBlob blob, const char *entry, const char *profile,
   const DXCSettings &settings, DXCVersion dxc_version)
 {
@@ -100,16 +157,10 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
     entryBuf.push_back(entry[i]);
   entryBuf.push_back('\0');
 
-  // min profile is 6.0
-  wchar_t targetProfile[] = L"??_6_0";
-  targetProfile[0] = profile[0];
-  targetProfile[1] = profile[1];
-  // if 6.x or greater requested, overwrite defaults
-  if (profile[3] >= '6')
-  {
-    targetProfile[3] = profile[3];
-    targetProfile[5] = profile[5];
-  }
+  wchar_t targetProfile[8];
+  const uint32_t packedProfileVersion = translate_profile(profile, targetProfile, 8);
+  const uint32_t minorProfileVersion = packedProfileVersion & 0xFFFF;
+  const uint32_t majorProfileVersion = packedProfileVersion >> 16;
 
   wchar_t optimizeLevel[4] = L"-O0";
   optimizeLevel[2] = L'0' + clamp<uint32_t>(settings.optimizeLevel, 0, 3);
@@ -134,7 +185,7 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
     compilerParams.emplace_back(autoSpace);
   }
 
-  if (settings.enableFp16 && (targetProfile[3] > L'6' || (targetProfile[3] == L'6' && targetProfile[5] >= L'2')))
+  if (settings.enableFp16 && (majorProfileVersion > 6 || (majorProfileVersion == 6 && minorProfileVersion >= 2)))
   {
     compilerParams.emplace_back(L"-enable-16bit-types");
   }
@@ -367,7 +418,7 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
     }
     hlslPath.append(L".hlsl");
 
-    if (write_to_file(&blob, hlslPath))
+    if (write_to_text_file(&blob, hlslPath))
     {
       compilerParams.emplace_back(hlslPath.begin() + basePathLenght);
     }
@@ -443,9 +494,13 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
           pdbPath.append(pdbName->GetStringPointer(), pdbName->GetStringPointer() + pdbName->GetStringLength());
           if (!write_to_file(pdb, pdbPath))
           {
-            result.errorLog.append("dxil::compileHLSLWithDXC: Unable to store PDB at ");
+            // @NOTE: we can't consider this an error, or a warning (due to -wx), because dsc cache works on source
+            // with hlsl macros, and different sources may become identical after preprocessing
+            // @TODO: remove if we make preproc our own
+            result.messageLog.append("dxil::compileHLSLWithDXC: Unable to store PDB at ");
             // truncates wchars to chars
-            eastl::copy(begin(pdbPath), end(pdbPath), eastl::back_inserter(result.errorLog));
+            eastl::copy(begin(pdbPath), end(pdbPath), eastl::back_inserter(result.messageLog));
+            result.messageLog.append(", probably due to identical compiled shaders");
           }
         }
 
@@ -462,9 +517,13 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
           csoPath.append(L".cso");
           if (!write_to_file(cso, csoPath))
           {
-            result.errorLog.append("dxil::compileHLSLWithDXC: Unable to store CSO at ");
+            // @NOTE: we can't consider this an error, or a warning (due to -wx), because dsc cache works on source
+            // with hlsl macros, and different sources may become identical after preprocessing
+            // @TODO: remove if we make preproc our own
+            result.messageLog.append("dxil::compileHLSLWithDXC: Unable to store CSO at ");
             // truncates wchars to chars
-            eastl::copy(begin(csoPath), end(csoPath), eastl::back_inserter(result.errorLog));
+            eastl::copy(begin(csoPath), end(csoPath), eastl::back_inserter(result.messageLog));
+            result.messageLog.append(", probably due to identical compiled shaders");
           }
         }
       }
@@ -543,7 +602,8 @@ CompileResult dxil::compileHLSLWithDXC(dag::ConstSpan<char> src, const char *ent
   return result;
 }
 
-PreprocessResult dxil::preprocessHLSLWithDXC(dag::ConstSpan<char> src, dag::ConstSpan<DXCDefine> defines, void *dxc_lib)
+PreprocessResult dxil::preprocessHLSLWithDXC(const char *profile, dag::ConstSpan<char> src, dag::ConstSpan<DXCDefine> defines,
+  void *dxc_lib)
 {
   PreprocessResult result;
   if (!dxc_lib)
@@ -574,7 +634,13 @@ PreprocessResult dxil::preprocessHLSLWithDXC(dag::ConstSpan<char> src, dag::Cons
   WrappedBlob sourceBlob{src};
 
   dag::Vector<LPCWSTR> compilerParams;
-  compilerParams.reserve(2 + 2 * defines.size());
+  compilerParams.reserve(4 + 2 * defines.size());
+
+  wchar_t targetProfile[8];
+  translate_profile(profile, targetProfile, 8);
+
+  compilerParams.emplace_back(L"-T");
+  compilerParams.emplace_back(targetProfile);
 
   compilerParams.emplace_back(L"-P");
 
@@ -682,742 +748,1220 @@ eastl::string dxil::disassemble(eastl::span<const uint8_t> data, void *dxc_lib)
   return result;
 }
 
-namespace
-{
 namespace llvm
 {
-struct MetaNameID
+eastl::string_view parse_name(eastl::string_view &parse_range)
 {
-  eastl::string_view name;
-
-  bool operator==(const MetaNameID &) const = default;
-};
-struct MetaID
-{
-  eastl::string_view id;
-
-  bool operator==(const MetaID &) const = default;
-};
-struct MetaStringConstant
-{
-  eastl::string_view string;
-
-  bool operator==(const MetaStringConstant &) const = default;
-};
-struct MetaBooleanConstant
-{
-  eastl::string_view value;
-
-  bool operator==(const MetaBooleanConstant &) const = default;
-};
-struct MetaIntegerConstant
-{
-  eastl::string_view value;
-  uint32_t bits;
-
-  bool operator==(const MetaIntegerConstant &) const = default;
-};
-struct MetaTypedID
-{
-  eastl::string_view type;
-  eastl::string_view id;
-
-  bool operator==(const MetaTypedID &) const = default;
-};
-struct MetaSSAID
-{
-  eastl::string_view id;
-
-  bool operator==(const MetaSSAID &) const = default;
-};
-struct MetaUnhandled
-{
-  eastl::string_view value;
-
-  bool operator==(const MetaUnhandled &) const = default;
-};
-using MetaDataValue = eastl::variant<decltype(nullptr), MetaNameID, MetaID, MetaStringConstant, MetaBooleanConstant,
-  MetaIntegerConstant, MetaUnhandled, MetaTypedID, MetaSSAID>;
-using MetaDataList = eastl::vector<MetaDataValue>;
-struct MetaData
-{
-  struct Entry
+  parse_range = parse_range.substr(parse_range.find_first_not_of(" \t\t"));
+  size_t ofs = 0;
+  if ('@' == parse_range[ofs] || '%' == parse_range[ofs])
   {
-    eastl::string_view name;
-    MetaDataList list;
-  };
-  eastl::vector<Entry> entries;
-  void add(eastl::string_view name, MetaDataList list) { entries.emplace_back(name, eastl::move(list)); }
-  const MetaDataList *get(eastl::string_view name) const
-  {
-    auto at = eastl::find_if(entries.begin(), entries.end(), [name](auto &e) { return name == e.name; });
-    if (entries.end() != at)
-    {
-      return &at->list;
-    }
-    return nullptr;
+    ++ofs;
   }
-};
-
-void skip_spaces(eastl::string_view &view) { view.remove_prefix(view.find_first_not_of(' ')); }
-
-bool is_num(char c) { return c >= '0' && c <= '9'; }
-
-void log_line(eastl::string_view dasm, eastl::string &log, const char *info)
-{
-  auto lineEnd = dasm.find('\n');
-  auto lineView = dasm.substr(0, lineEnd);
-  eastl::string lineStr{lineView.begin(), lineView.end()};
-  log.append_sprintf("llvm::log: %s '%s'\n", info, lineStr.c_str());
-}
-
-bool parse_meta_value(eastl::string_view &dasm, MetaDataValue &value, eastl::string &log)
-{
-  skip_spaces(dasm);
-
-  if (dasm.starts_with("null"))
+  if ('"' == parse_range[ofs] || '<' == parse_range[ofs])
   {
-    value = nullptr;
-    dasm.remove_prefix(4);
-    return true;
-  }
-  else if ('!' == dasm.front())
-  {
-    if ('"' == dasm[1])
+    auto terminating = '<' == parse_range[ofs] ? '>' : '"';
+    for (++ofs; ofs < parse_range.size(); ++ofs)
     {
-      auto sEnd = dasm.find('"', 2);
-      if (eastl::string_view::npos != sEnd)
+      if (terminating != parse_range[ofs])
       {
-        MetaStringConstant c;
-        c.string = dasm.substr(0, sEnd + 1);
-        dasm.remove_prefix(sEnd);
-        value = c;
-        return true;
+        continue;
       }
-      auto lineEnd = dasm.find('\n');
-      auto lineView = dasm.substr(0, lineEnd);
-      log.append_sprintf("llvm::parse_meta_value: Parse error open string constant '");
-      log.append(lineView.begin(), lineView.end());
-      log.append("'\n'");
-      return false;
-    }
-    else
-    {
-      if (is_num(dasm[1]))
+      if ('\\' == parse_range[ofs - 1])
       {
-        auto numEnd = dasm.find_first_not_of("0123456789", 1);
-        if (eastl::string_view::npos != numEnd)
-        {
-          MetaID id;
-          id.id = dasm.substr(0, numEnd);
-          dasm.remove_prefix(numEnd);
-          value = id;
-          return true;
-        }
+        continue;
       }
-      else
-      {
-        auto nameEnd = dasm.find_first_of(' =,}');
-        if (eastl::string_view::npos != nameEnd)
-        {
-          MetaNameID id;
-          id.name = dasm.substr(0, nameEnd);
-          dasm.remove_prefix(nameEnd);
-          value = id;
-          return true;
-        }
-      }
-    }
-  }
-  else if ('%' == dasm.front())
-  {
-    auto defEnd = dasm.find_first_of("=,}");
-    auto secondDef = dasm.find('%', 1);
-    if (secondDef < defEnd)
-    {
-      MetaTypedID typed;
-      typed.type = dasm.substr(0, secondDef);
-      typed.id = dasm.substr(secondDef, defEnd - secondDef);
-      while (' ' == typed.id.back())
-      {
-        typed.id.remove_suffix(1);
-      }
-      while (' ' == typed.type.back())
-      {
-        typed.type.remove_suffix(1);
-      }
-      value = typed;
-    }
-    else
-    {
-      MetaSSAID u;
-      u.id = dasm.substr(0, defEnd);
-      dasm.remove_prefix(defEnd);
-      while (' ' == u.id.back())
-      {
-        u.id.remove_suffix(1);
-      }
-      value = u;
-    }
-    return true;
-  }
-  else if ('i' == dasm.front())
-  {
-    dasm.remove_prefix(1);
-    auto valueEnd = dasm.find_first_not_of("0123456789");
-    auto valueType = dasm.substr(0, valueEnd);
-    dasm.remove_prefix(valueEnd);
-    skip_spaces(dasm);
-
-    if (valueType == "1")
-    {
-      MetaBooleanConstant b;
-      if (dasm.starts_with("true"))
-      {
-        b.value = dasm.substr(0, 4);
-        dasm.remove_prefix(4);
-      }
-      else if (dasm.starts_with("false"))
-      {
-        b.value = dasm.substr(0, 5);
-        dasm.remove_prefix(5);
-      }
-      else
-      {
-        auto lineEnd = dasm.find('\n');
-        auto lineView = dasm.substr(0, lineEnd);
-        log.append_sprintf("llvm::parse_meta_value: Parse error unknown bool value '");
-        log.append(lineView.begin(), lineView.end());
-        log.append("'\n'");
-        return false;
-      }
-
-      value = b;
-      return true;
-    }
-    else if (valueType == "8" || valueType == "32" || valueType == "64")
-    {
-      auto valueEnd = dasm.find_first_not_of("0123456789");
-      MetaIntegerConstant ic;
-      ic.bits = valueType == "8" ? 8 : valueType == "32" ? 32 : 64;
-      ic.value = dasm.substr(0, valueEnd);
-      dasm.remove_prefix(valueEnd);
-      value = ic;
-      return true;
-    }
-    else
-    {
-      log.append_sprintf("llvm::parse_meta_value: Parse error unknown value type '");
-      log.append(valueType.begin(), valueType.end());
-      log.append("'\n'");
-      return false;
+      auto name = parse_range.substr(0, ofs + 1);
+      parse_range.remove_prefix(ofs + 1);
+      return name;
     }
   }
   else
   {
-    auto defEnd = dasm.find_first_of("=,}");
-    MetaUnhandled u;
-    u.value = dasm.substr(0, defEnd);
-    dasm.remove_prefix(defEnd);
-    value = u;
+    auto e = parse_range.find_first_of("*,(){} \n", ofs);
+    auto name = parse_range.substr(0, e);
+    parse_range.remove_prefix(e);
+    return name;
+  }
+  return {};
+}
+class IL
+{
+public:
+  struct MetaId
+  {
+    eastl::string_view value;
+  };
+  struct MetaInt
+  {
+    eastl::string_view value;
+    uint32_t bits;
+  };
+  struct MetaString
+  {
+    eastl::string_view value;
+  };
+  struct MetaExpression
+  {
+    eastl::string_view value;
+  };
+  using MetaValue = eastl::variant<eastl::monostate, decltype(nullptr), MetaId, MetaInt, MetaString, MetaExpression>;
+  // key = <value set>
+  eastl::vector<MetaValue> &addMetaData(eastl::string_view key)
+  {
+    auto &e = metaData.emplace_back();
+    e.key = key;
+    return e.data;
+  }
+  const eastl::vector<MetaValue> *getMetaData(eastl::string_view key)
+  {
+    auto ref = eastl::find_if(metaData.begin(), metaData.end(), [key](auto &e) { return key == e.key; });
+    if (metaData.end() != ref)
+    {
+      return &ref->data;
+    }
+    return nullptr;
+  }
+
+  void addGlobal(eastl::string_view name) { types.push_back(name); }
+  void addType(eastl::string_view name) { types.push_back(name); }
+
+  struct Expression
+  {
+    // may be empty, when no name was assigned (eg call without result, if statements and so on)
+    eastl::string_view name;
+    // empty when name is empty, otherwise has to be defined
+    eastl::string_view type;
+    // never be empty
+    eastl::string_view op;
+    // may be empty, depends on op
+    eastl::vector<eastl::string_view> params;
+  };
+  struct Function
+  {
+    eastl::string type;
+    eastl::vector<eastl::string_view> params;
+    eastl::vector<Expression> expressions;
+  };
+
+  Function &addFunction(eastl::string_view name)
+  {
+    auto &e = functions.emplace_back();
+    e.name = name;
+    return e.function;
+  }
+
+  template <typename T>
+  void visitFunctions(T clb)
+  {
+    for (auto &f : functions)
+    {
+      clb(f.name, f.function);
+    }
+  }
+
+private:
+  struct MetaDataEntry
+  {
+    eastl::string_view key;
+    eastl::vector<MetaValue> data;
+  };
+  struct FunctionEntry
+  {
+    eastl::string_view name;
+    Function function;
+  };
+  eastl::vector<MetaDataEntry> metaData;
+  eastl::vector<eastl::string_view> types;
+  eastl::vector<eastl::string_view> globals;
+  eastl::vector<FunctionEntry> functions;
+};
+class AsmParser
+{
+  eastl::string_view assembly;
+  eastl::string_view parseRange;
+  eastl::string &log;
+
+  bool expect(const char c)
+  {
+    skipSpaces();
+    if (c != parseRange.front())
+    {
+      log.append_sprintf("expect %c but found: ", c);
+      logLine();
+      log.append("\n");
+      return false;
+    }
+    parseRange.remove_prefix(1);
     return true;
   }
-
-  log_line(dasm, log, "llvm::parse_meta_value: unhandled\n");
-  return false;
-}
-bool parse_meta_data_list(eastl::string_view &dasm, MetaDataList &list, eastl::string &log)
-{
-  auto defBegin = dasm.find('!');
-  if (eastl::string_view::npos == defBegin)
+  bool expect(const char *str)
   {
-    log.append_sprintf("can't find meta data def start '!'");
-    return false;
-  }
-  auto listBegin = dasm.find('{', defBegin);
-  if (eastl::string_view::npos == listBegin)
-  {
-    log.append_sprintf("can't find meta data list start '{'");
-    return false;
-  }
-
-  dasm.remove_prefix(listBegin + 1);
-
-  for (;;)
-  {
-    MetaDataValue value;
-    if (!parse_meta_value(dasm, value, log))
+    skipSpaces();
+    if (!parseRange.starts_with(str))
     {
-      log.append_sprintf("parse_meta_value failed\n");
+      log.append_sprintf("expect %s but found: ", str);
+      logLine();
+      log.append("\n");
       return false;
     }
-    auto loc = dasm.find_first_of(",}");
-    if (eastl::string_view::npos == loc)
+    parseRange.remove_prefix(strlen(str));
+    return true;
+  }
+  bool check(const char *str)
+  {
+    skipSpaces();
+    if (parseRange.starts_with(str))
     {
-      log.append_sprintf("unable to find either ',' or '}' for next list entry or end of list");
-      return false;
-    }
-    auto c = dasm[loc];
-    list.push_back(eastl::move(value));
-    dasm = dasm.substr(loc + 1);
-    if ('}' == c)
-    {
+      parseRange.remove_prefix(strlen(str));
       return true;
     }
-  }
-}
-bool parse_meta_data_entry(eastl::string_view &dasm, MetaData &set, eastl::string &log)
-{
-  auto entryStart = dasm.find('!');
-  if (eastl::string_view::npos == entryStart)
-  {
     return false;
   }
-  auto assignment = dasm.find('=', entryStart);
-  if (eastl::string_view::npos == assignment)
+  eastl::string_view parseName() { return parse_name(parseRange); }
+  eastl::string_view peekName()
   {
-    return false;
+    auto cpy = parseRange;
+    return parse_name(cpy);
   }
-  auto entryName = dasm.substr(entryStart, assignment - entryStart);
-  while (' ' == entryName.back())
+  bool nextIsLocal()
   {
-    entryName.remove_suffix(1);
+    skipSpaces();
+    return '%' == parseRange.front();
   }
-  dasm.remove_prefix(assignment + 1);
-  MetaDataList lst;
-  eastl::string entryNameString{entryName.begin(), entryName.end()};
-  if (!parse_meta_data_list(dasm, lst, log))
+  bool nextIsGlobal()
   {
-    return false;
-  }
-  set.add(entryName, eastl::move(lst));
-  return true;
-}
-
-using NullPointerType = decltype(nullptr);
-
-void print_meta_data_value(NullPointerType, eastl::string &log) { log.append("null"); }
-
-void print_meta_data_value(const MetaNameID &value, eastl::string &log) { log.append(value.name.begin(), value.name.end()); }
-
-void print_meta_data_value(const MetaID &value, eastl::string &log) { log.append(value.id.begin(), value.id.end()); }
-
-void print_meta_data_value(const MetaStringConstant &value, eastl::string &log)
-{
-  log.append(value.string.begin(), value.string.end());
-}
-
-void print_meta_data_value(const MetaBooleanConstant &value, eastl::string &log)
-{
-  log.append(value.value.begin(), value.value.end());
-}
-
-void print_meta_data_value(const MetaIntegerConstant &value, eastl::string &log)
-{
-  log.append(value.value.begin(), value.value.end());
-}
-
-void print_meta_data_value(const MetaTypedID &value, eastl::string &log)
-{
-  log.append(value.type.begin(), value.type.end());
-  log.append(" ");
-  log.append(value.id.begin(), value.id.end());
-}
-
-void print_meta_data_value(const MetaSSAID &value, eastl::string &log) { log.append(value.id.begin(), value.id.end()); }
-
-void print_meta_data_value(const MetaUnhandled &value, eastl::string &log) { log.append(value.value.begin(), value.value.end()); }
-
-void print_meta_data_value(const MetaDataValue &value, eastl::string &log)
-{
-  eastl::visit([&log](auto &v) { print_meta_data_value(v, log); }, value);
-}
-
-void print_meta_data_list(const MetaDataList &list, eastl::string &log)
-{
-  for (auto &e : list)
-  {
-    print_meta_data_value(e, log);
-    log += '\n';
-  }
-}
-
-void print_meta_data(const MetaData &data, eastl::string &log)
-{
-  for (auto &e : data.entries)
-  {
-    log.append("Entries for '");
-    log.append(e.name.begin(), e.name.end());
-    log.append("':\n");
-    print_meta_data_list(e.list, log);
-  }
-}
-
-template <typename T>
-bool equals(const MetaDataValue &value, const T &compare)
-{
-  auto castedValue = eastl::get_if<T>(&value);
-  if (!castedValue)
-  {
-    return false;
-  }
-  return *castedValue == compare;
-}
-
-MetaData parse_meta_data(eastl::string_view dasm, eastl::string &log)
-{
-  MetaData data;
-
-  auto startPoint = dasm.find("!llvm.ident");
-  if (eastl::string_view::npos == startPoint)
-  {
-    log.append_sprintf("llvm::parse_meta_data: can't find meta data\n");
-    return data;
+    skipSpaces();
+    return '@' == parseRange.front();
   }
 
-  auto workingRange = dasm.substr(startPoint);
-  while (parse_meta_data_entry(workingRange, data, log)) {}
-
-  return data;
-}
-bool parse_call_argument_list(eastl::string_view &dasm, MetaDataList &list, eastl::string &log)
-{
-  auto argStart = dasm.find('(');
-  if (eastl::string_view::npos == argStart)
+  IL::MetaValue parseMetaValue()
   {
-    log_line(dasm, log, "parse_call_argument_list eastl::string_view::npos == argStart");
-    return false;
-  }
-  dasm.remove_prefix(argStart + 1);
-
-  for (;;)
-  {
-    MetaDataValue value;
-    if (!parse_meta_value(dasm, value, log))
+    auto e = parseRange.find_first_of(",}");
+    if (eastl::string_view::npos == e)
     {
-      log.append_sprintf("parse_meta_value failed\n");
-      return false;
+      log.append("Unexpected end while parsing meta value: ");
+      logLine();
+      log.append("\n");
+      return eastl::monostate{};
     }
-    auto loc = dasm.find_first_of(",)");
-    if (eastl::string_view::npos == loc)
+    auto valueRange = parseRange.substr(0, e);
+    if (',' == parseRange[e])
     {
-      log.append_sprintf("unable to find either ',' or ')' for next list entry or end of list");
-      return false;
+      parseRange.remove_prefix(1);
     }
-    auto c = dasm[loc];
-    list.push_back(eastl::move(value));
-    dasm = dasm.substr(loc + 1);
-    if (')' == c)
+    parseRange.remove_prefix(e);
+    if ('!' == valueRange.front())
     {
-      return true;
-    }
-  }
-}
-// returns all the SSA values for all handles that match the resource type and index, most commonly this is just one value
-MetaDataList gather_handle_creates_for_resource(eastl::string_view dasm, eastl::string_view resource_type, eastl::string_view index,
-  eastl::string &log)
-{
-  MetaDataList result;
-  eastl::string_view searchToken{"@dx.op.createHandle"};
-  eastl::string_view callToken{"call"};
-  eastl::string_view declareToken{"declare"};
-  MetaIntegerConstant createHandleID{.value = "57", .bits = 32};
-  MetaIntegerConstant resourceTypeID{.value = resource_type, .bits = 8};
-  MetaIntegerConstant resourceIndexID{.value = index, .bits = 32};
-  auto pos = dasm.find(searchToken);
-  for (; pos != eastl::string_view::npos; pos = dasm.find(searchToken))
-  {
-    auto declarePos = dasm.rfind(declareToken, pos);
-    auto callPos = dasm.rfind(callToken, pos);
-    if (eastl::string_view::npos != declarePos && declarePos > callPos)
-    {
-      // found declaration, skip over it
-      dasm = dasm.substr(pos + searchToken.length());
-      continue;
-    }
-    auto equalPos = dasm.rfind('=', callPos);
-    if (eastl::string_view::npos == equalPos)
-    {
-      log_line(dasm, log, "gather_handle_creates_for_resource eastl::string_view::npos == equalPos");
-      break;
-    }
-    auto ssaaPos = dasm.rfind('%', equalPos);
-    if (eastl::string_view::npos == ssaaPos)
-    {
-      log_line(dasm, log, "gather_handle_creates_for_resource eastl::string_view::npos == ssaaPos");
-      break;
-    }
-    auto argListBegin = dasm.find('(', pos);
-    if (eastl::string_view::npos == argListBegin)
-    {
-      log_line(dasm, log, "gather_handle_creates_for_resource eastl::string_view::npos == argListBegin");
-      break;
-    }
-
-    auto defView = dasm.substr(ssaaPos);
-    dasm.remove_prefix(argListBegin);
-
-    MetaDataList argList;
-    if (!parse_call_argument_list(dasm, argList, log))
-    {
-      break;
-    }
-
-    if (argList.size() < 5)
-    {
-      log_line(dasm, log, "gather_handle_creates_for_resource argList.size() < 5");
-      break;
-    }
-
-    if (!equals(argList[0], createHandleID))
-    {
-      // sanity check
-      log.append_sprintf("argList[0] was not 57");
-      continue;
-    }
-
-    if (!equals(argList[1], resourceTypeID))
-    {
-      continue;
-    }
-
-    if (!equals(argList[2], resourceIndexID))
-    {
-      continue;
-    }
-
-    MetaDataValue value;
-    if (!parse_meta_value(defView, value, log))
-    {
-      log.append("parse_meta_value failed\n");
-      break;
-    }
-    result.push_back(eastl::move(value));
-  }
-  return result;
-}
-template <typename T>
-void visit_calls_to(eastl::string_view dasm, eastl::string_view call_name, eastl::string &log, T visitor)
-{
-  eastl::string_view callToken{"call"};
-  eastl::string_view declareToken{"declare"};
-  auto pos = dasm.find(call_name);
-  for (; pos != eastl::string_view::npos; pos = dasm.find(call_name))
-  {
-    auto declarePos = dasm.rfind(declareToken, pos);
-    auto callPos = dasm.rfind(callToken, pos);
-    if (eastl::string_view::npos != declarePos && declarePos > callPos)
-    {
-      // found declaration, skip over it
-      dasm = dasm.substr(pos + call_name.length());
-      continue;
-    }
-
-    auto argListBegin = dasm.find('(', pos);
-    if (eastl::string_view::npos == argListBegin)
-    {
-      log_line(dasm, log, "visit_calls_to eastl::string_view::npos == argListBegin");
-      break;
-    }
-
-    dasm.remove_prefix(argListBegin);
-
-    MetaDataList argList;
-    if (!parse_call_argument_list(dasm, argList, log))
-    {
-      break;
-    }
-    // should pass line begin not current parse location
-    visitor(dasm, argList);
-  }
-}
-} // namespace llvm
-constexpr size_t invalid_uav_index = ~size_t(0);
-size_t find_uav_resource_in_meta_data(const llvm::MetaData &data, eastl::string_view space_index, eastl::string &log)
-{
-  auto resourceTableRefList = data.get("!dx.resources");
-  if (!resourceTableRefList)
-  {
-    log.append("resourceTableRefList not found\n");
-    return invalid_uav_index;
-  }
-  auto resourceTableRef = eastl::get_if<llvm::MetaID>(&resourceTableRefList->at(0));
-  if (!resourceTableRef)
-  {
-    log.append("resourceTableRef not found\n");
-    return invalid_uav_index;
-  }
-  auto resourceTableList = data.get(resourceTableRef->id);
-  if (!resourceTableList)
-  {
-    log.append("resourceTableList not found\n");
-    return invalid_uav_index;
-  }
-
-  if (resourceTableList->size() < 2)
-  {
-    log.append("resourceTableList is invalid\n");
-    return invalid_uav_index;
-  }
-
-  auto uavTableRef = eastl::get_if<llvm::MetaID>(&resourceTableList->at(1));
-  if (!uavTableRef)
-  {
-    log.append("uavTableRef not found\n");
-    return invalid_uav_index;
-  }
-
-  auto uavTableList = data.get(uavTableRef->id);
-  if (!uavTableList)
-  {
-    log.append("uavTableRef not found\n");
-    return invalid_uav_index;
-  }
-
-  size_t uavIndexInTable;
-  for (uavIndexInTable = 0; uavIndexInTable < uavTableList->size(); ++uavIndexInTable)
-  {
-    auto &e = uavTableList->at(uavIndexInTable);
-    auto eRef = eastl::get_if<llvm::MetaID>(&e);
-    if (!eRef)
-    {
-      return invalid_uav_index;
-    }
-    auto eRefList = data.get(eRef->id);
-    if (!eRefList)
-    {
-      return invalid_uav_index;
-    }
-    if (eRefList->size() < 5)
-    {
-      continue;
-    }
-    auto nameSpaceValue = eastl::get_if<llvm::MetaIntegerConstant>(&eRefList->at(3));
-    if (!nameSpaceValue)
-    {
-      continue;
-    }
-    if (nameSpaceValue->value != space_index)
-    {
-      continue;
-    }
-    auto slotValue = eastl::get_if<llvm::MetaIntegerConstant>(&eRefList->at(4));
-    if (!slotValue)
-    {
-      continue;
-    }
-    if (slotValue->value != "0")
-    {
-      continue;
-    }
-    break;
-  }
-
-  if (uavIndexInTable >= uavTableList->size())
-  {
-    return invalid_uav_index;
-  }
-
-  return uavIndexInTable;
-}
-} // namespace
-
-uint16_t dxil::parse_NVIDIA_extension_use(eastl::string_view dxil_asm, eastl::string &log)
-{
-  uint16_t result = 0;
-
-  auto metaData = llvm::parse_meta_data(dxil_asm, log);
-  auto uavIndexInTable = find_uav_resource_in_meta_data(metaData, "99", log);
-
-  if (invalid_uav_index == uavIndexInTable)
-  {
-    log.append("Can't find NVIDIA magic uav resource in LLVM meta data\n");
-    return result;
-  }
-
-  log.append_sprintf("Found NVIDIA magic UAV resource in UAV table at index %u\n", uint32_t(uavIndexInTable));
-
-  eastl::string tableIndexString;
-  tableIndexString.sprintf("%u", uint32_t(uavIndexInTable));
-  auto handleIds = llvm::gather_handle_creates_for_resource(dxil_asm, "1", tableIndexString, log);
-
-  if (handleIds.empty())
-  {
-    log.append("Can't locate create handle calls for NVIDIA magic UAV resource\n");
-    return result;
-  }
-
-  bool hadBadOpCode = false;
-  // Nvidia surrounds the opcode recording with '@dx.op.bufferUpdateCounter' calls.
-  // The instruction Id will be encoded with 'call void @dx.op.rawBufferStore.i32(i32 140, <id of the UAV handle>, <beginning
-  // bufferUpdateCounter call ID>, <member index has to be i32 0>, <opcode as i32>, i32 undef, i32 undef, i32 undef, i8 1, i32 4)'
-  // There are also instructions with sub opcodes, like atomic ops, but we don't need to know which kind of atomic op is used only that
-  // a atomic op of a certain kind was used
-  auto visitor = [&handleIds, &log, &hadBadOpCode, &result](auto line, auto &param_list) {
-    if (param_list.size() < 5)
-    {
-      return;
-    }
-
-    auto resourcRef = eastl::get_if<llvm::MetaTypedID>(&param_list[1]);
-    if (!resourcRef)
-    {
-      log.append("resourcRef failed\n");
-      return;
-    }
-
-    auto idRef = eastl::find_if(handleIds.begin(), handleIds.end(), [resourcRef, &log](auto &value) {
-      auto valueID = eastl::get_if<llvm::MetaSSAID>(&value);
-      if (!valueID)
+      if ('"' == valueRange[1])
       {
-        log.append("valueID failed\n");
-        return false;
+        return IL::MetaString{
+          .value = valueRange.substr(2, valueRange.size() - 3),
+        };
       }
-      return valueID->id == resourcRef->id;
-    });
-    if (handleIds.end() == idRef)
-    {
-      return;
+      else
+      {
+        return IL::MetaId{
+          .value = valueRange,
+        };
+      }
     }
-
-    llvm::MetaIntegerConstant opCodeLocation{.value = "0", .bits = 32};
-    if (!equals(param_list[3], opCodeLocation))
+    else if ('i' == valueRange.front())
     {
-      return;
+      // integer value
+      valueRange.remove_prefix(1);
+      auto be = valueRange.find(' ');
+      auto bits = valueRange.substr(0, be);
+      auto val = valueRange.find_first_not_of(' ', be);
+      uint32_t bitCount = 1;
+      if ("1" == bits)
+      {
+        bitCount = 1;
+      }
+      else if ("8" == bits)
+      {
+        bitCount = 8;
+      }
+      else if ("16" == bits)
+      {
+        bitCount = 16;
+      }
+      else if ("32" == bits)
+      {
+        bitCount = 32;
+      }
+      else if ("64" == bits)
+      {
+        bitCount = 64;
+      }
+      return IL::MetaInt{
+        .value = valueRange.substr(val),
+        .bits = bitCount,
+      };
     }
-
-    auto endcodedOp = eastl::get_if<llvm::MetaIntegerConstant>(&param_list[4]);
-    if (!endcodedOp)
+    else if ("null" == valueRange)
     {
-      log.append("endcodedOp failed\n");
-      return;
-    }
-
-    eastl::string numberValueString{endcodedOp->value.begin(), endcodedOp->value.end()};
-    uint32_t nvidiaOpCode = 0;
-    // FIXME: don't use scanf!
-    sscanf(numberValueString.c_str(), "%u", &nvidiaOpCode);
-    auto table = dxil::get_nvidia_extension_op_code_to_extension_bit_table();
-    auto opCodeRef = eastl::find_if(table.begin(), table.end(), [nvidiaOpCode](auto &e) { return e.opCode == nvidiaOpCode; });
-    if (table.end() == opCodeRef)
-    {
-      log.append_sprintf("Error: Unknown NVIDIA OpCode 0x%02X found\n", nvidiaOpCode);
-      hadBadOpCode = true;
+      return nullptr;
     }
     else
     {
-      result |= opCodeRef->extensionBit;
+      // everything else is a expression
+      return IL::MetaExpression{
+        .value = valueRange,
+      };
     }
-  };
-  llvm::visit_calls_to(dxil_asm, "@dx.op.bufferStore", log, visitor);
-  llvm::visit_calls_to(dxil_asm, "@dx.op.rawBufferStore", log, visitor);
-  // set to 0 to force error
-  if (hadBadOpCode)
-  {
-    result = 0;
+    return eastl::monostate{};
   }
 
-  return result;
+  void logLine()
+  {
+    auto lineEnd = parseRange.find_first_of('\n');
+    auto line = parseRange.substr(0, lineEnd + 1);
+    log.append(line.begin(), line.end());
+  }
+
+  void skipSpaces() { parseRange.remove_prefix(parseRange.find_first_not_of(" \r\t")); }
+
+  bool parseComment()
+  {
+    parseRange.remove_prefix(parseRange.find_first_of('\n') + 1);
+    return true;
+  }
+  bool parseGlobalVariable(IL &target)
+  {
+    // types are:
+    // @<name> = <definition>
+    auto globalName = parseName();
+    if (globalName.empty())
+    {
+      return false;
+    }
+    if (!expect('='))
+    {
+      return false;
+    }
+
+    // skip rest, don't care about actual variable declaration
+    skipLine();
+    target.addGlobal(globalName);
+    return true;
+  }
+  bool parseType(IL &target)
+  {
+    // types are:
+    // %<name> = type { <type decl> }
+    auto typeName = parseName();
+    if (typeName.empty())
+    {
+      return false;
+    }
+    if (!expect('='))
+    {
+      return false;
+    }
+    if (!expect("type"))
+    {
+      return false;
+    }
+
+    // skip rest, don't care about actual type decl
+    skipLine();
+    target.addType(typeName);
+    return true;
+  }
+  bool parseComdat(IL &target)
+  {
+    skipLine();
+    return true;
+  }
+  void logMetaValue(eastl::monostate) { log.append("<mono state>"); }
+  void logMetaValue(decltype(nullptr)) { log.append("null"); }
+  void logMetaValue(const IL::MetaId &id)
+  {
+    log.append("ID: '");
+    log.append(id.value.begin(), id.value.end());
+    log.append("'");
+  }
+  void logMetaValue(const IL::MetaInt &id)
+  {
+    log.append_sprintf("INT %u: '", id.bits);
+    log.append(id.value.begin(), id.value.end());
+    log.append("'");
+  }
+  void logMetaValue(const IL::MetaString &id)
+  {
+    log.append("String: '");
+    log.append(id.value.begin(), id.value.end());
+    log.append("'");
+  }
+  void logMetaValue(const IL::MetaExpression &id)
+  {
+    log.append("Expression: '");
+    log.append(id.value.begin(), id.value.end());
+    log.append("'");
+  }
+  void logMetaValue(size_t index, const IL::MetaValue &value)
+  {
+    log.append_sprintf(" [%u] ", index);
+    eastl::visit([this](auto &e) { this->logMetaValue(e); }, value);
+  }
+  bool parseNamedMetaLine(IL &target)
+  {
+    auto name = parseName();
+    if (!expect('='))
+    {
+      return false;
+    }
+    // distinct means that there could be multiple instances of the same definition
+    check("distinct");
+    if (!expect('!'))
+    {
+      return false;
+    }
+    if (!expect('{'))
+    {
+      return false;
+    }
+
+    auto &data = target.addMetaData(name);
+
+    for (;;)
+    {
+      skipSpaces();
+      if ('}' == parseRange.front())
+      {
+        break;
+      }
+      data.push_back(parseMetaValue());
+    }
+
+    skipLine();
+    return true;
+  }
+  bool parseNamedMetaBlock(IL &target)
+  {
+    // the named meta block are lines starting with !<name> = !{<values>}
+    while (!parseRange.empty())
+    {
+      skipSpaces();
+      if ('!' != parseRange.front())
+      {
+        return true;
+      }
+      parseNamedMetaLine(target);
+    }
+    return true;
+  }
+  bool parseTarget(IL &target)
+  {
+    skipLine();
+    return true;
+  }
+  bool parseDeclaration(IL &target)
+  {
+    skipLine();
+    return true;
+  }
+  bool parseFunctionParameterList(IL::Function &target)
+  {
+    parseRange.remove_prefix(parseRange.find(')') + 1);
+    return true;
+  }
+  bool parseLoad(IL::Expression &target)
+  {
+    if (!expect(','))
+    {
+      return false;
+    }
+    skipSpaces();
+    auto e = parseRange.find(',');
+    target.params.push_back(parseRange.substr(0, e));
+    parseRange.remove_prefix(e);
+    return true;
+  }
+  bool parseCall(IL::Expression &target)
+  {
+    if (!nextIsGlobal())
+    {
+      return false;
+    }
+    auto function = parseName();
+    if (function.empty() || '@' != function.front())
+    {
+      return false;
+    }
+    if (!expect('('))
+    {
+      return false;
+    }
+    target.params.push_back(function);
+    while (!parseRange.empty())
+    {
+      skipSpaces();
+      if (')' == parseRange.front())
+      {
+        parseRange.remove_prefix(1);
+        return true;
+      }
+      auto s = parseRange.find_first_of(",)");
+      auto param = parseRange.substr(0, s);
+      target.params.push_back(param);
+      parseRange.remove_prefix(s);
+      if (',' == parseRange.front())
+      {
+        parseRange.remove_prefix(1);
+      }
+    }
+    return false;
+  }
+  bool isModifier(eastl::string_view mod) { return "fast" == mod || "nsw" == mod; }
+  bool parseFunctionLine(IL::Function &target)
+  {
+    IL::Expression exp;
+    if (nextIsLocal())
+    {
+      exp.name = parseName();
+      if (!expect('='))
+      {
+        return false;
+      }
+      skipSpaces();
+    }
+
+    exp.op = parseName();
+
+    auto mod = peekName();
+    while (isModifier(mod))
+    {
+      parseRange.remove_prefix(mod.end() - parseRange.begin());
+      mod = peekName();
+    }
+
+    exp.type = parseName();
+
+    if ("call" == exp.op)
+    {
+      if (!parseCall(exp))
+      {
+        return false;
+      }
+    }
+    else if ("load" == exp.op)
+    {
+      if (!parseLoad(exp))
+      {
+        return false;
+      }
+    }
+    else
+    {
+      skipSpaces();
+      // TODO parse args
+    }
+    target.expressions.push_back(exp);
+    skipLine();
+    return true;
+  }
+  bool parseFunction(IL &target)
+  {
+    // define <ret-type> @<name>(<params>) { <body> }
+
+    // skip over define
+    parseRange.remove_prefix(6);
+
+    auto retType = parseName();
+
+    // global name
+    if (!nextIsGlobal())
+    {
+      return false;
+    }
+
+    auto name = parseName();
+
+    if (!expect('('))
+    {
+      return false;
+    }
+
+    auto &func = target.addFunction(name);
+    func.type = retType;
+
+    if (!parseFunctionParameterList(func))
+    {
+      return false;
+    }
+
+    // skip over some optional stuff we don't care
+    parseRange.remove_prefix(parseRange.find('{') + 1);
+    skipLine();
+    while (!parseRange.empty())
+    {
+      skipSpaces();
+      if ('}' == parseRange.front())
+      {
+        skipLine();
+        return true;
+      }
+      if (!parseFunctionLine(func))
+      {
+        log.append("!!parseFunctionLine failed\n");
+        return false;
+      }
+    }
+
+    return false;
+  }
+  bool parseAttributeDefinition(IL &target)
+  {
+    skipLine();
+    return true;
+  }
+  void skipLine() { parseRange.remove_prefix(parseRange.find_first_of('\n') + 1); }
+
+  bool parseGlobal(IL &target)
+  {
+    skipSpaces();
+    if (parseRange.empty() || (0 == parseRange.front()))
+    {
+      parseRange = {};
+      return false;
+    }
+    if ('\n' == parseRange.front())
+    {
+      parseRange.remove_prefix(1);
+      return true;
+    }
+    if (';' == parseRange.front())
+    {
+      return parseComment();
+    }
+    else if ('@' == parseRange.front())
+    {
+      return parseGlobalVariable(target);
+    }
+    else if ('%' == parseRange.front())
+    {
+      return parseType(target);
+    }
+    else if ('$' == parseRange.front())
+    {
+      return parseComdat(target);
+    }
+    else if ('!' == parseRange.front())
+    {
+      return parseNamedMetaBlock(target);
+    }
+    else if (parseRange.starts_with("target"))
+    {
+      return parseTarget(target);
+    }
+    else if (parseRange.starts_with("define"))
+    {
+      return parseFunction(target);
+    }
+    else if (parseRange.starts_with("declare"))
+    {
+      return parseDeclaration(target);
+    }
+    else if (parseRange.starts_with("attributes"))
+    {
+      return parseAttributeDefinition(target);
+    }
+    log.append("Unexpected line: ");
+    logLine();
+    skipLine();
+    log.append(assembly.begin(), assembly.end());
+
+    return false;
+  }
+
+public:
+  AsmParser(eastl::string_view asam, eastl::string &l) : assembly{asam}, log{l} {}
+
+  IL parse()
+  {
+    parseRange = assembly;
+
+    IL result;
+
+    while (parseGlobal(result)) {}
+
+    return result;
+  }
+};
+} // namespace llvm
+
+// DXIL specific interpreter of IL data in DXIL context
+class DXILInterpreter
+{
+public:
+  struct ShaderProfile
+  {
+    eastl::string_view name;
+    uint32_t major = 0;
+    uint32_t minor = 0;
+  };
+  struct ResourceInfo
+  {
+    uint32_t typeTableIndex;
+    eastl::string_view nameSpaceIndex;
+    eastl::string_view typeSlotIndex;
+    eastl::string_view name;
+    eastl::string_view mangledName;
+    eastl::string_view type;
+  };
+
+private:
+  llvm::IL &il;
+  ShaderProfile profile;
+
+  void loadProfile()
+  {
+    auto root = il.getMetaData("!dx.shaderModel");
+    if (!root)
+    {
+      return;
+    }
+
+    auto modelDefName = eastl::get_if<llvm::IL::MetaId>(&root->at(0));
+    if (!modelDefName)
+    {
+      return;
+    }
+
+    auto modelDef = il.getMetaData(modelDefName->value);
+    if (!modelDef)
+    {
+      return;
+    }
+
+    auto modelName = eastl::get_if<llvm::IL::MetaString>(&modelDef->at(0));
+    if (modelName)
+    {
+      profile.name = modelName->value;
+    }
+
+    auto modelMajor = eastl::get_if<llvm::IL::MetaInt>(&modelDef->at(1));
+    if (modelMajor)
+    {
+      eastl::string tmp{modelMajor->value.begin(), modelMajor->value.end()};
+      profile.major = atoi(tmp.c_str());
+    }
+
+    auto modelMinor = eastl::get_if<llvm::IL::MetaInt>(&modelDef->at(2));
+    if (modelMinor)
+    {
+      eastl::string tmp{modelMinor->value.begin(), modelMinor->value.end()};
+      profile.minor = atoi(tmp.c_str());
+    }
+  }
+
+  // TODO: should not reimplement stuff from llvm parser
+  static void parse_resource_def(eastl::string_view def, eastl::string_view &mangled_name, eastl::string_view &type)
+  {
+    if ('%' != def.front())
+    {
+      return;
+    }
+
+    type = llvm::parse_name(def);
+    def.remove_prefix(def.find(' '));
+    def.remove_prefix(def.find_first_not_of(' '));
+    if (def.starts_with("bitcast"))
+    {
+      // <type>* bitcast(<source type>* <mangled name> to <type>)
+      def.remove_prefix(def.find('*'));
+      def.remove_prefix(def.find(' '));
+      def.remove_prefix(def.find('@'));
+      mangled_name = llvm::parse_name(def);
+    }
+    else
+    {
+      // <type>* <mangled name>
+      def.remove_prefix(def.find('@'));
+      mangled_name = llvm::parse_name(def);
+    }
+  }
+
+public:
+  DXILInterpreter(llvm::IL &i) : il{i} { loadProfile(); }
+
+  const ShaderProfile &shaderProfile() const { return profile; }
+
+  ResourceInfo getExtensionUnorderedResourceInfo(eastl::string_view space, eastl::string_view slot, eastl::string &log)
+  {
+    ResourceInfo result;
+    auto root = il.getMetaData("!dx.resources");
+    if (!root)
+    {
+      return result;
+    }
+
+    auto resourceTypeRootName = eastl::get_if<llvm::IL::MetaId>(&root->at(0));
+    if (!resourceTypeRootName)
+    {
+      return result;
+    }
+
+    auto resourceTypeRoot = il.getMetaData(resourceTypeRootName->value);
+    if (!resourceTypeRoot)
+    {
+      return result;
+    }
+
+    if (resourceTypeRoot->size() < 2)
+    {
+      return result;
+    }
+
+    auto unorderedResourceRootName = eastl::get_if<llvm::IL::MetaId>(&resourceTypeRoot->at(1));
+    if (!unorderedResourceRootName)
+    {
+      return result;
+    }
+
+    auto unorderedResourceRoot = il.getMetaData(unorderedResourceRootName->value);
+    if (!unorderedResourceRoot)
+    {
+      return result;
+    }
+
+    for (auto &r : *unorderedResourceRoot)
+    {
+      auto rName = eastl::get_if<llvm::IL::MetaId>(&r);
+      if (!rName)
+      {
+        continue;
+      }
+      auto resInfo = il.getMetaData(rName->value);
+      if (!resInfo)
+      {
+        continue;
+      }
+
+      if (resInfo->size() < 5)
+      {
+        continue;
+      }
+
+      auto nameSpaceIndex = eastl::get_if<llvm::IL::MetaInt>(&resInfo->at(3));
+      if (!nameSpaceIndex)
+      {
+        continue;
+      }
+      if (space != nameSpaceIndex->value)
+      {
+        continue;
+      }
+      auto slotIndex = eastl::get_if<llvm::IL::MetaInt>(&resInfo->at(4));
+      if (!slotIndex)
+      {
+        continue;
+      }
+      if (slot != slotIndex->value)
+      {
+        continue;
+      }
+
+      auto name = eastl::get_if<llvm::IL::MetaString>(&resInfo->at(2));
+      if (!name)
+      {
+        continue;
+      }
+      auto resourceDef = eastl::get_if<llvm::IL::MetaExpression>(&resInfo->at(1));
+      if (!resourceDef)
+      {
+        continue;
+      }
+      result.name = name->value;
+      parse_resource_def(resourceDef->value, result.mangledName, result.type);
+      result.typeTableIndex = eastl::distance(unorderedResourceRoot->data(), &r);
+      result.nameSpaceIndex = space;
+      result.typeSlotIndex = slot;
+
+      break;
+    }
+    return result;
+  }
+
+  llvm::IL *operator->() { return &il; }
+};
+
+struct BaseSelector
+{
+  template <typename R, typename E>
+  bool selectOpCodeAtomicCompareExchangeStoreOp(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if ("@dx.op.atomicCompareExchange.i32" != exp.params[0])
+    {
+      return false;
+    }
+    if (!exp.params[2].ends_with(prev_exp.name))
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectOpCodeStoreOp(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if ("@dx.op.rawBufferStore.i32" != exp.params[0] && "@dx.op.bufferStore.i32" != exp.params[0])
+    {
+      return false;
+    }
+    if (!exp.params[2].ends_with(prev_exp.name))
+    {
+      return false;
+    }
+    if ("i32 0" != exp.params[4])
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectCreateAnnotatedHandle(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if ("@dx.op.annotateHandle" != exp.params[0])
+    {
+      return false;
+    }
+    if (!exp.params[2].ends_with(prev_exp.name))
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectLoadGlobal(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("load" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.empty())
+    {
+      return false;
+    }
+    if (eastl::string_view::npos == exp.params[0].find(res.mangledName))
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectCreateHandle(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if ("@dx.op.createHandle" != exp.params[0])
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectCreateHandleForLibTemplated(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if (!exp.params[0].starts_with("@\"dx.op.createHandleForLib."))
+    {
+      return false;
+    }
+    if (!exp.params[2].starts_with(res.type))
+    {
+      return false;
+    }
+    if (!exp.params[2].ends_with(prev_exp.name))
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectCreateHandleForLib(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if (!exp.params[0].starts_with("@dx.op.createHandleForLib"))
+    {
+      return false;
+    }
+    if (!exp.params[2].ends_with(prev_exp.name))
+    {
+      return false;
+    }
+    return true;
+  }
+
+  template <typename R, typename E>
+  bool selectCreateHandleFromBinding(const R &res, const E &exp, const E &prev_exp) const
+  {
+    if ("call" != exp.op)
+    {
+      return false;
+    }
+    if (exp.params.size() < 3)
+    {
+      return false;
+    }
+    if (!exp.params[0].starts_with("@dx.op.createHandleFromBinding"))
+    {
+      return false;
+    }
+    if (res.typeSlotIndex != exp.params[3].substr(4))
+    {
+      return false;
+    }
+    if (res.nameSpaceIndex != exp.params[4].substr(4))
+    {
+      return false;
+    }
+    return true;
+  }
+};
+
+struct NvidiaSelector : BaseSelector
+{
+  const bool isLib;
+  const uint32_t minorVersion;
+
+  uint32_t getPhaseCount() const
+  {
+    if (isLib)
+    {
+      return minorVersion < 6 ? 3 : 4;
+    }
+    else
+    {
+      return minorVersion < 6 ? 2 : 3;
+    }
+  }
+
+  template <typename R, typename E>
+  bool select(uint32_t phase, const R &res, const E &exp, const E &prev_exp) const
+  {
+    if (!isLib)
+    {
+      if (minorVersion < 6)
+      {
+        if (0 == phase)
+        {
+          return selectCreateHandle(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectOpCodeStoreOp(res, exp, prev_exp);
+        }
+      }
+      else
+      {
+        if (0 == phase)
+        {
+          return selectCreateHandleFromBinding(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateAnnotatedHandle(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectOpCodeStoreOp(res, exp, prev_exp);
+        }
+      }
+    }
+    else
+    {
+      if (minorVersion < 6)
+      {
+        if (0 == phase)
+        {
+          return selectLoadGlobal(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateHandleForLibTemplated(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectOpCodeStoreOp(res, exp, prev_exp);
+        }
+      }
+      else
+      {
+        if (0 == phase)
+        {
+          return selectLoadGlobal(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateHandleForLib(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectCreateAnnotatedHandle(res, exp, prev_exp);
+        }
+        if (3 == phase)
+        {
+          return selectOpCodeStoreOp(res, exp, prev_exp);
+        }
+      }
+    }
+    return false;
+  }
+
+  template <typename E>
+  eastl::optional<uint16_t> opCodeExtractor(const E &exp) const
+  {
+    auto val = exp.params[5].substr(3);
+    auto opCode = atoi(val.begin());
+    auto table = dxil::get_nvidia_extension_op_code_to_extension_bit_table();
+    auto opCodeRef = eastl::find_if(table.begin(), table.end(), [opCode](auto &e) { return e.opCode == opCode; });
+    if (table.end() == opCodeRef)
+    {
+      return {};
+    }
+    else
+    {
+      return {opCodeRef->extensionBit};
+    }
+  }
+};
+
+template <typename E>
+void log_exp(eastl::string &log, const E &exp)
+{
+  log.append("<");
+  log.append(exp.name.begin(), exp.name.end());
+  log.append("> = <");
+  log.append(exp.type.begin(), exp.type.end());
+  log.append(">: ");
+  log.append(exp.op.begin(), exp.op.end());
+  log.append(" (");
+  for (auto &p : exp.params)
+  {
+    log.append(" <");
+    log.append(p.begin(), p.end());
+    log.append(">");
+  }
+  log.append(" )\n");
+}
+
+
+template <typename T, typename I>
+uint16_t extract_op_codes_phase(DXILInterpreter &dxil, const DXILInterpreter::ResourceInfo &res, eastl::string &log,
+  const T &extractor, uint32_t phase, I base, I ed, const llvm::IL::Expression &prev_expr)
+{
+  const bool isFinalPhase = phase + 1 >= extractor.getPhaseCount();
+  uint16_t value = 0;
+  bool hadBadOpCode = false;
+  for (auto at = base; at != ed; ++at)
+  {
+    if (!extractor.select(phase, res, *at, prev_expr))
+    {
+      continue;
+    }
+    if (!isFinalPhase)
+    {
+      value |= extract_op_codes_phase(dxil, res, log, extractor, phase + 1, at + 1, ed, *at);
+    }
+    else
+    {
+      auto opCode = extractor.opCodeExtractor(*at);
+      if (!opCode)
+      {
+        log.append("Error decoding opcode\n");
+        hadBadOpCode = true;
+      }
+      else
+      {
+        value |= *opCode;
+      }
+    }
+  }
+  if (hadBadOpCode)
+  {
+    value = 0;
+  }
+  return value;
+}
+
+template <typename T>
+uint16_t extract_op_codes(DXILInterpreter &dxil, const DXILInterpreter::ResourceInfo &res, eastl::string &log, const T &extractor)
+{
+  uint16_t value = 0;
+  dxil->visitFunctions([&dxil, &res, &log, &extractor, &value](auto name, auto &def) {
+    value |= extract_op_codes_phase(dxil, res, log, extractor, 0, def.expressions.begin(), def.expressions.end(), {});
+  });
+  return value;
+}
+
+uint16_t dxil::parse_NVIDIA_extension_use(eastl::string_view dxil_asm, eastl::string &log)
+{
+  llvm::AsmParser parser{dxil_asm, log};
+  auto il = parser.parse();
+  DXILInterpreter dxil{il};
+  auto profile = dxil.shaderProfile();
+  auto res = dxil.getExtensionUnorderedResourceInfo("99", "0", log);
+  if (res.type.empty())
+  {
+    log.append("failed to find res at space99 u0\n");
+  }
+  return extract_op_codes(dxil, res, log,
+    NvidiaSelector{
+      .isLib = "lib" == profile.name,
+      .minorVersion = profile.minor,
+    });
 }
 
 #define AmdExtD3DShaderIntrinsicsOpcode_Readfirstlane       0x01
@@ -1481,93 +2025,129 @@ static const AmdOpCodeTableEntry AmdOpCodeTable[] = {
   {AmdExtD3DShaderIntrinsicsOpcode_ShaderRealtimeClock, dxil::VendorExtensionBits::AMD_SHADER_CLOCK},
 };
 
-// TODO: Currently this can not detect AMD_DXR_RAY_HIT_TOKEN
-uint16_t dxil::parse_AMD_extension_use(eastl::string_view dxil_asm, eastl::string &log)
+struct AMDSelector : BaseSelector
 {
-  uint16_t result = 0;
+  const bool isLib;
+  const uint32_t minorVersion;
 
-  auto metaData = llvm::parse_meta_data(dxil_asm, log);
-  auto uavIndexInTable = find_uav_resource_in_meta_data(metaData, "2147420894", log);
-
-  if (invalid_uav_index == uavIndexInTable)
+  uint32_t getPhaseCount() const
   {
-    log.append("Can't find AMD magic uav resource in LLVM meta data\n");
-    return result;
+    if (isLib)
+    {
+      return minorVersion < 6 ? 3 : 4;
+    }
+    else
+    {
+      return minorVersion < 6 ? 2 : 3;
+    }
   }
 
-  log.append_sprintf("Found AMD magic UAV resource in UAV table at index %u\n", uint32_t(uavIndexInTable));
-
-  eastl::string tableIndexString;
-  tableIndexString.sprintf("%u", uint32_t(uavIndexInTable));
-  auto handleIds = llvm::gather_handle_creates_for_resource(dxil_asm, "1", tableIndexString, log);
-
-  if (handleIds.empty())
+  template <typename R, typename E>
+  bool select(uint32_t phase, const R &res, const E &exp, const E &prev_exp) const
   {
-    log.append("Can't locate create handle calls for AMD magic UAV resource\n");
-    return result;
-  }
-
-  bool hadBadOpCode = false;
-  // AMD encodes recording of opcodes with @dx.op.atomicCompareExchange.i32 with the first parameter being the encoded opcode which has
-  // to be decoded The base opcode is the lower byte (eg & 0xFF to retrieve).
-  llvm::visit_calls_to(dxil_asm, "@dx.op.atomicCompareExchange", log,
-    [&handleIds, &log, &hadBadOpCode, &result](auto line, auto &param_list) {
-      if (param_list.size() < 3)
+    if (!isLib)
+    {
+      if (minorVersion < 6)
       {
-        return;
-      }
-
-      auto resourcRef = eastl::get_if<llvm::MetaTypedID>(&param_list[1]);
-      if (!resourcRef)
-      {
-        log.append("resourcRef failed\n");
-        return;
-      }
-
-      auto idRef = eastl::find_if(handleIds.begin(), handleIds.end(), [resourcRef, &log](auto &value) {
-        auto valueID = eastl::get_if<llvm::MetaSSAID>(&value);
-        if (!valueID)
+        if (0 == phase)
         {
-          log.append("valueID failed\n");
-          return false;
+          return selectCreateHandle(res, exp, prev_exp);
         }
-        return valueID->id == resourcRef->id;
-      });
-      if (handleIds.end() == idRef)
-      {
-        return;
-      }
-
-      auto endcodedOp = eastl::get_if<llvm::MetaIntegerConstant>(&param_list[2]);
-      if (!endcodedOp)
-      {
-        log.append("endcodedOp failed\n");
-        return;
-      }
-
-      eastl::string numberValueString{endcodedOp->value.begin(), endcodedOp->value.end()};
-      uint32_t endocedOpValue = 0;
-      // FIXME: don't use scanf!
-      sscanf(numberValueString.c_str(), "%u", &endocedOpValue);
-      uint32_t amdOpCode = endocedOpValue & 0xFF;
-      auto opCodeRef = eastl::find_if(eastl::begin(AmdOpCodeTable), eastl::end(AmdOpCodeTable),
-        [amdOpCode](auto &e) { return e.opCode == amdOpCode; });
-      if (eastl::end(AmdOpCodeTable) == opCodeRef)
-      {
-        log.append_sprintf("Error: Unknown AMD OpCode 0x%02X found\n", amdOpCode);
-        hadBadOpCode = true;
+        if (1 == phase)
+        {
+          return selectOpCodeAtomicCompareExchangeStoreOp(res, exp, prev_exp);
+        }
       }
       else
       {
-        result |= opCodeRef->extensionBit;
+        if (0 == phase)
+        {
+          return selectCreateHandleFromBinding(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateAnnotatedHandle(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectOpCodeAtomicCompareExchangeStoreOp(res, exp, prev_exp);
+        }
       }
-    });
-
-  // set to 0 to force error
-  if (hadBadOpCode)
-  {
-    result = 0;
+    }
+    else
+    {
+      if (minorVersion < 6)
+      {
+        if (0 == phase)
+        {
+          return selectLoadGlobal(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateHandleForLib(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectOpCodeAtomicCompareExchangeStoreOp(res, exp, prev_exp);
+        }
+      }
+      else
+      {
+        if (0 == phase)
+        {
+          return selectLoadGlobal(res, exp, prev_exp);
+        }
+        if (1 == phase)
+        {
+          return selectCreateHandleForLib(res, exp, prev_exp);
+        }
+        if (2 == phase)
+        {
+          return selectCreateAnnotatedHandle(res, exp, prev_exp);
+        }
+        if (3 == phase)
+        {
+          return selectOpCodeAtomicCompareExchangeStoreOp(res, exp, prev_exp);
+        }
+      }
+    }
+    return false;
   }
 
-  return result;
+  template <typename E>
+  eastl::optional<uint16_t> opCodeExtractor(const E &exp) const
+  {
+    auto val = exp.params[3].substr(3);
+    auto encodedOp = atoi(val.begin());
+    uint32_t opCode = encodedOp & 0xFF;
+    auto opCodeRef =
+      eastl::find_if(eastl::begin(AmdOpCodeTable), eastl::end(AmdOpCodeTable), [opCode](auto &e) { return e.opCode == opCode; });
+    if (eastl::end(AmdOpCodeTable) == opCodeRef)
+    {
+      return {};
+    }
+    else
+    {
+      return {opCodeRef->extensionBit};
+    }
+  }
+};
+
+// TODO: Currently this can not detect AMD_DXR_RAY_HIT_TOKEN
+uint16_t dxil::parse_AMD_extension_use(eastl::string_view dxil_asm, eastl::string &log)
+{
+  llvm::AsmParser parser{dxil_asm, log};
+  auto il = parser.parse();
+  DXILInterpreter dxil{il};
+  auto profile = dxil.shaderProfile();
+  auto res = dxil.getExtensionUnorderedResourceInfo("2147420894", "0", log);
+  if (res.type.empty())
+  {
+    log.append("failed to find res at space2147420894 u0\n");
+  }
+  return extract_op_codes(dxil, res, log,
+    AMDSelector{
+      .isLib = "lib" == profile.name,
+      .minorVersion = profile.minor,
+    });
 }

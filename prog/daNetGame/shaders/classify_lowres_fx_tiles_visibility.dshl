@@ -1,0 +1,50 @@
+include "shader_global.dshl"
+include "dafx_shaders.dshl"
+
+texture lowres_fx_source_tex;
+buffer lowres_fx_triangle_visibility_mask;
+int lowres_fx_tile_count_hor;
+
+shader classify_lowres_fx_tiles_visibility
+{
+  local float4 halfResTexSize = get_dimensions(lowres_fx_source_tex, 0);
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(cs)
+
+  (cs) {
+    lowres_fx_source_tex@tex2d = lowres_fx_source_tex;
+    lowres_fx_source_tex_texel_size@f4 = (1.0 / halfResTexSize.xy, halfResTexSize.xy);
+    lowres_fx_triangle_visibility_mask@uav = lowres_fx_triangle_visibility_mask hlsl { RWStructuredBuffer<uint> lowres_fx_triangle_visibility_mask@uav; };
+    tiles_count_hor@i1 = (lowres_fx_tile_count_hor);
+  }
+
+  hlsl(cs) {
+    #include "apply_lowres_fx.hlsli"
+
+    [numthreads(CLASSIFY_LOWRES_FX_GROUP_SIZE, CLASSIFY_LOWRES_FX_GROUP_SIZE, 1)]
+    void classify_lowres_fx_tiles_visibility_cs(uint2 dispatchThreadId : SV_DispatchThreadID, uint2 groupId : SV_GroupID, uint2 groupThreadId : SV_GroupThreadID)
+    {
+      float2 tc = (dispatchThreadId*2.0f + 1.0f)*lowres_fx_source_tex_texel_size.xy;
+      half4 color = lowres_fx_source_tex.SampleLevel(global_linear_clamp_sampler, tc, 0);
+
+      // scalar metric, which is used to detect empty samples
+      half metric = max(max(color.r, color.g), max(color.b, 1 - color.a));
+
+      uint upperTriangleMask = (groupThreadId.y <= groupThreadId.x + 1 ? 1u : 0);
+      uint lowerTriangleMask = (groupThreadId.y + 1 >= groupThreadId.x ? 2u : 0);
+
+      // tile is divided on 2 triangles, which can be culled separately
+      uint tileMask = WaveActiveBitOr(metric > 0 ? upperTriangleMask | lowerTriangleMask : 0u);
+
+      if (WaveIsFirstLane() && tileMask != 0)
+      {
+        const uint EntrySize = 32u;
+        uint tileIndex = (groupId.y*tiles_count_hor + groupId.x)*2;
+
+        // buffer is large enough to prevent OOB
+        InterlockedOr(lowres_fx_triangle_visibility_mask[tileIndex/EntrySize], tileMask << (tileIndex%EntrySize));
+      }
+    }
+  }
+
+  compile("target_cs", "classify_lowres_fx_tiles_visibility_cs");
+}

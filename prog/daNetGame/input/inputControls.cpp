@@ -22,11 +22,13 @@
 
 #include <sqrat.h>
 #include <quirrel_json/quirrel_json.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <ecs/scripts/sqBindEvent.h>
 #include <bindQuirrelEx/autoBind.h>
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/input/input.h>
 #include <ecs/input/message.h>
 

@@ -15,6 +15,7 @@ public:
   ~ObjEd() override;
 
   // ObjectEditor interface implementation
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerViewportAccelerators(IWndManager &wndManager) override;
   void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
   void updateToolbarButtons() override;

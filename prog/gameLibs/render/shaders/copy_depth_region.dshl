@@ -26,9 +26,11 @@ shader copy_depth_region
   }
   compile("target_vs", "depth_copy_vs");
 
+  (ps) {
+    depth_tex@tex : register(15) hlsl { Texture2D depth_tex@tex; };
+  }
   hlsl(ps) {
     int2 from:register(c77);
-    Texture2D depth_tex:register(t15);
     
     float depth_copy_ps(float4 pos:VPOS): SV_Depth
     { 

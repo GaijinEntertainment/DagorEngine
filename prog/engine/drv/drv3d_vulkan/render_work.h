@@ -10,14 +10,16 @@
 
 #include "query_pools.h"
 #include "queries.h"
-#include "device_context_cmd.h"
-#include "util/variant_vector.h"
 #include "cleanup_queue.h"
 #include "util/fault_report.h"
 #include "globals.h"
 #include "driver_config.h"
 #include "copy_info.h"
 #include "resource_readbacks.h"
+#include "backend/cmd_buffer.h"
+#include "backend/cmd/transfer.h"
+#include "backend/cmd/misc.h"
+#include "backend/cmd/screen.h"
 
 namespace drv3d_vulkan
 {
@@ -36,6 +38,7 @@ struct BindlessTexSwap
 {
   Image *src;
   Image *dst;
+  void *srcOwner;
   ImageViewState viewState;
 };
 
@@ -53,33 +56,30 @@ enum BindlessUpdateType
 
 struct BindlessTexUpdateInfo
 {
-  BindlessTexUpdateInfo(uint32_t _index, Image *img, ImageViewState view, bool is_stub, bool is_stub_swap) :
-    index(_index), count(1), type(BindlessUpdateType::RES), stub(is_stub), stubSwap(is_stub_swap)
+  BindlessTexUpdateInfo(uint32_t _index, Image *img, void *owner, ImageViewState view) :
+    index(_index), count(1), type(BindlessUpdateType::RES)
   {
-    variant.res = {img, view};
+    variant.res = {img, view, owner};
   }
-  BindlessTexUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) :
-    index(dst), count(_count), type(BindlessUpdateType::COPY), stub(false), stubSwap(false)
+  BindlessTexUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) : index(dst), count(_count), type(BindlessUpdateType::COPY)
   {
     variant.copy.src = src;
   }
-  BindlessTexUpdateInfo(uint32_t _index, uint32_t _count) :
-    index(_index), count(_count), type(BindlessUpdateType::RES), stub(false), stubSwap(false)
+  BindlessTexUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count), type(BindlessUpdateType::RES)
   {
-    variant.res = {nullptr, {}};
+    variant.res = {nullptr, {}, nullptr};
   }
 
   uint32_t index;
   uint32_t count;
   BindlessUpdateType type;
-  bool stub : 1;
-  bool stubSwap : 1;
   union Variants
   {
     struct
     {
       Image *img;
       ImageViewState viewState;
+      void *owner;
     } res;
     struct
     {
@@ -174,7 +174,6 @@ struct RaytraceStructureBuildData
 };
 #endif
 
-class ExecutionContext;
 struct RenderWork
 {
   static bool cleanUpMemoryEveryWorkItem;
@@ -197,6 +196,7 @@ struct RenderWork
   dag::Vector<VkImageCopy> imageCopyInfos;
   dag::Vector<CmdCopyImage> unorderedImageCopies;
   dag::Vector<CmdClearColorTexture> unorderedImageColorClears;
+  dag::Vector<CmdPresent> secondaryPresents;
   dag::Vector<CmdClearDepthStencilTexture> unorderedImageDepthStencilClears;
   dag::Vector<BindlessTexUpdateInfo> bindlessTexUpdates;
   dag::Vector<BindlessTexSwap> bindlessTexSwaps;
@@ -207,6 +207,7 @@ struct RenderWork
   dag::Vector<VkSparseImageMemoryBind> sparseImageMemoryBinds;
   dag::Vector<VkSparseImageOpaqueMemoryBindInfo> sparseImageOpaqueBinds;
   dag::Vector<VkSparseImageMemoryBindInfo> sparseImageBinds;
+  dag::Vector<CmdUpdateAliasedMemoryInfo> unorderedAliasedMemoryUpdates;
 
 #if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
   dag::Vector<VkAccelerationStructureBuildRangeInfoKHR> raytraceBuildRangeInfoKHRStore;
@@ -215,7 +216,7 @@ struct RenderWork
   dag::Vector<RaytraceStructureBuildData> raytraceStructureBuildStore;
 #endif
   dag::Vector<ShaderModuleUse> shaderModuleUses;
-  AnyCommandStore commandStream;
+  BECmdBuffer cmds;
 
   QueryBlock *timestampQueryBlock = nullptr;
   QueryBlock *occlusionQueryBlock = nullptr;
@@ -239,6 +240,7 @@ struct RenderWork
     size += CALC_VEC_BYTES(imageCopyInfos);
     size += CALC_VEC_BYTES(unorderedImageCopies);
     size += CALC_VEC_BYTES(unorderedImageColorClears);
+    size += CALC_VEC_BYTES(secondaryPresents);
     size += CALC_VEC_BYTES(unorderedImageDepthStencilClears);
     size += CALC_VEC_BYTES(bindlessTexUpdates);
     size += CALC_VEC_BYTES(bindlessTexSwaps);
@@ -250,6 +252,7 @@ struct RenderWork
     size += CALC_VEC_BYTES(sparseImageMemoryBinds);
     size += CALC_VEC_BYTES(sparseImageOpaqueBinds);
     size += CALC_VEC_BYTES(sparseImageBinds);
+    size += CALC_VEC_BYTES(unorderedAliasedMemoryUpdates);
 #if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
     size += CALC_VEC_BYTES(raytraceBuildRangeInfoKHRStore);
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);
@@ -258,14 +261,14 @@ struct RenderWork
 #endif
     size += CALC_VEC_BYTES(shaderModuleUses);
 #undef CALC_VEC_BYTES
-    size += commandStream.capacity();
+    size += cmds.mem.capacity();
     return size;
   }
 
   template <typename T>
-  void pushCommand(const T &cmd)
+  void pushCmd(const T &cmd)
   {
-    commandStream.push_back(cmd);
+    cmds.push(cmd);
     recordCommandCaller();
   }
 
@@ -291,8 +294,6 @@ struct RenderWork
   void cleanup();
   void process();
   void shutdown();
-
-  void processCommands(ExecutionContext &ctx);
 };
 
 } // namespace drv3d_vulkan

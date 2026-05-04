@@ -49,10 +49,10 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
   channel color8 norm = norm unsigned_pack;
   channel float2 tc[0] = tc[0];
 
-  (ps) { diffuse_tex@staticCube = tex; }
+  (ps) { diffuse_tex@staticSmpCube = tex; }
   if (envi_reflection != NULL)
   {
-    (ps) { envi_reflection@staticCube = envi_reflection; }
+    (ps) { envi_reflection@staticSmpCube = envi_reflection; }
   }
   else
   {
@@ -405,8 +405,6 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
 
           if (isRTREnabled())
             init_glass(gbuffer);
-
-          handle_if_two_sided(gbuffer);
 
           #if NUKEDESTR_ACTIVE
             NUKEDESTR_CHARRING(gbuffer, checkerTC)

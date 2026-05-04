@@ -15,10 +15,26 @@
 #endif
 #include <stdio.h>
 #include <string.h>
-#include <supp/dag_define_KRNLIMP.h>
 
+#if _TARGET_PC_WIN
+#include <osApiWrappers/dag_symHlp.h>
+#include <Windows.h>
+#endif
 
 bool dgs_execute_quiet = false;
+
+void (*dgs_on_memory_leak_detected_handler)(const char *) =
+#if _TARGET_PC_WIN
+  [](const char *text) {
+    if (!dgs_execute_quiet)
+      ::MessageBoxA(NULL, text, "Memory leak", MB_ICONERROR);
+    symhlp_close();
+    ExitProcess(113);
+  };
+#else
+  [](const char *) {};
+#endif
+
 void (*dgs_post_shutdown_handler)() = NULL;
 void (*dgs_pre_shutdown_handler)() = NULL;
 bool (*dgs_fatal_handler)(const char *msg, const char *call_stack, const char *file, int line) = NULL;
@@ -47,6 +63,7 @@ bool dagor_demo_mode = false;
 
 WindowMode dgs_window_mode = WindowMode::FULLSCREEN_EXCLUSIVE;
 int dagor_frame_no_int = 0;
+int dagor_frames_presented_int = 0;
 
 uint32_t dagor_global_frame_id = 0;
 

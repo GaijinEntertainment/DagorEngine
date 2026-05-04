@@ -5,6 +5,8 @@
 #include "curveControlStandalone.h"
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/imguiHelper.h>
 #include "../c_constants.h"
 #include <ioSys/dag_dataBlock.h>
 #include <libTools/util/blkUtil.h>
@@ -15,6 +17,29 @@
 
 namespace PropPanel
 {
+namespace ContextMenu
+{
+enum
+{
+  COPY,
+  PASTE,
+  HELP,
+};
+}
+
+class CurveControlContextMenuEventHandler : public IMenuEventHandler
+{
+public:
+  CurveControlContextMenuEventHandler(CurveControlStandalone &curve_control) : curveControl(curve_control) {}
+  int onMenuItemClick(unsigned id) override
+  {
+    curveControl.processContextMenu(id);
+    return 0;
+  }
+
+private:
+  CurveControlStandalone &curveControl;
+};
 
 static IPoint2 locate(const Point2 &point, const BBox2 &view_box, const Point2 &view_size)
 {
@@ -30,16 +55,6 @@ static Point2 getCoords(const IPoint2 &point, const BBox2 &view_box, const Point
   res.x = point.x * view_box.width().x / view_size.x + view_box.lim[0].x;
   res.y = point.y * view_box.width().y / view_size.y + view_box.lim[0].y;
   return res;
-}
-
-// This is a more convenient version of pre-registering all owned keys and then checking them with ImGui::IsKeyChordPressed.
-static bool is_key_chord_pressed_owned(ImGuiKeyChord key_chord, ImGuiID canvas_id)
-{
-  if (!ImGui::IsKeyChordPressed(key_chord, ImGuiKeyOwner_Any))
-    return false;
-
-  ImGui::SetKeyOwnersForKeyChord(key_chord, canvas_id);
-  return true;
 }
 
 // -----------------------------------------------
@@ -79,6 +94,8 @@ CurveControlStandalone::CurveControlStandalone(WindowControlEventHandler *event_
   setViewBox(left_bottom, right_top);
   memset(&rectSelect, 0, sizeof(rectSelect));
 }
+
+CurveControlStandalone::~CurveControlStandalone() { setCB(nullptr); }
 
 void CurveControlStandalone::setFixed(bool value)
 {
@@ -722,6 +739,24 @@ void CurveControlStandalone::onRButtonDown(long x, long y)
         mEventHandler->onWcChange(windowBaseForEventHandler);
     }
   }
+  else
+  {
+    contextMenuEventHandler.reset(new CurveControlContextMenuEventHandler(*this));
+    showHelp = false;
+    contextMenu.reset(create_context_menu());
+    contextMenu->setEventHandler(contextMenuEventHandler.get());
+    contextMenu->addItem(ROOT_MENU_ITEM, ContextMenu::COPY, "Copy\tCtrl+C");
+    contextMenu->addItem(ROOT_MENU_ITEM, ContextMenu::PASTE, "Paste\tCtrl+V");
+    bool pasteEnabled = false;
+    if (const char *text = ImGui::GetClipboardText())
+    {
+      DataBlock blk;
+      dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
+      pasteEnabled = blk.isValid() && !strcmp(blk.getStr("DataType", ""), "Curve");
+    }
+    contextMenu->setEnabledById(ContextMenu::PASTE, pasteEnabled);
+    contextMenu->addItem(ROOT_MENU_ITEM, ContextMenu::HELP, "Help\tH");
+  }
 }
 
 void CurveControlStandalone::onVScroll(int dy, bool is_wheel)
@@ -752,54 +787,64 @@ void CurveControlStandalone::handleKeyPresses(unsigned canvas_id)
 {
   G_STATIC_ASSERT(sizeof(canvas_id) == sizeof(ImGuiID));
 
-  if (is_key_chord_pressed_owned(ImGuiKey_Escape, canvas_id))
+  if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_Escape, canvas_id))
   {
     if (mode == MODE_SELECTION)
       cancelMovement = true;
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_Q, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_Q, canvas_id))
   {
     cb->setConnectedEnds(!cb->getConnectedEnds());
     build();
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_W, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_W, canvas_id))
   {
     cb->setLockX(!cb->getLockX());
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_E, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_E, canvas_id))
   {
     cb->setLockEnds(!cb->getLockEnds());
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_X, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_X, canvas_id))
   {
     autoZoom();
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_M, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_M, canvas_id))
   {
     mDrawAMarks = !mDrawAMarks;
   }
-  else if (is_key_chord_pressed_owned(ImGuiKey_H, canvas_id))
+  else if (ImguiHelper::isKeyChordPressedOwned(ImGuiKey_H, canvas_id))
   {
     showHelp = !showHelp;
   }
-  else if (mEventHandler && is_key_chord_pressed_owned(ImGuiMod_Ctrl | ImGuiKey_C, canvas_id))
+  else if (mEventHandler && ImguiHelper::isKeyChordPressedOwned(ImGuiMod_Ctrl | ImGuiKey_C, canvas_id))
+  {
+    copyCurve();
+  }
+  else if (mEventHandler && ImguiHelper::isKeyChordPressedOwned(ImGuiMod_Ctrl | ImGuiKey_V, canvas_id))
+  {
+    pasteCurve();
+  }
+}
+
+void CurveControlStandalone::copyCurve()
+{
+  DataBlock blk;
+  mEventHandler->onWcClipboardCopy(nullptr, blk);
+
+  SimpleString text = blk_util::blkTextData(blk);
+  if (!text.empty())
+    ImGui::SetClipboardText(text);
+}
+
+void CurveControlStandalone::pasteCurve()
+{
+  if (const char *text = ImGui::GetClipboardText())
   {
     DataBlock blk;
-    mEventHandler->onWcClipboardCopy(nullptr, blk);
-
-    SimpleString text = blk_util::blkTextData(blk);
-    if (!text.empty())
-      ImGui::SetClipboardText(text);
-  }
-  else if (mEventHandler && is_key_chord_pressed_owned(ImGuiMod_Ctrl | ImGuiKey_V, canvas_id))
-  {
-    if (const char *text = ImGui::GetClipboardText())
-    {
-      DataBlock blk;
-      dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
-      if (blk.isValid())
-        mEventHandler->onWcClipboardPaste(nullptr, blk);
-    }
+    dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
+    if (blk.isValid())
+      mEventHandler->onWcClipboardPaste(nullptr, blk);
   }
 }
 
@@ -808,7 +853,7 @@ void CurveControlStandalone::autoZoom()
   Point2 left_bottom = Point2(0, 0);
   Point2 right_top = Point2(1.0, 1.0);
 
-  Point2 minXY, maxXY;
+  Point2 minXY = Point2(0, 0), maxXY = Point2(0, 0);
   if (cb)
   {
     minXY = cb->getMinXY();
@@ -858,6 +903,17 @@ void CurveControlStandalone::delSelection()
     build();
 }
 */
+
+void CurveControlStandalone::processContextMenu(unsigned id)
+{
+  switch (id)
+  {
+    case ContextMenu::COPY: copyCurve(); break;
+    case ContextMenu::PASTE: pasteCurve(); break;
+    case ContextMenu::HELP: showHelp = true; break;
+    default: break;
+  }
+}
 
 void CurveControlStandalone::build()
 {
@@ -978,10 +1034,22 @@ void CurveControlStandalone::updateImgui(float width, float height)
   }
   else
   {
-    showHelp = false;
+    // Don't disable help in cases when select option in context menu and cursor outside the canvas didn't move from safe offset
+    const int safeOffset = 20;
+    const bool insideSafeSpace =
+      mousePosInCanvas.x > lastMousePosContextMenu.x - safeOffset && mousePosInCanvas.x < lastMousePosContextMenu.x + safeOffset &&
+      mousePosInCanvas.y > lastMousePosContextMenu.y - safeOffset && mousePosInCanvas.y < lastMousePosContextMenu.y + safeOffset;
+    if (!contextMenu && !insideSafeSpace)
+      showHelp = false;
   }
 
   draw();
+
+  if (contextMenu && !render_context_menu(*contextMenu))
+  {
+    contextMenu.reset();
+    lastMousePosContextMenu = mousePosInCanvas;
+  }
 
   ImGui::PopID();
 }

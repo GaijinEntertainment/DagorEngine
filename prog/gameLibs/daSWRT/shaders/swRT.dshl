@@ -1,3 +1,13 @@
+
+hlsl {
+  #define LIMIT_AT_END 1
+}
+macro CONFIGURE_SW_RT(code)
+  hlsl(code) {
+    #define USE_BOX_HALVES 1
+  }
+endmacro
+
 include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "swBVH.dshl"
@@ -35,11 +45,11 @@ endmacro
 
 shader draw_collision_swrt
 {
-  ENABLE_ASSERT(cs)
+  CONFIGURE_SW_RT(ps)
 
   supports none;
   supports global_frame;
-  if (hardware.dx11 && !hardware.dx12)
+  if (hardware.dx11)
   {
     //for some reason, dx11 is uncapable to compile this code (it says it is forced to unroll nested loop)
     dont_render;
@@ -52,10 +62,11 @@ shader draw_collision_swrt
 
   USE_AND_INIT_VIEW_VEC_VS()
   hlsl {
+    #define ALWAYS_PROCESS_QUAD 1
     #define BACKFACE_CULLING 1
   }
 
-  (ps) {world_view_pos@f3 = world_view_pos;}
+  (ps) {swrt_world_view_pos@f3 = world_view_pos;}
   INIT_SW_BVH_RAYTRACING(ps)
   USE_SW_BVH_RAYTRACING(ps)
   INIT_AND_USE_GLOBTM(ps)
@@ -110,9 +121,9 @@ shader draw_collision_swrt
       float3 rayDir = normalize(input.viewVect);
       float t;float3 triNorm;float2 bCoord = 0;
       int complexity = 0;
-      if (rayTLAS(world_view_pos, rayDir, rcp(rayDir), 1e10, t, triNorm, bCoord, complexity))
+      if (rayTLAS(swrt_world_view_pos, rayDir, rcp(rayDir), 1e10, t, triNorm, bCoord, complexity))
       {
-        float4 imagePos = mulPointTm(world_view_pos + rayDir*t, globtm);
+        float4 imagePos = mulPointTm(swrt_world_view_pos + rayDir*t, globtm);
         o.depth = imagePos.z/imagePos.w;
         o.color = pack_hdr(xray_lighting(rayDir, 0.5, triNorm).rgb);//*exp(-0.01*t);//return complexity/100.0;
         o.color = pack_hdr(triNorm*0.5 + 0.5);
@@ -155,11 +166,12 @@ float4 swrt_dir_to_sun_basis[3];
 float4 swrt_shadow_planes[4];
 shader mask_shadow_swrt_cs
 {
-  ENABLE_ASSERT(cs)
+  CONFIGURE_SW_RT(cs)
+
   supports none;
   supports global_frame;
 
-  (cs) {world_view_pos@f3 = world_view_pos;}
+  (cs) {swrt_world_view_pos@f3 = world_view_pos;}
   hlsl(cs)
   {
     #define SWRT_USE_CONSTANT_PLANES swrt_shadow_planes
@@ -200,8 +212,8 @@ shader mask_shadow_swrt_cs
                         min(getViewVecOptimized(float2(uv0.x, uv1.y)), getViewVecOptimized(float2(uv1.x, uv1.y))));
       float3 vmax = max(max(getViewVecOptimized(float2(uv0.x, uv0.y)), getViewVecOptimized(float2(uv1.x, uv0.y))),
                         max(getViewVecOptimized(float2(uv0.x, uv1.y)), getViewVecOptimized(float2(uv1.x, uv1.y))));
-      bmin = min(min(vmin*dn, vmin*df), min(vmax*dn, vmax*df)) + world_view_pos,
-      bmax = max(max(vmin*dn, vmin*df), max(vmax*dn, vmax*df)) + world_view_pos;
+      bmin = min(min(vmin*dn, vmin*df), min(vmax*dn, vmax*df)) + swrt_world_view_pos,
+      bmax = max(max(vmin*dn, vmin*df), max(vmax*dn, vmax*df)) + swrt_world_view_pos;
       float offset = get_project_defined_swrt_shadow_offset_box(bmin, bmax);
       bmin += offset*swrt_dir_to_sun_basis[2].xyz;
       bmax += offset*swrt_dir_to_sun_basis[2].xyz;
@@ -213,10 +225,14 @@ shader mask_shadow_swrt_cs
                  min(min(dot(normal, float3(bmin.x, bmax.y, bmin.z)), dot(normal, float3(bmax.x, bmin.yz))),
                      min(dot(normal, float3(bmax.x, bmin.y, bmax.z)), dot(normal, float3(bmax.xy, bmin.z)))));
     }
-    void storeResult(uint2 at, uint r)
+    void storeResult(uint2 at, uint r, uint r2 = 0)
     {
       uint address = at.x + at.y*((uint(target_size.z)+1+SWRT_TILE_SIZE-1)/SWRT_TILE_SIZE);
+      #if LIMIT_AT_END
+      storeBuffer2(swrt_shadow_mask, address<<3, uint2(r, r2));
+      #else
       storeBuffer(swrt_shadow_mask, address<<2, r);
+      #endif
     }
     [numthreads(8, 8, 1)]
     void calc_trace_shadows_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
@@ -269,10 +285,19 @@ shader mask_shadow_swrt_cs
       float4 plane4 = float4(swrt_shadow_planes[3].xyz, -minPlaneDist(swrt_shadow_planes[3].xyz, bmin, bmax));
 
       //2. traverse tlas for frustum check, and check tlas leaves visibility
-      uint address = dtId.x + dtId.y*((uint(target_size.z)+1+SWRT_TILE_SIZE-1)/SWRT_TILE_SIZE);
       uint ofs = 0;
+      #if LIMIT_AT_END
+      uint lastOfs = 0;
+      if (isSomethingInFrustum(frustum, plane4, ofs))
+      {
+        lastOfs = findLastLeafInFrustum(frustum, plane4, ofs);
+        lastOfs = max(lastOfs, ofs);
+      }
+      storeResult(dtId, ofs, lastOfs);
+      #else
       isSomethingInFrustum(frustum, plane4, ofs);
       storeResult(dtId, ofs);
+      #endif
     }
   }
 
@@ -284,6 +309,8 @@ int swrt_use_hw_rt = 0;
 interval swrt_use_hw_rt:off<1, on;
 
 macro COMMON_SWRT_SHADOW(code)
+  CONFIGURE_SW_RT(code)
+
   INIT_SW_BVH_RAYTRACING(code)
   USE_SW_BVH_RAYTRACING(code)
   INIT_AND_USE_GLOBTM(code)
@@ -311,7 +338,7 @@ macro COMMON_SWRT_SHADOW(code)
     }
 
     INIT_BVH(code, 1, true)
-    USE_BVH_FOR_SHADOW(code)
+    USE_BVH_FOR_SHADOW(code, false)
     USE_ADAPTIVE_RAY_OFFSET(code)
   }
 
@@ -349,15 +376,13 @@ endmacro
 
 shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
 {
-  ENABLE_ASSERT(cs)
-
   supports none;
   supports global_frame;
 
   COMMON_SWRT_SHADOW(cs)
   (cs) {
     swrt_shadow_target@uav = swrt_shadow_target hlsl { RWTexture2D<float> swrt_shadow_target@uav;}
-    world_view_pos@f3 = world_view_pos;
+    swrt_world_view_pos@f3 = world_view_pos;
   }
   if (shader == checkerboard_shadows_swrt_cs)
   {
@@ -402,11 +427,17 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       #define WRITE_MASK(v) {swrt_shadow_target[dtId] = v;}
       if (any(pixelCoord > target_size.zw))
         return;
-      uint startOfs = 0;
+      uint startOfs = 0, endOfs = 0;
       uint2 tileCoord = pixelCoord/uint(SWRT_TILE_SIZE);
       #if !HW_RT_SHADOWS
         uint address = tileCoord.x + tileCoord.y*(uint(uint(target_size.z)+1+SWRT_TILE_SIZE-1)/SWRT_TILE_SIZE);
+        #if LIMIT_AT_END
+        uint2 leafRange = loadBuffer2(swrt_shadow_mask, address*8);
+        startOfs = leafRange.x;
+        endOfs = leafRange.y;
+        #else
         startOfs = loadBuffer(swrt_shadow_mask, address*4);
+        #endif
         BRANCH
         if (!startOfs)
         {
@@ -445,7 +476,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       float3 viewVect = getViewVecOptimized(uv);
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 cameraPos = viewVect * w;
-      float3 worldPos = world_view_pos.xyz + cameraPos;
+      float3 worldPos = swrt_world_view_pos.xyz + cameraPos;
       float3 to_sun_dir = get_sun_direction(pixelCoord);
       #if HW_RT_SHADOWS
       {
@@ -463,7 +494,11 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       float stepOfs = get_project_defined_swrt_shadow_offset_point(cameraPos, worldPos.xyz);
       float step_to_sun = stepOfs + (0.001+0.00001*length(cameraPos));
 
-      bool shadowHit = !rayShadowTLAS(worldPos.xyz + step_to_sun*to_sun_dir, to_sun_dir, rcp(to_sun_dir), startOfs);
+      bool shadowHit = !rayShadowTLAS(worldPos.xyz + step_to_sun*to_sun_dir, to_sun_dir, rcp(to_sun_dir), startOfs
+      #if LIMIT_AT_END
+      , endOfs
+      #endif
+      );
 
       //swrt_shadow_target[pixelCoord] = shadowHit && !mask;
       WRITE_MASK(shadowHit);

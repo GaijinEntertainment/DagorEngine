@@ -10,6 +10,7 @@ float4 dcm_eye_to_lens_aligned_origin;
 float4 dcm_eye_to_plane_origin;
 
 float4 dcm_color = float4(1, 0, 0, 1);
+float4 dcm_lens_color_tint = float4(0, 0, 0, 0);
 float dcm_border_min = 1.0;
 float dcm_border_scale = 1.0;
 
@@ -27,16 +28,16 @@ float dcm_dynamic_noise_uv_scale = 8.0;
 float dcm_dynamic_noise_sub_scale = 0.56;
 float dcm_dynamic_noise_scale = 40.0;
 float dcm_dynamic_noise_add = -0.112;
-float dcm_dynamic_noise_intensity_scale = 0.0;
 float4 dcm_dynamic_noise_speed = (0.1, 0.27, 0, 0);
+
+float dcm_exposure_factor_remap_begin = 15.0;
+float dcm_exposure_factor_remap_end = 40.0;
 
 texture noise_128_tex_hash;
 
 float4 dcm_inv_screen_size = (1, 1, 0, 0);
 
 macro COLLIMATOR_MOA_BASE()
-  ENABLE_ASSERT(ps)
-
   if (in_editor_assume == yes)
   {
     assume dcm_render_mode = render_lens;
@@ -49,8 +50,6 @@ macro COLLIMATOR_MOA_BASE()
 
   render_trans;
   z_write = false;
-
-  blend_src = 1; blend_dst=isa;
 
   if (two_sided)
   {
@@ -254,6 +253,8 @@ macro COLLIMATOR_MOA_LENS()
     shape_border_scale@f1 = dcm_border_scale;
     shape_border_min@f1 = dcm_border_min;
 
+    lens_color_tint@f4 = dcm_lens_color_tint;
+
     noise_128_tex_hash@smp2d = noise_128_tex_hash;
     use_noise@f1 = dcm_use_noise;
     noise_min_intensity@f1 = dcm_noise_min_intensity;
@@ -270,8 +271,10 @@ macro COLLIMATOR_MOA_LENS()
     dynamic_noise_sub_scale@f1 = dcm_dynamic_noise_sub_scale;
     dynamic_noise_add@f1 = dcm_dynamic_noise_add;
     dynamic_noise_scale@f1 = dcm_dynamic_noise_scale;
-    dynamic_noise_intensity_scale@f1 = dcm_dynamic_noise_intensity_scale;
     dynamic_noise_speed@f2 = dcm_dynamic_noise_speed.xy;
+
+    dcm_exposure_factor_remap_begin@f1 = dcm_exposure_factor_remap_begin;
+    dcm_exposure_factor_remap_range@f1 = dcm_exposure_factor_remap_end - dcm_exposure_factor_remap_begin;
   }
 
   INIT_HDR(ps)
@@ -299,13 +302,17 @@ macro COLLIMATOR_MOA_LENS()
       staticNoise = saturate((staticNoise + static_noise_add) * static_noise_scale);
       staticNoise = staticNoise * staticNoise;
 
-      float noiseT = saturate(max(staticNoise, dynamicNoise * alpha));
+      float noiseExposureFactor = saturate((get_exposure_mul() - dcm_exposure_factor_remap_begin) / dcm_exposure_factor_remap_range);
+      float noiseBaseT = min(1.0 - noiseExposureFactor, 0.9);
+      float noiseT = saturate(max(staticNoise, dynamicNoise * alpha) + noiseBaseT);
 
       float noiseIntensityBase =  max(noiseT, noise_min_intensity);
       float3 noiseColor = color.rgb / luminance(color.rgb) * noiseIntensityBase;
 
-      float lightNoise = (staticNoise > dynamicNoise * light_noise_thinness) && (alpha > shape_border_min)
-                       ? light_noise_intensity_scale * noiseT : 1.0;
+      float lightNoiseScale = lerp(1.0, light_noise_intensity_scale * noiseT, noiseExposureFactor);
+      float lightNoiseThinnes = light_noise_thinness * noiseExposureFactor;
+      float lightNoise = (staticNoise > dynamicNoise * lightNoiseThinnes) && (alpha > shape_border_min)
+                       ? lightNoiseScale : 1.0;
       float3 laserColor = color.rgb * lightNoise;
 
       float3 resColor = lerp(noiseColor, laserColor, noiseT);
@@ -329,7 +336,7 @@ macro COLLIMATOR_MOA_LENS()
       float innerSideDistance = saturate(-1.0 * sdf * shape_border_scale);
 
       if (innerSideDistance <= 0.0)
-        discard;
+        return lens_color_tint;
 
       float alpha = max(shape_border_min, pow2(innerSideDistance));
       float4 color;
@@ -340,7 +347,7 @@ macro COLLIMATOR_MOA_LENS()
       else
         color = shape_color;
 
-      return float4(pack_hdr(color.rgb), color.a);
+      return float4(color.rgb, color.a);
     }
   }
 endmacro

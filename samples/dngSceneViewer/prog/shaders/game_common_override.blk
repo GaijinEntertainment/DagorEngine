@@ -3,7 +3,7 @@ incDir:t="../../../prog/daNetGameLibs"
 
 "@override:source" {
   file:t = "loading.dshl"
-  include "dng_libs_shaders.blk"
+  include "libs_shaders.blk"
   include "model_shaders_list.blk"
 
   file:t = "wind/fluid_wind.dshl"

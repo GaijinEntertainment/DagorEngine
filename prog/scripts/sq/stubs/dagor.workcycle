@@ -12,4 +12,5 @@ return {
   resetTimeout = @(time, func, _id=null) assert(type(func)=="function") && assert(["integer","float"].contains(type(time)))
   clearTimer = @(_func_or_id) null
   setInterval = @(time, func, _id=null) assert(type(func)=="function") && assert(["integer","float"].contains(type(time)))
+  sleep = @(time_ms) assert(type(time_ms)=="integer")
 }

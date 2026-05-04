@@ -11,20 +11,20 @@
 #include <de3_landClassData.h>
 #include <de3_genObjUtil.h>
 #include <de3_randomSeed.h>
+#include <de3_heightmap.h>
 
 
 namespace objgenerator
 {
-template <class Point>
-inline bool point_inside_poly(const Point2 &p, dag::ConstSpan<Point *> points)
+inline bool point_inside_poly(const Point2 &p, dag::ConstSpan<Point3> points)
 {
   int pj, pk = 0;
   double wrkx, yu, yl;
 
   for (pj = 0; pj < points.size(); pj++)
   {
-    Point3 ppj = points[pj]->getPt();
-    Point3 ppj1 = points[(pj + 1) % points.size()]->getPt();
+    Point3 ppj = points[pj];
+    Point3 ppj1 = points[(pj + 1) % points.size()];
 
     yu = ppj.z > ppj1.z ? ppj.z : ppj1.z;
     yl = ppj.z < ppj1.z ? ppj.z : ppj1.z;
@@ -56,9 +56,8 @@ inline bool point_inside_poly(const Point2 &p, dag::ConstSpan<Point *> points)
   return false;
 }
 
-template <class Point>
 inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd, int subtype, int editLayerIdx, IHeightmap *hmap,
-  dag::Span<landclass::SingleEntityPool> pools, dag::ConstSpan<Point *> points, float ang, const Point2 &polyObjOffs)
+  dag::Span<landclass::SingleEntityPool> pools, dag::Span<Point3> points, float ang, const Point2 &polyObjOffs)
 {
   bool needRotate = (fabs(ang) > 1e-5);
   BBox2 polyBBox;
@@ -68,7 +67,7 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
 
   for (int i = 0; i < points.size(); i++)
   {
-    Point3 p3 = points[i]->getPt();
+    Point3 p3 = points[i];
     polyBBox += Point2(p3.x, p3.z);
     mid_y += p3.y / points.size();
   }
@@ -79,11 +78,11 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
     roty = rotyTM(ang);
     for (int i = 0; i < points.size(); i++)
     {
-      Point3 pos = points[i]->getPt();
+      Point3 pos = points[i];
       Point3 diff = pos - center;
       diff = roty * diff;
       pos = diff + center;
-      points[i]->setPos(pos);
+      points[i] = pos;
     }
     roty = rotyTM(-ang);
   }
@@ -257,11 +256,11 @@ inline void generateTiledEntitiesInsidePoly(const landclass::TiledEntities &lcd,
   if (needRotate)
     for (int i = 0; i < points.size(); i++)
     {
-      Point3 pos = points[i]->getPt();
+      Point3 pos = points[i];
       Point3 diff = pos - center;
       diff = roty * diff;
       pos = diff + center;
-      points[i]->setPos(pos);
+      points[i] = pos;
     }
 }
 } // namespace objgenerator

@@ -1,30 +1,35 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "ecsObjectEditor.h"
-#include "ecsEditableObject.h"
+#include "ecsEntityObject.h"
+#include "ecsSceneObject.h"
 #include "ecsEditorCm.h"
 #include "ecsEditorCopyDlg.h"
 #include "ecsEditorMain.h"
 #include "ecsHierarchicalUndoGroup.h"
+#include "ecsSceneOutliner/ecsSceneOutlinerPanel.h"
 #include <ecsPropPanel/ecsOrderedTemplatesGroups.h>
 #include <ecsPropPanel/ecsTemplateSelectorDialog.h>
+#include <ecsPropPanel/ecsEditorTemplates.h>
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
-#include <daECS/scene/scene.h>
+#include <daECS/io/blk.h>
 #include <de3_interface.h>
+#include <oldEditor/de_workspace.h>
 #include <debug/dag_debug3d.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <ecs/rendInst/riExtra.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IObjectCreator.h>
 #include <ioSys/dag_dataBlock.h>
+#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_basePath.h>
+#include <osApiWrappers/dag_files.h>
 #include <memory/dag_framemem.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
-
-#define PREVIEW_TEMPLATE                    "daeditor_preview_entity"
-#define HIERARCHIAL_FREE_TRANSFORM_TEMPLATE "hierarchial_free_transform"
 
 void ecs_editor_release_ri_extra_substitutes();
 bool ecs_editor_ignore_entity_in_collision_test_begin(ecs::EntityId eid);
@@ -32,23 +37,36 @@ void ecs_editor_ignore_entity_in_collision_test_end(ecs::EntityId eid, const TMa
 void ecs_editor_ignore_entities_for_export_begin();
 void ecs_editor_ignore_entities_for_export_end();
 
-static const ecs::HashedConstString EDITABLE_TEMPLATE_COMP = ECS_HASH("editableTemplate");
-static ECSObjectEditor *ecs_object_editor_instance = nullptr;
-
-struct ECSEditableObjectSaveRecord
+namespace
 {
-  const ECSEditableObject *obj;
-  const ecs::Scene::EntityRecord *erec;
-  int priority;
-  bool operator<(const ECSEditableObjectSaveRecord &rhs) const
+enum
+{
+  SCENE_OUTLINER_EDITOR_WTYPE = 330,
+};
+
+enum
+{
+  SCENE_OUTLINER_WIDTH = 280,
+};
+
+const ecs::HashedConstString EDITABLE_TEMPLATE_COMP = ECS_HASH("editableTemplate");
+ECSObjectEditor *ecs_object_editor_instance = nullptr;
+
+struct ECSSceneItemSaveObj
+{
+  ecs::Scene::SceneRecord::OrderedEntry entry;
+  const ecs::Scene::EntityRecord *erec = nullptr;
+  uint64_t position;
+  uint64_t priority;
+  bool operator<(const ECSSceneItemSaveObj &rhs) const
   {
     if (priority != rhs.priority)
       return priority < rhs.priority;
-    return erec->order < rhs.erec->order;
+    return position < rhs.position;
   }
 };
 
-static int calc_save_priority(const char *template_name, const ECSObjectEditor::SaveOrderRules &rules)
+uint64_t calc_save_priority(const char *template_name, const ECSObjectEditor::SaveOrderRules &rules)
 {
   for (auto &prefix : rules)
   {
@@ -81,24 +99,19 @@ static int calc_save_priority(const char *template_name, const ECSObjectEditor::
   return rules.size();
 }
 
-static inline bool is_create_entity_mode(int m) { return m == CM_ECS_EDITOR_CREATE_ENTITY; }
+inline bool is_create_entity_mode(int m) { return m == CM_ECS_EDITOR_CREATE_ENTITY; }
 
-static void removeSelectedTemplateName(eastl::string &templ_name)
-{
-  templ_name = remove_sub_template_name(templ_name.c_str(), ECS_EDITOR_SELECTED_TEMPLATE);
-}
+inline bool is_entity_editable(ecs::EntityId eid) { return g_entity_mgr->getOr(eid, ECS_HASH("editableObj"), true); }
 
-static inline bool is_entity_editable(ecs::EntityId eid) { return g_entity_mgr->getOr(eid, ECS_HASH("editableObj"), true); }
-
-static inline bool is_scene_entity(ECSEditableObject *o)
+inline bool is_scene_entity(ECSEntityObject *o)
 {
   if (!o)
     return false;
   const auto *erec = ecs::g_scenes->getActiveScene().findEntityRecord(o->getEid());
-  return erec && erec->toBeSaved;
+  return erec;
 }
 
-static const char *check_singleton_mutex_exists(const ecs::Template *templ, const ecs::TemplatesData &templates_data)
+const char *check_singleton_mutex_exists(const ecs::Template *templ, const ecs::TemplatesData &templates_data)
 {
   auto &c = templ->getComponent(ECS_HASH("singleton_mutex"), templates_data);
   if (!c.isNull())
@@ -107,9 +120,9 @@ static const char *check_singleton_mutex_exists(const ecs::Template *templ, cons
   return nullptr;
 }
 
-static Point2 cmp_obj_z_pt;
-static IGenViewportWnd *cmp_obj_z_wnd = nullptr;
-static int cmp_obj_z(RenderableEditableObject *const *a, RenderableEditableObject *const *b)
+Point2 cmp_obj_z_pt;
+IGenViewportWnd *cmp_obj_z_wnd = nullptr;
+int cmp_obj_z(RenderableEditableObject *const *a, RenderableEditableObject *const *b)
 {
   Point3 pt_a = a[0]->getPos();
   Point3 pt_b = b[0]->getPos();
@@ -139,12 +152,12 @@ static int cmp_obj_z(RenderableEditableObject *const *a, RenderableEditableObjec
 }
 
 // Check if setting the child's parent to parent would result in a loop.
-static bool is_safe_to_set_parent(ECSEditableObject &child, ECSEditableObject &parent)
+bool is_safe_to_set_parent(ECSEntityObject &child, ECSEntityObject &parent)
 {
-  ECSEditableObject *loopObject = &child;
+  ECSEntityObject *loopObject = &child;
   while (true)
   {
-    ECSEditableObject *newParent = loopObject == &child ? &parent : loopObject->getParentObject();
+    ECSEntityObject *newParent = loopObject == &child ? &parent : loopObject->getParentObject();
     if (!newParent)
       return true;
     if (newParent == &child)
@@ -154,10 +167,42 @@ static bool is_safe_to_set_parent(ECSEditableObject &child, ECSEditableObject &p
   }
 }
 
+inline bool can_transform_object_freely(RenderableEditableObject *object)
+{
+  if (auto *entityObj = RTTI_cast<ECSEntityObject>(object))
+    return entityObj->canTransformFreely();
+
+  return true;
+}
+} // namespace
+
 ECSObjectEditor::ECSObjectEditor()
 {
   ecs_object_editor_instance = this;
   addEditableEntities();
+
+  if (dd_check_named_mount_in_path_valid("%gameBase") || dd_check_named_mount_in_path_valid("%gameBasePkgDev"))
+  {
+    ecs::resolve_import_path = [](const char *import_path, String &import_buffer) -> const char * {
+      if (dd_file_exist(import_path))
+      {
+        return import_path;
+      }
+
+      import_buffer.printf(0, "%%gameBase/%s", import_path);
+      if (dd_file_exist(import_buffer))
+      {
+        return import_buffer.c_str();
+      }
+
+      import_buffer.printf(0, "%%gameBasePkgDev/%s", import_path);
+      if (dd_file_exist(import_buffer))
+      {
+        return import_buffer.c_str();
+      }
+      return nullptr;
+    };
+  }
 }
 
 ECSObjectEditor::~ECSObjectEditor()
@@ -178,8 +223,15 @@ void ECSObjectEditor::reset()
   clear_and_shrink(selection);
   eidsCreated.clear();
   eidToEditableObject.clear();
+  sidsCreated.clear();
+  sidToEditableObject.clear();
   hiddenTemplates.clear();
   objsToRemove.clear();
+
+  if (sceneOutliner)
+  {
+    sceneOutliner->resetPanel([this](const eastl::function<void(ecs::EntityId eid)> &cb) { onOutlinerPanelFill(cb); });
+  }
 
   // Make sure that nothing leaks to the next loaded level.
   g_entity_mgr->tick(true);
@@ -195,7 +247,7 @@ template <typename F>
 inline void ECSObjectEditor::forEachEditableObject(F fn)
 {
   for (EditableObject *eo : objects)
-    if (ECSEditableObject *o = RTTI_cast<ECSEditableObject>(eo))
+    if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(eo))
       fn(o);
 }
 
@@ -203,17 +255,253 @@ template <typename F>
 inline void ECSObjectEditor::forEachEditableObjectWithTemplate(F fn)
 {
   for (EditableObject *eo : objects)
-    if (ECSEditableObject *o = RTTI_cast<ECSEditableObject>(eo))
+    if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(eo))
       if (const char *entTempl = g_entity_mgr->getEntityTemplateName(o->getEid()))
         fn(o, entTempl);
+}
+
+void ECSObjectEditor::updateImgui()
+{
+  if (sceneOutliner)
+  {
+    PropPanel::PanelWindowPropertyControl *panelWindow = sceneOutliner->getPanel();
+
+    bool open = true;
+    DAEDITOR3.imguiBegin(*panelWindow, &open);
+    sceneOutliner->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open && sceneOutliner)
+    {
+      EDITORCORE->removePropPanel(sceneOutliner.get());
+      EDITORCORE->managePropPanels();
+    }
+  }
+
+  Base::updateImgui();
+}
+
+RenderableEditableObject *ECSObjectEditor::getObjectFromSceneId(ecs::Scene::SceneId sid) const
+{
+  auto find = sidToEditableObject.find(sid);
+  return find != sidToEditableObject.end() ? find->second : nullptr;
+}
+
+RenderableEditableObject *ECSObjectEditor::getObjectFromEntityId(ecs::EntityId eid) const
+{
+  auto find = eidToEditableObject.find(eid);
+  return find != eidToEditableObject.end() ? find->second : nullptr;
+}
+
+uint32_t ECSObjectEditor::writeSceneToBlk(DataBlock &blk, const ecs::Scene::SceneRecord &record, ECSObjectEditor &editor)
+{
+  const bool isMain = record.importDepth == 0;
+  eastl::vector<ECSSceneItemSaveObj, framemem_allocator> saveItems;
+  saveItems.reserve(record.orderedEntries.size());
+
+  const ecs::TemplateDB &templates = g_entity_mgr->getTemplateDB();
+  int hierarchySaveId = 2;
+  ska::flat_hash_map<ecs::EntityId, int, ecs::EidHash> hiearchySaveIds;
+
+  for (uint64_t i = 0; i < record.orderedEntries.size(); ++i)
+  {
+    const ecs::Scene::SceneRecord::OrderedEntry &entry = record.orderedEntries[i];
+    const ecs::Scene::EntityRecord *erec = nullptr;
+    if (entry.isEntity)
+    {
+      erec = ecs::g_scenes->getActiveScene().findEntityRecord(entry.eid);
+    }
+
+    if (entry.isEntity && !erec)
+    {
+      continue;
+    }
+
+    saveItems.push_back(ECSSceneItemSaveObj{.entry = entry,
+      .erec = erec,
+      .position = i,
+      .priority = entry.isEntity ? calc_save_priority(erec->templateName.c_str(), editor.getSaveOrderRules())
+                                 : editor.getSaveOrderRules().size()});
+  }
+
+  if (isMain)
+  {
+    editor.forEachEditableObject([&](ECSEntityObject *o) {
+      if (auto erec = ecs::g_scenes->getActiveScene().findEntityRecord(o->getEid()); erec)
+      {
+        if (record.entities.find(o->getEid()) == record.entities.end() && erec->loadType == ecs::Scene::UNKNOWN &&
+            erec->sceneId == ecs::Scene::C_INVALID_SCENE_ID)
+        {
+          saveItems.push_back(ECSSceneItemSaveObj{.entry = ecs::Scene::SceneRecord::OrderedEntry{.eid = o->getEid(), .isEntity = true},
+            .erec = erec,
+            .position = saveItems.size(),
+            .priority = calc_save_priority(erec->templateName.c_str(), editor.getSaveOrderRules())});
+        }
+      }
+    });
+  }
+
+  for (const ECSSceneItemSaveObj &item : saveItems)
+  {
+    if (item.erec)
+    {
+      eastl::vector<eastl::string, framemem_allocator> subTemplsToRemove;
+      if (const char *entTempl = g_entity_mgr->getEntityTemplateName(item.entry.eid))
+        if (const ecs::Template *templ = templates.getTemplateByName(entTempl))
+          for (const uint32_t p : templ->getParents())
+            if (auto *t = g_entity_mgr->getTemplateDB().getTemplateById(p))
+              if (auto *cc = t->getComponentsMap().find(EDITABLE_TEMPLATE_COMP))
+                if (!cc->getOr(true))
+                  subTemplsToRemove.push_back(t->getName());
+      for (const auto &subTempl : subTemplsToRemove)
+        remove_sub_template_async(item.entry.eid, subTempl.c_str());
+
+      const ecs::EntityId *hierarchyEid = g_entity_mgr->getNullable<ecs::EntityId>(item.entry.eid, ECS_HASH("hierarchy_eid"));
+      if (hierarchyEid && *hierarchyEid)
+      {
+        int finalHierarchySaveId = hierarchySaveId;
+        G_ASSERT((finalHierarchySaveId & 1) == 0);
+
+        const char *templateName = g_entity_mgr->getEntityTemplateName(item.entry.eid);
+        if (find_sub_template_name(templateName, ECS_EDITOR_HIERARCHIAL_FREE_TRANSFORM_TEMPLATE))
+          finalHierarchySaveId |= 1;
+
+        bool inserted;
+        eastl::tie(eastl::ignore, inserted) = hiearchySaveIds.insert({item.entry.eid, finalHierarchySaveId});
+        G_ASSERT(inserted);
+        hierarchySaveId += 2;
+      }
+    }
+  }
+
+  g_entity_mgr->tick();                            // so we apply all remove sub template
+  eastl::sort(saveItems.begin(), saveItems.end()); // sort by save priority and scene order, new entites go last
+
+  TMatrix parentTm = TMatrix::IDENT;
+  if (record.loadType == ecs::Scene::IMPORT)
+  {
+    parentTm = record.rootTransform.value_or(TMatrix::IDENT);
+    ecs::Scene::SceneId parentId = record.parent;
+    while (parentId != ecs::Scene::SceneRecord::NO_PARENT)
+    {
+      if (const ecs::Scene::SceneRecord *parentRec = ecs::g_scenes->getActiveScene().getSceneRecordById(parentId))
+      {
+        parentTm = parentRec->rootTransform.value_or(TMatrix::IDENT) * parentTm;
+        parentId = parentRec->parent;
+      }
+      else
+      {
+        break;
+      }
+    }
+  }
+
+  if (!record.transformable) // do not write true, it is default value
+  {
+    blk.addBool("transformable_scene", record.transformable);
+  }
+  if (record.pivot != Point3::ZERO)
+  {
+    blk.addPoint3("pivot_scene", record.pivot);
+  }
+  if (!record.prettyName.empty())
+  {
+    blk.addStr("pretty_name_scene", record.prettyName);
+  }
+
+  for (const ECSSceneItemSaveObj &item : saveItems)
+  {
+    if (item.erec)
+    {
+      G_ASSERT(item.entry.isEntity);
+
+      DataBlock *entityBlock = blk.addNewBlock("entity");
+      if (record.loadType == ecs::Scene::IMPORT && item.erec->wasTransformChanged)
+      {
+        auto recordCopy = *item.erec;
+
+        if (auto it = eastl::find_if(recordCopy.clist.begin(), recordCopy.clist.end(),
+              [](const auto &value) { return value.first == "transform"; });
+            it != recordCopy.clist.end())
+        {
+          TMatrix &currentTm = it->second.getRW<TMatrix>();
+          currentTm = currentTm * inverse(parentTm);
+        }
+
+        ECSEntityObject::save(*entityBlock, recordCopy);
+      }
+      else
+      {
+        ECSEntityObject::save(*entityBlock, *item.erec);
+      }
+
+      entityBlock->removeParam("hierarchy_unresolved_id");
+      entityBlock->removeParam("hierarchy_unresolved_parent_id");
+
+      auto hiearchySaveIdIt = hiearchySaveIds.find(item.entry.eid);
+      if (hiearchySaveIdIt != hiearchySaveIds.end())
+      {
+        const int unresolvedId = hiearchySaveIdIt->second;
+
+        // We remove the hierarchial_free_transform template and restore it manually after loading. This is needed to
+        // prevent having wrong transforms due to async ECS events interfering with the loaded data.
+        if ((unresolvedId & 1) == 1)
+        {
+          if (const char *templateName = entityBlock->getStr("_template"))
+          {
+            auto finalTemplateName = remove_sub_template_name(templateName, ECS_EDITOR_HIERARCHIAL_FREE_TRANSFORM_TEMPLATE);
+            entityBlock->setStr("_template", finalTemplateName.c_str());
+          }
+        }
+
+        entityBlock->addInt("hierarchy_unresolved_id", unresolvedId);
+
+        const ecs::EntityId *parentId = g_entity_mgr->getNullable<ecs::EntityId>(item.entry.eid, ECS_HASH("hierarchy_parent"));
+        if (parentId && *parentId)
+        {
+          auto hiearchySaveIdParentIt = hiearchySaveIds.find(*parentId);
+          if (hiearchySaveIdParentIt != hiearchySaveIds.end())
+            entityBlock->addInt("hierarchy_unresolved_parent_id", hiearchySaveIdParentIt->second);
+        }
+      }
+    }
+    else
+    {
+      if (const ecs::Scene::SceneRecord *srec = ecs::g_scenes->getActiveScene().getSceneRecordById(item.entry.sid))
+      {
+        DataBlock *importBlock = blk.addNewBlock("import");
+        importBlock->addStr("scene", srec->path.c_str());
+        if (srec->rootTransform && srec->rootTransform.value() != TMatrix::IDENT)
+        {
+          importBlock->addTm("transform", srec->rootTransform.value());
+        }
+      }
+    }
+  }
+
+  return saveItems.size();
+}
+
+void ECSObjectEditor::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  ECSBasicObjectEditor::registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_CREATE_ENTITY);
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_SET_PARENT, ImGuiMod_Ctrl | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_CLEAR_PARENT, ImGuiMod_Alt | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_TOGGLE_FREE_TRANSFORM);
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_SCENE_OUTLINER, ImGuiMod_Ctrl | ImGuiKey_O);
 }
 
 void ECSObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
 {
   ObjectEditor::registerViewportAccelerators(wndManager);
 
-  wndManager.addViewportAccelerator(CM_ECS_EDITOR_SET_PARENT, ImGuiMod_Ctrl | ImGuiKey_P);
-  wndManager.addViewportAccelerator(CM_ECS_EDITOR_CLEAR_PARENT, ImGuiMod_Alt | ImGuiKey_P);
+  wndManager.addViewportAccelerator(CM_ECS_EDITOR_CREATE_ENTITY, EditorCommandIds::ECS_EDITOR_CREATE_ENTITY);
+  wndManager.addViewportAccelerator(CM_ECS_EDITOR_TOGGLE_FREE_TRANSFORM, EditorCommandIds::ECS_EDITOR_TOGGLE_FREE_TRANSFORM);
+  wndManager.addViewportAccelerator(CM_ECS_EDITOR_SET_PARENT, EditorCommandIds::ECS_EDITOR_SET_PARENT);
+  wndManager.addViewportAccelerator(CM_ECS_EDITOR_CLEAR_PARENT, EditorCommandIds::ECS_EDITOR_CLEAR_PARENT);
+  wndManager.addViewportAccelerator(CM_ECS_EDITOR_SCENE_OUTLINER, EditorCommandIds::ECS_EDITOR_SCENE_OUTLINER);
 }
 
 void ECSObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
@@ -221,12 +509,16 @@ void ECSObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
   ObjectEditor::fillToolBar(toolbar);
 
   PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
-  addButton(tb1, CM_ECS_EDITOR_CREATE_ENTITY, "create_lib_ent", "Create entity", true);
-  addButton(tb1, CM_ECS_EDITOR_SET_PARENT, "area_link",
-    "Set parent (Ctrl+P)\n\nThe next clicked object will be set as the parent of the currently selected objects.", true);
-  addButton(tb1, CM_ECS_EDITOR_CLEAR_PARENT, "area_split", "Clear parent (Alt+P)");
-  addButton(tb1, CM_ECS_EDITOR_TOGGLE_FREE_TRANSFORM, "asset_a2d_changed",
-    "Toggle between free and fixed transform in a child entity");
+  addEditorCommandButton(tb1, CM_ECS_EDITOR_CREATE_ENTITY, EditorCommandIds::ECS_EDITOR_CREATE_ENTITY, "create_lib_ent",
+    "Create entity", true);
+
+  addEditorCommandButton(tb1, CM_ECS_EDITOR_SET_PARENT, EditorCommandIds::ECS_EDITOR_SET_PARENT, "area_link",
+    "Set parent\n\nThe next clicked object will be set as the parent of the currently selected objects.", true);
+  addEditorCommandButton(tb1, CM_ECS_EDITOR_CLEAR_PARENT, EditorCommandIds::ECS_EDITOR_CLEAR_PARENT, "area_split", "Clear parent");
+  addEditorCommandButton(tb1, CM_ECS_EDITOR_TOGGLE_FREE_TRANSFORM, EditorCommandIds::ECS_EDITOR_TOGGLE_FREE_TRANSFORM,
+    "asset_a2d_changed", "Toggle between free and fixed transform in a child entity");
+  addEditorCommandButton(tb1, CM_ECS_EDITOR_SCENE_OUTLINER, EditorCommandIds::ECS_EDITOR_SCENE_OUTLINER, "scene_hierarchy",
+    "Show scene outliner", true);
 }
 
 void ECSObjectEditor::updateToolbarButtons()
@@ -263,10 +555,10 @@ void ECSObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
     for (EditableObject *editableObject : selection)
     {
       G_ASSERT(editableObject);
-      ECSEditableObject *ecsEditableObject = RTTI_cast<ECSEditableObject>(editableObject);
-      G_ASSERT(ecsEditableObject);
-      G_ASSERT(ecsEditableObject->getEid());
-      objectsForParenting.push_back(ecsEditableObject->getEid());
+      ECSEntityObject *ecsEntityObject = RTTI_cast<ECSEntityObject>(editableObject);
+      G_ASSERT(ecsEntityObject);
+      G_ASSERT(ecsEntityObject->getEid());
+      objectsForParenting.push_back(ecsEntityObject->getEid());
     }
 
     if (objectsForParenting.empty())
@@ -291,6 +583,19 @@ void ECSObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
     toggleFreeTransformForSelection();
     invalidateObjectProps();
     ecs_editor_set_viewport_message("Toggled free transform", /*auto_hide = */ true);
+  }
+  else if (pcb_id == CM_ECS_EDITOR_SCENE_OUTLINER)
+  {
+    if (!sceneOutliner)
+    {
+      EDITORCORE->addPropPanel(SCENE_OUTLINER_EDITOR_WTYPE, hdpi::_pxScaled(SCENE_OUTLINER_WIDTH));
+    }
+    else
+    {
+      EDITORCORE->removePropPanel(sceneOutliner.get());
+    }
+
+    EDITORCORE->managePropPanels();
   }
   else
   {
@@ -324,7 +629,8 @@ void ECSObjectEditor::destroyEntityDirect(ecs::EntityId eid)
   if (eid == ecs::INVALID_ENTITY_ID)
     return;
   eidsCreated.erase(eid);
-  ecs::g_scenes->getActiveScene().eraseEntityRecord(eid);
+  if (ecs::g_scenes.get())
+    ecs::g_scenes->getActiveScene().eraseEntityRecord(eid);
   g_entity_mgr->destroyEntity(eid);
 }
 
@@ -336,29 +642,76 @@ void ECSObjectEditor::addEntityEx(ecs::EntityId eid, bool use_undo)
 
   eidsCreated.insert(eid);
 
-  ECSEditableObject *o = new ECSEditableObject(eid);
+  ECSEntityObject *o = new ECSEntityObject(eid);
   addObject(o, use_undo);
 
   if (showOnlySceneEntities && !is_scene_entity(o))
     o->hideObject(true);
 
-  if (ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecordForModify(o->getEid()))
+  if (ecs::g_scenes.get())
   {
-    removeSelectedTemplateName(pRec->templateName);
-    remove_sub_template_async(o->getEid(), ECS_EDITOR_SELECTED_TEMPLATE);
+    if (ecs::Scene::EntityRecord *pRec = ecs::g_scenes->getActiveScene().findEntityRecordForModify(o->getEid()))
+    {
+      removeSelectedTemplateName(pRec->templateName);
+      remove_sub_template_async(o->getEid(), ECS_EDITOR_SELECTED_TEMPLATE);
+    }
   }
 
   if (use_undo && !isUndoHolding)
     getUndoSystem()->accept("Add Entity");
 }
 
-bool ECSObjectEditor::setParentForObjects(dag::ConstSpan<ECSEditableObject *> children, ECSEditableObject &parent)
+void ECSObjectEditor::addScene(ecs::Scene::SceneId sid)
+{
+  ecs::Scene &activeScene = ecs::g_scenes->getActiveScene();
+  if (const ecs::Scene::SceneRecord *srecord = activeScene.getSceneRecordById(sid); srecord && sidToEditableObject.count(sid) == 0)
+  {
+    auto sceneObj = new ECSSceneObject(srecord->id);
+    sidsCreated.insert(sid);
+    addObject(sceneObj, false);
+    sceneObj->createEntityObjects(this);
+  }
+
+  updateEcsScenes();
+}
+
+void ECSObjectEditor::removeScene(ecs::Scene::SceneId sid)
+{
+  if (sidsCreated.count(sid) != 0)
+  {
+    auto it = sidToEditableObject.find(sid);
+    if (it == sidToEditableObject.cend())
+    {
+      logerr("daEd4: Failed to remove scene object %d. It does not exist in mapping", sid);
+      return;
+    }
+
+    sidsCreated.erase(sid);
+    RenderableEditableObject *sceneObj = it->second;
+    removeObject(sceneObj, false);
+  }
+
+  updateEcsScenes();
+  {
+    ecs::Scene::SceneId id = ecs::g_scenes->getActiveScene().getTargetSceneId();
+    if (id == sid)
+    {
+      ecs::g_scenes->getActiveScene().setTargetSceneId(ecs::Scene::C_INVALID_SCENE_ID);
+    }
+  }
+  if (templateSelectorDialog)
+  {
+    templateSelectorDialog->updateScenes();
+  }
+}
+
+bool ECSObjectEditor::setParentForObjects(dag::ConstSpan<ECSEntityObject *> children, ECSEntityObject &parent)
 {
   if (children.empty())
     return false;
 
   bool parentSet = false;
-  for (ECSEditableObject *child : children)
+  for (ECSEntityObject *child : children)
     if (is_safe_to_set_parent(*child, parent))
     {
       parentSet = true;
@@ -376,7 +729,7 @@ bool ECSObjectEditor::setParentForObjects(dag::ConstSpan<ECSEditableObject *> ch
 void ECSObjectEditor::clearParentForSelection()
 {
   for (int i = 0; i < selection.size(); ++i)
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(selection[i]))
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(selection[i]))
     {
       remove_sub_template_async(entityObj->getEid(), "hierarchial_entity");
       saveDelTemplate(entityObj->getEid(), "hierarchial_entity");
@@ -388,7 +741,7 @@ void ECSObjectEditor::toggleFreeTransformForSelection()
   if (selection.empty())
     return;
 
-  ECSEditableObject *referenceEntityObj = RTTI_cast<ECSEditableObject>(selection[selection.size() - 1]);
+  ECSEntityObject *referenceEntityObj = RTTI_cast<ECSEntityObject>(selection[selection.size() - 1]);
   if (!referenceEntityObj)
     return;
 
@@ -397,7 +750,7 @@ void ECSObjectEditor::toggleFreeTransformForSelection()
   const bool referenceIsFree = find_sub_template_name(referenceTemplateName, freeComponentName);
 
   for (int i = 0; i < selection.size(); ++i)
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(selection[i]))
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(selection[i]))
     {
       if (referenceIsFree)
       {
@@ -429,7 +782,7 @@ void ECSObjectEditor::setEditMode(int cm)
   {
     if (!newObj.get())
     {
-      newObj = new ECSEditableObject(ecs::INVALID_ENTITY_ID);
+      newObj = new ECSEntityObject(ecs::INVALID_ENTITY_ID);
       newObjOk = true;
       setCreateBySampleMode(newObj);
     }
@@ -455,13 +808,13 @@ void ECSObjectEditor::selectNewObjEntity(const char *name)
 
   newObjTemplate = name;
 
-  if (ECSEditableObject *o = RTTI_cast<ECSEditableObject>(newObj))
+  if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(newObj))
   {
     if (name && *name)
     {
       String previewTemplateName = String(name);
-      if (g_entity_mgr->getTemplateDB().getTemplateByName(PREVIEW_TEMPLATE))
-        previewTemplateName = String(0, "%s+%s", name, PREVIEW_TEMPLATE);
+      if (g_entity_mgr->getTemplateDB().getTemplateByName(ECS_EDITOR_PREVIEW_TEMPLATE))
+        previewTemplateName = String(0, "%s+%s", name, ECS_EDITOR_PREVIEW_TEMPLATE);
 
       const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(previewTemplateName);
       if (templ && templ->isSingleton())
@@ -517,7 +870,7 @@ void ECSObjectEditor::selectNewObjEntity(const char *name)
 
 void ECSObjectEditor::createObjectBySample(RenderableEditableObject *so)
 {
-  ECSEditableObject *o = RTTI_cast<ECSEditableObject>(so);
+  ECSEntityObject *o = RTTI_cast<ECSEntityObject>(so);
   G_ASSERT(o);
 
   if (newObjTemplate.empty())
@@ -534,7 +887,7 @@ void ECSObjectEditor::createObjectBySample(RenderableEditableObject *so)
       (unsigned)(ecs::entity_id_t)o->getEid());
 
     ECSEntityCreateData cd(templName.c_str());
-    no = new ECSEditableObject(createEntityDirect(&cd));
+    no = new ECSEntityObject(createEntityDirect(&cd));
     newObjTemplate.clear();
   }
 
@@ -557,7 +910,7 @@ void ECSObjectEditor::createObjectBySample(RenderableEditableObject *so)
   addObject(no);
   unselectAll();
   no->selectObject();
-  if (ECSEditableObject *noEntityObj = RTTI_cast<ECSEditableObject>(no))
+  if (ECSEntityObject *noEntityObj = RTTI_cast<ECSEntityObject>(no))
   {
     eidsCreated.insert(noEntityObj->getEid());
 
@@ -585,7 +938,7 @@ bool ECSObjectEditor::cancelCreateMode()
     return false;
 
   bool wasSample = false;
-  if (ECSEditableObject *newEntObj = RTTI_cast<ECSEditableObject>(newObj))
+  if (ECSEntityObject *newEntObj = RTTI_cast<ECSEntityObject>(newObj))
     if (newEntObj->getEid() != ecs::INVALID_ENTITY_ID)
       wasSample = true;
 
@@ -594,7 +947,7 @@ bool ECSObjectEditor::cancelCreateMode()
 
   if (wasSample)
   {
-    newObj = new ECSEditableObject(ecs::INVALID_ENTITY_ID);
+    newObj = new ECSEntityObject(ecs::INVALID_ENTITY_ID);
     newObjOk = true;
     setCreateBySampleMode(newObj);
   }
@@ -625,7 +978,7 @@ void ECSObjectEditor::hideSelectedTemplate()
       return;
 
     auto &hideTemplates = hiddenTemplates;
-    forEachEditableObjectWithTemplate([&hideTemplates](ECSEditableObject *o, const char *templName) {
+    forEachEditableObjectWithTemplate([&hideTemplates](ECSEntityObject *o, const char *templName) {
       eastl::string tplName = templName;
       removeSelectedTemplateName(tplName);
       for (const auto &hideTempl : hideTemplates)
@@ -642,7 +995,7 @@ void ECSObjectEditor::hideSelectedTemplate()
 
   hiddenTemplates.clear();
   auto &hideTemplates = hiddenTemplates;
-  forEachEditableObjectWithTemplate([&hideTemplates](ECSEditableObject *o, const char *templName) {
+  forEachEditableObjectWithTemplate([&hideTemplates](ECSEntityObject *o, const char *templName) {
     if (o->isSelected())
     {
       o->hideObject(true);
@@ -657,7 +1010,7 @@ void ECSObjectEditor::hideSelectedTemplate()
 void ECSObjectEditor::unhideAll()
 {
   bool showAll = !showOnlySceneEntities;
-  forEachEditableObject([&showAll](ECSEditableObject *o) {
+  forEachEditableObject([&showAll](ECSEntityObject *o) {
     if (showAll || is_scene_entity(o))
       o->hideObject(false);
   });
@@ -665,121 +1018,48 @@ void ECSObjectEditor::unhideAll()
   hiddenTemplates.clear();
 }
 
-void ECSObjectEditor::zoomAndCenter()
-{
-  BBox3 box;
-  if (getSelectionBox(box))
-    if (IGenViewportWnd *viewport = IEditorCoreEngine::get()->getCurrentViewport())
-      viewport->zoomAndCenter(box);
-}
-
-int ECSObjectEditor::saveObjectsInternal(const char *fpath)
+int ECSObjectEditor::saveObjectsInternal(const char *fpath, ecs::Scene::SceneId scene_id, bool save_children)
 {
   if (!fpath || !*fpath)
     return -1;
 
   const ecs::Scene &saveScene = ecs::g_scenes->getActiveScene();
+  const ecs::Scene::ScenesConstPtrList &importsRecords = saveScene.getScenes(ecs::Scene::LoadType::IMPORT);
+  const ecs::Scene::SceneRecord *record = saveScene.getSceneRecordById(scene_id);
 
-  eastl::vector<ECSEditableObjectSaveRecord, framemem_allocator> saveEntities;
-  saveEntities.reserve(saveScene.getNumToBeSavedEntities());
-  const ecs::TemplateDB &templates = g_entity_mgr->getTemplateDB();
-  int hierarchySaveId = 2;
-  ska::flat_hash_map<ecs::EntityId, int, ecs::EidHash> hiearchySaveIds;
-  forEachEditableObject([&](ECSEditableObject *o) {
-    if (o->isValid())
-    {
-      eastl::vector<eastl::string, framemem_allocator> subTemplsToRemove;
-      if (const char *entTempl = g_entity_mgr->getEntityTemplateName(o->getEid()))
-        if (const ecs::Template *templ = templates.getTemplateByName(entTempl))
-          for (const uint32_t p : templ->getParents())
-            if (auto *t = g_entity_mgr->getTemplateDB().getTemplateById(p))
-              if (auto *cc = t->getComponentsMap().find(EDITABLE_TEMPLATE_COMP))
-                if (!cc->getOr(true))
-                  subTemplsToRemove.push_back(t->getName());
-      for (const auto &subTempl : subTemplsToRemove)
-        remove_sub_template_async(o->getEid(), subTempl.c_str());
-    }
-
-    if (auto erec = saveScene.findEntityRecord(o->getEid()); erec && erec->toBeSaved)
-    {
-      saveEntities.push_back(ECSEditableObjectSaveRecord{o, erec, calc_save_priority(erec->templateName.c_str(), saveOrderRules)});
-
-      const ecs::EntityId *hierarchyEid = g_entity_mgr->getNullable<ecs::EntityId>(o->getEid(), ECS_HASH("hierarchy_eid"));
-      if (hierarchyEid && *hierarchyEid)
-      {
-        int finalHierarchySaveId = hierarchySaveId;
-        G_ASSERT((finalHierarchySaveId & 1) == 0);
-
-        const char *templateName = g_entity_mgr->getEntityTemplateName(o->getEid());
-        if (find_sub_template_name(templateName, HIERARCHIAL_FREE_TRANSFORM_TEMPLATE))
-          finalHierarchySaveId |= 1;
-
-        bool inserted;
-        eastl::tie(eastl::ignore, inserted) = hiearchySaveIds.insert({o->getEid(), finalHierarchySaveId});
-        G_ASSERT(inserted);
-        hierarchySaveId += 2;
-      }
-    }
-  });
-  g_entity_mgr->tick();                                  // so we apply all remove sub template
-  eastl::sort(saveEntities.begin(), saveEntities.end()); // sort by save priority and scene order, new entites go last
-
-  DataBlock blk;
-
-  const ecs::Scene::ScenesList &importsRecords = saveScene.getImportsRecordList();
-  const auto importsEnd = importsRecords.end();
-  const int minPriority = saveOrderRules.size();
-  auto importsIt = importsRecords.begin();
-  for (auto &sr : saveEntities)
+  if (!record)
   {
-    while (importsIt != importsEnd && (importsIt->order == ecs::Scene::SceneRecord::TOP_IMPORT_ORDER ||
-                                        (importsIt->order < sr.erec->order && sr.priority == minPriority)))
+    return -1;
+  }
+
+  int savedEntityCount = 0;
+  if (record->isDirty)
+  {
+    DataBlock blk;
+    savedEntityCount += writeSceneToBlk(blk, *record, *this);
+
+    String importPathBuffer;
+    fpath = ecs::resolve_import_path(fpath, importPathBuffer);
+
+    if (!blk.saveToTextFile(fpath))
     {
-      blk.addNewBlock("import")->setStr("scene", importsIt->path.c_str());
-      ++importsIt;
+      return -1;
     }
+  }
 
-    DataBlock *entityBlock = blk.addNewBlock("entity");
-    sr.obj->save(*entityBlock, *sr.erec);
-
-    entityBlock->removeParam("hierarchy_unresolved_id");
-    entityBlock->removeParam("hierarchy_unresolved_parent_id");
-
-    auto hiearchySaveIdIt = hiearchySaveIds.find(sr.obj->getEid());
-    if (hiearchySaveIdIt != hiearchySaveIds.end())
+  if (save_children)
+  {
+    for (uint32_t i = 0; i < importsRecords.size(); ++i)
     {
-      const int unresolvedId = hiearchySaveIdIt->second;
-
-      // We remove the hierarchial_free_transform template and restore it manually after loading. This is needed to
-      // prevent having wrong transforms due to async ECS events interfering with the loaded data.
-      if ((unresolvedId & 1) == 1)
+      const ecs::Scene::SceneRecord *childRecord = importsRecords.at(i);
+      if (scene_id == childRecord->parent)
       {
-        if (const char *templateName = entityBlock->getStr("_template"))
-        {
-          auto finalTemplateName = remove_sub_template_name(templateName, HIERARCHIAL_FREE_TRANSFORM_TEMPLATE);
-          entityBlock->setStr("_template", finalTemplateName.c_str());
-        }
-      }
-
-      entityBlock->addInt("hierarchy_unresolved_id", unresolvedId);
-
-      const ecs::EntityId *parentId = g_entity_mgr->getNullable<ecs::EntityId>(sr.obj->getEid(), ECS_HASH("hierarchy_parent"));
-      if (parentId && *parentId)
-      {
-        auto hiearchySaveIdParentIt = hiearchySaveIds.find(*parentId);
-        if (hiearchySaveIdParentIt != hiearchySaveIds.end())
-          entityBlock->addInt("hierarchy_unresolved_parent_id", hiearchySaveIdParentIt->second);
+        savedEntityCount += saveObjectsInternal(childRecord->path.c_str(), childRecord->id, true);
       }
     }
   }
 
-  for (; importsIt != importsEnd; ++importsIt)
-    blk.addNewBlock("import")->setStr("scene", importsIt->path.c_str());
-
-  if (!blk.saveToTextFile(fpath))
-    return -1;
-
-  return (int)saveEntities.size();
+  return savedEntityCount;
 }
 
 void ECSObjectEditor::saveObjects(const char *new_fpath)
@@ -787,30 +1067,43 @@ void ECSObjectEditor::saveObjects(const char *new_fpath)
   if (!hasUnsavedChanges())
     return;
 
-  const int numObjects = saveObjectsInternal(new_fpath);
+  int numObjects = -1;
+  const ecs::Scene &saveScene = ecs::g_scenes->getActiveScene();
+  const ecs::Scene::ScenesConstPtrList &importsRecords = saveScene.getScenes(ecs::Scene::LoadType::IMPORT);
+  if (const auto it = eastl::find_if(importsRecords.begin(), importsRecords.end(), [](auto &&val) { return val->importDepth == 0; });
+      it != importsRecords.end())
+  {
+    numObjects = saveObjectsInternal(new_fpath, (*it)->id, true);
+  }
+  else
+  {
+    DAEDITOR3.conError("Failed to save scene '%s'. Main import was not found", new_fpath);
+    return;
+  }
+
   if (numObjects < 0)
   {
     DAEDITOR3.conError("Saving scene to '%s' has failed.", new_fpath);
     return;
   }
 
-  ecs::g_scenes->getActiveScene().setAllChangesWereSaved(true);
+  ecs::g_scenes->getActiveScene().setAllChangesWereSaved();
 }
 
 void ECSObjectEditor::load(const char *blk_path)
 {
   reset();
-
   DataBlock sceneBlk;
   dblk::load(sceneBlk, blk_path, dblk::ReadFlag::ROBUST);
 
   ecs::g_scenes.demandInit();
   ecs::SceneManager::loadScene(ecs::g_scenes.get(), sceneBlk, blk_path, &ecs::SceneManager::entityCreationCounter, 0,
-    ecs::Scene::UNKNOWN);
+    ecs::Scene::IMPORT);
 
   g_entity_mgr->broadcastEvent(EventRendinstsLoaded());
   g_entity_mgr->tick(true);
   refreshEids();
+  ecs::g_scenes->getActiveScene().setTargetSceneId(ecs::Scene::C_INVALID_SCENE_ID);
 }
 
 bool ECSObjectEditor::hasUnsavedChanges() const { return ecs::g_scenes->getActiveScene().hasUnsavedChanges(); }
@@ -820,7 +1113,7 @@ void ECSObjectEditor::onObjectFlagsChange(RenderableEditableObject *obj, int cha
   ObjectEditor::onObjectFlagsChange(obj, changed_flags);
   if (changed_flags & RenderableEditableObject::FLG_SELECTED)
   {
-    if (ECSEditableObject *o = RTTI_cast<ECSEditableObject>(obj))
+    if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(obj))
     {
       if (!o->isValid())
         return;
@@ -840,9 +1133,14 @@ void ECSObjectEditor::selectionChanged()
   // Let's start with single active entity for now
   ecs::EntityId eid = ecs::INVALID_ENTITY_ID;
   if (!selection.empty())
-    if (ECSEditableObject *o = RTTI_cast<ECSEditableObject>(selection[0]))
+    if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(selection[0]))
       if (o->isValid())
         eid = o->getEid();
+
+  if (sceneOutliner)
+  {
+    sceneOutliner->syncSelection();
+  }
 }
 
 void ECSObjectEditor::update(float dt)
@@ -871,10 +1169,12 @@ void ECSObjectEditor::update(float dt)
         viewport->zoomAndCenter(box);
       setEditMode(CM_OBJED_MODE_SELECT);
 
-      if (ECSEditableObject *movedObj = RTTI_cast<ECSEditableObject>(lastCreatedObj.get()))
+      if (ECSEntityObject *movedObj = RTTI_cast<ECSEntityObject>(lastCreatedObj.get()))
         saveComponent(movedObj->getEid(), "transform");
     }
   }
+
+  ecs::g_scenes->recalculateWbbs();
 }
 
 void ECSObjectEditor::fillDeleteDepsObjects(Tab<RenderableEditableObject *> &list) const
@@ -882,13 +1182,13 @@ void ECSObjectEditor::fillDeleteDepsObjects(Tab<RenderableEditableObject *> &lis
   const uint32_t originalSize = list.size();
   EditorToDeleteEntitiesEvent evt{{}};
   for (uint32_t i = 0; i < originalSize; ++i)
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(list[i]))
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(list[i]))
       g_entity_mgr->sendEventImmediate(entityObj->getEid(), evt);
 
   const ecs::EidList &linkedEntitiesToDelete = evt.get<0>();
   list.reserve(originalSize + linkedEntitiesToDelete.size());
   for (const ecs::EntityId &eid : linkedEntitiesToDelete)
-    if (RenderableEditableObject *object = getObjectByEid(eid))
+    if (RenderableEditableObject *object = getObjectFromEntityId(eid))
       list.emplace_back(object);
   list.erase(eastl::unique(list.begin(), list.end()), list.end());
 }
@@ -922,10 +1222,10 @@ void ECSObjectEditor::cloneSelection()
 
   for (RenderableEditableObject *renderableEditableObject : oldSelection)
   {
-    ECSEditableObject *editableObject = RTTI_cast<ECSEditableObject>(renderableEditableObject);
+    ECSEntityObject *editableObject = RTTI_cast<ECSEntityObject>(renderableEditableObject);
     G_ASSERT(editableObject);
 
-    ECSEditableObject *cloneObject = editableObject->cloneObject();
+    ECSEntityObject *cloneObject = editableObject->cloneObject();
     addObject(cloneObject);
     cloneObject->selectObject();
 
@@ -943,7 +1243,7 @@ bool ECSObjectEditor::checkSceneEntities(const char *rule)
     orderedTemplatesGroups.reset(new ECSOrderedTemplatesGroups());
 
   bool result = false;
-  forEachEditableObject([this, &result, &rule](ECSEditableObject *o) {
+  forEachEditableObject([this, &result, &rule](ECSEntityObject *o) {
     if (!is_scene_entity(o))
       return;
     const char *templName = g_entity_mgr->getEntityTemplateName(o->getEid());
@@ -968,19 +1268,19 @@ int ECSObjectEditor::getEntityRecordLoadType(ecs::EntityId eid)
   return ecs::Scene::UNKNOWN;
 }
 
-int ECSObjectEditor::getEntityRecordIndex(ecs::EntityId eid)
+int ECSObjectEditor::getEntityRecordSceneId(ecs::EntityId eid)
 {
   auto *record = ecs::g_scenes->getActiveScene().findEntityRecord(eid);
   if (record)
-    return record->sceneIdx;
+    return record->sceneId;
 
   return -1;
 }
 
 ecs::EntityId ECSObjectEditor::reCreateEditorEntity(ecs::EntityId eid)
 {
-  ECSEditableObject *obj = nullptr;
-  forEachEditableObject([&eid, &obj](ECSEditableObject *o) {
+  ECSEntityObject *obj = nullptr;
+  forEachEditableObject([&eid, &obj](ECSEntityObject *o) {
     if (o->getEid() == eid)
       obj = o;
   });
@@ -995,6 +1295,11 @@ ecs::EntityId ECSObjectEditor::reCreateEditorEntity(ecs::EntityId eid)
   {
     eidsCreated.insert(obj->getEid());
     mapEidToEditableObject(obj);
+
+    if (sceneOutliner)
+    {
+      sceneOutliner->onEntityAdded(eid);
+    }
   }
   if (was_selected)
     obj->selectObject();
@@ -1008,7 +1313,7 @@ ecs::EntityId ECSObjectEditor::makeSingletonEntity(const char *tplName)
 
   const int tplNameLen = strlen(tplName);
   ecs::EntityId foundEid = ecs::INVALID_ENTITY_ID;
-  forEachEditableObject([&tplName, &tplNameLen, &foundEid](ECSEditableObject *o) {
+  forEachEditableObject([&tplName, &tplNameLen, &foundEid](ECSEntityObject *o) {
     if (!is_scene_entity(o))
       return;
     const char *templName = g_entity_mgr->getEntityTemplateName(o->getEid());
@@ -1026,13 +1331,13 @@ ecs::EntityId ECSObjectEditor::makeSingletonEntity(const char *tplName)
   if (objEid == ecs::INVALID_ENTITY_ID)
     return ecs::INVALID_ENTITY_ID;
 
-  ECSEditableObject *obj = new ECSEditableObject(objEid);
+  ECSEntityObject *obj = new ECSEntityObject(objEid);
   addObject(obj, false);
   eidsCreated.insert(obj->getEid());
   return obj->getEid();
 }
 
-void ECSObjectEditor::mapEidToEditableObject(ECSEditableObject *obj)
+void ECSObjectEditor::mapEidToEditableObject(ECSEntityObject *obj)
 {
   if (obj == nullptr || newObj == obj || obj->getEid() == ecs::INVALID_ENTITY_ID)
     return;
@@ -1042,7 +1347,7 @@ void ECSObjectEditor::mapEidToEditableObject(ECSEditableObject *obj)
     logerr("[%s] Entity with eid <%i> already exist in eidToEditableObject.", __FUNCTION__, (ecs::entity_id_t)obj->getEid());
 }
 
-void ECSObjectEditor::unmapEidFromEditableObject(ECSEditableObject *obj)
+void ECSObjectEditor::unmapEidFromEditableObject(ECSEntityObject *obj)
 {
   if (obj == nullptr || newObj == obj || obj->getEid() == ecs::INVALID_ENTITY_ID)
     return;
@@ -1052,31 +1357,83 @@ void ECSObjectEditor::unmapEidFromEditableObject(ECSEditableObject *obj)
     logerr("[%s] Entity with eid <%i> not exist in eidToEditableObject.", __FUNCTION__, (ecs::entity_id_t)obj->getEid());
 }
 
+void ECSObjectEditor::mapSidToEditableObject(ECSSceneObject *obj)
+{
+  if (obj == nullptr || obj->getSceneId() == ecs::Scene::C_INVALID_SCENE_ID)
+    return;
+
+  const auto inserted = sidToEditableObject.emplace(obj->getSceneId(), obj);
+  if (!inserted.second)
+    logerr("[%s] Scene with sid <%i> already exist in sidToEditableObject.", __FUNCTION__, obj->getSceneId());
+}
+
+void ECSObjectEditor::unmapSidToEditableObject(ECSSceneObject *obj)
+{
+  if (obj == nullptr || obj->getSceneId() == ecs::Scene::C_INVALID_SCENE_ID)
+    return;
+
+  const ska::hash_size_t result = sidToEditableObject.erase(obj->getSceneId());
+  if (result == 0)
+    logerr("[%s] Scene with sid <%i> not exist in sidToEditableObject.", __FUNCTION__, obj->getSceneId());
+}
+
 void ECSObjectEditor::_addObjects(RenderableEditableObject **obj, int num, bool use_undo)
 {
   ObjectEditor::_addObjects(obj, num, use_undo);
   for (int i = 0; i < num; ++i)
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(obj[i]))
+  {
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(obj[i]))
+    {
       mapEidToEditableObject(entityObj);
+      if (sceneOutliner)
+      {
+        sceneOutliner->onEntityAdded(entityObj->getEid());
+      }
+    }
+    else if (ECSSceneObject *sceneObj = RTTI_cast<ECSSceneObject>(obj[i]))
+    {
+      mapSidToEditableObject(sceneObj);
+      if (sceneOutliner)
+      {
+        sceneOutliner->onSceneAdded(sceneObj->getSceneId());
+      }
+    }
+  }
 }
 
 void ECSObjectEditor::_removeObjects(RenderableEditableObject **obj, int num, bool use_undo)
 {
   for (int i = 0; i < num; ++i)
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(obj[i]))
+  {
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(obj[i]))
+    {
+      if (sceneOutliner)
+      {
+        sceneOutliner->onEntityRemoved(entityObj->getEid());
+      }
       unmapEidFromEditableObject(entityObj);
+    }
+    else if (ECSSceneObject *sceneObj = RTTI_cast<ECSSceneObject>(obj[i]))
+    {
+      if (sceneOutliner)
+      {
+        sceneOutliner->onSceneRemoved(sceneObj->getSceneId());
+      }
+      unmapSidToEditableObject(sceneObj);
+    }
+  }
   ObjectEditor::_removeObjects(obj, num, use_undo);
 }
 
-RenderableEditableObject *ECSObjectEditor::getObjectByEid(ecs::EntityId eid) const
+void ECSObjectEditor::updateSingleHierarchyTransform(RenderableEditableObject &object, bool calculate_from_relative_transform)
 {
-  auto find = eidToEditableObject.find(eid);
-  return find != eidToEditableObject.end() ? find->second : nullptr;
-}
+  ECSEntityObject *entObj = RTTI_cast<ECSEntityObject>(&object);
+  if (!entObj)
+  {
+    return;
+  }
 
-void ECSObjectEditor::updateSingleHierarchyTransform(ECSEditableObject &object, bool calculate_from_relative_transform)
-{
-  const ecs::EntityId eid = object.getEid();
+  const ecs::EntityId eid = entObj->getEid();
   TMatrix *transform = g_entity_mgr->getNullableRW<TMatrix>(eid, ECS_HASH("transform"));
   if (!transform)
     return;
@@ -1089,7 +1446,7 @@ void ECSObjectEditor::updateSingleHierarchyTransform(ECSEditableObject &object, 
   if (!hierarchyParentLastTransform)
     return;
 
-  const ECSEditableObject *parentObject = object.getParentObject();
+  const ECSEntityObject *parentObject = entObj->getParentObject();
   const TMatrix parentTm = parentObject ? parentObject->getWtm() : TMatrix::IDENT;
 
   if (calculate_from_relative_transform)
@@ -1110,16 +1467,21 @@ void ECSObjectEditor::updateSingleHierarchyTransform(ECSEditableObject &object, 
     *hierarchyParentLastTransform = parentTm;
 }
 
-ECSObjectEditor::HierarchyItem *ECSObjectEditor::makeHierarchyItemParent(ECSEditableObject &object, HierarchyItem &hierarchy_root,
-  ska::flat_hash_map<EditableObject *, HierarchyItem *> &object_to_hierarchy_item_map)
+ECSObjectEditor::HierarchyItem *ECSObjectEditor::makeHierarchyItemParent(RenderableEditableObject &object,
+  HierarchyItem &hierarchy_root, ska::flat_hash_map<EditableObject *, HierarchyItem *> &object_to_hierarchy_item_map)
 {
   auto it = object_to_hierarchy_item_map.find(&object);
   if (it != object_to_hierarchy_item_map.end())
     return it->second;
 
   HierarchyItem *hierarchyItemParent = &hierarchy_root;
-  if (ECSEditableObject *objectParent = object.getParentObject())
-    hierarchyItemParent = makeHierarchyItemParent(*objectParent, hierarchy_root, object_to_hierarchy_item_map);
+  if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(&object))
+  {
+    if (ECSEntityObject *objectParent = entityObj->getParentObject())
+    {
+      hierarchyItemParent = makeHierarchyItemParent(*objectParent, hierarchy_root, object_to_hierarchy_item_map);
+    }
+  }
 
   HierarchyItem *hierarchyItem = hierarchyItemParent->addChild(object);
   auto result = object_to_hierarchy_item_map.insert({&object, hierarchyItem});
@@ -1135,13 +1497,14 @@ void ECSObjectEditor::fillObjectHierarchy(HierarchyItem &hierarchy_root)
   for (EditableObject *editableObject : objects)
   {
     G_ASSERT(editableObject);
-    ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(editableObject);
-    G_ASSERT(entityObj);
-    makeHierarchyItemParent(*entityObj, hierarchy_root, objectToHierarchyItemMap);
+    if (RenderableEditableObject *rendObj = RTTI_cast<RenderableEditableObject>(editableObject))
+    {
+      makeHierarchyItemParent(*rendObj, hierarchy_root, objectToHierarchyItemMap);
+    }
   }
 }
 
-void ECSObjectEditor::applyChange(ECSEditableObject &object, const Point3 &delta)
+void ECSObjectEditor::applyChange(RenderableEditableObject &object, const Point3 &delta)
 {
   switch (getEditMode())
   {
@@ -1156,7 +1519,7 @@ void ECSObjectEditor::applyChangeHierarchically(const HierarchyItem &parent, con
 {
   for (const HierarchyItem *child : parent.children)
   {
-    if (child->object->isSelected() && child->object->canTransformFreely())
+    if (child->object->isSelected() && can_transform_object_freely(child->object))
     {
       applyChange(*child->object, delta);
       updateSingleHierarchyTransform(*child->object, false);
@@ -1164,7 +1527,7 @@ void ECSObjectEditor::applyChangeHierarchically(const HierarchyItem &parent, con
     }
     else
     {
-      if (parent_updated && child->object->canTransformFreely())
+      if (parent_updated && can_transform_object_freely(child->object))
         updateSingleHierarchyTransform(*child->object, true);
 
       applyChangeHierarchically(*child, delta, parent_updated);
@@ -1176,7 +1539,7 @@ void ECSObjectEditor::makeTransformUndoForHierarchySelection(const HierarchyItem
 {
   for (const HierarchyItem *child : parent.children)
   {
-    if (child->object->isSelected() && child->object->canTransformFreely())
+    if (child->object->isSelected() && can_transform_object_freely(child->object))
     {
       hierarchicalUndoGroup->addDirectlyChangedObject(*child->object);
       makeTransformUndoForHierarchySelection(*child, true);
@@ -1185,7 +1548,7 @@ void ECSObjectEditor::makeTransformUndoForHierarchySelection(const HierarchyItem
     {
       if (parent_updated)
       {
-        if (child->object->canTransformFreely())
+        if (can_transform_object_freely(child->object))
           hierarchicalUndoGroup->addDirectlyChangedObject(*child->object);
         else
           hierarchicalUndoGroup->addIndirectlyChangedObject(*child->object);
@@ -1202,8 +1565,8 @@ bool ECSObjectEditor::getAxes(Point3 &ax, Point3 &ay, Point3 &az)
 
   if (basis == IEditorCoreEngine::BASIS_Parent && selection.size() > 0)
   {
-    if (ECSEditableObject *entityObj = RTTI_cast<ECSEditableObject>(selection[0]))
-      if (ECSEditableObject *parentObject = entityObj->getParentObject())
+    if (ECSEntityObject *entityObj = RTTI_cast<ECSEntityObject>(selection[0]))
+      if (ECSEntityObject *parentObject = entityObj->getParentObject())
       {
         const TMatrix tm = parentObject->getWtm();
         ax = normalize(tm.getcol(0));
@@ -1349,6 +1712,41 @@ int ECSObjectEditor::getAvailableTypes()
 
 void ECSObjectEditor::onTemplateSelectorTemplateSelected(const char *template_name) { selectNewObjEntity(template_name); }
 
+void *ECSObjectEditor::onWmCreateWindow(int type)
+{
+  switch (type)
+  {
+    case SCENE_OUTLINER_EDITOR_WTYPE:
+    {
+      if (sceneOutliner)
+      {
+        return nullptr;
+      }
+
+      sceneOutliner = eastl::make_unique<ECSSceneOutlinerPanel>(*this, *this, nullptr, "Scene Outliner");
+      sceneOutliner->fillPanel([this](const eastl::function<void(ecs::EntityId eid)> &cb) { onOutlinerPanelFill(cb); });
+
+      setButton(CM_ECS_EDITOR_SCENE_OUTLINER, true);
+      return sceneOutliner.get();
+    }
+    break;
+  }
+
+  return Base::onWmCreateWindow(type);
+}
+
+bool ECSObjectEditor::onWmDestroyWindow(void *window)
+{
+  if (window == sceneOutliner.get())
+  {
+    sceneOutliner.reset();
+    setButton(CM_ECS_EDITOR_SCENE_OUTLINER, false);
+    return true;
+  }
+
+  return Base::onWmDestroyWindow(window);
+}
+
 bool ECSObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif)
 {
   if (getEditMode() == CM_ECS_EDITOR_SET_PARENT)
@@ -1356,15 +1754,15 @@ bool ECSObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, boo
     Tab<RenderableEditableObject *> objs(tmpmem);
     if (pickObjects(wnd, x, y, objs))
     {
-      ECSEditableObject *parentObject = RTTI_cast<ECSEditableObject>(objs[0]);
+      ECSEntityObject *parentObject = RTTI_cast<ECSEntityObject>(objs[0]);
       G_ASSERT(parentObject);
 
-      dag::Vector<ECSEditableObject *> ecsObjectsForParenting;
+      dag::Vector<ECSEntityObject *> ecsObjectsForParenting;
       for (ecs::EntityId eid : objectsForParenting)
       {
-        ECSEditableObject *ecsEditableObject = RTTI_cast<ECSEditableObject>(getObjectByEid(eid));
-        if (ecsEditableObject && ecsEditableObject != parentObject)
-          ecsObjectsForParenting.push_back(ecsEditableObject);
+        ECSEntityObject *ecsEntityObject = RTTI_cast<ECSEntityObject>(getObjectFromEntityId(eid));
+        if (ecsEntityObject && ecsEntityObject != parentObject)
+          ecsObjectsForParenting.push_back(ecsEntityObject);
       }
 
       if (setParentForObjects(ecsObjectsForParenting, *parentObject))
@@ -1388,7 +1786,7 @@ bool ECSObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool i
   // and then move back the object.
   if (is_create_entity_mode(getEditMode()) && newObj)
   {
-    ECSEditableObject *object = RTTI_cast<ECSEditableObject>(newObj);
+    ECSEntityObject *object = RTTI_cast<ECSEntityObject>(newObj);
     G_ASSERT(object);
     const TMatrix originalWtm = object->getWtm();
     const bool ignoreSucceeded = ecs_editor_ignore_entity_in_collision_test_begin(object->getEid());
@@ -1405,7 +1803,7 @@ bool ECSObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool i
     Tab<RenderableEditableObject *> pickedObjects(tmpmem);
     if (pickObjects(wnd, x, y, pickedObjects))
     {
-      ECSEditableObject *parentObject = RTTI_cast<ECSEditableObject>(pickedObjects[0]);
+      ECSEntityObject *parentObject = RTTI_cast<ECSEntityObject>(pickedObjects[0]);
       G_ASSERT(parentObject);
       parentSelectionHoveredObject = parentObject;
     }
@@ -1419,3 +1817,17 @@ bool ECSObjectEditor::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool i
 void ECSObjectEditor::onBeforeExport() { ecs_editor_ignore_entities_for_export_begin(); }
 
 void ECSObjectEditor::onAfterExport() { ecs_editor_ignore_entities_for_export_end(); }
+
+void ECSObjectEditor::onOutlinerPanelFill(const eastl::function<void(ecs::EntityId eid)> &cb)
+{
+  for (EditableObject *eo : objects)
+  {
+    if (ECSEntityObject *o = RTTI_cast<ECSEntityObject>(eo))
+    {
+      if (!ecs::g_scenes->getActiveScene().findEntityRecord(o->getEid()))
+      {
+        cb(o->getEid());
+      }
+    }
+  }
+}

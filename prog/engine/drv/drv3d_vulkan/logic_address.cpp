@@ -12,9 +12,13 @@ bool LogicAddress::isNonConflictingUAVAccess(const LogicAddress &cmp) const
   bool bothRW = bothRead && bothWrite;
   if (bothRW)
   {
-    bool isRenderingStage = (stage == VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT) || (stage == VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
-    bool cmpIsRenderingStage =
-      (cmp.stage == VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT) || (cmp.stage == VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
+    auto singleRenderingPipeStage = [](VkPipelineStageFlags in_stage) {
+      return (in_stage == VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT) || (in_stage == VK_PIPELINE_STAGE_VERTEX_SHADER_BIT) ||
+             (in_stage == VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT) || (in_stage == VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT) ||
+             (in_stage == VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT);
+    };
+    bool isRenderingStage = singleRenderingPipeStage(stage);
+    bool cmpIsRenderingStage = singleRenderingPipeStage(cmp.stage);
     return cmp.access == access && (isRenderingStage && cmpIsRenderingStage);
   }
   return false;
@@ -83,7 +87,11 @@ bool LogicAddress::isRead() const
     VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT |
     VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
     VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_HOST_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
-    VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+    VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR
+#if VK_KHR_fragment_shading_rate
+    | VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR
+#endif
+    ;
   return (access & readMask) != 0;
 }
 
@@ -126,6 +134,10 @@ LogicAddress LogicAddress::forAttachmentWithLayout(VkImageLayout layout)
 {
   switch (layout)
   {
+#if VK_KHR_fragment_shading_rate
+    case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR:
+      return {VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR, VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR};
+#endif
     case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
       return {VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | readOnlyDepthOptionalAccessBits};

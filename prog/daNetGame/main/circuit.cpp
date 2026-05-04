@@ -207,13 +207,19 @@ void init()
   const DataBlock &settings = *dgs_get_settings();
 
   eastl::unique_ptr<DataBlock> networkBlk;
-  if (settings.getBlockByName("debug")->getBool("forceLocalNetworkBlk", false))
+  if (settings.getBlockByNameEx("debug")->getBool("forceLocalNetworkBlk", false))
     debug_print_datablock("forced local network.blk", &settings);
   else
+  {
+    debug("download network.blk");
     download_network_blk(networkBlk, gameproj::game_codename());
+  }
 
   if (!networkBlk) // When failed to get online network.blk -> load it from vrom
+  {
+    debug("use local network.blk");
     networkBlk.reset(new DataBlock(NETWORK_BLK_OFFLINE_PATH));
+  }
 
   const char *curCircuit = nullptr;
 

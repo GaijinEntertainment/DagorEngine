@@ -121,7 +121,7 @@ sun_lens_flare {
 
     _tracked:t="sun_flare_provider__flare_config"
 
-    enabled:b=yes
+    sun_flare_provider__enabled:b=yes
     sun_flare_provider__flare_config:t=""
 
     sun_flare_provider__cached_id:i=-1
@@ -157,7 +157,7 @@ point_lens_flare_provider {
   _group{
     _tags:t="render"
 
-    enabled:b=yes
+    point_lens_flare_provider__enabled:b=yes
 
     point_lens_flare_provider__flare_config:t=""
     point_lens_flare_provider__color:c=255, 250, 200, 255

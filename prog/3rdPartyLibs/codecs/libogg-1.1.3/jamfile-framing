@@ -16,7 +16,8 @@ AddIncludes =
 Sources =
   src/framing.c
 ;
-UseProgLibs = engine/memory/rtlStdMemoryMin ;
+UseMemoryAllocator = minRTL ;
+UseProgLibs = engine/memory ; # FIXME_BROKEN_DEP
 
 Copt = -D_V_SELFTEST ;
 

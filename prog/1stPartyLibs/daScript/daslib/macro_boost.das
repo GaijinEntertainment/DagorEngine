@@ -7,6 +7,12 @@ options strict_smart_pointers = true
 
 module macro_boost shared private
 
+//! Macro helper utilities.
+//!
+//! Contains `macro_verify` (assertion that produces a macro error and returns
+//! an empty expression on failure), `capture_block` (collects captured variables
+//! from an expression), and other helpers used by macro authors.
+
 require daslib/ast_boost
 require daslib/templates_boost
 
@@ -24,7 +30,7 @@ class MacroVerifyMacro : AstFunctionAnnotation {
     //!        return [[ExpressionPtr]]
     def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
         // if ..
-        var inscope res <- qmacro_block() <| $() {
+        var inscope res <- qmacro_block() {
             if (!$e(call.arguments[0])) {
                 macro_error($e(call.arguments[1]), $e(call.arguments[2]), $e(call.arguments[3]))
                 return <- default<ExpressionPtr>
@@ -37,6 +43,7 @@ class MacroVerifyMacro : AstFunctionAnnotation {
 
 [macro]
 class CaptureBlock : AstVisitor {
+    //! AST visitor that captures variables from a block scope.
     @do_not_delete scope : table<Variable?>
     @do_not_delete captured : table<Variable?; ExprVar?>
     def override preVisitExprVar(expr : smart_ptr<ExprVar>) : void {
@@ -61,8 +68,8 @@ class CaptureBlock : AstVisitor {
 
 struct public CapturedVariable {
     //! Stored captured variable together with the `ExprVar` which uses it
-    variable : Variable?
-    expression : ExprVar?
+    variable : Variable?    //! captured variable
+    expression : ExprVar?   //! expression which uses the variable
     eref : bool             //! this one indicates if its used by reference and does not come from argument. its only used in JIT
 }
 
@@ -81,6 +88,7 @@ def public capture_block(expr : ExpressionPtr) : array<CapturedVariable> {
 
 [macro]
 class ColletFinally : AstVisitor {
+    //! AST visitor that collects finally blocks.
     @do_not_delete blocks : table<ExprBlock?>
     alwaysFor : bool
     def override preVisitExprBlock(blk : smart_ptr<ExprBlock>) : void {
@@ -112,6 +120,7 @@ def public collect_finally(expr : ExpressionPtr; alwaysFor : bool = false) {
 
 [macro]
 class ColletLabels : AstVisitor {
+    //! AST visitor that collects label statements.
     labels : table<int>
     def override preVisitExprLabel(expr : smart_ptr<ExprLabel>) : void {
         labels |> insert(expr.labelName)
@@ -135,15 +144,3 @@ def public collect_labels(expr : ExpressionPtr) {
     return <- res
 }
 
-[call_macro(name="return_skip_lockcheck")]
-class private ReturnSkipLockcheck : AstCallMacro {
-    //! this is similar to regular return <-, but it does not check for locks
-    def override visit(prog : ProgramPtr; mod : Module?; var call : smart_ptr<ExprCallMacro>) : ExpressionPtr {
-        macro_verify(call.arguments |> length == 1, prog, call.at, "expecting return_skip_lockcheck(expr)")
-        return <- new ExprReturn(
-            at = call.at,
-            subexpr <- clone_expression(call.arguments[0]),
-            returnFlags = ExprReturnFlags.skipLockCheck | ExprReturnFlags.moveSemantics
-        )
-    }
-}

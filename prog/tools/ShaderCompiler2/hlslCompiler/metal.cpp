@@ -9,7 +9,7 @@
 extern bool enableBindless;
 
 DLL_EXPORT bool compile_compute_shader_metal(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err)
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
 {
   enableBindless = false;
   bool use_ios = false, use_binary = false;
@@ -30,12 +30,15 @@ DLL_EXPORT bool compile_compute_shader_metal(const char *hlsl_text, unsigned len
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
 
+  metadata.assign(result.metadata.size(), 0);
+  memcpy(metadata.data(), result.metadata.data(), result.metadata.size());
+
   spirv::shutdownDXC(ctx);
   return true;
 }
 
 DLL_EXPORT bool compile_compute_shader_metal_bindless(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err)
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
 {
   enableBindless = true;
   bool use_ios = false, use_binary = false;
@@ -55,6 +58,9 @@ DLL_EXPORT bool compile_compute_shader_metal_bindless(const char *hlsl_text, uns
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
+
+  metadata.assign(result.metadata.size(), 0);
+  memcpy(metadata.data(), result.metadata.data(), result.metadata.size());
 
   spirv::shutdownDXC(ctx);
   return true;

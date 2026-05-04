@@ -1,60 +1,73 @@
 import bpy, os
-from ..helpers.basename import basename
+from ..helpers.names    import ensure_no_extension, texture_basename
+from ..helpers.getters  import get_preferences
+from ..helpers.props    import prop_value_to_string, fix_type
+from ..constants        import DAGTEXNUM
 
 
-def compare_dagormats(mat1,mat2):
-    if mat1.is_grease_pencil or mat2.is_grease_pencil:
-        return False
-    DM1=mat1.dagormat
-    DM2=mat2.dagormat
-#can't compare dagormat.keys(), since default values not stored in keys(), only manually edited, and it would count as differnence
-#bunch of returns to make it faster, no need to compare whole set of parameters after first difference was found
+def _get_shader_class(material):
+    dagormat = material.dagormat
+    if dagormat.is_proxy:
+        proxymat_basename = ensure_no_extension(material.name)
+        return proxymat_basename + ":proxymat"
+    elif dagormat.shader_class.endswith(":proxymat"):
+        dagormat.is_proxy = True  # it's dictated by shader class
+    return dagormat.shader_class
 
-#proxy
-    if DM1.is_proxy != DM2.is_proxy:
+def _get_prop_value_corrected(prop_name, prop_owner, known_prop_parameters):
+    value = prop_owner.get(prop_name)
+    raw_value = prop_owner.get(prop_name)
+    if known_prop_parameters is None:
+        return raw_value
+    if raw_value is None:
+        raw_walue = known_prop_parameters.get('default')
+    prop_type = known_prop_parameters.get('type')
+    str_value = prop_value_to_string(raw_value, prop_type)
+    corrected_value = fix_type(str_value, prop_type)
+    return corrected_value
+
+def compare_dagormats(material_a, material_b):
+    if material_a.is_grease_pencil or material_b.is_grease_pencil:
         return False
-    if DM1.is_proxy and DM2.is_proxy:
-        #both just imported
-        if DM1.shader_class==basename(mat2.name)+':proxymat' or DM2.shader_class==basename(mat1.name)+':proxymat':
-            return True
-        #one of mats was rebuilt for viewport from blk
-        if basename(mat1.name)==DM2.shader_class[0:DM2.shader_class.find(':')] or basename(mat2.name)==DM1.shader_class[0:DM1.shader_class.find(':')]:
-            return True
-#main
-    if DM1.shader_class!=DM2.shader_class:
+    shader_a = _get_shader_class(material_a)
+    shader_b = _get_shader_class(material_b)
+    dagormat_a = material_a.dagormat
+    dagormat_b = material_b.dagormat
+#proxymats
+    if dagormat_a.is_proxy != dagormat_b.is_proxy:
         return False
-    if DM1.sides!=DM2.sides:
+    if dagormat_a.is_proxy == True:  # then dagormat_b.is_proxy == True as well
+        return shader_a == shader_b
+# non-proxymats main parameters
+    elif shader_a != shader_b:
         return False
-    #other main parameters doesn't really affect material in game, so let's ignore them
+    if dagormat_a.sides != dagormat_b.sides:
+        return False
 #textures
-    if basename(DM1.textures.tex0)!= basename(DM2.textures.tex0): return False
-    if basename(DM1.textures.tex1)!= basename(DM2.textures.tex1): return False
-    if basename(DM1.textures.tex2)!= basename(DM2.textures.tex2): return False
-    if basename(DM1.textures.tex3)!= basename(DM2.textures.tex3): return False
-    if basename(DM1.textures.tex4)!= basename(DM2.textures.tex4): return False
-    if basename(DM1.textures.tex5)!= basename(DM2.textures.tex5): return False
-    if basename(DM1.textures.tex6)!= basename(DM2.textures.tex6): return False
-    if basename(DM1.textures.tex7)!= basename(DM2.textures.tex7): return False
-    if basename(DM1.textures.tex8)!= basename(DM2.textures.tex8): return False
-    if basename(DM1.textures.tex9)!= basename(DM2.textures.tex9): return False
-    if basename(DM1.textures.tex10)!=basename(DM2.textures.tex10):return False
-#optional properties
-    #TODO: when length isn't equal, add compare additional parameters with default values
-    keys_1=DM1.optional.keys()
-    keys_2=DM2.optional.keys()
-    if keys_1.__len__()!=keys_2.__len__():
-        return False
-    for key in keys_1:
-        if key not in keys_2:
-            print('1')
+    textures_a = dagormat_a.textures
+    textures_b = dagormat_b.textures
+    for index in range(DAGTEXNUM):
+        texture_a = getattr(textures_a, f"tex{index}")
+        texture_b = getattr(textures_b, f"tex{index}")
+        if texture_basename(texture_a) != texture_basename(texture_b):
             return False
-        # strings, arrays. Will work correctly even for [1.0,0.0] vs [1,0], until float is *.0
-        try:
-            prop1=list(DM1.optional[key])
-            prop2=list(DM2.optional[key])
-            if prop1!=prop2:
-                return False
-        except:
-            if DM1.optional[key]!=DM2.optional[key]:
-                return False
+#optional parameters
+    parameters_a = dagormat_a.optional
+    parameters_b = dagormat_b.optional
+    keys_a = list(parameters_a.keys())
+    keys_b = list(parameters_b.keys())
+    keys_joined = list(set(keys_a + keys_b))
+    pref = get_preferences()
+    current_shader_config = pref.shaders.get(dagormat_a.shader_class)
+    if current_shader_config is None:
+        current_shader_config = []
+    for key in keys_joined:
+        known_prop_parameters = current_shader_config.get(key)
+        if known_prop_parameters is None:
+            known_prop_parameters = {}
+        value_a = _get_prop_value_corrected(key, parameters_a, known_prop_parameters)
+        value_b = _get_prop_value_corrected(key, parameters_b, known_prop_parameters)
+        if value_a != value_b:
+            return False
+#        if current_shader_config is None:  # types are unknown, default values are unknown
     return True

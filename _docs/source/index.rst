@@ -21,5 +21,4 @@ Indices and Tables
 ==================
 
 * :ref:`genindex`
-* :ref:`tagoverview`
 

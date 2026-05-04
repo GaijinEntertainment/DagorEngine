@@ -52,7 +52,6 @@ shader object_motion_blur_tile_max
   USE_FETCH_MOTION_VECTOR(cs, resolved)
   INIT_READ_DEPTH_GBUFFER_BASE(cs)
   USE_READ_DEPTH_GBUFFER_BASE(cs)
-  ENABLE_ASSERT(cs)
 
   hlsl(cs)
   {
@@ -182,8 +181,6 @@ shader object_motion_blur_tile_max
 
 shader object_motion_blur_neighbor_max
 {
-  ENABLE_ASSERT(cs)
-
   (cs)
   {
     tile_max_tex@tex = object_motion_blur_tile_max_tex hlsl { Texture2D<float2> tile_max_tex@tex; }
@@ -261,7 +258,6 @@ shader object_motion_blur
     glass_depth_tex_exists@i1 = exists_tex(translucent_gbuffer_depth);
   }
 
-  ENABLE_ASSERT(cs)
   INIT_ZNZFAR_STAGE(cs)
 
   hlsl(cs)

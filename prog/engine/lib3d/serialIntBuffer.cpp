@@ -64,7 +64,7 @@ static Vbuffer *try_to_init(uint32_t count)
 {
   if (count == 0)
     return nullptr;
-  Vbuffer *ints = d3d::create_vb(count * sizeof(uint32_t), 0, "serial_ints_vb");
+  Vbuffer *ints = d3d::create_vb(count * sizeof(uint32_t), 0, "serial_ints_vb", RESTAG_SERIAL_INT_BUFFER);
   d3d_err(ints);
   if (fill(ints, count))
     return ints;

@@ -16,3 +16,12 @@ SpaceShip.AccelRx { dev:i=31;
   maxBtn { dev:i=3; btn:i=3; }
 }
 SpaceShip.AccelRyRz { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0.1; axisSnapAngK:r=0.01; }
+SpaceShip.RotateView { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=no; dzone:r=0; axisSnapAngK:r=0; nonlin:r=1; maxVal:r=1; sensScale:r=0.4; }
+SpaceShip.LookAround { dev:i=3; btn:i=7; }
+SpaceShip.FwdMoveStab{ dev:i=3; btn:i=12; }
+SpaceShip.ChangeStabHt{ dev:i=31;
+  minBtn{ dev:i=3; btn:i=8; }
+  maxBtn{ dev:i=3; btn:i=9; }
+}
+
+HUD.GameMenu { dev:i=3; btn:i=5; }

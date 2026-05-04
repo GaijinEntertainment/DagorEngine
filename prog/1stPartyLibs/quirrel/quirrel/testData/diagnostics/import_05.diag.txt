@@ -1,0 +1,7 @@
+ERROR: unrecognised escape char
+testData/diagnostics/import_05.nut:1:5
+
+from "../a\..\b\folder/file.nut" import *
+     ^-----
+
+

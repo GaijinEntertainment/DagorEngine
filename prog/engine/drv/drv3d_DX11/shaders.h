@@ -1,7 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver.h"
 #include "drvCommonConsts.h"
+#include "pools.h"
+#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_samplerHandle.h>
+#include <drv/3d/dag_shader.h>
+#include <d3d11.h>
+#include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_carray.h>
 
 namespace drv3d_dx11
@@ -34,7 +41,7 @@ struct ConstantBuffers
   {
     MIN_PS_CONSTS = 16,
     PS_CONSTS_STEP = 32,
-    PS_BINS = 5 // The largest bin must fit MAX_PS_CONSTS
+    PS_BINS = 9 // The largest bin must fit MAX_PS_CONSTS
   };
   int psCurrentBuffer;
   carray<ID3D11Buffer *, PS_BINS> psConstBuffer;
@@ -101,7 +108,7 @@ struct InputLayout
   int handle;
   uint8_t numElements;
 
-  InputLayout() : numElements(0), handle(BAD_HANDLE) {}
+  InputLayout() : numElements(0), handle(drv3d_generic::BAD_HANDLE) {}
 
   void set(size_t index, size_t sem_index,
     // LPCSTR semantic_name,
@@ -121,15 +128,35 @@ struct InputLayout
 
 // extern uint32_t get_vdecl_stride(VDECL id, int stream);
 // vdecl -> ID3D11InputLayout* map
-struct InputLayoutCache : KeyMap<COMProxyPtr<ID3D11InputLayout>, InputLayout::Key, 2> // 2 inputlayouts is absolutely enough. one for
-                                                                                      // depth, one for color (usually it is one)
-{
-  const void *shaderBytecode;
-  size_t shaderBytecodeSize;
 
-  InputLayoutCache(const void *shader_bytecode, size_t shader_bytecode_size) :
-    shaderBytecode(shader_bytecode), shaderBytecodeSize(shader_bytecode_size)
-  {}
+struct ShaderData
+{
+  ShaderSource source;
+
+  // have to keep this too because we use d3d::create_vertex_shader_hlsl in tools
+  eastl::unique_ptr<uint8_t[]> shaderBytecode;
+  size_t shaderBytecodeSize = 0;
+
+  uint32_t constsUsed = 0;
+
+  const void *getBytecode(Tab<uint8_t> &tmpmem, uint32_t &size, bool update_constants = true);
+};
+
+// 2 inputlayouts is absolutely enough. one for depth, one for color (usually it is one)
+struct InputLayoutCache : KeyMap<drv3d_generic::COMProxyPtr<ID3D11InputLayout>, InputLayout::Key, 2>, ShaderData
+{
+  InputLayoutCache(ShaderSource source, const void *shader_bytecode, size_t shader_bytecode_size)
+  {
+    this->source = source;
+    if (shader_bytecode_size)
+    {
+      G_ASSERT(shader_bytecode);
+      this->shaderBytecode = eastl::make_unique<uint8_t[]>(shader_bytecode_size);
+      memcpy(this->shaderBytecode.get(), shader_bytecode, shader_bytecode_size);
+    }
+    this->shaderBytecodeSize = shader_bytecode_size;
+    this->constsUsed = 0;
+  }
 
   /*
   void setShader(ID3D10Blob *blob)
@@ -164,14 +191,7 @@ struct VertexShader
     if (gs)
       gs->Release();
     if (ilCache)
-    {
-      if (dataOwned)
-      {
-        memfree((void *)ilCache->shaderBytecode, midmem);
-        dataOwned = 0;
-      }
       delete ilCache;
-    }
     shader = NULL;
     hs = NULL;
     ds = NULL;
@@ -180,10 +200,11 @@ struct VertexShader
   }
 };
 
-struct PixelShader
+struct PixelShader : ShaderData
 {
   ID3D11PixelShader *shader;
-  uint32_t constsUsed;
+  int32_t constsUsed : 24;
+  int32_t maxRtv : 8;
 
   void destroyObject()
   {
@@ -192,13 +213,13 @@ struct PixelShader
       shader->Release();
     shader = NULL;
     constsUsed = 0;
+    delete this;
   }
 };
 
-struct ComputeShader
+struct ComputeShader : ShaderData
 {
   ID3D11ComputeShader *shader;
-  uint32_t constsUsed;
 
   void destroyObject()
   {
@@ -207,6 +228,7 @@ struct ComputeShader
       shader->Release();
     shader = NULL;
     constsUsed = 0;
+    delete this;
   }
 };
 

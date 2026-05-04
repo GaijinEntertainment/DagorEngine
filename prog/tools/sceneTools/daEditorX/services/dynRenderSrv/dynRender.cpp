@@ -2,6 +2,7 @@
 
 #include <de3_dynRenderService.h>
 #include <de3_skiesService.h>
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
@@ -11,6 +12,7 @@
 #include <libTools/renderViewports/renderViewport.h>
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/util/strUtil.h>
+#include <propPanel/imguiHelper.h>
 #include <render/texDebug.h>
 #include <render/variance.h>
 #include <render/renderType.h>
@@ -71,6 +73,7 @@
 #include <drv/3d/dag_platform_pc.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_render.h>
+#include <3d/dag_resPtr.h>
 #include <3d/dag_texPackMgr2.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -215,6 +218,13 @@ public:
   shaders::RenderStateId alphaWriterRenderStateId;
   shaders::RenderStateId depthMaskRenderStateId;
   eastl::unique_ptr<FullColorGradingTonemapLUT> tonemapLUT;
+  UniqueBuf coloredQuadVb;
+  struct Vertex
+  {
+    Point3 p;
+    E3DCOLOR c;
+  };
+  static rendinst::DrawCollisionsFlag collisionFlags;
 
 public:
   DaEditor3DynamicScene()
@@ -294,6 +304,7 @@ public:
 
     rs.zFunc = CMPF_ALWAYS;
     alphaWriterRenderStateId = shaders::render_states::create(rs);
+    coloredQuadVb = dag::create_vb(sizeof(Vertex) * 4, SBCF_BIND_VERTEX | SBCF_DYNAMIC | SBCF_FRAMEMEM, "colored_quad_vb");
 
     effects_depth_texVarId = ::get_shader_variable_id("effects_depth_tex", true);
 
@@ -311,6 +322,8 @@ public:
     texdebug::teardown();
     shaders::overrides::destroy(geomEnviId);
     del_it(postFx);
+    del_d3dres(postfxRt);
+    del_d3dres(sceneRt);
     combinedShadowsRenderer.clear();
     deferredTarget.reset();
     light_probe::destroy(enviProbe);
@@ -500,18 +513,9 @@ public:
       }
     }
 
-#if _TARGET_PC_WIN
-    HWND hwnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
-
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    const int clientRectWidth = rect.right - rect.left;
-    const int clientRectHeight = rect.bottom - rect.top;
-#else
     int clientRectWidth = 0;
     int clientRectHeight = 0;
     d3d::get_screen_size(clientRectWidth, clientRectHeight);
-#endif
 
     if (::grs_draw_wire)
       d3d::setwire(0);
@@ -529,18 +533,6 @@ public:
       rect.bottom = clientRectHeight;
       d3d::stretch_rect(d3d::get_backbuffer_tex(), vrResources.imguiTex.getTex2D(), &rect, &rect);
     }
-
-#if _TARGET_PC_WIN // TODO: tools Linux porting: check_and_restore_3d_device
-    // When toggling the application's window between minimized and maximized state the client size could be 0. This is
-    // here to avoid the assert in d3d::stretch_rect.
-    if (clientRectWidth <= 0 || clientRectHeight <= 0)
-      hwnd = nullptr;
-
-    if (check_and_restore_3d_device())
-      d3d::pcwin::set_present_wnd(hwnd);
-#else
-    check_and_restore_3d_device();
-#endif
   }
 
   BaseTexture *getRenderBuffer() { return sceneRt; }
@@ -575,7 +567,7 @@ public:
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
       postFx->downsample(sceneRt, sceneRtId);
-      postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm, true);
+      postFx->apply(sceneRt, postfxRt, ::grs_cur_view.tm, projTm, true);
       d3d::set_render_target(postfxRt, 0);
       d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
       return postfxRt;
@@ -653,7 +645,8 @@ public:
       goto empty_render;
 
     // G_ASSERT(!rt.tex);
-    G_ASSERT(rt.isBackBufferColor());
+    // TODO: update Driver3dRenderTarget to support not null backbuffer texture
+    G_ASSERT(rt.isColorUsed(0) && (!rt.getColor(0).tex || d3d::get_backbuffer_tex() == rt.getColor(0).tex));
 
     if (vpw->needStat3d() && dgs_app_active)
     {
@@ -695,7 +688,7 @@ public:
       if (::grs_draw_wire)
         d3d::setwire(0);
       d3d::set_render_target(finalRt, 0);
-      deferredTarget->debugRender(dbgShowType);
+      deferredTarget->debugRender(nullptr, dbgShowType);
       goto skip_non_geom_render;
     }
 
@@ -737,11 +730,6 @@ public:
       d3d::set_program(d3d::get_debug_program());
       d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
 
-      struct Vertex
-      {
-        Point3 p;
-        E3DCOLOR c;
-      };
       static Vertex v[4];
       v[0].p.set(-1, -1, 0);
       v[1].p.set(+1, -1, 0);
@@ -750,7 +738,10 @@ public:
 
       shaders::render_states::set(alphaWriterRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
+      d3d::setvsrc(0, nullptr, 0);
 
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();
@@ -771,7 +762,7 @@ public:
     dagor_frame_no_increment();
   }
 
-  void renderScreenShot()
+  void renderScreenShot(bool force_disable_wireframe)
   {
     int viewportX, viewportY, viewportW, viewportH;
     float viewportMinZ, viewportMaxZ;
@@ -815,24 +806,15 @@ public:
 
     Texture *finalRt = resolvePostProcessing(use_postfx, false);
 
-    if (rtype == RTYPE_DYNAMIC_DEFERRED && dbgShowType != -1)
+    const bool gbufferDebug = rtype == RTYPE_DYNAMIC_DEFERRED && dbgShowType != -1;
+    if (gbufferDebug)
     {
       if (::grs_draw_wire)
         d3d::setwire(0);
       d3d::set_render_target(finalRt, 0);
-      deferredTarget->debugRender(dbgShowType);
-      goto skip_non_geom_render;
+      deferredTarget->debugRender(nullptr, dbgShowType);
     }
 
-    IEditorCoreEngine::get()->renderObjects();
-    IEditorCoreEngine::get()->renderTransObjects();
-    ec_camera_elem::freeCameraElem->render();
-    ec_camera_elem::maxCameraElem->render();
-    ec_camera_elem::fpsCameraElem->render();
-    ec_camera_elem::tpsCameraElem->render();
-    ec_camera_elem::carCameraElem->render();
-
-  skip_non_geom_render:
     RectInt r;
     r.left = viewportX;
     r.top = viewportY;
@@ -868,15 +850,38 @@ public:
 
       shaders::render_states::set(alphaWriterRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
+      d3d::setvsrc(0, nullptr, 0);
 
       shaders::render_states::set(depthMaskRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
+      d3d::setvsrc(0, nullptr, 0);
 
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();
       shaders::render_states::set(defaultRenderStateId);
+    }
+
+    if (!gbufferDebug)
+    {
+      if (!force_disable_wireframe && enable_wireframe && wireframeTex && wireframeRenderer.getMat())
+      {
+        wireframeTex.setVar();
+        wireframeRenderer.render();
+      }
+
+      IEditorCoreEngine::get()->renderObjects();
+      IEditorCoreEngine::get()->renderTransObjects();
+      ec_camera_elem::freeCameraElem->render();
+      ec_camera_elem::maxCameraElem->render();
+      ec_camera_elem::fpsCameraElem->render();
+      ec_camera_elem::tpsCameraElem->render();
+      ec_camera_elem::carCameraElem->render();
     }
 
     d3d_err(d3d::set_render_target(rt));
@@ -909,7 +914,6 @@ public:
           smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
           d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
           ShaderGlobal::set_sampler(get_shader_variable_id("character_micro_details_samplerstate", true), smp);
-          ShaderGlobal::set_sampler(get_shader_variable_id("land_micro_details_samplerstate", true), smp);
         }
         ShaderGlobal::set_int(get_shader_variable_id("character_micro_details_count", true), microDetailCount);
         debug("microDetailCount = %d", microDetailCount);
@@ -943,8 +947,8 @@ public:
 
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
       {
-        tz = ShaderGlobal::get_color4_fast(transformZVarId);
-        ShaderGlobal::set_color4_fast(transformZVarId, 0.f, 0.f, 0, 1.f);
+        tz = ShaderGlobal::get_float4(transformZVarId);
+        ShaderGlobal::set_float4(transformZVarId, 0.f, 0.f, 0, 1.f);
       }
 
       for (int i = 0; i < rendSrv.size(); i++)
@@ -952,7 +956,7 @@ public:
 
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
       {
-        ShaderGlobal::set_color4_fast(transformZVarId, tz.r, tz.g, tz.b, tz.a);
+        ShaderGlobal::set_float4(transformZVarId, tz.r, tz.g, tz.b, tz.a);
       }
     }
     vsm.endShadowMap();
@@ -1012,9 +1016,9 @@ public:
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_SHADOWS_FOM);
 
     TMatrix4 texTm = TMatrix4(fomView) * fomProj * screen_to_tex_scale_tm_xy();
-    ShaderGlobal::set_color4(fom_shadows_tm_xVarId, texTm.m[0][0], texTm.m[1][0], texTm.m[2][0], texTm.m[3][0]);
-    ShaderGlobal::set_color4(fom_shadows_tm_yVarId, texTm.m[0][1], texTm.m[1][1], texTm.m[2][1], texTm.m[3][1]);
-    ShaderGlobal::set_color4(fom_shadows_tm_zVarId, texTm.m[0][2], texTm.m[1][2], texTm.m[2][2], texTm.m[3][2]);
+    ShaderGlobal::set_float4(fom_shadows_tm_xVarId, texTm.m[0][0], texTm.m[1][0], texTm.m[2][0], texTm.m[3][0]);
+    ShaderGlobal::set_float4(fom_shadows_tm_yVarId, texTm.m[0][1], texTm.m[1][1], texTm.m[2][1], texTm.m[3][1]);
+    ShaderGlobal::set_float4(fom_shadows_tm_zVarId, texTm.m[0][2], texTm.m[1][2], texTm.m[2][2], texTm.m[3][2]);
 
     d3d::resource_barrier({fomShadowsCos.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     d3d::resource_barrier({fomShadowsSin.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -1023,14 +1027,14 @@ public:
   }
   void disableFOM()
   {
-    ShaderGlobal::set_color4(fom_shadows_tm_xVarId, 0, 0, 0, -1);
-    ShaderGlobal::set_color4(fom_shadows_tm_yVarId, 0, 0, 0, -1);
-    ShaderGlobal::set_color4(fom_shadows_tm_zVarId, 0, 0, 0, -1e7);
+    ShaderGlobal::set_float4(fom_shadows_tm_xVarId, 0, 0, 0, -1);
+    ShaderGlobal::set_float4(fom_shadows_tm_yVarId, 0, 0, 0, -1);
+    ShaderGlobal::set_float4(fom_shadows_tm_zVarId, 0, 0, 0, -1e7);
   }
   void beforeRender()
   {
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-    ShaderGlobal::set_color4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
     IEditorCoreEngine::get()->beforeRenderObjects();
     if (hasEnvironmentSnapshot())
       applyEnvironmentSnapshot();
@@ -1038,7 +1042,7 @@ public:
     for (int i = 0; i < rendSrv.size(); i++)
       rendSrv[i]->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
 
-    ShaderGlobal::set_color4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
 
     mat44f viewMatrix4;
     d3d::gettm(TM_VIEW, viewMatrix4);
@@ -1069,10 +1073,10 @@ public:
 
       Driver3dPerspective p(0, 0, 0.1, 1000, 0, 0);
       d3d::getpersp(p);
-      ShaderGlobal::set_color4(zn_zfarVarId, p.zn, p.zf, 0, 0);
-      ShaderGlobal::set_real(sky_plane_wVarId, p.zf * 0.999f);
+      ShaderGlobal::set_float4(zn_zfarVarId, p.zn, p.zf, 0, 0);
+      ShaderGlobal::set_float(sky_plane_wVarId, p.zf * 0.999f);
 
-      ShaderGlobal::set_color4(from_sun_directionVarId, -ltSun0.ltDir.x, -ltSun0.ltDir.y, -ltSun0.ltDir.z, 0);
+      ShaderGlobal::set_float4(from_sun_directionVarId, -ltSun0.ltDir.x, -ltSun0.ltDir.y, -ltSun0.ltDir.z, 0);
       setDeferredEnviLight();
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
@@ -1149,12 +1153,12 @@ public:
     const Color4 *sphHarm = light_probe::getSphHarm(enviProbe);
 
     if (renderNoSun)
-      ShaderGlobal::set_color4(sun_color_0_varId, black);
+      ShaderGlobal::set_float4(sun_color_0_varId, black);
 
     bool no_ess = !hasEnvironmentSnapshot();
     if (renderNoAmb || no_ess)
       for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
-        ShaderGlobal::set_color4(envi_sph_N_texVarId[i], renderNoAmb ? black : sphHarm[i]);
+        ShaderGlobal::set_float4(envi_sph_N_texVarId[i], renderNoAmb ? black : sphHarm[i]);
 
     if (renderNoEnvRefl || no_ess) // set light probe only after updateEnviProbe() called at least once
     {
@@ -1209,15 +1213,24 @@ public:
 
     ShaderGlobal::set_texture(combinedShadowsTex.getVarId(), BAD_TEXTUREID);
 
-    if (render_shadow() && combinedShadowsTex && combinedShadowsRenderer.getMat())
+    if (combinedShadowsTex)
     {
-      deferredTarget->setVar();
-      deferredCsm->setCascadesToShader();
-      d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
-      d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
-      ::set_viewvecs_to_shader(view_tm, proj_tm);
-      combinedShadowsRenderer.render();
-      combinedShadowsTex.setVar();
+      if (render_shadow() && combinedShadowsRenderer.getMat())
+      {
+        deferredTarget->setVar();
+        deferredCsm->setCascadesToShader();
+        d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
+        d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
+        ::set_viewvecs_to_shader(view_tm, proj_tm);
+        combinedShadowsRenderer.render();
+        combinedShadowsTex.setVar();
+      }
+      else
+      {
+        d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
+        d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
+        combinedShadowsTex.setVar();
+      }
     }
     else if (render_shadow())
       deferredCsm->setCascadesToShader();
@@ -1232,8 +1245,8 @@ public:
       TextureIDPair normalPair = TextureIDPair(downsampledNormals.getTex2D(), downsampledNormals.getTexId());
       TextureIDPair checkerDepthPair = TextureIDPair(checkerboardDepth.getTex2D(), checkerboardDepth.getTexId());
 
-      downsample_depth::downsamplePS(fullDepthPair, deferredTarget->getWidth(), deferredTarget->getHeight(), &farDepthPair, nullptr,
-        &normalPair, nullptr, &checkerDepthPair);
+      downsample_depth::downsamplePS(fullDepthPair.getTex2D(), deferredTarget->getWidth(), deferredTarget->getHeight(),
+        farDepthPair.getTex2D(), nullptr, normalPair.getTex2D(), nullptr, nullptr, checkerDepthPair.getTex2D());
       downsampledFarDepth.setVar();
       downsampledNormals.setVar();
       checkerboardDepth.setVar();
@@ -1256,16 +1269,16 @@ public:
           Point2 causticsHeight = Point2(5.0f, 5.0f);
           Point4 causticsHeroPos = Point4(0, -100000, 0, 0);
 
-          ShaderGlobal::set_color4(causticsOptionsVarId, 0.2f,
+          ShaderGlobal::set_float4(causticsOptionsVarId, 0.2f,
             0.0f, // todo: insert time
             causticsHeight.x, causticsHeight.y);
-          ShaderGlobal::set_color4(causticsHeroPosVarId, Color4::xyzw(causticsHeroPos));
+          ShaderGlobal::set_float4(causticsHeroPosVarId, Color4::xyzw(causticsHeroPos));
         }
 
         static int ssrWorldViewPosVarId = get_shader_variable_id("ssr_world_view_pos", true);
         if (ssrWorldViewPosVarId >= 0)
         {
-          ShaderGlobal::set_color4(ssrWorldViewPosVarId, Color4::xyz1(::grs_cur_view.pos));
+          ShaderGlobal::set_float4(ssrWorldViewPosVarId, Color4::xyz1(::grs_cur_view.pos));
         }
         TMatrix viewTm;
         TMatrix4 projTm;
@@ -1281,7 +1294,7 @@ public:
 
     static int ao_ssrVarId = ::get_shader_glob_var_id("ao_ssr", true);
     if (ao_ssrVarId >= 0)
-      ShaderGlobal::set_color4(ao_ssrVarId, (int)renderSSAO, (int)renderSSR, 0, 0);
+      ShaderGlobal::set_float4(ao_ssrVarId, (int)renderSSAO, (int)renderSSR, 0, 0);
 
     if (!tonemapLUT)
     {
@@ -1376,7 +1389,7 @@ public:
 
     mat44f globtm;
     d3d::getglobtm(globtm);
-    rendinst::drawDebugCollisions({}, globtm, ::grs_cur_view.pos, true);
+    rendinst::drawDebugCollisions(collisionFlags, globtm, ::grs_cur_view.pos, true);
 
     d3d::settm(TM_PROJ, &savedProj);
 #endif
@@ -1476,8 +1489,8 @@ public:
   }
   void renderGeomDistortion()
   {
-    ShaderGlobal::set_color4(camera_rightVarId, ::grs_cur_view.itm.getcol(0));
-    ShaderGlobal::set_color4(camera_upVarId, ::grs_cur_view.itm.getcol(1));
+    ShaderGlobal::set_float4(camera_rightVarId, ::grs_cur_view.itm.getcol(0));
+    ShaderGlobal::set_float4(camera_upVarId, ::grs_cur_view.itm.getcol(1));
 
     TIME_D3D_PROFILE_NAME(render_vsm, "render_distortion");
     for (int i = 0; i < rendSrv.size(); i++)
@@ -1550,12 +1563,7 @@ public:
     imgui_update(client_rect_width, client_rect_height);
     renderingService->updateImgui();
 
-    for (int i = 0; i < rendSrv.size(); i++)
-    {
-      rendSrv[i]->renderUI();
-    }
-
-    imgui_perform_registered(/*with_menu_bar = */ false);
+    editor_core_render_dag_imgui_windows();
     imgui_endframe();
     imgui_render();
   }
@@ -1715,7 +1723,7 @@ public:
       {
         const Color4 *sphHarm = light_probe::getSphHarm(enviProbe);
         for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
-          ShaderGlobal::set_color4(get_shader_variable_id(String(128, "enviSPH%d", i)), sphHarm[i]);
+          ShaderGlobal::set_float4(get_shader_variable_id(String(128, "enviSPH%d", i)), sphHarm[i]);
       }
     }
     d3d::set_render_target();
@@ -1732,9 +1740,10 @@ public:
     static int light_probe_posVarId = get_shader_variable_id("light_probe_pos", true);
     const float zn = 0.5, zf = 100;
 
-    ShaderGlobal::set_color4(worldViewPosVarId, 0, 0, 0, 1);
-    ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
-    ShaderGlobal::set_color4(light_probe_posVarId, 0, 0, 0, 1);
+    ShaderGlobal::set_float4(worldViewPosVarId, 0, 0, 0, 1);
+    ShaderGlobal::set_float4(zn_zfarVarId, zn, zf, 0, 0);
+    ShaderGlobal::set_float4(light_probe_posVarId, 0, 0, 0, 1);
+    ShaderGlobal::set_texture(get_shader_variable_id("envi_probe_specular"), BAD_TEXTUREID);
 
     Point3 last_pos = ::grs_cur_view.pos;
     ::grs_cur_view.pos.zero();
@@ -1743,7 +1752,7 @@ public:
     for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
       enviSPHVarId[i] = get_shader_variable_id(String(128, "enviSPH%d", i));
     for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
-      ShaderGlobal::set_color4(enviSPHVarId[i], 0, 0, 0, 0);
+      ShaderGlobal::set_float4(enviSPHVarId[i], 0, 0, 0, 0);
 
     for (int i = 0; i < 6; ++i)
     {
@@ -1762,7 +1771,7 @@ public:
     {
       const Color4 *sphHarm = light_probe::getSphHarm(enviProbe);
       for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
-        ShaderGlobal::set_color4(enviSPHVarId[i], sphHarm[i]);
+        ShaderGlobal::set_float4(enviSPHVarId[i], sphHarm[i]);
     }
     else
       logerr("Can't calculate harmonics");
@@ -1796,6 +1805,7 @@ public:
       updateEnviProbe(); // call this once before reqEnviProbeUpdate to get non-black probe
       reqEnviProbeUpdate = true;
     }
+    after_device_reset_ambient_wind();
   }
 
   void shutdown()
@@ -1922,14 +1932,14 @@ public:
     sceneFmt = hdr_render_format;
 
     static int screen_pos_to_texcoordVarId = ::get_shader_variable_id("screen_pos_to_texcoord");
-    ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / w, 1.f / h, 0, 0);
+    ShaderGlobal::set_float4(screen_pos_to_texcoordVarId, 1.f / w, 1.f / h, 0, 0);
     static int lowres_tex_sizeVarId = ::get_shader_variable_id("lowres_tex_size");
-    ShaderGlobal::set_color4(lowres_tex_sizeVarId, w / 2, h / 2, 1.0f / (w / 2), 1.0f / (h / 2));
+    ShaderGlobal::set_float4(lowres_tex_sizeVarId, w / 2, h / 2, 1.0f / (w / 2), 1.0f / (h / 2));
 
     if (rtype == RTYPE_DYNAMIC_DEFERRED)
     {
-      sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | deferredRtFmt, 1);
-      postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1);
+      sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | deferredRtFmt, 1, "sceneRt");
+      postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1, "postfxRt");
 
       if (vrWidth)
       {
@@ -1939,8 +1949,8 @@ public:
     }
     else
     {
-      sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | hdr_render_format, 1);
-      postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1);
+      sceneRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | hdr_render_format, 1, "sceneRt");
+      postfxRt = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | postfxRtFmt, 1, "postfxRt");
       fallbackSceneDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "scene_depth");
     }
     resolvedDepth = dag::create_tex(nullptr, w, h, TEXCF_RTARGET | TEXFMT_R32F, 1, "depth_tex");
@@ -1990,7 +2000,7 @@ public:
           DeferredRT::StereoMode::MonoOrMultipass, 0, deferred_mrt_cnt, deferred_mrt_fmts, TEXFMT_DEPTH32);
 
       int halfW = targetW / 2, halfH = h / 2;
-      ShaderGlobal::set_color4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, 0, 0);
+      ShaderGlobal::set_float4(::get_shader_variable_id("lowres_rt_params", true), halfW, halfH, 0, 0);
 
       ssao = eastl::make_unique<SSAORenderer>(targetW / 2, targetH / 2, 1, SSAO_ALLOW_IMPLICIT_FLAGS_FROM_SHADER_ASSUMES);
       ssr = eastl::make_unique<ScreenSpaceReflections>(targetW / 2, targetH / 2);
@@ -2022,7 +2032,6 @@ public:
       }
 
       lowresFxTex = dag::create_tex(nullptr, targetW / 2, targetH / 2, fmt | TEXCF_RTARGET, 1, "low_res_fx_rt");
-      ShaderGlobal::set_sampler(get_shader_variable_id("lowres_fx_source_tex_samplerstate", true), d3d::request_sampler({}));
 
       downsampledFarDepth =
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex");
@@ -2035,13 +2044,11 @@ public:
         ShaderGlobal::set_sampler(get_shader_variable_id("downsampled_far_depth_tex_samplerstate"), d3d::request_sampler(smpInfo));
       }
 
-      if (vrWidth)
-      {
-        vrResources.downsampledFarDepth = UniqueTexHolder(
-          dag::create_tex(nullptr, vrWidth / 2, vrHeight / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex_vr"),
-          "downsampled_far_depth_tex");
-        vrResources.downsampledFarDepth.setVar();
-      }
+
+      vrResources.downsampledFarDepth = UniqueTexHolder(
+        dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex_vr"),
+        "downsampled_far_depth_tex");
+      vrResources.downsampledFarDepth.setVar();
 
       checkerboardDepth =
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_DEPTH32, 1, "downsampled_checkerboard_depth_tex");
@@ -2087,7 +2094,7 @@ public:
     if (rtype == RTYPE_CLASSIC)
       return;
 
-    if (render_shadow())
+    if (render_shadow() && !is_managed_textures_streaming_load_on_demand())
       ddsx::tex_pack2_perform_delayed_data_loading();
     rendinst::set_global_shadows_needed(render_shadow());
     if (!render_shadow())
@@ -2531,6 +2538,7 @@ private:
     }
   }
 };
+rendinst::DrawCollisionsFlag DaEditor3DynamicScene::collisionFlags = {};
 
 class GenericDynRenderService : public IDynRenderService
 {
@@ -2666,9 +2674,11 @@ public:
       dynScene->initClassic();
     else if (dynScene->rtype == RTYPE_DYNAMIC_DEFERRED)
       dynScene->initDeferred(deferredBlk, shadowQualityProps[shadowQuality]);
+    init_draw_cached_debug_twocolored_shader();
   }
   void term() override
   {
+    close_draw_cached_debug();
     dagor_select_game_scene(nullptr);
 
     heat_haze_glue.term();
@@ -2736,10 +2746,10 @@ public:
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
     }
   }
-  void renderScreenshot() override
+  void renderScreenshot(const Driver3dPerspective &persp, bool is_ortho, bool force_disable_wireframe = false) override
   {
     if (dynScene)
-      dynScene->renderScreenShot();
+      dynScene->renderScreenShot(force_disable_wireframe);
   }
 
   dag::ConstSpan<int> getSupportedRenderTypes() const override { return rtypeSupp; }
@@ -2957,7 +2967,7 @@ static void vr_controls_window()
     ImGui::EndListBox();
   }
 
-  ImGui::Checkbox("Enable shadows", &render_vr_shadows);
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Enable shadows", &render_vr_shadows);
 
   if (newPreset || newEnv || newWtype)
   {
@@ -2975,3 +2985,96 @@ static void vr_controls_window()
 REGISTER_IMGUI_WINDOW("VR", "VR controls", vr_controls_window);
 
 #endif
+
+static uint32_t collisionFlags = 0;
+static void showCollisionFlags()
+{
+
+  bool none = collisionFlags == 0;
+  if (PropPanel::ImguiHelper::checkboxWithDragSelection("None", &none))
+    if (none)
+      collisionFlags = 0;
+
+  bool all = collisionFlags == (uint32_t)rendinst::DrawCollisionsFlag::ALL_FLAGS;
+  if (PropPanel::ImguiHelper::checkboxWithDragSelection("All flags", &all))
+  {
+    if (all)
+      collisionFlags = (uint32_t)rendinst::DrawCollisionsFlag::ALL_FLAGS;
+    else
+      collisionFlags = 0;
+  }
+  bool allRi = (collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::All) == (uint32_t)rendinst::DrawCollisionsFlag::All;
+  if (PropPanel::ImguiHelper::checkboxWithDragSelection("All Rendinst", &allRi))
+  {
+    if (allRi)
+      collisionFlags |= uint32_t(rendinst::DrawCollisionsFlag::All);
+    else
+      collisionFlags &= ~uint32_t(rendinst::DrawCollisionsFlag::All);
+  }
+  bool rendInst = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::RendInst;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Rendinst", &rendInst);
+  if (rendInst)
+    collisionFlags |= uint32_t(rendinst::DrawCollisionsFlag::RendInst);
+  else
+    collisionFlags &= ~uint32_t(rendinst::DrawCollisionsFlag::RendInst);
+
+  bool rendInstExtra = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::RendInstExtra;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Rendinst Extra", &rendInstExtra);
+  if (rendInstExtra)
+    collisionFlags |= uint32_t(rendinst::DrawCollisionsFlag::RendInstExtra);
+  else
+    collisionFlags &= ~uint32_t(rendinst::DrawCollisionsFlag::RendInstExtra);
+
+  bool wireFrame = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::Wireframe;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Wireframe", &wireFrame);
+  if (wireFrame)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::Wireframe;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::Wireframe;
+
+  bool opacity = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::Opacity;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Opacity", &opacity);
+  if (opacity)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::Opacity;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::Opacity;
+
+  bool invisible = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::Invisible;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Invisible", &invisible);
+  if (invisible)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::Invisible;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::Invisible;
+
+  bool canopy = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::RendInstCanopy;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("RendInstCanopy", &canopy);
+  if (canopy)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::RendInstCanopy;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::RendInstCanopy;
+
+  bool physOnly = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::PhysOnly;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("PhysOnly", &physOnly);
+  if (physOnly)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::PhysOnly;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::PhysOnly;
+
+  bool traceOnly = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::TraceOnly;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("TraceOnly", &traceOnly);
+  if (traceOnly)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::TraceOnly;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::TraceOnly;
+
+  bool occlusion = collisionFlags & (uint32_t)rendinst::DrawCollisionsFlag::Occlusion;
+  PropPanel::ImguiHelper::checkboxWithDragSelection("Occlusion", &occlusion);
+  if (occlusion)
+    collisionFlags |= (uint32_t)rendinst::DrawCollisionsFlag::Occlusion;
+  else
+    collisionFlags &= ~(uint32_t)rendinst::DrawCollisionsFlag::Occlusion;
+
+  DaEditor3DynamicScene::collisionFlags = (rendinst::DrawCollisionsFlag)collisionFlags;
+}
+
+REGISTER_IMGUI_WINDOW("", "Collision", showCollisionFlags);

@@ -13,6 +13,10 @@ class AnimcharRendComponent;
 }
 
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
+  const eastl::function<bool(const ShaderMaterial *)> &material_filter,
+  const eastl::function<void(ShaderMaterial *)> &shader_var_setter);
+
+bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
   eastl::function<void(ShaderMaterial *)> &&shader_var_setter);
 
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render, const char *shader_name,

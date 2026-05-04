@@ -96,6 +96,8 @@ struct LensFlareConfig
   eastl::vector<Element> elements;
 };
 
+class Occlusion;
+
 class LensFlareRenderer
 {
 public:
@@ -112,17 +114,20 @@ public:
   ~LensFlareRenderer();
 
   void init();
+  void toggleOptionalProvidersProcessing(const bool v) { optionalProvidersProcessingEnabled = v; }
   void markConfigsDirty();
   void startPreparingLights();
   void prepareManualFlare(const CachedFlareId &cached_flare_config_id, const Point4 &light_pos, const Point3 &color, bool is_sun);
   void prepareDynamicLightFlares(const CachedFlareId &cached_flare_config_id);
-  void collectAndPrepareECSFlares_Sun(const Point3 &camera_dir, const TMatrix4 &view_proj, const Point3 &sun_dir,
-    const Point3 &sun_color);
-  void collectAndPrepareECSFlares_PointFlares(const Point3 &camera_pos, const Point3 &camera_dir, const Frustum &frustum);
+  void collectAndPrepareECSFlares_Sun(const TMatrix &view_itm, const TMatrix4 &view_proj, const Point3 &sun_dir,
+    const Point3 &sun_color, const Occlusion * = nullptr);
+  void collectAndPrepareECSFlares_PointFlares(const Point3 &camera_pos, const Point3 &camera_dir, const Frustum &frustum,
+    const Occlusion * = nullptr);
   void collectAndPrepareECSFlares_DynamicLights();
   bool endPreparingLights(const Point3 &camera_pos, const Point3 &camera_dir, int omni_light_count, int spot_light_count,
     int shadow_frames_count);
   void render(const Point2 &resolution, float zoom = 1.0f) const;
+  void setDownsampledFarDepthMipCount(int mipcount) { downSampledDepthMipCount = mipcount; }
 
   [[nodiscard]] bool isCachedFlareIdValid(const CachedFlareId &id) const;
   CachedFlareId cacheFlareId(const char *flare_config_name) const;
@@ -226,6 +231,7 @@ private:
   static constexpr int MAX_NUM_INSTANCES = 256;
   static constexpr int VISIBILITY_HISTORY_SIZE = 1024;
 
+  bool optionalProvidersProcessingEnabled = true;
   eastl::vector<LensFlareData> lensFlares;
   // vector_set is used to sort the array, not just for quick lookups! If it's changed to another type, manual sort is needed
   eastl::vector_set<RenderConfig> globalRenderConfigs;
@@ -272,6 +278,7 @@ private:
   bool isDirty = true;
   Point3 lastCameraPos = Point3(0, -10000, 0);
   int nextHistoryFrameId = 0;
+  int downSampledDepthMipCount = 0;
 
   // Working memory and counters. These are reserved at initialization, reset and filled every frame.
   int numPreparedManualInstances = 0;

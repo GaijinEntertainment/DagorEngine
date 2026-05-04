@@ -1,5 +1,0 @@
-if $(HaveRenderer) = yes
-{
-  gamePulls += framework_latency_input_event_listener_pull ;
-  UseProgLibs += daNetGameLibs/latency_input_event_listener ;
-}

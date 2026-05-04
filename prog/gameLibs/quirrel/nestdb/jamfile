@@ -1,8 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/nestdb ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
-ProjectUseQuirrel ?= sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 local TargetLib = gameLibs/quirrel/nestdb ;

@@ -96,17 +96,12 @@ void CameraViewVisibilityMgr::startOcclusionFrame(const TMatrix &itm, const mat4
       OcclusionData occlusionData = gather_occlusion_data();
       if (occlusionData)
       {
-        const CockpitReprojectionMode cockpitMode =
-          (flags & CameraViewVisibilityFlags::DontReprojectCockpitOcclusion) == CameraViewVisibilityFlags::None
-            ? COCKPIT_REPROJECT_ANIMATED
-            : COCKPIT_NO_REPROJECT;
-
         occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, occlusionData.closeGeometryBoundingRadius, cockpitMode,
           occlusionData.closeGeometryPrevToCurrFrameTransform, 0, 0);
       }
       else
         occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, 0, COCKPIT_NO_REPROJECT, mat44f{}, 0, 0);
-      cockpit_distanceVarId.set_real(occlusionData ? occlusionData.closeGeometryBoundingRadius : 0);
+      cockpit_distanceVarId.set_float(occlusionData ? occlusionData.closeGeometryBoundingRadius : 0);
     }
     else
       occl->resetStats();
@@ -186,14 +181,16 @@ void CameraViewVisibilityMgr::startGroundVisibility(LandMeshManager *lmesh_mgr,
   const float hmap_camera_height,
   const float water_level,
   const int displacement_sub_div,
+  const float displacement_radius,
   const CameraParams &cur_frame_camera)
 {
   Occlusion *occl = getOcclusion();
 
   // Norm prio to be executed before dafx jobs
+  lmeshCullingData.heightmapData.useHWTesselation = true; // will be switched off by frustumCulling
   groundCullJob.start(&jobsCtx, &lmeshCullingData, lmesh_mgr, lmesh_renderer, occl, cur_frame_camera.noJitterFrustum,
     cur_frame_camera.viewItm.getcol(3), cur_frame_camera.noJitterProjTm, hmap_camera_height, water_level, displacement_sub_div,
-    threadpool::PRIO_NORMAL);
+    displacement_radius, threadpool::PRIO_NORMAL);
 }
 
 void CameraViewVisibilityMgr::startGroundReflectionVisibility(LandMeshManager *lmesh_mgr,

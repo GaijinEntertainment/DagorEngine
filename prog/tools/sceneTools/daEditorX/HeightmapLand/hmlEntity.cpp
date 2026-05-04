@@ -1283,7 +1283,7 @@ void LandscapeEntityObject::propsChanged(bool prevent_gen)
 LandscapeEntityObject *LandscapeEntityObject::clone()
 {
   LandscapeEntityObject *obj = new LandscapeEntityObject(props.entityName);
-  obj->setEditLayerIdx(EditLayerProps::activeLayerIdx[lpIndex()]);
+  obj->setEditLayerIdx(editLayerIdx);
 
   getObjEditor()->setUniqName(obj, getName());
 
@@ -1354,7 +1354,8 @@ bool HmapLandObjectEditor::splitComposits(const PtrTab<RenderableEditableObject>
 
         LandscapeEntityObject *obj = new LandscapeEntityObject(nm, seed);
         obj->setPerInstSeed(perInstanceSeed);
-        obj->setEditLayerIdx(EditLayerProps::activeLayerIdx[obj->lpIndex()]);
+        obj->setEditLayerIdx(
+          obj->lpIndex() == compObj[i]->lpIndex() ? compObj[i]->getEditLayerIdx() : EditLayerProps::activeLayerIdx[obj->lpIndex()]);
         const ICompositObj::Props &p = co->getCompositSubEntityProps(j);
 
         if (char *p = strrchr(nm, ':'))

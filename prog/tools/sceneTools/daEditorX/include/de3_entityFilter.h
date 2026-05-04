@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <de3_layerHiddenMask.h>
 #include <util/dag_stdint.h>
 
 class IObjEntityFilter
@@ -25,8 +26,8 @@ public:
   static void setSubTypeMask(int mask_type, unsigned mask);
   static unsigned getSubTypeMask(int mask_type);
 
-  static void setLayerHiddenMask(uint64_t lhmask);
-  static uint64_t getLayerHiddenMask();
+  static void setLayerHiddenMask(LayerHiddenMask lhmask);
+  static LayerHiddenMask getLayerHiddenMask();
 
   static void setShowInvalidAsset(bool show);
   static bool getShowInvalidAsset();

@@ -10,6 +10,13 @@ namespace das {
 
     #define DAS_PAGE_GC_MASK    0x80000000
 
+    template <typename T, typename = void>
+    struct has_shrink_to_fit : false_type {};
+
+    template <typename T>
+    struct has_shrink_to_fit<T, void_t<decltype(declval<T&>().shrink_to_fit())>> : true_type {};
+
+
     struct LineInfo;
 
     struct Deck {
@@ -35,16 +42,24 @@ namespace das {
             if ( next ) next->reset();
         }
         void beforeGC() {
-            gc_bits = (uint32_t*) das_aligned_alloc16(total / 32 * 4);
-            memset ( gc_bits, 0, total / 32 * 4);
+            auto total_bytes = total / 32 * 4;
+            if ( total_bytes ) {
+                gc_bits = (uint32_t*) das_aligned_alloc16(total_bytes);
+                memset ( gc_bits, 0, total_bytes);
+            } else {
+                gc_bits = nullptr;
+            }
             look = 0;
             gc_allocated = 0;
             if ( next ) next->beforeGC();
         }
         void afterGC() {
-            memcpy ( bits, gc_bits, total / 32 * 4 );
-            das_aligned_free16 ( gc_bits );
-            gc_bits = nullptr;
+            auto total_bytes = total / 32 * 4;
+            if ( total_bytes ) {
+                memcpy ( bits, gc_bits, total_bytes );
+                das_aligned_free16 ( gc_bits );
+                gc_bits = nullptr;
+            }
             allocated = gc_allocated;
         }
         __forceinline bool isOwnPtr ( char * ptr ) const {
@@ -257,13 +272,14 @@ namespace das {
 
     typedef function<int(int)> CustomGrowFunction;
 
-    struct MemoryModel : ptr_ref_count {
+    struct DAS_API MemoryModel : ptr_ref_count {
         enum { default_initial_size = 65536 };
         MemoryModel(const MemoryModel &) = delete;
         MemoryModel & operator = (const MemoryModel &) = delete;
         MemoryModel ();
         virtual ~MemoryModel ();
         virtual void reset();
+        virtual void shrink();
         void setInitialSize ( uint32_t size );
         uint32_t grow ( uint32_t si );
         virtual void sweep();
@@ -352,7 +368,7 @@ namespace das {
         HeapChunk * next;
     };
 
-    class LinearChunkAllocator : public ptr_ref_count {
+    class DAS_API LinearChunkAllocator : public ptr_ref_count {
         enum { default_initial_size = 65536 };
     public:
         LinearChunkAllocator() { }
@@ -361,6 +377,7 @@ namespace das {
         void free ( char * ptr, uint32_t s );
         char * reallocate ( char * ptr, uint32_t size, uint32_t nsize );
         virtual void reset ();
+        virtual void shrink ();
         char * allocateName ( const string & name );
         __forceinline bool isOwnPtrQnD ( const char * ptr ) const {
            return chunk!=nullptr && chunk->isOwnPtr(ptr);
@@ -375,6 +392,7 @@ namespace das {
         uint64_t bytesAllocated() const;
         uint64_t totalAlignedMemoryAllocated() const;
         __forceinline void setInitialSize ( uint32_t size ) {
+            unadjustedInitialSize = size;
             initialSize = size;
         }
         virtual uint32_t grow ( uint32_t si );
@@ -382,6 +400,7 @@ namespace das {
         void getStats ( uint32_t & depth, uint64_t & bytes, uint64_t & total ) const;
     public:
         CustomGrowFunction  customGrow;
+        uint32_t    unadjustedInitialSize = 0;
         uint32_t    initialSize = 0;
         uint32_t    alignMask = 15;
         HeapChunk * chunk = nullptr;

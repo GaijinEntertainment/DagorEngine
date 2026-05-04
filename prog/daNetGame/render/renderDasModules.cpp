@@ -22,5 +22,4 @@ void pull_render_das()
   NEED_MODULE(ResourceSlotCoreModule)
   NEED_MODULE(HeightmapQueryManagerModule)
   NEED_MODULE(PortalRendererModule)
-  NEED_MODULE(RenderLibsAllowedModule)
 }

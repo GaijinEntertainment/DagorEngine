@@ -45,15 +45,40 @@ shader bbox_occlusion
       return output;
     }
   }
-  ENABLE_ASSERT(ps)
+  (ps) {
+    bboxVisibilityReadback@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> bboxVisibilityReadback@uav;
+    }
+  }
   hlsl (ps) {
-    RWStructuredBuffer<uint> bboxVisibilityReadback : register(u1);
+    #if WAVE_INTRINSICS
+      #define ENABLE_OPTIMIZATION 1
+    #endif
+
   ##if !hardware.metaliOS
     [earlydepthstencil]
   ##endif
     void rendinst_shadow_occlusion_ps(VsOutput input)
     {
-      InterlockedOr(structuredBufferAt(bboxVisibilityReadback, input.instanceId / 32), 1U << (input.instanceId & 31));
+      uint instanceDword = input.instanceId / 32;
+      uint bitIndex = input.instanceId & 31;
+      uint instanceBitMask = 1u << bitIndex;
+      #if ENABLE_OPTIMIZATION
+        // Merge interlocked operations that write to the same dword as the first thread in the lane
+        if (WaveReadFirstLane(instanceDword) == instanceDword)
+        {
+          uint firstDwordMask = WaveActiveBitOr(instanceBitMask);
+          if (WaveIsFirstLane())
+            InterlockedOr(structuredBufferAt(bboxVisibilityReadback, instanceDword), firstDwordMask);
+        }
+        // Other threads just set their bits in the dword.
+        else
+        {
+          InterlockedOr(structuredBufferAt(bboxVisibilityReadback, instanceDword), instanceBitMask);
+        }
+      #else
+        InterlockedOr(structuredBufferAt(bboxVisibilityReadback, instanceDword), instanceBitMask);
+      #endif
     }
   }
 

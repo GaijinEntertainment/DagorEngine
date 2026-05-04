@@ -5,10 +5,6 @@ include "use_bloom.dshl"
 
 texture frame_tex;
 
-float concussion_effect_time_start = -1000;
-float concussion_effect_duration = 10.0;
-float concussion_shake_intensity = 0.02;
-
 float flash_blind_remaining_time = 0.0;
 
 macro COMMON_POSTFX()

@@ -41,25 +41,27 @@ public:
         viewport[1] = viewport[3] != 0.f ? (1.f / viewport[3]) : 0.f;
     }
 
-    inline void render(const ManagedTex &input, BaseTexture* output)
+    inline void render(BaseTexture* input, BaseTexture* output)
     {
         Color4 viewportData = Color4(viewport);
 
         d3d::set_render_target(output, 0);
         ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input);
         ShaderGlobal::set_sampler(snapdragon_super_resolution_input_samplerstateVarId, d3d::request_sampler({}));
-        ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
+        ShaderGlobal::set_float4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
         PostFxRenderer::render();
+        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, nullptr);
     }
 
-    inline void render(const TextureIDPair &input)
+    inline void render(BaseTexture* input)
     {
         Color4 viewportData = Color4(viewport);
         d3d::set_render_target();
-        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input.getId());
+        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input);
         ShaderGlobal::set_sampler(snapdragon_super_resolution_input_samplerstateVarId, d3d::request_sampler({}));
-        ShaderGlobal::set_color4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
+        ShaderGlobal::set_float4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);
         PostFxRenderer::render();
+        ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, nullptr);
     }
 
 private:

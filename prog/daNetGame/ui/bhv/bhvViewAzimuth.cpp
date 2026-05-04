@@ -8,6 +8,7 @@
 #include <daRg/dag_renderObject.h>
 #include <daRg/dag_transform.h>
 #include <memory/dag_framemem.h>
+#include <util/dag_string.h>
 
 #include <math/dag_mathBase.h>
 

@@ -16,6 +16,7 @@
 #include <shaders/dag_stcode.h>
 #include <shaders/commonStcodeFunctions.h>
 
+#include "shadersBinaryData.h"
 #include "stcode/compareStcode.h"
 
 namespace functional
@@ -29,7 +30,7 @@ namespace functional
 #define OUT_INT  int_reg(regs, out_reg)
 #define COLOROUT color4_reg(regs, out_reg).set
 
-void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
+void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs, ScriptedShadersBinDumpOwner const *owner)
 {
   switch (id)
   {
@@ -71,8 +72,18 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
 
     case BF_GET_DIMENSIONS:
     {
-      TEXTUREID tex_id = tex_reg(regs, in_regs[0]);
-      auto tex = acquire_managed_tex(tex_id);
+      const auto texData = get_tex_reg(regs, in_regs[0]);
+      BaseTexture *tex = nullptr;
+      const TEXTUREID *tid = eastl::get_if<TEXTUREID>(&texData);
+      if (tid)
+      {
+        tex = acquire_managed_tex(*tid);
+      }
+      else
+      {
+        tex = eastl::get<BaseTexture *>(texData);
+      }
+
       TextureInfo info;
       if (tex)
       {
@@ -93,7 +104,10 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
         info.w = info.h = info.d = info.mipLevels = 0; //-V1048
       }
       COLOROUT(info.w, info.h, info.d, info.mipLevels);
-      release_managed_tex(tex_id);
+      if (tid)
+      {
+        release_managed_tex(*tid);
+      }
       break;
     }
 
@@ -123,7 +137,8 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
     case BF_REQUEST_SAMPLER:
     {
       int sampler_id = out_reg;
-      auto *dump = shBinDumpOwner().getDumpV3();
+      G_ASSERTF(owner, "Calling 'request_sampler' froms static stcode, probably and internal compiler bug");
+      auto *dump = owner->getDumpV3();
       G_ASSERTF(dump, "Used incompatible version of shader dump for call 'request_sampler' intrinsic");
       d3d::SamplerInfo info = dump->samplers[sampler_id];
       if (in_regs[1] >= 0)
@@ -142,7 +157,7 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
         in_regs[0]);
       G_ASSERTF_BREAK(dump->globVars.getType(in_regs[0]) == SHVT_SAMPLER,
         "Invalid sampler var id %d type used for call 'request_sampler' intrinsic", in_regs[0]);
-      auto &smp = shBinDumpOwner().globVarsState.get<d3d::SamplerHandle>(in_regs[0]);
+      auto &smp = shGlobalData().globVarsState.get<d3d::SamplerHandle>(in_regs[0]);
       smp = d3d::request_sampler(info);
 
       stcode::dbg::record_request_sampler(stcode::dbg::RecordType::REFERENCE, info);
@@ -152,11 +167,29 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
     case BF_EXISTS_TEX:
     {
       OUT_INT = 0;
-      TEXTUREID tex_id = tex_reg(regs, in_regs[0]);
-      auto tex = acquire_managed_tex(tex_id);
+      const auto texData = get_tex_reg(regs, in_regs[0]);
+
+      BaseTexture *tex = nullptr;
+      const TEXTUREID *tid = eastl::get_if<TEXTUREID>(&texData);
+      if (tid)
+      {
+        tex = acquire_managed_tex(*tid);
+      }
+      else
+      {
+        tex = eastl::get<BaseTexture *>(texData);
+      }
+
+
       if (tex)
+      {
         OUT_INT = 1;
-      release_managed_tex(tex_id);
+      }
+
+      if (tid)
+      {
+        release_managed_tex(*tid);
+      }
       break;
     }
 
@@ -166,6 +199,28 @@ void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs)
       Sbuffer *buf = buf_reg(regs, in_regs[0]);
       if (buf)
         OUT_INT = 1;
+      break;
+    }
+
+    case BF_INT2:
+    {
+      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), 1.0f, 1.0f);
+      break;
+    }
+
+    case BF_INT3:
+    {
+      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), bitwise_cast<float, int32_t>(arg0.b), 1.0f);
+      break;
+    }
+
+    case BF_INT4:
+    {
+      const Color4 &arg0 = color4_reg(regs, in_regs[0]);
+      COLOROUT(bitwise_cast<float, int32_t>(arg0.r), bitwise_cast<float, int32_t>(arg0.g), bitwise_cast<float, int32_t>(arg0.b),
+        bitwise_cast<float, int32_t>(arg0.a));
       break;
     }
 

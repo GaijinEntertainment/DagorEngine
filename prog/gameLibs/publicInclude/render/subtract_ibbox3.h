@@ -7,7 +7,7 @@
 #include <math/integer/dag_IBBox3.h>
 #include <generic/dag_span.h>
 // for toroidal updates
-inline void split_by_y(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int &count)
+inline void split_by_y(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> result, int &count)
 {
   if (box1[0].y < box2[0].y)
     result[count++] = IBBox3{{box1[0].x, box1[0].y, box1[0].z}, {box1[1].x, box2[0].y, box1[1].z}};
@@ -15,7 +15,7 @@ inline void split_by_y(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int 
     result[count++] = IBBox3{{box1[0].x, box2[1].y, box1[0].z}, {box1[1].x, box1[1].y, box1[1].z}};
 }
 
-inline void split_by_x(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int &count)
+inline void split_by_x(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> result, int &count)
 {
   if (box1[0].x < box2[0].x)
   {
@@ -35,7 +35,7 @@ inline void split_by_x(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int 
   }
 }
 
-inline void split_by_z(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int &count)
+inline void split_by_z(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> result, int &count)
 {
   if (box1[0].z < box2[0].z)
   {
@@ -55,9 +55,9 @@ inline void split_by_z(IBBox3 box1, IBBox3 box2, dag::Span<IBBox3> &result, int 
   }
 }
 
-inline int same_size_box_subtraction(const IBBox3 &box1, const IBBox3 &box2, IBBox3 &intersection, dag::Span<IBBox3> &result)
+inline int same_size_box_subtraction(const IBBox3 &box1, const IBBox3 &box2, dag::Span<IBBox3> result)
 {
-  intersection = box2;
+  IBBox3 intersection = box2;
   box1.clipBox(intersection);
   if (intersection.isEmpty())
   {
@@ -69,12 +69,11 @@ inline int same_size_box_subtraction(const IBBox3 &box1, const IBBox3 &box2, IBB
   return count;
 }
 
-inline int move_box_toroidal(const IPoint3 &new_lt, const IPoint3 &old_lt, const IPoint3 &sz, dag::Span<IBBox3> &retSpan)
+inline int move_box_toroidal(const IPoint3 &new_lt, const IPoint3 &old_lt, const IPoint3 &sz, dag::Span<IBBox3> retSpan)
 {
   IBBox3 oldWorldBox = {old_lt, old_lt + sz};
   IBBox3 newWorldBox = {new_lt, new_lt + sz};
-  IBBox3 in;
-  int cnt = same_size_box_subtraction(newWorldBox, oldWorldBox, in, retSpan);
+  int cnt = same_size_box_subtraction(newWorldBox, oldWorldBox, retSpan);
 #if DAGOR_DBGLEVEL > 0
   for (auto &ci : dag::Span<IBBox3>(retSpan.data(), cnt))
   {

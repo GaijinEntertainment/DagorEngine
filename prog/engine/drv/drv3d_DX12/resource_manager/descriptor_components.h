@@ -17,7 +17,9 @@ class TextureDescriptorProvider : public ImageObjectProvider
 {
   using BaseType = ImageObjectProvider;
 
-  DescriptorHeap<ShaderResourceViewStagingPolicy> srvHeap;
+  static constexpr uint32_t DESCRIPTOR_BLOCK_SIZE = 1024;
+
+  DescriptorHeap<ShaderResourceViewStagingPolicy<DESCRIPTOR_BLOCK_SIZE>> srvHeap;
   DescriptorHeap<RenderTargetViewPolicy> rtvHeap;
   DescriptorHeap<DepthStencilViewPolicy> dsvHeap;
 
@@ -94,7 +96,9 @@ class BufferDescriptorProvider : public TextureDescriptorProvider
 {
   using BaseType = TextureDescriptorProvider;
 
-  ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy>, OSSpinlock> srvHeap;
+  static constexpr uint32_t DESCRIPTOR_BLOCK_SIZE = 1024;
+
+  ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy<DESCRIPTOR_BLOCK_SIZE>>, OSSpinlock> srvHeap;
 
 protected:
   BufferDescriptorProvider() = default;
@@ -130,8 +134,11 @@ protected:
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
       descriptor = srvHeapAccess->allocate(device);
-      device->CreateShaderResourceView(buffer, &desc, descriptor);
-      desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      if (descriptor.ptr)
+      {
+        device->CreateShaderResourceView(buffer, &desc, descriptor);
+        desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      }
     }
     return descriptors;
   }
@@ -144,8 +151,11 @@ protected:
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
       descriptor = srvHeapAccess->allocate(device);
-      device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
-      desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      if (descriptor.ptr)
+      {
+        device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
+        desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      }
     }
     return descriptors;
   }
@@ -166,7 +176,7 @@ public:
     G_ASSERTF(0 == (buffer.offset % format.getBytesPerPixelBlock()), "DX12: Offset %u has to be multiples of element size %u",
       buffer.offset, format.getBytesPerPixelBlock());
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
-    desc.Format = format.asDxGiFormat();
+    desc.Format = format.asDxGiFormat<true>();
     desc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     desc.Buffer.FirstElement = buffer.offset / format.getBytesPerPixelBlock();
@@ -217,7 +227,7 @@ public:
   {
     G_ASSERTF(0 == buffer.offset, "DX12: Buffers with offsets can't have UAVs");
     D3D12_UNORDERED_ACCESS_VIEW_DESC desc;
-    desc.Format = format.asDxGiFormat();
+    desc.Format = format.asDxGiFormat<false>();
     desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     desc.Buffer.FirstElement = 0;
     desc.Buffer.NumElements = buffer.size / format.getBytesPerPixelBlock();

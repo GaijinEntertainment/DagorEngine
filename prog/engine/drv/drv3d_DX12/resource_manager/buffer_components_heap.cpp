@@ -30,31 +30,67 @@ void BufferHeap::Heap::applyFirstAllocation(uint64_t payload_size)
   notifyMaxFreeRangeSizeChanged();
 }
 
-// This allocate is a bit more simple than a general purpose allocation as it has the goal to
-// keep similarly aligned things in the same buffer heaps together So allocation from this will
-// fail if no free range is found that has a matching offset / address alignment.
 ValueRange<uint64_t> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignment)
 {
   if (freeRanges.empty())
   {
     return {};
   }
-  auto ref = eastl::find_if(begin(freeRanges), end(freeRanges),
-    [size, alignment](auto range) //
-    { return (0 == (range.start % alignment)) && (range.size() >= size); });
-  if (ref == end(freeRanges))
+  // tries to find a range that has enough space and fulfills the alignment requirement either by allocating from the front or the back
+  auto ref = eastl::find_if(freeRanges.begin(), freeRanges.end(), [size, alignment](auto range) {
+    if (range.size() < size)
+    {
+      return false;
+    }
+    if (0 == (range.start % alignment))
+    {
+      return true;
+    }
+    return 0 == ((range.stop - size) % alignment);
+  });
+  if (freeRanges.end() == ref)
+  {
+    return {};
+  }
+  uint64_t offset;
+  if (0 == (ref->start % alignment))
+  {
+    // from the front
+    offset = ref->start;
+    if (ref->size() == size)
+    {
+      freeRanges.erase(ref);
+    }
+    else
+    {
+      ref->start += size;
+    }
+  }
+  else
+  {
+    // from the back
+    offset = ref->stop - size;
+    // size can not be equal, otherwise alignment from the front would be true
+    ref->stop -= size;
+  }
+  updateMaxFreeRangeSize();
+  return make_value_range<uint64_t>(offset, size);
+}
+
+ValueRange<uint64_t> BufferHeap::Heap::allocateExact(uint64_t size, uint64_t alignment)
+{
+  if (freeRanges.empty())
+  {
+    return {};
+  }
+  auto ref = eastl::find_if(freeRanges.begin(), freeRanges.end(),
+    [size, alignment](auto range) { return (0 == (range.start % alignment)) && (range.size() == size); });
+  if (freeRanges.end() == ref)
   {
     return {};
   }
   auto s = ref->start;
-  if (ref->size() == size)
-  {
-    freeRanges.erase(ref);
-  }
-  else
-  {
-    ref->start += size;
-  }
+  freeRanges.erase(ref);
   updateMaxFreeRangeSize();
   return make_value_range<uint64_t>(s, size);
 }

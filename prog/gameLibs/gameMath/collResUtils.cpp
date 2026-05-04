@@ -6,18 +6,17 @@
 #include <gameRes/dag_collisionResource.h>
 
 
-float calc_distance_to_coll_node(const Point3 &p, const CollisionNode *cnode, Point3 &out_contact, Point3 *out_dir, Point3 *out_normal)
+float calc_distance_to_coll_node(const CollisionResource &coll_res, int node_id, const Point3 &p, Point3 &out_contact, Point3 *out_dir,
+  Point3 *out_normal)
 {
   float dist = VERY_BIG_NUMBER;
 
   Point3 normal(0.f, 1.f, 0.f);
-  const uint16_t *__restrict cur = cnode->indices.data();
-  const uint16_t *__restrict end = cur + cnode->indices.size();
-  for (; cur < end;)
-  {
-    Point3 corner0 = cnode->vertices[*(cur++)];
-    Point3 corner1 = cnode->vertices[*(cur++)];
-    Point3 corner2 = cnode->vertices[*(cur++)];
+  coll_res.iterateNodeFacesVerts(node_id, [&](int, vec4f vv0, vec4f vv1, vec4f vv2) {
+    Point3_vec4 corner0, corner1, corner2;
+    v_st(&corner0.x, vv0);
+    v_st(&corner1.x, vv1);
+    v_st(&corner2.x, vv2);
     Point3 curContactPos;
     Point3 curNormal;
     float curDist = distance_to_triangle(p, corner0, corner1, corner2, curContactPos, curNormal);
@@ -27,7 +26,7 @@ float calc_distance_to_coll_node(const Point3 &p, const CollisionNode *cnode, Po
       out_contact = curContactPos;
       normal = curNormal;
     }
-  }
+  });
 
   if (out_dir)
   {

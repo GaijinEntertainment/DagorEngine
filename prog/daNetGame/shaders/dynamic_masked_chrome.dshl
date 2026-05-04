@@ -6,7 +6,6 @@ interval dynamic_texture_hdr_pass : no < 1, yes;
 
 shader dynamic_masked_chrome_bump, dynamic_masked_chrome_bump_colored
 {
-  ENABLE_ASSERT(ps)
   if (dynamic_texture_hdr_pass == yes)
   {
     dont_render;

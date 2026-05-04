@@ -66,11 +66,11 @@ myst_enable_extensions = [
 myst_heading_anchors = 7
 
 # ==============================================================================
-# sphinx-tags configuration
+# sphinx-tags configuration | currently disabled
 # ==============================================================================
 
 # Enable tag processing. Default: False
-tags_create_tags = True
+tags_create_tags = False
 
 # File extensions to scan for tags
 tags_extension = ["md", "rst"]
@@ -79,7 +79,7 @@ tags_extension = ["md", "rst"]
 tags_page_title = 'Tags'
 
 # Enable displaying tags as badges. Default: False
-tags_create_badges = True
+tags_create_badges = False
 
 # Badge colors by tag name. Default: {}
 tags_badge_colors = {}
@@ -130,25 +130,22 @@ version = u'0.1.0'
 language = 'en'
 
 # ==============================================================================
-# Output and formatting configuration
+# Output and syntax highlighting configuration
 # ==============================================================================
 
-# Pygments style for syntax highlighting
-pygments_style = 'sphinx'
+# Pygments style for code blocks
+pygments_style = 'manni'
+
+# Add custom lexers directory to the Python path
+sys.path.insert(0, os.path.abspath("_lexers"))
+
+# Import custom lexers
+import blk_lexer
+import dascript_lexer
+import quirrel_pygment_lexer
 
 # Include TODO and todoList entries in output
 todo_include_todos = True
-
-# Optional: formatting and indexing behavior
-# today = ''
-# today_fmt = '%B %d, %Y'
-# source_encoding = 'utf-8-sig'
-# default_role = None
-# add_function_parentheses = True
-# add_module_names = True
-# show_authors = False
-# modindex_common_prefix = []
-# keep_warnings = False
 
 # ==============================================================================
 # Build timer

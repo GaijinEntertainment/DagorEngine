@@ -2,6 +2,7 @@
 
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <util/dag_stlqsort.h>
@@ -12,7 +13,9 @@
 #include <shaders/dag_shaders.h>
 #include <vecmath/dag_vecMath.h>
 
-ToroidalStaticShadows::~ToroidalStaticShadows() = default;
+static int static_shadows_cascades = -1;
+
+ToroidalStaticShadows::~ToroidalStaticShadows() { ShaderGlobal::set_int(static_shadows_cascades, 0); }
 
 void ToroidalStaticShadows::invalidate(bool force)
 {
@@ -75,8 +78,6 @@ void ToroidalStaticShadows::setMaxHtRange(float max_ht_range)
     c.setMaxHtRange(maxHtRange);
 }
 
-static int static_shadows_cascades = -1;
-
 ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float ht_range, bool is_array)
 {
   isRendered = false;
@@ -99,8 +100,8 @@ ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float
   }
   const uint32_t fmt =
     d3d::get_driver_desc().issues.hasRenderPassClearDataRace ? TEXCF_RTARGET | TEXFMT_DEPTH32_S8 : TEXCF_RTARGET | TEXFMT_DEPTH16;
-  TexPtr tex = is_array ? dag::create_array_tex(texSize, texSize, cnt, fmt, 1, "static_shadow_tex_arr")
-                        : dag::create_tex(nullptr, texSize, texSize, fmt, 1, "static_shadow_tex2d");
+  TexPtr tex = is_array ? dag::create_array_tex(texSize, texSize, cnt, fmt, 1, "static_shadow_tex_arr", RESTAG_SHADOW)
+                        : dag::create_tex(nullptr, texSize, texSize, fmt, 1, "static_shadow_tex2d", RESTAG_SHADOW);
   staticShadowTex = UniqueTexHolder(eastl::move(tex), "static_shadow_tex");
   restoreShadowSampler();
   clearTexture();

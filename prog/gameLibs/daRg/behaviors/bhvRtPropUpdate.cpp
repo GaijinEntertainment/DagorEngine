@@ -49,8 +49,8 @@ void BhvRtPropUpdate::runForElem(Element *elem)
       return;
   }
 
-  Sqrat::Table tblNew;
-  if (!updFunc.Evaluate(tblNew))
+  auto tblNew = updFunc.Eval<Sqrat::Table>();
+  if (!tblNew)
     return;
 
   HSQUIRRELVM vm = src.GetVM();
@@ -59,7 +59,7 @@ void BhvRtPropUpdate::runForElem(Element *elem)
   bool alwaysUpdate = src.RawGetSlotValue<bool>(elem->csk->rtAlwaysUpdate, false);
 
   bool haveChanges = false;
-  while (tblNew.Next(it))
+  while (tblNew.value().Next(it))
   {
     Sqrat::Object key(it.getKey(), vm);
     Sqrat::Object val(it.getValue(), vm);

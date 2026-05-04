@@ -25,6 +25,9 @@ struct LoadScriptCtx
   DasSyntax syntax;
   EnableDebugger enableDebugger;
   void *userData;
+  bool reload;
+  bool verySafeContext;
+  bool forceInscopePod;
 };
 
 struct Scripts
@@ -67,6 +70,11 @@ struct Scripts
   bool loadDebugCode = true;
   bool loadEvents = true;
   bool profileLoading = false;
+#if DAS_HAS_DIRECTORY_WATCH
+  bool keepFileName = true;
+#else
+  bool keepFileName = false;
+#endif
 
   das::atomic<uint32_t> linkAotErrorsCount{0};
   das::atomic<int> compileErrorsCount{0}; //-1 if this value is unknown

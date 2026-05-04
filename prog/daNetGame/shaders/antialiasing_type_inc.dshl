@@ -1,0 +1,2 @@
+int antialiasing_type = 1;
+interval antialiasing_type: temporal < 1, tsr < 2, non_temporal;

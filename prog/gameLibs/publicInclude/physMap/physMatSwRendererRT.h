@@ -26,7 +26,7 @@ public:
   void renderPhysMap(const PhysMap &phys_map, const BBox2 &region, bool apply_decals = true)
   {
     if (!renderTarget)
-      renderTarget = d3d::create_tex(NULL, WIDTH, HEIGHT, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC, 1, "decalRT");
+      renderTarget = d3d::create_tex(NULL, WIDTH, HEIGHT, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC, 1, "decalRT", RESTAG_PHYSMAP);
     RenderDecalMaterials<Width, Height>::renderPhysMap(phys_map, region, apply_decals);
   }
 
@@ -60,7 +60,7 @@ public:
         matColors[i] = colorMap[i % countof(colorMap)];
     }
 
-    if (renderTarget->lockimg((void **)&pixels, strideBytes, 0, TEXLOCK_WRITE))
+    if (renderTarget->lockimg((void **)&pixels, strideBytes, 0, TEXLOCK_WRITE | TEXLOCK_DISCARD))
     {
       for (int y = 0; y < HEIGHT; ++y, pixels = (TexPixel32 *)(((uint8_t *)pixels) + strideBytes))
         for (int x = 0; x < WIDTH; ++x)

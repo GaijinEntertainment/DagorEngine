@@ -10,6 +10,7 @@ void select_weather_preset_delayed(const char *preset_name); // can be called fr
 
 const ecs::Object::value_type *get_preset_by_name(ecs::EntityManager &mgr, ecs::EntityId level_eid, const char *preset_name);
 const ecs::Object::value_type *get_preset_by_seed(ecs::EntityManager &mgr, ecs::EntityId level_eid);
+void validate_wind_entity_in_weather_presets(ecs::EntityManager &mgr, ecs::EntityId level_eid);
 void create_weather_choice_entity(ecs::EntityManager &mgr, const ecs::ChildComponent &effect, ecs::EntityId eid);
 
 void get_weather_preset_list(ecs::StringList &);

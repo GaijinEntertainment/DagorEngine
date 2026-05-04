@@ -115,6 +115,22 @@ struct HostDeviceSharedMemoryImageCopyInfo
 };
 
 #if D3D_HAS_RAY_TRACING
+#if _TARGET_PC_WIN
+struct RaytraceGeometryDescriptionBufferResourceReferenceSet
+{
+  BufferResourceReference vertexOrAABBBuffer;
+  BufferResourceReference indexBuffer;
+  BufferResourceReference transformBuffer;
+#if HAS_NVAPI || DX12_HAS_OMM_INTERFACE
+  BufferResourceReference ommIndexBuffer;
+  ID3D12Resource *ommTriangleArray = nullptr;
+#endif
+#if DX12_HAS_OMM_INTERFACE
+  D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC ommTriangleDesc{};
+  D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC ommLinkageDesc{};
+#endif
+};
+#else
 struct RaytraceGeometryDescriptionBufferResourceReferenceSet
 {
   BufferResourceReference vertexOrAABBBuffer;
@@ -123,7 +139,22 @@ struct RaytraceGeometryDescriptionBufferResourceReferenceSet
 };
 #endif
 
+struct RayTraceOpacityMicroMapTriangleArrayBuildBufferSet
+{
+  BufferReference inputBuffer;
+  BufferReference descBuffer;
+  BufferReference compactedSizeBuffer;
+  BufferReference scratchBuffer;
+};
+#endif
+
+enum class RaytraceAccelerationStructureType
+{
+  Top,
+  Bottom,
+  Omm,
+};
+
 using TextureMipsCopyInfo = eastl::fixed_vector<BufferImageCopy, MAX_MIPMAPS, false>;
-using RootConstatInfo = eastl::fixed_vector<uint32_t, MAX_ROOT_CONSTANTS, false>;
 
 } // namespace drv3d_dx12

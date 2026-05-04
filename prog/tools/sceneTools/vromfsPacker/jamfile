@@ -18,13 +18,13 @@ Sources =
   cmain.cpp
 ;
 
-UseProgLibs +=
-  gameLibs/vromfsPacker
+UseProgLibs =
   engine/kernel
   engine/memory
   engine/perfMon/daProfilerStub
   engine/startup
   engine/math
+  gameLibs/vromfsPacker
 ;
 
 if $(Platform) in windows {

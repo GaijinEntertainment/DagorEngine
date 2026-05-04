@@ -1,0 +1,25 @@
+Root    ?= ../../../../.. ;
+Location = prog/gameLibs/ecs/net/dasevents ;
+
+TargetType  = lib ;
+Target      = gameLibs/ecs/net/dasevents.lib ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+Sources = ;
+AutoscanBuildLists . : *.cpp : Sources ;
+
+SourceES =
+  dasEventES.cpp.inl
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;

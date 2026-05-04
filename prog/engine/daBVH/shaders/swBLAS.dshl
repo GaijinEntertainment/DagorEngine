@@ -1,0 +1,396 @@
+
+macro USE_SW_BVH_BLAS(code)
+hlsl(code) {
+  #include "swBVHDefine.hlsli"
+  #include "swRTCommon.hlsl"
+  #include <point_distance.hlsl>
+  #define BLAS_RT_INFINITY asfloat(0x7F800000)
+  #define BLAS_RT_BELOW_INFINITY asfloat(0x7F7FFFFF)
+  #include <swBLASLeafDefs.hlsli>
+
+  #ifndef DECODE_BLAS_ELEM_RAW_DEFINED
+  void decode_blas_elem_raw(ByteAddressBuffer blas_data, uint offset, out float3 elem1, out float3 elem2, out uint skip)
+  {
+    uint4 e12 = loadBuffer4(blas_data, offset);
+    skip = e12.w;
+    elem1 = f16tof32(e12.xyz);
+    elem2 = f16tof32(e12.xyz>>16);
+  }
+  #endif
+
+  // #define ALWAYS_PROCESS_QUAD 1 // faster when register pressure is too high (or all triangles are indeed quads).
+  // in shadows it is faster to check one triangle for singles
+  struct QuadLeafVerts { float3 v0, v1, v2, v3; bool isSingle, isFan; };
+
+  #ifndef QUAD_VERT_STRIDE
+    #define QUAD_VERT_STRIDE 12
+  #endif
+  #ifndef LOAD_QUAD_VERT_DEFINED
+  float3 loadQuadVert(ByteAddressBuffer blas_data, int addr)
+  {
+    return asfloat(loadBuffer3(blas_data, addr));
+  }
+  #endif
+
+  QuadLeafVerts decodeQuadLeafVerts(ByteAddressBuffer blas_data, uint dataOffset, uint skip)
+  {
+    QuadLeafVerts q;
+    int ofs1 = int(loadBuffer(blas_data, dataOffset)) + dataOffset;
+    uint o1 = (skip & QUAD_O1_MASK) + 1;
+    uint o2 = ((skip >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
+    uint o3 = ((skip >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
+    #if ALWAYS_PROCESS_QUAD
+    q.isSingle = false;
+    #else
+    q.isSingle = (o3 == o2);
+    #endif
+    q.isFan = ((skip & QUAD_FAN_FLAG) != 0);
+
+    q.v0 = loadQuadVert(blas_data, ofs1);
+    q.v1 = loadQuadVert(blas_data, ofs1 + o1*QUAD_VERT_STRIDE);
+    q.v2 = loadQuadVert(blas_data, ofs1 + o2*QUAD_VERT_STRIDE);
+    if (o3 != o2)
+      q.v3 = loadQuadVert(blas_data, ofs1 + o3*QUAD_VERT_STRIDE);
+    #if ALWAYS_PROCESS_QUAD
+    else
+      q.v3 = q.v2;
+    #endif
+    return q;
+  }
+
+  bool rayBLASLeaf(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir,
+                  uint dataOffset,
+                  uint skip,
+                  float3 bmin, float3 bmax,
+                  inout float t, inout float2 bCoord,
+                  inout int bestTriOffset)
+  {
+    QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
+    bool anyHit = false;
+    if (RayTriangleIntersect(rayOrigin, rayDir, q.v0, q.v1, q.v2, t, bCoord))
+    { bestTriOffset = dataOffset; anyHit = true; } // low bit 0 = tri1
+    if (!q.isSingle)
+    {
+      float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+      if (RayTriangleIntersect(rayOrigin, rayDir, t2a, t2b, q.v3, t, bCoord))
+      { bestTriOffset = dataOffset | 1; anyHit = true; } // low bit 1 = tri2
+    }
+    return anyHit;
+  }
+
+  int rayBLASOrdered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
+               int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
+  int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
+               int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
+
+  bool rayBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
+               int startOffset, int blasSize, inout float t, inout float3 localTriNorm, inout float2 bCoord, inout int complex)
+  {
+    #if BVH_ORDERED_BLAS
+      int bestTriOffset = rayBLASOrdered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
+    #else
+      int bestTriOffset = rayBLASUnordered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
+    #endif
+
+    if (bestTriOffset > 0)
+    {
+      int subTri = bestTriOffset & 1;
+      bestTriOffset &= ~1;
+      uint qskip = loadBuffer(blas_data, bestTriOffset - 4); // skip field is at node+12 = leaf-4
+      QuadLeafVerts q = decodeQuadLeafVerts(blas_data, bestTriOffset, qskip);
+      if (subTri == 0)
+      {
+        localTriNorm = cross(q.v1-q.v0, q.v2-q.v0);
+        float ct = t;
+        RayTriangleIntersect(rayOrigin, rayDir, q.v0, q.v1, q.v2, ct, bCoord);
+      }
+      else
+      {
+        float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+        localTriNorm = cross(t2b-t2a, q.v3-t2a);
+        float ct = t;
+        RayTriangleIntersect(rayOrigin, rayDir, t2a, t2b, q.v3, ct, bCoord);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  #ifdef HAS_INF_BLAS_CB // template-like
+  bool inf_blas_cb(ByteAddressBuffer blas_data, uint dataOffset, float t, float3 bCoord, inout InfBlasCbData data);
+  void rayBLASInfCb(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, int startOffset, int blasSize, inout InfBlasCbData data)
+  {
+    int dataOffset = startOffset;
+    int endOffset = startOffset + blasSize;
+    float3 rayOriginScaled = -rayOrigin*rayDirInv;
+    LOOP
+    for (; dataOffset < endOffset;)
+    {
+      float3 bboxMin,bboxMax;
+      uint offsetToNextNode;
+      decode_blas_elem_raw(blas_data, dataOffset, bboxMin, bboxMax, offsetToNextNode);
+
+      //try collision against this node's bounding box
+      //intermediate node check for intersection with bounding box
+      bool collision = RayIntersectsBoxInf(bboxMin.xyz*rayDirInv + rayOriginScaled, bboxMax.xyz*rayDirInv + rayOriginScaled);
+
+      dataOffset += BVH_BLAS_NODE_SIZE;
+      if (!collision)
+      {
+        dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
+      } else if (offsetToNextNode&QUAD_LEAF_FLAG)
+      {
+        QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, offsetToNextNode);
+        float t; float3 bCoord;
+        if (RayTriangleIntersectInf(rayOrigin, rayDir, q.v0, q.v1, q.v2, t, bCoord))
+          if (inf_blas_cb(blas_data, dataOffset, t, bCoord, data)) { break; }
+        if (!q.isSingle)
+        {
+          float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+          if (RayTriangleIntersectInf(rayOrigin, rayDir, t2a, t2b, q.v3, t, bCoord))
+            if (inf_blas_cb(blas_data, dataOffset | 1, t, bCoord, data)) { break; }
+        }
+        dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
+      }
+    }
+  }
+  void rayBLASXZInfCb(ByteAddressBuffer blas_data, float3 rayOrigin, int startOffset, int blasSize, inout InfBlasCbData data)
+  {
+    int dataOffset = startOffset;
+    int endOffset = startOffset + blasSize;
+    LOOP
+    for (; dataOffset < endOffset;)
+    {
+      float3 bboxMin,bboxMax;
+      uint offsetToNextNode;
+      decode_blas_elem_raw(blas_data, dataOffset, bboxMin, bboxMax, offsetToNextNode);
+
+      //try collision against this node's bounding box
+      //intermediate node check for intersection with bounding box
+      bool collision = all(rayOrigin.xz >= bboxMin.xz & bboxMax.xz >= rayOrigin.xz);
+      //bool collision = RayIntersectsBoxInf(bboxMin.xyz*rayDirInv + rayOriginScaled, bboxMax.xyz*rayDirInv + rayOriginScaled);
+
+      dataOffset += BVH_BLAS_NODE_SIZE;
+      if (!collision)
+      {
+        dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
+      } else if (offsetToNextNode&QUAD_LEAF_FLAG)
+      {
+        QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, offsetToNextNode);
+        float t; float3 bCoord;
+        if (RayTriangleIntersectInfXZ(rayOrigin, q.v0, q.v1, q.v2, t, bCoord))
+          if (inf_blas_cb(blas_data, dataOffset, t, bCoord, data)) { break; }
+        if (!q.isSingle)
+        {
+          float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+          if (RayTriangleIntersectInfXZ(rayOrigin, t2a, t2b, q.v3, t, bCoord))
+            if (inf_blas_cb(blas_data, dataOffset | 1, t, bCoord, data)) { break; }
+        }
+        dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
+      }
+    }
+  }
+  #endif
+  int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
+                      int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex)
+  {
+    int dataOffset = startOffset;
+    int endOffset = startOffset + blasSize;
+
+    int bestTriOffset = 0;
+    float3 rayOriginScaled = -rayOrigin*rayDirInv;
+    LOOP
+    for (; dataOffset < endOffset;)
+    {
+      float3 bboxMin,bboxMax;
+      uint offsetToNextNode;
+      decode_blas_elem_raw(blas_data, dataOffset, bboxMin, bboxMax, offsetToNextNode);
+
+      //try collision against this node's bounding box
+      //intermediate node check for intersection with bounding box
+      bool collision = RayIntersectsBoxT0T1(bboxMin.xyz*rayDirInv + rayOriginScaled, bboxMax.xyz*rayDirInv + rayOriginScaled, t);
+
+      dataOffset += BVH_BLAS_NODE_SIZE;
+      if (!collision)
+      {
+        dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
+      } else if (offsetToNextNode&QUAD_LEAF_FLAG)
+      {
+        ++complex;
+        rayBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax, t, bCoord, bestTriOffset);
+        dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
+      }
+    }
+    return bestTriOffset;
+  }
+  #if BVH_ORDERED_BLAS
+  int rayBLASOrdered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
+               int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex)
+  {
+    int dataOffset = startOffset;
+
+    int bestTriOffset = 0;
+    //not working
+    uint stack[BVH_MAX_BLAS_DEPTH + 1];
+    int stackSize = 1;
+    int offset = startOffset - 2;
+    do {
+      uint leftOffset = offset + 2, rightOffset;
+      float leftT = BLAS_RT_INFINITY;
+      {
+        float3 bmin, bmax;
+        uint leftTreeSize;
+        decode_blas_elem_raw (blas_data,  leftOffset, bmin, bmax, leftTreeSize ) ;
+        if (leftTreeSize>>31)
+        {
+          uint ofs = leftOffset ;
+          rayBLASLeaf(blas_data, rayOrigin, rayDir, ofs, leftTreeSize, bmin, bmax, t, bCoord, bestTriOffset ) ;
+        } else if (!RayIntersectsBoxT(rayOrigin, rayDirInv, bmin.xyz, bmax.xyz, t, leftT))
+          leftT = BLAS_RT_INFINITY;
+
+        rightOffset = (leftTreeSize>>31) ? leftOffset + BVH_BLAS_LEAF_SIZE : leftOffset + BVH_BLAS_NODE_SIZE + leftTreeSize;
+      }
+      float rightT = BLAS_RT_INFINITY;
+      {
+        float3 bmin, bmax;
+        uint rightTreeSize;
+        decode_blas_elem_raw(blas_data,  rightOffset, bmin, bmax, rightTreeSize );
+        if (rightTreeSize>>31)
+        {
+          uint ofs = rightOffset;
+          rayBLASLeaf(blas_data, rayOrigin, rayDir, ofs, rightTreeSize, bmin, bmax, t, bCoord, bestTriOffset );
+        } else if (!RayIntersectsBoxT(rayOrigin, rayDirInv, bmin.xyz, bmax.xyz, t, rightT))
+          rightT = BLAS_RT_INFINITY;
+      }
+      bool leftCloser = leftT < rightT ;
+      float nearT = leftCloser ? leftT : rightT;
+      float farT = leftCloser ? rightT : leftT;
+      uint nearOffset = leftCloser ? leftOffset : rightOffset;
+      uint farOffset = leftCloser ? rightOffset : leftOffset;
+      if (farT < t)
+        stack[stackSize++] = farOffset;
+      if (nearT < t)
+        stack[stackSize++] = nearOffset;
+      offset = stack[--stackSize];
+    } while (stackSize > 0);
+    return bestTriOffset;
+  }
+  #endif
+
+  bool rayShadowBLASLeaf(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir,
+                  uint dataOffset,
+                  uint skip, float3 bmin, float3 bmax)
+  {
+    QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
+    if (RayTriangleIntersectShadow(rayOrigin, rayDir, q.v0, q.v1, q.v2))
+      return true;
+    if (!q.isSingle)
+    {
+      float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+      return RayTriangleIntersectShadow(rayOrigin, rayDir, t2a, t2b, q.v3);
+    }
+    return false;
+  }
+
+  bool rayShadowBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, int startOffset, int blasSize)
+  {
+  // for hit or miss (shadow) there is no point in ordered traversal - we don't care if we hit closest tri or not
+    int dataOffset = startOffset;
+    int endOffset = startOffset + blasSize;
+    float3 rayOriginScaled = -rayOrigin*rayDirInv;
+    LOOP
+    for (; dataOffset < endOffset;)
+    {
+      float3 element0,element1;
+      uint offsetToNextNode;
+      decode_blas_elem_raw(blas_data, dataOffset, element0, element1, offsetToNextNode);
+
+      //try collision against this node's bounding box
+      float3 bboxMin = element0.xyz;
+      float3 bboxMax = element1.xyz;
+
+      //intermediate node check for intersection with bounding box
+      bool collision = RayIntersectsBoxT0TInf(bboxMin.xyz*rayDirInv + rayOriginScaled, bboxMax.xyz*rayDirInv + rayOriginScaled);
+
+      dataOffset += BVH_BLAS_NODE_SIZE;
+      if (!collision)
+      {
+        dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
+      } else if (offsetToNextNode&QUAD_LEAF_FLAG)
+      {
+        BRANCH
+        if (rayShadowBLASLeaf(blas_data, rayOrigin, rayDir, dataOffset, offsetToNextNode, bboxMin, bboxMax))
+          return true;
+        dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
+      }
+    }
+    return false;
+  }
+
+  void distBLASLeaf(ByteAddressBuffer blas_data, uint dataOffset, uint skip, float3 bmin, float3 bmax, float3 localPos, inout float localDist2, inout int bestTriOffset, inout float backFaces)
+  {
+    QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
+    float dist2 = distance_sq(closestPointOnTriangleBarycentric(localPos, q.v0, q.v1, q.v2), localPos);
+    if (abs(dist2) < abs(localDist2)) { localDist2 = dist2; bestTriOffset = dataOffset; } // low bit 0 = tri1
+    if (!q.isSingle)
+    {
+      float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+      dist2 = distance_sq(closestPointOnTriangleBarycentric(localPos, t2a, t2b, q.v3), localPos);
+      if (abs(dist2) < abs(localDist2)) { localDist2 = dist2; bestTriOffset = dataOffset | 1; } // low bit 1 = tri2
+    }
+  }
+
+  bool distBlas(ByteAddressBuffer blas_data, int startOffset, int blasSize, float3 localPos, inout float localDist2, inout float3 outPos)
+  {
+    int dataOffset = startOffset;
+    int endOffset = startOffset + blasSize;
+
+    int bestTriOffset = -1;
+
+    float backFaces = 0;
+
+    LOOP
+    for(; dataOffset < endOffset;)
+    {
+      // complex++;
+      float3 element0,element1;
+      uint offsetToNextNode;
+      decode_blas_elem_raw(blas_data, dataOffset, element0, element1, offsetToNextNode);
+      //try collision against this node's bounding box
+      float3 bboxMin = element0.xyz;
+      float3 bboxMax = element1.xyz;
+
+      //if there is collision, go to the next node (left) or else skip over the whole branch
+      bool collision = sqDistancePointBox(bboxMin, bboxMax, localPos) < localDist2;
+      dataOffset += BVH_BLAS_NODE_SIZE;
+
+      if (!collision)
+      {
+        dataOffset += (offsetToNextNode&QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE : offsetToNextNode;
+      } else if (offsetToNextNode&QUAD_LEAF_FLAG)
+      {
+        distBLASLeaf(blas_data, dataOffset, offsetToNextNode, bboxMin, bboxMax, localPos, localDist2, bestTriOffset, backFaces);
+        dataOffset += BVH_BLAS_LEAF_SIZE-BVH_BLAS_NODE_SIZE;
+      }
+    }
+
+    if (bestTriOffset >= 0)
+    {
+      int subTri = bestTriOffset & 1;
+      bestTriOffset &= ~1;
+      uint qskip = loadBuffer(blas_data, bestTriOffset - 4);
+      QuadLeafVerts q = decodeQuadLeafVerts(blas_data, bestTriOffset, qskip);
+      if (subTri == 0)
+        outPos = closestPointOnTriangleBarycentric(localPos, q.v0, q.v1, q.v2);
+      else
+      {
+        float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
+        outPos = closestPointOnTriangleBarycentric(localPos, t2a, t2b, q.v3);
+      }
+      return true;
+    }
+    return false;
+  }
+}
+
+endmacro

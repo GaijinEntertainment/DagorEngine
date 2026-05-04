@@ -16,15 +16,7 @@ namespace bind_dascript
 {
 void ECS::addEntityRW(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                           \
-  das::addExtern<DAS_BIND_FUN(entityGetNullableRWHint_##type)>(*this, lib, "getRW_" #type, das::SideEffects::modifyExternal, \
-    "bind_dascript::entityGetNullableRWHint_" #type);                                                                        \
-  auto entityGetNullableRWExt##type = das::addExtern<DAS_BIND_FUN(entityGetNullableRW_##type)>(*this, lib, "getRW_" #type,   \
-    das::SideEffects::modifyExternal, "bind_dascript::entityGetNullableRW_" #type);                                          \
-  entityGetNullableRWExt##type->annotations.push_back(                                                                       \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addEntityRWBase(lib);
+  addEntityRWList(lib);
 }
 } // namespace bind_dascript

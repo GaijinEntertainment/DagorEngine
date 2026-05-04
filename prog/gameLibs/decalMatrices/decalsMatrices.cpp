@@ -51,7 +51,8 @@ DecalsMatrices::DecalsMatrices(size_t max_matrix_count, const char *matrix_buffe
   entityComponent(entity_component),
   itemMap(max_matrix_count, max_item_count)
 {
-  matricesCB = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<DecalMatrix>(matrices.size()), matrix_buffer_name);
+  matricesCB = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<DecalMatrix>(matrices.size()), matrix_buffer_name,
+    RESTAG_DECALS);
   matricesCB.setVar();
 
   if (entityComponent.str != nullptr)
@@ -67,7 +68,51 @@ void DecalsMatrices::setMaxItems(uint32_t max_items)
 DecalsMatrices::~DecalsMatrices()
 {
   if (entityComponent.str != nullptr)
+  {
+    invalidateEntities();
     release_matrix_manager(this);
+  }
+}
+
+template <typename Callable>
+static void decals_invalidate_entities_ecs_query(ecs::EntityManager &manager, Callable c);
+
+void DecalsMatrices::invalidateEntities()
+{
+  if (!g_entity_mgr || entityComponent.str == nullptr)
+    return;
+
+  decals_invalidate_entities_ecs_query(*g_entity_mgr, [this](ecs::EntityId eid, bool &decals__useDecalMatrices) {
+    int *matrixId = g_entity_mgr->getNullableRW<int>(eid, entityComponent);
+    if (!matrixId || *matrixId == INVALID_MATRIX_ID)
+      return;
+
+    *matrixId = INVALID_MATRIX_ID;
+
+    bool hasAnyMatrix = false;
+    if (registeredMatrixManagers)
+      for (const DecalsMatrices *other : registeredMatrixManagers->managers)
+        if (other != this && other->getMatrixId(eid) != INVALID_MATRIX_ID)
+        {
+          hasAnyMatrix = true;
+          break;
+        }
+    if (!hasAnyMatrix)
+      decals__useDecalMatrices = false;
+  });
+}
+
+void DecalsMatrices::reset()
+{
+  matricesInvalid = true;
+  // even if buffer is not readed by shader, resource is considered readed,
+  // causing garbage read validation fail when no decals present
+  // avoid that by doing dummy upload
+  if (idCount == 0)
+  {
+    uint8_t zero[d3d::buffers::CBUFFER_REGISTER_SIZE] = {};
+    matricesCB.getBuf()->updateDataWithLock(0, d3d::buffers::CBUFFER_REGISTER_SIZE, &zero, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  }
 }
 
 void DecalsMatrices::beforeRender()
@@ -201,6 +246,7 @@ void DecalsMatrices::clearAll()
   clearItems();
   idCount = 0;
   eastl::fill(matricesReferences.begin(), matricesReferences.end(), 0);
+  invalidateEntities();
 }
 
 void DecalsMatrices::setMatrix(uint32_t matrix_id, const TMatrix &matrix)
@@ -322,11 +368,15 @@ void DecalsMatrices::entity_delete(ecs::EntityId eid)
 {
   if (!registeredMatrixManagers)
     return;
+  g_entity_mgr->set(eid, ECS_HASH("decals__useDecalMatrices"), false);
   for (DecalsMatrices *mgr : registeredMatrixManagers->managers)
   {
     uint32_t id = mgr->getMatrixId(eid);
     if (id != INVALID_MATRIX_ID)
+    {
       mgr->deleteMatrixId(id);
+      g_entity_mgr->set(eid, mgr->entityComponent, INVALID_MATRIX_ID);
+    }
   }
 }
 

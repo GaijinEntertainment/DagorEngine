@@ -2,7 +2,7 @@ Root           ?= ../../.. ;
 Location        = prog/3rdPartyLibs/eastl ;
 
 TargetType      = lib ;
-Target          = 3rdPartyLibs/eastl.lib ;
+Target         ?= 3rdPartyLibs/eastl.lib ;
 
 AddIncludes = 
   $(Root)/$(Location)/include

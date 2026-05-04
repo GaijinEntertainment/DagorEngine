@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "antiAliasing.h"
+#include "antiAliasing_legacy.h"
 
 #include <math/random/dag_halton.h>
 #include <util/dag_convar.h>

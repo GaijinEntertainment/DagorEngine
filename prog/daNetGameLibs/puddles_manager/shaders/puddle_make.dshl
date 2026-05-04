@@ -23,6 +23,9 @@ float puddle_dist_for_dao_sample = 0.5;
 float puddle_min_height_for_reduce = 0;
 float puddle_max_height_for_reduce = 5;
 
+float puddle_water_level_offset = 0.3;
+float puddle_water_level_fade_range = 0.3;
+
 float4 puddle_toroidal_view;
 buffer removed_puddles_buf;
 
@@ -61,6 +64,8 @@ shader make_puddles
     deep_puddle_params@f4 = (-puddle_deep_hmap_reduce, puddle_deep_min_height, puddle_deep_max_depth, -puddle_deep_noise_reduce);
     puddle_reduce_params@f4 = (puddle_dist_for_dao_sample, puddle_min_height_for_reduce, 1.0 / (puddle_max_height_for_reduce - puddle_min_height_for_reduce), 0);
     noise_64_tex@smp2d = noise_64_tex;
+    water_level_offset@f1 = puddle_water_level_offset;
+    water_level_inv_fade_range@f1 = 1.0 / max(puddle_water_level_fade_range, 0.001);
   }
 
   PS4_DEF_TARGET_FMT_32_R()
@@ -83,10 +88,12 @@ shader make_puddles
     #define puddle_reduce_min_height_diff (puddle_reduce_params.y)
     #define puddle_reduce_inv_height_diff (puddle_reduce_params.z)
 
-    void reducePuddleNearEdges(float2 tc, float lod, inout float onlyPuddle)
+    void reducePuddleNearEdges(float2 unclampedDaoTc, float lod, inout float onlyPuddle)
     {
+      float vignette;
       float mnHt = 10000;
-      float bHt = tex3Dlod(blurred_depth, float4(tc, 0, lod)).x;
+      float2 clampedTc = clamp_depth_above_tc(unclampedDaoTc, 0, vignette).xy;
+      float bHt = tex3Dlod(blurred_depth, float4(clampedTc, 0, lod)).x;
       UNROLL
       for (int y = -1; y <= 1; ++y)
       {
@@ -96,7 +103,8 @@ shader make_puddles
           FLATTEN
           if (x != 0 || y != 0)
           {
-            float sampledVal = tex3Dlod(blurred_depth, float4(tc + float2(x,y) * puddle_reduce_dist_for_dao_sample * world_to_depth_ao.xy, 0, lod)).x;
+            clampedTc = clamp_depth_above_tc(unclampedDaoTc + float2(x,y) * puddle_reduce_dist_for_dao_sample * world_to_depth_ao.xy, 0, vignette).xy;
+            float sampledVal = tex3Dlod(blurred_depth, float4(clampedTc, 0, lod)).x;
             mnHt = min(mnHt, sampledVal);
           }
         }
@@ -133,23 +141,20 @@ shader make_puddles
         return baseHt + min(minHt-baseHt, deep_puddle_max_depth);
       return -1000;
     }
-    float getPuddleHeight3(float2 tc, float2 texelSizeInTc, float bht, float lod, float4 deepNoise)
+
+    float getPuddleHeight3(float2 hmapTc, float lod)
     {
+      const float2 texelSizeInTc = puddle_texels_to_world.w * world_to_hmap_low.xy;
+
       float ht[5][5];
       UNROLL
       for (int y = -2; y <= 2; ++y)
       {
         UNROLL
         for (int x = -2; x <= 2; ++x)
-        {
-          FLATTEN
-          if (y != 0 || x != 0)
-            ht[y+2][x+2] = tex2Dlod(tex_hmap_low, float4(tc+float2(x,y)*texelSizeInTc, 0, lod)).x;
-        }
+          ht[y+2][x+2] = tex2Dlod(tex_hmap_low, float4(hmapTc+float2(x,y)*texelSizeInTc, 0, lod)).x;
       }
 
-      ht[2][2] = bht;
-      //baseHt = decode_height(ht[2][2]);
       float cPuddleHt = getPuddleHeightFrom(ht, int2(2,2));
       BRANCH
       if (cPuddleHt > 0)
@@ -175,53 +180,53 @@ shader make_puddles
       return bPuddle < 1000000000 ? bPuddle : -10000;
     }
 
-    float getFlatPuddleHt(float2 tc, float lod, out float texHeight, out float heightMeters, float4 flatNoise)
+    float getFlatPuddleHt(float2 unclampedDaoTc, float2 hmapTc, float lod, out float texHeight, out float heightMeters, float4 flatNoise)
     {
-      texHeight = tex2Dlod(tex_hmap_low, float4(tc,0, lod)).x;
-      heightMeters = decode_height(texHeight);
-      float3 hmapNormal = getNormalLod(tc, lod);
-      float underHtWater = lerp(heightMeters - 2, heightMeters - 0.5, hmapNormal.y);
+      float vignette;
+      float2 clampedDaoTc = clamp_depth_above_tc(unclampedDaoTc, 0, vignette).xy;
+      texHeight = tex3Dlod(blurred_depth, float4(clampedDaoTc,0, lod)).x;
+      heightMeters = decode_depth_above(texHeight);
+      float3 hmapNormal = getNormalLod(hmapTc, lod);
+      float3 depthAboveNormal = get_depth_above_normal_by_unclamped_tc(unclampedDaoTc, lod);
+      float maxNormY = max(hmapNormal.y, depthAboveNormal.y);
+      float underHtWater = lerp(heightMeters - 2, heightMeters - 0.5, maxNormY);
 
-      //const float minNormY = min(hmapNormal.y, getNormalLod(input.tc, 1).y);
-      const float minNormY = hmapNormal.y;
-      float normalEffect = saturate(minNormY*flat_puddle_normal_hardness.x + flat_puddle_normal_hardness.y+flatNoise.g*flat_puddle_noise_normal_effect);//+puddle_noise_normal_effect*noiseEffect.z
+      float normalEffect = saturate(maxNormY*flat_puddle_normal_hardness.x + flat_puddle_normal_hardness.y+flatNoise.g*flat_puddle_noise_normal_effect);
       return lerp(underHtWater, heightMeters + flat_puddle_reduce + flatNoise.r*flat_puddle_noise_height_reduce, normalEffect);
     }
-    float getAbsPuddleHeight(float2 inputTc, float2 daoTc, out float bHt, out float baseHt, float lod, float4 flatNoise, float4 deepNoise)
-    {
-      //lod = 2;
-      //float2 dim;
-      //tex_hmap_low.GetDimensions(dim.x, dim.y);
-      //dim /= exp2(lod);
-      float flatPuddleHt = getFlatPuddleHt(inputTc, lod, bHt, baseHt, flatNoise);
-      float pudHt = getPuddleHeight3(inputTc, puddle_texels_to_world.w*world_to_hmap_low.xy, bHt, lod, deepNoise);
 
+    float getAbsPuddleHeight(float2 unclampedDaoTc, float2 hmapTc, out float bHt, out float baseHt, float lod, float4 flatNoise, float4 deepNoise)
+    {
+      float flatPuddleHt = getFlatPuddleHt(unclampedDaoTc, hmapTc, lod, bHt, baseHt, flatNoise);
+      float pudHt = getPuddleHeight3(hmapTc, lod);
       float onlyPuddle = flatPuddleHt - baseHt;
 
       FLATTEN
       if (pudHt>0)
         onlyPuddle = max(pudHt + deep_puddle_reduce + deepNoise.r*deep_puddle_noise_height_reduce, flatPuddleHt) - baseHt;
 
-      reducePuddleNearEdges(daoTc, lod, onlyPuddle);
-      return onlyPuddle + baseHt;
+      reducePuddleNearEdges(unclampedDaoTc, lod, onlyPuddle);
+      return onlyPuddle;
     }
+
     float postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float4 pos = GET_SCREEN_POS(input.pos);
       float baseHt, bHt;
-      float2 worldPosXZ = puddle_texels_to_world.w*pos.xy + puddle_texels_to_world.xy;//
+      float2 worldPosXZ = puddle_texels_to_world.w*pos.xy + puddle_texels_to_world.xy;
       float4 flatNoise = tex2D(noise_64_tex, worldPosXZ*flat_puddle_noise_size);
       float4 deepNoise = tex2D(noise_64_tex, worldPosXZ*deep_puddle_noise_size);
-      float2 htTc = calcTcLow(worldPosXZ);
-      float vignetteEffect;
-      float3 daoTc = get_depth_above_tc(float3(worldPosXZ.x, 0, worldPosXZ.y), vignetteEffect);
+      float2 hmapTc = calcTcLow(worldPosXZ);
+      float2 unclampedDaoTc = world_to_depth_ao.xy * worldPosXZ + world_to_depth_ao.zw;
       float waterHeight = 0.0;
       get_water_height(worldPosXZ, waterHeight);
-      //htTc = input.tc;
-      float absPuddleHt = getAbsPuddleHeight(htTc, daoTc.xy, bHt, baseHt, puddle_texels_to_world.z, flatNoise, deepNoise);
-      if (waterHeight >= absPuddleHt)
-        return ENCODED_NO_PUDDLE_VALUE;
-      return encodePuddleHeight(baseHt, absPuddleHt);
+      waterHeight += water_level_offset;
+      float onlyPuddle = getAbsPuddleHeight(unclampedDaoTc, hmapTc, bHt, baseHt, puddle_texels_to_world.z, flatNoise, deepNoise);
+
+      float waterFade = saturate(((onlyPuddle + baseHt) - waterHeight) * water_level_inv_fade_range);
+      onlyPuddle = lerp(NO_PUDDLE_VALUE, onlyPuddle, waterFade);
+
+      return encodePuddleHeight(baseHt, baseHt + onlyPuddle);
     }
   }
 

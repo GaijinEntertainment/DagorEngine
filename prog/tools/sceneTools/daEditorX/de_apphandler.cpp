@@ -240,7 +240,7 @@ bool DagorEdAppEventHandler::handleMouseLBPress(IGenViewportWnd *wnd, int x, int
 
     // handle click to world directions on compass to set proper camera
     Point2 ang = getCameraAngles();
-    Point2 c(vpW - 132 + 64 - x, vpH - 132 + 64 - y), c2;
+    Point2 c(vpW - 132 + 64 - x, vpH - 132 + 64 - y);
     for (int i = 0; i < 4; i++)
     {
       float r = 54, sa, ca;

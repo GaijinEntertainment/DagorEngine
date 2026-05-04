@@ -9,6 +9,7 @@
 #include "info_types.h"
 #include "pipeline.h"
 #include "query_manager.h"
+#include "resource_manager/raytrace_acceleration_structure.h"
 #include "resource_memory_heap.h"
 #include "swapchain.h"
 #include "viewport_state.h"
@@ -86,6 +87,63 @@ void append_arg(String &target, Image *const &arg, const char *)
   else
     target += "nullptr";
 }
+
+#if D3D_HAS_RAY_TRACING
+void append_arg(String &target, RaytraceAccelerationStructure *const &arg, const char *)
+{
+  if (arg)
+  {
+    const char *typeStr = "Undefined";
+    switch (arg->type)
+    {
+      case RaytraceAccelerationStructure::Type::Top: typeStr = "Top"; break;
+      case RaytraceAccelerationStructure::Type::Bottom: typeStr = "Bottom"; break;
+      case RaytraceAccelerationStructure::Type::OpacityMicroMap: typeStr = "OpacityMicroMap"; break;
+      default: break;
+    }
+    target.aprintf(128, "RaytraceAccelerationStructure{ptr: 0x%p, type: %s, gpuAddress: 0x%p, size: %u}", arg, typeStr,
+      arg->gpuAddress, arg->size);
+  }
+  else
+    target += "nullptr";
+}
+
+void append_arg(String &target, RaytraceBuildFlags const &arg, const char *)
+{
+  target += "RaytraceBuildFlags{";
+  bool first = true;
+  const auto appendFlag = [&](RaytraceBuildFlags flag, const char *name) {
+    if ((arg & flag) != RaytraceBuildFlags::NONE)
+    {
+      if (!first)
+        target += " | ";
+      target += name;
+      first = false;
+    }
+  };
+  appendFlag(RaytraceBuildFlags::ALLOW_UPDATE, "ALLOW_UPDATE");
+  appendFlag(RaytraceBuildFlags::ALLOW_COMPACTION, "ALLOW_COMPACTION");
+  appendFlag(RaytraceBuildFlags::FAST_TRACE, "FAST_TRACE");
+  appendFlag(RaytraceBuildFlags::FAST_BUILD, "FAST_BUILD");
+  appendFlag(RaytraceBuildFlags::LOW_MEMORY, "LOW_MEMORY");
+  appendFlag(RaytraceBuildFlags::OMM_LINKAGE_UPDATE, "OMM_LINKAGE_UPDATE");
+  appendFlag(RaytraceBuildFlags::OMM_DISABLE, "OMM_DISABLE");
+  if (first)
+    target += "NONE";
+  target += "}";
+}
+
+void append_arg(String &target, RaytraceAccelerationStructureType const &arg, const char *)
+{
+  switch (arg)
+  {
+    APPEND_ENUM_AS_STRING(target, RaytraceAccelerationStructureType, Top)
+    APPEND_ENUM_AS_STRING(target, RaytraceAccelerationStructureType, Bottom)
+    APPEND_ENUM_AS_STRING(target, RaytraceAccelerationStructureType, Omm)
+    APPEND_ENUM_DEFAULT(target, "INVALID")
+  }
+}
+#endif
 
 void append_arg(String &target, BufferResourceReferenceAndRange const &arg, const char *)
 {
@@ -597,6 +655,14 @@ void append_arg(String &target, T const &, const char *type)
   {                                                                                                       \
     auto &cmd = param.cmd;                                                                                \
     G_UNUSED(cmd);                                                                                        \
+    DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
+
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_3(IsPrimary, Name, Param0Type, Param0Name, Param1Type, Param1Name, Param2Type, Param2Name) \
+  const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter,                                          \
+    const ExtendedVariant3<Cmd##Name, Param0Type, Param1Type, Param2Type> &param)                                                 \
+  {                                                                                                                               \
+    auto &cmd = param.cmd;                                                                                                        \
+    G_UNUSED(cmd);                                                                                                                \
     DX12_STORE_CONTEXT_COMMAND_NAME_AND_PRIMACY(Name)
 
 const char *cmdToStr(String &result, debug::call_stack::Reporter &call_stack_reporter, const drv3d_dx12::debug::GPUBreadcrumb &bcrumb)

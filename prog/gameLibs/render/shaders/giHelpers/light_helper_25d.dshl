@@ -4,7 +4,6 @@ include "static_shadow.dshl"
 include "depth_above.dshl"
 
 macro INIT_LIGHT_25D_HELPERS(code)
-  supports global_const_block;
   hlsl(code) {
     #define HAS_STATIC_SHADOW 1
     #define FASTEST_STATIC_SHADOW_PCF 1

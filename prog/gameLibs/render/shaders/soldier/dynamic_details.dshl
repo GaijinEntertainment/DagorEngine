@@ -9,7 +9,7 @@ macro INIT_DYNAMIC_DETAILS()
   static float4 dynamic_details_transform_1 = (0, 0, 0, 1);
   static float4 dynamic_details_transform_2 = (0, 0, 0, 1);
   static float4 dynamic_details_transform_3 = (0, 0, 0, 1);
-  if (dyn_model_render_pass == render_pass_normal)
+  if (dyn_model_render_pass == render_pass_normal || is_triangle_size_debug)
   {
     //todo: move me out to block!
     (ps){

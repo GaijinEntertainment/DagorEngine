@@ -6,7 +6,7 @@ Target      = gameLibs/render/camouflage.lib ;
 StrictCompile = yes ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 AddIncludes =
   $(Root)/prog/engine/dagorInclude

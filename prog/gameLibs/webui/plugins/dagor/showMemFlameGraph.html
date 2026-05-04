@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Flame Graph</title>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --panel: #0b1220;
+      --muted: #9aa7b2;
+      --accent: #ff7a59;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#e6eef6}
+    .app{display:flex;flex-direction:column;height:100vh;padding:18px;gap:12px;box-sizing:border-box}
+    header{display:flex;align-items:center;gap:12px}
+    h1{font-size:16px;margin:0;font-weight:600}
+    .controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .controls input[type=text]{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .controls button{padding:6px 10px;border-radius:8px;border:0;background:var(--accent);color:#111;font-weight:600;cursor:pointer}
+    main{display:flex;gap:12px;flex:1;min-height:0}
+    .panel{background:var(--panel);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;flex:1;overflow:hidden}
+    .left{flex:3;display:flex;flex-direction:column;gap:8px;min-width:0}
+    .right{flex:1;max-width:320px}
+    .svg-wrap{flex:1;overflow:auto;padding:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border-radius:8px}
+    svg{display:block;max-width:100%;height:auto}
+    .breadcrumb{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+    .breadcrumb span{background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:6px;cursor:pointer}
+    .legend{display:flex;gap:6px;flex-wrap:wrap}
+    .legend .item{font-size:12px;background:rgba(255,255,255,0.02);padding:6px;border-radius:8px}
+    .tooltip{position:fixed;pointer-events:none;background:#071226;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);font-size:13px;color:#dbeafe;z-index:99;box-shadow:0 8px 24px rgba(2,6,23,0.6)}
+    #memFG { flex: 2; }   /* biggest */
+    #callsFG { flex: 1; }   /* normal */
+    #calledFG { flex: 1; }   /* normal */
+
+    .app {
+      padding: 6px !important;
+      gap: 1px !important;
+    }
+
+    /* Header tighter */
+    header {
+      gap: 4px !important;
+    }
+    .controls input[type=text],
+    .controls button {
+      padding: 2px 6px !important;
+    }
+
+    /* Panels closer + less padding */
+    .panel {
+      padding: 4px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 12px rgba(2,6,23,0.4) !important;
+    }
+
+    /* SVG wrappers tighter */
+    .svg-wrap {
+      padding: 2px !important;
+      border-radius: 4px !important;
+    }
+
+    /* Breadcrumb tighter */
+    .breadcrumb {
+      font-size: 12px !important;
+      gap: 4px !important;
+    }
+    .breadcrumb span {
+      padding: 2px 6px !important; 
+      border-radius: 4px !important;
+    }
+
+    /* Legend (if visible) tighter */
+    .legend .item {
+      padding: 4px 6px !important;
+      border-radius: 6px !important;
+    }
+    .graphs-scroll {
+      flex: 1 1 auto;
+      overflow-y: auto;     /* overall panning */
+      overflow-x: hidden;   /* prevent horizontal conflict */
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 6px;   /* avoids double scrollbars */
+    }
+    .graph-panel {
+      min-height: 0;            /* allow to shrink */
+      flex: 1 1 auto;           /* allow expansion */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .svg-scroll {
+      flex: 1;
+      overflow: auto;
+      overflow-x: auto !important;
+      min-height: 0;
+      position: relative;
+      white-space: nowrap;
+    }
+    .svg-scroll svg * {
+      pointer-events: all;
+    }
+
+    .svg-scroll > svg,
+    .svg-wrap > svg {
+      box-sizing: border-box;
+      border: 1px solid grey;
+      border-radius: 4px;
+    }
+
+    .svg-inner {
+      transform-origin: top left;
+      display: inline-block;   /* prevents collapse */
+    }
+    .hidden {
+      display: none !important;
+    }
+    .toggle-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: white;
+      background: gray;
+      font-weight: bold;
+    }
+
+    .toggle-btn.on {
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Memory Flame Graph</h1>
+      <div class="controls">
+        <button id="makeSnapshot">Make snapshot</button>
+        <button id="dropSnapshot">Drop snapshot</button>
+        <input id="search" type="text" placeholder="search function... (press Enter)"/>
+        <button id="searchBtn">Search</button>
+        <button id="updateState" class="toggle-btn" data-on="Live (on)" data-off="Live (off)" data-state="on"></button>
+        <button id="useSnapshot" class="toggle-btn" data-on="Memory-delta" data-off="Full memory" data-state="off"></button>
+      </div>
+
+      <!-- LOCAL FILE PICKER (Option 1) -->
+      <button id="save">Save into HTML</button>
+    </header>
+
+    <main>
+      <section class="panel left">
+        <div class="breadcrumb" id="breadcrumb"><span></span></div>
+        <div id="graphsScroll" class="graphs-scroll">
+            <div class="graph-panel">
+                <div class="svg-wrap" id="memFG"></div>
+            </div>
+            <div class="graph-panel" id="graphPanelCalls">
+                <div class="svg-wrap" id="callsFG"></div>
+            </div>
+            <div class="graph-panel" id="graphPanelCalled">
+                <div class="svg-wrap" id="calledFG"></div>
+            </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="tooltip" class="tooltip" style="display:none"></div>
+
+  <script>
+    const IS_SAVED = false;
+    let theTree = window.__EMBEDDED_TREE__ || { uid:"0", n: "root", a:0, sa: 0, children: [] };
+    let currentRoot = theTree;
+    let isLiveOn = true;
+    function getToggleState(id) {
+      return document.getElementById(id).dataset.state === "on";
+    }
+
+    function isLiveUpdate() {
+      return IS_SAVED ? false : getToggleState('updateState');
+    }
+
+    function onClickNode(node)
+    {
+      currentRoot=node; render(node);
+      if (!IS_SAVED && isLiveUpdate())
+      {
+        detailTree(node?.refNode ?? node);
+      }
+    };
+
+    const config = {
+      width: 1000,
+      rowHeight: 18,
+      rowPadding: 2,
+      fontSize: 10,
+      colorHueStart: 10,
+      colorHueStep: 8
+    };
+
+    function sumValues(node){
+      if(!node) return 0;
+      let pointers = Number(node.sp) || 0;
+      let total = Number(node.sa) || 0;
+      if(node.children?.length){
+        for (const child of node.children) {
+          total += sumValues(child, node);
+          pointers += Number(child.p) || 0; // accumulate child pointers
+        }
+      }
+      node.p = pointers;
+      node.a = total;
+      if(node.children?.length)
+        node.children.sort((a, b) => b.a - a.a);
+      return total;
+    }
+
+    function createParents(node, parent = null){
+      if(!node) return;
+      if(node.children?.length){
+        for (const child of node.children)
+          createParents(child, node)
+      }
+      node.parent = parent;
+    }
+
+    function removeParents(node){
+      if(!node) return;
+      if(node.children?.length){
+        for (const child of node.children)
+          removeParents(child, node)
+      }
+      delete node.parent;
+    }
+
+    function flattenForLayout(root, width){
+      const rows = [];
+      const total = root.a || 1;
+
+      function place(node, x, y, w){
+        if(!rows[y]) rows[y] = [];
+        rows[y].push({node,x,y,w});
+
+        if(node.children?.length){
+          let curX = x;
+          for(const c of node.children){
+            const cw = (c.a / total) * width;
+            place(c, curX, y+1, cw);
+            curX += cw;
+          }
+        }
+      }
+
+      place(root, 0, 0, width);
+      return rows;
+    }
+
+    function createSubTree(tree, node){
+      let newRoot = { refNode:node, uid : node.uid, n: node.n, a:0, sa: 0, children: [] };
+      function addUids(node, uid) {
+        if (node.children?.length)
+        {
+          if (node?.uid === uid)
+            newRoot.children.push(...node.children) // add all children of this node to new root
+          else
+            for (const c of node.children)
+              addUids(c, uid)
+        }
+      }
+      addUids(tree, node.uid)
+      sumValues(newRoot);
+      return newRoot;
+    }
+    function sortTree(node)
+    {
+      if (!node.children?.length)
+        return;
+
+      node.children = node.children
+        .map(c => (sortTree(c), c))
+        .slice()              // clone
+        .sort((a, b) => b.a - a.a);
+    }
+    function createRervseSubTree(tree, node, na, np){
+      sumValues(tree)
+
+      function addReverseStack(to, node, na, np) {
+        if (node.n === "ROOT")
+          return;
+        let existing = to.children.find(c => c.uid === node.uid);
+        let newNode = existing;
+        if (existing)
+        {
+          newNode.a += na
+          newNode.p += np
+        }
+        else
+        {
+          newNode = { refNode:node, uid : node.uid, n : node.n, a : na, p : np, children : [] };
+          to.children.push(newNode)
+        }
+        if (node.parent)
+          addReverseStack(newNode, node.parent, na, np)
+      }
+
+      let newRoot = { refNode:node, uid : node.uid, n: node.n, p:0, a: 0, children: [] };
+
+      let invalid = false;
+      function addRevUids(node, uid) {
+        if (node?.uid === uid)
+        {
+          newRoot.a += node.a
+          newRoot.p += node.p
+          if (node.parent)
+            addReverseStack(newRoot, node.parent, node.a, node.p)
+          else
+            invalid = true;
+        } else if (node.children?.length)
+        {
+          for (const c of node.children)
+            addRevUids(c, uid)
+        }
+      }
+      addRevUids(tree, node.uid)
+
+      sortTree(newRoot)
+      return newRoot;
+    }
+
+    function colorFor(node, depth){
+      const h = (config.colorHueStart + depth * config.colorHueStep) % 360;
+      let hash = 0;
+      for(const ch of node.n || "") hash = (hash*31 + ch.charCodeAt(0))|0;
+      const sat = 60 + (Math.abs(hash)%12);
+      const lig = 55 - Math.min(30, depth*3);
+      return `hsl(${h} ${sat}% ${lig}%)`;
+    }
+    function fmtNumber(n) {
+      n = Number(n) || 0;
+
+      if (n >= 10 * 1024 * 1024)
+        return (n / (1024 * 1024)).toFixed(2) + "M";
+
+      if (n >= 10 * 1024)
+        return (n / 1024).toFixed(2) + "K";
+
+      return n;
+    }
+    function fmtBytes(n) {return fmtNumber(n) + "B";}
+
+    function drawNodeRect({node, x, y, w, depth, svg, g, isRootBar, rootPreamble}) {
+      if (w <= 12) return false;
+
+      const svgNS = "http://www.w3.org/2000/svg";
+
+      const rect = document.createElementNS(svgNS, "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", y);
+      rect.setAttribute("width", w);
+      rect.setAttribute("height", config.rowHeight);
+      rect.setAttribute("rx", 4);
+      rect.setAttribute("fill", isRootBar ? "hsl(220,40%,35%)"
+                                          : colorFor(node, depth));
+
+      rect.addEventListener("mouseenter", e => onHover(e, node));
+      rect.addEventListener("mouseleave", onLeave);
+      rect.addEventListener("mousemove", onMove);
+      rect.addEventListener("click", () => {onClickNode(node);});
+
+      g.appendChild(rect);
+
+      // Text label
+      const clipId = "c" + Math.random().toString(36).slice(2);
+      const clip = document.createElementNS(svgNS, "clipPath");
+      clip.setAttribute("id", clipId);
+      const clipRect = document.createElementNS(svgNS, "rect");
+      clipRect.setAttribute("x", x+6);
+      clipRect.setAttribute("y", y);
+      clipRect.setAttribute("width", w-12);
+      clipRect.setAttribute("height", config.rowHeight);
+      clip.appendChild(clipRect);
+      svg.appendChild(clip);
+
+      const text = document.createElementNS(svgNS, "text");
+      text.setAttribute("x", x+8);
+      text.setAttribute(
+        "y",
+        y + config.rowHeight/2 + config.fontSize/2 - 2
+      );
+      text.setAttribute("font-size", config.fontSize);
+      text.setAttribute("clip-path", `url(#${clipId})`);
+      text.setAttribute("fill", "rgba(255,255,255,0.95)");
+      text.setAttribute("pointer-events", "none");
+      text.textContent = `${isRootBar && rootPreamble?rootPreamble:""}${node.n} @ ${fmtBytes(node.a)}`;
+
+      g.appendChild(text);
+      return true
+    }
+
+    function renderTo(rootWidth, panelHeight, renderRoot, targetId, needRoot, rootPreamble = ""){
+      const wrap = document.getElementById(targetId);
+      const rows = flattenForLayout(renderRoot, rootWidth);
+
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("width", "100%");
+
+      const g = document.createElementNS(svgNS, "g");
+      let nodeLine = 0
+      if (needRoot)
+      {
+        drawNodeRect({node: theTree, x: 0, y: 0, w: rootWidth, depth: 0, svg, g, isRootBar: true});
+        nodeLine = 1;
+      }
+      let maxRow = 0
+      for(let y=0;y<rows.length;y++){
+        for(const item of rows[y]){
+          if (drawNodeRect({
+            node: item.node,
+            x: item.x,
+            y: (y + nodeLine)*(config.rowHeight+config.rowPadding), // shift DOWN by 1 row
+            w: item.w,
+            depth: (y + nodeLine),
+            svg,
+            g,
+            isRootBar: (!needRoot && y == 0),
+            rootPreamble: rootPreamble
+          }))
+            maxRow = maxRow > y ? maxRow : y
+        }
+      }
+      const height = (maxRow + nodeLine) * (config.rowHeight + config.rowPadding) + 24;
+
+      //svg.setAttribute("width", config.width);
+      //svg.setAttribute("height", height)
+      svg.setAttribute("viewBox", `0 0 ${rootWidth} ${height}`);
+      svg.style.minWidth = rootWidth + "px";  // KEY LINE
+      svg.style.width = "auto";      // intrinsic size
+      svg.style.height = `${height}px`;
+      svg.appendChild(g);
+      wrap.classList.remove("hidden");
+      wrap.innerHTML = "";
+      wrap.replaceChildren(svg);
+
+      const panel = wrap && wrap.parentElement;
+      if (panel)
+        panel.style.height = panelHeight + "px";
+      //wrap.innerHTML = svg.outerHTML;
+
+      updateBreadcrumb(buildPathTo(renderRoot));
+    }
+
+    function render(root){
+      sumValues(theTree);
+      let rootWidth = window.innerWidth;
+      let rootHeight = window.innerHeight;
+
+      let wrap1 = document.getElementById("memFG");
+      if (wrap1)
+      {
+        rootWidth = (wrap1.clientWidth || window.innerWidth) - 32;
+        rootHeight = (wrap1.clientHeight || window.innerHeight) - 32;
+      }
+      rootWidth = rootWidth < config.width ? config.width : rootWidth;
+      rootHeight = rootHeight < 300 ? 300 : rootHeight;
+
+      if (root != theTree)
+      {
+        renderTo(rootWidth, rootHeight/2, root, "memFG", root !== theTree)
+        renderTo(rootWidth, rootHeight/4, createSubTree(theTree, root), "callsFG", false, "Calls from: ")
+        renderTo(rootWidth, rootHeight/4, createRervseSubTree(theTree, root), "calledFG", false, "Calls to: ")
+        document.getElementById("graphPanelCalled").classList.remove("hidden");
+        document.getElementById("graphPanelCalls").classList.remove("hidden");
+      } else
+      {
+        renderTo(rootWidth, rootHeight, root, "memFG", root !== theTree)
+        document.getElementById("callsFG").classList.add("hidden");
+        document.getElementById("calledFG").classList.add("hidden");
+        document.getElementById("graphPanelCalled").classList.add("hidden");
+        document.getElementById("graphPanelCalls").classList.add("hidden");
+      }
+    }
+
+    const tooltip = document.getElementById("tooltip");
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g,
+        tag => ({
+          '&':'&amp;',
+          '<':'&lt;',
+          '>':'&gt;',
+          '"':'&quot;',
+          "'":'&#39;'
+        }[tag])
+      );
+    }
+    function onHover(e,node){
+      tooltip.style.display = "block";
+      tooltip.innerHTML = `<strong>${escapeHTML(node.n)}</strong>
+        <div style="font-size:12px;color:var(--muted)">
+        self: ${fmtBytes(node.sa)}<br>
+        pointers: ${fmtNumber(node.p)}<br>
+        total: ${fmtBytes(node.a)}</div>`;
+    }
+    function onMove(e){
+      tooltip.style.left = e.clientX + 12 + "px";
+      tooltip.style.top = e.clientY + 12 + "px";
+      const padding = 12;
+      const tooltipWidth = tooltip.offsetWidth;
+      const viewportWidth = window.innerWidth;
+
+      let x = e.clientX + padding;
+      let y = e.clientY + padding;
+
+      // If tooltip would go past right edge, shift to left of cursor
+      if (x + tooltipWidth > viewportWidth) {
+          x = e.clientX - tooltipWidth - padding;
+      }
+
+      tooltip.style.left = x + "px";
+      tooltip.style.top = y + "px";
+    }
+    function onLeave(){
+      tooltip.style.display = "none";
+    }
+
+    function buildPathTo(rootNode){
+      const path = [];
+      function dfs(n, acc){
+        if(n===rootNode){ path.push(...acc,n); return true; }
+        if(!n.children) return false;
+        for(const c of n.children){ if(dfs(c,[...acc,n])) return true; }
+        return false;
+      }
+      dfs(theTree, []);
+      return path;
+    }
+
+    function updateBreadcrumb(path){
+      const bc = document.getElementById("breadcrumb");
+      bc.innerHTML = "";
+      for(const node of path){
+        const span = document.createElement("span");
+        span.textContent = node.name;
+        span.onclick = ()=>{ onClickNode(node); };
+        bc.appendChild(span);
+      }
+    }
+
+    // SEARCH
+    function onSearch(target)
+    {
+      const q = target.value.trim().toLowerCase();
+      if (!q) return;
+
+      let currentRootMatches = currentRoot.n?.toLowerCase().includes(q);
+
+      let firstMatch = null;
+
+      function dfs(node)
+      {
+        const matches = node.n?.toLowerCase().includes(q);
+        if (matches)
+        {
+          if (currentRootMatches)
+          {
+            if (node === currentRoot)
+              currentRootMatches = false;
+            else if (!firstMatch)
+              firstMatch = node;
+          } else
+            return node;
+        }
+
+        for (const c of node.children || []) {
+          const r = dfs(c);
+          if (r) return r;
+        }
+
+        return null;
+      }
+
+      const found = dfs(theTree) ?? firstMatch;
+      if (found)
+      {
+        currentRoot = found;
+        render(currentRoot);
+      } else
+        alert("No matching node");
+    }
+    document.getElementById("search").addEventListener("keydown", e=>{
+      if(e.key!=="Enter") return;
+        onSearch(e.target);
+    });
+
+    function snapShotCmd(cmd)
+    {
+      if (IS_SAVED)
+        return;
+      var x = new XMLHttpRequest();
+      x.open("GET", "memory_map?snapshot="+cmd, true);
+      x.send();
+    }
+    document.getElementById("makeSnapshot").onclick = ()=>{snapShotCmd("make");}
+    document.getElementById("dropSnapshot").onclick = ()=>{snapShotCmd("drop");}
+
+    document.getElementById("searchBtn").onclick = ()=>{ onSearch(document.getElementById("search")); };
+
+    function fixButtonWidth(btn) {
+      const onText = btn.dataset.on;
+      const offText = btn.dataset.off;
+
+      // create an invisible measuring element
+      const measurer = document.createElement("span");
+      measurer.style.visibility = "hidden";
+      measurer.style.position = "absolute";
+      measurer.style.whiteSpace = "nowrap";
+
+      document.body.appendChild(measurer);
+
+      measurer.textContent = onText;
+      const onWidth = measurer.offsetWidth;
+
+      measurer.textContent = offText;
+      const offWidth = measurer.offsetWidth;
+
+      document.body.removeChild(measurer);
+
+      // set width to max
+      btn.style.width = Math.max(onWidth, offWidth) + 20 + "px"; 
+    }
+
+    document.querySelectorAll(".toggle-btn").forEach(btn => {
+      const isOn = btn.dataset.state === "on"
+      btn.classList.toggle("on", isOn);
+      btn.textContent = isOn ? btn.dataset.on : btn.dataset.off;
+      fixButtonWidth(btn)
+      btn.addEventListener("click", () => {
+         const newState = btn.classList.toggle("on");
+         btn.dataset.state = newState ? "on" : "off";
+         btn.textContent = newState ? btn.dataset.on : btn.dataset.off;
+       });
+    });
+
+
+    function updateTreeNoRender(node)
+    {
+      theTree = node;
+      createParents(theTree)
+      currentRoot = theTree;
+    }
+    function updateTree(node)
+    {
+      updateTreeNoRender(node)
+      render(theTree);
+    }
+    function detailTree(node)
+    {
+      if (IS_SAVED)
+        return;
+      let treePath = [];
+      for (let it = node; it; it = it.parent)
+        treePath.push(it.uid)
+
+      function findInTreeWithPath(node, restOfPath)
+      {
+        if (restOfPath.length == 0 || node.uid != restOfPath[0])
+          return null;
+        if (node.uid == restOfPath[0] && restOfPath.length == 1)
+          return node
+
+        if (node.children?.length)
+        {
+          let sliced = restOfPath.slice(1);
+          for (const c of node.children)
+          {
+            let found = findInTreeWithPath(c, sliced)
+            if (found)
+              return found;
+          }
+        }
+        return null;
+      }
+      var x = new XMLHttpRequest();
+      x.onreadystatechange = function()
+      {
+        if (x.readyState === 4 && x.status === 200)
+        {
+          if (node == theTree || !treePath.length)
+          {
+            updateTree(JSON.parse(x.responseText))
+          } else
+          {
+            updateTreeNoRender(JSON.parse(x.responseText))
+            let nextRoot = findInTreeWithPath(theTree, treePath.reverse())
+            render(nextRoot ? nextRoot : theTree);
+
+          }
+        }
+      };
+      const snapCmd = getToggleState('useSnapshot') ? "snapshot=use&" : ""
+      x.open("GET", "memory_map?" + snapCmd + "rc=" + node.uid, true);
+      x.send();
+    }
+
+    function reloadTree()
+    {
+      if (IS_SAVED)
+        return;
+      var x = new XMLHttpRequest();
+      x.onreadystatechange = function()
+      {
+        if (x.readyState === 4 && x.status === 200)
+          updateTree(JSON.parse(x.responseText))
+      };
+      x.open("GET", "memory_map?rc=0", true);
+      x.send();
+    }
+
+    async function embedJsonIntoHtml() {
+      try {
+        // Serialize the current theTree
+        removeParents(theTree);
+        const escaped = JSON.stringify(theTree).replace(/\\/g, '\\\\').replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+        createParents(theTree);
+        // Full current HTML
+        let html = document.documentElement.outerHTML;
+
+        const liveMarker = "const IS_SAVED = false;";
+        if (html.indexOf(liveMarker) !== -1)
+          html = html.replace(liveMarker, "const IS_SAVED = true;");
+        // build an application/json script + small runner that sets window.theTree
+        const embedScript =
+        "<script id=\"embeddedData\" type=\"application/json\">" + escaped + "<\/script><script>"
+         + "window.__EMBEDDED_TREE__ = JSON.parse(document.getElementById('embeddedData').textContent);"
+         + "<\/script>";
+
+        const bodyIdx = html.lastIndexOf("</body>");
+        html = html.slice(0, bodyIdx) + embedScript + html.slice(bodyIdx);
+
+        if (window.showSaveFilePicker) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: "memory_profile.html",
+            types: [{ description: "HTML file", accept: { "text/html": [".html"] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(html);
+          await writable.close();
+          alert("Saved snapshot to file.");
+        } else {
+          // fallback: create blob and download
+          const blob = new Blob([html], {type: "text/html"});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "memory_profile.html";
+          a.click();
+          URL.revokeObjectURL(url);
+          alert("Saved snapshot (download).");
+        }
+      } catch (err) {
+        console.error("Save failed:", err);
+        alert("Not saved.");
+      }
+    }
+
+    document.getElementById("save").onclick = embedJsonIntoHtml;
+    function removeBtn(id)
+    {
+      const checkBtn = document.getElementById(id);
+      if (checkBtn && checkBtn.parentNode)
+        checkBtn.parentNode.removeChild(checkBtn);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (IS_SAVED)
+      {
+        const saveBtn = document.getElementById("save");
+        if (saveBtn && saveBtn.parentNode)
+          saveBtn.parentNode.removeChild(saveBtn);
+
+        removeBtn("updateState")
+        removeBtn("useSnapshot")
+        removeBtn("makeSnapshot")
+        removeBtn("dropSnapshot")
+
+        updateTree(window.__EMBEDDED_TREE__)
+      } else
+        reloadTree()
+    });
+  </script>
+</body></html>

@@ -26,6 +26,14 @@ folder {
 }
 
 folder {
+  path:t="../../../prog/1stPartyLibs/daScript/daslib"
+  dest_path:t="daslib"
+  scan_folder:b=true
+  scan_subfolders:b=false
+  wildcard:t=*.das
+}
+
+folder {
   path:t="gamebase/"
   dest_path:t="./"
   scan_folder:b=true

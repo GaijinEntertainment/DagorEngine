@@ -16,13 +16,14 @@
       <div v-if="collapse" class="searchBox">
         <div>
           <span>include:</span>
-          <input v-model="includeText" type="text" :class="getErrorNotifClass_i()"/>
+          <input v-model="includeText" type="text" :class="getErrorNotifClass_i()"/><div class="tooltipContainer linesAfterBox"><input v-model.number="linesAfter" type="number" min="0" class="linesAfterInput"/><div class="linesAfterButtons"><button @click="linesAfter++" class="linesAfterBtn">▲</button><button @click="linesAfter = Math.max(0, linesAfter - 1)" class="linesAfterBtn">▼</button></div><span class="tooltipContent">Show that many lines after the one that matched.</span></div>
           <span>exclude:</span>
           <input v-model="excludeText" type="text" :class="getErrorNotifClass_e()"/>
           <span>Showing {{filteredEntries.length}} / {{entries.length}}</span>
           <div class="spacer70"></div>
         </div>
         <div class="horList">
+          <button v-on:click="refresh = !refresh" :class="getPauseButtonClass()">{{refresh ? '⏸' : '▶'}}</button>
           <div class="tooltipContainer">
             <span class="settingsLabel">Settings</span>
             <div class="tooltipContent gridContainer">
@@ -69,15 +70,17 @@
 
             </div>
           </div>
-          <div class="spacer30"></div>
-          <div class="tooltipContainer">
+          <div class="tooltipContainer" v-if="skipLabel.length > 0">
             <span class="tooltipContent">Hide/unhide entries that predate the current time.</span>
-            <button v-if="skipLabel.length > 0" v-on:click="toggleSkip">{{skipLabel}}</button>
+            <button v-on:click="toggleSkip">{{skipLabel}}</button>
           </div>
-          <div class="spacer30"></div>
+          <div class="tooltipContainer">
+            <span class="tooltipContent">Copy displayed log to clipboard.</span>
+            <button v-on:click="copyLog">copy</button>
+          </div>
           <span>Compiled: {{compileTime}}</span>
           <span>Launched: {{lanchTime}}</span>
-          <span>{{isRequestInProgress ? "..." : ""}}</span>
+          <span :style="{visibility: isRequestInProgress ? 'visible' : 'hidden'}">...</span>
         </div>
       </div>
     </div>
@@ -122,7 +125,8 @@
       highlightWE: false,
       removeDasPaths: false,
       esReloaded: false,
-      pastedLog: ""
+      pastedLog: "",
+      linesAfter: 0
     },
     watch: {
       includeText: function (newValue, oldValue) {
@@ -179,6 +183,9 @@
         this.saveSettings()
       },
       removeDasPaths: function (newValue, oldValue) {
+        this.saveSettings()
+      },
+      linesAfter: function (newValue, oldValue) {
         this.saveSettings()
       },
       message: function (n, o) {
@@ -240,10 +247,10 @@
     computed: {
       filteredEntries: function () {
         let filteredData = this.isRegExp ? filterRegExp(this.entries, this.includes, this.excludes,
-                                                        this.skipPoint, this.highlight, this.highlightWE, this.removeDasPaths) :
+                                                        this.skipPoint, this.highlight, this.highlightWE, this.removeDasPaths, this.linesAfter) :
                                            filterSubstr(this.entries, this.includeText.toLowerCase(),
                                                         this.excludeText.toLowerCase(), this.skipPoint,
-                                                        this.highlight, this.highlightWE, this.removeDasPaths)
+                                                        this.highlight, this.highlightWE, this.removeDasPaths, this.linesAfter)
         this.lastEntry = filteredData.lastEntry //dirty dirty side effect :/ but should work fine since this value is not used reactivly
         return filteredData.entries
       },
@@ -295,6 +302,7 @@
       this.highlightWE = localData['highlightWE'] ?? false
       this.skipOnReload = localData['skipOnReload'] ?? false
       this.removeDasPaths = localData['removeDasPaths'] ?? false
+      this.linesAfter = localData['linesAfter'] ?? 0
       setInterval(this.updateLog, REFRESH_PERIOD);
       setInterval(this.monitorConnection, REFRESH_PERIOD);
       this.updateLog();
@@ -374,9 +382,15 @@
           collapse : this.collapse,
           highlightWE : this.highlightWE,
           skipOnReload : this.skipOnReload,
-          removeDasPaths : this.removeDasPaths
+          removeDasPaths : this.removeDasPaths,
+          linesAfter : this.linesAfter
         }
         localStorage.setItem(LOCATION, JSON.stringify(data));
+      },
+      copyLog() {
+        let el = document.querySelector('.logMsg, .collapsedLogMsg')
+        if (el)
+          navigator.clipboard.writeText(el.innerText)
       },
       monitorConnection() {
         let time = new Date().getTime()
@@ -424,6 +438,12 @@
           eSReloadVisible: this.esReloaded,
           eSReloadInvisible: !this.esReloaded,
         }
+      },
+      getPauseButtonClass() {
+        return {
+          pauseBtn: true,
+          paused: !this.refresh
+        }
       }
     }
   })
@@ -445,47 +465,65 @@
     })
   }
 
-  function filterRegExp(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths) {
+  function filterRegExp(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths, linesAfter) {
     let result = []
     let lastEntry = -1
+    let showUntil = -1
     for (let i = startFrom; i < entries.length; i++) {
-      if (!includes && (!excludes || !E.match(excludes))) {
+      let isMatch = false
+      if (!includes && (!excludes || !entries[i].match(excludes))) {
         let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
         result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
         lastEntry = i
+        isMatch = true
       }
-      if (!excludes || !entries[i].match(excludes)) {
+      else if (!excludes || !entries[i].match(excludes)) {
         let includeMatch = entries[i].match(includes)
         if (includeMatch && !highlight) {
           let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
           result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
           lastEntry = i
+          isMatch = true
         }
         else if (includeMatch) {
           let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
           result.push(getHighlightWE(entry, highlightWE) + highlightOccurrence(entry, includeMatch[0], entry.indexOf(includeMatch[0])))
           lastEntry = i
+          isMatch = true
         }
+      }
+      if (isMatch) {
+        showUntil = i + linesAfter
+      } else if (i <= showUntil) {
+        let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
+        result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+        lastEntry = i
       }
     }
     return {entries:result, lastEntry:lastEntry}
   }
 
-  function filterSubstr(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths) {
+  function filterSubstr(entries, includes, excludes, startFrom, highlight, highlightWE, removeDasPaths, linesAfter) {
     let result = []
     let lastEntry = -1
+    let showUntil = -1
     for (let i = startFrom; i < entries.length; i++) {
       let entry = removeDasPaths ? getEntryWithoutDasPath(entries[i]) : entries[i]
       let e = entry.toLowerCase()
       let includeIndex = e.indexOf(includes)
       let excludeIndex = excludes.length > 0 ? e.indexOf(excludes) : -1
-      if (includeIndex == -1 || excludeIndex != -1)
-        continue;
-      lastEntry = i
-      if (highlight)
-        result.push(getHighlightWE(entry, highlightWE) + highlightOccurrence(entry, includes, includeIndex))
-      else
+      let isMatch = includeIndex != -1 && excludeIndex == -1
+      if (isMatch) {
+        lastEntry = i
+        showUntil = i + linesAfter
+        if (highlight)
+          result.push(getHighlightWE(entry, highlightWE) + highlightOccurrence(entry, includes, includeIndex))
+        else
+          result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+      } else if (i <= showUntil) {
         result.push(getHighlightWE(entry, highlightWE) + escapeHtml(entry))
+        lastEntry = i
+      }
     }
     return {entries:result, lastEntry:lastEntry};
   }

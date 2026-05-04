@@ -17,4 +17,9 @@ Sources =
   dagorplugins.cpp
 ;
 
+StringifySourceFile showMemFlameGraph.html : showMemFlameGraph.html.inl : memmap.cpp : --array ;
+
+if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
+else { Sources += memmap.cpp ; }
+
 include $(Root)/prog/_jBuild/build.jam ;

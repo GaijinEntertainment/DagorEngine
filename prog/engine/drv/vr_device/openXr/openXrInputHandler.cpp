@@ -4,6 +4,7 @@
 
 #include <debug/dag_assert.h>
 #include <ioSys/dag_dataBlock.h>
+#include <generic/dag_sort.h>
 
 #include <EASTL/map.h>
 
@@ -553,23 +554,23 @@ void OpenXrInputHandler::updateBindingMask(ActionIndex action_idx, XrPath bindin
 }
 
 
-HumanInput::ButtonBits OpenXrInputHandler::getCurrentBindingsMask(ActionId a) const
+HumanInput::ButtonBits OpenXrInputHandler::getCurrentBindingsMask(ActionIndex idx) const
 {
   if (currentBindingMasks.empty())
     return {};
 
-  XrAction action;
-  ActionIndex idx = findActionById(a, action);
-  G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] could not find action '%d' to get bindings mask", a);
+  G_ASSERTF_RETURN(idx >= 0 && idx < currentBindingMasks.size(), {},
+    "[XR][HID] could not find action '%d' to get bindings mask (total=%d)", idx, currentBindingMasks.size());
   return currentBindingMasks[idx];
 }
 
 
-OpenXrInputHandler::ActionBindings OpenXrInputHandler::getCurrentBindings(ActionId a) const
+OpenXrInputHandler::ActionBindings OpenXrInputHandler::getCurrentBindings(ActionIndex idx) const
 {
-  XrAction action;
-  ActionIndex idx = findActionById(a, action);
-  G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] could not find action '%d' to get bindings", a);
+  if (currentBindings.empty())
+    return {};
+
+  G_ASSERTF_RETURN(idx >= 0 && idx < currentBindings.size(), {}, "[XR][HID] could not find action '%d' to get bindings", idx);
   return currentBindings[idx].second;
 }
 
@@ -731,11 +732,17 @@ DigitalAction OpenXrInputHandler::getDigitalActionState(ActionId a) const
   XrAction action;
   ActionIndex idx = findActionById(a, action);
   G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] action for id 0x%8f not found", a);
+  return getDigitalActionStateByIdx(idx);
+}
+
+
+DigitalAction OpenXrInputHandler::getDigitalActionStateByIdx(ActionIndex idx) const
+{
   G_ASSERTF_RETURN(actionTypes[idx] == XR_ACTION_TYPE_BOOLEAN_INPUT, {}, "[XR][HID] %s type is %d, expected %d", actionNames[idx],
     actionTypes[idx], XR_ACTION_TYPE_BOOLEAN_INPUT);
 
   XrActionStateBoolean state{XR_TYPE_ACTION_STATE_BOOLEAN};
-  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, action, XR_NULL_PATH};
+  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, actions[idx], XR_NULL_PATH};
   if (XR_REPORTF(xrGetActionStateBoolean(session, &getInfo, &state), "failed to get state for '%s'", actionNames[idx].data()))
   {
     DigitalAction action;
@@ -754,11 +761,17 @@ AnalogAction OpenXrInputHandler::getAnalogActionState(ActionId a) const
   XrAction action;
   ActionIndex idx = findActionById(a, action);
   G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] action for id 0x%8f not found", a);
+  return getAnalogActionStateByIdx(idx);
+}
+
+
+AnalogAction OpenXrInputHandler::getAnalogActionStateByIdx(ActionIndex idx) const
+{
   G_ASSERTF_RETURN(actionTypes[idx] == XR_ACTION_TYPE_FLOAT_INPUT, {}, "[XR][HID] %s type is %d, expected %d", actionNames[idx],
     actionTypes[idx], XR_ACTION_TYPE_FLOAT_INPUT);
 
   XrActionStateFloat state{XR_TYPE_ACTION_STATE_FLOAT};
-  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, action, XR_NULL_PATH};
+  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, actions[idx], XR_NULL_PATH};
   if (XR_REPORTF(xrGetActionStateFloat(session, &getInfo, &state), "failed to get state for '%s'", actionNames[idx].data()))
   {
     AnalogAction action;
@@ -777,11 +790,17 @@ StickAction OpenXrInputHandler::getStickActionState(ActionId a) const
   XrAction action;
   ActionIndex idx = findActionById(a, action);
   G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] action for id 0x%8f not found", a);
+  return getStickActionStateByIdx(idx);
+}
+
+
+StickAction OpenXrInputHandler::getStickActionStateByIdx(ActionIndex idx) const
+{
   G_ASSERTF_RETURN(actionTypes[idx] == XR_ACTION_TYPE_VECTOR2F_INPUT, {}, "[XR][HID] %s type is %d, expected %d", actionNames[idx],
     actionTypes[idx], XR_ACTION_TYPE_VECTOR2F_INPUT);
 
   XrActionStateVector2f state{XR_TYPE_ACTION_STATE_VECTOR2F};
-  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, action, XR_NULL_PATH};
+  XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO, nullptr, actions[idx], XR_NULL_PATH};
   if (XR_REPORTF(xrGetActionStateVector2f(session, &getInfo, &state), "failed to get state for '%s'", actionNames[idx].data()))
   {
     StickAction action;
@@ -800,6 +819,12 @@ PoseAction OpenXrInputHandler::getPoseActionState(ActionId a) const
   XrAction action;
   ActionIndex idx = findActionById(a, action);
   G_ASSERTF_RETURN(idx != INVALID_ACTION, {}, "[XR][HID] action for id 0x%8f not found", a);
+  return getPoseActionStateByIdx(idx);
+}
+
+
+PoseAction OpenXrInputHandler::getPoseActionStateByIdx(ActionIndex idx) const
+{
   G_ASSERTF_RETURN(actionTypes[idx] == XR_ACTION_TYPE_POSE_INPUT, {}, "[XR][HID] %s type is %d, expected %d", actionNames[idx],
     actionTypes[idx], XR_ACTION_TYPE_POSE_INPUT);
   const auto stateIdx = eastl::find(poseActionIndices.begin(), poseActionIndices.end(), idx);
@@ -807,6 +832,7 @@ PoseAction OpenXrInputHandler::getPoseActionState(ActionId a) const
     return lastPoseActionStates[stateIdx - poseActionIndices.begin()];
   return {};
 }
+
 
 bool OpenXrInputHandler::isInUsableState() const { return !oxrHadRuntimeFailure; }
 

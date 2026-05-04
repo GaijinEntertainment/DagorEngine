@@ -17,9 +17,13 @@
 #include <ecs/scripts/dasEcsEntity.h>
 #include <daECS/core/internal/performQuery.h>
 #include <daECS/utility/createInstantiated.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <perfMon/dag_statDrv.h>
 #include <daScript/src/builtin/module_builtin_rtti.h>
+#include <daScript/daScript.h>
+
+inline constexpr uint64_t DAS_INITIAL_HEAP_SIZE = 8 * 1024;
+inline constexpr uint64_t DAS_INITIAL_STRING_HEAP_SIZE = 8 * 1024;
 
 namespace das
 {
@@ -270,7 +274,13 @@ struct EsContext final : EsContextBase, das::Context
   // Pointing to esData->functionPtr->name.
   // Used only for errors diagnostics and quite volatile so raw pointer should be fine (don't bother with copy)
   const char *touchedByES = nullptr;
+  uint64_t heapLimit = 1 * 1024 * 1024;
+  uint64_t stringHeapLimit = 1 * 1024 * 1024;
+  bool reportHeap = false;
+  bool reportStringHeap = false;
 #endif
+  bool initialShrink = true;
+  bool shrinkMemory = false;
 
 #if KEEP_HEAP_FROM_LAST_RUN
   void tryRestartAndLock() override
@@ -287,8 +297,53 @@ struct EsContext final : EsContextBase, das::Context
   {
     const uint32_t res = das::Context::unlock();
     if (insideContext == 0 && !persistent)
+    {
+      uint64_t totalHeap = heap->totalAlignedMemoryAllocated();
+      uint64_t totalStringHeap = stringHeap->totalAlignedMemoryAllocated();
       restartHeaps(); // clear heap on end of call
+      if (shrinkMemory || (initialShrink && (totalHeap > DAS_INITIAL_HEAP_SIZE || totalStringHeap > DAS_INITIAL_STRING_HEAP_SIZE)))
+      {
+        heap->shrink();
+        stringHeap->shrink();
+#if DAGOR_DBGLEVEL > 0
+        debug("%@: %@memory shrink, heap %@ -> %@ string heap %@ -> %@", name.c_str(), initialShrink ? "initial " : "", totalHeap,
+          heap->totalAlignedMemoryAllocated(), totalStringHeap, stringHeap->totalAlignedMemoryAllocated());
+        // report before shrinking to catch huge memory usage
+        reportMemoryLimits(totalHeap, totalStringHeap, heapLimit * 10, stringHeapLimit * 10, "shrink"); // x10 limit on shrink
+#endif
+
+        totalHeap = heap->totalAlignedMemoryAllocated();
+        totalStringHeap = stringHeap->totalAlignedMemoryAllocated();
+        initialShrink = false;
+        shrinkMemory = false;
+      }
+#if DAGOR_DBGLEVEL > 0
+      reportMemoryLimits(totalHeap, totalStringHeap, heapLimit, stringHeapLimit, "regular");
+#endif
+    }
     return res;
+  }
+#endif
+
+#if DAGOR_DBGLEVEL > 0
+  void reportMemoryLimits(uint64_t totalHeap, uint64_t totalStringHeap, uint64_t heap_limit, uint64_t string_heap_limit,
+    const char *type)
+  {
+    const char *msg = "%@: %@ check, %@heap memory exceeded limit %@ of %@ bytes. Reduce memory usage:\n"
+                      "You can call shrink_heap_memory() after heavy allocations (first time we call it automatically)\n"
+                      "Or use options %@heap_size_limit to adjust the limit."
+                      "Alternative: consider switching to a persistent_heap with active gc."
+                      "With persistent heap you can delete allocated array or tables or use `var inscope` to limit their lifetime.\n";
+    if (reportHeap && totalHeap > heap_limit)
+    {
+      reportHeap = false;
+      logerr(msg, name.c_str(), type, "", totalHeap, heap_limit, "");
+    }
+    if (reportStringHeap && totalStringHeap > string_heap_limit)
+    {
+      reportStringHeap = false;
+      logerr(msg, name.c_str(), type, "string ", totalStringHeap, string_heap_limit, "string_");
+    }
   }
 #endif
   void useGlobalVariablesMem()
@@ -350,9 +405,11 @@ inline EsContext &cast_es_context(das::Context &ctx)
 extern bool load_das_script(const char *fname);
 extern bool load_das_script_debugger(const char *fname);
 extern bool load_das_script_with_debugcode(const char *fname);
+extern bool set_keep_file_names(bool enabled);
 inline bool load_das(const char *fname) { return load_das_script(fname ? fname : ""); }
 inline bool load_das_debugger(const char *fname) { return load_das_script_debugger(fname ? fname : ""); }
 inline bool load_das_with_debugcode(const char *fname) { return load_das_script_with_debugcode(fname ? fname : ""); }
+inline bool das_set_keep_file_names(bool enabled) { return set_keep_file_names(enabled); }
 #if DAGOR_DBGLEVEL > 0
 extern bool reload_das_debug_script(const char *fname, bool debug);
 inline bool reload_das_debug(const char *fname, bool debug) { return reload_das_debug_script(fname ? fname : "", debug); }
@@ -378,6 +435,17 @@ inline bool find_loaded_das(const das::TBlock<bool, const char *, das::Context &
 }
 #endif
 
+inline bool shrink_heap_memory(das::Context *context)
+{
+  if (bind_dascript::EsContext *ctx = cast_es_context(context))
+  {
+    ctx->shrinkMemory = true;
+    return true;
+  }
+  logerr("shrink_heap_memory: invalid das::Context pointer");
+  return false;
+}
+
 uint32_t das_ecs_systems_count();
 uint32_t das_ecs_aot_systems_count();
 uint32_t das_load_time_ms();
@@ -394,11 +462,16 @@ void enable_thread_safe_das_ctx_region(bool on);
 
 __forceinline ecs::event_type_t ecs_hash(const char *str) { return ECS_HASH_SLOW(str ? str : "").hash; }
 
-template <bool sync, typename TInit>
-inline ecs::EntityId do_create_entity(const char *template_name, TInit &&block_or_init, das::Context *ctx, das::LineInfoArg *at)
+__forceinline void verify_template_name(const char *template_name, das::Context *ctx, das::LineInfoArg *at)
 {
   if (DAGOR_UNLIKELY(!template_name))
     ctx->throw_error_at(at, "attempt to create entity with empty name");
+}
+
+template <bool sync, typename TInit>
+inline ecs::EntityId do_create_entity(const char *template_name, TInit &&block_or_init, das::Context *ctx, das::LineInfoArg *at)
+{
+  verify_template_name(template_name, ctx, at);
   ecs::ComponentsInitializer initTmp, *pInit = &initTmp;
   if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(block_or_init)>, das::TBlock<void, ecs::ComponentsInitializer>>)
   {
@@ -407,7 +480,7 @@ inline ecs::EntityId do_create_entity(const char *template_name, TInit &&block_o
   }
   else
     pInit = &block_or_init;
-  if (sync)
+  if constexpr (sync)
     return g_entity_mgr->createEntitySync(template_name, eastl::move(*pInit));
   else
     return g_entity_mgr->createEntityAsync(template_name, eastl::move(*pInit));
@@ -626,11 +699,13 @@ inline ecs::EntityId eidCast(uint32_t e) { return ecs::EntityId(ecs::entity_id_t
 
 inline ecs::EntityId createEntitySync(const char *template_name, das::Context *ctx, das::LineInfoArg *at)
 {
-  return do_create_entity<true>(template_name, ecs::ComponentsInitializer{}, ctx, at);
+  verify_template_name(template_name, ctx, at);
+  return g_entity_mgr->createEntitySync(template_name);
 }
 inline ecs::EntityId createEntity(const char *template_name, das::Context *ctx, das::LineInfoArg *at)
 {
-  return do_create_entity<false>(template_name, ecs::ComponentsInitializer{}, ctx, at);
+  verify_template_name(template_name, ctx, at);
+  return g_entity_mgr->createEntityAsync(template_name);
 }
 inline ecs::EntityId reCreateEntityFrom(ecs::EntityId eid, const char *template_name)
 {

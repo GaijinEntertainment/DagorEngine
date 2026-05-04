@@ -3,11 +3,31 @@ include "dafx_shaders.dshl"
 include "shader_global.dshl"
 include "viewVecVS.dshl"
 
+define_macro_if_not_defined INIT_WATER_FLOWMAP()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_WATER_FLOWMAP()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_DEPTH_FOR_COLLISION(code)
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_DEPTH_ABOVE(code)
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_HMAP(code)
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_RAIN_MAP(code)
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_CFD_WIND(code)
+endmacro
+
 INIT_WATER_FLOWMAP()
 
 shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx_modfx_simulation_adv
 {
-  ENABLE_ASSERT(cs)
   hlsl
   {
     #include "dafx_globals.hlsli"
@@ -26,6 +46,7 @@ shader dafx_modfx_emission, dafx_modfx_simulation, dafx_modfx_emission_adv, dafx
     DAFXEX_USE_DEPTH_ABOVE(cs)
     DAFXEX_USE_HMAP(cs)
     DAFXEX_USE_WATER_FLOWMAP(cs)
+    DAFXEX_USE_RAIN_MAP(cs)
   }
 
   DAFXEX_USE_CFD_WIND(cs)

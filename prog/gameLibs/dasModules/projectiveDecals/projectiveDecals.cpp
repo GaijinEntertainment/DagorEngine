@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "daScript/daScriptBind.h"
 #include <dasModules/aotProjectiveDecals.h>
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotDagorMath.h>
@@ -7,25 +8,62 @@
 namespace bind_dascript
 {
 
-struct ProjectiveDecalsAnnotation : das::ManagedStructureAnnotation<ProjectiveDecals>
+struct ProjectiveDecalsBaseAnnotation : das::ManagedStructureAnnotation<ProjectiveDecalsBase>
 {
-  ProjectiveDecalsAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ProjectiveDecals", ml, "ProjectiveDecals") {}
+  ProjectiveDecalsBaseAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("ProjectiveDecalsBase", ml, "ProjectiveDecalsBase")
+  {}
 };
 
-struct RingBufferDecalsAnnotation : das::ManagedStructureAnnotation<RingBufferDecals>
+struct RingBufferDecalsBaseAnnotation : das::ManagedStructureAnnotation<RingBufferDecalsBase>
 {
-  RingBufferDecalsAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("RingBufferDecals", ml)
+  RingBufferDecalsBaseAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("RingBufferDecalsBase", ml, "RingBufferDecalsBase")
   {
-    cppName = "RingBufferDecals";
     addProperty<DAS_BIND_MANAGED_PROP(getDecalsNum)>("decalsCount", "getDecalsNum");
   }
 };
 
-struct ResizableDecalsAnnotation : das::ManagedStructureAnnotation<ResizableDecals>
+struct RingBufferDecalsBaseManagerAnnotation : das::ManagedStructureAnnotation<RingBufferDecalManager>
 {
-  ResizableDecalsAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ResizableDecals", ml, "ResizableDecals")
+  RingBufferDecalsBaseManagerAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("RingBufferDecalManager", ml, "RingBufferDecalManager")
   {
     addProperty<DAS_BIND_MANAGED_PROP(getDecalsNum)>("decalsCount", "getDecalsNum");
+  }
+};
+
+struct ResizableDecalsBaseAnnotation : das::ManagedStructureAnnotation<ResizableDecalsBase>
+{
+  ResizableDecalsBaseAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ResizableDecalsBase", ml)
+  {
+    cppName = "ResizableDecalsBase";
+    addProperty<DAS_BIND_MANAGED_PROP(getDecalsNum)>("decalsCount", "getDecalsNum");
+  }
+};
+
+struct ResizableDecalManagerAnnotation : das::ManagedStructureAnnotation<ResizableDecalManager>
+{
+  ResizableDecalManagerAnnotation(das::ModuleLibrary &ml) :
+    ManagedStructureAnnotation("ResizableDecalManager", ml, "ResizableDecalManager")
+  {
+    addProperty<DAS_BIND_MANAGED_PROP(getDecalsNum)>("decalsCount", "getDecalsNum");
+  }
+};
+
+struct DecalDataBaseAnnotation : das::ManagedStructureAnnotation<DecalDataBase, false>
+{
+  DecalDataBaseAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("DecalDataBase", ml, "DecalDataBase")
+  {
+    cppName = "DecalDataBase";
+  }
+};
+
+struct DefaultDecalDataAnnotation : das::ManagedStructureAnnotation<DefaultDecalData, false>
+{
+  DefaultDecalDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("DefaultDecalData", ml, "DefaultDecalData")
+  {
+    cppName = "DefaultDecalData";
   }
 };
 
@@ -35,11 +73,15 @@ public:
   ProjectiveDecalsModule() : das::Module("ProjectiveDecals")
   {
     das::ModuleLibrary lib(this);
-    auto projectiveDecals = das::make_smart<ProjectiveDecalsAnnotation>(lib);
+    auto projectiveDecals = das::make_smart<ProjectiveDecalsBaseAnnotation>(lib);
     addAnnotation(projectiveDecals);
-    add_annotation(this, das::make_smart<RingBufferDecalsAnnotation>(lib), projectiveDecals);
-    add_annotation(this, das::make_smart<ResizableDecalsAnnotation>(lib), projectiveDecals);
-
+    add_annotation(this, das::make_smart<RingBufferDecalsBaseAnnotation>(lib), projectiveDecals);
+    add_annotation(this, das::make_smart<ResizableDecalsBaseAnnotation>(lib), projectiveDecals);
+    addAnnotation(das::make_smart<RingBufferDecalsBaseManagerAnnotation>(lib));
+    addAnnotation(das::make_smart<ResizableDecalManagerAnnotation>(lib));
+    auto decalDataBase = das::make_smart<DecalDataBaseAnnotation>(lib);
+    addAnnotation(decalDataBase);
+    add_annotation(this, das::make_smart<DefaultDecalDataAnnotation>(lib), decalDataBase);
 #define CLASS_MEMBER(FUNC_NAME, SYNONIM, SIDE_EFFECT)                                                                \
   {                                                                                                                  \
     using memberMethod = DAS_CALL_MEMBER(FUNC_NAME);                                                                 \
@@ -53,19 +95,23 @@ public:
   }
 
 
-    CLASS_MEMBER_SIGNATURE(RingBufferDecals::addDecal, "addDecal", das::SideEffects::modifyArgument,
-      int(RingBufferDecals::*)(const TMatrix &, float, uint16_t, uint16_t, const Point4 &))
-    CLASS_MEMBER_SIGNATURE(RingBufferDecals::addDecal, "addDecal", das::SideEffects::modifyArgument,
-      int(RingBufferDecals::*)(const TMatrix &, float, uint16_t, const Point4 &))
-    CLASS_MEMBER(RingBufferDecals::clear, "clear", das::SideEffects::modifyArgument)
-    CLASS_MEMBER(RingBufferDecals::afterReset, "afterReset", das::SideEffects::modifyArgument)
-    CLASS_MEMBER(RingBufferDecals::init, "init", das::SideEffects::modifyArgument)
-    CLASS_MEMBER(RingBufferDecals::init_buffer, "init_buffer", das::SideEffects::modifyArgument)
-    CLASS_MEMBER(RingBufferDecals::prepareRender, "prepareRender", das::SideEffects::modifyArgument)
-    CLASS_MEMBER(RingBufferDecals::render, "render", das::SideEffects::modifyArgument)
+    DAS_ADD_METHOD_BIND_VALUE_RET("addDecal", modifyArgument, RingBufferDecalManager::addDecal);
+    CLASS_MEMBER(RingBufferDecalManager::clear, "clear", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::afterReset, "afterReset", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::init, "init", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::init_buffer, "init_buffer", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::prepareRender, "prepareRender", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::render, "render", das::SideEffects::modifyArgument)
 
-    CLASS_MEMBER(ProjectiveDecals::updateParams, "updateParams", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(RingBufferDecalManager::updateDecal, "updateDecal", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(ResizableDecalManager::updateDecal, "updateDecal", das::SideEffects::modifyArgument)
+    CLASS_MEMBER(ResizableDecalManager::partialUpdate, "partialUpdate", das::SideEffects::modifyArgument)
 
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::make_default_decal_data), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+      "DefaultDecalData", das::SideEffects::none, "bind_dascript::make_default_decal_data");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::make_update_params_decal_data), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+      "UpdateParamZData", das::SideEffects::none, "bind_dascript::make_update_params_decal_data");
 
     das::addConstant<uint16_t>(*this, "UPDATE_ALL", UPDATE_ALL);
     das::addConstant<uint16_t>(*this, "UPDATE_PARAM_Z", UPDATE_PARAM_Z);

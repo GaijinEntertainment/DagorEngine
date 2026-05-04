@@ -11,6 +11,7 @@
 #include <3d/dag_textureIDHolder.h>
 
 struct Color3;
+struct DriverVersion;
 size_t framework_render_pulls = 0;
 
 static class DebugConsoleDriver final : public console::IVisualConsoleDriver
@@ -54,6 +55,7 @@ void destroy_world_renderer() {}
 void close_world_renderer() { console::set_visual_driver(NULL, NULL); }
 
 IRenderWorld *get_world_renderer() { return NULL; }
+Occlusion *get_main_occlusion_safe() { return NULL; }
 void update_world_renderer(float, float, const TMatrix &, bool) {}
 
 webui::HttpPlugin *get_renderer_http_plugins()
@@ -101,6 +103,7 @@ void animated_splash_screen_allow_watchdog_kick(bool) {}
 bool should_draw_debug_collision() { return false; }
 bool should_hide_debug() { return false; }
 
+void set_additional_game_job_next_frame_start_cb(void (*)()) {}
 void wait_additional_game_job_done() {}
 
 const TextureIDHolder &init_and_get_perlin_noise_3d(Point3 &, Point3 &)
@@ -117,8 +120,8 @@ void prepare_dynm_united_vdata_setup(const DataBlock *) {}
 const char *node_based_shader_current_platform_suffix() { return ""; }
 DngSkies *get_daskies() { return nullptr; }
 void save_daskies(DataBlock &) {}
-void load_daskies(const DataBlock &, float, const char *, int, int, int, float, float, int) {}
-void select_weather_preset_delayed(const char *) {}
+void load_daskies(const DataBlock &, const SkiesPanel &, const char *) {}
+void load_daskies(const DataBlock &, const SkiesPanel &, const DataBlock &, bool) {}
 float get_daskies_time() { return 0.0f; }
 void set_daskies_time(float /*time_of_day*/) {}
 DPoint2 get_strata_clouds_origin() { return DPoint2(); }
@@ -126,7 +129,7 @@ DPoint2 get_clouds_origin() { return DPoint2(); }
 void set_strata_clouds_origin(DPoint2) {}
 void set_clouds_origin(DPoint2) {}
 
-void send_gpu_net_event(const char *, GpuVendor, const uint32_t *) {}
+void send_gpu_net_event(const char *, GpuVendor, const DriverVersion *) {}
 
 void dump_periodic_gpu_info() {}
 
@@ -135,6 +138,4 @@ void invalidate_after_heightmap_change(const BBox3 &) {}
 
 void remove_puddles_in_crater(const Point3 &, float) {}
 
-void rendering_path::set_force_default(bool) {}
-bool rendering_path::get_force_default() { return false; }
-String get_corrected_rendering_path() { return String{}; }
+void load_daskies_to_components_initializer(ecs::ComponentsInitializer &, const DataBlock &) {}

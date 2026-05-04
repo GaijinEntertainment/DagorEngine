@@ -23,7 +23,6 @@ source
 common_valid_variants
 {
   include variants.blk
-  invalid {hasTexture:i=4;}
 }
 
 common_assume_vars {}
@@ -38,7 +37,6 @@ Compile
     static_shadows_custom_fxaa:i=0
     grass_use_quads:i=0
     object_tess_factor:r=0 // Not supported
-    hmap_tess_factor:r=0
     water_tess_factor:i=0
     "@override:use_glass_dual_source_blending":i=0
     can_use_half_precision:i=0

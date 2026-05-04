@@ -200,8 +200,8 @@ HidJoystickDevice::HidJoystickDevice(IOHIDDeviceRef dev) : buttons(inimem), axes
         // register new axis
         AxisData &a = axes.push_back();
         a.elem = elem;
-        a.dv = 1.0 / (MAX_AXIS_VAL - MIN_AXIS_VAL);
-        a.v0 = -a.dv * MIN_AXIS_VAL;
+        a.dv = 1.0f / float(MAX_AXIS_VAL - MIN_AXIS_VAL);
+        a.v0 = -a.dv * float(MIN_AXIS_VAL);
         a.maxLogVal = IOHIDElementGetPhysicalMax(elem);
         a.signedVal = signed_val ? 32000 : 0;
 
@@ -432,8 +432,8 @@ void HidJoystickDevice::setAxisLimits(int axis_id, float min_val, float max_val)
 {
   if (axis_id >= 0 && axis_id < axes.size())
   {
-    axes[axis_id].dv = (max_val - min_val) / (MAX_AXIS_VAL - MIN_AXIS_VAL);
-    axes[axis_id].v0 = min_val - axes[axis_id].dv * MIN_AXIS_VAL;
+    axes[axis_id].dv = (max_val - min_val) / float(MAX_AXIS_VAL - MIN_AXIS_VAL);
+    axes[axis_id].v0 = min_val - axes[axis_id].dv * float(MIN_AXIS_VAL);
   }
 }
 

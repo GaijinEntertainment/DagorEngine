@@ -46,11 +46,7 @@ struct ExecutionStateStorage
 class ExecutionState
   : public TrackedState<ExecutionStateStorage, StateFieldActiveExecutionStage, BackScopeState, BackComputeState, BackGraphicsState>
 {
-  ExecutionContext *executionContext;
-
 public:
-  ExecutionContext &getExecutionContext() { return *executionContext; }
-  void setExecutionContext(ExecutionContext *ctx) { executionContext = ctx; }
   PipelineStageStateBase &getResBinds(ShaderStage stage) { return getData().stageState[stage]; }
   PipelineStageStateBase &getResBinds(ExtendedShaderStage stage)
   {

@@ -11,30 +11,38 @@ let tooltipBox = @(content) {
 }
 
 let tooltipGen = Watched(0)
-let tooltipComp = {value = null}
-function setTooltip(val){
+let tooltipComp = { value = null }
+function setTooltip(val) {
   tooltipComp.value = val
-  tooltipGen.modify(@(v) v+1)
+  tooltipGen.modify(@(v) v + 1)
 }
 let getTooltip = @() tooltipComp.value
 
 let colorBack = Color(0,0,0,120)
 
-let tooltipCmp = @(){
-  key = "tooltip"
-  pos = [0, hdpx(38)]
-  watch = tooltipGen
-  behavior = Behaviors.BoundToArea
-  transform = {}
-  children = type(getTooltip()) == "string"
-  ? tooltipBox({
-      rendObj = ROBJ_TEXTAREA
-      behavior = Behaviors.TextArea
-      maxWidth = hdpx(500)
-      text = getTooltip()
-      color = Color(180, 180, 180, 120)
-    })
-  : getTooltip()
+function tooltipCmp() {
+  let watch = [tooltipGen]
+  let tooltip = getTooltip()
+  let isDynamicTooltip = isObservable(tooltip)
+  if (!isDynamicTooltip && (tooltip == null || tooltip == ""))
+    return { watch }
+
+  return {
+    key = "tooltip"
+    pos = [0, hdpx(38)]
+    watch = isDynamicTooltip ? [tooltip].extend(watch) : watch
+    behavior = Behaviors.BoundToArea
+    transform = {}
+    children = type(tooltip) == "string" || isDynamicTooltip
+      ? tooltipBox({
+          rendObj = ROBJ_TEXTAREA
+          behavior = Behaviors.TextArea
+          maxWidth = hdpx(500)
+          text = isDynamicTooltip ? tooltip.get() : tooltip
+          color = Color(180, 180, 180, 120)
+        })
+      : tooltip
+  }
 }
 
 let cursors = {getTooltip, setTooltip, tooltipCmp, tooltip = {}}

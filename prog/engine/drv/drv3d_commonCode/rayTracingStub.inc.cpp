@@ -1,12 +1,13 @@
 #if D3D_HAS_RAY_TRACING
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *, uint32_t,
-  RaytraceBuildFlags, uint32_t &, uint32_t *)
+  RaytraceBuildFlags, uint32_t &, uint32_t *, ResourceTagType)
 {
   return nullptr;
 }
-RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t) { return nullptr; }
+RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t, ResourceTagType) { return nullptr; }
 void d3d::delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *) {}
-RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t, RaytraceBuildFlags, uint32_t &, uint32_t *)
+RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t, RaytraceBuildFlags, uint32_t &, uint32_t *,
+  ResourceTagType)
 {
   return nullptr;
 }

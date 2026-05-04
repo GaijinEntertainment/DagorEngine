@@ -12,6 +12,7 @@
 #include <daECS/core/componentType.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_bounds3.h>
+#include <math/dag_mathUtils.h>
 #include <grid/spatialHashGridImpl.h>
 
 typedef eastl::fixed_vector<ecs::EntityId, 64, true, framemem_allocator> TempGridEntities;
@@ -46,8 +47,7 @@ struct GridObjComponent : public GridObject
   BSphere3 getBSphere() const
   {
     BSphere3 bsph;
-    v_stu(&bsph.c.x, GridObject::wbsph);
-    bsph.r2 = bsph.r * bsph.r;
+    v_stu_bsphere3(bsph, GridObject::wbsph);
     return bsph;
   }
   void updatePos(vec4f new_pos, float new_bounding_rad);

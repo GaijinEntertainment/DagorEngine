@@ -482,37 +482,6 @@ namespace das {
     };
 
 
-    typedef vec4f ( * JitFunction ) ( Context * , vec4f *, void * );
-
-    struct SimNode_Jit : SimNode {
-        SimNode_Jit ( const LineInfo & at, JitFunction eval )
-            : SimNode(at), func(eval) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
-        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
-        virtual bool rtti_node_isJit() const override { return true; }
-        JitFunction func = nullptr;
-        // saved original node
-        SimNode * saved_code = nullptr;
-        bool saved_aot = false;
-        void * saved_aot_function = nullptr;
-    };
-
-    struct SimNode_JitBlock;
-
-    struct JitBlock : Block {
-        vec4f   node[10];
-    };
-
-    struct SimNode_JitBlock : SimNode_ClosureBlock {
-        SimNode_JitBlock ( const LineInfo & at, JitBlockFunction eval, Block * bptr, uint64_t ad )
-            : SimNode_ClosureBlock(at,false,false,ad), func(eval), blockPtr(bptr) {}
-        virtual SimNode * visit ( SimVisitor & vis ) override;
-        DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
-        JitBlockFunction func = nullptr;
-        Block * blockPtr = nullptr;
-    };
-    static_assert(sizeof(SimNode_JitBlock)<=sizeof(JitBlock().node),"jit block node must fit under node size");
-
     struct SimNode_SourceBase : SimNode {
         SimNode_SourceBase ( const LineInfo & at ) : SimNode(at) {}
         virtual bool rtti_node_isSourceBase() const override { return true;  }
@@ -686,6 +655,7 @@ namespace das {
                 fields[2] = fi[2];
                 fields[3] = fi[3];
             }
+        virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
 
@@ -864,7 +834,7 @@ namespace das {
     };
 
     // AT (INDEX)
-    struct SimNode_At : SimNode_WithErrorMessage {
+    struct DAS_API SimNode_At : SimNode_WithErrorMessage {
         DAS_PTR_NODE;
         SimNode_At ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o, uint32_t rng, const char * msg )
             : SimNode_WithErrorMessage(at,msg), value(rv), index(idx), stride(strd), offset(o), range(rng) {}
@@ -881,7 +851,7 @@ namespace das {
     };
 
     // AT (INDEX)
-    struct SimNode_SafeAt : SimNode_At {
+    struct DAS_API SimNode_SafeAt : SimNode_At {
         DAS_PTR_NODE;
         SimNode_SafeAt ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o, uint32_t rng )
             : SimNode_At(at,rv,idx,strd,o,rng,"") {}
@@ -952,6 +922,24 @@ namespace das {
     template <typename TT> using SimNode_PtrAtR2V_Int64 = SimNode_PtrAtR2V<int64_t,TT>;
     template <typename TT> using SimNode_PtrAtR2V_UInt64 = SimNode_PtrAtR2V<uint64_t,TT>;
 
+    // SAFE AT (POINTER) - null check, no bounds check
+    template <typename TT>
+    struct SimNode_PtrSafeAt : SimNode {
+        DAS_PTR_NODE;
+        SimNode_PtrSafeAt ( const LineInfo & at, SimNode * rv, SimNode * idx, uint32_t strd, uint32_t o )
+            : SimNode(at), value(rv), index(idx), stride(strd), offset(o) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override;
+        __forceinline char * compute (Context & context) {
+            DAS_PROFILE_NODE
+            auto pValue = value->evalPtr(context);
+            if ( !pValue ) return nullptr;
+            auto idx = evalNode<TT>::eval(context,index);
+            return pValue + (idx*TT(stride) + TT(offset));
+        }
+        SimNode * value, * index;
+        uint32_t  stride, offset;
+    };
+
     // AT (INDEX)
     template <typename TT>
     struct SimNode_AtVector;
@@ -988,6 +976,8 @@ namespace das {
 
 SIM_NODE_AT_VECTOR(Int,   int32_t)
 SIM_NODE_AT_VECTOR(UInt,  uint32_t)
+SIM_NODE_AT_VECTOR(Int64, int64_t)
+SIM_NODE_AT_VECTOR(UInt64,uint64_t)
 SIM_NODE_AT_VECTOR(Float, float)
 
     template <int nElem>
@@ -2533,7 +2523,7 @@ SIM_NODE_AT_VECTOR(Float, float)
     };
 
     // POINTER TO REFERENCE (CAST)
-    struct SimNode_Ptr2Ref : SimNode_WithErrorMessage {      // ptr -> &value
+    struct DAS_API SimNode_Ptr2Ref : SimNode_WithErrorMessage {      // ptr -> &value
         DAS_PTR_NODE;
         SimNode_Ptr2Ref ( const LineInfo & at, SimNode * s, const char * em )
             : SimNode_WithErrorMessage(at,em), subexpr(s) {}
@@ -2621,7 +2611,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             char * ptr;
             if ( !persistent ) {
                 ptr = context.allocate(bytes,&debugInfo);
-                if ( !ptr ) context.throw_out_of_memory(false, bytes, &debugInfo);
                 context.heap->mark_comment(ptr, "new");
                 context.heap->mark_location(ptr, &debugInfo);
             } else {
@@ -2646,7 +2635,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             char * ptr;
             if ( !persistent ) {
                 ptr = context.allocate(bytes + (typeInfo ? 16 : 0), &debugInfo);
-                if ( !ptr ) context.throw_out_of_memory(false, bytes + (typeInfo ? 16 : 0), &debugInfo);
                 context.heap->mark_comment(ptr, "new [[ ]]");
                 context.heap->mark_location(ptr, &debugInfo);
             } else {
@@ -2680,7 +2668,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             char * ptr;
             if ( !persistent ) {
                 ptr = context.allocate(bytes + (typeInfo ? 16 : 0), &debugInfo);
-                if ( !ptr ) context.throw_out_of_memory(false, bytes + (typeInfo ? 16 : 0), &debugInfo);
                 context.heap->mark_comment(ptr, "new [[ ]]");
                 context.heap->mark_location(ptr, &debugInfo);
             } else {
@@ -2747,7 +2734,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             char * ptr;
             if ( !persistent ) {
                 ptr = context.allocate(bytes, &debugInfo);
-                if ( !ptr ) context.throw_out_of_memory(false, bytes, &debugInfo);
                 context.heap->mark_comment(ptr, "new with initializer");
                 context.heap->mark_location(ptr, &debugInfo);
             } else {
@@ -2771,7 +2757,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             char* ptr;
             if (!persistent) {
                 ptr = context.allocate(bytes, &debugInfo);
-                if ( !ptr ) context.throw_out_of_memory(false, bytes, &debugInfo);
                 context.heap->mark_comment(ptr, "new with initializer");
                 context.heap->mark_location(ptr, &debugInfo);
             } else {
@@ -3489,6 +3474,7 @@ SIM_NODE_AT_VECTOR(Float, float)
         SimNode * visitFor ( SimVisitor & vis, int total );
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
+        void closeIterators ( Iterator ** sources, char ** pi, Context & context );
         SimNode **  source_iterators = nullptr;
         uint32_t *  stackTop = nullptr;
         uint32_t    size = 0;
@@ -3538,10 +3524,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 }
             }
         loopend:
+            closeIterators(sources, pi, context);
             evalFinal(context);
-            for ( int t=0; t!=totalCount; ++t ) {
-                sources[t]->close(context, pi[t]);
-            }
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3593,8 +3577,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 if ( context.stopFlags ) goto loopend;
             }
         loopend:
-            evalFinal(context);
             sources->close(context, pi);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3649,10 +3633,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 }
             }
         loopend:
+            this->closeIterators(sources, pi, context);
             this->evalFinal(context);
-            for ( int t=0; t!=totalCount; ++t ) {
-                sources[t]->close(context, pi[t]);
-            }
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3691,8 +3673,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 if ( context.stopFlags ) goto loopend;
             }
         loopend:
-            evalFinal(context);
             sources->close(context, pi);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3749,10 +3731,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 }
             }
         loopend:
+            this->closeIterators(sources, pi, context);
             this->evalFinal(context);
-            for ( int t=0; t!=totalCount; ++t ) {
-                sources[t]->close(context, pi[t]);
-            }
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3791,8 +3771,8 @@ SIM_NODE_AT_VECTOR(Float, float)
                 if ( context.stopFlags ) goto loopend;
             }
         loopend:
-            evalFinal(context);
             sources->close(context, pi);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -3811,7 +3791,6 @@ SIM_NODE_AT_VECTOR(Float, float)
             vec4f ll = source->eval(context);
             TT * array = cast<TT *>::to(ll);
             char * iter = context.allocateIterator(sizeof(IterT),"any iterator", &debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false,sizeof(IterT),&debugInfo);
             new (iter) IterT(array, &debugInfo);
             return cast<char *>::from(iter);
         }

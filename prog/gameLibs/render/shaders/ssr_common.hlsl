@@ -28,10 +28,10 @@
 float4 sample_4depths(float Level, float4 tc0, float4 tc1)
 {
   float4 rawDepth;
-  rawDepth.x = tex2Dlod(ssr_depth, float4(tc0.xy, 0, Level)).r;
-  rawDepth.y = tex2Dlod(ssr_depth, float4(tc0.zw, 0, Level)).r;
-  rawDepth.z = tex2Dlod(ssr_depth, float4(tc1.xy, 0, Level)).r;
-  rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw, 0, Level)).r;
+  rawDepth.x = tex2Dlod(ssr_depth, float4(tc0.xy * current_dynamic_resolution_scale, 0, Level)).r;
+  rawDepth.y = tex2Dlod(ssr_depth, float4(tc0.zw * current_dynamic_resolution_scale, 0, Level)).r;
+  rawDepth.z = tex2Dlod(ssr_depth, float4(tc1.xy * current_dynamic_resolution_scale, 0, Level)).r;
+  rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw * current_dynamic_resolution_scale, 0, Level)).r;
   return rawDepth;
 }
 
@@ -214,7 +214,7 @@ bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float prev_line
     float2 gatherUV = floorCrd*prev_downsampled_close_depth_tex_target_size.zw + prev_downsampled_close_depth_tex_target_size.zw;
     float2 fractCrd = historyCrdf - floorCrd;
 
-    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV).wzxy;
+    float4 depths = prev_downsampled_close_depth_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, gatherUV * prev_dynamic_resolution_scale).wzxy;
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
     float4 depthDiff = abs(linearDepths - prev_linear_depth);
     float threshold = 0.05*prev_linear_depth;
@@ -232,15 +232,15 @@ bool get_prev_frame_disocclusion_weight_sample(float2 historyUV, float prev_line
       float2 uv = gatherUV;
       // we rely on prev_downsampled_close_depth_tex_samplerstate being point sample
       //float2 uv = historyUV;
-      half4 R = prev_frame_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      half4 R = prev_frame_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv * prev_dynamic_resolution_scale, lod).wzxy;
       historySample.r = dot(weights, R);
-      half4 G = prev_frame_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      half4 G = prev_frame_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv * prev_dynamic_resolution_scale, lod).wzxy;
       historySample.g = dot(weights, G);
-      half4 B = prev_frame_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv, lod).wzxy;
+      half4 B = prev_frame_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv * prev_dynamic_resolution_scale, lod).wzxy;
       historySample.b = dot(weights, B);
     }
   #else
-    historySample = tex2Dlod(prev_frame_tex, float4(historyUV, 0, lod)).rgb;
+    historySample = tex2Dlod(prev_frame_tex, float4(historyUV * prev_dynamic_resolution_scale, 0, lod)).rgb;
   #endif
   historySample = PREV_FRAME_UNPACK(historySample);
   return weight;
@@ -257,7 +257,7 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
     oldExactUVZ.z = max(prev_zn_zfar.x, linearize_z(oldExactUVZ.z, prev_zn_zfar.zw));
 
     #if SSR_MOTIONREPROJ == 1
-      motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(hit_uv_z.xy,0,0)).motion_attr;
+      motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(hit_uv_z.xy * current_dynamic_resolution_scale,0,0)).motion_attr;
       #if MOTION_VECTORS_3D
         float3 surface_3d_motion = surface_motion;
       #else
@@ -293,8 +293,11 @@ half4 sample_vignetted_color(float3 hit_uv_z, float linear_roughness, float hitD
   half3 prevScreenColor = 0;
   bool hit = get_prev_frame_disocclusion_weight_sample(sampleUV.xy, prevLinearDepth, cameraToHitPoint, TXlod, prevScreenColor);
   result.rgb = prevScreenColor;
-  //hit = true;
-  //result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);
+  #define SSR_DEBUG_SKIP_DISOCCLUSION 0
+  #if SSR_DEBUG_SKIP_DISOCCLUSION
+    hit = true;
+    result.rgb = PREV_FRAME_UNPACK(tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, TXlod)).rgb);
+  #endif
 
   BRANCH if (analytic_light_sphere_pos_r.w > 0)
   {

@@ -1,9 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <pathFinder/pathFinder.h>
-#include <detourCommon.h>
+#include <DetourCommon.h>
 #include <math/dag_mathUtils.h>
-#include <detourNavMesh.h>
+#include <DetourNavMesh.h>
 
 #include <regExp/regExp.h>
 
@@ -116,8 +116,8 @@ static class NavmeshLayers
     }
   }
 
-  template <typename Lamda>
-  void applyRegExp(const DataBlock *filterBlk, Lamda lambda)
+  template <typename Lambda>
+  void applyRegExp(const DataBlock *filterBlk, Lambda lambda)
   {
     if (!filterBlk)
       return;
@@ -128,24 +128,11 @@ static class NavmeshLayers
     for (int i = 0, size = rendinst::getRiGenExtraResCount(); i < size; ++i)
       for (const auto &re : filter)
         if (re->test(rendinst::getRIGenExtraName(i)))
-          lambda((int)i);
-  }
-
-  String makeFilePathForNavMeshKind(const char *base_file_path, const char *nav_mesh_kind)
-  {
-    String res(base_file_path);
-    if (!nav_mesh_kind || !*nav_mesh_kind)
-      return res;
-    const char *extentionPos = res.find('.', nullptr, /*forward*/ false);
-    if (!extentionPos)
-      return res;
-    String navMeshKindPostfix(100, "_%s", nav_mesh_kind);
-    res.insert(extentionPos - res.begin(), navMeshKindPostfix);
-    return res;
+          lambda(rendinst::RendinstVertexDataCbBase::make_pool_id(i, true));
   }
 
 public:
-  Bitarray pools;
+  Bitarray poolsToIgnore;
   ska::flat_hash_set<int> transparentPools;
   ska::flat_hash_map<int, uint32_t> obstaclePools;
   ska::flat_hash_map<int, uint32_t> materialPools;
@@ -163,9 +150,9 @@ public:
     String rendinstDmgBlkFn(settingsBlk->getStr("rendinstDmg", "config/rendinst_dmg.blk"));
     String navObstacleBlkFn(settingsBlk->getStr("navmeshObstacles", "config/navmesh_obstacles.blk"));
 
-    navmeshLayersBlkFn = makeFilePathForNavMeshKind(navmeshLayersBlkFn, kind);
-    rendinstDmgBlkFn = makeFilePathForNavMeshKind(rendinstDmgBlkFn, kind);
-    navObstacleBlkFn = makeFilePathForNavMeshKind(navObstacleBlkFn, kind);
+    navmeshLayersBlkFn = make_file_path_for_nav_mesh_kind(navmeshLayersBlkFn, kind);
+    rendinstDmgBlkFn = make_file_path_for_nav_mesh_kind(rendinstDmgBlkFn, kind);
+    navObstacleBlkFn = make_file_path_for_nav_mesh_kind(navObstacleBlkFn, kind);
 
     DataBlock navmblk;
     if (!dd_file_exists(navmeshLayersBlkFn))
@@ -175,16 +162,16 @@ public:
     }
     navmblk.load(navmeshLayersBlkFn);
 
-    pools.resize(rendinst::getRiGenExtraResCount());
-    pools.reset();
+    poolsToIgnore.resize(rendinst::getRiGenExtraResCount());
+    poolsToIgnore.reset();
 
     transparentPools.clear();
 
     obstaclePools.clear();
 
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { pools.set(pool); });
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { pools.reset(pool); });
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { pools.set(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { poolsToIgnore.set(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { poolsToIgnore.reset(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { poolsToIgnore.set(pool); });
 
     const int blkSkipNameId1 = navmblk.getNameId("filter");
     const int blkSkipNameId2 = navmblk.getNameId("filter_exclude");
@@ -203,7 +190,7 @@ public:
         {
           int pool = rendinst::getRIGenExtraResIdx(blk->getBlock(i)->getBlockName());
           if (pool > -1)
-            pools.set(pool);
+            poolsToIgnore.set(rendinst::RendinstVertexDataCbBase::make_pool_id(pool, true));
         }
       }
 
@@ -213,7 +200,7 @@ public:
         {
           int pool = rendinst::getRIGenExtraResIdx(blk->getBlock(i)->getBlockName());
           if (pool > -1)
-            pools.reset(pool);
+            poolsToIgnore.reset(rendinst::RendinstVertexDataCbBase::make_pool_id(pool, true));
         }
       }
 
@@ -222,8 +209,9 @@ public:
         for (int i = 0; i < blk->blockCount(); i++)
         {
           int pool = rendinst::getRIGenExtraResIdx(blk->getBlock(i)->getBlockName());
-          if (pool > -1 && transparentPools.count(pool) == 0)
-            transparentPools.emplace(pool);
+          int pool_id = pool < 0 ? -1 : rendinst::RendinstVertexDataCbBase::make_pool_id(pool, true);
+          if (pool_id >= 0 && transparentPools.count(pool_id) == 0)
+            transparentPools.emplace(pool_id);
         }
       }
     }
@@ -260,22 +248,23 @@ public:
       // additionally you can specify isObstacle=false to not make it an obstacle. One use case for this
       // are RIs that have very large bounding boxes and you don't want the bots to avoid them. Another use case
       // are RIs that looks like they're 80% or so destroyed and a bot can walk through even when RI isn't totally destroyed.
+      int pool_id = rendinst::RendinstVertexDataCbBase::make_pool_id(pool, true);
       if ((blk->getReal("hp", 0.0f) > 0.0f || blk->getReal("destructionImpulse", 0.0f) > 0.0f) && blk->getBool("isObstacle", true))
-        if (obstaclePools.count(pool) == 0)
+        if (obstaclePools.count(pool_id) == 0)
         {
           uint32_t hash = str_hash_fnv1(blk->getBlockName());
           if (!obstacleResHashes.emplace(hash).second)
             logerr("Obstacle resource hash collision for %s, expect missing/extra obstacles in level!", blk->getBlockName());
-          obstaclePools.emplace(pool, hash);
+          obstaclePools.emplace(pool_id, hash);
         }
       const char *material = blk->getStr("material", "");
       if (strcmp(material, "barbwire") == 0)
-        if (materialPools.count(pool) == 0)
+        if (materialPools.count(pool_id) == 0)
         {
           uint32_t hash = str_hash_fnv1(blk->getBlockName());
           if (!materialResHashes.emplace(hash).second)
             logerr("Material resource hash collision for %s, expect missing/extra materials in level!", blk->getBlockName());
-          materialPools.emplace(pool, hash);
+          materialPools.emplace(pool_id, hash);
         }
     }
 
@@ -299,10 +288,10 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
   Tab<IPoint2> &transparent;
   Tab<MarkData> &obstacles;
 
-  RendinstVertexDataCbGame(Tab<Point3> &verts, Tab<int> &inds, Tab<IPoint2> &transparent, Bitarray &pools,
+  RendinstVertexDataCbGame(Tab<Point3> &verts, Tab<int> &inds, Tab<IPoint2> &transparent, Bitarray &poolsToIgnore,
     ska::flat_hash_map<int, uint32_t> &obstaclePools, ska::flat_hash_map<int, uint32_t> &materialPools,
     rendinst::obstacle_settings_t &obstaclesSettings, Tab<MarkData> &obstacles) :
-    RendinstVertexDataCbBase(verts, inds, pools, obstaclePools, materialPools, obstaclesSettings),
+    RendinstVertexDataCbBase(verts, inds, poolsToIgnore, obstaclePools, materialPools, obstaclesSettings),
     transparent(transparent),
     obstacles(obstacles)
   {}
@@ -336,9 +325,10 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
     v_mat44_make_from_43cu_unsafe(instTm, coll_info.tm.array);
     const int indBase = indices.size();
     int idxBase = vertices.size();
+    int pool_id = rendinst::RendinstVertexDataCbBase::make_pool_id(coll_info.desc);
 
-    auto materialIt = navmeshLayers.materialPools.find(coll_info.desc.pool);
-    auto obstacleIt = navmeshLayers.obstaclePools.find(coll_info.desc.pool);
+    auto materialIt = navmeshLayers.materialPools.find(pool_id);
+    auto obstacleIt = navmeshLayers.obstaclePools.find(pool_id);
     if (materialIt == navmeshLayers.materialPools.end() && obstacleIt == navmeshLayers.obstaclePools.end())
     {
       Point3_vec4 tmpVert;
@@ -350,7 +340,7 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
       for (int i = 0; i < data->indices.size(); ++i)
         indices.push_back(data->indices[i] + idxBase);
 
-      if (navmeshLayers.transparentPools.find(coll_info.desc.pool) != navmeshLayers.transparentPools.end())
+      if (navmeshLayers.transparentPools.find(pool_id) != navmeshLayers.transparentPools.end())
         transparent.push_back({indBase, (int)data->indices.size()});
     }
 
@@ -469,7 +459,7 @@ void collect_rendinst(const BBox3 &box, Tab<Point3> &vertices, Tab<int> &indices
 {
   navmeshLayers.load(nav_mesh_kind);
 
-  RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
+  RendinstVertexDataCbGame cb(vertices, indices, transparent, navmeshLayers.poolsToIgnore, navmeshLayers.obstaclePools,
     navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
   rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
   cb.procAllCollision();
@@ -688,10 +678,10 @@ void rebuildNavMesh_addBBox(const BBox3 &bbox)
   }
 }
 
-void rebuildNavMesh_update_reloadNavMesh();
-void rebuildNavMesh_update_removeTiles();
-bool rebuildNavMesh_update_buildTiles(int n);
-bool rebuildNavMesh_update_buildLadders();
+static void rebuildNavMesh_update_reloadNavMesh();
+static void rebuildNavMesh_update_removeTiles();
+static bool rebuildNavMesh_update_buildTiles(int n);
+static bool rebuildNavMesh_update_buildLadders();
 
 bool rebuildNavMesh_update(bool interactive)
 {
@@ -1082,255 +1072,4 @@ void rebuildNavMesh_close()
   renderDebugReset();
 }
 
-uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *file_name, int &num_tiles)
-{
-  eastl::unique_ptr<void, decltype(&df_close)> h(df_open(file_name, DF_READ | DF_IGNORE_MISSING), &df_close);
-
-  if (!h)
-    return 0u;
-
-  int fileSize = df_length(h.get());
-  if (fileSize < sizeof(uint32_t))
-    return 0u;
-
-  uint32_t totalSize = 0u;
-  if (df_read(h.get(), &totalSize, sizeof(uint32_t)) != sizeof(uint32_t))
-    return 0u;
-
-  if (totalSize != fileSize - sizeof(uint32_t))
-    return 0u;
-
-  num_tiles = 0;
-  const uint32_t failSize = totalSize;
-
-  // skip removed obstacles
-  {
-    uint32_t count = 0u;
-    if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
-    if (df_seek_rel(h.get(), count * sizeof(uint32_t)) != 0)
-      return failSize;
-  }
-
-  // skip added obstacles
-  {
-    uint32_t count = 0u;
-    if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
-    if (df_seek_rel(h.get(), count * sizeof(uint32_t)) != 0)
-      return failSize;
-  }
-
-  // read tilecache tiles
-  {
-    uint32_t count = 0u;
-    if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
-
-    num_tiles = count;
-    if (num_tiles < 0)
-      num_tiles = 0;
-
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      uint32_t dataSize = 0u;
-      if (df_read(h.get(), &dataSize, sizeof(uint32_t)) != sizeof(uint32_t))
-        return failSize;
-      if (df_seek_rel(h.get(), dataSize) != 0)
-        return failSize;
-    }
-  }
-
-  // read navmesh tiles
-  {
-    uint32_t count = 0u;
-    if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
-
-    if ((uint32_t)num_tiles < count)
-      num_tiles = count;
-    if (num_tiles < 0)
-      num_tiles = 0;
-
-    // and ignore the rest
-  }
-
-  return totalSize;
-}
-
-bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uint8_t *storageData,
-  ska::flat_hash_set<uint32_t> &obstacles)
-{
-  dtNavMesh *navMesh = getNavMeshPtr();
-  eastl::unique_ptr<void, decltype(&df_close)> h(df_open(fileName, DF_READ | DF_IGNORE_MISSING), &df_close);
-
-  if (!h)
-    return false;
-
-  uint32_t totalSize = 0u;
-
-  // Step 1: load total size data to the buffer
-
-  if (df_read(h.get(), &totalSize, sizeof(uint32_t)) != sizeof(uint32_t))
-    return false;
-
-  if (df_read(h.get(), storageData, totalSize) != totalSize)
-    return false;
-
-  uint8_t *navData = storageData;
-  int64_t sizeLeft = totalSize;
-
-  // Step 2: load removed obstacles
-  {
-    if (sizeLeft < 4)
-      return false;
-    uint32_t count = *(uint32_t *)navData;
-    navData += 4;
-    sizeLeft -= 4;
-
-    int64_t sz = (int64_t)count * 4;
-    if (sizeLeft < sz)
-      return false;
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      uint32_t obstacle = *(const uint32_t *)navData;
-      navData += 4;
-      sizeLeft -= 4;
-
-      obstacles.erase(obstacle);
-    }
-  }
-
-  // Step 3: load added obstacles
-  {
-    if (sizeLeft < 4)
-      return false;
-    uint32_t count = *(uint32_t *)navData;
-    navData += 4;
-    sizeLeft -= 4;
-
-    int64_t sz = (int64_t)count * 4;
-    if (sizeLeft < sz)
-      return false;
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      uint32_t obstacle = *(const uint32_t *)navData;
-      navData += 4;
-      sizeLeft -= 4;
-
-      obstacles.insert(obstacle);
-    }
-  }
-
-  // Step 4: load tile cached tiles
-  {
-    if (sizeLeft < 4)
-      return false;
-    uint32_t count = *(uint32_t *)navData;
-    navData += 4;
-    sizeLeft -= 4;
-
-    uint8_t *tmp = navData;
-    int64_t tmpsz = sizeLeft;
-
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      if (sizeLeft < 4)
-        return false;
-      uint32_t dataSize = *(uint32_t *)navData;
-      navData += 4;
-      sizeLeft -= 4;
-
-      if (dataSize == 0 || sizeLeft < dataSize)
-        return false;
-      unsigned char *data = (unsigned char *)navData;
-      navData += dataSize;
-      sizeLeft -= dataSize;
-
-      const dtTileCacheLayerHeader *header = (const dtTileCacheLayerHeader *)data;
-
-      // force remove tiles for all layers at (tx,ty)
-      const int tx = header->tx;
-      const int ty = header->ty;
-      if (tlCache)
-      {
-        const int maxTiles = 32;
-        dtCompressedTileRef tiles[maxTiles];
-        const int ntiles = tlCache->getTilesAt(tx, ty, tiles, maxTiles);
-
-        for (int j = 0; j < ntiles; ++j)
-        {
-          const dtCompressedTile *tile = tlCache->getTileByRef(tiles[j]);
-          if (!tile)
-            continue;
-
-          dtTileRef tileRef = navMesh->getTileRefAt(tile->header->tx, tile->header->ty, tile->header->tlayer);
-
-          navMesh->removeTile(tileRef, 0, 0);
-          tlCache->removeTile(tiles[j], NULL, NULL);
-        }
-      }
-    }
-
-    navData = tmp;
-    sizeLeft = tmpsz;
-
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      if (sizeLeft < 4)
-        return false;
-      uint32_t dataSize = *(uint32_t *)navData;
-      navData += 4;
-      sizeLeft -= 4;
-
-      if (dataSize == 0 || sizeLeft < dataSize)
-        return false;
-      unsigned char *data = (unsigned char *)navData;
-      navData += dataSize;
-      sizeLeft -= dataSize;
-
-      if (tlCache)
-      {
-        tlCache->addTile(data, dataSize, 0, 0);
-      }
-    }
-  }
-
-  // Step 5: load nav mesh tiles
-  {
-    if (sizeLeft < 4)
-      return false;
-    uint32_t count = *(uint32_t *)navData;
-    navData += 4;
-    sizeLeft -= 4;
-
-    for (uint32_t i = 0u; i < count; ++i)
-    {
-      if (sizeLeft < sizeof(dtTileRef))
-        return false;
-      const dtTileRef tileToSave = *(const dtTileRef *)navData;
-      navData += sizeof(dtTileRef);
-      sizeLeft -= sizeof(dtTileRef);
-
-      if (sizeLeft < 4)
-        return false;
-      uint32_t dataSize = *(uint32_t *)navData;
-      navData += 4;
-      sizeLeft -= 4;
-
-      if (dataSize == 0 || sizeLeft < dataSize)
-        return false;
-      unsigned char *data = (unsigned char *)navData;
-      navData += dataSize;
-      sizeLeft -= dataSize;
-
-      navMesh->addTile(data, dataSize, 0, tileToSave, 0);
-    }
-  }
-
-  if (sizeLeft > 0)
-    return false;
-
-  return true;
-}
 } // namespace pathfinder

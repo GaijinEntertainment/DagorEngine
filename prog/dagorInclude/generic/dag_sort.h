@@ -50,6 +50,9 @@ static inline void sortOpaque(T *s, T *e, CMP f)
 {
 #ifdef _DEBUG_TAB_
   stlsort::sort((D *)s, (D *)e, ValidateSortComparator<D, S>(S((typename SortFuncPredicate<D>::typed_cmp_func_t)f)));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted((D *)s, (D *)e, S((typename SortFuncPredicate<D>::typed_cmp_func_t)f)),
+    "sort comparator likely violates strict weak ordering");
 #else
   stlsort::sort((D *)s, (D *)e, S((typename SortFuncPredicate<D>::typed_cmp_func_t)f));
 #endif
@@ -67,6 +70,8 @@ inline void sort(T *s, T *e, const Predicate &compare)
 {
 #ifdef _DEBUG_TAB_
   stlsort::sort(s, e, ValidateSortComparator<T, SortPredicate<T, Predicate>>(SortPredicate<T, Predicate>(compare)));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted(s, e, SortPredicate<T, Predicate>(compare)), "sort comparator likely violates strict weak ordering");
 #else
   stlsort::sort(s, e, SortPredicate<T, Predicate>(compare));
 #endif
@@ -79,11 +84,16 @@ inline void sort(V &v, uint32_t at, uint32_t n, typename dag::SortFuncPredicate<
 {
   T *p = v.data() + at;
   if constexpr (eastl::is_scalar_v<T>)
+  {
 #ifdef _DEBUG_TAB_
-    return stlsort::sort(p, p + n, dag::ValidateSortComparator<T, dag::SortFuncPredicate<T>>(dag::SortFuncPredicate<T>(cmp)));
+    stlsort::sort(p, p + n, dag::ValidateSortComparator<T, dag::SortFuncPredicate<T>>(dag::SortFuncPredicate<T>(cmp)));
+    // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+    G_ASSERTF(eastl::is_sorted(p, p + n, dag::SortFuncPredicate<T>(cmp)), "sort comparator likely violates strict weak ordering");
 #else
-    return stlsort::sort(p, p + n, dag::SortFuncPredicate<T>(cmp));
+    stlsort::sort(p, p + n, dag::SortFuncPredicate<T>(cmp));
 #endif
+    return;
+  }
 
   switch (sizeof(T))
   {
@@ -129,6 +139,8 @@ inline void fast_sort(V &v, uint32_t at, uint32_t n, const Compare &c)
 {
 #ifdef _DEBUG_TAB_
   stlsort::sort(v.data() + at, v.data() + at + n, dag::ValidateSortComparator<T, Compare>(c));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted(v.data() + at, v.data() + at + n, c), "sort comparator likely violates strict weak ordering");
 #else
   stlsort::sort(v.data() + at, v.data() + at + n, c);
 #endif
@@ -138,7 +150,32 @@ inline void fast_sort(V &v, const Compare &c)
 {
 #ifdef _DEBUG_TAB_
   stlsort::sort(v.data(), v.data() + v.size(), dag::ValidateSortComparator<T, Compare>(c));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted(v.data(), v.data() + v.size(), c), "sort comparator likely violates strict weak ordering");
 #else
   stlsort::sort(v.data(), v.data() + v.size(), c);
+#endif
+}
+
+template <class Iter, class Compare, typename T = typename eastl::iterator_traits<Iter>::value_type>
+inline void fast_sort_branchless(Iter begin, Iter end, Compare comp)
+{
+#ifdef _DEBUG_TAB_
+  stlsort::sort_branchless(begin, end, dag::ValidateSortComparator<T, Compare>(comp));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted(begin, end, comp), "sort comparator likely violates strict weak ordering");
+#else
+  stlsort::sort_branchless(begin, end, comp);
+#endif
+}
+template <class Iter, typename T = typename eastl::iterator_traits<Iter>::value_type>
+inline void fast_sort_branchless(Iter begin, Iter end)
+{
+#ifdef _DEBUG_TAB_
+  stlsort::sort_branchless(begin, end, dag::ValidateSortComparator<T, eastl::less<T>>(eastl::less<T>{}));
+  // ValidateSortComparator only checks antisymmetry; is_sorted catches transitivity-of-equivalence violations
+  G_ASSERTF(eastl::is_sorted(begin, end), "sort comparator likely violates strict weak ordering");
+#else
+  stlsort::sort_branchless(begin, end);
 #endif
 }

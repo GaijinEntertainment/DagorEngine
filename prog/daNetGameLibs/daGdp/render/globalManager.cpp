@@ -15,11 +15,14 @@
 #include "../shaders/dagdp_common.hlsli"
 #include "../shaders/dagdp_dynamic.hlsli"
 #include "globalManager.h"
+#include <render/world/bvh.h>
+#include "CSMShadows.h"
 
 namespace var
 {
 static ShaderVariableInfo dyn_region("dagdp__dyn_region");
 static ShaderVariableInfo dyn_counters_num("dagdp__dyn_counters_num");
+static ShaderVariableInfo global_density_mul("dagdp__global_density_mul");
 }; // namespace var
 
 using TmpName = eastl::fixed_string<char, 256>;
@@ -42,6 +45,8 @@ struct ViewPersistentData
   RingCPUBufferLock readback;
   ViewConstants constants;
 };
+
+float GlobalManager::globalDensityMul = 1;
 
 void GlobalManager::reconfigure(const GlobalConfig &new_config)
 {
@@ -179,6 +184,12 @@ void GlobalManager::rebuildViews()
     return;
   }
 
+  viewIndependentNodes.push_back(
+    (dafg::root() / "dagdp").registerNode("per_draw_data_setup", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.registerBuffer("per_draw_gathered_data", [](auto) { return ManagedBufView(get_per_draw_gathered_data()); })
+        .atStage(dafg::Stage::TRANSFER);
+    }));
+
   dag::Vector<ViewInfo> dynShadowsViews;
   dynShadowsViews.reserve(dynamic_shadow_render::ESTIMATED_MAX_SHADOWS_TO_UPDATE_PER_FRAME);
 
@@ -204,7 +215,7 @@ void GlobalManager::rebuildViews()
         {
           const auto declare = [&view](dafg::Registry registry) {
             view_multiplex(registry, view.info.kind);
-            auto viewDataHandle = registry.createBlob<ViewPerFrameData>("view@main_camera", dafg::History::No).handle();
+            auto viewDataHandle = registry.createBlob<ViewPerFrameData>("view@main_camera").handle();
             auto cameraHandle = registry.readBlob<CameraParamsUnified>("current_camera_unified").handle();
             return [viewDataHandle, cameraHandle] {
               const auto &camera = cameraHandle.ref();
@@ -225,6 +236,32 @@ void GlobalManager::rebuildViews()
         {
           // We want to create one node for all views of this kind, so just accumulate the needed data.
           dynShadowsViews.push_back(view.info);
+          break;
+        }
+        case ViewKind::BVH:
+        {
+          const auto declare = [&view](dafg::Registry registry) {
+            view_multiplex(registry, view.info.kind);
+            auto viewDataHandle = registry.createBlob<ViewPerFrameData>("view@bvh").handle();
+            auto cameraHandle = registry.readBlob<CameraParamsUnified>("current_camera_unified").handle();
+            return [viewDataHandle, cameraHandle] {
+              const auto &camera = cameraHandle.ref();
+              auto &viewData = viewDataHandle.ref();
+              auto &viewport = viewData.viewports.emplace_back();
+              viewport.frustum = get_bvh_culling_matrix(Point3::xyz(camera.cameraWorldPos));
+              viewport.maxDrawDistance = FLT_MAX;
+              viewport.worldPos = camera.cameraWorldPos;
+            };
+          };
+
+          const auto ns = dafg::root() / "dagdp";
+          view.nodes.push_back(ns.registerNode("bvh_provider", DAFG_PP_NODE_SRC, declare));
+          break;
+        }
+        case ViewKind::CSM_SHADOWS:
+        {
+          const auto ns = dafg::root() / "dagdp";
+          view.nodes.push_back(create_csm_shadows_provider(ns, view.info.maxViewports));
           break;
         }
         default: G_ASSERTF(false, "Unknown view kind");
@@ -268,15 +305,14 @@ void GlobalManager::rebuildViews()
         G_ASSERT(sizeof(PerInstanceData) % perInstanceFormatElementStride == 0);
         const size_t perInstanceElements = sizeof(PerInstanceData) / perInstanceFormatElementStride;
 
-        registry.create("instance_data", dafg::History::No)
+        registry.create("instance_data")
           .buffer({static_cast<uint32_t>(perInstanceFormatElementStride),
             static_cast<uint32_t>(constants.totalMaxInstances * perInstanceElements), SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES,
             perInstanceFormat})
           .atStage(dafg::Stage::COMPUTE)
           .useAs(dafg::Usage::SHADER_RESOURCE);
 
-        registry.registerBuffer("per_draw_gathered_data", [](auto) { return ManagedBufView(get_per_draw_gathered_data()); })
-          .atStage(dafg::Stage::TRANSFER);
+        return [] { ShaderGlobal::set_float(var::global_density_mul, globalDensityMul); };
       });
 
       dafg::NodeHandle dynamicSetupNode =
@@ -284,8 +320,8 @@ void GlobalManager::rebuildViews()
           const auto &constants = persistentData->constants;
           view_multiplex(registry, constants.viewInfo.kind);
 
-          const auto dynCountersHandle = registry.create("dyn_counters_stage0", dafg::History::No)
-                                           .structuredBufferUaSr<uint32_t>(constants.totalCounters + DYN_COUNTERS_PREFIX)
+          const auto dynCountersHandle = registry.create("dyn_counters_stage0")
+                                           .structuredBuffer<uint32_t>(constants.totalCounters + DYN_COUNTERS_PREFIX)
                                            .atStage(dafg::Stage::CS)
                                            .useAs(dafg::Usage::SHADER_RESOURCE) // TODO: Make a new usage "Clear" that will be platform
                                                                                 // specific
@@ -303,12 +339,12 @@ void GlobalManager::rebuildViews()
         const auto &constants = persistentData->constants;
         view_multiplex(registry, constants.viewInfo.kind);
 
-        registry.rename("dyn_allocs_stage0", "dyn_allocs_stage1", dafg::History::No)
+        registry.rename("dyn_allocs_stage0", "dyn_allocs_stage1")
           .buffer()
           .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_allocs");
 
-        registry.rename("dyn_counters_stage0", "dyn_counters_stage1", dafg::History::No)
+        registry.rename("dyn_counters_stage0", "dyn_counters_stage1")
           .buffer()
           .atStage(dafg::Stage::COMPUTE)
           .bindToShaderVar("dagdp__dyn_counters");
@@ -344,17 +380,20 @@ void GlobalManager::rebuildViews()
             if (const auto *data = (uint32_t *)persistentData->readback.lock(ignoredStride, ignoredFrameNum, false))
             {
               const uint32_t totalPlaced = data[DYN_COUNTERS_INDEX_TOTAL_PLACED];
-              const uint32_t totalCapacity = data[DYN_COUNTERS_INDEX_TOTAL_CAPACITY];
-
+              const uint32_t totalCapacity = persistentData->constants.dynamicInstanceRegion.maxCount;
 #if DAGDP_DEBUG
               view.dynamicInstanceCounter = totalPlaced;
 #else
               G_UNUSED(view);
 #endif
-
-              if (totalPlaced > totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER)
-                LOGERR_ONCE("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %f", totalPlaced, totalCapacity,
-                  DYNAMIC_THRESHOLD_MULTIPLIER);
+              if (totalCapacity > 0 && totalPlaced > totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER)
+              {
+                globalDensityMul *= totalCapacity * DYNAMIC_THRESHOLD_MULTIPLIER / float(totalPlaced + 1);
+#if DAGDP_DEBUG
+                logerr("daGdp: dynamic placement overflow detected! %" PRIu32 " > %" PRIu32 " * %g, setting global density to %g",
+                  totalPlaced, totalCapacity, DYNAMIC_THRESHOLD_MULTIPLIER, globalDensityMul);
+#endif
+              }
 
               persistentData->readback.unlock();
             }
@@ -378,7 +417,8 @@ void GlobalManager::rebuildViews()
       }
 
       const auto nodeInserter = [&nodes = view.nodes](dafg::NodeHandle node) { nodes.push_back(eastl::move(node)); };
-      g_entity_mgr->broadcastEventImmediate(EventViewFinalize(view.info, viewBuilder, nodeInserter, rulesBuilder));
+      g_entity_mgr->broadcastEventImmediate(
+        EventViewFinalize(view.info, viewBuilder, nodeInserter, rulesBuilder, triangleSizeDebugEnabled));
     }
 
 #if DAGDP_DEBUG
@@ -392,8 +432,7 @@ void GlobalManager::rebuildViews()
       view_multiplex(registry, ViewKind::DYN_SHADOWS);
 
       auto updatesHandle = registry.readBlob<dynamic_shadow_render::FrameUpdates>("scene_shadow_updates").handle();
-      auto mappingHandle =
-        registry.createBlob<dynamic_shadow_render::FrameVector<int>>("scene_shadow_updates_mapping", dafg::History::No).handle();
+      auto mappingHandle = registry.createBlob<dynamic_shadow_render::FrameVector<int>>("scene_shadow_updates_mapping").handle();
 
       dag::Vector<dafg::VirtualResourceHandle<ViewPerFrameData, false, false>> viewDataHandles;
       viewDataHandles.reserve(views.size());
@@ -404,7 +443,7 @@ void GlobalManager::rebuildViews()
         // But in fact we want this node to create resources for all of the views!
         eastl::fixed_string<char, 32> resourceName;
         resourceName.append_sprintf("view@%s", info.uniqueName.c_str());
-        viewDataHandles.push_back(registry.createBlob<ViewPerFrameData>(resourceName.c_str(), dafg::History::No).handle());
+        viewDataHandles.push_back(registry.createBlob<ViewPerFrameData>(resourceName.c_str()).handle());
       }
 
       return [viewDataHandles = eastl::move(viewDataHandles), views, updatesHandle, mappingHandle] {

@@ -4,6 +4,7 @@ require ecs.fs
 require app
 require ECSGlobalTags
 require danetlibs.frame_graph_renderer.frame_graph_renderer_init
+require danetlibs.composite_entity.composite_entity_init
 
 def private load_input() : bool
   var ok = true
@@ -25,6 +26,7 @@ def load
   ok = load_input() && ok
   ok = load_sound() && ok
   ok = load_frame_graph_renderer("%danetlibs/frame_graph_renderer") && ok
+  ok = load_composite_entity("%danetlibs/composite_entity") && ok
 
   if is_in_aot()
     assert(ok)

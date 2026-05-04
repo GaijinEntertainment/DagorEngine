@@ -1,0 +1,29 @@
+aurora_borealis{
+  _singleton:b=yes
+  _tags:t="render"
+
+  aurora_borealis{}
+  "aurora_borealis__init:dafg::NodeHandle"{}
+  "aurora_borealis__render:dafg::NodeHandle"{}
+  "aurora_borealis__apply:dafg::NodeHandle"{}
+
+  _group{
+    _track:b=yes
+    aurora_borealis__enabled:b = true
+    aurora_borealis__tex_res_multiplier:r = 0.25
+
+    aurora_borealis__is_night:b = false
+    aurora_borealis__night_sun_cos:r = 0.1219
+
+    aurora_borealis__top_height:r = 9.0
+    aurora_borealis__top_color:p3 = 1.0, 0.1, 0.3
+    aurora_borealis__bottom_height:r = 5.0
+    aurora_borealis__bottom_color:p3 = 0.1, 1.0, 1.0
+    aurora_borealis__brightness:r = 2.2
+    aurora_borealis__luminance:r = 8.0
+    aurora_borealis__speed:r = 0.02
+    aurora_borealis__ripples_scale:r = 20.0
+    aurora_borealis__ripples_speed:r = 0.08
+    aurora_borealis__ripples_strength:r = 0.8
+  }
+}

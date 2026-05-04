@@ -1,11 +1,42 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <anim/dag_animBlend.h>
+#include <animChar/dag_animCharacter2.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomTreeMap.h>
 
-struct AnimV20::AnimDbgCtx
+
+AnimV20::AnimcharDebugContext *AnimV20::AnimcharBaseComponent::createOrReturnExistingDebugContext()
+{
+  // PBC count can change in runtime anim graph editor.
+  if (animcharDebugContext && animGraph->getPBCCount() != animcharDebugContext->pbcWtHasOverride.size())
+  {
+    animcharDebugContext->pbcWtHasOverride.resize(animGraph->getPBCCount(), false);
+    animcharDebugContext->pbcWtOverride.resize(animGraph->getPBCCount(), 0.0f);
+  }
+  else if (!animcharDebugContext)
+  {
+    animcharDebugContext = new AnimcharDebugContext();
+    animcharDebugContext->pbcWtHasOverride = eastl::bitvector<>(animGraph->getPBCCount(), false);
+    animcharDebugContext->pbcWtOverride = dag::Vector<float>(animGraph->getPBCCount(), 0.0f);
+  }
+  return animcharDebugContext;
+}
+
+void AnimV20::AnimcharDebugContext::disablePbcOverride(int pbcIndex) { pbcWtHasOverride[pbcIndex] = false; }
+
+void AnimV20::AnimcharDebugContext::setPbcOverride(int pbcIndex, float value)
+{
+  pbcWtHasOverride[pbcIndex] = true;
+  pbcWtOverride[pbcIndex] = value;
+}
+
+bool AnimV20::AnimcharDebugContext::getPbcOverrideEnabled(int pbcIndex) { return pbcWtHasOverride[pbcIndex]; }
+
+float AnimV20::AnimcharDebugContext::getPbcOverrideValue(int pbcIndex) { return pbcWtOverride[pbcIndex]; }
+
+struct AnimV20::AnimcharDumpBlenderDataContext
 {
   DataBlock blk;
   DataBlock nodemaskBlk;
@@ -17,7 +48,7 @@ struct AnimV20::AnimDbgCtx
   bool prevDumpTm;
   int ctrlNid, animNid;
 
-  AnimDbgCtx(AnimV20::AnimationGraph *a, const GeomNodeTree *gtree, bool dump_all_nodes)
+  AnimcharDumpBlenderDataContext(AnimV20::AnimationGraph *a, const GeomNodeTree *gtree, bool dump_all_nodes)
   {
     AnimBlender &blender = a->blender;
     int nodenum = blender.targetNode.nameCount();
@@ -150,13 +181,15 @@ struct AnimV20::AnimDbgCtx
   }
 };
 
-AnimV20::AnimDbgCtx *AnimV20::AnimationGraph::createDebugBlenderContext(const GeomNodeTree *gtree, bool dump_all_node)
+AnimV20::AnimcharDumpBlenderDataContext *AnimV20::AnimationGraph::createDumpBlenderDataContext(const GeomNodeTree *gtree,
+  bool dump_all_node)
 {
-  return new AnimDbgCtx(this, gtree, dump_all_node);
+  return new AnimcharDumpBlenderDataContext(this, gtree, dump_all_node);
 }
-void AnimV20::AnimationGraph::destroyDebugBlenderContext(AnimV20::AnimDbgCtx *ctx) { del_it(ctx); }
+void AnimV20::AnimationGraph::destroyDumpBlenderDataContext(AnimV20::AnimcharDumpBlenderDataContext *ctx) { del_it(ctx); }
 
-const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgCtx *ctx, IPureAnimStateHolder &st, bool dump_tm)
+const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimcharDumpBlenderDataContext *ctx, IPureAnimStateHolder &st,
+  bool dump_tm)
 {
   if (!ctx)
     return NULL;
@@ -179,23 +212,23 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
     {
       if (nodePtr[i]->isSubOf(AnimBlendNodeLeafCID) || nodePtr[i]->isSubOf(AnimPostBlendCtrlCID) || nodePtr[i] == root)
         return;
-      DataBlock *b = AnimDbgCtx::getSubBlock(ctx->abnActive, ctx->ctrlNid, "ctrl", ord);
+      DataBlock *b = AnimcharDumpBlenderDataContext::getSubBlock(ctx->abnActive, ctx->ctrlNid, "ctrl", ord);
       b->setStr("name", name);
       b->setReal("wt", ctx->abnWt[i]);
       ord++;
     }
   });
-  AnimDbgCtx::resizeSubBlocks(ctx->abnActive, ctx->ctrlNid, ord);
+  AnimcharDumpBlenderDataContext::resizeSubBlocks(ctx->abnActive, ctx->ctrlNid, ord);
   ord = 0;
   for (int i = 0; i < tlsCtx.pbcWt.size(); i++)
     if (tlsCtx.pbcWt[i] > 0)
     {
-      DataBlock *b = AnimDbgCtx::getSubBlock(ctx->pbcActive, ctx->ctrlNid, "ctrl", ord);
+      DataBlock *b = AnimcharDumpBlenderDataContext::getSubBlock(ctx->pbcActive, ctx->ctrlNid, "ctrl", ord);
       b->setStr("name", getBlendNodeName(blender.pbCtrl[i]));
       b->setReal("wt", tlsCtx.pbcWt[i]);
       ord++;
     }
-  AnimDbgCtx::resizeSubBlocks(ctx->pbcActive, ctx->ctrlNid, ord);
+  AnimcharDumpBlenderDataContext::resizeSubBlocks(ctx->pbcActive, ctx->ctrlNid, ord);
 
   int bnlNum = blender.bnl.size();
   dag::Span<DataBlock *> nBlk = make_span(ctx->nBlk);
@@ -218,7 +251,7 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
     float wa_pos = blender.bnl[i]->tell(st);
     int wa_key = tlsCtx.bnlCT[i];
 
-    DataBlock *b = AnimDbgCtx::getSubBlock(ctx->bnlActive, ctx->animNid, "anim", ord);
+    DataBlock *b = AnimcharDumpBlenderDataContext::getSubBlock(ctx->bnlActive, ctx->animNid, "anim", ord);
     b->setStr("name", bnl_name);
     b->setReal("wt", tlsCtx.bnlWt[i]);
     b->setReal("pos", wa_pos);
@@ -289,7 +322,7 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
       }
     }
   }
-  AnimDbgCtx::resizeSubBlocks(ctx->bnlActive, ctx->animNid, ord);
+  AnimcharDumpBlenderDataContext::resizeSubBlocks(ctx->bnlActive, ctx->animNid, ord);
 
   for (int i = 0; i < nBlk.size(); i++)
     if (nBlk[i])
@@ -298,4 +331,4 @@ const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimDbgC
 
   return &ctx->blk;
 }
-const DataBlock *AnimV20::AnimationGraph::getDebugNodemasks(AnimDbgCtx *ctx) { return &ctx->nodemaskBlk; }
+const DataBlock *AnimV20::AnimationGraph::getDebugNodemasks(AnimcharDumpBlenderDataContext *ctx) { return &ctx->nodemaskBlk; }

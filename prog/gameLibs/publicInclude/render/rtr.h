@@ -41,8 +41,16 @@ void set_performance_mode(bool performance_mode);
 
 void set_water_params();
 void set_rtr_hit_distance_params();
-void set_ray_limit_params(float ray_limit_coeff, float ray_limit_power, bool use_rtr_probes);
+void set_ray_limit_params(float ray_limit_coeff, float ray_limit_power, float probe_treshold, bool use_rtr_probes);
 void set_use_anti_firefly(bool use_anti_firefly_);
+
+bool prepare(bvh::ContextId context_id, bool rt_shadow, bool csm_shadow, const denoiser::TexMap &textures, bool checkerboard);
+void bind_params();
+void unbind_params();
+void do_update_probes();
+void do_trace(const TMatrix4 &proj_tm);
+void denoise(const denoiser::TexMap &textures);
+void denoise_noop(const denoiser::TexMap &textures);
 void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, bool csm_shadow, const denoiser::TexMap &textures,
   bool checkerboard);
 

@@ -445,11 +445,20 @@ public:
 
     cwr.align32();
     pt_ddsx.startData(cwr, ddsx_buf.size());
-    unsigned ddsx_sz = 0;
+    uint64_t ddsx_sz = 0;
     for (int i = 0; i < ddsx_buf.size(); i++)
     {
       cwr.writeRaw(ddsx_buf[i].ptr, sizeof(ddsx::Header));
       ddsx_sz += ddsx_buf[i].len;
+      if (ddsx_sz >= (2000u << 20))
+      {
+        cwr.popOrigin();
+        cwr.endBlock();
+        cwr.reset(0);
+        log.addMessage(ILogWriter::ERROR, "Can't write texture pack: %s, content is too big (DDSx size >= %llu Mb)", pack_fname,
+          ddsx_sz >> 20);
+        return false;
+      }
     }
     pt_ddsx.finishTab(cwr);
 

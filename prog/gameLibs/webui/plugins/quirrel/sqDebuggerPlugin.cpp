@@ -24,11 +24,12 @@
 
 #include <squirrel/sqpcheader.h>
 #include <sqstdaux.h>
-#include <sqastio.h>
+#include <sqio.h>
 #include <squirrel/sqvm.h>
 #include <squirrel/sqstate.h>
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
+#include <sqmodules/sqmodules.h>
 
 
 using namespace webui;
@@ -54,7 +55,7 @@ static bool sq_output_overflow = false;
 
 static int sort_by_alph(const String *lhs, const String *rhs) { return strcmp(lhs->str(), rhs->str()); }
 
-static void sq_debug_printf(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void sq_debug_printf(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   if (sq_output.length() > sq_output_limit)
   {
@@ -83,7 +84,7 @@ static SQInteger sq_debug_print_to_output_str(HSQUIRRELVM vm)
 {
   if (SQ_SUCCEEDED(sq_tostring(vm, 2)))
   {
-    const SQChar *str;
+    const char *str;
     if (SQ_SUCCEEDED(sq_getstring(vm, -1, &str)))
     {
       sq_debug_printf(vm, "%s", str);
@@ -116,7 +117,7 @@ static SQInteger stub_debug_table_data(HSQUIRRELVM v)
 {
   if (SQ_SUCCEEDED(sq_tostring(v, 2)))
   {
-    const SQChar *s = nullptr;
+    const char *s = nullptr;
     G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, -1, &s)));
 
     const char *quotes = (sq_gettype(v, 2) == OT_STRING) ? "\"" : "";
@@ -143,8 +144,8 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
   return 0;
 }
 
-static void compile_error_handler(HSQUIRRELVM /*vm*/, SQMessageSeverity /*severity*/, const SQChar *desc, const SQChar * /*source*/,
-  SQInteger /*line*/, SQInteger /*column*/, const SQChar *)
+static void compile_error_handler(HSQUIRRELVM /*vm*/, SQMessageSeverity /*severity*/, const char *desc, const char * /*source*/,
+  SQInteger /*line*/, SQInteger /*column*/, const char *)
 {
   sq_output.setStr(desc);
 }
@@ -412,7 +413,7 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
       for (int level = 0; !foundInLocals && level < 10; level++)
       {
         int seq = 0;
-        while (const SQChar *name = sq_getlocal(vm, level, seq))
+        while (const char *name = sq_getlocal(vm, level, seq))
         {
           Sqrat::Var<Sqrat::Object> obj(vm, -1);
 
@@ -484,11 +485,11 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
           HSQOBJECT scriptClosure;
           sq_getstackobj(vm, -1, &scriptClosure);
           Sqrat::Function func(vm, *thisObj, scriptClosure);
-          Sqrat::Object result;
-          if (func.Evaluate(result))
+          auto result = func.Eval<Sqrat::Object>();
+          if (result)
           {
             if (!debugTableDataSq.IsNull())
-              debugTableDataSq.Execute(result, objFormatSettings);
+              debugTableDataSq.Execute(result.value(), objFormatSettings);
           }
           sq_pop(vm, 1); // script closure
         }
@@ -598,6 +599,7 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
     if (scriptprofile::isStarted())
     {
       scriptprofile::stop(debugger.vm);
+      scriptprofile::actualStop();
       String profileOutput;
       scriptprofile::getProfileResult(profileOutput);
       html_response_raw(params->conn, profileOutput);
@@ -607,6 +609,43 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
   }
 }
 
+namespace webui
+{
+void on_sqdebug(RequestInfo *params) { on_sqdebug_internal(int(params->plugin->userData), params); }
+
+
+void register_quirrel_debugger(SqModules *module_mgr, const char *url_name, const char *description)
+{
+  HSQUIRRELVM v = module_mgr->getVM();
+
+  if (dag_sq_debuggers.isVmRegistered(v))
+  {
+    DagSqDebugger &debugger = dag_sq_debuggers.get(v);
+    debugger.shutdown();
+    debugger.init(module_mgr, description);
+    return;
+  }
+
+  DagSqDebugger *debuggerPtr = dag_sq_debuggers.allocate();
+  G_ASSERTF(debuggerPtr, "cannot allocate new quirrel debugger, no more room");
+  if (debuggerPtr)
+  {
+    debuggerPtr->init(module_mgr, description);
+    webui::add_or_replace_plugin(webui::HttpPlugin{url_name, description, NULL, webui::on_sqdebug, size_t(debuggerPtr->myIndex)});
+  }
+}
+
+void shutdown_quirrel_debugger(SqModules *module_mgr)
+{
+  HSQUIRRELVM v = module_mgr->getVM();
+
+  if (dag_sq_debuggers.isVmRegistered(v))
+    dag_sq_debuggers.get(v).shutdown();
+}
+
+
+} // namespace webui
+
 
 #else // ENABLE_SQ_DEBUGGER
 
@@ -615,5 +654,12 @@ void debug_plugin_break_cb(DagSqDebugger & /*debugger*/, const char * /*sourcena
 
 void on_sqdebug_internal(int /*debugger_index*/, RequestInfo * /*params*/) {}
 
+
+namespace webui
+{
+void on_sqdebug(RequestInfo * /*params*/) {}
+void register_quirrel_debugger(SqModules * /*module_mgr*/, const char * /*url_name*/, const char * /*description*/) {}
+void shutdown_quirrel_debugger(SqModules * /*module_mgr*/) {}
+} // namespace webui
 
 #endif // ENABLE_SQ_DEBUGGER

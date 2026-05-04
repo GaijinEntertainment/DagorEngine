@@ -1,13 +1,18 @@
-hlsl(cs) {
-  #include "NRDEncoding.hlsli"
+include "hardware_defines.dshl"
 
+hlsl(cs) {
   #pragma hlsl2021
+
+  #define NRD_SIGNAL SPEC
+  #define NRD_MODE   RADIANCE
+  #define NRD_INTERNAL
+  #define MODE_5X5 0
 }
 
 shader nrd_reblur_specular_prepass
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_PrePass.cs.hlsl"
+    #include "REBLUR_PrePass.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -16,7 +21,8 @@ shader nrd_reblur_specular_prepass
 shader nrd_reblur_perf_specular_prepass
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_PrePass.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_PrePass.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -25,7 +31,7 @@ shader nrd_reblur_perf_specular_prepass
 shader nrd_reblur_specular_temporal_accumulation
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_TemporalAccumulation.cs.hlsl"
+    #include "REBLUR_TemporalAccumulation.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -34,7 +40,8 @@ shader nrd_reblur_specular_temporal_accumulation
 shader nrd_reblur_perf_specular_temporal_accumulation
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_TemporalAccumulation.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_TemporalAccumulation.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -43,7 +50,7 @@ shader nrd_reblur_perf_specular_temporal_accumulation
 shader nrd_reblur_specular_history_fix
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_HistoryFix.cs.hlsl"
+    #include "REBLUR_HistoryFix.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -52,7 +59,8 @@ shader nrd_reblur_specular_history_fix
 shader nrd_reblur_perf_specular_history_fix
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_HistoryFix.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_HistoryFix.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -61,7 +69,7 @@ shader nrd_reblur_perf_specular_history_fix
 shader nrd_reblur_specular_blur
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_Blur.cs.hlsl"
+    #include "REBLUR_Blur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -70,7 +78,8 @@ shader nrd_reblur_specular_blur
 shader nrd_reblur_perf_specular_blur
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_Blur.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_Blur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -79,7 +88,7 @@ shader nrd_reblur_perf_specular_blur
 shader nrd_reblur_specular_postblur
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_PostBlur.cs.hlsl"
+    #include "REBLUR_PostBlur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -88,7 +97,8 @@ shader nrd_reblur_specular_postblur
 shader nrd_reblur_perf_specular_postblur
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_PostBlur.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_PostBlur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -97,7 +107,7 @@ shader nrd_reblur_perf_specular_postblur
 shader nrd_reblur_specular_temporal_stabilization
 {
   hlsl(cs) {
-    #include "REBLUR_Specular_TemporalStabilization.cs.hlsl"
+    #include "REBLUR_TemporalStabilization.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -106,7 +116,8 @@ shader nrd_reblur_specular_temporal_stabilization
 shader nrd_reblur_perf_specular_temporal_stabilization
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_Specular_TemporalStabilization.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_TemporalStabilization.cs.hlsl"
   }
 
   compile("cs_6_5", "main");

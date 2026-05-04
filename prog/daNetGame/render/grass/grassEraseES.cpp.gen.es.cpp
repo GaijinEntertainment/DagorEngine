@@ -13,7 +13,8 @@ static void grass_eraser_es_all_events(const ecs::Event &__restrict evt, const e
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grass_eraser_es(evt
-        , ECS_RO_COMP(grass_eraser_es_comps, "grass_erasers__spots", ecs::Point4List)
+        , components.manager()
+    , ECS_RO_COMP(grass_eraser_es_comps, "grass_erasers__spots", ecs::Point4List)
     );
   while (++comp != compE);
 }
@@ -37,9 +38,9 @@ static constexpr ecs::ComponentDesc grass_eraser_destroy_es_comps[] =
 };
 static void grass_eraser_destroy_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   grass_eraser_destroy_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc grass_eraser_destroy_es_es_desc
 (
@@ -67,9 +68,9 @@ static ecs::CompileTimeQueryDesc get_grass_render_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_grass_render_ecs_query(Callable function)
+inline void get_grass_render_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_grass_render_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_grass_render_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

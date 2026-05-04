@@ -1,9 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/entityComponent.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/updateStage.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
 #include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_mathAng.h>
@@ -274,16 +277,16 @@ struct AttrKeyTrack
   AttrKeyTrack() {} //-V730
   bool isAnimated = false;
   void setName(const ecs::component_t n) { compName = n; }
-  inline void animate(const ecs::UpdateStageInfoAct &info, ecs::EntityId eid)
+  inline void animate(ecs::EntityManager &mgr, const ecs::UpdateStageInfoAct &info, ecs::EntityId eid)
   {
     if (!isAnimated)
       return;
-    if (!g_entity_mgr->has(eid, getCompName()))
+    if (!mgr.has(eid, getCompName()))
     {
       isAnimated = false;
       return;
     }
-    auto &v = g_entity_mgr->template getRW<Type>(eid, getCompName());
+    auto &v = mgr.template getRW<Type>(eid, getCompName());
     v = track.getKey(v, info.curTime);
     isAnimated = !track.isFinished();
   }
@@ -296,28 +299,28 @@ ECS_DECLARE_RELOCATABLE_TYPE(AttrAnimKeyTrackFloat);
 ECS_REGISTER_RELOCATABLE_TYPE(AttrAnimKeyTrackFloat, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(AttrAnimKeyTrackFloat, "anim_float_attr", nullptr, 0);
 
-static __forceinline void attr_float_track_anim_es(const ecs::UpdateStageInfoAct &info, ecs::EntityId eid,
+static __forceinline void attr_float_track_anim_es(const ecs::UpdateStageInfoAct &info, ecs::EntityManager &manager, ecs::EntityId eid,
   AttrAnimKeyTrackFloat &anim_float_attr)
 {
-  anim_float_attr.animate(info, eid);
+  anim_float_attr.animate(manager, info, eid);
 }
 
-inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdResetAttrFloatAnim &evt, ecs::EntityId eid,
-  AttrAnimKeyTrackFloat &anim_float_attr)
+inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdResetAttrFloatAnim &evt,
+  ecs::EntityManager &manager, ecs::EntityId eid, AttrAnimKeyTrackFloat &anim_float_attr)
 {
   anim_float_attr.setName(evt.get<0>());
-  if (auto attr = g_entity_mgr->getNullable<float>(eid, anim_float_attr.getCompName()))
+  if (auto attr = manager.getNullable<float>(eid, anim_float_attr.getCompName()))
   {
     reset_anim(*attr, evt.get<1>(), evt.get<2>(), anim_float_attr.track);
     anim_float_attr.isAnimated = true;
   }
 }
 
-inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdAddAttrFloatAnim &evt, ecs::EntityId eid,
-  AttrAnimKeyTrackFloat &anim_float_attr)
+inline void attr_float_key_track_change_anim_es_event_handler(const key_track_anim::CmdAddAttrFloatAnim &evt,
+  ecs::EntityManager &manager, ecs::EntityId eid, AttrAnimKeyTrackFloat &anim_float_attr)
 {
-  if (g_entity_mgr->is<float>(eid, anim_float_attr.getCompName())) // we assume component can be removed. May be better listen for
-                                                                   // event?
+  if (manager.is<float>(eid, anim_float_attr.getCompName())) // we assume component can be removed. May be better listen for
+                                                             // event?
   {
     add_key(evt.get<0>(), evt.get<1>(), evt.get<2>(), anim_float_attr.track);
     anim_float_attr.isAnimated = true;

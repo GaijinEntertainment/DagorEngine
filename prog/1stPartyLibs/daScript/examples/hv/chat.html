@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>daslang WebSocket Chat</title>
+<!--
+  Standalone HTML chat client for the daslang WebSocket chat server.
+
+  Usage:
+    1. Start the server:  daslang.exe examples/hv/ws_chat_server.das
+    2. Open this file directly in your browser (file:// works),
+       OR navigate to http://localhost:9090 (the server serves its
+       own copy of this page).
+
+  When opened via file://, the page connects to ws://localhost:9090/chat.
+  When served by the server, it auto-detects the host.
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #1a1a2e; color: #eee;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  #header {
+    background: #16213e; padding: 12px 20px; font-size: 1.2em;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #333;
+  }
+  #header .logo { color: #0f9; font-weight: bold; }
+  #conn-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px; background: #16213e; border-bottom: 1px solid #333;
+  }
+  #conn-bar label { font-size: 0.85em; color: #aaa; }
+  #conn-bar input {
+    flex: 1; max-width: 350px; padding: 6px 10px;
+    border: 1px solid #555; border-radius: 4px;
+    background: #1a1a2e; color: #eee; font-size: 0.9em;
+  }
+  #conn-bar button {
+    padding: 6px 16px; border: none; border-radius: 4px;
+    background: #0f9; color: #111; font-weight: bold; cursor: pointer;
+    font-size: 0.85em;
+  }
+  #conn-bar button:hover { background: #0da; }
+  #conn-bar .status {
+    font-size: 0.85em; margin-left: auto;
+  }
+  #conn-bar .status.ok   { color: #0f9; }
+  #conn-bar .status.err  { color: #f55; }
+  #conn-bar .status.wait { color: #fa0; }
+
+  #messages {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .msg {
+    padding: 6px 12px; border-radius: 6px;
+    max-width: 80%; word-wrap: break-word; font-size: 0.95em;
+  }
+  .msg.system { color: #888; font-style: italic; align-self: center; font-size: 0.85em; }
+  .msg.self   { background: #0a3d62; align-self: flex-end; }
+  .msg.other  { background: #2d3436; align-self: flex-start; }
+  .msg .ts    { font-size: 0.75em; color: #666; margin-right: 6px; }
+
+  #input-bar {
+    display: flex; padding: 12px 20px; gap: 10px;
+    background: #16213e; border-top: 1px solid #333;
+  }
+  #nick {
+    width: 120px; padding: 8px 12px; border: 1px solid #555;
+    border-radius: 6px; background: #1a1a2e; color: #eee;
+  }
+  #msg {
+    flex: 1; padding: 8px 12px; border: 1px solid #555;
+    border-radius: 6px; background: #1a1a2e; color: #eee;
+  }
+  #send {
+    padding: 8px 20px; border: none; border-radius: 6px;
+    background: #0f9; color: #111; font-weight: bold; cursor: pointer;
+  }
+  #send:hover { background: #0da; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span class="logo">daslang</span> WebSocket Chat
+</div>
+
+<div id="conn-bar">
+  <label>Server:</label>
+  <input id="url" value="ws://localhost:9090/chat">
+  <button id="conn-btn">Connect</button>
+  <span id="status" class="status err">Disconnected</span>
+</div>
+
+<div id="messages"></div>
+
+<div id="input-bar">
+  <input id="nick" placeholder="Nickname">
+  <input id="msg" placeholder="Type a message..." autofocus>
+  <button id="send">Send</button>
+</div>
+
+<script>
+(function() {
+  var ws = null;
+  var nickname = '';
+  var autoReconnect = true;
+
+  var messagesEl = document.getElementById('messages');
+  var statusEl   = document.getElementById('status');
+  var urlEl      = document.getElementById('url');
+  var connBtn    = document.getElementById('conn-btn');
+  var nickEl     = document.getElementById('nick');
+  var msgEl      = document.getElementById('msg');
+  var sendBtn    = document.getElementById('send');
+
+  // Auto-detect URL when served by the daslang server
+  if (location.protocol !== 'file:') {
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    urlEl.value = proto + '//' + location.host + '/chat';
+  }
+
+  function timestamp() {
+    var d = new Date();
+    return ('0'+d.getHours()).slice(-2) + ':' +
+           ('0'+d.getMinutes()).slice(-2) + ':' +
+           ('0'+d.getSeconds()).slice(-2);
+  }
+
+  function addMessage(text, cls) {
+    var div = document.createElement('div');
+    div.className = 'msg ' + cls;
+    var ts = document.createElement('span');
+    ts.className = 'ts';
+    ts.textContent = timestamp();
+    div.appendChild(ts);
+    div.appendChild(document.createTextNode(text));
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + cls;
+  }
+
+  function connect() {
+    if (ws && ws.readyState <= 1) {
+      ws.close();
+    }
+    var url = urlEl.value.trim();
+    if (!url) return;
+
+    setStatus('Connecting...', 'wait');
+    autoReconnect = true;
+
+    try {
+      ws = new WebSocket(url);
+    } catch(e) {
+      setStatus('Invalid URL', 'err');
+      return;
+    }
+
+    ws.onopen = function() {
+      setStatus('Connected', 'ok');
+      connBtn.textContent = 'Disconnect';
+      if (nickname) ws.send('/nick ' + nickname);
+    };
+
+    ws.onmessage = function(e) {
+      var m = e.data;
+      if (m.startsWith('[server]')) {
+        addMessage(m, 'system');
+      } else if (m.startsWith('[you]')) {
+        addMessage(m, 'self');
+      } else {
+        addMessage(m, 'other');
+      }
+    };
+
+    ws.onclose = function() {
+      setStatus('Disconnected', 'err');
+      connBtn.textContent = 'Connect';
+      if (autoReconnect) {
+        setStatus('Reconnecting...', 'wait');
+        setTimeout(connect, 2000);
+      }
+    };
+
+    ws.onerror = function() {
+      // onclose will fire after this
+    };
+  }
+
+  function disconnect() {
+    autoReconnect = false;
+    if (ws) ws.close();
+    setStatus('Disconnected', 'err');
+    connBtn.textContent = 'Connect';
+  }
+
+  function sendMessage() {
+    if (!ws || ws.readyState !== 1) return;
+    var text = msgEl.value.trim();
+    if (!text) return;
+    if (text.startsWith('/nick ')) {
+      nickname = text.substring(6).trim();
+      nickEl.value = nickname;
+    }
+    ws.send(text);
+    msgEl.value = '';
+  }
+
+  // Event handlers
+  connBtn.onclick = function() {
+    if (ws && ws.readyState <= 1) {
+      disconnect();
+    } else {
+      connect();
+    }
+  };
+
+  sendBtn.onclick = sendMessage;
+  msgEl.onkeydown = function(e) { if (e.key === 'Enter') sendMessage(); };
+  nickEl.onchange = function() {
+    var n = nickEl.value.trim();
+    if (n && n !== nickname && ws && ws.readyState === 1) {
+      nickname = n;
+      ws.send('/nick ' + n);
+    }
+  };
+
+  // Auto-connect on load
+  connect();
+})();
+</script>
+</body>
+</html>

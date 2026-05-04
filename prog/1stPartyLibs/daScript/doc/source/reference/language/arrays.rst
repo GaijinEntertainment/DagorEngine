@@ -9,7 +9,9 @@ Array
     single: Arrays
 
 An array is a sequence of values indexed by an integer number from 0 to the size of the
-array minus 1. An array's elements can be obtained by their index::
+array minus 1. An array's elements can be obtained by their index:
+
+.. code-block:: das
 
   var a = fixed_array<int>(1, 2, 3, 4) // fixed size of array is 4, and content is [1, 2, 3, 4]
   assert(a[0] == 1)
@@ -18,62 +20,82 @@ array minus 1. An array's elements can be obtained by their index::
   push(b,1)
   assert(b[0] == 1)
 
-Alternative syntax is::
+Alternative syntax is:
+
+.. code-block:: das
 
   var a = fixed_array(1,2,3,4)
 
-There are static arrays (of fixed size, allocated on the stack), and dynamic arrays (size is dynamic, allocated on the heap)::
+There are static arrays (of fixed size, allocated on the stack), and dynamic arrays (size is dynamic, allocated on the heap):
+
+.. code-block:: das
 
   var a = fixed_array(1, 2, 3, 4) // fixed size of array is 4, and content is [1, 2, 3, 4]
   var b: array<string>            // empty dynamic array
   push(b, "some")                 // now it is 1 element of "some"
   b |> push("some")               // same as above line, but using pipe operator
 
-Dynamic sub-arrays can be created out of any array type via range indexing::
+Dynamic sub-arrays can be created out of any array type via range indexing:
+
+.. code-block:: das
 
   var a  = fixed_array(1,2,3,4)
   let b <- a[1..3]               //  b is [2,3]
 
-In reality `a[b]`, where b is a range, is equivalent to `subarray(a, b)`.
+In reality ``a[b]``, where b is a range, is equivalent to ``subarray(a, b)``.
 
 Resizing, insertion, and deletion of dynamic arrays and array elements is done through a set of
-standard functions (see :ref:`built-in functions <stdlib__builtin>`).
+standard functions (see :ref:`built-in functions <stdlib_builtin>`).
 
 The relevant builtin functions are: ``push``, ``push_clone``, ``emplace``, ``reserve``, ``resize``, ``erase``, ``length``, ``clear``, ``empty`` and ``capacity``.
 
 Arrays (as well as tables, structures, and handled types) are passed to functions by reference only.
 
-Arrays cannot be copied; only cloned or moved. ::
+Arrays cannot be copied; only cloned or moved.
+
+.. code-block:: das
 
   def clone_array(var a, b: array<string>)
-    a := b      // a is not a deep copy of b
+    a := b      // a is now a deep copy of b
     clone(a, b) // same as above
 
   def move_array(var a, b: array<string>)
-    a <- b  // a is no points to same data as b, and b is empty.
+    a <- b  // a now points to the same data as b, and b is empty
 
-Arrays can be constructed inline::
+Arrays can be constructed inline:
+
+.. code-block:: das
 
 	let arr = fixed_array(1.,2.,3.,4.5)
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
 	let arr : float[4] = fixed_array<float>(1.,2.,3.,4.5)
 
-Dynamic arrays can also be constructed inline::
+Dynamic arrays can also be constructed inline:
+
+.. code-block:: das
 
 	let arr <- ["one"; "two"; "three"]
 
-This is syntactic equivalent to::
+This is syntactic equivalent to:
+
+.. code-block:: das
 
 	let arr : array<string> <- array<string>("one","two","three")
 
-Alternative syntax is::
+Alternative syntax is:
+
+.. code-block:: das
 
   let arr <- array(1., 2., 3., 4.5)
   let arr <- array<float>(1., 2., 3., 4.5)
 
-Arrays of structures can be constructed inline::
+Arrays of structures can be constructed inline:
+
+.. code-block:: das
 
   struct Foo {
     x : int = 1
@@ -82,7 +104,9 @@ Arrays of structures can be constructed inline::
 
   var a <- array struct<Foo>((x=11,y=22),(x=33),(y=44))    // dynamic array of Foo with 'construct' syntax (creates 3 different copies of Foo)
 
-Arrays of variants can be constructed inline::
+Arrays of variants can be constructed inline:
+
+.. code-block:: das
 
   variant Bar {
     i : int
@@ -92,7 +116,9 @@ Arrays of variants can be constructed inline::
 
   var a <- array variant<Bar>(Bar(i=1), Bar(f=2.), Bar(s="3"))    // dynamic array of Bar (creates 3 different copies of Bar)
 
-Arrays of tuples can be constructed inline::
+Arrays of tuples can be constructed inline:
+
+.. code-block:: das
 
   var a <- array tuple<i:int,s:string>((i=1,s="one"),(i=2,s="two"),(i=3,s="three"))    // dynamic array of tuples (creates 3 different copies of tuple)
 
@@ -111,24 +137,38 @@ When array elements can't be copied, use ``push_clone`` to insert a clone of a v
 
 ``capacity`` returns the number of elements that can be stored in the array without reallocating.
 
-It's possible to iterate over an array via a regular ``for`` loop. ::
+It's possible to iterate over an array via a regular ``for`` loop.
+
+.. code-block:: das
 
   for ( x in [1,2,3,4] ) {
     print("x = {x}\n")
   }
 
-Additionally, a collection of unsafe iterators is provided::
+Additionally, a collection of unsafe iterators is provided:
+
+.. code-block:: das
 
   def each ( a : auto(TT)[] ) : iterator<TT&>
   def each ( a : array<auto(TT)> ) : iterator<TT&>
 
 The reason both are unsafe operations is that they do not capture the array.
 
-Search functions are available for both static and dynamic arrays::
+Search functions are available for both static and dynamic arrays:
+
+.. code-block:: das
 
   def find_index ( arr : array<auto(TT)> implicit; key : TT )
   def find_index ( arr : auto(TT)[] implicit; key : TT )
   def find_index_if ( arr : array<auto(TT)> implicit; blk : block<(key:TT):bool> )
   def find_index_if ( arr : auto(TT)[] implicit; blk : block<(key:TT):bool> )
+
+.. seealso::
+
+    :ref:`Comprehensions <comprehensions>` for array and iterator comprehension syntax,
+    :ref:`Iterators <iterators>` for iteration patterns over arrays,
+    :ref:`Move, copy, and clone <clone_to_move>` for array copy, move, and clone rules,
+    :ref:`Locks <locks>` for array locking during iteration,
+    :ref:`Datatypes <datatypes_and_values>` for a list of element types.
 
 

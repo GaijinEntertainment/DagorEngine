@@ -18,7 +18,7 @@
 #include <api/das/genericBindings/idHierarchicalNameMap.h>
 #include <api/das/genericBindings/idIndexedMapping.h>
 #include <api/das/blobView.h>
-
+#include <api/das/resourceView.h>
 
 namespace dafg
 {
@@ -56,6 +56,7 @@ DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::BindingType, BindingType);
 #undef DAS_BASE_BIND_ENUM_CAST_AND_FACTORY
 
 MAKE_TYPE_FACTORY(ResourceData, dafg::ResourceData)
+MAKE_TYPE_FACTORY(CreatedResourceData, dafg::CreatedResourceData)
 MAKE_TYPE_FACTORY(VirtualPassRequirements, dafg::VirtualPassRequirements)
 MAKE_TYPE_FACTORY(NodeData, dafg::NodeData)
 MAKE_TYPE_FACTORY(InternalRegistry, dafg::InternalRegistry)
@@ -109,8 +110,8 @@ eastl::invoke_result_t<C> callDasFunction(das::Context *context, C &&callable)
 namespace bind_dascript
 {
 
-ManagedTexView getTexView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history);
-ManagedBufView getBufView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history);
+dafg::TextureView getTexView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history);
+dafg::BufferView getBufView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history);
 dafg::BlobView getBlobView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history);
 IPoint2 getResolution2(const dafg::ResourceProvider *provider, dafg::AutoResTypeNameId resId);
 IPoint3 getResolution3(const dafg::ResourceProvider *provider, dafg::AutoResTypeNameId resId);

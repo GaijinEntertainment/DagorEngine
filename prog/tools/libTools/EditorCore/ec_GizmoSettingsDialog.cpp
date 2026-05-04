@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <generic/dag_tab.h>
+#include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_GizmoSettingsDialog.h>
 #include <EditorCore/ec_gizmoSettings.h>
 #include <EditorCore/ec_gizmofilter.h>
+#include <EditorCore/ec_modelessDialogWindowController.h>
 #include <propPanel/control/container.h>
 
 enum
@@ -70,3 +72,15 @@ void GizmoSettingsDialog::onChange(int pcb_id, PropPanel::ContainerPropertyContr
       break;
   }
 }
+
+class GizmoSettingsDialogController : public ModelessDialogWindowController<GizmoSettingsDialog>
+{
+public:
+  const char *getWindowId() const override { return WindowIds::VIEWPORT_GIZMO_SETTINGS; }
+
+  void createDialog() override { dialog.reset(new GizmoSettingsDialog()); }
+};
+
+static GizmoSettingsDialogController gizmo_settings_dialog_controller;
+
+IModelessWindowController *get_gizmo_settings_dialog_controller() { return &gizmo_settings_dialog_controller; }

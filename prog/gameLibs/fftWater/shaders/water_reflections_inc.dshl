@@ -1,0 +1,112 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "vr_reprojection.dshl"
+include "flexible_scale_rasterization.dshl"
+include "dynamic_resolution.dshl"
+
+float object_reflection_distortion = 0.05;
+float water_reflection_normal_scale = 0.1; // when increasing test on high storminess
+float water_reflection_hdr_multiplier = 1;
+float temporal_aa = 0;
+
+float4 globtm_no_ofs_psf_0;
+float4 globtm_no_ofs_psf_1;
+float4 globtm_no_ofs_psf_2;
+float4 globtm_no_ofs_psf_3;
+float4 prev_globtm_no_ofs_psf_0;
+float4 prev_globtm_no_ofs_psf_1;
+float4 prev_globtm_no_ofs_psf_2;
+float4 prev_globtm_no_ofs_psf_3;
+float4 reprojected_world_view_pos;
+
+texture with_water_depth_tex;
+texture without_water_depth_tex;
+
+texture water_downsampled_normals;
+
+texture prev_combined_reflection_tex;
+
+texture water_mask;
+texture prev_water_mask;
+
+macro INIT_REFLECTION_COMMON(stage)
+  (stage) {
+    temporal_aa_factor@f1 = (1.0 - temporal_aa);
+  }
+endmacro
+
+macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
+  INIT_REFLECTION_COMMON(stage)
+  INIT_DYNAMIC_RESOLUTION(stage)
+
+  (stage) {
+    object_reflection_distortion@f4 = (object_reflection_distortion, water_reflection_normal_scale, 1.0 / water_reflection_hdr_multiplier, water_level);
+
+    with_water_depth_tex@smp2d =  with_water_depth_tex;
+    without_water_depth_tex@smp2d = without_water_depth_tex;
+
+    water_downsampled_normals@smp2d = water_downsampled_normals;
+
+    prev_combined_reflection_tex@smp2d = prev_combined_reflection_tex;
+    prev_refl_tex_load@tex2d = prev_combined_reflection_tex;
+    prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
+    reprojected_world_view_pos@f4 = reprojected_world_view_pos;
+
+    water_mask@tex2d = water_mask;
+    water_mask_exists@i1 = exists_tex(water_mask);
+    prev_water_mask@tex2d = prev_water_mask;
+  }
+
+  hlsl(stage) {
+    void getReflectionReprojection(float2 distortedTc, float2 fullResTexSize, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, float2 mipTexSize, out float4 prevTarget, out float weight)
+    {
+      float4 reprojectedWorldPos = reprojected_world_view_pos;
+      float3 prevViewVec = cameraToPoint;
+
+      weight = 0.7;
+
+      float defaultBlend = 0.65+temporal_aa_factor*0.25f;
+      float2 oldUv = 0;
+      float disocclusionFactor = 1;
+      {
+        // reprojection for reflections is physically incorrect, so if distance to reflected pixel is large compared to water surface pixel,
+        // we reproject it as it was on infinite distance. It's GREATLY improves reprojection quality for moving camera
+        // for pixels which not have proper ssr reflection weight depends from distance to this pixel
+        float reprojWorldPosWeight = newTarget.a > 0.01 ? (1 - saturate(0.03*(ssrDepth - 1.2*worldDist - 10))) : (1 - saturate(0.01*worldDist - 2));
+        float4 prevClip = mul(float4(prevViewVec, 0), prev_globtm_no_ofs_psf) + reprojWorldPosWeight * reprojectedWorldPos;
+        float3 prevScreen = prevClip.w > 0 ? prevClip.xyz*rcp(prevClip.w) : float3(2,2,0);
+        float offscreen = saturate(20.0f*(1.0f - max(abs(prevScreen.x), abs(prevScreen.y))));
+        float invalidateScale=3;
+        float2 oldUvLinear = prevScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
+        oldUv = linearToDistortedTc(oldUvLinear) * prev_dynamic_resolution_scale;
+
+        if (water_mask_exists)
+        {
+          float prevIsWater = prev_water_mask[oldUv * fullResTexSize].x;
+          disocclusionFactor = prevIsWater;
+        }
+
+        float2 dtc = abs(distortedTc - oldUv);
+        float movement = saturate(1-dot(invalidateScale.xx, dtc));
+
+        weight = offscreen * defaultBlend * movement * disocclusionFactor;
+      }
+
+      float2 sampleTexSize = mipLevel > 0 ? mipTexSize : fullResTexSize;
+      prevTarget = tex2Dlod(prev_combined_reflection_tex, float4(oldUv, 0, mipLevel));
+      int2 prevTexel = int2(floor(oldUv * sampleTexSize));
+      prevTarget.a = prev_refl_tex_load.Load(int3(prevTexel, mipLevel)).a; // no filtering for decoding alpha
+      if (prevTarget.a == 0)
+        weight = 0;
+
+      ##if use_bounding_vr_reprojection == on && hardware.dx12
+        // If in the prev frame, it was the screen mask, then reject it as it is black.
+        // We can use the current depth texture, as the mask doesn't change and is the same for both frames.
+        float maskCheck = tex2Dlod(with_water_depth_tex, float4(oldUv * current_dynamic_resolution_scale,0,0)).x;
+        if (maskCheck >= 1)
+          weight = 0;
+      ##endif
+    }
+  }
+endmacro
+

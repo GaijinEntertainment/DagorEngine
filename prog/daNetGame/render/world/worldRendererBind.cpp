@@ -51,6 +51,12 @@ void worldRenderer_setDaGdpRangeScale(float scale)
     wr->daGdpRangeScale = scale;
 }
 
+void worldRenderer_setCockpitReprojectionMode(CockpitReprojectionMode mode)
+{
+  if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
+    wr->setCockpitReprojectionMode(mode);
+}
+
 bool does_world_renderer_exist() { return static_cast<bool>(get_world_renderer()); }
 
 } // namespace bind_dascript

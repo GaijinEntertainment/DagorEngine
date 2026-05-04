@@ -23,7 +23,6 @@ source
 common_valid_variants
 {
   include variants.blk
-  invalid {hasTexture:i=4;}
 }
 
 common_assume_vars {}
@@ -51,5 +50,3 @@ explicit_var_ref
   include common_var_ref.blk
   include game_var_ref.blk
 }
-
-include "raytracing.blk"

@@ -1,0 +1,7 @@
+outer type: instance
+inner via outer: 42
+comp: 1
+comp after change: 2
+dragData initial: null
+dragData set: sword
+dragData cleared: null

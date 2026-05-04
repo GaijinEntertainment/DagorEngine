@@ -17,9 +17,9 @@ static ecs::CompileTimeQueryDesc animchar_shadow_occlusion_manager_ecs_query_des
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void animchar_shadow_occlusion_manager_ecs_query(Callable function)
+inline void animchar_shadow_occlusion_manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_shadow_occlusion_manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_shadow_occlusion_manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -48,9 +48,9 @@ static ecs::CompileTimeQueryDesc expand_bbox_by_attach_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void expand_bbox_by_attach_ecs_query(ecs::EntityId eid, Callable function)
+inline void expand_bbox_by_attach_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, expand_bbox_by_attach_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, expand_bbox_by_attach_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -83,9 +83,9 @@ static ecs::CompileTimeQueryDesc test_box_half_size_ecs_query_desc
   make_span(test_box_half_size_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void test_box_half_size_ecs_query(Callable function)
+inline void test_box_half_size_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, test_box_half_size_ecs_query_desc.getHandle(),
+  perform_query(&manager, test_box_half_size_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -120,9 +120,9 @@ static ecs::CompileTimeQueryDesc gather_soldier_bboxes_to_cull_ecs_query_desc
   make_span(gather_soldier_bboxes_to_cull_ecs_query_comps+7, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gather_soldier_bboxes_to_cull_ecs_query(Callable function)
+inline void gather_soldier_bboxes_to_cull_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_soldier_bboxes_to_cull_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_soldier_bboxes_to_cull_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

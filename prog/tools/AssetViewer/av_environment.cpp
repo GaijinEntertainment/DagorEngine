@@ -2,6 +2,7 @@
 
 #include "av_appwnd.h"
 #include "av_environment.h"
+#include "av_cm.h"
 
 #include <libTools/util/strUtil.h>
 #include <3d/dag_render.h>
@@ -24,6 +25,8 @@
 #include <shaders/dag_shaderDbg.h>
 
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_confirmation_dialog.h>
+#include <EditorCore/ec_modelessDialogWindowController.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/c_indirect.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -46,6 +49,7 @@ extern SimpleString av_skies_preset, av_skies_env, av_skies_wtype;
 extern IWindService *av_wind_srv;
 
 extern TEXTUREID load_land_micro_details(const DataBlock &micro);
+extern void close_land_micro_details(TEXTUREID &id);
 
 static inline void updateLight(bool update_var_before = false)
 {
@@ -72,6 +76,7 @@ namespace environment
 
 class EnvSetDlg;
 
+static TEXTUREID land_microdetails_id = BAD_TEXTUREID;
 static BaseTexture *texture = NULL;
 static TEXTUREID texId = BAD_TEXTUREID;
 static int textureStretch = 0;
@@ -103,6 +108,8 @@ enum
   PID_AMB_COLOR,
   PID_AMB_BRIGHTNESS,
 
+  PID_REVERT_SUB_AMB_BUTTON,
+
   PID_SUN_RESTORE,
 
   PID_ENV_BLK,
@@ -124,6 +131,7 @@ enum
   PID_RENDER_OPT,
   PID_RENDER_OPT_LAST = PID_RENDER_OPT + int(IDynRenderService::ROPT_COUNT),
   PID_GAMEOBJ_VISIBLE,
+  PID_REVERT_RENDER_BUTTON,
 
   PID_LTDBG_GROUP,
   PID_LTDBG_NMAP,
@@ -136,6 +144,7 @@ enum
   PID_WEATHER_ENV,
   PID_WEATHER_TYPE,
   PID_WEATHER_TIMEOFDAY,
+  PID_REVERT_WEATHER_BUTTON,
 
   PID_DBGSHOW_GRP,
   PID_DBGSHOW_MODE,
@@ -151,7 +160,8 @@ enum
   PID_WIND_NOISE_SPEED,
   PID_WIND_NOISE_SCALE,
   PID_WIND_NOISE_PERPENDICULAR,
-  PID_WIND_LEVEL
+  PID_WIND_LEVEL,
+  PID_REVERT_WIND_BUTTON,
 };
 
 
@@ -162,7 +172,6 @@ static int rdbgEnabledGvid = -1;
 static int rdbgTypeGvid = -1, rdbgUseNmapGvid = -1, rdbgUseDtexGvid = -1, rdbgUseLtGvid = -1;
 static int rdbgUseChromeGvid = -1;
 
-static eastl::unique_ptr<EnvSetDlg> environment_settings_dialog;
 static DataBlock av_ui_state;
 
 static inline void clearTex()
@@ -213,7 +222,7 @@ void renderEnviEntity(AssetLightData &ald)
 
   if (!ald.renderEnviEnt || ald.renderEnviEntAsset.empty())
   {
-    destroy_it(ald.renderEnviEntity);
+    destroyEnviEntity(ald);
     return;
   }
 
@@ -240,6 +249,8 @@ void renderEnviEntity(AssetLightData &ald)
     ald.renderEnviEntity->setTm(tm);
   }
 }
+
+void destroyEnviEntity(AssetLightData &ald) { destroy_it(ald.renderEnviEntity); }
 
 void renderEnvironment(bool ortho)
 {
@@ -349,7 +360,8 @@ const char *getEnviTitleStr(AssetLightData *ald)
 void clear()
 {
   clearTex();
-  close_environment_settings_dialog();
+  close_land_micro_details(land_microdetails_id);
+  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(environment::combinedPaintTexId, environment::combinedPaintTex);
 }
 
 void setUseSinglePaintColor(bool use) { useSinglePaintColor = use; }
@@ -444,14 +456,30 @@ public:
     if (_settings)
     {
       _settings->createTrackFloat(PID_SUN_AZIMUT, "sun azimut", RadToDeg(sunProps->azimuth), -180.f, 180.f, 0.1);
+      _settings->setDefaultValueById(PID_SUN_AZIMUT, SunLightProps::DEFAULT_AZIMUTH);
+
       _settings->createTrackFloat(PID_SUN_ZENITH, "sun zenith", RadToDeg(sunProps->zenith), -90.f, 90.f, 0.1);
+      _settings->setDefaultValueById(PID_SUN_ZENITH, SunLightProps::DEFAULT_ZENITH);
+
       _settings->createEditFloat(PID_SUN_ANGSIZE, "sun angSize", sunProps->angSize, 3);
+      _settings->setDefaultValueById(PID_SUN_ANGSIZE, SunLightProps::DEFAULT_ANG_SIZE);
+
       _settings->createEditFloat(PID_SUN_BRIGHTNESS, "sun integral luminocity", sunProps->calcLuminocity(), 3);
+      _settings->setDefaultValueById(PID_SUN_BRIGHTNESS,
+        SunLightProps::calcLuminocity(SunLightProps::DEFAULT_FIRST_SUN_BRIGTHNESS, sunProps->angSize));
+
       _settings->createSimpleColor(PID_SUN_COLOR, "sun color", sunProps->color);
+      _settings->setDefaultValueById(PID_SUN_COLOR, SunLightProps::DEFAULT_COLOR);
+
       ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
       SkyLightProps &sky = ltSrv->getSky();
       _settings->createSimpleColor(PID_AMB_COLOR, "ambient color", sky.color);
+      _settings->setDefaultValueById(PID_AMB_COLOR, SkyLightProps::DEFAULT_COLOR);
+
       _settings->createEditFloat(PID_AMB_BRIGHTNESS, "ambient brightness", sky.brightness, 2);
+      _settings->setDefaultValueById(PID_AMB_BRIGHTNESS, SkyLightProps::DEFAULT_BRIGHTNESS);
+
+      _settings->createButton(PID_REVERT_SUB_AMB_BUTTON, "Revert to default");
     }
 
     PropPanel::ContainerPropertyControl *_dbgShow =
@@ -549,7 +577,7 @@ public:
       if (!ald->envLevelBlkFn.empty())
         _panel->setText(PID_ENV_LEVEL_MICRODETAIL, ald->envLevelBlkFn);
 
-      DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+      DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
       if (const char *scan_level_blk_dir = appBlk.getStr("levelsBlkScanDir", NULL))
       {
         Tab<SimpleString> levblk;
@@ -579,10 +607,15 @@ public:
     PropPanel::ContainerPropertyControl *renderGrp = _panel->createGroup(PID_RENDER_GROUP, "Render settings");
 
     if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+    {
       renderGrp->createCheckBox(PID_GAMEOBJ_VISIBLE, "gameObj previews", gameObjSrv->getServiceVisible());
+      renderGrp->setDefaultValueById(PID_GAMEOBJ_VISIBLE, true);
+    }
 
     {
       renderGrp->createCheckBox(PID_ENV_REND_GRID, "render grid", get_app().getGrid().isVisible(0));
+      renderGrp->setDefaultValueById(PID_ENV_REND_GRID, true);
+
       for (int i = 0; i < drSrv->ROPT_COUNT; i++)
         if (drSrv->getRenderOptSupported(i))
           renderGrp->createCheckBox(PID_RENDER_OPT + i, drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i));
@@ -593,15 +626,24 @@ public:
         for (int i = 0; i < shadowQualityStr.size(); i++)
           shadowQualityStr[i] = drSrv->getShadowQualityNames()[i];
         renderGrp->createCombo(PID_SHADOW_QUALITY, "shadow quality", shadowQualityStr, drSrv->getShadowQuality());
+        renderGrp->setDefaultValueById(PID_SHADOW_QUALITY, 0);
       }
       if (drSrv->hasExposure())
+      {
         renderGrp->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-32 logarithmic)", drSrv->getExposure(), 0.0f, 32.0f, 0.0f,
           sqrt(32.0f));
+        renderGrp->setDefaultValueById(PID_EXPOSURE, 1.0f);
+      }
       renderGrp->createSeparator();
       renderGrp->createCheckBox(PID_ENV_REND_ENTITY, "render envi entity", ald->renderEnviEnt);
       renderGrp->createButton(PID_ENV_SELECT_ENTITY,
         ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
       renderGrp->createPoint3(PID_ENV_ENTITY_POS, "render envi entity at", ald->renderEnviEntPos);
+
+      renderGrp->setDefaultValueById(PID_ENV_REND_ENTITY, false);
+      renderGrp->setDefaultValueById(PID_ENV_ENTITY_POS, Point3{0.f, 0.f, 0.f});
+
+      renderGrp->createButton(PID_REVERT_RENDER_BUTTON, "Revert to default");
     }
   }
 
@@ -632,6 +674,17 @@ public:
     _wind->createTrackFloat(PID_WIND_NOISE_PERPENDICULAR, "Noise perpendicular", 0, 0, 2, 0.1);
     _wind->createFileButton(PID_WIND_LEVEL, "Level blk with wind settings");
 
+    static const IWindService::PreviewSettings defaults{};
+    _wind->setDefaultValueById(PID_WIND_DIR, defaults.windAzimuth);
+    _wind->setDefaultValueById(PID_WIND_STRENGTH, defaults.windStrength);
+    _wind->setDefaultValueById(PID_WIND_NOISE_STRENGTH, defaults.ambient.windNoiseStrength);
+    _wind->setDefaultValueById(PID_WIND_NOISE_SPEED, defaults.ambient.windNoiseSpeed);
+    _wind->setDefaultValueById(PID_WIND_NOISE_SCALE, defaults.ambient.windNoiseScale);
+    _wind->setDefaultValueById(PID_WIND_NOISE_PERPENDICULAR, defaults.ambient.windNoisePerpendicular);
+    _wind->setDefaultValueById(PID_WIND_LEVEL, defaults.levelPath);
+
+    _wind->createButton(PID_REVERT_WIND_BUTTON, "Revert to default");
+
     setAmbientWindPanel(_panel);
   }
   void enableAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
@@ -654,12 +707,15 @@ public:
       Tab<String> preset(midmem), env(midmem), wtype(midmem);
       av_skies_srv->fillPresets(preset, env, wtype);
 
-      float local_time = av_skies_srv->getAppliedWeatherDesc().getReal("locTime", 12.0f);
+      float local_time = av_skies_srv->getAppliedWeatherDesc().getReal("locTime", ISkiesService::DEFAULT_LOCALTIME);
       _skies->createTrackFloat(PID_WEATHER_TIMEOFDAY, "Time of day", local_time, 0.f, 24.f, 0.1);
+      _skies->setDefaultValueById(PID_WEATHER_TIMEOFDAY, local_time);
+
       insert_item_at(preset, 0, String("-- Disable daSkies --"));
       _skies->createList(PID_WEATHER_PRESET, "Weather presets", preset,
         av_skies_preset.empty() ? preset[0].str() : av_skies_preset.str());
       _skies->getById(PID_WEATHER_PRESET)->setHeight(_pxScaled(80));
+      _skies->setDefaultValueById(PID_WEATHER_PRESET, _skies->getById(PID_WEATHER_PRESET)->getIntValue());
 
       if (preset.size() > 1)
       {
@@ -667,7 +723,12 @@ public:
         _skies->createList(PID_WEATHER_TYPE, "Weather types", wtype, av_skies_wtype);
         _skies->getById(PID_WEATHER_ENV)->setHeight(_pxScaled(80));
         _skies->getById(PID_WEATHER_TYPE)->setHeight(_pxScaled(80));
+        _skies->setDefaultValueById(PID_WEATHER_ENV, _skies->getById(PID_WEATHER_ENV)->getIntValue());
+        _skies->setDefaultValueById(PID_WEATHER_TYPE, _skies->getById(PID_WEATHER_TYPE)->getIntValue());
       }
+
+      _skies->createButton(PID_REVERT_WEATHER_BUTTON, "Revert to default");
+
       return true;
     }
     return false;
@@ -683,7 +744,7 @@ public:
         {
           ald->renderEnviEntAsset = asset;
           panel->setCaption(pcb_id, ald->renderEnviEntAsset.empty() ? "-- no envi entity --" : ald->renderEnviEntAsset);
-          destroy_it(ald->renderEnviEntity);
+          environment::destroyEnviEntity(*ald);
           environment::renderEnviEntity(*ald);
         }
         break;
@@ -696,7 +757,13 @@ public:
           ald->setPaintDetailsTexture();
         }
         break;
+      case PID_REVERT_SUB_AMB_BUTTON:
+      case PID_REVERT_WEATHER_BUTTON:
+      case PID_REVERT_WIND_BUTTON:
+      case PID_REVERT_RENDER_BUTTON: OnRevertToDfaultsButtonClicked(pcb_id); break;
     }
+
+    updateRevertButtons();
   }
 
 
@@ -803,6 +870,13 @@ public:
 
       case PID_SUN_ZENITH:
         sunProps->zenith = DegToRad(panel->getFloat(pcb_id));
+        updateLight();
+        break;
+
+      case PID_SUN_ANGSIZE:
+        sunProps->angSize = DegToRad(panel->getFloat(pcb_id));
+        getPanel()->setDefaultValueById(PID_SUN_BRIGHTNESS,
+          SunLightProps::calcLuminocity(SunLightProps::DEFAULT_FIRST_SUN_BRIGTHNESS, sunProps->angSize));
         updateLight();
         break;
 
@@ -926,7 +1000,8 @@ public:
           if (!av_skies_preset.empty() && !av_skies_env.empty() && !av_skies_wtype.empty())
           {
             av_skies_srv->setWeather(av_skies_preset, av_skies_env, av_skies_wtype);
-            panel->setFloat(PID_WEATHER_TIMEOFDAY, av_skies_srv->getAppliedWeatherDesc().getReal("locTime", 12.0f));
+            panel->setFloat(PID_WEATHER_TIMEOFDAY,
+              av_skies_srv->getAppliedWeatherDesc().getReal("locTime", ISkiesService::DEFAULT_LOCALTIME));
           }
           updateLight();
           EDITORCORE->actObjects(1e-3); // to update use_skies flag
@@ -962,12 +1037,35 @@ public:
           if (scheme->getParams(schemeGrp, ShGlobVars))
             ShaderGlobal::set_vars_from_blk(ShGlobVars);
     }
+
+    updateRevertButtons();
   }
 
   PropPanel::PropPanelScheme *scheme = nullptr;
   PropPanel::ContainerPropertyControl *schemeGrp = nullptr;
 
 protected:
+  void updateRevertButtons()
+  {
+    updateRevertButton(PID_SETTINGS_GROUP, PID_REVERT_SUB_AMB_BUTTON);
+    updateRevertButton(PID_SKIES_GROUP, PID_REVERT_WEATHER_BUTTON);
+    updateRevertButton(PID_WIND_GROUP, PID_REVERT_WIND_BUTTON);
+    updateRevertButton(PID_RENDER_GROUP, PID_REVERT_RENDER_BUTTON);
+  }
+
+  void updateRevertButton(int pcb_group, int pcb_id)
+  {
+    if (PropPanel::PropertyControlBase *control = getPanel()->getById(pcb_group))
+    {
+      const bool enabled = !control->isDefaultValueSet();
+      if (PropPanel::PropertyControlBase *control = getPanel()->getById(pcb_id))
+      {
+        getPanel()->setEnabledById(pcb_id, enabled);
+        getPanel()->setTooltipId(pcb_id, enabled ? "" : "All set to default");
+      }
+    }
+  }
+
   void releaseShaderScheme()
   {
     if (schemeGrp)
@@ -987,40 +1085,71 @@ protected:
       ald->getPaintDetailsTexAssetToLoad().empty() ? "-- no palette tex --" : ald->getPaintDetailsTexAssetToLoad().c_str());
   }
 
+  void OnRevertToDfaultsButtonClicked(int button)
+  {
+    if (
+      ConfirmationDialog("Revert to defaults", "Are you sure you want to revert to defaults?").showDialog() == PropPanel::DIALOG_ID_OK)
+    {
+      switch (button)
+      {
+        case PID_REVERT_SUB_AMB_BUTTON: getPanel()->getById(PID_SETTINGS_GROUP)->applyDefaultValue(); break;
+        case PID_REVERT_WEATHER_BUTTON: getPanel()->getById(PID_SKIES_GROUP)->applyDefaultValue(); break;
+        case PID_REVERT_WIND_BUTTON: getPanel()->getById(PID_WIND_GROUP)->applyDefaultValue(); break;
+        case PID_REVERT_RENDER_BUTTON: getPanel()->getById(PID_RENDER_GROUP)->applyDefaultValue(); break;
+      }
+    }
+  }
+
   SunLightProps *sunProps;
   AssetLightData *ald;
 };
 
-//---------------------------------------------------------------------------
-
-void show_environment_settings(void *handle, AssetLightData *ald)
+class EnvironmentSettingsDialogController : public ModelessDialogWindowController<EnvSetDlg>
 {
-  ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
-  G_ASSERT(ltSrv && "show_environment_settings: EDITORCORE has no interface!!!");
+public:
+  const char *getWindowId() const override { return WindowIds::MAIN_SETTINGS_ENVIRONMENT; }
 
-  if (ltSrv->getSunCount() == 0)
+  void releaseWindow() override
   {
-    logerr("Sun count is zero. The environment dialog will not be displayed.");
-    return;
+    saveSettingsFromDialog();
+    ModelessDialogWindowController::releaseWindow();
   }
 
-  if (!environment_settings_dialog)
+  void saveSettingsFromDialog()
   {
+    if (dialog)
+    {
+      av_ui_state.clearData();
+      dialog->getPanel()->saveState(av_ui_state, /*by_name = */ true);
+    }
+  }
+
+private:
+  void createDialog() override
+  {
+    ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
+    G_ASSERT(ltSrv && "show_environment_settings: EDITORCORE has no interface!!!");
+
+    if (ltSrv->getSunCount() == 0)
+    {
+      logerr("Sun count is zero. The environment dialog will not be displayed.");
+      return;
+    }
+
     SunLightProps *defSun = ltSrv->getSun(0);
-    environment_settings_dialog.reset(new EnvSetDlg(handle, defSun, ald));
-    environment_settings_dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
-    environment_settings_dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+    dialog.reset(new EnvSetDlg(nullptr, defSun, &get_app().getAssetLightData()));
+    dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
+    dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
 
     // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
-    environment_settings_dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+    dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
 
     // global shader vars fill
 
-    PropPanel::ContainerPropertyControl *grp =
-      environment_settings_dialog->getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
-    grp->setEventHandler(environment_settings_dialog.get());
+    PropPanel::ContainerPropertyControl *grp = dialog->getPanel()->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
+    grp->setEventHandler(dialog.get());
 
-    DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+    DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
     DataBlock schemeBlk;
     schemeBlk.setFrom(appBlk.getBlockByNameEx("shader_glob_vars_scheme"));
 
@@ -1028,38 +1157,21 @@ void show_environment_settings(void *handle, AssetLightData *ald)
     scheme->load(schemeBlk, true);
     scheme->setParams(grp, ShGlobVars);
     grp->setBoolValue(true);
-    environment_settings_dialog->scheme = scheme;
-    environment_settings_dialog->schemeGrp = grp;
+    dialog->scheme = scheme;
+    dialog->schemeGrp = grp;
 
-    if (!environment_settings_dialog->hasEverBeenShown())
-      environment_settings_dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
+    dialog->getPanel()->loadState(av_ui_state, /*by_name = */ true);
 
-    environment_settings_dialog->getPanel()->loadState(av_ui_state, /*by_name = */ true);
+    if (!dialog->hasEverBeenShown())
+      dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
   }
+};
 
-  if (environment_settings_dialog->isVisible())
-    environment_settings_dialog->hide();
-  else
-    environment_settings_dialog->show();
-}
+static EnvironmentSettingsDialogController environment_settings_dialog_controller;
 
+IModelessWindowController *get_environment_settings_dialog_controller() { return &environment_settings_dialog_controller; }
 
-static void get_ui_state_from_dialog()
-{
-  if (environment_settings_dialog)
-  {
-    av_ui_state.clearData();
-    environment_settings_dialog->getPanel()->saveState(av_ui_state, /*by_name = */ true);
-  }
-}
-
-
-void close_environment_settings_dialog()
-{
-  get_ui_state_from_dialog();
-  environment_settings_dialog.reset();
-}
-
+//---------------------------------------------------------------------------
 
 void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid)
 {
@@ -1126,7 +1238,7 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
   ald->rdbgUseLt = blk.getBool("rdbgUseLt", ald_def->rdbgUseLt);
   ald->rdbgUseChrome = blk.getBool("rdbgUseChrome", ald_def->rdbgUseChrome);
 
-  DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+  DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
 
   updateLight();
   detectRenderDebug();
@@ -1254,7 +1366,7 @@ static void save_settings_internal(DataBlock &blk, AssetLightData *ald, const As
 
 void save_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *ald_def, bool &rend_grid)
 {
-  get_ui_state_from_dialog();
+  environment_settings_dialog_controller.saveSettingsFromDialog();
   save_settings_internal(blk, ald, ald_def, rend_grid);
 }
 
@@ -1267,34 +1379,49 @@ void environment::load_skies_settings(const DataBlock &blk)
 
   av_skies_srv->fillPresets(preset, env, wtype);
 
-  const char *preset_str = blk.getStr("preset", nullptr);
-  if (!preset_str)
-    preset_str = preset.size() > 0 ? preset[0].c_str() : "";
-  String ps(::make_full_path(get_app().getWorkspace().getSdkDir(), preset_str));
-  if (!dd_file_exists(ps))
+  if (!preset.empty() && !env.empty() && !wtype.empty())
   {
-    ps = preset_str;
-    if (!dd_file_exists(ps) && !ps.empty())
-      ps = preset.empty() ? "" : preset[0];
+    const char *preset_str = blk.getStr("preset", nullptr);
+    if (!preset_str || preset_str[0] == '\0')
+      preset_str = preset.size() > 0 ? preset[0].c_str() : "";
+    String ps(::make_full_path(get_app().getWorkspace().getSdkDir(), preset_str));
+    if (!dd_file_exists(ps))
+    {
+      ps = preset_str;
+      if (!dd_file_exists(ps) && !ps.empty())
+        ps = preset.empty() ? "" : preset[0];
+    }
+    if (ps.empty())
+      get_app().getConsole().addMessage(ILogWriter::ERROR, ".asset-local/_av.blk: skies { preset:t=\"%s\"  not found or not set",
+        blk.getStr("preset", ""));
+    else
+      simplify_fname(ps);
+    idx = find_value_idx(preset, ps);
+    if (idx < 0 && !ps.empty() && !preset.empty())
+      idx = 0;
+    av_skies_preset = idx >= 0 ? preset[idx].str() : "";
+
+    idx = find_value_idx(env, String(blk.getStr("env", "")));
+    av_skies_env = env[idx >= 0 ? idx : 0];
+
+    idx = find_value_idx(wtype, String(blk.getStr("wtype", "")));
+    av_skies_wtype = wtype[idx >= 0 ? idx : 0];
+
+    if (!av_skies_preset.empty() && !av_skies_env.empty() && !av_skies_wtype.empty())
+      av_skies_srv->setWeather(av_skies_preset, av_skies_env, av_skies_wtype);
   }
-  if (ps.empty())
-    get_app().getConsole().addMessage(ILogWriter::ERROR, ".asset-local/_av.blk: skies { preset:t=\"%s\"  not found or not set",
-      blk.getStr("preset", ""));
+
+  float locTime = blk.getReal("locTime", -1.0f);
+  if (locTime >= 0.0f)
+  {
+    DataBlock stars;
+    stars.setReal("localTime", locTime);
+    av_skies_srv->overrideWeather(0, nullptr, nullptr, -1, nullptr, &stars);
+  }
   else
-    simplify_fname(ps);
-  idx = find_value_idx(preset, ps);
-  if (idx < 0 && !ps.empty() && !preset.empty())
-    idx = 0;
-  av_skies_preset = idx >= 0 ? preset[idx].str() : "";
-
-  idx = find_value_idx(env, String(blk.getStr("env", "")));
-  av_skies_env = env[idx >= 0 ? idx : 0];
-
-  idx = find_value_idx(wtype, String(blk.getStr("wtype", "")));
-  av_skies_wtype = wtype[idx >= 0 ? idx : 0];
-
-  if (!av_skies_preset.empty() && !av_skies_env.empty() && !av_skies_wtype.empty())
-    av_skies_srv->setWeather(av_skies_preset, av_skies_env, av_skies_wtype);
+  {
+    av_skies_srv->overrideWeather(0, nullptr, nullptr, -1, nullptr, nullptr);
+  }
 }
 
 void environment::save_skies_settings(DataBlock &blk)
@@ -1302,6 +1429,8 @@ void environment::save_skies_settings(DataBlock &blk)
   blk.setStr("preset", ::make_path_relative(av_skies_preset, get_app().getWorkspace().getSdkDir()));
   blk.setStr("env", av_skies_env);
   blk.setStr("wtype", av_skies_wtype);
+  if (av_skies_srv)
+    blk.setReal("locTime", av_skies_srv->getAppliedWeatherDesc().getReal("locTime", ISkiesService::DEFAULT_LOCALTIME));
 }
 
 void environment::on_asset_changed(const DagorAsset &asset, AssetLightData &ald)
@@ -1410,7 +1539,7 @@ void AssetLightData::setPaintDetailsTexture()
     environment::combinedPaintTexId = register_managed_tex("paint_details_tex", environment::combinedPaintTex);
     TextureInfo texInfo;
     environment::combinedPaintTex->getinfo(texInfo);
-    ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
+    ShaderGlobal::set_float(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
   }
   else if (VariableMap::isGlobVariablePresent(paintDetailsVarId))
     DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset='%s' var=%d)",
@@ -1430,21 +1559,17 @@ void AssetLightData::setPaintDetailsTexture()
 void AssetLightData::applyMicrodetailFromLevelBlk(const DataBlock &level_blk)
 {
   static DataBlock microDetails;
-  static TEXTUREID landMicrodetailsId = BAD_TEXTUREID;
 
   const DataBlock &blk = *level_blk.getBlockByNameEx("micro_details");
   if (microDetails != blk)
   {
     DAEDITOR3.conNote("load micro details: %s", envLevelBlkFn);
-    ShaderGlobal::reset_from_vars(landMicrodetailsId);
-    release_managed_tex(landMicrodetailsId);
-    landMicrodetailsId = load_land_micro_details(blk);
+    close_land_micro_details(environment::land_microdetails_id);
+    environment::land_microdetails_id = load_land_micro_details(blk);
     microDetails = blk;
   }
 
-  const char *appDir = get_app().getWorkspace().getAppDir();
-  String fname(260, "%sapplication.blk", appDir);
-  DataBlock appBlk(fname);
+  DataBlock appBlk(get_app().getWorkspace().getAppBlkPath());
 
   EDITORCORE->queryEditorInterface<IDynRenderService>()->reloadCharacterMicroDetails(*appBlk.getBlockByNameEx("dynamicDeferred"),
     level_blk);

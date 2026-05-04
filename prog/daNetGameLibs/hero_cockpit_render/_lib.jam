@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_hero_cockpit_render_pull ;
+  UseProgLibs += daNetGameLibs/hero_cockpit_render ;
+}

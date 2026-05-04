@@ -48,6 +48,8 @@ bool settleNodes = false;
 bool requestedCapture = false;
 bool resetView = false;
 bool moveInputsToOutputs = true;
+constexpr int NAME_FILTER_LEN = 256;
+char resourceNameFilter[NAME_FILTER_LEN] = {};
 
 struct GraphLayout
 {
@@ -139,6 +141,8 @@ void wnd_header()
     moveInputsToOutputs = !moveInputsToOutputs;
     settleNodes = true;
   }
+
+  ImGui::InputText("Resource name filter", resourceNameFilter, NAME_FILTER_LEN);
 }
 
 bool request_capture_data_and_wait()
@@ -155,6 +159,7 @@ bool request_capture_data_and_wait()
     if (!requestedCapture)
     {
       requestedCapture = true;
+      Backend::interop.syncCaptureNameFilter = resourceNameFilter;
       ++Backend::interop.syncCaptureRequest;
       return false;
     }

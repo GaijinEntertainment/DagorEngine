@@ -27,7 +27,7 @@
 
 include "shader_global.dshl"
 
-texture depth_resolved;
+texture depth_gbuf;
 texture resolved_motion_vectors;
 texture sgsr2_prev_output;
 texture sgsr2_motion_depth_clip_alpha_buffer;
@@ -48,8 +48,6 @@ int sgsr2_same_camera_frame_num;
 
 shader sgsr2_2pass_convert_ps
 {
-  ENABLE_ASSERT(ps)
-
   supports global_frame;
   cull_mode  = none;
   z_test = false;
@@ -58,8 +56,8 @@ shader sgsr2_2pass_convert_ps
   POSTFX_VS_TEXCOORD(0, texCoord)
 
   (ps) {
-    InputDepth@smp2d = depth_resolved;
-    InputVelocity@smp2d = resolved_motion_vectors;
+    InputDepth@smp2d = depth_gbuf;
+    InputVelocity@tex2d = resolved_motion_vectors;
 
     p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
     p_renderSize@f2 = (sgsr2_render_size.xy);
@@ -166,8 +164,6 @@ shader sgsr2_2pass_convert_ps
 
 shader sgsr2_2pass_upscale_ps
 {
-  ENABLE_ASSERT(ps)
-
   supports global_frame;
   cull_mode  = none;
   z_test = false;
@@ -178,7 +174,7 @@ shader sgsr2_2pass_upscale_ps
   (ps) {
     PrevOutput@smp2d = sgsr2_prev_output;
     MotionDepthClipAlphaBuffer@smp2d = sgsr2_motion_depth_clip_alpha_buffer;
-    InputColor@smp2d = sgsr2_input_color;
+    InputColor@tex2d = sgsr2_input_color;
 
     p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
     p_renderSize@f2 = (sgsr2_render_size.xy);
@@ -452,12 +448,10 @@ shader sgsr2_2pass_upscale_ps
 
 shader sgsr2_2pass_convert_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
-    InputDepth@smp2d = depth_resolved;
-    InputVelocity@smp2d = resolved_motion_vectors;
-    InputColor@smp2d = sgsr2_input_color;
+    InputDepth@smp2d = depth_gbuf;
+    InputVelocity@tex2d = resolved_motion_vectors;
+    InputColor@tex2d = sgsr2_input_color;
 
     p_clipToPrevClip@f4[] = sgsr2_clip_to_prev_clip;
     p_renderSize@f2 = (sgsr2_render_size.xy);
@@ -538,7 +532,7 @@ shader sgsr2_2pass_convert_cs
       float4 EncodedVelocity = texelFetch(InputVelocity, int2(dtId.xy), 0);
 
       float2 motion;
-      if (EncodedVelocity.x != 0.0 && EncodedVelocity.y != 0.0)
+      if (EncodedVelocity.x < 1.0f && EncodedVelocity.y > -1.0f)
       {
         // Modified for dagor: motion vectors don't need decode
         // motion = decodeVelocityFromTexture(EncodedVelocity.xy);
@@ -587,8 +581,6 @@ shader sgsr2_2pass_convert_cs
 
 shader sgsr2_2pass_upscale_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     YCoCgColor@smp = sgsr2_ycocg_color hlsl { Texture2D<uint> YCoCgColor@smp; };
     PrevHistoryOutput@smp2d = sgsr2_prev_output;

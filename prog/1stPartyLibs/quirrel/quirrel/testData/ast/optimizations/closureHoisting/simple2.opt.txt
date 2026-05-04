@@ -1,14 +1,48 @@
-{
-  local z = 0
-  let foo = FUNCTION foo(x, y) {
-    let f1 = FUNCTION f1(a) {
-      let $ch0 = FUNCTION f3(c) {
-        RETURN a + c
-      }
-      let f2 = FUNCTION f2(x) {
-        let f3 = $ch0
-        RETURN x + y
-      }
-    }
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'local', name = 'z', type = 'any'
+|   Initializer
+|     LiteralExpr LK_INT 0
+`-VarDecl 'let', name = 'foo', type = 'any'
+    Initializer
+      FunctionExpr name = 'foo', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 2
+      | |-Parameter #1 name = 'x', type = 'any'
+      | `-Parameter #2 name = 'y', type = 'any'
+      `-Body
+          Block isRoot = 0, isBody = 1
+            VarDecl 'let', name = 'f1', type = 'any'
+              Initializer
+                FunctionExpr name = 'f1', pure = 0, nodiscard = 0, resultType = 'any'
+                |-Parameters count = 1
+                |   Parameter #1 name = 'a', type = 'any'
+                `-Body
+                    Block isRoot = 0, isBody = 1
+                    |-VarDecl 'let', name = '$ch0', type = 'any'
+                    |   Initializer
+                    |     FunctionExpr name = 'f3', pure = 0, nodiscard = 0, resultType = 'any'
+                    |     |-Parameters count = 1
+                    |     |   Parameter #1 name = 'c', type = 'any'
+                    |     `-Body
+                    |         Block isRoot = 0, isBody = 1
+                    |           ReturnStatement
+                    |             BinExpr '+'
+                    |             |-Left
+                    |             |   Id 'a'
+                    |             `-Right
+                    |                 Id 'c'
+                    `-VarDecl 'let', name = 'f2', type = 'any'
+                        Initializer
+                          FunctionExpr name = 'f2', pure = 0, nodiscard = 0, resultType = 'any'
+                          |-Parameters count = 1
+                          |   Parameter #1 name = 'x', type = 'any'
+                          `-Body
+                              Block isRoot = 0, isBody = 1
+                              |-VarDecl 'let', name = 'f3', type = 'any'
+                              |   Initializer
+                              |     Id '$ch0'
+                              `-ReturnStatement
+                                  BinExpr '+'
+                                  |-Left
+                                  |   Id 'x'
+                                  `-Right
+                                      Id 'y'

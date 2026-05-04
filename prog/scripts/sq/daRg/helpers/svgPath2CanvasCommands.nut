@@ -15,12 +15,12 @@ const BEZIER_CORNER_ABS = "BEZIER_CORNER_ABS"
 const BEZIER_CORNER_REL = "BEZIER_CORNER_REL"
 const BEZIER_SMOOTH_REL = "BEZIER_SMOOTH_REL"
 const BEZIER_SMOOTH_ABS = "BEZIER_SMOOTH_ABS"
-const BEZIER_QUADRATIC_REL = "BEZIER_QUADRATIC_REL"
-const BEZIER_QUADRATIC_ABS = "BEZIER_QUADRATIC_ABS"
-const BEZIER_T_REL = "BEZIER_T_REL"
-const BEZIER_T_ABS = "BEZIER_T_ABS"
-const ARC_ABS = "ARC_ABS"
-const ARC_REL = "ARC_REL"
+//const BEZIER_QUADRATIC_REL = "BEZIER_QUADRATIC_REL"
+//const BEZIER_QUADRATIC_ABS = "BEZIER_QUADRATIC_ABS"
+//const BEZIER_T_REL = "BEZIER_T_REL"
+//const BEZIER_T_ABS = "BEZIER_T_ABS"
+//const ARC_ABS = "ARC_ABS"
+//const ARC_REL = "ARC_REL"
 
 let COMMANDS_KEYS = {
   "M" : {command = MOVE_ABS, points_req=2, abs=true}
@@ -149,8 +149,9 @@ function pathToCanvas(path, viewBox=null, fill=false){
       res.append(lastCmd)
       lastInitialPoint = transformP(points[0], offset, scale, curCursorPos, command)
       foreach (p in points){
+        let pt = transformP(p, offset, scale, curCursorPos, command)
         curCursorPos = curPos(curCursorPos, p, command)
-        lastCmd.extend(transformP(p, offset, scale, curCursorPos, command))
+        lastCmd.extend(pt)
       }
     }
     else if (commandName == CLOSE) {

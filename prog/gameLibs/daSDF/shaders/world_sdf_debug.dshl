@@ -5,19 +5,24 @@ include "postfx_inc.dshl"
 include "viewVecVS.dshl"
 include "globtm.dshl"
 
+int world_sdf_debug_clip = -1;
+int world_sdf_debug_mode = 0;
+
 shader sdf_world_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   cull_mode = none;
   z_write = false;
   z_test = false;
 
-  ENABLE_ASSERT(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewvec)
-  (ps) {debug_world_view_pos@f3 = world_view_pos;}
+  (ps) {
+    debug_world_view_pos@f3 = world_view_pos;
+    world_sdf_debug_clip@i1 = world_sdf_debug_clip;
+    world_sdf_debug_mode@i1 = world_sdf_debug_mode;
+  }
 
   READ_WORLD_SDF(ps)
 
@@ -36,26 +41,51 @@ shader sdf_world_debug
     {
       Output output = (Output)0;
 
-      uint clip = 0;
+      uint clip = max(0, world_sdf_debug_clip);
       float maxT = 1400, t = maxT;
       float3 rayDir = normalize(input.viewvec);
-      if (world_sdf_trace(debug_world_view_pos, rayDir, maxT, t, clip, 1))
+      float3 rayStart = debug_world_view_pos;
+
+      BRANCH
+      if (world_sdf_debug_clip <= -1)
       {
-        float3 worldPos = debug_world_view_pos + t*rayDir;
-        float3 gradient = world_sdf_sample_gradient(clip, worldPos);
-        float t2 = t;
-        float gradLen = length(gradient);
-        float3 norm = gradLen > 0 ? -gradient.xzy/gradLen : float3(0,0,0);
-        output.color.a = 0;
-        output.color.rgb = (norm*0.5 + 0.5);
-        //output.color = 0.5*(1-exp2(-0.1*steps));
-        //output.color.rgb = 1*abs(t-t2);
-        float4 imagePos = mulPointTm(debug_world_view_pos + normalize(input.viewvec)*t, globtm);
-        float depth = imagePos.z/imagePos.w;
-        if (readGbufferDepth(input.texcoord) > depth && t > 0.0)
+        if (!world_sdf_trace(debug_world_view_pos, rayDir, maxT, t, clip, 1))
           discard;
-      } else
+      }
+      else
+      {
+        float3 b0,b1;
+        sample_world_sdf_bbox(world_sdf_debug_clip, b0, b1);
+
+        if (!all(and(rayStart > b0, rayStart < b1)))
+          discard;
+
+        float2 dd = rayBoxIntersect(b0, b1, rayStart, rayDir);
+        maxT = min(maxT, dd.y);
+
+        float minT = 0;
+        float distAtRayStart;
+        if (!world_sdf_trace_clip(world_sdf_debug_clip, rayStart, rayDir, minT, maxT, t, distAtRayStart, 1, false, 1))
+          discard;
+      }
+
+      float3 worldPos = rayStart + t*rayDir;
+      float4 imagePos = mulPointTm(rayStart + normalize(input.viewvec)*t, globtm);
+      float depth = imagePos.z/imagePos.w;
+
+      float3 gradient = world_sdf_sample_gradient(clip, worldPos);
+      float gradLen = length(gradient);
+      float3 norm = gradLen > 0 ? -gradient.xzy/gradLen : float3(0,0,0);
+      output.color.a = 0;
+
+      output.color.rgb = world_sdf_debug_mode == 0
+                       ? (norm*0.5 + 0.5)
+                       : exp2(-0.05*t) *
+                         max(0.8, abs(dot(rayDir, norm))) * max(0.6, abs(dot(normalize(float3(0.5,0.5,0.8)), norm)));
+
+      if (readGbufferDepth(input.texcoord) > depth && t > 0.0)
         discard;
+
       return output;
     }
   }

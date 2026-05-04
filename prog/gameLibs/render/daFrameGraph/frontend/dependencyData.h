@@ -6,6 +6,7 @@
 #include <render/daFrameGraph/detail/nodeNameId.h>
 #include <render/daFrameGraph/detail/resNameId.h>
 #include <id/idIndexedMapping.h>
+#include <dag/dag_vectorSet.h>
 
 
 namespace dafg
@@ -20,14 +21,30 @@ struct VirtualResourceLifetime
   // Either produced or renamed from something else by this node
   NodeNameId introducedBy = NodeNameId::Invalid;
 
+  // A node that renames this resource (mutually exclusive with nextFrameReaders!!!)
+  NodeNameId consumedBy = NodeNameId::Invalid;
+
   // Chain of non-renaming modification
   eastl::fixed_vector<NodeNameId, 32> modificationChain;
 
   // List of nodes that want to read this resource before it gets consumed
   eastl::fixed_vector<NodeNameId, 32> readers;
 
-  // A node that renames this resource (mutually exclusive with nextFrameReaders!!!)
-  NodeNameId consumedBy = NodeNameId::Invalid;
+  // List of nodes that requested this resource's history.
+  // This being non-empty is mutually exclusive with consumedBy being valid.
+  eastl::fixed_vector<NodeNameId, 32> historyReaders;
+
+  // Whenever a user makes a mistake and creates a resource multiple times,
+  // we pick an arbitrary node for introducedBy and collect the rest here
+  // to report errors later.
+  dag::VectorSet<NodeNameId> erroneousIntroducers;
+
+  // Whenever a user makes a mistake and consumes a resource multiple times,
+  // we pick an arbitrary node for consumedBy and collect the rest here
+  // to report errors later.
+  dag::VectorSet<NodeNameId> erroneousConsumers;
+
+  bool operator==(const VirtualResourceLifetime &other) const = default;
 };
 
 struct DependencyData

@@ -24,7 +24,7 @@ int transparent = 0;
 interval transparent: transOff < 1, transOn < 2, transNonpremultiplied < 3, transAdditive;
 
 int hasTexture = 0;
-interval hasTexture: texOff < 1, texOn < 2, texFontL8 < 3, texFontL8v < 4, twoTexOn;
+interval hasTexture: texOff < 1, texOn < 2, texInSRGB < 3, texFontL8 < 4, texFontL8v < 5, twoTexOn;
 
 int fontFxType = 0;
 interval fontFxType: no < 1, shadow < 2, glow < 3, outline < 4, undefined;
@@ -52,6 +52,8 @@ float4x4 guiGlobTm;
 int use_gui_glob_tm = 0;
 interval use_gui_glob_tm: no < 1, yes;
 
+float gui_use_inv_viewport_tm = 1.0;
+
 shader gui_default
 {
   if (fontFxType == undefined) { dont_render; }
@@ -62,6 +64,7 @@ shader gui_default
   z_test = false;
 
   (vs) {
+    gui_use_inv_viewport_tm@f1 = gui_use_inv_viewport_tm;
     viewport@f4 = viewportRect;
     gui_text_depth@f2 = gui_text_depth;//(gui_text_depth.r, gui_text_depth.g, gui_cockpit_depth, 0, 0);
   }
@@ -233,7 +236,10 @@ shader gui_default
       // Vertex position is transformed on CPU side to fit the effect.
     ##endif
 
-      float4 screenPos = float4((fpos * viewport.xy + viewport.zw) * gui_text_depth.y, gui_text_depth.xy);
+      float2 vpPos = gui_use_inv_viewport_tm ?
+                      fpos * viewport.xy + viewport.zw :
+                      fpos;
+      float4 screenPos = float4(vpPos * gui_text_depth.y, gui_text_depth.xy);
     ##if use_gui_glob_tm == yes
       o.pos = mul(guiGlobTm, screenPos);
     ##else

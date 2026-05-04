@@ -25,13 +25,60 @@ int heightmap_holes_zones_num = 0;
 int heightmap_holes_support_assume = 1;
 interval heightmap_holes_support_assume: off < 1, on;//should be assumed
 
-macro USE_HEIGHTMAP_COMMON_VS()
-  hlsl(vs) {
+int heightmap_use_simplified_ao = 0;
+interval heightmap_use_simplified_ao: no <0, yes;
+assume_if_not_assumed heightmap_use_simplified_ao = no;
+
+macro INIT_HEIGHTMAP_GATHERED_SAMPLING(code)
+  (code) {
+    tex_hmap_low_size@f4 = (get_dimensions(tex_hmap_low, 0).xy,
+                            1.0 / max(get_dimensions(tex_hmap_low, 0).x, 1),
+                            1.0 / max(get_dimensions(tex_hmap_low, 0).y, 1));
+  }
+endmacro
+
+macro USE_HEIGHTMAP_GATHERED_SAMPLING(code)
+  hlsl(code) {
+    float getWorldHeightGathered(float2 worldPosXZ)
+    {
+      float2 tc_low = calcTcLow(worldPosXZ);
+
+      float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
+      float2 flooredTexels = floor(tc_texels);
+      float2 tc_frac = tc_texels - flooredTexels;
+      float2 centerTc = flooredTexels*tex_hmap_low_size.zw + tex_hmap_low_size.zw;
+      ##if hardware.fsh_4_0
+      float4 hmap4 = tex_hmap_low.Gather(tex_hmap_low_samplerstate, centerTc);
+      ##else
+      float4 hmap4 = tex_hmap_low.GatherRed(tex_hmap_low_samplerstate, centerTc);
+      ##endif
+      float4 bilW = float4(1-tc_frac, tc_frac);
+      bilW = bilW.xzzx*bilW.wwyy;
+
+      float height = dot(hmap4, bilW);
+      ##if has_high_texture
+      float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
+      float2 tc_high_sat = saturate(tc_high);
+      if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
+      {
+        tc_high += 0.5*tex_hmap_inv_sizes.zw;
+        height = tex2Dlod(tex_hmap_high, float4(tc_high,0,0)).x;
+      }
+      ##endif
+      float decodedHeight = decode_height(height);
+      return decodedHeight;
+    }
+  }
+endmacro
+
+// TODO unify this with USE_HEIGHTMAP_COMMON_BASE
+macro USE_HEIGHTMAP_COMMON_FOR_VERTICES(code)
+  hlsl(code) {
   ##if in_editor != yes
     #define sizeInMeters (sizes.x)
   ##endif
   }
-  hlsl(vs) {
+  hlsl(code) {
     half3 getNormalLow(float2 pos)
     {
       ##if in_editor == yes
@@ -67,36 +114,6 @@ macro USE_HEIGHTMAP_COMMON_VS()
       return getNormalLow(calcTcLow(worldPos.xz));
     }
 
-    float getHeight(float2 worldPosXZ)
-    {
-      float2 tc_low = calcTcLow(worldPosXZ);
-
-      float2 tc_texels = tc_low * tex_hmap_low_size.xy - 0.5;
-      float2 flooredTexels = floor(tc_texels);
-      float2 tc_frac = tc_texels - flooredTexels;
-      float2 centerTc = flooredTexels*tex_hmap_low_size.zw + tex_hmap_low_size.zw;
-      ##if hardware.fsh_4_0
-      float4 hmap4 = tex_hmap_low.Gather(tex_hmap_low_samplerstate, centerTc);
-      ##else
-      float4 hmap4 = tex_hmap_low.GatherRed(tex_hmap_low_samplerstate, centerTc);
-      ##endif
-      float4 bilW = float4(1-tc_frac, tc_frac);
-      bilW = bilW.xzzx*bilW.wwyy;
-
-      float height = dot(hmap4, bilW);
-      ##if has_high_texture
-      float2 tc_high = worldPosXZ*world_to_hmap_high.xy + world_to_hmap_high.zw;
-      float2 tc_high_sat = saturate(tc_high);
-      if (tc_high.x == tc_high_sat.x && tc_high.y == tc_high_sat.y)
-      {
-        tc_high += 0.5*tex_hmap_inv_sizes.zw;
-        height = tex2Dlod(hmap_hdetail, float4(tc_high,0,0)).x;
-      }
-      ##endif
-      float decodedHeight = decode_height(height);
-      return decodedHeight;
-    }
-
     half2 getGradient(float2 pos, float lod)
     {
       float lodScale = exp2(lod);
@@ -113,6 +130,11 @@ macro USE_HEIGHTMAP_COMMON_VS()
       return getGradient(calcTcLow(worldPos.xz), 0);
     }
   }
+  USE_HEIGHTMAP_GATHERED_SAMPLING(code)
+endmacro
+
+macro USE_HEIGHTMAP_COMMON_VS()
+  USE_HEIGHTMAP_COMMON_FOR_VERTICES(vs)
 endmacro
 
 macro NORMAL_CORRECTION(stage)
@@ -127,7 +149,7 @@ macro NORMAL_CORRECTION(stage)
           deformAmount = getDeformHeight(worldPos, world_to_hmap_tex_ofs.z);
           worldPos.y += deformAmount;
         ##else
-          displacementEffect = displacementInEditor.x*sample_tor_height_vs(worldPos.xz, 0)+displacementInEditor.y;
+          displacementEffect = displacementInEditor.x*sample_tor_height(worldPos.xz, 0)+displacementInEditor.y;
           worldPos += worldNormal*displacementEffect;
         ##endif
       #endif
@@ -279,46 +301,6 @@ endmacro
 
 macro USE_HEIGHTMAP_INSTANCING()
   HEIGHTMAP_DECODE_EDGE_TESSELATION()
-  hlsl(vs) {
-    float2 decodeWorldPosXZ(int2 inPos input_used_instance_id)
-    {
-      float4 instance_const = heightmap_scale_offset[instance_id.x];
-      uint4 border = decode_edge_tesselation(instance_const);
-
-      inPos.y = adapt_edge_tesselation(inPos.y, inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
-      inPos.x = adapt_edge_tesselation(inPos.x, inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1));
-      return decodeWorldPosXZConst(instance_const, inPos);
-    }
-    float2 decodeWorldPosGradXZ(int2 inPos, out float2 gradXZ  input_used_instance_id)
-    {
-      float4 instance_const = heightmap_scale_offset[instance_id.x];
-      uint4 border = decode_edge_tesselation(instance_const);
-
-      float2 tess = float2(inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1),
-                           inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
-      inPos.y = adapt_edge_tesselation(inPos.y, tess.y);
-      inPos.x = adapt_edge_tesselation(inPos.x, tess.x);
-      gradXZ = getGradXZ(instance_const, tess);
-      return decodeWorldPosXZConst(instance_const, inPos);
-    }
-
-    float3 getWorldPos(int2 inPos input_used_instance_id)
-    {
-      float3 worldPos;
-      worldPos.xz = decodeWorldPosXZ(inPos used_instance_id);
-      worldPos.y = getHeight(worldPos.xz);
-      worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
-      return worldPos;
-    }
-    float3 getWorldPosGrad(int2 inPos, out float2 gradXZ input_used_instance_id)
-    {
-      float3 worldPos;
-      worldPos.xz = decodeWorldPosGradXZ(inPos, gradXZ used_instance_id);
-      worldPos.y = getHeight(worldPos.xz);
-      worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
-      return worldPos;
-    }
-  }
 endmacro
 
 macro HEIGHTMAP_CALCULATIONS()
@@ -329,14 +311,14 @@ macro HEIGHTMAP_CALCULATIONS()
                                   float3 world_pos, half3 vertical_normal, float3 point_to_eye_norm,
                                   half2 clip_normal_XY,
                                   inout half3 clipmap_color, inout half porosity,
-                                  out half sparkles, out half normal_wetness, out float wetness)
+                                  out half sparkles, out half normal_wetness, out float wetness, out float waterLevel)
     {
       //todo: combine wetness from puddles with wetness from water
       half porosityMul, waterSmoothnessMul;
       get_microdetail_effects(detailNo, porosityMul, waterSmoothnessMul, sparkles);
       float shoreWavesMultiplier;
       clipmap_color = result.albedo.rgb;
-      float waterLevel = wind_dir_water_level_ocean_density.z;
+      waterLevel = wind_dir_water_level_ocean_density.z;
       get_water_height(world_pos.xz, waterLevel);
       wetness = get_land_wetness(world_pos, shoreWavesMultiplier, waterLevel);
       porosity = (1-result.smoothness)*porosityMul;
@@ -345,18 +327,16 @@ macro HEIGHTMAP_CALCULATIONS()
       wetness_normal_ts(normal_wetness, clip_normal_XY);
       wetness_normal_ws(wetness, result.normal);
       result.normal.xzy = RNM_ndetail_normalized(result.normal.xzy, restore_normal(clip_normal_XY));
-      #if !MOBILE_DEVICE
+      ##if heightmap_use_simplified_ao == no
         result.ao = lerp(result.ao, 1, pow5(1-saturate(dot(vertical_normal, point_to_eye_norm))));
-      #endif
+      ##endif
     }
-    void applyHeightmapWetness(inout UnpackedGbuffer result, float3 world_pos,
+    void applyHeightmapWetness(inout UnpackedGbuffer result, float3 world_pos, float waterLevel,
                                half porosity, float wetness)
     {
       // We can`t apply wetness for normals here because it is applied before
       // blending rough normal and detailed normal. So wetness for normals is applied
       // in calculateHeightmapDetails and calculateHeightmapMicrodetails.
-      float waterLevel = wind_dir_water_level_ocean_density.z;
-      get_water_height(world_pos.xz, waterLevel);
       float directWetness = saturate((waterLevel - world_pos.y) * wetness_above_rcp + 1);
       wetness_diffuse(max(directWetness, wetness), porosity, result.albedo.rgb);
       wetness_reflectance(wetness, result.reflectance);
@@ -368,48 +348,46 @@ macro HEIGHTMAP_CALCULATIONS()
     void calculateHeightmapMicrodetails_no_grad(inout UnpackedGbuffer result, DetailDesc detailNo,
                                         UvWithDerivates uv, float3 world_pos,
                                         half3 vertical_normal, half2 clip_normal_XY,
-                                        half porosity, half normal_wetness, float wetness)
+                                        half porosity, half normal_wetness, float wetness, float waterLevel)
     {
       //half shadow = saturate(abs(dot(worldNormal, from_sun_direction.xyz))+2*pow2(ao)-1.0);
-      half clipmapHorAmount = applyVerticalTexture(vertical_normal, result.normal, result.albedo.rgb, world_pos, true);
       //half3 microDetail = get_microdetail(worldPos.xyz);
       half2 microNormalTS;
       apply_microdetails_tc_no_grad_land(uv, detailNo, microNormalTS,
                             result.albedo.rgb, result.reflectance, result.smoothness, result.ao);
       wetness_normal_ts(saturate(normal_wetness-0.5), microNormalTS);
       result.normal.xzy = RNM_ndetail_normalized(result.normal.xzy, restore_normal(microNormalTS).xyz);
-      applyHeightmapWetness(result, world_pos, porosity, wetness);
+      applyHeightmapWetness(result, world_pos, waterLevel, porosity, wetness);
     }
     void calculateHeightmapMicrodetails(inout UnpackedGbuffer result, DetailDesc detailNo,
                                         float3 tc_world_pos, float3 world_pos,
                                         half3 vertical_normal, half2 clip_normal_XY,
-                                        half porosity, half normal_wetness, float wetness)
+                                        half porosity, half normal_wetness, float wetness, float waterLevel)
     {
       UvWithDerivates uv = microdetails_get_uv_and_derivates(tc_world_pos.xz);
-      calculateHeightmapMicrodetails_no_grad(result, detailNo, uv, world_pos, vertical_normal, clip_normal_XY, porosity, normal_wetness, wetness);
+      calculateHeightmapMicrodetails_no_grad(result, detailNo, uv, world_pos, vertical_normal, clip_normal_XY, porosity, normal_wetness, wetness, waterLevel);
     }
   }
 endmacro
 
-macro INIT_WORLD_HEIGHTMAP_VS()
-  (vs) {
-    tex_hmap_low_size@f4 = (get_dimensions(tex_hmap_low, 0).xy,
-                            1.0 / max(get_dimensions(tex_hmap_low, 0).x, 1),
-                            1.0 / max(get_dimensions(tex_hmap_low, 0).y, 1));
+// TODO unify this with INIT_WORLD_HEIGHTMAP_BASE
+macro INIT_WORLD_HEIGHTMAP_FOR_VERTICES(code)
+  INIT_HEIGHTMAP_GATHERED_SAMPLING(code)
+  (code) {
     world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
     heightmap_region@f4 = heightmap_region;
   }
   if (in_editor == yes)
   {
-    (vs) {
+    (code) {
       tex_hmap_inv_sizes@f4 = tex_hmap_inv_sizes;
       world_to_hmap_high@f4 = world_to_hmap_high;
       tex_hmap_low@smp2d = tex_hmap_low;
-      hmap_hdetail@smp2d = tex_hmap_high;
+      tex_hmap_high@smp2d = tex_hmap_high;
     }
   } else
   {
-    (vs) {
+    (code) {
       tex_hmap_low@smp2d = tex_hmap_low;
       heightmap_scale@f4 = heightmap_scale;
       tex_hmap_inv_sizes@f4 = (1.5 * tex_hmap_inv_sizes.x, 1.5 * tex_hmap_inv_sizes.y, tex_hmap_inv_sizes.z, tex_hmap_inv_sizes.w);  // 1.5 texel blur.
@@ -418,6 +396,10 @@ macro INIT_WORLD_HEIGHTMAP_VS()
         0, 0);
     }
   }
+endmacro
+
+macro INIT_WORLD_HEIGHTMAP_VS()
+  INIT_WORLD_HEIGHTMAP_FOR_VERTICES(vs)
 endmacro
 
 macro INIT_WORLD_HEIGHTMAP_BASE(code)
@@ -550,4 +532,169 @@ endmacro
 
 macro USE_HEIGHTMAP_COMMON_PS()
   USE_HEIGHTMAP_COMMON_BASE(ps)
+endmacro
+
+buffer heightmap_edges;
+buffer heightmap_morph;
+int4 heightmap_parent_edges_at;
+int heightmap_has_morph;
+interval heightmap_has_morph: off < 1, on;
+macro INIT_EDGE_DECODE(code)
+(code) {
+  heightmap_parent_edges_at@u4 = heightmap_parent_edges_at;
+  heightmap_edges@buf = heightmap_edges hlsl {
+    ByteAddressBuffer heightmap_edges@buf;
+  }
+  heightmap_morph@buf = heightmap_morph hlsl {
+    ByteAddressBuffer heightmap_morph@buf;
+  }
+}
+endmacro
+
+macro USE_EDGE_DECODE_MINIMAL(code)
+  hlsl(code) {
+    float2 decodeWorldPosXZWithConstGrad(int2 inPos, float4 instance_const, out float2 gradXZ)
+    {
+      int4 border = decode_edge_tesselation(instance_const);
+
+      float2 tess = float2(inPos.y == 0 ? border.z : (inPos.y == patchDim ? border.w : 1),
+                           inPos.x == 0 ? border.x : (inPos.x == patchDim ? border.y : 1));
+
+      inPos.y = adapt_edge_tesselation(inPos.y, tess.y);
+      inPos.x = adapt_edge_tesselation(inPos.x, tess.x);
+      gradXZ = instance_const.x * tess;
+      return decodeWorldPosXZConst(instance_const, inPos);
+    }
+    float2 decodeWorldPosXZWithConst(int2 inPos, float4 instance_const)
+    {
+      float2 gradXZ;
+      return decodeWorldPosXZWithConstGrad(inPos, instance_const, gradXZ);
+    }
+    float2 decodeWorldPosXZ(int2 inPos, uint instance_id)
+    {
+      return decodeWorldPosXZWithConst(inPos, heightmap_scale_offset[instance_id.x]);
+    }
+    float2 decodeWorldPosXZGrad(int2 inPos, uint instance_id, out float2 gradXZ)
+    {
+      return decodeWorldPosXZWithConstGrad(inPos, heightmap_scale_offset[instance_id.x], gradXZ);
+    }
+  }
+endmacro
+
+macro USE_EDGE_DECODE(code)
+  USE_EDGE_DECODE_MINIMAL(code)
+  hlsl(code) {
+    float3 getWorldPosEdgeGrad(uint vertexId, uint instance_id, out float2 gradXZ)
+    {
+      float3 worldPos;
+
+      ##if heightmap_has_morph == off
+      int2 posXZ = int2(vertexId%patchDimPlus1, vertexId/patchDimPlus1);
+      float4 instance_const = heightmap_scale_offset[instance_id.x];
+      worldPos.xz = decodeWorldPosXZWithConstGrad(posXZ, instance_const, gradXZ);
+      worldPos.y = getBaseHeight(worldPos.xz);
+      ##else
+      float2 patchWorldOfs = 0;
+      uint instId = HMAP_INSTANCE_OFS + instance_id.x;
+      uint triID = vertexId / 3u;
+      uint vertInTri = vertexId % 3u;
+      uint quadId = triID>>1;
+
+      uint2 quad = uint2(quadId & HMAP_QUAD_MASK, quadId >> HMAP_QUAD_SHIFT);
+      float4 instance_const = heightmap_scale_offset[instance_id.x];
+      //uint level = asint(instance_const.x);//
+      //int texelX = asint(instance_const.z), texelZ = asint(instance_const.w);//
+      //float levelPatch = heightmap_texels.z / (1U<<level);
+      //patchWorldOfs = heightmap_texels.xy + float2(texelX, texelZ) * levelPatch;
+      //float quadSize = levelPatch / patchDim;
+      patchWorldOfs = instance_const.zw;
+      float quadSize = instance_const.x;
+
+      uint4 border = decode_edge_tesselation(instance_const);
+      //border = max(border - 1, border);
+      uint flip = asuint(instance_const.y)>>24;
+      int edgeId = instId - heightmap_parent_edges_at.w;
+      if (edgeId >= 0 && instId < heightmap_parent_edges_at.z)
+      {
+        uint edgeAddress = quadId + (edgeId << HMAP_QUAD_DOUBLE_SHIFT);
+        flip = (uint(loadBuffer(heightmap_edges, ((edgeAddress>>3)&~3u))) >> (edgeAddress&31u)) & 1u;
+      }
+
+
+      bool isCorner = quad.y != adapt_edge_tesselation(quad.y, quad.x == 0 ? border.x : (quad.x + 1 == patchDim ? border.y : 1)) &&
+                      quad.x != adapt_edge_tesselation(quad.x, quad.y == 0 ? border.z : (quad.y + 1 == patchDim ? border.w : 1));
+
+      flip = isCorner ? (quad.x + quad.y)&1 : flip;
+      uint isSecondTri = (triID & 1);
+      int2 posXZ;
+
+      FLATTEN
+      if (vertInTri == 0) posXZ = int2(quad.x + (isSecondTri&flip), quad.y);
+      FLATTEN
+      if (vertInTri == 1) posXZ = int2(quad.x + !(flip|isSecondTri), quad.y + 1);
+      FLATTEN
+      if (vertInTri == 2) posXZ = int2(quad.x + 1, quad.y + isSecondTri);
+
+      float2 tess = float2(posXZ.x == 0 ? border.x : (posXZ.x == patchDim ? border.y : 1), posXZ.y == 0 ? border.z : (posXZ.y == patchDim ? border.w : 1));
+      gradXZ = quadSize*tess;
+
+      posXZ.y = adapt_edge_tesselation(posXZ.y, tess.x);
+      posXZ.x = adapt_edge_tesselation(posXZ.x, tess.y);
+
+      worldPos.xz = quadSize*posXZ + patchWorldOfs;
+      worldPos.y = getBaseHeight(worldPos.xz);
+
+      //worldPos.xz = decodeWorldPosXZConst(instance_const, posXZ);
+      //float4 worldPosY_heightScales = getHeightAndScales(worldPos.xz + patchWorldOfs);
+      int morphingId = instId - heightmap_parent_edges_at.y;
+      if (morphingId >= 0)
+      {
+        uint morphData = (asuint(instance_const.y)>>16)&0xFF;
+        uint parentFlip;
+        if (morphingId < heightmap_parent_edges_at.z - heightmap_parent_edges_at.y)
+        {
+          uint parentEdgeAddress = heightmap_parent_edges_at.x + (morphingId << (HMAP_QUAD_DOUBLE_SHIFT-2)) + (quad.x>>1) + ((quad.y>>1)<<(HMAP_QUAD_SHIFT-1));
+          parentFlip = (uint(loadBuffer(heightmap_edges, ((parentEdgeAddress>>3)&~3u))) >> (parentEdgeAddress&31u)) & 1u;
+        } else
+          parentFlip = flip;
+        //parentFlip = flip;
+        int2 fract = posXZ&1;
+        int2 posXZ0, posXZ1;
+        posXZ0.y = posXZ.y - fract.y;
+        posXZ1.y = posXZ.y + fract.y;
+        fract.x = (fract.x & fract.y & parentFlip) ? -1 : fract.x;
+        posXZ0.x = posXZ.x - fract.x;
+        posXZ1.x = posXZ.x + fract.x;
+
+
+        float2 worldPos0xz = quadSize*posXZ0 + patchWorldOfs;
+        float2 worldPos1xz = quadSize*posXZ1 + patchWorldOfs;
+        float baseHeight0 = getBaseHeight(worldPos0xz);
+        float baseHeight1 = getBaseHeight(worldPos1xz);
+        uint neighboors = loadBuffer(heightmap_morph, morphingId<<2);
+        FLATTEN
+        if (posXZ.x == 0)
+          morphData = neighboors&0xFF;
+        FLATTEN
+        if (posXZ.x == patchDim)
+          morphData = (neighboors>>8)&0xFF;
+
+        FLATTEN
+        if (posXZ.y == 0)
+          morphData = max(morphData, (neighboors>>16)&0xFF);
+        FLATTEN
+        if (posXZ.y == patchDim)
+          morphData = max(morphData, (neighboors>>24)&0xFF);
+        worldPos.y = lerp((baseHeight0 + baseHeight1)*0.5, worldPos.y, morphData*(1.f/255));
+      }
+      ##endif
+      worldPos.xz = clamp(worldPos.xz, heightmap_region.xy, heightmap_region.zw);
+      return worldPos;
+    }
+    float3 getWorldPosEdge(uint vertexId, uint instance_id)
+    {
+      float2 gradXZ;
+      return getWorldPosEdgeGrad(vertexId, instance_id, gradXZ);
+    }
+  }
 endmacro

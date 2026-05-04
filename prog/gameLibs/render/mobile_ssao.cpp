@@ -38,7 +38,7 @@ MobileSSAORenderer::MobileSSAORenderer(int w, int h, int, uint32_t flags)
   for (int i = 0; i < ssaoTex.size(); ++i)
   {
     String name(128, "ssao_tex_%d_%d", viewCounter, i);
-    ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str());
+    ssaoTex[i] = dag::create_tex(nullptr, aoWidth, aoHeight, format | TEXCF_RTARGET, 1, name.c_str(), RESTAG_AO);
   }
 
   aoRenderer.reset(create_postfx_renderer(ssao_sh_name));
@@ -63,7 +63,7 @@ void MobileSSAORenderer::setFactor()
 
   const float factor = cvt(aoWidth, lowEndWidth, highEndWidth, scaledFactor, baseFactor);
 
-  ShaderGlobal::set_real(ssao_radius_factorVarId, factor);
+  ShaderGlobal::set_float(ssao_radius_factorVarId, factor);
 }
 
 MobileSSAORenderer::~MobileSSAORenderer()
@@ -135,8 +135,8 @@ void MobileSSAORenderer::setReprojection(const TMatrix &view_tm, const TMatrix4 
   reprojectionData.prevWorldPos = worldPos;
 }
 
-void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse,
-  const ManagedTex *ssao_tex, const ManagedTex *prev_ssao_tex, const ManagedTex *tmp_tex, const DPoint3 *, SubFrameSample)
+void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, BaseTexture *ssao_tex,
+  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *, SubFrameSample, const DynRes *dynamic_resolution)
 {
   TIME_D3D_PROFILE(SSAO_total)
   SCOPE_RENDER_TARGET;
@@ -148,12 +148,15 @@ void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm,
   G_UNUSED(ssao_tex);
   G_UNUSED(prev_ssao_tex);
   G_UNUSED(tmp_tex);
+  G_UNUSED(dynamic_resolution);
 
   G_ASSERT(ssaoDepthTexUse);
 
   setFrameNo();
 
   set_viewvecs_to_shader(view_tm, proj_tm);
+
+  G_ASSERTF_ONCE(!dynamic_resolution, "Handle dynamic resolution for mobile ssao render!");
 
   {
     TIME_D3D_PROFILE(SSAO_render)

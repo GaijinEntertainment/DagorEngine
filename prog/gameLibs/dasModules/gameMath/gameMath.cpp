@@ -19,6 +19,8 @@ public:
       "bind_dascript::pack_unit_vec_uint");
     das::addExtern<DAS_BIND_FUN(unpack_unit_vec_uint)>(*this, lib, "unpack_unit_vec_uint", das::SideEffects::none,
       "bind_dascript::unpack_unit_vec_uint");
+    das::addExtern<DAS_BIND_FUN(damage_packed_pack_unsigned)>(*this, lib, "damage_packed_pack_unsigned", das::SideEffects::none,
+      "bind_dascript::damage_packed_pack_unsigned");
     das::addExtern<DAS_BIND_FUN(gamemath::construct_convex_from_frustum)>(*this, lib, "construct_convex_from_frustum",
       das::SideEffects::modifyArgument, "gamemath::construct_convex_from_frustum");
 

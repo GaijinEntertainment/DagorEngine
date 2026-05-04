@@ -17,6 +17,7 @@
 #include <EASTL/list.h>
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/fixed_vector.h>
 
 #include <ioSys/dag_brotliIo.h>
 
@@ -28,6 +29,7 @@
 
 #if _TARGET_XBOX
 #include <osApiWrappers/gdk/network.h>
+#include <osApiWrappers/gdk/plm.h>
 #include <gdk/main.h>
 #endif
 
@@ -77,10 +79,17 @@ static long timeout_ms;
 
 static const unsigned int TCP_CONNECT_TIMEOUT_SEC = 12;
 
+#if USE_XCURL
+static constexpr uint8_t MAX_ACTIVE_REQUESTS = 4;
+#else
+static constexpr uint8_t MAX_ACTIVE_REQUESTS = 32;
+#endif
+
 static eastl::string default_user_agent = "dagor2";
 static eastl::string ca_bundle_file;
 static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *userdata);
 static size_t header_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+static size_t put_read_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
 
 static int progress_callback(void *userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t, curl_off_t);
 static bool verbose_debug = false;
@@ -149,7 +158,6 @@ static CURL *make_curl_handle(const char *url, const char *user_agent, bool veri
   curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
   curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
   curl_easy_setopt(curl, CURLOPT_SHARE, curlsh);
-  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
 
   curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, TCP_CONNECT_TIMEOUT_SEC);
   curl_easy_setopt(curl, CURLOPT_DNS_USE_GLOBAL_CACHE, 0);
@@ -271,6 +279,15 @@ public:
 
       DEBUG_VERBOSE("HTTP Request POST. Request data:%.*s", reqData.size(), reqData.data());
     }
+    else if (params.reqType == HTTPReq::PUT)
+    {
+      curl_easy_setopt(curlHandle, CURLOPT_UPLOAD, 1L);
+      curl_easy_setopt(curlHandle, CURLOPT_READFUNCTION, put_read_callback);
+      curl_easy_setopt(curlHandle, CURLOPT_READDATA, this);
+      curl_easy_setopt(curlHandle, CURLOPT_INFILESIZE_LARGE, (curl_off_t)reqData.size());
+
+      DEBUG_VERBOSE("HTTP Request PUT. Request data:%.*s", reqData.size(), reqData.data());
+    }
     else if (params.reqType == HTTPReq::HEAD)
     {
       curl_easy_setopt(curlHandle, CURLOPT_NOBODY, 1);
@@ -333,14 +350,17 @@ public:
 
     if (!sendResponseInMainThreadOnly || is_main_thread())
     {
+      callback->onConnectionInfo(primaryIp.c_str());
       callback->onRequestDone(result, httpCode, response, respHeadersMap);
       callback->release();
     }
     else
     {
       delayed_call([callback = this->callback, result, httpCode = this->httpCode, response = eastl::move(response),
-                     resp_headers = needResponseHeaders ? copy_string_map_view(respHeadersMap) : HeadersList{}] {
+                     resp_headers = needResponseHeaders ? copy_string_map_view(respHeadersMap) : HeadersList{},
+                     primaryIp = eastl::move(this->primaryIp)] {
         StringMap respHeaders(resp_headers.begin(), resp_headers.end());
+        callback->onConnectionInfo(primaryIp.c_str());
         callback->onRequestDone(result, httpCode, response, respHeaders);
         callback->release();
       });
@@ -473,6 +493,7 @@ public:
   curl_slist *headersList;
   eastl::string urlStr;
   dag::Vector<char> reqData;
+  size_t putReadOffset = 0;
 
   bool needResponseHeaders;
   bool sendResponseInMainThreadOnly;
@@ -481,6 +502,7 @@ public:
 
   int httpCode = 0;
   CURLcode curlResult = CURLE_OK;
+  eastl::string primaryIp;
   dag::Vector<char> response;
   dag::Vector<eastl::string> responseHeaders; // Note: string_view in `respHeadersMap` are pointing within
   httprequests::StringMap respHeadersMap;
@@ -500,6 +522,23 @@ static int progress_callback(void *userdata, curl_off_t dltotal, curl_off_t dlno
   if (dlnow > 0 || dltotal > 0)
     context->onDownloadProgress(dltotal, dlnow);
   return 0;
+}
+
+static size_t put_read_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+  RequestState *context = (RequestState *)userdata;
+  size_t bufferSize = size * nmemb;
+
+  if (context->putReadOffset >= context->reqData.size())
+    return 0;
+
+  size_t remaining = context->reqData.size() - context->putReadOffset;
+  size_t toSend = remaining < bufferSize ? remaining : bufferSize;
+
+  memcpy(ptr, context->reqData.data() + context->putReadOffset, toSend);
+  context->putReadOffset += toSend;
+
+  return toSend;
 }
 
 static size_t write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
@@ -531,14 +570,8 @@ static int timer_func(CURLM *, long timeout, void *)
 
 static void move_queue_to_active_requests_nolock()
 {
-#if USE_XCURL
-  static constexpr uint8_t MAX_ACTIVE_REQUESTS = 4;
-#else
-  static constexpr uint8_t MAX_ACTIVE_REQUESTS = 32;
-#endif
-
 #if _TARGET_XBOX
-  if (!gdk::has_network_access())
+  if (gdk::get_network_availability() <= gdk::NetworkAvailability::None)
     return;
 #endif
 
@@ -563,18 +596,8 @@ RequestId async_request(AsyncRequestParams const &params)
   RequestStatePtr context = eastl::make_unique<RequestState>(params);
   RequestState *ctxPtr = context.get();
   {
-    if (mutex->tryLock())
-    {
-      active_requests.push_back(eastl::move(context));
-      curl_multi_add_handle(curlm, ctxPtr->getCurlHandle());
-      mutex->unlock();
-    }
-    else
-    {
-      debug("Curl: cannot lock active_requests list. Put request to the queue.");
-      WinAutoLock lock(*queue_mutex);
-      requests_queue.push_back(eastl::move(context));
-    }
+    WinAutoLock lock(*queue_mutex);
+    requests_queue.push_back(eastl::move(context));
   }
   debug("send request to '%s'", params.url);
   return intptr_t(ctxPtr);
@@ -591,6 +614,19 @@ void abort_request(RequestId req_id)
     if (it != active_requests.end())
     {
       reqState->abort();
+      return;
+    }
+  }
+  {
+    WinAutoLock lock(*queue_mutex);
+    RequestState *reqState = (RequestState *)req_id;
+    auto it = eastl::find_if(requests_queue.begin(), requests_queue.end(),
+      [reqState](RequestStatePtr const &ptr) { return ptr.get() == reqState; });
+    if (it != requests_queue.end())
+    {
+      reqState->abort();
+      reqState->sendResult();
+      requests_queue.erase(it);
       return;
     }
   }
@@ -612,6 +648,12 @@ void abort_all_requests(AbortMode mode)
     for (RequestStatePtr &rstate : aborted)
       curl_multi_remove_handle(curlm, rstate->getCurlHandle());
   }
+  {
+    WinAutoLock lock(*queue_mutex);
+    for (RequestStatePtr &rstate : requests_queue)
+      aborted.push_back(eastl::move(rstate));
+    requests_queue.clear();
+  }
 
   for (RequestStatePtr &rstate : aborted)
   {
@@ -623,7 +665,8 @@ void abort_all_requests(AbortMode mode)
   }
 }
 
-static void update_multi_nolock(eastl::list<RequestStatePtr> &finished)
+template <typename Cont>
+static void update_multi_nolock(Cont &finished)
 {
   int numfds = 0;
   int nrunning = 0;
@@ -669,6 +712,8 @@ static void update_multi_nolock(eastl::list<RequestStatePtr> &finished)
       char *addr = NULL;
       curl_easy_getinfo(easy, CURLINFO_PRIMARY_IP, &addr);
       DEBUG_VERBOSE("Curl addr: %s", addr);
+      if (addr)
+        reqState->primaryIp = addr;
 
       double connectTime = 0;
       double totalTime = 0;
@@ -727,41 +772,8 @@ static void collect_aborted_requests_nolock(eastl::list<RequestStatePtr> &finish
 
 static void poll_on_idle_cycle(void *) { httprequests::poll(); }
 
-struct CurlPollThread final : public DaThread
+void poll_impl()
 {
-  int64_t thread_id = 0;
-  os_event_t event;
-
-  CurlPollThread() : DaThread("CurlPollThread", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK) { os_event_create(&event); }
-  ~CurlPollThread() { os_event_destroy(&event); }
-
-  void execute() override
-  {
-    thread_id = get_current_thread_id();
-    while (!isThreadTerminating())
-    {
-      // Thread will be blocked until event is set or 10ms timeout elapsed
-      // We need to make thread alertable because Sleep is not guaranteed
-      // to wake up at any specific interval
-      os_event_wait(&event, 10);
-      httprequests::poll();
-    }
-  }
-
-  void wakeup() { os_event_set(&event); }
-};
-
-static eastl::unique_ptr<CurlPollThread> g_poll_thread;
-
-
-void poll()
-{
-  if (g_poll_thread && g_poll_thread->thread_id != get_current_thread_id())
-  {
-    g_poll_thread->wakeup();
-    return;
-  }
-
   TIME_PROFILE(http_requests_poll);
 
   eastl::list<RequestStatePtr> finished;
@@ -783,6 +795,69 @@ void poll()
   for (RequestStatePtr &request : finished)
     request->sendResult();
 }
+
+struct CurlPollThread final : public DaThread
+{
+  os_event_t event;
+
+  CurlPollThread() : DaThread("CurlPollThread", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK) { os_event_create(&event); }
+  ~CurlPollThread() { os_event_destroy(&event); }
+
+  void execute() override
+  {
+    while (!isThreadTerminating())
+    {
+      // Thread will be blocked until event is set or 10ms timeout elapsed
+      // We need to make thread alertable because Sleep is not guaranteed
+      // to wake up at any specific interval
+      os_event_wait(&event, 10);
+      httprequests::poll_impl();
+    }
+  }
+
+  void wakeup() { os_event_set(&event); }
+};
+
+static eastl::unique_ptr<CurlPollThread> g_poll_thread;
+
+void poll()
+{
+  if (g_poll_thread)
+  {
+    g_poll_thread->wakeup();
+    return;
+  }
+
+  poll_impl();
+}
+
+
+#if _TARGET_XBOX
+
+static struct SuspendHandler final : public gdk::PLMCallback
+{
+  SuspendHandler() : PLMCallback("CurlSuspendHandler") {}
+
+  void execute(bool suspended) override
+  {
+    if (suspended)
+    {
+      eastl::fixed_vector<RequestStatePtr, MAX_ACTIVE_REQUESTS, false> finished;
+      {
+        if (!mutex)
+          return;
+        mutex->lock();
+        while (!active_requests.empty())
+          update_multi_nolock(finished);
+        mutex->unlock();
+      }
+      for (RequestStatePtr &request : finished)
+        request->sendResult();
+    }
+  }
+} suspend_handler;
+
+#endif
 
 
 void init_async(InitAsyncParams const &params)
@@ -808,11 +883,8 @@ void init_async(InitAsyncParams const &params)
 
     bool pollInThread = params.pollInThread;
 
-#if defined(USE_XCURL)
-    // xCurl will block suspend until all in-progress requests are
-    // completed, and failing to call curl_multi_perform may cause
-    // title to timeout during suspend.
-    pollInThread = true;
+#if _TARGET_XBOX
+    gdk::register_suspend_callback(&suspend_handler);
 #endif
 
     if (pollInThread)
@@ -866,6 +938,10 @@ void shutdown_async()
   unregister_regular_action_to_idle_cycle(&poll_on_idle_cycle, NULL);
   curl_multi_cleanup(curlm);
   curl_share_cleanup(curlsh);
+
+#if _TARGET_XBOX
+  gdk::unregister_suspend_callback(&suspend_handler);
+#endif
 
   curlm = NULL;
   curlsh = NULL;

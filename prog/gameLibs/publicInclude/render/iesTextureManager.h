@@ -77,9 +77,9 @@ public:
   int getTextureIdx(const char *name);
   void gatherAndReloadTextures();
   void reloadTextures();
-  void addTexture(const char *textureName);
+  int addTexture(const char *texture_name);
   void close();
-  PhotometryData getTextureData(int tex_idx) const;
+  PhotometryData getTextureData(int tex_id) const;
   TEXTUREID getTextureArrayId();
 
   IesEditor *requireEditor();

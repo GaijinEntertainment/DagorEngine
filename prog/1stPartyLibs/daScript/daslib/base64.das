@@ -5,7 +5,11 @@ options indenting = 4
 
 module base64 shared private
 
-// very much inspired by LIBHV implementation
+//! Base64 encoding and decoding.
+//!
+//! Provides ``base64_encode`` and ``base64_decode`` for converting between
+//! binary data (strings or ``array<uint8>``) and Base64 text representation.
+//! Inspired by the libhv implementation.
 
 require daslib/strings
 
@@ -49,26 +53,29 @@ let base64de <- fixed_array<int>(
 );
 
 def public BASE64_DECODE_OUT_SIZE(s : int) {
+    //! Returns the maximum decoded output size for a Base64 string of length `s`.
     return s / 4 * 3
 }
 
 def public BASE64_ENCODE_OUT_SIZE(s : int) {
+    //! Returns the encoded output size for binary data of length `s`.
     return (s + 2) / 3 * 4
 }
 
 def public base64_decode(_in : string) : tuple<text : string; size : int> {
-    //! decode base64 string
+    //! Decodes a Base64-encoded string. Returns a tuple of the decoded text and its byte length.
     var inscope out : array<uint8>
     var outlen = 0
-    peek_data(_in) <| $(inp) {
+    peek_data(_in) $(inp) {
         outlen = base64_decode(inp, out)
     }
     return (string(out), outlen)
 }
 
 def public base64_decode(_in : string; var out : array<uint8>) : int {
+    //! Decodes a Base64-encoded string into the provided byte array. Returns the decoded byte count, or -1 on error.
     var outlen = 0
-    peek_data(_in) <| $(inp) {
+    peek_data(_in) $(inp) {
         outlen = base64_decode(inp, out)
     }
     return outlen
@@ -121,15 +128,16 @@ def base64_decode(inp : array<uint8> | #; var out : array<uint8>) : int {
 }
 
 def public base64_encode(_inp : string) {
-    //! Encodes a string to base64
+    //! Encodes a string to its Base64 text representation.
     var res : string
-    peek_data(_inp) <| $(inp) {
+    peek_data(_inp) $(inp) {
         res = base64_encode(inp)
     }
     return res
 }
 
 def public base64_encode(inp : array<uint8> | #) {
+    //! Encodes a byte array to its Base64 text representation.
     var inlen = inp |> length
     var j = 0
     var out : array<uint8>

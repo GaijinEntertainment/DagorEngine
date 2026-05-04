@@ -47,7 +47,6 @@ macro USE_IMPOSTOR_STRUCTS()
 endmacro
 
 macro USE_READ_IMPOSTOR_PACKED_TEXTURES()
-  ENABLE_ASSERT(ps)
   USE_IMPOSTOR_STRUCTS()
 
   (ps)
@@ -264,15 +263,14 @@ shader pack_grass_impostor_texture
 
   POSTFX_VS_TEXCOORD(0, tc)
 
-  ENABLE_ASSERT(ps)
   USE_IMPOSTOR_STRUCTS()
   INIT_LOAD_DEPTH_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
 
-  hlsl(ps) {
-    Texture2D impostor_gbuf_a : register(t13);
-    Texture2D impostor_gbuf_b : register(t14);
-    Texture2D impostor_gbuf_c : register(t15);
+  (ps) {
+    impostor_gbuf_a@tex2d : register(13);
+    impostor_gbuf_b@tex2d : register(14);
+    impostor_gbuf_c@tex2d : register(15);
   }
 
   USE_PACKED_TEXTURES()

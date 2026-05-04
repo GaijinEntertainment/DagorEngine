@@ -38,11 +38,10 @@ public:
 
   static bool isSupported();
 
-  void accumulateDepthVersion(ManagedTexView source_color_tex, ManagedTexView blur_depth_tex, DepthType depth_type,
-    TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, ManagedTexView accumulationTex);
-  void accumulateMotionVectorVersion(ManagedTexView source_color_tex, ManagedTexView motion_vector_tex,
-    ManagedTexView accumulationTex);
-  void combine(ManagedTexView target_tex, ManagedTexView accumulationTex);
+  void accumulateDepthVersion(BaseTexture *source_color_tex, BaseTexture *blur_depth_tex, DepthType depth_type, TMatrix4 currentGlobTm,
+    TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *accumulationTex);
+  void accumulateMotionVectorVersion(BaseTexture *source_color_tex, BaseTexture *motion_vector_tex, BaseTexture *accumulationTex);
+  void combine(BaseTexture *target_tex, BaseTexture *accumulationTex);
 
   void update(float dt, const Point3 camera_pos, float jump_dist = 20);
   void onCameraLeap();
@@ -52,7 +51,7 @@ public:
 
 
 protected:
-  void accumulateInternal(ManagedTexView source_color_tex, ShaderElement *elem, ManagedTexView accumulationTex);
+  void accumulateInternal(BaseTexture *source_color_tex, ShaderElement *elem, BaseTexture *accumulationTex);
 
   Ptr<ShaderMaterial> motionBlurMaterial, motionBlurMvMaterial;
   Ptr<ShaderElement> motionBlurShElem, motionBlurMvShElem;

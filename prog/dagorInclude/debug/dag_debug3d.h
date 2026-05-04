@@ -33,9 +33,12 @@ void set_cached_debug_lines_wtm(const TMatrix &wtm);
 
 void end_draw_cached_debug_lines();
 void end_draw_cached_debug_lines_ex();
+void flush_cached_debug_lines();
 
 
 void draw_cached_debug_line(const Point3 &p0, const Point3 &p1, E3DCOLOR color);
+void draw_cached_debug_line(vec3f p0, vec3f p1, E3DCOLOR color);
+void draw_cached_debug_line(vec3f p0, vec3f dir, float t, E3DCOLOR color);
 void draw_cached_debug_line_twocolored(const Point3 &p0, const Point3 &p1, E3DCOLOR color_front, E3DCOLOR color_behind);
 void draw_cached_debug_line(const Point3 *p0, int nm, E3DCOLOR color);
 
@@ -48,6 +51,7 @@ void draw_cached_debug_box(const BBox3 &box, E3DCOLOR color, const TMatrix &tm);
 void draw_cached_debug_box(const Point3 &p0, const Point3 &ax, const Point3 &ay, const Point3 &az, E3DCOLOR color);
 
 void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs = 24);
+void draw_cached_debug_sphere(vec3f c, real rad, E3DCOLOR col, int segs = 24);
 
 void draw_cached_debug_sphere_outline_clipped(const Point3 &camera, const Point3 &center, const real R, const Point4 &clipPlane,
   E3DCOLOR col, int segs = 24);
@@ -225,6 +229,10 @@ inline void draw_debug_capsule_w(const Capsule &, E3DCOLOR) {}
 
 void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
+void draw_debug_line_buffered(vec3f v0, vec3f v1, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
+  size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
+void draw_debug_line_buffered(vec3f v0, vec3f dir, float t, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
+  size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_arrow_buffered(const Point3 &from, const Point3 &to, E3DCOLOR c = E3DCOLOR_MAKE(255, 32, 32, 255),
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_rect_buffered(const Point3 &p0, const Point3 &p1, const Point3 &p2, E3DCOLOR color = E3DCOLOR_MAKE(255, 48, 255, 255),
@@ -244,6 +252,7 @@ void draw_debug_tube_buffered(const Point3 &p0, const Point3 &p1, float radius, 
   int segs = 24, float circle_density = 0.1, size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_sphere_buffered(const Point3 &c, real rad, E3DCOLOR col, int segs = 24,
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
+void draw_debug_sphere_buffered(vec3f c, real rad, E3DCOLOR col, int segs = 24, size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_tetrapod_buffered(const Point3 &c, real radius, E3DCOLOR col = E3DCOLOR_MAKE(255, 255, 64, 255),
   size_t frames = DEBUG3D_DEFAULT_FRAMES_TO_BUFFER);
 void draw_debug_tehedron_buffered(const Point3 &c, real radius, E3DCOLOR col = E3DCOLOR_MAKE(255, 255, 64, 255),

@@ -7,12 +7,3 @@ for (local k = 0; j < 5; k++) {
     j = 10
 
 
-WARNING: w200 (potentially-nulled-ops) Comparison operation with potentially nullable expression.
-testData/static_analyzer/w279_1.nut:4:18
-
-local j;
-for (local k = 0; j < 5; k++) {
-                  ^
-    j = 10
-
-

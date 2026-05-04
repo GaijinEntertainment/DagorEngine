@@ -7,8 +7,12 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/fixed_function.h>
 #include <daEditorE/de_object.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <rendInst/rendInstGen.h>
 #include <daECS/scene/scene.h>
 
@@ -25,6 +29,10 @@ struct EntCreateData
   eastl::string templName;
   ecs::ComponentsInitializer attrs;
   ecs::EntityId eid = ecs::INVALID_ENTITY_ID;
+  ecs::Scene::SceneId scene = ecs::Scene::C_INVALID_SCENE_ID;
+  uint32_t sceneLoadType = ecs::Scene::LoadType::UNKNOWN;
+  uint32_t orderInScene = 0;
+
   EntCreateData(ecs::EntityId e, const char *template_name = NULL);
   EntCreateData(const char *template_name, const TMatrix *tm = NULL);
   EntCreateData(const char *template_name, const TMatrix *tm, const char *riex_name);
@@ -63,7 +71,7 @@ public:
   }
 
   virtual bool mayRename() { return true; }
-  virtual bool mayDelete() { return true; }
+  virtual bool mayDelete();
   virtual void setWtm(const TMatrix &wtm)
   {
     if (eid == ecs::INVALID_ENTITY_ID)
@@ -123,7 +131,7 @@ public:
   void resetEid();
   void updateLbb();
 
-  void save(DataBlock &blk, const ecs::Scene::EntityRecord &erec) const;
+  static void save(DataBlock &blk, const ecs::Scene::EntityRecord &erec);
   bool hasTransform() const;
   bool canTransformFreely() const;
   EntityObj *getParentObject();

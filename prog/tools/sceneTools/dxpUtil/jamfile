@@ -1,6 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/sceneTools/dxpUtil ;
 ConsoleExe    = yes ;
+UseMemoryAllocator = RTL ;
 
 TargetType  = exe ;
 Target      = tools/sceneTools/dxpRepack.exe ;
@@ -20,7 +21,7 @@ Sources =
 
 UseProgLibs =
   engine/osApiWrappers
-  engine/memory/rtlStdMemory
+  engine/memory
   engine/kernel
   engine/baseUtil
   engine/ioSys

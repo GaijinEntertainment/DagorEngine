@@ -10,6 +10,9 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_threads.h>
 #include <memory/dag_mem.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
+#include <EASTL/unordered_map.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <util/dag_string.h>
@@ -43,11 +46,7 @@
 
 #define RECEIVE_POST_DATA_TIMEOUT_MSEC (1000)
 
-#if _TARGET_XBOX
-#define HTTP_PORT 4600 // the only allowed on xbox
-#else
-#define HTTP_PORT 23456
-#endif
+#define HTTP_PORT          23456
 #define BIND_PORT_ATTEMPTS 128
 
 extern "C" const char *dagor_exe_build_date;
@@ -58,8 +57,60 @@ namespace webui
 
 static void helloworld(RequestInfo *params) { html_response(params->conn, "Hello World!"); }
 HttpPlugin dummy_list[] = {{"hello", "hello world module", NULL, helloworld}, {NULL}};
-
 HttpPlugin *plugin_lists[MAX_PLUGINS_LISTS] = {dummy_list, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+
+static eastl::vector<eastl::string> ordered_plugins;
+static eastl::unordered_map<eastl::string, HttpPlugin> plugins;
+
+bool add_plugin(const HttpPlugin &plugin)
+{
+  if (!plugin.name || !plugin.name[0])
+  {
+    G_ASSERTF(0, "Null or empty webui plugin name not allowed");
+    return false;
+  }
+
+  eastl::string pluginName(plugin.name);
+  auto it = plugins.find(pluginName);
+  if (it != plugins.end())
+  {
+    if (memcmp(&it->second, &plugin, sizeof(plugin)) != 0)
+      G_ASSERTF(0, "Duplicate webui plugin name '%s'", plugin.name);
+    return false;
+  }
+
+  ordered_plugins.push_back(pluginName);
+  plugins[pluginName] = plugin;
+
+  return true;
+}
+
+bool add_or_replace_plugin(const HttpPlugin &plugin)
+{
+  if (!plugin.name || !plugin.name[0])
+  {
+    G_ASSERTF(0, "Null or empty webui plugin name not allowed");
+    return false;
+  }
+
+  eastl::string pluginName(plugin.name);
+  if (plugins.find(pluginName) == plugins.end())
+    ordered_plugins.push_back(pluginName);
+
+  plugins[pluginName] = plugin;
+
+  return true;
+}
+
+bool add_plugins(const HttpPlugin *plugin_list)
+{
+  for (const HttpPlugin *pl = plugin_list; pl->name; pl++)
+    if (!add_plugin(*pl))
+      return false;
+
+  return true;
+}
+
 
 // Skip the characters until one of the delimiters characters found.
 // 0-terminate resulting word. Skip the rest of the delimiters if any.
@@ -246,7 +297,7 @@ public:
   uint16_t listenPort;
 
   HttpServer(Config *cfg) :
-    DaThread("HttpServer", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK),
+    DaThread("HttpServer", DaThread::DEFAULT_STACK_SZ / 2, 0, WORKER_THREADS_AFFINITY_MASK),
     listenSocket(OS_SOCKET_INVALID),
     listenPort(0),
     requests(midmem)
@@ -355,60 +406,47 @@ public:
 
   bool isValid() const { return listenSocket != OS_SOCKET_INVALID; }
 
-  static void generateIndex(SocketType conn, char *req, int)
+  void generateIndex(SocketType conn, char *req, int)
   {
-    String exeName = get_name_of_executable();
-    Tab<char> buf(framemem_ptr());
-    buf.resize(32 << 10);
-    char *end = buf.data() + (buf.capacity() - 1);
-    char *p = buf.data();
-    p += _snprintf(buf.data(), end - p,
-      "<head>\n"
-      "  <style>\n"
-      "    body { font-family: Verdana, sans-serif; }\n"
-      "  </style>\n"
-      "</head>\n"
-      "<html>\n<head><title>%s - Web UI</title></head>\n<body>\n"
-      "<h1>%s - %s</h1>\n<table>\n",
-      exeName.c_str(), exeName.c_str(), get_platform_string_id());
+    String tpl(framemem_ptr());
+    tpl.setStr(
+#include "webuiIndexTemplate.html.inl"
+    );
 
-    char *was_p = p;
-
-    for (int i = 0; i < countof(plugin_lists); ++i)
+    String links(framemem_ptr());
+    bool hasModules = false;
+    for (const eastl::string &n : ordered_plugins)
     {
-      HttpPlugin *pl = plugin_lists[i];
-      if (!pl)
+      HttpPlugin &pl = plugins.find(n)->second;
+      if (!pl.description) // hidden
         continue;
-      for (; pl->name && p < end; ++pl)
-      {
-        if (!pl->description) // hided
-          continue;
 
-        if (!pl->show_precondition || pl->show_precondition())
-          p += _snprintf(p, end - p, "  <tr><td><a href=\"%s\">%s - %s</a></td></tr>\n", pl->name, pl->name, pl->description);
-        else
-          p += _snprintf(p, end - p,
-            "  <tr><td><font color=grey>%s - %s (non active due to precondition)"
-            "</font></td></tr>\n",
-            pl->name, pl->description);
-      }
+      if (!pl.show_precondition || pl.show_precondition())
+        links.aprintf(0, "  <tr><td><a href=\"%s\">%s - %s</a></td></tr>\n", pl.name, pl.name, pl.description);
+      else
+        links.aprintf(0, "  <tr><td><font color=grey>%s - %s (non active due to precondition)</font></td></tr>\n", pl.name,
+          pl.description);
+
+      hasModules = true;
     }
 
-    if (p != was_p)
-      p += _snprintf(p, end - p, "</table>\n");
-    else
-      p += _snprintf(p, end - p, "  <tr><td>No active http modules</td></tr>\n</table>\n");
+    if (!hasModules)
+      links.setStr("<tr><td>No active http modules</td></tr>\n");
 
-    p += _snprintf(p, end - p, "<p>Build : %s %s, %s<br/>\n", dagor_exe_build_date, dagor_exe_build_time, get_platform_string_id());
-    p += _snprintf(p, end - p, "Time Since Start : %d sec<br/>\n", get_time_msec() / 1000);
-    p += _snprintf(p, end - p, "Process Id : %d</p>\n", get_process_uid());
+    String footer(framemem_ptr());
+    footer.aprintf(0, "Build: %s %s, %s<br/>\n", dagor_exe_build_date, dagor_exe_build_time, get_platform_string_id());
+    footer.aprintf(0, "Time Since Start: %d sec<br/>\n", get_time_msec() / 1000);
+    footer.aprintf(0, "Process Id: %d\n", get_process_uid());
 
-    const char *footer = "</body>\n</html>";
-    p = (char *)min((uintptr_t)p, (uintptr_t)(end - strlen(footer)));
-    p += _snprintf(p, end - p, "%s", footer);
-    *p = 0;
+    String ignorePort(0, "%d", int(listenPort));
 
-    html_response_raw(conn, buf.data());
+    tpl.replaceAll("[[EXE_NAME]]", get_name_of_executable());
+    tpl.replaceAll("[[PLATFORM_ID]]", get_platform_string_id());
+    tpl.replaceAll("[[LINKS]]", links);
+    tpl.replaceAll("[[FOOTER]]", footer);
+    tpl.replaceAll("[[IGNORE_PORT]]", ignorePort);
+
+    html_response_raw(conn, tpl.data());
     os_socket_close(conn);
     memfree(req, tmpmem);
   }
@@ -483,20 +521,17 @@ public:
       return true;
     }
 
-    for (int i = 0; i < countof(plugin_lists); ++i)
+    auto it = plugins.find(eastl::string(ri.uri));
+    if (it != plugins.end())
     {
-      HttpPlugin *pl = plugin_lists[i];
-      if (!pl)
-        continue;
-      for (; pl->name; ++pl)
-      {
-        if (strcmp(pl->name, ri.uri) != 0)
-          continue;
+      HttpPlugin &pl = it->second;
 
+      if (!strcmp(pl.name, ri.uri))
+      {
         if (params_pos)
           *params_pos = '?'; // return back
 
-        if (!pl->generate_response) // no handler?
+        if (!pl.generate_response) // no handler?
           REQUEST_FAIL(HTTP_NOT_IMPLEMENTED);
 
         ri.buf = req;
@@ -521,7 +556,7 @@ public:
 
         if (!ri.params && params_pos)
           ri.params = getcgivars(params_pos + 1);
-        ri.plugin = pl;
+        ri.plugin = &pl;
         ri.conn = conn;
 
         reqCrit.lock();
@@ -550,7 +585,7 @@ public:
       return;
     }
 
-    constexpr int sz = 64 << 10; // 64 kb
+    constexpr int sz = 32 << 10;
     char stackTmp[sz];
     int readed = os_socket_recvfrom(conn, stackTmp, sz - 1);
     if (readed < 0)
@@ -618,10 +653,9 @@ void startup(Config *cfg)
   if (http_server) // already started
     return;
 
-  HttpPlugin *pl = NULL;
-  for (int i = 0; i < countof(plugin_lists) && !pl; ++i)
-    pl = plugin_lists[i];
-  G_ASSERTF(pl, "%s should be at least valid plugin list", __FUNCTION__);
+  for (int i = 0; i < countof(plugin_lists); i++)
+    if (plugin_lists[i])
+      add_plugins(plugin_lists[i]);
 
   auto s = eastl::make_unique<HttpServer>(cfg);
   if (s->isValid())

@@ -183,7 +183,7 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
 
   if (vsmType != VSM_BLEND)
   {
-    dest_tex = dag::create_tex(NULL, w, h, flags, 1, "dest_vsm_tex");
+    dest_tex = dag::create_tex(NULL, w, h, flags, 1, "dest_vsm_tex", RESTAG_SHADOW);
   }
   else
   {
@@ -211,7 +211,7 @@ void Variance::init(int w, int h, VsmType vsmTypeIn)
   blur = new PseudoGaussBlur();
   blur->init("vsm_shadow_blur_x", "vsm_shadow_blur_y", IPoint2(w, h));
 
-  ShaderGlobal::set_color4_fast(vsm_shadow_tex_sizeVarId, Color4(width, height, 1.0 / width, 1.0 / height));
+  ShaderGlobal::set_float4(vsm_shadow_tex_sizeVarId, Color4(width, height, 1.0 / width, 1.0 / height));
   light_full_update_threshold = 0.04;
   light_update_threshold = 0.005;
   box_full_update_threshold = 50 * 50;
@@ -273,21 +273,21 @@ void Variance::endShadowMap()
   d3d::set_render_target(oldrt);
   if (update_state & UPDATE_BLUR_Y)
   {
-    ShaderGlobal::set_color4_fast(vsmShadowProjXVarId,
+    ShaderGlobal::set_float4(vsmShadowProjXVarId,
       Color4(shadowProjMatrix.m[0][0], shadowProjMatrix.m[1][0], shadowProjMatrix.m[2][0], shadowProjMatrix.m[3][0]));
 
-    ShaderGlobal::set_color4_fast(vsmShadowProjYVarId,
+    ShaderGlobal::set_float4(vsmShadowProjYVarId,
       Color4(shadowProjMatrix.m[0][1], shadowProjMatrix.m[1][1], shadowProjMatrix.m[2][1], shadowProjMatrix.m[3][1]));
     /*if (hwDepthBuffer)//we now also rescale to -1..1,  but in shader
-      ShaderGlobal::set_color4_fast(vsmShadowProjZVarId, Color4(
+      ShaderGlobal::set_float4(vsmShadowProjZVarId, Color4(
         shadowProjMatrix.m[0][2],
         shadowProjMatrix.m[1][2],
         shadowProjMatrix.m[2][2],
         shadowProjMatrix.m[3][2]));
     else*/
-    ShaderGlobal::set_color4_fast(vsmShadowProjZVarId, Color4(shadowProjMatrix.m[0][2] * 2.0, shadowProjMatrix.m[1][2] * 2.0,
-                                                         shadowProjMatrix.m[2][2] * 2.0, shadowProjMatrix.m[3][2] * 2.0 - 1.0));
-    ShaderGlobal::set_color4_fast(vsmShadowProjWVarId,
+    ShaderGlobal::set_float4(vsmShadowProjZVarId, Color4(shadowProjMatrix.m[0][2] * 2.0, shadowProjMatrix.m[1][2] * 2.0,
+                                                    shadowProjMatrix.m[2][2] * 2.0, shadowProjMatrix.m[3][2] * 2.0 - 1.0));
+    ShaderGlobal::set_float4(vsmShadowProjWVarId,
       Color4(shadowProjMatrix.m[0][3], shadowProjMatrix.m[1][3], shadowProjMatrix.m[2][3], shadowProjMatrix.m[3][3]));
   }
   // lazy - each frame render only one rtarget
@@ -299,7 +299,7 @@ void Variance::endShadowMap()
   else if (update_state & UPDATE_SCENE)
     update_state = UPDATE_BLUR_X;
   ShaderGlobal::set_texture(vsm_shadowmapVarId, targ_tex->getTexId());
-  ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, width, height, 1.0 / width, 1.0 / height);
+  ShaderGlobal::set_float4(vsm_shadow_tex_sizeVarId, width, height, 1.0 / width, 1.0 / height);
   d3d_set_view_proj(savedViewProj);
   temp_tex = nullptr;
 }
@@ -309,7 +309,7 @@ void Variance::setOff()
   if (VariableMap::isGlobVariablePresent(vsm_shadowmapVarId))
   {
     ShaderGlobal::set_texture(vsm_shadowmapVarId, BAD_TEXTUREID);
-    ShaderGlobal::set_color4(vsm_shadow_tex_sizeVarId, 0, 0);
+    ShaderGlobal::set_float4(vsm_shadow_tex_sizeVarId, 0, 0);
     temp_tex = nullptr;
     targ_tex = nullptr;
   }

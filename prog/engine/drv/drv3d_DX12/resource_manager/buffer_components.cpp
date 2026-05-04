@@ -8,7 +8,7 @@
 namespace drv3d_dx12::resource_manager
 {
 
-static bool can_use_sub_alloc(uint32_t cflags)
+bool BufferHeap::can_use_sub_alloc(uint32_t cflags)
 {
   constexpr uint32_t any_read_flag_mask =
     SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_BIND_CONSTANT | SBCF_BIND_SHADER_RES | SBCF_MISC_DRAWINDIRECT;
@@ -59,9 +59,13 @@ static uint32_t findBestAlignmentOf(uint32_t value_a, uint32_t value_b)
   return ab / gcd;
 }
 
-static uint32_t calculateOffsetAlignment(uint32_t cflags, uint32_t structure_size)
+static uint32_t calculate_offset_alignment(uint32_t cflags, uint32_t structure_size, uint32_t omm_alignment)
 {
   uint32_t result = structure_size;
+  if (cflags & SBCF_OPACITY_MICRO_MAP_TRIANGLE_SOURCE_DATA)
+  {
+    result = findBestAlignmentOf(result, omm_alignment);
+  }
   if (cflags & SBCF_BIND_CONSTANT)
   {
     result = findBestAlignmentOf(result, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
@@ -85,8 +89,6 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
   FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
   const char *name, uint32_t frame_index, bool disable_sub_alloc)
 {
-  auto &ctx = device.getContext();
-
   // writes to staging only buffers are implemented as discards, saves one buffer copy
   // but we can't count them as discard traffic, so filter them out
   const bool isOptimizedDiscard = is_optimized_discard(cflags);
@@ -94,9 +96,6 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
   auto nextDiscardIndex = to_discared.currentDiscardIndex + 1;
   if (nextDiscardIndex < to_discared.discardCount)
   {
-    if (to_discared.srvs)
-      ctx.updateBindlessReferences(to_discared.currentSRV(), to_discared.srvs[nextDiscardIndex]);
-
     // move to result for simpler later handling and RVO
     result = eastl::move(to_discared);
     // advance discard index
@@ -160,8 +159,6 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
         }
       }
 
-      if (to_discared.srvs)
-        ctx.updateBindlessReferences(to_discared.currentSRV(), result.currentSRV());
       freeBufferOnFrameCompletion(eastl::move(to_discared), freeReason);
 
       if (!isOptimizedDiscard)
@@ -207,7 +204,8 @@ BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uin
 
   if (!result)
   {
-    device.processEmergencyDefragmentation(heapProperties.raw, true, flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false);
+    device.processEmergencyDefragmentation(heapProperties.raw, true, flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false, size,
+      false);
     errorCode = S_OK;
     result = allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
       name, disable_sub_alloc, heapProperties, allocationFlags, errorCode);
@@ -220,14 +218,15 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
   const char *name, bool disable_sub_alloc, const ResourceHeapProperties &heap_properties, AllocationFlags allocation_flags,
   HRESULT &error_code)
 {
-  const bool canUseSubAlloc = !disable_sub_alloc && can_use_sub_alloc(cflags);
+  const bool canUseSubAlloc = !disable_sub_alloc && can_use_sub_alloc(cflags) && flags == D3D12_RESOURCE_FLAG_NONE;
 
   Heap *selectedHeap = nullptr;
   ValueRange<uint64_t> allocationRange;
   size_t memoryAllocatedSize = 0;
   G_ASSERTF(discard_count > 0, "discard count has to be at least one");
   uint64_t payloadSize = size;
-  auto offsetAlignment = calculateOffsetAlignment(cflags, max<uint32_t>(1, structure_size));
+  auto offsetAlignment =
+    calculate_offset_alignment(cflags, max<uint32_t>(1, structure_size), device.getOpacityMicroMapInputBufferAlignment());
   BufferState result;
 
   if (canUseSubAlloc)
@@ -235,25 +234,19 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
     payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
 
     auto bufferHeapStateAccess = bufferHeapState.access();
-    // First try to allocate from ready list
+
+    // Try to allocate from existing heaps
     eastl::tie(selectedHeap, allocationRange) =
-      bufferHeapStateAccess->tryAllocateFromReadyList(heap_properties, payloadSize, flags, offsetAlignment, true);
+      bufferHeapStateAccess->trySuballocateFromExistingHeaps(heap_properties, payloadSize, flags, offsetAlignment);
 
-    // Second try to allocate from existing heaps
-    if (!selectedHeap)
-    {
-      eastl::tie(selectedHeap, allocationRange) =
-        bufferHeapStateAccess->trySuballocateFromExistingHeaps(heap_properties, payloadSize, flags, offsetAlignment);
-    }
-
-    // Third create a new heap
+    // Create a new heap
     if (!selectedHeap)
     {
       const auto initialState = propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
       BufferGlobalId resIndex{};
       eastl::tie(resIndex, error_code) = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
         align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heap_properties, flags,
-        initialState, nullptr, allocation_flags);
+        initialState, nullptr, true, allocation_flags);
       if (!resIndex)
       {
         return result;
@@ -291,6 +284,11 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
   }
   else
   {
+#if !_TARGET_XBOX
+    if (device.hasTightAlignment())
+      flags |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
+#endif
+
     if (discard_count > 1)
     {
       payloadSize = align_value<uint64_t>(payloadSize, offsetAlignment);
@@ -304,7 +302,7 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
 
       // if we have to pay possibly lots of overhead, try to cram as many discards into it as
       // possible
-      discard_count = align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT) / payloadSize;
+      discard_count = align_value<uint64_t>(payloadSize * discard_count, device.getBufferSizeAlignment()) / payloadSize;
     }
     else
     {
@@ -317,7 +315,7 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
       auto padd = payloadSize - size;
       if (padd)
       {
-        logdbg("DX12: Adding %u bytes of padding because min buffer size of %u", padd, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+        logdbg("DX12: Adding %u bytes of padding because min buffer size of %u", padd, device.getBufferSizeAlignment());
       }
 #endif
     }
@@ -326,43 +324,37 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
     {
       auto bufferHeapStateAccess = bufferHeapState.access();
 
-      eastl::tie(selectedHeap, allocationRange) =
-        bufferHeapStateAccess->tryAllocateFromReadyList(heap_properties, totalSize, flags, offsetAlignment, false);
-
-      if (!selectedHeap)
+      const auto initialState = propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
+      BufferGlobalId resIndex{};
+      eastl::tie(resIndex, error_code) = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
+        align_value<uint64_t>(totalSize, device.getBufferSizeAlignment()), heap_properties, flags, initialState, name, false,
+        allocation_flags);
+      if (!resIndex)
       {
-        const auto initialState = propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
-        BufferGlobalId resIndex{};
-        eastl::tie(resIndex, error_code) = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
-          align_value<uint64_t>(totalSize, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heap_properties, flags, initialState, name,
-          allocation_flags);
-        if (!resIndex)
-        {
-          return result;
-        }
-
-        auto heapIndex = resIndex.index();
-
-        if (heapIndex < bufferHeapStateAccess->getHeapCount())
-        {
-          selectedHeap = &bufferHeapStateAccess->getHeap(heapIndex);
-          memoryAllocatedSize = selectedHeap->getBufferMemorySize();
-          allocationRange = make_value_range<uint64_t>(0, totalSize);
-
-          selectedHeap->applyFirstAllocation(totalSize);
-        }
+        return result;
       }
 
-      if (selectedHeap)
+      auto heapIndex = resIndex.index();
+
+      if (heapIndex < bufferHeapStateAccess->getHeapCount())
       {
-        result.buffer = selectedHeap->getResourcePtr();
-        result.size = payloadSize;
-        result.discardCount = discard_count;
-        result.resourceId = selectedHeap->getResId();
-        result.memoryLocation =
-          static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(selectedHeap->getBufferMemory()) + allocationRange.front();
-        result.offset = allocationRange.front();
+        selectedHeap = &bufferHeapStateAccess->getHeap(heapIndex);
+        memoryAllocatedSize = selectedHeap->getBufferMemorySize();
+        allocationRange = make_value_range<uint64_t>(0, totalSize);
+
+        selectedHeap->applyFirstAllocation(totalSize);
       }
+    }
+
+    if (selectedHeap)
+    {
+      result.buffer = selectedHeap->getResourcePtr();
+      result.size = payloadSize;
+      result.discardCount = discard_count;
+      result.resourceId = selectedHeap->getResId();
+      result.memoryLocation =
+        static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(selectedHeap->getBufferMemory()) + allocationRange.front();
+      result.offset = allocationRange.front();
     }
 
     if (result.buffer)
@@ -379,6 +371,8 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
   }
 
   G_ASSERT((cflags & SBCF_BIND_CONSTANT) == 0 || result.size % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
+  G_ASSERT(
+    (cflags & SBCF_BIND_CONSTANT) == 0 || result.memoryLocation.gpuAddress % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
 
   return result;
 }
@@ -387,13 +381,13 @@ void BufferHeap::notifyBufferMemoryRelease(size_t sz)
 {
   // TODO: probably not an issue on D12, but on others align everything to 1k may diverge from real usage with lots of sub 1k counts
   // getting lost?
-  tql::on_buf_changed(false, -tql::sizeInKb(sz));
+  tql::on_persistent_changed(false, -tql::sizeInKb(sz));
 }
 
 void BufferHeap::notifyBufferMemoryAllocate(size_t sz, bool /*kick_off_shuffle*/)
 {
   auto kbz = tql::sizeInKb(sz);
-  tql::on_buf_changed(true, kbz);
+  tql::on_persistent_changed(true, kbz);
 }
 
 BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
@@ -403,18 +397,20 @@ BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *de
   auto &memory = heap.getBufferMemory();
   if (heap.getFlags() & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     allocation_flags.set(AllocationFlag::IS_UAV);
-  const auto [resIndex, errorCode] = bufferHeapStateAccess->createBufferHeap(this, adapter, device, memory.size,
-    getPropertiesFromMemory(memory), heap.getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, allocation_flags);
+  const auto [resIndex, errorCode] =
+    bufferHeapStateAccess->createBufferHeap(this, adapter, device, memory.size, getPropertiesFromMemory(memory), heap.getFlags(),
+      D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);
   G_UNUSED(errorCode);
   return resIndex;
 }
 
 // Checks if the buffer is actually needed and if not it will be deleted immediately
-bool BufferHeap::tidyCloneBuffer(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess)
+bool BufferHeap::freeBufferHeapIfUnused(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess,
+  bool is_heaps_lock_required)
 {
   if (bufferHeapStateAccess->getConstHeap(buffer_id.index()).hasNoAllocations())
   {
-    bufferHeapStateAccess->freeBufferHeap(this, buffer_id.index(), "move buffer", true);
+    bufferHeapStateAccess->freeBufferHeap(this, buffer_id.index(), "unused buffer", is_heaps_lock_required);
     return true;
   }
 
@@ -475,7 +471,6 @@ void BufferHeap::completeFrameExecution(const CompletedFrameExecutionInfo &info,
   size_t memoryFreedSize = 0;
   {
     auto bufferHeapStateAccess = bufferHeapState.access();
-    memoryFreedSize += bufferHeapStateAccess->cleanupDiscardStandbyList(this, info.progressIndex);
 
     char strBuf[MAX_OBJECT_NAME_LENGTH];
     for (auto &&freeInfo : data.deletedBuffers)
@@ -499,8 +494,8 @@ void BufferHeap::completeFrameExecution(const CompletedFrameExecutionInfo &info,
       {
         freeBufferSRVDescriptors({buffer.uavForClear.get(), buffer.uavForClear.get() + buffer.discardCount});
       }
-      memoryFreedSize += bufferHeapStateAccess->freeBuffer(this, buffer, freeInfo.freeReason, info.progressIndex,
-        get_resource_name(buffer.buffer, strBuf));
+      memoryFreedSize +=
+        bufferHeapStateAccess->freeBuffer(this, buffer, freeInfo.freeReason, get_resource_name(buffer.buffer, strBuf));
     }
   }
   data.deletedBuffers.clear();
@@ -511,6 +506,16 @@ void BufferHeap::completeFrameExecution(const CompletedFrameExecutionInfo &info,
   }
 
   BaseType::completeFrameExecution(info, data);
+}
+
+void BufferHeap::freeBufferOnFrameCompletionNoLock(BufferState &&buffer, FreeReason free_reason)
+  DAG_TS_REQUIRES(recodingPendingFrameCompletionMutex)
+{
+  BufferFreeWithReason info;
+  info.buffer = eastl::move(buffer);
+  info.freeReason = free_reason;
+  accessRecodingPendingFrameCompletionNoLock<PendingForCompletedFrameData>(
+    [&](auto &data) { data.deletedBuffers.push_back(eastl::move(info)); });
 }
 
 void BufferHeap::freeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason)

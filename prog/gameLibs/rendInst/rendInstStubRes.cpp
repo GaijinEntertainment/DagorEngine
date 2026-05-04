@@ -8,6 +8,7 @@
 #include <image/dag_texPixel.h>
 #include <math/dag_mesh.h>
 #include <generic/dag_tabWithLock.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_texture.h>
 
 
@@ -129,7 +130,7 @@ public:
     return find_value_idx(resList, (StubRendInst *)gr) >= 0;
   }
 
-  virtual GameResource *getGameResource(int) { return nullptr; }
+  virtual GameResource *getGameResource(RRL, int) { return nullptr; }
   virtual bool addRefGameResource(GameResource *gr)
   {
     if (!stubMesh.get())
@@ -153,9 +154,9 @@ public:
     ((StubRendInst *)gr)->delRef();
     return true;
   }
-  virtual bool freeUnusedResources(bool, bool) { return false; }
+  virtual bool freeUnusedResources(RRL, bool, bool) { return false; }
   void loadGameResourceData(int, IGenLoad &) override {}
-  void createGameResource(int, const int *, int) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
   virtual void reset() {}
 
   void init()
@@ -166,7 +167,7 @@ public:
     TexImage32 image[2];
     image[0].w = image[0].h = 1;
     *(E3DCOLOR *)(image + 1) = E3DCOLOR(255, 0, 0, 255);
-    stubTex = d3d::create_tex(image, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "RI:stubTex");
+    stubTex = d3d::create_tex(image, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, "RI:stubTex", RESTAG_RENDINST);
     d3d_err(stubTex);
 
     stubTexId = register_managed_tex("__ri_stub_tex#", stubTex);

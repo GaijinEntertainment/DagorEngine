@@ -8,9 +8,14 @@
 
 using namespace drv3d_vulkan;
 
-void ShaderModuleStorage::add(const ShaderModuleBlob *sci, uint32_t id)
+ShaderModule::ShaderModule(uint32_t id, const ShaderModuleBlob &blob) : blob(blob), size(blob.size), id(id)
 {
-  data.push_back(eastl::make_unique<ShaderModule>(Globals::pipelines.makeVkModule(sci), id, sci->hash, sci->getBlobSize()));
+  module = Globals::pipelines.makeVkModule(&blob, hash);
+}
+
+void ShaderModuleStorage::add(ShaderModuleBlob *sci, uint32_t id)
+{
+  data.push_back(eastl::make_unique<ShaderModule>(id, *sci));
   delete sci;
 }
 
@@ -27,4 +32,18 @@ ShaderModule *ShaderModuleStorage::find(uint32_t id)
 {
   auto ref = eastl::find_if(begin(data), end(data), [id](const eastl::unique_ptr<ShaderModule> &module) { return id == module->id; });
   return ref->get();
+}
+
+void ShaderModuleStorage::onDeviceReset()
+{
+  VulkanDevice &vkDev = Globals::VK::dev;
+  for (auto &module : data)
+    VULKAN_LOG_CALL(vkDev.vkDestroyShaderModule(vkDev.get(), module->module, VKALLOC(shader_module)));
+}
+
+void ShaderModuleStorage::afterDeviceReset()
+{
+  spirv::HashValue hv;
+  for (auto &module : data)
+    module->module = Globals::pipelines.makeVkModule(&module->blob, hv);
 }

@@ -77,7 +77,7 @@ private:
     Gallery_EndControl,
   };
 
-  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  void onChange(int pcb_id, PropPanel::ContainerPropertyControl *) override
   {
     if (pcb_id == Gallery_EnabledControls)
     {
@@ -102,7 +102,7 @@ private:
     }
   }
 
-  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
+  void onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *) override
   {
     if (pcb_id == Gallery_EnabledControls || pcb_id == Gallery_SeparatorBetweenControls)
     {

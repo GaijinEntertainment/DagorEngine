@@ -16,11 +16,14 @@
 
 #include <math/dag_mathUtils.h>
 #include <dasModules/dasSystem.h>
+#include <dasModules/dasScriptsLoader.h>
 #include <gui/dag_stdGuiRender.h>
 
 
 using namespace StdGuiRender;
 using namespace das;
+
+static int verboseExceptions = 4;
 
 namespace darg
 {
@@ -81,7 +84,7 @@ bool RobjDasCanvasParams::load(const Element *elem)
   Sqrat::Object setupFuncName = scriptDesc.GetSlot(elem->csk->setupFunc);
 
   Sqrat::Object scriptObj = scriptDesc.GetSlot(elem->csk->script);
-  if (scriptObj.GetType() != OT_INSTANCE || !Sqrat::ClassType<DasScript>::IsClassInstance(scriptObj.GetObject(), false))
+  if (scriptObj.GetType() != OT_INSTANCE || !Sqrat::ClassType<DasScript>::IsClassInstance(scriptObj.GetObject()))
   {
     darg_assert_trace_var("DAS canvas requires valid 'script' object", scriptDesc, elem->csk->rendObj);
   }
@@ -119,13 +122,17 @@ bool RobjDasCanvasParams::load(const Element *elem)
             ctx->tryRestartAndLock();
             bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(ctx);
 
+            bind_dascript::RAIIAlwaysStackWalkOnException alwaysStackWalkOnException(ctx, verboseExceptions > 0);
             ctx->evalWithCatch(setupFunc, args, nullptr);
 
             if (const char *error = ctx->getException())
-              logerr("%s: %s", ctx->exceptionAt.describe().c_str(), error);
+            {
+              if (verboseExceptions > 0)
+                verboseExceptions--;
+              logerr("(%s fn: %s) %s: %s", ctx->name.c_str(), setupFunc->name, ctx->exceptionAt.describe().c_str(), error);
+            }
 
             ctx->unlock();
-            ctx->restartHeaps();
           }
         }
       }
@@ -181,12 +188,18 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
   GuiScene *scene = GuiScene::get_from_elem(elem);
 
   {
+    bind_dascript::RAIIAlwaysStackWalkOnException alwaysStackWalkOnException(params->dasCtx, verboseExceptions > 0);
     das::daScriptEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv, scene->dasScriptsData->dasEnv);
     params->dasCtx->evalWithCatch(params->drawFunc, args, nullptr);
   }
 
   if (const char *ex = params->dasCtx->getException())
-    logerr("%s: %s", params->dasCtx->exceptionAt.describe().c_str(), ex);
+  {
+    if (verboseExceptions > 0)
+      verboseExceptions--;
+    logerr("(%s fn: %s) %s: %s", params->dasCtx->name.c_str(), params->drawFunc->name, params->dasCtx->exceptionAt.describe().c_str(),
+      ex);
+  }
 
   params->dasCtx->unlock();
   params->dasCtx->restartHeaps();

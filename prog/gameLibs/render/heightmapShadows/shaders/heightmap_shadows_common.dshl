@@ -19,7 +19,7 @@ macro INIT_HMAP_SHADOWS_MATH(code)
     heightmap_shadow_world_lt_szi@i4[] = heightmap_shadow_world_lt_szi;
     heightmap_shadow_dir_from_sun@f4[] = heightmap_shadow_dir_from_sun;
     heightmap_shadow_szi_np2@i4 = heightmap_shadow_szi_np2;
-    heightmap_shadow_height_encoding@f3 = heightmap_shadow_height_encoding;
+    heightmap_shadow_height_encoding@f4 = heightmap_shadow_height_encoding;
 
     heightmap_shadow_sz@f4 = (dims.x, dims.z - 1, 1./max(dims.x,1), 1/(0.5 - 0.5/max(dims.x,2)));
   }

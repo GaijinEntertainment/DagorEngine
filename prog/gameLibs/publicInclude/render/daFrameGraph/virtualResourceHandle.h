@@ -9,6 +9,7 @@
 #include <render/daFrameGraph/detail/virtualResourceHandleBase.h>
 
 #include <3d/dag_resPtr.h>
+#include <render/daFrameGraph/resourceView.h>
 
 
 namespace dafg
@@ -50,8 +51,9 @@ class VirtualResourceHandle
   using Base = detail::VirtualResourceHandleBase;
 
   using ResNoConst = eastl::remove_cvref_t<Res>;
-  using View = eastl::conditional_t<gpu, ManagedResView<ManagedRes<ResNoConst>>, BlobView>;
-
+  using View =
+    eastl::conditional_t<gpu, eastl::conditional_t<eastl::is_same_v<Sbuffer, ResNoConst>, BufferView, TextureView>, BlobView>;
+  using GetReturnType = eastl::conditional_t<gpu, ResNoConst *, Res *>;
   VirtualResourceHandle(detail::ResUid resId, const ResourceProvider *prov) : Base{resId, prov} {}
 
 public:
@@ -70,22 +72,19 @@ public:
   /**
    * \brief Returns a pointer to the provided resource, or nullptr for
    * missing optional resources. Always check for null when using this!
-   * \details For read requests, this always returns a const reference.
-   * Due to unfortunate coupling of textures with samplers, sometimes
-   * this constness needs to be violated. Use `.view()` for that.
    *
    * \return A pointer to the resource that may be nullptr for optional
    *   requests.
    */
-  Res *get() const &
+  GetReturnType get() const &
   {
     if constexpr (eastl::is_base_of_v<BaseTexture, ResNoConst>)
-      return Base::getResourceView<View>().getBaseTex();
+      return Base::getResourceData<BaseTexture *>();
     else if constexpr (eastl::is_base_of_v<Sbuffer, ResNoConst>)
-      return Base::getResourceView<View>().getBuf();
+      return Base::getResourceData<Sbuffer *>();
     else
     {
-      auto view = Base::getResourceView<View>();
+      auto view = Base::getResourceData<BlobView>();
       G_ASSERT((view.data != nullptr && view.typeTag == tag_for<ResNoConst>()) ||
                (view.data == nullptr && view.typeTag == ResourceSubtypeTag::Invalid)); // sanity check
       return reinterpret_cast<ResNoConst *>(view.data);
@@ -93,33 +92,21 @@ public:
   }
 
   /**
-   * \brief Returns a managed view to a provided GPU resource, or an
+   * \brief Returns view to a provided GPU resource, or an
    * empty view for missing optional resources.
    *
-   * \return A ManagedResView to the GPU resource that may be empty for
+   * \return View to the GPU resource that may be empty for
    *   optional requests.
    */
   REQUIRE(gpu)
-  View view() const & { return Base::getResourceView<View>(); }
-
-  /**
-   * \brief Returns the engine resource manager ID for a provided GPU
-   * resource, or a BAD_RESID for a missing optional resource.
-   *
-   * \return A D3DRESID to the GPU resource that may be BAD_RESID for
-   *   optional requests.
-   */
-  REQUIRE(gpu)
-  D3DRESID d3dResId() const &
+  View view() const &
   {
-    // Pet peeve: why tf do different managed res holders have different
-    // getter calls but no common one for templated cases?
     if constexpr (eastl::is_base_of_v<BaseTexture, ResNoConst>)
-      return Base::getResourceView<View>().getTexId();
+      return Base::getResourceData<BaseTexture *>();
     else if constexpr (eastl::is_base_of_v<Sbuffer, ResNoConst>)
-      return Base::getResourceView<View>().getBufId();
+      return Base::getResourceData<Sbuffer *>();
     else
-      return BAD_D3DRESID;
+      return Base::getResourceData<BlobView>();
   }
 };
 

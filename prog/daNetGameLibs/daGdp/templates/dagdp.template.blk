@@ -4,6 +4,8 @@ dagdp_manager {
   "dagdp_manager:tag"{}
   "dagdp__global_manager:dagdp::GlobalManager"{ _tags:t="render" }
   "dagdp__dyn_shadows_manager:dagdp::DynShadowsManager"{ _tags:t="render" }
+  "dagdp__bvh_manager:dagdp::BvhManager"{ _tags:t="render" }
+  "dagdp__csm_shadows_manager:dagdp::CSMShadowsManager"{ _tags:t="render" }
   "dagdp__riex_manager:dagdp::RiexManager"{ _tags:t="render" }
   "dagdp__heightmap_manager:dagdp::HeightmapManager"{ _tags:t="render" }
   "dagdp__grass_manager:dagdp::GrassManager"{ _tags:t="render" }
@@ -43,6 +45,10 @@ dagdp_level_settings {
     "dagdp__grass_max_range:r" {
       value:r=10
       _hide:b=yes
+    }
+    "dagdp__csm_max_cascades:i"{
+      value:i=3
+      _info { desc:t="Will be rendered only to nearest N csm cascades." }
     }
   }
 }
@@ -249,6 +255,10 @@ dagdp_placer_on_meshes {
   _use:t="dagdp_has_axis"
   _use:t="dagdp_has_distance_based_scale"
   _use:t="dagdp_has_target_mesh_lod"
+  "dagdp__csm_cascade_count:i"{
+    value:i=-1
+    _info { desc:t="Will be rendered only to nearest N csm cascades." }
+  }
   "dagdp_placer_on_meshes:tag"{}
 }
 

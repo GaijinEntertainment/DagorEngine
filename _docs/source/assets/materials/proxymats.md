@@ -13,7 +13,7 @@ To implement the system, follow these steps:
 - In the `.folder.blk`, specify that the underlying `.dag` files use proxy
   materials. For example:
 
-  ```
+  ```blk
   virtual_res_blk{
     find:t="^(.*)\.lod00\.dag$"
     className:t="rendInst"
@@ -57,7 +57,7 @@ don't need the material name or the enclosing brackets.
 
 For example, instead of
 
-```
+```blk
 material{
   name:t="stz_workshop_brick_plaster_wall"
   class:t="rendinst_emissive"
@@ -72,7 +72,7 @@ material{
 
 the proxy material `.blk` would contain only:
 
-```
+```blk
 class:t="rendinst_emissive"
 tex16support:b=yes
 twosided:b=0
@@ -117,7 +117,7 @@ it!
 Proxy materials are assigned as a `class` (shader), meaning that the class name
 should reference the proxy material. For example:
 
-```
+```blk
 class:t="brick_wall:proxymat"
 ```
 
@@ -130,7 +130,7 @@ material type in *3ds Max*. For example:
 
 After export, the `.dag` will contain:
 
-```
+```blk
 material{
   name:t="brick_wall"
   class:t="brick_wall:proxymat"

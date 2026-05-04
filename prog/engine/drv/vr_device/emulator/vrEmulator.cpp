@@ -373,14 +373,14 @@ bool VREmulatorDevice::prepareFrame(FrameData &frameData, float zNear, float zFa
     switch (stereoMode)
     {
       case StereoMode::Multipass:
-        renderTargets[0] = dag::create_tex(nullptr, w, h, info.cflg | TEXCF_RTARGET, 1, "VREmu0");
-        renderTargets[1] = dag::create_tex(nullptr, w, h, info.cflg | TEXCF_RTARGET, 1, "VREmu1");
+        renderTargets[0] = dag::create_tex(nullptr, w, h, info.cflg | TEXCF_RTARGET, 1, "VREmu0", RESTAG_VR);
+        renderTargets[1] = dag::create_tex(nullptr, w, h, info.cflg | TEXCF_RTARGET, 1, "VREmu1", RESTAG_VR);
         break;
       case StereoMode::SideBySideHorizontal:
-        renderTargets[0] = dag::create_tex(nullptr, w * 2, h, info.cflg | TEXCF_RTARGET, 1, "VREmuSBSH");
+        renderTargets[0] = dag::create_tex(nullptr, w * 2, h, info.cflg | TEXCF_RTARGET, 1, "VREmuSBSH", RESTAG_VR);
         break;
       case StereoMode::SideBySideVertical:
-        renderTargets[0] = dag::create_tex(nullptr, w, h * 2, info.cflg | TEXCF_RTARGET, 1, "VREmuSBSV");
+        renderTargets[0] = dag::create_tex(nullptr, w, h * 2, info.cflg | TEXCF_RTARGET, 1, "VREmuSBSV", RESTAG_VR);
         break;
     }
 

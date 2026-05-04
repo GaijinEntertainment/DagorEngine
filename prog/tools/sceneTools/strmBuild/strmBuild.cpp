@@ -76,7 +76,7 @@ int DagorWinMain(bool debugmode)
   //}
   set_default_sym_texture_factory();
   // void* n = NULL;
-  // d3d::init_video(NULL,NULL,NULL,0,n,NULL,NULL,NULL,NULL);
+  // d3d::init_video(NULL,NULL,NULL,0,n,NULL,NULL,NULL);
 
   for (int i = 0; i < blk.blockCount(); i++)
   {

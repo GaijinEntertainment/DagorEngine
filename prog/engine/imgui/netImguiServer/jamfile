@@ -1,0 +1,27 @@
+Root           ?= ../../../.. ;
+Location        = prog/engine/imgui/netImguiServer ;
+
+TargetType      = lib ;
+Target          = engine/imgui/netImguiServer.lib ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/netImgui
+  $(Root)/prog/3rdPartyLibs/netImguiServer
+  $(Root)/prog/3rdPartyLibs/stb
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+;
+
+Sources =
+  NetImguiServer_HAL_dagor.cpp
+  NetImguiServer_textures_dagor.cpp
+;
+
+UseProgLibs =
+  engine/imgui
+  3rdPartyLibs/netImgui
+  3rdPartyLibs/netImguiServer
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

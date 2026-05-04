@@ -298,6 +298,8 @@ ComPtr<T> create_reflection(IDxcUtils *utils, eastl::span<const uint8_t> data)
   return result;
 }
 
+bool is_valid_name_char(char c) { return '_' == c || 0 != isalnum(c); }
+
 eastl::string get_function_name(const D3D12_FUNCTION_DESC &func)
 {
   // Name is mangled like it would be c++
@@ -306,7 +308,7 @@ eastl::string get_function_name(const D3D12_FUNCTION_DESC &func)
   uint32_t start = 0;
   for (; mangledName[start] != '\0'; ++start)
   {
-    if (isalpha(mangledName[start]))
+    if (is_valid_name_char(mangledName[start]))
     {
       break;
     }
@@ -314,7 +316,7 @@ eastl::string get_function_name(const D3D12_FUNCTION_DESC &func)
   uint32_t stop = mangledName[start] != '\0' ? start + 1 : start;
   for (; mangledName[stop] != '\0'; ++stop)
   {
-    if (!isalpha(mangledName[stop]))
+    if (!is_valid_name_char(mangledName[stop]))
     {
       break;
     }
@@ -340,6 +342,33 @@ ExtensionOpCheckResult check_amd_extension_meta_slot(const D3D12_SHADER_INPUT_BI
   return (extension::amd::register_space_index != info.Space) ? ExtensionOpCheckResult::NotExtension
          : (extension::amd::register_index != info.BindPoint) ? ExtensionOpCheckResult::InvalidExtension
                                                               : ExtensionOpCheckResult::ValidExtension;
+}
+
+void extract_implicit_cb_size_from_reflection(ShaderHeaderCompileResult &result, const ComPtr<ID3D12ShaderReflection> &shaderInfo,
+  const D3D12_SHADER_DESC &desc)
+{
+  result.header.maxConstantCount = 0;
+  for (UINT cbi = 0; cbi < desc.ConstantBuffers; ++cbi)
+  {
+    auto constBufferInfo = shaderInfo->GetConstantBufferByIndex(cbi);
+    if (!constBufferInfo)
+      continue;
+    D3D12_SHADER_BUFFER_DESC constBufferDesc = {};
+    constBufferInfo->GetDesc(&constBufferDesc);
+    if (strcmp(constBufferDesc.Name, "$Globals") != 0)
+      continue;
+    const auto numRegisters = (constBufferDesc.Size + 15) / 16;
+    static constexpr uint32_t maxRegisters = 4096;
+    if (numRegisters > maxRegisters)
+    {
+      result.isOk = false;
+      String msg(256, "dxil::compileHeaderFromShader: $Globals constant buffer size (%u regs) is too big (max: %d regs)\n",
+        numRegisters, maxRegisters);
+      result.logMessage += msg;
+    }
+    result.header.maxConstantCount = numRegisters;
+    break;
+  }
 }
 } // namespace
 
@@ -716,6 +745,8 @@ ShaderHeaderCompileResult dxil::compileHeaderFromReflectionData(ShaderStage stag
     debug("PS output mask %08x", result.header.inOutSemanticMask);
   }
 
+  extract_implicit_cb_size_from_reflection(result, shaderInfo, desc);
+
   if ((ShaderStage::COMPUTE == stage) || (ShaderStage::MESH == stage) || (ShaderStage::AMPLIFICATION == stage))
   {
     UINT total = shaderInfo->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
@@ -770,6 +801,7 @@ enum class ShaderFunctionRelfectionError
   TRegisterIndexOufOfRange,
   UAVHasEmbeddedCounter,
   URegisterIndexOutOfRange,
+  InvalidExtensionResourceUsage,
   NotYetImplemented,
 };
 
@@ -997,6 +1029,34 @@ ShaderFunctionRelfectionError relfect(uint32_t default_playload_size_in_bytes, c
     {
       D3D12_SHADER_INPUT_BIND_DESC boundResourceInfo{};
       function.GetResourceBindingDesc(bi, &boundResourceInfo);
+
+      // Both NVidia and AMD use a special UAV buffer to "record" extension commands to.
+      // The device driver will then decode this recordings to this special buffer into
+      // vendor specific commands.
+      auto nvExtensionUse = check_nvidia_extension_meta_slot(boundResourceInfo);
+      if (ExtensionOpCheckResult::ValidExtension == nvExtensionUse)
+      {
+        output.resourceUsageTable.specialConstantsMask |= SC_NVIDIA_EXTENSION;
+        output.deviceRequirement.extensionVendor = ::dxil::ExtensionVendor::NVIDIA;
+        continue;
+      }
+      if (ExtensionOpCheckResult::InvalidExtension == nvExtensionUse)
+      {
+        return ShaderFunctionRelfectionError::InvalidExtensionResourceUsage;
+      }
+
+      auto amdExtensionUse = check_amd_extension_meta_slot(boundResourceInfo);
+      if (ExtensionOpCheckResult::ValidExtension == amdExtensionUse)
+      {
+        output.resourceUsageTable.specialConstantsMask |= SC_AMD_EXTENSION;
+        output.deviceRequirement.extensionVendor = ::dxil::ExtensionVendor::AMD;
+        continue;
+      }
+      if (ExtensionOpCheckResult::InvalidExtension == amdExtensionUse)
+      {
+        return ShaderFunctionRelfectionError::InvalidExtensionResourceUsage;
+      }
+
       auto result = parse_resource_definition(boundResourceInfo, output, library_info);
       if (ShaderFunctionRelfectionError::NoError != result)
       {
@@ -1070,17 +1130,23 @@ dxil::LibraryShaderPropertiesCompileResult dxil::compileLibraryShaderPropertiesF
   D3D12_LIBRARY_DESC libDesc{};
   libInfo->GetDesc(&libDesc);
 
-  result.properties.resize(libDesc.FunctionCount);
-  result.names.resize(libDesc.FunctionCount);
+  result.properties.reserve(libDesc.FunctionCount);
+  result.names.reserve(libDesc.FunctionCount);
   for (uint32_t i = 0; i < libDesc.FunctionCount; ++i)
   {
-    auto &target = result.properties[i];
     auto info = libInfo->GetFunctionByIndex(i);
 
     D3D12_FUNCTION_DESC functionDesc{};
     info->GetDesc(&functionDesc);
 
     auto functionName = get_function_name(functionDesc);
+    // library shader "stages" seem to contain debug info, which we skip for now
+    if (dxil::ShaderStage::LIBRARY == static_cast<dxil::ShaderStage>(translate_shader_type(functionDesc.Version)))
+    {
+      continue;
+    }
+
+
     if (functionName.empty())
     {
       result.logMessage += "Unable to obtain function name from mangled name ";
@@ -1088,10 +1154,10 @@ dxil::LibraryShaderPropertiesCompileResult dxil::compileLibraryShaderPropertiesF
       result.isOk = false;
       continue;
     }
-    result.names[i] = functionName;
+    result.names.push_back(functionName);
+    auto &target = result.properties.push_back();
 
-    auto relfectionResult =
-      relfect(default_playload_size_in_bytes, function_extra_data_query, *info, result.libInfo, result.properties[i]);
+    auto relfectionResult = relfect(default_playload_size_in_bytes, function_extra_data_query, *info, result.libInfo, target);
     if (ShaderFunctionRelfectionError::NoError != relfectionResult)
     {
       result.isOk = false;

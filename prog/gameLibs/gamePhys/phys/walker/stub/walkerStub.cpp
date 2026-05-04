@@ -8,10 +8,13 @@ void HumanControlState::setWishShootDir(const Point3 &) { G_ASSERT(0); }
 void HumanControlState::setWishLookDir(const Point3 &) { G_ASSERT(0); }
 
 #include <gamePhys/phys/walker/humanPhys.h>
+
+template class PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState>;
+
 HumanPhysState::HumanPhysState() { G_ASSERT(0); }
 bool HumanPhysState::deserialize(const danet::BitStream &, IPhysBase &) { G_ASSERT_RETURN(false, false); }
 
-template class PhysicsBase<HumanPhysState, HumanControlState, CommonPhysPartialState>;
+void HumanPhys::updatePhys(double, float, bool) { G_ASSERT(0); }
 
 void HumanPhysState::resetStamina(float) { G_ASSERT(0); }
 

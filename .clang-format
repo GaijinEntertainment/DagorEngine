@@ -59,4 +59,10 @@ PenaltyBreakOpenParenthesis: 1
 PenaltyBreakComment: 1
 SortIncludes:    Never
 TabWidth:        2
+---
+Language:        Java
+BasedOnStyle:    Google
+ColumnLimit:     135
+IndentWidth:     4
+ContinuationIndentWidth: 8
 ...

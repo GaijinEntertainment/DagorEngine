@@ -31,6 +31,9 @@ struct Frustum
     construct(globtm);
   }
 
+  // construct plane03X, plane03Y, ... from camPlanes
+  void constructVectorizedPlanes();
+
   enum
   {
     OUTSIDE = 0,
@@ -96,6 +99,8 @@ struct Frustum
     return testBoxB(bmin, bmax);
   }
 
+  int testBoxCorrect(const BBox3 &box, const vec3f *frustumPoints, const bbox3f &frustumBox) const;
+
   __forceinline int testBox(const BBox3 &box) const
   {
     vec3f bmin = v_ldu(&box[0].x);
@@ -119,6 +124,7 @@ struct Frustum
 
   // generate 8 points
   void generateAllPointFrustm(vec3f *pntList) const;
+  bbox3f calcFrustumBBox(vec3f *pntList) const;
   void calcFrustumBBox(bbox3f &box) const;
 };
 

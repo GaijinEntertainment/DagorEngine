@@ -1,0 +1,13 @@
+int: 42
+float: 3.14
+str: hello
+bool: true
+null: null
+table.a: 1
+array[1]: 2
+int after set: 100
+str after set: world
+bool after set: false
+null->99: 99
+multi set: 3
+default: null

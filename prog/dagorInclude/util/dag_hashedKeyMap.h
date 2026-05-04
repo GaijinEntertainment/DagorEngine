@@ -210,7 +210,9 @@ struct HashedKeyMap
     if (DAGOR_UNLIKELY(used >= mask * load_factor_nom / load_factor_denom))
       rehash(oa_hashmap_util::max(4, mask + mask + 2));
     bool emplacedNew = false;
-    new (vals + oa_hashmap_util::emplace<key_t, EmptyKey, Hasher>(key, keys.first(), mask, emplacedNew), _NEW_INPLACE) val_t(val);
+    auto id = oa_hashmap_util::emplace<key_t, EmptyKey, Hasher>(key, keys.first(), mask, emplacedNew);
+    if (emplacedNew)
+      new (vals + id, _NEW_INPLACE) val_t(val);
     used += uint32_t(emplacedNew);
     return emplacedNew;
   }
@@ -222,7 +224,10 @@ struct HashedKeyMap
     bool emplacedNew = false;
     auto id = oa_hashmap_util::emplace<key_t, EmptyKey, Hasher>(key, keys.first(), mask, emplacedNew);
     used += uint32_t(emplacedNew);
-    return eastl::pair<val_t *, bool>{vals + id, emplacedNew};
+    auto v = vals + id;
+    if (emplacedNew)
+      new (v, _NEW_INPLACE) val_t();
+    return eastl::pair<val_t *, bool>{v, emplacedNew};
   }
   void emplace_new(key_t key, const val_t &val) // that's unsafe emplace, it requires that key hasn't been added before
   {
@@ -380,20 +385,41 @@ struct HashedKeyMap
   }
 
   template <typename Cb>
-  void iterate(Cb cb)
+  void iterate(Cb cb, size_t from = 0)
   {
-    val_t *v = vals;
-    for (const key_t *i = keys.first(), *e = i + bucket_count(); i != e; ++i, ++v)
+    val_t *v = vals + from;
+    for (const key_t *i = keys.first() + from, *e = keys.first() + bucket_count(); i < e; ++i, ++v)
       if (*i != EmptyKey)
         cb(*i, *v);
   }
   template <typename Cb>
-  void iterate(Cb cb) const
+  void iterate(Cb cb, size_t from = 0) const
   {
-    const val_t *v = vals;
-    for (const key_t *i = keys.first(), *e = i + bucket_count(); i != e; ++i, ++v)
+    const val_t *v = vals + from;
+    for (const key_t *i = keys.first() + from, *e = keys.first() + bucket_count(); i < e; ++i, ++v)
       if (*i != EmptyKey)
         cb(*i, *v);
+  }
+
+  template <typename Cb>
+  size_t iterate_until(Cb cb, size_t from = 0)
+  {
+    val_t *v = vals + from;
+    for (const key_t *i = keys.first() + from, *e = keys.first() + bucket_count(); i < e; ++i, ++v)
+      if (*i != EmptyKey)
+        if (cb(*i, *v))
+          return i - keys.first();
+    return bucket_count();
+  }
+  template <typename Cb>
+  size_t iterate_until(Cb cb, size_t from = 0) const
+  {
+    const val_t *v = vals + from;
+    for (const key_t *i = keys.first() + from, *e = keys.first() + bucket_count(); i < e; ++i, ++v)
+      if (*i != EmptyKey)
+        if (cb(*i, *v))
+          return i - keys.first();
+    return bucket_count();
   }
 
 protected:

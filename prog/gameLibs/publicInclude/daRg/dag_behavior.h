@@ -10,6 +10,9 @@
 #include <debug/dag_debug.h>
 #include <generic/dag_tab.h>
 #include <drv/hid/dag_hiPointingData.h>
+#include <dag/dag_vector.h>
+#include <memory/dag_framemem.h>
+#include <math/dag_Point2.h>
 
 
 namespace HumanInput
@@ -19,6 +22,10 @@ class IGenJoystick;
 class IGenPointing;
 } // namespace HumanInput
 
+namespace Sqrat
+{
+class Object;
+}
 
 namespace darg
 {
@@ -73,18 +80,15 @@ public:
   {
     return 0;
   }
-  virtual int mouseEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_idx*/,
-    short /*mx*/, short /*my*/, int /*buttons*/, int /*accum_res*/)
+
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_id*/,
+    Point2 /*pos*/, int /*accum_res*/)
   {
     return 0;
   }
+
   virtual int joystickBtnEvent(ElementTree *, Element *, const HumanInput::IGenJoystick *, InputEvent /*event*/, int /*key_idx*/,
     int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int /*accum_res*/)
-  {
-    return 0;
-  }
-  virtual int touchEvent(ElementTree *, Element *, InputEvent /*event*/, HumanInput::IGenPointing * /*pnt*/, int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/, int /*accum_res*/)
   {
     return 0;
   }
@@ -97,6 +101,9 @@ public:
   virtual void collectConsumableButtons(Element *, Tab<HotkeyButton> &) {}
   virtual bool willHandleClick(Element *) { return false; }
   virtual int onDeactivateInput(Element *, InputDevice, int /*pointer_id*/) { return 0; }
+  virtual int onDeactivateAllInput(Element *) { return 0; }
+  virtual void onKbFocusChange(Element *, bool /*focused*/) {}
+  virtual void contributeChildren(Element *, dag::Vector<Sqrat::Object, framemem_allocator> & /*children*/) {}
 
 public:
   const int updateStages;

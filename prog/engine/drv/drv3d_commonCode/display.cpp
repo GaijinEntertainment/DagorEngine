@@ -4,7 +4,6 @@
 #include <drv/3d/dag_info.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
-#include "gpuConfig.h"
 #include "drv_log_defs.h"
 
 #if !_TARGET_APPLE // see displayM.mm for MacOS
@@ -88,7 +87,15 @@ void d3d::update_window_mode()
     }
   }
 
-  if (get_gpu_driver_cfg().forceFullscreenToWindowed || videoBlk.getBool("forbidTrueFullscreen", false))
+  constexpr bool forceFullscreenToWindowed =
+#if _TARGET_PC_WIN && _TARGET_C4
+    // Windows Store apps require Full Screen Windowed mode
+    true;
+#else
+    false;
+#endif
+
+  if (forceFullscreenToWindowed || videoBlk.getBool("forbidTrueFullscreen", false))
   {
     dgs_set_window_mode(WindowMode::WINDOWED_FULLSCREEN);
     return;

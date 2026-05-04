@@ -7,6 +7,7 @@
 #include <util/dag_stdint.h>
 #include <generic/dag_tabFwd.h>
 
+class DataBlock;
 class String;
 
 
@@ -40,6 +41,7 @@ bool get_os_common_name(String &osCommonName);
 bool get_cpu_info(String &cpu, String &cpuFreq, String &cpuVendor, String &cpu_series, int &cores_count);
 bool get_cpu_features(String &cpu_arch, String &cpu_uarch, Tab<String> &cpu_features);
 bool get_soc_info(String &soc);
+int get_mem_page_size();
 
 bool get_mac(String &adapter, String &mac);
 
@@ -70,6 +72,8 @@ bool get_system_location_2char_code(String &location); //"RU", "US", etc.
 void dump_sysinfo();
 
 void dump_dll_names();
+
+void check_vc_redist(const DataBlock *);
 
 ThermalStatus get_thermal_state(); // From normal (0) to the worse
 const char *to_string(ThermalStatus status);

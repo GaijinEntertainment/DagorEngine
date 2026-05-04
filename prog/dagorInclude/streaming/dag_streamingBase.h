@@ -66,7 +66,7 @@ public:
     rs.render(vf, render_id, render_flags_mask);
   }
 
-  void renderTrans() { rs.renderTrans(); }
+  void renderTrans(bool draw_all = false) { rs.renderTrans(draw_all); }
 
   void act(const Point3 &observer)
   {

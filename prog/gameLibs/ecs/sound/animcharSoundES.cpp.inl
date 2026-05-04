@@ -22,38 +22,39 @@ namespace cvars
 {
 static CONSOLE_BOOL_VAL("snd", irq_debug, false);
 }
-static inline bool is_watched(ecs::EntityId eid)
+static inline bool is_watched(ecs::EntityManager &mgr, ecs::EntityId eid)
 {
-  if (ECS_GET_OR(eid, is_watched_sound, false))
+  if (ECS_GET_OR_MGR(mgr, eid, is_watched_sound, false))
     return true;
-  eid = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
-  return ECS_GET_OR(eid, is_watched_sound, false);
+  eid = ECS_GET_OR_MGR(mgr, eid, gun__owner, ecs::INVALID_ENTITY_ID);
+  return ECS_GET_OR_MGR(mgr, eid, is_watched_sound, false);
 }
 
-static inline void debug_irq_impl(ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
+static inline void debug_irq_impl(ecs::EntityManager &mgr, ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
 {
   if (!cvars::irq_debug.get())
     return;
-  if (is_watched(eid))
-    if (const auto *animchar = ECS_GET_NULLABLE(AnimV20::AnimcharBaseComponent, eid, animchar))
+  if (is_watched(mgr, eid))
+    if (const auto *animchar = ECS_GET_NULLABLE_MGR(mgr, AnimV20::AnimcharBaseComponent, eid, animchar))
       if (const auto *animGraph = animchar->getAnimGraph())
         sndsys::debug_trace_warn("[%d] irq%d (%s) from \"%s\" at frame %d (tick=%d), at %.3f sec (animtime)", offset, type,
           AnimV20::getIrqName(type), animGraph->getBlendNodeName((AnimV20::IAnimBlendNode *)(void *)p1),
           p2 / (AnimV20::TIME_TicksPerSec / 30), p2,
           animchar->getAnimState() ? animchar->getAnimState()->getParam(animGraph->PID_GLOBAL_TIME) : 0);
 }
-static inline const char *debug_get_node_name(ecs::EntityId eid, intptr_t p1)
+static inline const char *debug_get_node_name(ecs::EntityManager &mgr, ecs::EntityId eid, intptr_t p1)
 {
-  if (const auto *animchar = ECS_GET_NULLABLE(AnimV20::AnimcharBaseComponent, eid, animchar))
+  if (const auto *animchar = ECS_GET_NULLABLE_MGR(mgr, AnimV20::AnimcharBaseComponent, eid, animchar))
     if (const auto *animGraph = animchar->getAnimGraph())
       return animGraph->getBlendNodeName((AnimV20::IAnimBlendNode *)(void *)p1);
   return "";
 }
-static inline void debug_irq(ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
+static inline void debug_irq(ecs::EntityManager &mgr, ecs::EntityId eid, int type, intptr_t p1, intptr_t p2, int offset)
 {
 #if DAGOR_DBGLEVEL > 0
-  debug_irq_impl(eid, type, p1, p2, offset);
+  debug_irq_impl(mgr, eid, type, p1, p2, offset);
 #else
+  G_UNREFERENCED(mgr);
   G_UNREFERENCED(eid);
   G_UNREFERENCED(type);
   G_UNREFERENCED(p1);
@@ -89,7 +90,11 @@ protected:
   }
 };
 
-static bool should_play(ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2, intptr_t p3, bool play_backward = false)
+static constexpr int forward_direction = 1;
+static constexpr int backward_direction = -1;
+
+static bool should_play(ecs::EntityManager &mgr, ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2, intptr_t p3,
+  int direction = forward_direction)
 {
   G_UNUSED(p1);
   G_UNUSED(p2);
@@ -99,28 +104,33 @@ static bool should_play(ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2,
   // parametric irqs from weap reloading is a BIG problem.
   // may spicify this behaviour in sound blk if need.
   const int offset = p3;
-  debug_irq(eid, irq_id, p1, p2, offset);
-  return offset >= 0 || play_backward;
+  debug_irq(mgr, eid, irq_id, p1, p2, offset);
+  if (direction == forward_direction)
+    return offset >= 0;
+  if (direction == backward_direction)
+    return offset < 0;
+  return true;
 }
 
-static void debug_anim_param_irq(ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2, intptr_t p3)
+static void debug_anim_param_irq(ecs::EntityManager &mgr, ecs::EntityId eid, int irq_id, intptr_t p1, intptr_t p2, intptr_t p3)
 {
 #if DAGOR_DBGLEVEL > 0
   if (irq_id == AnimV20::getDebugAnimParamIrqId())
   {
-    if (!is_watched(eid))
+    if (!is_watched(mgr, eid))
       return;
     const float param = safediv(float(p2), float(p3));
     // if (prevParam != param)
     {
       const int offset = p3;
-      debug_irq(eid, irq_id, p1, p2, offset);
-      const char *nodeName = debug_get_node_name(eid, p1);
-      g_entity_mgr->sendEvent(eid, CmdSoundDebugAnimParam(param, nodeName));
+      debug_irq(mgr, eid, irq_id, p1, p2, offset);
+      const char *nodeName = debug_get_node_name(mgr, eid, p1);
+      mgr.sendEvent(eid, CmdSoundDebugAnimParam(param, nodeName));
     }
     // prevParam = param;
   }
 #else
+  G_UNREFERENCED(mgr);
   G_UNREFERENCED(eid);
   G_UNREFERENCED(irq_id);
   G_UNREFERENCED(p1);
@@ -132,13 +142,15 @@ static void debug_anim_param_irq(ecs::EntityId eid, int irq_id, intptr_t p1, int
 template <typename Event>
 class GenIrqSoundHandler : public BaseSoundHandler<sound_irq_name_t>
 {
-  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
+  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3, ecs::EntityManager *mgr = nullptr) override
   {
-    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
-    if (should_play(eid, irq_id, p1, p2, p3))
+    if (!mgr)
+      mgr = g_entity_mgr;
+    debug_anim_param_irq(*mgr, eid, irq_id, p1, p2, p3);
+    if (should_play(*mgr, eid, irq_id, p1, p2, p3))
     {
       if (auto irqPtr = get(irq_id))
-        g_entity_mgr->sendEvent(eid, Event(irqPtr->c_str()));
+        mgr->sendEvent(eid, Event(irqPtr->c_str()));
     }
     return 0;
   }
@@ -152,21 +164,23 @@ public:
 
 struct TypeIrq
 {
-  sndsys::str_hash_t type;
-  sound_irq_name_t name;
-  bool playBackward;
+  sndsys::str_hash_t type = {};
+  sound_irq_name_t name = {};
+  int direction = forward_direction;
 };
 
 template <typename Event>
 class TypeIrqSoundHandler : public BaseSoundHandler<TypeIrq>
 {
-  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
+  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3, ecs::EntityManager *mgr = nullptr) override
   {
-    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
+    if (!mgr)
+      mgr = g_entity_mgr;
+    debug_anim_param_irq(*mgr, eid, irq_id, p1, p2, p3);
     if (const TypeIrq *irqPtr = get(irq_id))
     {
-      if (should_play(eid, irq_id, p1, p2, p3, irqPtr->playBackward))
-        g_entity_mgr->sendEvent(eid, Event(irqPtr->name.c_str(), irqPtr->type));
+      if (should_play(*mgr, eid, irq_id, p1, p2, p3, irqPtr->direction))
+        mgr->sendEvent(eid, Event(irqPtr->name.c_str(), irqPtr->type));
     }
     return 0;
   }
@@ -174,9 +188,9 @@ class TypeIrqSoundHandler : public BaseSoundHandler<TypeIrq>
 public:
   TypeIrqSoundHandler(ecs::EntityId eid) : BaseSoundHandler(eid) {}
 
-  void registerIrq(const char *irq_name, const char *type, bool play_backward, AnimV20::AnimcharBaseComponent &animchar)
+  void registerIrq(const char *irq_name, const char *type, int direction, AnimV20::AnimcharBaseComponent &animchar)
   {
-    registerIrqImpl(irq_name, TypeIrq{SND_HASH_SLOW(type), irq_name, play_backward}, animchar);
+    registerIrqImpl(irq_name, TypeIrq{SND_HASH_SLOW(type), irq_name, direction}, animchar);
   }
 
   void registerDebugAnimParamIrq(AnimV20::AnimcharBaseComponent &animchar)
@@ -192,16 +206,18 @@ public:
 
 class StepIrqSoundHandler : public ecs::AnimIrqHandler
 {
-  eastl::vector_map<int /*irq_id*/, eastl::pair<int /*obj_idx*/, bool /*play_backward*/>> map;
+  eastl::vector_map<int /*irq_id*/, eastl::pair<int /*obj_idx*/, int /*direction*/>> map;
 
-  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3) override
+  intptr_t irq(int irq_id, intptr_t p1, intptr_t p2, intptr_t p3, ecs::EntityManager *mgr = nullptr) override
   {
-    debug_anim_param_irq(eid, irq_id, p1, p2, p3);
+    if (!mgr)
+      mgr = g_entity_mgr;
+    debug_anim_param_irq(*mgr, eid, irq_id, p1, p2, p3);
     const auto it = map.find(irq_id);
     if (it != map.end())
     {
-      if (should_play(eid, irq_id, p1, p2, p3, it->second.second /*play_backward*/))
-        g_entity_mgr->sendEvent(eid, CmdSoundStepIrq(it->second.first));
+      if (should_play(*mgr, eid, irq_id, p1, p2, p3, it->second.second /*direction*/))
+        mgr->sendEvent(eid, CmdSoundStepIrq(it->second.first));
     }
     return 0;
   }
@@ -209,13 +225,13 @@ class StepIrqSoundHandler : public ecs::AnimIrqHandler
 public:
   StepIrqSoundHandler(ecs::EntityId eid) : ecs::AnimIrqHandler(eid) {}
 
-  void registerIrq(const char *irq_name, int obj_idx, bool play_backward, AnimV20::AnimcharBaseComponent &animchar)
+  void registerIrq(const char *irq_name, int obj_idx, int direction, AnimV20::AnimcharBaseComponent &animchar)
   {
     const int irqId = AnimV20::addIrqId(irq_name);
     G_ASSERT(irqId >= 0);
     if (auto it = map.lower_bound(irqId); it == map.end() || it->first != irqId)
     {
-      map.insert(it, eastl::make_pair(irqId, eastl::make_pair(obj_idx, play_backward)));
+      map.insert(it, eastl::make_pair(irqId, eastl::make_pair(obj_idx, direction)));
       animchar.registerIrqHandler(irqId, this);
     }
   }
@@ -270,44 +286,44 @@ static void register_type_irqs(ECS_SHARED(ecs::Object) irqs, Handler &handler, A
     const char *irqName = it.first.c_str();
     const ecs::Object &irqObj = it.second.get<ecs::Object>();
     const char *type = irqObj.getMemberOr(ECS_HASH("type"), "");
-    const bool playBackward = irqObj.hasMember(ECS_HASH("playBackward"));
-    handler.registerIrq(irqName, type, playBackward, animchar);
+    const int direction = irqObj.getMemberOr(ECS_HASH("direction"), (int)forward_direction);
+    handler.registerIrq(irqName, type, direction, animchar);
   }
 }
 
 template <typename Callable>
-static void animchar_sound_ecs_query(ecs::EntityId, Callable c);
+static void animchar_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void human_animchar_sound_ecs_query(ecs::EntityId, Callable c);
+static void human_animchar_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void human_melee_sound_ecs_query(ecs::EntityId, Callable c);
+static void human_melee_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 ECS_TAG(sound)
 ECS_ON_EVENT(on_appear)
-static void animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityId eid, AnimcharSound &animchar_sound,
-  AnimV20::AnimcharBaseComponent &animchar)
+static void animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
+  AnimcharSound &animchar_sound, AnimV20::AnimcharBaseComponent &animchar)
 {
   animchar_sound.handlers = eastl::make_unique<AnimcharSoundHandlers>(eid);
   animchar_sound.handlers->irqHandler.registerDebugAnimParamIrq(animchar);
 
-  animchar_sound_ecs_query(eid,
+  animchar_sound_ecs_query(manager, eid,
     [&](ECS_SHARED(ecs::Object) sound_irqs) { register_type_irqs(sound_irqs, animchar_sound.handlers->irqHandler, animchar); });
 }
 
 ECS_TAG(sound)
 ECS_ON_EVENT(on_appear)
-static void human_animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityId eid, HumanAnimcharSound &human_animchar_sound,
-  AnimV20::AnimcharBaseComponent &animchar)
+static void human_animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
+  HumanAnimcharSound &human_animchar_sound, AnimV20::AnimcharBaseComponent &animchar)
 {
   human_animchar_sound.handlers = eastl::make_unique<HumanAnimcharSoundHandlers>(eid);
   human_animchar_sound.handlers->irqHandler.registerDebugAnimParamIrq(animchar);
 
-  animchar_sound_ecs_query(eid,
+  animchar_sound_ecs_query(manager, eid,
     [&](ECS_SHARED(ecs::Object) sound_irqs) { register_type_irqs(sound_irqs, human_animchar_sound.handlers->irqHandler, animchar); });
 
-  human_animchar_sound_ecs_query(eid,
+  human_animchar_sound_ecs_query(manager, eid,
     [&](ECS_SHARED(ecs::Object) human_voice_sound__irqs, ECS_SHARED(ecs::Array) human_steps_sound__irqs) {
       register_type_irqs(human_voice_sound__irqs, human_animchar_sound.handlers->voicefxHandler, animchar);
 
@@ -322,8 +338,8 @@ static void human_animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityId 
         if (strncmp(irqName, prefix, strlen(prefix)) != 0)
           logerr("Irq name '%s' in human_steps_sound__irqs should start with '%s'", irqName, prefix);
 #endif
-        const bool playBackward = irqObj.hasMember(ECS_HASH("playBackward"));
-        human_animchar_sound.handlers->stepHandler.registerIrq(irqName, idx, playBackward, animchar);
+        const int direction = irqObj.getMemberOr(ECS_HASH("direction"), (int)forward_direction);
+        human_animchar_sound.handlers->stepHandler.registerIrq(irqName, idx, direction, animchar);
       }
 #if DAGOR_DBGLEVEL > 0
       if (human_steps_sound__irqs.size() & 1)
@@ -331,7 +347,7 @@ static void human_animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityId 
 #endif
     });
 
-  human_melee_sound_ecs_query(eid, [&](ECS_SHARED(ecs::Object) human_melee_sound__irqs) {
+  human_melee_sound_ecs_query(manager, eid, [&](ECS_SHARED(ecs::Object) human_melee_sound__irqs) {
     for (const auto &it : human_melee_sound__irqs)
       human_animchar_sound.handlers->meleeHandler.registerIrq(it.first.c_str(), animchar);
   });

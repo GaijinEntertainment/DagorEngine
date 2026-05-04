@@ -1,12 +1,9 @@
-#include "NetImguiServer_Config.h"
-#include "NetImguiServer_RemoteClient.h"
-
+#include <netImgui/NetImgui_Api.h>
 #include <mutex>
 #include <fstream>
-
-#include <netImgui/NetImgui_Api.h>
+#include "NetImguiServer_Config.h"
+#include "NetImguiServer_RemoteClient.h"
 #include <netImgui/nlohmann_json/json.hpp>
-
 
 namespace NetImguiServer { namespace Config
 {
@@ -20,6 +17,12 @@ static constexpr char kConfigField_ServerRefreshActive[]		= "RefreshFPSActive";
 static constexpr char kConfigField_ServerRefreshInactive[]		= "RefreshFPSInactive";
 static constexpr char kConfigField_ServerDPIScaleRatio[]		= "DPIScaleRatio";
 static constexpr char kConfigField_ServerCompressionEnable[]	= "CompressionEnable";
+static constexpr char kConfigField_ServerFontSize[]				= "ServerFontSize";
+static constexpr char kConfigField_ServerWindowPlacementX[]		= "ServerWindowPlacementX";
+static constexpr char kConfigField_ServerWindowPlacementY[]		= "ServerWindowPlacementY";
+static constexpr char kConfigField_ServerWindowPlacementW[]		= "ServerWindowPlacementW";
+static constexpr char kConfigField_ServerWindowPlacementH[]		= "ServerWindowPlacementH";
+static constexpr char kConfigField_ServerWindowMaximized[]		= "ServerWindowMaximized";
 
 static constexpr char kConfigField_Note[]						= "Note";
 static constexpr char kConfigField_Version[]					= "Version";
@@ -36,7 +39,9 @@ float		Server::sRefreshFPSActive	= 30.f;
 float		Server::sRefreshFPSInactive	= 30.f;
 float		Server::sDPIScaleRatio		= 1.f;
 bool		Server::sCompressionEnable	= true;
-
+float		Server::sFontSize			= 16.f;
+int			Server::sWindowPlacement[4]	= {100, 100, 1280, 1024};
+bool 		Server::sWindowMaximized	= false;
 
 //=================================================================================================
 // The user config is created when the main config file is readonly
@@ -241,14 +246,21 @@ void Client::SaveAll()
 	std::ofstream localFile(GetConfigFilename(eConfigType::Local));
 	bool localIsWritable = localFile.is_open();
 	localFile.close();
-	std::ofstream local2ndFile(GetConfigFilename(eConfigType::Local2nd));
-	bool local2ndIsWritable = local2ndFile.is_open();
-	local2ndFile.close();
-
-	// Try saving into default config file	
+	
+	std::ifstream local2ndFileExist(GetConfigFilename(eConfigType::Local2nd));
+	bool local2ndExist		= local2ndFileExist.is_open() ;
+	bool local2ndIsWritable = false;
+	local2ndFileExist.close();
+	
+	// Try saving into default config file
 	SaveConfigFile(eConfigType::Local, localIsWritable);
 	// And then in 2nd workingdir user file when 1st one is read only
-	SaveConfigFile(eConfigType::Local2nd, !localIsWritable && local2ndIsWritable);
+	if( !localIsWritable || local2ndExist )
+	{
+		std::ofstream local2ndFile(GetConfigFilename(eConfigType::Local2nd));
+		SaveConfigFile(eConfigType::Local2nd, !localIsWritable && local2ndIsWritable);
+	}
+
 	// Finally saved the shared config into user folder
 	SaveConfigFile(eConfigType::Shared, !localIsWritable && !local2ndIsWritable);
 }
@@ -262,12 +274,18 @@ void Client::SaveConfigFile(eConfigType configFileType, bool writeServerSettings
 	configRoot[kConfigField_Note]		= configFileType == eConfigType::Local	? "NetImgui Server's list of Clients (Using JSON format) Local File." 
 										: configFileType == eConfigType::Local	? "NetImgui Server's list of Clients (Using JSON format) 2nd Local File."
 																				: "NetImgui Server's list of Clients (Using JSON format) Shared File.";
-	if( writeServerSettings ){		
+	if( writeServerSettings ){
 		configRoot[kConfigField_ServerPort]					= Server::sPort;
 		configRoot[kConfigField_ServerRefreshActive]		= Server::sRefreshFPSActive;
 		configRoot[kConfigField_ServerRefreshInactive]		= Server::sRefreshFPSInactive;
 		configRoot[kConfigField_ServerDPIScaleRatio]		= Server::sDPIScaleRatio;
 		configRoot[kConfigField_ServerCompressionEnable]	= Server::sCompressionEnable;
+		configRoot[kConfigField_ServerFontSize]				= Server::sFontSize;
+		configRoot[kConfigField_ServerWindowPlacementX]		= Server::sWindowPlacement[0];
+		configRoot[kConfigField_ServerWindowPlacementY]		= Server::sWindowPlacement[1];
+		configRoot[kConfigField_ServerWindowPlacementW]		= Server::sWindowPlacement[2];
+		configRoot[kConfigField_ServerWindowPlacementH]		= Server::sWindowPlacement[3];
+		configRoot[kConfigField_ServerWindowMaximized]		= Server::sWindowMaximized;
 	}
 
 	int clientToSaveCount(0);
@@ -329,13 +347,19 @@ void Client::LoadConfigFile(eConfigType configFileType)
 	bool isWritable = outputFile.is_open() && !outputFile.eof();
 	outputFile.close();
 
-	uint32_t configVersion		= GetPropertyValue(configRoot, kConfigField_Version,					0u);
-	Server::sPort				= GetPropertyValue(configRoot, kConfigField_ServerPort,					NetImgui::kDefaultServerPort);
-	Server::sRefreshFPSActive	= GetPropertyValue(configRoot, kConfigField_ServerRefreshActive,		Server::sRefreshFPSActive);
-	Server::sRefreshFPSInactive	= GetPropertyValue(configRoot, kConfigField_ServerRefreshInactive,		Server::sRefreshFPSInactive);
-	Server::sDPIScaleRatio		= GetPropertyValue(configRoot, kConfigField_ServerDPIScaleRatio,		Server::sDPIScaleRatio);
-	Server::sCompressionEnable	= GetPropertyValue(configRoot, kConfigField_ServerCompressionEnable,	Server::sCompressionEnable);
-	
+	uint32_t configVersion		= GetPropertyValue(configRoot, kConfigField_Version,				0u);
+	Server::sPort				= GetPropertyValue(configRoot, kConfigField_ServerPort,				NetImgui::kDefaultServerPort);
+	Server::sRefreshFPSActive	= GetPropertyValue(configRoot, kConfigField_ServerRefreshActive,	Server::sRefreshFPSActive);
+	Server::sRefreshFPSInactive	= GetPropertyValue(configRoot, kConfigField_ServerRefreshInactive,	Server::sRefreshFPSInactive);
+	Server::sDPIScaleRatio		= GetPropertyValue(configRoot, kConfigField_ServerDPIScaleRatio,	Server::sDPIScaleRatio);
+	Server::sCompressionEnable	= GetPropertyValue(configRoot, kConfigField_ServerCompressionEnable,Server::sCompressionEnable);
+	Server::sFontSize			= GetPropertyValue(configRoot, kConfigField_ServerFontSize,			Server::sFontSize);
+	Server::sWindowPlacement[0] = GetPropertyValue(configRoot, kConfigField_ServerWindowPlacementX, Server::sWindowPlacement[0]);
+	Server::sWindowPlacement[1] = GetPropertyValue(configRoot, kConfigField_ServerWindowPlacementY, Server::sWindowPlacement[1]);
+	Server::sWindowPlacement[2] = GetPropertyValue(configRoot, kConfigField_ServerWindowPlacementW, Server::sWindowPlacement[2]);
+	Server::sWindowPlacement[3] = GetPropertyValue(configRoot, kConfigField_ServerWindowPlacementH, Server::sWindowPlacement[3]);
+	Server::sWindowMaximized 	= GetPropertyValue(configRoot, kConfigField_ServerWindowMaximized,	Server::sWindowMaximized);
+
 	if( configVersion >= static_cast<uint32_t>(eVersion::Initial) )
 	{	
 		for(const auto& config : configRoot[kConfigField_Configs] )

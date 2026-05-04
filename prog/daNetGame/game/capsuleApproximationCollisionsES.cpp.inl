@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/anim/anim.h>
 #include <animChar/dag_animCharacter2.h>
 #include <ecs/render/updateStageRender.h>
@@ -14,14 +18,15 @@
 #include <ecs/phys/collRes.h>
 
 template <typename Callable>
-static void get_attached_to_capsules_preprocess_ecs_query(ecs::EntityId eid, Callable c);
+static void get_attached_to_capsules_preprocess_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 template <typename Callable>
-static void get_attached_to_capsules_ecs_query(ecs::EntityId eid, Callable c);
+static void get_attached_to_capsules_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_TRACK(animchar_attach__attachedTo)
 ECS_ON_EVENT(on_appear)
 void capsules_collision_on_appear_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::StringList &capsule_approximation_collisions_names,
   ecs::EntityId &animchar_attach__attachedTo,
   ecs::IntList &capsule_approximation_collisions_ids)
@@ -30,12 +35,12 @@ void capsules_collision_on_appear_es(const ecs::Event &,
   capsuleNodes.reserve(capsule_approximation_collisions_names.size());
   for (auto &name : capsule_approximation_collisions_names)
     capsuleNodes.insert(str_hash_fnv1(name.c_str()));
-  get_attached_to_capsules_preprocess_ecs_query(animchar_attach__attachedTo,
+  get_attached_to_capsules_preprocess_ecs_query(manager, animchar_attach__attachedTo,
     [&](CollisionResource &collres, ECS_SHARED(CapsuleApproximation) capsule_approximation) {
       for (int i = 0; i < capsule_approximation.capsuleDatas.size(); i++)
       {
         auto approx = capsule_approximation.capsuleDatas[i];
-        const char *collNodeName = collres.getNode(approx.collNodeId)->name.c_str();
+        const char *collNodeName = collres.getNodeName(approx.collNodeId);
         if (capsuleNodes.find(str_hash_fnv1(collNodeName)) != capsuleNodes.end())
           capsule_approximation_collisions_ids.push_back(i);
       }
@@ -45,6 +50,7 @@ void capsules_collision_on_appear_es(const ecs::Event &,
 ECS_TAG(render)
 ECS_NO_ORDER
 void capsules_collisions_es(const UpdateStageInfoBeforeRender &,
+  ecs::EntityManager &manager,
   ecs::EntityId &animchar_attach__attachedTo,
   ecs::IntList &capsule_approximation_collisions_ids,
   ecs::Point4List &additional_data)
@@ -52,7 +58,7 @@ void capsules_collisions_es(const UpdateStageInfoBeforeRender &,
   int count = 2 * capsule_approximation_collisions_ids.size();
   int offset = animchar_additional_data::request_space<AAD_CAPSULE_APPROX>(additional_data, count);
   offset += count;
-  get_attached_to_capsules_ecs_query(animchar_attach__attachedTo,
+  get_attached_to_capsules_ecs_query(manager, animchar_attach__attachedTo,
     [&](AnimV20::AnimcharBaseComponent &animchar, ECS_SHARED(CapsuleApproximation) capsule_approximation) {
       for (auto approxId : capsule_approximation_collisions_ids)
       {

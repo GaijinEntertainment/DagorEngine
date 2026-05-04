@@ -13,8 +13,14 @@ rule ProcessLinkTarget
 {
   local _LIBS =
      c m log dl android
-     stdc++ c++abi c++_static
+     stdc++ c++abi
   ;
+
+  if $(Sanitize) = hwaddress {
+    _LIBS += c++_shared ;
+  } else {
+    _LIBS += c++_static ;
+  }
 
   if $(AndroidNdkVer) in r27c {
     _LIBS += clang_rt.builtins-aarch64-android ;
@@ -24,6 +30,13 @@ rule ProcessLinkTarget
 
   if $(TargetType) = exe
   {
+    if $(Sanitize) = hwaddress {
+      BundleCopy +=
+        @$(_A_NDK_DIR)/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so libs/$(PlatformArch)/libc++_shared.so
+        @$(_A_NDK_DIR)/wrap.sh/hwasan.sh src/main/resources/lib/$(PlatformArch)/wrap.sh
+      ;
+    }
+
     if $(BundleCopy) { ProcessBundleCopy $(BundleCopy) ; BundleCopy = ; } # process it here to force actual AndroidJavaCode value
 
     # configure build engine specific settings
@@ -154,27 +167,20 @@ rule ProcessLinkTarget
  "
     ;
 
-    AndroidExternalLibs ?= ;
+    AndroidExternalLibs ?= no ;
+    AndroidDebug ?= no ;
 
-    postlink +=
-      call $(PYTHON_EXE) $(jbuild_dir)/update_java_external_libs.py $(stage_dir)/src $(AndroidExternalLibs) "
- "
-    ;
-
-    AndroidJavaSignatureVersion ?= 0 ;
-
-    if $(AndroidJavaSignatureVersion) {
-    postlink +=
-      call $(PYTHON_EXE) $(jbuild_dir)/update_java_signature_class.py $(stage_dir)/src $(AndroidJavaSignatureVersion) "
- "
-      ;
+    if $(Config) != rel {
+      AndroidDebug = yes ;
+      echo Building debug APK AndroidDebug $(AndroidDebug) ;
     }
 
+    AndroidJavaSignatureVersion ?= 0 ;
 
     local base_activity = android.app.NativeActivity ;
 
     postlink +=
-      call $(PYTHON_EXE) $(jbuild_dir)/update_java_native_activity.py $(stage_dir)/src $(base_activity) "
+      call $(PYTHON_EXE) $(jbuild_dir)/preprocess_java.py $(stage_dir)/src --define NATIVE_ACTIVITY=$(base_activity) --debug $(AndroidDebug) --external-libs $(AndroidExternalLibs) --define JAVA_SIG_VERSION=$(AndroidJavaSignatureVersion) "
   "
     ;
 
@@ -458,6 +464,17 @@ rule ProcessLinkTarget
     }
 
     if $(AndroidBundleCopyRecursively) { ProcessBundleCopyRecursively $(AndroidBundleCopyRecursively) ; }
+
+    local _apb_file = ;
+    for _apb_item in $(AndroidBundlePatchBlk) {
+      if $(_apb_file) {
+        postlink += call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/patch_blk.py $(stage_dir)/$(_apb_file) $(_apb_item) "
+ "      ;
+        _apb_file = ;
+      } else {
+        _apb_file = $(_apb_item) ;
+      }
+    }
 
     if $(AndroidMakeAssetIndexMasks) {
       local index_file = $(stage_dir)/assets/_asset_index.blk ;

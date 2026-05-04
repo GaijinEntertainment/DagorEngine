@@ -5,8 +5,6 @@ include "riextra_per_instance.dshl"
 
 shader rendinst_simple_painted
 {
-  ENABLE_ASSERT(ps)
-
   NO_DYNSTCODE()
 
   RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_simple_painted, get_paint_palette_row_index().x)
@@ -50,9 +48,13 @@ shader rendinst_simple_painted
 
   COMMON_RENDINST_PS_PREP(true)
 
-  if (!rendinst_render_is_shadow_or_depth)
+  if (is_triangle_size_debug)
   {
-    SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false)
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
+  else if (!rendinst_render_is_shadow_or_depth)
+  {
+    SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, GBUFFER_ORDER_STATIC)
   }
 
   COMPILE_RI_VS_TARGET("simple_vs")

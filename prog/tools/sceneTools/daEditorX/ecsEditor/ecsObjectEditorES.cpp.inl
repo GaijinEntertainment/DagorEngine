@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "ecsObjectEditor.h"
+#include "ecsEditorMain.h"
+#include "ecsSceneOutliner/ecsSceneOutlinerPanel.h"
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
+#include <daECS/scene/scene.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <ecs/rendInst/riExtra.h>
@@ -78,10 +81,10 @@ private:
 };
 
 template <typename Callable>
-static void editable_entities_ecs_query(Callable c);
+static void editable_entities_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void singleton_mutex_ecs_query(Callable c);
+inline void singleton_mutex_ecs_query(ecs::EntityManager &manager, Callable c);
 
 // The riExtra substitute IObjEntity objects are intentionally created from ECS events to make them work as close to
 // gameLibs/ecs/rendInst as possible. This will make switching to gameLibs/ecs/rendInst eaiser in the future.
@@ -139,12 +142,13 @@ void ecs_editor_ignore_entities_for_export_end()
 
 void ECSObjectEditor::addEditableEntities()
 {
-  editable_entities_ecs_query([this](ecs::EntityId eid ECS_REQUIRE(eastl::true_type editableObj = true)) { this->addEntity(eid); });
+  editable_entities_ecs_query(*g_entity_mgr,
+    [this](ecs::EntityId eid ECS_REQUIRE(eastl::true_type editableObj = true)) { this->addEntity(eid); });
 }
 
 void ECSObjectEditor::refreshEids()
 {
-  editable_entities_ecs_query([this](ecs::EntityId eid ECS_REQUIRE(eastl::true_type editableObj = true)) {
+  editable_entities_ecs_query(*g_entity_mgr, [this](ecs::EntityId eid ECS_REQUIRE(eastl::true_type editableObj = true)) {
     if (!eidsCreated.count(eid))
       this->addEntity(eid);
   });
@@ -153,7 +157,7 @@ void ECSObjectEditor::refreshEids()
 bool ECSObjectEditor::checkSingletonMutexExists(const char *mutex_name)
 {
   bool found = false;
-  singleton_mutex_ecs_query([&](ecs::EntityId eid, const ecs::string *singleton_mutex) {
+  singleton_mutex_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, const ecs::string *singleton_mutex) {
     G_UNUSED(eid);
     if (singleton_mutex && strcmp(singleton_mutex->c_str(), mutex_name) == 0)
       found = true;
@@ -162,8 +166,10 @@ bool ECSObjectEditor::checkSingletonMutexExists(const char *mutex_name)
 }
 
 ECS_ON_EVENT(on_appear)
-static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid, const TMatrix &transform)
+static void ecs_editor_riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
+  const TMatrix &transform)
 {
+  G_UNUSED(manager);
   ECSVisualEntity visualEntity;
   if (visualEntity.init(eid))
   {
@@ -176,12 +182,33 @@ static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager,
 }
 
 ECS_ON_EVENT(on_disappear)
-void riextra_destroyed_es_event_handler(const ecs::Event &, ecs::EntityId eid)
+void ecs_editor_riextra_destroyed_es_event_handler(const ecs::Event &, ecs::EntityId eid)
 {
   auto it = eid_to_obj_entity_map.find(eid);
   if (it != eid_to_obj_entity_map.end())
   {
     it->second.destroy();
     eid_to_obj_entity_map.erase(eid);
+  }
+}
+
+void on_scene_created_es_event_handler(const ecs::EventOnSceneCreated &event)
+{
+  ECSObjectEditor &editor = get_ecs_object_editor();
+  editor.addScene(eastl::get<0>(event));
+}
+
+void on_scene_destroyed_es_event_handler(const ecs::EventOnSceneDestroyed &event)
+{
+  ECSObjectEditor &editor = get_ecs_object_editor();
+  editor.removeScene(eastl::get<0>(event));
+}
+
+void on_entity_scene_data_changed_es_event_handler(const ecs::EventOnEntitySceneDataChanged &event)
+{
+  ECSObjectEditor &editor = get_ecs_object_editor();
+  if (ECSSceneOutlinerPanel *outliner = editor.getSceneOutlinerPanel())
+  {
+    outliner->onEntitySceneDataChanged(eastl::get<0>(event));
   }
 }

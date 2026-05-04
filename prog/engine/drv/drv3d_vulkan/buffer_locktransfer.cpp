@@ -34,7 +34,7 @@ int GenericBufferInterface::unlock()
 
 int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags)
 {
-  checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
+  checkLockParams(ofs_bytes, size_bytes, flags, bufFlags, getName(), bufSize);
 
   D3D_CONTRACT_ASSERTF(lastLockFlags == 0, "it seems lock was called on %p(%s) without unlocking the last lock", this, getName());
   D3D_CONTRACT_ASSERTF(ofs_bytes < bufSize, "locking of %p(%s) was out of range, buffer size is %u but offset was %u", this, getName(),
@@ -46,7 +46,7 @@ int GenericBufferInterface::lock(unsigned ofs_bytes, unsigned size_bytes, void *
 
   // save lock data
   lastLockFlags = static_cast<uint16_t>(flags);
-  lockRange.reset(ofs_bytes, ofs_bytes + (size_bytes ? size_bytes : bufSize));
+  lockRange.reset(ofs_bytes, size_bytes ? (ofs_bytes + size_bytes) : bufSize);
 
   // adjust some broken flags
   if (0 == ((VBLOCK_WRITEONLY | VBLOCK_READONLY) & lastLockFlags))

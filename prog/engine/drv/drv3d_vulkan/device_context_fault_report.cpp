@@ -10,7 +10,6 @@
 #include "globals.h"
 #include "pipeline/manager.h"
 #include "physical_device_set.h"
-#include "execution_markers.h"
 #include "backend.h"
 #include "frontend.h"
 #include "device_context.h"
@@ -196,22 +195,22 @@ void DeviceContext::generateFaultReport()
 
   if (dumpDetailedInfo)
   {
-    debug("vulkan: === execution markers dump");
-    Globals::gpuExecMarkers.check();
-    Globals::gpuExecMarkers.dumpFault(dump);
-  }
-
-  if (dumpDetailedInfo)
-  {
     debug("vulkan: === cpu replay dump");
     // only called when we are about to crash on the worker thread, so back member is owned by the
     // executing thread by default
-    Globals::timelines.get<TimelineManager::CpuReplay>().enumerate([&](size_t index, const RenderWork &ctx) //
+    Globals::timelines.get<TimelineManager::CpuReplay>().enumerateWithState(
+      [&](size_t index, TimelineHistoryState state, const RenderWork &ctx) //
       {
-        dump.addTagged(FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.id, String(32, "work item ring index %u", index));
-        ctx.dumpData(dump);
-        // FIXME: hack, debugCommands impl depends on non const render work
-        const_cast<RenderWork &>(ctx).dumpCommands(dump);
+        if (state == TimelineHistoryState::ACQUIRED)
+          dump.addTagged(FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.id,
+            String(32, "work item ring index %u in preparation", index));
+        else
+        {
+          dump.addTagged(FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.id, String(32, "work item ring index %u", index));
+          ctx.dumpData(dump);
+          // FIXME: hack, debugCommands impl depends on non const render work
+          const_cast<RenderWork &>(ctx).dumpCommands(dump);
+        }
       });
   }
 
@@ -229,7 +228,8 @@ void DeviceContext::generateFaultReport()
         FaultReportDump::RefId mark =
           dump.addTagged(FaultReportDump::GlobalTag::TAG_GPU_JOB_ITEM, ctx.index, String(32, "GPU job ring index %u", index));
         dump.addRef(mark, FaultReportDump::GlobalTag::TAG_WORK_ITEM, ctx.replayId);
-        ctx.execTracker.dumpFaultData(dump);
+        for (const DeviceExecutionTracker &i : ctx.execTrackers)
+          i.dumpFaultData(dump);
       });
   }
 

@@ -9,6 +9,7 @@
 #include "dumpLayer.h"
 #include "stl/daProfilerAlgorithm.h"
 
+
 namespace da_profiler
 {
 
@@ -289,7 +290,13 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
       {
         boardStream.writeInt64(-1);
         boardStream.writeInt(pid);
-        write_short_string(boardStream, descriptions.getName(descriptions.gpu()));
+
+        const char *gpuName = "GPU";
+        char nameBuf[64] = "";
+        if (gpu_profiler::get_gpu_thread_name(nameBuf, sizeof(nameBuf)))
+          gpuName = nameBuf;
+
+        write_short_string(boardStream, gpuName);
         boardStream.writeInt(1);               // maxDepth
         boardStream.writeInt(0);               // priority
         boardStream.writeInt(ThreadMask::GPU); // mask
@@ -586,14 +593,13 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
     HashedKeyMap<uint64_t, uint16_t> tidIndices;
     // todo: we can decrease dump size by allowing profiler tool to work with new format directly
     // this will decrease amount of code here, dump size, performance of saving dumps
-    for (const uint16_t *i = dump.stacks.begin(), *end = dump.stacks.end(); i != end;)
-    {
+    auto processStack = [&](const uint16_t *&i) -> bool {
       const uint32_t newCount = sampling_saved_cs_count(i), sameCount = sampling_same_cs_count(i);
       const uint64_t totalSize = newCount + sameCount;
       if (totalSize > countof(ProfilerData::LastRevCallStack::revStack))
       {
         report_logerr("too big stack");
-        break;
+        return true;
       }
       const uint64_t tid = sampling_saved_tid(i);
       const uint16_t *cs_p48 = sampling_saved_cs(i);
@@ -608,7 +614,7 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
       if (sameCount > tidRevStack.currentStackSize)
       {
         report_logerr("invalid stack");
-        break;
+        return true;
       }
       for (uint32_t newStackI = 0; newStackI < newCount; ++newStackI, cs_p48 += 3)
         tidRevStack.revStack[sameCount + newStackI] = to_64_bit_pointer(cs_p48);
@@ -624,7 +630,14 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
           callstacksStream.write(&tidRevStack.revStack[totalSize - 1 - stackI], sizeof(uint64_t)); // reversed stack
       }
       i += sampling_allocated_words(newCount);
-    }
+      return false;
+    };
+    dump.stacks.forEachChunkStoppable([&](const uint16_t *i, const uint16_t *end) {
+      while (i < end)
+        if (processStack(i))
+          return true;
+      return false;
+    });
     callstacksStream.writeInt64(~0ULL); // end marker
     send_data(cb, DataResponse::CallstackPack, callstacksStream);
 
@@ -633,10 +646,9 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
     // modules and symbols
     if (can_resolve_symbols())
     {
-      for (const uint16_t *i = dump.stacks.begin(), *end = dump.stacks.end(); i != end;)
-      {
-        // whole loop is not needed if we use symbol deferred resolver from profiler via network or / minidump
-        // can be arranged with messages/responses
+      // whole loop is not needed if we use symbol deferred resolver from profiler via network or / minidump
+      // can be arranged with messages/responses
+      auto collectSymbols = [&](const uint16_t *&i) {
         const uint32_t count = sampling_saved_cs_count(i);
         const uint16_t *cs_48 = sampling_saved_cs(i);
         for (uint32_t j = 0; j < count; ++j, cs_48 += 3) // store addresses. that should not be nesessary, we better establish
@@ -644,7 +656,11 @@ void save_dump(IGenSave &cb, const Dump &dump, const ProfilerDescriptions &descr
           if (uint64_t addr = to_64_bit_pointer(cs_48))
             symbolsSet.insert(addr);
         i += sampling_allocated_words(count);
-      }
+      };
+      dump.stacks.forEachChunk([&](const uint16_t *i, const uint16_t *end) {
+        while (i < end)
+          collectSymbols(i);
+      });
     }
 
     DynamicMemGeneralSaveCB &symbolsStream = newStream(stream);

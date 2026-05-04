@@ -12,10 +12,13 @@
 #include <daRg/dag_element.h>
 #include <daRg/dag_picture.h>
 
+DAS_BIND_ENUM_CAST(darg::InputDevice)
+
 MAKE_TYPE_FACTORY(RenderState, darg::RenderState)
 MAKE_TYPE_FACTORY(ElemRenderData, darg::ElemRenderData)
 MAKE_TYPE_FACTORY(Element, darg::Element)
 MAKE_TYPE_FACTORY(Properties, darg::Properties)
+MAKE_TYPE_FACTORY(ScreenCoord, darg::ScreenCoord)
 MAKE_TYPE_FACTORY(Picture, ::darg::Picture)
 
 template <>

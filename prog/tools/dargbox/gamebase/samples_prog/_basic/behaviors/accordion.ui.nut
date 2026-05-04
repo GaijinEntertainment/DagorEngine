@@ -9,7 +9,7 @@ function item(...) {
   let expanded = Watched(false)
 
   let button = watchElemState(@(sf) {
-    size = static [flex(), sh(10)]
+    size = const [flex(), sh(10)]
     rendObj = ROBJ_FRAME
     borderWidth = 2
     borderColor = Color(200,50,50)
@@ -24,7 +24,7 @@ function item(...) {
     rendObj = ROBJ_TEXT
     hplace = ALIGN_CENTER
     text = "Extra object"
-    margin = static [sh(3), 0]
+    margin = const [sh(3), 0]
   }
 
 
@@ -47,7 +47,7 @@ function item(...) {
 let items = array(5).apply(item)
 
 let container = {
-  size = static [sh(40), sh(80)]
+  size = const [sh(40), sh(80)]
   rendObj = ROBJ_FRAME
   borderWidth = sh(1)
   fillColor = Color(80, 80, 80)

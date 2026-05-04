@@ -1,0 +1,8 @@
+ERROR: float constant underflow
+testData/diagnostics/compilation_errors/lex_errors/literal_underflow.nut:2:8
+
+// EXPECT_ERROR: "constant underflow"
+let x = 1e-999999
+        ^--------
+
+

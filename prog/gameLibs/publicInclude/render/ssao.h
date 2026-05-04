@@ -16,6 +16,7 @@
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix4.h>
 #include <EASTL/utility.h>
+#include <shaders/dag_dynamicResolutionStcode.h>
 
 // Following class implements an algorithm
 // from "Bent Normals and Cones in Screen-space" paper
@@ -36,25 +37,27 @@ public:
 
   void setCurrentView(int view) override;
 
-  void renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, const ManagedTex *ssao_tex,
-    const ManagedTex *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt);
+  void renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, BaseTexture *ssao_tex,
+    BaseTexture *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt,
+    const DynRes *dynamic_resolution = nullptr);
 
-  void applySSAOBlur(const ManagedTex *ssao_tex, const ManagedTex *tmp_tex);
+  void applySSAOBlur(BaseTexture *ssao_tex, BaseTexture *tmp_tex, const DynRes *dynamic_resolution = nullptr);
 
 private:
-  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, const ManagedTex *ssaoTex,
-    const ManagedTex *prevSsaoTex, const ManagedTex *tmpTex, const DPoint3 *world_pos,
-    SubFrameSample sub_sample = SubFrameSample::Single) override;
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, BaseTexture *ssaoTex,
+    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single,
+    const DynRes *dynamic_resolution = nullptr) override;
 
   void initRandomPattern();
   void renderRandomPattern();
 
   void updateViewSpecific(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos);
   void updateFrameNo();
-  void renderSSAO(BaseTexture *depth_to_use, const ManagedTex &ssaoTex, const ManagedTex &prevSsaoTex, bool clear_rt);
-  void applyBlur(const ManagedTex &ssaoTex, const ManagedTex &tmpTex);
+  void renderSSAO(BaseTexture *depth_to_use, BaseTexture *ssaoTex, BaseTexture *prevSsaoTex, bool clear_rt,
+    const DynRes *dynamic_resolution);
+  void applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const DynRes *dynamic_resolution);
 
-  void generatePoissionPoints(int num_samples, int num_frames);
+  void generatePoissonPoints(int num_samples, int num_frames);
 
   void clearRandomPattern() { randomPatternTex.close(); };
 
@@ -83,4 +86,6 @@ private:
   bool useOwnReprojectionParams;
 
   String tag;
+
+  eastl::optional<DynRes> prevDynRes;
 };

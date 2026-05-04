@@ -8,12 +8,18 @@
 #include <3d/dag_texMgr.h>
 #include <util/dag_stdint.h>
 #include <EASTL/vector.h>
+#include <math/integer/dag_IPoint2.h>
 
 class DynamicResolution
 {
 public:
   DynamicResolution(int target_width, int target_height);
   ~DynamicResolution();
+
+  DynamicResolution(const DynamicResolution &) = delete;
+  DynamicResolution(DynamicResolution &&) = default;
+  DynamicResolution &operator=(const DynamicResolution &) = delete;
+  DynamicResolution &operator=(DynamicResolution &&) = default;
 
   void applySettings();
 
@@ -34,6 +40,8 @@ public:
 
   void debugImguiWindow();
 
+  void setResolutionRange(const IPoint2 &min_dynamic_resolution, const IPoint2 &max_dynamic_resolution);
+
 private:
   void trackCpuTime();
   void calculateAllowableTimeRange(float &lower_bound, float &upper_bound);
@@ -43,6 +51,8 @@ private:
   {
     void *beginQuery = nullptr;
     void *endQuery = nullptr;
+    void *vsyncStallBeginQuery = nullptr;
+    void *vsyncStallEndQuery = nullptr;
   };
 
   enum GpuFrameState
@@ -78,6 +88,7 @@ private:
 
   float resolutionScale = 1.0;
 
+  bool vsyncEnabled = false;
 
   eastl::vector<TimestampQueries> timestamps;
 };

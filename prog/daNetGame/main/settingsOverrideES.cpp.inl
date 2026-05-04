@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <main/settingsOverride.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <main/level.h>
 #include <main/settingsOverrideUtil.h>
@@ -12,22 +14,22 @@
 ECS_REGISTER_RELOCATABLE_TYPE(SettingsOverride, nullptr);
 
 template <typename Callable>
-static void apply_settings_override_entity_ecs_query(Callable);
+static void apply_settings_override_entity_ecs_query(ecs::EntityManager &manager, Callable);
 
 void apply_settings_override_entity()
 {
-  apply_settings_override_entity_ecs_query([&](const SettingsOverride &settings_override__manager) {
+  apply_settings_override_entity_ecs_query(*g_entity_mgr, [&](const SettingsOverride &settings_override__manager) {
     dgs_apply_config_blk(*settings_override__manager.getSettings(), false, false);
   });
 }
 
 template <typename Callable>
-static void is_setting_overriden_ecs_query(Callable);
+static void is_setting_overriden_ecs_query(ecs::EntityManager &manager, Callable);
 
 bool is_setting_overriden(const char *setting_path)
 {
   bool result = false;
-  is_setting_overriden_ecs_query(
+  is_setting_overriden_ecs_query(*g_entity_mgr,
     [&](const SettingsOverride &settings_override__manager) { result = settings_override__manager.isSettingOverriden(setting_path); });
   return result;
 }

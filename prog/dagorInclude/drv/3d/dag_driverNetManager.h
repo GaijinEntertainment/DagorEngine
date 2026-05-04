@@ -50,4 +50,16 @@ public:
    * It is used to send GPU crash dumps from DX12 driver.
    */
   virtual void addFileToCrashReport(const char *path) = 0;
+
+  /**
+   * @brief Report a slow PSO compilation event
+   *
+   * Called when CreatePipelineState takes longer than the configured threshold (dx12 { psoSlowThresholdMsec }).
+   * The implementation is expected to forward this to a metrics system (e.g. statsd).
+   *
+   * @param pipeline_name Name of the pipeline being compiled
+   * @param duration_ms Duration of the compilation in milliseconds
+   * @param pipeline_type Type of pipeline: "graphics", "mesh", or "compute"
+   */
+  virtual void reportSlowPsoCompilation(const char *pipeline_name, long duration_ms, const char *pipeline_type) = 0;
 };

@@ -408,15 +408,14 @@ public:
   }
   int __stdcall getRemovedPackCount() override { return stat_pack_removed; }
 
-  const char *__stdcall getPackName(DagorAsset *asset) override
+  String __stdcall getPackName(DagorAsset *asset) override
   {
     if (expTypesMask[asset->getType()])
       return asset->getDestPackName();
-    else
-      return NULL;
+    return {};
   }
 
-  const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) override
+  String __stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) override
   {
     return mgr->getFolderPackName(fld_idx, tex_or_res, NULL);
   }
@@ -501,7 +500,9 @@ public:
 
     int64_t ref = ref_time_ticks();
     dag::Vector<String> warnings;
+    a.props.setBool("skipJoltValidation", true);
     bool res = is_main_thread() ? warning_checking_build_asset(*exp, a, cwr, *log, warnings) : exp->exportAsset(a, cwr, *log);
+    a.props.removeParam("skipJoltValidation");
     if (!res)
       return false;
 
@@ -551,6 +552,8 @@ public:
 
   void __stdcall setExpCacheSharedData(void *p) override { AssetExportCache::setSharedDataPtr(p); }
 
+  void __stdcall allowPatchBuild(bool v) override { dabuild_allow_patch_build = v; }
+
   void __stdcall processSrcHashForDestPacks() override
   {
     SimpleString hash;
@@ -569,6 +572,7 @@ public:
 
   void cleanupAppBlk()
   {
+    const char *appBlkFname = appBlk.resolveFilename(true);
     bool had_obsolete_blocks = false;
     if (appBlk.getBlockByName("resources"))
     {
@@ -581,8 +585,9 @@ public:
       if (!bad_res_blk)
         goto skip;
 
-      logerr("application.blk has obsolete \"resources\" block; "
-             "use assets/build/<asset_type> blocks instead");
+      logerr("%s has obsolete \"resources\" block; "
+             "use assets/build/<asset_type> blocks instead",
+        appBlkFname);
       if (!appBlk.getBlockByNameEx("assets")->getBlockByName("build"))
       {
         DataBlock *build_blk = appBlk.addBlock("assets")->addBlock("build");
@@ -623,31 +628,31 @@ public:
     }
     if (appBlk.getBlockByName("resedit_add_out_dir"))
     {
-      logerr("application.blk has obsolete \"resedit_add_out_dir\" block, removing");
+      logerr("%s has obsolete \"resedit_add_out_dir\" block, removing", appBlkFname);
       while (appBlk.removeBlock("resedit_add_out_dir")) {}
       had_obsolete_blocks = true;
     }
     if (appBlk.getBlockByName("reseditor_disabled_plugins"))
     {
-      logerr("application.blk has obsolete \"reseditor_disabled_plugins\" block, removing");
+      logerr("%s has obsolete \"reseditor_disabled_plugins\" block, removing", appBlkFname);
       while (appBlk.removeBlock("reseditor_disabled_plugins")) {}
       had_obsolete_blocks = true;
     }
     if (appBlk.getBlockByNameEx("SDK")->paramExists("lib_folder"))
     {
-      logerr("application.blk has obsolete \"SDK/lib_folder\" str, removing");
+      logerr("%s has obsolete \"SDK/lib_folder\" str, removing", appBlkFname);
       while (appBlk.getBlockByName("SDK")->removeParam("lib_folder")) {}
       had_obsolete_blocks = true;
     }
     if (appBlk.getBlockByNameEx("SDK")->paramExists("resource_database_folder"))
     {
-      logerr("application.blk has obsolete \"SDK/resource_database_folder\" str, removing");
+      logerr("%s has obsolete \"SDK/resource_database_folder\" str, removing", appBlkFname);
       while (appBlk.getBlockByName("SDK")->removeParam("resource_database_folder")) {}
       had_obsolete_blocks = true;
     }
     if (appBlk.getBlockByNameEx("SDK")->getBlockByName("additional_tex_folders"))
     {
-      logerr("application.blk has obsolete \"SDK/additional_tex_folders\" block, removing");
+      logerr("%s has obsolete \"SDK/additional_tex_folders\" block, removing", appBlkFname);
       while (appBlk.getBlockByName("SDK")->removeBlock("additional_tex_folders")) {}
       had_obsolete_blocks = true;
     }

@@ -52,31 +52,7 @@ public:
 namespace dafg
 {
 
-// These have to be inside intermediate namespace for ADL to find them
-namespace intermediate
-{
-
-static bool operator==(const RenderPass &fst, const RenderPass &snd)
-{
-  return fst.depthAttachment == snd.depthAttachment && fst.depthReadOnly == snd.depthReadOnly &&
-         fst.isLegacyPass == snd.isLegacyPass && fst.vrsRateAttachment == snd.vrsRateAttachment &&
-         fst.colorAttachments == snd.colorAttachments && fst.resolves == snd.resolves;
-}
-
-} // namespace intermediate
-
-// intermediate::ResourceIndex + history flag packed into one uint16_t
-enum class GpuRequestUid : eastl::underlying_type_t<intermediate::ResourceIndex>
-{
-};
-struct GpuRequestUidCmp
-{
-  bool operator()(GpuRequestUid fst, GpuRequestUid snd) const { return eastl::to_underlying(fst) < eastl::to_underlying(snd); }
-};
-using PerNodeGpuRequestMapFmem = dag::VectorMap<GpuRequestUid, intermediate::ResourceUsage, GpuRequestUidCmp, framemem_allocator>;
-using GpuRequestMapFmem = IdIndexedMapping<intermediate::NodeIndex, PerNodeGpuRequestMapFmem, framemem_allocator>;
-
-static GpuRequestUid make_gpu_request_uid(intermediate::ResourceIndex idx, bool from_last_frame)
+PassColorer::GpuRequestUid PassColorer::makeGpuRequestUid(intermediate::ResourceIndex idx, bool from_last_frame)
 {
   using IdT = eastl::underlying_type_t<intermediate::ResourceIndex>;
   static constexpr auto HIGHEST_BIT = IdT{1} << (sizeof(IdT) * CHAR_BIT - 1);
@@ -85,27 +61,30 @@ static GpuRequestUid make_gpu_request_uid(intermediate::ResourceIndex idx, bool 
   return static_cast<GpuRequestUid>(eastl::to_underlying(idx) | (from_last_frame ? HIGHEST_BIT : 0));
 }
 
-static GpuRequestMapFmem make_gpu_requests_map(const intermediate::Graph &graph)
+void PassColorer::updateGpuRequestsMap(const intermediate::Graph &graph, const NodesChanged &node_changes)
 {
-  GpuRequestMapFmem result;
-  result.resize(graph.nodes.size());
-
-  // Reverse allocation order for graceful framemem cleanup
-  for (auto idx : dag::ReverseView(graph.nodes.keys()))
-    result[idx].reserve(graph.nodes[idx].resourceRequests.size());
+  if (gpuRequestsMap.size() < graph.nodes.totalKeys())
+    gpuRequestsMap.resize(graph.nodes.totalKeys());
 
   for (auto idx : graph.nodes.keys())
-    for (const auto &req : graph.nodes[idx].resourceRequests)
-      if (graph.resources[req.resource].getResType() != ResourceType::Blob)
-        result[idx][make_gpu_request_uid(req.resource, req.fromLastFrame)] = req.usage;
+    gpuRequestsMap[idx].reserve(graph.nodes[idx].resourceRequests.size());
 
-  return result;
+  for (auto nodeIdx : node_changes.trueKeys())
+  {
+    auto &node = graph.nodes[nodeIdx];
+    auto &reqs = gpuRequestsMap[nodeIdx];
+    reqs.clear();
+    reqs.reserve(node.resourceRequests.size()); // TODO: don't overallocate
+    for (const auto &req : node.resourceRequests)
+      if (graph.resources[req.resource].getResType() != ResourceType::Blob)
+        reqs[makeGpuRequestUid(req.resource, req.fromLastFrame)] = req.usage;
+  }
 }
 
-static bool requires_barrier_between(intermediate::NodeIndex fst, intermediate::NodeIndex snd, const GpuRequestMapFmem &gpu_requests)
+bool PassColorer::requiresBarrierBetween(intermediate::NodeIndex fst, intermediate::NodeIndex snd) const
 {
-  const auto &fstRequests = gpu_requests[fst];
-  const auto &sndRequests = gpu_requests[snd];
+  const auto &fstRequests = gpuRequestsMap[fst];
+  const auto &sndRequests = gpuRequestsMap[snd];
 
   // Fine-tuned to be faster than eastl::set_intersection
   auto fstIt = fstRequests.begin();
@@ -137,65 +116,71 @@ static bool requires_barrier_between(intermediate::NodeIndex fst, intermediate::
   return false;
 }
 
-enum class FbLabel : uint16_t
+void PassColorer::recalcFbLabels(const intermediate::Graph &graph)
 {
-};
-using FbLabelsFmem = IdIndexedMapping<intermediate::NodeIndex, FbLabel, framemem_allocator>;
-static FbLabelsFmem calculate_fb_labels(const intermediate::Graph &graph)
-{
-  FbLabelsFmem result(graph.nodeStates.size());
+  fbLabels.assign(graph.nodeStates.totalKeys(), FbLabel{0});
 
   FRAMEMEM_VALIDATE;
   using MaybePass = eastl::optional<intermediate::RenderPass>;
   ska::flat_hash_map<MaybePass, FbLabel, eastl::hash<MaybePass>, eastl::equal_to<MaybePass>, framemem_allocator> passes;
-  passes.reserve(graph.nodeStates.size());
+  passes.reserve(graph.nodeStates.totalKeys());
   for (auto [idx, state] : graph.nodeStates.enumerate())
     if (auto it = passes.find(state.pass); it != passes.end())
-      result[idx] = it->second;
+      fbLabels[idx] = it->second;
     else
     {
       const auto next = passes.size();
-      result[idx] = passes[state.pass] = static_cast<FbLabel>(next);
+      fbLabels[idx] = passes[state.pass] = static_cast<FbLabel>(next);
     }
-  return result;
 }
 
-enum class SubpassColor : uint32_t
+void PassColorer::performSubpassColoring(const intermediate::Graph &graph, const NodesChanged &node_changes)
 {
-  Unknown = static_cast<uint32_t>(-1),
-};
-
-using SubpassColoringFmem = IdIndexedMapping<intermediate::NodeIndex, SubpassColor, framemem_allocator>;
-
-static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &graph, const FbLabelsFmem &fbLabels,
-  const GpuRequestMapFmem &gpu_requests)
-{
-  SubpassColoringFmem coloring(graph.nodes.size(), SubpassColor::Unknown);
+  if (subpassColoring.size() < graph.nodes.totalKeys())
+    subpassColoring.resize(graph.nodes.totalKeys(), SubpassColor::Unknown);
+  for (auto idx : node_changes.trueKeys())
+  {
+    subpassColoring[idx] = SubpassColor::Unknown;
+    ++changesSinceLastFullColoring;
+  }
 
   FRAMEMEM_VALIDATE;
 
-  IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> outDegree(graph.nodes.size());
-  for (auto [nodeId, node] : graph.nodes.enumerate())
-    outDegree[nodeId] = node.predecessors.size();
-
   // Needed for framemem tricks
-  IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> inDegree(graph.nodes.size());
+  IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> inDegree(graph.nodes.totalKeys());
   for (auto [nodeId, node] : graph.nodes.enumerate())
     for (auto pred : node.predecessors)
       ++inDegree[pred];
 
   using FmemNodeSet = dag::VectorSet<intermediate::NodeIndex, eastl::less<intermediate::NodeIndex>, framemem_allocator>;
-  IdIndexedMapping<intermediate::NodeIndex, FmemNodeSet, framemem_allocator> successors(graph.nodes.size());
+  IdIndexedMapping<intermediate::NodeIndex, FmemNodeSet, framemem_allocator> successors(graph.nodes.totalKeys());
   for (auto nodeId : dag::ReverseView(graph.nodes.keys()))
     successors[nodeId].reserve(inDegree[nodeId]);
   for (auto [nodeId, node] : graph.nodes.enumerate())
     for (auto pred : node.predecessors)
       successors[pred].insert(nodeId);
 
+  if (changesSinceLastFullColoring == 0)
+  {
+    // TODO: we can probably not do a full recolor in more cases here, but that's quite complicated
+    // due to the global "condensability" requirement for colors. Checking that it's not violated requires
+    // checking for barriers with every single node in a pass, which can be overly expensive.
+    // For now we simply skip recoloring if nodes only disappeared.
+    return;
+  }
+
+  changesSinceLastFullColoring = 0;
+  subpassColoring.assign(graph.nodes.totalKeys(), SubpassColor::Unknown);
+
+  FRAMEMEM_VALIDATE;
+
+  IdIndexedMapping<intermediate::NodeIndex, uint16_t, framemem_allocator> outDegree(graph.nodes.totalKeys());
+  for (auto [nodeId, node] : graph.nodes.enumerate())
+    outDegree[nodeId] = node.predecessors.size();
 
   // The frontier contains all nodes with out-degree 0
   dag::Vector<intermediate::NodeIndex, framemem_allocator> frontier;
-  frontier.reserve(graph.nodes.size());
+  frontier.reserve(graph.nodes.totalKeys());
   frontier.push_back(static_cast<intermediate::NodeIndex>(0));
 
   const auto fbLabelCount = 1 + eastl::to_underlying(*eastl::max_element(fbLabels.begin(), fbLabels.end(),
@@ -209,9 +194,9 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
   // Size is reserved for worst case.
   // Note that this intentionally does not account for paths of length 0,
   // this is convenienet for the algorithm below.
-  SimdBitMatrix<SubpassColor, framemem_allocator> colorReachability(graph.nodes.size());
+  SimdBitMatrix<SubpassColor, framemem_allocator> colorReachability(graph.nodes.totalKeys());
 
-  eastl::underlying_type_t<SubpassColor> nextColor = 0;
+  nextColor = 0;
 
   // Traversal occurs from front to back by chipping away nodes with no successors
   while (!frontier.empty())
@@ -220,7 +205,7 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
     const auto curr = frontier.back();
     frontier.pop_back();
 
-    SimdBitVector<SubpassColor, framemem_allocator> reachableFromCurrent(graph.nodes.size(), false);
+    SimdBitVector<SubpassColor, framemem_allocator> reachableFromCurrent(graph.nodes.totalKeys(), false);
 
     // Grab cached condensed graph reachability info from previous
     // iterations to avoid having to run a dfs every iteration
@@ -229,8 +214,8 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
       predecessorColors.reserve(graph.nodes[curr].predecessors.size());
       for (auto pred : graph.nodes[curr].predecessors)
       {
-        G_FAST_ASSERT(coloring[pred] != SubpassColor::Unknown);
-        predecessorColors.insert(coloring[pred]);
+        G_FAST_ASSERT(subpassColoring[pred] != SubpassColor::Unknown);
+        predecessorColors.insert(subpassColoring[pred]);
       }
 
       // Note that our graph is already topsorted, so if there is a path
@@ -246,8 +231,8 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
     dag::VectorSet<SubpassColor, eastl::less<SubpassColor>, framemem_allocator> conflictingColors;
     conflictingColors.reserve(graph.nodes[curr].predecessors.size());
     for (auto pred : graph.nodes[curr].predecessors)
-      if (requires_barrier_between(curr, pred, gpu_requests))
-        conflictingColors.insert(coloring[pred]);
+      if (requiresBarrierBetween(curr, pred))
+        conflictingColors.insert(subpassColoring[pred]);
 
     const auto currFb = fbLabels[curr];
     // We can reuse color C iff:
@@ -281,13 +266,13 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
     if (candidateColor != SubpassColor::Unknown && !reachableFromCurrent.test(candidateColor) &&
         conflictingColors.find(candidateColor) == conflictingColors.end())
     {
-      coloring[curr] = lastColorInFb[currFb];
+      subpassColoring[curr] = lastColorInFb[currFb];
     }
     else
     {
       const auto newColor = static_cast<SubpassColor>(nextColor++);
       lastColorInFb[currFb] = newColor;
-      coloring[curr] = newColor;
+      subpassColoring[curr] = newColor;
     }
 
     // Now that we determined the color for this node, we need to update
@@ -297,33 +282,30 @@ static SubpassColoringFmem perform_subpass_coloring(const intermediate::Graph &g
     // and above, so we have to manually add single-edge paths that
     // lead into a different color.
     for (auto pred : graph.nodes[curr].predecessors)
-      if (coloring[pred] != coloring[curr])
-        reachableFromCurrent.set(coloring[pred], true);
-    colorReachability.row(coloring[curr]) |= reachableFromCurrent;
+      if (subpassColoring[pred] != subpassColoring[curr])
+        reachableFromCurrent.set(subpassColoring[pred], true);
+    colorReachability.row(subpassColoring[curr]) |= reachableFromCurrent;
 
     // Recalculate the frontier
     for (auto pred : successors[curr])
       if (--outDegree[pred] == 0)
         frontier.push_back(pred);
   }
-
-  return coloring;
 }
 
-PassColoring perform_coloring(const intermediate::Graph &graph)
+PassColoring PassColorer::performColoring(const intermediate::Graph &graph, const NodesChanged &node_changes)
 {
-  PassColoring result(graph.nodes.size());
+  PassColoring result(graph.nodes.totalKeys());
 
-  const auto gpuRequests = make_gpu_requests_map(graph);
+  updateGpuRequestsMap(graph, node_changes);
+  recalcFbLabels(graph);
 
-  const auto fbLabels = calculate_fb_labels(graph);
-
-  const auto subpassColoring = perform_subpass_coloring(graph, fbLabels, gpuRequests);
+  performSubpassColoring(graph, node_changes);
 
   // TODO: implement proper merging of subpasses into passes.
   // My current thoughts are that it should be enough to simply merge
   // stuff that uses subpass reads and ignore everything else.
-  for (auto i : IdRange<intermediate::NodeIndex>(graph.nodes.size()))
+  for (auto i : graph.nodes.keys())
   {
     G_ASSERT(subpassColoring[i] != SubpassColor::Unknown);
     result[i] = static_cast<PassColor>(eastl::to_underlying(subpassColoring[i]));

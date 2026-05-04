@@ -15,6 +15,8 @@ public:
   const char *getSelectedTemplate() const { return selectedTemplate; }
   void setClient(IECSTemplateSelectorClient *in_client) { client = in_client; }
 
+  void updateScenes();
+
 private:
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 

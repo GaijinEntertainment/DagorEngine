@@ -27,7 +27,7 @@ function sText(text, params={}) {
 
 
 let textAreaFrameState_default = {
-  size = static [sw(40), 60]
+  size = const [sw(40), 60]
   pos  = [100, 100]
 }
 
@@ -76,7 +76,7 @@ return {
 //    flow = FLOW_VERTICAL
 //    halign = ALIGN_CENTER
 //    valign = ALIGN_CENTER
-    size = static [sw(80),sh(80)]
+    size = const [sw(80),sh(80)]
     gap = 10
     children = [
       sText("Resizble, moveble and Scrollable by wheel text area with split by line")

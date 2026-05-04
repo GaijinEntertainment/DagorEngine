@@ -1,5 +1,5 @@
 options gen2
-require fio
+require daslib/fio
 
 let MAX_ARGUMENTS = 16
 

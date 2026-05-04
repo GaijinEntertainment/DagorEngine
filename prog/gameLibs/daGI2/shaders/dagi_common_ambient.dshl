@@ -49,16 +49,28 @@ macro DAGI_GET_COMMON_VOXELIZATION_AMBIENT(code)//at trace hit when calculating 
   //todo: add screenprobes irradiance
   DAGI_IRRADIANCE_GRID_SAMPLE(code)
   hlsl(code) {
-    float3 dagi_get_common_offscreen_ambient(float3 ambientWorldPos, float3 worldNormal, float3 def_ambient = 0)
+    #ifndef DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT
+      #define DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT 1
+    #endif
+
+    float3 dagi_get_common_offscreen_ambient(float3 ambientWorldPos, float3 worldNormal, float3 def_ambient = 0, float4 toCameraBiasDirAndLimit = 0)
     {
       //todo: add screenprobes irradiance
+    #if DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT
+      dagi_irrad_grid_diffuse_biased(ambientWorldPos, worldNormal, toCameraBiasDirAndLimit.xyz, toCameraBiasDirAndLimit.w, worldNormal, def_ambient);
+    #else
       dagi_irrad_grid_diffuse(ambientWorldPos, worldNormal, def_ambient);
+    #endif
       return def_ambient;
     }
-    bool dagi_get_common_offscreen_ambient_both(float3 ambientWorldPos, float3 worldNormal, inout float3 ambient, inout float3 back_ambient)
+    bool dagi_get_common_offscreen_ambient_both(float3 ambientWorldPos, float3 worldNormal, inout float3 ambient, inout float3 back_ambient, float4 toCameraBiasDirAndLimit = 0)
     {
       //todo: add screenprobes irradiance
+    #if DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT
+      return dagi_irrad_grid_diffuse_biased_both_dir(ambientWorldPos, worldNormal, toCameraBiasDirAndLimit.xyz, toCameraBiasDirAndLimit.w, worldNormal, ambient, back_ambient);
+    #else
       return dagi_irrad_grid_diffuse_both_dir(ambientWorldPos, worldNormal, ambient, back_ambient);
+    #endif
     }
   }
 endmacro

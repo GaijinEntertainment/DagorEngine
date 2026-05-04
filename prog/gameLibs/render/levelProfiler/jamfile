@@ -6,6 +6,7 @@ TargetType  = lib ;
 Target      = gameLibs/render/levelProfiler.lib ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/rendInst
   $(Root)/prog/gameLibs/render/levelProfiler/include
   $(Root)/prog/gameLibs/render/levelProfiler/include/dataModules
   $(Root)/prog/gameLibs/render/levelProfiler/include/uiComponents
@@ -29,7 +30,7 @@ if $(Config) != rel {
 
     # UI Modules
     src/uiModules/levelProfilerTextureTable.cpp
-    # src/uiModules/levelProfilerRiTable.cpp
+    src/uiModules/levelProfilerRiTable.cpp
   ;
 } else {
   Sources =

@@ -12,6 +12,7 @@ AddIncludes =
 
 Sources =
   initGlobals.cpp
+  console.cpp
   d3dReset.cpp
 ;
 

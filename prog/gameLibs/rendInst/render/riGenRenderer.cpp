@@ -139,62 +139,81 @@ RiGenRenderer::RiGenRenderer(RenderPass render_pass, LayerFlags layer_flags, boo
   }
 }
 
+inline bool updateRiDrawDataAtIdx(RendInstGenData::RtData &rt_data, dag::Vector<RiShaderConstBuffers> &draw_data,
+  int per_inst_data_dwords, int ri_idx)
+{
+  if (!rt_data.rtPoolData[ri_idx])
+    return false;
+
+  if (rt_data.layerIdx > 0)
+    logerr("riGen (%s) found on layer #%d. Such objects should only exist on layer #0!", rt_data.riResName[ri_idx], rt_data.layerIdx);
+
+  auto &riDrawData = draw_data[ri_idx];
+
+  const bool isPosInst = rt_data.riPosInst[ri_idx];
+  const uint32_t vectorsCnt =
+    isPosInst ? 1 : 3 + RIGEN_ADD_STRIDE_PER_INST_B(rt_data.riZeroInstSeeds[ri_idx], per_inst_data_dwords) / RENDER_ELEM_SIZE_PACKED;
+  const uint32_t flags =
+    RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER |
+    (!isPosInst && (rt_data.riZeroInstSeeds[ri_idx] == 0) && (per_inst_data_dwords != 0) ? RI_CBUFFER_FLAGS__HASH_VAL : 0);
+
+  auto range = rt_data.rtPoolData[ri_idx]->lodRange[rt_data.riResLodCount(ri_idx) - 1];
+  range = rt_data.rtPoolData[ri_idx]->hasImpostor() ? rt_data.get_trees_last_range(range) : rt_data.get_last_range(range);
+
+  const auto deltaRcp = rt_data.transparencyDeltaRcp / range;
+  if (rt_data.rtPoolData[ri_idx]->hasTransitionLod())
+  {
+    const auto impostorLodNum = rt_data.riResLodCount(ri_idx) - 1;
+    const auto transitionLodNum = impostorLodNum - 1;
+    const auto lastMeshLodNum = transitionLodNum - 1;
+    const auto defaultTransitionLodRange = rt_data.riResLodRange(ri_idx, transitionLodNum, nullptr);
+    const auto transitionRange = defaultTransitionLodRange - rt_data.riResLodRange(ri_idx, lastMeshLodNum, nullptr);
+    const auto transitionStart = rt_data.get_trees_range(rt_data.rtPoolData[ri_idx]->lodRange[impostorLodNum]) - transitionRange;
+    riDrawData.setCrossDissolveRange(safediv(transitionStart, rendinst::render::lodsShiftDistMul));
+  }
+  if (rt_data.rtPoolData[ri_idx]->hasImpostor())
+    rt_data.rtPoolData[ri_idx]->setShadowImpostorBoundingSphere(riDrawData);
+  riDrawData.setOpacity(-deltaRcp, rt_data.transparencyDeltaRcp);
+  riDrawData.setRandomColors(&rt_data.riColPair[ri_idx * 2]);
+  riDrawData.setInstancing(0, vectorsCnt, flags,
+    rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rt_data.layerIdx, ri_idx},
+      rt_data.rtPoolData[ri_idx]->impostorDataOffsetCache));
+  riDrawData.setInteractionParams(1, rt_data.riRes[ri_idx]->bbox.lim[1].y - rt_data.riRes[ri_idx]->bbox.lim[0].y,
+    0.5 * (rt_data.riRes[ri_idx]->bbox.lim[1].x + rt_data.riRes[ri_idx]->bbox.lim[0].x),
+    0.5 * (rt_data.riRes[ri_idx]->bbox.lim[1].z + rt_data.riRes[ri_idx]->bbox.lim[0].z));
+  if (rt_data.rtPoolData[ri_idx]->hasPLOD())
+    riDrawData.setPLODRadius(rt_data.rtPoolData[ri_idx]->plodRadius);
+  riDrawData.setBoundingSphere(0, 0, rt_data.rtPoolData[ri_idx]->sphereRadius, rt_data.rtPoolData[ri_idx]->sphereRadius,
+    rt_data.rtPoolData[ri_idx]->sphCenterY);
+
+  return true;
+}
+
 void RiGenRenderer::updatePerDrawData(RendInstGenData::RtData &rt_data, int per_inst_data_dwords)
 {
   TIME_PROFILE(ri_gen_update_per_draw_data);
 
   G_UNUSED(per_inst_data_dwords);
   auto &drawData = getPerDrawData(rt_data.layerIdx);
-  drawData.resize(rt_data.riRes.size());
+  drawData.resize(rt_data.rtPoolData.size());
   bool layerHasData = false;
-  for (int riIdx = 0; riIdx < rt_data.riRes.size(); ++riIdx)
+  for (int riIdx = 0; riIdx < rt_data.rtPoolData.size(); ++riIdx)
   {
-    if (!rt_data.rtPoolData[riIdx])
-      continue;
-
-    layerHasData = true;
-
-    if (rt_data.layerIdx > 0)
-      logerr("riGen (%s) found on layer #%d. Such objects should only exist on layer #0!", rt_data.riResName[riIdx], rt_data.layerIdx);
-
-    auto &riDrawData = drawData[riIdx];
-
-    const bool isPosInst = rt_data.riPosInst[riIdx];
-    const uint32_t vectorsCnt =
-      isPosInst ? 1 : 3 + RIGEN_ADD_STRIDE_PER_INST_B(rt_data.riZeroInstSeeds[riIdx], per_inst_data_dwords) / RENDER_ELEM_SIZE_PACKED;
-    const uint32_t flags = (!isPosInst && (rt_data.riZeroInstSeeds[riIdx] == 0) && (per_inst_data_dwords != 0)) ? 2 : 0;
-
-    auto range = rt_data.rtPoolData[riIdx]->lodRange[rt_data.riResLodCount(riIdx) - 1];
-    range = rt_data.rtPoolData[riIdx]->hasImpostor() ? rt_data.get_trees_last_range(range) : rt_data.get_last_range(range);
-
-    const auto deltaRcp = rt_data.transparencyDeltaRcp / range;
-    if (rt_data.rtPoolData[riIdx]->hasTransitionLod())
-    {
-      const auto impostorLodNum = rt_data.riResLodCount(riIdx) - 1;
-      const auto transitionLodNum = impostorLodNum - 1;
-      const auto lastMeshLodNum = transitionLodNum - 1;
-      const auto defaultTransitionLodRange = rt_data.riResLodRange(riIdx, transitionLodNum, nullptr);
-      const auto transitionRange = defaultTransitionLodRange - rt_data.riResLodRange(riIdx, lastMeshLodNum, nullptr);
-      const auto transitionStart = rt_data.get_trees_range(rt_data.rtPoolData[riIdx]->lodRange[impostorLodNum]) - transitionRange;
-      riDrawData.setCrossDissolveRange(safediv(transitionStart, rendinst::render::lodsShiftDistMul));
-    }
-    if (rt_data.rtPoolData[riIdx]->hasImpostor())
-      rt_data.rtPoolData[riIdx]->setShadowImpostorBoundingSphere(riDrawData);
-    riDrawData.setOpacity(-deltaRcp, range * deltaRcp);
-    riDrawData.setRandomColors(&rt_data.riColPair[riIdx * 2]);
-    riDrawData.setInstancing(0, vectorsCnt, flags,
-      rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({rt_data.layerIdx, riIdx},
-        rt_data.rtPoolData[riIdx]->impostorDataOffsetCache));
-    riDrawData.setInteractionParams(1, rt_data.riRes[riIdx]->bbox.lim[1].y - rt_data.riRes[riIdx]->bbox.lim[0].y,
-      0.5 * (rt_data.riRes[riIdx]->bbox.lim[1].x + rt_data.riRes[riIdx]->bbox.lim[0].x),
-      0.5 * (rt_data.riRes[riIdx]->bbox.lim[1].z + rt_data.riRes[riIdx]->bbox.lim[0].z));
-    if (rt_data.rtPoolData[riIdx]->hasPLOD())
-      riDrawData.setPLODRadius(rt_data.rtPoolData[riIdx]->plodRadius);
-    riDrawData.setBoundingSphere(0, 0, rt_data.rtPoolData[riIdx]->sphereRadius, rt_data.rtPoolData[riIdx]->sphereRadius,
-      rt_data.rtPoolData[riIdx]->sphCenterY);
+    layerHasData |= updateRiDrawDataAtIdx(rt_data, drawData, per_inst_data_dwords, riIdx);
   }
-
   if (layerHasData)
+  {
+    packedDataUpToDateForLayer.resize(max(static_cast<int>(packedDataUpToDateForLayer.size()), rt_data.layerIdx + 1));
+    packedDataUpToDateForLayer[rt_data.layerIdx] = false; // force per draw buffer update
+  }
+}
+
+void RiGenRenderer::updatePerDrawDataAtIdx(RendInstGenData::RtData &rt_data, int per_inst_data_dwords, int ri_idx)
+{
+  TIME_PROFILE(ri_gen_update_per_draw_data_at_idx);
+
+  auto &drawData = getPerDrawData(rt_data.layerIdx);
+  if (updateRiDrawDataAtIdx(rt_data, drawData, per_inst_data_dwords, ri_idx))
   {
     packedDataUpToDateForLayer.resize(max(static_cast<int>(packedDataUpToDateForLayer.size()), rt_data.layerIdx + 1));
     packedDataUpToDateForLayer[rt_data.layerIdx] = false; // force per draw buffer update
@@ -671,7 +690,7 @@ RiGenRenderer::MultiDrawRenderer RiGenRenderer::getMultiDrawRenderer()
 {
   return riGenMultidrawContext.fillBuffers(packedRenderRecords.size(),
     [this](uint32_t draw_index, uint32_t &index_count_per_instance, uint32_t &instance_count, uint32_t &start_index,
-      int32_t &base_vertex, RiGenPerInstanceParameters &params) {
+      int32_t &base_vertex, RiGenPerInstanceParameters &params, uint32_t &drawcall_id_dword) {
       const auto &drawRecord = packedRenderRecords[draw_index];
       index_count_per_instance = static_cast<uint32_t>(drawRecord.numFaces * 3),
       instance_count = static_cast<uint32_t>(drawRecord.count), start_index = static_cast<uint32_t>(drawRecord.startIndex);
@@ -694,8 +713,8 @@ RiGenRenderer::MultiDrawRenderer RiGenRenderer::getMultiDrawRenderer()
         logwarn("RiGenRenderer per instance buffer has more than %d instances!", rendinst::render::MAX_INSTANCES);
         params.instanceOffset = 0;
       }
-      const auto perDrawDataOffset = drawRecord.poolIdx * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;
-      params.perDrawData = (perDrawDataOffset << PER_DRAW_OFFSET_SHIFT) | materialOffset;
+      params.perDrawData = drawRecord.poolIdx * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;
+      drawcall_id_dword = materialOffset;
     });
 }
 
@@ -721,7 +740,7 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
   ShaderGlobal::setBlock(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE), ShaderGlobal::LAYER_SCENE);
 
   rendinst::render::RiShaderConstBuffers cb;
-  cb.setInstancing(0, 1, 0x5, 0);
+  cb.setInstancing(0, 1, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER, 0);
   cb.flushPerDraw();
 
   bool currentDepthPrepass = false;
@@ -789,6 +808,22 @@ void RiGenRenderer::renderPackedObjects(const RendInstGenData::RtData &rt_data, 
   debug_mesh::reset_debug_value();
 }
 
+void RiGenRenderer::afterDeviceReset()
+{
+  if (!RendInstGenData::renderResRequired)
+    return;
+
+  FOR_EACH_RG_LAYER_DO (rgl)
+    updatePerDrawData(*rgl->rtData, rgl->perInstDataDwords);
+
+  for (bool &i : RiGenRenderer::packedDataUpToDateForLayer)
+    i = false;
+
+  FOR_EACH_RG_LAYER_DO (rgl)
+    if (rgl->rtData)
+      updatePackedData(rgl->rtData->layerIdx);
+}
+
 static bool ri_gen_after_device_reset_callback_issued = false;
 
 static void RiGenRenderer_afterDeviceReset_impl(void *)
@@ -798,14 +833,8 @@ static void RiGenRenderer_afterDeviceReset_impl(void *)
     add_delayed_callback_buffered((delayed_callback)&RiGenRenderer_afterDeviceReset_impl, nullptr);
     return;
   }
-
   ri_gen_after_device_reset_callback_issued = false;
-
-  if (!RendInstGenData::renderResRequired)
-    return;
-
-  FOR_EACH_RG_LAYER_DO (rgl)
-    rendinst::render::RiGenRenderer::updatePerDrawData(*rgl->rtData, rgl->perInstDataDwords);
+  RiGenRenderer::afterDeviceReset();
 }
 
 static void RiGenRenderer_afterDeviceReset(bool /*full_reset*/)

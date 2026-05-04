@@ -38,7 +38,6 @@ enum FeatureRenderFlags : uint32_t
   WATER_REFLECTION,
   BLOOM,
   MICRODETAILS,
-  FORWARD_RENDERING,
   POSTFX,
   CONTACT_SHADOWS,
   STATIC_SHADOWS,
@@ -47,24 +46,17 @@ enum FeatureRenderFlags : uint32_t
   DYNAMIC_LIGHTS_SHADOWS,
   SSR,
   VOLUME_LIGHTS_PER_PIXEL_FX_APPLY,
-  MOBILE_DEFERRED,
-  MOBILE_SIMPLIFIED_MATERIALS,
   HIGHRES_PUDDLES,
   CAMERA_IN_CAMERA,
+  GBUFFER_PACKED_NORMALS,
   RENDER_FEATURES_NUM
 };
 
 using FeatureRenderFlagMask = eastl::bitset<RENDER_FEATURES_NUM>;
 
-namespace rendering_path
-{
-void set_force_default(bool v);
-bool get_force_default();
-} // namespace rendering_path
-
 static inline bool is_render_feature_enabled_by_default(FeatureRenderFlags f)
 {
-  return (f != FORWARD_RENDERING) && (f != MOBILE_DEFERRED) && (f != MOBILE_SIMPLIFIED_MATERIALS) && (f != CAMERA_IN_CAMERA);
+  return (f != CAMERA_IN_CAMERA) && (f != GBUFFER_PACKED_NORMALS);
 }
 
 bool load_render_feature(const DataBlock *blk, const FeatureRenderFlags feature);
@@ -75,6 +67,3 @@ FeatureRenderFlagMask parse_render_features(const char *str);
 bool renderer_has_feature(FeatureRenderFlags feature);
 FeatureRenderFlagMask get_current_render_features();
 void set_current_render_features(FeatureRenderFlagMask val);
-
-// corrects config supplied rendering path to fail-safe one if needed
-String get_corrected_rendering_path();

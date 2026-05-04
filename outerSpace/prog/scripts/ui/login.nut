@@ -1,5 +1,4 @@
 from "%darg/ui_imports.nut" import *
-from "system" import getenv
 from "%scripts/ui/http_task.nut" import HttpPostTask, mkJsonHttpReq
 from "%scripts/ui/widgets/simpleComponents.nut" import textBtn, textInput, mkWatchedText, headerTxt, menuBtn, menuBtnTextColorNormal, menuBtnTextColorHover
 
@@ -7,10 +6,11 @@ from "%scripts/ui/backend_api.nut" import get_master_server_url, set_master_serv
 from "%scripts/ui/widgets/msgbox.nut" import showWarning
 import "ecs" as ecs
 
+let { getenv = null } = require_optional("system")
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
 let {EventUserLoggedIn, EventUserLoggedOut} = require("gameevents")
 let userUid = hardPersistWatched("userId") //get after, login
-let getDefUserName = @() getenv("username")
+let getDefUserName = @() getenv?("username") ?? "UserName"
 let userName = hardPersistWatched("userName", getDefUserName())
 let desiredUserName = hardPersistWatched("desiredUserName", getDefUserName())
 let loginInProgress = Watched(false)
@@ -106,7 +106,7 @@ function mkLoginScreen() {
     ]
   }
   let runMasterServerTip = {
-    size = static [sw(60), SIZE_TO_CONTENT]
+    size = const [sw(60), SIZE_TO_CONTENT]
     rendObj = ROBJ_TEXTAREA behavior = Behaviors.TextArea
     preformatted=true
     text = "To run local master server, run 'python master_server_sample.py' in prog/master_server_sample folder.\n You need python3.11 and flask installed."
@@ -114,7 +114,7 @@ function mkLoginScreen() {
   }
 
   let serverAddresTip = @() {
-    size = static [sw(60), SIZE_TO_CONTENT]
+    size = const [sw(60), SIZE_TO_CONTENT]
     rendObj = ROBJ_TEXTAREA behavior = Behaviors.TextArea
     watch = masterServerUrl
     text = " ".concat($"Current master server url: {masterServerUrl.get()}.",
@@ -133,12 +133,12 @@ function mkLoginScreen() {
         flow = FLOW_VERTICAL
         gap = hdpx(40)
         children = [
-          {size = static [0, sh(20)]},
+          {size = const [0, sh(20)]},
           desiredUserNameUi,
           loginBtn,
           masterServerUrlComp,
           continueOfflineBtn,
-          {size = static [0, sh(5)]},
+          {size = const [0, sh(5)]},
           serverAddresTip, runMasterServerTip]
         hplace = ALIGN_CENTER
         halign = ALIGN_CENTER

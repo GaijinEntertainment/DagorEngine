@@ -17,6 +17,9 @@
 #define AAD_RAW_PLACING_COLOR       6
 #define AAD_RAW_INITIAL_TM__HASHVAL 6
 
+// This is used together with AAD_RAW_INITIAL_TM__HASHVAL
+#define AAD_RAW_DESTR_PARAMS        7
+
 // todo: should be splitted into separate parameters. Now there are: burning, projective blood decals, torn wounds
 #define AAD_HUMAN_COMBINED_PARAMS 7
 

@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <generic/dag_enumerate.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include "globalManager.h"
 #include "dynShadows.h"
@@ -14,13 +17,13 @@ namespace dagdp
 {
 
 template <typename Callable>
-static inline void spot_lights_ecs_query(Callable);
+static inline void spot_lights_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void omni_lights_ecs_query(Callable);
+static inline void omni_lights_ecs_query(ecs::EntityManager &manager, Callable);
 
-ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(const dagdp::EventRecreateViews &evt,
-  dagdp::DynShadowsManager &dagdp__dyn_shadows_manager)
+ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(
+  const dagdp::EventRecreateViews &evt, ecs::EntityManager &manager, dagdp::DynShadowsManager &dagdp__dyn_shadows_manager)
 {
   FRAMEMEM_REGION;
   G_UNUSED(dagdp__dyn_shadows_manager);
@@ -35,18 +38,18 @@ ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(const dagdp::Event
   dag::Vector<float, framemem_allocator> spotLightsFmem;
   dag::Vector<float, framemem_allocator> omniLightsFmem;
 
-  spot_lights_ecs_query(
+  spot_lights_ecs_query(manager,
     [&](ECS_REQUIRE(eastl::true_type light__render_gpu_objects, eastl::true_type spot_light__shadows) float light__max_radius) {
       spotLightsFmem.push_back(light__max_radius);
     });
 
-  omni_lights_ecs_query(
+  omni_lights_ecs_query(manager,
     [&](ECS_REQUIRE(eastl::true_type light__render_gpu_objects, eastl::true_type omni_light__shadows) float light__max_radius) {
       omniLightsFmem.push_back(light__max_radius);
     });
 
-  stlsort::sort(spotLightsFmem.begin(), spotLightsFmem.end(), [](float a, float b) { return a >= b; });
-  stlsort::sort(omniLightsFmem.begin(), omniLightsFmem.end(), [](float a, float b) { return a >= b; });
+  stlsort::sort(spotLightsFmem.begin(), spotLightsFmem.end(), [](float a, float b) { return a > b; });
+  stlsort::sort(omniLightsFmem.begin(), omniLightsFmem.end(), [](float a, float b) { return a > b; });
 
   const uint32_t maxPerFrame = static_cast<uint32_t>(config.dynamicShadowQualityParams.maxShadowsToUpdateOnFrame);
   spotLightsFmem.resize(eastl::min(maxPerFrame, spotLightsFmem.size()));
@@ -74,11 +77,11 @@ ECS_NO_ORDER static inline void dyn_shadows_recreate_views_es(const dagdp::Event
 }
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
-static void destroy_views()
+static void destroy_views(ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) {
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) {
     // Note: this may be a relatively expensive operation.
     // The assumption is that the necessary lights are created at scene load, and then rarely, if ever, change.
     dagdp__global_manager.destroyViews();
@@ -92,13 +95,13 @@ ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
 ECS_TRACK(light__render_gpu_objects, spot_light__shadows, light__max_radius)
 ECS_REQUIRE(eastl::true_type light__render_gpu_objects, eastl::true_type spot_light__shadows, float light__max_radius)
-static void spot_lights_changed_es(const ecs::Event &) { destroy_views(); }
+static void spot_lights_changed_es(const ecs::Event &, ecs::EntityManager &manager) { destroy_views(manager); }
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
 ECS_TRACK(light__render_gpu_objects, omni_light__shadows, light__max_radius)
 ECS_REQUIRE(eastl::true_type light__render_gpu_objects, eastl::true_type omni_light__shadows, float light__max_radius)
-static void omni_lights_changed_es(const ecs::Event &) { destroy_views(); }
+static void omni_lights_changed_es(const ecs::Event &, ecs::EntityManager &manager) { destroy_views(manager); }
 
 } // namespace dagdp

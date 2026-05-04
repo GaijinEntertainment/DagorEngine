@@ -99,7 +99,7 @@ bool test_collision_world(dag::ConstSpan<CollisionObject>, const TMatrix &, floa
 {
   G_ASSERT_RETURN(false, false);
 }
-void update_ri_cache_in_volume_to_phys_world(const BBox3 &) {}
+int update_ri_cache_in_volume_to_phys_world(const BBox3 &) { return 0; }
 bool check_ri_collision_filtered(const rendinst::RendInstDesc &, const TMatrix &, const TMatrix &, int)
 {
   G_ASSERT_RETURN(false, false);
@@ -136,6 +136,7 @@ void shape_query_ri(const PhysBody *, class TMatrix const &, class TMatrix const
 void fetch_sim_res(bool) { G_ASSERT(0); }
 void set_vert_capsule_shape_size(const CollisionObject &, float, float) { G_ASSERT(0); }
 void set_collision_sphere_rad(const CollisionObject &, float) { G_ASSERT(0); }
+void set_collision_box_extents(const CollisionObject &, const Point3 &) { G_ASSERT(0); }
 void set_collision_object_tm(const CollisionObject &, const TMatrix &) { G_ASSERT(0); }
 void draw_collision_object(const CollisionObject &) { G_ASSERT(0); }
 
@@ -154,6 +155,8 @@ void flush_ri_instances() { G_ASSERT(0); }
 bool is_ri_instance_enabled(const CollisionInstances *, const rendinst::RendInstDesc &) { G_ASSERT_RETURN(false, true); }
 int get_link_name_id(const char *) { G_ASSERT_RETURN(false, -1); }
 const char *get_link_name(const int) { G_ASSERT_RETURN(false, NULL); }
+
+float exchange_ttl_for_collision_instances(float) { G_ASSERT_RETURN(false, -1.f); }
 
 } // namespace dacoll
 

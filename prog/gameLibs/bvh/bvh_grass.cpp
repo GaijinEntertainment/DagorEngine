@@ -32,22 +32,23 @@ struct BVHVertex
   Point2 texcoord;
 };
 
-static UniqueBLAS create_grass_blas(Sbuffer *vb, Sbuffer *ib, int vcount, int icount)
+static UniqueBLAS create_grass_blas(ContextId context_id, const BVHGeometryBufferWithOffset &geometry, int vcount, int icount)
 {
   RaytraceGeometryDescription desc;
   memset(&desc, 0, sizeof(desc));
   desc.type = RaytraceGeometryDescription::Type::TRIANGLES;
-  desc.data.triangles.vertexBuffer = vb;
-  desc.data.triangles.indexBuffer = ib;
+  desc.data.triangles.vertexBuffer = geometry.getVertexBuffer(context_id);
+  desc.data.triangles.indexBuffer = geometry.getIndexBuffer(context_id);
   desc.data.triangles.vertexCount = vcount;
   desc.data.triangles.vertexStride = sizeof(BVHVertex);
   desc.data.triangles.vertexFormat = VSDT_FLOAT3;
+  desc.data.triangles.vertexOffsetExtraBytes = geometry.vbOffset;
   desc.data.triangles.indexCount = icount;
-  desc.data.triangles.indexOffset = 0;
+  desc.data.triangles.indexOffset = geometry.ibOffset / 2;
   desc.data.triangles.flags = RaytraceGeometryDescription::Flags::NONE;
 
   raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-  buildInfo.flags = RaytraceBuildFlags::FAST_TRACE;
+  buildInfo.flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
   UniqueBLAS blas = UniqueBLAS::create(&desc, 1, buildInfo.flags);
   HANDLE_LOST_DEVICE_STATE(blas, blas);
@@ -68,24 +69,21 @@ struct LOD
 {
   TEXTUREID diffuseTexId;
   TEXTUREID alphaTexId;
-  UniqueBuf vertices;
-  UniqueBuf indices;
+  BVHGeometryBufferWithOffset geometry;
   UniqueBVHBufferWithOffset ahsVertices;
   UniqueBLAS blas;
   MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
 
   void teardown(ContextId context_id)
   {
-    context_id->releaseTexure(diffuseTexId);
-    context_id->releaseTexure(alphaTexId);
-    context_id->releaseBuffer(vertices.getBuf());
-    context_id->releaseBuffer(indices.getBuf());
+    context_id->releaseTexture(diffuseTexId);
+    context_id->releaseTexture(alphaTexId);
+    context_id->releaseBuffer(geometry.processedVertexBuffer.get());
     context_id->releaseBuffer(ahsVertices.get());
     context_id->freeMetaRegion(metaAllocId);
     diffuseTexId = BAD_TEXTUREID;
     alphaTexId = BAD_TEXTUREID;
-    vertices.close();
-    indices.close();
+    geometry.close(context_id);
     blas.reset();
   }
 };
@@ -164,8 +162,8 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
   d3d::GpuAutoLock gpuLock;
 
-  bvhConnection.metainfoMappings =
-    dag::buffers::create_persistent_sr_structured(sizeof(RandomGrassBvhMapping), metaCount, "bvh_grass_mapping");
+  bvhConnection.metainfoMappings = dag::buffers::create_persistent_sr_structured(sizeof(RandomGrassBvhMapping), metaCount,
+    "bvh_grass_mapping", d3d::buffers::Init::No, RESTAG_BVH);
 
   HANDLE_LOST_DEVICE_STATE(bvhConnection.metainfoMappings, );
 
@@ -194,8 +192,6 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       G_ASSERT(parser.normalFormat == VSDT_FLOAT3);
       G_ASSERT(parser.texcoordFormat == VSDT_FLOAT2);
 
-      static int counter = 0;
-
       struct MeshVertex
       {
         Point3 position;
@@ -207,18 +203,22 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       auto indexDwords = divide_up(sizeof(Index) * elem.numf * 3, 4);
       auto vertexDwords = divide_up(sizeof(BVHVertex) * elem.numv, 4);
 
-      bvhLod.indices = dag::buffers::create_persistent_sr_byte_address(indexDwords, String(64, "bvh_grass_indices_%d", counter++));
-      bvhLod.vertices = dag::buffers::create_persistent_sr_byte_address(vertexDwords, String(64, "bvh_grass_vertices_%d", counter++));
+      auto alloc = context_id->allocateSourceGeometry(indexDwords + vertexDwords);
 
-      HANDLE_LOST_DEVICE_STATE(bvhLod.indices, );
-      HANDLE_LOST_DEVICE_STATE(bvhLod.vertices, );
+      bvhLod.geometry.heapIndex = alloc.heapIx;
+      bvhLod.geometry.bindlessIndex = alloc.bindlessId;
+      bvhLod.geometry.bufferRegion = alloc.region;
+      bvhLod.geometry.ibOffset = context_id->getSourceBufferOffset(alloc.heapIx, alloc.region);
+      bvhLod.geometry.vbOffset = bvhLod.geometry.ibOffset + indexDwords * 4;
+
+      HANDLE_LOST_DEVICE_STATE(bvhLod.geometry, );
 
       {
-        auto ibData = lock_sbuffer<Index>(bvhLod.indices.getBuf(), 0, 0, VBLOCK_WRITEONLY);
-        auto vbData = lock_sbuffer<BVHVertex>(bvhLod.vertices.getBuf(), 0, 0, VBLOCK_WRITEONLY);
-
-        if (ibData && vbData)
+        if (auto gData = lock_sbuffer<uint8_t>(bvhLod.geometry.getIndexBuffer(context_id), bvhLod.geometry.ibOffset,
+              (indexDwords + vertexDwords) * 4, VBLOCK_WRITEONLY))
         {
+          auto ii = [&](int i) -> Index & { return *(Index *)&gData[sizeof(Index) * i]; };
+          auto vi = [&](int i) -> BVHVertex & { return *(BVHVertex *)&gData[indexDwords * 4 + sizeof(BVHVertex) * i]; };
           auto packNormal = [](const Point3 &n) {
             return (uint32_t(n.x * 127.0f + 128.0f) << 16) | (uint32_t(n.y * 127.0f + 128.0f) << 8) |
                    (uint32_t(n.z * 127.0f + 128.0f));
@@ -226,21 +226,21 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
           if (auto *elemIb = elem.vertexData->getIBMem<Index>(elem.si, elem.numf))
             for (unsigned int indexNo = 0; indexNo < elem.numf * 3; indexNo++)
-              ibData[indexNo] = elemIb[indexNo] - elem.sv;
+              ii(indexNo) = elemIb[indexNo] - elem.sv;
 
           if (auto *elemVb = elem.vertexData->getVBMem<MeshVertex>(elem.baseVertex, elem.sv, elem.numv))
             for (unsigned int vertexNo = 0; vertexNo < elem.numv; vertexNo++)
             {
-              vbData[vertexNo].position = elemVb[vertexNo].position;
-              vbData[vertexNo].texcoord = elemVb[vertexNo].texcoord;
-              vbData[vertexNo].normal = packNormal(elemVb[vertexNo].normal);
+              vi(vertexNo).position = elemVb[vertexNo].position;
+              vi(vertexNo).texcoord = elemVb[vertexNo].texcoord;
+              vi(vertexNo).normal = packNormal(elemVb[vertexNo].normal);
             }
         }
       }
 
       bvhLod.diffuseTexId = lod.diffuseTexId;
       bvhLod.alphaTexId = lod.alphaTexId;
-      bvhLod.blas = create_grass_blas(bvhLod.vertices.getBuf(), bvhLod.indices.getBuf(), elem.numv, elem.numf * 3);
+      bvhLod.blas = create_grass_blas(context_id, bvhLod.geometry, elem.numv, elem.numf * 3);
       HANDLE_LOST_DEVICE_STATE(bvhLod.blas, );
 
       bvhLod.metaAllocId = context_id->allocateMetaRegion(1);
@@ -248,15 +248,10 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
 
       meta.markInitialized();
 
-      uint32_t bindlessIndicesIndex, bindlessVerticesIndex;
-
       meta.holdAlphaTex(context_id, lod.alphaTexId);
       meta.holdAlbedoTex(context_id, lod.diffuseTexId);
-      context_id->holdBuffer(bvhLod.indices.getBuf(), bindlessIndicesIndex);
-      context_id->holdBuffer(bvhLod.vertices.getBuf(), bindlessVerticesIndex);
 
-      d3d::resource_barrier(ResourceBarrierDesc(bvhLod.indices.getBuf(), bindlessSRVBarrier));
-      d3d::resource_barrier(ResourceBarrierDesc(bvhLod.vertices.getBuf(), bindlessSRVBarrier));
+      d3d::resource_barrier(ResourceBarrierDesc(bvhLod.geometry.getIndexBuffer(context_id), bindlessSRVBarrier));
 
       meta.materialType = MeshMeta::bvhMaterialRendinst | MeshMeta::bvhMaterialGrass;
       meta.setIndexBitAndTexcoordFormat(2, VSDT_FLOAT2);
@@ -264,10 +259,11 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       meta.normalOffset = offsetof(BVHVertex, normal);
       meta.colorOffset = 0xFFU;
       meta.vertexStride = sizeof(BVHVertex);
-      meta.setIndexBufferIndex(bindlessIndicesIndex);
-      meta.setVertexBufferIndex(bindlessVerticesIndex);
+      meta.setIndexBufferIndex(bvhLod.geometry.bindlessIndex);
+      meta.setVertexBufferIndex(bvhLod.geometry.bindlessIndex);
       meta.startIndex = 0;
       meta.startVertex = 0;
+      meta.vertexOffset = bvhLod.geometry.vbOffset;
 
       auto pack = [](void *d, const ColorRange &r) {
         uint32_t p[4];
@@ -302,11 +298,9 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       // Need to fit in 15 bits so there is enough space for the alpha value
       G_ASSERT(MeshMetaAllocator::decode(bvhLod.metaAllocId) < (1 << 15));
 
-      ProcessorInstances::getAHSProcessor().process(bvhLod.indices.getBuf(), bvhLod.vertices.getBuf(), bvhLod.ahsVertices, 2,
-        elem.numf * 3, offsetof(BVHVertex, texcoord), VSDT_FLOAT2, sizeof(BVHVertex), -1);
-
       uint32_t bindlessIndex;
-      context_id->holdBuffer(bvhLod.ahsVertices.get(), bindlessIndex);
+      ProcessorInstances::getAHSProcessor().process(context_id, bvhLod.geometry, bvhLod.ahsVertices, bindlessIndex, 2, elem.numf * 3,
+        offsetof(BVHVertex, texcoord), VSDT_FLOAT2, sizeof(BVHVertex), -1);
 
       uint32_t indexCount = elem.numf * 3;
 
@@ -351,14 +345,13 @@ UniqueBLAS *get_blas(int layer_ix, int lod_ix)
   return &layer.lods[lod_ix].blas;
 }
 
-void get_memory_statistics(int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
+void get_memory_statistics(ContextId context_id, int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
 {
   vb = ib = blas = meta = queries = 0;
   for (auto &layer : layers)
     for (auto &lod : layer.lods)
     {
-      vb += lod.vertices->getElementSize() * lod.vertices->getNumElements();
-      ib += lod.indices->getElementSize() * lod.indices->getNumElements();
+      vb += context_id->getSourceBufferSize(lod.geometry.heapIndex, lod.geometry.bufferRegion);
       blas += d3d::get_raytrace_acceleration_structure_size(lod.blas.get());
     }
   if (bvhConnection.instances)

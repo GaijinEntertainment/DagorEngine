@@ -16,7 +16,7 @@ namespace das {
         virtual FileInfo * tryOpenFile ( const string & fileName ) override;
     };
 
-    class FsReadOnlyCachedFileSystem : public AnyFileSystem {
+    class DAS_API FsReadOnlyCachedFileSystem : public AnyFileSystem {
     public:
         virtual ~FsReadOnlyCachedFileSystem();
         virtual FileInfo * tryOpenFile ( const string & fileName ) override;
@@ -26,7 +26,7 @@ namespace das {
     };
 #endif
 
-    class FsFileAccess : public das::ModuleFileAccess {
+    class DAS_API FsFileAccess : public das::ModuleFileAccess {
     public:
         FsFileAccess();
         FsFileAccess ( const string & pak, const FileAccessPtr & access );
@@ -36,6 +36,11 @@ namespace das {
         virtual das::FileInfo * getNewFileInfo(const das::string & fileName) override;
         virtual ModuleInfo getModuleInfo ( const string & req, const string & from ) const override;
         virtual bool addFsRoot ( const string & , const string & ) override;
+        // sandbox support
+        bool introduceFileFromDisk ( const string & name, const string & diskPath );
+        void introduceDaslib();
+        void introduceNativeModules();
+        bool introduceNativeModule ( const string & req );
     protected:
         das_map<string, string> extraRoots;
         vector<pair<AnyFileSystem *,bool>>   fileSystems;

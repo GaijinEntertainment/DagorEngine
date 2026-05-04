@@ -8,7 +8,9 @@
 #include <daRg/dag_element.h>
 #include <daRg/dag_transform.h>
 #include <3d/dag_render.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <math/dag_mathAng.h>
 
 
@@ -85,7 +87,13 @@ int BhvPlaceOnCompassStrip::update(UpdateStage /*stage*/, darg::Element *elem, f
           if (eid == ecs::INVALID_ENTITY_ID)
             continue;
 
-          if (auto transform = g_entity_mgr->getNullable<TMatrix>(eid, ECS_HASH("transform")))
+          auto transform = g_entity_mgr->getNullable<TMatrix>(eid, ECS_HASH("transform_lastFrame"));
+          if (transform == nullptr)
+          {
+            transform = g_entity_mgr->getNullable<TMatrix>(eid, ECS_HASH("transform"));
+          }
+
+          if (transform != nullptr)
           {
             Point3 pos = transform->getcol(3);
             Point3 dir = pos - uishared::view_itm.getcol(3);
@@ -114,8 +122,12 @@ int BhvPlaceOnCompassStrip::update(UpdateStage /*stage*/, darg::Element *elem, f
 
     bool clampToBorder = data.RawGetSlotValue(strings->clampToBorder, false);
 
-    float opacity =
-      clampToBorder ? 1.f : cvt(d, -fov * 0.5f, -fov * 0.5f + fadeOutZone, 0, 1) * cvt(d, fov * 0.5f, fov * 0.5f - fadeOutZone, 0, 1);
+    float childFov = data.RawGetSlotValue(strings->fov, fov);
+    float childFadeOutZone = data.RawGetSlotValue(strings->fadeOutZone, fadeOutZone);
+
+    float opacity = clampToBorder ? 1.f
+                                  : cvt(d, -childFov * 0.5f, -childFov * 0.5f + childFadeOutZone, 0, 1) *
+                                      cvt(d, childFov * 0.5f, childFov * 0.5f - childFadeOutZone, 0, 1);
 
     child->props.setCurrentOpacity(opacity);
   }

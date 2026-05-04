@@ -4,6 +4,7 @@
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstCollision.h>
+#include <rendInst/rendInstAccess.h>
 #include "riGen/riGenData.h"
 #include "riGen/riGenExtra.h"
 #include "riGen/riUtil.h"
@@ -11,6 +12,7 @@
 #include "riGen/riGrid.h"
 #include "riGen/riGridDebug.h"
 #include "riGen/genObjUtil.h"
+#include "riGen/riCollOptimize.h"
 #include "render/extraRender.h"
 #include "render/gpuObjects.h"
 #include "visibility/genVisibility.h"
@@ -23,7 +25,9 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <gameRes/dag_gameResHooks.h>
 #include <gameRes/dag_collisionResource.h>
+#include <shaders/dag_shaderResUnitedData.h>
 #include <3d/dag_ringDynBuf.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_resetDevice.h>
@@ -34,6 +38,8 @@
 #include <math/dag_mathUtils.h>
 #include <dag/dag_vectorSet.h>
 #include <rendInst/rendIntsExtraAdditionalData.h>
+#include <shaders/dag_shaderBlock.h>
+#include <string.h>
 
 #if DAGOR_DBGLEVEL > 0
 static const int LOGMESSAGE_LEVEL = LOGLEVEL_ERR;
@@ -42,6 +48,7 @@ static const int LOGMESSAGE_LEVEL = LOGLEVEL_WARN;
 #endif
 
 static const DataBlock *riConfig = nullptr;
+static ska::flat_hash_map<eastl::string_view, const DataBlock *> riConfigLookupCache;
 rendinst::RiExtraPoolsVec rendinst::riExtra;
 uint32_t rendinst::RiExtraPoolsVec::interlocked_increment_size() { return interlocked_increment(*(volatile int *)&mCount); }
 static rendinst::HasRIClipmap hasRiClipmap = rendinst::HasRIClipmap::UNKNOWN;
@@ -63,7 +70,7 @@ static union
 
 static eastl::unique_ptr<rendinst::RiExtraAdditionalDataManager> riextra_additional_data_manager;
 
-void rendinst::iterateRIExtraMap(eastl::fixed_function<sizeof(void *) * 3, void(int, const char *)> cb)
+void rendinst::iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &cb)
 {
   ScopedRIExtraReadLock rd;
   iterate_names(rendinst::riExtraMap, cb);
@@ -106,6 +113,34 @@ static Tab<rendinst::invalidate_handle_cb> invalidate_handle_callbacks;
 static Tab<rendinst::ri_destruction_cb> riex_destruction_callbacks;
 static Tab<rendinst::ri_override_destr_data_cb> riex_override_destr_data_callbacks;
 static Tab<rendinst::ri_impulse_cb> riex_impulse_callbacks;
+
+struct DeferredRiExPoolIdxPush
+{
+  rendinst::LayerFlags layerFlag;
+  int poolIdx;
+};
+
+// TODO: Inspired by DeferredCommandVector, could be unified and moved to dag?
+// Helper class to ensure that counter is written atomically and after command data write
+class DeferredRiExPools : public dag::Vector<DeferredRiExPoolIdxPush>
+{
+public:
+  using dag::Vector<DeferredRiExPoolIdxPush>::Vector;
+
+  DeferredRiExPoolIdxPush &push_back(...) = delete; // Use `push_back_threadsafe` instead
+  void *push_back_uninitialized(...) = delete;      // Use `push_back_threadsafe` instead
+  void emplace_back(...) = delete;                  // Use `push_back_threadsafe` instead
+
+  void push_back_threadsafe(const DeferredRiExPoolIdxPush &cmd)
+  {
+    std::lock_guard scopedLock(mtx);
+    dag::Vector<DeferredRiExPoolIdxPush>::Vector::push_back(cmd);
+  }
+  bool empty() const { return interlocked_acquire_load(*(volatile int *)&mCount) == 0; }
+
+  std::mutex mtx;
+};
+static DeferredRiExPools deferredRiExPools;
 
 using rendinst::regCollCb;
 using rendinst::riex_handle_t;
@@ -166,18 +201,30 @@ void rendinst::optimizeRIGenExtra()
 namespace rendinst
 {
 static void update_ri_extra_game_resources(const char *ri_res_name, int id, RenderableInstanceLodsResource *riRes,
-  const DataBlock &params_block, GameResource *(*get_game_res_cb)(GameResHandle, unsigned) = &get_one_game_resource_ex);
+  const DataBlock &params_block, GameResource *(*get_game_res_cb)(const char *, unsigned) = &get_one_game_resource_ex);
 
 static dag::VectorSet<uint32_t> riExtraForceDisableShadowList;
+
+int riExSize();
+int riExCount();
+int riExCount(int idx);
+int riExIndex(const char *asset_name);
+void riExMostCountCell(int idx, int &out_count, int &out_cellIdx, int &out_x, int &out_z);
+bool riGenMostCountCell(const char *name, int &out_totalCount, int &out_count, int &out_memoryUsage, int &out_cellIdx, int &out_x,
+  int &out_z);
+void riGenStat(int &out_count, int &out_memoryUsage);
+extern bool persistentRiExtraInstances;
 } // namespace rendinst
 
 void rendinst::termRIGenExtra()
 {
+  unitedvdata::riUnitedVdata.stopPendingJobs();
   for (auto rg : rgLayer) // clear delayed RI as it hold references to riExtra
     if (rg)
       rg->clearDelayedRi();
     else
       break;
+  deferredRiExPools.clear();
   interlocked_relaxed_store(maxRiExtraHeight, 0);
   ri_extra_max_height_on_terminate();
   term_ri_extra_grids();
@@ -221,12 +268,12 @@ rendinst::RiExtraPool::~RiExtraPool()
   {
     if (unregCollCb)
       unregCollCb(collHandle);
-    release_game_resource((GameResource *)collRes);
+    release_game_resource_ex(collRes, CollisionGameResClassId);
     collRes = nullptr;
   }
   if (destroyedPhysRes)
   {
-    release_game_resource((GameResource *)destroyedPhysRes);
+    release_game_resource_ex(destroyedPhysRes, PhysObjGameResClassId);
     destroyedPhysRes = nullptr;
   }
 }
@@ -255,8 +302,21 @@ void rendinst::RiExtraPool::validateLodLimits()
 const DataBlock *rendinst::getRIGenExtraConfig() { return riConfig; }
 const DataBlock *rendinst::registerRIGenExtraConfig(const DataBlock *persist_props)
 {
+  TIME_PROFILE(rendinst__registerRIGenExtraConfig)
   const DataBlock *prev = riConfig;
   riConfig = persist_props;
+  riConfigLookupCache.clear();
+  if (riConfig)
+  {
+    dblk::iterate_child_blocks(*riConfig->getBlockByNameEx("riExtra"),
+      [&](const DataBlock &blk) { riConfigLookupCache.emplace(eastl::string_view(blk.getBlockName()), &blk); });
+    const int nameNid = riConfig->getNameId("name");
+    dblk::iterate_child_blocks_by_name(*riConfig, "dmg", [&](const DataBlock &blk) {
+      const char *name = blk.getStrByNameId(nameNid, "");
+      if (name && *name)
+        riConfigLookupCache.emplace(eastl::string_view(name), &blk);
+    });
+  }
   return prev;
 }
 bool rendinst::isRIGenExtraObstacle(const char *nm)
@@ -296,20 +356,12 @@ static const DataBlock &getRiParamsBlockByName(const char *ri_res_name)
 {
   if (!riConfig)
     return DataBlock::emptyBlock;
-
-  const DataBlock *b = riConfig->getBlockByNameEx("riExtra")->getBlockByName(ri_res_name);
-  for (int j = 0, nid = riConfig->getNameId("dmg"), paramNid = riConfig->getNameId("name"); !b && j < riConfig->blockCount(); j++)
-    if (riConfig->getBlock(j)->getBlockNameId() == nid)
-      if (strcmp(ri_res_name, riConfig->getBlock(j)->getStrByNameId(paramNid, "")) == 0)
-        b = riConfig->getBlock(j);
-
-  if (b == nullptr)
-    return DataBlock::emptyBlock;
-
-  return *b;
+  if (const auto it = riConfigLookupCache.find(eastl::string_view(ri_res_name)); it != riConfigLookupCache.end())
+    return *it->second;
+  return DataBlock::emptyBlock;
 }
 
-static void push_res_idx_to_stage(rendinst::LayerFlags res_layers, int res_idx)
+static void push_res_idx_to_stage_imm(rendinst::LayerFlags res_layers, int res_idx)
 {
   rendinst::ScopedRIExtraWriteLock wr;
   if (res_layers & rendinst::LayerFlag::Opaque)
@@ -320,6 +372,27 @@ static void push_res_idx_to_stage(rendinst::LayerFlags res_layers, int res_idx)
     rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Decals)].push_back(res_idx);
   if (res_layers & rendinst::LayerFlag::Distortion)
     rendinst::riExPoolIdxPerStage[get_layer_index(rendinst::LayerFlag::Distortion)].push_back(res_idx);
+}
+
+static void push_res_idx_to_stage(rendinst::LayerFlags res_layers, int res_idx)
+{
+  if (is_main_thread())
+  {
+    push_res_idx_to_stage_imm(res_layers, res_idx);
+    return;
+  }
+  deferredRiExPools.push_back_threadsafe({res_layers, res_idx});
+}
+
+void rendinst::update_deferred_push_res()
+{
+  if (deferredRiExPools.empty())
+    return;
+  std::lock_guard scopedLock(deferredRiExPools.mtx);
+  for (const DeferredRiExPoolIdxPush &p : deferredRiExPools)
+    push_res_idx_to_stage_imm(p.layerFlag, p.poolIdx);
+
+  deferredRiExPools.clear();
 }
 
 static void erase_res_idx_from_stage(rendinst::LayerFlags res_layers, int res_idx)
@@ -353,7 +426,8 @@ void rendinst::requestRiExResources(const char *ri_res_name,
   if (get_resource_type_id(riCollResName.c_str()) == CollisionGameResClassId)
     res_cb(riCollResName.c_str(), CollisionGameResClassId);
 
-  if (const DataBlock *b = &getRiParamsBlockByName(ri_res_name); !b->isEmpty())
+  if (const DataBlock *b = &getRiParamsBlockByName(ri_res_name);
+      !b->isEmpty() && (!b->getBool("immortal", false) || bool(ri_flags & AddRIFlag::ForceDebris)))
   {
     if (const char *nextRes = b->getStr("nextRes", nullptr); nextRes && *nextRes)
     {
@@ -380,6 +454,58 @@ void rendinst::requestRiExResources(const char *ri_res_name,
   }
 }
 
+static void verifyMaterials(RenderableInstanceLodsResource *res, const char *name, bool no_transp)
+{
+  G_ASSERT(res);
+  bool brokenMaterials = false;
+  ShaderBlockIdHolder rendinstSceneBlockId{"rendinst_scene"};
+  ShaderBlockIdHolder rendinstTransSceneBlockId{"rendinst_trans_scene"};
+  for (int lodNo = 0; lodNo < res->lods.size(); lodNo++)
+  {
+    const ShaderMesh *mesh = nullptr;
+    if (RenderableInstanceResource *scene = res->lods[lodNo].scene)
+      if (InstShaderMeshResource *mesh1 = scene->getMesh())
+        if (InstShaderMesh *mesh2 = mesh1->getMesh())
+          mesh = mesh2->getMesh();
+
+    if (mesh)
+    {
+      auto verify = [&](auto elems, uint32_t stage, const char *stage_name) {
+        for (int elemNo = 0; elemNo < elems.size(); elemNo++)
+        {
+          auto shader = elems[elemNo].e;
+          if (!shader)
+            continue;
+          int blockId = shader->getSupportedBlock(0, ShaderGlobal::LAYER_SCENE);
+          if (((stage == ShaderMesh::STG_opaque || stage == ShaderMesh::STG_atest) && blockId != rendinstSceneBlockId) ||
+              (stage == ShaderMesh::STG_trans && blockId != rendinstTransSceneBlockId) ||
+              shader->getVertexStride() != elems[elemNo].vertexData->getStride())
+          {
+            brokenMaterials = true;
+            debug("Broken material in RI '%s', lod=%d, stage='%s', shader='%s', block='%s', shader stride=%d, vb stride=%d", name,
+              lodNo, stage_name, shader->getShaderClassName(), ShaderGlobal::getBlockName(blockId), shader->getVertexStride(),
+              elems[elemNo].vertexData->getStride());
+          }
+          else if (stage == ShaderMesh::STG_trans && no_transp)
+          {
+            brokenMaterials = true;
+            debug("Transparent material in RI '%s', lod=%d, shader='%s'", name, lodNo, shader->getShaderClassName());
+          }
+        }
+      };
+
+      verify(mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_opaque), ShaderMesh::STG_opaque, "opaque");
+      verify(mesh->getElems(ShaderMesh::STG_atest, ShaderMesh::STG_atest), ShaderMesh::STG_atest, "atest");
+      verify(mesh->getElems(ShaderMesh::STG_trans, ShaderMesh::STG_trans), ShaderMesh::STG_trans, "trans");
+    }
+  }
+
+  if (brokenMaterials)
+  {
+    DAG_FATAL("Broken materials in '%s'", name);
+  }
+}
+
 int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int ri_pool_ref_layer, AddRIFlags ri_flags)
 {
   bool useShadow = bool(ri_flags & AddRIFlag::UseShadow);
@@ -387,6 +513,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   float combinedRendinstHeight = 0.0f;
   int id = riExtraMap.getNameId(ri_res_name);
   const DataBlock &paramsBlock = getRiParamsBlockByName(ri_res_name);
+  bool indestructibleByNuke = false;
 
   if (!immortal)
   {
@@ -394,6 +521,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     combinedRendinstHeight = paramsBlock.getReal("combinedRendinstHeight", 0.0f);
   }
 
+  indestructibleByNuke = paramsBlock.getBool("indestructibleByNuke", false);
   bool forceDisableShadow = false;
   if (rendinst::riExtraForceDisableShadowList.find(str_hash_fnv1(ri_res_name)) != rendinst::riExtraForceDisableShadowList.end())
   {
@@ -423,8 +551,16 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     return -1;
   }
 
-  auto get_gameres_cb = bool(ri_flags & AddRIFlag::GameresPreLoaded) ? &get_game_resource_ex : &get_one_game_resource_ex;
-  auto riRes = (RenderableInstanceLodsResource *)get_gameres_cb(GAMERES_HANDLE_FROM_STRING(ri_res_name), RendInstGameResClassId);
+  auto get_gameres_cb = bool(ri_flags & AddRIFlag::GameresPreLoaded) ? [](const char *resname, unsigned type_id) {
+#if DAGOR_DBGLEVEL > 0 // Resource is supposed to be preloaded by calling code if `AddRIFlag::GameresPreLoaded` is used
+    // Note: assume that non zero hooks means stub res factories which isn't handling `is_game_resource_loaded` properly
+    if (DAGOR_UNLIKELY(!is_game_resource_loaded(resname, type_id) && !gamereshooks::on_get_game_resource))
+      logerr("Attempt to load \"preloaded\" res <%s> of expected/actual type %#x/%#x", resname,
+        type_id, get_resource_type_id(resname));
+#endif
+    return get_game_resource_ex(resname, type_id);
+  } : get_one_game_resource_ex;
+  auto riRes = (RenderableInstanceLodsResource *)get_gameres_cb(ri_res_name, RendInstGameResClassId);
   if (!riRes)
   {
     logerr("failed to resolve riExtra <%s>", ri_res_name);
@@ -438,6 +574,12 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     debug("initRIGenExtra: due to addRIGenExtraResIdx()");
     rendinst::initRIGenExtra();
   }
+
+  static bool verifyRendinstMaterials = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("verifyRendinstMaterials", false);
+  static bool verifyNoTranspRendinstMaterials =
+    ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("verifyNoTranspRendinstMaterials", false);
+  if (verifyRendinstMaterials)
+    verifyMaterials(riRes, ri_res_name, verifyNoTranspRendinstMaterials);
 
   {
     ScopedRIExtraWriteLock wr;
@@ -487,6 +629,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   riExtra[id].destrTimeToKinematic = -1.0f;
   riExtra[id].destrTimeToSinkUnderground = -1.0f;
   riExtra[id].rendinstHeight = combinedRendinstHeight;
+  riExtra[id].indestructibleByNuke = indestructibleByNuke;
   riExtra[id].killsNearEffects = false;
 
   // These values will be overwritten by per-asset blks if they are specified there
@@ -499,15 +642,23 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
       riExtra[id].destrTimeToKinematic = 0.05f;
     riExtra[id].destrTimeToKinematic = defaults->getReal("destrTimeToKinematic", riExtra[id].destrTimeToKinematic);
     riExtra[id].destrTimeToSinkUnderground = defaults->getReal("destrTimeToSinkUnderground", riExtra[id].destrTimeToSinkUnderground);
+    riExtra[id].destrDisintegrationDuration =
+      defaults->getReal("destrDisintegrationDuration", riExtra[id].destrDisintegrationDuration);
+    riExtra[id].destrTimeToStartDisintegration =
+      defaults->getReal("destrTimeToStartDisintegration", riExtra[id].destrTimeToStartDisintegration);
+    riExtra[id].destrDisintegrationScale = defaults->getReal("destrDisintegrationScale", riExtra[id].destrDisintegrationScale);
   }
 
-  if (const DataBlock *b = riConfig && !immortal ? riConfig->getBlockByNameEx("riExtra")->getBlockByName(ri_res_name) : nullptr)
+  if (immortal)
+    ;
+  else if (const DataBlock *b = riConfig ? riConfig->getBlockByNameEx("riExtra")->getBlockByName(ri_res_name) : nullptr)
   {
     riExtra[id].initialHP = b->getReal("hp", 300);
     float regenTime = b->getReal("hpFullRegenTime", 180);
     riExtra[id].regenHpRate = (riExtra[id].initialHP > 0 && regenTime > 0) ? riExtra[id].initialHP / regenTime : 0;
     riExtra[id].destroyedColl = b->getBool("nextColl", true);
     riExtra[id].damageThreshold = b->getReal("damageThreshold", b->getReal("impulseThreshold", 0));
+    riExtra[id].indestructibleByNuke = b->getBool("indestructibleByNuke", indestructibleByNuke);
     riExtra[id].rendinstHeight = b->getReal("combinedRendinstHeight", 0.0f);
     riExtra[id].killsNearEffects = b->getBool("killsNearEffects", false);
     riExtra[id].destrTimeToLive = b->getReal("destrTimeToLive", riExtra[id].destrTimeToLive);
@@ -516,6 +667,10 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
       riExtra[id].destrTimeToKinematic = 0.05f;
     riExtra[id].destrTimeToSinkUnderground = b->getReal("destrTimeToSinkUnderground", riExtra[id].destrTimeToSinkUnderground);
     riExtra[id].destrTimeToKinematic = b->getReal("destrTimeToKinematic", riExtra[id].destrTimeToKinematic);
+    riExtra[id].destrDisintegrationDuration = b->getReal("destrDisintegrationDuration", riExtra[id].destrDisintegrationDuration);
+    riExtra[id].destrTimeToStartDisintegration =
+      b->getReal("destrTimeToStartDisintegration", riExtra[id].destrTimeToStartDisintegration);
+    riExtra[id].destrDisintegrationScale = b->getReal("destrDisintegrationScale", riExtra[id].destrDisintegrationScale);
 #if RI_VERBOSE_OUTPUT
     debug("riExtra hp=%.1f damageThres=%.3f regenRate=%.3f", riExtra[id].initialHP, riExtra[id].damageThreshold,
       riExtra[id].regenHpRate);
@@ -540,14 +695,13 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     next_res = b->getStr("physRes", nullptr);
     if (next_res && *next_res)
     {
-      riExtra[id].destroyedPhysRes =
-        (DynamicPhysObjectData *)get_gameres_cb(GAMERES_HANDLE_FROM_STRING(next_res), PhysObjGameResClassId);
+      riExtra[id].destroyedPhysRes = (DynamicPhysObjectData *)get_gameres_cb(next_res, PhysObjGameResClassId);
       riExtra[id].isDestroyedPhysResExist = riExtra[id].destroyedPhysRes != nullptr;
     }
     else if (next_res)
       logerr("empty physRes for riExtra=%s", ri_res_name);
   }
-  else if (riConfig && !immortal)
+  else if (riConfig)
   {
     // try to find older damage settings
     int nid = riConfig->getNameId("dmg");
@@ -569,8 +723,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
           const char *destroyedModelName = blk->getStr("destroyedModelName", nullptr);
           if (destroyedModelName && *destroyedModelName)
           {
-            riExtra[id].destroyedPhysRes =
-              (DynamicPhysObjectData *)get_gameres_cb(GAMERES_HANDLE_FROM_STRING(destroyedModelName), PhysObjGameResClassId);
+            riExtra[id].destroyedPhysRes = (DynamicPhysObjectData *)get_gameres_cb(destroyedModelName, PhysObjGameResClassId);
             riExtra[id].isDestroyedPhysResExist = riExtra[id].destroyedPhysRes != nullptr;
           }
           float regenTime = blk->getReal("hpFullRegenTime", 180);
@@ -617,7 +770,7 @@ namespace rendinst
 static eastl::vector_map<uint32_t, float> riExtraBBoxScaleForPrepasses;
 
 static void update_ri_extra_game_resources(const char *ri_res_name, int id, RenderableInstanceLodsResource *riRes,
-  const DataBlock &params_block, GameResource *(*get_game_res_cb)(GameResHandle, unsigned))
+  const DataBlock &params_block, GameResource *(*get_game_res_cb)(const char *, unsigned))
 {
   G_ASSERT_RETURN(riRes, );
 
@@ -625,20 +778,20 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   char collName[256];
   SNPRINTF(collName, sizeof(collName), "%s" RI_COLLISION_RES_SUFFIX, ri_res_name);
   collRes = get_resource_type_id(collName) == CollisionGameResClassId
-              ? (CollisionResource *)get_game_res_cb(GAMERES_HANDLE_FROM_STRING(collName), CollisionGameResClassId)
+              ? (CollisionResource *)get_game_res_cb(collName, CollisionGameResClassId)
               : nullptr;
   if (collRes && collRes->getAllNodes().empty())
   {
-    release_game_resource((GameResource *)collRes);
+    release_game_resource_ex(collRes, CollisionGameResClassId);
     collRes = nullptr;
   }
   if (collRes)
-    collRes->collapseAndOptimize(collName, USE_GRID_FOR_RI);
+    optimize_collres_on_load(collRes, [&collName]() { return collName; });
 
   // Update riExtra[id] fields which depends on game resources (riRes and collision)
 
-  riExtra[id].res = riRes;
   riRes->setRiExtraId(id);
+  riExtra[id].res = riRes;
   riExtra[id].collRes = collRes;
   if (collRes && regCollCb)
   {
@@ -776,14 +929,15 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
           int isColoredShader = 0;
           riExtra[id].hasColoredShaders |=
             elems[elemNo].mat->getIntVariable(is_colored_variable_id, isColoredShader) && isColoredShader;
-          int isRendinstClipmap = 0;
-          int isHeightmapBlended = 0;
 
-          riExtra[id].isRendinstClipmap |=
-            elems[elemNo].mat->getIntVariable(is_rendinst_clipmap_variable_id, isRendinstClipmap) && isRendinstClipmap;
+          int isRendinstClipmapByVar = 0;
+          isRendinstClipmapByVar =
+            elems[elemNo].mat->getIntVariable(is_rendinst_clipmap_variable_id, isRendinstClipmapByVar) && isRendinstClipmapByVar;
+          int isHeightmapBlendedByVar = 0;
+          isHeightmapBlendedByVar =
+            elems[elemNo].mat->getIntVariable(enable_hmap_blend_variable_id, isHeightmapBlendedByVar) && isHeightmapBlendedByVar;
 
-          riExtra[id].isRendinstClipmap |=
-            elems[elemNo].mat->getIntVariable(enable_hmap_blend_variable_id, isHeightmapBlended) && isHeightmapBlended;
+          riExtra[id].isRendinstClipmap |= isRendinstClipmapByVar || isHeightmapBlendedByVar;
 
           int isElemRiLandclass = 0;
           isPoolRendinstLandclass |= elems[elemNo].mat->getIntVariable(ri_landclass_indexVarId, isElemRiLandclass);
@@ -803,7 +957,8 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
           if (riExtra[id].isRendinstClipmap)
           {
             hasRiClipmap = rendinst::HasRIClipmap::YES;
-            riExtra[id].immortal = true;
+            if (isRendinstClipmapByVar)
+              riExtra[id].immortal = true;
           }
 
           if (isPoolRendinstLandclass)
@@ -907,21 +1062,34 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
 static void unload_ri_extra_game_resources(int res_idx)
 {
   RiExtraPool &riExtraPool = riExtra[res_idx];
-  if (riExtraPool.res)
+  if (auto res = eastl::exchange(riExtraPool.res, nullptr))
   {
-    riExtraPool.res->setRiExtraId(-1);
-    riExtraPool.res->delRef();
-    riExtraPool.res = nullptr;
+    res->setRiExtraId(-1);
+    res->delRef();
   }
   if (riExtraPool.collRes)
   {
     if (unregCollCb)
       unregCollCb(riExtraPool.collHandle);
-    release_game_resource((GameResource *)riExtraPool.collRes);
+    release_game_resource_ex(riExtraPool.collRes, CollisionGameResClassId);
     riExtraPool.collRes = nullptr;
   }
   erase_res_idx_from_stage(riExtraPool.layers, res_idx);
 }
+
+void shrinkToFitRiEx()
+{
+  ScopedRIExtraWriteLock wr;
+  ScopedLockWrite lock(rendinst::riXYZRLock);
+  for (auto &p : riExtra) // To consider: several passes to realloc homogeneous data near by in memory?
+  {
+    p.riTm.shrink_to_fit();
+    p.riHP.shrink_to_fit();
+    p.riUniqueData.shrink_to_fit();
+    p.riXYZR.shrink_to_fit();
+  }
+}
+
 } // namespace rendinst
 
 void rendinst::updateRiExtraBBoxScalesForPrepasses(const DataBlock &blk)
@@ -1029,7 +1197,7 @@ void rendinst::reloadRIExtraResources(const char *ri_res_name)
     return;
   unload_ri_extra_game_resources(resIdx);
   RenderableInstanceLodsResource *riRes =
-    (RenderableInstanceLodsResource *)::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(ri_res_name), RendInstGameResClassId);
+    (RenderableInstanceLodsResource *)::get_one_game_resource_ex(ri_res_name, RendInstGameResClassId);
 
   if (!riRes)
   {
@@ -1155,6 +1323,154 @@ bbox3f rendinst::getRIGenExtraOverallInstancesWorldBbox(int res_idx)
   return result;
 }
 
+int rendinst::riExSize()
+{
+  return sizeof(mat43f) + sizeof(RiExtraPool::HPandLDT) + sizeof(RiExtraPool::ElemUniqueData) + sizeof(vec4f);
+}
+
+int rendinst::riExCount()
+{
+  int count = 0;
+
+  for (int i = 0; i < rendinst::riExtra.size(); i++)
+  {
+    count += rendinst::riExtra[i].riTm.size();
+  }
+
+  return count;
+}
+
+int rendinst::riExCount(int idx) { return rendinst::riExtra[idx].riTm.size(); }
+
+int rendinst::riExIndex(const char *asset_name) { return riExtraMap.getNameId(asset_name); }
+
+void rendinst::riExMostCountCell(int idx, int &out_count, int &out_cellIdx, int &out_x, int &out_z)
+{
+  out_count = 0;
+  for (int _layer = 0; _layer < rendinst::rgLayer.size(); _layer++)
+    if (RendInstGenData *rgl = rendinst::rgLayer[_layer])
+      for (int i = 0; i < rgl->cells.size(); i++)
+      {
+        if (!rgl->cells[i].rtData)
+          continue;
+
+        auto &riexHandles = rgl->cells[i].rtData->riexHandles;
+
+        int count = 0;
+        for (int j = 0; j < riexHandles.size(); ++j)
+          if (handle_to_ri_type(riexHandles[j]) == idx)
+          {
+            ++count;
+            if (out_count < count)
+            {
+              out_cellIdx = i;
+              out_count = count;
+
+              out_x = i % rgl->cellNumW;
+              out_z = i / rgl->cellNumW;
+            }
+          }
+      }
+}
+
+bool rendinst::riGenMostCountCell(const char *name, int &out_totalCount, int &out_count, int &out_memoryUsage, int &out_cellIdx,
+  int &out_x, int &out_z)
+{
+  bool foundAny = false;
+  int idx = 0;
+  out_totalCount = 0;
+  out_count = 0;
+  for (int _layer = 0; _layer < rendinst::rgLayer.size(); _layer++)
+    if (RendInstGenData *rgl = rendinst::rgLayer[_layer])
+    {
+      if (!(idx < rgl->rtData->riResName.size() && rgl->rtData->riResName[idx] && strcmp(rgl->rtData->riResName[idx], name) == 0))
+      {
+        bool found = false;
+        for (int i = 0; i < rgl->rtData->riResName.size(); i++)
+        {
+          if (rgl->rtData->riResName[i] && strcmp(rgl->rtData->riResName[i], name) == 0)
+          {
+            found = true;
+            idx = i;
+            break;
+          }
+        }
+
+        if (!found)
+          continue;
+
+        bool isRiExtra = false;
+        for (int j = 0; j < rgl->rtData->riExtraIdxPair.size(); j += 2)
+          if (rgl->rtData->riExtraIdxPair[j] == idx)
+          {
+            isRiExtra = true;
+            break;
+          }
+
+        if (isRiExtra)
+          continue;
+      }
+
+      for (int i = 0; i < rgl->cells.size(); i++)
+      {
+        if (rgl->cells[i].rtData->pools.size() <= idx)
+          continue;
+
+        auto &pool = rgl->cells[i].rtData->pools[idx];
+
+        if (pool.avail < 0)
+          continue;
+
+        out_totalCount += pool.total;
+        if (out_count < pool.total)
+        {
+          foundAny = true;
+          out_cellIdx = i;
+          out_count = pool.total;
+          int memoryPerRiGen = rgl->rtData->riPosInst[idx] ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12);
+          out_memoryUsage = pool.total * memoryPerRiGen;
+
+          out_x = i % rgl->cellNumW;
+          out_z = i / rgl->cellNumW;
+        }
+      }
+    }
+  return foundAny;
+}
+
+void rendinst::riGenStat(int &out_count, int &out_memoryUsage)
+{
+  out_count = 0;
+  out_memoryUsage = 0;
+  for (int _layer = 0; _layer < rendinst::rgLayer.size(); _layer++)
+    if (RendInstGenData *rgl = rendinst::rgLayer[_layer])
+      for (int i = 0; i < rgl->cells.size(); i++)
+      {
+        if (!rgl->cells[i].rtData)
+          continue;
+
+        for (int idx = 0; idx < rgl->cells[i].rtData->pools.size(); idx++)
+        {
+          bool isRiExtra = false;
+          for (int j = 0; j < rgl->rtData->riExtraIdxPair.size(); j += 2)
+            if (rgl->rtData->riExtraIdxPair[j] == idx)
+            {
+              isRiExtra = true;
+              break;
+            }
+
+          if (isRiExtra)
+            continue;
+
+          auto &pool = rgl->cells[i].rtData->pools[idx];
+
+          out_count += pool.total;
+          int memoryPerRiGen = rgl->rtData->riPosInst[idx] ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12);
+          out_memoryUsage += pool.total * memoryPerRiGen;
+        }
+      }
+}
+
 riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_collision, int orig_cell, int orig_offset,
   int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
@@ -1191,6 +1507,7 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
       // DEBUG_CTX("idx=%d tm=%d col=%d cf=%d", idx, pool.riTm.size(), pool.riColPair.size(), pool.riCollFlag.size());
       append_items(pool.riHP, 1);
       append_items(pool.riUniqueData, 1);
+      ScopedLockWrite lock(rendinst::riXYZRLock);
       append_items(pool.riXYZR, 1);
     }
 
@@ -1238,11 +1555,44 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
 riex_handle_t rendinst::addRIGenExtra44(int res_idx, mat44f_cref tm, bool has_collision, int orig_cell, int orig_offset,
   int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
-  if (res_idx < 0 || res_idx > riExtra.size())
+  if (res_idx < 0 || res_idx >= riExtra.size())
     return RIEX_HANDLE_NULL;
   mat43f m43;
   v_mat44_transpose_to_mat43(m43, tm);
   return addRIGenExtra43(res_idx, m43, has_collision, orig_cell, orig_offset, add_data_dwords, add_data, on_loading);
+}
+
+rendinst::riex_handle_t rendinst::replaceRIGenWithRIExtra(const rendinst::RendInstDesc &desc)
+{
+  G_ASSERT(!desc.isRiExtra());
+  RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
+  if (!rgl)
+    return RIEX_HANDLE_NULL;
+  TMatrix tm = rendinst::getRIGenMatrix(desc);
+  mat44f tm44;
+  v_mat44_make_from_43cu(tm44, tm.array);
+
+  RendInstDesc restorableDesc = get_restorable_desc(desc);
+  rendinst::doRIGenDestrEx(restorableDesc, false /*create_destr_effects*/);
+  if (RendInstGenData::CellRtData *pcrt = RendInstGenData::renderResRequired ? riutil::get_cell_rtdata_by_desc(desc) : nullptr)
+    rgl->updateVb(*pcrt, desc.cellIdx);
+
+  const RendInstGenData::RtData *rtData = rgl->rtData;
+  int riExtraPoolIdx = rtData->riRes[desc.pool]->getRiExtraId();
+  if (riExtraPoolIdx < 0)
+  {
+    riExtraPoolIdx = rendinst::getRIGenExtraResIdx(rtData->riResName[desc.pool]);
+    if (riExtraPoolIdx < 0)
+    {
+      logerr("Can't find riExtra for rendinst '%s'", rtData->riResName[desc.pool]);
+      return RIEX_HANDLE_NULL;
+    }
+  }
+
+  // Multiply by 2 because lower 4 bits are not transferred by net for riExtra.
+  // We have 8 stride offsets for riGen pos instances and with multiplying it by 2 we don't lose last significant bit.
+  int offsetForNetDestruction = restorableDesc.offs * 2;
+  return rendinst::addRIGenExtra44(riExtraPoolIdx, tm44, true /*has_collision*/, desc.cellIdx, offsetForNetDestruction);
 }
 
 void rendinst::setCASRIGenExtraData(riex_render_info_t id, uint32_t start, const uint32_t *wasdata, const uint32_t *newdata,
@@ -1425,28 +1775,36 @@ bool rendinst::delRIGenExtra(riex_handle_t id)
 
 void rendinst::delRIGenExtraFromCell(riex_handle_t id, int cell_Id, int offset)
 {
-  uint32_t resIdx = handle_to_ri_type(id);
-  if (resIdx >= riExtra.size())
-    return;
-
-  RiExtraPool &pool = riExtra[resIdx];
-
-  if (pool.destroyedRiIdx >= 0 && pool.destroyedRiIdx < riExtra.size())
+  riex_handle_t destrHandle = RIEX_HANDLE_NULL;
+  bool shouldDelMain = false;
   {
-    RiExtraPool &destrPool = riExtra[pool.destroyedRiIdx];
-    for (int instNo = 0; instNo < destrPool.riUniqueData.size(); ++instNo)
-      if (destrPool.riUniqueData[instNo].cellId == cell_Id && destrPool.riUniqueData[instNo].offset == offset)
-      {
-        delRIGenExtra(make_handle(pool.destroyedRiIdx, instNo));
-        break;
-      }
+    ScopedRIExtraReadLock rd;
+    uint32_t resIdx = handle_to_ri_type(id);
+    if (resIdx >= riExtra.size())
+      return;
+
+    RiExtraPool &pool = riExtra[resIdx];
+
+    if (pool.destroyedRiIdx >= 0 && pool.destroyedRiIdx < riExtra.size())
+    {
+      RiExtraPool &destrPool = riExtra[pool.destroyedRiIdx];
+      for (int instNo = 0; instNo < destrPool.riUniqueData.size(); ++instNo)
+        if (destrPool.riUniqueData[instNo].cellId == cell_Id && destrPool.riUniqueData[instNo].offset == offset)
+        {
+          destrHandle = make_handle(pool.destroyedRiIdx, instNo);
+          break;
+        }
+    }
+
+    uint32_t idx = handle_to_ri_inst(id);
+    if (idx < pool.riUniqueData.size() && pool.riUniqueData[idx].cellId == cell_Id && pool.riUniqueData[idx].offset == offset)
+      shouldDelMain = true;
   }
 
-  uint32_t idx = handle_to_ri_inst(id);
-  if (idx < pool.riUniqueData.size() && pool.riUniqueData[idx].cellId == cell_Id && pool.riUniqueData[idx].offset == offset)
-  {
+  if (destrHandle != RIEX_HANDLE_NULL)
+    delRIGenExtra(destrHandle);
+  if (shouldDelMain)
     delRIGenExtra(id);
-  }
 }
 
 void rendinst::delRIGenExtraFromCell(const RendInstDesc &desc)
@@ -1454,7 +1812,7 @@ void rendinst::delRIGenExtraFromCell(const RendInstDesc &desc)
   if (!desc.isRiExtra())
     return;
 
-  delRIGenExtraFromCell(make_handle(desc.pool, desc.pool), -(desc.cellIdx + 1), desc.offs);
+  delRIGenExtraFromCell(make_handle(desc.pool, desc.idx), -(desc.cellIdx + 1), desc.offs);
 }
 
 bool rendinst::removeRIGenExtraFromGrid(riex_handle_t id)
@@ -1516,11 +1874,8 @@ bool rendinst::applyDamageRIGenExtra(riex_handle_t id, float dmg_pts, float *abs
   if (pool.immortal)
     return false;
 
-  if (idx >= pool.riTm.size())
-  {
-    logerr("applyDamageRIGenExtra idx out of range: idx=%d, count=%d (res_idx=%d)", idx, pool.riTm.size(), res_idx);
+  if (!pool.isValid(idx))
     return false;
-  }
 
   if (!ignore_damage_threshold && dmg_pts < pool.damageThreshold)
   {
@@ -1769,6 +2124,43 @@ void rendinst::gatherRIGenExtraCollidable(dag::RelocatableFixedVector<RiGenColli
     rendinst::ccExtra.unlockRead();
 }
 
+void rendinst::gatherRIGenExtraAllSlow(riex_collidable_t &out_handles, const BBox3 &box_,
+  bool read_lock) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
+{
+  {
+    const bbox3f box = v_ldu_bbox3(box_);
+    ScopedLockRead lock(read_lock ? &rendinst::ccExtra : nullptr);
+    {
+      TIME_PROFILE_DEV(gather_riex_collidable_box);
+      rigrid_find_in_box_by_bounding(riExtraGrid, box, [&](RiGridObject object) {
+        out_handles.push_back(object.handle);
+        return false;
+      });
+    }
+    // This is not an optimal way to do this at all, but for now it is used in rare cases
+    // so its not worth to make a grid, and its fast enough
+    // If for some reason, you need to do this frequently, just make a separate grid
+    TIME_PROFILE_DEV(gather_riex_not_collidable_box);
+    for (int poolIdx = 0; poolIdx < riExtra.size(); poolIdx++)
+    {
+      // skip collidable pools
+      if (riExtra[poolIdx].collRes && v_extract_w(riExtra[poolIdx].bsphXYZR) > VERY_SMALL_NUMBER)
+        continue;
+      dag::ConstSpan<vec4f> riXYZR(riExtra[poolIdx].riXYZR);
+      for (int instIdx = 0; instIdx < riXYZR.size(); instIdx++)
+      {
+        vec4f bsph = riXYZR[instIdx];
+        vec4f r2_x = v_sqr_x(v_splat_w(bsph));
+        if (v_bbox3_test_sph_intersect(box, bsph, r2_x))
+          out_handles.push_back(make_handle(poolIdx, instIdx));
+      }
+    }
+  }
+
+  if (!out_handles.empty())
+    eastl::sort(out_handles.begin(), out_handles.end());
+}
+
 void rendinst::addRiExtraRefs(DataBlock *b, const DataBlock *riConf, const char *name)
 {
   if (!riConf && name && riConfig)
@@ -1947,10 +2339,6 @@ bool rendinst::RendInstDesc::doesReflectedInstanceMatches(const rendinst::RendIn
 
 bool rendinst::RendInstDesc::isDynamicRiExtra() const { return isRiExtra() && rendinst::riExtra[pool].isDynamicRendinst; }
 
-rendinst::riex_handle_t rendinst::RendInstDesc::getRiExtraHandle() const
-{
-  return (pool >= 0 && cellIdx < 0) ? make_handle(pool, idx) : RIEX_HANDLE_NULL;
-}
 uint32_t rendinst::getRiGenExtraResCount() { return riExtra.size(); }
 int rendinst::getRiGenExtraInstances(Tab<rendinst::riex_handle_t> &out_handles, uint32_t res_idx)
 {
@@ -2017,10 +2405,6 @@ int rendinst::getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t r
 
   return out_handles.size();
 }
-
-rendinst::RendInstDesc::RendInstDesc(rendinst::riex_handle_t handle) :
-  cellIdx(-1), idx(rendinst::handle_to_ri_inst(handle)), pool(rendinst::handle_to_ri_type(handle)), offs(0), layer(0)
-{}
 
 bool rendinst::isRiGenExtraValid(riex_handle_t id)
 {
@@ -2111,20 +2495,15 @@ dag::ConstSpan<mat43f> rendinst::riex_get_instance_matrices(int res_idx)
   return res_idx < riExtra.size() ? make_span_const(riExtra[res_idx].riTm) : dag::ConstSpan<mat43f>();
 }
 
-void rendinst::riex_lock_write(const char *) DAG_TS_ACQUIRE(rendinst::ccExtra) { rendinst::ccExtra.lockWrite(); }
-void rendinst::riex_unlock_write() DAG_TS_RELEASE(rendinst::ccExtra) { rendinst::ccExtra.unlockWrite(); }
-void rendinst::riex_lock_read() DAG_TS_ACQUIRE_SHARED(rendinst::ccExtra) { rendinst::ccExtra.lockRead(); }
-void rendinst::riex_unlock_read() DAG_TS_RELEASE_SHARED(rendinst::ccExtra) { rendinst::ccExtra.unlockRead(); }
-
 const uint32_t *rendinst::get_user_data(rendinst::riex_handle_t handle)
 {
   uint32_t resIdx = handle_to_ri_type(handle);
   RiExtraPool &pool = riExtra[resIdx];
   uint32_t idx = handle_to_ri_inst(handle);
-  scene::node_index nodeIdx = pool.getNodeIdx(idx);
-  if (nodeIdx == scene::INVALID_NODE)
+  RiExtraPool::NodeIdxAndTs tsNodeIdx = pool.getNodeIdx(idx);
+  if (tsNodeIdx.nodeIdx == scene::INVALID_NODE)
     return nullptr;
-  return (uint32_t *)riExTiledScenes[pool.tsIndex].getUserData(nodeIdx);
+  return (uint32_t *)riExTiledScenes[tsNodeIdx.tsIndex].getUserData(tsNodeIdx.nodeIdx);
 }
 
 vec4f rendinst::get_node_bsphere(rendinst::riex_handle_t handle, float &pool_rad)
@@ -2132,14 +2511,14 @@ vec4f rendinst::get_node_bsphere(rendinst::riex_handle_t handle, float &pool_rad
   uint32_t resIdx = handle_to_ri_type(handle);
   RiExtraPool &pool = riExtra[resIdx];
   uint32_t idx = handle_to_ri_inst(handle);
-  scene::node_index nodeIdx = pool.getNodeIdx(idx);
-  if (nodeIdx == scene::INVALID_NODE)
+  RiExtraPool::NodeIdxAndTs tsNodeIdx = pool.getNodeIdx(idx);
+  if (tsNodeIdx.nodeIdx == scene::INVALID_NODE)
     return v_zero();
 
-  auto &scene = riExTiledScenes[pool.tsIndex];
-  if (DAGOR_UNLIKELY(!scene.isAliveNodeFast(nodeIdx)))
+  auto &scene = riExTiledScenes[tsNodeIdx.tsIndex];
+  if (DAGOR_UNLIKELY(!scene.isAliveNodeFast(tsNodeIdx.nodeIdx)))
     return v_zero();
-  auto &node = scene.getAliveNode(nodeIdx);
+  auto &node = scene.getAliveNode(tsNodeIdx.nodeIdx);
   pool_rad = scene.getPoolSphereRad(scene::get_node_pool(node));
   return scene::get_node_bsphere(node);
 }
@@ -2149,11 +2528,11 @@ void rendinst::prefetch_node(rendinst::riex_handle_t handle)
   uint32_t resIdx = handle_to_ri_type(handle);
   RiExtraPool &pool = riExtra[resIdx];
   uint32_t idx = handle_to_ri_inst(handle);
-  scene::node_index nodeIdx = pool.getNodeIdx(idx);
-  if (nodeIdx == scene::INVALID_NODE)
+  RiExtraPool::NodeIdxAndTs tsNodeIdx = pool.getNodeIdx(idx);
+  if (tsNodeIdx.nodeIdx == scene::INVALID_NODE)
     return;
 
-  riExTiledScenes[pool.tsIndex].prefetchNode(nodeIdx);
+  riExTiledScenes[tsNodeIdx.tsIndex].prefetchNode(tsNodeIdx.nodeIdx);
 }
 
 void rendinst::clearAllRiPerInstanceRenderAdditionalData()
@@ -2267,10 +2646,24 @@ void rendinst::decodeRiExtraPerInstanceRenderData(uint32_t data, uint32_t &offse
   optional_flags = (data & RIEXTRA_PER_INSTANCE_RENDER_OPTIONAL_FLAG_MASK) >> RIEXTRA_PER_INSTANCE_RENDER_OPTIONAL_FLAG_BIT_OFFSET;
 }
 
+void rendinst::prepare_instances()
+{
+  if (riextra_additional_data_manager)
+    riextra_additional_data_manager->prepareInstances();
+}
+
+void rendinst::before_culling() { prepare_instances(); }
+void rendinst::before_clear()
+{
+  if (riextra_additional_data_manager)
+    riextra_additional_data_manager->beforeClearAll();
+}
+
+
 void rendinst::before_render()
 {
   if (riextra_additional_data_manager)
-    riextra_additional_data_manager->prepareAndUploadBuffer();
+    riextra_additional_data_manager->uploadBuffer();
   rendinst::updateHeapVb();
 }
 
@@ -2332,7 +2725,7 @@ bool rendinst::hasRIExtraOnLayers(const RiGenVisibility *visibility, LayerFlags 
   return false;
 }
 
-static void riPerDrawData_afterDeviceReset(bool /*full_reset*/)
+static void riPerDrawData_afterDeviceReset()
 {
   if (!RendInstGenData::renderResRequired)
     return;
@@ -2340,7 +2733,14 @@ static void riPerDrawData_afterDeviceReset(bool /*full_reset*/)
     rendinst::render::update_per_draw_gathered_data(i);
 }
 
-REGISTER_D3D_AFTER_RESET_FUNC(riPerDrawData_afterDeviceReset);
+static void rendinst_gen_extra_after_device_reset(bool /*full_reset*/)
+{
+  riPerDrawData_afterDeviceReset();
+  if (riextra_additional_data_manager)
+    riextra_additional_data_manager->afterDeviceReset();
+}
+
+REGISTER_D3D_AFTER_RESET_FUNC(rendinst_gen_extra_after_device_reset);
 
 const char *RiGridObject::getDebugName() const
 {
@@ -2349,6 +2749,7 @@ const char *RiGridObject::getDebugName() const
 }
 
 void rendinst::rigrid_debug_pos(const Point3 &pos, const Point3 &camera_pos) { rigrid_debug_pos(riExtraGrid, pos, camera_pos); }
+const TMatrix &get_camera_itm() { return TMatrix::IDENT; }
 
 static bool rigrid_console_handler(const char *argv[], int argc)
 {
@@ -2370,6 +2771,80 @@ static bool rigrid_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("rigrid", "biggest_ext", 1, 2)
   {
     riExtraGrid.printBiggest(print_console, argc == 2 ? console::to_int(argv[1]) : 32, true);
+  }
+  CONSOLE_CHECK_NAME("rigrid", "bad_cuts", 1, 2)
+  {
+    int total = 0;
+    auto callback = [&print_console, argc, argv, &total](int left_count, bbox3f left_box, int right_count, bbox3f right_box) {
+      total++;
+      Point3_vec4 pos;
+      v_st(&pos.x, v_bbox3_center(v_bbox3_sum(left_box, right_box)));
+      print_console("Bad cut %i/%i at pos " FMT_P3, left_count, right_count, P3D(pos));
+      TMatrix camTm = get_camera_itm();
+      if (argc == 2 && length(camTm.getcol(3) - pos) < console::to_int(argv[1]))
+      {
+        BBox3 left, right;
+        v_stu_bbox3(left, left_box);
+        v_stu_bbox3(right, right_box);
+        draw_debug_box_buffered(left, E3DCOLOR_MAKE(255, 255, 255, 255), 10000);
+        draw_debug_box_buffered(right, E3DCOLOR_MAKE(255, 255, 255, 255), 10000);
+      }
+    };
+    riExtraGrid.findBadLeafCuts(callback);
+    print_console("Total: %i", total);
+  }
+  CONSOLE_CHECK_NAME("rigrid", "riExStat", 1, 2)
+  {
+    if (argc > 1)
+    {
+      int idx = rendinst::riExIndex(argv[1]);
+      if (idx >= 0)
+      {
+        int count = rendinst::riExCount(idx);
+        float memoryUsage = count * (rendinst::riExSize() / 1024.f);
+        console::print_d("%s total count %i (%.2f KB)", argv[1], count, memoryUsage);
+
+        if (!rendinst::persistentRiExtraInstances)
+        {
+          int count, cellIdx, x, z;
+          rendinst::riExMostCountCell(idx, count, cellIdx, x, z);
+
+          if (count > 0)
+            console::print_d("cellIdx=%i (x=%i, z=%i) count=%i", cellIdx, x, z, count);
+          else
+            console::print_d("not attached to any cell");
+        }
+      }
+      else
+        console::print_d("unable to find riExtra asset %s", argv[1]);
+    }
+    else
+    {
+      int count = rendinst::riExCount();
+      float memoryUsage = count * (rendinst::riExSize() / 1024.f);
+      console::print_d("total riExtra count %i (%.2f Kb)", count, memoryUsage);
+    }
+  }
+  CONSOLE_CHECK_NAME("rigrid", "riGenStat", 1, 2)
+  {
+    if (argc > 1)
+    {
+      int total_count, count, memoryUsage, cellIdx, x, z;
+      bool found = rendinst::riGenMostCountCell(argv[1], total_count, count, memoryUsage, cellIdx, x, z);
+      if (found)
+      {
+        console::print_d("%s total count %i (%.2f KB)", argv[1], total_count, memoryUsage / 1024.f);
+        console::print_d("cellIdx=%i (x=%i, z=%i) count=%i", cellIdx, x, z, count);
+      }
+      else
+        console::print_d("unable to find riGen asset %s", argv[1]);
+    }
+    else
+    {
+      int count, memoryUsage;
+      rendinst::riGenStat(count, memoryUsage);
+      console::print_d("total riGen count %i (%.2f Kb)", count, memoryUsage);
+    }
   }
   return found;
 }

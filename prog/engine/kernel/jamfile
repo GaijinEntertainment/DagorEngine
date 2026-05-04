@@ -121,6 +121,16 @@ if $(BreakpadEnabled) = yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/breakpad ;
 }
 
+if $(Config) != rel {
+  if $(Platform) = windows && $(PlatformArch) = x86_64 {
+    AddIncludes += $(Root)/prog/3rdPartyLibs/minhook/Include ;
+    Sources += dagorHwBreakpoint.cpp ;
+    UseProgLibs += 3rdPartyLibs/minhook ;
+  } else {
+    Sources += stub/dagorHwBreakpoint.cpp ;
+  }
+}
+
 if $(Config) = rel && $(ForceLogs) = yes { Sources += def_logCryptKey.cpp ; }
 
 

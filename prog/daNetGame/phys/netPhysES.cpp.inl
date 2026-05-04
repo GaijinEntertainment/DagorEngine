@@ -5,7 +5,9 @@
 #include "net/net.h" // is_true_net_server
 #include <daECS/net/netbase.h>
 #include "phys/physUtils.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/game/generic/grid.h>
 #include <daECS/net/message.h>
 #include <daECS/net/recipientFilters.h>
@@ -17,7 +19,7 @@
 #include <gamePhys/phys/walker/humanPhys.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <statsd/statsd.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 
 ECS_REGISTER_RELOCATABLE_TYPE(GridHolders, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(GridHolders, "pair_collision__gridHolders", nullptr, 0);
@@ -82,12 +84,13 @@ void phys_send_broadcast_part_auth_state(IPhysActor *nu, danet::BitStream &&stat
 }
 
 template <typename Callable>
-static void get_current_local_delay_ecs_query(Callable c);
+static void get_current_local_delay_ecs_query(ecs::EntityManager &manager, Callable c);
 
 float get_timespeed_accumulated_delay_sec()
 {
   float delay = 0.f;
-  get_current_local_delay_ecs_query([&delay](float time_speed__accumulatedDelay) { delay = time_speed__accumulatedDelay; });
+  get_current_local_delay_ecs_query(*g_entity_mgr,
+    [&delay](float time_speed__accumulatedDelay) { delay = time_speed__accumulatedDelay; });
   return delay;
 }
 
@@ -155,7 +158,7 @@ static void start_async_phys_sim_es(const ParallelUpdateFrameDelayed &evt)
 static inline void net_phys_update_es(const ecs::UpdateStageInfoAct &) { PhysUpdateCtx::ctx.update(); }
 
 template <typename Callable>
-static void get_phys_ecs_query(ecs::EntityId eid, Callable c);
+static void get_phys_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 BasePhysActor *get_phys_actor(ecs::EntityId eid) { return ECS_GET_OR(eid, base_net_phys_ptr, (BasePhysActorPtr) nullptr); }
 
@@ -182,15 +185,16 @@ void pair_collision_init_grid_holders_es_event_handler(
 }
 
 template <typename Callable>
-static void collision_obj_eid_ecs_query(ecs::EntityId eid, Callable c);
+static void collision_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data)
 {
-  collision_obj_eid_ecs_query(eid,
+  collision_obj_eid_ecs_query(*g_entity_mgr, eid,
     [&](const ecs::string *pair_collision__tag, const ecs::Tag *human, const ecs::Tag *airplane, const ecs::Tag *phys__kinematicBody,
       const ecs::Tag *phys__hasCustomMoveLogic, const ecs::Tag *humanAdditionalCollisionChecks, const ecs::Tag *nphysPairCollision,
       bool havePairCollision = true, float phys__maxMassRatioForPushOnCollision = -1.f,
-      int net_phys__collisionMaterialId = (int)PHYSMAT_INVALID, int net_phys__ignoreMaterialId = (int)PHYSMAT_INVALID) {
+      bool pair_collision__ignoreWorldContacts = false, int net_phys__collisionMaterialId = (int)PHYSMAT_INVALID,
+      int net_phys__ignoreMaterialId = (int)PHYSMAT_INVALID) {
       data.havePairCollision = havePairCollision;
       data.pairCollisionTag = pair_collision__tag;
       data.isHuman = human != nullptr;
@@ -202,6 +206,7 @@ void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data)
       data.maxMassRatioForPushOnCollision = phys__maxMassRatioForPushOnCollision;
       data.collisionMaterialId = net_phys__collisionMaterialId;
       data.ignoreMaterialId = net_phys__ignoreMaterialId;
+      data.ignoreWorldContacts = pair_collision__ignoreWorldContacts;
     });
 }
 

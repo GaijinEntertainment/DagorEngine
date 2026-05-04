@@ -19,9 +19,9 @@ static ecs::CompileTimeQueryDesc query_rain_entity_ecs_query_desc
   make_span(query_rain_entity_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void query_rain_entity_ecs_query(Callable function)
+inline void query_rain_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_rain_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_rain_entity_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -49,9 +49,9 @@ static ecs::CompileTimeQueryDesc query_snow_entity_ecs_query_desc
   make_span(query_snow_entity_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void query_snow_entity_ecs_query(Callable function)
+inline void query_snow_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_snow_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_snow_entity_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -79,9 +79,9 @@ static ecs::CompileTimeQueryDesc query_lightning_entity_ecs_query_desc
   make_span(query_lightning_entity_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void query_lightning_entity_ecs_query(Callable function)
+inline void query_lightning_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_lightning_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_lightning_entity_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -109,9 +109,9 @@ static ecs::CompileTimeQueryDesc delete_rain_entities_ecs_query_desc
   make_span(delete_rain_entities_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_rain_entities_ecs_query(Callable function)
+inline void delete_rain_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_rain_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_rain_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -139,9 +139,9 @@ static ecs::CompileTimeQueryDesc delete_snow_entities_ecs_query_desc
   make_span(delete_snow_entities_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_snow_entities_ecs_query(Callable function)
+inline void delete_snow_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_snow_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_snow_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -169,9 +169,9 @@ static ecs::CompileTimeQueryDesc delete_lightning_entities_ecs_query_desc
   make_span(delete_lightning_entities_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_lightning_entities_ecs_query(Callable function)
+inline void delete_lightning_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_lightning_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_lightning_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

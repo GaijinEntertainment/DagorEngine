@@ -22,9 +22,9 @@ Debug interface
 
 
     typedef struct tagSQFunctionInfo {
-        SQUserPointer funcid; //unique idetifier for a function (all it's closures will share the same funcid)
-        const SQChar *name; //function name
-        const SQChar *source; //function source file name
+        SQUserPointer funcid; //unique identifier for a function (all its closures will share the same funcid)
+        const char *name; //function name
+        const char *source; //function source file name
     }SQFunctionInfo;
 
 

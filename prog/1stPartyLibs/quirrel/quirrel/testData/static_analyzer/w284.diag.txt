@@ -1,26 +1,14 @@
 WARNING: w284 (can-be-simplified) Expression can be simplified.
-testData/static_analyzer/w284.nut:8:10
+testData/static_analyzer/w284.nut:10:10
 
 let _c1 = ::a > 2 || ::a > 100
           ^-------------------
 
 
 WARNING: w284 (can-be-simplified) Expression can be simplified.
-testData/static_analyzer/w284.nut:10:10
+testData/static_analyzer/w284.nut:12:10
 
 let _c2 = fn(1) != null ? fn(1) : null
           ^---------------------------
-
-
-WARNING: w295 (undefined-global) Undefined global identifier 'a'.
-testData/static_analyzer/w284.nut:8:10
-
-
-WARNING: w295 (undefined-global) Undefined global identifier 'a'.
-testData/static_analyzer/w284.nut:8:21
-
-
-WARNING: w295 (undefined-global) Undefined global identifier 'y'.
-testData/static_analyzer/w284.nut:5:11
 
 

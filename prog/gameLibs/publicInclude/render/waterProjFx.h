@@ -12,22 +12,47 @@
 #include <generic/dag_carray.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <util/dag_simpleString.h>
+#include <EASTL/fixed_vector.h>
 
 class TextureIDPair;
 
 struct IWwaterProjFxRenderHelper
 {
-  virtual bool render_geometry(float mipbias = 0.f) = 0;
-  virtual bool render_geometry_without_aa() { return false; }
-  virtual void prepare_taa_reprojection_blend(const TEXTUREID *prev_frame_targets, const TEXTUREID *cur_frame_targets)
-  {
-    G_UNUSED(prev_frame_targets);
-    G_UNUSED(cur_frame_targets);
-  };
+  virtual bool render_geometry() = 0;
 };
 
+class WaterProjectedFxRenderer
+{
+public:
+  WaterProjectedFxRenderer();
 
-class WaterProjectedFx
+  void setView();
+  bool getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &camera_pos);
+  bool isValidView() const;
+
+  void prepare(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
+    float significant_wave_height, bool change_projection);
+  bool renderImpl(IWwaterProjFxRenderHelper *render_helper);
+
+private:
+  // Total 12 frustum edges in frustum * 2 planes
+  static constexpr uint32_t MAX_FRUSTUM_EDGES = 24;
+  using IntersectPointsVector = eastl::fixed_vector<Point3, MAX_FRUSTUM_EDGES, false>;
+
+  void calcIntersections(float water_level, float wavesDeltaH, const TMatrix4 &currentGlobTm,
+    IntersectPointsVector &intersectionPoints) const;
+  TMatrix4 calcCropedPerspective(const TMatrix4 &currentGlobTm, const IntersectPointsVector &intersectionPoints) const;
+
+  void setView(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Point3 &world_pos);
+  void setWaterMatrix(const TMatrix4 &glob_tm);
+
+  TMatrix4 newProjTM;
+  TMatrix newViewTM, newViewItm;
+  float waterLevel;
+  int numIntersections;
+};
+
+class WaterProjectedFx : public WaterProjectedFxRenderer
 {
 public:
   enum
@@ -42,42 +67,22 @@ public:
     E3DCOLOR clearColor;
   };
 
-  WaterProjectedFx(int frame_width, int frame_height, dag::Span<TargetDesc> target_descs,
-    const char *taa_reprojection_blend_shader_name, bool own_textures = true);
+  WaterProjectedFx(int frame_width, int frame_height, dag::Span<TargetDesc> target_descs);
   void setResolution(int frame_width, int frame_height);
 
   void setTextures();
-  void setView();
-  bool getView(TMatrix4 &view_tm, TMatrix4 &proj_tm, Point3 &camera_pos);
-  bool isValidView() const;
 
-  void prepare(const TMatrix &view_tm, const TMatrix &view_itm, const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, float water_level,
-    float significant_wave_height, int frame_no, bool change_projection);
   bool render(IWwaterProjFxRenderHelper *render_helper);
-  bool renderImpl(IWwaterProjFxRenderHelper *render_helper);
   void clear(bool forceClear = false);
 
   // It's assumed that the targets won't be modified outside of this class if they're owned by this class.
   Texture *getTarget(int target_id)
   {
-    G_ASSERT(ownTextures && target_id < nTargets && internalTargets[target_id]);
+    G_ASSERT(target_id < nTargets && internalTargets[target_id]);
     return internalTargets[target_id]->getTex2D();
   }
-  uint32_t getTargetAdditionalFlags() const;
 
 private:
-  void setView(const TMatrix &view_tm, const TMatrix4 &proj_tm);
-  void setWaterMatrix(const TMatrix4 &glob_tm);
-
-  TMatrix4 newProjTM, newProjTMJittered;
-  TMatrix newViewTM, newViewItm;
-  Point3 savedCamPos;
-  Point2 curJitter;
-  float waterLevel;
-  int numIntersections;
-
-  TMatrix4 prevGlobTm;
-
   int frameWidth;
   int frameHeight;
   int nTargets;
@@ -86,11 +91,5 @@ private:
   UniqueTex emptyInternalTextures[MAX_TARGETS];
   int internalTargetsTexVarIds[MAX_TARGETS];
   E3DCOLOR targetClearColors[MAX_TARGETS];
-  const bool ownTextures;
-  bool targetsCleared;
-
-  bool taaEnabled;
-  PostFxRenderer taaRenderer;
-
-  int globalFrameId;
+  bool internalTargetsCleared;
 };

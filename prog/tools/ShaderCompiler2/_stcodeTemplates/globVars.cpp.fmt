@@ -7,6 +7,8 @@ namespace stcode::cpp
 
 // Shadervar pointers, as global variables
 %s
+// Special vars -- sampler ids
+%s
 
 }
 

@@ -3,7 +3,7 @@ testData/static_analyzer/w256.nut:8:12
 
   "1foo" : function bar1() {}, // FP 1, not id
   "_foo2" : function bar2() {}, // EXPECTED 1
-            ^------------------
+            ^-----------------
   "foo3" : function foo3() {}, // FP 2
 
 
@@ -11,7 +11,7 @@ WARNING: w256 (key-and-function-name) Key and function name are not the same ('f
 testData/static_analyzer/w256.nut:11:9
 
   foo4 = function bar5() {}, // EXPECTED 2
-         ^------------------
+         ^-----------------
   foo6 = function foo6() {}, // FP 3
 
 
@@ -19,7 +19,7 @@ WARNING: w256 (key-and-function-name) Key and function name are not the same ('f
 testData/static_analyzer/w256.nut:14:13
 
   ["foo7"] = function bar7() {}, // EXPECTED 3
-             ^------------------
+             ^-----------------
   ["8foo"] = function bar8() {}, // FP 4, not id
 
 
@@ -28,7 +28,7 @@ testData/static_analyzer/w256.nut:21:10
 
 tt.foo <- bar // FP 5
 tt.qux <- function fex() {} // EXPECTED 4
-          ^
+          ^----------------
 tt["fk"] <- function uyte() {} // EXPECTED 5
 
 
@@ -37,7 +37,7 @@ testData/static_analyzer/w256.nut:22:12
 
 tt.qux <- function fex() {} // EXPECTED 4
 tt["fk"] <- function uyte() {} // EXPECTED 5
-            ^
+            ^-----------------
 tt["f:g:h"] <- function fgh() {} // FP 6
 
 

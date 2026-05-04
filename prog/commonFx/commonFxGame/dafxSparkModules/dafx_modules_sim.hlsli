@@ -136,8 +136,7 @@ bool sim_module_life(SIM_MODULE_CONTEXT, float dt)
 DAFX_INLINE
 void sim_module_gravity(SIM_MODULE_CONTEXT)
 {
-  float3 gravityVec = DAFX_SPARK_DECL_LOCAL_SPACE_ENABLED(rparams.flags) ? mul_tm_dir(gdata_gravity, rparams.tm) : gdata_gravity;
-  md.force += gravityVec * PARTICLE_MASS;
+  md.force += gdata_gravity * PARTICLE_MASS;
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
@@ -146,8 +145,7 @@ void sim_module_gravity(SIM_MODULE_CONTEXT)
 DAFX_INLINE
 void sim_module_lift(SIM_MODULE_CONTEXT)
 {
-  float3 forceVec = DAFX_SPARK_DECL_LOCAL_SPACE_ENABLED(rparams.flags) ? mul_tm_dir(sparams.liftForce, rparams.tm) : sparams.liftForce;
-  md.force += forceVec * (1.0 - saturate((sp.age - sparams.liftTime + LIFT_FADE_TIME) / LIFT_FADE_TIME));
+  md.force += sparams.liftForce * (1.0 - saturate((sp.age - sparams.liftTime + LIFT_FADE_TIME) / LIFT_FADE_TIME));
   UNREF_INPUT_SIM_CONTEXT;
 }
 #endif
@@ -207,7 +205,8 @@ DAFX_INLINE
 void sim_module_resolve_forces(SIM_MODULE_CONTEXT, float dt)
 {
 #if DAFX_USE_GRAVITY_ZONE && SIM_MODULE_GRAVITY_ZONE
-  md.force = mul(md.force, sparkfx_gravity_zone_tm(SIM_MODULE_ARGS));
+  if (!DAFX_SPARK_DECL_LOCAL_SPACE_ENABLED(rparams.flags))
+    md.force = mul(md.force, sparkfx_gravity_zone_tm(SIM_MODULE_ARGS));
 #endif
 
   // resolve velocity before drag
@@ -315,7 +314,7 @@ void sim_module_width_modifier(SIM_MODULE_CONTEXT)
 #endif
 
 DAFX_INLINE
-float4 dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref ldata, GlobalData_cref gparams )
+DAFX_CULLING_RET_TYPE dafx_simulation_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref ldata, GlobalData_cref gparams )
 {
   ParentRenData rparams = unpack_parent_ren_data( ldata, cdesc.parentRenOffset );
   ParentSimData sparams = unpack_parent_sim_data( ldata, cdesc.parentSimOffset );

@@ -9,8 +9,6 @@ include "translucent_inc.dshl"
 
 shader rendinst_flag_colored, rendinst_flag_layered
 {
-  ENABLE_ASSERT(ps)
-
   if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
   {
     USE_COMBINED_WIND(vs)
@@ -298,7 +296,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
         ##if (rendinst_render_pass != rendinst_render_pass_to_shadow)
           output.pointToEye.w = worldPos.y - worldLocalPos.y;
         ##endif
-      ##elif (rendinst_render_pass != rendinst_render_pass_to_shadow)
+      ##elif (rendinst_render_pass != rendinst_render_pass_to_shadow && !is_triangle_size_debug)
         output.normal.w = worldPos.y - worldLocalPos.y;
         output.normal.xyz = float3(0,0,0);
       ##endif
@@ -321,16 +319,20 @@ shader rendinst_flag_colored, rendinst_flag_layered
   {
     RENDER_TO_SHADOW_PS()
   }
+  else if (is_triangle_size_debug)
+  {
+    RI_TRIANGLE_SIZE_DEBUG_PS()
+  }
   else
   {
     if(shader == rendinst_flag_colored)
     {
-      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true)
+      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true, GBUFFER_ORDER_STATIC)
     }
     else
     {
       USE_VCOLOR_LAYERED(ps)
-      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, true)
+      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, true, GBUFFER_ORDER_STATIC)
     }
   }
 }

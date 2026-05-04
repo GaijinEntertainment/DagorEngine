@@ -5,7 +5,7 @@
 #include <util/dag_convar.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaders.h>
 #include "global_vars.h"
@@ -21,7 +21,7 @@ void api_set_depth_bounds(float zmin, float zmax)
   const float zmaxToSet = (zmin < zmax) ? zmax : max(0.f, zmin);
 
   d3d::set_depth_bounds(zminToSet, zmaxToSet);
-  ShaderGlobal::set_color4(depth_boundsVarId, Color4(zminToSet, zmaxToSet, 0, 0));
+  ShaderGlobal::set_float4(depth_boundsVarId, Color4(zminToSet, zmaxToSet, 0, 0));
 }
 
 float far_plane_depth(int texfmt)

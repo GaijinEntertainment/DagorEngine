@@ -24,11 +24,11 @@ inline int phys_time_to_seed(float at_time)
 {
   // Use tick instead of time as it's more in sync between client & server
   int timeSeed = gamephys::nearestPhysicsTickNumber(at_time, phys_get_timestep()) >> 1; // tolerate time error in one tick
-  return (timeSeed << 5) - timeSeed; // mult to prime (31) to reduce avalanche effect
+  return (timeSeed << 5) - timeSeed; // mult to prime (31) to increase avalanche effect
 }
 
 // returns (interpTime, elapsedTime)
-eastl::pair<float, float> phys_get_xpolation_times(int prev_tick, int last_tick, float timestep, float at_time);
+eastl::pair<float, float> phys_get_xpolation_times(int prev_tick, int last_tick, float timestep, double at_time);
 
 float phys_get_present_time_delay_sec(PhysTickRateType tr_type, float time_step, bool client_side = false);
 float get_timespeed_accumulated_delay_sec();
@@ -38,18 +38,18 @@ void phys_send_part_auth_state(IPhysActor *nu, danet::BitStream &&data, int tick
 void phys_send_broadcast_auth_state(IPhysActor *nu, danet::BitStream &&state_data, float);
 void phys_send_broadcast_part_auth_state(IPhysActor *nu, danet::BitStream &&data, int tick);
 
+bool phys_fetch_sim_res(bool wait);
+
 int get_interp_delay_ticks(PhysTickRateType tr_type);
 
 template <typename PhysActor>
 float get_interp_delay_time(const PhysActor &net_phys)
 {
-  const float physDt = net_phys.phys.timeStep;
-  const int delayTicks = get_interp_delay_ticks(net_phys.tickrateType);
-  return float(delayTicks) * physDt;
+  return get_interp_delay_ticks(net_phys.tickrateType) * net_phys.phys.timeStep;
 }
 
 template <typename PhysActor>
-inline float calc_interpk(const PhysActor &net_phys, float at_time)
+inline float calc_interpk(const PhysActor &net_phys, double at_time)
 {
   const float physDt = net_phys.phys.timeStep;
 
@@ -58,7 +58,7 @@ inline float calc_interpk(const PhysActor &net_phys, float at_time)
   {
     const int delayTicks = get_interp_delay_ticks(net_phys.tickrateType);
     const float interpDelay = float(delayTicks) * physDt + get_timespeed_accumulated_delay_sec();
-    const float atTime = at_time - interpDelay;
+    const double atTime = at_time - interpDelay;
 
     if (const typename PhysActor::SnapshotPair *spair = net_phys.findPhysSnapshotPair(atTime))
     {

@@ -383,7 +383,7 @@ int os_socket_enable_keepalive(os_socket_t socket, bool keep_alive)
 
 int os_socket_error(os_socket_t s)
 {
-  int val;
+  int val = 0;
   socklen_t vallen = sizeof(val);
   getsockopt(s, SOL_SOCKET, SO_ERROR, (SockOptArg)&val, &vallen);
   return val;

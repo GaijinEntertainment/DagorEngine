@@ -50,7 +50,7 @@ void ParallelOcclusionRasterizer::rasterizeMeshes(eastl::vector<RasterizationTas
 }
 
 
-uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlusion)
+uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlusion, bool active_wait)
 {
   for (uint32_t i = 0; i < usedOcclusions; ++i)
   {
@@ -60,7 +60,7 @@ uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlu
     TIME_PROFILE_DEV(wait_raster_jobs);
     for (; i < usedOcclusions; ++i)
 #endif
-      if (rasterJobs[i].prio == threadpool::PRIO_LOW) // To avoid executing long running tasks like PFUD, etc...
+      if (rasterJobs[i].prio == threadpool::PRIO_LOW || !active_wait) // To avoid executing long running tasks like PFUD, etc...
         threadpool::wait(&rasterJobs[i]);
       else
         threadpool::barrier_active_wait_for_job(&rasterJobs[i], rasterJobs[i].prio, rasterJobsTPQPos);
@@ -94,10 +94,16 @@ uint32_t ParallelOcclusionRasterizer::mergeRasterizationResults(Occlusion &occlu
     }
     threadpool::wake_up_all();
     mergeJobs[0].doJob();
+    if (active_wait)
     {
       TIME_PROFILE_DEV(wait_merge_occlusion);
       threadpool::barrier_active_wait_for_job(&mergeJobs[nMergeJobs - 1], threadpool::PRIO_NORMAL, tpqpos); // Wait for last
       for (int i = nMergeJobs - 2; i >= 0; --i)
+        threadpool::wait(&mergeJobs[i]);
+    }
+    else
+    {
+      for (int i = nMergeJobs - 1; i >= 0; --i)
         threadpool::wait(&mergeJobs[i]);
     }
 

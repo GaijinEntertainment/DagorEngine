@@ -91,6 +91,9 @@ void dagor_process_sys_messages(bool input_only)
 
 
 
+
+
+
 #endif
 
   if (::dgs_dont_use_cpu_in_background && !::dgs_app_active)
@@ -106,7 +109,7 @@ void dagor_process_sys_messages(bool input_only)
     quit_game(0, false);
   }
 #endif
-#elif _TARGET_PC_LINUX | _TARGET_XBOX
+#elif _TARGET_PC_LINUX
   if (input_only) //== implement properly [to be usable]
     return;
   workcycle_internal::idle_loop();
@@ -115,9 +118,9 @@ void dagor_process_sys_messages(bool input_only)
 #endif
 }
 
-void dagor_idle_cycle(bool input_only)
+void dagor_idle_cycle(bool input_only, bool is_work_cycle)
 {
   TIME_PROFILE(dagor_idle_cycle);
-  perform_regular_actions_for_idle_cycle();
+  perform_regular_actions_for_idle_cycle(is_work_cycle);
   dagor_process_sys_messages(input_only);
 }

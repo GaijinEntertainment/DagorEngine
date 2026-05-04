@@ -5,6 +5,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <3d/dag_render.h>
@@ -28,6 +29,7 @@
 #include <render/toroidal_update.h>
 #include <math/dag_adjpow2.h>
 #include <render/bcCompressor.h>
+#include <EASTL/unique_ptr.h>
 
 void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data)
 {
@@ -168,12 +170,6 @@ static void fixedClipPartialRenderCb(int lineNo, int linesCount, int picHeight, 
 
 #define SAVE_RT 0
 
-void apply_last_clip_anisotropy(d3d::SamplerInfo &last_clip_sampler)
-{
-  last_clip_sampler.anisotropic_max = ::dgs_tex_anisotropy;
-  ShaderGlobal::set_sampler(get_shader_variable_id("last_clip_tex_samplerstate", true), d3d::request_sampler(last_clip_sampler));
-}
-
 void configure_last_clip_sampler(d3d::SamplerInfo &last_clip_sampler)
 {
   last_clip_sampler.mip_map_mode = d3d::MipMapMode::Linear;
@@ -191,21 +187,24 @@ void configure_world_to_last_clip(const LandMeshManager *lmeshMgr)
   Color4 world_to_last_clip(1.f / landBox.width().x, 1.f / landBox.width().z, -landBox[0].x / landBox.width().x,
     -landBox[0].z / landBox.width().z);
   static int world_to_last_clipVardId = get_shader_variable_id("world_to_last_clip", true);
-  ShaderGlobal::set_color4(world_to_last_clipVardId, world_to_last_clip);
+  ShaderGlobal::set_float4(world_to_last_clipVardId, world_to_last_clip);
 }
 
 void preload_textures_for_last_clip()
 {
-  prefetch_managed_textures_by_textag(TEXTAG_LAND);
-  if (DAGOR_UNLIKELY(!is_managed_textures_streaming_load_on_demand()))
-  {
-    ddsx::tex_pack2_perform_delayed_data_loading();
-    return;
-  }
-  // this wait prevents (possible) subsequent wait inside prepare_fixed_clip() in main thread
   Tab<TEXTUREID> land_tex;
   textag_get_list(TEXTAG_LAND, land_tex);
-  prefetch_and_wait_managed_textures_loaded(land_tex);
+
+  if (DAGOR_UNLIKELY(!is_managed_textures_streaming_load_on_demand()))
+  {
+    prefetch_and_check_managed_textures_loaded(land_tex);
+    ddsx::tex_pack2_perform_delayed_data_loading();
+  }
+  else
+  {
+    // this wait prevents (possible) subsequent wait inside prepare_fixed_clip() in main thread
+    prefetch_and_wait_managed_textures_loaded(land_tex);
+  }
 }
 
 enum class LastClipComp
@@ -220,7 +219,7 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
   LastClipComp comp_type)
 {
   UniqueTex temp = dag::create_tex(NULL, data.texture_size, data.texture_size, TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_SRGBWRITE, 1,
-    "temp_last_clip_tex");
+    "temp_last_clip_tex", RESTAG_LAND);
 
   render_func(temp);
   {
@@ -231,12 +230,10 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
     if (!temp_comp->isValid()) // In case of device loss.
       return;
 
-    d3d::SamplerHandle sampler = d3d::request_sampler({});
-
     int j = data.texture_size;
     for (int i = 0; i < numMips; i++)
     {
-      temp_comp->updateFromMip(temp.getTexId(), sampler, 0, i);
+      temp_comp->updateFromMip(temp.getTexId(), 0, i);
       temp_comp->copyToMip(last_clip.getTex2D(), i, 0, 0, i, 0, 0, j, j);
       j /= 2;
     }
@@ -290,7 +287,8 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_
     }
   }();
 
-  last_clip = dag::create_tex(NULL, data.texture_size, data.texture_size, TEXCF_SRGBREAD | flags, numMips, "last_clip_tex");
+  last_clip =
+    dag::create_tex(NULL, data.texture_size, data.texture_size, TEXCF_SRGBREAD | flags, numMips, "last_clip_tex", RESTAG_LAND);
   d3d_err(last_clip.getTex2D());
 
   int render_normalmapVarId = get_shader_variable_id("render_with_normalmap", true);
@@ -350,6 +348,5 @@ void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_
 #endif
 
   configure_last_clip_sampler(last_clip_sampler);
-  apply_last_clip_anisotropy(last_clip_sampler);
   configure_world_to_last_clip(data.lmeshMgr);
 }

@@ -13,7 +13,8 @@ static void glass_gbuffer_renderer_es_all_events(const ecs::Event &__restrict ev
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     glass_gbuffer_renderer_es(evt
-        , ECS_RW_COMP(glass_gbuffer_renderer_es_comps, "glass_gbuffer_renderer_node", dafg::NodeHandle)
+        , components.manager()
+    , ECS_RW_COMP(glass_gbuffer_renderer_es_comps, "glass_gbuffer_renderer_node", dafg::NodeHandle)
     );
   while (++comp != compE);
 }
@@ -34,15 +35,17 @@ static ecs::EntitySystemDesc glass_gbuffer_renderer_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc glass_rttr_recreate_es_comps[] =
 {
-//start of 2 rq components at [0]
+//start of 4 rq components at [0]
   {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("render_settings__enableRTTR"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("render_settings__enableRTTR"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__rayReconstruction"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__antialiasing_mode"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void glass_rttr_recreate_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   glass_rttr_recreate_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc glass_rttr_recreate_es_es_desc
 (
@@ -51,21 +54,22 @@ static ecs::EntitySystemDesc glass_rttr_recreate_es_es_desc
   ecs::EntitySystemOps(nullptr, glass_rttr_recreate_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(glass_rttr_recreate_es_comps+0, 2)/*rq*/,
+  make_span(glass_rttr_recreate_es_comps+0, 4)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   0
-,nullptr,"render_settings__bare_minimum,render_settings__enableRTTR",nullptr,"bvh_render_settings_changed_es");
+,nullptr,"render_settings__antialiasing_mode,render_settings__bare_minimum,render_settings__enableRTTR,render_settings__rayReconstruction",nullptr,"bvh_render_settings_changed_es");
 static constexpr ecs::ComponentDesc animchar_render_trans_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
-//start of 2 ro components at [1]
+//start of 3 ro components at [1]
+  {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_render__nodeVisibleStgFilters"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [3]
+//start of 1 rq components at [4]
   {ECS_HASH("requires_trans_render"), ecs::ComponentTypeInfo<ecs::Tag>()},
-//start of 2 no components at [4]
+//start of 2 no components at [5]
   {ECS_HASH("cockpitEntity"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("late_transparent_render"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
@@ -73,19 +77,20 @@ static ecs::CompileTimeQueryDesc animchar_render_trans_ecs_query_desc
 (
   "animchar_render_trans_ecs_query",
   make_span(animchar_render_trans_ecs_query_comps+0, 1)/*rw*/,
-  make_span(animchar_render_trans_ecs_query_comps+1, 2)/*ro*/,
-  make_span(animchar_render_trans_ecs_query_comps+3, 1)/*rq*/,
-  make_span(animchar_render_trans_ecs_query_comps+4, 2)/*no*/);
+  make_span(animchar_render_trans_ecs_query_comps+1, 3)/*ro*/,
+  make_span(animchar_render_trans_ecs_query_comps+4, 1)/*rq*/,
+  make_span(animchar_render_trans_ecs_query_comps+5, 2)/*no*/);
 template<typename Callable>
-inline void animchar_render_trans_ecs_query(Callable function)
+inline void animchar_render_trans_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_render_trans_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_render_trans_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
               ECS_RW_COMP(animchar_render_trans_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            , ECS_RO_COMP_PTR(animchar_render_trans_ecs_query_comps, "additional_data", ecs::Point4List)
             , ECS_RO_COMP(animchar_render_trans_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP_PTR(animchar_render_trans_ecs_query_comps, "animchar_render__nodeVisibleStgFilters", ecs::UInt8List)
             );
@@ -109,9 +114,9 @@ static ecs::CompileTimeQueryDesc send_on_rttr_changed_event_ecs_query_desc
   make_span(send_on_rttr_changed_event_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void send_on_rttr_changed_event_ecs_query(Callable function)
+inline void send_on_rttr_changed_event_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, send_on_rttr_changed_event_ecs_query_desc.getHandle(),
+  perform_query(&manager, send_on_rttr_changed_event_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

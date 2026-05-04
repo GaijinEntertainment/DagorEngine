@@ -57,19 +57,20 @@ public:
   bool isResLoaded(int res_id) override { return findResData(::validate_game_res_id(res_id)) >= 0; }
   bool checkResPtr(GameResource *res) override { return findTree((GeomNodeTree *)res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
     // get real-res id
     if (::validate_game_res_id(res_id) == NULL_GAMERES_ID)
       return NULL;
 
+    WinAutoLock lock(get_gameres_main_cs());
+
     int id = findResData(res_id);
-
-    // no resource - load pack
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findResData(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findResData(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -125,12 +126,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = treeData.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(treeData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, treeData[i].resId))
         continue;
       if (treeData[i].refCount != 0)
       {
@@ -166,7 +167,7 @@ public:
   }
 
 
-  void createGameResource(int /*res_id*/, const int * /*reference_ids*/, int /*num_refs*/) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
 
   void reset() override { treeData.clear(); }
 
@@ -180,3 +181,18 @@ void register_geom_node_tree_gameres_factory()
   geom_node_tree_factory.demandInit();
   ::add_factory(geom_node_tree_factory);
 }
+
+static bool resolve_res_name(String &nm, const GeomNodeTree *r)
+{
+  if (!geom_node_tree_factory.get())
+    return false;
+  for (auto &res : geom_node_tree_factory->treeData)
+    if (res.nodeTree.get() == r)
+    {
+      get_game_resource_name(res.resId, nm);
+      return true;
+    }
+  return false;
+}
+
+bool resolve_game_resource_name(String &name, const GeomNodeTree *r) { return resolve_res_name(name, r); }

@@ -51,6 +51,7 @@ class DeviceQueue
   uint64_t lastFencedTimelineValue;
   uint64_t prevLastFencedTimelineValue;
 
+  Tab<VulkanSemaphoreHandle> pendingAcquireSemaphores;
 
 public:
   struct TrimmedSubmitInfo
@@ -66,7 +67,8 @@ public:
     uint32_t swapchainCount;
     const VkSwapchainKHR *pSwapchains;
     const uint32_t *pImageIndices;
-    VulkanSemaphoreHandle frameReady;
+    uint32_t frameReadySemaphoreCount;
+    const VkSemaphore *frameReadySemaphores;
   };
 
   struct TimelineInfo
@@ -101,6 +103,8 @@ public:
   TimelineInfo getTimeline() { return {timelineSemaphore, timelineValue}; }
   TimelineInfo getLastFencedTimeline() { return {timelineSemaphore, lastFencedTimelineValue}; }
   TimelineInfo getPrevLastFencedTimeline() { return {timelineSemaphore, prevLastFencedTimelineValue}; }
+
+  void waitAcquireSemaphore(VulkanSemaphoreHandle sem, uint32_t img_idx, FrameInfo &gpu_frame);
 
   void waitExternSemaphore(VulkanSemaphoreHandle sem_handle, VkPipelineStageFlags sem_location)
   {

@@ -104,6 +104,11 @@ declare_struct("FxInitPosCone", 1,
   { name="random_burst", type="real", defVal=0 },
 ]);
 
+declare_struct("FxRainMapUsage", 1,
+[
+  { name="enabled", type="bool", defVal=0 },
+  { name="min_cloud_density", type="real", defVal=0.5 },
+]);
 
 declare_struct("FxInitGpuPlacement", 2,
 [
@@ -122,11 +127,11 @@ declare_struct("FxPosHeightLimit", 2,
   { name="height_limit", type="real", defVal=0 },
 ]);
 
-declare_struct("FxPos", 7,
+declare_struct("FxPos", 8,
 [
   { name="enabled", type="bool", defVal=1 },
   { name="attach_last_part_to_emitter", type="bool", defVal=0 },
-  { name="type", type="list", list=["sphere", "cylinder", "cone", "box", "sphere_sector"] },
+  { name="type", type="list", list=["sphere", "cylinder", "cone", "box", "sphere_sector", "spline_based"] },
   { name="volume", type="real", defVal=0 },
   { name="offset", type="Point3", defVal=Point3(0, 0, 0) },
   { name="sphere", type="FxInitPosSphere" },
@@ -135,6 +140,7 @@ declare_struct("FxPos", 7,
   { name="box", type="FxInitPosBox"},
   { name="sphere_sector", type="FxInitPosSphereSector" },
   { name="gpu_placement", type="FxInitGpuPlacement" },
+  { name="rain_map_based_density", type="FxRainMapUsage" },
   { name="height_limit", type="FxPosHeightLimit" },
 ]);
 
@@ -493,7 +499,6 @@ declare_struct("FxLighting", 6,
   { name="specular_enabled", type="bool", defVal=0 },
   { name="specular_power", type="real", defVal=1 },
   { name="specular_strength", type="real", defVal=1 },
-  { name="ambient_enabled", type="bool", defVal=0 },
   { name="external_lights_enabled", type="bool", defVal=0 },
   { name="translucency", type="FxTranslucency" },
 ]);
@@ -588,18 +593,18 @@ declare_struct("FxRenderShaderWater", 1,
   { name="ao", type="real", defVar = 1 }
 ]);
 
-declare_struct("FxRenderShader", 14,
+declare_struct("FxRenderShader", 16,
 [
   { name="reverse_part_order", type="bool", defVal=0 },
   { name="shadow_caster", type="bool", defVal=0 },
   { name="allow_screen_proj_discard", type="bool", defVal=1 },
-  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_rain_distortion", "modfx_bboard_xray", "modfx_bboard_water_fx"] },
+  { name="has_distortion_as_a_component", type="bool", defVal=0 },
+  { name="shader", type="list", list=["modfx_default", "modfx_bboard_atest", "modfx_bboard_distortion", "modfx_vol_shape", "modfx_bboard_rain", "modfx_bboard_xray", "modfx_bboard_water_fx"] },
   { name="modfx_bboard_render", type="FxRenderShaderDummy" },
   { name="modfx_bboard_render_atest", type="FxRenderShaderDummy" },
   { name="modfx_bboard_distortion", type="FxRenderShaderDistortion" },
   { name="modfx_bboard_vol_shape", type="FxRenderShaderVolShape" },
   { name="modfx_bboard_rain", type="FxRenderShaderDummy" },
-  { name="modfx_bboard_rain_distortion", type="FxRenderShaderDistortion" },
   { name="modfx_bbboard_render_xray", type="FxRenderShaderXray" },
   { name="modfx_bboard_water_fx", type="FxRenderShaderWater" },
 ]);

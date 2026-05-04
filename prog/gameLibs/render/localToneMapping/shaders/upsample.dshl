@@ -16,11 +16,9 @@ int local_tone_mapping_upsample_output_uav_no = 0;
 
 shader local_tone_mapping_upsample
 {
-  ENABLE_ASSERT(cs)
-
   bool needFinalization = upsample_mode == last_iter || upsample_mode == single_pass;
   bool hasAccumulated = upsample_mode != first_iter && upsample_mode != single_pass;
-  local float4 tex_size = get_dimensions(exposures_tex, 0);
+  local float4 tex_size = get_dimensions(exposures_tex, base_mip);
   (cs) {
     weights_tex@tex2d = weights_tex;
     exposures_tex@tex2d = exposures_tex;

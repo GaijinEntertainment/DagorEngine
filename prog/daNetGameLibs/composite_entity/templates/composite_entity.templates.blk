@@ -1,0 +1,88 @@
+composite_base {
+  "subentityEids:list<eid>"{}
+  "subentityTms:list<m>"{}
+  "subentityLocalTms:list<m>"{}
+  "subentityParentIdx:list<i>"{}
+  "subentityNames:list<t>"{}
+  "child_euler_map:object"{}
+  _tracked:t="child_euler_map"
+  random_seed:i=0  // 0 means will be generated randomly
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 1, 0]]
+  _tracked:t="transform"
+}
+
+composite_child_base {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 1, 0]]
+  _tracked:t="transform"
+}
+
+composite_rendinst_child_base {
+  _use:t=composite_child_base
+  ri_extra{}
+  "ri_extra__handle:u64"{
+    value:i64=-1
+  }
+  ri_extra__destroyed:b=no
+  ri_extra__name:t=""
+}
+
+composite_efx_child_base {
+  _use:t=composite_child_base
+  _group{
+    _tags:t="render"
+    effect{}
+    effect__name:t="<asset_name>"
+  }
+}
+
+composite_animchar_child_base {
+  _use:t=composite_child_base
+  _use:t="animchar"
+  animchar__res:t=""
+  animchar_render__enabled:b=yes
+}
+
+/*
+composite_example {
+  _use:t=composite_base
+  "nodes:shared:array"{
+    "node:object"{
+      localTransform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [1, 2, 3]] // relative to it's immediate parent
+      "select_one:array"{ // one of these will be used to create an entity at random (according to the weights) in this node
+        "entity:object"{
+          gen__template:t="composite_child_one"
+          gen__weight:r=1 // can be any positive real number, total sum of weights can also be any positive number
+          text:t="new_text" // will override "text" component
+        }
+        "entity:object"{
+          // if gen__template is not set this will not generate an entity
+          // but is still used and will be picked according to it's weight
+          gen__weight:r=2
+        }
+      }
+      "nested:array" { // all the child nodes
+        "node:object" {
+          // missing localTransform will be identity matrix automatically
+          "select_one:array"{ // one of these will be used to create an entity in this node
+            "entity:object"{
+              gen__template:t="composite_child_two"
+              gen__weight:r=1
+              number:i=10
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+composite_child_one {
+  _use:t=composite_child_base
+  text:t="some_text"
+}
+
+composite_child_two {
+  _use:t=composite_child_base
+  number:i=0
+}
+*/

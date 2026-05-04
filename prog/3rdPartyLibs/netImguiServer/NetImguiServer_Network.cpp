@@ -1,15 +1,15 @@
 #include <netImgui/source/NetImgui_WarningDisableStd.h>
-
+#include <thread>
+#include <netImgui/source/NetImgui_Network.h>
+#include <netImgui/source/NetImgui_CmdPackets.h>
 #include "NetImguiServer_App.h"
-#include "NetImguiServer_Config.h"
 #include "NetImguiServer_Network.h"
 #include "NetImguiServer_RemoteClient.h"
+#include "NetImguiServer_Config.h"
 
-#include <thread>
-
-#include <netImgui/source/NetImgui_CmdPackets.h>
-#include <netImgui/source/NetImgui_Network.h>
-
+// MODIFICATION BY GAIJIN
+// additionaly apply zstd compression to sending draw frames
+#include <zstd.h>
 
 using namespace NetImgui::Internal;
 
@@ -32,6 +32,21 @@ void Communications_Incoming_CmdTexture(RemoteClient::Client& Client)
 	auto pCmdTexture				= reinterpret_cast<NetImgui::Internal::CmdTexture*>(Client.mPendingRcv.pCommand);
 	Client.mPendingRcv.bAutoFree 	= false; // Taking ownership of the data
 	pCmdTexture->mpTextureData.ToPointer();
+
+	// For debug tracking
+	uint32_t idx = Client.mTextureHistoryIndex % IM_ARRAYSIZE(Client.mTextureHistory);
+	Client.mTextureHistory[idx].UpdateId 			= Client.mTextureHistoryIndex++;
+	Client.mTextureHistory[idx].Frame				= Client.mLastDrawFrameIndex;
+	Client.mTextureHistory[idx].ClientId			= pCmdTexture->mTextureClientID;
+	Client.mTextureHistory[idx].Format				= pCmdTexture->mFormat;
+	Client.mTextureHistory[idx].isCreate			= pCmdTexture->mStatus == CmdTexture::eType::Create;
+	Client.mTextureHistory[idx].isDestroy			= pCmdTexture->mStatus == CmdTexture::eType::Destroy;
+	Client.mTextureHistory[idx].isUpdate			= pCmdTexture->mStatus == CmdTexture::eType::Update;
+	Client.mTextureHistory[idx].isDearImguiManaged	= pCmdTexture->mIsDearImGuiManaged != 0;
+	Client.mTextureHistory[idx].x					= pCmdTexture->mOffsetX;
+	Client.mTextureHistory[idx].y					= pCmdTexture->mOffsetY;
+	Client.mTextureHistory[idx].w					= pCmdTexture->mWidth;
+	Client.mTextureHistory[idx].h					= pCmdTexture->mHeight;
 	Client.ReceiveTexture(pCmdTexture);
 }
 
@@ -45,6 +60,56 @@ void Communications_Incoming_CmdBackground(RemoteClient::Client& Client)
 	Client.mPendingBackgroundIn.Assign(pCmdBackground);
 }
 
+// MODIFICATION BY GAIJIN
+// additionaly apply zstd compression to sending draw frames
+// if no decompression needed - returns pointer to original message
+// if succeed - returns pointer to decompressed message
+// if failed - returns nullptr
+static CmdDrawFrame* apply_ZSTD_decompression(CmdDrawFrame* pCmdDraw)
+{
+	if (pCmdDraw->mPadding[0] == 1)
+	{
+		constexpr uint32_t netImguiHeaderSize = static_cast<uint32_t>(sizeof(CmdDrawFrame));
+
+		static std::vector<uint8_t> decompressBuffer;
+
+		const uint32_t compressedDataSize = pCmdDraw->mSize - netImguiHeaderSize;
+		uint8_t *compressedData = reinterpret_cast<uint8_t *>(pCmdDraw) + netImguiHeaderSize;
+
+		const uint64_t originalDataSize = ZSTD_getFrameContentSize(compressedData, compressedDataSize);
+		if (originalDataSize == ZSTD_CONTENTSIZE_ERROR || originalDataSize == ZSTD_CONTENTSIZE_UNKNOWN)
+    {
+      logerr("netImgui : unable to decompress draw data (size error)");
+			return nullptr;
+    }
+		decompressBuffer.resize(originalDataSize);
+
+		void *decompressedData = decompressBuffer.data();
+		const uint64_t decompressedDataSize = ZSTD_decompress(decompressedData, originalDataSize, compressedData, compressedDataSize);
+
+		if (!ZSTD_isError(decompressedDataSize))
+		{
+			CmdDrawFrame* compressedMessage = pCmdDraw;
+			CmdDrawFrame* decompressedMessage = netImguiSizedNew<CmdDrawFrame>(netImguiHeaderSize + decompressedDataSize);
+
+			memcpy(decompressedMessage, compressedMessage, netImguiHeaderSize);
+			memcpy(reinterpret_cast<uint8_t *>(decompressedMessage) + netImguiHeaderSize, decompressedData, decompressedDataSize);
+
+			return decompressedMessage;
+		}
+		else
+		{
+			logerr("netImgui : unable to decompress draw data (decompress error)");
+			return nullptr;
+		}
+	}
+	else
+	{
+		return pCmdDraw;
+	}
+}
+// GAIJIN
+
 //=================================================================================================
 // (IN) COMMAND DRAW FRAME
 //=================================================================================================
@@ -52,6 +117,21 @@ void Communications_Incoming_CmdDrawFrame(RemoteClient::Client& Client)
 {
 	auto pCmdDraw					= reinterpret_cast<NetImgui::Internal::CmdDrawFrame*>(Client.mPendingRcv.pCommand);
 	Client.mPendingRcv.bAutoFree 	= false; // Taking ownership of the data
+
+	// MODIFICATION BY GAIJIN
+	// additionaly apply zstd compression to sending draw frames
+	{
+		CmdDrawFrame* decompressedMessage = apply_ZSTD_decompression(pCmdDraw);
+		netImguiDeleteSafe(pCmdDraw);
+		if(!decompressedMessage)
+		{
+			Client.mbCompressionSkipOncePending = true;
+			return;
+		}
+		pCmdDraw = decompressedMessage;
+	}
+	// GAIJIN
+
 	pCmdDraw->ToPointers();
 	Client.ReceiveDrawFrame(pCmdDraw);
 }
@@ -113,7 +193,7 @@ void Communications_Incoming(RemoteClient::Client& Client)
 				Client.mLastIncomingComTime	= std::chrono::steady_clock::now();
 				switch( Client.mPendingRcv.pCommand->mType )
 				{
-					case NetImgui::Internal::CmdHeader::eCommands::Texture:		Communications_Incoming_CmdTexture(Client);	break;
+					case NetImgui::Internal::CmdHeader::eCommands::Texture:		Communications_Incoming_CmdTexture(Client);		break;
 					case NetImgui::Internal::CmdHeader::eCommands::Background: 	Communications_Incoming_CmdBackground(Client);	break;
 					case NetImgui::Internal::CmdHeader::eCommands::DrawFrame:	Communications_Incoming_CmdDrawFrame(Client);	break;
 					case NetImgui::Internal::CmdHeader::eCommands::Clipboard:	Communications_Incoming_CmdClipboard(Client);	break;

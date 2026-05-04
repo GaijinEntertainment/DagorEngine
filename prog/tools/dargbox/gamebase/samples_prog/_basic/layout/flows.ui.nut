@@ -26,7 +26,7 @@ let flow_vertical = {
   flow = FLOW_VERTICAL
   size = SIZE_TO_CONTENT
   halign = ALIGN_CENTER
-  gap = {size = static [flex(),sh(1.5)] valign=ALIGN_CENTER flow=FLOW_VERTICAL children = {size=static [flex(), sh(0.2)] rendObj = ROBJ_SOLID color=Color(40,20,20)}} //gap can be a component!
+  gap = {size = const [flex(),sh(1.5)] valign=ALIGN_CENTER flow=FLOW_VERTICAL children = {size = const [flex(), sh(0.2)] rendObj = ROBJ_SOLID color=Color(40,20,20)}} //gap can be a component!
   children = make_samples()
 }
 
@@ -41,7 +41,7 @@ return {
   size = flex()
   children = [
     {
-      size = static [sw(40), sh(50)]
+      size = const [sw(40), sh(50)]
       flow = FLOW_VERTICAL
       halign = ALIGN_CENTER
       gap = sh(2)
@@ -49,7 +49,7 @@ return {
       children = [
         {rendObj = ROBJ_TEXT text = "horizontal flow, with gap"}
         flow_horizontal
-        {size=static [0,sh(10)]}
+        {size = const [0,sh(10)]}
         {rendObj = ROBJ_TEXT text = "vertical flow, with gap"}
         flow_vertical
       ]

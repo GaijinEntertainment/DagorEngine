@@ -44,6 +44,8 @@ public:
       "::bind_dascript::das_find_ladder");
     das::addExtern<DAS_BIND_FUN(das_enum_sounds_in_box)>(*this, lib, "enum_sounds_in_box", das::SideEffects::accessExternal,
       "::bind_dascript::das_enum_sounds_in_box");
+    das::addExtern<DAS_BIND_FUN(das_tiled_scene_get_node_flags)>(*this, lib, "get_node_flags", das::SideEffects::accessExternal,
+      "::bind_dascript::das_tiled_scene_get_node_flags");
 
     das::addExtern<DAS_BIND_FUN(tiled_scene_getNodesCount)>(*this, lib, "tiled_scene_getNodesCount", das::SideEffects::none,
       "::bind_dascript::tiled_scene_getNodesCount");

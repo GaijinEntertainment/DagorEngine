@@ -6,7 +6,7 @@
 DynamicMemGeneralSaveCB::DynamicMemGeneralSaveCB(IMemAlloc *_allocator, size_t sz, size_t quant) :
   dataptr(NULL), datasize(0), data_avail(0), data_quant(quant), curptr(0), allocator(_allocator)
 {
-  if (sz && allocator && data_quant)
+  if (sz && allocator)
     resize(sz);
 }
 
@@ -55,8 +55,6 @@ void DynamicMemGeneralSaveCB::seektoend(int ofs)
 
 void DynamicMemGeneralSaveCB::resize(intptr_t sz)
 {
-  if (data_quant > 0)
-    sz = (sz + data_quant - 1) / data_quant * data_quant;
   if (!allocator)
   {
     if (!sz)
@@ -85,7 +83,9 @@ void DynamicMemGeneralSaveCB::resize(intptr_t sz)
 
   if (sz == data_avail)
     return;
-  if (!allocator->resizeInplace(dataptr, sz))
+  else if (sz > data_avail)
+    sz = max(sz, max(data_avail + (data_avail + 1) / 2, data_avail + data_quant));
+  if (!dataptr || !allocator->resizeInplace(dataptr, sz))
     dataptr = (unsigned char *)allocator->realloc(dataptr, sz);
   data_avail = sz;
   if (datasize > data_avail)

@@ -44,8 +44,8 @@ void resetCompiler();
 void reset_source_file();
 
 // check shader file cache & return true, if cache needs recompilation
-CompilerAction should_recompile(const ShCompilationInfo &comp);
-bool should_recompile_sh(const ShCompilationInfo &comp, const String &sourceFileName);
+CompilerAction should_recompile(const CompilationContext &ctx);
+bool should_recompile_sh(const CompilationContext &ctx, const String &sourceFileName);
 
 // compile shader files & generate variants to disk. return false, if error occurs
 void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &comp);
@@ -60,12 +60,9 @@ void unlock_shutdown();
 
 String get_obj_file_name_from_source(const String &source_file_name, const ShCompilationInfo &comp);
 
-void setRequiredShadersBlock(DataBlock *block);
-void setRequiredShadersDef(bool on);
 void clearFlobVarRefList();
 void addExplicitGlobVarRef(const char *var_name);
 
-bool isShaderRequired(const char *shader_name);
 bool isGlobVarRequired(const char *var_name);
 
 
@@ -96,18 +93,13 @@ protected:
   virtual void releaseJobBody() = 0;
 };
 
-enum class JobMgrChoiceStrategy
-{
-  ROUND_ROBIN,
-  LEAST_BUSY_COOPERATIVE
-};
-
 void init_jobs(unsigned num_workers);
 void deinit_jobs();
 unsigned worker_count();
 unsigned max_allowed_process_count();
 bool is_multithreaded();
+int current_worker();
 bool is_in_worker();
 void await_all_jobs(void (*on_released_cb)() = nullptr);
-void add_job(Job *job, JobMgrChoiceStrategy mgr_choice_strat);
+void add_job(Job *job);
 } // namespace shc

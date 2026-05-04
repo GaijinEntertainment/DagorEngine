@@ -1,16 +1,19 @@
 import bpy, os, bmesh, math
+from os.path    import join, exists
 from   bpy.types                    import Operator, Panel
 from bpy.props                      import BoolProperty, StringProperty, IntProperty
 from   shutil                       import copyfile
 from   time                         import time
-from ..dagormat.build_node_tree     import buildMaterial
+from ..dagormat.build_node_tree     import build_dagormat_node_tree
 from ..dagormat.compare_dagormats   import compare_dagormats
-from ..dagormat.dagormat            import write_proxy_blk, cleanup_textures
+from ..dagormat.dagormat_functions  import write_proxy_blk, cleanup_textures
 
 from  .tools_functions              import *
 from ..helpers.texts                import log, show_text
-from ..helpers.basename             import basename
-from ..helpers.popup                import show_popup
+from ..helpers.getters              import get_preferences
+from ..ui.draw_elements             import draw_custom_header
+from ..helpers.names                import texture_basename, ensure_no_extension
+from ..popup.popup_functions    import show_popup
 from ..helpers.version              import get_blender_version
 
 classes = []
@@ -35,7 +38,7 @@ def save_textures(sel,path):
             T=mat.dagormat.textures
             for key in mat.dagormat.textures.keys():
                 if T[key]!="":
-                    all_tex.append(basename(T[key]))
+                    all_tex.append(texture_basename(T[key]))
     all_tex=list(set(all_tex))#removing doubles
 #separating textures only with existing paths, to avoid saving "checkers"
     tex_to_save=[]
@@ -43,12 +46,12 @@ def save_textures(sel,path):
         img=bpy.data.images.get(t)
         if img is None:
             continue
-        if os.path.exists(img.filepath):
+        if exists(img.filepath):
             tex_to_save.append(img.filepath)
 #saving
     for tex in tex_to_save:
-        tex_name=os.path.basename(tex)
-        save_path=os.path.join(path,tex_name)
+        tex_name = texture_basename(tex)
+        save_path = join(path,tex_name)
         copyfile(tex,save_path)
     saved = tex_to_save.__len__()
     skipped = all_tex.__len__() - saved
@@ -156,7 +159,7 @@ def get_autonamed():
     if mat==None:
         mat=bpy.data.materials.new('autoNamedMat_0')
         mat.dagormat.shader_class='gi_black'
-        buildMaterial(mat)
+        build_dagormat_node_tree(mat)
     return mat
 
 def shortest_name(n1,n2):
@@ -175,7 +178,7 @@ def merge_mat_duplicates(obj):
         og_mat = mat_slot.material
         if og_mat is None:
             continue#no mat
-        bn = basename(og_mat.name)
+        bn = ensure_no_extension(og_mat.name)
         if bn == og_mat.name:
             continue#no index
         bn_mat=bpy.data.materials.get(bn)
@@ -391,7 +394,7 @@ class DAGOR_OT_SaveTextures(Operator):
                 icon = 'ERROR')
             return {'CANCELLED'}
         path = pref_local.tools.save_textures_dirpath
-        if not os.path.exists(path):
+        if not exists(path):
             os.mkdir(path)
             log(f'\n\tDirectory \n\t"{path}"\n\tcreated\n')
         tex_count = save_textures(sel, path)
@@ -418,7 +421,7 @@ class DAGOR_OT_SaveProxymats(Operator):
                 icon='ERROR')
             return {'CANCELLED'}
         path = pref_local.tools.save_proxymats_dirpath
-        if not os.path.exists(path):
+        if not exists(path):
             os.mkdir(path)
             log(f'\n\tDirectory \n\t"{path}"\n\tcreated\n')
         proxy_count = save_proxymats(sel, path)
@@ -618,43 +621,48 @@ class DAGOR_PT_Tools(Panel):
     bl_category = 'Dagor'
     bl_options = {'DEFAULT_CLOSED'}
     def draw(self,context):
-        pref = context.preferences.addons[basename(__package__)].preferences
+        pref = get_preferences()
         pref_local = bpy.data.scenes[0].dag4blend
         S = context.scene
         layout = self.layout
         toolbox = layout.column(align = True)
 
         matbox=toolbox.box()
-        header = matbox.row()
-        header.prop(pref, 'matbox_maximized',icon = 'DOWNARROW_HLT'if pref.matbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='MaterialTools')
-        header.prop(pref, 'matbox_maximized', text = "", icon ="MATERIAL", emboss=False)
+        draw_custom_header(matbox, 'MaterialTools', pref, 'matbox_maximized', icon ="MATERIAL")
         if pref.matbox_maximized:
             matbox = matbox.column(align = True)
-            mats=','.join([m.name for m in bpy.data.materials])
             row = matbox.row()
             row.operator('dt.mopt',text='Optimize material slots')
             row = matbox.row()
             row.operator('dt.merge_mat_duplicates',text='Merge Duplicates')
 
         searchbox=toolbox.box()
-        header = searchbox.row()
-        header.prop(pref, 'searchbox_maximized',icon = 'DOWNARROW_HLT'if pref.searchbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SearchTools')
-        header.prop(pref, 'searchbox_maximized', text='', icon='VIEWZOOM', emboss = False)
+        draw_custom_header(searchbox, 'SearchTools', pref, 'searchbox_maximized', icon ="VIEWZOOM")
         if pref.searchbox_maximized:
             searchbox = searchbox.column(align = True)
-            mats=','.join([m.name for m in bpy.data.materials])
+
+            searchbox.context_pointer_set(name = "prop_owner", data = pref)
+            row = searchbox.row(align = True)
+            single = row.operator('dt.set_value', text = 'Current material', depress = not pref.process_all_materials)
+            single.prop_value = ('0')
+            single.prop_name = 'process_all_materials'
+            single.description = 'Process only active material'
+            all = row.operator('dt.set_value', text = "All materials", depress = pref.process_all_materials)
+            all.prop_value = '1'
+            all.prop_name = 'process_all_materials'
+            all.description = "Process every dagormat in the blend file"
+
+            searchbox.separator()
+
             row = searchbox.row()
-            row.operator('dt.find_textures',  text='Find missing textures',  icon='TEXTURE').all_materials = True
+            row.operator('dt.find_textures',  text='Find missing textures',  icon='TEXTURE')
             row = searchbox.row()
-            row.operator('dt.find_proxymats', text='Find missing proxymats',icon='MATERIAL').all_materials = True
+            row.operator('dt.find_proxymats',
+                text = 'Find missing proxymats' if pref.process_all_materials else 'Find missing proxymat',
+                icon='MATERIAL')
 
         savebox = toolbox.box()
-        header = savebox.row()
-        header.prop(pref, 'savebox_maximized',icon = 'DOWNARROW_HLT'if pref.savebox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SaveTools')
-        header.prop(pref, 'savebox_maximized', text='', icon='FILE_TICK', emboss = False)
+        draw_custom_header(savebox, 'SaveTools', pref, 'savebox_maximized', icon ="FILE_TICK")
         if pref.savebox_maximized:
             box = savebox.box()
             save_tex = box.column(align = True)
@@ -666,7 +674,7 @@ class DAGOR_PT_Tools(Panel):
             row = save_tex.row()
             open_dir = row.operator('wm.path_open', text = "Open Directory", icon = 'FILE_FOLDER')
             open_dir.filepath = pref_local.tools.save_textures_dirpath
-            row.active = row.enabled = os.path.exists(pref_local.tools.save_textures_dirpath)
+            row.active = row.enabled = exists(pref_local.tools.save_textures_dirpath)
 
             box = savebox.box()
             save_proxy = box.column(align = True)
@@ -678,7 +686,7 @@ class DAGOR_PT_Tools(Panel):
             row = save_proxy.row()
             open_dir = row.operator('wm.path_open', text = "Open Directory", icon = 'FILE_FOLDER')
             open_dir.filepath = pref_local.tools.save_proxymats_dirpath
-            row.active = row.enabled = os.path.exists(pref_local.tools.save_proxymats_dirpath)
+            row.active = row.enabled = exists(pref_local.tools.save_proxymats_dirpath)
 
         meshbox=toolbox.box()
         header = meshbox.row()
@@ -695,10 +703,7 @@ class DAGOR_PT_Tools(Panel):
             row.operator('dt.clear_smooth_groups',icon='NORMALS_FACE')
 
         scenebox=toolbox.box()
-        header=scenebox.row()
-        header.prop(pref, 'scenebox_maximized',icon = 'DOWNARROW_HLT'if pref.scenebox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='SceneTools')
-        header.prop(pref, 'scenebox_maximized',text = "", icon='OUTLINER_COLLECTION', emboss = False)
+        draw_custom_header(scenebox, 'SceneTools', pref, 'scenebox_maximized', icon ="OUTLINER_COLLECTION")
         if pref.scenebox_maximized:
             scenebox = scenebox.column(align = True)
             row = scenebox.row()
@@ -707,16 +712,10 @@ class DAGOR_PT_Tools(Panel):
             row.operator('dt.pack_orphans')
 
         destrbox=toolbox.box()
-        header = destrbox.row()
-        header.prop(pref, 'destrbox_maximized',icon = 'DOWNARROW_HLT'if pref.destrbox_maximized else 'RIGHTARROW_THIN',
-            emboss=False,text='Destruction')
-        header.prop(pref, 'destrbox_maximized',text="", icon = 'MOD_PHYSICS', emboss = False)
+        draw_custom_header(destrbox, 'Destruction', pref, 'destrbox_maximized', icon ="MOD_PHYSICS")
         if pref.destrbox_maximized:
             box = destrbox.box()
-            header = box.row()
-            header.prop(pref, 'destrsetup_maximized',icon = 'DOWNARROW_HLT'if pref.destrsetup_maximized else 'RIGHTARROW_THIN',
-                emboss=False,text='Basic Destr')
-            header.prop(pref, 'destrsetup_maximized',text="", icon = 'MOD_PHYSICS', emboss = False)
+            draw_custom_header(box, 'Basic Destr', pref, 'destrsetup_maximized', icon ="MOD_PHYSICS")
             if pref.destrsetup_maximized:
                 box = box.column(align = True)
                 button = box.row()
@@ -731,10 +730,7 @@ class DAGOR_PT_Tools(Panel):
                 box.separator()
 
             box = destrbox.box()
-            header = box.row()
-            header.prop(pref, 'destrdeform_maximized',icon = 'DOWNARROW_HLT'if pref.destrdeform_maximized else 'RIGHTARROW_THIN',
-                emboss=False,text='Shapekey Deform')
-            header.prop(pref, 'destrdeform_maximized',text="", icon = 'SHAPEKEY_DATA', emboss = False)
+            draw_custom_header(box, 'Shapekey Deform', pref, 'destrdeform_maximized', icon ="SHAPEKEY_DATA")
             if pref.destrdeform_maximized:
                 column = box.column(align = True)
                 vcol = column.row()

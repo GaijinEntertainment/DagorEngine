@@ -2,7 +2,7 @@
 #pragma once
 
 #include <propPanel/control/container.h>
-#include "filteredTreeStandalone.h"
+#include "treeStandalone.h"
 #include <osApiWrappers/dag_localConv.h>
 
 namespace PropPanel
@@ -29,12 +29,12 @@ public:
 
   TLeafHandle createTreeLeaf(TLeafHandle parent, const char caption[], const char image[]) override
   {
-    return tree.addItem(caption, image, parent);
+    return tree.createTreeLeaf(parent, caption, image);
   }
 
   void clear() override { tree.clear(); }
 
-  bool removeLeaf(TLeafHandle id) override { return tree.removeItem(id); }
+  bool removeLeaf(TLeafHandle id) override { return tree.removeLeaf(id); }
 
   bool swapLeaf(TLeafHandle id, bool after) override { return tree.swapLeaf(id, after); }
 
@@ -46,31 +46,22 @@ public:
 
   void setColor(TLeafHandle leaf, E3DCOLOR value) override { tree.setColor(leaf, value); }
 
-  void setBool(TLeafHandle leaf, bool open) override { tree.setExpanded(leaf, open); }
-
   void setFocus() override { tree.setFocus(); }
 
   void setUserData(TLeafHandle leaf, const void *value) override { tree.setUserData(leaf, const_cast<void *>(value)); }
 
   void setTreeEventHandler(ITreeControlEventHandler *event_handler) override { treeEventHandler = event_handler; }
 
-  void setCheckboxEnable(TLeafHandle leaf, bool is_enable) override
-  {
-    tree.setCheckboxState(leaf,
-      is_enable ? TreeControlStandalone::CheckboxState::Unchecked : TreeControlStandalone::CheckboxState::NoCheckbox);
-  }
-
-  void setCheckboxValue(TLeafHandle leaf, bool is_checked) override
-  {
-    tree.setCheckboxState(leaf,
-      is_checked ? TreeControlStandalone::CheckboxState::Checked : TreeControlStandalone::CheckboxState::Unchecked);
-  }
+  void setCheckboxEnable(TLeafHandle leaf, bool is_enable) override { tree.setCheckboxEnabled(leaf, is_enable); }
+  void setCheckboxValue(TLeafHandle leaf, bool is_checked) override { tree.setCheckboxValue(leaf, is_checked); }
 
   void setImageState(TLeafHandle leaf, const char *fname) override
   {
     IconId icon = tree.getTexture(fname);
     tree.setStateIcon(leaf, icon);
   }
+
+  void setNewParent(TLeafHandle leaf, TLeafHandle new_parent_leaf) override { tree.setNewParent(leaf, new_parent_leaf); }
 
   String getCaption(TLeafHandle leaf) const override
   {
@@ -79,6 +70,9 @@ public:
   }
 
   int getChildCount(TLeafHandle leaf) const override { return tree.getChildCount(leaf); }
+  int getChildCountFiltered(TLeafHandle leaf) const override { return tree.getChildCountFiltered(leaf); }
+  int getChildIndex(TLeafHandle leaf) const override { return tree.getChildIndex(leaf); }
+  void setChildIndex(TLeafHandle leaf, int idx) override { tree.setChildIndex(leaf, idx); }
 
   const char *getImageName(TLeafHandle leaf) const override
   {
@@ -97,19 +91,10 @@ public:
 
   TLeafHandle getRootLeaf() override { return tree.getRootLeaf(); }
 
-  bool getBool(TLeafHandle leaf) const override { return tree.isExpanded(leaf); }
+  void *getUserData(TLeafHandle leaf) const override { return tree.getUserData(leaf); }
 
-  void *getUserData(TLeafHandle leaf) const override { return tree.getItemData(leaf); }
-
-  bool getCheckboxValue(TLeafHandle leaf) const override
-  {
-    return tree.getCheckboxState(leaf) == TreeControlStandalone::CheckboxState::Checked;
-  }
-
-  bool isCheckboxEnable(TLeafHandle leaf) const override
-  {
-    return tree.getCheckboxState(leaf) != TreeControlStandalone::CheckboxState::NoCheckbox;
-  }
+  bool getCheckboxValue(TLeafHandle leaf) const override { return tree.getCheckboxValue(leaf); }
+  bool isCheckboxEnable(TLeafHandle leaf) const override { return tree.getCheckboxEnabled(leaf); }
 
   // show pictures
   void setBoolValue(bool value) override
@@ -123,9 +108,19 @@ public:
 
   TLeafHandle getSelLeaf() const override { return tree.getSelectedLeaf(); }
 
-  void getSelectedLeafs(dag::Vector<TLeafHandle> &leafs) const override { tree.getSelectedLeafs(leafs); }
+  void getSelectedLeafs(dag::Vector<TLeafHandle> &leafs, bool search_in_collapsed, bool include_filtered_out) const override
+  {
+    tree.getSelectedLeafs(leafs, search_in_collapsed, include_filtered_out);
+  }
 
-  void setTextValue(const char value[]) override { tree.filter((void *)value, nodeFilter); }
+  void setExpanded(TLeafHandle leaf, bool val) override { tree.setExpanded(leaf, val); }
+
+  void setExpandedRecursively(TLeafHandle leaf, bool val) override { tree.setExpandedRecursive(leaf, val); }
+
+  bool isExpanded(TLeafHandle leaf) const override { return tree.isExpanded(leaf); }
+  bool isFilteredIn(TLeafHandle leaf) const override { return tree.isFilteredIn(leaf); }
+
+  void setTreeRenderEx(ITreeRenderEx *interface) override { tree.setTreeRenderEx(interface); }
 
   bool isRealContainer() override { return false; }
 
@@ -134,11 +129,16 @@ public:
     tree.setCheckboxIcons(tree.getTexture(checked), tree.getTexture(unchecked));
   }
 
+  void setTreeDragHandler(ITreeDragHandler *handler) override { tree.setDragHandler(handler); }
+  void setTreeDropHandler(ITreeDropHandler *handler) override { tree.setDropHandler(handler); }
+  void setTreeFilter(ITreeFilter *filter) override { tree.setTreeFilter(filter); }
+  void filterTree() override { tree.filter(); }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!tree.isEnabled());
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     tree.updateImgui(mH);
   }
@@ -152,14 +152,8 @@ private:
       treeEventHandler->onTreeContextMenu(*this, getID(), tree);
   }
 
-  static bool nodeFilter(void *param, TTreeNode &node)
-  {
-    const char *filterText = (const char *)param;
-    return filterText[0] == '\0' || dd_stristr(node.name.str(), filterText);
-  }
-
   String controlCaption;
-  FilteredTreeControlStandalone tree;
+  TreeControlStandalone tree;
   ITreeControlEventHandler *treeEventHandler = nullptr;
 };
 

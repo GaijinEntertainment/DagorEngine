@@ -6,14 +6,12 @@
 #include "sqobject.h"
 struct SQString;
 struct SQTable;
-//max number of character for a printed number
-#define NUMBER_MAX_CHAR 50
 
 struct SQStringTable
 {
     SQStringTable(SQSharedState*ss);
     ~SQStringTable();
-    SQString *Add(const SQChar *,SQInteger len);
+    SQString *Add(const char *,SQInteger len);
     void Remove(SQString *);
 private:
     void Resize(SQInteger size);
@@ -74,7 +72,7 @@ public:
     void disableCompilationOption(SQUnsignedInteger co) {
       compilationOptions &= ~co;
     }
-    SQChar* GetScratchPad(SQInteger size);
+    char* GetScratchPad(SQInteger size);
     SQInteger GetMetaMethodIdxByName(const SQObjectPtr &name);
 #ifndef NO_GARBAGE_COLLECTOR
     SQInteger CollectGarbage(SQVM *vm);
@@ -96,35 +94,43 @@ public:
     SQCollectable *_gc_chain;
 #endif
     SQObjectPtr _root_vm;
-    SQObjectPtr _table_default_delegate;
-    static const SQRegFunction _table_default_delegate_funcz[];
-    SQObjectPtr _array_default_delegate;
-    static const SQRegFunction _array_default_delegate_funcz[];
-    SQObjectPtr _string_default_delegate;
-    static const SQRegFunction _string_default_delegate_funcz[];
-    SQObjectPtr _number_default_delegate;
-    static const SQRegFunction _number_default_delegate_funcz[];
-    SQObjectPtr _generator_default_delegate;
-    static const SQRegFunction _generator_default_delegate_funcz[];
-    SQObjectPtr _closure_default_delegate;
-    static const SQRegFunction _closure_default_delegate_funcz[];
-    SQObjectPtr _thread_default_delegate;
-    static const SQRegFunction _thread_default_delegate_funcz[];
-    SQObjectPtr _class_default_delegate;
-    static const SQRegFunction _class_default_delegate_funcz[];
-    SQObjectPtr _instance_default_delegate;
-    static const SQRegFunction _instance_default_delegate_funcz[];
-    SQObjectPtr _weakref_default_delegate;
-    static const SQRegFunction _weakref_default_delegate_funcz[];
-    SQObjectPtr _userdata_default_delegate;
-    static const SQRegFunction _userdata_default_delegate_funcz[];
+
+    // Built-in type classes
+    SQObjectPtr _null_class;
+    SQObjectPtr _integer_class;
+    SQObjectPtr _float_class;
+    SQObjectPtr _bool_class;
+    SQObjectPtr _string_class;
+    SQObjectPtr _array_class;
+    SQObjectPtr _table_class;
+    SQObjectPtr _function_class;
+    SQObjectPtr _generator_class;
+    SQObjectPtr _thread_class;
+    SQObjectPtr _class_class;
+    SQObjectPtr _instance_class;
+    SQObjectPtr _weakref_class;
+    SQObjectPtr _userdata_class;
+
+    static const SQRegFunction _table_default_type_methods_funcz[];
+    static const SQRegFunction _array_default_type_methods_funcz[];
+    static const SQRegFunction _string_default_type_methods_funcz[];
+    static const SQRegFunction _integer_default_type_methods_funcz[];
+    static const SQRegFunction _float_default_type_methods_funcz[];
+    static const SQRegFunction _bool_default_type_methods_funcz[];
+    static const SQRegFunction _null_default_type_methods_funcz[];
+    static const SQRegFunction _generator_default_type_methods_funcz[];
+    static const SQRegFunction _closure_default_type_methods_funcz[];
+    static const SQRegFunction _thread_default_type_methods_funcz[];
+    static const SQRegFunction _class_default_type_methods_funcz[];
+    static const SQRegFunction _instance_default_type_methods_funcz[];
+    static const SQRegFunction _weakref_default_type_methods_funcz[];
+    static const SQRegFunction _userdata_default_type_methods_funcz[];
 
     SQCOMPILERERROR _compilererrorhandler;
     SQPRINTFUNCTION _printfunc;
     SQPRINTFUNCTION _errorfunc;
     SQ_COMPILER_DIAG_CB _compilerdiaghandler;
 
-    bool _debuginfo;
     bool _notifyallexceptions;
     bool _lineInfoInExpressions;
     bool _varTraceEnabled;
@@ -135,27 +141,18 @@ public:
 
     SQObjectPtr doc_objects;
     int doc_object_index;
+    SQUnsignedInteger32 rand_seed;
+    SQUnsignedInteger32 watchdog_last_alive_time_msec;
+    SQUnsignedInteger32 watchdog_threshold_msec;
 private:
-    SQChar *_scratchpad;
+    char *_scratchpad;
     SQInteger _scratchpadsize;
 };
 
 #define _sp(s) (_sharedstate->GetScratchPad(s))
 #define _spval (_sharedstate->GetScratchPad(-1))
 
-#define _table_ddel     _table(_sharedstate->_table_default_delegate)
-#define _array_ddel     _table(_sharedstate->_array_default_delegate)
-#define _string_ddel    _table(_sharedstate->_string_default_delegate)
-#define _number_ddel    _table(_sharedstate->_number_default_delegate)
-#define _generator_ddel _table(_sharedstate->_generator_default_delegate)
-#define _closure_ddel   _table(_sharedstate->_closure_default_delegate)
-#define _thread_ddel    _table(_sharedstate->_thread_default_delegate)
-#define _class_ddel     _table(_sharedstate->_class_default_delegate)
-#define _instance_ddel  _table(_sharedstate->_instance_default_delegate)
-#define _weakref_ddel   _table(_sharedstate->_weakref_default_delegate)
-#define _userdata_ddel  _table(_sharedstate->_userdata_default_delegate)
-
-bool CompileTypemask(SQIntVec &res,const SQChar *typemask);
+bool CompileTypemask(SQIntVec &res,const char *typemask);
 
 
 #endif //_SQSTATE_H_

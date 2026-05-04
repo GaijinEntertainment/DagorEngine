@@ -6,8 +6,8 @@
 #include "variantAssembly.h"
 #include "shsem.h"
 #include "shExprParser.h"
-#include "mdArray.h"
 
+#include <generic/dag_mdArray.h>
 #include <memory/dag_regionMemAlloc.h>
 #include <debug/dag_assert.h>
 
@@ -46,7 +46,7 @@ void VariablesMerger::addBufferedStat(ShaderTerminal::state_block_stat &state_bl
   bits.set(id, true);
 }
 
-void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks &blocks, MergedVarsMap &var_map, ShaderStage stage)
+void VariablesMerger::mergeVars(MergeableStateBlocks &blocks, MergedVarsMap &var_map, ShaderStage stage, const Callbacks &callbacks)
 {
   RegionMemAlloc rm_alloc(4 << 20, 4 << 20);
 
@@ -76,13 +76,17 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
       String combinedName;
       String lhsName;
       String rhsName;
+      int lhsReg = -1;
+      int rhsReg = -1;
 
       Var(VarData &&vdata, IMemAlloc *alloc) : data{eastl::move(vdata)}, combinedName{alloc}, lhsName{alloc}, rhsName{alloc} {}
-      Var(VarData &&vdata, String &&combined_name, String &&lhs_name, String &&rhs_name) :
+      Var(VarData &&vdata, String &&combined_name, String &&lhs_name, String &&rhs_name, int lhs_reg, int rhs_reg) :
         data{eastl::move(vdata)},
         combinedName{eastl::move(combined_name)},
         lhsName{eastl::move(lhs_name)},
-        rhsName{eastl::move(rhs_name)}
+        rhsName{eastl::move(rhs_name)},
+        lhsReg{lhs_reg},
+        rhsReg{rhs_reg}
       {}
     };
     auto addMergedVarToMap = [&](const Var &var) {
@@ -91,6 +95,12 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
         origVarInfos.push_back(*info);
 
       var_map.emplace(var.data.stat->var->var->name->text, eastl::move(origVarInfos));
+    };
+    auto cleanupVarSourceRegs = [&](Var &var) {
+      if (var.lhsReg >= 0)
+        callbacks.releaseRegister(eastl::exchange(var.lhsReg, -1));
+      if (var.rhsReg > 0)
+        callbacks.releaseRegister(eastl::exchange(var.rhsReg, -1));
     };
 
     auto allVars = mdarray_make<TYPE_COUNT, 4 + 1>([&] { return Tab<Var>(&rm_alloc); });
@@ -171,10 +181,8 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
         local_a_decl.name = &local_a_name_id;
         local_a_decl.expr = var_a->val->expr;
 
-        auto [reg1_var, reg1_expr] = unwrap(semantic::parse_local_var_decl(local_a_decl, ascb->ctx, true));
-        if (!reg1_var->isConst)
-          assembly::assemble_local_var<assembly::StcodeBuildFlagsBits::ALL>(reg1_var, reg1_expr.get(), local_a_decl.name, ascb->ctx);
-        int reg1 = reg1_var->reg;
+        int reg1 = callbacks.compileLocalVar(local_a_decl);
+        cleanupVarSourceRegs(varA);
 
         String rhsName{&rm_alloc};
         rhsName.printf(16, "__%s%i", var_b->var->name->text, stage);
@@ -190,10 +198,8 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
         local_b_decl.name = &local_b_name_id;
         local_b_decl.expr = var_b->val->expr;
 
-        auto [reg2_var, reg2_expr] = unwrap(semantic::parse_local_var_decl(local_b_decl, ascb->ctx, true));
-        if (!reg2_var->isConst)
-          assembly::assemble_local_var<assembly::StcodeBuildFlagsBits::ALL>(reg2_var, reg2_expr.get(), local_b_decl.name, ascb->ctx);
-        int reg2 = reg2_var->reg;
+        int reg2 = callbacks.compileLocalVar(local_b_decl);
+        cleanupVarSourceRegs(varB);
 
         auto *merged_var_stat = TMPMEM_CALLOC(state_block_stat);
         auto *merged_var_var = TMPMEM_CALLOC(external_variable);
@@ -263,16 +269,13 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
 
         {
           Var var{VarData{.origVars = eastl::move(combinedSourceVars), .stat = merged_var_stat}, eastl::move(merged_var_name_str),
-            eastl::move(lhsName), eastl::move(rhsName)};
+            eastl::move(lhsName), eastl::move(rhsName), reg1, reg2};
 
           if (dim1 + dim2 == 4)
           {
             addMergedVarToMap(var);
-            ascb->compile_external_block_stat({var.data.stat, ShaderStage(stage), VEC_TYPES_TABLE[type][4]});
-            if (reg1 > 0)
-              ascb->ctx.stBytecode().regAllocator->manuallyReleaseRegister(reg1);
-            if (reg2 > 0)
-              ascb->ctx.stBytecode().regAllocator->manuallyReleaseRegister(reg2);
+            callbacks.compileStat({var.data.stat, ShaderStage(stage), VEC_TYPES_TABLE[type][4]});
+            cleanupVarSourceRegs(var);
           }
           else
           {
@@ -297,7 +300,8 @@ void VariablesMerger::mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks
         {
           if (var.data.origVars.size() > 1)
             addMergedVarToMap(var);
-          ascb->compile_external_block_stat({var.data.stat, ShaderStage(stage), VEC_TYPES_TABLE[type][dim]});
+          callbacks.compileStat({var.data.stat, ShaderStage(stage), VEC_TYPES_TABLE[type][dim]});
+          cleanupVarSourceRegs(var);
         }
     }
   }

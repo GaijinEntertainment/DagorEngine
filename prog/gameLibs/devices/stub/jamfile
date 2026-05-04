@@ -12,8 +12,7 @@ AddIncludes =
 Sources =
   ../dataExport.cpp
   jetSeatStub.cpp
+  trackIRStub.cpp
 ;
-
-if ! $(Platform) in ps4 { Sources += trackIRStub.cpp ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

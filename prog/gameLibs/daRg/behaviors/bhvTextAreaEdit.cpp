@@ -15,6 +15,7 @@
 #include "guiScene.h"
 #include "textUtil.h"
 #include "editableText.h"
+#include "kbFocus.h"
 
 #include <drv/hid/dag_hiCreate.h> // for _TARGET_HAS_IME
 #include <drv/hid/dag_hiKeybIds.h>
@@ -122,28 +123,16 @@ void BhvTextAreaEdit::onDetach(Element *elem, DetachMode dmode)
 }
 
 
-void BhvTextAreaEdit::fill_format_params(const Element *elem, const Point2 &elem_size, textlayout::FormatParams &params)
+void BhvTextAreaEdit::onKbFocusChange(Element *elem, bool focused)
 {
-  const Properties &props = elem->props;
-
-  float styleMaxWidth = props.getFloat(elem->csk->maxContentWidth, VERY_BIG_NUMBER);
-  if (styleMaxWidth == VERY_BIG_NUMBER)
-    styleMaxWidth = elem->sizeSpecToPixels(elem->layout.maxSize[0], 0);
-
-  params.reset();
-
-  params.defFontId = props.getFontId();
-  params.defFontHt = (int)floorf(props.getFontSize() + 0.5f);
-  params.spacing = props.getFloat(elem->csk->spacing, 0);
-  params.monoWidth = font_mono_width_from_sq(params.defFontId, params.defFontHt, props.getObject(elem->csk->monoWidth));
-  params.lineSpacing = props.getFloat(elem->csk->lineSpacing, 0.0);
-  params.parSpacing = props.getFloat(elem->csk->parSpacing, 0);
-  params.indent = props.getFloat(elem->csk->indent, 0);
-  params.hangingIndent = props.getFloat(elem->csk->hangingIndent, 0);
-  params.maxWidth = (styleMaxWidth == VERY_BIG_NUMBER || styleMaxWidth <= 0) ? elem_size.x
-                    : elem_size.x <= 0                                       ? styleMaxWidth
-                                                                             : min(elem_size.x, styleMaxWidth);
-  params.maxHeight = elem_size.y;
+  bool imeOnFocus = elem->props.scriptDesc.RawGetSlotValue<bool>("imeOnFocus", false);
+  if (imeOnFocus)
+  {
+    if (focused)
+      open_ime(elem);
+    else
+      close_ime(elem);
+  }
 }
 
 
@@ -160,11 +149,10 @@ void BhvTextAreaEdit::recalc_content(const Element *elem, int /*axis*/, const Po
 
   FormattedText *fmtText = &etext->fmtText;
 
-  // if (axis == 0) // already calculated for Y
-  //  FIXME
+  if (!fmtText->canReuseLinesFor(calc_textarea_max_width(elem, elem_size)))
   {
     FormatParams params = {};
-    fill_format_params(elem, elem_size, params);
+    fill_textarea_format_params(elem, elem_size, params);
     fmtText->format(params);
   }
 
@@ -223,8 +211,8 @@ void BhvTextAreaEdit::scroll_cursor_into_view(darg::Element *elem, EditableText 
 }
 
 
-int BhvTextAreaEdit::mouseEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int /*data*/, short mx, short my, int /*buttons*/, int accum_res)
+int BhvTextAreaEdit::pointingEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
+  int /*button_id*/, Point2 pos, int accum_res)
 {
   if (event == INP_EV_MOUSE_WHEEL || event == INP_EV_POINTER_MOVE)
     return 0;
@@ -232,33 +220,17 @@ int BhvTextAreaEdit::mouseEvent(ElementTree *etree, Element *elem, InputDevice /
   if (elem->rendObjType != rendobj_textarea_id)
     return 0;
 
-  if (event == INP_EV_RELEASE && elem->hitTest(mx, my))
+  if (event == INP_EV_RELEASE && elem->hitTest(pos))
     return R_PROCESSED;
 
-  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(mx, my) &&
-      (!etree->hasCapturedKbFocus() || etree->kbFocus == elem))
+  KbFocus &kbFocus = etree->guiScene->kbFocus;
+
+  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(pos) &&
+      (!kbFocus.hasCapturedFocus() || kbFocus.focus == elem))
   {
-    if (etree->kbFocus != elem) // keep capture mode if already set
-      etree->setKbFocus(elem);
-    position_cursor_by_screen_coord(elem, Point2(mx, my));
-    open_ime(elem);
-
-    return R_PROCESSED;
-  }
-  return 0;
-}
-
-
-int BhvTextAreaEdit::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int /*touch_idx*/, const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  if (elem->rendObjType != rendobj_textarea_id)
-    return 0;
-
-  if (event == INP_EV_RELEASE && !(accum_res & R_PROCESSED) && elem->hitTest(touch.x, touch.y) && !etree->hasCapturedKbFocus())
-  {
-    etree->setKbFocus(elem);
-    position_cursor_by_screen_coord(elem, Point2(touch.x, touch.y));
+    if (kbFocus.focus != elem) // keep capture mode if already set
+      kbFocus.setFocus(elem);
+    position_cursor_by_screen_coord(elem, pos);
     open_ime(elem);
 
     return R_PROCESSED;
@@ -315,6 +287,8 @@ int BhvTextAreaEdit::find_block_left(textlayout::FormattedText *fmt_text, int cu
 }
 
 
+// Mutates prevBlock->text in place. Callers must call fmtText->invalidateShapes()
+// before the next format() so the merged block gets reshaped.
 static void merge_text_blocks(textlayout::FormattedText *fmtText)
 {
   for (int i = int(fmtText->blocks.size()) - 1; i > 1; --i)
@@ -334,6 +308,9 @@ static void merge_text_blocks(textlayout::FormattedText *fmtText)
 }
 
 
+// Mutates curBlock->text in place (truncates it). Callers must call
+// fmtText->invalidateShapes() before the next format() so the truncated block
+// gets reshaped; the inserted newBlock starts with hasValidShape=false already.
 static bool split_text_block(textlayout::FormattedText *fmtText, int block_idx, int rel_pos_chars)
 {
   TextBlock *curBlock = fmtText->blocks[block_idx];
@@ -407,7 +384,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
             --etext->cursorPos;
 
             curBlock->guiText.discard();
-            fmtText->lastFormatParamsForCurText.reset();
+            fmtText->invalidateShapes();
 
             if (curBlock->text.empty())
             {
@@ -420,7 +397,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
         {
           fmtText->blocks.erase(fmtText->blocks.begin() + curBlockIdx);
           fmtText->freeTextBlock(curBlock);
-          fmtText->lastFormatParamsForCurText.reset();
+          fmtText->invalidateShapes();
           --etext->cursorPos;
 
           merge_text_blocks(fmtText);
@@ -451,7 +428,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
           curBlock->text.erase(eraseStart, eraseStart + sz);
           --curBlock->numChars;
           curBlock->guiText.discard();
-          fmtText->lastFormatParamsForCurText.reset();
+          fmtText->invalidateShapes();
 
           if (curBlock->text.empty())
           {
@@ -468,7 +445,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
         {
           fmtText->blocks.erase(fmtText->blocks.begin() + curBlockIdx);
           fmtText->freeTextBlock(curBlock);
-          fmtText->lastFormatParamsForCurText.reset();
+          fmtText->invalidateShapes();
 
           if (curBlockIdx == fmtText->blocks.size())
             etext->cursorPos = max(0, etext->cursorPos - 1);
@@ -621,13 +598,55 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
 
       ++etext->cursorPos;
 
-      fmtText->lastFormatParamsForCurText.reset();
+      fmtText->invalidateShapes();
 
       recalc_content(elem, /*axis*/ 0, elem->screenCoord.size, elem->screenCoord.contentSize);
 
       scroll_cursor_into_view(elem, etext);
       call_change_script_handler(elem, etext);
       return R_PROCESSED;
+    }
+    else if (isCtrlPressed && key_idx == DKEY_V)
+    {
+      char buf[256];
+      if (clipboard::get_clipboard_utf8_text(buf, sizeof(buf)))
+      {
+        Tab<TextBlock *> newBlocks;
+        fmtText->parseAndSplitText(newBlocks, buf, strlen(buf), nullptr);
+        int insertedLen = 0;
+        for (TextBlock *block : newBlocks)
+        {
+          block->calcNumChars();
+          insertedLen += block->numChars;
+        }
+
+        int relChar = -1;
+        int curBlockIdx = find_block_right(fmtText, etext->cursorPos, relChar);
+        if (curBlockIdx >= 0 && relChar > 0 && fmtText->blocks[curBlockIdx]->type == TextBlock::TBT_TEXT)
+        {
+          if (split_text_block(fmtText, curBlockIdx, relChar))
+            ++curBlockIdx;
+        }
+
+        int blockInsertPos = (curBlockIdx >= 0) ? curBlockIdx : fmtText->blocks.size();
+        fmtText->blocks.insert(fmtText->blocks.begin() + blockInsertPos, newBlocks.begin(), newBlocks.end());
+        merge_text_blocks(fmtText);
+
+        fmtText->invalidateShapes();
+
+        recalc_content(elem, /*axis*/ 0, elem->screenCoord.size, elem->screenCoord.contentSize);
+
+        etext->cursorPos += insertedLen;
+        scroll_cursor_into_view(elem, etext);
+        call_change_script_handler(elem, etext);
+        return R_PROCESSED;
+      }
+    }
+    else if (isCtrlPressed && key_idx == DKEY_C)
+    {
+      eastl::string text;
+      fmtText->join(text);
+      clipboard::set_clipboard_utf8_text(text.c_str());
     }
     else if (wc)
     {
@@ -685,7 +704,7 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
       // because we don't have non-zero wc for INP_EV_RELEASE
       etext->pressedCharButtons.insert(wc);
 
-      fmtText->lastFormatParamsForCurText.reset();
+      fmtText->invalidateShapes();
 
       recalc_content(elem, /*axis*/ 0, elem->screenCoord.size, elem->screenCoord.contentSize);
 
@@ -789,7 +808,7 @@ void BhvTextAreaEdit::position_cursor_on_line_by_coord(darg::Element *elem, Edit
       wtext[wlen] = 0;
 
       textlayout::FormatParams fmtParams = {};
-      fill_format_params(elem, elem->screenCoord.size, fmtParams);
+      fill_textarea_format_params(elem, elem->screenCoord.size, fmtParams);
 
       StdGuiFontContext fctx;
       StdGuiRender::get_font_context(fctx, fmtParams.defFontId, fmtParams.spacing, fmtParams.monoWidth, fmtParams.defFontHt);
@@ -835,7 +854,7 @@ float BhvTextAreaEdit::get_cursor_pixels_pos_in_block(const Element *elem, textl
   if (curBlock->type == textlayout::TextBlock::TBT_TEXT)
   {
     textlayout::FormatParams fmtParams = {};
-    BhvTextAreaEdit::fill_format_params(elem, elem->screenCoord.size, fmtParams);
+    fill_textarea_format_params(elem, elem->screenCoord.size, fmtParams);
 
     StdGuiFontContext fctx;
     StdGuiRender::get_font_context(fctx, fmtParams.defFontId, fmtParams.spacing, fmtParams.monoWidth, fmtParams.defFontHt);
@@ -910,12 +929,11 @@ void BhvTextAreaEdit::on_ime_finish(void *ud, const char *str, int cursor, int s
   if (status < 0)
     return;
 
-  bool applied = (status == 1);
+  bool applied = (status == HumanInput::IME_STATUS_UPDATED || status == HumanInput::IME_STATUS_CLOSED);
 
   Element *elem = (Element *)ud;
   if (applied)
   {
-
     EditableText *etext = elem->props.storage.RawGetSlotValue<EditableText *>(elem->csk->editableText, nullptr);
     if (!etext)
     {
@@ -926,15 +944,19 @@ void BhvTextAreaEdit::on_ime_finish(void *ud, const char *str, int cursor, int s
       etext->setText(str, -1);
       if (cursor >= 0)
         etext->cursorPos = cursor;
-      close_ime(elem);
+      scroll_cursor_into_view(elem, etext);
     }
   }
 
-  Sqrat::Object cbFunc = elem->props.scriptDesc.RawGetSlot("onImeFinish");
-  if (!cbFunc.IsNull())
+  if (status == HumanInput::IME_STATUS_CLOSED)
   {
-    Sqrat::Function f(cbFunc.GetVM(), Sqrat::Object(cbFunc.GetVM()), cbFunc);
-    GuiScene::get_from_elem(elem)->queueScriptHandler(new ScriptHandlerSqFunc<bool>(f, applied));
+    close_ime(elem);
+    Sqrat::Object cbFunc = elem->props.scriptDesc.RawGetSlot("onImeFinish");
+    if (!cbFunc.IsNull())
+    {
+      Sqrat::Function f(cbFunc.GetVM(), Sqrat::Object(cbFunc.GetVM()), cbFunc);
+      GuiScene::get_from_elem(elem)->queueScriptHandler(new ScriptHandlerSqFunc<bool>(f, applied));
+    }
   }
 }
 
@@ -959,10 +981,10 @@ void BhvTextAreaEdit::open_ime(Element *elem)
 
     Sqrat::Object title = elem->props.getObject(elem->csk->title);
     if (title.GetType() == OT_STRING)
-      params.setStr("title", title.GetVar<const SQChar *>().value);
+      params.setStr("title", title.GetVar<const char *>().value);
     Sqrat::Object hint = elem->props.getObject(elem->csk->hint);
     if (hint.GetType() == OT_STRING)
-      params.setStr("hint", hint.GetVar<const SQChar *>().value);
+      params.setStr("hint", hint.GetVar<const char *>().value);
 
     params.setStr("str", text.c_str());
     params.setInt("maxChars", elem->props.getInt(elem->csk->maxChars, 2048));
@@ -974,7 +996,7 @@ void BhvTextAreaEdit::open_ime(Element *elem)
 
     Sqrat::Object inputType = elem->props.getObject(elem->csk->inputType);
     if (inputType.GetType() == OT_STRING)
-      params.setStr("type", inputType.GetVar<const SQChar *>().value);
+      params.setStr("type", inputType.GetVar<const char *>().value);
     else if (inputType.GetType() != OT_NULL)
       darg_assert_trace_var("inputType must be string", elem->props.scriptDesc, elem->csk->inputType);
 

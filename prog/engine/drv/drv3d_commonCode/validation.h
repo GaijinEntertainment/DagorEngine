@@ -125,3 +125,14 @@ inline bool validate_primitive_topology(VkPrimitiveTopology topology, bool has_g
   }
 }
 #endif
+
+#if defined(__SANITIZE_UNDEFINED__) && __GNUC__ >= 7
+#define NO_UBSAN __attribute__((no_sanitize("undefined")))
+#elif defined(__clang__) && defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+#define NO_UBSAN __attribute__((no_sanitize("undefined")))
+#endif
+#endif
+#ifndef NO_UBSAN
+#define NO_UBSAN
+#endif

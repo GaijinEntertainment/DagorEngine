@@ -9,7 +9,9 @@
 #include <util/dag_console.h>
 #include <util/dag_string.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "camera/sceneCam.h"
 #include "game/player.h"
 
@@ -23,6 +25,7 @@ static void camera_animator_es_event_handler(const ecs::Event &, TMatrix &camera
 
 ECS_NO_ORDER
 static void camera_animator_update_es(const ecs::UpdateStageInfoAct &info,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const Point3 &camera_animator__origo,
   float camera_animator__speed,
@@ -32,7 +35,7 @@ static void camera_animator_update_es(const ecs::UpdateStageInfoAct &info,
   const TMatrix camTm = get_cam_itm();
   if (camTm != camera_animator__prev_transform || camera_animator__angle <= 0)
   {
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
     return;
   }
   float angle = camera_animator__speed * info.dt;
@@ -51,6 +54,7 @@ static void camera_animator_update_es(const ecs::UpdateStageInfoAct &info,
 
 ECS_NO_ORDER
 static void camera_path_animator_update_es(const ecs::UpdateStageInfoAct &info,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const ecs::Array &camera_path_animator__transforms,
   float camera_animator__speed,
@@ -61,7 +65,7 @@ static void camera_path_animator_update_es(const ecs::UpdateStageInfoAct &info,
   const TMatrix camTm = get_cam_itm();
   if (camTm != camera_animator__prev_transform)
   {
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
     return;
   }
 

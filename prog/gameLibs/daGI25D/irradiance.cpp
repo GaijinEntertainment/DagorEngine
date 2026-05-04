@@ -15,7 +15,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_tex3d.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -62,7 +62,7 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
   // const uint32_t sceneFmt = TEXCF_SRGBREAD | TEXFMT_R8G8B8A8;
   const uint32_t sceneFmt = scalar_ao ? TEXFMT_R8 : TEXFMT_R11G11B10F;
   volmap = dag::create_voltex(GI_25D_RESOLUTION_X, GI_25D_RESOLUTION_Z, GI_25D_RESOLUTION_Y * 6, sceneFmt | TEXCF_UNORDERED, 1,
-    "gi_25d_volmap");
+    "gi_25d_volmap", RESTAG_DAGI);
   d3d::clear_rwtexf(volmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   {
     d3d::SamplerInfo smpInfo;
@@ -74,13 +74,13 @@ void Irradiance::init(bool scalar_ao, float xz_size, float y_size)
   d3d::resource_barrier({volmap.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   // resetting gi_25d_volmap_tc, to not sample based on tc from previous scene
-  ShaderGlobal::set_color4(gi_25d_volmap_tcVarId, 0.0f, 0.0f, 0.0f, 1.0f);
+  ShaderGlobal::set_float4(gi_25d_volmap_tcVarId, 0.0f, 0.0f, 0.0f, 1.0f);
 
   intersection = dag::buffers::create_ua_sr_byte_address(
     (GI_25D_RESOLUTION_X * GI_25D_RESOLUTION_Z * GI_25D_RESOLUTION_Y + 31) / 32 + // intersected
       GI_25D_RESOLUTION_X * GI_25D_RESOLUTION_Z                                   // floor
     ,
-    "gi_25d_intersection");
+    "gi_25d_intersection", d3d::buffers::Init::No, RESTAG_DAGI);
   invalidate();
 }
 
@@ -104,11 +104,11 @@ void Irradiance::close()
 void Irradiance::setVars()
 {
   volmap.setVar();
-  ShaderGlobal::set_color4(gi_25d_volmap_sizeVarId, voxelSizeXZ, voxelSizeY, 0, 0);
-  const IPoint2 fullRes(GI_25D_RESOLUTION_X, GI_25D_RESOLUTION_Z);
+  ShaderGlobal::set_float4(gi_25d_volmap_sizeVarId, voxelSizeXZ, voxelSizeY, 0, 0);
+  // const IPoint2 fullRes(GI_25D_RESOLUTION_X, GI_25D_RESOLUTION_Z);
   const IPoint2 ofs = toroidalOrigin; //(fullRes + toroidalOrigin%GI_25D_RESOLUTION_X)%GI_25D_RESOLUTION_X;
   Point2 origin = voxelSizeXZ * Point2(toroidalOrigin - IPoint2(GI_25D_RESOLUTION_X, GI_25D_RESOLUTION_X) / 2);
-  ShaderGlobal::set_color4(gi_25d_volmap_originVarId, origin.x, origin.y, ofs.x, ofs.y);
+  ShaderGlobal::set_float4(gi_25d_volmap_originVarId, origin.x, origin.y, ofs.x, ofs.y);
 }
 
 Irradiance::UpdateResult Irradiance::updateOrigin(const Point3 &baseOrigin)
@@ -117,7 +117,7 @@ Irradiance::UpdateResult Irradiance::updateOrigin(const Point3 &baseOrigin)
     return NO_CHANGE;
   const float scaleXZ = 1.f / (voxelSizeXZ * GI_25D_RESOLUTION_X);
   const float scaleY = 1.f / (voxelSizeY * GI_25D_RESOLUTION_Y);
-  ShaderGlobal::set_color4(gi_25d_volmap_tcVarId, scaleXZ, scaleY, -baseOrigin.x * scaleXZ, -baseOrigin.z * scaleXZ);
+  ShaderGlobal::set_float4(gi_25d_volmap_tcVarId, scaleXZ, scaleY, -baseOrigin.x * scaleXZ, -baseOrigin.z * scaleXZ);
 
   Point3 origin = baseOrigin;
   IPoint2 newTexelsOrigin = ipoint2(floor(Point2::xz(origin) / voxelSizeXZ) + Point2(0.5, 0.5));
@@ -139,7 +139,7 @@ Irradiance::UpdateResult Irradiance::updateOrigin(const Point3 &baseOrigin)
     toroidalOrigin = newTexelsOrigin;
     setVars();
     const IPoint2 lt = toroidalOrigin - realRes / 2;
-    ShaderGlobal::set_color4(gi_25d_volmap_invalid_start_widthVarId, lt.x, lt.y, realRes.x, realRes.y);
+    ShaderGlobal::set_float4(gi_25d_volmap_invalid_start_widthVarId, lt.x, lt.y, realRes.x, realRes.y);
     stInvalid = lt;
   }
   else
@@ -169,7 +169,7 @@ Irradiance::UpdateResult Irradiance::updateOrigin(const Point3 &baseOrigin)
   // debug("move 2.5d %@ stInvalid = %@, res = %@", imove, stInvalid, res);
   // if (((stInvalid.x|stInvalid.y) & 3) != 0)
   //   logerr("movement should be aligned");
-  ShaderGlobal::set_color4(gi_25d_volmap_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
+  ShaderGlobal::set_float4(gi_25d_volmap_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
   {
     TIME_D3D_PROFILE(intersection_25d);
 

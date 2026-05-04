@@ -4,6 +4,8 @@
 //
 #pragma once
 
+#include <util/dag_stdint.h>
+
 // 0 - off
 // 1 - only heap stat
 // 2 - heap & video stat (usable, but slower)
@@ -16,14 +18,14 @@ namespace memstat
 
 struct MemoryInfo
 {
-  int dagorMemoryBytes;
-  int dagorMemoryChunks;
+  int64_t dagorMemoryBytes;
+  int64_t dagorMemoryChunks;
 
-  int xmemTex2dBytes;
-  int xmemTex2dChunks;
+  int64_t xmemTex2dBytes;
+  int64_t xmemTex2dChunks;
 
-  int xmemD3DBytes;
-  int xmemD3DChunks;
+  int64_t xmemD3DBytes;
+  int64_t xmemD3DChunks;
 };
 
 void begin_memory_allocation(const char *name, MemoryInfo &current, MemoryInfo &total, bool push = true, bool heap_ptr = false);

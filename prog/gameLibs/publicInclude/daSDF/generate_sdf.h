@@ -19,7 +19,7 @@ public:
   BBox3 localBounds;
   uint8_t mipCountTwoSided = 0;
   uint8_t mipCount() const { return mipCountTwoSided & 0x3; }
-  bool mostlyTwoSided() const { return bool(mipCountTwoSided >> 1); }
+  bool mostlyTwoSided() const { return bool(mipCountTwoSided >> 7); }
   carray<SparseSDFMip, SDF_NUM_MIPS> mipInfo;
 
   dag::Vector<uint8_t> compressedMips;

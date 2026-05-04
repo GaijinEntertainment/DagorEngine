@@ -2,7 +2,6 @@
 #pragma once
 
 #include "Brushes/hmlBrush.h"
-#include <squirrel.h>
 
 #include <EditorCore/ec_brush.h>
 #include <EditorCore/ec_ObjectEditor.h>
@@ -12,12 +11,12 @@
 #include <de3_assetService.h>
 #include <de3_bitMaskMgr.h>
 #include <de3_hmapStorage.h>
+#include "blockedDetTexMap.h"
 #include <de3_heightmap.h>
 #include <de3_roadsProvider.h>
 #include <de3_genObjHierMask.h>
 #include <de3_fileTracker.h>
 #include <de3_landmesh.h>
-#include <coolConsole/iConsoleCmd.h>
 #include <math/dag_color.h>
 
 #include <3d/dag_texMgr.h>
@@ -137,13 +136,13 @@ class HmapLandPlugin : public IGenEditorPlugin,
                        public IRenderingService,
                        public IOnExportNotify,
                        public IPluginAutoSave,
+                       public IPluginBeforeClose,
                        public PropPanel::ControlEventHandler,
                        public IWndManagerWindowHandler,
                        public IPostProcessGeometry,
 #if defined(USE_HMAP_ACES)
                        public IEnvironmentSettings,
 #endif
-                       public IConsoleCmd,
                        public IExportToDag,
                        public IAssetUpdateNotify
 {
@@ -165,11 +164,13 @@ public:
   static bool preferZstdPacking;
   static bool allowOodlePacking;
   static bool pcPreferASTC;
+  static bool includeHiddenLayersInExportedNavMesh;
   static bool useASTC(unsigned tc) { return tc == _MAKE4C('iOS') || (tc == _MAKE4C('PC') && pcPreferASTC); }
 
   static IHmapService *hmlService;
   static IBitMaskImageMgr *bitMaskImgMgr;
   static IDagorPhys *dagPhys;
+  static ISplineGenService *splSrv;
 
   Tab<uint8_t> lcRemap;
 
@@ -210,6 +211,7 @@ public:
   void beforeMainLoop() override;
 
   void registerMenuSettings(unsigned menu_id, int base_id) override;
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerMenuAccelerators() override;
   bool begin(int toolbar_id, unsigned menu_id) override;
   bool end() override;
@@ -223,12 +225,14 @@ public:
   void clearObjects() override;
   void onNewProject() override;
   void autoSaveObjects(DataBlock &local_data) override;
+  void beforeClose() override;
   void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
   void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
   bool acceptSaveLoad() const override { return true; }
 
   void selectAll() override { objEd.selectAll(); }
   void deselectAll() override { objEd.unselectAll(); }
+  void invertSelection() override { objEd.invertSelection(); }
   void invalidateObjectProps() { objEd.invalidateObjectProps(); }
 
   void actObjects(float dt) override;
@@ -264,7 +268,6 @@ public:
   // IRenderingService
   void renderGeometry(Stage stage) override;
   void prepare(const Point3 &center_pos, const BBox3 &box) override;
-  int setSubDiv(int lod) override;
 
   // IGenEventHandler
   IGenEventHandler *getWrappedHandler() override { return &objEd; }
@@ -287,10 +290,6 @@ public:
 
   // IWriteAddLtinputData
   void writeAddLtinputData(IGenSave &cwr) override;
-
-  // IConsoleCmd
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
-  const char *onConsoleCommandHelp(const char *cmd) override;
 
   // ILandmesh
   BBox3 getBBoxWithHMapWBBox() const override;
@@ -377,7 +376,6 @@ public:
   void upscaleHeightMap(CoolConsole &con);
   void resizeHeightMapDet(CoolConsole &con);
   void createColormapFile(CoolConsole &con);
-  void createLightmapFile(CoolConsole &con);
   void resizeLandClassMapFile(CoolConsole &con);
 
   void resetLandmesh() { pendingLandmeshRebuild = true; }
@@ -430,8 +428,6 @@ public:
 
     virtual void save(DataBlock &blk) = 0;
     virtual void load(const DataBlock &blk) = 0;
-
-    virtual void setToScript(HSQUIRRELVM vm) = 0;
 
     virtual bool onPPChangeEx(int pid, PropPanel::ContainerPropertyControl &panel)
     {
@@ -521,13 +517,19 @@ public:
   void *getLayersHandle() const { return landClsLayersHandle; }
   int getDetLayerIdx() const { return detLayerIdx; }
   MapStorage<uint32_t> &getlandClassMap() { return landClsMap; }
+  bool isLandClsMapGenerated() const { return landClsMapGenerated; }
 
-  MapStorage<uint64_t> *getDetTexIdxMap() const { return detTexIdxMap; }
-  MapStorage<uint64_t> *getDetTexWtMap() const { return detTexWtMap; }
+  hmap_storage::BlockedDetTexMap *getDetTexMap() const { return detTexMap; }
   void prepareDetTexMaps();
 
   LandClassSlotsManager &getLandClassMgr() { return *lcMgr; }
   bool setDetailTexSlot(int s, const char *blk_name);
+  // True if any genLayer targets this detail-tex slot with writeDetTex
+  // enabled; false if the slot is registered (has a name) but every layer
+  // feeding it is land-only (writeDetTex=false). Used by the exporter to
+  // tell "legitimately no detTex writes" apart from "masks/thresholds drove
+  // every pixel to zero for a detTex-writing layer".
+  bool isDetTexSlotWritten(int slot_idx) const;
 
   bool exportLightmapToFile(const char *file_name, int target_code, bool high_quality);
 
@@ -563,12 +565,16 @@ public:
   bool getHeight(const Point2 &p, real &ht, Point3 *normal) const;
   void setShowBlueWhiteMask();
 
+  bool isShowingLandClassColors() const { return showLandClassColors; }
+  void refreshLandClassColorsTex() { updateBlueWhiteMask(nullptr); }
+
   void refillPanel(bool schedule_regen = false);
 
   void prepareEditableLandClasses();
   void addGenLayer(const char *name, int insert_before = -1);
   bool moveGenLayer(ScriptParam *gl, bool up);
   bool delGenLayer(ScriptParam *gl);
+  void rebuildLandSlots();
 
   struct HMDetGH
   {
@@ -609,7 +615,6 @@ public:
     return true;
   }
 
-  bool usesGenScript() const { return !colorGenScriptFilename.empty(); }
   PropPanel::ContainerPropertyControl *getPropPanel() const;
 
   bool insideDetRectC(int x, int y) const
@@ -629,6 +634,8 @@ public:
 
   void onObjectSelectionChanged(RenderableEditableObject *obj);
   void onObjectsRemove();
+
+  bool runLandLtmapCmd(dag::ConstSpan<const char *> params);
 
 private:
   // Caches datailed textures for LandMesh
@@ -700,6 +707,8 @@ private:
 
     int hm2displacementQ;
     bool showFinalHM;
+    bool useMetricsHM;
+    bool useHm2Mirror;
 
     RenderParams() { init(); }
 
@@ -743,6 +752,14 @@ private:
   HeightMapStorage heightMap;
 
   MapStorage<uint32_t> &landClsMap;
+  // True once generateLandColors has populated landClsMap (and, when enabled,
+  // colorMap / detTexMap) for the current project open session. Needed
+  // because resizeLandClassMapFile sizes the map to heightMap*lcmScale up
+  // front -- so a getMapSizeX()>0 check passes even for a freshly sized but
+  // empty map. Export guards and LandClassSlotsManager::reinitRIGen check
+  // this bit to avoid acting on the pre-generate zero state. Cleared by
+  // loadObjects and eraseHeightmap; set at the end of generateLandColors.
+  bool landClsMapGenerated = false;
   int lcmScale;
   void *landClsLayersHandle;
   dag::Span<HmapBitLayerDesc> landClsLayer;
@@ -770,7 +787,7 @@ private:
   bool applyHeightBakeSplines = true;
   bool applyHeightBakeSplinesOnEdit = false;
 
-  MapStorage<uint64_t> *detTexIdxMap, *detTexWtMap;
+  hmap_storage::BlockedDetTexMap *detTexMap = nullptr;
 
   int detDivisor;
   HeightMapStorage heightMapDet;
@@ -782,8 +799,8 @@ private:
   int numDetailTextures;
   Tab<SimpleString> detailTexBlkName;
 
-  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, colorGenScriptFilename, lastTexImportPath,
-    lastGATExportPath, lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain, lastWaterHeightmapImportPathDet,
+  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, lastTexImportPath, lastGATExportPath,
+    lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain, lastWaterHeightmapImportPathDet,
     lastWaterHeightmapImportPathMain;
   struct FileChangeStat
   {
@@ -834,7 +851,9 @@ private:
 
   PtrTab<ScriptParam> genLayers;
   bool showBlueWhiteMask;
+  bool showLandClassColors = false;
   void updateBlueWhiteMask(const IBBox2 *);
+  void updateLandClassColorsTex();
   void updateGenerationMask(const IBBox2 *rect);
 
   bool showMonochromeLand;
@@ -933,7 +952,7 @@ private:
   bool exportLandMesh(mkbindump::BinDumpSaveCB &cwr, IWriterToLandmesh *land_modifier, LandRayTracer *raytracer,
     bool tools_internal = false);
 
-  void generateLandColors(const IBBox2 *in_rect = NULL, bool finished = true);
+  void generateLandColors(const IBBox2 *in_rect = NULL, bool finished = true, bool may_rebuild_lmesh_if_needed = true);
 
   void onLandRegionChanged(int x0, int y0, int x1, int y1, bool recalc_all = false, bool finished = true);
   void onWholeLandChanged();
@@ -968,12 +987,6 @@ private:
 
   void rebuildWaterSurface(Tab<Point3> *loft_pt_cloud = NULL, Tab<Point3> *water_border_polys = NULL,
     Tab<Point2> *hmap_sweep_polys = NULL);
-
-  bool compileAndRunColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func);
-  void closeColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func);
-  bool createDefaultScript(const char *path) const;
-
-  bool getColorGenVarsFromScript();
 
   bool loadGenLayers(const DataBlock &blk);
   bool saveGenLayers(DataBlock &blk);

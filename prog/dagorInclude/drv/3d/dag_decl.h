@@ -160,7 +160,18 @@ protected:
 public:
   const RTState &getColor(int index) const { return color[index]; }
   const RTState &getDepth() const { return depth; }
+#if INSIDE_DRIVER
+  // Now it is used only in drivers. To enable it globally we need to support not null backbuffer textures.
+  // It is not guaranteed that color[0].tex == nullptr means backbuffer. At least in vulkan it does not work.
+  //
+  // It could be fixed by adding a check that the tex is equal to bb, like:
+  // `(!color[0].tex || d3d::get_backbuffer_tex() == rt.getColor(0).tex)`.
+  // But it requires d3d::get_backbuffer_tex() call here that we may want to avoid,
+  // as well it is not thread safe in some backends.
+  //
+  // Better solution could be adding separate flags to `used` for backbuffer indication. Probably it is the best way.
   bool isBackBufferColor() const { return (used & COLOR0) && !color[0].tex; }
+#endif
   bool isColorUsed(int index) const { return used & (COLOR0 << index); }
   bool isDepthUsed() const { return used & DEPTH; }
   bool isColorUsed() const { return (used & COLOR_MASK); }
@@ -236,13 +247,38 @@ struct DrawIndexedIndirectArgs
   uint32_t startInstanceLocation;
 };
 
-#define DRAW_INDIRECT_NUM_ARGS            4
-#define DRAW_INDEXED_INDIRECT_NUM_ARGS    5
-#define DISPATCH_INDIRECT_NUM_ARGS        3
-#define INDIRECT_BUFFER_ELEMENT_SIZE      sizeof(uint32_t)
-#define DRAW_INDIRECT_BUFFER_SIZE         (DRAW_INDIRECT_NUM_ARGS * INDIRECT_BUFFER_ELEMENT_SIZE)
-#define DRAW_INDEXED_INDIRECT_BUFFER_SIZE (DRAW_INDEXED_INDIRECT_NUM_ARGS * INDIRECT_BUFFER_ELEMENT_SIZE)
-#define DISPATCH_INDIRECT_BUFFER_SIZE     (DISPATCH_INDIRECT_NUM_ARGS * INDIRECT_BUFFER_ELEMENT_SIZE)
+struct DrawIndirectArgsWithId
+{
+  uint32_t drawcallId;
+  DrawIndirectArgs args;
+};
+
+struct DrawIndexedIndirectArgsWithId
+{
+  uint32_t drawcallId;
+  DrawIndexedIndirectArgs args;
+};
+
+struct DispatchMeshIndirectArgs
+{
+  uint32_t threadGroupCountX;
+  uint32_t threadGroupCountY;
+  uint32_t threadGroupCountZ;
+};
+
+#define INDIRECT_BUFFER_ELEMENT_SIZE        sizeof(uint32_t)
+#define DRAW_INDIRECT_NUM_ARGS              static_cast<uint32_t>(sizeof(::DrawIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DRAW_INDEXED_INDIRECT_NUM_ARGS      static_cast<uint32_t>(sizeof(::DrawIndexedIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DRAW_INDIRECT_WITH_DRAW_ID_NUM_ARGS static_cast<uint32_t>(sizeof(::DrawIndirectArgsWithId) / INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DRAW_INDEXED_INDIRECT_WITH_DRAW_ID_NUM_ARGS \
+  static_cast<uint32_t>(sizeof(::DrawIndexedIndirectArgsWithId) / INDIRECT_BUFFER_ELEMENT_SIZE)
+// TODO: should use RayDispatchIndirectArguments but its not available here
+#define DISPATCH_COMPUTE_AS_RAY_GEN_NUM_ARGS static_cast<uint32_t>(26)
+#define DRAW_INDIRECT_BUFFER_SIZE            static_cast<uint32_t>(sizeof(::DrawIndirectArgs))
+#define DRAW_INDEXED_INDIRECT_BUFFER_SIZE    static_cast<uint32_t>(sizeof(::DrawIndexedIndirectArgs))
+#define DISPATCH_INDIRECT_NUM_ARGS           3
+#define DISPATCH_INDIRECT_BUFFER_SIZE        (DISPATCH_INDIRECT_NUM_ARGS * INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DISPATCH_MESH_NUM_ARGS               static_cast<uint32_t>(sizeof(::DispatchMeshIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
 
 #define INPUT_VERTEX_STREAM_COUNT 4
 
@@ -300,6 +336,7 @@ struct XessParams
   float inInputHeight;
   int inColorDepthOffsetX;
   int inColorDepthOffsetY;
+  bool inReset;
 
   BaseTexture *outColor;
 };

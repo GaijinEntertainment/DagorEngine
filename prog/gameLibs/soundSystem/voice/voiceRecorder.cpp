@@ -3,9 +3,11 @@
 #include "voiceRecorder.h"
 #include "helpers.h"
 #include <soundSystem/voiceCommunicator.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <debug/dag_debug.h>
 #include <util/dag_convar.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <webrtc/api/audio/audio_processing.h>
 
 #if defined(USE_RNNOISE_DENOISER)
 #include <rnnoise.h>
@@ -17,13 +19,20 @@ static CONSOLE_BOOL_VAL("voice", preprocess_enabled, true);
 namespace voicechat
 {
 
+#if defined(USE_RNNOISE_DENOISER)
+// RNN supports only 48 khz sample rate
 static const int sample_rate = 48000;
-static const int frame_size = 480; // 10ms
+#else
+static const int sample_rate = 32000;
+#endif
+
+// WebRTC operates only with 10ms frames
+static const int frame_size = sample_rate / 100; // 10ms
 static const FMOD_SOUND_FORMAT sample_format = FMOD_SOUND_FORMAT_PCM16;
 static const int sample_size = get_bytes_from_format(sample_format);
 
 #if defined(USE_RNNOISE_DENOISER)
-static const float rnnoise_gain = 0.95f;
+
 static const float rnnoise_vad_prob_threshold = 0.6;
 static const float rnnoise_vad_silence_delay_ms = 300;
 #endif
@@ -68,60 +77,53 @@ static dag::ConstSpan<int16_t> resample(SpeexResamplerState_ *&resampler, int ra
 VoiceRecorder::VoiceRecorder(int output_samplerate) : outputSamplerate(output_samplerate)
 {
   memset(&recordSoundInfo, 0, sizeof(recordSoundInfo));
-  speexEchoSt = speex_echo_state_init(frame_size, frame_size * 30); // 10ms ... 300ms
-  int sampleRate = sample_rate;
-  speex_echo_ctl(speexEchoSt, SPEEX_ECHO_SET_SAMPLING_RATE, &sampleRate);
-
-  speexPPSt = speex_preprocess_state_init(frame_size, sample_rate);
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_ECHO_STATE, speexEchoSt);
-  int val = 1;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_DEREVERB, &val);
-  val = -30;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &val);
-
-  val = 1;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_AGC, &val);
-  val = 16000;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_AGC_TARGET, &val);
-
-
+  webrtc::AudioProcessing::Config config;
+  webrtcAP = webrtc::AudioProcessingBuilder().Create();
 #if defined(USE_RNNOISE_DENOISER)
   denoiseSt = rnnoise_create(nullptr);
   G_ASSERT(rnnoise_get_frame_size() == frame_size);
   denoiseBuf.resize(frame_size);
   debug("[VC] use RNNoise denoiser");
+  config.noise_suppression.enabled = false;
 #else
-  val = 1;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_DENOISE, &val);
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_VAD, &val);
-
-  val = 70;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_PROB_START, &val);
-
-  val = 90;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &val);
-
-  val = -30;
-  speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &val);
-  debug("[VC] use speex denoiser");
+  debug("[VC] use WebRTC denoiser");
+  config.noise_suppression.enabled = true;
 #endif
+
+  config.pipeline.maximum_internal_processing_rate = sample_rate;
+  config.pipeline.multi_channel_capture = false;
+  config.pipeline.multi_channel_render = false;
+  config.echo_canceller.enabled = true;
+  config.echo_canceller.mobile_mode = false;
+  config.gain_controller1.enabled = false;
+  config.gain_controller2.enabled = true;
+  config.gain_controller2.input_volume_controller.enabled = false;
+  config.gain_controller2.adaptive_digital.enabled = true;
+  config.noise_suppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kHigh;
+  config.high_pass_filter.enabled = true;
+  config.capture_level_adjustment.enabled = true;
+
+  webrtc::ProcessingConfig procConf{{{sample_rate, 1}, {sample_rate, 1}, {sample_rate, 1}, {sample_rate, 1}}};
+  if (auto res = webrtcAP->Initialize(procConf); res != webrtc::AudioProcessing::kNoError)
+    debug("[VC] failed initialized WebRTC AP %d", res);
+  webrtcAP->ApplyConfig(config);
 }
 
 VoiceRecorder::~VoiceRecorder()
 {
   if (feedback)
     feedback->shutdown();
-  if (speexEchoSt)
-    speex_echo_state_destroy(speexEchoSt);
-  if (speexPPSt)
-    speex_preprocess_state_destroy(speexPPSt);
   if (outputResampler)
     speex_resampler_destroy(outputResampler);
+  if (rawOutputResampler)
+    speex_resampler_destroy(rawOutputResampler);
 #if defined(USE_RNNOISE_DENOISER)
   if (denoiseSt)
     rnnoise_destroy(denoiseSt);
 #endif
 }
+
+void VoiceRecorder::setRawOutputEnabled(bool enabled) { interlocked_release_store(rawOutputEnabled, enabled ? 1 : 0); }
 
 dag::Span<int16_t> VoiceRecorder::readFrames(FMOD::System *fmod_sys, const SoundSettings &sound_settings)
 {
@@ -159,20 +161,45 @@ dag::Span<int16_t> VoiceRecorder::readFrames(FMOD::System *fmod_sys, const Sound
     recordPos = (recordPos + readSamples) % recordSoundSamples;
   }
 
+  // Snapshot raw capture before postprocessFrame which may modify PCMBuf1 in-place.
+  // snapshotRawCapture is set by readMicData from its single atomic load of rawOutputEnabled.
+  if (snapshotRawCapture)
+  {
+    rawCaptureBuf.resize(PCMBuf1.size());
+    memcpy(rawCaptureBuf.data(), PCMBuf1.data(), PCMBuf1.size() * sizeof(int16_t));
+  }
+
   return postprocessFrame(recordSource, sound_settings);
 }
 
-dag::ConstSpan<int16_t> VoiceRecorder::readMicData(FMOD::System *fmod_sys, const SoundSettings &sound_settings)
+dag::ConstSpan<int16_t> VoiceRecorder::readMicData(FMOD::System *fmod_sys, const SoundSettings &sound_settings,
+  dag::ConstSpan<int16_t> *out_raw)
 {
   if (!isRecording || !sound_settings.micEnabled || !recordSound.get() || sound_settings.recordDeviceId < 0)
     return {};
 
+  // Sample the flag once -- setRawOutputEnabled() is called from another thread,
+  // so a single load avoids split decisions between readFrames and the resample below.
+  bool wantRaw = out_raw && interlocked_acquire_load(rawOutputEnabled);
+
+  snapshotRawCapture = wantRaw;
   dag::Span<int16_t> pcmFrames = readFrames(fmod_sys, sound_settings);
   if (pcmFrames.empty())
     return {};
+
   int outputSamples = re_rate(pcmFrames.size(), sample_rate, outputSamplerate);
   outputBuf.resize(outputSamples);
-  return resample(outputResampler, sample_rate, pcmFrames, outputSamplerate, make_span(outputBuf.data(), outputSamples));
+  auto result = resample(outputResampler, sample_rate, pcmFrames, outputSamplerate, make_span(outputBuf.data(), outputSamples));
+
+  if (wantRaw)
+  {
+    int rawOutputSamples = re_rate(rawCaptureBuf.size(), sample_rate, outputSamplerate);
+    rawOutputBuf.resize(rawOutputSamples);
+    *out_raw = resample(rawOutputResampler, sample_rate, make_span(rawCaptureBuf), outputSamplerate,
+      make_span(rawOutputBuf.data(), rawOutputSamples));
+  }
+
+  return result;
 }
 
 dag::Span<int16_t> VoiceRecorder::postprocessFrame(dag::Span<int16_t> pcm_frames, const SoundSettings &sound_settings)
@@ -180,16 +207,49 @@ dag::Span<int16_t> VoiceRecorder::postprocessFrame(dag::Span<int16_t> pcm_frames
   if (pcm_frames.empty())
     return {};
   const int numFrames = pcm_frames.size() / frame_size;
+  dag::Span<int16_t> pcmResult = pcm_frames;
+  webrtc::StreamConfig sconf = {sample_rate, 1};
+  if (!pcmResult.empty())
+  {
+    if (preprocess_enabled)
+    {
+      PCMBuf2.resize(pcm_frames.size());
+      pcmResult = make_span(PCMBuf2.data(), PCMBuf2.size());
+      webrtcAP->set_stream_delay_ms(0);
+      webrtcAP->SetRuntimeSetting(webrtc::AudioProcessing::RuntimeSetting::CreateCapturePostGain(sound_settings.recordVolume));
+      for (unsigned i = 0; i < numFrames; ++i)
+      {
+        dag::ConstSpan<int16_t> frameIn = pcm_frames.subspan(i * frame_size, frame_size);
+        dag::Span<int16_t> frameOut = pcmResult.subspan(i * frame_size, frame_size);
+        dag::ConstSpan<int16_t> echoSource = feedback->lockFrame();
+        if (!echoSource.empty())
+          webrtcAP->ProcessReverseStream(echoSource.data(), sconf, sconf, frameOut.data());
+        feedback->unlockFrame();
+        if (auto res = webrtcAP->ProcessStream(frameIn.data(), sconf, sconf, frameOut.data());
+            res != webrtc::AudioProcessing::kNoError)
+        {
+          debug("[VC] ProcessStream returned an error %d", res);
+        }
+      }
+    }
+    else
+    {
+      if (!pcmResult.empty() && fabsf(1.0f - sound_settings.recordVolume) > 0.01f)
+        for (int16_t &sample : pcmResult)
+          sample = clamp<int>(float(sample) * sound_settings.recordVolume, INT16_MIN, INT16_MAX);
+    }
+  }
+
 #if defined(USE_RNNOISE_DENOISER)
-  if (denoise_enabled)
+  if (denoise_enabled && !pcmResult.empty())
   {
     float speechProb = 0.0f;
     for (int n = 0; n < numFrames; ++n)
     {
-      dag::Span<int16_t> frame = pcm_frames.subspan(n * frame_size, frame_size);
-      // rnnoise uses not floating point PCM with -1:1 range. It requires 16-bit PCM in floating-point represantation
+      dag::Span<int16_t> frame = pcmResult.subspan(n * frame_size, frame_size);
+      // RNNNoise works with float samples in range INT16_MIN/INT16_MAX
       for (unsigned i = 0; i < frame.size(); ++i)
-        denoiseBuf[i] = frame[i] * rnnoise_gain;
+        denoiseBuf[i] = frame[i];
       // it is ok too have same buffer for input and output
       speechProb = max(speechProb, rnnoise_process_frame(denoiseSt, &denoiseBuf[0], &denoiseBuf[0]));
       for (unsigned i = 0; i < frame.size(); ++i)
@@ -201,47 +261,15 @@ dag::Span<int16_t> VoiceRecorder::postprocessFrame(dag::Span<int16_t> pcm_frames
       if (silenceStartMs == 0)
         silenceStartMs = now;
       else if (now - silenceStartMs > rnnoise_vad_silence_delay_ms)
-        return {};
+        pcmResult.reset();
     }
     else
+    {
       silenceStartMs = 0;
+    }
   }
 #endif
 
-  dag::Span<int16_t> pcmResult = pcm_frames;
-  if (preprocess_enabled)
-  {
-    bool speech = false;
-    PCMBuf2.resize(pcm_frames.size());
-    pcmResult = make_span(PCMBuf2.data(), PCMBuf2.size());
-    for (unsigned i = 0; i < numFrames; ++i)
-    {
-      dag::ConstSpan<int16_t> frameIn = pcm_frames.subspan(i * frame_size, frame_size);
-      dag::Span<int16_t> frameOut = pcmResult.subspan(i * frame_size, frame_size);
-
-      dag::ConstSpan<int16_t> echoSource = feedback->lockFrame();
-      if (!echoSource.empty())
-        speex_echo_cancellation(speexEchoSt, frameIn.data(), echoSource.data(), frameOut.data());
-      feedback->unlockFrame();
-      if (echoSource.empty())
-        mem_copy_from(frameOut, frameIn.data());
-      speech |= speex_preprocess_run(speexPPSt, frameOut.data()) == 1;
-    }
-    if (false)
-    {
-      int loudness = 0;
-      speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_GET_AGC_LOUDNESS, &loudness);
-      int gain = 0;
-      speex_preprocess_ctl(speexPPSt, SPEEX_PREPROCESS_GET_AGC_GAIN, &gain);
-      debug("[VC] loudness %d gain %d", loudness, gain);
-    }
-    if (!speech)
-      pcmResult.reset();
-  }
-
-  if (!pcmResult.empty() && fabsf(1.0f - sound_settings.recordVolume) > 0.01f)
-    for (int16_t &sample : pcmResult)
-      sample = clamp<int>(float(sample) * sound_settings.recordVolume, INT16_MIN, INT16_MAX);
   return pcmResult;
 }
 
@@ -310,6 +338,7 @@ bool VoiceRecorder::startRecord(FMOD::System *fmod_sys, const SoundSettings &sou
     feedback->enable();
     isRecording = true;
   }
+  webrtcAP->Initialize();
   return true;
 }
 
@@ -319,7 +348,6 @@ void VoiceRecorder::stopRecord(FMOD::System *fmod_sys, const SoundSettings &soun
   fmod_sys->recordStop(sound_settings.recordDeviceId);
   isRecording = false;
   feedback->disable();
-  speex_echo_state_reset(speexEchoSt);
   outputBuf.clear();
 }
 

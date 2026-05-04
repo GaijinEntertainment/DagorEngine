@@ -18,17 +18,26 @@ int JoystickHandler::onJoystickStateChanged(dag::ConstSpan<IGuiScene *> scenes, 
   const HumanInput::JoystickRawState &rs = joy->getRawState();
 
   if (is_main_thread())
-  {
-    curJoy = joy;
-    curJoyOrdId = joy_ord_id;
+  { // Pre-init on first event: CompositeJoystick has an optional (non-default) mode that only updates
+    // real device states in the polling thread and no btn changes will be passed here. But for explicit
+    // joystick handlers we must still update active joy on btn press/release.
+    if (lastActiveJoyOrdId < 0)
+    {
+      lastActiveJoy = joy;
+      lastActiveJoyOrdId = joy_ord_id;
+    }
     int result = processPendingBtnStack(scenes);
     if (!rs.buttons.cmpEq(rs.buttonsPrev))
+    {
+      lastActiveJoy = joy;
+      lastActiveJoyOrdId = joy_ord_id;
       result |= dispatchJoystickStateChanged(scenes, rs.buttons, rs.buttonsPrev);
+    }
     return result;
   }
   else
   {
-    if (joy != curJoy || joy_ord_id != curJoyOrdId)
+    if (joy != lastActiveJoy || joy_ord_id != lastActiveJoyOrdId)
       return 0;
     if (rs.buttons.cmpEq(rs.buttonsPrev))
       return 0;
@@ -56,7 +65,8 @@ int JoystickHandler::dispatchJoystickStateChanged(dag::ConstSpan<IGuiScene *> sc
       for (IGuiScene *scn : scenes)
       {
         G_ASSERT(scn);
-        result |= scn->onJoystickBtnEvent(curJoy, map_flag_to_input_ev[buttons.get(i) ? 1 : 0], i, curJoyOrdId, buttons, result);
+        HumanInput::IGenJoystick *joy = scn->getJoystick(lastActiveJoyOrdId); // Can't used cached joy, can be lost already
+        result |= scn->onJoystickBtnEvent(joy, map_flag_to_input_ev[buttons.get(i) ? 1 : 0], i, lastActiveJoyOrdId, buttons, result);
       }
     }
   }

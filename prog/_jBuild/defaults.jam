@@ -8,6 +8,7 @@ if ! $(__DEFAULTS_INCLUDED) {
 
   include $(Root)/prog/_jBuild/defPlatform.jam ;
 
+  if $(UseGDK) = yes { PlatformSpec ?= clang ; }
   PlatformSpec_$(Platform) ?= $(PlatformSpec_$(Platform)_$(PlatformArch)) ;
   PlatformSpec_windows ?= vc17 ;
   PlatformSpec_xboxOne ?= clang ;
@@ -20,7 +21,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   PlatformSpec_nswitch ?= clang ;
   PlatformSpec_android ?= clang ;
   PlatformSpec_linux ?= gcc ;
-  CLangVer ?= 18.1.8 ;
+  CLangVer ?= 21.1.8 ;
   DefaultCPPStd = 20 ;
   CPPStd ?= 20 ;
   Sanitize ?= disabled ;
@@ -64,10 +65,10 @@ if ! $(__DEFAULTS_INCLUDED) {
   local 1050 = 700 ;
   local 850 = 300 ;
   PS4CrossGenSdkVer ?= $($(PS4SdkVer)) ;
-  PS5SdkVer     ?= 900 ;
+  PS5SdkVer     ?= 1100 ;
   MacOSXVer     ?= 11.0 ;
   MacOSXMinVer  ?= $(MacOSXVer) ;
-  iOSVer        ?= 15.0 ;
+  iOSVer        ?= 16.0 ;
   iOSMinVer     ?= $(iOSVer) ;
   tvOSVer       ?= 11.4 ;
   tvOSMinVer    ?= $(tvOSVer) ;
@@ -97,10 +98,12 @@ if ! $(__DEFAULTS_INCLUDED) {
   BundleVersion ?= 1.0.0 ;
   ZstdVer       ?= 1.4.5 ;
   DbgDigest     ?= once ;  # once, min, max, stop
-  AgilitySdkVer ?= 1.616.1 ;
-  AgsSdkVer     ?= 6.2.0 ;
+  AgilitySdkVer ?= 1.619.0 ;
+  AgsSdkVer     ?= 6.3.0 ;
+  NvApiVer      ?= R590 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
+  FidelityFXVer ?= 2.1.1 ;
 
   if $(Platform) = nswitch {
     # 3.x fails silently somewhere deep inside of macro hell
@@ -111,7 +114,7 @@ if ! $(__DEFAULTS_INCLUDED) {
     UseGDK = yes ; # we always use GDK on xbox platforms.
   }
 
-  if ! $(Platform) in windows xboxOne scarlett && $(UseGDK) != no {
+  if ! $(Platform) in windows xboxOne scarlett && $(UseGDK) = yes {
     exit GDK is supported only for windows, xboxOne and scarlett targets ;
   }
 
@@ -161,13 +164,8 @@ if ! $(__DEFAULTS_INCLUDED) {
     CatchSEH ?= no ;
     Rtti ?= no ;
   }
-  
-  UseWholeOpt ?= no ;
-  UseMemTracker ?= no ;
 
-  if $(UseMemTracker) != no {
-    UseMemoryDebugLevel = mtrk ;
-  }
+  UseWholeOpt ?= no ;
 
   if $(Config) in rel irel { MimDebug ?= 0 ; }
   else { MimDebug ?= 2 ; }
@@ -196,8 +194,8 @@ if ! $(__DEFAULTS_INCLUDED) {
     GDEVTOOL ?= $(HOME)/devtools ;
   }
 
-  if ! $(_DEVTOOL) && ! $(GDEVTOOL) { 
-    EXIT 'GDEVTOOL' (or '_DEVTOOL') env-variable must be defined (in UPPERCASE!), aborting ; 
+  if ! $(_DEVTOOL) && ! $(GDEVTOOL) {
+    EXIT 'GDEVTOOL' (or '_DEVTOOL') env-variable must be defined (in UPPERCASE!), aborting ;
   }
   _DEVTOOL ?= $(GDEVTOOL) ;
   # construct _DEVTOOL_RE compatible with regexp syntax
@@ -284,12 +282,13 @@ if ! $(__DEFAULTS_INCLUDED) {
       target = $(target:B)-fuzz$(target:S) ;
     }
 
-    if $(Platform) = windows && $(UseGDK) != no {
+    if $(Platform) = windows && $(UseGDK) = yes {
       target = $(target:B)-gdk$(target:S) ;
     }
 
     if $(Sanitize) != disabled {
       local address = asan ;
+      local hwaddress = hwasan ;
       local thread = tsan ;
       local leak = lsan ;
       local undefined = ubsan ;
@@ -348,6 +347,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   {
     local _platform = $(Platform) ;
     local _platform_spec = $(PlatformSpec) ;
+    local _platform_arch = $(PlatformArch) ;
 
     if $(Platform) in xboxOne scarlett {
       if $(PlatformSpec) = clang { _platform_spec = $(_platform_spec)-$(CLangVer) ; }
@@ -358,7 +358,6 @@ if ! $(__DEFAULTS_INCLUDED) {
       _platform_spec = $(_platform_spec)-$(CLangVer) ;
     }
     if $(PlatformOutputDir) { _platform_spec = $(PlatformOutputDir) ; }
-
     if $(Platform) = ps4 {
       _platform = $(_platform)-$(PS4SdkVer) ;
       if $(PS4CrossGenSdkVer) != none { _platform = $(_platform)c$(PS4CrossGenSdkVer) ; }
@@ -368,9 +367,12 @@ if ! $(__DEFAULTS_INCLUDED) {
       _platform = $(_platform)-$(GdkVer) ;
     } else if $(Platform) = macOS {
       _platform = $(_platform)-$(MacOSXVer)~m$(MacOSXMinVer) ;
-      if $(PlatformArch) = arm64 {
+      if $(PlatformArch) = arm64 || $(MacUniversalBinary) = yes {
         local ver = [ MATCH "([^\.]+)\.(.+)" : $(MacOSXMinVer) ] ;
-        if ! $(ver[0]) || ! $(ver[0]) in 11 12 13 14 15 { Exit PlatformArch=$(PlatformArch) requires MacOSXMinVer 11+ ($(MacOSXMinVer) is not allowed) ; }
+        if ! $(ver[0]) || ! $(ver[0]) in 11 12 13 14 15 {
+          Exit PlatformArch=arm64 (or x86_64+arm64 universal binary) requires MacOSXMinVer 11+ ($(MacOSXMinVer) is not allowed) ;
+        }
+        if $(MacUniversalBinary) = yes { _platform_arch = x86_64~arm64~universal ; }
       }
     } else if $(Platform) = iOS {
       _platform = $(_platform)-$(iOSVer)~m$(iOSMinVer) ;
@@ -386,12 +388,14 @@ if ! $(__DEFAULTS_INCLUDED) {
       if ( ! $(ver[2]) ) || ( ! $(ver[1]) in win win32 ) { Exit bad WinSdkVer\=$(WinSdkVer) ; }
       if $(ver[2]) = sdk && $(ver[3]) { ver = $(ver[3]) ; } else { ver = $(ver[2-]:J) ; }
       _platform = $(_platform)-$(ver) ;
-      if $(UseGDK) != no {
+      if $(UseGDK) = yes {
         _platform = $(_platform)-g$(GdkVer) ;
       }
     }
 
-    local out = $(_platform)~$(PlatformArch)~$(Config)~$(_platform_spec) ;
+    local out = $(_platform)~$(_platform_arch)~$(Config)~$(_platform_spec) ;
+
+    if $(Platform) = linux && $(MAbi) && $(MAbi) != 64 { out = $(out)~m$(MAbi) ; }
 
     if $(CPPStd) != $(DefaultCPPStd) {
       out = $(out)~cpp$(CPPStd) ;
@@ -415,7 +419,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       out = $(out)~krnlimp ;
     }
 
-    if $(Platform) in windows macOS linux {
+    if $(Platform) in windows macOS linux && $(PlatformArch) in x86 x86_64 e2k {
       out = $(out)~s$(SSEVersion) ;
     }
     if $(Platform) in windows xboxOne scarlett {
@@ -427,7 +431,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       }
     }
     if $(ForceLogs) = yes {
-      if $(Config) != rel { Exit why set ForceLogs=$(ForceLogs) for Config=$(Config) \!\= rel  ?? ; }
+      if ! $(Config) in rel irel { Exit why set ForceLogs=$(ForceLogs) for Config=$(Config) \!\= rel  ?? ; }
       if ! -DDAGOR_FORCE_LOGS in $(GlobalCPPopt) { GlobalCPPopt += -DDAGOR_FORCE_LOGS ; }
       out = $(out)~log ;
     }

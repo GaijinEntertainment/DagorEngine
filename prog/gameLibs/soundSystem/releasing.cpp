@@ -6,9 +6,9 @@
 #include <fmod_studio.hpp>
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/debug.h>
-#include "internal/events.h"
+#include "internal/events_internal.h"
 #include "internal/releasing.h"
-#include "internal/debug.h"
+#include "internal/debug_internal.h"
 
 static WinCritSec g_releasing_cs;
 #define SNDSYS_RELEASING_BLOCK WinAutoLock releasingLock(g_releasing_cs);

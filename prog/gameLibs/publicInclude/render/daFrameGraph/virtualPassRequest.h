@@ -133,7 +133,7 @@ private:
  */
 class VirtualPassRequest
 {
-  friend class Registry;
+  friend class BaseRegistry;
   VirtualPassRequest(NodeNameId node, InternalRegistry *reg);
 
   using RRP = detail::ResourceRequestPolicy;

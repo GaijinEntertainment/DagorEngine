@@ -70,7 +70,9 @@ struct DafxEmitterInfo
     unsigned int lim = dafx::get_emitter_limit(em, true);
     if (lim >= cfg.emission_limit)
     {
-      logerr("dafx::emitter, over emitter limit");
+      logerr("dafx::emitter: Emission count limit exceeded! Max allowed: %d, required by effect: %d ; If this is intentional, then "
+             "increase 'fxEmissionLimit' in config.",
+        cfg.emission_limit, lim);
       return false;
     }
 

@@ -39,8 +39,6 @@ shader ssgi_calc_envi_ambient_cube_cs
     #include <parallel_average_cube.hlsl>
   }
 
-  ENABLE_ASSERT(cs)
-
   hlsl(cs) {
     #include <fibonacci_sphere.hlsl>
     #include <pcg_hash.hlsl>
@@ -97,8 +95,6 @@ shader ssgi_average_ambient_cube_cs//32 group is minimum for 2-stage reduction, 
       RWStructuredBuffer<AmbientCube> ambient_cubes@uav;
     };
   }
-
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     [numthreads(THREADS_PER_GROUP, 1, 1)]

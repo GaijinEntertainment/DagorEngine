@@ -22,6 +22,7 @@ Sources =
   dafxModFxSystem.cpp
   dafxSystemDesc.cpp
   modfx/modfx_cpu.cpp
+  stub/outdatedFx.cpp
 
   $(fxList).cpp
 ;

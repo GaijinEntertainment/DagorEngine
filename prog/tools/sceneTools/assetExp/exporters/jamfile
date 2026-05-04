@@ -15,7 +15,6 @@ Sources =
   static_exp_lib.cpp
   exp_skeleton_tools.cpp
   exp_tools.cpp
-  fxExpStubs.cpp
   modelExpUtil.cpp
 
   a2dExp.cpp a2dOptimizer.cpp
@@ -82,7 +81,6 @@ UseProgLibs =
   tools/libTools/collision
   tools/sceneTools/daEditorX/services/bitMaskMgr
 
-  tools/sceneTools/assetExp/exporters/scriptHelpersLt
   commonFx/commonFxTools
 
   3rdPartyLibs/math/srcc_msu
@@ -138,6 +136,7 @@ if $(DabuildEmbeddedInGame) != yes {
 } else {
   Target  = $(Target:S=~emb.lib) ;
   CPPopt += -D_TARGET_EXPORTERS_STATIC ;
+  Dependencies += $(Root)/$(Location)/jamfile-stubsForMissingEditorCode ;
 }
 
 if $(PlatformArch) = e2k {

@@ -6,14 +6,14 @@ interval clouds_use_fullres: no < 1, yes;
 
 macro USE_CLOUDS_DISTANCE(code)
   (code) {
-    clouds_tile_distance@smp2d = clouds_tile_distance;
+    clouds_tile_distance@tex2d = clouds_tile_distance;
   }
   hlsl(code) {
   ##if clouds_tile_distance != NULL
     #define CLOUDS_HAS_TILED_DIST 1
     float closest_tiled_dist_packed(uint2 scrPos)
     {
-      return clouds_tile_distance[scrPos>>3].x;
+      return clouds_tile_distance[uint2(scrPos * current_inv_dynamic_resolution_scale)>>3].x;
     }
     float closest_tiled_dist(uint2 scrPos)
     {

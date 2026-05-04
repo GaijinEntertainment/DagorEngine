@@ -9,12 +9,12 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <debug/dag_debug.h>
 #include <ioSys/dag_genIo.h>
 #include <image/dag_texPixel.h>
-#include <3d/dag_gpuConfig.h>
 
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>
@@ -27,7 +27,6 @@
 
 #include <osApiWrappers/dag_critSec.h>
 #include <image/dag_dxtCompress.h>
-#include <drv/3d/dag_tex3d.h>
 #include <math/dag_imageFunctions.h>
 #include <vecmath/dag_vecMath.h>
 #include <validation/texture.h>
@@ -38,7 +37,7 @@ using namespace drv3d_metal;
 
 namespace drv3d_metal
 {
-  extern Driver3dDesc g_device_desc;
+  extern DriverDesc g_device_desc;
 }
 
 /// create texture; if img==NULL, size (w/h) must be specified
@@ -47,7 +46,7 @@ namespace drv3d_metal
 /// if levels==0, whole mipmap set will be created if device supports mipmaps
 /// img format is TexPixel32
 /// returns NULL on error
-::Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char* name)
+::Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char* name, ResourceTagType)
 {
   check_texture_creation_args(w, h, flg, name);
   if (img != NULL)
@@ -147,22 +146,22 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
   return tex;
 }
 
-CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *name)
+CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *name, ResourceTagType)
 {
   return new drv3d_metal::Texture(size, size, levels, 1, D3DResourceType::CUBETEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
-VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char* name)
+VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char* name, ResourceTagType)
 {
   return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::VOLTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
-ArrayTexture *d3d::create_cube_array_tex(int size, int d, int flg, int levels, const char *name)
+ArrayTexture *d3d::create_cube_array_tex(int size, int d, int flg, int levels, const char *name, ResourceTagType)
 {
   return new drv3d_metal::Texture(size, size, levels, d, D3DResourceType::CUBEARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
-ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char* name)
+ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char* name, ResourceTagType)
 {
   return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::ARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }

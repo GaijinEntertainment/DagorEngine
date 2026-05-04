@@ -5,7 +5,7 @@
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_direct.h>
 
-String get_template_text_src_envi_cover(uint32_t variant)
+String get_template_text_src_envi_cover(uint32_t variant, NodeBasedShaderQuality nbs_quality)
 {
   G_UNUSED(variant);
 
@@ -16,6 +16,7 @@ String get_template_text_src_envi_cover(uint32_t variant)
   templateNames.push_back(String("../../../daSDF/shaders/world_sdf.hlsli")); // Needs to be before globalHlsl
   templateNames.push_back(String("enviCoverDefines.hlsli"));
   templateNames.push_back(String("../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"));
+  templateNames.push_back(String("../../../publicInclude/render/nbs_spheres.hlsli"));
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
   templateNames.push_back(String("../../../publicInclude/render/light_consts.hlsli"));
   templateNames.push_back(String("../../../render/shaders/camera_in_camera.hlsl"));
@@ -35,11 +36,22 @@ String get_template_text_src_envi_cover(uint32_t variant)
   templateNames.push_back(String("../../../render/shaders/gravity_zones_funcs.hlsl"));
   templateNames.push_back(String("../../../daSDF/shaders/world_sdf_math.hlsl"));
   templateNames.push_back(String("../../../daSDF/shaders/world_sdf_use.hlsl"));
+  templateNames.push_back(String("../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"));
+  templateNames.push_back(String("../../../publicInclude/render/enviCover/enviCoverThread.hlsli"));
 
   switch (static_cast<NodeBasedShaderEnviCoverVariant>(variant))
   {
+    case NodeBasedShaderEnviCoverVariant::ENVI_COVER_WITH_NORMS_PACKED:
+      templateNames.insert(templateNames.begin(), String("enviCoverNormsPacked.hlsl"));
+      templateNames.push_back(String("enviCoverShaderTemplateBody.hlsl"));
+      break;
     case NodeBasedShaderEnviCoverVariant::ENVI_COVER: templateNames.push_back(String("enviCoverShaderTemplateBody.hlsl")); break;
-    case NodeBasedShaderEnviCoverVariant::ENVI_COVER_WITH_MOTION_VECS:
+    case NodeBasedShaderEnviCoverVariant::ENVI_COVER_COMBINED_WITH_NORMS_PACKED:
+      templateNames.insert(templateNames.begin(), String("enviCoverNormsPacked.hlsl"));
+      templateNames.push_back(String("../../../render/shaders/reprojected_motion_vectors.hlsl"));
+      templateNames.push_back(String("enviCoverCombinedShaderTemplateBody.hlsl"));
+      break;
+    case NodeBasedShaderEnviCoverVariant::ENVI_COVER_COMBINED:
       templateNames.push_back(String("../../../render/shaders/reprojected_motion_vectors.hlsl"));
       templateNames.push_back(String("enviCoverCombinedShaderTemplateBody.hlsl"));
       break;
@@ -47,7 +59,12 @@ String get_template_text_src_envi_cover(uint32_t variant)
   }
 
 
-  return collect_template_files(find_shader_editors_path(), templateNames);
+  return add_nbs_quality_definition(nbs_quality) + collect_template_files(find_shader_editors_path(), templateNames);
+}
+
+String get_dshl_template_text_src_envi_cover()
+{
+  return collect_template_files(find_shader_editors_path(), {String("enviCoverShaderTemplate.dshl")});
 }
 
 class EnviCoverShaderEditor : public ShaderGraphRecompiler

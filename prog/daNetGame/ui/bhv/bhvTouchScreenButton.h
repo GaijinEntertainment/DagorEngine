@@ -52,13 +52,14 @@ public:
   virtual void onDetach(darg::Element *, DetachMode) override;
   virtual int update(UpdateStage, darg::Element *elem, float /*dt*/) override final;
 
-  virtual int touchEvent(darg::ElementTree *,
+  virtual int pointingEvent(darg::ElementTree *,
     darg::Element *,
-    darg::InputEvent /*event*/,
-    HumanInput::IGenPointing * /*pnt*/,
-    int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/,
-    int /*accum_res*/) override;
+    darg::InputDevice,
+    darg::InputEvent event,
+    int touch_idx,
+    int btn_id,
+    Point2 pos,
+    int accum_res) override;
 
 protected:
   bool updateAction(TouchButtonState *buttonState, darg::Element *elem, const CachedStrings *strings);

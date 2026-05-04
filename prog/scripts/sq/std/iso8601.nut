@@ -1,4 +1,4 @@
-const numbers = "012345678"
+const numbers = "0123456789"
 
 let marks = {
   P = {
@@ -38,7 +38,7 @@ function parse_duration(str) {
       continue
     }
 
-    if (numbers.indexof(c) == null)
+    if (!numbers.contains(c))
       return res
     numberList.append(c)
   }

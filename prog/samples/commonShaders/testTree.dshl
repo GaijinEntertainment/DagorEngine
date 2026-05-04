@@ -16,8 +16,8 @@ shader tree_simple, tree_colored
 
   (ps)
   {
-    tex@static = tex;
-    normalmap@static = normalMap;
+    tex@staticSmp = tex;
+    normalmap@staticSmp = normalMap;
   }
   (vs){
     globtm@f44 = globtm;

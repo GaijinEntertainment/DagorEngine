@@ -1,0 +1,295 @@
+include "shader_global.dshl"
+include "csm.dshl"
+include "static_shadow.dshl"
+include "fom_shadows.dshl"
+include "voxel_shadows_inc.dshl"
+include "clouds_shadow.dshl"
+include "heightmap_common.dshl"
+include_optional "project_voxel_shadows.dshl"
+
+int voxel_shadows_cascade_idx = 0;
+float voxel_shadows_static_cascade_ofs = 0; // in voxels
+float voxel_shadows_fom_ofs = -3; // in voxels (for FOM we need a pretty large offset to avoid self-shadows on sun side)
+int4 voxel_shadows_update_box_ofs;
+int4 voxel_shadows_update_box_size;
+
+int voxel_shadows_allow_dynamic = 1;
+interval voxel_shadows_allow_dynamic: no < 1, yes;
+
+int voxel_shadows_allow_underground = 0;
+interval voxel_shadows_allow_underground: no < 1, yes;
+
+define_macro_if_not_defined VOXEL_SHADOWS_SAMPLING_INIT()
+  hlsl(cs)
+  {
+    #define HAS_STATIC_SHADOW 1
+    #define FASTEST_STATIC_SHADOW_PCF 1
+  }
+
+  INIT_CSM_SHADOW(cs)
+  INIT_FOM_SHADOWS(cs)
+  INIT_STATIC_SHADOW_BASE(cs)
+  INIT_CLOUDS_SHADOW_BASE_2D(light_shadow_dir.x, light_shadow_dir.y, light_shadow_dir.z, cs)
+endmacro
+
+define_macro_if_not_defined VOXEL_SHADOWS_SAMPLING_USE()
+  BASE_USE_CSM_SHADOW_DEF_NUM(cs, get_csm_shadow_simple)
+  USE_FOM_SHADOWS(cs)
+  USE_STATIC_SHADOW_BASE(cs)
+  USE_CLOUDS_SHADOW_BASE_2D(cs)
+
+  hlsl(cs)
+  {
+    float voxel_shadows_gather_sh(float3 p, float3 static_cascade_ofs, float3 fom_ofs)
+    {
+      float v = getStaticShadow(p + static_cascade_ofs);
+#if VOXEL_SHADOWS_ALLOW_DYNAMIC
+      v *= get_csm_shadow(csm_world_view_pos.xyz - p, 0, 0, 1).x;
+      v *= getFOMShadow(p + fom_ofs);
+#endif
+      return v;
+    }
+
+    float voxel_shadows_additional_sh(float3 p)
+    {
+      return clouds_shadow(p);
+    }
+  }
+endmacro
+
+define_macro_if_not_defined VOXEL_SHADOWS_HMAP_CHECK()
+  INIT_WORLD_HEIGHTMAP_BASE(cs)
+  USE_HEIGHTMAP_COMMON_BASE(cs)
+
+  hlsl(cs)
+  {
+    float voxel_shadows_hmap_sample(float3 wpos)
+    {
+      float2 tc = calcTcLow(wpos.xz);
+      if (any(tc != saturate(tc)))
+        return wpos.y;
+
+      return decode_height(getHeightLowLod(tc, 0));
+    }
+  }
+
+endmacro
+
+macro VOXEL_SHADOWS_COMMON()
+  if (voxel_shadows_allow_dynamic == yes)
+  {
+    hlsl { #define VOXEL_SHADOWS_ALLOW_DYNAMIC 1}
+  }
+
+  VOXEL_SHADOWS_SAMPLING_INIT()
+  VOXEL_SHADOWS_SAMPLING_USE()
+  VOXEL_SHADOWS_HMAP_CHECK()
+
+  VOXEL_SHADOWS_STCODE_INIT(cs)
+  VOXEL_SHADOWS_STCODE_USE(cs)
+
+  (cs)
+  {
+    voxel_shadows_tex@uav = voxel_shadows_tex hlsl {
+      RWTexture3D<unorm float> voxel_shadows_tex@uav;
+    }
+    from_sun_direction@f3 = from_sun_direction;
+    voxel_shadows_rnd@i4 = voxel_shadows_rnd;
+    csm_world_view_pos@f3 = csm_world_view_pos;
+    voxel_shadows_cascade_idx@i1 = voxel_shadows_cascade_idx;
+    voxel_shadows_static_cascade_ofs@f1 = voxel_shadows_static_cascade_ofs;
+    voxel_shadows_fom_ofs@f1 = voxel_shadows_fom_ofs;
+  }
+
+  hlsl(cs)
+  {
+    #include "monteCarlo.hlsl"
+    #include "hammersley.hlsl"
+    #include "pcg_hash.hlsl"
+
+    void voxel_shadows_update(int3 world_voxel, uint3 rnd, float temporal_speed)
+    {
+      float voxel_size = voxel_shadows_voxel_size[voxel_shadows_cascade_idx].x;
+
+      float3 center = (float3(world_voxel) + 0.5) * voxel_size;
+      uint3 tci = voxel_shadows_world_voxel_to_tex_tci(world_voxel, voxel_shadows_cascade_idx);
+
+##if voxel_shadows_allow_underground == no
+      float centerHmap = voxel_shadows_hmap_sample(center);
+      if (centerHmap - center.y > voxel_size)
+      {
+        texture3DAt(voxel_shadows_tex, tci) = 0.75f; // better to have a half shadow to avoid sudden changes due to trillinear for big voxels
+        return; // fully underground, no need to test anything
+      }
+      center.y = max(center.y, centerHmap);
+##endif
+
+      float3 static_cascade_ofs = from_sun_direction * voxel_shadows_static_cascade_ofs * voxel_size;
+      float3 fom_ofs = from_sun_direction * voxel_shadows_fom_ofs * voxel_size;
+
+      uint3 rand = pcg3d_hash_16bit(world_voxel + uint3(voxel_shadows_rnd.xyz) + rnd);
+
+#if VOXEL_SHADOWS_ONLY_CENTER_SAMPLING
+      float sh = voxel_shadows_gather_sh(center, static_cascade_ofs, fom_ofs);
+#else
+
+      float sh = 0.f;
+
+      for (uint i = 0; i < VOXEL_SHADOWS_SAMPLE_COUNT; ++i)
+      {
+        float2 E = hammersley_rand16(i, VOXEL_SHADOWS_SAMPLE_COUNT, rand.xy);
+        float3 dir = uniform_sample_sphere(E).xyz;
+        float rad = hammersley_rand16(i, VOXEL_SHADOWS_SAMPLE_COUNT, rand.xz).x;
+
+        float3 wpos = center + dir * rad * voxel_size;
+        float hmap = voxel_shadows_hmap_sample(wpos);
+        wpos.y = max(wpos.y, hmap); // if voxel is intersecting with hmap, sample on top of hmap
+        float v = voxel_shadows_gather_sh(wpos, static_cascade_ofs, fom_ofs);
+
+        sh += v;
+      }
+
+      sh *= (1.f / (VOXEL_SHADOWS_SAMPLE_COUNT));
+#endif
+
+      sh *= voxel_shadows_additional_sh(center); // no reason for multisample, clouds are already low-freq
+
+#if VOXEL_SHADOWS_TEMPORAL
+      float prev_sh = 1.f - texture3DAt(voxel_shadows_tex, tci);
+      sh = lerp(prev_sh, sh, temporal_speed);
+#endif
+
+      texture3DAt(voxel_shadows_tex, tci) = 1.f - sh;
+    }
+
+  }
+
+endmacro
+
+shader voxel_shadows_full_update
+{
+  hlsl
+  {
+    // full update in case of teleporation can be slow, so reduce the work, sparse will pick up later
+    #define VOXEL_SHADOWS_ONLY_CENTER_SAMPLING 1
+    #ifdef VOXEL_SHADOWS_ALLOW_DYNAMIC
+      #undef VOXEL_SHADOWS_ALLOW_DYNAMIC
+    #endif
+  }
+  VOXEL_SHADOWS_COMMON()
+
+  hlsl(cs)
+  {
+    [numthreads(4, 4, 2)]
+    void voxel_shadows_full_update(uint3 tid : SV_DispatchThreadID)
+    {
+      int3 world_voxel = voxel_shadows_volindex_to_world_voxel(tid, voxel_shadows_cascade_idx);
+      voxel_shadows_update(world_voxel, tid, 0);
+    }
+  }
+
+  compile("target_cs", "voxel_shadows_full_update");
+}
+
+shader voxel_shadows_sparse_full_update
+{
+  hlsl
+  {
+    #ifndef VOXEL_SHADOWS_SAMPLE_COUNT
+      #define VOXEL_SHADOWS_SAMPLE_COUNT 4
+    #endif
+
+    #define VOXEL_SHADOWS_TEMPORAL 1
+  }
+
+  (cs)
+  {
+    voxel_shadows_sparse_div@i4[] = voxel_shadows_sparse_div;
+  }
+
+  VOXEL_SHADOWS_COMMON()
+
+  hlsl(cs)
+  {
+    [numthreads(4, 4, 2)]
+    void voxel_shadows_sparse_full_update(uint3 tid : SV_DispatchThreadID)
+    {
+      uint3 rand = pcg3d_hash_16bit(voxel_shadows_rnd.xyz + tid);
+      uint sparse = voxel_shadows_sparse_div[voxel_shadows_cascade_idx].x;
+      float temproal = asfloat(voxel_shadows_sparse_div[voxel_shadows_cascade_idx].y);
+      tid = tid * sparse + rand % sparse;
+      int3 world_voxel = voxel_shadows_volindex_to_world_voxel(tid, voxel_shadows_cascade_idx);
+      voxel_shadows_update(world_voxel, tid, temproal);
+    }
+  }
+
+  compile("target_cs", "voxel_shadows_sparse_full_update");
+}
+
+shader voxel_shadows_partial_update
+{
+  hlsl
+  {
+    #ifndef VOXEL_SHADOWS_SAMPLE_COUNT
+      #define VOXEL_SHADOWS_SAMPLE_COUNT 4
+    #endif
+  }
+
+  (cs)
+  {
+    voxel_shadows_update_box_ofs@i3 = voxel_shadows_update_box_ofs;
+    voxel_shadows_update_box_size@i3 = voxel_shadows_update_box_size;
+  }
+
+  VOXEL_SHADOWS_COMMON()
+
+  hlsl(cs)
+  {
+    [numthreads(4, 4, 2)]
+    void voxel_shadows_partial_update(uint3 tid : SV_DispatchThreadID)
+    {
+      if (any(tid.xzy >= uint3(voxel_shadows_update_box_size)))
+        return;
+
+      int3 world_voxel = int3(tid.xzy) + voxel_shadows_update_box_ofs.xyz;
+      voxel_shadows_update(world_voxel, tid, 0);
+    }
+  }
+
+  compile("target_cs", "voxel_shadows_partial_update");
+}
+
+shader voxel_shadows_copy_padding
+{
+  VOXEL_SHADOWS_STCODE_INIT(cs)
+  VOXEL_SHADOWS_STCODE_USE(cs)
+
+  (cs)
+  {
+    voxel_shadows_tex@uav = voxel_shadows_tex hlsl {
+      RWTexture3D<unorm float> voxel_shadows_tex@uav;
+    }
+    voxel_shadows_cascade_idx@i1 = voxel_shadows_cascade_idx;
+  }
+
+  hlsl(cs)
+  {
+    [numthreads(8, 8, 1)]
+    void voxel_shadows_copy_padding(uint3 tid : SV_DispatchThreadID)
+    {
+      float z = voxel_shadows_tex_dim.y;
+      float z_padded = z + 2;
+      uint c = voxel_shadows_cascade_idx;
+
+      uint3 from = uint3(tid.xy, 1 + z_padded * c);
+      uint3 to = uint3(tid.xy, z_padded * (c + 1) - 1);
+      texture3DAt(voxel_shadows_tex, to) = texture3DAt(voxel_shadows_tex, from);
+
+      from.z = z_padded * (c + 1) - 2;
+      to.z = z_padded * c;
+      texture3DAt(voxel_shadows_tex, to) = texture3DAt(voxel_shadows_tex, from);
+    }
+  }
+
+  compile("target_cs", "voxel_shadows_copy_padding");
+}

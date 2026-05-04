@@ -7,6 +7,7 @@ enum class RenderPass
 {
   Color = 0,
   Depth = 1,
-  DeformHmap = 2
+  DeformHmap = 2,
+  TriangleSizeDebug = 3
 };
 }

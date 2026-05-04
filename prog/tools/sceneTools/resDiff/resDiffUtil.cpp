@@ -11,6 +11,7 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
+#include <gameRes/dag_stdGameResId.h>
 #include <util/dag_strUtil.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_fastIntList.h>
@@ -542,6 +543,51 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
 
   crd_cache.resize(old_grp.size());
   mem_set_0(crd_cache);
+
+  for (int i = 0; i < old_grp.size(); i++)
+  {
+    int pair_idx = find_the_same_pack(new_grp, old_grp[i].fn + strlen(base_root_dir), strlen(new_root_dir));
+    if (pair_idx >= 0 && file_equal(old_grp[i].fn, new_grp[pair_idx].fn, old_grp[i].hashMD5, new_grp[pair_idx].hashMD5))
+      continue;
+    for (int j = 0; j < old_grp[i].data->resTable.size(); j++)
+    {
+      const char *res_name = old_grp[i].data->getName(old_grp[i].data->resTable[j].resId);
+      int old_idx = -1, old_rec_idx = -1;
+      if (GrpBinData::findRes(make_span(new_grp), pair_idx, res_name, old_idx, old_rec_idx))
+        continue;
+
+      if (old_grp[i].data->resData[j].classId == DynModelGameResClassId)
+      {
+        debug("found removed dynModel %s", res_name);
+        return -2;
+      }
+
+      if (old_grp[i].data->resData[j].classId == RendInstGameResClassId)
+      {
+        debug("found removed rendInst %s", res_name);
+        return -2;
+      }
+    }
+  }
+
+  for (int i = 0; i < old_dxp.size(); i++)
+  {
+    int pair_idx = find_the_same_pack(new_dxp, old_dxp[i].fn + strlen(base_root_dir), strlen(new_root_dir));
+    if (pair_idx >= 0 && file_equal(old_dxp[i].fn, new_dxp[pair_idx].fn, old_dxp[i].hashMD5, new_dxp[pair_idx].hashMD5))
+      continue;
+    for (int j = 0; j < old_dxp[i].data->texNames.map.size(); j++)
+    {
+      TextureMetaData tmd;
+      const ddsx::Header &nhdr = old_dxp[i].data->texHdr[j];
+      const char *tex_name = tmd.decode(old_dxp[i].data->texNames.map[j], &stor);
+      int old_idx = -1, old_rec_idx = -1;
+      if (DxpBinData::findTex(new_dxp, pair_idx, tex_name, nhdr, old_idx, old_rec_idx))
+        continue;
+
+      debug("found removed tex %s", tex_name);
+      return -2;
+    }
+  }
 
   for (int i = 0; i < new_grp.size(); i++)
   {

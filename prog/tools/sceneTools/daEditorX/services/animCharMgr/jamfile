@@ -15,6 +15,7 @@ AddIncludes =
 
 Sources =
   animCharMgr.cpp
+  ecsAnimCharMgr.cpp
 ;
 
 for s in $(SourceES) { GenESSourceFile $(s) ; }

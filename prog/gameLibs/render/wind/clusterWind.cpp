@@ -429,7 +429,7 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
     y = y < 0 ? 0 : y;
     y = y >= cascade.boxWidthNum ? cascade.boxWidthNum - 1 : y;
     int boxId = y * cascade.boxWidthNum + x;
-    if (boxId > MAX_BOX_PER_GRID)
+    if (boxId >= MAX_BOX_PER_GRID)
       continue;
     if (i > 0)
       for (int j = 0; j < i; ++j)
@@ -443,7 +443,7 @@ float3 ClusterWind::getBlastAtPosForParticle(const float3 &pos)
         continue;
       unsigned int boxIndex = boxIndexes[boxId % 4];
       int clusterIndex = (boxIndex & (0x000000FF << (8 * j))) >> (8 * j);
-      if (clusterIndex > MAX_CLUSTER)
+      if (clusterIndex >= MAX_CLUSTER)
         break;
       ClusterDescGpu clusterDescGpu;
       if (!clusterWindRenderer->getClusterDescForCpuSim(clusterIndex, clusterDescGpu))
@@ -504,4 +504,10 @@ Point3 ClusterWind::getBlastAtPosForAntenna(const Point3 &pos)
     }
   }
   return result;
+}
+
+void ClusterWind::afterResetDevice()
+{
+  if (clusterWindRenderer)
+    clusterWindRenderer->afterResetDevice();
 }

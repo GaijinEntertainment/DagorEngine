@@ -7,3 +7,4 @@
   file:t = "generate_clouds.dshl"
   file:t = "applyPanorama.dshl"
   file:t = "applySkies.dshl"
+  file:t = "applySolidColor.dshl"

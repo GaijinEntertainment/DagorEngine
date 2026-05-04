@@ -2,7 +2,7 @@
 
 #include "badResolutionTracker.h"
 
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <common/genericPoint.h>
 #include <common/dynamicResolution.h>
 
@@ -90,7 +90,7 @@ BadResolutionTracker::Corrections BadResolutionTracker::getTexSizeCorrections() 
 {
   Corrections result;
   for (auto &arr : result)
-    arr.resize(graph.resources.size(), 0);
+    arr.resize(graph.resources.totalKeys(), 0);
 
   if (!d3d::get_driver_desc().caps.hasResourceHeaps)
     return result;

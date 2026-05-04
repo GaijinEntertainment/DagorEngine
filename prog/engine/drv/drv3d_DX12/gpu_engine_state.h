@@ -6,7 +6,6 @@
 #include "tagged_handles.h"
 #include "frame_buffer.h"
 
-#include <drv/3d/rayTrace/dag_drvRayTrace.h>
 #include <EASTL/bitset.h>
 #include <generic/dag_enumerate.h>
 
@@ -182,16 +181,4 @@ struct ComputeState
   void onFlush() {}
   void onFrameStateInvalidate() { pipeline = nullptr; }
 };
-
-#if D3D_HAS_RAY_TRACING
-struct RaytraceState
-{
-  RaytracePipeline *pipeline = nullptr;
-
-  void onFlush() {}
-
-  void onFrameStateInvalidate() { pipeline = nullptr; }
-};
-#endif
-
 } // namespace drv3d_dx12

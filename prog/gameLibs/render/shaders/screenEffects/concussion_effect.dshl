@@ -1,0 +1,22 @@
+float concussion_effect_time_start = -1000;
+float concussion_effect_duration = 10.0;
+float concussion_shake_intensity = 0.02;
+
+macro INIT_AND_USE_CONCUSSION_EFFECT(code, frame_tex)
+  (code) {
+    concussion_shake_intensity@f1= concussion_shake_intensity;
+    concussion_time@f1 = (time_phase(0, 0) - concussion_effect_time_start) / concussion_effect_duration;
+    concussion_offset_time@f1 = time_phase(0, 0);
+  }
+
+  hlsl(code) {
+    #include <noise/Value1D.hlsl>
+    void concussion_effect(float2 screen_uv, inout float3 color)
+    {
+      float2 noise_vec = float2(noise_value1D(concussion_offset_time*2.0), noise_value1D(concussion_offset_time*1.1))*2.0 - 1.0;
+      float intensity = concussion_shake_intensity*(1.0 - concussion_time);
+      float3 image_moved = h4tex2Dlod(frame_tex, half4(screen_uv + noise_vec*intensity, 0.0, 0.0)).rgb;
+      color = lerp(image_moved, color, (1.0 + pow2(concussion_time))*0.5);
+    }
+  }
+endmacro

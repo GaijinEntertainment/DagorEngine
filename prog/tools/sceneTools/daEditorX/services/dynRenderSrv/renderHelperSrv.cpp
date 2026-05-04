@@ -7,6 +7,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_renderStateId.h>
 #include <drv/3d/dag_renderStates.h>
+#include <shaders/dag_overrideStates.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>

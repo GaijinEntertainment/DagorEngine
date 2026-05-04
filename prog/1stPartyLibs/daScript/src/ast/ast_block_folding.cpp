@@ -6,6 +6,8 @@
 namespace das {
 
     class UnsafeFolding : public PassVisitor {
+    public:
+        UnsafeFolding() : PassVisitor(0) {}
     protected:
         virtual ExpressionPtr visit ( ExprUnsafe * expr ) {
             return expr->body;
@@ -25,6 +27,14 @@ namespace das {
     //  r2v(a ? b : c)      = a ? r2v(b) : r2v(c)
     //  r2v(cast(x))        = cast(r2v(x))
     class RefFolding : public PassVisitor {
+    public:
+        using PassVisitor::PassVisitor;
+
+        virtual bool canVisitStructure ( Structure * st ) override { return false; }
+        virtual bool canVisitEnumeration ( Enumeration * en ) override { return false; }
+        virtual bool canVisitStructureFieldInit ( Structure * var ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) override { return false; }
+
     protected:
         virtual ExpressionPtr visit ( ExprRef2Value * expr ) override {
             if ( expr->subexpr->rtti_isCast() ) {
@@ -139,6 +149,19 @@ namespace das {
     }
 
     class BlockFolding : public PassVisitor {
+    public:
+        using PassVisitor::PassVisitor;
+
+        virtual bool canVisitStructure ( Structure * st ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * fun ) override { return false; }
+        virtual bool canVisitEnumeration ( Enumeration * en ) override { return false; }
+        virtual bool canVisitStructureFieldInit ( Structure * var ) override { return false; }
+        virtual bool canVisitExpr ( ExprTypeInfo * expr, Expression * subexpr ) override { return false; }
+        virtual bool canVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) override { return false; }
+        virtual bool canVisitMakeStructureBody ( ExprMakeStruct * expr ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) override { return false; }
+        virtual bool canVisitNamedCall ( ExprNamedCall * expr ) override { return false; }
+
     protected:
         das_set<int32_t> labels;
         bool allLabels = false;
@@ -267,16 +290,16 @@ namespace das {
     };
 
     class CondFolding : public PassVisitor {
+    public:
+        using PassVisitor::PassVisitor;
+
+        virtual bool canVisitStructure ( Structure * st ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * fun ) override { return false; }
+        virtual bool canVisitEnumeration ( Enumeration * en ) override { return false; }
+        virtual bool canVisitStructureFieldInit ( Structure * var ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) override { return false; }
+
     protected:
-        Function * func = nullptr;
-        virtual void preVisit ( Function * f ) override {
-            Visitor::preVisit(f);
-            func = f;
-        }
-        virtual FunctionPtr visit ( Function * f ) override {
-            func = nullptr;
-            return Visitor::visit(f);
-        }
         virtual ExpressionPtr visit ( ExprIfThenElse * expr ) override {
             // if ( func && func->generator ) return Visitor::visit(expr);
             // if (cond) return x; else return y; => (cond ? x : y)
@@ -341,34 +364,45 @@ namespace das {
             else
                 b
             */
-            if (!block->isClosure && block->list.size() > 1) {
-                for ( int i=0, is=int(block->list.size())-1; i!=is; ++i ) {
-                    auto expr = block->list[i];
-                    if (expr != block->list.back()) {
-                        if (expr->rtti_isIfThenElse()) {
-                            auto ite = static_pointer_cast<ExprIfThenElse>(expr);
-                            if (!ite->if_false) {
-                                if (ite->if_true->rtti_isBlock()) {
-                                    auto tb = static_pointer_cast<ExprBlock>(ite->if_true);
-                                    if ( tb->list.size() ) {
-                                        auto lastE = tb->list.back();
-                                        if (lastE->rtti_isReturn() || lastE->rtti_isBreak() || lastE->rtti_isContinue()) {
-                                            vector<ExpressionPtr> tail;
-                                            tail.insert(tail.begin(), block->list.begin() + i + 1, block->list.end());
-                                            auto fb = make_smart<ExprBlock>();
-                                            fb->at = tail.front()->at;
-                                            swap(fb->list, tail);
-                                            ite->if_false = fb;
-                                            block->list.resize(i + 1);
-                                            reportFolding();
-                                            return Visitor::visit(block);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+            if (block->isClosure) {
+                return Visitor::visit(block);
+            }
+            // Traverse the block in reversed order to handle all transformations
+            // in a single pass. This makes it easier to apply or rewrites
+            // without doing a ping-pong with optimization runner per every if
+            // statement being rewritten. Instead, we'll report changes only
+            // once per the entire batch of rewrites.
+            // This reduces the approx run time of optimize phase over
+            // a ~400 if statement function from ~0.500s to ~0.005s
+            // and have ~2 optimization passes instead of ~402
+            bool anyChange = false;
+            for (int i = block->list.size() - 2; i >= 0; i--) {
+                auto expr = block->list[i];
+                if (!expr->rtti_isIfThenElse()) {
+                    continue;
                 }
+                auto ite = static_pointer_cast<ExprIfThenElse>(expr);
+                if (ite->if_false || !ite->if_true->rtti_isBlock()) {
+                    continue;
+                }
+                auto tb = static_pointer_cast<ExprBlock>(ite->if_true);
+                if (tb->list.size() == 0) {
+                    continue;
+                }
+                auto lastE = tb->list.back();
+                if (lastE->rtti_isReturn() || lastE->rtti_isBreak() || lastE->rtti_isContinue()) {
+                    vector<ExpressionPtr> tail;
+                    tail.insert(tail.begin(), block->list.begin() + i + 1, block->list.end());
+                    auto fb = make_smart<ExprBlock>();
+                    fb->at = tail.front()->at;
+                    swap(fb->list, tail);
+                    ite->if_false = fb;
+                    block->list.resize(i + 1);
+                    anyChange = true;
+                }
+            }
+            if (anyChange) {
+                reportFolding();
             }
             return Visitor::visit(block);
         }
@@ -376,10 +410,10 @@ namespace das {
 
     // program
 
-    bool Program::optimizationRefFolding() {
+    bool Program::optimizationRefFolding(int32_t round) {
         bool any = false, anything = false;
         do {
-            RefFolding context;
+            RefFolding context(round);
             visit(context);
             any = context.didAnything();
             anything |= any;
@@ -387,14 +421,14 @@ namespace das {
         return anything;
     }
 
-    bool Program::optimizationBlockFolding() {
-        BlockFolding context;
+    bool Program::optimizationBlockFolding(int32_t round) {
+        BlockFolding context(round);
         visit(context);
         return context.didAnything();
     }
 
-    bool Program::optimizationCondFolding() {
-        CondFolding context;
+    bool Program::optimizationCondFolding(int32_t round) {
+        CondFolding context(round);
         visit(context);
         return context.didAnything();
     }

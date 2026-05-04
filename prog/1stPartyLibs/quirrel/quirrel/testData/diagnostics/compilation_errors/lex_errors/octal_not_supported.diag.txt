@@ -1,0 +1,8 @@
+ERROR: leading 0 is not allowed, octal numbers are not supported
+testData/diagnostics/compilation_errors/lex_errors/octal_not_supported.nut:2:8
+
+// EXPECT_ERROR: "octal numbers are not supported"
+let x = 0755
+        ^
+
+

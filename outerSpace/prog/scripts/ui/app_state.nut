@@ -14,21 +14,21 @@ let isDisableMenu = dgs_get_settings()?["disableMenu"] || get_arg_value_by_name(
 
 function launch_internal_dedicated_server(params){
   log("launch_internal_dedicated_server:", params)
-  app?.launch_internal_dedicated_server(params)
+  app.launch_internal_server(params)
 }
 
 function kill_internal_dedicated_server(){
   log("kill_internal_dedicated_server:")
-  app?.kill_internal_dedicated_server()
+  app.kill_internal_server()
 }
 
 function launch_network_session(params){
   log("launch_network_session:", params)
-  app?.launch_network_session(params)
+  app.launch_network_session(params)
 }
 
 function switch_to_menu_scene(){
-  if (app.is_app_terminated())
+  if (app.is_app_terminating())
     return
   launch_network_session({scene="gamedata/scenes/menu.blk"})
   kill_internal_dedicated_server()

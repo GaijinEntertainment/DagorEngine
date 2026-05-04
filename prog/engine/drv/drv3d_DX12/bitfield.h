@@ -166,19 +166,21 @@ struct BitFieldArray
   }                         \
   ;
 
-// TODO: this should be replaced with a constexpr function. It will compile a lot faster.
 template <uint32_t I>
 struct BitsNeeded
 {
-  static constexpr int VALUE = BitsNeeded<I / 2>::VALUE + 1;
-};
-template <>
-struct BitsNeeded<0>
-{
-  static constexpr int VALUE = 1;
-};
-template <>
-struct BitsNeeded<1>
-{
-  static constexpr int VALUE = 1;
+private:
+  static consteval int bits_needed(uint32_t i)
+  {
+    int bits = 0;
+    while (i)
+    {
+      bits++;
+      i >>= 1;
+    }
+    return bits;
+  }
+
+public:
+  static constexpr int VALUE = bits_needed(I);
 };

@@ -26,7 +26,9 @@
 #include "net/net.h" // net_stop
 #include "main/settings.h"
 #include "main/storeApiEvents.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "game/gameScripts.h"
 #include "ui/userUi.h"
 #include "ui/overlay.h"
@@ -34,7 +36,8 @@
 
 #include <statsd/statsd.h>
 #include <drv/3d/dag_info.h>
-#include <3d/dag_gpuConfig.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_driverDesc.h>
 #include "main/gameProjConfig.h"
 
 #if _TARGET_ANDROID || _TARGET_IOS
@@ -147,7 +150,7 @@ static void statsd_report_fatal(const char *fatal_type)
     // Note: driver_version, error_code, etc... can't be used here due high cardinality (backend restriction)
     statsd::counter("fatal", 1,
       {{"type", fatal_type}, {"d3d_driver", d3d::get_driver_name()},
-        {"gpu_vendor", d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor)}});
+        {"gpu_vendor", d3d_get_vendor_name(d3d::get_driver_desc().info.vendor)}});
   }
 }
 
@@ -219,7 +222,7 @@ inline void dump_sqvm_callstacks(const char *call_stack)
 #define PROCESS_FATAL_ON_INIT_VIDEO _TARGET_PC_WIN
 
 #if PROCESS_FATAL_ON_INIT_VIDEO
-void send_gpu_net_event(const char *event_name, GpuVendor video_vendor, const uint32_t *drv_ver);
+void send_gpu_net_event(const char *event_name, GpuVendor video_vendor, const DriverVersion *drv_ver);
 static void on_video_error_fatal_action()
 {
   if (dgs_execute_quiet)

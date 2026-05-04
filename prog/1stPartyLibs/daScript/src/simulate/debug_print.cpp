@@ -18,8 +18,8 @@ namespace das {
             while ( it!=tail && *it!='\n' ) {
                 auto Ch = *it;
                 result += Ch;
-                if ( Ch=='[' ) tab += "  ";
-                else if ( Ch==']' ) {
+                if ( Ch=='[' || Ch=='(' || Ch=='{' ) tab += "  ";
+                else if ( Ch==']' || Ch==')' || Ch=='}' ) {
                     if ( tab.size()>=2 ) tab.resize(tab.size()-2); // note: we don't track mismatch
                 }
                 it ++;

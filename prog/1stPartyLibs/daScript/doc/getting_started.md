@@ -13,14 +13,14 @@ We are going to need git, cmake, vscode and a C++ compiler for your platform.
 git clone https://github.com/GaijinEntertainment/daScript
 cd daScript
 cmake -B build -G "Unix Makefiles"
-cd build && make daScript -j$(nproc)
+cd build && make daslang -j$(nproc)
 ```
 
 You may also want to create a symlink in the `/bin` directory for easy access
 to the compiler.
 
 ```
-sudo ln -s /home/andrew/daScript/bin/daScript /bin/das
+sudo ln -s /home/andrew/daScript/bin/daslang /bin/das
 ```
 
 ## Set up VSCode

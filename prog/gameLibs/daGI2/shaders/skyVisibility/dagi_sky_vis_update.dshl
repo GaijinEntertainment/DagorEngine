@@ -226,7 +226,8 @@ macro SKY_VIS_RAY_CAST(code)
       if (sdfStart < MAX_WORLD_SDF_CLIPS)
       {
         uint sdfClip;
-        bool hit = world_sdf_trace_start(sdfStart, worldPos, rayDir, maxT, t, sdfClip);
+        float distAtRayStart;
+        bool hit = world_sdf_trace_start(sdfStart, worldPos, rayDir, maxT, t, distAtRayStart, sdfClip);
         if (hit)
         {
           cVis = get_sky_vis(worldPos, rayDir, t, sdfClip, clip, ambientStrength, skipClip);
@@ -257,7 +258,6 @@ endmacro
 
 shader dagi_sky_visibility_toroidal_movement_interpolate_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_UAV(cs)
   DAGI_SKY_VIS_CLIPMAP_MATH(cs)
   DAGI_SKY_VIS_SW_TRILINEAR(cs)
@@ -331,7 +331,6 @@ shader dagi_sky_visibility_toroidal_movement_trace_cs
   hlsl {
     #define DAGI_SKY_VIS_UPDATE_USE_SKY 1
   }
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_UAV(cs)
   DAGI_SKY_VIS_CLIPMAP_MATH(cs)
   (cs) {
@@ -410,7 +409,6 @@ shader dagi_sky_visibility_toroidal_movement_spatial_filter_split_cs
     dagi_sky_vis_update_sz_coord@i4 = dagi_sky_vis_update_sz_coord;
   }
   DAGI_SKY_VIS_SELECTED_PROBES_UAV(cs)
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_SAMPLE(cs)
   hlsl(cs) {
 
@@ -454,7 +452,6 @@ shader dagi_sky_visibility_toroidal_movement_spatial_filter_split_apply_cs
     dagi_sky_vis_update_lt_coord@i4 = dagi_sky_vis_update_lt_coord;
     dagi_sky_vis_update_sz_coord@i4 = dagi_sky_vis_update_sz_coord;
   }
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_UAV(cs)
   DAGI_SKY_VIS_CLIPMAP_MATH(cs)
   (cs) {
@@ -498,7 +495,6 @@ hlsl {
 }
 shader dagi_sky_visibility_select_temporal_cs
 {
-  ENABLE_ASSERT(cs)
   SKY_VIS_AGE_SRV(cs)
   DAGI_SKY_VIS_SAMPLE(cs)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
@@ -606,7 +602,6 @@ shader dagi_sky_visibility_select_temporal_cs
 
 shader dagi_sky_visibility_create_indirect_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_CLIPMAP_MATH(cs)
   DAGI_SKY_VIS_PROBABILITIES_UAV(cs)
   (cs)
@@ -643,7 +638,6 @@ shader dagi_sky_visibility_create_indirect_cs
 
 shader dagi_sky_visibility_clear_temporal_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_SKY_VIS_PROBABILITIES_UAV(cs)
   hlsl(cs) {
     #include <dagi_sky_vis.hlsli>
@@ -664,7 +658,6 @@ shader dagi_sky_visibility_calc_temporal_cs
   hlsl {
     #define DAGI_SKY_VIS_UPDATE_USE_SKY 1
   }
-  ENABLE_ASSERT(cs)
   SKY_VIS_AGE_UAV(cs)
   PROJECT_ADDITIONAL_SKY_VIS_TEMPORAL(cs)
   DAGI_SKY_VIS_UAV(cs)

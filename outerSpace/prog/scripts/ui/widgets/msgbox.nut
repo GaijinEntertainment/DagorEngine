@@ -4,19 +4,19 @@ from "%scripts/ui/widgets/simpleComponents.nut" import menuBtn
 from "%sqstd/string.nut" import tostring_r
 
 let mkMessageText = @(text) {
-  size = static [flex(), sh(30)]
+  size = const [flex(), sh(30)]
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  padding = static [sh(2), 0]
+  padding = const [sh(2), 0]
   clipChildren = true
   children = type(text)=="string" ? {
-    size = static [sw(50), SIZE_TO_CONTENT]
+    size = const [sw(50), SIZE_TO_CONTENT]
     rendObj = ROBJ_TEXTAREA
     behavior = Behaviors.TextArea
     preformatted = true
     halign = text.len()>100 ? null : ALIGN_CENTER
     text
-  } : {size = static [sw(50), SIZE_TO_CONTENT], children = text}
+  } : {size = const [sw(50), SIZE_TO_CONTENT], children = text}
 }
 
 let widgets = persist($"msgbox_widgets", @() [])
@@ -108,7 +108,7 @@ let showMsgbox = kwarg(function(text, onClose = null, buttons=null, uid = null, 
   let content = {
     rendObj = ROBJ_SOLID
     color = Color(30,30,30,250)
-    size = static [sw(100), sh(50)]
+    size = const [sw(100), sh(50)]
     vplace = ALIGN_CENTER
     padding = sh(2)
     key = uid
@@ -120,7 +120,7 @@ let showMsgbox = kwarg(function(text, onClose = null, buttons=null, uid = null, 
   msgbox.v = {
     uid
     rendObj = ROBJ_SOLID
-    size = static [sw(100), sh(100)]
+    size = const [sw(100), sh(100)]
     color = Color(0, 0, 0, 200)
     behavior = Behaviors.Button
     transform = {}

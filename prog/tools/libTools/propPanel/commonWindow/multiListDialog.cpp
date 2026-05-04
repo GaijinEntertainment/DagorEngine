@@ -22,7 +22,7 @@ MultiListDialog::MultiListDialog(const char *caption, hdpi::Px width, hdpi::Px h
   PropPanel::ContainerPropertyControl *_panel = MultiListDialog::getPanel();
   G_ASSERT(_panel && "MultiListDialog: No panel found!");
 
-  _panel->createMultiSelectList(ID_LIST, vals, height - hdpi::_pxScaled(125));
+  _panel->createMultiSelectList(ID_LIST, vals, height - hdpi::_pxScaled(132));
 
   _panel->createButton(ID_SELECT_ALL, "All", true, true);
   _panel->createButton(ID_SELECT_NONE, "None", true, false);

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_bindless.h>
 
 #include "bindless.h"
@@ -35,10 +35,55 @@ bool d3d::update_bindless_resource(D3DResourceType range_type, uint32_t index, D
   return render.updateBindlessResource(range_type, index, res);
 }
 
+// TODO: Fully implemepent in driver bindless resource range support
+void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *>& resources)
+{
+  for (uint32_t i = 0; i < resources.size(); ++i)
+  {
+    if (resources[i])
+      update_bindless_resource(type, index + i, resources[i]);
+    else
+      update_bindless_resources_to_null(type, index + i, 1);
+  }
+}
+
+void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, dag::StridedConstSpan<D3dResource *> resources,
+  dag::StridedSpan<uint32_t> ids)
+{
+  D3D_CONTRACT_ASSERT(ids.size() != 0);
+  D3D_CONTRACT_ASSERT(ids.stride_bytes() != 0);
+  D3D_CONTRACT_ASSERT(types.size() == ids.size());
+  D3D_CONTRACT_ASSERT(resources.size() == ids.size());
+  // NOTE:
+  // - resources.stride_bytes() may be 0, which means all are the same
+  // - types.stride_bytes() may be 0, which means all are the same
+  for (size_t i = 0; i < types.size(); ++i)
+  {
+    auto type = types[i];
+    auto id = ids[i] = d3d::allocate_bindless_resource_range(type, 1);
+    auto res = resources[i];
+    if (res)
+    {
+      d3d::update_bindless_resource(type, id, res);
+    }
+    else
+    {
+      d3d::update_bindless_resources_to_null(type, id, 1);
+    }
+  }
+}
+
 void d3d::update_bindless_resources_to_null(D3DResourceType type, uint32_t index, uint32_t count)
 {
   D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
   render.updateBindlessResourcesToNull(type, index, count);
+}
+
+uint32_t d3d::add_bindless_resource(D3DResourceType type, D3dResource *res)
+{
+  uint32_t index = d3d::allocate_bindless_resource_range(type, 1);
+  d3d::update_bindless_resource(type, index, res);
+  return index;
 }
 
 union SamplerConverter

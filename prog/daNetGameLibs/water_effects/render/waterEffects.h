@@ -33,9 +33,8 @@ public:
     const TMatrix &view_tm,
     const TMatrix4 &proj_tm,
     const Driver3dPerspective &perps,
-    const ManagedTex &heightMaskTex,
-    const ManagedTex &normalsTex,
-    bool is_under_water);
+    BaseTexture *heightMaskTex,
+    BaseTexture *normalsTex);
   void renderFoam();
   void renderInternalWaterProjFx();
   void reset();
@@ -57,6 +56,7 @@ public:
     IPoint2 maxRenderingResolution = {0, 0};
     bool unitWakeOn = true;
     bool foamFxOn = false;
+    bool projectedFxOn = true;
     int waterQuality = 0;
     float lodBias = 0.f;
   };
@@ -89,8 +89,6 @@ private:
   int effects_depth_texVarId = -1;
   int wfx_normal_pixel_sizeVarId = -1;
   int wfx_hmapVarId = -1;
-
-  shaders::UniqueOverrideStateId flipCullStateId;
 
   struct ShipEffectContext
   {

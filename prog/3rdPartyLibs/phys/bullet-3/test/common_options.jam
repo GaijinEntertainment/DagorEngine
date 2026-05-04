@@ -6,12 +6,13 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0/include
 ;
 
+UseMemoryAllocator = RTL ;
 UseProgLibs =
-  engine/memory/rtlStdMemory
-  engine/kernel
-  engine/osApiWrappers
-  engine/baseUtil
-  engine/perfMon/daProfilerStub
+  engine/memory # FIXME_BROKEN_DEP
+  engine/kernel # FIXME_BROKEN_DEP
+  engine/osApiWrappers # FIXME_BROKEN_DEP
+  engine/baseUtil # FIXME_BROKEN_DEP
+  engine/perfMon/daProfilerStub # FIXME_BROKEN_DEP
   3rdPartyLibs/eastl
   3rdPartyLibs/phys/bullet-3
   3rdPartyLibs/phys/bullet-3/test/gtest-1.7.0

@@ -3,22 +3,21 @@
 
 enum class AntiAliasingMode
 {
-  OFF = 0,
-  FXAA = 1,
-  TAA = 2, // for backwards compatibility, dont use
-  TSR = 3,
-  DLSS = 4,
-  MSAA = 5,
-  XESS = 6,
-  FSR2 = 7,
-  SSAA = 8,
-  PSSR = 9
+  OFF,
+  FXAA,
+  TSR,
+  DLSS,
+  XESS,
+  FSR,
+  SSAA,
+#if _TARGET_C2
+
+#endif
 };
 
-// TODO rename these values, and refactor the dof handling
-enum DofAntiAliasingType
+enum AntiAliasingType
 {
-  AA_TYPE_DLSS = 0,
-  AA_TYPE_TAA = 1,
-  AA_TYPE_TSR = 2
+  TEMPORAL = 0,
+  TSR = 1,
+  NON_TEMPORAL = 2
 };

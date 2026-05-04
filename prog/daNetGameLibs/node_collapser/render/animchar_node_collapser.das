@@ -2,7 +2,7 @@ require ecs
 require ecs.safe
 require danetlibs.node_collapser.render.node_collapser_events
 require danetlibs.node_collapser.render.node_collapser_common
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 require AnimV20
 require GeomNodeTree
 require DagorSystem
@@ -19,6 +19,7 @@ def node_collapser_create(evt : Event;
                           animchar_render : AnimcharRendComponent)
   var isDisabled = false
   animchar_node_collapser |> clear()
+  animchar_node_collapser__children |> clear()
 
   let scene = animchar_render.sceneInstance
   let geomtree = animchar.nodeTree

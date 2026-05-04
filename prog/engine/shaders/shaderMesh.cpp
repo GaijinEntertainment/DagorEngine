@@ -56,7 +56,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
   }
   else
   {
-    vb = d3d::create_vb(vNum * vStride, vbFlags, name);
+    vb = d3d::create_vb(vNum * vStride, vbFlags, name, RESTAG_SHADER_MESH);
     d3d_err(vb);
   }
 
@@ -76,7 +76,7 @@ void GlobalVertexData::initGvd(const char *name, unsigned vNum, unsigned vStride
     else
     {
       String ibName(0, "%s_globalVertexData_ib", name);
-      indices = d3d::create_ib(idxSize, ibFlags, ibName);
+      indices = d3d::create_ib(idxSize, ibFlags, ibName, RESTAG_SHADER_MESH);
       d3d_err(indices);
     }
   }
@@ -144,7 +144,7 @@ void GlobalVertexData::unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, T
 {
   if (!testFlags(VDATA_NO_VB))
   {
-    bool cached_dest_mem = testFlags(VDATA_NO_VB);
+    bool cached_dest_mem = false;
 #if _TARGET_PC_WIN
     cached_dest_mem = true;
 #endif
@@ -173,9 +173,9 @@ void GlobalVertexData::unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, T
     zcrd.read(tmp_decoder_stor.data(), iPackedSz);
   }
 
-  if (!testFlags(VDATA_NO_VB))
+  if (!testFlags(VDATA_NO_IB))
   {
-    bool cached_dest_mem = testFlags(VDATA_NO_IB);
+    bool cached_dest_mem = false;
 #if _TARGET_PC_WIN
     cached_dest_mem = true;
 #endif
@@ -588,7 +588,7 @@ void ShaderMesh::duplicateMaterial(TEXTUREID tex_id, dag::Span<RElem> elem, Tab<
       }
 
       elem[i].mat = mat;
-      elem[i].e = mat->make_elem(false, NULL);
+      elem[i].e = nullptr;
     }
 }
 
@@ -608,7 +608,7 @@ void ShaderMesh::duplicateMat(ShaderMaterial *prev_m, dag::Span<RElem> elem, Tab
       }
 
       elem[i].mat = mat;
-      elem[i].e = mat->make_elem(false, NULL);
+      elem[i].e = nullptr;
     }
 }
 

@@ -40,7 +40,7 @@ inline const DataBlock &dgs_get_game_params()
   return res ? *res : DataBlock::emptyBlock;
 };
 
-inline const char *dgs_get_argv(const char *name) { return ::dgs_get_argv(name, ""); };
+inline bool dgs_has_arg(const char *name) { return !!::dgs_get_argv(name); };
 
 inline void dgs_get_argv_all(
   const char *name, const das::TBlock<bool, const char *> &block, das::Context *context, das::LineInfoArg *at)

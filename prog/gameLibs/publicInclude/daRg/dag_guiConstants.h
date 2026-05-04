@@ -10,21 +10,25 @@
 namespace darg
 {
 
-enum LayoutFlow
+enum LayoutFlow : uint8_t
 {
   FLOW_PARENT_RELATIVE = 0,
   FLOW_HORIZONTAL,
   FLOW_VERTICAL,
+
+  _NUM_FLOW_TYPES
 };
 
 
-enum ElemAlign
+enum ElemAlign : uint8_t
 {
   PLACE_DEFAULT = 0,
 
   ALIGN_LEFT_OR_TOP = 1,
   ALIGN_CENTER = 2,
   ALIGN_RIGHT_OR_BOTTOM = 3,
+
+  _NUM_ALIGNMENTS,
 
   ALIGN_LEFT = ALIGN_LEFT_OR_TOP,
   ALIGN_RIGHT = ALIGN_RIGHT_OR_BOTTOM,

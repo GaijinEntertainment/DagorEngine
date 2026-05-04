@@ -8,6 +8,37 @@
 class DaSkies;
 class DataBlock;
 class Point2;
+namespace ecs
+{
+class ComponentsInitializer;
+}
+
+struct SkiesPanel
+{
+  float time = 9.f;
+  int day = 21;
+  int month = 6;
+  int year = 1941;
+
+  float latitude = 55.f;
+  float longtitude = 37.f;
+
+  int seed = -1;
+#if DAGOR_DBGLEVEL > 0
+  bool reload = false;
+#endif
+
+  bool operator==(const SkiesPanel &rhs) const
+  {
+    return
+#if DAGOR_DBGLEVEL > 0
+      reload == rhs.reload &&
+#endif
+      time == rhs.time && day == rhs.day && month == rhs.month && year == rhs.year && latitude == rhs.latitude &&
+      longtitude == rhs.longtitude && seed == rhs.seed;
+  }
+  bool operator!=(const SkiesPanel &rhs) const { return !(*this == rhs); }
+};
 
 struct DngSkies : public DaSkies
 {
@@ -22,6 +53,7 @@ struct DngSkies : public DaSkies
   void setSkyLightParams(float progress, float sun_atten, float envi_atten, float gi_atten, float sky_atten, float base_sky_atten);
   void unsetSkyLightParams();
   void setAltitudeOffset(float alt_ofs) { altitudeOfs = alt_ofs; }
+  float getAltitudeOffset() const { return altitudeOfs; }
   void useFog(const Point3 &origin,
     SkiesData *data,
     const TMatrix &view_tm,
@@ -71,15 +103,8 @@ protected:
 void init_daskies();
 void term_daskies();
 DngSkies *get_daskies();
-void load_daskies(const DataBlock &blk,
-  float time_of_day = -1.f,
-  const char *weather_blk = nullptr,
-  int year = 1941,
-  int month = 6,
-  int day = 21,
-  float lat = 55,
-  float lon = 37,
-  int seed = -1);
+void load_daskies(const DataBlock &blk, const SkiesPanel &skies_data, const char *weather_blk = nullptr);
+void load_daskies(const DataBlock &blk, const SkiesPanel &skies_data, const DataBlock &weather_blk, bool reuse_weather_blk = false);
 void save_daskies(DataBlock &blk);
 void update_delayed_weather_selection();
 void before_render_daskies();
@@ -95,3 +120,5 @@ DPoint2 get_strata_clouds_origin();
 DPoint2 get_clouds_origin();
 void set_strata_clouds_origin(DPoint2 pos);
 void set_clouds_origin(DPoint2 pos);
+void update_level_sky_data(const SkiesPanel &data);
+void load_daskies_to_components_initializer(ecs::ComponentsInitializer &init, const DataBlock &weather_blk);

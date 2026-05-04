@@ -1,0 +1,9 @@
+ERROR: expression of type 'string|array' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_complex_multifunction.nut:12:4
+
+function pick(flag: bool): int {
+    return flag ? make_pair(1, 2) : get_name()
+    ^-----------------------------------------
+}
+
+

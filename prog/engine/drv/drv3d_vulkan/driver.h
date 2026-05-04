@@ -229,7 +229,7 @@ static String byte_size_unit(T size)
 {
   static const char *suffix[] = {"", "Ki", "Mi", "Gi"};
   uint32_t power = get_binary_size_unit_prefix_index(size);
-  return String(128, "%f %sBytes", double(size) / (1ull << (power * 10)), suffix[power]);
+  return String(128, "%0.2f %sB", double(size) / (1ull << (power * 10)), suffix[power]);
 }
 
 enum RegisterType

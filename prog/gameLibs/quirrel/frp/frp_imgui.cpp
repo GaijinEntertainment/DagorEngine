@@ -22,7 +22,7 @@ static constexpr VisualNodeIndex NULL_INDEX = ~VisualNodeIndex(0);
 
 struct VisualNode
 {
-  const BaseObservable *observable;
+  NodeId nodeId;
   dag::Vector<VisualNodeIndex> sources, watchers;
   SimpleString name, sourceFile, filterText;
   uint16_t sourceLine;
@@ -40,7 +40,7 @@ struct VisualNode
     struct
     {
       bool visible : 1;
-      bool isUsed : 1;
+      bool computedHasActiveConsumers : 1;
       bool needImmediate : 1;
       bool collected : 1;
       bool selected : 1;
@@ -76,10 +76,10 @@ struct VisualLink
 
 struct ViewerSelection
 {
-  const BaseObservable *observable = nullptr;
+  NodeId nodeId;
   int hue = 0;
   ViewerSelection() = default;
-  ViewerSelection(const BaseObservable *o, int h) : observable(o), hue(h) {}
+  ViewerSelection(NodeId id, int h) : nodeId(id), hue(h) {}
 };
 
 } // namespace sqfrp
@@ -87,20 +87,20 @@ struct ViewerSelection
 template <>
 struct eastl::hash<ViewerSelection>
 {
-  ska::hash_size_t operator()(const ViewerSelection &self) { return eastl::hash<const void *>()(self.observable); }
+  ska::hash_size_t operator()(const ViewerSelection &self) { return eastl::hash<uint32_t>()(self.nodeId.index); }
 };
 
 template <>
 struct eastl::equal_to<ViewerSelection>
 {
-  bool operator()(const ViewerSelection &a, const ViewerSelection &b) { return a.observable == b.observable; }
+  bool operator()(const ViewerSelection &a, const ViewerSelection &b) { return a.nodeId.index == b.nodeId.index; }
 };
 
 
 static ObservablesGraph *cur_graph = nullptr;
 static dag::Vector<VisualNode> all_nodes;
 static dag::Vector<GraphComponent> components;
-static ska::flat_hash_map<const BaseObservable *, VisualNodeIndex> node_map;
+static ska::flat_hash_map<uint32_t, VisualNodeIndex> node_map;
 static int num_computed = 0, num_used = 0, num_used_computed = 0, num_subscribers = 0, num_components;
 static bool need_sorting = false, pending_sort = false;
 static dag::Vector<VisualNodeIndex> sorted_nodes;
@@ -152,22 +152,24 @@ static void process_multi_selection(ImGuiMultiSelectIO *ms, bool ignore = false)
       case ImGuiSelectionRequestType_SetRange:
       {
         G_ASSERTF(r.RangeFirstItem == r.RangeLastItem, "range selection not supported");
-        auto item = reinterpret_cast<const BaseObservable *>(r.RangeFirstItem);
-        if (auto it = node_map.find(item); it != node_map.end())
+        uint32_t itemIndex = (uint32_t)r.RangeFirstItem;
+        if (auto it = node_map.find(itemIndex); it != node_map.end())
+        {
           if (all_nodes[it->second].selected != r.Selected)
           {
             all_nodes[it->second].selected = r.Selected;
             pending_sort = true;
             name_select_buffer[0] = 0;
           }
-        if (r.Selected)
-        {
-          auto si = eastl::max_element(selected_nodes.begin(), selected_nodes.end(),
-            [](const ViewerSelection &a, const ViewerSelection &b) { return a.hue < b.hue; });
-          selected_nodes.insert(ViewerSelection(item, si == selected_nodes.end() ? 1 : si->hue + 1));
+          if (r.Selected)
+          {
+            auto si = eastl::max_element(selected_nodes.begin(), selected_nodes.end(),
+              [](const ViewerSelection &a, const ViewerSelection &b) { return a.hue < b.hue; });
+            selected_nodes.insert(ViewerSelection(all_nodes[it->second].nodeId, si == selected_nodes.end() ? 1 : si->hue + 1));
+          }
+          else
+            selected_nodes.erase(ViewerSelection(all_nodes[it->second].nodeId, 0));
         }
-        else
-          selected_nodes.erase(ViewerSelection(item, 0));
         break;
       }
 
@@ -311,30 +313,29 @@ void sqfrp::graph_viewer()
   // get nodes
   bool needReset = false;
   {
-    OSSpinlockScopedLock guard(cur_graph->allObservablesLock);
-    if (node_map.size() != cur_graph->allObservables.size())
+    OSSpinlockScopedLock guard(cur_graph->slotsLock);
+    if (node_map.size() != cur_graph->nodeCount())
     {
-      // grab a copy and unlock, we're going to get busy
       needReset = true;
       node_map.clear();
-      node_map.reserve(cur_graph->allObservables.size());
+      uint32_t nc = cur_graph->nodeCount();
+      node_map.reserve(nc);
       all_nodes.clear();
-      all_nodes.resize(cur_graph->allObservables.size());
+      all_nodes.resize(nc);
       num_used = 0;
       num_used_computed = 0;
       num_subscribers = 0;
 
       VisualNodeIndex ni = 0;
-      for (auto o : cur_graph->allObservables)
-      {
+      cur_graph->forEachNode([&](NodeId id, const NodeSlot &slot) {
         auto &n = all_nodes[ni];
         n.flags = 0;
-        n.observable = o;
-        n.numSubscribers = o->scriptSubscribers.size();
+        n.nodeId = id;
+        n.numSubscribers = slot.scriptSubscribers.size();
         num_subscribers += n.numSubscribers;
-        node_map[o] = ni;
+        node_map[id.index] = ni;
 
-        if (auto info = o->getInitInfo())
+        if (auto *info = slot.initInfo.get())
         {
           if (info->initFuncName == "__main__")
             n.name = String(0, "(%s:%u)", info->initSourceFileName.c_str(), info->initSourceLine);
@@ -347,55 +348,59 @@ void sqfrp::graph_viewer()
         else
         {
           String s;
-          o->fillInfo(s);
+          cur_graph->fillInfo(id, s);
           n.name = s;
           n.sourceLine = 0;
           n.filterText = n.name;
         }
 
-        if (o->getComputed())
+        if (slot.isComputed)
         {
-          if (o->isUsed)
+          if (slot.computedHasActiveConsumers)
             num_used_computed++;
-          n.isUsed = o->isUsed;
-          n.needImmediate = o->needImmediate;
+          n.computedHasActiveConsumers = slot.computedHasActiveConsumers;
+          n.needImmediate = slot.needImmediate;
         }
         else
         {
-          n.isUsed = !o->scriptSubscribers.empty();
-          if (!n.isUsed)
-            for (auto w : o->watchers)
-              if (auto c = w->getComputed(); !c || c->isUsed)
+          n.computedHasActiveConsumers = !slot.scriptSubscribers.empty();
+          if (!n.computedHasActiveConsumers && !slot.watchers.empty())
+            n.computedHasActiveConsumers = true;
+          if (!n.computedHasActiveConsumers)
+            for (NodeId dep : slot.dependents)
+              if (auto *ds = cur_graph->resolve(dep); ds && ds->computedHasActiveConsumers)
               {
-                n.isUsed = true;
+                n.computedHasActiveConsumers = true;
                 break;
               }
         }
 
-        if (n.isUsed)
+        if (n.computedHasActiveConsumers)
           num_used++;
 
-        if (selected_nodes.count(ViewerSelection(o, 0)) > 0)
+        if (selected_nodes.count(ViewerSelection(id, 0)) > 0)
           n.selected = true;
 
         ni++;
-      }
+      });
 
       num_computed = 0;
       for (auto &n : all_nodes)
-        if (auto c = n.observable->getComputed())
+      {
+        auto *slot = cur_graph->resolve(n.nodeId);
+        if (!slot || !slot->isComputed)
+          continue;
+        num_computed++;
+        n.sources.reserve(slot->sources.size());
+        for (auto &s : slot->sources)
         {
-          num_computed++;
-          n.sources.reserve(c->sources.size());
-          for (auto &s : c->sources)
-          {
-            auto it = node_map.find(s.observable);
-            if (it == node_map.end())
-              continue;
-            n.sources.push_back(it->second);
-            all_nodes[it->second].watchers.push_back(&n - &all_nodes[0]);
-          }
+          auto it = node_map.find(s.id.index);
+          if (it == node_map.end())
+            continue;
+          n.sources.push_back(it->second);
+          all_nodes[it->second].watchers.push_back(&n - &all_nodes[0]);
         }
+      }
 
       need_sorting = true;
     }
@@ -431,7 +436,7 @@ void sqfrp::graph_viewer()
     // remap indices
     for (auto &n : all_nodes)
     {
-      node_map[n.observable] = n.newIndex;
+      node_map[n.nodeId.index] = n.newIndex;
       for (auto &s : n.sources)
         s = all_nodes[s].newIndex;
       for (auto &w : n.watchers)
@@ -489,7 +494,7 @@ void sqfrp::graph_viewer()
       bool sel = name_select_buffer[0] && selected_nodes.size() < 1 && strstr(n.filterText, name_select_buffer);
       n.selected = sel;
       if (sel)
-        selected_nodes.insert(ViewerSelection(n.observable, ++hue));
+        selected_nodes.insert(ViewerSelection(n.nodeId, ++hue));
     }
   }
 
@@ -530,12 +535,12 @@ void sqfrp::graph_viewer()
         df_cprintf(file, "digraph \"%s\" {\n", cur_graph->graphName.c_str());
         for (auto &n : all_nodes)
         {
-          df_cprintf(file, "_%p[label=\"%s\"", n.observable, n.name.c_str());
+          df_cprintf(file, "_%u[label=\"%s\"", n.nodeId.index, n.name.c_str());
           if (n.sources.empty())
             df_cprintf(file, ",shape=box");
           df_cprintf(file, "];\n");
           for (auto wi : n.watchers)
-            df_cprintf(file, "_%p->_%p;\n", n.observable, all_nodes[wi].observable);
+            df_cprintf(file, "_%u->_%u;\n", n.nodeId.index, all_nodes[wi].nodeId.index);
         }
         df_cprintf(file, "}\n");
         df_close(file);
@@ -623,7 +628,7 @@ void sqfrp::graph_viewer()
         // collect selected nodes with their sources
         int hue = 0;
         for (auto selIter = selected_nodes.begin(); selIter != selected_nodes.end();)
-          if (auto it = node_map.find(selIter->observable); it != node_map.end())
+          if (auto it = node_map.find(selIter->nodeId.index); it != node_map.end())
           {
             collect_sources(comp, it->second, selIter->hue);
             selIter++;
@@ -637,7 +642,7 @@ void sqfrp::graph_viewer()
         // collect related watchers
         hue = 0;
         for (auto vs : selected_nodes)
-          collect_watchers(comp, node_map.find(vs.observable)->second, vs.hue);
+          collect_watchers(comp, node_map.find(vs.nodeId.index)->second, vs.hue);
 
         if (selected_nodes.empty())
           collect_watchers(comp, defaultStart);
@@ -646,7 +651,7 @@ void sqfrp::graph_viewer()
         computeds.reserve(comp.size() - (sorted_nodes.size() - sortedStart));
 
         for (auto &n : comp)
-          if (!n.collected && n.isUsed && !n.sources.empty())
+          if (!n.collected && n.computedHasActiveConsumers && !n.sources.empty())
           {
             n.numUncollectedSources = 0;
             for (auto s : n.sources)
@@ -1026,7 +1031,7 @@ void sqfrp::graph_viewer()
         draw_line(ImVec2(endPos.x, endPos.y + linkStep));
       }
 
-      ImGui::PushID(n.observable);
+      ImGui::PushID((int)n.nodeId.index);
       ImGui::SetCursorScreenPos(orgPos + ImVec2((busWidth + 1) * linkStep, (n.sources.size() + 1) * linkStep));
 
       ImU32 textColor;
@@ -1038,7 +1043,7 @@ void sqfrp::graph_viewer()
         ImGui::ColorConvertHSVtoRGB(n.selectionHue * (2 - 1.618033988749f), 0.9f, 1, r, g, b);
         textColor = ImGui::ColorConvertFloat4ToU32(ImVec4(r, g, b, 1));
       }
-      else if (!n.isUsed || !n.collected)
+      else if (!n.computedHasActiveConsumers || !n.collected)
         textColor = IM_COL32(180, 50, 50, 255);
       else if (n.needImmediate)
         textColor = IM_COL32(180, 50, 180, 255);
@@ -1046,7 +1051,7 @@ void sqfrp::graph_viewer()
         textColor = IM_COL32(180, 180, 180, 255);
       ImGui::PushStyleColor(ImGuiCol_Text, textColor);
 
-      ImGui::SetNextItemSelectionUserData(reinterpret_cast<ImGuiSelectionUserData>(n.observable));
+      ImGui::SetNextItemSelectionUserData((ImGuiSelectionUserData)n.nodeId.index);
       if (ImGui::Selectable(n.name.c_str(), n.selected, 0, ImVec2(ImGui::CalcTextSize(n.name.c_str()).x, 0)))
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::GetIO().KeyAlt)
         {
@@ -1081,10 +1086,10 @@ void sqfrp::graph_viewer()
       if (ImGui::BeginItemTooltip())
       {
         ImGui::TextUnformatted(n.name);
-        ImGui::TextDisabled("%p", n.observable);
+        ImGui::TextDisabled("node[%u]", n.nodeId.index);
         if (!n.sourceFile.empty())
           ImGui::Text("%s:%u", n.sourceFile.c_str(), n.sourceLine);
-        if (!n.isUsed)
+        if (!n.computedHasActiveConsumers)
           ImGui::TextColored(ImVec4(1, 0.1f, 0.1f, 1), "NOT USED");
         if (n.needImmediate)
           ImGui::TextColored(ImVec4(1, 0.1f, 1, 1), "IMMEDIATE");

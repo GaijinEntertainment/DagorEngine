@@ -35,7 +35,7 @@ function isValueTextValid(comp_type, text) {
     let fields = text.split(",")
     if (fields.len()!=nFields[0])
       return false
-    return fields.reduce(@(a,b) a && nFields[1](b))
+    return fields.reduce(@(a,b) (type(a) == "string" ? nFields[1](a) : a) && nFields[1](b))
   }
   return false
 }
@@ -95,11 +95,11 @@ function convertTextToVal(cur_value, comp_type, text) {
 
   let fields = text.split(",")
   let floatDagorMathTypes = ["Point2", "Point3", "DPoint3", "Point4"]
-  if (floatDagorMathTypes.indexof(comp_type) != null)
+  if (floatDagorMathTypes.contains(comp_type))
     return convertTextToValForDagorClass(comp_type, fields.map(pipe(strip, tofloat)))
 
   let intDagorMathTypes = ["IPoint2", "IPoint3", "IPoint4"]
-  if (intDagorMathTypes.indexof(comp_type) != null)
+  if (intDagorMathTypes.contains(comp_type))
     return convertTextToValForDagorClass(comp_type, fields.map(pipe(strip, tointeger)))
 
   if (comp_type == "E3DCOLOR") {
@@ -125,7 +125,7 @@ function convertTextToVal(cur_value, comp_type, text) {
 let map_type_to_str = {
   float =  function(v){
     let tf = v.tostring()
-    return (tf.indexof(".") != null || tf.indexof("e") != null) ? tf : $"{tf}.0"
+    return (tf.contains(".") || tf.contains("e")) ? tf : $"{tf}.0"
   },
   ["null"] = @(_) "null",
 }
@@ -225,7 +225,7 @@ function setValToObj(eid, comp_name, path, val){
     return
   foreach (idx, key in path) {
     if (idx < path.len()-1) {
-      if (!(res?[key] != null || key in object || object?.indexof(key)!=null))
+      if (!(res?[key] != null || key in res || res?.contains(key)))
         return
       res = res[key]
     }

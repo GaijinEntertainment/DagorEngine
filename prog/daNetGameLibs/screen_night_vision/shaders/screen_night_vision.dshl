@@ -32,8 +32,6 @@ float screen_night_vision__noise_pixelize = 2.0;
 
 shader screen_night_vision
 {
-  ENABLE_ASSERT(ps)
-
   cull_mode = none;
 
   hlsl{

@@ -19,6 +19,7 @@
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <generic/dag_sort.h>
 
 int PixelPerfectSelection::global_frame_block_id = -1;
 int PixelPerfectSelection::rendinst_render_pass_var_id = -1;
@@ -93,7 +94,7 @@ void PixelPerfectSelection::renderLodResource(const RenderableInstanceLodsResour
   cb.setBBoxZero();
   cb.setOpacity(0, 1);
   cb.setBoundingSphere(0, 0, 1, 1, 0);
-  cb.setInstancing(hasImpostor ? 3 : 0, hasImpostor ? 1 : 3, 0, impostorBufferOffset);
+  cb.setInstancing(hasImpostor ? 3 : 0, hasImpostor ? 1 : 3, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, impostorBufferOffset);
   cb.flushPerDraw();
   d3d::set_immediate_const(STAGE_VS, ZERO_PTR<uint32_t>(), 1);
 
@@ -200,15 +201,14 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
   d3d::setview(prevViewX, prevViewY, prevViewWidth, prevViewHeight, prevViewMinZ, prevViewMaxZ);
   d3d::set_render_target(prevRT);
 
-  eastl::sort(hits.begin(), hits.end(), [](const IPixelPerfectSelectionService::Hit &a, const IPixelPerfectSelectionService::Hit &b) {
-    if (a.z > b.z)
-      return true;
-    if (a.z < b.z)
+  eastl::stable_sort(hits.begin(), hits.end(),
+    [](const IPixelPerfectSelectionService::Hit &a, const IPixelPerfectSelectionService::Hit &b) {
+      if (a.z > b.z)
+        return true;
+      if (a.z < b.z)
+        return false;
+      if (a.userData > b.userData)
+        return true;
       return false;
-    if (a.userData > b.userData)
-      return true;
-    if (a.userData < b.userData)
-      return false;
-    return &a > &b;
-  });
+    });
 }

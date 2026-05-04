@@ -12,8 +12,11 @@ class StaticPropertyControl : public PropertyControlBase
 {
 public:
   StaticPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
-    const char caption[], hdpi::Px h) :
-    PropertyControlBase(id, event_handler, parent, x, y, w, h), controlCaption(caption)
+    const char caption[], hdpi::Px h, bool use_text_width = false, bool word_wrap = false) :
+    PropertyControlBase(id, event_handler, parent, x, y, w, h),
+    controlCaption(caption),
+    useTextWidth(use_text_width),
+    wordWrap(word_wrap)
   {}
 
   unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
@@ -37,12 +40,29 @@ public:
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
     // Use full width by default.
-    ImGui::SetNextItemWidth(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN);
+    const float itemWidth = mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN;
+    ImGui::SetNextItemWidth(itemWidth);
 
     if (bold)
-      ImGui::PushFont(imgui_get_bold_font());
+      ImGui::PushFont(imgui_get_bold_font(), 0.0f);
 
-    ImguiHelper::labelOnly(controlCaption);
+    if (wordWrap)
+    {
+      ImGui::SetNextItemWidth(itemWidth);
+
+      ImGui::PushTextWrapPos(0.0f);
+
+      ImGui::TextEx(controlCaption.begin(), controlCaption.end(),
+        (useTextWidth ? ImGuiTextFlags_None : ImGuiTextFlags_NoWidthForLargeClippedText));
+
+      tooltip_helper.setPreviousImguiControlTooltip(this, controlTooltip.begin(), controlTooltip.end());
+
+      ImGui::PopTextWrapPos();
+    }
+    else
+    {
+      labelWithTooltip(controlCaption.begin(), controlCaption.end(), useTextWidth);
+    }
 
     if (bold)
       ImGui::PopFont();
@@ -52,6 +72,8 @@ private:
   String controlCaption;
   bool controlEnabled = true;
   bool bold = false;
+  bool useTextWidth = false;
+  bool wordWrap = false;
 };
 
 } // namespace PropPanel

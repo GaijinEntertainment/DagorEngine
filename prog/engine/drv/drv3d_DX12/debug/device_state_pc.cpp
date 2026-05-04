@@ -4,19 +4,9 @@
 #include "global_state.h"
 
 #include <validationLayer.h>
-#include <gpuVendorNvidia.h>
-#if USE_PIX
-#if _TARGET_64BIT
-// PROFILE_BUILD will enable USE_PIX in pix3.h if architecture is supported
-#define PROFILE_BUILD
-#if !defined(__d3d12_h__)
-#define __d3d12_h__
-#include <WinPixEventRuntime/pix3.h>
-#undef __d3d12_h__
-#else
-#include <WinPixEventRuntime/pix3.h>
-#endif
-#endif
+
+#if HAS_NVAPI
+#include <nvapi.h>
 #endif
 
 
@@ -129,106 +119,114 @@ void DeviceState::teardown()
   globalState->postmortemTrace().onDeviceShutdown();
 }
 
-void DeviceState::beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd)
+void DeviceState::beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
 {
-  globalState->postmortemTrace().beginCommandBuffer(device, cmd);
+  globalState->postmortemTrace().beginCommandBuffer(device, cmd_id, cmd);
 }
 
-void DeviceState::endCommandBuffer(D3DGraphicsCommandList *cmd) { globalState->postmortemTrace().endCommandBuffer(cmd); }
+void DeviceState::endCommandBuffer(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
+{
+  globalState->postmortemTrace().endCommandBuffer(cmd_id, cmd);
+}
 
-void DeviceState::beginSection(D3DGraphicsCommandList *cmd, eastl::string_view text)
+void DeviceState::beginSection(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::string_view text)
 {
   auto eventText = event_marker::Tracker::beginEvent(text);
   globalState->captureTool().beginEvent(cmd, eventText);
-  globalState->postmortemTrace().beginEvent(cmd, eventText, currentEventPath());
+  globalState->postmortemTrace().beginEvent(cmd_id, cmd, eventText, currentEventPath());
 }
 
-void DeviceState::endSection(D3DGraphicsCommandList *cmd)
+void DeviceState::endSection(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
 {
   event_marker::Tracker::endEvent();
   globalState->captureTool().endEvent(cmd);
-  globalState->postmortemTrace().endEvent(cmd, currentEventPath());
+  globalState->postmortemTrace().endEvent(cmd_id, cmd, currentEventPath());
 }
 
-void DeviceState::marker(D3DGraphicsCommandList *cmd, eastl::string_view text)
+void DeviceState::marker(CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::string_view text)
 {
   auto markerText = event_marker::Tracker::marker(text);
   globalState->captureTool().marker(cmd, markerText);
-  globalState->postmortemTrace().marker(cmd, markerText);
+  globalState->postmortemTrace().marker(cmd_id, cmd, markerText);
 }
 
-void DeviceState::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-  uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void DeviceState::draw(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
-  globalState->postmortemTrace().draw(debug_info, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance,
-    topology);
+  globalState->postmortemTrace().draw(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start,
+    first_instance, topology);
 }
 
-void DeviceState::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-  uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void DeviceState::drawIndexed(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+  D3D12_PRIMITIVE_TOPOLOGY topology)
 {
-  globalState->postmortemTrace().drawIndexed(debug_info, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, index_start,
-    vertex_base, first_instance, topology);
+  globalState->postmortemTrace().drawIndexed(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count,
+    index_start, vertex_base, first_instance, topology);
 }
 
-void DeviceState::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void DeviceState::drawIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
   const BufferResourceReferenceAndOffset &buffer)
 {
-  globalState->postmortemTrace().drawIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer);
+  globalState->postmortemTrace().drawIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer);
 }
 
-void DeviceState::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+void DeviceState::drawIndexedIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id,
+  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
+  PipelineVariant &pipeline, const BufferResourceReferenceAndOffset &buffer)
+{
+  globalState->postmortemTrace().drawIndexedIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer);
+}
+
+void DeviceState::dispatchIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id,
+  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state, ComputePipeline &pipeline,
   const BufferResourceReferenceAndOffset &buffer)
 {
-  globalState->postmortemTrace().drawIndexedIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, buffer);
+  globalState->postmortemTrace().dispatchIndirect(debug_info, cmd_id, cmd, state, pipeline, buffer);
 }
 
-void DeviceState::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
+void DeviceState::dispatch(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
-  globalState->postmortemTrace().dispatchIndirect(debug_info, cmd, state, pipeline, buffer);
+  globalState->postmortemTrace().dispatch(debug_info, cmd_id, cmd, state, pipeline, x, y, z);
 }
 
-void DeviceState::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-  ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
-{
-  globalState->postmortemTrace().dispatch(debug_info, cmd, state, pipeline, x, y, z);
-}
-
-void DeviceState::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void DeviceState::dispatchMesh(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
   uint32_t x, uint32_t y, uint32_t z)
 {
-  globalState->postmortemTrace().dispatchMesh(debug_info, cmd, vs, ps, pipeline_base, pipeline, x, y, z);
+  globalState->postmortemTrace().dispatchMesh(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, x, y, z);
 }
 
-void DeviceState::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
+void DeviceState::dispatchMeshIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id,
+  D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base,
+  PipelineVariant &pipeline, const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count,
+  uint32_t max_count)
 {
-  globalState->postmortemTrace().dispatchMeshIndirect(debug_info, cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
+  globalState->postmortemTrace().dispatchMeshIndirect(debug_info, cmd_id, cmd, vs, ps, pipeline_base, pipeline, args, count,
+    max_count);
 }
 
-void DeviceState::blit(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd)
+void DeviceState::blit(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
 {
-  globalState->postmortemTrace().blit(debug_info, cmd);
+  globalState->postmortemTrace().blit(debug_info, cmd_id, cmd);
 }
 
 #if D3D_HAS_RAY_TRACING
-void DeviceState::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void DeviceState::dispatchRays(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
 {
-  globalState->postmortemTrace().dispatchRays(debug_info, cmd, dispatch_parameters, rbt, rdp);
+  globalState->postmortemTrace().dispatchRays(debug_info, cmd_id, cmd, dispatch_parameters, rbt, rdp);
 }
 
-void DeviceState::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
-  const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+void DeviceState::dispatchRaysIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id,
+  D3DGraphicsCommandList *cmd, const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt,
+  const RayDispatchIndirectParameters &rdip)
 {
-  globalState->postmortemTrace().dispatchRaysIndirect(debug_info, cmd, dispatch_parameters, rbt, rdip);
+  globalState->postmortemTrace().dispatchRaysIndirect(debug_info, cmd_id, cmd, dispatch_parameters, rbt, rdip);
 }
 #endif
 
@@ -236,24 +234,32 @@ void DeviceState::nameResource(ID3D12Resource *resource, eastl::string_view name
 {
   globalState->captureTool().nameResource(resource, name);
   globalState->postmortemTrace().nameResource(resource, name);
+  if (globalState->configuration().anyValidation())
+    set_object_name(resource, name);
 }
 
 void DeviceState::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
 {
   globalState->captureTool().nameResource(resource, name);
   globalState->postmortemTrace().nameResource(resource, name);
+  if (globalState->configuration().anyValidation())
+    set_object_name(resource, name);
 }
 
 void DeviceState::nameObject(ID3D12Object *object, eastl::string_view name)
 {
   globalState->captureTool().nameObject(object, name);
   // globalState->postmortemTrace().nameObject(object, name);
+  if (globalState->configuration().anyValidation())
+    set_object_name(object, name);
 }
 
 void DeviceState::nameObject(ID3D12Object *object, eastl::wstring_view name)
 {
   globalState->captureTool().nameObject(object, name);
   // globalState->postmortemTrace().nameObject(object, name);
+  if (globalState->configuration().anyValidation())
+    set_object_name(object, name);
 }
 
 TraceCheckpoint DeviceState::getTraceCheckpoint() { return globalState->postmortemTrace().getTraceCheckpoint(); }
@@ -340,15 +346,14 @@ bool DeviceState::setRtValidationCallback(const eastl::function<void()> &callbac
   return nvRtValidationLayer.setRtValidationCallback(callback);
 }
 
+void DeviceState::setPostmortemTraceEnabled(CommandListIdentifier cmd_id, bool is_enabled)
+{
+  globalState->postmortemTrace().setPostmortemTraceEnabled(cmd_id, is_enabled);
+}
+
 #if HAS_NVAPI
 bool DeviceState::NVRTValidationLayer::setup(D3DDevice *dev)
 {
-  if (!gpu::init_nvapi())
-  {
-    D3D_ERROR("DX12: NV RT Validation layer was requested, but NVAPI init failed.");
-    return false;
-  }
-
   auto result = NvAPI_D3D12_EnableRaytracingValidation(dev, NVAPI_D3D12_RAYTRACING_VALIDATION_FLAG_NONE);
   if (result == NVAPI_OK)
   {

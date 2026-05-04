@@ -10,13 +10,14 @@
 #include <soundSystem/streams.h>
 
 #include "internal/fmodCompatibility.h"
-#include "internal/banks.h"
-#include "internal/delayed.h"
+#include "internal/banks_internal.h"
+#include "internal/delayed_internal.h"
 #include "internal/releasing.h"
-#include "internal/events.h"
-#include "internal/streams.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/events_internal.h"
+#include "internal/streams_internal.h"
+#include "internal/occlusion_internal.h"
+#include "internal/occlusionGPU_internal.h"
+#include "internal/debug_internal.h"
 #include <osApiWrappers/dag_atomic_types.h>
 
 static WinCritSec g_listener_cs;
@@ -147,6 +148,7 @@ void end_update(float dt)
   streams::update(dt);
 
   occlusion::update(g_cur_time, get_3d_listener_pos());
+  occlusion_gpu::update(g_cur_time, get_3d_listener_pos());
 
   SOUND_VERIFY(get_studio_system()->update());
 
@@ -155,8 +157,11 @@ void end_update(float dt)
   g_cur_time += dt;
 }
 
-void lazy_update()
+void sync_update()
 {
+  // compensatory update if sndsys was not updated [from start_async_game_tasks] for some long time
+  // to update from loading screen or when ParallelUpdateFrameDelayed is not working
+  // to prevent possible command buffer overflow or missing [ui] sound right after scene was loaded
   if (g_next_lazy_at.load() == g_invalid_lazy_value || get_time_msec() >= g_next_lazy_at.load())
   {
     const float dt = (g_lazy_step_ms + get_time_msec() - g_next_lazy_at.load()) * 0.001f;
@@ -164,5 +169,7 @@ void lazy_update()
     end_update(dt);
   }
 }
+
+void gpu_update() { occlusion_gpu::gpu_update(); }
 
 } // namespace sndsys

@@ -7,11 +7,12 @@
 #include "daScript/ast/ast.h"
 #include <cstdarg>
 #include <stdexcept>
+#include <type_traits>
 
 namespace das {
 
     AstSerializer::AstSerializer ( SerializationStorage * storage, bool isWriting ) {
-        astModule = Module::require("ast");
+        astModule = Module::require("ast_core");
         astModule->handleTypes.foreach([&](const AnnotationPtr & annotation) {
             if ( starts_with(annotation->name,"Expr") ) {
                 uint32_t hash = hash_tag(annotation->name.c_str());
@@ -67,7 +68,7 @@ namespace das {
         for ( auto & p : refs ) {
             auto it = objects.find(p.second);
             if ( it == objects.end() ) {
-                throw std::runtime_error{"ast serializer function ref not found"};
+                throw dasException{"ast serializer function ref not found", LineInfo()};
             } else {
                 *p.first = it->second.get();
             }
@@ -80,11 +81,12 @@ namespace das {
         va_start(args, fmt);
 
         char err[256];
-        vsnprintf(err, 256, fmt, args);
+        int len = vsnprintf(err, 256, fmt, args);
+        err[len] = '\0';
 
         va_end(args);
 
-        throw std::runtime_error{err};
+        throw dasException{err, LineInfo()};
     }
 
     #define SERIALIZER_VERIFYF(cond, ...) {                 \
@@ -117,7 +119,7 @@ namespace das {
                 throw_formatted_error("too many candidates for structure '%s'", name.c_str());
             }
         // set the missing field field
-            *field = struct_.front()->findField(fieldname);
+            *field = struct_.front()->findFieldRef(fieldname);
         }
         fieldRefs.clear();
     }
@@ -144,7 +146,7 @@ namespace das {
         try {
             cb(*this);
             return true;
-        } catch ( const std::runtime_error & ) {
+        } catch ( const dasException & ) {
             failed = true;
             return false;
         }
@@ -1078,7 +1080,10 @@ namespace das {
                 DAS_VERIFYF_MULTI(!annotation, !structType, !!enumType, !firstType, !secondType,
                                 argTypes.empty(), argNames.empty());
                 break;
-            case tBitfield:  // blow up!
+            case tBitfield:
+            case tBitfield8:
+            case tBitfield16:
+            case tBitfield64:
                 ser << alias << argNames << dim << dimExpr;
                 DAS_VERIFYF_MULTI(!annotation, !structType, !enumType, !firstType, !secondType,
                                 argTypes.empty());
@@ -1187,6 +1192,7 @@ namespace das {
         ser << name;
         ser << at     << module;
         ser << fields << fieldLookup;
+        ser << aliases;
         ser << parent // parent could be in the current module or in some other
                       // module
             << flags
@@ -1400,8 +1406,7 @@ namespace das {
             if ( !has_field ) return;
             Module * module = nullptr; ser << module;
             string mangledName; ser << mangledName;
-            field = ( Structure::FieldDeclaration * ) 1;
-            ser.fieldRefs.emplace_back(&field, module, das::move(mangledName), name);
+            ser.fieldRefs.emplace_back(&fieldRef, module, das::move(mangledName), name);
         }
     }
 
@@ -1492,10 +1497,15 @@ namespace das {
         ser << isSmartPtr << ptrType;
     }
 
-     void ExprConstEnumeration::serialize( AstSerializer & ser ) {
+    void ExprConstEnumeration::serialize( AstSerializer & ser ) {
         ExprConst::serialize(ser);
         ser << enumType << text;
-     }
+    }
+
+    void ExprConstBitfield::serialize( AstSerializer & ser ) {
+        ExprConst::serialize(ser);
+        ser << bitfieldType;
+    }
 
     void ExprConstString::serialize(AstSerializer& ser) {
         ExprConst::serialize(ser);
@@ -1536,17 +1546,17 @@ namespace das {
 
     void ExprAssume::serialize(AstSerializer& ser) {
         Expression::serialize(ser);
-        ser << alias << subexpr;
+        ser << alias << subexpr << assumeType;
     }
 
     void ExprMakeBlock::serialize(AstSerializer & ser) {
         Expression::serialize(ser);
-        ser << capture << block << stackTop << mmFlags;
+        ser << capture << captureAt << block << stackTop << mmFlags;
     }
 
     void ExprMakeGenerator::serialize(AstSerializer & ser) {
         ExprLooksLikeCall::serialize(ser);
-        ser << iterType << capture;
+        ser << iterType << capture << captureAt;
     }
 
     void ExprYield::serialize(AstSerializer & ser) {
@@ -1779,7 +1789,7 @@ namespace das {
                     return true;
                 },"*");
             // always finalize annotations
-                (*daScriptEnvironment::bound)->g_Program = program;
+                daScriptEnvironment::getBound()->g_Program = program;
                 program->finalizeAnnotations();
 
                 if ( is_macro_module ) {
@@ -2130,6 +2140,15 @@ namespace das {
         void visit( Module * mod ) {
             if ( visited[mod] != NOT_SEEN ) return;
             visited[mod] = IN_PROGRESS;
+            // visibleEverywhere modules (!inscope)
+            // are implicit dependencies of every other module.
+            if ( !mod->visibleEverywhere ) {
+                for ( const auto dep : input ) {
+                    if ( dep != mod && dep->visibleEverywhere ) {
+                        visit(dep);
+                    }
+                }
+            }
             for ( auto [module, required] : mod->requireModule ) {
                 if ( module != mod ) {
                     visit(module);
@@ -2151,12 +2170,15 @@ namespace das {
         // This is like so because of several fields with strings
         *this << value.aot
               << value.aot_module
+              << value.aot_macros
               << value.completion
               << value.export_all
+              << value.serialize_main_module
               << value.keep_alive
               << value.very_safe_context
-              << value.always_report_candidates_threshold
               << value.max_infer_passes
+              << value.max_call_depth
+              << value.verify_infer_types
               << value.stack
               << value.intern_strings
               << value.persistent_heap
@@ -2166,6 +2188,9 @@ namespace das {
               << value.solid_context
               << value.macro_context_persistent_heap
               << value.macro_context_collect
+              << value.max_static_variables_size
+              << value.max_heap_allocated
+              << value.max_string_heap_allocated
               << value.rtti
               << value.unsafe_table_lookup
               << value.relaxed_pointer_const
@@ -2195,15 +2220,27 @@ namespace das {
               << value.no_local_class_members
               << value.no_unsafe_uninitialized_structures
               << value.strict_properties
+              << value.no_writing_to_nameless
+              << value.always_call_super
               << value.no_optimizations
+              << value.no_infer_time_folding
               << value.fail_on_no_aot
               << value.fail_on_lack_of_aot_export
               << value.no_fast_call
+              << value.scoped_stack_allocator
+              << value.force_inscope_pod
+              << value.log_inscope_pod
               << value.debugger
-              << value.debug_module
               << value.profiler
-              << value.profile_module
-              << value.jit
+              << value.jit_enabled
+              << value.jit_jit_all_functions
+              << value.jit_debug_info
+              << value.jit_opt_level
+              << value.jit_size_level
+              << value.jit_dll_mode
+              << value.jit_output_path
+              << value.jit_path_to_shared_lib
+              << value.jit_path_to_linker
               << value.threadlock_context;
         return *this;
     }
@@ -2285,7 +2322,7 @@ namespace das {
                     deser->setModuleName(name);
                     program->library.addModule(deser);
                     ser << *deser;
-                } catch ( const std::runtime_error & r ) {
+                } catch ( const dasException & r ) {
                     delete deser;
                     LOG(LogLevel::warning) << "das: serialize: " << r.what();
                     program->failToCompile = true;
@@ -2295,21 +2332,24 @@ namespace das {
 
             program->thisModule.reset(program->library.getModules().back());
         }
+
+        // drop ref_counts
+        smartTypeDeclMap.clear();
     }
 
     uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 138;
+        static constexpr uint32_t currentVersion = 186;
         return currentVersion;
     }
 
     // Serializes the whole script as opposed to just one module
-    bool AstSerializer::serializeScript ( ProgramPtr program ) noexcept {
+    bool WIN_EH_NO_ASAN AstSerializer::serializeScript ( ProgramPtr program ) noexcept {
         try {
             program->serialize(*this);
             return true;
-        } catch ( const std::runtime_error & r ) {
+        } catch ( const dasException & r ) {
             program->failToCompile = true;
-            LOG(LogLevel::warning) << "das: serialize: " << r.what();
+            LOG(LogLevel::warning) << "das: serialize:" << r.what();
             return false;
         }
     }

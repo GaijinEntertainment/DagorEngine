@@ -18,6 +18,7 @@
 bool DagorAssetMgr::mountFmodEvents(const char *mount_folder_name)
 {
 #if _TARGET_PC_WIN
+  WriteGuard guard(mutex);
   int atype = typeNames.getNameId("fmodEvent");
   if (atype == -1 || !dagor_fmod4::fmod_eventsys)
     return true;
@@ -77,6 +78,7 @@ bool DagorAssetMgr::mountFmodEvents(const char *mount_folder_name)
 void DagorAssetMgr::addFmodAssets(int parent_fidx, const char *base_path, void *fmod_group)
 {
 #if _TARGET_PC_WIN
+  WriteGuard guard(mutex);
   FMOD::EventGroup *grp = (FMOD::EventGroup *)fmod_group;
   int atype = typeNames.getNameId("fmodEvent");
   int nsid = nspaceNames.getNameId("fmod");
@@ -112,7 +114,7 @@ void DagorAssetMgr::addFmodAssets(int parent_fidx, const char *base_path, void *
           if (!ca)
             ca = new DagorAssetPrivate(*this);
 
-          ca->setNames(assetNames.addNameId(eventPath), nsid, true);
+          ca->setNames(addAssetNameId(eventPath), nsid, true);
           if (perTypeNameIds[atype].addInt(ca->getNameId()))
           {
             ca->setAssetData(fidx, -1, atype);

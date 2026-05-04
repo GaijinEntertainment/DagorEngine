@@ -4,13 +4,12 @@
 //! @Name		: NetImgui
 //=================================================================================================
 //! @author		: Sammy Fatnassi
-//! @date		: 2024/12/10
-//!	@version	: v1.12.1
+//! @date		: 2026/01/04
+//!	@version	: v1.13.0
 //! @Details	: For integration info : https://github.com/sammyfreg/netImgui/wiki
 //=================================================================================================
-#define NETIMGUI_VERSION		"1.12.1"	// Fixed disconnect thread contention and clipboard command
-#define NETIMGUI_VERSION_NUM	11201
-
+#define NETIMGUI_VERSION		"1.13.0"	// Release of v 1.13
+#define NETIMGUI_VERSION_NUM	11300
 
 
 //-------------------------------------------------------------------------------------------------
@@ -25,7 +24,7 @@
 	#pragma clang diagnostic ignored "-Wreserved-identifier"			// Enum values using '__' or member starting with '_' in imgui.h
 	// NetImgui_Api.h Warning(s)
 	#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"	// Not using nullptr in case this file is used in pre C++11
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) 
 	#pragma warning	(push)
 	// ImGui.h warnings(s)
 	#pragma warning (disable: 4514)		// 'xxx': unreferenced inline function has been removed
@@ -52,17 +51,29 @@
 // we define this library as 'Disabled'
 //-------------------------------------------------------------------------------------------------
 #ifndef NETIMGUI_ENABLED
-	#define NETIMGUI_ENABLED 0
+	#define NETIMGUI_ENABLED 					0
 #endif
 
 //-------------------------------------------------------------------------------------------------
 // NetImgui needs to detect Dear ImGui to be active, otherwise we disable it
-// When including this header, make sure imgui.h is included first
+// When including this header, make sure imgui.h is included first 
 // (either always included in NetImgui_config.h or have it included after Imgui.h in your cpp)
 //-------------------------------------------------------------------------------------------------
 #if !defined(IMGUI_VERSION)
 	#undef	NETIMGUI_ENABLED
-	#define NETIMGUI_ENABLED 0
+	#define NETIMGUI_ENABLED 					0
+#endif
+
+//-------------------------------------------------------------------------------------------------
+// Control support for native Dear ImGui texture backend support
+// At the moment, meant to always be active on recent Dear Imgui version (1.92+)
+//-------------------------------------------------------------------------------------------------
+#ifndef NETIMGUI_IMGUI_TEXTURES_ENABLED
+#ifdef IMGUI_HAS_TEXTURES
+	#define NETIMGUI_IMGUI_TEXTURES_ENABLED		1
+#else
+	#define NETIMGUI_IMGUI_TEXTURES_ENABLED		0
+#endif
 #endif
 
 #if NETIMGUI_ENABLED
@@ -73,12 +84,11 @@
 // Default Build settings defines values
 // Assign default values when not set in user NetImgui_Config.h
 //=================================================================================================
-
 //-------------------------------------------------------------------------------------------------
 // Prepended to functions signature, for dll export/import
 //-------------------------------------------------------------------------------------------------
 #ifndef NETIMGUI_API
-	#define NETIMGUI_API						IMGUI_API						// Use same value as defined by Dear ImGui by default
+	#define NETIMGUI_API						IMGUI_API	// Use same value as defined by Dear ImGui by default 
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -86,14 +96,14 @@
 // Note:	Can help when unable to open a socket because it wasn't properly released after a crash.
 //-------------------------------------------------------------------------------------------------
 #ifndef NETIMGUI_FORCE_TCP_LISTEN_BINDING
-	#define NETIMGUI_FORCE_TCP_LISTEN_BINDING	0								// Doesn't seem to be needed on Window/Linux
+	#define NETIMGUI_FORCE_TCP_LISTEN_BINDING	0	// Doesn't seem to be needed on Window/Linux
 #endif
 
 //-------------------------------------------------------------------------------------------------
 // Enable Dear ImGui Callbacks support for BeginFrame/Render automatic interception.
 // Note:	Avoid having to replace ImGui::BeginFrame/ImGui::Render with in library user code, by
-//			'NetImgui::NewFrame/NetImgui::EndFrame'. But prevent benefit of skipping frame draw
-//			when unneeded, that 'NetImgui::NewFrame' can provide.
+//			'NetImgui::NewFrame/NetImgui::EndFrame'. But prevent benefit of skipping frame draw 
+//			when unneeded, that 'NetImgui::NewFrame' can provide. 
 //			For more info, consult 'SampleNewFrame.cpp'.
 //			Needs Dear ImGui 1.81+
 //-------------------------------------------------------------------------------------------------
@@ -101,25 +111,26 @@
 	#define NETIMGUI_IMGUI_CALLBACK_ENABLED		(IMGUI_VERSION_NUM >= 18100)	// Not supported pre Dear ImGui 1.81
 #endif
 
-
-namespace NetImgui
-{
+namespace NetImgui 
+{ 
 
 //=================================================================================================
 // List of texture format supported
 //=================================================================================================
 enum eTexFormat {
-	kTexFmtA8,
+	// Match Dear Imgui 1.92 'ImTextureFormat'
 	kTexFmtRGBA8,
-
+	kTexFmtA8,
+	
+	
 	// Support of 'user defined' texture format.
-	// Implementation must be added on both client and Server code.
+	// Implementation must be added on both client and Server code. 
 	// Search for TEXTURE_CUSTOM_SAMPLE for example implementation.
 	kTexFmtCustom,
-
+	
 	//
 	kTexFmt_Count,
-	kTexFmt_Invalid=kTexFmt_Count
+	kTexFmt_Invalid=kTexFmt_Count 
 };
 
 //=================================================================================================
@@ -167,6 +178,7 @@ NETIMGUI_API	void				Shutdown();
 //						  the font atlas, because of a monitor DPI change. When left to nullptr,
 //						  uses 'ImGuiIO.FontGlobalScale' instead to increase text size,
 //						  with blurier results.
+//						  NOTE: Not used by Dear ImGui 1.92+, unneeded with font update support.
 //=================================================================================================
 NETIMGUI_API	bool				ConnectToApp(const char* clientName, const char* serverHost, uint32_t serverPort=kDefaultServerPort, ThreadFunctPtr threadFunction=0, FontCreateFuncPtr FontCreateFunction=0);
 NETIMGUI_API	bool				ConnectFromApp(const char* clientName, uint32_t clientPort=kDefaultClientPort, ThreadFunctPtr threadFunction=0, FontCreateFuncPtr fontCreateFunction=0);
@@ -182,14 +194,14 @@ NETIMGUI_API	void				Disconnect(void);
 NETIMGUI_API	bool				IsConnected(void);
 
 //=================================================================================================
-// True if connection request is waiting to be completed. For example, while waiting for
+// True if connection request is waiting to be completed. For example, while waiting for  
 // Server to reach ud after having called 'ConnectFromApp()'
 //=================================================================================================
 NETIMGUI_API	bool				IsConnectionPending(void);
 
 //=================================================================================================
-// True when Dear ImGui is currently expecting draw commands
-// This means that we are between NewFrame() and EndFrame()
+// True when Dear ImGui is currently expecting draw commands 
+// This means that we are between NewFrame() and EndFrame() 
 //=================================================================================================
 NETIMGUI_API	bool				IsDrawing(void);
 
@@ -204,12 +216,18 @@ NETIMGUI_API	bool				IsDrawingRemote(void);
 // Note: To remove a texture, set pData to nullptr
 // Note: User needs to provide a valid 'dataSize' when using format 'kTexFmtCustom',
 //		 can be ignored otherwise
+// Note: Can now rely on native Dear ImGui managed texture support to let the system handle their
+//		 creation/update/destruction automatically, without needing to call this function
+//		 (since Dear ImGui 1.92+. See 'SampleTextures').
 //=================================================================================================
 NETIMGUI_API	void				SendDataTexture(ImTextureID textureId, void* pData, uint16_t width, uint16_t height, eTexFormat format, uint32_t dataSize=0);
+#if NETIMGUI_IMGUI_TEXTURES_ENABLED
+NETIMGUI_API	void				SendDataTexture(const ImTextureRef& textureRef, void* pData, uint16_t width, uint16_t height, eTexFormat format, uint32_t dataSize=0);
+#endif
 
 //=================================================================================================
 // Start a new Imgui Frame and wait for Draws commands, using ImContext that was active on connect.
-// Returns true if we are awaiting a new ImGui frame.
+// Returns true if we are awaiting a new ImGui frame. 
 //
 // All ImGui drawing should be skipped when return is false.
 //
@@ -220,7 +238,7 @@ NETIMGUI_API	void				SendDataTexture(ImTextureID textureId, void* pData, uint16_
 //		 and this function will always call 'ImGui::NewFrame()' internally and return true
 //
 // Note: With Dear ImGui 1.81+, you can keep using the ImGui::BeginFrame()/Imgui::Render()
-//		 without having to use NetImgui::NewFrame()/NetImgui::EndFrame()
+//		 without having to use NetImgui::NewFrame()/NetImgui::EndFrame() 
 //		 (unless wanting to support frame skip)
 //=================================================================================================
 NETIMGUI_API	bool				NewFrame(bool bSupportFrameSkip=false);
@@ -242,6 +260,9 @@ NETIMGUI_API	ImGuiContext*		GetContext();
 NETIMGUI_API	void				SetBackground(const ImVec4& bgColor);
 NETIMGUI_API	void				SetBackground(const ImVec4& bgColor, const ImVec4& textureTint );
 NETIMGUI_API	void				SetBackground(const ImVec4& bgColor, const ImVec4& textureTint, ImTextureID bgTextureID);
+#if NETIMGUI_IMGUI_TEXTURES_ENABLED
+NETIMGUI_API	void				SetBackground(const ImVec4& bgColor, const ImVec4& textureTint, const ImTextureRef& bgTextureRef);
+#endif
 
 //=================================================================================================
 // Control the data compression for communications between Client/Server
@@ -279,6 +300,6 @@ NETIMGUI_API	uint32_t			GetTexture_BytePerImage	(eTexFormat eFormat, uint32_t pi
 //-------------------------------------------------------------------------------------------------
 #if defined (__clang__)
 	#pragma clang diagnostic pop
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) 
 	#pragma warning	(pop)
 #endif

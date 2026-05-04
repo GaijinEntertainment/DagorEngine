@@ -51,30 +51,58 @@ static void dynamic_sheen_camo_override_params_es_event_handler(const ecs::Event
           !microDetailLayerIntensity && !microDetailLayerUvScale && !microDetailLayerVScale)
         continue;
 
-      recreate_material_with_new_params(animchar_render, "dynamic_sheen_camo", [&](ShaderMaterial *mat) {
-        int currentMaterialId = -1;
-        mat->getIntVariable(material_idVarId.get_var_id(), currentMaterialId);
-        if (materialId != currentMaterialId)
-          return;
+      recreate_material_with_new_params(
+        animchar_render,
+        [&](const ShaderMaterial *mat) {
+          if (strcmp(mat->getShaderClassName(), "dynamic_sheen_camo") != 0)
+            return false;
+          int currentMaterialId = -1;
+          mat->getIntVariable(material_idVarId.get_var_id(), currentMaterialId);
+          if (materialId != currentMaterialId)
+            return false;
 
-        if (camouflageScaleAndOffset)
-          mat->set_color4_param(camouflage_scale_and_offsetVarId.get_var_id(), Color4::xyzw(*camouflageScaleAndOffset));
-        if (solidFillColor)
-          mat->set_color4_param(solid_fill_colorVarId.get_var_id(), Color4::xyzw(*solidFillColor));
-        if (colorMultiplier)
-          mat->set_real_param(color_multiplierVarId.get_var_id(), *colorMultiplier);
-        if (forceSolidFill && *forceSolidFill)
-          mat->set_texture_param(camouflage_texVarId.get_var_id(), BAD_TEXTUREID);
+          if (camouflageScaleAndOffset && mat->hasVariable(camouflage_scale_and_offsetVarId.get_var_id()))
+            return true;
+          if (solidFillColor && mat->hasVariable(solid_fill_colorVarId.get_var_id()))
+            return true;
+          if (colorMultiplier && mat->hasVariable(color_multiplierVarId.get_var_id()))
+            return true;
+          if (forceSolidFill && *forceSolidFill && mat->hasVariable(camouflage_texVarId.get_var_id()))
+            return true;
+          if (microDetailLayer && mat->hasVariable(micro_detail_layerVarId.get_var_id()))
+            return true;
+          if (microDetailLayerIntensity && mat->hasVariable(micro_detail_layer_intensityVarId.get_var_id()))
+            return true;
+          if (microDetailLayerUvScale && mat->hasVariable(micro_detail_layer_uv_scaleVarId.get_var_id()))
+            return true;
+          if (microDetailLayerVScale && mat->hasVariable(micro_detail_layer_v_scaleVarId.get_var_id()))
+            return true;
+          return false;
+        },
+        [&](ShaderMaterial *mat) {
+          int currentMaterialId = -1;
+          mat->getIntVariable(material_idVarId.get_var_id(), currentMaterialId);
+          if (materialId != currentMaterialId)
+            return;
 
-        if (microDetailLayer)
-          mat->set_int_param(micro_detail_layerVarId.get_var_id(), *microDetailLayer);
-        if (microDetailLayerIntensity)
-          mat->set_real_param(micro_detail_layer_intensityVarId.get_var_id(), *microDetailLayerIntensity);
-        if (microDetailLayerUvScale)
-          mat->set_real_param(micro_detail_layer_uv_scaleVarId.get_var_id(), *microDetailLayerUvScale);
-        if (microDetailLayerVScale)
-          mat->set_real_param(micro_detail_layer_v_scaleVarId.get_var_id(), *microDetailLayerVScale);
-      });
+          if (camouflageScaleAndOffset)
+            mat->set_color4_param(camouflage_scale_and_offsetVarId.get_var_id(), Color4::xyzw(*camouflageScaleAndOffset));
+          if (solidFillColor)
+            mat->set_color4_param(solid_fill_colorVarId.get_var_id(), Color4::xyzw(*solidFillColor));
+          if (colorMultiplier)
+            mat->set_real_param(color_multiplierVarId.get_var_id(), *colorMultiplier);
+          if (forceSolidFill && *forceSolidFill)
+            mat->set_texture_param(camouflage_texVarId.get_var_id(), BAD_TEXTUREID);
+
+          if (microDetailLayer)
+            mat->set_int_param(micro_detail_layerVarId.get_var_id(), *microDetailLayer);
+          if (microDetailLayerIntensity)
+            mat->set_real_param(micro_detail_layer_intensityVarId.get_var_id(), *microDetailLayerIntensity);
+          if (microDetailLayerUvScale)
+            mat->set_real_param(micro_detail_layer_uv_scaleVarId.get_var_id(), *microDetailLayerUvScale);
+          if (microDetailLayerVScale)
+            mat->set_real_param(micro_detail_layer_v_scaleVarId.get_var_id(), *microDetailLayerVScale);
+        });
     }
   }
 }

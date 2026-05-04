@@ -6,7 +6,9 @@
 #include <daRg/dag_stringKeys.h>
 #include <daRg/dag_element.h>
 #include <3d/dag_render.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 
 using namespace darg;

@@ -30,6 +30,9 @@ struct GraphicsPipelineCompileScratchData
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   String shortDebugName;
   String fullDebugName;
+  const char *getFullDebugName() { return fullDebugName; }
+#else
+  const char *getFullDebugName() { return ""; }
 #endif
   int progIdx;
   int varIdx;

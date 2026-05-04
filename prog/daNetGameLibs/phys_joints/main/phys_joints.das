@@ -13,6 +13,7 @@ require math.base
 require DagorRandom
 require RendInst
 require RiDestr
+require DagorSystem
 
 struct PhysBodyData
   transform : float3x4

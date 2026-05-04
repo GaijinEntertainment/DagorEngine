@@ -145,8 +145,8 @@ bool DeWorkspace::loadAppSpecific(const DataBlock &blk)
     {
       if (enCollBlk->getParamNameId(i) == nid && enCollBlk->getParamType(i) == DataBlock::TYPE_STRING)
       {
-        const char *name = enCollBlk->getStr(i);
-        params.enabledColliders.push_back() = name;
+        const char *mname = enCollBlk->getStr(i);
+        params.enabledColliders.push_back() = mname;
       }
     }
   }
@@ -223,7 +223,7 @@ void DeWorkspace::clear() { params.reset(); }
 bool DeWorkspace::getMetricsBlk(DataBlock &blk) const
 {
   DataBlock appBlk;
-  appBlk.load(getAppPath());
+  appBlk.load(getAppBlkPath());
 
   DataBlock *metrBlk = appBlk.getBlockByName("level_metrics");
 
@@ -249,8 +249,8 @@ const DataBlock *DeWorkspace::findWspBlk(const char *app_blk_path)
 
       if (wspBlk && wspBlk->getBlockNameId() == wspNid)
       {
-        const char *appBlkPath = wspBlk->getStr("application_path", NULL);
-        if (appBlkPath && !::dag_path_compare(appBlkPath, app_blk_path))
+        const char *path = wspBlk->getStr("application_path", NULL);
+        if (path && !::dag_path_compare(path, app_blk_path))
           return wspBlk;
       }
     }

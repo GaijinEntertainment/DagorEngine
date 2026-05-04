@@ -3,12 +3,12 @@
 static const char *defScript = "\
 ::getControl <- function getControl(full_name) \r\n\
 { \r\n\
-  local function nextWordEnd(text, word_begin_index) \r\n\
+  function nextWordEnd(text, word_begin_index) \r\n\
   { \r\n\
     return text.indexof(\"/\", word_begin_index); \r\n\
   } \r\n\
    \r\n\
-  local function getControlByName(object, name) \r\n\
+  function getControlByName(object, name) \r\n\
   { \r\n\
     if (object.rawin(\"controls\") && ((typeof object.controls) == \"array\")) \r\n\
       foreach(key, control in object.controls) \r\n\

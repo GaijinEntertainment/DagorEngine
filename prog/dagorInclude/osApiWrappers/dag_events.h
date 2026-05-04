@@ -59,4 +59,8 @@ KRNLIMP int os_event_wait(os_event_t *event, unsigned timeout_ms);
 // Warn: must to be called for events created with `manual_reset = true` to be portable
 KRNLIMP int os_event_wait_noreset(os_event_t *event, unsigned timeout_ms);
 
+// Strict set won't unblock os_event_wait while event is used by set function
+// This usefull if wait thread controls lifetime of event object
+KRNLIMP int os_event_set_strict(os_event_t *event);
+
 #include <supp/dag_undef_KRNLIMP.h>

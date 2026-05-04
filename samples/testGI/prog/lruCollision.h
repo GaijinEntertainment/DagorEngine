@@ -20,19 +20,20 @@ struct LRUCollision
   size_t size() const { return collRes.size(); }
   size_t addCollRes(const dag::Vector<Point3_vec4> &vertices, const dag::Vector<uint16_t> &indices)
   {
-    eastl::unique_ptr<CollisionResource> coll(new CollisionResource());
-    coll->numMeshNodes = 1;
-    auto &n = coll->createNode();
-    coll->meshNodesHead = &n;
-    n.flags = n.IDENT;
-    n.tm = TMatrix::IDENT;
-    n.resetVertices(make_span(memalloc_typed<Point3_vec4>(vertices.size(), midmem), vertices.size()));
-    mem_copy_from(n.vertices, vertices.data());
-    n.resetIndices(make_span(memalloc_typed<uint16_t>(indices.size(), midmem), indices.size()));
-    mem_copy_from(n.indices, indices.data());
-    v_bbox3_init_empty(coll->vFullBBox);
+    bbox3f bbox;
+    v_bbox3_init_empty(bbox);
     for (auto &v : vertices)
-      v_bbox3_add_pt(coll->vFullBBox, v_ld(&v.x));
+      v_bbox3_add_pt(bbox, v_ld(&v.x));
+    alignas(16) BBox3 bBox;
+    v_st(&bBox[0].x, bbox.bmin);
+    v_stu_p3(&bBox[1].x, bbox.bmax);
+    BSphere3 sph;
+    sph += bBox;
+    auto v = make_span(memalloc_typed<Point3_vec4>(vertices.size(), midmem), vertices.size());
+    mem_copy_from(v, vertices.data());
+    auto i = make_span(memalloc_typed<uint16_t>(indices.size(), midmem), indices.size());
+    mem_copy_from(i, indices.data());
+    eastl::unique_ptr<CollisionResource> coll(CollisionResource::createSingleMesh(v, i, bBox, sph, 0));
     collRes.push_back(eastl::move(coll));
     return collRes.size() - 1;
   }

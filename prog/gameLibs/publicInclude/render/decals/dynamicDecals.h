@@ -95,6 +95,7 @@ int get_valid_decal_count(const DecalsData &decals);
 void set_planar_decals(int params_id, dynrend::PerInstanceRenderData &render_data);
 void set_dyn_decals(const DynDecals &decals, Tab<Point4> &out_params);
 void set_dyn_decals(const DynDecals &decals, int start_params, dynrend::PerInstanceRenderData &render_data);
+bool has_any_pending_updates();
 bool update();
 
 // to use uncomment DYNAMIC_DECALS_TWEAKING in dynamic_decals_params.hlsli

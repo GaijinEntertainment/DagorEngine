@@ -1,0 +1,12 @@
+if [ GLOB $(Root)/prog/gameLibs/vehiclePhys : * ] { DabuildUseOptionalExporters += vehiclePhys ; }
+if [ GLOB $(Root)/prog/gameLibs/gamePhys/phys/shipSections : * ] { DabuildUseOptionalExporters += shipSections ; }
+if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] { DabuildUseOptionalExporters += apex ; }
+
+UseProgLibs =
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/ioSys
+  engine/baseUtil
+  $(UseProgLibs)
+;

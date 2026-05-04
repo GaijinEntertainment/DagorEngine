@@ -8,7 +8,7 @@ function [pure] Color(r,g,b,a=255) {
 }
 
 let timeoutStub = function(timeout, func, _id=null){
-  assert([type(0),type(0.0)].indexof(type(timeout))!=null, "timeout should be number")
+  assert([type(0),type(0.0)].contains(type(timeout)), "timeout should be number")
   assert(type(func)==type(type), "timer should be function")
   func()
 }
@@ -79,6 +79,7 @@ let gui_scene = {
     clickRumbleDuration = 0.04
     dirPadRepeatDelay = 0.6
     dirPadRepeatTime = 0.2
+    allScreensAcceptInput = false
   }
   cursorOverStickScroll = Watched(true)
   cursorOverClickable = Watched(true)
@@ -97,7 +98,6 @@ let gui_scene = {
   removePanel = function(_idx){return 0}
   setConfigProps = function(tbl) {assert(type(tbl)=="table", "params must be passed as table")}
   setFocusedScreen = @(_id) false
-  focusedScreenId = -1
   enableInput = @(_bool) null
 }
 
@@ -147,17 +147,15 @@ let darg = {
   PictureImmediate = class{
     constructor(_file){}
   }
-  LottieAnimation = class {
-    constructor(_file){}
-  }
   EditableText
   Cursor = function Cursor(val) {return val}
 
   anim_start = @(_anim) null
   anim_request_stop = @(_anim) null
   anim_stop = @(_anim) null
+  anim_pause = @(_anim, _set_pause) null
 
-  fontH = @(height) height
+  fontH = @[pure](height) height
 
   flex = @[pure](weight=1) weight*100
 
@@ -221,6 +219,7 @@ global const ROBJ_TEXT = "ROBJ_TEXT"
 global const ROBJ_INSCRIPTION = "ROBJ_INSCRIPTION"
 global const ROBJ_XRAYDOLL = "ROBJ_XRAYDOLL"
 global const ROBJ_DAS_CANVAS = "ROBJ_DAS_CANVAS"
+global const ROBJ_SHADER = "ROBJ_SHADER"
 
 global const FLOW_PARENT_RELATIVE = "PARENT_RELATIVE"
 global const FLOW_HORIZONTAL = "FLOW_HORIZONTAL"
@@ -250,6 +249,7 @@ global const VECTOR_ELLIPSE="VECTOR_ELLIPSE"
 global const VECTOR_RECTANGLE="VECTOR_RECTANGLE"
 global const VECTOR_MID_COLOR = "VECTOR_MID_COLOR"
 global const VECTOR_OUTER_LINE="VECTOR_OUTER_LINE"
+global const VECTOR_INNER_LINE="VECTOR_INNER_LINE"
 global const VECTOR_CENTER_LINE="VECTOR_CENTER_LINE"
 global const VECTOR_LINE_INDENT_PCT="VECTOR_LINE_INDENT_PCT"
 global const VECTOR_LINE_INDENT_PX="VECTOR_LINE_INDENT_PX"
@@ -268,6 +268,10 @@ global const FFT_OUTLINE="FFT_OUTLINE"
 
 global const O_HORIZONTAL="O_HORIZONTAL"
 global const O_VERTICAL="O_VERTICAL"
+
+global const TEXFMT_SRGB_IN_UNORM = 0
+global const TEXFMT_UNORM = 1
+global const TEXFMT_SRGB = 2
 
 global const TOVERFLOW_CLIP="TOVERFLOW_CLIP"
 global const TOVERFLOW_CHAR="TOVERFLOW_CHAR"
@@ -403,6 +407,6 @@ global const XMB_CONTINUE = 1
 
 global const R_PROCESSED = 1
 
-global const MAIN_SCREEN_ID = 1000000
+global const MAIN_SCREEN_ID = 999
 
 return darg

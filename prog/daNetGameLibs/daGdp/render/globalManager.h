@@ -16,7 +16,7 @@ namespace dagdp
 
 #if DAGDP_DEBUG
 // In debug mode, we want to be more conservative to catch issues earlier.
-inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 0.75f;
+inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 0.85f;
 #else
 inline constexpr float DYNAMIC_THRESHOLD_MULTIPLIER = 1.0f;
 #endif
@@ -55,6 +55,7 @@ class GlobalManager
   dag::Vector<dafg::NodeHandle> viewIndependentNodes; // Built together with views, but not belonging to any particular one.
   bool viewsAreCreated = false;
   bool viewsAreBuilt = false;
+  bool triangleSizeDebugEnabled = false;
 
 #if DAGDP_DEBUG
   GlobalDebug debug;
@@ -66,7 +67,9 @@ class GlobalManager
   GlobalManager &operator=(GlobalManager &&) = delete;      // Non-movable.
 
 public:
-  GlobalManager() = default;
+  static float globalDensityMul;
+
+  GlobalManager() { globalDensityMul = 1; }
   ~GlobalManager();
   void reconfigure(const GlobalConfig &new_config);
   void destroyViews();
@@ -74,6 +77,7 @@ public:
   void invalidateRules();
   void update();
   const ViewInfo &getViewInfo(int view_index) const { return views[view_index].info; }
+  void setTriangleDebugView(bool is_triangle_debug) { triangleSizeDebugEnabled = is_triangle_debug; }
 
 #if DAGDP_DEBUG
   void imgui();

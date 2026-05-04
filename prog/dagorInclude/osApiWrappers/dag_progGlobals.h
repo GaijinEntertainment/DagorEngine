@@ -31,7 +31,7 @@ extern KRNLIMP void *win32_empty_mouse_cursor; // inited as =nullptr
 KRNLIMP void *win32_init_empty_mouse_cursor();
 
 //! HCURSOR cursor used to override mouse pointer over app window (if not NULL will override windows cursor)
-extern KRNLIMP void *win32_current_mouse_cursor; // inited as =nullptr
+extern KRNLIMP void *win32_current_mouse_cursor; // inited as pointer to default cursor on Windows, =nullptr in other cases
 
 //! value returned by GetDpiForSystem() or 96 if system is not DPI aware
 extern KRNLIMP int win32_system_dpi; // inited as =96

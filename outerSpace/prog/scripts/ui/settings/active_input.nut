@@ -5,6 +5,7 @@ let {set_actions_binding_column_active} = require("dainput2")
 let { eventbus_send, eventbus_subscribe } = require("eventbus")
 let platform = require("%dngscripts/platform.nut")
 let controlsTypes = require("%scripts/ui/settings/input_types.nut")
+let {get_setting_by_blk_path} = require("settings")
 let forcedControlsType = mkWatched(persist, "forcedControlsType")
 let defRaw = platform.is_pc ? 0 : 1
 let lastActiveControlsTypeRaw = mkWatched(persist, "lastActiveControlsTypeRaw", defRaw)
@@ -61,6 +62,7 @@ let wasGamepad = mkWatched(persist, "wasGamepad", function() {
 let enabledGamepadControls = Watched(!platform.is_pc || isGamepad.get())
 
 if (platform.is_pc){
+  forcedControlsType.set(ControlsTypes?[get_setting_by_blk_path("debug/forcedControlsType")])
   wasGamepad.subscribe(@(v) enabledGamepadControls.set(v))
   let setGamePadActive = @(v) set_actions_binding_column_active(GAMEPAD_COLUMN, v && forcedControlsType.get() != ControlsTypes.KB_MOUSE)
   enabledGamepadControls.subscribe(setGamePadActive)

@@ -1,13 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver_defs.h"
+#include <d3d11.h>
 #include <limits.h>
+#include <drv/3d/dag_decl.h>
 #include <generic/dag_staticTab.h>
+#include <generic/dag_carray.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_samplerHandle.h>
+#include "basetex.h"
+#include "genericBuffer.h"
 #include "sampler.h"
-#include <EASTL/bit.h>
 
 namespace drv3d_dx11
 {
@@ -424,6 +429,12 @@ struct ResourceSlotState
     }
 
     stateObject = nullptr;
+    if (sampler != d3d::INVALID_SAMPLER_HANDLE)
+      G_FAST_ASSERT([=] {
+        auto i = uint64_t(sampler) - (uint64_t(d3d::INVALID_SAMPLER_HANDLE) == 0);
+        SamplerKeysAutoLock l;
+        return i < g_sampler_keys.size();
+      }());
     samplerHandle = sampler;
     return true;
   }
@@ -453,7 +464,6 @@ struct TextureFetchState
     G_STATIC_ASSERT(MAX_PS_SAMPLERS <= sizeof(decltype(samplersModifiedMask)) * CHAR_BIT);
     G_STATIC_ASSERT(MAX_VS_SAMPLERS <= sizeof(decltype(samplersModifiedMask)) * CHAR_BIT);
 
-    // static constexpr uint32_t SAMPLERS_SLOT_MASK = 1 << eastl::bit_width(MAX_CS_SAMPLERS) - 1;
     static constexpr uint32_t SAMPLERS_SLOT_MASK = 0xFFFF;
 
     bool flush(unsigned shader_stage, bool force, ID3D11ShaderResourceView **views, ID3D11SamplerState **states,
@@ -511,6 +521,7 @@ struct TextureFetchState
 struct MiniRenderStateUnsafe
 {
   BaseTexture *tex0; // Must be protected with resources CS while stored.
+  Sbuffer *buf0;
 
   Driver3dRenderTarget rt;
   shaders::DriverRenderStateId renderState;

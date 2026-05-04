@@ -79,5 +79,6 @@ void set_profiling_settings(const DataBlock &settings)
 namespace da_profiler
 {
 void set_profiling_settings(const DataBlock &) {}
+void set_resolve_symbols(bool) {}
 } // namespace da_profiler
 #endif // #if TIME_PROFILE_ENABLED

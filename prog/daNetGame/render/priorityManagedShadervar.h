@@ -1,4 +1,6 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
+
 #include <EASTL/vector_map.h>
 #include <math/integer/dag_IPoint4.h>
 #include <shaders/dag_shaderVar.h>
@@ -41,9 +43,9 @@ private:
 
 namespace PriorityShadervar
 {
-void set_real(int id, int prio, float value);
+void set_float(int id, int prio, float value);
 void set_int(int id, int prio, int value);
-void set_color4(int id, int prio, Point4 value);
+void set_float4(int id, int prio, Point4 value);
 void set_int4(int id, int prio, IPoint4 value);
 void clear(int id, int prio);
 } // namespace PriorityShadervar

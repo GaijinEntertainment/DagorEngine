@@ -56,6 +56,7 @@ static void pull_das()
     NEED_MODULE(DagorFiles)
     NEED_MODULE(DagorFindFiles)
     NEED_MODULE(DagorResources)
+    NEED_MODULE(DagorTexture3DModule)
     NEED_MODULE(ECSGlobalTagsModule)
 
     NEED_MODULE(Module_dasIMGUI)
@@ -70,8 +71,8 @@ static void pull_das()
 #endif
 
     NEED_MODULE(DaProfilerModule) // daprofiler
+    NEED_MODULE(Module_StdDlg)    // file dialog
   }
-  NEED_MODULE(Module_StdDlg) // file dialog
 }
 
 static void init_das()

@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "astc_compression_inc.dshl"
+include "bc_compression_inc.dshl"
 
 texture src_tex;
 float src_mip = 0;
@@ -7,11 +8,14 @@ float dst_mip = 0;
 
 shader astc4_compressor
 {
-  (cs) { src_delta_mip@f2 = (src_mip, dst_mip-src_mip, 0, 0); }
-  (cs) { src_tex@smp2d = src_tex; }
+  (cs)
+  {
+    src_delta_mip@f2 = (src_mip, dst_mip-src_mip, 0, 0);
+    src_tex@tex2d = src_tex;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+  }
 
   INIT_ASTC_COMPRESSION()
-  ENABLE_ASSERT(cs)
 
   hlsl(cs)
   {

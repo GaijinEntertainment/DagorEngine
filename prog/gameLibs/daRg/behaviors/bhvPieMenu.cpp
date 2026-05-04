@@ -78,35 +78,33 @@ struct BhvPieMenuData
 };
 
 
-static ScriptValueObservable *get_observable(Element *elem, const Sqrat::Object &key)
+static WatchedHandle *get_observable(Element *elem, const Sqrat::Object &key)
 {
   Sqrat::Object obj = elem->props.getObject(key);
   if (obj.GetType() != OT_INSTANCE)
     return nullptr;
 
-  return obj.Cast<ScriptValueObservable *>();
+  return obj.Cast<WatchedHandle *>();
 }
 
 
 static void reset_sector(Element *elem)
 {
-  ScriptValueObservable *obsCurSector = get_observable(elem, elem->csk->curSector);
-  ScriptValueObservable *obsCurAngle = get_observable(elem, elem->csk->curAngle);
-  String errMsg;
+  WatchedHandle *obsCurSector = get_observable(elem, elem->csk->curSector);
+  WatchedHandle *obsCurAngle = get_observable(elem, elem->csk->curAngle);
 
   Sqrat::Object nullObj;
   if (obsCurSector)
-    obsCurSector->setValue(nullObj, errMsg);
+    obsCurSector->graph->setValue(obsCurSector->id, nullObj);
   if (obsCurAngle)
-    obsCurAngle->setValue(nullObj, errMsg);
+    obsCurAngle->graph->setValue(obsCurAngle->id, nullObj);
 }
 
 
 static void update_sector_rel(Element *elem, float x, float y)
 {
-  ScriptValueObservable *obsCurSector = get_observable(elem, elem->csk->curSector);
-  ScriptValueObservable *obsCurAngle = get_observable(elem, elem->csk->curAngle);
-  String errMsg;
+  WatchedHandle *obsCurSector = get_observable(elem, elem->csk->curSector);
+  WatchedHandle *obsCurAngle = get_observable(elem, elem->csk->curAngle);
 
   if (x * x + y * y > 0.1f)
   {
@@ -118,23 +116,23 @@ static void update_sector_rel(Element *elem, float x, float y)
       {
         float sectorRange = TWOPI / sectorsCount;
         int curSector = floorf(fmodf((angle + TWOPI + sectorRange * 0.5), TWOPI) / sectorRange);
-        obsCurSector->setValue(Sqrat::Object(curSector, elem->getVM()), errMsg);
+        obsCurSector->graph->setValue(obsCurSector->id, Sqrat::Object(curSector, elem->getVM()));
       }
     }
     if (obsCurAngle)
     {
       float angleStep = 3 * DEG_TO_RAD;
       float angleAligned = floorf(angle / angleStep + 0.5f) * angleStep;
-      obsCurAngle->setValue(Sqrat::Object(angleAligned, elem->getVM()), errMsg);
+      obsCurAngle->graph->setValue(obsCurAngle->id, Sqrat::Object(angleAligned, elem->getVM()));
     }
   }
   else
   {
     Sqrat::Object nullObj;
     if (obsCurSector)
-      obsCurSector->setValue(nullObj, errMsg);
+      obsCurSector->graph->setValue(obsCurSector->id, nullObj);
     if (obsCurAngle)
-      obsCurAngle->setValue(nullObj, errMsg);
+      obsCurAngle->graph->setValue(obsCurAngle->id, nullObj);
   }
 }
 
@@ -167,15 +165,9 @@ void BhvPieMenu::onDetach(Element *elem, DetachMode)
   }
 }
 
-int BhvPieMenu::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data, short mx,
-  short my, int /*buttons*/, int accum_res)
-{
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
 
 int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  const Point2 &pos, int accum_res)
+  Point2 pos, int accum_res)
 {
   int pointingDevice = elem->props.getInt(elem->csk->devId, -1);
   if (pointingDevice != DEVID_MOUSE)
@@ -231,8 +223,8 @@ int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice dev
             etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<>(onClick));
           else
           {
-            ScriptValueObservable *obsCurSector = get_observable(elem, elem->csk->curSector);
-            Sqrat::Object val = obsCurSector ? obsCurSector->getValue() : Sqrat::Object();
+            WatchedHandle *obsCurSector = get_observable(elem, elem->csk->curSector);
+            Sqrat::Object val = obsCurSector ? obsCurSector->graph->getValue(obsCurSector->id) : Sqrat::Object();
             auto handler = new ScriptHandlerSqFunc<Sqrat::Object>(onClick, val);
             etree->guiScene->queueScriptHandler(handler);
           }
@@ -259,13 +251,6 @@ int BhvPieMenu::pointingEvent(ElementTree *etree, Element *elem, InputDevice dev
 }
 
 
-int BhvPieMenu::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-
 int BhvPieMenu::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 {
   if (input_adapter)
@@ -280,7 +265,7 @@ int BhvPieMenu::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
   int pointingDevice = elem->props.getInt(elem->csk->devId, -1);
   if (pointingDevice == DEVID_JOYSTICK)
   {
-    IGenJoystick *joy = GuiScene::getJoystick();
+    IGenJoystick *joy = elem->etree->guiScene->getJoystick();
     if (joy)
     {
       const int defStick = 0;
@@ -339,5 +324,18 @@ int BhvPieMenu::onDeactivateInput(Element *elem, InputDevice device, int pointer
   return 0;
 }
 
+
+int BhvPieMenu::onDeactivateAllInput(Element *elem)
+{
+  BhvPieMenuData *bhvData = elem->props.storage.RawGetSlotValue<BhvPieMenuData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
+
+  if (bhvData->isPressed())
+  {
+    elem->clearGroupStateFlags(active_state_flags_for_device(bhvData->clickedByDevice));
+    bhvData->release();
+  }
+  return 0;
+}
 
 } // namespace darg

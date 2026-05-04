@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/baseIo.h>
 #include <daECS/core/sharedComponent.h>
@@ -16,7 +19,7 @@
 #include <math/random/dag_random.h>
 #include <math/dag_geomTree.h>
 #include <gamePhys/phys/utils.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 
 #include <EASTL/fixed_string.h>
 

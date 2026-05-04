@@ -53,7 +53,7 @@ TexPtr create_preintegrated_fresnel_GGX(const char *name, uint32_t preintegrate_
       prefmt = TEXFMT_DEFAULT;
   }
 
-  TexPtr preIntegratedGF = dag::create_tex(nullptr, 128, 32, prefmt | TEXCF_RTARGET, 1, name);
+  TexPtr preIntegratedGF = dag::create_tex(nullptr, 128, 32, prefmt | TEXCF_RTARGET, 1, name, RESTAG_POSTFX);
   eastl::string samplerName(eastl::string::CtorSprintf{}, "%s_samplerstate", name);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;

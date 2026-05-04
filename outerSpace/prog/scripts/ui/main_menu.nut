@@ -15,6 +15,7 @@ let { setOfflineSessionParams, isInMainMenu, ulog, launch_network_session, launc
 let { hardPersistWatched } = require("%sqstd/globalState.nut")
 let { mainLogin, userUid, isOfflineMode, desiredUserName, userName, reloginUI, logout } = require("%scripts/ui/login.nut")
 let { showGameMenu, gameMenu } = require("%scripts/ui/game_menu.nut")
+let { get_internal_server_url } = require("app")
 //let {get_user_system_info=@() null} = require_optional("sysinfo")
 
 let unused = @(...) null
@@ -308,7 +309,7 @@ function mkRoomsUi() {
       animations = boxAnimations
       transform = {}
       children = [
-        {size = static [sw(50), sh(50)] children = panel, clipChildren=true}
+        {size = const [sw(50), sh(50)] children = panel, clipChildren=true}
         buttons
       ]
     }
@@ -527,7 +528,7 @@ function mkRoomsUi() {
   function roomDbgInfoTxt(){
     return {
       watch = joinedRoomInfo
-      size = static [flex(), sh(40)]
+      size = const [flex(), sh(40)]
       rendObj = ROBJ_TEXTAREA
       behavior = [Behaviors.TextArea,Behaviors.WheelScroll]
       preformatted = true
@@ -545,7 +546,7 @@ function mkRoomsUi() {
     ]}
   }
   let playersInfoTitle = freeze({
-    halign = ALIGN_CENTER margin = static [0, 0, hdpx(10), 0]
+    halign = ALIGN_CENTER margin = const [0, 0, hdpx(10), 0]
     size = FLEX_H
     children = {rendObj = ROBJ_TEXT text = "Players" fontSize=hdpx(30)}
   })
@@ -630,9 +631,19 @@ function mkRoomsUi() {
 
   function tryConnectTo(room_info) {
     if (room_info && room_info?.hostIp != null) {
-      println($"trying to connect to ip:{room_info?.hostIp}")
+      local connectTo = room_info?.hostPort ? $"{room_info.hostIp}:{room_info.hostPort}" : room_info.hostIp
+      if (room_info?.owner_uid != null && room_info?.owner_uid == userUid.get()) {
+        let internal_server_url = get_internal_server_url()
+        if (internal_server_url) {
+          log($"get_internal_server_url()={internal_server_url}")
+          if (internal_server_url == "-NOT-READY-")
+            return
+          connectTo = internal_server_url
+          log($"connecting to internally hosted server - overriding address: {connectTo}")
+        }
+      }
       gui_scene.clearTimer(requestCurRoomInfo)
-      let connectTo = room_info?.hostPort ? $"{room_info.hostIp}:{room_info.hostPort}" : room_info.hostIp
+      println($"trying to connect to {connectTo}")
       let sessionParams = {sessionId=room_info?.sessionId ?? 0, host_urls = [connectTo]}
       if (room_info?.authKey)
         sessionParams.authKey <- room_info?.authKey

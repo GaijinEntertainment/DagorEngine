@@ -8,6 +8,8 @@
 #include <generic/dag_enumerate.h>
 #include <json/json.h>
 #include <util/dag_watchdog.h>
+#include <drv/3d/dag_info.h>
+
 
 namespace
 {
@@ -250,8 +252,8 @@ public:
     }
   }
 
-  template <typename T>
-  uint32_t forEachGPUInfo(T clb) const
+  template <typename C>
+  uint32_t forEachGPUInfo(C clb) const
   {
     uint32_t count = 0;
     if (!AFTHERMATH_CALL(p.getGPUInfoCount(context, &count)))
@@ -294,8 +296,8 @@ public:
     return resourceInfos;
   }
 
-  template <typename T>
-  uint32_t forEachEventMarker(T clb) const
+  template <typename C>
+  uint32_t forEachEventMarker(C clb) const
   {
     uint32_t count = 0;
     if (!AFTHERMATH_CALL(p.getEventMarkersInfoCount(context, &count)))
@@ -315,8 +317,8 @@ public:
     return count;
   }
 
-  template <typename T>
-  uint32_t forEachShaderInfo(T clb) const
+  template <typename C>
+  uint32_t forEachShaderInfo(C clb) const
   {
     uint32_t count = 0;
     if (!AFTHERMATH_CALL(p.getActiveShadersInfoCount(context, &count)))
@@ -516,14 +518,6 @@ void send_dump_context(T *ctx_ptr, const void *dump, const char *ext, size_t siz
   meta["d3d_driver"] = d3d::get_driver_name();
   if (auto netManager = drv3d_dx12::get_device().netManager.get(); netManager)
     netManager->sendHttpEventLog("gpu_crash_dump", dump, size, &meta);
-}
-
-void set_name(ID3D12Resource *resource, eastl::string_view name)
-{
-  // lazy way of converting to wchar, this assumes name is not multi byte encoding
-  wchar_t wcharName[1024];
-  *eastl::copy(name.data(), min(name.data() + name.size(), name.data() + 1023), wcharName) = L'\0';
-  resource->SetName(wcharName);
 }
 } // namespace
 
@@ -738,19 +732,15 @@ void Aftermath::onCrashDumpDescription(PFN_GFSDK_Aftermath_AddGpuCrashDumpDescri
   */
 }
 
-void Aftermath::onResolveMarkerCallback(const void *marker_id, uint32_t marker_id_size, void **resolved_marker_data,
-  uint32_t *marker_size)
+void Aftermath::onResolveMarkerCallback(const void *marker_id, uint32_t marker_id_size,
+  PFN_GFSDK_Aftermath_ResolveMarker resolveMarker)
 {
   G_UNUSED(marker_id);
   G_UNUSED(marker_id_size);
+  G_UNUSED(resolveMarker);
   // For maximum CPU performance, use GFSDK_Aftermath_SetEventMarker() with dataSize=0.
   // This instructs Aftermath not to allocate and copy off memory internally, relying on
   // the application to resolve marker pointers in this callback.
-  // Important: the pointer passed back via resolved_marker_data must remain valid after this function
-  // returns
-  static const char marker_data[] = "Application resolved markers not implemented";
-  *resolved_marker_data = (void *)marker_data;
-  *marker_size = sizeof(marker_data);
 }
 
 void GFSDK_AFTERMATH_CALL Aftermath::onCrashDumpGenerateProxy(const void *dump, const uint32_t size, void *self)
@@ -772,10 +762,10 @@ void GFSDK_AFTERMATH_CALL Aftermath::onCrashDumpDescriptionProxy(PFN_GFSDK_After
 }
 
 void GFSDK_AFTERMATH_CALL Aftermath::onResolveMarkerCallbackProxy(const void *marker_id, uint32_t marker_id_size, void *self,
-  void **resolved_marker_data, uint32_t *marker_size)
+  PFN_GFSDK_Aftermath_ResolveMarker resolveMarker)
 {
   if (auto object = reinterpret_cast<Proxy *>(self)->object)
-    object->onResolveMarkerCallback(marker_id, marker_id_size, resolved_marker_data, marker_size);
+    object->onResolveMarkerCallback(marker_id, marker_id_size, resolveMarker);
 }
 
 Aftermath::~Aftermath()
@@ -882,15 +872,14 @@ bool Aftermath::onDeviceSetup(D3DDevice *device, const Configuration &config, co
 
 void Aftermath::nameResource(ID3D12Resource *resource, eastl::string_view name)
 {
-  set_name(resource, name);
+  set_object_name(resource, name);
   GFSDK_Aftermath_ResourceHandle handle;
   api.registerResource(resource, &handle);
 }
 
 void Aftermath::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
 {
-  // technically not correct, when name is a sub-string...
-  resource->SetName(name.data());
+  set_object_name(resource, name);
   GFSDK_Aftermath_ResourceHandle handle;
   api.registerResource(resource, &handle);
 }

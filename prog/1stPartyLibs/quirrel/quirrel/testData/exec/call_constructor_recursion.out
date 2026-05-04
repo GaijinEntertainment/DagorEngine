@@ -1,0 +1,8 @@
+=== Controlled run (max 10) ===
+  Call(MyClass) -> Call(ctor) depth=1
+  Call(MyClass) -> Call(ctor) depth=2
+  Call(MyClass) -> Call(ctor) depth=3
+  Call(MyClass) -> Call(ctor) depth=4
+  Call(MyClass) -> Call(ctor) depth=5
+Completed: depth reached 10
+Caught: stack overflow, cannot resize stack

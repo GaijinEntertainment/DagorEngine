@@ -46,6 +46,7 @@ function Fuzzer(allowLoops) {
   local insideLoopCondition = 0
   local insideLoopBody = 0
   local logNum = 0
+  local blockBraceInd = null
 
   let dump_scopes = function() {
     for (local i = 0; i < scopes.len(); i++) {
@@ -110,9 +111,9 @@ function Fuzzer(allowLoops) {
   let need_indent = @(s) s.len() > 1 && s[0] == '{'
 
   local int_expr, bool_bin_expr, bool_expr,
-    int_field, int_delegate, int_array_value, int_add, int_sub, int_or, int_and,
+    int_field, int_delegate, int_array_value, int_3way, int_add, int_sub, int_or, int_and,
     int_identifier, int_var, int_param, int_function_call,
-    statement, statements, reset_memos,
+    statement, statement_inner, statements, reset_memos,
     array_var, table_var, generator_var,
     void_function_call
 
@@ -136,6 +137,7 @@ function Fuzzer(allowLoops) {
   int_sub = @() $"{e(int_expr)} - {e(int_expr)}"
   int_or = @() $"(({e(int_expr)}) | ({e(int_expr)}))"
   int_and = @() $"(({e(int_expr)}) & ({e(int_expr)}))"
+  int_3way = @() $"{e(int_expr)} <=> {e(int_expr)}"
 
   let cmp_expr = @() $"({e(int_expr)} {anyof(["<", ">", "<=", ">=", "!=", "=="])} {e(int_expr)})"
 
@@ -157,33 +159,39 @@ function Fuzzer(allowLoops) {
 
   let loop_cmp_op = @() anyof(["<", "<="])
 
-  int_expr = @() e(anyof([int, int_field, int_delegate, int_array_value, int_var, int_add, int_sub, int_or, int_and,
+  int_expr = @() e(anyof([int, int_field, int_delegate, int_array_value, int_var, int_3way, int_add, int_sub, int_or, int_and,
                    int_ternary, int_identifier, int_var, int_paren, int_param, static_memo,
                    int_function_call], treeDepth > 25 ? 90 : 32))
   let to_log = @() $"to_log({logId()}, {e(int_expr)})"
 
   let if_then = function() {
     local condition = e(anyof([bool_expr, int_paren]))
+    blockBraceInd = ind
     inc_indent()
     local then_ = e(anyof([statement, statements]))
     dec_indent()
-    return $"if {condition}\n{need_indent(then_) ? ind : ""}{then_}"
+    if (need_indent(then_))
+      return $"if {condition}\n{ind}{then_}"
+    else
+      return $"if {condition}\n{then_}"
   }
 
   let if_then_else = function() {
     local condition = e(anyof([bool_expr, int_paren]))
+    blockBraceInd = ind
     inc_indent()
     local then_ = e(anyof([statement, statements]))
+    blockBraceInd = ind.slice(0, ind.len() - 2)
     local else_ = e(anyof([statement, statements]))
     dec_indent()
-    return $"if {condition}\n{need_indent(then_) ? ind : ""}{then_}\n{ind}else\n{need_indent(else_) ? ind : ""}{else_}"
+    let thenStr = need_indent(then_) ? $"\n{ind}{then_}" : $"\n{then_}"
+    let elseStr = need_indent(else_) ? $"\n{ind}{else_}" : $"\n{else_}"
+    return $"if {condition}{thenStr}\n{ind}else{elseStr}"
   }
 
   let try_catch = function() {
-    inc_indent()
     local code1 = statements(rand() % 3, rand() % 2 == 0)
     local code2 = statements(rand() % 3)
-    dec_indent()
     local index = varCount++
     return $"try\n{ind}{code1}\n{ind}catch(err{index})\n{ind}{code2}"
   }
@@ -209,6 +217,7 @@ function Fuzzer(allowLoops) {
     insideLoopCondition++
     local s = $"for (local {varName} = {varInit}; {varName} {loop_cmp_op()} {e(int_expr)}; {varName}++)"
     insideLoopCondition--
+    blockBraceInd = ind
     inc_indent()
     breakable = true
     insideLoopBody++
@@ -220,7 +229,10 @@ function Fuzzer(allowLoops) {
     topScope--
     scopes.pop()
 
-    return $"{s}\n{need_indent(body) ? ind : ""}{body}";
+    if (need_indent(body))
+      return $"{s}\n{ind}{body}"
+    else
+      return $"{s}\n{body}";
   }
 
   let foreach_loop = function() {
@@ -244,6 +256,7 @@ function Fuzzer(allowLoops) {
     scopes.top().allIdentifiers.append(varName2)
 
     local s = $"foreach ({varName1}, {varName2} in {e(anyof([array_var, table_var, generator_var]))})"
+    blockBraceInd = ind
     inc_indent()
     breakable = true
     insideLoopBody++
@@ -255,7 +268,10 @@ function Fuzzer(allowLoops) {
     topScope--
     scopes.pop()
 
-    return $"{s}\n{need_indent(body) ? ind : ""}{body}";
+    if (need_indent(body))
+      return $"{s}\n{ind}{body}"
+    else
+      return $"{s}\n{body}";
   }
 
   let while_loop = function() {
@@ -277,6 +293,8 @@ function Fuzzer(allowLoops) {
     scopes.top().allIdentifiers.append(varName)
 
     inc_indent()
+    blockBraceInd = ind
+    inc_indent()
     breakable = true
     insideLoopBody++
     local body = e(anyof([statement, statements]))
@@ -288,8 +306,11 @@ function Fuzzer(allowLoops) {
     let condition = $"{varName}++ {loop_cmp_op()} {e(int_expr)}"
     insideLoopCondition--
 
+    let bodyStr = need_indent(body) ? $"\n{ind}{body}" : $"\n{body}"
+    local s = $"\{\n{ind}local {varName} = -222\n{ind}{varName} = {varInit}\n{ind}while ({condition}){bodyStr}\n"
 
-    local s = $"\{\n{ind}  local {varName} = {varInit}\n{ind}  while ({condition})\n  {need_indent(body) ? ind : ""}{body}\n{ind}\}"
+    dec_indent()
+    s += $"{ind}\}"
 
     topScope--
     scopes.pop()
@@ -316,6 +337,8 @@ function Fuzzer(allowLoops) {
     scopes.top().allIdentifiers.append(varName)
 
     inc_indent()
+    blockBraceInd = ind
+    inc_indent()
     breakable = true
     insideLoopBody++
     local body = e(anyof([statement, statements]))
@@ -327,7 +350,11 @@ function Fuzzer(allowLoops) {
     let condition = $"{varName}++ {loop_cmp_op()} {e(int_expr)}"
     insideLoopCondition--
 
-    local s = $"\{\n{ind}  local {varName} = {varInit}\n{ind}  do\n  {need_indent(body) ? ind : ""}{body}\n{ind}  while ({condition})\n{ind}\}"
+    let bodyStr = need_indent(body) ? $"\n{ind}{body}" : $"\n{body}"
+    local s = $"\{\n{ind}local {varName} = -222\n{ind}{varName} = {varInit}\n{ind}do{bodyStr}\n{ind}while ({condition})\n"
+
+    dec_indent()
+    s += $"{ind}\}"
 
     topScope--
     scopes.pop()
@@ -337,7 +364,7 @@ function Fuzzer(allowLoops) {
 
   let break_continue = function() {
     if (!breakable || !allowLoops)
-      return statement()
+      return statement_inner()
 
     return anyof(["break", "continue"])
   }
@@ -387,19 +414,28 @@ function Fuzzer(allowLoops) {
 
   reset_memos = function() {
     if (rand() % 16 == 1)
-      return $"require(\"modules\").reset_static_memos()"
+      return $"\{ to_log(\"reset_static_memos\"); require(\"modules\").reset_static_memos() \}"
+    else if (rand() % 16 == 2)
+      return $"try \{ to_log(\"collectgarbage\"); require(\"debug\").collectgarbage() \} catch (gc_e) \{\}"
     else
-      return statement()
+      return statement_inner()
+  }
+
+  statement_inner = function() {
+    return e(anyof([to_log, void_function_call, if_then, if_then_else,
+                      foreach_loop, for_loop, while_loop, do_while_loop,
+                      try_catch, break_continue, reset_memos], treeDepth > 25 ? 100 : 40))
   }
 
   statement = function() {
-    let st = e(anyof([to_log, void_function_call, if_then, if_then_else,
-                      foreach_loop, for_loop, while_loop, do_while_loop,
-                      try_catch, break_continue, reset_memos], treeDepth > 25 ? 100 : 40))
-    return $"{ind}{st}"
+    blockBraceInd = null
+    return $"{ind}{statement_inner()}"
   }
 
   statements = function(statements_count = -1, should_throw = false) {
+    let bbi = blockBraceInd
+    blockBraceInd = null
+
     scopes.append(Scope())
     topScope++
 
@@ -407,7 +443,8 @@ function Fuzzer(allowLoops) {
     let throw_at = should_throw ? rand() % (count + 1) : -1
 
     local s = ""
-    inc_indent()
+    if (bbi == null)
+      inc_indent()
     for (local i = 0; i < count; i++)
       if (i == throw_at)
         s += anyof([$"{ind}(\{\}).x\n", $"{ind}0/0\n", $"{ind}([0])[-1] *= 1\n"])
@@ -418,17 +455,23 @@ function Fuzzer(allowLoops) {
     local endval = ""
     let localCount = scopes.top().locals.len()
     for (local i = 0; i < localCount; i++) {
-      v += $"{ind}let {scopes.top().locals[i]} = {scopes.top().localsRvalue[i]}\n"
+      if (rand() % 2 == 0)
+        v += $"{ind}local {scopes.top().locals[i]} = -{(rand() % 100 + 10.0) / 2}\n{ind}{scopes.top().locals[i]} = {scopes.top().localsRvalue[i]}\n"
+      else
+        v += $"{ind}let {scopes.top().locals[i]} = {scopes.top().localsRvalue[i]}\n"
+
       endval += $"{ind}to_log({logId()}, {scopes.top().locals[i]})\n"
     }
-    dec_indent()
+    if (bbi == null)
+      dec_indent()
 
     if (rand() % 2 == 0)
       endval = "";
 
+    let closingInd = bbi ?? ind
     topScope--
     scopes.pop()
-    return $"\{\n{v}{s}{endval}{ind}\}"
+    return $"\{\n{v}{s}{endval}{closingInd}\}"
   }
 
   int_identifier = function() {

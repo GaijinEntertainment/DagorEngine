@@ -1,7 +1,8 @@
 if (__name__ == "__analysis__")
   return
 
-//expect:w214
+//-file:undefined-global
+
 local test = ::f
 
 enum REPLAY {
@@ -10,5 +11,3 @@ enum REPLAY {
 }
 
 ::x <- static(test ? REPLAY.SKIRMISH : REPLAY.SKIRMISH) //-w316
-
-//-file:undefined-global

@@ -54,6 +54,13 @@ DestructableObject::DestructableObject(const destructables::DestructableCreation
     timeToKinematic = params.timeToKinematic;
   if (params.timeToSinkUnderground > 0.0f)
     timeToSinkUnderground = params.timeToSinkUnderground;
+  if (params.timeToStartDisintegration >= 0.0f)
+    disintegrationTime = -params.timeToStartDisintegration;
+  if (params.disintegrationDuration >= 0.0f)
+    disintegrationDuration = params.disintegrationDuration;
+  constexpr float BASE_DISINTEGRATION_SCALE = 50.f; // This value looks good, so this will be the base value
+  if (params.disintegrationScale >= 0.0f)
+    disintegrationScale = params.disintegrationScale * BASE_DISINTEGRATION_SCALE;
 
   BBox3 bbox;
   for (int i = 0; i < physObj->getPhysSys()->getBodyCount(); i++)
@@ -218,6 +225,8 @@ bool DestructableObject::update(float dt, float dt_scale, bool force_update_ttl)
       ttlBodies[i] -= updateDt;
     }
   }
+  if (disintegrationTime < disintegrationDuration)
+    disintegrationTime += updateDt;
   if (timeToKinematic >= 0.f)
   {
     timeToKinematic -= updateDt;
@@ -237,13 +246,21 @@ bool DestructableObject::update(float dt, float dt_scale, bool force_update_ttl)
   return isAlive();
 }
 
+Point4 DestructableObject::getDisintegrationParams() const
+{
+  float progress = disintegrationDuration > 0 ? clamp(0.f, 1.f, disintegrationTime / disintegrationDuration) : 0.f;
+  return Point4(progress, disintegrationScale, 0, 0);
+}
+
+bool DestructableObject::hasDisintegrationAnimation() const { return disintegrationDuration > 0; }
+
 namespace destructables
 {
 struct DestructableObjectDeleter
 {
   void operator()(gamephys::DestructableObject *object);
 };
-static dag::Vector<eastl::unique_ptr<DestructableObject, DestructableObjectDeleter>> destructablesList;
+static dag::Vector<eastl::unique_ptr<DestructableObject, DestructableObjectDeleter>> destructablesList; //
 static FixedBlockAllocator destructablesListAllocator;
 void DestructableObjectDeleter::operator()(DestructableObject *object)
 {
@@ -258,6 +275,7 @@ static float distForScaleDtSq;
 static float maxScaleDt;
 float minDestrRadiusSq;
 static float overflowReportTimeout = 0.0f;
+static bool warnOnBodiesOverflow = true;
 #if DAGOR_DBGLEVEL > 0
 static bool errorOnBodiesOverflow = false;
 static unsigned minBodyCountForOverflowError = 10;
@@ -270,10 +288,20 @@ void init(const DataBlock *blk, int fgroup)
 {
   const DataBlock *destrBlk = blk->getBlockByNameEx("destructables");
   maxNumberOfDestructableBodies = destrBlk->getInt("maxNumberOfDestructableBodies", 100);
+
+#if _TARGET_PC || _TARGET_APPLE
+  const DataBlock *destrBlkPresets = destrBlk->getBlockByNameEx("maxNumberOfDestructableBodiesByPresets");
+  if (destrBlkPresets)
+  {
+    maxNumberOfDestructableBodies = destrBlkPresets->getInt(
+      dgs_get_settings()->getBlockByNameEx("graphics")->getStr("preset", "medium"), maxNumberOfDestructableBodies);
+  }
+#endif
   numOfDestrBodiesForScaleDt = destrBlk->getInt("numOfDestrBodiesForScaleDt", maxNumberOfDestructableBodies * 0.5);
   distForScaleDtSq = sqr(destrBlk->getReal("distForScaleDt", 100.f));
   maxScaleDt = destrBlk->getReal("maxScaleDt", 3.f);
   minDestrRadiusSq = sqr(destrBlk->getReal("minDestrRadius", 40.f));
+  warnOnBodiesOverflow = destrBlk->getBool("warnOnBodiesOverflow", true);
 #if DAGOR_DBGLEVEL > 0
   errorOnBodiesOverflow = destrBlk->getBool("errorOnBodiesOverflow", false);
   minBodyCountForOverflowError = destrBlk->getInt("minBodyCountForOverflowError", 10);
@@ -322,6 +350,9 @@ id_t addDestructable(gamephys::DestructableObject **out_destr, DynamicPhysObject
     params.timeToLive = blk->getReal("timeToLive", -1.0f);
     params.defaultTimeToLive = blk->getReal("timeForBodies", -1.0f);
     params.timeToKinematic = blk->getReal("timeToKinematic", -1.0f);
+    params.disintegrationDuration = blk->getReal("disintegrationDuration", -1.0f);
+    params.timeToStartDisintegration = blk->getReal("timeToDisintegration", -1.0f);
+    params.disintegrationScale = blk->getReal("disintegrationScale", -1.0f);
   }
   return addDestructable(out_destr, params, phys_world);
 }
@@ -342,14 +373,18 @@ void removeDestructableById(id_t id)
 
 static void overflow_handler()
 {
+  const char overflow_msg[] = "destructables::update: too many destructable bodies %d, max - %d";
   if (!errorOnBodiesOverflow || destructablesList.size() > minBodyCountForOverflowError) //-V560
   {
-    logwarn("destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
+    if (warnOnBodiesOverflow)
+      logwarn(overflow_msg, numActiveBodies, maxNumberOfDestructableBodies);
+    else
+      debug(overflow_msg, numActiveBodies, maxNumberOfDestructableBodies);
     return;
   }
 #if DAGOR_DBGLEVEL > 0
   String msg(framemem_ptr());
-  msg.printf(0, "destructables::update: too many destructable bodies %d, max - %d", numActiveBodies, maxNumberOfDestructableBodies);
+  msg.printf(0, overflow_msg, numActiveBodies, maxNumberOfDestructableBodies);
   for (const auto &i : destructablesList)
   {
     const auto *physObj = i->getPhysObj();

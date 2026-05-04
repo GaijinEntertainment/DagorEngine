@@ -61,7 +61,7 @@ static Tab<String> fill_free_channels_combo(PropPanel::ContainerPropertyControl 
 }
 
 void state_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, const DataBlock &settings, const DataBlock &state_desc,
-  dag::ConstSpan<AnimStatesData> states_data)
+  dag::ConstSpan<AnimStatesData> states_data, dag::Vector<DependentParamData> &params)
 {
   PropPanel::ContainerPropertyControl *tree = prop_panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   PropPanel::ContainerPropertyControl *panel = prop_panel->getById(PID_ANIM_STATES_SETTINGS_GROUP)->getContainer();
@@ -86,23 +86,42 @@ void state_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, 
   const float defMinTimeScale = settings.getReal("minTimeScale", state_desc.getReal("minTimeScale", 0.f));
   const float defMaxTimeScale = settings.getReal("maxTimeScale", state_desc.getReal("maxTimeScale", FLT_MAX));
 
+  const float forceDurValue = defaultBlock->getReal("forceDur", defForceDur);
+  const float forceSpdValue = defaultBlock->getReal("forceSpd", defForceSpd);
+  const float morphTimeValue = defaultBlock->getReal("morphTime", defMorphTime);
+  const float minTimeScaleValue = defaultBlock->getReal("minTimeScale", defMinTimeScale);
+  const float maxTimeScaleValue = defaultBlock->getReal("maxTimeScale", defMaxTimeScale);
+
   panel->createList(PID_STATES_NODES_LIST, "Channels", names, 0);
   panel->createButton(PID_STATES_NODES_LIST_ADD, "Add");
   panel->createButton(PID_STATES_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
   panel->createCombo(PID_STATES_STATE_NODE_CHANNEL, "Channel", freeChannelsCombo, 0);
   panel->createEditBox(PID_STATES_STATE_NODE_NAME, "name", defaultBlock->getStr("name", ""));
-  panel->createEditFloat(PID_STATES_STATE_NODE_FORCE_DUR, "forceDur", defaultBlock->getReal("forceDur", defForceDur));
-  panel->createEditFloat(PID_STATES_STATE_NODE_FORCE_SPD, "forceSpd", defaultBlock->getReal("forceSpd", defForceSpd));
-  panel->createEditFloat(PID_STATES_STATE_NODE_MORPH_TIME, "morphTime", defaultBlock->getReal("morphTime", defMorphTime));
-  panel->createEditFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, "minTimeScale", defaultBlock->getReal("minTimeScale", defMinTimeScale));
-  panel->createEditFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, "maxTimeScale", defaultBlock->getReal("maxTimeScale", defMaxTimeScale));
+  panel->createEditFloat(PID_STATES_STATE_NODE_FORCE_DUR, "forceDur", forceDurValue);
+  panel->createEditFloat(PID_STATES_STATE_NODE_FORCE_SPD, "forceSpd", forceSpdValue);
+  panel->createEditFloat(PID_STATES_STATE_NODE_MORPH_TIME, "morphTime", morphTimeValue);
+  panel->createEditFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, "minTimeScale", minTimeScaleValue);
+  panel->createEditFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, "maxTimeScale", maxTimeScaleValue);
   if (names.empty())
     for (int i = PID_STATES_STATE_NODE_CHANNEL; i <= PID_STATES_STATE_NODE_MAX_TIME_SCALE; ++i)
       panel->setEnabledById(i, /*enabled*/ false);
+
+  // Use same pids for pid and dependentParamPid becuse this fields didn't duplicate anyware
+  params.emplace_back(
+    DependentParamData{PID_STATES_STATE_NODE_FORCE_DUR, PID_STATES_STATE_NODE_FORCE_DUR, is_equal_float(forceDurValue, defForceDur)});
+  params.emplace_back(
+    DependentParamData{PID_STATES_STATE_NODE_FORCE_SPD, PID_STATES_STATE_NODE_FORCE_SPD, is_equal_float(forceSpdValue, defForceSpd)});
+  params.emplace_back(DependentParamData{
+    PID_STATES_STATE_NODE_MORPH_TIME, PID_STATES_STATE_NODE_MORPH_TIME, is_equal_float(morphTimeValue, defMorphTime)});
+  params.emplace_back(DependentParamData{
+    PID_STATES_STATE_NODE_MIN_TIME_SCALE, PID_STATES_STATE_NODE_MIN_TIME_SCALE, is_equal_float(minTimeScaleValue, defMinTimeScale)});
+  params.emplace_back(DependentParamData{
+    PID_STATES_STATE_NODE_MAX_TIME_SCALE, PID_STATES_STATE_NODE_MAX_TIME_SCALE, is_equal_float(maxTimeScaleValue, defMaxTimeScale)});
 }
 
 void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings,
-  const DataBlock &state_desc, dag::ConstSpan<AnimStatesData> states_data)
+  const DataBlock &state_desc, dag::ConstSpan<AnimStatesData> states_data, dag::Vector<DependentParamData> &params,
+  dag::ConstSpan<AnimParamData> base_params)
 {
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   const SimpleString name = panel->getText(PID_STATES_NODES_LIST);
@@ -120,17 +139,52 @@ void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *
   const float defMinTimeScale = settings.getReal("minTimeScale", state_desc.getReal("minTimeScale", 0.f));
   const float defMaxTimeScale = settings.getReal("maxTimeScale", state_desc.getReal("maxTimeScale", FLT_MAX));
 
+  const float forceDurValue = selectedBlock->getReal("forceDur", defForceDur);
+  const float forceSpdValue = selectedBlock->getReal("forceSpd", defForceSpd);
+  const float morphTimeValue = selectedBlock->getReal("morphTime", defMorphTime);
+  const float minTimeScaleValue = selectedBlock->getReal("minTimeScale", defMinTimeScale);
+  const float maxTimeScaleValue = selectedBlock->getReal("maxTimeScale", defMaxTimeScale);
+
   dag::ConstSpan<String> names = panel->getStrings(PID_STATES_NODES_LIST);
   Tab<String> freeChannelsCombo = fill_free_channels_combo(tree, *selectedBlock, names, states_data);
 
   panel->setStrings(PID_STATES_STATE_NODE_CHANNEL, freeChannelsCombo);
   panel->setInt(PID_STATES_STATE_NODE_CHANNEL, 0);
   panel->setText(PID_STATES_STATE_NODE_NAME, selectedBlock->getStr("name", ""));
-  panel->setFloat(PID_STATES_STATE_NODE_FORCE_DUR, selectedBlock->getReal("forceDur", defForceDur));
-  panel->setFloat(PID_STATES_STATE_NODE_FORCE_SPD, selectedBlock->getReal("forceSpd", defForceSpd));
-  panel->setFloat(PID_STATES_STATE_NODE_MORPH_TIME, selectedBlock->getReal("morphTime", defMorphTime));
-  panel->setFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, selectedBlock->getReal("minTimeScale", defMinTimeScale));
-  panel->setFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, selectedBlock->getReal("maxTimeScale", defMaxTimeScale));
+  panel->setFloat(PID_STATES_STATE_NODE_FORCE_DUR, forceDurValue);
+  panel->setFloat(PID_STATES_STATE_NODE_FORCE_SPD, forceSpdValue);
+  panel->setFloat(PID_STATES_STATE_NODE_MORPH_TIME, morphTimeValue);
+  panel->setFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, minTimeScaleValue);
+  panel->setFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, maxTimeScaleValue);
+
+  for (DependentParamData &param : params)
+  {
+    if (param.dependentParamPid == PID_STATES_STATE_NODE_FORCE_DUR)
+    {
+      param.dependent = is_equal_float(forceDurValue, defForceDur);
+      update_dependent_param_value_by_name(panel, base_params, param, "forceDur");
+    }
+    else if (param.dependentParamPid == PID_STATES_STATE_NODE_FORCE_SPD)
+    {
+      param.dependent = is_equal_float(forceSpdValue, defForceSpd);
+      update_dependent_param_value_by_name(panel, base_params, param, "forceSpd");
+    }
+    else if (param.dependentParamPid == PID_STATES_STATE_NODE_MORPH_TIME)
+    {
+      param.dependent = is_equal_float(morphTimeValue, defMorphTime);
+      update_dependent_param_value_by_name(panel, base_params, param, "morphTime");
+    }
+    else if (param.dependentParamPid == PID_STATES_STATE_NODE_MIN_TIME_SCALE)
+    {
+      param.dependent = is_equal_float(minTimeScaleValue, defMinTimeScale);
+      update_dependent_param_value_by_name(panel, base_params, param, "minTimeScale");
+    }
+    else if (param.dependentParamPid == PID_STATES_STATE_NODE_MAX_TIME_SCALE)
+    {
+      param.dependent = is_equal_float(maxTimeScaleValue, defMaxTimeScale);
+      update_dependent_param_value_by_name(panel, base_params, param, "maxTimeScale");
+    }
+  }
 }
 
 void AnimTreePlugin::stateSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock &settings, AnimStatesData &data,
@@ -217,4 +271,29 @@ void state_update_child_name(DataBlock &settings, const char *name, const String
     if (childName && get_updated_child_name(name, old_name, childName, writeName))
       child->setStr("name", writeName.c_str());
   }
+}
+
+class StateReorderHandler : public BaseAnimStatesReorderHandler
+{
+public:
+  StateReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimStatesData> states, PropPanel::ContainerPropertyControl *panel) :
+    BaseAnimStatesReorderHandler(plugin, states, panel)
+  {}
+
+protected:
+  AnimStatesType getTargetAnimStateType() const override { return AnimStatesType::STATE_DESC; }
+
+  void handleSpecificReorder(DataBlock &props, int from, int to) override
+  {
+    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
+    DataBlock *stateDesc = props.addBlock("stateDesc");
+    DataBlock *settings = find_block_by_name(stateDesc, tree->getCaption(tree->getSelLeaf()));
+    move_block_blk(*settings, from, to);
+  }
+};
+
+IListReorderHandler *state_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimStatesData> states,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new StateReorderHandler(plugin, states, panel);
 }

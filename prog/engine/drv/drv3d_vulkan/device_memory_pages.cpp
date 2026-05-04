@@ -117,7 +117,11 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
 
   mem = Globals::Mem::pool.allocate(devMemDsc);
   if (is_null(mem))
+  {
+    if (suballoc_method == SubAllocationMethod::BUF_OFFSET)
+      vkDev.vkDestroyBuffer(vkDev.get(), buffer, VKALLOC(buffer));
     return false;
+  }
 
   if (suballoc_method == SubAllocationMethod::BUF_OFFSET)
   {
@@ -125,6 +129,7 @@ bool DeviceMemoryPage::init(AbstractAllocator *allocator, SubAllocationMethod su
     if (resCode != VK_SUCCESS)
     {
       vkDev.vkDestroyBuffer(vkDev.get(), buffer, VKALLOC(buffer));
+      Globals::Mem::pool.free(mem);
       return false;
     }
   }

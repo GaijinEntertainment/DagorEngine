@@ -189,7 +189,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   appBlk.setStr("appDir", app_dir);
 
   DataBlock texStreamingBlk;
-  ::load_tex_streaming_settings(String(0, "%s/application.blk", appBlk.getStr("appDir")), &texStreamingBlk);
+  ::load_tex_streaming_settings(options.appBlk.c_str(), &texStreamingBlk);
 
   global_settings_blk->removeBlock("texStreaming");
   global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming");
@@ -211,15 +211,15 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 0);
   ShaderGlobal::set_vars_from_blk(*::dgs_get_settings()->getBlockByNameEx("shaderVar"), true);
 
+  ShaderGlobal::set_int(get_shader_variable_id("dgs_tex_anisotropy", true), ::dgs_tex_anisotropy);
+  ShaderGlobal::set_float(get_shader_variable_id("mip_bias", true), 0.f);
+
   startup_game(RESTART_ALL);
 
   bool loadDDSxPacks = blk.getStr("ddsxPacks", nullptr) != nullptr;
   if (expBlk)
-  {
-    ::set_gameres_sys_ver(2);
     if (!loadDDSxPacks)
       texconvcache::init_build_on_demand_tex_factory(engine->getAssetManager(), engine->getConsoleLogWriter());
-  }
   if (blk.getStr("gameRes", nullptr) || blk.getStr("ddsxPacks", nullptr))
   {
     int nid = blk.getNameId("prebuiltGameResFolder");
@@ -232,7 +232,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       }
   }
 
-  G_ASSERT(DAEDITOR3.initAssetBase(app_dir));
+  G_ASSERT(DAEDITOR3.initAssetBase(app_dir, appBlk));
 
   rendinst::configurateRIGen(*appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));
   rendinst::initRIGen(true, 80, 8000.0f);

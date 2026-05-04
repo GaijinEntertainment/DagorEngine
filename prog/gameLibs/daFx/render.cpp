@@ -16,6 +16,7 @@
 #include <3d/dag_quadIndexBuffer.h>
 #include <math/random/dag_random.h>
 #include "frameBoundaryBufferManager.h"
+#include <gameRes/dag_gameResSystem.h>
 
 namespace convar
 {
@@ -23,16 +24,29 @@ CONSOLE_BOOL_VAL("dafx", enable_multidraw, true);
 CONSOLE_BOOL_VAL("dafx", allow_small_multidraw, false);
 CONSOLE_BOOL_VAL("dafx", cache_draw_queue, true);
 CONSOLE_BOOL_VAL("dafx", force_vrs_2x, false);
+CONSOLE_FLOAT_VAL_MINMAX("dafx", reduced_render, 1, 0, 1);
 } // namespace convar
 
 namespace dafx
 {
-constexpr int g_prim_limit_16b = 65536 / 3; // we are using 16bit index buffer, if we ever need more, we need to swithch to 32bit one
+constexpr int g_prim_limit_16b = 0x5555;     // 0xffff / 3;
+constexpr int g_prim_limit_32b = 0x55555555; // 0xffffffff / 3;
 
 int acquire_frame_boundary(ContextId cid, TEXTUREID texture_id, IPoint2 frame_dim)
 {
   GET_CTX_RET(DAFX_INVALID_BOUNDARY_OFFSET);
   return ctx.frameBoundaryBufferManager.acquireFrameBoundary(texture_id, frame_dim);
+}
+
+bool should_use_32_bit_index_bufffer(uint32_t prim_cnt, bool ctx_32bit_inited)
+{
+  if (prim_cnt > g_prim_limit_16b && !ctx_32bit_inited)
+  {
+    logerr("dafx: above 16 bit index buffer limit (md): %d ; and 32 bit index was not initialized!", prim_cnt);
+    return false;
+  }
+
+  return prim_cnt > g_prim_limit_16b;
 }
 
 void prepare_render_workers(Context &ctx, uint32_t tags_mask)
@@ -79,7 +93,10 @@ void prepare_cpu_render_buffer(Context &ctx, uint32_t tags_mask)
 
   const eastl::vector<int> &cpuRenderWorkers = ctx.cpuRenderWorkers[lowestBitTag];
   if (cpuRenderWorkers.empty())
+  {
+    ctx.renderBuffers[lowestBitTag].usageSize = 0;
     return;
+  }
 
   int newSize = 0;
   InstanceGroups &stream = ctx.instances.groups;
@@ -182,6 +199,8 @@ void update_cpu_render_buffer(Context &ctx, uint32_t tags_mask)
     stream.get<INST_TARGET_RENDER_DATA_OFFSET>(sid) = dstOffset;
     dstOffset += activeState.aliveCount * elemSize;
   }
+  G_ASSERTF(dstOffset == renderBuffer.usageSize,
+    "renderBuffer usage size estimation is failed (actual size = %d, estimated size = %d)", dstOffset, renderBuffer.usageSize);
 
   stop_updating_render_buffer(renderBuffer);
 }
@@ -207,6 +226,7 @@ void before_render(ContextId cid, uint32_t tags_mask)
 
   d3d::GpuAutoLock gpuLock;
   update_cpu_render_buffer(ctx, tags_mask);
+  set_global_value(ctx, ctx.cfg.quality_global_id, &ctx.cfg.qualityMask, sizeof(uint32_t));
 }
 
 void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name)
@@ -421,6 +441,9 @@ bool prepare_render_queue(Context &ctx, CullingState *cull, uint32_t tag, DrawQu
       state.primPerElem = primPerElem;
       state.vrs = vrs;
       state.changes = changes;
+#if DAGOR_DBGLEVEL > 0
+      state.sid = sid;
+#endif
     }
     queue.drawCalls.push_back({(int)queue.states.size() - 1, state.aliveCount});
 
@@ -439,21 +462,22 @@ bool update_dispatch_buffer(Context &ctx, DrawQueue &queue)
   for (int i = 0, ie = (queue.dispatches.size() - 1) / DAFX_RENDER_GROUP_SIZE + 1; i < ie; ++i)
   {
     int bufIdx = firstDispatchBufferIdx + i;
-    GpuResourcePtr *buf = bufIdx < ctx.renderDispatchBuffers.size() ? &ctx.renderDispatchBuffers[bufIdx] : nullptr;
+    RenderDispatchBuffer *buf = bufIdx < ctx.renderDispatchBuffers.size() ? &ctx.renderDispatchBuffers[bufIdx] : nullptr;
     if (!buf)
     {
       eastl::string name;
       name.append_sprintf("dafx_render_dispatch_buffer_%d", bufIdx);
       buf = &ctx.renderDispatchBuffers.push_back();
-      if (!create_gpu_cb_res(*buf, sizeof(RenderDispatchDesc), DAFX_RENDER_GROUP_SIZE, name.c_str()))
+      if (!create_gpu_cb_res(buf->res, sizeof(RenderDispatchDesc), DAFX_RENDER_GROUP_SIZE, name.c_str()))
         return false;
     }
 
     int ofs = i * DAFX_RENDER_GROUP_SIZE;
     int sz = min(DAFX_RENDER_GROUP_SIZE, (int)queue.dispatches.size() - ofs);
-    if (!update_gpu_cb_buffer(buf->getBuf(), queue.dispatches.data() + ofs, sz * sizeof(RenderDispatchDesc)))
+    if (!update_gpu_cb_buffer(buf->res.getBuf(), queue.dispatches.data() + ofs, sz * sizeof(RenderDispatchDesc)))
       return false;
 
+    buf->validElementsCount = sz;
     ctx.currentRenderDispatchBuffer++;
   }
   return true;
@@ -478,7 +502,7 @@ bool update_multidraw_buffer(Context &ctx, dag::ConstSpan<DrawIndexedIndirectArg
       name.append_sprintf("dafx_multidraw_buffer_%d_%d", ctx.currentMutltidrawBufferRingId, bufIdx);
       buf = &multidrawBufRing.push_back();
       *buf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE, ctx.cfg.multidraw_buffer_size * DRAW_INDEXED_INDIRECT_NUM_ARGS,
-        SBCF_INDIRECT, 0, name.c_str());
+        SBCF_INDIRECT, 0, name.c_str(), RESTAG_FX);
       if (!(*buf))
         return false;
     }
@@ -502,9 +526,11 @@ bool prepare_multidraw(Context &ctx, DrawQueue &queue)
   int lastDrawCallCount = 0;
   int lastElemsInBatch = 0;
   int lastPrimPerElem = 0;
+  int callPrimCount = 0;
   dag::Vector<DrawIndexedIndirectArgs, framemem_allocator> args;
 
   const bool allowSmallMultidraw = convar::allow_small_multidraw;
+  const unsigned int primLimit = ctx.use32BitIndex ? g_prim_limit_32b : g_prim_limit_16b;
 
   queue.multidrawCalls.reserve(queue.drawCalls.size());
   {
@@ -517,9 +543,22 @@ bool prepare_multidraw(Context &ctx, DrawQueue &queue)
         currentBufId++;
       }
 
-      if (call.stateId != currentStateId || currentBufOfs == 0 ||
-          (lastElemsInBatch + call.instanceCount) * lastPrimPerElem >= g_prim_limit_16b)
+      const DrawState &state = queue.states[call.stateId];
+      int instancePrimCount = call.instanceCount * state.primPerElem;
+      callPrimCount += instancePrimCount;
+      bool overPrimLimit = callPrimCount > primLimit;
+
+      if (call.stateId != currentStateId || currentBufOfs == 0 || overPrimLimit)
       {
+#if DAGOR_DBGLEVEL > 0
+        if (overPrimLimit && ctx.cfg.warningOnRenderPrimsLimit)
+        {
+          int gameResId = ctx.instances.groups.cget<INST_GAMERES_ID>(state.sid);
+          String resName;
+          get_game_resource_name(gameResId, resName);
+          logwarn("dafx: above index buffer limit: %d/%d, resources: %s", callPrimCount, primLimit, resName.data());
+        }
+#endif
         if (!allowSmallMultidraw && lastDrawCallCount == 1)
         {
           args.pop_back();
@@ -534,20 +573,19 @@ bool prepare_multidraw(Context &ctx, DrawQueue &queue)
         c.drawCallCount = 0;
         c.totalPrimCount = 0;
         lastElemsInBatch = 0;
+        callPrimCount = instancePrimCount;
       }
 
       MultiDrawCall &mdCall = queue.multidrawCalls.back();
-      const DrawState &state = queue.states[currentStateId];
-      int totalPrimCount = call.instanceCount * state.primPerElem;
 
       DrawIndexedIndirectArgs &v = args.push_back_noinit();
-      v.indexCountPerInstance = totalPrimCount * 3;
+      v.indexCountPerInstance = instancePrimCount * 3;
       v.instanceCount = 1;
       v.startIndexLocation = 0;
       v.baseVertexLocation = 0;
       v.startInstanceLocation = mdCall.drawCallCount;
 
-      mdCall.totalPrimCount += totalPrimCount;
+      mdCall.totalPrimCount = callPrimCount;
       lastDrawCallCount = ++mdCall.drawCallCount;
       prevBufOfs = currentBufOfs++;
 
@@ -576,8 +614,10 @@ inline void apply_drawcall_states(Context &ctx, const DrawQueue &queue, int stat
 
   if (changes & STATE_DISP_SRC)
   {
-    d3d::resource_barrier({ctx.renderDispatchBuffers[state.dispatchBufferIdx].getBuf(), RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_PIXEL});
-    ShaderGlobal::set_buffer(ctx.renderCallsVarId, ctx.renderDispatchBuffers[state.dispatchBufferIdx].getId());
+    const auto &renderDispatchBuffer = ctx.renderDispatchBuffers[state.dispatchBufferIdx];
+    d3d::resource_barrier({renderDispatchBuffer.res.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_PIXEL});
+    ShaderGlobal::set_buffer(ctx.renderCallsVarId, renderDispatchBuffer.res.getId());
+    ShaderGlobal::set_int(ctx.renderCallsCountVarId, renderDispatchBuffer.validElementsCount);
     stat_inc(ctx.stats.renderSwitchDispatches);
   }
 
@@ -629,7 +669,26 @@ inline void apply_drawcall_states(Context &ctx, const DrawQueue &queue, int stat
   stat_inc(ctx.stats.renderSwitchRenderState);
 }
 
-bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, float mip_bias, TextureCallback tc)
+static uint32_t calc_reduced_render_mask(float v)
+{
+  G_FAST_ASSERT(v <= 1.f);
+  const float limit = 32;
+  uint32_t mask = 0;
+  float remainder = 1.f;
+  for (int i = 0; i < limit; ++i)
+  {
+    if (remainder >= 1.f)
+    {
+      remainder -= 1.f;
+      mask |= 1 << i;
+    }
+    remainder += v;
+  }
+
+  return ~mask; // 1 in mask is a discard
+}
+
+bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, float mip_bias, TextureCallback tc, float reduced_render)
 {
   TIME_D3D_PROFILE(dafx_render);
   GET_CTX_RET(false);
@@ -638,6 +697,16 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
 
   if (ctx.debugFlags & DEBUG_DISABLE_RENDER)
     return false;
+
+  reduced_render *= ctx.cfg.reduced_render;
+  uint32_t reducedRenderMask = 0;
+  if (convar::reduced_render < 1.f)
+    reduced_render = convar::reduced_render;
+
+  if (reduced_render < 1.f)
+    reducedRenderMask = calc_reduced_render_mask(reduced_render);
+
+  ShaderGlobal::set_int(ctx.reducedRenderVarId, reducedRenderMask);
 
   CullingState *cull = ctx.cullingStates.get(cull_id);
   G_ASSERT_RETURN(cull, false);
@@ -666,6 +735,7 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
   ctx.globalData.gpuBuf.setVar();
 
   d3d::setvdecl(BAD_VDECL);
+  bool is32BitIndexBufferBound = false;
   index_buffer::use_quads_16bit();
   // we still need serial buf for keeping shader logic the same
   // in case if multidraw is off - it contain only 1 value, which is 0
@@ -690,12 +760,11 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
   int currentStateId = -1;
   int currentPrimPerElem = 0;
 
+  d3d::driver_command(Drv3dCommand::SET_GPU_POSTMORTEM_DATA_TRACE_ENABLED, (void *)(uintptr_t)1);
+
   if (multidraw)
   {
     TIME_D3D_PROFILE(exec_multidraw_calls);
-#if _TARGET_C1 | _TARGET_C2 // workaround: flush caches for indirect args
-
-#endif
     int dispatchId = 0;
     for (int i = 0, ie = queue.multidrawCalls.size(); i < ie; ++i)
     {
@@ -707,10 +776,15 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
       d3d::set_immediate_const(STAGE_PS, params, countof(params));
 
       int totalPrimCount = call.totalPrimCount;
-      if (totalPrimCount > g_prim_limit_16b)
+      if (!is32BitIndexBufferBound)
       {
-        logerr("dafx: above index buffer limit (md): %d", totalPrimCount);
-        totalPrimCount = g_prim_limit_16b;
+        if (should_use_32_bit_index_bufffer(totalPrimCount, ctx.use32BitIndex))
+        {
+          index_buffer::start_use_quads_32bit();
+          is32BitIndexBufferBound = true;
+        }
+        else
+          totalPrimCount = min(g_prim_limit_16b, totalPrimCount);
       }
 
       int drawCallCount = call.drawCallCount;
@@ -739,10 +813,15 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
       apply_drawcall_states(ctx, queue, call.stateId, samplers, currentStateId, currentPrimPerElem, tc);
 
       int prims = currentPrimPerElem * call.instanceCount;
-      if (prims > g_prim_limit_16b)
+      if (!is32BitIndexBufferBound)
       {
-        logerr("dafx: above index buffer limit (single): %d", prims);
-        prims = g_prim_limit_16b;
+        if (should_use_32_bit_index_bufffer(prims, ctx.use32BitIndex))
+        {
+          index_buffer::start_use_quads_32bit();
+          is32BitIndexBufferBound = true;
+        }
+        else
+          prims = min(g_prim_limit_16b, prims);
       }
 
       uint32_t params[] = {(uint32_t)i % DAFX_RENDER_GROUP_SIZE, (uint32_t)currentPrimPerElem * 2};
@@ -755,11 +834,17 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
     }
   }
 
+  d3d::driver_command(Drv3dCommand::SET_GPU_POSTMORTEM_DATA_TRACE_ENABLED, (void *)(uintptr_t)0);
+
+  if (is32BitIndexBufferBound)
+    index_buffer::end_use_quads_32bit();
+
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
   d3d::set_immediate_const(STAGE_PS, nullptr, 0);
 
   ShaderGlobal::set_buffer(ctx.systemDataVarId, BAD_D3DRESID);
   ShaderGlobal::set_buffer(ctx.renderCallsVarId, BAD_D3DRESID);
+  ShaderGlobal::set_int(ctx.renderCallsCountVarId, 0);
 
   stat_add(ctx.stats.renderDrawCalls, totalDrawCalls);
   stat_add(ctx.stats.visibleTriangles, totalPrims);

@@ -9,6 +9,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_info.h>
 #include <math/dag_bounds2.h>
 #include <math/dag_TMatrix4.h>
 #include <image/dag_texPixel.h>
@@ -18,7 +19,6 @@
 static constexpr float CLIPMAP_SHADOW_DELTA_MUL = 1.f / 16.f;
 static int clipmap_shadow_near_far_tc_offsetVarId = -1;
 static int clipmap_shadowsBlockId = -1;
-static TMatrix look_down_vtm = TMatrix::IDENT;
 static int clipmapShadowTexVarId = -1;
 static int clipmapShadowFadeOutVarId = -1;
 
@@ -28,16 +28,16 @@ void ClipmapShadow::setUpSampler() const
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   smpInfo.border_color = d3d::BorderColor::Color::OpaqueWhite;
   smpInfo.anisotropic_max = 1;
-  ShaderGlobal::set_sampler(get_shader_variable_id("clipmap_shadow_tex_samplerstate"), d3d::request_sampler(smpInfo));
+  ShaderGlobal::set_sampler(get_shader_variable_id("clipmap_shadow_tex_samplerstate", true), d3d::request_sampler(smpInfo));
 }
 
 void ClipmapShadow::init(int shadowSize)
 {
-  look_down_vtm.setcol(0, 1, 0, 0);
-  look_down_vtm.setcol(1, 0, 0, 1);
-  look_down_vtm.setcol(2, 0, 1, 0);
-  look_down_vtm.setcol(3, 0, 0, 0);
-  look_down_vtm = orthonormalized_inverse(look_down_vtm);
+  lookDownVtm.setcol(0, 1, 0, 0);
+  lookDownVtm.setcol(1, 0, 0, 1);
+  lookDownVtm.setcol(2, 0, 1, 0);
+  lookDownVtm.setcol(3, 0, 0, 0);
+  lookDownVtm = orthonormalized_inverse(lookDownVtm);
 
   clipmapShadowSize = shadowSize;
   clipmap_shadowsBlockId = ShaderGlobal::getBlockId("clipmap_shadows");
@@ -51,7 +51,7 @@ void ClipmapShadow::init(int shadowSize)
   }
 
   clipmapShadowTex = dag::create_tex(nullptr, clipmapShadowSize * NUM_CLIPMAP_SHADOW_CASCADES, clipmapShadowSize,
-    clipmapShadowFlags | TEXCF_RTARGET, 1, "clipmapShadowTex");
+    clipmapShadowFlags | TEXCF_RTARGET, 1, "clipmapShadowTex", RESTAG_RENDINST);
 
   d3d_err(clipmapShadowTex.getTex2D());
 
@@ -101,8 +101,7 @@ void ClipmapShadow::setDistance(float averageFarPlane, float delta, float near_c
 
   float deltaRcp = 1.0 - delta;
   debug("deltaShadowRCP = %g A=%g B=%g", 1.f - deltaRcp, -1. / averageFarPlane / (1.f - deltaRcp), 1. / (1.f - deltaRcp));
-  ShaderGlobal::set_color4_fast(clipmapShadowFadeOutVarId, -1.f / (averageFarPlane * (1.f - deltaRcp)), 1.f / (1.f - deltaRcp), 0.f,
-    0.f);
+  ShaderGlobal::set_float4(clipmapShadowFadeOutVarId, -1.f / (averageFarPlane * (1.f - deltaRcp)), 1.f / (1.f - deltaRcp), 0.f, 0.f);
 }
 
 void ClipmapShadow::close() { clipmapShadowTex.close(); }
@@ -115,15 +114,15 @@ void ClipmapShadow::switchOff()
   TexImage32 img[2];
   img[0].w = img[0].h = 1;
   img[1].w = img[1].h = -1;
-  clipmapShadowTex = dag::create_tex(img, 1, 1, TEXFMT_A8R8G8B8, 1, "clipmapShadowWhiteTex");
+  clipmapShadowTex = dag::create_tex(img, 1, 1, TEXFMT_A8R8G8B8, 1, "clipmapShadowWhiteTex", RESTAG_RENDINST);
   clipmapShadowSize = 0;
   d3d_err(clipmapShadowTex.getTex2D());
   setUpSampler();
 
   clipmapShadowTexVarId = get_shader_variable_id("clipmap_shadow_tex", true);
   ShaderGlobal::set_texture(clipmapShadowTexVarId, clipmapShadowTex.getTexId());
-  ShaderGlobal::set_color4(get_shader_variable_id("world_to_far_clipmap_shadow", true), worldToClipEmpty);
-  ShaderGlobal::set_color4(get_shader_variable_id("world_to_near_clipmap_shadow", true), worldToClipEmpty);
+  ShaderGlobal::set_float4(get_shader_variable_id("world_to_far_clipmap_shadow", true), worldToClipEmpty);
+  ShaderGlobal::set_float4(get_shader_variable_id("world_to_near_clipmap_shadow", true), worldToClipEmpty);
 }
 
 void ClipmapShadow::reset()
@@ -164,7 +163,7 @@ bool ClipmapShadow::getBBox(BBox2 &box) const
   float texelSize = clipmapShadowWorldSize[0] / (float)clipmapShadowSize;
   Point2 halfSize(0.5f * clipmapShadowWorldSize[0], 0.5f * clipmapShadowWorldSize[0]);
   box[0] = Point2(torHelpers[0].curOrigin) * texelSize - halfSize;
-  box[1] = Point2(torHelpers[0].curOrigin) * texelSize - halfSize;
+  box[1] = Point2(torHelpers[0].curOrigin) * texelSize + halfSize;
   return true;
 }
 
@@ -223,7 +222,7 @@ bool ClipmapShadow::update(float min_height, float max_height, const Point3 &vie
     worldToToroidal[cascadeNo] = Color4(1.f / toroidalWorldSize, 1.f / toroidalWorldSize,
       0.5f - worldSpaceOrigin.x / toroidalWorldSize, 0.5f - worldSpaceOrigin.y / toroidalWorldSize);
 
-    ShaderGlobal::set_color4(worldToClipmapShadowVarId[cascadeNo], worldToToroidal[cascadeNo]);
+    ShaderGlobal::set_float4(worldToClipmapShadowVarId[cascadeNo], worldToToroidal[cascadeNo]);
 
     uvOffset[cascadeNo] = -point2((torHelper.mainOrigin - torHelper.curOrigin) % torHelper.texSize) / torHelper.texSize;
 
@@ -236,7 +235,7 @@ bool ClipmapShadow::update(float min_height, float max_height, const Point3 &vie
   }
 
   ShaderGlobal::set_texture(clipmapShadowTexVarId, clipmapShadowTex.getTexId());
-  ShaderGlobal::set_color4(clipmap_shadow_near_far_tc_offsetVarId, Color4(uvOffset[1].x, uvOffset[1].y, uvOffset[0].x, uvOffset[0].y));
+  ShaderGlobal::set_float4(clipmap_shadow_near_far_tc_offsetVarId, Color4(uvOffset[1].x, uvOffset[1].y, uvOffset[0].x, uvOffset[0].y));
 
   if (!changed)
     return false;
@@ -256,7 +255,7 @@ bool ClipmapShadow::update(float min_height, float max_height, const Point3 &vie
         continue;
 
       d3d::set_render_target(clipmapShadowTex.getTex2D(), 0);
-      d3d::settm(TM_VIEW, look_down_vtm);
+      d3d::settm(TM_VIEW, lookDownVtm);
 
       for (int i = 0; i < quadRegions[cascadeNo].size(); ++i)
       {

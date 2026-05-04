@@ -14,7 +14,8 @@ static void gather_spheres_es_event_handler_all_events(const ecs::Event &__restr
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     gather_spheres_es_event_handler(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(gather_spheres_es_event_handler_comps, "zone_force_field", ZoneForceFieldRenderer)
+        , components.manager()
+    , ECS_RW_COMP(gather_spheres_es_event_handler_comps, "zone_force_field", ZoneForceFieldRenderer)
     );
   while (++comp != compE);
 }
@@ -49,7 +50,7 @@ static ecs::EntitySystemDesc zone_reset_on_new_level_es_event_handler_es_desc
   empty_span(),
   ecs::EventSetBuilder<EventLevelLoaded>::build(),
   0
-);
+,"dngRenderIsActive");
 static constexpr ecs::ComponentDesc update_transparent_partition_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
@@ -63,9 +64,9 @@ static ecs::CompileTimeQueryDesc update_transparent_partition_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void update_transparent_partition_ecs_query(Callable function)
+inline void update_transparent_partition_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, update_transparent_partition_ecs_query_desc.getHandle(),
+  perform_query(&manager, update_transparent_partition_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -92,9 +93,9 @@ static ecs::CompileTimeQueryDesc local_player_immune_to_forcefield_ecs_query_des
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void local_player_immune_to_forcefield_ecs_query(Callable function)
+inline void local_player_immune_to_forcefield_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, local_player_immune_to_forcefield_ecs_query_desc.getHandle(),
+  perform_query(&manager, local_player_immune_to_forcefield_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -110,27 +111,29 @@ inline void local_player_immune_to_forcefield_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc zone_force_field_render_ecs_query_comps[] =
 {
-//start of 6 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("sphere_zone__radius"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("zone_pos_radius"), ecs::ComponentTypeInfo<ShaderVar>()},
+  {ECS_HASH("sphere_zone__slices"), ecs::ComponentTypeInfo<uint32_t>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("sphere_zone__stacks"), ecs::ComponentTypeInfo<uint32_t>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("forcefieldFog__fadeSlowness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("forcefieldFog__fadeLimit"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("forcefieldAppliesFog"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [6]
+//start of 1 rq components at [8]
   {ECS_HASH("render_forcefield"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc zone_force_field_render_ecs_query_desc
 (
   "zone_force_field_render_ecs_query",
   empty_span(),
-  make_span(zone_force_field_render_ecs_query_comps+0, 6)/*ro*/,
-  make_span(zone_force_field_render_ecs_query_comps+6, 1)/*rq*/,
+  make_span(zone_force_field_render_ecs_query_comps+0, 8)/*ro*/,
+  make_span(zone_force_field_render_ecs_query_comps+8, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void zone_force_field_render_ecs_query(Callable function)
+inline void zone_force_field_render_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, zone_force_field_render_ecs_query_desc.getHandle(),
+  perform_query(&manager, zone_force_field_render_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -139,6 +142,8 @@ inline void zone_force_field_render_ecs_query(Callable function)
               ECS_RO_COMP(zone_force_field_render_ecs_query_comps, "transform", TMatrix)
             , ECS_RO_COMP(zone_force_field_render_ecs_query_comps, "sphere_zone__radius", float)
             , ECS_RO_COMP(zone_force_field_render_ecs_query_comps, "zone_pos_radius", ShaderVar)
+            , ECS_RO_COMP_OR(zone_force_field_render_ecs_query_comps, "sphere_zone__slices", uint32_t(ZoneForceFieldRenderer::SLICES))
+            , ECS_RO_COMP_OR(zone_force_field_render_ecs_query_comps, "sphere_zone__stacks", uint32_t(ZoneForceFieldRenderer::SLICES))
             , ECS_RO_COMP_OR(zone_force_field_render_ecs_query_comps, "forcefieldFog__fadeSlowness", float(16.0f))
             , ECS_RO_COMP_OR(zone_force_field_render_ecs_query_comps, "forcefieldFog__fadeLimit", float(0.4f))
             , ECS_RO_COMP_OR(zone_force_field_render_ecs_query_comps, "forcefieldAppliesFog", bool(false))

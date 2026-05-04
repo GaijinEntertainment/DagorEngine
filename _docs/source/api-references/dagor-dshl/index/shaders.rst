@@ -177,11 +177,25 @@ Acceptable types:
 +-----------------+--------------------------------------------+
 | @cbuf           | ConstantBuffer                             |
 +-----------------+--------------------------------------------+
-| @static         | Material Texture2D with SamplerState       |
+| @staticTex      | Material Texture2D                         |
 +-----------------+--------------------------------------------+
-| @staticCube     | Material TextureCube with SamplerState     |
+| @staticSmp      | Material Texture2D with SamplerState       |
 +-----------------+--------------------------------------------+
-| @staticTexArray | Material Texture2DArray with SamplerState  |
+| @staticTexCube  | Material TextureCube                       |
++-----------------+--------------------------------------------+
+| @staticSmpCube  | Material TextureCube with SamplerState     |
++-----------------+--------------------------------------------+
+| @staticTexArray | Material Texture2DArray                    |
++-----------------+--------------------------------------------+
+| @staticSmpArray | Material Texture2DArray with SamplerState  |
++-----------------+--------------------------------------------+
+| @staticTex3D    | Material Texture3D                         |
++-----------------+--------------------------------------------+
+| @staticSmp3D    | Material Texture3D with SamplerState       |
++-----------------+--------------------------------------------+
+| @staticTexCubeArray | Material TextureCubeArray              |
++-----------------+--------------------------------------------+
+| @staticSmpCubeArray | Material TextureCubeArray with SamplerState |
 +-----------------+--------------------------------------------+
 | @tlas           | Top-level acceleration structure (RT)      |
 +-----------------+--------------------------------------------+
@@ -206,7 +220,7 @@ It is the C++ code's responsibility to call
 
 .. code-block:: text
 
-    set_color4(get_shader_variable_id("get_globtm_psf_X"), Point4(...));
+    set_float4(get_shader_variable_id("get_globtm_psf_X"), Point4(...));
 
 for ``X=0..3`` to fill the rows with adequate values. Yes, the ``color4`` name is very unfortunate.
 
@@ -298,7 +312,29 @@ Material textures
 
 Textures bound to a material (diffuse, normals, etc.) are called *material textures*.
 In preshader, these textures must be treated differently than global or dynamic textures,
-using ``@static, @staticCube, @staticTexArray`` postfixes.
+using ``@staticSmp/staticTex, @staticSmpCube/@staticTexCube ...`` postfixes.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Need embedded sampler?
+    - 2D
+    - Cube
+    - Array
+    - 3D
+    - Cube Array
+  * - Yes
+    - @staticSmp
+    - @staticSmpCube
+    - @staticSmpArray
+    - @staticSmp3D
+    - @staticSmpCubeArray
+  * - No
+    - @staticTex
+    - @staticTexCube
+    - @staticTexArray
+    - @staticTex3D
+    - @staticTexCubeArray
 
 .. code-block:: text
 
@@ -310,10 +346,10 @@ using ``@static, @staticCube, @staticTexArray`` postfixes.
       texture some_texarray = material.texture[3];
 
       (ps) {
-        diffuse_tex@static = diffuse_tex;
-        normal_tex@static = normal_tex;
-        cube_tex@staticCube = cube_tex;
-        some_texarray@staticTexArray = some_texarray;
+        diffuse_tex@staticSmp = diffuse_tex;
+        normal_tex@staticSmp = normal_tex;
+        cube_tex@staticSmpCube = cube_tex;
+        some_texarray@staticSmpArray = some_texarray;
       }
     }
 

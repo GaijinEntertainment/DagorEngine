@@ -10,6 +10,7 @@ class ComputePipeline;
 
 namespace drv3d_dx12::debug
 {
-void report_resources(const PipelineStageStateBase &state, ComputePipeline *pipe);
-void report_resources(const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline *base_pipe);
+void report_resources(const PipelineStageStateBase &state, ComputePipeline *pipe, bool is_detailed_report);
+void report_resources(const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline *base_pipe,
+  bool is_detailed_report);
 } // namespace drv3d_dx12::debug

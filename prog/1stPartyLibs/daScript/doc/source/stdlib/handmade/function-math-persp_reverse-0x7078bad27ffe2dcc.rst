@@ -1,0 +1,1 @@
+Returns a reverse-depth perspective projection float4x4 matrix constructed from horizontal scale wk, vertical scale hk, near plane zn, and far plane zf, mapping the far plane to 0 and the near plane to 1.

@@ -26,6 +26,8 @@
 #include "raytrace_as_resource.h"
 #include "resource_manager.h"
 #include "vk_format_utils.h"
+#include "backend/cmd/resources.h"
+#include "backend/cmd/raytrace.h"
 
 using namespace drv3d_vulkan;
 
@@ -98,7 +100,8 @@ VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(const RaytraceGeome
     for (uint32_t i = 0; i < count; ++i)
     {
       geometryDef.push_back(RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(geometry[i]));
-      maxPrimCounts.push_back(geometry[i].data.triangles.indexCount / 3);
+      auto &tri = geometry[i].data.triangles;
+      maxPrimCounts.push_back(tri.indexBuffer ? tri.indexCount / 3 : tri.vertexCount / 3);
     }
   }
   else
@@ -127,7 +130,8 @@ VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(const RaytraceGeome
 }
 
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc,
-  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes,
+  ResourceTagType)
 {
   VkAccelerationStructureBuildSizesInfoKHR sizes = getSizeByDriverDesc(desc, count, flags);
   build_scratch_size_in_bytes = sizes.buildScratchSize;
@@ -137,18 +141,18 @@ RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_st
     sizes.accelerationStructureSize);
 }
 
-RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size)
+RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size, ResourceTagType)
 {
   return (RaytraceBottomAccelerationStructure *)RaytraceAccelerationStructure::create(false /*topLevel*/, size);
 }
 
 void d3d::delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as)
 {
-  Globals::ctx.deleteRaytraceBottomAccelerationStructure(as);
+  Globals::ctx.dispatchCmd<CmdDestroyBLAS>({(RaytraceAccelerationStructure *)as});
 }
 
 RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
   VkAccelerationStructureBuildSizesInfoKHR sizes = getSizeByDriverDesc(nullptr, elements, flags);
   build_scratch_size_in_bytes = sizes.buildScratchSize;
@@ -159,7 +163,7 @@ RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structur
 
 void d3d::delete_raytrace_top_acceleration_structure(RaytraceTopAccelerationStructure *as)
 {
-  Globals::ctx.deleteRaytraceTopAccelerationStructure(as);
+  Globals::ctx.dispatchCmd<CmdDestroyTLAS>({(RaytraceAccelerationStructure *)as});
 }
 
 void d3d::set_top_acceleration_structure(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as)
@@ -239,9 +243,10 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
         primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
       }
     }
+    auto &tri = basbi.geometryDesc[i].data.triangles;
+    uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;
     Frontend::replay->raytraceBuildRangeInfoKHRStore.push_back({
-      basbi.geometryDesc[i].data.triangles.indexCount / 3, // primitiveCount
-      primitiveOffset,
+      primitiveCount, primitiveOffset,
       0, // firstVertex
       0  // transformOffset
     });
@@ -249,7 +254,7 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
       RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(basbi.geometryDesc[i]));
     Frontend::replay->raytraceBLASBufferRefsStore.push_back(getRaytraceGeometryRefs(basbi.geometryDesc[i]));
   }
-  Globals::ctx.dispatchCommandNoLock(cmd);
+  Globals::ctx.dispatchCmdNoLock(cmd);
 }
 
 void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelerationStructureBuildInfo *as_array, uint32_t as_count)
@@ -329,9 +334,10 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
           primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
         }
       }
+      auto &tri = basbi.geometryDesc[i].data.triangles;
+      uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;
       Frontend::replay->raytraceBuildRangeInfoKHRStore.push_back({
-        basbi.geometryDesc[i].data.triangles.indexCount / 3, // primitiveCount
-        primitiveOffset,
+        primitiveCount, primitiveOffset,
         0, // firstVertex
         0  // transformOffset
       });
@@ -340,7 +346,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
       Frontend::replay->raytraceBLASBufferRefsStore.push_back(getRaytraceGeometryRefs(basbi.geometryDesc[i]));
     }
   }
-  Globals::ctx.dispatchCommandNoLock(cmd);
+  Globals::ctx.dispatchCmdNoLock(cmd);
 }
 
 void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
@@ -372,7 +378,7 @@ void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
   bd.tlas.instanceCount = tasbi.instanceCount;
   bd.tlas.instanceBuffer = instanceBufRef;
 
-  Globals::ctx.dispatchCommandNoLock(cmd);
+  Globals::ctx.dispatchCmdNoLock(cmd);
 }
 
 void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationStructureBuildInfo *as_array, uint32_t as_count)
@@ -410,7 +416,7 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
     bd.tlas.instanceCount = tasbi.instanceCount;
     bd.tlas.instanceBuffer = instanceBufRef;
   }
-  Globals::ctx.dispatchCommandNoLock(cmd);
+  Globals::ctx.dispatchCmdNoLock(cmd);
 }
 
 void d3d::write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceGeometryInstanceDescription *desc, void *ptr)
@@ -452,8 +458,7 @@ void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure 
   auto rdst = dst.top ? reinterpret_cast<RaytraceAccelerationStructure *>(dst.top)
                       : reinterpret_cast<RaytraceAccelerationStructure *>(dst.bottom);
 
-  CmdCopyRaytraceAccelerationStructure cmd{rsrc, rdst, compact};
-  Globals::ctx.dispatchCommand(cmd);
+  Globals::ctx.dispatchCmd<CmdCopyRaytraceAccelerationStructure>({rsrc, rdst, compact});
 }
 
 bool d3d::raytrace::check_vertex_format_support_for_acceleration_structure_build(uint32_t format)
@@ -496,6 +501,11 @@ namespace
   return (RaytraceTopAccelerationStructure *)RaytraceAccelerationStructure::create(true /*topLevel*/, info.sizeInBytes);
 }
 
+::raytrace::AnyAccelerationStructure create_as(const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &)
+{
+  return (RaytraceOpacityMicroMapTriangleArray *)nullptr;
+}
+
 ::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::TopAccelerationStructureSizeCalculcationInfo &info)
 {
   VkAccelerationStructureBuildSizesInfoKHR sizes = getSizeByDriverDesc(nullptr, info.elementCount, info.flags);
@@ -518,6 +528,11 @@ namespace
   result.updateScratchBufferSizeInBytes = sizes.updateScratchSize;
 
   return result;
+}
+
+::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &)
+{
+  return {};
 }
 } // namespace
 
@@ -545,13 +560,9 @@ void d3d::raytrace::destroy_acceleration_structure(::raytrace::AccelerationStruc
   if (::raytrace::InvalidAccelerationStructurePool == pool)
   {
     if (structure.top)
-    {
-      Globals::ctx.deleteRaytraceTopAccelerationStructure(structure.top);
-    }
+      Globals::ctx.dispatchCmd<CmdDestroyTLAS>({(RaytraceAccelerationStructure *)structure.top});
     else if (structure.bottom)
-    {
-      Globals::ctx.deleteRaytraceBottomAccelerationStructure(structure.bottom);
-    }
+      Globals::ctx.dispatchCmd<CmdDestroyBLAS>({(RaytraceAccelerationStructure *)structure.bottom});
   }
 }
 

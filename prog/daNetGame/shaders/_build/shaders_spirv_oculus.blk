@@ -14,7 +14,8 @@ source
 
 common_valid_variants {
   invalid {rendinst_render_pass:i = 6;}//voxelization
-  invalid {hasTexture:i=4;}
+  invalid {hasTexture:i=5;}
+  invalid {hasTexture:i=2;}
 }
 
 common_assume_vars {}
@@ -30,7 +31,6 @@ Compile
     supports_sh_6_1:i = 0
     "@override:bloom_tex":i=0
     "@override:volumetric_light_assumed_off":i=1
-    "@override:mobile_render":i=1
     "@override:use_postfx":i=0
     "@override:fluid_wind_support_assume":i=0
     static_shadows_cascades:i=2
@@ -39,7 +39,6 @@ Compile
     particles_buffer_id:i=8
     static_shadows_custom_fxaa:i=0
     grass_use_quads:i=0
-    hmap_tess_factor:r=0
     water_tess_factor:r=0
     gi_quality:i=-1
     envi_cover_use_in_resolve:i=0
@@ -48,7 +47,7 @@ Compile
     has_wounds:i=0 // Too many textures in dynamic_skin with use_postfx=no
     has_burning:i=0 // Too many textures in dynamic_skin with use_postfx=no
     enable_hmap_blend:i=0
-    fluid_wind_status:i=0
+    allow_fluid_wind:i=0
     cinematic_mode_on:i=0
 
     //android specific

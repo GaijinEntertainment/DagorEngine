@@ -45,9 +45,10 @@ protected:
   struct CompletedFrameExecutionInfo : BaseType::CompletedFrameExecutionInfo
   {
     frontend::BindlessManager *bindlessManager;
-    uint64_t progressIndex;
     ID3D12Device *device;
   };
+
+  static bool can_use_sub_alloc(uint32_t cflags);
 
   class HeapSuballocator;
 
@@ -62,12 +63,18 @@ protected:
     const dag::Vector<ValueRange<uint64_t>> &getFreeRanges() const { return freeRanges; }
     uint64_t getMaxFreeRangeSize() const { return maxFreeRangeSize; }
 
-    bool canSubAllocateFrom() const { return buffer && D3D12_RESOURCE_FLAG_NONE == flags && !getHeapID().isAlias; }
+    bool hasSuballocator() const { return suballocator != nullptr; }
 
     void init(uint64_t allocation_size);
     void applyFirstAllocation(uint64_t payload_size);
 
+    /// The allocator tries to find a segment that can supply the needed size and fulfills the alignment requirement by either
+    /// allocating from the front or the back. Should there be no segment with this properties it will give up.
+    /// Attempting to allocate from the back increases the chances of allocating space by about 50% during testing.
+    /// The allocator makes no effort for best fit, it will pick the first fit.
     ValueRange<uint64_t> allocate(uint64_t size, uint64_t alignment);
+    /// Only allocates space when there is a free segment that exactly matches the size and align requirements.
+    ValueRange<uint64_t> allocateExact(uint64_t size, uint64_t alignment);
     void rangeAllocate(ValueRange<uint64_t> range);
     bool free(ValueRange<uint64_t> range);
 
@@ -97,7 +104,7 @@ protected:
   class HeapSuballocator
   {
   public:
-    void onHeapCreated(Heap &heap);
+    void onHeapCreated(Heap &heap, bool can_suballocate);
     void onHeapUpdated(const Heap &heap);
     void onHeapDestroyed(Heap &heap);
 
@@ -122,13 +129,10 @@ protected:
       ValueRange<uint64_t> range;
     };
 
-    eastl::pair<Heap *, ValueRange<uint64_t>> tryAllocateFromReadyList(ResourceHeapProperties properties, uint64_t size,
-      D3D12_RESOURCE_FLAGS flags, uint64_t offset_alignment, bool allow_offset);
-
     eastl::pair<Heap *, ValueRange<uint64_t>> trySuballocateFromExistingHeaps(ResourceHeapProperties properties, uint64_t size,
       D3D12_RESOURCE_FLAGS flags, uint32_t offset_alignment);
 
-    BufferGlobalId adoptBufferHeap(Heap &&heap);
+    BufferGlobalId adoptBufferHeap(Heap &&heap, bool can_suballocate);
 
     const dag::Vector<Heap> &getBufferHeaps() const { return bufferHeaps; }
     size_t getHeapCount() const { return bufferHeaps.size(); }
@@ -136,35 +140,37 @@ protected:
 
     Heap &getHeap(uint32_t index) { return bufferHeaps[index]; }
 
-    const dag::Vector<StandbyInfo> &getBufferHeapDiscardStandbyList() const { return bufferHeapDiscardStandbyList; }
-
-    size_t freeBufferHeap(BufferHeap *manager, uint32_t index, const char *name, bool update_defragmentation_generation);
+    size_t freeBufferHeap(BufferHeap *manager, uint32_t index, const char *name, bool is_heaps_lock_required);
     size_t freeBufferHeap(BufferHeap *manager, uint32_t index, ValueRange<uint64_t> range, const char *name);
+    eastl::pair<BufferGlobalId, HRESULT> createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device, uint64_t allocation_size,
+      D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc,
+      const ResourceMemory &allocation, ResourceHeapProperties allocatedProperties, bool can_suballocate);
 
     eastl::pair<BufferGlobalId, HRESULT> createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device,
       uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state,
-      const char *name, AllocationFlags allocation_flags = {});
+      const char *name, bool can_suballocate, AllocationFlags allocation_flags = {});
 
     bool isValidBuffer(const BufferState &buf);
 
-    size_t freeBuffer(BufferHeap *manager, const BufferState &buf, BufferHeap::FreeReason free_reason, uint64_t progress,
-      const char *name);
-
-    // Updates all entries of old_buffer in the standby list to use new_buffer instead.
-    // Returns true if the whole buffer is part of the standby list
-    bool moveStandbyBufferEntries(BufferGlobalId old_buffer, BufferGlobalId new_buffer);
+    size_t freeBuffer(BufferHeap *manager, const BufferState &buf, BufferHeap::FreeReason free_reason, const char *name);
 
     size_t clear(ResourceMemoryHeapProvider *provider);
-    size_t cleanupDiscardStandbyList(BufferHeap *manager, uint64_t progressIndex);
 
-    static bool shouldFreeBuffer(const Heap &heap, BufferHeap::FreeReason free_reason);
+#if _TARGET_PC_WIN
+    bool isOnDeviceBuffer(const BufferState &buffer, const FeatureSet &fs) const
+    {
+      return getPropertiesFromMemory(bufferHeaps[buffer.resourceId.index()].getBufferMemory()).isOnDevice(fs);
+    }
+#endif
+
+    bool isBufferPlacedInUserHeap(const BufferState &buffer) const
+    {
+      return 0 != bufferHeaps[buffer.resourceId.index()].getHeapID().isAlias;
+    }
 
   private:
     dag::Vector<Heap> bufferHeaps;
-    dag::Vector<StandbyInfo> bufferHeapDiscardStandbyList;
-    // list of buffers can be big, up to 2k, so saving the free slots should be more efficient than searching on each allocate
     dag::Vector<uint32_t> freeBufferSlots;
-
     HeapSuballocator suballocator;
   };
 
@@ -179,7 +185,8 @@ protected:
     BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags);
 
   // Checks if the buffer is actually needed and if not it will be deleted immediately
-  bool tidyCloneBuffer(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess);
+  bool freeBufferHeapIfUnused(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess,
+    bool is_heaps_lock_required);
 
   BufferState moveBuffer(const BufferState &current_buffer, BufferGlobalId new_buffer,
     BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess);
@@ -193,6 +200,9 @@ public:
     FormatStore format, uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
     const char *name, uint32_t frame_index, bool disable_sub_alloc);
 
+  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_buffer_desc_allocation_info(ID3D12Device *device,
+    uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags);
+
   BufferState allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size, uint32_t discard_count,
     DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name, bool disable_sub_alloc);
 
@@ -202,6 +212,15 @@ public:
 
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data);
   void freeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason);
+  void freeBufferOnFrameCompletionNoLock(BufferState &&buffer, FreeReason free_reason);
+
+#if _TARGET_PC_WIN
+  bool isOnDeviceBuffer(const BufferState &buffer) { return bufferHeapState.access()->isOnDeviceBuffer(buffer, getFeatureSet()); }
+#else
+  bool isOnDeviceBuffer(const BufferState &) { return true; }
+#endif
+
+  bool isBufferPlacedInUserHeap(const BufferState &buffer) { return bufferHeapState.access()->isBufferPlacedInUserHeap(buffer); }
 
   template <typename T>
   void visitBuffers(T clb)
@@ -217,23 +236,13 @@ public:
       }
       auto freeSum = eastl::accumulate(cbegin(buf.getFreeRanges()), cend(buf.getFreeRanges()), 0,
         [](uint64_t v, const auto &r) { return v + r.size(); });
-      bool isDiscardReady =
-        cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()) !=
-        eastl::find_if(cbegin(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()),
-          cend(bufferHeapStateAccess->getBufferHeapDiscardStandbyList()), [id = buf.index()](auto info) { return info.index == id; });
-      clb.visitBuffer(buf.index(), buf.getBufferMemorySize(), freeSum, buf.getFlags(), isDiscardReady);
+      clb.visitBuffer(buf.index(), buf.getBufferMemorySize(), freeSum, buf.getFlags());
       for (auto r : buf.getFreeRanges())
       {
         clb.visitBufferFreeRange(r);
       }
     }
     clb.endVisitBuffers();
-    clb.beginVisitStandbyRange();
-    for (auto &info : bufferHeapStateAccess->getBufferHeapDiscardStandbyList())
-    {
-      clb.visitBufferStandbyRange(info.progress, info.index, info.range);
-    }
-    clb.endVisitStandbyRange();
     clb.endVisit();
   }
 };

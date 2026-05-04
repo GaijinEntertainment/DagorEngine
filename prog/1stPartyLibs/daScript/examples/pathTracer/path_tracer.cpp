@@ -23,7 +23,7 @@ void pathtracer () {
         }
         return;
     }
-    // create daScript context
+    // create daslang context
     Context ctx(program->getContextStackSize());
     if ( !program->simulate(ctx, tout) ) {
         // if interpretation failed, report errors
@@ -70,7 +70,7 @@ int main( int, char * [] ) {
     Module::Initialize();
     // run the path-tracer
     pathtracer();
-    // shut-down daScript, free all memory
+    // shut-down daslang, free all memory
     Module::Shutdown();
     return 0;
 }

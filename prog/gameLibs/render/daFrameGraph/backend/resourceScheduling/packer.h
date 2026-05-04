@@ -26,9 +26,9 @@ struct PackerInput
     // Only usable for wraparound resources (start >= end).
     uint64_t pin;
 
-    uint32_t doAlign(uint32_t offset) const { return ((offset + align - 1) / align) * align; }
+    uint64_t doAlign(uint64_t offset) const { return ((offset + align - 1) / align) * align; }
 
-    uint32_t sizeWithPadding(uint32_t offset) const { return size + doAlign(offset) - offset; }
+    uint64_t sizeWithPadding(uint64_t offset) const { return size + doAlign(offset) - offset; }
   };
 
   // List of all resources to be packed. Resources can also wrap around,

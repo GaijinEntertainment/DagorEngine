@@ -1,7 +1,10 @@
 hlsl(cs) {
-  #include "NRDEncoding.hlsli"
-
   #pragma hlsl2021
+
+  #define NRD_SIGNAL SPEC
+  #define NRD_MODE   RADIANCE
+  #define NRD_INTERNAL
+  #define MODE_5X5 0
 }
 
 // This one is used by all relax shaders
@@ -17,7 +20,7 @@ shader nrd_relax_classify_tiles
 shader nrd_relax_specular_prepass
 {
   hlsl(cs) {
-    #include "RELAX_Specular_PrePass.cs.hlsl"
+    #include "RELAX_PrePass.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -26,7 +29,7 @@ shader nrd_relax_specular_prepass
 shader nrd_relax_specular_temporal_accumulation
 {
   hlsl(cs) {
-    #include "RELAX_Specular_TemporalAccumulation.cs.hlsl"
+    #include "RELAX_TemporalAccumulation.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -35,7 +38,7 @@ shader nrd_relax_specular_temporal_accumulation
 shader nrd_relax_specular_history_fix
 {
   hlsl(cs) {
-    #include "RELAX_Specular_HistoryFix.cs.hlsl"
+    #include "RELAX_HistoryFix.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -44,7 +47,7 @@ shader nrd_relax_specular_history_fix
 shader nrd_relax_specular_history_clamping
 {
   hlsl(cs) {
-    #include "RELAX_Specular_HistoryClamping.cs.hlsl"
+    #include "RELAX_HistoryClamping.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -53,7 +56,7 @@ shader nrd_relax_specular_history_clamping
 shader nrd_relax_specular_atorus_smem
 {
   hlsl(cs) {
-    #include "RELAX_Specular_AtrousSmem.cs.hlsl"
+    #include "RELAX_AtrousSmem.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -62,7 +65,7 @@ shader nrd_relax_specular_atorus_smem
 shader nrd_relax_specular_atorus
 {
   hlsl(cs) {
-    #include "RELAX_Specular_Atrous.cs.hlsl"
+    #include "RELAX_Atrous.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -71,7 +74,7 @@ shader nrd_relax_specular_atorus
 shader nrd_relax_specular_copy
 {
   hlsl(cs) {
-    #include "RELAX_Specular_Copy.cs.hlsl"
+    #include "RELAX_Copy.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -80,7 +83,7 @@ shader nrd_relax_specular_copy
 shader nrd_relax_specular_anti_firefly
 {
   hlsl(cs) {
-    #include "RELAX_Specular_AntiFirefly.cs.hlsl"
+    #include "RELAX_AntiFirefly.cs.hlsl"
   }
 
   compile("cs_6_5", "main");

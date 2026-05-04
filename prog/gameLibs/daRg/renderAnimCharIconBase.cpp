@@ -13,6 +13,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_frustum.h>
@@ -358,7 +359,7 @@ void RenderAnimCharIconBase::clearPendReq()
 void RenderAnimCharIconBase::clear_to(E3DCOLOR col, Texture *to, int x, int y, int dstw, int dsth) const
 {
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(to, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{to, 0, 0}});
   d3d::setview(x, y, dstw, dsth, 0, 1);
   d3d::clearview(CLEAR_TARGET, col, 0, 0);
   d3d::resource_barrier({to, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -372,17 +373,39 @@ void RenderAnimCharIconBase::clear_to(E3DCOLOR col, Texture *to, int x, int y, i
   VAR(icon_lights_count)                \
   VAR(icon_light_dirs)                  \
   VAR(icon_light_colors)                \
+  VAR(icon_contrast)                    \
+  VAR(icon_sharpen_amount)              \
+  VAR(icon_viewport_size)               \
+  VAR(icon_tonemap_enabled)             \
   VAR(view_scale_ofs)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_ANIMCHAR_ICONS_LIST
 #undef VAR
 
-void RenderAnimCharIconBase::setEnviParams(const DataBlock &info)
+eastl::optional<SharedTexHolder> RenderAnimCharIconBase::setEnviParams(const DataBlock &info)
 {
+  const char *defaultEnviPanoramaTexName = dgs_get_game_params()->getStr("icon_render_panorama", "");
+  const char *enviPanoramaGameresTex = info.getStr("enviPanoramaTex", defaultEnviPanoramaTexName);
+  const EnviPanoramaCache::Id enviId = enviPanoramaCache.addEnvi(enviPanoramaGameresTex);
+  SharedTexHolder enviPanoramaScoped;
+  if (enviId)
+  {
+    if (!enviPanoramaCache.prefetch(enviId))
+      return eastl::nullopt;
+    const SharedTex &envi = enviPanoramaCache.get(enviId);
+
+    enviPanoramaScoped = dag::set_texture(icon_envi_panoramaVarId, envi);
+    ShaderGlobal::set_sampler(icon_envi_panorama_samplerstateVarId, get_texture_separate_sampler(envi.getTexId()));
+  }
+  else
+    debug("Animchar Icon Render: '%s' is rendered without envi panorama.", info.getStr("animchar", "<no name>"));
+
   const float defaultEnviExposure = dgs_get_game_params()->getReal("icon_envi_panorama_exposure", 64.f);
   const float enviExposure = info.getReal("enviExposure", defaultEnviExposure);
-  ShaderGlobal::set_real(icon_envi_panorama_exposureVarId, enviExposure);
+  ShaderGlobal::set_float(icon_envi_panorama_exposureVarId, enviExposure);
+
+  return enviPanoramaScoped;
 }
 
 static inline Point4 get_light_dir(float zenith, float azimuth)
@@ -401,13 +424,13 @@ static inline Point4 get_light_color(const E3DCOLOR &color, const float brightne
   return Point4(res.r, res.g, res.b, 1.0);
 }
 
-void RenderAnimCharIconBase::setLightParams(const DataBlock &info, bool full_deferred, bool mobile_deferred)
+void RenderAnimCharIconBase::setLightParams(const DataBlock &info, bool full_deferred)
 {
   carray<Point4, ICON_RENDER_MAX_LIGHTS> lightColors;
   carray<Point4, ICON_RENDER_MAX_LIGHTS> lightDirs;
 
-  const float lightDefaultZenith = mobile_deferred ? 45 : 65;
-  const float lightDefaultAzimuth = mobile_deferred ? -90 : -40;
+  const float lightDefaultZenith = 65;
+  const float lightDefaultAzimuth = -40;
   const E3DCOLOR lightDefaultColor = 0xFFFFFFFF;
   const float lightDefaultBrightness = 4.0;
 
@@ -415,7 +438,7 @@ void RenderAnimCharIconBase::setLightParams(const DataBlock &info, bool full_def
   lightColors[0] = get_light_color(info.getE3dcolor("sun", lightDefaultColor), info.getReal("brightness", lightDefaultBrightness));
   lightDirs[0] = get_light_dir(info.getReal("zenith", lightDefaultZenith), info.getReal("azimuth", lightDefaultAzimuth));
 
-  if (!(full_deferred || mobile_deferred)) // We apply shading while write to gbuffer, so need to override global sun settings
+  if (!(full_deferred)) // We apply shading while write to gbuffer, so need to override global sun settings
   {
     setSunLightParams(lightDirs[0], lightColors[0]);
     ShaderGlobal::set_int(icon_lights_countVarId, 0);
@@ -446,8 +469,8 @@ void RenderAnimCharIconBase::setLightParams(const DataBlock &info, bool full_def
 
   const int iconLightsCount = max(1, lightsCount); // we always have as minimum legacy sun
   ShaderGlobal::set_int(icon_lights_countVarId, iconLightsCount);
-  ShaderGlobal::set_color4_array(icon_light_colorsVarId, lightColors.data(), lightColors.size());
-  ShaderGlobal::set_color4_array(icon_light_dirsVarId, lightDirs.data(), lightDirs.size());
+  ShaderGlobal::set_float4_array(icon_light_colorsVarId, lightColors.data(), lightColors.size());
+  ShaderGlobal::set_float4_array(icon_light_dirsVarId, lightDirs.data(), lightDirs.size());
 }
 
 enum class AsynLoadAnimcharResult
@@ -480,8 +503,7 @@ struct LoadOneGameResForIconJob : public cpujobs::IJob
   virtual void doJob()
   {
     // debug("do job %s", name->c_str());
-    GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name->c_str());
-    ptr.reset(::get_one_game_resource_ex(handle, CharacterGameResClassId));
+    ptr.reset(::get_one_game_resource_ex(name->c_str(), CharacterGameResClassId));
     interlocked_decrement(loadingResourcesInFlight);
     res = ptr.get() ? AsynLoadAnimcharResult::LOADED : AsynLoadAnimcharResult::NOT_EXIST;
     // debug("job done %s", name->c_str());
@@ -500,11 +522,10 @@ struct LoadOneGameResForIconJob : public cpujobs::IJob
 };
 
 static AsynLoadAnimcharResult sync_load_animchar(const char *name, GameResPtr &ret,
-  GameResource *(*get_game_res_cb)(GameResHandle, unsigned) = &get_one_game_resource_ex)
+  GameResource *(*get_game_res_cb)(const char *, unsigned) = &get_one_game_resource_ex)
 {
   // debug("sync load %s", name);
-  GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
-  ret.reset(get_game_res_cb(handle, CharacterGameResClassId));
+  ret.reset(get_game_res_cb(name, CharacterGameResClassId));
   // debug("loaded %s %p", name, ret.get());
   return ret.get() ? AsynLoadAnimcharResult::LOADED : AsynLoadAnimcharResult::NOT_EXIST;
 };
@@ -534,12 +555,11 @@ static AsynLoadAnimcharResult async_load_animchar(const char *name, GameResPtr &
     }
     return loadingResult;
   }
-  GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
-  if (is_game_resource_loaded(handle, CharacterGameResClassId)) // already loaded
+  if (is_game_resource_loaded(name, CharacterGameResClassId)) // already loaded
   {
     // debug("already loaded %s", name);
     loadingResourcesForMap.erase(inserted.first); // remove from loading map
-    return sync_load_animchar(name, ret, &get_game_resource_ex);
+    return sync_load_animchar(name, ret);
   }
   // load with loading job manager. we can also launch independent thread, but why bother
   // debug("async load %s", name);
@@ -648,12 +668,9 @@ bool RenderAnimCharIconBase::match(const DataBlock &pic_props, int &out_w, int &
   return true;
 }
 
-bool RenderAnimCharIconBase::renderInternal(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid)
+RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar(Texture *to, int x, int y, int dstw, int dsth,
+  const DataBlock &info, PICTUREID pid)
 {
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_ANIMCHAR_ICONS_LIST
-#undef VAR
-
   IconAnimcharWithAttachments iconAnimchar;
   {
     WinAutoLock lock(pendReqCs);
@@ -662,32 +679,21 @@ bool RenderAnimCharIconBase::renderInternal(Texture *to, int x, int y, int dstw,
       iconAnimchar = it->second;
   }
 
-  int w = dstw, h = dsth;
-  const int xScale = clamp(info.getInt("ssaaX", (512 + w / 2) / w), (int)1, (int)4); // immediate mode aa.
-  const int yScale = clamp(info.getInt("ssaaY", (512 + h / 2) / h), (int)1, (int)4); // immediate mode aa.
-  const int ssaa = (xScale + yScale) / 2;
-  // for bigger images just render image several times and accumulate, very easy to do
-  // todo: support accumulate mode aa
-  w *= ssaa;
-  h *= ssaa;
-  if (!ensureDim(w, h))
-    return false;
-
   if (iconAnimchar.empty())
   {
-    auto missingAnimChar = [&](const IconAnimchar &iconAnimchar) {
+    auto missingAnimChar = [&](const IconAnimchar &iconAnimchar) -> AnimcharPrefetch {
       logerr("missing animchar <%s>", iconAnimchar.blk->getStr("animchar"));
 #if DAGOR_DBGLEVEL > 0
       clear_to(0xFF00FFFF, to, x, y, dstw, dsth);
 #else
       clear_to(0, to, x, y, dstw, dsth);
 #endif
-      return true;
+      return {IconPrepareStatus::Failed};
     };
 
     AsynLoadAnimcharResult ret = async_load_animchar_with_attachments(info, iconAnimchar);
     if (ret == AsynLoadAnimcharResult::LOADING)
-      return false;
+      return {IconPrepareStatus::RetryAgain};
     if (ret == AsynLoadAnimcharResult::NOT_EXIST)
       return missingAnimChar(iconAnimchar[0]);
     for (auto &ia : iconAnimchar)
@@ -817,168 +823,247 @@ bool RenderAnimCharIconBase::renderInternal(Texture *to, int x, int y, int dstw,
       ia.animchar->getVisualResource()->gatherUsedTex(usedTexIds);
     }
     if (!prefetch_and_check_managed_textures_loaded(usedTexIds))
-      return false;
+      return {IconPrepareStatus::RetryAgain};
     for (auto &ia : iconAnimchar)
       if (ia.animchar->getVisualResource()->getQlBestLod() > 0)
-        return false;
+        return {IconPrepareStatus::RetryAgain};
   }
 
-  const char *defaultEnviPanoramaTexName = dgs_get_game_params()->getStr("icon_render_panorama", "");
-  const char *enviPanoramaGameresTex = info.getStr("enviPanoramaTex", defaultEnviPanoramaTexName);
-  const EnviPanoramaCache::Id enviId = enviPanoramaCache.addEnvi(enviPanoramaGameresTex);
-  SharedTexHolder enviPanoramaScoped;
-  if (enviId)
-  {
-    if (!enviPanoramaCache.prefetch(enviId))
-      return false;
-    const SharedTex &envi = enviPanoramaCache.get(enviId);
+  return {IconPrepareStatus::Ready, iconAnimchar};
+}
 
-    enviPanoramaScoped = dag::set_texture(icon_envi_panoramaVarId, envi);
-    ShaderGlobal::set_sampler(icon_envi_panorama_samplerstateVarId, get_texture_separate_sampler(envi.getTexId()));
+Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa)
+{
+  const float scale = ctx.info->getReal("scale", 1.f);
+  const Point2 ofs = ctx.info->getPoint2("offset", Point2(0, 0));
+
+  TMatrix viewTm;
+  float fovInTan, fovHkInTan, zn, zf, scaleX, scaleY, centerX, centerY;
+  get_animchar_tight_matrix(*ctx.info, ctx.iconAnimchars, float(icon_ssaa.w) / icon_ssaa.h, viewTm, fovInTan, fovHkInTan, zn, zf,
+    scaleX, scaleY, centerX, centerY);
+  scaleX *= scale;
+  scaleY *= scale;
+  scaleX = min(scaleX, scaleY);
+  scaleY = scaleX; // because we can't change aspect ratio
+
+  const char *animation = ctx.info->getStr("animation", "");
+  const bool recalcAnimation = ctx.info->getBool("recalcAnimation", false);
+  if (recalcAnimation)
+    for (size_t i = 1; i < ctx.iconAnimchars.size(); ++i)
+    {
+      const int charUid = 1; // Some post blend controllers rely on this uid to run expensive logic once when attachment changes. By
+                             // default it is 0, so we need any non 0 number here to run that logic.
+      ctx.iconAnimchars[0].animchar->setAttachedChar(ctx.iconAnimchars[i].slotId, charUid, ctx.iconAnimchars[i].animchar->baseComp(),
+        false);
+    }
+
+  bool hasAnimation = strcmp(animation, "");
+  AnimV20::AnimationGraph *animgraph = ctx.iconAnimchars[0].animchar->getAnimGraph();
+
+  if (hasAnimation && !animgraph)
+  {
+    logerr("!!CONTACT UI PROGRAMMERS!! invalid request for AnimcharIconRender!!\nRequested to render [animchar:'%d' "
+           "itemName:'%d', animation:'%d'].\nBut the animchar does not have the animgraph.\n It's possible "
+           "that you've requested "
+           "to render the attachment instead of the character!",
+      ctx.info->getStr("animchar", ""), ctx.info->getStr("itemName", ""), animation);
+    hasAnimation = false;
+  }
+
+  if (hasAnimation)
+  {
+    int stateIdx = ctx.iconAnimchars[0].animchar->getAnimGraph()->getStateIdx(animation);
+    ctx.iconAnimchars[0].animchar->getAnimGraph()->enqueueState(*ctx.iconAnimchars[0].animchar->getAnimState(),
+      ctx.iconAnimchars[0].animchar->getAnimGraph()->getState(stateIdx));
+    AnimV20::IAnimBlendNode *node = ctx.iconAnimchars[0].animchar->getAnimGraph()->getBlendNodePtr(animation);
+    if (node)
+      node->seek(*ctx.iconAnimchars[0].animchar->getAnimState(), 0);
+
+    ctx.iconAnimchars[0].animchar->setTm(viewTm);
+    ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
   }
   else
-    debug("Animchar Icon Render: '%s' is rendered without envi panorama.", info.getStr("animchar", "<no name>"));
+  {
+    ctx.iconAnimchars[0].animchar->setTm(viewTm);
+    if (recalcAnimation)
+      ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
+    else
+      ctx.iconAnimchars[0].animchar->recalcWtm();
+  }
 
-  setEnviParams(info);
+  for (size_t i = 1; i < ctx.iconAnimchars.size(); ++i)
+    ctx.iconAnimchars[i].updateTmWtm(ctx.iconAnimchars[0].animchar);
+  for (auto &ia : ctx.iconAnimchars)
+  {
+    DynamicRenderableSceneInstance *scene = ia.animchar->getSceneInstance();
+    scene->setCurrentLod(0);
+    ia.animchar->rendComp().setNodes(scene, ia.animchar->rendComp().getNodeMap(), ia.animchar->getFinalWtm());
+
+    iterate_names(scene->getLodsResource()->getNames().node, [&scene](int id, const char *name) {
+      if (String(name).suffix("_dmg"))
+        scene->showNode(id, false);
+    });
+  }
+
+  for (int i = 0; i < ctx.iconAnimchars.size(); ++i)
+  {
+    const int hideNodesCount = ctx.iconAnimchars[i].hideNodeNames.size();
+    if (hideNodesCount == 0)
+      continue;
+    DynamicRenderableSceneInstance *scene = ctx.iconAnimchars[i].animchar->getSceneInstance();
+    const RoNameMapEx &names = scene->getLodsResource()->getNames().node;
+    for (int j = 0; j < hideNodesCount; ++j)
+    {
+      const int nodeId = names.getNameId(ctx.iconAnimchars[i].hideNodeNames[j].c_str());
+      if (nodeId >= 0)
+      {
+        scene->setNodeOpacity(nodeId, 0.f);
+        scene->showNode(nodeId, false);
+      }
+    }
+  }
+
+  return Driver3dPerspective{
+    scaleX * fovInTan, scaleY * fovHkInTan, zn, zf, ofs.x * scale - centerX * scaleX, ofs.y * scale - centerY * scaleY};
+}
+
+RenderAnimCharIconBase::IconSSAA RenderAnimCharIconBase::applySSAA(const int dstw, const int dsth, const DataBlock &info) const
+{
+  int w = dstw, h = dsth;
+  const bool ssaaEnabled = !dgs_get_settings()->getBlockByNameEx("graphics")->getBool("iconDisableSSAA", false);
+  int ssaa = 1;
+  if (ssaaEnabled)
+  {
+    const int xScale = clamp(info.getInt("ssaaX", (512 + w / 2) / w), (int)1, (int)4); // immediate mode aa.
+    const int yScale = clamp(info.getInt("ssaaY", (512 + h / 2) / h), (int)1, (int)4); // immediate mode aa.
+    ssaa = (xScale + yScale) / 2;
+    // for bigger images just render image several times and accumulate, very easy to do
+    // todo: support accumulate mode aa
+    w *= ssaa;
+    h *= ssaa;
+  }
+
+  return {w, h, ssaa};
+}
+
+void RenderAnimCharIconBase::resolveFinalTarget(const IconAnimcharRenderingContext &ctx, const IconSSAA icon_ssaa)
+{
+  // we render in one more target to be able to use resolve after AA
+  d3d::set_render_target({}, DepthAccess::RW, {{finalTargetAA.getTex2D(), 0, 0}});
+  d3d::setview(0, 0, ctx.dstw, ctx.dsth, 0, 1);
+  d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+  d3d::resource_barrier({finalTarget.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  finalTarget.setVar();
+  ShaderGlobal::set_float4(view_scale_ofsVarId, icon_ssaa.w / float(target->getWidth()), icon_ssaa.h / float(target->getHeight()), 0,
+    0);
+  ShaderGlobal::set_float4(icon_ssaaVarId, icon_ssaa.ssaa, icon_ssaa.ssaa, -ctx.x, -ctx.y);
+  ShaderGlobal::set_float(icon_contrastVarId, ctx.info->getReal("contrast", 1.0));
+  ShaderGlobal::set_float(icon_sharpen_amountVarId, ctx.info->getReal("sharpening", 0.0));
+  bool allSilhouette = eastl::all_of(ctx.iconAnimchars.begin(), ctx.iconAnimchars.end(),
+    [](const IconAnimchar &ia) { return ia.shading == IconAnimchar::SILHOUETTE; });
+  ShaderGlobal::set_float(icon_tonemap_enabledVarId, allSilhouette ? 0.0f : 1.0f);
+  finalAA.render();
+  ShaderGlobal::set_float(icon_tonemap_enabledVarId, 1.0f);
+  d3d::resource_barrier({finalTargetAA.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+  if (!ctx.to)
+    d3d::set_render_target();
+  else
+    d3d::set_render_target({}, DepthAccess::RW, {{ctx.to, 0, 0}});
+  d3d::setview(ctx.x, ctx.y, ctx.dstw, ctx.dsth, 0, 1);
+  d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+  ShaderGlobal::set_float4(view_scale_ofsVarId, ctx.dstw / float(target->getWidth()), ctx.dsth / float(target->getHeight()), 0, 0);
+  ShaderGlobal::set_float4(icon_viewport_sizeVarId, ctx.dstw, ctx.dsth, 1.0 / ctx.dstw, 1.0 / ctx.dsth);
+
+  finalTargetAA.setVar();
+  finalSharpen.render();
+  if (d3d::get_driver_code().is(d3d::dx12))
+  {
+    // Sometimes d3d::clearview() for finalTarget before icon rendering doesn't work and we have bug with duplicated icons
+    // So we have additional clear here to workaround this issue until it fixed.
+    d3d::set_render_target({}, DepthAccess::RW, {{finalTarget.getTex2D(), 0, 0}});
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+  }
+}
+
+void RenderAnimCharIconBase::afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid)
+{
+  {
+    WinAutoLock lock(pendReqCs);
+    auto it = pendReq.find(pid);
+    if (it != pendReq.end())
+      pendReq.erase(it);
+    else
+      icon_animchars.clear();
+  }
+
+  for (auto &ia : icon_animchars)
+    ia.animchar->destroy();
+  icon_animchars.clear();
+
+  onAfterRender();
+}
+
+RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::beforeRender(Texture *to, int x, int y, int dstw,
+  int dsth, const DataBlock &info, PICTUREID pid)
+{
+  AnimcharPrefetch animcharPrefetch = prepareAnimchar(to, x, y, dstw, dsth, info, pid);
+
+  if (animcharPrefetch.status != IconPrepareStatus::Ready)
+    return {animcharPrefetch.status};
+
+  eastl::optional<SharedTexHolder> previousEnviPanoramaScoped = setEnviParams(info);
+  if (!previousEnviPanoramaScoped.has_value())
+    return {IconPrepareStatus::RetryAgain};
+
+  onBeforeRender(info);
+
+  return {.status = IconPrepareStatus::Ready,
+    .iconAnimchars = eastl::move(animcharPrefetch.ia),
+    .previousEnviPanoramaScoped = eastl::move(previousEnviPanoramaScoped),
+    .to = to,
+    .x = x,
+    .y = y,
+    .dstw = dstw,
+    .dsth = dsth,
+    .info = &info,
+    .pid = pid};
+}
+
+RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal(Texture *to, int x, int y, int dstw, int dsth,
+  const DataBlock &info, PICTUREID pid)
+{
+#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
+  GLOBAL_VARS_ANIMCHAR_ICONS_LIST
+#undef VAR
+
+  IconAnimcharRenderingContext ctx = beforeRender(to, x, y, dstw, dsth, info, pid);
+  if (ctx.status != IconPrepareStatus::Ready)
+    return ctx.status;
 
   TIME_D3D_PROFILE(icon_render);
 
-  const int prevBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
-  beforeRender(info);
-
-#if ICON_3D_RENDER_DEBUG
-  // for debugging we can force rendering every frame by returning false
-  // if we say that the render failed, it will be retried next time
-  bool force_render_every_frame = info.getBool("forceRenderEveryFrame", false);
-  bool ret = !force_render_every_frame;
-#else
-  bool ret = true;
-#endif
-
   {
+    FRAME_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME));
     SCOPE_RENDER_TARGET;
     SCOPE_VIEW_PROJ_MATRIX;
-    const float scale = info.getReal("scale", 1.f);
-    const Point2 ofs = info.getPoint2("offset", Point2(0, 0));
 
-    TMatrix viewTm;
-    float fovInTan, fovHkInTan, zn, zf, scaleX, scaleY, centerX, centerY;
-    get_animchar_tight_matrix(info, iconAnimchar, float(w) / h, viewTm, fovInTan, fovHkInTan, zn, zf, scaleX, scaleY, centerX,
-      centerY);
-    scaleX *= scale;
-    scaleY *= scale;
-    scaleX = min(scaleX, scaleY);
-    scaleY = scaleX; // because we can't change aspect ratio
+    const IconSSAA iconSSAA = applySSAA(dstw, dsth, info);
+    ensureDim(iconSSAA.w, iconSSAA.h);
 
-    const char *animation = info.getStr("animation", "");
-    const bool recalcAnimation = info.getBool("recalcAnimation", false);
-    if (recalcAnimation)
-      for (size_t i = 1; i < iconAnimchar.size(); ++i)
-      {
-        const int charUid = 1; // Some post blend controllers rely on this uid to run expensive logic once when attachment changes. By
-                               // default it is 0, so we need any non 0 number here to run that logic.
-        iconAnimchar[0].animchar->setAttachedChar(iconAnimchar[i].slotId, charUid, &iconAnimchar[i].animchar->baseComp(), false);
-      }
-    if (strcmp(animation, "") != 0)
-    {
-      int stateIdx = iconAnimchar[0].animchar->getAnimGraph()->getStateIdx(animation);
-      iconAnimchar[0].animchar->getAnimGraph()->enqueueState(*iconAnimchar[0].animchar->getAnimState(),
-        iconAnimchar[0].animchar->getAnimGraph()->getState(stateIdx));
-      AnimV20::IAnimBlendNode *node = iconAnimchar[0].animchar->getAnimGraph()->getBlendNodePtr(animation);
-      if (node)
-        node->seek(*iconAnimchar[0].animchar->getAnimState(), 0);
-
-      iconAnimchar[0].animchar->setTm(viewTm);
-      iconAnimchar[0].animchar->doRecalcAnimAndWtm();
-    }
-    else
-    {
-      iconAnimchar[0].animchar->setTm(viewTm);
-      if (recalcAnimation)
-        iconAnimchar[0].animchar->doRecalcAnimAndWtm();
-      else
-        iconAnimchar[0].animchar->recalcWtm();
-    }
-
-    for (size_t i = 1; i < iconAnimchar.size(); ++i)
-      iconAnimchar[i].updateTmWtm(iconAnimchar[0].animchar);
-    for (auto &ia : iconAnimchar)
-    {
-      DynamicRenderableSceneInstance *scene = ia.animchar->getSceneInstance();
-      scene->setCurrentLod(0);
-      ia.animchar->rendComp().setNodes(scene, ia.animchar->rendComp().getNodeMap(), ia.animchar->getFinalWtm());
-
-      iterate_names(scene->getLodsResource()->getNames().node, [&scene](int id, const char *name) {
-        if (String(name).suffix("_dmg"))
-          scene->showNode(id, false);
-      });
-    }
-
-    for (int i = 0; i < iconAnimchar.size(); ++i)
-    {
-      const int hideNodesCount = iconAnimchar[i].hideNodeNames.size();
-      if (hideNodesCount == 0)
-        continue;
-      DynamicRenderableSceneInstance *scene = iconAnimchar[i].animchar->getSceneInstance();
-      const RoNameMapEx &names = scene->getLodsResource()->getNames().node;
-      for (int j = 0; j < hideNodesCount; ++j)
-      {
-        const int nodeId = names.getNameId(iconAnimchar[i].hideNodeNames[j].c_str());
-        if (nodeId >= 0)
-        {
-          scene->setNodeOpacity(nodeId, 0.f);
-          scene->showNode(nodeId, false);
-        }
-      }
-    }
-
-    if (!renderIconAnimChars(iconAnimchar, to,
-          Driver3dPerspective(scaleX * fovInTan, scaleY * fovHkInTan, zn, zf, ofs.x * scale - centerX * scaleX,
-            ofs.y * scale - centerY * scaleY),
-          x, y, w, h, dstw, dsth, info))
-      ret = false;
+    const Driver3dPerspective perspective = updateAnimcharRenderParams(ctx, iconSSAA);
+    if (!renderIconAnimChars(ctx, iconSSAA, perspective))
+      return IconPrepareStatus::RetryAgain;
 
     if (needsResolveRenderTarget())
-    {
-      if (!to)
-        d3d::set_render_target();
-      else
-        d3d::set_render_target(to, 0);
-      d3d::setview(x, y, dstw, dsth, 0, 1);
-      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-      d3d::resource_barrier({finalTarget.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-      finalTarget.setVar();
-      ShaderGlobal::set_color4(view_scale_ofsVarId, w / float(target->getWidth()), h / float(target->getHeight()), 0, 0);
-      ShaderGlobal::set_color4(icon_ssaaVarId, ssaa, ssaa, -x, -y);
-      finalAA.render();
-      ShaderGlobal::setBlock(prevBlock, ShaderGlobal::LAYER_FRAME);
-      if (d3d::get_driver_code().is(d3d::dx12))
-      {
-        // Sometimes d3d::clearview() for finalTarget before icon rendering doesn't work and we have bug with duplicated icons
-        // So we have additional clear here to workaround this issue until it fixed.
-        d3d::set_render_target(finalTarget.getTex2D(), 0);
-        d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-      }
-    }
+      resolveFinalTarget(ctx, iconSSAA);
+
     if (to)
       d3d::resource_barrier({to, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-
-    {
-      WinAutoLock lock(pendReqCs);
-      auto it = pendReq.find(pid);
-      if (it != pendReq.end())
-        pendReq.erase(it);
-      else
-        iconAnimchar.clear();
-    }
-
-    for (auto &ia : iconAnimchar)
-      ia.animchar->destroy();
-    iconAnimchar.clear();
   }
 
-  afterRender();
-  return ret;
+  afterRender(ctx.iconAnimchars, pid);
+  return IconPrepareStatus::Ready;
 }
 
 #if ICON_3D_RENDER_DEBUG
@@ -1009,6 +1094,7 @@ bool RenderAnimCharIconBase::render(Texture *to, int x, int y, int dstw, int dst
         case DataBlock::TYPE_REAL: debugIconInfo.setReal(paramName, info.getReal(i)); break;
         case DataBlock::TYPE_BOOL: debugIconInfo.setBool(paramName, info.getBool(i)); break;
         case DataBlock::TYPE_E3DCOLOR: debugIconInfo.setE3dcolor(paramName, info.getE3dcolor(i)); break;
+        case DataBlock::TYPE_POINT2: debugIconInfo.setPoint2(paramName, info.getPoint2(i)); break;
       }
     }
 
@@ -1026,6 +1112,7 @@ bool RenderAnimCharIconBase::render(Texture *to, int x, int y, int dstw, int dst
         case DataBlock::TYPE_REAL: modifiedBlock.setReal(paramName, debugIconInfo.getReal(debugParamId)); break;
         case DataBlock::TYPE_BOOL: modifiedBlock.setBool(paramName, debugIconInfo.getBool(debugParamId)); break;
         case DataBlock::TYPE_E3DCOLOR: modifiedBlock.setE3dcolor(paramName, debugIconInfo.getE3dcolor(debugParamId)); break;
+        case DataBlock::TYPE_POINT2: modifiedBlock.setPoint2(paramName, debugIconInfo.getPoint2(debugParamId)); break;
       }
     }
 
@@ -1033,15 +1120,17 @@ bool RenderAnimCharIconBase::render(Texture *to, int x, int y, int dstw, int dst
   }
 #endif
 
-  if (!renderInternal(to, x, y, dstw, dsth, *dataBlockToUse, pid))
+  const IconPrepareStatus status = renderInternal(to, x, y, dstw, dsth, *dataBlockToUse, pid);
+
+  if (status != IconPrepareStatus::Ready)
   {
 #if ICON_3D_RENDER_DEBUG
     if (!forceRenderEveryFrame)
 #endif
       clear_to(0, to, x, y, dstw, dsth);
-    return false;
   }
-  return true;
+
+  return !(status == IconPrepareStatus::RetryAgain);
 }
 
 #if ICON_3D_RENDER_DEBUG
@@ -1081,6 +1170,14 @@ static void imguiWindow()
         float color[4] = {value.r / 255.0f, value.g / 255.0f, value.b / 255.0f, value.a / 255.0f};
         if (ImGui::ColorEdit4(paramName, color))
           debugIconInfo.setE3dcolor(paramName, E3DCOLOR(color[0] * 255.0f, color[1] * 255.0f, color[2] * 255.0f, color[3] * 255.0f));
+        break;
+      }
+      case DataBlock::TYPE_POINT2:
+      {
+        Point2 value = debugIconInfo.getPoint2(i);
+        float valuesForImgui[2] = {value.x, value.y};
+        if (ImGui::InputFloat2(paramName, valuesForImgui))
+          debugIconInfo.setPoint2(paramName, {valuesForImgui[0], valuesForImgui[1]});
         break;
       }
     }

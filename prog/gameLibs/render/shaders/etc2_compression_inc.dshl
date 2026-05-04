@@ -1,10 +1,13 @@
 
 macro INIT_ETC2_COMPRESSION()
 
+  (cs) {
+    compressedTexture@uav : register(2) hlsl {
+      RWTexture2D<uint4> compressedTexture@uav;
+    }
+  }
   hlsl(cs)
   {
-    RWTexture2D<uint4> compressedTexture : register( u2 );
-
     #define BLOCK_MODE_INDIVIDUAL                0
     #define BLOCK_MODE_DIFFERENTIAL              1
 

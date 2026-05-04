@@ -22,7 +22,8 @@ static void ri_extra_gen_es_event_handler_all_events(const ecs::Event &__restric
   G_FAST_ASSERT(evt.is<EventLevelLoaded>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ri_extra_gen_es_event_handler(static_cast<const EventLevelLoaded&>(evt)
-        , ECS_RW_COMP(ri_extra_gen_es_event_handler_comps, "ri_extra_gen", RiExtraGen)
+        , components.manager()
+    , ECS_RW_COMP(ri_extra_gen_es_event_handler_comps, "ri_extra_gen", RiExtraGen)
     , ECS_RO_COMP(ri_extra_gen_es_event_handler_comps, "ri_extra_gen__riName", ecs::string)
     , ECS_RO_COMP(ri_extra_gen_es_event_handler_comps, "ri_extra_gen__template", ecs::string)
     );
@@ -65,7 +66,7 @@ static ecs::EntitySystemDesc ri_extra_gen_mark_dynamic_es_event_handler_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-);
+,"dngRenderIsActive");
 static constexpr ecs::ComponentDesc ri_extra_gen_blk_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -79,7 +80,8 @@ static void ri_extra_gen_blk_es_event_handler_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ri_extra_gen_blk_es_event_handler(evt
-        , ECS_RO_COMP(ri_extra_gen_blk_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(ri_extra_gen_blk_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(ri_extra_gen_blk_es_event_handler_comps, "ri_extra_gen", RiExtraGen)
     , ECS_RO_COMP(ri_extra_gen_blk_es_event_handler_comps, "ri_extra_gen__blk", ecs::string)
     , ECS_RO_COMP_PTR(ri_extra_gen_blk_es_event_handler_comps, "ri_extra_gen__createEntityWhenDone", ecs::string)
@@ -99,6 +101,26 @@ static ecs::EntitySystemDesc ri_extra_gen_blk_es_event_handler_es_desc
                        EventRIGenExtraRequested>::build(),
   0
 ,"server");
+//static constexpr ecs::ComponentDesc ri_extra_gen_on_scene_unloaded_es_comps[] ={};
+static void ri_extra_gen_on_scene_unloaded_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<ecs::EventEntityManagerBeforeClear>());
+  ri_extra_gen_on_scene_unloaded_es(static_cast<const ecs::EventEntityManagerBeforeClear&>(evt)
+        );
+}
+static ecs::EntitySystemDesc ri_extra_gen_on_scene_unloaded_es_es_desc
+(
+  "ri_extra_gen_on_scene_unloaded_es",
+  "prog/daNetGame/game/riGenEntitiesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, ri_extra_gen_on_scene_unloaded_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityManagerBeforeClear>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc find_overall_game_zone_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
@@ -115,9 +137,9 @@ static ecs::CompileTimeQueryDesc find_overall_game_zone_ecs_query_desc
   make_span(find_overall_game_zone_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult find_overall_game_zone_ecs_query(Callable function)
+inline ecs::QueryCbResult find_overall_game_zone_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, find_overall_game_zone_ecs_query_desc.getHandle(),
+  return perform_query(&manager, find_overall_game_zone_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

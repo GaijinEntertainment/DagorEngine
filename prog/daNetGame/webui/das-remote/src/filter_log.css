@@ -78,6 +78,21 @@ body {
   text-decoration-line: underline;
 }
 
+.pauseBtn {
+  padding: 0px 0px 3px 0px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  width: 20px;
+  cursor: pointer;
+}
+
+.pauseBtn.paused {
+  background-color: rgb(247, 174, 105);
+}
+
 .gridContainer {
   display: grid;
   grid-template-columns: 120px 360px;
@@ -106,6 +121,13 @@ body {
   margin: 0px;
 }
 
+.horList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+}
+
 .collapseBtn {
   padding: 0px;
   margin: 0px;
@@ -129,6 +151,57 @@ body {
 
 .highlightedW {
   color: orange;
+}
+
+.linesAfterBox {
+  display: inline;
+  margin: 0;
+}
+
+.linesAfterBox > .tooltipContent {
+  width: 200px;
+}
+
+.linesAfterInput {
+  width: 26px;
+  text-align: center;
+  margin-left: 0;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.linesAfterInput::-webkit-outer-spin-button,
+.linesAfterInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.linesAfterButtons {
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: top;
+  margin-left: 0;
+}
+
+.linesAfterBtn {
+  display: block;
+  width: 11px;
+  height: 9px;
+  padding: 0;
+  margin: 0;
+  font-size: 6px;
+  line-height: 8px;
+  border: 1px solid #888;
+  background: #eee;
+  cursor: pointer;
+}
+
+.linesAfterBtn:first-child {
+  border-bottom: none;
+}
+
+.linesAfterBtn:active {
+  background: #ccc;
 }
 
 .eSReloadPanel {

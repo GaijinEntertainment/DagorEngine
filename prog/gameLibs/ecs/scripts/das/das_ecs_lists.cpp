@@ -6,9 +6,7 @@
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotEcsContainer.h>
 
-#define DECL_LIST_TYPE(lt, t)                   \
-  IMPLEMENT_EXTERNAL_TYPE_FACTORY(lt, ecs::lt); \
-  IMPLEMENT_EXTERNAL_TYPE_FACTORY(Shared##lt, ecs::SharedComponent<ecs::lt>);
+#define DECL_LIST_TYPE(lt, t) IMPLEMENT_EXTERNAL_TYPE_FACTORY(lt, ecs::lt);
 ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
 
@@ -32,14 +30,6 @@ namespace bind_dascript
     {                                                                                                                            \
       return context.code->makeNode<das::SimNode_CloneRefValueT<ecs::T>>(at, l, r);                                              \
     }                                                                                                                            \
-  };                                                                                                                             \
-  struct T##SharedAnnotation final : das::ManagedStructureAnnotation<ecs::SharedComponent<ecs::T>, false>                        \
-  {                                                                                                                              \
-    T##SharedAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Shared" #T, ml)                                    \
-    {                                                                                                                            \
-      cppName = "ecs::SharedComponent< ::ecs::" #T ">";                                                                          \
-      addPropertyForManagedType<DAS_BIND_MANAGED_PROP(get)>("get");                                                              \
-    }                                                                                                                            \
   };
 
 #define DECL_LIST_TYPE(lt, t) DECL_LIST_ANNOTATION(lt)
@@ -50,10 +40,7 @@ ECS_DECL_LIST_TYPES
 
 void ECS::addList(das::ModuleLibrary &lib)
 {
-#define DECL_LIST_TYPE(lt, t)                          \
-  addAnnotation(das::make_smart<lt##Annotation>(lib)); \
-  addAnnotation(das::make_smart<lt##SharedAnnotation>(lib));
-
+#define DECL_LIST_TYPE(lt, t) addAnnotation(das::make_smart<lt##Annotation>(lib));
   ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
   static constexpr bool is_same = sizeof(das::vector<int>) == sizeof(ecs::List<int>::base_type); // parentType =

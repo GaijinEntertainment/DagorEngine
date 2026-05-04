@@ -8,6 +8,7 @@
 #include <de3_composit.h>
 #include <de3_interface.h>
 #include <ioSys/dag_dataBlockUtils.h>
+#include <assets/asset.h>
 #include <libTools/util/blkUtil.h>
 #include <math/dag_mathAng.h>
 #include <osApiWrappers/dag_clipboard.h>
@@ -29,19 +30,22 @@ CompositeEditorPanel::CompositeEditorPanel(PropPanel::ControlEventHandler *event
   supportedNodeParameters.addPoint2("scale", Point2(1, 0));
   supportedNodeParameters.addPoint2("yScale", Point2(1, 0));
   supportedNodeParameters.addReal("aboveHt", 0);
+  supportedNodeParameters.addBool("ignoreParentInstSeed", true);
 }
 
-void CompositeEditorPanel::fillEntityGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode)
+void CompositeEditorPanel::fillEntityGroup(PropPanel::ContainerPropertyControl &group, const CompositeEditorTreeDataNode &treeDataNode,
+  PropPanel::IDropTargetHandler *dropTargetHandler)
 {
   PropPanel::ContainerPropertyControl *extensible = group.createExtensible(ID_COMPOSITE_EDITOR_ENTITY_ACTIONS);
   extensible->setIntValue(1 << PropPanel::EXT_BUTTON_REMOVE);
 
   extensible->createButton(ID_COMPOSITE_EDITOR_ENTITY_SELECTOR, treeDataNode.getName());
+  extensible->setDropTargetHandler(dropTargetHandler);
   group.createEditFloat(ID_COMPOSITE_EDITOR_ENTITY_WEIGHT, "Weight", treeDataNode.getWeight());
 }
 
 void CompositeEditorPanel::fillEntitiesGroup(PropPanel::ContainerPropertyControl &group,
-  const CompositeEditorTreeDataNode &treeDataNode, bool canEditEntities)
+  const CompositeEditorTreeDataNode &treeDataNode, PropPanel::IDropTargetHandler *dropTargetHandler, bool canEditEntities)
 {
   int nodesToDisplay = canEditEntities ? treeDataNode.nodes.size() : 0;
   const bool limitReached = nodesToDisplay > MAX_COMPOSITE_ENTITY_COUNT;
@@ -68,6 +72,7 @@ void CompositeEditorPanel::fillEntitiesGroup(PropPanel::ContainerPropertyControl
 
     const char *name = treeDataSubNode.getName();
     extensible->createButton(ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_FIRST + nodeIndex, name);
+    extensible->setDropTargetHandler(dropTargetHandler);
 
     const float weight = treeDataSubNode.getWeight();
     group.createEditFloat(ID_COMPOSITE_EDITOR_ENTITIES_WEIGHT_FIRST + nodeIndex, "Weight", weight);
@@ -76,10 +81,11 @@ void CompositeEditorPanel::fillEntitiesGroup(PropPanel::ContainerPropertyControl
   }
 
   group.createButton(ID_COMPOSITE_EDITOR_ENTITIES_ADD, "+", canEditEntities && !limitReached);
+  group.setDropTargetHandler(dropTargetHandler);
 }
 
 void CompositeEditorPanel::fillChildrenGroup(PropPanel::ContainerPropertyControl &group,
-  const CompositeEditorTreeDataNode &treeDataNode, bool canEditChildren)
+  const CompositeEditorTreeDataNode &treeDataNode, PropPanel::IDropTargetHandler *dropTargetHandler, bool canEditChildren)
 {
   int nodesToDisplay = canEditChildren ? treeDataNode.nodes.size() : 0;
   const bool limitReached = nodesToDisplay > MAX_COMPOSITE_ENTITY_COUNT;
@@ -107,9 +113,11 @@ void CompositeEditorPanel::fillChildrenGroup(PropPanel::ContainerPropertyControl
     const char *name = treeDataSubNode.getName();
     const bool canEditAssetName = treeDataSubNode.canEditAssetName(/*isRootNode = */ false);
     extensible->createButton(ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST + nodeIndex, name, canEditAssetName);
+    extensible->setDropTargetHandler(dropTargetHandler);
   }
 
   group.createButton(ID_COMPOSITE_EDITOR_CHILDREN_ADD, "+", canEditChildren && !limitReached);
+  group.setDropTargetHandler(dropTargetHandler);
 }
 
 void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyControl &group,
@@ -204,6 +212,12 @@ void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyContr
       group.createEditFloat(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ABOVE_HT, "Above height", value);
     }
 
+    const int ignoreParentInstSeedParamIndex = treeDataNode.params.findParam("ignoreParentInstSeed");
+    if (
+      ignoreParentInstSeedParamIndex >= 0 && treeDataNode.params.getParamType(ignoreParentInstSeedParamIndex) == DataBlock::TYPE_BOOL)
+      group.createCheckBox(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_IGNORE_PARENT_INST_SEED, "Ignore parent instance seed",
+        treeDataNode.params.getBool(ignoreParentInstSeedParamIndex));
+
     if (group.getChildCount() != childCountBeforeFirstDynamicParameter)
       group.createSeparator();
   }
@@ -215,24 +229,25 @@ void CompositeEditorPanel::fillParametersGroup(PropPanel::ContainerPropertyContr
   group.createButton(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_PASTE, "Paste params", canEditParameters, false);
 }
 
-void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeDataNode, bool isRootNode)
+void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeDataNode,
+  PropPanel::IDropTargetHandler *dropTargetHandler, bool isRootNode)
 {
   if (treeDataNode.isEntBlock())
   {
     PropPanel::ContainerPropertyControl *grpEntity = createGroup(ID_COMPOSITE_EDITOR_ENTITY_GRP, "Entity");
     if (grpEntity)
-      fillEntityGroup(*grpEntity, treeDataNode);
+      fillEntityGroup(*grpEntity, treeDataNode, dropTargetHandler);
   }
   else
   {
     PropPanel::ContainerPropertyControl *grpEntities = createGroup(ID_COMPOSITE_EDITOR_ENTITIES_GRP, "Entities");
     if (grpEntities)
-      fillEntitiesGroup(*grpEntities, treeDataNode, treeDataNode.canEditRandomEntities(isRootNode));
+      fillEntitiesGroup(*grpEntities, treeDataNode, dropTargetHandler, treeDataNode.canEditRandomEntities(isRootNode));
   }
 
   PropPanel::ContainerPropertyControl *grpChildren = createGroup(ID_COMPOSITE_EDITOR_CHILDREN_GRP, "Children");
   if (grpChildren)
-    fillChildrenGroup(*grpChildren, treeDataNode, treeDataNode.canEditChildren());
+    fillChildrenGroup(*grpChildren, treeDataNode, dropTargetHandler, treeDataNode.canEditChildren());
 
   PropPanel::ContainerPropertyControl *grpParameters = createGroup(ID_COMPOSITE_EDITOR_NODE_PARAMETERS_GRP, "Node parameters");
   if (grpParameters)
@@ -251,7 +266,8 @@ void CompositeEditorPanel::fillInternal(const CompositeEditorTreeDataNode &treeD
   createButton(ID_COMPOSITE_EDITOR_DELETE_NODE, "Delete node", !isRootNode);
 }
 
-void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const CompositeEditorTreeDataNode *selectedTreeDataNode)
+void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const CompositeEditorTreeDataNode *selectedTreeDataNode,
+  PropPanel::IDropTargetHandler *dropTargetHandler)
 {
   panelState.reset();
   saveState(panelState);
@@ -261,7 +277,7 @@ void CompositeEditorPanel::fill(const CompositeEditorTreeData &treeData, const C
   if (treeData.isComposite && selectedTreeDataNode)
   {
     const bool isRootNode = selectedTreeDataNode == &treeData.rootNode;
-    fillInternal(*selectedTreeDataNode, isRootNode);
+    fillInternal(*selectedTreeDataNode, dropTargetHandler, isRootNode);
   }
 
   loadState(panelState);
@@ -473,6 +489,10 @@ CompositeEditorRefreshType CompositeEditorPanel::onChange(CompositeEditorTreeDat
   {
     treeDataNode.params.setReal("aboveHt", getFloat(pcb_id));
   }
+  else if (pcb_id == ID_COMPOSITE_EDITOR_NODE_PARAMETERS_IGNORE_PARENT_INST_SEED)
+  {
+    treeDataNode.params.setBool("ignoreParentInstSeed", getBool(pcb_id));
+  }
   else
   {
     return CompositeEditorRefreshType::Nothing;
@@ -610,6 +630,93 @@ CompositeEditorRefreshType CompositeEditorPanel::onClick(CompositeEditorTreeData
   else if (pcb_id == ID_COMPOSITE_EDITOR_NODE_PARAMETERS_PASTE)
   {
     return onPasteNodeParametersClicked(treeDataNode);
+  }
+  else
+  {
+    return CompositeEditorRefreshType::Nothing;
+  }
+
+  return CompositeEditorRefreshType::EntityAndCompositeEditor;
+}
+
+CompositeEditorRefreshType CompositeEditorPanel::onDragAndDropAsset(CompositeEditorTreeDataNode &treeDataNode, int pcb_id,
+  DagorAsset *asset)
+{
+  G_ASSERT(asset);
+
+  if (pcb_id == ID_COMPOSITE_EDITOR_ENTITY_SELECTOR)
+  {
+    const char *assetName = asset->getName();
+    if (!assetName)
+      return CompositeEditorRefreshType::Nothing;
+
+    makeUndoForPropertyEditing();
+
+    if (*assetName)
+      treeDataNode.params.setStr("name", assetName);
+    else
+      treeDataNode.params.removeParam("name");
+
+    // Remove the unused type parameter from old .blk files.
+    treeDataNode.params.removeParam("type");
+  }
+  else if (pcb_id == ID_COMPOSITE_EDITOR_ENTITIES_ADD)
+  {
+    const char *assetName = asset->getName();
+    const bool emptyAsset = !assetName || *assetName == 0;
+
+    makeUndoForPropertyEditing();
+
+    treeDataNode.insertEntBlock(-1);
+
+    if (!emptyAsset)
+      treeDataNode.nodes.back()->params.setStr("name", assetName);
+  }
+  else if (pcb_id >= ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_LAST)
+  {
+    const int entityIndex = pcb_id - ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_FIRST;
+
+    const char *assetName = asset->getName();
+    if (!assetName)
+      return CompositeEditorRefreshType::Nothing;
+
+    makeUndoForPropertyEditing();
+
+    if (*assetName)
+      treeDataNode.nodes[entityIndex]->params.setStr("name", assetName);
+    else
+      treeDataNode.nodes[entityIndex]->params.removeParam("name");
+
+    // Remove the unused type parameter from old .blk files.
+    treeDataNode.nodes[entityIndex]->params.removeParam("type");
+  }
+  else if (pcb_id == ID_COMPOSITE_EDITOR_CHILDREN_ADD)
+  {
+    const int entityIndex = treeDataNode.nodeCount();
+
+    makeUndoForPropertyEditing();
+    treeDataNode.insertNodeBlock(-1);
+
+    const char *assetName = asset->getName();
+    if (*assetName)
+      treeDataNode.nodes[entityIndex]->params.setStr("name", assetName);
+    else
+      treeDataNode.nodes[entityIndex]->params.removeParam("name");
+  }
+  else if (pcb_id >= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_LAST)
+  {
+    const int childIndex = pcb_id - ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST;
+
+    makeUndoForPropertyEditing();
+
+    const char *assetName = asset->getName();
+    if (*assetName)
+      treeDataNode.nodes[childIndex]->params.setStr("name", assetName);
+    else
+      treeDataNode.nodes[childIndex]->params.removeParam("name");
+
+    // Remove the unused type parameter from old .blk files.
+    treeDataNode.nodes[childIndex]->params.removeParam("type");
   }
   else
   {

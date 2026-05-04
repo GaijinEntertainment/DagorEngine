@@ -25,7 +25,7 @@ bool getDepthNormalFactor(float3 worldPos, EnviSnowParams enviParams, float3 nor
     float2 lerpFactor;
     float4 depthSamples = gather_depth_above(worldPos.xyz, vignetteEffect, lerpFactor);
     depthSamples = clamp(depthSamples, worldPos.y - envi_cover_y_clamp_from_pos, worldPos.y + envi_cover_y_clamp_from_pos);
-    float finalDepth = lerp_gatered_depth_above(depthSamples, lerpFactor);
+    float finalDepth = lerp_gathered_depth_above(depthSamples, lerpFactor);
     float depthDist = worldPos.y + 1 - finalDepth;
     depthDist = lerp(depthDist, 1.0, vignetteEffect);
   #endif

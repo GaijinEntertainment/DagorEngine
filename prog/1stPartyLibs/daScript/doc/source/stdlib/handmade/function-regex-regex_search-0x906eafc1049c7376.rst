@@ -1,0 +1,1 @@
+Searches for the first occurrence of the regular expression anywhere in ``str``, starting from ``offset``. Returns ``int2(start, end)`` on success, or ``int2(-1, -1)`` if not found. Unlike ``regex_match``, this function scans the entire string.

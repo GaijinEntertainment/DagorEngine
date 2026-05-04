@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animState.h>
 
@@ -16,16 +20,18 @@
 
 CONSOLE_BOOL_VAL("anim", debug_anim_state, false);
 ECS_REGISTER_EVENT(EventChangeAnimState);
+ECS_REGISTER_EVENT(EventChangeAnimStateFull);
 
 ECS_ON_EVENT(on_appear)
-static void restriction_parse_es(const ecs::Event &, ecs::EntityId eid, const AnimV20::AnimcharBaseComponent &animchar,
-  const ecs::Object &human_anim_restrictions__prohibited, ecs::Array &human_anim_restriction_ids__prohibited)
+static void restriction_parse_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
+  const AnimV20::AnimcharBaseComponent &animchar, const ecs::Object &human_anim_restrictions__prohibited,
+  ecs::Array &human_anim_restriction_ids__prohibited)
 {
   const AnimV20::AnimationGraph *animGraph = animchar.getAnimGraph();
   if (DAGOR_UNLIKELY(!animGraph))
   {
     G_ASSERT_LOG(animGraph, "%s: animGraph is NULL for %d<%s>", __FUNCTION__, ecs::entity_id_t(eid),
-      g_entity_mgr->getEntityTemplateName(eid));
+      manager.getEntityTemplateName(eid));
     return;
   }
   for (auto &it : human_anim_restrictions__prohibited)
@@ -76,6 +82,59 @@ inline void anim_state_change_es_event_handler(const EventChangeAnimState &evt, 
 
   animchar__animStateDirty = true;
   animchar__animState.addMember(stateName, nextState);
+}
+
+ECS_REQUIRE_NOT(ecs::auto_type animchar__lockAnimStateChange)
+inline void human_anim_state_change_full_es_event_handler(const EventChangeAnimStateFull &evt, ecs::Object &animchar__animState,
+  const ecs::Array &human_anim_restriction_ids__prohibited, bool &animchar__animStateDirty)
+{
+  int nextState = evt.get<0>();
+
+  for (auto &it : animchar__animState)
+  {
+    int currentStateInChannel = it.second.get<int>();
+
+    if (currentStateInChannel == nextState)
+      continue;
+
+    if (currentStateInChannel != -1)
+    {
+      bool skip = false;
+      IPoint2 transition(currentStateInChannel, nextState);
+      for (auto &it : human_anim_restriction_ids__prohibited)
+      {
+        const IPoint2 &restriction = it.get<IPoint2>();
+        if (restriction == transition)
+        {
+          skip = true;
+          break;
+        }
+      }
+      if (skip)
+        continue;
+    }
+
+    animchar__animStateDirty = true;
+    animchar__animState.addMember(it.first.c_str(), nextState);
+  }
+}
+
+ECS_REQUIRE_NOT(ecs::Array human_anim_restriction_ids__prohibited)
+inline void anim_state_change_full_es_event_handler(const EventChangeAnimStateFull &evt, ecs::Object &animchar__animState,
+  bool &animchar__animStateDirty)
+{
+  int nextState = evt.get<0>();
+
+  for (auto &it : animchar__animState)
+  {
+    int currentStateInChannel = it.second.get<int>();
+
+    if (currentStateInChannel == nextState)
+      continue;
+
+    animchar__animStateDirty = true;
+    animchar__animState.addMember(it.first.c_str(), nextState);
+  }
 }
 
 ECS_NO_ORDER

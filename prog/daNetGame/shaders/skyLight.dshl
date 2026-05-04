@@ -1,4 +1,5 @@
 include "skyLightParams.dshl"
+include "sky_polarization_filter_term_inc.dshl"
 
 macro INIT_SKY_DIFFUSE_BASE(stage)
   (stage) {
@@ -20,10 +21,6 @@ endmacro
 
 macro INIT_SKY_COMPAT()
   INIT_SKY()
-endmacro
-
-macro FROM_SUN_DIR_SOURCE_COMPAT()
-  supports global_const_block;
 endmacro
 
 macro INIT_SKY_UP_DIFFUSE(stage)
@@ -53,10 +50,11 @@ macro INIT_ENVI_SPECULAR_SAMPLE(stage)
 endmacro
 
 macro USE_ENVI_SPECULAR_SAMPLE(stage)
+  USE_SKY_POLARIZATION_FILTER_TERM(stage)
   hlsl(stage) {
     half4 sample_envi_probe(half4 tc)
     {
-      return half4(texCUBElod(envi_probe_specular, tc) * envi_outdoor_factor_darkening);
+      return half4(texCUBElod(envi_probe_specular, tc) * envi_outdoor_factor_darkening * apply_sky_polarization_filter());
     }
   }
 endmacro

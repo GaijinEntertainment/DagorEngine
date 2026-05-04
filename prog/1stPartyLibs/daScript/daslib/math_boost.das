@@ -6,6 +6,13 @@ options strict_smart_pointers = true
 
 module math_boost shared public
 
+//! Extended math types and operations.
+//!
+//! Defines ``AABR``, ``AABB``, ``Ray``, and ``Plane`` structures,
+//! intersection tests, matrix construction helpers, angle conversion,
+//! clamping, and other math utilities built on top of the built-in
+//! ``math`` module.
+
 
 // _rh, _lh - right handed vs left handed
 //  OpenGL, Vulkan - RH
@@ -15,17 +22,20 @@ require math public
 
 struct AABR {
     //! axis aligned bounding rectangle
-    min, max : float2
+    min : float2   //! min coordinates
+    max : float2   //! max coordinates
 }
 
 struct AABB {
     //! axis aligned bounding box
-    min, max : float3
+    min : float3   //! min coordinates
+    max : float3   //! max coordinates
 }
 
 struct Ray {
     //! ray (direction and origin)
-    dir, origin : float3
+    dir : float3    //! direction
+    origin : float3 //! origin
 }
 
 def degrees(f : float) {
@@ -44,6 +54,7 @@ def RGBA_TO_UCOLOR(x, y, z, w : float) {
 }
 
 def RGBA_TO_UCOLOR(xyzw : float4) {
+    //! conversion from RGBA to ucolor. xyzw components are in [0,1] range
     return pack_float_to_byte(xyzw * 255.)
 }
 
@@ -74,10 +85,12 @@ def linear_to_SRGB(x : float) {
 }
 
 def linear_to_SRGB(c : float3) {
+    //! convert value from linear space to sRGB curve space
     return float3(linear_to_SRGB(c.x), linear_to_SRGB(c.y), linear_to_SRGB(c.z))
 }
 
 def linear_to_SRGB(c : float4) {
+    //! convert value from linear space to sRGB curve space
     return float4(linear_to_SRGB(c.x), linear_to_SRGB(c.y), linear_to_SRGB(c.z), c.w)
 }
 
@@ -88,11 +101,13 @@ def is_intersecting(a, b : AABR) {   // A.LO<=B.HI && A.HI>=B.LO
 }
 
 def is_intersecting(a, b : AABB) {   // A.LO<=B.HI && A.HI>=B.LO
+    //! returns true if inputs intersect
     return (a.min.x <= b.max.x && a.min.y <= b.max.y && a.min.z <= b.max.z &&
         a.max.x >= b.min.x && a.max.y >= b.min.y && a.max.z >= b.min.z)
 }
 
 def is_intersecting(ray : Ray; aabb : AABB; Tmin : float = 0.; Tmax : float = FLT_MAX) {
+    //! returns true if ray intersects aabb within [Tmin, Tmax]
     let invD = rcp(ray.dir)
     let t0s = (aabb.min - ray.origin) * invD
       let t1s = (aabb.max - ray.origin) * invD
@@ -176,7 +191,7 @@ def perspective_rh_opengl(fovy, aspect, zn, zf : float) {
 }
 
 def ortho_rh(left, right, bottom, top, zNear, zFar : float) {
-    //! right handed (z towards viwer) orthographic (parallel) projection matrix
+    //! right handed (z towards viewer) orthographic (parallel) projection matrix
     var Result : float4x4
     identity(Result)
     Result[0][0] =  2. / (right - left)
@@ -194,7 +209,7 @@ def plane_dot(Plane, Vec : float4) {
 }
 
 def plane_normalize(Plane : float4) {
-    //! normalize `Plane', length xyz will be 1.0 (or 0.0 for no plane)
+    //! normalize ``Plane``, length xyz will be 1.0 (or 0.0 for no plane)
     let len = length(Plane.xyz)
     return len != 0.0 ? Plane / len : float4(0)
 }

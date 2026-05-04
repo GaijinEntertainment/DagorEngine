@@ -1,0 +1,1 @@
+Returns the number of vertices in the glyph outline for the given Unicode codepoint.

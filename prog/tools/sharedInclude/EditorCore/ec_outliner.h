@@ -117,8 +117,8 @@ private:
     AddNewLayer,
     RenameLayer,
     MoveObjectToLayerSubMenu,
-    MoveObjectToLayerStart = MoveObjectToLayerSubMenu + 1, // Inclusive
-    MoveObjectToLayerEnd = MoveObjectToLayerStart + 64,    // Not inclusive.
+    MoveObjectToLayerStart = MoveObjectToLayerSubMenu + 1,                                    // Inclusive
+    MoveObjectToLayerEnd = MoveObjectToLayerStart + IOutliner::MAXIMUM_SUPPORTED_LAYER_COUNT, // Not inclusive.
     RenameObject,
     ChangeObjectAsset,
     DeleteObject,
@@ -152,7 +152,9 @@ private:
   LayerTreeItem *getContextMenuTargetLayer() const;
   void resetContextMenu(PropPanel::IMenu *context_menu = nullptr, int type = -1, int per_type_layer_index = -1);
   void updateSelectionHead(OutlinerTreeItem &tree_item);
-  void fillTree(ImGuiMultiSelectIO *multiSelectIo);
+  void renderTreeItem(OutlinerTreeItem &tree_item, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
+    ImGuiMultiSelectIO *multi_select_io);
+  void fillTree(ImGuiMultiSelectIO *multi_select_io);
   bool applyRangeSelectionRequestInternal(const ImGuiSelectionRequest &request, OutlinerTreeItem &tree_item, bool &found_first);
   void applyRangeSelectionRequest(const ImGuiSelectionRequest &request);
   void applySelectionRequests(const ImGuiMultiSelectIO &multi_select_io, bool &started_selecting);

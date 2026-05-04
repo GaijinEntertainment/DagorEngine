@@ -48,6 +48,7 @@ public:
 
   void initHeightMask();
   void closeHeightMask();
+  void updateSamplers();
 
   void update();
   void render(RenderMode render_mode, const BBox2 &region_box);
@@ -84,7 +85,6 @@ private:
   int terraform_min_max_levelVarId = -1;
   int terraform_render_modeVarId = -1;
   int terraform_tex_data_sizeVarId = -1;
-  int terraform_enabledVarId = -1;
   int tform_height_mask_scale_offsetVarId = -1;
 
   int tform_diffuse_texVarId = -1;

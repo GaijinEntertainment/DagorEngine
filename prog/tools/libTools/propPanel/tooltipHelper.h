@@ -13,6 +13,11 @@ public:
   // This must be called before ImGui::EndFrame.
   void beforeEndFrame();
 
+  // Helper function when you have to display a custom tooltip and cannot use setPreviousImguiControlTooltip().
+  // control: any unique identifier that identifies the control. It can be (const void *)ImGui::GetItemID() too.
+  // returns true if the tooltip should be displayed
+  bool isImguiControlHovered(const void *control);
+
   // Display tooltip for the previous ImGui control if the mouse is over it.
   // Similar to ImGui::SetItemTooltip but the tooltip behaves more like Windows tooltips.
   // control: any unique identifier that identifies the control. It can be (const void *)ImGui::GetItemID() too.

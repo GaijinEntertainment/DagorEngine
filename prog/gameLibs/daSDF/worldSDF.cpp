@@ -2,9 +2,9 @@
 
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
-#include <drv/3d/dag_info.h>
 #include <perfMon/dag_statDrv.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_shaderVariableInfo.h>
@@ -21,11 +21,15 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/bit.h>
 #include <util/dag_convar.h>
+#include <memory/dag_framemem.h>
 #include <render/subtract_ibbox3.h>
 #include <render/globTMVars.h>
+#include <render/voxelClip.h>
 #include <daSDF/worldSDF.h>
 #include "shaders/world_sdf.hlsli"
 
+CONSOLE_INT_VAL("render", world_sdf_debug_render, 0, -1, 6, "-1: all cascades. 0:disabled. 1-6: isolated cascade");
+CONSOLE_INT_VAL("render", world_sdf_debug_render_mode, 0, 0, 1, "0 - normals, 1 - b&w contrast");
 CONSOLE_BOOL_VAL("render", world_sdf_invalidate, false);
 CONSOLE_BOOL_VAL("render", world_sdf_update_one_mip, true);
 CONSOLE_INT_VAL("render", world_sdf_ping_pong_iterations, 1, 0, 8);
@@ -49,8 +53,9 @@ CONSOLE_INT_VAL("render", world_sdf_depth_mark_pass, 16384, 0, 131072);
   VAR(world_sdf_res_np2)                          \
   VAR(world_sdf_update_mip)                       \
   VAR(world_sdf_use_grid)                         \
-  VAR(world_sdf_clipmap_samplerstate)             \
-  VAR(world_sdf_clipmap_rasterize)
+  VAR(world_sdf_clipmap_rasterize)                \
+  VAR(world_sdf_debug_clip)                       \
+  VAR(world_sdf_debug_mode)
 
 #define OPTIONAL_VARS_LIST        \
   VAR(world_sdf_support_uav_load) \
@@ -104,21 +109,15 @@ struct WorldSDFImpl final : public WorldSDF
   eastl::unique_ptr<ComputeShaderElement> world_sdf_from_gbuf_cs, world_sdf_from_gbuf_remove_cs;
 
   int w = 128, d = 128;
-  uint32_t updatedMask = 0;
   bool cbuffersDirty = true;
   float clip0VoxelSize = 0.5;
   float temporalSpeed = 0.5f;
   uint32_t currentInstancesBufferSz = 0;
   bool supportUnorderedLoad = true;
 
-  struct ClipmapMip
-  {
-    IPoint3 worldCoordLT = {-100000, 100000, 100000};
-    float voxelSize = 1e9f;
-    Point3 lastPreCachePos = {0, 0, 0};
-    float lastPreCacheVoxelSize = 0;
-  };
-  dag::Vector<ClipmapMip> clipmap;
+  carray<dag::Vector<IBBox3>, MAX_WORLD_SDF_CLIPS> pendingUpdateBoxes;
+  dag::Vector<VoxelClip> clipmap;
+
   carray<da_profiler::desc_id_t, MAX_WORLD_SDF_CLIPS> world_sdf_mip_dap, world_sdf_clip_cull_dap, world_sdf_clip_dap;
 
   void fixup_settings(uint16_t &cw, uint16_t &cd, uint8_t &c) const
@@ -164,7 +163,6 @@ struct WorldSDFImpl final : public WorldSDF
       world_sdf_params.world_sdf_to_tc_add_invalid = Point4::ZERO;
       std::memset(world_sdf_coord_lt.data(), 0, sizeof(world_sdf_coord_lt));
       cbuffersDirty = true;
-      updatedMask = 0;
     }
   }
 
@@ -207,6 +205,15 @@ struct WorldSDFImpl final : public WorldSDF
   void setValues(uint8_t clips, uint16_t w_, uint16_t h_, float voxel0) override
   {
     fixup_settings(w_, h_, clips);
+
+    if (clip0VoxelSize != voxel0)
+    {
+      for (auto &clip : clipmap)
+        clip.invalidate();
+      for (auto &boxes : pendingUpdateBoxes)
+        boxes.clear();
+    }
+
     clip0VoxelSize = voxel0;
     if (clipmap.size() == clips && w == w_ && d == h_)
       return;
@@ -218,8 +225,8 @@ struct WorldSDFImpl final : public WorldSDF
     d = h_;
     initHistory(clips);
     world_sdf_clipmap.close();
-    world_sdf_clipmap = dag::create_voltex(w, w, (d + 2) * clipmap.size(), texFmt | TEXCF_UNORDERED, 1, "world_sdf_clipmap");
-    world_sdf_clipmap_samplerstateVarId.set_sampler(d3d::request_sampler({}));
+    world_sdf_clipmap =
+      dag::create_voltex(w, w, (d + 2) * clipmap.size(), texFmt | TEXCF_UNORDERED, 1, "world_sdf_clipmap", RESTAG_DASDF);
 
     ShaderGlobal::set_int(world_sdf_support_uav_loadVarId, supportUnorderedLoad ? 1 : 0);
     ShaderGlobal::set_int4(world_sdf_resVarId, IPoint4(w, d, d + 2, clipmap.size()));
@@ -227,27 +234,27 @@ struct WorldSDFImpl final : public WorldSDF
     constexpr int max_pos = (1 << 30) - 1;
     ShaderGlobal::set_int4(world_sdf_res_np2VarId, w, d, is_pow_of2(w) ? 0 : (max_pos / w) * w, is_pow_of2(d) ? 0 : (max_pos / d) * d);
     int fullTextureDepth = (d + 2) * clipmap.size();
-    ShaderGlobal::set_color4(world_sdf_inv_sizeVarId, 1. / w, 1. / d, 1. / fullTextureDepth, float(d) / fullTextureDepth);
+    ShaderGlobal::set_float4(world_sdf_inv_sizeVarId, 1. / w, 1. / d, 1. / fullTextureDepth, float(d) / fullTextureDepth);
 
     float x = float(d) / fullTextureDepth;
     float dInv = 1. / d;
     float y = x * dInv * (1. / max(dInv, 0.00000001f) + 2.0f);
-    ShaderGlobal::set_color4(world_sdf_to_atlas_decode__gradient_offsetVarId, x, y, 1.f / fullTextureDepth, 1.f / w);
+    ShaderGlobal::set_float4(world_sdf_to_atlas_decode__gradient_offsetVarId, x, y, 1.f / fullTextureDepth, 1.f / w);
   }
 
   WorldSDFImpl()
   {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
     GLOBAL_VARS_LIST
 #undef VAR
 
     eastl::string str;
-    world_sdf_coord_lt_buf = dag::buffers::create_persistent_cb(world_sdf_coord_lt.size(), "world_sdf_coord_lt_buf");
+    world_sdf_coord_lt_buf = dag::buffers::create_persistent_cb(world_sdf_coord_lt.size(), "world_sdf_coord_lt_buf", RESTAG_DASDF);
     static_assert(sizeof(WorldSDFParams) % d3d::buffers::CBUFFER_REGISTER_SIZE == 0);
-    world_sdf_params_buf =
-      dag::buffers::create_persistent_cb(sizeof(WorldSDFParams) / d3d::buffers::CBUFFER_REGISTER_SIZE, "world_sdf_params");
+    world_sdf_params_buf = dag::buffers::create_persistent_cb(sizeof(WorldSDFParams) / d3d::buffers::CBUFFER_REGISTER_SIZE,
+      "world_sdf_params", RESTAG_DASDF);
     for (int i = 0; i < 6; ++i)
     {
       str.sprintf("world_sdf_cull_grid_lt_%d", i);
@@ -293,16 +300,16 @@ struct WorldSDFImpl final : public WorldSDF
     {
       currentInstancesBufferSz = (max<uint32_t>(instances + 1, SDF_MAX_CULLED_INSTANCES + 1) + 3) & ~3;
       culled_sdf_instances.close();
-      / CVSculled_sdf_instances = dag::create_sbuffer(sizeof(uint32_t), currentInstancesBufferSz,
+      culled_sdf_instances = dag::create_sbuffer(sizeof(uint32_t), currentInstancesBufferSz,
         (debugGrid ? SBCF_USAGE_READ_BACK : 0) | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0,
-        "culled_sdf_instances");
+        "culled_sdf_instances", RESTAG_DASDF);
     }
 #endif
     if (instances >= getMinInstancesToUseGrid() && !culled_sdf_instances_grid)
     {
       culled_sdf_instances_grid = dag::create_sbuffer(sizeof(uint32_t), (SDF_CULLED_INSTANCES_GRID_SIZE + 3) & ~3,
         (debugGrid ? SBCF_USAGE_READ_BACK : 0) | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0,
-        "culled_sdf_instances_grid");
+        "culled_sdf_instances_grid", RESTAG_DASDF);
     }
   }
 
@@ -312,62 +319,6 @@ struct WorldSDFImpl final : public WorldSDF
   };
   int getTexelMoveThresholdXZ() const override { return (MOVE_ALIGNMENT_THRESHOLD + 1) * WORLD_SDF_TEXELS_ALIGNMENT_XZ; }
   int getTexelMoveThresholdAlt() const override { return (MOVE_ALIGNMENT_THRESHOLD + 1) * WORLD_SDF_TEXELS_ALIGNMENT_ALT; }
-
-  static bool shouldUpdateMovement(const IPoint3 &old_coord, float old_voxel_size, const IPoint3 &new_coord, float new_voxel_size)
-  {
-    if (old_voxel_size != new_voxel_size)
-      return true;
-    const IPoint3 move = abs(old_coord - new_coord);
-    return !(max(move.x, move.y) <= MOVE_ALIGNMENT_THRESHOLD * WORLD_SDF_TEXELS_ALIGNMENT_XZ &&
-             move.z <= MOVE_ALIGNMENT_THRESHOLD * WORLD_SDF_TEXELS_ALIGNMENT_ALT);
-  }
-
-  bool shouldUpdate(int i, const IPoint3 &center_coord, float voxelSize) const
-  {
-    if (world_sdf_invalidate)
-      return true;
-    if (world_sdf_invalidate_clip.get() == i)
-      return true;
-    auto &mip = clipmap[i];
-    return shouldUpdateMovement(mip.worldCoordLT, mip.voxelSize, center_coord - IPoint3(w / 2, w / 2, d / 2), voxelSize);
-  }
-  bool shouldPrecache(const Point3 &pos, uint32_t i) const
-  {
-    IPoint3 new_center = clip_world_voxels_center_from_world_pos(i, pos);
-    auto &mip = clipmap[i];
-    IPoint3 old_center = clip_world_voxels_center_from_world_pos(i, mip.lastPreCachePos);
-    return shouldUpdateMovement(old_center, mip.lastPreCacheVoxelSize, new_center, clip_voxel_size(i));
-  }
-  int moveBoxes(const IPoint3 &new_lt, const IPoint3 &old_lt, carray<IBBox3, 6> &rets) const
-  {
-    IBBox3 oldWorldBox = {old_lt, old_lt + IPoint3(w, w, d)};
-    IBBox3 newWorldBox = {new_lt, new_lt + IPoint3(w, w, d)};
-    dag::Span<IBBox3> retSpan = dag::Span<IBBox3>(rets.data(), rets.size());
-    IBBox3 in;
-    int cnt = same_size_box_subtraction(newWorldBox, oldWorldBox, in, retSpan);
-#if DAGOR_DBGLEVEL > 0
-    for (auto &ci : dag::Span<IBBox3>(rets.data(), cnt))
-    {
-      IPoint3 v = ci.width();
-      G_ASSERT(v.x > 0 && v.y > 0 && v.z > 0);
-    }
-#endif
-    return cnt;
-  }
-  bool teleported(const Point3 &voxels_abs_move) const
-  {
-    const Point3 absMovePart = div(voxels_abs_move, Point3(w, w, d));
-    float maxMove = max(max(absMovePart.x, absMovePart.y), absMovePart.z), totalMove = absMovePart.x + absMovePart.y + absMovePart.z;
-    // we have teleported in one direction or moved too far in all three (leaving less than 1/8 of volume unchanged)
-    return maxMove >= 1.f || totalMove >= 1.5f;
-  }
-
-  enum class UpdateStatus
-  {
-    NotChanged,
-    Updated,
-    Postponed
-  };
 
   void updateCBuffers()
   {
@@ -384,101 +335,76 @@ struct WorldSDFImpl final : public WorldSDF
     cbuffersDirty = false;
   }
 
-  UpdateStatus updateMip(int clip, const Point3 &originPos, IPoint3 center_coord, float voxelSize, const request_instances_cb &cb,
+  bool updateMip(int clip, Point3 world_pos, const request_instances_cb &cb, const request_prefetch_cb &rcb,
     const render_instances_cb &render_cb)
   {
     DA_PROFILE_GPU_EVENT_DESC(world_sdf_mip_dap[clip]);
-    auto &mip = clipmap[clip];
-    IPoint3 worldCoordLT = center_coord - IPoint3(w / 2, w / 2, d / 2);
-    if (world_sdf_invalidate || world_sdf_invalidate_clip.get() == clip)
-      mip.voxelSize = voxelSize + 1.;
+    VoxelClip old = clipmap[clip];
+    float voxelSize = clip_voxel_size(clip);
 
-    int worldAxis = 3;
-    if (voxelSize == mip.voxelSize)
-    {
-      IPoint3 move = (worldCoordLT - mip.worldCoordLT), absMove = abs(move);
-      if (!teleported(point3(absMove)))
-      {
-        IPoint3 volumeMove(w * d * absMove.x, w * d * absMove.y, w * w * absMove.z);
-        if (volumeMove.x >= volumeMove.y && volumeMove.x >= volumeMove.z) // x axis
-        {
-          worldAxis = 0;
-          worldCoordLT.y = mip.worldCoordLT.y, worldCoordLT.z = mip.worldCoordLT.z;
-        }
-        else if (volumeMove.y >= volumeMove.x && volumeMove.y >= volumeMove.z) // y axis
-        {
-          worldAxis = 2;
-          worldCoordLT.x = mip.worldCoordLT.x, worldCoordLT.z = mip.worldCoordLT.z;
-        }
-        else if (volumeMove.z >= volumeMove.x && volumeMove.z >= volumeMove.y) // z axis
-        {
-          worldAxis = 1;
-          worldCoordLT.y = mip.worldCoordLT.y, worldCoordLT.x = mip.worldCoordLT.x;
-        }
-      }
-    }
-    if (worldCoordLT == mip.worldCoordLT && voxelSize == mip.voxelSize)
-      return UpdateStatus::NotChanged;
+    VoxelClip &mip = clipmap[clip];
+    if (world_sdf_invalidate || world_sdf_invalidate_clip.get() == clip)
+      mip.invalidate();
+
+    auto newUpdateBoxes = mip.updatePos<MOVE_ALIGNMENT_THRESHOLD, WORLD_SDF_TEXELS_ALIGNMENT_XZ, WORLD_SDF_TEXELS_ALIGNMENT_ALT>(
+      world_pos, w, d, voxelSize);
 
 #if DAGOR_DBGLEVEL > 0
     if (!is_pow_of2(w) || !is_pow_of2(d))
     {
       IPoint4 l = world_sdf_res_np2VarId.get_int4();
-      if (min(min(l.z + abs(worldCoordLT.x), l.z + abs(worldCoordLT.y)), l.w + abs(worldCoordLT.y)) < 0 || l.z < -worldCoordLT.x ||
-          l.z < -worldCoordLT.y || l.w < -worldCoordLT.z)
+      if (min(min(l.z + abs(mip.lt.x), l.z + abs(mip.lt.y)), l.w + abs(mip.lt.z)) < 0 || l.z < -mip.lt.x || l.z < -mip.lt.y ||
+          l.w < -mip.lt.z)
       {
         LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d."
                     "See magic_np2.txt",
-          worldCoordLT, w, d);
+          mip.lt, w, d);
       }
     }
 #endif
-    auto old = mip;
 
-    if (old.voxelSize != voxelSize)
-      old.worldCoordLT = worldCoordLT + IPoint3(w, w, d) * 2;
-
-    carray<IBBox3, 6> rets;
-    int cnt = moveBoxes(worldCoordLT, old.worldCoordLT, rets);
-    carray<bbox3f, 6> worldBoxes;
-    // encoded dist is up to MAX_WORLD_SDF_VOXELS_BAND. Since we check distance from CENTER of voxel, decrease by 0.5 voxel
-    vec4f maxVoxelsDist = v_splats(MAX_WORLD_SDF_VOXELS_BAND - 0.5f);
-    for (int bi = 0; bi < cnt; ++bi)
-    {
-      // full sizes, from top-left to bottom-right
-      worldBoxes[bi].bmin = v_mul(v_sub(v_perm_xzyw(v_cvt_vec4f(v_ldui(&rets[bi][0].x))), maxVoxelsDist), v_splats(voxelSize));
-      worldBoxes[bi].bmax = v_mul(v_add(v_perm_xzyw(v_cvt_vec4f(v_ldui(&rets[bi][1].x))), maxVoxelsDist), v_splats(voxelSize));
-    }
-    if (worldAxis < 3)
-      mip.lastPreCachePos[worldAxis] = originPos[worldAxis];
-    else
-      mip.lastPreCachePos = originPos;
     uint32_t max_instances = 0;
 
-    G_UNUSED(cb);
 #if HAS_OBJECT_SDF
-    auto ret = cb(worldBoxes.data(), cnt, UpdateSDFQualityRequest::ASYNC_REQUEST_BEST_ONLY, clip, max_instances);
-    if (ret == UpdateSDFQualityStatus::NOT_READY)
-      return UpdateStatus::Postponed;
-    if (ret != UpdateSDFQualityStatus::ALL_OK)
+    carray<bbox3f, VoxelClip::maxChangedBboxes> worldBoxes;
+    // encoded dist is up to MAX_WORLD_SDF_VOXELS_BAND. Since we check distance from CENTER of voxel, decrease by 0.5 voxel
+    vec4f maxVoxelsDist = v_splats(MAX_WORLD_SDF_VOXELS_BAND - 0.5f);
+    for (int bi = 0; bi < newUpdateBoxes.size(); ++bi)
     {
-      // todo: schedule re-update same box when data is streamed ready!
-      return UpdateStatus::Postponed;
+      // full sizes, from top-left to bottom-right
+      worldBoxes[bi].bmin =
+        v_mul(v_sub(v_perm_xzyw(v_cvt_vec4f(v_ldui(&newUpdateBoxes[bi][0].x))), maxVoxelsDist), v_splats(voxelSize));
+      worldBoxes[bi].bmax =
+        v_mul(v_add(v_perm_xzyw(v_cvt_vec4f(v_ldui(&newUpdateBoxes[bi][1].x))), maxVoxelsDist), v_splats(voxelSize));
     }
+
+    dag::Vector<IBBox3, framemem_allocator> rets;
+    IBBox3 pendingMaxBox = get_intersection(IBBox3(old.lt, old.lt + IPoint3(w, w, d)), IBBox3(mip.lt, mip.lt + IPoint3(w, w, d)));
+    for (const IBBox3 &box : pendingUpdateBoxes[clip])
+      rets.push_back(get_intersection(box, pendingMaxBox));
+    pendingUpdateBoxes[clip].clear();
+
+    auto ret = cb(worldBoxes.data(), newUpdateBoxes.size(), UpdateSDFQualityRequest::ASYNC_REQUEST_BEST_ONLY, clip, max_instances);
+    if (ret == UpdateSDFQualityStatus::NOT_READY)
+    {
+      for (const bbox3f &vbox : worldBoxes)
+        rcb(vbox, clip);
+      pendingUpdateBoxes[clip].insert(pendingUpdateBoxes[clip].end(), newUpdateBoxes.begin(), newUpdateBoxes.end());
+    }
+    else
+    {
+      rets.insert(rets.end(), newUpdateBoxes.begin(), newUpdateBoxes.end());
+    }
+#else
+    G_UNUSED(cb);
+    G_UNUSED(rcb);
+    const auto &rets = newUpdateBoxes;
 #endif
 
+    int cnt = rets.size();
+    if (cnt == 0)
+      return false;
 
-    eastl::string str;
-    mip.worldCoordLT = worldCoordLT;
-    mip.voxelSize = voxelSize;
-    if (old.voxelSize != voxelSize)
-      old.worldCoordLT = worldCoordLT + IPoint3(w, w, d);
-
-    if (!cnt) // same box?
-    {
-      G_ASSERT(0);
-      return UpdateStatus::Updated;
-    }
     // debug("clip %d: %@->%@ count=%d, totalvoxels=%d", clip, oldWorldBox, newWorldBox, cnt, voxels);
     ShaderGlobal::set_int(world_sdf_cull_grid_boxes_countVarId, cnt);
     IBBox3 maxBox = rets[0];
@@ -488,24 +414,23 @@ struct WorldSDFImpl final : public WorldSDF
       maxBox[1] = max(maxBox[1], rets[bi][1]);
       Point3 lt = point3(rets[bi][0]) * voxelSize, // full size, from top-left corner, hence no +0.5
         rb = point3(rets[bi][1]) * voxelSize;      // to bottom-right corner
-      ShaderGlobal::set_color4(world_sdf_cull_grid_ltVarId[bi], lt.x, lt.z, lt.y, voxelSize);
-      ShaderGlobal::set_color4(world_sdf_cull_grid_rbVarId[bi], rb.x, rb.z, rb.y, 1. / voxelSize);
+      ShaderGlobal::set_float4(world_sdf_cull_grid_ltVarId[bi], lt.x, lt.z, lt.y, voxelSize);
+      ShaderGlobal::set_float4(world_sdf_cull_grid_rbVarId[bi], rb.x, rb.z, rb.y, 1. / voxelSize);
     }
 
     {
       // full size from top-left bottom-right
       Point3 lt = point3(maxBox[0]) * voxelSize, rb = point3(maxBox[1]) * voxelSize;
-      ShaderGlobal::set_color4(world_sdf_cull_update_ltVarId, lt.x, lt.z, lt.y, voxelSize);
-      ShaderGlobal::set_color4(world_sdf_cull_update_rbVarId, rb.x, rb.z, rb.y, 1. / voxelSize);
+      ShaderGlobal::set_float4(world_sdf_cull_update_ltVarId, lt.x, lt.z, lt.y, voxelSize);
+      ShaderGlobal::set_float4(world_sdf_cull_update_rbVarId, rb.x, rb.z, rb.y, 1. / voxelSize);
     }
 
     ShaderGlobal::set_int(world_sdf_update_mipVarId, clip);
-    ShaderGlobal::set_int4(world_sdf_update_oldVarId, old.worldCoordLT.x, old.worldCoordLT.y, old.worldCoordLT.z,
-      bitwise_cast<int>(old.voxelSize));
+    ShaderGlobal::set_int4(world_sdf_update_oldVarId, old.lt.x, old.lt.y, old.lt.z, 0);
 
     {
-      const Point3 lt = Point3(worldCoordLT.x, worldCoordLT.z, worldCoordLT.y) * voxelSize;
-      world_sdf_coord_lt[clip] = IPoint4(worldCoordLT.x, worldCoordLT.y, worldCoordLT.z, bitwise_cast<int>(voxelSize));
+      const Point3 lt = Point3(mip.lt.x, mip.lt.z, mip.lt.y) * voxelSize;
+      world_sdf_coord_lt[clip] = IPoint4(mip.lt.x, mip.lt.y, mip.lt.z, bitwise_cast<int>(voxelSize));
       world_sdf_params.world_sdf_lt[clip] = Point4(lt.x, lt.y, lt.z, voxelSize);
       world_sdf_params.world_sdf_to_tc_add[clip] =
         Point4(1. / (w * voxelSize), 1. / (w * voxelSize), 1. / (d * voxelSize), 1. / voxelSize);
@@ -561,7 +486,7 @@ struct WorldSDFImpl final : public WorldSDF
         // debug("grid update: box %@ grid start %@, meters = %@ res %@", maxBox, gridLTInVoxels, gridSzMeters, gridRes);
         ShaderGlobal::set_int4(sdf_grid_culled_instances_grid_ltVarId,
           IPoint4(gridLTInVoxels.x, gridLTInVoxels.y, gridLTInVoxels.z, 0));
-        ShaderGlobal::set_color4(sdf_grid_cell_sizeVarId, gridSzMeters.x, gridSzMeters.z, gridSzMeters.y, voxelSize);
+        ShaderGlobal::set_float4(sdf_grid_cell_sizeVarId, gridSzMeters.x, gridSzMeters.z, gridSzMeters.y, voxelSize);
         // debug("grid %@ voxel %f", lt, voxelSize*div);
         // d3d::resource_barrier({culled_sdf_instances_grid.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
         d3d::set_rwbuffer(STAGE_CS, 1, culled_sdf_instances_grid.getBuf());
@@ -738,14 +663,18 @@ struct WorldSDFImpl final : public WorldSDF
       d3d::resource_barrier({world_sdf_clipmap.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
     }
 
-    return UpdateStatus::Updated;
+    return true;
   }
   int rasterizationVoxelAround() const override
   {
     // todo: without tyoed load return 0
     return WORLD_SDF_RASTERIZE_VOXELS_DIST;
   }
-  float clip_voxel_size(int i) const { return WorldSDF::get_voxel_size(clip0VoxelSize, i); }
+  float clip_voxel_size(int i) const
+  {
+    G_FAST_ASSERT(i < clipmap.size()); // to assure nobody call it before SDF is fully initialized
+    return WorldSDF::get_voxel_size(clip0VoxelSize, i);
+  }
   IPoint3 clip_world_voxels_center_from_world_pos(int i, const Point3 &pos) const
   {
     const float voxelSize = clip_voxel_size(i);
@@ -754,104 +683,6 @@ struct WorldSDFImpl final : public WorldSDF
     IPoint3 r = ipoint3(floor(div(pos, floorTo) + Point3(0.5, 0.5, 0.5)));
     return IPoint3(r.x * WORLD_SDF_TEXELS_ALIGNMENT_XZ, r.z * WORLD_SDF_TEXELS_ALIGNMENT_XZ,
       r.y * WORLD_SDF_TEXELS_ALIGNMENT_ALT); // flip yz, as this is our coordinates
-  }
-
-  bool shouldUpdate(const Point3 &pos, uint32_t i) const override
-  {
-    return shouldUpdate(i, clip_world_voxels_center_from_world_pos(i, pos), clip_voxel_size(i));
-  }
-  bool shouldUpdate(const Point3 &pos) const
-  {
-    for (int i = clipmap.size() - 1; i >= 0; --i)
-      if (shouldUpdate(pos, i))
-        return true;
-    return false;
-  }
-  void prefetch(int clip, const Point3 &pos, const request_prefetch_cb &rcb)
-  {
-    auto &mip = clipmap[clip];
-    Point3 lastMove = pos - mip.lastPreCachePos;
-    // const float moveDistSq = lengthSq(lastMove);
-    const float voxelSize = clip_voxel_size(clip);
-    /*if (moveDistSq < voxelSize*voxelSize) // we haven't moved much
-    {
-      if (i == e - 1)
-        debug("moved %f", sqrtf(moveDistSq));
-      continue;
-    }*/
-    const Point3 moveVoxels = lastMove / voxelSize;
-    int axis = 3;
-    BBox3 prefetchBox;
-    if (!teleported(moveVoxels) && mip.lastPreCacheVoxelSize == voxelSize)
-    {
-      const float blockSizeXZ = getTexelMoveThresholdXZ();
-      const float blockSizeALT = getTexelMoveThresholdAlt();
-      Point3 blockSize = Point3(blockSizeXZ, blockSizeALT, blockSizeXZ);
-      const Point3 move = div(moveVoxels, blockSize);
-      const Point3 absMove = abs(move);
-      const float maxMove = max(max(absMove.x, absMove.y), absMove.z);
-      axis = absMove.x == maxMove ? 0 : absMove.z == maxMove ? 2 : 1;
-      const bool shouldUpdateClip = shouldPrecache(pos, clip);
-      if (maxMove < 0.25f && !shouldUpdateClip)
-      {
-        // debug("prefetch(%d) no move %@ %@-%@ box %@->%@",
-        //   clip, mip.lastPreCachePos, pos, move, cBox, getClipBoxAt(pos, clip));
-        return;
-      }
-      if (shouldUpdateClip) // nextBox != prefetchBox
-      {
-        prefetchBox = getClipBoxAt(mip.lastPreCachePos, clip);
-        BBox3 nextBox = getClipBoxAt(pos, clip);
-        // still choose one axis
-        const Point3 boxMove = nextBox.center() - prefetchBox.center();
-        const Point3 absBoxMove = abs(boxMove);
-        const float maxBoxMove = max(max(absBoxMove.x, absBoxMove.y), absBoxMove.z);
-        axis = absBoxMove.x == maxBoxMove ? 0 : absBoxMove.z == maxBoxMove ? 2 : 1;
-        bool negSign = absBoxMove[axis] < 0;
-        int moveLim = negSign ? 0 : 1;
-        // debug("%d: moved beyond extrapolating old Box %@ nextBox %@ boxMove = %@[%d], orginal %@[%d]",
-        //   clip, prefetchBox, nextBox, boxMove, axis, move, originalAxis);
-        prefetchBox[1 - moveLim][axis] = prefetchBox[moveLim][axis];
-        prefetchBox[moveLim][axis] = nextBox[moveLim][axis];
-      }
-      else
-      {
-        prefetchBox = getClipBox(clip);
-        bool negSign = move[axis] < 0;
-        int moveLim = negSign ? 0 : 1;
-        // extrapolating one
-        // debug("%d: extrapolating %@ maxMove = %f %@[%d]",
-        //  clip, prefetchBox, maxMove, move, originalAxis);
-        prefetchBox[1 - moveLim][axis] = prefetchBox[moveLim][axis];
-        const float expanse = 1.f * voxelSize;
-        prefetchBox[moveLim][axis] += expanse * (negSign ? -blockSize[axis] : blockSize[axis]);
-      }
-    }
-    else
-    {
-      prefetchBox = getClipBoxAt(pos, clip);
-    }
-    // encoded dist is up to MAX_WORLD_SDF_VOXELS_BAND. Since we check distance from CENTER of voxel, decrease by 0.5 voxel
-    Point3 maxVoxelsDist = (MAX_WORLD_SDF_VOXELS_BAND - 0.5f) * Point3(voxelSize, voxelSize, voxelSize);
-    prefetchBox[0] -= maxVoxelsDist;
-    prefetchBox[1] += maxVoxelsDist;
-    bbox3f vbox;
-    vbox.bmin = v_ldu(&prefetchBox[0].x);
-    vbox.bmax = v_ldu(&prefetchBox[1].x);
-    if (!rcb(vbox, clip))
-      return;
-    // debug("%d: axis %d; %@->%@", clip, axis, mip.lastPreCachePos, pos);
-    if (axis < 3)
-      mip.lastPreCachePos[axis] = pos[axis];
-    else
-      mip.lastPreCachePos = pos;
-    mip.lastPreCacheVoxelSize = voxelSize;
-  }
-  void prefetchAll(const Point3 &pos, const request_prefetch_cb &rcb, uint32_t updated_mask)
-  {
-    for (int i = clipmap.size() - 1; i >= 0; --i)
-      if (!(updated_mask & (1 << i)))
-        prefetch(i, pos, rcb);
   }
 
   void ensureTemporalBufferSize()
@@ -868,63 +699,69 @@ struct WorldSDFImpl final : public WorldSDF
 
     world_sdf_clipmap_rasterize_owned.close();
     world_sdf_clipmap_rasterize_owned = dag::create_sbuffer(sizeof(uint32_t), sizeNeeded,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "world_sdf_clipmap_rasterize");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "world_sdf_clipmap_rasterize", RESTAG_DASDF);
     world_sdf_clipmap_rasterize = world_sdf_clipmap_rasterize_owned.getBuf();
     logwarn("WorldSDF: Created a new temporal buffer (size: %d)", sizeNeeded);
   }
 
-  uint32_t updateNoPrefetch(const Point3 &pos, const request_instances_cb &cb, const render_instances_cb &render_cb,
-    uint32_t allow_update_mask)
+  void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb, const render_instances_cb &render_cb,
+    uint32_t allow_update_mask) override
   {
-    uint32_t updated = 0;
-    if (!world_sdf_update_cs)
-      return 0;
-    if (!shouldUpdate(pos))
-      return 0;
+    if (clipmap.empty() || !world_sdf_update_cs)
+      return;
 
     ensureTemporalBufferSize();
 
     DA_PROFILE_GPU;
     const bool allMips = world_sdf_invalidate || !world_sdf_update_one_mip;
 
+    bool updatedAny = false;
     for (int i = clipmap.size() - 1; i >= 0; --i)
     {
       if (!(allow_update_mask & (1 << i)))
         continue;
-      IPoint3 coord = clip_world_voxels_center_from_world_pos(i, pos);
-      auto ret = updateMip(i, pos, coord, clip_voxel_size(i), cb, render_cb);
-      if (ret != UpdateStatus::NotChanged)
-        updated |= (1 << i);
-      if (ret != UpdateStatus::NotChanged && !allMips)
+      updatedAny |= updateMip(i, pos, cb, rcb, render_cb);
+      if (updatedAny && !allMips)
         break;
     }
-    if (updated)
+    if (updatedAny || cbuffersDirty)
       updateCBuffers();
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
     d3d::resource_barrier({world_sdf_clipmap.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-    return updated;
   }
 
-  void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb, const render_instances_cb &render_cb,
-    uint32_t allow_update_mask) override
+  void invalidateBox(const BBox3 &box) override
   {
-    if (clipmap.empty())
-      return;
-    uint32_t mask = updateNoPrefetch(pos, cb, render_cb, allow_update_mask);
-    if (cbuffersDirty)
-      updateCBuffers();
-    prefetchAll(pos, rcb, mask);
-    updatedMask |= mask;
+    for (int clipNo = 0; clipNo < clipmap.size(); clipNo++)
+      clipmap[clipNo].invalidateBox<WORLD_SDF_TEXELS_ALIGNMENT_XZ, WORLD_SDF_TEXELS_ALIGNMENT_ALT>(box, w, d,
+        get_voxel_size(clip0VoxelSize, clipNo));
   }
-  uint32_t getClipsReady() const override { return updatedMask; }
+  bool isValid() const override
+  {
+    for (auto &clip : clipmap)
+    {
+      if (!clip.isValid())
+        return false;
+    }
+    return true;
+  }
+
   void debugRender() override
   {
+    if (!world_sdf_debug_render)
+      return;
+
     TIME_D3D_PROFILE(world_sdf_render);
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
     set_globtm_to_shader(globtm);
     if (!sdf_world_debug.getElem())
       sdf_world_debug.init("sdf_world_debug");
+
+    const int clipId = world_sdf_debug_render <= -1 ? -1 : min(world_sdf_debug_render - 1, (int)clipmap.size() - 1);
+    ShaderGlobal::set_int(world_sdf_debug_clipVarId, clipId);
+    ShaderGlobal::set_int(world_sdf_debug_modeVarId, world_sdf_debug_render_mode);
+
     sdf_world_debug.render();
   }
   int getClipsCount() const override { return clipmap.size(); }
@@ -946,9 +783,10 @@ struct WorldSDFImpl final : public WorldSDF
   BBox3 getClipBox(uint32_t clip) const override
   {
     clip = min<uint32_t>(clip, clipmap.size() - 1);
-    Point3 lt = point3(clipmap[clip].worldCoordLT) * clipmap[clip].voxelSize;
+    const float voxelSize = clip_voxel_size(clip);
+    Point3 lt = point3(clipmap[clip].lt) * voxelSize;
     eastl::swap(lt.y, lt.z);
-    return BBox3(lt, lt + Point3(w, d, w) * clipmap[clip].voxelSize);
+    return BBox3(lt, lt + Point3(w, d, w) * voxelSize);
   }
   float getVoxelSize(uint32_t clip) const override { return clip_voxel_size(clip); }
   uint16_t markedFrame = 0, removeFrame = 0;
@@ -979,6 +817,10 @@ struct WorldSDFImpl final : public WorldSDF
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
   }
   void setTemporalSpeed(float speed) { temporalSpeed = clamp<float>(speed, 0.f, 1.f); }
-  void fullReset(bool invalidate_current) { initHistory(clipmap.size(), invalidate_current); }
+  void fullReset(bool invalidate_current)
+  {
+    initHistory(clipmap.size(), invalidate_current);
+    d3d::clear_rwtexf(world_sdf_clipmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
+  }
 };
 WorldSDF *new_world_sdf() { return new WorldSDFImpl; }

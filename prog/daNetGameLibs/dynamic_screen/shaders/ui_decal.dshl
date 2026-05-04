@@ -1,0 +1,105 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "projectiveDecals/projective_decals_common.dshl"
+
+texture dynamic_screen_tex;
+
+float4 ui_decal_axis_wtm_x;
+float4 ui_decal_axis_wtm_y;
+float4 ui_decal_axis_wtm_z;
+float4 ui_decal_axis_wtm_center;
+
+shader ui_decal
+{
+  supports global_frame;
+
+  z_write = false;
+  z_test = true;
+  blend_src = sa;
+  blend_dst = isa;
+  blend_asrc = 0;
+  blend_adst = 1;
+  cull_mode = none;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  INIT_ZNZFAR_STAGE(vs)
+  INIT_ZNZFAR_STAGE(ps)
+  (vs) {
+    globtm@f44 = globtm;
+    wtm_center@f3 = ui_decal_axis_wtm_center.xyz;
+    wtm_x@f3 = ui_decal_axis_wtm_x.xyz;
+    wtm_y@f3 = ui_decal_axis_wtm_y.xyz;
+    wtm_z@f3 = ui_decal_axis_wtm_z.xyz;
+  }
+
+  hlsl(vs) {
+    VsOutput ui_decal_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+
+      float3 localPos = float3(vertexId / 4, vertexId / 2 % 2 == 1, (vertexId % 2) != 0);
+      localPos = localPos - float3(0.5, 0.5, 0.5);
+
+      float3 vertexWPos = localPos.x * wtm_x.xyz
+                        + localPos.y * wtm_y.xyz
+                        + localPos.z * wtm_z.xyz
+                        + wtm_center;
+
+      output.pos = mulPointTm(vertexWPos, globtm);
+
+      return output;
+    }
+  }
+
+  USE_DECODE_DEPTH()
+  PROJECTIVE_DECALS_WITHOUT_ZN_ZFAR_PS()
+  INIT_READ_IS_HERO_COCKPIT(ps)
+  USE_READ_IS_HERO_COCKPIT(ps)
+
+  (ps) {
+    dynamic_screen_tex@tex2d = dynamic_screen_tex;
+    dynamic_screen_tex_samplerstate@sampler = global_linear_mirror_sampler;
+    wtm_x@f3 = ui_decal_axis_wtm_x;
+    wtm_y@f3 = ui_decal_axis_wtm_y;
+    wtm_z@f3 = ui_decal_axis_wtm_z;
+    wtm_center@f3 = ui_decal_axis_wtm_center.xyz;
+  }
+
+  hlsl(ps) {
+    float4 ui_decal_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+      float2 tc = screen.xy * screen_pos_to_texcoord.zw;
+      if (isGbufferHeroCockpit(tc))
+        discard;
+
+      float3 e2p = get_decal_eye_to_point(screen);
+      float3 worldPos = world_view_pos + e2p;
+
+      float3 decalOffset = wtm_center - worldPos;
+
+      float3 localCoord;
+      localCoord.x = dot(decalOffset, wtm_x) / dot(wtm_x, wtm_x);
+      localCoord.y = dot(decalOffset, wtm_y) / dot(wtm_y, wtm_y);
+      localCoord.z = dot(decalOffset, wtm_z) / dot(wtm_z, wtm_z);
+
+      if (any(abs(localCoord) > 0.5))
+        discard;
+
+      float2 uv = localCoord.zy + 0.5;
+      uv.x = 1 - uv.x;
+      float4 screenSample = tex2D(dynamic_screen_tex, uv);
+
+      return float4(screenSample.rgb, screenSample.a);
+    }
+  }
+
+  compile("target_vs", "ui_decal_vs");
+  compile("target_ps", "ui_decal_ps");
+}

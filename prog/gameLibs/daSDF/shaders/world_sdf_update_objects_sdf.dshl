@@ -31,17 +31,20 @@ shader world_sdf_update_cs
       ByteAddressBuffer culled_sdf_instances@buf;
     }
   }
-  ENABLE_ASSERT(cs)
   READ_OBJECT_SDF(cs)
   READ_WORLD_SDF_MATH(cs)
   WSDF_COORD_UPDATE(cs)
   PROJECT_WORLD_SDF(cs)
 
-  (cs) {world_view_pos@f3 = world_view_pos;}
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+  }
 
   hlsl(cs) {
     #include <world_sdf_dist.hlsl>
-    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
     //RWByteAddressBuffer culled_sdf_instances: register(u1);
 
     #define WARP_TOTAL_SIZE (SDF_UPDATE_WARP_X*SDF_UPDATE_WARP_Y*SDF_UPDATE_WARP_Z)
@@ -214,10 +217,13 @@ shader world_sdf_update_cs
 
 shader world_sdf_cull_instances_clear_cs
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    culled_sdf_instances@uav : register(1) hlsl {
+      RWByteAddressBuffer culled_sdf_instances@uav;
+    }
+  }
   hlsl(cs) {
     //RWTexture3D<float> world_sdf_clipmap: register(u0);
-    RWByteAddressBuffer culled_sdf_instances: register(u1);
 
     [numthreads(1, 1, 1)]
     void world_sdf_cull_instances_cs( uint dtId : SV_DispatchThreadID)
@@ -260,7 +266,7 @@ macro INTERSECT_INSTANCE(code)
       mx += tm[3].xyz;
       //return all(mx > -ext && mn < ext);
       float sqDistBetweenBoxes = sqDistanceBoxBoxScaled(float3(0,0,0), ext, (mn+mx)*0.5, (mx-mn)*0.5, localScale);
-      return sqDistBetweenBoxes < maxEncodedDistance;
+      return sqDistBetweenBoxes < pow2(maxEncodedDistance);
     }
     bool intersectInstance(uint instance_id, float4 sphR, float3 lt, float3 rb, float maxEncodedDistance)
     {
@@ -338,17 +344,19 @@ endmacro
 
 shader world_sdf_cull_instances_cs
 {
-  ENABLE_ASSERT(cs)
   READ_OBJECT_SDF(cs)
   WORLD_SDF_UPDATED_BOX(cs)
   READ_WORLD_SDF_MATH(cs)
-  (cs) {    world_sdf_update_mip@i1 = world_sdf_update_mip;  }
-
+  (cs) {
+    world_sdf_update_mip@i1 = world_sdf_update_mip;
+    culled_sdf_instances@uav : register(1) hlsl {
+      RWByteAddressBuffer culled_sdf_instances@uav;
+    }
+  }
 
   hlsl(cs) {
     #include <waveUtils.hlsl>
     //RWTexture3D<float> world_sdf_clipmap: register(u0);
-    RWByteAddressBuffer culled_sdf_instances: register(u1);
 
     [numthreads(64, 1, 1)]
     void world_sdf_cull_instances_cs( uint dtId : SV_DispatchThreadID)
@@ -401,7 +409,6 @@ shader world_sdf_cull_instances_cs
 float4 sdf_grid_cell_size;
 shader world_sdf_cull_instances_grid_cs
 {
-  ENABLE_ASSERT(cs)
   READ_OBJECT_SDF(cs)
   (cs) {
     sdf_grid_culled_instances_res@i3 = sdf_grid_culled_instances_res;
@@ -409,6 +416,9 @@ shader world_sdf_cull_instances_grid_cs
     sdf_grid_culled_instances_grid_lt@i3 = sdf_grid_culled_instances_grid_lt;
     culled_sdf_instances@buf = culled_sdf_instances hlsl {
       ByteAddressBuffer culled_sdf_instances@buf;
+    }
+    culled_sdf_instances_grid@uav : register(1) hlsl {
+      RWByteAddressBuffer culled_sdf_instances_grid@uav;
     }
   }
   READ_WORLD_SDF(cs)
@@ -418,7 +428,6 @@ shader world_sdf_cull_instances_grid_cs
   hlsl(cs) {
     //RWTexture3D<float> world_sdf_clipmap: register(u0);
     #include <waveUtils.hlsl>
-    RWByteAddressBuffer culled_sdf_instances_grid: register(u1);
 
     groupshared uint gridCellInstancesCnt;
     groupshared uint gridCellInstancesCnt2;
@@ -474,7 +483,7 @@ shader world_sdf_cull_instances_grid_cs
           if (cnt)// saves one store, if it is empty anyway
             culled_sdf_instances_grid.InterlockedAdd(0, cnt, ofs);
           storeBuffer2(culled_sdf_instances_grid, gridLinearIndex*8 + 4, uint2(volume + 4 + ofs*4, cnt));
-          if (cnt*4 + ofs > SDF_CULLED_INSTANCES_GRID_SIZE*4)
+          if (ofs + cnt > SDF_CULLED_INSTANCES_GRID_SIZE)
             gridCellInstancesCnt = 0;//do not write to memory, as it won't be used anyway
         }
         gridCellInstancesOfs = ofs;

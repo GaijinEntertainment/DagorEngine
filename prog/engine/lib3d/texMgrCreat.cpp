@@ -341,12 +341,16 @@ static void texmgr_before_device_reset(bool full_reset)
           if (t->getTID() == BAD_TEXTUREID) // skip non-texPackMgr2 textures
             continue;
         // debug("%s: ldLev=%d -> 1", RMGR.getName(idx), RMGR.resQS[idx].getLdLev());
+        if (RMGR.incRefCount(idx) == 1)
+          RMGR.decReadyForDiscardTex(idx);
         RMGR.resQS[idx].setMaxReqLev(
-          (RMGR.getRefCount(idx) > 0) ? min(RMGR.resQS[idx].getLdLev(), RMGR.getLevDesc(idx, TQL_base)) : 1);
+          (RMGR.getRefCount(idx) > 1) ? min(RMGR.resQS[idx].getLdLev(), RMGR.getLevDesc(idx, TQL_base)) : 1);
         RMGR.resQS[idx].setLdLev(1);
         RMGR.resQS[idx].setCurQL(TQL_stub);
         RMGR.changeTexUsedMem(idx, 0, 0);
         cnt++;
+        if (RMGR.decRefCount(idx) == 0)
+          RMGR.incReadyForDiscardTex(idx);
       }
     }
   debug("texmgr: reset ldState for %d managed textures", cnt);

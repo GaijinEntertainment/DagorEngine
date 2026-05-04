@@ -228,7 +228,7 @@ int utf8_to_utf16(const char *src, int src_len, uint16_t *dst, int dst_len)
   G_ASSERT(dst_len > 0);
   UTF16 *pd = (UTF16 *)dst;
   const UTF8 *ps = (const UTF8 *)src;
-  ConversionResult r = cvt_UTF8toUTF16(&ps, ps + src_len, &pd, pd + dst_len, strictConversion);
+  ConversionResult r = cvt_UTF8toUTF16(&ps, ps + src_len, &pd, pd + dst_len - 1, strictConversion);
   if (r == conversionOK || r == targetExhausted)
   {
     *pd = L'\0';

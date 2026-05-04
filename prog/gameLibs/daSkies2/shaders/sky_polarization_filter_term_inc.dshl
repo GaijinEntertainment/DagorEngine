@@ -1,0 +1,34 @@
+include "macro_once_inc.dshl"
+
+int use_sky_polarization_filter = 0;
+interval use_sky_polarization_filter: no <1, yes;
+assume_if_not_assumed use_sky_polarization_filter = no;
+
+float sky_polarization_filter_term = 1.0;
+
+macro SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
+  bool skip_sky_polarization_filter_term_init = true;
+endmacro
+
+macro INIT_SKY_POLARIZATION_FILTER_TERM(stage)
+  if (use_sky_polarization_filter == yes) {
+    if (!maybe(skip_sky_polarization_filter_term_init)) {
+      (stage) {
+        sky_polarization_filter_term@f1 = sky_polarization_filter_term;
+      }
+    }
+  }
+endmacro
+
+macro USE_SKY_POLARIZATION_FILTER_TERM(stage)
+  hlsl(stage) {
+#ifndef USE_SKY_POLARIZATION_FILTER_GUARD
+#define USE_SKY_POLARIZATION_FILTER_GUARD
+  ##if use_sky_polarization_filter == yes
+    float apply_sky_polarization_filter() { return sky_polarization_filter_term; }
+  ##else
+    float apply_sky_polarization_filter() { return 1.0; }
+  ##endif
+#endif
+  }
+endmacro

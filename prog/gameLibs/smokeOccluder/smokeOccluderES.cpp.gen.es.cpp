@@ -17,9 +17,9 @@ static ecs::CompileTimeQueryDesc smoke_occluders_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult smoke_occluders_ecs_query(Callable function)
+inline ecs::QueryCbResult smoke_occluders_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, smoke_occluders_ecs_query_desc.getHandle(),
+  return perform_query(&manager, smoke_occluders_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

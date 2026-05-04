@@ -14,19 +14,28 @@ AddIncludes =
   $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
 ;
 
+local AllSrcFolder_ES = ;
+
 local AllSrcFolder_DAS =
   main
 ;
 local AllSrcFolder_CPP = ;
 
 if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+
   AllSrcFolder_DAS +=
     render
   ;
   AllSrcFolder_CPP +=
     render
   ;
-  gamePulls += debug_indoor_probe_boxes_console_handler_pull ;
+  gamePulls +=
+    debug_indoor_probe_boxes_console_handler_pull
+    gpu_driven_debug_renderer_pull
+  ;
 }
 
 include $(Root)/prog/daNetGameLibs/build_module.jam ;

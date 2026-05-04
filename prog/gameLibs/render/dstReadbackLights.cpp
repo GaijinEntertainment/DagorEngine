@@ -97,7 +97,7 @@ void DistanceReadbackLights::dispatchQuery(eastl::fixed_function<sizeof(void *) 
     float q = v_extract_z(proj.col2);
     float mzkQ = v_extract_z(proj.col3); // -znQ or -zfQ
 
-    ShaderGlobal::set_color4(proj_valuesVarId, Color4(1.0 / wk, 1.0 / hk, 1.0 / mzkQ, -q / mzkQ));
+    ShaderGlobal::set_float4(proj_valuesVarId, Color4(1.0 / wk, 1.0 / hk, 1.0 / mzkQ, -q / mzkQ));
 
     d3d::zero_rwbufi(resultBuffer);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), resultBuffer);
@@ -145,5 +145,11 @@ void DistanceReadbackLights::completeQuery()
     spotLights->setLightCullingRadius(lastNonOptId, shouldBeOptimized ? minDist : -1.0f);
     spotLights->setLightOptimized(lastNonOptId);
   }
+  processing = false;
+}
+
+void DistanceReadbackLights::afterResetDevice()
+{
+  resultRingBuffer.reset();
   processing = false;
 }

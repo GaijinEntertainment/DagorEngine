@@ -28,6 +28,7 @@ struct FileBackendConfig
   FileBackendConfig() = default;
   FileBackendConfig(const DataBlock &blk);
 
+  WinCritSec *csMgr = nullptr;
   const char *mountPath = ".";
   const char *roMountPath = nullptr;
   int64_t maxSize = 0;

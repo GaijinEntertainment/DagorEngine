@@ -8,22 +8,191 @@
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <dag/dag_vectorSet.h>
+#include <generic/dag_reverseView.h>
 
 
 namespace dafg
 {
+
+extern ConVarT<bool, false> verbose;
 
 // TODO: in the future, we should replace activation/deactivation actions
 // with aliasing barriers, as they match what is happening in HW more
 // closely. This will force us to remove resource (de)activation events
 // and calculate resource lifetimes separately from barrier scheduling,
 // which is good and supposed to be separate.
-BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const intermediate::Graph &graph,
-  const PassColoring &pass_coloring)
+auto BarrierScheduler::scheduleEvents(EventsCollection &node_events, const intermediate::Graph &graph,
+  const PassColoring &pass_coloring, const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
+  const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed) -> ResourceLifetimesChanged
 {
   TIME_PROFILE(scheduleEvents);
 
+  ResourceLifetimesChanged result;
+  result.resize(graph.resources.totalKeys(), false);
+
   FRAMEMEM_VALIDATE;
+
+  const auto gracePoints = computeGracePoints(graph, pass_coloring);
+  auto dirtyResources = computeDirtyResources(graph, nodes_changed, resources_changed, gracePoints);
+
+  const bool hasDirtyResources = dirtyResources.trueKeys().begin() != dirtyResources.trueKeys().end() || cachedResourceEvents.empty();
+
+  // Compute the working size: max of new graph size and existing node_events size
+  // (old events may reference node indices beyond the new graph's range)
+  uint32_t nodeEventsWorkingSize = graph.nodes.totalKeys() + 1;
+  for (int f = 0; f < SCHEDULE_FRAME_WINDOW; ++f)
+    nodeEventsWorkingSize = eastl::max<uint32_t>(nodeEventsWorkingSize, node_events[f].size());
+
+  // Grow to working size (don't shrink yet -- need to clean up stale entries first)
+  for (int f = 0; f < SCHEDULE_FRAME_WINDOW; ++f)
+    node_events[f].resize(nodeEventsWorkingSize);
+
+  if (hasDirtyResources)
+  {
+    // Compute dirty nodes from OLD cached events (before cache is cleared)
+    eastl::array<IdIndexedFlags<intermediate::NodeIndex, framemem_allocator>, SCHEDULE_FRAME_WINDOW> dirtyNodeFlags;
+    for (auto &flags : dirtyNodeFlags)
+      flags.resize(nodeEventsWorkingSize, false);
+
+    for (auto resIdx : dirtyResources.trueKeys())
+      if (cachedResourceEvents.isMapped(resIdx))
+        for (const auto &pe : cachedResourceEvents[resIdx])
+          dirtyNodeFlags[pe.eventFrame][static_cast<intermediate::NodeIndex>(pe.nodeTimepoint)] = true;
+
+    for (auto resIdx : cachedResourceEvents.keys())
+      if (!graph.resources.isMapped(resIdx))
+        cachedResourceEvents[resIdx].clear();
+
+    cachedResourceEvents.resize(graph.resources.totalKeys());
+
+    updateDirtyResourceEvents(graph, dirtyResources, gracePoints);
+
+
+    // Mark nodes targeted by NEW events from dirty resources
+    for (auto resIdx : dirtyResources.trueKeys())
+      if (cachedResourceEvents.isMapped(resIdx))
+        for (const auto &pe : cachedResourceEvents[resIdx])
+          dirtyNodeFlags[pe.eventFrame][static_cast<intermediate::NodeIndex>(pe.nodeTimepoint)] = true;
+
+    {
+      TIME_PROFILE(scatterEvents);
+
+      // Remove stale events from dirty nodes (erase-remove by resource)
+      for (int f = 0; f < SCHEDULE_FRAME_WINDOW; ++f)
+        for (auto nodeIdx : dirtyNodeFlags[f].trueKeys())
+        {
+          auto &evts = node_events[f][nodeIdx];
+          evts.erase(
+            eastl::remove_if(evts.begin(), evts.end(), [&](const Event &e) { return dirtyResources.test(e.resource, false); }),
+            evts.end());
+        }
+
+      // Scatter new events from dirty resources
+      for (auto resIdx : dirtyResources.trueKeys())
+        if (cachedResourceEvents.isMapped(resIdx))
+          for (const auto &pe : cachedResourceEvents[resIdx])
+            node_events[pe.eventFrame][static_cast<intermediate::NodeIndex>(pe.nodeTimepoint)].push_back(pe.event);
+
+      // Re-sort only dirty nodes
+      for (int f = 0; f < SCHEDULE_FRAME_WINDOW; ++f)
+        for (auto nodeIdx : dirtyNodeFlags[f].trueKeys())
+        {
+          auto &evts = node_events[f][nodeIdx];
+          eastl::sort(evts.begin(), evts.end(), [](const Event &a, const Event &b) { return a.data.index() > b.data.index(); });
+        }
+    }
+
+    {
+      TIME_PROFILE(recordDebugBarriers);
+      // Debug barrier recording: re-record from all cached events when anything is dirty
+      debug_clear_resource_barriers();
+      for (auto [resIdx, placedEvents] : cachedResourceEvents.enumerate())
+        for (const auto &pe : placedEvents)
+          if (auto *barrier = eastl::get_if<Event::Barrier>(&pe.event.data))
+            if (graph.resources.isMapped(pe.event.resource))
+            {
+              auto resId = graph.resources[pe.event.resource].frontendResources.front();
+              debug_rec_resource_barrier(resId, pe.event.frameResourceProducedOn, pe.nodeTimepoint, pe.eventFrame, barrier->barrier);
+            }
+    }
+  }
+
+
+  {
+    TIME_PROFILE(finalizeNodeEvents);
+    // Shrink node_events to the actual graph size
+    for (int f = 0; f < SCHEDULE_FRAME_WINDOW; ++f)
+      node_events[f].resize(graph.nodes.totalKeys() + 1);
+  }
+
+  result = dirtyResources;
+
+  return result;
+}
+
+BarrierScheduler::GracePoints BarrierScheduler::computeGracePoints(const intermediate::Graph &graph,
+  const PassColoring &pass_coloring) const
+{
+  TIME_PROFILE(computeGracePoints);
+
+  GracePoints gracePoints;
+  gracePoints.insert(0);
+  auto prevColor = MINUS_ONE_SENTINEL_FOR<PassColor>;
+  for (auto key : graph.nodes.keys())
+  {
+    if (pass_coloring[key] != prevColor)
+      gracePoints.insert(eastl::to_underlying(key));
+    prevColor = pass_coloring[key];
+  }
+  gracePoints.insert(graph.nodes.totalKeys());
+  return gracePoints;
+}
+
+BarrierScheduler::DirtyResources BarrierScheduler::computeDirtyResources(const intermediate::Graph &graph,
+  const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
+  const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed, const GracePoints &gracePoints)
+{
+  TIME_PROFILE(computeDirtyResources);
+
+  DirtyResources dirtyResources(resources_changed);
+  dirtyResources.resize(graph.resources.totalKeys(), false);
+
+  for (auto nodeIdx : nodes_changed.trueKeys())
+    if (graph.nodes.isMapped(nodeIdx))
+      for (const auto &req : graph.nodes[nodeIdx].resourceRequests)
+        dirtyResources[req.resource] = true;
+
+  // Check grace points for changes -- if changed, all mapped resources are dirty
+  {
+    bool gracePointsChanged = gracePoints.size() != prevGracePoints.size();
+    if (!gracePointsChanged)
+      for (size_t i = 0; i < gracePoints.size(); ++i)
+        if (gracePoints.begin()[i] != prevGracePoints[i])
+        {
+          gracePointsChanged = true;
+          break;
+        }
+    if (gracePointsChanged)
+    {
+      for (auto resIdx : graph.resources.keys())
+        dirtyResources[resIdx] = true;
+      prevGracePoints.assign(gracePoints.begin(), gracePoints.end());
+    }
+  }
+
+  // Treat unmapped resources with cached events as dirty (stale cleanup)
+  dirtyResources.resize(eastl::max<size_t>(graph.resources.totalKeys(), cachedResourceEvents.size()), false);
+  for (auto resIdx : cachedResourceEvents.keys())
+    if (!graph.resources.isMapped(resIdx) && !cachedResourceEvents[resIdx].empty())
+      dirtyResources[resIdx] = true;
+
+  return dirtyResources;
+}
+
+void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &graph, const DirtyResources &dirtyResources,
+  const GracePoints &gracePoints)
+{
+  TIME_PROFILE(updateDirtyResourceEvents);
 
   struct ResourceUsageOccurrence
   {
@@ -32,12 +201,12 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
     uint32_t nodeIndex;
   };
 
-  IdIndexedMapping<intermediate::ResourceIndex, uint32_t, framemem_allocator> perResourceUsageCount(graph.resources.size(), 0);
-  for (const auto &node : graph.nodes)
+  IdIndexedMapping<intermediate::ResourceIndex, uint32_t, framemem_allocator> perResourceUsageCount(graph.resources.totalKeys(), 0);
+  for (const auto &node : graph.nodes.values())
     for (const auto &req : node.resourceRequests)
-      perResourceUsageCount[req.resource]++;
+      if (dirtyResources.test(req.resource, false))
+        perResourceUsageCount[req.resource]++;
 
-  // Timelines of when and how every resource was used
   eastl::array<
     IdIndexedMapping<intermediate::ResourceIndex, dag::Vector<ResourceUsageOccurrence, framemem_allocator>, framemem_allocator>,
     SCHEDULE_FRAME_WINDOW>
@@ -48,13 +217,9 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
   // framemem can clean up properly
   for (auto &timelines : perFrameResourceUsageTimelines)
   {
-    timelines.resize(graph.resources.size(), {});
-    for (uint32_t i = 0; i < timelines.size(); ++i)
-    {
-      // Could look a lot less ugly with std::ranges :/
-      const auto idx = static_cast<intermediate::ResourceIndex>(timelines.size() - 1 - i);
+    timelines.resize(graph.resources.totalKeys(), {});
+    for (auto idx : dag::ReverseView(timelines.keys()))
       timelines[idx].reserve(perResourceUsageCount[idx]);
-    }
   }
 
   const auto processResourceInput = [&perFrameResourceUsageTimelines](int res_owner_frame, int event_frame,
@@ -75,29 +240,29 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
     // We have to first iterate and record all nodes' history requests
     // i.e. resources owned by current frame but requested by next frame
 
-    for (int i = graph.nodes.size() - 1; i >= 0; --i)
+    for (auto idx : dag::ReverseView(graph.nodes.keys()))
     {
       const int nextFrame = (frame + 1) % SCHEDULE_FRAME_WINDOW;
 
-      auto idx = static_cast<intermediate::NodeIndex>(i);
       for (const auto &req : graph.nodes[idx].resourceRequests)
-        if (req.fromLastFrame)
+        if (req.fromLastFrame && dirtyResources.test(req.resource, false))
           processResourceInput(frame, nextFrame, idx, req.resource, req.usage);
     }
 
-    for (int i = graph.nodes.size() - 1; i >= 0; --i)
+    for (auto idx : dag::ReverseView(graph.nodes.keys()))
     {
-      auto idx = static_cast<intermediate::NodeIndex>(i);
       for (const auto &req : graph.nodes[idx].resourceRequests)
-        if (!req.fromLastFrame)
+        if (!req.fromLastFrame && dirtyResources.test(req.resource, false))
           processResourceInput(frame, frame, idx, req.resource, req.usage);
     }
   }
 
-
   // Merge usages to avoid a bunch of repeating SRV barriers for different shader stages
   for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
     for (auto [resIdx, timeline] : perFrameResourceUsageTimelines[frame].enumerate())
+    {
+      if (!dirtyResources.test(resIdx, false))
+        continue;
       for (auto it = timeline.begin(); it != timeline.end();)
       {
         // Find the end of a consequent run of occurrences with same
@@ -110,43 +275,24 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
         while (it != runEnd)
           (it++)->usage.stage = mergedStage;
       }
+    }
 
-  // We need to find "grace points" in the coloring, i.e. points at which
-  // we can insert barriers without being worried about breaking a pass
-  dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator> gracePoints;
-  gracePoints.insert(0);
-  for (uint32_t i = 1; i < pass_coloring.size(); ++i)
-    if (pass_coloring[static_cast<intermediate::NodeIndex>(i)] != pass_coloring[static_cast<intermediate::NodeIndex>(i - 1)])
-      gracePoints.insert(i);
-  gracePoints.insert(pass_coloring.size());
-
-  // Emit events from per-physical-resource usage occurrences
-  // NOTE: memory for the events gets insertions in an extremely
-  // non-uniform manner, so we try to mend this issue by pre-allocating
-  // a bunch of data in framemem and restoring it afterwards in case
-  // a pre-allocation's size wasn't big enough
-  FRAMEMEM_REGION;
-
-  using NodeEvents = dag::Vector<Event, framemem_allocator>;
-  using FrameEvents = dag::Vector<NodeEvents, framemem_allocator>;
-  using EventsCollection = eastl::array<FrameEvents, SCHEDULE_FRAME_WINDOW>;
-
-  EventsCollection scheduledEvents;
-  for (FrameEvents &frameEvents : scheduledEvents)
-  {
-    frameEvents.resize(graph.nodes.size() + 1);
-    for (auto &events : frameEvents)
-      events.reserve(16);
-  }
-
-  debug_clear_resource_barriers();
+  for (auto resIdx : dirtyResources.trueKeys())
+    if (cachedResourceEvents.isMapped(resIdx))
+      cachedResourceEvents[resIdx].clear();
 
   for (uint32_t frame = 0; frame < SCHEDULE_FRAME_WINDOW; ++frame)
     for (auto [resIdx, timeline] : perFrameResourceUsageTimelines[frame].enumerate())
     {
+      if (!dirtyResources.test(resIdx, false))
+        continue;
+      if (!graph.resources.isMapped(resIdx))
+        continue;
+
+      const auto &resource = graph.resources[resIdx];
+
       // Carefully place split or regular barriers between usage
       // occurrences that yield one
-      const auto &resource = graph.resources[resIdx];
       if (resource.getResType() != ResourceType::Blob)
       {
         for (int i = timeline.size() - 2; i >= 0; --i)
@@ -164,46 +310,41 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
 
           if (prev.frame == curr.frame && eventAfterPreviousNode > eventBeforeCurrentNode)
           {
-            logwarn("daFG: Barrier scheduling had to break a pass between nodes '%s' and '%s' "
-                    "because of a logical data race on resource '%s'! This is fine, but suboptimal!",
-              graph.nodeNames[static_cast<intermediate::NodeIndex>(prev.nodeIndex)].c_str(),
-              graph.nodeNames[static_cast<intermediate::NodeIndex>(curr.nodeIndex)].c_str(), graph.resourceNames[resIdx].c_str());
+            if (verbose)
+              logwarn("daFG: Barrier scheduling had to break a pass between nodes '%s' and '%s' "
+                      "because of a logical data race on resource '%s'! "
+                      "The nodes are executed in arbitrary order and the barrier between them "
+                      "will make performance non-deterministic. "
+                      "Please sequence the nodes explicitly using a rename if this barrier is expected and desireable, "
+                      "or refactor the nodes to not require this barrier.",
+                graph.nodeNames[static_cast<intermediate::NodeIndex>(prev.nodeIndex)].c_str(),
+                graph.nodeNames[static_cast<intermediate::NodeIndex>(curr.nodeIndex)].c_str(), graph.resourceNames[resIdx].c_str());
+
             // Fall back to a single barrier placed as soon as possible.
             eventAfterPreviousNode = eventBeforeCurrentNode = prev.nodeIndex + 1;
           }
 
           G_ASSERT(prev.frame != curr.frame || eventAfterPreviousNode <= eventBeforeCurrentNode);
 
-          auto &frameEvents = scheduledEvents[prev.frame];
-
-          auto recBarrier = [&, resIdx = resIdx](uint32_t time, ResourceBarrier additional_flags) {
+          auto cacheBarrier = [&, resIdx = resIdx](uint32_t time, ResourceBarrier additional_flags) {
             Event event{resIdx, frame, Event::Barrier{barrier | additional_flags}};
-            frameEvents[time].emplace_back(event);
-
-            // NOTE: barriers are executed on physical resources,
-            // while debug visualizer works with virtual resources.
-            // We could try and find the "correct" virtual resource to
-            // use for this physical res at the specified time, but it's
-            // pointless, as the visualization won't look any different,
-            // so we lie about it.
-            auto resId = graph.resources[resIdx].frontendResources.front();
-            debug_rec_resource_barrier(resId, frame, time, prev.frame, barrier | additional_flags);
+            cachedResourceEvents[resIdx].push_back(PlacedEvent{event, time, prev.frame});
           };
 
           if (prev.frame != curr.frame)
           {
             // NOTE: split barriers shouldn't be used between frames,
             // place a regular barrier at the end of prev frame.
-            recBarrier(frameEvents.size() - 1, RB_NONE);
+            cacheBarrier(graph.nodes.totalKeys(), RB_NONE);
           }
           else if (eventAfterPreviousNode == eventBeforeCurrentNode || resource.getResType() == ResourceType::Buffer)
           {
-            recBarrier(eventAfterPreviousNode, RB_NONE);
+            cacheBarrier(eventAfterPreviousNode, RB_NONE);
           }
           else
           {
-            recBarrier(eventAfterPreviousNode, RB_FLAG_SPLIT_BARRIER_BEGIN);
-            recBarrier(eventBeforeCurrentNode, RB_FLAG_SPLIT_BARRIER_END);
+            cacheBarrier(eventAfterPreviousNode, RB_FLAG_SPLIT_BARRIER_BEGIN);
+            cacheBarrier(eventBeforeCurrentNode, RB_FLAG_SPLIT_BARRIER_END);
           }
         }
       }
@@ -217,6 +358,7 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
 
       const auto &scheduledRes = graph.resources[resIdx].asScheduled();
 
+      // Deactivation
       {
         const auto &lastUsageOccurrence = timeline.front();
 
@@ -227,10 +369,11 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
         else
           payload = Event::CpuDeactivation{scheduledRes.getCpuDescription().dtor};
 
-        scheduledEvents[lastUsageOccurrence.frame][lastUsageOccurrence.nodeIndex + 1].emplace_back(
-          Event{resIdx, static_cast<uint32_t>(frame), payload});
+        cachedResourceEvents[resIdx].push_back(PlacedEvent{
+          Event{resIdx, static_cast<uint32_t>(frame), payload}, lastUsageOccurrence.nodeIndex + 1, lastUsageOccurrence.frame});
       }
 
+      // Activation
       {
         const auto &firstUsageOccurrence = perFrameResourceUsageTimelines[frame][resIdx].back();
 
@@ -244,45 +387,11 @@ BarrierScheduler::EventsCollectionRef BarrierScheduler::scheduleEvents(const int
         {
           payload = Event::CpuActivation{resource.asScheduled().getCpuDescription().ctor};
         }
-        scheduledEvents[firstUsageOccurrence.frame][firstUsageOccurrence.nodeIndex].emplace_back(
-          Event{resIdx, static_cast<uint32_t>(frame), payload});
+
+        cachedResourceEvents[resIdx].push_back(PlacedEvent{
+          Event{resIdx, static_cast<uint32_t>(frame), payload}, firstUsageOccurrence.nodeIndex, firstUsageOccurrence.frame});
       }
     }
-
-  // Sort per-node events to ensure following order:
-  // * deactivate all
-  // * barriers
-  // * activate all
-  for (auto &frameEvents : scheduledEvents)
-    for (auto &nodeEvents : frameEvents)
-      eastl::sort(nodeEvents.begin(), nodeEvents.end(),
-        [](const Event &a, const Event &b) { return a.data.index() > b.data.index(); });
-
-  eventStorage.clear();
-
-  size_t totalEvents = 0;
-  for (const auto &frameEvents : scheduledEvents)
-    for (const auto &nodeEvents : frameEvents)
-      totalEvents += nodeEvents.size();
-
-  // guarantees no reallocations when inserting, therefore it's okay to take subspans
-  eventStorage.reserve(totalEvents);
-
-  EventsCollectionRef result;
-  for (int j = 0; j < SCHEDULE_FRAME_WINDOW; ++j)
-  {
-    eventRefStorage[j].clear();
-    eventRefStorage[j].reserve(scheduledEvents[j].size());
-    for (auto &eventsForNode : scheduledEvents[j])
-    {
-      Event *groupStart = &*eventStorage.end();
-      eventStorage.insert(eventStorage.end(), eventsForNode.begin(), eventsForNode.end());
-      eventRefStorage[j].emplace_back(groupStart, eventsForNode.size());
-    }
-    result[j] = eventRefStorage[j];
-  }
-
-  return result;
 }
 
 } // namespace dafg

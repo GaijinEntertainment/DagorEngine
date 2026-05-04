@@ -1,5 +1,5 @@
 WARNING: w205 (unreachable-code) Unreachable code after 'return'.
-testData/static_analyzer/w205.nut:5:4
+testData/static_analyzer/w205.nut:3:4
 
   return
     callback()
@@ -7,8 +7,8 @@ testData/static_analyzer/w205.nut:5:4
 }
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 5.
-testData/static_analyzer/w205.nut:5:4
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 2 and 3.
+testData/static_analyzer/w205.nut:3:4
 
   return
     callback()

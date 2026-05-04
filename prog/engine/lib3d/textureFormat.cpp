@@ -7,6 +7,8 @@
 static const TextureFormatDesc format_descs[] = {
   {TEXFMT_A8R8G8B8, 4, false, 1, 1, ChannelDType::UNORM, {}, {8, 16, 0, 0, 1}, {8, 8, 0, 0, 1}, {8, 0, 0, 0, 1}, {8, 24, 0, 0, 1}, {},
     {}},
+  {TEXFMT_A8B8G8R8, 4, false, 1, 1, ChannelDType::UNORM, {}, {8, 0, 0, 0, 1}, {8, 8, 0, 0, 1}, {8, 16, 0, 0, 1}, {8, 24, 0, 0, 1}, {},
+    {}},
   {TEXFMT_A2R10G10B10, 4, false, 1, 1, ChannelDType::UNORM, {}, {10, 0, 0, 0, 1}, {10, 10, 0, 0, 1}, {10, 20, 0, 0, 1},
     {2, 30, 0, 0, 1}, {}, {}},
   {TEXFMT_A2B10G10R10, 4, false, 1, 1, ChannelDType::UNORM, {}, {10, 0, 0, 0, 1}, {10, 10, 0, 0, 1}, {10, 20, 0, 0, 1},
@@ -65,6 +67,13 @@ static const TextureFormatDesc format_descs[] = {
   {TEXFMT_ASTC4, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
   {TEXFMT_ASTC8, 16, true, 8, 8, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
   {TEXFMT_ASTC12, 16, true, 12, 12, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {}, {}, {}},
+
+  {TEXFMT_ETC2_RG, 16, true, 4, 4, ChannelDType::UNORM, {}, {11, 0}, {11, 0}, {}, {}, {}, {}},
+  {TEXFMT_ETC2_RGBA, 16, true, 4, 4, ChannelDType::UNORM, {}, {8, 0}, {8, 0}, {8, 0}, {8, 0}, {}, {}},
+
+#if _TARGET_C2
+
+#endif
 };
 
 static const TextureFormatDesc unknown_format_desc = {TEXFMT_R8, 1, false, 1, 1, {}, {}, {}, {}, {}, {}, {}, {}};
@@ -78,6 +87,7 @@ struct TextureFormatName
 
 static const TextureFormatName format_names[] = {
   {TEXFMT_A8R8G8B8, "A8R8G8B8", "ARGB8"},
+  {TEXFMT_A8B8G8R8, "A8B8G8R8", "ABGR8"},
   {TEXFMT_A2R10G10B10, "A2R10G10B10", nullptr},
   {TEXFMT_A2B10G10R10, "A2B10G10R10", nullptr},
   {TEXFMT_A16B16G16R16, "A16B16G16R16", "ARGB16"},
@@ -122,6 +132,13 @@ static const TextureFormatName format_names[] = {
   {TEXFMT_ASTC4, "ASTC4", nullptr},
   {TEXFMT_ASTC8, "ASTC8", nullptr},
   {TEXFMT_ASTC12, "ASTC12", nullptr},
+
+  {TEXFMT_ETC2_RG, "ETC2_RG", nullptr},
+  {TEXFMT_ETC2_RGBA, "ETC2_RGBA", nullptr},
+
+#if _TARGET_C2
+
+#endif
 };
 
 

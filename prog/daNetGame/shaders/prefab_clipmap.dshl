@@ -63,8 +63,8 @@ shader land_mesh_clipmap // aka prefab_clipmap
     camera_base_offset@f3 = camera_base_offset;
   }
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
 
     from_sun_direction@f3 = from_sun_direction;
     wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0);
@@ -93,15 +93,9 @@ shader land_mesh_clipmap // aka prefab_clipmap
   INIT_SPARKLES()
   INIT_RAW_RENDERING_FEEDBACK()
   INIT_WETNESS()
-  if (mobile_render != off)
-  {
-    INIT_STATIC_SHADOW_PS()
-  }
 
   BASE_LAND_MESH_BLOCK()
-  NO_VERTICAL_TEX_USE()
 
-  ENABLE_ASSERT(ps)
   USE_CLIPMAP_NORMAL()
   USE_RAW_RENDERING_FEEDBACK()
   USE_UAV_RENDERING_FEEDBACK_NORMAL_PASS_DEFINES()
@@ -109,9 +103,11 @@ shader land_mesh_clipmap // aka prefab_clipmap
   USE_LAND_MICRODETAILS_PS()
   USE_LAND_MICRODETAIL_PARAMS_PS()
   USE_LAND_SHORE()
-  DETECT_LAND_SELFILLUM()
+  DETECT_LAND_SELFILLUM(true)
   USE_WETNESS_BASE()
   HEIGHTMAP_CALCULATIONS()
+  INIT_HEIGHTMAP_GATHERED_SAMPLING(ps)
+  USE_HEIGHTMAP_GATHERED_SAMPLING(ps)
   INIT_AND_USE_AND_CALCULATE_PUDDLES()
   USE_SPARKLES()
 

@@ -311,6 +311,7 @@ typedef BaseTexture Texture;
 typedef BaseTexture CubeTexture;
 typedef BaseTexture VolTexture;
 typedef BaseTexture ArrayTexture;
+typedef BaseTexture CubeArrayTexture;
 
 uint32_t auto_mip_levels_count(uint32_t w, uint32_t min_size);
 uint32_t auto_mip_levels_count(uint32_t w, uint32_t h, uint32_t min_size);

@@ -9,6 +9,8 @@ include "invGlobTm.dshl"
 include "use_prefiltered_gf.dshl"
 include "contact_shadows.dshl"
 include "icon_render_inc.dshl"
+include "contrast_adaptive_sharpening.dshl"
+
 float4 icon_outline_color = (0,0,0,2);
 float4 icon_silhouette_color = (0,0,0,2);
 float4 icon_ssaa = (1,1,0,0);
@@ -39,7 +41,6 @@ macro COMMON_RESOLVE_MOBILE()
     #define MOBILE_GBUFFER_UNPACK_FORCE_METALNESS 0
   }
   STANDARD_BRDF_SHADING()
-  INIT_GBUFFER_MOBILE_FOR_ICON_RENDER()
 
   INIT_SKY()
   USE_SKY()
@@ -82,8 +83,6 @@ shader deferred_immediate_resolve
     icon_envi_panorama_exposure@f1 = (icon_envi_panorama_exposure);
   }
 
-  ENABLE_ASSERT(ps)
-
   INIT_FULL_TONEMAP_FOR_ICONS()
 
   if (compatibility_mode == compatibility_mode_off)
@@ -91,18 +90,13 @@ shader deferred_immediate_resolve
     INIT_ENVI_SPECULAR()
     COMMON_RESOLVE()
   }
-  else if (mobile_render == deferred)
-  {
-    INIT_ENVI_SPECULAR()
-    COMMON_RESOLVE_MOBILE()
-  }
 
   cull_mode  = none;
   z_write = false;
   z_test = false;
 
   blend_src = sa; blend_dst = isa;
-  blend_asrc = one; blend_adst = one;
+  blend_asrc = one; blend_adst = isa;
 
   //fixme: in case of (depth_bounds_support == no_bounds)
   //z_test = false should be true ONLY for cascade other than [0, something]
@@ -110,8 +104,12 @@ shader deferred_immediate_resolve
 
   USE_AND_INIT_INV_GLOBTM_PS()
 
-  if (compatibility_mode == compatibility_mode_off)
+  bool apply_contact_shadows = compatibility_mode == compatibility_mode_off;
+  if (apply_contact_shadows)
   {
+    hlsl{
+      #define COMPARE_TOLERANCE_SCALE(a) 1.5
+    }
     CONTACT_SHADOWS()
   }
 
@@ -272,13 +270,13 @@ shader deferred_immediate_resolve
       float NoL = dot(gbuffer.normal, light_dir);
 
       float2 hitUV;
-      #if CONTACT_SHADOWS_INCLUDED
+      ##if apply_contact_shadows
         float contactShadow = contactShadowRayCastWithScale(icon_depth_gbuf, icon_depth_gbuf_samplerstate, world_pos,//+view*0.00005,
                               light_dir, w*0.2, 64, -0.98*dither, projectionMatrix, w, viewProjectionMatrix,
                               hitUV, view_scale_ofs);
-      #else
+      ##else
         float contactShadow = 1.0f;
-      #endif
+      ##endif
 
       half csmShadow = contactShadow;
       half shadow = min(gbuffer.shadow, csmShadow);
@@ -325,10 +323,6 @@ shader deferred_immediate_resolve
           silhouetteColor = lerp(icon_silhouette_color, icon_outline_color, get_outline(tc, rawDepth));//we use sobel filter only out of picture, to make 'outer' outline
         else
           silhouetteColor = icon_silhouette_color;
-
-        ##if mobile_render == forward
-          silhouetteColor.rgb = performLUTTonemap(silhouetteColor.rgb);
-        ##endif
 
         return silhouetteColor;
       }
@@ -417,45 +411,6 @@ shader deferred_immediate_resolve
       half3 reflection = environmentAmbientLighting + totalReflection;//*enviAO - tri-ace formula
       result += reflection;
       result += gbuffer.emissionColor;
-##elif mobile_render == deferred
-      ProcessedGbuffer gbuffer = readProcessedGbuffer(tc);
-
-      float4 farpos = float4(input.texcoord.xy * float2(2,-2) + float2(-1,1), rawDepth, 1.);
-      float4 worldpos_prj = mul(farpos, globtm_inv);
-      float4 worldPos = worldpos_prj / worldpos_prj.w;
-      float3 pointToEye = -worldPos.xyz;// world_view_pos.xyz is assumed to be zero!
-
-      float distSq = dot(pointToEye,pointToEye);
-      float invRsqrt = rsqrt(distSq);
-      float3 view  = pointToEye*invRsqrt;
-
-      float3 lightDir = -icon_light_dirs[0].xyz;
-      half3 lightColor = icon_light_colors[0].xyz;
-
-      float NoL = dot(gbuffer.normal, lightDir);
-      float NdotV = dot(gbuffer.normal, view);
-      float NoV = abs( NdotV ) + 1e-5;
-
-      float shadow = 1;
-
-      half enviAO = gbuffer.ao;//we still modulate by albedo color, so we don't need micro AO
-      float ggx_alpha = 0.0;
-      float linearRoughness = 0.0;
-
-      half geometryFactor = 1.0;
-      half3 enviDiffuse = GetSkySHDiffuse(gbuffer.normal);
-      half3 environmentAmbientLighting = (enviAO * geometryFactor)*gbuffer.diffuseColor*enviDiffuse;
-
-      half3 specularColor = half3(0,0,0);
-
-      half3 sunLight = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, linearRoughness, specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal)*shadow*lightColor;
-      half3 result = sunLight + environmentAmbientLighting;
-##elif mobile_render == forward
-      ##if use_postfx == on
-        half3 result = performLUTTonemap(tex2Dlod(icon_albedo_gbuf, float4(tc,0,0)).xyz);
-      ##else
-        half3 result = tex2Dlod(icon_albedo_gbuf, float4(tc,0,0)).xyz;
-      ##endif
 ##else // compatibility_mode == compatibility_mode_on
       half3 sunLight     = texelFetch(icon_albedo_gbuf, screenpos.xy, 0).xyz;
       half3 ambientLight = texelFetch(icon_normal_gbuf, screenpos.xy, 0).xyz;
@@ -467,6 +422,8 @@ shader deferred_immediate_resolve
 
   compile("target_ps", "deferred_simple_ps");
 }
+
+float icon_tonemap_enabled = 1;
 
 texture animchar_icons_final;
 shader simple_gui_tonemap
@@ -481,8 +438,9 @@ shader simple_gui_tonemap
 
   (ps) {
     frame_tex@smp2d = animchar_icons_final;
-    view_scale_ofs@f4 = view_scale_ofs;
+    view_scale@f2 = view_scale_ofs;
     icon_ssaa@f4 = icon_ssaa;
+    icon_tonemap_enabled@f1 = icon_tonemap_enabled;
   }
   blend_src = sa; blend_dst = isa;
   hlsl(ps) {
@@ -500,17 +458,19 @@ shader simple_gui_tonemap
       BRANCH
       if (icon_ssaa.x <= 2)//simplest case
       {
-        frame = tex2Dlod(frame_tex, float4(input.tc*view_scale_ofs.xy + view_scale_ofs.zw,0,0));//it is actually incorrect if icon_ssaa.x==2, as we tonemap downsampled and not downsampled tonemapped
-        frame = float4(FilmicMain(frame.rgb).rgb, frame.a);
+        frame = tex2Dlod(frame_tex, float4(input.tc * view_scale.xy,0,0));//it is actually incorrect if icon_ssaa.x==2, as we tonemap downsampled and not downsampled tonemapped
+        BRANCH
+        if (icon_tonemap_enabled > 0.5)
+          frame = float4(FilmicMain(frame.rgb).rgb, frame.a);
       } else
       {
         int4 icon_ssaaI = icon_ssaa;
-        int2 start = (int2(pos.xy) + icon_ssaaI.zw)*icon_ssaaI.x;
+        int2 start = int2(pos.xy) * icon_ssaaI.x;
         for (uint y = 0; y < icon_ssaaI.x; ++y)
           for (uint x = 0; x < icon_ssaaI.x; ++x)
           {
             float4 val = frame_tex[start + int2(x, y)];
-            frame += float4(FilmicMain(val.rgb), val.a);
+            frame += (icon_tonemap_enabled > 0.5) ? float4(FilmicMain(val.rgb), val.a) : val;
           }
         frame /= icon_ssaa.x*icon_ssaa.x;
       }
@@ -519,4 +479,52 @@ shader simple_gui_tonemap
   }
 
   compile("target_ps", "postfx_ps");
+}
+
+float icon_sharpen_amount = 0.0;
+float icon_contrast = 1.0;
+texture animchar_icons_finalAA;
+float4 icon_viewport_size = (1, 1, 0, 0);
+shader simple_gui_sharpen
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  no_ablend;
+
+  supports global_frame;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  (ps)
+  {
+    frame_tex@smp2d = animchar_icons_finalAA;
+    view_scale@f2 = view_scale_ofs;
+    icon_sharpen_amount@f1 = icon_sharpen_amount;
+    icon_contrast@f1 = icon_contrast;
+    icon_viewport_size@f4=icon_viewport_size;
+  }
+
+  hlsl(ps)
+  {
+    float4 sharpen_ps(VsOutput input) : SV_Target
+    {
+      float4 color = 0;
+      if (icon_sharpen_amount > 0.0)
+        color = tex2DCAS(frame_tex, input.tc, icon_viewport_size.xy, icon_viewport_size.zw, -icon_sharpen_amount);
+      else
+      {
+        float2 textureCoord = input.tc * view_scale.xy;
+        color = tex2Dlod(frame_tex, float4(textureCoord,0,0));
+      }
+
+      float luminance = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+      color.rgb += (luminance - 0.5) * (icon_contrast - 1.0);
+      color.rgb = saturate(color.rgb);
+      return color;
+    }
+  }
+  compile("target_ps", "sharpen_ps");
 }

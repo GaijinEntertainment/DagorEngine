@@ -13,8 +13,8 @@ class BhvWheelScroll : public darg::Behavior
 public:
   BhvWheelScroll();
 
-  virtual int mouseEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int data, short mx,
-    short my, int buttons, int /*accum_res*/);
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int data, Point2 pos,
+    int /*accum_res*/) override;
 };
 
 

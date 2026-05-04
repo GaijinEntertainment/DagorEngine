@@ -164,7 +164,7 @@ void RenderList::render(StdGuiRender::GuiContext &ctx)
       {
         Point2 pos = re.elem->screenCoord.screenPos;
         Point2 size = re.elem->screenCoord.size;
-        const Offsets &padding = re.elem->layout.padding;
+        const Offsets &padding = re.elem->layout.padding();
         scenerender::setTransformedViewPort(ctx, pos + padding.lt(), pos + size - padding.rb(), renderState);
         BOXDBG("viewport set: %@ - %@ (pos=%@ size=%@)", ctx.currentViewPort.leftTop, ctx.currentViewPort.rightBottom, pos, size);
         break;
@@ -332,7 +332,7 @@ void RenderList::recalcBoxes(const BBox2 &container_viewport)
         {
           Point2 pos = re.elem->screenCoord.screenPos;
           Point2 size = re.elem->screenCoord.size;
-          const Offsets &padding = re.elem->layout.padding;
+          const Offsets &padding = re.elem->layout.padding();
 
           GuiVertexTransform gvtm;
           re.elem->calcFullTransform(gvtm);

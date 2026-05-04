@@ -47,13 +47,13 @@ void GrassRenderer::clearGrassErasers()
 }
 
 template <typename Callable>
-static void get_grass_render_ecs_query(Callable c);
+static void get_grass_render_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void erase_grass(const Point3 &world_pos, float radius)
 {
   if (WorldRenderer *renderer = (WorldRenderer *)get_world_renderer())
   {
-    get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.addGrassEraser(world_pos, radius); });
+    get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.addGrassEraser(world_pos, radius); });
     // due to the size of the grass, gi is affected in a larger radius
     float giRad = radius + 1;
     BBox3 modelBox(Point3(0, 0, 0), giRad);
@@ -66,17 +66,17 @@ void erase_grass(const Point3 &world_pos, float radius)
 }
 
 ECS_ON_EVENT(on_appear)
-static void grass_eraser_es(const ecs::Event &, const ecs::Point4List &grass_erasers__spots)
+static void grass_eraser_es(const ecs::Event &, ecs::EntityManager &manager, const ecs::Point4List &grass_erasers__spots)
 {
-  get_grass_render_ecs_query(
+  get_grass_render_ecs_query(manager,
     [&](GrassRenderer &grass_render) { grass_render.setGrassErasers(grass_erasers__spots.size(), grass_erasers__spots.data()); });
 }
 
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ecs::Point4List grass_erasers__spots)
-static void grass_eraser_destroy_es(const ecs::Event &)
+static void grass_eraser_destroy_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.clearGrassErasers(); });
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) { grass_render.clearGrassErasers(); });
 }
 
 #include <util/dag_console.h>

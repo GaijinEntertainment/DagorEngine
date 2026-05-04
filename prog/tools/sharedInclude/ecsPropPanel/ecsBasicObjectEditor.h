@@ -4,23 +4,27 @@
 #include <daECS/core/template.h>
 #include <daECS/core/event.h>
 #include <daECS/core/componentTypes.h>
+#include <daECS/scene/scene.h>
 #include <EditorCore/ec_ObjectEditor.h>
 
 #include <EASTL/unique_ptr.h>
+#include <EASTL/unordered_map.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 class ECSOrderedTemplatesGroups;
 
-#define ECS_EDITOR_SELECTED_TEMPLATE "daeditor_selected"
-
 class ECSBasicObjectEditor : public ObjectEditor
 {
 public:
+  using SceneMap = eastl::unordered_map<eastl::string, ecs::Scene::SceneId>;
+
   ECSBasicObjectEditor();
   ~ECSBasicObjectEditor() override;
 
   dag::Vector<String> getEcsTemplates(const char *group_name);
   dag::Vector<String> getEcsTemplatesGroups();
+  const SceneMap &getEcsScenes() const { return ecsScenes; }
+  void updateEcsScenes();
 
   static bool hasTemplateComponent(const char *template_name, const char *comp_name);
   static bool getSavedComponents(ecs::EntityId eid, eastl::vector<eastl::string> &out_comps);
@@ -31,4 +35,5 @@ public:
 
 protected:
   eastl::unique_ptr<ECSOrderedTemplatesGroups> orderedTemplatesGroups;
+  SceneMap ecsScenes;
 };

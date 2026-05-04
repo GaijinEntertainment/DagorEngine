@@ -16,6 +16,11 @@ BVHGpuObjects ?= yes ;
 BVHDynRend ?= yes ;
 BVHFx ?= yes ;
 BVHCables ?= yes ;
+BVHBinScene ?= yes ;
+BVHFFTWater ?= yes ;
+BVHDagdp ?= yes ;
+BVHGPUGrass ?= yes ;
+BVHSplineGen ?= yes ;
 
 BVHProfiling ?= no ;
 
@@ -68,6 +73,36 @@ if $(BVHSupport) = yes {
     Sources += bvh_cables.cpp ;
   } else {
     Sources += stub/bvh_stub_cables.cpp ;
+  }
+
+  if $(BVHBinScene) = yes {
+    Sources += bvh_bin_scene.cpp ;
+  } else {
+    Sources += stub/bvh_stub_bin_scene.cpp ;
+  }
+
+  if $(BVHFFTWater) = yes {
+    Sources += bvh_fft_water.cpp ;
+  } else {
+    Sources += stub/bvh_stub_fft_water.cpp ;
+  }
+
+  if $(BVHDagdp) = yes {
+    Sources += bvh_dagdp.cpp ;
+  } else {
+    Sources += stub/bvh_stub_dagdp.cpp ;
+  }
+
+  if $(BVHGPUGrass) = yes {
+    Sources += bvh_gpu_grass.cpp ;
+  } else {
+    Sources += stub/bvh_stub_gpu_grass.cpp ;
+  }
+
+  if $(BVHSplineGen) = yes {
+    Sources += bvh_splinegen.cpp ;
+  } else {
+    Sources += stub/bvh_stub_splinegen.cpp ;
   }
 
   if $(BVHFx) = yes {

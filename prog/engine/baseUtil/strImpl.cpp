@@ -103,11 +103,6 @@ int String::cvprintf(int at, int est_sz, const char *fmt, va_list ap)
 
 int String::cvaprintf(int est_sz, const char *fmt, va_list ap) { return cvprintf(length(), est_sz, fmt, ap); }
 
-void String::ctor_vprintf(int est_sz, const char *fmt, const DagorSafeArg *arg, int anum)
-{
-  dag::set_allocator(*this, strmem);
-  vprintf(est_sz, fmt, arg, anum);
-}
 int String::vprintf(int, const char *fmt, const DagorSafeArg *arg, int anum)
 {
   int sz = DagorSafeArg::count_len(fmt, arg, anum);
@@ -123,7 +118,8 @@ int String::vprintf(int at, int est_sz, const char *fmt, const DagorSafeArg *arg
 }
 int String::avprintf(int, const char *fmt, const DagorSafeArg *arg, int anum)
 {
-  size_t prev_len = length() ? strlen(data()) : 0;
+  size_t prev_len = length();
+  G_ASSERTF(prev_len == 0 || prev_len == strlen(data()), "String::avprintf requires valid size. Use updateSz() to fix the issue!");
   int sz = DagorSafeArg::count_len(fmt, arg, anum);
   resize(prev_len + sz + 1);
   return DagorSafeArg::print_fmt(data() + prev_len, sz + 1, fmt, arg, anum);
@@ -299,7 +295,7 @@ const char *stackhelp::ext::get_call_stack(char *buf, unsigned max_buf, stackhel
   stackhelp::ext::CallStackInfo ext_stack)
 {
   unsigned len = (unsigned)strlen(get_call_stack(buf, max_buf, stack));
-  len += ext_stack(buf + len, max_buf - len);
+  len += ext_stack(buf + len, max_buf - len).writtenChars;
   buf[len < (max_buf - 1) ? len : (max_buf - 1)] = '\0';
   return buf;
 }

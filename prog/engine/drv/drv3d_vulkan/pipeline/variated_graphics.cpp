@@ -61,8 +61,9 @@ GraphicsPipelineVariationStorage::ExtendedVariantDescription &GraphicsPipelineVa
   }
   else
   {
-#if VULKAN_LOG_PIPELINE_ACTIVITY > 0
-    debug("vulkan: new graphics pipeline variation, total %u", lastIndex + 1);
+#if VULKAN_LOG_PIPELINE_ACTIVITY
+    if (Globals::cfg.bits.logPipelineCompile)
+      debug("vulkan: new graphics pipeline variation, total %u", lastIndex + 1);
 #endif
 
     GraphicsPipelineDynamicStateMask mask;
@@ -200,8 +201,9 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
     return nullptr;
 #endif
 
-#if VULKAN_LOG_PIPELINE_ACTIVITY > 1
-  debug("vulkan: get gfx vs %s fs %s", debugInfo.vs().name, debugInfo.fs().name);
+#if VULKAN_LOG_PIPELINE_ACTIVITY
+  if (Globals::cfg.bits.logPipelineBinds)
+    debug("vulkan: get gfx vs %s fs %s", debugInfo.vs().name, debugInfo.fs().name);
 #endif
 
   if (!pipe)
@@ -261,4 +263,11 @@ GraphicsPipeline *VariatedGraphicsPipeline::getVariant(CompilationContext &comp_
   }
 
   return pipe;
+}
+
+VariatedGraphicsPipeline::VariatedGraphicsPipeline(ProgramID inProg, VulkanPipelineCacheHandle, LayoutType *l,
+  const CreationInfo &info) :
+  DebugAttachedPipeline(l), modules(info.modules), variations(info.varStorage), program(inProg), seenBefore(info.seenBefore)
+{
+  inputLayout = Globals::shaderProgramDatabase.getGraphicsProgInputLayout(program);
 }

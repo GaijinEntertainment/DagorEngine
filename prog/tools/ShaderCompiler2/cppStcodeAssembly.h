@@ -4,6 +4,7 @@
 #include "cppStcodeBuilder.h"
 #include "hash.h"
 #include "hlslRegisters.h"
+#include "samplers.h"
 #include <shaders/slotTexturesRange.h>
 #include <memory/dag_mem.h>
 #include <shaders/shExprTypes.h>
@@ -19,6 +20,11 @@
 
 class ShaderSemCode;
 class SemanticShaderPass;
+
+namespace shc
+{
+class TargetContext;
+}
 
 namespace semantic
 {
@@ -243,10 +249,12 @@ struct DynamicStcodeRoutine : StcodeRoutine
 
   explicit DynamicStcodeRoutine(bool uses_dynamic_branching = false) : usesDynamicBranching{uses_dynamic_branching} {}
 
-  void addGlobalShaderResource(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id);
-  void addDynamicShaderResource(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id);
-  void addShaderGlobMatrix(ShaderStage stage, GlobMatrixType type, const char *name, int id);
-  void addShaderGlobVec(ShaderStage stage, GlobVecType type, const char *name, int id, int comp_id);
+  void addGlobalShaderResource(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id,
+    int array_index = 0);
+  void addDynamicShaderResource(ShaderStage stage, ResourceType type, const char *name, const char *var_name, int id,
+    int array_index = 0);
+  void addShaderGlobMatrix(ShaderStage stage, GlobMatrixType type, const char *name, int id, int array_index = 0);
+  void addShaderGlobVec(ShaderStage stage, GlobVecType type, const char *name, int id, int comp_id, int array_index = 0);
 
   void addShaderConst(ShaderStage stage, ShaderVarType shvt, semantic::VariableType vt, const char *name, int id, const char *val,
     int array_index = 0);
@@ -373,8 +381,10 @@ struct StcodeGlobalVars
 
   StcodeGlobalVars(Type a_type) : type(a_type) {}
 
-  void setVar(ShaderVarType shv_type, const char *name, int id_in_final_dump = INVALID_IN_DUMP_VAR_ID);
+  void setVar(ShaderVarType shv_type, const char *name, bool is_ptr, int id_in_final_dump = INVALID_IN_DUMP_VAR_ID);
   Strings releaseAssembledCode();
+
+  CryptoHash calcHash(const CryptoHash *base = nullptr);
 };
 
 struct StcodeShader
@@ -424,6 +434,8 @@ struct StcodeShader
 
   InterfaceStrings releaseAssembledInterfaceCode();
 };
+
+eastl::string build_sampler_id_defs(const shc::TargetContext &ctx);
 
 struct StcodePassRegInfo
 {

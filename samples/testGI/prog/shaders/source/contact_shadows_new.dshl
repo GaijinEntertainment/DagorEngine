@@ -1,4 +1,3 @@
-sampler global_linear_clamp_sampler;
 
 macro CONTACT_SHADOWS_NEW(code)
 (code) {
@@ -617,11 +616,11 @@ float contact_shadow_len = 0.2;
 float contact_shadow_step_offset = 0.2;
 
 macro CONTACT_SHADOWS_BASE(code)
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
   (code) {
     projectionMatrix@f44 = {projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3};
     contact_shadow_len@f1 = contact_shadow_len;
     globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
-    global_linear_clamp_sampler@sampler = global_linear_clamp_sampler;
   }
   hlsl(code) {
     #include "interleavedGradientNoise.hlsl"

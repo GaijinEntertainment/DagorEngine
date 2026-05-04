@@ -6,7 +6,7 @@ setlocal EnableDelayedExpansion
 for %%i in (%SCRIPTS%) do (
   echo @@@ validateScripts %%i
   pushd %%i
-  python3 validateScripts.py
+  python validateScripts.py
   if errorlevel 1 echo Failed to validate %%i && exit /b 1
   popd
 )

@@ -1,0 +1,15 @@
+include "triangle_size_debug.dshl"
+
+int rendinst_transparent_triangle_size_debug = 0;
+interval rendinst_transparent_triangle_size_debug : off < 1, on;
+
+
+bool is_transparent_triangle_debug = rendinst_transparent_triangle_size_debug == on;
+
+macro TRANSPARENT_TRIANGLE_SIZE_DEBUG_PS()
+  if ((is_transparent_triangle_debug && allow_triangle_size_debug == no) || !hardware.dx12)
+  {
+    dont_render;
+  }
+  TRIANGLE_SIZE_DEBUG_PS()
+endmacro

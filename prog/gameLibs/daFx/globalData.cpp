@@ -10,6 +10,7 @@ bool init_global_values(GlobalData &dst)
 {
   int sz = DAFX_GLOBAL_DATA_SIZE;
   dst.size = sz;
+  dst.updateRequired = true;
 
   bool v = true;
   v &= create_cpu_res(dst.cpuRes, DAFX_ELEM_STRIDE * sizeof(int), sz / DAFX_ELEM_STRIDE, "dafx_global_data");
@@ -59,7 +60,11 @@ void set_global_value(Context &ctx, const char *name, size_t name_len, uint32_t 
   }
 
   unsigned char *ptr = ctx.globalData.cpuRes.get();
-  memcpy(ptr + v.offset, data, size);
+  if (memcmp(ptr + v.offset, data, size) != 0)
+  {
+    memcpy(ptr + v.offset, data, size);
+    ctx.globalData.updateRequired = true;
+  }
 }
 
 void set_global_value_ext(ContextId cid, const char *name, size_t name_len, uint32_t name_hash, const void *data, int size)
@@ -85,15 +90,19 @@ bool get_global_value(ContextId cid, const eastl::string &name, void *data, int 
   return get_global_value(ctx, name, data, size);
 }
 
-void update_global_data(Context &ctx)
+void update_global_data(Context &ctx, bool force)
 {
   TIME_D3D_PROFILE(dafx_update_global_data);
-  update_gpu_cb_buffer(ctx.globalData.gpuBuf.getBuf(), ctx.globalData.cpuRes.get(), ctx.globalData.size * sizeof(uint32_t));
+  if (ctx.globalData.updateRequired || force)
+  {
+    update_gpu_cb_buffer(ctx.globalData.gpuBuf.getBuf(), ctx.globalData.cpuRes.get(), ctx.globalData.size * sizeof(uint32_t));
+    ctx.globalData.updateRequired = false;
+  }
 }
 
 void flush_global_values(ContextId cid)
 {
   GET_CTX();
-  update_global_data(ctx);
+  update_global_data(ctx, false);
 }
 } // namespace dafx

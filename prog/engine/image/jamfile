@@ -33,7 +33,6 @@ Sources =
   regImageLoadTiff.cpp
   regImageLoadPng.cpp
   regImageLoadSvg.cpp
-  regImageLoadLottie.cpp
   regImageLoadAvif.cpp
 ;
 
@@ -72,8 +71,9 @@ if $(PlatformSpec) in gcc {
   CPPopt += -Wno-uninitialized ; # disable false-positive heuristics from gcc 11
 }
 UseProgLibs +=
+  3rdPartyLibs/image/jpeg-6b
+  3rdPartyLibs/image/libpng-1.4.22
   3rdPartyLibs/image/imageresampler
-  3rdPartyLibs/lottie
 ;
 
 ExplicitLicenseUsed += $(Root)/prog/3rdPartyLibs/nanosvg ;

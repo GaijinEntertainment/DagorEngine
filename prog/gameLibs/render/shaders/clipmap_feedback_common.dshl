@@ -1,5 +1,3 @@
-include "vtex.dshl"
-
 macro USE_FEEDBACK_PACKER(code)
   hlsl(code) {
     // It can be packed more efficiently but keeping it simple for alignining with TexTileFeedback fields.
@@ -13,7 +11,10 @@ macro USE_FEEDBACK_PACKER(code)
     // without dummy clear offset, do NOT use it during UAV feedback filling
     uint packFinalFeedbackInfo(uint2 pos, uint mip, uint ri_offset)
     {
+      ##assert(all(pos < (uint)TILE_WIDTH));
+
       uint4 data = uint4(ri_offset, pos.y, pos.x, mip);
+      ##assert(all(data <= FEEDBACK_MASK));
       data = data << FEEDBACK_SHIFT;
       return uint(data.x | data.y | data.z | data.w);
     }

@@ -111,7 +111,7 @@ static void saveAll()
     SCOPE_RENDER_TARGET;
     UniqueTex panorama =
       dag::create_tex(nullptr, cubemapSize * 2, cubemapSize, TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "screenshot360_panoramic");
-    d3d::set_render_target(panorama.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{panorama.getTex2D(), 0, 0}});
 
     screencap::get_video360()->renderSphericalProjection();
 

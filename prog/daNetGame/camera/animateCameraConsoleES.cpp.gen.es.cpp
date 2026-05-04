@@ -30,6 +30,7 @@ static void camera_animator_update_es_all(const ecs::UpdateStageInfo &__restrict
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     camera_animator_update_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(camera_animator_update_es_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(camera_animator_update_es_comps, "camera_animator__origo", Point3)
     , ECS_RO_COMP(camera_animator_update_es_comps, "camera_animator__speed", float)
@@ -66,6 +67,7 @@ static void camera_path_animator_update_es_all(const ecs::UpdateStageInfo &__res
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     camera_path_animator_update_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(camera_path_animator_update_es_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(camera_path_animator_update_es_comps, "camera_path_animator__transforms", ecs::Array)
     , ECS_RO_COMP(camera_path_animator_update_es_comps, "camera_animator__speed", float)

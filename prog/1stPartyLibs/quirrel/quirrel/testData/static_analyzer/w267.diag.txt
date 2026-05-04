@@ -1,37 +1,37 @@
 WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
-testData/static_analyzer/w267.nut:4:11
+testData/static_analyzer/w267.nut:11:7
 
-foo("sum=" (6+7)) // EXPECTED 1
-           ^
-
-
-WARNING: w267 (suspicious-bracket) '[' will be parsed as 'access to member' (forgot ',' ?)
-testData/static_analyzer/w267.nut:6:13
-
-foo("array:" [6]) // EXPECTED 2 access
-             ^
+foo(s1 (6+7)) // EXPECTED 1
+       ^
 
 
 WARNING: w267 (suspicious-bracket) '[' will be parsed as 'access to member' (forgot ',' ?)
-testData/static_analyzer/w267.nut:11:8
+testData/static_analyzer/w267.nut:13:7
+
+foo(s2 [6]) // EXPECTED 2 access
+       ^
+
+
+WARNING: w267 (suspicious-bracket) '[' will be parsed as 'access to member' (forgot ',' ?)
+testData/static_analyzer/w267.nut:19:7
 
 //    [6]       // compilation error
-    "t" [7]     // EXPECTED 3   access
-        ^
-    "y" (6+7)   // EXPECTED 4
+    s3 [7]     // EXPECTED 3   access
+       ^
+    s4 (6+7)   // EXPECTED 4
 
 
 WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
-testData/static_analyzer/w267.nut:12:8
+testData/static_analyzer/w267.nut:20:7
 
-    "t" [7]     // EXPECTED 3   access
-    "y" (6+7)   // EXPECTED 4
-        ^
+    s3 [7]     // EXPECTED 3   access
+    s4 (6+7)   // EXPECTED 4
+       ^
     "z"
 
 
 WARNING: w267 (suspicious-bracket) '(' will be parsed as 'function call' (forgot ',' ?)
-testData/static_analyzer/w267.nut:14:4
+testData/static_analyzer/w267.nut:22:4
 
     "z"
     (6+7)       // EXPECTED 5
@@ -39,13 +39,3 @@ testData/static_analyzer/w267.nut:14:4
 ]
 
 
-
-AN ERROR HAS OCCURRED [attempt to call 'string']
-
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w267.nut:4
-
-LOCALS
-[foo] CLOSURE=FN:foo
-[vargv] ARRAY=[]
-[this] NULL

@@ -5,6 +5,7 @@
 #include "daScript/simulate/runtime_string.h"
 #include "daScript/simulate/debug_print.h"
 #include "daScript/misc/fpe.h"
+#include "daScript/misc/string_writer.h"
 #include "daScript/misc/debug_break.h"
 #include "daScript/ast/ast.h"
 #include "misc/include_fmt.h"
@@ -21,7 +22,7 @@ namespace das
     }
 
     GcRootLambda::~GcRootLambda() {
-        if ( capture && context ) {
+        if ( capture && context && (context->category.value & uint32_t(das::ContextCategory::dead)) == 0u ) {
             context->removeGcRoot( (void *)capture );
         }
     }
@@ -60,7 +61,7 @@ namespace das
 
     SimNode * SimNode::copyNode ( Context &, NodeAllocator * code ) {
         auto prefix = ((NodePrefix *)this) - 1;
-#ifndef NDEBUG
+#ifndef DAS_NO_ASSERTIONS
         DAS_ASSERTF(prefix->magic==0xdeadc0de,"node was allocated on the heap without prefix");
 #endif
         char * newNode;
@@ -121,17 +122,6 @@ namespace das
             that->errorMessage = errorMessage[0]==0 ? "" : code->allocateName(errorMessage);
         }
         return that;
-    }
-
-    vec4f SimNode_Jit::eval ( Context & context ) {
-        auto result = func(&context, context.abiArg, context.abiCMRES);
-        context.result = result;
-        return result;
-    }
-
-    vec4f SimNode_JitBlock::eval ( Context & context ) {
-        auto ba = (BlockArguments *) ( context.stack.bottom() + blockPtr->argumentsOffset );
-        return func(&context, ba->arguments, ba->copyOrMoveResult, blockPtr );
     }
 
     vec4f SimNode_NOP::eval ( Context & ) {
@@ -212,7 +202,7 @@ namespace das
         DAS_PROFILE_NODE
         union {
             vec4f   res;
-            int64_t val[4];
+            int64_t val[2];
         } R, S;
         S.res = value->eval(context);
         R.val[0] = S.val[fields[0]];
@@ -267,7 +257,7 @@ namespace das
                 if ( message )
                     error_message = error_message + ", " + message;
                 string error = reportError(debugInfo, error_message, "", "");
-#ifdef NDEBUG
+#ifdef DAS_NO_ASSERTIONS
                 error = context.getStackWalk(&debugInfo, false, false) + error;
 #else
                 error = context.getStackWalk(&debugInfo, true, true) + error;
@@ -359,6 +349,13 @@ namespace das
         return that;
     }
 
+    void SimNode_ForWithIteratorBase::closeIterators ( Iterator ** sources, char ** pi, Context & context ) {
+        for ( int t=int(totalSources)-1; t>=0; --t ) {
+            sources[t]->close(context, pi[t]);
+        }
+
+    }
+
     vec4f SimNode_ForWithIteratorBase::eval ( Context & context ) {
         // note: this is the 'slow' version, to which we fall back when there are too many sources
         DAS_PROFILE_NODE
@@ -393,10 +390,8 @@ namespace das
             }
         }
     loopend:
+        closeIterators(sources.data(), pi.data(), context);
         evalFinal(context);
-        for ( int t=0; t!=totalCount; ++t ) {
-            sources[t]->close(context, pi[t]);
-        }
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -438,10 +433,8 @@ namespace das
             }
         }
     loopend:
+        closeIterators(sources.data(), pi.data(), context);
         evalFinal(context);
-        for ( int t=0; t!=totalCount; ++t ) {
-            sources[t]->close(context, pi[t]);
-        }
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -485,10 +478,8 @@ namespace das
             }
         }
     loopend:
+        closeIterators(sources.data(), pi.data(), context);
         this->evalFinal(context);
-        for ( int t=0; t!=totalCount; ++t ) {
-            sources[t]->close(context, pi[t]);
-        }
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -646,13 +637,16 @@ namespace das
         for (; body!=tail; ++body) {
             (*body)->eval(context);
             { if ( context.stopFlags ) {
-                if (context.stopFlags&EvalFlags::jumpToLabel && context.gotoLabel<totalLabels) {
+                if (context.stopFlags&EvalFlags::jumpToLabel) {
+                    if (  context.gotoLabel>=totalLabels ) {
+                        context.throw_error_at(debugInfo, "invalid label index %u", context.gotoLabel);
+                    }
                     body=list+labels[context.gotoLabel];
                     if ( body>=list && body<tail ) {
                         context.stopFlags &= ~EvalFlags::jumpToLabel;
                         goto loopbegin;
                     } else {
-                        context.throw_error_at(debugInfo, "jump to label %i failed", context.gotoLabel);
+                        context.throw_error_at(debugInfo, "jump to label %u failed", context.gotoLabel);
                     }
                 }
                 goto loopend;
@@ -674,13 +668,16 @@ namespace das
             DAS_SINGLE_STEP(context,(*body)->debugInfo,false);
             (*body)->eval(context);
             { if ( context.stopFlags ) {
-                if (context.stopFlags&EvalFlags::jumpToLabel && context.gotoLabel<totalLabels) {
+                if (context.stopFlags&EvalFlags::jumpToLabel) {
+                    if (  context.gotoLabel>=totalLabels ) {
+                        context.throw_error_at(debugInfo, "invalid label index %u", context.gotoLabel);
+                    }
                     body=list+labels[context.gotoLabel];
                     if ( body>=list && body<tail ) {
                         context.stopFlags &= ~EvalFlags::jumpToLabel;
                         goto loopbegin;
                     } else {
-                        context.throw_error_at(debugInfo, "jump to label %i failed", context.gotoLabel);
+                        context.throw_error_at(debugInfo, "jump to label %u failed", context.gotoLabel);
                     }
                 }
                 goto loopend;
@@ -932,6 +929,7 @@ namespace das
         }
         std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
         for ( auto & it : g_DebugAgents ) {
+            if ( !it.second.debugAgent ) continue;
             lmbd ( it.second.debugAgent );
         }
     }
@@ -989,9 +987,9 @@ namespace das
             stringHeap = make_smart<LinearStringAllocator>();
         }
         heap->setInitialSize ( options.getIntOption("heap_size_hint", policies.heap_size_hint) );
-        heap->setLimit ( options.getUInt64Option("heap_size_limit", policies.max_heap_allocated) );
+        heap->setLimit ( options.getUInt64OptionEx("heap_size_limit", "max_heap_allocated", policies.max_heap_allocated) );
         stringHeap->setInitialSize ( options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) );
-        stringHeap->setLimit ( options.getUInt64Option("string_heap_size_limit", policies.max_string_heap_allocated) );
+        stringHeap->setLimit ( options.getUInt64OptionEx("string_heap_size_limit", "max_string_heap_allocated", policies.max_string_heap_allocated) );
         constStringHeap = make_shared<ConstStringAllocator>();
         totalVariables = totalVars;
         if ( globalStringHeapSize ) {
@@ -1133,8 +1131,6 @@ namespace das
         tabMnLookup = ctx.tabMnLookup;
         tabGMnLookup = ctx.tabGMnLookup;
         tabAdLookup = ctx.tabAdLookup;
-        // lockcheck
-        skipLockChecks = ctx.skipLockChecks;
     }
 
     void Context::freeGlobalsAndShared() {
@@ -1151,7 +1147,8 @@ namespace das
     void Context::allocateGlobalsAndShared() {
         freeGlobalsAndShared();
         globals = globalsSize ? (char *) das_aligned_alloc16(globalsSize) : nullptr;
-        shared = sharedOwner ? (char *) das_aligned_alloc16(sharedSize) : nullptr;
+        shared = (sharedOwner && sharedSize) ? (char *) das_aligned_alloc16(sharedSize) : nullptr;
+        if ( shared ) memset(shared, 0, sharedSize);
         globalsOwner = true;
         sharedOwner = true;
     }
@@ -1211,7 +1208,7 @@ namespace das
         globalVariables = ctx.globalVariables;
         totalVariables = ctx.totalVariables;
         if ( ctx.globals ) {
-            globals = (char *) das_aligned_alloc16(globalsSize);
+            globals = (char *) (globalsSize ? das_aligned_alloc16(globalsSize) : nullptr);
         }
         // shared
         sharedSize = ctx.sharedSize;
@@ -1226,8 +1223,8 @@ namespace das
         tabMnLookup = ctx.tabMnLookup;
         tabGMnLookup = ctx.tabGMnLookup;
         tabAdLookup = ctx.tabAdLookup;
-        // lockcheck
-        skipLockChecks = ctx.skipLockChecks;
+        // jit init script
+        jitInitScript = ctx.jitInitScript;
         // threadlock_context
         if ( ctx.contextMutex ) contextMutex = new recursive_mutex;
         // register
@@ -1410,8 +1407,11 @@ namespace das
         };
         abiArg = args;
         abiCMRES = nullptr;
+        if (globals) memset(globals, 0, globalsSize);
         if ( aotInitScript ) {
             aotInitScript->eval(*this);
+        } else if ( jitInitScript ) {
+            jitInitScript(this);
         } else {
 #if DAS_ENABLE_STACK_WALK
             FuncInfo finfo;
@@ -1436,8 +1436,6 @@ namespace das
                         pp->info = nullptr;
 #endif
                     }
-                } else {
-                    memset ( globals + pv.offset, 0, pv.size );
                 }
             }
         }
@@ -1468,11 +1466,22 @@ namespace das
         StackAllocator init_stack(ssz);
         SharedStackGuard guard(*this, init_stack);
         return runWithCatch([&](){
+            vector<SimFunction *> lateShutdown;
             for ( int j=0, js=totalFunctions; j!=js && !stopFlags; ++j ) {
                 auto & pf = functions[j];
                 DAS_ASSERTF(pf.debugInfo, "Missing debug info for %s", pf.name);
                 if ( pf.debugInfo->flags & FuncInfo::flag_shutdown ) {
-                    callOrFastcall(&pf, nullptr, 0);
+                    if ( pf.debugInfo->flags & FuncInfo::flag_late_shutdown ) {
+                        lateShutdown.push_back(&pf);
+                    } else {
+                        callOrFastcall(&pf, nullptr, 0);
+                    }
+                }
+            }
+            if ( !stopFlags && !lateShutdown.empty() ) {
+                for ( auto pf : lateShutdown ) {
+                    callOrFastcall(pf, nullptr, 0);
+                    if ( stopFlags ) break;
                 }
             }
         });
@@ -1542,6 +1551,9 @@ namespace das
         virtual void onCallAOT ( Prologue *, const char * fileName ) override {
             ssw << fileName << ", AOT";
         }
+        virtual void onCallJIT ( Prologue *, const char * fileName ) override {
+            ssw << fileName << ", JIT";
+        }
         virtual void onCallAt ( Prologue *, FuncInfo * info, LineInfo * at ) override {
             ssw << info->name << " from " << at->describe();
         }
@@ -1591,7 +1603,10 @@ namespace das
         }
         virtual bool onAfterCall ( Prologue * ) override {
             return !stackTopOnly;
-         }
+        }
+        virtual void onCorruptStack (Prologue * ) override {
+            ssw << "!!! stack corrupted, aborting stack walk !!!\n";
+        }
     public:
         bool showArguments = true;
         bool showLocalVariables = true;
@@ -1676,8 +1691,8 @@ namespace das
             auto da = make_smart<CppOnlyDebugAgent>();
             agent = (CppOnlyDebugAgent *) da.get();
             g_DebugAgents[category] = {
-                da,
-                nullptr
+                nullptr,
+                da
             };
         }
         lmb(agent);
@@ -1705,31 +1720,28 @@ namespace das
         std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
         auto it = g_DebugAgents.find(category);
         if ( it != g_DebugAgents.end() ) {
+            DebugAgentInstance inst = das::move(it->second);
             g_DebugAgents.erase(it);
+            inst.debugAgent.reset();  // release agent before context
         }
     }
 
-    const char * getLogMarker(int level)
-    {
-        if ( level >= LogLevel::error )
-            return "[E] ";
-        else if ( level >= LogLevel::warning )
-            return "[W] ";
-        else if ( level >= LogLevel::info )
-            return "[I] ";
-        else
-            return "";
-    }
-
-    void logger ( int level, const char *prefix, const char * text, Context * context, LineInfo * at) {
-        bool any = false;
-        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
-            any |= pAgent->onLog(context, at, level, text);
-        });
-        if ( !any ) {
-            das_to_stdout_level_prefix_text(level, prefix, text);
+    void deleteDebugAgent ( const char * category, LineInfoArg * at, Context * context ) {
+        if ( !category ) context->throw_error_at(at, "need to specify category");
+        std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
+        auto it = g_DebugAgents.find(category);
+        if ( it != g_DebugAgents.end() ) {
+            DebugAgent * oldAgentPtr = it->second.debugAgent.get();
+            for ( auto & ap : g_DebugAgents ) {
+                ap.second.debugAgent->onUninstall(oldAgentPtr);
+            }
+            DebugAgentInstance inst = das::move(it->second);
+            g_DebugAgents.erase(it);
+            inst.debugAgent.reset();  // release agent before context
         }
     }
+
+
 
     void installThreadLocalDebugAgent ( DebugAgentPtr newAgent, LineInfoArg * at, Context * context ) {
         if ( *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
@@ -1737,8 +1749,8 @@ namespace das
         }
         std::lock_guard<std::recursive_mutex> guard(g_DebugAgentMutex);
         (*daScriptEnvironment::g_threadLocalDebugAgent) = new DebugAgentInstance{
-            newAgent,
-            context->shared_from_this()
+            context->shared_from_this(),
+            newAgent
         };
         DebugAgent * newAgentPtr = newAgent.get();
         for_each_debug_agent([newAgentPtr](DebugAgentPtr agent){
@@ -1757,8 +1769,8 @@ namespace das
             });
         }
         g_DebugAgents[category] = {
-            newAgent,
-            context->shared_from_this()
+            context->shared_from_this(),
+            newAgent
         };
         DebugAgent * newAgentPtr = newAgent.get();
         for_each_debug_agent([&](const DebugAgentPtr & pAgent){
@@ -1800,6 +1812,7 @@ namespace das
         context->persistent = true;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::debug_context)));
         context->persistent = realPersistent;
+        context->sharedPtrContext = true;
         *g_isInDebugAgentCreation = false;
         vec4f args[1];
         args[0] = cast<Context *>::from(context);
@@ -1819,7 +1832,9 @@ namespace das
                 threadLocalDebugAgent->onUninstall(pAgent.get());
             }
             for ( auto & ap : g_DebugAgents ) {
-                ap.second.debugAgent->onUninstall(pAgent.get());
+                if ( ap.second.debugAgent ) {
+                    ap.second.debugAgent->onUninstall(pAgent.get());
+                }
             }
         });
         das_safe_map<string,DebugAgentInstance> agents;
@@ -1828,6 +1843,11 @@ namespace das
             swap(agents, g_DebugAgents);
             delete (*daScriptEnvironment::g_threadLocalDebugAgent);
             (*daScriptEnvironment::g_threadLocalDebugAgent) = {};
+        }
+        // release agents before contexts to avoid use-after-free
+        // (agent objects live on the context heap)
+        for ( auto & ap : agents ) {
+            ap.second.debugAgent.reset();
         }
     }
 
@@ -1864,8 +1884,19 @@ namespace das
         os_debug_break();
     }
 
-    void Context::to_out ( const LineInfo *, int level, const char * message ) {
+    static DAS_THREAD_LOCAL(bool) g_inLogger;
+
+    void Context::to_out ( const LineInfo * at, int level, const char * message ) {
         if (message) {
+            if ( !*g_inLogger ) {
+                *g_inLogger = true;
+                bool any = false;
+                for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+                    any |= pAgent->onLog(this, at, level, message);
+                });
+                *g_inLogger = false;
+                if ( any ) return;
+            }
             const char * prefix = getLogMarker(level);
             das_to_stdout_level_prefix_text(level, prefix, message);
         }
@@ -1893,9 +1924,9 @@ namespace das
 
     void Context::throw_out_of_memory ( bool isStringHeap, uint32_t size, const LineInfo * at ) {
         if ( isStringHeap ) {
-            throw_error_at(at, "out of string heap memory, requested %u bytes, limit is %llu bytes", size, (unsigned long long) stringHeap->getLimit());
+            throw_error_at(at, "out of string heap memory, requested %u bytes, used %llu / limit %llu", size, (unsigned long long) stringHeap->bytesAllocated(), (unsigned long long) stringHeap->getLimit());
         } else {
-            throw_error_at(at, "out of heap memory, requested %u bytes, limit is %llu bytes", size, (unsigned long long) heap->getLimit());
+            throw_error_at(at, "out of heap memory, requested %u bytes, used %llu / limit %llu", size, (unsigned long long) heap->bytesAllocated(), (unsigned long long) heap->getLimit());
         }
     }
 

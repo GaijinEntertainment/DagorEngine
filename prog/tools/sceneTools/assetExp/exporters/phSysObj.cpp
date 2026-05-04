@@ -48,14 +48,14 @@ bool PhysSysObject::load(Mesh &m, const TMatrix &wtm, const DataBlock &blk)
   if (blk.paramExists("preferMass"))
   {
     useMass = blk.getBool("preferMass", false);
-    massDens = blk.getReal(useMass ? "mass" : "density", -1);
+    massDens = blk.getReal(useMass ? "mass" : "density", 0);
   }
   else
   {
     massDens = blk.getReal("density", -1);
     if (massDens < 0)
     {
-      massDens = blk.getReal("mass", -1);
+      massDens = blk.getReal("mass", 0); // Note: 0 makes it static
       useMass = true;
     }
     else
@@ -92,12 +92,9 @@ bool PhysSysObject::calcMomj(PhysSysObject::Momj &mj)
 
     // transform momj to world space
     Matrix3 ntm;
-    ntm.setcol(0, normalize(wtm.getcol(0)));
-    ntm.setcol(1, normalize(wtm.getcol(1)));
-    ntm.setcol(2, normalize(wtm.getcol(2)));
-
-    if (ntm.det() < 0)
-      ntm.setcol(2, -ntm.getcol(2));
+    ntm.setcol(2, normalize(wtm.getcol(0) % wtm.getcol(1)));
+    ntm.setcol(1, normalize(ntm.getcol(2) % wtm.getcol(0)));
+    ntm.setcol(0, normalize(ntm.getcol(1) % ntm.getcol(2)));
 
     momj = ntm * momj * inverse(ntm);
 
@@ -240,58 +237,67 @@ void PhysSysBodyObject::calcBodyMomjAndTm(dag::ConstSpan<PhysSysObject::Momj> ob
   bool force_cm_posy_0, bool force_cm_posz_0)
 {
   // find center of mass
-  DPoint3 centerOfMass(0, 0, 0);
-  double mass = 0;
+  DPoint3 centerOfMass;
+  double mass;
+  Matrix3 momj;
 
-  for (int i = 0; i < objs.size(); ++i)
+  if (objs.size() == 1)
   {
-    const PhysSysObject::Momj &o = objs[i];
-
-    mass += o.mass;
-    centerOfMass += dpoint3(o.cmPos) * o.mass;
+    centerOfMass = dpoint3(objs[0].cmPos);
+    mass = objs[0].mass;
+    momj = objs[0].momj;
   }
-
-  if (mass != 0)
-    centerOfMass /= mass;
   else
   {
     centerOfMass = DPoint3(0, 0, 0);
+    mass = 0;
+    momj.zero();
 
     for (int i = 0; i < objs.size(); ++i)
     {
       const PhysSysObject::Momj &o = objs[i];
 
-      centerOfMass += dpoint3(o.cmPos);
+      mass += o.mass;
+      centerOfMass += dpoint3(o.cmPos) * o.mass;
     }
 
-    if (objs.size())
-      centerOfMass /= objs.size();
-  }
+    if (mass != 0)
+      centerOfMass /= mass;
+    else
+    {
+      centerOfMass = DPoint3(0, 0, 0);
 
-  // if (mass<0) explog("body '%s' has negative mass!\r\n", (const char*)node->GetName());
+      for (int i = 0; i < objs.size(); ++i)
+      {
+        const PhysSysObject::Momj &o = objs[i];
 
-  // calc total momj
-  Matrix3 momj;
-  momj.zero();
+        centerOfMass += dpoint3(o.cmPos);
+      }
 
-  for (int i = 0; i < objs.size(); ++i)
-  {
-    const PhysSysObject::Momj &o = objs[i];
+      if (objs.size())
+        centerOfMass /= objs.size();
+    }
 
-    momj += o.momj;
+    // calc total momj
+    for (int i = 0; i < objs.size(); ++i)
+    {
+      const PhysSysObject::Momj &o = objs[i];
 
-    DPoint3 r = dpoint3(o.cmPos) - centerOfMass;
+      momj += o.momj;
 
-    momj[0][0] += o.mass * (r.y * r.y + r.z * r.z);
-    momj[1][1] += o.mass * (r.z * r.z + r.x * r.x);
-    momj[2][2] += o.mass * (r.x * r.x + r.y * r.y);
+      DPoint3 r = dpoint3(o.cmPos) - centerOfMass;
 
-    momj[0][1] -= o.mass * r.x * r.y;
-    momj[1][0] -= o.mass * r.x * r.y;
-    momj[0][2] -= o.mass * r.x * r.z;
-    momj[2][0] -= o.mass * r.x * r.z;
-    momj[1][2] -= o.mass * r.y * r.z;
-    momj[2][1] -= o.mass * r.y * r.z;
+      momj[0][0] += o.mass * (r.y * r.y + r.z * r.z);
+      momj[1][1] += o.mass * (r.z * r.z + r.x * r.x);
+      momj[2][2] += o.mass * (r.x * r.x + r.y * r.y);
+
+      momj[0][1] -= o.mass * r.x * r.y;
+      momj[1][0] -= o.mass * r.x * r.y;
+      momj[0][2] -= o.mass * r.x * r.z;
+      momj[2][0] -= o.mass * r.x * r.z;
+      momj[1][2] -= o.mass * r.y * r.z;
+      momj[2][1] -= o.mass * r.y * r.z;
+    }
   }
 
   if (force_ident_tm)

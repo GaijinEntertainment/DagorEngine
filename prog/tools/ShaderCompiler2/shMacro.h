@@ -99,11 +99,13 @@ class ShaderMacroManager
   Tab<eastl::unique_ptr<ShaderMacro>> objList{};
   FastNameMap objNameMap{};
   Tab<MacroCode *> codeStack{};
+  Tab<MacroCode *> codeStackBackup{};
 
   // parse macro declaration (return false if failed)
   bool inMacroDefinition = false;
 
 public:
+  ~ShaderMacroManager() { G_ASSERT(codeStack.empty()); }
   // parse new macro definition & add new macros; return false if failed
   bool parseDefinition(Lexer &parser, bool optional);
 
@@ -118,6 +120,9 @@ public:
 
   // return current macro decription for error message
   const String &getCurrentMacroDesc(Lexer &lexer) const;
+
+  void saveStack() { codeStackBackup = std::move(codeStack); }
+  void restoreStack() { codeStack = std::move(codeStackBackup); }
 
 private:
   // find macro by it's name

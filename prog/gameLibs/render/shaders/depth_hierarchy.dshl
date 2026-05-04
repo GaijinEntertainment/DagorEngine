@@ -5,6 +5,7 @@ interval downsample_op: mip_min<1, mip_max;
 
 int required_mip_count;
 int work_group_count;
+int4 depth_buffer_size;
 
 int g_global_counter_no = 12;
 
@@ -56,13 +57,18 @@ shader depth_hierarchy
         globallycoherent RWStructuredBuffer<uint> g_global_counter@uav;
       }
     }
+
+    g_depth_buffer@tex : register(0) hlsl {
+      Texture2D<float> g_depth_buffer@tex;
+    }
+    g_depth_buffer_size@u2 = depth_buffer_size;
+    g_downsampled_depth_buffer@uav[12] : register(0) hlsl {
+      RWTexture2D<float> g_downsampled_depth_buffer@uav;
+    }
   }
 
   hlsl(cs) {
     #include <depth_hierarchy_inc.hlsli>
-
-    Texture2D<float> g_depth_buffer : register(t0);
-    RWTexture2D<float> g_downsampled_depth_buffer[12] : register(u0);
 
     //
     // Taken from https://github.com/GPUOpen-Effects/FidelityFX-SPD
@@ -70,10 +76,10 @@ shader depth_hierarchy
 
     float ReduceSrcDepth4(uint2 base)
     {
-      float v0 = g_depth_buffer[base + uint2(0, 0)];
-      float v1 = g_depth_buffer[base + uint2(0, 1)];
-      float v2 = g_depth_buffer[base + uint2(1, 0)];
-      float v3 = g_depth_buffer[base + uint2(1, 1)];
+      float v0 = g_depth_buffer[min(base + uint2(0, 0), g_depth_buffer_size - uint2(1, 1))];
+      float v1 = g_depth_buffer[min(base + uint2(0, 1), g_depth_buffer_size - uint2(1, 1))];
+      float v2 = g_depth_buffer[min(base + uint2(1, 0), g_depth_buffer_size - uint2(1, 1))];
+      float v3 = g_depth_buffer[min(base + uint2(1, 1), g_depth_buffer_size - uint2(1, 1))];
       return REDUCE_OP(REDUCE_OP(v0, v1), REDUCE_OP(v2, v3));
     }
 
@@ -83,6 +89,8 @@ shader depth_hierarchy
 
     void WriteDstDepth(uint index, uint2 icoord, float v)
     {
+      if (any(icoord >= (g_depth_buffer_size.xy >> (index + 1))))
+        return;
       g_downsampled_depth_buffer[index][icoord] = v;
     }
     float ReduceQuad(float v, uint2 xy)

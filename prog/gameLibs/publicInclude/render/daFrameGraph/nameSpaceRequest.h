@@ -22,13 +22,14 @@ namespace dafg
  */
 class NameSpaceRequest
 {
-  friend class Registry;
+  friend class BaseRegistry;
 
   NameSpaceRequest(NameSpaceNameId ns, NodeNameId node, InternalRegistry *reg) : nameSpaceId{ns}, nodeId{node}, registry{reg} {}
 
   using RRP = detail::ResourceRequestPolicy;
 
   static constexpr RRP NewRwRequestPolicy = RRP::HasClearValue;
+  static constexpr RRP NewNameRequestPolicy = RRP::HasClearValue | RRP::CanSpecifyHistory;
   static constexpr RRP NewRoRequestPolicy = RRP::Readonly;
   static constexpr RRP NewHistRequestPolicy = RRP::Readonly | RRP::History;
 
@@ -133,7 +134,7 @@ public:
    * \param history Whether the new resource needs history enabled,
    *   see \ref create for details about history.
    */
-  VirtualResourceSemiRequest<NewRwRequestPolicy> rename(const char *from, const char *to, History history) const;
+  VirtualResourceSemiRequest<NewNameRequestPolicy> rename(const char *from, const char *to) const;
 
   ///@}
 
@@ -156,9 +157,9 @@ public:
   VirtualTextureRequest<NewRwRequestPolicy> modifyTexture(NamedSlot slot_name) const { return modify(slot_name).texture(); }
 
   /// \brief Alias. See \ref rename function for details.
-  VirtualTextureRequest<NewRwRequestPolicy> renameTexture(const char *from, const char *to, History history) const
+  VirtualTextureRequest<NewNameRequestPolicy> renameTexture(const char *from, const char *to) const
   {
-    return rename(from, to, history).texture();
+    return rename(from, to).texture();
   }
 
   /// \brief Alias. See \ref read functions for details.
@@ -184,9 +185,9 @@ public:
 
   /// \brief Alias. See \ref rename function for details.
   template <class T>
-  VirtualBlobRequest<T, NewRwRequestPolicy> renameBlob(const char *from, const char *to, History history) const
+  VirtualBlobRequest<T, NewNameRequestPolicy> renameBlob(const char *from, const char *to) const
   {
-    return rename(from, to, history).blob<T>();
+    return rename(from, to).blob<T>();
   }
 
   ///@}

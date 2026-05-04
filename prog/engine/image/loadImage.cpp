@@ -1,10 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <image/dag_loadImage.h>
+#include <image/dag_jpeg.h>
+#include <image/dag_png.h>
 #include <generic/dag_initOnDemand.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_localConv.h>
+#include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_genIo.h>
 #include <util/dag_string.h>
 #include "resampleImage.h"
@@ -54,9 +58,10 @@ static const char *get_trimmed_fn_and_decode_suffix(const char *fn, const char *
     if (!decode_fname_suffix(suf + 1, w, h, keep_ar, premul, fn_ext))
       return nullptr;
 
-    if (fn_ext > fn && fn_ext < fn + strlen(fn))
+    size_t sufLen = strlen(suf), fnLen = strlen(fn);
+    if (sufLen < fnLen)
     {
-      fn_trimmed.setSubStr(fn, suf);
+      fn_trimmed.setSubStr(fn, fn + fnLen - sufLen);
       fn_ext = dd_get_fname_ext(fn_trimmed);
       return fn_trimmed;
     }
@@ -196,4 +201,41 @@ void *load_image2(IGenLoad &crd, const char *fn_ext, IAllocImg &a)
     if (void *t = (*lif_list)[i]->loadImage2(crd, a, fn_ext))
       return t;
   return NULL;
+}
+bool load_meta_info_from_image(const char *screenshot_path, DataBlock &meta_info, String &error_message)
+{
+  FullFileLoadCB crd(screenshot_path);
+  if (!crd.fileHandle)
+  {
+    error_message = "Cannot read screenshot.";
+    return false;
+  }
+
+  eastl::string comment;
+  TexImage32 *img = load_jpeg32(crd, stdmem_ptr(), &comment);
+  if (!img)
+  {
+    crd.seekto(0);
+    img = load_png32(crd, stdmem_ptr(), nullptr, &comment);
+    if (!img)
+    {
+      error_message = "Cannot parse screenshot.";
+      return false;
+    }
+  }
+  delete img;
+
+  if (comment.empty())
+  {
+    error_message = "No meta info in screenshot.";
+    return false;
+  }
+
+  if (!meta_info.loadText(comment.c_str(), comment.size(), screenshot_path))
+  {
+    error_message = "Cannot load meta info from screenshot.";
+    return false;
+  }
+
+  return true;
 }

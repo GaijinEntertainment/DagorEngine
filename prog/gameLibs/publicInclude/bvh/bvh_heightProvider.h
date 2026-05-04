@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <math/dag_Point3.h>
+#include <math/dag_Point2.h>
 
 namespace bvh
 {
@@ -12,7 +12,7 @@ namespace bvh
 struct HeightProvider
 {
   virtual bool embedNormals() const = 0;
-  virtual void getHeight(void *data, const Point2 &origin, int cell_size, int cell_count, bool &has_hole) const = 0;
+  virtual void getHeight(void *data, const Point2 &origin, int cell_size, int cell_count) const = 0;
 };
 
 } // namespace bvh

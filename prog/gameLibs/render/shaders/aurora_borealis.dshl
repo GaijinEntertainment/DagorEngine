@@ -5,6 +5,7 @@ include "clouds2/clouds_alt_fraction.dshl"
 include "panorama.dshl"
 include "skies_special_vision.dshl"
 include "use_custom_fog_sky.dshl"
+include "camera_in_camera.dshl"
 
 float4 aurora_borealis_bottom = (0.1, 1.0, 1.0, 5.0);
 float4 aurora_borealis_top = (1.000, 0.1, 0.3, 9.0);
@@ -18,9 +19,17 @@ float aurora_borealis_ripples_strength = 0.8;
 texture aurora_borealis_tex;
 texture perlin_noise3d;
 
+define_macro_if_not_defined SUPPORT_GLOBAL_FRAME()
+endmacro
+
+define_macro_if_not_defined INIT_HDR_SUPPORT_GLOBAL_FRAME(code)
+  INIT_HDR(code)
+endmacro
+
 shader aurora_borealis
 {
-  supports global_frame;
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+  SUPPORT_GLOBAL_FRAME()
 
   cull_mode = none;
   z_write = false;
@@ -124,6 +133,8 @@ shader aurora_borealis
 
     float3 aurora_borealis(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
+      DISCARD_IF_INVALID_VIEW_AREA_PS(input.uv);
+
       float3 view = normalize(input.viewVect);
       BRANCH
       if (view.y < LOW || view.y > HIGH)
@@ -165,7 +176,7 @@ shader aurora_borealis
 
 shader apply_aurora_borealis
 {
-  supports global_frame;
+  SUPPORT_GLOBAL_FRAME()
 
   cull_mode = none;
   z_write = false;
@@ -174,13 +185,10 @@ shader apply_aurora_borealis
 
   POSTFX_VS_TEXCOORD(0, uv)
 
-  // In compatibility mode, INIT_HDR(ps) is in <global_frame> block
-  if (compatibility_mode == compatibility_mode_off)
-  {
-    INIT_HDR(ps)
-  }
+  INIT_HDR_SUPPORT_GLOBAL_FRAME(ps)
 
   USE_HDR(ps)
+  INIT_ZNZFAR()
   USE_CUSTOM_FOG_SKY(ps)
 
   (ps) {

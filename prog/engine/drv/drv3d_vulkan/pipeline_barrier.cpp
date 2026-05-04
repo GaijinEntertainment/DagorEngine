@@ -195,6 +195,24 @@ void PipelineBarrier::modifyBufferTemplate(const Buffer *buf) { barrierTemplate.
 
 void PipelineBarrier::modifyBufferTemplate(VulkanBufferHandle buf) { barrierTemplate.buffer.handle = buf; }
 
+void PipelineBarrier::addBufferOwnershipTransferByTemplate(uint32_t src, uint32_t dst, VkDeviceSize offset, VkDeviceSize size)
+{
+  BufferTemplate &tpl = barrierTemplate.buffer;
+  BarrierStageCache &stagedCache = nextCacheStage(cache, tpl.stage);
+  VkBufferMemoryBarrier &newBarrier = nextCacheElement(stagedCache.buffer);
+
+  newBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  newBarrier.pNext = nullptr;
+  newBarrier.srcQueueFamilyIndex = src;
+  newBarrier.dstQueueFamilyIndex = dst;
+
+  newBarrier.srcAccessMask = tpl.mask.src;
+  newBarrier.dstAccessMask = tpl.mask.dst;
+  newBarrier.buffer = tpl.handle;
+  newBarrier.offset = offset;
+  newBarrier.size = size;
+}
+
 void PipelineBarrier::addBufferByTemplate(VkDeviceSize offset, VkDeviceSize size)
 {
   BufferTemplate &tpl = barrierTemplate.buffer;

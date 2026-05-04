@@ -1,0 +1,69 @@
+include "shader_global.dshl"
+include "skinning_inc2.dshl"
+include "animchar_additional_data.dshl"
+
+int enable_ri_disintegration_animation = 0;
+interval enable_ri_disintegration_animation : disabled<1, enabled;
+
+// This needs to be used before defining the VsOutput (for the destr_params)
+macro DYNAMIC_DESTR_DISAPPEAR_INIT()
+  if (enable_ri_disintegration_animation == enabled)
+  {
+    hlsl
+    {
+      #define DYNAMIC_DESTR_DISAPPEAR_ENABLED 1
+    }
+  }
+endmacro
+
+// This needs to be used after defining the VsOutput, but before the PS / compile statement for the PS
+macro DYNAMIC_DESTR_DISAPPEAR_USE()
+
+  if (enable_ri_disintegration_animation == enabled)
+  {
+    hlsl(vs) {
+      #include <animchar_additional_data_types.hlsli>
+
+      float4 generate_destr_params(float3 model_pos)
+      {
+        float4 initialTm0, initialTm1, initialTm2;
+        get_initial_tm(initialTm0, initialTm1, initialTm2);
+        float scaling = length(initialTm0.xyz); // Assumes an orthonormal matrix
+
+        uint2 destrParamsOffsetCount = get_offset_count_additional_data(AAD_RAW_DESTR_PARAMS);
+        float4 destrParams = get_optional_additional_data(destrParamsOffsetCount, 0, float4(0, 0, 0, 0));
+
+        // Undo scaling to make the patterns uniformly sized on all objects, but keep the position in local space otherwise
+        return float4(model_pos * scaling * destrParams.y, destrParams.x);
+      }
+    }
+
+    hlsl(ps) {
+      #include <noise/Perlin3D.hlsl>
+
+      void apply_destr_disappear(float4 destr_params)
+      {
+        BRANCH
+        if (destr_params.w > 0)
+        {
+          const float clipOffset = 0.01;
+
+          float state = destr_params.w;
+
+          float noiseValue = noise_Perlin3D(destr_params.xyz) * 0.5 + 0.5;
+          if (clipOffset + noiseValue - state < 0)
+            discard;
+        }
+      }
+
+      ##if dyn_model_render_pass == render_to_depth
+        void render_depth_disintegration_ps(VsOutput input)
+        {
+          #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+            apply_destr_disappear(input.destr_params);
+          #endif
+        }
+      ##endif
+    }
+  }
+endmacro

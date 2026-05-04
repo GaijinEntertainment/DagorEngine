@@ -127,7 +127,8 @@ static void ground_holes_before_render_es_all_events(const ecs::Event &__restric
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(ground_holes_before_render_es_comps, "holes", ecs::Point4List)
+        , components.manager()
+    , ECS_RW_COMP(ground_holes_before_render_es_comps, "holes", ecs::Point4List)
     , ECS_RW_COMP(ground_holes_before_render_es_comps, "invalidate_bboxes", ecs::Point3List)
     , ECS_RO_COMP(ground_holes_before_render_es_comps, "should_render_ground_holes", bool)
     );
@@ -204,9 +205,9 @@ static constexpr ecs::ComponentDesc ground_hole_zone_on_appear_es_comps[] =
 };
 static void ground_hole_zone_on_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   ground_hole_zone_on_appear_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc ground_hole_zone_on_appear_es_es_desc
 (
@@ -319,9 +320,9 @@ static ecs::CompileTimeQueryDesc spawn_hole_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void spawn_hole_ecs_query(Callable function)
+inline void spawn_hole_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, spawn_hole_ecs_query_desc.getHandle(),
+  perform_query(&manager, spawn_hole_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -349,9 +350,9 @@ static ecs::CompileTimeQueryDesc get_underground_zones_buf_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_underground_zones_buf_ecs_query(Callable function)
+inline void get_underground_zones_buf_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_underground_zones_buf_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_underground_zones_buf_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

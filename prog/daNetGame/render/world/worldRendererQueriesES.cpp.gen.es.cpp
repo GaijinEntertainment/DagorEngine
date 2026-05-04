@@ -21,7 +21,7 @@ static ecs::EntitySystemDesc camera_update_lods_scaling_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
-,"render",nullptr,"after_camera_sync","bvh_out_of_scope_riex_dist_es");
+,"render",nullptr,nullptr,"after_camera_sync");
 //static constexpr ecs::ComponentDesc invalidate_clipmap_under_camera_es_comps[] ={};
 static void invalidate_clipmap_under_camera_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -171,9 +171,9 @@ static ecs::CompileTimeQueryDesc get_fpv_shadow_dist_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_fpv_shadow_dist_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_fpv_shadow_dist_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_fpv_shadow_dist_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_fpv_shadow_dist_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -201,9 +201,9 @@ static ecs::CompileTimeQueryDesc get_camera_fov_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_camera_fov_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_camera_fov_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_camera_fov_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_camera_fov_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -234,9 +234,9 @@ static ecs::CompileTimeQueryDesc gather_closest_occluders_ecs_query_desc
   make_span(gather_closest_occluders_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gather_closest_occluders_ecs_query(Callable function)
+inline void gather_closest_occluders_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_closest_occluders_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_closest_occluders_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -267,9 +267,9 @@ static ecs::CompileTimeQueryDesc try_render_custom_sky_ecs_query_desc
   make_span(try_render_custom_sky_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult try_render_custom_sky_ecs_query(Callable function)
+inline ecs::QueryCbResult try_render_custom_sky_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, try_render_custom_sky_ecs_query_desc.getHandle(),
+  return perform_query(&manager, try_render_custom_sky_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -296,9 +296,9 @@ static ecs::CompileTimeQueryDesc find_custom_sky_ecs_query_desc
   make_span(find_custom_sky_ecs_query_comps+0, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult find_custom_sky_ecs_query(Callable function)
+inline ecs::QueryCbResult find_custom_sky_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, find_custom_sky_ecs_query_desc.getHandle(),
+  return perform_query(&manager, find_custom_sky_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -325,9 +325,9 @@ static ecs::CompileTimeQueryDesc get_envi_probe_render_flags_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_envi_probe_render_flags_ecs_query(Callable function)
+inline void get_envi_probe_render_flags_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_envi_probe_render_flags_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_envi_probe_render_flags_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -356,9 +356,9 @@ static ecs::CompileTimeQueryDesc find_custom_envi_probe_renderer_ecs_query_desc
   make_span(find_custom_envi_probe_renderer_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult find_custom_envi_probe_renderer_ecs_query(Callable function)
+inline ecs::QueryCbResult find_custom_envi_probe_renderer_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, find_custom_envi_probe_renderer_ecs_query_desc.getHandle(),
+  return perform_query(&manager, find_custom_envi_probe_renderer_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -387,9 +387,9 @@ static ecs::CompileTimeQueryDesc gather_occlusion_data_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_occlusion_data_ecs_query(Callable function)
+inline void gather_occlusion_data_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_occlusion_data_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_occlusion_data_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -419,9 +419,9 @@ static ecs::CompileTimeQueryDesc gather_underground_zones_ecs_query_desc
   make_span(gather_underground_zones_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gather_underground_zones_ecs_query(Callable function)
+inline void gather_underground_zones_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_underground_zones_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_underground_zones_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -447,9 +447,9 @@ static ecs::CompileTimeQueryDesc needs_water_heightmap_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void needs_water_heightmap_ecs_query(Callable function)
+inline void needs_water_heightmap_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, needs_water_heightmap_ecs_query_desc.getHandle(),
+  perform_query(&manager, needs_water_heightmap_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -475,9 +475,9 @@ static ecs::CompileTimeQueryDesc use_foam_tex_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void use_foam_tex_ecs_query(Callable function)
+inline void use_foam_tex_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, use_foam_tex_ecs_query_desc.getHandle(),
+  perform_query(&manager, use_foam_tex_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -503,9 +503,9 @@ static ecs::CompileTimeQueryDesc use_wfx_textures_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void use_wfx_textures_ecs_query(Callable function)
+inline void use_wfx_textures_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, use_wfx_textures_ecs_query_desc.getHandle(),
+  perform_query(&manager, use_wfx_textures_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -518,62 +518,28 @@ inline void use_wfx_textures_ecs_query(Callable function)
     }
   );
 }
-static constexpr ecs::ComponentDesc gather_is_camera_inside_custom_gi_zones_ecs_query_comps[] =
+static constexpr ecs::ComponentDesc get_sky_polarization_filter_term_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
-  {ECS_HASH("is_camera_inside_box"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [1]
-  {ECS_HASH("custom_gi_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
+  {ECS_HASH("sky_polarization_filter__value"), ecs::ComponentTypeInfo<float>()}
 };
-static ecs::CompileTimeQueryDesc gather_is_camera_inside_custom_gi_zones_ecs_query_desc
+static ecs::CompileTimeQueryDesc get_sky_polarization_filter_term_ecs_query_desc
 (
-  "gather_is_camera_inside_custom_gi_zones_ecs_query",
+  "get_sky_polarization_filter_term_ecs_query",
   empty_span(),
-  make_span(gather_is_camera_inside_custom_gi_zones_ecs_query_comps+0, 1)/*ro*/,
-  make_span(gather_is_camera_inside_custom_gi_zones_ecs_query_comps+1, 1)/*rq*/,
+  make_span(get_sky_polarization_filter_term_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_is_camera_inside_custom_gi_zones_ecs_query(Callable function)
+inline void get_sky_polarization_filter_term_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_is_camera_inside_custom_gi_zones_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_sky_polarization_filter_term_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(gather_is_camera_inside_custom_gi_zones_ecs_query_comps, "is_camera_inside_box", bool)
-            );
-
-        }while (++comp != compE);
-    }
-  );
-}
-static constexpr ecs::ComponentDesc gather_custom_gi_zones_bbox_ecs_query_comps[] =
-{
-//start of 2 ro components at [0]
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("is_camera_inside_box"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [2]
-  {ECS_HASH("custom_gi_zone"), ecs::ComponentTypeInfo<ecs::Tag>()}
-};
-static ecs::CompileTimeQueryDesc gather_custom_gi_zones_bbox_ecs_query_desc
-(
-  "gather_custom_gi_zones_bbox_ecs_query",
-  empty_span(),
-  make_span(gather_custom_gi_zones_bbox_ecs_query_comps+0, 2)/*ro*/,
-  make_span(gather_custom_gi_zones_bbox_ecs_query_comps+2, 1)/*rq*/,
-  empty_span());
-template<typename Callable>
-inline void gather_custom_gi_zones_bbox_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, gather_custom_gi_zones_bbox_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RO_COMP(gather_custom_gi_zones_bbox_ecs_query_comps, "transform", TMatrix)
-            , ECS_RO_COMP(gather_custom_gi_zones_bbox_ecs_query_comps, "is_camera_inside_box", bool)
+              ECS_RO_COMP(get_sky_polarization_filter_term_ecs_query_comps, "sky_polarization_filter__value", float)
             );
 
         }while (++comp != compE);

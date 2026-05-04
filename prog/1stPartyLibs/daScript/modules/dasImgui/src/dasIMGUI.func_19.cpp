@@ -12,86 +12,80 @@
 namespace das {
 #include "dasIMGUI.func.aot.decl.inc"
 void Module_dasIMGUI::initFunctions_19() {
-// from imgui/imgui.h:1079:33
-	makeExtern< ImGuiPlatformIO & (*)() , ImGui::GetPlatformIO , SimNode_ExtFuncCallRef , imguiTempFn>(lib,"GetPlatformIO","ImGui::GetPlatformIO")
+// from imgui/imgui.h:1166:29
+	makeExtern< void (*)(const char *) , ImGui::LoadIniSettingsFromDisk , SimNode_ExtFuncCall , imguiTempFn>(lib,"LoadIniSettingsFromDisk","ImGui::LoadIniSettingsFromDisk")
+		->args({"ini_filename"})
 		->addToModule(*this, SideEffects::worstDefault);
-// from imgui/imgui.h:1080:33
+// from imgui/imgui.h:1167:29
+	makeExtern< void (*)(const char *,uint64_t) , ImGui::LoadIniSettingsFromMemory , SimNode_ExtFuncCall , imguiTempFn>(lib,"LoadIniSettingsFromMemory","ImGui::LoadIniSettingsFromMemory")
+		->args({"ini_data","ini_size"})
+		->arg_init(1,make_smart<ExprConstUInt64>(0x0))
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1168:29
+	makeExtern< void (*)(const char *) , ImGui::SaveIniSettingsToDisk , SimNode_ExtFuncCall , imguiTempFn>(lib,"SaveIniSettingsToDisk","ImGui::SaveIniSettingsToDisk")
+		->args({"ini_filename"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1169:29
+	makeExtern< const char * (*)(size_t *) , ImGui::SaveIniSettingsToMemory , SimNode_ExtFuncCall , imguiTempFn>(lib,"SaveIniSettingsToMemory","ImGui::SaveIniSettingsToMemory")
+		->args({"out_ini_size"})
+		->arg_init(0,make_smart<ExprConstPtr>())
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1175:29
+	makeExtern< void (*)(const char *) , ImGui::DebugTextEncoding , SimNode_ExtFuncCall , imguiTempFn>(lib,"DebugTextEncoding","ImGui::DebugTextEncoding")
+		->args({"text"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1176:29
+	makeExtern< void (*)(int) , ImGui::DebugFlashStyleColor , SimNode_ExtFuncCall , imguiTempFn>(lib,"DebugFlashStyleColor","ImGui::DebugFlashStyleColor")
+		->args({"idx"})
+		->arg_type(0,makeType<ImGuiCol_>(lib))
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1177:29
+	makeExtern< void (*)() , ImGui::DebugStartItemPicker , SimNode_ExtFuncCall , imguiTempFn>(lib,"DebugStartItemPicker","ImGui::DebugStartItemPicker")
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1178:29
+	makeExtern< bool (*)(const char *,size_t,size_t,size_t,size_t,size_t,size_t) , ImGui::DebugCheckVersionAndDataLayout , SimNode_ExtFuncCall , imguiTempFn>(lib,"DebugCheckVersionAndDataLayout","ImGui::DebugCheckVersionAndDataLayout")
+		->args({"version_str","sz_io","sz_style","sz_vec2","sz_vec4","sz_drawvert","sz_drawidx"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1190:29
+	makeExtern< void * (*)(size_t) , ImGui::MemAlloc , SimNode_ExtFuncCall , imguiTempFn>(lib,"MemAlloc","ImGui::MemAlloc")
+		->args({"size"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1191:29
+	makeExtern< void (*)(void *) , ImGui::MemFree , SimNode_ExtFuncCall , imguiTempFn>(lib,"MemFree","ImGui::MemFree")
+		->args({"ptr"})
+		->addToModule(*this, SideEffects::worstDefault);
+// from imgui/imgui.h:1196:29
 	makeExtern< void (*)() , ImGui::UpdatePlatformWindows , SimNode_ExtFuncCall , imguiTempFn>(lib,"UpdatePlatformWindows","ImGui::UpdatePlatformWindows")
 		->addToModule(*this, SideEffects::worstDefault);
-// from imgui/imgui.h:1081:33
+// from imgui/imgui.h:1197:29
 	makeExtern< void (*)(void *,void *) , ImGui::RenderPlatformWindowsDefault , SimNode_ExtFuncCall , imguiTempFn>(lib,"RenderPlatformWindowsDefault","ImGui::RenderPlatformWindowsDefault")
 		->args({"platform_render_arg","renderer_render_arg"})
 		->arg_init(0,make_smart<ExprConstPtr>())
 		->arg_init(1,make_smart<ExprConstPtr>())
 		->addToModule(*this, SideEffects::worstDefault);
-// from imgui/imgui.h:1082:33
+// from imgui/imgui.h:1198:29
 	makeExtern< void (*)() , ImGui::DestroyPlatformWindows , SimNode_ExtFuncCall , imguiTempFn>(lib,"DestroyPlatformWindows","ImGui::DestroyPlatformWindows")
 		->addToModule(*this, SideEffects::worstDefault);
-// from imgui/imgui.h:1083:33
+// from imgui/imgui.h:1199:30
 	makeExtern< ImGuiViewport * (*)(unsigned int) , ImGui::FindViewportByID , SimNode_ExtFuncCall , imguiTempFn>(lib,"FindViewportByID","ImGui::FindViewportByID")
-		->args({"id"})
+		->args({"viewport_id"})
 		->addToModule(*this, SideEffects::worstDefault);
-// from imgui/imgui.h:1084:33
+// from imgui/imgui.h:1200:30
 	makeExtern< ImGuiViewport * (*)(void *) , ImGui::FindViewportByPlatformHandle , SimNode_ExtFuncCall , imguiTempFn>(lib,"FindViewportByPlatformHandle","ImGui::FindViewportByPlatformHandle")
 		->args({"platform_handle"})
 		->addToModule(*this, SideEffects::worstDefault);
 	addCtorAndUsing<ImGuiTableSortSpecs>(*this,lib,"ImGuiTableSortSpecs","ImGuiTableSortSpecs");
 	addCtorAndUsing<ImGuiTableColumnSortSpecs>(*this,lib,"ImGuiTableColumnSortSpecs","ImGuiTableColumnSortSpecs");
 	addCtorAndUsing<ImGuiStyle>(*this,lib,"ImGuiStyle","ImGuiStyle");
-	using _method_1 = das::das_call_member< void (ImGuiStyle::*)(float),&ImGuiStyle::ScaleAllSizes >;
-// from imgui/imgui.h:2264:20
-	makeExtern<DAS_CALL_METHOD(_method_1), SimNode_ExtFuncCall , imguiTempFn>(lib,"ScaleAllSizes","das_call_member< void (ImGuiStyle::*)(float) , &ImGuiStyle::ScaleAllSizes >::invoke")
+	using _method_2 = das::das_call_member< void (ImGuiStyle::*)(float),&ImGuiStyle::ScaleAllSizes >;
+// from imgui/imgui.h:2455:22
+	makeExtern<DAS_CALL_METHOD(_method_2), SimNode_ExtFuncCall , imguiTempFn>(lib,"ScaleAllSizes","das_call_member< void (ImGuiStyle::*)(float) , &ImGuiStyle::ScaleAllSizes >::invoke")
 		->args({"self","scale_factor"})
 		->addToModule(*this, SideEffects::worstDefault);
-	using _method_2 = das::das_call_member< void (ImGuiIO::*)(ImGuiKey,bool),&ImGuiIO::AddKeyEvent >;
-// from imgui/imgui.h:2401:21
-	makeExtern<DAS_CALL_METHOD(_method_2), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddKeyEvent","das_call_member< void (ImGuiIO::*)(ImGuiKey,bool) , &ImGuiIO::AddKeyEvent >::invoke")
+	using _method_3 = das::das_call_member< void (ImGuiIO::*)(ImGuiKey,bool),&ImGuiIO::AddKeyEvent >;
+// from imgui/imgui.h:2625:21
+	makeExtern<DAS_CALL_METHOD(_method_3), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddKeyEvent","das_call_member< void (ImGuiIO::*)(ImGuiKey,bool) , &ImGuiIO::AddKeyEvent >::invoke")
 		->args({"self","key","down"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_3 = das::das_call_member< void (ImGuiIO::*)(ImGuiKey,bool,float),&ImGuiIO::AddKeyAnalogEvent >;
-// from imgui/imgui.h:2402:21
-	makeExtern<DAS_CALL_METHOD(_method_3), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddKeyAnalogEvent","das_call_member< void (ImGuiIO::*)(ImGuiKey,bool,float) , &ImGuiIO::AddKeyAnalogEvent >::invoke")
-		->args({"self","key","down","v"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_4 = das::das_call_member< void (ImGuiIO::*)(float,float),&ImGuiIO::AddMousePosEvent >;
-// from imgui/imgui.h:2403:21
-	makeExtern<DAS_CALL_METHOD(_method_4), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddMousePosEvent","das_call_member< void (ImGuiIO::*)(float,float) , &ImGuiIO::AddMousePosEvent >::invoke")
-		->args({"self","x","y"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_5 = das::das_call_member< void (ImGuiIO::*)(int,bool),&ImGuiIO::AddMouseButtonEvent >;
-// from imgui/imgui.h:2404:21
-	makeExtern<DAS_CALL_METHOD(_method_5), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddMouseButtonEvent","das_call_member< void (ImGuiIO::*)(int,bool) , &ImGuiIO::AddMouseButtonEvent >::invoke")
-		->args({"self","button","down"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_6 = das::das_call_member< void (ImGuiIO::*)(float,float),&ImGuiIO::AddMouseWheelEvent >;
-// from imgui/imgui.h:2405:21
-	makeExtern<DAS_CALL_METHOD(_method_6), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddMouseWheelEvent","das_call_member< void (ImGuiIO::*)(float,float) , &ImGuiIO::AddMouseWheelEvent >::invoke")
-		->args({"self","wheel_x","wheel_y"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_7 = das::das_call_member< void (ImGuiIO::*)(ImGuiMouseSource),&ImGuiIO::AddMouseSourceEvent >;
-// from imgui/imgui.h:2406:21
-	makeExtern<DAS_CALL_METHOD(_method_7), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddMouseSourceEvent","das_call_member< void (ImGuiIO::*)(ImGuiMouseSource) , &ImGuiIO::AddMouseSourceEvent >::invoke")
-		->args({"self","source"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_8 = das::das_call_member< void (ImGuiIO::*)(unsigned int),&ImGuiIO::AddMouseViewportEvent >;
-// from imgui/imgui.h:2407:21
-	makeExtern<DAS_CALL_METHOD(_method_8), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddMouseViewportEvent","das_call_member< void (ImGuiIO::*)(unsigned int) , &ImGuiIO::AddMouseViewportEvent >::invoke")
-		->args({"self","id"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_9 = das::das_call_member< void (ImGuiIO::*)(bool),&ImGuiIO::AddFocusEvent >;
-// from imgui/imgui.h:2408:21
-	makeExtern<DAS_CALL_METHOD(_method_9), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddFocusEvent","das_call_member< void (ImGuiIO::*)(bool) , &ImGuiIO::AddFocusEvent >::invoke")
-		->args({"self","focused"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_10 = das::das_call_member< void (ImGuiIO::*)(unsigned int),&ImGuiIO::AddInputCharacter >;
-// from imgui/imgui.h:2409:21
-	makeExtern<DAS_CALL_METHOD(_method_10), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddInputCharacter","das_call_member< void (ImGuiIO::*)(unsigned int) , &ImGuiIO::AddInputCharacter >::invoke")
-		->args({"self","c"})
-		->addToModule(*this, SideEffects::worstDefault);
-	using _method_11 = das::das_call_member< void (ImGuiIO::*)(unsigned short),&ImGuiIO::AddInputCharacterUTF16 >;
-// from imgui/imgui.h:2410:21
-	makeExtern<DAS_CALL_METHOD(_method_11), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddInputCharacterUTF16","das_call_member< void (ImGuiIO::*)(unsigned short) , &ImGuiIO::AddInputCharacterUTF16 >::invoke")
-		->args({"self","c"})
 		->addToModule(*this, SideEffects::worstDefault);
 }
 }

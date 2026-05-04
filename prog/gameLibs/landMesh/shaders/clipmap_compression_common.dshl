@@ -6,8 +6,6 @@ texture cache_buffer_tex_0;
 texture cache_buffer_tex_1;
 texture cache_buffer_tex_2;
 
-bool find_base_colors_with_pca = compatibility_mode == compatibility_mode_off;
-
 macro DIRECT_CACHE_BYPASS_VS()
   supports land_mesh_prepare_clipmap;
   hlsl {
@@ -18,22 +16,20 @@ macro DIRECT_CACHE_BYPASS_VS()
     };
   }
 
+  (vs) {
+    // size must match MAX_QUADS
+    rel_queue_page_sz__rel_cache_page_sz@f4 : register(50)
+    mip@f1 : register(51);
+    quads@f4[4] : register(52);
+  }
   hlsl(vs) {
-    float4 rel_queue_page_sz__rel_cache_page_sz:register(c50);
     #define rel_queue_page_sz (rel_queue_page_sz__rel_cache_page_sz.xy)
     #define rel_cache_page_sz (rel_queue_page_sz__rel_cache_page_sz.zw)
-    float mip:register(c51);
     //no reason to allocate more than COMPRESS_QUEUE_SIZE
     //otherwise it is possible OOB read from const buffer, which
     //bugs out on Adreno 660 devices (either hw specific prefetch bug in driver or bug in general)
     #define MAX_QUADS 4
-    float4 quads[MAX_QUADS]:register(c52);
-##if !hardware.metal
-    #if !SHADER_COMPILER_DXC
-    //next register that is not used
-    float4 last:register(c56);
-    #endif
-##endif
+
     VsOutput bypass_vs(uint vertexId : SV_VertexID)
     {
       uint quadId = vertexId/6;
@@ -50,4 +46,34 @@ macro DIRECT_CACHE_BYPASS_VS()
       return output;
     }
   }
+endmacro
+
+macro USE_COMMON_GATHER_HELPERS(code)
+  USE_BC_LEGACY_ENDPOINTS_ERROR(code)
+hlsl(code) {
+  #include <pixelPacking/ColorSpaceUtility.hlsl>
+
+  #define GET_TEXEL(x, y, dst_attr, src_attr, texn) {\
+    float2 texTc = src_top_left + float2( x + 0.5, y + 0.5) * src_texel_size; \
+    texels[y * 4 + x]. dst_attr = tex2Dlod( texn, float4(texTc, 0, src_mip) ). src_attr;\
+  }
+  #define GET_TEXELS(dst_attr, src_attr, tex) {\
+    GET_TEXEL(0,0,dst_attr,src_attr,tex);GET_TEXEL(1,0,dst_attr,src_attr,tex);GET_TEXEL(2,0,dst_attr,src_attr,tex);GET_TEXEL(3,0,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,1,dst_attr,src_attr,tex);GET_TEXEL(1,1,dst_attr,src_attr,tex);GET_TEXEL(2,1,dst_attr,src_attr,tex);GET_TEXEL(3,1,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,2,dst_attr,src_attr,tex);GET_TEXEL(1,2,dst_attr,src_attr,tex);GET_TEXEL(2,2,dst_attr,src_attr,tex);GET_TEXEL(3,2,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,3,dst_attr,src_attr,tex);GET_TEXEL(1,3,dst_attr,src_attr,tex);GET_TEXEL(2,3,dst_attr,src_attr,tex);GET_TEXEL(3,3,dst_attr,src_attr,tex);\
+  }
+
+  #define gatherTexels(channel, attr, tex) {\
+    float4 block;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(1, 1) * src_texel_size).wzxy;\
+    texels[0+0*4].attr = block.x;texels[1+0*4].attr = block.y;texels[0+1*4].attr = block.z;texels[1+1*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(3, 1) * src_texel_size).wzxy;\
+    texels[2+0*4].attr = block.x;texels[3+0*4].attr = block.y;texels[2+1*4].attr = block.z;texels[3+1*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(1, 3) * src_texel_size).wzxy;\
+    texels[0+2*4].attr = block.x;texels[1+2*4].attr = block.y;texels[0+3*4].attr = block.z;texels[1+3*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(3, 3) * src_texel_size).wzxy;\
+    texels[2+2*4].attr = block.x;texels[3+2*4].attr = block.y;texels[2+3*4].attr = block.z;texels[3+3*4].attr = block.w;\
+  }
+}
 endmacro

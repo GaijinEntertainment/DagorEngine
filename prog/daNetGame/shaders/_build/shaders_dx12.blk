@@ -4,18 +4,24 @@ include "raytracing.blk"
 
 "@override:source"
 {
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_hwinstance_copy.dshl"
   file:t = "depth_hierarchy.dshl"
   file:t = "motion_vrs.dshl"
+  file:t = "shading_vrs.dshl"
+  file:t = "deform_hmap_tiled_reprojection.dshl"
+  file:t = "classify_lowres_fx_tiles_visibility.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
 "@override:Compile" {
   "@override:fsh":t="5.0"
   "@override:assume_vars" {
+    "@delete:film_grain":i=0
      //gi_voxelize_use_multidraw:i=1
     "@delete:dagi_sp_calc_exposure":i=1
     "@delete:hdr_ps_output_mode":i=0
     "@delete:can_use_half_precision":i=0
+    "@delete:deform_occupied_tiles_bitvector":i=0
     combined_shadows_allow_half_precision:i=1
   }
 }
@@ -23,7 +29,6 @@ include "raytracing.blk"
 "@override:common_valid_variants"
 {
   invalid {hdr_ps_output_mode:i=1;}
-  invalid {hasTexture:i=4;}
 }
 
 // Warning: There is an issue with those assumes. They might cause bugs with shaders_compat12_xboxOne.blk.

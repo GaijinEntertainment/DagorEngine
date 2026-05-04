@@ -18,6 +18,7 @@ enum GenericIrqType
   GIRQT_FIRST_SERVICE_IRQ = 0x100000,
   GIRQT_EndOfSingleAnim = GIRQT_FIRST_SERVICE_IRQ,
   GIRQT_EndOfContinuousAnim,
+  GIRQT_EndOfParametricAnim,
 };
 
 enum GenericIrqResponse

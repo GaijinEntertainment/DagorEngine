@@ -1,0 +1,700 @@
+Block isRoot = 1, isBody = 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v001', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v002', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v003', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v004', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v005', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v006', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v007', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v008', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v009', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v010', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v011', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v012', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v013', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v014', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v015', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v016', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v017', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v018', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v019', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v020', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v021', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v022', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v023', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v024', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v025', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v026', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v027', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v028', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v029', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v030', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v031', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v032', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v033', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v034', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v035', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v036', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v037', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v038', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v039', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v040', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v041', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v042', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v043', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v044', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v045', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v046', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v047', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v048', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v049', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v050', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v051', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v052', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v053', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v054', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v055', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v056', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v057', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v058', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v059', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v060', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v061', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v062', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v063', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v064', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v065', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v066', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v067', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v068', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v069', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v070', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v071', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v072', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v073', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v074', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v075', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v076', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v077', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v078', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v079', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v080', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v081', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v082', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v083', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v084', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v085', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v086', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v087', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v088', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v089', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v090', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v091', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v092', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v093', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v094', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v095', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v096', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v097', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v098', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v099', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v100', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v101', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v102', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v103', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v104', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v105', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v106', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v107', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v108', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v109', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v110', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v111', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v112', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v113', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v114', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v115', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v116', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v117', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v118', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v119', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v120', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v121', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v122', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v123', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v124', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v125', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v126', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v127', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v128', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v129', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v130', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v131', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v132', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v133', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v134', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v135', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v136', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v137', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v138', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v139', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v140', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v141', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v142', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v143', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v144', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v145', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v146', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v147', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v148', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v149', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v150', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v151', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v152', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v153', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v154', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v155', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v156', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v157', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v158', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v159', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v160', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v161', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v162', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v163', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v164', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v165', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v166', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v167', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v168', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v169', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v170', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v171', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v172', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v173', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v174', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v175', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v176', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v177', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v178', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v179', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v180', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v181', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v182', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v183', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v184', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v185', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v186', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v187', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v188', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v189', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v190', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-DeclGroup
+| |-VarDecl 'let', name = 'v191', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v192', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v193', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| |-VarDecl 'let', name = 'v194', type = 'any'
+| |   Initializer
+| |     LiteralExpr LK_INT 0
+| `-VarDecl 'let', name = 'v195', type = 'any'
+|     Initializer
+|       LiteralExpr LK_INT 0
+|-VarDecl 'let', name = '$ch0', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'inner1', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             LiteralExpr LK_INT 0
+|-VarDecl 'let', name = '$ch1', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'inner2', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             LiteralExpr LK_INT 0
+|-VarDecl 'let', name = '$ch2', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'inner3', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             LiteralExpr LK_INT 0
+|-VarDecl 'let', name = '$ch3', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'inner4', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             LiteralExpr LK_INT 0
+`-VarDecl 'let', name = 'outer', type = 'any'
+    Initializer
+      FunctionExpr name = 'outer', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 0
+      `-Body
+          Block isRoot = 0, isBody = 1
+          |-VarDecl 'let', name = 'inner1', type = 'any'
+          |   Initializer
+          |     Id '$ch0'
+          |-VarDecl 'let', name = 'inner2', type = 'any'
+          |   Initializer
+          |     Id '$ch1'
+          |-VarDecl 'let', name = 'inner3', type = 'any'
+          |   Initializer
+          |     Id '$ch2'
+          |-VarDecl 'let', name = 'inner4', type = 'any'
+          |   Initializer
+          |     Id '$ch3'
+          |-VarDecl 'let', name = 'inner5', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner5', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 0
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |           ReturnStatement
+          |             LiteralExpr LK_INT 0
+          |-VarDecl 'let', name = 'inner6', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner6', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 0
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |           ReturnStatement
+          |             LiteralExpr LK_INT 0
+          |-VarDecl 'let', name = 'inner7', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner7', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 0
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |           ReturnStatement
+          |             LiteralExpr LK_INT 0
+          |-VarDecl 'let', name = 'inner8', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner8', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 0
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |           ReturnStatement
+          |             LiteralExpr LK_INT 0
+          |-VarDecl 'let', name = 'inner9', type = 'any'
+          |   Initializer
+          |     FunctionExpr name = 'inner9', pure = 0, nodiscard = 0, resultType = 'any'
+          |     |-Parameters count = 0
+          |     `-Body
+          |         Block isRoot = 0, isBody = 1
+          |           ReturnStatement
+          |             LiteralExpr LK_INT 0
+          `-ReturnStatement
+              CallExpr
+                Callee
+                  Id 'inner9'

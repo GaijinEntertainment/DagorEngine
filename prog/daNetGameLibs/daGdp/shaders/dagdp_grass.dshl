@@ -49,8 +49,6 @@ int dagdp_heightmap__viewport_index;
 
 shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     instance_data@uav = dagdp__instance_data hlsl {
       RWBuffer<float4> instance_data@uav;
@@ -161,7 +159,7 @@ shader dagdp_grass_place_stage0, dagdp_grass_place_stage1
     {
       ##if shader == dagdp_grass_place_stage1
         const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
-        ##if hardware.dx11
+        ##if hardware.dx11 || hardware.dx12
           // Work around compiler assuming varying flow control.
           BRANCH
           if (threadGroupAnyTrue(isEarlyExit, tId.y))

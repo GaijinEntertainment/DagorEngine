@@ -60,11 +60,10 @@ class AnimPostBlendAlignCtrl;
 class IMotionMatchingController;
 
 // general anim character interfaces
-class IAnimStateDirector2;
-class IAnimStateDirector2Debug;
 struct AnimCharCreationProps;
 class AnimcharBaseComponent;
 class AnimcharRendComponent;
+struct AnimcharFinalMat44;
 class IAnimCharacter2;
 
 // generally internal structures
@@ -73,6 +72,4 @@ struct AnimFifo3Queue;
 
 // generally internal classes and interface implementations
 class AnimBlender;
-class AnimCondState;
-class AnimStateDirector;
 } // namespace AnimV20

@@ -13,6 +13,7 @@
 #include "timelines.h"
 #include "wrapped_command_buffer.h"
 #include "vulkan_allocation_callbacks.h"
+#include "os.h"
 
 using namespace drv3d_vulkan;
 
@@ -34,6 +35,7 @@ void FrameInfo::QueueCommandBuffers::init(DeviceQueueType target_queue)
   VULKAN_EXIT_ON_FAIL(vkDev.vkCreateCommandPool(vkDev.get(), &cpci, VKALLOC(command_pool), ptr(commandPool)));
 
   pendingCommandBuffers.reserve(COMMAND_BUFFER_ALLOC_BLOCK_SIZE);
+  nextMemoryReleaseTime = rel_ref_time_ticks(ref_time_ticks(), Globals::cfg.resetCommandsReleasePeriodUs);
 }
 
 VulkanCommandBufferHandle FrameInfo::QueueCommandBuffers::allocateCommandBuffer()
@@ -91,16 +93,26 @@ void FrameInfo::QueueCommandBuffers::finishCmdBuffers()
   VulkanDevice &vkDev = Globals::VK::dev;
 
   freeCommandBuffers.reserve(freeCommandBuffers.size() + pendingCommandBuffers.size());
+
+  bool releaseMemory = false;
+  if (Globals::cfg.bits.resetCommandsReleaseToSystem)
+  {
+    int64_t ref = ref_time_ticks();
+    if (ref > nextMemoryReleaseTime)
+    {
+      nextMemoryReleaseTime = rel_ref_time_ticks(ref, Globals::cfg.resetCommandsReleasePeriodUs);
+      releaseMemory = true;
+    }
+  }
+
   if (Globals::cfg.bits.resetCommandPools)
   {
-    VkCommandPoolResetFlags poolResetFlags =
-      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0;
+    VkCommandPoolResetFlags poolResetFlags = releaseMemory ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0;
     VULKAN_LOG_CALL(vkDev.vkResetCommandPool(vkDev.get(), commandPool, poolResetFlags));
   }
   else
   {
-    VkCommandBufferResetFlags bufferResetFlags =
-      Globals::cfg.bits.resetCommandsReleaseToSystem ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0;
+    VkCommandBufferResetFlags bufferResetFlags = releaseMemory ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0;
     for (VulkanCommandBufferHandle cmd : pendingCommandBuffers)
       VULKAN_LOG_CALL(vkDev.vkResetCommandBuffer(cmd, bufferResetFlags));
   }
@@ -143,7 +155,8 @@ void FrameInfo::init()
   frameDone = new ThreadedFence(ThreadedFence::State::SIGNALED);
   if (Globals::cfg.bits.allowAsyncReadback)
     readbackDone = new ThreadedFence(ThreadedFence::State::SIGNALED);
-  execTracker.init();
+  for (DeviceExecutionTracker &i : execTrackers)
+    i.init();
 
   initialized = true;
 }
@@ -187,7 +200,8 @@ void FrameInfo::shutdown()
   pendingTimestamps = nullptr;
   pendingOcclusionQueries = nullptr;
   finishShaderModules();
-  execTracker.shutdown();
+  for (DeviceExecutionTracker &i : execTrackers)
+    i.shutdown();
 }
 
 VulkanCommandBufferHandle FrameInfo::allocateCommandBuffer(DeviceQueueType queue)
@@ -246,7 +260,8 @@ void FrameInfo::acquire(size_t timeline_abs_idx)
 
   index = timeline_abs_idx;
   frameDone->reset();
-  execTracker.restart(index);
+  execTrackerId = (execTrackerId + 1) % REPLAY_TIMELINE_HISTORY_SIZE;
+  execTracker().restart(index);
 }
 
 void FrameInfo::wait()
@@ -269,7 +284,7 @@ void FrameInfo::wait()
     pendingOcclusionQueries = nullptr;
   }
   finishShaderModules();
-  execTracker.verify();
+  execTracker().verify();
 }
 
 void FrameInfo::cleanup() {}
@@ -303,7 +318,28 @@ void FrameInfo::finishGpuWork()
     if (!readbackDone->isReady())
       readbackDone->wait();
   }
-  Backend::interop.lastGPUCompletedReplayWorkId.store(replayId, std::memory_order_release); //-V1020
+  Backend::interop.lastGPUCompleted.store(replayId);
+  nvStreamlineVsyncWait(); //-V1020
+}
+
+void FrameInfo::nvStreamlineVsyncWait()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  if (!(Globals::VK::loader.streamlineAdapter && Globals::window.refreshRate > 0 &&
+        Backend::interop.isVsyncOnPrimarySwapchain.load(std::memory_order_relaxed)))
+    return;
+
+  int64_t currentRef = ref_time_ticks();
+  int64_t framePeriod = 1000 * 1000 * GPU_TIMELINE_HISTORY_SIZE / Globals::window.refreshRate;
+  if (currentRef < nextVsyncTimeRef)
+  {
+    TIME_PROFILE(vulkan_nv_streamline_vsync_wait);
+    sleep_precise_usec(ref_time_delta_to_usec(nextVsyncTimeRef - currentRef), preciseSleepContext);
+    nextVsyncTimeRef = rel_ref_time_ticks(nextVsyncTimeRef, framePeriod);
+  }
+  else
+    nextVsyncTimeRef = rel_ref_time_ticks(currentRef, framePeriod);
+#endif
 }
 
 void FrameInfo::finishSemaphores()

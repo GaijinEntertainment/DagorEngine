@@ -6,16 +6,16 @@ ECS_DEF_PULL_VAR(causticsNode);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc caustics_water_quality_changed_es_comps[] =
 {
-//start of 1 ro components at [0]
-  {ECS_HASH("render_settings__waterQuality"), ecs::ComponentTypeInfo<ecs::string>()}
+//start of 3 rq components at [0]
+  {ECS_HASH("render_settings__rayReconstruction"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__waterQuality"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("render_settings__antialiasing_mode"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void caustics_water_quality_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    caustics_water_quality_changed_es(evt
-        , ECS_RO_COMP(caustics_water_quality_changed_es_comps, "render_settings__waterQuality", ecs::string)
+  caustics_water_quality_changed_es(evt
+        , components.manager()
     );
-  while (++comp != compE);
 }
 static ecs::EntitySystemDesc caustics_water_quality_changed_es_es_desc
 (
@@ -23,12 +23,12 @@ static ecs::EntitySystemDesc caustics_water_quality_changed_es_es_desc
   "prog/daNetGameLibs/caustics/render/causticsNodeES.cpp.inl",
   ecs::EntitySystemOps(nullptr, caustics_water_quality_changed_es_all_events),
   empty_span(),
-  make_span(caustics_water_quality_changed_es_comps+0, 1)/*ro*/,
   empty_span(),
+  make_span(caustics_water_quality_changed_es_comps+0, 3)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__waterQuality");
+,"render","render_settings__antialiasing_mode,render_settings__rayReconstruction,render_settings__waterQuality");
 static constexpr ecs::ComponentDesc caustics_render_features_changed_es_comps[] =
 {
 //start of 5 rw components at [0]
@@ -109,9 +109,9 @@ static ecs::CompileTimeQueryDesc water_caustics_get_settings_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void water_caustics_get_settings_ecs_query(ecs::EntityId eid, Callable function)
+inline void water_caustics_get_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, water_caustics_get_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, water_caustics_get_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -138,9 +138,9 @@ static ecs::CompileTimeQueryDesc water_caustics_node_exists_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void water_caustics_node_exists_ecs_query(Callable function)
+inline void water_caustics_node_exists_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, water_caustics_node_exists_ecs_query_desc.getHandle(),
+  perform_query(&manager, water_caustics_node_exists_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -166,9 +166,9 @@ static ecs::CompileTimeQueryDesc water_quality_medium_or_high_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void water_quality_medium_or_high_ecs_query(Callable function)
+inline void water_quality_medium_or_high_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, water_quality_medium_or_high_ecs_query_desc.getHandle(),
+  perform_query(&manager, water_quality_medium_or_high_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -198,9 +198,9 @@ static ecs::CompileTimeQueryDesc create_caustics_node_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void create_caustics_node_ecs_query(Callable function)
+inline void create_caustics_node_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, create_caustics_node_ecs_query_desc.getHandle(),
+  perform_query(&manager, create_caustics_node_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -231,9 +231,9 @@ static ecs::CompileTimeQueryDesc water_caustics_update_settings_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void water_caustics_update_settings_ecs_query(Callable function)
+inline void water_caustics_update_settings_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, water_caustics_update_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, water_caustics_update_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

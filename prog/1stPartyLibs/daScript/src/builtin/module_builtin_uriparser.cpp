@@ -332,7 +332,7 @@ public:
                 ->args({"base","relative"});
         using remove_base_uri_method = DAS_CALL_MEMBER(das::Uri::removeBaseUri);
         addExtern<DAS_CALL_METHOD(remove_base_uri_method),SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "remove_base_uri",
-            SideEffects::none, DAS_CALL_MEMBER_CPP(das::Uri::BaseUri))
+            SideEffects::none, DAS_CALL_MEMBER_CPP(das::Uri::removeBaseUri))
                 ->args({"base","relative"});
         using normalize_method = DAS_CALL_MEMBER(das::Uri::normalize);
         addExtern<DAS_CALL_METHOD(normalize_method)>(*this, lib, "normalize",

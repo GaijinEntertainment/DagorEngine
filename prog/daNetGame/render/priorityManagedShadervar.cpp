@@ -40,9 +40,9 @@ PriorityManagedShadervar::ShadervarUnion PriorityManagedShadervar::get()
   ShadervarUnion result = {};
   switch (type)
   {
-    case SHVT_REAL: result = ShaderGlobal::get_real(varId); break;
+    case SHVT_REAL: result = ShaderGlobal::get_float(varId); break;
     case SHVT_INT: result = ShaderGlobal::get_int(varId); break;
-    case SHVT_COLOR4: result = Point4::rgba(ShaderGlobal::get_color4(varId)); break;
+    case SHVT_COLOR4: result = Point4::rgba(ShaderGlobal::get_float4(varId)); break;
     case SHVT_INT4: result = ShaderGlobal::get_int4(varId); break;
     default: G_ASSERT_FAIL("Unsupported type in PriorityManagedShadervar!!! Type = %d", type); break;
   }
@@ -53,9 +53,9 @@ void PriorityManagedShadervar::set(ShadervarUnion v)
 {
   switch (type)
   {
-    case SHVT_REAL: ShaderGlobal::set_real(varId, eastl::get<float>(v)); break;
+    case SHVT_REAL: ShaderGlobal::set_float(varId, eastl::get<float>(v)); break;
     case SHVT_INT: ShaderGlobal::set_int(varId, eastl::get<int>(v)); break;
-    case SHVT_COLOR4: ShaderGlobal::set_color4(varId, eastl::get<Point4>(v)); break;
+    case SHVT_COLOR4: ShaderGlobal::set_float4(varId, eastl::get<Point4>(v)); break;
     case SHVT_INT4: ShaderGlobal::set_int4(varId, eastl::get<IPoint4>(v)); break;
     default: G_ASSERT_FAIL("Unsupported type in PriorityManagedShadervar!!! Type = %d", type); break;
   }
@@ -81,9 +81,9 @@ namespace PriorityShadervar
 {
 static PriorityManagedShadervarMap map;
 
-void set_real(int id, int prio, float value) { map.getEntry(id).update(prio, value); }
+void set_float(int id, int prio, float value) { map.getEntry(id).update(prio, value); }
 void set_int(int id, int prio, int value) { map.getEntry(id).update(prio, value); }
-void set_color4(int id, int prio, Point4 value) { map.getEntry(id).update(prio, value); }
+void set_float4(int id, int prio, Point4 value) { map.getEntry(id).update(prio, value); }
 void set_int4(int id, int prio, IPoint4 value) { map.getEntry(id).update(prio, value); }
 void clear(int id, int prio) { map.getEntry(id).clear(prio); }
 } // namespace PriorityShadervar

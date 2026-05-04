@@ -1,0 +1,9 @@
+ERROR: expression of type 'int|string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_call_union_return.nut:5:0
+
+}
+local x: int = fn(1)
+^-------------------
+return x
+
+

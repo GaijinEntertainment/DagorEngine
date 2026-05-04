@@ -27,7 +27,7 @@ Consider the following example:
       no_dynstcode;
 
       texture tex = material.texture.diffuse;
-      (ps) { diffuse_tex@static = tex; }
+      (ps) { diffuse_tex@staticSmp = tex; }
       // diffuse_tex is now accessible inside hlsl(ps){...} blocks
 
       supports common_scene_block;

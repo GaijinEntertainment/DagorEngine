@@ -65,7 +65,13 @@ struct HttpPlugin
   bool (*show_precondition)();
   // called when user clicked on link for this plugin (should be valid)
   void (*generate_response)(RequestInfo *params);
+
+  size_t userData;
 };
+
+bool add_plugin(const HttpPlugin &plugin);
+bool add_plugins(const HttpPlugin *plugin_list);
+bool add_or_replace_plugin(const HttpPlugin &plugin);
 
 static constexpr int MAX_PLUGINS_LISTS = 8;
 extern HttpPlugin *plugin_lists[MAX_PLUGINS_LISTS];

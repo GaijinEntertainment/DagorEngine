@@ -1,4 +1,4 @@
 CPPopt += -DUSE_JOLT_PHYSICS ;
 AddIncludes += $(Root)/prog/3rdPartyLibs/phys/joltPhysics ;
-UseProgLibs += engine/phys/physJolt ;
+UseProgLibs += engine/phys/physJolt ; # FIXME_BROKEN_DEP
 include $(Root)/prog/3rdPartyLibs/phys/joltPhysics/setup.jam ;

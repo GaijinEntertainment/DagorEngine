@@ -21,6 +21,7 @@
 
 Tab<SimpleString> WebVromfsDataCache::bannedUrlPrefix;
 int WebVromfsDataCache::banUnresponsiveUrlForTimeoutInSec = 9;
+bool WebVromfsDataCache::silentMode = false;
 
 bool WebVromfsDataCache::init(const DataBlock &params, const char *cache_dir)
 {
@@ -39,9 +40,12 @@ bool WebVromfsDataCache::init(const DataBlock &params, const char *cache_dir)
   simplify_fname(webcachePrefix);
 
   banUnresponsiveUrlForTimeoutInSec = params.getInt("banUnresponsiveUrlForTimeoutInSec", 10);
+  silentMode = params.getBool("silentMode", false);
   wcParams.setBool("noIndex", true);
   wcParams.setInt64("maxSize", params.getInt64("maxSize", 32 << 20));
   wcParams.setInt("timeoutSec", params.getInt("timeoutSec", 12));
+  if (params.paramExists("connectTimeoutSec"))
+    wcParams.setInt("connectTimeoutSec", params.getInt("connectTimeoutSec", 10));
   wcParams.setInt("traceLevel", params.getInt("traceLevel", 0));
   wcParams.setBool("smartMultiThreading", true);
   wcParams.setStr("jobMgrName", "vromfsWebCache");
@@ -222,7 +226,10 @@ bool WebVromfsDataCache::vromfs_get_file_data(const char *rel_fn, const char * /
   }
 
   wb->measureWaitTime(get_time_usec(reft), rel_fn, (void *)sync_wait_entry);
-  logerr("web-vromfs: [network] get(%s): err=%d", rel_fn, err);
+  if (silentMode)
+    logwarn("web-vromfs: [network] get(%s): err=%d", rel_fn, err);
+  else
+    logerr("web-vromfs: [network] get(%s): err=%d", rel_fn, err);
   if (const char *ext = dd_get_fname_ext(src_fn))
   {
     int idx = wb->substFileExt.getNameId(ext);

@@ -13,7 +13,8 @@ static void respawn_cam_created_es_all_events(const ecs::Event &__restrict evt, 
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     respawn_cam_created_es(evt
-        , ECS_RO_COMP(respawn_cam_created_es_comps, "respawnCameraTargerPoint", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(respawn_cam_created_es_comps, "respawnCameraTargerPoint", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -67,9 +68,9 @@ static ecs::CompileTimeQueryDesc respawn_camera_target_point_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void respawn_camera_target_point_ecs_query(ecs::EntityId eid, Callable function)
+inline void respawn_camera_target_point_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, respawn_camera_target_point_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, respawn_camera_target_point_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

@@ -3,7 +3,6 @@
 
 #include <dag/dag_vector.h>
 #include <EASTL/type_traits.h>
-#include <EASTL/vector.h>
 
 
 template <typename T>

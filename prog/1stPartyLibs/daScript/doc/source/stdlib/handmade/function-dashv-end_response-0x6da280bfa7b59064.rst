@@ -1,0 +1,1 @@
+Ends the chunked response by sending a zero-length terminating chunk. Call this after all data has been written to signal the end of the response. Returns 0 on success.

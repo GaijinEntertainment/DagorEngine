@@ -10,9 +10,9 @@ IMMEDIATE_CB_NAMESPACE
   static carray<Sbuffer *, STAGE_MAX> immediate_cb;
   bool init_immediate_cb()
   {
-    immediate_cb[STAGE_CS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_cs");
-    immediate_cb[STAGE_PS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_ps");
-    immediate_cb[STAGE_VS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_vs");
+    immediate_cb[STAGE_CS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_cs", RESTAG_ENGINE);
+    immediate_cb[STAGE_PS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_ps", RESTAG_ENGINE);
+    immediate_cb[STAGE_VS] = d3d::buffers::create_persistent_cb(1, "_immediate_cb_vs", RESTAG_ENGINE);
     return immediate_cb[STAGE_CS] && immediate_cb[STAGE_PS] && immediate_cb[STAGE_VS];
   }
 

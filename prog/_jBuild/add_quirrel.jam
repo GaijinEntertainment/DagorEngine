@@ -1,0 +1,30 @@
+# Single source of truth for Dagor's Quirrel glue.
+#
+# Called from two places:
+#   1. jBuild.jam under `if $(UseQuirrel) = yes` -- external consumers.
+#   2. Mirror internal jamfiles (prog/1stPartyLibs/quirrel/quirrel/...) and
+#      the adapter (prog/gameLibs/quirrel/quirrelHost/) via direct `include`.
+#      They can't set UseQuirrel=yes because that would make each Quirrel
+#      sub-lib a dependency of itself via UseProgLibs below.
+#
+# The unconditional section is wiring every caller needs (Quirrel public
+# headers + the host adapter).  Keeping the `gameLibs/` string here (in
+# _jBuild/, not in prog/1stPartyLibs/) keeps the mirror free of backward
+# layer references.
+
+AddIncludes +=
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/sqrat/include
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel
+  $(Root)/prog/gameLibs/publicInclude/quirrel/quirrelHost
+;
+CPPopt += -DQUIRREL_HOST_HEADER=dagor_quirrel_host.h ;
+CPPopt += -DUSE_SQRAT_CONFIG ;
+
+if $(UseQuirrel) != yes { return ; }
+
+UseProgLibs +=
+  1stPartyLibs/quirrel/quirrel
+  1stPartyLibs/quirrel/quirrel/sqmodules
+  gameLibs/quirrel/quirrelHost
+;

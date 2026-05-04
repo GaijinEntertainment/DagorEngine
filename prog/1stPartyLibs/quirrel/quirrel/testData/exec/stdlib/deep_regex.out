@@ -1,0 +1,26 @@
+Test 1: nested groups with +
+  depth 1... OK
+  depth 10... OK
+  depth 100... OK
+  depth 300... ERROR: pattern exceeds maximum allowed nesting depth
+Test 2: long alternation
+  alternatives 1... OK
+  alternatives 10... OK
+  alternatives 100... OK
+  alternatives 300... OK
+  alternatives 600... OK
+  alternatives 900... OK
+  alternatives 1900... ERROR: pattern too complex
+Test 3: long match
+  len 1... OK
+  len 10... OK
+  len 100... OK
+  len 300... OK
+  len 600... OK
+  len 900... OK
+  len 1900... OK
+  len 2800... OK
+  len 5000... OK
+  len 10000... OK
+  len 50000... OK
+ALL DONE

@@ -10,7 +10,7 @@ struct GlobalData
   float4x4 globtm;
   float4x4 globtm_sim;
   float3 world_view_pos; uint gravity_zone_count;
-  float3 view_dir_x; uint un03;
+  float3 view_dir_x; uint quality;
   float3 view_dir_y; uint un04;
   float3 view_dir_z; uint un05;
   float2 target_size; float2 target_size_rcp;
@@ -50,6 +50,7 @@ struct GlobalData
     o.gravity_zone_count = dafx_global_data[9].w;
 
     o.view_dir_x = asfloat( dafx_global_data[10].xyz );
+    o.quality = dafx_global_data[10].w;
     o.view_dir_y = asfloat( dafx_global_data[11].xyz );
     o.view_dir_z = asfloat( dafx_global_data[12].xyz );
 

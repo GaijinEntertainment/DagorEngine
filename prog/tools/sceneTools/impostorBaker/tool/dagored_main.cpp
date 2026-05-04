@@ -24,6 +24,7 @@
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_startupTex.h>
+#include <util/dag_threadPool.h>
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_workCycle.h>
@@ -210,6 +211,14 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #endif
 
   cpujobs::init();
+  threadpool::init(eastl::min(cpujobs::get_core_count(), 64), 1024, 128 << 10);
+
+  if (options.profile)
+  {
+    da_profiler::start_file_dump_server("");
+    da_profiler::set_mode(da_profiler::EVENTS | da_profiler::TAGS | da_profiler::SAMPLING | da_profiler::CONTINUOUS);
+    da_profiler::tick_frame();
+  }
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = blk.getBlockByName("export");
@@ -219,7 +228,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   appblk.setStr("appDir", app_dir);
 
   DataBlock texStreamingBlk;
-  ::load_tex_streaming_settings(String(0, "%s/application.blk", appblk.getStr("appDir")), &texStreamingBlk);
+  ::load_tex_streaming_settings(options.appBlk.c_str(), &texStreamingBlk);
 
   global_settings_blk->removeBlock("texStreaming");
   global_settings_blk->addNewBlock(&texStreamingBlk, "texStreaming")->setBool("texLoadOnDemand", true);
@@ -242,26 +251,31 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ShaderGlobal::enableAutoBlockChange(true);
   ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 0);
 
+  ShaderGlobal::set_int(get_shader_variable_id("dgs_tex_anisotropy", true), ::dgs_tex_anisotropy);
+  ShaderGlobal::set_float(get_shader_variable_id("mip_bias", true), 0.f);
+
   DataBlock impostorShaderVarsBlk;
   const DataBlock *impostorBlock = blk.getBlockByName("impostor");
   String folder;
   if (impostorBlock)
   {
-    G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in application.blk");
+    G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in %s",
+      options.appBlk.c_str());
     folder = String(0, "%s/%s/", app_dir, impostorBlock->getStr("data_folder"));
   }
   else
   {
-    G_ASSERTF(blk.paramExists("impostor_data_folder"), "Add the assets/impostor block to application.blk");
+    G_ASSERTF(blk.paramExists("impostor_data_folder"), "Add the assets/impostor block to %s", options.appBlk.c_str());
     folder = String(0, "%s/%s/", app_dir, blk.getStr("impostor_data_folder"));
   }
   simplify_fname(folder);
   String impostorShaderVarsFile = String(0, "%simpostor_shader_vars.blk", folder.c_str());
   debug("impostorShaderVarsFile: looking for a file at <%s>", impostorShaderVarsFile);
+  bool impostorShaderVarsLoaded = false;
   if (::dd_file_exists(impostorShaderVarsFile.c_str()))
   {
     debug("impostorShaderVarsFile: was found");
-    impostorShaderVarsBlk.load(impostorShaderVarsFile.c_str());
+    impostorShaderVarsLoaded = impostorShaderVarsBlk.load(impostorShaderVarsFile.c_str());
   }
   else
   {
@@ -269,7 +283,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   }
 
   ShaderGlobal::set_vars_from_blk(*::dgs_get_settings()->getBlockByNameEx("shaderVar"), true);
-  if (impostorShaderVarsBlk != nullptr)
+  if (impostorShaderVarsLoaded)
   {
     const DataBlock *shaderBlock = impostorShaderVarsBlk.getBlockByName("shaderVar");
     G_ASSERTF(shaderBlock != nullptr, "Add shaderVar{} block to the impostor_shader_vars.blk");
@@ -280,11 +294,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   bool loadDDSxPacks = blk.getStr("ddsxPacks", nullptr) != nullptr;
   if (exp_blk)
-  {
-    ::set_gameres_sys_ver(2);
     if (!loadDDSxPacks)
       texconvcache::init_build_on_demand_tex_factory(engine->getAssetManager(), engine->getConsoleLogWriter());
-  }
   if (blk.getStr("gameRes", nullptr) || blk.getStr("ddsxPacks", nullptr))
   {
     int nid = blk.getNameId("prebuiltGameResFolder");
@@ -297,12 +308,14 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       }
   }
 
-  G_ASSERT(DAEDITOR3.initAssetBase(app_dir));
+  G_ASSERT(DAEDITOR3.initAssetBase(app_dir, appblk));
   if (get_max_managed_texture_id())
     debug("tex/res registered with AssetBase:   %d", get_max_managed_texture_id().index());
 
   rendinst::configurateRIGen(*appblk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));
   rendinst::initRIGen(true, 80, 8000.0f);
+
+  da_profiler::tick_frame();
 
   struct SceneToEnablePresent : public DagorGameScene
   {
@@ -313,11 +326,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       if (app)
         app->getImpostorBaker()->drawLastExportedImage();
+      da_profiler::tick_frame();
     }
   } scene;
 
   int ret = 0;
   {
+    DA_PROFILE_EVENT("impostor_baker_app");
     RenderableInstanceLodsResource::on_higher_lod_required = nullptr; // force lod0 streaming
     ImpostorGenerator app{app_dir, appblk, &engine->getAssetManager(), engine->getConsoleLogWriter(), true, impostor_export_callback};
     scene.app = &app;
@@ -327,6 +342,15 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     if (ret == 0)
       app.generateQualitySummary("impostor_baker_quality_summery.csv");
     scene.app = nullptr;
+  }
+
+  if (options.profile)
+  {
+    da_profiler::request_dump();
+    da_profiler::tick_frame();
+    da_profiler::tick_frame();
+    da_profiler::stop_file_dump_server("");
+    da_profiler::shutdown();
   }
 
   dagor_select_game_scene(nullptr);

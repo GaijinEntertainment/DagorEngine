@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "shadersBinaryData.h"
+#include "shBindumpsPrivate.h"
 #include <shaders/dag_shaderCommon.h>
 #include <shaders/dag_shaderDbg.h>
 #include <util/dag_fastIntList.h>
@@ -16,39 +17,40 @@ public:
   virtual void dump(int idx, const shaderbindump::VariantTable &vt, int code) = 0;
 };
 
-static void decodeVariant(const shaderbindump::VariantTable &vt, int code)
+static void decodeVariant(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int code)
 {
   using namespace shaderbindump;
   for (int i = 0; i < vt.codePieces.size(); i++)
   {
-    const Interval &ival = ::shBinDump().intervals[vt.codePieces[i].intervalId];
+    const Interval &ival = dump.intervals[vt.codePieces[i].intervalId];
     int mul = vt.codePieces[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
     debug_("%d ", subcode);
   }
 }
-static bindump::vector<shaderbindump::ShaderInterval> decodeVariantEx(const shaderbindump::VariantTable &vt, int code)
+static bindump::vector<shaderbindump::ShaderInterval> decodeVariantEx(ScriptedShadersBinDump const &dump,
+  const shaderbindump::VariantTable &vt, int code)
 {
   using namespace shaderbindump;
   bindump::vector<ShaderInterval> result;
   for (int i = 0; i < vt.codePieces.size(); i++)
   {
-    const Interval &ival = ::shBinDump().intervals[vt.codePieces[i].intervalId];
+    const Interval &ival = dump.intervals[vt.codePieces[i].intervalId];
     int mul = vt.codePieces[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
     auto &v = result.emplace_back();
-    v.name = bindump::string(::shBinDump().varMap[ival.nameId].c_str());
+    v.name = bindump::string(dump.varMap[ival.nameId].c_str());
     v.value = subcode;
     v.valueCount = ival.getValCount();
   }
   return result;
 }
-static void decodeVariantVerbose(const shaderbindump::VariantTable &vt, int code)
+static void decodeVariantVerbose(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int code)
 {
   using namespace shaderbindump;
   for (int i = 0; i < vt.codePieces.size(); i++)
   {
-    const Interval &ival = ::shBinDump().intervals[vt.codePieces[i].intervalId];
+    const Interval &ival = dump.intervals[vt.codePieces[i].intervalId];
     int mul = vt.codePieces[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
     switch (ival.type)
@@ -64,21 +66,22 @@ static void decodeVariantVerbose(const shaderbindump::VariantTable &vt, int code
 
       case Interval::TYPE_INTERVAL:
       case Interval::TYPE_GLOBAL_INTERVAL:
-        debug_("%s:%c=%d ", (const char *)shBinDump().varMap[ival.nameId], ival.type == Interval::TYPE_INTERVAL ? 'L' : 'G', subcode);
+        debug_("%s:%c=%d ", (const char *)dump.varMap[ival.nameId], ival.type == Interval::TYPE_INTERVAL ? 'L' : 'G', subcode);
         break;
     }
   }
   debug_("\n");
 }
 
-static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, ILocalDumpVariantData2 &vdump)
+static void dumpVariantTable(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int indent,
+  ILocalDumpVariantData2 &vdump)
 {
   using namespace shaderbindump;
   int total_variants = 1;
   if (vt.codePieces.size() > 0)
   {
     const VariantTable::IntervalBind &ib = vt.codePieces.back();
-    total_variants = ::shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
+    total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
   }
 #define SET_BRAKE() has_break = true
 #define APPLY_BRAKE()                    \
@@ -97,7 +100,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
         {
           APPLY_BRAKE();
           debug_("%*s%4d -> %5d:   ", indent, "", i, i);
-          decodeVariant(vt, i);
+          decodeVariant(dump, vt, i);
           vdump.dump(i, vt, i);
         }
         else
@@ -109,7 +112,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
         {
           APPLY_BRAKE();
           debug_("%*s%4d -> %5d:   ", indent, "", i, vt.mapData[i]);
-          decodeVariant(vt, i);
+          decodeVariant(dump, vt, i);
           vdump.dump(vt.mapData[i], vt, i);
         }
         else
@@ -121,7 +124,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
         {
           APPLY_BRAKE();
           debug_("%*s%4d -> %5d:   ", indent, "", vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
-          decodeVariant(vt, vt.mapData[i]);
+          decodeVariant(dump, vt, vt.mapData[i]);
           vdump.dump(vt.mapData[i + vt.mapData.size() / 2], vt, vt.mapData[i]);
         }
         else
@@ -134,7 +137,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
           APPLY_BRAKE();
           debug_("%*s%4d..%-4d -> %5d:   ", indent, "", vt.mapData[i],
             i < vt.mapData.size() / 2 ? vt.mapData[i + 1] - 1 : vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
-          decodeVariant(vt, vt.mapData[i]);
+          decodeVariant(dump, vt, vt.mapData[i]);
           vdump.dump(vt.mapData[i + vt.mapData.size() / 2], vt, vt.mapData[i]);
         }
         else
@@ -145,134 +148,129 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
 #undef APPLY_BRAKE
 }
 
-static inline bool shader_pass_used(const shaderbindump::ShaderCode::Pass &p)
+static inline bool shader_pass_used(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
-  auto &shOwner = shBinDumpOwner();
 
   if (!p.rpass)
     return false;
 
-  if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] < 0)
+  if (p.rpass->vprId != BAD && dump_owner.vprId[p.rpass->vprId] < 0)
     return false;
 
   // TODO: split off csh from fsh in bindump
-  if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] < 0 && shOwner.cshId[p.rpass->fshId] < 0)
+  if (p.rpass->fshId != BAD && dump_owner.fshId[p.rpass->fshId] < 0 && dump_owner.cshId[p.rpass->fshId] < 0)
     return false;
 
   return true;
 }
 
-static uint32_t shader_pass_size(const shaderbindump::ShaderCode::Pass &p)
+static uint32_t shader_pass_size(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
-  auto &shOwner = shBinDumpOwner();
 
   uint32_t sz = 0;
-  ShaderBytecode tmpbuf(framemem_ptr());
-  if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] >= 0)
-    sz += shBinDumpOwner().getCode(p.rpass->vprId, ShaderCodeType::VERTEX, tmpbuf).size();
-  if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] >= 0)
-    sz += shBinDumpOwner().getCode(p.rpass->fshId, ShaderCodeType::PIXEL, tmpbuf).size();
+  if (p.rpass->vprId != BAD && dump_owner.vprId[p.rpass->vprId] >= 0)
+    sz += dump_owner.getCode(p.rpass->vprId, ShaderCodeType::VERTEX).uncompressedSize;
+  if (p.rpass->fshId != BAD && dump_owner.fshId[p.rpass->fshId] >= 0)
+    sz += dump_owner.getCode(p.rpass->fshId, ShaderCodeType::PIXEL).uncompressedSize;
   return sz;
 }
 
-static inline bool shader_code_used(const shaderbindump::ShaderCode &code)
+static inline bool shader_code_used(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode &code)
 {
   if (!(interlocked_relaxed_load(code.codeFlags) & shaderbindump::ShaderCode::CF_USED))
     return false;
   for (auto &cp : code.passes)
-    if (shader_pass_used(cp))
+    if (shader_pass_used(dump_owner, cp))
       return true;
   return false;
 }
 
-static inline bool shader_pass_allused(const shaderbindump::ShaderCode::Pass &p)
+static inline bool shader_pass_allused(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode::Pass &p)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
-  auto &shOwner = shBinDumpOwner();
 
   if (p.rpass)
   {
-    if (p.rpass->vprId != BAD && shOwner.vprId[p.rpass->vprId] < 0)
+    if (p.rpass->vprId != BAD && dump_owner.vprId[p.rpass->vprId] < 0)
       return false;
-    else if (p.rpass->fshId != BAD && shOwner.fshId[p.rpass->fshId] < 0)
+    else if (p.rpass->fshId != BAD && dump_owner.fshId[p.rpass->fshId] < 0)
       return false;
   }
   return true;
 }
 
-static inline bool shader_code_allused(const shaderbindump::ShaderCode &code)
+static inline bool shader_code_allused(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode &code)
 {
   if (!(interlocked_relaxed_load(code.codeFlags) & shaderbindump::ShaderCode::CF_USED))
     return false;
   for (int i = 0; i < code.passes.size(); i++)
-    if (!shader_pass_used(code.passes[i]))
+    if (!shader_pass_used(dump_owner, code.passes[i]))
       return false;
   return true;
 }
 
-static void gather_shader_ids(const shaderbindump::ShaderCode::Pass &p, FastIntList &fsh, FastIntList &vpr, FastIntList &unused_fsh,
-  FastIntList &unused_vpr)
+static void gather_shader_ids(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode::Pass &p,
+  FastIntList &fsh, FastIntList &vpr, FastIntList &unused_fsh, FastIntList &unused_vpr)
 {
   static constexpr int BAD = shaderbindump::ShaderCode::INVALID_FSH_VPR_ID;
-  auto &shOwner = shBinDumpOwner();
 
   if (p.rpass)
   {
     if (p.rpass->vprId != BAD)
     {
       vpr.addInt(p.rpass->vprId);
-      if (shOwner.vprId[p.rpass->vprId] < 0)
+      if (dump_owner.vprId[p.rpass->vprId] < 0)
         unused_vpr.addInt(p.rpass->vprId);
     }
     if (p.rpass->fshId != BAD)
     {
       fsh.addInt(p.rpass->fshId);
-      if (shOwner.fshId[p.rpass->fshId] < 0)
+      if (dump_owner.fshId[p.rpass->fshId] < 0)
         unused_fsh.addInt(p.rpass->fshId);
     }
   }
 }
-static void gather_shader_ids(const shaderbindump::ShaderCode &code, FastIntList &fsh, FastIntList &vpr, FastIntList &unused_fsh,
-  FastIntList &unused_vpr)
+static void gather_shader_ids(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderCode &code, FastIntList &fsh,
+  FastIntList &vpr, FastIntList &unused_fsh, FastIntList &unused_vpr)
 {
   for (int i = 0; i < code.passes.size(); i++)
-    gather_shader_ids(code.passes[i], fsh, vpr, unused_fsh, unused_vpr);
+    gather_shader_ids(dump_owner, code.passes[i], fsh, vpr, unused_fsh, unused_vpr);
 }
-static void gather_shader_ids(const shaderbindump::ShaderClass &cls, FastIntList &fsh, FastIntList &vpr, FastIntList &unused_fsh,
-  FastIntList &unused_vpr)
+static void gather_shader_ids(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderClass &cls, FastIntList &fsh,
+  FastIntList &vpr, FastIntList &unused_fsh, FastIntList &unused_vpr)
 {
   for (int i = 0; i < cls.code.size(); i++)
-    gather_shader_ids(cls.code[i], fsh, vpr, unused_fsh, unused_vpr);
+    gather_shader_ids(dump_owner, cls.code[i], fsh, vpr, unused_fsh, unused_vpr);
 }
-static int calc_shaders_size(const FastIntList &idx, bool vpr)
+static int calc_shaders_size(ScriptedShadersBinDumpOwner const &dump_owner, const FastIntList &idx, bool vpr)
 {
   int sz = 0;
-  ShaderBytecode tmpbuf(framemem_ptr());
   if (vpr)
     for (int i = 0; i < idx.getList().size(); i++)
-      sz += shBinDumpOwner().getCode(idx.getList()[i], ShaderCodeType::VERTEX, tmpbuf).size();
+      sz += dump_owner.getCode(idx.getList()[i], ShaderCodeType::VERTEX).uncompressedSize;
   else
     for (int i = 0; i < idx.getList().size(); i++)
-      sz += shBinDumpOwner().getCode(idx.getList()[i], ShaderCodeType::PIXEL, tmpbuf).size();
+      sz += dump_owner.getCode(idx.getList()[i], ShaderCodeType::PIXEL).uncompressedSize;
   return sz;
 }
 
-void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
+void shaderbindump::dumpUnusedVariants(ScriptedShadersBinDumpOwner const &dump_owner, const shaderbindump::ShaderClass &cls)
 {
   using namespace shaderbindump;
+  auto const &dump = *dump_owner.getDump();
 
   FastIntList fsh, vpr, unused_fsh, unused_vpr;
-  gather_shader_ids(cls, fsh, vpr, unused_fsh, unused_vpr);
-  int vpr_sz = calc_shaders_size(vpr, true);
-  int fsh_sz = calc_shaders_size(fsh, false);
-  int vpr_usz = calc_shaders_size(unused_vpr, true);
-  int fsh_usz = calc_shaders_size(unused_fsh, false);
+  gather_shader_ids(dump_owner, cls, fsh, vpr, unused_fsh, unused_vpr);
+  int vpr_sz = calc_shaders_size(dump_owner, vpr, true);
+  int fsh_sz = calc_shaders_size(dump_owner, fsh, false);
+  int vpr_usz = calc_shaders_size(dump_owner, unused_vpr, true);
+  int fsh_usz = calc_shaders_size(dump_owner, unused_fsh, false);
 
   bool shader_used = false;
   for (int i = 0; i < cls.code.size(); i++)
-    if (shader_code_used(cls.code[i]))
+    if (shader_code_used(dump_owner, cls.code[i]))
     {
       shader_used = true;
       break;
@@ -285,7 +283,7 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
   }
 
   for (int i = 0; i < cls.code.size(); i++)
-    if (!shader_code_allused(cls.code[i]))
+    if (!shader_code_allused(dump_owner, cls.code[i]))
     {
       shader_used = false;
       break;
@@ -298,11 +296,15 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
 
   class DumpStVar : public ILocalDumpVariantData2
   {
-    const ShaderClass &cls;
+    ScriptedShadersBinDumpOwner const &own;
+    ScriptedShadersBinDump const &dmp;
+    ShaderClass const &cls;
     FastIntList idxShown;
 
   public:
-    DumpStVar(const shaderbindump::ShaderClass &c) : cls(c) {}
+    DumpStVar(ScriptedShadersBinDumpOwner const &o, ScriptedShadersBinDump const &d, shaderbindump::ShaderClass const &c) :
+      own(o), dmp(d), cls(c)
+    {}
 
     virtual bool pretest(int idx)
     {
@@ -310,7 +312,7 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
         return false;
       if (idxShown.hasInt(idx))
         return true;
-      return !shader_code_allused(cls.code[idx]);
+      return !shader_code_allused(own, cls.code[idx]);
     }
     virtual void dump(int idx, const shaderbindump::VariantTable &vt, int vt_code)
     {
@@ -322,27 +324,31 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
       const ShaderCode &code = cls.code[idx];
 
       FastIntList fsh, vpr, unused_fsh, unused_vpr;
-      gather_shader_ids(code, fsh, vpr, unused_fsh, unused_vpr);
-      int vpr_sz = calc_shaders_size(vpr, true);
-      int fsh_sz = calc_shaders_size(fsh, false);
-      int vpr_usz = calc_shaders_size(unused_vpr, true);
-      int fsh_usz = calc_shaders_size(unused_fsh, false);
-      if (!shader_code_used(code))
+      gather_shader_ids(own, code, fsh, vpr, unused_fsh, unused_vpr);
+      int vpr_sz = calc_shaders_size(own, vpr, true);
+      int fsh_sz = calc_shaders_size(own, fsh, false);
+      int vpr_usz = calc_shaders_size(own, unused_vpr, true);
+      int fsh_usz = calc_shaders_size(own, unused_fsh, false);
+      if (!shader_code_used(own, code))
       {
         debug_("unused statvariant (%dK/%dK in %d/%d VS, %dK/%dK in %d/%d PS) ", vpr_usz >> 10, vpr_sz >> 10,
           unused_vpr.getList().size(), vpr.getList().size(), fsh_usz >> 10, fsh_sz >> 10, unused_fsh.getList().size(),
           fsh.getList().size());
-        decodeVariantVerbose(vt, vt_code);
+        decodeVariantVerbose(dmp, vt, vt_code);
         return;
       }
 
       class DumpDynVar : public ILocalDumpVariantData2
       {
-        const ShaderCode &code;
+        ScriptedShadersBinDumpOwner const &own;
+        ScriptedShadersBinDump const &dmp;
+        ShaderCode const &code;
         FastIntList idxShown;
 
       public:
-        DumpDynVar(const ShaderCode &c) : code(c) {}
+        DumpDynVar(ScriptedShadersBinDumpOwner const &o, ScriptedShadersBinDump const &d, ShaderCode const &c) :
+          own(o), dmp(d), code(c)
+        {}
 
         virtual bool pretest(int idx)
         {
@@ -350,7 +356,7 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
             return false;
           if (idxShown.hasInt(idx))
             return true;
-          return !shader_pass_allused(code.passes[idx]);
+          return !shader_pass_allused(own, code.passes[idx]);
         }
         virtual void dump(int idx, const shaderbindump::VariantTable &vt, int vt_code)
         {
@@ -360,35 +366,37 @@ void shaderbindump::dumpUnusedVariants(const shaderbindump::ShaderClass &cls)
             return;
           }
           debug_("unused dynvariant: ");
-          decodeVariantVerbose(vt, vt_code);
+          decodeVariantVerbose(dmp, vt, vt_code);
         }
       };
       debug_("(unused %dK/%dK in %d/%d VS, %dK/%dK in %d/%d PS) ", vpr_usz >> 10, vpr_sz >> 10, unused_vpr.getList().size(),
         vpr.getList().size(), fsh_usz >> 10, fsh_sz >> 10, unused_fsh.getList().size(), fsh.getList().size());
-      decodeVariantVerbose(vt, vt_code);
-      DumpDynVar dynvardump(code);
-      dumpVariantTable(code.dynVariants, 4, dynvardump);
+      decodeVariantVerbose(dmp, vt, vt_code);
+      DumpDynVar dynvardump(own, dmp, code);
+      dumpVariantTable(dmp, code.dynVariants, 4, dynvardump);
     }
   };
 
-  DumpStVar statvardump(cls);
-  dumpVariantTable(cls.stVariants, 0, statvardump);
+  DumpStVar statvardump(dump_owner, dump, cls);
+  dumpVariantTable(dump, cls.stVariants, 0, statvardump);
 }
 
 
-const char *shaderbindump::decodeVariantStr(dag::ConstSpan<shaderbindump::VariantTable::IntervalBind> p, unsigned code, String &tmp)
+const char *shaderbindump::decodeVariantStr(ScriptedShadersBinDump const &dump,
+  dag::ConstSpan<shaderbindump::VariantTable::IntervalBind> p, unsigned code, String &tmp)
 {
   for (int i = 0; i < p.size(); i++)
   {
-    const Interval &ival = shBinDump().intervals[p[i].intervalId];
+    const Interval &ival = dump.intervals[p[i].intervalId];
     int mul = p[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
-    tmp.aprintf(32, "%s=%d ", (const char *)shBinDump().varMap[ival.nameId], subcode);
+    tmp.aprintf(32, "%s=%d ", (const char *)dump.varMap[ival.nameId], subcode);
   }
   return tmp;
 }
 
-dag::ConstSpan<unsigned> shaderbindump::getVariantCodesForIdx(const shaderbindump::VariantTable &vt, int code_idx)
+dag::ConstSpan<unsigned> shaderbindump::getVariantCodesForIdx(ScriptedShadersBinDump const &dump,
+  const shaderbindump::VariantTable &vt, int code_idx)
 {
   static Tab<unsigned> tmp(inimem);
   tmp.clear();
@@ -398,7 +406,7 @@ dag::ConstSpan<unsigned> shaderbindump::getVariantCodesForIdx(const shaderbindum
   if (vt.codePieces.size() > 0)
   {
     const VariantTable::IntervalBind &ib = vt.codePieces.back();
-    total_variants = shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
+    total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
   }
 
   switch (vt.mapType)
@@ -427,47 +435,70 @@ dag::ConstSpan<unsigned> shaderbindump::getVariantCodesForIdx(const shaderbindum
   return tmp;
 }
 
-const char *shaderbindump::decodeStaticVariants(const shaderbindump::ShaderClass &shClass, int code_idx)
+const char *shaderbindump::decodeStaticVariants(ScriptedShadersBinDump const &dump, const shaderbindump::ShaderClass &shClass,
+  int code_idx)
 {
   static String tmp;
   tmp.clear();
   String tmp2(framemem_ptr());
-  dag::ConstSpan<unsigned> codes = getVariantCodesForIdx(shClass.stVariants, code_idx);
+  dag::ConstSpan<unsigned> codes = getVariantCodesForIdx(dump, shClass.stVariants, code_idx);
   for (int i = 0; i < codes.size(); i++)
   {
     tmp2.clear();
-    tmp.aprintf(128, "  %s\n", decodeVariantStr(shClass.stVariants.codePieces, codes[i], tmp2));
+    tmp.aprintf(128, "  %s\n", decodeVariantStr(dump, shClass.stVariants.codePieces, codes[i], tmp2));
   }
   return tmp;
 }
 
 void dump_unused_shader_variants()
 {
+  int vpr_sz = 0;
+  int fsh_sz = 0;
+  int vpr_usz = 0;
+  int fsh_usz = 0;
+  int vpr_cnt = 0;
+  int fsh_cnt = 0;
+  int vpr_ucnt = 0;
+  int fsh_ucnt = 0;
+
   debug("dumping unused shader variants");
   debug_("\n");
-  FastIntList fsh, vpr, unused_fsh, unused_vpr;
-  for (int i = 0; i < shBinDump().classes.size(); i++)
-  {
-    gather_shader_ids(shBinDump().classes[i], fsh, vpr, unused_fsh, unused_vpr);
-    shaderbindump::dumpUnusedVariants(shBinDump().classes[i]);
-  }
 
-  int vpr_sz = calc_shaders_size(vpr, true);
-  int fsh_sz = calc_shaders_size(fsh, false);
-  int vpr_usz = calc_shaders_size(unused_vpr, true);
-  int fsh_usz = calc_shaders_size(unused_fsh, false);
-  debug("total unused %dK/%dK in %d/%d VS, %dK/%dK in %d/%d PS", vpr_usz >> 10, vpr_sz >> 10, unused_vpr.getList().size(),
-    vpr.getList().size(), fsh_usz >> 10, fsh_sz >> 10, unused_fsh.getList().size(), fsh.getList().size());
+  iterate_all_shader_dumps(
+    [&](ScriptedShadersBinDumpOwner &owner) {
+      auto const &dump = *owner.getDump();
+
+      FastIntList fsh, vpr, unused_fsh, unused_vpr;
+      for (int i = 0; i < dump.classes.size(); i++)
+      {
+        gather_shader_ids(owner, dump.classes[i], fsh, vpr, unused_fsh, unused_vpr);
+        shaderbindump::dumpUnusedVariants(owner, dump.classes[i]);
+      }
+
+      vpr_sz += calc_shaders_size(owner, vpr, true);
+      fsh_sz += calc_shaders_size(owner, fsh, false);
+      vpr_usz += calc_shaders_size(owner, unused_vpr, true);
+      fsh_usz += calc_shaders_size(owner, unused_fsh, false);
+      vpr_cnt += vpr.getList().size();
+      fsh_cnt += fsh.getList().size();
+      vpr_ucnt += unused_vpr.getList().size();
+      fsh_ucnt += unused_fsh.getList().size();
+    },
+    false);
+
+  debug("total unused %dK/%dK in %d/%d VS, %dK/%dK in %d/%d PS", vpr_usz >> 10, vpr_sz >> 10, vpr_ucnt, vpr_cnt, fsh_usz >> 10,
+    fsh_sz >> 10, fsh_ucnt, fsh_cnt);
 }
 
-static void dump_variant_table(const shaderbindump::VariantTable &vt, ILocalDumpVariantData2 &vdump)
+static void dump_variant_table(ScriptedShadersBinDump const &dump, shaderbindump::VariantTable const &vt,
+  ILocalDumpVariantData2 &vdump)
 {
   using namespace shaderbindump;
   int total_variants = 1;
   if (vt.codePieces.size() > 0)
   {
     const VariantTable::IntervalBind &ib = vt.codePieces.back();
-    total_variants = ::shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
+    total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
   }
 
   switch (vt.mapType)
@@ -491,7 +522,8 @@ static void dump_variant_table(const shaderbindump::VariantTable &vt, ILocalDump
   }
 }
 
-static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(const shaderbindump::ShaderClass &cls)
+static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(ScriptedShadersBinDumpOwner const &dump_owner,
+  shaderbindump::ShaderClass const &cls)
 {
   using namespace shaderbindump;
   bindump::vector<ShaderStaticVariant> result;
@@ -500,12 +532,17 @@ static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(cons
 
   class DumpStVar : public ILocalDumpVariantData2
   {
-    const ShaderClass &cls;
+    ScriptedShadersBinDumpOwner const &own;
+    ScriptedShadersBinDump const &dmp;
+    ShaderClass const &cls;
     FastIntList idxShown;
     bindump::vector<ShaderStaticVariant> &result;
 
   public:
-    DumpStVar(const shaderbindump::ShaderClass &c, bindump::vector<ShaderStaticVariant> &r) : cls(c), result(r) {}
+    DumpStVar(ScriptedShadersBinDumpOwner const &o, ScriptedShadersBinDump const &d, shaderbindump::ShaderClass const &c,
+      bindump::vector<ShaderStaticVariant> &r) :
+      own(o), dmp(d), cls(c), result(r)
+    {}
 
     virtual bool pretest(int idx)
     {
@@ -513,7 +550,7 @@ static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(cons
         return false;
       if (idxShown.hasInt(idx))
         return true;
-      return shader_code_used(cls.code[idx]);
+      return shader_code_used(own, cls.code[idx]);
     }
     virtual void dump(int idx, const shaderbindump::VariantTable &vt, int vt_code)
     {
@@ -523,12 +560,17 @@ static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(cons
 
       class DumpDynVar : public ILocalDumpVariantData2
       {
-        const ShaderCode &code;
+        ScriptedShadersBinDumpOwner const &own;
+        ScriptedShadersBinDump const &dmp;
+        ShaderCode const &code;
         FastIntList idxShown;
         bindump::vector<ShaderVariant> &result;
 
       public:
-        DumpDynVar(const ShaderCode &c, bindump::vector<ShaderVariant> &r) : code(c), result(r) {}
+        DumpDynVar(ScriptedShadersBinDumpOwner const &o, ScriptedShadersBinDump const &d, const ShaderCode &c,
+          bindump::vector<ShaderVariant> &r) :
+          own(o), dmp(d), code(c), result(r)
+        {}
 
         virtual bool pretest(int idx)
         {
@@ -536,7 +578,7 @@ static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(cons
             return false;
           if (idxShown.hasInt(idx))
             return true;
-          return shader_pass_used(code.passes[idx]);
+          return shader_pass_used(own, code.passes[idx]);
         }
         virtual void dump(int idx, const shaderbindump::VariantTable &vt, int vt_code)
         {
@@ -548,31 +590,39 @@ static bindump::vector<shaderbindump::ShaderStaticVariant> dump_shader_stat(cons
           }
           if (!idxShown.addInt(idx))
             return;
-          result.back().intervals = decodeVariantEx(vt, vt_code);
-          result.back().size = shader_pass_size(code.passes[idx]);
+          result.back().intervals = decodeVariantEx(dmp, vt, vt_code);
+          result.back().size = shader_pass_size(own, code.passes[idx]);
         }
       };
       result.emplace_back();
-      result.back().staticIntervals = decodeVariantEx(vt, vt_code);
-      DumpDynVar dynvardump(code, result.back().dynamicVariants);
-      dump_variant_table(code.dynVariants, dynvardump);
+      result.back().staticIntervals = decodeVariantEx(dmp, vt, vt_code);
+      DumpDynVar dynvardump(own, dmp, code, result.back().dynamicVariants);
+      dump_variant_table(dmp, code.dynVariants, dynvardump);
     }
   };
 
-  DumpStVar statvardump(cls, result);
-  dump_variant_table(cls.stVariants, statvardump);
+  auto const &dump = *dump_owner.getDump();
+  DumpStVar statvardump(dump_owner, dump, cls, result);
+  dump_variant_table(dump, cls.stVariants, statvardump);
   return result;
 }
 
 void dump_shader_statistics(const char *filename)
 {
   bindump::vector<shaderbindump::ShaderStatistics> stat;
-  for (int i = 0; i < shBinDump().classes.size(); i++)
-  {
-    stat.emplace_back();
-    stat.back().shaderName = bindump::string(shBinDump().classes[i].name.data());
-    stat.back().staticVariants = dump_shader_stat(shBinDump().classes[i]);
-  }
+
+  iterate_all_shader_dumps(
+    [&](ScriptedShadersBinDumpOwner &owner) {
+      auto const &dump = *owner.getDump();
+      for (int i = 0; i < dump.classes.size(); i++)
+      {
+        stat.emplace_back();
+        stat.back().shaderName = bindump::string(dump.classes[i].name.data());
+        stat.back().dumpName.assign(owner.name.str(), owner.name.length());
+        stat.back().staticVariants = dump_shader_stat(owner, dump.classes[i]);
+      }
+    },
+    false);
 
   bindump::writeToFileFast(stat, filename);
 }

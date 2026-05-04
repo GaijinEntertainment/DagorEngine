@@ -82,7 +82,7 @@ which is a `.blk` file. There are two main approaches:
 2. Open it with a text editor (e.g., *Notepad*, *Notepad++*, *VSCode*).
 3. Add the following line:
 
-   ```
+   ```text
    @start win64\\enlisted-dev.exe -scene:gamedata/scenes/<your_scene_path>.blk -config:disableMenu:b=yes
    ```
 

@@ -3,7 +3,7 @@
 #include <render/daFrameGraph/stateRequest.h>
 #include <frontend/internalRegistry.h>
 #include <shaders/dag_shaderBlock.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 
 namespace dafg

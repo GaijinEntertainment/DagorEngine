@@ -22,7 +22,7 @@ return {
      valign = ALIGN_CENTER
 
      children = {
-       size = static [SIZE_TO_CONTENT, sh(50)]
+       size = const [SIZE_TO_CONTENT, sh(50)]
        rendObj = ROBJ_IMAGE
        image = Picture("ui/loading.jpg")
      }

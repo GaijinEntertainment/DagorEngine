@@ -524,7 +524,7 @@ public:
   bool decode(const DataBlock &blk, uint32_t param_index, cacheBlk::SignatureHash &target) const;
   bool decode(const DataBlock &blk, cacheBlk::SignatureHash &target) const;
   bool encode(DataBlock &blk, const cacheBlk::SignatureHash &source) const;
-  bool encode(DataBlock &blk, const char *name, const char *value, int64_t timestamp) const;
+  bool encode(DataBlock &blk, const char *name, const char *value, int64_t timestamp, int32_t psoCacheVersion) const;
 };
 
 using SignatueHashDecoder = SignatueHashDeEncoder;

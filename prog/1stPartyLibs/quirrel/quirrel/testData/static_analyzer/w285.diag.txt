@@ -4,7 +4,7 @@ testData/static_analyzer/w285.nut:9:5
 local uu = ::sys.gh("fff") ?? ""
 if ((uu ?? "") != "")
      ^-
-  ::print($"x: {uu}")
+  print($"x: {uu}")
 
 
 WARNING: w285 (expr-cannot-be-null) The expression to the left of the 'null coalescing' cannot be null.

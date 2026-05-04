@@ -20,6 +20,8 @@ enum class ResourceRequestPolicy : uint32_t
   HasUsageStage = 0b00001000,
   HasUsageType = 0b00010000,
   HasClearValue = 0b00100000,
+  CanSpecifyHistory = 0b01000000,
+  HasShaderVarBinding = 0b10000000
 };
 
 inline constexpr ResourceRequestPolicy operator&(ResourceRequestPolicy fst, ResourceRequestPolicy snd)

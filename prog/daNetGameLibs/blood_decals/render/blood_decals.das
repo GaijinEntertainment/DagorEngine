@@ -1,18 +1,18 @@
 require ecs
 require danetlibs.blood_decals.render.blood_decals_common
 require ProjectiveDecals
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 
 
 [es(tag=gameClient, no_order)]
 def blood_decals_manager_add_decal(evt : CmdAddBloodDecalInternal;
-                                   var blood_decals_manager : RingBufferDecals&)
-  blood_decals_manager |> addDecal(evt.tm, evt.rad, evt.tex_id, evt.mx_id, evt.params)
+                                   var blood_decals_manager : RingBufferDecalManager&)
+  blood_decals_manager |> addDecal(DefaultDecalData(uint(0), evt.tm, evt.rad, evt.tex_id, evt.mx_id, evt.params, UPDATE_ALL))
 
 
 [es(tag=gameClient, on_event=CmdClearBloodDecals)]
 def blood_decals_manager_clear(evt : Event;
-                               var blood_decals_manager : RingBufferDecals&)
+                               var blood_decals_manager : RingBufferDecalManager&)
   blood_decals_manager |> clear()
 
 [es(tag=gameClient, no_order)]

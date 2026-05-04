@@ -3,10 +3,6 @@
 
 #include <util/dag_stdint.h>
 
-#if USE_X11
-#include <X11/Xlib.h>
-#endif
-
 class DagorGameScene;
 class IDagorGameSceneRenderer;
 
@@ -30,18 +26,6 @@ void idle_loop();
 
 void set_title(const char *title, bool utf8);
 
-#if _TARGET_PC_LINUX
-void set_title_tooltip(const char *title, const char *tooltip, bool utf8);
-#else
-inline void set_title_tooltip(const char *title, const char *, bool utf8) { set_title(title, utf8); }
-#endif //_TARGET_PC_LINUX
-
-#if USE_X11
-Display *get_root_display();
-bool get_last_cursor_pos(int *cx, int *cy, Window w);
-const XWindowAttributes &get_window_attrib(Window w, bool translated);
-void update_cursor_position(int cx, int cy, Window w);
-#endif
 } // namespace workcycle_internal
 
 namespace tql

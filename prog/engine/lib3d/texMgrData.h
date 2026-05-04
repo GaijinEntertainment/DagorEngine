@@ -144,7 +144,10 @@ struct texmgr_internal::D3dResMgrDataFinal : public D3dResManagerData
   };
   struct TexUsedSz
   {
-    uint16_t memSize4K, addMemSizeNeeded4K;
+    //! \brief Current memory occupied by the texture, measured in 4K pages.
+    uint16_t memSize4K;
+    //! \brief Additional memory size needed to load the full-res version of the texture, measured in 4K pages.
+    uint16_t addMemSizeNeeded4K;
   };
   struct BaseData
   {
@@ -380,14 +383,15 @@ public:
         return ql;
     return getLevDesc(idx, TQL__FIRST) ? TQL__FIRST : TQL_stub;
   }
-  static bool isTexLoaded(int idx, bool fq_loaded)
+  static unsigned calcTexLoadedLev(int idx, bool fq_loaded)
   {
     unsigned lev = fq_loaded ? getLevDesc(idx, TQL_high) : 0;
     if (!lev)
       lev = getLevDesc(idx, TQL_base);
-    return resQS[idx].getLdLev() >= resQS[idx].clampLev(lev) ||
-           (!getTexImportance(idx) && resQS[idx].getLdLev() >= resQS[idx].getMaxLev());
+    unsigned levClamped = resQS[idx].clampLev(lev);
+    return getTexImportance(idx) ? levClamped : min<unsigned>(levClamped, resQS[idx].getMaxLev());
   }
+  static bool isTexLoaded(int idx, bool fq_loaded) { return resQS[idx].getLdLev() >= calcTexLoadedLev(idx, fq_loaded); }
   static void setMaxLev(int idx, unsigned l) { resQS[idx].setMaxLev(max(l, texDesc[idx].getMinLev())); }
   static void changeTexMaxLev(int idx, int lev)
   {
@@ -526,33 +530,44 @@ public:
   static void incTexStreamingGeneration(int idx) { interlocked_increment(texStreamingGeneration[idx]); }
 
   // current GPU mem usage counters management
+
+  //! \brief Notifies the memory usage tracking system that a texture is no longer needed and can be discarded
+  //! \p idx the index of the texture
   void incReadyForDiscardTex(int idx)
   {
     const int texSzKb = getTexMemSize4K(idx) * 4;
+
     if (!texSzKb)
       return;
+
     [[maybe_unused]] const int fetchedReadyForDiscardTexSzKB = interlocked_add(readyForDiscardTexSzKB, texSzKb);
     [[maybe_unused]] const int fetchedReadyForDiscardTexCount = interlocked_increment(readyForDiscardTexCount);
-    const int fetchedTexAddMemSizeNeeded4K = int(getTexAddMemSizeNeeded4K(idx)) * 4;
-    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, -fetchedTexAddMemSizeNeeded4K);
+    const int fetchedTexAddMemSizeNeededKB = int(getTexAddMemSizeNeeded4K(idx)) * 4;
+    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, -fetchedTexAddMemSizeNeededKB);
+
     G_ASSERTF(fetchedReadyForDiscardTexSzKB >= 0 && fetchedReadyForDiscardTexCount >= 0 && fetchedTotalAddMemNeededSzKB >= 0,
       "readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d tex_sz_kb=%d add_sz_kb=%d %s",
       fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, texSzKb,
-      fetchedTexAddMemSizeNeeded4K, getName(idx));
+      fetchedTexAddMemSizeNeededKB, getName(idx));
   }
+  //! \brief Notifies the memory usage tracking system that a texture is now needed again and can no longer be discarded
+  //! \p idx the index of the texture
   void decReadyForDiscardTex(int idx)
   {
     const int texSzKb = getTexMemSize4K(idx) * 4;
+
     if (!texSzKb)
       return;
+
     [[maybe_unused]] const int fetchedReadyForDiscardTexSzKB = interlocked_add(readyForDiscardTexSzKB, -texSzKb);
     [[maybe_unused]] const int fetchedReadyForDiscardTexCount = interlocked_decrement(readyForDiscardTexCount);
-    const int fetchedTexAddMemSizeNeeded4K = int(getTexAddMemSizeNeeded4K(idx)) * 4;
-    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, fetchedTexAddMemSizeNeeded4K);
+    const int fetchedTexAddMemSizeNeededKB = int(getTexAddMemSizeNeeded4K(idx)) * 4;
+    [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB = interlocked_add(totalAddMemNeededSzKB, fetchedTexAddMemSizeNeededKB);
+
     G_ASSERTF(fetchedReadyForDiscardTexSzKB >= 0 && fetchedReadyForDiscardTexCount >= 0 && fetchedTotalAddMemNeededSzKB >= 0,
       "readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d tex_sz_kb=%d add_sz_kb=%d %s",
       fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, texSzKb,
-      fetchedTexAddMemSizeNeeded4K, getName(idx));
+      fetchedTexAddMemSizeNeededKB, getName(idx));
   }
 
   int getTotalUsedTexCount() const { return interlocked_acquire_load(totalUsedTexCount); }
@@ -593,9 +608,20 @@ public:
   int getReadyForDiscardBdCount() const { return interlocked_acquire_load(readyForDiscardBdCount); }
 
   // per-entry GPU mem usage management
+
+  //! \brief Get the current memory occupied by the texture with index \p idx (in 4K pages)
+  //! \param idx index of the texture
   static unsigned getTexMemSize4K(int idx) { return interlocked_acquire_load(texUsedSz[idx].memSize4K); }
+
+  //! \brief Get the amount of memory needed to load the full-res version of the texture with index \p idx (in 4K pages)
+  //! \param idx index of the texture
   static unsigned getTexAddMemSizeNeeded4K(int idx) { return interlocked_acquire_load(texUsedSz[idx].addMemSizeNeeded4K); }
 
+  //! \brief Notifies the memory usage tracking system of changes in the current memory consumed by a
+  //! texture and the memory needed to stream in the full-resolution version of the texture.
+  //! \param idx index of the texture
+  //! \param new_sz_kb new size of the texture in memory (in kilobytes)
+  //! \param full_needed_sz_kb how much memory is needed for the full-res version of the texture (in kilobytes)
   void changeTexUsedMem(int idx, int new_sz_kb, int full_needed_sz_kb)
   {
     G_ASSERTF_AND_DO(new_sz_kb <= full_needed_sz_kb, full_needed_sz_kb = new_sz_kb, "new_sz_kb=%d full_needed_sz_kb=%d", new_sz_kb,
@@ -612,8 +638,11 @@ public:
         interlocked_increment(totalUsedTexCount);
       interlocked_add(totalUsedTexSzKB, new_sz_kb);
     }
+
+    const int fetchedTexAddMemSizeNeededKB = int(getTexAddMemSizeNeeded4K(idx)) * 4;
     [[maybe_unused]] const int fetchedTotalAddMemNeededSzKB =
-      interlocked_add(totalAddMemNeededSzKB, (full_needed_sz_kb - new_sz_kb) - int(getTexAddMemSizeNeeded4K(idx)) * 4);
+      interlocked_add(totalAddMemNeededSzKB, (full_needed_sz_kb - new_sz_kb) - fetchedTexAddMemSizeNeededKB);
+
     interlocked_release_store(texUsedSz[idx].memSize4K, new_sz_kb / 4);
     interlocked_release_store(texUsedSz[idx].addMemSizeNeeded4K, (full_needed_sz_kb - new_sz_kb) / 4);
 
@@ -629,7 +658,15 @@ public:
   //! setup qLev for texture based on current global quality settings
   static void setupQLev(int idx, int q_id, const ddsx::Header &hdr)
   {
-    resQS[idx].setQLev(max<unsigned>(texDesc[idx].dim.maxLev - hdr.getSkipLevelsFromQ(q_id), texDesc[idx].getMinLev()));
+    uint8_t desiredQLev = max<unsigned>(texDesc[idx].dim.maxLev - hdr.getSkipLevelsFromQ(q_id), texDesc[idx].getMinLev());
+    uint8_t currentQLev = resQS[idx].getQLev();
+    uint8_t smallQLev = getLevDesc(idx, TQL_thumb);
+    // use smallest from 32x32 or TQL_base, if TQL_thumb is not provided
+    if (smallQLev == 0)
+      smallQLev = min<unsigned>(5, getLevDesc(idx, TQL_base));
+    if (desiredQLev <= currentQLev && currentQLev <= smallQLev)
+      return;
+    resQS[idx].setQLev(desiredQLev);
     unsigned ld_lev = resQS[idx].getLdLev();
     resQS[idx].setCurQL(ld_lev < resQS[idx].getQLev() ? calcCurQL(idx, ld_lev) : resQS[idx].getMaxQL());
   }

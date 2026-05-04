@@ -4,11 +4,15 @@
 
 namespace workcycleperf
 {
-bool cpu_only_cycle_record_enabled = false;
+RecordMode record_mode = RecordMode::Disabled;
+
 int64_t ref_cpu_only_cycle_start = 0;
 int last_cpu_only_cycle_time_usec = 0;
 double summed_cpu_only_cycle_time = 0.0;
 uint64_t num_cpu_only_cycle = 0;
+
+int64_t ref_workcycle_start;
+int last_workcycle_time_usec;
 
 float get_avg_cpu_only_cycle_time_usec() { return num_cpu_only_cycle != 0 ? summed_cpu_only_cycle_time / num_cpu_only_cycle : 0.0f; }
 

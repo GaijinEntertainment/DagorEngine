@@ -2,7 +2,7 @@
 
 #include <pathFinder/pathFinder.h>
 #include <pathFinder/customNav.h>
-#include <detourNavMesh.h>
+#include <DetourNavMesh.h>
 #include <debug/dag_debug3d.h>
 #include <debug/dag_textMarks.h>
 #include <util/dag_string.h>

@@ -4,6 +4,6 @@ testData/static_analyzer/w206_arith.nut:11:0
 x /= foo();
 x = foo();
 ^--------
-::print(x)
+print(x)
 
 

@@ -25,10 +25,6 @@ endmacro
 macro RI_VOXELIZE_ALBEDO()
   if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
   {
-    if (mobile_render != off)
-    {
-      dont_render;
-    }
     z_write=false;z_test=false;
     cull_mode = none;
 

@@ -126,15 +126,14 @@
 #define IDD_UV_UTILS                      109
 #define IDD_POLYBUMP                      110
 #define IDS_NON_DAGOR_MATERIALS           110
-#define IDD_DAGORMAT2                     111
 #define IDS_SUB_SUB_MATERIALS             111
+#define IDD_DAGORMAT2_SHADER              111
 #define IDD_DAGORPAR_NEW                  112
 #define IDS_ABSOLUTE_PATHS                112
 #define IDD_DAGORPAR_TEXT                 113
 #define IDS_OBJECT_PROPERTIES_EDITOR_NAME 113
 #define IDD_DAGORPAR_REAL                 114
 #define IDS_PHYS_FILES                    114
-#define IDD_DAGORPAR_ENUM                 115
 #define IDS_SAVE_PHYS_TITLE               115
 #define IDS_OPEN_SCENE_TITLE              116
 #define IDD_DAGORPAR_BOOL                 116
@@ -143,6 +142,7 @@
 #define IDD_MatConvUtil                   118
 #define IDS_IMPUTIL_HELP_ROLL             118
 #define IDD_OBJECT_PROPERTIES_EDITOR      119
+#define IDS_EXPORT_TO_JSON                119
 #define IDD_RBDUMMY_PARAM                 120
 #define IDD_GENERATE_OBJECTS_ON_SURFACE   121
 #define IDD_SCATTER                       121
@@ -170,6 +170,18 @@
 #define IDD_IMPUTIL_HELP                  155
 #define IDD_EXPOTHER                      156
 #define IDD_EXPANIM                       159
+#define IDD_DAGORPAR_POINT2               162
+#define IDD_DAGORPAR_POINT3               163
+#define IDD_DAGORPAR_POINT4               164
+#define IDD_DAGORMAT2_TEX                 165
+#define IDD_DAGORMAT2_PARAM               166
+#define IDD_DAGORMAT2_PHONG               167
+#define IDD_DAGORPAR_POINT4_COLOR         168
+#define IDD_DAGORPAR_BOOL1                169
+#define IDD_DAGORPAR_GROUP                169
+#define IDD_DAGORPAR_SHADER_SELECTOR      170
+#define IDD_DAGORMAT2_PROXY               171
+#define IDD_EXPORT_MAT_TO_JSON            172
 #define OBJ_PROP_DLG_WIDTH                221
 #define IDC_LOCKID                        1000
 #define IDC_COPY_TO_CB                    1001
@@ -178,6 +190,7 @@
 #define IDC_2SIDED                        1002
 #define IDC_SET_DAGORPATH                 1002
 #define IDC_VSS_SAMPLE_SCALE_SPIN         1002
+#define IDC_EXPORT3                       1002
 #define IDC_SCRIPT                        1003
 #define IDC_SHOWALLMAPS                   1003
 #define IDC_EXPORT_ANIM2                  1003
@@ -313,6 +326,7 @@
 #define IDC_SHIN                          1055
 #define IDC_GS_SELFACES                   1055
 #define IDC_START                         1055
+#define IDC_AMB2                          1055
 #define IDC_SHIN_S                        1056
 #define IDC_GS_SCALEXYS                   1056
 #define IDC_TCPASTEBUF                    1056
@@ -346,6 +360,7 @@
 #define IDC_PAR_TEXT_VALUE                1096
 #define IDC_PAR_REAL_VALUE                1106
 #define IDC_PAR_REAL_VALUE_SPINNER        1114
+#define IDC_PAR_REAL_VALUE_SPINNER_0      1114
 #define IDC_PAR_COLOR_VALUE               1115
 #define IDC_PARAM_DELETE                  1116
 #define IDC_CONVERT                       1118
@@ -402,7 +417,6 @@
 #define IDC_ATEST                         1169
 #define IDS_SCATTER_ROLL                  1170
 #define IDS_SPLINES_AND_SMOOTH_ROLL       1171
-#define IDC_EDIT1                         1171
 #define IDS_MATERIALS_ROLL                1172
 #define IDC_CALC                          1172
 #define IDS_UV_UTILS_ROLL                 1173
@@ -420,6 +434,7 @@
 #define IDC_IMPORT_DP                     1213
 #define IDC_IMPORT_DMG                    1214
 #define IDC_IMPORT_DESTR                  1215
+#define IDC_IMPORT_DM                     1216
 #define IDC_REPLACE_EXISTING_LAYER        1217
 #define IDC_RENAME_NEW_LAYER              1218
 #define IDC_STATIC1                       1218
@@ -438,6 +453,7 @@
 #define IDC_BUTTON1                       1234
 #define IDC_OPENDIR                       1234
 #define IDC_OPEN_DOC                      1234
+#define IDC_PARAM_DELETE_ALL              1234
 #define IDC_OPTIMIZE_MATERIAL_SLOTS       1236
 #define IDC_PRESERVE_SMOOTHING_GROUPS     1238
 #define IDC_IMPUTIL_WILDCARD_INCL         1238
@@ -457,6 +473,23 @@
 #define IDC_PARAM_START                   1252
 #define IDC_CHECK1                        1253
 #define IDC_PAR_BOOL_VALUE                1253
+#define IDC_PAR_POINT_VALUE_0             1255
+#define IDC_PAR_POINT_VALUE_SPINNER_0     1256
+#define IDC_BACKFACE_1                    1257
+#define IDC_SHADER_CLASS_LIST             1257
+#define IDC_BACKFACE_2                    1258
+#define IDC_BACKFACE_REAL2                1259
+#define IDC_PROXY_EXPORT                  1259
+#define IDC_PAR_POINT_VALUE_1             1261
+#define IDC_PAR_POINT_VALUE_SPINNER_1     1262
+#define IDC_PARAM_NAME_EDIT               1262
+#define IDC_PAR_POINT_VALUE_2             1263
+#define IDC_PROXY_IMPORT                  1263
+#define IDC_PAR_POINT_VALUE_SPINNER_2     1264
+#define IDC_ASSET_PREFIX                  1264
+#define IDC_PAR_POINT_VALUE_3             1265
+#define IDC_RESOLVE_NAMES                 1265
+#define IDC_PAR_POINT_VALUE_SPINNER_3     1266
 #define IDC_TEX0                          2000
 #define IDC_TEX1                          2001
 #define IDS_DAGEXP_LONG                   2001
@@ -515,7 +548,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE 158
 #define _APS_NEXT_COMMAND_VALUE  40014
-#define _APS_NEXT_CONTROL_VALUE  1254
+#define _APS_NEXT_CONTROL_VALUE  1266
 #define _APS_NEXT_SYMED_VALUE    101
 #endif
 #endif

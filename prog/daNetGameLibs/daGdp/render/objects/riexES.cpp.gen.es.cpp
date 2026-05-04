@@ -14,7 +14,8 @@ static void riex_object_group_process_es_all_events(const ecs::Event &__restrict
   G_FAST_ASSERT(evt.is<dagdp::EventObjectGroupProcess>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::riex_object_group_process_es(static_cast<const dagdp::EventObjectGroupProcess&>(evt)
-        , ECS_RW_COMP(riex_object_group_process_es_comps, "dagdp__riex_manager", dagdp::RiexManager)
+        , components.manager()
+    , ECS_RW_COMP(riex_object_group_process_es_comps, "dagdp__riex_manager", dagdp::RiexManager)
     );
   while (++comp != compE);
 }
@@ -56,6 +57,58 @@ static ecs::EntitySystemDesc riex_view_finalize_es_es_desc
   ecs::EventSetBuilder<dagdp::EventViewFinalize>::build(),
   0
 ,nullptr,nullptr,"*");
+static constexpr ecs::ComponentDesc riex_triangle_size_debug_enable_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
+};
+static void riex_triangle_size_debug_enable_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<CreateTriangleDebugNodes>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dagdp::riex_triangle_size_debug_enable_es(static_cast<const CreateTriangleDebugNodes&>(evt)
+        , ECS_RW_COMP(riex_triangle_size_debug_enable_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc riex_triangle_size_debug_enable_es_es_desc
+(
+  "riex_triangle_size_debug_enable_es",
+  "prog/daNetGameLibs/daGdp/render/objects/riexES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riex_triangle_size_debug_enable_es_all_events),
+  make_span(riex_triangle_size_debug_enable_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<CreateTriangleDebugNodes>::build(),
+  0
+,"dev,render");
+static constexpr ecs::ComponentDesc riex_triangle_size_debug_disable_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
+};
+static void riex_triangle_size_debug_disable_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<DestroyTriangleDebugNodes>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    dagdp::riex_triangle_size_debug_disable_es(static_cast<const DestroyTriangleDebugNodes&>(evt)
+        , ECS_RW_COMP(riex_triangle_size_debug_disable_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc riex_triangle_size_debug_disable_es_es_desc
+(
+  "riex_triangle_size_debug_disable_es",
+  "prog/daNetGameLibs/daGdp/render/objects/riexES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riex_triangle_size_debug_disable_es_all_events),
+  make_span(riex_triangle_size_debug_disable_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<DestroyTriangleDebugNodes>::build(),
+  0
+,"dev,render");
 static constexpr ecs::ComponentDesc riex_finalize_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -118,9 +171,9 @@ static constexpr ecs::ComponentDesc dagdp_object_group_riex_changed_es_comps[] =
 };
 static void dagdp_object_group_riex_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::dagdp_object_group_riex_changed_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dagdp_object_group_riex_changed_es_es_desc
 (
@@ -154,9 +207,9 @@ static ecs::CompileTimeQueryDesc riex_object_group_ecs_query_desc
   make_span(riex_object_group_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::riex_object_group_ecs_query(Callable function)
+inline void dagdp::riex_object_group_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, riex_object_group_ecs_query_desc.getHandle(),
+  perform_query(&manager, riex_object_group_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -184,9 +237,9 @@ static ecs::CompileTimeQueryDesc manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::manager_ecs_query(Callable function)
+inline void dagdp::manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

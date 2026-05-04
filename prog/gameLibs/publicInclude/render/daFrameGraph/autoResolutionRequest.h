@@ -71,6 +71,8 @@ public:
    */
   IPoint<D> get() const;
 
+  bool operator==(const AutoResolutionRequest<D> &) const = default;
+
 private:
   AutoResTypeNameId autoResTypeId;
   float multiplier = 1.f;

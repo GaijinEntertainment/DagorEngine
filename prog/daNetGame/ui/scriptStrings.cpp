@@ -16,7 +16,7 @@ void ui::preregister_strings(HSQUIRRELVM vm, Sqrat::Object *strings, unsigned st
     *strings = Sqrat::Object(hobj, vm);
     sq_pop(vm, 1);
     // debug("obj=%p =%s (%.*s)", //
-    //   strings, strings->GetVar<const SQChar *>().value, pcomma - comma_sep_string_names, comma_sep_string_names);
+    //   strings, strings->GetVar<const char *>().value, pcomma - comma_sep_string_names, comma_sep_string_names);
     if (strings_count > 1)
     {
       comma_sep_string_names = pcomma + 1;

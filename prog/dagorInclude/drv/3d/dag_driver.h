@@ -21,7 +21,7 @@ class Driver3dInitCallback;
 class Sbuffer;
 enum class Drv3dCommand;
 
-//--- Driver3dDesc & initialization -------
+//--- DriverDesc & initialization -------
 #include "rayTrace/dag_drvRayTrace.h"
 
 // main window proc
@@ -76,11 +76,11 @@ bool init_driver();
 bool is_inited();
 
 /// start up, read cfg, create window, init 3d hard&soft, ...
-/// if renderwnd!=NULL, mainwnd and renderwnd are used for rendering (when possible)
+/// mainwnd is used for rendering (or created and returned back when nullptr passed)
 /// on error, returns false
 /// on sucess, return true
-bool init_video(void *hinst, main_wnd_f *, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd, void *hicon,
-  const char *title, Driver3dInitCallback *cb);
+bool init_video(void *hinst, main_wnd_f *, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon, const char *title,
+  Driver3dInitCallback *cb);
 
 /// shutdown driver and release all resources
 void release_driver();
@@ -114,13 +114,6 @@ bool reset_device();
 /// app_active==false is hint to the driver
 /// returns false on error
 bool update_screen(uint32_t frame_id = 0, bool app_active = true);
-
-/**
- * @brief If the update_screen(bool) works asynchronously then under certain conditions it will block the execution
- * until the previously called update_screen(bool) is finished.
- * @param force Even if the internal conditions don't require the wait, the execution will wait for the present to finish
- */
-void wait_for_async_present(bool force = false);
 
 /**
  * @brief Marks the start of a new frame. Additionally it blocks the execution until the GPU finishes on going render task for delaying

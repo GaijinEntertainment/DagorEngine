@@ -13,6 +13,9 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/codecs/speexdsp-1.2.0/include
   $(Root)/prog/3rdPartyLibs/codecs/rnnoise/include
+  $(Root)/prog/3rdPartyLibs/webrtc-apm
+  $(Root)/prog/3rdPartyLibs/webrtc-apm/webrtc
+  $(Root)/prog/3rdPartyLibs/abseil
   $(FmodIncPath)
 ;
 
@@ -28,11 +31,19 @@ UseProgLibs =
   gameLibs/soundSystem
   gameLibs/timeSource
   3rdPartyLibs/codecs/speexdsp-1.2.0
+  3rdPartyLibs/webrtc-apm
 ;
 
 if $(Platform) in macOS linux windows scarlett ps5 {
   CPPopt += -DUSE_RNNOISE_DENOISER=1 ;
   UseProgLibs += 3rdPartyLibs/codecs/rnnoise ;
+}
+
+if $(PlatformSpec) = clang {
+  StrictCompile = no ; # unused-parameter
+  CPPopt += -Wno-nullability-completeness
+            -Wno-unused-parameter
+  ;
 }
 
 if $(FmodStudio) != src {

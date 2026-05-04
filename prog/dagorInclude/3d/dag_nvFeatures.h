@@ -5,8 +5,6 @@
 #pragma once
 
 #include <drv/3d/dag_tex3d.h>
-#include <drv/3d/dag_consts.h>
-#include <3d/dag_latencyTypes.h>
 #include <math/dag_TMatrix4.h>
 #include <generic/dag_expected.h>
 
@@ -23,6 +21,7 @@ enum class SupportState
   DriverOutOfDate,
   AdapterNotSupported,
   DisabledHWS,
+  NoVideoExtensions,
   NotSupported
 };
 
@@ -57,6 +56,8 @@ struct DlssParams
   HandleType *inSpecularAlbedo = nullptr;
   HandleType *inNormalRoughness = nullptr;
   HandleType *inHitDist = nullptr;
+  HandleType *inSsssGuide = nullptr;
+  HandleType *inColorBeforeTransparency = nullptr;
 
   float inJitterOffsetX = .0f;
   float inJitterOffsetY = .0f;
@@ -64,7 +65,10 @@ struct DlssParams
   float inMVScaleY = .0f;
   int inColorDepthOffsetX = 0;
   int inColorDepthOffsetY = 0;
+  int inWidth = 0;
+  int inHeight = 0;
   uint32_t frameId = 0;
+  bool inReset = false;
 
   Camera camera = {};
 
@@ -78,6 +82,8 @@ struct DlssParams
   uint32_t inSpecularAlbedoState = UINT_MAX;
   uint32_t inNormalRoughnessState = UINT_MAX;
   uint32_t inHitDistState = UINT_MAX;
+  uint32_t inSsssGuideState = UINT_MAX;
+  uint32_t inColorBeforeTransparencyState = UINT_MAX;
 
   uint32_t outColorState = UINT_MAX;
 };
@@ -88,9 +94,11 @@ auto convertDlssParams(const DlssParams<InHandleType> &in,
 {
   return {converter(in.inColor), converter(in.inDepth), converter(in.inMotionVectors), converter(in.inExposure),
     converter(in.inAlbedo), converter(in.inSpecularAlbedo), converter(in.inNormalRoughness), converter(in.inHitDist),
-    in.inJitterOffsetX, in.inJitterOffsetY, in.inMVScaleX, in.inMVScaleY, in.inColorDepthOffsetX, in.inColorDepthOffsetY, in.frameId,
-    in.camera, converter(in.outColor), in.inColorState, in.inDepthState, in.inMotionVectorsState, in.inExposureState, in.inAlbedoState,
-    in.inSpecularAlbedoState, in.inNormalRoughnessState, in.inHitDistState, in.outColorState};
+    converter(in.inSsssGuide), converter(in.inColorBeforeTransparency), in.inJitterOffsetX, in.inJitterOffsetY, in.inMVScaleX,
+    in.inMVScaleY, in.inColorDepthOffsetX, in.inColorDepthOffsetY, in.inWidth, in.inHeight, in.frameId, in.inReset, in.camera,
+    converter(in.outColor), in.inColorState, in.inDepthState, in.inMotionVectorsState, in.inExposureState, in.inAlbedoState,
+    in.inSpecularAlbedoState, in.inNormalRoughnessState, in.inHitDistState, in.inSsssGuideState, in.inColorBeforeTransparencyState,
+    in.outColorState};
 }
 
 template <typename HandleType = BaseTexture>
@@ -106,6 +114,7 @@ struct DlssGParams
   float inMVScaleX = .0f;
   float inMVScaleY = .0f;
   uint32_t frameId = 0;
+  bool inReset = false;
 
   Camera camera = {};
 
@@ -120,8 +129,8 @@ auto convertDlssGParams(const DlssGParams<InHandleType> &in,
   F &&converter) -> DlssGParams<eastl::remove_pointer_t<decltype(converter(nullptr))>>
 {
   return {converter(in.inHUDless), converter(in.inUI), converter(in.inDepth), converter(in.inMotionVectors), in.inJitterOffsetX,
-    in.inJitterOffsetY, in.inMVScaleX, in.inMVScaleY, in.frameId, in.camera, in.inHUDlessState, in.inUIState, in.inDepthState,
-    in.inMotionVectorsState};
+    in.inJitterOffsetY, in.inMVScaleX, in.inMVScaleY, in.frameId, in.inReset, in.camera, in.inHUDlessState, in.inUIState,
+    in.inDepthState, in.inMotionVectorsState};
 }
 
 struct DLSS
@@ -155,6 +164,10 @@ struct DLSS
   {
     unsigned renderWidth;
     unsigned renderHeight;
+    unsigned renderMinWidth;
+    unsigned renderMinHeight;
+    unsigned renderMaxWidth;
+    unsigned renderMaxHeight;
     bool rayReconstruction;
   };
 
@@ -162,7 +175,7 @@ struct DLSS
 
   virtual bool evaluate(const nv::DlssParams<void> &params, void *command_buffer) = 0;
   virtual eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const = 0;
-  virtual bool setOptions(Mode mode, IPoint2 output_resolution) = 0;
+  virtual bool setOptions(Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model) = 0;
 
   // Only to be used with direct DLSS integration
   virtual State getState() { return State::NOT_IMPLEMENTED; }
@@ -170,7 +183,7 @@ struct DLSS
 
   virtual void DeleteFeature() {}
 
-  bool isRR = false;
+  virtual bool supportRayReconstruction() = 0;
 };
 
 struct DLSSFrameGeneration
@@ -181,67 +194,16 @@ struct DLSSFrameGeneration
   virtual void setSuppressed(bool suppressed) = 0;
 };
 
-struct Reflex
-{
-  struct ReflexStats
-  {
-    uint64_t frameID;
-    uint64_t inputSampleTime;
-    uint64_t simStartTime;
-    uint64_t simEndTime;
-    uint64_t renderSubmitStartTime;
-    uint64_t renderSubmitEndTime;
-    uint64_t presentStartTime;
-    uint64_t presentEndTime;
-    uint64_t driverStartTime;
-    uint64_t driverEndTime;
-    uint64_t osRenderQueueStartTime;
-    uint64_t osRenderQueueEndTime;
-    uint64_t gpuRenderStartTime;
-    uint64_t gpuRenderEndTime;
-    uint32_t gpuActiveRenderTimeUs;
-    uint32_t gpuFrameTimeUs;
-  };
-
-  struct ReflexState
-  {
-    bool lowLatencyAvailable;
-    bool latencyReportAvailable;
-    bool flashIndicatorDriverControlled;
-    static constexpr size_t FRAME_COUNT = 64;
-    ReflexStats stats[FRAME_COUNT];
-  };
-
-  enum class ReflexMode
-  {
-    Off,
-    On,
-    OnPlusBoost
-  };
-
-  virtual void startFrame(uint32_t frame_id) = 0;
-  virtual bool setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type) = 0;
-  virtual bool setOptions(ReflexMode mode, unsigned frameLimitUs) = 0;
-  virtual eastl::optional<ReflexState> getState() const = 0;
-  virtual bool sleep(uint32_t frame_id) = 0;
-  virtual ReflexMode getCurrentMode() const = 0;
-};
-
 struct Streamline
 {
   virtual nv::SupportState isDlssSupported() const = 0;
   virtual nv::SupportState isDlssGSupported() const = 0;
   virtual nv::SupportState isDlssRRSupported() const = 0;
-  virtual nv::SupportState isReflexSupported() const = 0;
 
   virtual dag::Expected<eastl::string, nv::SupportState> getDlssVersion() const = 0;
 
-  virtual Reflex *createReflexFeature() = 0;
-  virtual void releaseReflexFeature() = 0;
-
   virtual DLSS *getDlssFeature(int viewport_id) = 0;
   virtual DLSSFrameGeneration *getDlssGFeature(int viewport_id) = 0;
-  virtual Reflex *getReflexFeature() = 0;
 
   virtual int getMaximumNumberOfGeneratedFrames() const = 0;
   virtual bool isDlssModeAvailableAtResolution(nv::DLSS::Mode mode, const IPoint2 &resolution) const = 0;

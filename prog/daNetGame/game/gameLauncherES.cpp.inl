@@ -3,11 +3,13 @@
 #include <debug/dag_debug.h>
 #include <util/dag_console.h>
 #include <EASTL/string.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/event.h>
 #include <sqrat.h>
 #include <sqstdblob.h>
-#include <crypto/base64.h>
+#include <dagCrypto/base64.h>
 #include "game/dasEvents.h"
 #include "game/gameEvents.h"
 #include "game/gameLauncher.h"
@@ -91,6 +93,10 @@ static SQRESULT launch_session(HSQUIRRELVM vm)
     if (Sqrat::Object encKeyObj = params.GetSlot("encKey"); encKeyObj.GetType() == OT_STRING)
       connectParams.encryptKey = base64::decode<dag::Vector<uint8_t>>(encKeyObj.GetString());
 
+    if (Sqrat::Object relayUrlObj = params.GetSlot("relayStunRequestAddr"); relayUrlObj.GetType() == OT_STRING)
+      connectParams.relayStunRequestAddr = relayUrlObj.Cast<eastl::string>();
+    debug("launch_session: relayStunRequestAddr='%s'", connectParams.relayStunRequestAddr.c_str());
+
     net::clear_cached_ids();
     g_entity_mgr->broadcastEvent(EventGameSessionStarted());
     sceneload::connect_to_session(eastl::move(connectParams), eastl::move(ugmCtx));
@@ -109,13 +115,35 @@ static SQRESULT launch_session(HSQUIRRELVM vm)
     app_profile::getRW().serverSessionId =
       eastl::to_string(sessIdObj.IsNull() ? matching::INVALID_SESSION_ID : sessIdObj.Cast<uint64_t>());
 
+  // Optional additional imports for offline play
+  Sqrat::Object additionalImportsObj = params.GetSlot("additional_imports");
+  eastl::vector<eastl::string> additionalImports;
+  if (additionalImportsObj.GetType() == OT_ARRAY)
+  {
+    Sqrat::Var<Sqrat::Array> additionalImportsArr = additionalImportsObj.GetVar<Sqrat::Array>();
+    SQInteger arraySize = additionalImportsArr.value.Length();
+    additionalImports.reserve(arraySize);
+    for (SQInteger i = 0; i < arraySize; ++i)
+    {
+      const char *curImport = additionalImportsArr.value.GetValue<const char *>(i);
+      if (curImport == nullptr)
+      {
+        continue;
+      }
+      additionalImports.emplace_back(curImport);
+    }
+  }
+
   net::clear_cached_ids();
   g_entity_mgr->broadcastEvent(EventGameSessionStarted());
-  sceneload::switch_scene(scene, {}, eastl::move(ugmCtx));
+  sceneload::switch_scene(scene, eastl::move(additionalImports), eastl::move(ugmCtx));
   return 0;
 }
 
-void game_launcher_es_event_handler(const EventUserLoggedOut &) { g_entity_mgr->broadcastEvent(EventGameSessionFinished(false)); }
+void game_launcher_es_event_handler(const EventUserLoggedOut &, ecs::EntityManager &manager)
+{
+  manager.broadcastEvent(EventGameSessionFinished(false));
+}
 
 
 void bind_game_launcher(Sqrat::Table &ns) { ns.SquirrelFunc("launch_network_session", launch_session, 2, ".t"); }

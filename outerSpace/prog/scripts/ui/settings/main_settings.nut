@@ -12,7 +12,7 @@ let title = {rendObj = ROBJ_TEXT text = "SETTINGS" fontSize=hdpx(40) padding = h
 let subTitle = @(text) {rendObj = ROBJ_TEXT text}
 
 let settings = {
-  padding = static [hdpx(40), hdpx(20)]
+  padding = const [hdpx(40), hdpx(20)]
   rendObj = ROBJ_SOLID color = Color(0,0,0,80)
   flow = FLOW_VERTICAL
   gap = hdpx(10)
@@ -30,7 +30,7 @@ function settingsMenuUi(){
       rendObj = ROBJ_WORLD_BLUR
       fillColor = Color(30,30,30,230)
       padding = hdpx(5)
-      size = static [sw(66), sh(66)]
+      size = const [sw(66), sh(66)]
       flow = FLOW_VERTICAL
       children = [title, settings, buttons]
       hotkeys = [["Esc", close]]

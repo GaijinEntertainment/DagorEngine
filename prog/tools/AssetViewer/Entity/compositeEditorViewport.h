@@ -6,6 +6,7 @@
 #include <de3_pixelPerfectSelectionService.h>
 
 class BBox3;
+class IEditorCommandSystem;
 class IGenViewportWnd;
 class IObjEntity;
 class Point3;
@@ -14,6 +15,7 @@ class TMatrix;
 class CompositeEditorViewport
 {
 public:
+  static void registerEditorCommands(IEditorCommandSystem &command_system);
   void registerMenuAccelerators();
   void handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity);
   IObjEntity *getHitSubEntity(IGenViewportWnd *wnd, int x, int y, IObjEntity &entity);

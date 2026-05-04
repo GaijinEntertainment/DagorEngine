@@ -20,7 +20,8 @@ public:
   void invalidate();
 
   CloudsChangeFlags render();
-  void renderCloudVolume(VolTexture *cloud_volume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  void renderCloudVolume(VolTexture *cloud_volume, TEXTUREID prev_cloud_volume, float max_dist, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, const TMatrix4 &prev_glob_tm);
 
 private:
   void initCloudsVolumeRenderer();
@@ -58,6 +59,7 @@ private:
   int downsampleRatio = 8;
   float averaging = 0.65;
   bool useCompression = false;
+  int frameNo = 0;
 
   struct
   {

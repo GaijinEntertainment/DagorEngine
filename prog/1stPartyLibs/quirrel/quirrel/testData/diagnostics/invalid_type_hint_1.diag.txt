@@ -1,0 +1,7 @@
+ERROR: expected 'TYPE_NAME'
+testData/diagnostics/invalid_type_hint_1.nut:1:6
+
+let a:2 = 3
+      ^
+
+

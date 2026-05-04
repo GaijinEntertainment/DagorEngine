@@ -10,6 +10,7 @@
 #include <math/dag_interpolator.h>
 #include <util/dag_index16.h>
 #include <util/dag_simpleString.h>
+#include <vecmath/dag_vecMath_common.h>
 #include <generic/dag_staticTab.h>
 
 // forward declarations for external classes and structures
@@ -40,19 +41,23 @@ decl_dclassid(0x20000311, AnimPostBlendMatVarFromNode);
 decl_dclassid(0x20000312, AnimPostBlendCompoundRotateShift);
 decl_dclassid(0x20000313, AnimPostBlendSetParam);
 decl_dclassid(0x20000314, AnimPostBlendTwistCtrl);
-decl_dclassid(0x20000315, AnimPostBlendNodePosesSubstraction);
+decl_dclassid(0x20000315, AnimPostBlendNodeEffectorFromChildIK);
 decl_dclassid(0x20000316, AnimPostBlendScaleCtrl);
 decl_dclassid(0x20000317, DefClampParamCtrl);
 decl_dclassid(0x20000318, AnimPostBlendRotateAroundCtrl);
 decl_dclassid(0x20000319, AnimPostBlendNodeLookatNodeCtrl);
 decl_dclassid(0x2000031A, DeltaRotateShiftCtrl);
 decl_dclassid(0x2000031B, FootLockerIKCtrl);
+decl_dclassid(0x2000031C, AnimPostBlendHasAttachment);
+decl_dclassid(0x2000031D, AnimPostBlendHumanAimCtrl);
+decl_dclassid(0x2000031E, AnimPostBlendTwoBonesIK);
 
 //
 // Controller to compute node's rotation and shift
 //
 class DeltaRotateShiftCtrl : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     dag::Index16 targetNode;
@@ -66,12 +71,11 @@ class DeltaRotateShiftCtrl : public AnimPostBlendCtrl
   bool relativeToOrig = false;
   SimpleString targetNode;
 
-public:
   DeltaRotateShiftCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -87,13 +91,13 @@ public:
 //
 class DeltaAnglesCtrl : public AnimPostBlendCtrl
 {
+public:
   int varId, destRotateVarId, destPitchVarId, destLeanVarId;
   SimpleString nodeName;
   int fwdAxisIdx, sideAxisIdx;
   float scaleR, scaleP, scaleL;
   bool invFwd, invSide;
 
-public:
   DeltaAnglesCtrl(AnimationGraph &g) :
     AnimPostBlendCtrl(g),
     varId(-1),
@@ -111,7 +115,7 @@ public:
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder & /*st*/);
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/);
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -127,6 +131,7 @@ public:
 //
 class AnimPostBlendAlignCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeId
   {
     attachment_uid_t lastRefUid;
@@ -144,12 +149,11 @@ class AnimPostBlendAlignCtrl : public AnimPostBlendCtrl
   bool copyPos = false;
   bool copyBlendResultToSrc = false;
 
-public:
   AnimPostBlendAlignCtrl(AnimationGraph &g, const char *var_name);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -165,6 +169,7 @@ public:
 //
 class AnimPostBlendAlignExCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -185,7 +190,6 @@ class AnimPostBlendAlignExCtrl : public AnimPostBlendCtrl
   int hlpCol[3];
   int varId;
 
-public:
   AnimPostBlendAlignExCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g), varId(-1)
   {
     hlpCol[0] = 1;
@@ -195,7 +199,7 @@ public:
 
   virtual void destroy() { targetNode.clear(); }
 
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -211,6 +215,7 @@ public:
 //
 class AnimPostBlendRotateCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -235,12 +240,11 @@ class AnimPostBlendRotateCtrl : public AnimPostBlendCtrl
   bool saveScale;
   int axisFromCharIndex;
 
-public:
   AnimPostBlendRotateCtrl(AnimationGraph &g, const char *param_name, const char *ac_pname, const char *add_pname = NULL);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -256,6 +260,7 @@ public:
 //
 class AnimPostBlendRotateAroundCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -274,12 +279,11 @@ class AnimPostBlendRotateAroundCtrl : public AnimPostBlendCtrl
   int varId = -1;
   int paramId;
 
-public:
   AnimPostBlendRotateAroundCtrl(AnimationGraph &g, const char *param_name);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -296,6 +300,7 @@ public:
 //
 class AnimPostBlendScaleCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -312,12 +317,11 @@ class AnimPostBlendScaleCtrl : public AnimPostBlendCtrl
   int varId, paramId;
   float defaultValue;
 
-public:
   AnimPostBlendScaleCtrl(AnimationGraph &g, const char *param_name, const char *ac_pname, const char *add_pname = NULL);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -333,6 +337,7 @@ public:
 //
 class AnimPostBlendMoveCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -359,12 +364,11 @@ class AnimPostBlendMoveCtrl : public AnimPostBlendCtrl
   bool additive;
   bool saveOtherAxisMove;
 
-public:
   AnimPostBlendMoveCtrl(AnimationGraph &g, const char *param_name, const char *ac_pname);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -380,6 +384,7 @@ public:
 //
 class AnimPostBlendCondHideCtrl : public AnimPostBlendCtrl
 {
+public:
   struct CompCondition
   {
     int pid;
@@ -407,7 +412,6 @@ class AnimPostBlendCondHideCtrl : public AnimPostBlendCtrl
   Tab<NodeDesc> targetNode;
   int varId;
 
-public:
   static bool loadCondition(const DataBlock &blk, AnimationGraph &graph, const char *name, int index, Condition &out_condition);
   static void deleteCondition(Condition &condition);
   static bool checkCondMet(const IPureAnimStateHolder &st, const Condition &condition);
@@ -417,7 +421,7 @@ public:
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -433,6 +437,7 @@ public:
 //
 class AnimPostBlendAimCtrl : public AnimPostBlendCtrl
 {
+public:
   struct AngleLimits
   {
     Point2 yaw = ZERO<Point2>();
@@ -536,12 +541,11 @@ class AnimPostBlendAimCtrl : public AnimPostBlendCtrl
   int stabYawMultId = -1;
   int stabPitchMultId = -1;
 
-public:
   AnimPostBlendAimCtrl(AnimationGraph &g);
 
   virtual void destroy() { clear_and_shrink(aimDesc.limitsTable); }
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -572,7 +576,6 @@ public:
     bool weighted;
   };
 
-private:
   struct ChangeRec
   {
     int destPid, chRatePid, scalePid;
@@ -588,12 +591,11 @@ private:
   Tab<ParamOp> ops;
   int wtPid;
 
-public:
   ApbParamCtrl(AnimationGraph &g, const char *param_name);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual void advance(IPureAnimStateHolder &st, real dt);
 
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
@@ -608,7 +610,7 @@ public:
 // controller for default value and clamp
 class DefClampParamCtrl : public AnimPostBlendCtrl
 {
-private:
+public:
   struct Params
   {
     int destPid;
@@ -618,12 +620,11 @@ private:
   Tab<Params> ps;
   int wtPid;
 
-public:
   DefClampParamCtrl(AnimationGraph &g, const char *param_name);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &);
   virtual void process(IPureAnimStateHolder &st, real, GeomNodeTree &, AnimPostBlendCtrl::Context &);
@@ -639,6 +640,7 @@ public:
 //
 class ApbAnimateCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeAnim
   {
     AnimV20::PrsAnimNodeRef prs;
@@ -649,6 +651,8 @@ class ApbAnimateCtrl : public AnimPostBlendCtrl
     int pid;
     float pMul, pAdd;
     short animIdx, animCnt;
+    unsigned isAdditive : 1;
+    unsigned alwaysUpdate : 1;
   };
   typedef dag::Index16 NodeId;
 
@@ -657,12 +661,11 @@ class ApbAnimateCtrl : public AnimPostBlendCtrl
   PtrTab<AnimV20::AnimData> usedAnim;
   int varId;
 
-public:
   ApbAnimateCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g), rec(midmem), varId(-1) {}
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -689,6 +692,7 @@ void createNodeApbAnimateAndPostBlendProc(AnimationGraph &graph, const DataBlock
 //
 class LegsIKCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeId
   {
     dag::Index16 footId, kneeId, legId, footStepId;
@@ -700,7 +704,7 @@ class LegsIKCtrl : public AnimPostBlendCtrl
     Point2 footStepRange, footRotRange;
     float maxFootUp, maxDyRate, maxDaRate;
     SimpleString foot, knee, leg, footStep;
-    bool useAnimcharUpDir;
+    bool useAnimcharUpDir, reverseFlexDirection;
   };
 
   Tab<IKRec> rec;
@@ -709,12 +713,11 @@ class LegsIKCtrl : public AnimPostBlendCtrl
   float crawlFootOffset{0.f}, crawlFootAngle{0.f}, crawlMaxRay{0.f};
   bool alwaysSolve{false}, isCrawl{false};
 
-public:
   LegsIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g), rec(midmem), varId(-1), alwaysSolve(false) {}
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -746,7 +749,6 @@ public:
 
   typedef Tab<Tab<vec3f>> debug_state_t;
 
-private:
   struct BodyTriangle
   {
     SimpleString node0, node1, add, sub;
@@ -782,12 +784,12 @@ private:
   int perAnimStateDataVarId = -1;
   int dbgVarId[2] = {-1, -1};
 
-public:
   MultiChainFABRIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void clearAllocatedMemory(IPureAnimStateHolder &st);
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -830,7 +832,7 @@ public:
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -850,6 +852,7 @@ public:
 //
 class AnimPostBlendNodeLookatCtrl : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString name;
@@ -867,12 +870,11 @@ class AnimPostBlendNodeLookatCtrl : public AnimPostBlendCtrl
   bool leftTm = false;
   bool swapYZ = false;
 
-public:
   AnimPostBlendNodeLookatCtrl(AnimationGraph &g, const char *param_name);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -889,6 +891,7 @@ public:
 //
 class AnimPostBlendNodeLookatNodeCtrl : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     dag::Index16 lookatNodeId;
@@ -905,12 +908,11 @@ class AnimPostBlendNodeLookatNodeCtrl : public AnimPostBlendCtrl
   bool valid = false;
   Point3 upVector;
 
-public:
   AnimPostBlendNodeLookatNodeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -926,6 +928,7 @@ public:
 //
 class AnimPostBlendEffFromAttachement : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString src, dest;
@@ -952,12 +955,11 @@ class AnimPostBlendEffFromAttachement : public AnimPostBlendCtrl
   Tab<VarId> destVarId;
   Tab<NodeDesc> nodes;
 
-public:
   AnimPostBlendEffFromAttachement(AnimationGraph &g);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -974,6 +976,7 @@ public:
 //
 class AnimPostBlendNodeEffectorFromChildIK : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     dag::Index16 parentNodeId;
@@ -988,17 +991,16 @@ class AnimPostBlendNodeEffectorFromChildIK : public AnimPostBlendCtrl
   bool resetEffInvVal = false;
   SimpleString parentNodeName, childNodeName, srcVarName, destVarName;
 
-public:
   AnimPostBlendNodeEffectorFromChildIK(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendNodeEffectorFromChildIK"; }
-  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendMatVarFromNodeCID || AnimPostBlendCtrl::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendNodeEffectorFromChildIKCID || AnimPostBlendCtrl::isSubOf(id); }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1007,6 +1009,7 @@ public:
 //
 class AnimPostBlendMatVarFromNode : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     // Do not use theese pointers. They are needed as uids only to check child graph and skeleton changes.
@@ -1021,11 +1024,10 @@ class AnimPostBlendMatVarFromNode : public AnimPostBlendCtrl
   int destVarWtId = -1;
   SimpleString destVarName, srcNodeName;
 
-public:
   AnimPostBlendMatVarFromNode(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -1041,6 +1043,7 @@ public:
 //
 class AnimPostBlendNodesFromAttachement : public AnimPostBlendCtrl
 {
+public:
   struct NodeDesc
   {
     SimpleString srcNode, destNode;
@@ -1060,12 +1063,12 @@ class AnimPostBlendNodesFromAttachement : public AnimPostBlendCtrl
   int wScaleVarId = -1;
   Tab<NodeDesc> nodes;
 
-public:
   AnimPostBlendNodesFromAttachement(AnimationGraph &g);
 
   virtual void destroy() {}
 
-  virtual void reset(IPureAnimStateHolder &);
+  virtual void setDefaultState(IPureAnimStateHolder &);
+  virtual void clearAllocatedMemory(IPureAnimStateHolder &);
 
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -1099,7 +1102,7 @@ public:
   AnimPostBlendParamFromNode(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
 
   const char *class_name() const override { return "AnimPostBlendParamFromNode"; }
@@ -1115,6 +1118,7 @@ public:
 //
 class AnimPostBlendCompoundRotateShift : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     dag::Index16 targetNode, alignAsNode, moveAlongNode;
@@ -1135,7 +1139,7 @@ public:
   AnimPostBlendCompoundRotateShift(AnimationGraph &g);
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendCompoundRotateShift"; }
@@ -1151,15 +1155,16 @@ public:
 //
 class AnimPostBlendSetParam : public AnimPostBlendCtrl
 {
+public:
   int destSlotId = -1, destVarId = -1, srcVarId = -1;
   SimpleString destVarName;
   float val = 0, minWeight = 1e-4;
+  bool pullParamValueFromSlot = false;
 
-public:
   AnimPostBlendSetParam(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
 
   const char *class_name() const override { return "AnimPostBlendSetParam"; }
@@ -1175,17 +1180,17 @@ public:
 //
 class AnimPostBlendTwistCtrl : public AnimPostBlendCtrl
 {
+public:
   SimpleString node0, node1;
   Tab<SimpleString> twistNodes;
   int varId = -1;
   float angDiff = 0;
   bool optional = false;
 
-public:
   AnimPostBlendTwistCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendTwistCtrl"; }
@@ -1201,6 +1206,7 @@ public:
 //
 class AnimPostBlendEyeCtrl : public AnimPostBlendCtrl
 {
+public:
   struct LocalData
   {
     dag::Index16 eyeDirectionNodeId;
@@ -1230,11 +1236,10 @@ class AnimPostBlendEyeCtrl : public AnimPostBlendCtrl
   SimpleString eyelidBlinkTopNodeName;
   SimpleString eyelidBlinkBottomNodeName;
 
-public:
   AnimPostBlendEyeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
   virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendEyeCtrl"; }
@@ -1250,12 +1255,15 @@ public:
 //
 class FootLockerIKCtrl : public AnimPostBlendCtrl
 {
-  struct LegNodeNames
+public:
+  struct LegStaticData
   {
     SimpleString hip, knee, ankle, toe;
+    float needLockParamThreshold = 0.2;
+    int needLockParamId = -1;
   };
 
-  Tab<LegNodeNames> legsNodeNames;
+  Tab<LegStaticData> legsNodeNames;
   float unlockViscosity = 0;
   float maxReachScale = 1;
   float unlockRadius = 0;
@@ -1272,11 +1280,16 @@ class FootLockerIKCtrl : public AnimPostBlendCtrl
   float maxAnkleAnlgeCos = 0;
   float maxHipMoveDown = 0;
   float hipMoveViscosity = 0;
+  float proceduralStepHeight = 0;
+  float proceduralStepMinDistance = 0;
+  float proceduralStepSpeed = 0;
+  float proceduralStepCooldown = 0;
 
   int legsDataVarId = -1;
   int hipMoveDownVarId = -1;
+  int allowProceduralStepVarId = -1;
+  int proceduralStepTimerVarId = -1;
 
-public:
   struct LegData
   {
     dag::Index16 toeNodeId;
@@ -1290,11 +1303,12 @@ public:
     float ankleTargetMove = 0;
     bool isLocked = false;
     bool needLock = false; // updated outside
+    bool isProceduralStepActive = false;
   };
   FootLockerIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
   virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
@@ -1302,6 +1316,113 @@ public:
 
   const char *class_name() const override { return "FootLockerIKCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == FootLockerIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
+
+  static void createNode(AnimationGraph &graph, const DataBlock &blk);
+};
+
+//
+// Controller to check if any other char is attached to a specific slot
+//
+class AnimPostBlendHasAttachment : public AnimPostBlendCtrl
+{
+public:
+  int slotId = -1;
+  int destVarId = -1;
+  bool invertVal = false;
+
+  AnimPostBlendHasAttachment(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
+
+  virtual void destroy() {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+
+  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
+  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+
+  const char *class_name() const override { return "AnimPostBlendHasAttachment"; }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendHasAttachmentCID || AnimPostBlendCtrl::isSubOf(id); }
+
+  static void createNode(AnimationGraph &graph, const DataBlock &blk);
+};
+
+class AnimPostBlendHumanAimCtrl : public AnimPostBlendCtrl
+{
+public:
+  struct LocalData
+  {
+    dag::Index16 rotateAroundNode;
+    dag::Index16 targetNode;
+    dag::Index16 alignNode;
+  };
+
+  SimpleString rotateAroundNodeName;
+  SimpleString targetNodeName;
+  SimpleString alignNodeName;
+  int stateVarId = -1;
+  int pitchVarId = -1;
+  int yawVarId = -1;
+  int rollVarId = -1;
+  int offsetXVar = -1;
+  int offsetYVar = -1;
+  int offsetZVar = -1;
+  vec3f rotateAroundNodeOffset;
+  mat44f alignNodeTm;
+  vec3f offsetMul;
+  vec3f offsetAdd;
+
+  AnimPostBlendHumanAimCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) { v_mat44_ident(alignNodeTm); }
+
+  virtual void destroy() {}
+
+  virtual void setDefaultState(IPureAnimStateHolder &) {}
+
+  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
+  virtual void advance(IPureAnimStateHolder &, real) {}
+  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+
+  const char *class_name() const override { return "AnimPostBlendHumanAimCtrl"; }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendHumanAimCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
+
+  static void createNode(AnimationGraph &graph, const DataBlock &blk);
+};
+
+
+//
+// Simple two bones IK controller
+//
+class AnimPostBlendTwoBonesIK : public AnimPostBlendCtrl
+{
+public:
+  struct NodeId
+  {
+    dag::Index16 startNodeId, middleNodeId, endNodeId, alignNodeId;
+    float len0, len1;
+  };
+  struct IKRec
+  {
+    SimpleString startNodeName, middleNodeName, endNodeName, flexLocalToNodeName;
+    Point3 flexDirection;
+    float maxReachScale;
+    bool forceReachTarget;
+    bool reverseFlexDirection;
+    bool useCustomFlexDirection;
+  };
+
+  Tab<IKRec> rec;
+  int varId;
+
+  AnimPostBlendTwoBonesIK(AnimationGraph &g) : AnimPostBlendCtrl(g), rec(midmem), varId(-1) {}
+
+  virtual void destroy() {}
+
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+
+  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+
+  const char *class_name() const override { return "AnimPostBlendTwoBonesIK"; }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwoBonesIKCID || AnimPostBlendCtrl::isSubOf(id); }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };

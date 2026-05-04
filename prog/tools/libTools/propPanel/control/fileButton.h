@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <EASTL/optional.h>
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
@@ -51,11 +52,29 @@ public:
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
+  bool isDefaultValueSet() const override { return defaultValue ? *defaultValue == controlValue.str() : true; }
+
+  void applyDefaultValue() override
+  {
+    if (isDefaultValueSet())
+    {
+      return;
+    }
+
+    if (defaultValue)
+    {
+      setTextValue(*defaultValue);
+      onWcChange(nullptr);
+    }
+  }
+
+  void setDefaultValue(Variant var) override { defaultValue = var.convert<SimpleString>(); }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
     setFocusToNextImGuiControlIfRequested();
 
     const float clearButtonWidth = ImGui::GetFrameHeight(); // Simply use a square button.
@@ -91,6 +110,7 @@ private:
   String controlValue;
   bool controlEnabled = true;
   String masks;
+  eastl::optional<SimpleString> defaultValue;
 };
 
 } // namespace PropPanel

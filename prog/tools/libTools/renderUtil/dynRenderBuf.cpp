@@ -70,6 +70,8 @@ DynRenderBuffer::~DynRenderBuffer()
     edMat->set_texture_param(texVarId, BAD_TEXTUREID);
     edMat->set_sampler_param(texSamplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
   }
+
+  del_it(edBuffer);
 }
 
 void DynRenderBuffer::createBuffer(int max_verts, int max_faces)

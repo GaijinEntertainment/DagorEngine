@@ -76,9 +76,9 @@ void DebugTonemapOverlay::render()
   }
 
   Point2 s = Point2(GRAPH_SIZE / targetSize.x, GRAPH_SIZE / targetSize.y);
-  ShaderGlobal::set_color4(renderSizeVarId, Color4(s.x, s.y, s.x - 1.f, 1.f - s.y));
-  ShaderGlobal::set_color4(tonemapColorVarId, tonemapColor);
-  ShaderGlobal::set_real(maxIntensityVarId, maxIntensity);
+  ShaderGlobal::set_float4(renderSizeVarId, Color4(s.x, s.y, s.x - 1.f, 1.f - s.y));
+  ShaderGlobal::set_float4(tonemapColorVarId, tonemapColor);
+  ShaderGlobal::set_float(maxIntensityVarId, maxIntensity);
 
   shaders::overrides::set(scissor);
   d3d::setscissor(0, 0, GRAPH_SIZE, GRAPH_SIZE);

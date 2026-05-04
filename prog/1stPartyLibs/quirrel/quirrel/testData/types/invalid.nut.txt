@@ -35,3 +35,6 @@ function_name(arg1_name: number, [arg2_name: float, arg3_name: float],] ...)
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], [...])
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...
 function_name(arg1_name: number, [arg2_name: float, arg3_name: float], ...(
+pure_ function_name()
+nodiscard_ function_name()
+pure nodiscard_ function_name()

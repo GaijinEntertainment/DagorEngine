@@ -55,7 +55,7 @@ public:
     rndGrass->isDissolve = true;
 
     static int water_level_gvid = get_shader_variable_id("water_level", true);
-    float waterLevel = ShaderGlobal::get_real_fast(water_level_gvid);
+    float waterLevel = ShaderGlobal::get_float(water_level_gvid);
     rndGrass->setWaterLevel(waterLevel);
 
     return true;

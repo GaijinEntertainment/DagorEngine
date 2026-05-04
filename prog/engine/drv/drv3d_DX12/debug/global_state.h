@@ -34,6 +34,7 @@ public:
   GpuCapture &captureTool() { return gpuCapture; }
   GpuPostmortem &postmortemTrace() { return gpuPostmortem; }
 
+  Configuration &configuration() { return config; }
   const Configuration &configuration() const { return config; }
 };
 } // namespace debug

@@ -4,6 +4,52 @@
 #include "grassES.cpp.inl"
 ECS_DEF_PULL_VAR(grass);
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc grass_on_render_settings_change_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("render_settings__grassRendInstRangeMul"), ecs::ComponentTypeInfo<float>()}
+};
+static void grass_on_render_settings_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  dagdp::grass_on_render_settings_change_es(evt
+        , components.manager()
+    );
+}
+static ecs::EntitySystemDesc grass_on_render_settings_change_es_es_desc
+(
+  "grass_on_render_settings_change_es",
+  "prog/daNetGameLibs/daGdp/render/placers/grassES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, grass_on_render_settings_change_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(grass_on_render_settings_change_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
+  0
+,"render","render_settings__grassRendInstRangeMul","*");
+static constexpr ecs::ComponentDesc grass_on_level_settings_change_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("dagdp__grass_max_range"), ecs::ComponentTypeInfo<float>()}
+};
+static void grass_on_level_settings_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  dagdp::grass_on_level_settings_change_es(evt
+        , components.manager()
+    );
+}
+static ecs::EntitySystemDesc grass_on_level_settings_change_es_es_desc
+(
+  "grass_on_level_settings_change_es",
+  "prog/daNetGameLibs/daGdp/render/placers/grassES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, grass_on_level_settings_change_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(grass_on_level_settings_change_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<>::build(),
+  0
+,"render","dagdp__grass_max_range","*");
 static constexpr ecs::ComponentDesc grass_view_process_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -14,7 +60,8 @@ static void grass_view_process_es_all_events(const ecs::Event &__restrict evt, c
   G_FAST_ASSERT(evt.is<dagdp::EventViewProcess>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::grass_view_process_es(static_cast<const dagdp::EventViewProcess&>(evt)
-        , ECS_RW_COMP(grass_view_process_es_comps, "dagdp__grass_manager", dagdp::GrassManager)
+        , components.manager()
+    , ECS_RW_COMP(grass_view_process_es_comps, "dagdp__grass_manager", dagdp::GrassManager)
     );
   while (++comp != compE);
 }
@@ -66,9 +113,9 @@ static constexpr ecs::ComponentDesc dagdp_placer_grass_changed_es_comps[] =
 };
 static void dagdp_placer_grass_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::dagdp_placer_grass_changed_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dagdp_placer_grass_changed_es_es_desc
 (
@@ -85,6 +132,34 @@ static ecs::EntitySystemDesc dagdp_placer_grass_changed_es_es_desc
                        ecs::EventComponentsDisappear>::build(),
   0
 ,"render","dagdp__biomes,dagdp__density,dagdp__name");
+static constexpr ecs::ComponentDesc manager_ecs_query_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
+};
+static ecs::CompileTimeQueryDesc manager_ecs_query_desc
+(
+  "dagdp::manager_ecs_query",
+  make_span(manager_ecs_query_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void dagdp::manager_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, manager_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(manager_ecs_query_comps, "dagdp__global_manager", dagdp::GlobalManager)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc grass_settings_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
@@ -100,9 +175,9 @@ static ecs::CompileTimeQueryDesc grass_settings_ecs_query_desc
   make_span(grass_settings_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::grass_settings_ecs_query(Callable function)
+inline void dagdp::grass_settings_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, grass_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, grass_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -112,6 +187,34 @@ inline void dagdp::grass_settings_ecs_query(Callable function)
             );
 
         }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc render_settings_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("render_settings__grassRendInstRangeMul"), ecs::ComponentTypeInfo<float>()}
+};
+static ecs::CompileTimeQueryDesc render_settings_ecs_query_desc
+(
+  "dagdp::render_settings_ecs_query",
+  empty_span(),
+  make_span(render_settings_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void dagdp::render_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, render_settings_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(render_settings_ecs_query_comps, "render_settings__grassRendInstRangeMul", float)
+            );
+
+        }
     }
   );
 }
@@ -135,9 +238,9 @@ static ecs::CompileTimeQueryDesc grass_placers_ecs_query_desc
   make_span(grass_placers_ecs_query_comps+6, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::grass_placers_ecs_query(Callable function)
+inline void dagdp::grass_placers_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, grass_placers_ecs_query_desc.getHandle(),
+  perform_query(&manager, grass_placers_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -149,34 +252,6 @@ inline void dagdp::grass_placers_ecs_query(Callable function)
             , ECS_RO_COMP(grass_placers_ecs_query_comps, "dagdp__name", ecs::string)
             , ECS_RO_COMP_PTR(grass_placers_ecs_query_comps, "fast_grass__height", float)
             , ECS_RO_COMP_PTR(grass_placers_ecs_query_comps, "fast_grass__height_variance", float)
-            );
-
-        }while (++comp != compE);
-    }
-  );
-}
-static constexpr ecs::ComponentDesc manager_ecs_query_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("dagdp__global_manager"), ecs::ComponentTypeInfo<dagdp::GlobalManager>()}
-};
-static ecs::CompileTimeQueryDesc manager_ecs_query_desc
-(
-  "dagdp::manager_ecs_query",
-  make_span(manager_ecs_query_comps+0, 1)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void dagdp::manager_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, manager_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RW_COMP(manager_ecs_query_comps, "dagdp__global_manager", dagdp::GlobalManager)
             );
 
         }while (++comp != compE);

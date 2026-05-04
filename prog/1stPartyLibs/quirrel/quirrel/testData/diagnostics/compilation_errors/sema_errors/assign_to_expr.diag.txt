@@ -1,0 +1,8 @@
+ERROR: can't assign to expression
+testData/diagnostics/compilation_errors/sema_errors/assign_to_expr.nut:2:0
+
+// EXPECT_ERROR: "can't assign to expression"
+(1 + 2) = 5
+^-----
+
+

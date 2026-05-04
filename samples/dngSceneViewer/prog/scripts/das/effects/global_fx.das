@@ -1,7 +1,7 @@
 require ecs
 require DagorDataBlock
 require fx
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 require math/color
 
 [es]

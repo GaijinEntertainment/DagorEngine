@@ -12,6 +12,8 @@ int4 dagi_irrad_grid_clipmap_lt_coord_7;
 int4 dagi_irrad_grid_clipmap_lt_invalid = (-100000, 100000, 100000, 1315859240);
 float4 dagi_irrad_grid_atlas_decode;
 float4 dagi_irrad_grid_inv_size;
+float dagi_irrad_grid_normal_bias = 0.5;
+float dagi_irrad_grid_to_camera_bias = 1.0;
 
 texture dagi_irradiance_grid_sph0;
 texture dagi_irradiance_grid_sph1;
@@ -112,6 +114,8 @@ macro DAGI_IRRAD_GRID_ATLAS_INIT(code)
   (code) {
     dagi_irrad_grid_atlas_decode@f4 = dagi_irrad_grid_atlas_decode;
     dagi_irrad_grid_inv_size@f2 = dagi_irrad_grid_inv_size;
+    dagi_irrad_grid_normal_bias@f1 = dagi_irrad_grid_normal_bias;
+    dagi_irrad_grid_to_camera_bias@f1 = dagi_irrad_grid_to_camera_bias;
     skyVis_enviSPH0 @f4 = enviSPH0;
     skyVis_enviSPH1 @f4 = enviSPH1;
     skyVis_enviSPH2 @f4 = enviSPH2;
@@ -140,10 +144,8 @@ endmacro
 
 macro DAGI_IRRAD_GRID_SRV(code)
   (code) {
-    dagi_irradiance_grid_sph1@smp3d = dagi_irradiance_grid_sph1;
-    dagi_irradiance_grid_sph0@tex = dagi_irradiance_grid_sph0  hlsl {
-      Texture3D<float3> dagi_irradiance_grid_sph0@tex;
-    };
+    dagi_irradiance_grid_sph0@tex3d = dagi_irradiance_grid_sph0;
+    dagi_irradiance_grid_sph1@tex3d = dagi_irradiance_grid_sph1;
   }
 endmacro
 
@@ -156,64 +158,54 @@ endmacro
 macro DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
   DAGI_IRRAD_GRID_CLIPMAP_MATH_USE(code)
   DAGI_IRRAD_GRID_ATLAS_USE(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   hlsl(code) {
-    #define dagi_irradiance_grid_sph0_samplerstate dagi_irradiance_grid_sph1_samplerstate
-    #ifndef DAGI_IRRADIANCE_GRID_TYPE_AUTO
+    #define dagi_irradiance_grid_sph0_samplerstate global_linear_wrap_sampler
+    #define dagi_irradiance_grid_sph1_samplerstate global_linear_wrap_sampler
+    #ifndef DAGI_IRRADIANCE_GRID_TYPE
       #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_AUTO
     #endif
 
     #include "sh3_function.hlsl"
-    #include "sh1.hlsl"
-    SH1Encoded dagi_irrad_grid_get_irradiance_sh1_encoded(float3 uvw)
+    #include "dagi_irradiance_encode.hlsl"
+
+    SH1 dagi_irrad_grid_get_irradiance_sh1(float3 uvw)
     {
-      SH1Encoded sh1;
-      sh1.ambient = tex3Dlod(dagi_irradiance_grid_sph0, float4(uvw, 0)).xyz;
-      sh1.directional = tex3Dlod(dagi_irradiance_grid_sph1, float4(uvw, 0));
-      return sh1;
+      SH1Encoded sh1e;
+      sh1e.s0 = tex3Dlod(dagi_irradiance_grid_sph0, float4(uvw, 0));
+      sh1e.s1 = tex3Dlod(dagi_irradiance_grid_sph1, float4(uvw, 0));
+      #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
+          BRANCH
+          if (dagi_irrad_is_sky_vis())
+        #endif
+          {
+            SH1 sh1;
+            sh1.R = skyVis_enviSPH0.wyzx * sh1e.s1;
+            sh1.G = skyVis_enviSPH1.wyzx * sh1e.s1;
+            sh1.B = skyVis_enviSPH2.wyzx * sh1e.s1;
+            return sh1;
+          }
+      #endif
+      return dagi_irrad_decode_sh1(sh1e);
     }
 
     float3 dagi_irrad_grid_get_diffuse_uvw(float3 uvw, float3 worldDir)
     {
-      SH1Encoded sh1E = dagi_irrad_grid_get_irradiance_sh1_encoded(uvw);
-      #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
-        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
-          BRANCH
-          if (dagi_irrad_is_sky_vis())
-        #endif
-          return GetSHFunctionValueSimple(worldDir, skyVis_enviSPH0*sh1E.directional.wyzx, skyVis_enviSPH1*sh1E.directional.wyzx, skyVis_enviSPH2*sh1E.directional.wyzx);
-      #endif
-      return sh1_premul_exp1_irradiance(decode_sh1_luminance(sh1E), worldDir);
+      SH1 sh1 = dagi_irrad_grid_get_irradiance_sh1(uvw);
+      return sh1_premul_exp1_irradiance(sh1, worldDir);
     }
     float3 dagi_irrad_grid_get_diffuse_undirectional_uvw(float3 uvw)
     {
-      SH1Encoded sh1E = dagi_irrad_grid_get_irradiance_sh1_encoded(uvw);
-      #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
-        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
-          BRANCH
-          if (dagi_irrad_is_sky_vis())
-        #endif
-            return float3(skyVis_enviSPH0.w, skyVis_enviSPH1.w, skyVis_enviSPH2.w)*sh1E.directional.x;
-      #endif
-      return sh1_premul_exp1_ambient(decode_sh1_luminance(sh1E));
+      SH1 sh1 = dagi_irrad_grid_get_irradiance_sh1(uvw);
+      return sh1_premul_exp1_ambient(sh1);
     }
 
     void dagi_irrad_grid_get_diffuse_uvw_both(float3 uvw, float3 worldDir, out float3 pos_amb, out float3 neg_amb)
     {
-      SH1Encoded sh1E = dagi_irrad_grid_get_irradiance_sh1_encoded(uvw);
-      #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
-        #if DAGI_IRRADIANCE_GRID_TYPE != DAGI_IRRADIANCE_GRID_TYPE_SKYVIS
-          BRANCH
-          if (dagi_irrad_is_sky_vis())
-        #endif
-      {
-        pos_amb = GetSHFunctionValueSimple(worldDir, skyVis_enviSPH0*sh1E.directional.wyzx, skyVis_enviSPH1*sh1E.directional.wyzx, skyVis_enviSPH2*sh1E.directional.wyzx);
-        neg_amb = GetSHFunctionValueSimple(-worldDir, skyVis_enviSPH0*sh1E.directional.wyzx, skyVis_enviSPH1*sh1E.directional.wyzx, skyVis_enviSPH2*sh1E.directional.wyzx);
-        return;
-      }
-      #endif
-      SH1 s = decode_sh1_luminance(sh1E);
-      pos_amb = sh1_premul_exp1_irradiance(s, worldDir);
-      neg_amb = sh1_premul_exp1_irradiance(s, -worldDir);
+      SH1 sh1 = dagi_irrad_grid_get_irradiance_sh1(uvw);
+      pos_amb = sh1_premul_exp1_irradiance(sh1, worldDir);
+      neg_amb = sh1_premul_exp1_irradiance(sh1, -worldDir);
     }
 
     void dagi_irrad_grid_diffuse_cascade_unsafe_both(uint cascade, float3 abs_coordf, float3 worldDir, out float3 pos_amb, out float3 neg_amb)
@@ -228,9 +220,9 @@ macro DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
     {
       return dagi_irrad_grid_get_diffuse_undirectional_uvw(dagi_irrad_grid_abs_coord_to_atlas_tc(cascade, abs_coordf));
     }
-    SH1Encoded dagi_irrad_grid_get_sh1_encoded_cascade_unsafe(uint cascade, float3 abs_coordf)
+    SH1 dagi_irrad_grid_get_sh1_cascade_unsafe(uint cascade, float3 abs_coordf)
     {
-      return dagi_irrad_grid_get_irradiance_sh1_encoded(dagi_irrad_grid_abs_coord_to_atlas_tc(cascade, abs_coordf));
+      return dagi_irrad_grid_get_irradiance_sh1(dagi_irrad_grid_abs_coord_to_atlas_tc(cascade, abs_coordf));
     }
     bool dagi_irrad_grid_diffuse(float3 worldPos, float3 worldDir, inout float3 ambient)
     {
@@ -259,13 +251,19 @@ macro DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
       dagi_irrad_grid_diffuse_cascade_unsafe_both(cascade, coordF, worldDir, ambient, back_ambient);
       return true;
     }
+    float3 dagi_irrad_grid_get_coordf_offset(float3 bias_normal, float3 toCameraDir, float maxCameraDist, float probeSize)
+    {
+      float maxToCameraOffset = maxCameraDist / probeSize * 0.5;
+      float3 normOffset = bias_normal * dagi_irrad_grid_normal_bias;
+      float3 toCameraOffset = max(min(dagi_irrad_grid_to_camera_bias, maxToCameraOffset) - dot(normOffset, toCameraDir), 0.0) * toCameraDir;
+      return (normOffset + toCameraOffset).xzy;
+    }
     bool dagi_irrad_grid_bias(float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, inout float3 coordF, inout uint cascade)
     {
       int4 lt;
       cascade = dagi_irrad_grid_get_best_enclosing_clip(worldPos, coordF, lt, 0, 0.5);
       float probeSize = asfloat(lt.w);
-      coordF += bias_normal.xzy*((sqrt(3)*0.5));
-      coordF += toCameraDir.xzy*min(maxCameraDist/probeSize, (sqrt(3)*0.5));
+      coordF += dagi_irrad_grid_get_coordf_offset(bias_normal, toCameraDir, maxCameraDist, probeSize);
       coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_irrad_grid_get_clip_size().xxy)) - 0.5);
       return cascade != DAGI_MAX_IRRAD_GRID_CLIPS;
     }
@@ -319,15 +317,13 @@ macro DAGI_IRRADIANCE_GRID_SAMPLE_USE(code)
         lt = sample_dagi_irrad_grid_clipmap_lt_coord(cascade);
         probeSize = asfloat(lt.w);
         fromC *= 0.5;
+        coordF *= 0.5;
         sz = saturate(fromC*(ditherMul.x + ditherMul.y*dither) - ditherMul.z);
         vignette = saturate(dot(sz,sz));
       }
 
-      float offsetProbeSize = probeSize + probeSize*vignette;
-
-      worldPos += bias_normal*((sqrt(3)*0.5)*offsetProbeSize);
-      worldPos += toCameraDir*min(maxCameraDist, ((sqrt(3)*0.5)*offsetProbeSize));
-      coordF = worldPos.xzy/probeSize;
+      float offsetProbeSize = probeSize * (1.0 + vignette);
+      coordF += dagi_irrad_grid_get_coordf_offset(bias_normal, toCameraDir, maxCameraDist, offsetProbeSize) * (1.0 + vignette);
       //clamp to cascade, for safety
       coordF = clamp(coordF, lt.xyz+0.5, (lt.xyz + int3(dagi_irrad_grid_get_clip_size().xxy)) - 0.5);
       return true;

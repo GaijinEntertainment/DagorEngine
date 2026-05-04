@@ -11,12 +11,6 @@
 class StcodeBuilder
 {
 public:
-  StcodeBuilder() = default;
-  StcodeBuilder(StcodeBuilder &&other) = default;
-  StcodeBuilder &operator=(StcodeBuilder &&other) = default;
-
-  NON_COPYABLE_TYPE(StcodeBuilder)
-
   void pushBack(eastl::string &&str) { m_fragments.push_back(eastl::move(str)); }
 
   template <class... Args>

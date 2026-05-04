@@ -1,0 +1,164 @@
+include "shader_global.dshl"
+include "projective_wounds.dshl"
+include "dynamic_opaque_inc.dshl"
+include "simplified_rendering_inc.dshl"
+include "gbuffer.dshl"
+
+shader dynamic_chevron
+{
+  texture chevron_background_d_tex = material.texture[0];
+  texture chevron_background_ao_tex = material.texture[1];
+
+  texture chevron_frame_mask_tex = material.texture[2];
+
+  texture chevron_frame_d_tex = material.texture[3];
+  texture chevron_frame_n_tex = material.texture[4];
+  texture chevron_frame_ao_tex = material.texture[5];
+
+
+  texture chevron_figure_d_tex = material.texture[6];
+  texture chevron_figure_n_tex = material.texture[7];
+  texture chevron_figure_ao_tex = material.texture[8];
+
+  static float4 figure_offset = float4(0.0, 0.0, 0.0, 0.0);
+  static float4 figure_color_tint = float4(1.0, 1.0, 1.0, 1.0);
+  static float4 frame_color_tint = float4(1.0, 1.0, 1.0, 1.0);
+
+  SUPPORT_MULTIDRAW(false)
+  USE_SIMPLIFIED_RENDERING()
+
+  no_ablend;
+  DYNAMIC_BLOCK()
+
+  USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
+  (ps) { chevron_background_d_tex@staticSmp = chevron_background_d_tex; }
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+    }
+  }
+
+  WOUNDS_AND_BURNING_INIT()
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    WRITE_GBUFFER()
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  USE_MICRODETAIL_BASED_POROSITY(ps)
+  WOUNDS_AND_BURNING_USE(get_chevron_background_d_tex().smp)
+
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+      init_burning_and_wounds(input, output);
+    }
+  }
+
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+  ///PS PART
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    if (num_bones == four_bones && has_wounds == torn_wounds)
+    {
+      DYNAMIC_SIMPLE_DISCRAD_WOUNDS_PS()
+    }
+    else
+    {
+      SPECIAL_RENDER_NOALPHATEST(false)
+    }
+  }
+  else
+  {
+    USE_PROJECTIVE_WOUNDS()
+    (ps){
+      chevron_background_ao_tex@staticSmp = chevron_background_ao_tex;
+
+      chevron_frame_mask_tex@staticSmp = chevron_frame_mask_tex;
+
+      chevron_frame_d_tex@staticSmp = chevron_frame_d_tex;
+      chevron_frame_n_tex@staticSmp = chevron_frame_n_tex;
+      chevron_frame_ao_tex@staticSmp = chevron_frame_ao_tex;
+
+      chevron_figure_d_tex@staticSmp = chevron_figure_d_tex;
+      chevron_figure_n_tex@staticSmp = chevron_figure_n_tex;
+      chevron_figure_ao_tex@staticSmp = chevron_figure_ao_tex;
+      figure_offset@f2 = (figure_offset.xy);
+      figure_color_tint@f4 = figure_color_tint;
+      frame_color_tint@f4 = frame_color_tint;
+    }
+
+    hlsl(ps) {
+      GBUFFER_OUTPUT dynamic_chevron_ps(VsOutput input INPUT_VFACE)
+      {
+        #if SET_UP_MULTIDRAW
+          INIT_MULTIDRAW(input);
+          SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+        #endif
+        UnpackedGbuffer gbuffer;
+        float4 diffuseBackground = tex2DBindless(get_chevron_background_d_tex(), input.diffuseTexcoord.xy);
+        float aoBackground = tex2DBindless(get_chevron_background_ao_tex(), input.diffuseTexcoord.xy).x;
+
+        float4 diffuseFrame = tex2DBindless(get_chevron_frame_d_tex(), input.diffuseTexcoord.xy);
+        float4 normalFrame = tex2DBindless(get_chevron_frame_n_tex(), input.diffuseTexcoord.xy);
+        float aoFrame = tex2DBindless(get_chevron_frame_ao_tex(), input.diffuseTexcoord.xy).x;
+
+        float2 offset = get_figure_offset();
+        float4 diffuseFigure = tex2DBindless(get_chevron_figure_d_tex(), input.diffuseTexcoord.xy - offset);
+        float4 normalFigure = tex2DBindless(get_chevron_figure_n_tex(), input.diffuseTexcoord.xy - offset);
+        float aoFigure = tex2DBindless(get_chevron_figure_ao_tex(), input.diffuseTexcoord.xy - offset).x;
+
+        float4 frameMask = tex2DBindless(get_chevron_frame_mask_tex(), input.diffuseTexcoord.xy);
+        float4 frameColorTint = get_frame_color_tint();
+        float4 figureColorTint = get_figure_color_tint();
+
+        init_gbuffer(gbuffer);
+        float mask = frameMask.x;
+        diffuseBackground.w = mask;
+        diffuseFrame *= frameColorTint;
+        diffuseFigure *= figureColorTint;
+        float4 resultColor = diffuseFrame + diffuseBackground*(1 - diffuseFrame.w);
+        clip(resultColor.w - 0.5f);
+        resultColor = diffuseFigure + resultColor*(1 - diffuseFigure.w);
+
+        float4 resultNormal = normalFrame + float4(input.normal, 1.0) *(1 - normalFrame.w);
+        resultNormal = normalFigure + resultNormal*(1 - normalFigure.w);
+
+        half diffuseLum = luminance(resultColor.rgb);
+        half ao = saturate(diffuseLum*100.0f);
+        float resultAO = aoBackground;
+        resultAO = lerp(resultAO, aoFrame, diffuseFrame.w);
+        resultAO = lerp(resultAO, aoFigure, diffuseFigure.w);
+
+        resultAO *= ao;
+        half3 originalNormalMap = resultNormal.xyz;
+        half3 normalMap = originalNormalMap;
+        half smoothness = 0.7f;
+        int microdetailLayer = 0;
+        // Damaged insides.
+        float3 worldNormal = MUL_VFACE(resultNormal.xyz);
+
+        apply_burning_and_wounds(input, microdetailLayer, worldNormal, resultColor.rgb, smoothness, gbuffer.reflectance);
+
+        init_material(gbuffer, SHADING_NORMAL);
+        init_smoothness(gbuffer, smoothness);
+        init_albedo(gbuffer, resultColor.xyz);
+        init_normal(gbuffer, normalize(normalMap));
+        init_ao(gbuffer, resultAO);
+        init_dynamic(gbuffer, 1);
+        #ifdef MOTION_VECTORS_ENABLED
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          init_motion_vector(gbuffer, motion);
+        #endif
+
+        return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+      }
+    }
+    compile("target_ps", "dynamic_chevron_ps");
+  }
+}

@@ -5,16 +5,18 @@
 #include <assets/assetFolder.h>
 #include <assets/assetMgr.h>
 #include <assetsGui/av_assetSelectorCommon.h>
+#include <assetsGui/av_assetTreeDragHandler.h>
 #include <assetsGui/av_globalState.h>
 #include <assetsGui/av_ids.h>
 #include <assetsGui/av_textFilter.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
 #include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
+#include <propPanel/control/treeNode.h>
 #include <propPanel/propPanel.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
-class FavoritesTree : public PropPanel::IMenuEventHandler, public PropPanel::ITreeViewEventHandler
+class FavoritesTree : public PropPanel::ITreeViewEventHandler
 {
 public:
   explicit FavoritesTree(IAssetSelectorFavoritesRecentlyUsedHost &tab_host, const DagorAssetMgr &asset_mgr) :
@@ -22,6 +24,8 @@ public:
   {
     tree = new PropPanel::TreeBaseWindow(this, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "",
       /*icons_show = */ true);
+    tree->setDragHandler(&dragHandler);
+    dragHandler.tree = tree;
 
     folderIcon = PropPanel::load_icon("folder");
 
@@ -83,6 +87,8 @@ public:
       if (treeItem)
         tree->setSelectedItem(treeItem);
     }
+
+    tabHost.getAssetBrowserHost().assetBrowserFill();
   }
 
   DagorAsset *getSelectedAsset()
@@ -91,13 +97,48 @@ public:
     return selectedNode ? getAssetFromItemData(selectedNode) : nullptr;
   }
 
+  DagorAssetFolder *getSelectedAssetFolder()
+  {
+    const PropPanel::TLeafHandle selectedNode = tree->getSelectedItem();
+    return selectedNode ? getAssetFolderFromItemData(selectedNode) : nullptr;
+  }
+
   void setSelectedAsset(const DagorAsset *asset)
   {
     PropPanel::TLeafHandle treeItem = getTreeItemByItemData(makeItemDataFromAsset(*asset));
     tree->setSelectedItem(treeItem);
   }
 
+  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets)
+  {
+    PropPanel::TLeafHandle selectedFolder = tree->getSelectedItem();
+    if (!getFolderFromItemData(selectedFolder))
+      selectedFolder = tree->getParent(selectedFolder);
+
+    const int childrenCount = tree->getChildrenCount(selectedFolder);
+    for (int i = 0; i < childrenCount; ++i)
+    {
+      PropPanel::TLeafHandle child = tree->getChild(selectedFolder, i);
+      if (tree->getItemNode(child)->getFlagValue(PropPanel::TreeNode::FILTERED_IN))
+      {
+        if (DagorAsset *asset = getAssetFromItemData(child))
+          assets.push_back(asset);
+      }
+    }
+  }
+
   void expandAll(bool expand) { tree->expandRecursive(tree->getRoot(), expand); }
+
+  void expandSelected(bool expand)
+  {
+    const PropPanel::TLeafHandle selectedItem = tree->getSelectedItem();
+    if (getFolderFromItemData(selectedItem))
+    {
+      const int childCount = tree->getChildrenCount(selectedItem);
+      for (int i = 0; i < childCount; ++i)
+        tree->expandRecursive(tree->getChild(selectedItem, i), expand);
+    }
+  }
 
   bool getShowHierarchy() const { return showHierarchy; }
 
@@ -216,76 +257,6 @@ private:
     dag::Vector<const DagorAsset *> assets;
   };
 
-  int onMenuItemClick(unsigned id) override
-  {
-    switch (id)
-    {
-      case AssetsGuiIds::GoToAssetInSelectorMenuItem:
-        if (DagorAsset *asset = getSelectedAsset())
-          tabHost.goToAsset(*asset);
-        return 1;
-
-      case AssetsGuiIds::RemoveFromFavoritesMenuItem:
-        if (DagorAsset *asset = getSelectedAsset())
-        {
-          if (!AssetSelectorGlobalState::removeFavorite(asset->getNameTypified()))
-            AssetSelectorGlobalState::removeFavorite(String(asset->getName()));
-
-          fillTree(asset);
-        }
-        return 1;
-
-      case AssetsGuiIds::CopyAssetFilePathMenuItem:
-        if (const DagorAsset *asset = getSelectedAsset())
-          AssetSelectorCommon::copyAssetFilePathToClipboard(*asset);
-        return 1;
-
-      case AssetsGuiIds::CopyAssetFolderPathMenuItem:
-      {
-        const PropPanel::TLeafHandle selectedItem = tree->getSelectedItem();
-        if (const DagorAsset *asset = getAssetFromItemData(selectedItem))
-          AssetSelectorCommon::copyAssetFolderPathToClipboard(*asset);
-        else if (const DagorAssetFolder *folder = getAssetFolderFromItemData(selectedItem))
-          AssetSelectorCommon::copyAssetFolderPathToClipboard(*folder);
-        return 1;
-      }
-
-      case AssetsGuiIds::CopyAssetNameMenuItem:
-      {
-        const PropPanel::TLeafHandle selectedItem = tree->getSelectedItem();
-        if (const DagorAsset *asset = getAssetFromItemData(selectedItem))
-          AssetSelectorCommon::copyAssetNameToClipboard(*asset);
-        else if (const DagorAssetFolder *folder = getAssetFolderFromItemData(selectedItem))
-          AssetSelectorCommon::copyAssetFolderNameToClipboard(*folder);
-        return 1;
-      }
-
-      case AssetsGuiIds::RevealInExplorerMenuItem:
-      {
-        const PropPanel::TLeafHandle selectedItem = tree->getSelectedItem();
-        if (const DagorAsset *asset = getAssetFromItemData(selectedItem))
-          AssetSelectorCommon::revealInExplorer(*asset);
-        else if (const DagorAssetFolder *folder = getAssetFolderFromItemData(selectedItem))
-          AssetSelectorCommon::revealInExplorer(*folder);
-        return 1;
-      }
-
-      case AssetsGuiIds::ExpandChildrenMenuItem:
-      case AssetsGuiIds::CollapseChildrenMenuItem:
-        const PropPanel::TLeafHandle selectedItem = tree->getSelectedItem();
-        if (getFolderFromItemData(selectedItem))
-        {
-          const bool expand = id == AssetsGuiIds::ExpandChildrenMenuItem;
-          const int childCount = tree->getChildrenCount(selectedItem);
-          for (int i = 0; i < childCount; ++i)
-            tree->expandRecursive(tree->getChild(selectedItem, i), expand);
-        }
-        return 1;
-    }
-
-    return 0;
-  }
-
   void onTvSelectionChange(PropPanel::TreeBaseWindow &, PropPanel::TLeafHandle) override
   {
     tabHost.onSelectionChanged(getSelectedAsset());
@@ -298,42 +269,10 @@ private:
 
   bool onTvContextMenu(PropPanel::TreeBaseWindow &, PropPanel::ITreeInterface &in_tree) override
   {
-    using PropPanel::ROOT_MENU_ITEM;
-    if (getSelectedAsset())
-    {
-      PropPanel::IMenu &menu = in_tree.createContextMenu();
-      menu.setEventHandler(this);
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
-      AssetBaseView::addCommonMenuItems(menu);
-      menu.addSeparator(ROOT_MENU_ITEM);
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RemoveFromFavoritesMenuItem, "Remove from favorites");
-      return true;
-    }
-    else if (getFolderFromItemData(tree->getSelectedItem()))
-    {
-      PropPanel::IMenu &menu = in_tree.createContextMenu();
-      menu.setEventHandler(this);
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::ExpandChildrenMenuItem, "Expand children");
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CollapseChildrenMenuItem, "Collapse children");
-      menu.addSeparator(ROOT_MENU_ITEM);
-
-      if (AssetSelectorGlobalState::getMoveCopyToSubmenu())
-      {
-        menu.addSubMenu(ROOT_MENU_ITEM, AssetsGuiIds::CopyMenuItem, "Copy");
-        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Folder path");
-        menu.addItem(AssetsGuiIds::CopyMenuItem, AssetsGuiIds::CopyAssetNameMenuItem, "Name");
-      }
-      else
-      {
-        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetFolderPathMenuItem, "Copy folder path");
-        menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::CopyAssetNameMenuItem, "Copy name");
-      }
-
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::RevealInExplorerMenuItem, "Reveal in Explorer");
-      return true;
-    }
-
-    return false;
+    PropPanel::IMenu &menu = in_tree.createContextMenu();
+    DagorAsset *asset = getSelectedAsset();
+    DagorAssetFolder *assetFolder = getSelectedAssetFolder();
+    return tabHost.getAssetSelectorContextMenuHandler().onAssetSelectorContextMenu(menu, asset, assetFolder);
   }
 
   FavoriteTreeFolder &makeFavoriteTreeHierarchy(int folder_index)
@@ -432,10 +371,10 @@ private:
     return nullptr;
   }
 
-  const DagorAssetFolder *getAssetFolderFromItemData(PropPanel::TLeafHandle item)
+  DagorAssetFolder *getAssetFolderFromItemData(PropPanel::TLeafHandle item)
   {
     FavoriteTreeFolder *folder = getFolderFromItemData(item);
-    return folder ? folder->assetFolder : nullptr;
+    return folder ? const_cast<DagorAssetFolder *>(folder->assetFolder) : nullptr;
   }
 
   FavoriteTreeFolder *getFolderFromItemData(PropPanel::TLeafHandle item)
@@ -467,6 +406,7 @@ private:
   FavoriteTreeFolder rootFavoriteTreeFolder;
   dag::Vector<bool> shownTypes;
   AssetsGuiTextFilter textFilter;
+  AssetTreeDragHandler dragHandler;
   PropPanel::IconId folderIcon;
   bool showHierarchy = true;
 };

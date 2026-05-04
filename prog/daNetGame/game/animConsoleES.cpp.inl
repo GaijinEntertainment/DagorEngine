@@ -2,14 +2,16 @@
 
 #include <util/dag_console.h>
 #include <ecs/anim/anim.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <osApiWrappers/dag_clipboard.h>
 
 #include "game/player.h"
 #include "camera/sceneCam.h"
 
 template <typename Callable>
-inline void set_irq_pos_ecs_query(Callable c);
+inline void set_irq_pos_ecs_query(ecs::EntityManager &manager, Callable c);
 
 using namespace console;
 static bool anim_console_handler(const char *argv[], int argc)
@@ -49,7 +51,7 @@ static bool anim_console_handler(const char *argv[], int argc)
   {
     const char *name = argv[1];
     float relPos = console::to_real(argv[2]);
-    set_irq_pos_ecs_query([&](AnimV20::AnimcharBaseComponent &animchar) {
+    set_irq_pos_ecs_query(*g_entity_mgr, [&](AnimV20::AnimcharBaseComponent &animchar) {
       if (auto ag = animchar.getAnimGraph())
         ag->debugSetIrqPosInAllNodes(name, relPos);
     });

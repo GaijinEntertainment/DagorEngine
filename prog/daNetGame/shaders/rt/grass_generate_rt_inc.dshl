@@ -1,0 +1,142 @@
+include_optional "burnt_ground/shaders/burnt_grass.dshl"
+
+float gpu_grass_bvh_range;
+interval gpu_grass_bvh_range : grass_off < 0.01, grass_on;
+
+float gpu_grass_bvh_fraction_of_instances_to_keep = 1;
+
+macro INIT_GPU_GRASS_BVH_RANGE(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    (stage)
+    {
+      gpu_grass_bvh_range@f1 = gpu_grass_bvh_range;
+    }
+  }
+endmacro
+
+macro USE_GPU_GRASS_BVH_RANGE(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    hlsl(stage)
+    {
+      bool keep_grass_for_bvh_extent(float3 position, float3 extent, float3 cam_pos)
+      {
+        float3 relPos = position - cam_pos;
+        float adjustedDistToCam = length(relPos) - length(extent);
+        return adjustedDistToCam <= gpu_grass_bvh_range;
+      }
+      bool keep_grass_for_bvh_sphere(float3 position, float radius, float3 cam_pos)
+      {
+        float3 relPos = position - cam_pos;
+        float adjustedDistToCam = length(relPos) - radius;
+        return adjustedDistToCam <= gpu_grass_bvh_range;
+      }
+    }
+  }
+  else
+  {
+    hlsl(stage)
+    {
+      bool keep_grass_for_bvh_extent(float3 position, float3 extent, float3 cam_pos)
+      {
+        return false;
+      }
+      bool keep_grass_for_bvh_sphere(float3 position, float radius, float3 cam_pos)
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+macro INIT_GPU_GRASS_BVH_RANDOM_DISCARD(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    (stage)
+    {
+      gpu_grass_bvh_fraction_of_instances_to_keep@f1 = gpu_grass_bvh_fraction_of_instances_to_keep;
+    }
+  }
+endmacro
+
+macro USE_GPU_GRASS_BVH_RANDOM_DISCARD(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    hlsl(stage)
+    {
+      float3 round_grass_world_pos_for_bvh(float3 position)
+      {
+        // Position is very compressed, so need a coarse rounding to keep the same instances in BVH
+        const float ROUNDING_FACTOR = 64;
+        position.xz = round(position.xz * ROUNDING_FACTOR) / ROUNDING_FACTOR;
+        return position;
+      }
+      float grass_keep_noise(float2 n) {
+        return frac(sin(dot(n, float2(12.9898, 4.1414))) * 43758.5453);
+      }
+      bool keep_grass_randomly(float3 position)
+      {
+        return grass_keep_noise(position.xz) <= gpu_grass_bvh_fraction_of_instances_to_keep;
+      }
+    }
+  }
+  else
+  {
+    hlsl(stage)
+    {
+      float3 round_grass_world_pos_for_bvh(float3 position)
+      {
+        return position;
+      }
+      bool keep_grass_randomly(float3 position)
+      {
+        return false;
+      }
+    }
+  }
+endmacro
+
+define_macro_if_not_defined INIT_BURNT_GRASS_INSTANCE(stage)
+endmacro
+
+define_macro_if_not_defined USE_BURNT_GRASS_INSTANCE(stage)
+  hlsl (stage) {
+    float get_instance_burnt_grass_progress(float3 instance_world_pos)
+    {
+      return 0;
+    }
+  }
+endmacro
+
+macro INIT_GPU_GRASS_BVH_BURNING(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    INIT_BURNT_GRASS_INSTANCE(stage)
+  }
+endmacro
+
+macro USE_GPU_GRASS_BVH_BURNING(stage)
+  if (gpu_grass_bvh_range == grass_on)
+  {
+    USE_BURNT_GRASS_INSTANCE(stage)
+    hlsl(stage)
+    {
+      bool discard_burnt_grass(float3 instance_world_pos)
+      {
+        float burning = get_instance_burnt_grass_progress(instance_world_pos);
+        return burning > 0.5;
+      }
+    }
+  }
+  else
+  {
+    hlsl(stage)
+    {
+      bool discard_burnt_grass(float3 instance_world_pos)
+      {
+        return true;
+      }
+    }
+  }
+endmacro

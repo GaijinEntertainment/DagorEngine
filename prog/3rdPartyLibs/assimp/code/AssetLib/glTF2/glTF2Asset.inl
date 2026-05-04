@@ -271,7 +271,7 @@ inline void SetDecodedIndexBuffer_Draco(const draco::Mesh &dracoMesh, Mesh::Prim
     // Create a decoded Index buffer (if there is one)
     size_t componentBytes = prim.indices->GetBytesPerComponent();
 
-    eastl::unique_ptr<Buffer> decodedIndexBuffer(new Buffer());
+    std::unique_ptr<Buffer> decodedIndexBuffer(new Buffer());
     decodedIndexBuffer->Grow(dracoMesh.num_faces() * 3 * componentBytes);
 
     // If accessor uses the same size as draco implementation, copy the draco buffer directly
@@ -279,23 +279,23 @@ inline void SetDecodedIndexBuffer_Draco(const draco::Mesh &dracoMesh, Mesh::Prim
     // Usually uint32_t but shouldn't assume
     if (sizeof(dracoMesh.face(draco::FaceIndex(0))[0]) == componentBytes) {
         memcpy(decodedIndexBuffer->GetPointer(), &dracoMesh.face(draco::FaceIndex(0))[0], decodedIndexBuffer->byteLength);
-        return;
     }
-
-    // Not same size, convert
-    switch (componentBytes) {
-    case sizeof(uint32_t):
-        CopyFaceIndex_Draco<uint32_t>(*decodedIndexBuffer, dracoMesh);
-        break;
-    case sizeof(uint16_t):
-        CopyFaceIndex_Draco<uint16_t>(*decodedIndexBuffer, dracoMesh);
-        break;
-    case sizeof(uint8_t):
-        CopyFaceIndex_Draco<uint8_t>(*decodedIndexBuffer, dracoMesh);
-        break;
-    default:
-        ai_assert(false);
-        break;
+    else {
+        // Not same size, convert
+        switch (componentBytes) {
+        case sizeof(uint32_t):
+            CopyFaceIndex_Draco<uint32_t>(*decodedIndexBuffer, dracoMesh);
+            break;
+        case sizeof(uint16_t):
+            CopyFaceIndex_Draco<uint16_t>(*decodedIndexBuffer, dracoMesh);
+            break;
+        case sizeof(uint8_t):
+            CopyFaceIndex_Draco<uint8_t>(*decodedIndexBuffer, dracoMesh);
+            break;
+        default:
+            ai_assert(false);
+            break;
+        }
     }
 
     // Assign this alternate data buffer to the accessor
@@ -330,7 +330,7 @@ inline void SetDecodedAttributeBuffer_Draco(const draco::Mesh &dracoMesh, uint32
 
     size_t componentBytes = accessor.GetBytesPerComponent();
 
-    eastl::unique_ptr<Buffer> decodedAttribBuffer(new Buffer());
+    std::unique_ptr<Buffer> decodedAttribBuffer(new Buffer());
     decodedAttribBuffer->Grow(dracoMesh.num_points() * pDracoAttribute->num_components() * componentBytes);
 
     switch (accessor.componentType) {
@@ -1313,6 +1313,16 @@ inline void Material::Read(Value &material, Asset &r) {
             }
         }
 
+        if (r.extensionsUsed.KHR_materials_emissive_strength) {
+            if (Value *curMaterialEmissiveStrength = FindObject(*extensions, "KHR_materials_emissive_strength")) {
+                MaterialEmissiveStrength emissiveStrength;
+
+                ReadMember(*curMaterialEmissiveStrength, "emissiveStrength", emissiveStrength.emissiveStrength);
+
+                this->materialEmissiveStrength = Nullable<MaterialEmissiveStrength>(emissiveStrength);
+            }
+        }
+
         unlit = nullptr != FindObject(*extensions, "KHR_materials_unlit");
     }
 }
@@ -1353,6 +1363,11 @@ inline void MaterialVolume::SetDefaults() {
 inline void MaterialIOR::SetDefaults() {
     //KHR_materials_ior properties
     ior = 1.5f;
+}
+
+inline void MaterialEmissiveStrength::SetDefaults() {
+    //KHR_materials_emissive_strength properties
+    emissiveStrength = 0.f;
 }
 
 inline void Mesh::Read(Value &pJSON_Object, Asset &pAsset_Root) {
@@ -1421,7 +1436,7 @@ inline void Mesh::Read(Value &pJSON_Object, Asset &pAsset_Root) {
                         }
 
                         // Now we have a draco mesh
-                        const eastl::unique_ptr<draco::Mesh> &pDracoMesh = decodeResult.value();
+                        const std::unique_ptr<draco::Mesh> &pDracoMesh = decodeResult.value();
 
                         // Redirect the accessors to the decoded data
 
@@ -2026,6 +2041,7 @@ inline void Asset::ReadExtensionsUsed(Document &doc) {
     CHECK_EXT(KHR_materials_transmission);
     CHECK_EXT(KHR_materials_volume);
     CHECK_EXT(KHR_materials_ior);
+    CHECK_EXT(KHR_materials_emissive_strength);
     CHECK_EXT(KHR_draco_mesh_compression);
     CHECK_EXT(KHR_texture_basisu);
 

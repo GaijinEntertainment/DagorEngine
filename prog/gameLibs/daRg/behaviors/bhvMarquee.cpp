@@ -59,6 +59,7 @@ void BhvMarquee::onElemSetup(Element *elem, SetupMode setup_mode)
   bhvData->threshold = elem->props.getFloat(elem->csk->threshold, 5.0f);
   bhvData->orient = elem->props.getInt<Orientation>(elem->csk->orientation, O_HORIZONTAL);
   bhvData->scrollOnHover = elem->props.getBool(elem->csk->scrollOnHover, false, true);
+  bhvData->pauseOnHover = elem->props.getBool(elem->csk->pauseOnHover, false, true);
 
   Sqrat::Object objSpeed = elem->props.getObject(elem->csk->speed);
   if (objSpeed.GetType() == OT_ARRAY)
@@ -98,6 +99,9 @@ int BhvMarquee::update(UpdateStage /*stage*/, darg::Element *elem, float dt)
   int axis = (bhvData->orient == O_HORIZONTAL) ? 0 : 1;
   ScreenCoord &sc = elem->screenCoord;
   Point2 scrollRange = elem->getScrollRange(axis);
+
+  if (bhvData->pauseOnHover && (elem->getStateFlags() & Element::S_HOVER))
+    return 0;
 
   if (/*!bhvData->loop && */ fabsf(scrollRange[0] - scrollRange[1]) <= bhvData->threshold)
   {

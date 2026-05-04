@@ -36,6 +36,6 @@ def update_retinal_damage_effect(info : UpdateStageInfoAct;
   let opacity = get_retinal_damage_opacity(retinal_damage__remaining_time, retinal_damage__total_lifetime,
                                            retinal_damage__fade_in_time, retinal_damage__fade_out_time,
                                            retinal_damage__initial_opacity)
-  DagorShaders::set_real(retinal_damage_remaining_time_fractionVarId,
+  DagorShaders::set_float(retinal_damage_remaining_time_fractionVarId,
                          retinal_damage__remaining_time / retinal_damage__total_lifetime)
-  DagorShaders::set_real(retinal_damage_opacityVarId, opacity)
+  DagorShaders::set_float(retinal_damage_opacityVarId, opacity)

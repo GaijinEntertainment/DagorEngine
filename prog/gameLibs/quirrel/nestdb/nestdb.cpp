@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <nestdb/nestdb.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqCrossCall/sqCrossCall.h>
 #include <sqStackChecker.h>
 #include <sqstdaux.h>
@@ -19,7 +19,7 @@ static HSQUIRRELVM sqvm = nullptr;
 static Sqrat::Table storage;
 
 
-static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -28,7 +28,7 @@ static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void script_err_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -37,8 +37,8 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity severity, const SQChar *desc, const SQChar *source,
-  SQInteger line, SQInteger column, const SQChar *)
+static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity severity, const char *desc, const char *source, SQInteger line,
+  SQInteger column, const char *)
 {
   if (severity == SEV_HINT)
     debug("[STORAGE VM] Squirrel compile hint %s (%d:%d): %s", source, line, column, desc);
@@ -133,7 +133,7 @@ static bool parse_path(HSQUIRRELVM vm, SQInteger idx, Tab<const char *> &path)
     for (int iElem = 0; iElem < len; ++iElem)
     {
       sq_pushinteger(vm, iElem);
-      sq_rawget_noerr(vm, idx);
+      sq_rawget(vm, idx);
       SQObjectType elemType = sq_gettype(vm, -1);
       if (elemType != OT_STRING)
       {
@@ -188,7 +188,7 @@ static SQInteger write(HSQUIRRELVM vm_req)
   for (int i = 0, n = path.size(); i < n - 1 /*Not including last */; ++i)
   {
     sq_pushstring(sqvm, path[i], -1);
-    if (SQ_SUCCEEDED(sq_rawget_noerr(sqvm, -2)) && sq_gettype(sqvm, -1) != OT_NULL)
+    if (SQ_SUCCEEDED(sq_rawget(sqvm, -2)) && sq_gettype(sqvm, -1) != OT_NULL)
     {
       // replace target container on stack
       sq_remove(sqvm, -2);
@@ -245,7 +245,7 @@ static SQInteger read_impl(HSQUIRRELVM vm_req, bool error_on_missing)
   {
     const char *pathElem = path[i];
     sq_pushstring(sqvm, pathElem, -1);
-    if (SQ_FAILED(sq_rawget_noerr(sqvm, -2))) // non-existing key
+    if (SQ_FAILED(sq_rawget(sqvm, -2))) // non-existing key
     {
       stackCheck.restore();
       if (error_on_missing)
@@ -301,7 +301,7 @@ static SQInteger exists(HSQUIRRELVM vm_req)
   for (const char *pathElem : path)
   {
     sq_pushstring(sqvm, pathElem, -1);
-    if (SQ_FAILED(sq_rawget_noerr(sqvm, -2))) // non-existing key
+    if (SQ_FAILED(sq_rawget(sqvm, -2))) // non-existing key
     {
       stackCheck.restore();
       sq_pushbool(vm_req, SQFalse);
@@ -342,7 +342,7 @@ static SQInteger del(HSQUIRRELVM vm_req)
     }
     else
     {
-      if (SQ_FAILED(sq_rawget_noerr(sqvm, -2))) // non-existing key
+      if (SQ_FAILED(sq_rawget(sqvm, -2))) // non-existing key
       {
         stackCheck.restore();
         sq_pushbool(vm_req, SQFalse);
@@ -364,11 +364,11 @@ void bind_api(SqModules *module_mgr)
   HSQUIRRELVM vm = module_mgr->getVM();
   Sqrat::Table exports(vm);
   exports //
-    .SquirrelFunc("ndbWrite", write, 3, ". s|a .")
-    .SquirrelFunc("ndbRead", read, 2, ". s|a")
-    .SquirrelFunc("ndbTryRead", try_read, 2, ". s|a")
-    .SquirrelFunc("ndbExists", exists, 2, ". s|a")
-    .SquirrelFunc("ndbDelete", del, 2, ". s|a")
+    .SquirrelFuncDeclString(write, "ndbWrite(path: string|array, value: any): null")
+    .SquirrelFuncDeclString(read, "ndbRead(path: string|array): any")
+    .SquirrelFuncDeclString(try_read, "ndbTryRead(path: string|array): any")
+    .SquirrelFuncDeclString(exists, "ndbExists(path: string|array): bool")
+    .SquirrelFuncDeclString(del, "ndbDelete(path: string|array): bool")
     /**/;
   module_mgr->addNativeModule("nestdb", exports);
 }

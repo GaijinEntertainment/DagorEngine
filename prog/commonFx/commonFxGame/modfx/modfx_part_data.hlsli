@@ -13,6 +13,7 @@ void modfx_load_sim_data(BufferData_cref buf, uint ofs, uint decls, DAFX_OREF(Mo
 
   // life_norm is always loaded, but can be reset to 0 if not used (extreme edge case)
   o.life_norm = dafx_load_1f(buf, ofs);
+
   if (!MODFX_SDECL_LIFE_ENABLED(decls))
     o.life_norm = 0;
 

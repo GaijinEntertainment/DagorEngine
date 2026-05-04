@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <time.h>
 
@@ -144,19 +144,19 @@ void bind_dagor_time(SqModules *module_mgr)
     ///@param format s : Format string (see strftime() C++ function manual)
     ///@param ts i : UNIX timestamp to format
     ///@return s : Formatted string
-    .SquirrelFunc("unixtime_to_local_timetbl", unixtime_to_local_timetbl, 2, ".i")
+    .SquirrelFuncDeclString(unixtime_to_local_timetbl, "unixtime_to_local_timetbl(ts: int): table")
     ///@brief Converts UNIX timestamp to Local time table.
     ///@param ts i : UNIX timestamp
     ///@return t : Local time table
-    .SquirrelFunc("local_timetbl_to_unixtime", local_timetbl_to_unixtime, 2, ".t")
+    .SquirrelFuncDeclString(local_timetbl_to_unixtime, "local_timetbl_to_unixtime(localTimeTbl: table): int")
     ///@brief Converts Local time table to UNIX timestamp.
     ///@param localTimeTbl t : Local time table
     ///@return i : UNIX timestamp
-    .SquirrelFunc("unixtime_to_utc_timetbl", unixtime_to_utc_timetbl, 2, ".i")
+    .SquirrelFuncDeclString(unixtime_to_utc_timetbl, "unixtime_to_utc_timetbl(ts: int): table")
     ///@brief Converts UNIX timestamp to UTC time table.
     ///@param ts i : UNIX timestamp
     ///@return t : UTC time table
-    .SquirrelFunc("utc_timetbl_to_unixtime", utc_timetbl_to_unixtime, 2, ".t")
+    .SquirrelFuncDeclString(utc_timetbl_to_unixtime, "utc_timetbl_to_unixtime(utcTimeTbl: table): int")
     ///@brief Converts UTC time table to UNIX timestamp.
     ///@param utcTimeTbl t : UTC time table
     ///@return i : UNIX timestamp

@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "heightmap_common.dshl"
+include "gpu_objects_inc.dshl"
 
 int gpu_objects_ri_pool_id_offset;
 texture noise_128_tex_hash;
@@ -46,10 +47,13 @@ float gpu_objects_min_gathered_triangle_size;
 float gpu_objects_distance_emitter__range;
 float4 gpu_objects_distance_emitter__position;
 
+int gpu_objects_copy_dest_target_offset;
+int gpu_objects_copy_src_offset;
+buffer gpu_objects_copy_target_buffer;
+
 float gpu_objects_cutoff_ratio = -1.0;
 interval gpu_objects_cutoff_ratio: dont_use_cutoff_ratio<1, use_cutoff_ratio;
 
-// TODO Everything in here should be optimized more
 macro ADJUST_TRANSFORMATION()
 (cs)
 {
@@ -68,103 +72,45 @@ hlsl(cs)
     return minTranslation + maxTranslation;
   }
 
-  float4x4 calculateBoundingBox(float4x4 tm)
+  void adjustTransformationImpl(float4x4 decal_tm, float4x4 placer_tm, out float3 translation, out float scale)
   {
-    float3 decalBottomLeft = mulPointTm(float3(-spoofed_decal_half_size.x, 0, -spoofed_decal_half_size.y), tm).xyz;
-    float3 decalBottomRight = mulPointTm(float3(spoofed_decal_half_size.x, 0, -spoofed_decal_half_size.y), tm).xyz;
-    float3 decalTopLeft = mulPointTm(float3(-spoofed_decal_half_size.x, 0, spoofed_decal_half_size.y), tm).xyz;
-    float3 decalTopRight = mulPointTm(float3(spoofed_decal_half_size.x, 0, spoofed_decal_half_size.y), tm).xyz;
-
-    float3 right = decalBottomRight - decalBottomLeft;
-    float3 forward = decalTopLeft - decalBottomLeft;
-    float3 up = cross(right, forward);
-
-    float r_len = length(right);
-    float f_len = length(forward);
-    float u_len = length(up);
-
-    float3 center = (decalBottomLeft + decalTopRight) * 0.5;
-
-    // Since this is a decal, it doesn't truly have a size / length
-    // in the up direction. As such, a value close to 0 is sufficient.
-    // (The calculated u_len is not the actual size of the decal in the
-    // up direction, but the length of the up vector)
-    const float modified_u_len = 0.1;
-
-    return float4x4(
-      right / r_len, r_len,
-      up / u_len, modified_u_len,
-      forward / f_len, f_len,
-      center, 1.0
-    );
-  }
-
-  void getAABB(float3 x, float3 y, float3 z, float3 sizes, float3 center_pos, out float3 boxmin, out float3 boxmax)
-  {
-    float3 pos = center_pos - x * sizes.x * 0.5 - y * sizes.y * 0.5 - z * sizes.z * 0.5;
-
-    float3 corners[8];
-    corners[0] = pos;
-    corners[1] = pos + x * sizes.x;
-    corners[2] = pos + y * sizes.y;
-    corners[3] = pos + z * sizes.z;
-    corners[4] = pos + x * sizes.x + y * sizes.y;
-    corners[5] = pos + x * sizes.x + z * sizes.z;
-    corners[6] = pos + y * sizes.y + z * sizes.z;
-    corners[7] = pos + x * sizes.x + y * sizes.y + z * sizes.z;
-
-    boxmin = corners[0];
-    boxmax = corners[0];
-
-    UNROLL
-    for (int i = 1; i < 8; i++)
-    {
-      boxmin = min(boxmin, corners[i]);
-      boxmax = max(boxmax, corners[i]);
-    }
-  }
-
-  void adjustTransformationImpl(float4x4 tm, float4x4 placer_tm, out float3 translation, out float scale)
-  {
+    // local -> local to placer
     float3 placer_bbox_size = float3(length(placer_tm[0].xyz), length(placer_tm[1].xyz), length(placer_tm[2].xyz));
     float3 placer_bbox_x = placer_tm[0].xyz / placer_bbox_size.x;
     float3 placer_bbox_y = placer_tm[1].xyz / placer_bbox_size.y;
     float3 placer_bbox_z = placer_tm[2].xyz / placer_bbox_size.z;
     float3 worldPos = placer_tm[3].xyz;
-    float3 placer_bbox_min = - placer_bbox_size * 0.5;
-    float3 placer_bbox_max = placer_bbox_size * 0.5;
+    float3 placer_bbox_half_sizes = placer_bbox_size * 0.5;
+    float3 placer_bbox_min = - placer_bbox_half_sizes;
+    float3 placer_bbox_max = placer_bbox_half_sizes;
 
-    float4x4 calculated_decal_bbox = calculateBoundingBox(tm);
-    float3 decal_x = calculated_decal_bbox[0].xyz;
-    float3 decal_y = calculated_decal_bbox[1].xyz;
-    float3 decal_z = calculated_decal_bbox[2].xyz;
-    float3 decal_axis_sizes = float3(calculated_decal_bbox[0].w, calculated_decal_bbox[1].w, calculated_decal_bbox[2].w);
+    // Since this is a decal, it doesn't truly have a size / length
+    // in the up direction. As such, a value close to 0 is sufficient.
+    const float modified_u_len_half = 0.05;
+    float3 half_decal_x = decal_tm[0].xyz * spoofed_decal_half_size.x;
+    float3 half_decal_y = decal_tm[1].xyz * modified_u_len_half;
+    float3 half_decal_z = decal_tm[2].xyz * spoofed_decal_half_size.x;
 
     float3x3 toWorld = float3x3(placer_bbox_x, placer_bbox_y, placer_bbox_z);
     float3x3 toLocal = transpose(toWorld);
 
-    float3 decal_local_pos_center = mul(calculated_decal_bbox[3].xyz - worldPos, toLocal);
+    float3 decal_local_pos_center = mul(decal_tm[3].xyz - worldPos, toLocal);
 
-    float3 decal_local_x = mul(decal_x, toLocal);
-    float3 decal_local_y = mul(decal_y, toLocal);
-    float3 decal_local_z = mul(decal_z, toLocal);
+    float3 abs_local_half_decal_x = abs(mul(half_decal_x, toLocal));
+    float3 abs_local_half_decal_y = abs(mul(half_decal_y, toLocal));
+    float3 abs_local_half_decal_z = abs(mul(half_decal_z, toLocal));
 
-    float3 decal_local_pos_max;
-    float3 decal_local_pos_min;
-    getAABB(decal_local_x, decal_local_y, decal_local_z, decal_axis_sizes, decal_local_pos_center, decal_local_pos_min, decal_local_pos_max);
-    float3 decal_local_min_dir = decal_local_pos_min - decal_local_pos_center;
-    float3 decal_local_max_dir = decal_local_pos_max - decal_local_pos_center;
+    float3 local_half_sizes = abs_local_half_decal_x + abs_local_half_decal_y + abs_local_half_decal_z;
 
-    float3 decal_size = decal_local_pos_max - decal_local_pos_min;
+    float3 decal_size = 2 * local_half_sizes;
     float3 scales = placer_bbox_size / decal_size;
     scale = min3(scales.x, scales.y, scales.z);
     scale = min(scale, 1);
 
-    decal_local_min_dir *= scale;
-    decal_local_max_dir *= scale;
+    local_half_sizes *= scale;
 
-    decal_local_pos_min = decal_local_pos_center + decal_local_min_dir;
-    decal_local_pos_max = decal_local_pos_center + decal_local_max_dir;
+    float3 decal_local_pos_min = decal_local_pos_center - local_half_sizes;
+    float3 decal_local_pos_max = decal_local_pos_center + local_half_sizes;
 
     float3 clampedTranslation = clampBBoxTranslation(placer_bbox_min, placer_bbox_max,
                                                      decal_local_pos_min, decal_local_pos_max);
@@ -174,10 +120,10 @@ hlsl(cs)
 
   void adjustTransformation(inout float3 pos, inout float3x3 orientation, float4x4 placer_tm)
   {
-    float4x4 tm = float4x4(orientation[0], 0.0, orientation[1], 0.0, orientation[2], 0.0, pos, 1.0);
+    float4x4 decal_tm = float4x4(orientation[0], 0.0, orientation[1], 0.0, orientation[2], 0.0, pos, 1.0);
     float3 translation;
     float scale;
-    adjustTransformationImpl(tm, placer_tm, translation, scale);
+    adjustTransformationImpl(decal_tm, placer_tm, translation, scale);
 
     // Removing normal comp so the decal is only translated along the XZ plane
     orientation *= scale;
@@ -194,12 +140,14 @@ macro ADD_INSTANCE()
 (cs)
 {
     gpu_objects_ri_pool_id_offset@i1 = (gpu_objects_ri_pool_id_offset);
+
+    gpuObjectsMatrices@uav : register(0) hlsl {
+      RWStructuredBuffer<float4> gpuObjectsMatrices@uav;
+    }
 }
 
 hlsl(cs)
 {
-  RWStructuredBuffer<float4> gpuObjectsMatrices : register(u0);
-
   void addInstance(float3 pos, float3x3 orientation, float scale, int at)
   {
     orientation = transpose(orientation);
@@ -286,6 +234,62 @@ hlsl(cs)
 }
 endmacro
 
+shader gpu_objects_copy_matrices_cs
+{
+  INIT_BVH_GOBJ()
+  (cs) {
+    target_offset@i1 = gpu_objects_copy_dest_target_offset;
+    src_offset@i1 = gpu_objects_copy_src_offset;
+    count@i1 = gpu_objects_matrices_count;
+    target_buffer@uav = gpu_objects_copy_target_buffer hlsl { RWBuffer<float4> target_buffer@uav; };
+    gpuObjectsMatrices@uav : register(0) hlsl {
+      RWStructuredBuffer<float4> gpuObjectsMatrices@uav;
+    }
+  }
+  hlsl(cs) {
+    #include "gpuObjects/gpu_objects_const.hlsli"
+
+    [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
+    void gather_matrices(uint thread_id : SV_DispatchThreadID)
+    {
+      if (thread_id >= count)
+        return;
+
+      int matrixOffset = (src_offset + thread_id) * ROWS_IN_MATRIX;
+      int targetOffset = (target_offset + thread_id) * ROWS_IN_MATRIX;
+
+      bufferAt(target_buffer, targetOffset + 0) = gpuObjectsMatrices[matrixOffset + 0];
+      bufferAt(target_buffer, targetOffset + 1) = gpuObjectsMatrices[matrixOffset + 1];
+      bufferAt(target_buffer, targetOffset + 2) = gpuObjectsMatrices[matrixOffset + 2];
+      bufferAt(target_buffer, targetOffset + 3) = gpuObjectsMatrices[matrixOffset + 3];
+
+      #if GENERATE_BVH_INTANCES
+        GpuObjectsBvhMapping bvhMapping = structuredBufferAt(gpuobjectsBvhMappings, 0);
+
+        [branch]
+        if (any(bvhMapping.blas != 0))
+        {
+          uint bvhIndex;
+          gpuobjectsBvhCounter.InterlockedAdd(0, 1, bvhIndex);
+
+          if (bvhIndex < gpu_objects_bvh_max_count)
+          {
+            RTHWInstance bvhInstance;
+            bvhInstance.transform0 = gpuObjectsMatrices[matrixOffset + 0];
+            bvhInstance.transform1 = gpuObjectsMatrices[matrixOffset + 1];
+            bvhInstance.transform2 = gpuObjectsMatrices[matrixOffset + 2];
+            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
+            bvhInstance.instanceOffset_flags = 0;
+            bvhInstance.blas = bvhMapping.blas;
+            structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
+          }
+        }
+      #endif
+    }
+  }
+  compile("cs_5_0", "gather_matrices");
+}
+
 // TODO: optimize the crap out of this!
 shader gpu_objects_update_matrices_cs
 {
@@ -308,13 +312,15 @@ shader gpu_objects_update_matrices_cs
     range@f1 = gpu_objects_distance_emitter__range;
     entity_position@f3 = gpu_objects_distance_emitter__position;
     out_of_range@i1 = gpu_objects_distance_out_of_range;
+
+    gpuObjectsMatrices@uav : register(0) hlsl {
+      RWStructuredBuffer<float4> gpuObjectsMatrices@uav;
+    }
   }
 
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    RWStructuredBuffer<float4> gpuObjectsMatrices : register(u0);
 
     float3 getOriginalPosition(int index)
     {
@@ -528,17 +534,25 @@ shader gpu_objects_box_placer_gather_triangles_cs
       StructuredBuffer<GeometryMesh> meshes@buf;
     }
     cutoff_ratio_sq@f1 = (gpu_objects_cutoff_ratio * gpu_objects_cutoff_ratio, 0, 0, 0);
-  }
 
-  ENABLE_ASSERT(cs)
+    triangles@uav : register(0) hlsl {
+      #include "gpuObjects/gpu_objects_const.hlsli"
+      RWStructuredBuffer<GeometryTriangle> triangles@uav;
+    }
+    counter@uav : register(1) hlsl {
+      RWByteAddressBuffer counter@uav;
+    }
+    indexBuf@buf : register(14) hlsl {
+      ByteAddressBuffer indexBuf@buf;
+    }
+    vertexBuf@buf : register(15) hlsl {
+      ByteAddressBuffer vertexBuf@buf;
+    }
+  }
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
 
-    RWStructuredBuffer<GeometryTriangle> triangles : register(u0);
-    RWByteAddressBuffer counter : register(u1);
-    ByteAddressBuffer indexBuf : register(t14);
-    ByteAddressBuffer vertexBuf : register(t15);
     groupshared float areaSumDoubled[DISPATCH_WARP_SIZE];
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
@@ -724,6 +738,10 @@ shader gpu_objects_compute_terrain_objects_count_cs
     placer_tm@f44 = gpu_objects_placer_tm;
     max_instance_count@i1 = gpu_objects_max_on_terrain_instance_count;
     y_min_max@f2 = gpu_objects_bbox_y_min_max;
+
+    counter@uav : register(1) hlsl {
+      RWByteAddressBuffer counter@uav;
+    }
   }
   hlsl(cs) {
     #define NO_GRADIENTS_IN_SHADER 1
@@ -735,8 +753,6 @@ shader gpu_objects_compute_terrain_objects_count_cs
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    RWByteAddressBuffer counter : register(u1);
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void compute_terrain_objects_count(uint dtId : SV_DispatchThreadID)
@@ -781,11 +797,16 @@ shader gpu_objects_on_terrain_geometry_placer_cs
   USE_HEIGHTMAP_COMMON_BASE(cs)
   ON_TERRAIN_UTILITY()
   RANDOM_UTILITY()
+
+  (cs) {
+    counter@uav : register(1) hlsl {
+      RWByteAddressBuffer counter@uav;
+    }
+  }
+
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    RWByteAddressBuffer counter : register(u1);
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void gather_matrices(uint dtId : SV_DispatchThreadID )
@@ -969,7 +990,6 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
     }
     counter@buf = gpu_objects_counter hlsl { ByteAddressBuffer counter@buf; }
   }
-  ENABLE_ASSERT(cs)
   ADD_INSTANCE()
   RANDOM_UTILITY()
   hlsl(cs) {
@@ -1030,7 +1050,6 @@ shader gpu_objects_on_rendinst_geometry_placer_cs
 
 shader gpu_object_placer_draw_geometry_debug
 {
-  ENABLE_ASSERT(ps)
   z_test = false;
   z_write = false;
   blend_src = sa; blend_dst = isa;

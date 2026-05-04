@@ -3,6 +3,8 @@ texture tsr_history_color;
 texture tsr_history_confidence;
 texture tsr_reactive_mask;
 
+buffer tsr_kernel_weights;
+
 float4 tsr_jitter_offset;
 float4 tsr_input_resolution = (1, 1, 1, 1);
 float4 tsr_output_resolution = (1, 1, 1, 1);
@@ -15,7 +17,6 @@ float tsr_sharpening = 0.5;
 float tsr_resampling_loss_sigma = 1;
 float tsr_depth_overhang_sigma = 0.0004;
 float tsr_process_loss = 0.99;
-float tsr_static_dynamic_mismatch_loss = 0.9;
 float tsr_scale_base = 1.5;
 float tsr_scale_motion_steepness = 1e2;
 float tsr_scale_motion_max = 0.1;
@@ -31,13 +32,18 @@ float tsr_scale_motion_max_dynamic = 0.1;
 float4x4 jitteredCamPosToUnjitteredHistoryClip;
 texture tsr_vrs_mask;
 
+int4 tsr_phase_configuration = (0,0,0,0); // Qx, Qy, Px, Py
+int tsr_use_precalculated_filter_weights = 0;
+interval tsr_use_precalculated_filter_weights : no < 1, yes;
+
 int tsr_should_restart;
+int tsr_debug_view = 1;
 
 int tsr_debug = 0;
 interval tsr_debug : off < 1, on;
 
-int tsr_is_upsampling = 1;
-interval tsr_is_upsampling : no < 1, yes;
-
 int tsr_history_reconstruction = 0;
 interval tsr_history_reconstruction : bilinear < 1, bicubic;
+
+int tsr_quality = 0;
+interval tsr_quality : low < 1, high;

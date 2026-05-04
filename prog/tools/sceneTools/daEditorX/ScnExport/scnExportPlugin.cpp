@@ -6,6 +6,7 @@
 #include <oldEditor/exportToLightTool.h>
 #include <oldEditor/de_workspace.h>
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_colors.h>
 #include <EditorCore/ec_wndPublic.h>
@@ -54,6 +55,13 @@ enum
   CM_BUILD_SCN = CM_PLUGIN_BASE,
 };
 
+namespace EditorCommandIds
+{
+
+static constexpr const char *BUILD_SCN = "Plugin.ScnExport.CompileSceneGeometryForExport";
+
+}
+
 extern IEditorService *create_built_scene_view_service();
 
 ScnExportPlugin::ScnExportPlugin()
@@ -69,10 +77,24 @@ ScnExportPlugin::~ScnExportPlugin()
   bsRendCube = NULL;
 }
 
+void ScnExportPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  command_system.addCommand(EditorCommandIds::BUILD_SCN);
+}
+
+void ScnExportPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+  wndManager.addViewportAccelerator(CM_BUILD_SCN, EditorCommandIds::BUILD_SCN);
+}
+
 bool ScnExportPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
-  mainMenu->addItem(menu_id, CM_BUILD_SCN, "Compile scene geom for export(PC)...");
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_BUILD_SCN, EditorCommandIds::BUILD_SCN, "Compile scene geom for export(PC)...");
   return true;
 }
 
@@ -248,7 +270,7 @@ bool ScnExportPlugin::exportLms(const char *fname, CoolConsole &con, Tab<int> &p
 {
   debug(">> exporting LMS to %s", fname);
 
-  DataBlock app_blk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock app_blk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *mgr_type = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getStr("type", NULL);
   bool removeLandMeshMat = (mgr_type && strcmp(mgr_type, "aces") == 0);
 
@@ -369,8 +391,8 @@ void ScnExportPlugin::clearObjects()
   if (bsSrv)
     bsSrv->clearServiceData();
   DataBlock app_blk;
-  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
   const DataBlock &scn_def = *app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("scnExport");
 
   disabledGamePlugins.reset();

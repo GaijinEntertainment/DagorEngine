@@ -398,7 +398,7 @@ VECTORCALL static bool v_edge_against_tri_edges(vec4f v0, vec4f v1, vec3f u0, ve
   vec3f cond2 = v_and(v_and(v_cmp_lt(f, v_zero()), v_cmp_le(d, v_zero())), v_cmp_ge(d, f));
   cond1 = v_and(cond1, v_and(v_cmp_ge(e, v_zero()), v_cmp_le(e, f)));
   cond2 = v_and(cond2, v_and(v_cmp_le(e, v_zero()), v_cmp_ge(e, f)));
-  return v_signmask(v_or(cond1, cond2)) & (1 | 2 | 4);
+  return v_check_xyz_any_true(v_or(cond1, cond2));
 }
 
 VECTORCALL static bool v_coplanar_tri_tri(vec3f normal, vec3f v0, vec3f v1, vec3f v2, vec3f u0, vec3f u1, vec3f u2)
@@ -556,7 +556,7 @@ VECTORCALL bool v_test_triangle_triangle_intersection(vec3f v0, vec3f v1, vec3f 
   vec3f bca = allBitsSet;
   vec3f x0x1 = allBitsSet;
   v_compute_intervals(vp, dv012, dv0dv1, dv0dv2, bca, x0x1);
-  if (v_signmask(v_cmp_eqi(v_and(bca, x0x1), allBitsSet)) == (1 | 2 | 4 | 8))
+  if (v_check_xyzw_all_true(v_cmp_eqi(v_and(bca, x0x1), allBitsSet)))
   {
     /* triangles are coplanar */
     return v_coplanar_tri_tri(n1, v0, v1, v2, u0, u1, u2);
@@ -566,7 +566,7 @@ VECTORCALL bool v_test_triangle_triangle_intersection(vec3f v0, vec3f v1, vec3f 
   vec3f efd = allBitsSet;
   vec3f y0y1 = allBitsSet;
   v_compute_intervals(up, du012, du0du1, du0du2, efd, y0y1);
-  if (v_signmask(v_cmp_eqi(v_and(efd, y0y1), allBitsSet)) == (1 | 2 | 4 | 8))
+  if (v_check_xyzw_all_true(v_cmp_eqi(v_and(efd, y0y1), allBitsSet)))
   {
     /* triangles are coplanar */
     return v_coplanar_tri_tri(n1, v0, v1, v2, u0, u1, u2);

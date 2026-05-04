@@ -15,12 +15,17 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_basePath.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include <math/integer/dag_IPoint2.h>
 #include <util/dag_roNameMap.h>
 #include <util/dag_fastIntList.h>
+#include <util/dag_oaHashNameMap.h>
+#include <util/dag_parallelFor.h>
 #include <util/dag_strUtil.h>
+#include <util/dag_threadPool.h>
 #include <util/dag_base32.h>
 #include <debug/dag_debug.h>
+#include <EASTL/unique_ptr.h>
 #include <stdio.h>
 #include <stddef.h> // offsetof
 #include <supp/dag_zstdObfuscate.h>
@@ -568,27 +573,80 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
   struct BlkFileUsedNotify : public DataBlock::IFileNotify
   {
     VirtualRomFsSingleFile *vrom = NULL;
-    DynamicMemGeneralSaveCB memCwr = DynamicMemGeneralSaveCB(tmpmem);
     const char *targetString = NULL;
-    BlkFileUsedNotify(const char *tgt) { targetString = tgt; }
-    ~BlkFileUsedNotify() { releaseCurVrom(); }
 
-    virtual void onFileLoaded(const char *fname)
+    // Per-pack cache of preprocessed include streams, keyed by the fully
+    // normalized (simplified + lowercased) resolved filename. The same
+    // include is referenced by hundreds of BLKs during one pack run and
+    // the preprocessing step (dd_file_exists +
+    // process_and_copy_file_to_stream = disk stat + disk read +
+    // #if_target/#ifdef stripping) dominates wall time.
+    //
+    // The key normalization matches what VirtualRomFsSingleFile::make_mem_data
+    // does to rel_fn (dd_strlwr + dd_simplify_fname_c), so spellings like
+    // "foo/bar.blk", "foo\\bar.blk" and "Foo.blk" all share one cache entry -
+    // exactly as the vromfs layer collapses them.
+    //
+    // Note: only the preprocessed stream is cached; the actual VROMFS entry
+    // is still registered one-at-a-time (same lifetime as the original
+    // code), because add_vromfs has a hard MAX_VROMFS_NUM=64 global slot
+    // limit (prog/engine/osApiWrappers/vromfs.cpp) which we cannot blow.
+    FastNameMap cachedNames;
+    Tab<DynamicMemGeneralSaveCB *> cachedStreams;
+
+    BlkFileUsedNotify(const char *tgt) { targetString = tgt; }
+    ~BlkFileUsedNotify()
+    {
+      releaseCurVrom();
+      for (DynamicMemGeneralSaveCB *s : cachedStreams)
+        delete s;
+    }
+
+    BlkFileUsedNotify(const BlkFileUsedNotify &) = delete;
+    BlkFileUsedNotify &operator=(const BlkFileUsedNotify &) = delete;
+    BlkFileUsedNotify(BlkFileUsedNotify &&) = delete;
+    BlkFileUsedNotify &operator=(BlkFileUsedNotify &&) = delete;
+
+    virtual void onFileLoaded(const char *fname) override
     {
       String fname_resolved;
       if (dd_resolve_named_mount(fname_resolved, fname))
         fname = fname_resolved;
-      if (!dd_file_exists(fname))
+
+      // Normalize the cache key so "foo/bar.blk", "foo\\bar.blk" and "Foo.blk"
+      // collapse to one entry - matches what VirtualRomFsSingleFile::make_mem_data
+      // does to rel_fn (dd_strlwr + dd_simplify_fname_c).
+      String cache_key(fname);
+      simplify_name(cache_key.str(), /*lwr*/ true);
+
+      int id = cachedNames.addNameId(cache_key);
+      // Tab<T>'s default resize leaves new slots uninitialized (Tab uses
+      // init_constructing=false), so we must pass an explicit nullptr fill
+      // or the "if (!stream)" probe below would read garbage for a new id.
+      if ((int)cachedStreams.size() <= id)
+        cachedStreams.resize(id + 1, nullptr);
+      DynamicMemGeneralSaveCB *stream = cachedStreams[id];
+      if (!stream)
       {
-        printf("ERR: failed to load include file %s\n", fname);
-        return;
+        if (!dd_file_exists(fname))
+        {
+          printf("ERR: failed to load include file %s\n", fname);
+          return;
+        }
+        if (!::dgs_execute_quiet)
+          debug("preprocessing included file: %s", fname);
+        eastl::unique_ptr<DynamicMemGeneralSaveCB> pending(new DynamicMemGeneralSaveCB(tmpmem));
+        process_and_copy_file_to_stream(fname, *pending, targetString, false, false);
+        stream = pending.release();
+        cachedStreams[id] = stream;
       }
+
       releaseCurVrom();
-      memCwr.setsize(0);
-      if (!::dgs_execute_quiet)
-        debug("preprocessing included file: %s", fname);
-      process_and_copy_file_to_stream(fname, memCwr, targetString, false, false);
-      vrom = VirtualRomFsSingleFile::make_mem_data(tmpmem, memCwr.data(), memCwr.size(), fname, true);
+      // TODO: if MAX_VROMFS_NUM (prog/engine/osApiWrappers/vromfs.cpp) is ever
+      // raised to fit every unique include in one run, we can keep one vrom
+      // per cache entry alive and skip the make_mem_data + add_vromfs work
+      // on every cache hit.
+      vrom = VirtualRomFsSingleFile::make_mem_data(tmpmem, stream->data(), stream->size(), fname, true);
       add_vromfs(vrom, true);
     }
     void releaseCurVrom()
@@ -620,6 +678,8 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
 
   if (shared_nm)
   {
+    const bool shrinkBlkSharedNamemap = inp.getBool("shrinkBlkSharedNamemap", false);
+    DBNameMap *shared_nm_tmp = shrinkBlkSharedNamemap ? dblk::create_db_names() : shared_nm;
     // first pass to gather actual shared namemap
     for (int id : sorted_fnlist_ids)
     {
@@ -656,13 +716,11 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
         blk_err = true;
         continue;
       }
-      blk.appendNamemapToSharedNamemap(*shared_nm, nullptr);
+      blk.appendNamemapToSharedNamemap(*shared_nm_tmp, nullptr);
       blk2_packed_count++;
     }
 
     // another pass to add all strings to namemap
-    int all_nm_count = dblk::db_names_count(shared_nm);
-    shared_nm_nm_inc = all_nm_count - shared_nm_nm;
     if (READ_PROP(Bool, "blkShareStrParams", true))
       for (int id : sorted_fnlist_ids)
       {
@@ -670,15 +728,28 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
           dblk::iterate_blocks(*blk, [&](const DataBlock &d) {
             for (uint32_t i = 0, e = d.paramCount(); i < e; ++i)
               if (d.getParamType(i) == DataBlock::TYPE_STRING)
-                dblk::add_name_to_name_map(*shared_nm, d.getStr(i));
+                dblk::add_name_to_name_map(*shared_nm_tmp, d.getStr(i));
           });
       }
 
-    shared_nm_nm = dblk::db_names_count(shared_nm);
-    shared_nm_str_inc = shared_nm_nm - all_nm_count;
-    // if no name or string added we shall not resave identical namemap
-    if (shared_nm_nm_inc + shared_nm_str_inc) // -V793
+    dblk::ShrinkStats stats;
+    if (shrinkBlkSharedNamemap)
     {
+      DBNameMap *shared_nm_new = dblk::shrink_names_saving_order(*shared_nm_tmp, *shared_nm, stats);
+      dblk::destroy_db_names(shared_nm);
+      dblk::destroy_db_names(shared_nm_tmp);
+      shared_nm = shared_nm_new;
+    }
+    else
+    {
+      stats.added = dblk::db_names_count(shared_nm) - shared_nm_nm;
+    }
+    shared_nm_tmp = nullptr;
+
+    // if no name or string added we shall not resave identical namemap
+    if (stats.added || stats.removed)
+    {
+      printf("namemap changed - added %d, removed=%d, placeholders=%d\n", stats.added, stats.removed, stats.placeholders);
       FullFileSaveCB cwr(shared_namemap_fn);
       dblk::write_names(cwr, *shared_nm, nullptr);
       shared_nm_sz_inc = cwr.tell() - shared_nm_sz;
@@ -704,6 +775,53 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     }
   }
 #undef READ_PROP
+
+  // Pre-serialize + zstd-compress every preloaded BLK in parallel. The main
+  // write loop below stays fully sequential (offsets, SHA1 dedup, alignment
+  // are order-sensitive) but the expensive saveBinDumpWithSharedNamemap call
+  // is lifted out and run concurrently. Each job writes into its own
+  // MemorySaveCB, reads the shared DBNameMap and ZSTD_CDict (both effectively
+  // read-only), so there is no cross-job shared mutable state.
+  //
+  // Only the "fast path" (shared_nm && !sign_plain_data && !export_data_for_dict_dir)
+  // is lifted; the sign and export-dict branches share mutable scratch streams
+  // in the write loop and stay serial.
+  Tab<MemorySaveCB *> preSerializedBin(tmpmem);
+  const bool preSerializeFastPath = shared_nm && !sign_plain_data && !export_data_for_dict_dir;
+  if (preSerializeFastPath)
+  {
+    if (threadpool::get_num_workers() == 0)
+    {
+      cpujobs::init(-1, false);
+      const int hw = eastl::max(1, cpujobs::get_core_count());
+      const int cap = (int)threadpool::MAX_WORKER_COUNT;
+      threadpool::init(eastl::min(hw, cap), 1024, 128 << 10);
+      cpujobs::term(false);
+    }
+    preSerializedBin.resize(files.nameCount(), nullptr);
+    struct SerCtx
+    {
+      const SmallTab<int> &sorted_fnlist_ids;
+      const Tab<DataBlock *> &preloaded_blk;
+      Tab<MemorySaveCB *> &preSerializedBin;
+      const DBNameMap *shared_nm;
+      const ZSTD_CDict_s *zstd_cdict;
+    } serCtx{sorted_fnlist_ids, preloaded_blk, preSerializedBin, shared_nm, zstd_cdict};
+    threadpool::parallel_for(0, (uint32_t)sorted_fnlist_ids.size(),
+      eastl::max<uint32_t>(1, (uint32_t)sorted_fnlist_ids.size() / (eastl::max(1, (int)threadpool::get_num_workers()) * 4)),
+      [&serCtx](uint32_t tbegin, uint32_t tend, uint32_t /*tid*/) {
+        for (uint32_t it = tbegin; it < tend; ++it)
+        {
+          const int id = serCtx.sorted_fnlist_ids[it];
+          DataBlock *blk = serCtx.preloaded_blk[id];
+          if (!blk)
+            continue;
+          MemorySaveCB *mcwr = new MemorySaveCB(32 << 10);
+          blk->saveBinDumpWithSharedNamemap(*mcwr, serCtx.shared_nm, /*pack*/ true, serCtx.zstd_cdict);
+          serCtx.preSerializedBin[id] = mcwr;
+        }
+      });
+  }
 
   cwr.align16();
   data_ofs.resize(files.nameCount());
@@ -763,6 +881,14 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
           dblk::pack_shared_nm_dump_to_stream(*file_data_cwr, mcrd, sz, zstd_cdict);
           mcrd.seekto(0);
           copy_stream_to_stream(mcrd, plain_cwr, sz);
+        }
+        else if (MemorySaveCB *pre = (id < (int)preSerializedBin.size()) ? preSerializedBin[id] : nullptr)
+        {
+          // Replay the pre-serialized + pre-compressed bytes. file_data_cwr may
+          // be a SHA1-wrapping stream; copyDataTo writes the same byte stream
+          // that the inline saveBinDumpWithSharedNamemap would have produced,
+          // so both the raw output and the hash are byte-identical to serial.
+          pre->copyDataTo(*file_data_cwr);
         }
         else
         {
@@ -906,6 +1032,9 @@ bool buildVromfsDump(const char *fname, unsigned targetCode, FastNameMapEx &file
     cwr.align16();
     mi++;
   }
+  for (MemorySaveCB *p : preSerializedBin)
+    delete p;
+  preSerializedBin.clear();
   clear_all_ptr_items(preloaded_blk);
   if (shared_nm)
     dblk::destroy_db_names(shared_nm);
@@ -1499,6 +1628,61 @@ bool repackVromfs(const char *fname, const char *dest_fname, bool store_packed, 
   return true;
 }
 
+static DBNameMap *load_namemap(const char *fileName, int &nm_sz)
+{
+  DBNameMap *nm = dblk::create_db_names();
+  FullFileLoadCB crd(fileName);
+  if (!crd.fileHandle)
+  {
+    dblk::destroy_db_names(nm);
+    printf("ERR: shared namemap file <%s> not found\n", fileName);
+    return nullptr;
+  }
+
+  nm_sz = crd.getTargetDataSize();
+  dblk::read_names(crd, *nm, nullptr);
+  return nm;
+}
+
+bool shrink_namemap(const char *srcMapFileName, const char *cleanFileName, const char *targetFile)
+{
+  int shared_nm_sz = 0;
+  DBNameMap *shared_nm = load_namemap(srcMapFileName, shared_nm_sz);
+  if (!shared_nm)
+    return false;
+
+  int clean_nm_sz = 0;
+  DBNameMap *clean_nm = load_namemap(cleanFileName, clean_nm_sz);
+  if (!clean_nm)
+  {
+    dblk::destroy_db_names(shared_nm);
+    return false;
+  }
+
+  dblk::ShrinkStats stats;
+  DBNameMap *shared_nm_new = dblk::shrink_names_saving_order(*clean_nm, *shared_nm, stats);
+  G_ASSERT(shared_nm_new);
+
+  if (stats.added || stats.removed)
+  {
+    FullFileSaveCB cwr(targetFile);
+    dblk::write_names(cwr, *shared_nm_new, nullptr);
+    const int shared_nm_sz_inc = cwr.tell() - shared_nm_sz;
+    printf("namemap changed - added %d, removed=%d, placeholders=%d\n", stats.added, stats.removed, stats.placeholders);
+    printf("size changed from %dK to %dK, diff %dB", shared_nm_sz >> 10, cwr.tell() >> 10, shared_nm_sz_inc);
+  }
+  else
+  {
+    printf("nothing changed\n");
+  }
+
+  dblk::destroy_db_names(shared_nm_new);
+  dblk::destroy_db_names(shared_nm);
+  dblk::destroy_db_names(clean_nm);
+
+  return true;
+}
+
 static void print_usage()
 {
   printf(
@@ -1512,6 +1696,7 @@ static void print_usage()
     "usage(index):  vromfsPacker-dev.exe -dumpver <data.vromfs.bin>\n"
     "usage(index):  vromfsPacker-dev.exe -dump <data.vromfs.bin>\n"
     "usage(index):  vromfsPacker-dev.exe -mkdict <dest_dict.bin> <dict_sz_KB> <data_for_dict.bin>...\n"
+    "usage(index):  vromfsPacker-dev.exe -shrink_namemap <src_namemap> <clean_namemap> <target>\n"
     "\noptions are:\n"
     "  -D:<def>          define macro for preprocessing\n"
     "  -out:<fname>      set output file\n"
@@ -1524,6 +1709,7 @@ static void print_usage()
     "  -forceLegacyFormat                use legacy VROMFS format even when -writeVersion is specified\n"
     "  -exportDataForDict:<dest_dir>     export data for compr. dict. instead of building vromfs\n"
     "  -blkSharedNamemapLocation:<dir>   override blkSharedNamemapLocation:t option of build.blk\n"
+    "  -shrinkBlkSharedNamemap           remove unused strings, but saving order of other strings\n"
     "  -makeDict:<dest_file>:<data_dir>  build compr. dict. from data files instead of building vromfs\n"
     "additional options for -B case:\n"
     "  -dest_path:<path>       set dest root path for files in vrom (-dest_path:* uses name of src_folder)\n"
@@ -1716,6 +1902,17 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
   else if (dd_stricmp(argv[1], "-dump") == 0)
   {
     if (argc < 3 || !unpackVromfs(argv[2], nullptr, false, 0, 0, false))
+      return 13;
+  }
+  else if (dd_stricmp(argv[1], "-shrink_namemap") == 0)
+  {
+    if (argc < 5)
+    {
+      printf("usage(index):  vromfsPacker-dev.exe -shrink_namemap <src_namemap> <clean_namemap> <target>\n");
+      return 13;
+    }
+
+    if (!shrink_namemap(argv[2], argv[3], argv[4]))
       return 13;
   }
   else if (dd_stricmp(argv[1], "-mkdict") == 0)
@@ -1969,6 +2166,8 @@ int buildVromfs(DataBlock *explicit_build_rules, dag::ConstSpan<const char *> ar
         ; // skip
       else if (strnicmp("-blkSharedNamemapLocation:", argv[i], 26) == 0)
         inp.setStr("blkSharedNamemapLocation", argv[i] + 26);
+      else if (stricmp("-shrinkBlkSharedNamemap", argv[i]) == 0)
+        inp.setBool("shrinkBlkSharedNamemap", true);
       else if (strnicmp("-addpath:", argv[i], 9) == 0)
         ; // skip
       else if (strnicmp("-config:", argv[i], 8) == 0)

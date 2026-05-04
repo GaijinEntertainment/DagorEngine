@@ -128,6 +128,8 @@ class Timeline
       return impl;
     }
 
+    TimelineHistoryState getState() const { return state; }
+
     void shutdown()
     {
       impl.shutdown();
@@ -334,6 +336,13 @@ public:
   {
     for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
       cb(i, history[i].getImpl());
+  }
+
+  template <typename T>
+  void enumerateWithState(T cb) const
+  {
+    for (TimelineHistoryIndex i = 0; i < HistoryLength; ++i)
+      cb(i, history[i].getState(), history[i].getImpl());
   }
 
 #if DAGOR_DBGLEVEL > 0

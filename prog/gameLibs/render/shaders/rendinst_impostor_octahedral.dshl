@@ -23,8 +23,6 @@ shader rendinst_impostor_octahedral
       rendinst_render_pass == rendinst_render_pass_depth  ||
       rendinst_render_pass == rendinst_render_pass_impostor_shadow) { dont_render; }
 
-  if (mobile_render != off) { dont_render; }
-
   RENDINST_BLOCK()
 
   channel float3 pos = pos;
@@ -208,7 +206,7 @@ shader rendinst_impostor_octahedral
       float3 up = cross(forward, side);
 
       { // upper hemisphere only
-        inpos.xy = get_vertex_offset_hemisphere(inpos.xy, forward, worldLocalY*invScale, impostor_scale.xy, impostor_scale.xy).xy;
+        inpos.xy = get_vertex_offset_hemisphere(IMPOSTOR_DATA_OFFSET, inpos.xy, forward, worldLocalY*invScale, impostor_scale.xy, impostor_scale.xy).xy;
       }
 
       inpos = output.scale_worldX.x * inpos;
@@ -506,7 +504,7 @@ shader rendinst_impostor_octahedral
 
 
           float ao = (weights.x * ao_1 + weights.y * ao_2 + weights.z * ao_3) * invWeightSum;
-          float smoothness = as.x;
+          float smoothness = as.w;
 
           float depth = dot(weights, float3(texcoord_depth_1.z, texcoord_depth_2.z, texcoord_depth_3.z)) * invWeightSum;
 

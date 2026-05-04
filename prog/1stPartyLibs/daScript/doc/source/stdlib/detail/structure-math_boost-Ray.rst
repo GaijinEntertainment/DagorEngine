@@ -1,1 +1,0 @@
-ray (direction and origin)

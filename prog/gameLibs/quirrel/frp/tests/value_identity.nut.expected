@@ -1,0 +1,7 @@
+same value sub count: 0
+changed back sub count: 1
+same computed sub count: 0
+diff computed sub count: 1
+clamped: 7
+clamped at max: 10
+above max sub count: 0

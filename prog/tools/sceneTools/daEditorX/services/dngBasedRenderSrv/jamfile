@@ -10,6 +10,7 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
 
@@ -22,6 +23,8 @@ SourceES =
 ;
 
 for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+if [ GLOB $(Root)/prog/daNetGameLibs/dm : damageEvents.h ] { opt on dngBasedRender.cpp = -DHAVE_DNGLIB_DM ; }
 
 include $(Root)/prog/_jBuild/build.jam ;
 

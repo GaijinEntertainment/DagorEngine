@@ -104,12 +104,12 @@ void scene::SimpleScene::setPoolBBox(pool_index pool, bbox3f_cref box, bool upda
     for (auto node : *this)
     {
       uint32_t index = getNodeIndex(node);
-      if (getIndexPool(node) == pool)
+      if (getIndexPool(index) == pool)
       {
         mat44f &m = nodes[index];
         m.col1 = v_perm_xyzd(m.col1, sphVerticalCenter);
         vec4f rad = v_mul(maxRad, v_splat_x(v_sqrt_x(v_get_max_scale_sq(m.col0, m.col1, m.col2))));
-        m.col0 = v_perm_xyzd(m.col3, v_mul(v_mul(rad, rad), v_splat_w(poolBox[pool].bmin)));
+        m.col0 = v_perm_xyzd(m.col0, v_mul(v_mul(rad, rad), v_splat_w(poolBox[pool].bmin)));
         m.col3 = v_perm_xyzd(m.col3, rad);
       }
     }
@@ -216,7 +216,7 @@ bool scene::SimpleScene::checkConsistency() const
     bool is_free = (i < firstAlive || eastl::find(freeIndices.begin(), freeIndices.end(), i) != freeIndices.end());
     if (isInvalidIndex(i) != is_free)
     {
-      logerr("broken node %d ivalid= %d, isFree", i, isInvalidIndex(i), is_free);
+      logerr("broken node %d invalid= %d, isFree= %d", i, isInvalidIndex(i), is_free);
       return false;
     }
   }

@@ -7,6 +7,7 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <perfMon/dag_statDrv.h>
 #include <gameRes/dag_collisionResource.h>
 #include <rendInst/riexHandle.h>
@@ -56,13 +57,16 @@ uint32_t LRURendinstCollision::getMaxBatchSize() const { return MAX_VOXELIZATION
 static constexpr uint32_t compute_vb_flags = (can_voxelize_in_compute ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0);
 static int ssgi_scene_common_color_reg_no_const = 6, ssgi_scene_common_alpha_reg_no_const = 5;
 
-bool LRURendinstCollision::useSRVBuffers = false;
+static uint32_t get_additional_buffer_flags()
+{
+  return d3d::get_driver_desc().caps.hasRayQuery ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0;
+}
 
 LRURendinstCollision::LRURendinstCollision() :
-  vbAllocator(SbufferHeapManager("vb_collision_", 4,
-    compute_vb_flags | SBCF_BIND_VERTEX | (useSRVBuffers ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0))),
-  ibAllocator(SbufferHeapManager("ib_collision_", 4,
-    compute_vb_flags | SBCF_BIND_INDEX | (useSRVBuffers ? SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW : 0)))
+  vbAllocator(SbufferHeapManager("vb_collision_", 4, compute_vb_flags | SBCF_BIND_VERTEX | get_additional_buffer_flags()),
+    RESTAG_COLLISION),
+  ibAllocator(SbufferHeapManager("ib_collision_", 4, compute_vb_flags | SBCF_BIND_INDEX | get_additional_buffer_flags()),
+    RESTAG_COLLISION)
 {
   create_cubic_indices(make_span((uint8_t *)boxIndices.data(), COLLISION_BOX_INDICES_NUM * sizeof(uint16_t)), 1, false);
   ShaderGlobal::get_int_by_name("ssgi_scene_common_color_reg_no", ssgi_scene_common_color_reg_no_const);
@@ -70,7 +74,7 @@ LRURendinstCollision::LRURendinstCollision() :
   supportNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
   instanceTms = dag::create_sbuffer(sizeof(Point4), getMaxBatchSize() * 3,
     (supportNoOverwrite ? (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE) : 0) | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, 0,
-    "collision_voxelization_tm");
+    "collision_voxelization_tm", RESTAG_COLLISION);
   // if we don't support nooverwrite do not use SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE
   voxelizeCollisionMat.reset(new_shader_material_by_name_optional("voxelize_collision"));
   if (voxelizeCollisionMat)
@@ -93,7 +97,7 @@ LRURendinstCollision::LRURendinstCollision() :
 
     multiDrawBuf = dag::create_sbuffer(INDIRECT_BUFFER_ELEMENT_SIZE,
       getMaxBatchSize() * DRAW_INDEXED_INDIRECT_NUM_ARGS / INDIRECT_BUFFER_ELEMENT_SIZE, SBCF_INDIRECT, 0,
-      "collision_voxelization_indirect");
+      "collision_voxelization_indirect", RESTAG_COLLISION);
     debug("%s support multi draw indirect", __FUNCTION__);
   }
 }
@@ -132,10 +136,11 @@ LRURendinstCollision::RiDataInfo LRURendinstCollision::getRiData(uint32_t type)
           riInfo[i].ibSize += COLLISION_BOX_INDICES_NUM * sizeof(uint16_t);
           riInfo[i].vbSize += COLLISION_BOX_VERTICES_NUM * sizeof(CollisionVertex);
         }
-        else if (node->indices.size() > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
+        else if (
+          collRes->getNodeFaceCount(ni) > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
         {
-          riInfo[i].ibSize += data_size(node->indices);
-          riInfo[i].vbSize += node->vertices.size() * sizeof(CollisionVertex);
+          riInfo[i].ibSize += collRes->getNodeFaceCount(ni) * 3 * sizeof(uint16_t);
+          riInfo[i].vbSize += collRes->getNodeVertCount(ni) * sizeof(CollisionVertex);
         }
       }
       riInfo[i].ibSize = (riInfo[i].ibSize + 3) & ~3; // align size to 4
@@ -354,8 +359,9 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
         nodeIbSize = COLLISION_BOX_INDICES_NUM * sizeof(uint16_t);
         nodeVbSize = COLLISION_BOX_VERTICES_NUM * sizeof(CollisionVertex);
         Point3_vec4 boxVertices[COLLISION_BOX_VERTICES_NUM];
+        BBox3 nodeBBox = collRes->getNodeBBox(node->nodeIndex);
         for (int vertNo = 0; vertNo < COLLISION_BOX_VERTICES_NUM; ++vertNo)
-          boxVertices[vertNo] = node->modelBBox.point(vertNo ^ 1); // xor 1 to invert culling
+          boxVertices[vertNo] = nodeBBox.point(vertNo ^ 1); // xor 1 to invert culling
 
         const vec4f *__restrict verts = (const vec4f *)boxVertices;
         CollisionVertex *__restrict vertsDest = (CollisionVertex *)vertices;
@@ -372,35 +378,32 @@ bool LRURendinstCollision::updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri)
             *ind = boxIndices[ii] + firstVertex;
         }
       }
-      else if (node->indices.size() > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
+      else if (
+        collRes->getNodeFaceCount(ni) > 0 && (node->type == COLLISION_NODE_TYPE_MESH || node->type == COLLISION_NODE_TYPE_CONVEX))
       {
-        nodeIbSize = data_size(node->indices);
-        nodeVbSize = node->vertices.size() * sizeof(CollisionVertex);
-        G_ASSERT_CONTINUE(elem_size(node->vertices) == sizeof(vec4f));
+        int vertCount = collRes->getNodeVertCount(ni);
+        int faceCount = collRes->getNodeFaceCount(ni);
+        nodeIbSize = faceCount * 3 * sizeof(uint16_t);
+        nodeVbSize = vertCount * sizeof(CollisionVertex);
         CollisionVertex *__restrict vertsDest = (CollisionVertex *)vertices;
-        const vec4f *__restrict verts = (const vec4f *)node->vertices.data();
         if ((node->flags & (node->IDENT | node->TRANSLATE)) == node->IDENT)
         {
-          for (const vec4f *__restrict ve = verts + node->vertices.size(); verts != ve; ++verts, ++vertsDest)
-            v_float_to_half(&vertsDest->x, *verts);
+          collRes->iterateNodeVerts(ni, [&](int, vec4f v) { v_float_to_half(&(vertsDest++)->x, v); });
         }
         else
         {
           mat44f nodeTm;
-          v_mat44_make_from_43cu_unsafe(nodeTm, node->tm[0]);
-          for (const vec4f *__restrict ve = verts + node->vertices.size(); verts != ve; ++verts, ++vertsDest)
-            v_float_to_half(&vertsDest->x, v_mat44_mul_vec3p(nodeTm, *verts));
+          v_mat44_make_from_43cu_unsafe(nodeTm, collRes->getNodeTm(node->nodeIndex)[0]);
+          collRes->iterateNodeVerts(ni, [&](int, vec4f v) { v_float_to_half(&(vertsDest++)->x, v_mat44_mul_vec3p(nodeTm, v)); });
         }
         G_FAST_ASSERT((uint8_t *)vertsDest <= verticesRes.end());
 
-        if (!firstVertex)
-          memcpy(indices, node->indices.data(), nodeIbSize);
-        else
-        {
-          uint16_t *ind = (uint16_t *)indices;
-          for (int ii = 0; ii < node->indices.size(); ++ii, ++ind)
-            *ind = node->indices[ii] + firstVertex;
-        }
+        uint16_t *ind = (uint16_t *)indices;
+        collRes->iterateNodeFaces(ni, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+          *ind++ = i0 + firstVertex;
+          *ind++ = i1 + firstVertex;
+          *ind++ = i2 + firstVertex;
+        });
       }
       else
         continue;
@@ -636,7 +639,7 @@ void LRURendinstCollision::drawInstances(uint32_t start_instance, const uint32_t
 }
 
 void LRURendinstCollision::dispatchInstances(const uint32_t start_instance, const uint32_t *types_counts, uint32_t batches,
-  VolTexture *color, VolTexture *alpha, uint32_t threads)
+  VolTexture *color, VolTexture *alpha, uint32_t threads_in_group)
 {
   // uint32_t triCount = 0;
   uint32_t offset = start_instance;
@@ -650,16 +653,29 @@ void LRURendinstCollision::dispatchInstances(const uint32_t start_instance, cons
     auto vbInfo = vbAllocator.get(lruEntry.vb), ibInfo = ibAllocator.get(lruEntry.ib);
     G_ASSERT(vbInfo.size && ibInfo.size);
     const uint32_t tris = (ibInfo.size / (3 * sizeof(uint16_t)));
-    const uint32_t renderInfo[4] = {uint32_t(ibInfo.offset / sizeof(uint16_t)), uint32_t(vbInfo.offset / sizeof(CollisionVertex)),
-      uint32_t(tris | (count << 20)), offset};
-    d3d::set_immediate_const(STAGE_CS, renderInfo, 4);
-    // draw n triangles. We need clusters or multidispatch indirect, too much calls otherwise!
-    d3d::dispatch((count * tris + threads - 1) / threads, 1, 1);
+    // 64K is the smallest guaranteed dispatch size on all platforms
+    // TODO: use some kind of d3d-provided constant instead?
+    constexpr uint32_t SUB_BATCH_SIZE = 65535U;
+    G_ASSERT(tris <= SUB_BATCH_SIZE * threads_in_group); // otherwise we can't dispatch even single sub-batch
+    const uint32_t instancesPerSubBatch = SUB_BATCH_SIZE * threads_in_group / tris;
+    for (uint32_t instanceOffset = 0; instanceOffset < count; instanceOffset += instancesPerSubBatch)
+    {
+      const uint32_t actualInstances = min(count - instanceOffset, SUB_BATCH_SIZE * threads_in_group / tris);
+      const uint32_t renderInfo[4] = {
+        uint32_t(ibInfo.offset / sizeof(uint16_t)),
+        uint32_t(vbInfo.offset / sizeof(CollisionVertex)),
+        uint32_t(tris | (actualInstances << 20)),
+        offset + instanceOffset,
+      };
+      d3d::set_immediate_const(STAGE_CS, renderInfo, 4);
+      // draw n triangles. We need clusters or multidispatch indirect, too much calls otherwise!
+      d3d::dispatch((actualInstances * tris + threads_in_group - 1) / threads_in_group, 1, 1);
+      if (color)
+        d3d::resource_barrier({color, RB_NONE, 0, 0});
+      if (alpha)
+        d3d::resource_barrier({alpha, RB_NONE, 0, 0});
+    }
     // triCount+=count*tris;
-    if (color)
-      d3d::resource_barrier({color, RB_NONE, 0, 0});
-    if (alpha)
-      d3d::resource_barrier({alpha, RB_NONE, 0, 0});
   }
   d3d::set_immediate_const(STAGE_CS, nullptr, 0);
   // debug("triCount = %d instances = %d", triCount, offset);
@@ -670,6 +686,8 @@ void LRURendinstCollision::dispatchInstances(const uint32_t start_instance, cons
 void LRURendinstCollision::dispatchInstances(dag::ConstSpan<rendinst::riex_handle_t> handles, VolTexture *color, VolTexture *alpha,
   ComputeShaderElement &cs) // expect sorted
 {
+  if (!ibAllocator.getHeap().getBuf() || !vbAllocator.getHeap().getBuf())
+    return;
   G_ASSERT(ibAllocator.getHeap().getBuf()->getFlags() & SBCF_BIND_SHADER_RES);
   TIME_D3D_PROFILE(LRU_dispatch_instances);
   if (alpha)

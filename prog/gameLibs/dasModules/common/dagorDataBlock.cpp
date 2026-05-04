@@ -12,7 +12,7 @@
 DAS_BASE_BIND_ENUM_98(::DataBlock::ParamType, DataBlockParamType, TYPE_NONE, TYPE_STRING, TYPE_INT, TYPE_REAL, TYPE_POINT2,
   TYPE_POINT3, TYPE_POINT4, TYPE_IPOINT2, TYPE_IPOINT3, TYPE_BOOL, TYPE_E3DCOLOR, TYPE_MATRIX, TYPE_INT64, TYPE_IPOINT4)
 
-DAS_BASE_BIND_ENUM(dblk::ReadFlag, DataBlockReadFlag, ROBUST, BINARY_ONLY, RESTORE_FLAGS, ALLOW_SS, ROBUST_IN_REL)
+DAS_BASE_BIND_ENUM_IMPL(dblk::ReadFlag, DataBlockReadFlag, ROBUST, BINARY_ONLY, RESTORE_FLAGS, ALLOW_SS, ROBUST_IN_REL)
 
 static bool dblk_load(DataBlock &b, const char *fn, dblk::ReadFlag flg) { return dblk::load(b, fn, flg); }
 
@@ -30,13 +30,21 @@ struct DataBlockAnnotation : das::ManagedStructureAnnotation<DataBlock, true, tr
 #if DAGOR_DBGLEVEL > 0
   virtual void walk(das::DataWalker &walker, void *obj) override
   {
-    DataBlock *blk = (DataBlock *)obj;
+    if (walker.collecting)
+    {
+      das::ManagedStructureAnnotation<DataBlock, true, true>::walk(walker, obj);
+      return;
+    }
+    if (!walker.reading)
+    {
+      DataBlock *blk = (DataBlock *)obj;
 
-    DynamicMemGeneralSaveCB cwr(framemem_ptr(), 0, 2 << 10);
-    blk->saveToTextStream(cwr);
-    cwr.writeInt(0);
-    unsigned char *data = cwr.data();
-    walker.String(*(char **)&data);
+      DynamicMemGeneralSaveCB cwr(framemem_ptr(), 0, 2 << 10);
+      blk->saveToTextStream(cwr);
+      cwr.writeInt(0);
+      unsigned char *data = cwr.data();
+      walker.String(*(char **)&data);
+    }
   }
 #endif
 };
@@ -268,6 +276,13 @@ public:
       das::SideEffects::modifyArgument, "bind_dascript::read_interpolate_tab_as_params");
     das::addExtern<DAS_BIND_FUN(bind_dascript::read_interpolate_tab_float_p2)>(*this, lib, "read_interpolate_tab_float_p2",
       das::SideEffects::modifyArgument, "bind_dascript::read_interpolate_tab_float_p2");
+
+    das::addExtern<DAS_BIND_FUN(bind_dascript::read_interpolate_tab_mem_ptr_as_params)>(*this, lib,
+      "read_interpolate_tab_mem_ptr_as_params", das::SideEffects::modifyArgument,
+      "bind_dascript::read_interpolate_tab_mem_ptr_as_params");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::read_interpolate_tab_mem_ptr_float_p2)>(*this, lib,
+      "read_interpolate_tab_mem_ptr_float_p2", das::SideEffects::modifyArgument,
+      "bind_dascript::read_interpolate_tab_mem_ptr_float_p2");
 
     compileBuiltinModule("dagorDataBlock.das", (unsigned char *)dagorDataBlock_das, sizeof(dagorDataBlock_das));
 

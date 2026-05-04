@@ -8,12 +8,12 @@
 #include <math/dag_interpolator.h>
 #include <debug/dag_debug.h>
 
-template <class Value, class ReadFunc>
-bool read_interpolate_tab_as_blocks(InterpolateTab<Value> &tab, const DataBlock &blk, ReadFunc read)
+template <class Interpolate, class ReadFunc>
+bool read_interpolate_tab_as_blocks(Interpolate &tab, const DataBlock &blk, ReadFunc read)
 {
   bool done = true;
   float x = 0;
-  Value y = ZERO<Value>();
+  typename Interpolate::Value y = ZERO<typename Interpolate::Value>();
   for (int i = 0; i < blk.blockCount(); ++i)
   {
     const DataBlock *rowBlk = blk.getBlock(i);
@@ -29,12 +29,12 @@ bool read_interpolate_tab_as_blocks(InterpolateTab<Value> &tab, const DataBlock 
   return done;
 }
 
-template <class Value, class ReadFunc>
-bool read_interpolate_tab_as_params(InterpolateTab<Value> &tab, const DataBlock &blk, ReadFunc read)
+template <class Interpolate, class ReadFunc>
+bool read_interpolate_tab_as_params(Interpolate &tab, const DataBlock &blk, ReadFunc read)
 {
   bool done = true;
   float x = 0;
-  Value y = ZERO<Value>();
+  typename Interpolate::Value y = ZERO<typename Interpolate::Value>();
   for (int i = 0; i < blk.paramCount(); ++i)
   {
     if (!read(blk, i, x, y))
@@ -49,9 +49,8 @@ bool read_interpolate_tab_as_params(InterpolateTab<Value> &tab, const DataBlock 
   return done;
 }
 
-template <class Value, class ReadXFunc, class ReadYZFunc>
-bool read_interpolate_2d_tab(Interpolate2DTab<Value> &tab, const DataBlock &blk, ReadXFunc read_x, ReadYZFunc read_yz,
-  const char *x_param_name)
+template <class Interpolate2D, class ReadXFunc, class ReadYZFunc>
+bool read_interpolate_2d_tab(Interpolate2D &tab, const DataBlock &blk, ReadXFunc read_x, ReadYZFunc read_yz, const char *x_param_name)
 {
   int xParamNameId = blk.getNameId(x_param_name);
 
@@ -70,7 +69,7 @@ bool read_interpolate_2d_tab(Interpolate2DTab<Value> &tab, const DataBlock &blk,
     if (!read_x(yzBlk, xParamNameId, x))
       continue;
 
-    InterpolateTab<Value> *y = tab.add(x, InterpolateTab<Value>());
+    typename Interpolate2D::Interpolator1DL2 *y = tab.add(x, typename Interpolate2D::Interpolator1DL2());
     if (!y)
     {
       done = false;
@@ -88,8 +87,8 @@ bool read_interpolate_2d_tab(Interpolate2DTab<Value> &tab, const DataBlock &blk,
   return done;
 }
 
-template <class Value, class ReadXFunc, class ReadYZFunc>
-bool read_interpolate_2d_tab_p2(Interpolate2DTab<Value> &tab, const DataBlock &blk, ReadXFunc read_x, ReadYZFunc read_yz,
+template <class Interpolate2D, class ReadXFunc, class ReadYZFunc>
+bool read_interpolate_2d_tab_p2(Interpolate2D &tab, const DataBlock &blk, ReadXFunc read_x, ReadYZFunc read_yz,
   const char *x_param_name)
 {
   int xParamNameId = blk.getNameId(x_param_name);
@@ -109,21 +108,20 @@ bool read_interpolate_2d_tab_p2(Interpolate2DTab<Value> &tab, const DataBlock &b
     if (!read_x(*yzBlk, xParamNameId, x))
       continue;
 
-    InterpolateTab<Value> *y = tab.add(x);
+    typename Interpolate2D::Interpolator1DL2 *y = tab.add(x);
     if (!y)
     {
       done = false;
       debug("Interpolate tab '%s', value 'x' in row %d less than in previous row", blk.getBlockName(), i);
       continue;
     }
-
     for (int j = 0; j < yzBlk->paramCount(); ++j)
     {
       if (yzBlk->getParamNameId(j) == xParamNameId)
         continue;
 
       float yx = 0;
-      Value yz = ZERO<Value>();
+      typename Interpolate2D::Value yz = ZERO<typename Interpolate2D::Value>();
       read_yz(blk, j, yx, yz);
 
       if (!y->add(yx, yz))
@@ -137,17 +135,17 @@ bool read_interpolate_2d_tab_p2(Interpolate2DTab<Value> &tab, const DataBlock &b
   return done;
 }
 
-template <class Value, class ReadFunc>
-bool read_interpolate_2d_tab_p3(Interpolate2DTab<Value> &tab, const DataBlock &blk, ReadFunc read)
+template <class Interpolate2D, class ReadFunc>
+bool read_interpolate_2d_tab_p3(Interpolate2D &tab, const DataBlock &blk, ReadFunc read)
 {
   bool done = true;
   float x = 0;
-  InterpolateTab<Value> *y = nullptr;
+  typename Interpolate2D::Interpolator1DL2 *y = nullptr;
   for (int i = 0; i < blk.paramCount(); ++i)
   {
     float curX = 0;
     float curY = 0;
-    Value curZ = ZERO<Value>();
+    typename Interpolate2D::Value curZ = ZERO<typename Interpolate2D::Value>();
     if (!read(blk, i, curX, curY, curZ))
       continue;
 

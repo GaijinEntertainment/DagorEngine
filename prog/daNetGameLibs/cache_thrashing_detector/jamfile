@@ -1,0 +1,20 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = cache_thrashing_detector ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes && $(Config) != rel {
+  AllSrcFolder_ES += render ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

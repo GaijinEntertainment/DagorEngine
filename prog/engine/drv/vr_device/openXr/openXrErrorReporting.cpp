@@ -1,10 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "openXrErrorReporting.h"
-#include "debug/dag_log.h"
-#include "osApiWrappers/dag_messageBox.h"
-#include "util/dag_localization.h"
+
+#include <debug/dag_log.h>
+#include <osApiWrappers/dag_messageBox.h>
+#include <startup/dag_globalSettings.h>
+#include <util/dag_localization.h>
+#include <util/dag_watchdog.h>
+
 #include <EASTL/string.h>
+
 
 static bool report_xr_result_base(XrInstance oxr_instance, XrResult result, const char *call, const char *module,
   bool *is_runtime_failure)
@@ -83,27 +88,34 @@ bool runtime_check(XrResult result, const char *function, const char *module)
 
   report_xr_result(0, result, function, module, nullptr);
 
+  if (::dgs_execute_quiet)
+    return false;
+
+#if _TARGET_STATIC_LIB // No os_message_box in daKernel.
+  ScopeSetWatchdogTimeout wd(WATCHDOG_DISABLE);
+
   switch (result)
   {
     case XR_ERROR_RUNTIME_FAILURE:
       ::os_message_box(::get_localized_text("xr/runtime_failure", "The OpenXR runtime has failed to initialize properly."
                                                                   "\nThe game will launch on flatscreen now."),
-        ::get_localized_text("msgbox/error_header"));
+        ::get_localized_text("msgbox/error_header"), GUI_MB_ICON_WARNING | GUI_MB_FOREGROUND);
       break;
     case XR_ERROR_LIMIT_REACHED:
       ::os_message_box(::get_localized_text("xr/runtime_limit", "The OpenXR runtime can't start a new VR application. "
                                                                 "Please close other VR applications before trying again."
                                                                 "\nThe game will launch on flatscreen now."),
-        ::get_localized_text("msgbox/error_header"));
+        ::get_localized_text("msgbox/error_header"), GUI_MB_ICON_WARNING | GUI_MB_FOREGROUND);
       break;
     case XR_ERROR_RUNTIME_UNAVAILABLE:
       ::os_message_box(::get_localized_text("xr/runtime_unavailable", "No OpenXR runtime is detected. "
                                                                       "Please make sure that your system has a working OpenXR runtime."
                                                                       "\nThe game will launch on flatscreen now."),
-        ::get_localized_text("msgbox/error_header"));
+        ::get_localized_text("msgbox/error_header"), GUI_MB_ICON_WARNING | GUI_MB_FOREGROUND);
       break;
     default: break;
   }
+#endif
 
   return false;
 }

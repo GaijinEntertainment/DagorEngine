@@ -12,15 +12,8 @@ namespace bind_dascript
 {
 void ECS::addObjectWrite(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                                   \
-  das::addExtern<DAS_BIND_FUN(setObjectHint##type), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib, "set",                \
-    das::SideEffects::modifyArgument, "bind_dascript::setObjectHint" #type);                                                         \
-  auto setObjectExt##type = das::addExtern<DAS_BIND_FUN(setObject##type), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib, \
-    "set", das::SideEffects::modifyArgument, "bind_dascript::setObject" #type);                                                      \
-  setObjectExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addObjectWriteBase(lib);
+  addObjectWriteList(lib);
 
   das::addUsing<ecs::Object>(*this, lib, " ::ecs::Object");
   das::addExtern<DAS_BIND_FUN(setObjectStrHint), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib, "set",
@@ -56,5 +49,9 @@ void ECS::addObjectWrite(das::ModuleLibrary &lib)
 
   das::addExtern<DAS_BIND_FUN(swapObjects), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib, "swap",
     das::SideEffects::modifyArgument, "bind_dascript::swapObjects");
+
+  using method_setHasHashCollisions = DAS_CALL_MEMBER(ecs::Object::setHasHashCollisions);
+  das::addExtern<DAS_CALL_METHOD(method_setHasHashCollisions), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib,
+    "setHasHashCollisions", das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(ecs::Object::setHasHashCollisions));
 }
 } // namespace bind_dascript

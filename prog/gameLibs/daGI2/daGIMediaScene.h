@@ -8,6 +8,7 @@
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_computeShaders.h>
+#include <render/voxelClip.h>
 
 struct DaGIMediaScene
 {
@@ -21,25 +22,19 @@ struct DaGIMediaScene
   void debugRender();
   void afterReset();
   void resetHistoryAge();
+  void invalidateBox(const BBox3 &box);
+  bool isValid() const;
 
 protected:
   void initHistory();
   void initVars();
-  bool updateClip(uint32_t clip_no, const IPoint3 &lt, float newProbeSize);
+  bool updateClip(uint32_t clip_no, const Point3 &world_pos);
   float get_voxel_size(uint32_t i) const { return (1 << i) * voxelSize0; }
-  IPoint3 getNewClipLT(uint32_t clip, const Point3 &world_pos) const
-  {
-    return ipoint3(floor(Point3::xzy(world_pos) / get_voxel_size(clip) + 0.5)) - IPoint3(clipW, clipW, clipD) / 2;
-  }
-  void setClipVars(int clip_no) const;
+  void setClipVars(int clip_no, float voxel_size) const;
 
   PostFxRenderer dagi_media_scene_debug, dagi_media_scene_trace_debug;
-  struct Clip
-  {
-    IPoint3 lt = {-100000, -100000, 100000};
-    float voxelSize = 0;
-  };
-  dag::Vector<Clip> clipmap;
+
+  dag::Vector<VoxelClip> clipmap;
 
   eastl::unique_ptr<ComputeShaderElement> dagi_media_scene_reset_cs, dagi_media_scene_from_gbuf_cs, dagi_media_toroidal_movement_cs;
   float temporalSpeed = 0.125;

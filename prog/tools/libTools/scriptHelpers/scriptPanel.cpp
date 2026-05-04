@@ -5,6 +5,7 @@
 #include "scriptHelpersPanelUserData.h"
 
 #include <EditorCore/ec_wndPublic.h>
+#include <EditorCore/ec_ObjectEditor.h>
 #include <propPanel/control/container.h>
 #include <propPanel/control/container.h>
 #include <propPanel/commonWindow/treeviewPanel.h>
@@ -16,6 +17,61 @@
 using namespace ScriptHelpers;
 using hdpi::_pxActual;
 
+namespace ScriptHelpers
+{
+class ScriptHelpersPropPanelBar;
+}
+
+class TunedElementUndoRedo : public UndoRedoObject
+{
+public:
+  explicit TunedElementUndoRedo(PropPanel::ContainerPropertyControl &panel, int pid, TunedElement *undo, TunedElement *redo,
+    ScriptHelpers::ScriptHelpersPropPanelBar *panel_bar) :
+    panel(panel), pid(pid), redoElement(redo), undoElement(undo), panelBar(panel_bar)
+  {}
+
+  void restore(bool save_redo_data) override { applayChange(undoElement); }
+  void redo() override { applayChange(redoElement); }
+
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "TunedElementUndoRedo"; }
+
+private:
+  void applayChange(eastl::unique_ptr<TunedElement> &element);
+
+  PropPanel::ContainerPropertyControl &panel;
+  int pid;
+  eastl::unique_ptr<TunedElement> redoElement;
+  eastl::unique_ptr<TunedElement> undoElement;
+  ScriptHelpers::ScriptHelpersPropPanelBar *panelBar;
+};
+
+class TunedArrayUndoRedo : public UndoRedoObject
+{
+public:
+  explicit TunedArrayUndoRedo(PropPanel::ContainerPropertyControl &panel, ScriptHelpers::IPropPanelCB &ppcb, int pid,
+    TunedElement &source, TunedElement *removed_element) :
+    panel(panel), ppcb(ppcb), source(source), pid(pid), removedElement(removed_element)
+  {}
+
+  void restore(bool save_redo_data) override
+  {
+    if (source.undoOperation(pid, panel, removedElement.get()))
+      panel.setPostEvent(pid);
+  }
+  void redo() override { source.onClick(pid, panel, ppcb); }
+  size_t size() override { return sizeof(*this); }
+  void accepted() override {}
+  void get_description(String &s) override { s = "TunedArrayUndoRedo"; }
+
+private:
+  PropPanel::ContainerPropertyControl &panel;
+  ScriptHelpers::IPropPanelCB &ppcb;
+  TunedElement &source;
+  int pid;
+  eastl::unique_ptr<TunedElement> removedElement;
+};
 
 namespace ScriptHelpers
 {
@@ -113,6 +169,20 @@ public:
       PropPanel::ContainerPropertyControl *_pp = mPanel->getContainer();
       G_ASSERT(_pp && "ScriptHelpersPropPanelBar: There is no container found!");
 
+      if (obj_editor && !isUndoChange)
+      {
+        obj_editor->getUndoSystem()->begin();
+        int pid = START_PID;
+        TunedElement *undoElement = elem->findById(pcb_id, pid);
+        if (undoElement)
+        {
+          TunedElement *redoElement = undoElement->cloneElem();
+          int update_pid = pcb_id - 1;
+          redoElement->getValues(update_pid, *panel);
+          obj_editor->getUndoSystem()->put(new TunedElementUndoRedo(*panel, pcb_id, undoElement, redoElement, this));
+          obj_editor->getUndoSystem()->accept("changeTunedElementParam");
+        }
+      }
       int pid = START_PID;
 
       elem->getValues(pid, *panel);
@@ -125,7 +195,18 @@ public:
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
     shouldRebuild = false;
+    int pid = START_PID;
+    TunedElement *element = selected_elem ? selected_elem : root_element;
 
+    // handle only button clicks and avoid check box changes, it's handle in onChange()
+    if (element->isArrayActionById(pcb_id, pid))
+    {
+      pid = START_PID;
+      TunedElement *removedElement = element->findById(pcb_id, pid);
+      obj_editor->getUndoSystem()->begin();
+      obj_editor->getUndoSystem()->put(new TunedArrayUndoRedo(*panel, *this, pcb_id, *element, removedElement));
+      obj_editor->getUndoSystem()->accept("changeTunedArray");
+    }
     if (selected_elem)
       selected_elem->onClick(pcb_id, *panel, *this);
     else if (root_element)
@@ -172,8 +253,11 @@ public:
       root_element->fillPropPanel(pid, *_pp);
   }
 
+  void setUndoChange(bool is_undo_change) { isUndoChange = is_undo_change; }
+
 protected:
   PropPanel::ContainerPropertyControl *mPanel;
+  bool isUndoChange = false;
 };
 
 
@@ -188,6 +272,14 @@ void set_param_change_cb(ParamChangeCB *cb) { param_change_cb = cb; }
 
 }; // namespace ScriptHelpers
 
+void TunedElementUndoRedo::applayChange(eastl::unique_ptr<TunedElement> &element)
+{
+  panelBar->setUndoChange(true);
+  element.get()->setValue(pid, panel);
+  panelBar->onChange(pid, &panel);
+  panelBar->setUndoChange(false);
+}
+
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
@@ -197,10 +289,14 @@ class ScriptHelpers::ParamsTreeCB : public PropPanel::ITreeViewEventHandler
 public:
   void onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle new_sel) override
   {
-    selected_elem = (TunedElement *)tree.getItemData(new_sel);
+    TunedElement *newElement = (TunedElement *)tree.getItemData(new_sel);
+    bool isSelectedElemChanged = newElement != selected_elem;
+    selected_elem = newElement;
 
     if (prop_bar)
       prop_bar->fillPanel();
+    if (obj_editor && isSelectedElemChanged)
+      obj_editor->getUndoSystem()->clear();
   }
 
   void onTvListSelection(PropPanel::TreeBaseWindow &tree, int index) override {}
@@ -315,3 +411,7 @@ void ScriptHelpers::updateImgui()
   if (propertyPanel)
     propertyPanel->updateImgui();
 }
+
+void ScriptHelpers::save_params_state(DataBlock &blk) { prop_bar->getPanelWindow()->saveState(blk); }
+
+void ScriptHelpers::load_params_state(DataBlock &blk) { prop_bar->getPanelWindow()->loadState(blk); }

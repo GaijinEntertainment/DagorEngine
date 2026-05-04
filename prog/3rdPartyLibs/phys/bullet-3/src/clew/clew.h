@@ -91,7 +91,7 @@ extern "C"
 #define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
 #endif
 
-#if (defined(_WIN32) && defined(_MSC_VER))
+#if (defined(_WIN32) && !(defined(_M_ARM64) && defined(__clang__)) && defined(_MSC_VER))
 
 	/* scalar types  */
 	typedef signed __int8 cl_char;

@@ -224,6 +224,8 @@ void RenderPassResource::fillVkDependencyFromDriver(const RenderPassBind &next_b
     // due to OM/DS tests stages reads
     dep.addSrc(prevDS ? SubpassDep::depthR() : SubpassDep::colorR());
   }
+  else if (prev_bind.action & RP_TA_SUBPASS_VRS_READ)
+    dep.addSrc(SubpassDep::shadingRateR());
 
   if (next_bind.action & RP_TA_SUBPASS_READ)
   {
@@ -236,6 +238,8 @@ void RenderPassResource::fillVkDependencyFromDriver(const RenderPassBind &next_b
     dep.addDst(nextDS ? SubpassDep::depthR() : SubpassDep::colorR());
     dep.addDst(nextDS ? SubpassDep::depthW() : SubpassDep::colorW());
   }
+  else if (next_bind.action & RP_TA_SUBPASS_VRS_READ)
+    dep.addDst(SubpassDep::shadingRateR());
 }
 
 uint32_t RenderPassResource::findSubpassCount(const RenderPassDesc &rp_desc)
@@ -281,7 +285,8 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
     ATT_COLOR,
     ATT_RESOLVE,
     ATT_INPUT,
-    ATT_DS_RESOLVE
+    ATT_DS_RESOLVE,
+    ATT_SHADING_RATE
   };
 
   for (uint32_t i = 0; i < subpasses; ++i)
@@ -322,6 +327,14 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       else if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
       {
         uint8_t type = ((bind.action & RP_TA_SUBPASS_RESOLVE) == RP_TA_SUBPASS_RESOLVE) ? ATT_DS_RESOLVE : ATT_DS;
+        attCache.push_back({type, j});
+        convertedDesc.refs.push_back({});
+      }
+      else if (bind.slot == RenderPassExtraIndexes::RP_SLOT_VRS_TEXTURE)
+      {
+        G_ASSERTF(bind.action & RP_TA_SUBPASS_VRS_READ,
+          "vulkan: RP %s trying to use VRS slot of subpass %u with wrong target action %u", rp_desc.debugName, i, bind.action);
+        uint8_t type = ATT_SHADING_RATE;
         attCache.push_back({type, j});
         convertedDesc.refs.push_back({});
       }
@@ -443,19 +456,38 @@ void RenderPassResource::fillSubpassDescs(const RenderPassDesc &rp_desc, RenderP
       desc.pDepthStencilAttachment = convertedDesc.refs.data(); // any ptr to mark that we have DS attachment
     }
 
+    uint32_t extrasRefIdx = refBaseForSubpass[i] + desc.colorAttachmentCount * (1 + (desc.pResolveAttachments ? 1 : 0)) +
+                            desc.inputAttachmentCount + (desc.pDepthStencilAttachment ? 1 : 0);
+
     convertedDesc.subpass_extensions[i].depthStencilResolveAttachmentIdx = -1;
     for (AttCacheEl iter : attCache)
     {
       if (iter.type != ATT_DS_RESOLVE)
         continue;
       const RenderPassBind &bind = rp_desc.binds[iter.idx];
-      const uint32_t refIdx = refBaseForSubpass[i] + desc.colorAttachmentCount * (1 + (desc.pResolveAttachments ? 1 : 0)) +
-                              desc.inputAttachmentCount + (desc.pDepthStencilAttachment ? 1 : 0);
-      VkAttachmentReference &ref = convertedDesc.refs[refIdx];
+      VkAttachmentReference &ref = convertedDesc.refs[extrasRefIdx];
       ref.attachment = bind.target;
       ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-      convertedDesc.subpass_extensions[i].depthStencilResolveAttachmentIdx = int(refIdx);
+      convertedDesc.subpass_extensions[i].depthStencilResolveAttachmentIdx = int(extrasRefIdx);
+      ++extrasRefIdx;
+      break;
+    }
+
+    convertedDesc.subpass_extensions[i].shadingRateAttachmentIdx = -1;
+    for (AttCacheEl iter : attCache)
+    {
+      if (iter.type != ATT_SHADING_RATE)
+        continue;
+      const RenderPassBind &bind = rp_desc.binds[iter.idx];
+      VkAttachmentReference &ref = convertedDesc.refs[extrasRefIdx];
+      ref.attachment = bind.target;
+#if VK_KHR_fragment_shading_rate
+      ref.layout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+#endif
+
+      convertedDesc.subpass_extensions[i].shadingRateAttachmentIdx = int(extrasRefIdx);
+      ++extrasRefIdx;
       break;
     }
 
@@ -550,7 +582,8 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
       else if (bind.subpass == lastSubpass)
         lastSubpassDS |= isDS;
 
-      if ((bind.subpass > lastSubpassWithAccess) && (bind.action & (RP_TA_SUBPASS_READ | RP_TA_SUBPASS_WRITE | RP_TA_SUBPASS_RESOLVE)))
+      if ((bind.subpass > lastSubpassWithAccess) &&
+          (bind.action & (RP_TA_SUBPASS_READ | RP_TA_SUBPASS_WRITE | RP_TA_SUBPASS_RESOLVE | RP_TA_SUBPASS_VRS_READ)))
       {
         lastSubpassWithAccess = bind.subpass;
         lastSubpassWithAccessAction = bind.action;
@@ -572,12 +605,30 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
         else
           desc.loadOp = desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
+        // use independent load op for stencil if supplied
+        if (isDS)
+        {
+          if (bind.action & RP_TA_LOAD_STENCIL_CLEAR)
+            desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+          else if (bind.action & RP_TA_LOAD_STENCIL_READ)
+            desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          else if (bind.action & RP_TA_LOAD_STENCIL_NO_CARE)
+            desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        }
+        else
+          D3D_CONTRACT_ASSERTF((bind.action & (RP_TA_LOAD_STENCIL_CLEAR | RP_TA_LOAD_STENCIL_READ | RP_TA_LOAD_STENCIL_NO_CARE)) == 0,
+            "vulkan: trying to use stencil only load action on non DS target %u of render pass <%s>", i, rp_desc.debugName);
+
         if (bind.action & RP_TA_SUBPASS_WRITE)
           desc.initialLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         else if (bind.action & RP_TA_SUBPASS_READ)
           desc.initialLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         else if (bind.action & RP_TA_SUBPASS_RESOLVE)
           desc.initialLayout = isDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+#if VK_KHR_fragment_shading_rate
+        else if (bind.action & RP_TA_SUBPASS_VRS_READ)
+          desc.initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+#endif
       }
 
       if (bind.action & RP_TA_STORE_MASK)
@@ -626,6 +677,10 @@ void RenderPassResource::fillAttachmentDescription(const RenderPassDesc &rp_desc
         desc.finalLayout = lastSubpassDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       else if (lastSubpassWithAccessAction & RP_TA_SUBPASS_RESOLVE)
         desc.finalLayout = lastSubpassDS ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+#if VK_KHR_fragment_shading_rate
+      else if (lastSubpassWithAccessAction & RP_TA_SUBPASS_VRS_READ)
+        desc.finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+#endif
       else
         D3D_ERROR("vulkan: attachment %u of render pass <%s> is unused (not used in any RW actions)", i, rp_desc.debugName);
     }
@@ -699,6 +754,16 @@ void RenderPassResource::storeImageStates(const Tab<VkSubpassDescription> &subpa
           }
         }
 
+#if VK_KHR_fragment_shading_rate
+        // if it is used as shading rate attachment in the end and no usage is found for current subpass - use
+        // shading rate attachment layout, this should cover current usage cases, but need to more precise in general
+        if (!found && attachments[j].finalLayout == VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR)
+        {
+          found = true;
+          imgStates.push_back(VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR);
+        }
+
+#endif
         // don't care for other cases and leave in SN_RENDER_TARGET for now
         if (!found)
           imgStates.push_back(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -965,6 +1030,10 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
   dag::RelocatableFixedVector<VkAttachmentDescription2, RenderPassDescription::USUAL_MAX_ATTACHMENTS> attachments;
   dag::RelocatableFixedVector<VkSubpassDescriptionDepthStencilResolve, RenderPassDescription::USUAL_MAX_SUBPASSES>
     subpassDepthStencilResolveExts;
+#if VK_KHR_fragment_shading_rate
+  dag::RelocatableFixedVector<VkFragmentShadingRateAttachmentInfoKHR, RenderPassDescription::USUAL_MAX_SUBPASSES>
+    shadingRateAttachmentExts;
+#endif
 
   VulkanDevice &dev = Globals::VK::dev;
 
@@ -1021,6 +1090,9 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
     rpci.subpassCount = src.subpassCount;
     subpasses.resize(rpci.subpassCount);
     subpassDepthStencilResolveExts.resize(rpci.subpassCount);
+#if VK_KHR_fragment_shading_rate
+    shadingRateAttachmentExts.resize(rpci.subpassCount);
+#endif
     rpci.pSubpasses = subpasses.data();
     for (int subpassIdx = 0; subpassIdx < rpci.subpassCount; ++subpassIdx)
     {
@@ -1084,10 +1156,11 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
 #if VK_KHR_depth_stencil_resolve
         convertAttachmentRefToVersion2(refs[attRefHead], src_refs[subpassExtensions.depthStencilResolveAttachmentIdx]);
 
+        const void *chainedNext = dstSubpass.pNext;
         dstSubpass.pNext = &subpassDepthStencilResolveExts[subpassIdx];
         VkSubpassDescriptionDepthStencilResolve &depthStencilResolve = subpassDepthStencilResolveExts[subpassIdx];
         depthStencilResolve.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE;
-        depthStencilResolve.pNext = nullptr;
+        depthStencilResolve.pNext = chainedNext;
         depthStencilResolve.pDepthStencilResolveAttachment = (refs.data() + attRefHead);
 
         const VkPhysicalDeviceDepthStencilResolveProperties &dsrProps = Globals::VK::phy.depthStencilResolveProps;
@@ -1109,6 +1182,30 @@ VkResult RenderPassResource::convertAndCreateRenderPass2(VkRenderPass *dst, cons
             depthStencilResolve.depthResolveMode = VK_RESOLVE_MODE_MIN_BIT;
           }
         }
+#endif
+        attRefHead++;
+      }
+      if (subpassExtensions.shadingRateAttachmentIdx >= 0)
+      {
+        if (subpassExtensions.shadingRateAttachmentIdx >= src_refs.size())
+        {
+          DAG_FATAL("vulkan: wrong shadingRateAttachmentIdx: %d", subpassExtensions.shadingRateAttachmentIdx);
+        }
+        if (!Globals::VK::phy.hasAttachmentFragmentShadingRate)
+        {
+          DAG_FATAL("vulkan: attachmentFragmentShadingRate is requested, but not supported");
+        }
+#if VK_KHR_fragment_shading_rate
+        convertAttachmentRefToVersion2(refs[attRefHead], src_refs[subpassExtensions.shadingRateAttachmentIdx]);
+
+        const void *chainedNext = dstSubpass.pNext;
+        dstSubpass.pNext = &shadingRateAttachmentExts[subpassIdx];
+        VkFragmentShadingRateAttachmentInfoKHR &shadingRateAttachment = shadingRateAttachmentExts[subpassIdx];
+        shadingRateAttachment.sType = VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR;
+        shadingRateAttachment.pNext = chainedNext;
+        shadingRateAttachment.pFragmentShadingRateAttachment = (refs.data() + attRefHead);
+        shadingRateAttachment.shadingRateAttachmentTexelSize =
+          Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSize;
 #endif
         attRefHead++;
       }
@@ -1178,6 +1275,8 @@ void RenderPassResource::createVulkanObject()
       {
         desc.noOpWithoutDraws &= (att.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD) || (att.loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE);
         desc.noOpWithoutDraws &= att.storeOp == VK_ATTACHMENT_STORE_OP_STORE;
+        desc.noOpWithoutDraws &=
+          (att.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_LOAD) || (att.stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE);
       }
       desc.noOpWithoutDraws &= convertedDesc.subpasses[0].pResolveAttachments == nullptr;
     }
@@ -1187,7 +1286,7 @@ void RenderPassResource::createVulkanObject()
   for (int subpassIdx = 0; subpassIdx < convertedDesc.subpasses.size(); ++subpassIdx)
   {
     const SubpassExtensions &subpassExtensions = convertedDesc.subpass_extensions[subpassIdx];
-    if (subpassExtensions.depthStencilResolveAttachmentIdx >= 0)
+    if (subpassExtensions.depthStencilResolveAttachmentIdx >= 0 || subpassExtensions.shadingRateAttachmentIdx >= 0)
     {
       needToUseAPIVersion2 = true;
       break;

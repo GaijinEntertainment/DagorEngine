@@ -29,6 +29,14 @@ def draw_debug_triangle_buffered(a, b, c : float3; color : E3DCOLOR; frames : in
   _builtin_draw_debug_triangle_buffered(a, b, c, Color4(color), frames)
 
 [generic]
+def draw_debug_tehedron_solid_buffered(pos : float3; radius : float; color : Color4; frames : int)
+  _builtin_draw_debug_tehedron_solid_buffered(pos, radius, color, frames)
+
+[generic]
+def draw_debug_tehedron_solid_buffered(pos : float3; radius : float; color : E3DCOLOR; frames : int)
+  _builtin_draw_debug_tehedron_solid_buffered(pos, radius, Color4(color), frames)
+
+[generic]
 def draw_debug_quad_buffered(top_left, bottom_left, bottom_right, top_right : float3; color : Color4; frames : int)
   _builtin_draw_debug_quad_buffered(top_left, bottom_left, bottom_right, top_right, color, frames)
 
@@ -51,6 +59,10 @@ def draw_debug_ball_buffered(sphere_c : float3; sphere_r : float; color : Color4
 [generic]
 def draw_debug_ball_buffered(sphere_c : float3; sphere_r : float; color : E3DCOLOR; frames : int)
   _builtin_draw_debug_ball_buffered(sphere_c, sphere_r, Color4(color), frames)
+
+[generic]
+def draw_debug_ball_buffered(sphere : BSphere3; color : E3DCOLOR; frames : int)
+  _builtin_draw_debug_ball_buffered(sphere.c, sphere.r, Color4(color), frames)
 
 [generic]
 def draw_debug_disk_buffered(pos, norm : float3; radius : float; color : E3DCOLOR; frames : int)

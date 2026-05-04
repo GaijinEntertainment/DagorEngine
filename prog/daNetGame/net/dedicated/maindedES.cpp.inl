@@ -26,7 +26,7 @@ namespace dedicated
 {
 
 ECS_AFTER(on_gameapp_started_es)
-static void dedicated_init_on_appstart_es(const EventOnGameAppStarted &)
+static void dedicated_init_on_appstart_es(const EventOnGameAppStarted &, ecs::EntityManager &manager)
 {
   set_no_gameres_factory_fatal(false);
 #if !_TARGET_PC_LINUX // On Linux using workcycle::idle_loop() is called automatically from dagor_idle_cycle()
@@ -34,7 +34,7 @@ static void dedicated_init_on_appstart_es(const EventOnGameAppStarted &)
   register_regular_action_to_idle_cycle([](void *) { workcycle_internal::idle_loop(); }, nullptr);
 #endif
   dedicated_matching::init();
-  g_entity_mgr->broadcastEventImmediate(DedicatedServerEventOnInit{});
+  manager.broadcastEventImmediate(DedicatedServerEventOnInit{});
 }
 
 void update()

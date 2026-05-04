@@ -17,11 +17,8 @@ static const char *arg_value_delimiters = ":=";
 
 static const char *_arg_value(const char *arg)
 {
-  for (const char *s = arg; *s; s++)
-    if (strchr(arg_value_delimiters, *s) != nullptr)
-      return s + 1;
-
-  return nullptr;
+  const char *s = strpbrk(arg, arg_value_delimiters);
+  return s ? s + 1 : nullptr;
 }
 
 
@@ -42,12 +39,13 @@ static const char *_arg_name(const char *arg)
 {
   const char *origin = arg; // We must advance only if it's a parameter name
 
-  if (arg[0] == '/' && *++arg)
-  { // Ensure this is not a Unix path
-    const char *value = _arg_value(arg);
-    const char *slash = strchr(arg, '/');
-    return ((value && slash && value <= slash) || !slash) ? arg : NULL;
-  }
+  if (*arg == '/') [[unlikely]] // Ensure this is not a Unix path
+    if (*++arg)
+    {
+      const char *value = _arg_value(arg);
+      const char *slash = strchr(arg, '/');
+      return ((value && slash && value <= slash) || !slash) ? arg : NULL;
+    }
 
   if (arg[0] == '-' && *++arg)   // Not an stdin shortcut
     if (arg[0] == '-' && *++arg) // Not an argument list terminator
@@ -57,33 +55,33 @@ static const char *_arg_name(const char *arg)
 }
 
 
-const char *dgs_get_argv(const char *name, int &it, const char *default_value)
+const char *dgs_get_argv(const char *name, int &it_, const char *default_value)
 {
 #if _TARGET_PC_WIN
 #define STRINGS_MATCH !strnicmp
 #else
 #define STRINGS_MATCH !strncmp
 #endif
-
-  for (; it < ::dgs_argc; ++it)
+  char **argv = dgs_argv;
+  for (size_t nlen = strlen(name), it = it_, argc = dgs_argc; it < argc; ++it) // To consider: vec_map + lower_bound?
   {
-    const char *arg = _arg_name(::dgs_argv[it]);
-    size_t len = strlen(name);
-    if (arg && STRINGS_MATCH(arg, name, len) && (!arg[len] || strchr(arg_value_delimiters, arg[len]) != nullptr))
+    const char *arg = _arg_name(argv[it]);
+    if (arg && STRINGS_MATCH(arg, name, nlen) && (!arg[nlen] || strchr(arg_value_delimiters, arg[nlen])))
     {
       dgs_set_arg_used(it);
+
       const char *value = _arg_value(arg);
       if (!value)
       {
         ++it; // Advance to check if next argument is a value
-        value = (it < ::dgs_argc && !_arg_name(::dgs_argv[it])) ? ::dgs_argv[it] : "";
+        value = (it < argc && !_arg_name(argv[it])) ? argv[it] : "";
       }
 
-      ++it; // the iterator should always point after last checked element
+      it_ = ++it; // the iterator should always point after last checked element
       return value;
     }
   }
-
+  it_ = dgs_argc;
   return default_value;
 #undef STRINGS_MATCH
 }
@@ -102,8 +100,6 @@ static Tab<SimpleString> env_storage(strmem);
 
 extern char **environ;
 
-
-extern "C" __attribute__((visibility("default"))) void dgs_init_argv_exported(int argc, char **argv) { dgs_init_argv(argc, argv); }
 
 void dgs_init_argv(int argc, char **argv)
 {
@@ -146,9 +142,6 @@ void dgs_init_argv(int argc, char **argv)
 
 #else
 
-#if _TARGET_PC_WIN
-extern "C" __declspec(dllexport) void dgs_init_argv_exported(int argc, char **argv) { dgs_init_argv(argc, argv); }
-#endif
 
 void dgs_init_argv(int argc, char **argv)
 {

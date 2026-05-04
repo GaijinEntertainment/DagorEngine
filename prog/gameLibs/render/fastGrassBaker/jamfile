@@ -1,4 +1,4 @@
-Root    ?= ../../.. ;
+Root    ?= ../../../.. ;
 StrictCompile = yes ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -11,7 +11,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
 ;
 
-if $(Config) != rel && $(Platform) in windows {
+if ! $(Config) in rel irel && $(Platform) in windows {
   UseProgLibs += 3rdPartyLibs/image/tiff-4.4.0 ;
   UseProgLibs += 3rdPartyLibs/convert/ispc_texcomp ;
   AddIncludes +=

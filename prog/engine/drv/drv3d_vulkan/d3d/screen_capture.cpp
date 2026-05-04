@@ -9,6 +9,8 @@
 #include "device_context.h"
 #include <image/dag_texPixel.h>
 #include "global_lock.h"
+#include "backend/cmd/resources.h"
+#include "backend/cmd/transfer.h"
 
 using namespace drv3d_vulkan;
 
@@ -38,8 +40,7 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
   Globals::Dbg::naming.setBufName(captureBuffer, "screen capture staging buf");
 
   VkFormat swapchainVkFormat = VK_FORMAT_UNDEFINED;
-  CmdCaptureScreen cmd{captureBuffer, Frontend::swapchain.getCurrentTarget(), &swapchainVkFormat};
-  Globals::ctx.dispatchCommand(cmd);
+  Globals::ctx.dispatchCmd<CmdCaptureScreen>({captureBuffer, Frontend::swapchain.getCurrentTarget(), &swapchainVkFormat});
   TIME_PROFILE(vulkan_fast_capture_screen);
   Globals::ctx.wait();
   captureBuffer->markNonCoherentRangeLoc(0, bufferSize, false);
@@ -64,7 +65,7 @@ void *d3d::fast_capture_screen(int &w, int &h, int &stride_bytes, int &format)
 
 void d3d::end_fast_capture_screen()
 {
-  Globals::ctx.destroyBuffer(captureBuffer);
+  Globals::ctx.dispatchCmd<CmdDestroyBuffer>({captureBuffer});
   captureBuffer = nullptr;
 }
 

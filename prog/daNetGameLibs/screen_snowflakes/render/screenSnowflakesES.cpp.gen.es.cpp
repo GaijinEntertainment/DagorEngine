@@ -14,7 +14,8 @@ static void create_screen_snowflakes_renderer_entity_on_settings_changed_es_all_
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_screen_snowflakes_renderer_entity_on_settings_changed_es(evt
-        , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
+        , components.manager()
+    , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__screenSpaceWeatherEffects", bool)
     , ECS_RO_COMP(create_screen_snowflakes_renderer_entity_on_settings_changed_es_comps, "render_settings__bare_minimum", bool)
     );
   while (++comp != compE);
@@ -40,9 +41,9 @@ static constexpr ecs::ComponentDesc create_screen_snowflakes_renderer_entity_on_
 };
 static void create_screen_snowflakes_renderer_entity_on_snow_appearance_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   create_screen_snowflakes_renderer_entity_on_snow_appearance_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc create_screen_snowflakes_renderer_entity_on_snow_appearance_es_es_desc
 (
@@ -64,9 +65,9 @@ static constexpr ecs::ComponentDesc destroy_screen_snowflakes_renderer_entity_es
 };
 static void destroy_screen_snowflakes_renderer_entity_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   destroy_screen_snowflakes_renderer_entity_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc destroy_screen_snowflakes_renderer_entity_es_es_desc
 (
@@ -95,7 +96,8 @@ static void init_screen_snowflakes_es_all_events(const ecs::Event &__restrict ev
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_screen_snowflakes_es(evt
-        , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__enabled_on_level", bool)
+        , components.manager()
+    , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__enabled_on_level", bool)
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)
     , ECS_RO_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__max_count", int)
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
@@ -157,7 +159,8 @@ static void screen_snowflakes_on_vehicle_camera_change_es_all_events(const ecs::
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     screen_snowflakes_on_vehicle_camera_change_es(evt
-        , ECS_RO_COMP(screen_snowflakes_on_vehicle_camera_change_es_comps, "isInVehicle", bool)
+        , components.manager()
+    , ECS_RO_COMP(screen_snowflakes_on_vehicle_camera_change_es_comps, "isInVehicle", bool)
     );
   while (++comp != compE);
 }
@@ -191,7 +194,8 @@ static void screen_snowflakes_before_render_es_all_events(const ecs::Event &__re
     if ( !(ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__enabled_on_level", bool)) )
       continue;
     screen_snowflakes_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-          , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
+          , components.manager()
+      , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__time_until_next_spawn", float)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances", SnowflakeInstances)
       , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)
@@ -243,9 +247,9 @@ static ecs::CompileTimeQueryDesc snow_enabled_on_level_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void snow_enabled_on_level_ecs_query(Callable function)
+inline void snow_enabled_on_level_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, snow_enabled_on_level_ecs_query_desc.getHandle(),
+  perform_query(&manager, snow_enabled_on_level_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -271,9 +275,9 @@ static ecs::CompileTimeQueryDesc snowflakes_enabled_global_setting_ecs_query_des
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void snowflakes_enabled_global_setting_ecs_query(Callable function)
+inline void snowflakes_enabled_global_setting_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, snowflakes_enabled_global_setting_ecs_query_desc.getHandle(),
+  perform_query(&manager, snowflakes_enabled_global_setting_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -301,9 +305,9 @@ static ecs::CompileTimeQueryDesc vehicle_camera_on_screen_snowflakes_init_ecs_qu
   make_span(vehicle_camera_on_screen_snowflakes_init_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void vehicle_camera_on_screen_snowflakes_init_ecs_query(Callable function)
+inline void vehicle_camera_on_screen_snowflakes_init_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, vehicle_camera_on_screen_snowflakes_init_ecs_query_desc.getHandle(),
+  perform_query(&manager, vehicle_camera_on_screen_snowflakes_init_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -329,9 +333,9 @@ static ecs::CompileTimeQueryDesc render_screen_snowflakes_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void render_screen_snowflakes_ecs_query(Callable function)
+inline void render_screen_snowflakes_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, render_screen_snowflakes_ecs_query_desc.getHandle(),
+  perform_query(&manager, render_screen_snowflakes_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -359,9 +363,9 @@ static ecs::CompileTimeQueryDesc screen_snowflakes_on_vehicle_camera_change_ecs_
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void screen_snowflakes_on_vehicle_camera_change_ecs_query(Callable function)
+inline void screen_snowflakes_on_vehicle_camera_change_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, screen_snowflakes_on_vehicle_camera_change_ecs_query_desc.getHandle(),
+  perform_query(&manager, screen_snowflakes_on_vehicle_camera_change_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -393,9 +397,9 @@ static ecs::CompileTimeQueryDesc screen_snowflakes_before_render_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void screen_snowflakes_before_render_ecs_query(ecs::EntityId eid, Callable function)
+inline void screen_snowflakes_before_render_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, screen_snowflakes_before_render_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, screen_snowflakes_before_render_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

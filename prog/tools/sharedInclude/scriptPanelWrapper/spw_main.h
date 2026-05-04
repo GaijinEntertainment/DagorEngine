@@ -12,11 +12,10 @@
 
 #include "spw_interface.h"
 
-class SquirrelObject;
 class DataBlock;
 class ScriptPanelContainer;
-struct SquirrelVMSys;
 class SqModules;
+typedef struct SQVM *HSQUIRRELVM;
 
 enum
 {
@@ -50,8 +49,8 @@ public:
   int getPidByName(const char *name);
   void sendMessage(int pid, int msg, void *arg);
 
-  void setSystemVM();
-  void setCurrentVM();
+  SqModules *getModuleMgr() const { return moduleMgr; }
+  HSQUIRRELVM getScriptVm() const;
 
 protected:
   void init();
@@ -65,8 +64,6 @@ protected:
   // FileUpdateCallback
   void UpdateFile() override;
 
-  SquirrelVMSys *createCleanVM();
-
 private:
   PropPanel::ContainerPropertyControl *mPanel;
   SimpleString mScriptFilename;
@@ -75,7 +72,6 @@ private:
   IScriptPanelTargetCB *objCB;
   int mPid, mPostEventCounter;
 
-  SquirrelVMSys *sysVM, *curVM;
   IScriptPanelEventHandler *mHandler;
   SqModules *moduleMgr = nullptr;
 

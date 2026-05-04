@@ -1,0 +1,7 @@
+EXPORTS
+	yuplay2_create_session
+	yuplay2_create_app_session
+	yuplay2_create_session_distr
+	yuplay2_create_app_session_distr
+	yuplay2_create_app_game_session_distr
+	yuplay2_status_string

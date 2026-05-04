@@ -11,18 +11,17 @@ namespace levelprofiler
 namespace UIConstants
 {
 // Table configuration
-static constexpr int TABLE_COLUMN_COUNT = 7;
 static constexpr int FIRST_COL_INDEX = 0;
 static constexpr int INVALID_INDEX = -1;
-static constexpr int FIRST_TAB_INDEX = 0;
 
 // Column default widths (in pixels)
+static constexpr float COL_NAME_WIDTH = 180.0f;
 static constexpr float COL_FORMAT_WIDTH = 60.0f;
-static constexpr float COL_WIDTH_WIDTH = 55.0f;
-static constexpr float COL_HEIGHT_WIDTH = 55.0f;
-static constexpr float COL_MIPS_WIDTH = 45.0f;
-static constexpr float COL_MEM_SIZE_WIDTH = 100.0f;
-static constexpr float COL_TEX_USAGE_WIDTH = 320.0f;
+static constexpr float COL_WIDTH_WIDTH = 60.0f;
+static constexpr float COL_HEIGHT_WIDTH = 60.0f;
+static constexpr float COL_MIPS_WIDTH = 60.0f;
+static constexpr float COL_MEM_SIZE_WIDTH = 80.0f;
+static constexpr float COL_TEX_USAGE_WIDTH = 180.0f;
 
 // UI styling
 static constexpr float FRAME_ROUNDING = 8.0f;
@@ -56,57 +55,66 @@ static constexpr int EQUAL = 0;
 static constexpr int GREATER_THAN = 1;
 } // namespace UIConstants
 
+namespace
+{
+static int safeCStrCompare(const char *a, const char *b)
+{
+  if (!a && !b)
+    return UIConstants::EQUAL;
+  if (!a)
+    return UIConstants::LESS_THAN;
+  if (!b)
+    return UIConstants::GREATER_THAN;
+  int r = strcmp(a, b);
+  if (r < 0)
+    return UIConstants::LESS_THAN;
+  if (r > 0)
+    return UIConstants::GREATER_THAN;
+  return UIConstants::EQUAL;
+}
+} // anonymous namespace
+
 // --- LpTextureTableColumn implementation ---
 
-LpTextureTableColumn::LpTextureTableColumn(const char *name, TableColumn column_type, float width, ImGuiTableColumnFlags flags) :
+LpTextureTableColumn::LpTextureTableColumn(const char *name, TextureColumn column_type, float width, ImGuiTableColumnFlags flags) :
   LpProfilerTableColumn(name, width, flags), columnType(column_type)
 {}
 
 int LpTextureTableColumn::compareItems(const void *item1, const void *item2) const
 {
-  const TextureTableItem *textureItem1 = static_cast<const TextureTableItem *>(item1);
-  const TextureTableItem *textureItem2 = static_cast<const TextureTableItem *>(item2);
-
-  if (!textureItem1 || !textureItem1->name || !textureItem1->data || !textureItem2 || !textureItem2->name || !textureItem2->data)
+  const TextureTableItem *a = static_cast<const TextureTableItem *>(item1);
+  const TextureTableItem *b = static_cast<const TextureTableItem *>(item2);
+  if (!a || !b)
     return 0;
 
   switch (columnType)
   {
-    case COL_NAME: return textureItem1->name->compare(*textureItem2->name);
-
-    case COL_FORMAT:
-      return strcmp(TextureModule::getFormatName(textureItem1->data->info.cflg),
-        TextureModule::getFormatName(textureItem2->data->info.cflg));
-
-    case COL_WIDTH: return textureItem1->data->info.w - textureItem2->data->info.w;
-
-    case COL_HEIGHT: return textureItem1->data->info.h - textureItem2->data->info.h;
-
-    case COL_MIPS: return textureItem1->data->info.mipLevels - textureItem2->data->info.mipLevels;
-
-    case COL_MEM_SIZE:
-    {
-      // Texture size calculation requires access to TextureModule.
-      auto profilerUserInterface =
-        static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-      auto texModule = profilerUserInterface->getTextureModule();
-
-      float difference = texModule->getTextureMemorySize(*textureItem1->data) - texModule->getTextureMemorySize(*textureItem2->data);
-      return (difference < 0) ? UIConstants::LESS_THAN : (difference > 0 ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
-    }
-
-    case COL_TEX_USAGE:
-    {
-      // Compare texture usage counts (null texture usages come first)
-      if (!textureItem1->textureUsage && !textureItem2->textureUsage)
+    case TextureColumn::NAME: return a->name.compare(b->name);
+    case TextureColumn::FORMAT:
+      if (!a->data || !b->data)
         return UIConstants::EQUAL;
-      if (!textureItem1->textureUsage)
-        return UIConstants::LESS_THAN;
-      if (!textureItem2->textureUsage)
-        return UIConstants::GREATER_THAN;
-      return textureItem1->textureUsage->unique - textureItem2->textureUsage->unique;
-    }
-
+      {
+        const char *fmtA = TextureModule::getFormatName(a->data->info.cflg);
+        const char *fmtB = TextureModule::getFormatName(b->data->info.cflg);
+        return safeCStrCompare(fmtA, fmtB);
+      }
+    case TextureColumn::WIDTH:
+      if (!a->data || !b->data)
+        return UIConstants::EQUAL;
+      return a->data->info.w - b->data->info.w;
+    case TextureColumn::HEIGHT:
+      if (!a->data || !b->data)
+        return UIConstants::EQUAL;
+      return a->data->info.h - b->data->info.h;
+    case TextureColumn::MIPS:
+      if (!a->data || !b->data)
+        return UIConstants::EQUAL;
+      return a->data->info.mipLevels - b->data->info.mipLevels;
+    case TextureColumn::MEM_SIZE:
+      return (a->memorySizeMB < b->memorySizeMB)
+               ? UIConstants::LESS_THAN
+               : (a->memorySizeMB > b->memorySizeMB ? UIConstants::GREATER_THAN : UIConstants::EQUAL);
+    case TextureColumn::USAGE: return a->usageUniqueCount - b->usageUniqueCount;
     default: return UIConstants::EQUAL;
   }
 }
@@ -114,7 +122,7 @@ int LpTextureTableColumn::compareItems(const void *item1, const void *item2) con
 ProfilerString LpTextureTableColumn::getCellText(const void *item_data, int /* column_index */) const
 {
   const TextureTableItem *currentItem = static_cast<const TextureTableItem *>(item_data);
-  if (!currentItem || !currentItem->name || !currentItem->data)
+  if (!currentItem || !currentItem->data)
     return ProfilerString{};
 
   return getCellTextForItem(currentItem);
@@ -123,7 +131,7 @@ ProfilerString LpTextureTableColumn::getCellText(const void *item_data, int /* c
 void LpTextureTableColumn::drawCell(const void *item_data) const
 {
   const TextureTableItem *currentItem = static_cast<const TextureTableItem *>(item_data);
-  if (!currentItem || !currentItem->name || !currentItem->data)
+  if (!currentItem || !currentItem->data)
   {
     ImGui::TextColored(UIConstants::ERROR_COLOR, "ERROR");
     return;
@@ -132,25 +140,24 @@ void LpTextureTableColumn::drawCell(const void *item_data) const
   drawCellForItem(currentItem);
 }
 
-
 // --- LpTextureNameColumn implementation ---
 
 LpTextureNameColumn::LpTextureNameColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Name", COL_NAME, width, flags | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort)
+  LpTextureTableColumn("Name", TextureColumn::NAME, width > 0 ? width : UIConstants::COL_NAME_WIDTH,
+    flags | ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_DefaultSort)
 {}
 
-ProfilerString LpTextureNameColumn::getCellTextForItem(const TextureTableItem *item) const { return *item->name; }
+ProfilerString LpTextureNameColumn::getCellTextForItem(const TextureTableItem *item) const { return item->name; }
 
 void LpTextureNameColumn::drawCellForItem(const TextureTableItem *item) const
 {
-  ImGui::Selectable(item->name->c_str(), item->isSelected, ImGuiSelectableFlags_SpanAllColumns);
+  ImGui::Selectable(item->name.c_str(), item->isSelected, ImGuiSelectableFlags_SpanAllColumns);
 }
-
 
 // --- LpTextureFormatColumn implementation ---
 
 LpTextureFormatColumn::LpTextureFormatColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Format", COL_FORMAT, width > 0 ? width : UIConstants::COL_FORMAT_WIDTH,
+  LpTextureTableColumn("Format", TextureColumn::FORMAT, width > 0 ? width : UIConstants::COL_FORMAT_WIDTH,
     flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
@@ -167,7 +174,8 @@ void LpTextureFormatColumn::drawCellForItem(const TextureTableItem *item) const
 // --- LpTextureWidthColumn implementation ---
 
 LpTextureWidthColumn::LpTextureWidthColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Width", COL_WIDTH, width > 0 ? width : UIConstants::COL_WIDTH_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed)
+  LpTextureTableColumn("Width", TextureColumn::WIDTH, width > 0 ? width : UIConstants::COL_WIDTH_WIDTH,
+    flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
 ProfilerString LpTextureWidthColumn::getCellTextForItem(const TextureTableItem *item) const
@@ -180,7 +188,7 @@ void LpTextureWidthColumn::drawCellForItem(const TextureTableItem *item) const {
 // --- LpTextureHeightColumn implementation ---
 
 LpTextureHeightColumn::LpTextureHeightColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Height", COL_HEIGHT, width > 0 ? width : UIConstants::COL_HEIGHT_WIDTH,
+  LpTextureTableColumn("Height", TextureColumn::HEIGHT, width > 0 ? width : UIConstants::COL_HEIGHT_WIDTH,
     flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
@@ -194,7 +202,8 @@ void LpTextureHeightColumn::drawCellForItem(const TextureTableItem *item) const 
 // --- LpTextureMipsColumn implementation ---
 
 LpTextureMipsColumn::LpTextureMipsColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Mips", COL_MIPS, width > 0 ? width : UIConstants::COL_MIPS_WIDTH, flags | ImGuiTableColumnFlags_WidthFixed)
+  LpTextureTableColumn("Mips", TextureColumn::MIPS, width > 0 ? width : UIConstants::COL_MIPS_WIDTH,
+    flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
 ProfilerString LpTextureMipsColumn::getCellTextForItem(const TextureTableItem *item) const
@@ -207,95 +216,71 @@ void LpTextureMipsColumn::drawCellForItem(const TextureTableItem *item) const { 
 // --- LpTextureSizeColumn implementation ---
 
 LpTextureSizeColumn::LpTextureSizeColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Memory size", COL_MEM_SIZE, width > 0 ? width : UIConstants::COL_MEM_SIZE_WIDTH,
+  LpTextureTableColumn("Memory size", TextureColumn::MEM_SIZE, width > 0 ? width : UIConstants::COL_MEM_SIZE_WIDTH,
     flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
 ProfilerString LpTextureSizeColumn::getCellTextForItem(const TextureTableItem *item) const
 {
-  auto profilerUI = static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-  float sizeMB = profilerUI->getTextureModule()->getTextureMemorySize(*item->data);
-  return eastl::to_string(sizeMB) + " MB";
+  if (!item || !item->data)
+    return ProfilerString();
+  return eastl::to_string(item->memorySizeMB) + " MB";
 }
 
 void LpTextureSizeColumn::drawCellForItem(const TextureTableItem *item) const
 {
-  auto profilerUserInterface =
-    static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-  auto texModule = profilerUserInterface->getTextureModule();
-
-  float sizeMB = texModule->getTextureMemorySize(*item->data);
-
-  ImGui::Text("%.2f MB", sizeMB);
+  if (!item || !item->data)
+  {
+    ImGui::TextColored(UIConstants::ERROR_COLOR, "N/A");
+    return;
+  }
+  ImGui::Text("%.2f MB", item->memorySizeMB);
 }
 
 // --- LpTextureUsageColumn implementation ---
 
 LpTextureUsageColumn::LpTextureUsageColumn(float width, ImGuiTableColumnFlags flags) :
-  LpTextureTableColumn("Usage", COL_TEX_USAGE, width > 0 ? width : UIConstants::COL_TEX_USAGE_WIDTH,
+  LpTextureTableColumn("Usage", TextureColumn::USAGE, width > 0 ? width : UIConstants::COL_TEX_USAGE_WIDTH,
     flags | ImGuiTableColumnFlags_WidthFixed)
 {}
 
 ProfilerString LpTextureUsageColumn::getCellTextForItem(const TextureTableItem *item) const
 {
-  if (!item->textureUsage || item->textureUsage->unique == 0)
-    return "Non-RI";
-  else if (item->textureUsage->unique == 1)
-    return "Unique";
-  else
-    return "Shared(" + eastl::to_string(item->textureUsage->unique) + ")";
+  return item ? item->usageLabel : ProfilerString();
 }
 
-void LpTextureUsageColumn::drawCellForItem(const TextureTableItem *item) const { drawTextureUsageChip(*item->name); }
-
-void LpTextureUsageColumn::drawTextureUsageChip(const ProfilerString &texture_name) const
+void LpTextureUsageColumn::drawCellForItem(const TextureTableItem *item) const
 {
-  auto profilerUserInterface =
-    static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-  auto renderInstanceModule = profilerUserInterface->getRIModule();
-
-  const auto &textureUsageMap = renderInstanceModule->getTextureUsage();
-
-
-  const char *labelText;
-  ImVec4 backgroundColor, backgroundHoverColor, textColorValue;
-
-  if (auto textureUsageIterator = textureUsageMap.find(texture_name);
-      textureUsageIterator == textureUsageMap.end() || textureUsageIterator->second.unique == 0)
+  if (!item)
   {
-    // Non-RI texture
-    labelText = "Non-RI";
-    backgroundColor = UIConstants::TRANSPARENT_COLOR;
-    backgroundHoverColor = UIConstants::TRANSPARENT_COLOR;
-    textColorValue = UIConstants::GRAY_TINT_COLOR; // Gray tint
+    ImGui::TextColored(UIConstants::ERROR_COLOR, "N/A");
+    return;
   }
-  else if (textureUsageIterator->second.unique == 1)
+  const int count = item->usageUniqueCount;
+  const bool uniq = count == 1;
+  const bool shared = count > 1;
+  const char *label = item->usageLabel.c_str();
+  ImVec4 bg = UIConstants::TRANSPARENT_COLOR;
+  ImVec4 hov = UIConstants::TRANSPARENT_COLOR;
+  ImVec4 txt = UIConstants::GRAY_TINT_COLOR;
+  if (uniq)
   {
-    // Unique texture (used by only one asset)
-    labelText = "Unique";
-    backgroundColor = UIConstants::ORANGE_BG;
-    backgroundHoverColor = UIConstants::ORANGE_HOVER;
-    textColorValue = UIConstants::WHITE_COLOR;
+    bg = UIConstants::ORANGE_BG;
+    hov = UIConstants::ORANGE_HOVER;
+    txt = UIConstants::WHITE_COLOR;
   }
-  else
+  else if (shared)
   {
-    // Shared texture (used by multiple assets)
-    cachedSharedUsageChipLabel.sprintf("Shared(%d)", textureUsageIterator->second.unique);
-    labelText = cachedSharedUsageChipLabel.c_str();
-    backgroundColor = UIConstants::BLUE_BG;
-    backgroundHoverColor = UIConstants::BLUE_HOVER;
-    textColorValue = UIConstants::WHITE_COLOR;
+    bg = UIConstants::BLUE_BG;
+    hov = UIConstants::BLUE_HOVER;
+    txt = UIConstants::WHITE_COLOR;
   }
-
-  // Draw chip with rounded corners
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, UIConstants::FRAME_ROUNDING);
-  ImGui::PushStyleColor(ImGuiCol_Button, ImGui::ColorConvertFloat4ToU32(backgroundColor));
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::ColorConvertFloat4ToU32(backgroundHoverColor));
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::ColorConvertFloat4ToU32(backgroundColor));
-  ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertFloat4ToU32(textColorValue));
-
-  ImGui::Button(labelText, ImVec2(0, 0));
-
+  ImGui::PushStyleColor(ImGuiCol_Button, ImGui::ColorConvertFloat4ToU32(bg));
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::ColorConvertFloat4ToU32(hov));
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::ColorConvertFloat4ToU32(bg));
+  ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertFloat4ToU32(txt));
+  ImGui::Button(label, ImVec2(0, 0));
   ImGui::PopStyleColor(UIConstants::STYLE_COLOR_COUNT);
   ImGui::PopStyleVar();
 }
@@ -303,38 +288,43 @@ void LpTextureUsageColumn::drawTextureUsageChip(const ProfilerString &texture_na
 // --- LpTextureTable implementation ---
 
 LpTextureTable::LpTextureTable(TextureProfilerUI *profiler_ui_ptr) :
-  LpProfilerTable("Textures", UIConstants::TABLE_COLUMN_COUNT), profilerUI(profiler_ui_ptr)
+  LpProfilerTable("Textures", *TextureColumn::BASE_COUNT), profilerUI(profiler_ui_ptr)
 {
-  createColumn<LpTextureNameColumn>(COL_NAME);
-  createColumn<LpTextureFormatColumn>(COL_FORMAT);
-  createColumn<LpTextureWidthColumn>(COL_WIDTH);
-  createColumn<LpTextureHeightColumn>(COL_HEIGHT);
-  createColumn<LpTextureMipsColumn>(COL_MIPS);
-  createColumn<LpTextureSizeColumn>(COL_MEM_SIZE);
-  createColumn<LpTextureUsageColumn>(COL_TEX_USAGE);
+  createColumn<LpTextureNameColumn>(*TextureColumn::NAME);
+  createColumn<LpTextureFormatColumn>(*TextureColumn::FORMAT);
+  createColumn<LpTextureWidthColumn>(*TextureColumn::WIDTH);
+  createColumn<LpTextureHeightColumn>(*TextureColumn::HEIGHT);
+  createColumn<LpTextureMipsColumn>(*TextureColumn::MIPS);
+  createColumn<LpTextureSizeColumn>(*TextureColumn::MEM_SIZE);
+  createColumn<LpTextureUsageColumn>(*TextureColumn::USAGE);
 
-  // Register search boxes for text filtering
-  auto &filterManagerInstance = profilerUI->getFilterManager();
+  eastl::array<LpColumnFilterSpec, 7> specs = {
+    LpColumnFilterSpec{*TextureColumn::NAME, "NamePop", makeDelegate<LpTextureTable, &LpTextureTable::drawNameFilterContent>(this),
+      "NameSearch", "Search...",
+      makeSearchDelegate<LpTextureTable, &LpTextureTable::onNameSearchChange, &LpTextureTable::onNameSearchCommit>(this)},
+    LpColumnFilterSpec{*TextureColumn::FORMAT, "FmtPop", makeDelegate<LpTextureTable, &LpTextureTable::drawFormatFilterContent>(this)},
+    LpColumnFilterSpec{*TextureColumn::WIDTH, "WPop", makeDelegate<LpTextureTable, &LpTextureTable::drawWidthFilterContent>(this)},
+    LpColumnFilterSpec{*TextureColumn::HEIGHT, "HPop", makeDelegate<LpTextureTable, &LpTextureTable::drawHeightFilterContent>(this)},
+    LpColumnFilterSpec{*TextureColumn::MIPS, "MipPop", makeDelegate<LpTextureTable, &LpTextureTable::drawMipFilterContent>(this)},
+    LpColumnFilterSpec{
+      *TextureColumn::MEM_SIZE, "MemSzPop", makeDelegate<LpTextureTable, &LpTextureTable::drawMemorySizeFilterContent>(this)},
+    LpColumnFilterSpec{*TextureColumn::USAGE, "TexUsagePop",
+      makeDelegate<LpTextureTable, &LpTextureTable::drawTextureUsageFilterContent>(this), "UsageSearch", "Search...",
+      makeSearchDelegate<LpTextureTable, &LpTextureTable::onUsageSearchChange, &LpTextureTable::onUsageSearchCommit>(this)}};
 
-  registerSearchWidget(
-    COL_NAME, "NameSearch", "Search...", [&](const char *search_text) { filterManagerInstance.setNameSearch(search_text); },
-    [&]() { filterManagerInstance.applyFilters(); });
-
-  registerSearchWidget(
-    COL_TEX_USAGE, "UsageSearch", "Search...",
-    [&](const char *search_text) { filterManagerInstance.setTextureUsageSearch(search_text); },
-    [&]() { filterManagerInstance.applyFilters(); });
-
-  filterPopupManager.registerPopup(COL_NAME, "NamePop", [this]() { drawNameFilterContent(); });
-  filterPopupManager.registerPopup(COL_FORMAT, "FmtPop", [this]() { drawFormatFilterContent(); });
-  filterPopupManager.registerPopup(COL_WIDTH, "WPop", [this]() { drawWidthFilterContent(); });
-  filterPopupManager.registerPopup(COL_HEIGHT, "HPop", [this]() { drawHeightFilterContent(); });
-  filterPopupManager.registerPopup(COL_MIPS, "MipPop", [this]() { drawMipFilterContent(); });
-  filterPopupManager.registerPopup(COL_MEM_SIZE, "MemSzPop", [this]() { drawMemorySizeFilterContent(); });
-  filterPopupManager.registerPopup(COL_TEX_USAGE, "UsagePop", [this]() { drawTextureUsageFilterContent(); });
+  registerColumnFilters(specs);
 
   setSortItemsCallback(&LpTextureTable::sort_table_items_callback, this);
   setItemSelectedCallback(&LpTextureTable::on_item_selected, this);
+
+  if (flags & LpTableFlags::REORDERABLE && trackColumnOrder)
+  {
+    eastl::vector<int> initialOrder = {*TextureColumn::NAME, *TextureColumn::FORMAT, *TextureColumn::WIDTH, *TextureColumn::HEIGHT,
+      *TextureColumn::MIPS, *TextureColumn::MEM_SIZE, *TextureColumn::USAGE};
+    getInitialColumnOrder() = initialOrder;
+    getCurrentColumnOrder() = initialOrder;
+    columnOrderWasModified = false;
+  }
 }
 
 LpTextureTable::~LpTextureTable()
@@ -348,73 +338,45 @@ void LpTextureTable::drawContent()
 {
   if (!profilerUI)
     return;
+  rebuildCache();
+  if (isSortActive())
+    sortFilteredTextures();
+  ensureDisplayOrder();
 
-  auto texModule = profilerUI->getTextureModule();
-  auto renderInstanceModule = profilerUI->getRIModule();
-
-  const auto &currentFilteredTextures = texModule->getFilteredTextures();
-  const auto &allTextures = texModule->getTextures();
-  const auto &textureUsageMap = renderInstanceModule->getTextureUsage();
-
-  if (currentFilteredTextures.empty())
+  if (cachedItems.empty())
   {
     ImGui::TableNextRow();
     if (ImGui::TableSetColumnIndex(UIConstants::FIRST_COL_INDEX))
       ImGui::TextColored(UIConstants::WARNING_COLOR, "No textures match current filters");
-
     return;
   }
 
-  for (const auto &currentTextureName : currentFilteredTextures)
+  for (int visualRow = 0; visualRow < static_cast<int>(displayOrder.size()); ++visualRow)
   {
-    auto textureIterator = allTextures.find(currentTextureName);
-    if (textureIterator == allTextures.end())
-    {
-      // Texture not found - should never happen but handle gracefully
-      beginRow();
-      if (setColumn(COL_NAME))
-      {
-        ImGui::TextColored(UIConstants::ERROR_COLOR, "ERROR: %s", currentTextureName.c_str());
-      }
-      endRow();
+    int idx = displayOrder[visualRow];
+    if (idx < 0 || idx >= static_cast<int>(cachedItems.size()))
       continue;
-    }
-
-    const TextureData &currentTextureData = textureIterator->second;
-    const TextureUsage *currentTextureUsage = nullptr;
-
-    if (auto currentTextureUsageIterator = textureUsageMap.find(currentTextureName);
-        currentTextureUsageIterator != textureUsageMap.end())
-      currentTextureUsage = &currentTextureUsageIterator->second;
-
-    TextureTableItem currentTableItem(currentTextureName, currentTextureData, currentTextureUsage,
-      currentTextureName == selectedTextureName);
-
+    TextureTableItem &item = cachedItems[idx];
+    item.isSelected = (item.name == selectedTextureName);
     beginRow();
-
-    // Draw each column cell
-    for (int columnIndex = 0, n = columnsCount; columnIndex < n; columnIndex++)
+    for (int col = 0; col < columnsCount; ++col)
     {
-      if (const auto &currentColumn = columns[columnIndex]; setColumn(columnIndex) && currentColumn)
+      if (!setColumn(col))
+        continue;
+      const auto &colPtr = columns[col];
+      if (!colPtr)
+        continue;
+      ImGui::PushID(currentRowIndex * columnsCount + col);
+      colPtr->drawCell(&item);
+      if (col == UIConstants::FIRST_COL_INDEX && ImGui::IsItemClicked())
       {
-        ImGui::PushID(currentRowIndex * columnsCount + columnIndex);
-
-        currentColumn->drawCell(&currentTableItem);
-
-        if (columnIndex == UIConstants::FIRST_COL_INDEX && ImGui::IsItemClicked())
-        {
-          if (itemSelectedCallback)
-            itemSelectedCallback(currentRowIndex, &currentTableItem, itemSelectedCallbackUserData);
-
-          selectedTextureName = currentTextureName;
-        }
-
-        LpProfilerTable::drawRowContextMenu(currentRowIndex, columnIndex, &currentTableItem);
-
-        ImGui::PopID();
+        if (itemSelectedCallback)
+          itemSelectedCallback(currentRowIndex, &item, itemSelectedCallbackUserData);
+        selectedTextureName = item.name;
       }
+      LpProfilerTable::drawRowContextMenu(currentRowIndex, col, &item);
+      ImGui::PopID();
     }
-
     endRow();
   }
 }
@@ -448,103 +410,149 @@ void LpTextureTable::handleSelection()
   on_item_selected(hoveredRowIndex, &item, this);
 }
 
-void LpTextureTable::sortFilteredTextures()
+void LpTextureTable::sortFilteredTextures() const
+{
+  if (!profilerUI || !sortSpecs || sortSpecs->SpecsCount == 0)
+    return;
+  ensureDisplayOrder();
+  auto comparator = [this](int lhs, int rhs) {
+    const TextureTableItem &A = cachedItems[lhs];
+    const TextureTableItem &B = cachedItems[rhs];
+    int delta = compareTextureItems(&A, &B, sortSpecs);
+    if (delta != 0)
+      return delta < 0;
+    return A.name < B.name;
+  };
+  eastl::stable_sort(displayOrder.begin(), displayOrder.end(), comparator);
+}
+
+void LpTextureTable::sortFilteredTextures() { static_cast<const LpTextureTable *>(this)->sortFilteredTextures(); }
+void LpTextureTable::rebuildCache() const
+{
+  if (!profilerUI)
+  {
+    cachedItems.clear();
+    displayOrder.clear();
+    return;
+  }
+  TextureModule *texModule = profilerUI->getTextureModule();
+  if (!texModule)
+  {
+    cachedItems.clear();
+    displayOrder.clear();
+    return;
+  }
+  RIModule *riModule = profilerUI->getRIModule();
+
+  const auto &filteredNames = texModule->getFilteredTextures();
+  const auto &allTextures = texModule->getTextures();
+  static const eastl::unordered_map<ProfilerString, TextureUsage> EMPTY_USAGE_MAP;
+  static const eastl::unordered_map<ProfilerString, eastl::vector<ProfilerString>> EMPTY_ASSETS_MAP;
+  const auto &usageMap = riModule ? riModule->getTextureUsage() : EMPTY_USAGE_MAP;
+  const auto &texToAssets = riModule ? riModule->getTextureToAssetsMap() : EMPTY_ASSETS_MAP;
+
+  cachedItems.clear();
+  nameToCacheIndex.clear();
+  cachedItems.reserve(filteredNames.size());
+
+  for (const auto &name : filteredNames)
+  {
+    auto it = allTextures.find(name);
+    if (it == allTextures.end())
+      continue;
+    const TextureData &td = it->second;
+    const char *fmt = TextureModule::getFormatName(td.info.cflg);
+    if (!fmt)
+      continue;
+    const TextureUsage *usagePtr = nullptr;
+    int uniqueCount = 0;
+    if (riModule)
+    {
+      auto uit = usageMap.find(name);
+      if (uit != usageMap.end())
+      {
+        usagePtr = &uit->second;
+        uniqueCount = uit->second.unique;
+      }
+    }
+    TextureTableItem item(it->first, td, usagePtr, false);
+    item.memorySizeMB = texModule->getTextureMemorySize(td);
+    item.usageUniqueCount = uniqueCount;
+    if (uniqueCount == 0)
+      item.usageLabel = "Non-RI";
+    else if (uniqueCount == 1)
+      item.usageLabel = "Unique";
+    else
+      item.usageLabel = "Shared(" + eastl::to_string(uniqueCount) + ")";
+    if (riModule)
+    {
+      auto ait = texToAssets.find(name);
+      if (ait != texToAssets.end() && !ait->second.empty())
+      {
+        for (size_t i = 0; i < ait->second.size(); ++i)
+        {
+          if (i)
+            item.assetNamesList += ", ";
+          item.assetNamesList += ait->second[i];
+        }
+      }
+    }
+    if (item.assetNamesList.empty())
+      item.assetNamesList = "Non-RI";
+    cachedItems.push_back(eastl::move(item));
+    nameToCacheIndex[name] = static_cast<int>(cachedItems.size() - 1);
+  }
+  displayOrder.clear();
+}
+
+void LpTextureTable::ensureDisplayOrder() const
+{
+  if (displayOrder.size() != cachedItems.size())
+  {
+    displayOrder.resize(cachedItems.size());
+    for (size_t i = 0; i < cachedItems.size(); ++i)
+      displayOrder[i] = static_cast<int>(i);
+  }
+}
+
+void LpTextureTable::sortDisplayOrder() const { sortFilteredTextures(); }
+
+void LpTextureTable::buildDisplayOrderedNames(eastl::vector<ProfilerString> &out) const
+{
+  rebuildCache();
+  if (isSortActive())
+    sortFilteredTextures();
+  ensureDisplayOrder();
+  out.clear();
+  out.reserve(displayOrder.size());
+  for (int idx : displayOrder)
+    if (idx >= 0 && idx < static_cast<int>(cachedItems.size()))
+      out.push_back(cachedItems[idx].name);
+}
+
+void LpTextureTable::onNameSearchChange(const char *text)
 {
   if (!profilerUI)
     return;
-
-  if (!sortSpecs || sortSpecs->SpecsCount == 0)
+  profilerUI->getFilterManager().setNameSearch(text);
+}
+void LpTextureTable::onNameSearchCommit()
+{
+  if (!profilerUI)
     return;
-
-  auto textureModule = profilerUI->getTextureModule();
-  auto riModule = profilerUI->getRIModule();
-
-  const auto &textures = textureModule->getTextures();
-  const auto &texUsage = riModule->getTextureUsage();
-  auto &filteredTextures = const_cast<eastl::vector<ProfilerString> &>(textureModule->getFilteredTextures());
-
-  auto compareFunc = [this, &textures, &texUsage](const ProfilerString &a, const ProfilerString &b) -> bool {
-    auto itA = textures.find(a);
-    auto itB = textures.find(b);
-
-    if (itA == textures.end() || itB == textures.end())
-      return a < b; // Fallback to string comparison
-
-    const TextureUsage *textureUsageA = nullptr;
-    if (auto textureUsageItA = texUsage.find(a); textureUsageItA != texUsage.end())
-      textureUsageA = &textureUsageItA->second;
-
-    const TextureUsage *textureUsageB = nullptr;
-    if (auto textureUsageItB = texUsage.find(b); textureUsageItB != texUsage.end())
-      textureUsageB = &textureUsageItB->second;
-
-    TextureTableItem itemA(a, itA->second, textureUsageA);
-    TextureTableItem itemB(b, itB->second, textureUsageB);
-
-    return compareTextureItems(&itemA, &itemB, sortSpecs) < 0;
-  };
-
-  eastl::sort(filteredTextures.begin(), filteredTextures.end(), compareFunc);
+  profilerUI->getFilterManager().applyFilters();
 }
-
-void LpTextureTable::openFilterPopup(TableColumn column)
+void LpTextureTable::onUsageSearchChange(const char *text)
 {
-  switch (column)
-  {
-    case COL_NAME: ImGui::OpenPopup("NamePop"); break;
-    case COL_FORMAT: ImGui::OpenPopup("FmtPop"); break;
-    case COL_WIDTH: ImGui::OpenPopup("WPop"); break;
-    case COL_HEIGHT: ImGui::OpenPopup("HPop"); break;
-    case COL_MIPS: ImGui::OpenPopup("MipPop"); break;
-    case COL_MEM_SIZE: ImGui::OpenPopup("MemSzPop"); break;
-    case COL_TEX_USAGE: ImGui::OpenPopup("TexUsagePop"); break;
-    default: break; // Should not happen with valid TableColumn values.
-  }
+  if (!profilerUI)
+    return;
+  profilerUI->getFilterManager().setTextureUsageSearch(text);
 }
-
-void LpTextureTable::drawFilterPopups()
+void LpTextureTable::onUsageSearchCommit()
 {
-  if (ImGui::BeginPopup("NamePop"))
-  {
-    drawNameFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("FmtPop"))
-  {
-    drawFormatFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("WPop"))
-  {
-    drawWidthFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("HPop"))
-  {
-    drawHeightFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("MipPop"))
-  {
-    drawMipFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("MemSzPop"))
-  {
-    drawMemorySizeFilterContent();
-    ImGui::EndPopup();
-  }
-
-  if (ImGui::BeginPopup("TexUsagePop"))
-  {
-    drawTextureUsageFilterContent();
-    ImGui::EndPopup();
-  }
+  if (!profilerUI)
+    return;
+  profilerUI->getFilterManager().applyFilters();
 }
 
 void LpTextureTable::drawNameFilterContent()
@@ -621,13 +629,8 @@ void LpTextureTable::drawMipFilterContent()
   int defaultMax = textureModule->getMipMaxDefault();
   filter.setAbsoluteBounds(defaultMin, defaultMax);
 
-  if (levelprofiler::LpRangeFilterWidget<int>::Draw("PopupMip", // ID
-        "Levels",                                               // Label
-        filter,                                                 // Filter object
-        "Min: %d",                                              // Min format
-        "Max: %d",                                              // Max format
-        UIConstants::MIPS_FILTER_SPEED                          // Speed
-        ))
+  LpRangeFilterController<int> mipCtrl(&filter);
+  if (drawRangeFilter<int>("PopupMip", "Levels", mipCtrl, "Min: %d", "Max: %d", UIConstants::MIPS_FILTER_SPEED))
     fm.applyFilters();
 }
 
@@ -644,13 +647,8 @@ void LpTextureTable::drawMemorySizeFilterContent()
   float defaultMax = textureModule->getMemorySizeMaxDefault();
   filter.setAbsoluteBounds(defaultMin, defaultMax);
 
-  if (levelprofiler::LpRangeFilterWidget<float>::Draw("PopupSize", // ID
-        "Memory size",                                             // Label
-        filter,                                                    // Filter object
-        "Min: %.2f MB",                                            // Min format
-        "Max: %.2f MB",                                            // Max format
-        UIConstants::MEM_SIZE_FILTER_SPEED                         // Speed
-        ))
+  LpRangeFilterController<float> sizeCtrl(&filter);
+  if (drawRangeFilter<float>("PopupSize", "Memory size", sizeCtrl, "Min: %.2f MB", "Max: %.2f MB", UIConstants::MEM_SIZE_FILTER_SPEED))
     fm.applyFilters();
 }
 
@@ -670,8 +668,16 @@ void LpTextureTable::drawTextureUsageFilterContent()
   if (ImGui::Button("Clear"))
   {
     fm.setTextureUsageFilters(true, true, true);
-    filter.reset(UIConstants::SHARED_TEX_MIN_DEFAULT, static_cast<float>(maxTextureUsage)); // Reset range to sensible defaults,
-                                                                                            // min 2 for shared.
+    filter.reset(UIConstants::SHARED_TEX_MIN_DEFAULT, static_cast<float>(maxTextureUsage));
+
+    if (riModule)
+    {
+      auto &instanceFilter = fm.getAssetInstanceCountRangeFilter();
+      int maxInstanceCount = riModule->getMaxAssetInstanceCount();
+      if (maxInstanceCount > 0)
+        instanceFilter.reset(0, maxInstanceCount);
+    }
+
     fm.applyFilters();
   }
 
@@ -691,14 +697,9 @@ void LpTextureTable::drawTextureUsageFilterContent()
   ImGui::Separator();
   ImGui::Text("Shared range:");
 
-  ImGui::BeginDisabled(!shared);                                          // Range filter is only relevant if "Shared" is active.
-  if (levelprofiler::LpRangeFilterWidget<int>::Draw("PopupTexUsageRange", // ID
-        "",                                                               // Label
-        filter,                                                           // Filter object
-        "Min: %d",                                                        // Min format
-        "Max: %d",                                                        // Max format
-        UIConstants::TEX_USAGE_FILTER_SPEED                               // Speed
-        ))
+  ImGui::BeginDisabled(!shared); // Range filter is only relevant if "Shared" is active.
+  LpRangeFilterController<int> usageCtrl(&filter);
+  if (drawRangeFilter<int>("PopupTexUsageRange", "", usageCtrl, "Min: %d", "Max: %d", UIConstants::TEX_USAGE_FILTER_SPEED))
     fm.applyFilters();
 
   ImGui::EndDisabled();
@@ -710,10 +711,25 @@ void LpTextureTable::drawTextureUsageFilterContent()
     auto &comp = fm.getTextureUsageFilterComponent();
     if (comp.drawInline())
       fm.applyFilters();
+
+    ImGui::Separator();
+    ImGui::Text("Asset instance count:");
+    auto &instanceFilter = fm.getAssetInstanceCountRangeFilter();
+
+    if (riModule)
+    {
+      int maxInstanceCount = riModule->getMaxAssetInstanceCount();
+      if (maxInstanceCount > 0 && static_cast<int>(instanceFilter.getAbsoluteMax()) != maxInstanceCount)
+        instanceFilter.setAbsoluteBounds(0, maxInstanceCount);
+    }
+
+    LpRangeFilterController<int> instanceCtrl(&instanceFilter);
+    if (drawRangeFilter<int>("PopupAssetInstanceCount", "", instanceCtrl, "Min: %d", "Max: %d", UIConstants::TEX_USAGE_FILTER_SPEED))
+      fm.applyFilters();
   }
 }
 
-bool LpTextureTable::isFilterActive(TableColumn column)
+bool LpTextureTable::isFilterActive(ColumnIndex column) const
 {
   return profilerUI && profilerUI->getFilterManager().isColumnFilterActive(column);
 }
@@ -723,22 +739,32 @@ int LpTextureTable::compareTextureItems(const void *item1, const void *item2, co
   if (!sort_specs || !item1 || !item2 || sort_specs->SpecsCount == 0)
     return 0;
 
+  const TextureTableItem *texItem1 = static_cast<const TextureTableItem *>(item1);
+  const TextureTableItem *texItem2 = static_cast<const TextureTableItem *>(item2);
+
+  if (!texItem1 || !texItem2)
+    return 0;
+
   for (int i = 0; i < sort_specs->SpecsCount; i++)
   {
     const ImGuiTableColumnSortSpecs *spec = &sort_specs->Specs[i];
-    int columnIdx = spec->ColumnIndex;
-
-    if (columnIdx < UIConstants::INVALID_INDEX || columnIdx >= columnsCount || !columns[columnIdx])
+    if (!spec)
       continue;
-
+    int columnIdx = spec->ColumnIndex;
+    if (columnIdx < 0 || columnIdx >= columnsCount)
+      continue;
+    if (!columns[columnIdx])
+      continue;
     const LpTextureTableColumn *column = static_cast<const LpTextureTableColumn *>(columns[columnIdx].get());
+    if (!column)
+      continue;
+    if ((column->getColumnType() != TextureColumn::NAME) && (!texItem1->data || !texItem2->data))
+      continue;
     int delta = column->compareItems(item1, item2);
-
     if (delta != 0)
       return spec->SortDirection == ImGuiSortDirection_Ascending ? delta : -delta;
   }
-
-  return 0;
+  return texItem1->name.compare(texItem2->name);
 }
 
 int LpTextureTable::sort_table_items_callback(const ImGuiTableSortSpecs *sort_specs, const void *a, const void *b, void *user_data)
@@ -755,14 +781,14 @@ void LpTextureTable::on_item_selected(int /* index */, void *item_data, void *us
   TextureTableItem *item = static_cast<TextureTableItem *>(item_data);
   LpTextureTable *table = static_cast<LpTextureTable *>(user_data);
 
-  table->setSelectedTexture(*item->name);
-  table->profilerUI->getTextureModule()->selectTexture(item->name->c_str());
+  table->setSelectedTexture(item->name);
+  table->profilerUI->getTextureModule()->selectTexture(item->name.c_str());
 }
 
 eastl::vector<ProfilerString> LpTextureTable::getCustomCopyMenuItems(const void *item_data) const
 {
   const TextureTableItem *item = static_cast<const TextureTableItem *>(item_data);
-  if (!item || !item->name)
+  if (!item)
     return {};
 
   eastl::vector<ProfilerString> items;
@@ -775,7 +801,7 @@ eastl::vector<ProfilerString> LpTextureTable::getCustomCopyMenuItems(const void 
 ProfilerString LpTextureTable::generateCustomCopyText(const void *item_data, const ProfilerString &menu_item) const
 {
   const TextureTableItem *item = static_cast<const TextureTableItem *>(item_data);
-  if (!item || !item->name || !item->data)
+  if (!item || !item->data)
     return ProfilerString{};
 
   if (menu_item == "Usage details")
@@ -788,55 +814,78 @@ ProfilerString LpTextureTable::generateCustomCopyText(const void *item_data, con
 
 ProfilerString LpTextureTable::generateUsageDetailsText(const TextureTableItem *item) const
 {
-  if (!item->textureUsage || item->textureUsage->unique == 0)
-    return "Non-RI";
-
-  return getAssetNamesForTexture(*item->name);
+  if (!item)
+    return ProfilerString();
+  return item->assetNamesList;
 }
 
 ProfilerString LpTextureTable::generateFullRowWithUsageText(const TextureTableItem *item) const
 {
+  if (!item || !item->data)
+    return ProfilerString();
   ProfilerString info;
-  info += "Texture: " + *item->name + "\n";
+  info += "Texture: " + item->name + "\n";
   info += "Format: " + ProfilerString(TextureModule::getFormatName(item->data->info.cflg)) + "\n";
   info += "Dimensions: " + eastl::to_string(item->data->info.w) + "x" + eastl::to_string(item->data->info.h) + "\n";
   info += "Mip levels: " + eastl::to_string(item->data->info.mipLevels) + "\n";
-
-  auto textureProfilerUI =
-    static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-  float sizeMB = textureProfilerUI->getTextureModule()->getTextureMemorySize(*item->data);
-  info += "Memory size: " + eastl::to_string(sizeMB) + " MB\n";
-
-  if (!item->textureUsage || item->textureUsage->unique == 0)
-    info += "Usage: Non-RI";
-  else
-    info += "Usage: " + getAssetNamesForTexture(*item->name);
+  info += "Memory size: " + eastl::to_string(item->memorySizeMB) + " MB\n";
+  info += "Usage: " + item->assetNamesList;
 
   return info;
 }
 
-ProfilerString LpTextureTable::getAssetNamesForTexture(const ProfilerString &texture_name) const
+void LpTextureTable::clearAllFilters()
 {
-  auto textureProfilerUI =
-    static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(UIConstants::FIRST_TAB_INDEX)->module);
-  auto renderInstanceModule = textureProfilerUI->getRIModule();
-  const auto &textureToAssetsMap = renderInstanceModule->getTextureToAssetsMap();
+  if (!profilerUI)
+    return;
 
-  if (auto assetsIt = textureToAssetsMap.find(texture_name); assetsIt != textureToAssetsMap.end() && !assetsIt->second.empty())
+  auto &filterManager = profilerUI->getFilterManager();
+  filterManager.resetAllFilters();
+  if (auto *w = getSearchWidget(*TextureColumn::NAME))
+    w->clear();
+  if (auto *w = getSearchWidget(*TextureColumn::USAGE))
+    w->clear();
+
+  filterManager.applyFilters();
+}
+
+void LpTextureTable::clearColumnFilter(ColumnIndex column)
+{
+  if (!profilerUI)
+    return;
+
+  auto &filterManager = profilerUI->getFilterManager();
+
+  switch (column)
   {
-    const auto &assetNames = assetsIt->second;
-    ProfilerString result;
+    case *TextureColumn::NAME:
+      filterManager.getNameFilterComponent().reset();
+      if (auto *w = getSearchWidget(column))
+        w->clear();
 
-    for (size_t i = 0; i < assetNames.size(); ++i)
-    {
-      if (i > 0)
-        result += ", ";
-      result += assetNames[i];
-    }
-    return result;
+      break;
+    case *TextureColumn::FORMAT: filterManager.getFormatFilter().reset(); break;
+
+    case *TextureColumn::WIDTH: filterManager.getWidthFilter().reset(); break;
+
+    case *TextureColumn::HEIGHT: filterManager.getHeightFilter().reset(); break;
+
+    case *TextureColumn::MIPS: filterManager.getMipRangeFilter().reset(); break;
+
+    case *TextureColumn::MEM_SIZE: filterManager.getSizeRangeFilter().reset(); break;
+
+    case *TextureColumn::USAGE:
+      filterManager.getTextureUsageFilterComponent().reset();
+      filterManager.getTextureUsageRangeFilter().reset();
+      filterManager.getAssetInstanceCountRangeFilter().reset();
+      filterManager.setTextureUsageFilters(true, true, true);
+      if (auto *w = getSearchWidget(column))
+        w->clear();
+      return;
+    default: break;
   }
 
-  return "Non-RI";
+  filterManager.applyFilters();
 }
 
 } // namespace levelprofiler

@@ -13,10 +13,18 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_threads.h>
+#include <perfMon/dag_statDrv.h>
 using namespace HumanInput;
 
+
+static const int ENUMERATION_TIMEOUT_MS = 30000;
+
 Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_360) :
-  device(inimem), enabled(false), excludeXinputDev(exclude_xinput), remapAsX360(remap_360)
+  device(inimem),
+  enabled(false),
+  excludeXinputDev(exclude_xinput),
+  remapAsX360(remap_360),
+  deviceEnumerator{ENUMERATION_TIMEOUT_MS, exclude_xinput, remap_360}
 {
   defJoy = NULL;
   enableAutoDef = true;
@@ -26,41 +34,42 @@ Di8JoystickClassDriver::Di8JoystickClassDriver(bool exclude_xinput, bool remap_3
   deviceConfigChanged = false;
   prevUpdateRefTime = ::ref_time_ticks();
   secDrv = NULL;
-  deviceListCheckerIsRunning = 0;
 }
+
 
 Di8JoystickClassDriver::~Di8JoystickClassDriver()
 {
+  deviceEnumerator.terminate(true, 1000);
   del_wnd_proc_component(this);
   destroyDevices();
 }
+
 
 bool Di8JoystickClassDriver::init()
 {
   stg_joy.enabled = false;
 
-  if (!tryRefreshDeviceList())
-    return false;
-  if (getDeviceCount() > 0)
-    enable(true);
-  return true;
+  maybeDeviceConfigChanged = true;
+  enable(true);
+  return enabled;
 }
+
 
 IWndProcComponent::RetCode Di8JoystickClassDriver::process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam,
   intptr_t &result)
 {
   if (msg == WM_DEVICECHANGE && wParam == DBT_DEVNODES_CHANGED)
   {
-    static int wmDeviceChangeCount = 0;
-    wmDeviceChangeCount++;
-    if (wmDeviceChangeCount < MAX_WM_DEVICECHANGE_COUNT)
-      maybeDeviceConfigChanged = true;
+    debug("[HID][DI8] %s() got devnodes changed", __FUNCTION__);
+    maybeDeviceConfigChanged = true;
   }
   return PROCEED_OTHER_COMPONENTS;
 }
 
+
 void Di8JoystickClassDriver::destroyDevices()
 {
+  TIME_PROFILE(HID_DI8_destroyDevices);
   setDefaultJoystick(NULL);
   unacquireDevices();
   for (int i = 0; i < device.size(); i++)
@@ -68,7 +77,7 @@ void Di8JoystickClassDriver::destroyDevices()
   clear_and_shrink(device);
 }
 
-// generic hid class driver interface
+
 void Di8JoystickClassDriver::enable(bool en)
 {
   enabled = en;
@@ -77,6 +86,8 @@ void Di8JoystickClassDriver::enable(bool en)
   if (secDrv)
     secDrv->enable(en);
 }
+
+
 void Di8JoystickClassDriver::acquireDevices()
 {
   for (int i = 0; i < device.size(); i++)
@@ -84,15 +95,21 @@ void Di8JoystickClassDriver::acquireDevices()
   if (secDrv)
     secDrv->acquireDevices();
 }
+
+
 void Di8JoystickClassDriver::unacquireDevices()
 {
+  TIME_PROFILE(HID_DI8_unacquireDevices);
   for (int i = 0; i < device.size(); i++)
     device[i]->unacquire();
   if (secDrv)
     secDrv->unacquireDevices();
 }
+
+
 void Di8JoystickClassDriver::destroy()
 {
+  deviceEnumerator.terminate(true, 1000);
   destroyDevices();
   stg_joy.present = false;
 
@@ -100,30 +117,27 @@ void Di8JoystickClassDriver::destroy()
   delete this;
 }
 
-class Di8JoystickClassDriver::AsyncDeviceListChecker : public DaThread
-{
-  Di8JoystickClassDriver &driver;
-
-public:
-  AsyncDeviceListChecker(HumanInput::Di8JoystickClassDriver &drv) :
-    DaThread("AsyncDeviceListChecker", DEFAULT_STACK_SZ, 0, WORKER_THREADS_AFFINITY_MASK), driver(drv)
-  {}
-
-  virtual void execute()
-  {
-    driver.checkDeviceList();
-    ::interlocked_release_store(driver.deviceListCheckerIsRunning, 0);
-  }
-};
 
 void Di8JoystickClassDriver::updateDevices()
 {
-  if (maybeDeviceConfigChanged && !::interlocked_acquire_load(deviceListCheckerIsRunning))
+  TIME_PROFILE(HID_DI8_updateDevices);
+
+  // TODO: some better debounce might be necessary
+  if (maybeDeviceConfigChanged && !deviceEnumerator.isThreadRunnning())
   {
-    ::interlocked_release_store(deviceListCheckerIsRunning, 1);
-    deviceListChecker = eastl::make_unique<AsyncDeviceListChecker>(*this);
-    deviceListChecker->start();
+    deviceEnumerator.start();
+    maybeDeviceConfigChanged = false;
   }
+
+  if (!deviceEnumerator.isThreadRunnning())
+    deviceEnumerator.terminate(false);
+  if (deviceEnumerator.foundChanges())
+  {
+    debug("[HID][DI8] found device changes");
+    maybeDeviceConfigChanged = false;
+    deviceConfigChanged = true;
+  }
+
   if (!enabled)
     return;
 
@@ -157,7 +171,6 @@ void Di8JoystickClassDriver::updateDevices()
   }
 }
 
-bool Di8JoystickClassDriver::deviceCheckerListRunning() const { return ::interlocked_acquire_load(deviceListCheckerIsRunning); }
 
 // generic joystick class driver interface
 IGenJoystick *Di8JoystickClassDriver::getDevice(int idx) const
@@ -168,6 +181,8 @@ IGenJoystick *Di8JoystickClassDriver::getDevice(int idx) const
     return device[idx];
   return NULL;
 }
+
+
 void Di8JoystickClassDriver::useDefClient(IGenJoystickClient *cli)
 {
   defClient = cli;
@@ -177,6 +192,7 @@ void Di8JoystickClassDriver::useDefClient(IGenJoystickClient *cli)
     secDrv->useDefClient(cli);
 }
 
+
 HumanInput::IGenJoystick *HumanInput::Di8JoystickClassDriver::getDeviceByUserId(unsigned short userId) const
 {
   for (int i = 0; i < device.size(); i++)
@@ -184,6 +200,7 @@ HumanInput::IGenJoystick *HumanInput::Di8JoystickClassDriver::getDeviceByUserId(
       return device[i];
   return secDrv ? secDrv->getDeviceByUserId(userId) : NULL;
 }
+
 
 void HumanInput::Di8JoystickClassDriver::setDefaultJoystick(IGenJoystick *ref)
 {

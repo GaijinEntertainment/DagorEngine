@@ -44,8 +44,6 @@ shader rt_shadows
     dont_render;
   }
 
-  ENABLE_ASSERT(cs)
-
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
@@ -73,7 +71,7 @@ shader rt_shadows
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   INIT_BVH(cs, 1, true)
-  USE_BVH_FOR_SHADOW(cs)
+  USE_BVH_FOR_SHADOW(cs, false)
 
   USE_CALC_GEOMETRY_NORMAL(cs)
   USE_ADAPTIVE_RAY_OFFSET(cs)

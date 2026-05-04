@@ -12,6 +12,9 @@ shader puddle_query_cs
   INIT_WORLD_HEIGHTMAP_BASE(cs)
   USE_HEIGHTMAP_COMMON_BASE(cs)
 
+  INIT_HEIGHTMAP_GATHERED_SAMPLING(cs)
+  USE_HEIGHTMAP_GATHERED_SAMPLING(cs)
+
   INIT_PUDDLE(cs)
   USE_PUDDLE(cs)
 
@@ -19,15 +22,16 @@ shader puddle_query_cs
     points_buf@buf = puddle_query_input_buf hlsl {
       StructuredBuffer<float4> points_buf@buf;
     };
+    puddle_buf@uav : register(0) hlsl {
+      RWStructuredBuffer<float> puddle_buf@uav;
+    }
   }
 
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "puddle_query.hlsli"
 
     uint num_puddle_points : register(c10);
     uint resultsOffset : register(c11);
-    RWStructuredBuffer<float> puddle_buf : register(u0);
 
     [numthreads( PUDDLE_QUERY_WARP_SIZE, 1, 1 )]
     void main(uint id : SV_DispatchThreadID)

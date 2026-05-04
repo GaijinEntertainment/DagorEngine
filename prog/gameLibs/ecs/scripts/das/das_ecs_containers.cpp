@@ -275,6 +275,11 @@ struct ObjectAnnotation final : das::ManagedStructureAnnotation<ecs::Object, fal
 #if DAGOR_DBGLEVEL > 0
   virtual void walk(das::DataWalker &walker, void *obj) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedStructureAnnotation<ecs::Object, false>::walk(walker, obj);
+      return;
+    }
     ecs::Object *object = (ecs::Object *)obj;
     das::Table tab;
     memset(&tab, 0, sizeof(tab));
@@ -415,6 +420,11 @@ struct ArrayAnnotation final : das::ManagedStructureAnnotation<ecs::Array, false
 #if DAGOR_DBGLEVEL > 0
   virtual void walk(das::DataWalker &walker, void *vec) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedStructureAnnotation<ecs::Array, false>::walk(walker, vec);
+      return;
+    }
     if (!ati)
     {
       auto dimType = das::make_smart<das::TypeDecl>(*vecType);
@@ -476,6 +486,11 @@ struct ChildComponentAnnotation final : das::ManagedStructureAnnotation<ecs::Chi
 #if DAGOR_DBGLEVEL > 0
   virtual void walk(das::DataWalker &walker, void *child) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedStructureAnnotation<ecs::ChildComponent, false>::walk(walker, child);
+      return;
+    }
     ecs::ChildComponent *comp = (ecs::ChildComponent *)child;
     das::TypeInfo dasType = get_type_info(comp->getUserType());
     if (dasType.type != das::none)

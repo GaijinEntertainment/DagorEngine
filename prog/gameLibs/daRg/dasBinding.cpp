@@ -23,6 +23,10 @@
       "das::das_call_member<" #SIGNATURE ", &" #CLASS_NAME "::" #FUNC_NAME ">::invoke"); \
   }
 
+
+DAS_BASE_BIND_ENUM(darg::InputDevice, InputDevice, DEVID_NONE, DEVID_KEYBOARD, DEVID_MOUSE, DEVID_JOYSTICK, DEVID_TOUCH, DEVID_VR,
+  DEVID_MOUSE_AXIS, DEVID_JOYSTICK_AXIS)
+
 namespace darg
 {
 
@@ -45,12 +49,28 @@ struct ElemRenderDataAnnotation : das::ManagedStructureAnnotation<::darg::ElemRe
 
 struct ElementAnnotation : das::ManagedStructureAnnotation<::darg::Element>
 {
-  ElementAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Element", ml, "::darg::Element") { ADD_FIELD(props); }
+  ElementAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Element", ml, "::darg::Element")
+  {
+    ADD_FIELD(props);
+    ADD_FIELD(screenCoord);
+  }
 };
 
 struct PropertiesAnnotation : das::ManagedStructureAnnotation<::darg::Properties>
 {
   PropertiesAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("Properties", ml, "::darg::Properties") {}
+};
+
+struct ScreenCoordAnnotation : das::ManagedStructureAnnotation<::darg::ScreenCoord>
+{
+  ScreenCoordAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("ScreenCoord", ml, "::darg::ScreenCoord")
+  {
+    ADD_FIELD(relPos);
+    ADD_FIELD(screenPos);
+    ADD_FIELD(size);
+    ADD_FIELD(contentSize);
+    ADD_FIELD(scrollOffs);
+  }
 };
 
 struct PictureAnnotation : das::ManagedStructureAnnotation<::darg::Picture>
@@ -101,9 +121,12 @@ public:
     addBuiltinDependency(lib, require("DagorStdGuiRender"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
 
+    addEnumeration(das::make_smart<EnumerationInputDevice>());
+
     addAnnotation(das::make_smart<ElemRenderDataAnnotation>(lib));
     addAnnotation(das::make_smart<RenderStateAnnotation>(lib));
     addAnnotation(das::make_smart<PropertiesAnnotation>(lib));
+    addAnnotation(das::make_smart<ScreenCoordAnnotation>(lib));
     addAnnotation(das::make_smart<ElementAnnotation>(lib));
     addAnnotation(das::make_smart<PictureAnnotation>(lib));
 

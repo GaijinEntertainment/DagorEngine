@@ -6,7 +6,7 @@
 #include <folders/folders.h>
 #include <json/json.h>
 #include <sqEventBus/sqEventBus.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqDataCache/datacache.h>
 #include <util/dag_delayedAction.h>
 
@@ -19,38 +19,38 @@ static eastl::unordered_map<eastl::string, eastl::unique_ptr<datacache::Backend>
 static void send_evbus_resp_headers(const char *entry_key, streamio::StringMap const &resp_headers)
 {
   eastl::string eventName(eastl::string::CtorSprintf(), "datacache.headers.%s", entry_key); // TODO: rename to .resp_headers
-  Json::Value msg;
-  for (auto &header : resp_headers)
-  {
-    const eastl::string key(header.first.begin(), header.first.end());
-    const eastl::string data(header.second.begin(), header.second.end());
-    msg[key.c_str()] = data.c_str();
-  }
-  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
+  sqeventbus::write_event(eventName.c_str(), [&](auto &msg) {
+    for (auto &header : resp_headers)
+    {
+      const eastl::string key(header.first.begin(), header.first.end());
+      const eastl::string data(header.second.begin(), header.second.end());
+      msg[key.c_str()] = data.c_str();
+    }
+  });
 }
 
 static void send_evbus_error(const char *entry_key, const char *err, datacache::ErrorCode error_code)
 {
   eastl::string eventName(eastl::string::CtorSprintf(), "datacache.%s", entry_key);
-  Json::Value msg;
-  msg["error"] = err;
-  msg["error_code"] = error_code;
-  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
+  sqeventbus::write_event(eventName.c_str(), [&](auto &msg) {
+    msg["error"] = err;
+    msg["error_code"] = error_code;
+  });
   send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
 static void send_evbus_entry_info(const char *entry_key, datacache::Entry *entry)
 {
   eastl::string eventName(eastl::string::CtorSprintf(), "datacache.%s", entry_key);
-  Json::Value msg;
-  msg["key"] = entry->getKey();
-  msg["path"] = entry->getPath();
-  msg["size"] = entry->getDataSize();
-  run_action_on_main_thread([eventName, msg]() { sqeventbus::send_event(eventName.c_str(), msg); });
+  sqeventbus::write_event(eventName.c_str(), [&](auto &msg) {
+    msg["key"] = entry->getKey();
+    msg["path"] = entry->getPath();
+    msg["size"] = entry->getDataSize();
+  });
   send_evbus_resp_headers(entry_key, streamio::StringMap{}); // send empty header for unsubscribe
 }
 
-void init_cache(const char *cache_name, Sqrat::Table params)
+static void init_cache(const char *cache_name, Sqrat::Table params)
 {
   if (auto it = datacaches.find(cache_name); it != datacaches.end())
     return;
@@ -76,7 +76,7 @@ void init_cache(const char *cache_name, Sqrat::Table params)
     datacaches.insert({cache_name, std::move(cache)});
 }
 
-void abort_requests(const char *cache_name)
+static void abort_requests(const char *cache_name)
 {
   if (auto it = datacaches.find(cache_name); it != datacaches.end())
   {
@@ -104,7 +104,7 @@ static void on_entry_completion(const char *key, datacache::ErrorCode error, dat
   }
 }
 
-bool del_entry(const char *cache_name, const char *entry_key)
+static bool del_entry(const char *cache_name, const char *entry_key)
 {
   auto it = datacaches.find(cache_name);
   if (it == datacaches.end())
@@ -112,9 +112,9 @@ bool del_entry(const char *cache_name, const char *entry_key)
   return it->second->del(entry_key);
 }
 
-SQInteger get_all_entries(HSQUIRRELVM vm)
+static SQInteger get_all_entries(HSQUIRRELVM vm)
 {
-  const SQChar *cacheName = nullptr;
+  const char *cacheName = nullptr;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &cacheName)));
   auto it = datacaches.find(cacheName);
   if (it == datacaches.end())
@@ -137,7 +137,7 @@ SQInteger get_all_entries(HSQUIRRELVM vm)
   return 1;
 }
 
-void request_entry(const char *cache_name, const char *entry_key)
+static void request_entry(const char *cache_name, const char *entry_key)
 {
   auto it = datacaches.find(cache_name);
   if (it == datacaches.end())
@@ -168,7 +168,7 @@ void bind_datacache(SqModules *module_mgr)
     .Func("request_entry", request_entry)
     .Func("abort_requests", abort_requests)
     .Func("del_entry", del_entry)
-    .SquirrelFunc("get_all_entries", get_all_entries, 2, ".s")
+    .SquirrelFuncDeclString(get_all_entries, "get_all_entries(cache_name: string): array")
     .SetValue("ERR_UNKNOWN", (SQInteger)datacache::ERR_UNKNOWN)
     .SetValue("ERR_OK", (SQInteger)datacache::ERR_OK)
     .SetValue("ERR_PENDING", (SQInteger)datacache::ERR_PENDING)

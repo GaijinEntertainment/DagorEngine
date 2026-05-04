@@ -24,7 +24,7 @@ void BackBufferHolder::init()
     int backBufferWidth = 0;
     int backBufferHeight = 0;
     d3d::get_screen_size(backBufferWidth, backBufferHeight);
-    backBuffer = d3d::create_tex(NULL, backBufferWidth, backBufferHeight, TEXCF_RTARGET, 1, "srgb_frame");
+    backBuffer = d3d::create_tex(NULL, backBufferWidth, backBufferHeight, TEXCF_RTARGET, 1, "srgb_frame", RESTAG_TARGET);
     TEXTUREID texId = register_managed_tex("srgb_frame", backBuffer);
     srgbFrame = TextureIDPair(backBuffer, texId);
   }
@@ -77,6 +77,8 @@ const TextureIDPair BackBufferHolder::getTex()
     G_ASSERT(holder->srgbFrame.getId() == BAD_TEXTUREID && !holder->srgbFrame.getTex2D());
     Texture *backBuffer = d3d::get_backbuffer_tex();
     G_ASSERT(backBuffer);
+    // \x7f\x7f\x7f_ prefix is here to put the name at the end of the name list, so
+    // unregistering it is faster.
     TEXTUREID texId = register_managed_tex("\x7f\x7f\x7f_tmp_backbuffer", backBuffer);
     holder->srgbFrame = TextureIDPair(backBuffer, texId);
   }

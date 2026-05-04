@@ -12,6 +12,7 @@
 #include <ioSys/dag_dataBlock.h>
 
 class IGenLoad;
+class GlobalSharedMemStorage;
 
 #define DEF_UNICAST_GAME_EVENTS                                                                                           \
   DECL_GAME_EVENT(CmdUse, ecs::EntityId) /* unicast */                                                                    \
@@ -27,6 +28,7 @@ class IGenLoad;
   DECL_GAME_EVENT(EventOnGameInit)                                                                                             \
   DECL_GAME_EVENT(EventOnGameTerm)                                                                                             \
   DECL_GAME_EVENT(EventOnGameShutdown)                                                                                         \
+  DECL_GAME_EVENT(EventOnSharedMemInited, GlobalSharedMemStorage * /*shared_mem*/)                                             \
   DECL_GAME_EVENT(EventOnGameAppStarted)                                                                                       \
   DECL_GAME_EVENT(EventOnGameUnloadStart)                                                                                      \
   DECL_GAME_EVENT(EventOnGameUnloadEnd)                                                                                        \

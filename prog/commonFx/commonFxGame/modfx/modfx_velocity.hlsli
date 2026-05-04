@@ -670,14 +670,15 @@ void modfx_velocity_sim(
     bool grav_tr = FLAG_ENABLED( parent_sdata.flags, MODFX_SFLAG_VELOCITY_APPLY_GRAVITY_TRANSFORM );
 
     grav_vec = float3( 0, g, 0 );
-    if ( etm_enabled && grav_tr )
-      grav_vec = float_xyz(float4x4_row(etm, 1)) * g;
-    else if ( !etm_enabled && grav_tr )
-      grav_vec = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_LOCAL_GRAVITY] ) * g;
-
+    if (etm_enabled) {
+      if (grav_tr)
+        grav_vec = float_xyz(float4x4_row(etm, 1)) * g;
 #if DAFX_USE_GRAVITY_ZONE
-    grav_vec = mul(grav_vec, gravityTm);
+      else
+        grav_vec = mul(grav_vec, gravityTm);
 #endif
+    } else if (grav_tr)
+      grav_vec = dafx_get_3f( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_LOCAL_GRAVITY] ) * g;
   }
 
   if ( parent_sdata.mods_offsets[MODFX_SMOD_MASS_INIT] )
@@ -699,7 +700,8 @@ void modfx_velocity_sim(
       add_v *= modfx_get_1f_curve( buf, parent_sdata.mods_offsets[MODFX_SMOD_VELOCITY_DECAY], life_k );
 
 #if DAFX_USE_GRAVITY_ZONE
-    add_v = mul(add_v, gravityTm);
+    if (etm_enabled && !FLAG_ENABLED(parent_sdata.flags, MODFX_SFLAG_VELOCITY_APPLY_EMITTER_TRANSFORM_TO_ADD))
+      add_v = mul(add_v, gravityTm);
 #endif
 
     o_velocity += add_v * dt;

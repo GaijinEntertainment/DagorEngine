@@ -1,0 +1,8 @@
+ERROR: unfinished string
+testData/diagnostics/compilation_errors/lex_errors/unfinished_string.nut:2:8
+
+// EXPECT_ERROR: "unfinished string"
+let x = "hello
+        ^-----
+
+

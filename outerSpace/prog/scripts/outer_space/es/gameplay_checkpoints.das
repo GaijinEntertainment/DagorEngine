@@ -48,6 +48,17 @@ def spaceship_visit_checkpoints_es(evt : CmdPostPhysUpdate; phys_obj_net_phys : 
           set(plinfo, "player_score", player__score)
           set(plinfo, "player_last_checkpoint_time", player__last_checkpoint_time)
           set(scores, "{eid}", plinfo)
+      query() <| $ [es(REQUIRE=is_bot)] (eid : EntityId;
+                                         name : string;
+                                         player__checkpoints : int;
+                                         player__last_checkpoint_time : float;
+                                         player__score : float)
+        using() <| $(var plinfo : Object)
+          set(plinfo, "name", name)
+          set(plinfo, "checkpoints", player__checkpoints)
+          set(plinfo, "player_score", player__score)
+          set(plinfo, "player_last_checkpoint_time", player__last_checkpoint_time)
+          set(scores, "{eid}", plinfo)
       net::broadcast_net_event(EventSessionFinishedOnWin(byPlayer = player_winner_eid, scores = ecs_addr(scores)))
     broadcastEvent(EventSetExitTimerOnWin(exit_in_sec = 15.0))
 

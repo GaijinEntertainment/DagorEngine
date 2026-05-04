@@ -1,0 +1,6 @@
+; for w238_sqconfig.nut
+function_result_must_be_utilized = _must_be_utilized
+; for w239_sqconfig.nut
+function_should_return_bool_prefix = returnBool
+; ; for w260_table_sqconfig.nut
+function_should_return_something_prefix = make

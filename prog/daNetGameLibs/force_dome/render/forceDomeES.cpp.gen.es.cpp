@@ -87,7 +87,8 @@ static void force_dome_field_es_all_events(const ecs::Event &__restrict evt, con
   G_FAST_ASSERT(evt.is<UpdateStageInfoRenderTrans>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     force_dome_field_es(static_cast<const UpdateStageInfoRenderTrans&>(evt)
-        , ECS_RW_COMP(force_dome_field_es_comps, "force_dome_resources", ForceDomeResources)
+        , components.manager()
+    , ECS_RW_COMP(force_dome_field_es_comps, "force_dome_resources", ForceDomeResources)
     );
   while (++comp != compE);
 }
@@ -175,9 +176,9 @@ static ecs::CompileTimeQueryDesc force_dome_render_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void force_dome_render_ecs_query(Callable function)
+inline void force_dome_render_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, force_dome_render_ecs_query_desc.getHandle(),
+  perform_query(&manager, force_dome_render_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

@@ -42,6 +42,6 @@ struct WrapperRendinstContactResultCB : public WrapperContactResultCB
   }
 
   void addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB);
-  void addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
-    const RendinstCollisionUserInfo *userInfo, gamephys::CollisionObjectInfo *obj_info = nullptr);
+  void addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, const RendinstCollisionUserInfo &userInfo,
+    gamephys::CollisionObjectInfo *obj_info = nullptr);
 };

@@ -7,5 +7,5 @@ return {
   clearAndCancelAllLocalNotifications = function() {}
   clearReceivedLocalNotifications = function() {}
   getNotificationsCount = function() { return 0 }
-  isNotificationsEnabled = function() {}
+  isNotificationsEnabled = function() { return false }
 }

@@ -1,0 +1,28 @@
+// project.das_project — Main project file for module resolution tests
+//
+// This project extends common.das_project and adds:
+//
+//   1. The foo/.das_module registration — by including foo/foo.das_module,
+//      the foo module resolver is registered in the `modules` array at init time.
+//      This allows `require foo` to resolve to foo/foo_main.das and
+//      `require foo.random` to resolve to foo/foo_random.das.
+//
+//   2. include_get(inc, from) — custom include resolution callback.
+//      When a .das file uses `include sample.inc`, the compiler calls this function
+//      to resolve the include path. We return the absolute path under _modules/include/.
+//
+// Used by: main.das (foo + bar test), main_inc.das (include test)
+// NOT used by: main_default.das (which deliberately uses no project file)
+
+options gen2
+require strings
+require daslib/strings_boost
+
+include common.das_project
+include foo/foo.das_module
+
+[export]
+def include_get(inc, from : string) : string {
+    print("including {inc} from {from}\n")
+    return "{get_das_root()}/tests/module_tests/_modules/include/{inc}"
+}

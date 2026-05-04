@@ -1,1 +1,13 @@
 import:t="%gameLibs/render/lensFlare/templates/lens_flare.template.blk"
+
+lens_flare_renderer_in_distortion_pass {
+  _use:t="lens_flare_renderer"
+  _group{
+    _tags:t="render"
+    "renderInDistortion:tag"{}
+
+    "lens_flare_renderer__per_camera_res_node:dafg::NodeHandle"{}
+    "lens_flare_renderer__camcam_lens_prepare_lights_node:dafg::NodeHandle"{}
+    "lens_flare_renderer__camcam_lens_render_node:dafg::NodeHandle"{}
+  }
+}

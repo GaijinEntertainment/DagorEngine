@@ -1,19 +1,18 @@
 #ifndef BEAM_TRACERS_HLSLI_INCLUDED
 #define BEAM_TRACERS_HLSLI_INCLUDED
 
-#define MAX_TRACERS 2048
+#define MAX_BEAM_TRACERS 512 // 64kb limitation win10 (due to BEAM_TRACER_BEAM_MAX_UPDATE_COMMANDS size)
 
 #define TRACER_RIBBON_SEGMENTS_COUNT 512
 #define TRACER_SEGMENTS_COUNT 16
 #define TRACER_COMMAND_WARP_SIZE 16
 #define TRACER_CULL_WARP_SIZE 16
-#define CONST_BUF_MAX_SIZE 4096 /* in float4 */
-#define TRACER_CMD_BUF_MAX_SIZE (CONST_BUF_MAX_SIZE-4)
-#define TRACER_BEAM_UPDATE_COMMAND_SIZE 2 /* BeamTracerUpdateCommand in float4 */
-#define TRACER_BEAM_MAX_UPDATE_COMMANDS (TRACER_CMD_BUF_MAX_SIZE / TRACER_BEAM_UPDATE_COMMAND_SIZE)
-#define TRACER_BEAM_CREATE_COMMAND_SIZE 4 /* BeamTracerCreateCommand in float4 */
-#define TRACER_BEAM_MAX_CREATE_COMMANDS (TRACER_CMD_BUF_MAX_SIZE / TRACER_BEAM_CREATE_COMMAND_SIZE)
-#define TRACER_MAX_CULL_COMMANDS (CONST_BUF_MAX_SIZE-14)
+#define TRACER_CONST_BUF_MAX_SIZE (4096 - 16) /* in float4 / minus 16 not to exceed 64kb */
+#define BEAM_TRACER_BEAM_UPDATE_COMMAND_SIZE 2 /* BeamTracerUpdateCommand in float4 */
+#define BEAM_TRACER_BEAM_MAX_UPDATE_COMMANDS MAX_BEAM_TRACERS
+#define BEAM_TRACER_BEAM_CREATE_COMMAND_SIZE 5 /* BeamTracerCreateCommand in float4 */
+#define BEAM_TRACER_BEAM_MAX_CREATE_COMMANDS MAX_BEAM_TRACERS
+#define BEAM_TRACER_MAX_CULL_COMMANDS (TRACER_CONST_BUF_MAX_SIZE-14)
 
 #ifdef __cplusplus
 #pragma pack(push, 1)
@@ -22,7 +21,7 @@
 struct GPUBeamTracer//todo: compress.
 {
   float3 p0;
-  float pad0;
+  float isHeroLaser;
 
   float3 dir; //changes on create only, needed for update&culling
   float pad1;
@@ -92,7 +91,7 @@ struct GPUBeamTracerHeadRender//todo: compress me!
   float3 p1;
   float radius1;
   float4 color;//can be compressed
-  float resv1; //padding for 16 byte alignment
+  float isHeroLaser;
   float beamScrollSpeed;
   float fadeTimeRatio;
   float beamFadeDist;
@@ -107,14 +106,19 @@ struct BeamTracerCreateCommand
   float beamEndFadeTime;
   float beamScrollSpeed;
   float beamFadeDist;
+  float isHeroLaser;
+  float createPad0;
+  float createPad1;
+  float createPad2;
   #ifdef __cplusplus
   BeamTracerCreateCommand() = default;
   BeamTracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_,
                           const float3 &head_color, float burn_time, float fade_dist,
-                          float begin_fade_time, float end_fade_time, float scroll_speed):
+                          float begin_fade_time, float end_fade_time, float scroll_speed,
+                          float is_hero_laser):
     id(id_), pos0(p0), dir(d), ttl(ttl_), headColor(head_color), burnTime(burn_time),
     beamFadeDist(fade_dist), beamBeginFadeTime(begin_fade_time), beamEndFadeTime(end_fade_time),
-    beamScrollSpeed(scroll_speed)
+    beamScrollSpeed(scroll_speed), isHeroLaser(is_hero_laser), createPad0(0), createPad1(0), createPad2(0)
     {}
   #endif
 };

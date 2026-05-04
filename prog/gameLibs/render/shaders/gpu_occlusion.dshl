@@ -1,4 +1,5 @@
 include "globtm.dshl"
+include "dynamic_resolution.dshl"
 
 texture reprojected_hzb;
 int reprojected_hzb_depth_mip_count;
@@ -28,6 +29,9 @@ macro BASE_GPU_OCCLUSION(code)
       downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
     }
   }
+
+  INIT_DYNAMIC_RESOLUTION(code)
+
   hlsl(code)
   {
     #ifndef optional_hyperbolize_downsampled_depth
@@ -35,7 +39,7 @@ macro BASE_GPU_OCCLUSION(code)
     #endif
     #define OCCLUSION_RECT_SZ 4
 
-    #define OCCLUSION_SAMPLE_DEPTH(location, level) hzb_tex.SampleLevel(hzb_tex_samplerstate, location, level).x
+    #define OCCLUSION_SAMPLE_DEPTH(location, level) hzb_tex.SampleLevel(hzb_tex_samplerstate, location * current_dynamic_resolution_scale, level).x
 
     #if OCCLUSION_RECT_SZ == 4
       #define OCCLUSION_SAMPLE_RECT(fun) \

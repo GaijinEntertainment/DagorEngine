@@ -5,8 +5,9 @@
 #include "texture.h"
 #include <drv/3d/dag_renderTarget.h>
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "device_context.h"
+#include "backend/cmd/renderpass.h"
 
 namespace drv3d_vulkan
 {
@@ -69,7 +70,7 @@ void StateFieldRenderPassTarget::applyTo(uint32_t index, FrontRenderPassStateSto
   }
   ivs.isRenderTarget = 1;
 
-  target.getExecutionContext().verifyResident(image);
+  Backend::ctx.verifyResident(image);
 
   att.view = image->getImageView(ivs);
   att.layers = ivs.isArray ? ivs.getArrayCount() : 1;
@@ -97,7 +98,7 @@ void StateFieldRenderPassTarget::transit(uint32_t index, FrontRenderPassStateSto
   static_assert(sizeof(cmd.clearValueArr) == sizeof(clearValue.asUint));
   memcpy(cmd.clearValueArr, clearValue.asUint, sizeof(cmd.clearValueArr));
 
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock(cmd);
 }
 
 template <>
@@ -121,8 +122,7 @@ void StateFieldRenderPassResource::applyTo(FrontRenderPassStateStorage &state, E
 template <>
 void StateFieldRenderPassResource::transit(FrontRenderPassStateStorage &, DeviceContext &target) const
 {
-  CmdSetRenderPassResource cmd{ptr};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetRenderPassResource>({ptr});
 }
 
 template <>
@@ -132,7 +132,7 @@ void StateFieldRenderPassResource::dumpLog(const FrontRenderPassStateStorage &) 
 }
 
 template <>
-void StateFieldRenderPassResource::applyTo(BackGraphicsStateStorage &, ExecutionContext &) const
+void StateFieldRenderPassResource::applyTo(BackGraphicsStateStorage &, BEContext &) const
 {
   if (!ptr)
     return;
@@ -190,8 +190,7 @@ void StateFieldRenderPassSubpassIdx::applyTo(FrontRenderPassStateStorage &state,
 template <>
 void StateFieldRenderPassSubpassIdx::transit(FrontRenderPassStateStorage &, DeviceContext &target) const
 {
-  CmdSetRenderPassSubpassIdx cmd{data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetRenderPassSubpassIdx>({data});
 }
 
 template <>
@@ -207,8 +206,7 @@ void StateFieldRenderPassArea::applyTo(FrontRenderPassStateStorage &, ExecutionS
 template <>
 void StateFieldRenderPassArea::transit(FrontRenderPassStateStorage &, DeviceContext &target) const
 {
-  CmdSetRenderPassArea cmd{data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetRenderPassArea>({data});
 }
 
 template <>
@@ -267,8 +265,7 @@ void StateFieldRenderPassIndex::applyTo(FrontRenderPassStateStorage &, Execution
 template <>
 void StateFieldRenderPassIndex::transit(FrontRenderPassStateStorage &, DeviceContext &target) const
 {
-  CmdSetRenderPassIndex cmd{data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetRenderPassIndex>({data});
 }
 
 template <>

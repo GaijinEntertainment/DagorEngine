@@ -3,7 +3,10 @@
 #include "cameraInCamera.h"
 
 #include <ecs/anim/anim.h>
-#include <ecs/core/entityManager.h>
+#include <ecs/camera/getActiveCameraSetup.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/phys/collRes.h>
 #include <ecs/render/updateStageRender.h>
 
@@ -17,29 +20,31 @@
 #include <render/world/private_worldRenderer.h>
 
 
-template <typename Callable>
-static inline void update_camcam_transforms_ecs_query(Callable);
+CONSOLE_BOOL_VAL("camcam", use_delayed_deactivation, true);
 
 template <typename Callable>
-static inline void update_camcam_state_ecs_query(Callable);
+static inline void update_camcam_transforms_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void get_camcam_uv_remapping_ecs_query(Callable);
+static inline void update_camcam_state_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void get_camcam_render_state_ecs_query(Callable);
+static inline void get_camcam_uv_remapping_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void get_camcam_lens_only_zoom_state_ecs_query(Callable);
+static inline void get_camcam_render_state_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void get_scope_animchar_and_colres_ecs_query(ecs::EntityId, Callable);
+static inline void get_camcam_lens_only_zoom_state_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void vaidate_scope_ecs_query(ecs::EntityId, Callable);
+static inline void check_if_scope_disables_camcam_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 template <typename Callable>
-static inline void check_if_scope_disables_camcam_ecs_query(ecs::EntityId, Callable);
+static inline void check_if_frame_after_deactivation_ecs_query(ecs::EntityManager &manager, Callable);
+
+template <typename Callable>
+static inline void get_camcam_frame_number_ecs_query(ecs::EntityManager &manager, Callable);
 
 namespace var
 {
@@ -72,10 +77,6 @@ static ShaderVariableInfo globtm_no_ofs_psf_0("globtm_no_ofs_psf_0", true);
 static ShaderVariableInfo globtm_no_ofs_psf_1("globtm_no_ofs_psf_1", true);
 static ShaderVariableInfo globtm_no_ofs_psf_2("globtm_no_ofs_psf_2", true);
 static ShaderVariableInfo globtm_no_ofs_psf_3("globtm_no_ofs_psf_3", true);
-static ShaderVariableInfo view_vecLT("view_vecLT", true);
-static ShaderVariableInfo view_vecRT("view_vecRT", true);
-static ShaderVariableInfo view_vecLB("view_vecLB", true);
-static ShaderVariableInfo view_vecRB("view_vecRB", true);
 } // namespace var
 
 namespace camera_in_camera
@@ -89,34 +90,76 @@ void setup(const bool feature_enabled)
   else if (eid && !feature_enabled)
     g_entity_mgr->destroyEntity(eid);
 
-  ShaderGlobal::set_real(var::camera_in_camera_active, 0.0f);
+  ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
+}
+
+bool is_frame_after_deactivation()
+{
+  bool v = false;
+  check_if_frame_after_deactivation_ecs_query(*g_entity_mgr,
+    [&v](const bool camcam__frame_after_deactivation) { v = camcam__frame_after_deactivation; });
+  return v;
+}
+
+int get_frame_number()
+{
+  int i = -1;
+  get_camcam_frame_number_ecs_query(*g_entity_mgr, [&i](const int camcam__iFrame) { i = camcam__iFrame; });
+  return i;
+}
+
+static void process_lens_activation_state(const bool feature_enabled_for_scope,
+  bool &camcam__lens_render_active,
+  int &camcam__iFrame,
+  bool &camcam__frame_after_deactivation,
+  const AimRenderingData &aim_data)
+{
+  if (!feature_enabled_for_scope)
+  {
+    camcam__lens_render_active = false;
+    camcam__frame_after_deactivation = false;
+    camcam__iFrame = -1;
+    return;
+  }
+
+  const bool wasLookingThroughTheLens = camcam__lens_render_active;
+  const bool lookingThroughTheLens = aim_data.lensRenderEnabled;
+
+  camcam__frame_after_deactivation = wasLookingThroughTheLens && !lookingThroughTheLens;
+  camcam__lens_render_active = lookingThroughTheLens;
+  camcam__iFrame = camcam__lens_render_active ? camcam__iFrame + 1 : -1;
+}
+
+static inline bool check_if_scope_disables_camcam(const ecs::EntityId entity_with_scope)
+{
+  const bool hasWeaponWithScopeInHands = static_cast<bool>(entity_with_scope);
+  if (!hasWeaponWithScopeInHands)
+    return true;
+
+  bool scopeDisablesCamCam = false;
+  check_if_scope_disables_camcam_ecs_query(*g_entity_mgr, entity_with_scope,
+    [&scopeDisablesCamCam](const bool gunmod__lensOnlyZoomDisabled) {
+      if (gunmod__lensOnlyZoomDisabled)
+        scopeDisablesCamCam = gunmod__lensOnlyZoomDisabled;
+    });
+
+  return scopeDisablesCamCam;
 }
 
 bool activate_view()
 {
+  ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
+
   bool isActiveVal = false;
 
-  update_camcam_state_ecs_query([&isActiveVal](bool &camcam__lens_render_active, bool &camcam__lens_only_zoom_enabled,
-                                  bool *camcam__has_pending_validation = nullptr) {
-    const bool hasCamCam = renderer_has_feature(CAMERA_IN_CAMERA);
+  update_camcam_state_ecs_query(*g_entity_mgr, [&isActiveVal](bool &camcam__lens_render_active, int &camcam__iFrame,
+                                                 const bool camcam__lens_only_zoom_enabled, bool &camcam__frame_after_deactivation) {
     const AimRenderingData aimData = get_aim_rendering_data();
-
-    bool scopeDisablesCamCam = false;
-    check_if_scope_disables_camcam_ecs_query(aimData.entityWithScopeLensEid,
-      [&scopeDisablesCamCam](const bool gunmod__lensOnlyZoomDisabled) { scopeDisablesCamCam = gunmod__lensOnlyZoomDisabled; });
-
-    const bool featureEnabledForScope = hasCamCam && !scopeDisablesCamCam;
-
-    camcam__lens_render_active = featureEnabledForScope && aimData.lensRenderEnabled;
-    camcam__lens_only_zoom_enabled = featureEnabledForScope && aimData.entityWithScopeLensEid;
-
-    if (camcam__has_pending_validation)
-      *camcam__has_pending_validation = camcam__lens_only_zoom_enabled;
+    process_lens_activation_state(camcam__lens_only_zoom_enabled, camcam__lens_render_active, camcam__iFrame,
+      camcam__frame_after_deactivation, aimData);
 
     isActiveVal = camcam__lens_render_active;
   });
-
-  ShaderGlobal::set_real(var::camera_in_camera_active, isActiveVal ? 1.0f : 0.0f);
 
   return isActiveVal;
 }
@@ -124,14 +167,15 @@ bool activate_view()
 bool is_lens_render_active()
 {
   bool active = false;
-  get_camcam_render_state_ecs_query([&](bool camcam__lens_render_active) { active = camcam__lens_render_active; });
+  get_camcam_render_state_ecs_query(*g_entity_mgr, [&](bool camcam__lens_render_active) { active = camcam__lens_render_active; });
   return active;
 }
 
 bool is_lens_only_zoom_enabled()
 {
   bool enabled = false;
-  get_camcam_lens_only_zoom_state_ecs_query([&](bool camcam__lens_only_zoom_enabled) { enabled = camcam__lens_only_zoom_enabled; });
+  get_camcam_lens_only_zoom_state_ecs_query(*g_entity_mgr,
+    [&](bool camcam__lens_only_zoom_enabled) { enabled = camcam__lens_only_zoom_enabled; });
   return enabled;
 }
 
@@ -209,23 +253,8 @@ ViewportEllipse calc_viewport_ellipse(
 
 void update_transforms(const CameraParams &main_view, const CameraParams &prev_main_view, const CameraParams &lens_view)
 {
-  AimRenderingData aimData = get_aim_rendering_data();
-  if (!aimData.entityWithScopeLensEid)
-    return;
-
-  const AnimV20::AnimcharRendComponent *lensAnimcharRender = nullptr;
-  const CollisionResource *collision = nullptr;
-
-  get_scope_animchar_and_colres_ecs_query(aimData.entityWithScopeLensEid,
-    [&](const AnimV20::AnimcharRendComponent &animchar_render, const CollisionResource *collres = nullptr) {
-      lensAnimcharRender = &animchar_render;
-      collision = collres;
-    });
-
-  if (!lensAnimcharRender)
-    return;
-
-  const DynamicRenderableSceneInstance *scene = lensAnimcharRender->getSceneInstance();
+  const AimRenderingData aimData = get_aim_rendering_data();
+  const DynamicRenderableSceneInstance *scene = get_scope_lens(aimData);
   if (!scene)
     return;
 
@@ -244,14 +273,15 @@ void update_transforms(const CameraParams &main_view, const CameraParams &prev_m
 
   const Point4 uvRemapping = calc_uv_remapping(main_view, lens_view);
 
-  ShaderGlobal::set_color4(var::camera_in_camera_prev_vp_ellipse_center, prevFrameEllipse.center);
-  ShaderGlobal::set_color4(var::camera_in_camera_prev_vp_ellipse_xy_axes, prevFrameAxes);
-  ShaderGlobal::set_color4(var::camera_in_camera_vp_ellipse_center, curFrameEllipse.center);
-  ShaderGlobal::set_color4(var::camera_in_camera_vp_ellipse_xy_axes, curFrameAxes);
-  ShaderGlobal::set_real(var::camera_in_camera_vp_y_scale, viewportScale);
-  ShaderGlobal::set_color4(var::camera_in_camera_vp_uv_remapping, uvRemapping);
+  ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_center, prevFrameEllipse.center);
+  ShaderGlobal::set_float4(var::camera_in_camera_prev_vp_ellipse_xy_axes, prevFrameAxes);
+  ShaderGlobal::set_float4(var::camera_in_camera_vp_ellipse_center, curFrameEllipse.center);
+  ShaderGlobal::set_float4(var::camera_in_camera_vp_ellipse_xy_axes, curFrameAxes);
+  ShaderGlobal::set_float(var::camera_in_camera_vp_y_scale, viewportScale);
+  ShaderGlobal::set_float4(var::camera_in_camera_vp_uv_remapping, uvRemapping);
 
-  update_camcam_transforms_ecs_query([&uvRemapping](Point4 &camcam__uv_remapping) { camcam__uv_remapping = uvRemapping; });
+  update_camcam_transforms_ecs_query(*g_entity_mgr,
+    [&uvRemapping](Point4 &camcam__uv_remapping) { camcam__uv_remapping = uvRemapping; });
 }
 
 static void set_uv_remapping_shvar(const dafg::multiplexing::Index &multiplexing_index)
@@ -261,10 +291,10 @@ static void set_uv_remapping_shvar(const dafg::multiplexing::Index &multiplexing
   Point4 defVal = Point4(1.0f, 0.0f, 1.0f, 0.0f);
   if (!isMainView)
   {
-    get_camcam_uv_remapping_ecs_query([&defVal](const Point4 &camcam__uv_remapping) { defVal = camcam__uv_remapping; });
+    get_camcam_uv_remapping_ecs_query(*g_entity_mgr, [&defVal](const Point4 &camcam__uv_remapping) { defVal = camcam__uv_remapping; });
   }
 
-  ShaderGlobal::set_color4(var::camera_in_camera_vp_uv_remapping, defVal);
+  ShaderGlobal::set_float4(var::camera_in_camera_vp_uv_remapping, defVal);
 }
 
 static shaders::OverrideState get_stencil_test_override_state()
@@ -275,11 +305,15 @@ static shaders::OverrideState get_stencil_test_override_state()
   return st;
 }
 
+ActivateOnly::ActivateOnly() { ShaderGlobal::set_float(var::camera_in_camera_active, is_lens_render_active() ? 1.0f : 0.0f); }
+ActivateOnly::~ActivateOnly() { ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f); }
+
 RenderMainViewOnly::RenderMainViewOnly(const dafg::multiplexing::Index &index)
 {
   isMainView = index.subCamera == 0;
   isCamCamRenderActive = is_lens_render_active();
 
+  ShaderGlobal::set_float(var::camera_in_camera_active, isCamCamRenderActive ? 1.0f : 0.0f);
 
   if (isCamCamRenderActive && isMainView)
   {
@@ -290,22 +324,28 @@ RenderMainViewOnly::RenderMainViewOnly(const dafg::multiplexing::Index &index)
 
 RenderMainViewOnly::~RenderMainViewOnly()
 {
+  ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
+
   if (isCamCamRenderActive && isMainView)
     shaders::overrides::reset_master_state();
 }
 
 Color4 replace_color4(const ShaderVariableInfo &shvar, const auto &new_val)
 {
-  const Color4 oldVal = ShaderGlobal::get_color4(shvar);
-  ShaderGlobal::set_color4(shvar, new_val);
+  const Color4 oldVal = ShaderGlobal::get_float4(shvar);
+  ShaderGlobal::set_float4(shvar, new_val);
   return oldVal;
 };
 
 
-ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index)
+ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index, const OpaqueFlags flags)
 {
   set_uv_remapping_shvar(index);
-  hasStencilTest = is_lens_render_active();
+  const bool isCamCamRenderActive = is_lens_render_active();
+  hasStencilTest = isCamCamRenderActive && (flags != OpaqueFlags::NoStencil);
+
+  ShaderGlobal::set_float(var::camera_in_camera_active, isCamCamRenderActive ? 1.0f : 0.0f);
+
 
   if (hasStencilTest)
   {
@@ -314,32 +354,12 @@ ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index)
   }
 }
 
-ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index, const CameraParams &view) : ApplyMasterState(index)
-{
-  if (!hasStencilTest)
-    return;
-
-  const ViewVecs viewVecs = calc_view_vecs(view.viewTm, view.jitterProjTm);
-  savedViewVecLT = replace_color4(var::view_vecLT, viewVecs.viewVecLT);
-  savedViewVecRT = replace_color4(var::view_vecRT, viewVecs.viewVecRT);
-  savedViewVecLB = replace_color4(var::view_vecLB, viewVecs.viewVecLB);
-  savedViewVecRB = replace_color4(var::view_vecRB, viewVecs.viewVecRB);
-
-  hasSavedState = true;
-}
-
 ApplyMasterState::~ApplyMasterState()
 {
+  ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
+
   if (hasStencilTest)
     shaders::overrides::reset_master_state();
-
-  if (hasSavedState)
-  {
-    ShaderGlobal::set_color4(var::view_vecLT, savedViewVecLT);
-    ShaderGlobal::set_color4(var::view_vecRT, savedViewVecRT);
-    ShaderGlobal::set_color4(var::view_vecLB, savedViewVecLB);
-    ShaderGlobal::set_color4(var::view_vecRB, savedViewVecRB);
-  }
 }
 
 ApplyPostfxState::ApplyPostfxState(
@@ -351,9 +371,10 @@ ApplyPostfxState::ApplyPostfxState(
     return;
 
   lensRenderActive = true;
+  ShaderGlobal::set_float(var::camera_in_camera_active, 1.0f);
 
   isMainView = multiplexing_index.subCamera == 0;
-  ShaderGlobal::set_real(var::camera_in_camera_postfx_lens_view, isMainView ? 0.0f : 1.0f);
+  ShaderGlobal::set_float(var::camera_in_camera_postfx_lens_view, isMainView ? 0.0f : 1.0f);
 
   if (use_stencil)
   {
@@ -386,17 +407,12 @@ ApplyPostfxState::ApplyPostfxState(
   savedGlobtmNoOfsPsf1 = replace_color4(var::globtm_no_ofs_psf_1, Color4(globtmNoOfs[1]));
   savedGlobtmNoOfsPsf2 = replace_color4(var::globtm_no_ofs_psf_2, Color4(globtmNoOfs[2]));
   savedGlobtmNoOfsPsf3 = replace_color4(var::globtm_no_ofs_psf_3, Color4(globtmNoOfs[3]));
-
-  const ViewVecs viewVecs = calc_view_vecs(view.viewTm, view.jitterProjTm);
-  savedViewVecLT = replace_color4(var::view_vecLT, viewVecs.viewVecLT);
-  savedViewVecRT = replace_color4(var::view_vecRT, viewVecs.viewVecRT);
-  savedViewVecLB = replace_color4(var::view_vecLB, viewVecs.viewVecLB);
-  savedViewVecRB = replace_color4(var::view_vecRB, viewVecs.viewVecRB);
 }
 
 ApplyPostfxState::~ApplyPostfxState()
 {
-  ShaderGlobal::set_real(var::camera_in_camera_postfx_lens_view, 0.0f);
+  ShaderGlobal::set_float(var::camera_in_camera_active, 0.0f);
+  ShaderGlobal::set_float(var::camera_in_camera_postfx_lens_view, 0.0f);
 
   if (hasStencilTest)
     shaders::overrides::reset_master_state();
@@ -404,37 +420,32 @@ ApplyPostfxState::~ApplyPostfxState()
   if (isMainView)
     return;
 
-  ShaderGlobal::set_color4(var::projtm_psf_0, savedProjtmPsf0);
-  ShaderGlobal::set_color4(var::projtm_psf_1, savedProjtmPsf1);
-  ShaderGlobal::set_color4(var::projtm_psf_2, savedProjtmPsf2);
-  ShaderGlobal::set_color4(var::projtm_psf_3, savedProjtmPsf3);
+  ShaderGlobal::set_float4(var::projtm_psf_0, savedProjtmPsf0);
+  ShaderGlobal::set_float4(var::projtm_psf_1, savedProjtmPsf1);
+  ShaderGlobal::set_float4(var::projtm_psf_2, savedProjtmPsf2);
+  ShaderGlobal::set_float4(var::projtm_psf_3, savedProjtmPsf3);
 
-  ShaderGlobal::set_color4(var::globtm_psf_0, savedGlobtmPsf0);
-  ShaderGlobal::set_color4(var::globtm_psf_1, savedGlobtmPsf1);
-  ShaderGlobal::set_color4(var::globtm_psf_2, savedGlobtmPsf2);
-  ShaderGlobal::set_color4(var::globtm_psf_3, savedGlobtmPsf3);
+  ShaderGlobal::set_float4(var::globtm_psf_0, savedGlobtmPsf0);
+  ShaderGlobal::set_float4(var::globtm_psf_1, savedGlobtmPsf1);
+  ShaderGlobal::set_float4(var::globtm_psf_2, savedGlobtmPsf2);
+  ShaderGlobal::set_float4(var::globtm_psf_3, savedGlobtmPsf3);
 
-  ShaderGlobal::set_color4(var::globtm_no_ofs_psf_0, savedGlobtmNoOfsPsf0);
-  ShaderGlobal::set_color4(var::globtm_no_ofs_psf_1, savedGlobtmNoOfsPsf1);
-  ShaderGlobal::set_color4(var::globtm_no_ofs_psf_2, savedGlobtmNoOfsPsf2);
-  ShaderGlobal::set_color4(var::globtm_no_ofs_psf_3, savedGlobtmNoOfsPsf3);
-
-  ShaderGlobal::set_color4(var::view_vecLT, savedViewVecLT);
-  ShaderGlobal::set_color4(var::view_vecRT, savedViewVecRT);
-  ShaderGlobal::set_color4(var::view_vecLB, savedViewVecLB);
-  ShaderGlobal::set_color4(var::view_vecRB, savedViewVecRB);
+  ShaderGlobal::set_float4(var::globtm_no_ofs_psf_0, savedGlobtmNoOfsPsf0);
+  ShaderGlobal::set_float4(var::globtm_no_ofs_psf_1, savedGlobtmNoOfsPsf1);
+  ShaderGlobal::set_float4(var::globtm_no_ofs_psf_2, savedGlobtmNoOfsPsf2);
+  ShaderGlobal::set_float4(var::globtm_no_ofs_psf_3, savedGlobtmNoOfsPsf3);
 
   if (hasPrevState)
   {
-    ShaderGlobal::set_color4(var::prev_globtm_psf_0, savedPrevGlobtmPsf0);
-    ShaderGlobal::set_color4(var::prev_globtm_psf_1, savedPrevGlobtmPsf1);
-    ShaderGlobal::set_color4(var::prev_globtm_psf_2, savedPrevGlobtmPsf2);
-    ShaderGlobal::set_color4(var::prev_globtm_psf_3, savedPrevGlobtmPsf3);
+    ShaderGlobal::set_float4(var::prev_globtm_psf_0, savedPrevGlobtmPsf0);
+    ShaderGlobal::set_float4(var::prev_globtm_psf_1, savedPrevGlobtmPsf1);
+    ShaderGlobal::set_float4(var::prev_globtm_psf_2, savedPrevGlobtmPsf2);
+    ShaderGlobal::set_float4(var::prev_globtm_psf_3, savedPrevGlobtmPsf3);
 
-    ShaderGlobal::set_color4(var::prev_globtm_no_ofs_psf_0, savedPrevGlobtmNoOfsPsf0);
-    ShaderGlobal::set_color4(var::prev_globtm_no_ofs_psf_1, savedPrevGlobtmNoOfsPsf1);
-    ShaderGlobal::set_color4(var::prev_globtm_no_ofs_psf_2, savedPrevGlobtmNoOfsPsf2);
-    ShaderGlobal::set_color4(var::prev_globtm_no_ofs_psf_3, savedPrevGlobtmNoOfsPsf3);
+    ShaderGlobal::set_float4(var::prev_globtm_no_ofs_psf_0, savedPrevGlobtmNoOfsPsf0);
+    ShaderGlobal::set_float4(var::prev_globtm_no_ofs_psf_1, savedPrevGlobtmNoOfsPsf1);
+    ShaderGlobal::set_float4(var::prev_globtm_no_ofs_psf_2, savedPrevGlobtmNoOfsPsf2);
+    ShaderGlobal::set_float4(var::prev_globtm_no_ofs_psf_3, savedPrevGlobtmNoOfsPsf3);
   }
 }
 
@@ -461,80 +472,21 @@ ApplyPostfxState::ApplyPostfxState(
 }
 } // namespace camera_in_camera
 
-ECS_TAG(dev, render)
-ECS_TRACK(camcam__has_pending_validation)
-static void camcam_validate_scope_es_event_handler(const ecs::Event &, bool camcam__has_pending_validation)
+ECS_TAG(render)
+ECS_BEFORE(camera_set_sync)
+ECS_BEFORE(camcam_activate_view_es)
+static void camcam_preprocess_prev_frame_weapon_es(const ecs::UpdateStageInfoAct &, bool &camcam__lens_only_zoom_enabled)
 {
-  if (!camcam__has_pending_validation)
-    return;
-
+  const bool hasCamCam = renderer_has_feature(CAMERA_IN_CAMERA);
   const AimRenderingData aimData = get_aim_rendering_data();
 
-  const CollisionResource *collision = nullptr;
-  const char *collresRes = nullptr;
-  const char *animcharRes = nullptr;
-  const char *itemName = nullptr;
-  const char *lensNode = nullptr;
-  bool entityValid = false;
+  const bool scopeDisablesCamCam = camera_in_camera::check_if_scope_disables_camcam(aimData.entityWithScopeLensEid);
+  const bool featureEnabledForScope = hasCamCam && !scopeDisablesCamCam;
 
-  vaidate_scope_ecs_query(aimData.entityWithScopeLensEid,
-    [&](const AnimV20::AnimcharRendComponent &animchar_render, const ecs::string *gunmod__lensNode = nullptr,
-      const ecs::string *item__name = nullptr, const ecs::string *animchar__res = nullptr, const CollisionResource *collres = nullptr,
-      const ecs::string *collres__res = nullptr) {
-      G_UNUSED(animchar_render);
-      collision = collres;
-      collresRes = collres__res ? collres__res->c_str() : nullptr;
-      animcharRes = animchar__res ? animchar__res->c_str() : nullptr;
-      itemName = item__name ? item__name->c_str() : "<no item__name>";
-      lensNode = gunmod__lensNode ? gunmod__lensNode->c_str() : nullptr;
-      entityValid = true;
-    });
-
-  if (!entityValid)
-    return;
-
-  eastl::string error;
-  if (!lensNode)
-  {
-    error.append("  [>>>Contant Gameplay-Team<<<]: template misses 'gunmod__lensNode:t'");
-  }
-  else if (aimData.lensCollisionNodeId < 0)
-  {
-    if (!collision)
-      error.append("  [>>>Contant Gameplay-Team<<<]: entity template misses 'collres{}'\n");
-    else
-    {
-      if (collresRes == nullptr)
-        error.append("  [>>>Contant Gameplay-Team<<<]: entity template misses 'collres__res:t'\n");
-      else
-        error.append_sprintf(
-          "  [>>>Contact Artists-Team<<<]: collres with name '%s' doesn't have node '%s' with 'collision:t=sphere'\n", collresRes,
-          lensNode);
-    }
-  }
-  else
-  {
-    G_ASSERT_RETURN(collision, );
-    const CollisionNode *cn = collision->getNode(aimData.lensCollisionNodeId);
-    const bool isSphereType = cn->type == COLLISION_NODE_TYPE_SPHERE;
-    const bool hasBehavaiorFlags = cn->behaviorFlags != 0;
-
-    if (hasBehavaiorFlags)
-      error.append_sprintf(
-        "  [>>>Contact Artists-Team<<<]: collres with name '%s' has incorrect object properties in node '%s'. It must NOT "
-        "enable any collision behavior "
-        "(trace - no, phys - no etc)",
-        collresRes, lensNode);
-
-    if (!isSphereType)
-    {
-      error.append_sprintf(
-        "  [>>>Contact Artists-Team<<<]: collres with name '%s' has incorrect collision in node '%s', it must declare "
-        "collision:t=sphere (trace - no, phys - no etc)\n",
-        collresRes, lensNode);
-    }
-  }
-
-  if (!error.empty())
-    logerr("Sniper Scope [item__name:%d] validation failure: \n%s", itemName, error.c_str());
+  camcam__lens_only_zoom_enabled = featureEnabledForScope;
 }
+
+ECS_TAG(render)
+ECS_BEFORE(camera_update_lods_scaling_es)
+ECS_AFTER(update_shooter_camera_aim_parameters_es)
+static void camcam_activate_view_es(const ecs::UpdateStageInfoAct &) { camera_in_camera::activate_view(); }

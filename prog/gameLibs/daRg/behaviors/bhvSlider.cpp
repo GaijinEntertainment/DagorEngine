@@ -35,7 +35,7 @@ struct BhvSliderData
   int pointerId = -1;
 
   bool isDraggingKnob = false;
-  float knobOffset = 0;
+  float inKnobPtrOffset = 0;
   float sliderHoverValue = -1;
   bool isSliderHover = false;
 
@@ -60,6 +60,15 @@ struct BhvSliderData
 
 
 BhvSlider::BhvSlider() : Behavior(0, F_HANDLE_KEYBOARD | F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_FOCUS_ON_CLICK | F_CAN_HANDLE_CLICKS) {}
+
+
+static Element *find_knob(Element *elem)
+{
+  Sqrat::Object knobCtor = elem->props.scriptDesc.RawGetSlot(elem->csk->knob);
+  if (knobCtor.IsNull())
+    return nullptr;
+  return elem->findChildByScriptCtor(knobCtor, true);
+}
 
 
 void BhvSlider::onAttach(Element *elem)
@@ -149,25 +158,20 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
 }
 
 
-int BhvSlider::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data, short mx,
-  short my, int /*buttons*/, int accum_res)
+int BhvSlider::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
+  Point2 pointer_pos, int accum_res)
 {
-  if (event == INP_EV_MOUSE_WHEEL)
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
+
+  if (event == INP_EV_MOUSE_WHEEL) // special case
   {
-    if (elem->hitTest(mx, my) && onMouseWheel(elem, data))
+    int scroll = button_id;
+    if (elem->hitTest(pointer_pos) && onMouseWheel(elem, scroll))
       return R_PROCESSED;
     return 0;
   }
 
-  return pointerEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-
-int BhvSlider::pointerEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int /*button_id*/,
-  const Point2 &pointer_pos, int accum_res)
-{
-  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
-  G_ASSERT_RETURN(bhvData, 0);
 
   int activeStateFlag = active_state_flags_for_device(device);
 
@@ -183,19 +187,19 @@ int BhvSlider::pointerEvent(ElementTree *, Element *elem, InputDevice device, In
 
         elem->setGroupStateFlags(activeStateFlag);
 
-        Sqrat::Object knobCtor = elem->props.scriptDesc.RawGetSlot(elem->csk->knob);
-        Element *knob = knobCtor.IsNull() ? nullptr : elem->findChildByScriptCtor(knobCtor);
+        Element *knob = find_knob(elem);
         if (knob && (knob->clippedScreenRect & pointer_pos))
         {
           bhvData->isDraggingKnob = true;
           knob->setGroupStateFlags(activeStateFlag);
 
           Orientation orient = elem->props.getInt<Orientation>(elem->csk->orientation, O_HORIZONTAL);
-          ScreenCoord &sc = knob->screenCoord;
+
+          Point2 localPos = knob->screenPosToElemLocal(pointer_pos);
           if (orient == O_HORIZONTAL)
-            bhvData->knobOffset = pointer_pos.x - sc.screenPos.x;
+            bhvData->inKnobPtrOffset = localPos.x;
           else
-            bhvData->knobOffset = pointer_pos.y - sc.screenPos.y;
+            bhvData->inKnobPtrOffset = localPos.y;
         }
         else
         {
@@ -216,8 +220,7 @@ int BhvSlider::pointerEvent(ElementTree *, Element *elem, InputDevice device, In
 
       bhvData->release();
 
-      Sqrat::Object knobCtor = elem->props.scriptDesc.RawGetSlot(elem->csk->knob);
-      Element *knob = knobCtor.IsNull() ? nullptr : elem->findChildByScriptCtor(knobCtor);
+      Element *knob = find_knob(elem);
       if (knob)
         knob->clearGroupStateFlags(activeStateFlag);
 
@@ -226,31 +229,7 @@ int BhvSlider::pointerEvent(ElementTree *, Element *elem, InputDevice device, In
   }
   else if (event == INP_EV_POINTER_MOVE)
   {
-    if (elem->hitTest(pointer_pos))
-    {
-      float value;
-      Sqrat::Function onSliderMouseMove = elem->props.scriptDesc.GetFunction(elem->csk->onSliderMouseMove);
-      if (!onSliderMouseMove.IsNull() && getValueFromMousePos(bhvData, elem, pointer_pos.x, pointer_pos.y, false /*knob darg*/, value))
-      {
-        value = progressToValue(elem, value);
-        if (bhvData->sliderHoverValue != value || !bhvData->isSliderHover)
-        {
-          bhvData->sliderHoverValue = value;
-          onSliderMouseMove(value);
-        }
-        bhvData->isSliderHover = true;
-      }
-    }
-    else
-    {
-      if (bhvData->isSliderHover)
-      {
-        Sqrat::Function onSliderMouseMove = elem->props.scriptDesc.GetFunction(elem->csk->onSliderMouseMove);
-        if (!onSliderMouseMove.IsNull())
-          onSliderMouseMove(Sqrat::Object(elem->getVM()));
-        bhvData->isSliderHover = false;
-      }
-    }
+    updateSliderHover(elem, bhvData, pointer_pos);
 
     if (bhvData->isClickedBy(device, pointer_id))
     {
@@ -259,23 +238,45 @@ int BhvSlider::pointerEvent(ElementTree *, Element *elem, InputDevice device, In
     }
   }
 
-
   return result;
 }
 
 
-int BhvSlider::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
+void BhvSlider::updateSliderHover(darg::Element *elem, darg::BhvSliderData *bhvData, const Point2 &pointer_pos)
 {
-  return pointerEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
+  if (elem->hitTest(pointer_pos))
+  {
+    float value;
+    Sqrat::Function onSliderMouseMove = elem->props.scriptDesc.GetFunction(elem->csk->onSliderMouseMove);
+    if (!onSliderMouseMove.IsNull() && getValueFromMousePos(bhvData, elem, pointer_pos.x, pointer_pos.y, false /*knob drag*/, value))
+    {
+      value = alignValue(elem, value);
+      if (bhvData->sliderHoverValue != value || !bhvData->isSliderHover)
+      {
+        bhvData->sliderHoverValue = value;
+        onSliderMouseMove(value);
+      }
+      bhvData->isSliderHover = true;
+    }
+  }
+  else
+  {
+    if (bhvData->isSliderHover)
+    {
+      Sqrat::Function onSliderMouseMove = elem->props.scriptDesc.GetFunction(elem->csk->onSliderMouseMove);
+      if (!onSliderMouseMove.IsNull())
+        onSliderMouseMove(Sqrat::Object(elem->getVM()));
+      bhvData->isSliderHover = false;
+    }
+  }
 }
+
 
 bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int mx, int my, bool knob_drag, float &out) const
 {
   const Sqrat::Table &scriptDesc = elem->props.scriptDesc;
   Orientation orient = elem->props.getInt<Orientation>(elem->csk->orientation, O_HORIZONTAL);
-  Sqrat::Object knobCtor = scriptDesc.RawGetSlot(elem->csk->knob);
-  Element *knob = knobCtor.IsNull() ? NULL : elem->findChildByScriptCtor(knobCtor);
+  Element *knob = find_knob(elem);
 
   float minVal = elem->props.getFloat(elem->csk->min, DEF_MIN);
   float maxVal = elem->props.getFloat(elem->csk->max, DEF_MAX);
@@ -290,7 +291,7 @@ bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int 
     float knobW = knob ? knob->screenCoord.size.x : 0;
     float dragOffs = 0;
     if (knob_drag)
-      dragOffs = bhvData->knobOffset;
+      dragOffs = bhvData->inKnobPtrOffset;
     else
       dragOffs = knobW * 0.5f;
     float ratio = (localPos.x - dragOffs) / (elem->screenCoord.size.x - knobW);
@@ -305,7 +306,7 @@ bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int 
     float knobH = knob ? knob->screenCoord.size.y : 0;
     float dragOffs = 0;
     if (knob_drag)
-      dragOffs = bhvData->knobOffset;
+      dragOffs = bhvData->inKnobPtrOffset;
     else
       dragOffs = knobH * 0.5f;
     float ratio = (localPos.y - dragOffs) / (elem->screenCoord.size.y - knobH);
@@ -317,7 +318,7 @@ bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int 
   return false;
 }
 
-float BhvSlider::progressToValue(Element *elem, float progress)
+float BhvSlider::alignValue(Element *elem, float progress)
 {
   float minVal = elem->props.getFloat(elem->csk->min, DEF_MIN);
   float maxVal = elem->props.getFloat(elem->csk->max, DEF_MAX);
@@ -354,7 +355,7 @@ bool BhvSlider::onMouseWheel(Element *elem, int delta)
 void BhvSlider::setVal(Element *elem, float req_val)
 {
   float prevVal = elem->props.getFloat(elem->csk->fValue, DEF_VAL);
-  float fVal = progressToValue(elem, req_val);
+  float fVal = alignValue(elem, req_val);
   if (fVal != prevVal)
   {
     Sqrat::Function onChange = elem->props.scriptDesc.GetFunction(elem->csk->onChange);
@@ -364,23 +365,39 @@ void BhvSlider::setVal(Element *elem, float req_val)
 }
 
 
+static void deactivate_input_impl(Element *elem, BhvSliderData *bhvData)
+{
+  int activeStateFlag = active_state_flags_for_device(bhvData->clickedByDevice);
+  elem->clearGroupStateFlags(activeStateFlag);
+
+  Element *knob = find_knob(elem);
+  if (knob)
+    knob->clearGroupStateFlags(activeStateFlag);
+
+  bhvData->release();
+}
+
+
 int BhvSlider::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
   BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isClickedBy(device, pointer_id))
-  {
-    int activeStateFlag = active_state_flags_for_device(bhvData->clickedByDevice);
-    elem->clearGroupStateFlags(activeStateFlag);
+    deactivate_input_impl(elem, bhvData);
 
-    Sqrat::Object knobCtor = elem->props.scriptDesc.RawGetSlot(elem->csk->knob);
-    Element *knob = knobCtor.IsNull() ? nullptr : elem->findChildByScriptCtor(knobCtor);
-    if (knob)
-      knob->clearGroupStateFlags(activeStateFlag);
+  return 0;
+}
 
-    bhvData->release();
-  }
+
+int BhvSlider::onDeactivateAllInput(Element *elem)
+{
+  BhvSliderData *bhvData = elem->props.storage.RawGetSlotValue<BhvSliderData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
+
+  if (bhvData->isClicked())
+    deactivate_input_impl(elem, bhvData);
+
   return 0;
 }
 

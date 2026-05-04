@@ -10,7 +10,7 @@ function slider() {
   let maxVal = 160
 
   let knob = {
-    size  = static [50, flex()]
+    size = const [50, flex()]
     rendObj = ROBJ_SOLID
     pos = [-10,0]
   }
@@ -28,7 +28,7 @@ function slider() {
     max = maxVal
     unit = 5
     orientation = O_HORIZONTAL
-    size = static [flex(), sh(5)]
+    size = const [flex(), sh(5)]
     color = Color(0, 10, 20)
     flow = FLOW_HORIZONTAL
 

@@ -58,7 +58,7 @@ function root() {
     color = Color(120,120,120)
     children = [
       mkParticles({num=20 part=part duration=[0.5,1.8]})
-      mkParticles({num=8 rotEndSpr=30 rotStartSpr=30 duration=[0.3,0.9] part={rendObj=ROBJ_SOLID size=static [300,100] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}})
+      mkParticles({num=8 rotEndSpr=30 rotStartSpr=30 duration=[0.3,0.9] part={rendObj=ROBJ_SOLID size = const [300,100] transform={pivot=[0.5,0.5]} color=Color(0,0,0,20)}})
     ]
   }
 }

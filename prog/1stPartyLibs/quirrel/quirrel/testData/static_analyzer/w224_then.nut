@@ -1,4 +1,3 @@
-//expect:w224
 local x = 19
 
 if (x == 5);

@@ -1,0 +1,8 @@
+ERROR: Invalid type name 'Int', did you mean 'int'?
+testData/diagnostics/compilation_errors/syntax_errors/invalid_type_name_suggestion.nut:2:9
+
+// EXPECT_ERROR: "did you mean"
+local x: Int = 5
+         ^--
+
+

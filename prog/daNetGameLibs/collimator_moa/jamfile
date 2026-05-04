@@ -1,0 +1,31 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = collimator_moa ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_collimator_moa_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_DAS = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+
+  AllSrcFolder_DAS +=
+    render
+  ;
+
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

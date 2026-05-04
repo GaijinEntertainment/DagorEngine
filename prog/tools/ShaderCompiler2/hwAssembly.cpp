@@ -37,6 +37,7 @@ eastl::string build_common_hardware_defines_hlsl(const shc::CompilationContext &
   ADD_HW_MACRO(metaliOS);
   ADD_HW_MACRO(metal);
   ADD_HW_MACRO(vulkan);
+  ADD_HW_MACRO(android);
   ADD_HW_MACRO(ps4);
   ADD_HW_MACRO(ps5);
   ADD_HW_MACRO(xbox);

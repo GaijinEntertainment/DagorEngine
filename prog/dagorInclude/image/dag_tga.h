@@ -32,11 +32,13 @@ bool load_tga32(TexImage32 *im, char *fn, bool *out_used_alpha, unsigned char *d
 TexImage32 *load_tga32(const char *fn, IMemAlloc *, bool *out_used_alpha, unsigned char *data, unsigned int *data_len);
 
 // save TGA file
-int save_tga8(const char *fn, unsigned char *ptr, int wd, int ht, int stride, unsigned char *app_data = 0,
+int save_tga8(const char *fn, const unsigned char *ptr, int wd, int ht, int stride, const unsigned char *app_data = 0,
   unsigned int app_data_len = 0);
-int save_tga8a(const char *fn, TexPixel8a *ptr, int wd, int ht, int stride, unsigned char *app_data = 0,
+int save_tga8a(const char *fn, const TexPixel8a *ptr, int wd, int ht, int stride, const unsigned char *app_data = 0,
   unsigned int app_data_len = 0);
-int save_tga32(const char *fn, TexImage32 *, unsigned char *app_data = 0, unsigned int app_data_len = 0);
-int save_tga32(const char *fn, TexPixel32 *im, int wd, int ht, int stride, unsigned char *app_data = 0, unsigned int app_data_len = 0);
-int save_tga24(const char *fn, TexImage *im, unsigned char *app_data = 0, unsigned int app_data_len = 0);
-int save_tga24(const char *fn, char *ptr, int wd, int ht, int stride, unsigned char *app_data = 0, unsigned int app_data_len = 0);
+int save_tga32(const char *fn, const TexImage32 *, const unsigned char *app_data = 0, unsigned int app_data_len = 0);
+int save_tga32(const char *fn, const TexPixel32 *im, int wd, int ht, int stride, const unsigned char *app_data = 0,
+  unsigned int app_data_len = 0);
+int save_tga24(const char *fn, const TexImage *im, const unsigned char *app_data = 0, unsigned int app_data_len = 0);
+int save_tga24(const char *fn, const char *ptr, int wd, int ht, int stride, const unsigned char *app_data = 0,
+  unsigned int app_data_len = 0);

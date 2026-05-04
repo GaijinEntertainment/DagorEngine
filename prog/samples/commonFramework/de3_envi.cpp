@@ -54,11 +54,11 @@ void SceneEnviSettings::setBiDirLighting()
     debug("sun0 and sun1 swapped!");
   }*/
 
-  ShaderGlobal::set_color4_fast(skyColorGvId, Color4(skyColor.r, skyColor.g, skyColor.b, 0.f));
-  ShaderGlobal::set_color4_fast(fromSunDirectionGvId, Color4(sunDir0.x, sunDir0.y, sunDir0.z, 0.f));
-  ShaderGlobal::set_color4_fast(sunColor0GvId, Color4(sunColor0.r, sunColor0.g, sunColor0.b, 0.f));
-  ShaderGlobal::set_color4_fast(sunLightDir1GvId, Color4(sunDir1.x, sunDir1.y, sunDir1.z, 0.f));
-  ShaderGlobal::set_color4_fast(sunColor1GvId, Color4(sunColor1.r, sunColor1.g, sunColor1.b, 0.f));
+  ShaderGlobal::set_float4(skyColorGvId, Color4(skyColor.r, skyColor.g, skyColor.b, 0.f));
+  ShaderGlobal::set_float4(fromSunDirectionGvId, Color4(sunDir0.x, sunDir0.y, sunDir0.z, 0.f));
+  ShaderGlobal::set_float4(sunColor0GvId, Color4(sunColor0.r, sunColor0.g, sunColor0.b, 0.f));
+  ShaderGlobal::set_float4(sunLightDir1GvId, Color4(sunDir1.x, sunDir1.y, sunDir1.z, 0.f));
+  ShaderGlobal::set_float4(sunColor1GvId, Color4(sunColor1.r, sunColor1.g, sunColor1.b, 0.f));
 
-  ShaderGlobal::set_real_fast(skyScaleGvId, skyScale);
+  ShaderGlobal::set_float(skyScaleGvId, skyScale);
 }

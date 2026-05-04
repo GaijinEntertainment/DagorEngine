@@ -30,14 +30,8 @@ void Module_dasQUIRREL::initFunctions_5() {
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:316:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_get >(*this,lib,"sq_get",SideEffects::worstDefault,"sq_get")
 		->args({"v","idx"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:317:23
-	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_get_noerr >(*this,lib,"sq_get_noerr",SideEffects::worstDefault,"sq_get_noerr")
-		->args({"v","idx"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:318:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_rawget >(*this,lib,"sq_rawget",SideEffects::worstDefault,"sq_rawget")
-		->args({"v","idx"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:319:23
-	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_rawget_noerr >(*this,lib,"sq_rawget_noerr",SideEffects::worstDefault,"sq_rawget_noerr")
 		->args({"v","idx"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:320:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_rawset >(*this,lib,"sq_rawset",SideEffects::worstDefault,"sq_rawset")

@@ -10,7 +10,7 @@ function button0() {
     watch = [stateFlags]
     onElemState = @(s) stateFlags.set(s)
     rendObj = ROBJ_BOX
-    size = static [sh(20),SIZE_TO_CONTENT]
+    size = const [sh(20),SIZE_TO_CONTENT]
     padding = sh(2)
     fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
     borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -35,7 +35,7 @@ let button1 = function(){
       onElemState = @(s) sFlags.set(s)
       watch = sFlags
       rendObj = ROBJ_BOX
-      size = static [sh(20),SIZE_TO_CONTENT]
+      size = const [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
       borderWidth = (sf & S_HOVER) ? 2 : 0
@@ -45,7 +45,7 @@ let button1 = function(){
       onHover = function(hover) {vlog($"hover: {hover}")}
       children = {rendObj = ROBJ_TEXT text = (sf & S_ACTIVE) ? "pressed": "my button1" color = (sf & S_ACTIVE) ? Color(255,255,255): Color(0,0,0) pos = (sf & S_ACTIVE) ? [0,2] : [0,0] }
 
-      sound = static {
+      sound = const {
         click  = "ui/button_click"
         hover  = "ui/menu_highlight"
         active = "ui/button_action"
@@ -59,7 +59,7 @@ let buttonInside = @(parentStateFlags) @() {
   children = (parentStateFlags.get() & S_HOVER)
     ? watchElemState( @(sf) {
         rendObj = ROBJ_BOX
-        size = static [sh(20),SIZE_TO_CONTENT]
+        size = const [sh(20),SIZE_TO_CONTENT]
         padding = sh(2)
         fillColor = (sf & S_ACTIVE) ? Color(0,0,0) : Color(200,200,200)
         borderWidth = (sf & S_HOVER) ? 2 : 0

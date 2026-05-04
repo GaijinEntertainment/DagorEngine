@@ -59,7 +59,9 @@ extern void post_shutdown_handler();
 extern void reset_game_resources();
 
 
-//! [mandatory] is this build a dll for hosted server instance
-extern bool is_hosted_server_instance();
+//! [optional] private BattlEye anticheat secret string required for integration
+extern const unsigned char *beac_secret_server_key();
+//! [optional] length of private BattlEye anticheat secret string
+extern unsigned beac_secret_server_key_len();
 
 } // namespace gameproj

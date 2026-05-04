@@ -68,12 +68,14 @@ public:
   // creator
   static IWndManager *createManager(IWndManagerEventHandler *event_handler);
 
-  virtual bool init3d(const char *drv_name = NULL, const DataBlock *blkTexStreaming = NULL) = 0;
+  virtual bool init3d(const char *drv_name = NULL, const DataBlock *blkTexStreaming = NULL, const char *caption = "",
+    const char *icon = "") = 0;
 
   // accelerators
   virtual void addAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord) = 0;
-  virtual void addAcceleratorUp(unsigned cmd_id, ImGuiKeyChord key_chord) = 0;
+  virtual void addAccelerator(unsigned cmd_id, const char *command_id) = 0;
   virtual void addViewportAccelerator(unsigned cmd_id, ImGuiKeyChord key_chord, bool allow_repeat = false) = 0;
+  virtual void addViewportAccelerator(unsigned cmd_id, const char *command_id, bool allow_repeat = false) = 0;
   virtual void clearAccelerators() = 0;
   virtual unsigned processImguiAccelerator() = 0;
   virtual unsigned processImguiViewportAccelerator(ImGuiID viewport_id) = 0;

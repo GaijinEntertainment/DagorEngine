@@ -10,34 +10,25 @@
 #include <EASTL/unique_ptr.h>
 #include <util/dag_string.h>
 #include <webui/nodeBasedShaderType.h>
+#include <shaders/dag_computeShaders.h>
 
 class NodeBasedShaderManager;
 class DataBlock;
 
 class NodeBasedShader
 {
-  struct ShaderProgramDeleter
-  {
-    void operator()(PROGRAM *ptr)
-    {
-      if (ptr)
-      {
-        d3d::delete_program(*ptr);
-        delete ptr;
-        ptr = nullptr;
-      }
-    }
-  };
+  // Dshl backend data
+  ComputeShaderElement *computeShader = nullptr;
+  int shaderBlockId = -1;
 
-  using PerFrameFogShaderType = eastl::unique_ptr<PROGRAM, ShaderProgramDeleter>;
-
-  eastl::vector<PerFrameFogShaderType> shadersCache;
   eastl::unique_ptr<NodeBasedShaderManager> shaderManager;
   String loadedShaderName;
   uint32_t variantId = 0;
-  uint32_t currentShaderIdx = 0;
 
   void createShaders();
+
+  // called when backing shader memory is to be invalidated
+  void shutdown();
 
 public:
   NodeBasedShader(NodeBasedShaderType shader, const String &shader_name, const String &shader_file_suffix, uint32_t variant_id);
@@ -51,11 +42,7 @@ public:
   void dispatch(int xdim, int ydim, int zdim) const;
   bool isValid() const;
   void enableOptionalGraph(const String &graph_name, bool enable);
-
-  void setArrayValue(const char *name, const Tab<Point4> &values);
-
-
-  PROGRAM *getProgram();
+  void setQuality(NodeBasedShaderQuality nbs_quality);
 };
 
 namespace nodebasedshaderutils

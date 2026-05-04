@@ -43,3 +43,7 @@ function_name(): int
 function_name(arg1_name: any)
 FunctionName(arg1_Name: int|null)
 FunctionName(arg1_Name: (table|array))
+pure function_name(x)
+  nodiscard   function_name(x)
+pure nodiscard function_name(x)
+ nodiscard   pure   function_name(x)

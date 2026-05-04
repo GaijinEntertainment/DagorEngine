@@ -3,7 +3,8 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_viewScissor.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_tex3d.h>
 #include <EASTL/unique_ptr.h>
@@ -13,15 +14,16 @@
 #include <shaders/dag_computeShaders.h>
 #include <shaders/depth_hierarchy_inc.hlsli>
 #include <shaders/dag_overrideStates.h>
+#include <shaders/dag_dynamicResolutionStcode.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_textureIDHolder.h>
+#include <math/integer/dag_IPoint2.h>
 
-#define GLOBAL_VARS_LIST                  \
-  VAR(downsample_depth_from)              \
-  VAR(downsample_depth_from_samplerstate) \
-  VAR(downsample_from)                    \
-  VAR(downsample_to)                      \
-  VAR(downsample_uv_transform)            \
+#define GLOBAL_VARS_LIST       \
+  VAR(downsample_depth_from)   \
+  VAR(downsample_from)         \
+  VAR(downsample_to)           \
+  VAR(downsample_uv_transform) \
   VAR(downsample_uv_transformi)
 
 #define GLOBAL_VARS_LIST_OPTIONAL                 \
@@ -32,10 +34,12 @@
   VAR(downsample_closest_depth_from)              \
   VAR(downsample_closest_depth_from_samplerstate) \
   VAR(downsampled_depth_mip_count)                \
+  VAR(depth_buffer_size)                          \
   VAR(depth_format_target)                        \
   VAR(has_motion_vectors)                         \
   VAR(has_checkerboard_depth)                     \
-  VAR(has_normal)
+  VAR(has_normal)                                 \
+  VAR(normal_repacking_needed)
 
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
@@ -98,7 +102,8 @@ void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
 
   if (downsampleDepthWaveCompute)
   {
-    atomicCountersBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 2, "DownsamplerAtomicCounters");
+    atomicCountersBuf =
+      dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 2, "DownsamplerAtomicCounters", d3d::buffers::Init::No, RESTAG_TARGET);
 
     d3d::zero_rwbufi(atomicCountersBuf.getBuf());
   }
@@ -118,11 +123,6 @@ void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(downsample_depth_from_samplerstateVarId, d3d::request_sampler(smpInfo));
-  }
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Point;
     smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     ShaderGlobal::set_sampler(downsample_closest_depth_from_samplerstateVarId, d3d::request_sampler(smpInfo));
@@ -130,63 +130,57 @@ void init(const char *ps_name, const char *wave_cs_name, const char *cs_name)
 }
 
 void downsample(const ManagedTex &from_depth, int w, int h, const ManagedTex &far_depth, const ManagedTex &close_depth,
-  const ManagedTex &far_normals, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth, bool external_barriers)
-{
-  TextureIDPair close_depth_pair(close_depth.getTex2D(), close_depth.getTexId());
-  TextureIDPair far_normals_pair(far_normals.getTex2D(), far_normals.getTexId());
-  TextureIDPair motion_vectors_pair(motion_vectors.getTex2D(), motion_vectors.getTexId());
-  TextureIDPair checkerboard_depth_pair(checkerboard_depth.getTex2D(), checkerboard_depth.getTexId());
-
-  downsample(TextureIDPair(from_depth.getTex2D(), from_depth.getTexId()), w, h,
-    TextureIDPair(far_depth.getTex2D(), far_depth.getTexId()), close_depth ? &close_depth_pair : nullptr,
-    far_normals ? &far_normals_pair : nullptr, motion_vectors ? &motion_vectors_pair : nullptr,
-    checkerboard_depth ? &checkerboard_depth_pair : nullptr, external_barriers);
-}
-
-void downsample(const TextureIDPair &from_depth, int w, int h, const TextureIDPair &far_depth, const TextureIDPair *close_depth,
-  const TextureIDPair *far_normals, const TextureIDPair *motion_vectors, const TextureIDPair *checkerboard_depth,
+  const ManagedTex &far_normals, const ManagedTex &normal_gbuf, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth,
   bool external_barriers)
 {
-  if (downsampleDepthWaveCompute && (far_depth.getTex2D()->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS &&
-      (!close_depth || (close_depth->getTex2D()->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS))
+  downsample(from_depth.getTex2D(), w, h, far_depth.getTex2D(), close_depth.getTex2D(), far_normals.getTex2D(), normal_gbuf.getTex2D(),
+    motion_vectors.getTex2D(), checkerboard_depth.getTex2D(), external_barriers);
+}
+
+void downsample(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
+  BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers)
+{
+  if (downsampleDepthWaveCompute && (far_depth->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS &&
+      (!close_depth || (close_depth->level_count() - 1) <= MAX_CS_SUPPORTED_MIPS))
   {
-    downsampleWithWaveIntin(from_depth, w, h, far_depth, close_depth, far_normals, motion_vectors, checkerboard_depth,
+    downsampleWithWaveIntin(from_depth, w, h, far_depth, close_depth, far_normals, normal_gbuf, motion_vectors, checkerboard_depth,
       external_barriers);
   }
   else
   {
-    downsamplePS(from_depth, w, h, &far_depth, close_depth, far_normals, motion_vectors, checkerboard_depth, external_barriers);
+    downsamplePS(from_depth, w, h, far_depth, close_depth, far_normals, normal_gbuf, motion_vectors, checkerboard_depth,
+      external_barriers);
   }
 }
 
-void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureIDPair *far_depth, const TextureIDPair *close_depth,
-  const TextureIDPair *far_normals, const TextureIDPair *motion_vectors, const TextureIDPair *checkerboard_depth,
-  bool external_barriers, const Point4 &source_uv_transform)
+void downsamplePS(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
+  BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth, bool external_barriers,
+  const Point4 &source_uv_transform, const DynRes *dynamic_resolution)
 {
-  downsamplePS(from_depth, w, h, {far_depth, far_depth != nullptr}, close_depth, far_normals, motion_vectors, checkerboard_depth,
-    external_barriers, source_uv_transform);
+  downsamplePS(from_depth, w, h, {&far_depth, far_depth != nullptr}, close_depth, far_normals, normal_gbuf, motion_vectors,
+    checkerboard_depth, external_barriers, source_uv_transform, dynamic_resolution);
 }
 
-static bool check_uav(const TextureIDPair *tex)
+static bool check_uav(BaseTexture *tex)
 {
-  if (!tex || !tex->getTex2D())
+  if (!tex)
     return true;
 
   TextureInfo info;
-  tex->getTex2D()->getinfo(info);
+  tex->getinfo(info);
 
   return (info.cflg & TEXCF_UNORDERED) != 0;
 }
 
-void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const TextureIDPair> far_depth_array,
-  const TextureIDPair *close_depth, const TextureIDPair *far_normals, const TextureIDPair *motion_vectors,
-  const TextureIDPair *checkerboard_depth, bool external_barriers, const Point4 &source_uv_transform)
+void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *> far_depth_array, BaseTexture *close_depth,
+  BaseTexture *far_normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth,
+  bool external_barriers, const Point4 &source_uv_transform, const DynRes *dynamic_resolution)
 {
-  const TextureIDPair *far_depth_mip0 = far_depth_array.size() ? &far_depth_array[0] : nullptr;
+  BaseTexture *far_depth_mip0 = far_depth_array.size() ? far_depth_array[0] : nullptr;
 
   G_ASSERT(far_depth_mip0 || close_depth || checkerboard_depth);
   G_ASSERTF(!close_depth || close_depth && far_depth_mip0, "DownsamplePS: `close_depth` only downsample has not implemented!");
-  G_ASSERT_RETURN(from_depth.getTex(), );
+  G_ASSERT_RETURN(from_depth, );
 
   int savedHasMotionVectors = ShaderGlobal::get_int(has_motion_vectorsVarId);
 #if DAGOR_DBGLEVEL > 0
@@ -210,14 +204,9 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
     downsample_type = close_depth ? DTYPE_GBUF_FAR_CLOSE : DTYPE_GBUF_FAR;
   }
 
-  ShaderGlobal::set_int(downsample_depth_typeVarId, downsample_type);
-  ShaderGlobal::set_int(has_checkerboard_depthVarId, checkerboard_depth ? 1 : 0);
-  ShaderGlobal::set_int(has_normalVarId, far_normals ? 1 : 0);
-  ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors && motion_vectors ? 1 : 0);
-
-  auto isDepthBuffer = [](TextureIDPair tex) {
+  auto isDepthBuffer = [](Texture *tex) {
     TextureInfo depthInfo;
-    tex.getTex2D()->getinfo(depthInfo, 0);
+    tex->getinfo(depthInfo, 0);
     return (depthInfo.cflg & TEXFMT_MASK) >= TEXFMT_FIRST_DEPTH && (depthInfo.cflg & TEXFMT_MASK) <= TEXFMT_LAST_DEPTH;
   };
 
@@ -226,80 +215,84 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
   for (const auto &tex : {eastl::pair(far_depth_mip0, FAR_DEPTH_FORMAT), eastl::pair(close_depth, CLOSE_DEPTH_FORMAT),
          eastl::pair(checkerboard_depth, CHECKER_DEPTH_FORMAT)})
   {
-    if (tex.first && isDepthBuffer(tex.first->getTex2D()))
+    if (tex.first && isDepthBuffer(tex.first))
     {
       G_ASSERT(!depthTex && "DownsamplePS: Only one target can have depth format.");
-      depthTex = tex.first->getTex2D();
+      depthTex = tex.first;
       depthFormatTarget = tex.second;
     }
   }
 
+  ShaderGlobal::set_int(downsample_depth_typeVarId, downsample_type);
   ShaderGlobal::set_int(depth_format_targetVarId, depthFormatTarget);
-  if (useCompute)
-  {
-    d3d::set_rwtex(STAGE_CS, 0, far_depth_mip0 ? far_depth_mip0->getTex2D() : nullptr, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, close_depth ? close_depth->getTex2D() : nullptr, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, checkerboard_depth ? checkerboard_depth->getTex2D() : nullptr, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, far_normals ? far_normals->getTex2D() : nullptr, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 4, motion_vectors ? motion_vectors->getTex2D() : nullptr, 0, 0);
-  }
-  else
-  {
-    if (depthTex)
-      shaders::overrides::set(zFuncAlwaysStateId);
-
-    d3d::set_render_target({depthTex ? depthTex : nullptr, 0}, DepthAccess::RW,
-      {{far_depth_mip0 && depthFormatTarget != FAR_DEPTH_FORMAT ? far_depth_array[0].getTex2D() : nullptr, 0},
-        {close_depth && depthFormatTarget != CLOSE_DEPTH_FORMAT ? close_depth->getTex2D() : nullptr, 0},
-        {checkerboard_depth && depthFormatTarget != CHECKER_DEPTH_FORMAT ? checkerboard_depth->getTex2D() : nullptr, 0},
-        {far_normals ? far_normals->getTex2D() : nullptr, 0}, {motion_vectors ? motion_vectors->getTex2D() : nullptr, 0}});
-  }
-
   TextureInfo fdi;
-  from_depth.getTex2D()->getinfo(fdi, 0);
+  from_depth->getinfo(fdi, 0);
 
-  ShaderGlobal::set_color4(downsample_fromVarId, w, h, 0, 0);
-  ShaderGlobal::set_color4(downsample_toVarId, w >> 1, h >> 1, 0, 0);
-  ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth.getId());
-  ShaderGlobal::set_color4(downsample_uv_transformVarId, source_uv_transform);
-  ShaderGlobal::set_int4(downsample_uv_transformiVarId, source_uv_transform.z * fdi.w, source_uv_transform.w * fdi.h, 0, 0);
+  ShaderGlobal::set_float4(downsample_fromVarId, w, h, 0, 0);
+  ShaderGlobal::set_float4(downsample_toVarId, w >> 1, h >> 1, 0, 0);
+  ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth);
 
   // TODO: This barrier can be managed externally (external_barriers)
-  d3d::resource_barrier({from_depth.getTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-
-  if (!useCompute)
-  {
-    TIME_D3D_PROFILE(clear);
-    bool canDiscard = !d3d::get_driver_desc().issues.hasRenderPassClearDataRace;
-    d3d::clearview(canDiscard ? CLEAR_DISCARD : CLEAR_ZBUFFER, 0, 0.f, 0);
-  }
+  d3d::resource_barrier({from_depth, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 
   {
-    TIME_D3D_PROFILE(first_pass);
+    STATE_GUARD(ShaderGlobal::set_int(has_checkerboard_depthVarId, VALUE), checkerboard_depth ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_int(has_normalVarId, VALUE), far_normals ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_int(has_motion_vectorsVarId, VALUE), savedHasMotionVectors && motion_vectors ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_int(normal_repacking_neededVarId, VALUE), normal_gbuf ? 1 : 0, 0);
+    STATE_GUARD(ShaderGlobal::set_float4(downsample_uv_transformVarId, VALUE), Point4(source_uv_transform), Point4(1, 1, 0, 0));
+    STATE_GUARD(ShaderGlobal::set_int4(downsample_uv_transformiVarId, VALUE),
+      IPoint4(source_uv_transform.z * fdi.w, source_uv_transform.w * fdi.h, 0, 0), IPoint4(0, 0, 0, 0));
+
+    int mw = (dynamic_resolution ? dynamic_resolution->dynamicResolution.x : w) / 2;
+    int mh = (dynamic_resolution ? dynamic_resolution->dynamicResolution.y : h) / 2;
+
     if (useCompute)
     {
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), far_depth_mip0);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), close_depth);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 2, VALUE, 0, 0), checkerboard_depth);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 3, VALUE, 0, 0), far_normals);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 4, VALUE, 0, 0), motion_vectors);
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 5, VALUE, 0, 0), normal_gbuf);
       for (int smpIx = 0; smpIx < 16; smpIx++)
         d3d::set_tex(STAGE_CS, smpIx, nullptr);
 
-      downsampleDepthCompute->dispatchThreads(w >> 1, h >> 1, 1);
-      for (int ix = 0; ix < 5; ++ix)
-        d3d::set_rwtex(STAGE_CS, ix, nullptr, 0, 0);
+      downsampleDepthCompute->dispatchThreads(mw, mh, 1);
     }
     else
-      downsampleDepth.render();
+    {
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_PS, 5, VALUE, 0, 0), normal_gbuf);
+
+      if (depthTex)
+        shaders::overrides::set(zFuncAlwaysStateId);
+
+      d3d::set_render_target({depthTex ? depthTex : nullptr, 0}, DepthAccess::RW,
+        {{far_depth_mip0 && depthFormatTarget != FAR_DEPTH_FORMAT ? far_depth_array[0] : nullptr, 0},
+          {close_depth && depthFormatTarget != CLOSE_DEPTH_FORMAT ? close_depth : nullptr, 0},
+          {checkerboard_depth && depthFormatTarget != CHECKER_DEPTH_FORMAT ? checkerboard_depth : nullptr, 0},
+          {far_normals ? far_normals : nullptr, 0}, {motion_vectors ? motion_vectors : nullptr, 0}});
+
+      d3d::setview(0, 0, mw, mh, 0, 1);
+      d3d::setscissor(0, 0, mw, mh);
+
+      {
+        TIME_D3D_PROFILE(clear);
+        bool canDiscard = !d3d::get_driver_desc().issues.hasRenderPassClearDataRace;
+        d3d::clearview(canDiscard ? CLEAR_DISCARD : CLEAR_ZBUFFER, 0, 0.f, 0);
+      }
+
+      {
+        TIME_D3D_PROFILE(first_pass)
+        downsampleDepth.render();
+      }
+    }
   }
-
-  ShaderGlobal::set_int(has_motion_vectorsVarId, 0);
-  ShaderGlobal::set_int(has_checkerboard_depthVarId, 0);
-  ShaderGlobal::set_int(has_normalVarId, 0);
-
-  ShaderGlobal::set_color4(downsample_uv_transformVarId, 1, 1, 0, 0);
-  ShaderGlobal::set_int4(downsample_uv_transformiVarId, 0, 0, 0, 0);
 
   const bool farHasDepthFormat = depthFormatTarget == FAR_DEPTH_FORMAT;
   const int far_depth_mip_count =
-    (far_depth_array.size() && !farHasDepthFormat) ? far_depth_array[0].getTex2D()->level_count() : far_depth_array.size();
-  const int close_depth_mip_count = close_depth ? close_depth->getTex2D()->level_count() : 0;
+    (far_depth_array.size() && !farHasDepthFormat) ? far_depth_array[0]->level_count() : far_depth_array.size();
+  const int close_depth_mip_count = close_depth ? close_depth->level_count() : 0;
 
   G_ASSERTF(close_depth_mip_count <= 1 || close_depth_mip_count <= far_depth_mip_count,
     "DownsamplePS: Downsampling close depth more steps than far depth has not implemented.");
@@ -312,12 +305,12 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
 
     if (!farHasDepthFormat)
     {
-      ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[0].getId());
+      ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[0]);
     }
 
     if (close_depth)
     {
-      ShaderGlobal::set_texture(downsample_closest_depth_fromVarId, close_depth->getId());
+      ShaderGlobal::set_texture(downsample_closest_depth_fromVarId, close_depth);
     }
 
     ShaderGlobal::set_int(downsampled_depth_mip_countVarId, far_depth_mip_count);
@@ -331,12 +324,11 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
 
       const bool closeDepthEnabled = i < close_depth_mip_count;
       ShaderGlobal::set_int(downsample_depth_typeVarId, closeDepthEnabled ? DTYPE_MIP_FAR_CLOSE : DTYPE_MIP_FAR);
-      ShaderGlobal::set_color4(downsample_fromVarId, w >> i, h >> i, 0, 0);
-      ShaderGlobal::set_color4(downsample_toVarId, w >> (i + 1), h >> (i + 1), 0, 0);
+      ShaderGlobal::set_float4(downsample_fromVarId, w >> i, h >> i, 0, 0);
+      ShaderGlobal::set_float4(downsample_toVarId, w >> (i + 1), h >> (i + 1), 0, 0);
 
       auto getFarRenderTarget = [farHasDepthFormat, far_depth_array](unsigned mip_level) -> RenderTarget {
-        return farHasDepthFormat ? RenderTarget{far_depth_array[mip_level].getTex2D(), 0}
-                                 : RenderTarget{far_depth_array[0].getTex2D(), mip_level};
+        return farHasDepthFormat ? RenderTarget{far_depth_array[mip_level], 0} : RenderTarget{far_depth_array[0], mip_level};
       };
       RenderTarget farDepthSource = getFarRenderTarget(unsigned(i - 1));
       RenderTarget farDepthTarget = getFarRenderTarget(unsigned(i));
@@ -347,7 +339,7 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
         farDepthSource.mip_level, 1});
       if (farHasDepthFormat)
       {
-        ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[unsigned(i - 1)].getId()); // farDepthSource texture ID
+        ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[unsigned(i - 1)]); // farDepthSource texture ID
       }
       else
       {
@@ -356,22 +348,26 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
 
       if (closeDepthEnabled)
       {
-        d3d::resource_barrier({close_depth->getTex2D(), RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, unsigned(i - 1), 1});
-        close_depth->getTex2D()->texmiplevel(i - 1, i - 1);
+        d3d::resource_barrier({close_depth, RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, unsigned(i - 1), 1});
+        close_depth->texmiplevel(i - 1, i - 1);
       }
+
+      int mw = (dynamic_resolution ? (int)dynamic_resolution->dynamicResolution.x : w) >> (i + 1);
+      int mh = (dynamic_resolution ? (int)dynamic_resolution->dynamicResolution.y : h) >> (i + 1);
 
       if (useCompute)
       {
         d3d::set_rwtex(STAGE_CS, 0, farDepthTarget.tex, 0, farDepthTarget.mip_level);
         if (closeDepthEnabled)
-          d3d::set_rwtex(STAGE_CS, 1, close_depth->getTex2D(), 0, unsigned(i));
-        downsampleDepthCompute->dispatchThreads(w >> (i + 1), h >> (i + 1), 1);
+          d3d::set_rwtex(STAGE_CS, 1, close_depth, 0, unsigned(i));
+        downsampleDepthCompute->dispatchThreads(mw, mh, 1);
       }
       else
       {
         d3d::set_render_target(farHasDepthFormat ? farDepthTarget : RenderTarget{}, DepthAccess::RW,
-          {!farHasDepthFormat ? farDepthTarget : RenderTarget{},
-            {closeDepthEnabled ? close_depth->getTex2D() : nullptr, unsigned(i)}});
+          {!farHasDepthFormat ? farDepthTarget : RenderTarget{}, {closeDepthEnabled ? close_depth : nullptr, unsigned(i)}});
+        d3d::setview(0, 0, mw, mh, 0, 1);
+        d3d::setscissor(0, 0, mw, mh);
         d3d::clearview(CLEAR_DISCARD, 0, 0.f, 0);
         downsampleDepth.render();
       }
@@ -389,40 +385,43 @@ void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const
 
   shaders::overrides::reset();
   ShaderGlobal::set_texture(downsample_depth_fromVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(downsample_closest_depth_fromVarId, BAD_TEXTUREID);
 
   if (close_depth)
   {
-    close_depth->getTex2D()->texmiplevel(-1, -1);
+    close_depth->texmiplevel(-1, -1);
   }
   if (checkerboard_depth)
   {
-    checkerboard_depth->getTex2D()->texmiplevel(-1, -1);
+    checkerboard_depth->texmiplevel(-1, -1);
   }
   if (far_depth_array.size())
   {
     // TODO: This barrier can be managed externally (external_barriers)
     if (!farHasDepthFormat)
     {
-      far_depth_array[0].getTex2D()->texmiplevel(-1, -1);
-      d3d::resource_barrier({far_depth_array[0].getTex2D(),
-        RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, unsigned(far_depth_mip_count - 1), 1});
+      far_depth_array[0]->texmiplevel(-1, -1);
+      d3d::resource_barrier({far_depth_array[0], RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE,
+        unsigned(far_depth_mip_count - 1), 1});
     }
     else
     {
-      d3d::resource_barrier({far_depth_array[far_depth_mip_count - 1].getTex2D(),
+      d3d::resource_barrier({far_depth_array[far_depth_mip_count - 1],
         RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
     }
   }
 
   if (close_depth && !external_barriers)
     d3d::resource_barrier(
-      {close_depth->getTex2D(), RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, unsigned(close_depth_mip_count - 1), 1});
+      {close_depth, RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, unsigned(close_depth_mip_count - 1), 1});
   if (far_normals && !external_barriers)
-    d3d::resource_barrier({far_normals->getTex2D(), RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
+    d3d::resource_barrier({far_normals, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
   if (motion_vectors && !external_barriers)
-    d3d::resource_barrier({motion_vectors->getTex2D(), RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
+    d3d::resource_barrier({motion_vectors, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
   if (checkerboard_depth && !external_barriers)
-    d3d::resource_barrier({checkerboard_depth->getTex2D(), RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 1});
+    d3d::resource_barrier({checkerboard_depth, RB_RO_SRV | srcStage | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 1});
+  if (normal_gbuf && !external_barriers)
+    d3d::resource_barrier({normal_gbuf, RB_RO_SRV | srcStage | RB_STAGE_PIXEL, 0, 1});
 }
 
 void generate_depth_mips(const TextureIDPair &tex)
@@ -441,15 +440,16 @@ void generate_depth_mips(const TextureIDPair &tex)
   {
     TextureInfo info;
     tex.getTex2D()->getinfo(info, i);
-    ShaderGlobal::set_color4(downsample_fromVarId, info.w >> i, info.h >> i, 0, 0);
+    ShaderGlobal::set_float4(downsample_fromVarId, info.w >> i, info.h >> i, 0, 0);
     tex.getTex2D()->texmiplevel(i - 1, i - 1);
-    d3d::set_render_target(tex.getTex2D(), i);
+    d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), static_cast<uint32_t>(i), 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     downsampleDepth.render();
   }
 
   tex.getTex2D()->texmiplevel(-1, -1);
 
+  ShaderGlobal::set_texture(downsample_depth_fromVarId, nullptr);
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
 }
@@ -465,18 +465,16 @@ void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count)
   ShaderGlobal::set_int(has_normalVarId, 0);
   ShaderGlobal::set_int(has_checkerboard_depthVarId, 0);
   ShaderGlobal::set_int(has_motion_vectorsVarId, 0);
-  d3d::set_render_target(nullptr, 0);
 
   TextureInfo info;
   depth_mips[0].getTex2D()->getinfo(info, 0);
 
   for (int i = 1; i < depth_mip_count; ++i)
   {
-    ShaderGlobal::set_color4(downsample_fromVarId, info.w >> (i - 1), info.h >> (i - 1), 0, 0);
+    ShaderGlobal::set_float4(downsample_fromVarId, info.w >> (i - 1), info.h >> (i - 1), 0, 0);
     ShaderGlobal::set_texture(downsample_depth_fromVarId, depth_mips[i - 1].getId());
     d3d::resource_barrier({depth_mips[i - 1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
-    d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(depth_mips[i].getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({depth_mips[i].getTex2D(), 0, 0}, DepthAccess::RW, {});
     d3d::clearview(CLEAR_DISCARD_ZBUFFER, 0, 0.f, 0);
     downsampleDepth.render();
   }
@@ -484,25 +482,26 @@ void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count)
     {depth_mips[depth_mip_count - 1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
 
   shaders::overrides::reset();
+  ShaderGlobal::set_texture(downsample_depth_fromVarId, nullptr);
 
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
 }
 
-void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, const TextureIDPair &far_depth,
-  const TextureIDPair *close_depth, const TextureIDPair *far_normals, const TextureIDPair *motion_vectors,
-  const TextureIDPair *checkerboard_depth, bool external_barriers)
+void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth,
+  BaseTexture *far_normals, BaseTexture *normal_gbuf, BaseTexture *motion_vectors, BaseTexture *checkerboard_depth,
+  bool external_barriers)
 {
   G_ASSERT(downsampleDepthWaveCompute);
 #if DAGOR_DBGLEVEL > 0
   {
     TextureInfo farDepthInfo;
-    far_depth.getTex2D()->getinfo(farDepthInfo, 0);
+    far_depth->getinfo(farDepthInfo, 0);
     if (!(farDepthInfo.cflg & TEXCF_UNORDERED))
       logerr("downsampleHierarchy requires TEXCF_UNORDERED flag.\n"
              "Please, add this flag to '%s' texture.\n"
              "NOTE: Use downsamplePS for downsampling to depth textures.",
-        far_depth.getTex2D()->getTexName());
+        far_depth->getTexName());
   }
 #endif
 
@@ -515,19 +514,18 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
     ShaderGlobal::set_int(downsample_depth_typeVarId, downsample_type);
     ShaderGlobal::set_int(depth_format_targetVarId, NO_DEPTH_FORMAT);
     ShaderGlobal::set_int(has_normalVarId, far_normals ? 1 : 0);
+    ShaderGlobal::set_int(normal_repacking_neededVarId, normal_gbuf ? 1 : 0);
     ShaderGlobal::set_int(has_checkerboard_depthVarId, checkerboard_depth ? 1 : 0);
     ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors && motion_vectors ? 1 : 0);
-    d3d::set_render_target(far_depth.getTex2D(), 0);
-    d3d::set_render_target(1, close_depth ? close_depth->getTex2D() : NULL, 0);
-    d3d::set_render_target(2, checkerboard_depth ? checkerboard_depth->getTex2D() : NULL, 0);
-    d3d::set_render_target(3, far_normals ? far_normals->getTex2D() : NULL, 0);
-    d3d::set_render_target(4, motion_vectors ? motion_vectors->getTex2D() : NULL, 0);
-
-    ShaderGlobal::set_color4(downsample_fromVarId, w, h, 0, 0);
-    ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth.getId());
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{far_depth, 0, 0}, {close_depth, 0, 0}, {checkerboard_depth, 0, 0}, {far_normals, 0, 0}, {motion_vectors, 0, 0}});
+    d3d::set_rwtex(STAGE_PS, 5, normal_gbuf, 0, 0);
+    ShaderGlobal::set_float4(downsample_fromVarId, w, h, 0, 0);
+    ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     downsampleDepth.render(); // first pass
   }
+  ShaderGlobal::set_int(normal_repacking_neededVarId, 0);
 
   w /= 2;
   h /= 2;
@@ -535,21 +533,22 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
   const int workGroupX = (w + DEPTH_HIERARCHY_DISPATCH_SIZE_X - 1) / DEPTH_HIERARCHY_DISPATCH_SIZE_X;
   const int workGroupY = (h + DEPTH_HIERARCHY_DISPATCH_SIZE_Y - 1) / DEPTH_HIERARCHY_DISPATCH_SIZE_Y;
   ShaderGlobal::set_int(work_group_countVarId, workGroupX * workGroupY);
+  ShaderGlobal::set_int4(depth_buffer_sizeVarId, w, h, 0, 0);
 
   //
   // Downsample far depth
   //
-  const int farMipsCount = far_depth.getTex2D()->level_count() - 1;
+  const int farMipsCount = far_depth->level_count() - 1;
   if (farMipsCount > 0)
   {
-    d3d::resource_barrier({far_depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
-    far_depth.getTex2D()->texmiplevel(0, 0);
-    d3d::set_tex(STAGE_CS, 0, far_depth.getTex2D());
+    d3d::resource_barrier({far_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
+    far_depth->texmiplevel(0, 0);
+    d3d::set_tex(STAGE_CS, 0, far_depth);
 
     ShaderGlobal::set_int(downsampled_depth_mip_countVarId, farMipsCount + 1);
-    for (int i = 1; i < far_depth.getTex2D()->level_count(); ++i)
+    for (int i = 1; i < far_depth->level_count(); ++i)
     {
-      d3d::set_rwtex(STAGE_CS, i - 1, far_depth.getTex2D(), 0, i);
+      d3d::set_rwtex(STAGE_CS, i - 1, far_depth, 0, i);
     }
     for (int i = farMipsCount; i < MAX_CS_SUPPORTED_MIPS; ++i)
     {
@@ -564,17 +563,17 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
   //
   // Downsample near depth
   //
-  if (close_depth && close_depth->getTex2D()->level_count() > 1)
+  if (close_depth && close_depth->level_count() > 1)
   {
-    d3d::resource_barrier({close_depth->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
+    d3d::resource_barrier({close_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
     d3d::resource_barrier({atomicCountersBuf.getBuf(), RB_NONE});
-    close_depth->getTex2D()->texmiplevel(0, 0);
-    d3d::set_tex(STAGE_CS, 0, close_depth->getTex2D());
+    close_depth->texmiplevel(0, 0);
+    d3d::set_tex(STAGE_CS, 0, close_depth);
 
-    const int closeMipsCount = close_depth->getTex2D()->level_count() - 1;
-    for (int i = 1; i < close_depth->getTex2D()->level_count(); ++i)
+    const int closeMipsCount = close_depth->level_count() - 1;
+    for (int i = 1; i < close_depth->level_count(); ++i)
     {
-      d3d::set_rwtex(STAGE_CS, i - 1, close_depth->getTex2D(), 0, i);
+      d3d::set_rwtex(STAGE_CS, i - 1, close_depth, 0, i);
     }
     for (int i = closeMipsCount; i < MAX_CS_SUPPORTED_MIPS; ++i)
     {
@@ -595,32 +594,35 @@ void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, cons
     d3d::set_rwtex(STAGE_CS, i, nullptr, 0, 0);
   }
 
-  far_depth.getTex2D()->texmiplevel(-1, -1);
+  far_depth->texmiplevel(-1, -1);
   if (farMipsCount > 0)
   {
     d3d::resource_barrier( //
-      {far_depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 1, (unsigned)farMipsCount});
+      {far_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 1, (unsigned)farMipsCount});
   }
   if (close_depth)
   {
-    close_depth->getTex2D()->texmiplevel(-1, -1);
-    if (!external_barriers && close_depth->getTex2D()->level_count() > 1)
+    close_depth->texmiplevel(-1, -1);
+    if (!external_barriers && close_depth->level_count() > 1)
     {
       d3d::resource_barrier( //
-        {close_depth->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 1,
-          (unsigned)close_depth->getTex2D()->level_count() - 1u});
+        {close_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 1, (unsigned)close_depth->level_count() - 1u});
     }
   }
   if (far_normals)
-    d3d::resource_barrier({far_normals->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
+    d3d::resource_barrier({far_normals, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
   if (motion_vectors)
-    d3d::resource_barrier({motion_vectors->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
+    d3d::resource_barrier({motion_vectors, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
+  if (normal_gbuf)
+    d3d::resource_barrier({normal_gbuf, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
   if (checkerboard_depth)
   {
-    checkerboard_depth->getTex2D()->texmiplevel(-1, -1);
+    checkerboard_depth->texmiplevel(-1, -1);
     if (!external_barriers)
-      d3d::resource_barrier({checkerboard_depth->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 1});
+      d3d::resource_barrier({checkerboard_depth, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 1});
   }
   d3d::resource_barrier({atomicCountersBuf.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+
+  ShaderGlobal::set_texture(downsample_depth_fromVarId, BAD_TEXTUREID);
 }
 }; // namespace downsample_depth

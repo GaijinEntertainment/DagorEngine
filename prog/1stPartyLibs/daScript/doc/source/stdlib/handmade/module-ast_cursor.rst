@@ -1,0 +1,1 @@
+Position-based AST queries. Given a file, line, and column, finds all expression nodes at that cursor position with innermost-first ordering and enclosing function context. Used for implementing IDE features like goto-definition, type-of, and find-references.

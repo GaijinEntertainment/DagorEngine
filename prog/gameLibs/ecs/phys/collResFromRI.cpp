@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <rendInst/rendInstExtraAccess.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/rendInst/riExtra.h>
 
 static CollisionResource *get_collres_from_riextra(rendinst::riex_handle_t ri_extra__handle)

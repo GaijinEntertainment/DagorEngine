@@ -1,9 +1,14 @@
 include "wind/wind_simulation_inc.dshl"
 include "wind/apply_tree_wind_inc.dshl"
+include "heightmap_common.dshl"
+include "rendinst_heightmap_ofs.dshl"
+include "rendinst_vegetation_inc.dshl"
 
 macro INIT_BVH_TREE_ANIMATION()
   INIT_FLUID_WIND(cs)
   INIT_AMBIENT_WIND(cs)
+  INIT_WORLD_HEIGHTMAP_FOR_VERTICES(cs)
+  INIT_RENDINST_HEIGHTMAP_OFS(cs)
   (cs)
   {
     time_param@f1 = time_phase(1000, 0) * 1000;
@@ -14,7 +19,21 @@ macro BVH_TREE_ANIMATION()
   USE_COMBINED_WIND(cs)
   USE_PIVOT_PAINTER_BASE(cs)
   USE_APPLY_TREE_WIND_BASE(cs)
+  USE_HEIGHTMAP_COMMON_FOR_VERTICES(cs)
+  USE_GROUND_ALIGN_MATH(cs)
   hlsl(cs) {
+    float3 apply_ground_align(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
+    {
+      if (is_rendinst_outside_hmap(worldLocalPos))
+        return worldPos;
+
+      if (get_ground_snap_params().x >= 0) // ##if (ground_snap_height_soft == snapOn)
+        worldPos = apply_snap(worldPos, localPos, worldLocalPos, pos_and_scale);
+      else if (get_ground_bend_params().x >= 0)// ##elif (ground_bend_height == bendOn)
+        worldPos = apply_bend(worldPos, localPos, worldLocalPos, pos_and_scale);
+      return worldPos;
+    }
+
     void bvh_tree_animation(float2 indirect_texcoord,
                             float4 input_color,
                             float4x4 wtm,
@@ -36,16 +55,14 @@ macro BVH_TREE_ANIMATION()
       world_pos.xyz = input_pos.x * worldLocalX + input_pos.y * worldLocalY + input_pos.z * worldLocalZ + worldLocalPos;
       world_pos.w = 1.0;
       world_normal = normalize(mul(input_normal, (float3x3)wtm));
-      // TODO Figure this out!!!!!
-      // ##if instancing_type == pos_vb || instancing_type == pos_cb
-      //   float4 pos_and_scale = float4(world_local_pos,length(worldLocalX));
-      //   world_pos = apply_ground_align(world_pos, input_pos, world_local_pos, pos_and_scale);
-      // ##endif
+
+      float4 pos_and_scale = float4(worldLocalPos, length(worldLocalX));
+      world_pos.xyz = apply_ground_align(world_pos.xyz, input_pos, worldLocalPos, pos_and_scale);
 
       ##if (bvh_process_tree_vertices_is_pivoted == yes)
         HierarchyData Data = fetchHierarchyData(indirect_texcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
         float3 prevWorldPos;
-        applyWindAnimationOffset(world_pos.xyz, world_normal, Data, tree_wind_params.x, params.AnimWindScale, world_pos.xyz, prevWorldPos);
+        applyWindAnimationOffset(world_pos.xyz, world_normal, Data, tree_wind_params.x, params.AnimWindScale, prevWorldPos);
       ##endif
 
       if (params.apply_tree_wind) // shader != rendinst_tree_perlin_layered && atest == atestOn

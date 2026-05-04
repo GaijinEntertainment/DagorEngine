@@ -46,7 +46,7 @@ function contextMenu(x, y, width, actions, menu_style = style) {
       flow = FLOW_VERTICAL
       color = menuBgColor
       safeAreaMargin = [sh(2), sh(2)]
-      transform = {}
+      transform = true
       behavior = Behaviors.BoundToArea
 
       hotkeys = closeHotkeys

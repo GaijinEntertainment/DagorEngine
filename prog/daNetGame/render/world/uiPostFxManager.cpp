@@ -10,6 +10,7 @@
 #include "private_worldRenderer.h"
 #include <render/renderEvent.h>
 #include <daECS/core/entityManager.h>
+#include "uiBlurTexHelper.h"
 
 
 static bool blur_update_enabled = true;
@@ -35,5 +36,5 @@ void UiPostFxManager::updateFinalBlurred(const IBBox2 *begin, const IBBox2 *end,
   WorldRenderer *renderer = (WorldRenderer *)get_world_renderer();
   if (!renderer || !blur_update_enabled)
     return;
-  g_entity_mgr->broadcastEventImmediate(UpdateBlurredUI(begin, end, max_mip));
+  g_entity_mgr->broadcastEventImmediate(UpdateBlurredUI(begin, end, max_mip, get_ui_tex_for_blur()));
 }

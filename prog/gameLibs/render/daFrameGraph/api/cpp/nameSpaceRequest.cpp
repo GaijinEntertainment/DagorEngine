@@ -74,8 +74,7 @@ VirtualResourceSemiRequest<NameSpaceRequest::NewRwRequestPolicy> NameSpaceReques
   return {{slotResId, false}, nodeId, registry};
 }
 
-VirtualResourceSemiRequest<NameSpaceRequest::NewRwRequestPolicy> NameSpaceRequest::rename(const char *from, const char *to,
-  History history) const
+VirtualResourceSemiRequest<NameSpaceRequest::NewNameRequestPolicy> NameSpaceRequest::rename(const char *from, const char *to) const
 {
   const auto fromResId = registry->knownNames.addNameId<ResNameId>(nameSpaceId, from);
   const auto nodeNsId = registry->knownNames.getParent(nodeId);
@@ -83,7 +82,7 @@ VirtualResourceSemiRequest<NameSpaceRequest::NewRwRequestPolicy> NameSpaceReques
 
   registry->nodes[nodeId].renamedResources.emplace(toResId, fromResId);
   registry->nodes[nodeId].resourceRequests.emplace(fromResId, ResourceRequest{ResourceUsage{Usage::UNKNOWN, Access::READ_WRITE}});
-  registry->resources.get(toResId).history = history;
+  registry->resources.get(toResId) = ResourceData{.history = History::No}; // sanity check, rename must have no createdResData
 
   return {{fromResId, false}, nodeId, registry};
 }

@@ -200,7 +200,7 @@ IWndProcComponent::RetCode TapMouseDevice::process(void *hwnd, unsigned msg, uin
         client->gmcMouseButtonUp(this, 19);
     }
   }
-  else if (msg == GPCM_TouchBegan || GPCM_TouchMoved || GPCM_TouchEnded)
+  else if (msg == GPCM_TouchBegan || msg == GPCM_TouchMoved || msg == GPCM_TouchEnded)
   {
     const Point2 p = convert_to_screen_coordinate(lParam & 0xffff, lParam >> 16);
 

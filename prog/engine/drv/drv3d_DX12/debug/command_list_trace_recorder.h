@@ -126,6 +126,14 @@ private:
       cmd->WriteBufferImmediate(2, params, modes);
       return static_cast<TraceID>(traceIndex);
     }
+    TraceID getProgress(RecorderID recorder)
+    {
+      if (!buffer)
+        return invalid_trace_value;
+
+      const auto subIndex = to_sub_index(recorder);
+      return static_cast<TraceID>(runLengths[subIndex]);
+    }
     // Cheap check to see if all traces where recorded as completed
     bool isCompleted(RecorderID recorder) const
     {
@@ -237,6 +245,7 @@ public:
     return static_cast<RecorderID>(allocatedRecorders++);
   }
   TraceID recordTrace(RecorderID recorder, D3DGraphicsCommandList *cmd) { return getPool(recorder).recordTrace(recorder, cmd); }
+  TraceID getRecorderProgress(RecorderID recorder) { return getPool(recorder).getProgress(recorder); }
   bool isCompleted(RecorderID recorder) const { return getPool(recorder).isCompleted(recorder); }
   void beginRecording(RecorderID recorder) { return getPool(recorder).beginRecording(recorder); }
   TraceStatus readTraceStatus(RecorderID recorder, TraceID trace) const { return getPool(recorder).readTraceStatus(recorder, trace); }

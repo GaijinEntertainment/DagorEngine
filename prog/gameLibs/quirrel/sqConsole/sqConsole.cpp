@@ -2,10 +2,10 @@
 
 #include <util/dag_console.h>
 #include <quirrel/sqConsole/sqConsole.h>
-#include <quirrel/sqConsole/sqPrintCollector.h>
+#include <quirrel/sqPrintCollector.h>
 #include <quirrel/quirrel_json/quirrel_json.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <memory/dag_framemem.h>
 #include <sqrat.h>
 #include <EASTL/map.h>
@@ -27,7 +27,7 @@ static SQInteger stub_debug_table_data(HSQUIRRELVM v)
   {
     if (SQ_SUCCEEDED(sq_tostring(v, 2)))
     {
-      const SQChar *s = nullptr;
+      const char *s = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, -1, &s)));
       const char *quotes = (sq_gettype(v, 2) == OT_STRING) ? "\"" : "";
       pf(v, "%s%s%s\n\nWARNING: Object printing function is not defined for this VM (use setObjPrintFunc)", quotes, s, quotes);
@@ -44,7 +44,7 @@ static SQInteger sq_debug_print_to_output_str(HSQUIRRELVM vm)
 {
   if (SQ_SUCCEEDED(sq_tostring(vm, 2)))
   {
-    const SQChar *str;
+    const char *str;
     if (SQ_SUCCEEDED(sq_getstring(vm, -1, &str)))
     {
       SQPrintCollector::sq_printf(vm, "%s", str);
@@ -125,10 +125,12 @@ public:
     ///@module console
     Sqrat::Table exports(sqvm);
     exports //
-      .SquirrelFunc("register_command", sqRegisterCommand, -2, ".csss")
-      .SquirrelFunc("console_register_command", sqRegisterCommand, -2, ".csss")
-      .SquirrelFunc("setObjPrintFunc", setObjPrintFunc, 2, ".c|o")
-      .SquirrelFunc("setConsoleObjPrintFunc", setObjPrintFunc, 2, ".c|o")
+      .SquirrelFuncDeclString(sqRegisterCommand,
+        "register_command(closure: function, [cmd: string, desc: string, argsDesc: string]): null")
+      .SquirrelFuncDeclString(sqRegisterCommand,
+        "console_register_command(closure: function, [cmd: string, desc: string, argsDesc: string]): null")
+      .SquirrelFuncDeclString(setObjPrintFunc, "setObjPrintFunc(func: function|null): null")
+      .SquirrelFuncDeclString(setObjPrintFunc, "setConsoleObjPrintFunc(func: function|null): null")
       .Func("console_command", console::command)
       .Func("command", console::command)
       /**/;
@@ -243,8 +245,8 @@ private:
       HSQOBJECT scriptClosure;
       sq_getstackobj(vm, -1, &scriptClosure);
       Sqrat::Function func(vm, Sqrat::Object(vm), scriptClosure);
-      Sqrat::Object result;
-      if (func.Evaluate(result))
+      auto result = func.Eval<Sqrat::Object>();
+      if (result)
       {
         Sqrat::Table objFormatSettings(vm);
         objFormatSettings.SetValue("silentMode", true);
@@ -259,7 +261,7 @@ private:
         }
 
         if (!debugTableDataSq.IsNull())
-          debugTableDataSq.Execute(result, objFormatSettings);
+          debugTableDataSq.Execute(result.value(), objFormatSettings);
       }
       sq_pop(vm, 1); // script closure
     }

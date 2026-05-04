@@ -49,6 +49,7 @@ struct ConnectParams
   dag::Vector<uint8_t> encryptKey;
   dag::Vector<uint8_t> authKey;
   eastl::string sessionId;
+  eastl::string relayStunRequestAddr; // if set, UDP punch to this relay addr is queued on connect
 };
 } // namespace net
 
@@ -74,6 +75,14 @@ void net_disconnect(net::IConnection &conn, DisconnectionCause cause = DC_CONNEC
 int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 int send_net_msg(ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 #endif
+
+using RelayConnectionCb = eastl::function<void(bool)>;
+void disconnect_from_relay();
+bool establish_relay_connection(const char *relay_url);
+bool set_relay_connection_handler(void (*relayConnectionHandler)(bool));
+
+eastl::string get_received_stun_system_address_str();
+void request_udp_punch_via_relay(const char *relay_addr);
 
 int get_no_packets_time_ms(); // time, in milliseconds, since last packet from server was received
 

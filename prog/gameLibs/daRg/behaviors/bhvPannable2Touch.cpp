@@ -37,8 +37,8 @@ void BhvPannable2touch::onDetach(Element *elem, DetachMode)
 }
 
 
-int BhvPannable2touch::touchEvent(ElementTree *, Element *elem, InputEvent event, HumanInput::IGenPointing *, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
+int BhvPannable2touch::pointingEvent(ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/,
+  Point2 pos, int accum_res)
 {
   BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
   G_ASSERT_RETURN(panData, 0);
@@ -47,10 +47,10 @@ int BhvPannable2touch::touchEvent(ElementTree *, Element *elem, InputEvent event
   {
     for (int slot = 0; slot < 2; ++slot)
     {
-      if (panData->activeTouchIdx[slot] < 0 && elem->hitTest(touch.x, touch.y))
+      if (panData->activeTouchIdx[slot] < 0 && elem->hitTest(pos))
       {
         panData->activeTouchIdx[slot] = touch_idx;
-        panData->lastTouchPos[slot].set(touch.x, touch.y);
+        panData->lastTouchPos[slot] = pos;
         return R_PROCESSED;
       }
     }
@@ -59,14 +59,13 @@ int BhvPannable2touch::touchEvent(ElementTree *, Element *elem, InputEvent event
   {
     if (panData->activeTouchIdx[0] >= 0 && panData->activeTouchIdx[1] >= 0)
     {
-      Point2 curTouchPos(touch.x, touch.y);
       for (int slot = 0; slot < 2; ++slot)
       {
         if (touch_idx == panData->activeTouchIdx[slot])
         {
           if (!(accum_res & R_PROCESSED))
-            elem->scroll((panData->lastTouchPos[slot] - curTouchPos) / 2);
-          panData->lastTouchPos[slot] = curTouchPos;
+            elem->scroll((panData->lastTouchPos[slot] - pos) / 2);
+          panData->lastTouchPos[slot] = pos;
           return R_PROCESSED;
         }
       }
@@ -103,5 +102,17 @@ int BhvPannable2touch::onDeactivateInput(Element *elem, InputDevice device, int 
   }
   return 0;
 }
+
+
+int BhvPannable2touch::onDeactivateAllInput(Element *elem)
+{
+  BhvPannable2touchData *panData = elem->props.storage.RawGetSlotValue<BhvPannable2touchData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(panData, 0);
+
+  panData->activeTouchIdx[0] = -1;
+  panData->activeTouchIdx[1] = -1;
+  return 0;
+}
+
 
 } // namespace darg

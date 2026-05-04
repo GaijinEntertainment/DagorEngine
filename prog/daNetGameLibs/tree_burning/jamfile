@@ -1,0 +1,36 @@
+ModuleDependsOnVars = Dedicated HaveRenderer PhysName ;
+Dedicated ?= no ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = tree_burning ;
+Location = prog/daNetGameLibs/$(Module) ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+;
+
+local AllSrcFolder_ES = ;
+
+AllSrcFolder_ES +=
+  common
+;
+
+if $(Dedicated) = yes {
+  AllSrcFolder_ES +=
+    dedicated
+  ;
+}
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_ES +=
+    render
+  ;
+  if $(Config) in dbg dev {
+    AllSrcFolder_ES += render/debug ;
+  }
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

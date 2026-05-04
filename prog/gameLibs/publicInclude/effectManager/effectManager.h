@@ -57,6 +57,7 @@ public:
   void setFxScale(float scale); // TODO: rename to setLightIntensity
   void setWindScale(float scale);
   void setGravityTm(const Matrix3 &tm);
+  void setSplineControlPoints(const Point4 &p0, const Point4 &p1, const Point4 &p2, const Point4 &p3);
   void setRestrictionBox(const TMatrix &box);
 
   bool hasSound() const;
@@ -143,6 +144,7 @@ public:
   const char *getName() const { return params.name.c_str(); }
 
   bool hasLockedEffects();
+  void teleportAllRandomRad(float r); // for debug only
   static void updateCmdBuff();
   static void clearCmdBuff();
 
@@ -154,9 +156,9 @@ public:
 
   void getFxMatrices(dag::Vector<TMatrix, framemem_allocator> &matrices);
   void getDebugInfo(dag::Vector<Point3, framemem_allocator> &positions, dag::Vector<int, framemem_allocator> &elems,
-    dag::Vector<eastl::string_view, framemem_allocator> &names);
+    dag::Vector<eastl::string_view, framemem_allocator> &names, bool only_visible);
   void getResDebugInfo(dag::Vector<Point3, framemem_allocator> &positions, dag::Vector<eastl::string, framemem_allocator> &names,
-    dag::Vector<int, framemem_allocator> &out_elems);
+    dag::Vector<int, framemem_allocator> &out_elems, bool only_visible);
   int getStats(eastl::string &out);
   static void renderSortedRenderTransListExt(Tab<SortedRenderTransItem> &sorted_render_transList, TexStreamingContext &main_tex_ctx,
     bool &inside_render_trans_list_processing, bool do_clear = true);
@@ -183,6 +185,7 @@ private:
     int maxNumInstances = 0;
     bool lightEnabled = false;
     char sfxPath[48] = {0};
+    char sfxPathInf[24] = {0};
     char sfxEvent[24] = {0};
     sndsys::VarId intenseParamId = sndsys::VarId(sndsys::INVALID_VAR_ID);
     eastl::string name;
@@ -237,6 +240,7 @@ private:
   void setFxLightBox(BaseEffect &fx, const TMatrix &box);
   void setFxWindScale(BaseEffect &fx, float scale);
   void setFxGravityTm(BaseEffect &fx, const Matrix3 &tm);
+  void setFxSplineGenControlPoints(BaseEffect &fx, const TMatrix4 &data);
   void setFxColorMult(BaseEffect &fx, const Color4 &value);
   void unsetFxEmitter(BaseEffect &fx);
   void stopFx(BaseEffect &fx);
@@ -244,7 +248,7 @@ private:
   void loadSoundParamsExt();
   void tryPlayFxSoundExt(SoundEffect &se);
   void pauseFxSoundExt(BaseEffect &fx, bool paused);
-  void createFxRes(AcesEffect::FxId fx_id, const Point3 &pos);
+  void createFxRes(AcesEffect::FxId fx_id, bool is_player, const Point3 &pos);
   void updateFxSoundsExt(float dt);
 
   void setFxTmBuff(AcesEffect::FxId fx_id, const TMatrix &tm, bool is_emitter_tm);
@@ -259,6 +263,7 @@ private:
   void setFxLightFadeoutBuff(AcesEffect::FxId fx_id, float fadeout);
   void setFxLightBoxBuff(AcesEffect::FxId fx_id, const TMatrix &box);
   void setFxWindScaleBuff(AcesEffect::FxId fx_id, float scale);
+  void setFxSplineControlPointsBuff(AcesEffect::FxId fx_id, const Point4 &p0, const Point4 &p1, const Point4 &p2, const Point4 &p3);
   void setFxGravityTmBuff(AcesEffect::FxId fx_id, const Matrix3 &tm);
   void setFxColorMultBuff(AcesEffect::FxId fx_id, const Color4 &value);
   void unsetFxEmitterBuff(AcesEffect::FxId fx_id);

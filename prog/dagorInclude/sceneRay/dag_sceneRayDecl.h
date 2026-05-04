@@ -6,7 +6,8 @@
 
 // clang-format off
 template <typename FI> class StaticSceneRayTracerT;
-template <typename FI> class DeserializedStaticSceneRayTracerT;
+template <typename FI>
+using DeserializedStaticSceneRayTracerT = StaticSceneRayTracerT<FI>; // Legacy Compat alias
 template <typename FI> class BuildableStaticSceneRayTracerT;
 // clang-format on
 
@@ -23,5 +24,5 @@ union SceneRayI24F8
 };
 
 typedef StaticSceneRayTracerT<SceneRayI24F8> StaticSceneRayTracer;
-typedef DeserializedStaticSceneRayTracerT<SceneRayI24F8> DeserializedStaticSceneRayTracer;
+typedef StaticSceneRayTracerT<SceneRayI24F8> DeserializedStaticSceneRayTracer;
 typedef BuildableStaticSceneRayTracerT<SceneRayI24F8> BuildableStaticSceneRayTracer;

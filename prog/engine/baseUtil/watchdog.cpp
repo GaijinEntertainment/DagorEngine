@@ -77,7 +77,15 @@ public:
   eastl::fixed_vector<intptr_t, 4> dumpThreadIds;
   OSSpinlock dumpThreadIdMutex;
 
-  WatchDogThread(WatchdogConfig *cfg_) : DaThread("WatchDogThread", 128 << 10, 0, WORKER_THREADS_AFFINITY_MASK), lastUpdateTimeMs(0u)
+  WatchDogThread(WatchdogConfig *cfg_) :
+    DaThread("WatchDogThread",
+#if _TARGET_PC
+      DaThread::DEFAULT_STACK_SZ * 2,
+#else
+      DaThread::DEFAULT_STACK_SZ,
+#endif
+      0, WORKER_THREADS_AFFINITY_MASK),
+    lastUpdateTimeMs(0u)
   {
     os_event_create(&sleepEvent);
     if (cfg_)
@@ -207,12 +215,11 @@ public:
         if (freeze)
           dump_all_thread_callstacks();
         else
-        {
-          logwarn("WatchDog: no kick in %d ms", e_time);
 #else
         if (!freeze) // To consider: add flag to force dump even in release
-        {
 #endif
+        {
+          logwarn("WatchDog: no kick in %d ms", e_time);
           // we can't dump random thread callstacks so its pointless
           // also it seems it takes forever on intel macs which is weird
 #if !_TARGET_APPLE
@@ -273,6 +280,15 @@ intptr_t watchdog_set_option(int option, intptr_t p0, intptr_t p1)
   if (!thread)
     return -1;
   return thread->setOption(option, p0, p1);
+}
+
+bool watchdog_set_keep_sleeping_cb(bool (*keep_sleeping_cb)())
+{
+  auto *thread = interlocked_acquire_load_ptr(watchdog_thread);
+  if (!thread)
+    return false;
+  thread->cfg.keep_sleeping_cb = keep_sleeping_cb;
+  return true;
 }
 
 #if _TARGET_PC_WIN

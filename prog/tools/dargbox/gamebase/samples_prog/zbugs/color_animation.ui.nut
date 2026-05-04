@@ -21,7 +21,7 @@ let item = {
 let yellow = [255, 255, 0]
 let blue = [0, 0, 255]
 
-let mkImage = @(img) {rendObj=ROBJ_IMAGE image=img size = static [hdpx(300), hdpx(25)]}
+let mkImage = @(img) {rendObj=ROBJ_IMAGE image=img size = const [hdpx(300), hdpx(25)]}
 let gradientParams = {
   points = [yellow, blue]
   width = 64

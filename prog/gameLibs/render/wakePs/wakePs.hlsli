@@ -1,3 +1,6 @@
+#ifndef WAKE_PS_HLSL_INCLUDED
+#define WAKE_PS_HLSL_INCLUDED 1
+
 #define MAX_EMITTER_GEN_COMMANDS ((512-8)/4)
 #define EMIT_PER_FRAME_LIMIT 4
 #define EMITTER_GEN_WARP 128
@@ -114,3 +117,5 @@ struct GPUParticleRender
   offset = (in_data >> 11) & 0x7FF; \
   num = in_data & 0x7FF; \
 }
+
+#endif

@@ -48,9 +48,9 @@ static ecs::CompileTimeQueryDesc is_bood_enabled_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void is_bood_enabled_ecs_query(Callable function)
+inline void is_bood_enabled_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_bood_enabled_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_bood_enabled_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -77,9 +77,9 @@ static ecs::CompileTimeQueryDesc get_blood_color_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_blood_color_ecs_query(Callable function)
+inline void get_blood_color_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_blood_color_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_blood_color_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

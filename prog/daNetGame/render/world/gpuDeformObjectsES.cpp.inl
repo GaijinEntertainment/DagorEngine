@@ -13,15 +13,29 @@
 #include <math/dag_vecMathCompatibility.h>
 #include <util/dag_convar.h>
 #include "gpuDeformObjects.h"
+#include "shaders/dag_shaderVariableInfo.h"
 #include "shaders/obstacleStruct.hlsli"
 #include <gamePhys/phys/rendinstFloating.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/ecsQuery.h>
 #include <daECS/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <generic/dag_zip.h>
+#include <EASTL/initializer_list.h>
 
 CONSOLE_BOOL_VAL("obstacles", show_obstacles, false);
+
+namespace
+{
+ShaderVariableInfo obstacle_indicesVarId("obstacle_indices_buf", false);
+ShaderVariableInfo obstacle_prev_indicesVarId("obstacle_prev_indices_buf", false);
+ShaderVariableInfo obstaclesVarId("obstacles_buf", false);
+ShaderVariableInfo obstacles_prevVarId("obstacles_prev_buf", false);
+} // namespace
 
 enum
 {
@@ -29,7 +43,7 @@ enum
 };
 
 template <typename Callable>
-inline void process_deformables_ecs_query(Callable c);
+inline void process_deformables_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void GpuDeformObjectsManager::setOrigin(const Point3 &p) { origin = p; }
 
@@ -37,7 +51,9 @@ void GpuDeformObjectsManager::fillEmpty()
 {
   if (isEmpty())
     return;
-  deformsCB.getBuf()->updateData(0, sizeof(Point4), ZERO_PTR<float>(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+
+  for (auto &buf : deformsCB)
+    buf.getBuf()->updateData(0, sizeof(Point4), ZERO_PTR<float>(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   setEmpty();
 }
 
@@ -55,8 +71,13 @@ static BBox3 create_inflated_bbox(const BBox3 &box, const TMatrix &tm)
 void GpuDeformObjectsManager::updateDeforms()
 {
   TIME_PROFILE(update_deforms);
-  if (!indices.getBuf())
+  if (!indices[activeDeformsCBIndex].getBuf())
     init(16, 16.f);
+
+  obstacle_prev_indicesVarId.set_buffer(indices[activeDeformsCBIndex].getBufId());
+  obstacles_prevVarId.set_buffer(deformsCB[activeDeformsCBIndex].getBufId());
+
+  activeDeformsCBIndex = (activeDeformsCBIndex + 1) % OBSTACLE_BUFFER_COUNT;
 
   G_STATIC_ASSERT(MAX_OBSTACLES <= (1 << (sizeof(uint8_t) * 8)));
   Tab<uint16_t> counters(framemem_ptr());
@@ -73,7 +94,9 @@ void GpuDeformObjectsManager::updateDeforms()
   indirection_lt = floor(Point2::xz(origin) / cellSize) * cellSize - Point2(dist, dist);
   // box[1] = indirection_lt + Point2(totalDist, totalDist);
   ObstaclesData *deformsCBPtr = 0;
-  if (!deformsCB.getBuf()->lock(0, sizeof(ObstaclesData), (void **)&deformsCBPtr, VBLOCK_WRITEONLY | VBLOCK_DISCARD) || !deformsCBPtr)
+  if (!deformsCB[activeDeformsCBIndex].getBuf()->lock(0, sizeof(ObstaclesData), (void **)&deformsCBPtr,
+        VBLOCK_WRITEONLY | VBLOCK_DISCARD) ||
+      !deformsCBPtr)
   {
     return;
   }
@@ -83,8 +106,8 @@ void GpuDeformObjectsManager::updateDeforms()
   deformsCBPtr->indirection_cell = cellSize;
   Obstacle *obstacles = deformsCBPtr->obstacles;
   int usedObstaclesCount = 0;
-  process_deformables_ecs_query([&](const TMatrix &transform, const Point3 &deform_bbox__bmin, const Point3 &deform_bbox__bmax,
-                                  const TMatrix *transform_lastFrame = nullptr) {
+  process_deformables_ecs_query(*g_entity_mgr, [&](const TMatrix &transform, const Point3 &deform_bbox__bmin,
+                                                 const Point3 &deform_bbox__bmax, const TMatrix *transform_lastFrame = nullptr) {
     // Note: `transform_lastFrame` is copied on act, but not in all games. Do so to avoid colliding with ParallelUpdateFrameDelayed
     const TMatrix &tm = transform_lastFrame ? *transform_lastFrame : transform;
     if (usedObstaclesCount >= MAX_OBSTACLES || lengthSq(tm.getcol(3) - origin) > maxDistPreCheckSq)
@@ -124,7 +147,7 @@ void GpuDeformObjectsManager::updateDeforms()
   if (usedObstaclesCount == 0)
     memset(deformsCBPtr, 0, sizeof(*deformsCBPtr));
 
-  deformsCB.getBuf()->unlock();
+  deformsCB[activeDeformsCBIndex].getBuf()->unlock();
 
   if (usedObstaclesCount == 0)
   {
@@ -161,7 +184,7 @@ void GpuDeformObjectsManager::updateDeforms()
   }
 
   uint32_t *indicesPtr = 0;
-  if (!indices.getBuf()->lock(0, 0, (void **)&indicesPtr, VBLOCK_WRITEONLY | VBLOCK_DISCARD) || !indicesPtr)
+  if (!indices[activeDeformsCBIndex].getBuf()->lock(0, 0, (void **)&indicesPtr, VBLOCK_WRITEONLY | VBLOCK_DISCARD) || !indicesPtr)
   {
     if (!d3d::is_in_device_reset_now())
       logerr("can't lock obstacles indices buffer");
@@ -177,13 +200,19 @@ void GpuDeformObjectsManager::updateDeforms()
   }
   memcpy(indicesPtr + width * width, indicesList.data(), data_size(indicesList));
 
-  indices.getBuf()->unlock();
+  indices[activeDeformsCBIndex].getBuf()->unlock();
+
+  obstacle_indicesVarId.set_buffer(indices[activeDeformsCBIndex].getBufId());
+  obstaclesVarId.set_buffer(deformsCB[activeDeformsCBIndex].getBufId());
 }
 
 void GpuDeformObjectsManager::close()
 {
-  indices.close();
-  deformsCB.close();
+  for (int i = 0; i < OBSTACLE_BUFFER_COUNT; ++i)
+  {
+    indices[i].close();
+    deformsCB[i].close();
+  }
 }
 
 void GpuDeformObjectsManager::init(uint32_t wd, float cell)
@@ -193,7 +222,9 @@ void GpuDeformObjectsManager::init(uint32_t wd, float cell)
   cellSize = cell;
   maxDistPreCheckSq = float(width * width) * (cellSize * cellSize) * 1.1f;
   initIndicesBuffer(width * width * 2);
-  deformsCB = dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<ObstaclesData>(), "obstacles_buf");
+  for (unsigned i = 0; i < deformsCB.size(); i++)
+    deformsCB[i] =
+      dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<ObstaclesData>(), String(0, "obstacles_buf_%d", i));
 }
 
 void GpuDeformObjectsManager::initIndicesBuffer(uint32_t max_indices)
@@ -201,7 +232,8 @@ void GpuDeformObjectsManager::initIndicesBuffer(uint32_t max_indices)
   maxIndices = max_indices;
   // Like `create_persistent_sr_structured` but with SBCF_DYNAMIC for VBLOCK_DISCARD to work
   unsigned sbcf = SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED;
-  indices = dag::create_sbuffer(sizeof(uint32_t), width * width + max_indices, sbcf, 0, "obstacle_indices_buf");
+  for (unsigned i = 0; i < indices.size(); i++)
+    indices[i] = dag::create_sbuffer(sizeof(uint32_t), width * width + max_indices, sbcf, 0, String(0, "obstacle_indices_buf_%d", i));
 }
 
 ECS_TAG(render, dev)

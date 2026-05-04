@@ -1,0 +1,119 @@
+include "voxel_shadows_inc.dshl"
+
+macro VOXEL_SHADOWS_USE(code)
+  // if separate assume will be required, add stubbed version here
+  // for now its only used in fx, so dafx_use_voxel_shadows interval is enough
+  VOXEL_SHADOWS_USE_ENABLED(code)
+endmacro
+
+macro VOXEL_SHADOWS_USE_ENABLED(code)
+
+  (code)
+  {
+    voxel_shadows_tex@smp3d = voxel_shadows_tex;
+  }
+
+  VOXEL_SHADOWS_STCODE_INIT(code)
+  VOXEL_SHADOWS_STCODE_USE(code)
+
+  hlsl(code)
+  {
+    float get_voxel_shadows_vignette(float3 tc, uint cascade_id) // linear tc, not atlas one!
+    {
+      float3 wvp_tc = voxel_shadows_wvp_in_tc_space[cascade_id].xyz;
+      float3 rel_tc = (tc - wvp_tc) * voxel_shadows_vignette_scale.xxy;
+      rel_tc = pow4_vec3(rel_tc);
+      return dot(rel_tc, rel_tc);
+    }
+
+    bool get_voxel_shadows_tc(float3 world_pos, float vignette_threshold, float3 sun_dither_ofs, out float3 tc, out uint cascade_id, out float fade)
+    {
+      cascade_id = VOXEL_SHADOWS_MAX_CASCADES;
+      fade = 0;
+      tc = 0;
+
+      if (voxel_shadows_cascade_count == 0)
+        return false;
+
+      float vg = 0;
+
+      for (uint c = 0; c < min(voxel_shadows_cascade_count, VOXEL_SHADOWS_MAX_CASCADES); ++c)
+      {
+        float3 world_pos_sun_ofs = world_pos;
+#if VOXEL_SHADOWS_USE_SUN_DITHER_OFS // this need to be here, so we can get proper voxel size for needed cascade
+        world_pos_sun_ofs += sun_dither_ofs * voxel_shadows_voxel_size[c].x;
+#endif
+        tc = voxel_shadows_world_pos_to_tex_tc_linear(world_pos_sun_ofs, c);
+        vg = get_voxel_shadows_vignette(tc, c);
+
+        if (vg < vignette_threshold) // note: vignette_threshold should be greater that you expect, since it compared to pow4(val). so 0.25-0.75 range is usually good
+        {
+          cascade_id = c;
+          break;
+        }
+      }
+
+      if (cascade_id >= VOXEL_SHADOWS_MAX_CASCADES)
+        return false;
+
+      fade = cascade_id == voxel_shadows_cascade_count - 1 ? (1.f - pow2(vg)) : 1.f;
+      tc = voxel_shadows_tc_linear_to_atlas(tc, cascade_id);
+      return true;
+    }
+
+    float get_voxel_shadows(float3 world_pos, out uint cascade_id, out float fade)
+    {
+      float3 tc;
+      bool hit = get_voxel_shadows_tc(world_pos, 1.f, 0.f, tc, cascade_id, fade);
+      BRANCH
+      if (!hit)
+        return 1.f;
+
+      float shadow = tex3Dlod(voxel_shadows_tex, float4(tc.xyz, 0)).x;
+      return 1.f - shadow;
+    }
+
+    float get_voxel_shadows_no_fallback(float3 world_pos, out uint cascade_id)
+    {
+      float fade;
+      float shadow = get_voxel_shadows(world_pos, cascade_id, fade);
+      return lerp(1, shadow, fade);
+    }
+  }
+
+endmacro
+
+macro VOXEL_SHADOWS_USE_DITHER(code)
+  hlsl { #define VOXEL_SHADOWS_USE_SUN_DITHER_OFS 1 }
+  VOXEL_SHADOWS_USE_ENABLED(code)
+
+  hlsl(code)
+  {
+    #include <interleavedGradientNoise.hlsl>
+
+    float get_voxel_shadows_dithered(float3 world_pos, float2 pixel_pos, float3 sun_dir, float dither_rad, float dither_cascade, out uint cascade_id, out float fade) // dither_rad in voxel size
+    {
+      float dither = interleavedGradientNoiseFramed(pixel_pos, shadow_frame);
+      float vignette_threshold = 1.f - dither_cascade * dither;
+
+      float3 sun_dither_ofs = sun_dir * (dither * 2.f - 1.f) * dither_rad;
+
+      float3 tc;
+      bool hit = get_voxel_shadows_tc(world_pos, vignette_threshold, sun_dither_ofs, tc, cascade_id, fade);
+      BRANCH
+      if (!hit)
+        return 1.f;
+
+      float shadow = tex3Dlod(voxel_shadows_tex, float4(tc.xyz, 0)).x;
+      return 1.f - shadow;
+    }
+
+    float get_voxel_shadows_dithered_no_fallback(float3 world_pos, float2 pixel_pos, float3 sun_dir, float dither_rad, float dither_cascade, out uint cascade_id) // dither_rad in voxel size
+    {
+      float fade;
+      float shadow = get_voxel_shadows_dithered(world_pos, pixel_pos, sun_dir, dither_rad, dither_cascade, cascade_id, fade);
+      return lerp(1, shadow, fade);
+    }
+  }
+
+endmacro

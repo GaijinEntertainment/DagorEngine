@@ -85,12 +85,12 @@ bool intersect_sphere(const RenderParams &rp, const Point3 &pos, const Point3 &d
 {
   const Point3 surfaceOrigin = Point3{0.f, 0.0f, 0.0f};
   const float radius = rp.depth;
-  const float distanceToSurface = rayIntersectSphereDist(pos, dir, surfaceOrigin, radius);
+  const float distanceToSurface = rayIntersectHollowSphereDist(pos, dir, surfaceOrigin, radius);
   if (distanceToSurface < 0)
     return false;
   intersection = pos + distanceToSurface * dir;
   const float phi = safe_atan2(intersection.z, intersection.x) - HALFPI;
-  const float theta = acosf(intersection.y / radius) - HALFPI;
+  const float theta = safe_acos(intersection.y / radius) - HALFPI;
   point_in_gui.x = rp.width * (.5f - phi / (rp.vFov * rp.aspect));
   point_in_gui.y = rp.height * (.5f + theta / rp.vFov);
   return is_point_within_gui(rp, point_in_gui);
@@ -238,10 +238,10 @@ bool init_surface(int ui_width, int ui_height, SurfaceCurvature curvature)
   re.startIndex = 0;
   re.numPrim = VRGUI_GRID_SIZE * VRGUI_GRID_SIZE * 2;
 
-  render_params.vb = d3d::create_vb(re.numVert * re.stride, 0, "vrGuiVb");
+  render_params.vb = d3d::create_vb(re.numVert * re.stride, 0, "vrGuiVb", RESTAG_VR);
   G_ASSERTF_RETURN(render_params.vb != nullptr, false, "[VRUI] failed to create vertex buffer");
 
-  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), 0, "vrGuiIb");
+  render_params.ib = d3d::create_ib(re.numPrim * 3 * sizeof(short), 0, "vrGuiIb", RESTAG_VR);
   G_ASSERTF_RETURN(render_params.ib != nullptr, false, "[VRUI] failed to create index buffer");
   fill_buffers();
 

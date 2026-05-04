@@ -57,8 +57,11 @@ struct CommandStreamSet
     }
     return result;
   }
+  void submitReset() { listsInUse = 0; }
   void frameReset()
   {
+    if (!pool)
+      return;
     DX12_CHECK_RESULT(pool->Reset());
     listsInUse = 0;
   }

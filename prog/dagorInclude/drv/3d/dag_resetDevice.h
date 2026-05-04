@@ -46,8 +46,10 @@ extern bool dagor_d3d_force_driver_mode_reset;
 extern bool dagor_d3d_notify_fullscreen_state_restored;
 
 bool is_window_resizing_by_mouse();
+bool is_window_minimized();
 void set_window_resizing_by_mouse(bool value);
 void notify_window_resized(int w, int h);
+void get_unminimized_window_resolution(int &w, int &h);
 
 unsigned int get_d3d_reset_counter();      // returns current reset generation, never 0
 unsigned int get_d3d_full_reset_counter(); // returns current 'full' reset generation, never 0

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <daECS/core/event.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 class DataBlock;
 

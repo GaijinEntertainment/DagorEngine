@@ -385,6 +385,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>\'\\f\'(u8|U8)                  yylval_param->ui = 12; return UNSIGNED_INT8;
 <normal>\'\\r\'(u8|U8)                  yylval_param->ui = 13; return UNSIGNED_INT8;
 <normal>\'\\\\'(u8|U8)                  yylval_param->ui = '\\'; return UNSIGNED_INT8;
+<normal>\'\\\'\'(u8|U8)                 yylval_param->ui = '\''; return UNSIGNED_INT8;
 <normal>\'.\'(u8|U8)                    yylval_param->ui = uint32_t(yytext[1]); return UNSIGNED_INT8;
 
 <normal>\'\\b\'(u|U)                    yylval_param->ui = 8; return UNSIGNED_INTEGER;
@@ -393,6 +394,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>\'\\f\'(u|U)                    yylval_param->ui = 12; return UNSIGNED_INTEGER;
 <normal>\'\\r\'(u|U)                    yylval_param->ui = 13; return UNSIGNED_INTEGER;
 <normal>\'\\\\'(u|U)                    yylval_param->ui = '\\'; return UNSIGNED_INTEGER;
+<normal>\'\\\'\'(u|U)                   yylval_param->ui = '\''; return UNSIGNED_INTEGER;
 <normal>\'.\'(u|U)                      yylval_param->ui = uint32_t(yytext[1]); return UNSIGNED_INTEGER;
 
 <normal>\'\\b\'                         yylval_param->i = 8; return INTEGER;
@@ -401,6 +403,7 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>\'\\f\'                         yylval_param->i = 12; return INTEGER;
 <normal>\'\\r\'                         yylval_param->i = 13; return INTEGER;
 <normal>\'\\\\'                         yylval_param->i = '\\'; return INTEGER;
+<normal>\'\\\'\'                        yylval_param->i = '\''; return INTEGER;
 
 <normal>\'.\'                           yylval_param->i = int32_t(yytext[1]); return INTEGER;
 <normal>[0-9][0-9\_]*(u|U)(l|L) {

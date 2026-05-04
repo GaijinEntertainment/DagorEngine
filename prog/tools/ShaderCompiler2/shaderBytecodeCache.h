@@ -72,13 +72,19 @@ struct CachedShader
 {
   HlslCompilationStage codeType;
   Tab<unsigned> relCode;
+  Tab<uint8_t> relMetadata;
   ComputeShaderInfo computeShaderInfo;
   String compileCtx;
-  CachedShader() : relCode(midmem_ptr()), codeType(HLSL_INVALID) {}
+  CachedShader() : relCode(midmem_ptr()), relMetadata(midmem_ptr()), codeType(HLSL_INVALID) {}
 
   dag::ConstSpan<unsigned> getShaderOutCode(HlslCompilationStage type) const
   {
     return codeType == type ? relCode : dag::ConstSpan<unsigned>();
+  }
+
+  dag::ConstSpan<uint8_t> getShaderOutMetadata(HlslCompilationStage type) const
+  {
+    return codeType == type ? relMetadata : dag::ConstSpan<uint8_t>();
   }
 
   const ComputeShaderInfo &getComputeShaderInfo() const

@@ -11,9 +11,9 @@ static constexpr ecs::ComponentDesc heightmap_density_mask_disappeared_es_comps[
 };
 static void heightmap_density_mask_disappeared_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::heightmap_density_mask_disappeared_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc heightmap_density_mask_disappeared_es_es_desc
 (
@@ -38,7 +38,8 @@ static void heightmap_initialize_density_mask_es_all_events(const ecs::Event &__
   G_FAST_ASSERT(evt.is<dagdp::EventInitialize>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::heightmap_initialize_density_mask_es(static_cast<const dagdp::EventInitialize&>(evt)
-        , ECS_RW_COMP(heightmap_initialize_density_mask_es_comps, "dagdp__heightmap_manager", dagdp::HeightmapManager)
+        , components.manager()
+    , ECS_RW_COMP(heightmap_initialize_density_mask_es_comps, "dagdp__heightmap_manager", dagdp::HeightmapManager)
     );
   while (++comp != compE);
 }
@@ -64,7 +65,8 @@ static void heightmap_view_process_es_all_events(const ecs::Event &__restrict ev
   G_FAST_ASSERT(evt.is<dagdp::EventViewProcess>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::heightmap_view_process_es(static_cast<const dagdp::EventViewProcess&>(evt)
-        , ECS_RW_COMP(heightmap_view_process_es_comps, "dagdp__heightmap_manager", dagdp::HeightmapManager)
+        , components.manager()
+    , ECS_RW_COMP(heightmap_view_process_es_comps, "dagdp__heightmap_manager", dagdp::HeightmapManager)
     );
   while (++comp != compE);
 }
@@ -127,9 +129,9 @@ static constexpr ecs::ComponentDesc dagdp_placer_heightmap_changed_es_comps[] =
 };
 static void dagdp_placer_heightmap_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::dagdp_placer_heightmap_changed_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dagdp_placer_heightmap_changed_es_es_desc
 (
@@ -159,9 +161,9 @@ static ecs::CompileTimeQueryDesc manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::manager_ecs_query(Callable function)
+inline void dagdp::manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -190,9 +192,9 @@ static ecs::CompileTimeQueryDesc heightmap_density_masks_ecs_query_desc
   make_span(heightmap_density_masks_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::heightmap_density_masks_ecs_query(Callable function)
+inline void dagdp::heightmap_density_masks_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, heightmap_density_masks_ecs_query_desc.getHandle(),
+  perform_query(&manager, heightmap_density_masks_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -236,9 +238,9 @@ static ecs::CompileTimeQueryDesc heightmap_placers_ecs_query_desc
   make_span(heightmap_placers_ecs_query_comps+16, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::heightmap_placers_ecs_query(Callable function)
+inline void dagdp::heightmap_placers_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, heightmap_placers_ecs_query_desc.getHandle(),
+  perform_query(&manager, heightmap_placers_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

@@ -2,20 +2,22 @@
 
 #include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
 #include <EditorCore/ec_ViewportWindow.h>
+#include <EditorCore/ec_confirmation_dialog.h>
 #include <EditorCore/ec_cm.h>
 #include <propPanel/control/container.h>
 #include <imgui/imgui.h>
 
-ViewportWindowStatSettingsDialog::ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, bool *_rootEnable, hdpi::Px width,
-  hdpi::Px height) :
+ViewportWindowStatSettingsDialog::ViewportWindowStatSettingsDialog(ViewportWindow &_viewport, bool *_rootEnable,
+  bool root_enable_default, hdpi::Px width, hdpi::Px height) :
   DialogWindow(nullptr, width, height, "Viewport stat display settings"),
   viewport(_viewport),
   rootEnable(_rootEnable),
+  rootEnableDefault(root_enable_default),
   tree(nullptr),
   root(nullptr)
 {}
 
-PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, const char name[], bool enabled)
+PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, const char name[], bool enabled, bool default_val)
 {
   if (!tree)
   {
@@ -23,8 +25,9 @@ PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, con
     G_ASSERT(panel);
     tree = panel->createTreeCheckbox(CM_STATS_SETTINGS_TREE, "", hdpi::Px(0), /*new_line*/ false, /*icons_show*/ true);
     root = tree->createTreeLeaf(nullptr, "Show stats", nullptr);
-    tree->setBool(root, true);
+    tree->setExpanded(root, true);
     tree->setCheckboxValue(root, *rootEnable);
+    defaultValues[CM_STATS_SETTINGS_TREE] = ValueInfo{.handle = root, .defaultValue = rootEnableDefault};
 
     G_ASSERT(tree->isImguiContainer());
     PropPanel::ContainerPropertyControl *imguiTree = static_cast<PropPanel::ContainerPropertyControl *>(tree);
@@ -33,6 +36,9 @@ PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, con
     // For some reason, setting checkbox value doesn't work immediately after creating tree widget.
     // Postpone applying of checkbox states until the next event loop run.
     getPanel()->setPostEvent(CM_STATS_SETTINGS_TREE);
+
+    setDialogButtonText(PropPanel::DIALOG_ID_OK, "Revert to default");
+    setDialogButtonText(PropPanel::DIALOG_ID_CANCEL, "Close");
   }
 
   PropPanel::TLeafHandle handle;
@@ -45,18 +51,23 @@ PropPanel::TLeafHandle ViewportWindowStatSettingsDialog::addGroup(int group, con
   else
   {
     handle = tree->createTreeLeaf(root, name, nullptr);
-    tree->setBool(handle, true);
+    tree->setExpanded(handle, true);
     m_groups[group] = Item{handle, root, group, enabled};
   }
   tree->setCheckboxValue(handle, enabled);
+  defaultValues[group] = ValueInfo{.handle = handle, .defaultValue = default_val};
+  updateRevertButton();
+
   return handle;
 }
 
-void ViewportWindowStatSettingsDialog::addOption(PropPanel::TLeafHandle group, int id, const char name[], bool value)
+void ViewportWindowStatSettingsDialog::addOption(PropPanel::TLeafHandle group, int id, const char name[], bool value, bool default_val)
 {
   PropPanel::TLeafHandle handle = tree->createTreeLeaf(group, name, nullptr);
   tree->setCheckboxValue(handle, value);
+  defaultValues[id] = ValueInfo{.handle = handle, .defaultValue = default_val};
   m_options.emplace_back(Item{handle, group, id, value});
+  updateRevertButton();
 }
 
 void ViewportWindowStatSettingsDialog::onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
@@ -65,7 +76,7 @@ void ViewportWindowStatSettingsDialog::onPostEvent(int pcb_id, PropPanel::Contai
   {
     tree->setCheckboxEnable(root, true);
     tree->setCheckboxValue(root, *rootEnable);
-    tree->setBool(root, true);
+    tree->setExpanded(root, true);
 
     for (auto &it : m_groups)
     {
@@ -73,7 +84,7 @@ void ViewportWindowStatSettingsDialog::onPostEvent(int pcb_id, PropPanel::Contai
 
       tree->setCheckboxEnable(groupItem.handle, true);
       tree->setCheckboxValue(groupItem.handle, groupItem.value);
-      tree->setBool(groupItem.handle, true);
+      tree->setExpanded(groupItem.handle, true);
     }
 
     for (const Item &item : m_options)
@@ -84,6 +95,27 @@ void ViewportWindowStatSettingsDialog::onPostEvent(int pcb_id, PropPanel::Contai
 
     updateColors();
   }
+}
+
+bool ViewportWindowStatSettingsDialog::onOk()
+{
+  if (tree &&
+      ConfirmationDialog("Revert to defaults", "Are you sure you want to revert to defaults?").showDialog() == PropPanel::DIALOG_ID_OK)
+  {
+    for (const auto &[pcb, valueInfo] : defaultValues)
+    {
+      if (tree->getCheckboxValue(valueInfo.handle) != valueInfo.defaultValue)
+      {
+        tree->setCheckboxValue(valueInfo.handle, valueInfo.defaultValue);
+        onPCBChange(pcb);
+      }
+    }
+
+    updateColors();
+    updateRevertButton();
+  }
+
+  return false;
 }
 
 ViewportWindowStatSettingsDialog::Item *ViewportWindowStatSettingsDialog::getGroupByHandle(PropPanel::TLeafHandle handle)
@@ -140,7 +172,9 @@ void ViewportWindowStatSettingsDialog::updateColors()
   }
 }
 
-void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) { onPCBChange(pcb_id); }
+
+void ViewportWindowStatSettingsDialog::onPCBChange(int pcb_id)
 {
   bool changed = false;
 
@@ -156,9 +190,6 @@ void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::Container
   for (auto &it : m_groups)
   {
     Item &groupItem = it.second;
-
-    if (!tree->isCheckboxEnable(groupItem.handle))
-      continue;
 
     value = tree->getCheckboxValue(groupItem.handle);
     if (value == groupItem.value)
@@ -198,9 +229,6 @@ void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::Container
 
   for (Item &item : m_options)
   {
-    if (!tree->isCheckboxEnable(item.handle))
-      continue;
-
     value = tree->getCheckboxValue(item.handle);
     if (value != item.value)
     {
@@ -212,4 +240,29 @@ void ViewportWindowStatSettingsDialog::onChange(int pcb_id, PropPanel::Container
 
   if (changed)
     updateColors();
+
+  updateRevertButton();
+}
+
+bool ViewportWindowStatSettingsDialog::isDefault() const
+{
+  if (tree)
+  {
+    for (const auto &[_, valueInfo] : defaultValues)
+    {
+      if (tree->getCheckboxValue(valueInfo.handle) != valueInfo.defaultValue)
+      {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+void ViewportWindowStatSettingsDialog::updateRevertButton()
+{
+  const bool enabled = root ? !isDefault() : false;
+  setDialogButtonEnabled(PropPanel::DIALOG_ID_OK, enabled);
+  setDialogButtonTooltip(PropPanel::DIALOG_ID_OK, enabled ? "" : "All set to default");
 }

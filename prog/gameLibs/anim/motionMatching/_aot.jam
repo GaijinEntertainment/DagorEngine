@@ -1,0 +1,7 @@
+local R = prog/gameLibs/anim/motionMatching ;
+Sources +=
+  $(R)/dasModules/motionMatching.cpp
+;
+UseProgLibs +=
+  gameLibs/anim/motionMatching
+;

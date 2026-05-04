@@ -1,0 +1,36 @@
+ModuleDependsOnVars = HaveEditor PhysName ;
+
+
+Root    ?= ../../.. ;
+Module = motionMatching ;
+Location = prog/gameLibs/anim/$(Module) ;
+local DasModule = gameLibs_motionMatching_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/acl/includes
+;
+local AllSrcFolder_ES = ;
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_DAS = ;
+
+AddPullVars += mmEvents ;
+AllSrcFolder_ES +=
+  es
+;
+if $(Config) in dbg dev {
+  AllSrcFolder_ES += debug/es ;
+}
+AllSrcFolder_CPP +=
+  animation
+  dasModules
+;
+
+AllSrcFolder_DAS +=
+  das
+;
+
+include $(Root)/prog/gameLibs/build_module.jam ;

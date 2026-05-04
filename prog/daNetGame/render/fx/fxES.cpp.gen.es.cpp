@@ -110,9 +110,9 @@ static ecs::CompileTimeQueryDesc update_gravity_zone_buffer_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void acesfx::update_gravity_zone_buffer_ecs_query(Callable function)
+inline void acesfx::update_gravity_zone_buffer_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, update_gravity_zone_buffer_ecs_query_desc.getHandle(),
+  perform_query(&manager, update_gravity_zone_buffer_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -139,9 +139,9 @@ static ecs::CompileTimeQueryDesc effect_quality_reset_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult acesfx::effect_quality_reset_ecs_query(Callable function)
+inline ecs::QueryCbResult acesfx::effect_quality_reset_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, effect_quality_reset_ecs_query_desc.getHandle(),
+  return perform_query(&manager, effect_quality_reset_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -168,9 +168,9 @@ static ecs::CompileTimeQueryDesc thermal_vision_on_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void acesfx::thermal_vision_on_ecs_query(ecs::EntityId eid, Callable function)
+inline void acesfx::thermal_vision_on_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, thermal_vision_on_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, thermal_vision_on_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

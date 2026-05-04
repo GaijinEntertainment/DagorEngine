@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include "daScript/misc/arraytype.h"
 #include <daECS/core/utility/enumDescription.h>
 
 namespace bind_dascript
@@ -15,10 +16,7 @@ inline bool get_ecs_enum_values(const char *type_name, const das::TBlock<void, c
   if (!values.empty())
   {
     das::Array arr;
-    arr.data = (char *)values.data();
-    arr.size = values.size();
-    arr.capacity = values.size();
-    arr.lock = 1;
+    das::array_mark_locked(arr, (char *)values.data(), values.size());
     arr.flags = 0;
     vec4f arg = das::cast<das::Array *>::from(&arr);
     context->invoke(block, &arg, nullptr, at);

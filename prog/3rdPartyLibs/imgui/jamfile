@@ -20,6 +20,10 @@ if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
 }
 
+if $(PlatformSpec) in vc17 vc18 {
+  CPPopt += /wd4756 ; # C4756: overflow in constant arithmetic
+}
+
 Sources =
   imgui.cpp
   imgui_demo.cpp

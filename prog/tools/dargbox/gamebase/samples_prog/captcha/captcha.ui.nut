@@ -57,7 +57,7 @@ let image = function(){
   return {
     watch = captchaData
     rendObj = ROBJ_IMAGE
-    size = static [hdpxi(300), hdpxi(120)]
+    size = const [hdpxi(300), hdpxi(120)]
     image = captchaData.get() != null ? Picture($"b64://{captchaData.get().image}.png:256:256:K") : null
   }
 }

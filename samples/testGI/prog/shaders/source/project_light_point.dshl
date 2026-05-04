@@ -159,7 +159,7 @@ macro PROJECT_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
   //INIT_CSM_SHADOW(code)
   //BASE_USE_CSM_SHADOW_DEF_NUM(code)
   hlsl(code) {
-    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo)
+    float3 project_get_lit_color_at_trace_hit(float3 worldPos, float3 worldNormal, float3 albedo, float4 toCameraBiasDirAndLimit = 0)
     {
       float3 ambientWorldPos = worldPos;//fixme!
       float shadowBiasMeters = 0;//fixme: we should add bias based on distance

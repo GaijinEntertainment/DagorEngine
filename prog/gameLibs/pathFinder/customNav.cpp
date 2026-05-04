@@ -5,13 +5,15 @@
 #include <math/dag_mathUtils.h>
 #include <util/dag_hash.h>
 #include <memory/dag_framemem.h>
-#include <detourNavMesh.h>
-#include <detourCommon.h>
+#include <DetourNavMesh.h>
+#include <DetourCommon.h>
 #include <EASTL/sort.h>
 
 namespace pathfinder
 {
 static uint32_t lastAreaId = 0;
+
+float syncTime = 0.f;
 
 // Variation of 'does_line_intersect_box' that is optimized to be as fast as possible with
 // minimum branching and math, uses a lot of precalculated stuff.
@@ -57,6 +59,11 @@ static inline bool testCircleAABB(const BBox3 &aabb, const Point3 &c, float r2)
   else if (c.z > aabb.lim[1].z)
     dmin += sqr(c.z - aabb.lim[1].z);
   return dmin <= r2;
+}
+
+static inline bool isPointInSquare(const Point2 &p, const Point2 squareMin, const Point2 squareMax)
+{
+  return p.x >= squareMin.x && p.x <= squareMax.x && p.y >= squareMin.y && p.y <= squareMax.y;
 }
 
 static inline bool lineChangesQuadrant(const Point3 &origin, const Point3 &p1, const Point3 &p2)
@@ -108,17 +115,17 @@ void CustomNav::areaUpdateBox(uint32_t area_id, const TMatrix &tm, const BBox3 &
     });
 }
 
-void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize, float posThreshold,
-  float angCosThreshold)
+void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fadeTimeStart, float fadeTimeEnd,
+  bool optimize, float posThreshold)
 {
-  (void)angCosThreshold; // TODO remove this parameter from here and from all call sights - it's not used
-
   CylArea area;
   area.id = area_id;
   area.oobb = aabb;
   area.weight[0] = w1;
   area.weight[1] = w2;
   area.optimize = optimize;
+  area.fadeTimeStart = fadeTimeStart;
+  area.fadeTimeEnd = fadeTimeEnd;
 
   areaUpdate(
     area, cylAreas, boxAreas, [](Tile &tile) { return &tile.cylinderAreas; },
@@ -134,6 +141,11 @@ void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1
       }
       return true;
     });
+}
+
+void CustomNav::areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize, float posThreshold)
+{
+  areaUpdateCylinder(area_id, aabb, w1, w2, -1.0f, -1.0f, optimize, posThreshold);
 }
 
 template <typename AreaT, typename AreaHashMapT, typename AltAreaHashMapT, typename GetTileAreasCB, typename AllowUpdateCB>
@@ -389,6 +401,8 @@ void CustomNav::removeTile(uint32_t tile_id)
   tiles.erase(tile_id);
 }
 
+void CustomNav::updateFadeSyncTime(float time) { syncTime = time; }
+
 template <typename AreaT, typename GetTileAreasCB>
 void CustomNav::areaRemoveFromTiles(AreaT &area, Tab<uint32_t> &affected_tiles, GetTileAreasCB get_tile_areas_cb)
 {
@@ -414,6 +428,8 @@ void CustomNav::areaRemoveFromTiles(AreaT &area, Tab<uint32_t> &affected_tiles, 
 
 void CustomNav::areaRemove(uint32_t area_id)
 {
+  areaUserTags.erase(area_id);
+
   auto it = boxAreas.find(area_id);
   if (it != boxAreas.end())
   {
@@ -502,11 +518,112 @@ float CustomNav::getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2,
     if ((l2 <= r2) && (fPt.y >= area.oobb.lim[0].y) && (fPt.y <= area.oobb.lim[1].y))
     {
       t = l2 * fastinv(r2);
-      w += lerp(area.weight[0], area.weight[1], t);
+      float weight = lerp(area.weight[0], area.weight[1], t);
+      if (area.fadeTimeStart >= 0.f && area.fadeTimeEnd >= area.fadeTimeStart)
+      {
+        float fade = saturate(cvt(syncTime, area.fadeTimeStart, area.fadeTimeEnd, 0.0f, 1.0f));
+        float fadingCoeff = 1.f - fade * fade * fade;
+        weight *= fadingCoeff;
+      }
+      w += weight;
       optimize &= area.optimize;
     }
   }
   return w;
+}
+
+float CustomNav::getWeightAtPointFromCylinderAreasOnly(const Point3 &p) const
+{
+  dtNavMesh *navMesh = getNavMeshPtr();
+  if (!navMesh)
+    return 0.0f;
+  int tileX, tileY;
+  navMesh->calcTileLoc(&p.x, &tileX, &tileY);
+
+  float w = 0.0f;
+  static const int MAX_NEIS = 32;
+  const dtMeshTile *neis[MAX_NEIS];
+  const int nneis = navMesh->getTilesAt(tileX, tileY, neis, MAX_NEIS);
+  for (int i = 0; i < nneis; ++i)
+  {
+    const dtMeshTile *tile = neis[i];
+    const Point2 tileMin(tile->header->bmin[0], tile->header->bmin[2]);
+    const Point2 tileMax(tile->header->bmax[0], tile->header->bmax[2]);
+    if (isPointInSquare(Point2::xz(p), tileMin, tileMax))
+    {
+      int tileId = navMesh->decodePolyIdTile(navMesh->getTileRef(tile));
+      auto it = tiles.find(tileId);
+      if (it == tiles.end())
+      {
+        continue;
+      }
+      for (const CylArea &area : it->second.cylinderAreas)
+      {
+        Point3 c = area.oobb.center();
+        Point3 sz = area.oobb.width();
+        float l2 = lengthSq(Point2::xz(c) - Point2::xz(p));
+        float r2 = sz.x * sz.z;
+        if ((l2 <= r2) && (p.y >= area.oobb.lim[0].y) && (p.y <= area.oobb.lim[1].y))
+        {
+          float t = l2 * fastinv(r2);
+          float weight = lerp(area.weight[0], area.weight[1], t);
+          if (area.fadeTimeStart >= 0.f && area.fadeTimeEnd >= area.fadeTimeStart)
+          {
+            float fade = saturate(cvt(syncTime, area.fadeTimeStart, area.fadeTimeEnd, 1.0f, 0.0f));
+            float fadingCoeff = fade * fade;
+            weight *= fadingCoeff;
+          }
+          w += weight;
+        }
+      }
+    }
+  }
+  return w;
+}
+
+Point2 CustomNav::getAreaCurrentWeight(uint32_t area_id) const
+{
+  auto it = cylAreas.find(area_id);
+  if (it != cylAreas.end())
+  {
+    const CylArea &area = it->second;
+    Point2 weight(area.weight[0], area.weight[1]);
+    if (area.fadeTimeStart >= 0.f && area.fadeTimeEnd >= area.fadeTimeStart)
+    {
+      float fade = saturate(cvt(syncTime, area.fadeTimeStart, area.fadeTimeEnd, 0.0f, 1.0f));
+      float fadingCoeff = 1.f - fade * fade * fade;
+      weight *= fadingCoeff;
+    }
+    return weight;
+  }
+
+  auto jt = boxAreas.find(area_id);
+  if (jt != boxAreas.end())
+  {
+    const BoxArea &area = jt->second;
+    return Point2(area.weight[0], area.weight[1]);
+  }
+
+  return Point2();
+}
+
+BBox3 CustomNav::getAreaBBox(uint32_t area_id) const
+{
+  auto it = cylAreas.find(area_id);
+  if (it != cylAreas.end())
+  {
+    const CylArea &area = it->second;
+    return area.getAABB();
+  }
+
+  auto jt = boxAreas.find(area_id);
+  if (jt != boxAreas.end())
+  {
+    const BoxArea &area = jt->second;
+    return area.getAABB();
+  }
+
+  return BBox3();
 }
 
 void CustomNav::getHashes(dag::ConstSpan<uint64_t> poly_refs, PolyHashes &hashes) const
@@ -518,6 +635,72 @@ void CustomNav::getHashes(dag::ConstSpan<uint64_t> poly_refs, PolyHashes &hashes
   hashes.clear();
   for (uint64_t polyRef : poly_refs)
     hashes[polyRef] = getHash(polyRef);
+}
+
+void CustomNav::setAreaUserTagData(uint32_t area_id, int user_tag, int user_data)
+{
+  areaUserTags[area_id] = IPoint2(user_tag, user_data);
+}
+
+void CustomNav::getNearCylAreasByUserTag(const Point3 &pos, float search_dist, int search_user_tag, GetNearAreasCb cb) const
+{
+  dtNavMesh *navMesh = getNavMeshPtr();
+  if (!navMesh)
+    return;
+  BBox3 aabb(pos, search_dist);
+  int minx, miny, maxx, maxy;
+  navMesh->calcTileLoc(&aabb.lim[0].x, &minx, &miny);
+  navMesh->calcTileLoc(&aabb.lim[1].x, &maxx, &maxy);
+  static const int MAX_NEIS = 32;
+  const dtMeshTile *neis[MAX_NEIS];
+  areaIdFlagged.clear();
+  for (int y = miny; y <= maxy; ++y)
+    for (int x = minx; x <= maxx; ++x)
+    {
+      const int nneis = navMesh->getTilesAt(x, y, neis, MAX_NEIS);
+      for (int j = 0; j < nneis; ++j)
+      {
+        const dtMeshTile *meshTile = neis[j];
+        float ymin = meshTile->header->bmin[1];
+        float ymax = meshTile->header->bmax[1];
+        if (aabb.lim[0].y > ymax || aabb.lim[1].y < ymin)
+          continue;
+        uint32_t tileId = navMesh->decodePolyIdTile(navMesh->getTileRef(meshTile));
+        auto it = tiles.find(tileId);
+        if (it == tiles.end())
+          continue;
+
+        const Tile &tile = it->second;
+        auto &tileCylAreas = tile.cylinderAreas;
+        for (auto jt = tileCylAreas.begin(); jt != tileCylAreas.end(); ++jt)
+        {
+          uint32_t areaId = jt->id;
+          if (areaIdFlagged.find(areaId) != areaIdFlagged.end())
+            continue;
+
+          auto userTagIt = areaUserTags.find(areaId);
+          if (userTagIt != areaUserTags.end() && userTagIt->second.x == search_user_tag)
+          {
+            areaIdFlagged[areaId] = userTagIt->second.y;
+            if (cb(areaId, userTagIt->second.y))
+              return;
+          }
+        }
+      }
+    }
+}
+
+Point4 CustomNav::getCylAreaBBoxPosRadius(uint32_t area_id) const
+{
+  auto it = cylAreas.find(area_id);
+  if (it != cylAreas.end())
+  {
+    const CylArea &area = it->second;
+    const BBox3 aabb = area.getAABB();
+    return Point4::xyzV(aabb.center(), aabb.width().x * 0.5f);
+  }
+
+  return Point4();
 }
 
 bool CustomNav::checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes &hashes) const
@@ -541,7 +724,8 @@ bool CustomNav::checkHashes(dag::ConstSpan<uint64_t> poly_refs, const PolyHashes
 uint32_t CustomNav::getHash(uint64_t poly_ref) const
 {
   dtNavMesh *navMesh = getNavMeshPtr();
-
+  if (!navMesh)
+    return 0;
   uint32_t tileId = navMesh->decodePolyIdTile(poly_ref);
   auto it = tiles.find(tileId);
   if (it == tiles.end())

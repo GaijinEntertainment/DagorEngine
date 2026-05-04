@@ -347,22 +347,7 @@ syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const char *path, const Vr
   static constexpr VromfsCompression::InputDataType inputData = VromfsCompression::IDT_DATA;
 
   int64_t mtime = -1;
-  eastl::pair<Bytes, VromHash> vrom;
-
-#if DAGOR_DBGLEVEL > 0
-  static const char *devVromExt = ".dev";
-  eastl::string devPath = eastl::string(path) + devVromExt;
-  vrom = load_vrom_compressed(devPath.c_str(), compr, mtime);
-  if (!vrom.first.empty())
-  {
-    path = devPath.c_str();
-    logwarn("[SyncVroms] DEV-vrom exists and will be used: %s", path);
-  }
-#endif // DAGOR_DBGLEVEL
-
-  if (vrom.first.empty())
-    vrom = load_vrom_compressed(path, compr, mtime);
-
+  const eastl::pair<Bytes, VromHash> vrom{load_vrom_compressed(path, compr, mtime)};
   if (!vrom.first.empty() && compr.getDataType(vrom.first.data() + 1, vrom.first.size() - 1, vromfsCheck) != inputData)
   {
     dag::ConstSpan<char> vromSlice{vrom.first.data(), (intptr_t)vrom.first.size()};

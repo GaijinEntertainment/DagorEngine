@@ -249,8 +249,8 @@ void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSp
   render(prims, groups, imm_prim, cfg);
 }
 
-void draw_debug_multitext_overlay(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names, HudPrimitives *imm_prim,
-  const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg)
+void draw_debug_multitext_overlay_simple(dag::ConstSpan<Point3> positions, dag::ConstSpan<eastl::string_view> names,
+  HudPrimitives *imm_prim, const TMatrix4 &globtm, const DebugMultiTextOverlay &cfg)
 {
   draw_debug_multitext_overlay(positions, names, make_span<int>(nullptr, 0), imm_prim, globtm, cfg);
 }

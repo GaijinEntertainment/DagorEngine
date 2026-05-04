@@ -45,6 +45,7 @@ struct InstanceData
   int nodeOffsetRenderData;
   int instanceLod;
   bool relativeToCamera;
+  int indexToCustomCameraOffset;
 
   InstanceData() {} //-V730
 };
@@ -234,6 +235,7 @@ struct ContextData
   eastl::vector<AddedPerInstanceRenderData> perInstanceRenderData;
   dag::Vector<Point4> extraParams;
   Tab<TMatrix4> customProjTms;
+  dag::RelocatableFixedVector<Point3, 8, true> customCameraOffsets;
   float minElemRadius = 0.f;
   bool renderSkinned = true;
   bool ringBufferVarSet = false;
@@ -245,6 +247,8 @@ struct ContextData
 
   eastl::array<Tab<DipChunk>, ShaderMesh::Stage::STG_COUNT> dipChunksByStage;
   eastl::array<Tab<int>, ShaderMesh::Stage::STG_COUNT> dipChunksOrderByStage;
+
+  bool renderSorted = false;
 
   RenderDataBuffer renderDataBuffer;
   RingDynamicSB *ringBuffer = NULL;
@@ -283,6 +287,8 @@ struct ContextData
     instances.resize(0);
     allNodesVisibility.resize(0);
     customProjTms.resize(0);
+    customCameraOffsets.clear();
+    renderDataBuffer.clear();
     for (auto &stage : dipChunksByStage)
       stage.resize(0);
     for (auto &stage : dipChunksOrderByStage)
@@ -290,6 +296,7 @@ struct ContextData
 
     minElemRadius = 0.f;
     renderSkinned = true;
+    renderSorted = false;
     statNodes = statBones = statPreMerged = statPostMerged = 0;
   }
 
@@ -324,8 +331,8 @@ Intervals *DipChunk::getIntervals(ContextData &ctx) const
 
 static eastl::vector<ContextData> contexts;
 static Tab<const char *> shadersRenderOrder;
-static TMatrix4_vec4 prevViewTm = TMatrix4_vec4::IDENT;
-static TMatrix4_vec4 prevProjTm = TMatrix4_vec4::IDENT;
+static TMatrix4_vec4 globalPrevViewTm = TMatrix4_vec4::IDENT;
+static TMatrix4_vec4 globalPrevProjTm = TMatrix4_vec4::IDENT;
 static Point3 localOffsetHint;
 static bool separateAtestPass = false;
 UniqueBufHolder contextGpuDataBuffer;
@@ -380,7 +387,8 @@ void init()
   contexts.emplace_back("MAIN", (int)ContextId::MAIN, initialMainRingBufferSize);
   contexts.emplace_back("IMMEDIATE", (int)ContextId::IMMEDIATE);
 
-  contextGpuDataBuffer = dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ContextGpuData>(), "context_gpu_data");
+  contextGpuDataBuffer =
+    dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ContextGpuData>(), "context_gpu_data", RESTAG_DYNMODEL);
   d3d_err(contextGpuDataBuffer.getBuf());
 
   instanceDataBufferVarId = ::get_shader_variable_id("instance_data_buffer", true);
@@ -430,7 +438,7 @@ void set_check_shader_names(bool check) { check_shader_names = check; }
 
 void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, const InitialNodes *optional_initial_nodes,
   const dynrend::PerInstanceRenderData *optional_render_data, dag::Span<int> *node_list, const TMatrix4 *customProj,
-  bool relative_to_camera)
+  bool relative_to_camera, const Point3 *custom_camera_offset)
 {
   G_ASSERT(instance);
   G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
@@ -448,7 +456,7 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
     return;
   }
 
-  const DynamicRenderableSceneResource *sceneRes = instance->getCurSceneResource(); // int lodNo = instance->getCurrentLodNo();
+  const DynamicRenderableSceneResource *sceneRes = instance->getCurSceneResource();
   if (!sceneRes)
     return; // LODed out.
 
@@ -528,6 +536,18 @@ void add(ContextId context_id, const DynamicRenderableSceneInstance *instance, c
   instanceData.indexToCustomProjtm = -1;
   instanceData.instanceLod = instance->getCurrentLodNo();
   instanceData.relativeToCamera = relative_to_camera;
+  instanceData.indexToCustomCameraOffset = -1;
+  if (custom_camera_offset)
+  {
+    if (const auto found = eastl::find(ctx.customCameraOffsets.begin(), ctx.customCameraOffsets.end(), *custom_camera_offset);
+        found != ctx.customCameraOffsets.end())
+      instanceData.indexToCustomCameraOffset = eastl::distance(ctx.customCameraOffsets.begin(), found);
+    else
+    {
+      instanceData.indexToCustomCameraOffset = ctx.customCameraOffsets.size();
+      ctx.customCameraOffsets.push_back(*custom_camera_offset);
+    }
+  }
   if (customProj)
   {
     instanceData.indexToCustomProjtm = ctx.customProjTms.size();
@@ -625,9 +645,16 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
   TMatrix4_vec4 viewProjMatrixRelToOrigin;
   if (instance_data.relativeToCamera)
   {
-    TMatrix4 cameraRotation = view;
-    cameraRotation.setrow(3, 0, 0, 0, 1);
-    viewProjMatrixRelToOrigin = cameraRotation * proj;
+    TMatrix4 relativeViewTm = view;
+    if (instance_data.indexToCustomCameraOffset >= 0)
+    {
+      TMatrix4 viewItm = inverse44(view);
+      viewItm.setrow(3, viewItm.getrow(3) + Point4::xyz0(ctx.customCameraOffsets[instance_data.indexToCustomCameraOffset]));
+      relativeViewTm = inverse44(viewItm);
+    }
+    else
+      relativeViewTm.setrow(3, 0, 0, 0, 1);
+    viewProjMatrixRelToOrigin = relativeViewTm * proj;
   }
   else if (instance_data.indexToCustomProjtm >= 0)
     viewProjMatrixRelToOrigin = calcLocalViewProj(modelOrigin, view, ctx.customProjTms[instance_data.indexToCustomProjtm], offset);
@@ -639,9 +666,9 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
   TMatrix4_vec4 prevViewProjMatrixRelToOrigin;
   if (instance_data.relativeToCamera)
   {
-    TMatrix4 cameraRotationPrev = prev_view;
-    cameraRotationPrev.setrow(3, 0, 0, 0, 1);
-    prevViewProjMatrixRelToOrigin = cameraRotationPrev * prev_proj;
+    TMatrix4 relativeViewTmPrev = prev_view;
+    relativeViewTmPrev.setrow(3, 0, 0, 0, 1);
+    prevViewProjMatrixRelToOrigin = relativeViewTmPrev * prev_proj;
   }
   else
     prevViewProjMatrixRelToOrigin = calcLocalViewProj(prevModelOrigin, prev_view, prev_proj, offset);
@@ -700,7 +727,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
     else
       dip_chunk.overrideStateId = shaders::OverrideStateId();
     dip_chunk.mergeOverrideState = perInstanceRenderData->flags & MERGE_OVERRIDE_STATE;
-    dip_chunk.constDataBuf = perInstanceRenderData->constDataBuf;
+    dip_chunk.constDataBuf = perInstanceRenderData->constDataId;
 
     dip_chunk.texLevel = desiredTexLevel;
     dip_chunk.instanceOffsetRenderData = instance_offset_render_data;
@@ -973,7 +1000,7 @@ void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const 
   for (auto it = ctx.instances.begin() + instanceToChunkOffset; it < ctx.instances.end(); ++it)
   {
     InstanceData &instanceData = *it;
-    instanceToChunks(ctx, instanceData, view, proj, prevViewTm, prevProjTm, offset_to_origin, texCtx, nodeOffsetRenderData,
+    instanceToChunks(ctx, instanceData, view, proj, globalPrevViewTm, globalPrevProjTm, offset_to_origin, texCtx, nodeOffsetRenderData,
       instanceOffsetRenderData);
     instanceData.nodeOffsetRenderData = nodeOffsetRenderData;
     instanceData.instanceOffsetRenderData = instanceOffsetRenderData;
@@ -986,6 +1013,60 @@ void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const 
     ++instanceToChunkOffset;
   }
 } // prepare_render_instances
+
+void prepare_render_sort(ContextId context_id)
+{
+  ContextData &ctx = contexts[(int)context_id];
+
+  FRAMEMEM_REGION;
+  eastl::array<SmallTab<int, framemem_allocator>, ShaderMesh::Stage::STG_COUNT> dipChunksOrderByStage;
+
+  {
+    TIME_PROFILE(sort);
+    for (int stageNo = 0; stageNo < ShaderMesh::Stage::STG_COUNT; stageNo++)
+    {
+      for (DipChunk &chunk : ctx.dipChunksByStage[stageNo]) // In separate pass because instanceToChunks can resize
+                                                            // perInstanceRenderData.
+        chunk.intervals = chunk.getIntervals(ctx);          // intervals field is used only for sorting
+
+      dipChunksOrderByStage[stageNo].resize(ctx.dipChunksByStage[stageNo].size());
+      for (int order = 0, e = dipChunksOrderByStage[stageNo].size(); order < e; order++)
+        dipChunksOrderByStage[stageNo][order] = order;
+
+      stlsort::sort(dipChunksOrderByStage[stageNo].begin(), dipChunksOrderByStage[stageNo].end(),
+        CompareDipChunks(ctx.dipChunksByStage[stageNo].begin()));
+    }
+  }
+
+
+  // Post-merge.
+
+  {
+    TIME_PROFILE(postmerge);
+    for (int stageNo = 0; stageNo < ShaderMesh::Stage::STG_COUNT; stageNo++)
+    {
+      auto &dipChunks = ctx.dipChunksByStage[stageNo];
+      auto &order = dipChunksOrderByStage[stageNo];
+      auto &newOrder = ctx.dipChunksOrderByStage[stageNo];
+      for (int curChunkNo = 0, e = dipChunks.size(); curChunkNo < e; curChunkNo++)
+      {
+        newOrder.push_back(order[curChunkNo]);
+        int mergeChunkNo = curChunkNo + 1;
+        for (; mergeChunkNo < e; mergeChunkNo++)
+        {
+          if (!dipChunks[order[curChunkNo]].tryMerge(dipChunks[order[mergeChunkNo]]))
+            break;
+
+          dipChunks[order[mergeChunkNo]].numf = 0;
+          ctx.statPostMerged++;
+        }
+        curChunkNo = mergeChunkNo - 1;
+      }
+    }
+  }
+
+  ctx.renderSorted = true;
+}
 
 void prepare_render_finalize(ContextId context_id)
 {
@@ -1043,55 +1124,7 @@ void prepare_render_finalize(ContextId context_id)
     ctx.ringBuffer->unlockData(sizeOfAllChunks);
   }
 
-
-  // Sort.
-
-  eastl::array<SmallTab<int, framemem_allocator>, ShaderMesh::Stage::STG_COUNT> dipChunksOrderByStage;
-
-  {
-    TIME_PROFILE(sort);
-    for (int stageNo = 0; stageNo < ShaderMesh::Stage::STG_COUNT; stageNo++)
-    {
-      for (DipChunk &chunk : ctx.dipChunksByStage[stageNo]) // In separate pass because instanceToChunks can resize
-                                                            // perInstanceRenderData.
-        chunk.intervals = chunk.getIntervals(ctx);          // intervals field is used only for sorting
-
-      dipChunksOrderByStage[stageNo].resize(ctx.dipChunksByStage[stageNo].size());
-      for (int order = 0, e = dipChunksOrderByStage[stageNo].size(); order < e; order++)
-        dipChunksOrderByStage[stageNo][order] = order;
-
-      stlsort::sort(dipChunksOrderByStage[stageNo].begin(), dipChunksOrderByStage[stageNo].end(),
-        CompareDipChunks(ctx.dipChunksByStage[stageNo].begin()));
-    }
-  }
-
-
-  // Post-merge.
-
-  {
-    TIME_PROFILE(postmerge);
-    for (int stageNo = 0; stageNo < ShaderMesh::Stage::STG_COUNT; stageNo++)
-    {
-      auto &dipChunks = ctx.dipChunksByStage[stageNo];
-      auto &order = dipChunksOrderByStage[stageNo];
-      auto &newOrder = ctx.dipChunksOrderByStage[stageNo];
-      for (int curChunkNo = 0, e = dipChunks.size(); curChunkNo < e; curChunkNo++)
-      {
-        newOrder.push_back(order[curChunkNo]);
-        int mergeChunkNo = curChunkNo + 1;
-        for (; mergeChunkNo < e; mergeChunkNo++)
-        {
-          if (!dipChunks[order[curChunkNo]].tryMerge(dipChunks[order[mergeChunkNo]]))
-            break;
-
-          dipChunks[order[mergeChunkNo]].numf = 0;
-          ctx.statPostMerged++;
-        }
-        curChunkNo = mergeChunkNo - 1;
-      }
-    }
-  }
-
+  prepare_render_sort(context_id);
 
   if (dynrendLog.get() && ::dagor_frame_no() % 100 == 0)
     debug("%d prepare %s: instances=%d, nodes=%d, bones=%d, chunks[0]=%d, chunks[4]=%d, preMerged=%d, postMerged=%d",
@@ -1194,29 +1227,37 @@ const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerIn
   return ctx.perInstanceRenderData[indexToPerInstanceRenderData].params.data();
 }
 
-void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage)
+void after_device_reset()
 {
-  G_ASSERT(is_main_thread());
-  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+  uint32_t dummy = 0;
+  contextGpuDataBuffer->updateDataWithLock(0, sizeof(dummy), &dummy, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+}
 
-  ContextData &ctx = contexts[(int)context_id];
+static void render_context_begin(ContextData &ctx)
+{
+  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBuffer->getBufId());
+  ctx.ringBufferVarSet = true;
+  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  int sceneBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
+  ShaderGlobal::setBlock(sceneBlock, ShaderGlobal::LAYER_SCENE); // Update buffer var.
+}
+
+static void render_context_end(ContextData &ctx)
+{
+  ShaderGlobal::set_buffer(instanceDataBufferVarId, BAD_D3DRESID); // avoid race if prepare happens in multiple threads
+  ShaderGlobal::set_buffer(instance_const_data_bufferVarId, BAD_D3DRESID);
+  d3d::set_immediate_const(STAGE_VS, NULL, 0);
+  ctx.ringBufferVarSet = false;
+}
+
+static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
+{
   const auto &dipChunks = ctx.dipChunksByStage[shader_mesh_stage];
 
   if (dipChunks.empty())
     return;
 
   TIME_PROFILE(dynrend_render);
-
-
-  // Begin render.
-
-  ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBuffer->getBufId());
-  ctx.ringBufferVarSet = true;
-
-  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-
-  int sceneBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
-  ShaderGlobal::setBlock(sceneBlock, ShaderGlobal::LAYER_SCENE); // Update buffer var.
 
 
   // Render sequence of DIP chunks through immediate constants
@@ -1346,12 +1387,21 @@ void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage)
     debug("%d     render[%d] %s: chunks=%d, Shader=%d, VertexData=%d, Invalid=%d, intervals=%d, constData=%d, overrides=%d, tris=%d",
       ::dagor_frame_no(), shader_mesh_stage, ctx.name.c_str(), ctx.dipChunksOrderByStage[shader_mesh_stage].size(), statShader,
       statVertexData, statInvalid, statIntervals, statConstData, statOverrides, statTriangles);
+}
 
-  // End render.
-  ShaderGlobal::set_buffer(instanceDataBufferVarId, BAD_D3DRESID); // avoid race if prepare happens in multiple threads
-  ShaderGlobal::set_buffer(instance_const_data_bufferVarId, BAD_D3DRESID);
-  d3d::set_immediate_const(STAGE_VS, NULL, 0);
-  ctx.ringBufferVarSet = false;
+
+void render(ContextId context_id, ShaderMesh::Stage shader_mesh_stage)
+{
+  G_ASSERT(is_main_thread());
+  G_ASSERTF_RETURN((int)context_id >= 0 && (int)context_id < contexts.size(), , "Uninitialized dynrend context was used");
+
+  ContextData &ctx = contexts[(int)context_id];
+  if (ctx.dipChunksByStage[shader_mesh_stage].empty())
+    return;
+
+  render_context_begin(ctx);
+  render_stage(ctx, shader_mesh_stage);
+  render_context_end(ctx);
 }
 
 
@@ -1375,15 +1425,15 @@ void clear_all_contexts()
 
 void set_prev_view_proj(const TMatrix4_vec4 &prev_view, const TMatrix4_vec4 &prev_proj)
 {
-  prevViewTm = prev_view;
-  prevProjTm = prev_proj;
+  globalPrevViewTm = prev_view;
+  globalPrevProjTm = prev_proj;
 }
 
 
 void get_prev_view_proj(TMatrix4_vec4 &prev_view, TMatrix4_vec4 &prev_proj)
 {
-  prev_view = prevViewTm;
-  prev_proj = prevProjTm;
+  prev_view = globalPrevViewTm;
+  prev_proj = globalPrevProjTm;
 }
 
 
@@ -1503,9 +1553,10 @@ void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, voi
     auto &instance = *instanceData.instance;
     auto &sceneRes = *instanceData.sceneRes;
     const int nodeChunkVecs = (instanceData.initialNodes ? BIG_NODE_CHUNK_VECS : SMALL_NODE_CHUNK_VECS);
-    iter(context_id, sceneRes, instance, ctx.perInstanceRenderData[instanceData.indexToPerInstanceRenderData], ctx.allNodesVisibility,
+    iter(context_id, sceneRes, instance, instanceData.relativeToCamera,
+      ctx.perInstanceRenderData[instanceData.indexToPerInstanceRenderData], ctx.allNodesVisibility,
       instanceData.indexToAllNodesVisibility, ctx.minElemRadius, instanceData.nodeOffsetRenderData,
-      instanceData.instanceOffsetRenderData, nodeChunkVecs, user_data);
+      instanceData.instanceOffsetRenderData, instanceData.initialNodes, nodeChunkVecs, user_data);
   }
 }
 

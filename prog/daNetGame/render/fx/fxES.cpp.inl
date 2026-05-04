@@ -41,6 +41,7 @@
 #include <render/wind/ambientWind.h>
 #include <render/wind/fxWindHelper.h>
 #include <daECS/net/time.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
@@ -122,6 +123,7 @@ static int dafx_is_water_proj_var_id = -1;
 static bool fx_managers_update_finished = true;
 static float g_default_mip_bias = 0.f;
 static int g_active_query_sparse_step = 4;
+static float g_accum_dt = 0.f;
 
 // for disabling unnecessary slot clears on forward rendering
 //  1. we have global tex bindings(LUT tex for ex.), that are broken by slot clears
@@ -206,15 +208,12 @@ static inline void recreate_dafx_culling()
   g_rendering_resolution = resolution;
   G_ASSERT(resolution.x > 0 && resolution.y > 0);
   const float m = 1.f / min(resolution.x, resolution.y);
+  const float bvhDiscardMul = 128; // TODO: make proper settings for this and the rest
 
   eastl::vector<dafx::CullingDesc> descs;
   descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_LOWRES], dafx::SortingType::BACK_TO_FRONT, 0, g_discard.lowres * m));
   descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_HIGHRES], dafx::SortingType::BACK_TO_FRONT, 0, g_discard.highres * m));
-  descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_GBUFFER], dafx::SortingType::BY_SHADER, 0, g_discard.highres * m));
-  descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_HAZE], dafx::SortingType::NONE, 0, g_discard.distortion * m));
-  descs.push_back(dafx::CullingDesc("distortion", dafx::SortingType::NONE, 0, g_discard.distortion * m));
-  descs.push_back(
-    dafx::CullingDesc(render_tags[ERT_TAG_VOLMEDIA], dafx::SortingType::NONE, 0, g_discard.volfogInjection * m)); // legacy
+  descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_DISTORTION], dafx::SortingType::NONE, 0, g_discard.distortion * m));
   descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_VOLFOG_INJECTION], dafx::SortingType::NONE, 0, g_discard.volfogInjection * m));
   descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_ATEST], dafx::SortingType::BY_SHADER, 0, g_discard.atest * m));
   descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_WATER_PROJ], dafx::SortingType::BACK_TO_FRONT, 0, g_discard.waterProj * m));
@@ -228,7 +227,7 @@ static inline void recreate_dafx_culling()
   g_dafx_cull_fom = dafx::create_culling_state(g_dafx_ctx, descs);
 
   descs.clear();
-  descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_BVH], dafx::SortingType::NONE, 0, g_discard.bvh * m));
+  descs.push_back(dafx::CullingDesc(render_tags[ERT_TAG_BVH], dafx::SortingType::NONE, 0, g_discard.bvh * m * bvhDiscardMul));
   g_dafx_cull_bvh = dafx::create_culling_state(g_dafx_ctx, descs);
 
   set_rt_override(g_rt_override);
@@ -249,12 +248,19 @@ bool init_dafx(bool gpu_sim)
 #if _TARGET_C1 | _TARGET_XBOX
   cfg.max_async_threads *= 2; // Double # of jobs to reduce chances of long-running jobs being scheduled out
 #endif
+  cfg.emission_limit = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("fxEmissionLimit", 4096);
+  cfg.cpu_emission_limit = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("fxCpuEmissionLimit", 4096);
+  cfg.multidraw_enabled = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("fxMultidraw", true);
   // check bvh shader existence once at init
   {
     DynamicShaderHelper *bvhShader = new DynamicShaderHelper();
     cfg.has_bvh_shader = bvhShader->init("dafx_modfx_bvh", nullptr, 0, nullptr, true);
     del_it(bvhShader);
   }
+
+  FxQuality fxQuality = getFxQualityMask();
+  cfg.qualityMask = fxQuality;
+  cfg.gpu_data_buffer_size = getFxGPUBufferSizeBasedOnQuality(fxQuality);
   g_dafx_ctx = dafx::create_context(cfg);
   if (!g_dafx_ctx)
   {
@@ -357,6 +363,21 @@ FxQuality getFxQualityMask()
   else if (fxRes == FX_HIGH_RESOLUTION)
     fxQuality = FX_QUALITY_HIGH;
   return fxQuality;
+}
+
+uint32_t getFxGPUBufferSizeBasedOnQuality(FxQuality fxQuality)
+{
+  constexpr uint32_t DEFAULT_BUFFER_SIZE = 524288; // 512 KB
+  switch (fxQuality)
+  {
+    case FX_QUALITY_LOW:
+      return dgs_get_settings()->getBlockByNameEx("graphics")->getInt("fxLowQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
+    case FX_QUALITY_MEDIUM:
+      return dgs_get_settings()->getBlockByNameEx("graphics")->getInt("fxMediumQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
+    case FX_QUALITY_HIGH:
+      return dgs_get_settings()->getBlockByNameEx("graphics")->getInt("fxHighQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
+    default: G_ASSERT(false); return DEFAULT_BUFFER_SIZE;
+  }
 }
 
 void setDepthTex(const BaseTexture *tex)
@@ -468,7 +489,7 @@ static void create_gravity_zone_buffer_es(
 
 
 template <typename Callable>
-static void update_gravity_zone_buffer_ecs_query(Callable callable);
+static void update_gravity_zone_buffer_ecs_query(ecs::EntityManager &manager, Callable callable);
 
 
 void set_gravity_zones(GravityZoneBuffer &buffer)
@@ -487,7 +508,7 @@ void set_gravity_zones(GravityZoneBuffer &buffer)
 
   dafx_gravity_zone_buffer = dafx_gravity_zone_container.data();
 
-  update_gravity_zone_buffer_ecs_query(
+  update_gravity_zone_buffer_ecs_query(*g_entity_mgr,
     [](UniqueBufHolder &dafx_gravity_zone_buffer_gpu, UniqueBuf &dafx_gravity_zone_buffer_gpu_staging) {
       d3d::GpuAutoLock gpuLock;
       dafx_gravity_zone_buffer_gpu_staging->updateData(0, dafx_gravity_zone_container.size() * sizeof(dafx_gravity_zone_container[0]),
@@ -593,10 +614,10 @@ void draw_debug_opt(const TMatrix4 &glob_tm)
       dag::Vector<eastl::string_view, framemem_allocator> names;
       for (EffectManager *mgr : fx_managers)
         if (mgr)
-          mgr->getDebugInfo(positions, elems, names);
+          mgr->getDebugInfo(positions, elems, names, false);
 
       DebugMultiTextOverlay cfg;
-      draw_debug_multitext_overlay(positions, names, fx_labels_immediate_context_debug.get(), glob_tm, cfg);
+      draw_debug_multitext_overlay(positions, names, elems, fx_labels_immediate_context_debug.get(), glob_tm, cfg);
     }
 
     end_draw_cached_debug_lines();
@@ -652,6 +673,7 @@ void update_fx_managers(float dt)
   {
     TIME_PROFILE(fx_managers_update);
 
+    dt *= dafx::get_config(g_dafx_ctx).time_scale;
     {
       TIME_PROFILE(fx_managers_update_start);
       for (int i = 0; i < fx_managers.size(); i++)
@@ -722,6 +744,7 @@ void finish_update(const TMatrix4 &tm, Occlusion *occlusion)
   if (is_bvh_enabled())
     dafx::update_culling_state(g_dafx_ctx, g_dafx_cull_bvh, Frustum(g_bvh_cull_tm), g_bvh_cull_tm, ::grs_cur_view.pos);
 
+  dafx::sync_instance_flags(g_dafx_ctx);
   dafx::before_render(g_dafx_ctx);
 }
 
@@ -749,16 +772,7 @@ void clear_tex_slots()
   }
 }
 
-void renderToGbuffer(int global_frame_id)
-{
-  clear_tex_slots();
-
-  ShaderGlobal::setBlock(global_frame_id, ShaderGlobal::LAYER_FRAME);
-  ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-
-  TIME_D3D_PROFILE(acesfx__render_to_gbuffer);
-  dafx::render(g_dafx_ctx, g_dafx_cull, render_tags[ERT_TAG_GBUFFER], g_default_mip_bias);
-}
+void start_fx_interframe_jobs() { dafx::start_async_interframe_jobs(g_dafx_ctx); }
 
 static bool renderTransBase(FxRenderGroup group, dafx::CullingId cull_id)
 {
@@ -821,12 +835,7 @@ bool renderTransSpecial(uint8_t render_tag, dafx::CullingId cull_id)
 
   bool use_default_cull = cull_id == dafx::CullingId();
   bool r = false;
-  if (render_tag == ERT_TAG_VOLMEDIA)
-  {
-    TIME_D3D_PROFILE(volmedia);
-    r = dafx::render(g_dafx_ctx, use_default_cull ? g_dafx_cull : cull_id, render_tags[ERT_TAG_VOLMEDIA], g_default_mip_bias);
-  }
-  else if (render_tag == ERT_TAG_VOLFOG_INJECTION)
+  if (render_tag == ERT_TAG_VOLFOG_INJECTION)
   {
     TIME_D3D_PROFILE(volfog_injection);
     r = dafx::render(g_dafx_ctx, use_default_cull ? g_dafx_cull : cull_id, render_tags[ERT_TAG_VOLFOG_INJECTION], g_default_mip_bias);
@@ -881,12 +890,11 @@ void renderTransHaze()
 {
   clear_tex_slots();
   ShaderGlobal::setBlock(dynamic_scene_trans_block_id, ShaderGlobal::LAYER_SCENE);
-  dafx::render(g_dafx_ctx, g_dafx_cull, render_tags[ERT_TAG_HAZE], g_default_mip_bias);
-  dafx::render(g_dafx_ctx, g_dafx_cull, "distortion", g_default_mip_bias);
+  dafx::render(g_dafx_ctx, g_dafx_cull, render_tags[ERT_TAG_DISTORTION], g_default_mip_bias);
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 }
 
-bool hasVisibleHaze() { return dafx::fetch_culling_state_visible_count(g_dafx_ctx, g_dafx_cull, "distortion"); }
+bool hasVisibleHaze() { return dafx::fetch_culling_state_visible_count(g_dafx_ctx, g_dafx_cull, render_tags[ERT_TAG_DISTORTION]); }
 
 void killEffectsInSphere(const BSphere3 &bsph)
 {
@@ -973,6 +981,7 @@ static struct FXManagersUpdateJob final : public cpujobs::IJob
 
 void start_fx_managers_update_job(float dt)
 {
+  g_accum_dt += dt;
   if (DAGOR_LIKELY(update_fx_managers_in_threadpool.get()))
   {
     set_immediate_mode(true, false); // Don't accum cmds during job execution.
@@ -989,7 +998,9 @@ void start_dafx_update(float dt)
 
   wait_fx_managers_update_and_allow_accum_cmds();
   if (dt < 0)
-    dt = fx_managers_update_job.dt;
+    dt = g_accum_dt;
+  g_accum_dt = 0.0f;
+  dt *= dafx::get_config(g_dafx_ctx).time_scale;
   dafx::set_global_value(g_dafx_ctx, "dt", &dt, 4);
   dafx::start_update(g_dafx_ctx, dt);
 }
@@ -1018,7 +1029,7 @@ void start_effect(
   int type, const TMatrix &emitter_tm, const TMatrix &fx_tm, bool is_player, float scale, AcesEffect **locked_fx, FxErrorType *perr)
 {
   if (!::is_main_thread())
-    LOGERR_ONCE("fx: start_effect: Not main thread!");
+    LOGERR_ONCE("fx: start_effect: %s - Not main thread!", effectNames.getName(type));
   if (!fx_managers_update_finished)
     LOGERR_ONCE("start_effect() is called without waiting for EffectManager::update() to be finished");
 
@@ -1169,7 +1180,7 @@ int get_type_by_name_opt(const char *name, bool optional)
   // try direct resource
   if (fxType < 0)
   {
-    int resId = gamereshooks::aux_game_res_handle_to_id(GAMERES_HANDLE_FROM_STRING(name), EffectGameResClassId);
+    int resId = gamereshooks::aux_game_res_handle_to_id(name, EffectGameResClassId);
     fxType = resId > 0 ? effectNames.addNameId(name) : -1;
   }
 
@@ -1207,12 +1218,12 @@ void set_dafx_globaldata(const TMatrix4 &tm, const TMatrix &view, const Point3 &
 }
 
 template <typename Callable>
-static ecs::QueryCbResult effect_quality_reset_ecs_query(Callable callable);
+static ecs::QueryCbResult effect_quality_reset_ecs_query(ecs::EntityManager &manager, Callable callable);
 
 FxQuality get_fx_target()
 {
   FxQuality fxTarget = FX_QUALITY_LOW;
-  effect_quality_reset_ecs_query([&](int global_fx__target) {
+  effect_quality_reset_ecs_query(*g_entity_mgr, [&](int global_fx__target) {
     fxTarget = FxQuality(global_fx__target);
     return ecs::QueryCbResult::Stop;
   });
@@ -1221,11 +1232,11 @@ FxQuality get_fx_target()
 }
 
 template <typename Callable>
-inline static void thermal_vision_on_ecs_query(ecs::EntityId eid, Callable c);
+inline static void thermal_vision_on_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 bool thermal_vision_on()
 {
   bool thermalVisionOn = false;
-  thermal_vision_on_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("thermal_vision_renderer")),
+  thermal_vision_on_ecs_query(*g_entity_mgr, g_entity_mgr->getSingletonEntity(ECS_HASH("thermal_vision_renderer")),
     [&](bool thermal_vision__on) { thermalVisionOn = thermal_vision__on; });
   return thermalVisionOn;
 }
@@ -1247,7 +1258,19 @@ void rifx_composite::stopEffect(AcesEffect *fx_handle) { acesfx::stop_effect(fx_
 ECS_TAG(render)
 static inline void start_effect_pos_norm_es(const acesfx::StartEffectPosNormEvent &evt)
 {
-  acesfx::start_effect_pos_norm(evt.get<0>(), evt.get<1>(), evt.get<2>(), evt.get<3>(), evt.get<4>());
+  eastl::optional<Color4> colorMult = evt.get<5>();
+  bool needLock = bool(colorMult);
+
+  AcesEffect *fx = nullptr;
+  AcesEffect **locked_fx = needLock ? &fx : nullptr;
+  acesfx::start_effect_pos_norm(evt.get<0>(), evt.get<1>(), evt.get<2>(), evt.get<3>(), evt.get<4>(), locked_fx);
+  if (!fx)
+    return;
+
+  if (colorMult)
+    fx->setColorMult(*colorMult);
+
+  fx->unlock();
 }
 
 ECS_TAG(render)

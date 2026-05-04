@@ -1,0 +1,229 @@
+// Parameters to calculate the burnt progress of a grass instance
+int4 burnt_grass_tile_toroidal_params = (0, 0, 0, 0); // int4(center_tile_coords.xy, coord_offset.xy)
+buffer burnt_grass_tiles_indices;
+buffer burnt_grass_tiles;
+float burnt_grass_duration = 10; // in seconds
+
+// Parameters to control the per-pixel behaviour and look of the effect
+float4 burnt_grass_burnt_color = float4(0.01, 0.008, 0.005, 0); // (rgb, 0)
+float4 burnt_grass_emission_color = float4(1, 0.2, 0, 0.3); // (rgb, intensity: in [0, 1])
+float4 burnt_grass_gradient_points = float4(0.1, 0.25, 0.2, 0.85); // (emission start, emission end, black start, disappear start)
+// noise scale: frequency of noise applied to the transition line (it's a straight line without noise)
+// noise intensity: how strongly the noise affects the transition line
+// transition size: width of transition line (in (0, 1])
+// burnt until: pixels with burn offset lower than 'burn until' will burn completely and disappear
+float4 burnt_grass_transition_params = float4(1.5, 0.9, 0.3, 0.5); // (noise scale, noise intensity, transition size, burn until)
+
+int burnt_grass_enabled = 0;
+interval burnt_grass_enabled: disabled<1, enabled;
+
+macro INIT_BURNT_GRASS_INSTANCE_BASE(stage)
+  (stage)
+  {
+    burnt_grass_tile_toroidal_params@i4 = burnt_grass_tile_toroidal_params;
+    burnt_grass_tiles_indices@buf = burnt_grass_tiles_indices hlsl {
+      StructuredBuffer<uint> burnt_grass_tiles_indices@buf;
+    };
+    burnt_grass_tiles@buf = burnt_grass_tiles hlsl {
+      StructuredBuffer<uint> burnt_grass_tiles@buf;
+    };
+    current_time@f1 = (time_phase(0, 0));
+    burnt_grass_duration@f1 = burnt_grass_duration;
+  }
+endmacro
+
+macro USE_BURNT_GRASS_INSTANCE_BASE(stage)
+  hlsl(stage) {
+    #include "burnt_grass.hlsli"
+
+    uint get_tile_index(float2 world_xz)
+    {
+      int2 currentTile = int2(floor(world_xz / BURNT_GRASS_TILE_SIZE));
+      int2 tileOffset = currentTile - burnt_grass_tile_toroidal_params.xy;
+      const int2 minTileOffset = int2(-BURNT_GRASS_INDEX_MAP_RESOLUTION/2, -BURNT_GRASS_INDEX_MAP_RESOLUTION/2);
+      const int2 maxTileOffset = minTileOffset + int2(BURNT_GRASS_INDEX_MAP_RESOLUTION-1, BURNT_GRASS_INDEX_MAP_RESOLUTION-1);
+      BRANCH
+      if (any(tileOffset < minTileOffset || tileOffset > maxTileOffset))
+        return BURNT_GRASS_INVALID_GPU_TILE_INDEX;
+
+      int2 tileCoord = (tileOffset + BURNT_GRASS_INDEX_MAP_RESOLUTION + burnt_grass_tile_toroidal_params.zw) % BURNT_GRASS_INDEX_MAP_RESOLUTION;
+      return burnt_grass_tiles_indices[tileCoord.x + tileCoord.y*BURNT_GRASS_INDEX_MAP_RESOLUTION];
+    }
+
+    float sample_burnt_progress(uint tile_index, float2 world_xz)
+    {
+      float2 tileTc = (frac(world_xz * (1.0 / BURNT_GRASS_TILE_SIZE)) + BURNT_GRASS_TILE_MARGIN_PERCENTAGE) / (1.0+2.0*BURNT_GRASS_TILE_MARGIN_PERCENTAGE);
+      uint2 mainTexelCoords = uint2(tileTc*BURNT_GRASS_TILE_RESOLUTION);
+      float2 subTc = frac(tileTc*BURNT_GRASS_TILE_RESOLUTION) * 2 - 1;
+
+      int2 secondaryTexelCoordsOffset = abs(subTc.x) >= abs(subTc.y)
+        ? int2(sign(subTc.x), 0)
+        : int2(0, sign(subTc.y));
+
+      // Clamp to valid range can be skipped due to the margin: sampled world_xz is always within the inner area of the tile (inside margins)
+      uint2 secondaryTexelCoords = mainTexelCoords + secondaryTexelCoordsOffset;
+
+      uint2 burnTimes = uint2(
+        burnt_grass_tiles[BURNT_GRASS_GET_TEXEL_COORD(mainTexelCoords.x, mainTexelCoords.y, tile_index)].r,
+        burnt_grass_tiles[BURNT_GRASS_GET_TEXEL_COORD(secondaryTexelCoords.x, secondaryTexelCoords.y, tile_index)].r
+      );
+      uint burnTime = min(burnTimes.x, burnTimes.y);
+
+      if (burnTime == BURNT_GRASS_NO_FIRE)
+        return 0;
+
+      return clamp((current_time-float(burnTime)/1000.f) / burnt_grass_duration, 0, 1);
+    }
+
+    float get_instance_burnt_grass_progress(float3 instance_world_pos)
+    {
+      uint tileIndex = get_tile_index(instance_world_pos.xz);
+      BRANCH
+      if (tileIndex == BURNT_GRASS_INVALID_GPU_TILE_INDEX)
+        return 0;
+
+      return sample_burnt_progress(tileIndex, instance_world_pos.xz);
+    }
+  }
+endmacro
+
+macro USE_BURNT_GRASS_INSTANCE_STUB(stage)
+  hlsl (stage) {
+    float get_instance_burnt_grass_progress(float3 instance_world_pos)
+    {
+      return 0;
+    }
+  }
+endmacro
+
+
+macro INIT_BURNT_GRASS_INSTANCE(stage)
+  if (burnt_grass_enabled == enabled)
+  {
+    INIT_BURNT_GRASS_INSTANCE_BASE(stage)
+  }
+endmacro
+
+macro USE_BURNT_GRASS_INSTANCE(stage)
+  if (burnt_grass_enabled == enabled)
+  {
+    USE_BURNT_GRASS_INSTANCE_BASE(stage)
+  }
+  else
+  {
+    USE_BURNT_GRASS_INSTANCE_STUB(stage)
+  }
+endmacro
+
+macro INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
+  INIT_BURNT_GRASS_INSTANCE_BASE(vs)
+
+  (ps) {
+    burnt_grass_gradient_points@f4 = burnt_grass_gradient_points;
+    burnt_grass_emission_color@f4 = burnt_grass_emission_color;
+    burnt_grass_transition_params@f4 = burnt_grass_transition_params;
+    burnt_grass_burnt_color@f3 = burnt_grass_burnt_color;
+  }
+  if (needs_perlin_noise)
+  {
+    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+  }
+endmacro
+
+macro INIT_BURNT_GRASS_BASE()
+  INIT_BURNT_GRASS_BASE_VARS(true)
+  hlsl {
+    #define BURNT_GRASS_ENABLED 1
+  }
+endmacro
+
+macro USE_BURNT_GRASS_BASE()
+  PACK_UNPACK_GBUFFER()
+  USE_BURNT_GRASS_INSTANCE_BASE(vs)
+
+  hlsl(ps) {
+    #include "burnt_grass.hlsli"
+
+    // pixel_burn_offset=0 -> burns immediately
+    // pixel_burn_offset=1 -> burns last
+    float get_burnt_grass_progress(float instance_burnt_progress, float3 instance_world_pos, float3 tc, float pixel_burn_offset)
+    {
+      BRANCH
+      if (instance_burnt_progress <= 0)
+        return 0;
+
+      float noiseScale = burnt_grass_transition_params.x;
+      float noiseImportance = burnt_grass_transition_params.y;
+      float transitionSize = burnt_grass_transition_params.z;
+      float burnUntil = burnt_grass_transition_params.w;
+
+      float noise = tex3Dlod(perlin_noise3d, float4(instance_world_pos + tc * noiseScale, 0)).r;
+      float offset = (pixel_burn_offset + noise*noiseImportance) / (1.0+noiseImportance);
+
+      // pixels that don't burn completely reach this progress
+      const float remainProgress = 1.0-(burnt_grass_gradient_points.y+burnt_grass_gradient_points.w)*0.5;
+      float maxBurnState = 1.0 - clamp((offset-burnUntil)/(1.0-burnUntil), 0, 1) * remainProgress;
+
+      float state = clamp((instance_burnt_progress*(transitionSize+1.0)-offset)/transitionSize, 0, 1);
+      return sqrt(state)*maxBurnState;
+    }
+
+    void apply_burnt_grass_alpha(float progress, inout float alpha)
+    {
+      if (progress > 0)
+        alpha *= 1.0-clamp((progress-burnt_grass_gradient_points.w)/(1.0-burnt_grass_gradient_points.w), 0, 1);
+    }
+
+    void apply_burnt_grass(float progress, inout UnpackedGbuffer gbuffer)
+    {
+      if (progress > 0)
+      {
+        float2 emissionRange = burnt_grass_gradient_points.xy;
+        gbuffer.albedo.rgb = lerp(gbuffer.albedo.rgb, burnt_grass_burnt_color.rgb, clamp(progress/burnt_grass_gradient_points.z, 0, 1));
+        float4 emission = burnt_grass_emission_color;
+        float emissionState = 1.0-abs((progress-emissionRange.x)/(emissionRange.y-emissionRange.x)*2.0-1.0);
+        // The transition looks better and thicker with the sqrt() on it
+        emission.w *= sqrt(clamp(emissionState, 0, 1));
+
+        if (emission.w > 0)
+        {
+          init_material(gbuffer, SHADING_SELFILLUM);
+          init_emission(gbuffer, emission.a * MAX_EMISSION);
+          init_emission_color(gbuffer, half4(emission.rgb, 0));
+        }
+      }
+    }
+  }
+endmacro
+
+macro USE_BURNT_GRASS_STUB()
+  PACK_UNPACK_GBUFFER()
+  USE_BURNT_GRASS_INSTANCE_STUB(vs)
+
+  hlsl (ps) {
+    float get_burnt_grass_progress(float instance_burnt_progress, float3 instance_world_pos, float3 tc, float pixel_burn_offset)
+    {
+      return 0;
+    }
+    void apply_burnt_grass_alpha(float progress, inout float alpha) {}
+    void apply_burnt_grass(float progress, inout UnpackedGbuffer gbuffer) {}
+  }
+endmacro
+
+macro INIT_BURNT_GRASS()
+  if (burnt_grass_enabled == enabled)
+  {
+    INIT_BURNT_GRASS_BASE()
+  }
+endmacro
+
+macro USE_BURNT_GRASS()
+  if (burnt_grass_enabled == enabled)
+  {
+    USE_BURNT_GRASS_BASE()
+  }
+  else
+  {
+    USE_BURNT_GRASS_STUB()
+  }
+endmacro

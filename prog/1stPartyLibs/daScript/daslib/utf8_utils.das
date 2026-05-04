@@ -4,10 +4,16 @@ options strict_smart_pointers = true
 
 module utf8_utils shared
 
+//! UTF-8 / UTF-16 / UTF-32 encoding utilities.
+//!
+//! Provides ``utf8_encode``, ``utf8_decode``, ``utf16_to_utf32``, and
+//! ``each_utf32`` for converting between Unicode representations.
+
 require daslib/strings_boost
 require math
 
 def public utf16_to_utf32(high, low : uint) {
+    //! Converts a UTF-16 surrogate pair to a single UTF-32 codepoint.
     if (high >= 0xD800 && high <= 0xDBFF) {
         return ((high - 0xD800) << 10u) + (low - 0xDC00) + 0x10000
     } else {
@@ -102,18 +108,21 @@ def public utf8_length(utf8_string : string const) : int {
 
 
 def public is_first_byte_of_utf8_char(ch : uint8) : bool {
+    //! Returns true if the given byte is the first byte of a UTF-8 character.
     let x = uint(ch)
     return (x > 0u) && (x < 128u || (x & 0xC0) == 0xC0)
 }
 
 
 def public contains_utf8_bom(utf8_string : array<uint8> const implicit) : bool {
+    //! Returns true if the byte array starts with a UTF-8 BOM (byte order mark).
     return (length(utf8_string) >= 3 &&
           uint(utf8_string[0]) == 0xEF && uint(utf8_string[1]) == 0xBB && uint(utf8_string[2]) == 0xBF)
 }
 
 
 def public contains_utf8_bom(utf8_string : string const) : bool {
+    //! Returns true if the string starts with a UTF-8 BOM (byte order mark).
     unsafe {
         return (!empty(utf8_string) &&
               uint(utf8_string |> character_uat(0)) == 0xEF &&
@@ -127,7 +136,7 @@ def public contains_utf8_bom(utf8_string : string const) : bool {
 // Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 // See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 
-let shared s_utf8d <-  fixed_array(
+let shared s_utf8d <-  fixed_array( //! Byte-class and state-transition table for the UTF-8 DFA decoder.
     // The first part of the table maps bytes to character classes that
     // to reduce the size of the transition table and create bitmasks.
    0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,  0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u,
@@ -148,10 +157,10 @@ let shared s_utf8d <-  fixed_array(
   12u, 36u, 12u, 12u, 12u, 12u, 12u, 12u, 12u, 12u, 12u, 12u
 );
 
-
-let UTF8_ACCEPT = 0u
+let UTF8_ACCEPT = 0u //! DFA accept state indicating a valid UTF-8 sequence.
 
 def public is_utf8_string_valid(utf8_string : array<uint8> const implicit) : bool {
+    //! Returns true if the byte array contains a valid UTF-8 encoded string.
     var codepoint = 0u
     var state = 0u
     for (ch in utf8_string) {
@@ -165,6 +174,7 @@ def public is_utf8_string_valid(utf8_string : array<uint8> const implicit) : boo
 
 
 def public is_utf8_string_valid(utf8_string : string const) : bool {
+    //! Returns true if the string contains valid UTF-8 encoded data.
     var codepoint = 0u
     var state = 0u
     for (ch in utf8_string) {
@@ -207,7 +217,7 @@ def public utf8_decode(source_utf8_string : array<uint8> const implicit) : array
 def public utf8_decode(source_utf8_string : string const) : array<uint> {
     //! Converts UTF-8 string to UTF-32 and returns it as an array of codepoints (UTF-32 string)
     var dest_utf32_string : array<uint>
-    peek_data(source_utf8_string) <| $(arr) {
+    peek_data(source_utf8_string) $(arr) {
         dest_utf32_string |> utf8_decode(arr)
     }
     return <- dest_utf32_string
@@ -216,14 +226,15 @@ def public utf8_decode(source_utf8_string : string const) : array<uint> {
 
 def public utf8_decode(var dest_utf32_string : array<uint>; source_utf8_string : string const) {
     //! Converts UTF-8 string to UTF-32 and appends it to the array of codepoints (UTF-32 string)
-    peek_data(source_utf8_string) <| $(arr) {
+    peek_data(source_utf8_string) $(arr) {
         dest_utf32_string |> utf8_decode(arr)
     }
 }
 
 def decode_unicode_escape(str : string) {
-    return build_string <| $(writer) {
-        peek_data(str) <| $(p) {
+    //! Decodes Unicode escape sequences (backslash followed by hex digits) in a string to UTF-8.
+    return build_string() $(writer) {
+        peek_data(str) $(p) {
             var i = 0
             let llen = p |> length
             var bang : array<uint8>

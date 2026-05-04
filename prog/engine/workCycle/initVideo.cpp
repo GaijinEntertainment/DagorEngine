@@ -8,6 +8,7 @@
 #include <startup/dag_globalSettings.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <3d/dag_render.h>
@@ -67,9 +68,9 @@ public:
     }
   }
 
-  int validateDesc(Driver3dDesc &) const override { return 1; }
+  int validateDesc(DriverDesc &) const override { return 1; }
 
-  int compareDesc(Driver3dDesc &, Driver3dDesc &) const override { return 0; }
+  int compareDesc(DriverDesc &, DriverDesc &) const override { return 0; }
 
   bool desiredStereoRender() const override
   {
@@ -171,15 +172,23 @@ public:
     if (!d3d::init_driver())
       RETURN_FATAL("Error initializing 3D driver:\n%s", d3d::get_last_error());
 
-    workcycle_internal::is_window_in_thread = pblk_video->getBool("threadedWindow", !d3d::is_stub_driver());
-
-    d3d::driver_command(Drv3dCommand::SET_APP_INFO, (void *)gameName, (void *)&gameVersion);
-
 #if !(_TARGET_IOS | _TARGET_ANDROID)
     d3d::update_window_mode();
 #endif
 
-    if (!pblk_video->getBool("compatibilityMode", false) && VRDevice::shouldBeEnabled())
+    bool allowThreadedWindow = !d3d::is_stub_driver();
+    // allow disabling threaded window per driver and per driver for exclusive fullscreen mode
+    if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
+      allowThreadedWindow &= !strstr(pblk_video->getStr("noThreadedWindowInFullscreenWithAPI", ""), d3d::get_driver_name());
+    allowThreadedWindow &= !strstr(pblk_video->getStr("noThreadedWindowWithAPI", ""), d3d::get_driver_name());
+    workcycle_internal::is_window_in_thread = pblk_video->getBool("threadedWindow", allowThreadedWindow);
+    debug("Threaded window: %s", workcycle_internal::is_window_in_thread ? "yes" : "no");
+
+    d3d::driver_command(Drv3dCommand::SET_APP_INFO, (void *)gameName, (void *)&gameVersion);
+
+    // In case of Vulkan default startup driver, VRDevice should be preliminary created,
+    // in order to be able to pass OpenXR Khronos extensions to the vulkan driver.
+    if (d3d::get_driver_code() == d3d::vulkan && !pblk_video->getBool("compatibilityMode", false) && VRDevice::shouldBeEnabled())
     {
       VRDevice::ApplicationData vrAppData;
       vrAppData.name = gameName;
@@ -198,7 +207,7 @@ public:
 #endif
 
     ResourceChecker::init();
-    if (!d3d::init_video(win32_get_instance(), wndProc, wcName, ncmd, hwnd, hwnd, hicon, title, &cb))
+    if (!d3d::init_video(win32_get_instance(), wndProc, wcName, ncmd, hwnd, hicon, title, &cb))
     {
       // currently unsupported for Metal path
       if (pblk_video->getBool("msgBoxAndQuitOnInitVideoFail", false))
@@ -239,6 +248,13 @@ public:
       }
     }
 
+    if (!VRDevice::getInstance() && !pblk_video->getBool("compatibilityMode", false) && VRDevice::shouldBeEnabled())
+    {
+      VRDevice::ApplicationData vrAppData;
+      vrAppData.name = gameName;
+      vrAppData.version = gameVersion;
+      VRDevice::create(VRDevice::RenderingAPI::Default, vrAppData);
+    }
     if (VRDevice *vrDevice = VRDevice::getInstance())
     {
       if (!vrDevice->setRenderingDevice())
@@ -273,7 +289,7 @@ public:
       d3d::GpuAutoLock gpuLock;
       d3d::update_screen();
     }
-    dagor_idle_cycle();
+    dagor_idle_cycle(false);
 #endif
 
     pblk_gr = ::dgs_get_settings()->getBlockByNameEx("graphics");

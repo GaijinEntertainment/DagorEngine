@@ -2,6 +2,8 @@
 
 #include <perfMon/dag_statDrv.h>
 #include <daECS/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/slotAttach.h>
 #include <shaders/dag_shaderBlock.h>
@@ -15,11 +17,11 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 
 template <typename Callable>
-inline void render_hero_ecs_query(Callable c);
+inline void render_hero_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void render_hero_vehicle_ecs_query(Callable c);
+inline void render_hero_vehicle_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void process_animchar_eid_ecs_query(ecs::EntityId, Callable c);
+inline void process_animchar_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
 
@@ -29,12 +31,12 @@ static void process_animchar(
   DynModelRenderingState &state, DynamicRenderableSceneInstance *scene_instance, const ecs::Point4List *additional_data)
 {
   state.process_animchar(ShaderMesh::STG_opaque, ShaderMesh::STG_opaque, scene_instance,
-    animchar_additional_data::get_optional_data(additional_data), false);
+    animchar_additional_data::get_optional_data(additional_data));
 }
 
-static void process_animchar_eid(DynModelRenderingState &state, ecs::EntityId animchar_eid)
+static void process_animchar_eid(ecs::EntityManager &manager, DynModelRenderingState &state, ecs::EntityId animchar_eid)
 {
-  process_animchar_eid_ecs_query(animchar_eid,
+  process_animchar_eid_ecs_query(manager, animchar_eid,
     [&](animchar_visbits_t animchar_visbits, AnimV20::AnimcharRendComponent &animchar_render, const ecs::Point4List *additional_data) {
       if (!(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE))
         return;
@@ -43,12 +45,12 @@ static void process_animchar_eid(DynModelRenderingState &state, ecs::EntityId an
 }
 
 
-static void render_occlusion_exclusion_es_event_handler(const OcclusionExclusion &stg)
+static void render_occlusion_exclusion_es_event_handler(const OcclusionExclusion &stg, ecs::EntityManager &manager)
 {
   TIME_D3D_PROFILE(occlusion_exclusion_evt);
 
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-  render_hero_ecs_query(
+  render_hero_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::auto_type watchedByPlr) AnimV20::AnimcharRendComponent &animchar_render,
       const animchar_visbits_t &animchar_visbits, const ecs::EidList *attaches_list, const ecs::Point4List *additional_data) {
       // Check visibility
@@ -60,19 +62,20 @@ static void render_occlusion_exclusion_es_event_handler(const OcclusionExclusion
       process_animchar(state, scene, additional_data);
       if (attaches_list)
         for (ecs::EntityId attached_eid : *attaches_list)
-          process_animchar_eid(state, attached_eid);
+          process_animchar_eid(manager, state, attached_eid);
     });
 
-  render_hero_vehicle_ecs_query([&](ECS_REQUIRE(ecs::auto_type vehicleWithWatched) AnimV20::AnimcharRendComponent &animchar_render,
-                                  const animchar_visbits_t &animchar_visbits, const ecs::Point4List *additional_data) {
-    // Check visibility
-    if (!(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE))
-      return;
-    DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-    G_ASSERT_RETURN(scene != nullptr, );
-    // Render
-    process_animchar(state, scene, additional_data);
-  });
+  render_hero_vehicle_ecs_query(manager,
+    [&](ECS_REQUIRE(ecs::auto_type vehicleWithWatched) AnimV20::AnimcharRendComponent &animchar_render,
+      const animchar_visbits_t &animchar_visbits, const ecs::Point4List *additional_data) {
+      // Check visibility
+      if (!(animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE))
+        return;
+      DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
+      G_ASSERT_RETURN(scene != nullptr, );
+      // Render
+      process_animchar(state, scene, additional_data);
+    });
 
   state.prepareForRender();
   const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::OTHER);

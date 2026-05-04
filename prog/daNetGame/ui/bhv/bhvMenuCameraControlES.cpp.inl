@@ -15,8 +15,12 @@
 #include <math/dag_mathAng.h>
 #include <perfMon/dag_cpuFreq.h>
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 
 #include <sqrat.h>
 
@@ -27,21 +31,21 @@
 
 
 template <typename Callable>
-static void rotate_menu_cam_ecs_query(Callable c);
+static void rotate_menu_cam_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void rotate_menu_cam_target_ecs_query(Callable c);
+static void rotate_menu_cam_target_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void rotate_spectator_cam_ecs_query(Callable c);
+static void rotate_spectator_cam_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void rotate_spectator_free_cam_ecs_query(Callable c);
+static void rotate_spectator_free_cam_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void rotate_camera(const Point2 &delta, darg::InputDevice device)
 {
-  rotate_menu_cam_ecs_query([&](const Point2 &menu_cam__limitYaw, const Point2 &menu_cam__limitPitch,
-                              Point2 &menu_cam__angles ECS_REQUIRE(eastl::false_type menu_cam__shouldRotateTarget)) {
+  rotate_menu_cam_ecs_query(*g_entity_mgr, [&](const Point2 &menu_cam__limitYaw, const Point2 &menu_cam__limitPitch,
+                                             Point2 &menu_cam__angles ECS_REQUIRE(eastl::false_type menu_cam__shouldRotateTarget)) {
     menu_cam__angles += delta / 200.f; // 200?????? (copied from prog\gameLibs\ecs\camera\menuCam.cpp.inl)
 
     menu_cam__angles.x = norm_s_ang(menu_cam__angles.x);
@@ -54,16 +58,16 @@ static void rotate_camera(const Point2 &delta, darg::InputDevice device)
   });
 
 
-  rotate_menu_cam_target_ecs_query([&](const Point2 &menu_cam__limitYaw, const Point2 &menu_cam__limitPitch,
-                                     Point2 &menu_cam__angles ECS_REQUIRE(eastl::true_type menu_cam__shouldRotateTarget)
-                                       ECS_REQUIRE(eastl::true_type menu_cam__dirInited)) {
+  rotate_menu_cam_target_ecs_query(*g_entity_mgr, [&](const Point2 &menu_cam__limitYaw, const Point2 &menu_cam__limitPitch,
+                                                    Point2 &menu_cam__angles ECS_REQUIRE(eastl::true_type menu_cam__shouldRotateTarget)
+                                                      ECS_REQUIRE(eastl::true_type menu_cam__dirInited)) {
     Point2 limitYaw = DEG_TO_RAD * menu_cam__limitYaw;
     Point2 limitPitch = DEG_TO_RAD * menu_cam__limitPitch;
     menu_cam__angles.x = clamp(norm_s_ang(menu_cam__angles.x + delta.x / 200.f), limitYaw[0], limitYaw[1]);
     menu_cam__angles.y = clamp(norm_s_ang(menu_cam__angles.y + delta.y / 200.f), limitPitch[0], limitPitch[1]);
   });
 
-  rotate_spectator_cam_ecs_query(
+  rotate_spectator_cam_ecs_query(*g_entity_mgr,
     [&](Point2 &spectator__ang, Point3 &spectator__dir, bool camera__active, float specator_cam__smoothDiv = 400.f) {
       if (!camera__active)
         return;
@@ -73,8 +77,8 @@ static void rotate_camera(const Point2 &delta, darg::InputDevice device)
       spectator__dir = angles_to_dir(spectator__ang);
     });
 
-  rotate_spectator_free_cam_ecs_query([&](ECS_REQUIRE(ecs::Tag replay_camera__tpsFree) bool camera__active,
-                                        Point2 &replay_camera__tpsInputAngle, float specator_cam__smoothDiv = 400.f) {
+  rotate_spectator_free_cam_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag replay_camera__tpsFree) bool camera__active,
+                                                       Point2 &replay_camera__tpsInputAngle, float specator_cam__smoothDiv = 400.f) {
     if (!camera__active)
       return;
     // Invers input for gamepad
@@ -85,12 +89,12 @@ static void rotate_camera(const Point2 &delta, darg::InputDevice device)
 }
 
 template <typename Callable>
-static void change_spectator_camera_tps_speed_ecs_query(Callable c);
+static void change_spectator_camera_tps_speed_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static bool change_camera_speed(float wheelStep)
 {
   bool processed = false;
-  change_spectator_camera_tps_speed_ecs_query(
+  change_spectator_camera_tps_speed_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag replay_camera__tpsFree) bool camera__active, float &free_cam__move_speed) {
       if (camera__active)
       {
@@ -174,35 +178,8 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvMenuCameraCo
 }
 
 
-int BhvMenuCameraControl::mouseEvent(ElementTree *etree,
-  Element *elem,
-  InputDevice device,
-  InputEvent event,
-  int pointer_id,
-  int data,
-  short mx,
-  short my,
-  int /*buttons*/,
-  int accum_res)
-{
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-
-int BhvMenuCameraControl::touchEvent(ElementTree *etree,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-
 int BhvMenuCameraControl::pointingEvent(
-  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, const Point2 &pos, int accum_res)
+  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
 {
   MenuCameraControlData *bhvData = elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(bhv_data_slot_key, nullptr);
   G_ASSERT_RETURN(bhvData, 0);

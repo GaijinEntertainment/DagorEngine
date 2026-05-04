@@ -7,7 +7,6 @@
 
 void os_debug_break() {printf("unhandled exception?\n");_exit(1);}
 void foo() {dd_get_fname("");} //== pull in directoryService.obj
-void require_project_specific_modules() {}//
 
 das::smart_ptr<das::FileAccess> get_file_access( char * pak )
 {

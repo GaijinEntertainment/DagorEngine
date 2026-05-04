@@ -7,7 +7,7 @@ module imgui_boost shared
 
 require imgui public
 require daslib/static_let
-require rtti public
+require daslib/rtti public
 require strings
 require math
 

@@ -46,8 +46,7 @@ bool d3d::zero_rwbufi(Sbuffer *buffer)
   CAST_AND_RETURN_IF_NULL(vbuf, buffer, (GenericBufferInterface *), GenericBufferInterface *);
   D3D_CONTRACT_ASSERT(buffer->getFlags() & SBCF_BIND_UNORDERED);
 
-  CmdFillBuffer cmd{vbuf->getBufferRef(), 0};
-  Globals::ctx.dispatchCommand(cmd);
+  Globals::ctx.dispatchCmd<CmdFillBuffer>({vbuf->getBufferRef(), 0});
   return true;
 }
 

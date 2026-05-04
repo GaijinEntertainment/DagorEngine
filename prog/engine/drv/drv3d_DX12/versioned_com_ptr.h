@@ -299,6 +299,7 @@ public:
 
   void reset() { tidy(); }
 
+  void setVersionIndex(size_t index) { versionIndex = index; }
   size_t getVersionIndex() const { return versionIndex; }
 
   explicit operator bool() const { return nullptr != pointer; }

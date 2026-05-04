@@ -4,6 +4,7 @@ include "riextra_per_instance.dshl"
 include "optional_puddle_access.dshl"
 include "rendinst_global_inc.dshl"
 include "clipmap.dshl"
+include "obstacles_inc.dshl"
 
 float4x4 jitteredCamPosToUnjitteredHistoryClip;
 
@@ -18,10 +19,14 @@ interval is_render_by_cells : no < 1, yes;
 
 int useBboxInCbuffer = 1 always_referenced;
 
-int ri_additional_instance_offsets_data_no = 15;
-int ri_vertex_data_no = 17 always_referenced;
+int ri_vertex_data_no = 18 always_referenced;
+
+int instance_cb_reg_no = 5;
+int perinst_cb_reg_no = 6;
 
 buffer ri_vertex_data;
+
+float4 params_validation_debug_color = (1, 0, 1, 16);
 
 macro RENDINST_SW_VERTEX_FETCH(stage)
   (stage) {
@@ -58,6 +63,7 @@ macro RENDINST_SW_VERTEX_FETCH(stage)
 endmacro
 
 macro RENDINST_INSTANCING()
+  hlsl { #include <rendInst/riShaderConstBufferFlags.hlsli> }
   // instance offset
   (vs) {immediate_dword_count = 2;}
   USE_ROTATION_PALETTE_ENCODING()
@@ -86,6 +92,22 @@ macro RENDINST_INSTANCING()
       hlsl {
         #define INSTANCING_BUFFERS\
           StructuredBuffer<float4> per_instance_data@buf;
+      }
+    }
+  }
+
+  if (instancing_type == pos_cb)
+  {
+    (vs) {
+      // This is a hack to make shader compiler know about the hardcoded register used below,
+      // in the hlsl{...} block: `cbuffer perinst:register(b6)`.
+      // It's better to rework this into the preshader syntax etc., but those conditional defines...
+      dummy_perinst_cb@cbuf : register(perinst_cb_reg_no) hlsl { cbuffer dummy_perinst_cb@cbuf {}; }
+
+      instance_cb@cbuf : register(instance_cb_reg_no) hlsl {
+        cbuffer instance_cb@cbuf {
+          float4 per_instance_data[2048];
+        }
       }
     }
   }
@@ -227,10 +249,8 @@ macro RENDINST_INSTANCING()
       }
 
     ##if  instancing_type == pos_cb
-      #define INSTANCING_BUFFERS\
-        cbuffer instance_cb:register(b5){\
-          float4 per_instance_data[2048];\
-        };
+      #undef INSTANCING_BUFFERS
+      #define INSTANCING_BUFFERS
     ##endif
 
     #if RENDINST_FLOAT_POS
@@ -274,8 +294,8 @@ macro RENDINST_INSTANCING()
       #define VB_PERFORM_INSTANCING\
         uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
         uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
-        bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
-        bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
+        bool useCbufferParams = (cb_inst_offset.z & RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER) == 0; \
+        bool useCbufferInstanceOffset = cb_inst_offset.z & RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER; \
         int perDrawOffset = 0; \
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
@@ -290,8 +310,8 @@ macro RENDINST_INSTANCING()
       #define VB_PERFORM_INSTANCING\
         uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
         uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
-        bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
-        bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
+        bool useCbufferParams = (cb_inst_offset.z & RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER) == 0; \
+        bool useCbufferInstanceOffset = cb_inst_offset.z & RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER; \
         int perDrawOffset = 0; \
         FILL_PER_DRAW_DATA \
         uint3 inst_offset2 = inst_offset;\
@@ -310,8 +330,8 @@ macro RENDINST_INSTANCING()
       uint instNo = uint(instance_id)/INSTANCE_ID_DIVISOR;\
       uint voxelize_axis = uint(instance_id)%INSTANCE_ID_DIVISOR;\
       int perDrawOffset = 0; \
-      bool useCbufferParams = (cb_inst_offset.z & 1) == 0; \
-      bool useCbufferInstanceOffset = (cb_inst_offset.z & 4) == 0; \
+      bool useCbufferParams = (cb_inst_offset.z & RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER) == 0; \
+      bool useCbufferInstanceOffset = cb_inst_offset.z & RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER; \
       FILL_PER_DRAW_DATA \
       uint3 inst_offset2 = inst_offset;\
       HW_INSTANCE_OFFSET(inst_offset2);\
@@ -337,7 +357,7 @@ macro RENDINST_INSTANCING()
         VB_PERFORM_INSTANCING_BASE\
         uint hashVal = 0;\
         uint is_dynamic = 0;\
-        BRANCH if (inst_offset2.z & 2) {\
+        BRANCH if (inst_offset2.z & RI_CBUFFER_FLAGS__HASH_VAL) {\
           uint2 hash_dynamicBit = asuint(per_instance_data[vbInd+3].zx);\
           hashVal = hash_dynamicBit.x;\
           is_dynamic = !!(hash_dynamicBit.y & (1<<31));\
@@ -351,9 +371,6 @@ endmacro
 
 texture perlin_noise3d;
 float4 cliff_color_overlay_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
-
-buffer obstacle_indices_buf;
-const_buffer obstacles_buf;
 
 macro RENDINST_SCENE_COMMON()
   supports global_frame;
@@ -373,20 +390,13 @@ macro RENDINST_SCENE_COMMON()
     }
   }
 
+  INIT_OBSTACLES(vs)
   (vs) {
+    params_validation_debug_color@f4 = params_validation_debug_color;
     camera_base_offset@f3 = camera_base_offset;
     globtm@f44 = globtm;
     lods_shift_dist_mul@f1 = lods_shift_dist_mul;
-    obstacle_indices@buf = obstacle_indices_buf hlsl {
-      StructuredBuffer<uint> obstacle_indices@buf;
-    };
-    obstacles_indirection@cbuf = obstacles_buf hlsl {
-      #include "obstacleStruct.hlsli"
-      cbuffer obstacles_indirection@cbuf
-      {
-        ObstaclesData obstacles;
-      };
-    };
+    ri_dist_mul_rcp@f1 = ri_dist_mul_rcp;
     perlin_noise3d@smp3d = perlin_noise3d;
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
       Buffer<float4> impostor_data_buffer@buf;
@@ -411,14 +421,9 @@ macro RENDINST_SCENE_COMMON()
       StructuredBuffer<uint2> ri_per_draw_args@buf;
     }
   }
-  (ps) {
-    ri_per_draw_args@buf = ri_gen_multidraw_perDrawArgsBuffer hlsl {
-      StructuredBuffer<uint2> ri_per_draw_args@buf;
-    }
-  }
   INIT_ZNZFAR()
   INIT_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
-  INIT_PUDDLE_WITHOUT_SAMPLER(ps, tex_hmap_low_samplerstate)
+  INIT_PUDDLE_WITHOUT_SAMPLER(ps, perlin_noise3d_samplerstate)
   INIT_RAW_RENDERING_FEEDBACK()
 endmacro
 
@@ -442,20 +447,12 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
     }
     hlsl(vs) {
       #if RI_EX_MULTIDRAW
-        uint get_material_offset_external_draw_id(uint draw_id)
-        {
-          return draw_id & MATERIAL_OFFSET_MASK;
-        }
         #define INST_OFFSET_GETTER ((get_draw_id() >> MATRICES_OFFSET_SHIFT) << 2)
       #else
-        uint get_material_offset_external_draw_id(uint draw_id)
-        {
-          return ri_per_draw_args[draw_id].x & MATERIAL_OFFSET_MASK;
-        }
-        #define INST_OFFSET_GETTER (ri_per_draw_args[get_draw_id()].y)
-        #define GET_PER_DRAW_OFFSET (ri_per_draw_args[get_draw_id()].x >> PER_DRAW_OFFSET_SHIFT)
+        #define INST_OFFSET_GETTER (ri_per_draw_args[get_draw_id() >> MATRICES_OFFSET_SHIFT].y)
+        #define GET_PER_DRAW_OFFSET (ri_per_draw_args[get_draw_id() >> MATRICES_OFFSET_SHIFT].x)
       #endif
-      #define GET_MATERIAL_OFFSET (get_material_offset_external_draw_id(get_draw_id()))
+      #define GET_MATERIAL_OFFSET (get_draw_id() & MATERIAL_OFFSET_MASK)
     }
   }
 
@@ -467,11 +464,7 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
     }
     hlsl(ps) {
       #define INIT_MULTIDRAW(vsoutput)
-      #if RI_EX_MULTIDRAW
-        #define GET_MATERIAL_OFFSET(psinput) (get_draw_id() & MATERIAL_OFFSET_MASK)
-      #else
-        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[get_draw_id()].x & MATERIAL_OFFSET_MASK)
-      #endif
+      #define GET_MATERIAL_OFFSET(psinput) (get_draw_id() & MATERIAL_OFFSET_MASK)
     }
   }
 
@@ -502,11 +495,7 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
 
     hlsl(ps) {
       #define INIT_MULTIDRAW(vsoutput)
-       #if RI_EX_MULTIDRAW
-        #define GET_MATERIAL_OFFSET(psinput) (psinput.drawId & MATERIAL_OFFSET_MASK)
-      #else
-        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[psinput.drawId].x & MATERIAL_OFFSET_MASK)
-      #endif
+      #define GET_MATERIAL_OFFSET(psinput) (psinput.drawId & MATERIAL_OFFSET_MASK)
     }
   }
   else if (hardware.ps4 || hardware.ps5)
@@ -537,11 +526,7 @@ macro ENABLE_MULTI_DRAW(use_drawid_vs_only)
 
     hlsl(ps) {
       #define INIT_MULTIDRAW(vsoutput)
-      #if RI_EX_MULTIDRAW
-        #define GET_MATERIAL_OFFSET(psinput) (WaveReadFirstLane(psinput.drawId) & MATERIAL_OFFSET_MASK)
-      #else
-        #define GET_MATERIAL_OFFSET(psinput) (ri_per_draw_args[WaveReadFirstLane(psinput.drawId)].x & MATERIAL_OFFSET_MASK)
-      #endif
+      #define GET_MATERIAL_OFFSET(psinput) (WaveReadFirstLane(psinput.drawId) & MATERIAL_OFFSET_MASK)
     }
   }
   else

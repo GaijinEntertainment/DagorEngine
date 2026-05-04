@@ -19,13 +19,13 @@ struct typeName<dag::FixedVectorMap<K, V, inplace_count>>
 };
 
 template <class K, class V, size_t inplace_count>
-V &fixed_vector_map_at(dag::FixedVectorMap<K, V, inplace_count> &map, const K &key)
+V &fixed_vector_map_at(dag::FixedVectorMap<K, V, inplace_count> &map, const K key)
 {
   return map[key];
 }
 
 template <class K, class V, size_t inplace_count>
-bool fixed_vector_map_contains(const dag::FixedVectorMap<K, V, inplace_count> &map, const K &key)
+bool fixed_vector_map_contains(const dag::FixedVectorMap<K, V, inplace_count> &map, const K key)
 {
   return map.contains(key);
 }

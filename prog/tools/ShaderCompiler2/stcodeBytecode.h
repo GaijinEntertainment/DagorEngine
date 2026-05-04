@@ -16,7 +16,7 @@ class StcodeVMRegisterAllocator
 {
   // shadervar id, opcode -> register
   eastl::vector_map<eastl::pair<int, int>, Register> stVarToReg{};
-  eastl::array<int, 256> usedRegs{};
+  eastl::array<int16_t, 512> usedRegs{};
   int maxregsize = 0;
 
   Parser &parser; // for allocation failure reporting
@@ -209,30 +209,4 @@ struct StcodeBytecodeAccumulator
     stcode.clear();
     stblkcode.clear();
   }
-};
-
-class StcodeBytecodeCache
-{
-  Tab<TabStcode> stcode{};
-  Tab<TabStcode> stblkcode{};
-
-public:
-  StcodeBytecodeCache() = default;
-  ~StcodeBytecodeCache() { debug("[stat] stcode.count=%d  stblk.size()=%d", stcode.size(), stblkcode.size()); }
-
-  PINNED_TYPE(StcodeBytecodeCache);
-
-  struct Refs
-  {
-    dag::ConstSpan<int> stcode;
-    dag::ConstSpan<int> stblkcode;
-  };
-
-  Refs findOrPost(StcodeBytecodeAccumulator &&a_code)
-  {
-    return {findOrPost(eastl::move(a_code.stcode), true), findOrPost(eastl::move(a_code.stblkcode), false)};
-  }
-
-private:
-  dag::ConstSpan<int> findOrPost(Tab<int> &&a_routine, bool dyn);
 };

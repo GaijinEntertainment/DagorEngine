@@ -3,9 +3,9 @@
 #include <util/dag_console.h>
 #include <daSkies2/daScattering.h>
 #include <daSkies2/daSkies.h>
+#include <daSkies2/daSkiesToBlk.h>
 #include <EASTL/string.h>
 #include <osApiWrappers/dag_direct.h>
-#include "daSkiesBlkGetSet.h"
 
 struct NamedDataBlock
 {
@@ -28,31 +28,31 @@ void get_rand_value(Point2 &v, const DataBlock &blk, const char *name, float def
   else
     v = Point2(def, def);
 }
-} // namespace skies_utils
 
-static bool is_layer(const char *name) { return strstr(name, "layer"); }
-static int get_layer_index(const char *name)
+bool is_layer(const char *name) { return strstr(name, "layer"); }
+int get_layer_index(const char *name)
 {
   if (strstr(name, "layers[0]."))
     return 0;
   G_ASSERT(strstr(name, "layers[1]."));
   return 1;
 }
-static const char *get_name_in_layer(const char *name)
+const char *get_name_in_layer(const char *name)
 {
   const char *dot = strstr(name, ".");
   G_ASSERT_RETURN(dot, nullptr);
   return dot + 1;
 }
+} // namespace skies_utils
 
 template <typename T>
 static void set_to_entity(DataBlock &entity_blk, DataBlock *layer0, DataBlock *layer1, const eastl::string &prefix, const char *name,
   const T &result)
 {
-  if (is_layer(name))
+  if (skies_utils::is_layer(name))
   {
     G_ASSERT(layer0 && layer1);
-    skies_utils::set_value(get_layer_index(name) == 0 ? *layer0 : *layer1, get_name_in_layer(name), result);
+    skies_utils::set_value(skies_utils::get_layer_index(name) == 0 ? *layer0 : *layer1, skies_utils::get_name_in_layer(name), result);
   }
   else
   {

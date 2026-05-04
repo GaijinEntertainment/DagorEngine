@@ -22,6 +22,8 @@
 #include <generic/dag_fixedMoveOnlyFunction.h>
 #include <ecs/anim/animchar_visbits.h>
 #include <render/world/animCharRenderAdditionalData.h>
+#include <ecs/render/renderEvent.h>
+#include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 
 struct RiGenVisibility;
 struct CameraParams;
@@ -31,10 +33,30 @@ class Occlusion;
 struct OnCameraNodeConstruction : public ecs::Event
 {
   ECS_BROADCAST_EVENT_DECL(OnCameraNodeConstruction)
-  OnCameraNodeConstruction(eastl::vector<dafg::NodeHandle> *nodes_storage) :
-    ECS_EVENT_CONSTRUCTOR(OnCameraNodeConstruction), nodes(nodes_storage)
+  OnCameraNodeConstruction(eastl::vector<dafg::NodeHandle> *nodes_storage,
+    eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slot_nodes_storage,
+    const bool has_opaque_prepass,
+    const bool gi_needs_reprojection,
+    const bool need_depth_history,
+    const bool is_bare_minimum,
+    const bool has_motion_vectors) :
+    ECS_EVENT_CONSTRUCTOR(OnCameraNodeConstruction),
+    nodes(nodes_storage),
+    slotNodes(slot_nodes_storage),
+    hasOpaquePrepass(has_opaque_prepass),
+    giNeedsReprojection(gi_needs_reprojection),
+    needDepthHistory(need_depth_history),
+    isBareMinimum(is_bare_minimum),
+    hasMotionVectors(has_motion_vectors)
   {}
   eastl::vector<dafg::NodeHandle> *nodes;
+  eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slotNodes;
+
+  bool hasOpaquePrepass = true;
+  bool giNeedsReprojection = true;
+  bool needDepthHistory = true;
+  bool isBareMinimum = false;
+  bool hasMotionVectors = true;
 };
 
 struct QueryShooterCamDistanceMultipliers : public ecs::Event
@@ -52,9 +74,10 @@ struct UpdateBlurredUI : public ecs::Event
   const IBBox2 *begin;
   const IBBox2 *end;
   int max_mip;
+  BaseTexture *uiTex;
   ECS_BROADCAST_EVENT_DECL(UpdateBlurredUI)
-  UpdateBlurredUI(const IBBox2 *begin, const IBBox2 *end, int max_mip) :
-    ECS_EVENT_CONSTRUCTOR(UpdateBlurredUI), begin(begin), end(end), max_mip(max_mip)
+  UpdateBlurredUI(const IBBox2 *begin, const IBBox2 *end, int max_mip, BaseTexture *ui_tex) :
+    ECS_EVENT_CONSTRUCTOR(UpdateBlurredUI), begin(begin), end(end), max_mip(max_mip), uiTex(ui_tex)
   {}
 };
 struct OnLevelLoaded : public ecs::Event
@@ -81,10 +104,15 @@ struct SetResolutionEvent : public ecs::Event
     SETTINGS_CHANGED,
     DYNAMIC_RESOLUTION
   } type;
-  IPoint2 displayResolution, renderingResolution, postFxResolution;
+  IPoint2 displayResolution, renderingResolution, postFxResolution, maxPossibleRenderResolution;
   ECS_BROADCAST_EVENT_DECL(SetResolutionEvent)
-  SetResolutionEvent(Type type, const IPoint2 &dr, const IPoint2 &rr, const IPoint2 &pr) :
-    ECS_EVENT_CONSTRUCTOR(SetResolutionEvent), type(type), displayResolution(dr), renderingResolution(rr), postFxResolution(pr)
+  SetResolutionEvent(Type type, const IPoint2 &dr, const IPoint2 &rr, const IPoint2 &pr, const IPoint2 &mpr) :
+    ECS_EVENT_CONSTRUCTOR(SetResolutionEvent),
+    type(type),
+    displayResolution(dr),
+    renderingResolution(rr),
+    postFxResolution(pr),
+    maxPossibleRenderResolution(mpr)
   {}
 };
 
@@ -115,14 +143,16 @@ struct BeforeDrawPostFx : public ecs::Event
 
 struct RenderPostFx : public ecs::Event
 {
-  TextureIDPair downsampledColor, prevRTColor;
-  TextureIDPair closedDepth, targetDepth;
+  BaseTexture *downsampledColor;
+  BaseTexture *prevRTColor;
+  BaseTexture *closedDepth;
+  BaseTexture *targetDepth;
   float zNear, zFar, fovScale;
   ECS_BROADCAST_EVENT_DECL(RenderPostFx)
-  RenderPostFx(TextureIDPair downsampled_color,
-    TextureIDPair prev_rt_color,
-    TextureIDPair closed_depth,
-    TextureIDPair target_depth,
+  RenderPostFx(BaseTexture *downsampled_color,
+    BaseTexture *prev_rt_color,
+    BaseTexture *closed_depth,
+    BaseTexture *target_depth,
     float z_near,
     float z_far,
     float fov_scale) :
@@ -135,6 +165,26 @@ struct RenderPostFx : public ecs::Event
     zFar(z_far),
     fovScale(fov_scale)
   {}
+};
+
+namespace bvh
+{
+struct Context;
+using ContextId = Context *;
+} // namespace bvh
+
+struct GatherSplinegenBVHDataEvent : public ecs::Event
+{
+  bvh::ContextId contextId;
+
+  ECS_BROADCAST_EVENT_DECL(GatherSplinegenBVHDataEvent)
+  GatherSplinegenBVHDataEvent(bvh::ContextId contextId) : ECS_EVENT_CONSTRUCTOR(GatherSplinegenBVHDataEvent), contextId(contextId) {}
+};
+
+struct RemoveSplinegenBVHEvent : public ecs::Event
+{
+  ECS_BROADCAST_EVENT_DECL(RemoveSplinegenBVHEvent)
+  RemoveSplinegenBVHEvent() : ECS_EVENT_CONSTRUCTOR(RemoveSplinegenBVHEvent) {}
 };
 
 struct AfterRenderWorld : public ecs::Event
@@ -189,8 +239,11 @@ struct RenderHmapDeform : public ecs::Event
 struct VehicleCockpitPrepass : public ecs::Event
 {
   TMatrix viewTm;
+  TexStreamingContext texCtx;
   ECS_BROADCAST_EVENT_DECL(VehicleCockpitPrepass)
-  VehicleCockpitPrepass(const TMatrix &view_tm) : ECS_EVENT_CONSTRUCTOR(VehicleCockpitPrepass), viewTm(view_tm) {}
+  VehicleCockpitPrepass(const TMatrix &view_tm, const TexStreamingContext &tex_ctx) :
+    ECS_EVENT_CONSTRUCTOR(VehicleCockpitPrepass), viewTm(view_tm), texCtx(tex_ctx)
+  {}
 };
 
 struct RenderReinitCube : public ecs::Event
@@ -269,10 +322,10 @@ struct RenderLateTransEvent : public ecs::Event
   TMatrix viewTm;
   Point3 cameraWorldPos;
   TexStreamingContext texCtx;
-  ManagedTexView prevFrameTex;
+  Texture *prevFrameTex;
   ECS_BROADCAST_EVENT_DECL(RenderLateTransEvent)
   RenderLateTransEvent(
-    const TMatrix &view_tm, const Point3 &camera_world_pos, const TexStreamingContext &tex_ctx, ManagedTexView prev_frame_tex) :
+    const TMatrix &view_tm, const Point3 &camera_world_pos, const TexStreamingContext &tex_ctx, Texture *prev_frame_tex) :
     viewTm(view_tm),
     cameraWorldPos(camera_world_pos),
     texCtx(tex_ctx),
@@ -375,9 +428,10 @@ struct RenderDecalsOnDynamic : public ecs::Event
   DEF_RENDER_EVENT(OnRenderDecals, TMatrix /*viewTm*/, TMatrix /*viewItm*/, Point3 /*cameraWorldPos*/, \
     TexStreamingContext /*texCtx*/, const RiGenVisibility * /*rendinstMainVisibility*/)                \
   DEF_RENDER_EVENT(RenderDecalsOnGlass)                                                                \
+  DEF_RENDER_EVENT(RenderDecalsOnGlassDynamic)                                                         \
   DEF_RENDER_EVENT(RenderDecalsGlassMask)                                                              \
-  DEF_RENDER_EVENT(AfterDeviceReset, bool /*fullReset*/)                                               \
   DEF_RENDER_EVENT(RegisterPostfxResources, dafg::Registry)                                            \
+  DEF_RENDER_EVENT(RegisterDistortionModifiersResources, dafg::Registry)                               \
   DEF_RENDER_EVENT(AfterShaderReload)
 
 
@@ -412,3 +466,10 @@ using BVHAdditionalAnimcharIterateCallback = dag::FixedMoveOnlyFunction<32,
     animchar_additional_data::AnimcharAdditionalDataView,
     const animchar_visbits_t &)>;
 ECS_BROADCAST_EVENT_TYPE(BVHAdditionalAnimcharIterate, BVHAdditionalAnimcharIterateCallback &)
+ECS_BROADCAST_EVENT_TYPE(BVHDagdpChanged)
+
+ECS_BROADCAST_EVENT_TYPE(ChangeRenderFeaturesEarly)
+
+ECS_BROADCAST_EVENT_TYPE(RenderAlbedoVoxelization, BBox3 /*cullBox*/, bool /*outRenderedAnything*/)
+ECS_BROADCAST_EVENT_TYPE(RenderSdfVoxelization, BBox3 /*cullBox*/, bool /*outRenderedAnything*/)
+ECS_BROADCAST_EVENT_TYPE(SetGrassSdfEareaser, bool /* enable */)

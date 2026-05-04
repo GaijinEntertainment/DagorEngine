@@ -210,8 +210,7 @@ void RendInstHeightmap::updateToroidalTextureRegions(int globalFrameBlockId)
   FRAME_LAYER_GUARD(globalFrameBlockId);
 
   d3d::settm(TM_VIEW, vtm);
-  d3d::set_render_target((Texture *)nullptr, 0);
-  d3d::set_depth(depthTexture.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({depthTexture.getTex2D(), 0, 0}, DepthAccess::RW, {});
 
   for (int i = 0; i < regionsToUpdate.size(); ++i)
   {
@@ -266,7 +265,7 @@ void RendInstHeightmap::driverReset()
 void RendInstHeightmap::invalidate()
 {
   prevCamPos.x = prevCamPos.y = prevCamPos.z = eastl::numeric_limits<float>::max();
-  helper.curOrigin = {-1000000, 100000};
+  helper.curOrigin = {-1000000, 1000000};
 }
 
 void RendInstHeightmap::setVar()
@@ -275,12 +274,12 @@ void RendInstHeightmap::setVar()
     return;
   ShaderGlobal::set_texture(rendinst_clipmapVarId, depthTexture);
   Point2 ofs = Point2((helper.mainOrigin - helper.curOrigin) % helper.texSize) / helper.texSize;
-  ShaderGlobal::set_color4(rendinst_clipmap_world_to_hmap_tex_ofsVarId, ofs.x, -ofs.y, 0, 0);
+  ShaderGlobal::set_float4(rendinst_clipmap_world_to_hmap_tex_ofsVarId, ofs.x, -ofs.y, 0, 0);
 
   Point2 worldSpaceOrigin = Point2(helper.curOrigin) * texelSize;
   float worldArea = helper.texSize * texelSize;
-  ShaderGlobal::set_color4(rendinst_clipmap_world_to_hmap_ofsVarId, 1.0f / worldArea, -1.0f / worldArea,
+  ShaderGlobal::set_float4(rendinst_clipmap_world_to_hmap_ofsVarId, 1.0f / worldArea, -1.0f / worldArea,
     -worldSpaceOrigin.x / worldArea + 0.5f, worldSpaceOrigin.y / worldArea + 0.5);
 
-  ShaderGlobal::set_color4(rendinst_clipmap_zn_zfVarId, landHeightMin, maxHt, 0, 0);
+  ShaderGlobal::set_float4(rendinst_clipmap_zn_zfVarId, landHeightMin, maxHt, 0, 0);
 }

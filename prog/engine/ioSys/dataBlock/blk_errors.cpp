@@ -13,10 +13,11 @@ bool DataBlock::fatalOnLoadFailed = true;
 bool DataBlock::fatalOnBadVarType = true;
 bool DataBlock::fatalOnMissingVar = true;
 
-bool DataBlock::parseIncludesAsParams = false;  // def= false;
-bool DataBlock::parseOverridesNotApply = false; // def= false;
-bool DataBlock::parseOverridesIgnored = false;  // def= false;
-bool DataBlock::parseCommentsAsParams = false;  // def= false;
+bool DataBlock::parseIncludesAsParams = false;     // def= false;
+bool DataBlock::parseOverridesNotApply = false;    // def= false;
+bool DataBlock::parseOverridesIgnored = false;     // def= false;
+bool DataBlock::parseCommentsAsParams = false;     // def= false;
+bool DataBlock::writeOneParamBlockCompact = false; // def= false;
 
 static thread_local DataBlock::IErrorReporterPipe *tls_reporter = nullptr;
 static void issue_error_unhappy_path(bool do_fatal, int line, const char *errText);
@@ -98,8 +99,12 @@ void DataBlock::issue_deprecated_type_change(int pnid, int type_new, int type_pr
 void DataBlock::issue_warning_huge_string(const char *pname, const char *value, const char *fname, int line) const
 {
   if (!shared->blkRobustLoad())
-    logwarn("BLK parsed string for param '%s' is really long (%d bytes) in line %d of '%s': '%s'", pname, strlen(value), line, fname,
-      value);
+  {
+    int len = strlen(value);
+    if (len > 200)
+      logwarn("BLK parsed string for param '%s' is really long (%d bytes) in line %d of '%s': '%.100s ... %.100s'", pname, len, line,
+        fname, value, value + len - 100);
+  }
   G_UNUSED(pname);
   G_UNUSED(value);
   G_UNUSED(fname);
@@ -126,6 +131,22 @@ DataBlock::InstallReporterRAII::InstallReporterRAII(DataBlock::IErrorReporterPip
     tls_reporter = rep;
 }
 DataBlock::InstallReporterRAII::~InstallReporterRAII() { tls_reporter = prev; }
+
+void DataBlock::enableStrictMode()
+{
+  fatalOnMissingFile = true;
+  fatalOnLoadFailed = true;
+  fatalOnBadVarType = true;
+  fatalOnMissingVar = true;
+}
+
+void DataBlock::disableStrictMode()
+{
+  fatalOnMissingFile = false;
+  fatalOnLoadFailed = false;
+  fatalOnBadVarType = false;
+  fatalOnMissingVar = false;
+}
 
 const char *DataBlock::resolveFilename(bool file_only) const
 {

@@ -213,10 +213,13 @@ endmacro
 
 shader gen_clouds_light_texture_cs
 {
-  ENABLE_ASSERT(cs)
   GEN_CLOUDS_LIGHTING(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture3D<float4> output@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<float4> output : register(u0);
     [numthreads(8, 8, 1)]
     void cs_main(uint3 tid : SV_DispatchThreadID)
     {

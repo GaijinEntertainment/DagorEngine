@@ -263,7 +263,6 @@ endmacro
 
 macro CALC_CLOSEST_PLANES()
   USE_WALLS(cs)
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #define SELECT_BEST(bestPlanes, plane)\
     {\

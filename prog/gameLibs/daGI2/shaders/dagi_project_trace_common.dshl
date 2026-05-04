@@ -1,6 +1,8 @@
 include "project_trace.dshl"
 
-define_macro_if_not_defined PROJECT_TRACE(code)
+define_macro_if_not_defined PROJECT_TRACE(code, supports_raygen)
+  bool dagi_project_use_rt = false;
+  bool dagi_project_use_raygen = false;
   hlsl (code) {
     #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
     #define DAGI_PROJECT_TRACE_HAS_ALBEDO 0

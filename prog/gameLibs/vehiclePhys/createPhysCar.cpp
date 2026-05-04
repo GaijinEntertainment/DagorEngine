@@ -15,7 +15,7 @@ IPhysCar *create_jolt_raywheel_car(const char *res_name, const TMatrix &tm, void
 !error !unsupported physics
 #endif
 {
-  PhysCarCreationData *pccd = (PhysCarCreationData *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(res_name), VehicleGameResClassId);
+  PhysCarCreationData *pccd = (PhysCarCreationData *)get_game_resource_ex(res_name, VehicleGameResClassId);
 
   if (!pccd)
     DAG_FATAL("can't find %s, type=Vehicle", res_name);
@@ -47,7 +47,7 @@ IPhysCar *create_jolt_raywheel_car(const char *res_name, const TMatrix &tm, void
   bbox.setempty();
   bsphere.setempty();
   PhysicsResource *phRes = bodyPhObjData.physRes;
-  const Tab<PhysicsResource::Body> &bodies = phRes->getBodies();
+  dag::ConstSpan<PhysicsResource::Body> bodies = phRes->getBodies();
 
   TMatrix bodyTm, invLogicTm;
   invLogicTm = inverse(pccd->carDataPtr->logicTm);
@@ -87,7 +87,7 @@ IPhysCar *create_jolt_raywheel_car(const char *res_name, const TMatrix &tm, void
   car->postCreateSetup();
   car->setTm(tm);
 
-  ::release_game_resource((GameResource *)pccd);
+  ::release_game_resource_ex(pccd, VehicleGameResClassId);
 
   return car;
 }
@@ -106,8 +106,7 @@ IPhysCar *create_jolt_raywheel_car(const char *car_name, PhysBody *car_body, con
   G_ASSERT_RETURN(!bsphere.isempty(), nullptr);
 
   String descResName(0, "%s_vehicleDesc", car_name);
-  PhysCarSettings2 *carData =
-    (PhysCarSettings2 *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(descResName), VehicleDescGameResClassId);
+  PhysCarSettings2 *carData = (PhysCarSettings2 *)get_game_resource_ex(descResName, VehicleDescGameResClassId);
   G_ASSERTF_RETURN(carData, nullptr, "can't find %s, type=VehicleDesc", descResName);
 
   TMatrix physTm, invLogicTm;
@@ -123,6 +122,6 @@ IPhysCar *create_jolt_raywheel_car(const char *car_name, PhysBody *car_body, con
   car->postCreateSetup();
   car->setTm(tm);
 
-  ::release_game_resource((GameResource *)carData);
+  ::release_game_resource_ex(carData, VehicleDescGameResClassId);
   return car;
 }

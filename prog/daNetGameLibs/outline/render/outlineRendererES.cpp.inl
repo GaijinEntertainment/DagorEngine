@@ -4,7 +4,9 @@
 
 #include <EASTL/sort.h>
 #include <EASTL/vector.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/anim/anim.h>
@@ -60,6 +62,12 @@ static void outline_renderer_create_es_event_handler(
   outline_renderer.initBlurWidth(outline_blur_width, displayWidth, displayHeight);
 }
 
+ECS_ON_EVENT(on_disappear)
+static void outline_renderer_destroy_es_event_handler(const ecs::Event &, OutlineRenderer &outline_renderer)
+{
+  outline_renderer.close();
+}
+
 // ri destruction is synced earlier than entity destruction
 // as a result the game tries to render outline of a destroyed ri and crashes
 // So prevent outline rendering as soon as the client learns that ri is destroyed.
@@ -96,13 +104,10 @@ static void rendist_rendering(UniqueBuf &rendinstMatrixBuffer, int res_idx, cons
     rendinst::LayerFlag::Stages);
 }
 
-static void render_outline_stencil(const TMatrix &view_tm,
-  dag::Vector<OutlinedAnimchar> &animcharElements,
-  DynModelRenderingState &state,
-  StencilColorState &stencil,
-  ColorBuffer &colors)
+static void render_outline_stencil(
+  const TMatrix &view_tm, dag::Vector<OutlinedDynModel> &dynModelElements, DynModelRenderingState &state, ColorBuffer &colors)
 {
-  if (animcharElements.empty())
+  if (dynModelElements.empty())
     return;
   TIME_D3D_PROFILE(outlined_animchars);
   TMatrix vtm = view_tm;
@@ -110,10 +115,10 @@ static void render_outline_stencil(const TMatrix &view_tm,
   d3d::settm(TM_VIEW, vtm);
 
   render_outline_elements(
-    animcharElements, stencil, colors,
-    [&state](const OutlinedAnimchar &e) {
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, e.animchar->getSceneInstance(),
-        animchar_additional_data::get_optional_data(e.additionalData), false);
+    dynModelElements, colors,
+    [&state](const OutlinedDynModel &e) {
+      state.process_animchar(0, ShaderMesh::STG_imm_decal, e.dynModel,
+        animchar_additional_data::get_optional_data(e.animcharAdditionalData));
     },
     [&state]() {
       state.prepareForRender();
@@ -128,11 +133,8 @@ static void render_outline_stencil(const TMatrix &view_tm,
     });
 }
 
-static void render_outline_stencil(const TMatrix &view_tm,
-  dag::Vector<OutlinedRendinst> &riElements,
-  UniqueBuf &rend_inst_transforms,
-  StencilColorState &stencil_state,
-  ColorBuffer &colors)
+static void render_outline_stencil(
+  const TMatrix &view_tm, dag::Vector<OutlinedRendinst> &riElements, UniqueBuf &rend_inst_transforms, ColorBuffer &colors)
 {
   if (riElements.empty())
     return;
@@ -143,22 +145,22 @@ static void render_outline_stencil(const TMatrix &view_tm,
   d3d::settm(TM_VIEW, view_tm);
 
   render_outline_elements(
-    riElements, stencil_state, colors,
+    riElements, colors,
     [&rend_inst_transforms](const OutlinedRendinst &ri) { rendist_rendering(rend_inst_transforms, ri.riIdx, ri.transform); }, []() {});
 }
 
 void outline_render_elements(
   OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs, const TMatrix &view_tm, const TMatrix4_vec4 &proj_tm)
 {
-  StencilColorState stencilState;
   DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
   auto renderOutlineType = [&](int override_type) {
     auto &context = outline_ctxs.context[override_type];
     if (context.empty())
       return;
     shaders::overrides::set(outline_renderer.zTestOverrides[override_type]);
-    render_outline_stencil(view_tm, context.animcharElements, state, stencilState, outline_renderer.colors);
-    render_outline_stencil(view_tm, context.riElements, outline_renderer.rendInstTransforms, stencilState, outline_renderer.colors);
+    render_outline_stencil(view_tm, context.dynModelElements, state, outline_renderer.colors);
+    render_outline_stencil(view_tm, context.riElements, outline_renderer.rendInstTransforms, outline_renderer.colors);
+    outline_renderer.renderOutlineBoxes(context.boxElements);
     shaders::overrides::reset();
   };
 
@@ -181,7 +183,7 @@ void outline_render_elements(
 }
 
 template <typename Callable>
-static inline void render_outline_ecs_query(Callable fn);
+static inline void render_outline_ecs_query(ecs::EntityManager &manager, Callable fn);
 
 ECS_TAG(render)
 static void outline_render_resolution_es_event_handler(const SetResolutionEvent &event, OutlineRenderer &outline_renderer)
@@ -192,7 +194,8 @@ static void outline_render_resolution_es_event_handler(const SetResolutionEvent 
 
 #define TRANSPARENCY_NODE_PRIORITY_OUTLINE_APPLY 5
 ECS_ON_EVENT(on_appear, ChangeRenderFeatures)
-static void create_outline_node_es(const ecs::Event &evt, dafg::NodeHandle &outline_prepare_node, dafg::NodeHandle &outline_apply_node)
+static void create_outline_node_es(
+  const ecs::Event &evt, ecs::EntityManager &manager, dafg::NodeHandle &outline_prepare_node, dafg::NodeHandle &outline_apply_node)
 {
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
   {
@@ -201,14 +204,10 @@ static void create_outline_node_es(const ecs::Event &evt, dafg::NodeHandle &outl
   }
 
   auto nodeNs = dafg::root() / "transparent" / "close";
-  outline_prepare_node = nodeNs.registerNode("outline_prepare_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    bool isForward = renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING);
-    registry.read(isForward ? "srv_depth_for_transparency" : "opaque_depth_with_water")
-      .texture()
-      .atStage(dafg::Stage::PS)
-      .bindToShaderVar("depth_gbuf");
+  outline_prepare_node = nodeNs.registerNode("outline_prepare_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
+    registry.read("opaque_depth_with_water").texture().atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
 
-    auto outlineDepth = registry.create("outline_depth", dafg::History::No)
+    auto outlineDepth = registry.create("outline_depth")
                           .texture({TEXFMT_DEPTH24 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
                           .clear(make_clear_value(0.f, 0));
 
@@ -220,8 +219,8 @@ static void create_outline_node_es(const ecs::Event &evt, dafg::NodeHandle &outl
     registry.requestState().setFrameBlock("global_frame");
 
 
-    return [cameraHndl, outlineDepthHndl] {
-      render_outline_ecs_query([&](OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs) {
+    return [cameraHndl, outlineDepthHndl, &manager] {
+      render_outline_ecs_query(manager, [&](OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs) {
         if (!outline_ctxs.anyVisible())
           return;
 
@@ -233,25 +232,23 @@ static void create_outline_node_es(const ecs::Event &evt, dafg::NodeHandle &outl
     };
   });
 
-  outline_apply_node = nodeNs.registerNode("outline_apply_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  outline_apply_node = nodeNs.registerNode("outline_apply_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
     request_common_transparent_state(registry);
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_OUTLINE_APPLY);
 
     auto outlineDepthHndl =
       registry.read("outline_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("outline_depth").handle();
-    registry.create("outline_depth_sampler", dafg::History::No)
-      .blob(d3d::request_sampler({}))
-      .bindToShaderVar("outline_depth_samplerstate");
+    registry.create("outline_depth_sampler").blob(d3d::request_sampler({})).bindToShaderVar("outline_depth_samplerstate");
 
     read_gbuffer_material_only(registry);
 
-    return [outlineDepthHndl](const dafg::multiplexing::Index &multiplexing_index) {
+    return [outlineDepthHndl, &manager](const dafg::multiplexing::Index &multiplexing_index) {
       if (multiplexing_index.subCamera > 0)
         return;
 
       camera_in_camera::RenderMainViewOnly camcam{{}};
 
-      render_outline_ecs_query([&](OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs) {
+      render_outline_ecs_query(manager, [&](OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs) {
         if (!outline_ctxs.anyVisible())
           return;
 

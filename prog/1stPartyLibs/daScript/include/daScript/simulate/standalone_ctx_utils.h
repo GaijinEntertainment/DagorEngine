@@ -60,14 +60,14 @@ namespace das {
     /**
      * Methods to init aot variables
      */
-    MangledNameHash InitAotFunction(const Context &ctx, SimFunction* gfun, const FunctionInfo &info);
-    SizeDiff InitGlobalVariable(const Context &ctx, GlobalVariable* gvar, const GlobalVarInfo &info);
-    void InitGlobalVar(Context &ctx, GlobalVariable* gvar, GlobalVarInfo info);
+    DAS_API MangledNameHash InitAotFunction(const Context &ctx, SimFunction* gfun, const FunctionInfo &info);
+    DAS_API SizeDiff InitGlobalVariable(const Context &ctx, GlobalVariable* gvar, const GlobalVarInfo &info);
+    DAS_API void InitGlobalVar(Context &ctx, GlobalVariable* gvar, GlobalVarInfo info);
 
     /**
      * Set code, aot, aotFunction for all function in @ref functions
      */
-    void FillFunction(Context &ctx, const AotLibrary &aotLib, vector<pair<uint64_t, SimFunction*>> &functions);
+    DAS_API void FillFunction(Context &ctx, const AotLibrary &aotLib, vector<pair<uint64_t, SimFunction*>> &functions);
 }
 
 #endif

@@ -95,8 +95,7 @@ using CallStackStorage = ChunkedStorage<uint16_t, 1, VirtualPageAllocator>;
 using FramesStorage = ChunkedStorage<FrameInfo, 256, NoPageAllocator>;
 using DescriptionStorage = ChunkedStorage<EventDescription, 1, VirtualPageAllocator>;
 
-using CallStackDumpStorage = vector<uint16_t>; // todo: another allocator for dump storage as well!
-// using CallStackDumpStorage = CallStackStorage;
+using CallStackDumpStorage = CallStackStorage;
 struct Dump // full memory copy, saving spikes, etc
 {
   FramesStorage frames;
@@ -130,7 +129,7 @@ struct Dump // full memory copy, saving spikes, etc
   Dump(Type tp, bool append_to_current_if_exist);
   size_t memoryAllocated() const
   {
-    size_t mem = stacks.capacity() * sizeof(uint64_t) + gpuEvents.memAllocated();
+    size_t mem = stacks.memAllocated() + gpuEvents.memAllocated();
     for (auto &t : threads)
       mem += t.events.memAllocated() + t.stringTags.memAllocated();
     return mem;

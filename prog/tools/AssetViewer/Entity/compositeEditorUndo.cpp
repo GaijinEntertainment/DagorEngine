@@ -6,14 +6,20 @@
 
 void CompositeEditorUndoParams::restore(bool save_redo)
 {
+  const CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+
   if (save_redo)
   {
     DataBlock redoDataBlock;
-    get_app().getCompositeEditor().saveForUndo(redoDataBlock);
+    compositeEditor.saveForUndo(redoDataBlock);
+
+    const unsigned redoSelection =
+      containsSavedSelection() ? compositeEditor.getSelectedTreeNodeDataBlockId() : IDataBlockIdHolder::invalid_id;
 
     loadUndo();
 
     saveUndoFromDataBlock(redoDataBlock);
+    selectedTreeNodeDataBlockId = redoSelection;
   }
   else
     loadUndo();
@@ -23,17 +29,27 @@ void CompositeEditorUndoParams::redo() { restore(/*save_redo = */ true); }
 
 void CompositeEditorUndoParams::loadUndo() const
 {
+  CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+
   InPlaceMemLoadCB memoryLoad(buffer.get(), bufferSize);
   DataBlock dataBlock;
   dataBlock.loadFromStream(memoryLoad);
-  get_app().getCompositeEditor().loadFromUndo(dataBlock);
+
+  const unsigned newSelection =
+    containsSavedSelection() ? selectedTreeNodeDataBlockId : compositeEditor.getSelectedTreeNodeDataBlockId();
+
+  compositeEditor.loadFromUndo(dataBlock, newSelection);
 }
 
-void CompositeEditorUndoParams::saveUndo()
+void CompositeEditorUndoParams::saveUndo(bool save_selection)
 {
+  const CompositeEditor &compositeEditor = get_app().getCompositeEditor();
+
   DataBlock dataBlock;
-  get_app().getCompositeEditor().saveForUndo(dataBlock);
+  compositeEditor.saveForUndo(dataBlock);
   saveUndoFromDataBlock(dataBlock);
+
+  selectedTreeNodeDataBlockId = save_selection ? compositeEditor.getSelectedTreeNodeDataBlockId() : IDataBlockIdHolder::invalid_id;
 }
 
 void CompositeEditorUndoParams::saveUndoFromDataBlock(const DataBlock &dataBlock)

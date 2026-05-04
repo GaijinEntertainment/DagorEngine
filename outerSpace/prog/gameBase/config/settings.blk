@@ -7,6 +7,8 @@ graphics{
   anisotropy:i = 4
   spotShadowBias:p4 = -0.00006, -0.1, 0.001, 0.005 // z, slope z, shader z, shader slope z
   dafx:t="cpu"
+  screenSpaceWeatherEffects:b=no
+  screenEffect:b=no
 }
 
 vromList {
@@ -31,6 +33,10 @@ video {
   instancing:t="geom"
   vsync:b=no
   maxTexCount:i=65534
+}
+
+renderFeatures {
+  bloom:b=no
 }
 
 directx{
@@ -106,8 +112,7 @@ mountPoints {
   "%dngscripts"{ forSource:t="../../prog/daNetGame/scripts/globals/"; forVromfs:t="daNetGame/qscripts"; }
   "%dngdas"    { forSource:t="../../prog/daNetGame/scripts/das"; forVromfs:t="das"; }
   "%daslib"    { forSource:t="../../prog/1stPartyLibs/daScript/daslib"; forVromfs:t="daslib"; }
-  "%gameLibs"{forSource:t="../../prog/gameLibs"; forVromfs:t="gameLibs";}
-  "%dasGameLibs"{forSource:t="../../prog/gameLibs/das"; forVromfs:t="das";}
+  "%gameLibs"  {forSource:t="../../prog/gameLibs"; forVromfs:t="gamelibs";}
   "%scripts"   { forSource:t="../prog/scripts"; forVromfs:t="scripts"; }
   "%danetlibs" {forSource:t="../../prog/daNetGameLibs"; forVromfs:t="danetlibs";}
 }
@@ -130,6 +135,24 @@ game_das_script_init:t="%scripts/outer_space/outer_space_init.das"
 game_das_script_thread_init:t=""
 game_das_sandbox_project:t=""
 
+vulkan {
+  vendor {
+    AMD {
+      driverProps {
+        multiQueue {
+          entry {
+            // somehow data is corrupted on upload/readback on exactly this GPUs
+            gpu:t="RX 6600"
+            data {
+              allow:b=no
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 ui{
   script:t=""
   overlay_ui_script:t="%scripts/ui/main.nut"
@@ -151,6 +174,12 @@ sound{
 unitedVdata.dynModel {
   use:b=yes
   canRebuild:b=yes
+}
+
+bots{
+  botsCount:i=2
+  targetingWeights:p2 = 4.0, 0.5 // closest, random
+  thrustingWeights:p2 = 0.6, 3.9 // fast, slow
 }
 
 __allow_force_apply_all:b=no
@@ -228,6 +257,7 @@ __allowedConfigOverrides{
     enableRawInput:b=true
     das_log_aot_errors:b=true
     pollThreadDelayMsec:i=8
+    forcedControlsType:t=""
   }
   dx12 {__allow_all_params:b=yes;}
   input {__allow_all_params:b=yes;}

@@ -263,6 +263,28 @@ __forceinline void v_stu_bbox3(BBox3 &out, bbox3f_cref box)
   v_stu_half(&out.lim[1].y, v1);
 }
 
+__forceinline vec4f v_ldu_bsphere3(const BSphere3 &sphere)
+{
+  G_STATIC_ASSERT(offsetof(BSphere3, r) == offsetof(BSphere3, c) + 12);
+  return v_ldu(&sphere.c.x);
+}
+
+__forceinline vec4f v_ldu_bsphere3(const TMatrix &tm, const BSphere3 &sphere)
+{
+  mat44f vtm;
+  v_mat44_make_from_43cu_unsafe(vtm, tm.array);
+  vec4f wbsph = v_ldu_bsphere3(sphere);
+  v_bsph_init(wbsph, vtm, wbsph, v_splat_w(wbsph));
+  return wbsph;
+}
+
+__forceinline void v_stu_bsphere3(BSphere3 &sphere, vec4f bsph)
+{
+  G_STATIC_ASSERT(offsetof(BSphere3, r) == offsetof(BSphere3, c) + 12);
+  v_stu(&sphere.c.x, bsph);
+  sphere.r2 = sqr(v_extract_w(bsph));
+}
+
 template <class T>
 inline T closest_pt_on_line(const T &point, const T &a, const T &b)
 {
@@ -330,6 +352,17 @@ float distanceToSeg(const T &point, const T &a, const T &b, float &t, T &pt)
   pt = closest_pt_on_seg(point, a, b, t);
   return length(point - pt);
 };
+
+template <class T>
+float closest_pt_between_segments(const T &a0, const T &a1, const T &b0, const T &b1)
+{
+  const T ad = a1 - a0;
+  const T bd = b1 - b0;
+  const T d = ad - bd;
+  float t = (a0 - b0) * d * -safeinv(d.lengthSq());
+  t = clamp(t, 0.0f, 1.0f);
+  return t;
+}
 
 void lookAt(const Point3 &eye, const Point3 &at, const Point3 &up, TMatrix &resultTm);
 
@@ -445,11 +478,16 @@ inline bool rayIntersectWaBoxIgnoreInside(const Point3 &p0, const Point3 &dir, c
 }
 
 // Returns closest point (not first one) and ignores intersections if origin is inside bbox.
+__forceinline bool rayIntersectBoxIgnoreInsideLocal(const Point3 &p0_local, const Point3 &dir_local, const BBox3 &box, float &t,
+  Point3 &outLocalNorm)
+{
+  return rayIntersectWaBoxIgnoreInside(p0_local - box[0], dir_local, box[1] - box[0], t, outLocalNorm);
+}
 __forceinline bool rayIntersectBoxIgnoreInside(const Point3 &p0, const Point3 &dir, const BBox3 &box, const TMatrix &tm, float &t,
   Point3 &outNorm)
 {
   TMatrix itm = inverse(tm);
-  bool res = rayIntersectWaBoxIgnoreInside(itm * p0 - box[0], itm % dir, box[1] - box[0], t, outNorm);
+  bool res = rayIntersectBoxIgnoreInsideLocal(itm * p0, itm % dir, box, t, outNorm);
   outNorm = tm % outNorm;
   return res;
 }
@@ -680,11 +718,7 @@ inline int does_line_intersect_box_side_two_points(const BBox3 &box, const Point
 }
 
 int does_line_intersect_box_side(const BBox3 &box, const Point3 &line_start, const Point3 &line_end, real &at);
-
-inline bool does_line_intersect_box(const BBox3 &box, const Point3 &line_start, const Point3 &line_end, real &at)
-{
-  return does_line_intersect_box_side(box, line_start, line_end, at) != -1;
-}
+bool does_line_intersect_box(const BBox3 &box, const Point3 &line_start, const Point3 &line_end, real &at);
 
 bool test_bbox_bbox_intersection(const BBox3 &box0, const BBox3 &box1, const TMatrix &tm1);
 bool check_bbox_intersection(const BBox3 &box0, const TMatrix &tm0, const BBox3 &box1, const TMatrix &tm1);
@@ -1091,6 +1125,35 @@ inline Point3 relative_2d_dir_to_absolute_3d_dir(const Point2 &dir_2d, const Poi
 inline Point2 absolute_3d_dir_to_relative_2d_dir(const Point3 &dir_3d, const Point3 &fwd, const Point3 &side)
 {
   return normalize(Point2(dir_3d * fwd, dir_3d * side));
+}
+
+inline bool is_pos_outside_sphere_mesh(Point3 relPos, float sphR, uint32_t slices /* count of meridians */,
+  uint32_t stacks /* count of parallels + 1 */)
+{
+  float stackAngle = PI / stacks;
+  float height = relPos.y;
+  float distSq = lengthSq(relPos);
+  float dist = sqrtf(distSq);
+  // Check if camera closer than the radius of the inscribed sphere
+  // Some check is required anyway to avoid division by 0
+  if (dist < sphR * 0.408f)
+    return false;
+  float angleH = safe_acos(height / dist); // Angle between pos and positive Y.
+  float angleHTrunc = fmod(angleH, stackAngle);
+  // Flat radius at height.
+  float halfStackAngle = stackAngle * 0.5f;
+  float rH = sphR * cos(halfStackAngle) / cos(angleHTrunc - halfStackAngle) * sin(angleH);
+
+  float sliceAngle = 2.0f * PI / slices;
+  Point2 posFlat = Point2(relPos.x, relPos.z);
+  float rad = max(1e-6f, length(posFlat));      // to avoid division by 0
+  float angleFlat = safe_acos(posFlat.x / rad); // Angle between cam and positive XY quad.
+  float angleTrunc = fmod(angleFlat, sliceAngle);
+  float halfSliceAngle = sliceAngle * 0.5f;
+  float r = rH * cos(halfSliceAngle) / cos(angleTrunc - halfSliceAngle);
+
+  float trSq = r * r + height * height;
+  return distSq > trSq;
 }
 
 /// compile-time sin and cos

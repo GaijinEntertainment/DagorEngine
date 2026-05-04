@@ -53,6 +53,8 @@ namespace das
         virtual SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
             return context.code->makeNode<SimNode_CloneRefValueT<string>>(at, l, r);
         }
+        static void jit_clone_string ( void * dst, const void * src ) { *(string*)dst = *(const string*)src; }
+        virtual void * jitGetClone() const override { return (void *) &jit_clone_string; }
     };
 
     template <typename OT>
@@ -69,8 +71,8 @@ namespace das
         bool canDelete = canNew && is_destructible<OT>::value
     > struct ManagedStructureAnnotation ;
 
-    struct BasicStructureAnnotation : TypeAnnotation {
-        struct StructureField {
+    struct DAS_API BasicStructureAnnotation : TypeAnnotation {
+        struct DAS_API StructureField {
             string      name;
             string      cppName;
             string      aotPrefix;
@@ -111,6 +113,7 @@ namespace das
         vector<string>                 fieldsInOrder;
         mutable DebugInfoHelper    helpA;
         mutable StructInfo *       sti = nullptr;
+        mutable StructInfo *       sti_gc = nullptr;
         ModuleLibrary *            mlib = nullptr;
         vector<TypeAnnotation*> parents;
         bool validationNeverFails = false;
@@ -125,6 +128,8 @@ namespace das
         static __forceinline SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) {
             return context.code->makeNode<SimNode_CloneRefValueT<TT>>(at, l, r);
         }
+        static void jit_clone ( void * dst, const void * src ) { *(TT*)dst = *(const TT*)src; }
+        static void * jitGetClone () { return (void *) &jit_clone; }
     };
 
     template <typename TT>
@@ -132,6 +137,7 @@ namespace das
         static __forceinline SimNode * simulateClone ( Context &, const LineInfo &, SimNode *, SimNode * ) {
             return nullptr;
         }
+        static void * jitGetClone () { return nullptr; }
     };
 
     template <typename FuncT, FuncT fn> struct CallProperty;
@@ -295,6 +301,7 @@ namespace das
         virtual SimNode * simulateClone ( Context & context, const LineInfo & at, SimNode * l, SimNode * r ) const override {
             return GenCloneNode<OT>::simulateClone(context,at,l,r);
         }
+        virtual void * jitGetClone() const override { return GenCloneNode<OT>::jitGetClone(); }
     };
 
     template <typename OT, bool is_smart>
@@ -517,44 +524,86 @@ namespace das
 
     template <typename TT>
     struct registerVectorJitFunctions {
-        static void initIndex ( const FunctionPtr & ptr ) {
-            ptr->generated = true;
-            ptr->jitOnly = true;
-            ptr->arguments[0]->type->explicitConst = true;
-        }
+        // This should be done before insertion to module
+        // because it changes mangled name.
+        struct vectorIndexArgFn : defaultTempFn {
+            vectorIndexArgFn() : defaultTempFn() {}
+            ___noinline bool operator () ( Function * fn ) {
+                defaultTempFn::operator()(fn);
+                if ( !fn->arguments.empty() ) {
+                    fn->arguments[0]->type->explicitConst = true;
+                }
+                fn->builtIn = true;
+                fn->generated = true;
+                fn->jitOnly = true;
+                return true;
+            }
+        };
         static void init ( Module * mod, const ModuleLibrary & lib ) {
             // index
             using OT = typename TT::value_type;
             auto TTN = describeCppType(makeType<TT>(lib));
             auto OTN = describeCppType(makeType<OT>(lib));
             auto atin = "das_ati<"+TTN+","+OTN+">";
-            initIndex(addExtern<DAS_BIND_FUN((das_ati<TT,OT>)),SimNode_ExtFuncCallRef>(*mod, lib, "[]",
+            addExtern<DAS_BIND_FUN((das_ati<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
                 SideEffects::modifyArgument, atin.c_str())
-                    ->args({"vec","index","context","at"}));
+                    ->args({"vec","index","context","at"});
             auto atun = "das_atu<"+TTN+","+OTN+">";
-            initIndex(addExtern<DAS_BIND_FUN((das_atu<TT,OT>)),SimNode_ExtFuncCallRef>(*mod, lib, "[]",
+            addExtern<DAS_BIND_FUN((das_atu<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
                 SideEffects::modifyArgument, atun.c_str())
-                    ->args({"vec","index","context","at"}));
+                    ->args({"vec","index","context","at"});
             auto atcin = "das_atci<"+TTN+","+OTN+">";
-            initIndex(addExtern<DAS_BIND_FUN((das_atci<TT,OT>)),SimNode_ExtFuncCallRef>(*mod, lib, "[]",
+            addExtern<DAS_BIND_FUN((das_atci<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
                 SideEffects::none, atcin.c_str())
-                    ->args({"vec","index","context","at"}));
+                    ->args({"vec","index","context","at"});
             auto atcun = "das_atcu<"+TTN+","+OTN+">";
-            initIndex(addExtern<DAS_BIND_FUN((das_atcu<TT,OT>)),SimNode_ExtFuncCallRef>(*mod, lib, "[]",
+            addExtern<DAS_BIND_FUN((das_atcu<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
                 SideEffects::none, atcun.c_str())
-                    ->args({"vec","index","context","at"}));
+                    ->args({"vec","index","context","at"});
         }
     };
+
+    template<typename T, typename = void, typename... Args>
+    struct has_emplace_method : std::false_type {};
+
+    template<typename T, typename... Args>
+    struct has_emplace_method<T, std::void_t<decltype(std::declval<T>().emplace(
+        std::declval<typename T::iterator>(),
+        std::declval<Args>()...
+    ))>, Args...> : std::true_type {};
+
+    template<typename T, typename = void, typename... Args>
+    struct has_emplace_back_method : std::false_type {};
+
+    template<typename T, typename... Args>
+    struct has_emplace_back_method<T, std::void_t<decltype(std::declval<T>().emplace_back(
+        std::declval<Args>()...
+    ))>, Args...> : std::true_type {};
+
+    template<typename T, typename... Args>
+    inline constexpr bool has_emplace_back_method_v = has_emplace_back_method<T, void, Args...>::value;
+    template<typename T, typename... Args>
+    inline constexpr bool has_emplace_method_v = has_emplace_method<T, void, Args...>::value;
 
     template <typename TT>
     struct registerVectorFunctions<TT,false> {
         static void init ( Module * mod, const ModuleLibrary & lib, bool canCopy, bool canMove ) {
             DAS_ASSERT(!canCopy || canCopy == das::is_copy_constructible<typename TT::value_type>::value);
-            if ( canMove ) {
-                addExtern<DAS_BIND_FUN((das_vector_emplace<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
-                    SideEffects::modifyArgument, "das_vector_emplace")->generated = true;
-                addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
-                    SideEffects::modifyArgument, "das_vector_emplace_back")->generated = true;
+            if constexpr(has_emplace_method_v<TT, typename TT::value_type> && has_emplace_back_method_v<TT, typename TT::value_type>) {
+                if ( canMove ) {
+                    addExtern<DAS_BIND_FUN((das_vector_emplace<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                        SideEffects::modifyArgument, "das_vector_emplace")->generated = true;
+                    addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                        SideEffects::modifyArgument, "das_vector_emplace_back")->generated = true;
+                }
+            }
+            if constexpr(has_emplace_method_v<TT> && has_emplace_back_method_v<TT>) {
+                if constexpr ( das::is_default_constructible<typename TT::value_type>::value ) {
+                    addExtern<DAS_BIND_FUN((das_vector_push_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
+                        SideEffects::modifyArgument, "das_vector_push_empty")->generated = true;
+                    addExtern<DAS_BIND_FUN((das_vector_push_back_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
+                        SideEffects::modifyArgument, "das_vector_push_back_empty")->generated = true;
+                }
             }
             if constexpr (das::is_copy_constructible<typename TT::value_type>::value) {
                 if ( canCopy ) {
@@ -563,12 +612,6 @@ namespace das
                     addExtern<DAS_BIND_FUN((das_vector_push_back<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push",
                         SideEffects::modifyArgument, "das_vector_push_back")->generated = true;
                 }
-            }
-            if constexpr ( das::is_default_constructible<typename TT::value_type>::value ) {
-                addExtern<DAS_BIND_FUN((das_vector_push_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
-                    SideEffects::modifyArgument, "das_vector_push_empty")->generated = true;
-                addExtern<DAS_BIND_FUN((das_vector_push_back_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
-                    SideEffects::modifyArgument, "das_vector_push_back_empty")->generated = true;
             }
             addExtern<DAS_BIND_FUN(das_vector_pop<TT>)>(*mod, lib, "pop",
                 SideEffects::modifyArgument, "das_vector_pop")->generated = true;
@@ -581,7 +624,7 @@ namespace das
             addExtern<DAS_BIND_FUN(das_vector_erase_range<TT>),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "erase",
                 SideEffects::modifyArgument, "das_vector_erase_range")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_each<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
-                SideEffects::none, "das_vector_each")->generated = true;
+                SideEffects::modifyArgument, "das_vector_each")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_each_const<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
                 SideEffects::none, "das_vector_each_const")->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_length<TT>)>(*mod, lib, "length",
@@ -598,13 +641,25 @@ namespace das
     struct registerVectorFunctions<TT,true> {
         static void init ( Module * mod, const ModuleLibrary & lib, bool canCopy, bool canMove ) {
             DAS_ASSERT(!canCopy || canCopy == das::is_copy_constructible<typename TT::value_type>::value);
-            if ( canMove ) {
-                addExtern<DAS_BIND_FUN((das_vector_emplace<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
-                    SideEffects::modifyArgument, "das_vector_emplace")
-                        ->args({"vec","value","at"})->generated = true;
-                addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
-                    SideEffects::modifyArgument, "das_vector_emplace_back")
-                        ->args({"vec","value"})->generated = true;
+            if constexpr(has_emplace_method_v<TT, typename TT::value_type> && has_emplace_back_method_v<TT, typename TT::value_type>) {
+                if ( canMove ) {
+                    addExtern<DAS_BIND_FUN((das_vector_emplace<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                        SideEffects::modifyArgument, "das_vector_emplace")
+                            ->args({"vec","value","at"})->generated = true;
+                    addExtern<DAS_BIND_FUN((das_vector_emplace_back<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "emplace",
+                        SideEffects::modifyArgument, "das_vector_emplace_back")
+                            ->args({"vec","value"})->generated = true;
+                }
+            }
+            if constexpr(has_emplace_method_v<TT> && has_emplace_back_method_v<TT>) {
+                if constexpr ( das::is_default_constructible<typename TT::value_type>::value ) {
+                    addExtern<DAS_BIND_FUN((das_vector_push_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
+                        SideEffects::modifyArgument, "das_vector_push_empty")
+                            ->args({"vec","at","context"})->generated = true;
+                    addExtern<DAS_BIND_FUN((das_vector_push_back_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
+                          SideEffects::modifyArgument, "das_vector_push_back_empty")
+                              ->args({"vec"})->generated = true;
+                }
             }
             if constexpr (das::is_copy_constructible<typename TT::value_type>::value) {
                 if ( canCopy ) {
@@ -615,14 +670,6 @@ namespace das
                         SideEffects::modifyArgument, "das_vector_push_back_value")
                             ->args({"vec","value"})->generated = true;
                 }
-            }
-            if constexpr ( das::is_default_constructible<typename TT::value_type>::value ) {
-              addExtern<DAS_BIND_FUN((das_vector_push_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
-                  SideEffects::modifyArgument, "das_vector_push_empty")
-                      ->args({"vec","at","context"})->generated = true;
-              addExtern<DAS_BIND_FUN((das_vector_push_back_empty<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_empty",
-                    SideEffects::modifyArgument, "das_vector_push_back_empty")
-                        ->args({"vec"})->generated = true;
             }
             if constexpr (das::is_smart_ptr<typename TT::value_type>::value) {
                 addExtern<DAS_BIND_FUN((das_vector_push_value<TT>)),SimNode_ExtFuncCall,permanentArgFn>(*mod, lib, "push_clone",
@@ -646,7 +693,7 @@ namespace das
                 SideEffects::modifyArgument, "das_vector_erase_range")
                     ->args({"vec","index","count","context"})->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_each<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
-                SideEffects::none, "das_vector_each")
+                SideEffects::modifyArgument, "das_vector_each")
                     ->args({"vec","context","at"})->generated = true;
             addExtern<DAS_BIND_FUN(das_vector_each_const<TT>),SimNode_ExtFuncCallAndCopyOrMove,explicitConstArgFn>(*mod, lib, "each",
                 SideEffects::none, "das_vector_each_const")
@@ -737,6 +784,8 @@ namespace das
         das::SimNode *simulateClone(das::Context &context, const das::LineInfo &at, das::SimNode *l, das::SimNode *r) const override {
             return context.code->makeNode<SimNode_Set<OT>>(at, l, r);
         }
+        static void jit_clone_value ( void * dst, const void * src ) { *(OT*)dst = *(const OT*)src; }
+        virtual void * jitGetClone() const override { return (void *) &jit_clone_value; }
         virtual uint64_t getOwnSemanticHash ( HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep ) const override {
             hb.updateString(getMangledName());
             valueType->getOwnSemanticHash(hb, dep, adep);

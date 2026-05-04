@@ -88,10 +88,10 @@ macro CLOUDS_LIGHTING_COMMON(code)
       #define CLOUDS_LIGHT_SAMPLES 32//6..12 settings!
     #endif
 
-    void baseLightExtinction(inout float light_sample_extinctionLast, float3 worldPos, float heightFraction, float shadowStepSize, float base_mip, float mip_add, float erosion_level, float msThreshold, float3 light_dir, uint steps, float expStep)
+    void baseLightExtinction(inout float light_sample_extinctionLast, float3 worldPos, float heightFraction, float shadowStepSize, float base_mip, float mip_add, float erosion_level, float msThreshold, float3 light_dir, uint steps, float expStep, float density_mul = 1)
     {
       raymarchLightExtinction(light_sample_extinctionLast, worldPos, shadowStepSize, base_mip, mip_add, erosion_level, msThreshold,
-                             light_dir, steps, expStep, shadowStepSize*CLOUDS_LAST_OCTAVE_ATTENUATED_SIGMA);
+                             light_dir, steps, expStep, shadowStepSize*CLOUDS_LAST_OCTAVE_ATTENUATED_SIGMA * density_mul);
     }
   }
 endmacro

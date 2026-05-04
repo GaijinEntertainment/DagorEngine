@@ -24,7 +24,8 @@ static void start_animchar_effect_es_event_handler_all_events(const ecs::Event &
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     start_animchar_effect_es_event_handler(evt
-        , ECS_RO_COMP(start_animchar_effect_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(start_animchar_effect_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(start_animchar_effect_es_event_handler_comps, "animchar_effect", AnimCharEffectNode)
     , ECS_RO_COMP(start_animchar_effect_es_event_handler_comps, "animchar_effect__effect", ecs::string)
     , ECS_RO_COMP(start_animchar_effect_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
@@ -53,7 +54,8 @@ static void end_animchar_effect_es_event_handler_all_events(const ecs::Event &__
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     end_animchar_effect_es_event_handler(evt
-        , ECS_RO_COMP(end_animchar_effect_es_event_handler_comps, "animchar_effect", AnimCharEffectNode)
+        , components.manager()
+    , ECS_RO_COMP(end_animchar_effect_es_event_handler_comps, "animchar_effect", AnimCharEffectNode)
     );
   while (++comp != compE);
 }

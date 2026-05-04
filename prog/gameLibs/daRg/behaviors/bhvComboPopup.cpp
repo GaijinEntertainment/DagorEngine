@@ -29,30 +29,29 @@ static void handle_click(ElementTree *etree, Element *elem)
 }
 
 
-int BhvComboPopup::mouseEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int /*data*/, short mx, short my, int /*buttons*/, int accum_res)
-{
-  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(mx, my))
-  {
-    handle_click(etree, elem);
-  }
-
-  return 0;
-}
-
-
-int BhvComboPopup::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int /*touch_idx*/, const HumanInput::PointingRawState::Touch &touch, int accum_res)
+int BhvComboPopup::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
+  int /*btn_id*/, Point2 pos, int accum_res)
 {
   int result = 0;
 
-  if (!(accum_res & R_PROCESSED) && event == INP_EV_RELEASE && elem->hitTest(touch.x, touch.y))
+  // old logic, to be reviewed
+  if (device == DEVID_TOUCH)
   {
-    handle_click(etree, elem);
-    result = R_PROCESSED;
+    if (!(accum_res & R_PROCESSED) && event == INP_EV_RELEASE && elem->hitTest(pos))
+    {
+      handle_click(etree, elem);
+      result = R_PROCESSED;
+    }
+  }
+  else
+  {
+    if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(pos))
+    {
+      handle_click(etree, elem);
+    }
   }
 
-  return result;
+  return 0;
 }
 
 

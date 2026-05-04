@@ -1,23 +1,31 @@
 include "world_sdf_update_common.dshl"
 include "world_sdf_project_common.dshl"
+include "dagi_windows.dshl"
 int supports_sh_6_1;
 interval supports_sh_6_1: off<1, on;
 
 macro INIT_RASTERIZE_SDF()
   WORLD_SDF_RES_MATH(ps)
   WSDF_COORD_UPDATE(ps)
+  SKIP_RAY_WINDOWS(ps)
+  (ps) {
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+  }
   hlsl(ps) {
     #include <world_sdf_dist.hlsl>
     #include <world_sdf.hlsli>
     #include <point_distance.hlsl>
     #include <world_sdf_interpolant.hlsl>
-    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
     void writeVoxel(int3 coord, WorldSDFInterpolant input)
     {
       uint3 rasterCoord = world_sdf_raster_target_coord_from_world(coord);
       if (any(rasterCoord >= world_sdf_raster_width()))//that's just faster to skip
         return;
       float3 worldPos = input.worldPos;
+      if (inWindow(worldPos))
+        return;
       //we clamp instead of early exit. That allows us to safely write best possible distance at edge
       //coord = clamp(coord, world_sdf_raster_begin(), world_sdf_raster_end()-1);
       //uint3 rasterCoord = world_sdf_raster_target_coord_from_world(coord);

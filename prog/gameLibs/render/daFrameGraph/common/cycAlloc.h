@@ -4,27 +4,15 @@
 #include <dag/dag_vector.h>
 #include <util/dag_compilerDefs.h>
 
+// Note: this header exist in gcc/clang/msvc
+#include <sanitizer/asan_interface.h>
+
 // #define CAPTURE_STACK_FRAMES 20
 
 #if CAPTURE_STACK_FRAMES
 #include <osApiWrappers/dag_stackHlp.h>
 #include <EASTL/array.h>
 #include <dag/dag_vectorMap.h>
-#endif
-
-
-#if DAGOR_ADDRESS_SANITIZER
-extern "C" void __asan_poison_memory_region(void const volatile *addr, size_t size);
-extern "C" void __asan_unpoison_memory_region(void const volatile *addr, size_t size);
-
-#define ASAN_POISON_MEMORY_REGION(addr, size)   __asan_poison_memory_region((addr), (size))
-#define ASAN_UNPOISON_MEMORY_REGION(addr, size) __asan_unpoison_memory_region((addr), (size))
-#elif 0
-#define ASAN_POISON_MEMORY_REGION(addr, size)   memset(addr, 0x7C, size)
-#define ASAN_UNPOISON_MEMORY_REGION(addr, size) ((void)(addr), (void)(size))
-#else
-#define ASAN_POISON_MEMORY_REGION(addr, size)   ((void)(addr), (void)(size))
-#define ASAN_UNPOISON_MEMORY_REGION(addr, size) ((void)(addr), (void)(size))
 #endif
 
 
@@ -66,7 +54,7 @@ public:
   template <class U>
   struct rebind
   {
-    using other = CycAlloc<U>;
+    using other = CycAlloc<Tag>;
   };
 
   static void flip()

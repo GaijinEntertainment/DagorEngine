@@ -10,6 +10,27 @@ containing a type. Quirrel's basic types are integer, float, string,
 null, table, array, function, generator, class, instance, bool, thread
 and userdata.
 
+Each value in Quirrel is an instance of a built-in type class (available through
+the ``types`` module):
+
+* ``Integer``
+* ``Float``
+* ``Bool``
+* ``String``
+* ``Array``
+* ``Table``
+* ``Null``
+* ``Function`` - for both script and native closures
+* ``Generator``
+* ``Thread`` - thread/coroutine
+* ``Class``
+* ``Instance``
+* ``WeakRef``
+* ``Userdata``
+
+These classes can be used with ``instanceof`` for type checking.
+See :ref:`Built-in Type Classes <builtin_type_classes>` for available methods on each type.
+
 .. _userdata-index:
 
 --------

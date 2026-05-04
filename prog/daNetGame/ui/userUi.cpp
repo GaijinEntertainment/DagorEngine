@@ -37,7 +37,7 @@
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <bindQuirrelEx/autoBind.h>
 #include <bindQuirrelEx/autoCleanup.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/http/sqHttpClient.h>
 #include <quirrel/quirrel_json/quirrel_json.h>
 #include <quirrel/sqConsole/sqConsole.h>
@@ -57,13 +57,15 @@
 #include "uiVideoMode.h"
 #include "xrayUiOrder.h"
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/scripts/scripts.h>
 #include <ecs/scripts/dasEs.h>
 #include <ecs/scripts/netBindSq.h>
 #include <ecs/scripts/netsqevent.h>
-#include <daECS/net/dasEvents.h>
+#include <ecs/net/dasEvents.h>
 
 #include <drv/hid/dag_hiPointing.h>
 #include <drv/hid/dag_hiXInputMappings.h>
@@ -88,6 +90,9 @@
 #include <imgui/imguiInput.h>
 
 #include <soundSystem/quirrel/sqSoundSystem.h>
+
+#include <webui/httpserver.h>
+#include <webui/sqDebuggerPlugin.h>
 
 #include <render/dargPanels.h>
 #include "main/gameLoad.h"
@@ -277,15 +282,15 @@ void init()
   sq_limitthreadaccess(vm, ::get_main_thread_id());
   SqModules *moduleMgr = gui_scene->getModuleMgr();
 
-  sqeventbus::bind(moduleMgr, "ui", sqeventbus::ProcessingMode::MANUAL_PUMP); // whitelist!!
+  sqeventbus::bind_ex(moduleMgr, "ui", /*freeze_wevt_tables*/ true); // whitelist!!
 
   bindquirrel::apply_compiler_options_from_game_settings(moduleMgr);
 
 #if DAGOR_DBGLEVEL > 0
-  sq_enabledebuginfo(vm, true);
   sq_enablevartrace(vm, true);
   sq_set_thread_id_function(vm, get_thread_id_func);
-  dag_sq_debuggers.initDebugger(SQ_DEBUGGER_DARG_SCRIPTS, moduleMgr, "DNG daRg Scripts");
+
+  webui::register_quirrel_debugger(moduleMgr, "sqdebug_darg", "quirrel debugger - DNG daRg Scripts");
   scriptprofile::register_profiler_module(vm, gui_scene->getModuleMgr());
 
   const bool varTraceOn = sq_isvartracesupported();
@@ -328,7 +333,7 @@ void term()
   scriptprofile::shutdown(vm);
 
 #if DAGOR_DBGLEVEL > 0
-  dag_sq_debuggers.shutdownDebugger(SQ_DEBUGGER_DARG_SCRIPTS);
+  webui::shutdown_quirrel_debugger(gui_scene->getModuleMgr());
 #endif
 
   destroy_script_console_processor(vm);

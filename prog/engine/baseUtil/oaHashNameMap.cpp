@@ -7,5 +7,5 @@
 
 template struct OAHashNameMap<false>;
 template struct OAHashNameMap<true>;
-template struct OAHashNameMap<false, FNV1OAHasher<false>>;
+template struct OAHashNameMap<false, FNV1AOAHasher<false>>;
 #endif

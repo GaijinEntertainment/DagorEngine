@@ -18,12 +18,10 @@ public:
     DA_PROFILE_GPU;
     const Point2 lt = point2(origin) * texelSize - Point2(w / 2, w / 2) * texelSize;
     const float d = w * texelSize;
-    ShaderGlobal::set_color4(get_shader_variable_id("world_to_depth_above", true), 1. / d, -lt.x / d, -lt.y / d, d);
+    ShaderGlobal::set_float4(get_shader_variable_id("world_to_depth_above", true), 1. / d, -lt.x / d, -lt.y / d, d);
     SCOPE_VIEW_PROJ_MATRIX;
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target();
-    d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(depth_above.getTex2D(), 0, DepthAccess::RW);
+    d3d::set_render_target({depth_above.getTex2D(), 0, 0}, DepthAccess::RW, {});
     d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
     TMatrix4 view;
     view.setcol(0, 1, 0, 0, 0);

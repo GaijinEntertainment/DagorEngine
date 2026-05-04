@@ -8,11 +8,14 @@
 #include <EASTL/string.h>
 #include <math/dag_mathUtils.h>
 #include <osApiWrappers/dag_critSec.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqStackChecker.h>
 #include <sqstdblob.h>
 #include <sqext.h>
 #include <memory/dag_framemem.h>
+#include <generic/dag_span.h>
+#include <generic/dag_tab.h>
+
 
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio/miniaudio.h"
@@ -1042,14 +1045,14 @@ public:
   static SQInteger CustomNew(HSQUIRRELVM vm)
   {
     if (sq_gettop(vm) < 2 || (sq_gettype(vm, 2) != OT_STRING && sq_gettype(vm, 2) != OT_TABLE))
-      return sq_throwerror(vm, _SC("Invalid PcmSound constructor"));
+      return sq_throwerror(vm, "Invalid PcmSound constructor");
 
     PcmSound *s = nullptr;
     string errMsg;
 
     if (sq_gettype(vm, 2) == OT_STRING)
     {
-      const SQChar *fn = nullptr;
+      const char *fn = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &fn)));
       s = create_sound_from_file(fn, errMsg);
     }

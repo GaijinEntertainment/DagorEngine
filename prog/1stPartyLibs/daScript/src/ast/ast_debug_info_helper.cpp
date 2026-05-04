@@ -110,7 +110,10 @@ namespace das {
             fni->flags |= FuncInfo::flag_init;
             if ( fn.lateInit ) fni->flags |= FuncInfo::flag_late_init;
         }
-        if ( fn.shutdown ) fni->flags |= FuncInfo::flag_shutdown;
+        if ( fn.shutdown ) {
+            fni->flags |= FuncInfo::flag_shutdown;
+            if ( fn.lateShutdown ) fni->flags |= FuncInfo::flag_late_shutdown;
+        }
         if ( fn.builtIn ) fni->flags |= FuncInfo::flag_builtin;
         if ( fn.privateFunction ) fni->flags |= FuncInfo::flag_private;
         fni->result = makeTypeInfo(nullptr, fn.result);
@@ -138,17 +141,18 @@ namespace das {
     }
 
     StructInfo * DebugInfoHelper::makeStructureDebugInfo ( const Structure & st ) {
+        DAS_VERIFYF(!st.isTemplate,"cannot make debug info for template structure");
         string mangledName = st.getMangledName();
         auto it = smn2s.find(mangledName);
         if ( it!=smn2s.end() ) return it->second;
         StructInfo * sti = debugInfo->makeNode<StructInfo>();
+        smn2s[mangledName] = sti;
         sti->name = debugInfo->allocateCachedName(st.name);
         sti->flags = 0;
         if ( st.isClass ) sti->flags |= StructInfo::flag_class;
         if ( st.isLambda ) sti->flags |= StructInfo::flag_lambda;
         auto tdecl = TypeDecl((Structure *)&st);
         auto gcf = tdecl.gcFlags();
-        if ( tdecl.lockCheck() ) sti->flags |= StructInfo::flag_lockCheck;
         if ( gcf & TypeDecl::gcFlag_heap ) sti->flags |= StructInfo::flag_heapGC;
         if ( gcf & TypeDecl::gcFlag_stringHeap ) sti->flags |= StructInfo::flag_stringHeapGC;
         sti->count = (uint32_t) st.fields.size();
@@ -193,7 +197,6 @@ namespace das {
             sti->annotation_list = nullptr;
         }
         sti->hash = hash_blockz64((uint8_t *)mangledName.c_str());
-        smn2s[mangledName] = sti;
         return sti;
     }
 
@@ -228,9 +231,6 @@ namespace das {
             info->annotation_or_name = nullptr;
         }
         info->flags = 0;
-        if (type->lockCheck()) {
-            info->flags |= TypeInfo::flag_lockCheck;
-        }
         if (type->ref) {
             info->flags |= TypeInfo::flag_ref;
             info->flags |= TypeInfo::flag_refValue;

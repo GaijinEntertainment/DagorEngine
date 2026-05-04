@@ -29,22 +29,22 @@ das::mutex daframegraphRuntimeMutex;
 
 bool is_daframegraph_runtime_initialized() { return dafg::Runtime::isInitialized(); }
 
-ManagedTexView getTexView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history)
+dafg::TextureView getTexView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history)
 {
   G_ASSERT(provider);
   auto &storage = history ? provider->providedHistoryResources : provider->providedResources;
   if (auto it = storage.find(resId); it != storage.end())
-    return eastl::get<ManagedTexView>(it->second);
+    return dafg::TextureView{eastl::get<BaseTexture *>(it->second)};
   else
     return {};
 }
 
-ManagedBufView getBufView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history)
+dafg::BufferView getBufView(const dafg::ResourceProvider *provider, dafg::ResNameId resId, bool history)
 {
   G_ASSERT(provider);
   auto &storage = history ? provider->providedHistoryResources : provider->providedResources;
   if (auto it = storage.find(resId); it != storage.end())
-    return eastl::get<ManagedBufView>(it->second);
+    return dafg::BufferView{eastl::get<Sbuffer *>(it->second)};
   else
     return {};
 }
@@ -202,6 +202,8 @@ DaFgCoreModule::DaFgCoreModule() : das::Module("daFgCore")
   das::addUsing<BufferResourceDescription>(*this, lib, "BufferResourceDescription");
   das::addCtorAndUsing<dafg::NodeHandle>(*this, lib, "NodeHandle", "dafg::NodeHandle");
   das::addUsing<dafg::VrsStateRequirements>(*this, lib, "dafg::VrsStateRequirements");
+  das::addUsing<dafg::BufferView>(*this, lib, "dafg::BufferView");
+  das::addUsing<dafg::TextureView>(*this, lib, "dafg::TextureView");
   das::addUsing<dafg::Binding>(*this, lib, "dafg::Binding");
   das::addUsing<dafg::ResourceRequest>(*this, lib, "dafg::ResourceRequest");
 
@@ -209,8 +211,12 @@ DaFgCoreModule::DaFgCoreModule() : das::Module("daFgCore")
   CLASS_MEMBER_SIGNATURE(dafg::NodeTracker::unregisterNode, "unregisterNode", das::SideEffects::modifyArgumentAndExternal,
     void(dafg::NodeTracker::*)(dafg::NodeNameId, uint16_t));
 
-  BIND_FUNCTION(bind_dascript::getTexView, "getTexView", das::SideEffects::accessExternal)
-  BIND_FUNCTION(bind_dascript::getBufView, "getBufView", das::SideEffects::accessExternal)
+  BIND_FUNCTION(bind_dascript::getTexView, "getTexView", das::SideEffects::accessExternal);
+  BIND_FUNCTION(bind_dascript::getBufView, "getBufView", das::SideEffects::accessExternal);
+
+  das::addExtern<DAS_BIND_FUN(dafg::get_tex2d)>(*this, lib, "get_tex2d", das::SideEffects::none, " ::dafg::get_tex2d");
+  das::addExtern<DAS_BIND_FUN(dafg::get_buf)>(*this, lib, "get_buf", das::SideEffects::none, " ::dafg::get_buf");
+
   BIND_FUNCTION(bind_dascript::getResolution2, "getResolution`2", das::SideEffects::accessExternal)
   BIND_FUNCTION(bind_dascript::getResolution3, "getResolution`3", das::SideEffects::accessExternal)
   BIND_FUNCTION(bind_dascript::fillSlot, "fill_slot", das::SideEffects::modifyExternal)

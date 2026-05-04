@@ -1,0 +1,39 @@
+include "dagi_irrad_grid_sample.dshl"
+
+
+//for detailed irradiance grid
+macro DAGI_IRRADIANCE_GRID_UAV(code)
+  (code) {
+    dagi_irradiance_grid_sph0@uav = dagi_irradiance_grid_sph0 hlsl {
+      RWTexture3D<unorm float4> dagi_irradiance_grid_sph0@uav;
+    };
+    dagi_irradiance_grid_sph1@uav = dagi_irradiance_grid_sph1 hlsl {
+      RWTexture3D<float4> dagi_irradiance_grid_sph1@uav;
+    };
+  }
+endmacro
+
+macro DAGI_IRRAD_GRID_WRITE(code)
+  hlsl(code) {
+    #include <dagi_irradiance_encode.hlsl>
+
+    void dagi_irrad_grid_write_sh1_encoded(uint3 targetProbeCoord, uint clip, SH1Encoded sh1e)
+    {
+      // if (all(isfinite(sh1e.s0)) && all(isfinite(sh1e.s1)))
+      {
+        texture3DAt(dagi_irradiance_grid_sph0, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = sh1e.s0;
+        texture3DAt(dagi_irradiance_grid_sph1, targetProbeCoord + uint3(0,0,1+clip*dagi_irrad_grid_get_clip_size_with_border())) = sh1e.s1;
+        if (targetProbeCoord.z == 0 || targetProbeCoord.z == dagi_irrad_grid_get_clip_size().y - 1)//write border
+        {
+          texture3DAt(dagi_irradiance_grid_sph0, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = sh1e.s0;
+          texture3DAt(dagi_irradiance_grid_sph1, uint3(targetProbeCoord.xy, targetProbeCoord.z ? 0 : dagi_irrad_grid_get_clip_size().y+1) + uint3(0,0,clip*dagi_irrad_grid_get_clip_size_with_border())) = sh1e.s1;
+        }
+      }
+    }
+
+    void dagi_irrad_grid_write_sh1(uint3 targetProbeCoord, uint clip, SH1 sh1)
+    {
+      dagi_irrad_grid_write_sh1_encoded(targetProbeCoord, clip, dagi_irrad_encode_sh1(sh1));
+    }
+  }
+endmacro

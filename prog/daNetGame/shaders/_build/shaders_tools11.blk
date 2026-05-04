@@ -22,6 +22,7 @@ common_assume_vars {
   gi_quality:i=-1
   ssao_use_wsao:i=0
   gpu_objects_gpu_instancing:i=0
+  gpu_objects_is_grass:i=0
 }
 
 Compile
@@ -58,8 +59,6 @@ Compile
     hero_ao:i = 0
     num_of_cascades:i=4
     compatibility_mode:i = 0
-    mobile_render:i=0
-    mobile_simplified_materials:i=0
     use_postfx:i = 1
     has_discard_without_prepass:i=0
     volumetric_light_assumed_off:i=1
@@ -77,6 +76,7 @@ Compile
     froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_ssss:i=0
     ssss_quality:i=0
+    rendinst_render_type:i=0
     rendinst_use_cell_sbuffer:i=0
     special_vision:i=0
     grassify:i=1
@@ -86,6 +86,16 @@ Compile
     use_gui_glob_tm:i=0
     glass_rt_reflection:i=0
     can_use_half_precision:i=0
+    deform_occupied_tiles_bitvector:i=0
+    need_character_microdetails_texture_check:i=1
+    character_micro_details:i=1
+    brdf_type:i=0
+    debug_torn_wounds:i=0
+    enable_ri_disintegration_animation:i=0
+    plod_gen:i=0
+    micro_details_quality:i=2
+    dafx_use_gravity_zone:i=1
+    max_flowmap_cascades:i=2
   }
   required_shaders {}
 }

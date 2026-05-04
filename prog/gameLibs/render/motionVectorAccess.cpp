@@ -73,7 +73,7 @@ static void set_reprojection_params(const CameraParams &currentCamera, const Cam
   TMatrix4 uvzToPrevFrameUvz = uvzToWorldRel * prevWorldToUvzRel;
 
   uvz_to_prev_frame_uvzVarId.set_float4x4(uvzToPrevFrameUvz);
-  zn_zfar_current_prevVarId.set_color4(currentCamera.znear, currentCamera.zfar, previousCamera.znear, previousCamera.zfar);
+  zn_zfar_current_prevVarId.set_float4(currentCamera.znear, currentCamera.zfar, previousCamera.znear, previousCamera.zfar);
 
   if (heroMatrixParams)
     set_hero_matrix_params(*heroMatrixParams, uvzToWorldRel, prevWorldToUvzRel);
@@ -83,7 +83,7 @@ static void set_reprojection_params(const CameraParams &currentCamera, const Cam
 
 static void set_jitter_params(const Point2 &currentJitter, const Point2 &previousJitter)
 {
-  jitter_offset_uvVarId.set_color4(currentJitter.x, currentJitter.y, previousJitter.x, previousJitter.y);
+  jitter_offset_uvVarId.set_float4(currentJitter.x, currentJitter.y, previousJitter.x, previousJitter.y);
 }
 
 void set_reprojection_params_prev_to_curr(const CameraParams &currentCamera, const CameraParams &previousCamera)

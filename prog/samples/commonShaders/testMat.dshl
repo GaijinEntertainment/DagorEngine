@@ -53,8 +53,8 @@ shader testMaterial
 
   (ps)
   {
-    tex@static = tex;
-    normalmap@static = normalmap;
+    tex@staticSmp = tex;
+    normalmap@staticSmp = normalmap;
   }
   hlsl(ps) {
     GBUFFER_OUTPUT test_ps(VsOutput input HW_USE_SCREEN_POS)

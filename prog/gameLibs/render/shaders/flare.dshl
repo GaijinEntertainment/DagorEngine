@@ -17,6 +17,7 @@ float flare_ghosts_curvature = 0.6;
 float flares_threshold = 0;
 
 texture flareLenseRadial;
+texture flareSrcDownsampled;
 
 shader flare_downsample
 {
@@ -25,13 +26,12 @@ shader flare_downsample
   cull_mode=none;
   z_write=false;
 
-  dynamic texture flareSrc;
   dynamic float4 texelOffset;
 
   (vs) { texelOffset@f4 = texelOffset; }
 
   (ps) {
-    flareSrc@smp2d = flareSrc;
+    flareSrcDownsampled@smp2d = flareSrcDownsampled;
     flareScaleBias@f4 = (flare_scale, flare_bias, 0.0, 0.0);
   }
 
@@ -62,7 +62,7 @@ shader flare_downsample
   hlsl(ps) {
     float4 flare_downsample_ps(VsOutput IN): SV_Target
     {
-      half4 flareVal = tex2Dlod(flareSrc, float4(IN.texcoord01.xy, 0, 0));
+      half4 flareVal = tex2Dlod(flareSrcDownsampled, float4(IN.texcoord01.xy, 0, 0));
       half lum = max(0.0001f, luminance(flareVal.rgb));    // From Chevrolet.
 
       return (flareVal.rgb * (saturate((lum+flareScaleBias.y)*rcp(lum))*flareScaleBias.x)).rgbg;

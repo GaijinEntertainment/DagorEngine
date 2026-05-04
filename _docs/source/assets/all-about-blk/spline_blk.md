@@ -337,7 +337,7 @@ differentiate the behavior of points in the loft, the `group{}` block is used.
 
 **Example**:
 
-```text
+```blk
 group{
   pt:p4= -7.5, 0.0, 0.0, 0.0
 }
@@ -356,7 +356,7 @@ Grouping loft points defines their varying behavior.
 
 **Example**:
 
-```text
+```blk
 group{
   type:t="rel_to_collision"
   pt:p4= -7.5, 0.0, 0.0, 0.0
@@ -496,7 +496,7 @@ block.
 
 **Example**:
 
-```text
+```blk
 object{
   genTag:t="a"
   width:r=17
@@ -593,9 +593,9 @@ To visually display the loft geometry in the editor and adjust the parameters:
 
 1. Open the `*.mat.blk` file and set `render_landmesh_combined=0` to
    `render_landmesh_combined=1`.
-2. Open the `*.spline.blk` file and press `Ctrl`+`S` to apply the changes made
-   to `*.mat.blk`.
+2. Open the `*.spline.blk` file and press {bdg-dark-line}`Ctrl` +
+   {bdg-dark-line}`S` to apply the changes made to `*.mat.blk`.
 
-The wireframe of the loft geometry will then be visible by pressing `F3`.
-
+The wireframe of the loft geometry will then be visible by pressing
+{bdg-dark-line}`F3`.
 

@@ -3,9 +3,14 @@
 #include "main/editMode.h"
 #include "main/ecsUtils.h"
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <util/dag_console.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <daECS/core/utility/nullableComponent.h>
 #include <3d/dag_render.h>
 #include "game/dasEvents.h"
@@ -17,7 +22,7 @@
 static bool enabled = false;
 
 template <typename Callable>
-static inline void make_animchar_not_updatable_ecs_query(Callable);
+static inline void make_animchar_not_updatable_ecs_query(ecs::EntityManager &manager, Callable);
 
 void editmode::toggle()
 {
@@ -25,8 +30,10 @@ void editmode::toggle()
 
   if (enabled)
   {
-    make_animchar_not_updatable_ecs_query([](ecs::EntityId eid ECS_REQUIRE_NOT(bool isAlive, ecs::Tag disableUpdate) ECS_REQUIRE(
-                                            ecs::auto_type animchar)) { add_sub_template_async(eid, "disable_update"); });
+    make_animchar_not_updatable_ecs_query(*g_entity_mgr,
+      [](ecs::EntityId eid ECS_REQUIRE_NOT(bool isAlive, ecs::Tag disableUpdate) ECS_REQUIRE(ecs::auto_type animchar)) {
+        add_sub_template_async(eid, "disable_update");
+      });
   }
 }
 
@@ -57,3 +64,14 @@ void editmode::toggle_pause_current()
     add_sub_template_async(hero, "disable_update");
   // g_entity_mgr->tick();//ensure recreation async applied
 }
+
+static bool editmode_console_handler(const char *argv[], int argc)
+{
+  if (argc < 1)
+    return false;
+  int found = 0;
+  CONSOLE_CHECK_NAME("game", "edit_mode", 1, 1) { editmode::toggle(); }
+  return found;
+}
+
+REGISTER_CONSOLE_HANDLER(editmode_console_handler);

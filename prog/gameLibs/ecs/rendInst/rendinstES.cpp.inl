@@ -8,10 +8,14 @@
 #include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstExtraRender.h>
 #include <rendInst/rendInstDebug.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/baseIo.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/net/object.h>
 #include <EASTL/intrusive_list.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -40,7 +44,7 @@ ECS_REGISTER_EVENT(EventOnRendinstDamage);
 ECS_REGISTER_EVENT(EventRiExtraHandleReplaced);
 
 static CONSOLE_BOOL_VAL("rendinst", debug_movement, false);
-static CONSOLE_BOOL_VAL("rendinst", ruler, false);
+static CONSOLE_INT_VAL("rendinst", ruler, 0, 0, 2);
 static CONSOLE_BOOL_VAL("rigrid", debug_draw, false);
 static const bbox3f RENDINST_WORLD_BBOX = {v_make_vec4f(-1e4f, -1e4f, -1e4f, 0.f), v_make_vec4f(1e4f, 1e4f, 1e4f, 0.f)};
 
@@ -65,7 +69,6 @@ typedef RiexHashMap<ecs::EntityId> HandlesMap;
 static HandlesMap handles2eid; // >= 8+ K elements
 static ska::flat_hash_map<RestorableId, ecs::EntityId, RestorableIdHasher> restorables2eid;
 
-
 namespace rendinst
 {
 void init_phys()
@@ -78,10 +81,10 @@ void init_phys()
 
 
 template <typename Callable>
-void del_ri_ecs_query(ecs::EntityId, Callable);
+void del_ri_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 template <typename Callable>
-void restore_ri_ecs_query(ecs::EntityId, Callable);
+void restore_ri_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 static void on_del_ri_extra_cb(rendinst::riex_handle_t handle)
 {
@@ -89,7 +92,7 @@ static void on_del_ri_extra_cb(rendinst::riex_handle_t handle)
   if (it == handles2eid.end())
     return;
   bool isBeingReplaced = false;
-  del_ri_ecs_query(it->second,
+  del_ri_ecs_query(*g_entity_mgr, it->second,
     [&](ecs::EntityId eid, RiExtraComponent &ri_extra, const net::Object *replication, bool ri_extra__isBeingReplaced = false) {
       isBeingReplaced = ri_extra__isBeingReplaced;
       if (ri_extra__isBeingReplaced)
@@ -131,31 +134,38 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
       auto it = restorables2eid.find(RestorableId(desc));
       if (it == restorables2eid.end())
         break;
+
       rendinst::riex_handle_t handle = desc.getRiExtraHandle();
       bool found = false;
-      restore_ri_ecs_query(it->second, [&](ecs::EntityId eid, RiExtraComponent &ri_extra, rendinst::RendInstDesc *ri_extra__riSyncDesc,
-                                         bool *ri_extra__restorablePending) {
-        // Check restoring was prevented
-        if (ri_extra__restorablePending && !*ri_extra__restorablePending)
-          return;
-        // Restore the link between entity and rendinst.
-        if (ri_extra.handle != rendinst::RIEX_HANDLE_NULL)
-          handles2eid.erase(ri_extra.handle);
-        const auto prevHandle = ri_extra.handle;
-        ri_extra.handle = handle;
-        handles2eid[handle] = eid;
-        // update ri desc & send event
-        if (ri_extra__riSyncDesc)
-        {
-          *ri_extra__riSyncDesc = rendinst::get_restorable_desc(desc);
-          G_ASSERT(ri_extra__riSyncDesc->isValid());
-          ri_extra__riSyncDesc->idx = desc.idx;
-          g_entity_mgr->sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, handle, true));
-        }
-        if (ri_extra__restorablePending)
-          *ri_extra__restorablePending = false;
-        found = true;
-      });
+      restore_ri_ecs_query(*g_entity_mgr, it->second,
+        [&](ecs::EntityId eid, RiExtraComponent &ri_extra, rendinst::RendInstDesc *ri_extra__riSyncDesc,
+          bool *ri_extra__restorablePending) {
+          // Check restoring was prevented
+          if (ri_extra__restorablePending && !*ri_extra__restorablePending)
+            return;
+          // Restore the link between entity and rendinst.
+          if (ri_extra.handle != rendinst::RIEX_HANDLE_NULL)
+            handles2eid.erase(ri_extra.handle);
+          const auto prevHandle = ri_extra.handle;
+          ri_extra.handle = handle;
+          handles2eid[handle] = eid;
+          // update ri desc & send event
+          if (ri_extra__riSyncDesc)
+          {
+            // validation
+            if (!rendinst::isRiGenDescValid(desc))
+              logerr("restoring ECS RI got invalid desc pool:%@ cell:%@ offs:%@ idx:%@", desc.pool, desc.cellIdx, desc.offs, desc.idx);
+            else if (!rendinst::get_restorable_desc(desc).isValid())
+              logerr("restoring ECS RI failed to get restorable desc pool:%@ cell:%@ offs:%@ idx:%@", desc.pool, desc.cellIdx,
+                desc.offs, desc.idx);
+
+            *ri_extra__riSyncDesc = desc; // it is already restorable
+            g_entity_mgr->sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, handle, true));
+          }
+          if (ri_extra__restorablePending)
+            *ri_extra__restorablePending = false;
+          found = true;
+        });
       if (!found)
       {
         // Entity wasn't found, kill the rendinst.
@@ -183,7 +193,8 @@ static bool on_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendin
 
 template <typename Callable>
 ECS_REQUIRE(ecs::Tag riExtraAuthority)
-ECS_REQUIRE_NOT(ecs::Tag riExtraCustomDestroy) void check_extra_destroy_authority_ecs_query(ecs::EntityId, Callable);
+ECS_REQUIRE_NOT(ecs::Tag riExtraCustomDestroy) void check_extra_destroy_authority_ecs_query(ecs::EntityManager &manager, ecs::EntityId,
+  Callable);
 
 static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynamic, bool /*create_destr_effects*/, int32_t user_data,
   const Point3 & /*impulse*/, const Point3 & /*impulse_pos*/)
@@ -195,7 +206,7 @@ static void on_riex_destruction_cb(rendinst::riex_handle_t handle, bool is_dynam
   {
     g_entity_mgr->sendEventImmediate(it->second, EventOnRendinstDestruction(user_data));
 
-    check_extra_destroy_authority_ecs_query(it->second,
+    check_extra_destroy_authority_ecs_query(*g_entity_mgr, it->second,
       [&](bool &ri_extra__destroyed, ecs::EntityManager &manager, bool ri_extra__isBeingReplaced = false) {
         if (!ri_extra__isBeingReplaced)
         {
@@ -255,8 +266,40 @@ void RiExtraComponent::replaceRiHandle(rendinst::riex_handle_t new_handle)
     logerr("replaceRiHandle: handle was not registered %@", handle);
 }
 
+struct DelayedRiAction : public DelayedAction, public eastl::intrusive_list_node
+{
+  static inline eastl::intrusive_list<DelayedRiAction> da_queue = {};
+  DelayedRiAction() { da_queue.push_back(*this); }
+  ~DelayedRiAction() { da_queue.remove(*this); }
+};
+
+struct DelayeAddRiGenExtraDebrisAction final : public DelayedRiAction
+{
+  static inline int numPendingActions = 0;
+  int resIdx;
+  DelayeAddRiGenExtraDebrisAction(int ri) : resIdx(ri) { ++numPendingActions; }
+  ~DelayeAddRiGenExtraDebrisAction() { G_VERIFY(numPendingActions-- > 0); }
+  EA_NON_COPYABLE(DelayeAddRiGenExtraDebrisAction)
+  bool precondition() override { return rendinst::isRIGenPrepareFinished(); }
+  void performAction() override { rendinst::addRiGenExtraDebris(resIdx, /*layer*/ 0); }
+};
+
+void add_rigenextra_debris(int resIdx)
+{
+  G_ASSERT(resIdx >= 0);
+  if (rendinst::isRIGenPrepareFinished() && DelayeAddRiGenExtraDebrisAction::numPendingActions == 0)
+    rendinst::addRiGenExtraDebris(resIdx, /*layer*/ 0);
+  else
+  {
+    // Delay `addRiGenExtraDebris` to avoid race with `RegenRiCell` on read/write of `rtData->{riDestr,riProperties}`
+    // To consider: use some kind of lock instead?
+    add_delayed_action(new DelayeAddRiGenExtraDebrisAction(resIdx));
+  }
+}
+
 static rendinst::riex_handle_t spawn_ri_extra(ecs::EntityManager &mgr, ecs::EntityId eid, int resIdx, const char *name,
-  bool preloaded = true) // Expected to be preloaded `RiExtraComponent::requestResources`
+  bool preloaded = true, // Expected to be preloaded `RiExtraComponent::requestResources`
+  int add_data_dwords = 0, const int32_t *add_data = nullptr)
 {
   rendinst::RendInstDesc *riSyncDesc = ECS_GET_NULLABLE_RW_MGR(mgr, rendinst::RendInstDesc, eid, ri_extra__riSyncDesc);
   const bool hasCellAndOffset = riSyncDesc && riSyncDesc->cellIdx < 0;
@@ -275,7 +318,7 @@ static rendinst::riex_handle_t spawn_ri_extra(ecs::EntityManager &mgr, ecs::Enti
     resIdx = addRIGenExtraResIdx(name, -1, -1, riaddf);
     if (DAGOR_UNLIKELY(resIdx < 0))
       return riAddFail();
-    addRiGenExtraDebris(resIdx, 0);
+    add_rigenextra_debris(resIdx);
   }
   if (riSyncDesc)
   {
@@ -292,7 +335,7 @@ static rendinst::riex_handle_t spawn_ri_extra(ecs::EntityManager &mgr, ecs::Enti
     return rendinst::RIEX_HANDLE_NULL;
   }
   const bool hasCollision = mgr.getOr(eid, ECS_HASH("ri_extra__hasCollision"), true);
-  rendinst::riex_handle_t handle = rendinst::addRIGenExtra44(resIdx, tm, hasCollision, riCellIdx, riOffset);
+  rendinst::riex_handle_t handle = rendinst::addRIGenExtra44(resIdx, tm, hasCollision, riCellIdx, riOffset, add_data_dwords, add_data);
   if (handle != rendinst::RIEX_HANDLE_NULL)
   {
     if (riSyncDesc)
@@ -310,12 +353,12 @@ static rendinst::riex_handle_t spawn_ri_extra(ecs::EntityManager &mgr, ecs::Enti
   return riAddFail();
 }
 
-struct DelayedSpawnRiExtra final : public DelayedAction, public eastl::intrusive_list_node
+struct DelayedSpawnRiExtra final : public DelayedRiAction
 {
+  static inline int numPendingSpawnRiExtraActions = 0;
   ecs::EntityId eid;
-  static inline eastl::intrusive_list<DelayedSpawnRiExtra> dyn_riex_creation_queue = {};
-  DelayedSpawnRiExtra(ecs::EntityId e) : eid(e) { dyn_riex_creation_queue.push_back(*this); }
-  ~DelayedSpawnRiExtra() { dyn_riex_creation_queue.remove(*this); }
+  DelayedSpawnRiExtra(ecs::EntityId e) : eid(e) { ++numPendingSpawnRiExtraActions; }
+  ~DelayedSpawnRiExtra() { G_VERIFY(numPendingSpawnRiExtraActions-- > 0); }
   EA_NON_COPYABLE(DelayedSpawnRiExtra)
   bool precondition() override { return rendinst::isRiExtraLoaded(); }
   void performAction() override
@@ -335,11 +378,22 @@ struct DelayedSpawnRiExtra final : public DelayedAction, public eastl::intrusive
 ECS_ON_EVENT(on_appear)
 static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager, RiExtraComponent &ri_extra, ecs::EntityId eid,
   const rendinst::riex_handle_t *ri_extra__handle, const ecs::string &ri_extra__name, const ecs::Tag *ri_extra__sendSpawnEvent,
-  const ecs::Tag *levelRiExtra)
+  const ecs::Tag *levelRiExtra, int *ri_extra__savedSeed = nullptr)
 {
   if (ri_extra__handle && *ri_extra__handle != rendinst::RIEX_HANDLE_NULL)
+  {
+    if (ri_extra__savedSeed)
+    {
+      if (rendinst::isRiGenExtraValid(*ri_extra__handle))
+        *ri_extra__savedSeed = (int)rendinst::get_riextra_instance_seed(*ri_extra__handle);
+#if DAGOR_DBGLEVEL > 0
+      else
+        logerr("Invalid riExtra handle on spawn for <%s>, random seed couldn't be cached", ri_extra__name);
+#endif
+    }
     return;
-  if (rendinst::isRiExtraLoaded() && DelayedSpawnRiExtra::dyn_riex_creation_queue.empty())
+  }
+  if (rendinst::isRiExtraLoaded() && DelayedSpawnRiExtra::numPendingSpawnRiExtraActions == 0)
   {
     ri_extra.handle = spawn_ri_extra(manager, eid, rendinst::getRIGenExtraResIdx(ri_extra__name.c_str()), ri_extra__name.c_str());
     // this event is required for WT, so this tag is used purely to avoid sending extra events in DNG,
@@ -398,8 +452,8 @@ public:
   {
     handles2eid = {};
     restorables2eid = {};
-    while (!DelayedSpawnRiExtra::dyn_riex_creation_queue.empty())
-      G_VERIFY(remove_delayed_action(&DelayedSpawnRiExtra::dyn_riex_creation_queue.back()));
+    while (!DelayedRiAction::da_queue.empty())
+      G_VERIFY(remove_delayed_action(&DelayedRiAction::da_queue.back()));
   }
   RendInstCTM()
   {
@@ -501,7 +555,8 @@ ECS_AUTO_REGISTER_COMPONENT(rendinst::riex_handle_t, "ri_extra__handle", &rendin
 
 ECS_TRACK(transform)
 ECS_REQUIRE(eastl::true_type ri_motion__enabled = true)
-static __forceinline void rendinst_track_move_es_event_handler(const ecs::Event &, ecs::EntityId eid, RiExtraComponent &ri_extra,
+ECS_REQUIRE_NOT(ecs::Tag ri_extra_moves_every_frame)
+static void rendinst_track_move_es_event_handler(const ecs::Event &, ecs::EntityId eid, RiExtraComponent &ri_extra,
   const TMatrix &transform, Point3 ri_extra__velocity = Point3(0, 0, 0), Point3 ri_extra__omega = Point3(0, 0, 0),
   const ecs::UInt64List *door_ri_extra__handles = nullptr)
 {
@@ -510,7 +565,30 @@ static __forceinline void rendinst_track_move_es_event_handler(const ecs::Event 
     debug("%s riex.handle=%d eid=%d is not valid can't move", __FUNCTION__, ri_extra.handle, (ecs::entity_id_t)eid);
     return;
   }
-  move_ri_extra_tm_with_motion(ri_extra.handle, transform, ri_extra__velocity, transform % ri_extra__omega);
+  move_ri_extra_tm_with_motion(ri_extra.handle, transform, ri_extra__velocity, transform % ri_extra__omega, eid);
+  if (door_ri_extra__handles != nullptr)
+    for (uint64_t handle : *door_ri_extra__handles)
+      move_ri_extra_tm_with_motion(handle, transform, ri_extra__velocity, transform % ri_extra__omega);
+#if DAECS_EXTENSIVE_CHECKS  // we can't enable console var in release anyway
+  if (debug_movement.get()) // to be removed from here
+    debug("rendinst_move moving riex.handle=%d eid=%d x =%@ pos = %@", ri_extra.handle, (ecs::entity_id_t)eid, transform.getcol(0),
+      transform.getcol(3));
+#endif
+}
+
+ECS_NO_ORDER
+ECS_REQUIRE(ecs::Tag ri_extra_moves_every_frame)
+ECS_REQUIRE(eastl::true_type ri_motion__enabled = true)
+static void rendinst_update_move_es_event_handler(const ecs::UpdateStageInfoAct &, ecs::EntityId eid, RiExtraComponent &ri_extra,
+  const TMatrix &transform, Point3 ri_extra__velocity = Point3(0, 0, 0), Point3 ri_extra__omega = Point3(0, 0, 0),
+  const ecs::UInt64List *door_ri_extra__handles = nullptr)
+{
+  if (!rendinst::isRiGenExtraValid(ri_extra.handle)) // to be removed
+  {
+    debug("%s riex.handle=%d eid=%d is not valid can't move", __FUNCTION__, ri_extra.handle, (ecs::entity_id_t)eid);
+    return;
+  }
+  move_ri_extra_tm_with_motion(ri_extra.handle, transform, ri_extra__velocity, transform % ri_extra__omega, eid);
   if (door_ri_extra__handles != nullptr)
     for (uint64_t handle : *door_ri_extra__handles)
       move_ri_extra_tm_with_motion(handle, transform, ri_extra__velocity, transform % ri_extra__omega);
@@ -596,19 +674,23 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
     return false;
   }
 
-  if (!rendinst::isRiExtraLoaded() || !DelayedSpawnRiExtra::dyn_riex_creation_queue.empty())
+  if (!rendinst::isRiExtraLoaded() || DelayedSpawnRiExtra::numPendingSpawnRiExtraActions)
   {
     logerr("%d<%s>: Unable to replace riextra res '%s' - riextra are not loaded yet!", eid, mgr.getEntityTemplateName(eid), res_name);
     return false;
   }
 
-  if (riExtra->handle != rendinst::RIEX_HANDLE_NULL)
+  int32_t savedSeed = 0;
+  if (riExtra->handle == rendinst::RIEX_HANDLE_NULL)
+    savedSeed = mgr.getOr(eid, ECS_HASH("ri_extra__savedSeed"), 0);
+  else
   {
     if (rendinst::handle_to_ri_type(riExtra->handle) == resIdx) // skip if there is already such a resource
       return true;
 
-
     bool isRiHandleValid = rendinst::isRiGenExtraValid(riExtra->handle);
+    savedSeed = isRiHandleValid ? (int32_t)rendinst::get_riextra_instance_seed(riExtra->handle)
+                                : mgr.getOr(eid, ECS_HASH("ri_extra__savedSeed"), 0);
     if (isRiHandleValid)
     {
       bool *isReplaced = mgr.getNullableRW<bool>(eid, ECS_HASH("ri_extra__isBeingReplaced"));
@@ -629,9 +711,10 @@ bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy,
   }
 
   const rendinst::riex_handle_t prevHandle = riExtra->handle;
-  riExtra->handle = spawn_ri_extra(mgr, eid, resIdx, res_name, /*preloaded*/ false);
+  riExtra->handle =
+    spawn_ri_extra(mgr, eid, resIdx, res_name, /*preloaded*/ false, savedSeed ? 1 : 0, savedSeed ? &savedSeed : nullptr);
   if (prevHandle != rendinst::RIEX_HANDLE_NULL)
-    g_entity_mgr->sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, riExtra->handle, false));
+    mgr.sendEventImmediate(eid, EventRiExtraHandleReplaced(prevHandle, riExtra->handle, false));
   return riExtra->handle != rendinst::RIEX_HANDLE_NULL;
 }
 
@@ -645,9 +728,14 @@ static void rendinst_ruler_es(const ecs::UpdateStageInfoRenderDebug &, const TMa
 
   float t = 1000.f;
   rendinst::RendInstDesc traceDesc;
-  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, nullptr, nullptr, dacoll::ETF_RI | dacoll::ETF_RI_TREES,
+  int pmid = -1;
+  dacoll::traceray_normalized(transform.getcol(3), transform.getcol(2), t, &pmid, nullptr, dacoll::ETF_RI | dacoll::ETF_RI_TREES,
     &traceDesc);
-  rendinst::draw_rendinst_info(transform.getcol(3) + transform.getcol(2) * t, transform, traceDesc);
+  Point3 pos = transform.getcol(3) + transform.getcol(2) * t;
+  if (ruler == 1)
+    rendinst::draw_rendinst_info(pos, transform, traceDesc, pmid);
+  if (ruler == 2)
+    rendinst::draw_rendinst_canopy(pos, transform, traceDesc);
 }
 
 ECS_NO_ORDER

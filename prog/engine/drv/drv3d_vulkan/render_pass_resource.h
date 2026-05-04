@@ -18,7 +18,6 @@ using RenderPassCreationInfo = RenderPassDesc;
 struct StateFieldRenderPassTarget;
 struct FrontRenderPassStateStorage;
 class VariatedGraphicsPipeline;
-class ExecutionContext;
 struct PipelineStageStateBase;
 
 struct SubpassExtensions
@@ -26,6 +25,9 @@ struct SubpassExtensions
   // index into VkAttachmentReference array
   // -1 means that no depthStencilResolve struct should be chained
   int depthStencilResolveAttachmentIdx = -1;
+  // index into VkAttachmentReference array
+  // -1 means that no shadingRate struct should be chained
+  int shadingRateAttachmentIdx = -1;
 };
 
 struct RenderPassConvertedDescription
@@ -106,8 +108,8 @@ public:
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void restoreFromSysCopy(ExecutionContext &ctx);
-  void makeSysCopy(ExecutionContext &ctx);
+  void restoreFromSysCopy();
+  void makeSysCopy();
   void onDeviceReset();
   void afterDeviceReset();
 
@@ -151,6 +153,8 @@ public:
       {}
     };
   };
+  static VkResult convertAndCreateRenderPass2(VkRenderPass *dst, const VkRenderPassCreateInfo &src,
+    const Tab<VkAttachmentReference> &src_refs, const Tab<SubpassExtensions> &subpass_extensions);
 
 private:
   //
@@ -164,8 +168,6 @@ private:
     const RenderPassDesc &rp_desc, bool ro_ds_input_attachment);
   static void addStoreDependencyFromOverallAttachmentUsage(SubpassDep &dep, const RenderPassDesc &rp_desc, int32_t target);
   static void convertAttachmentRefToVersion2(VkAttachmentReference2 &dst, const VkAttachmentReference &src);
-  static VkResult convertAndCreateRenderPass2(VkRenderPass *dst, const VkRenderPassCreateInfo &src,
-    const Tab<VkAttachmentReference> &src_refs, const Tab<SubpassExtensions> &subpass_extensions);
 
   //
   // desc stores
@@ -194,9 +196,9 @@ private:
   static BakedAttachmentSharedData *bakedAttachments;
 
   uint32_t activeSubpass;
-  void advanceSubpass(ExecutionContext &ctx);
+  void advanceSubpass();
 
-  void updateImageStatesForCurrentSubpass(ExecutionContext &ctx);
+  void updateImageStatesForCurrentSubpass();
 
   void performSelfDepsForSubpass(uint32_t subpass);
 
@@ -259,13 +261,13 @@ public:
   bool allowSRGBWrite(uint32_t index);
   void destroyFBsWithImage(const Image *img);
 
-  void beginPass(ExecutionContext &ctx);
-  void nextSubpass(ExecutionContext &ctx);
-  void endPass(ExecutionContext &ctx);
+  void beginPass();
+  void nextSubpass();
+  void endPass();
 
   VkExtent2D getMaxActiveAreaExtent();
 
-  void bindInputAttachments(ExecutionContext &ctx, PipelineStageStateBase &tgt, uint32_t input_index, uint32_t register_index,
+  void bindInputAttachments(PipelineStageStateBase &tgt, uint32_t input_index, uint32_t flat_binding_index,
     const VariatedGraphicsPipeline *pipeline);
 
   void addPipelineCompileRef() { ++pipelineCompileRefs; }

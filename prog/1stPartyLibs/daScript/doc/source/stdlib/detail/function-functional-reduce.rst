@@ -1,1 +1,0 @@
-summ of all elements

@@ -2,14 +2,14 @@
 
 #include "amdFsr.h"
 
-#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
 #include <osApiWrappers/dag_dynLib.h>
-#include <osApiWrappers/dag_unicode.h>
-#include <ioSys/dag_dataBlock.h>
 #include <ffx_api/ffx_upscale.hpp>
 #include <drv_log_defs.h>
+#include <memory/dag_framemem.h>
+#include <drv/3d/dag_resetDevice.h>
 
 #define VK_NO_PROTOTYPES
 
@@ -48,7 +48,7 @@ static inline FfxApiResource ffx_get_resource(void *texture, uint32_t state)
 static PFN_vkVoidFunction VKAPI_ATTR override_vkGetDeviceProcAddr(VkDevice device, const char *pName)
 {
   auto addr = drv3d_vulkan::Globals::VK::loader.vkGetDeviceProcAddr(device, pName);
-  logdbg("[AMDFSR] vkGetDeviceProcAddr: %s -> 0x%p", pName, addr);
+  logdbg("[AMDFSR] vkGetDeviceProcAddr: %s -> 0x%p", pName, (void *)addr);
 
   if (!addr)
   {
@@ -74,15 +74,35 @@ static PFN_vkVoidFunction VKAPI_ATTR override_vkGetDeviceProcAddr(VkDevice devic
   return addr;
 }
 
+class FSRVulkan;
+namespace
+{
+FSRVulkan *vkFsrInstance = nullptr; // With this only one FSR instance is allowed. When this will became a problem, please fix it
+}
+
 class FSRVulkan : public FSR
 {
 public:
   FSRVulkan()
   {
     logdbg("[AMDFSR] Creating upscaling FSRVulkan...");
+    G_ASSERT(!vkFsrInstance);
+    vkFsrInstance = this;
+    loadLib();
+  }
 
+  ~FSRVulkan()
+  {
+    fsrModule.reset();
+    vkFsrInstance = nullptr;
+  }
+
+  void loadLib()
+  {
 #if _TARGET_PC_WIN
     fsrModule.reset(os_dll_load("amd_fidelityfx_vk.dll"));
+#elif _TARGET_PC_LINUX
+    fsrModule.reset(os_dll_load("libamd_fidelityfx_vk.so"));
 #endif
 
     if (fsrModule)
@@ -94,9 +114,35 @@ public:
       dispatch = (PfnFfxDispatch)os_dll_get_symbol(fsrModule.get(), "ffxDispatch");
     }
 
-    if (isLoaded())
+    if (isLoadedImpl())
     {
       logdbg("[AMDFSR] FSRVulkan created.");
+      uint64_t versionCount = 0;
+      ffxQueryDescGetVersions versionsDesc{
+        .header{
+          .type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS,
+        },
+        .createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE,
+        .outputCount = &versionCount,
+      };
+      if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK && versionCount > 0)
+      {
+        dag::Vector<uint64_t, framemem_allocator> versionIds;
+        dag::Vector<const char *, framemem_allocator> versionNames;
+        versionIds.resize_noinit(versionCount);
+        versionNames.resize_noinit(versionCount);
+        versionsDesc.versionIds = versionIds.data();
+        versionsDesc.versionNames = versionNames.data();
+
+        if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK)
+        {
+          for (int verIx = 0; verIx < versionCount; ++verIx)
+            logdbg("[AMDFSR] provider %llu - %s", versionIds[verIx], versionNames[verIx]);
+
+          // The first returned provider is FSR upscaling
+          upscalingVersionString = versionNames.front();
+        }
+      }
     }
     else
     {
@@ -122,7 +168,7 @@ public:
 
     backendDesc.vkDeviceProcAddr = override_vkGetDeviceProcAddr;
 
-    ffx::CreateContextDescUpscale desc = convert(args, backendDesc.header);
+    ffxCreateContextDescUpscale desc = convert(args, backendDesc.header);
 
     auto status = createContext(&upscalingContext, &desc.header, nullptr);
     if (status != FFX_API_RETURN_OK)
@@ -131,7 +177,7 @@ public:
       return false;
     }
 
-    upscalingMode = args.mode;
+    contextArgs = args;
 
     logdbg("[AMDFSR] Upscaling initialized.");
 
@@ -147,7 +193,7 @@ public:
 
     destroyContext(&upscalingContext, nullptr);
     upscalingContext = nullptr;
-    upscalingMode = UpscalingMode::Off;
+    contextArgs.mode = UpscalingMode::Off;
   }
 
   Point2 getNextJitter(uint32_t render_width, uint32_t output_width)
@@ -165,9 +211,11 @@ public:
     return get_rendering_resolution(mode, target_resolution, upscalingContext, query);
   }
 
-  UpscalingMode getUpscalingMode() const override { return upscalingMode; }
+  UpscalingMode getUpscalingMode() const override { return contextArgs.mode; }
 
-  bool isLoaded() const override { return createContext && destroyContext && configure && query && dispatch; }
+  bool isLoadedImpl() const { return fsrModule && createContext && destroyContext && configure && query && dispatch; }
+
+  bool isLoaded() const override { return isLoadedImpl(); }
 
   bool isUpscalingSupported() const override { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
 
@@ -189,6 +237,30 @@ public:
 
   bool isFrameGenerationSuppressed() const override { return false; }
 
+  String getVersionString() const override { return upscalingVersionString; }
+
+  void before_reset()
+  {
+    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+
+    if (upscalingContext)
+    {
+      destroyContext(&upscalingContext, nullptr);
+      upscalingContext = nullptr;
+    }
+
+    fsrModule.reset();
+  }
+
+  void after_reset()
+  {
+    // The regular tear down resets the mode to off, but the preRecover keeps the mode
+    // and the mode isn't off here have to restore the fsr context and reinitialize the object
+    loadLib();
+    if (getUpscalingMode() != amd::FSR::UpscalingMode::Off)
+      initUpscaling(contextArgs);
+  }
+
 private:
   DagorDynLibHolder fsrModule;
 
@@ -200,11 +272,27 @@ private:
 
   ffxContext upscalingContext = nullptr;
 
-  UpscalingMode upscalingMode = UpscalingMode::Off;
+  ContextArgs contextArgs = {};
 
-  uint32_t jitterIndex = 0;
+  int32_t jitterIndex = 0;
+  String upscalingVersionString = String(8, "");
 };
 
 FSR *createVulkan() { return new FSRVulkan; }
 
 } // namespace amd
+
+static void fsr_vk_before_reset(bool full_reset)
+{
+  if (full_reset && amd::vkFsrInstance)
+    amd::vkFsrInstance->before_reset();
+}
+
+static void fsr_vk_after_reset(bool full_reset)
+{
+  if (full_reset && amd::vkFsrInstance)
+    amd::vkFsrInstance->after_reset();
+}
+
+REGISTER_D3D_BEFORE_RESET_FUNC(fsr_vk_before_reset);
+REGISTER_D3D_AFTER_RESET_FUNC(fsr_vk_after_reset);

@@ -12,7 +12,7 @@
 #include <string.h>
 #include "dedicated.h"
 #include <generic/dag_tab.h>
-#include <crypto/base64.h>
+#include <dagCrypto/base64.h>
 #if _TARGET_PC_WIN
 #include <windows.h> // GetUserNameA
 #endif

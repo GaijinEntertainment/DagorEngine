@@ -3,7 +3,7 @@ testData/static_analyzer/w232_ternary.nut:2:12
 
 //expect:w232
 local foo = function() { } ? false : true
-            ^---------------
+            ^-------------
 return foo
 
 

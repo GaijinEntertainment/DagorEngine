@@ -1,5 +1,5 @@
 # https://github.com/jrouwe/JoltPhysics.git
-# rev 4f9a86b53916cc91c042acf6cd79eeef62bf5f0c
+# rev 7b9fbc356e83e3faaef36311f2d7fd6cc9720916
 Root    ?= ../../../.. ;
 Location = prog/3rdPartyLibs/phys/joltPhysics ;
 PlatformArch_windows ?= x86_64 ;
@@ -14,6 +14,10 @@ Target      = 3rdPartyLibs/phys/joltPhysics.lib ;
 
 local _SrcDirs =
   Jolt/AABBTree
+  Jolt/Compute
+  Jolt/Compute/CPU
+  Jolt/Compute/DX12
+  Jolt/Compute/VK
   Jolt/Core
   Jolt/Geometry
   Jolt/Math
@@ -25,9 +29,11 @@ local _SrcDirs =
   Jolt/Physics/Collision/BroadPhase
   Jolt/Physics/Collision/Shape
   Jolt/Physics/Constraints
+  Jolt/Physics/Hair
   Jolt/Physics/Ragdoll
   Jolt/Physics/SoftBody
   Jolt/Physics/Vehicle
+  Jolt/Shaders
   Jolt/Skeleton
   Jolt/TriangleSplitter
 ;
@@ -44,6 +50,7 @@ if $(PlatformSpec) in gcc clang {
   local xclang = - ;
   if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
   if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for -fno-trapping-math after -fno-unsafe-math-optimizations
+  else { CPPopt += -Wno-uninitialized ; } # Uninitialized warnings on `index` in UnorderedMap.h
   if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
   CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
   if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }

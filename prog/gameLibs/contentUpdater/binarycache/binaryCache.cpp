@@ -6,6 +6,8 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_findFiles.h>
 #include <osApiWrappers/dag_directUtils.h>
+#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <folders/folders.h>
 #include <statsd/statsd.h>

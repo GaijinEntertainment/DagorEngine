@@ -1,0 +1,8 @@
+ERROR: Access to root table is forbidden
+testData/diagnostics/compilation_errors/syntax_errors/root_table_forbidden.nut:3:8
+
+#forbid-root-table
+let x = ::some_global
+        ^-
+
+

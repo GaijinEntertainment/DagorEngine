@@ -61,7 +61,7 @@ function addCompToCompAnim(from, to, component, easing = InOutQuad, duration = 1
       key = id
       size = toSize
       pos = [toBox.l, toBox.t]
-      transform = static { pivot = [0, 0] }
+      transform = const { pivot = [0, 0] }
       children = component
       animations
       onDetach = @() removeCompAnim(id)

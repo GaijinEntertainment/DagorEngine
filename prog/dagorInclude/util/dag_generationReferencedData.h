@@ -16,7 +16,7 @@
 
 template <class ReferenceType, class DataType,
   class GenerationType = typename eastl::conditional_t<ReferenceType::GENERATION_BITS <= 8, uint8_t, uint16_t>,
-  int MinimumFreeIndices = 16>
+  int MinimumFreeIndices = (ReferenceType::GENERATION_BITS <= 8) ? 256 : 16>
 class GenerationReferencedData
 {
 public:

@@ -9,11 +9,8 @@
 #include "stl/daProfilerStl.h"
 #include <ioSys/dag_memIo.h>
 
-#if _TARGET_XBOX
-static constexpr int DEFAULT_PORT = 4601; // port on xbox SHOULD be 4601.
-#else
 static constexpr int DEFAULT_PORT = 31500;
-#endif
+
 // network / another dump saving server
 // game send dumps to servers, servers process them.
 // this one sends dump to socket for daProfler GUI tool
@@ -85,6 +82,10 @@ public:
       logerr("Can't init profiler net server %s", os_socket_error_str(os_socket_last_error(), buf, sizeof(buf)));
       return false;
     }
+    // windows allows reusing TIME_WAIT ports by default, while other systems need special flag to reuse such ports
+#if !_TARGET_PC_WIN
+    os_socket_set_reuse_addr(sock.get(), true); // must be set before bind to allow reuse of TIME_WAIT ports
+#endif
     os_socket_addr addr;
     os_socket_addr_from_string(OSAF_IPV4, "0.0.0.0", &addr, sizeof(addr));
     int port = start_port, end_port = start_port + port_range;
@@ -106,7 +107,6 @@ public:
       return false;
     }
     os_socket_set_option(sock.get(), OSO_NONBLOCK, 1); // prefer non-blocking sockets for listening
-    os_socket_set_reuse_addr(sock.get(), true);
     debug("Listening to profiler client on port %d", port);
     listenSocket = ((SocketHandler &&)sock);
     return true;
@@ -226,7 +226,7 @@ public:
     NoData,
     Error
   };
-  ReadStatus read(void *ptr_, size_t size) // either reads full data, or return error
+  ReadStatus read(void *ptr_, int size) // either reads full data, or return error
   {
     const int status = os_socket_read_select(client.sock.get());
     if (status == 0)

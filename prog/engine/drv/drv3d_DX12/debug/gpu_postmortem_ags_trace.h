@@ -19,7 +19,7 @@ struct Direct3D12Enviroment;
 struct PipelineStageStateBase;
 namespace debug
 {
-union Configuration;
+struct Configuration;
 namespace gpu_postmortem::ags
 {
 class AgsTrace

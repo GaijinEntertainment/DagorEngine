@@ -14,6 +14,7 @@
 #include <EASTL/algorithm.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <gameRes/dag_resourceNameResolve.h>
 
 #if CAM_STUB
@@ -465,11 +466,11 @@ void unitedvdata::BufPool::getSeparateChunks(dag::ConstSpan<Ptr<ShaderMatVdata>>
 
 static int get_optional_buffer_flags()
 {
-  const Driver3dDesc &drvDsc = d3d::get_driver_desc();
+  auto &drvDesc = d3d::get_driver_desc();
   // This is a SM5.0 feature and is used in CS.
   // that should be available if big buffer views are possible
-  uint32_t optionalFlags = drvDsc.shaderModel >= 5.0_sm ? SBCF_MISC_ALLOW_RAW : 0;
-  if (drvDsc.issues.hasSmallSampledBuffers)
+  uint32_t optionalFlags = drvDesc.shaderModel >= 5.0_sm ? SBCF_MISC_ALLOW_RAW : 0;
+  if (drvDesc.issues.hasSmallSampledBuffers)
     optionalFlags = SBCF_MISC_STRUCTURED;
 
   return optionalFlags;
@@ -497,7 +498,7 @@ bool unitedvdata::BufPool::allocateBuffer(int idx, size_t size, const char *name
 
   char bufName[32];
   snprintf(bufName, sizeof(bufName), name_fmt, nameChar, idx != IDX_IB ? 'v' : 'i', idx);
-  Sbuffer *candidate = d3d::create_sbuffer(4, round_up<4>(size) / 4, flags, 0, bufName);
+  Sbuffer *candidate = d3d::create_sbuffer(4, round_up<4>(size) / 4, flags, 0, bufName, RESTAG_UNITED_DATA);
 
   if (candidate)
   {
@@ -713,6 +714,8 @@ void ShaderResUnitedVdata<RES>::updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> 
 template <class RES>
 void ShaderResUnitedVdata<RES>::rebaseElemOfs(const RES *r, dag::ConstSpan<int> dviOfs)
 {
+  on_mesh_relems_about_to_be_updated.fire(r, false, 0);
+
   Tab<dag::ConstSpan<ShaderMesh::RElem>> relems(framemem_ptr());
   RES::lockClonesList();
   for (const RES *rx = r->getFirstOriginal(); rx; rx = rx->getNextClone())
@@ -979,18 +982,61 @@ inline void ShaderResUnitedVdata<RES>::releaseUpdateJob(UpdateModelCtx &ctx)
 }
 
 template <class RES>
-bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
+void ShaderResUnitedVdata<RES>::initReloadJobMgrIdNoLock()
 {
-  G_ASSERT_RETURN(buf.allowDelRes, false);
-
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
   if (reloadJobMgrId < 0)
   {
     char jobMgrName[64];
     snprintf(jobMgrName, sizeof(jobMgrName), "%sReloadVdata", RES::getStaticClassName());
-    reloadJobMgrId = cpujobs::create_virtual_job_manager(192 << 10, WORKER_THREADS_AFFINITY_MASK, jobMgrName);
+    interlocked_release_store(reloadJobMgrId,
+      cpujobs::create_virtual_job_manager(192 << 10, WORKER_THREADS_AFFINITY_MASK, jobMgrName));
     register_job_manager_requiring_shaders_bindump(reloadJobMgrId);
   }
+}
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::reloadResList(PtrTab<RES> &&resources)
+{
+  if (resources.empty())
+    return;
+  if (interlocked_acquire_load(reloadJobMgrId) < 0)
+  {
+    std::unique_lock<std::mutex> scopedLock(appendMutex);
+    initReloadJobMgrIdNoLock();
+  }
+  struct ReloadVdataListJob : public cpujobs::IJob
+  {
+    ShaderResUnitedVdata *unitedVdata;
+    PtrTab<RES> resources;
+    const char *getJobName(bool &) const override { return "ReloadVdataListJob"; }
+    void doJob() override
+    {
+      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex);
+      for (const Ptr<RES> &res : resources)
+        unitedVdata->reloadResNoLock(res.get());
+    }
+    void releaseJob() override { delete this; }
+  };
+  ReloadVdataListJob *job = new ReloadVdataListJob;
+  job->unitedVdata = this;
+  job->resources = eastl::move(resources);
+  cpujobs::add_job(reloadJobMgrId, job);
+}
+
+template <class RES>
+bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
+{
+  std::unique_lock<std::mutex> scopedLock(appendMutex);
+  if (reloadJobMgrId < 0)
+    initReloadJobMgrIdNoLock();
+  return reloadResNoLock(res);
+}
+
+template <class RES>
+bool ShaderResUnitedVdata<RES>::reloadResNoLock(RES *res)
+{
+  G_ASSERT_RETURN(reloadJobMgrId >= 0, false);
+  G_ASSERT_RETURN(buf.allowDelRes, false);
   if (res->getResLoadingFlag())
     return false;
   if ((vbSizeToFree > 0 || ibSizeToFree > 0) && find_value_idx(failedVdataReloadResList, res) >= 0)
@@ -1029,25 +1075,41 @@ bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
   delete j;
   return false;
 }
+
 template <class RES>
 void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
 {
-  if (upper_lod <= res->getQlBestLod() || res->getResLoadingFlag())
-    return;
-
-  G_ASSERTF(is_main_thread() || res->getQlReqLFU() + 120 <= dagor_frame_no() || res->getRefCount() <= 2 || get_inst_count(res) == 0,
-    "res=%p upper_lod=%d res->getQlBestLod()=%d relLFU=%d rc=%d inst=%d", res, upper_lod, res->getQlBestLod(),
-    int(dagor_frame_no() - res->getQlReqLFU()), res->getRefCount(), get_inst_count(res));
-  BufChunkTab out_c1, out_c2;
   int idx = find_value_idx(resList, res);
+  if (idx >= 0 && shouldDowngradeRes(idx, upper_lod))
+    doDowngradeRes(idx, upper_lod);
+}
+
+template <class RES>
+bool ShaderResUnitedVdata<RES>::shouldDowngradeRes(int idx, int upper_lod)
+{
+  RES *res = resList[idx];
+  if (upper_lod <= res->getQlBestLod() || res->getResLoadingFlag())
+    return false;
   if (res->getQlBestLod() + 1 == upper_lod)
   {
     unsigned ib_sum = 0, vb_sum = 0;
     for (const BufChunk &c : getBufChunks(idx))
       (c.vbIdx == BufPool::IDX_IB ? ib_sum : vb_sum) += c.sz;
     if (ib_sum < (12 << 10) && vb_sum < (64 << 10)) // don't unload single LOD when resource is small anyway
-      return;
+      return false;
   }
+  return true;
+}
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::doDowngradeRes(int idx, int upper_lod)
+{
+  RES *res = resList[idx];
+  G_ASSERTF(is_main_thread() || res->getQlReqLFU() + 120 <= dagor_frame_no() || res->getRefCount() <= 2 || get_inst_count(res) == 0,
+    "res=%p upper_lod=%d res->getQlBestLod()=%d relLFU=%d rc=%d inst=%d", res, upper_lod, res->getQlBestLod(),
+    int(dagor_frame_no() - res->getQlReqLFU()), res->getRefCount(), get_inst_count(res));
+
+  BufChunkTab out_c1, out_c2;
   if (upper_lod < res->getQlReqLodEff())
     res->updateReqLod(upper_lod);
   buf.getSeparateChunks(res->getSmvd(), upper_lod, make_span(resUsedChunks[idx]), out_c1, out_c2);
@@ -1065,24 +1127,14 @@ void ShaderResUnitedVdata<RES>::downgradeRes(RES *res, int upper_lod)
   if (!out_c2.size())
     return;
 
+  on_mesh_relems_about_to_be_updated.fire(res, true, upper_lod);
+
   res->incQlDiscardCnt();
   updateLocalMaximum(dbg_level >= 0);
   buf.releaseBufChunk(out_c2, true);
   for (BufChunk &c0 : out_c2)
     interlocked_add((c0.vbIdx == BufPool::IDX_IB ? ibSizeToFree : vbSizeToFree), -int(c0.sz));
   on_mesh_relems_updated.fire(res, true, upper_lod);
-}
-template <class RES>
-void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
-{
-  if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
-  {
-    uselessDiscardAttempts = 0;
-    return;
-  }
-
-  std::lock_guard<std::mutex> scopedLock(appendMutex);
-  discardUnusedResToFreeReqMemNoLock(false);
 }
 
 template <class RES>
@@ -1093,9 +1145,13 @@ void ShaderResUnitedVdata<RES>::setAllocationLimits(int ibKb, int vbKb)
 }
 
 template <class RES>
-void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
+void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool forced, bool async)
 {
-  int prev_vb_to_free = vbSizeToFree, prev_ib_to_free = ibSizeToFree;
+  if (interlocked_acquire_load(vbSizeToFree) <= 0 && interlocked_acquire_load(ibSizeToFree) <= 0)
+  {
+    uselessDiscardAttempts = 0;
+    return;
+  }
 
   if (!failedVdataReloadResList.size() && !forced)
   {
@@ -1105,50 +1161,144 @@ void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemNoLock(bool forced)
     return;
   }
 
-  for (int idx = 0; idx < resList.size(); idx++)
+  struct DiscardUnusedResJob : cpujobs::IJob
   {
-    Ptr<RES> res = resList[idx];
-    if (res->lods.size() < 2 || res->getQlBestLod() >= res->lods.size() - 1 || !res->areLodsSplit())
-      continue;
+    ShaderResUnitedVdata *unitedVdata;
+    PtrTab<RES> resToDowngrade;
+    bool isAsyncJob;
+    bool anythingDiscarded = false;
+    explicit DiscardUnusedResJob(ShaderResUnitedVdata *unitedVdata, bool is_async_job) :
+      unitedVdata(unitedVdata), isAsyncJob(is_async_job)
+    {}
+    const char *getJobName(bool &) const override { return "DiscardUnusedResJob"; }
+    void doJob() override
+    {
+      interlocked_release_store(unitedVdata->discardJobIsPending, 0);
+      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex, std::defer_lock);
+      if (isAsyncJob)
+        scopedLock.lock();
+      int prevVbSizeToFree = unitedVdata->vbSizeToFree;
+      int prevIbSizeToFree = unitedVdata->ibSizeToFree;
+      unitedVdata->discardUnusedResGather([&](int idx, RES *res, int upper_lod, bool is_referenced) {
+        if (!is_referenced || is_main_thread())
+          unitedVdata->doDowngradeRes(idx, upper_lod);
+        else
+          resToDowngrade.push_back(res);
+      });
+      anythingDiscarded |= prevVbSizeToFree > unitedVdata->vbSizeToFree;
+      anythingDiscarded |= prevIbSizeToFree > unitedVdata->ibSizeToFree;
+    }
+    void releaseJob() override
+    {
+      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex, std::defer_lock);
+      if (isAsyncJob)
+      {
+        if (!scopedLock.try_lock())
+        {
+          // restart job on failed lock
+          unitedVdata->discardUnusedResToFreeReqMemImpl(/* lock */ true, /* forced */ false, /* async */ true);
+          delete this;
+          return;
+        }
+      }
+      if (!resToDowngrade.empty() && is_main_thread())
+      {
+        TIME_PROFILE(discard_unused_vdata)
+        int prevVbSizeToFree = unitedVdata->vbSizeToFree;
+        int prevIbSizeToFree = unitedVdata->ibSizeToFree;
+        RES::lockClonesList();
+        for (const Ptr<RES> &res : resToDowngrade)
+        {
+          unitedVdata->downgradeRes(res, res->getQlReqLodEff());
+          if (unitedVdata->vbSizeToFree <= -(128 << 10) && unitedVdata->ibSizeToFree <= -(24 << 10))
+            break;
+        }
+        RES::unlockClonesList();
+        anythingDiscarded |= prevVbSizeToFree > unitedVdata->vbSizeToFree;
+        anythingDiscarded |= prevIbSizeToFree > unitedVdata->ibSizeToFree;
+      }
+      if (!anythingDiscarded)
+        unitedVdata->uselessDiscardAttempts++;
+      if (unitedVdata->uselessDiscardAttempts > 30 || (unitedVdata->vbSizeToFree <= 0 && unitedVdata->ibSizeToFree <= 0))
+      {
+        unitedVdata->failedVdataReloadResList.clear();
+        interlocked_release_store(unitedVdata->vbSizeToFree, 0);
+        interlocked_release_store(unitedVdata->ibSizeToFree, 0);
+        unitedVdata->uselessDiscardAttempts = 0;
+      }
+      if (isAsyncJob)
+        delete this;
+    }
+  };
+
+  if (reloadJobMgrId != -1 && async)
+  {
+    if (interlocked_exchange(discardJobIsPending, 1) == 0)
+      cpujobs::add_job(reloadJobMgrId, new DiscardUnusedResJob(this, /* async job */ true));
+  }
+  else
+  {
+    std::unique_lock<std::mutex> scopedLock(appendMutex, std::defer_lock);
+    if (lock)
+      scopedLock.lock();
+    DiscardUnusedResJob job(this, /* async job */ false);
+    job.doJob();
+    job.releaseJob();
+  }
+}
+
+template <class RES>
+void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMem()
+{
+  discardUnusedResToFreeReqMemImpl(/* lock */ true, /* forced */ false, /* async */ true);
+}
+
+template <class RES>
+template <typename F>
+void ShaderResUnitedVdata<RES>::discardUnusedResGather(F &&cb)
+{
+  RES::lockClonesList();
+  const auto discardIfNotUsed = [&](int idx, RES *res) {
     bool discard_at_all = res->getRefCount() <= 2 || get_inst_count(res) == 0; // no instances created
     if (!discard_at_all)
     {
       if (res->getQlReqLFU() + noDiscardFrames > dagor_frame_no())
-        continue;
+        return false;
       if (res->getQlReqLodEff() <= res->getQlBestLod() && res->getQlReqLFU() + keepIfNeedLodFrames > dagor_frame_no())
-        continue;
+        return false;
     }
 
-    downgradeRes(res,
-      (discard_at_all || res->getQlReqLFU() + keepIfNeedLodFrames <= dagor_frame_no()) ? res->lods.size() - 1 : res->getQlReqLodEff());
+    const int upperLod =
+      (discard_at_all || res->getQlReqLFU() + keepIfNeedLodFrames <= dagor_frame_no()) ? res->lods.size() - 1 : res->getQlReqLodEff();
+    if (!shouldDowngradeRes(idx, upperLod))
+      return false;
+    cb(idx, res, upperLod, /* is referenced */ false);
+    return true;
+  };
+
+  const auto downgradeLod = [&](int idx, RES *res) {
+    if (res->getQlReqLodEff() <= res->getQlBestLod())
+      return;
+    if (requestLodsByDistanceFrames > 0 && res->getQlReqLFU() + requestLodsByDistanceFrames >= dagor_frame_no())
+      return;
+    const int upperLod = res->getQlReqLodEff();
+    if (!shouldDowngradeRes(idx, upperLod))
+      return;
+    cb(idx, res, upperLod, /* is referenced */ true);
+  };
+
+  for (int idx = 0; idx < resList.size(); idx++)
+  {
     if (vbSizeToFree <= 0 && ibSizeToFree <= 0)
       break;
+    Ptr<RES> res = resList[idx];
+    if (res->lods.size() < 2 || res->getQlBestLod() >= res->lods.size() - 1 || !res->areLodsSplit())
+      continue;
+    if (discardIfNotUsed(idx, res))
+      continue;
+    downgradeLod(idx, res);
   }
-  if ((vbSizeToFree > 0 || ibSizeToFree > 0) && is_main_thread()) // here we can safely downgrade to reqLod
-    for (int idx = 0; idx < resList.size(); idx++)
-    {
-      Ptr<RES> res = resList[idx];
-      if (res->lods.size() < 2 || res->getQlBestLod() >= res->lods.size() - 1 || !res->areLodsSplit())
-        continue;
-      if (res->getQlReqLodEff() <= res->getQlBestLod())
-        continue;
-      if (requestLodsByDistanceFrames > 0 && res->getQlReqLFU() + requestLodsByDistanceFrames >= dagor_frame_no())
-        continue;
-
-      downgradeRes(res, res->getQlReqLodEff());
-      if (vbSizeToFree <= -(128 << 10) && ibSizeToFree <= -(24 << 10))
-        break;
-    }
-
-  if (prev_vb_to_free <= vbSizeToFree && prev_ib_to_free <= ibSizeToFree)
-    uselessDiscardAttempts++;
-  if (uselessDiscardAttempts > 30 || (vbSizeToFree <= 0 && ibSizeToFree <= 0))
-  {
-    failedVdataReloadResList.clear();
-    interlocked_release_store(vbSizeToFree, 0);
-    interlocked_release_store(ibSizeToFree, 0);
-    uselessDiscardAttempts = 0;
-  }
+  RES::unlockClonesList();
 }
 
 template <class RES>
@@ -1167,7 +1317,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
   for (RES *r : res)
   {
     BufChunkTab c;
-    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, false, local_hints, &vb_to_free, &ib_to_free))
+    if (!buf.arrangeVdata(r->getSmvd(), c, buf.getIB(), true, true, local_hints, &vb_to_free, &ib_to_free))
       continue;
     if (!c.size())
     {
@@ -1212,7 +1362,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
   {
     debug("unitedVdata<%s>: IB/VB shortage in addRes(%d res), unarranged_res=%d, needIB=%dK, needVB=%dK), trying to discard unused",
       RES::getStaticClassName(), res.size(), unarranged_res.size(), ibSizeToFree >> 10, vbSizeToFree >> 10);
-    discardUnusedResToFreeReqMemNoLock(true);
+    discardUnusedResToFreeReqMemImpl(/* lock */ false, /* forced */ true, /* async */ false);
     Tab<RES *> res2(eastl::move(unarranged_res));
     dviOfs.reserve(8 * 2);
     for (RES *r : res2)
@@ -1254,7 +1404,7 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
       if (buf.allowDelRes)
       {
         if (i + 1 < resUsedChunks.size())
-          resUsedChunks[i] = eastl::move(resUsedChunks[resList.size() - 1]);
+          resUsedChunks[i] = eastl::move(resUsedChunks.back());
         resUsedChunks.pop_back();
       }
       i--;
@@ -1402,6 +1552,8 @@ bool ShaderResUnitedVdata<RES>::delRes(RES *res)
   int idx = find_value_idx(resList, res);
   if (idx < 0)
     return false;
+
+  on_mesh_relems_about_to_be_updated.fire(res, true, INT_MAX);
 
   updateLocalMaximum(dbg_level >= 0);
   buf.resetVdataBufPointers(resList[idx]->getSmvd());

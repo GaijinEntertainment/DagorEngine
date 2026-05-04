@@ -16,17 +16,20 @@ float3 screenspace_probe_dir_decode(float2 tc)
 #define SP_TAG_MOVING_PROBE   2
 #define SP_TAG_MOVING_SHIFT   1
 #define SP_TAG_AGE_SHIFT      (SP_TAG_MOVING_SHIFT + 1)
-#define SP_TAG_MAX_AGE        3
-#define SP_TAG_BORN_HISTORY_AGE    (SP_TAG_MAX_AGE+1)
-#define SP_TAG_AGE_MASK     (SP_TAG_MAX_AGE<<SP_TAG_AGE_SHIFT)
-#define SP_TAG_AGE_BORN     SP_TAG_AGE_MASK
+#define SP_MAX_AVAILABLE_QUICK_UPDATE_FRAMES 58
+#define SP_TAG_MAX_ENCODED_AGE 63
+#define SP_MIN_QUICK_UPDATE_REV_AGE (SP_TAG_MAX_ENCODED_AGE - SP_MAX_AVAILABLE_QUICK_UPDATE_FRAMES)
+#define SP_NEWBORN_REV_AGE (SP_MIN_QUICK_UPDATE_REV_AGE - 1)
+#define SP_MAX_REV_AGE (SP_NEWBORN_REV_AGE - 1)
+#define SP_TAG_AGE_MASK (SP_TAG_MAX_ENCODED_AGE << SP_TAG_AGE_SHIFT)
+#define SP_TAG_AGE_BORN (SP_MAX_REV_AGE << SP_TAG_AGE_SHIFT)
 
-#define SP_DEPTH_BITS 28
+#define SP_DEPTH_BITS 24
 #define SP_DEPTH_BITS_MASK ((1<<SP_DEPTH_BITS)-1)
 #define SP_TAG_BITS_SHIFT (SP_DEPTH_BITS)
 
-bool sp_is_relatively_new(uint tag) {return tag>>SP_TAG_AGE_SHIFT;} // age is below SP_TAG_MAX_AGE
-bool sp_is_moving_or_new(uint tag) {return (tag>>SP_TAG_MOVING_SHIFT) != 0;} // age is below SP_TAG_MAX_AGE or moving
+bool sp_is_relatively_new(uint tag) {return tag>>SP_TAG_AGE_SHIFT;} // age is below SP_TAG_MAX_ENCODED_AGE
+bool sp_is_moving_or_new(uint tag) {return (tag>>SP_TAG_MOVING_SHIFT) != 0;} // age is below SP_TAG_MAX_ENCODED_AGE or moving
 bool sp_is_newborn_tag(uint tag) {return (tag&SP_TAG_AGE_MASK) == SP_TAG_AGE_BORN;}
 bool sp_is_moving_tag(uint tag) {return tag&SP_TAG_MOVING_PROBE;}
 bool sp_has_additinal_probes(uint tag) {return tag&SP_TAG_HAS_ADDITIONAL;}
@@ -43,8 +46,8 @@ uint sp_decodeEncodedTagRevAge(uint tag) {return tag>>(SP_TAG_BITS_SHIFT + SP_TA
 uint sp_encodeAdditionalFinal(uint additional) {return additional<<SP_TAG_BITS_SHIFT;}
 uint sp_decodeTag(uint encoded_tag) {return encoded_tag>>SP_TAG_BITS_SHIFT;}
 uint sp_encodeTag(uint allTag) {return allTag<<SP_TAG_BITS_SHIFT;}
-uint sp_encodeNormalizedW(float w) {return max(1, saturate(w)*SP_DEPTH_BITS_MASK);}
-float sp_decodeNormalizedW(uint encoded)  {return (encoded&SP_DEPTH_BITS_MASK)*(1./SP_DEPTH_BITS_MASK);}
+uint sp_encodeNormalizedW(float w) {return asuint(w) >> (32 - SP_DEPTH_BITS);}
+float sp_decodeNormalizedW(uint encoded)  {return asfloat(encoded << (32 - SP_DEPTH_BITS));}
 
 struct DecodedProbe
 {

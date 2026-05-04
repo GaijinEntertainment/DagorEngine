@@ -11,9 +11,11 @@ shader copy_tex
 
   POSTFX_VS_TEXCOORD(0, texcoord)
 
+  (ps) {
+    tex@tex2d : register(2);
+    tex_samplerstate@sampler : register(2);
+  }
   hlsl(ps) {
-    Texture2D tex:register(t2);
-    SamplerState tex_samplerstate:register(s2);
     struct MRT_OUTPUT
     {
       float4 color:SV_Target0;

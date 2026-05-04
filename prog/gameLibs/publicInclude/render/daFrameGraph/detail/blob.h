@@ -17,6 +17,17 @@ struct BlobDescription
   ResourceSubtypeTag typeTag;
   using CtorT = dag::FixedMoveOnlyFunction<sizeof(void *) * 4, void(void *) const>;
   eastl::unique_ptr<CtorT> ctorOverride;
+
+  bool operator==(const BlobDescription &other) const
+  {
+    if (typeTag != other.typeTag)
+      return false;
+
+    if (ctorOverride || other.ctorOverride)
+      return false;
+
+    return true;
+  }
 };
 
 struct BlobView

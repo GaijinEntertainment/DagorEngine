@@ -10,7 +10,7 @@ macro INIT_CFD_CONSTS(code)
 endmacro
 
 macro INIT_CFD(code)
-  (code) {cfd_voxel_tex@smp2d = cfd_voxel_tex;}
+  (code) {cfd_voxel_tex@tex2d = cfd_voxel_tex;}
   INIT_CFD_CONSTS(code)
 endmacro
 

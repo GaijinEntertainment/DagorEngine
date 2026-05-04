@@ -3,39 +3,40 @@
 #include <ioSys/dag_dataBlock.h>
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderBlock.h>
 
 #include <render/nodeBasedShader.h>
 #include <drv/3d/dag_dispatch.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_lock.h>
 
 void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
 {
-  if (shadersCache.empty() || !shadersCache[currentShaderIdx])
+  if (DAGOR_UNLIKELY(!computeShader || shaderBlockId < 0))
+  {
+    logerr("NodeBasedShader::dispatch failed : shader was not loaded");
     return;
+  }
 
-  shaderManager->setConstants();
-  d3d::set_program(*shadersCache[currentShaderIdx]);
-  d3d::dispatch(xdim, ydim, zdim);
-  d3d::release_cb0_data(STAGE_CS);
-  ShaderElement::invalidate_cached_state_block();
-  shaderManager->resetSubCbuffers();
-}
+  shaderManager->setShadervars(variantId);
 
-void NodeBasedShader::setArrayValue(const char *name, const Tab<Point4> &values)
-{
-  if (shadersCache.empty() || !shadersCache[currentShaderIdx])
-    return;
+  {
+    SCOPE_RESET_SHADER_BLOCKS;
+    ShaderGlobal::setBlock(shaderBlockId, ShaderGlobal::LAYER_SCENE);
+    computeShader->dispatch(xdim, ydim, zdim);
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+  }
 
-  shaderManager->setArrayValue(name, values);
+  return;
 }
 
 bool NodeBasedShader::update(const String &shader_name, const DataBlock &shader_blk, String &out_errors)
 {
-  if (shaderManager->update(shader_blk, out_errors, NodeBasedShaderManager::PLATFORM::ALL))
+  if (shaderManager->update(shader_name, shader_blk, out_errors))
   {
-    loadedShaderName = nullptr;
-    shaderManager->saveToFile(shader_name, NodeBasedShaderManager::PLATFORM::ALL);
+    loadedShaderName = shader_name;
     createShaders();
     return true;
   }
@@ -49,31 +50,44 @@ NodeBasedShader::NodeBasedShader(NodeBasedShaderType shader, const String &shade
   G_ASSERTF(variant_id < get_shader_variant_count(shader) && int(variant_id) >= 0, "Unknown variant id for shader #%d: %d",
     (int)shader, variant_id);
 }
-NodeBasedShader::~NodeBasedShader() = default;
+NodeBasedShader::~NodeBasedShader() { shutdown(); }
 
 void NodeBasedShader::closeShader()
 {
-  shadersCache.clear();
-  shaderManager->resetCachedResources();
+  delete eastl::exchange(computeShader, nullptr);
+  shaderBlockId = -1;
 }
 
+// this should be called afterReset and not sure if its needed at all if we don't destroy engine shaders
 void NodeBasedShader::reset()
 {
-  shadersCache.clear();
+  shutdown();
   init(loadedShaderName, true);
+}
+
+void NodeBasedShader::shutdown()
+{
+  delete eastl::exchange(computeShader, nullptr);
+  shaderBlockId = -1;
+
+  shaderManager->shutdown();
 }
 
 void NodeBasedShader::createShaders()
 {
-  const NodeBasedShaderManager::ShaderBinPermutations &shaderBins = shaderManager->getPermutationShadersBin(variantId);
-  shadersCache.clear();
-  shadersCache.reserve(shaderBins.size());
-  for (const auto &shaderBin : shaderBins)
+  auto dumpHnd = shaderManager->bindumpHandle();
+  auto shaderName = NodeBasedShaderManager::buildScriptedShaderName(loadedShaderName);
+  if (!computeShader)
   {
-    PROGRAM updatedProgram = d3d::create_program_cs(shaderBin.data(), CSPreloaded::No);
-    G_ASSERTF(updatedProgram != BAD_PROGRAM, "Can't create compute shader");
-    shadersCache.emplace_back(new PROGRAM{updatedProgram}); // -V1023
+    computeShader = new_compute_shader(dumpHnd, shaderName);
+    G_ASSERTF(computeShader, "Can't create compute shader");
   }
+  if (shaderBlockId == -1)
+  {
+    shaderBlockId = ShaderGlobal::getBlockId(shaderManager->getShaderBlockName(), ShaderGlobal::LAYER_SCENE);
+    G_ASSERTF(shaderBlockId >= 0, "Can't fetch nbs block");
+  }
+  return;
 }
 
 void NodeBasedShader::init(const String &shader_name, bool keep_permutation)
@@ -87,10 +101,7 @@ void NodeBasedShader::init(const String &shader_name, bool keep_permutation)
     closeShader();
 }
 
-bool NodeBasedShader::isValid() const
-{
-  return !shadersCache.empty() && shadersCache[currentShaderIdx] && *shadersCache[currentShaderIdx] != BAD_PROGRAM;
-}
+bool NodeBasedShader::isValid() const { return computeShader != nullptr; }
 
 template <int VarType>
 eastl::vector<String> getAvailableShaderVars()
@@ -111,10 +122,9 @@ eastl::vector<String> getAvailableShaderVars()
 void NodeBasedShader::enableOptionalGraph(const String &graph_name, bool enable)
 {
   shaderManager->enableOptionalGraph(graph_name, enable);
-  currentShaderIdx = shaderManager->getCurrentPermutationIdx();
 }
 
-PROGRAM *NodeBasedShader::getProgram() { return shadersCache[currentShaderIdx].get(); }
+void NodeBasedShader::setQuality(NodeBasedShaderQuality nbs_quality) { shaderManager->setQuality(nbs_quality); }
 
 
 namespace nodebasedshaderutils

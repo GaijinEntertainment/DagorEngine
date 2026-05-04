@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import sys
 sys.path.append('../../..')
-from build_all import run, run_per_platform, VROMFS_PACKER_EXE, BUILD_COMPONENTS, DAGOR_HOST, BUILD_TARGET_ARCH
+from build_all import run, run_per_platform, VROMFS_PACKER_EXE, BUILD_COMPONENTS, DAGOR_HOST, JAM_BUILD_TARGET_ARCH_OPTIONS
 sys.path.pop()
 
 
 # build EXE
 if 'code' in BUILD_COMPONENTS:
-  run(['jam', '-sRoot=../..', '-f', 'dargbox/jamfile'], cwd='..')
+  run(['jam', '-sRoot=../..', '-f', 'dargbox/jamfile'] + JAM_BUILD_TARGET_ARCH_OPTIONS, cwd='..')
 
 # build shaders
 if 'shaders' in BUILD_COMPONENTS:

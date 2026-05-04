@@ -6,3 +6,4 @@
 ClipmapDebugStats clipmapDebugStats;
 
 bool clipmap_should_collect_debug_stats() { return false; }
+void clipmap_debug_before_prepare_feedback(const InvalidatePointFn & /*invalidatePointFn*/) {}

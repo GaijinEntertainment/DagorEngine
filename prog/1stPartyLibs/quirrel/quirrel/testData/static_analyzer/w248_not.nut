@@ -7,7 +7,7 @@ let squads = foo(3)
 foreach (_soldierIdx, soldierStat in soldiers) {
     let soldierData = debriefing?.soldiers.items[soldierStat.soldierId]
     if (!soldierData)
-        continue
+        continue  // Early exit if null - soldierData is non-null below
     if (squads?[soldierData.squadId] != squad)
         continue
 

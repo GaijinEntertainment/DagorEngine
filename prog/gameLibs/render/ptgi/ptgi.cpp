@@ -4,6 +4,7 @@
 #include <render/denoiser.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_shaderConstants.h>
 #include <shaders/dag_computeShaders.h>
 #include <bvh/bvh.h>
 #include <perfMon/dag_statDrv.h>
@@ -44,7 +45,10 @@ static bool decode_tonemap = true;
 
 static int inv_proj_tmVarId = -1;
 static int ptgi_targetVarId = -1;
+static int ptgi_resolutionVarId = -1;
 static int ptgi_resolutionIVarId = -1;
+static int ptgi_uv_maxVarId = -1;
+static int ptgi_uv_scaleVarId = -1;
 static int ptgi_res_mulVarId = -1;
 static int ptgi_hit_dist_paramsVarId = -1;
 static int rt_nrVarId = -1;
@@ -64,15 +68,15 @@ static float boost = 0;
 static float boost_range = 0;
 static int max_stabilized_frame_num = denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM;
 
-TEXTUREID denoised_gi_id_for_debug = BAD_TEXTUREID;
-TEXTUREID decoded_denoised_gi_id_for_debug = BAD_TEXTUREID;
+BaseTexture *denoised_gi_for_debug = nullptr;
+BaseTexture *decoded_denoised_gi_for_debug = nullptr;
 
 void get_required_persistent_texture_descriptors(denoiser::TexInfoMap &persistent_textures)
 {
   denoiser::get_required_persistent_texture_descriptors_for_gi(persistent_textures);
 
 #if DAGOR_DBGLEVEL > 0
-  if (!denoiser::is_ray_reconstruction_enabled())
+  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
   {
     auto denoised_gi = persistent_textures.find(denoiser::GIDenoiser::TextureNames::denoised_gi);
     if (denoised_gi == persistent_textures.end())
@@ -103,7 +107,10 @@ void initialize(bool half_res)
 
   inv_proj_tmVarId = get_shader_variable_id("inv_proj_tm");
   ptgi_targetVarId = get_shader_variable_id("ptgi_target");
+  ptgi_resolutionVarId = get_shader_variable_id("ptgi_resolution");
   ptgi_resolutionIVarId = get_shader_variable_id("ptgi_resolutionI");
+  ptgi_uv_maxVarId = get_shader_variable_id("ptgi_uv_max");
+  ptgi_uv_scaleVarId = get_shader_variable_id("ptgi_uv_scale");
   ptgi_res_mulVarId = get_shader_variable_id("ptgi_res_mul");
   ptgi_hit_dist_paramsVarId = get_shader_variable_id("ptgi_hit_dist_params");
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
@@ -144,12 +151,12 @@ void turn_off() { ShaderGlobal::set_int(ptgi_bindless_slotVarId, -1); }
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth, bool in_cockpit, const denoiser::TexMap &textures,
+void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, bool in_cockpit, const denoiser::TexMap &textures,
   Quality quality, bool checkerboard)
 {
   TIME_D3D_PROFILE(ptgi::render);
 
-  G_ASSERT_RETURN(!denoiser::is_ray_reconstruction_enabled() || !checkerboard, );
+  G_ASSERT_RETURN(!denoiser::is_ptgi_ray_reconstruction_enabled() || !checkerboard, );
 
   auto denoised_gi = textures.find(denoiser::GIDenoiser::TextureNames::denoised_gi);
   auto gi_value = textures.find(denoiser::GIDenoiser::TextureNames::ptgi_tex_unfiltered);
@@ -161,16 +168,16 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth,
   G_ASSERT_RETURN(!denoiser::resolution_config.ptgi.isHalfRes || normal_roughness != textures.end(), );
   G_ASSERT_RETURN(gi_value != textures.end(), );
 
-  auto id_or_bad = [&](auto name) { return name != textures.end() ? name->second.getId() : BAD_TEXTUREID; };
+  auto basetex_or_null = [&](auto name) -> BaseTexture * { return name != textures.end() ? name->second : nullptr; };
 
-  if (!denoiser::is_ray_reconstruction_enabled())
+  if (!denoiser::is_ptgi_ray_reconstruction_enabled())
   {
-    denoised_gi_id_for_debug = id_or_bad(denoised_gi);
-    decoded_denoised_gi_id_for_debug = id_or_bad(decoded_denoised_gi);
+    denoised_gi_for_debug = basetex_or_null(denoised_gi);
+    decoded_denoised_gi_for_debug = basetex_or_null(decoded_denoised_gi);
   }
   else
   {
-    denoised_gi_id_for_debug = decoded_denoised_gi_id_for_debug = BAD_TEXTUREID;
+    denoised_gi_for_debug = decoded_denoised_gi_for_debug = nullptr;
   }
 
   Point4 hitDistParams = Point4(ray_length, distance_factor, scatter_factor, roughness_factor);
@@ -182,15 +189,36 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth,
   params.halfResolution = denoiser::resolution_config.ptgi.isHalfRes;
   params.maxStabilizedFrameNum = max_stabilized_frame_num;
 
-  TextureInfo ti;
-  gi_value->second.getTex()->getinfo(ti);
+  IPoint2 resolution =
+    denoiser::resolution_config.ptgi.isHalfRes ? denoiser::resolution_config.dynRes.halfRes : denoiser::resolution_config.dynRes.res;
 
-  bvh::bind_resources(context_id, ti.w);
+  bvh::bind_resources(context_id, resolution.x);
 
-  ShaderGlobal::set_texture(ptgi_targetVarId, gi_value->second.getId());
-  ShaderGlobal::set_texture(rt_nrVarId, denoiser::resolution_config.ptgi.isHalfRes ? normal_roughness->second.getId() : BAD_TEXTUREID);
+  ShaderGlobal::set_texture(ptgi_targetVarId, gi_value->second);
+  ShaderGlobal::set_texture(rt_nrVarId, denoiser::resolution_config.ptgi.isHalfRes ? normal_roughness->second : nullptr);
 
-  ShaderGlobal::set_int4(ptgi_resolutionIVarId, ti.w, ti.h, 0, 0);
+  ShaderGlobal::set_float4(ptgi_resolutionVarId, resolution.x, resolution.y, 0, 0);
+  ShaderGlobal::set_int4(ptgi_resolutionIVarId, resolution.x, resolution.y, 0, 0);
+  Point2 uvMax = Point2(1, 1);
+  Point2 uvScale = Point2(1, 1);
+  if (denoiser::resolution_config.dynRes.usingViewport)
+  {
+    uvMax = Point2::ONE;
+    uvScale = Point2::ONE;
+  }
+  else
+  {
+    if (denoiser::resolution_config.ptgi.width != resolution.x || denoiser::resolution_config.ptgi.height != resolution.y)
+    {
+      // Avoid samples outside the valid area
+      uvMax.x = (resolution.x - 0.6f) / denoiser::resolution_config.ptgi.width;
+      uvMax.y = (resolution.y - 0.6f) / denoiser::resolution_config.ptgi.height;
+      uvScale.x = float(resolution.x) / denoiser::resolution_config.ptgi.width;
+      uvScale.y = float(resolution.y) / denoiser::resolution_config.ptgi.height;
+    }
+  }
+  ShaderGlobal::set_float4(ptgi_uv_maxVarId, uvMax);
+  ShaderGlobal::set_float4(ptgi_uv_scaleVarId, uvScale);
 
   ShaderGlobal::set_texture(downsampled_close_depth_texVarId, depth);
   ShaderGlobal::set_float4x4(inv_proj_tmVarId, inverse44(proj_tm));
@@ -198,36 +226,40 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth,
   ShaderGlobal::set_int(ptgi_max_bouncesVarId, quality == Quality::Low ? 3 : quality == Quality::Medium ? 4 : 5);
 
   ShaderGlobal::set_int(ptgi_checkerboardVarId, checkerboard ? 1 : 0);
-  ShaderGlobal::set_int(ptgi_use_rrVarId, ::denoiser::is_ray_reconstruction_enabled() ? 1 : 0);
+  ShaderGlobal::set_int(ptgi_use_rrVarId, ::denoiser::is_ptgi_ray_reconstruction_enabled() ? 1 : 0);
 
-  ShaderGlobal::set_color4(ptgi_hit_dist_paramsVarId, hitDistParams);
+  ShaderGlobal::set_float4(ptgi_hit_dist_paramsVarId, hitDistParams);
 
   if (boost_range > 0)
   {
-    ShaderGlobal::set_real(ptgi_boostVarId, boost);
-    ShaderGlobal::set_real(ptgi_boost_rangeVarId, boost_range);
+    ShaderGlobal::set_float(ptgi_boostVarId, boost);
+    ShaderGlobal::set_float(ptgi_boost_rangeVarId, boost_range);
   }
   else if (in_cockpit)
   {
-    ShaderGlobal::set_real(ptgi_boostVarId, 0.5);
-    ShaderGlobal::set_real(ptgi_boost_rangeVarId, 5);
+    ShaderGlobal::set_float(ptgi_boostVarId, 0.5);
+    ShaderGlobal::set_float(ptgi_boost_rangeVarId, 5);
   }
   else
   {
-    ShaderGlobal::set_real(ptgi_boostVarId, 0);
-    ShaderGlobal::set_real(ptgi_boost_rangeVarId, 0);
+    ShaderGlobal::set_float(ptgi_boostVarId, 0);
+    ShaderGlobal::set_float(ptgi_boost_rangeVarId, 0);
   }
 
-  bvh::bind_tlas_stage(context_id, STAGE_CS);
   {
+    d3d::set_cs_constbuffer_register_count(150);
     TIME_D3D_PROFILE(ptgi::render_noisy)
-    trace->dispatchThreads(divide_up(ti.w, checkerboard ? 2 : 1), ti.h, 1);
+    trace->dispatchThreads(divide_up(resolution.x, checkerboard ? 2 : 1), resolution.y, 1);
+    d3d::set_cs_constbuffer_register_count(0);
   }
-  bvh::unbind_tlas_stage(STAGE_CS);
 
-  d3d::resource_barrier(ResourceBarrierDesc(gi_value->second.getTex2D(), RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
+  d3d::resource_barrier(ResourceBarrierDesc(gi_value->second, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
 
   denoiser::denoise_gi(params);
+
+  ShaderGlobal::set_texture(ptgi_targetVarId, nullptr);
+  ShaderGlobal::set_texture(rt_nrVarId, nullptr);
+  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
 
 #if DAGOR_DBGLEVEL > 0
   if (!decode)
@@ -238,40 +270,37 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth,
   static int ptgi_decode_albedo_mulVarId = get_shader_variable_id("ptgi_decode_albedo_mul");
   static int ptgi_decode_tonemapVarId = get_shader_variable_id("ptgi_decode_tonemap");
 
-  ShaderGlobal::set_texture(ptgi_decode_srcVarId, denoised_gi_id_for_debug);
-  ShaderGlobal::set_texture(ptgi_decode_dstVarId, decoded_denoised_gi_id_for_debug);
+  ShaderGlobal::set_texture(ptgi_decode_srcVarId, denoised_gi_for_debug);
+  ShaderGlobal::set_texture(ptgi_decode_dstVarId, decoded_denoised_gi_for_debug);
   ShaderGlobal::set_int(ptgi_decode_albedo_mulVarId, mul_debug_by_albedo ? 1 : 0);
   ShaderGlobal::set_int(ptgi_decode_tonemapVarId, decode_tonemap ? 1 : 0);
 
-  decode->dispatchThreads(ti.w, ti.h, 1);
+  decode->dispatchThreads(resolution.x, resolution.y, 1);
+
+  ShaderGlobal::set_texture(ptgi_decode_srcVarId, nullptr);
+  ShaderGlobal::set_texture(ptgi_decode_dstVarId, nullptr);
 #endif
 }
 
 #if DAGOR_DBGLEVEL > 0
 static void imguiWindow()
 {
-  if (denoised_gi_id_for_debug == BAD_TEXTUREID)
+  if (!denoised_gi_for_debug)
     return;
 
-  if (auto denoised_ao = acquire_managed_tex(denoised_gi_id_for_debug); denoised_ao)
+  ImGui::Checkbox("Multiply by albedo", &mul_debug_by_albedo);
+  ImGui::Checkbox("Tonemap", &decode_tonemap);
+  ImGui::SliderFloat("Boost", &boost, 0, 2);
+  ImGui::SliderFloat("Boost range", &boost_range, 0, 10);
+  ImGui::SliderFloat("Ray length", &ray_length, ray_length_min, ray_length_max);
+  ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
+  ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
+  ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
+  ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
+
+  if (decoded_denoised_gi_for_debug)
   {
-    ImGui::Checkbox("Multiply by albedo", &mul_debug_by_albedo);
-    ImGui::Checkbox("Tonemap", &decode_tonemap);
-    ImGui::SliderFloat("Boost", &boost, 0, 2);
-    ImGui::SliderFloat("Boost range", &boost_range, 0, 10);
-    ImGui::SliderFloat("Ray length", &ray_length, ray_length_min, ray_length_max);
-    ImGui::SliderFloat("Distance factor", &distance_factor, distance_factor_min, distance_factor_max);
-    ImGui::SliderFloat("Scatter factor", &scatter_factor, scatter_factor_min, scatter_factor_max);
-    ImGui::SliderFloat("Roughness factor", &roughness_factor, roughness_factor_min, roughness_factor_max);
-    ImGui::SliderInt("Max stabilized frames", &max_stabilized_frame_num, 0, denoiser::GIDenoiser::MAX_HISTORY_FRAME_NUM);
-
-    if (auto decoded_denoised_gi_tex = acquire_managed_tex(decoded_denoised_gi_id_for_debug))
-    {
-      ImGuiDagor::Image(decoded_denoised_gi_id_for_debug, decoded_denoised_gi_tex);
-      release_managed_tex(decoded_denoised_gi_id_for_debug);
-    }
-
-    release_managed_tex(denoised_gi_id_for_debug);
+    ImGuiDagor::Image(decoded_denoised_gi_for_debug);
   }
 }
 

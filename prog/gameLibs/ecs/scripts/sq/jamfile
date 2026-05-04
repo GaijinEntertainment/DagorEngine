@@ -4,7 +4,7 @@ Location = prog/$(LibPath) ;
 TargetType  = lib ;
 Target      = $(LibPath).lib ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude

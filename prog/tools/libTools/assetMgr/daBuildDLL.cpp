@@ -4,7 +4,9 @@
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <debug/dag_log.h>
+#include <util/dag_compilerDefs.h>
 
+extern "C" IDaBuildInterface *__stdcall get_dabuild_interface();
 static IDaBuildInterface *dabuild = NULL;
 static void *dllHandle = NULL;
 
@@ -12,6 +14,10 @@ IDaBuildInterface *get_dabuild(const char *dll_fname)
 {
   if (dabuild)
     return dabuild;
+
+#if DAGOR_ADDRESS_SANITIZER && _TARGET_STATIC_LIB
+  return dabuild = get_dabuild_interface();
+#endif
 
   dllHandle = os_dll_load_deep_bind(dll_fname);
 
@@ -56,7 +62,9 @@ void release_dabuild(IDaBuildInterface *dabuild)
     return;
 
   dabuild->release();
+#if !(DAGOR_ADDRESS_SANITIZER && _TARGET_STATIC_LIB)
   os_dll_close(dllHandle);
+#endif
 
   dabuild = NULL;
   dllHandle = NULL;

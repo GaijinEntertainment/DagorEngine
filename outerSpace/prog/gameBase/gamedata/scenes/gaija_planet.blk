@@ -9,16 +9,6 @@ entity{
 }
 
 entity{
-  _template:t="level"
-  level__blk:t="content/outer_space/levels/sample_gaija_planet.blk"
-  level__timeRange:p2=18, 18
-
-  "level__weatherChoice:object"{
-    "gamedata/weather/weather_almost_clear.blk":r=1
-  }
-}
-
-entity{
   _template:t="shaderVars"
 
   "shader_vars__vars:object"{
@@ -34,10 +24,6 @@ entity{
     cliff_color_overlay_map_tex:t="sample_level_dalniy_det_cliff_color_tex_d*"
     river_density:r=2
   }
-}
-
-import{
-  scene:t="gamedata/scenes/_sample_gaija_planet_gpu_objects.blk"
 }
 
 entity{
@@ -80,8 +66,20 @@ entity{
   foamfx__gradient_tex:t="foam_generator_a_gradient_tex_n"
   foamfx__underfoam_color:p3=0.3, 0.8, 0.5
   foamfx__overfoam_color:p3=1, 1, 1
-  //water__colormap_tex:t="sample_level_dalniy_det_water_tex_f"
-  //water__colormap_area:p4=-2048, 2048, 2048, -2048
+}
+
+entity{
+  _template:t="level"
+  level__blk:t="content/outer_space/levels/sample_gaija_planet.blk"
+  level__timeRange:p2=18, 18
+
+  "level__weatherChoice:object"{
+    "gamedata/weather/weather_almost_clear.blk":r=1
+  }
+}
+
+import{
+  scene:t="gamedata/scenes/_sample_gaija_planet_gpu_objects.blk"
 }
 
 entity{
@@ -113,10 +111,6 @@ entity{
 
 entity{
   _template:t="phys_gravity_controller"
-}
-
-entity{
-  _template:t="bloom"
 }
 
 entity{

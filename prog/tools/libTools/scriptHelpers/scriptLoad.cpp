@@ -14,6 +14,8 @@
 #include <debug/dag_debug.h>
 
 #include <propPanel/control/container.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/control/treeInterface.h>
 
 using namespace ScriptHelpers;
 
@@ -63,6 +65,12 @@ public:
         continue;
       subElem[i]->getValues(pid, panel);
     }
+  }
+
+  TunedElement *findById(const int pid, int &cur_pid) override { return TunedGroup::findById(pid, ++cur_pid); /* skip group pid */ }
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    return TunedGroup::isArrayActionById(pid, ++cur_pid); /* skip group pid */
   }
 };
 
@@ -165,7 +173,7 @@ public:
 #define WRITE_DATA_E3DCOLOR cwr.write32ex(&value, sizeof(value))
 
 
-#define SIMPLE_PARAM(type, add_method, get_method, blk_set, blk_get, write_stmnt)                                                  \
+#define SIMPLE_PARAM(type, add_method, get_method, set_method, blk_set, blk_get, write_stmnt)                                      \
   namespace ScriptHelpers                                                                                                          \
   {                                                                                                                                \
   class TunedParam_##type : public TunedParam                                                                                      \
@@ -177,6 +185,13 @@ public:
                                                                                                                                    \
     void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panl) override { panl.add_method(++pid, getName(), value); } \
     void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override { value = panel.get_method(++pid); }             \
+    void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override { panel.set_method(pid, value); }                  \
+    TunedElement *findById(const int pid, int &cur_pid) override { return pid == ++cur_pid ? cloneElem() : nullptr; }              \
+    bool isArrayActionById(const int pid, int &cur_pid) override                                                                   \
+    {                                                                                                                              \
+      ++cur_pid;                                                                                                                   \
+      return false;                                                                                                                \
+    }                                                                                                                              \
                                                                                                                                    \
     void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { write_stmnt; }                                    \
     void saveValues(DataBlock &blk, SaveValuesCB *save_cb) override { blk.blk_set("value", value); }                               \
@@ -189,12 +204,12 @@ public:
   }
 
 
-SIMPLE_PARAM(real, createEditFloat, getFloat, setReal, getReal, WRITE_DATA_SIMPLE);
-SIMPLE_PARAM(int, createEditInt, getInt, setInt, getInt, WRITE_DATA_SIMPLE);
-SIMPLE_PARAM(bool, createCheckBox, getBool, setBool, getBool, cwr.writeInt32e(value));
-SIMPLE_PARAM(E3DCOLOR, createColorBox, getColor, setE3dcolor, getE3dcolor, WRITE_DATA_E3DCOLOR);
-SIMPLE_PARAM(Point2, createPoint2, getPoint2, setPoint2, getPoint2, WRITE_DATA_SIMPLE);
-SIMPLE_PARAM(Point3, createPoint3, getPoint3, setPoint3, getPoint3, WRITE_DATA_SIMPLE);
+SIMPLE_PARAM(real, createEditFloat, getFloat, setFloat, setReal, getReal, WRITE_DATA_SIMPLE);
+SIMPLE_PARAM(int, createEditInt, getInt, setInt, setInt, getInt, WRITE_DATA_SIMPLE);
+SIMPLE_PARAM(bool, createCheckBox, getBool, setBool, setBool, getBool, cwr.writeInt32e(value));
+SIMPLE_PARAM(E3DCOLOR, createColorBox, getColor, setColor, setE3dcolor, getE3dcolor, WRITE_DATA_E3DCOLOR);
+SIMPLE_PARAM(Point2, createPoint2, getPoint2, setPoint2, setPoint2, getPoint2, WRITE_DATA_SIMPLE);
+SIMPLE_PARAM(Point3, createPoint3, getPoint3, setPoint3, setPoint3, getPoint3, WRITE_DATA_SIMPLE);
 
 
 #undef SIMPLE_PARAM
@@ -248,6 +263,25 @@ public:
     }
   }
 
+  void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override
+  {
+    int selectedItem = 0;
+    for (int i = 0; i < enumList.size(); ++i)
+      if (value == enumList[i].value)
+      {
+        selectedItem = i;
+        break;
+      }
+    panel.setInt(pid, selectedItem);
+  }
+
+  TunedElement *findById(const int pid, int &cur_pid) override { return pid == ++cur_pid ? cloneElem() : nullptr; }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    ++cur_pid;
+    return false;
+  }
 
   void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override { cwr.writeInt32e(value); }
 
@@ -522,6 +556,112 @@ public:
     }
   }
 
+  TunedElement *findById(const int pid, int &cur_pid) override
+  {
+    if (!baseElement)
+      return nullptr;
+
+    cur_pid += 2;       // skip self group and button pids
+    if (cur_pid == pid) // add pid button
+      return nullptr;
+    for (int i = 0; i < subElem.size(); ++i)
+    {
+      if (!subElem[i].elem)
+        continue;
+
+      if (pid == subElem[i].pid + 2) // remove pid button
+        return subElem[i].elem->cloneElem();
+      else if (pid > subElem[i].pid && pid <= subElem[i].pid + 3) // up, down, clone pid buttons
+        return nullptr;
+      cur_pid += 5; // skip group and up, down, remove, clone pids
+      if (TunedElement *result = subElem[i].elem->findById(pid, cur_pid))
+        return result;
+    }
+
+    return nullptr;
+  }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    cur_pid += 2;       // skip self group and button pids
+    if (cur_pid == pid) // add pid button
+      return true;
+
+    for (int i = 0; i < subElem.size(); ++i)
+    {
+      if (!subElem[i].elem)
+        continue;
+
+      if (pid > subElem[i].pid && pid <= subElem[i].pid + 3) // up, down, remove, clone pid buttons
+      {
+        return true;
+      }
+      cur_pid += 5; // skip group and up, down, remove, clone pids
+      if (subElem[i].elem->isArrayActionById(pid, cur_pid))
+        return true;
+    }
+
+    return false;
+  }
+
+  bool undoOperation(int pid, PropPanel::ContainerPropertyControl &panel, TunedElement *element = nullptr) override
+  {
+    if (pid == basePid)
+    {
+      erase_items(subElem, subElem.size() - 1, 1);
+      return true;
+    }
+    else
+    {
+      for (int i = 0; i < subElem.size(); ++i)
+      {
+        if (!subElem[i].elem || subElem[i].pid == -1)
+          continue;
+
+        if (pid == subElem[i].pid + 0) // up
+        {
+          if (i == 0)
+            return true;
+
+          TunedElement *e = subElem[i - 1].elem;
+          subElem[i - 1].elem = subElem[i].elem;
+          subElem[i].elem = e;
+          return true;
+        }
+        else if (pid == subElem[i].pid + 1) // down
+        {
+          if (i + 1 >= subElem.size())
+            return true;
+
+          TunedElement *e = subElem[i + 1].elem;
+          subElem[i + 1].elem = subElem[i].elem;
+          subElem[i].elem = e;
+          return true;
+        }
+        else if (pid == subElem[i].pid + 2) // remove
+        {
+          if (!element)
+            return true;
+
+          subElem[insert_items(subElem, i, 1)].elem = element->cloneElem();
+          return true;
+        }
+        else if (pid == subElem[i].pid + 3) // clone
+        {
+          erase_items(subElem, i, 1);
+          return true;
+        }
+      }
+      if (element) // restore last removed element
+      {
+        subElem.push_back().elem = element->cloneElem();
+        return true;
+      }
+    }
+
+    return false;
+  }
+
 
   bool onClick(int pcb_id, PropPanel::ContainerPropertyControl &panel, IPropPanelCB &ppcb) override
   {
@@ -652,6 +792,160 @@ TunedElement *create_tuned_array(const char *name, TunedElement *base_elem) { re
 void set_tuned_array_member_to_show_in_caption(TunedElement &array, const char *member)
 {
   static_cast<TunedArray &>(array).memberToShowInCaption = member;
+}
+
+namespace ContextMenu
+{
+enum
+{
+  ISOLATE,
+  INVERT,
+  HIDE_ALL,
+  UNHIDE_ALL,
+};
+};
+
+class VisibilityTreeEventHandler : public PropPanel::ITreeControlEventHandler, public PropPanel::IMenuEventHandler
+{
+public:
+  bool onTreeContextMenu(PropPanel::ContainerPropertyControl &tree, int pcb_id, PropPanel::ITreeInterface &tree_interface) override
+  {
+    if (pcb_id == curTreePid)
+    {
+      visibilityTree = &tree;
+      PropPanel::IMenu &menu = tree_interface.createContextMenu();
+      menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::ISOLATE, "Isolate");
+      menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::INVERT, "Invert");
+      menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::HIDE_ALL, "Hide all");
+      menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::UNHIDE_ALL, "Unhide all");
+      menu.setEventHandler(this);
+      return true;
+    }
+
+    return false;
+  }
+
+  int onMenuItemClick(unsigned id) override
+  {
+    if (id == ContextMenu::ISOLATE)
+    {
+      PropPanel::TLeafHandle selLeaf = visibilityTree->getSelLeaf();
+      for (int i = 0; i < visibilityTree->getChildCount(nullptr); ++i)
+      {
+        PropPanel::TLeafHandle child = visibilityTree->getChildLeaf(nullptr, i);
+        visibilityTree->setCheckboxValue(child, selLeaf == child);
+      }
+    }
+    else if (id == ContextMenu::INVERT)
+    {
+      for (int i = 0; i < visibilityTree->getChildCount(nullptr); ++i)
+      {
+        PropPanel::TLeafHandle child = visibilityTree->getChildLeaf(nullptr, i);
+        visibilityTree->setCheckboxValue(child, !visibilityTree->getCheckboxValue(child));
+      }
+    }
+    else if (id == ContextMenu::HIDE_ALL || id == ContextMenu::UNHIDE_ALL)
+    {
+      for (int i = 0; i < visibilityTree->getChildCount(nullptr); ++i)
+      {
+        PropPanel::TLeafHandle child = visibilityTree->getChildLeaf(nullptr, i);
+        visibilityTree->setCheckboxValue(child, id == ContextMenu::UNHIDE_ALL);
+      }
+    }
+    return 0;
+  }
+
+  void setCurTreePid(int pid) { curTreePid = pid; }
+
+private:
+  PropPanel::ContainerPropertyControl *visibilityTree = nullptr;
+  int curTreePid;
+};
+
+class TunedVisiblityArray : public TunedArray
+{
+public:
+  TunedVisiblityArray(const char *nm, TunedElement *be) : TunedArray(nm, be) {}
+
+  void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panel) override
+  {
+    tree = panel.createTreeCheckbox(++pid, "Visibility tree", hdpi::Px(150));
+    handler.setCurTreePid(pid);
+    int arrayGroupPid = pid + 1;
+    TunedArray::fillPropPanel(pid, panel);
+    PropPanel::ContainerPropertyControl *arrayGroup = panel.getById(arrayGroupPid)->getContainer();
+    for (int i = 1; i < arrayGroup->getChildCount(); ++i) // Skip 0 becuse this is button
+    {
+      PropPanel::TLeafHandle leaf = tree->createTreeLeaf(nullptr, arrayGroup->getByIndex(i)->getContainer()->getCaption(), nullptr);
+      tree->setCheckboxEnable(leaf, true);
+      tree->setCheckboxValue(leaf, false);
+    }
+    tree->setTreeCheckboxIcons("eye_show", "eye_hide");
+    tree->setTreeEventHandler(&handler);
+  }
+
+  void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) override
+  {
+    pid++;
+    TunedArray::getValues(pid, panel);
+  }
+
+  TunedElement *findById(const int pid, int &cur_pid) override { return TunedArray::findById(pid, ++cur_pid); }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override { return TunedArray::isArrayActionById(pid, ++cur_pid); }
+
+  uint32_t getVisibleCount()
+  {
+    if (!tree)
+      return subElem.size();
+
+    uint32_t count = 0;
+    for (int i = 0; i < tree->getChildCount(nullptr); ++i)
+      if (tree->getCheckboxValue(tree->getChildLeaf(nullptr, i)))
+        ++count;
+
+    return count == 0 ? subElem.size() : count;
+  }
+
+  void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
+  {
+    const uint32_t visibleCout = getVisibleCount();
+    const bool allElemsVisible = visibleCout == subElem.size();
+    cwr.writeInt32e(visibleCout);
+
+    for (int i = 0; i < subElem.size(); ++i)
+    {
+      G_ASSERT(subElem[i].elem);
+      if (allElemsVisible || tree->getCheckboxValue(tree->getChildLeaf(nullptr, i)))
+        subElem[i].elem->saveData(cwr, save_cb);
+    }
+  }
+
+  bool getPanelArrayItemCaption(String &caption, const TunedElement &array, const TunedElement &array_item) override
+  {
+    bool result = TunedArray::getPanelArrayItemCaption(caption, array, array_item);
+    if (result && tree)
+    {
+      const int subElemCount = array.subElemCount();
+      for (int i = 0; i < subElemCount; ++i)
+      {
+        const TunedElement *current_item = array.getSubElem(i);
+        if (current_item == &array_item)
+          tree->setCaption(tree->getChildLeaf(nullptr, i), caption);
+      }
+    }
+
+    return result;
+  }
+
+private:
+  PropPanel::ContainerPropertyControl *tree = nullptr;
+  VisibilityTreeEventHandler handler;
+};
+
+TunedElement *create_tuned_visibility_array(const char *name, TunedElement *base_elem)
+{
+  return new TunedVisiblityArray(name, base_elem);
 }
 
 }; // namespace ScriptHelpers

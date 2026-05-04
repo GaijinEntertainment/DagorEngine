@@ -12,7 +12,7 @@ Sources =
 
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
-  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/gameLibs/publicInclude
 ;
 
 CPPopt = ;

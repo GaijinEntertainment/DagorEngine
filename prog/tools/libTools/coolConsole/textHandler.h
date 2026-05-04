@@ -1,136 +1,97 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <generic/dag_span.h>
+#include <propPanel/colors.h>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
-template <typename Derived>
-class TextHandler
+// Returns font glyphs and their coordinates for a given text.
+// This is based on ImFont::RenderText().
+class ImguiTextGlyphIterator
 {
 public:
-  // This is ImFont::RenderText() with callbacks instead of drawing.
-  ImVec2 processText(const ImVec2 &pos, const ImVec4 &clip_rect, const char *text_begin, const char *text_end, float wrap_width)
+  ImguiTextGlyphIterator(float line_start_x, float wrap_width, float in_x, float in_y, const char *text_begin, const char *text_end) :
+    textBegin(text_begin),
+    textEnd(text_end),
+    font(ImGui::GetFont()),
+    fontBaked(ImGui::GetFontBaked()),
+    fontSize(ImGui::GetFontSize()),
+    start_x(IM_TRUNC(line_start_x)), // align to be pixel perfect
+    fontScale(ImGui::GetFontSize() / ImGui::GetFontBaked()->Size),
+    lineHeight(ImGui::GetTextLineHeightWithSpacing()),
+    wrapWidth(wrap_width),
+    wordWrapEnabled(wrap_width > 0.0f),
+    text(text_begin),
+    x(IM_TRUNC(in_x)), // align to be pixel perfect
+    y(IM_TRUNC(in_y))  // align to be pixel perfect
+  {}
+
+  // Returns false when there are no more characters.
+  bool iterate()
   {
-    // Align to be pixel perfect
-    float x = IM_TRUNC(pos.x);
-    float y = IM_TRUNC(pos.y);
-    if (y > clip_rect.w)
-      return pos;
+    if (text >= textEnd)
+      return false;
 
-    ImFont *font = ImGui::GetFont();
-    const float fontSize = ImGui::GetFontSize();
-    const float start_x = x;
-    const float scale = 1.0f;
-    const float line_height = fontSize * scale;
-    const bool word_wrap_enabled = (wrap_width > 0.0f);
-
-    // Fast-forward to first visible line
-    const char *s = text_begin;
-    if (y + line_height < clip_rect.y)
-      while (y + line_height < clip_rect.y && s < text_end)
-      {
-        const char *line_end = (const char *)memchr(s, '\n', text_end - s);
-        if (word_wrap_enabled)
-        {
-          // FIXME-OPT: This is not optimal as do first do a search for \n before calling CalcWordWrapPositionA().
-          // If the specs for CalcWordWrapPositionA() were reworked to optionally return on \n we could combine both.
-          // However it is still better than nothing performing the fast-forward!
-          s = font->CalcWordWrapPositionA(scale, s, line_end ? line_end : text_end, wrap_width);
-          s = calcWordWrapNextLineStartA(s, text_end);
-        }
-        else
-        {
-          s = line_end ? line_end + 1 : text_end;
-        }
-        y += line_height;
-      }
-
-    // For large text, scan for the last visible line in order to avoid over-reserving in the call to PrimReserve()
-    // Note that very large horizontal line will still be affected by the issue (e.g. a one megabyte string buffer without a newline
-    // will likely crash atm)
-    if (text_end - s > 10000 && !word_wrap_enabled)
+    if (wordWrapEnabled)
     {
-      const char *s_end = s;
-      float y_end = y;
-      while (y_end < clip_rect.w && s_end < text_end)
+      // Calculate how far we can render. Requires two passes on the string data but keeps the code simple and not intrusive for
+      // what's essentially an uncommon feature.
+      if (!wordWrapEol)
+        wordWrapEol = font->CalcWordWrapPosition(fontSize, text, textEnd, wrapWidth - (x - start_x));
+
+      if (text >= wordWrapEol)
       {
-        s_end = (const char *)memchr(s_end, '\n', text_end - s_end);
-        s_end = s_end ? s_end + 1 : text_end;
-        y_end += line_height;
+        x = start_x;
+        y += lineHeight;
+        wordWrapEol = nullptr;
+        text = calcWordWrapNextLineStartA(text, textEnd); // Wrapping skips upcoming blanks
+
+        glyph = nullptr;
+        return true;
       }
-      text_end = s_end;
-    }
-    if (s == text_end)
-      return ImVec2(x, y);
-
-    const char *word_wrap_eol = nullptr;
-
-    static_cast<Derived *>(this)->onStart(s, x, y);
-
-    while (s < text_end)
-    {
-      if (word_wrap_enabled)
-      {
-        // Calculate how far we can render. Requires two passes on the string data but keeps the code simple and not intrusive for
-        // what's essentially an uncommon feature.
-        if (!word_wrap_eol)
-          word_wrap_eol = font->CalcWordWrapPositionA(scale, s, text_end, wrap_width - (x - start_x));
-
-        if (s >= word_wrap_eol)
-        {
-          const ImFontGlyph *glyph = font->FindGlyph((ImWchar)' ');
-          const float charWidth = glyph ? (glyph->AdvanceX * scale) : 0.0f;
-          static_cast<Derived *>(this)->onChar(s, x, y, charWidth);
-          static_cast<Derived *>(this)->onNewLine(s + 1, x, y, charWidth);
-
-          x = start_x;
-          y += line_height;
-          if (y > clip_rect.w)
-            break; // break out of main loop
-          word_wrap_eol = nullptr;
-          s = calcWordWrapNextLineStartA(s, text_end); // Wrapping skips upcoming blanks
-          continue;
-        }
-      }
-
-      // Decode and advance source
-      const char *currentCharString = s;
-      unsigned int c = (unsigned int)*s;
-      if (c < 0x80)
-        s += 1;
-      else
-        s += ImTextCharFromUtf8(&c, s, text_end);
-
-      if (c < 32)
-      {
-        if (c == '\n')
-        {
-          const ImFontGlyph *glyph = font->FindGlyph((ImWchar)' ');
-          const float charWidth = glyph ? (glyph->AdvanceX * scale) : 0.0f;
-          static_cast<Derived *>(this)->onChar(currentCharString, x, y, charWidth);
-          static_cast<Derived *>(this)->onNewLine(currentCharString, x, y, charWidth);
-
-          x = start_x;
-          y += line_height;
-          if (y > clip_rect.w)
-            break; // break out of main loop
-          continue;
-        }
-        if (c == '\r')
-          continue;
-      }
-
-      const ImFontGlyph *glyph = font->FindGlyph((ImWchar)c);
-      if (glyph == nullptr)
-        continue;
-
-      float char_width = glyph->AdvanceX * scale;
-      static_cast<Derived *>(this)->onChar(currentCharString, x, y, char_width);
-      x += char_width;
     }
 
-    return ImVec2(x, y);
+    // Decode and advance source
+    unsigned int currentChar = (unsigned int)*text;
+    if (currentChar < 0x80)
+      text += 1;
+    else
+      text += ImTextCharFromUtf8(&currentChar, text, textEnd);
+
+    if (currentChar < 32)
+    {
+      if (currentChar == '\n')
+      {
+        x = start_x;
+        y += lineHeight;
+        glyph = nullptr;
+        return true;
+      }
+      if (currentChar == '\r')
+      {
+        glyph = nullptr;
+        return true;
+      }
+    }
+
+    glyph = fontBaked->FindGlyph((ImWchar)currentChar);
+    if (glyph != nullptr)
+      x += glyph->AdvanceX * fontScale;
+
+    return true;
   }
+
+  // After getNext() this returns the current glyph.
+  const ImFontGlyph *getGlyph() const { return glyph; }
+
+  // After getNext() this will return the start of the next character.
+  float getX() const { return x; }
+  float getY() const { return y; }
+
+  // After getNext() this will return the start of the next text pointer.
+  const char *getTextPos() { return text; }
 
 private:
   // Taken from imgui_draw.cpp.
@@ -142,122 +103,159 @@ private:
       text++;
     return text;
   }
+
+  static constexpr unsigned WORD_WRAP_CHAR = 1;
+
+  const char *const textBegin;
+  const char *const textEnd;
+  ImFont *const font;
+  ImFontBaked *const fontBaked;
+  const float fontSize;
+  const float start_x;
+  const float fontScale;
+  const float lineHeight;
+  const float wrapWidth;
+  const bool wordWrapEnabled;
+
+  const ImFontGlyph *glyph = nullptr;
+  const char *wordWrapEol = nullptr;
+  const char *text;
+  float x;
+  float y;
 };
 
-class HitFinderTextHandler : public TextHandler<HitFinderTextHandler>
+struct LineGlyph
 {
-public:
-  HitFinderTextHandler(const ImVec2 &mouse_position, float line_height) : mousePosition(mouse_position), lineHeight(line_height) {}
-
-  void onStart(const char *text, float x, float y)
-  {
-    if (mousePosition.x < x && mousePosition.y >= y && mousePosition.y < (y + lineHeight) && isVisible(x, y, 1.0f))
-      hitCharacter = text;
-  }
-
-  void onChar(const char *text, float x, float y, float char_width)
-  {
-    if (mousePosition.x >= x && mousePosition.x < (x + char_width) && mousePosition.y >= y && mousePosition.y < (y + lineHeight) &&
-        isVisible(x, y, char_width))
-    {
-      hitCharacter = text;
-      if (mousePosition.x >= (x + (char_width * 0.5f)))
-        ++hitCharacter;
-    }
-  }
-
-  void onNewLine(const char *text, float x, float y, float char_width)
-  {
-    if (mousePosition.x > x && mousePosition.y >= y && mousePosition.y < (y + lineHeight) && isVisible(x, y, char_width))
-      hitCharacter = text;
-  }
-
-  const char *getHitCharacter() const { return hitCharacter; }
-
-private:
-  bool isVisible(float x, float y, float char_width) const
-  {
-    const ImRect bb(x, y, x + char_width, y + lineHeight);
-    return bb.Overlaps(ImGui::GetCurrentWindowRead()->ClipRect);
-  }
-
-  const ImVec2 mousePosition;
-  const float lineHeight;
-  const char *hitCharacter = nullptr;
+  const ImFontGlyph *glyph;
+  float x;
+  float y;
+  float advanceX;     // scaled with FontScale
+  int characterIndex; // within the line
+  int colorIndex;     // PropPanel::ColorOverride
 };
 
-class SelectionHighlighterTextHandler : public TextHandler<SelectionHighlighterTextHandler>
+class LineGlyphHelper
 {
 public:
-  SelectionHighlighterTextHandler(float line_height, const char *selection_start, const char *selection_end) :
-    lineHeight(line_height), selectionStart(selection_start), selectionEnd(selection_end)
-  {}
-
-  void onStart(const char *text, float x, float y)
+  static void drawChar(const ImFontGlyph *glyph, float x, float y, float font_scale, ImU32 color, const ImVec4 &clip_rect)
   {
-    if (rectStartSet)
-    {
-      if (text >= selectionEnd)
-        endRectangle(x, y);
-    }
-    else
-    {
-      if (text >= selectionStart && text < selectionEnd)
-        startRectangle(x, y);
-    }
-  }
+    if (!glyph || !glyph->Visible)
+      return;
 
-  void onChar(const char *text, float x, float y, float char_width)
-  {
-    if (rectStartSet)
+    const float x1 = x + glyph->X0 * font_scale;
+    const float x2 = x + glyph->X1 * font_scale;
+    if (x1 <= clip_rect.z && x2 >= clip_rect.x)
     {
-      if (text >= selectionEnd)
-        endRectangle(x, y);
-    }
-    else
-    {
-      if (text >= selectionStart && text < selectionEnd)
-        startRectangle(x, y);
+      const float y1 = y + glyph->Y0 * font_scale;
+      const float y2 = y + glyph->Y1 * font_scale;
+
+      if (glyph->Colored)
+        color |= ~IM_COL32_A_MASK;
+
+      ImDrawList *drawList = ImGui::GetWindowDrawList();
+      drawList->PrimReserve(6, 4);
+      drawList->PrimRectUV(ImVec2(x1, y1), ImVec2(x2, y2), ImVec2(glyph->U0, glyph->V0), ImVec2(glyph->U1, glyph->V1), color);
     }
   }
 
-  void onNewLine(const char *text, float x, float y, float char_width)
+  static void drawText(dag::ConstSpan<LineGlyph> line_glyphs)
   {
-    if (rectStartSet)
+    const float fontScale = ImGui::GetFontSize() / ImGui::GetFontBaked()->Size;
+    const ImGuiWindow *window = ImGui::GetCurrentWindow();
+    const ImVec4 clipRect = window->DrawList->_CmdHeader.ClipRect;
+
+    for (const LineGlyph &lineGlyph : line_glyphs)
     {
-      endRectangle(x + char_width, y);
+      const ImU32 textColor = PropPanel::getOverriddenColorU32(lineGlyph.colorIndex);
+      drawChar(lineGlyph.glyph, lineGlyph.x, lineGlyph.y, fontScale, textColor, clipRect);
     }
-    else
+  }
+
+  static float getMaxXFromLineGlyphs(dag::ConstSpan<LineGlyph> line_glyphs)
+  {
+    float maxX = 0.0;
+    for (const LineGlyph &lineGlyph : line_glyphs)
+      if (lineGlyph.x > maxX)
+        maxX = lineGlyph.x;
+    return maxX;
+  }
+
+  static const char *getHitTextByMousePosition(const dag::ConstSpan<LineGlyph> line_glyphs, const ImVec2 &line_start_cursor_pos,
+    const char *line_start_text)
+  {
+    if (line_glyphs.empty())
+      return nullptr;
+
+    const ImVec2 mousePosition = ImGui::GetMousePos();
+    const float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+
+    if (mousePosition.y < line_glyphs.front().y)
+      return nullptr;
+
+    if (mousePosition.y >= (line_glyphs.back().y + lineHeight))
+      return nullptr;
+
+    // Checking for lineGlyph.glyph (!= nullptr) ensures that new line characters are not matched.
+
+    // Find exact hit within the line's characters that are within the text area.
+    const ImRect &clipRect = ImGui::GetCurrentWindowRead()->ClipRect;
+    for (const LineGlyph &lineGlyph : line_glyphs)
     {
-      if (text >= selectionStart && text < selectionEnd)
-        startRectangle(x, y);
+      if (mousePosition.x >= lineGlyph.x && mousePosition.x < (lineGlyph.x + lineGlyph.advanceX) && mousePosition.y >= lineGlyph.y &&
+          mousePosition.y < (lineGlyph.y + lineHeight) && lineGlyph.glyph)
+      {
+        const ImRect bb(lineGlyph.x, lineGlyph.y, lineGlyph.x + lineGlyph.advanceX, lineGlyph.y + lineHeight);
+        if (bb.Overlaps(clipRect))
+        {
+          const char *hitCharacter = line_start_text + lineGlyph.characterIndex;
+          if (mousePosition.x >= (lineGlyph.x + (lineGlyph.advanceX * 0.5f)))
+            ++hitCharacter;
+          return hitCharacter;
+        }
+      }
+    }
+
+    // Find the leftmost hit that may be before the line horizontally (so no clip rect overlap testing is performed) but
+    // is within the line vertically.
+    // Find the rightmost hit that may be after the line horizontally (so no clip rect overlap testing is performed) but
+    // is within the line vertically.
+    const char *leftMostHit = nullptr;
+    const char *rightMostHit = nullptr;
+    for (const LineGlyph &lineGlyph : line_glyphs)
+    {
+      if (mousePosition.y >= lineGlyph.y && mousePosition.y < (lineGlyph.y + lineHeight) && lineGlyph.glyph)
+      {
+        if (mousePosition.x < lineGlyph.x && !leftMostHit)
+          leftMostHit = line_start_text + lineGlyph.characterIndex;
+
+        if (mousePosition.x >= (lineGlyph.x + lineGlyph.advanceX))
+          rightMostHit = line_start_text + lineGlyph.characterIndex + 1;
+      }
+    }
+
+    return leftMostHit ? leftMostHit : rightMostHit;
+  }
+
+  static void drawSelectionRectangle(const dag::ConstSpan<LineGlyph> line_glyphs, const char *line_start_text,
+    const char *selection_start, const char *selection_end, bool focused)
+  {
+    if (line_glyphs.empty())
+      return;
+
+    const float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+
+    for (const LineGlyph &lineGlyph : line_glyphs)
+    {
+      const char *text = line_start_text + lineGlyph.characterIndex;
+      if (text >= selection_start && text < selection_end)
+      {
+        const ImU32 selectionBgColor =
+          PropPanel::getOverriddenColorU32(focused ? PropPanel::ColorOverride::CONSOLE_LOG_SELECTED_TEXT_BACKGROUND_FOCUSED
+                                                   : PropPanel::ColorOverride::CONSOLE_LOG_SELECTED_TEXT_BACKGROUND);
+        ImVec2 rectStart = ImVec2(lineGlyph.x, lineGlyph.y);
+        ImGui::GetCurrentWindow()->DrawList->AddRectFilled(rectStart,
+          ImVec2(rectStart.x + lineGlyph.advanceX, rectStart.y + lineHeight), selectionBgColor);
+      }
     }
   }
-
-  void onEnd(float x, float y)
-  {
-    if (rectStartSet)
-      endRectangle(x, y);
-  }
-
-private:
-  void startRectangle(float x, float y)
-  {
-    rectStart = ImVec2(x, y);
-    rectStartSet = true;
-  }
-
-  void endRectangle(float x, float y)
-  {
-    const ImU32 selectionBgColor = ImGui::GetColorU32(ImGuiCol_TextSelectedBg, 0.5f);
-    ImGui::GetCurrentWindow()->DrawList->AddRectFilled(rectStart, ImVec2(x, y + lineHeight), selectionBgColor);
-    rectStartSet = false;
-  }
-
-  const float lineHeight;
-  const char *const selectionStart;
-  const char *const selectionEnd;
-
-  ImVec2 rectStart;
-  bool rectStartSet = false;
 };

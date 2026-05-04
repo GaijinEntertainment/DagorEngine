@@ -4,12 +4,13 @@ include "lights_cb.dshl"
 int oof_clear_grid_size;
 shader clear_out_of_frustum_grid_cs
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     oof_clear_grid_size@i1 = oof_clear_grid_size;
+    oof_lights_full_grid@uav : register(0) hlsl {
+      RWByteAddressBuffer oof_lights_full_grid@uav;
+    }
   }
   hlsl(cs) {
-    RWByteAddressBuffer oof_lights_full_grid: register(u0);
     [numthreads(64, 1, 1)]
     void clear_out_of_frustum_grid_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -27,35 +28,22 @@ hlsl(cs) {
     float distSq = length3_sq(max(box_bmin - bsph_center, 0) + max(bsph_center - box_bmax, 0)); // Dist from sph center to bounding box squared
     return distSq - bsph_r2_x <= 0;
   }
-  //returns .x = radius, .y = offset
-  float2 get_bounding_sphere_description(float sin_half_angle, float cos_half_angle)
-  {
-    const float COS_PI_4 = 0.70710678118654752440084436210485;
-    float angleBelow45Radius = 1. / (2.f * cos_half_angle);
-    // angle/2 < 45 degrees:
-    //   use circumcircle of the spot light cone
-    //   the light position is on the surface of the bounding sphere
-
-    // else only consider the spherical sector
-    // the light position is inside of the bounding sphere
-    return ((cos_half_angle > COS_PI_4) ? float2(angleBelow45Radius, angleBelow45Radius) : float2(sin_half_angle, cos_half_angle));
-  }
-  float4 getBoundingSphere(float3 position, float3 direction, float lightRadius, float sinHalfAngle, float cosHalfAngle)
-  {
-    float2 boundingDesc = lightRadius*get_bounding_sphere_description(sinHalfAngle, cosHalfAngle);
-    return float4(direction*boundingDesc.y + position, boundingDesc.x);
-  }
-
 }
 
 float4 out_of_frustum_grid_cull_box[4];//box_bmin + halfGridCellSz, halfGridCellSz
 shader cull_out_of_frustum_lights_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_OMNI_LIGHTS_CB(cs)
   INIT_SPOT_LIGHTS_CB(cs)
+
+  USE_SPOT_LIGHTS_BOUNDS(cs)
+  USE_OMNI_LIGHTS_BOUNDS(cs)
+
   (cs) {
     out_of_frustum_grid_cull_box@f4[] = out_of_frustum_grid_cull_box;
+    oof_lights_full_grid@uav : register(0) hlsl {
+      RWByteAddressBuffer oof_lights_full_grid@uav;
+    }
   }
   hlsl(cs) {
     float4 v_make_plane_dir(float3 p0, float3 dir0, float3 dir1)
@@ -71,7 +59,6 @@ shader cull_out_of_frustum_lights_cs
       res03 = (center.zzzz + (extent.z * sign(plane03_XYZW[2]))) * plane03_XYZW[2] + res03;
       return all(bool4(res03 >= 0));
     }
-    RWByteAddressBuffer oof_lights_full_grid : register(u0);
     struct bbox3f
     {
       float3 bmin, bmax;
@@ -128,12 +115,12 @@ shader cull_out_of_frustum_lights_cs
       uint lightBitFinalIndex; uint lightGridFinalIndex;
       if (lightId < omni_lights_count.x)
       {
-        float4 posRadius = omni_lights_cb[lightId].posRadius;
+        float4 bounding = getOmniLightBoundingSphere(omni_lights_cb[lightId]);
         float3 gridCellHalfSz = out_of_frustum_grid_cull_box[1].xyz;
         float3 gridPosCenter = out_of_frustum_grid_cull_box[0].xyz + (gridPos.xzy*2)*gridCellHalfSz;
-        //if (any(abs(posRadius.xyz - gridPosCenter) > gridCellSz*0.5 + posRadius.w))
+        //if (any(abs(bounding.xyz - gridPosCenter) > gridCellSz*0.5 + bounding.w))
         //  return;
-        if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, posRadius.xyz, posRadius.w*posRadius.w))
+        if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, bounding.xyz, bounding.w*bounding.w))
           return;
         float4 boxR0 = omni_lights_cb[lightId].boxR0, boxR1 = omni_lights_cb[lightId].boxR1, boxR2 = omni_lights_cb[lightId].boxR2;
         bbox3f lbox = v_bbox3_transform(gridPosCenter, gridCellHalfSz, boxR0, boxR1, boxR2);
@@ -150,15 +137,15 @@ shader cull_out_of_frustum_lights_cs
       } else
       {
         lightId -= omni_lights_count.x;
-        float4 posRadius = spot_lights_cb[lightId].lightPosRadius;
+        float4 posRadius = decode_spot_light_pos_radius(spot_lights_cb[lightId]);
         float4 lightDirectionAngleOffset = spot_lights_cb[lightId].lightDirectionAngleOffset;
         float cosHalfAngle = -lightDirectionAngleOffset.w/spot_lights_cb[lightId].lightColorAngleScale.w;
         float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
-        float4 bounding = getBoundingSphere(posRadius.xyz, lightDirectionAngleOffset.xyz, posRadius.w, sinHalfAngle, cosHalfAngle);
+        float4 bounding = getSpotLightBoundingSphere(posRadius.xyz, lightDirectionAngleOffset.xyz, getSpotLightBoundingSphereRadius(spot_lights_cb[lightId]), sinHalfAngle, cosHalfAngle);
 
         float3 gridCellHalfSz = out_of_frustum_grid_cull_box[3].xyz;
         float3 gridPosCenter = out_of_frustum_grid_cull_box[2].xyz + (gridPos.xzy*2)*gridCellHalfSz;
-        //if (any(abs(posRadius.xyz - gridPosCenter) > gridCellSz*0.5 + posRadius.w))
+        //if (any(abs(bounding.xyz - gridPosCenter) > gridCellSz*0.5 + bounding.w))
         //  return;
         if (!bbox_test_sph_intersect(gridPosCenter-gridCellHalfSz, gridPosCenter+gridCellHalfSz, bounding.xyz, bounding.w*bounding.w))
           return;
@@ -208,7 +195,7 @@ shader cull_out_of_frustum_lights_cs
         uint wordsPerSpot = uint(spot_lights_count.y);
         lightGridFinalIndex = gridCellIndex*wordsPerSpot + lightWordIndex + spotOffset;
       }
-      #if DEBUG_ENABLE_BOUNDS_CHECKS
+      #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
       uint dim; oof_lights_full_grid.GetDimensions(dim);
       checkBufferBounds(lightGridFinalIndex, dim, _FILE_, __LINE__, -1);
       #endif

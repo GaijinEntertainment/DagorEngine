@@ -16,6 +16,7 @@ def spline_sound_update(evt : Event;
                         spline_sound__points : Point4List;
                         spline_sound__range : float;
                         spline_sound__floorOnWater : bool;
+                        spline_sound__waterLevel : float;
                         spline_sound__distToSoundSize : float4&;
                         spline_sound__soundSizeVar : string;
 
@@ -86,6 +87,7 @@ def spline_sound_update(evt : Event;
           let offset = normalize(diff) * radius
           p.x += offset.x
           p.z += offset.y
+        p.y += spline_sound__waterLevel
       else
         isInside = distance_sq(listener, p) < square(radius)
         if isInside

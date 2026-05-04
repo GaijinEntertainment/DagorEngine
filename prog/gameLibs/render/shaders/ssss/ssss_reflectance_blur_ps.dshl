@@ -4,13 +4,20 @@ include "ssss/ssss_reflectance_blur.dshl"
 
 texture ssss_reflectance_blur_color_source_tex;
 
+
+int ssss_rr_guide_pass = 0;
+interval ssss_rr_guide_pass: off < 1, on;
+
 shader ssss_reflectance_blur_ps
 {
   supports global_frame;
-  supports global_const_block;
   cull_mode  = none;
   z_test = true;
   z_write = false;
+  if (ssss_rr_guide_pass > off)
+  {
+    blend_op[1] = add;
+  }
 
   POSTFX_VS_TEXCOORD(1, uv)
   INIT_ZNZFAR()
@@ -28,14 +35,50 @@ shader ssss_reflectance_blur_ps
 
   (ps) { color_source_tex@smp2d = ssss_reflectance_blur_color_source_tex; }
 
+  if (ssss_rr_guide_pass > off)
+  {
+    (ps) {ssss_rr_guide_pass@i1 = ssss_rr_guide_pass;}
+    INIT_HDR(ps)
+    USE_HDR(ps)
+
+    hlsl(ps)
+    {
+      float luminance_rr(float3 s)
+      {
+        return (s.r + 2 * s.g + s.b) / 4;
+      }
+    }
+  }
+
   hlsl(ps)
   {
-    float4 ssss_reflectance_blur_ps(VsOutput i) : SV_Target
+    struct PsOutput
+    {
+      half4 ssss : SV_Target0;
+      ##if (ssss_rr_guide_pass > off)
+      half rr_guide : SV_Target1;
+      ##endif
+    };
+
+    PsOutput ssss_reflectance_blur_ps(VsOutput i)
     {
       ProcessedGbuffer gbuffer = readProcessedGbuffer(i.uv);
-      float4 result = ssss_reflectance_blur(i.uv, gbuffer.translucency,
+      float4 ssssColor = ssss_reflectance_blur(i.uv, gbuffer.translucency,
                                             color_source_tex, color_source_tex_samplerstate,
                                             depth_gbuf_read, depth_gbuf_read_samplerstate);
+
+      PsOutput result;
+      result.ssss = ssssColor;
+      ##if (ssss_rr_guide_pass > off)
+          if (ssss_rr_guide_pass == 1)
+          {
+            result.rr_guide = -luminance_rr(unpack_hdr(tex2Dlod(color_source_tex, float4(i.uv, 0, 0)).xyz) * gbuffer.albedo);
+          }
+          else
+          {
+            result.rr_guide = luminance_rr(unpack_hdr(ssssColor.xyz) * gbuffer.albedo);
+          }
+      ##endif
       return result;
     }
   }

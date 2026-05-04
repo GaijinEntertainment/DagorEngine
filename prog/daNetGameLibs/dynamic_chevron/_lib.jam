@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_dynamic_chevron_pull daNetGameLibs_dynamic_chevron_DAS_pull_AOT ;
+  UseProgLibs += daNetGameLibs/dynamic_chevron ;
+}

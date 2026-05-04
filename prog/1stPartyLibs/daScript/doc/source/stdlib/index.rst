@@ -1,10 +1,10 @@
 .. _stdlib:
 
 #################################
-  Daslang Standard Library 0.5
+  Daslang Standard Library 0.6.1
 #################################
 
-Copyright (c) 2018-2024 Gaijin Entertainment
+Copyright (c) 2018-2026 Gaijin Entertainment
 Authors: Anton Yudintsev, Boris Batkin
 
 The above copyright notice and this permission notice shall be included in
@@ -20,66 +20,24 @@ THE SOFTWARE.
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
    :numbered:
 
    introduction.rst
-   builtin.rst
-   math.rst
-   math_bits.rst
-   math_boost.rst
-   fio.rst
-   random.rst
-   network.rst
-   uriparser.rst
-   uriparser_boost.rst
-   rtti.rst
-   ast.rst
-   ast_boost.rst
-   strings.rst
-   strings_boost.rst
-   functional.rst
-   jobque.rst
-   jobque_boost.rst
-   apply_in_context.rst
-   json.rst
-   json_boost.rst
-   regex.rst
-   regex_boost.rst
-   rst.rst
-   apply.rst
-   algorithm.rst
-   contracts.rst
-   defer.rst
-   if_not_null.rst
-   instance_function.rst
-   templates.rst
-   templates_boost.rst
-   macro_boost.rst
-   is_local.rst
-   safe_addr.rst
-   static_let.rst
-   lpipe.rst
-   array_boost.rst
-   archive.rst
-   unroll.rst
-   assert_once.rst
-   ast_block_to_loop.rst
-   ast_used.rst
-   constexpr.rst
-   sort_boost.rst
-   enum_trait.rst
-   cpp_bind.rst
-   decs.rst
-   decs_boost.rst
-   coroutines.rst
-   interfaces.rst
-   export_constructor.rst
-   faker.rst
-   fuzzer.rst
-   match.rst
-
-
-
+   sec_core.rst
+   sec_strings.rst
+   sec_io.rst
+   sec_data_structures.rst
+   sec_algorithms.rst
+   sec_data_formats.rst
+   sec_decs.rst
+   sec_concurrency.rst
+   sec_ast.rst
+   sec_annotations.rst
+   sec_classes.rst
+   sec_testing.rst
+   sec_code_quality.rst
+   sec_media.rst
+   sec_audio.rst
 
 

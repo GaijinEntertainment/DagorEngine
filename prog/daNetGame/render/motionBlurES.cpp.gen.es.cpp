@@ -108,9 +108,9 @@ static ecs::CompileTimeQueryDesc query_motion_blur_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_motion_blur_ecs_query(Callable function)
+inline void query_motion_blur_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_motion_blur_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_motion_blur_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -139,9 +139,9 @@ static ecs::CompileTimeQueryDesc query_motion_blur_scale_ecs_query_desc
   make_span(query_motion_blur_scale_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void query_motion_blur_scale_ecs_query(Callable function)
+inline void query_motion_blur_scale_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_motion_blur_scale_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_motion_blur_scale_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -167,9 +167,9 @@ static ecs::CompileTimeQueryDesc set_motion_blur_mode_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_motion_blur_mode_ecs_query(Callable function)
+inline void set_motion_blur_mode_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_motion_blur_mode_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_motion_blur_mode_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -197,9 +197,9 @@ static ecs::CompileTimeQueryDesc delete_motion_blur_ecs_query_desc
   make_span(delete_motion_blur_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_motion_blur_ecs_query(Callable function)
+inline void delete_motion_blur_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_motion_blur_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_motion_blur_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

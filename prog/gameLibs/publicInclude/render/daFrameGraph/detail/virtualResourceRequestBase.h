@@ -6,6 +6,7 @@
 
 #include <render/daFrameGraph/usage.h>
 #include <render/daFrameGraph/stage.h>
+#include <render/daFrameGraph/history.h>
 #include <render/daFrameGraph/resourceCreation.h>
 
 #include <render/daFrameGraph/detail/projectors.h>
@@ -13,6 +14,7 @@
 #include <render/daFrameGraph/detail/nodeNameId.h>
 #include <render/daFrameGraph/detail/blob.h>
 #include <render/daFrameGraph/detail/rtti.h>
+#include <render/daFrameGraph/externalResources.h>
 
 
 union ResourceClearValue;
@@ -37,6 +39,9 @@ struct VirtualResourceRequestBase
   void texture(const Texture3dCreateInfo &info);
   void buffer(const BufferCreateInfo &info);
   void blob(BlobDescription &&desc, detail::RTTI &&rtti);
+  void backBuffer();
+  void externalBuffer(dafg::ExternalResourceProvider &&external_resource_provider);
+  void externalTexture(dafg::ExternalResourceProvider &&external_resource_provider);
 
   void markWithTag(ResourceSubtypeTag tag);
 
@@ -49,8 +54,9 @@ struct VirtualResourceRequestBase
 
   void atStage(Stage stage);
   void useAs(Usage type);
-  void clear(const ResourceClearValue &clear_value);
-  void clear(ResourceSubtypeTag projectee, const char *blob_name, detail::TypeErasedProjector projector);
+  void withHistory(History history);
+  void clear(const ResourceClearValue &clear_value, ResourceClearFlags flags);
+  void clear(ResourceSubtypeTag projectee, const char *blob_name, detail::TypeErasedProjector projector, ResourceClearFlags flags);
   const ResourceProvider *provider();
   ResourceRequest &thisRequest();
 

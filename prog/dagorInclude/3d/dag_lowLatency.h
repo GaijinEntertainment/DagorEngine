@@ -10,9 +10,7 @@
  */
 
 #include <3d/dag_latencyTypes.h>
-#include <util/dag_globDef.h>
 
-class DataBlock;
 
 namespace lowlatency
 {
@@ -27,7 +25,6 @@ void set_latency_mode(LatencyMode mode, float minimum_interval_ms);
 LatencyModeFlag get_supported_latency_modes();
 void sleep(uint32_t frame_id);
 void set_marker(uint32_t frame_id, LatencyMarkerType marker_type);
-void mark_flash_indicator();
 LatencyMode get_latency_mode();
 LatencyMode get_from_blk();
 // max_count = 0 -> no limit

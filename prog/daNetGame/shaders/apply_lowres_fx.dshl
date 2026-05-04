@@ -2,14 +2,17 @@ include "shader_global.dshl"
 include "dafx_shaders.dshl"
 include "upscale_use.dshl"
 
-
 texture lowres_fx_source_tex;
 texture lowres_fx_reactive_mask_tex;
 float lowres_fx_overbright = 1;
 
-shader apply_lowres_fx, fast_apply_lowres_fx
-{
-  ENABLE_ASSERT(ps)
+buffer lowres_fx_triangle_visibility_mask;
+int lowres_fx_tile_count_hor;
+
+int  apply_lowres_fx_quality = 0;
+interval apply_lowres_fx_quality : fast < 1, normal;
+
+macro USE_APPLY_LOWRES_FX_PS()
   supports global_frame;
 
   cull_mode  = none;
@@ -21,26 +24,44 @@ shader apply_lowres_fx, fast_apply_lowres_fx
   INIT_UPSCALE_SAMPLING()
   USE_UPSCALE_SAMPLING()
   USE_SCREENPOS_TO_LOWRES_TC()
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
 
   (ps)
   {
-    lowres_fx_source_tex@smp2d = lowres_fx_source_tex;
+    lowres_fx_source_tex@tex2d = lowres_fx_source_tex;
     lowres_fx_reactive_mask_tex@tex2d = lowres_fx_reactive_mask_tex;
     lowres_fx_overbright@f1 = (lowres_fx_overbright);
   }
 
-  POSTFX_VS(1)
-
   hlsl(ps) {
-    #define lowres_fx_reactive_mask_tex_samplerstate lowres_fx_source_tex_samplerstate
+    #define lowres_fx_reactive_mask_tex_samplerstate global_linear_clamp_sampler
+    #define lowres_fx_source_tex_samplerstate global_linear_clamp_sampler
 
     struct PsOutput
     {
       float4 color : SV_Target0;
-      ##if lowres_fx_reactive_mask_tex != NULL
+    ##if lowres_fx_reactive_mask_tex != NULL
       float4 reactive : SV_Target1;
-      ##endif
+    ##endif
     };
+
+##if apply_lowres_fx_quality == fast
+    #define FORCE_USE_FAST_QUALITY 1
+##endif
+
+#if FORCE_USE_FAST_QUALITY || WAVE_INTRINSICS
+    PsOutput apply_fx_ps_fast(float2 tc)
+    {
+      PsOutput result;
+
+      half4 lowResColorCenter = h4tex2Dlod(lowres_fx_source_tex, float4(tc, 0, 0));
+      result.color = float4(lowResColorCenter.rgb * lowres_fx_overbright, lowResColorCenter.a);
+    ##if lowres_fx_reactive_mask_tex != NULL
+      result.reactive = float4(tex2Dlod(lowres_fx_reactive_mask_tex, float4(tc, 0, 0)).rrr, lowResColorCenter.a);
+    ##endif
+      return result;
+    }
+#endif
 
     PsOutput apply_fx_ps(VsOutput input HW_USE_SCREEN_POS)
     {
@@ -49,32 +70,87 @@ shader apply_lowres_fx, fast_apply_lowres_fx
       float2 screenpos = GET_SCREEN_POS(input.pos).xy;
       float2 tc = screen_pos_to_lowres_tc(screenpos);
 
-##if shader == fast_apply_lowres_fx
-      half4 lowResColorCenter = h4tex2Dlod(lowres_fx_source_tex, float4(tc, 0, 0));
-      result.color = float4(lowResColorCenter.rgb * lowres_fx_overbright, lowResColorCenter.a);
-      ##if lowres_fx_reactive_mask_tex != NULL
-      result.reactive = float4(tex2Dlod(lowres_fx_reactive_mask_tex, float4(tc, 0, 0)).rrr, lowResColorCenter.a);
-      ##endif
-      return result;
-##endif
+#if FORCE_USE_FAST_QUALITY
+      return apply_fx_ps_fast(tc);
+#elif WAVE_INTRINSICS
+      if (WaveActiveAllTrue(isTrivialUpscaleWeight(screenpos)))
+        return apply_fx_ps_fast(tc);
+#endif
 
-      half4 lowResR = lowres_fx_source_tex.GatherRed(lowres_fx_source_tex_samplerstate, tc);
-      half4 lowResG = lowres_fx_source_tex.GatherGreen(lowres_fx_source_tex_samplerstate, tc);
-      half4 lowResB = lowres_fx_source_tex.GatherBlue(lowres_fx_source_tex_samplerstate, tc);
-      half4 lowResA = lowres_fx_source_tex.GatherAlpha(lowres_fx_source_tex_samplerstate, tc);
+      half4 lowResR = lowres_fx_source_tex.GatherRed(global_linear_clamp_sampler, tc);
+      half4 lowResG = lowres_fx_source_tex.GatherGreen(global_linear_clamp_sampler, tc);
+      half4 lowResB = lowres_fx_source_tex.GatherBlue(global_linear_clamp_sampler, tc);
+      half4 lowResA = lowres_fx_source_tex.GatherAlpha(global_linear_clamp_sampler, tc);
 
-      float4 weight = SampleUpscaleWeight(screenpos.xy);
+      float4 weight = SampleUpscaleWeight(screenpos);
 
       float4 res = float4(dot(lowResR,weight),dot(lowResG,weight),dot(lowResB,weight),dot(lowResA,weight));
 
       result.color = float4(res.rgb * lowres_fx_overbright, res.a);
       ##if lowres_fx_reactive_mask_tex != NULL
-      half4 lowResReactive = lowres_fx_reactive_mask_tex.GatherRed(lowres_fx_reactive_mask_tex_samplerstate, tc);
+      half4 lowResReactive = lowres_fx_reactive_mask_tex.GatherRed(global_linear_clamp_sampler, tc);
       result.reactive = float4(dot(lowResReactive,weight).xxx, res.a);
       ##endif
       return result;
     }
   }
+endmacro
 
+shader apply_lowres_fx
+{
+  POSTFX_VS(1)
+  USE_APPLY_LOWRES_FX_PS()
+
+  compile("target_ps", "apply_fx_ps");
+}
+
+shader apply_lowres_fx_tiled
+{
+  local float4 halfResTexSize = get_dimensions(lowres_fx_source_tex, 0);
+
+  (vs)
+  {
+    lowres_fx_triangle_visibility_mask@buf = lowres_fx_triangle_visibility_mask hlsl { StructuredBuffer<uint> lowres_fx_triangle_visibility_mask@buf; };
+    tiles_count_hor@i1 = (lowres_fx_tile_count_hor);
+    screen_to_ndc@f2 = 1.0/(2.0*halfResTexSize.xy);
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+    };
+  }
+
+  hlsl(vs) {
+    #include "apply_lowres_fx.hlsli"
+
+    // Vertices for quad from 0 to 1
+    static const float2 verts[6] = {
+      float2(0.0, 0.0),
+      float2(1.0, 0.0),
+      float2(1.0, 1.0),
+      float2(0.0, 0.0),
+      float2(1.0, 1.0),
+      float2(0.0, 1.0)
+    };
+    VsOutput apply_fx_vs_tiled(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+    {
+      uint triangleId = instance_id*2 + (vertex_id >= 3 ? 1 : 0);
+      bool isVisible = loadBuffer(lowres_fx_triangle_visibility_mask, triangleId/32) & (1u << (triangleId%32));
+
+      VsOutput output;
+      uint2 tilePos = uint2(instance_id % tiles_count_hor, instance_id / tiles_count_hor);
+      output.pos.xy = (isVisible ? APPLY_LOWRES_FX_TILE_SIZE*screen_to_ndc : 0)*(tilePos.xy + verts[vertex_id]);
+      output.pos.xy = output.pos.xy*float2(2.0f, -2.0f) + float2(-1.0f, 1.0f);
+      output.pos.zw = float2(0.0, 1.0);
+      return output;
+    }
+  }
+
+  USE_APPLY_LOWRES_FX_PS()
+
+  compile("target_vs", "apply_fx_vs_tiled");
   compile("target_ps", "apply_fx_ps");
 }

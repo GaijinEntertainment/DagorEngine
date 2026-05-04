@@ -80,10 +80,7 @@ inline bool get_client_connections(const das::TBlock<void, das::TTemporary<das::
     return false;
 
   das::Array arr;
-  arr.data = (char *)connections.data();
-  arr.size = connections.size();
-  arr.capacity = connections.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, connections.data(), connections.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

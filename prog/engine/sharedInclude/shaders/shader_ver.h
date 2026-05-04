@@ -3,4 +3,4 @@
 
 #include <util/dag_globDef.h>
 
-static constexpr int SHADER_BINDUMP_VER = _MAKE4C('11');
+static constexpr int SHADER_BINDUMP_VER = _MAKE4C('11.3');

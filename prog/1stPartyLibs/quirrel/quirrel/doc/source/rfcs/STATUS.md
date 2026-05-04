@@ -8,6 +8,11 @@ This document tracks RFCs, both implemented and not implemented (implemented RFC
 **Status**: Implemented, as optional behavior currently. Can be specified by #forbid-clone-operator or #allow-clone-operator
 
 
+## assignments in 'if' (let and local)
+
+**Status**: Implemented
+
+
 ## Replace let with const
 
 Replace 'let' for immutables with 'const' keyword
@@ -30,28 +35,6 @@ Should behave as 'in' operator, but exists only for types that can have 'index',
 ## Add .hasvalue(<value>) for tables and arrays.
 
 The same as 'contains' for arrays. To make it more consistent with findvalue() and findindex() and hasindex()
-
-**Status**: Waiting for implementation
-
-
-## assignments in 'if' (let and local)
-
-```
-  if (let a = foo()){
-    println(a)
-  }
-```
-
-equals to (except scope of visibility of 'a'):
-
-```
-  let a = foo()
-  if (a) {
-    println(a)
-  }
-```
-
-This is sometimes much less verbose and safer to use. The same as warlus operator in python, but we do not need it in Quirrel, cause we have expicit declaration of variables
 
 **Status**: Waiting for implementation
 
@@ -181,6 +164,6 @@ like https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
 
 - loop unrolling
 - filter + map folding, dead-code elimation
-+ Hoisting immutable variables  **implemented**
+- Hoisting immutable variables
 
 **Status**: Needs detailed rfc

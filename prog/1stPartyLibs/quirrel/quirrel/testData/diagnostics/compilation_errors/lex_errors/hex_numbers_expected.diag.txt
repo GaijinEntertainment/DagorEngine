@@ -1,0 +1,8 @@
+ERROR: hexadecimal number expected
+testData/diagnostics/compilation_errors/lex_errors/hex_numbers_expected.nut:2:8
+
+// EXPECT_ERROR: "hexadecimal number expected"
+let x = "\xZZ"
+        ^--
+
+

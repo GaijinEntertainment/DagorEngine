@@ -1,7 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <generic/dag_enumerate.h>
 #include <gui/dag_imgui.h>
 #include <imgui.h>
@@ -129,13 +135,14 @@ static void imgui(GlobalManager &globalManager, HeightmapManager &self)
 }
 
 template <typename Callable>
-static inline void heightmap_debug_imgui_ecs_query(Callable);
+static inline void heightmap_debug_imgui_ecs_query(ecs::EntityManager &manager, Callable);
 
 static void imgui_callback()
 {
-  heightmap_debug_imgui_ecs_query([](dagdp::GlobalManager &dagdp__global_manager, dagdp::HeightmapManager &dagdp__heightmap_manager) {
-    imgui(dagdp__global_manager, dagdp__heightmap_manager);
-  });
+  heightmap_debug_imgui_ecs_query(*g_entity_mgr,
+    [](dagdp::GlobalManager &dagdp__global_manager, dagdp::HeightmapManager &dagdp__heightmap_manager) {
+      imgui(dagdp__global_manager, dagdp__heightmap_manager);
+    });
 }
 
 } // namespace dagdp

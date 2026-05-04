@@ -1,0 +1,37 @@
+Root    ?= ../../../.. ;
+Location = prog/3rdPartyLibs/recastnavigation/Detour ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/Detour.lib ;
+
+Sources =
+  Source/DetourAlloc.cpp
+  Source/DetourAssert.cpp
+  Source/DetourCommon.cpp
+  Source/DetourNavMesh.cpp
+  Source/DetourNavMeshDagor.cpp
+  Source/DetourNavMeshBuilder.cpp
+  Source/DetourNavMeshQuery.cpp
+  Source/DetourNavMeshQueryDagor.cpp
+  Source/DetourNode.cpp
+  Source/DetourPathCorridor.cpp
+  Source/DetourObstacleAvoidance.cpp
+;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include ;
+
+CPPopt += -D_RELEASE ;
+
+if $(Platform) = linux || $(PlatformSpec) = clang {
+  if $(Platform) in windows xboxOne scarlett {
+    CPPopt += -fp:fast ;
+    if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations ; }
+  } else {
+    CPPopt += -ffast-math ;
+    if ! $(Platform) in iOS nswitch && ! $(PlatformArch) in e2k { CPPopt += -fno-unsafe-math-optimizations ; }
+  }
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

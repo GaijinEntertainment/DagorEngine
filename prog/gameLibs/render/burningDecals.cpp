@@ -33,6 +33,7 @@
 #include <util/dag_console.h>
 #include <rendInst/rendInstGen.h>
 #include <vecmath/dag_vecMathDecl.h>
+#include <EASTL/unique_ptr.h>
 
 
 BurningDecals::BurningDecals()
@@ -66,27 +67,27 @@ void BurningDecals::createTexturesAndBuffers()
 
   activeCount = 0;
 
-  burningMap.set(d3d::create_tex(NULL, resolution, resolution, TEXFMT_R8G8 | TEXCF_RTARGET, 1, "burning_map_tex"), "burning_map_tex");
+  burningMap = dag::create_tex(NULL, resolution, resolution, TEXFMT_R8G8 | TEXCF_RTARGET, 1, "burning_map_tex", RESTAG_LAND);
 
-  bakedBurningMap.set(d3d::create_tex(NULL, resolution, resolution, TEXFMT_R8G8 | TEXCF_RTARGET, 1, "baked_burning_map_tex"),
-    "baked_burning_map_tex");
+  bakedBurningMap =
+    dag::create_tex(NULL, resolution, resolution, TEXFMT_R8G8 | TEXCF_RTARGET, 1, "baked_burning_map_tex", RESTAG_LAND);
 
   {
     d3d::GpuAutoLock gpuLock;
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(bakedBurningMap.getTex2D(), 0);
+    d3d::set_render_target(bakedBurningMap.getBaseTex(), 0);
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-    d3d::set_render_target(burningMap.getTex2D(), 0);
+    d3d::set_render_target(burningMap.getBaseTex(), 0);
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     // transit to SRV immediately, sometimes it used right after clear
-    d3d::resource_barrier({bakedBurningMap.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({burningMap.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({bakedBurningMap.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    d3d::resource_barrier({burningMap.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
   decalDataVS = dag::buffers::create_one_frame_sr_tbuf(decals_count * sizeof(InstData) / sizeof(Point4), TEXFMT_A32B32G32R32F,
-    "burning_decal_data_vs");
+    "burning_decal_data_vs", RESTAG_DECALS);
 }
 
 // release system
@@ -238,7 +239,7 @@ void BurningDecals::update(float dt)
 
   static int world_to_burn_mask_varId = ::get_shader_variable_id("world_to_burn_mask", true);
   static int world_to_hmap_low_varId = ::get_shader_variable_id("world_to_hmap_low", true);
-  ShaderGlobal::set_color4(world_to_burn_mask_varId, ShaderGlobal::get_color4_fast(world_to_hmap_low_varId));
+  ShaderGlobal::set_float4(world_to_burn_mask_varId, ShaderGlobal::get_float4(world_to_hmap_low_varId));
 
   // bbox for update
   BBox2 updateBox;
@@ -326,7 +327,7 @@ void BurningDecals::update(float dt)
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(bakedBurningMap.getTex2D(), 0);
+    d3d::set_render_target(bakedBurningMap.getBaseTex(), 0);
 
     d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
 
@@ -338,8 +339,8 @@ void BurningDecals::update(float dt)
     bakedBurningMap.setVar();
   }
 
-  d3d::stretch_rect(bakedBurningMap.getTex2D(), burningMap.getTex2D());
-  d3d::resource_barrier({bakedBurningMap.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::stretch_rect(bakedBurningMap.getBaseTex(), burningMap.getBaseTex());
+  d3d::resource_barrier({bakedBurningMap.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   if (renderDynamicCount > 0)
   {
@@ -352,7 +353,7 @@ void BurningDecals::update(float dt)
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(burningMap.getTex2D(), 0);
+    d3d::set_render_target(burningMap.getBaseTex(), 0);
 
     d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
 
@@ -364,7 +365,7 @@ void BurningDecals::update(float dt)
     }
   }
 
-  d3d::resource_barrier({burningMap.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({burningMap.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
 
 namespace burning_decals_mgr

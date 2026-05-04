@@ -236,10 +236,6 @@ protected:
         stagingMemory = T::allocateReadOnlyStagingMemory(size);
       }
     }
-    else if (0 != (buf_flags & SBCF_CPU_ACCESS_WRITE))
-    {
-      stagingMemory = T::allocateWriteOnlyStagingMemory(size);
-    }
     else
     {
       reporter.errorUnknownStagingMemoryType(name);
@@ -264,10 +260,6 @@ protected:
       {
         stagingMemory = T::discardReadOnlyStagingMemory(stagingMemory, size);
       }
-    }
-    else if (0 != (buf_flags & SBCF_CPU_ACCESS_WRITE))
-    {
-      stagingMemory = T::discardWriteOnlyStagingMemory(stagingMemory, size);
     }
     else
     {
@@ -320,13 +312,13 @@ protected:
   constexpr uint8_t *getHostCopyPointer(uint32_t) const { return nullptr; }
 
   constexpr uint8_t *getStagingMemoryPointer(uint32_t) const { return nullptr; }
-  template <typename T>
-  constexpr bool allocateStagingMemory(uint32_t, uint32_t, const char *, T &) const
+  template <typename U>
+  constexpr bool allocateStagingMemory(uint32_t, uint32_t, const char *, U &) const
   {
     return false;
   }
-  template <typename T>
-  constexpr bool discardStagingMemory(uint32_t, uint32_t, const char *, T &) const
+  template <typename U>
+  constexpr bool discardStagingMemory(uint32_t, uint32_t, const char *, U &) const
   {
     return false;
   }
@@ -384,9 +376,31 @@ protected:
   bool executeReload(Sbuffer *) { return false; }
 };
 
+template <bool /*NEEDS_SAVE_MEMCPY*/ = true>
+class GenericBufferMemoryCopyImplementation
+{
+protected:
+  static void copy_memory(void *dst, const void *src, size_t count)
+  {
+    if (!dst || !src || !count)
+    {
+      return;
+    }
+    memcpy(dst, src, count);
+  }
+};
+
+template <>
+class GenericBufferMemoryCopyImplementation<false>
+{
+protected:
+  static void copy_memory(void *dst, const void *src, size_t count) { memcpy(dst, src, count); }
+};
+
 template <typename T>
 class GenericSbufferImplementation final : public GenericBufferMemoryArchitecture<T, T::IS_UMA>,
                                            public GenericBufferReloadImplementation<T::HAS_RELOAD_SUPPORT>,
+                                           protected GenericBufferMemoryCopyImplementation<T::HAS_RELOAD_SUPPORT>,
                                            public GenericBufferDiscardFrameTracker<T::TRACK_DISCARD_FRAME>,
                                            protected GenericBufferErrorHandler<T, T::REPORT_ERRORS>,
                                            protected GenericBufferWarningHandler<T, T::REPORT_WARNINGS>,
@@ -396,6 +410,7 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
   using BufferMemoryArchitecture = GenericBufferMemoryArchitecture<T, T::IS_UMA>;
   using BufferErrorHandler = GenericBufferErrorHandler<T, T::REPORT_ERRORS>;
   using BufferWarningHandler = GenericBufferWarningHandler<T, T::REPORT_WARNINGS>;
+  using BufferMemoryCopyImplementation = GenericBufferMemoryCopyImplementation<T::HAS_RELOAD_SUPPORT>;
 
   static constexpr uint8_t STATUS_READ_BACK_IN_PROGRESS = 1u << 0;
   static constexpr uint8_t STATUS_DEVICE_HAS_WRITTEN_TO = 1u << 1;
@@ -407,8 +422,9 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
   uint32_t lockOffset = 0;
   uint32_t lockSize = 0;
   uint16_t structSize = 0;
-  uint8_t lastLockFlags = 0;
+  std::atomic<uint8_t> lastLockFlags = 0;
   uint8_t statusFlags = 0;
+  ResourceTagType tag = nullptr;
   typename T::BufferType buffer = T::getNullBuffer();
   typename T::TemporaryMemoryType temporaryMemory = T::getNullTemporaryMemory();
   typename T::ViewFormatType viewFormat = T::getDefaultViewFormat();
@@ -454,15 +470,26 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
     {
       auto sz = T::getBufferSize(buffer);
       // update memory usage at the texture manager
-      tql::on_buf_changed(true, tql::sizeInKb(sz));
+      tql::on_persistent_changed(true, tql::sizeInKb(sz));
     }
   }
+
+  bool isMapableForRead() const
+  {
+    if (!T::isMapable(buffer))
+    {
+      return false;
+    }
+    return T::PRIVATE_MEMORY_CLASS != getMemoryClass();
+  }
+
+  bool isMapableForWrite() const { return T::isMapable(buffer); }
 
   void adopt(typename T::BufferType &&buf, const char *buf_name)
   {
     buffer = eastl::move(buf);
 
-    if (!T::isMapable(buffer))
+    if (!isMapableForRead())
     {
       BufferMemoryArchitecture::allocateStagingMemory(bufFlags, bufSize, buf_name, *this);
     }
@@ -546,12 +573,7 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
 
   static bool bufferLockedForRead(uint32_t lock_flags) { return lock_flags & VBLOCK_READONLY; }
   static bool bufferLockedForWrite(uint32_t lock_flags) { return lock_flags & VBLOCK_WRITEONLY; }
-  bool bufferLockDiscardRequested(uint32_t lock_flags) const
-  {
-    return (lock_flags & VBLOCK_DISCARD) ||
-           // a write to a staging buffer is a implicit discard request
-           (bufferLockedForWrite(lock_flags) && !bufferLockedForRead(lock_flags) && isStagingBuffer());
-  }
+  bool bufferLockDiscardRequested(uint32_t lock_flags) const { return (lock_flags & VBLOCK_DISCARD); }
   static bool bufferSyncUpdateRequested(uint32_t lock_flags) { return lock_flags & VBLOCK_NOOVERWRITE; }
   bool isDynamicBuffer() const { return 0 != (bufFlags & SBCF_DYNAMIC); }
   bool isDynamicOrCPUWriteable() const { return 0 != (bufFlags & (SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE)); }
@@ -578,7 +600,6 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
     }
     else if (isStagingBuffer())
     {
-      // staging buffers treat write only locking as discard locking, so we need space for discarding
       return T::INITIAL_DISCARD_COUNT_STAGING_BUFFER;
     }
     return T::INITIAL_DISCARD_COUNT_DEFAULT;
@@ -613,7 +634,7 @@ public:
         return T::SHARED_CACHED_MEMORY_CLASS;
     }
 
-    if (cflags & (SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC))
+    if (cflags & SBCF_DYNAMIC)
     {
       if (T::INDIRECT_BUFFER_IS_SPECIAL)
       {
@@ -641,11 +662,12 @@ public:
   }
 
   GenericSbufferImplementation(uint32_t struct_size, uint32_t element_count, uint32_t flags, uint32_t format_flags,
-    const char *stat_name) :
+    const char *stat_name, ResourceTagType tg) :
     structSize(struct_size),
     bufSize(max<uint32_t>(struct_size, 1) * element_count),
     bufFlags(flags),
-    viewFormat(T::viewFormatFromFormatFlags(format_flags))
+    viewFormat(T::viewFormatFromFormatFlags(format_flags)),
+    tag{tg}
   {
     setName(stat_name);
 
@@ -665,11 +687,12 @@ public:
   }
 
   GenericSbufferImplementation(typename T::BufferType &&buf, uint32_t struct_size, uint32_t element_count, uint32_t flags,
-    uint32_t format_flags, const char *stat_name) :
+    uint32_t format_flags, const char *stat_name, ResourceTagType tg) :
     structSize(struct_size),
     bufSize(max<uint32_t>(struct_size, 1) * element_count),
     bufFlags(flags),
-    viewFormat(T::viewFormatFromFormatFlags(format_flags))
+    viewFormat(T::viewFormatFromFormatFlags(format_flags)),
+    tag{tg}
   {
     setName(stat_name);
     BufferMemoryArchitecture::allocateHostCopyMemory(bufFlags, bufSize);
@@ -696,14 +719,22 @@ public:
       T::deleteBuffer(buffer);
       if (T::REPORT_MEMORY_SIZE_TO_MANAGER)
       {
-        TEXQL_ON_BUF_RELEASE(this);
+        TEXQL_ON_PERSISTENT_RELEASE(this);
       }
     }
   }
 
   uint32_t getSize() const override { return bufSize; }
   int getFlags() const override { return bufFlags; }
-  bool setReloadCallback(IReloadData *rd) override { return BufferReloadImplementation::updateReloadInfo(rd); }
+  void setApiName(const char *name) const override { T::setBufferApiName(buffer, name); }
+  bool setReloadCallback(IReloadData *rd) override
+  {
+    if (rd)
+    {
+      BufferMemoryArchitecture::freeHostCopyMemory();
+    }
+    return BufferReloadImplementation::updateReloadInfo(rd);
+  }
   void destroy() override
   {
     STORE_RETURN_ADDRESS();
@@ -713,19 +744,23 @@ public:
   int unlock() override
   {
     STORE_RETURN_ADDRESS();
-    if (0 == lastLockFlags)
+    if (0 == lastLockFlags.load(std::memory_order_relaxed))
     {
       BufferErrorHandler::errorUnlockWithoutPreviousLock(getName());
     }
 
     if (isStreamBuffer())
     {
-      lastLockFlags = 0;
+      lastLockFlags.store(0, std::memory_order_release);
+
+      if (T::isValidMemory(temporaryMemory))
+        temporaryMemory.flushRegion(ValueRange<uint64_t>{lockOffset, lockOffset + lockSize});
+
       // nothing to do
       return 1;
     }
 
-    if (bufferLockedForWrite(lastLockFlags))
+    if (bufferLockedForWrite(lastLockFlags.load(std::memory_order_relaxed)))
     {
       if (T::isValidMemory(temporaryMemory))
       {
@@ -734,25 +769,24 @@ public:
           BufferErrorHandler::errorUnexpectedUseCase(getName());
         }
 
-        T::updateBuffer(temporaryMemory, this, bufFlags, buffer, lockOffset);
+        T::updateBuffer(temporaryMemory, this, bufFlags, lockOffset);
       }
       else
       {
         if (BufferMemoryArchitecture::hasHostCopy())
         {
-          if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized())
+          if (bufferGpuTimelineUpdate(lastLockFlags.load(std::memory_order_relaxed)) && isInitialized())
           {
             BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
-          // Only copy from local copy to stage or buffer directly, later steps will do the copying
-          // and flushing
-          if (T::isMapable(buffer))
+          if (BufferMemoryArchitecture::hasStagingMemory())
           {
-            memcpy(T::getMappedPointer(buffer, lockOffset), BufferMemoryArchitecture::getHostCopyPointer(lockOffset), lockSize);
+            BufferMemoryCopyImplementation::copy_memory(BufferMemoryArchitecture::getStagingMemoryPointer(lockOffset),
+              BufferMemoryArchitecture::getHostCopyPointer(lockOffset), lockSize);
           }
-          else if (BufferMemoryArchitecture::hasStagingMemory())
+          else if (isMapableForWrite())
           {
-            memcpy(BufferMemoryArchitecture::getStagingMemoryPointer(lockOffset),
+            BufferMemoryCopyImplementation::copy_memory(T::getMappedPointer(buffer, lockOffset),
               BufferMemoryArchitecture::getHostCopyPointer(lockOffset), lockSize);
           }
           else
@@ -765,7 +799,8 @@ public:
             auto buf = T::allocateTemporaryUploadMemory(lockSize);
             if (T::isValidMemory(buf))
             {
-              memcpy(T::getMemoryPointer(buf, 0), BufferMemoryArchitecture::getHostCopyPointer(lockOffset), lockSize);
+              BufferMemoryCopyImplementation::copy_memory(T::getMemoryPointer(buf, 0),
+                BufferMemoryArchitecture::getHostCopyPointer(lockOffset), lockSize);
               T::uploadBuffer(buf, buffer, 0, lockOffset, lockSize);
               T::freeMemory(buf);
             }
@@ -778,15 +813,15 @@ public:
 
         if (BufferMemoryArchitecture::hasStagingMemory())
         {
-          if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized())
+          if (bufferGpuTimelineUpdate(lastLockFlags.load(std::memory_order_relaxed)) && isInitialized())
           {
             BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
           BufferMemoryArchitecture::uploadStagingMemoryToBuffer(lockOffset, buffer, lockOffset, lockSize);
         }
-        else if (T::isMapable(buffer))
+        else if (isMapableForWrite())
         {
-          if (bufferGpuTimelineUpdate(lastLockFlags) && isInitialized() && !T::IS_UMA)
+          if (bufferGpuTimelineUpdate(lastLockFlags.load(std::memory_order_relaxed)) && isInitialized() && !T::IS_UMA)
           {
             BufferErrorHandler::errorUnexpectedUseCase(getName());
           }
@@ -802,15 +837,15 @@ public:
     }
 
     bufferIsInitialized();
-    lastLockFlags = 0;
+    lastLockFlags.store(0, std::memory_order_release);
     return 1;
   }
 
   int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags) override
   {
     STORE_RETURN_ADDRESS();
-    checkLockParams(ofs_bytes, size_bytes, flags, bufFlags);
-    if (0 != lastLockFlags)
+    checkLockParams(ofs_bytes, size_bytes, flags, bufFlags, getName(), bufSize);
+    if (0 != lastLockFlags.load(std::memory_order_relaxed))
     {
       BufferErrorHandler::errorLockWithoutPrevoiusUnlock(getName());
     }
@@ -832,7 +867,8 @@ public:
       BufferErrorHandler::errorLockOffsetIsNotZero(getName(), ofs_bytes, flags);
     }
 
-    lastLockFlags = static_cast<uint16_t>(flags);
+    lastLockFlags.store(static_cast<uint16_t>(flags), std::memory_order_relaxed);
+    T::frontendSyncFence(); // we need to ensure no new buffer will be locked during defragmentation
 
     lockOffset = ofs_bytes;
     lockSize = size_bytes ? size_bytes : (bufSize - ofs_bytes);
@@ -846,13 +882,13 @@ public:
       if (!T::isValidMemory(temporaryMemory))
       {
         BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
-        lastLockFlags = 0;
+        lastLockFlags.store(0, std::memory_order_release);
         return 0;
       }
       if (!ptr)
       {
         BufferErrorHandler::errorDiscardWithoutPointer(getName());
-        lastLockFlags = 0;
+        lastLockFlags.store(0, std::memory_order_release);
         return 0;
       }
       *ptr = T::getMemoryPointer(temporaryMemory, ofs_bytes);
@@ -880,14 +916,15 @@ public:
       }
     }
 
-    if (0 == ((VBLOCK_WRITEONLY | VBLOCK_READONLY) & lastLockFlags))
+    if (0 == ((VBLOCK_WRITEONLY | VBLOCK_READONLY) & lastLockFlags.load(std::memory_order_relaxed)))
     {
-      if (T::HAS_STRICT_LOCKING_RULES && (0 == ((VBLOCK_DISCARD | VBLOCK_NOOVERWRITE) & lastLockFlags)) &&
+      if (T::HAS_STRICT_LOCKING_RULES &&
+          (0 == ((VBLOCK_DISCARD | VBLOCK_NOOVERWRITE) & lastLockFlags.load(std::memory_order_relaxed))) &&
           !BufferMemoryArchitecture::hasHostCopy())
       {
         BufferErrorHandler::errorLockWithInvalidLockingFlags(getName(), flags);
       }
-      lastLockFlags |= VBLOCK_WRITEONLY;
+      lastLockFlags.fetch_or(VBLOCK_WRITEONLY, std::memory_order_relaxed);
     }
 
     if (bufferLockedForRead(flags))
@@ -901,7 +938,7 @@ public:
           {
             BufferMemoryArchitecture::readBackBufferToStagingMemory(buffer, lockOffset, lockOffset, lockSize);
             beginReadBackProgress();
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -919,13 +956,13 @@ public:
           BufferMemoryArchitecture::invalidateStagingMemory(lockOffset, lockSize);
           basePointer = BufferMemoryArchitecture::getStagingMemoryPointer(lockOffset);
         }
-        else if (T::isMapable(buffer))
+        else if (isMapableForRead())
         {
           if (!ptr)
           {
             T::flushBuffer(buffer, lockOffset, lockSize);
             beginReadBackProgress();
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -965,7 +1002,7 @@ public:
             {
               BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -994,7 +1031,7 @@ public:
           if (!T::isValidMemory(temporaryMemory))
           {
             // on error it was reported already
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -1004,7 +1041,7 @@ public:
 
         if (BufferMemoryArchitecture::hasHostCopy())
         {
-          memcpy(BufferMemoryArchitecture::getHostCopyPointer(lockOffset), basePointer, lockSize);
+          BufferMemoryCopyImplementation::copy_memory(BufferMemoryArchitecture::getHostCopyPointer(lockOffset), basePointer, lockSize);
           basePointer = BufferMemoryArchitecture::getHostCopyPointer(lockOffset);
         }
       }
@@ -1014,7 +1051,7 @@ public:
         {
           basePointer = BufferMemoryArchitecture::getStagingMemoryPointer(lockOffset);
         }
-        else if (T::isMapable(buffer))
+        else if (isMapableForRead())
         {
           basePointer = T::getMappedPointer(buffer, lockOffset);
         }
@@ -1039,7 +1076,7 @@ public:
               BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
             }
             beginReadBackProgress();
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -1068,7 +1105,7 @@ public:
           if (!T::isValidMemory(temporaryMemory))
           {
             // on error it was reported already
-            lastLockFlags = 0;
+            lastLockFlags.store(0, std::memory_order_release);
             return 0;
           }
 
@@ -1087,7 +1124,7 @@ public:
     if (!ptr)
     {
       BufferWarningHandler::warnUsageAsyncWithoutReadBackRequested(getName());
-      lastLockFlags = 0;
+      lastLockFlags.store(0, std::memory_order_release);
       return 0;
     }
 
@@ -1104,7 +1141,7 @@ public:
       else
       {
         BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
-        lastLockFlags = 0;
+        lastLockFlags.store(0, std::memory_order_release);
         return 0;
       }
     }
@@ -1117,7 +1154,7 @@ public:
     {
       *ptr = BufferMemoryArchitecture::getStagingMemoryPointer(lockOffset);
     }
-    else if (T::isMapable(buffer))
+    else if (isMapableForWrite())
     {
       *ptr = T::getMappedPointer(buffer, lockOffset);
     }
@@ -1131,7 +1168,7 @@ public:
       else
       {
         BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
-        lastLockFlags = 0;
+        lastLockFlags.store(0, std::memory_order_release);
         return 0;
       }
     }
@@ -1139,6 +1176,7 @@ public:
     Stat3D::updateLockVIBuf();
     return 1;
   }
+  bool isLocked() const { return 0 != lastLockFlags.load(std::memory_order_acquire); }
   int getElementSize() const override { return structSize; }
   int getNumElements() const override { return structSize ? bufSize / structSize : 0; }
   bool copyTo(Sbuffer *dst) override
@@ -1183,15 +1221,21 @@ public:
       {
         temporaryMemory = T::discardStreamMememory(this, size_bytes, structSize, bufFlags, temporaryMemory, getName());
       }
-      memcpy(T::getMemoryPointer(temporaryMemory, ofs_bytes), src, size_bytes);
+      if (!T::isValidMemory(temporaryMemory))
+      {
+        BufferErrorHandler::errorAllocatingTemporaryMemory(getName());
+        return false;
+      }
+      BufferMemoryCopyImplementation::copy_memory(T::getMemoryPointer(temporaryMemory, ofs_bytes), src, size_bytes);
+      temporaryMemory.flushRegion(ValueRange<uint64_t>{ofs_bytes, ofs_bytes + size_bytes});
       return true;
     }
 
     // fastest path, mappable + nooverwrite, we can safely memcpy it over and we are done
-    if (bufferSyncUpdateRequested(lock_flags) && T::isMapable(buffer) && !BufferMemoryArchitecture::hasHostCopy() &&
+    if (bufferSyncUpdateRequested(lock_flags) && isMapableForRead() && !BufferMemoryArchitecture::hasHostCopy() &&
         !BufferMemoryArchitecture::hasStagingMemory())
     {
-      memcpy(T::getMappedPointer(buffer, ofs_bytes), src, size_bytes);
+      BufferMemoryCopyImplementation::copy_memory(T::getMappedPointer(buffer, ofs_bytes), src, size_bytes);
       return true;
     }
 
@@ -1208,12 +1252,12 @@ public:
     }
     if (BufferMemoryArchitecture::hasHostCopy())
     {
-      memcpy(BufferMemoryArchitecture::getHostCopyPointer(ofs_bytes), src, size_bytes);
+      BufferMemoryCopyImplementation::copy_memory(BufferMemoryArchitecture::getHostCopyPointer(ofs_bytes), src, size_bytes);
     }
     // copies src into a temp buffer and later during GPU execution copies the temp buffer into this
     // buffer at the given offset this keeps relative ordering to other GPU commands, eg its done on
     // GPU time line.
-    T::pushBufferUpdate(this, bufFlags, buffer, ofs_bytes, src, size_bytes);
+    T::pushBufferUpdate(this, bufFlags, ofs_bytes, src, size_bytes);
     return true;
   }
 
@@ -1275,4 +1319,6 @@ public:
   bool usableAsVertexBuffer() const { return 0 != (bufFlags & SBCF_BIND_VERTEX); }
 
   typename T::ViewFormatType getTextureViewFormat() const { return viewFormat; }
+
+  ResourceTagType getTag() const { return tag; }
 };

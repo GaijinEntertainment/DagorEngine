@@ -24,6 +24,7 @@ class WebVromfsDataCache
   bool allowCacheVromFallback = true;
   static Tab<SimpleString> bannedUrlPrefix;
   static int banUnresponsiveUrlForTimeoutInSec; //< 9 sec (default)
+  static bool silentMode;
 
 public:
   bool init(const DataBlock &params, const char *cache_dir = NULL);

@@ -1,1 +1,2 @@
 file:t = "dynamic_screen/shaders/dynamic_screen.dshl"
+file:t = "dynamic_screen/shaders/ui_decal.dshl"

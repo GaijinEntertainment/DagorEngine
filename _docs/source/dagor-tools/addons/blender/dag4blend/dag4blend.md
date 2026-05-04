@@ -4,221 +4,437 @@
 
 1. Go to **Edit > Preferences > Add-ons** in Blender.
 
-2. Click small dropdown on the top right corner and choose **Install from Disk...**
+2. Click small dropdown on the top right corner and choose **Install from
+   Disk...**
 
-<img src="_images/inst_location.png" alt="Installation" align="center">
+   <img src="_images/inst_location.png" alt="Installation" align="center">
 
-3. Navigate to the `.zip` file of the add-on.
+3. Navigate to the `dag4blend.zip` add-on file.
 
-4. After installation, check the box next to the add-on in the list.
+## Initial Configuration
 
-To use add-on properly you need to perform some initial configuration, so do not close
-the **Preferences** window yet:
+After installation, check the box next to the add-on in the list if it hasn't
+activated automatically.
 
-<img src="_images/preferences.png" alt="Preferences" align="center">
+Before you start working, you need to perform some initial configuration, so
+don't close the **Preferences** window yet:
 
-The path for **ObjProps presets:** and shader list **dagorShaders.cfg:** can now
-be set manually. This feature ensures that updating the add-on does not
-overwrite any user-made changes. It is recommended to store presets outside the
-add-on directory.
+<img src="_images/inst_preferences.png" alt="Preferences" align="center">
 
-Until the path to an existing directory is specified, the preset menu will not
-be displayed. For each project you  work on, you need to specify the path to the
-`assets/` directory.
+### General Paths
 
-```{note}
-Many interface elements have tooltips that appear when you hover the cursor
-over them.
+- **ObjProps presets**: Directory containing preset files for **Object
+  Properties**.
+
+  If you've used a previous version of the add-on, point this path to the same
+  folder after installation. If this is your first installation, create a
+  dedicated folder for presets outside the add-on directory, so they won't be
+  lost during a clean reinstall. Until a valid directory path is specified, the
+  preset menu will not be displayed.
+
+- **dagorShaders.blk**: Configuration file describing the shaders.
+
+  A default version is included with the add-on, but you can redirect it to the
+  one located in your 3ds Max tools folder. That file is used by [Asset
+  Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) and [Dagor Max
+  Tools](../../3ds-max/dagor-max-tools/dagor_max_tools.md), and editing a single
+  shared version may be more convenient. A separate config is used only because
+  the add-on is installed into a random folder, and the path to the external
+  config cannot be known in advance for each user.
+
+### Projects
+
+For the add-on to function correctly, you must define at least one project
+corresponding to a game you are working on. If you are working on multiple
+games, create a separate project for each.
+
+```{tip}
+Many interface elements have tooltips that appear when you hover over them.
 ```
-### Configuring Projects
-
-Some operators of dag4blend need additional info about current game to work properly.
-To create new set of properties press **+ ADD Project**.
 
 <img src="_images/inst_projects.png" alt="Projects" align="center">
 
-Every non-configured parameter of new project is marked by **ERROR** icon.
+Clicking **ADD Project** creates a new project. Each unconfigured field will be
+marked with an exclamation icon.
 
-- **name:** how this project will be displayed in "Active Project" dropdown.
+- **Name**: The name of the project as it appears in the dropdown list. Choose
+  something meaningful.
 
-- **path:** where all game assets stored. DAGs, textures, composites, proxymats, etc.
+- **Path**: The global path to the directory `.../develop/assets/`. The add-on
+  will use this location to search for textures, proxy materials (proxymats),
+  and other resources when needed.
 
-- **Shading mode:** shaders behave slightly different between projects. The
-  add-on is designed to adapt to two main shader groups: daNetGame-like and War
-  Thunder-like shaders.
+- **Shading**: Shader behavior differs slightly between projects. The add-on
+  supports two main profiles: **daNetGame-like** and **War Thunder-like**
+  shaders.
 
-- **Palettes**: 
-    - global palette is used everywhere dy default, unless it's overriden.
-    - local palette can be configured per-level and can be used instead of global
-      on specific assets.
+  Which should you choose? If your project is not War Thunder, select
+  **daNetGame-like**.
 
-```{note}
-By default, the global and local palettes will be simple red and green fills,
-until you specify a path to existing texture.
+- **Palettes**: Paths to the global project palette and the current level
+  palette. Specify the path to the `.tif` palette file.
+
+Click **Save Preferences** to save these settings globally for Blender. In
+theory, preferences should be saved automatically on exit, but it's safer to
+save them manually.
+
+In the upper-left corner, you can also see a **lock icon**: this locks
+parameters from accidental editing or deletion.
+
+```{caution}
+Locking only prevents manual input.
+
+In Blender, hovering over a locked field and pressing {bdg-dark-line}`Backspace`
+will still clear it, even if it's locked.
 ```
 
-Configured project should have no error icons. When parameters are set,
-use lock button to make it non-editable.
-It prevents changing properties or project removal by accident.
+If you're working on several projects in parallel, you don't need to switch the
+active one via **User Preferences**. You can select and edit the active project
+directly from the **Scene Properties** panel.
 
 <img src="_images/inst_projects_configured.png" alt="Project Configured" align="center">
 
-You don't have to always use **Preferences** window to change the active project
-or edit its parameters.
-Same exact project configurator can be found in the **Scene Properties**:
-
-<img src="_images/inst_scene.png" alt="Scene" align="center">
-
-```{note}
-Project parameters are stored in Add-on preferences,
-but sometimes they are not being saved on exit automatically.
-To ensure that new parameters won't be lost, you can use **Save Preferences** button,
-available right in project configurator. Remember, that it's a **global** operator,
-which saves all the preferences, not just dag4blend ones.
-```
-
 ### Experimental Features
 
-This block contains toggles for new tools that are functional but have some
-limitations. Currently, it includes only a [Composite Editor](#composite-editor):
+The **Experimental Features** section enables tools that are functional but
+still limited in some ways.
 
 <img src="_images/inst_exp_features.png" alt="Experimental Features" align="center">
 
+Currently, you can enable:
+
+- Legacy material parameters (hidden by default)
+- [Composite Editor](#composite-editor)
+
+```{important}
+The add-on applies settings when these parameters change, but only if there is
+something to apply them to. Therefore:
+
+- To fix shader mode, reselect the project after creating at least one dagor
+  material (dagormat) in the scene.
+
+- To fix palette settings, reselect the project after creating a dagormat with
+  paint layers.
+
+By default, the global and local palettes will appear as plain red and green
+fills, and shaders will operate in **War Thunder-like** mode.
+
+To correct this, simply reselect the project in the dropdown after the first
+asset import or creation.
+```
+
 ## Log and Text Editors
 
-Text objects play an important role in this toolset, so it is recommended to add
-a text field to your layout or add a new window with just a text field if you
-are working with multiple monitors.
+The add-on uses Blender's text editor to display logs.
+
+If there is at least one text editor area in the current layout, a text block
+named "log" will be opened in it. Otherwise, a new text editor area will
+automatically be created on the left side of the **Viewport**:
 
 <img src="_images/log_text_field.png" alt="Text field" align="center">
 
-The import/export functions (and future ones) write execution information to a
-text **log** field.
+Import/export functions (and some other operations) write execution information
+to the **log** text block, but do not clear it automatically. Make sure to clear
+it manually from time to time, after verifying that there are no unreviewed
+errors or warnings remaining.
 
-```{note}
-The **log** does not clear itself, so remember to clear it periodically after
-ensuring that there are no unchecked errors and warnings. To clear it, you can
-simply delete the text object. The next time you need it, the toolset will
-create a new one. This approach can be faster than selecting all the lines and
-deleting them with `Backspace`/`Delete`.
-```
+To clear the **log**, you can simply delete the entire text block, the next time
+it's needed, the add-on will automatically create a new one. This approach is
+usually faster than selecting all lines and deleting them manually with
+{bdg-dark-line}`Backspace` or {bdg-dark-line}`Delete`.
 
-To edit object properties, dagormats, or proxymats as text, the toolset creates
-a special text object. The name of the object is provided in the tooltip.
-
-```{seealso}
-For more information, see
-[Proxymats](../../../../assets/materials/proxymats.md).
-```
+When editing **Object Properties**, dagormats, or proxymats as text, the add-on
+also creates dedicated text blocks for them. The name of each text block is
+shown in its tooltip.
 
 ## Material Setup
 
-For setup material for Dagor Engine, there is separate **dagormat** tab. It
-contains several subtabs that can be collapsed when not needed:
+Materials for the Dagor Engine are configured in a dedicated tab called
+**dagormat**. This tab contains several collapsible sub-sections that can be
+expanded or hidden as needed:
 
 <img src="_images/mat_dagormat.png" alt="Dagormat" align="center">
 
 ### Main
 
-Here you can choose whether the material is two-sided, and if so, how it
-behaves:
+<img src="_images/mat_dagormat_main.png" alt="Dagormat: Main" align="center">
 
-<img src="_images/mat_dagormat_main.png" alt="Dagormat - Main" align="center">
+{cnum}`1` **Reload shaders**: This button reloads the list of shaders from
+`dagorShaders.blk` without restarting Blender.
 
-- **single_sided**: enables backface culling for triangles with this material.
+{cnum}`2` **Legacy properties**: This block is hidden by default. It includes
+ambient, specular, diffuse, emissive, and power parameters. These are legacy and
+are not used by modern shaders.
 
-- **two_sided**: each triangle is rendered from both sides. The shader is
-  slightly heavier, but the geometry is lighter. Use this primarily for heavy
-  geometry, such as tree crowns.
+{cnum}`3` **Backfacing mode**: Here you can specify whether the material is
+single- or double-sided, and which type of two-sided rendering to use:
 
-- **real_two_sided**: in the engine, a single-sided material is uses, but each
-  triangle with this material will be duplicated and flipped to be visible from
-  the other side. This shader is lighter, but it doubles the mesh weight. It is
-  better used on simpler meshes.
+- **1sided**: Regular single-sided material. Backfaces are ignored.
+- **2sided**: Each triangle is rendered from both sides. Slightly heavier on
+  the shader but lighter on geometry. Use primarily for complex geometry (e.g.,
+  tree crowns).
+- **real2sided**: In the engine, each triangle with this material (still
+  technically single-sided) is duplicated and flipped to be visible from both
+  sides. Lighter shader but doubles mesh complexity, best used for simple
+  geometry.
 
-Below is a list of **legacy** properties: *ambient*, *specular*, *diffuse*,
-*emissive* and *power*. Hover over them to see tooltips describing each
-property.
+{cnum}`4` **shader**: Current shader. This field can appear either as a text
+field or a dropdown list.
 
-This tab also allows you to select a shader from the available options or
-manually enter a value. It is useful if new shaders have been added to the game
-but the toolset has not been updated yet.
+{cnum}`5` The **dropdown toggle button** enables shader selection from those
+found in `dagorShaders.blk`.
 
-<img src="_images/mat_dagormat_shader.png" alt="Dagormat - Shader" align="center">
+{cnum}`6` When **filtering** is enabled, only shaders belonging to the active
+category will be visible in the shaders dropdown {cnum}`4`.
 
-The list of shaders and their possible parameters are taken from
-`dagorShaders.cfg`, which by default is located at:
-`C:\Users\<username>\AppData\Roaming\Blender Foundation\Blender\<version
-number>\scripts\addons\dag4blend`.
+{cnum}`7` **category**: The active category dropdown, appears only when
+filtering is active.
 
 ### Textures
 
-This section lists the textures in use. Indices (matching those stored in `.dag`
-files) are available in tooltips. You can copy and paste paths from [Asset
-Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) or Explorer; quotes
-will be removed automatically.
+A straightforward section listing all textures used by the material.
 
-<img src="_images/mat_dagormat_textures.png" alt="Dagormat - Textures" align="center">
+<img src="_images/mat_dagormat_textures.png" alt="Dagormat: Textures" align="center">
+
+You can copy-paste paths directly from [Asset
+Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) or Explorer,
+quotation marks will be automatically removed.
+
+Several input formats are supported:
+
+- full file path
+- filename only (without path)
+- asset name only (without extension)
 
 ### Optional
 
-Visual editing of shader parameters. You can manually enter values or select
-from a list, similar to how shader selection works.
+This section provides visual editing of shader parameters.
 
-<img src="_images/mat_dagormat_optional.png" alt="Dagormat - Optional" align="center">
+<img src="_images/mat_dagormat_optional.png" alt="Dagormat: Optional" align="center">
+
+Values can be entered manually or selected from a dropdown, similar to how
+shader selection works.
+
+Parameters can be deleted:
+- individually
+- in groups
+- all at once (using the trash can icons at corresponding hierarchy levels).
+
+If the shader is not defined in the configuration, the parameter dropdown will
+be empty, and any added values will be placed under the **Unknown** category. If
+the shader is known, parameters will be grouped and displayed according to their
+definitions.
+
+#### `dagorShaders.blk`
+
+This file describes shaders as a unified hierarchy:
+
+```blk
+shader_category{
+  name:t="Unique Category Name"
+  description:t="What this category contains?"  // optional parameter
+
+  shader{
+    name:t="some_shader_class"
+    description:t="What this shader does?"      // optional parameter
+    parameters_group{
+      name:t="Unique group name"  /* Unique for this shader only.
+                                     Two different shaders can have groups with matching names if necessary. */
+      description:t="What it does, why parameters grouped?"  // optional
+      parameter{
+        ...
+      }
+      parameter{
+        ...
+      }
+    }
+    parameter{
+      name:t="unique_parameter_name"
+      type:t="p4"
+      description:t="Does things and stuff"  // optional
+      default:p4=10.0, 11.0, 2.4, 6.8        /* optional. Will be used instead of type-specific value.
+                                                Affects material merging. */
+      soft_min:r=0.0       // optional, for vectors it's a single value, shared between all elements
+      soft_max:r=20.0      // optional
+      custom_ui:t="color"  // optional, for now only "p4 as color" is available
+    }
+  }
+  shader{
+    ...
+  }
+}
+shader_category{
+  ...
+}
+```
+
+**Structure Overview**
+
+At the root level, there are shader categories.
+
+Each category must have:
+
+- A unique name (required)
+- An optional description, which appears as a tooltip in the UI when hovering
+  over the category name.
+
+Each category contains multiple shaders, which must also have:
+
+- A unique name (required)
+- An optional description, shown in tooltips as well.
+
+Each shader contains parameters, which can be either:
+
+- Placed directly in the shader root
+- Grouped inside named parameter groups (nested groups are not allowed).
+
+Each group must have:
+
+- A unique name within the shader
+- An optional description
+
+Each parameter must define:
+
+- A name (required)
+- A data type
+
+**Supported Parameter Types**
+
+At the time of writing, the following data types are supported:
+
+```{eval-rst}
+.. table::
+   :widths: auto
+   :align: center
+
+   =======  ============  ======================================================
+   Name     Type          Description
+   =======  ============  ======================================================
+   ``:b``   bool          Boolean toggle with two states. Accepts ``yes``,
+                          ``true``, ``1`` for active state, and ``no``,
+                          ``false``, ``0`` for inactive.
+
+                          Any other value is invalid and defaults to ``no``.
+   ``:i``   integer       Integer value. Defaults to ``0``. Can be negative or
+                          positive.
+   ``:r``   real (float)  Floating-point number. Defaults to ``0.0``. Can be
+                          negative or positive.
+   ``:p4``  point         Four consecutive real values. Defaults to
+                          ``0.0, 0.0, 0.0, 0.0``.
+   =======  ============  ======================================================
+```
+
+The Dagor API supports more parameter types, though they are not yet used in
+practice. You can find examples of all supported types in the `test_shader`
+section at the end of `dagorShaders.blk`.
+
+**Optional Parameter Fields**
+
+Parameters may also include the following optional fields:
+
+- `default`: Must match the parameter's data type.
+
+  If provided, this value will be used instead of the type's intrinsic default.
+  The `Reset to default` operator restores this value. When merging materials,
+  parameters are treated as identical if one is missing and the other equals its
+  default value. Avoid using defaults that differ from the engine's internal
+  defaults.
+
+- `soft_min`: Defines a minimum value limit to prevent accidental input errors.
+
+  For `p4`, this applies `r` to all four components equally. Displays an error
+  icon in the UI if the current value is below the limit; hovering shows the
+  valid range. Not applicable to `b` or text (`t`) types.
+
+- `soft_max`: Similar to `soft_min`, but defines an upper limit.
+
+- `custom_ui:t`: Allows rendering a custom widget instead of the default one.
+
+  Currently, only one exists: `color` for `p4`. New widgets will be added to
+  `test_shader` as examples when introduced.
 
 ### Tools
 
-Here you can edit the active material in text format.
+```{eval-rst}
+.. grid:: 1
+   :class-container: center-grid
 
-<img src="_images/mat_dagormat_tools_1.png" alt="Dagormat - Tools" align="center">
+   .. grid-item::
+      :class: center-cell
+      :child-direction: row
+      :child-align: center
 
-<img src="_images/mat_dagormat_tools_2.png" alt="Dagormat - Tools" align="center">
+      .. image:: _images/mat_dagormat_tools_1.png
+         :height: 334px
+         :alt: Dagormat: Tools
+         :class: image-gap
 
-If there is no text editing field, one will be added to the left of the
-viewport, otherwise, the text will be opened in the first available text field.
+      .. image:: _images/mat_dagormat_tools_2.png
+         :height: 164px
+         :alt: Dagormat: Tools
+```
 
-Search is available in two modes: only for the active material or for all
-materials in the scene. Switch modes by clicking the text indicating the current
-mode.
+The **Text Editing** block allows editing the active material in text format. If
+no text editor area is present, a new one will be added to the left of the
+**Viewport**; otherwise, the text will open in the first available text editor.
 
-A correctly specified project is required for search to function properly – when
-working on a daNetGame asset, specify **daNetGame**.
+The **Search** and **Process** blocks are available in two modes:
 
-- **Find missing...**: finds all textures and all proxymats (if they exist in
-  the project). The texture search only affects viewport display and does not
-  alter the material path.
+- **Current material**: For the active material only
+- **All materials**: For all materials in the scene
 
-- **Rebuild materials**: rebuilds the materials for the viewport.
-  Re-uses existing shader nodegroups to save time and filesize.
+To use search tools, make sure a valid project is selected. For example, when
+working on an Enlisted asset, set the project to `Enlisted`.
 
-- **FORCE REBUILD**: same, but also removes all the shader nodegroups from blend file
-  and loads new ones from library, to help with updating old scene to the newer add-on version.
+**Available functions:**
 
-- **Update texture paths**: finds non-existent paths and replaces them with
-  current ones. Should be used after texture search.
+- **Find missing textures**/**Find missing proxymats**: Finds all existing
+  textures and proxymats in the current project.
 
-- **Clear texture paths**: removes directory information, leaving only texture
-  names.
+  Texture search affects only **Viewport** display, it does not modify material
+  file paths.
+
+- **Rebuild**: Rebuilds the material(s) for **Viewport** rendering and refreshes
+  the parameter UI.
+
+  Reuses existing resources from the `.blend` file to improve performance.
+
+- **FORCE REBUILD**: Performs a full rebuild, forcibly replacing all node groups
+  with the current versions.
+
+  Useful when opening old scenes where something behaves incorrectly (e.g.,
+  [Texture Baker](../dag4blend-texture-baker/dag4blend_texture_baker.md) fails
+  or **Rebuild** function gives errors). Typically caused by resource
+  mismatches.
+
+- **Update texture paths**: Finds invalid texture paths in dagormats and
+  replaces them with existing **Viewport** paths, if available.
+
+  Should be used after texture search.
+
+- **Clear texture paths**: Removes directory path information, leaving only
+  texture file names.
 
 ### Proxy
 
-The add-on now supports proxymats.
+As mentioned earlier, the add-on also supports proxymats.
 
-<img src="_images/mat_dagormat_proxy.png" alt="Dagormat - Proxy" align="center">
+<img src="_images/mat_dagormat_proxy.png" alt="Dagormat: Proxy" align="center">
 
-Proxymat parameter information is taken from the `.blk` file, so all settings
-for them are hidden. Instead, a new tab allows you to specify the path to the
-proxymat directory. It can still be edited as text or temporarily unchecked as
-**is proxymat**.
+Parameter data for proxymats is read from their `.blk` files, so individual
+settings are hidden. Instead, a dedicated **Proxy** tab appears, allowing you to
+specify the folder path containing the proxymat.
 
-Changes can be reverted by reloading information from the file or saved to the
-proxymat. Any regular material can also be converted to a proxymat by toggling
-the checkbox and saving it to the desired directory.
+You can still edit it as text or temporarily uncheck the **is proxymat** box to
+modify it directly.
 
-```{note}
-Proxymats in Blender use the file name, not a user-defined one. Upon import,
-shaders are automatically renamed if the name differs.
+Changes can be reverted by reloading data from the file, or saved back to the
+proxymat. You can also convert any regular material into a proxymat simply by
+toggling the checkbox and saving it into the desired folder.
+
+```{important}
+Proxymats in Blender use the file name, not a user-defined name. During import,
+the shader name is automatically renamed if it differs from the file name.
 ```
 
 ```{seealso}
@@ -228,365 +444,556 @@ For more information, see
 
 ## Object Properties
 
-Located in the N-panel under the **Dagor** tab, it shows parameters of the
-active object and is hidden if there is no active object.
+This panel is located in the **N-panel**, under the **Dagor** tab. It displays
+parameters of the active object, and remains hidden when no object is selected.
 
-<img src="_images/obj_prop.png" alt="Object Properties" align="center">
+<img src="_images/obj_prop_1.png" alt="Object Properties" align="center">
 
 ### Properties
 
-Visual editing allows you to add or remove parameters individually and change
-their values.
+The visual editor allows you to add, remove, and modify parameters individually.
+The UI format is determined by the `value` string.
 
-The UI format is determined by the `value` string. If the wrong UI option
-appears (e.g., `prop:r=0` gives an integer toggle, while the variable should be
-a float slider), enter the parameter name in the **name** field and the correct
-format value (e.g., `0.0` instead of `0` for a float slider). Specify the type
-in the name using `:`.
+If the displayed UI type is incorrect, for example, `prop:r=0` produces an
+integer toggle, but the variable should be a floating-point slider, enter the
+existing parameter's name in the **name** field and specify its value in the
+correct format (e.g. use `0.0` instead of `0` for a float slider).
+
+```{important}
+Specifying the **type** in the name using a colon (`:`) is **mandatory**.
+```
 
 ### Presets
 
-Once properties are configured, you can save them as a preset for quick
-application to other objects.
+Once you've configured object properties, you can save them as a **preset** and
+quickly apply them to other objects later.
 
-To save the active object's properties, enter a name for the preset and click
-**Save preset as:**. To apply an existing preset, select it from the dropdown
-and click **Apply preset:**.
+To save the active object's properties:
 
-Since presets are simple text files, you might want to edit them in a text
-editor. The **open presets folder** button opens the directory containing all
-presets in `.txt` format, where you can add, delete, or edit them. Changes are
-applied immediately.
+1. Enter a name for the new preset.
+2. Click **Save preset as:**.
 
-If presets folder is not found, this block is replaced by path parameter.
-When existing path is entered, you still can return to editing it
-by pressing **gears** button near the **open presets folder**.
+To apply an existing preset:
+
+1. Select the desired preset from the dropdown list.
+2. Click **Apply preset:**.
+
+Presets are stored as plain text files, so you can edit them manually in any
+text editor. The **open presets folder** button opens the directory containing
+all preset `.txt` files, where you can add, remove, or modify them. All changes
+are applied immediately (no restart required).
+
+If the presets folder does not exist, the entire tab will be replaced with a
+warning message "Presets folder not found. Please, set existing one" and a
+**path input field**:
+
+<img src="_images/obj_prop_2.png" alt="Object Properties" align="center">
+
+To change an existing folder path, you can either:
+
+- Update it in **Addon Preferences**, or
+- Click the **gear icon** next to **open presets folder**.
 
 ### Tools
 
-Editing in text format within Blender, similar to material editing, requires
-opening the to the file specified in the tooltip by clicking **Open as text**.
+Text-based editing inside Blender is similar to material editing, it requires
+opening the corresponding text file in Blender's text editor.
 
-**Apply...**: applies changes from the text.
+- **Open as text** opens the current object's properties in a text editor (the
+  filename is shown in the tooltip).
+- **Apply from text** applies properties from the opened text block.
+- **Transfer Attr** copies the property list from the active object and applies
+  it to all selected objects, saving time compared to manual copying.
 
-**Write example**: writes an example to the text (without applying it, since
-you will likely need to modify the example for your specific situation).
-
-**Transfer Attr**: copies the properties from the active object to all selected
-objects, saving time on manual copying.
-
-Starting from `version 2.1.0`, the text object **props_temp** opens
-automatically if the internal text editor is open.
+Starting from version `2.1.0`, the temporary text block `props_temp` is opened
+automatically when Blender's internal text editor is active.
 
 ```{note}
-Incorrect values in **Object Properties** are recorded in a new **broken
-properties** field; separated by `;`, allowing manual recovery. Similarly,
-incorrect values when using **Apply from text** are recorded.
+Invalid or unrecognized values in **Object Properties** are written into a
+special field called **broken properties**, separated by semicolons (`;`),
+allowing you to restore them manually.
+
+Similarly, incorrect values encountered when using **Apply from text** are also
+recorded in this field.
 ```
 
 ## Export
 
-Like any other import-export add-on, the `.dag` exporter is available through
-**File > Export**. However, to save time during multiple re-exports in the
-workflow, the exporter is also available in the N-panel. The functionality is
-identical, so choose the option that is most convenient for you.
+Like any other import/export add-on, the **DAG exporter** is available through
+**File > Export**. However, to save time during frequent re-exports while
+working, the exporter is also accessible from the **N-panel** (recommended for
+daily use).
+
+Both versions are functionally identical, use whichever is more convenient for
+your workflow.
 
 ### Batch Export
 
-General parameters:
+#### General Parameters
 
-- **vNormals**: saves custom normals if they have been added to the object.
-  Without custom normals, even with the checkbox active, the export will include
-  smoothing groups.
+- **vNormals**: Exports custom vertex normals if they exist on the object. If no
+  custom normals are present, smoothing groups will be exported instead, even
+  when this option is enabled.
 
-- **applyMods**: exports geometry with visible modifiers applied.
+- **applyMods**: Exports geometry with visible modifiers applied, instead of the
+  original unmodified mesh.
 
-- **Optimize Materials**: keeps only the materials used on at least one polygon
-  for each object.
+- **Optimize Materials**: Keeps only materials that are actually assigned to at
+  least one polygon per object.
 
-- **Path**: the path where the file will be saved.
+- **Path**: The directory where exported files will be saved.
 
-- **Cleanup Names**: ignore indices (`.000+`) during export.
+- **Cleanup Names**: Removes Blender's numeric suffixes (e.g., `.000+`) from
+  object names during export.
 
-```{note}
-Use **Cleanup...** only for exporting composite parts for 3ds Max. It can cause
-issues. In a `.dag` file for the game engine, there should not be multiple
-objects with the same name.
+  ```{warning}
+  Use **Cleanup Names** only when exporting composites for 3ds Max! It can cause
+  errors. For in-game `.dag` files, **no two objects should share the same
+  name**.
+  ```
+
+- **Name**: A context-dependent field available only when exporting to a single
+  `.dag` file. It is hidden in other export modes.
+
+- **Collection**: Also context-dependent. You can either select a collection
+  from the dropdown or drag and drop it directly from the **Outliner**.
+
+- **Limit by**: Defines the export mode.
+
+#### Export Modes
+
+```{eval-rst}
+.. list-table::
+   :widths: auto
+   :align: center
+
+   * - **Limit by**
+     - **Export Object**
+     - **Input Example**
+     - **Output Example**
+
+   * - **Visible**
+     - Exports all visible objects
+
+       in the current scene
+
+       into a single file:
+
+       ``Path\<Name>.dag``
+     - .. figure:: _images/batch_exp_visible.png
+          :width: 371px
+          :alt: Limit by: Visible
+     - The file will contain
+
+       all scene objects:
+
+       ``C:\tmp\asset.dag``
+
+   * - **Sel.Joined**
+     - Exports selected objects
+
+       into a single file:
+
+       ``Path\<Name>.dag``
+     - .. figure:: _images/batch_exp_sel_joined.png
+          :width: 370px
+          :alt: Limit by: Sel.Joined
+     - The file will contain
+
+       only the selected objects:
+
+       ``C:\tmp\Filename.dag``
+
+   * - **Sel.Separated**
+     - Exports each selected object
+
+       into a separate file,
+
+       using the object's name
+
+       as the filename.
+
+     - .. figure:: _images/batch_exp_sel_separated.png
+          :width: 453px
+          :alt: Limit by: Sel.Separated
+     - The file will contain
+
+       only the selected objects:
+
+       ``C:\tmp\cube.lod00.dag``
+
+       ``C:\tmp\cube.lod01.dag``
+
+   * - **Col.Separated**
+     - Exports collections from the
+
+       hierarchy, starting with the
+
+       selected one, as long as the
+
+       collections don't contain
+
+       nested sub-collections.
+
+       ---
+
+       The **exportOrphans** checkbox
+
+       allows exporting objects that
+
+       are outside sub-collections
+
+       but lie next to them
+
+       in the hierarchy.
+
+     - .. figure:: _images/batch_exp_col_separated.png
+          :width: 505px
+          :alt: Limit by: Col.Separated
+     - Export path ``C:\tmp\``:
+
+       ---
+
+       ``cube.lod00.dag``:
+
+       visible geometry + occluder
+
+       ``cube.lod01.dag``:
+
+       visible geometry + collider
+
+       ``cube.lod02.dag``: ...
+
+       ``cube_temp.dag``:
+
+       not exported (because
+
+       **exportOrphans** is disabled)
+
+       ---
+
+       If no collection is specified,
+
+       the exporter behaves the same
+
+       way, starting from the
+
+       **Scene Collection** level
+
+       (which, in this case, contains
+
+       only the ``cube`` collection).
+
+   * - **Col.Joined**
+     - Exports all contents of the
+
+       selected collection into a
+
+       single file, named after
+
+       the collection itself.
+
+       ---
+
+       This mode is primarily
+
+       intended for previewing
+
+       LOD groups in Asset Viewer,
+
+       where multiple ``.dag`` files
+
+       form a single asset (for
+
+       example, a ``_dp``-building).
+
+     - .. figure:: _images/batch_exp_col_joined.png
+          :width: 712px
+          :alt: Limit by: Col.Joined
+     - ``C:\tmp\soviet_town_building_5``
+
+       ``_floors_a_joined.lod00.dag``
+
+       This file contains all LOD0
+
+       meshes associated with the
+
+       building.
+
+       ---
+
+       Collections in this workflow
+
+       are linked (via :bdg-dark-line:`Ctrl + drag`
+
+       in the **Outliner**), so they
+
+       are references, not copies.
+
+       ---
+
+       You can prepare other LODs
+
+       in the same way, it's much
+
+       faster than manually selecting
+
+       and naming objects.
+
+       ---
+
+       Since these are linked
+
+       collections, do not
+
+       delete them with :bdg-dark-line:`Delete`,
+
+       use :bdg-dark-line:`RMB` > **Unlink**
+
+       instead to avoid accidentally
+
+       removing shared data.
+
 ```
-
-- **Name**: context-sensitive field, appearing only when exporting to a single
-  `.dag` file. This field is hidden in other export modes.
-
-- **Collection**: also context-sensitive field. You do not need to select a
-  collection from the dropdown; you can simply drag the desired collection from
-  the **Outliner**.
-
-- **Limit by**: allows you to choose the export mode.
-
-#### Examples
-
-1. **Limit by:** Visible
-
-   **Export object:** export all scene contents to `Path\<Name>.dag`.
-
-   **Example input:**
-
-   <img src="_images/batch_exp_visible.png" alt="Limit by - Visible" align="center">
-
-   **Example output:** `C:\tmp\Filename.dag` contains all scene objects with
-   custom normals.
-
-2. **Limit by:** Sel.Joined
-
-   **Export object:** export selected objects to `Path\<Name>.dag`.
-
-   **Example input:**
-
-   <img src="_images/batch_exp_sel_joined.png" alt="Limit by - Sel.Joined" align="center">
-
-   **Example output:** `C:\tmp\Filename.dag` contains only selected scene objects.
-
-3. **Limit by:** Sel.Separated
-
-   **Export object:** export selected objects to separate `.dag` files, where
-   the names of selected objects are used as file names.
-
-   **Example input:**
-
-   <img src="_images/batch_exp_sel_separated.png" alt="Limit by - Sel.Separated" align="center">
-
-   **Example output:** `C:\tmp\cube.lod00.dag`, `C:\tmp\cube.lod01.dag`.
-
-4. **Limit by:** Col.Separated
-
-   **Export object:** export collections from the hierarchy starting from the
-   selected one, if there are no subcollections inside. The **exportOrphans**
-   checkbox allows exporting objects that lie next to subcollections.
-
-   **Example input:**
-
-   <img src="_images/batch_exp_col_separated.png" alt="Limit by - Col.Separated" align="center">
-
-   **Example output:** `C:\tmp\cube.lod00.dag` contains visible geometry and
-   occluder inside, `C:\tmp\cube.lod01.dag` contains visible geometry and
-   collider inside and `C:\tmp\cube.lod02.dag`. `C:\tmp\cube_temp.dag` will not
-   be exported, because the **exportOrphans** checkbox is not enabled. If you
-   don't specify the collection at all, then in this case the result will be
-   identical, because the check will start with **SceneCollection**, and it
-   contains only the **cube** collection.
-
-5. **Limit by:** Col.Joined
-
-   **Export object:** export all contents of the selected collection to a file
-   with the name of this collection. Created mainly for [Asset
-   Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) of assets
-   created from several `.dag` files.
-
-   **Example input:**
-
-   <img src="_images/batch_exp_col_joined.png" alt="Limit by - Col.Joined" align="center">
-
-   **Example output:** `C:\tmp\soviet_town_building_5_floors_a_joined.lod00.dag`
-   contains all null LODs (level of detail) related to this building. The
-   collections have been linked (transfer with `Ctrl` in **Outliner**), i.e.
-   they are not copies, but the same collections. The rest of the temporary LODs
-   (Level of Detail) can be prepared in the same way. It's much faster than
-   selecting objects and typing the name manually.
-
-   ```{note}
-   Since they are the same collections and not copies, do not delete them with
-   `Del`, but remove them with `RMB` **> Unlink**, so that you don't overwrite
-   them.
-   ```
 
 ## Collection Properties
 
-Located in the N-panel, similar to **Object Properties**. It shows properties of
-the active collection. Unlike **Object Properties**, these properties exist only
-within Blender and are used for internal purposes.
+Just like **Object Properties**, this panel is located in the **N-panel** under
+the **Dagor** tab. It shows properties of the active collection. Unlike **Object
+Properties**, these settings exist **only within Blender** and are used for
+**internal processing**.
 
 <img src="_images/coll_prop.png" alt="Collection Properties" align="center">
 
 ### Override Name
 
-Allows you to override the name with which the collection will be exported to
-**Col.Separated** mode. By default, overriding is disabled.
+Allows you to override the name under which the collection will be exported in
+**Col.Separated** mode. By default, this override is disabled.
 
-When importing `.dag` files with names longer than 63 characters (the Blender
-limit), the name will be recorded in this field to preserve the "overflow"
-characters. You can also manually rename it – enable the checkbox and enter the
-new name:
+When importing `.dag` files whose names exceed 63 characters (the Blender name
+limit), the full original name will be stored in this field to preserve
+characters that did not fit. You can also manually redefine the name, simply
+enable the checkbox and enter a new one.
 
-<img src="_images/coll_prop_override_ex_1.png" alt="Override name" align="center">
+A much more useful trick, however, is that this field can also be used to define
+a subpath for export. This subpath will be appended to the main export path,
+allowing more organized file placement.
 
-In the given example, the contents of the collection will be exported to
-`C:\tmp\cube.lod00.dag` instead of `C:\tmp\Collection.dag`. However, this is not
-the most useful application.
+If you do not need to override the collection name, you can end the subpath with
+an asterisk `*`. During export, the asterisk will automatically be replaced with
+the collection's actual name.
 
-A much more practical use is when you need to save multiple `.dag` files in
-different subdirectories. Here, you can specify a subpath that will be appended
-to the main export path. If there is no need to rename the collection, simply
-end the subpath with `*`, which will be replaced by the collection name during
-export:
+**Example:**
 
-<img src="_images/coll_prop_override_ex_2.png" alt="Override name" align="center">
+Export path result:
 
-In this example, the export path will be
-`C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag`, which is convenient for
-working with complex assets like buildings. For example, windows in
-`composit_parts\windows\*`, doors in `composit_parts\doors\*`, and so on.
+```text
+C:\tmp\subfolder\yet_another_subfolder\cube.lod00.dag
+```
 
-Additionally, you can completely override the path – start it with the drive
-letter:
+This is particularly convenient when working with complex assets such as
+buildings, for example:
 
-<img src="_images/coll_prop_override_ex_3.png" alt="Override name" align="center">
+```text
+composit_parts\windows\*
+composit_parts\doors\*
+```
 
-In this case, the **Path** field will be ignored for this collection, and the
-file will be exported to `D:\daNetGame\develop\assets\rendinst_1lod\`.
+You can also fully override the export path by starting it with a drive letter
+(e.g., `D:\`).
 
-#### Type
+### Type
 
-Used by the [Composite
-Editor](../dag4blend-comp-editor/dag4blend_comp_editor.md). When importing, it
-records the node type, and during export, it ensures a unique type (to avoid
-double interpretation in the presence of asset namesakes, typically found among
-composites and rendinsts). For manually created item intended for composite
-export, set this manually.
+Used primarily by the [Composite Editor](#composite-editor).
 
-<img src="_images/coll_prop_override_type.png" alt="Type" align="center">
+When importing, this field is filled automatically with the node type, and when
+exporting, it defines the asset type to ensure unambiguous identification,
+preventing naming conflicts between assets that share identical names (commonly
+seen among composites and render instances).
 
-Since it is used for composites, DynModel is in the list but not actually
-applied – it can't be arranged through composites. Therefore, the composite
-importer assumes all assets with `.lod**.dag` in their name are RendInsts, not
-DynModels.
+For manually created collections that are intended for export as composites, you
+should specify this field manually.
+
+Although dynmodel appears in the list, it is not currently used, you cannot
+place them via the [Composite Editor](#composite-editor). For the same reason,
+the composite importer assumes that any asset with `.lod**.dag` in its name
+represents a render instance, not a dynmodel.
 
 ### Geometry Nodes
 
 ```{note}
-Currently, geometry nodes cannot be combined with custom normals, as applying
-the modifier erases them. If you're placing instances using geometry nodes,
-don't forget to add the **Realize instances** node; otherwise, the geometry will
-be lost during export. Technically, before this node, they are similar to
-"empty" without their own geometry.
+**Geometry Nodes** currently cannot be combined with custom normals, because
+applying the modifier erases them.
+
+If you are placing object instances using **Geometry Nodes**, make sure to
+include a **Realize Instances** node in your node tree, otherwise, that geometry
+will be lost during export.
+
+Technically, before the **Realize Instances** node, these are treated as empty
+placeholders (similar to composite nodes) and have no actual geometry of their
+own.
 ```
 
 ## Smoothing Groups
 
-A bug was discovered in Blender's function for calculating smoothing groups for
-formats that use them. To solve this, a smoothing group editor has been added.
-It's available in *Edit* Mode when Face selection mode is active.
+During development, a bug was discovered in Blender's built-in function
+responsible for calculating smoothing groups when exporting to formats that use
+them.
 
-Upon import, objects retain smoothing groups from the original file. New
-objects, however, do not have smoothing groups, so you must create them with the
-**Init** button:
+As a workaround, a dedicated smoothing group editor has been added. It is
+available in **Edit Mode** when the **Selection mode** is set to **Faces**.
+
+### Overview
+
+When importing `.dag` files, objects retain their original smoothing groups from
+the source file. However, newly created objects do not have smoothing groups by
+default, you must first generate them using the **Init** button.
 
 <img src="_images/sm_groups_1.png" alt="Smoothing groups" align="center">
 
-When smoothing exist, the interface works similarly to 3ds Max, but without
-real-time display. Partial preview is available via **Convert to Sharp Edges**,
-which shows only sharp edges from the smoothing groups.
+Once smoothing groups exist, the interface behaves similarly to the one in 3ds
+Max, except that Blender does not display smoothing group visualization in real
+time.
 
 <img src="_images/sm_groups_2.png" alt="Smoothing groups" align="center">
 
-Starting with `version 2.1.0`, the **Live Update** function recalculates hard
-edges during smoothing group editing. This can slow down performance on heavy
-geometry, so it is off by default.
+A partial preview is available via **Convert to sharp edges**, which highlights
+sharp edges derived from smoothing groups, though it does not show problematic
+points.
 
-From the same version, you can also select polygons by smoothing group. Click
-the corresponding group button in the **Select by SG** subpanel.
+Starting from version `2.1.0`, a **Live Update** feature was introduced: when
+enabled, sharp edges are automatically recalculated whenever smoothing groups
+are edited. This feature can significantly slow down performance on complex
+geometry, so it is disabled by default.
+
+The same version also adds the ability to select polygons by smoothing group.
+You can do this by clicking the corresponding group button in the **Select by
+SG** sub-panel.
 
 ```{note}
-Selecting by smoothing group adds to the existing selection, rather than
-replacing it. So, if you need to select only group 3, for example, clear the
-selection first.
+Selection by smoothing group adds to the current selection, it does not replace
+it.
+
+If you need to select only a specific smoothing group (e.g., group 3), be sure
+to clear your selection first.
 ```
 
 ### When to Use?
 
-If a model has areas where sharp edges do not fully divide the surface into
-closed regions, the smoothing group calculation will be incorrect and needs
-manual adjustment. You may also need to adjust smoothing groups after modifying
-existing `.dag` file post-import if the groups were saved as an attribute.
+You may need to adjust smoothing groups manually in the following cases:
+
+- When certain sharp edges do not fully divide the surface into closed regions,
+  causing Blender's smoothing group calculation to fail.
+- After modifying an imported `.dag` file, if the smoothing groups were saved as
+  an attribute and became inconsistent.
+
+### Example
+
+Below is an example of an incorrect calculation:
 
 <img src="_images/sm_groups_3.png" alt="Smoothing groups" align="center">
 
+On the right, a single smoothing group is applied to the entire mesh. As a
+result, internal sharp edges are ignored, producing overly smooth shading.
+Smoothing groups should instead be assigned to each region enclosed by sharp
+edges.
+
+If sharp edges do not extend fully across the model (failing to separate it into
+distinct "islands"), those edges will be lost during export, and the shading in
+those areas will appear blurred or "melted".
+
 ## Import
 
-Similar to export, there are two methods for import – the standard method via
-**File > Import** and the batch import via N-panel.
+Similar to the export process, there are two ways to import `.dag` files: a
+**standard import** via **File > Import**, and a **batch import** via the
+**N-panel** (recommended for frequent use). Both methods provide identical
+functionality, choose whichever is more convenient for your workflow.
 
-### Import and Textures
+### Importing and Textures
 
-A `.dag` file contains not only the texture name but also its path. However,
-these paths are often become invalid when files are transferred. If the texture
-path os invalid or only the texture name is provided, it will be replaced with a
-UV checker texture. If a texture is used in multiple materials, updating the
-path in one will update it across all materials.
+A `.dag` file contains not only the texture name, but also its file path.
+However, when assets are moved or transferred between systems, these paths often
+become invalid.
 
-Most common used shaders have a dedicated nodegroups, that roughly mimic the in-game look.
-All of this nodegroups are stored in `dag4blend\extras\library.blend` and being linked automatically.
-Shaders without their own nodegroup are displayed as [rendinst_simple](../../../../assets/shaders/dng-shaders/rendinst_simple.md) without parameters.
-Textures can be previewed from node-based *Shader Editor*, if **Node Wrangler** enabled.
-Clicking `Shift`+`Ctrl`+`LMB` on texture shows it as simple unlit shader.
+If a texture cannot be found at its stored path, or if the `.dag` file contains
+only the texture name, it will be temporarily replaced with a **UV checker**
+texture.
+
+If the same texture is used across multiple materials, updating its path in one
+material is enough, the correct texture will automatically load for all other
+materials that reference it.
+
+Texture slots are still used in the same way as in
+[`rendinst_simple`](../../../../assets/shaders/dng-shaders/rendinst_simple.md)
+shader, regardless of the actual shader selected. However, shader nodes are now
+arranged in a structured, non-overlapping layout. All texture images are added
+to the **Shader Editor**, so with **Node Wrangler** enabled, you can preview
+them instantly by pressing {bdg-dark-line}`Shift+Ctrl+LMB`.
 
 ### File > Import
 
-**Parameters:**
+<img src="_images/import_file.png" alt="File Import" align="center">
 
-- **Optimize material slots**: removes unused slots and merges slots with the
-  same material.
+- **Optimize material slots**: removes unused slots and merges slots that share
+  the same material.
+- **Import LODs**: imports all available LOD levels, not just the selected one.
+- **Import dps**: imports all `damage_parts` (`_dp`).
+- **Import dmgs**: imports all `damage` versions.
+- **Replace existing**: if a collection with the same asset name already exists
+  in the scene, its contents will be replaced by the imported `.dag` file
+  instead of creating a duplicate (`.001+`). Useful for quickly rolling back
+  large sets of changes.
 
-- **Import LODs**: imports all LODs, not just the selected `.dag` file.
-
-- **Import dps**: imports all damage_parts (`_dp`).
-
-- **Import dmgs**: imports all damage versions.
-
-- **Replace existing**: if a collection with the asset name exists in the scene,
-  it will replace its contents with those from the `.dag` file instead of
-  creating a duplicate with a `.001+` suffix. Useful for quickly reverting
-  multiple changes.
-
-  <img src="_images/file_import.png" alt="File Import" align="center">
+For importing many `.dag` files at once, use batch import.
 
 ### Batch Import
 
-For importing several assets at once, it's better to use the **Batch Import**
-panel. This panel is much more functional than the basic import option. The
-question icon {octicon}`question;1em` in the header enables an additional block
-with a short description of the active import mode.
+This panel allows importing multiple `.dag` files from a specified folder.
 
-<img src="_images/batch_imp.png" alt="Batch Import" align="center">
+<img src="_images/import_batch.png" alt="Batch Import" align="center">
+
+Several import modes are available, and you can read the description of the
+selected mode in the help section by clicking the question mark icon
+{octicon}`question;1em`.
 
 The **Batch Import** panel has two main blocks: global parameters
 ([**Parameters**](#parameters)) and mode ([**Simple**](#simple-mode),
-[**Wildcard**](#wildcard-mode), [**Regexp**](#regex-mode)).
+[**Wildcard**](#wildcard-mode), and [**Regexp**](#regex-mode)).
 
 #### Parameters
 
-  It contains all the parameters for processing `.dag` regardless mode.
+The import parameters are shared across all modes:
 
-- **Search in subfolders**: checks all subdirectories for files. Use cautiously,
-  as it can freeze Blender if too many matches are found.
+- **Search in subfolders**: searches not only the selected folder, but also all
+  its subdirectories.
 
-- **Optimize material slots**: same as in regular import.
+  Use cautiously, as it can freeze Blender if too many matches are found.
 
-- **Preserve Smoothing Groups**: saves smoothing groups as an attribute to
-  ensure they don't change during export. Not recommended if you plan to modify
-  the geometry after import.
+- **Optimize material slots**: same as in the regular import.
 
-- **Reimport existing**: when checked, if corresponding collection for .dag found,
-  importer replaces its content by newly imported data. When unchecked,
-  it will import to the new collection with first unused index `.001+` available.
+- **Preserve smoothing groups**: saves smoothing groups as an attribute,
+  ensuring they remain unchanged during export.
 
-- **Preserve paths**: saves the full path to the `.dag` file (including the file
-  name) in **Collection Property**. Useful when importing file from multiple
-  directories and needing to export them back to original locations.
+  Not recommended if you plan to modify the geometry after import.
+
+- **Reimport existing**: when checked, if corresponding collection for `.dag`
+  found, importer replaces its content by newly imported data. When unchecked,
+  it will import to the new collection with first unused index `.001+`
+  available.
+
+- **Preserve paths**: stores the full import path (including the `.dag`
+  filename) in **Collection Property**.
+
+  Useful when importing assets from multiple folders and later re-exporting them
+  to their original locations via batch export.
+
+- **File Path**: defines the directory to search for `.dag` files.
 
 #### Simple Mode
 
-This mode currently matches behavior of [**File > Import**](#file--import), 
-but can search in subfolders for variations, if corresponding parameter is set to `True`.
+This mode currently matches behavior of [**File > Import**](#file--import), but
+can search in subfolders for variations, if corresponding parameter is set to
+`True`.
 
 If the filepath in the **File Path** field does not exist, the **IMPORT** button
 will be disabled. If the parent directory of the filepath does not exist, the
@@ -594,7 +1001,7 @@ will be disabled. If the parent directory of the filepath does not exist, the
 
 #### Wildcard Mode
 
-<img src="_images/batch_imp_wildcard.png" alt="Batch Import Wildcard" align="center">
+<img src="_images/import_batch_wildcard.png" alt="Batch Import Wildcard" align="center">
 
 Instead of a single file path, this mode uses a directory path (**Dirpath**) and
 a set of rules for processing files. It uses the
@@ -603,47 +1010,64 @@ a set of rules for processing files. It uses the
 Rules are quite simple:
 
 ```{eval-rst}
-+------------+---------------------------------------------+
-| Pattern    | Meaning                                     |
-+============+=============================================+
-| ``*``      | matches everything                          |
-+------------+---------------------------------------------+
-| ``?``      | matches any single character                |
-+------------+---------------------------------------------+
-| ``[seq]``  | matches any character in *seq*              |
-+------------+---------------------------------------------+
-| ``[!seq]`` | matches any character not in *seq*          |
-+------------+---------------------------------------------+
+.. table::
+   :widths: auto
+   :align: center
+
+   ==========  =================================================================
+   Pattern     Meaning
+   ==========  =================================================================
+   ``*``       matches everything
+   ``?``       matches any single character
+   ``[seq]``   matches any character in *seq*
+   ``[!seq]``  matches any character not in *seq*
+   ==========  =================================================================
 ```
 
 Every other symbol is processed as is.
 
-- **Includes**: set of masks for selecting `.dag` files. If name matches at least one of the includes, file would be imported.
-  If filter has no simbols in it, it will be marked by `ERROR` icon and ignored on import.
+- **Includes**: set of masks for selecting `.dag` files. If name matches at
+  least one of the includes, file would be imported. If filter has no symbols in
+  it, it will be marked by `ERROR` icon and ignored on import.
 
 - **Excludes**: same syntax as includes, but for excluding files from import.
 
 ```{note}
-This mode works with exact match, so if even if filename contains include, it could be skipped.
-Use `*` to mark places where additional characters could be.
-The only exception is file extension. Each filter is compared to `filename.dag` and `filename`,
-so you don't have to specify extension every time.
+This mode works with exact match, so if even if filename contains include, it
+could be skipped. Use `*` to mark places where additional characters could be.
+The only exception is file extension. Each filter is compared to `filename.dag`
+and `filename`, so you don't have to specify extension every time.
 ```
 
-  **Example:**
+**Example:**
 
-**Includes:** `“asset_a.lod0[0,2]", "asset_b_dp*”;` **Excludes**: `“*_dmg*”`
-imports `asset_a.lod00.dag`, `asset_a.lod02.dag`, and all LODs of all
-`asset_b_dp`, except their `_dmg` versions. The `other_asset_a.lod00.dag` file
-would be skipped, because `*` is not present in the beginning of include, so
-extra symbols are not allowed.
+Includes:
+
+- `asset_a.lod0[0,2]`
+- `asset_b_dp*`
+
+Excludes:
+
+- `*_dmg*`
+
+This setup will find `asset_a.lod00.dag`, `asset_a.lod02.dag`, and all LOD files
+whose names start with `asset_b_dp`, except for their `_dmg` versions.
+
+A file named `other_asset_a.lod00.dag` will not be imported, because there was
+no `*` at the beginning of the line, if you want to allow any characters in a
+position, you must specify that explicitly.
+
+Files selected according to the include and exclude patterns are imported one by
+one.
 
 #### Regex Mode
 
-This mode is quite similar to previous one, but uses full power of [regular expressions](https://docs.python.org/3/library/re.html#regular-expression-syntax).
+This mode is similar to the previous one but uses the full power of [regular
+expressions](https://docs.python.org/3/library/re.html#regular-expression-syntax).
 
-It exist for rare cases, when fnmatch is not enough for some comlex processing.
-If you're not familliar with regex synthax, just stick to **Wildcard** mode.
+It exists for rare cases where `fnmatch` is not sufficient for more complex
+processing. If you're not familiar with regex syntax, it's recommended to stick
+with the **Wildcard** mode.
 
 ```{note}
 When you paste a filepath from Explorer into the **File Path** field of the
@@ -655,129 +1079,171 @@ moved to the includes section (with corrected syntax).
 ```
 
 ```{note}
-Blender will be unresponsive until the import is complete. To monitor the
-import process, open the console (**Window > Toggle system console**).
+While import is running, Blender may become unresponsive ("Not Responding"). To
+monitor progress, open the system console: **Window > Toggle System Console**.
 ```
 
 #### Additional Features
 
-Often, you may need to import a single asset that is already open in [Asset
-Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) or Explorer. Instead
-of searching for it through **File > Import**, you can copy the path from [Asset
-Viewer](../../../asset-viewer/asset-viewer/asset_viewer.md) or Explorer (`RMB`
-**> Copy as path**) and paste it into **Path** field of the batch import panel.
-This action will automatically transfer the file name to **Masks**, and clicking
-**IMPORT** will load only the desired asset.
+Often, you may need to import a single asset currently open in Asset Viewer or
+visible in Explorer. Instead of navigating through **File > Import**, you can:
 
-If you only have the asset's name, you can enter it in **Masks** and then use
-the **Apply as search path** button to set the entire project directory with
-subdirectories as the search path.
+1. Copy the asset's path from Asset Viewer or {bdg-dark-line}`RMB` > **Copy as
+   path**;
+2. Paste it into the **Path** field of the **Batch Import** panel, the filename
+   will automatically populate the **Includes** field;
+3. Click **Import**, and only that specific asset will be loaded.
 
-If the path is unknown, the import will be slower by a few seconds (due to
-search file), but this is often faster than searching the full path manually.
+If you only have the asset name, you can enter it in the **Includes** field,
+then use the **Apply as search path** button to set the project's root directory
+as the search path (with subfolder scanning enabled).
 
-<img src="_images/batch_imp_add_feat.png" alt="Batch Import Additional Features" align="center">
+<img src="_images/import_batch_features.png" alt="Additional Features" align="center">
+
+If the full path is unknown, import will take a few extra seconds for searching,
+but this is often faster than locating the full path manually.
 
 ## Tools
 
-The panel is continuously being improved. Tools are grouped into blocks that can
-be collapsed when not in use to avoid cluttering the interface.
+The tools panel is still under active development. All tools are grouped into
+collapsible sections, you can fold those you don't use frequently to keep the
+interface clean and efficient.
 
-<img src="_images/tools.png" alt="Tools" align="left">
+<img src="_images/tools_material.png" alt="MaterialTools" align="center">
 
-- **Optimize material slots**: merges identical material slots and removes
-  unused ones.
+- **Optimize material slots**: merges slots that share the same material and
+  removes unused ones.
 
-- **Merge Duplicates**: merges identical materials with different indices (e.g.,
-  `Material` and `Material.001`). These duplicate materials often arise when
-  copying objects using `Ctrl`+`C` / `Ctrl`+`V`, as this operation saves the
-  selection to an external `.blend` file and then appends it to the active scene
-  along with all its materials.
+- **Merge Duplicates**: for selected objects, merges identical materials that
+  differ only by index (for example, `Material` and `Material.001`).
 
-- **Find missing textures**: searches the textures without valid paths in the
-  selected project's directory.
+  Such duplicates often appear after copy/paste operations, since Blender
+  temporarily saves the copied object to an external `.blend` file and then
+  appends it back into the scene, duplicating all its materials in the process.
 
-- **Find missing proxymats**: similar functionality for proxymats.
+<img src="_images/tools_search.png" alt="SearchTools" align="center">
 
-- **Save textures**: collects all textures with valid paths from selected
-  objects and saves them in the `/textures/` subdirectory of the export
+- **Find missing textures**: searches for missing texture files in the selected
+  project folder for all dagormats.
+
+- **Find missing proxymats**: performs the same search, but for proxymats.
+
+<img src="_images/tools_save.png" alt="SaveTools" align="center">
+
+- **Copy textures**: copies the textures of selected objects to a specified
   directory.
 
-- **Preserve Sharp Edges**: marks sharp edges based on Autosmooth Angle, and
-  sets the angle to 180&deg; to ensure consistency between the model in the
-  scene and in the `.dag` file. This function is not mandatory before exporting,
-  as it will automatically apply to the exported geometry (keeping the original
-  scene geometry unchanged).
+  Note that texture paths must be valid, this will not work for images that
+  exist only inside the `.blend` file and have never been saved to disk.
 
-- **Apply Modifiers**: applies modifiers to the geometry. Not mandatory before
-  export as the exporter can preserve modifiers in the original scene.
+- **Save proxymats**: works similarly, but for proxymats.
 
-- **Clear normals**: removes custom normals from selected objects.
+  It can also save proxymats that exist only in the current scene, which is why
+  this operator has a different name.
+
+<img src="_images/tools_mesh.png" alt="MeshTools" align="center">
+
+- **Apply Modifiers**: duplicates the exporter option.
+
+  As the name suggests, it applies all modifiers to the selected objects. This
+  step is optional before export since the exporter can apply modifiers
+  virtually without altering the original scene.
+
+- **Clear normals**: removes custom normals from all selected objects.
+
+- **Clear smoothing groups**: removes the smoothing group attribute, forcing
+  smoothing groups to be recalculated from sharp edges during export.
+
+<img src="_images/tools_scene.png" alt="SceneTools" align="center">
 
 - **sort collections**: recursively groups scene collections by the longest
-  matching name prefix. You can see the example on the screenshot for the
-  [“Col.Joined” export](#batch-export).
+  common name prefix.
 
-- **pack orphans**: searches for objects not at the hierarchy's bottom and
-  creates individual collections for them.
+  An example of this process can be seen in the screenshot for the
+  **Col.Joined** export mode.
 
-- **Setup Destruction**: assigns a list of typical object properties for
-  destruction to all selected objects:
+- **pack orphans**: finds objects that are not part of the lowest-level
+  collections (as mentioned earlier in the export section) and creates dedicated
+  collections for them automatically.
 
-<br clear="left">
+<img src="_images/tools_destr_setup.png" alt="DestrSetup" align="center">
 
-```text
+- **Setup Destruction**: assigns a standard set of **Object Properties** to all
+  selected objects for destruction setup:
+
+  ```blk
   animated_node:b=yes
   physObj:b=yes
   collidable:b=no
   massType:t=none
-```
+  ```
 
-Creates *bounding boxes* (BBoxes) objects with `gi_black` material, sets them as
-children, and assigns collider parameters:
+  It also creates bounding boxes with the `gi_black` material, makes them child
+  objects, and sets collider parameters:
 
-```text
-  materialName:t=[value from the material field]
-  density:r=[value from the density field]
+  ```blk
+  materialName:t=[value from the 'material' field]
+  density:r=[value from the 'density' field]
   massType:t=box
   collType:t=box
-```
+  ```
 
-The BBoxes may still need to be adjusted and scaled to better fit the
-silhouette. In some cases, they may also need to be duplicated. However, this
-process still saves time in the overall setup.
+  You may still need to move, scale, or duplicate these bounding boxes for
+  better silhouette fitting, but even so, this function saves considerable setup
+  time.
 
-## Texture Baker
+- **Shapekey to vcol**: for each selected mesh, writes the displacement from the
+  first **Shape Key** into a **Color Attribute** named `DEFORM`.
 
-Allows baking textures from complex shaders to
-[rendinst_simple](../../../../assets/shaders/dng-shaders/rendinst_simple.md).
-Commonly used for final LODs or porting assets to mobile projects.
+  This is used to simulate deformation (e.g., props being crushed by heavy
+  vehicles).
+
+  Works only on meshes with exactly two **Shape Keys**, the base (`Basis`) and
+  the first deformation (name doesn't matter).
+
+- If **Configure Mats** is enabled, all materials are automatically converted to
+  `dynamic_deformed`, reset to their default states, and assigned a proper
+  `max_height` multiplier, eliminating the need to guess the correct value
+  manually.
+
+- If **Preview Deformation** is enabled, a **Geometry Nodes** setup is added
+  with a node group that visualizes the deformation using the **Color
+  Attribute** and the previously mentioned multiplier, ensuring correct
+  operation. The influence of the original **Shape Key** is forcibly set to zero
+  to prevent double deformation.
+
+### Baking Tools
+
+This panel allows baking textures from heavy shaders into
+[`rendinst_simple`](../../../../assets/shaders/dng-shaders/rendinst_simple.md)
+materials. It is primarily used for the final LODs of complex assets or when
+porting assets to mobile projects.
+
+<img src="_images/bake.png" alt="Bake" align="center">
 
 ```{seealso}
 For more information, see
 [Texture Baker](../dag4blend-texture-baker/dag4blend_texture_baker.md) tool.
 ```
-<img src="_images/bake.png" alt="Bake" align="center">
 
 ## Experimental Features
 
 ### Composite Editor
+
+The name speaks for itself, this feature provides a composite node editor
+designed specifically for Dagor assets.
+
+<img src="_images/comp_editor.png" alt="Composite Editor" align="center">
 
 ```{seealso}
 For more information, see
 [Composite Editor](../dag4blend-comp-editor/dag4blend_comp_editor.md).
 ```
 
-<img src="_images/comp_editor.png" alt="Composites Editor" align="center">
+### General Blender Toolset Limitations
 
-#### General Limitations of the Add-on Tools in Blender
+- Since version `1.2.6`, excessively long names are automatically stored in the
+  **Collection Property** to preserve their full original form.
 
-- Limitation on the number of characters in the name – names longer than 63
-  characters will be truncated, and when importing objects with the same name,
-  an index `.001` is appended, reducing the maximum name length by 4 more
-  characters. Starting from version `1.2.6`, overly long names are saved in
-  **Collection Property**.
-
-- Animations are not supported yet.
-
+- Animations are not yet supported.
 

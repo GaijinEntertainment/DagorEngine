@@ -8,6 +8,7 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <util/dag_string.h>
+#include <startup/dag_globalSettings.h>
 
 static constexpr int MAX_BINDING_COLS = 4;
 static String def_preset_nm("config/default");
@@ -68,7 +69,28 @@ bool dainput::load_user_config(const DataBlock &cfg)
     dainput::save_actions_binding(originalBindingsFromPreset[c], c);
 
     // update with user config
-    dainput::load_actions_binding(*cfg.getBlockByNameEx(String(0, "c%d", c)), c);
+    dainput::load_actions_binding(*cfg.getBlockByNameEx(String(0, "c%d", c)), c, [](DataBlock &blk, int config_ver, int bindings_ver) {
+      G_UNUSED(config_ver);
+
+      const DataBlock *inputBlk = ::dgs_get_settings()->getBlockByNameEx("input");
+      const char *controls_preset_base_prefix = inputBlk->getStr("controlsPresetBasePrefix", "config/");
+      String gameDefaultPresetPrefix = String(0, "%sdefault", controls_preset_base_prefix);
+
+      DataBlock defPreset;
+
+      String presetFile = String(0, "%s.c0.preset.blk", gameDefaultPresetPrefix);
+      if (dd_file_exists(presetFile))
+      {
+        debug("Resetting controls to %s", presetFile);
+        blk = defPreset;
+        blk.setInt("configVer", bindings_ver);
+      }
+      else
+      {
+        logwarn("Control reset failed. Preset %s.c0.preset.blk not found, recheck %s:t in settings", gameDefaultPresetPrefix,
+          "controlsPresetBasePrefix");
+      }
+    });
   }
 
   const DataBlock &blk = *cfg.getBlockByNameEx("props");

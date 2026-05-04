@@ -3,6 +3,7 @@
 
 #include <assets/asset.h>
 #include <assetsGui/av_assetSelectorCommon.h>
+#include <assetsGui/av_assetTreeDragHandler.h>
 #include <assetsGui/av_assetTypeFilterButtonGroupControl.h>
 #include <assetsGui/av_assetTypeFilterControl.h>
 #include <assetsGui/av_client.h>
@@ -12,6 +13,7 @@
 #include <propPanel/commonWindow/treeviewPanel.h>
 #include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
+#include <propPanel/control/treeNode.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/imguiHelper.h>
 #include <propPanel/propPanel.h>
@@ -29,6 +31,9 @@ public:
     searchIcon = PropPanel::load_icon("search");
     settingsIcon = PropPanel::load_icon("filter_default");
     settingsOpenIcon = PropPanel::load_icon("filter_active");
+
+    recentlyUsedTree.setDragHandler(&dragHandler);
+    dragHandler.tree = &recentlyUsedTree;
   }
 
   void onAllowedTypesChanged(dag::ConstSpan<int> allowed_type_indexes)
@@ -89,6 +94,8 @@ public:
 
     if (itemToSelect)
       recentlyUsedTree.setSelectedItem(itemToSelect);
+
+    tabHost.getAssetBrowserHost().assetBrowserFill();
   }
 
   DagorAsset *getSelectedAsset()
@@ -101,6 +108,34 @@ public:
   {
     PropPanel::TLeafHandle treeItem = getTreeItemByItemData(asset);
     recentlyUsedTree.setSelectedItem(treeItem);
+  }
+
+  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+  {
+    const PropPanel::TLeafHandle selectedFolder = nullptr;
+    const int childrenCount = recentlyUsedTree.getChildrenCount(selectedFolder);
+    for (int i = 0; i < childrenCount; ++i)
+    {
+      PropPanel::TLeafHandle child = recentlyUsedTree.getChild(selectedFolder, i);
+      if (recentlyUsedTree.getItemNode(child)->getFlagValue(PropPanel::TreeNode::FILTERED_IN))
+      {
+        if (DagorAsset *asset = reinterpret_cast<DagorAsset *>(recentlyUsedTree.getItemData(child)))
+          assets.push_back(asset);
+      }
+    }
+  }
+
+  void fillContextMenu(PropPanel::IMenu &menu, const DagorAsset *asset)
+  {
+    using PropPanel::ROOT_MENU_ITEM;
+
+    if (asset)
+    {
+      menu.setEventHandler(this);
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
+      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
+      AssetBaseView::addCommonMenuItems(menu);
+    }
   }
 
   void updateImgui()
@@ -117,7 +152,7 @@ public:
     const bool searchInputChanged = PropPanel::ImguiHelper::searchInput(&searchInputFocusId, "##searchInput", "Filter and search",
       textToSearch, searchIcon, closeIcon, &inputFocused, &inputId);
 
-    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)inputId), AssetSelectorCommon::searchTooltip);
+    PropPanel::set_previous_imgui_control_tooltip(inputId, AssetSelectorCommon::searchTooltip);
 
     if (inputFocused)
     {
@@ -148,7 +183,7 @@ public:
     const PropPanel::IconId settingsButtonIcon = settingsPanelOpen ? settingsOpenIcon : settingsIcon;
     bool settingsButtonPressed =
       PropPanel::ImguiHelper::imageButtonWithArrow("settingsButton", settingsButtonIcon, fontSizedIconSize, settingsPanelOpen);
-    PropPanel::set_previous_imgui_control_tooltip((const void *)((uintptr_t)ImGui::GetItemID()), "Settings");
+    PropPanel::set_previous_imgui_control_tooltip(ImGui::GetItemID(), "Settings");
 
     if (settingsPanelOpen)
       showSettingsPanel(popupId);
@@ -221,18 +256,8 @@ private:
 
   bool onTvContextMenu(PropPanel::TreeBaseWindow &, PropPanel::ITreeInterface &in_tree) override
   {
-    using PropPanel::ROOT_MENU_ITEM;
-    if (getSelectedAsset())
-    {
-      PropPanel::IMenu &menu = in_tree.createContextMenu();
-      menu.setEventHandler(this);
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::AddToFavoritesMenuItem, "Add to favorites");
-      menu.addItem(ROOT_MENU_ITEM, AssetsGuiIds::GoToAssetInSelectorMenuItem, "Go to asset");
-      AssetBaseView::addCommonMenuItems(menu);
-      return true;
-    }
-
-    return false;
+    PropPanel::IMenu &menu = in_tree.createContextMenu();
+    return tabHost.getAssetSelectorContextMenuHandler().onAssetSelectorContextMenu(menu, getSelectedAsset(), nullptr);
   }
 
   void onShownTypeFilterChanged() { fillTree(getSelectedAsset()); }
@@ -295,6 +320,7 @@ private:
   dag::Vector<bool> allowedTypes;
   dag::Vector<bool> shownTypes;
   AssetsGuiTextFilter textFilter;
+  AssetTreeDragHandler dragHandler;
   String textToSearch;
   PropPanel::IconId closeIcon = PropPanel::IconId::Invalid;
   PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;

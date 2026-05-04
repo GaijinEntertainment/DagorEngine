@@ -1,0 +1,1 @@
+Low-level TrueType font bindings for stb_truetype. Provides font loading, glyph packing into atlases, font metrics, codepoint metrics, and bitmap rasterization. Use ``stbimage_ttf`` for a high-level API.

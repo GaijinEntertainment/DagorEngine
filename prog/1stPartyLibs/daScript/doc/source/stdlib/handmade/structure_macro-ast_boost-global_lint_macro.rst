@@ -1,0 +1,1 @@
+The ``[global_lint_macro]`` structure annotation — registers an ``AstPassMacro`` subclass that is invoked during the global lint compilation pass.

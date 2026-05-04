@@ -7,11 +7,10 @@
 #include <dag/dag_vector.h>
 #include <util/dag_generationRefId.h>
 #include <util/dag_generationReferencedData.h>
-#include <EASTL/vector_set.h>
-#include <EASTL/vector_set.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_stlqsort.h>
 #include <debug/dag_debug.h>
+#include <drv/3d/dag_consts.h>
 
 #ifndef VALIDATE_LINEAR_HEAP_ALLOCATOR
 #if DAGOR_DBGLEVEL > 1
@@ -34,7 +33,7 @@ public:
   void copy(Heap &, size_t, const Heap &, size_t, size_t) {}
   bool canCopyInSameHeap() const { return true; }
   bool canCopyOverlapped() const { return true; }
-  bool create(Heap &, size_t) { return true; }
+  bool create(Heap &, size_t, ResourceTagType) { return true; }
   void orphan(Heap &) {}
 };
 
@@ -61,8 +60,8 @@ struct LinearHeapAllocator
 
   bool resize(len_t capacity);  // false if it can't be done, or sz < allocated. Will do nothing if all memory is defragmented
   bool reserve(len_t capacity); // false if it can't be done. Will do nothing a
-  LinearHeapAllocator() = default;
-  LinearHeapAllocator(HeapManager &&m) : manager(eastl::move(m)) {}
+  LinearHeapAllocator(ResourceTagType tag = nullptr) : tag(tag) {}
+  LinearHeapAllocator(HeapManager &&m, ResourceTagType tag = nullptr) : manager(eastl::move(m)), tag(tag) {}
 
   RegionId allocateInHeap(len_t size);            // allocate if there is enough contigous space in heap
   RegionId allocate(len_t size, len_t page_size); // can cause memory move. Will only fail if manager fails to create
@@ -105,6 +104,7 @@ private:
   len_t totalSize = 0;
   len_t freeSize = 0;
   uint32_t heapGeneration = 0;
+  ResourceTagType tag = nullptr;
 };
 
 template <typename HeapManager>
@@ -125,7 +125,7 @@ inline bool LinearHeapAllocator<HeapManager>::resize(len_t nextCapacity)
                                                                                                                         // be done
     return true;
   Heap oldHeap = eastl::move(currentHeap);
-  if (!manager.create(currentHeap, nextCapacity))
+  if (!manager.create(currentHeap, nextCapacity, tag))
   {
     currentHeap = eastl::move(oldHeap);
     return false;

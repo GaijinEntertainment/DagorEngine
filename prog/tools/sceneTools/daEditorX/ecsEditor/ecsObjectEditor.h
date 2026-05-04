@@ -1,21 +1,26 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <daECS/scene/scene.h>
 #include <ecsPropPanel/ecsBasicObjectEditor.h>
 #include <ecsPropPanel/ecsTemplateSelectorClient.h>
+#include "ecsToEditableObjectConverter.h"
 
-class ECSEditableObject;
+class RenderableEditableObject;
+class ECSEntityObject;
+class ECSSceneObject;
 class ECSHierarchicalUndoGroup;
 class ECSTemplateSelectorDialog;
+class ECSSceneOutlinerPanel;
 struct ECSEntityCreateData;
 
 ECS_UNICAST_EVENT_TYPE(EditorToDeleteEntitiesEvent, ecs::EidList /*linkedEntitiesToDelete*/)
 ECS_UNICAST_EVENT_TYPE(EditorOnInitClonedEntity)
 
-#define ECS_EDITOR_SELECTED_TEMPLATE "daeditor_selected"
-
-class ECSObjectEditor : public ECSBasicObjectEditor, public IECSTemplateSelectorClient
+class ECSObjectEditor : public ECSBasicObjectEditor, public IECSTemplateSelectorClient, public IECSToEditableObjectConverter
 {
+  using Base = ECSBasicObjectEditor;
+
 public:
   typedef eastl::vector<eastl::string> SaveOrderRules;
 
@@ -24,6 +29,7 @@ public:
 
   /// @name Methods inherited from ObjectEditor
   //@{
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerViewportAccelerators(IWndManager &wndManager) override;
   void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
   void updateToolbarButtons() override;
@@ -43,7 +49,9 @@ public:
   void load(const char *blk_path);
 
   void setSaveOrderRules(const SaveOrderRules &rules) { saveOrderRules = rules; }
-  int saveObjectsInternal(const char *fpath);
+  const SaveOrderRules &getSaveOrderRules() const { return saveOrderRules; }
+
+  int saveObjectsInternal(const char *fpath, ecs::Scene::SceneId scene_id, bool save_children);
   void saveObjects(const char *new_fpath = nullptr);
   bool hasUnsavedChanges() const;
 
@@ -58,8 +66,10 @@ public:
 
   void addEditableEntities();
   void refreshEids();
-  RenderableEditableObject *getObjectByEid(ecs::EntityId eid) const;
-  ECSEditableObject *getParentSelectionHoveredObject() { return parentSelectionHoveredObject; }
+  ECSEntityObject *getParentSelectionHoveredObject() { return parentSelectionHoveredObject; }
+
+  void addScene(ecs::Scene::SceneId sid);
+  void removeScene(ecs::Scene::SceneId sid);
 
   void onBeforeExport();
   void onAfterExport();
@@ -72,16 +82,28 @@ public:
 
   static bool checkSingletonMutexExists(const char *mutex_name);
 
+  void updateImgui() override;
+
+  /// @name Methods inherited from IECSToEditableObjectConverter
+  //@{
+  RenderableEditableObject *getObjectFromSceneId(ecs::Scene::SceneId sid) const override;
+  RenderableEditableObject *getObjectFromEntityId(ecs::EntityId eid) const override;
+  //@}
+
+  static uint32_t writeSceneToBlk(DataBlock &blk, const ecs::Scene::SceneRecord &record, ECSObjectEditor &editor);
+
+  ECSSceneOutlinerPanel *getSceneOutlinerPanel() const { return sceneOutliner.get(); }
+
 private:
   struct HierarchyItem
   {
     HierarchyItem() : object(nullptr), parent(nullptr) {}
-    HierarchyItem(ECSEditableObject *in_object, HierarchyItem *in_parent) : object(in_object), parent(in_parent) {}
+    HierarchyItem(RenderableEditableObject *in_object, HierarchyItem *in_parent) : object(in_object), parent(in_parent) {}
     ~HierarchyItem() { clearChildren(); }
 
     void clearChildren() { clear_all_ptr_items(children); }
 
-    HierarchyItem *addChild(ECSEditableObject &child_object)
+    HierarchyItem *addChild(RenderableEditableObject &child_object)
     {
       HierarchyItem *child = new HierarchyItem(&child_object, this);
       children.push_back(child);
@@ -91,7 +113,7 @@ private:
     bool isRoot() const { return parent == nullptr; }
     bool isTopLevelObject() const { return parent && parent->isRoot(); }
 
-    ECSEditableObject *object;
+    RenderableEditableObject *object;
     HierarchyItem *parent;
     dag::Vector<HierarchyItem *> children;
   };
@@ -118,42 +140,53 @@ private:
   void onTemplateSelectorTemplateSelected(const char *template_name) override;
   //@}
 
+  // IWndManagerWindowHandler
+  void *onWmCreateWindow(int type) override;
+  bool onWmDestroyWindow(void *window) override;
+
   void cloneSelection();
   void fillDeleteDepsObjects(Tab<RenderableEditableObject *> &list) const;
 
   bool checkSceneEntities(const char *rule);
   int getEntityRecordLoadType(ecs::EntityId eid);
-  int getEntityRecordIndex(ecs::EntityId eid);
+  int getEntityRecordSceneId(ecs::EntityId eid);
   ecs::EntityId reCreateEditorEntity(ecs::EntityId eid);
   ecs::EntityId makeSingletonEntity(const char *tplName);
 
-  void mapEidToEditableObject(ECSEditableObject *obj);
-  void unmapEidFromEditableObject(ECSEditableObject *obj);
+  void mapEidToEditableObject(ECSEntityObject *obj);
+  void unmapEidFromEditableObject(ECSEntityObject *obj);
 
-  void updateSingleHierarchyTransform(ECSEditableObject &object, bool calculate_from_relative_transform);
-  HierarchyItem *makeHierarchyItemParent(ECSEditableObject &object, HierarchyItem &hierarchy_root,
+  void mapSidToEditableObject(ECSSceneObject *obj);
+  void unmapSidToEditableObject(ECSSceneObject *obj);
+
+  void updateSingleHierarchyTransform(RenderableEditableObject &object, bool calculate_from_relative_transform);
+  HierarchyItem *makeHierarchyItemParent(RenderableEditableObject &object, HierarchyItem &hierarchy_root,
     ska::flat_hash_map<EditableObject *, HierarchyItem *> &object_to_hierarchy_item_map);
   void fillObjectHierarchy(HierarchyItem &hierarchy_root);
-  void applyChange(ECSEditableObject &object, const Point3 &delta);
+  void applyChange(RenderableEditableObject &object, const Point3 &delta);
   void applyChangeHierarchically(const HierarchyItem &parent, const Point3 &delta, bool parent_updated = false);
   void makeTransformUndoForHierarchySelection(const HierarchyItem &parent, bool parent_updated = false);
 
   bool cancelCreateMode();
-  void zoomAndCenter();
   void selectNewObjEntity(const char *name);
-  bool setParentForObjects(dag::ConstSpan<ECSEditableObject *> children, ECSEditableObject &parent);
+  bool setParentForObjects(dag::ConstSpan<ECSEntityObject *> children, ECSEntityObject &parent);
   void clearParentForSelection();
   void toggleFreeTransformForSelection();
 
+  void onOutlinerPanelFill(const eastl::function<void(ecs::EntityId eid)> &cb);
+
   SaveOrderRules saveOrderRules;
   Tab<RenderableEditableObject *> objsToRemove;
-  Ptr<ECSEditableObject> newObj;
+  Ptr<ECSEntityObject> newObj;
   String newObjTemplate;
   bool newObjOk = false;
   eastl::unique_ptr<ECSTemplateSelectorDialog> templateSelectorDialog;
   eastl::unique_ptr<ECSHierarchicalUndoGroup> hierarchicalUndoGroup;
   ska::flat_hash_set<ecs::EntityId, ecs::EidHash> eidsCreated;
   ska::flat_hash_map<ecs::EntityId, RenderableEditableObject *, ecs::EidHash> eidToEditableObject;
+  ska::flat_hash_set<ecs::Scene::SceneId> sidsCreated;
+  ska::flat_hash_map<ecs::Scene::SceneId, RenderableEditableObject *> sidToEditableObject;
+
   eastl::vector<eastl::string> hiddenTemplates;
   ecs::EidList objectsForParenting;
   HierarchyItem temporaryHierarchyForGizmoChange;
@@ -165,7 +198,8 @@ private:
 
   bool cloneMode = false;
   Point3 cloneStartPosition = ZERO<Point3>();
-  PtrTab<ECSEditableObject> cloneObjs;
+  PtrTab<ECSEntityObject> cloneObjs;
 
-  Ptr<ECSEditableObject> parentSelectionHoveredObject;
+  Ptr<ECSEntityObject> parentSelectionHoveredObject;
+  eastl::unique_ptr<ECSSceneOutlinerPanel> sceneOutliner;
 };

@@ -3,7 +3,7 @@
 /// @module gpuBenchmark
 #include <render/gpuBenchmarkEntity.h>
 #include <EASTL/string_view.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 #include <quirrel/bindQuirrelEx/autoBind.h>
 #include <EASTL/string.h>

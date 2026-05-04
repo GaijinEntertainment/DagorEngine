@@ -29,7 +29,7 @@ enum ProfilerMetricId
   NUM_PROFILER_METRICS
 };
 
-extern const char *profiler_metric_names[NUM_PROFILER_METRICS];
+extern const char *const *profiler_metric_names;
 
 
 struct Metric

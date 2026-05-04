@@ -16,8 +16,8 @@ namespace d3d
  * Max value for each direction is 64k, product of all dimensions can not exceed 2^22
  *
  * @param thread_group_x The number of thread groups in the X direction.
- * @param thread_group_y The number of thread groups in the Y direction.
- * @param thread_group_z The number of thread groups in the Z direction.
+ * @param thread_group_y The number of thread groups in the Y direction. Must be equal to 1.
+ * @param thread_group_z The number of thread groups in the Z direction. Must be equal to 1.
  */
 void dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z);
 
@@ -28,8 +28,8 @@ void dispatch_mesh(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t th
  * struct DispatchArgs
  * {
  *   uint32_t thread_group_x;
- *   uint32_t thread_group_y;
- *   uint32_t thread_group_z;
+ *   uint32_t thread_group_y; // must be equal to 1
+ *   uint32_t thread_group_z; // must be equal to 1
  * };
  * @param dispatch_count The number of dispatches to execute.
  * @param stride_bytes The stride between dispatch arguments in bytes.

@@ -122,6 +122,7 @@ public:
   void modifyBufferTemplate(VulkanBufferHandle buf);
   void addBufferByTemplate(VkDeviceSize offset, VkDeviceSize size);
   void addBufferByTemplateMerged(VkDeviceSize offset, VkDeviceSize size);
+  void addBufferOwnershipTransferByTemplate(uint32_t src, uint32_t dst, VkDeviceSize offset, VkDeviceSize size);
 
   void modifyImageTemplateStage(StageFlags stage);
   void modifyImageTemplate(AccessFlags mask);

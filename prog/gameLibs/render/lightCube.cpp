@@ -63,7 +63,8 @@ public:
       texFmt |= TEXCF_GENERATEMIPS;
       logwarn("no pregen specular filter, use genmips");
     }
-    dynamic_cube_specular = dag::create_cubetex(specular_size, TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | texFmt, specularMips, buf);
+    dynamic_cube_specular =
+      dag::create_cubetex(specular_size, TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | texFmt, specularMips, buf, RESTAG_LIGHTS);
     return true;
   }
   static void renderCubeTex(CubeTexture *cubTex, int face_start, int face_count, int from_mip, int mips_cnt, ManagedTex &tex,

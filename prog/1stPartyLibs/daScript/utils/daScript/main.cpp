@@ -1,13 +1,16 @@
 #include "daScript/ast/aot_templates.h"
+#include "daScript/ast/ast.h"
+#include "daScript/ast/dyn_modules.h"
 #include "daScript/daScript.h"
+#include "daScript/daScriptModule.h"
 #include "daScript/das_common.h"
 #include "daScript/simulate/fs_file_info.h"
 #include "../dasFormatter/fmt.h"
 #include "daScript/ast/ast_aot_cpp.h"
-
-// aot das-mode temporary disabled
-// #include "../../src/das/ast/_standalone_ctx_generated/ast_aot_cpp.das.h"
-// #include "../../src/das/ast/_standalone_ctx_generated/standalone_contexts.das.h"
+#include "daScript/misc/crash_handler.h"
+#if defined(_WIN32) && defined(_DEBUG)
+#include <crtdbg.h>
+#endif
 
 using namespace das;
 
@@ -19,21 +22,40 @@ das::FileAccessPtr get_file_access( char * pak );//link time resolved dependenci
 TextPrinter tout;
 
 static string projectFile;
+// aot config
 static bool aotMacros = false;
+static bool aotEnabled = false;
+static bool isAotLib = false;
+static string aotResult = "";
+// aot config end
+static bool paranoid_validation = false;
 static bool profilerRequired = false;
 static bool debuggerRequired = false;
 static bool scopedStackAllocator = true;
 static bool pauseAfterErrors = false;
 static bool quiet = false;
-static bool paranoid_validation = false;
-static bool jitEnabled = false;
-static bool isAotLib = false;
+enum class JitMode {
+    None,
+    Direct,
+    Dll,
+    Executable,
+};
+static JitMode jitEnabled = JitMode::None; // Disabled by default.
+static string jitOutPath = ""; // Empty, JIT module will choose default.
+
+static bool noDynamicModules = false;
+#ifdef DAS_TEST_AOT
+static bool useAot = true;
+#else
+static bool useAot = false;
+#endif
+
 static bool version2syntax = true;
 static bool gen2MakeSyntax = false;
 
 static CodeOfPolicies getPolicies() {
     CodeOfPolicies policies;
-    policies.aot = false;
+    policies.aot = aotEnabled;
     policies.aot_module = true;
     if (aotMacros) {
         policies.aot_macros = true;
@@ -109,14 +131,11 @@ bool compile ( const string & fn, const string & cppFn, bool dryRun, bool cross_
                     NamespaceGuard das_guard(tw, "das");
                     {
                         NamespaceGuard anon_guard(tw, program->thisNamespace); // anonymous
-                        (*daScriptEnvironment::bound)->g_Program = program;    // setting it for the AOT macros
+                        daScriptEnvironment::getBound()->g_Program = program;    // setting it for the AOT macros
                         program->aotCpp(*pctx, tw, cross_platform);
-                        (*daScriptEnvironment::bound)->g_Program.reset();
+                        daScriptEnvironment::getBound()->g_Program.reset();
                         // list STUFF
-                        tw << "\nstatic void registerAotFunctions ( AotLibrary & aotLib ) {\n";
                         program->registerAotCpp(tw, *pctx, false);
-                        tw << "    resolveTypeInfoAnnotations();\n";
-                        tw << "}\n";
                         tw << "\n";
                         if ( !isAotLib ) tw << "static AotListBase impl(registerAotFunctions);\n";
                         // validation stuff
@@ -177,10 +196,19 @@ int das_aot_main ( int argc, char * argv[] ) {
     bool das_mode = false;
     char * standaloneContextName = nullptr;
     char * standaloneClassName = nullptr;
+    vector<pair<string, string>> aot_files;
+    string project_root;
     if ( argc>3  ) {
-        for (int ai = 4; ai != argc; ++ai) {
+        for (int ai = 1; ai != argc; ++ai) {
             if ( strcmp(argv[ai],"-q")==0 ) {
                 quiet = true;
+            } else if ( strcmp(argv[ai],"-aot")==0 || strcmp(argv[ai],"-aotlib")==0 ) {
+                if (ai + 2 >= argc) {
+                    tout << "-aot requires 2 arguments <in> <out>.";
+                    return -1;
+                }
+                aot_files.emplace_back(argv[ai + 1], argv[ai + 2]);
+                ai += 2;
             } else if ( strcmp(argv[ai],"-p")==0 ) {
                 paranoid_validation = true;
             } else if ( strcmp(argv[ai],"-dry-run")==0 ) {
@@ -212,6 +240,9 @@ int das_aot_main ( int argc, char * argv[] ) {
                 }
                 setDasRoot(argv[ai+1]);
                 ai += 1;
+            } else if ( strcmp(argv[ai],"-project-root")==0 || strcmp(argv[ai],"-project_root")==0 ) {
+                project_root = argv[ai + 1];
+                ai++;
             } else if ( strcmp(argv[ai],"-v2syntax")==0 ) {
                 version2syntax = true;
             } else if ( strcmp(argv[ai],"-v1syntax")==0 ) {
@@ -219,6 +250,8 @@ int das_aot_main ( int argc, char * argv[] ) {
             } else if ( strcmp(argv[ai],"-v2makeSyntax")==0 ) {
                 version2syntax = false;
                 gen2MakeSyntax = true;
+            } else if ( strcmp(argv[ai],"-no-dynamic-modules")==0 ) {
+                noDynamicModules = true;
             } else if ( strcmp(argv[ai],"--")==0 ) {
                 scriptArgs = true;
             } else if ( !scriptArgs ) {
@@ -227,80 +260,85 @@ int das_aot_main ( int argc, char * argv[] ) {
             }
         }
     }
-    // register modules
-    if (!Module::require("$")) {
-        NEED_MODULE(Module_BuiltIn);
-    }
-    if (!Module::require("math")) {
-        NEED_MODULE(Module_Math);
-    }
-    if (!Module::require("raster")) {
-        NEED_MODULE(Module_Raster);
-    }
-    if (!Module::require("strings")) {
-        NEED_MODULE(Module_Strings);
-    }
-    if (!Module::require("rtti")) {
-        NEED_MODULE(Module_Rtti);
-    }
-    if (!Module::require("ast")) {
-        NEED_MODULE(Module_Ast);
-    }
-    if (!Module::require("jit")) {
-        NEED_MODULE(Module_Jit);
-    }
-    if (!Module::require("debugapi")) {
-        NEED_MODULE(Module_Debugger);
-    }
-    if (!Module::require("network")) {
-        NEED_MODULE(Module_Network);
-    }
-    if (!Module::require("uriparser")) {
-        NEED_MODULE(Module_UriParser);
-    }
-    if (!Module::require("jobque")) {
-        NEED_MODULE(Module_JobQue);
-    }
-    if (!Module::require("fio")) {
-        NEED_MODULE(Module_FIO);
-    }
-    if (!Module::require("dasbind")) {
-        NEED_MODULE(Module_DASBIND);
-    }
+    // register all builtin modules
+    register_builtin_modules();
     require_project_specific_modules();
+    #if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
+    // Otherwises search for static modules.
     #include "modules/external_need.inc"
+    #endif
+    #ifdef DAS_ENABLE_DYN_INCLUDES
+    if ( !noDynamicModules ) {
+        daScriptEnvironment::ensure();
+        auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
+        require_dynamic_modules(access, getDasRoot(), project_root, tout);
+    }
+    #endif
     Module::Initialize();
-    (*daScriptEnvironment::bound)->g_isInAot = true;
-    bool compiled = false;
+    daScriptEnvironment::getBound()->g_isInAot = true;
+    bool compiled = true;
     if ( standaloneContext ) {
-        if (das_mode) {
-            // aot das-mode temporary disabled
-            DAS_FATAL_LOG("aot das mode is not ready");
-            // standalone_contexts::Standalone st;
-            // st.standalone_aot(argv[2], argv[3], isAotLib, cross_platform, paranoid_validation, getPolicies());
-        } else {
-            StandaloneContextCfg cfg = {standaloneContextName, standaloneClassName ? standaloneClassName : "StandaloneContext"};
-            cfg.cross_platform = cross_platform;
-            compiled = compileStandalone(argv[2], argv[3], cfg);
-        }
+        StandaloneContextCfg cfg = {standaloneContextName, standaloneClassName ? standaloneClassName : "StandaloneContext"};
+        cfg.cross_platform = cross_platform;
+        compiled = compileStandalone(argv[2], argv[3], cfg);
     } else {
-        if (das_mode) {
-            // aot das-mode temporary disabled
-            DAS_FATAL_LOG("aot das mode is not ready");
-            // ast_aot_cpp::Standalone st;
-            // auto res = st.aot(argv[2], isAotLib, paranoid_validation, cross_platform, getPolicies());
-            // TextPrinter printer;
-            // saveToFile(printer, argv[3], res);
-            // compiled = true;
+        if (argv[2] == string("aot_file_mode")) {
+            auto f = get_file_access(nullptr);
+            const char *src;
+            uint32_t len;
+            f->getFileInfo(argv[3])->getSourceAndLength(src, len);
+            string_view content(src, len);
+            size_t pos = 0;
+            // Old MAC uses `\r`. Windows uses `\r\n`. Linux uses `\n`.
+            // Solution below is not optimal, but simplest.
+            // We will remove it, once switched to the das aot completely.
+            while (pos < content.length()) {
+                size_t end1 = content.find('\n', pos);
+                size_t end2 = content.find('\r', pos);
+                size_t end = das::min(end1, end2);
+                string_view line = content.substr(pos, end - pos);
+                pos = (end == string_view::npos) ? content.length() : end + 1;
+                if (line.empty()) continue;
+
+                auto mode_end = line.find(' ');
+                auto in_file_end = line.find(' ', mode_end + 1);
+
+                // No need to support contexts. This is temporary.
+                if (line.substr(0, mode_end) != "aot") {
+                    if (!quiet) {
+                        tout << "Uknown mode on line `" << string(line) << "`, skipping.\n";
+                    }
+                    continue;
+                }
+
+                string in_file(line.substr(mode_end + 1, in_file_end - mode_end - 1));
+                string out_file(line.substr(in_file_end + 1));
+
+                // Use `or` here, to return `true` if at least one file compiled successfully.
+                auto is_ok = compile(in_file, out_file, dryRun, cross_platform);
+                if (!is_ok && !quiet) {
+                    tout << "Failed to compile `" << string(in_file) << "` in aot.\n";
+                }
+                compiled &= is_ok;
+            }
         } else {
-            compiled = compile(argv[2], argv[3], dryRun, cross_platform);
+            size_t id = 2;
+            for (const auto &[in, out] : aot_files) {
+                // Use `or` here, to return `true` if at least one file compiled successfully.
+                auto is_ok = compile(in, out, dryRun, cross_platform);
+                if (!is_ok && !quiet) {
+                    tout << "Failed to compile `" << out << "` in aot.\n";
+                }
+                compiled &= is_ok;
+                id += 2;
+            }
         }
     }
     Module::Shutdown();
     return compiled ? 0 : -1;
 }
 
-bool compile_and_run ( const string & fn, const string & mainFnName, bool outputProgramCode, bool dryRun, const char * introFile = nullptr ) {
+bool compile_and_run ( const string & fn, const string & mainFnName, bool outputProgramCode, bool dryRun, bool compileOnly, const char * introFile = nullptr ) {
     auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
     if ( introFile ) {
         auto fileInfo = make_unique<TextFileInfo>(introFile, uint32_t(strlen(introFile)), false);
@@ -311,15 +349,35 @@ bool compile_and_run ( const string & fn, const string & mainFnName, bool output
     CodeOfPolicies policies;
     if ( debuggerRequired ) {
         policies.debugger = true;
-        policies.debug_module = getDasRoot() + "/daslib/debug.das";
+        access->addExtraModule("debug", getDasRoot() + "/daslib/debug.das");
     } else if ( profilerRequired ) {
         policies.profiler = true;
-        policies.profile_module = getDasRoot() + "/daslib/profiler.das";
-    } /*else*/ if ( jitEnabled ) {
-        policies.jit = true;
-        policies.jit_module = getDasRoot() + "/daslib/just_in_time.das";
+        access->addExtraModule("profiler", getDasRoot() + "/daslib/profiler.das");
+    } /*else*/ if ( jitEnabled != JitMode::None ) {
+        policies.jit_enabled = true;
+        switch (jitEnabled) {
+            case JitMode::Executable: policies.jit_exe_mode = true; break;
+            case JitMode::Dll: policies.jit_dll_mode = true; break;
+            case JitMode::Direct: break;
+            default: break;
+        }
+        access->addExtraModule("just_in_time", getDasRoot() + "/daslib/just_in_time.das");
+        policies.jit_output_path = jitOutPath;
+        policies.dll_search_paths.emplace_back(getDasRoot() + "/lib");
+    } else if (aotEnabled) {
+        policies.aot = false;
+        policies.aot_module = true;
+        access->addExtraModule("ast_aot_macro", getDasRoot() + "/daslib/aot_macro.das");
+        policies.aot_result = aotResult;
+        daScriptEnvironment::getBound()->g_isInAot = true;
     }
-    policies.fail_on_no_aot = false;
+    if ( useAot ) {
+        // don't set policies.aot here - the host program (e.g. dastest) doesn't need AOT linking
+        // the --use-aot flag (after --) tells dastest to enable AOT for test files it compiles
+        policies.fail_on_no_aot = false;
+    } else {
+        policies.fail_on_no_aot = false;
+    }
     policies.fail_on_lack_of_aot_export = false;
     policies.version_2_syntax = version2syntax;
     policies.gen2_make_syntax = gen2MakeSyntax;
@@ -335,6 +393,9 @@ bool compile_and_run ( const string & fn, const string & mainFnName, bool output
         } else {
             if ( outputProgramCode )
                 tout << *program << "\n";
+            if ( compileOnly )
+                return true;
+
             auto pctx = SimulateWithErrReport(program, tout);
             if ( !pctx ) {
                 success = false;
@@ -378,6 +439,37 @@ bool compile_and_run ( const string & fn, const string & mainFnName, bool output
     return success;
 }
 
+// Deduces project_root for dyn modules.
+// First attempt: from command line arguments
+// Second try: project file
+// Third try: path from compiled file
+// Default: empty
+static string deduce_project_root(string maybe_project_root, string compile_file) {
+    if (!maybe_project_root.empty()) {
+        return maybe_project_root;
+    }
+    if (!projectFile.empty()) {
+        auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
+        auto maybe_result = access->getDynModulesFolder();
+        if (!maybe_result.empty()) {
+            return maybe_result;
+        }
+    }
+    if (!compile_file.empty()) {
+        auto filename_start = compile_file.find_last_of("\\/");
+        string project_root;
+        if (filename_start != string::npos) {
+            // Try from directory where first script located
+            project_root = compile_file.substr(0, filename_start);
+        } else {
+            // Try from current directory.
+            project_root = "./";
+        }
+        return project_root;
+    }
+    return "";
+}
+
 void replace( string& str, const string& from, const string& to ) {
     size_t it = str.find(from);
     if( it != string::npos ) {
@@ -389,16 +481,24 @@ void print_help() {
     tout
         << "daslang version " << DAS_VERSION_MAJOR << "." << DAS_VERSION_MINOR << "." << DAS_VERSION_PATCH << "\n"
         << "daslang scriptName1 {scriptName2} .. {-main mainFnName} {-log} {-pause} -- {script arguments}\n"
+        << "    -main <fnName> set entry function name (default: main)\n"
         << "    -v2syntax   enable version 2 syntax (uses braces {} for code blocks) [default]\n"
         << "    -v1syntax   enable version 1 syntax (uses Python-style indentation for code blocks)\n"
         << "    -v2makeSyntax enable version 1 syntax with version 2 constructors syntax (for arrays/structures)\n"
         << "    -jit        enable Just-In-Time compilation\n"
+        << "    -exe        JIT compile to standalone executable (implies -dry-run)\n"
+        << "    -output <path> set JIT output path\n"
+        << "    -use-aot    enable AOT linking (requires AOT stubs linked into the binary)\n"
+        << "    -aot2 <in_script.das> <out_script.das.cpp> AOT generation (v2, implies -dry-run)\n"
+        << "    -aot_lib    mark AOT output as library module (use with -aot2)\n"
         << "    -project <path.das_project> path to project file\n"
-        << "    -run-fmt    <inplace/dry> <v2/v1> <semicolon> run formatter, requires 2 or more arguments\n"
+        << "    -project_root <path> root directory of the project (used for dyn modules)\n"
+        << "    -run-fmt    <-i/-d> <-v2/-v1> {--semicolon} run formatter\n"
         << "    -log        output program code\n"
         << "    -pause      pause after errors and pause again before exiting program\n"
         << "    -dry-run    compile and simulate script without execution\n"
-        << "    -dasroot    set path to dascript root folder (with daslib)\n"
+        << "    -compile-only compile script without simulation and execution\n"
+        << "    -dasroot <path> set path to daslang root folder (with daslib)\n"
 #if DAS_SMART_PTR_ID
         << "    -track-smart-ptr <id> track smart pointer with id\n"
 #endif
@@ -408,12 +508,14 @@ void print_help() {
         << "    -das-profiler-log-file <file> set profiler log file\n"
         << "    -das-profiler-manual manual profiler control\n"
         << "    -das-profiler-memory memory profiler\n"
+        << "    -no-dynamic-modules  skip loading dynamic modules from dasroot and project root\n"
+        << "    --          separator for script arguments\n"
         << "daslang -aot <in_script.das> <out_script.das.cpp> {-q} {-p}\n"
         << "    -project <path.das_project> path to project file\n"
         << "    -p          paranoid validation of CPP AOT\n"
         << "    -q          suppress all output\n"
         << "    -dry-run    no changes will be written\n"
-        << "    -dasroot    set path to dascript root folder (with daslib)\n"
+        << "    -dasroot <path> set path to daslang root folder (with daslib)\n"
     ;
 }
 
@@ -436,9 +538,18 @@ namespace das {
 }
 
 int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
+#if defined(_WIN32) && defined(_DEBUG)
+    // Suppress all CRT assertion/error dialogs — print to stderr instead
+    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+    _set_error_mode(_OUT_TO_STDERR);
+#endif
+    install_das_crash_handler();
     bool isArgAot = false;
-    // // aot das-mode temporary disabled
-    // force_aot_stub();
     if (argc > 1) {
         isArgAot = strcmp(argv[1],"-aot")==0;
         isAotLib = !isArgAot && strcmp(argv[1],"-aotlib")==0;
@@ -459,6 +570,8 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     bool outputProgramCode = false;
     bool pauseAfterDone = false;
     bool dryRun = false;
+    bool compileOnly = false;
+    string project_root;
     optional<format::FormatOptions> formatter;
     for ( int i=1; i < argc; ++i ) {
         if ( argv[i][0]=='-' ) {
@@ -490,11 +603,44 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 version2syntax = false;
                 gen2MakeSyntax = true;
             } else if ( cmd=="jit") {
-                jitEnabled = true;
+                jitEnabled = JitMode::Direct;
+            } else if ( cmd=="use-aot") {
+                useAot = true;
+            } else if ( cmd=="output") {
+                if ( i+1 > argc ) {
+                    printf("output requires argument\n");
+                    print_help();
+                    return -1;
+                }
+                jitOutPath = argv[i+1];
+                i += 1;
+            } else if ( cmd=="exe") {
+                jitEnabled = JitMode::Executable;
+                dryRun = true;
+            } else if ( cmd=="aot2") {
+                dryRun = true;
+                aotEnabled = true;
+                if ( i+3 > argc ) {
+                    printf("daslang -aot2 <in_script.das> <out_script.das.cpp>\n");
+                    print_help();
+                    return -1;
+                }
+                files.emplace_back(argv[i + 1]);
+                aotResult = argv[i + 2];
+                i += 2;
+            } else if ( cmd=="aot_lib") {
+                dryRun = true;
+                aotEnabled = true;
+                isAotLib = true;
             } else if ( cmd=="log" ) {
                 outputProgramCode = true;
             } else if ( cmd=="dry-run" ) {
                 dryRun = true;
+            } else if ( cmd=="compile-only" ) {
+                compileOnly = true;
+            } else if ( cmd=="project-root" || cmd=="project_root" ) {
+                project_root = argv[i + 1];
+                i++;
             } else if ( cmd=="run-fmt" ) {
                 formatter.emplace();
                 if ( i+2 > argc ) {
@@ -578,6 +724,11 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 // do nohting, script handles it
             } else if ( cmd=="-das-profiler-memory" ) {
                 // do nohting, script handles it
+            } else if ( cmd=="no-dynamic-modules" ) {
+                noDynamicModules = true;
+            } else if ( cmd=="h" || cmd=="-help" ) {
+                print_help();
+                return 0;
             } else if ( !scriptArgs) {
                 printf("unknown command line option %s\n", cmd.c_str());
                 print_help();
@@ -593,37 +744,21 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
         return -1;
     }
     // register modules
-    if (!Module::require("$")) {
-        NEED_MODULE(Module_BuiltIn);
-    }
-    if (!Module::require("math")) {
-        NEED_MODULE(Module_Math);
-    }
-    if (!Module::require("raster")) {
-        NEED_MODULE(Module_Raster);
-    }
-    if (!Module::require("strings")) {
-        NEED_MODULE(Module_Strings);
-    }
-    if (!Module::require("rtti")) {
-        NEED_MODULE(Module_Rtti);
-    }
-    if (!Module::require("ast")) {
-        NEED_MODULE(Module_Ast);
-    }
-    if (!Module::require("jit")) {
-        NEED_MODULE(Module_Jit);
-    }
-    if (!Module::require("debugapi")) {
-        NEED_MODULE(Module_Debugger);
-    }
-    NEED_MODULE(Module_Network);
-    NEED_MODULE(Module_UriParser);
-    NEED_MODULE(Module_JobQue);
-    NEED_MODULE(Module_FIO);
-    NEED_MODULE(Module_DASBIND);
+    register_builtin_modules();
     require_project_specific_modules();
+    #if !defined(DAS_ENABLE_DLL) || !defined(DAS_ENABLE_DYN_INCLUDES)
+    // Otherwises search for static modules.
     #include "modules/external_need.inc"
+    #endif
+    #ifdef DAS_ENABLE_DYN_INCLUDES
+    if ( !noDynamicModules ) {
+        // Search for external modules and init them. Only if flag is enabled.
+        daScriptEnvironment::ensure();
+        project_root = deduce_project_root(project_root, files.front());
+        auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
+        require_dynamic_modules(access, getDasRoot(), project_root, tout);
+    }
+    #endif
     Module::Initialize();
 
     if (formatter) {
@@ -631,9 +766,14 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     }
     // compile and run
     int failedFiles = 0;
+    if (!aotResult.empty() && files.size() > 1) {
+        printf("Aotting more than 1 file is not supported yet.\n");
+        return -1;
+    }
+
     for ( auto & fn : files ) {
         replace(fn, "_dasroot_", getDasRoot());
-        if (!compile_and_run(fn, mainName, outputProgramCode, dryRun)) {
+        if (!compile_and_run(fn, mainName, outputProgramCode, dryRun, compileOnly)) {
             failedFiles++;
         }
     }

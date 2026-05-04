@@ -18,6 +18,8 @@
 #include <tchar.h>
 #include <dwmapi.h>
 
+#include <drv/3d/dag_drv3d_multi.h>
+
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -171,6 +173,7 @@ static bool ImGui_ImplWin32_InitEx(void *hwnd, bool platform_has_own_dc)
   io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
   io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)
   io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can call io.AddMouseViewportEvent() with correct data (optional)
+  io.BackendFlags |= ImGuiBackendFlags_HasParentViewport;       // We can honor viewport->ParentViewportId (optional)
 
   bd->hWnd = (HWND)hwnd;
   bd->LastMouseCursor = ImGuiMouseCursor_COUNT;
@@ -201,13 +204,16 @@ void ImGui_Multiview_Shutdown()
   ImGui_ImplWin32_Data *bd = ImGui_ImplWin32_GetBackendData();
   IM_ASSERT(bd != nullptr && "No platform backend to shutdown, or already shutdown?");
   ImGuiIO &io = ImGui::GetIO();
+  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
 
   ::SetPropA(bd->hWnd, "IMGUI_CONTEXT", nullptr);
   ImGui_ImplWin32_ShutdownMultiViewportSupport();
 
   io.BackendPlatformName = nullptr;
   io.BackendPlatformUserData = nullptr;
-  io.BackendFlags &= ~(ImGuiBackendFlags_PlatformHasViewports | ImGuiBackendFlags_HasMouseHoveredViewport);
+  io.BackendFlags &= ~(ImGuiBackendFlags_HasMouseCursors | ImGuiBackendFlags_HasSetMousePos | ImGuiBackendFlags_PlatformHasViewports |
+                       ImGuiBackendFlags_HasMouseHoveredViewport | ImGuiBackendFlags_HasParentViewport);
+  platform_io.ClearPlatformHandlers();
   IM_DELETE(bd);
 }
 
@@ -235,8 +241,8 @@ static bool ImGui_ImplWin32_UpdateMouseCursor(ImGuiIO &io, ImGuiMouseCursor imgu
       case ImGuiMouseCursor_ResizeNESW: win32_cursor = IDC_SIZENESW; break;
       case ImGuiMouseCursor_ResizeNWSE: win32_cursor = IDC_SIZENWSE; break;
       case ImGuiMouseCursor_Hand: win32_cursor = IDC_HAND; break;
-      // case ImGuiMouseCursor_Wait:         win32_cursor = IDC_WAIT; break;
-      // case ImGuiMouseCursor_Progress:     win32_cursor = IDC_APPSTARTING; break;
+      case ImGuiMouseCursor_Wait: win32_cursor = IDC_WAIT; break;
+      case ImGuiMouseCursor_Progress: win32_cursor = IDC_APPSTARTING; break;
       case ImGuiMouseCursor_NotAllowed: win32_cursor = IDC_NO; break;
     }
     ::SetCursor(::LoadCursor(nullptr, win32_cursor));
@@ -566,7 +572,7 @@ ImGuiKey ImGui_ImplWin32_KeyEventToImGuiKey(WPARAM wParam, LPARAM lParam)
     case 13: return ImGuiKey_Equal;
     case 26: return ImGuiKey_LeftBracket;
     case 27: return ImGuiKey_RightBracket;
-    // case 86: return ImGuiKey_Oem102;
+    case 86: return ImGuiKey_Oem102;
     case 43: return ImGuiKey_Backslash;
     case 39: return ImGuiKey_Semicolon;
     case 40: return ImGuiKey_Apostrophe;
@@ -584,6 +590,9 @@ ImGuiKey ImGui_ImplWin32_KeyEventToImGuiKey(WPARAM wParam, LPARAM lParam)
 #endif
 #ifndef DBT_DEVNODES_CHANGED
 #define DBT_DEVNODES_CHANGED 0x0007
+#endif
+#ifndef WM_DPICHANGED
+#define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
 #endif
 
 // Helper to obtain the source of mouse messages.
@@ -709,7 +718,10 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandlerEx(HWND hwnd, UINT msg, WPA
       {
         button = (GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? 3 : 4;
       }
-      if (bd->MouseButtonsDown == 0 && ::GetCapture() == nullptr)
+      HWND hwnd_with_capture = ::GetCapture();
+      if (bd->MouseButtonsDown != 0 && hwnd_with_capture != hwnd) // Did we externally lose capture?
+        bd->MouseButtonsDown = 0;
+      if (bd->MouseButtonsDown == 0 && hwnd_with_capture == nullptr)
         ::SetCapture(hwnd); // Allow us to read mouse coordinates when dragging mouse outside of our window bounds.
       bd->MouseButtonsDown |= 1 << button;
       io.AddMouseSourceEvent(mouse_source);
@@ -824,8 +836,26 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandlerEx(HWND hwnd, UINT msg, WPA
       else
       {
         wchar_t wch = 0;
-        ::MultiByteToWideChar(bd->KeyboardCodePage, MB_PRECOMPOSED, (char *)&wParam, 1, &wch, 1);
+        ::MultiByteToWideChar(bd->KeyboardCodePage, MB_PRECOMPOSED, (char *)&wParam, 2, &wch, 1);
         io.AddInputCharacter(wch);
+      }
+      return 0;
+    case WM_IME_COMPOSITION:
+    {
+      // Handling WM_IME_COMPOSITION ensures that WM_IME_CHAR value is correct even for MBCS apps.
+      // (see #9099, #3653 and https://stackoverflow.com/questions/77450354 topics)
+      LRESULT ime_result = ::DefWindowProcW(hwnd, msg, wParam, lParam);
+      return (lParam & GCS_RESULTSTR) ? 1 : ime_result;
+    }
+    case WM_IME_CHAR:
+      if (::IsWindowUnicode(hwnd) == FALSE)
+      {
+        if (::IsDBCSLeadByte(HIBYTE(wParam)))
+          wParam = (WPARAM)MAKEWORD(HIBYTE(wParam), LOBYTE(wParam));
+        wchar_t wch = 0;
+        ::MultiByteToWideChar(bd->KeyboardCodePage, MB_PRECOMPOSED, (char *)&wParam, 2, &wch, 1);
+        io.AddInputCharacterUTF16(wch);
+        return 1;
       }
       return 0;
     case WM_SETCURSOR:
@@ -838,6 +868,14 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandlerEx(HWND hwnd, UINT msg, WPA
       if (wParam == SPI_SETWORKAREA)
         bd->WantUpdateMonitors = true;
       return 0;
+    case WM_DPICHANGED:
+    {
+      const RECT *suggested_rect = (RECT *)lParam;
+      if (io.ConfigDpiScaleViewports)
+        ::SetWindowPos(hwnd, nullptr, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left,
+          suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+      return 0;
+    }
   }
   return 0;
 }
@@ -850,7 +888,7 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandlerEx(HWND hwnd, UINT msg, WPA
 // - Your own app may already do this via a manifest or explicit calls. This is mostly useful for our examples/ apps.
 // - In theory we could call simple functions from Windows SDK such as SetProcessDPIAware(), SetProcessDpiAwareness(), etc.
 //   but most of the functions provided by Microsoft require Windows 8.1/10+ SDK at compile time and Windows 8/10+ at runtime,
-//   neither we want to require the user to have. So we dynamically select and load those functions to avoid dependencies.
+//   neither of which we want to require the user to have. So we dynamically select and load those functions to avoid dependencies.
 //---------------------------------------------------------------------------------------------------------
 // This is the scheme successfully used by GLFW (from which we borrowed some of the code) and other apps aiming to be highly portable.
 // ImGui_ImplWin32_EnableDpiAwareness() is just a helper called by main.cpp, we don't call it automatically.
@@ -1043,11 +1081,10 @@ static void ImGui_ImplWin32_GetWin32StyleFromViewportFlags(ImGuiViewportFlags fl
     *out_ex_style |= WS_EX_TOPMOST;
 }
 
-static HWND ImGui_ImplWin32_GetHwndFromViewportID(ImGuiID viewport_id)
+static HWND ImGui_ImplWin32_GetHwndFromViewport(ImGuiViewport *viewport)
 {
-  if (viewport_id != 0)
-    if (ImGuiViewport *viewport = ImGui::FindViewportByID(viewport_id))
-      return (HWND)viewport->PlatformHandle;
+  if (viewport != nullptr)
+    return (HWND)viewport->PlatformHandle;
   return nullptr;
 }
 
@@ -1058,7 +1095,7 @@ static void ImGui_ImplWin32_CreateWindow(ImGuiViewport *viewport)
 
   // Select style and parent window
   ImGui_ImplWin32_GetWin32StyleFromViewportFlags(viewport->Flags, &vd->DwStyle, &vd->DwExStyle);
-  vd->HwndParent = ImGui_ImplWin32_GetHwndFromViewportID(viewport->ParentViewportId);
+  vd->HwndParent = ImGui_ImplWin32_GetHwndFromViewport(viewport->ParentViewport);
 
   // Create window in the dedicated thread
   multiview_thread.runInThread([viewport, vd]() {
@@ -1092,6 +1129,8 @@ static void ImGui_ImplWin32_DestroyWindow(ImGuiViewport *viewport)
       if (vd->Hwnd && vd->HwndOwned)
         ::DestroyWindow(vd->Hwnd);
     });
+    if (vd->Hwnd && vd->HwndOwned)
+      d3d::window_destroyed(viewport->PlatformHandle);
     vd->Hwnd = nullptr;
     IM_DELETE(vd);
   }
@@ -1104,9 +1143,11 @@ static void ImGui_ImplWin32_ShowWindow(ImGuiViewport *viewport)
   IM_ASSERT(vd->Hwnd != 0);
 
   multiview_thread.runInThread([viewport, vd]() {
-    // ShowParent() also brings parent to front, which is not always desirable,
-    // so we temporarily disable parenting. (#7354)
-    if (vd->HwndParent != NULL)
+    // ShowParent() even with SW_SHOWNA also brings parent to front, which is not always desirable,
+    // so we temporarily disable parenting. (#7354, #8669)
+    bool avoid_bringing_parent_to_front =
+      vd->HwndParent != NULL && (viewport->Flags & (ImGuiViewportFlags_NoFocusOnAppearing | ImGuiViewportFlags_NoTaskBarIcon)) != 0;
+    if (avoid_bringing_parent_to_front)
       ::SetWindowLongPtr(vd->Hwnd, GWLP_HWNDPARENT, (LONG_PTR) nullptr);
 
     if (viewport->Flags & ImGuiViewportFlags_NoFocusOnAppearing)
@@ -1115,7 +1156,7 @@ static void ImGui_ImplWin32_ShowWindow(ImGuiViewport *viewport)
       ::ShowWindow(vd->Hwnd, SW_SHOW);
 
     // Restore
-    if (vd->HwndParent != NULL)
+    if (avoid_bringing_parent_to_front)
       ::SetWindowLongPtr(vd->Hwnd, GWLP_HWNDPARENT, (LONG_PTR)vd->HwndParent);
   });
 }
@@ -1128,7 +1169,7 @@ static void ImGui_ImplWin32_UpdateWindow(ImGuiViewport *viewport)
   // Update Win32 parent if it changed _after_ creation
   // Unlike style settings derived from configuration flags, this is more likely to change for advanced apps that are manipulating
   // ParentViewportID manually.
-  HWND new_parent = ImGui_ImplWin32_GetHwndFromViewportID(viewport->ParentViewportId);
+  HWND new_parent = ImGui_ImplWin32_GetHwndFromViewport(viewport->ParentViewport);
 
   multiview_thread.runInThread([viewport, vd, new_parent]() {
     if (new_parent != vd->HwndParent)
@@ -1324,11 +1365,11 @@ static LRESULT CALLBACK ImGui_ImplWin32_WndProcHandler_PlatformWindow(HWND hWnd,
   // Allow secondary viewport WndProc to be called regardless of current context
   ImGuiContext *ctx = (ImGuiContext *)::GetPropA(hWnd, "IMGUI_CONTEXT");
   if (ctx == NULL)
-    return DefWindowProc(hWnd, msg, wParam, lParam); // unlike ImGui_ImplWin32_WndProcHandler() we are called directly by Windows, we
-                                                     // can't just return 0.
+    return ::DefWindowProcW(hWnd, msg, wParam, lParam); // unlike ImGui_ImplWin32_WndProcHandler() we are called directly by Windows,
+                                                        // we can't just return 0.
 
-  ImGuiIO &io = ctx->IO;
-  ImGuiPlatformIO &platform_io = ctx->PlatformIO;
+  ImGuiIO &io = ImGui::GetIO(ctx);
+  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO(ctx);
   LRESULT result = 0;
   if (ImGui_ImplWin32_WndProcHandlerEx(hWnd, msg, wParam, lParam, io))
     result = 1;
@@ -1357,7 +1398,7 @@ static LRESULT CALLBACK ImGui_ImplWin32_WndProcHandler_PlatformWindow(HWND hWnd,
     }
   }
   if (result == 0)
-    result = DefWindowProc(hWnd, msg, wParam, lParam);
+    result = ::DefWindowProcW(hWnd, msg, wParam, lParam);
   return result;
 }
 

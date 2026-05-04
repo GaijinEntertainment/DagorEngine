@@ -8,7 +8,7 @@ macro CBUFFER()
     water_cbuffer@cbuf = fft_water_cbuffer hlsl {
       cbuffer water_cbuffer@cbuf
       {
-        #include <fft_water_cbuffer.hlsl>
+        #include <fft_water_cbuffer.hlsli>
       }
     }
   }
@@ -20,11 +20,15 @@ shader update_h0_cs, update_h0_cs_android
     DISABLE_FFT_COMPRESSION()
   }
 
-  ENABLE_ASSERT(cs)
   USE_FFT_COMPRESSION()
   CBUFFER()
+  (cs) {
+    g_gauss_input@buf : register(0) hlsl {
+      StructuredBuffer<float2> g_gauss_input@buf;
+    }
+  }
   hlsl(cs) {
-    StructuredBuffer<float2> g_gauss_input : register(t0);
+    // TODO: fixme macro/declaration order to get proper type
     RWStructuredBuffer<h0_type> g_h0_output : register(u0);
 
     // update H0 from Gauss (one CTA per row)
@@ -78,6 +82,28 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
 
   USE_FFT_COMPRESSION()
   CBUFFER()
+  (cs) {
+    g_omega_input@buf : register(1) hlsl {
+      StructuredBuffer<float> g_omega_input@buf;
+    }
+    g_displacement_output@uav : register(0) hlsl {
+      RWTexture2DArray<float4> g_displacement_output@uav;
+    }
+
+    g_ht_output@uav : register(0) hlsl {
+      RWStructuredBuffer<float2> g_ht_output@uav;
+    }
+    g_dt_output@uav : register(1) hlsl {
+      RWStructuredBuffer<float4> g_dt_output@uav;
+    }
+
+    g_ht_input@buf : register(0) hlsl {
+      StructuredBuffer<float2> g_ht_input@buf;
+    }
+    g_dt_input@buf : register(1) hlsl {
+      StructuredBuffer<float4> g_dt_input@buf;
+    }
+  }
   hlsl(cs) {
     groupshared float2 uData[CS_MAX_FFT_RESOLUTION/2];
     groupshared float2 vData[CS_MAX_FFT_RESOLUTION/2];
@@ -245,11 +271,8 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
       }
     }
 
+    // TODO: fixme macro/declaration order to get proper type
     StructuredBuffer<h0_type> g_h0_input : register(t0);
-    StructuredBuffer<float> g_omega_input : register(t1);
-
-    RWStructuredBuffer<float2> g_ht_output : register(u0);
-    RWStructuredBuffer<float4> g_dt_output : register(u1);
 
     // update Ht, Dt_x, Dt_y from H0 and Omega, fourier transform per row (one CTA per row)
     [numthreads(CS_MAX_FFT_RESOLUTION/2, 1, 1)]
@@ -317,11 +340,6 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
       }
     }
 
-    StructuredBuffer<float2> g_ht_input : register(t0);
-    StructuredBuffer<float4> g_dt_input : register(t1);
-
-    RWTexture2DArray<float4> g_displacement_output : register(u0);
-
     // do fourier transform per row of Ht, Dt_x, Dt_y, write displacement texture (one CTA per column)
     [numthreads(CS_MAX_FFT_RESOLUTION/2, 1, 1)]
     void ComputeColumns( uint3 dispatchThreadId : SV_DispatchThreadID )
@@ -356,9 +374,9 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
         float sgn = (dispatchThreadId.x + columnIdx) & 0x1 ? -1.0f : +1.0f;
         float scale = m_choppy_scale * sgn;
 
-        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x, arrrayId)) =
+        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x, arrayId)) =
           float4(dx[0].x * scale, dy[0].x * scale, ht[0].x * sgn, 0);
-        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x+m_half_resolution, arrrayId)) =
+        texture3DAt(g_displacement_output, uint3(columnIdx, dispatchThreadId.x+m_half_resolution, arrayId)) =
           float4(dx[1].x * scale, dy[1].x * scale, ht[1].x * sgn, 0);
       }
     }

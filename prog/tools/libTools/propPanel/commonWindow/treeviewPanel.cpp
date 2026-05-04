@@ -3,7 +3,7 @@
 #include <propPanel/commonWindow/treeviewPanel.h>
 #include <propPanel/control/container.h>
 #include "../control/listBoxStandalone.h"
-#include "../control/filteredTreeStandalone.h"
+#include "../control/treeStandalone.h"
 #include <propPanel/commonWindow/multiListDialog.h>
 #include <libTools/util/strUtil.h>
 #include <winGuiWrapper/wgw_input.h>
@@ -11,7 +11,22 @@
 namespace PropPanel
 {
 
-static bool TreeBaseWindowFilterStub(void *param, TTreeNode &node)
+namespace
+{
+class StubTreeFilter final : public ITreeFilter
+{
+public:
+  StubTreeFilter(TreeBaseWindow &owner) : owner(owner) {}
+
+  bool filterNode(const TreeNode &node) override { return owner.handleNodeFilter(node); }
+  bool hasAnyFilter() const override { return owner.hasAnyFilter(); }
+
+private:
+  TreeBaseWindow &owner;
+};
+} // namespace
+
+static bool TreeBaseWindowFilterStub(void *param, TreeNode &node)
 {
   TreeBaseWindow *tree = (TreeBaseWindow *)param;
   return tree->handleNodeFilter(node);
@@ -19,13 +34,14 @@ static bool TreeBaseWindowFilterStub(void *param, TTreeNode &node)
 
 TreeBaseWindow::TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
   const char *caption, bool icons_show, bool state_icons_show) :
-  mTree(new FilteredTreeControlStandalone(true)), mEventHandler(event_handler)
+  mTree(new TreeControlStandalone(true)), mEventHandler(event_handler), treeFilter(eastl::make_unique<StubTreeFilter>(*this))
 {
   // The window base pointer is only used for comparison. It is intentionally a bad pointer.
   treeWindowBase = reinterpret_cast<WindowBase *>(~reinterpret_cast<uintptr_t>(mTree));
 
   mTree->setEventHandler(this);
   mTree->setWindowBaseForEventHandler(treeWindowBase);
+  mTree->setTreeFilter(treeFilter.get());
 }
 
 TreeBaseWindow::~TreeBaseWindow() { del_it(mTree); }
@@ -52,27 +68,25 @@ void TreeBaseWindow::onWcDoubleClick(WindowBase *source)
 
 TLeafHandle TreeBaseWindow::addItem(const char *name, IconId icon, TLeafHandle parent, void *user_data)
 {
-  return mTree->addItem(name, icon, parent, user_data);
+  return mTree->createTreeLeaf(parent, name, icon, user_data);
 }
 
 TLeafHandle TreeBaseWindow::addItem(const char *name, const char *icon_name, TLeafHandle parent, void *user_data)
 {
-  return mTree->addItem(name, icon_name, parent, user_data);
+  return mTree->createTreeLeaf(parent, name, icon_name, user_data);
 }
 
 TLeafHandle TreeBaseWindow::addItemAsFirst(const char *name, IconId icon, TLeafHandle parent, void *user_data)
 {
-  return mTree->addItemAsFirst(name, icon, parent, user_data);
+  return mTree->createTreeLeafAsFirst(parent, name, icon, user_data);
 }
 
 TLeafHandle TreeBaseWindow::addItemAsFirst(const char *name, const char *icon_name, TLeafHandle parent, void *user_data)
 {
-  return mTree->addItemAsFirst(name, icon_name, parent, user_data);
+  return mTree->createTreeLeafAsFirst(parent, name, icon_name, user_data);
 }
 
-void TreeBaseWindow::removeItem(TLeafHandle item) { mTree->removeItem(item); }
-
-void TreeBaseWindow::addChildName(const char *name, TLeafHandle parent) { mTree->addChildName(name, parent); }
+void TreeBaseWindow::removeItem(TLeafHandle item) { mTree->removeLeaf(item); }
 
 IconId TreeBaseWindow::addImage(const char *filename) { return mTree->getTexture(filename); }
 
@@ -89,9 +103,11 @@ TLeafHandle TreeBaseWindow::getNextNode(TLeafHandle item, bool forward) const
 
 TLeafHandle TreeBaseWindow::getChild(TLeafHandle parent, int i) const { return mTree->getChildLeaf(parent, i); }
 
-TTreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) { return mTree->getItemNode(p); }
+TLeafHandle TreeBaseWindow::getParent(TLeafHandle item) const { return mTree->getParentLeaf(item); }
 
-const TTreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) const { return mTree->getItemNode(p); }
+TreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) { return mTree->getItemNode(p); }
+
+const TreeNode *TreeBaseWindow::getItemNode(TLeafHandle p) const { return mTree->getItemNode(p); }
 
 String TreeBaseWindow::getItemName(TLeafHandle item) const
 {
@@ -103,11 +119,9 @@ bool TreeBaseWindow::isOpen(TLeafHandle item) const { return mTree->isExpanded(i
 
 bool TreeBaseWindow::isSelected(TLeafHandle item) const { return mTree->isLeafSelected(item); }
 
-void *TreeBaseWindow::getItemData(TLeafHandle item) const { return mTree->getItemData(item); }
+void *TreeBaseWindow::getItemData(TLeafHandle item) const { return mTree->getUserData(item); }
 
-Tab<String> TreeBaseWindow::getChildNames(TLeafHandle item) const { return mTree->getChildNames(item); }
-
-void TreeBaseWindow::startFilter() { mTree->filter(this, TreeBaseWindowFilterStub); }
+void TreeBaseWindow::startFilter() { mTree->filter(); }
 
 void TreeBaseWindow::clear() { mTree->clear(); }
 
@@ -128,13 +142,15 @@ void TreeBaseWindow::ensureVisible(TLeafHandle item) { mTree->ensureVisible(item
 
 TLeafHandle TreeBaseWindow::getRoot() const { return mTree->getRootLeaf(); }
 
-const TTreeNode &TreeBaseWindow::getUnfilteredRootNode() const { return mTree->getUnfilteredRootNode(); }
+const TreeNode &TreeBaseWindow::getRootNode() const { return mTree->getRootNode(); }
 
 TLeafHandle TreeBaseWindow::getSelectedItem() const { return mTree->getSelectedLeaf(); }
 
 void TreeBaseWindow::setSelectedItem(TLeafHandle item) { mTree->setSelectedLeaf(item); }
 
-void TreeBaseWindow::updateUnfilteredExpansionStateFromFilteredTree() { mTree->updateUnfilteredExpansionStateFromFilteredTree(); }
+void TreeBaseWindow::setDragHandler(ITreeDragHandler *drag_handler) { mTree->setDragHandler(drag_handler); }
+
+void TreeBaseWindow::setDropHandler(ITreeDropHandler *drop_handler) { mTree->setDropHandler(drop_handler); }
 
 void TreeBaseWindow::setFocus() { mTree->setFocus(); }
 
@@ -223,9 +239,7 @@ void TreeListWindow::onWcChange(WindowBase *source)
     TLeafHandle sel_item = mTree->getSelectedLeaf();
     if (sel_item)
     {
-      Tab<String> names = getChildNames(sel_item);
-      filterList(names);
-      listBox->setValues(names);
+      listBox->setValues({});
     }
   }
   else if (source == listBoxWindowBase)
@@ -315,21 +329,11 @@ void TreeListWindow::onClick(int pid, ContainerPropertyControl *panel)
   }
   else if (pid == FILTER_PANEL_EXPAND_ALL)
   {
-    TLeafHandle leaf, root;
-    leaf = root = getRoot();
-    expand(leaf);
-
-    while ((leaf = getNextNode(leaf, true)) && leaf != root)
-      expand(leaf);
+    expandRecursive(getRoot(), true);
   }
   else if (pid == FILTER_PANEL_COLLAPSE_ALL)
   {
-    TLeafHandle leaf, root;
-    leaf = root = getRoot();
-    expand(leaf);
-
-    while ((leaf = getNextNode(leaf, true)) && leaf != root)
-      collapse(leaf);
+    expandRecursive(getRoot(), false);
   }
 }
 
@@ -375,15 +379,6 @@ void TreeListWindow::setCaptionFilterButton()
   mPanelFS->setText(FILTER_PANEL_FILTER_TYPES, newButtonName.str());
 }
 
-bool TreeListWindow::handleNodeFilter(const TTreeNode &node)
-{
-  for (int i = 0; i < node.childNames.size(); ++i)
-    if (strstr(String(node.childNames[i]).toLower().str(), mFilterString.str()))
-      return true;
-
-  return false;
-}
-
 void TreeListWindow::searchNext(const char *text, bool forward)
 {
   String searchText = String(text).toLower();
@@ -399,7 +394,6 @@ void TreeListWindow::searchNext(const char *text, bool forward)
   for (;;)
   {
     Tab<String> nodeStrings(midmem);
-    nodeStrings = getChildNames(next);
     filterList(nodeStrings);
 
     if (selIndex < 0 || selIndex >= nodeStrings.size())

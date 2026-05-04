@@ -38,7 +38,7 @@ function textarea(txt, params={}) {
 }
 
 let textAreaFrameState = Watched({
-  size = static [sw(40), 60]
+  size = const [sw(40), 60]
   pos  = [0, 0]
 })
 
@@ -88,11 +88,11 @@ return {
       flow = FLOW_VERTICAL
       halign = ALIGN_LEFT
       valign = ALIGN_CENTER
-      size = static [flex(4),sh(80)]
+      size = const [flex(4),sh(80)]
       gap = 10
       children = [
         sText("Color tags and custom tags in textarea")
-        {rendObj = ROBJ_FRAME size = static [hdpx(807),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = const [hdpx(807),hdpx(107)] padding=hdpx(5)
            children = {
              size = flex() rendObj = ROBJ_TEXTAREA text = colored_text
              tagsTable = {
@@ -108,25 +108,25 @@ return {
           }
         }
         sText("Default+scrollable by wheel text area")
-        {rendObj = ROBJ_FRAME size = static [hdpx(507),hdpx(107)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = const [hdpx(507),hdpx(107)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] }
         }
 
         sText("Scrollable text area, with lineSpacing=2px, parSpacing = 10, indent on new paragraph = 10")
-        {rendObj = ROBJ_FRAME size = static [hdpx(450),hdpx(97)]  padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = const [hdpx(450),hdpx(97)]  padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] lineSpacing=2, parSpacing=10, indent=10 }
         }
 
         sText("Scrollable text area, with halign=ALIGN_CENTER")
-        {rendObj = ROBJ_FRAME size = static [hdpx(250),hdpx(100)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = const [hdpx(250),hdpx(100)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] halign=ALIGN_CENTER }
         }
-        textarea("Text area with valign=ALIGN_CENTER",{size=static [flex(),SIZE_TO_CONTENT]})
-        {rendObj = ROBJ_FRAME size = static [hdpx(250),hdpx(70)] padding=hdpx(5)
+        textarea("Text area with valign=ALIGN_CENTER",{size = const [flex(),SIZE_TO_CONTENT]})
+        {rendObj = ROBJ_FRAME size = const [hdpx(250),hdpx(70)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = "small text" behavior = [Behaviors.TextArea] valign=ALIGN_CENTER}
         }
         sText("Scrollable by wheel text area with split by line")
-        {rendObj = ROBJ_FRAME size = static [hdpx(707),hdpx(90)] padding=hdpx(5)
+        {rendObj = ROBJ_FRAME size = const [hdpx(707),hdpx(90)] padding=hdpx(5)
            children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflowY = TOVERFLOW_CLIP ellipsis = true textOverflowX= TOVERFLOW_CHAR }
         }
         sText("Resizable and Scrollable by wheel text area with split by line")
@@ -167,7 +167,7 @@ return {
           halign = ALIGN_CENTER
           flow = FLOW_VERTICAL
           padding = 2
-          gap = { size = static [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 }
+          gap = { size = const [pw(70), 1], rendObj = ROBJ_SOLID, color = Color(110, 110, 1100, 150), margin = 1 }
           children = [
             {
               rendObj = ROBJ_TEXTAREA
@@ -192,13 +192,13 @@ return {
               text = "text area without size limits but a bit long."
             }
             {
-              size = static [hdpx(200), SIZE_TO_CONTENT]
+              size = const [hdpx(200), SIZE_TO_CONTENT]
               rendObj = ROBJ_TEXTAREA
               behavior = Behaviors.TextArea
               text = "text area with fixed width = hdpx(200)"
             }
             {
-              size = static [pw(50), SIZE_TO_CONTENT]
+              size = const [pw(50), SIZE_TO_CONTENT]
               rendObj = ROBJ_TEXTAREA
               behavior = Behaviors.TextArea
               text = "text area with width = pw(50)"

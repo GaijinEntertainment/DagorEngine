@@ -7,6 +7,7 @@ try:
 except:
   try:
     import thirdparty.pyjson5 as json
+    JSON5_LOADED = true
     print("Using Json5")
   except:
     import json
@@ -18,16 +19,22 @@ def read_commented_json(fpath):
   with open(fpath, "rt", encoding="utf-8") as f:
     if JSON5_LOADED:
       return json.loads(f)
-    data = f.read()
-    data = data.splitlines()
-    res = []
-    for line in data:
-      c = cmt.search(line)
-      if c:
-        res.append(line.split("//")[0])
-      else:
-        res.append(line)
-    return json.loads("\n".join(res))
+    s = f.read()
+    # Remove JSON5 comments (// and /* */)
+    s = re.sub(r'//.*?\n', '\n', s)  # Remove single-line comments
+    s = re.sub(r'/\*.*?\*/', '', s, flags=re.DOTALL)  # Remove multi-line comments
+
+    # Handle unquoted keys (e.g., {key: value} -> {"key": value})
+    s = re.sub(r'([{,\s])(\w+)(:)', r'\1"\2"\3', s)
+
+    # Remove trailing commas in objects and arrays
+    s = re.sub(r',(\s*[}\]])', r'\1', s)
+
+    # Replace single quotes with double quotes for strings
+    s = re.sub(r"'([^']*)'", r'"\1"', s)
+
+    # Validate as standard JSON
+    return json.loads(s)
 
 def validated_qdox_cfg(config):
   all_cfg = []

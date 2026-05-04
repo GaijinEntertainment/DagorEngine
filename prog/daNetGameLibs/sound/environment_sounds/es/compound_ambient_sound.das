@@ -5,7 +5,7 @@ require DagorMath
 require soundEvent
 require soundSystem
 require soundHash
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 require environment_sounds.modules.game_object_sound_common
 require gameObject
 require DagorSystem

@@ -6,7 +6,7 @@
 #include <gamePhys/phys/walker/humanPhys.h>
 #include <ecs/phys/netPhysResync.h>
 
-DAS_BASE_BIND_ENUM_98(HUMoveState, HUMoveState, EMS_STAND, EMS_WALK, EMS_RUN, EMS_SPRINT, EMS_ROTATE_LEFT, EMS_ROTATE_RIGHT);
+DAS_BASE_BIND_ENUM_98(HUMoveState, HUMoveState, EMS_STAND, EMS_WALK, EMS_RUN, EMS_SPRINT, EMS_ROTATE_LEFT, EMS_ROTATE_RIGHT, EMS_NUM);
 DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRAWL, ESS_DOWNED, ESS_SWIM, ESS_SWIM_UNDERWATER,
   ESS_CLIMB, ESS_CLIMB_THROUGH, ESS_CLIMB_OVER, ESS_CLIMB_LADDER, ESS_EXTERNALLY_CONTROLLED, ESS_NUM);
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
@@ -14,7 +14,8 @@ DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
 
 DAS_ANNOTATE_VECTOR(HumanWeaponParamsArray, HumanWeaponParamsArray)
-DAS_ANNOTATE_VECTOR(HumanPhysAlignSpeedsArray, HumanPhysAlignSpeedsArray)
+DAS_ANNOTATE_VECTOR(HumanPhysESSArray, HumanPhysESSArray)
+DAS_ANNOTATE_VECTOR(HumanPhysEMSArray, HumanPhysEMSArray)
 
 struct HumanControlStateAnnotation : das::ManagedStructureAnnotation<HumanControlState, false>
 {
@@ -153,6 +154,8 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(maxStaminaMult)>("maxStaminaMult");
     addField<DAS_BIND_MANAGED_FIELD(restoreStaminaMult)>("restoreStaminaMult");
     addField<DAS_BIND_MANAGED_FIELD(staminaBoostMult)>("staminaBoostMult");
+    addField<DAS_BIND_MANAGED_FIELD(walkSpeedMult)>("walkSpeedMult");
+    addField<DAS_BIND_MANAGED_FIELD(runSpeedMult)>("runSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(sprintSpeedMult)>("sprintSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(sprintLerpSpeedMult)>("sprintLerpSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(breathAmplitudeMult)>("breathAmplitudeMult");
@@ -169,8 +172,9 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(ladderNumSteps)>("ladderNumSteps");
     addField<DAS_BIND_MANAGED_FIELD(guidedByLadder)>("guidedByLadder");
     addField<DAS_BIND_MANAGED_FIELD(climbFromPos)>("climbFromPos");
-    addField<DAS_BIND_MANAGED_FIELD(climbToPos)>("climbToPos");
     addField<DAS_BIND_MANAGED_FIELD(climbContactPos)>("climbContactPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbToPos)>("climbToPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbToPosVel)>("climbToPosVel");
     addField<DAS_BIND_MANAGED_FIELD(climbDir)>("climbDir");
     addField<DAS_BIND_MANAGED_FIELD(climbNorm)>("climbNorm");
     addField<DAS_BIND_MANAGED_FIELD(climbPosBehindObstacle)>("climbPosBehindObstacle");
@@ -204,6 +208,7 @@ struct HumanPhysStateAnnotation : das::ManagedStructureAnnotation<HumanPhysState
     addField<DAS_BIND_MANAGED_FIELD(torsoCollisionTmPos)>("torsoCollisionTmPos");
 
     addField<DAS_BIND_MANAGED_FIELD(walkMatId)>("walkMatId");
+    addField<DAS_BIND_MANAGED_FIELD(meanCollisionNormal)>("meanCollisionNormal");
     addField<DAS_BIND_MANAGED_FIELD(torsoContactMatId)>("torsoContactMatId");
     addField<DAS_BIND_MANAGED_FIELD(torsoContactRendinstPool)>("torsoContactRendinstPool");
 
@@ -253,7 +258,10 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
 
     // HumanPhys begin
     // NOTE: please add new field according to fields order
+    addField<DAS_BIND_MANAGED_FIELD(rotateSpeeds)>("rotateSpeeds");
     addField<DAS_BIND_MANAGED_FIELD(alignSpeeds)>("alignSpeeds");
+    addField<DAS_BIND_MANAGED_FIELD(fricitonByState)>("fricitonByState");
+    addField<DAS_BIND_MANAGED_FIELD(accelerationByState)>("accelerationByState");
     addField<DAS_BIND_MANAGED_FIELD(externalFrictionPerSpeedMult)>("externalFrictionPerSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(minWalkSpeed)>("minWalkSpeed");
     addField<DAS_BIND_MANAGED_FIELD(aimingMoveSpeed)>("aimingMoveSpeed");
@@ -280,6 +288,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(isInertMovement)>("isInertMovement");
     addField<DAS_BIND_MANAGED_FIELD(canStartSprintWithResistance)>("canStartSprintWithResistance");
     addField<DAS_BIND_MANAGED_FIELD(additionalHeightCheck)>("additionalHeightCheck");
+    addField<DAS_BIND_MANAGED_FIELD(isInSprintLeap)>("isInSprintLeap");
 
     addField<DAS_BIND_MANAGED_FIELD(ladderClimbSpeed)>("ladderClimbSpeed");
     addField<DAS_BIND_MANAGED_FIELD(ladderQuickMoveUpSpeedMult)>("ladderQuickMoveUpSpeedMult");
@@ -358,6 +367,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(climbTimeout)>("climbTimeout");
     addField<DAS_BIND_MANAGED_FIELD(climbDistance)>("climbDistance");
     addField<DAS_BIND_MANAGED_FIELD(climbOverDistance)>("climbOverDistance");
+    addField<DAS_BIND_MANAGED_FIELD(climbFinishDistance)>("climbFinishDistance");
     addField<DAS_BIND_MANAGED_FIELD(climbAngleCos)>("climbAngleCos");
     addField<DAS_BIND_MANAGED_FIELD(climbMinHorzSize)>("climbMinHorzSize");
     addField<DAS_BIND_MANAGED_FIELD(climbOnMinVertSize)>("climbOnMinVertSize");
@@ -396,6 +406,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(standingHeight)>("standingHeight");
     addField<DAS_BIND_MANAGED_FIELD(ladderCheckClimbHeight)>("ladderCheckClimbHeight");
     addField<DAS_BIND_MANAGED_FIELD(walkRad)>("walkRad");
+    addField<DAS_BIND_MANAGED_FIELD(collRadForLadder)>("collRadForLadder");
     addField<DAS_BIND_MANAGED_FIELD(collRad)>("collRad");
     addField<DAS_BIND_MANAGED_FIELD(ccdRad)>("ccdRad");
     addField<DAS_BIND_MANAGED_FIELD(maxStamina)>("maxStamina");
@@ -429,6 +440,9 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(canSwitchWeapon)>("canSwitchWeapon");
     addField<DAS_BIND_MANAGED_FIELD(isSimplifiedPhys)>("isSimplifiedPhys");
     addField<DAS_BIND_MANAGED_FIELD(isSimplifiedQueryWalkPosition)>("isSimplifiedQueryWalkPosition");
+    addField<DAS_BIND_MANAGED_FIELD(useTraceCapsuleCastForWalk)>("useTraceCapsuleCastForWalk");
+    addField<DAS_BIND_MANAGED_FIELD(forcedSlidingIfWalkTraceFailed)>("forcedSlidingIfWalkTraceFailed");
+    addField<DAS_BIND_MANAGED_FIELD(forcedIsInAir)>("forcedIsInAir");
     addField<DAS_BIND_MANAGED_FIELD(hasGuns)>("hasGuns");
     addField<DAS_BIND_MANAGED_FIELD(hasExternalHeight)>("hasExternalHeight");
     addField<DAS_BIND_MANAGED_FIELD(allowWeaponSwitchOnSprint)>("allowWeaponSwitchOnSprint");
@@ -481,11 +495,13 @@ public:
     addAnnotation(das::make_smart<HumanControlStateAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponParamsAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponParamsArrayAnnotation>(lib));
-    addAnnotation(das::make_smart<HumanPhysAlignSpeedsArrayAnnotation>(lib));
+    addAnnotation(das::make_smart<HumanPhysESSArrayAnnotation>(lib));
+    addAnnotation(das::make_smart<HumanPhysEMSArrayAnnotation>(lib));
     addAnnotation(das::make_smart<HumanWeaponEquipStateAnnotation>(lib));
     addAnnotation(das::make_smart<HumanPhysStateAnnotation>(lib));
     addAnnotation(das::make_smart<PrecomputedWeaponPositionsAnnotation>(lib));
     addAnnotation(das::make_smart<HumanPhysAnnotation>(lib));
+    das::addUsing<::HumanPhysState>(*this, lib, "::HumanPhysState");
 
     das::addEnumFlagOps<HumanPhysState::StateFlag>(*this, lib, "HumanPhysState::StateFlag");
 
@@ -641,9 +657,15 @@ public:
     using method_calcCollCenter = DAS_CALL_MEMBER(HumanPhys::calcCollCenter);
     das::addExtern<DAS_CALL_METHOD(method_calcCollCenter)>(*this, lib, "human_phys_calcCollCenter", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(HumanPhys::calcCollCenter));
+    using method_updatePhys = DAS_CALL_MEMBER(HumanPhys::updatePhys);
+    das::addExtern<DAS_CALL_METHOD(method_updatePhys)>(*this, lib, "human_phys_updatePhys", das::SideEffects::modifyArgument,
+      DAS_CALL_MEMBER_CPP(HumanPhys::updatePhys));
     using method_setQuickReloadState = DAS_CALL_MEMBER(HumanControlState::setQuickReloadState);
     das::addExtern<DAS_CALL_METHOD(method_setQuickReloadState)>(*this, lib, "setQuickReloadState", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(HumanControlState::setQuickReloadState));
+    using method_getSpeedMultForMoveState = DAS_CALL_MEMBER(HumanPhysState::getSpeedMultForMoveState);
+    das::addExtern<DAS_CALL_METHOD(method_getSpeedMultForMoveState)>(*this, lib, "getSpeedMultForMoveState", das::SideEffects::none,
+      DAS_CALL_MEMBER_CPP(HumanPhysState::getSpeedMultForMoveState));
 
     // HumanControlState
     das::addExtern<DAS_BIND_FUN(bind_dascript::human_control_state_set_walk_speed)>(*this, lib, "human_control_state_set_walk_speed",

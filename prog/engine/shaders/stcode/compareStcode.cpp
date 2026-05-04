@@ -168,9 +168,10 @@ public:
     record.stage = (ShaderStage)stage;
     record.reg = reg;
     record.size = sizeof(val);
-    record.val = valueStorage.data() + valueStorage.size();
-    valueStorage.resize(valueStorage.size() + record.size);
-    memcpy(record.val, &val, record.size);
+    size_t ofs = valueStorage.size();
+    valueStorage.resize(ofs + record.size);
+    record.val = valueStorage.data() + ofs;
+    memcpy(const_cast<void *>(record.val), &val, record.size);
   }
 
   void recordSetConst(int stage, unsigned int id, const cpp::float4 *val, int elem_cnt)
@@ -181,9 +182,10 @@ public:
     record.reg = id;
     record.size = elem_cnt * sizeof(*val);
     record.isFloat = true; // @TODO: Need to discriminate between int and float consts to properly test ints
-    record.val = valueStorage.data() + valueStorage.size();
-    valueStorage.resize(valueStorage.size() + record.size);
-    memcpy(record.val, val, record.size);
+    size_t ofs = valueStorage.size();
+    valueStorage.resize(ofs + record.size);
+    record.val = valueStorage.data() + ofs;
+    memcpy(const_cast<void *>(record.val), val, record.size);
   }
 
   void sort() { stlsort::sort(effects.begin(), effects.end(), comp); }
@@ -196,8 +198,8 @@ public:
   static bool compare(StcodeEffects &first, StcodeEffects &second, const shader_layout::StcodeConstValidationMask &const_mask);
 
 private:
-  eastl::fixed_vector<ObservedEffect, 1000> effects = {};
-  eastl::fixed_vector<uint32_t, (sizeof(cpp::float4) * 1000) / sizeof(uint32_t)> valueStorage = {};
+  eastl::fixed_vector<ObservedEffect, 1000, false> effects = {};
+  eastl::fixed_vector<uint32_t, (sizeof(cpp::float4) * 1000) / sizeof(uint32_t), false> valueStorage = {};
 
   static bool comp(const ObservedEffect &e1, const ObservedEffect &e2)
   {
@@ -205,8 +207,14 @@ private:
       return e1.type < e2.type;
     else if (e1.stage != e2.stage)
       return e1.stage < e2.stage;
-    else
+    else if (e1.reg != e2.reg)
       return e1.reg < e2.reg;
+    else if (e1.size != e2.size)
+      return e1.size < e2.size;
+    else if (e1.isFloat != e2.isFloat)
+      return unsigned(e1.isFloat) < unsigned(e2.isFloat);
+    else
+      return memcmp(e1.val, e2.val, e1.size) < 0;
   };
 };
 
@@ -410,6 +418,8 @@ void record_multidraw_support(RecordType type, bool is_enabled)
 
 void validate_accumulated_records(int cpp_routine_id, int ref_routine_id, const char *shname, bool dynamic)
 {
+  // @TODO: once additional dumps with cppstcode are supported, this will have to be fixed (intro a context for stcode exec, or store
+  // in a gvar
   G_ASSERT(shBinDumpOwner().getDumpV3());
 
   if (execution_mode() == ExecutionMode::TEST_CPP_AGAINST_BYTECODE)

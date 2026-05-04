@@ -16,6 +16,7 @@ struct BiomeQueryResult;
 namespace biome_query
 {
 void init();
+bool is_inited();
 void init_land_class(TEXTUREID lc_texture, float tile, dag::ConstSpan<const char *> biome_group_names,
   dag::ConstSpan<int> biome_group_indices);
 void close();

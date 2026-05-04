@@ -6,8 +6,14 @@ options strict_smart_pointers = true
 
 module defer shared private
 
-require ast
-require rtti
+//! Defer and defer_delete macros.
+//!
+//! ``defer`` moves a block of code to the ``finally`` section of the enclosing scope,
+//! ensuring it runs on scope exit (similar to Go's ``defer``). ``defer_delete`` is deprecated
+//! in favor of ``var inscope``.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/macro_boost
@@ -31,11 +37,11 @@ def public nada() {
 
 [tag_function_macro(tag="defer_tag")]
 class DeferMacro : AstFunctionAnnotation {
-    //! This macro covnerts defer() <| block expression
+    //! This macro converts defer() <| block expression
     //! into {}, and move block to the finally section of the current block
     def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
         var success = true
-        compiling_program() |> get_ast_context(call) <| $(valid, astc) {
+        compiling_program() |> get_ast_context(call) $(valid, astc) {
             if (!valid) {
                 compiling_program() |> macro_error(call.at, "can't get valid program context")
                 success = false
@@ -67,7 +73,7 @@ class DeferDeleteMacro : AstCallMacro {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting defer_delete(expr)")
         to_compiler_log("{describe(call.at)}: *warning* defer_delete is deprecated. use var inscope instead\n")
         var success = true
-        prog |> get_ast_context(call) <| $(valid, astc) {
+        prog |> get_ast_context(call) $(valid, astc) {
             if (!valid) {
                 compiling_program() |> macro_error(call.at, "can't get valid program context")
                 success = false

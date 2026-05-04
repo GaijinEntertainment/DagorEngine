@@ -6,14 +6,12 @@ int dagi_sky_vis_debug_type;
 
 shader dagi_sky_vis_draw_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {
     globtm@f44 = globtm;
     dagi_sky_vis_debug_type@i1 = dagi_sky_vis_debug_type;
   }
-  ENABLE_ASSERT(ps)
   DAGI_SKY_VIS_CLIPMAP_MATH(vs)
   DAGI_SKY_VIS_CLIPMAP_MATH(ps)
   DAGI_SKY_VIS_SRV(ps)

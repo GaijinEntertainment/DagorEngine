@@ -15,11 +15,12 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/componentTypes.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
 #include <ecs/render/postfx_renderer.h>
 #include <render/resolution.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
+#include <render/world/bvh.h>
 #include <render/world/frameGraphHelpers.h>
 #include <shaders/dag_overrideStateId.h>
 #include <render/ssssCommon.h>
@@ -52,12 +53,12 @@ static eastl::string ssss_enum_to_string(SsssQuality quality)
 }
 
 template <typename Callable>
-inline void ssss_enabled_ecs_query(ecs::EntityId eid, Callable c);
+inline void ssss_enabled_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 static SsssQuality query_ssss_quality()
 {
   SsssQuality quality = SsssQuality::OFF;
   ecs::EntityId ssssEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
-  ssss_enabled_ecs_query(ssssEid,
+  ssss_enabled_ecs_query(*g_entity_mgr, ssssEid,
     [&quality](ecs::string &render_settings__ssssQuality) { quality = ssss_string_to_enum(render_settings__ssssQuality); });
   return quality;
 }
@@ -70,31 +71,39 @@ bool isSsssReflectanceBlurEnabled(const eastl::string &setting) { return ssss_st
 
 bool isSsssTransmittanceEnabled(const eastl::string &setting) { return ssss_string_to_enum(setting) == SsssQuality::HIGH; }
 
-static dafg::NodeHandle makeSsssReflectanceHorizontalNode();
-static dafg::NodeHandle makeSsssReflectanceVerticalNode();
+static dafg::NodeHandle makeSsssReflectanceHorizontalNode(bool is_rr_enable);
+static dafg::NodeHandle makeSsssReflectanceVerticalNode(bool is_rr_enable);
 
 template <typename Callable>
-inline void ssss_init_ecs_query(ecs::EntityId eid, Callable c);
+inline void ssss_init_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_ON_EVENT(OnRenderSettingsReady)
-ECS_TRACK(render_settings__ssssQuality, render_settings__forwardRendering, render_settings__combinedShadows)
+ECS_AFTER(bvh_render_settings_changed_es)
+ECS_TRACK(render_settings__ssssQuality,
+  render_settings__combinedShadows,
+  render_settings__rayReconstruction,
+  render_settings__antialiasing_mode)
 static void ssss_settings_tracking_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   const ecs::string render_settings__ssssQuality,
-  bool render_settings__forwardRendering,
-  bool render_settings__combinedShadows)
+  bool render_settings__combinedShadows,
+  bool render_settings__rayReconstruction,
+  const ecs::string render_settings__antialiasing_mode)
 {
-  ssss_init_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("ssss")),
+  G_UNUSED(render_settings__rayReconstruction);
+  G_UNUSED(render_settings__antialiasing_mode);
+  ssss_init_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("ssss")),
     [&](dafg::NodeHandle &ssss__horizontal_node, dafg::NodeHandle &ssss__vertical_node) {
       ssss__horizontal_node = {};
       ssss__vertical_node = {};
 
-      if (render_settings__forwardRendering || !render_settings__combinedShadows)
+      if (!render_settings__combinedShadows)
         return;
-
+      bool isDlssRrEnabled = is_rr_enabled();
       if (isSsssReflectanceBlurEnabled(render_settings__ssssQuality))
       {
-        ssss__horizontal_node = makeSsssReflectanceHorizontalNode();
-        ssss__vertical_node = makeSsssReflectanceVerticalNode();
+        ssss__horizontal_node = makeSsssReflectanceHorizontalNode(isDlssRrEnabled);
+        ssss__vertical_node = makeSsssReflectanceVerticalNode(isDlssRrEnabled);
       }
 
       ShaderGlobal::set_int(use_ssssVarId,
@@ -122,18 +131,31 @@ static void request_common_blur_data(dafg::Registry registry)
     .bindToShaderVar<&get_vertical_fov_from_camera_params>("ssss_reflectance_vertical_fov");
 }
 
-static dafg::NodeHandle makeSsssReflectanceHorizontalNode()
+static dafg::NodeHandle makeSsssReflectanceHorizontalNode(bool is_rr_enable)
 {
-  return dafg::register_node("ssss_reflectance_blur_horizontal_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  return dafg::register_node("ssss_reflectance_blur_horizontal_node", DAFG_PP_NODE_SRC, [is_rr_enable](dafg::Registry registry) {
     request_common_blur_data(registry);
 
     const auto target_fmt = get_frame_render_target_format();
 
-    registry.create("ssss_intermediate_target", dafg::History::No)
+    registry.create("ssss_intermediate_target")
       .texture({target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+    if (is_rr_enable)
+    {
+      registry.create("ssss_rr_guide")
+        .texture({TEXFMT_R16F | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+        .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+    }
 
-    registry.requestRenderPass().color({"ssss_intermediate_target"}).depthRw("ssss_depth_mask");
+    if (!is_rr_enable)
+    {
+      registry.requestRenderPass().color({"ssss_intermediate_target"}).depthRw("ssss_depth_mask");
+    }
+    else
+    {
+      registry.requestRenderPass().color({"ssss_intermediate_target", "ssss_rr_guide"}).depthRw("ssss_depth_mask");
+    }
 
     registry.read("opaque_with_envi").texture().atStage(dafg::Stage::PS).bindToShaderVar("ssss_reflectance_blur_color_source_tex");
     {
@@ -141,23 +163,23 @@ static dafg::NodeHandle makeSsssReflectanceHorizontalNode()
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Point;
-      registry.create("ssss_reflectance_blur_sampler", dafg::History::No)
+      registry.create("ssss_reflectance_blur_sampler")
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("ssss_reflectance_blur_color_source_tex_samplerstate");
     }
 
-    return [shader = PostFxRenderer("ssss_reflectance_blur_ps")] {
+    return [shader = PostFxRenderer("ssss_reflectance_blur_ps"), is_rr_enable] {
       ShaderGlobal::set_int(ssss_reflectance_blur_passVarId, 0);
+      ShaderGlobal::set_int(ssss_rr_guide_passVarId, is_rr_enable ? 1 : 0);
       shader.render();
     };
   });
 }
 
-static dafg::NodeHandle makeSsssReflectanceVerticalNode()
+static dafg::NodeHandle makeSsssReflectanceVerticalNode(bool is_rr_enable)
 {
-  return dafg::register_node("ssss_reflectance_blur_vertical_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  return dafg::register_node("ssss_reflectance_blur_vertical_node", DAFG_PP_NODE_SRC, [is_rr_enable](dafg::Registry registry) {
     request_common_blur_data(registry);
-
     registry.read("ssss_intermediate_target")
       .texture()
       .atStage(dafg::Stage::PS)
@@ -166,15 +188,22 @@ static dafg::NodeHandle makeSsssReflectanceVerticalNode()
       // TODO: Experiment with linear depth sampler, original paper seems to use that in SSSS_FOLLOW_SURFACE part
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      registry.create("ssss_intermediate_target_sampler", dafg::History::No)
+      registry.create("ssss_intermediate_target_sampler")
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("ssss_reflectance_blur_color_source_tex_samplerstate");
     }
 
-    registry.requestRenderPass().color({"opaque_processed"}).depthRw("ssss_depth_mask");
-
-    return [shader = PostFxRenderer("ssss_reflectance_blur_ps")]() {
+    if (!is_rr_enable)
+    {
+      registry.requestRenderPass().color({"opaque_processed"}).depthRw("ssss_depth_mask");
+    }
+    else
+    {
+      registry.requestRenderPass().color({"opaque_processed", "ssss_rr_guide"}).depthRw("ssss_depth_mask");
+    }
+    return [shader = PostFxRenderer("ssss_reflectance_blur_ps"), is_rr_enable]() {
       ShaderGlobal::set_int(ssss_reflectance_blur_passVarId, 1);
+      ShaderGlobal::set_int(ssss_rr_guide_passVarId, is_rr_enable ? 2 : 0);
       shader.render();
     };
   });
@@ -182,12 +211,12 @@ static dafg::NodeHandle makeSsssReflectanceVerticalNode()
 
 static void update_ssss_quality(SsssQuality quality)
 {
-  ssss_enabled_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings")),
+  ssss_enabled_ecs_query(*g_entity_mgr, g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings")),
     [&](ecs::string &render_settings__ssssQuality) { render_settings__ssssQuality = ssss_enum_to_string(quality); });
 }
 
 template <typename Callable>
-inline void ssss_params_ecs_query(ecs::EntityId eid, Callable c);
+inline void ssss_params_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 static void ssssImguiWindow()
 {
   auto setTooltip = [](const char *tooltip) {
@@ -217,91 +246,93 @@ static void ssssImguiWindow()
     return;
   bool entityFound = false;
   ecs::EntityId ssssEid = g_entity_mgr->getSingletonEntity(ECS_HASH("ssss"));
-  ssss_params_ecs_query(ssssEid, [&entityFound, &quality, &setTooltip](float &transmittance__thickness_bias,
-                                   float &transmittance__thickness_min, float &transmittance__thickness_scale,
-                                   float &transmittance__translucency_scale, float &transmittance__blur_scale,
-                                   int &transmittance__sample_count, float &transmittance__normal_offset,
-                                   float &reflectance__blur_width, int &reflectance__blur_quality,
-                                   bool &reflectance__blur_follow_surface) {
-    entityFound = true;
+  ssss_params_ecs_query(*g_entity_mgr, ssssEid,
+    [&entityFound, &quality, &setTooltip](float &transmittance__thickness_bias, float &transmittance__thickness_min,
+      float &transmittance__thickness_scale, float &transmittance__translucency_scale, float &transmittance__blur_scale,
+      int &transmittance__sample_count, float &transmittance__normal_offset, float &reflectance__blur_width,
+      int &reflectance__blur_quality, bool &reflectance__blur_follow_surface) {
+      entityFound = true;
 
-    ImGuiDagor::HelpMarker(
-      "This Separable Sub-Surface Scattering implementation is responsible for making our skin materials more realistic.\n"
-      "It consits of 2 main parts:\n"
-      "  1. Transmittance\n"
-      "    - This is responsible for simulating light transmitting through thin and thick slabs of geometry. Basically\n"
-      "      the effect you want to see when you hold your fingers against a flashlight, or looking at a human character's\n"
-      "      ears against the sun.\n"
-      "    - This is achieved by estimating the distance the light is travelling within the geometry based on our dynamic\n"
-      "      shadowmaps, calculating an exponential transmittance factor based on this thickness information, and applying\n"
-      "      a color profile to simulate different diffusion of different frequencies of light.\n"
-      "  2. Reflectance blur\n"
-      "    - The separable blur part is responsible for blurring the lighting on the surface. Surfaces like human skin\n"
-      "      should not have crisp lighting details due to normal maps, since light is bleeding through small bumps and\n"
-      "      crevices in such materials. This is what this part is aiming to simulate.\n"
-      "For more detailed and technical information, visit the resources linked at the top of ssss_transmittance_factor.sh file.",
-      1000);
-
-    if (quality >= SsssQuality::LOW && ImGui::CollapsingHeader("Reflectance blur", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-      ImGui::SliderFloat("Blur width", &reflectance__blur_width, 0, 0.03);
-      setTooltip("Scaleing width of the blurring kernel in UV space. Wider kernels will blur "
-                 "surface details more. It's scaled by "
-                 "distance, so distant surfaces will be blurred less in screen-space.");
-
-      ImGui::SliderInt("Blur quality", &reflectance__blur_quality, 0, 2);
-      setTooltip("Quality of reflectance blur. Higher quality uses more samples, which is more "
-                 "expensive, but also yields less artifacts "
-                 "on surfaces at grazing angles.");
-
-      ImGui::Checkbox("Blur follow surface", &reflectance__blur_follow_surface);
-      setTooltip("Light diffusion should occur on the surface of the object, not in a screen "
-                 "oriented plane. When enabled, this setting "
-                 "will ensure that diffusion is more accurately calculated, at the expense of "
-                 "more texture samples. This makes the "
-                 "effect significantly more expensive, we should only enable it on capable "
-                 "hardware (if at all).");
-    }
-    if (quality == SsssQuality::HIGH && ImGui::CollapsingHeader("Transmittance", ImGuiTreeNodeFlags_DefaultOpen))
-    {
       ImGuiDagor::HelpMarker(
-        "Transmittance factor is calculated as follows:\n"
-        "  translucency = translucency_from_gbuffer * translucency_scale\n"
-        "  thickness_in_world_space = (raw_depth_of_pixel_from_sun - raw_depth_from_shadowmap + thickness_bias) "
-        "* shadow_cascade_depth_range\n"
-        "  thickness = max(thickness_min, thickness_in_world_space) * (1 - translucency) * thickness_scale * 100\n"
-        "  transmittance_factor = exp(-thickness * thickness)",
+        "This Separable Sub-Surface Scattering implementation is responsible for making our skin materials more realistic.\n"
+        "It consits of 2 main parts:\n"
+        "  1. Transmittance\n"
+        "    - This is responsible for simulating light transmitting through thin and thick slabs of geometry. Basically\n"
+        "      the effect you want to see when you hold your fingers against a flashlight, or looking at a human character's\n"
+        "      ears against the sun.\n"
+        "    - This is achieved by estimating the distance the light is travelling within the geometry based on our dynamic\n"
+        "      shadowmaps, calculating an exponential transmittance factor based on this thickness information, and applying\n"
+        "      a color profile to simulate different diffusion of different frequencies of light.\n"
+        "  2. Reflectance blur\n"
+        "    - The separable blur part is responsible for blurring the lighting on the surface. Surfaces like human skin\n"
+        "      should not have crisp lighting details due to normal maps, since light is bleeding through small bumps and\n"
+        "      crevices in such materials. This is what this part is aiming to simulate.\n"
+        "For more detailed and technical information, visit the resources linked at the top of ssss_transmittance_factor.sh file.",
         1000);
 
-      ImGui::SliderFloat("Thickness bias", &transmittance__thickness_bias, -0.1, 0.1);
-      setTooltip(
-        "Bias value for calculating the difference in depth based on pixel world-space position and dynamic shadowmap depth.");
+      if (quality >= SsssQuality::LOW && ImGui::CollapsingHeader("Reflectance blur", ImGuiTreeNodeFlags_DefaultOpen))
+      {
+        ImGui::SliderFloat("Blur width", &reflectance__blur_width, 0, 0.03);
+        setTooltip("Scaleing width of the blurring kernel in UV space. Wider kernels will blur "
+                   "surface details more. It's scaled by "
+                   "distance, so distant surfaces will be blurred less in screen-space.");
 
-      ImGui::SliderFloat("Thickness min", &transmittance__thickness_min, 0, 0.1);
-      setTooltip("Minimum thickness in meters. Used to avoid artifacts thickness values close to zero.");
+        ImGui::SliderInt("Blur quality", &reflectance__blur_quality, 0, 2);
+        setTooltip("Quality of reflectance blur. Higher quality uses more samples, which is more "
+                   "expensive, but also yields less artifacts "
+                   "on surfaces at grazing angles.");
 
-      ImGui::SliderFloat("Thickness scale", &transmittance__thickness_scale, 0, 500);
-      setTooltip("Scale value that is is used to multiply world-space thickness values before exponential transmittance calculation.");
+        ImGui::Checkbox("Blur follow surface", &reflectance__blur_follow_surface);
+        setTooltip("Light diffusion should occur on the surface of the object, not in a screen "
+                   "oriented plane. When enabled, this setting "
+                   "will ensure that diffusion is more accurately calculated, at the expense of "
+                   "more texture samples. This makes the "
+                   "effect significantly more expensive, we should only enable it on capable "
+                   "hardware (if at all).");
+      }
+      if (quality == SsssQuality::HIGH && ImGui::CollapsingHeader("Transmittance", ImGuiTreeNodeFlags_DefaultOpen))
+      {
+        ImGuiDagor::HelpMarker(
+          "Transmittance factor is calculated as follows:\n"
+          "  translucency = translucency_from_gbuffer * translucency_scale\n"
+          "  thickness_in_world_space = (raw_depth_of_pixel_from_sun - raw_depth_from_shadowmap + thickness_bias) "
+          "* shadow_cascade_depth_range\n"
+          "  thickness = max(thickness_min, thickness_in_world_space) * (1 - translucency) * thickness_scale * 100\n"
+          "  transmittance_factor = exp(-thickness * thickness)",
+          1000);
 
-      ImGui::SliderFloat("Translucency scale", &transmittance__translucency_scale, 0, 1.0);
-      setTooltip(
-        "Translucency values sampled from gbuffer will be scaled by this value to avoid artifacts caused by 100% translucency.");
+        ImGui::SliderFloat("Thickness bias", &transmittance__thickness_bias, -0.1, 0.1);
+        setTooltip(
+          "Bias value for calculating the difference in depth based on pixel world-space position and dynamic shadowmap depth.");
 
-      ImGui::SliderFloat("Blur scale", &transmittance__blur_scale, 0, 0.05);
-      setTooltip("Light doesn't travel in a straight line when traveling inside these materials, it is getting scattered instead. "
-                 "Transmittance blur helps in replicating this effect, and also helps with hiding low dynamic shadowmap resolutions. "
-                 "The unit is meters.");
+        ImGui::SliderFloat("Thickness min", &transmittance__thickness_min, 0, 0.1);
+        setTooltip("Minimum thickness in meters. Used to avoid artifacts thickness values close to zero.");
 
-      ImGui::SliderInt("Sample count", &transmittance__sample_count, 0, 4);
-      setTooltip("Number of Poisson-offseted samples taken from the shadowmap at each pixel. 2 and 4 samples are more expensive, but "
-                 "generate less noise and reconstruct shadow borders better. Set it to 0 to disable transmittance.");
+        ImGui::SliderFloat("Thickness scale", &transmittance__thickness_scale, 0, 500);
+        setTooltip(
+          "Scale value that is is used to multiply world-space thickness values before exponential transmittance calculation.");
 
-      ImGui::SliderFloat("Normal Offset", &transmittance__normal_offset, 0, 0.1);
-      setTooltip("To work around some depth sampling artifacts, the worldPos taken from the "
-                 "gbuffer needs to be moved inwards of the mesh in the direction of the normal. "
-                 "This value sets the strength of that offset in meters.");
-    }
-  });
+        ImGui::SliderFloat("Translucency scale", &transmittance__translucency_scale, 0, 1.0);
+        setTooltip(
+          "Translucency values sampled from gbuffer will be scaled by this value to avoid artifacts caused by 100% translucency.");
+
+        ImGui::SliderFloat("Blur scale", &transmittance__blur_scale, 0, 0.05);
+        setTooltip(
+          "Light doesn't travel in a straight line when traveling inside these materials, it is getting scattered instead. "
+          "Transmittance blur helps in replicating this effect, and also helps with hiding low dynamic shadowmap resolutions. "
+          "The unit is meters.");
+
+        ImGui::SliderInt("Sample count", &transmittance__sample_count, 0, 4);
+        setTooltip(
+          "Number of Poisson-offseted samples taken from the shadowmap at each pixel. 2 and 4 samples are more expensive, but "
+          "generate less noise and reconstruct shadow borders better. Set it to 0 to disable transmittance.");
+
+        ImGui::SliderFloat("Normal Offset", &transmittance__normal_offset, 0, 0.1);
+        setTooltip("To work around some depth sampling artifacts, the worldPos taken from the "
+                   "gbuffer needs to be moved inwards of the mesh in the direction of the normal. "
+                   "This value sets the strength of that offset in meters.");
+      }
+    });
   if (!entityFound)
     logerr("ECS query haven't found a matching ssss entity, eid: %d", (ecs::entity_id_t)ssssEid);
 }
@@ -323,14 +354,14 @@ static void ssss_created_or_params_changed_es_event_handler(const ecs::Event &,
 {
   ensure_shadervars_inited();
 
-  ShaderGlobal::set_real(ssss_transmittance_thickness_biasVarId, transmittance__thickness_bias);
-  ShaderGlobal::set_real(ssss_transmittance_thickness_minVarId, transmittance__thickness_min);
-  ShaderGlobal::set_real(ssss_transmittance_thickness_scaleVarId, transmittance__thickness_scale);
-  ShaderGlobal::set_real(ssss_transmittance_translucency_scaleVarId, transmittance__translucency_scale);
-  ShaderGlobal::set_real(ssss_transmittance_blur_scaleVarId, transmittance__blur_scale);
+  ShaderGlobal::set_float(ssss_transmittance_thickness_biasVarId, transmittance__thickness_bias);
+  ShaderGlobal::set_float(ssss_transmittance_thickness_minVarId, transmittance__thickness_min);
+  ShaderGlobal::set_float(ssss_transmittance_thickness_scaleVarId, transmittance__thickness_scale);
+  ShaderGlobal::set_float(ssss_transmittance_translucency_scaleVarId, transmittance__translucency_scale);
+  ShaderGlobal::set_float(ssss_transmittance_blur_scaleVarId, transmittance__blur_scale);
   ShaderGlobal::set_int(ssss_transmittance_sample_countVarId, transmittance__sample_count);
-  ShaderGlobal::set_real(ssss_normal_offsetVarId, transmittance__normal_offset);
-  ShaderGlobal::set_real(ssss_reflectance_blur_widthVarId, reflectance__blur_width);
+  ShaderGlobal::set_float(ssss_normal_offsetVarId, transmittance__normal_offset);
+  ShaderGlobal::set_float(ssss_reflectance_blur_widthVarId, reflectance__blur_width);
   ShaderGlobal::set_int(ssss_reflectance_blur_qualityVarId, reflectance__blur_quality);
   ShaderGlobal::set_int(ssss_reflectance_follow_surfaceVarId, reflectance__blur_follow_surface);
 }

@@ -32,9 +32,9 @@ bool GuiVertexData::create(int num_vertices, int num_indices, const char *name)
   G_ASSERTF(!vb && !ib, "vb=%p ib=%p, destroy() not called?", ib, vb);
   int minIndices = max(num_indices, 6); // dummy minimal index buffer
   int flag32 = (indexSize() > 2) ? SBCF_INDEX32 : 0;
-  vb = d3d::create_vb(int(num_vertices * elemSize()), SBCF_DYNAMIC, name);
+  vb = d3d::create_vb(int(num_vertices * elemSize()), SBCF_DYNAMIC, name, RESTAG_GUI);
   String ibName(0, "%s_ib", name);
-  ib = d3d::create_ib(int(minIndices * indexSize()), SBCF_DYNAMIC | flag32, ibName);
+  ib = d3d::create_ib(int(minIndices * indexSize()), SBCF_DYNAMIC | flag32, ibName, RESTAG_GUI);
   if (vb && ib)
   {
     verticesTotal = num_vertices;
@@ -251,9 +251,6 @@ BufferedRenderer::BufferedRenderer() :
   currentShaderId = -1;
   currentBufferId = -1;
 
-  screenOrig = Point2(0, 0);
-  screenScale = Point2(1, 1);
-
   for (int i = 0; i < MAX_BUFFERS; i++)
   {
     buffers[i].reset();
@@ -325,7 +322,8 @@ void BufferedRenderer::drawPrims(DrawElem::Command cmd, int num_prims)
   DrawElem &de = drawElems.push_back();
 
   de.command = cmd;
-  de.shaderId_bufferId = (currentShaderId << 4) | currentBufferId;
+  de.shaderId = currentShaderId;
+  de.bufferId = currentBufferId;
 
   int currentViewport = viewports.size() - 1;
   int currentGuiState = guiStates.size() - 1;
@@ -422,6 +420,7 @@ void BufferedRenderer::resetBuffers()
   guiStates.clear();
   drawElems.clear();
   chunks.clear();
+  chunksTargetParams.clear();
 
   for (int i = 0; i < buffers.size(); i++)
   {
@@ -446,13 +445,14 @@ int BufferedRenderer::beginChunk() // return chunk_id 0-base
   return chunks.size();
 }
 
-void BufferedRenderer::endChunk()
+void BufferedRenderer::endChunk(const TargetParams &target_params)
 {
   G_ASSERT(isInChunk);
   isInChunk = false;
   if (isInLock)
     unlock();
   chunks.push_back(drawElems.size());
+  chunksTargetParams.push_back(target_params);
 #if LOG_CACHE
   debug("BR:endChunk");
 #endif
@@ -469,6 +469,8 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
   int drawElemEnd = chunks[chunk_id];
   if (drawElemEnd <= drawElemBeg) // chunk is empty
     return;
+
+  const TargetParams &tp = chunksTargetParams[chunk_id];
 
 #if LOG_CACHE
   debug("BR:renderChunk");
@@ -487,12 +489,10 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
     {
       const GuiViewportRect &vp = viewports[de.view];
       oldvp = &vp;
-      d3d::setview(int((screenOrig.x + vp.l * screenScale.x) / screenPixelAR), int(screenOrig.y + vp.t * screenScale.y),
-        int(vp.w * screenScale.x / screenPixelAR), int(vp.h * screenScale.y), 0, 1);
+      d3d::setview(int((tp.screenOrig.x + vp.l * tp.screenScale.x) / screenPixelAR), int(tp.screenOrig.y + vp.t * tp.screenScale.y),
+        int(vp.w * tp.screenScale.x / screenPixelAR), int(vp.h * tp.screenScale.y), 0, 1);
     }
 
-    int shaderId = de.shaderId_bufferId >> 4;
-    int bufferId = de.shaderId_bufferId & (MAX_BUFFERS - 1);
     DrawElem::Command command = de.command;
 
     if (DAGOR_UNLIKELY(command == DrawElem::EXEC_CMD))
@@ -524,13 +524,13 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
       continue;
     }
 
-    if (oldShaderId != shaderId)
+    if (oldShaderId != de.shaderId)
     {
       if (oldShaderId >= 0)
         shaders[oldShaderId]->cleanup();
 
       // new shader requires full variables update
-      oldShaderId = shaderId;
+      oldShaderId = de.shaderId;
       oldViewport = -1;
       oldGuiState = -1;
       oldExtState = -1;
@@ -542,14 +542,14 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
       debug("BR:SetStates #%d", drawElemId);
 #endif
       G_FAST_ASSERT(oldvp >= viewports.data() && oldvp < (viewports.data() + viewports.size()));
-      shaders[shaderId]->setStates(&oldvp->l, guiStates[de.guiState], &extStates[de.extState], oldViewport != de.view,
+      shaders[de.shaderId]->setStates(&oldvp->l, guiStates[de.guiState], &extStates[de.extState], oldViewport != de.view,
         oldGuiState != de.guiState, oldExtState != de.extState, targetW, targetH);
       oldViewport = de.view;
       oldGuiState = de.guiState;
       oldExtState = de.extState;
     }
 
-    GuiVertexData &buf = buffers[bufferId];
+    GuiVertexData &buf = buffers[de.bufferId];
 
 #if D3D_HAS_QUADS
     if (command == DrawElem::DRAW_QUADS)

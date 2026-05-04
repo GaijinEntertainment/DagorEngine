@@ -4,8 +4,4 @@
 #include <daScript/misc/platform.h>
 #include <daScript/daScriptModule.h>
 
-void pull_dedicated_das()
-{
-  NEED_MODULE(DngMatchingModule)
-  NEED_MODULE(RenderLibsAllowedModule)
-}
+void pull_dedicated_das() { NEED_MODULE(DngMatchingModule) }

@@ -146,8 +146,8 @@ def play_name_path(name : string;
   return invalid_sound_event_handle()
 
 
-def get_name(desc : Object; is_watched_sound : bool; def_ = "")
-  return is_watched_sound ? (desc.hero ?? desc.name ?? def_) : (desc.enemy ?? desc.name ?? def_)
+def get_name(desc : Object; is_watched_sound : bool)
+  return is_watched_sound ? (desc.hero ?? desc.name ?? "") : (desc.enemy ?? desc.name ?? "")
 
 
 def play_desc_path(desc : Object;
@@ -301,7 +301,7 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = get_name(*desc, is_watched_sound, desc_id)
+        let name = get_name(*desc, is_watched_sound)
         if !empty(name)
           return play_name_path(name, apply_watched_prefix(path, is_watched_sound), pos, is_abandon, desc?.delay ?? 0.)
     return invalid_sound_event_handle()
@@ -323,7 +323,7 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = get_name(*desc, is_watched_sound, desc_id)
+        let name = get_name(*desc, is_watched_sound)
         if !empty(name)
           return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc?.delay ?? 0.)
     return invalid_sound_event_handle()
@@ -431,11 +431,27 @@ def private play_or_release_impl(var event : SoundEvent&; name : string; should_
 def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
   return play_or_release_impl(event, name, pos, should_play, false)
 
+def play_or_release(var event : SoundEvent&; name : string; pos : float3; should_play : bool; blob : SoundOcclusionBlob&)
+  let enabled = event.enabled
+  if play_or_release_impl(event, name, pos, should_play, false)
+    if !enabled
+      attach_to_blob(event, blob)
+    return true
+  return false
+
 def play_or_release(var event : SoundEvent&; name : string; should_play : bool)
   return play_or_release_impl(event, name, should_play, false)
 
 def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should_play : bool)
   return play_or_release_impl(event, name, pos, should_play, true)
+
+def play_or_abandon(var event : SoundEvent&; name : string; pos : float3; should_play : bool; blob : SoundOcclusionBlob&)
+  let enabled = event.enabled
+  if play_or_release_impl(event, name, pos, should_play, true)
+    if !enabled
+      attach_to_blob(event, blob)
+    return true
+  return false
 
 def play_or_abandon(var event : SoundEvent&; name : string; should_play : bool)
   return play_or_release_impl(event, name, should_play, true)

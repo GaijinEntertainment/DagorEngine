@@ -23,7 +23,6 @@ rotating_door_sound{
     rotating_door_sound__pushCooldown:r=1
     rotating_door_sound__maxRange:r=30
   }
-  _tracked:t="rotating_door_sound__isClosed"
 }
 
 // no simple phys or legacy

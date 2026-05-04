@@ -9,21 +9,35 @@
   #define camera_in_camera_vp_v_remapping               (camera_in_camera_vp_uv_remapping.zw)
 #endif
 
+#ifndef USE_CAMERA_IN_CAMERA_EDGE_BIAS
+  #define USE_CAMERA_IN_CAMERA_EDGE_BIAS 0
+#endif
+
 struct CameraView
 {
   bool isMain;
+#if USE_CAMERA_IN_CAMERA_EDGE_BIAS
+  bool isEdge;
+#endif
 };
 
 CameraView camera_in_camera_main_view()
 {
   CameraView v;
   v.isMain = true;
+#if USE_CAMERA_IN_CAMERA_EDGE_BIAS
+  v.isEdge = false;
+#endif
   return v;
 }
 
 bool is_same_camera_view(CameraView l, CameraView r)
 {
+#if USE_CAMERA_IN_CAMERA_EDGE_BIAS
+  return l.isMain == r.isMain && !l.isEdge && !r.isEdge;
+#else
   return l.isMain == r.isMain;
+#endif
 }
 
 #if USE_CAMERA_IN_CAMERA
@@ -44,8 +58,13 @@ CameraView get_camera_view_internal(float2 uv, float2 minus_vp_ellipse_center, f
     dot(dr, vp_ellipse_x_axis),
     dot(dr, vp_ellipse_y_axis));
 
+  float r2 = lengthSq(xy);
+
   CameraView view;
-  view.isMain =  lengthSq(xy) > 1.0;
+  view.isMain = r2 > 1.0;
+#if USE_CAMERA_IN_CAMERA_EDGE_BIAS
+  view.isEdge = r2 < camera_in_camera_vp_edge_bias_params.x && r2 > camera_in_camera_vp_edge_bias_params.y;
+#endif
   return view;
 }
 
@@ -144,21 +163,14 @@ if (camera_in_camera_active != 0.0)                                       \
 #define DISCARD_IF_INVALID_VIEW_AREA_PS(uv) DISCARD_IF_INVALID_VIEW_AREA_INTERNAL(uv, discard)
 #define DISCARD_IF_INVALID_VIEW_AREA_CS(uv) DISCARD_IF_INVALID_VIEW_AREA_INTERNAL(uv, return)
 
-#if WAVE_INTRINSICS
-  #define IS_WHOLE_GROUP_IN_WRONG_VIEW_AREA(lds_var, uv, out_view_type, out_res) \
-  {                                                                              \
-    bool isWrongArea = is_wrong_camera_view_area_postfx(uv, out_view_type);      \
-    out_res = WaveActiveAllTrue (isWrongArea);                                   \
-  }
-#else
-  #define IS_WHOLE_GROUP_IN_WRONG_VIEW_AREA(lds_var, uv, out_view_type, out_res) \
-  {                                                                              \
-    bool isWrongArea = is_wrong_camera_view_area_postfx(uv, out_view_type);      \
-    InterlockedAdd(lds_var, isWrongArea ? 0 : 1);                                \
-    GroupMemoryBarrierWithGroupSync();                                           \
-    out_res = lds_var == 0;                                                      \
-  }
-#endif
+#define IS_WHOLE_GROUP_IN_WRONG_VIEW_AREA(lds_var, uv, out_view_type, out_res) \
+{                                                                              \
+  GroupMemoryBarrierWithGroupSync();                                           \
+  bool isWrongArea = is_wrong_camera_view_area_postfx(uv, out_view_type);      \
+  InterlockedAdd(lds_var, isWrongArea ? 0 : 1);                                \
+  GroupMemoryBarrierWithGroupSync();                                           \
+  out_res = lds_var == 0;                                                      \
+}
 
 #define DISCARD_GROUP_IN_INVALID_VIEW_AREA(lds_var, uv, out_view_type)          \
 BRANCH                                                                          \
@@ -181,7 +193,11 @@ bool invalidate_mvec_to_invalid_view_area(float2 uv, inout float2 motion_vec)
   BRANCH
   if (camera_has_sub_view())
   {
+#if USE_CAMERA_IN_CAMERA_EDGE_BIAS
+    CameraView curView = get_camera_view(uv);
+#else
     CameraView curView = get_camera_view_postfx();
+#endif
     CameraView prevFrameView = get_prev_frame_camera_view(uv + motion_vec);
 
     if (!is_same_camera_view(curView, prevFrameView))

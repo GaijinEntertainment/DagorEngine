@@ -3,10 +3,14 @@
 #include "ecsUtils.h"
 #include "templateFilters.h"
 #include "game/gameEvents.h"
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/io/blk.h>
-#include <ecs/scene/scene.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/io/blk.h>
+#include <daECS/scene/scene.h>
 #include <daECS/core/template.h>
 #include <debug/dag_assert.h>
 #include "app.h"
@@ -261,6 +265,8 @@ Tab<const char *> ecs_get_global_tags_context()
   if (eastl::find_if(globalTags.begin(), globalTags.end(), [](const char *tag) { return !strcmp(tag, "inside_tools"); }) ==
       globalTags.end())
     globalTags.push_back("not_inside_tools");
+
+  globalTags.push_back("dngRenderIsActive");
 
   return globalTags;
 }

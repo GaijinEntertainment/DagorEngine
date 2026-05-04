@@ -42,7 +42,7 @@ static void onFinishEdit_IME(const char *text, int cursorPos)
       }
     };
 
-    FinishAction *a = new FinishAction(text, cursorPos, 1);
+    FinishAction *a = new FinishAction(text, cursorPos, HumanInput::IME_STATUS_CLOSED);
 
     ime_started = false;
     ime_finish_cb = NULL;

@@ -22,6 +22,7 @@ macro DAGI_RAD_GRID_CLIPMAP_MATH_INIT(code)
 endmacro
 
 macro DAGI_RAD_GRID_CLIPMAP_MATH_USE(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   hlsl (code) {
     #include "dagi_rad_grid.hlsli"
     uint2 dagi_rad_grid_get_clip_size() {return uint2(dagi_rad_grid_clipmap_sizei.xy);}
@@ -131,8 +132,8 @@ endmacro
 
 macro DAGI_RAD_GRID_SRV(code)
   (code) {
-    dagi_radiance_grid@smp3d = dagi_radiance_grid;
-    //dagi_radiance_grid_dist@smp3d = dagi_radiance_grid_dist;
+    dagi_radiance_grid@tex3d = dagi_radiance_grid;
+    //dagi_radiance_grid_dist@tex3d = dagi_radiance_grid_dist;
   }
 endmacro
 
@@ -208,6 +209,7 @@ macro DAGI_RAD_GRID_SAMPLE_USE(code)
   DAGI_RAD_GRID_LOAD(code)
   hlsl(code) {
     #include "dagi_rad_grid_math.hlsl"
+    #define dagi_radiance_grid_samplerstate global_linear_wrap_sampler
     float3 dagi_rad_sample(float3 tc) {return tex3Dlod(dagi_radiance_grid, float4(tc,0)).xyz;}
     float3 dagi_trilinear_sample_radiance_grid_cascade_unsafe_oct(uint cascade, float3 dir, float3 worldPos)
     {

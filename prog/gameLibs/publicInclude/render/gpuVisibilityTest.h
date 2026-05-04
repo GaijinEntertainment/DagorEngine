@@ -94,6 +94,4 @@ protected:
   int curGroupId = 0;
   int reservedSpaceForTestObjects = 0;
   eastl::deque<TestInfo> curTestsIssued;
-
-  bool deviceIsResetting = false;
 };

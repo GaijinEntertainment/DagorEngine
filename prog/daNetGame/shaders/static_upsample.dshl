@@ -18,7 +18,11 @@ shader static_upsample
   {
     upsampling_source_size@f4 = upsampling_source_size;
     upsampling_target_size@f4 = upsampling_target_size;
-    upsampling_source_tex@smp2d = upsampling_source_tex;
+    upsampling_source_tex@tex2d = upsampling_source_tex;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+  hlsl(ps) {
+    #define upsampling_source_tex_samplerstate global_linear_wrap_sampler
   }
 
   hlsl (ps)

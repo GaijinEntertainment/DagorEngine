@@ -2,10 +2,84 @@
 
 #include "platform.h"
 #include "device.h"
-#include <startup/dag_globalSettings.h>
 
+#include <debug/dag_log.h>
+
+
+extern "C"
+{
+  _declspec(dllexport) extern UINT D3D12SDKVersion = 0;
+  _declspec(dllexport) extern const char *D3D12SDKPath = ".\\D3D12\\";
+}
 
 using namespace drv3d_dx12;
+
+UINT Direct3D12Enviroment::getD3D12SdkVersion() { return D3D12SDKVersion; }
+
+bool Direct3D12Enviroment::setup()
+{
+  const DataBlock &dxCfg = *::dgs_get_settings()->getBlockByNameEx("dx12");
+  D3D12SDKVersion = dxCfg.getInt("sdkVersion", D3D12_SDK_VERSION);
+  D3D12SDKPath = dxCfg.getStr("sdkPath", D3D12SDKPath);
+
+  d3d12Lib.reset(LoadLibraryA("d3d12.dll"));
+  if (!d3d12Lib)
+  {
+    logdbg("DX12: Direct3D12Enviroment::setup: Unable to load d3d12.dll");
+    teardown();
+    return false;
+  }
+
+  dxgiLib.reset(LoadLibraryA("dxgi.dll"));
+  if (!dxgiLib)
+  {
+    logdbg("DX12: Direct3D12Enviroment::setup: Unable to load dxgi.dll");
+    teardown();
+    return false;
+  }
+
+  reinterpret_cast<FARPROC &>(D3D12CreateDevice) = getD3DProcAddress("D3D12CreateDevice");
+  if (!D3D12CreateDevice)
+  {
+    logdbg("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports D3D12CreateDevice");
+    return false;
+  }
+
+  reinterpret_cast<FARPROC &>(D3D12SerializeRootSignature) = getD3DProcAddress("D3D12SerializeRootSignature");
+  if (!D3D12SerializeRootSignature)
+  {
+    logdbg("DX12: Direct3D12Enviroment::setup: d3d12.dll does not exports "
+           "D3D12SerializeRootSignature");
+    return false;
+  }
+
+  reinterpret_cast<FARPROC &>(CreateDXGIFactory2) = getDXGIProcAddress("CreateDXGIFactory2");
+  if (!CreateDXGIFactory2)
+  {
+    logdbg("DX12: Direct3D12Enviroment::setup: dxgi.dll does not export CreateDXGIFactory2");
+    return false;
+  }
+
+  D3D12EnableExperimentalFeatures.load(
+    [this](auto &target, auto name) { reinterpret_cast<FARPROC &>(target) = getD3DProcAddress(name); });
+  if (D3D12EnableExperimentalFeatures)
+  {
+    logdbg("DX12: %s is available", D3D12EnableExperimentalFeatures.name());
+  }
+
+  return true;
+}
+
+void Direct3D12Enviroment::teardown()
+{
+  D3D12SDKVersion = 0;
+  D3D12SDKPath = ".\\D3D12\\";
+  CreateDXGIFactory2 = nullptr;
+  D3D12SerializeRootSignature = nullptr;
+  D3D12CreateDevice = nullptr;
+  dxgiLib.reset();
+  d3d12Lib.reset();
+}
 
 eastl::optional<HDRCapabilities> drv3d_dx12::get_hdr_caps(const ComPtr<IDXGIOutput> &output)
 {
@@ -323,46 +397,3 @@ D3D12_DRED_ENABLEMENT drv3d_dx12::get_application_DRED_enablement_from_registry(
 #if !_TARGET_64BIT
 #pragma optimize("", on)
 #endif
-
-DXGI_GPU_PREFERENCE drv3d_dx12::get_gpu_preference_from_registry()
-{
-  static const char directx_path[] = "Software\\Microsoft\\DirectX\\UserGpuPreferences";
-  static const char gpu_preference[] = "GpuPreference";
-
-  eastl::string_view exeName(dgs_argv[0]);
-
-  REGSAM options = KEY_READ;
-  RegistryKey baseKey{HKEY_CURRENT_USER, directx_path, 0, options};
-  if (!baseKey)
-  {
-    DEBUG_REG("DX12: Failed...");
-    logdbg("DX12: Unable to open current user registry path <%s>", directx_path);
-    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
-  }
-
-  auto [valueCount, maxValueLenth, valueSize] = baseKey.queryValueCountMaxLengthAndSize();
-  if (!valueCount)
-  {
-    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
-  }
-
-  dag::Vector<char> nameBuf(maxValueLenth + 1, '\0'), valueBuf(valueSize + 1, '\0');
-  for (DWORD v = 0; v < valueCount; ++v)
-  {
-    auto [valueName, value] = baseKey.enumValueNameAndValue(v, nameBuf, valueBuf);
-    if (valueName == exeName)
-    {
-      eastl::string_view stringValue(value.data(), value.size());
-      if (stringValue.starts_with(gpu_preference))
-      {
-        switch (value[sizeof(gpu_preference)])
-        {
-          case '1': return DXGI_GPU_PREFERENCE_MINIMUM_POWER;
-          case '2': return DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
-        }
-      }
-    }
-  }
-
-  return DXGI_GPU_PREFERENCE_UNSPECIFIED;
-}

@@ -1,0 +1,8 @@
+ERROR: expected '}'
+testData/diagnostics/compilation_errors/syntax_errors/expected_token_brace.nut:2:29
+
+// EXPECT_ERROR: "expected '}'"
+local {a, b = {x = 1, y = 2}
+                             ^
+
+

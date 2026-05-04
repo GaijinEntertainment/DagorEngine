@@ -13,6 +13,15 @@ class Point3;
 class ShaderElement;
 class ShaderMaterial;
 
+class IGridSettingChangeEventHandler
+{
+public:
+  // Called when the snap settings have changed.
+  virtual void onSnapSettingChanged() = 0;
+
+  static constexpr unsigned HUID = 0xBF98FF84u; // IGridSettingChangeEventHandler
+};
+
 /// Grid object.
 /// Used for representing Editor grid.
 /// @ingroup EditorCore
@@ -187,18 +196,25 @@ protected:
 
 class GridEditDialog : public PropPanel::DialogWindow
 {
+  using Base = PropPanel::DialogWindow;
+
 public:
-  GridEditDialog(void *phandle, GridObject &grid, const char *caption);
+  GridEditDialog(IGridSettingChangeEventHandler &change_event_handler, GridObject &grid, const char *caption);
 
   void showGridEditDialog(int viewport_index);
   void onGridVisibilityChanged(int viewport_index);
+  void onSnapSettingChanged();
+
+  void updateImguiDialog() override;
 
 private:
+  bool onOk() override;
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
   void fillPanel();
   void updateShowGridDialogControl();
 
+  IGridSettingChangeEventHandler &gridSettingChangeEventHandler;
   GridObject &mGrid;
   int index = -1;
 };

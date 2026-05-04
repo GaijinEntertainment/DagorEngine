@@ -21,7 +21,8 @@
     #include "formatter.h"
 
 #if defined(_MSC_VER) && !defined(__clang__)
-    #if defined(DAS_RELWITHDEBINFO)
+    #if !defined(_DEBUG)
+        #pragma optimize( "", off )
         #pragma optimize( "s", on )
     #endif
 #endif
@@ -115,6 +116,7 @@
     double                          fd;
     string *                        s;
     vector<string> *                pNameList;
+    vector<tuple<string,Expression *>> *  pNameExprList;
     vector<VariableNameAndPosition> * pNameWithPosList;
     VariableDeclaration *           pVarDecl;
     vector<VariableDeclaration*> *  pVarDeclList;
@@ -128,6 +130,7 @@
     AnnotationList *                faList;
     MakeStruct *                    pMakeStruct;
     Enumeration *                   pEnum;
+    Enumeration *                   pEnumList;
     Structure *                     pStructure;
     Function *                      pFuncDecl;
     CaptureEntry *                  pCapt;
@@ -138,6 +141,7 @@
 
 %destructor { delete $$; } <s>
 %destructor { delete $$; } <pNameList>
+%destructor { deleteNameExprList($$); } <pNameExprList>
 %destructor { delete $$; } <pNameWithPosList>
 %destructor { delete $$; } <pVarDecl>
 %destructor { deleteVariableDeclarationList($$); } <pVarDeclList>
@@ -149,7 +153,8 @@
 %destructor { delete $$; } <fa>
 %destructor { delete $$; } <faList>
 %destructor { delete $$; } <pMakeStruct>
-%destructor { if ( $$->use_count()==1 ) delete $$; } <pEnum>
+%destructor { /* $$->delRef(); // if enum rule returns, module already has the link */ } <pEnum>
+%destructor { delete $$; } <pEnumList>
 %destructor { delete $$; } <pCapt>
 %destructor { delete $$; } <pCaptList>
 %destructor { delete $$.firstType; delete $$.secondType; } <aTypePair>
@@ -361,11 +366,12 @@
 
 %type <pEnum>           enum_name
 %type <pNameList>       bitfield_bits
-%type <pNameList>       bitfield_alias_bits
+%type <pNameExprList>   bitfield_alias_bits
 %type <pNameList>       tuple_expansion
 %type <pNameWithPosList>variable_name_with_pos_list
 %type <pNameWithPosList>let_variable_name_with_pos_list
 %type <type>            basic_type_declaration
+%type <type>            bitfield_basic_type_declaration
 %type <type>            enum_basic_type_declaration
 %type <pTypeDecl>       type_declaration
 %type <pTypeDecl>       type_declaration_no_options
@@ -419,8 +425,8 @@
 
 
 %type <positions>       alias_list
-%type <ui>               open_block
-%type <ui>               close_block
+%type <ui>              open_block
+%type <ui>              close_block
 %type <b>               opt_sem
 %type <i>               class_or_struct
 %type <b>               copy_or_move
@@ -447,10 +453,11 @@
 %type <b>               use_initializer
 %type <b>               if_or_static_if
 %type <b>               elif_or_static_elif
+%type <b>               optional_template
 
 %type <i>               copy_or_move_or_clone
 
-%type <pEnum>           enum_list
+%type <pEnumList>       enum_list
 
 %type <pExpression>     expr
 %type <pExpression>     expr2
@@ -779,17 +786,13 @@ options_declaration
                 yyextra->das_gen2_make_syntax = opt.bValue;
             }
         }
-        if ( yyextra->g_Program->options.size() ) {
-            for ( auto & opt : *$list ) {
-                if ( yyextra->g_Access->isOptionAllowed(opt.name, yyextra->g_Program->thisModuleName) ) {
-                    yyextra->g_Program->options.push_back(opt);
-                } else {
-                    das_yyerror(scanner,"option " + opt.name + " is not allowed here",
-                        tokAt(scanner,@list), CompilationError::invalid_option);
-                }
+        for ( auto & opt : *$list ) {
+            if ( yyextra->g_Access->isOptionAllowed(opt.name, yyextra->g_Program->thisModule->fileName) ) {
+                yyextra->g_Program->options.push_back(opt);
+            } else {
+                das_yyerror(scanner,"option " + opt.name + " is not allowed here",
+                    tokAt(scanner,@list), CompilationError::invalid_option);
             }
-        } else {
-            swap ( yyextra->g_Program->options, *$list );
         }
         delete $list;
     }
@@ -997,8 +1000,11 @@ expression_with
 
 expression_with_alias
     :   DAS_ASSUME[loc] NAME[aname] '=' { yyextra->das_need_oxford_comma=true; } expr[subexpr] semicolon {
-        $$ = new ExprAssume(tokAt(scanner,@loc), *$aname, $subexpr );
+        $$ = new ExprAssume(tokAt(scanner,@loc), *$aname, ExpressionPtr($subexpr));
         delete $aname;
+    }
+    |   DAS_TYPEDEF[loc] { yyextra->das_force_oxford_comma=true;} NAME[aname] '=' type_declaration[decl] semicolon {
+        $$ = new ExprAssume(tokAt(scanner,@loc), *$aname, TypeDeclPtr($decl));
     }
     ;
 
@@ -1033,6 +1039,7 @@ annotation_argument_name
 annotation_argument
     :   annotation_argument_name[name] '=' string_constant[value]   { $$ = new AnnotationArgument(*$name,*$value,tokRangeAt(scanner,@name,@value)); delete $value; delete $name; }
     |   annotation_argument_name[name] '=' NAME[value]              { $$ = new AnnotationArgument(*$name,*$value,tokRangeAt(scanner,@name,@value)); delete $value; delete $name; }
+    |   annotation_argument_name[name] '=' '@' '@' NAME[value]      { $$ = new AnnotationArgument(*$name,*$value,tokAt(scanner,@name)); delete $value; delete $name; }
     |   annotation_argument_name[name] '=' INTEGER[value]           { $$ = new AnnotationArgument(*$name,$value,tokRangeAt(scanner,@name,@value)); delete $name; }
     |   annotation_argument_name[name] '=' DAS_FLOAT[value]         { $$ = new AnnotationArgument(*$name,float($value),tokRangeAt(scanner,@name,@value)); delete $name; }
     |   annotation_argument_name[name] '=' DAS_TRUE[value]          { $$ = new AnnotationArgument(*$name,true,tokRangeAt(scanner,@name,@value)); delete $name; }
@@ -1186,6 +1193,10 @@ optional_function_type
         $$ = $typeDecl;
         $$->at = tokAt(scanner,@typeDecl);
     }
+    |   RARROW type_declaration[typeDecl]  {
+        $$ = $typeDecl;
+        $$->at = tokAt(scanner,@typeDecl);
+    }
     ;
 
 function_name
@@ -1237,6 +1248,19 @@ function_name
     |   DAS_OPERATOR ROTLEQU { $$ = new string("<<<="); }
     |   DAS_OPERATOR ROTREQU { $$ = new string(">>>="); }
     |   DAS_OPERATOR '[' ']' { $$ = new string("[]"); }
+    |   DAS_OPERATOR '[' ']' LARROW { $$ = new string("[]<-"); }
+    |   DAS_OPERATOR '[' ']' CLONEEQU { $$ = new string("[]:="); }
+    |   DAS_OPERATOR '[' ']' ADDEQU  { $$ = new string("[]+="); }
+    |   DAS_OPERATOR '[' ']' SUBEQU  { $$ = new string("[]-="); }
+    |   DAS_OPERATOR '[' ']' MULEQU  { $$ = new string("[]*="); }
+    |   DAS_OPERATOR '[' ']' DIVEQU  { $$ = new string("[]/="); }
+    |   DAS_OPERATOR '[' ']' MODEQU  { $$ = new string("[]%="); }
+    |   DAS_OPERATOR '[' ']' ANDEQU  { $$ = new string("[]&="); }
+    |   DAS_OPERATOR '[' ']' OREQU   { $$ = new string("[]|="); }
+    |   DAS_OPERATOR '[' ']' XOREQU  { $$ = new string("[]^="); }
+    |   DAS_OPERATOR '[' ']' ANDANDEQU  { $$ = new string("[]&&="); }
+    |   DAS_OPERATOR '[' ']' OROREQU    { $$ = new string("[]||="); }
+    |   DAS_OPERATOR '[' ']' XORXOREQU  { $$ = new string("[]^^="); }
     |   DAS_OPERATOR QBRA ']'   { $$ = new string("?[]"); }
     |   DAS_OPERATOR '.'     { $$ = new string("."); }
     |   DAS_OPERATOR QDOT    { $$ = new string("?."); }
@@ -1288,12 +1312,17 @@ function_name
     |   DAS_TUINT8   { $$ = new string("uint8"); }
     |   DAS_TINT16   { $$ = new string("int16"); }
     |   DAS_TUINT16  { $$ = new string("uint16"); }
+    ;
 
+optional_template
+    :                                   { $$ = false; }
+    |   DAS_TEMPLATE                    { $$ = true; }
     ;
 
 global_function_declaration
-    :   optional_annotation_list[annL] DAS_DEF[from] function_declaration[func] {
+    :   optional_annotation_list[annL] DAS_DEF[from] optional_template[isTemplate] function_declaration[func] {
         $func->atDecl = tokRangeAt(scanner,@from,@func);
+        $func->isTemplate = $isTemplate;
         assignDefaultArguments($func);
         runFunctionAnnotations(scanner, yyextra, $func, $annL, tokAt(scanner,@annL));
         if ( $func->isGeneric() ) {
@@ -1406,7 +1435,7 @@ expr_call_pipe
         }
     }
     |   DAS_GENERATOR[loc] '<' type_declaration_no_options[typeDecl] '>' optional_capture_list[clist] expr_full_block_assumed_piped[subexpr] {
-        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,$subexpr,tokAt(scanner,@loc));
+        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,$subexpr,tokAt(scanner,@loc),tokAt(scanner,@clist));
     }
     ;
 
@@ -1458,7 +1487,7 @@ expr_keyword
         auto pCall = yyextra->g_Program->makeCall(tokAt(scanner,@kwd),*$kwd);
         pCall->arguments.push_back($subexpr);
         auto resT = new TypeDecl(Type::autoinfer);
-        auto blk = ast_makeBlock(scanner,0,nullptr,nullptr,nullptr,resT,$block,tokAt(scanner,@block),tokAt(scanner,@block));
+        auto blk = ast_makeBlock(scanner,0,nullptr,nullptr,nullptr,resT,$block,tokAt(scanner,@block),tokAt(scanner,@block),LineInfo());
         pCall->arguments.push_back(blk);
         delete $kwd;
         $$ = pCall;
@@ -1981,14 +2010,14 @@ expr_block
     }
     |   block_or_lambda[bal] optional_annotation_list[annL] optional_capture_list[clist] optional_function_argument_list[list]
                                 optional_function_type[result] block_or_simple_block[block] {
-        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL));
+        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL),tokAt(scanner,@clist));
     }
     ;
 
 expr_full_block
     :   block_or_lambda[bal] optional_annotation_list[annL] optional_capture_list[clist] optional_function_argument_list[list]
                                 optional_function_type[result] block_or_simple_block[block] {
-        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL));
+        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL),tokAt(scanner,@clist));
     }
     ;
 
@@ -1996,7 +2025,7 @@ expr_full_block_assumed_piped
     :   block_or_lambda[bal] {  yyextra->das_need_oxford_comma = false; }
             optional_annotation_list[annL] optional_capture_list[clist] optional_function_argument_list[list]
                                 optional_function_type[result] expression_block[block] {
-        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL));
+        $$ = ast_makeBlock(scanner,$bal,$annL,$clist,$list,$result,$block,tokAt(scanner,@block),tokAt(scanner,@annL),tokAt(scanner,@clist));
     }
     ;
 
@@ -2326,10 +2355,10 @@ expr2
     |   DAS_DEREF[loc] '(' expr2[subexpr] ')'       { $$ = new ExprPtr2Ref(tokAt(scanner,@loc),$subexpr); }
     |   DAS_ADDR[loc] '(' expr2[subexpr] ')'        { $$ = new ExprRef2Ptr(tokAt(scanner,@loc),$subexpr); }
     |   DAS_GENERATOR[loc] '<' type_declaration_no_options[typeDecl] '>' optional_capture_list[clist] '(' ')' {
-        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,nullptr,tokAt(scanner,@loc));
+        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,nullptr,tokAt(scanner,@loc),tokAt(scanner,@clist));
     }
     |   DAS_GENERATOR[loc] '<' type_declaration_no_options[typeDecl] '>' optional_capture_list[clist] '(' expr2[subexpr] ')' {
-        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,$subexpr,tokAt(scanner,@loc));
+        $$ = ast_makeGenerator(scanner,$typeDecl,$clist,$subexpr,tokAt(scanner,@loc),tokAt(scanner,@clist));
     }
     |   expr2[subexpr] QQ[loc] expr2[dval]           { $$ = new ExprNullCoalescing(tokRangeAt(scanner,@subexpr, @dval),$subexpr,$dval); }
     |   expr2[subexpr] DAS_IS[loc] DAS_TYPE '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options[decl] '>'[end] { yyextra->das_arrow_depth --; } {
@@ -2515,6 +2544,10 @@ struct_variable_declaration_list
     :   {
         $$ = new vector<VariableDeclaration*>();
     }
+    |  struct_variable_declaration_list[list] DAS_TYPEDEF[loc] { yyextra->das_force_oxford_comma=true;} NAME[aname] '=' type_declaration[decl] semicolon opt_sem {
+        $$ = $list;
+        ast_structureAlias(scanner,$aname,$decl,tokAt(scanner,@loc));
+    }
     |   struct_variable_declaration_list[list] {
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tak = tokAt(scanner,@list);
@@ -2637,7 +2670,6 @@ tuple_alias_type_list
         $$ = $list; $list->push_back($decl);
         /*
         if ( !yyextra->g_CommentReaders.empty() ) {
-            auto tokName = tokAt(scanner,@decl);
             for ( auto & crd : yyextra->g_CommentReaders ) {
                 for ( const auto & nl : *($decl->pNameList) ) {
                     crd->afterVariantEntry(nl.name.c_str(), nl.at);
@@ -2672,7 +2704,6 @@ variant_alias_type_list
     |   variant_alias_type_list[list] variant_type[decl] c_or_s {
         $$ = $list; $list->push_back($decl);
         if ( !yyextra->g_CommentReaders.empty() ) {
-            auto tokName = tokAt(scanner,@decl);
             for ( auto & crd : yyextra->g_CommentReaders ) {
                 for ( const auto & nl : *($decl->pNameList) ) {
                     crd->afterVariantEntry(nl.name.c_str(), nl.at);
@@ -3056,8 +3087,8 @@ structure_name
 class_or_struct
     :   DAS_CLASS   { $$ = CorS_Class; }
     |   DAS_STRUCT  { $$ = CorS_Struct; }
-    |   DAS_TEMPLATE DAS_CLASS   { $$ = CorS_ClassTemplate; }
-    |   DAS_TEMPLATE DAS_STRUCT  { $$ = CorS_StructTemplate; }
+    |   DAS_CLASS DAS_TEMPLATE    { $$ = CorS_ClassTemplate; }
+    |   DAS_STRUCT DAS_TEMPLATE   { $$ = CorS_StructTemplate; }
     ;
 
 optional_public_or_private_structure
@@ -3232,6 +3263,12 @@ bitfield_bits
         $$ = $list;
         delete $name;
     }
+    |   bitfield_bits[list] ',' NAME[name] {
+        das_checkName(scanner,*$name,tokAt(scanner,@name));
+        $list->push_back(*$name);
+        $$ = $list;
+        delete $name;
+    }
     ;
 
 
@@ -3242,8 +3279,8 @@ commas
 
 
 bitfield_alias_bits
-    : %empty  {
-        auto pSL = new vector<string>();
+    :  {
+        auto pSL = new vector<tuple<string,Expression *>>();
         $$ = pSL;
 
     }
@@ -3252,10 +3289,9 @@ bitfield_alias_bits
             format::get_writer() << ",";
             format::finish_rule(format::Pos::from_last(tokAt(scanner,@name)));
         }
-
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        $list->push_back(*$name);
         $$ = $list;
+        $$->emplace_back(*$name,nullptr);
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@name);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
@@ -3264,8 +3300,8 @@ bitfield_alias_bits
     }
     |   bitfield_alias_bits[list] NAME[name] commas {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        $list->push_back(*$name);
         $$ = $list;
+        $$->emplace_back(*$name,nullptr);
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@name);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
@@ -3274,8 +3310,38 @@ bitfield_alias_bits
     }
     |   bitfield_alias_bits[list] NAME[name] {
         das_checkName(scanner,*$name,tokAt(scanner,@name));
-        $list->push_back(*$name);
         $$ = $list;
+        $$->emplace_back(*$name,nullptr);
+        if ( !yyextra->g_CommentReaders.empty() ) {
+            auto atvname = tokAt(scanner,@name);
+            for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
+        }
+        delete $name;
+    }
+    |   bitfield_alias_bits[list] NAME[name] '=' expr[value] SEMICOLON {
+        das_checkName(scanner,*$name,tokAt(scanner,@name));
+        $$ = $list;
+        $$->emplace_back(*$name,$value);
+        if ( !yyextra->g_CommentReaders.empty() ) {
+            auto atvname = tokAt(scanner,@name);
+            for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
+        }
+        delete $name;
+    }
+    |   bitfield_alias_bits[list] NAME[name] '=' expr[value] commas {
+        das_checkName(scanner,*$name,tokAt(scanner,@name));
+        $$ = $list;
+        $$->emplace_back(*$name,$value);
+        if ( !yyextra->g_CommentReaders.empty() ) {
+            auto atvname = tokAt(scanner,@name);
+            for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
+        }
+        delete $name;
+    }
+    |   bitfield_alias_bits[list] NAME[name] '=' expr[value] {
+        das_checkName(scanner,*$name,tokAt(scanner,@name));
+        $$ = $list;
+        $$->emplace_back(*$name,$value);
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@name);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntry($name->c_str(),atvname);
@@ -3284,12 +3350,25 @@ bitfield_alias_bits
     }
     ;
 
+bitfield_basic_type_declaration
+    :                        { $$ = Type::tBitfield; }
+    |   ':' DAS_TUINT8       { $$ = Type::tBitfield8; }
+    |   ':' DAS_TUINT16      { $$ = Type::tBitfield16; }
+    |   ':' DAS_TUINT        { $$ = Type::tBitfield; }
+    |   ':' DAS_TUINT64      { $$ = Type::tBitfield64; }
+    ;
+
 bitfield_type_declaration
-    :   DAS_TBITFIELD[basicType] '<' { yyextra->das_arrow_depth ++; } bitfield_bits[nl] '>' { yyextra->das_arrow_depth --; } {
-            $$ = new TypeDecl(Type::tBitfield);
+    :   DAS_TBITFIELD bitfield_basic_type_declaration[basicType] '<' '>'  {
+            $$ = new TypeDecl($basicType);
+            $$->at = tokAt(scanner,@basicType);
+    }
+    |   DAS_TBITFIELD bitfield_basic_type_declaration[basicType] '<' { yyextra->das_arrow_depth ++; } bitfield_bits[nl] '>' { yyextra->das_arrow_depth --; } {
+            $$ = new TypeDecl($basicType);
             $$->argNames = *$nl;
-            if ( $$->argNames.size()>32 ) {
-                das_yyerror(scanner,"only 32 different bits are allowed in a bitfield",tokAt(scanner,@basicType),
+            auto maxBits = $$->maxBitfieldBits();
+            if ( $$->argNames.size()>maxBits ) {
+                das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,@basicType),
                     CompilationError::invalid_type);
             }
             $$->at = tokAt(scanner,@basicType);
@@ -3359,14 +3438,14 @@ type_declaration_no_options
         $$->at = tokRangeAt(scanner,@td,@subexpr);
         $$->dimExpr.push_back($subexpr);
     }
-    |   '$' name_in_namespace[name] '(' optional_expr_list[arguments] ')' {
+    |   '$' name_in_namespace[name] optional_expr_list_in_braces[arguments] {
         $$ = new TypeDecl(Type::typeMacro);
         $$->at = tokRangeAt(scanner,@name, @arguments);
         $$->dimExpr = sequenceToList($arguments);
         $$->dimExpr.insert($$->dimExpr.begin(), new ExprConstString(tokAt(scanner,@name), *$name));
         delete $name;
     }
-    |   '$' name_in_namespace[name] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options_list[declL] '>' '(' optional_expr_list[arguments] ')' {
+    |   '$' name_in_namespace[name] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options_list[declL] '>' optional_expr_list_in_braces[arguments] {
         $$ = new TypeDecl(Type::typeMacro);
         $$->at = tokRangeAt(scanner,@name, @arguments);
         $$->dimExpr = typesAndSequenceToList($declL,$arguments);
@@ -3650,7 +3729,7 @@ bitfield_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->beforeBitfield(atvname);
         }
-    } open_block[blk] bitfield_alias_bits[list] close_block[close] {
+    } bitfield_basic_type_declaration[basicType] open_block[blk] bitfield_alias_bits[list] close_block[close] {
         const auto prev_loc = format::Pos::from(tokAt(scanner,@blk));
         handle_brace(prev_loc, $blk,
                      format::get_substring(prev_loc, format::Pos::from_last(tokAt(scanner,@list))),
@@ -3664,14 +3743,24 @@ bitfield_alias_declaration
             auto atvname = tokAt(scanner,@vname);
             for ( auto & crd : yyextra->g_CommentReaders ) crd->afterBitfieldEntries(atvname);
         }
-        auto btype = make_smart<TypeDecl>(Type::tBitfield);
+        auto btype = make_smart<TypeDecl>($basicType);
         btype->alias = *$vname;
         btype->at = tokAt(scanner,@vname);
-        btype->argNames = *$list;
         btype->isPrivateAlias = !$pubA;
-        if ( btype->argNames.size()>32 ) {
-            das_yyerror(scanner,"only 32 different bits are allowed in a bitfield",tokAt(scanner,@vname),
+        for ( auto & p : *$list ) {
+            if ( !get<1>(p) ) {
+                btype->argNames.push_back(get<0>(p));
+            }
+        }
+        auto maxBits = btype->maxBitfieldBits();
+        if ( btype->argNames.size()>maxBits ) {
+            das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,@vname),
                 CompilationError::invalid_type);
+        }
+        for ( auto & p : *$list ) {
+            if ( get<1>(p) ) {
+                ast_globalBitfieldConst ( scanner, btype, $pubA, get<0>(p), get<1>(p) );
+            }
         }
         if ( !yyextra->g_Program->addAlias(btype) ) {
             das_yyerror(scanner,"type alias is already defined "+*$vname,tokAt(scanner,@vname),

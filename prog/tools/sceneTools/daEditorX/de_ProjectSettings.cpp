@@ -76,7 +76,7 @@ bool ProjectSettingsDlg::onOk()
 
 //==============================================================================
 
-long ProjectSettingsDlg::onChanging(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+long ProjectSettingsDlg::onChanging(int pcb_id, PropPanel::ContainerPropertyControl *)
 {
   if (externalTab)
     externalTab->fixPath(pcb_id);
@@ -95,7 +95,7 @@ void ProjectSettingsDlg::onChange(int pcb_id, PropPanel::ContainerPropertyContro
 }
 
 
-void ProjectSettingsDlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+void ProjectSettingsDlg::onClick(int, PropPanel::ContainerPropertyControl *)
 {
   if (lightTab)
     lightTab->onApply();
@@ -232,7 +232,7 @@ void PsExternalTab::fixPath(int pcb_id)
 }
 
 
-int PsExternalTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+int PsExternalTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *)
 {
   IDagorEd2Engine *app = IDagorEd2Engine::get();
   G_ASSERT(app && "PsExternalTab::handleEvent: app is NULL!!!");
@@ -430,7 +430,7 @@ void PsLightTab::onApply()
 
 
 //==============================================================================
-int PsLightTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+int PsLightTab::handleEvent(int pcb_id, PropPanel::ContainerPropertyControl *)
 {
   switch (pcb_id)
   {
@@ -498,7 +498,6 @@ bool MiscTab::onOkPressed()
     case TEXQUALITY_RADIO_UL_ID: ::dgs_tex_quality = ddstexture::quality_UltraLow; break;
   }
 
-  bool setShaderVar = false;
   bool mbShown = false;
 
   if (old != ::dgs_tex_quality)

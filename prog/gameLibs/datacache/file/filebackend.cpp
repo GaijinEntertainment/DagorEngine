@@ -68,6 +68,10 @@ Backend *FileBackend::create(const FileBackendConfig &config)
   bck->maxSize = config.maxSize;
   bck->manualEviction = config.manualEviction;
   bck->aioJobId = config.aioJobId;
+
+  if (config.csMgr)
+    bck->csMgr = config.csMgr;
+
   if (bck->maxSize != 0) // not inifity storage, do populate for eviction
     bck->doPopulate();
 

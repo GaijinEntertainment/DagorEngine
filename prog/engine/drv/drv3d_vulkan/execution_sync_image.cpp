@@ -300,7 +300,7 @@ void ExecutionSyncTracker::ImageOpsArray::removeRoSeal(Image *obj)
 {
   // we don't know actual caller here
   arr[lastProcessed] =
-    ImageSyncOp(SyncOpUid::next(), {}, obj->getRoSealReads(), obj, {0, obj->getMipLevels(), 0, obj->getArrayLayers()});
+    ImageSyncOp(SyncOpUid::next(obj), {}, obj->getRoSealReads(), obj, {0, obj->getMipLevels(), 0, obj->getArrayLayers()});
   arr[lastProcessed].specificInit(false /*nrpAttachment*/, obj->layout.roSealTargetLayout, ExecutionSyncTracker::SUBPASS_NON_NATIVE, 0,
     false /*discard*/);
 }

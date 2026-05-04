@@ -124,6 +124,7 @@ struct RenderPass
       uint32_t index = ~0u;
       uint32_t resolve_index = ~0u;
       MTLLoadAction load_action = MTLLoadActionDontCare;
+      MTLLoadAction stencil_load_action = MTLLoadActionDontCare;
       MTLStoreAction store_action = MTLStoreActionDontCare;
     };
     struct PassInput
@@ -200,7 +201,7 @@ bool setRtState(TrackDriver3dRenderTarget &oldrt, TrackDriver3dRenderTarget &rt)
 
   if (!rt.isDepthUsed())// && oldrt.isDepthUsed())
   {
-    render.setDepth(drv3d_metal::RenderAttachment { .store_action = MTLStoreActionDontCare });
+    render.setDepth(drv3d_metal::RenderAttachment { .store_action = MTLStoreActionDontCare }, drv3d_metal::RenderAttachment { .store_action = MTLStoreActionDontCare });
   }
   else
   if (rt.isDepthUsed())
@@ -223,7 +224,7 @@ bool setRtState(TrackDriver3dRenderTarget &oldrt, TrackDriver3dRenderTarget &rt)
       }
 
     }
-    render.setDepth(attach);
+    render.setDepth(attach, attach);
 
     if (!rt.isColorUsed())
     {
@@ -603,7 +604,7 @@ void RenderPass::bind()
     nextRtState.removeColor(index);
   }
   nextRtState.removeDepth();
-  render.setDepth({});
+  render.setDepth({}, {});
 
   int samples = -1, layers = -1;
   for (auto &color : pass.colors)
@@ -615,9 +616,13 @@ void RenderPass::bind()
 
   if (pass.depth_stencil.index != ~0u)
   {
-    auto attach = toRenderAttachment(pass.depth_stencil, active->textures);
-    render.setDepth(attach);
-    set_depth_impl(attach.resolve_target ? attach.resolve_target : attach.texture, attach.layer, attach.store_action == MTLStoreActionDontCare);
+    const RenderPassTarget &target = active->textures[pass.depth_stencil.index];
+    auto depth = toRenderAttachment(pass.depth_stencil, active->textures);
+    auto stencil = depth;
+    stencil.load_action = pass.depth_stencil.stencil_load_action;
+    stencil.clear_value[0] = target.clearValue.asStencil;
+    render.setDepth(depth, stencil);
+    set_depth_impl(depth.resolve_target ? depth.resolve_target : depth.texture, depth.layer, depth.store_action == MTLStoreActionDontCare);
   }
 
   for (auto &tex : pass.inputs)
@@ -652,22 +657,30 @@ static uint32_t decodeSubpassAction(RenderPass::Subpass &pass, uint32_t action, 
   return bind.target;
 }
 
-static MTLLoadAction decodeLoadAction(RenderPass::Subpass &pass, uint32_t load_action, const RenderPassBind &bind)
+static void decodeLoadAction(RenderPass::Subpass::Attachment &attach, const RenderPassBind &bind)
 {
-  switch (load_action)
+  uint32_t load_action = bind.action & RP_TA_LOAD_MASK;
+  if (load_action == RP_TA_NONE)
   {
-    case RP_TA_NONE:
-      return MTLLoadActionLoad;
-    case RP_TA_LOAD_READ:
-      return MTLLoadActionLoad;
-    case RP_TA_LOAD_CLEAR:
-      return MTLLoadActionClear;
-    case RP_TA_LOAD_NO_CARE:
-      return MTLLoadActionDontCare;
-    default:
-      G_ASSERTF(0, "Unknown subpass load action %d for subpass %d", load_action, bind.subpass);
+    attach.load_action = MTLLoadActionLoad;
+    attach.stencil_load_action = MTLLoadActionLoad;
   }
-  return MTLLoadActionDontCare;
+  else
+  {
+    if (load_action & RP_TA_LOAD_READ)
+      attach.stencil_load_action = attach.load_action = MTLLoadActionLoad;
+    else if (load_action & RP_TA_LOAD_CLEAR)
+      attach.stencil_load_action = attach.load_action = MTLLoadActionClear;
+    else if (load_action & RP_TA_LOAD_NO_CARE)
+      attach.stencil_load_action = attach.load_action = MTLLoadActionDontCare;
+
+    if (load_action & RP_TA_LOAD_STENCIL_READ)
+      attach.stencil_load_action = MTLLoadActionLoad;
+    else if (load_action & RP_TA_LOAD_STENCIL_CLEAR)
+      attach.stencil_load_action = MTLLoadActionClear;
+    else if (load_action & RP_TA_LOAD_STENCIL_NO_CARE)
+      attach.stencil_load_action = MTLLoadActionDontCare;
+  }
 }
 
 static MTLStoreAction decodeStoreAction(RenderPass::Subpass &pass, uint32_t store_action, const RenderPassBind &bind)
@@ -717,7 +730,6 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
       continue;
 
     uint32_t subpass_action = bind.action & RP_TA_SUBPASS_MASK;
-    uint32_t load_action = bind.action & RP_TA_LOAD_MASK;
     uint32_t store_action = bind.action & RP_TA_STORE_MASK;
 
     RenderPass::Subpass &pass = rp->subpasses[render.has_image_blocks ? 0 : bind.subpass];
@@ -725,7 +737,7 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
     {
       RenderPass::Subpass::Attachment attach;
       attach.index = bind.target;
-      attach.load_action = decodeLoadAction(pass, load_action, bind);
+      decodeLoadAction(attach, bind);
       attach.store_action = decodeStoreAction(pass, store_action, bind);
       if (subpass_action == RP_TA_SUBPASS_WRITE)
         attach.store_action = MTLStoreActionStore;
@@ -762,7 +774,7 @@ RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
 
       int index = bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL ? bind.target : Program::MAX_SIMRT;
       if (bind.action & RP_TA_LOAD_MASK)
-        attachments[index].load_action = decodeLoadAction(pass, load_action, bind);
+        decodeLoadAction(attachments[index], bind);
       if (bind.action & RP_TA_STORE_MASK)
         attachments[index].store_action = decodeStoreAction(pass, store_action, bind);
 

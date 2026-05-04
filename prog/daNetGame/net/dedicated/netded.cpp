@@ -12,7 +12,7 @@
 #include "net/netConsts.h"
 #include <util/dag_string.h>
 #include <util/dag_watchdog.h>
-#include <crypto/base64.h>
+#include <dagCrypto/base64.h>
 #include <EASTL/string.h>
 #include <EASTL/algorithm.h>
 #include <ioSys/dag_dataBlock.h>
@@ -66,20 +66,29 @@ namespace dedicated
 static uint16_t binded_net_port = 0;
 uint16_t get_binded_port() { return binded_net_port; }
 
+#if !DAGOR_HOSTED_INTERNAL_SERVER
 bool is_dedicated() { return true; }
+#endif
 
 const char *get_host_url(eastl::string &str, int &it)
 {
   const char *listen = dgs_get_argv("listen", it);
   if (!listen)
+  {
+    debug("get_host_url %d: not listen (dgs_argc=%d), returns null", it, dgs_argc);
     return nullptr;
+  }
   if (const char *pcol = strchr(listen, ':')) // port already specified
+  {
+    debug("get_host_url %d: listen %s", it, listen);
     return listen;
+  }
   // append binded port
   int bport = get_binded_port();
   G_FAST_ASSERT(bport != 0);
   str = listen;
   str.append_sprintf(":%d", bport);
+  debug("get_host_url %d: %s", it, str.c_str());
   return str.c_str();
 }
 
@@ -118,7 +127,7 @@ net::INetDriver *create_listen_net_driver()
       sdss.type = SocketDescriptor::SOCKET;
       sdss.socket = sockfp;
       int max_connections = NET_MAX_PLAYERS;
-      if (gameproj::is_hosted_server_instance())
+      if (dedicated::is_hosted_server_instance())
         max_connections += 1; // reserve one connection for possible relay control connections
       drv = net::create_net_driver_listen(sdss, max_connections);
     }
@@ -200,7 +209,7 @@ static void on_sync_vroms_done_msg(const net::IMessage *msgraw)
   debug("[SyncVroms]: The client #%d has applied vrom diffs successfully", msgraw->connection->getId());
 
   auto msg = msgraw->cast<SyncVromsDone>();
-  G_ASSERT(msg);
+  G_VERIFY(msg);
 
   auto it = apply_diffs_timestamp_map.find(msgraw->connection->getId());
   if (it != apply_diffs_timestamp_map.end())

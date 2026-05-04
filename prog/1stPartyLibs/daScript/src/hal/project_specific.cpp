@@ -1,13 +1,7 @@
-#include "daScript/misc/platform.h"
-#include "daScript/daScriptModule.h"
+#include <daScript/misc/platform.h>
 
-using namespace das;
-
-void require_project_specific_modules() {
-
-    #if defined(_EMSCRIPTEN_VER)
-    return;
-    #else
-    NEED_MODULE(Module_UnitTest);
-    #endif
-}
+// For some reason Win requires this function to be marked
+// with DAS_API even though we link it directly to exe.
+//
+// Nothing by default.
+DAS_API void require_project_specific_modules() {}

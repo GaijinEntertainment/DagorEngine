@@ -6,8 +6,13 @@ options strict_smart_pointers = true
 
 module if_not_null shared private
 
-require ast
-require rtti
+//! Null-safe call macro.
+//!
+//! ``if_not_null`` transforms ``ptr |> if_not_null <| call(...)`` into a null check
+//! followed by a dereferenced call — ``call`` only executes if ``ptr`` is not null.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/defer
@@ -38,7 +43,7 @@ class ApplyMacro : AstCallMacro {
             if (!PTR._type.flags.constant) {
                 vtype.flags |= TypeDeclFlags.removeConstant
             }
-            return <- qmacro_block <| $() {
+            return <- qmacro_block() {
                 let $i(ifnn_name) : $t(vtype) = $e(PTR)
                 if ($i(ifnn_name) != null) {
                     $c(fcall.name)(*$i(ifnn_name), $a(fcall.arguments))

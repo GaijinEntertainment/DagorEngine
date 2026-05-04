@@ -10,12 +10,12 @@
 #include <util/dag_stdint.h>
 #include "jpgCommon.h"
 
-METHODDEF(void) dagor_jpeg_error_exit(j_common_ptr cinfo)
+static void dagor_jpeg_error_exit(j_common_ptr cinfo)
 {
   my_error_ptr myerr = (my_error_ptr)cinfo->err;
+  jpeg_destroy(cinfo);
   longjmp(myerr->setjmp_buffer, 1);
 }
-
 
 bool read_jpeg32_dimensions(const char *fn, int &out_w, int &out_h)
 {
@@ -29,10 +29,7 @@ bool read_jpeg32_dimensions(const char *fn, int &out_w, int &out_h)
   jerr.pub.error_exit = dagor_jpeg_error_exit;
 
   if (setjmp(jerr.setjmp_buffer))
-  {
-    jpeg_destroy_decompress(&cinfo);
     return false;
-  }
 
   jpeg_create_decompress(&cinfo);
   jpeg_stream_src(&cinfo, crd);
@@ -68,10 +65,7 @@ void *load_jpeg32(IGenLoad &crd, IAllocImg &a, eastl::string *comments)
   jerr.pub.error_exit = dagor_jpeg_error_exit;
 
   if (setjmp(jerr.setjmp_buffer))
-  {
-    jpeg_destroy_decompress(&cinfo);
     return NULL;
-  }
 
   jpeg_create_decompress(&cinfo);
   jpeg_stream_src(&cinfo, crd);
@@ -79,7 +73,11 @@ void *load_jpeg32(IGenLoad &crd, IAllocImg &a, eastl::string *comments)
   if (comments)
     jpeg_save_markers(&cinfo, JPEG_COM, 0xFFFF);
 
-  jpeg_read_header(&cinfo, TRUE);
+  if (jpeg_read_header(&cinfo, TRUE) == JPEG_SUSPENDED)
+  {
+    jpeg_destroy_decompress(&cinfo);
+    return NULL;
+  }
 
   if (comments && cinfo.marker_list && cinfo.marker_list->data)
   {
@@ -185,10 +183,7 @@ TexImage8 *load_jpeg8(IGenLoad &crd, IMemAlloc *mem)
   jerr.pub.error_exit = dagor_jpeg_error_exit;
 
   if (setjmp(jerr.setjmp_buffer))
-  {
-    jpeg_destroy_decompress(&cinfo);
     return NULL;
-  }
 
   jpeg_create_decompress(&cinfo);
   jpeg_stream_src(&cinfo, crd);
@@ -260,10 +255,7 @@ TexImage8a *load_jpeg8a(IGenLoad &crd, IMemAlloc *mem)
   jerr.pub.error_exit = dagor_jpeg_error_exit;
 
   if (setjmp(jerr.setjmp_buffer))
-  {
-    jpeg_destroy_decompress(&cinfo);
     return NULL;
-  }
 
   jpeg_create_decompress(&cinfo);
   jpeg_stream_src(&cinfo, crd);

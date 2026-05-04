@@ -12,6 +12,10 @@
 class DataBlock;
 class VoiceSession;
 class VoiceManager;
+namespace voicechat
+{
+class IVoiceSink;
+}
 
 class IVoiceSessionCb
 {
@@ -21,17 +25,28 @@ public:
   virtual void onVoiceSessionParted(const char *str_uid, const char *name) = 0;
   virtual void onVoiceSessionUpdated(const char *str_uid, const char *name, bool is_speaking) = 0;
   virtual void onVoiceSessionSpeakerEidChanged(const char *str_uid, ecs::EntityId speaker_eid) = 0;
-  virtual void onSessionConnect(bool connected) = 0;
+  virtual void onVoiceSessionMicroStateChanged(const char *str_uid, const char *name, bool microEnabled) = 0;
+  virtual void onSessionConnect(bool connected, bool is_positional) = 0;
   virtual void onSessionDisconnect() = 0;
   virtual ~IVoiceSessionCb() = default;
 };
 
+class BinaryChannel
+{
+public:
+  virtual ~BinaryChannel() {}
+
+  virtual bool setMaxBinaryChannelQueueSize(size_t) { return false; };
+  virtual size_t readFromBinaryChannel(char *, size_t) { return 0; };
+  virtual bool writeToBinaryChannel(const char *, size_t) { return false; };
+};
 
 class VoiceSession
 {
 public:
   virtual void destroy() = 0;
   virtual void setCb(IVoiceSessionCb *cb) = 0;
+  virtual bool shouldLeaveOnSessionEnd() const { return false; };
 
 protected:
   VoiceSession() {}
@@ -64,6 +79,7 @@ public:
   virtual void updateSettings() = 0;
 
   virtual void setVolumeOut(float val) = 0;
+  virtual void setVolumeOutFor(const char *uri, float val) = 0;
   virtual void setVolumeIn(float val) = 0;
   virtual void muteLocalMic(bool mute) = 0;
   virtual void muteRemoteSound(bool mute) = 0;
@@ -74,21 +90,31 @@ public:
   virtual void setRecordDevice(int id) = 0;
 
   virtual bool isOffline() const = 0;
+
+  virtual void addExtraVoiceSink(voicechat::IVoiceSink *) {}
+  virtual void removeExtraVoiceSink(voicechat::IVoiceSink *) {}
 };
+
+class VoiceManagerWithBinaryChannel : public VoiceManager, public BinaryChannel
+{};
 
 class CompositeVoiceManager : public VoiceManager
 {
 public:
-  virtual void registerVoiceManager(const char *prefix, eastl::unique_ptr<VoiceManager> &&manager) = 0;
+  virtual void registerVoiceManager(const char *prefix, eastl::unique_ptr<VoiceManagerWithBinaryChannel> &&manager) = 0;
 
   virtual void muteLocalMicFor(const char *uri, bool mute) = 0;
   virtual void muteRemoteSoundFor(const char *uri, bool mute) = 0;
   virtual void muteRemotePeerFor(const char *uri, bool mute, const char *name) = 0;
   virtual void muteRemotePeerFor(const char *uri, bool mute, uint64_t user_id) = 0;
+
+  virtual bool setMaxBinaryChannelQueueSize(const char *uri, size_t size) = 0;
+  virtual size_t readFromBinaryChannel(const char *uri, char *dst, size_t size) = 0;
+  virtual bool writeToBinaryChannel(const char *uri, const char *src, size_t size) = 0;
 };
 
-VoiceManager *create_voice_manager_tamvoice();
-VoiceManager *create_voice_manager_proximity_chat();
+VoiceManagerWithBinaryChannel *create_voice_manager_tamvoice();
+VoiceManagerWithBinaryChannel *create_voice_manager_proximity_chat();
 CompositeVoiceManager *create_voice_manager_composite();
 
 constexpr const char *TAMVOICE_URL_PREFIX = "tamvchn://";

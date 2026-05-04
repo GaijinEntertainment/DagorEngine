@@ -37,8 +37,8 @@ static void custom_envi_probe_set_shadervars(float x_rotation, float y_rotation,
   sincos(DegToRad(x_rotation), sinX, cosX);
   float sinY, cosY;
   sincos(DegToRad(y_rotation), sinY, cosY);
-  ShaderGlobal::set_color4(envi_probe_rotationVarId, cosX, sinX, cosY, sinY);
-  ShaderGlobal::set_real(envi_probe_mulVarId, mul);
+  ShaderGlobal::set_float4(envi_probe_rotationVarId, cosX, sinX, cosY, sinY);
+  ShaderGlobal::set_float(envi_probe_mulVarId, mul);
 }
 
 ECS_TAG(render)

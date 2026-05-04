@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("daspkg-example-cpp")
+    package_description("Example C++ module using ManagedStructureAnnotation (Counter type)")
+}
+
+[export]
+def build() {
+    cmake_build()
+}

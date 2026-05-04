@@ -69,6 +69,7 @@ public:
   // and commit changes to cur_buffer at the end of frame
   id<MTLBuffer> dynamic_buffer = nil;
   int dynamic_offset = 0;
+  int dynamic_size = 0;
   uint64_t dynamic_frame = 0;
 
   // slot mask where buffer is bound

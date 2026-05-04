@@ -219,39 +219,39 @@ void AboutDlg::addLine(const char text[], bool bolt)
 
 void AboutDlg::fill()
 {
-  addLine("Менеджеры", true);
-  addLine("Антон Юдинцев");
-  addLine("Кирилл Юдинцев");
+  addLine("Managers", true);
+  addLine("Anton Yudintsev");
+  addLine("Kirill Yudintsev");
 
   addLine("");
 
-  addLine("Ведущие программисты", true);
-  addLine("Николай Савичев");
-  addLine("Олег Смирнов");
+  addLine("Lead Programmers", true);
+  addLine("Nikolay Savichev");
+  addLine("Oleg Smirnov");
 
   addLine("");
 
-  addLine("Программисты", true);
-  addLine("Алексей Волынсков");
-  addLine("Сергей Галкин");
-  addLine("Александр Демидов");
-  addLine("Андрей Мироненко");
-  addLine("Андрей Резник");
-  addLine("Дмитрий Шипилов");
+  addLine("Programmers", true);
+  addLine("Alexey Volynskov");
+  addLine("Sergey Galkin");
+  addLine("Alexander Demidov");
+  addLine("Andrey Mironenko");
+  addLine("Andrey Reznik");
+  addLine("Dmitry Shipilov");
   addLine("");
-  addLine("Александ Харьков");
-  addLine("Олег Олейниченко");
-  addLine("Игорь Турега");
-
-  addLine("");
-
-  addLine("Документация", true);
-  addLine("Олег Демешко");
+  addLine("Alexander Kharkov");
+  addLine("Oleg Oleynichenko");
+  addLine("Igor Turega");
 
   addLine("");
 
-  addLine("Тестирование, рекомендации", true);
-  addLine("Олег Курченко");
-  addLine("Кирилл Плюснин");
-  addLine("Роман Шелагуров");
+  addLine("Documentation", true);
+  addLine("Oleg Demeshko");
+
+  addLine("");
+
+  addLine("Testing, Recommendations", true);
+  addLine("Oleg Kurchenko");
+  addLine("Kirill Plyusnin");
+  addLine("Roman Shelagurov");
 }

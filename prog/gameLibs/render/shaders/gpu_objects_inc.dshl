@@ -1,0 +1,37 @@
+int gpu_objects_bvh_max_count = 0;
+int gpu_objects_use_bvh = 0;
+interval gpu_objects_use_bvh : no < 1, yes;
+
+buffer gpu_objects_bvh_counter;
+buffer gpu_objects_bvh_instances;
+buffer gpu_objects_bvh_mappings;
+
+macro INIT_BVH_GOBJ()
+  if (gpu_objects_use_bvh == yes && use_hw_raytracing)
+  {
+    hlsl {
+      #define GENERATE_BVH_INTANCES 1
+      static const uint bvhGroupRi = 1 << 2;
+    }
+    (cs) {
+      gpu_objects_bvh_max_count@i1 = gpu_objects_bvh_max_count;
+
+      gpuobjectsBvhCounter@uav = gpu_objects_bvh_counter hlsl { RWByteAddressBuffer gpuobjectsBvhCounter@uav; };
+      gpuobjectsBvhInstances@uav = gpu_objects_bvh_instances hlsl
+      {
+        #include <RTHWInstance.hlsli>
+        RWStructuredBuffer<RTHWInstance> gpuobjectsBvhInstances@uav;
+      };
+      gpuobjectsBvhMappings@buf = gpu_objects_bvh_mappings hlsl
+      {
+        struct GpuObjectsBvhMapping
+        {
+          uint2 blas;
+          uint metaIndex;
+          uint padding;
+        };
+        StructuredBuffer<GpuObjectsBvhMapping> gpuobjectsBvhMappings@buf;
+      };
+    }
+  }
+endmacro

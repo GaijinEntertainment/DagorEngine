@@ -1,0 +1,36 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+texture packed_gbuf_1_tex;
+texture mixed_normals;
+
+shader normal_unpack
+{
+  z_test=false;
+  z_write=false;
+  cull_mode = none;
+
+  POSTFX_VS_TEXCOORD(1, texcoord)
+  INIT_PACK_UNPACK_DYNSTCODE(ps)
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+
+  (ps){
+    packed_gbuf_1_tex@tex2d = packed_gbuf_1_tex;
+  }
+  INIT_GLOBAL_POINT_CLAMP_SAMPLER(ps)
+  hlsl(ps) {
+    #define packed_gbuf_1_tex_samplerstate global_point_clamp_sampler
+  }
+  PACK_UNPACK_GBUFFER_BASE(ps)
+
+  hlsl(ps)
+  {
+    half4 main_ps(VsOutput input) : SV_Target
+    {
+      float4 normal_material = tex2Dlod(packed_gbuf_1_tex, float4(input.texcoord, 0, 0));
+      half3 normal = normalize(unpack_normal_so(half2(normal_material.xy)));
+      return half4(normal * 0.5h + 0.5h, 1.h);
+    }
+  }
+  compile("target_ps", "main_ps");
+}

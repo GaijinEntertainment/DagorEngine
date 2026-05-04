@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <squirrel.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <json/json.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <ecs/input/hidEventRouter.h>
@@ -119,6 +119,8 @@ static unsigned get_cur_used_device_mask()
 
 namespace inputmonitor
 {
+bool is_gamepad_used() { return last_mask & DEV_USED_gamepad; }
+
 void register_input_handler() { register_hid_event_handler(&inputHandler, 1000); }
 
 void notify_input_devices_used()
@@ -129,9 +131,7 @@ void notify_input_devices_used()
     return;
 
   last_mask = mask;
-  Json::Value params;
-  params["mask"] = mask;
-  sqeventbus::send_event(INPUT_DEVICE_USED_EVENT, params);
+  sqeventbus::write_event_main_thread(INPUT_DEVICE_USED_EVENT, [=](auto &params) { params["mask"] = mask; });
 }
 
 ///@module lastInputMonitor

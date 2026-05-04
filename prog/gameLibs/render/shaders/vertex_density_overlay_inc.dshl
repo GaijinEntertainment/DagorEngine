@@ -12,9 +12,8 @@ macro VERTEX_DENSITY_INIT_VS()
   {
     (vs) {
       vertexDensityHalfSize@f1 = (vertexDensityHalfSize)
-      hlsl {
-        //hardcoded register because our compiler can't in VS UAVs
-        RWByteAddressBuffer vertexDensityAccumulator : register(u6);
+      vertexDensityAccumulator@uav : register(6) hlsl {
+        RWByteAddressBuffer vertexDensityAccumulator@uav;
       }
     }
   }

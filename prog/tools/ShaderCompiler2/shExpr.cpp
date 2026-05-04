@@ -1533,7 +1533,7 @@ void FunctionExpression::assembleBytecode(CodeTable &code, Register &dest_reg, S
   }
 
   auto addFunctionCall = [&, this](int dreg) {
-    code.push_back(shaderopcode::makeOp3(SHCOD_CALL_FUNCTION, func, int(dreg), opRegs.size()));
+    code.push_back(shaderopcode::makeOpFunctionCall(SHCOD_CALL_FUNCTION, func, int(dreg), opRegs.size()));
     for (int i = 0; i < getOperandCount(); i++)
       code.push_back(int(opRegs[i]));
   };

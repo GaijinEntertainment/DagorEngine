@@ -31,7 +31,7 @@ struct TgaHeader
 #pragma pack(pop)
 
 
-static void save_tga_app_data(file_ptr_t h, unsigned char *app_data, unsigned int app_data_len)
+static void save_tga_app_data(file_ptr_t h, const unsigned char *app_data, unsigned int app_data_len)
 {
   if (!app_data || !app_data_len)
     return;
@@ -53,7 +53,8 @@ static void save_tga_app_data(file_ptr_t h, unsigned char *app_data, unsigned in
 }
 
 
-int save_tga8a(const char *fn, TexPixel8a *ptr, int wd, int ht, int stride, unsigned char *app_data, unsigned int app_data_len)
+int save_tga8a(const char *fn, const TexPixel8a *ptr, int wd, int ht, int stride, const unsigned char *app_data,
+  unsigned int app_data_len)
 {
   if (!ptr)
     return 0;
@@ -80,7 +81,8 @@ int save_tga8a(const char *fn, TexPixel8a *ptr, int wd, int ht, int stride, unsi
   return 1;
 }
 
-int save_tga8(const char *fn, unsigned char *ptr, int wd, int ht, int stride, unsigned char *app_data, unsigned int app_data_len)
+int save_tga8(const char *fn, const unsigned char *ptr, int wd, int ht, int stride, const unsigned char *app_data,
+  unsigned int app_data_len)
 {
   if (!ptr)
     return 0;
@@ -93,7 +95,7 @@ int save_tga8(const char *fn, unsigned char *ptr, int wd, int ht, int stride, un
   hdr.pack = 3;
   hdr.desc = hdr.bits = 8;
   df_write(h, &hdr, sizeof(hdr));
-  unsigned char *p = (unsigned char *)ptr + stride * (ht - 1);
+  const unsigned char *p = (const unsigned char *)ptr + stride * (ht - 1);
   for (int i = 0; i < ht; ++i, p -= stride)
     df_write(h, p, wd);
   save_tga_app_data(h, app_data, app_data_len);
@@ -101,7 +103,8 @@ int save_tga8(const char *fn, unsigned char *ptr, int wd, int ht, int stride, un
   return 1;
 }
 
-int save_tga32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, unsigned char *app_data, unsigned int app_data_len)
+int save_tga32(const char *fn, const TexPixel32 *ptr, int wd, int ht, int stride, const unsigned char *app_data,
+  unsigned int app_data_len)
 {
   if (!ptr)
   {
@@ -118,7 +121,7 @@ int save_tga32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, unsi
   df_write(h, &wd, 2);
   df_write(h, &ht, 2);
   df_write(h, "\x20\x08", 2);
-  char *p = (char *)ptr + stride * (ht - 1);
+  const char *p = (const char *)ptr + stride * (ht - 1);
   for (int i = 0; i < ht; ++i, p -= stride)
     df_write(h, p, wd * 4);
   save_tga_app_data(h, app_data, app_data_len);
@@ -126,14 +129,14 @@ int save_tga32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, unsi
   return 1;
 }
 
-int save_tga32(const char *fn, TexImage32 *im, unsigned char *app_data, unsigned int app_data_len)
+int save_tga32(const char *fn, const TexImage32 *im, const unsigned char *app_data, unsigned int app_data_len)
 {
   if (!im)
     return 0;
-  return save_tga32(fn, (TexPixel32 *)(im + 1), im->w, im->h, im->w * 4, app_data, app_data_len);
+  return save_tga32(fn, (const TexPixel32 *)(im + 1), im->w, im->h, im->w * 4, app_data, app_data_len);
 }
 
-int save_tga24(const char *fn, char *ptr, int wd, int ht, int stride, unsigned char *app_data, unsigned int app_data_len)
+int save_tga24(const char *fn, const char *ptr, int wd, int ht, int stride, const unsigned char *app_data, unsigned int app_data_len)
 {
   if (!ptr)
     return 0;
@@ -144,7 +147,7 @@ int save_tga24(const char *fn, char *ptr, int wd, int ht, int stride, unsigned c
   df_write(h, &wd, 2);
   df_write(h, &ht, 2);
   df_write(h, "\x18\x00", 2);
-  char *p = (char *)ptr + stride * (ht - 1);
+  const char *p = (const char *)ptr + stride * (ht - 1);
   for (int i = 0; i < ht; ++i, p -= stride)
     df_write(h, p, wd * 3);
   save_tga_app_data(h, app_data, app_data_len);
@@ -152,9 +155,9 @@ int save_tga24(const char *fn, char *ptr, int wd, int ht, int stride, unsigned c
   return 1;
 }
 
-int save_tga24(const char *fn, TexImage *im, unsigned char *app_data, unsigned int app_data_len)
+int save_tga24(const char *fn, const TexImage *im, const unsigned char *app_data, unsigned int app_data_len)
 {
   if (!im)
     return 0;
-  return save_tga24(fn, (char *)(im + 1), im->w, im->h, im->w * 3, app_data, app_data_len);
+  return save_tga24(fn, (const char *)(im + 1), im->w, im->h, im->w * 3, app_data, app_data_len);
 }

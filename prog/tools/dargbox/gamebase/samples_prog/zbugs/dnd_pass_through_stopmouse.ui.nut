@@ -59,7 +59,7 @@ return {
     // front pane that overlapping left part of active elements to compare event shielding effect
     {
       rendObj = ROBJ_SOLID
-      size = static [pw(50), flex()]
+      size = const [pw(50), flex()]
       color = 0x22222222
       // cursors of bottom active elements should not override default one!
       stopMouse = true

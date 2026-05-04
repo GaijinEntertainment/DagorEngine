@@ -21,7 +21,9 @@ void keyboard_pressed_es_event_handler(const EventDebugKeyboardPressed &evt)
 Step 2: Build and run the game in dev or dbg mode, in release the events are turned off!
 */
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <drv/hid/dag_hiKeybIds.h>  //For the keyboard enum
 #include <drv/hid/dag_hiMouseIds.h> //For the mouse enum
 

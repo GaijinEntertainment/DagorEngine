@@ -2,11 +2,12 @@
 
 #include <memory/dag_framemem.h>
 #include <memory/dag_memBase.h>
+#include <memory/dag_mem.h>
 #include <stddef.h>
 
 #if DAGOR_PREFER_HEAP_ALLOCATION
 
-void reset_framemem() {}
+void reset_framemem_impl() {}
 IMemAlloc *framemem_ptr() { return defaultmem; }
 FramememScopedRegion::FramememScopedRegion() {}
 FramememScopedRegion::~FramememScopedRegion() {}
@@ -15,9 +16,10 @@ FramememScopedValidator::FramememScopedValidator(const char *, uint32_t) {}
 FramememScopedValidator::~FramememScopedValidator() {}
 #endif
 
-extern const size_t DEFAULT_FRAMEMEM_SIZE = 0;
 IMemAlloc *alloc_thread_framemem(size_t) { return defaultmem; }
+IMemAlloc *alloc_threadpool_framemem() { return defaultmem; }
 void free_thread_framemem() {}
+IMemAlloc **get_thread_framemem() { return nullptr; }
 
 #else
 
@@ -45,28 +47,24 @@ void free_thread_framemem() {}
 #include <string.h>
 
 #define DEF_ALIGNMENT 16u
-
+static constexpr size_t DEFAULT_FRAMEMEM_SIZE = 1 << 20;
 
 #define MEM_END(m)           (m->memEnd)
 #define IS_OUR_PTR(m, x)     ((uintptr_t)x >= (uintptr_t)m->framemem_space && (uintptr_t)x < (uintptr_t)MEM_END(m))
 #define IS_OUR_CUR_PTR(m, x) ((uintptr_t)x >= (uintptr_t)m->framemem_space && (uintptr_t)x <= (uintptr_t)MEM_END(m))
 
-static inline void fill_with_debug_pattern(char *beg, char *end)
-{
 #if MEM_DEBUGALLOC > 0
+static inline void fill_with_debug_pattern(char *beg, char *end, unsigned lim = 4096)
+{
   G_FAST_ASSERT(end >= beg);
   G_FAST_ASSERT(!(uintptr_t(beg) & 15));
   G_FAST_ASSERT(!(uintptr_t(end) & 15));
-  static const vec4i_const DEBUG_PATTERN = DECL_VECUINT4(0x7ffbffff, 0x7ffbffff, 0x7ffbffff, 0x7ffbffff);
-  vec4f pattern = (vec4f)DEBUG_PATTERN;
-  char *maxEnd = beg + 4096, *end_ = end < maxEnd ? end : maxEnd; // cap of how much memory we filling up for debug (for perfomance)
-  for (; beg < end_; beg += 16)
-    v_st(beg, pattern);
-#else
-  G_UNUSED(beg);
-  G_UNUSED(end);
-#endif
+  memset_dw(beg, 0x7ffbffff, min(unsigned(end - beg), lim) / sizeof(int));
 }
+#else
+static inline void fill_with_debug_pattern(char *, char *, unsigned = 0) {}
+#endif
+
 #if PROFILE_FRAMEMEM_USAGE
 #include <math/dag_adjpow2.h>
 #include <util/dag_string.h>
@@ -197,10 +195,9 @@ public:
 
   FramememState state;
 
-  FrameMemAlloc(size_t space) : memEnd(framemem_space + space), state(FramememState{framemem_space, NULL})
+  FrameMemAlloc(size_t space) : memEnd(framemem_space + space), state(FramememState{framemem_space, NULL}) //-V730
   {
     G_FAST_ASSERT(((uintptr_t)framemem_space & (DEF_ALIGNMENT - 1)) == 0);
-    fill_with_debug_pattern(state.cur_ptr, MEM_END(this));
     liberatorInit();
     placeSentinel();
   }
@@ -215,6 +212,11 @@ public:
 
   void reset()
   {
+#if MEM_DEBUGALLOC > 0 // Assume that `memset` would be faster then `rep stosd` used by `memset_dw`
+    static_assert((64 << 10) <= ((DEFAULT_FRAMEMEM_SIZE / 2) - offsetof(FrameMemAlloc, framemem_space)));
+    if (size_t szToFill = min<size_t>((64 << 10) - ALIGNED_HEADER_SIZE, state.cur_ptr - &framemem_space[ALIGNED_HEADER_SIZE]))
+      memset(&framemem_space[ALIGNED_HEADER_SIZE], 0xff, szToFill);
+#endif
     state = FramememState{framemem_space, NULL};
     placeSentinel();
   }
@@ -393,24 +395,20 @@ public:
     }
   }
   void freeAligned(void *p) override { free(p); }
-  char *memEnd = nullptr;                                          // points to end of allocation
-  alignas(DEF_ALIGNMENT) char framemem_space[DEF_ALIGNMENT] = {0}; // actual size will be bigger
+  char *memEnd = nullptr;                                    // points to end of allocation
+  alignas(DEF_ALIGNMENT) char framemem_space[DEF_ALIGNMENT]; // actual size will be bigger
 };
 
 #if _TARGET_STATIC_LIB
 thread_local IMemAlloc *thread_framemem = tmpmem_ptr();
+static RAIIThreadFramememAllocator main_thread_fmem_alc;
 #else
 static thread_local IMemAlloc *thread_framemem = tmpmem_ptr();
-IMemAlloc *framemem_ptr() { return thread_framemem; }
+IMemAlloc *framemem_ptr() { return thread_framemem ? thread_framemem : alloc_threadpool_framemem(); }
+IMemAlloc **get_thread_framemem() { return &thread_framemem; }
 #endif
 
 static inline FrameMemAlloc *as_framemem() { return thread_framemem == tmpmem ? nullptr : (FrameMemAlloc *)thread_framemem; }
-
-#if _TARGET_TVOS | _TARGET_IOS | _TARGET_ANDROID | _TARGET_C3
-extern const size_t DEFAULT_FRAMEMEM_SIZE = 256 << 10;
-#else
-extern const size_t DEFAULT_FRAMEMEM_SIZE = 1 << 20;
-#endif
 
 IMemAlloc *alloc_thread_framemem(size_t sz)
 {
@@ -431,9 +429,9 @@ void free_thread_framemem()
   }
 }
 
-static RAIIThreadFramememAllocator main_thread;
+IMemAlloc *alloc_threadpool_framemem() { return alloc_thread_framemem(DEFAULT_FRAMEMEM_SIZE / 2); }
 
-void reset_framemem()
+void reset_framemem_impl()
 {
   if (auto m = as_framemem())
   {
@@ -457,13 +455,17 @@ static inline FramememState save_cur_framemem()
 
 static inline void restore_cur_framemem(const FramememState &p)
 {
-  if (p.cur_ptr)
-    if (auto m = as_framemem())
-    {
-      G_ASSERT(IS_OUR_CUR_PTR(m, p.cur_ptr));
-      m->state = p;
-      m->liberatorPop();
-    }
+  if (auto m = p.cur_ptr ? as_framemem() : nullptr)
+  {
+    G_ASSERT(IS_OUR_CUR_PTR(m, p.cur_ptr));
+#if MEM_DEBUGALLOC > 0
+    G_FAST_ASSERT(m->state.cur_ptr >= p.cur_ptr);
+    if (size_t szToFill = min<size_t>(64 << 10, m->state.cur_ptr - p.cur_ptr))
+      memset(p.cur_ptr, 0xff, szToFill);
+#endif
+    m->state = p;
+    m->liberatorPop();
+  }
 }
 
 FramememScopedRegion::FramememScopedRegion() : p(save_cur_framemem()) {}

@@ -7,10 +7,10 @@ ECS_DEF_PULL_VAR(renderOcclusionExclusion);
 //static constexpr ecs::ComponentDesc render_occlusion_exclusion_es_event_handler_comps[] ={};
 static void render_occlusion_exclusion_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<OcclusionExclusion>());
   render_occlusion_exclusion_es_event_handler(static_cast<const OcclusionExclusion&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc render_occlusion_exclusion_es_event_handler_es_desc
 (
@@ -40,9 +40,9 @@ static ecs::CompileTimeQueryDesc process_animchar_eid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void process_animchar_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void process_animchar_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, process_animchar_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, process_animchar_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -76,9 +76,9 @@ static ecs::CompileTimeQueryDesc render_hero_ecs_query_desc
   make_span(render_hero_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void render_hero_ecs_query(Callable function)
+inline void render_hero_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, render_hero_ecs_query_desc.getHandle(),
+  perform_query(&manager, render_hero_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -112,9 +112,9 @@ static ecs::CompileTimeQueryDesc render_hero_vehicle_ecs_query_desc
   make_span(render_hero_vehicle_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void render_hero_vehicle_ecs_query(Callable function)
+inline void render_hero_vehicle_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, render_hero_vehicle_ecs_query_desc.getHandle(),
+  perform_query(&manager, render_hero_vehicle_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

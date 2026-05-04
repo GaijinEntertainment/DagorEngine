@@ -69,9 +69,9 @@ static constexpr ecs::ComponentDesc prepare_puddles_es_comps[] =
 };
 static void prepare_puddles_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_FAST_ASSERT(evt.is<BeforeDraw>());
+  G_FAST_ASSERT(evt.is<PreparePuddles>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    prepare_puddles_es(static_cast<const BeforeDraw&>(evt)
+    prepare_puddles_es(static_cast<const PreparePuddles&>(evt)
         , ECS_RW_COMP(prepare_puddles_es_comps, "puddles__manager", PuddlesManager)
     );
   while (++comp != compE);
@@ -85,7 +85,7 @@ static ecs::EntitySystemDesc prepare_puddles_es_es_desc
   empty_span(),
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<BeforeDraw>::build(),
+  ecs::EventSetBuilder<PreparePuddles>::build(),
   0
 ,"render");
 static constexpr ecs::ComponentDesc after_device_reset_puddles_es_comps[] =

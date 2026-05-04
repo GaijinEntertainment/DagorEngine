@@ -4,7 +4,6 @@ int capsuled_units_ao_count;
 float4 capsuled_units_ao_world_to_grid_mul_add = (0,0,-1,-1);
 
 macro USE_CAPSULE_AO(code)
-  ENABLE_ASSERT(code)
   (code)
   {
     capsuled_units_ao@buf = capsuled_units_ao hlsl {#include <capsuledAOOcclusion.hlsli>

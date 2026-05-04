@@ -1,0 +1,5 @@
+normal set: 2
+immutable set: correctly blocked
+w2 unchanged: 10
+whitelisted set: 200
+no whitelist set: 60

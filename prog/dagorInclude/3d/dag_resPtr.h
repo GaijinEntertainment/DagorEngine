@@ -392,8 +392,9 @@ public:
 
   void changeResource(ResPtr<ResType> &&res)
   {
-    this->mResource = eastl::move(res).release();
+    const auto oldResPtr = eastl::exchange(this->mResource, eastl::move(res).release());
     change_managed_res(this->mResId, this->mResource);
+    ShaderGlobal::sync_managed_resource(this->mResId, oldResPtr);
   }
 
   ~UniqueRes() { release(this->mResId, this->mResource); }
@@ -403,7 +404,9 @@ public:
     if (Helper<ResType>::getManagedRefCount(res_id) > 1)
       ShaderGlobal::reset_from_vars(res_id);
     G_ASSERTF(res_id == Helper<ResType>::BAD_ID || Helper<ResType>::getManagedRefCount(res_id) == 1,
-      "resource_name = '%s' res_id=0x%x refCount=%d", res ? res->getName() : "", res_id, Helper<ResType>::getManagedRefCount(res_id));
+      "resource_name = '%s' res_id=0x%x refCount=%d",
+      res ? res->getName() : (Helper<ResType>::getNameById(res_id) ? Helper<ResType>::getNameById(res_id) : "<unknown>"), res_id,
+      Helper<ResType>::getManagedRefCount(res_id));
     Deleter::release(res_id, res);
   }
 };
@@ -465,31 +468,27 @@ public:
 };
 
 #if DAGOR_DBGLEVEL > 1
-// This is a trick to create a global variable in the header.
-// Despite the fact that this header will be included to different cpp,
-// the linker will leave only one copy of this variable
-template <typename T = void>
-eastl::unordered_set<int> gUsedShaderVarIds;
+inline eastl::unordered_set<int> gUsedShaderVarIds;
 
-static void acquireShaderVarId(int new_id)
+inline void acquireShaderVarId(int new_id)
 {
-  if (new_id != VariableMap::BAD_ID && !gUsedShaderVarIds<>.emplace(new_id).second)
+  if (new_id != VariableMap::BAD_ID && !gUsedShaderVarIds.emplace(new_id).second)
     DAG_FATAL("You are trying to bind resource to a shaderVar with id = %d"
               " to which another resource is already bound, this can lead to unpredictable bugs",
       new_id);
 }
 
-static void releaseShaderVarId(int id)
+inline void releaseShaderVarId(int id)
 {
   if (id == VariableMap::BAD_ID)
     return;
 
-  size_t count = gUsedShaderVarIds<>.erase(id);
+  size_t count = gUsedShaderVarIds.erase(id);
   G_ASSERT(count > 0);
 }
 #else
-static void acquireShaderVarId(int) {}
-static void releaseShaderVarId(int) {}
+inline void acquireShaderVarId(int) {}
+inline void releaseShaderVarId(int) {}
 #endif
 
 template <typename ManagedResType>
@@ -539,21 +538,10 @@ public:
   {
     ManagedResType::BaseType::swap(resource);
 
-    if (this->mResId == Helper<ResType>::BAD_ID)
-    {
-      const char *errString = "ConcreteResHolder constructor failed. mResId is equal to BAD_ID";
-      if (!shader_var_name)
-      {
-        logerr(errString);
-        return;
-      }
-      logwarn("%s (shader_var_name: %s)", errString, shader_var_name);
-    }
-
     if (!shader_var_name)
       shader_var_name = Helper<ResType>::getNameById(this->mResId);
 
-    this->setVarId(get_shader_variable_id(shader_var_name));
+    this->setVarId(shader_var_name ? get_shader_variable_id(shader_var_name) : -1);
     if (Helper<ResType>::can_bind(this->mResource))
       this->setVar();
   }
@@ -630,25 +618,29 @@ using BufPtr = ResPtr<Sbuffer>;
 namespace dag
 {
 
-static inline ResFactory<BaseTexture> create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *name)
+static inline ResFactory<BaseTexture> create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<BaseTexture>([=] { return d3d::create_tex(img, w, h, flg, levels, name); });
+  return ResFactory<BaseTexture>([=] { return d3d::create_tex(img, w, h, flg, levels, name, tag); });
 }
-static inline ResFactory<CubeTexture> create_cubetex(int size, int flg, int levels, const char *name)
+static inline ResFactory<CubeTexture> create_cubetex(int size, int flg, int levels, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<CubeTexture>([=] { return d3d::create_cubetex(size, flg, levels, name); });
+  return ResFactory<CubeTexture>([=] { return d3d::create_cubetex(size, flg, levels, name, tag); });
 }
-static inline ResFactory<VolTexture> create_voltex(int w, int h, int d, int flg, int levels, const char *name)
+static inline ResFactory<VolTexture> create_voltex(int w, int h, int d, int flg, int levels, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<VolTexture>([=] { return d3d::create_voltex(w, h, d, flg, levels, name); });
+  return ResFactory<VolTexture>([=] { return d3d::create_voltex(w, h, d, flg, levels, name, tag); });
 }
-static inline ResFactory<ArrayTexture> create_array_tex(int w, int h, int d, int flg, int levels, const char *name)
+static inline ResFactory<ArrayTexture> create_array_tex(int w, int h, int d, int flg, int levels, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<ArrayTexture>([=] { return d3d::create_array_tex(w, h, d, flg, levels, name); });
+  return ResFactory<ArrayTexture>([=] { return d3d::create_array_tex(w, h, d, flg, levels, name, tag); });
 }
-static inline ResFactory<ArrayTexture> create_cube_array_tex(int side, int d, int flg, int levels, const char *name)
+static inline ResFactory<ArrayTexture> create_cube_array_tex(int side, int d, int flg, int levels, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<ArrayTexture>([=] { return d3d::create_cube_array_tex(side, d, flg, levels, name); });
+  return ResFactory<ArrayTexture>([=] { return d3d::create_cube_array_tex(side, d, flg, levels, name, tag); });
 }
 static inline TexPtr create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels = 0, const char *name = nullptr)
 {
@@ -675,17 +667,18 @@ static inline TexPtr alias_cube_array_tex(BaseTexture *base_tex, int side, int d
   return resptr_detail::ResPtrFactory(d3d::alias_cube_array_tex(base_tex, side, d, flg, levels, name));
 }
 
-static inline ResFactory<Vbuffer> create_vb(int sz, int f, const char *name)
+static inline ResFactory<Vbuffer> create_vb(int sz, int f, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Vbuffer>([=] { return d3d::create_vb(sz, f, name); });
+  return ResFactory<Vbuffer>([=] { return d3d::create_vb(sz, f, name, tag); });
 }
-static inline ResFactory<Ibuffer> create_ib(int size_bytes, int flags, const char *name)
+static inline ResFactory<Ibuffer> create_ib(int size_bytes, int flags, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Ibuffer>([=] { return d3d::create_ib(size_bytes, flags, name); });
+  return ResFactory<Ibuffer>([=] { return d3d::create_ib(size_bytes, flags, name, tag); });
 }
-static inline ResFactory<Sbuffer> create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name)
+static inline ResFactory<Sbuffer> create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::create_sbuffer(struct_size, elements, flags, texfmt, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::create_sbuffer(struct_size, elements, flags, texfmt, name, tag); });
 }
 
 namespace buffers
@@ -694,105 +687,114 @@ namespace buffers
 using namespace d3d::buffers;
 
 // Such buffers could be updated from time to time and its content will be automatically restored on device reset.
-inline ResFactory<Sbuffer> create_persistent_cb(uint32_t registers_count, const char *name)
+inline ResFactory<Sbuffer> create_persistent_cb(uint32_t registers_count, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_cb(registers_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_cb(registers_count, name, tag); });
 }
 // Such buffers must be updated every frame. Because of that we don't care about its content on device reset.
-inline ResFactory<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_cb(uint32_t registers_count, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_cb(registers_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_cb(registers_count, name, tag); });
 }
 
 // (RW)ByteAddressBuffer in shader.
-inline ResFactory<Sbuffer> create_ua_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_ua_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_sr_byte_address(size_in_dwords, name, buffer_init, tag); });
 }
 // (RW)StructuredBuffer in shader.
 inline ResFactory<Sbuffer> create_ua_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
-  Init buffer_init = Init::No)
+  Init buffer_init = Init::No, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init); });
+  return ResFactory<Sbuffer>(
+    [=] { return d3d::buffers::create_ua_sr_structured(structure_size, elements_count, name, buffer_init, tag); });
 }
 
 // RWByteAddressBuffer in shader.
-inline ResFactory<Sbuffer> create_ua_byte_address(uint32_t size_in_dwords, const char *name)
+inline ResFactory<Sbuffer> create_ua_byte_address(uint32_t size_in_dwords, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address(size_in_dwords, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address(size_in_dwords, name, tag); });
 }
 // RWStructuredBuffer in shader.
-inline ResFactory<Sbuffer> create_ua_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
+inline ResFactory<Sbuffer> create_ua_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_structured(structure_size, elements_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_structured(structure_size, elements_count, name, tag); });
 }
 
 // The same as create_ua_byte_address but its content can be read on CPU
-inline ResFactory<Sbuffer> create_ua_byte_address_readback(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_ua_byte_address_readback(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_byte_address_readback(size_in_dwords, name, buffer_init, tag); });
 }
 // The same as create_ua_structured but its content can be read on CPU
 inline ResFactory<Sbuffer> create_ua_structured_readback(uint32_t structure_size, uint32_t elements_count, const char *name,
-  Init buffer_init = Init::No)
+  Init buffer_init = Init::No, ResourceTagType tag = nullptr)
 {
   return ResFactory<Sbuffer>(
-    [=] { return d3d::buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init); });
+    [=] { return d3d::buffers::create_ua_structured_readback(structure_size, elements_count, name, buffer_init, tag); });
 }
 
 // Indirect buffer filled on GPU
-inline ResFactory<Sbuffer> create_ua_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
+inline ResFactory<Sbuffer> create_ua_indirect(Indirect indirect_type, uint32_t records_count, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_indirect(indirect_type, records_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_ua_indirect(indirect_type, records_count, name, tag); });
 }
 // Indirect buffer filled on CPU
-inline ResFactory<Sbuffer> create_indirect(Indirect indirect_type, uint32_t records_count, const char *name)
+inline ResFactory<Sbuffer> create_indirect(Indirect indirect_type, uint32_t records_count, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_indirect(indirect_type, records_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_indirect(indirect_type, records_count, name, tag); });
 }
 
 // A buffer for data transfer on GPU
-inline ResFactory<Sbuffer> create_staging(uint32_t size_in_bytes, const char *name)
+inline ResFactory<Sbuffer> create_staging(uint32_t size_in_bytes, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_staging(size_in_bytes, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_staging(size_in_bytes, name, tag); });
 }
 
 inline ResFactory<Sbuffer> create_persistent_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
-  Init buffer_init = Init::No)
+  Init buffer_init = Init::No, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_tbuf(elements_count, format, name, buffer_init); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_tbuf(elements_count, format, name, buffer_init, tag); });
 }
 
-inline ResFactory<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No)
+inline ResFactory<Sbuffer> create_persistent_sr_byte_address(uint32_t size_in_dwords, const char *name, Init buffer_init = Init::No,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_byte_address(size_in_dwords, name, buffer_init); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_persistent_sr_byte_address(size_in_dwords, name, buffer_init, tag); });
 }
 
 inline ResFactory<Sbuffer> create_persistent_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
-  Init buffer_init = Init::No)
+  Init buffer_init = Init::No, ResourceTagType tag = nullptr)
 {
   return ResFactory<Sbuffer>(
-    [=] { return d3d::buffers::create_persistent_sr_structured(structure_size, elements_count, name, buffer_init); });
+    [=] { return d3d::buffers::create_persistent_sr_structured(structure_size, elements_count, name, buffer_init, tag); });
 }
 
-inline ResFactory<Sbuffer> create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_tbuf(uint32_t elements_count, uint32_t format, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_tbuf(elements_count, format, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_tbuf(elements_count, format, name, tag); });
 }
 
-inline ResFactory<Sbuffer> create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_byte_address(uint32_t size_in_dwords, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_byte_address(size_in_dwords, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_byte_address(size_in_dwords, name, tag); });
 }
 
-inline ResFactory<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name)
+inline ResFactory<Sbuffer> create_one_frame_sr_structured(uint32_t structure_size, uint32_t elements_count, const char *name,
+  ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_one_frame_sr_structured(structure_size, elements_count, name, tag); });
 }
 
-inline ResFactory<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes, const char *name)
+inline ResFactory<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes, const char *name, ResourceTagType tag = nullptr)
 {
-  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_raytrace_scratch_buffer(size_in_bytes, name); });
+  return ResFactory<Sbuffer>([=] { return d3d::buffers::create_raytrace_scratch_buffer(size_in_bytes, name, tag); });
 }
 
 } // namespace buffers

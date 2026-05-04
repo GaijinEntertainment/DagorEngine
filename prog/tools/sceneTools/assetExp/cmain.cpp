@@ -37,6 +37,8 @@
 #include "pkgDepMap.h"
 #include <libTools/util/setupTexStreaming.h>
 #include "atomicConProgress.h"
+#include "shmProgressIndicator.h"
+#include <assets/daBuildProgressShm.h>
 #include <util/dag_fastIntList.h>
 #include "asset_ref_hlp.h"
 #include "loadAssetBase.h"
@@ -157,6 +159,7 @@ static void showUsage()
          "  -only_res             export *.grp packs only\n"
          "  -only_tex             export *.dxp.bin packs only\n"
          "  -packs_re:<regexp>    restrict pack to export by specified regexp\n"
+         "  -patch_build          allow exporting assets in patch folder if exists and valid\n"
          "  -help                 shows this screen\n"
          "  -q                    quiet mode - show erros and progress bar only\n"
          "  -nopbar               show progress messages but not progress percents\n"
@@ -169,9 +172,9 @@ static void showUsage()
          "  -maintenance:listProps:{<asset_type>|*}\n\n"
          "when 'packs_to_export' not specified, all asset packs are exported\n\n"
          "examples:\n"
-         "  daBuild-dev -target:PC d:/dagor2/Aces/application.blk\n"
-         "  daBuild-dev -target:PC -target:X360 d:/dagor2/Aces/application.blk aircrafts.grp\n"
-         "  daBuild-dev -target:PS3 -packs_re:entities\\/airfields ../application.blk\n");
+         "  daBuild-dev -target:PC ../application.blk\n"
+         "  daBuild-dev -target:PC -target:iOS d:/DagorEngine/my_project/application.blk combat_suits.grp\n"
+         "  daBuild-dev -target:and -packs_re:entities\\/airfields ../application.blk\n");
 }
 
 static DabuildJobSharedMem *jobMem = NULL;
@@ -227,6 +230,7 @@ int DagorWinMain(bool debugmode)
   FastNameMap listAssetPropsForTypes;
   const char *assets_profile = NULL;
   bool rebuild = false, quiet = false, nopbar = false, eraseBadPacks = false;
+  const char *progress_shm_name = nullptr;
   bool export_tex = true, export_res = true;
   bool showpbarpct = true;
   bool show_important_warnings = false;
@@ -292,6 +296,8 @@ int DagorWinMain(bool debugmode)
       pkg_list_deps.addNameId(__argv[i] + 18);
     else if (stricmp(__argv[i], "-dry_run") == 0)
       dabuild_dry_run = true;
+    else if (stricmp(__argv[i], "-patch_build") == 0)
+      dabuild_allow_patch_build = true;
     else if (stricmp(__argv[i], "-keep_building_after_error") == 0)
       dabuild_stop_on_first_error = false;
     else if (stricmp(__argv[i], "-validate_pkg") == 0)
@@ -366,6 +372,8 @@ int DagorWinMain(bool debugmode)
       useSharedNm = 1;
     else if (strcmp(__argv[i], "-sharedNm-") == 0)
       useSharedNm = -1;
+    else if (strnicmp(__argv[i], "-progress_shm:", 14) == 0)
+      progress_shm_name = __argv[i] + 14;
     else if (strcmp(__argv[i], "-noeh") == 0)
       ; // just ignore
     else if (stricmp(__argv[i], "-help") == 0)
@@ -381,7 +389,7 @@ int DagorWinMain(bool debugmode)
       return 1;
     }
 
-  if (!useSharedNm && (validate_pkg || maintListOp || maintOnly || jobs > 0))
+  if (!useSharedNm && (validate_pkg || jobs > 0))
     useSharedNm = 1;
 
   if (dabuild_skip_any_build)
@@ -415,7 +423,20 @@ int DagorWinMain(bool debugmode)
   DagorAssetMgr mgr(useSharedNm > 0);
   mgr.setMsgPipe(&pipe);
 
-  IGenericProgressIndicator &pbar = nopbar ? *(new QuietProgressIndicator) : *AtomicConsoleProgressIndicator::create(showpbarpct);
+  IGenericProgressIndicator *innerPbar =
+    nopbar ? (IGenericProgressIndicator *)(new QuietProgressIndicator) : AtomicConsoleProgressIndicator::create(showpbarpct);
+
+  DaBuildProgressShm *progressShmPtr = nullptr;
+  intptr_t progressShmHandle = 0;
+  if (progress_shm_name && *progress_shm_name)
+  {
+    progressShmPtr =
+      (DaBuildProgressShm *)open_global_map_shared_mem(progress_shm_name, nullptr, sizeof(DaBuildProgressShm), progressShmHandle);
+    if (progressShmPtr)
+      dabuild_progress_shm = progressShmPtr;
+  }
+
+  IGenericProgressIndicator &pbar = progressShmPtr ? *(new ShmProgressIndicator(*innerPbar, progressShmPtr)) : *innerPbar;
 
   char app_dir[260];
   dd_get_fname_location(app_dir, arg[0]);
@@ -440,7 +461,7 @@ int DagorWinMain(bool debugmode)
   // read application.blk
   if (!appblk.load(arg[0]))
   {
-    printf("ERR: cannot load application.blk from <%s>\n", arg[0]);
+    printf("ERR: cannot load project settings from <%s>\n", arg[0]);
     return 13;
   }
 
@@ -488,7 +509,7 @@ int DagorWinMain(bool debugmode)
       ;
     else
     {
-      printf("ERR: profile <%s> is not enabled in application.blk\n", assets_profile);
+      printf("ERR: profile <%s> is not enabled in %s\n", assets_profile, arg[0]);
       return 13;
     }
   }
@@ -602,8 +623,8 @@ int DagorWinMain(bool debugmode)
         }
 
         if (!pkgDepMap.setPkgToUserFlags(assets[i], pkg, allow_any_pkg))
-          log.addMessage(log.ERROR, "package %s (reference from asset %s:%s) not listed in application.blk", pkg, assets[i]->getName(),
-            assets[i]->getTypeStr());
+          log.addMessage(log.ERROR, "package %s (reference from asset %s:%s) not listed in %s", //
+            pkg, assets[i]->getName(), assets[i]->getTypeStr(), arg[0]);
       }
 
       if (validate_pkg)
@@ -701,7 +722,8 @@ int DagorWinMain(bool debugmode)
         for (int p = -1, pe = pkgBlk.blockCount(); p < pe; p++)
         {
           const char *pk_name = p < 0 ? "." : pkgBlk.getBlock(p)->getBlockName();
-          assethlp::build_package_dest(mntPoint, expBlk, pk_name, app_dir, ts, assets_profile);
+          bool patch_build = detect_valid_patch(expBlk, pk_name, app_dir, ts, assets_profile);
+          assethlp::build_package_dest(mntPoint, expBlk, pk_name, app_dir, ts, assets_profile, patch_build);
           String abs_fn(0, "%s/%s%s.bin", mntPoint, fn, profile_suffix);
 
           DataBlock pk_blk;
@@ -787,7 +809,8 @@ int DagorWinMain(bool debugmode)
           for (int p = -1, pe = pkgBlk.blockCount(); p < pe; p++)
           {
             const char *pk_name = p < 0 ? "." : pkgBlk.getBlock(p)->getBlockName();
-            assethlp::build_package_dest(mntPoint, expBlk, pk_name, app_dir, ts, assets_profile);
+            bool patch_build = detect_valid_patch(expBlk, pk_name, app_dir, ts, assets_profile);
+            assethlp::build_package_dest(mntPoint, expBlk, pk_name, app_dir, ts, assets_profile, patch_build);
             String abs_fn(0, "%s/%s%s.bin", mntPoint, fn, profile_suffix);
 
             if (blk.getBlockByNameEx(pk_name)->blockCount())
@@ -845,10 +868,10 @@ int DagorWinMain(bool debugmode)
       log.addMessage(ILogWriter::ERROR, "can't get asset <%s> (tried %d exp types)", assetName, exp_types.size());
       return 1;
     }
-    if (const char *p = a->getDestPackName())
+    if (String p = a->getDestPackName(); !p.empty())
     {
-      debug("Package to be built is %s", p);
-      const char *pkg = str_dup(p, strmem); // should have memory allocation, otherwise can be overwritten
+      debug("Package to be built is %s", p.str());
+      const char *pkg = str_dup(p, strmem);
       arg.push_back(pkg);
     }
   }
@@ -1258,6 +1281,8 @@ int DagorWinMain(bool debugmode)
   dabuild->unloadExporterPlugins();
   dabuild->setupReports(NULL, NULL);
   pbar.destroy();
+  if (progressShmPtr)
+    close_global_map_shared_mem(progressShmHandle, progressShmPtr, sizeof(DaBuildProgressShm));
 
   log.level = log.NOTE;
 

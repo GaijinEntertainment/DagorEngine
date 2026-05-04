@@ -40,7 +40,7 @@ void KdopProcessing::calcKdop(const KdopSettings &settings)
   dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
   for (const auto &refNode : settings.selectedNodes.refNodes)
   {
-    G_ASSERT_LOG(add_verts_from_node(nodes, refNode, verts), "Collision node not found: %s", refNode);
+    G_ASSERT_LOG(add_verts_from_node(*collisionRes, nodes, refNode, verts), "Collision node not found: %s", refNode);
   }
   selectedKdop.setPreset(settings.preset, settings.cutOffThreshold, settings.segmentsCountX, settings.segmentsCountY);
   selectedKdop.setRotation(Point3(settings.rotX, settings.rotY, settings.rotZ));

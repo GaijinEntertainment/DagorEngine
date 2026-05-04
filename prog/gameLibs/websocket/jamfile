@@ -1,0 +1,66 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/websocket ;
+StrictCompile = yes ;
+TargetType  = lib ;
+Target      = gameLibs/websocket.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/libb64/include
+;
+
+UseProgLibs += 3rdPartyLibs/eastl
+               3rdPartyLibs/libb64
+;
+
+WebSocketUseCurl ?= yes ;
+
+if $(UseGDK) = yes {
+  if $(GdkRequiresXCurl) = yes {
+    WebSocketUseCurl = no ;
+  }
+  if $(GdkServicesUseBundled) = no {
+    AddIncludes +=
+      $(Root)/prog/3rdPartyLibs/libHttpClient/Include
+      $(Root)/prog/3rdPartyLibs/xbox-live-api/Include
+    ;
+  } else {
+    AddIncludes +=
+      $(GDK_LIBHTTPCLIENT_INC_PATH)
+      $(GDK_SERVICES_INC_PATH)
+    ;
+  }
+  if $(PlatformSpec) = clang {
+    CPPopt += -Wno-extern-c-compat ;
+  }
+}
+
+if $(Platform) in nswitch {
+  #nintendo switch use internal libcurl library
+  Sources = websocket.cpp ;
+} else if $(WebSocketUseCurl) = yes {
+  if $(UseSystemLibcurl) != yes {
+    AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
+    UseProgLibs += 3rdPartyLibs/libcurl ;
+    CPPopt += -DCURL_STATICLIB -DOPENSSL_SUPPRESS_DEPRECATED ;
+  }
+  Sources = websocket.cpp ;
+} else {
+  if $(UseGDK) = yes {
+    Sources = websocket_xbox.cpp ;
+  }
+}
+
+if $(Platform) in windows {
+  CPPopt += /FC ;        # enable full path in __FILE__ macro (useful when navigating output with for IDE)
+}
+
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -6,8 +6,14 @@ options strict_smart_pointers = true
 
 module unroll shared private
 
-require ast
-require rtti
+//! Compile-time loop unrolling macro.
+//!
+//! ``unroll`` replaces a ``for`` loop with a fixed ``range`` by inlining
+//! each iteration at compile time. The loop variable is substituted with
+//! the constant index in each unrolled copy.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 
@@ -49,7 +55,7 @@ class UnrollMacro : AstFunctionAnnotation {
         let van = "{efor.iterators[0]}"
         var inscope nblk <- new ExprBlock(at = call.at)
         for (i in euc.value) {
-            if (true) {
+            {
                 var inscope iblk <- clone_expression(efor.body)
                 remove_deref(van, iblk)
                 var inscope rules : Template

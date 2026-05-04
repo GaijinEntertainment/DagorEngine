@@ -7,9 +7,9 @@ ECS_DEF_PULL_VAR(hitBloodSplash);
 //static constexpr ecs::ComponentDesc blood_puddles_dark_zone_shredder_es_event_handler_comps[] ={};
 static void blood_puddles_dark_zone_shredder_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   blood_puddles_dark_zone_shredder_es_event_handler(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc blood_puddles_dark_zone_shredder_es_event_handler_es_desc
 (
@@ -21,7 +21,7 @@ static ecs::EntitySystemDesc blood_puddles_dark_zone_shredder_es_event_handler_e
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<eastl::integral_constant<ecs::event_type_t,
-                       str_hash_fnv1("EventOnMovingZoneStarted")>>::build(),
+                       ecs_str_hash("EventOnMovingZoneStarted")>>::build(),
   0
 ,"server",nullptr,"*");
 static constexpr ecs::ComponentDesc dark_zones_ecs_query_comps[] =
@@ -39,9 +39,9 @@ static ecs::CompileTimeQueryDesc dark_zones_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dark_zones_ecs_query(Callable function)
+inline void dark_zones_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, dark_zones_ecs_query_desc.getHandle(),
+  perform_query(&manager, dark_zones_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

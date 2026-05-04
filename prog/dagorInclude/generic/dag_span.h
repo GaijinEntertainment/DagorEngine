@@ -136,10 +136,12 @@ public:
   // STL compatibility
   //
 
-  constexpr iterator begin() const { return dptr; }
+  constexpr iterator begin() { return dptr; }
+  constexpr const_iterator begin() const { return dptr; }
   constexpr const_iterator cbegin() const { return dptr; }
 
-  constexpr iterator end() const { return dptr + dcnt; }
+  constexpr iterator end() { return dptr + dcnt; }
+  constexpr const_iterator end() const { return dptr + dcnt; }
   constexpr const_iterator cend() const { return dptr + dcnt; }
 
   constexpr reference front()

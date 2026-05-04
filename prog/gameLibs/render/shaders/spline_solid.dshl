@@ -13,7 +13,8 @@ float4 prefabs_color = (0, 0, 0, 0);
 
 shader spline_solid
 {
-  if (in_editor == no)
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+  if (in_editor == no && compatibility_mode == compatibility_mode_on)
   {
     dont_render;
   }
@@ -60,6 +61,7 @@ shader spline_solid
       #define DISABLE_TOONSHADING 1
     }
     WRITE_GBUFFER()
+    INIT_PACK_UNPACK_DYNSTCODE(ps)
     hlsl(ps) {
       GBUFFER_OUTPUT spline_solid_ps(VsOutput input HW_USE_SCREEN_POS)
       {

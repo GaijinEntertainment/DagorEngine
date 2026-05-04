@@ -27,6 +27,9 @@ class FunctionRef;
 template <size_t size, typename Signature>
 class FixedMoveOnlyFunction;
 
+template <typename Signature>
+class MoveOnlyFunction;
+
 namespace detail
 {
 
@@ -87,6 +90,12 @@ public:
     call = fmof.call;
   }
 
+  template <typename Ret2, typename... Args2>
+  FunctionRef(MoveOnlyFunction<Ret2(Args2...)> &fmof) : Base(fmof.storage.get())
+  {
+    call = fmof.call;
+  }
+
   template <typename F, typename = EASTL_INTERNAL_FUNCTION_VALID_FUNCTION_ARGS(F, Ret, Args..., Base, FunctionRef),
     typename = eastl::disable_if_t<detail::is_function_ref_v<eastl::decay_t<F>>>>
   FunctionRef(F &&func_object) : Base(&func_object)
@@ -130,6 +139,13 @@ public:
   template <size_t size, typename Ret2, typename... Args2>
   FunctionRef(const FixedMoveOnlyFunction<size, Ret2(Args2...) const> &fmof) :
     Base(const_cast<void *>(static_cast<const void *>(fmof.storage)))
+  {
+    call = fmof.call;
+  }
+
+  template <typename Ret2, typename... Args2>
+  FunctionRef(const MoveOnlyFunction<Ret2(Args2...) const> &fmof) :
+    Base(const_cast<void *>(static_cast<const void *>(fmof.storage.get())))
   {
     call = fmof.call;
   }

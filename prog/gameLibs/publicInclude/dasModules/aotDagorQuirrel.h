@@ -14,30 +14,8 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/baseComponentTypes/arrayType.h>
 
-using Sqrat_AbstractStaticClassData = Sqrat::AbstractStaticClassData;
-MAKE_TYPE_FACTORY(AbstractStaticClassData, Sqrat_AbstractStaticClassData)
-
 namespace bind_dascript
 {
-inline bool find_AbstractStaticClassData(const das::TBlock<bool, const das::TTemporary<const Sqrat::AbstractStaticClassData>> &block,
-  das::Context *context, das::LineInfoArg *at)
-{
-  vec4f arg;
-  bool found = false;
-  context->invokeEx(
-    block, &arg, nullptr,
-    [&](das::SimNode *code) {
-      for (auto &classData : Sqrat::_ClassType_helper<>::all_classes)
-      {
-        arg = das::cast<const Sqrat::AbstractStaticClassData *>::from(classData);
-        found = code->evalBool(*context);
-        if (found)
-          break;
-      }
-    },
-    at);
-  return found;
-}
 
 template <typename C>
 inline bool PushInstanceCopy(HSQUIRRELVM vm, const C &val)

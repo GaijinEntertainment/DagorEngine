@@ -28,6 +28,8 @@ public:
   // saving and loading state with datablock
   int saveState(DataBlock &datablk, bool by_name = false) override;
   int loadState(DataBlock &datablk, bool by_name = false) override;
+  // Same as saveState() but it does not save the scroll position. Use loadState() to load it.
+  virtual int saveStateWithoutScrollPosition(DataBlock &datablk, bool by_name = false);
 
   virtual int getScrollPos();
   virtual void setScrollPos(int pos);

@@ -11,6 +11,8 @@ class Point3;
 struct Capsule;
 class BBox3;
 struct Color4;
+class CollisionResource;
+class GeomNodeTree;
 
 enum class DrawSolidMeshCull
 {
@@ -24,6 +26,9 @@ void draw_debug_solid_sphere(const Point3 &sphere_c, float sphere_rad, const TMa
 void draw_debug_solid_capsule(const Capsule &capsule, const TMatrix &tm, const Color4 &color, bool shaded = false);
 void draw_debug_solid_cube(const BBox3 &cube, const TMatrix &tm, const Color4 &color, bool shaded = false);
 void draw_debug_solid_cone(const Point3 pos, Point3 norm, float radius, float height, int segments, const Color4 &color);
+
+void draw_debug_solid_collision_node(int node_id, const CollisionResource &collres, const TMatrix &additional_tm, const Color4 &color,
+  bool shaded = false, DrawSolidMeshCull cull = DrawSolidMeshCull::NORMAL, const GeomNodeTree *geom_node_tree = nullptr);
 
 void init_debug_solid();
 void close_debug_solid();

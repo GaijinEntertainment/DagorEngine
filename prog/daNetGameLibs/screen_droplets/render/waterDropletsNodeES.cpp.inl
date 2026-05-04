@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
@@ -10,14 +12,15 @@
 #include "screenDroplets.h"
 
 template <typename Callable>
-static ecs::QueryCbResult find_water_droplets_needs_ecs_query(Callable);
+static ecs::QueryCbResult find_water_droplets_needs_ecs_query(ecs::EntityManager &manager, Callable);
 static ShaderVariableInfo screen_droplets_renderedVarId;
 
 ECS_TAG(render)
 ECS_ON_EVENT(UpdateStageInfoBeforeRender)
-inline void update_water_droplets_node_es(ecs::Event, dafg::NodeHandle &water_droplets_node, bool &screen_droplets__visible)
+inline void update_water_droplets_node_es(
+  ecs::Event, ecs::EntityManager &manager, dafg::NodeHandle &water_droplets_node, bool &screen_droplets__visible)
 {
-  bool found = find_water_droplets_needs_ecs_query([](ecs::Tag needsWaterDroplets) {
+  bool found = find_water_droplets_needs_ecs_query(manager, [](ecs::Tag needsWaterDroplets) {
     G_UNUSED(needsWaterDroplets);
     return ecs::QueryCbResult::Stop;
   }) == ecs::QueryCbResult::Stop;

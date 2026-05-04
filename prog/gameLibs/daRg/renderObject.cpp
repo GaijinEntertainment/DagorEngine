@@ -62,6 +62,14 @@ RenderObject *create_rendobj(int id, void *stor)
 }
 
 
+const char *get_rendobj_factory_name(int id)
+{
+  if (id < 0 || id >= robj_factories.size())
+    return nullptr;
+  return robj_factories[id].name.c_str();
+}
+
+
 RendObjParams *create_robj_params(int id)
 {
   RendObjFactory *f = get_rendobj_factory(id);

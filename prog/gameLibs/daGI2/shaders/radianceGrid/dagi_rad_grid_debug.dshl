@@ -7,14 +7,12 @@ int dagi_rad_grid_debug_type;
 
 shader dagi_rad_grid_draw_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {
     globtm@f44 = globtm;
     dagi_rad_grid_debug_type@i1 = dagi_rad_grid_debug_type;
   }
-  ENABLE_ASSERT(ps)
   READ_WORLD_SDF(vs)
   RADIANCE_GRID_STEP_OUT(vs)
   DAGI_RAD_GRID_CLIPMAP_MATH(vs)

@@ -62,7 +62,7 @@ public:
 
   const char *getBuildString() override { return "1.0"; }
 
-  bool initAssetBase(const char *app_dir) override;
+  bool initAssetBase(const char *app_dir, const DataBlock &app_blk) override;
 
   bool registerService(IEditorService *srv) override { DUMMY_IMPL_0; }
   bool unregisterService(IEditorService *srv) override { DUMMY_IMPL_0; }
@@ -84,8 +84,8 @@ public:
   unsigned getEntitySubTypeMask(int mask_type) override { DUMMY_IMPL_0; }
   void setEntitySubTypeMask(int mask_type, unsigned value) override { DUMMY_IMPL; }
 
-  uint64_t getEntityLayerHiddenMask() override { DUMMY_IMPL_0; }
-  void setEntityLayerHiddenMask(uint64_t value) override { DUMMY_IMPL; }
+  LayerHiddenMask getEntityLayerHiddenMask() override { DUMMY_IMPL_VALUE({}); }
+  void setEntityLayerHiddenMask(LayerHiddenMask value) override { DUMMY_IMPL; }
 
   DagorAsset *getAssetByName(const char *asset_name, int asset_type = -1) override;
   DagorAsset *getAssetByName(const char *asset_name, dag::ConstSpan<int> asset_types) override;
@@ -99,6 +99,7 @@ public:
   {
     DUMMY_IMPL_0;
   }
+  eastl::optional<String> selectAsset(const SelectAssetDlgOptions & /*options*/) override { return {}; }
   void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) override { DUMMY_IMPL; }
   void addAssetToRecentlyUsed(const char *asset) override { DUMMY_IMPL; }
 
@@ -134,7 +135,13 @@ public:
   void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
   void imguiEnd() override {}
 
+  AssetTagManager *getVisibleTagManagerWindow() override { DUMMY_IMPL_0; };
+  void showTagManagerWindow(bool show) override { DUMMY_IMPL; }
+  bool saveAssetsTags() override { DUMMY_IMPL_VALUE(false); }
+
   Outliner::OutlinerWindow *createOutlinerWindow() override { DUMMY_IMPL_0; }
+
+  void revealInExplorer(const char *path) override { DUMMY_IMPL; }
 
 private:
   ConsoleLogWriter console;

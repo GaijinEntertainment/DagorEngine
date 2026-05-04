@@ -5,12 +5,12 @@ enum FxRenderTag : uint8_t
 {
   ERT_TAG_NORMAL = 0,
   ERT_TAG_FOM = 1,
-  ERT_TAG_VOLMEDIA = 2,
+  // ERT_TAG_VOLMEDIA = 2,
 
   ERT_TAG_LOWRES = 3,
   ERT_TAG_HIGHRES = 4,
-  ERT_TAG_GBUFFER = 5,
-  ERT_TAG_HAZE = 6,
+  // ERT_TAG_GBUFFER = 5,
+  ERT_TAG_DISTORTION = 6,
   ERT_TAG_ATEST = 7,
   // ERT_TAG_WATER      = 8,
   ERT_TAG_WATER_PROJ = 9,
@@ -30,7 +30,7 @@ static const char *render_tags[] = {
   "lowres",
   "highres",
   "gbuffer",
-  "haze",
+  "distortion",
   "atest",
   "water",
   "water_proj",
@@ -39,12 +39,4 @@ static const char *render_tags[] = {
   "volfog_injection",
   "bvh",
   "xray",
-};
-
-enum
-{
-  FX_RENDER_MODE_NORMAL = 0,
-  FX_RENDER_MODE_HAZE = 5,
-  FX_RENDER_MODE_FOM = 7,
-  FX_RENDER_MODE_VOLMEDIA = 8,
 };

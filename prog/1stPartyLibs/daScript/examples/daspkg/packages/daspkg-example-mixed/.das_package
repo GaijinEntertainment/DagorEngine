@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("daspkg-example-mixed")
+    package_description("Example mixed daslang + C dependency package")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("../daspkg-example-c")
+}

@@ -3,8 +3,12 @@
 #include "bhvReplayFreeCameraControl.h"
 
 #include <daRg/dag_element.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <startup/dag_inpDevClsDrv.h>
@@ -23,11 +27,11 @@ static HumanInput::IGenJoystick *get_joystick()
 
 
 template <typename Callable>
-static void move_replay_camera_ecs_query(Callable c);
+static void move_replay_camera_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void move_replay_camera(const Point2 &delta)
 {
-  move_replay_camera_ecs_query([&](Point2 &free_cam_input__moveUI) { free_cam_input__moveUI = delta; });
+  move_replay_camera_ecs_query(*g_entity_mgr, [&](Point2 &free_cam_input__moveUI) { free_cam_input__moveUI = delta; });
 }
 
 SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvReplayFreeCameraControl, bhv_replay_free_camera_control, cstr);

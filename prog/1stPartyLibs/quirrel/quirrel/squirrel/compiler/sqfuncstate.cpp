@@ -3,24 +3,16 @@
 */
 #include "sqpcheader.h"
 #ifndef NO_COMPILER
-#include "sqcompiler.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
 #include "sqtable.h"
-#include "sqopcodes.h"
+#include "opcodes.h"
 #include "sqfuncstate.h"
-#include "sqastio.h"
+#include "sqio.h"
 #include "sqclosure.h"
+#include "sqarray.h"
 
 #include <stdarg.h>
-
-#define SQ_OPCODE(id) {_SC(#id)},
-
-SQInstructionDesc g_InstrDesc[]={
-    SQ_OPCODES_LIST
-};
-
-#undef SQ_OPCODE
 
 
 static void streamprintf(OutputStream *stream, const char *fmt, ...) {
@@ -35,57 +27,61 @@ static void streamprintf(OutputStream *stream, const char *fmt, ...) {
 static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
 {
     switch (sq_type(o)) {
-        case OT_NULL: streamprintf(stream, _SC("null")); break;
-        case OT_STRING: streamprintf(stream, _SC("string(\"%s\")"), _stringval(o)); break;
-        case OT_FLOAT: streamprintf(stream, _SC("float(%f)"), _float(o)); break;
-        case OT_INTEGER: streamprintf(stream, _SC("int(") _PRINT_INT_FMT _SC(")"), _integer(o)); break;
-        case OT_BOOL: streamprintf(stream, _SC("%s"), _integer(o) ? _SC("bool(true)") : _SC("bool(false)")); break;
+        case OT_NULL: streamprintf(stream, "null"); break;
+        case OT_STRING: streamprintf(stream, "string(\"%s\")", _stringval(o)); break;
+        case OT_FLOAT: streamprintf(stream, "float(%1.9g)", _float(o)); break;
+        case OT_INTEGER: streamprintf(stream, "int(" _PRINT_INT_FMT ")", _integer(o)); break;
+        case OT_BOOL: streamprintf(stream, "%s", _integer(o) ? "bool(true)" : "bool(false)"); break;
+        case OT_ARRAY: streamprintf(stream, "array(0x%p size=%d)", (void*)_rawval(o), int(_array(o)->Size())); break;
+        case OT_TABLE: streamprintf(stream, "table(0x%p size=%d)", (void*)_rawval(o), int(_table(o)->CountUsed())); break;
         case OT_CLOSURE:
         {
             SQFunctionProto *func = _closure(o)->_function;
-            const SQChar *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)func, funcName);
+            const char *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
             break;
         }
         case OT_NATIVECLOSURE:
         {
             SQNativeClosure *nc = _nativeclosure(o);
-            const SQChar* funcName = sq_isstring(nc->_name) ? _stringval(nc->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)nc, funcName);
+            const char* funcName = sq_isstring(nc->_name) ? _stringval(nc->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)nc, funcName);
             break;
         }
         case OT_FUNCPROTO:
         {
             SQFunctionProto *func = _funcproto(o);
-            const SQChar* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)func, funcName);
+            const char* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
             break;
         }
         case OT_GENERATOR:
         {
             SQGenerator *gen = _generator(o);
             SQObjectPtr nameObj = _closure(gen->_closure)->_function->_name;
-            const SQChar* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : _SC("<null-name>");
-            streamprintf(stream, _SC("%s(0x%p \"%s\")"), GetTypeName(o), (void*)gen, funcName);
+            const char* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : "<null-name>";
+            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)gen, funcName);
             break;
         }
-        default: streamprintf(stream, _SC("%s(0x%p)"), GetTypeName(o), (void*)_rawval(o)); break; //shut up compiler
+        default: streamprintf(stream, "%s(0x%p)", GetTypeName(o), (void*)_rawval(o)); break;
     }
 }
 
 SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationContext &ctx) :
     _vlocals(ss->_alloc_ctx),
-    _vlocals_nodes(ss->_alloc_ctx),
+    _vlocals_info(ss->_alloc_ctx),
     _targetstack(ss->_alloc_ctx),
     _unresolvedbreaks(ss->_alloc_ctx),
     _unresolvedcontinues(ss->_alloc_ctx),
+    _expr_block_results(ss->_alloc_ctx),
     _functions(ss->_alloc_ctx),
     _parameters(ss->_alloc_ctx),
+    _param_type_masks(ss->_alloc_ctx),
     _outervalues(ss->_alloc_ctx),
-    _outervalues_nodes(ss->_alloc_ctx),
+    _outervalues_info(ss->_alloc_ctx),
     _instructions(ss->_alloc_ctx),
     _localvarinfos(ss->_alloc_ctx),
-    _lineinfos(ss->_alloc_ctx),
+    _full_line_infos(ss->_alloc_ctx),
     _breaktargets(ss->_alloc_ctx),
     _continuetargets(ss->_alloc_ctx),
     _blockstacksizes(ss->_alloc_ctx),
@@ -95,7 +91,6 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
 {
         _nliterals = 0;
         _literals = SQTable::Create(ss,0);
-        _ref_holder =  SQTable::Create(ss,0);
         _sharedstate = ss;
         _lastline = 0;
         _optimization = true;
@@ -106,330 +101,13 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
         _varparams = false;
         _bgenerator = false;
         _purefunction = false;
+        _nodiscard = false;
         _outers = 0;
         _hoistLevel = 0;
         _staticmemos_count = 0;
         _ss = ss;
+        _result_type_mask = ~0u;
         lang_features = parent ? parent->lang_features : ss->defaultLangFeatures;
-}
-
-void Dump(SQFunctionProto *func) {
-    FileOutputStream fos(stdout);
-    Dump(&fos, func, false);
-}
-
-static uint64_t GetUInt64FromPtr(const void *ptr)
-{
-    uint64_t res = 0;
-    for (int i = 0; i < 8; i++)
-        res += uint64_t(((const uint8_t *)ptr)[i]) << (i * 8);
-    return res;
-}
-
-void DumpInstructions(OutputStream *stream, SQLineInfo * lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
-    const SQObjectPtr *_literals, SQInt32 _nliterals, int instruction_index)
-{
-    SQInt32 n = 0;
-    int lineHint = 0;
-    for (int i = 0; i < i_count; i++) {
-        const SQInstruction &inst = ii[i];
-        bool isLineOp = false;
-        char curInstr = instruction_index == i ? '>' : ' ';
-        SQInteger line = SQFunctionProto::GetLine(lineinfos, nlineinfos, i, &lineHint, &isLineOp);
-        if (inst.op == _OP_LOAD || inst.op == _OP_DLOAD || inst.op == _OP_PREPCALLK || inst.op == _OP_GETK) {
-            SQInteger lidx = inst._arg1;
-            streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d "), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
-                g_InstrDesc[inst.op].name, inst._arg0);
-            if (lidx >= 0xFFFFFFFF) //-V547
-                streamprintf(stream, _SC("null"));
-            else {
-                assert(lidx < _nliterals);
-                SQObjectPtr key = _literals[lidx];
-                DumpLiteral(stream, key);
-            }
-            if (inst.op != _OP_DLOAD) {
-                streamprintf(stream, _SC(" %d %d"), inst._arg2, inst._arg3);
-            }
-            else {
-                streamprintf(stream, _SC(" %d "), inst._arg2);
-                lidx = inst._arg3;
-                if (lidx >= 0xFFFFFFFF) //-V547
-                    streamprintf(stream, _SC("null"));
-                else {
-                    assert(lidx < _nliterals);
-                    SQObjectPtr key = _literals[lidx];
-                    DumpLiteral(stream, key);
-                }
-            }
-        }
-        /*  else if(inst.op==_OP_ARITH){
-                printf(_SC("[%03d] %15s %d %d %d %c\n"),n,g_InstrDesc[inst.op].name,inst._arg0,inst._arg1,inst._arg2,inst._arg3);
-            }*/
-        else {
-            int jumpLabel = 0x7FFFFFFF;
-            switch (inst.op) {
-            case _OP_JMP: case _OP_JCMP: case _OP_JZ: case _OP_AND: case _OP_OR: case _OP_PUSHTRAP: case _OP_FOREACH: case _OP_POSTFOREACH: case _OP_PREFOREACH:
-                jumpLabel = i + inst._arg1 + 1;
-                break;
-            case _OP_JCMPI: case _OP_JCMPF:
-                jumpLabel = i + inst._sarg0() + 1;
-                break;
-            case _OP_NULLCOALESCE:
-                jumpLabel = i + inst._arg1;
-                break;
-            default:
-                break;
-            }
-            bool arg1F = inst.op == _OP_JCMPF || inst.op == _OP_LOADFLOAT;
-            if (arg1F)
-                streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %f %d %d"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
-                    g_InstrDesc[inst.op].name, inst._arg0, inst._farg1, inst._arg2, inst._arg3);
-            else
-            {
-                if (i > 0 && (ii[i - 1].op == _OP_SET_LITERAL || ii[i - 1].op == _OP_GET_LITERAL))
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] HINT (0x%") _SC(PRIx64) _SC(")"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
-                        GetUInt64FromPtr(ii + i));
-                else if (inst.op < sizeof(g_InstrDesc) / sizeof(g_InstrDesc[0]))
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] %15s %d %d %d %d"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
-                        g_InstrDesc[inst.op].name, inst._arg0, inst._arg1, inst._arg2, inst._arg3);
-                else
-                    streamprintf(stream, _SC("[line%c%03d]%c[op %03d] INVALID INSTRUNCTION (%d)"), isLineOp ? '-' : ' ', (SQInt32)line, curInstr, (SQInt32)n,
-                        int(inst.op));
-            }
-            if (jumpLabel != 0x7FFFFFFF)
-                streamprintf(stream, _SC("  // jump to %d"), jumpLabel);
-        }
-
-        // comments
-        switch (inst.op) {
-            case _OP_LOAD:
-            case _OP_LOADFLOAT:
-            case _OP_LOADINT:
-            case _OP_LOADBOOL:
-            case _OP_LOADROOT:
-            case _OP_LOADCALLEE:
-                streamprintf(stream, _SC("  // -> [%d]"), int(inst._arg0));
-                break;
-
-            case _OP_LOADNULLS:
-                streamprintf(stream, _SC("  // null -> [%d .. %d]"), int(inst._arg0), int(inst._arg0 + inst._arg1 - 1));
-                break;
-
-            case _OP_DLOAD: {
-                streamprintf(stream, _SC("  //"));
-                if (unsigned(inst._arg1) < unsigned(_nliterals)) {
-                    const SQObjectPtr &key = _literals[inst._arg1];
-                    DumpLiteral(stream, key);
-                }
-                else {
-                    streamprintf(stream, _SC("?"));
-                }
-                streamprintf(stream, _SC(" -> [%d], "), int(inst._arg0));
-                if (unsigned(inst._arg3) < unsigned(_nliterals)) {
-                    const SQObjectPtr &key = _literals[inst._arg3];
-                    DumpLiteral(stream, key);
-                }
-                else {
-                    streamprintf(stream, _SC("?"));
-                }
-                streamprintf(stream, _SC(" -> [%d]"), int(inst._arg2));
-                break;
-            }
-
-            case _OP_DATA_NOP: {
-                    int saveInstr = i + ((inst._arg2 << 8) + inst._arg3);
-                    if ((inst._arg0 || inst._arg1 || inst._arg2 || inst._arg3) && saveInstr > 0 && saveInstr < i_count &&
-                        ii[saveInstr].op == _OP_SAVE_STATIC_MEMO)
-                    {
-                        int loadInstr = saveInstr + 1 - ((ii[saveInstr]._arg2 << 8) + ii[saveInstr]._arg3);
-                        if (loadInstr == i) {
-                            streamprintf(stream, _SC("  // LOAD_STATIC_MEMO: staticmemo[%d] -> [%d], jump to %d"),
-                                int(inst._arg1), int(inst._arg0), saveInstr + 1);
-                        }
-                    }
-                }
-                break;
-
-            case _OP_SAVE_STATIC_MEMO: {
-                    int loadInstr = i + 1 - ((inst._arg2 << 8) + inst._arg3);
-                    streamprintf(stream, _SC("  // [%d] -> staticmemo[%d], [%d] -> [%d], modify instr at %d"),
-                        int(inst._arg0), int(inst._arg1), int(inst._arg0), int(ii[loadInstr]._arg0), loadInstr);
-                }
-                break;
-
-            case _OP_CALL:
-                streamprintf(stream, _SC("  // (call [%d]) -> [%d]"), int(inst._arg1), int(inst._arg0));
-                break;
-
-            case _OP_NULLCALL:
-                streamprintf(stream, _SC("  // (if [%d] then call [%d]) -> [%d]"), int(inst._arg1), int(inst._arg1), int(inst._arg0));
-                break;
-
-            case _OP_MOVE:
-                streamprintf(stream, _SC("  // [%d] -> [%d]"), int(inst._arg1), int(inst._arg0));
-                break;
-
-            case _OP_GET:
-                streamprintf(stream, _SC("  // [%d].[%d] -> [%d]"), int(inst._arg2), int(inst._arg1), int(inst._arg0));
-                break;
-
-            case _OP_NEWOBJ: {
-                const SQChar *objType = inst._arg3 == NEWOBJ_TABLE ? _SC("table") : (inst._arg3 == NEWOBJ_ARRAY ? _SC("array") :
-                    (inst._arg3 == NEWOBJ_CLASS ? _SC("class") : _SC("unknown")));
-                streamprintf(stream, _SC("  // new %s -> [%d]"), objType, int(inst._arg0));
-                break;
-            }
-
-            case _OP_CLOSURE:
-                streamprintf(stream, _SC("  // closure -> [%d]"), int(inst._arg0));
-                break;
-
-            case _OP_APPENDARRAY: {
-                streamprintf(stream, _SC("  // [%d].append("), int(inst._arg0));
-                switch (inst._arg2) {
-                    case AAT_STACK:
-                        streamprintf(stream, _SC("[%d]"), int(inst._arg1));
-                        break;
-                    case AAT_LITERAL:
-                        if (unsigned(inst._arg1) < unsigned(_nliterals)) {
-                            const SQObjectPtr &key = _literals[inst._arg1];
-                            DumpLiteral(stream, key);
-                        }
-                        else {
-                            streamprintf(stream, _SC("?"));
-                        }
-                        break;
-                    case AAT_INT:
-                        streamprintf(stream, _SC("%d"), int(inst._arg1));
-                        break;
-                    case AAT_FLOAT:
-                        streamprintf(stream, _SC("%f"), *((const SQFloat *)&inst._arg1));
-                        break;
-                    case AAT_BOOL:
-                        streamprintf(stream, _SC("%s"), inst._arg1 ? _SC("true") : _SC("false"));
-                        break;
-                    default:
-                        streamprintf(stream, _SC("unknown"));
-                        break;
-                }
-
-                streamprintf(stream, _SC(")"));
-                break;
-            }
-
-            case _OP_GETK:
-            case _OP_GET_LITERAL: {
-                streamprintf(stream, _SC("  // [%d].["), int(inst._arg2));
-                if (unsigned(inst._arg1) < unsigned(_nliterals)) {
-                    const SQObjectPtr &key = _literals[inst._arg1];
-                    DumpLiteral(stream, key);
-                }
-                else {
-                    streamprintf(stream, _SC("?"));
-                }
-                streamprintf(stream, _SC("] -> [%d]"), int(inst._arg0));
-                break;
-            }
-
-            default:
-                break;
-        }
-        streamprintf(stream, _SC("\n"));
-        n++;
-    }
-}
-
-static void DumpLiterals(OutputStream *stream, const SQObjectPtr *_literals, SQInt32 _nliterals)
-{
-    streamprintf(stream, _SC("-----LITERALS\n"));
-    for (SQInt32 i = 0; i < _nliterals; ++i) {
-        streamprintf(stream, _SC("[%d] "), (SQInt32)i);
-        DumpLiteral(stream, _literals[i]);
-        streamprintf(stream, _SC("\n"));
-    }
-}
-
-static void DumpLocals(OutputStream *stream, const SQLocalVarInfo *_localvarinfos, SQInt32 _nlocalvarinfos)
-{
-    streamprintf(stream, _SC("-----LOCALS\n"));
-    for (SQInt32 si = 0; si < _nlocalvarinfos; si++) {
-        SQLocalVarInfo lvi = _localvarinfos[si];
-        streamprintf(stream, _SC("[%d] %s \t%d %d\n"), (SQInt32)lvi._pos, _stringval(lvi._name), (SQInt32)lvi._start_op, (SQInt32)lvi._end_op);
-    }
-}
-
-static void DumpLineInfo(OutputStream *stream, const SQLineInfo *_lineinfos, SQInt32 _nlineinfos)
-{
-    streamprintf(stream, _SC("-----LINE INFO\n"));
-    for (SQInt32 i = 0; i < _nlineinfos; i++) {
-        SQLineInfo li = _lineinfos[i];
-        streamprintf(stream, _SC("op [%d] line [%d]%s\n"), (SQInt32)li._op, (SQInt32)li._line, li._is_line_op ? " line_op" : "");
-    }
-}
-
-void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instruction_index)
-{
-
-    //if (!dump_enable) return ;
-    SQUnsignedInteger n = 0, i;
-    SQInteger si;
-    if (deep) {
-        for (i = 0; i < func->_nfunctions; ++i) {
-            SQObjectPtr &f = func->_functions[i];
-            assert(sq_isfunction(f));
-            Dump(stream, _funcproto(f), deep, -1);
-        }
-    }
-    streamprintf(stream, _SC("SQInstruction sizeof %d\n"), (SQInt32)sizeof(SQInstruction));
-    streamprintf(stream, _SC("SQObject sizeof %d\n"), (SQInt32)sizeof(SQObject));
-    streamprintf(stream, _SC("--------------------------------------------------------------------\n"));
-    streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(func->_name) == OT_STRING ? _stringval(func->_name) : _SC("unknown"));
-    DumpLiterals(stream, func->_literals, func->_nliterals);
-    streamprintf(stream, _SC("-----PARAMS\n"));
-    if (func->_varparams)
-        streamprintf(stream, _SC("<<VARPARAMS>>\n"));
-    n = 0;
-    for (i = 0; i < func->_nparameters; i++) {
-        streamprintf(stream, _SC("[%d] "), (SQInt32)n);
-        DumpLiteral(stream, func->_parameters[i]);
-        streamprintf(stream, _SC("\n"));
-        n++;
-    }
-    DumpLocals(stream, func->_localvarinfos, func->_nlocalvarinfos);
-    DumpLineInfo(stream, func->_lineinfos, func->_nlineinfos);
-    streamprintf(stream, _SC("-----dump\n"));
-    DumpInstructions(stream, func->_lineinfos, func->_nlineinfos,
-        func->_instructions, func->_ninstructions, func->_literals, func->_nliterals, instruction_index);
-    streamprintf(stream, _SC("-----\n"));
-    streamprintf(stream, _SC("stack size[%d]\n"), (SQInt32)func->_stacksize);
-    streamprintf(stream, _SC("--------------------------------------------------------------------\n\n"));
-}
-
-void Dump(OutputStream *stream, const SQFuncState *fState, int instruction_index)
-{
-    streamprintf(stream, _SC("*****FUNCTION [%s]\n"), sq_type(fState->_name) == OT_STRING ? _stringval(fState->_name) : _SC("unknown"));
-    SQObjectPtrVec literals(fState->_sharedstate->_alloc_ctx);
-    literals.resize(_table(fState->_literals)->CountUsed());
-    {
-        SQObjectPtr refidx,key,val;
-        SQInteger idx;
-        while((idx=_table(fState->_literals)->Next(false,refidx,key,val))!=-1) {
-            literals[_integer(val)]=key;
-            refidx=idx;
-        }
-    }
-    DumpLiterals(stream, literals.begin(), literals.size());
-    DumpLocals(stream, fState->_localvarinfos.begin(), fState->_localvarinfos.size());
-    DumpLineInfo(stream, fState->_lineinfos.begin(), fState->_lineinfos.size());
-    streamprintf(stream, _SC("-----dump\n"));
-    DumpInstructions(stream, &fState->_lineinfos[0], fState->_lineinfos.size(),
-        fState->_instructions.begin(), fState->_instructions.size(), literals.begin(), literals.size(), instruction_index);
-}
-
-void Dump(const SQFuncState *fState)
-{
-    FileOutputStream fos(stdout);
-    Dump(&fos, fState, -1);
 }
 
 void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
@@ -446,8 +124,20 @@ void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss)
 
         for (int i = 0; i < count; i += sq_opcode_length(instr[i].op)) {
             if (instr[i].op == _OP_LOAD_STATIC_MEMO) {
-                assert(unsigned(instr[i]._arg1) < func->_nstaticmemos);
-                func->_staticmemos[instr[i]._arg1].Null();
+                SQInteger staticIdx = instr[i]._arg1;
+                assert(unsigned(staticIdx) < func->_nstaticmemos);
+                SQObjectPtr& storedStatic = func->_staticmemos[staticIdx];
+
+                if (ISREFCOUNTED(sq_type(storedStatic))) {
+                #ifdef NO_GARBAGE_COLLECTOR
+                    assert(storedStatic._unVal.pRefCounted->_uiRef > 1);
+                    __Release(storedStatic._type, storedStatic._unVal);
+                #else
+                    ss->_refs_table.Release(storedStatic);
+                #endif
+                }
+
+                func->_staticmemos[staticIdx].Null();
                 instr[i].op = _OP_DATA_NOP;
             }
         }
@@ -465,11 +155,11 @@ SQInteger SQFuncState::GetNumericConstant(const SQFloat cons)
     return GetConstant(SQObjectPtr(cons));
 }
 
-SQInteger SQFuncState::GetConstant(const SQObject &cons, int max_const_no)
+SQInteger SQFuncState::GetConstant(const SQObjectPtr &cons, int max_const_no)
 {
     SQObjectPtr val;
     max_const_no = max_const_no < MAX_LITERALS ? max_const_no : MAX_LITERALS;
-    if(!_table(_literals)->Get(SQObjectPtr(cons),val))
+    if(!_table(_literals)->Get(cons,val))
     {
         if(_nliterals >= max_const_no) {
             if (max_const_no == MAX_LITERALS)
@@ -480,7 +170,7 @@ SQInteger SQFuncState::GetConstant(const SQObject &cons, int max_const_no)
                 return -1;
         }
         val = _nliterals;
-        _table(_literals)->NewSlot(SQObjectPtr(cons),val);
+        _table(_literals)->NewSlot(cons,val);
         _nliterals++;
     }
     int iv = _integer(val);
@@ -508,11 +198,11 @@ void SQFuncState::SetInstructionParam(SQInteger pos,SQInteger arg,SQInteger val)
 SQInteger SQFuncState::AllocStackPos()
 {
     SQInteger npos=_vlocals.size();
+    if(npos >= MAX_FUNC_STACKSIZE)
+        _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
     _vlocals.push_back(SQLocalVarInfo());
-    _vlocals_nodes.push_back(nullptr);
+    _vlocals_info.push_back(SQCompiletimeVarInfo{});
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize)) {
-        if(_stacksize>MAX_FUNC_STACKSIZE)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
         _stacksize=_vlocals.size();
     }
     return npos;
@@ -543,7 +233,7 @@ SQInteger SQFuncState::PopTarget()
     SQLocalVarInfo &t = _vlocals[npos];
     if(sq_type(t._name)==OT_NULL){
         _vlocals.pop_back();
-        _vlocals_nodes.pop_back();
+        _vlocals_info.pop_back();
     }
     _targetstack.pop_back();
     return npos;
@@ -582,7 +272,7 @@ void SQFuncState::SetStackSize(SQInteger n)
             _localvarinfos.push_back(lvi);
         }
         _vlocals.pop_back();
-        _vlocals_nodes.pop_back();
+        _vlocals_info.pop_back();
     }
 }
 
@@ -594,38 +284,33 @@ bool SQFuncState::IsLocal(SQUnsignedInteger stkpos)
     return false;
 }
 
-SQInteger SQFuncState::PushLocalVariable(const SQObject &name, char varFlags, Expr *node)
+SQInteger SQFuncState::PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo& ct_var_info)
 {
     SQInteger pos=_vlocals.size();
     SQLocalVarInfo lvi;
     lvi._name=name;
     lvi._start_op=GetCurrentPos()+1;
     lvi._pos=_vlocals.size();
-    lvi._varFlags=varFlags;
+    lvi._varFlags=ct_var_info.var_flags;
     _vlocals.push_back(lvi);
-    _vlocals_nodes.push_back(node);
+    _vlocals_info.push_back(ct_var_info);
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize))_stacksize=_vlocals.size();
     return pos;
 }
 
 
 
-SQInteger SQFuncState::GetLocalVariable(const SQObject &name, char &varFlags, Expr **node)
+SQInteger SQFuncState::GetLocalVariable(const SQObject &name, SQCompiletimeVarInfo& ct_var_info)
 {
     SQInteger locals=_vlocals.size();
     while(locals>=1){
         SQLocalVarInfo &lvi = _vlocals[locals-1];
         if(sq_type(lvi._name)==OT_STRING && _string(lvi._name)==_string(name)){
-            varFlags = lvi._varFlags;
-            if (node)
-                *node = _vlocals_nodes[locals - 1];
+            ct_var_info = _vlocals_info[locals-1];
             return locals-1;
         }
         locals--;
     }
-    varFlags = 0;
-    if (node)
-        *node = nullptr;
     return -1;
 }
 
@@ -637,61 +322,53 @@ void SQFuncState::MarkLocalAsOuter(SQInteger pos)
 }
 
 
-SQInteger SQFuncState::GetOuterVariable(const SQObject &name, char &varFlags, Expr **node)
+SQInteger SQFuncState::GetOuterVariable(const SQObject &name, SQCompiletimeVarInfo &varInfo)
 {
     SQInteger outers = _outervalues.size();
     for(SQInteger i = 0; i<outers; i++) {
         if(_string(_outervalues[i]._name) == _string(name)) {
-            varFlags = _outervalues[i]._varFlags;
-            if (node)
-                *node = _outervalues_nodes[i];
+            varInfo = _outervalues_info[i];
             return i;
         }
     }
     SQInteger pos=-1;
     if(_parent) {
-        Expr *n = nullptr;
-        pos = _parent->GetLocalVariable(name, varFlags, &n);
+        pos = _parent->GetLocalVariable(name, varInfo);
         if(pos == -1) {
-            pos = _parent->GetOuterVariable(name, varFlags, &n);
+            pos = _parent->GetOuterVariable(name, varInfo);
             if(pos != -1) {
-                _outervalues.push_back(SQOuterVar(SQObjectPtr(name),SQObjectPtr(SQInteger(pos)),otOUTER,varFlags)); //local
-                _outervalues_nodes.push_back(n);
-                if (node)
-                    *node = n;
+                _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otOUTER, varInfo.var_flags)); //local
+                _outervalues_info.push_back(varInfo);
                 return _outervalues.size() - 1;
             }
         }
         else {
             _parent->MarkLocalAsOuter(pos);
-            _outervalues.push_back(SQOuterVar(SQObjectPtr(name),SQObjectPtr(SQInteger(pos)),otLOCAL,varFlags)); //local
-            _outervalues_nodes.push_back(n);
-            if (node)
-                *node = n;
+            _outervalues.push_back(SQOuterVar(SQObjectPtr(name), SQObjectPtr(SQInteger(pos)), otLOCAL, varInfo.var_flags)); //local
+            _outervalues_info.push_back(varInfo);
             return _outervalues.size() - 1;
         }
     }
-    if (node)
-        *node = nullptr;
     return -1;
 }
 
-void SQFuncState::AddParameter(const SQObject &name)
+void SQFuncState::AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask) // TODO: initializer node
 {
-    PushLocalVariable(name, VF_PARAM | VF_ASSIGNABLE, nullptr);
+    PushLocalVariable(name, SQCompiletimeVarInfo{VF_PARAM | VF_ASSIGNABLE, type_mask, nullptr});
     _parameters.push_back(SQObjectPtr(name));
+    _param_type_masks.push_back(type_mask);
 }
 
-void SQFuncState::AddLineInfos(SQInteger line, bool lineop, bool force)
+void SQFuncState::AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force)
 {
     if(_lastline!=line || force){
         if(_lastline!=line) {
-            SQLineInfo li;
+            SQFullLineInfo li;
             li._op = (GetCurrentPos()+1);
-            li._line = line;
-            li._is_line_op = lineop;
-            _lineinfos.push_back(li);
-            if (lineop && _ctx.getVm()->_compile_line_hook)
+            li._line_offset = line;
+            li._is_dbg_step_point = is_dbg_step_point;
+            _full_line_infos.push_back(li);
+            if (is_dbg_step_point && _ctx.getVm()->_compile_line_hook)
                 _ctx.getVm()->_compile_line_hook(_ctx.getVm(), _ctx.sourceName(), line);
         }
         _lastline=line;
@@ -835,12 +512,16 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             case _OP_GET: case _OP_GETK:
             case _OP_ADD: case _OP_SUB: case _OP_MUL: case _OP_DIV: case _OP_MOD: case _OP_BITW:
             case _OP_LOADINT: case _OP_LOADFLOAT: case _OP_LOADBOOL: case _OP_LOAD:
+            case _OP_NEG: case _OP_NOT: case _OP_BWNOT:
+            case _OP_ADDI:
+            case _OP_CMP:
+            case _OP_TYPEOF:
+            case _OP_CLONE:
 
-                if(pi._arg0 == i._arg1)
+                if(pi._arg0 == i._arg1 && !IsLocal(pi._arg0))
                 {
                     pi._arg0 = i._arg0;
                     _optimization = false;
-                    //_result_elimination = false;
                     return;
                 }
             }
@@ -903,18 +584,9 @@ void SQFuncState::AddInstruction(SQInstruction &i)
     _instructions.push_back(i);
 }
 
-SQObject SQFuncState::CreateString(const SQChar *s,SQInteger len)
+SQObjectPtr SQFuncState::CreateString(const char *s,SQInteger len)
 {
-    SQObjectPtr ns(SQString::Create(_sharedstate,s,len));
-    _table(_ref_holder)->NewSlot(ns, SQObjectPtr((SQInteger)1));
-    return ns;
-}
-
-SQObject SQFuncState::CreateTable()
-{
-    SQObjectPtr nt(SQTable::Create(_sharedstate,0));
-    _table(_ref_holder)->NewSlot(nt, SQObjectPtr((SQInteger)1));
-    return nt;
+    return SQObjectPtr(SQString::Create(_sharedstate,s,len));
 }
 
 void SQFuncState::CheckForPurity()
@@ -934,9 +606,26 @@ void SQFuncState::CheckForPurity()
 
 SQFunctionProto *SQFuncState::BuildProto()
 {
+    bool useCompressedLineInfos = true;
+    int firstLine = INT_MAX;
+    int lastLine = 0;
+
+    for (SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+        int line = _full_line_infos[ni]._line_offset;
+        if (line < firstLine)
+            firstLine = line;
+        if (line > lastLine)
+            lastLine = line;
+        if (_full_line_infos[ni]._op > 255)
+            useCompressedLineInfos = false;
+    }
+
+    if (lastLine - firstLine > 127)
+        useCompressedLineInfos = false;
+
     SQFunctionProto *f=SQFunctionProto::Create(_ss,lang_features,_instructions.size(),
         _nliterals,_parameters.size(),_functions.size(),_outervalues.size(),
-        _lineinfos.size(),_localvarinfos.size(),_defaultparams.size(),
+        _full_line_infos.size(),useCompressedLineInfos,_localvarinfos.size(),_defaultparams.size(),
         _staticmemos_count);
 
     SQObjectPtr refidx,key,val;
@@ -946,8 +635,10 @@ SQFunctionProto *SQFuncState::BuildProto()
     f->_sourcename = _sourcename;
     f->_bgenerator = _bgenerator;
     f->_purefunction = _purefunction;
+    f->_nodiscard = _nodiscard;
     f->_name = _name;
-    f->_hoistingLevel = _hoistLevel;
+    f->_inside_hoisted_scope = _hoistLevel > 0;
+    f->_result_type_mask = _result_type_mask;
 
     while((idx=_table(_literals)->Next(false,refidx,key,val))!=-1) {
         f->_literals[_integer(val)]=key;
@@ -955,10 +646,31 @@ SQFunctionProto *SQFuncState::BuildProto()
     }
 
     for(SQUnsignedInteger nf = 0; nf < _functions.size(); nf++) f->_functions[nf] = _functions[nf];
-    for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) f->_parameters[np] = _parameters[np];
     for(SQUnsignedInteger no = 0; no < _outervalues.size(); no++) f->_outervalues[no] = _outervalues[no];
     for(SQUnsignedInteger nl = 0; nl < _localvarinfos.size(); nl++) f->_localvarinfos[nl] = _localvarinfos[nl];
-    for(SQUnsignedInteger ni = 0; ni < _lineinfos.size(); ni++) f->_lineinfos[ni] = _lineinfos[ni];
+
+    for(SQUnsignedInteger np = 0; np < _parameters.size(); np++) {
+        f->_parameters[np] = _parameters[np];
+        f->_param_type_masks[np] = _param_type_masks[np];
+    }
+
+    f->_lineinfos->_is_compressed = useCompressedLineInfos;
+    f->_lineinfos->_first_line = firstLine;
+    if (useCompressedLineInfos) {
+        for(SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+            SQCompressedLineInfo *li = (SQCompressedLineInfo *)(void *)(f->_lineinfos + 1) + ni;
+            li->_op = _full_line_infos[ni]._op;
+            li->_line_offset = _full_line_infos[ni]._line_offset - (unsigned)firstLine;
+            li->_is_dbg_step_point = _full_line_infos[ni]._is_dbg_step_point;
+        }
+    } else {
+        for(SQUnsignedInteger ni = 0; ni < _full_line_infos.size(); ni++) {
+            SQFullLineInfo *li = (SQFullLineInfo *)(void *)(f->_lineinfos + 1) + ni;
+            *li = _full_line_infos[ni];
+            li->_line_offset -= firstLine;
+        }
+    }
+
     for(SQUnsignedInteger nd = 0; nd < _defaultparams.size(); nd++) f->_defaultparams[nd] = _defaultparams[nd];
 
     memcpy(f->_instructions,&_instructions[0],_instructions.size()*sizeof(SQInstruction));

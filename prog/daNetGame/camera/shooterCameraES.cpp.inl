@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/updateStage.h>
 #include <math/dag_Point3.h>
 #include <math/dag_TMatrix.h>
@@ -75,9 +79,9 @@ struct CameraController //-V730
       return dag::Span<CameraSetting>(heapSettings, numSettings);
   }
 
-  void init(ecs::EntityId eid, const DataBlock &blk)
+  void init(ecs::EntityManager &mgr, ecs::EntityId eid, const DataBlock &blk)
   {
-    inputVal = g_entity_mgr->getOr(eid, ECS_HASH("zoom"), 0.0f);
+    inputVal = mgr.getOr(eid, ECS_HASH("zoom"), 0.0f);
     inputSpd = blk.getReal("inputSpd", 2.f);
     numSettings = blk.blockCount();
     if (DAGOR_UNLIKELY(numSettings > countof(inlineSettings)))
@@ -153,10 +157,10 @@ struct Camera
   CameraController controller;
   CameraController alternativeController;
 
-  void init(const DataBlock &blk, const DataBlock *alt_blk, ecs::EntityId eid)
+  void init(ecs::EntityManager &mgr, const DataBlock &blk, const DataBlock *alt_blk, ecs::EntityId eid)
   {
-    controller.init(eid, blk);
-    alternativeController.init(eid, alt_blk ? *alt_blk : blk);
+    controller.init(mgr, eid, blk);
+    alternativeController.init(mgr, eid, alt_blk ? *alt_blk : blk);
   }
 };
 } // namespace shootercam
@@ -171,6 +175,7 @@ ECS_AUTO_REGISTER_COMPONENT(DPoint3, "camera__accuratePos", nullptr, ecs::DataCo
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void shooter_cam_init_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   const ecs::EntityId eid,
   const ecs::string &shooter_cam__blk,
   const ecs::string *shooter_cam__alt_blk,
@@ -197,7 +202,7 @@ static void shooter_cam_init_es_event_handler(const ecs::Event &,
     const char *blkNameAttr = shooter_cam__blk.c_str();
     const DataBlock blk(blkNameAttr);
     const DataBlock altBlk(shooter_cam__alt_blk ? shooter_cam__alt_blk->c_str() : blkNameAttr);
-    shooter_cam.init(blk, &altBlk, eid);
+    shooter_cam.init(manager, blk, &altBlk, eid);
   }
 
   shooter_cam__lastDir = get_cam_itm().getcol(2);

@@ -190,7 +190,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
-    addBuiltinDependency(lib, require("ast"));
+    addBuiltinDependency(lib, require("ast_core"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
     addEnumeration(das::make_smart<EnumerationComponentTypeFlags>());
     addAnnotation(das::make_smart<ComponentTypeAnnotation>(lib));

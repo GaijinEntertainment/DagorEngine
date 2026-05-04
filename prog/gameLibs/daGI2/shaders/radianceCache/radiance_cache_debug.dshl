@@ -5,7 +5,6 @@ include "frustum.dshl"
 
 shader radiance_cache_indirection_draw_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {
@@ -91,7 +90,6 @@ shader radiance_cache_indirection_draw_debug
 
 shader radiance_cache_probes_draw_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {

@@ -28,7 +28,8 @@ static void scene_cam_es_event_handler_all_events(const ecs::Event &__restrict e
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     scene_cam_es_event_handler(evt
-        , ECS_RO_COMP(scene_cam_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(scene_cam_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(scene_cam_es_event_handler_comps, "camera__active", bool)
     , ECS_RO_COMP_PTR(scene_cam_es_event_handler_comps, "transform", TMatrix)
     , ECS_RW_COMP_PTR(scene_cam_es_event_handler_comps, "camera__accuratePos", DPoint3)
@@ -61,7 +62,8 @@ static void scene_cam_activate_es_event_handler_all_events(const ecs::Event &__r
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     scene_cam_activate_es_event_handler(evt
-        , ECS_RO_COMP(scene_cam_activate_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(scene_cam_activate_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP_PTR(scene_cam_activate_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP(scene_cam_activate_es_event_handler_comps, "camera__active", bool)
     , ECS_RW_COMP_PTR(scene_cam_activate_es_event_handler_comps, "camera__accuratePos", DPoint3)
@@ -94,9 +96,9 @@ static ecs::CompileTimeQueryDesc set_camera_active_flag_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_camera_active_flag_ecs_query(ecs::EntityId eid, Callable function)
+inline void set_camera_active_flag_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, set_camera_active_flag_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, set_camera_active_flag_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -124,9 +126,9 @@ static ecs::CompileTimeQueryDesc switch_active_camera_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void switch_active_camera_ecs_query(Callable function)
+inline void switch_active_camera_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, switch_active_camera_ecs_query_desc.getHandle(),
+  perform_query(&manager, switch_active_camera_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

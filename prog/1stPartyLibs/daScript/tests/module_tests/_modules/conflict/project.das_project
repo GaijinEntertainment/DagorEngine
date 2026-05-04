@@ -1,0 +1,13 @@
+// conflict/project.das_project — Tests module name collision detection
+//
+// Uses the default resolver from common.das_project which maps
+// `require pkgA/foo` to moduleName "foo" (last path component) and
+// `require pkgB/foo` to moduleName "foo" — same module name, different files.
+//
+// The compiler should detect this and fail.
+
+options gen2
+require strings
+require daslib/strings_boost
+
+include ../common.das_project

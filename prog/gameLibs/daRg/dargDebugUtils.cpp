@@ -19,7 +19,7 @@ static bool sq_obj_to_string(HSQUIRRELVM vm, HSQOBJECT obj, Sqrat::string &out_s
   bool r = SQ_SUCCEEDED(sq_tostring(vm, -1));
   if (r)
   {
-    const SQChar *s = nullptr;
+    const char *s = nullptr;
     G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &s)));
     out_string = Sqrat::string(s);
     sq_pop(vm, 1);
@@ -40,7 +40,7 @@ void darg_assert_trace_var(const char *message, const Sqrat::Object &container, 
 {
   G_ASSERT_RETURN(message, );
 
-  SQChar buf[1024];
+  char buf[1024];
   HSQUIRRELVM vm = container.GetVM();
   const HSQOBJECT traceContainer = container.GetObject();
   const HSQOBJECT traceKey = key.GetObject();

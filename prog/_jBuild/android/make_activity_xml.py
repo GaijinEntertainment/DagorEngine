@@ -12,6 +12,7 @@ parser.add_argument('--ARG_TYPE')
 parser.add_argument('--ARG_STATE_NOT_NEED')
 parser.add_argument('--ARG_ACTION')
 parser.add_argument('--ARG_THEME')
+parser.add_argument('--ARG_IMPORT_DEEPLINKS')
 
 args = parser.parse_args()
 
@@ -23,6 +24,12 @@ if args.ARG_ACTION and args.ARG_ACTION != 'none':
   </intent-filter>"""
 else:
   args.ARG_ACTION = ''
+
+if args.ARG_IMPORT_DEEPLINKS and args.ARG_IMPORT_DEEPLINKS != 'none':
+  with open(args.ARG_IMPORT_DEEPLINKS, 'r') as f:
+    args.ARG_IMPORT_DEEPLINKS = f.read()
+else:
+  args.ARG_IMPORT_DEEPLINKS = ''
 
 ARG_TYPE_TV_BANNER = ''
 
@@ -45,7 +52,8 @@ for i in range(len(content)):
     ARG_TYPE_TV_BANNER=ARG_TYPE_TV_BANNER,
     ARG_STATE_NOT_NEED=args.ARG_STATE_NOT_NEED,
     ARG_ACTION=args.ARG_ACTION,
-    ARG_THEME=args.ARG_THEME
+    ARG_THEME=args.ARG_THEME,
+    ARG_IMPORT_DEEPLINKS=args.ARG_IMPORT_DEEPLINKS
     )
 
 output = open(os.path.join(str(args.outdir), str(args.output)), 'w+')

@@ -160,8 +160,18 @@ public:
     res = das::ModuleFileAccess::invalidateFileInfo(fileName) || res;
     return res;
   }
-  virtual das::FileInfo *getNewFileInfo(const das::string &fname) override
+  static bool hasDaslibMountPoint()
   {
+    static const bool hasDaslibMountPoint_ = (bool)dd_get_named_mount_path("daslib");
+    return hasDaslibMountPoint_;
+  }
+  virtual das::FileInfo *getNewFileInfo(const das::string &file_name) override
+  {
+    das::string fname = file_name;
+    if (hasDaslibMountPoint() && das::string_view(fname).starts_with("./daslib/"))
+    {
+      fname = das::string(das::string::CtorSprintf(), "%%%s", fname.c_str() + 2);
+    }
     if (owner)
     {
       auto res = owner->getFileInfo(fname);

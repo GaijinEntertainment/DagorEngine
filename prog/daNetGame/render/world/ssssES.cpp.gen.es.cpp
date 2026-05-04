@@ -6,18 +6,21 @@ ECS_DEF_PULL_VAR(ssss);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc ssss_settings_tracking_es_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 4 ro components at [0]
   {ECS_HASH("render_settings__ssssQuality"), ecs::ComponentTypeInfo<ecs::string>()},
-  {ECS_HASH("render_settings__forwardRendering"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("render_settings__combinedShadows"), ecs::ComponentTypeInfo<bool>()}
+  {ECS_HASH("render_settings__combinedShadows"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__rayReconstruction"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__antialiasing_mode"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void ssss_settings_tracking_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ssss_settings_tracking_es(evt
-        , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__ssssQuality", ecs::string)
-    , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__forwardRendering", bool)
+        , components.manager()
+    , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__ssssQuality", ecs::string)
     , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__combinedShadows", bool)
+    , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__rayReconstruction", bool)
+    , ECS_RO_COMP(ssss_settings_tracking_es_comps, "render_settings__antialiasing_mode", ecs::string)
     );
   while (++comp != compE);
 }
@@ -27,12 +30,12 @@ static ecs::EntitySystemDesc ssss_settings_tracking_es_es_desc
   "prog/daNetGame/render/world/ssssES.cpp.inl",
   ecs::EntitySystemOps(nullptr, ssss_settings_tracking_es_all_events),
   empty_span(),
-  make_span(ssss_settings_tracking_es_comps+0, 3)/*ro*/,
+  make_span(ssss_settings_tracking_es_comps+0, 4)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,nullptr,"render_settings__combinedShadows,render_settings__forwardRendering,render_settings__ssssQuality");
+,nullptr,"render_settings__antialiasing_mode,render_settings__combinedShadows,render_settings__rayReconstruction,render_settings__ssssQuality",nullptr,"bvh_render_settings_changed_es");
 static constexpr ecs::ComponentDesc ssss_created_or_params_changed_es_event_handler_comps[] =
 {
 //start of 10 ro components at [0]
@@ -90,9 +93,9 @@ static ecs::CompileTimeQueryDesc ssss_enabled_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void ssss_enabled_ecs_query(ecs::EntityId eid, Callable function)
+inline void ssss_enabled_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, ssss_enabled_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, ssss_enabled_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -119,9 +122,9 @@ static ecs::CompileTimeQueryDesc ssss_init_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void ssss_init_ecs_query(ecs::EntityId eid, Callable function)
+inline void ssss_init_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, ssss_init_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, ssss_init_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -157,9 +160,9 @@ static ecs::CompileTimeQueryDesc ssss_params_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void ssss_params_ecs_query(ecs::EntityId eid, Callable function)
+inline void ssss_params_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, ssss_params_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, ssss_params_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

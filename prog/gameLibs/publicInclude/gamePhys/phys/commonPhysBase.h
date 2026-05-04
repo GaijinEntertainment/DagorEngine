@@ -11,6 +11,7 @@
 #include <EASTL/unique_ptr.h>
 #include <math/dag_mathAng.h>
 #include <dag/dag_vector.h>
+#include <memory/dag_mem.h>
 #include <generic/dag_tab.h>
 #include <daNet/bitStream.h>
 #include <gamePhys/phys/physBase.h>
@@ -52,7 +53,7 @@ class ExtrapolatedPhysState
 {
 public:
   gamephys::Loc location; // tm
-  float atTime;
+  double atTime = 0;
   DPoint3 velocity;     // Vwld  // Vector of speed in the world
   DPoint3 acceleration; // Accel
   DPoint3 omega;        // W
@@ -60,8 +61,6 @@ public:
 
   ExtrapolatedPhysState()
   {
-    atTime = 0.f;
-
     // location has it's own constructor
     velocity.zero();
     acceleration.zero();
@@ -70,7 +69,7 @@ public:
   }
 
   template <typename PhysState>
-  void copyFrom(const PhysState &state, float time)
+  void copyFrom(const PhysState &state, double time)
   {
     location = state.location;
     atTime = time;
@@ -130,7 +129,7 @@ struct ResyncState
 
   int32_t needUpdateToTick = 0;
   int maxGraceTick = 0;
-  float stateTimeBefore = 0.f;
+  double stateTimeBefore = 0.f;
 
   ExtrapolatedPhysState correctedExtrapolatedState;
 };
@@ -173,7 +172,7 @@ static void apply_vel_omega_delta(const DPoint3 &add_vel, const DPoint3 &add_ome
 }
 
 template <typename PhysState>
-static void calc_full_visual_error(bool client_smoothing, float current_time, gamephys::Loc &out_vis_loc_err, float &out_prod_time,
+static void calc_full_visual_error(bool client_smoothing, double current_time, gamephys::Loc &out_vis_loc_err, double &out_prod_time,
   const gamephys::Loc &prev_vis_loc, const PhysState &curr_state)
 {
   if (client_smoothing)
@@ -244,7 +243,7 @@ public:
 
   gamephys::Loc visualLocation;
   gamephys::Loc visualLocationError;
-  float visualLocationErrorProductionTime;
+  double visualLocationErrorProductionTime = -1;
 
   ControlState appliedCT;
   ControlState producedCT;
@@ -268,9 +267,9 @@ public:
   float authorityApprovedStateDumpFromTime;
   int32_t lastProcessedAuthorityApprovedStateAtTick;
 
-  float physicsTimeToSendState;
-  float physicsTimeToSendPartialState;
-  int32_t lastAuthorityApprovedStateSentAtTick;
+  double physicsTimeToSendState = 0;
+  double physicsTimeToSendPartialState = 0;
+  int32_t lastAuthorityApprovedStateSentAtTick = 0;
   float timeStep;
   float maxTimeDeferredControls = 0.350f;
   const float extrapolationTimeMult;
@@ -284,7 +283,7 @@ public:
 
   void validateTraceCache() override {}
 
-  virtual void calcVisualLocFromLocation(float current_time, const gamephys::Loc &from_location,
+  virtual void calcVisualLocFromLocation(double current_time, const gamephys::Loc &from_location,
     Tab<gamephys::Loc> &out_visual_locations) const
   {
     gamephys::Loc &locationErr = out_visual_locations.push_back();
@@ -292,20 +291,20 @@ public:
     calculateCurrentVisualLocationError(current_time, curError);
     locationErr.add(from_location, curError);
   }
-  virtual void updateVisualError(bool client_smoothing, float current_time, dag::ConstSpan<gamephys::Loc> prev_visual_locations)
+  virtual void updateVisualError(bool client_smoothing, double current_time, dag::ConstSpan<gamephys::Loc> prev_visual_locations)
   {
     const gamephys::Loc &previousVisualLoc = prev_visual_locations.front();
     calc_full_visual_error(client_smoothing, current_time, visualLocationError, visualLocationErrorProductionTime, previousVisualLoc,
       currentState);
   }
-  virtual void updateVisualErrorForNewCorrection(float current_time, dag::ConstSpan<gamephys::Loc> prev_vis_locs,
+  virtual void updateVisualErrorForNewCorrection(double current_time, dag::ConstSpan<gamephys::Loc> prev_vis_locs,
     const gamephys::Loc &next_unit_vis_loc)
   {
     const gamephys::Loc &previousVisualLoc = prev_vis_locs.front();
     visualLocationError.substract(previousVisualLoc, next_unit_vis_loc);
     visualLocationErrorProductionTime = current_time;
   }
-  virtual void fixVisualErrors(float at_time)
+  virtual void fixVisualErrors(double at_time)
   {
     gamephys::Loc visualBase;
     visualBase = extrapolatedState.location;
@@ -519,10 +518,10 @@ public:
     saveCurrentStateTo(historyStates.push_back(), currentState.atTick);
   }
   virtual void applyProducedState() { appliedCT = producedCT; }
-  virtual void postPhysExtrapolation(float /*time*/, ExtrapolatedPhysState & /*unit_extrapolated_state*/) {}
-  void extrapolateMinimalState(const PhysStateBase &state, float time, ExtrapolatedPhysState &newState) const
+  virtual void postPhysExtrapolation(double /*time*/, ExtrapolatedPhysState & /*unit_extrapolated_state*/) {}
+  void extrapolateMinimalState(const PhysStateBase &state, double time, ExtrapolatedPhysState &newState) const
   {
-    float dt = time - float(state.atTick) * timeStep;
+    float dt = time - double(state.atTick) * timeStep;
 
     // Position extrapolation
     Point3 position0 = state.location.P;
@@ -563,11 +562,11 @@ public:
   }
 
   static gamephys::Loc __forceinline lerpVisualLocImpl(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step,
-    float at_time, bool lerp_vel = true)
+    double at_time, bool lerp_vel = true)
   {
     G_FAST_ASSERT(curState.atTick != prevState.atTick); // delta can't be 0
     float delta = (curState.atTick - prevState.atTick) * time_step;
-    float dt = clamp(at_time - float(prevState.atTick) * time_step, 0.f, delta);
+    float dt = clamp(float(at_time - double(prevState.atTick) * time_step), 0.f, delta);
 
     gamephys::Loc visLoc;
     visLoc.interpolate(prevState.location, curState.location, dt / delta);
@@ -588,18 +587,18 @@ public:
     return visLoc;
   }
 
-  virtual gamephys::Loc lerpVisualLoc(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step, float at_time)
+  virtual gamephys::Loc lerpVisualLoc(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step, double at_time)
   {
     return lerpVisualLocImpl(prevState, curState, time_step, at_time);
   }
 
   virtual void updateVisualPositionForSubPhysics(float /*time_step*/, float /*at_time*/, bool /*is_interpolation*/) {}
 
-  void interpolateVisualPosition(float at_time) override final
+  void interpolateVisualPosition(double at_time) override final
   {
     const float tsErr = timeStep / 100.f;
-    if (currentState.atTick > previousState.atTick && at_time >= (previousState.atTick * timeStep - tsErr) &&
-        at_time <= (currentState.atTick * timeStep + tsErr))
+    if (currentState.atTick > previousState.atTick && at_time >= (double(previousState.atTick) * timeStep - tsErr) &&
+        at_time <= (double(currentState.atTick) * timeStep + tsErr))
     {
       visualLocation = lerpVisualLoc(previousState, currentState, timeStep, at_time);
       updateVisualPositionForSubPhysics(timeStep, at_time, true);
@@ -640,7 +639,7 @@ public:
         previousState.atTick * (double)timeStep, currentState.location.O.getQuat(), dpoint3(currentState.omega), currentStateTime,
         out_quat, out_omega);
   }
-  inline void calculateCurrentVisualLocationError(float current_time, gamephys::Loc &out_current_visual_location_error) const
+  inline void calculateCurrentVisualLocationError(double current_time, gamephys::Loc &out_current_visual_location_error) const
   {
     calc_current_vis_loc_error(current_time - visualLocationErrorProductionTime, visualLocationError,
       out_current_visual_location_error);
@@ -654,7 +653,7 @@ public:
       lastAuthorityApprovedStateSentAtTick = currentState.atTick;
     }
     else
-      physicsTimeToSendState = min(physicsTimeToSendState, float(ticks_threshold) * timeStep);
+      physicsTimeToSendState = min(physicsTimeToSendState, double(ticks_threshold) * timeStep);
   }
   typedef void (*custom_resync_cb_t)(IPhysBase *self, const PhysStateBase & /*prev_desynced_state*/,
     const PhysStateBase & /*desynced_state*/, const PhysStateBase & /*incoming_state*/, const PhysStateBase * /*matching_state*/);
@@ -755,10 +754,9 @@ public:
   bool receiveControlsPacket(const danet::BitStream &bs, int max_queue_size, int32_t &out_anomaly_flags)
   {
     alignas(ControlState) int stateBuf[(sizeof(ControlState) + 3) / 4];
-#if DAGOR_DBGLEVEL > 0 && defined(_M_IX86_FP) && _M_IX86_FP == 0 // fill with NaNs if compiled for IA32 (in order to catch access to
-                                                                 // not inited float members)
-    for (int *iptr = stateBuf; iptr < &stateBuf[countof(stateBuf)]; ++iptr)
-      *iptr = 0x7fbfffff;
+    // fill with NaNs if compiled for IA32 (in order to catch access to not inited float members)
+#if DAGOR_DBGLEVEL > 0 && defined(_M_IX86_FP) && _M_IX86_FP == 0
+    memset_dw(stateBuf, 0x7fbfffff, countof(stateBuf));
 #endif
     ControlState &state = *new (stateBuf, _NEW_INPLACE) ControlState;
     bs.SetReadOffset(0);
@@ -932,17 +930,11 @@ PhysicsBase<PhysState, ControlState, PartialState>::PhysicsBase(ptrdiff_t physac
   producedCT.init();
   authorityApprovedPartialState.isProcessed = true;
 
-  visualLocationErrorProductionTime = -1.f;
-
   lastCTSequenceNumber = -1;
   isAuthorityApprovedStateProcessed = true;
   authorityApprovedStateUnitVersion = -1;
   authorityApprovedStateDumpFromTime = -1.f;
   lastProcessedAuthorityApprovedStateAtTick = -1;
-
-  physicsTimeToSendState = 0.f;
-  physicsTimeToSendPartialState = 0.f;
-  lastAuthorityApprovedStateSentAtTick = 0;
 }
 
 template <typename PhysState, typename ControlState, typename PartialState>

@@ -19,25 +19,26 @@ int shaders_internal::shader_pad_for_reload = 1024;
 void shaders_internal::register_material(ScriptedShaderMaterial *mat)
 {
   BlockAutoLock block;
-  shader_mats.insert(mat);
+  get_shaders_dump_owner_mut(mat->props.dumpHandle).shaderMats.insert(mat);
 }
 
 void shaders_internal::unregister_material(ScriptedShaderMaterial *mat)
 {
   BlockAutoLock block;
-  shader_mats.erase(mat);
+  get_shaders_dump_owner_mut(mat->props.dumpHandle).shaderMats.erase(mat);
 }
 
 void shaders_internal::register_mat_elem(ScriptedShaderElement *elem)
 {
   BlockAutoLock block;
-  shader_mat_elems.insert(elem);
+  get_shaders_dump_owner_mut(elem->dumpHandle).shaderMatElems.insert(elem);
 }
 
 void shaders_internal::unregister_mat_elem(ScriptedShaderElement *elem)
 {
   BlockAutoLock block;
-  if (!shader_mat_elems.size())
+  auto &owner = get_shaders_dump_owner_mut(elem->dumpHandle);
+  if (!owner.shaderMatElems.size())
   {
     // unregister skipped, materials has been released already
 #if DAGOR_DBGLEVEL > 0
@@ -47,11 +48,41 @@ void shaders_internal::unregister_mat_elem(ScriptedShaderElement *elem)
 #endif
     return;
   }
-  shader_mat_elems.erase(elem);
+  owner.shaderMatElems.erase(elem);
 }
 
-bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &prev_sh_owner)
+void shaders_internal::cleanup_shaders_on_reload(ScriptedShadersBinDumpOwner &prev_sh_owner)
 {
+  // destroy shaders
+  for (auto &id : prev_sh_owner.vprId)
+  {
+    if (id != BAD_VPROG)
+      d3d::delete_vertex_shader(id);
+    id = BAD_VPROG;
+  }
+  for (auto &id : prev_sh_owner.fshId)
+  {
+    if (id != BAD_FSHADER)
+      d3d::delete_pixel_shader(id);
+    id = BAD_FSHADER;
+  }
+  for (auto &id : prev_sh_owner.cshId)
+  {
+    if (id != BAD_PROGRAM)
+      d3d::delete_program(id);
+    id = BAD_PROGRAM;
+  }
+}
+
+bool shaders_internal::reload_shaders_materials( //
+  ScriptedShadersBinDumpOwner &new_sh_owner,     //
+  ScriptedShadersGlobalData *new_gdata,          //
+  ScriptedShadersBinDumpOwner &prev_sh_owner,    //
+  ScriptedShadersGlobalData *prev_gdata)
+{
+  G_ASSERT((new_gdata && prev_gdata) || (!new_gdata && !prev_gdata));
+  bool const reloadGlobalData = new_gdata && prev_gdata;
+
   ScriptedShadersBinDump &prev_sh = *prev_sh_owner.getDump();
   if (!prev_sh.classes.size())
     return true;
@@ -64,52 +95,78 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
   BlockAutoLock block;
 
   DEBUG_CP();
-  // destroy shaders
-  for (auto id : prev_sh_owner.vprId)
-    if (id != BAD_VPROG)
-      d3d::delete_vertex_shader(id);
-  for (auto id : prev_sh_owner.fshId)
-    if (id != BAD_FSHADER)
-      d3d::delete_pixel_shader(id);
-  for (auto id : prev_sh_owner.cshId)
-    if (id != BAD_PROGRAM)
-      d3d::delete_program(id);
 
-  // copy global variables
-  for (int i = 0; i < prev_sh.gvMap.size(); i++)
+  cleanup_shaders_on_reload(prev_sh_owner);
+
+  if (reloadGlobalData)
   {
-    const char *name = (const char *)prev_sh.varMap[prev_sh.gvMap[i] & 0xFFFF];
-    if (name[strlen(name) - 1] == ']')
-      continue; // skip array auxiliary vars since they are not used as a real global shader vars
-    int varId = VariableMap::getVariableId(name);
-    const int prevGId = prev_sh.gvMap[i] >> 16;
-    auto const &state = prev_sh_owner.globVarsState;
-    auto const &vars = prev_sh.globVars;
-    switch (vars.getType(prevGId))
+    auto const *dump_v4 = new_sh_owner.getDumpV4();
+    // copy global variables
+    for (int i = 0; i < prev_sh.gvMap.size(); i++)
     {
-      case SHVT_INT: ShaderGlobal::set_int(varId, state.get<int>(prevGId)); break;
-      case SHVT_INT4: ShaderGlobal::set_int4(varId, state.get<IPoint4>(prevGId)); break;
-      case SHVT_REAL: ShaderGlobal::set_real(varId, state.get<real>(prevGId)); break;
-      case SHVT_COLOR4: ShaderGlobal::set_color4(varId, state.get<Color4>(prevGId)); break;
-      case SHVT_TEXTURE: ShaderGlobal::set_texture(varId, state.get<shaders_internal::Tex>(prevGId).texId); break;
-      case SHVT_BUFFER: ShaderGlobal::set_buffer(varId, state.get<shaders_internal::Buf>(prevGId).bufId); break;
-      case SHVT_SAMPLER: ShaderGlobal::set_sampler(varId, state.get<d3d::SamplerHandle>(prevGId)); break;
-      case SHVT_TLAS: ShaderGlobal::set_tlas(varId, state.get<RaytraceTopAccelerationStructure *>(prevGId)); break;
-    }
+      char const *name = (char const *)prev_sh.varMap[prev_sh.gvMap[i] & 0xFFFF];
+      if (name[strlen(name) - 1] == ']')
+        continue; // skip array auxiliary vars since they are not used as a real global shader vars
+      int const varNid = VariableMap::getVariableId(name);
+      int const newInternalVarId = new_gdata->globvarIndexMap[varNid];
+      if (newInternalVarId == SHADERVAR_IDX_ABSENT || newInternalVarId == SHADERVAR_IDX_INVALID)
+        continue;
+      int const prevInternalVarId = prev_sh.gvMap[i] >> 16;
+      if (dump_v4 && dump_v4->globVarsMetadata[newInternalVarId].isLiteral)
+        continue;
+      auto const &state = prev_gdata->globVarsState;
+      auto const &vars = prev_sh.globVars;
 
-    // copy global intervals
-    int id = shBinDumpOwner().globvarIndexMap[varId];
-    if (id == SHADERVAR_IDX_ABSENT)
-      continue;
-    int iid = shBinDumpOwner().globVarIntervalIdx[id];
-    int prevIid = prev_sh_owner.globVarIntervalIdx[prevGId];
-    if (iid >= 0 && prevIid >= 0)
-      shBinDumpOwner().globIntervalNormValues[iid] = prev_sh_owner.globIntervalNormValues[prevIid];
+      switch (vars.getType(prevInternalVarId))
+      {
+        case SHVT_INT: ShaderGlobal::set_int(varNid, state.get<int>(prevInternalVarId)); break;
+        case SHVT_INT4: ShaderGlobal::set_int4(varNid, state.get<IPoint4>(prevInternalVarId)); break;
+        case SHVT_REAL: ShaderGlobal::set_float(varNid, state.get<real>(prevInternalVarId)); break;
+        case SHVT_COLOR4: ShaderGlobal::set_float4(varNid, state.get<Color4>(prevInternalVarId)); break;
+        case SHVT_TEXTURE:
+        {
+          const auto &tex = state.get<shaders_internal::Tex>(prevInternalVarId);
+
+          if (tex.isTextureManaged())
+          {
+            ShaderGlobal::set_texture(varNid, tex.texId);
+          }
+          else
+          {
+            ShaderGlobal::set_texture(varNid, tex.tex);
+          }
+          break;
+        };
+        case SHVT_BUFFER:
+        {
+          const auto &buf = state.get<shaders_internal::Buf>(prevInternalVarId);
+          if (buf.isBufferManaged())
+          {
+            ShaderGlobal::set_buffer(varNid, buf.bufId);
+          }
+          else
+          {
+            ShaderGlobal::set_buffer(varNid, buf.buf);
+          }
+          break;
+        }
+        case SHVT_SAMPLER: ShaderGlobal::set_sampler(varNid, state.get<d3d::SamplerHandle>(prevInternalVarId)); break;
+        case SHVT_TLAS: ShaderGlobal::set_tlas(varNid, state.get<RaytraceTopAccelerationStructure *>(prevInternalVarId)); break;
+      }
+
+      // copy global intervals
+      int id = new_gdata->globvarIndexMap[varNid];
+      if (id == SHADERVAR_IDX_ABSENT)
+        continue;
+      int iid = new_gdata->globVarIntervalIdx[id];
+      int prevIid = prev_gdata->globVarIntervalIdx[prevInternalVarId];
+      if (iid >= 0 && prevIid >= 0)
+        new_gdata->globIntervalNormValues[iid] = prev_gdata->globIntervalNormValues[prevIid];
+    }
   }
 
   // renew shader materials
   ska::flat_hash_set<ScriptedShaderElement *> elemPtrList;
-  ska::flat_hash_set<ScriptedShaderMaterial *> mats = shader_mats;
 
   Tab<unsigned> texIdMap(tmpmem);
   unsigned max_idx = get_max_managed_texture_id().index() + 1;
@@ -127,7 +184,7 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
     max_idx = idx + 1;
   }
 
-  for (auto &m : mats)
+  for (auto &m : prev_sh_owner.shaderMats)
     if (m)
     {
       m->recreateMat(false /* delete_programs */);
@@ -135,11 +192,10 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
         elemPtrList.insert(m->getElem());
     }
 
-  ska::flat_hash_set<ScriptedShaderElement *> elems = shader_mat_elems;
-  for (auto e : elems)
+  for (auto e : prev_sh_owner.shaderMatElems)
     if (e && elemPtrList.find(e) == elemPtrList.end())
     {
-      debug("detached elem %p (of %d/%d)", e, shader_mat_elems.size(), elemPtrList.size());
+      debug("detached elem %p (of %d/%d)", e, prev_sh_owner.shaderMatElems.size(), elemPtrList.size());
       e->native().detachElem();
     }
     else if (e)
@@ -153,22 +209,39 @@ bool shaders_internal::reload_shaders_materials(ScriptedShadersBinDumpOwner &pre
       // debug("0x%x: %s %d", rid, get_managed_texture_name(rid), get_managed_texture_refcount(rid));
     }
 
-  // reset textures from previous global vars
-  for (int i = 0, e = prev_sh.gvMap.size(); i < e; i++)
+  new_sh_owner.shaderMats = eastl::move(prev_sh_owner.shaderMats);
+  new_sh_owner.shaderMatElems = eastl::move(prev_sh_owner.shaderMatElems);
+
+  if (reloadGlobalData)
   {
-    const int prevGId = prev_sh.gvMap[i] >> 16;
-    auto const &state = prev_sh_owner.globVarsState;
-    auto const &vl = prev_sh.globVars;
-    auto type = vl.getType(prevGId);
-    if (type == SHVT_TEXTURE)
-      release_managed_tex(state.get<shaders_internal::Tex>(prevGId).texId);
-    else if (type == SHVT_BUFFER)
-      release_managed_res(state.get<shaders_internal::Buf>(prevGId).bufId);
+    // reset textures from previous global vars
+    for (int i = 0, e = prev_sh.gvMap.size(); i < e; i++)
+    {
+      const int prevGId = prev_sh.gvMap[i] >> 16;
+      auto const &state = prev_gdata->globVarsState;
+      auto const &vl = prev_sh.globVars;
+      auto type = vl.getType(prevGId);
+      if (type == SHVT_TEXTURE)
+      {
+        const auto &tex = state.get<shaders_internal::Tex>(prevGId);
+        if (tex.isTextureManaged())
+        {
+          release_managed_tex(state.get<shaders_internal::Tex>(prevGId).texId);
+        }
+      }
+      else if (type == SHVT_BUFFER)
+      {
+        const auto &buf = state.get<shaders_internal::Buf>(prevGId);
+        if (buf.isBufferManaged())
+        {
+          release_managed_res(buf.bufId);
+        }
+      }
+    }
   }
 
-  close_shader_block_stateblocks(false);
 #if DAGOR_DBGLEVEL > 0
-  shaderbindump::resetInvalidVariantMarks();
+  shaderbindump::resetInvalidVariantMarks(new_sh_owner.selfHandle);
 #endif
   DEBUG_CP();
   return true;
@@ -178,18 +251,6 @@ bool shaders_internal::reload_shaders_materials_on_driver_reset()
 {
   BlockAutoLock block;
   rebuild_shaders_stateblocks();
-  auto &shOwner = shBinDumpOwner();
 
-  DEBUG_CP();
-  // destroy shaders
-  eastl::fill(shOwner.vprId.begin(), shOwner.vprId.end(), BAD_VPROG);
-  eastl::fill(shOwner.fshId.begin(), shOwner.fshId.end(), BAD_FSHADER);
-  eastl::fill(shOwner.cshId.begin(), shOwner.cshId.end(), BAD_PROGRAM);
-
-  auto elems = shader_mat_elems;
-  for (auto e : elems)
-    if (e)
-      e->native().resetShaderPrograms(false /* delete_programs */);
-  DEBUG_CP();
   return true;
 }

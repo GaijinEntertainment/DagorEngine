@@ -38,7 +38,8 @@ struct DabuildJobSharedMem
     volatile int donePk, totalPk;
     volatile int64_t szDiff;
     volatile int64_t szChangedTotal;
-    char data[1024 - 8 * 4 - 8 * 2 - 32];
+    volatile bool patchBuild;
+    char data[1024 - 8 * 4 - 8 * 2 - 32 - 1];
 
     void setup(unsigned tc, const char *prof);
   };

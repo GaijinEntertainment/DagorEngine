@@ -16,10 +16,11 @@
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_convar.h>
-#include <util/dag_aviWriter.h>
+#include <aviWriter/aviWriter.h>
 #include <gui/dag_imgui.h>
 #include <math/dag_mathBase.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_tex3d.h>
 #include <debug/dag_debug3d.h>
 #include <bindQuirrelEx/autoBind.h>
@@ -183,7 +184,7 @@ static UniqueTex convert_linear_to_srgb(const ManagedTex &linear)
   UniqueTex sdrHostTex = dag::create_tex(nullptr, ti.w, ti.h, TEXFMT_DEFAULT | TEXCF_SYSMEM | TEXCF_UNORDERED, 1, "sdr_host");
   static int linearTexVarId = get_shader_variable_id("linear_tex", false);
   ShaderGlobal::set_texture(linearTexVarId, linear.getTexId());
-  d3d::set_render_target(sdrTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{sdrTex.getTex2D(), 0, 0}});
 
   tonemap.render();
 
@@ -215,11 +216,10 @@ static eastl::array<UniqueTex, 3> split_planes(const ManagedTex &linear)
   static int linearTexVarId = get_shader_variable_id("linear_tex", false);
   ShaderGlobal::set_texture(linearTexVarId, linear.getTexId());
 
+  d3d::set_render_target({}, DepthAccess::RW,
+    {{planesTex[0].getTex2D(), 0, 0}, {planesTex[1].getTex2D(), 0, 0}, {planesTex[2].getTex2D(), 0, 0}});
   for (int i : {0, 1, 2})
-  {
-    d3d::set_render_target(i, planesTex[i].getTex2D(), 0);
     d3d::resource_barrier({planesTex[i].getTex2D(), RB_RW_RENDER_TARGET | RB_STAGE_PIXEL, 0, 0});
-  }
 
   splitPlanes.render();
 
@@ -323,7 +323,7 @@ void screencap::schedule_screenshot(bool with_gui, int sequence_number, const ch
 
 #ifdef CAPTURE_SCREENSHOT_FRAMES
   pending_delay = 3;
-  PIX_GPU_CAPTURE_NEXT_FRAMES(D3D11X_PIX_CAPTURE_API, L"", 2);
+  PIX_GPU_CAPTURE_NEXT_FRAMES(D3D12XBOX_PIX_CAPTURE_API, L"", 2);
 #endif
 }
 

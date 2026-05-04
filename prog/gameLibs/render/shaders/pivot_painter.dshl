@@ -73,10 +73,11 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       return idx2D[0] + idx2D[1] * PP_RES_X;
     }
 
-    int getParentIndexAndPivotPos(float2 coords, float3 X, float3 Y, float3 Z, float3 P, out float3 pivotPos)
+    int getParentIndexAndPivotPos(float2 coords, float3 X, float3 Y, float3 Z, float3 P, out float3 pivotPos, out float3 local_pivot_pos)
     {
       float4 result = sample_pp_pos_tex(coords);
 
+      local_pivot_pos = result.xyz;
       pivotPos = transformLocalWorld(result.xyz, X, Y, Z, P);
 
       // Unpack int from float
@@ -107,6 +108,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       float3 branchPivotPos[MAX_ALLOWED_HIERARCHY];
       float4 branchDirExtent[MAX_ALLOWED_HIERARCHY];
       int branchIndices[MAX_ALLOWED_HIERARCHY];
+      float3 localBranchPivotPos[MAX_ALLOWED_HIERARCHY];
     };
 
     HierarchyData fetchHierarchyData(float2 startCoords, float3 X, float3 Y, float3 Z, float3 P)
@@ -121,7 +123,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
         int curIdx = getIndexByUv(currentUV);
         Data.branchIndices[level] = curIdx;
 
-        int parentIdx = getParentIndexAndPivotPos(currentUV, X, Y, Z, P, Data.branchPivotPos[level].xyz);
+        int parentIdx = getParentIndexAndPivotPos(currentUV, X, Y, Z, P, Data.branchPivotPos[level].xyz, Data.localBranchPivotPos[level]);
         Data.branchDirExtent[level].xyzw = getParentPivotDirectionAndExtent(currentUV, X, Y, Z);
 
         // False will happen at trunk level
@@ -168,6 +170,27 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       return v + q.w * t + cross(q.xyz, t);
     }
 
+    // Dynamic indexing on NVIDIA Vk can be compiled differently based on register preassure
+    // which can cause differences in color and depth pass -> this workaround fixes that issue
+    // (Note: This should be ensured by precise flag / loop, but seemingly NVIDIA chooses to ignore it)
+    ##if hardware.vulkan
+      float3 getHierarchyPivotPos(HierarchyData input, int revIdx)
+      {
+        if (revIdx == 3) return input.branchPivotPos[3];
+        if (revIdx == 2) return input.branchPivotPos[2];
+        if (revIdx == 1) return input.branchPivotPos[1];
+        return input.branchPivotPos[0];
+      }
+
+      float4 getHierarchyDirExtent(HierarchyData input, int revIdx)
+      {
+        if (revIdx == 3) return input.branchDirExtent[3];
+        if (revIdx == 2) return input.branchDirExtent[2];
+        if (revIdx == 1) return input.branchDirExtent[1];
+        return input.branchDirExtent[0];
+      }
+    ##endif
+
     float3 evaluate_wind_animation(
       float3 windDirectionScaleNormalized, float windSpeed, int idx,
       float3 branchPivotPos, float3 branchDir, float branchExtent,
@@ -188,9 +211,10 @@ macro USE_PIVOT_PAINTER_BASE(stage)
 
       float3 rotationAxis = cross(branchDir, windDirectionScaleNormalized);
       rotationAngle *= length(rotationAxis);
-      //Protect cross-product from returning 0
-      rotationAxis = lerp(branchDir, rotationAxis, saturate(windSpeed / 0.001));
+
+      // protect rotation axis from NaNs
       rotationAxis = normalize(rotationAxis);
+      rotationAxis = isfinite(rotationAxis) ? rotationAxis : 0;
 
       rotQuat = makeQuat(rotationAxis, rotationAngle * PI / 180);
       float3 newPos = quatRotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
@@ -198,8 +222,52 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       return newPos - oldPos; //offset
     }
 
-    void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
-                                  out float3 currNewPos, out float3 prevNewPos, out float maxAnimation)
+    float3 applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight, bool usePrevTime)
+    {
+      float parentAngleAnimation = 0.0;
+      float3 offset = 0.0;
+      float3 normal = inOutNormal;
+
+      // Iterate starting from trunk at 0
+      // Need the loop for DX12 Intel and Vulkan, otherwise it tries to unroll it and it causes depth differences
+      // between prepass and color pass.
+      LOOP
+      for (int idx = 0; idx <= input.maxHierarchyLevel; ++idx)
+      {
+        // Because HierarchyData and this loop have reversed ordering, we need reversed index
+        int revIdx = max(input.maxHierarchyLevel - idx, 0);
+
+        ##if hardware.vulkan
+          float3 branchPivotPos = getHierarchyPivotPos(input, revIdx);
+          float4 branchDirExtentData = getHierarchyDirExtent(input, revIdx);
+        ##else
+          float3 branchPivotPos = input.branchPivotPos[revIdx];
+          float4 branchDirExtentData = input.branchDirExtent[revIdx];
+        ##endif
+        float3 branchDir = branchDirExtentData.xyz;
+        float branchExtent = branchDirExtentData.w;
+
+        float3 branchTipPos = branchPivotPos + branchDir * branchExtent;
+        float4 rotQuat = float4(0, 0, 0, 0);
+        float rotationAngleAnimation = 0;
+        {
+          float windSpeedMul = getWindSpeedMult(idx);
+          float3 windDirectionScale = weight * (usePrevTime ? sampleWindPreviousTime(branchTipPos, windSpeedMul, 0) : sampleWindCurrentTime(branchTipPos, windSpeedMul, 0));
+          float windSpeed = length(windDirectionScale);
+          float3 windDirectionScaleNormalized = windDirectionScale / max(windSpeed, 0.001);
+
+          offset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos, branchDir, branchExtent, oldPos, parentAngleAnimation, rotationAngleAnimation, rotQuat);
+          normal = quatRotate(rotQuat, normal);
+          parentAngleAnimation += rotationAngleAnimation;
+        }
+      }
+
+      inOutNormal = normal;
+      return oldPos + offset;
+    }
+
+    void applyWindAnimationOffset(inout float3 pos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
+                                  inout float3 prevPos, out float maxAnimation)
     {
       float currParentAngleAnimation = 0.0, prevParentAngleAnimation = 0.0;
       float3 currOffset = 0.0;
@@ -207,14 +275,24 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       float3 normal = inOutNormal;
 
       // Iterate starting from trunk at 0
+      // Need the loop for DX12 Intel and Vulkan, otherwise it tries to unroll it and it causes depth differences
+      // between prepass and color pass.
+      LOOP
       for(int idx=0; idx <= input.maxHierarchyLevel; ++idx)
       {
         // Because HierarchyData and this loop have reversed ordering, we need reversed index
         int revIdx = max(input.maxHierarchyLevel - idx, 0);
 
-        float3 branchPivotPos = input.branchPivotPos[revIdx];
-        float3 branchDir = input.branchDirExtent[revIdx].xyz;
-        float branchExtent = input.branchDirExtent[revIdx].w;
+        ##if hardware.vulkan
+          float3 branchPivotPos = getHierarchyPivotPos(input, revIdx);
+          float4 branchDirExtentData = getHierarchyDirExtent(input, revIdx);
+        ##else
+          float3 branchPivotPos = input.branchPivotPos[revIdx];
+          float4 branchDirExtentData = input.branchDirExtent[revIdx];
+        ##endif
+
+        float3 branchDir = branchDirExtentData.xyz;
+        float branchExtent = branchDirExtentData.w;
 
         float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
         float4 rotQuat = float4(0, 0, 0, 0);
@@ -225,7 +303,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
           float3 windDirectionScaleNormalized = windDirectionScale / max(windSpeed, 0.001);
 
           currOffset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos,
-                                                branchDir, branchExtent, oldPos, currParentAngleAnimation,
+                                                branchDir, branchExtent, pos, currParentAngleAnimation,
                                                 rotationAngleAnimation, rotQuat);
 
           normal = quatRotate(rotQuat, normal);
@@ -237,7 +315,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
           float3 windDirectionScaleNormalized = windDirectionScale / max(windSpeed, 0.001);
 
           prevOffset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos,
-                                                branchDir, branchExtent, oldPos, prevParentAngleAnimation,
+                                                branchDir, branchExtent, pos, prevParentAngleAnimation,
                                                 rotationAngleAnimation, rotQuat);
 
           prevParentAngleAnimation += rotationAngleAnimation;
@@ -245,23 +323,23 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       }
 
       inOutNormal = normal;
-      currNewPos = oldPos + currOffset;
-      prevNewPos = oldPos + prevOffset;
+      pos += currOffset;
+      prevPos += prevOffset;
       maxAnimation = max(prevParentAngleAnimation, currParentAngleAnimation);
     }
-    void applyWindAnimationOffset(float3 oldPos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
-                                  out float3 currNewPos, out float3 prevNewPos)
+    void applyWindAnimationOffset(inout float3 pos, inout float3 inOutNormal, HierarchyData input, float time, float weight,
+                                  inout float3 prevPos)
     {
       float maxAnimation;
-      applyWindAnimationOffset(oldPos, inOutNormal, input, time, weight, currNewPos, prevNewPos, maxAnimation);
+      applyWindAnimationOffset(pos, inOutNormal, input, time, weight, prevPos, maxAnimation);
     }
   }
 endmacro
 
 macro USE_PIVOT_PAINTER()
   (vs) {
-    pp_pos_tex@static = pp_position;
-    pp_dir_tex@static = pp_direction;
+    pp_pos_tex@staticSmp = pp_position;
+    pp_dir_tex@staticSmp = pp_direction;
   }
 
   hlsl(vs)

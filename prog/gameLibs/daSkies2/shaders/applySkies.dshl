@@ -12,8 +12,6 @@ float4 zFarSphere_center_offset_dist = 0.;
 
 int blend_apply_skies = 0;
 interval blend_apply_skies: no < 1, yes;
-int deferred_msaa_subpass = 0;
-interval deferred_msaa_subpass: no < 1, yes;
 float sky_blendup_range = 0.0000005;
 
 shader applySkies, applySkies_sphere
@@ -29,7 +27,6 @@ shader applySkies, applySkies_sphere
   {
     z_write = false;
   }
-
 
   if ((blend_apply_skies == no || apply_sky_src_depth != NULL || !hardware.vulkan) && deferred_msaa_subpass == yes)
   {
@@ -139,6 +136,8 @@ shader applySkies, applySkies_sphere
     }
   }
 
+  INIT_SKY_POLARIZATION_FILTER_TERM(ps)
+  USE_SKY_POLARIZATION_FILTER_TERM(ps)
   INIT_BOUNDING_VIEW_REPROJECTION_PS()
   USE_BOUNDING_VIEW_REPROJECTION_PS()
 
@@ -174,6 +173,7 @@ shader applySkies, applySkies_sphere
   ##endif
 
       float4 sky = tex2Dlod(lowres_sky, float4(skyTc,0,0));
+      sky.rgb *= apply_sky_polarization_filter();
       sky.a = alpha;
       return sky;
 ##elif blend_apply_skies == yes
@@ -196,6 +196,9 @@ shader applySkies, applySkies_sphere
       // Have to premultiply color output since we can have only part of samples covered, but they still require sky blend. In this case blend_src + blend_dst != 1
       sky.a = 1 - alpha;
       sky.rgb *= (zeroDepthFraction + alpha * (1 - zeroDepthFraction));
+
+      sky.rgb *= apply_sky_polarization_filter();
+
       return sky;
 ##endif
     }

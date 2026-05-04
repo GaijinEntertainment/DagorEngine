@@ -1,5 +1,7 @@
-import bpy, os
-from ..helpers.popup    import show_popup
+from os.path    import exists, join
+
+import bpy
+from ..popup.popup_functions    import show_popup
 from ..helpers.texts    import *
 from time               import time
 #helpers
@@ -19,9 +21,9 @@ class DAGOR_OT_BatchExport(bpy.types.Operator):
     def execute(self, context):
         start = time()
         P = bpy.data.scenes[0].dag4blend.exporter
-        if os.path.exists(P.dirpath):
+        if exists(P.dirpath):
             if P.limit_by in ['Visible','Sel.Joined']:
-                path=os.path.join(P.dirpath,P.filename)
+                path=join(P.dirpath,P.filename)
             else:
                 path=P.dirpath
             bpy.ops.export_scene.dag(filepath=path, normals=P.vnorm, modifiers=P.modifiers, mopt=P.mopt, orphans=P.orphans,limits=P.limit_by)
@@ -60,7 +62,7 @@ class DAGOR_PT_Export(bpy.types.Panel):
         icon = 'CHECKBOX_HLT' if P.cleanup_names else 'CHECKBOX_DEHLT')
 
         l.prop(P, 'limit_by')
-        path_exists=os.path.exists(P.dirpath)
+        path_exists = exists(P.dirpath)
 
         l.prop(P, 'dirpath')
         if P.limit_by == 'Visible':

@@ -53,7 +53,7 @@ bool dynmodel_optimize_direct_bones = false;
 struct SkinVert
 {
   real w[MAX_SKINBONES];    // bone weights
-  uint8_t b[MAX_SKINBONES]; // bone indices
+  int16_t b[MAX_SKINBONES]; // bone indices
   int boneCount;            // used bone count
   int channelIndex;         // index in channel
 };
@@ -81,7 +81,7 @@ struct MaterialBuildDesc
 
       for (int i = 0; i < v.boneCount; i++)
       {
-        const uint8_t bone = v.b[i];
+        const int16_t bone = v.b[i];
 
         if (tabutils::getIndex(boneIndices, bone) < 0)
         {
@@ -94,13 +94,13 @@ struct MaterialBuildDesc
     }
     else
     {
-      static Tab<uint8_t> newBones(midmem_ptr());
+      static Tab<int16_t> newBones(midmem_ptr());
       newBones.clear();
       newBones.reserve(4);
 
       for (int i = 0; i < v.boneCount; i++)
       {
-        const uint8_t bone = v.b[i];
+        const int16_t bone = v.b[i];
 
         if ((tabutils::getIndex(newBones, bone) < 0) && (tabutils::getIndex(boneIndices, bone) < 0))
         {
@@ -125,7 +125,11 @@ struct MaterialBuildDesc
       return bCount;
     }
   */
-  inline int remapBone(uint8_t real_bone_index) const { return tabutils::getIndex(boneIndices, real_bone_index); }
+  inline int remapBone(int16_t real_bone_index) const
+  {
+    int boneIndex = tabutils::getIndex(boneIndices, real_bone_index);
+    return boneIndex;
+  }
 
   inline void copyToFinal(ShaderSkinnedMeshData::MaterialDesc &out_md)
   {
@@ -145,50 +149,65 @@ DAG_DECLARE_RELOCATABLE(MaterialBuildDesc);
 class ChannelData
 {
 public:
-  E3DCOLOR indexData;
+  BoneIndices indexData[MAX_SKINBONES / 4];
 
 #if defined(HI_PRECISION)
-  Point4 weightData;
+  Point4 weightData[MAX_SKINBONES / 4];
 #else
-  E3DCOLOR weightData;
+  E3DCOLOR weightData[MAX_SKINBONES / 4];
 #endif
 
-  inline ChannelData() {}
+  inline ChannelData() = default;
 
-  inline ChannelData(const ChannelData &other) { operator=(other); };
+  inline ChannelData(const ChannelData &other) { operator=(other); }
   inline ChannelData &operator=(const ChannelData &other)
   {
-    indexData = other.indexData;
-    weightData = other.weightData;
+    for (int i = 0; i < MAX_SKINBONES / 4; i++)
+    {
+      indexData[i] = other.indexData[i];
+      weightData[i] = other.weightData[i];
+    }
     return *this;
   }
 
   inline bool operator==(const ChannelData &other) const
   {
+    for (int i = 0; i < MAX_SKINBONES / 4; i++)
+    {
+      if (indexData[i] != other.indexData[i] ||
 #if defined(HI_PRECISION)
-    return ((unsigned int)indexData == (unsigned int)other.indexData) && (weightData == other.weightData);
+          weightData[i] != other.weightData[i])
 #else
-    return ((unsigned int)indexData == (unsigned int)other.indexData) && ((unsigned int)weightData == (unsigned int)other.weightData);
+          ((unsigned int)weightData[i] != (unsigned int)other.weightData[i]))
 #endif
+        return false;
+    }
+    return true;
   }
 
 #if !defined(HI_PRECISION)
   // convert int weight
   inline void convertWeight(const SkinVert &v)
   {
-    weightData.r = real2int((v.w[0]) * 255);
-    weightData.g = real2int((v.w[0] + v.w[1]) * 255);
-    weightData.b = real2int((v.w[0] + v.w[1] + v.w[2]) * 255);
-    weightData.a = real2int((v.w[0] + v.w[1] + v.w[2] + v.w[3]) * 255);
+    int sum = 0;
+    for (int i = 0; i < MAX_SKINBONES / 4; i++)
+    {
+      int offset = i * 4;
+      weightData[i].r = real2int((v.w[offset + 0]) * 255);
+      weightData[i].g = real2int((v.w[offset + 0] + v.w[offset + 1]) * 255);
+      weightData[i].b = real2int((v.w[offset + 0] + v.w[offset + 1] + v.w[offset + 2]) * 255);
+      weightData[i].a = real2int((v.w[offset + 0] + v.w[offset + 1] + v.w[offset + 2] + v.w[offset + 3]) * 255);
 
-    weightData.a -= weightData.b;
-    weightData.b -= weightData.g;
-    weightData.g -= weightData.r;
+      weightData[i].a -= weightData[i].b;
+      weightData[i].b -= weightData[i].g;
+      weightData[i].g -= weightData[i].r;
 
-    int summ = weightData.r + weightData.g + weightData.b + weightData.a;
+      sum += weightData[i].r + weightData[i].g + weightData[i].b + weightData[i].a;
+    }
 
 #if OUTPUT_DEBUG_LEVEL >= 2
-    debug("%d %d %d %d summ=%d", weightData.r, weightData.g, weightData.b, weightData.a, summ);
+    debug("%d %d %d %d %d %d %d %dsum=%d", weightData[0].r, weightData[0].g, weightData[0].b, weightData[0].a, weightData[1].r,
+      weightData[1].g, weightData[1].b, weightData[1].a, sum);
 #endif
   }
 #endif
@@ -206,7 +225,8 @@ static int sepMatCounter = 0;
  *
  *********************************/
 // ctor/dtor
-ShaderSkinnedMeshData::ShaderSkinnedMeshData() : boneTab(midmem), materialDescTab(midmem), maxVPRConst(0), boneLimit(-1), boneCount(-1)
+ShaderSkinnedMeshData::ShaderSkinnedMeshData() :
+  boneTab(midmem), materialDescTab(midmem), maxVPRConst(0), boneLimit(-1), boneCount(-1), use16BitBoneIndices(false)
 {}
 
 
@@ -237,6 +257,10 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 #endif
   int i;
 
+  int max_skin_bones = boneCount > 0 ? boneCount : 4;
+  G_VERIFY(max_skin_bones <= MAX_SKINBONES);
+  G_VERIFY(max_skin_bones <= 4 || boneCount > 0); // for extended bones we rely on all faces using 8 as num_bones
+
   if (boneLimit > 0)
     debug("SkinnedMeshDataImpl::build - set boneLimit to %d", boneLimit);
   if (boneCount > 0)
@@ -257,9 +281,11 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
   for (i = 0; i < mesh.getVertNorm().size(); ++i)
     ((MeshData &)mesh).vertnorm[i] = -((MeshData &)mesh).vertnorm[i];
 
-  if (mesh_bones.boneNames.size() >= MAXBONE)
+  const int maxSupportedBoneCount = use16BitBoneIndices ? MAXBONE_16BIT : MAXBONE_8BIT;
+  if (mesh_bones.boneNames.size() >= maxSupportedBoneCount)
   {
-    DAG_FATAL("Too many bones!");
+    DAG_FATAL("Too many bones! Current bone count is %d, max allowed bone count is %d", mesh_bones.boneNames.size(),
+      maxSupportedBoneCount);
     return false;
   }
 
@@ -281,12 +307,13 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
   Tab<SkinVert> svert(tmpmem);
   svert.resize(mesh.getVert().size());
-  int numvb[MAX_SKINBONES + 1];
+  Tab<int> numvb(tmpmem);
+  numvb.resize(max_skin_bones + 1);
 
   Tab<real> boneinf(tmpmem);
   boneinf = mesh_bones.boneinf;
 
-  memset(numvb, 0, sizeof(numvb));
+  memset(numvb.data(), 0, numvb.size() * sizeof(int));
   int adjacentVertexBone = 0;
   int notSkinnedVerticesNum = 0;
   for (i = 0; i < svert.size(); ++i)
@@ -295,7 +322,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
     // v.vn=0;
     real sum = 0;
     int j;
-    for (j = 0; j < MAX_SKINBONES; ++j)
+    for (j = 0; j < max_skin_bones; ++j)
     {
       real bw = 0;
       int bb = -1;
@@ -349,17 +376,17 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
       sum = 1;
       notSkinnedVerticesNum++;
     }
-    for (; j < MAX_SKINBONES; ++j)
+    for (; j < max_skin_bones; ++j)
     {
       v.w[j] = 0;
-      v.b[j] = MAXBONE;
+      v.b[j] = maxSupportedBoneCount;
     }
 
     if (sum != 0)
       sum = 1 / sum;
-    for (j = 0; j < MAX_SKINBONES; ++j)
+    for (j = 0; j < max_skin_bones; ++j)
     {
-      if (v.b[j] == MAXBONE)
+      if (v.b[j] == maxSupportedBoneCount)
       {
         v.b[j] = j > 0 ? v.b[j - 1] : 0;
       }
@@ -373,7 +400,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
 #if OUTPUT_DEBUG_LEVEL >= 1
   debug("  %d bones total", boneTab.size());
-  for (i = 0; i <= MAX_SKINBONES; ++i)
+  for (i = 0; i <= max_skin_bones; ++i)
     debug("  %d bones: %5d verts (%3d%%)", i, numvb[i], numvb[i] * 100 / svert.size());
 #endif
 
@@ -389,7 +416,8 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 #define MAT_OFS 1000
 
   // separate materials by bone count & remap indices
-  Tab<int> faceIndex[MAX_SKINBONES];
+  Tab<Tab<int>> faceIndex;
+  faceIndex.resize(max_skin_bones);
   SmallTab<int, TmpmemAlloc> facemats;
 
   clear_and_resize(facemats, mesh.getFace().size());
@@ -404,7 +432,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
     //    debug("SRC shadermaterial %d = '%s'", i, (char*)shmat_tab[i]->getShaderClassName());
     int j;
 
-    for (j = 0; j < MAX_SKINBONES; j++)
+    for (j = 0; j < max_skin_bones; j++)
       clear_and_shrink(faceIndex[j]);
 
     // check usage flags
@@ -443,7 +471,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
     // separate materials & remap indices
     // bool originalUsed = false;
-    for (j = 0; j < MAX_SKINBONES; j++)
+    for (j = 0; j < max_skin_bones; j++)
     {
       Tab<int> &curTab = faceIndex[j];
       if (curTab.empty())
@@ -478,13 +506,18 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
   // build material desc's; separate materials, if max bone count reached
 
+  int maxBoneCount = maxSupportedBoneCount;
   maxVPRConst = max_hw_vpr_const;
-  G_ASSERT(maxVPRConst > 0);
+  if (!dynmodel_use_direct_bones_array)
+  {
+    G_ASSERT(maxVPRConst > 0);
 
-  int maxBoneCount = maxVPRConst;
-  debug("max avail vpr array size: %d", maxBoneCount);
+    maxBoneCount = maxVPRConst;
+    debug("max avail vpr array size: %d", maxBoneCount);
 
-  maxBoneCount /= 3;
+    maxBoneCount /= 3;
+  }
+
   // maxBoneCount--;
 #if defined(LIMIT_MAX_BONE_COUNT)
   if (maxBoneCount > LIMIT_MAX_BONE_COUNT)
@@ -597,6 +630,7 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
 
   // gather channel index data
   Tab<ChannelData> dataTable(tmpmem);
+  const int boneDataVecCount = max_skin_bones / 4;
 
   ChannelData chData;
   for (i = 0; i < matTab.size(); i++)
@@ -618,26 +652,39 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
       {
         SkinVert &v = svert[face.v[k]];
 
-        chData.indexData = E3DCOLOR(materialDesc.remapBone(v.b[0]), materialDesc.remapBone(v.b[1]), materialDesc.remapBone(v.b[2]),
-          materialDesc.remapBone(v.b[3]));
+        for (int n = 0; n < boneDataVecCount; n++)
+        {
+          int offset = n * 4;
+          if (dynmodel_use_direct_bones_array)
+          {
+            chData.indexData[n] = BoneIndices(materialDesc.remapBone(v.b[offset + 0]), materialDesc.remapBone(v.b[offset + 1]),
+              materialDesc.remapBone(v.b[offset + 2]), materialDesc.remapBone(v.b[offset + 3]));
+          }
+          else
+          {
+            chData.indexData[n] = BoneIndices(v.b[offset + 0], v.b[offset + 1], v.b[offset + 2], v.b[offset + 3]);
+          }
 
 #if defined(HI_PRECISION)
-        chData.weightData = Point4(v.w[0], v.w[1], v.w[2], v.w[3]);
-#else
+          chData.weightData[n] = Point4(v.w[offset + 0], v.w[offset + 1], v.w[offset + 2], v.w[offset + 3]);
+#endif
+        }
+
+#if !defined(HI_PRECISION)
         chData.convertWeight(v);
 #endif
 
         // Pack vcolor for cut bodies to 4-th weight for bones.
-        // We know that sum of weights is 1, so we can restore forth weight in shader.
+        // We know that sum of weights is 1, so we can restore fourth weight in shader.
         if (pack_vcolor_to_bones && cfaces.size())
         {
           const TFace &cface = cfaces[j];
           const Color4 &cvert = verts[cface.t[k]];
           int packedColor = (cvert.r > 0 ? 4 : 0) + (cvert.g > 0 ? 2 : 0) + (cvert.b > 0 ? 1 : 0);
 #if defined(HI_PRECISION)
-          chData.weightData.a = packedColor * 0.125;
+          chData.weightData[boneDataVecCount - 1].a = packedColor * 0.125;
 #else
-          chData.weightData.a = packedColor * 32;
+          chData.weightData[boneDataVecCount - 1].a = packedColor * 32;
 #endif
         }
 
@@ -669,54 +716,62 @@ bool ShaderSkinnedMeshData::build(Mesh &mesh, MeshBones &mesh_bones, ShaderMater
   }
 #endif
 
-  // make channels
-  int indexChannelId = mesh.add_extra_channel(MeshData::CHT_E3DCOLOR, SCUSAGE_EXTRA, 0);
+  for (int iBoneDataVec = 0; iBoneDataVec < boneDataVecCount; iBoneDataVec++)
+  {
+    // make channels
+    int indexChannelId =
+      mesh.add_extra_channel(use16BitBoneIndices ? MeshData::CHT_SHORT4 : MeshData::CHT_E3DCOLOR, SCUSAGE_EXTRA, 0 + iBoneDataVec * 2);
 
 #if defined(HI_PRECISION)
-  int weightChannelId = mesh.add_extra_channel(MeshData::CHT_FLOAT4, SCUSAGE_EXTRA, 1);
+    int weightChannelId = mesh.add_extra_channel(MeshData::CHT_FLOAT4, SCUSAGE_EXTRA, 1 + iBoneDataVec * 2);
 #else
-  int weightChannelId = mesh.add_extra_channel(MeshData::CHT_E3DCOLOR, SCUSAGE_EXTRA, 1);
+    int weightChannelId = mesh.add_extra_channel(MeshData::CHT_E3DCOLOR, SCUSAGE_EXTRA, 1 + iBoneDataVec * 2);
 #endif
 
-  MeshData::ExtraChannel &boneIndexChannel = mesh.getMeshData().extra[indexChannelId];
+    MeshData::ExtraChannel &boneIndexChannel = mesh.getMeshData().extra[indexChannelId];
+    MeshData::ExtraChannel &boneWeightChannel = mesh.getMeshData().extra[weightChannelId];
 
-  MeshData::ExtraChannel &boneWeightChannel = mesh.getMeshData().extra[weightChannelId];
-
-  boneIndexChannel.resize_verts(dataTable.size());
-  boneWeightChannel.resize_verts(dataTable.size());
-
-  E3DCOLOR *boneIndexPtr = (E3DCOLOR *)&boneIndexChannel.vt[0];
+    boneIndexChannel.resize_verts(dataTable.size());
+    boneWeightChannel.resize_verts(dataTable.size());
 
 #if defined(HI_PRECISION)
-  Point4 *boneWeightPtr = (Point4 *)&boneWeightChannel.vt[0];
+    Point4 *boneWeightPtr = (Point4 *)&boneWeightChannel.vt[0];
 #else
-  E3DCOLOR *boneWeightPtr = (E3DCOLOR *)&boneWeightChannel.vt[0];
+    E3DCOLOR *boneWeightPtr = (E3DCOLOR *)&boneWeightChannel.vt[0];
 #endif
-
-  // fill channels with values
-  for (i = 0; i < dataTable.size(); i++)
-  {
-    const ChannelData &chData = dataTable[i];
-    boneIndexPtr[i] = chData.indexData;
-    boneWeightPtr[i] = chData.weightData;
-    //    boneIndexPtr[i] = E3DCOLOR(7, 0, 0, 0);
-    //    boneWeightPtr[i] = E3DCOLOR(1, 0, 0, 0);
-  }
-
-  // map vertices to channels
-  int channelIndex;
-  dag::ConstSpan<Face> faces = mesh.getFace();
-  for (i = 0; i < boneIndexChannel.fc.size(); i++)
-  {
-    const Face &face = faces[i];
-    const MaterialBuildDesc &materialDesc = matTab[face.mat];
-
-    for (int j = 0; j < 3; j++)
+    // fill channels with values
+    for (i = 0; i < dataTable.size(); i++)
     {
-      channelIndex = materialDesc.channelIndices[face.v[j]];
+      const ChannelData &chData = dataTable[i];
+      if (use16BitBoneIndices)
+      {
+        BoneIndices *boneIndexPtr = (BoneIndices *)&boneIndexChannel.vt[0];
+        boneIndexPtr[i] = chData.indexData[iBoneDataVec];
+      }
+      else
+      {
+        E3DCOLOR *boneIndexPtr = (E3DCOLOR *)&boneIndexChannel.vt[0];
+        boneIndexPtr[i] = E3DCOLOR(chData.indexData[iBoneDataVec].x, chData.indexData[iBoneDataVec].y,
+          chData.indexData[iBoneDataVec].z, chData.indexData[iBoneDataVec].w);
+      }
+      boneWeightPtr[i] = chData.weightData[iBoneDataVec];
+    }
 
-      boneIndexChannel.fc[i].t[j] = channelIndex;
-      boneWeightChannel.fc[i].t[j] = channelIndex;
+    // map vertices to channels
+    int channelIndex;
+    dag::ConstSpan<Face> faces = mesh.getFace();
+    for (i = 0; i < boneIndexChannel.fc.size(); i++)
+    {
+      const Face &face = faces[i];
+      const MaterialBuildDesc &materialDesc = matTab[face.mat];
+
+      for (int j = 0; j < 3; j++)
+      {
+        channelIndex = materialDesc.channelIndices[face.v[j]];
+
+        boneIndexChannel.fc[i].t[j] = channelIndex;
+        boneWeightChannel.fc[i].t[j] = channelIndex;
+      }
     }
   }
 
@@ -781,7 +836,7 @@ void ShaderSkinnedMeshData::remap(const NameMap &old_nm, NameMap &new_nm)
 }
 
 
-bool check_all_in_a_row(dag::ConstSpan<unsigned char> bone_idx, int bone_cnt)
+bool check_all_in_a_row(dag::ConstSpan<int16_t> bone_idx, int bone_cnt)
 {
   if (bone_idx.size() != bone_cnt)
     return false;

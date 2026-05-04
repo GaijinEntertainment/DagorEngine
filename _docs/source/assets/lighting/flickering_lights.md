@@ -311,11 +311,11 @@ cause them to be processed incorrectly.
 
 **Example:**
 
-```
+```blk
 virtual_res_blk{
   find:t="^(.*)\.lod00\.dag$"
-  exclude:t = "_destr\.lod00\.dag$"
-  exclude:t = "_dynmodel\.lod00\.dag$"
+  exclude:t="_destr\.lod00\.dag$"
+  exclude:t="_dynmodel\.lod00\.dag$"
   className:t="rendInst"
   contents{
     lod{range:r=12;}
@@ -340,13 +340,15 @@ In Dagor Engine’s logic, a dynamic model is considered a dynamic model if:
 We’ve already assigned dynamic shaders in the materials, so now we need to
 create the skeleton:
 
-```
+```blk
 virtual_res_blk{                          // Skeleton creation block
   find:t="^((.*)_dynmodel)\.lod00\.dag$"  // Find all LOD00s with the _dynmodel postfix
   stopProcessing:b=false                  // Allows reprocessing of these .dag files in the next block
 
-  className:t="skeleton"                  // Treat the found assets as skeletons (extracting data to build a skeleton asset)
-  name:t="$2_skeleton"                    // Name the skeleton using the dynamic model name ($2) with a _skeleton postfix
+  className:t="skeleton"                  /* Treat the found assets as skeletons
+                                             (extracting data to build a skeleton asset) */
+  name:t="$2_skeleton"                    /* Name the skeleton using the dynamic model name ($2)
+                                             with a _skeleton postfix */
   contents{                               // Additional data processing rules
     addSkinNodes:b=yes
     reduceNodes:b=yes
@@ -354,10 +356,13 @@ virtual_res_blk{                          // Skeleton creation block
 }
 
 virtual_res_blk{                          // Dynamic model creation block
-  find:t="^((.*)_dynmodel)\.lod00\.dag$"  // Find all LOD00s with the _dynmodel postfix (due to the previous block's stopProcessing:b=false)
+  find:t="^((.*)_dynmodel)\.lod00\.dag$"  /* Find all LOD00s with the _dynmodel postfix
+                                             (due to the previous block's stopProcessing:b=false) */
   stopProcessing:b=false                  // Likely a redundant parameter here.
-  className:t="DynModel"                  // Process the found assets as dynamic models (extracting data to build the dynamic model asset)
-  name:t="$2_dynmodel"                    // Name the dynamic model as $2_dynmodel (i.e., dynamic model name with _dynmodel postfix)
+  className:t="DynModel"                  /* Process the found assets as dynamic models
+                                             (extracting data to build the dynamic model asset) */
+  name:t="$2_dynmodel"                    /* Name the dynamic model as $2_dynmodel
+                                             (i.e., dynamic model name with _dynmodel postfix) */
   contents{                               // Additional data processing rules
     lod{range:r=12;}                      // LOD distances
     lod{range:r=30;}
@@ -404,15 +409,16 @@ handle collisions the same way – they are processed through damage models (DMs
 
 Thus, a hybrid processing solution is needed:
 
-```
-include "#/develop/assets/_ri_collision_lod1.blk"                                      // Include RenderInst collision processing.
-"@override-last"{                                                                      // Override parameters from the included file.
-  "@override:find":t="^(.*)_dynmodel\.lod01\.dag$"                                     // Find LOD01s specifically for dynamic models.
-  "@override:contents"{gameResPack:t="game_logic.grp"; defCollidable:b=no;}         // Set assembly parameters for dynamic model collisions.
-  stopProcessing:b=no                                                                  // Likely a redundant parameter here.
+```blk
+include "#/develop/assets/_ri_collision_lod1.blk"   // Include RenderInst collision processing.
+"@override-last"{                                   // Override parameters from the included file.
+  "@override:find":t="^(.*)_dynmodel\.lod01\.dag$"  // Find LOD01s specifically for dynamic models.
+  "@override:contents"{gameResPack:t="game_logic.grp"; defCollidable:b=no;}  /* Set assembly parameters
+                                                                                for dynamic model collisions.*/
+  stopProcessing:b=no                               // Likely a redundant parameter here.
 }
 
-include "#/develop/assets/_ri_collision_lod1.blk"                                      // Repeat the RenderInst collision processing include.
+include "#/develop/assets/_ri_collision_lod1.blk"   // Repeat the RenderInst collision processing include.
 ```
 
 This hybrid approach ensures that both the render instances and dynamic models
@@ -432,7 +438,7 @@ animation).
 For instance, the `industrial_lamp_steel_wall_a_flicker_char.animChar.blk`
 contains the following two lines:
 
-```
+```blk
 dynModel:t="industrial_lamp_steel_wall_a_flicker_dynmodel"  // Dynamic model
 skeleton:t="industrial_lamp_steel_wall_a_flicker_skeleton"  // Associated skeleton
 ```
@@ -460,7 +466,7 @@ We need the following:
    represents the flickering light source (with an 8-meter radius) and will be
    placed on the map as a light source. Inside the `.blk` file, define:
 
-   ```
+   ```blk
    volumeType:t="point"
    ```
 
@@ -468,7 +474,7 @@ We need the following:
    represents the flickering dynamic model and will be placed on the map as the
    dynamic object. Inside the `.blk` file, define:
 
-   ```
+   ```blk
    volumeType:t="point"
    ref_dynmodel:t="industrial_lamp_steel_wall_a_flicker_dynmodel"
    ```
@@ -493,7 +499,7 @@ sources](./photometric_lights.md) in *daNetGame*-based projects.
 
 An example composite file for the flickering lamp:
 
-```
+```blk
 className:t="composit"
 
 node{
@@ -578,21 +584,21 @@ multiple composites, then place them randomly.
 Let’s review the flicker template for the current lamp
 (`<project_name>/prog/gameBase/content/common/gamedata/templates/lights.blk`):
 
-```
+```blk
 industrial_lamp_steel_wall_a_flicker_8m_template{
   _use:t="light_flicker_with_sparks"
 
-  light_flicker__attack_time:p2 = 0.01, 0.15  // Transition time from "off" to "on"
-  light_flicker__on_time:p2 = 1, 10           // Duration of "on" state
-  light_flicker__release_time:p2 = 0.75, 1.25 // Transition time from "on" to "off"
-  light_flicker__off_time:p2 = 0.01, 6        // Duration of "off" state
+  light_flicker__attack_time:p2= 0.01, 0.15        // Transition time from "off" to "on"
+  light_flicker__on_time:p2= 1, 10                 // Duration of "on" state
+  light_flicker__release_time:p2= 0.75, 1.25       // Transition time from "on" to "off"
+  light_flicker__off_time:p2= 0.01, 6              // Duration of "off" state
 
-  light_flicker__on_brightness:p2 = 1.0, 1.6  // Brightness during "on" state, multiplied by light__brightness
-  light_flicker__off_brightness:p2 = 0.0, 0.2 // Brightness during "off" state, multiplied by light__brightness
+  light_flicker__on_brightness:p2= 1.0, 1.6        // Brightness during "on" state, multiplied by light__brightness
+  light_flicker__off_brightness:p2= 0.0, 0.2       // Brightness during "off" state, multiplied by light__brightness
 
-  light_flicker__noise_brightness_on:p2 = 0.5, 1.0  // Noise amplitude multiplier during "on" state
-  light_flicker__noise_brightness_off:p2 = 0.0, 1.0 // Noise amplitude multiplier during "off" state
-  light_flicker__noise_time:r = 17.0                // Noise frequency (per second)
+  light_flicker__noise_brightness_on:p2= 0.5, 1.0  // Noise amplitude multiplier during "on" state
+  light_flicker__noise_brightness_off:p2= 0.0, 1.0 // Noise amplitude multiplier during "off" state
+  light_flicker__noise_time:r= 17.0                // Noise frequency (per second)
 }
 ```
 
@@ -677,7 +683,7 @@ future updates will allow customization of the VFX.
 
 As an example, consider `industrial_lamp_steel_wall_a_flicker_8m_light`:
 
-```
+```blk
 industrial_lamp_steel_wall_a_flicker_8m_light{
   _use:t="spot_light_little_b"
   _use:t="light_flicker_updater_light"
@@ -690,7 +696,7 @@ This template includes:
 - `_use:t="spot_light_little_b"`: Inherits the light source. However, you can
   override the light source parameters as needed. For example:
 
-    ```
+    ```blk
     light__max_radius:r=7
     light__color:c=208, 191, 152, 255
     light__brightness:r=121
@@ -724,7 +730,7 @@ single reference light source for both variants.
 
 For example, consider `industrial_lamp_steel_wall_a_flicker_8m_mesh`:
 
-```
+```blk
 industrial_lamp_steel_wall_a_flicker_8m_mesh{
   _use:t="light_flicker_updater_mesh"
   animchar__res:t="industrial_lamp_steel_wall_a_flicker_char"
@@ -754,5 +760,4 @@ All emissive settings of the dynamic model (except for color, likely) will be
 overridden by the parameters from the flickering template
 (`industrial_lamp_steel_wall_a_flicker_8m_template`).
 ```
-
 

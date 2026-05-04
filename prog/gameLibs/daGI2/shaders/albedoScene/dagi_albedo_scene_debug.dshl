@@ -7,13 +7,11 @@ include "globtm.dshl"
 
 shader dagi_albedo_scene_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   cull_mode = none;
   z_write = false;
   z_test = false;
-  ENABLE_ASSERT(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewvec)
   (ps) {debug_world_view_pos@f3 = world_view_pos;}

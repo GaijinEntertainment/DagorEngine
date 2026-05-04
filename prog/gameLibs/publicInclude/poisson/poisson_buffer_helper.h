@@ -41,7 +41,7 @@ inline UniqueBuf generate_poisson_points_buffer(uint32_t seed, int num_samples, 
     points.resize(num_samples);
   }
 
-  auto buf = UniqueBuf(dag::buffers::create_persistent_cb(points.size(), name));
+  auto buf = UniqueBuf(dag::buffers::create_persistent_cb(points.size(), name, RESTAG_NOISE));
 
   if (auto pointsGPU = lock_sbuffer<Point4>(buf.getBuf(), 0, points.size(), VBLOCK_DISCARD | VBLOCK_WRITEONLY))
   {
@@ -58,7 +58,7 @@ inline UniqueBuf generate_poisson_points_buffer(uint32_t seed, int num_samples, 
 //
 // NOTE: Resulting 2d points are padded to be aligned to float4 values!
 //
-inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name, const char *var_name,
+inline bool generate_poisson_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name, const char *var_name,
   const Point2 &offset_mul, const Point2 &offset_add)
 {
   if (!VariableMap::isVariablePresent(get_shader_variable_id(var_name, true)))
@@ -73,7 +73,7 @@ inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int nu
   return true;
 }
 
-inline bool generate_poission_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name, const char *var_name)
+inline bool generate_poisson_points(UniqueBufHolder &buf, uint32_t seed, int num_samples, const char *name, const char *var_name)
 {
-  return generate_poission_points(buf, seed, num_samples, name, var_name, Point2::ONE, Point2::ZERO);
+  return generate_poisson_points(buf, seed, num_samples, name, var_name, Point2::ONE, Point2::ZERO);
 }

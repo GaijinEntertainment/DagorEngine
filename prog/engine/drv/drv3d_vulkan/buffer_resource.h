@@ -11,7 +11,6 @@
 namespace drv3d_vulkan
 {
 
-class ExecutionContext;
 class MemoryHeapResource;
 
 enum BufferMemoryFlags
@@ -21,7 +20,8 @@ enum BufferMemoryFlags
   TEMP = 0x2,
   IN_PLACED_HEAP = 0x4,
   FRAMEMEM = 0x8,
-  NOT_EVICTABLE = 0x10
+  NOT_EVICTABLE = 0x10,
+  EVICTION_SYSCOPY = 0x20
 };
 
 struct BufferDescription
@@ -84,8 +84,8 @@ public:
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void restoreFromSysCopy(ExecutionContext &ctx);
-  void makeSysCopy(ExecutionContext &ctx);
+  void restoreFromSysCopy();
+  void makeSysCopy();
   bool mayAlias() { return desc.memFlags & IN_PLACED_HEAP; }
   Buffer *getHostCopyBuffer();
   void delayedRestoreFromSysCopy();
@@ -114,6 +114,7 @@ private:
   void bindAssignedMemoryId();
 
   void fillPointers(const ResourceMemory &mem);
+  void reportMemUsage(bool allocating);
 
 public:
   void markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush);
@@ -164,10 +165,16 @@ public:
     if (indexChanged)
       currentDiscardOffset = frameDiscardSize * ringIdx;
     else
+    {
+      // check for fit ahead of time to avoid making "ill formed" buffer that can be readed before disposal
+      if ((currentDiscardOffset + currentDiscardSize + size) > frameDiscardSize * (ringIdx + 1))
+        return false;
       currentDiscardOffset += currentDiscardSize;
+    }
 
     currentDiscardSize = size;
-    return (currentDiscardOffset + currentDiscardSize) <= frameDiscardSize * (ringIdx + 1);
+    G_ASSERT((currentDiscardOffset + currentDiscardSize) <= frameDiscardSize * (ringIdx + 1));
+    return true;
   }
 
   inline bool onDiscardFramemem(uint32_t frontFrameIdx, uint32_t size)
@@ -181,11 +188,16 @@ public:
     if (frontFrameIdx != lastDiscardFrame)
       currentDiscardOffset = 0;
     else
+    {
+      // check for fit ahead of time to avoid making "ill formed" buffer that can be readed before disposal
+      if (currentDiscardOffset + currentDiscardSize + size > frameDiscardSize)
+        return false;
       currentDiscardOffset += currentDiscardSize;
+    }
 
     markDiscardUsageRange(frontFrameIdx, size);
-
-    return (currentDiscardOffset + currentDiscardSize) <= frameDiscardSize;
+    G_ASSERT((currentDiscardOffset + currentDiscardSize) <= frameDiscardSize);
+    return true;
   }
 
   uint32_t getCurrentDiscardVisibleSize() const { return currentDiscardSize ? currentDiscardSize : getBlockSize(); }
@@ -222,6 +234,7 @@ public:
   inline VulkanBufferViewHandle getViewOfDiscardIndex(uint32_t i) const { return views[i]; }
   inline bool hasView() const { return nullptr != views; }
   bool hasMappedMemory() const;
+  void ensureNoMappedMemory();
 
 private:
   void verifyFrameMem();

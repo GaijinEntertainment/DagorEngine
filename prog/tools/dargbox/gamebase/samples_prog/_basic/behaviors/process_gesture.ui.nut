@@ -34,7 +34,7 @@ let processor = @() {
   fillColor = Color(50,150,25)
   borderWidth = 2
   borderColor = Color(255,255,255)
-  size = static [pw(80), ph(80)]
+  size = const [pw(80), ph(80)]
   flow = FLOW_VERTICAL
   behavior = Behaviors.ProcessGesture
 

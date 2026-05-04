@@ -7,6 +7,8 @@
 #if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
+#include "backend.h"
+#include "backend/context.h"
 
 namespace drv3d_vulkan
 {
@@ -38,6 +40,9 @@ bool PipelineState::handleObjectRemoval(Buffer *object)
   }
 
   ret |= handleObjectRemovalInResBinds(object);
+
+  if (!ret && Backend::ctx.referencedInQueuedDiscards(object))
+    ret |= true;
 
   if (ret && object->mayAlias())
     object->releaseHeapEarly(object->getDebugName());
@@ -132,6 +137,9 @@ bool PipelineState::isReferenced(Buffer *object) const
       return true;
 
   if (getRO<StateFieldGraphicsIndexBuffer, BufferRef, FrontGraphicsState>().buffer == object)
+    return true;
+
+  if (Backend::ctx.referencedInQueuedDiscards(object))
     return true;
 
   return isReferencedByResBinds(object);

@@ -9,6 +9,7 @@
 #include <gameRes/dag_stdGameResId.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_index16.h>
+#include <util/dag_globDef.h> // DestroyDeleter
 #include <math/dag_TMatrix.h>
 #include <ioSys/dag_genIo.h>
 #include <math/dag_bounds3.h>
@@ -68,8 +69,8 @@ struct IntersectedNode
   };
   Point3 intersectionPos;
   unsigned int collisionNodeId;
+  int triangleIndex; // index of the triangle within the collision node (indices[triangleIndex*3])
   bool operator<(const IntersectedNode &other) const { return sortKey < other.sortKey; }
-  bool verifyIsLess(const IntersectedNode &other) const { return intersectionT < other.intersectionT; }
 };
 
 struct MultirayIntersectedNode : IntersectedNode
@@ -77,15 +78,19 @@ struct MultirayIntersectedNode : IntersectedNode
   int rayId;
   bool operator<(const MultirayIntersectedNode &other) const
   {
-    return rayId < other.rayId || (rayId == other.rayId && sortKey < other.sortKey);
-  }
-  bool verifyIsLess(const MultirayIntersectedNode &other) const
-  {
-    return rayId < other.rayId || (rayId == other.rayId && intersectionT < other.intersectionT);
+    return rayId != other.rayId ? (rayId < other.rayId) : (sortKey < other.sortKey);
   }
 };
 
+struct DegenerativeNodeData
+{
+  DegenerativeNodeData(const CollisionNode *node) : node(node) {}
+  const CollisionNode *node;
+  dag::Vector<uint16_t> indices;
+};
+
 typedef dag::RelocatableFixedVector<vec4f, 8, true, framemem_allocator> all_collres_nodes_t;
+typedef dag::RelocatableFixedVector<int, 8, true, framemem_allocator> all_collres_tri_indices_t;
 typedef dag::RelocatableFixedVector<int, 32, /*bEnableOverflow*/ true, framemem_allocator> CollResHitNodesType;
 
 enum CollisionResourceNodeType : uint8_t
@@ -151,20 +156,37 @@ struct CollisionNode
   dag::Index16 geomNodeId;
   int16_t physMatId = -1;
   CollisionNode *nextNode = nullptr;
-  alignas(16) TMatrix tm = TMatrix::IDENT;
 
+protected:
+  alignas(16) TMatrix tm = TMatrix::IDENT;
   alignas(16) BBox3 modelBBox;
-  BSphere3 boundingSphere;
+  struct
+  {
+    Point3 c;
+    float r = 0.f;
+  } boundingSphere;
   float cachedMaxTmScale = 1.f;
+  friend class CollisionResource;
+  friend class CollisionResourceBVH;
+  friend class CollisionGeometryFeeder;
+  friend class TestMeshNodeMeshNodesIntersectionAlgo;
+  friend class TestMeshNodeBoxNodesIntersectionAlgo;
+  friend class TestMeshNodeSphereNodesIntersectionAlgo;
+  friend class TestBoxNodeBoxNodesIntersectionAlgo;
+  friend struct CollisionResourceUnittest;
+
+protected:
   SmallTab<plane3f, MidmemAlloc> convexPlanes;
 
+public:
   dag::Span<Point3_vec4> vertices;
   dag::Span<uint16_t> indices;
-  Capsule capsule;
   uint16_t nodeIndex = 0; // In allNodesList.
   uint16_t insideOfNode = 0xffff;
 
-  SimpleString name;
+protected:
+  uint32_t nameOfs = 0;      // offset into CollisionResource::names; 0 means empty
+  uint16_t capsuleIndex = 0; // index into CollisionResource::capsules; valid only for COLLISION_NODE_TYPE_CAPSULE
 
 public:
   CollisionNode() = default;
@@ -249,12 +271,28 @@ public:
   dag::Index16 bsphereCenterNode;
 
   CollisionResource() { memset(nodeLists, 0, sizeof(nodeLists)); }
+  CollisionResource *deepCopy(void *inplace_mem_ptr = nullptr) const;
 
   dag::Span<CollisionNode> getAllNodes() { return make_span(allNodesList); }
   dag::ConstSpan<CollisionNode> getAllNodes() const { return allNodesList; }
 
   static CollisionResource *loadResource(IGenLoad & crd, int res_id);
+  // Create a single-node MESH resource with non-owning vertex span.
+  // Vertex data are referenced (FLAG_VERTICES_ARE_REFS), caller must keep data alive.
+  // Index data is owned by resource
+  static CollisionResource *createSingleMesh(dag::Span<Point3_vec4> vertices, dag::Span<uint16_t> indices, const BBox3 &bbox,
+    const BSphere3 &bsphere, uint32_t node_flags);
+  static CollisionResource *createSingleMeshNonOwningVerts(dag::Span<Point3_vec4> vertices, dag::Span<uint16_t> indices,
+    const BBox3 &bbox, const BSphere3 &bsphere)
+  {
+    return createSingleMesh(vertices, indices, bbox, bsphere, CollisionNode::FLAG_VERTICES_ARE_REFS);
+  }
   void load(IGenLoad & cb, int res_id);
+
+  // Add typed collision nodes. Returns nodeIndex. Sets type, modelBBox, boundingSphere, capsule.
+  int addSphereNode(const char *name, int16_t phys_mat_id, const BSphere3 &bsphere);
+  int addBoxNode(const char *name, int16_t phys_mat_id, const BBox3 &bbox);
+  int addCapsuleNode(const char *name, int16_t phys_mat_id, const Point3 &p0, const Point3 &p1, float radius);
 
   void collapseAndOptimize(const char *res_name, bool need_frt = false, bool frt_build_fast = true);
 
@@ -263,6 +301,23 @@ public:
   int getNodeIndexByName(const char *name) const;
   CollisionNode *getNodeByName(const char *name);
   const CollisionNode *getNodeByName(const char *name) const;
+  const char *getNodeName(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? getNodeNameStr(*n) : "";
+  }
+  const char *getNodeNameStr(const CollisionNode &n) const { return names.empty() ? "" : names.data() + n.nameOfs; }
+  const TMatrix &getNodeTm(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->tm : TMatrix::IDENT;
+  }
+  void setNodeTm(int node_id, const TMatrix &new_tm)
+  {
+    CollisionNode *n = getNode(node_id);
+    if (n)
+      n->tm = new_tm;
+  }
 
   bool traceRay(const TMatrix &instance_tm, const Point3 &from, const Point3 &dir, float &in_out_t, Point3 *out_normal,
     int &out_mat_id) const
@@ -313,6 +368,10 @@ public:
     CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeFilter &filter) const;
 
   bool traceRay(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir, float in_t,
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+    TraceCollisionResourceStats *out_stats) const;
+
+  bool traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir, float in_t,
     CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
     TraceCollisionResourceStats *out_stats) const;
 
@@ -423,9 +482,6 @@ public:
     Point3 &out_norm, float &out_depth);
   static bool test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node);
 
-  static int get_node_tris_count(const CollisionNode &cnode);
-  static void get_node_tri(const CollisionNode &cnode, int idx, const Point3 *&p0, const Point3 *&p1, const Point3 *&p2); // aligned!
-
   template <typename Func, CollisionResourceNodeType node_type = COLLISION_NODE_TYPE_MESH, bool binded_to_gntree = true>
   void visitCollisionNodes(const Func &func) const
   {
@@ -442,6 +498,181 @@ public:
   }
 
   uint32_t getCollisionFlags() const { return collisionFlags; }
+
+  // Mesh node iteration helpers (abstracts away linked list + raw vertex/index access)
+  int getMeshNodeCount() const { return (int)numMeshNodes; }
+
+  int getNodeVertCount(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? (int)n->vertices.size() : 0;
+  }
+  int getNodeFaceCount(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? (int)n->indices.size() / 3 : 0;
+  }
+
+  int getNodeIndexCount(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? (int)n->indices.size() : 0;
+  }
+
+  bool getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, Point3 &v1, Point3 &v2) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n || face_idx * 3 + 2 >= (int)n->indices.size())
+      return false;
+    v0 = n->vertices[n->indices[face_idx * 3 + 0]];
+    v1 = n->vertices[n->indices[face_idx * 3 + 1]];
+    v2 = n->vertices[n->indices[face_idx * 3 + 2]];
+    return true;
+  }
+
+  template <class CB> // void(int face_idx, uint16_t i0, uint16_t i1, uint16_t i2)
+  void iterateNodeFaces(int node_id, CB cb) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n)
+      return;
+    const uint16_t *idx = n->indices.data();
+    for (int i = 0, fi = 0, e = (int)n->indices.size(); i < e; i += 3, ++fi)
+      cb(fi, idx[i], idx[i + 1], idx[i + 2]);
+  }
+
+  template <class CB> // void(int vert_idx, vec4f v)
+  void iterateNodeVerts(int node_id, CB cb) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n)
+      return;
+    const Point3_vec4 *verts = n->vertices.data();
+    for (int i = 0, e = (int)n->vertices.size(); i < e; ++i)
+      cb(i, v_ld(&verts[i].x));
+  }
+
+  template <class CB> // void(int face_idx, vec4f v0, vec4f v1, vec4f v2)
+  void iterateNodeFacesVerts(int node_id, CB cb) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n)
+      return;
+    const uint16_t *idx = n->indices.data();
+    const Point3_vec4 *verts = n->vertices.data();
+    for (int i = 0, fi = 0, e = (int)n->indices.size(); i < e; i += 3, ++fi)
+      cb(fi, v_ld(&verts[idx[i]].x), v_ld(&verts[idx[i + 1]].x), v_ld(&verts[idx[i + 2]].x));
+  }
+
+  int getNodeConvexPlaneCount(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? (int)n->convexPlanes.size() : 0;
+  }
+
+  dag::ConstSpan<plane3f> getNodeConvexPlanes(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? dag::ConstSpan<plane3f>(n->convexPlanes.data(), n->convexPlanes.size()) : dag::ConstSpan<plane3f>();
+  }
+
+  template <class CB> // void(int plane_idx, plane3f plane)
+  void iterateNodeConvexPlanes(int node_id, CB cb) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n)
+      return;
+    for (int i = 0, e = (int)n->convexPlanes.size(); i < e; ++i)
+      cb(i, n->convexPlanes[i]);
+  }
+
+  BBox3 getNodeBBox(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->modelBBox : BBox3();
+  }
+  BSphere3 getNodeBSphere(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n || n->boundingSphere.r < 0)
+      return BSphere3(); // empty: r = r2 = -1
+    return BSphere3(n->boundingSphere.c, n->boundingSphere.r);
+  }
+  bool getNodeCapsule(int node_id, Capsule &out) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (n && n->type == COLLISION_NODE_TYPE_CAPSULE)
+    {
+      out = capsules[n->capsuleIndex];
+      return true;
+    }
+    return false;
+  }
+  // Bakes the node's current TM fully into the geometry: transforms vertices, bbox, bsphere; flips face winding when TM is mirrored
+  // (det<0); then resets the node TM to identity. Single entry point keeps those updates consistent.
+  void bakeNodeTransform(int node_id);
+
+  float getNodeMaxTmScale(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->cachedMaxTmScale : 1.f;
+  }
+
+  // Unsafe accessors: no bounds check in release, use G_ASSERT for validation
+  const TMatrix &getNodeTmUnsafe(int node_id) const
+  {
+    G_ASSERT((uint32_t)node_id < allNodesList.size());
+    return allNodesList[node_id].tm;
+  }
+  BBox3 getNodeBBoxUnsafe(int node_id) const
+  {
+    G_ASSERT((uint32_t)node_id < allNodesList.size());
+    return allNodesList[node_id].modelBBox;
+  }
+  BSphere3 getNodeBSphereUnsafe(int node_id) const
+  {
+    G_ASSERT((uint32_t)node_id < allNodesList.size());
+    const auto &b = allNodesList[node_id].boundingSphere;
+    if (b.r < 0)
+      return BSphere3(); // empty: r = r2 = -1
+    return BSphere3(b.c, b.r);
+  }
+  Point3 getNodeBSphereCenter(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->boundingSphere.c : Point3(0, 0, 0);
+  }
+  float getNodeBSphereRadius(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    return n ? n->boundingSphere.r : -1.f;
+  }
+  const Capsule &getNodeCapsuleUnsafe(int node_id) const
+  {
+    G_ASSERT((uint32_t)node_id < allNodesList.size());
+    G_ASSERT(allNodesList[node_id].type == COLLISION_NODE_TYPE_CAPSULE);
+    return capsules[allNodesList[node_id].capsuleIndex];
+  }
+  float getNodeMaxTmScaleUnsafe(int node_id) const
+  {
+    G_ASSERT((uint32_t)node_id < allNodesList.size());
+    return allNodesList[node_id].cachedMaxTmScale;
+  }
+
+  template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
+  void forEachMeshNode(CB cb) const
+  {
+    for (const CollisionNode *n = meshNodesHead; n; n = n->nextNode)
+    {
+      if constexpr (eastl::is_same_v<decltype(cb(*n)), bool>)
+      {
+        if (cb(*n))
+          return;
+      }
+      else
+        cb(*n);
+    }
+  }
 
   bool getRelGeomNodeTms(int node_no, TMatrix &out_tm) const
   {
@@ -460,11 +691,15 @@ public:
     return gridForTraceable.tracer.get();
   }
   bool checkGridAvailable(uint8_t behavior_filter) const { return getTracer(behavior_filter) != nullptr; }
+  int getMemoryUsed() const;
   bool getGridSize(uint8_t behavior_filter, IPoint3 & width, Point3 & leaf_size) const;
   int getTrianglesCount(uint8_t behavior_filter) const;
   void setBsphereCenterNode(int ni) { bsphereCenterNode = dag::Index16(ni); }
   vec4f getWorldBoundingSphere(const mat44f &tm, const GeomNodeTree *geom_node_tree) const;
   Point3 getWorldBoundingSphere(const TMatrix &tm, const GeomNodeTree *geom_node_tree) const;
+  bool validateVerticesForJolt(const char *res_name, auto &&on_degenerate);
+  bool validateVerticesForJolt(const char *res_name);
+  dag::Vector<DegenerativeNodeData> getDegenerativeNodes(const char *res_name);
 
   Point3 getBoundingSphereCenter() const { return *(const Point3 *)(const void *)&vBoundingSphere; }
   float getBoundingSphereRad() const { return boundingSphereRad; }
@@ -513,7 +748,7 @@ private:
   template <bool check_bounding>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
-  template <bool check_bounding>
+  template <bool check_bounding, uint32_t mainBatchSize = 8>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
   DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
@@ -521,15 +756,17 @@ private:
 
   template <bool check_bounding>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array);
-  template <bool check_bounding>
+    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array,
+    all_collres_tri_indices_t &tri_indices);
+  template <bool check_bounding, uint32_t mainBatchSize = 8>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array);
+    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array,
+    all_collres_tri_indices_t &tri_indices);
 
   template <bool check_bounding>
   DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
     float in_t);
-  template <bool check_bounding>
+  template <bool check_bounding, uint32_t mainBatchSize = 8>
   DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
     const vec4f &v_local_dir, float in_t);
 
@@ -543,6 +780,7 @@ protected:
   friend class CollisionGameResFactory;
   friend CollisionExporter;
   friend dabuildExp_collision::CollisionExporter;
+  friend struct CollisionResourceUnittest;
 
   struct Grid
   {
@@ -551,7 +789,8 @@ protected:
     void reset();
     void buildFRT(CollisionResource *parent, uint8_t behavior_flag, bool frt_build_fast);
 
-    eastl::unique_ptr<StaticSceneRayTracerT<uint16_t>> tracer;
+    using SSRT16 = const StaticSceneRayTracerT<uint16_t>;
+    eastl::unique_ptr<SSRT16, DestroyDeleter<SSRT16>> tracer;
   };
 
   int getNodeIndexByFaceId(int face_id, uint8_t behavior_filter) const;
@@ -560,6 +799,11 @@ protected:
 
   Tab<CollisionNode> allNodesList;
   Tab<TMatrix> relGeomNodeTms; // parallel to allNodesList
+  // Tightly packed null-terminated names; offset 0 always holds '\0' so nameOfs==0 means empty
+  dag::Vector<char> names;
+  // Dense storage for capsule-type nodes; CollisionNode::capsuleIndex addresses entries here
+  dag::Vector<Capsule> capsules;
+  uint32_t addName(const char *name);
 
   Grid gridForTraceable;
   Grid gridForCollidable;
@@ -583,15 +827,3 @@ protected:
   void loadLegacyRawFormat(IGenLoad & cb, int res_id, int (*resolve_phmat)(const char *) = nullptr);
 
 end_dclass_decl();
-
-
-inline int CollisionResource::get_node_tris_count(const CollisionNode &cnode) { return cnode.indices.size() / 3; }
-
-inline void CollisionResource::get_node_tri(const CollisionNode &cnode, int idx, const Point3 *&p0, const Point3 *&p1,
-  const Point3 *&p2)
-{
-  int vIdx = idx * 3;
-  p0 = &cnode.vertices[cnode.indices[vIdx]];
-  p1 = &cnode.vertices[cnode.indices[vIdx + 1]];
-  p2 = &cnode.vertices[cnode.indices[vIdx + 2]];
-}

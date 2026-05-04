@@ -57,7 +57,7 @@ function HelicopterRocketAim(line_style) {
 
   let lines = line_style.__merge({
       rendObj = ROBJ_VECTOR_CANVAS
-      size = static [sh(0.8), sh(2)]
+      size = const [sh(0.8), sh(2)]
       commands = [
         [VECTOR_LINE, -100, -100, 100, -100],
         [VECTOR_LINE, -100, 100, 100, 100],
@@ -245,7 +245,7 @@ function Root() {
   return {
     halign = ALIGN_LEFT
     valign = ALIGN_TOP
-    size = static [sw(100) , sh(100)]
+    size = const [sw(100) , sh(100)]
     children
   }
 }

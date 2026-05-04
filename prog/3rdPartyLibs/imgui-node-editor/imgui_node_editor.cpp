@@ -20,6 +20,15 @@
 # include <streambuf>
 # include <type_traits>
 
+// MODIFICATION BY GAIJIN
+void ImRectFloor(ImRect &r)
+{
+  r.Min.x = IM_TRUNC(r.Min.x);
+  r.Min.y = IM_TRUNC(r.Min.y);
+  r.Max.x = IM_TRUNC(r.Max.x);
+  r.Max.y = IM_TRUNC(r.Max.y);
+}
+
 // https://stackoverflow.com/a/8597498
 # define DECLARE_HAS_NESTED(Name, Member)                                          \
                                                                                    \
@@ -1648,7 +1657,7 @@ void ed::EditorContext::SetNodePosition(NodeId nodeId, const ImVec2& position)
     if (node->m_Bounds.Min != position)
     {
         node->m_Bounds.Translate(position - node->m_Bounds.Min);
-        node->m_Bounds.Floor();
+        ImRectFloor(node->m_Bounds); // MODIFICATION BY GAIJIN
         MakeDirty(NodeEditor::SaveReasonFlags::Position, node);
     }
 }
@@ -1668,7 +1677,7 @@ void ed::EditorContext::SetGroupSize(NodeId nodeId, const ImVec2& size)
     {
         node->m_GroupBounds.Min = node->m_Bounds.Min;
         node->m_GroupBounds.Max = node->m_Bounds.Min + size;
-        node->m_GroupBounds.Floor();
+        ImRectFloor(node->m_GroupBounds); // MODIFICATION BY GAIJIN
         MakeDirty(NodeEditor::SaveReasonFlags::Size, node);
     }
 }
@@ -1746,10 +1755,10 @@ void ed::EditorContext::UpdateNodeState(Node* node)
 
     node->m_Bounds.Min      = settings->m_Location;
     node->m_Bounds.Max      = node->m_Bounds.Min + settings->m_Size;
-    node->m_Bounds.Floor();
+    ImRectFloor(node->m_Bounds); // MODIFICATION BY GAIJIN
     node->m_GroupBounds.Min = settings->m_Location;
     node->m_GroupBounds.Max = node->m_GroupBounds.Min + settings->m_GroupSize;
-    node->m_GroupBounds.Floor();
+    ImRectFloor(node->m_GroupBounds); // MODIFICATION BY GAIJIN
 }
 
 void ed::EditorContext::RemoveSettings(Object* object)
@@ -3774,7 +3783,7 @@ bool ed::SizeAction::Process(const Control& control)
         if ((m_Pivot & NodeRegion::Right) == NodeRegion::Right)
             newBounds.Max.x = ImMax(newBounds.Min.x + minimumSize.x, Editor->AlignPointToGrid(newBounds.Max.x + dragOffset.x));
 
-        newBounds.Floor();
+        ImRectFloor(newBounds); // MODIFICATION BY GAIJIN
 
         m_LastSize = newBounds.GetSize();
 
@@ -5284,7 +5293,7 @@ void ed::NodeBuilder::End()
     ImGui::EndGroup();
 
     m_NodeRect = ImGui_GetItemRect();
-    m_NodeRect.Floor();
+    ImRectFloor(m_NodeRect); // MODIFICATION BY GAIJIN
 
     if (m_CurrentNode->m_Bounds.GetSize() != m_NodeRect.GetSize())
     {
@@ -5392,7 +5401,7 @@ void ed::NodeBuilder::PinRect(const ImVec2& a, const ImVec2& b)
     IM_ASSERT(nullptr != m_CurrentPin);
 
     m_CurrentPin->m_Bounds = ImRect(a, b);
-    m_CurrentPin->m_Bounds.Floor();
+    ImRectFloor(m_CurrentPin->m_Bounds); // MODIFICATION BY GAIJIN
     m_ResolvePinRect     = false;
 }
 
@@ -5442,7 +5451,7 @@ void ed::NodeBuilder::Group(const ImVec2& size)
         ImGui::Dummy(size);
 
     m_GroupBounds = ImGui_GetItemRect();
-    m_GroupBounds.Floor();
+    ImRectFloor(m_GroupBounds); // MODIFICATION BY GAIJIN
 }
 
 ImDrawList* ed::NodeBuilder::GetUserBackgroundDrawList() const

@@ -34,8 +34,16 @@ typedef const struct bsph3f& bsph3f_cref;
 #if defined(__SANITIZE_ADDRESS__)
 # define DAGOR_ASAN_ENABLED
 #elif defined(__has_feature)
-# if __has_feature(address_sanitizer)
+# if __has_feature(address_sanitizer) || __has_feature(hwaddress_sanitizer)
 #   define DAGOR_ASAN_ENABLED
+# endif
+#endif
+
+#if defined(__SANITIZE_THREAD__)
+# define DAGOR_TSAN_ENABLED
+#elif defined(__has_feature)
+# if __has_feature(thread_sanitizer)
+#   define DAGOR_TSAN_ENABLED
 # endif
 #endif
 

@@ -1,10 +1,11 @@
 Root    ?= ../../../../.. ;
 KernelLinkage = dynamic ;
+BuildingTools = yes ;
 UseD3DMulti = yes ;
 UseD3DMultiList_windows = DX12 DX11 ;
 UseD3DMultiList_linux   = vulkan ;
 UseD3DMultiList_macOS   = Metal ;
-LinuxUseX11 = no ;
+LinuxUseGUI = no ;
 
 Location = prog/tools/sceneTools/impostorBaker/tool ;
 include $(Root)/prog/tools/tools_setup.jam ;
@@ -66,7 +67,7 @@ UseProgLibs =
   gameLibs/render/volumetricLights/stub
   gameLibs/render/nodeBasedShader/stub
   gameLibs/ecs/rendInst/stub
-  gameLibs/daECS/gameResStub
+  engine/daECS/gameResStub
 
   tools/libTools/shaderResBuilder
   tools/sceneTools/impostorBaker/impostorUtil
@@ -75,7 +76,7 @@ UseProgLibs =
   3rdPartyLibs/image/psdRead
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
 
-  gameLibs/daECS/gameResStub
+  engine/daECS/gameResStub
   gameLibs/ecs/rendInst/stub
 ;
 if $(Platform) in linux macOS { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }

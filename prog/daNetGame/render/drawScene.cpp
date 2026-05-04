@@ -14,11 +14,16 @@
 #include <gui/dag_stdGuiRender.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <ecs/scripts/scripts.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/camera/getActiveCameraSetup.h>
+#include <ecs/camera/cameraPosInCallstack.h>
 #include <gui/dag_visualLog.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
@@ -28,10 +33,12 @@
 #include <debug/dag_textMarks.h>
 #include <render/debug3dSolidBuffered.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_events.h>
 #include <workCycle/dag_workCycle.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <webui/shaderEditors.h>
 #include <dasModules/aotEcs.h> // bind_dascript::enable_thread_safe_das_ctx_region
+#include <dasModules/dasSharedStack.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <drv/dag_vr.h>
 #include <image/dag_texPixel.h>
@@ -65,6 +72,7 @@
 #include <camTrack/camTrack.h>
 #include <daRg/dag_guiScene.h>
 #include <util/dag_threadPool.h>
+#include <util/dag_finally.h>
 
 #include "animatedSplashScreen.h"
 #include <debug/dag_memReport.h>
@@ -87,12 +95,13 @@ extern void set_screen_shot_comments(const TMatrix &itm);
 bool should_hide_debug() { return screenshot_hide_debug.get() && screencap::should_hide_debug(); }
 void toggle_hide_gui() { hide_gui.set(!hide_gui.get()); }
 static bool should_hide_gui() { return screencap::should_hide_gui() || hide_gui.get() || WRDispatcher::shouldHideGui(); }
+extern void on_ui_finished();
 
 namespace game_scene
 {
 extern bool parallel_logic_mode;
 extern bool parallel_no_latency_mode;
-extern void updateInput(float rtDt, float dt, float cur_time);
+extern void updateInput(float rtDt, float dt, double cur_time);
 } // namespace game_scene
 
 static int gui_screen_sizeVarId = -1;
@@ -100,29 +109,41 @@ static int gui_screen_sizeVarId = -1;
 static int last_realtime_elapsed_usec = 0;
 float last_gametime_elapsed_sec = 0.f;
 
+static void (*start_next_frame_in_additional_game_job_cb)() = nullptr;
+
 extern void free_reserved_tp_worker();
 
 static class AdditionalGameJob final : public cpujobs::IJob
 {
+  os_event_t doneEvent;
+  das::daScriptEnvironment *bound = nullptr;
   uint32_t frameId = 0;
   float dt = 0.;
   float rtdt = 0.;
-  float curTime = 0.;
+  double curTime = 0.;
+
+  friend void wait_additional_game_job_done();
 
 public:
-  AdditionalGameJob *prepare(uint32_t frame_id, float _rtdt, float time_speed, float _curTime)
+  AdditionalGameJob() { os_event_create(&doneEvent); }
+  ~AdditionalGameJob() { os_event_destroy(&doneEvent); }
+  AdditionalGameJob *prepare(uint32_t frame_id, float _rtdt, float time_speed, double _curTime, das::daScriptEnvironment *bound_)
   {
+    bound = bound_;
     frameId = frame_id;
     rtdt = _rtdt;
     dt = _rtdt * time_speed;
     curTime = _curTime;
-    if (!game_scene::parallel_no_latency_mode)
-      bind_dascript::enable_thread_safe_das_ctx_region(true);
+    bind_dascript::enable_thread_safe_das_ctx_region(true);
+    uirender::prepare_to_start_ui_before_render_job();
+    os_event_reset(&doneEvent);
     return this;
   }
   const char *getJobName(bool &) const override { return "AdditionalGameJob"; }
   void doJob() override
   {
+    FINALLY([this] { os_event_set(&doneEvent); });
+
     int64_t ownedThread = g_entity_mgr->getOwnerThreadId();
     g_entity_mgr->setOwnerThreadId(get_current_thread_id());
 
@@ -131,21 +152,27 @@ public:
     {
       TIME_PROFILE(begin_frame);
       static bool gpuLatencyWait = dgs_get_settings()->getBlockByName("video")->getBool("pufdGpuLatencyWait", true);
+      if (gpuLatencyWait && start_next_frame_in_additional_game_job_cb)
+        start_next_frame_in_additional_game_job_cb();
       dagor_start_next_frame(gpuLatencyWait);
     }
+
     TIME_PROFILE(ParallelUpdateFrameDelayed);
     FRAMEMEM_REGION;
+    bind_dascript::SharedFramememStack ctxStack;
 
     if (game_scene::parallel_logic_mode) // we already update input in games without parallel logic mode
     {
       dainput::set_control_thread_id(get_current_thread_id());
-      game_scene::updateInput(rtdt, dt, curTime); // update input
+      game_scene::updateInput(rtdt, dt, curTime);
       dainput::set_control_thread_id(get_main_thread_id());
     }
 
+    das::daScriptEnvironment *prevBound = das::daScriptEnvironment::exchangeBound(bound);
     dacoll::phys_world_set_control_thread_id(get_current_thread_id());
     g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, curTime));
     dacoll::phys_world_set_control_thread_id(get_main_thread_id());
+    das::daScriptEnvironment::setBound(prevBound);
 
     dacoll::phys_world_set_invalid_fetch_sim_res_thread(-1); // set to invalid
 
@@ -154,15 +181,18 @@ public:
   }
 } additional_game_job;
 
+void set_additional_game_job_next_frame_start_cb(void (*cb)()) { start_next_frame_in_additional_game_job_cb = cb; }
+
 void wait_additional_game_job_done()
 {
   if (!interlocked_acquire_load(additional_game_job.done))
   {
     TIME_PROFILE(wait_additional_game_job_done);
-    threadpool::wait(&additional_game_job);
+    os_event_wait(&additional_game_job.doneEvent, OS_WAIT_INFINITE);
+    while (!interlocked_acquire_load(additional_game_job.done)) [[unlikely]]
+      cpu_yield();
   }
-  if (!game_scene::parallel_no_latency_mode) // need be reworked for this mode
-    bind_dascript::enable_thread_safe_das_ctx_region(false);
+  bind_dascript::enable_thread_safe_das_ctx_region(false);
 }
 
 void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraParams &camera)
@@ -174,7 +204,7 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
 
   d3d::settm(TM_VIEW, camera.viewTm);
   if (target)
-    d3d::set_render_target(target, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
 
   // some debug features can rely on depth test, but on some consoles we can't use that because of different resolutions with RTs
   static constexpr bool canDrawWithoutDepth = true; // TODO: fix it correctly
@@ -183,7 +213,7 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
     d3d::set_depth(depth, DepthAccess::RW);
   if (depth || canDrawWithoutDepth)
   {
-    d3d::setpersp(camera.jitterPersp);
+    d3d::settm(TM_PROJ, &camera.jitterProjTm);
     TIME_D3D_PROFILE(debug_visualization_jittered);
     g_entity_mgr->broadcastEventImmediate(RenderDebugWithJitter());
     flush_buffered_debug_lines(get_timespeed() == 0.f);
@@ -191,7 +221,7 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
   }
 
   {
-    d3d::setpersp(camera.noJitterPersp);
+    d3d::settm(TM_PROJ, &camera.noJitterProjTm);
 
     TIME_D3D_PROFILE(debug_visualization_nojitter);
     if (depth)
@@ -235,6 +265,7 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
   }
 
   const CameraSetup cam = !is_level_loading() ? get_active_camera_setup() : CameraSetup{};
+  CameraPosInCallstack logCamera{cam};
 
   int w, h;
   d3d::get_screen_size(w, h);
@@ -258,12 +289,12 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
   ::grs_cur_view.tm = viewTransform;
   ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
 
-  const double curTime = get_time_mgr().getSeconds();
-  camtrack::update_record(curTime, camTransform, curPersp.wk);
+  camtrack::update_record(get_sync_time_d(), camTransform, curPersp.wk);
 
   if (auto wr = get_world_renderer(); wr && is_level_loaded_not_empty())
   {
-    wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, get_sync_time(), camTransform, camPosition, curPersp);
+    TMatrix4D projTm = dmatrix_perspective_reverse(curPersp.wk, curPersp.hk, curPersp.zn, curPersp.zf, curPersp.ox, curPersp.oy);
+    wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, get_sync_time(), camTransform, camPosition, curPersp, projTm);
   }
 
   user_ui::before_render();
@@ -298,6 +329,8 @@ enum
 };
 static uint8_t async_game_tasks_started = AGT_NONE;
 
+void reset_async_game_tasks_flags() { async_game_tasks_started = AGT_NONE; }
+
 void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = true)
 {
   if ((async_game_tasks_started & agt) == agt)
@@ -309,7 +342,8 @@ void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = tr
   if ((agt & AGT_ADDITIONAL) && !(async_game_tasks_started & AGT_ADDITIONAL))
   {
     if (is_level_loaded())
-      threadpool::add(additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time()),
+      threadpool::add(additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time_d(),
+                        *das::daScriptEnvironment::bound),
         threadpool::PRIO_LOW, wake);
     else // we must start before render ui job when level loading in progress
       uirender::start_ui_before_render_job();
@@ -365,7 +399,7 @@ void finish_rendering_ui()
       d3d::get_screen_size(sw, sh);
       if (gui_screen_sizeVarId == -1)
         gui_screen_sizeVarId = get_shader_variable_id("gui_screen_size", true);
-      ShaderGlobal::set_color4(gui_screen_sizeVarId, sw, sh, 1.0f / sw, 1.0f / sh);
+      ShaderGlobal::set_float4(gui_screen_sizeVarId, sw, sh, 1.0f / sw, 1.0f / sh);
 
       auto uiScenes = uirender::get_all_scenes();
 
@@ -499,6 +533,7 @@ void draw_scene(uint32_t frame_id)
   screencap::start_pending_request();
 
   CameraSetup cameraSetup = get_active_camera_setup();
+  CameraPosInCallstack logCamera{cameraSetup};
   TMatrix viewTm;
   TMatrix4 globTm;
   TMatrix4 projTm;
@@ -521,7 +556,7 @@ void draw_scene(uint32_t frame_id)
   if (auto wr = get_world_renderer())
   {
     wr->updateFinalTargetFrame();
-    d3d::set_render_target(wr->getFinalTargetTex().getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{wr->getFinalTargetTex().getTex2D(), 0, 0}});
   }
   else
     hdrrender::set_render_target();
@@ -582,10 +617,14 @@ void draw_scene(uint32_t frame_id)
 
   get_da_editor4().render3d(Frustum(globTm), Point3(cameraSetup.accuratePos));
 
-  if (!is_level_loaded_not_empty() || (get_world_renderer() && !get_world_renderer()->needSeparatedUI()))
+  if (!is_level_loaded_not_empty() ||
+      (get_world_renderer() && (!get_world_renderer()->needSeparatedUI() ||
+                                 (screencap::is_screenshot_scheduled() && get_world_renderer()->needUIBlendingForScreenshot()))))
     finish_rendering_ui();
   else
     wait_before_finish_rendering_ui();
+  if (get_world_renderer() && is_level_loaded() && is_level_loaded_not_empty())
+    on_ui_finished();
 
   if (screencap::is_screenshot_scheduled())
     set_screen_shot_comments(cameraSetup.transform);
@@ -627,6 +666,8 @@ void draw_scene(uint32_t frame_id)
     d3d::set_render_target();
     hdrrender::encode();
   }
+
+  dngsound::gpu_update();
 
   g_entity_mgr->setConstrainedMTMode(false);
   if (!game_scene::parallel_no_latency_mode) // in this mode parallel update can start parallel for query

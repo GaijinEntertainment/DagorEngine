@@ -69,10 +69,10 @@ shader water_normals
 
       // Output
       float3 normal0 = float3(0, 0, 0), normal1 = float3(0, 0, 0), normal2 = float3(0, 0, 0), normal3 = float3(0, 0, 0);
-      GET_NORMAL(normal0, float2(-0.5 * water_normals_size.x, -0.5 * water_normals_size.x));
-      GET_NORMAL(normal1, float2(-0.5 * water_normals_size.x, 0.5 * water_normals_size.x));
-      GET_NORMAL(normal2, float2(0.5 * water_normals_size.x, 0.5 * water_normals_size.x));
-      GET_NORMAL(normal3, float2(0.5 * water_normals_size.x, -0.5 * water_normals_size.x));
+      GET_NORMAL(normal0, float2(-0.5 * water_normals_size.z, -0.5 * water_normals_size.z));
+      GET_NORMAL(normal1, float2(-0.5 * water_normals_size.z, 0.5 * water_normals_size.z));
+      GET_NORMAL(normal2, float2(0.5 * water_normals_size.z, 0.5 * water_normals_size.z));
+      GET_NORMAL(normal3, float2(0.5 * water_normals_size.z, -0.5 * water_normals_size.z));
       return float4((normal0 + normal1 + normal2 + normal3) * 0.25, 0);
     }
   }

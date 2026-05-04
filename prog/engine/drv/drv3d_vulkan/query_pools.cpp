@@ -8,6 +8,8 @@
 #include "device_context.h"
 #include "backend.h"
 #include "vulkan_allocation_callbacks.h"
+#include "backend/cmd/query.h"
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
@@ -153,10 +155,8 @@ void SurveyQueryManager::afterDeviceReset()
 void SurveyQueryManager::shutdownDataBuffers()
 {
   // delete the buffers here and later the pools
-  DeviceContext &ctx = Globals::ctx;
-
   for (auto &&pool : surveyPool)
-    ctx.destroyBuffer(pool.dataStore);
+    Globals::ctx.dispatchCmd<CmdDestroyBuffer>({pool.dataStore});
 }
 
 void SurveyQueryManager::shutdownPools()
@@ -190,4 +190,5 @@ void RaytraceBLASCompactionSizeQueryPool::shutdownPools()
 {
   if (!is_null(pool))
     VULKAN_LOG_CALL(Globals::VK::dev.vkDestroyQueryPool(Globals::VK::dev.get(), pool, VKALLOC(query_pool)));
+  pool = VulkanNullHandle();
 }

@@ -1,0 +1,8 @@
+ERROR: newline in a constant
+testData/diagnostics/import_07.nut:1:7
+
+import "a
+       ^--
+" as a
+
+

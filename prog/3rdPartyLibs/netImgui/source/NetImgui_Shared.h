@@ -9,10 +9,10 @@
 
 #ifndef NETIMGUI_INTERNAL_INCLUDE
 	#define NETIMGUI_INTERNAL_INCLUDE 1
-	#include <netImgui/NetImgui_Api.h>
+	#include "NetImgui_Api.h"
 	#undef NETIMGUI_INTERNAL_INCLUDE
 #else
-	#include <netImgui/NetImgui_Api.h>
+	#include "NetImgui_Api.h"
 #endif
 
 #if NETIMGUI_ENABLED
@@ -35,9 +35,10 @@ namespace NetImgui { namespace Internal
 
 using				ComDataType = uint64_t;
 constexpr size_t	ComDataSize = sizeof(ComDataType);
+using 				ClientTextureID = uint64_t;
 
 //=============================================================================
-// All allocations made by netImgui goes through here.
+// All allocations made by netImgui goes through here. 
 // Relies in ImGui allocator
 //=============================================================================
 template <typename TType, typename... Args> TType*	netImguiNew(Args... args);
@@ -59,21 +60,21 @@ template<typename TType>
 class ScopedValue
 {
 public:
-	ScopedValue(TType& ValueRef, TType Value)
+	ScopedValue(TType& ValueRef, TType Value) 
 	: mValueRef(ValueRef)
-	, mValueRestore(ValueRef)
+	, mValueRestore(ValueRef) 
 	{
-		mValueRef = Value;
+		mValueRef = Value; 
 	}
-	~ScopedValue()
+	~ScopedValue() 
 	{
-		mValueRef = mValueRestore;
+		mValueRef = mValueRestore; 
 	}
 protected:
 	TType&	mValueRef;
 	TType	mValueRestore;
 	uint8_t mPadding[sizeof(void*)-(sizeof(TType)%8)]={};
-
+	
 	// Prevents warning about implicitly delete functions
 	ScopedValue(const ScopedValue&) = delete;
 	ScopedValue(const ScopedValue&&) = delete;
@@ -90,12 +91,12 @@ class ExchangePtr
 {
 public:
 						ExchangePtr():mpData(nullptr){}
-						~ExchangePtr();
+						~ExchangePtr();	
 	inline TType*		Release();
 	inline void			Assign(TType*& pNewData);
 	inline void			Free();
 	inline bool 		IsNull()const { return mpData.load() == nullptr; }
-private:
+private:						
 	std::atomic<TType*> mpData;
 
 // Prevents warning about implicitly delete functions
@@ -132,7 +133,7 @@ struct OffsetPointer
 	inline void					SetPtr(TType* pPointer);
 	inline void					SetComDataPtr(ComDataType* pPointer);
 	inline void					SetOff(uint64_t offset);
-
+	
 private:
 	union
 	{
@@ -188,14 +189,17 @@ IntType DivUp(IntType Value, IntType Denominator);
 template <typename IntType>
 IntType RoundUp(IntType Value, IntType Round);
 
-inline uint64_t TextureCastFromID(ImTextureID textureID);
-inline ImTextureID TextureCastFromPtr(void* pTexture);
-inline ImTextureID TextureCastFromUInt(uint64_t textureID);
+
+#if NETIMGUI_IMGUI_TEXTURES_ENABLED
+inline NetImgui::eTexFormat ConvertTextureFormat(ImTextureFormat ImFormat);
+inline ClientTextureID 	ConvertToClientTexID(const ImTextureRef& textureRef);
+#endif
+inline ClientTextureID 	ConvertToClientTexID(ImTextureID textureID);
+inline ImTextureID 		ConvertFromClientTexID(ClientTextureID textureID);
 
 }} //namespace NetImgui::Internal
 
 #include "NetImgui_Shared.inl"
-
 #include "NetImgui_WarningReenable.h"
 
 #endif //NETIMGUI_ENABLED

@@ -137,14 +137,22 @@ void ProfilerData::copyCallStacks(uint64_t timeStart, uint64_t timeEnd, CallStac
       return;
     auto i = begin;
     // we can actually skip samples at the end of chunk (but not at the begining, as we rely on state)
-    for (; i < end;)
+    while (i < end)
     {
       const uint32_t csCount = sampling_saved_cs_count(i);
       if (sampling_saved_ticks(i) > timeEnd)
         break;
-      i += sampling_allocated_words(csCount);
+      const uint32_t recordSize = sampling_allocated_words(csCount);
+      bool newChunk;
+      uint16_t *dest = save.allocContiguous(recordSize, newChunk);
+      if (!dest)
+      {
+        report_logerr("failed to allocate a region in daProfiler save");
+        return;
+      }
+      memcpy(dest, i, recordSize * sizeof(uint16_t));
+      i += recordSize;
     }
-    save.insert(save.end(), begin, i);
   });
 }
 
@@ -167,8 +175,6 @@ size_t ProfilerData::prepareDump(unique_ptr<Dump> &&dump_)
   uniqueEvents.forEachChunk([&](const auto *begin, const auto *end) { dump.uniqueEvents.append(begin, end); });
   dump.uniqueEventsFrames = uniqueEventsFrames;
 
-  if (dump.type != Dump::Type::Spike)
-    dump.stacks.reserve(stackSamples.approximateSize());
   copyCallStacks(timeStart, timeEnd, dump.stacks);
   dump.uniqueProfileRunName = uniqueProfileRunName;
   dump.frameThreadId = frameThreadId;

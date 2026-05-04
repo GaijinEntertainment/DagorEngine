@@ -3,7 +3,30 @@ water_ripples {
   _singleton:b=true
   "water_ripples:WaterRipples"{}
   "water_ripples__origin_bbox:BBox3"{}
-  water_ripples__water_level:r=0.0
+}
+
+water_ripples_settings {
+  _tags:t="render"
+  _singleton:b=true
+  _track:b=yes
+  // physical params for waves
+  // x - base
+  // y - for big waves
+  // z - for deep water
+  // w - mul for deepness (limited by 1)
+  water_ripples_drop_force:p4=7, 0, 11, 1
+  water_ripples_back_force:p4=25, 5, -5, 2
+  // x - base
+  // y - unused
+  // z - for deep water
+  // w - mul for deepness (limited by 1)
+  water_ripples_damping:p4=3, 0, -1.3, 2
+  // x - dump mul (initial distortion on damping)
+  // y - distortion spread speed
+  // z - ripples dissipation mul (how many distortion we have from ripples damping)
+  // w - ripples fade speed
+  water_ripples_distortion_params_3d:p4=0.01, 0.2, 0.002, 8
+  water_ripples_distortion_params_puddles:p4=5, 0.05, 1, 0
 }
 
 water_ripple_generator {

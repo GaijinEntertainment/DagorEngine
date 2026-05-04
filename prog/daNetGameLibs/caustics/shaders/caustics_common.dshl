@@ -3,9 +3,13 @@ texture caustics_tex;
 macro INIT_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
 if (caustics_tex != NULL)
 {
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   (code)
   {
-    caustics_tex@smp2d = caustics_tex;
+    caustics_tex@tex2d = caustics_tex;
+  }
+  hlsl(code) {
+    #define caustics_tex_samplerstate global_linear_wrap_sampler
   }
 }
 endmacro

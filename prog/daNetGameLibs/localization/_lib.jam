@@ -1,2 +1,0 @@
-gamePulls += framework_localization_pull ;
-UseProgLibs += daNetGameLibs/localization ;

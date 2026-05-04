@@ -6,12 +6,19 @@ options strict_smart_pointers
 
 module archive shared private
 
+//! Binary serialization and deserialization framework.
+//!
+//! Provides ``serialize`` generics that read/write daslang values to binary
+//! archives. The `Archive` structure wraps a stream and tracks
+//! read vs. write direction. Supports primitive types, arrays, tables,
+//! variants, tuples, smart pointers, and user-extensible overloads.
+
 require daslib/contracts
 require daslib/apply
 require daslib/templates
 require math
 require strings
-require rtti
+require daslib/rtti
 
 class public Serializer {
     //! Base class for serializers.
@@ -28,6 +35,7 @@ class public MemSerializer : Serializer {
         pass    // writing
     }
     def MemSerializer(from : array<uint8>) {
+        //! Initialize the serializer for reading from the given data.
         data := from
     }
     def extractData : array<uint8> {
@@ -35,7 +43,7 @@ class public MemSerializer : Serializer {
         return <- data
     }
     def getCopyOfData : array<uint8> {
-        //! Returns copy of the data from the seiralizer.
+        //! Returns copy of the data from the serializer.
         var cdata := data
         return <- cdata
     }
@@ -75,16 +83,16 @@ class public MemSerializer : Serializer {
         //! Sets the last error code.
         lastError = code
     }
-    private data : array<uint8>
-    private readOffset : int
-    private lastError : string
+    private data : array<uint8> //! internal data buffer
+    private readOffset : int    //! current reading offset
+    private lastError : string  //! last error code
 }
 
 struct public Archive {
     //! Archive is a combination of serialization stream, and state (version, and reading status).
-    version : uint
-    reading : bool
-    stream  : Serializer?
+    version : uint //! Version of the archive format.
+    reading : bool //! True if the archive is for reading, false for writing.
+    stream  : Serializer? //! Serialization stream.
 }
 
 def public serialize_raw(var arch : Archive; var value : auto(TT)&) {
@@ -116,6 +124,7 @@ def public serialize(var arch : Archive; var value : auto(TT)&) {
 
 [expect_any_function(value)]
 def public serialize(var arch : Archive; var value : auto(TT)&) {
+    //! Serializes function pointer by its mangled name hash.
     if (arch.reading) {
         var mnh : uint64
         arch |> read_raw(mnh)
@@ -131,19 +140,23 @@ def public serialize(var arch : Archive; var value : auto(TT)&) {
 }
 
 def public serialize(var arch : Archive; var value : float3x3) {
+    //! Serializes float3x3 matrix
     arch |> serialize_raw(value)
 }
 
 def public serialize(var arch : Archive; var value : float3x4) {
+    //! Serializes float3x4 matrix
     arch |> serialize_raw(value)
 }
 
 def public serialize(var arch : Archive; var value : float4x4) {
+    //! Serializes float4x4 matrix
     arch |> serialize_raw(value)
 }
 
 [expect_any_struct(value)]
 def public serialize(var arch : Archive; var value : auto(TT)&) {
+    //! Serializes struct by serializing each field.
     if (arch.reading) {
         delete value
     }
@@ -154,6 +167,7 @@ def public serialize(var arch : Archive; var value : auto(TT)&) {
 
 [expect_any_tuple(value)]
 def public serialize(var arch : Archive; var value : auto(TT)&) {
+    //! Serializes tuple by serializing each field.
     if (arch.reading) {
         delete value
     }
@@ -164,6 +178,7 @@ def public serialize(var arch : Archive; var value : auto(TT)&) {
 
 [expect_any_variant(value)]
 def public serialize(var arch : Archive; var value : auto(TT)&) {
+    //! Serializes variant by serializing the index and the active field.
     if (arch.reading) {
         delete value
         var index : int
@@ -181,32 +196,169 @@ def public serialize(var arch : Archive; var value : auto(TT)&) {
 }
 
 def public serialize(var arch : Archive; var value : auto(TT)[]) {
-    for (element in value) {
-        arch |> _::serialize(element)
+    //! Serializes fixed-size array. Bulk memcpy for raw workhorse types, element-wise otherwise.
+    static_if (typeinfo is_workhorse(type<TT>) && typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (element in value) {
+            arch |> _::serialize(element)
+        }
+    }
+}
+
+def public serialize(var arch : Archive; var value : auto(TT)[][]) {
+    //! Serializes 2D fixed-size array. Bulk memcpy for raw POD types, element-wise otherwise.
+    static_if (typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (a in value) {
+            for (element in a) {
+                arch |> _::serialize(element)
+            }
+        }
+    }
+}
+
+def public serialize(var arch : Archive; var value : auto(TT)[][][]) {
+    //! Serializes 3D fixed-size array. Bulk memcpy for raw POD types, element-wise otherwise.
+    static_if (typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (a in value) {
+            for (b in a) {
+                for (element in b) {
+                    arch |> _::serialize(element)
+                }
+            }
+        }
+    }
+}
+
+def public serialize(var arch : Archive; var value : auto(TT)[][][][]) {
+    //! Serializes 4D fixed-size array. Bulk memcpy for raw POD types, element-wise otherwise.
+    static_if (typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (a in value) {
+            for (b in a) {
+                for (c in b) {
+                    for (element in c) {
+                        arch |> _::serialize(element)
+                    }
+                }
+            }
+        }
+    }
+}
+
+def public serialize(var arch : Archive; var value : auto(TT)[][][][][]) {
+    //! Serializes 5D fixed-size array. Bulk memcpy for raw POD types, element-wise otherwise.
+    static_if (typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (a in value) {
+            for (b in a) {
+                for (c in b) {
+                    for (d in c) {
+                        for (element in d) {
+                            arch |> _::serialize(element)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+def public serialize(var arch : Archive; var value : auto(TT)[][][][][][]) {
+    //! Serializes 6D fixed-size array. Bulk memcpy for raw POD types, element-wise otherwise.
+    static_if (typeinfo is_raw(type<TT>)) {
+        let sz = typeinfo sizeof(value)
+        if (arch.reading) {
+            arch.stream->read(unsafe(addr(value)), sz)
+        } else {
+            arch.stream->write(unsafe(addr(value)), sz)
+        }
+    } else {
+        for (a in value) {
+            for (b in a) {
+                for (c in b) {
+                    for (d in c) {
+                        for (e in d) {
+                            for (element in e) {
+                                arch |> _::serialize(element)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 def public serialize(var arch : Archive; var value : array<auto(TT)>) {
+    //! Serializes array. Bulk memcpy for raw workhorse types, element-wise otherwise.
     if (arch.reading) {
         var len : int
         unsafe {
             delete value
         }
         arch |> read_raw(len)
-        value |> resize(len)
-        for (element in value) {
-            arch |> _::serialize(element)
+        static_if (typeinfo is_workhorse(type<TT>) && typeinfo is_raw(type<TT>)) {
+            value |> resize_no_init(len)
+            if (len > 0) {
+                arch.stream->read(unsafe(addr(value[0])), len * typeinfo sizeof(type<TT>))
+            }
+        } else {
+            unsafe {
+                value |> resize(len)
+            }
+            for (element in value) {
+                arch |> _::serialize(element)
+            }
         }
     } else {
         var len = length(value)
         arch |> write_raw(len)
-        for (element in value) {
-            arch |> _::serialize(element)
+        static_if (typeinfo is_workhorse(type<TT>) && typeinfo is_raw(type<TT>)) {
+            if (len > 0) {
+                arch.stream->write(unsafe(addr(value[0])), len * typeinfo sizeof(type<TT>))
+            }
+        } else {
+            for (element in value) {
+                arch |> _::serialize(element)
+            }
         }
     }
 }
 
 def public serialize(var arch : Archive; var value : table<auto(KT); auto(VT)>) {
+    //! Serializes table by serializing its length and each key-value pair.
     if (arch.reading) {
         var len : int
         arch |> read_raw(len)
@@ -228,6 +380,7 @@ def public serialize(var arch : Archive; var value : table<auto(KT); auto(VT)>) 
 }
 
 def public serialize(var arch : Archive; var value : string&) {
+    //! Serializes string by serializing its length and characters.
     unsafe {
         if (arch.reading) {
             var len : int
@@ -253,6 +406,7 @@ def public serialize(var arch : Archive; var value : string&) {
 }
 
 def public serialize(var arch : Archive; var value : auto(TT)?) {
+    //! Serializes nullable type by serializing a flag and the value if present.
     if (arch.reading) {
         value = null
     }

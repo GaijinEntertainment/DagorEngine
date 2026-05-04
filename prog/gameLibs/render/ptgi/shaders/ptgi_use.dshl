@@ -6,6 +6,8 @@ int ptgi_depth_bindless_sampler_slot = -1;
 
 int ptgi_res_mul = 1;
 int ptgi_use_rr = 1;
+float4 ptgi_uv_max;
+float4 ptgi_uv_scale;
 
 macro CHECKING_PTGI(stage)
   if (use_hw_raytracing)
@@ -42,6 +44,11 @@ macro USING_PTGI(stage)
 
   if (use_hw_raytracing)
   {
+    (stage)
+    {
+      ptgi_uv_max@f2 = ptgi_uv_max;
+      ptgi_uv_scale@f2 = ptgi_uv_scale;
+    }
     hlsl (stage) {
       #define HAS_PTGI 1
 
@@ -49,30 +56,39 @@ macro USING_PTGI(stage)
 
       float3 getPTGI(float2 uv, float linearDepth)
       {
+        uv = min(ptgi_uv_max, uv * ptgi_uv_scale);
         float4 color = 0;
 
         if (ptgi_res_mul == 1)
         {
-          color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+          color = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+          return ptgi_use_rr ? color.rgb : REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb;
         }
         else
         {
-          const float depthTolerance = 1;
+          const float tolerance = 0.05;
 
-          float ptgiDepth = rt_texture_outputs[ptgi_depth_bindless_slot].SampleLevel(global_samplers_array[ptgi_depth_bindless_sampler_slot], uv, 0).r;
+          // PTGI is in YCoCg color space, so red is Y, which is the brightness.
+          // If the variance in brightness is large, then we will try to find the closest depth
+          // in the PTGI buffer, because precision is important to avoid halo artifacts.
+          // We can still have halo artifacts when there are two surfaces having red and green
+          // gi values with similar brightness, but that is not worth optimizing for.
+          float4 brightness = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).GatherRed(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+          float minb = min(min(brightness.x, brightness.y), min(brightness.z, brightness.w));
+          float maxb = max(max(brightness.x, brightness.y), max(brightness.z, brightness.w));
+
           [branch]
-          if (abs(ptgiDepth - linearDepth) < depthTolerance)
-            color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
+          if (abs(minb - maxb) < tolerance)
+            color = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
           else
           {
-            // If the depth is not close enough, we will try to find the closest depth in the PTGI buffer
-            float4 ptgiDepths = rt_texture_outputs[ptgi_depth_bindless_slot].GatherRed(global_samplers_array[ptgi_depth_bindless_sampler_slot], uv, 0);
+            float4 ptgiDepths = uniformBindlessTex2D(rt_texture_outputs, ptgi_depth_bindless_slot).GatherRed(global_samplers_array[ptgi_depth_bindless_sampler_slot], uv, 0);
 
-            uint cix = 4;
-            float dt = abs(ptgiDepth - linearDepth);
+            uint cix = 0;
+            float dt = abs(ptgiDepths[0] - linearDepth);
 
             [unroll]
-            for (uint ix = 0; ix < 4; ++ix)
+            for (uint ix = 1; ix < 4; ++ix)
             {
               float dts = abs(ptgiDepths[ix] - linearDepth);
               if (dts < dt)
@@ -82,18 +98,12 @@ macro USING_PTGI(stage)
               }
             }
 
-            if (cix == 4)
-              color = rt_texture_outputs[ptgi_bindless_slot].SampleLevel(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0);
-            else
-            {
-              color.r = rt_texture_outputs[ptgi_bindless_slot].GatherRed(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
-              color.g = rt_texture_outputs[ptgi_bindless_slot].GatherGreen(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
-              color.b = rt_texture_outputs[ptgi_bindless_slot].GatherBlue(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
-            }
+            color.r = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).GatherRed(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
+            color.g = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).GatherGreen(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
+            color.b = uniformBindlessTex2D(rt_texture_outputs, ptgi_bindless_slot).GatherBlue(global_samplers_array[ptgi_bindless_sampler_slot], uv, 0)[cix];
           }
+          return REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb;
         }
-
-        return ptgi_use_rr ? color.rgb :REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb;
       }
     }
   }

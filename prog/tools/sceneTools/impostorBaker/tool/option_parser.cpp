@@ -50,6 +50,7 @@ void print_impostor_options()
   printf("\n  -quiet      do not show message boxes on errors");
   printf("\n  -dry    Run baker but only prints list of what assets and why need baking, ");
   printf("\n  -force_rebake  Rebake assets even if they weren't change");
+  printf("\n  -profile    Profile the baker, and save .dap file in .logs folder");
 }
 
 ImpostorOptions parse_impostor_options()
@@ -154,6 +155,8 @@ ImpostorOptions parse_impostor_options()
         ret.dryMode = true;
       else if (flag == "force_rebake")
         ret.forceRebake = true;
+      else if (flag == "profile")
+        ret.profile = true;
       else
       {
         DEBUG_CTX("Unknown flag: -%s", flag.c_str());

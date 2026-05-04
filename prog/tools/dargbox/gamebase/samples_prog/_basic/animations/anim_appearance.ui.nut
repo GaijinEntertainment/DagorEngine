@@ -6,8 +6,8 @@ function elem() {
     hplace = ALIGN_CENTER
     vplace = ALIGN_TOP
     halign = ALIGN_CENTER
-    pos = static [0, 100]
-    size = static [sh(22),300]
+    pos = const [0, 100]
+    size = const [sh(22),300]
     children =
       {
         flow = FLOW_HORIZONTAL
@@ -19,21 +19,21 @@ function elem() {
             rendObj = ROBJ_TEXT
             color = Color(128,128,128,60)
             text = "PERKS AVAILABLE:"
-            transform = static {pivot = [0.5,0.5]}
-            animations = static [
+            transform = const {pivot = [0.5,0.5]}
+            animations = const [
               { prop=AnimProp.translate, from=[-sh(20),0], to=[0,0], duration=0.35, play=true, easing=OutQuart}
               { prop=AnimProp.opacity, from=0, to=1, duration=0.75, play=true, easing=OutCubic}
             ]
 
           }
-          static {size=[flex(0.01),0]}
+          const {size=[flex(0.01),0]}
           {
             rendObj = ROBJ_TEXT
             color = Color(255,255,255,60)
             text = 66
-            transform = static {pivot = [0.5,0.5]}
+            transform = const {pivot = [0.5,0.5]}
             font = 2
-            animations = static [{ prop=AnimProp.scale, from=[2.7,2.7], to=[1,1], duration=0.75, play=true, easing=OutCubic }]
+            animations = const [{ prop=AnimProp.scale, from=[2.7,2.7], to=[1,1], duration=0.75, play=true, easing=OutCubic }]
           }
         ]
       }

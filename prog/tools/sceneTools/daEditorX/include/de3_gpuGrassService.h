@@ -74,4 +74,7 @@ public:
   virtual bool findDecalId(int id) const = 0;
 
   virtual void invalidate() = 0;
+
+  virtual void setIsSmallGrass(bool flag) = 0;
+  virtual bool isSmallGrass() const = 0;
 };

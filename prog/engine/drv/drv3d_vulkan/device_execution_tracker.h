@@ -31,7 +31,7 @@ struct DeviceExecutionTracker
   void addMarker(const void *data, size_t data_sz);
   void restart(size_t job_id);
   void dumpFaultData(FaultReportDump &dump) const;
-  void verify();
+  void verify() const;
 
   uint64_t getPrevJobHash() const { return interlocked_acquire_load(prevJobHash); }
 

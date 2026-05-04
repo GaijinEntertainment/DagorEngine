@@ -1,43 +1,24 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <gameRes/dag_collisionResource.h>
-#include <gameRes/dag_gameResSystem.h>
 #include <math/dag_triangleBoxIntersection.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_traceRayTriangle.h>
 #include <math/dag_plane3.h>
-#include <debug/dag_debug.h>
 #include <generic/dag_sort.h>
-#include <generic/dag_relocatableFixedVector.h>
 #include <math/dag_triangleTriangleIntersection.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_rayIntersectSphere.h>
 #include <math/dag_capsuleTriangle.h>
-#include <osApiWrappers/dag_localConv.h>
 #include <supp/dag_prefetch.h>
-#include <memory/dag_framemem.h>
 #include <math/dag_math3d.h>
-#include <sceneRay/dag_sceneRayBuildable.h>
+#include <sceneRay/dag_sceneRay.h>
 #include <scene/dag_physMat.h>
-#include <EASTL/bitvector.h>
-#include <dag/dag_vector.h>
 #include <osApiWrappers/dag_cpuFeatures.h>
-#include <ioSys/dag_oodleIo.h>
-#include <ioSys/dag_zstdIo.h>
-#include <ioSys/dag_chainedMemIo.h>
-#include <ioSys/dag_btagCompr.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_finally.h>
+#include <debug/dag_debug.h>
 
-#if (_TARGET_PC && !_TARGET_STATIC_LIB)
-// Enable FRT for all objects in daEditor for capsule clipping
-#define MIN_FACES_TO_CREATE_GRID 0
-#define MIN_WIDTH_TO_CREATE_GRID 0
-#else
-#define MIN_FACES_TO_CREATE_GRID 64
-#define MIN_WIDTH_TO_CREATE_GRID 5
-#endif
-#define USE_TRACE_GRID 1
 // #define VERIFY_TRACE_RESULTS 1 // May affect performance
 
 #if (__cplusplus >= 201703L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L)
@@ -59,10 +40,10 @@
   ASSIGN_OP(boundingSphere);          \
   ASSIGN_OP(cachedMaxTmScale);        \
   ASSIGN_OP(convexPlanes);            \
-  ASSIGN_OP(capsule);                 \
   ASSIGN_OP(nodeIndex);               \
   ASSIGN_OP(insideOfNode);            \
-  ASSIGN_OP(name);
+  ASSIGN_OP(nameOfs);                 \
+  ASSIGN_OP(capsuleIndex);
 
 CollisionNode &CollisionNode::operator=(const CollisionNode &n)
 {
@@ -100,6 +81,13 @@ CollisionNode &CollisionNode::operator=(CollisionNode &&n)
 }
 #undef COLLNODE_COPY_BASIC_MEMBERS
 
+// Squared radius for CollisionNode bounding sphere preserving the empty-sphere convention (r < 0 => r2 == -1).
+static inline float get_bsphere_r2(float r) { return r < 0 ? -1.f : r * r; }
+
+// BSphere3 from CollisionNode's stored c+r preserving the empty-sphere convention. Plain BSphere3(c, r) recomputes r2 = r*r,
+// so r=-1 would become r2=1 (non-empty); use this helper instead so r<0 produces a fully empty sphere.
+static inline BSphere3 make_node_bsphere(const Point3 &c, float r) { return r < 0 ? BSphere3() : BSphere3(c, r); }
+
 struct CollResProfileStats
 {
   unsigned meshNodesNum = 0;
@@ -112,443 +100,57 @@ struct CollResProfileStats
 template <typename T>
 static inline void sort_collres_intersections(T &intersected_nodes_list)
 {
-  if (intersected_nodes_list.size() > 1)
-  {
-    stlsort::sort_branchless(intersected_nodes_list.begin(), intersected_nodes_list.end());
-#if _TARGET_PC_WIN
-    G_ASSERT(eastl::is_sorted(intersected_nodes_list.begin(), intersected_nodes_list.end(),
-      [](const auto &a, const auto &b) { return a.verifyIsLess(b); }));
-#elif _DEBUG_TAB_
-    G_ASSERTF(!intersected_nodes_list.begin()[1].verifyIsLess(intersected_nodes_list.front()), "%.9f > %.9f",
-      intersected_nodes_list.front().intersectionT, intersected_nodes_list.begin()[1].intersectionT);
-#else
-    G_FAST_ASSERT(!intersected_nodes_list.begin()[1].verifyIsLess(intersected_nodes_list.front()));
-#endif
-  }
+  fast_sort_branchless(intersected_nodes_list.begin(), intersected_nodes_list.end());
 }
 
-CollisionResource *CollisionResource::loadResource(IGenLoad &crd, int res_id)
+void CollisionResource::bakeNodeTransform(int node_id)
 {
-  CollisionResource *resource = new CollisionResource;
-  resource->load(crd, res_id);
-  return resource;
-}
+  // Single-node variant of the bake block in collapseAndOptimize (collisionGameResLoad.cpp): transforms vertices, transforms convex
+  // planes via inverse-transpose, rebuilds bbox/bsphere from the transformed vertices, flips triangle winding when the TM is mirrored
+  // (det<0), and normalizes transform metadata (tm/flags/cachedMaxTmScale). Capsule/box/sphere primitives store auxiliary shape data
+  // outside vertices/indices, so they are out of scope for this helper.
+  CollisionNode *n = getNode(node_id);
+  if (!n)
+    return;
+  if (n->type != COLLISION_NODE_TYPE_MESH && n->type != COLLISION_NODE_TYPE_CONVEX)
+    return;
+  if ((n->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || n->vertices.empty())
+    return;
 
-static int sort_by_bbox_size(const CollisionNode *left, const CollisionNode *right)
-{
-  float szL = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(left->modelBBox))));
-  float szR = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(right->modelBBox))));
-  if (fabsf(szL - szR) < 1e-3)
-    return strcmp(left->name, right->name);
-  return (szL < szR) ? 1 : -1;
-}
-
-template <typename T>
-static inline void readTab(IGenLoad &cb, T &tab)
-{
-  int s = cb.readInt();
-  tab.resize(0);
-  if (s)
+  mat44f nodeTm;
+  v_mat44_make_from_43cu(nodeTm, n->tm[0]);
+  bbox3f box;
+  v_bbox3_init_empty(box);
+  for (Point3_vec4 *v = n->vertices.data(), *ve = v + n->vertices.size(); v != ve; ++v)
   {
-    reserve_and_resize(tab, s);
-    cb.read(tab.data(), data_size(tab));
+    vec4f p = v_mat44_mul_vec3p(nodeTm, v_ld(&v->x));
+    v_st(&v->x, p);
+    v_bbox3_add_pt(box, p);
   }
-}
+  vec4f vSphereC = v_bbox3_center(box), sphereRad2 = v_zero();
+  for (const Point3_vec4 *v = n->vertices.data(), *ve = v + n->vertices.size(); v != ve; ++v)
+    sphereRad2 = v_max(sphereRad2, v_length3_sq_x(v_sub(vSphereC, v_ld(&v->x))));
 
-static DeserializedStaticSceneRayTracerT<uint16_t> *load_frt16(IGenLoad &cb)
-{
-  auto *rt = new DeserializedStaticSceneRayTracerT<uint16_t>();
-  if (!rt->serializedLoad(cb))
+  if (!n->convexPlanes.empty())
   {
-    delete rt;
-    rt = NULL;
-  }
-  return rt;
-}
-
-void CollisionResource::load(IGenLoad &_cb, int res_id)
-{
-  collisionFlags = 0;
-  gridForTraceable.tracer.reset(nullptr);
-  gridForCollidable.tracer.reset(nullptr);
-  allNodesList.clear();
-
-  unsigned label = _cb.readInt();
-  G_ASSERTF_RETURN((label & 0xFFFF0000) == 0xACE50000, , "Invalid collision resource: 0x%8X", label);
-
-  int version = (label & 0xFFFF);
-  if (version == 0)
-    return loadLegacyRawFormat(_cb, res_id);
-
-  unsigned btag = 0;
-  const unsigned compr_data_sz = _cb.beginBlock(&btag);
-  uint8_t zcrdStorage[max(sizeof(ZstdLoadCB), sizeof(OodleLoadCB))];
-  String tmp_str;
-
-  IGenLoad *zcrd = nullptr;
-  if (btag == btag_compr::ZSTD)
-    zcrd = new (zcrdStorage, _NEW_INPLACE) ZstdLoadCB(_cb, compr_data_sz);
-  else if (btag == btag_compr::OODLE)
-    zcrd = new (zcrdStorage, _NEW_INPLACE) OodleLoadCB(_cb, compr_data_sz - 4, _cb.readInt());
-  else
-    zcrd = &_cb;
-
-  zcrd->read(&vFullBBox, sizeof(vFullBBox));
-  zcrd->read(&vBoundingSphere, sizeof(vBoundingSphere));
-  zcrd->read(&boundingBox, sizeof(boundingBox));
-  zcrd->readReal(boundingSphereRad);
-  collisionFlags = zcrd->readInt();
-
-  if (collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT)
-    gridForTraceable.tracer.reset(load_frt16(*zcrd));
-  if ((collisionFlags & COLLISION_RES_FLAG_HAS_COLL_FRT) && !(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-    gridForCollidable.tracer.reset(load_frt16(*zcrd));
-
-  reserve_and_resize(allNodesList, zcrd->readInt());
-  for (auto &n : allNodesList)
-  {
-    zcrd->readString(n.name);
-    zcrd->readString(tmp_str);
-    n.physMatId = PhysMat::getMaterialId(tmp_str.str());
-
-    zcrd->read(&n.modelBBox, sizeof(n.modelBBox));
-    zcrd->read(&n.boundingSphere, sizeof(n.boundingSphere));
-    n.behaviorFlags = zcrd->readIntP<2>();
-    n.flags = zcrd->readIntP<1>();
-    n.type = (CollisionResourceNodeType)zcrd->readIntP<1>();
-    zcrd->readReal(n.cachedMaxTmScale);
-    zcrd->read(&n.tm, sizeof(n.tm));
-    n.insideOfNode = zcrd->readIntP<2>();
-
-    reserve_and_resize(n.convexPlanes, zcrd->readIntP<2>());
-    zcrd->readTabData(n.convexPlanes);
-
-    if (int cnt = zcrd->readInt())
-    {
-      if (n.flags & n.FLAG_VERTICES_ARE_REFS)
-      {
-        int ofs = zcrd->readInt();
-        n.resetVertices({&((ofs & 0x40000000) ? gridForCollidable : gridForTraceable).tracer->verts(ofs & 0xFFFFFF), cnt});
-      }
-      else
-      {
-        n.resetVertices({memalloc_typed<Point3_vec4>(cnt, midmem), cnt});
-        zcrd->read(n.vertices.data(), data_size(n.vertices));
-      }
-    }
-
-    if (int cnt = zcrd->readInt())
-    {
-      if (n.flags & n.FLAG_INDICES_ARE_REFS)
-      {
-        int ofs = zcrd->readInt();
-        n.resetIndices({((ofs & 0x40000000) ? gridForCollidable : gridForTraceable).tracer->faces(0).v + (ofs & 0xFFFFFF), cnt});
-      }
-      else
-      {
-        n.resetIndices({memalloc_typed<uint16_t>(cnt, midmem), cnt});
-        zcrd->read(n.indices.data(), data_size(n.indices));
-      }
-    }
-    if (n.type == COLLISION_NODE_TYPE_CAPSULE)
-    {
-      n.capsule.set(n.modelBBox);
-      n.capsule.transform(n.tm);
-    }
-
-    n.nodeIndex = &n - allNodesList.data();
-  }
-  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-  {
-    reserve_and_resize(relGeomNodeTms, allNodesList.size());
-    zcrd->read(relGeomNodeTms.data(), data_size(relGeomNodeTms));
-  }
-  if (zcrd != &_cb)
-    zcrd->~IGenLoad();
-
-  rebuildNodesLL();
-}
-
-void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*resolve_phmat)(const char *))
-{
-  int version = _cb.readInt();
-  bool hasMaterialData = version >= 0x20150115;
-  bool hasCollisionFlags = version >= 0x20180510;
-  if (version != 0x20200300 && version != 0x20180510 && version != 0x20160120 && version != 0x20150115 && version != 0x20080925)
-    DAG_FATAL("Invalid collision resource version %#08X", version);
-
-  BSphere3 boundingSphere;
-  _cb.beginBlock();
-  _cb.read(&boundingSphere, sizeof(BSphere3));
-  _cb.endBlock();
-  vBoundingSphere = v_perm_xyzd(v_ldu(&boundingSphere.c.x), v_splats(boundingSphere.r2));
-  boundingSphereRad = boundingSphere.r;
-
-  unsigned int blockFlags = 0;
-  const int blockSize = _cb.beginBlock(&blockFlags);
-  struct MemoryChainedData *unpacked_data = nullptr;
-
-  if (blockFlags == btag_compr::ZSTD)
-  {
-    MemorySaveCB cwrUnpack(clamp((blockSize * 4 + 0xFFF) & ~0xFFF, 2 << 10, 64 << 10));
-    zstd_decompress_data(cwrUnpack, _cb, blockSize);
-    unpacked_data = cwrUnpack.takeMem();
-  }
-  else if (blockFlags == btag_compr::OODLE)
-  {
-    int decompSize = _cb.readInt();
-    MemorySaveCB cwrUnpack(eastl::min(decompSize, 64 << 10));
-    oodle_decompress_data(cwrUnpack, _cb, blockSize - sizeof(int), decompSize);
-    unpacked_data = cwrUnpack.takeMem();
+    mat44f N, TN;
+    v_mat44_inverse(N, nodeTm);
+    v_mat44_transpose(TN, N);
+    for (plane3f *p = n->convexPlanes.data(), *pe = p + n->convexPlanes.size(); p != pe; ++p)
+      *p = v_mat44_mul_vec4(TN, *p);
   }
 
-  MemoryLoadCB crd(unpacked_data, true);
-  IGenLoad &cb = blockFlags != btag_compr::NONE ? static_cast<IGenLoad &>(crd) : _cb;
+  v_stu_bbox3(n->modelBBox, box);
+  v_stu_p3(&n->boundingSphere.c.x, vSphereC);
+  n->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
 
-  if (hasCollisionFlags)
-    collisionFlags = cb.readInt();
-  unsigned int numNodes = cb.readInt();
-  reserve_and_resize(allNodesList, numNodes);
-  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-    reserve_and_resize(relGeomNodeTms, numNodes);
-
-  dag::RelocatableFixedVector<int, 4096> tempIndices;
-  dag::RelocatableFixedVector<Point3, 1024> tempVertices;
-  SmallTab<Plane3, TmpmemAlloc> tempConvexPlanes;
-  bbox3f totalBBox;
-  v_bbox3_init_empty(totalBBox); // recalc bbox from nodes
-  for (size_t nodeNo = 0; nodeNo < numNodes; nodeNo++)
-  {
-    CollisionNode &node = allNodesList[nodeNo];
-
-    node.nodeIndex = nodeNo;
-
-    cb.readString(node.name);
-    if (hasMaterialData)
-    {
-      SimpleString matName;
-      cb.readString(matName);
-      node.physMatId = resolve_phmat ? resolve_phmat(matName) : PhysMat::getMaterialId(matName.str());
-    }
-    else
-      node.physMatId = PHYSMAT_INVALID;
-
-    uint32_t typeAndBehFlags = cb.readInt();
-    node.type = (CollisionResourceNodeType)(typeAndBehFlags & 0xFFu);
-    if ((collisionFlags & COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS) == COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS)
-    {
-      cb.read(&node.behaviorFlags, 1);
-      node.behaviorFlags = (typeAndBehFlags & 0xFF00) | (node.behaviorFlags & 0x00FF);
-    }
-
-    cb.read(&node.tm, sizeof(TMatrix));
-    if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-      cb.read(&relGeomNodeTms[nodeNo], sizeof(TMatrix));
-    node.flags = 0;
-    mat44f vNodeTm;
-    v_mat44_make_from_43cu_unsafe(vNodeTm, node.tm.array);
-    float dot01 = v_extract_x(v_dot3_x(vNodeTm.col0, vNodeTm.col1));
-    float dot02 = v_extract_x(v_dot3_x(vNodeTm.col0, vNodeTm.col2));
-    float dot12 = v_extract_x(v_dot3_x(vNodeTm.col1, vNodeTm.col2));
-    float len0sq = v_extract_x(v_length3_sq_x(vNodeTm.col0));
-    float len1sq = v_extract_x(v_length3_sq_x(vNodeTm.col1));
-    float len2sq = v_extract_x(v_length3_sq_x(vNodeTm.col2));
-    float len3sq = v_extract_x(v_length3_sq_x(vNodeTm.col3));
-    const float eps = 1e-3;
-    if (fabs(dot01) < eps && fabs(dot02) < eps && fabs(dot12) < eps && fabsf(len0sq - len1sq) < eps && fabsf(len0sq - len2sq) < eps)
-    {
-      if (fabs(len0sq - 1.f) < eps && fabs(len1sq - 1.f) < eps && fabs(len2sq - 1.f) < eps)
-      {
-        node.flags = node.ORTHONORMALIZED;
-        if (node.tm.getcol(0).x == 1.f && node.tm.getcol(1).y == 1.f && node.tm.getcol(2).z == 1.f)
-        {
-          if (len3sq < eps)
-            node.flags |= node.IDENT;
-          else
-            node.flags |= node.TRANSLATE;
-        }
-      }
-      else
-        node.flags = node.ORTHOUNIFORM;
-    }
-    node.cachedMaxTmScale = sqrtf(max(len0sq, max(len1sq, len2sq)));
-
-    cb.read(&node.boundingSphere, sizeof(BSphere3));
-    cb.read(&node.modelBBox, sizeof(BBox3));
-    if (node.type == COLLISION_NODE_TYPE_CAPSULE)
-    {
-      node.capsule.set(node.modelBBox);
-      node.capsule.transform(node.tm);
-    }
-    if (node.type == COLLISION_NODE_TYPE_CONVEX)
-    {
-      readTab(cb, tempConvexPlanes);
-      reserve_and_resize(node.convexPlanes, tempConvexPlanes.size());
-      for (int i = 0; i < tempConvexPlanes.size(); ++i)
-      {
-        tempConvexPlanes[i].normalize();
-        node.convexPlanes[i] = v_ldu(&tempConvexPlanes[i].n.x);
-      }
-    }
-    readTab(cb, tempVertices);
-    if (!tempVertices.empty())
-    {
-      int verticesLimit = eastl::numeric_limits<decltype(node.indices)::value_type>::max();
-      if (tempVertices.size() > verticesLimit)
-      {
-        String resName;
-#if _TARGET_STATIC_LIB
-        get_game_resource_name(res_id, resName);
-#else
-        G_UNUSED(res_id);
-        resName = "unknown";
-#endif
-        DAG_FATAL("Mesh vertexes count %i > %i in node <%s> of res <%s>", tempVertices.size(), verticesLimit, node.name.c_str(),
-          resName.c_str());
-      }
-      node.vertices.set(memalloc_typed<Point3_vec4>(tempVertices.size(), midmem), tempVertices.size());
-      for (int i = 0; i < tempVertices.size(); ++i)
-      {
-        node.vertices[i] = tempVertices[i];
-        node.vertices[i].resv = 1.0f;
-      }
-    }
-
-    readTab(cb, tempIndices);
-    bbox3f nodeBBox = v_ldu_bbox3(node.modelBBox);
-    if (!tempIndices.empty() && !node.vertices.empty())
-    {
-      v_bbox3_init_empty(nodeBBox);
-      for (int i = 0; i < node.vertices.size(); i++)
-        v_bbox3_add_pt(nodeBBox, v_ld(&node.vertices[i].x));
-
-      v_stu_bbox3(node.modelBBox, nodeBBox);
-      node.indices.set(memalloc_typed<uint16_t>(tempIndices.size(), midmem), tempIndices.size());
-      for (int i = 0; i < tempIndices.size(); i += 3) // rotate (0,1,2)->(0,2,1) and narrow-convert int -> uint16_t
-      {
-        node.indices[i + 0] = (uint16_t)tempIndices[i + 0];
-        node.indices[i + 2] = (uint16_t)tempIndices[i + 1];
-        node.indices[i + 1] = (uint16_t)tempIndices[i + 2];
-      }
-    }
-
-    if (!v_bbox3_is_empty(nodeBBox))
-    {
-      if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX || node.type == COLLISION_NODE_TYPE_CAPSULE)
-        v_bbox3_init(nodeBBox, vNodeTm, nodeBBox);
-      v_bbox3_add_box(totalBBox, nodeBBox);
-    }
-
-    if (node.modelBBox.lim[0].x > node.modelBBox.lim[1].x) // Particle View 01, isempty() throws float exception.
-    {
-      nodeNo--;
-      numNodes--;
-      allNodesList.resize(numNodes);
-    }
-  }
-
-  vFullBBox = totalBBox;
-  v_stu_bbox3(boundingBox, totalBBox);
-
-  sortNodesList();
-  rebuildNodesLL();
-
-  _cb.endBlock();
-}
-
-void CollisionResource::sortNodesList()
-{
-  sort(allNodesList, &sort_by_bbox_size);
-
-  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
-  {
-    // We must rearrange relGeomNodeTms according to new order after sort
-    Tab<TMatrix> relTms;
-    reserve_and_resize(relTms, allNodesList.size());
-    for (size_t nodeNo = 0; nodeNo < allNodesList.size(); nodeNo++)
-    {
-      const uint16_t nodeIdx = allNodesList[nodeNo].nodeIndex;
-      G_ASSERT(nodeIdx < relGeomNodeTms.size());
-      relTms[nodeNo] = relGeomNodeTms[nodeIdx];
-    }
-    relGeomNodeTms.swap(relTms);
-  }
-
-  for (size_t nodeNo1 = 0; nodeNo1 < allNodesList.size(); nodeNo1++)
-  {
-    for (size_t nodeNo2 = nodeNo1 + 1; nodeNo2 < allNodesList.size(); nodeNo2++)
-    {
-      bbox3f bbox1 = v_ldu_bbox3(allNodesList[nodeNo1].modelBBox);
-      bbox3f bbox2 = v_ldu_bbox3(allNodesList[nodeNo2].modelBBox);
-      if (v_bbox3_test_box_inside(bbox1, bbox2)) // bbox2 inside of bbox1.
-      {
-        float bboxLenSq = v_extract_x(v_length3_sq_x(v_bbox3_size(bbox1)));
-        uint16_t n2ins = allNodesList[nodeNo2].insideOfNode;
-        if (allNodesList[nodeNo2].insideOfNode == 0xffff ||
-            bboxLenSq < v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(allNodesList[n2ins].modelBBox)))))
-        {
-          allNodesList[nodeNo2].insideOfNode = nodeNo1;
-        }
-      }
-    }
-  }
-}
-void CollisionResource::rebuildNodesLL()
-{
-  meshNodesHead = boxNodesHead = sphereNodesHead = capsuleNodesHead = NULL;
-  numMeshNodes = numBoxNodes = 0;
-  CollisionNode *meshNodesTail = NULL, *boxNodesTail = NULL, *sphereNodesTail = NULL, *capsuleNodesTail = NULL;
-  for (size_t nodeNo = 0; nodeNo < allNodesList.size(); nodeNo++)
-  {
-    CollisionNode &node = allNodesList[nodeNo];
-    node.nextNode = NULL;
-
-    node.nodeIndex = nodeNo;
-
-    if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX)
-    {
-      if (meshNodesHead)
-      {
-        G_ASSERT(node.vertices.size() && node.indices.size());
-        meshNodesTail->nextNode = &node;
-        meshNodesTail = &node;
-      }
-      else
-        meshNodesHead = meshNodesTail = &node;
-      ++numMeshNodes;
-    }
-    else if (node.type == COLLISION_NODE_TYPE_BOX)
-    {
-      if (boxNodesHead)
-      {
-        boxNodesTail->nextNode = &node;
-        boxNodesTail = &node;
-      }
-      else
-        boxNodesHead = boxNodesTail = &node;
-      ++numBoxNodes;
-    }
-    else if (node.type == COLLISION_NODE_TYPE_SPHERE)
-    {
-      if (sphereNodesHead)
-      {
-        sphereNodesTail->nextNode = &node;
-        sphereNodesTail = &node;
-      }
-      else
-        sphereNodesHead = sphereNodesTail = &node;
-    }
-    else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
-    {
-      if (capsuleNodesHead)
-      {
-        capsuleNodesTail->nextNode = &node;
-        capsuleNodesTail = &node;
-      }
-      else
-        capsuleNodesHead = capsuleNodesTail = &node;
-    }
-  }
+  if (n->tm.det() < 0.f)
+    for (int i = 0, e = (int)n->indices.size(); i + 2 < e; i += 3)
+      eastl::swap(n->indices[i + 0], n->indices[i + 2]);
+  n->tm = TMatrix::IDENT;
+  n->flags =
+    (n->flags & ~(CollisionNode::TRANSLATE | CollisionNode::ORTHOUNIFORM)) | CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED;
+  n->cachedMaxTmScale = 1.f;
 }
 
 const CollisionNode *CollisionResource::getNode(uint32_t index) const
@@ -563,11 +165,23 @@ CollisionNode *CollisionResource::getNode(uint32_t index)
 
 int CollisionResource::getNodeIndexByName(const char *name) const
 {
-  if (name && *name)
+  if (name && *name && !names.empty())
     for (int i = 0; i < allNodesList.size(); i++)
-      if (strcmp(allNodesList[i].name, name) == 0)
+      if (strcmp(names.data() + allNodesList[i].nameOfs, name) == 0)
         return i;
   return -1;
+}
+
+uint32_t CollisionResource::addName(const char *name)
+{
+  if (names.empty())
+    names.push_back('\0');
+  if (!name || !*name)
+    return 0;
+  uint32_t ofs = (uint32_t)names.size();
+  size_t len = strlen(name);
+  names.insert(names.end(), name, name + len + 1);
+  return ofs;
 }
 
 CollisionNode *CollisionResource::getNodeByName(const char *name) { return getNode(getNodeIndexByName(name)); }
@@ -580,12 +194,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f tm, const Ge
   float len, bool calc_normal, float bsphere_scale, uint8_t behavior_filter, const filter_t &filter, const callback_t &callback,
   TraceCollisionResourceStats *out_stats, bool force_no_cull) const
 {
-  CollisionTrace in;
-  in.vFrom = from;
-  in.vDir = dir;
-  in.vTo = v_madd(dir, v_splats(len), from);
-  in.t = len;
-  in.isectBounding = false;
+  CollisionTrace in{
+    .vFrom = from,
+    .vDir = dir,
+    .vTo = v_madd(dir, v_splats(len), from),
+    .t = len,
+  };
 
   dag::Span<CollisionTrace> traces(&in, 1);
   return forEachIntersectedNode<trace_mode, trace_type, true /*is_single_ray*/>(tm, geom_node_tree, traces, calc_normal, bsphere_scale,
@@ -660,8 +274,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
   bool res = false;
   if (anyTraceIntersectsBounding)
   {
-    // 0.05m of absolute error on average https://www.desmos.com/calculator/cdw6uasxlo
-    const float eps = eastl::min(0.008f, 0.1f / getBoundingSphereRad());
+    // 0.025 * sqrt(3) of absolute error max
+    const float eps = eastl::min(0.008f, 0.025f / getBoundingSphereRad());
     // Scaled tm requires more complicated norm calculation code and additional T conversion from world to local basis and back
     vec3f otmMask = v_and(v_cmp_gt(xyzzScaleSq, v_splats(1.f - eps)), v_cmp_lt(xyzzScaleSq, v_splats(1.f + eps)));
     bool bIsOrthonormalizedTm = v_check_xyzw_all_true(otmMask);
@@ -670,7 +284,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
     dag::Vector<CollisionTrace> initialTraces(traces.begin(), traces.end());
 #endif
 
-    auto cb_wrapper = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+    auto cb_wrapper = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, int tri_index) {
       pos = v_add(pos, woffset); // Fix isect position for callback. Warning: trace.vFrom and trace.vTo isn't fixed!
 
 #if VERIFY_TRACE_RESULTS
@@ -700,7 +314,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
           logerr("Normal calculation is not supported in ray hit traces");
       }
 #endif
-      return callback(trace_id, node, t, normal, pos);
+      return callback(trace_id, node, t, normal, pos, tri_index);
     };
 
     if (DAGOR_LIKELY(bIsOrthonormalizedTm))
@@ -776,7 +390,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       alignas(EA_CACHE_LINE_SIZE) mat44f nodeTm, nodeItm;
       nodeTm = getMeshNodeTmInline(meshNode, tm, woffset, geom_node_tree);
       vec3f bsphCenter = v_mat44_mul_vec3p(nodeTm, v_ldu(&meshNode->boundingSphere.c.x));
-      float bsphR2 = meshNode->boundingSphere.r2 * max_tm_scale_sq * sqr(meshNode->cachedMaxTmScale);
+      float bsphR2 = get_bsphere_r2(meshNode->boundingSphere.r) * max_tm_scale_sq * sqr(meshNode->cachedMaxTmScale);
       if (is_single_ray)
       {
         vec3f vFrom = traces.front().vFrom;
@@ -916,7 +530,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               vIntersectionPos = v_mat44_mul_vec3p(nodeTm, vNodeLocalCapsuleHitPos);
             }
             profileStats.meshTrianglesHits++;
-            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
             if (trace_mode == ANY_ONE_INTERSECTION)
               return hasCollision;
             if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -940,10 +554,11 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             (*out_stats)[meshNode->nodeIndex]++;
 
           all_collres_nodes_t ret;
+          all_collres_tri_indices_t retTriIndices;
           bool isLightNode = meshNode->indices.size() < traceMeshNodeLocalApi.threshold;
           bool isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
                                     : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(*meshNode, vNodeLocalFrom,
-            vNodeLocalDir, localT, calc_normal, force_no_cull, ret);
+            vNodeLocalDir, localT, calc_normal, force_no_cull, ret, retTriIndices);
           if (isHit)
           {
             hasCollision = true;
@@ -954,8 +569,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               v_mat33_from_mat44(itm33, nodeItm);
               v_mat33_transpose(titm33, itm33);
             }
-            for (auto n_t : ret)
+            for (int j = 0, jn = ret.size(); j < jn; j++)
             {
+              const vec4f n_t = ret[j];
               float intersectionT = trace.t * (v_extract_w(n_t) / localT);
               vec3f vIntersectionNorm = v_zero();
               vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
@@ -967,7 +583,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                   normTm = titm33;
                 vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, n_t));
               }
-              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, retTriIndices[j]);
             }
             profileStats.meshTrianglesHits += ret.size();
           }
@@ -1087,7 +703,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                   vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
                 }
               }
-              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
               if (trace_mode == ANY_ONE_INTERSECTION)
                 return hasCollision;
               if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -1139,7 +755,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                     normTm = titm33;
                   vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, vLocalNorm));
                 }
-                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
               }
             }
           }
@@ -1197,7 +813,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           if (side < 3)
             vIntersectionNorm = v_neg(vIntersectionNorm);
         }
-        callback(traceId, boxNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+        callback(traceId, boxNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -1211,7 +827,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         continue;
       bool isHit = false;
       vec3f bsphPos = v_ldu(&sphereNode->boundingSphere.c.x);
-      vec4f bsphR2 = v_set_x(sphereNode->boundingSphere.r2);
+      vec4f bsphR2 = v_set_x(get_bsphere_r2(sphereNode->boundingSphere.r));
       vec4f bsphCapsuleR = v_set_x(sphereNode->boundingSphere.r + localCapsuleRadius);
       vec4f bsphCapsuleR2 = v_mul(bsphCapsuleR, bsphCapsuleR);
       vec4f inOutLocalT = v_set_x(localT);
@@ -1270,7 +886,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             vIntersectionPos = v_mat44_mul_vec3p(tm, vLocalPos);
           }
         }
-        callback(traceId, sphereNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+        callback(traceId, sphereNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -1287,19 +903,15 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       vec3f vOutLocalNorm = v_zero();
       vec3f vOutLocalPos = v_zero();
 
+      const Capsule &nodeCapsule = capsules[capsuleNode->capsuleIndex];
       switch (trace_type)
       {
-        case CollisionTraceType::TRACE_RAY:
-          isHit = capsuleNode->capsule.traceRay(vLocalFrom, vLocalDir, inOutLocalT, vOutLocalNorm);
-          break;
+        case CollisionTraceType::TRACE_RAY: isHit = nodeCapsule.traceRay(vLocalFrom, vLocalDir, inOutLocalT, vOutLocalNorm); break;
         case CollisionTraceType::TRACE_CAPSULE:
-          isHit =
-            capsuleNode->capsule.traceCapsule(vLocalFrom, vLocalDir, inOutLocalT, localCapsuleRadius, vOutLocalNorm, vOutLocalPos);
+          isHit = nodeCapsule.traceCapsule(vLocalFrom, vLocalDir, inOutLocalT, localCapsuleRadius, vOutLocalNorm, vOutLocalPos);
           break;
-        case CollisionTraceType::RAY_HIT: isHit = capsuleNode->capsule.rayHit(vLocalFrom, vLocalDir, localT); break;
-        case CollisionTraceType::CAPSULE_HIT:
-          isHit = capsuleNode->capsule.capsuleHit(vLocalFrom, vLocalDir, localT, localCapsuleRadius);
-          break;
+        case CollisionTraceType::RAY_HIT: isHit = nodeCapsule.rayHit(vLocalFrom, vLocalDir, localT); break;
+        case CollisionTraceType::CAPSULE_HIT: isHit = nodeCapsule.capsuleHit(vLocalFrom, vLocalDir, localT, localCapsuleRadius); break;
         default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
       }
       if (isHit)
@@ -1333,7 +945,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         {
           vIntersectionPos = v_mat44_mul_vec3p(tm, vOutLocalPos);
         }
-        callback(traceId, capsuleNode, intersectionT, vIntersectionNorm, vIntersectionPos);
+        callback(traceId, capsuleNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -1359,7 +971,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -1384,7 +996,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -1405,7 +1017,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const Point3 &
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -1427,7 +1039,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNode
     return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
@@ -1456,7 +1068,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
     return node->checkBehaviorFlags(behaviorFilter) && (!filter || filter(node->nodeIndex));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
@@ -1486,16 +1098,45 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
     return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int tri_index) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
     v_stu_p3(&inode->intersectionPos.x, pos);
     inode->collisionNodeId = node->nodeIndex;
+    inode->triangleIndex = tri_index;
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
     true /*calc_normal*/, bsphereScale, behaviorFilter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
+
+  if (sort_intersections)
+    sort_collres_intersections(intersected_nodes_list);
+  return !intersected_nodes_list.empty();
+}
+
+DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir,
+  float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+  TraceCollisionResourceStats *out_stats) const
+{
+  intersected_nodes_list.clear();
+  uint8_t behaviorFilter = CollisionNode::TRACEABLE;
+
+  auto nodeFilter = [&](const CollisionNode *node) -> bool {
+    return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
+  };
+
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int tri_index) {
+    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
+    v_stu_p3(&inode->normal.x, normal);
+    inode->intersectionT = t;
+    v_stu_p3(&inode->intersectionPos.x, pos);
+    inode->collisionNodeId = node->nodeIndex;
+    inode->triangleIndex = tri_index;
+  };
+
+  forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, from, dir, in_t, true /*calc_normal*/,
+    bsphereScale, behaviorFilter, nodeFilter, callback, out_stats, false /*force_no_cull*/);
 
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1522,7 +1163,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
     return node->checkBehaviorFlags(behavior_filter) && (!filter || filter(node->nodeIndex));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     vec3f cl = closest_point_on_line(pos, in.vFrom, in.vDir);
     float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
     if (dist < closest)
@@ -1550,7 +1191,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     in_out_t = t;
     v_stu_p3(&out_normal.x, normal);
     v_stu_p3(&out_pos.x, pos);
@@ -1589,7 +1230,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behavior_filter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     vec3f cl = closest_point_on_line(pos, in.vFrom, in.vDir);
     float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
     if (dist < closest)
@@ -1616,7 +1257,7 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
     CollisionTrace &trace = traces[trace_id];
     v_stu_p3(&trace.norm.x, normal);
     trace.t = t;
@@ -1651,7 +1292,7 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm,
     return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
     traces[trace_id].outMatId = node->physMatId;
     traces[trace_id].outNodeId = node->nodeIndex;
     traces[trace_id].isHit = true;
@@ -1710,20 +1351,23 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
     return false;
 
   all_collres_nodes_t allNodes;
+  all_collres_tri_indices_t allTriIndices;
   const bool isLightNode = node.indices.size() < traceMeshNodeLocalApi.threshold;
   // -V::601 for some reason PVS glitches and fails with "The 'true' value becomes a class object" on calc_normal parameter
   const bool res = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
                                 : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(node, vLocalFrom, vLocalDir, in_t, true,
-    force_no_cull, allNodes);
+    force_no_cull, allNodes, allTriIndices);
 
   intersected_nodes_list.reserve(allNodes.size());
-  for (const vec4f &normAndT : allNodes)
+  for (int k = 0, cnt = allNodes.size(); k < cnt; k++)
   {
+    const vec4f &normAndT = allNodes[k];
     auto &n = intersected_nodes_list.push_back();
     n.intersectionT = v_extract_w(normAndT);
     v_stu_p3(&n.intersectionPos.x, v_madd(vLocalDir, v_splat_w(normAndT), vLocalFrom));
     v_stu_p3(&n.normal.x, normAndT);
     n.collisionNodeId = node.nodeIndex;
+    n.triangleIndex = allTriIndices[k];
   }
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1734,9 +1378,7 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
 bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm,
   Point3 &out_norm, float &out_depth, int &out_node_id) const
 {
-  vec4f bsph;
-  v_bsph_init(bsph, v_ldu(&sphere.c.x), v_splats(sphere.r));
-
+  vec4f bsph = v_ldu_bsphere3(sphere);
   if (!v_test_bsph_bsph_intersection(bsph, getBoundingSphereXYZR()))
     return false;
 
@@ -1960,7 +1602,7 @@ template <bool check_bounding>
 DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node,
   const vec4f &v_local_from, // better to hold it in memory
   const vec4f &v_local_dir,  // it prevents inefficient loop optimizations
-  float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array)
+  float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array, all_collres_tri_indices_t &tri_indices)
 {
   const uint16_t *__restrict indices = node.indices.data();
   const Point3_vec4 *__restrict vertices = node.vertices.data();
@@ -2007,6 +1649,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const Collis
             vNorm = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
           }
           ret_array.push_back(v_perm_xyzd(vNorm, v_splats(outT[j])));
+          tri_indices.push_back(int(i / 3 + j));
         }
       }
     }
@@ -2050,6 +1693,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const Collis
             vNorm = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
           }
           ret_array.push_back(v_perm_xyzd(vNorm, v_splats(outT[j])));
+          tri_indices.push_back(int(i / 3 + j));
         }
       }
     }
@@ -2172,11 +1816,11 @@ bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsTy
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = boxNode->nodeIndex;
 
   for (const CollisionNode *sphNode = sphereNodesHead; sphNode; sphNode = sphNode->nextNode)
-    if (sphNode->boundingSphere & pos)
+    if (lengthSq(pos - sphNode->boundingSphere.c) <= get_bsphere_r2(sphNode->boundingSphere.r))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = sphNode->nodeIndex;
 
   for (const CollisionNode *capNode = capsuleNodesHead; capNode; capNode = capNode->nextNode)
-    if (capNode->capsule.isInside(pos))
+    if (capsules[capNode->capsuleIndex].isInside(pos))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = capNode->nodeIndex;
 
   return !intersected_nodes_list.empty();
@@ -2187,8 +1831,8 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
 {
   offset.zero();
 
-  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node '%s' is not of convex type, only convex is supported",
-    node_to_check.name.str());
+  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
+    (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
   const int numIterations = 5;
   vec4f vOffset = v_zero();
@@ -2222,7 +1866,7 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
   }
   else if (node_to_move.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_move.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_move.boundingSphere.c, node_to_move.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
@@ -2280,8 +1924,8 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
 {
   offset.zero();
 
-  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node '%s' is not of convex type, only convex is supported",
-    node_to_check.name.str());
+  G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
+    (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
   const int numIterations = 5;
   vec4f zero = v_zero();
@@ -2317,7 +1961,7 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
   }
   else if (node_to_move.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_move.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_move.boundingSphere.c, node_to_move.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
@@ -2412,7 +2056,7 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
   }
   else if (node_to_test.type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * node_to_test.boundingSphere;
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_test.boundingSphere.c, node_to_test.boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     bool insideAll = true;
     for (int j = 0; j < convex.size() && insideAll; ++j)
@@ -2458,8 +2102,8 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
 bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, const CollisionNode &restraining_node,
   const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree, const GeomNodeTree *restrain_node_tree) const
 {
-  G_ASSERTF(restraining_node.type == COLLISION_NODE_TYPE_CONVEX, "restrain node '%s' is not of convex type, only convex is supported",
-    restraining_node.name.str());
+  G_ASSERTF(restraining_node.type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
+    (unsigned)restraining_node.nodeIndex);
   TMatrix restrainTm;
   if (restrain_node_tree)
     getCollisionNodeTm(&restraining_node, tm_restrain, restrain_node_tree, restrainTm);
@@ -2476,7 +2120,7 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const mat44f &tm, const Point3 &fr
     return node->checkBehaviorFlags(behavior_filter) &&
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/, int /*tri_index*/) {
     out_mat_id = node->physMatId;
   };
 
@@ -2496,7 +2140,8 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const TMatrix &instance_tm, const 
     return node->checkBehaviorFlags(behaviorFilter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
-  auto callback = [out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/) {
+  auto callback = [out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/,
+                    int /*tri_index*/) {
     if (out_mat_id)
       *out_mat_id = node->physMatId;
   };
@@ -2522,7 +2167,7 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHit(const TMatrix &instance_tm, co
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f) { nodes_hit.push_back(node->nodeIndex); };
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f, int) { nodes_hit.push_back(node->nodeIndex); };
 
   constexpr bool is_single_ray = true;
   dag::Span<CollisionTrace> traces(&in, 1);
@@ -2540,7 +2185,7 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f, int) {
     traces[trace_id].isHit = true;
     traces[trace_id].outMatId = node->physMatId;
     traces[trace_id].outNodeId = node->nodeIndex;
@@ -2562,7 +2207,130 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 void CollisionResource::initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree)
 {
   for (auto &node : allNodesList)
-    node.geomNodeId = geom_node_tree.findNodeIndex(node.name);
+    node.geomNodeId = geom_node_tree.findNodeIndex(getNodeNameStr(node));
+}
+
+CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
+{
+  auto *collRes = new (inplace_ptr ? inplace_ptr : midmem->alloc(sizeof(CollisionResource)), _NEW_INPLACE) CollisionResource();
+  collRes->vFullBBox = vFullBBox;
+  collRes->vBoundingSphere = vBoundingSphere;
+  collRes->boundingBox = boundingBox;
+  collRes->boundingSphereRad = boundingSphereRad;
+  collRes->collisionFlags = collisionFlags;
+  collRes->bsphereCenterNode = bsphereCenterNode;
+  collRes->allNodesList = allNodesList;
+  collRes->relGeomNodeTms = relGeomNodeTms;
+  collRes->names = names;
+  collRes->capsules = capsules;
+
+  collRes->sortNodesList();
+  collRes->rebuildNodesLL();
+  return collRes;
+}
+
+void CollisionResource::sortNodesList()
+{
+  const char *namesData = names.empty() ? "" : names.data();
+  stlsort::sort(allNodesList.begin(), allNodesList.end(), [namesData](const CollisionNode &left, const CollisionNode &right) {
+    float szL = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(left.modelBBox))));
+    float szR = v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(right.modelBBox))));
+    if (szL == szR)
+      return strcmp(namesData + left.nameOfs, namesData + right.nameOfs) > 0;
+    return szL > szR; // larger first
+  });
+
+  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
+  {
+    // We must rearrange relGeomNodeTms according to new order after sort
+    Tab<TMatrix> relTms(framemem_ptr());
+    reserve_and_resize(relTms, allNodesList.size());
+    G_ASSERTF_RETURN(relGeomNodeTms.size() == allNodesList.size(), , "relGeomNodeTms.size()=%d allNodesList.size()=%d",
+      relGeomNodeTms.size(), allNodesList.size());
+    for (size_t nodeNo = 0; nodeNo < allNodesList.size(); nodeNo++)
+    {
+      const uint16_t nodeIdx = allNodesList[nodeNo].nodeIndex;
+      G_ASSERT(nodeIdx < relGeomNodeTms.size());
+      relTms[nodeNo] = relGeomNodeTms[nodeIdx];
+    }
+    mem_copy_from(relGeomNodeTms, relTms.data());
+  }
+
+  for (size_t nodeNo1 = 0; nodeNo1 < allNodesList.size(); nodeNo1++)
+  {
+    for (size_t nodeNo2 = nodeNo1 + 1; nodeNo2 < allNodesList.size(); nodeNo2++)
+    {
+      bbox3f bbox1 = v_ldu_bbox3(allNodesList[nodeNo1].modelBBox);
+      bbox3f bbox2 = v_ldu_bbox3(allNodesList[nodeNo2].modelBBox);
+      if (v_bbox3_test_box_inside(bbox1, bbox2)) // bbox2 inside of bbox1.
+      {
+        float bboxLenSq = v_extract_x(v_length3_sq_x(v_bbox3_size(bbox1)));
+        uint16_t n2ins = allNodesList[nodeNo2].insideOfNode;
+        if (allNodesList[nodeNo2].insideOfNode == 0xffff ||
+            bboxLenSq < v_extract_x(v_length3_sq_x(v_bbox3_size(v_ldu_bbox3(allNodesList[n2ins].modelBBox)))))
+        {
+          allNodesList[nodeNo2].insideOfNode = nodeNo1;
+        }
+      }
+    }
+  }
+}
+void CollisionResource::rebuildNodesLL()
+{
+  meshNodesHead = boxNodesHead = sphereNodesHead = capsuleNodesHead = NULL;
+  numMeshNodes = numBoxNodes = 0;
+  CollisionNode *meshNodesTail = NULL, *boxNodesTail = NULL, *sphereNodesTail = NULL, *capsuleNodesTail = NULL;
+  for (size_t nodeNo = 0; nodeNo < allNodesList.size(); nodeNo++)
+  {
+    CollisionNode &node = allNodesList[nodeNo];
+    node.nextNode = NULL;
+
+    node.nodeIndex = nodeNo;
+
+    if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX)
+    {
+      if (meshNodesHead)
+      {
+        G_ASSERT(node.vertices.size() && node.indices.size());
+        meshNodesTail->nextNode = &node;
+        meshNodesTail = &node;
+      }
+      else
+        meshNodesHead = meshNodesTail = &node;
+      ++numMeshNodes;
+    }
+    else if (node.type == COLLISION_NODE_TYPE_BOX)
+    {
+      if (boxNodesHead)
+      {
+        boxNodesTail->nextNode = &node;
+        boxNodesTail = &node;
+      }
+      else
+        boxNodesHead = boxNodesTail = &node;
+      ++numBoxNodes;
+    }
+    else if (node.type == COLLISION_NODE_TYPE_SPHERE)
+    {
+      if (sphereNodesHead)
+      {
+        sphereNodesTail->nextNode = &node;
+        sphereNodesTail = &node;
+      }
+      else
+        sphereNodesHead = sphereNodesTail = &node;
+    }
+    else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
+    {
+      if (capsuleNodesHead)
+      {
+        capsuleNodesTail->nextNode = &node;
+        capsuleNodesTail = &node;
+      }
+      else
+        capsuleNodesHead = capsuleNodesTail = &node;
+    }
+  }
 }
 
 struct ITestIntersectionAlgo
@@ -2581,7 +2349,7 @@ class TestMeshNodeMeshNodesIntersectionAlgo final : public ITestIntersectionAlgo
 {
 public:
   typedef StaticSceneRayTracerT<uint16_t> tracer_t;
-  TestMeshNodeMeshNodesIntersectionAlgo(vec4f a_wbsph, uint32_t a_nodes_count, vec4f b_wbsph, tracer_t *b_tracer) :
+  TestMeshNodeMeshNodesIntersectionAlgo(vec4f a_wbsph, uint32_t a_nodes_count, vec4f b_wbsph, const tracer_t *b_tracer) :
     a_wbsph(a_wbsph), a_nodes_count(a_nodes_count), b_wbsph(b_wbsph), b_tracer(b_tracer)
   {}
   ~TestMeshNodeMeshNodesIntersectionAlgo() final = default;
@@ -2734,7 +2502,7 @@ private:
 
   vec4f a_wbsph; // pos|r
   vec4f b_wbsph; // pos|r
-  tracer_t *b_tracer;
+  const tracer_t *b_tracer;
   uint32_t a_nodes_count;
   eastl::bitvector<framemem_allocator> outsideOfBounding;
   dag::RelocatableFixedVector<mat44f, 40> aWtms;
@@ -2887,7 +2655,8 @@ public:
           vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
           vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
 
-          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x), v_set_x(nodeB->boundingSphere.r2)))
+          if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x),
+                v_set_x(get_bsphere_r2(nodeB->boundingSphere.r))))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1.f / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
@@ -3197,7 +2966,7 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
         {
           bool isIntersected = test_triangle_sphere_intersection(tm1to2 * node1->vertices[node1->indices[index1]],
             tm1to2 * node1->vertices[node1->indices[index1 + 1]], tm1to2 * node1->vertices[node1->indices[index1 + 2]],
-            node2->boundingSphere);
+            make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r));
 
           if (isIntersected)
           {
@@ -3271,188 +3040,6 @@ __forceinline mat44f CollisionResource::getMeshNodeTmInline(const CollisionNode 
     v_mat44_mul43(outTm, instance_tm, nodeTm);
   }
   return outTm;
-}
-
-void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt, bool frt_build_fast)
-{
-  if (collisionFlags & COLLISION_RES_FLAG_OPTIMIZED)
-  {
-    // debug("skip already optimized %p", this);
-    return;
-  }
-  collisionFlags |= COLLISION_RES_FLAG_OPTIMIZED;
-  if (!meshNodesHead) // || !meshNodesHead->nextNode)
-  {
-    // debug("CollisionResource: nothing to optimize %p", this);
-    return;
-  }
-
-  // debug("CollisionResource: optimizing %p", this);
-  {
-    for (CollisionNode *m = const_cast<CollisionNode *>(meshNodesHead); m; m = m->nextNode)
-    {
-      if (m->type != COLLISION_NODE_TYPE_CONVEX && m->type != COLLISION_NODE_TYPE_MESH)
-        continue;
-      if ((m->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || !m->vertices.size())
-        continue;
-      mat44f nodeTm;
-      bbox3f box;
-      v_mat44_make_from_43cu(nodeTm, m->tm[0]);
-      v_bbox3_init_empty(box);
-      for (vec4f *__restrict verts = (vec4f *)(void *)m->vertices.data(), *ve = verts + m->vertices.size(); verts != ve; ++verts)
-      {
-        *verts = v_mat44_mul_vec3p(nodeTm, *verts);
-        v_bbox3_add_pt(box, *verts);
-      }
-      vec4f vSphereC = v_bbox3_center(box), sphereRad2 = v_zero();
-      for (vec4f *__restrict verts = (vec4f *)(void *)m->vertices.data(), *ve = verts + m->vertices.size(); verts != ve; ++verts)
-        sphereRad2 = v_max(sphereRad2, v_length3_sq_x(v_sub(vSphereC, *verts)));
-
-      mat44f N, TN;
-      v_mat44_inverse(N, nodeTm);
-      v_mat44_transpose(TN, N);
-      for (plane3f *__restrict planes = m->convexPlanes.data(), *pe = planes + m->convexPlanes.size(); planes != pe; ++planes)
-        *planes = v_mat44_mul_vec4(TN, *planes);
-
-      v_stu_bbox3(m->modelBBox, box);
-      v_stu_p3(&m->boundingSphere.c.x, vSphereC);
-      m->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
-      m->boundingSphere.r2 = v_extract_x(sphereRad2);
-
-      if (m->tm.det() < 0.f) // swap indices order
-        for (int i = 0; i < m->indices.size(); i += 3)
-          eastl::swap(m->indices[i + 0], m->indices[i + 2]);
-      m->tm.identity();
-      m->flags = CollisionNode::IDENT | (m->flags & (~CollisionNode::TRANSLATE));
-      m->flags = CollisionNode::ORTHONORMALIZED | (m->flags & (~CollisionNode::ORTHOUNIFORM));
-      m->cachedMaxTmScale = 1.f;
-    }
-  }
-
-  IMemAlloc *framemem = framemem_ptr();
-  Tab<Tab<CollisionNode *>> meshNodesByMat(framemem);
-  Tab<eastl::pair<PhysMat::MatID, bool>> matIndices(framemem);
-
-  for (CollisionNode *m = const_cast<CollisionNode *>(meshNodesHead); m; m = m->nextNode)
-  {
-    const bool isTraceable = m->checkBehaviorFlags(CollisionNode::TRACEABLE);
-    const bool isPhysCollidable = m->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE);
-    if (m->type == COLLISION_NODE_TYPE_MESH && isTraceable)
-    {
-      const eastl::pair<PhysMat::MatID, bool> matIndicesValue = eastl::make_pair(m->physMatId, isPhysCollidable);
-      intptr_t bucket = find_value_idx(matIndices, matIndicesValue);
-      if (bucket == -1)
-      {
-        Tab<CollisionNode *> nodes(framemem);
-        bucket = meshNodesByMat.size();
-        meshNodesByMat.push_back(nodes);
-        matIndices.push_back(matIndicesValue);
-      }
-      meshNodesByMat[size_t(bucket)].push_back(m);
-    }
-  }
-
-  for (const Tab<CollisionNode *> &nodes : meshNodesByMat)
-  {
-    CollisionNode *targetNode = nodes[0];
-    int v_num = 0, i_num = 0;
-    for (const CollisionNode *node : nodes)
-    {
-      v_num += node->vertices.size();
-      i_num += node->indices.size();
-    }
-    if (v_num > 65530)
-    {
-      debug("CollisionResource: too many faces %d, cannot optimize %p res <%s>", v_num, this, res_name);
-      continue;
-    }
-    if (v_num == 0)
-      continue;
-
-    Point3_vec4 *vertices = memalloc_typed<Point3_vec4>(v_num, midmem);
-    uint16_t *indices = memalloc_typed<uint16_t>(i_num, midmem);
-    BBox3 bbox;
-
-    v_num = 0;
-    i_num = 0;
-    for (CollisionNode *m : nodes)
-    {
-      for (int i = 0; i < m->vertices.size(); i++)
-        bbox += (vertices[v_num + i] = m->vertices[i]);
-      for (int i = 0; i < m->indices.size(); i += 3)
-      {
-        indices[i_num + i + 0] = m->indices[i + 0] + v_num;
-        indices[i_num + i + 1] = m->indices[i + 1] + v_num;
-        indices[i_num + i + 2] = m->indices[i + 2] + v_num;
-      }
-      v_num += m->vertices.size();
-      i_num += m->indices.size();
-
-      m->resetVertices();
-      m->resetIndices();
-      m->flags &= ~(m->FLAG_VERTICES_ARE_REFS | m->FLAG_INDICES_ARE_REFS);
-    }
-
-    targetNode->modelBBox = bbox;
-    targetNode->boundingSphere.c = bbox.center();
-    targetNode->boundingSphere.r2 = lengthSq(vertices[0] - targetNode->boundingSphere.c);
-    for (int i = 1; i < v_num; i++)
-      inplace_max(targetNode->boundingSphere.r2, lengthSq(vertices[i] - targetNode->boundingSphere.c));
-    targetNode->boundingSphere.r = sqrtf(targetNode->boundingSphere.r2);
-
-    targetNode->tm.identity();
-    targetNode->flags |= targetNode->IDENT;
-    targetNode->flags &= ~targetNode->TRANSLATE;
-    targetNode->cachedMaxTmScale = 1.f;
-
-    targetNode->resetVertices({vertices, v_num});
-    targetNode->resetIndices({indices, i_num});
-    targetNode->flags &= ~(targetNode->FLAG_VERTICES_ARE_REFS | targetNode->FLAG_INDICES_ARE_REFS);
-  }
-
-  dag::RelocatableFixedVector<int, 256> nodesToRemove;
-  nodesToRemove.reserve(allNodesList.size());
-  Tab<CollisionNode> newAllNodes(tmpmem);
-  newAllNodes.reserve(allNodesList.size());
-  for (const Tab<CollisionNode *> &nodes : meshNodesByMat)
-    for (int i = 1; i < nodes.size(); ++i)
-      nodesToRemove.push_back(nodes[i]->nodeIndex);
-  for (CollisionNode &node : allNodesList)
-  {
-    if (find_value_idx(nodesToRemove, node.nodeIndex) == -1)
-    {
-      node.insideOfNode = 0xffff;
-      newAllNodes.push_back(node);
-    }
-  }
-  newAllNodes.shrink_to_fit();
-  allNodesList = eastl::move(newAllNodes);
-  sortNodesList();
-  rebuildNodesLL();
-
-  gridForTraceable.reset();
-  gridForCollidable.reset();
-
-  if (need_frt)
-  {
-    bool coll_and_trace_frt_equals = true;
-    for (const CollisionNode *node = meshNodesHead; node; node = node->nextNode)
-      if (node->checkBehaviorFlags(CollisionNode::TRACEABLE) != node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      {
-        coll_and_trace_frt_equals = false;
-        break;
-      }
-
-    gridForTraceable.buildFRT(this, CollisionNode::TRACEABLE, frt_build_fast);
-    if (coll_and_trace_frt_equals)
-      collisionFlags |= COLLISION_RES_FLAG_REUSE_TRACE_FRT;
-    else
-      gridForCollidable.buildFRT(this, CollisionNode::PHYS_COLLIDABLE, frt_build_fast);
-    if (gridForTraceable.tracer.get())
-      collisionFlags |= COLLISION_RES_FLAG_HAS_TRACE_FRT;
-    if (gridForCollidable.tracer.get())
-      collisionFlags |= COLLISION_RES_FLAG_HAS_COLL_FRT;
-  }
 }
 
 void CollisionResource::clipCapsule(const TMatrix &instance_tm, const Capsule &c, Point3 &cp1, Point3 &cp2, real &md,
@@ -3571,81 +3158,26 @@ CollisionResource::Grid::~Grid() = default;
 CollisionResource::Grid::Grid() = default;
 void CollisionResource::Grid::reset() { tracer.reset(); }
 
-void CollisionResource::Grid::buildFRT(CollisionResource *parent, uint8_t behavior_flag, bool frt_build_fast)
+int CollisionResource::getMemoryUsed() const
 {
-  reset();
-
-  if (!USE_TRACE_GRID || !parent->meshNodesHead || !(parent->meshNodesHead->flags & CollisionNode::IDENT))
-    return;
-
-  bbox3f fullMeshBox;
-  v_bbox3_init_empty(fullMeshBox);
-  int totalIndices = 0;
-  for (const CollisionNode *node = parent->meshNodesHead; node; node = node->nextNode)
+  auto frtMem = [](const Grid &g) -> int {
+    auto *t = g.tracer.get();
+    return t ? t->getVertsCount() * 16 + t->getFacesCount() * 6 + t->getFaceIndicesCount() * 2 + (int)sizeof(*t) : 0;
+  };
+  int mem = sizeof(*this);
+  for (auto &n : allNodesList)
   {
-    if (!node->checkBehaviorFlags(behavior_flag))
-      continue;
-    if (node->checkBehaviorFlags(CollisionNode::SOLID))
-      return; // node requires trace without culling
-    totalIndices += node->indices.size();
-    v_bbox3_add_box(fullMeshBox, v_ldu_bbox3(node->modelBBox)); // tm is ident
+    if (!(n.flags & CollisionNode::FLAG_VERTICES_ARE_REFS))
+      mem += n.vertices.size() * sizeof(Point3_vec4);
+    if (!(n.flags & CollisionNode::FLAG_INDICES_ARE_REFS))
+      mem += n.indices.size() * sizeof(uint16_t);
   }
-
-  const float minLeafSize = 0.25f; // there is no much sense in leaf size less than 0.25 cm. Even for raytracing it is too detailed
-  const int blockSize = 28;        // it's not precise resulting number, but gives good results
-  vec3f size = v_bbox3_size(fullMeshBox);
-  vec3f checkMin = v_cmp_gt(size, v_splats(minLeafSize));
-  int minMask = v_signmask(checkMin);
-  size = v_sel(V_C_ONE, size, checkMin);
-  float vol = v_extract_x(v_hmul3(size));
-  float facesCount = totalIndices / 3.f;
-  float s = minMask != 0 ? (powf(vol / (facesCount / blockSize), 1.f / __popcount(minMask)) + 0.001f) // get best leaf size
-                         : v_extract_x(v_hmax3(size)); // very small object, use biggest side
-  vec3f vs = v_splats(max(s, minLeafSize));
-  float xyzSum = v_extract_x(v_hadd3_x(v_div(size, vs)));
-  if (facesCount >= MIN_FACES_TO_CREATE_GRID && xyzSum > MIN_WIDTH_TO_CREATE_GRID) // ignore small objects
-  {
-    // debug("building grid v=%d i=%d", meshNodesHead->vertices.size(), intIndices.size());
-    Point3_vec4 leafSize;
-    v_st(&leafSize.x, vs);
-    auto *localGrid = new BuildableStaticSceneRayTracerT<uint16_t>(leafSize, 3);
-
-    uint32_t maxIndices = 0, totalIndices = 0, totalVertices = 0;
-    for (const CollisionNode *node = parent->meshNodesHead; node; node = node->nextNode)
-    {
-      if (!node->checkBehaviorFlags(behavior_flag)) // we do not add non-traceable node to grid
-        continue;
-      maxIndices = max(maxIndices, node->indices.size());
-      totalIndices += node->indices.size();
-      totalVertices += node->vertices.size();
-    }
-    localGrid->reserve(totalIndices, totalVertices);
-
-    for (const CollisionNode *node = parent->meshNodesHead; node; node = node->nextNode)
-    {
-      if (!node->checkBehaviorFlags(behavior_flag)) // we do not add non-traceable node to grid
-        continue;
-
-      uint32_t v_ofs = localGrid->dump.vertsCount, f_ofs = localGrid->dump.facesCount;
-      localGrid->addmesh((uint8_t *)node->vertices.data(), sizeof(vec4f), node->vertices.size(), //
-        node->indices.data(), sizeof(uint16_t) * 3, node->indices.size() / 3, nullptr, false);
-
-      if (!(node->flags & node->FLAG_VERTICES_ARE_REFS))
-      {
-        const_cast<CollisionNode *>(node)->resetVertices({localGrid->dump.vertsPtr + v_ofs, (int)node->vertices.size()});
-        const_cast<CollisionNode *>(node)->flags |= node->FLAG_VERTICES_ARE_REFS;
-      }
-      if (!(node->flags & node->FLAG_INDICES_ARE_REFS) && f_ofs == 0 /* when f_ofs > 0 indices are biased by v_ofs */)
-      {
-        const_cast<CollisionNode *>(node)->resetIndices({&localGrid->dump.facesPtr[f_ofs].v[0], (int)node->indices.size()});
-        const_cast<CollisionNode *>(node)->flags |= node->FLAG_INDICES_ARE_REFS;
-      }
-    }
-    localGrid->setCullFlags(StaticSceneRayTracer::CULL_BOTH);
-    localGrid->rebuild(frt_build_fast);
-    tracer.reset(localGrid);
-  }
+  mem += (int)names.size();
+  mem += capsules.size() * sizeof(Capsule);
+  mem += frtMem(gridForTraceable) + frtMem(gridForCollidable);
+  return mem;
 }
+
 
 vec4f CollisionResource::getWorldBoundingSphere(const mat44f &tm, const GeomNodeTree *geom_node_tree) const
 {
@@ -3662,6 +3194,68 @@ Point3 CollisionResource::getWorldBoundingSphere(const TMatrix &tm, const GeomNo
   Point3 ret;
   v_stu_p3(&ret.x, getWorldBoundingSphere(vTm, geom_node_tree));
   return ret;
+}
+
+bool CollisionResource::validateVerticesForJolt(const char *res_name)
+{
+  return validateVerticesForJolt(res_name, [](const uint16_t *, const CollisionNode *) {});
+}
+
+dag::Vector<DegenerativeNodeData> CollisionResource::getDegenerativeNodes(const char *res_name)
+{
+  dag::Vector<DegenerativeNodeData> nodes;
+  validateVerticesForJolt(res_name, [&nodes](const uint16_t *idx, const CollisionNode *node) {
+    DegenerativeNodeData *result = eastl::find_if(nodes.begin(), nodes.end(),
+      [&node](const DegenerativeNodeData &degenerative_node) { return degenerative_node.node == node; });
+    if (result == nodes.end())
+    {
+      result = &nodes.emplace_back(DegenerativeNodeData(node));
+    }
+    result->indices.emplace_back(*idx);
+    result->indices.emplace_back(*(idx + 1));
+    result->indices.emplace_back(*(idx + 2));
+  });
+  return nodes;
+}
+
+bool CollisionResource::validateVerticesForJolt(const char *res_name, auto &&on_degenerate)
+{
+  bool passed = true;
+  for (const CollisionNode *node = meshNodesHead; node; node = node->nextNode)
+  {
+    const uint16_t *__restrict cur = node->indices.data();
+    const uint16_t *__restrict end = cur + node->indices.size();
+    const Point3_vec4 *__restrict vertices = node->vertices.data();
+    const int packedBits = 21;
+    bbox3f bb = v_ldu_bbox3(node->modelBBox);
+    vec3f scale = v_div(v_bbox3_size(bb), v_splats((1 << packedBits) - 1));
+    vec3f invScale = v_rcp(scale);
+    while (cur < end)
+    {
+      const uint16_t *triangleStartIdx = cur;
+      vec3f v0 = v_ld(&vertices[*(cur++)].x);
+      vec3f v1 = v_ld(&vertices[*(cur++)].x);
+      vec3f v2 = v_ld(&vertices[*(cur++)].x);
+      volatile vec4i q0 = v_cvt_vec4i(v_mul(v_sub(v0, bb.bmin), invScale));
+      volatile vec4i q1 = v_cvt_vec4i(v_mul(v_sub(v1, bb.bmin), invScale));
+      volatile vec4i q2 = v_cvt_vec4i(v_mul(v_sub(v2, bb.bmin), invScale));
+      vec3f w0 = v_add(v_mul(v_cvt_vec4f((vec4i &)q0), scale), bb.bmin);
+      vec3f w1 = v_add(v_mul(v_cvt_vec4f((vec4i &)q1), scale), bb.bmin);
+      vec3f w2 = v_add(v_mul(v_cvt_vec4f((vec4i &)q2), scale), bb.bmin);
+      vec4f n = v_cross3(v_sub(w1, w0), v_sub(w2, w0));
+      const float inMaxDistSq = 1.0e-12f;
+      bool isNearZero = v_extract_x(v_length3_sq_x(n)) <= inMaxDistSq;
+      if (DAGOR_UNLIKELY(isNearZero))
+      {
+        if (passed)
+          logwarn("Degenerative triangles detected in collision res: %s", res_name);
+        logwarn(" node '%s' " FMT_P3 FMT_P3 FMT_P3, getNodeNameStr(*node), V3D(v0), V3D(v1), V3D(v2));
+        on_degenerate(triangleStartIdx, node);
+        passed = false;
+      }
+    }
+  }
+  return passed;
 }
 
 CollisionResource::TraceMeshNodeLocalApi CollisionResource::traceMeshNodeLocalApi = {

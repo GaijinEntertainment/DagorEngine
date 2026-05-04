@@ -5,11 +5,12 @@
 #include <ioSys/dag_dataBlock.h>
 #include <soundSystem/soundSystem.h>
 #include <soundSystem/handle.h>
+#include <soundSystem/vars.h>
 #include <soundSystem/delayed.h>
 
 #include "internal/fmodCompatibility.h"
-#include "internal/delayed.h"
-#include "internal/debug.h"
+#include "internal/delayed_internal.h"
+#include "internal/debug_internal.h"
 
 static WinCritSec g_delayed_cs;
 #define SNDSYS_DELAYED_BLOCK WinAutoLock delayedLock(g_delayed_cs);
@@ -36,10 +37,28 @@ struct Event
     stop,
     stop_fadeout,
     stop_fadeout_keyoff,
+    set_var,
     release,
     abandon,
   };
-  eastl::fixed_vector<eastl::pair<Type, float /*timeCreated*/>, 8> actions;
+
+  struct Action
+  {
+    Type type = Type::start;
+    float time = 0.f;
+    VarId varId;
+    float value = 0.f;
+    Action() = default;
+    Action(Type type, float time) : type(type), time(time) {}
+    Action(Type type, float time, VarId var_id, float value) : type(type), time(time), varId(var_id), value(value) {}
+
+    bool operator==(const Action &other) const
+    {
+      return type == other.type && varId == other.varId && value == other.value && fabs(other.time - time) < 0.05f;
+    }
+  };
+
+  eastl::fixed_vector<Action, 8> actions;
   EventHandle handle;
   Event(EventHandle handle) : handle(handle) {}
 };
@@ -70,52 +89,57 @@ static Event &append(EventHandle handle)
   return e ? *e : g_events.emplace_back(handle);
 }
 
-static void append(EventHandle handle, Event::Type type, float add_delay)
+static void append(EventHandle handle, float add_delay, Event::Type type, VarId var_id = {}, float value = 0.f)
 {
   Event &de = append(handle);
-  const float time = g_cur_time + add_delay;
-  auto pred = [&](const auto &it) { return it.first == type && fabs(it.second - time) < 0.05f; };
-  if (de.actions.empty() || !pred(de.actions.back()))
-    de.actions.emplace_back(type, time);
+  const Event::Action a(type, g_cur_time + add_delay, var_id, value);
+  if (de.actions.empty() || !(de.actions.back() == a))
+    de.actions.push_back(a);
 }
 
 void start(EventHandle handle, float add_delay)
 {
   SNDSYS_DELAYED_BLOCK;
   if (is_valid_handle(handle))
-    append(handle, Event::Type::start, add_delay);
+    append(handle, add_delay, Event::Type::start);
 }
 
 void stop(EventHandle handle, bool allow_fadeout, bool try_keyoff, float add_delay)
 {
   SNDSYS_DELAYED_BLOCK;
   if (is_valid_handle(handle))
-    append(handle,
+    append(handle, add_delay,
       allow_fadeout && try_keyoff ? Event::Type::stop_fadeout_keyoff
       : allow_fadeout             ? Event::Type::stop_fadeout
-                                  : Event::Type::stop,
-      add_delay);
+                                  : Event::Type::stop);
+}
+
+void set_var(EventHandle handle, const VarId &var_id, float value)
+{
+  SNDSYS_DELAYED_BLOCK;
+  if (is_valid_handle(handle) && var_id)
+    append(handle, 0.f, Event::Type::set_var, var_id, value);
 }
 
 bool is_starting(EventHandle handle)
 {
   SNDSYS_DELAYED_BLOCK;
   auto it = eastl::find_if(g_events.begin(), g_events.end(), [handle](const Event &it) { return it.handle == handle; });
-  return it != g_events.end() && !it->actions.empty() && it->actions.front().first == Event::Type::start;
+  return it != g_events.end() && !it->actions.empty() && it->actions.front().type == Event::Type::start;
 }
 
 void release(EventHandle handle, float add_delay)
 {
   SNDSYS_DELAYED_BLOCK;
   if (is_valid_handle(handle))
-    append(handle, Event::Type::release, add_delay);
+    append(handle, add_delay, Event::Type::release);
 }
 
 void abandon(EventHandle handle, float add_delay)
 {
   SNDSYS_DELAYED_BLOCK;
   if (is_valid_handle(handle))
-    append(handle, Event::Type::abandon, add_delay);
+    append(handle, add_delay, Event::Type::abandon);
 }
 
 void init(const DataBlock &blk)
@@ -165,25 +189,27 @@ void update(float dt)
     size_t numActions = 0;
     for (auto &action : e.actions)
     {
-      if (g_cur_time < action.second)
+      if (g_cur_time < action.time)
         break; // (g_cur_time + add_delay)
       if (distanceSq >= 0.f)
       {
-        const float soundRadius = (g_cur_time - action.second) * g_sound_air_speed;
+        const float soundRadius = (g_cur_time - action.time) * g_sound_air_speed;
         if (sqr(soundRadius) < distanceSq)
           break;
       }
-      if (action.first == Event::Type::start)
+      if (action.type == Event::Type::start)
         sndsys::start_immediate(e.handle);
-      else if (action.first == Event::Type::stop_fadeout_keyoff)
+      else if (action.type == Event::Type::stop_fadeout_keyoff)
         sndsys::stop_immediate(e.handle, true, true);
-      else if (action.first == Event::Type::stop_fadeout)
+      else if (action.type == Event::Type::stop_fadeout)
         sndsys::stop_immediate(e.handle, true, false);
-      else if (action.first == Event::Type::stop)
+      else if (action.type == Event::Type::stop)
         sndsys::stop_immediate(e.handle, false, false);
-      else if (action.first == Event::Type::abandon)
+      else if (action.type == Event::Type::set_var)
+        sndsys::set_var_immediate(e.handle, action.varId, action.value);
+      else if (action.type == Event::Type::abandon)
         sndsys::abandon_immediate(e.handle);
-      else if (action.first == Event::Type::release)
+      else if (action.type == Event::Type::release)
         sndsys::release_immediate(e.handle);
       ++numActions;
     }

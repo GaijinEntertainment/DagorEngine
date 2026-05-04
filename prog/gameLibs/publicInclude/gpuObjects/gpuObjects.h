@@ -205,8 +205,6 @@ private:
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingGenerateIndirect;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingRebuildRelems;
 
-  static BVHConnection *bvhConnection;
-
   struct GatherBuffersJob final : public cpujobs::IJob
   {
     GpuObjects *thiz = nullptr;
@@ -216,8 +214,10 @@ private:
   } gatherBuffersJobs[4];
 
 public:
+  static BVHConnection *bvhConnection;
   static void setBVHConnection(BVHConnection *bvh_connection) { bvhConnection = bvh_connection; }
 
+  GpuObjects();
   ~GpuObjects();
 
   void invalidate()

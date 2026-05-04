@@ -13,7 +13,7 @@
 template <typename ElementType>
 class Image2DView;
 
-class Image2DReadOnly
+class ImageRawBytesReadOnly
 {
 public:
   uint32_t getWidthInElems() const { return widthInElems; }
@@ -53,9 +53,9 @@ public:
   }
 
 protected:
-  Image2DReadOnly() = default;
+  ImageRawBytesReadOnly() = default;
 
-  Image2DReadOnly(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
+  ImageRawBytesReadOnly(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
     width{w}, height{h}, byteStride{byte_stride}, data{pixels}, format{fmt}
   {
     const auto &desc = get_tex_format_desc(format);
@@ -116,7 +116,7 @@ private:
       memcpy(dstPtr, srcPtr, row_size_bytes);
   }
 };
-class Image2D : public Image2DReadOnly
+class ImageRawBytes : public ImageRawBytesReadOnly
 {
 public:
   uint8_t *get() { return data; }
@@ -157,10 +157,10 @@ public:
   }
 
 protected:
-  Image2D() = default;
+  ImageRawBytes() = default;
 
-  Image2D(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
-    Image2DReadOnly{pixels, w, h, byte_stride, fmt}
+  ImageRawBytes(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) :
+    ImageRawBytesReadOnly{pixels, w, h, byte_stride, fmt}
   {}
 
   static constexpr bool isReadOnly = false;
@@ -194,7 +194,7 @@ private:
 
 // provides per-elemen access to image. ElementType size should be equal to image element size
 template <typename ElementType>
-class Image2DView : public eastl::conditional_t<eastl::is_const_v<ElementType>, Image2DReadOnly, Image2D>
+class Image2DView : public eastl::conditional_t<eastl::is_const_v<ElementType>, ImageRawBytesReadOnly, ImageRawBytes>
 {
 public:
   Image2DView() = default;
@@ -296,7 +296,7 @@ public:
   }
 
 private:
-  using BaseType = eastl::conditional_t<eastl::is_const_v<ElementType>, Image2DReadOnly, Image2D>;
+  using BaseType = eastl::conditional_t<eastl::is_const_v<ElementType>, ImageRawBytesReadOnly, ImageRawBytes>;
 
   ElementType *row(uint32_t y) { return reinterpret_cast<ElementType *>(BaseType::data + y * BaseType::getByteStride()); }
 
@@ -318,8 +318,8 @@ protected:
   static constexpr bool isReadOnly = eastl::is_const_v<ElementType>;
 
   // for cast<T>
-  friend Image2DReadOnly;
-  friend Image2D;
+  friend ImageRawBytesReadOnly;
+  friend ImageRawBytes;
 };
 
 template <typename ImageView>
@@ -328,6 +328,9 @@ class LockedImage : public ImageView
   LockedImage(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt, BaseTexture *owner) :
     ImageView{pixels, w, h, byte_stride, fmt}, lockedTexture{owner}
   {}
+
+public:
+  LockedImage() = default;
 
   static LockedImage lock_texture(BaseTexture *tex, eastl::optional<int> layer, int level, unsigned flags)
   {
@@ -358,25 +361,12 @@ class LockedImage : public ImageView
     return LockedImage{};
   }
 
-public:
-  LockedImage() = default;
-
-  static LockedImage lock_texture(BaseTexture *tex, int level, unsigned flags)
-  {
-    return lock_texture(tex, eastl::nullopt, level, flags);
-  }
-
   static bool has_layers(BaseTexture *tex)
   {
     if (tex == nullptr)
       return false;
     D3DResourceType type = tex->getType();
     return D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type || D3DResourceType::CUBEARRTEX == type;
-  }
-
-  static LockedImage lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
-  {
-    return lock_texture(tex, eastl::optional<int>{layer}, level, flags);
   }
 
   ~LockedImage()
@@ -405,50 +395,53 @@ private:
   BaseTexture *lockedTexture{nullptr};
 };
 
-using LockedImage2DReadOnly = LockedImage<Image2DReadOnly>;
-using LockedImage2D = LockedImage<Image2D>;
+using LockedImageRawBytesReadOnly = LockedImage<ImageRawBytesReadOnly>;
+using LockedImageRawBytes = LockedImage<ImageRawBytes>;
 
 template <typename T>
 using LockedImage2DView = LockedImage<Image2DView<T>>;
 
+template <typename T>
+struct LockTextureReturnTypeTrait
+{
+  using type = LockedImage2DView<T>;
+};
+
+template <>
+struct LockTextureReturnTypeTrait<ImageRawBytes>
+{
+  using type = LockedImageRawBytes;
+};
+
+template <>
+struct LockTextureReturnTypeTrait<const ImageRawBytes>
+{
+  using type = LockedImageRawBytesReadOnly;
+};
+
 // per-element access wrapper. sizeof(T) should match Texture element size
 // use const T with readonly flags
 template <typename T>
-LockedImage2DView<T> lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
+typename LockTextureReturnTypeTrait<T>::type lock_texture(BaseTexture *tex, int level, unsigned flags,
+  eastl::optional<int> layer = eastl::nullopt)
 {
   if (eastl::is_const_v<T>)
     flags |= TEXLOCK_READ;
   return LockedImage2DView<T>::lock_texture(tex, layer, level, flags);
 }
 
-template <typename T>
-LockedImage2DView<T> lock_texture(BaseTexture *tex, int level, unsigned flags)
+template <>
+inline typename LockTextureReturnTypeTrait<ImageRawBytes>::type lock_texture<ImageRawBytes>(BaseTexture *tex, int level,
+  unsigned flags, eastl::optional<int> layer)
 {
-  if (eastl::is_const_v<T>)
-    flags |= TEXLOCK_READ;
-  return LockedImage2DView<T>::lock_texture(tex, level, flags);
+  return LockedImageRawBytes::lock_texture(tex, layer, level, flags | TEXLOCK_WRITE);
 }
 
-// read-write access to image, no per-element access
-inline LockedImage2D lock_texture(BaseTexture *tex, int level, unsigned flags)
+template <>
+inline typename LockTextureReturnTypeTrait<const ImageRawBytes>::type lock_texture<const ImageRawBytes>(BaseTexture *tex, int level,
+  unsigned flags, eastl::optional<int> layer)
 {
-  return LockedImage2D::lock_texture(tex, level, flags | TEXLOCK_WRITE);
-}
-
-inline LockedImage2D lock_texture(BaseTexture *tex, int layer, int level, unsigned flags)
-{
-  return LockedImage2D::lock_texture(tex, layer, level, flags | TEXLOCK_WRITE);
-}
-
-// read only access to image, no per-element access
-inline LockedImage2DReadOnly lock_texture_ro(BaseTexture *tex, int level, unsigned flags)
-{
-  return LockedImage2DReadOnly::lock_texture(tex, level, flags | TEXLOCK_READ);
-}
-
-inline LockedImage2DReadOnly lock_texture_ro(BaseTexture *tex, int layer, int level, unsigned flags)
-{
-  return LockedImage2DReadOnly::lock_texture(tex, layer, level, flags | TEXLOCK_READ);
+  return LockedImageRawBytesReadOnly::lock_texture(tex, layer, level, flags | TEXLOCK_READ);
 }
 
 

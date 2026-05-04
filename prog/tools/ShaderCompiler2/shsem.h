@@ -53,6 +53,8 @@ public:
 
   virtual void eval_hlsl_compile(hlsl_compile_class &hlsl_compile) = 0;
   virtual void eval_hlsl_decl(hlsl_local_decl_class &hlsl_compile) = 0;
+
+  virtual void end_eval(shader_decl &) {}
 };
 
 class ShaderBoolEvalCB

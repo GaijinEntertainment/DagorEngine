@@ -67,6 +67,7 @@ public:
       Point3 position{};
       Point2 halfSize{};
     } panel{};
+    float scale = 1.f;
   };
 
   using HandsState = eastl::array<OneHandState, VrInput::Hands::Total>;
@@ -176,6 +177,8 @@ public:
 
   void drawDebugCollision() const;
 
+  void reqTexReload();
+
 private:
   void initHand(const char *model_name, VrInput::Hands side);
 
@@ -214,6 +217,7 @@ private:
   Point3 handPhysPos[VrInput::Hands::Total]{};
   bool isTouchingPanel[VrInput::Hands::Total]{};
   bool isAbovePanel[VrInput::Hands::Total]{};
+  bool shouldWaitAndPrefetchTextures = true;
 };
 
 } // namespace vr

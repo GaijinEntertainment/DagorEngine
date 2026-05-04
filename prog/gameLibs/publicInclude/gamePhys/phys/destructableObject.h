@@ -41,6 +41,9 @@ struct DestructableCreationParams
   float defaultTimeToLive = -1.0f;
   float timeToKinematic = -1.0f;
   float timeToSinkUnderground = -1.0f;
+  float timeToStartDisintegration = -1.0f;
+  float disintegrationDuration = -1.0f;
+  float disintegrationScale = -1.0f;
   bool isDestroyedByExplosion = false;
 };
 } // namespace destructables
@@ -64,6 +67,9 @@ private:
   float timeToSinkUnderground = 3;
   float bboxHeight = 0.0f;
   float scaleDt;
+  float disintegrationTime = 0.0f;
+  float disintegrationDuration = 0;
+  float disintegrationScale = 1.f;
   void doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit);
 
 public:
@@ -75,6 +81,8 @@ public:
 
   DestructableObject(const destructables::DestructableCreationParams &params, PhysWorld *phys_world, float scale_dt);
   bool update(float dt, float cur_dt_scale, bool force_update_ttl); // return false if it need to be destroyed
+  Point4 getDisintegrationParams() const;
+  [[nodiscard]] bool hasDisintegrationAnimation() const;
 
   destructables::id_t getId() const { return (destructables::id_t)this; }
 

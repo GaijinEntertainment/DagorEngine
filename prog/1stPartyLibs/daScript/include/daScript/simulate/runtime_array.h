@@ -209,8 +209,8 @@ namespace das
                 }
             }
         loopend:;
-            evalFinal(context);
             array_unlock(context, *pha, &this->debugInfo);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -247,10 +247,10 @@ namespace das
                 DAS_PROCESS_LOOP1_FLAGS(continue);
             }
         loopend:;
-            evalFinal(context);
             for ( int t=0; t!=totalCount; ++t ) {
                 array_unlock(context, *pha[t], &this->debugInfo);
             }
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -297,8 +297,8 @@ namespace das
                 DAS_PROCESS_LOOP1_FLAGS(continue);
             }
         loopend:;
-            evalFinal(context);
             array_unlock(context, *pha, &this->debugInfo);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -384,8 +384,8 @@ namespace das
                 }
             }
         loopend:;
-            evalFinal(context);
             array_unlock(context, *pha, &this->debugInfo);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -419,10 +419,10 @@ namespace das
                 DAS_PROCESS_KEEPALIVE_LOOP1_FLAGS(continue);
             }
         loopend:;
-            this->evalFinal(context);
             for ( int t=0; t!=totalCount; ++t ) {
                 array_unlock(context, *pha[t], &this->debugInfo);
             }
+            this->evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -455,8 +455,8 @@ namespace das
                 DAS_PROCESS_KEEPALIVE_LOOP1_FLAGS(continue);
             }
         loopend:;
-            evalFinal(context);
             array_unlock(context, *pha, &this->debugInfo);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -580,10 +580,10 @@ namespace das
                 DAS_PROCESS_LOOP1_FLAGS(continue);
             }
         loopend:;
-            this->evalFinal(context);
             for ( int t=0; t!=totalCount; ++t ) {
                 array_unlock(context, *pha[t], &this->debugInfo);
             }
+            this->evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }
@@ -617,8 +617,8 @@ namespace das
                 DAS_PROCESS_LOOP1_FLAGS(continue);
             }
         loopend:;
-            evalFinal(context);
             array_unlock(context, *pha, &this->debugInfo);
+            evalFinal(context);
             context.stopFlags &= ~EvalFlags::stopForBreak;
             return v_zero();
         }

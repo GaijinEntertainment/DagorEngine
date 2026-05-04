@@ -26,8 +26,8 @@ struct DaGIVoxelScene
   void setTemporalSpeedFromGbuf(float speed) { temporalSpeed = clamp(speed, 0.f, 1.f); } // 0 - off, 1 - max
   void setTemporalFromGbufStable(bool on) { temporalStable = on; } // if on, there is no randomization inside each voxel
   void afterReset() { cleared = false; }
+  void doPendingClear();
   void updateFromGbuf();
-  void update();
   void rbNone();
   void rbFinish();
   void debugRender();

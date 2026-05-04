@@ -22,12 +22,13 @@ const VERBOSE_PRINT = false //getroottable()?.__is_stub__
 let verbose_print = VERBOSE_PRINT ? @(val) print(val) : @(_) null
 
 function mkEsFuncNamed(esname, func) {
-  assert(type(func) in static {"function":1, "instance":1, "table":1}, $"esHandler can be only function or callable, for ES '{esname}', got type: {type(func)}")
+  assert(type(func) in const {"function":1, "instance":1, "table":1}, $"esHandler can be only function or callable, for ES '{esname}', got type: {type(func)}")
   let infos = func?.getfuncinfos?()
   assert(infos!=null, "esHandler can be only function or callable, ES:{0}".subst(esname))
   let len = infos.parameters.len()
-  assert (len==1 || (len < 5 && len > 2),
-    $"ES function should have no arguemnts, or at least 2 argument - eid, comp, or 3 - evt, eid, comp. function name:{infos?.name}, argnum:{" ".join(infos?.parameters ?? [])}, arguments:{len}, es name:{esname}")
+  let { varargs } = infos
+  assert (len==1 || (len < 5 && len > 2) || varargs,
+    $"ES function should have no arguments, or at least 2 argument - eid, comp, or 3 - evt, eid, comp. function name:{infos?.name}, argnum:{" ".join(infos?.parameters ?? [])}, arguments:{len}, es name:{esname}")
   if (len==1)
     return function(_evt, _eid, _comp) {func()}
   if (len==4)
@@ -59,7 +60,7 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
   const DOTS_ERROR = "dots in ES components"
   try{
     foreach (k, _v in compsDesc)
-      assert(k in static {"comps_ro":1,"comps_rw":1,"comps_rq":1,"comps_no":1,"comps_track":1}, $"incorrect comps description, incorrect key: {k}, es name:{name}")
+      assert(k in const {"comps_ro":1,"comps_rw":1,"comps_rq":1,"comps_no":1,"comps_track":1}, $"incorrect comps description, incorrect key: {k}, es name:{name}")
     local comps = compsDesc
 
     let remappedEvents = {}
@@ -93,7 +94,7 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
     assert(remappedEvents.len()>0, $"can't register ES '{name}' without any events")
     assert(!("OnUpdate" in remappedEvents), $"ES: {name}, OnUpdate is incorrect eventListener, should be onUpdate")
     foreach (k, _v in remappedEvents) {
-      assert(k in sqEvents || k in (static {"Timer":1, "onUpdate":1}) || (type(k) == "class") || (type(k) == "integer"), $"unknown event {k}. Script events should be registered via ecs.register_event()")
+      assert(k in sqEvents || k in (const {"Timer":1, "onUpdate":1}) || (type(k) == "class") || (type(k) == "integer"), $"unknown event {k}. Script events should be registered via ecs.register_event()")
     }
     let isChangedTracked = ecs.EventComponentChanged in remappedEvents
     let comps_track = comps?.comps_track ?? []
@@ -141,10 +142,10 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
       $"es {name} registered with rw components with specified default value"
     )
     assert(
-      comps_rw.indexof("eid")==null, "eid can't be writable component"
+      !comps_rw.contains("eid"), "eid can't be writable component"
     )
     assert(
-      comps?.comps_no.indexof("eid")==null, "eid can't be set as 'no' component"
+      !comps?.comps_no.contains("eid"), "eid can't be set as 'no' component"
     )
     if (params?.track.contains(".") ) {
       println($"dots in es '{name}': {params?.track}")

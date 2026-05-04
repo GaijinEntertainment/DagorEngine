@@ -79,7 +79,7 @@ public:
   void updateImgui() override
   {
     if (!controlCaption.empty())
-      ImguiHelper::labelOnly(controlCaption);
+      labelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     ContainerPropertyControl::updateImgui();
   }

@@ -53,7 +53,8 @@ void ConvexVhacdProcessing::calcInterface(const ConvexVhacdSettings &settings)
   dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
   for (const auto &refNode : settings.selectedNodes.refNodes)
   {
-    G_ASSERT_LOG(add_verts_and_indices_from_node(nodes, refNode, verts, indices), "Collision node not found: %s", refNode);
+    G_ASSERT_LOG(add_verts_and_indices_from_node(*collisionRes, nodes, refNode, verts, indices), "Collision node not found: %s",
+      refNode);
   }
   p.m_maxRecursionDepth = settings.depth;
   p.m_maxConvexHulls = settings.maxHulls;

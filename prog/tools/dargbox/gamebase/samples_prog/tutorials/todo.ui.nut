@@ -62,11 +62,11 @@ function toggleItem(id) {
 }
 
 function removeItem(id) {
-  items.modify(@(v) v.filter.set(@(it) it.id != id))
+  items.modify(@(v) v.filter(@(it) it.id != id))
 }
 
 function clearCompleted() {
-  items.modify(@(v) v.filter.set(@(it) !it.done))
+  items.modify(@(v) v.filter(@(it) !it.done))
 }
 
 //---------------------------------------------------------------------
@@ -76,9 +76,9 @@ let visibleItems = Computed(function() {
   let f = filter.get()
   let arr = items.get()
   if (f == "active")
-    return arr.filter.set(@(it) !it.done)
+    return arr.filter(@(it) !it.done)
   else if (f == "done")
-    return arr.filter.set(@(it) it.done)
+    return arr.filter(@(it) it.done)
   return arr
 })
 
@@ -88,18 +88,18 @@ let visibleItems = Computed(function() {
 
 function TextInput(textState, placeholder="") {
   return watchElemState(@(sf) {
-    size = static [pw(100), sh(4)]  // fixed height; fills available width
+    size = const [pw(100), sh(4)]  // fixed height; fills available width
     rendObj = ROBJ_BOX
     fillColor = (sf & S_KB_FOCUS) ? Palette.inputBgFocus : Palette.inputBg
     borderWidth = 1
     borderColor = (sf & S_HOVER) ? Palette.borderHover : Palette.border
-    padding = static [sh(0.5), sh(1)]
+    padding = const [sh(0.5), sh(1)]
     children = @() {
       size = flex()
       rendObj = ROBJ_TEXT
       behavior = Behaviors.TextInput
       color = Palette.textPrimary
-      padding = static [0, sh(0.2)]
+      padding = const [0, sh(0.2)]
       watch = textState
       text = textState.get() ?? ""
       onEscape = function() { textState("") }
@@ -107,14 +107,14 @@ function TextInput(textState, placeholder="") {
       onChange = function(t) { textState.set(t) }
       // Placeholder when empty and not focused
       children = (textState.get().len() == 0 && !(sf & S_KB_FOCUS)) ?
-        { rendObj = ROBJ_TEXT, color = Palette.textPlaceholder, text = placeholder, padding = static [0, sh(0.2)] }
+        { rendObj = ROBJ_TEXT, color = Palette.textPlaceholder, text = placeholder, padding = const [0, sh(0.2)] }
         : null
     }
   })
 }
 
 function Button(label, onClickCb, options = {}) {
-  let pad = options?.pad ?? static [sh(0.8), sh(1.2)]
+  let pad = options?.pad ?? const [sh(0.8), sh(1.2)]
   let minw = options?.minw ?? 0
   let danger = options?.danger ?? false
   return watchElemState(@(sf) {
@@ -139,7 +139,7 @@ function Button(label, onClickCb, options = {}) {
 // Checkbox — square toggle; a solid inner square indicates checked.
 function Checkbox(checked, onToggle) {
   return watchElemState(@(sf) {
-    size = static [sh(2.2), sh(2.2)]
+    size = const [sh(2.2), sh(2.2)]
     behavior = Behaviors.Button
     rendObj = ROBJ_BOX
     fillColor = Palette.checkboxBg
@@ -148,7 +148,7 @@ function Checkbox(checked, onToggle) {
     onClick = function() { if (onToggle) onToggle() }
     children = checked ? {
       rendObj = ROBJ_BOX
-      size = static [pw(60), ph(60)]
+      size = const [pw(60), ph(60)]
       hplace = ALIGN_CENTER
       vplace = ALIGN_CENTER
       fillColor = Palette.checkboxTick
@@ -162,7 +162,7 @@ function IconButton(char, onClickCb) {
   return watchElemState(@(sf) {
     behavior = Behaviors.Button
     rendObj = ROBJ_BOX
-    padding = static [sh(0.5), sh(0.8)]
+    padding = const [sh(0.5), sh(0.8)]
     fillColor = (sf & S_HOVER) ? Palette.btnBgHover : Palette.btnBg
     borderWidth = 1
     borderColor = (sf & S_HOVER) ? Palette.borderHover : Palette.border
@@ -185,7 +185,7 @@ function TodoItemView(item) {
   return {
     flow = FLOW_HORIZONTAL
     gap = sh(1)
-    size = static [pw(100), SIZE_TO_CONTENT]
+    size = const [pw(100), SIZE_TO_CONTENT]
     valign = ALIGN_CENTER
     children = [
       Checkbox(item.done, function(){ toggleItem(id) })
@@ -195,7 +195,7 @@ function TodoItemView(item) {
         behavior = Behaviors.Button
         onClick = function(){ toggleItem(id) }
         rendObj = ROBJ_BOX
-        padding = static [sh(0.6), sh(0.8)]
+        padding = const [sh(0.6), sh(0.8)]
         fillColor = Palette.labelBg
         children = [
           {
@@ -205,8 +205,8 @@ function TodoItemView(item) {
           },
           item.done ? {
             rendObj = ROBJ_SOLID
-            size = static [pw(100), 1]
-            pos = static [0, sh(1.4)]
+            size = const [pw(100), 1]
+            pos = const [0, sh(1.4)]
             color = Palette.textMuted
           } : null
         ]
@@ -236,7 +236,7 @@ function FilterBar() {
     return Button(
       (filter.get() == key) ? $"• {title}" : title,
       function(){ filter.set(key) },
-      { minw = sh(8), pad = static [sh(0.6), sh(1.0)] }
+      { minw = sh(8), pad = const [sh(0.6), sh(1.0)] }
     )
   }
   return {
@@ -246,7 +246,7 @@ function FilterBar() {
       makeFilterBtn("all", "All"),
       makeFilterBtn("active", "Active"),
       makeFilterBtn("done", "Done"),
-      Button("Clear completed", clearCompleted, { pad = static [sh(0.6), sh(1.0)], danger = true })
+      Button("Clear completed", clearCompleted, { pad = const [sh(0.6), sh(1.0)], danger = true })
     ]
     watch = [filter]
   }
@@ -260,7 +260,7 @@ function App() {
     size = flex()
     rendObj = ROBJ_SOLID
     color = Palette.appBg
-    padding = static [sh(3), sh(2)]
+    padding = const [sh(3), sh(2)]
     gap = sh(2)
     flow = FLOW_VERTICAL
     children = [
@@ -273,7 +273,7 @@ function App() {
       {
         flow = FLOW_HORIZONTAL
         gap = sh(1)
-        size = static [flex(), SIZE_TO_CONTENT]
+        size = const [flex(), SIZE_TO_CONTENT]
         children = [
           { size = flex(), children = TextInput(newItemText, "Add a task and press Enter or \"Add\"…") },
           Button("Add", addItem, { minw = sh(8) })

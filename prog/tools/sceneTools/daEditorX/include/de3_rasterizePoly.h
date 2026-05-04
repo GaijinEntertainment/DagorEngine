@@ -23,8 +23,8 @@ struct Ipoint2CmpLambda
 };
 
 // rasterize polygon on auto-adjusted bitmaps, even-odd filling rule
-template <class BitMask, class Point>
-float rasterize_poly(BitMask &out_bm, float &out_ofs_x, float &out_ofs_z, dag::ConstSpan<Point *> pt, float min_cell_sz = 1.0)
+template <class BitMask>
+float rasterize_poly(BitMask &out_bm, float &out_ofs_x, float &out_ofs_z, dag::ConstSpan<Point3> pt, float min_cell_sz = 1.0)
 {
   BBox2 polyBBox;
   polyBBox.setempty();
@@ -34,10 +34,10 @@ float rasterize_poly(BitMask &out_bm, float &out_ofs_x, float &out_ofs_z, dag::C
 
   // compute bounds
   clear_and_resize(seg, pt.size());
-  p1 = pt[0]->getPt();
+  p1 = pt[0];
   for (int i = pt.size() - 1; i >= 0; i--, p1 = p0)
   {
-    p0 = pt[i]->getPt();
+    p0 = pt[i];
     polyBBox += Point2(p0.x, p0.z);
     seg[i].x = p0.x;
     seg[i].y = p0.z;
@@ -104,8 +104,8 @@ float rasterize_poly(BitMask &out_bm, float &out_ofs_x, float &out_ofs_z, dag::C
 }
 
 // rasterize polygon on pre-created bitmap, even-odd filling rule
-template <class BitMask, class PointPtrTab>
-void rasterize_poly_2(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z, float scale)
+template <class BitMask>
+void rasterize_poly_2(BitMask &bm, dag::ConstSpan<Point3> pt, float ofs_x, float ofs_z, float scale)
 {
   TabSortedInline<float, FloatCmpLambda> pos(tmpmem);
   SmallTab<Point4, TmpmemAlloc> seg;
@@ -115,10 +115,10 @@ void rasterize_poly_2(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z, fl
 
   // compute bounds
   clear_and_resize(seg, pt.size());
-  p1 = pt[0]->getPt();
+  p1 = pt[0];
   for (int i = pt.size() - 1; i >= 0; i--, p1 = p0)
   {
-    p0 = pt[i]->getPt();
+    p0 = pt[i];
     seg[i].x = p0.x;
     seg[i].y = p0.z;
     seg[i][2] = p1.z;
@@ -169,8 +169,8 @@ void rasterize_poly_2(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z, fl
 }
 
 // rasterize polygon on pre-created bitmap, non-zero filling rule
-template <class BitMask, class PointPtrTab>
-void rasterize_poly_2_nz(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z, float scale)
+template <class BitMask>
+bool rasterize_poly_2_nz(BitMask &bm, dag::ConstSpan<Point2> pt, float ofs_x, float ofs_z, float scale)
 {
   TabSortedInline<IPoint2, Ipoint2CmpLambda> pos(tmpmem);
   SmallTab<Point4, TmpmemAlloc> seg;
@@ -178,12 +178,17 @@ void rasterize_poly_2_nz(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z,
   int w = bm.getW(), h = bm.getH();
   float cell = 1.0f / scale;
 
+  // skip degenerate polygons
+  if (pt.size() < 3)
+    return false;
+
+
   // compute bounds
   clear_and_resize(seg, pt.size());
-  p1 = pt[0]->getPt();
+  p1.set_x0y(pt[0]);
   for (int i = pt.size() - 1; i >= 0; i--, p1 = p0)
   {
-    p0 = pt[i]->getPt();
+    p0.set_x0y(pt[i]);
     seg[i].x = p0.x;
     seg[i].y = p0.z;
     seg[i][2] = p1.z;
@@ -193,6 +198,7 @@ void rasterize_poly_2_nz(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z,
   }
 
   pos.reserve(seg.size());
+  bool ret = true;
   for (int y = h - 1; y >= 0; y--)
   {
     float fy = y * cell + ofs_z, fx;
@@ -220,7 +226,6 @@ void rasterize_poly_2_nz(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z,
 
     // rasterize bitmap using intersection points (nonZero filling rule)
     int v0 = 0, x0 = -2000000;
-
     for (int j = 0; j < pos.size(); j++)
     {
       int x1 = pos[j].x, v1 = v0 + pos[j].y;
@@ -242,7 +247,15 @@ void rasterize_poly_2_nz(BitMask &bm, PointPtrTab &pt, float ofs_x, float ofs_z,
         break;
     }
     if (v0)
+    {
+      if (x0 < 0)
+      {
+        ret = false;
+        x0 = 0;
+      }
       for (; x0 < w; x0++)
         bm.set(x0, y);
+    }
   }
+  return ret;
 }

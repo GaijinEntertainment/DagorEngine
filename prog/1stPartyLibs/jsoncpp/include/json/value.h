@@ -211,7 +211,8 @@ namespace Json
     Json::Value obj_value(Json::objectValue); // {}
     \endcode
       */
-      Value( ValueType type = nullValue );
+      Value();
+      Value( ValueType type );
       Value( Int value );
       Value( UInt value );
 #if defined(JSON_HAS_INT64)
@@ -238,9 +239,11 @@ namespace Json
 # endif
       Value( bool value );
       Value( const Value &other );
+      Value( Value &&other ) noexcept;
       ~Value();
 
       Value &operator=( const Value &other );
+      Value &operator=(Value&& other) noexcept;
       /// Swap values.
       /// \note Currently, comments are intentionally not swapped, for
       /// both logic and efficiency.
@@ -498,6 +501,27 @@ namespace Json
       CommentInfo *comments_;
    };
 
+   inline Value::Value()
+   {
+     static_assert((int)ValueType::nullValue == 0);
+     memset(this, 0, sizeof(*this));
+   }
+
+   inline Value::Value( Value &&other ) noexcept
+   {
+     memcpy(this, &other, sizeof(other));
+     memset(&other, 0, sizeof(other));
+   }
+
+   inline Value& Value::operator=(Value&& other) noexcept
+   {
+     other.swap(*this);
+     return *this;
+   }
+
+   inline bool Value::isNull() const { return type_ == nullValue; }
+
+   inline bool Value::operator!() const { return isNull(); }
 
    /** \brief Experimental and untested: represents an element of the "path" to access a node.
     */

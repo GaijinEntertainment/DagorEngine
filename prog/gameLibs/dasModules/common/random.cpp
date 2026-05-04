@@ -19,6 +19,7 @@ public:
     das::addExtern<DAS_BIND_FUN(rnd_int)>(*this, lib, "rnd_int", das::SideEffects::modifyExternal, "rnd_int");
     das::addExtern<DAS_BIND_FUN(_rnd_float)>(*this, lib, "_rnd_float", das::SideEffects::modifyArgument, "_rnd_float");
     das::addExtern<DAS_BIND_FUN(_rnd_int)>(*this, lib, "_rnd_int", das::SideEffects::modifyArgument, "_rnd_int");
+    das::addExtern<DAS_BIND_FUN(_rnd_bound)>(*this, lib, "_rnd_bound", das::SideEffects::modifyArgument, "_rnd_bound");
     das::addExtern<DAS_BIND_FUN(_rnd_range)>(*this, lib, "_rnd_range", das::SideEffects::modifyArgument, "_rnd_range");
     das::addExtern<DAS_BIND_FUN(gauss_rnd)>(*this, lib, "gauss_rnd", das::SideEffects::modifyExternal, "gauss_rnd");
     das::addExtern<DAS_BIND_FUN(set_rnd_seed)>(*this, lib, "set_rnd_seed", das::SideEffects::modifyExternal, "set_rnd_seed");

@@ -153,7 +153,7 @@ shader water_foam_trail
       float2 tc = float2( input.grd.x, -input.grd.y );
       float4 src = tex2D( water_foam_trail_mask, tc );
 
-      float3 foam_mat = lerp( float3( 0.5f, 0.5f, 0.f ), float3( 0.5f, 0.75f, 1.f ), input.prm.x );
+      float3 foam_mat = lerp( float3( 0.5f, 0.5f, 0.f ), float3( 0.5f, 0.75f, 0.75f ), input.prm.x );
 
       // mixing
       float3 dst;

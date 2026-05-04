@@ -11,6 +11,7 @@
 #include <phys/dag_physDebug.h>
 
 static PhysWorld *pw = NULL;
+static bool pw_owned = false;
 static bool inited = false;
 static Tab<PhysSystemInstance *> simPhysSys;
 static Tab<DynamicPhysObject *> simObj;
@@ -50,7 +51,11 @@ static bool phys_get_phys_tm(int obj_idx, int sub_body_idx, TMatrix &phys_tm, bo
   return false;
 }
 
-static __forceinline void phys_simulate(real dt) { pw->simulate(dt); }
+static __forceinline void phys_simulate(real dt)
+{
+  if (!get_external_phys_world())
+    pw->simulate(dt);
+}
 static __forceinline void phys_clear_phys_world()
 {
   if (mustDelSimObj)
@@ -61,7 +66,10 @@ static __forceinline void phys_clear_phys_world()
   simBody = NULL;
 
   clear_all_ptr_items(stBody);
-  del_it(pw);
+  if (pw_owned)
+    del_it(pw);
+  pw = nullptr;
+  pw_owned = false;
 }
 
 static PhysBody *createStaticBody(const TMatrix &tm, real sz_x, real sz_y, real sz_z)
@@ -72,13 +80,30 @@ static PhysBody *createStaticBody(const TMatrix &tm, real sz_x, real sz_y, real 
   return new PhysBody(pw, 0, &coll, tm, pbcd);
 }
 
+static __forceinline void phys_set_render_lod(int render_lod)
+{
+  for (DynamicPhysObject *dpo : simObj)
+  {
+    for (int modelIndex = 0; modelIndex < dpo->getModelCount(); ++modelIndex)
+    {
+      DynamicRenderableSceneInstance *model = dpo->getModel(modelIndex);
+      const int lodCount = model->getLodsCount();
+      const int finalLod = (render_lod >= 0 && lodCount > 1) ? clamp(render_lod, 0, lodCount - 1) : -1;
+      model->setLod(finalLod);
+    }
+  }
+}
+
 static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj, float base_plane_ht0, float base_plane_ht1,
-  int inst_count, int scene_type, float interval)
+  int inst_count, int scene_type, float interval, int render_lod)
 {
   if (pw)
     return;
 
-  pw = new PhysWorld();
+  pw = get_external_phys_world();
+  pw_owned = !pw;
+  if (pw_owned)
+    pw = new PhysWorld();
 
   TMatrix nullPlaneTm(TMatrix::IDENT);
   nullPlaneTm.setcol(3, 0, min(base_plane_ht0, base_plane_ht1) - 0.7, 0);
@@ -87,6 +112,8 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
   stBody.push_back(createStaticBody(nullPlaneTm, 8.f, 0.2, 4.f));
   nullPlaneTm.setcol(3, 0, base_plane_ht1 - 0.1, +2);
   stBody.push_back(createStaticBody(nullPlaneTm, 8.f, 0.2, 4.f));
+
+  pw->setFixedTimeStep(-1.f / 60.0f);
 
   if (!base_obj)
     return;
@@ -119,20 +146,16 @@ static __forceinline void phys_create_phys_world(DynamicPhysObjectData *base_obj
     simPhysSys.push_back(po->getPhysSys());
     physsimulator::simObjRes.push_back(base_obj->physRes);
   }
+
+  if (render_lod >= 0)
+    phys_set_render_lod(render_lod);
 }
 static __forceinline void phys_set_phys_body(void *phbody) { simBody = (PhysBody *)phbody; }
 
 static __forceinline void phys_init()
 {
-  if (inited)
+  if (inited || get_external_phys_world())
     return;
-#ifdef PHYSICS_SKIP_INIT_TERM
-  if (PHYSICS_SKIP_INIT_TERM)
-  {
-    inited = false;
-    return;
-  }
-#endif
 
   ::init_physics_engine();
   physdbg::init<PhysWorld>();
@@ -141,15 +164,8 @@ static __forceinline void phys_init()
 
 static __forceinline void phys_close()
 {
-  if (!inited)
+  if (!inited || get_external_phys_world())
     return;
-#ifdef PHYSICS_SKIP_INIT_TERM
-  if (PHYSICS_SKIP_INIT_TERM)
-  {
-    inited = true;
-    return;
-  }
-#endif
 
   phys_clear_phys_world();
 
@@ -162,6 +178,22 @@ static __forceinline void phys_before_render()
 {
   for (auto *o : simObj)
     o->beforeRender(::grs_cur_view.pos);
+
+  auto rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  if (rs && rs->getRenderType() == IDynRenderService::RTYPE_DNG_BASED)
+  {
+    for (auto *o : simObj)
+      for (int i = 0, ie = o->getModelCount(); i < ie; ++i)
+      {
+        DynamicRenderableSceneInstance *sceneInstance = o->getModel(i);
+        for (uint32_t n = 0; n < sceneInstance->getNodeCount(); ++n)
+        {
+          TMatrix wtm = sceneInstance->getNodeWtm(n);
+          wtm.setcol(3, wtm.getcol(3) - ::grs_cur_view.pos);
+          sceneInstance->setPrevNodeWtm(n, wtm);
+        }
+      }
+  }
 }
 static __forceinline void phys_render(IDynRenderService::Stage stage)
 {
@@ -213,7 +245,8 @@ static __forceinline void add_impulse(int obj_idx, int sub_body_idx, const Point
 
   pb->addImpulse(pos, normalize(delta) * force * dt);
 }
-static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar, const Point3 &vel0)
+static __forceinline void *phys_start_ragdoll(AnimV20::AnimcharBaseComponent *animChar, AnimV20::AnimcharFinalMat44 *finalWtm,
+  const Point3 &vel0)
 {
   PhysRagdoll *ragdoll = PhysRagdoll::create(animChar->getPhysicsResource(), pw);
   G_ASSERT_RETURN(ragdoll, NULL);
@@ -222,7 +255,9 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   ragdoll->setContinuousCollisionMode(true);
 
   ragdoll->setStartAddLinVel(vel0);
-  animChar->act(0.f, ::grs_cur_view.pos, true);
+  animChar->setTm(finalWtm->nwtm[0]);
+  animChar->act(0.f, true);
+  animChar->copyNodesTo(*finalWtm);
   ragdoll->startRagdoll();
   animChar->setPostController(ragdoll);
   physsimulator::simObjRes.push_back(ragdoll->getPhysRes());
@@ -234,9 +269,9 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   void phys_##PHYS##_simulate(real dt) { phys_simulate(dt); }                                                                  \
   void phys_##PHYS##_clear_phys_world() { phys_clear_phys_world(); }                                                           \
   void phys_##PHYS##_create_phys_world(DynamicPhysObjectData *base_obj, float h0, float h1, int inst_count, int scene_type,    \
-    float interval)                                                                                                            \
+    float interval, int render_lod)                                                                                            \
   {                                                                                                                            \
-    phys_create_phys_world(base_obj, h0, h1, inst_count, scene_type, interval);                                                \
+    phys_create_phys_world(base_obj, h0, h1, inst_count, scene_type, interval, render_lod);                                    \
   }                                                                                                                            \
   void *phys_##PHYS##_get_phys_world() { return pw; }                                                                          \
   void phys_##PHYS##_set_phys_body(void *phbody) { phys_set_phys_body(phbody); }                                               \
@@ -247,6 +282,7 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   void phys_##PHYS##_render_decals() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_DECALS); }                     \
   void phys_##PHYS##_render_trans() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_TRANS); }                       \
   void phys_##PHYS##_render_debug(bool b, bool bc, bool c, bool cr) { phys_render_debug(b, bc, c, cr); }                       \
+  void phys_##PHYS##_set_render_lod(int render_lod) { phys_set_render_lod(render_lod); }                                       \
   bool phys_##PHYS##_get_phys_tm(int obj_idx, int sub_body_idx, TMatrix &phys_tm, bool &obj_active)                            \
   {                                                                                                                            \
     return phys_get_phys_tm(obj_idx, sub_body_idx, phys_tm, obj_active);                                                       \
@@ -256,7 +292,10 @@ static __forceinline void *phys_start_ragdoll(AnimV20::IAnimCharacter2 *animChar
   {                                                                                                                            \
     add_impulse(obj_idx, sub_body_idx, pos, delta, spring_factor, damper_factor, dt);                                          \
   }                                                                                                                            \
-  void *phys_##PHYS##_start_ragdoll(AnimV20::IAnimCharacter2 *ac, const Point3 &vel0) { return phys_start_ragdoll(ac, vel0); } \
+  void *phys_##PHYS##_start_ragdoll(AnimV20::AnimcharBaseComponent *ac, AnimV20::AnimcharFinalMat44 *fWtm, const Point3 &vel0) \
+  {                                                                                                                            \
+    return phys_start_ragdoll(ac, fWtm, vel0);                                                                                 \
+  }                                                                                                                            \
   void phys_##PHYS##_delete_ragdoll(void *&ragdoll)                                                                            \
   {                                                                                                                            \
     if (!ragdoll)                                                                                                              \

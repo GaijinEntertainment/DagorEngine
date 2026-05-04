@@ -1,0 +1,9 @@
+ERROR: expression of type 'string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_const_inline.nut:3:0
+
+const MY_STR = "hello"
+local x: int = MY_STR
+^--------------------
+return x
+
+

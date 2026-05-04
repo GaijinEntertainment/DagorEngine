@@ -1,0 +1,9 @@
+ERROR: expression of type 'bool' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_complex_deep_nesting.nut:8:0
+
+local c: int = 3
+local deep_result: string = ((((a + b) * c) > 5) ? "big" : "small") != "big"
+^---------------------------------------------------------------------------
+return deep_result
+
+

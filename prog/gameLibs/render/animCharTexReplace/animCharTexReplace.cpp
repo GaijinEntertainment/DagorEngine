@@ -11,7 +11,7 @@ AnimCharTexReplace::AnimCharTexReplace(AnimV20::AnimcharRendComponent &ac_rend, 
 {
   acRend = &ac_rend;
   animcharName = animchar_name;
-  dagor_set_sm_tex_load_ctx_type(AnimCharGameResClassId);
+  dagor_set_sm_tex_load_ctx_type(CharacterGameResClassId);
   dagor_set_sm_tex_load_ctx_name(animcharName);
   acRend->getVisualResource()->gatherUsedTex(usedTexIds);
 }

@@ -63,11 +63,11 @@ void MotionBlur::update(float dt, const Point3 camera_pos, float jump_dist)
 
   if (numValidFrames == numHistoryFrames)
   {
-    ShaderGlobal::set_real(velocity_mulVarId, scale * velocityMultiplier / (dt + 0.0001f));
+    ShaderGlobal::set_float(velocity_mulVarId, scale * velocityMultiplier / (dt + 0.0001f));
   }
   else
   {
-    ShaderGlobal::set_real(velocity_mulVarId, 0.f);
+    ShaderGlobal::set_float(velocity_mulVarId, 0.f);
   }
 
   if (skipFrames == 0)
@@ -87,8 +87,8 @@ void MotionBlur::onCameraLeap()
   numValidFrames = 0;
 }
 
-void MotionBlur::accumulateDepthVersion(ManagedTexView source_color_tex, ManagedTexView blur_depth_tex, DepthType depth_type,
-  TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, ManagedTexView accumulationTex)
+void MotionBlur::accumulateDepthVersion(BaseTexture *source_color_tex, BaseTexture *blur_depth_tex, DepthType depth_type,
+  TMatrix4 currentGlobTm, TMatrix4 prevGlobTm, const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *accumulationTex)
 {
   SCOPE_VIEW_PROJ_MATRIX;
   // Set globtm matrices.
@@ -100,16 +100,18 @@ void MotionBlur::accumulateDepthVersion(ManagedTexView source_color_tex, Managed
   ShaderGlobal::set_texture(blur_depth_texVarId, blur_depth_tex);
   ShaderGlobal::set_int(motion_blur_depth_typeVarId, static_cast<int>(depth_type));
   accumulateInternal(source_color_tex, motionBlurShElem.get(), accumulationTex);
+  ShaderGlobal::set_texture(blur_depth_texVarId, nullptr);
 }
 
-void MotionBlur::accumulateMotionVectorVersion(ManagedTexView source_color_tex, ManagedTexView motion_vector_tex,
-  ManagedTexView accumulationTex)
+void MotionBlur::accumulateMotionVectorVersion(BaseTexture *source_color_tex, BaseTexture *motion_vector_tex,
+  BaseTexture *accumulationTex)
 {
   ShaderGlobal::set_texture(blur_motion_vector_texVarId, motion_vector_tex);
   accumulateInternal(source_color_tex, motionBlurMvShElem.get(), accumulationTex);
+  ShaderGlobal::set_texture(blur_motion_vector_texVarId, nullptr);
 }
 
-void MotionBlur::accumulateInternal(ManagedTexView source_color_tex, ShaderElement *elem, ManagedTexView accumulationTex)
+void MotionBlur::accumulateInternal(BaseTexture *source_color_tex, ShaderElement *elem, BaseTexture *accumulationTex)
 {
   if (scale < SCALE_EPS)
     return;
@@ -120,36 +122,39 @@ void MotionBlur::accumulateInternal(ManagedTexView source_color_tex, ShaderEleme
   ShaderGlobal::set_texture(blur_source_texVarId, source_color_tex);
 
   // build accum
-  d3d::set_render_target(accumulationTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{accumulationTex, 0, 0}});
   d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
 
   // Set shader vars.
-  ShaderGlobal::set_real(max_velocityVarId, maxVelocity);
-  ShaderGlobal::set_real(alpha_mul_on_applyVarId, alphaMulOnApply * scale);
-  ShaderGlobal::set_color4(overscan_texcoordVarId, 0.5f - 0.5f * overscan * overscanMul * scale,
+  ShaderGlobal::set_float(max_velocityVarId, maxVelocity);
+  ShaderGlobal::set_float(alpha_mul_on_applyVarId, alphaMulOnApply * scale);
+  ShaderGlobal::set_float4(overscan_texcoordVarId, 0.5f - 0.5f * overscan * overscanMul * scale,
     -0.5f + 0.5f * overscan * overscanMul * scale, 0.5f, 0.5f);
 
   TextureInfo info;
   accumulationTex->getinfo(info);
   const int accumulationWidth = info.w;
   const int accumulationHeight = info.h;
-  ShaderGlobal::set_color4(accumulation_sizeVarId, accumulationWidth, accumulationHeight);
+  ShaderGlobal::set_float4(accumulation_sizeVarId, accumulationWidth, accumulationHeight);
 
   // Render to accumulation texture.
   d3d::setvdecl(BAD_VDECL);
   d3d::setvsrc(0, nullptr, 0);
   if (elem->setStates(0, true))
     d3d::draw(PRIM_LINELIST, 0, accumulationWidth * accumulationHeight);
+
+  ShaderGlobal::set_texture(blur_source_texVarId, nullptr);
 }
 
-void MotionBlur::combine(ManagedTexView target_tex, ManagedTexView accumulationTex)
+void MotionBlur::combine(BaseTexture *target_tex, BaseTexture *accumulationTex)
 {
   if (scale < SCALE_EPS)
     return;
 
-  d3d::set_render_target(target_tex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{target_tex, 0, 0}});
   ShaderGlobal::set_texture(accumulation_texVarId, accumulationTex);
   applyMotionBlurRenderer.render();
+  ShaderGlobal::set_texture(accumulation_texVarId, nullptr);
 }
 
 void MotionBlur::useSettings(const Settings &settings)
@@ -158,7 +163,7 @@ void MotionBlur::useSettings(const Settings &settings)
   maxVelocity = settings.maxVelocity;
   alphaMulOnApply = settings.alphaMulOnApply;
   overscanMul = settings.overscanMul;
-  ShaderGlobal::set_real(forward_blurVarId, settings.forwardBlur);
+  ShaderGlobal::set_float(forward_blurVarId, settings.forwardBlur);
   scale = settings.scale;
 }
 

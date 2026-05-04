@@ -4,11 +4,6 @@ Location = prog/gameLibs/landMesh ;
 TargetType  = lib ;
 Target      = gameLibs/landMesh.lib ;
 
-if $(DclipmapUseRiVtex) = yes {
-  Target = $(Target:S=~RiVtex.lib) ;
-  CPPopt = -DCLIPMAP_USE_RI_VTEX ;
-}
-
 Sources =
   landMicroDetails.cpp
   lmeshManager.cpp

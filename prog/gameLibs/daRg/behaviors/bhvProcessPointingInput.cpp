@@ -23,8 +23,8 @@ BhvProcessPointingInput bhv_process_pointing_input;
 BhvProcessPointingInput::BhvProcessPointingInput() : Behavior(0, F_HANDLE_KEYBOARD_GLOBAL | F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
 
 
-int BhvProcessPointingInput::pointerEvent(ElementTree * /*etree*/, Element *elem, InputDevice device, InputEvent event, int pointer_id,
-  int btn_id, const Point2 &pos, int accum_res)
+int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice device, InputEvent event,
+  int pointer_id, int btn_id, Point2 pos, int accum_res)
 {
   Sqrat::Function handler;
 
@@ -68,28 +68,8 @@ int BhvProcessPointingInput::pointerEvent(ElementTree * /*etree*/, Element *elem
     evt.SetValue("altKey", false);
   }
 
-  Sqrat::Object sqRes;
-  if (handler.Evaluate(evt, sqRes))
-    return sqRes.GetType() & SQOBJECT_NUMERIC ? sqRes.Cast<int>() : 0;
-  else
-    return 0;
-}
-
-
-int BhvProcessPointingInput::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
-  int data, short mx, short my, int /*buttons*/, int accum_res)
-{
-  if (event == INP_EV_PRESS || event == INP_EV_RELEASE || event == INP_EV_POINTER_MOVE)
-    return pointerEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-  else
-    return 0;
-}
-
-
-int BhvProcessPointingInput::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx, const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointerEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
+  auto sqRes = handler.Eval<Sqrat::Object>(evt);
+  return (sqRes && sqRes.value().GetType() & SQOBJECT_NUMERIC) ? sqRes.value().Cast<int>() : 0;
 }
 
 

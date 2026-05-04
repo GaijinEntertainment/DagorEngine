@@ -84,7 +84,8 @@ using parse_options = parse_options_t<char>;
   #endif
 #endif
 
-#if ((defined(_WIN32) || defined(_WIN64)) && !defined(__clang__))
+#if ((defined(_WIN32) || defined(_WIN64)) && !defined(__clang__)) || \
+    (defined(_M_ARM64) && !defined(__MINGW32__))
 #include <intrin.h>
 #endif
 

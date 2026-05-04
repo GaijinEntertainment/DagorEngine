@@ -1,0 +1,56 @@
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let', name = 'clearTimer', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'clearTimer', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 1
+|     |   Parameter #1 name = '_id', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+`-VarDecl 'let', name = 'fieldReadOnly', type = 'any'
+    Initializer
+      FunctionExpr name = 'fieldReadOnly', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 1
+      |   Parameter #1 name = 'params', type = 'any'  (has default)
+      |     DefaultValue
+      |       TableExpr
+      `-Body
+          Block isRoot = 0, isBody = 1
+          |-DestructuringDecl type = 'table'
+          | |-Initializer
+          | |   Id 'params'
+          | `-VarDecl 'let', name = 'rawComponentName', type = 'any'
+          |     Initializer
+          |       LiteralExpr LK_NULL
+          `-IfStatement
+            |-Condition
+            |   LiteralExpr LK_BOOL true
+            `-ThenBranch
+                Block isRoot = 0, isBody = 0
+                |-VarDecl 'let', name = 'uniqueTimerKey', type = 'any'
+                |   Initializer
+                |     Id 'rawComponentName'
+                `-ReturnStatement
+                    FunctionExpr 'lambda' name = '(indirectLocalCapture.nut:16)', pure = 0, nodiscard = 0, resultType = 'any'
+                    |-Parameters count = 0
+                    `-Body
+                        Block isRoot = 0, isBody = 1
+                        |-VarDecl 'let', name = '$ch0', type = 'any'
+                        |   Initializer
+                        |     FunctionExpr 'lambda' name = '(indirectLocalCapture.nut:17)', pure = 0, nodiscard = 0, resultType = 'any'
+                        |     |-Parameters count = 0
+                        |     `-Body
+                        |         Block isRoot = 0, isBody = 1
+                        |           ReturnStatement
+                        |             CallExpr
+                        |             |-Callee
+                        |             |   Id 'clearTimer'
+                        |             `-Arguments
+                        |                 Argument #1
+                        |                   Id 'uniqueTimerKey'
+                        `-ReturnStatement
+                            TableExpr
+                              Field
+                              |-Key
+                              |   LiteralExpr LK_STRING "onDetach"
+                              `-Value
+                                  Id '$ch0'

@@ -24,10 +24,10 @@ gui_scene.setUpdateHandler(function(dt) {
 
 
 function simpleComponent(val){
-  let pos = useFlow ? null : [sw(math.rand()*80/math.RAND_MAX), sh(math.rand()*80/math.RAND_MAX)]
-  let size = [sh(math.rand()*15/math.RAND_MAX+2), sh(math.rand()*15/math.RAND_MAX+2) / (useFlow ? 10 : 1)]
-  let color = Color(math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX)
-  function frc() {return (math.rand()*255/math.RAND_MAX).tointeger()}
+  let pos = useFlow ? null : [sw(math.rand() % 81), sh(math.rand() % 81)]
+  let size = [sh(math.rand() % 16 + 2), sh(math.rand() % 16 + 2) / (useFlow ? 10 : 1)]
+  let color = Color(math.rand() & 0xFF, math.rand() & 0xFF, math.rand() & 0xFF)
+  function frc() {return math.rand() & 0xFF}
   let children = []
 
   if (borders && showChild[val].get()) {
@@ -68,14 +68,14 @@ function simpleComponent(val){
     rtRecalcLayout = rtRecalcLayout
     behavior =  rt_update ? [Behaviors.RtPropUpdate, Behaviors.Button] : [Behaviors.Button]
     update = @() {
-      size = calcLayout ? [sh(math.rand()*15/math.RAND_MAX+2), sh(math.rand()*15/math.RAND_MAX+2) / (useFlow ? 10 : 1)] : size
+      size = calcLayout ? [sh(math.rand() % 16 + 2), sh(math.rand() % 16 + 2) / (useFlow ? 10 : 1)] : size
       pos = calcLayout
         ? useFlow
           ? null
-          : [sw(math.rand()*80/math.RAND_MAX), sh(math.rand()*80/math.RAND_MAX)]
+          : [sw(math.rand() % 81), sh(math.rand() % 81)]
         : pos
       transform = rtTransform ? {
-        translate = [math.rand()*10/math.RAND_MAX, math.rand()*10/math.RAND_MAX]
+        translate = [math.rand() % 11, math.rand() % 11]
       }: null
     }
   }

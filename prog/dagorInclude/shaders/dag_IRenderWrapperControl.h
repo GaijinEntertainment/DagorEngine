@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <math/dag_mathBase.h>
+#include <math/dag_bounds3.h>
 
 // Interface for applying beforeRender and BeforeRenderTrans policies
 class IRenderWrapperControl

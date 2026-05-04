@@ -1,14 +1,8 @@
 int lmesh_vs_const__pos_to_world        = 62;
-int lmesh_ps_const__mirror_scale        = 62;
+int lmesh_ps_const__mirror_scale        = 66;
 macro INIT_HARDCODED_WORLD_POS()
-  if (!DEBUG && (mobile_render != off)) {
-    hlsl(ps) {
-      float4 mirror_scale : register(c62);
-    }
-  } else {
-    (ps) {
-      mirror_scale@f4 : register(lmesh_ps_const__mirror_scale);
-    }
+  (ps) {
+    mirror_scale@f4 : register(lmesh_ps_const__mirror_scale);
   }
 
   hlsl(vs) {

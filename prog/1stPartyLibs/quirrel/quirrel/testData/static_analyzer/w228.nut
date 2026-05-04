@@ -1,6 +1,4 @@
-//expect:w228
-
-function x() { //-declared-never-used
+function _x() {
   local str = "string"
   return
 }

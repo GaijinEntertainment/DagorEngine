@@ -18,6 +18,24 @@ public:
   static bool available();
 
   GPUWatchMs() = default;
+  GPUWatchMs(const GPUWatchMs &) = delete;
+  GPUWatchMs &operator=(const GPUWatchMs &) = delete;
+  GPUWatchMs(GPUWatchMs &&other) : startQuery(other.startQuery), endQuery(other.endQuery)
+  {
+    other.startQuery = nullptr;
+    other.endQuery = nullptr;
+  }
+  GPUWatchMs &operator=(GPUWatchMs &&other)
+  {
+    if (this != &other)
+    {
+      startQuery = other.startQuery;
+      endQuery = other.endQuery;
+      other.startQuery = nullptr;
+      other.endQuery = nullptr;
+    }
+    return *this;
+  }
   ~GPUWatchMs();
 
   void start();

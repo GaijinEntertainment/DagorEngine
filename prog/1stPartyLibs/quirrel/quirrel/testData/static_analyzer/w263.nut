@@ -2,7 +2,7 @@
 
 for (local i = 0; i < 5; i++) // EXPECTED
 {
-  ::print(i)
+  print(i)
 }
 
 function _foo(_p) // EXPECTED

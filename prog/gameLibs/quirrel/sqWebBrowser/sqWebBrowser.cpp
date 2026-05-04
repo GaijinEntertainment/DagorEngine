@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <webBrowserHelper/webBrowser.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 /* qdox @module browser
 Opens and control embeded web browser. Requires native cef binary and its integration

@@ -1,0 +1,9 @@
+ERROR: expression of type 'instance' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_instance_from_class.nut:6:0
+
+}
+local obj: string = MyClass()
+^----------------------------
+return obj
+
+

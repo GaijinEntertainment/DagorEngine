@@ -1,0 +1,13 @@
+Root    ?= ../../.. ;
+Location = prog/engine/daECS ;
+
+TargetType  = util ;
+Target      = externalLibs ;
+
+# UseQuirrel = yes ;
+
+Dependencies =
+  $(Root)/$(Location)/core/jamfile
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -272,18 +272,23 @@ struct RegularActionRecord
 {
   delayed_callback cb;
   void *cbArg;
+  bool performOnWorkCycle;
 };
 static Tab<RegularActionRecord> regular_actions;
 
-void register_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg)
+void register_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg, bool perform_on_work_cycle)
 {
   WinAutoLock lock(da_ctx.delayedCrit);
   for (int i = 0; i < regular_actions.size(); i++)
     if (regular_actions[i].cb == cb && regular_actions[i].cbArg == cb_arg)
+    {
+      G_ASSERT(regular_actions[i].performOnWorkCycle == perform_on_work_cycle);
       return;
+    }
   RegularActionRecord &r = regular_actions.push_back();
   r.cb = cb;
   r.cbArg = cb_arg;
+  r.performOnWorkCycle = perform_on_work_cycle;
 }
 void unregister_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg)
 {
@@ -295,7 +300,7 @@ void unregister_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg)
       return;
     }
 }
-void perform_regular_actions_for_idle_cycle()
+void perform_regular_actions_for_idle_cycle(bool is_work_cycle)
 {
   decltype(regular_actions) localActions;
   {
@@ -306,7 +311,8 @@ void perform_regular_actions_for_idle_cycle()
   }
 
   for (auto &act : localActions)
-    act.cb(act.cbArg);
+    if (!is_work_cycle || act.performOnWorkCycle)
+      act.cb(act.cbArg);
 
   WinAutoLock lock(da_ctx.delayedCrit);
   if (regular_actions.empty())

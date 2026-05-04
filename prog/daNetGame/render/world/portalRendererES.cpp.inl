@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
@@ -17,13 +16,13 @@ ECS_REGISTER_BOXED_TYPE(PortalRenderer, nullptr)
 
 
 template <typename Callable>
-static void get_portal_renderer_manager_ecs_query(ecs::EntityId, Callable);
+static void get_portal_renderer_manager_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 
 PortalRenderer *portal_renderer_mgr::query_portal_renderer()
 {
   PortalRenderer *result = nullptr;
-  get_portal_renderer_manager_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("portal_renderer_manager")),
+  get_portal_renderer_manager_ecs_query(*g_entity_mgr, g_entity_mgr->getSingletonEntity(ECS_HASH("portal_renderer_manager")),
     [&](PortalRenderer &portal_renderer) { result = &portal_renderer; });
 
   // if (!result)

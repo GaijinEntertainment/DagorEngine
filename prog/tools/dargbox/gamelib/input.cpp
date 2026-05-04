@@ -3,7 +3,7 @@
 #include "input.h"
 
 #include <quirrel/sqEventBus/sqEventBus.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 
 #include <drv/hid/dag_hiKeybIds.h>
@@ -68,20 +68,22 @@ void on_keyboard_event(HSQUIRRELVM vm, HumanInput::IGenKeyboard *kbd, int btn_id
   G_UNUSED(kbd);
   using namespace darg;
 
-  Hotkeys::EncodedKey btnEncoded = (DEVID_KEYBOARD << Hotkeys::DEV_ID_SHIFT) | btn_idx;
-
-  Sqrat::Table data(vm);
-  data.SetValue("btn", btnEncoded);
-  auto nameIt = btn_name_by_id.find(btnEncoded);
-  if (nameIt != btn_name_by_id.end())
-    data.SetValue("btnName", nameIt->second.c_str());
-  else
-    data.SetValue("btnName", Sqrat::Object(vm));
-  data.SetValue("pressed", pressed);
-  data.SetValue("repeat", repeat);
-  data.SetValue("char", SQInteger(wc));
-  data.SetValue("processedByUi", processed_by_ui);
-  sqeventbus::send_event("kb-input", data, eventbus_src);
+  sqeventbus::write_event_main_thread(
+    "kb-input",
+    [&](auto &data) {
+      Hotkeys::EncodedKey btnEncoded = (DEVID_KEYBOARD << Hotkeys::DEV_ID_SHIFT) | btn_idx;
+      data["btn"] = btnEncoded;
+      auto nameIt = btn_name_by_id.find(btnEncoded);
+      if (nameIt != btn_name_by_id.end())
+        data["btnName"] = nameIt->second.c_str();
+      else
+        data["btnName"] = Sqrat::Object(data.getVM());
+      data["pressed"] = pressed;
+      data["repeat"] = repeat;
+      data["char"] = SQInteger(wc);
+      data["processedByUi"] = processed_by_ui;
+    },
+    eventbus_src);
 }
 
 void on_mouse_button_event(HSQUIRRELVM vm, HumanInput::IGenPointing *pnt, int btn_idx, bool pressed, const Point2 &pos,
@@ -90,21 +92,22 @@ void on_mouse_button_event(HSQUIRRELVM vm, HumanInput::IGenPointing *pnt, int bt
   G_UNUSED(pnt);
   using namespace darg;
 
-  Hotkeys::EncodedKey btnEncoded = (DEVID_MOUSE << Hotkeys::DEV_ID_SHIFT) | btn_idx;
-  Sqrat::Table data(vm);
-
-  data.SetValue("btn", btnEncoded);
-  auto nameIt = btn_name_by_id.find(btnEncoded);
-  if (nameIt != btn_name_by_id.end())
-    data.SetValue("btnName", nameIt->second.c_str());
-  else
-    data.SetValue("btnName", Sqrat::Object(vm));
-  data.SetValue("pressed", pressed);
-  data.SetValue("x", pos.x);
-  data.SetValue("y", pos.y);
-  data.SetValue("processedByUi", processed_by_ui);
-
-  sqeventbus::send_event("mouse-button", data, eventbus_src);
+  sqeventbus::write_event_main_thread(
+    "mouse-button",
+    [&](auto &data) {
+      Hotkeys::EncodedKey btnEncoded = (DEVID_MOUSE << Hotkeys::DEV_ID_SHIFT) | btn_idx;
+      data["btn"] = btnEncoded;
+      auto nameIt = btn_name_by_id.find(btnEncoded);
+      if (nameIt != btn_name_by_id.end())
+        data["btnName"] = nameIt->second.c_str();
+      else
+        data["btnName"] = Sqrat::Object(data.getVM());
+      data["pressed"] = pressed;
+      data["x"] = pos.x;
+      data["y"] = pos.y;
+      data["processedByUi"] = processed_by_ui;
+    },
+    eventbus_src);
 }
 
 
@@ -115,12 +118,15 @@ void on_mouse_wheel_event(HSQUIRRELVM vm, HumanInput::IGenPointing *pnt, int del
 
   Sqrat::Table data(vm);
 
-  data.SetValue("delta", delta);
-  data.SetValue("x", pos.x);
-  data.SetValue("y", pos.y);
-  data.SetValue("processedByUi", processed_by_ui);
-
-  sqeventbus::send_event("mouse-wheel", data, eventbus_src);
+  sqeventbus::write_event_main_thread(
+    "mouse-wheel",
+    [&](auto &data) {
+      data["delta"] = delta;
+      data["x"] = pos.x;
+      data["y"] = pos.y;
+      data["processedByUi"] = processed_by_ui;
+    },
+    eventbus_src);
 }
 
 void on_mouse_move_event(HSQUIRRELVM vm, HumanInput::IGenPointing *pnt, const Point2 &pos, bool processed_by_ui)
@@ -128,13 +134,14 @@ void on_mouse_move_event(HSQUIRRELVM vm, HumanInput::IGenPointing *pnt, const Po
   G_UNUSED(pnt);
   using namespace darg;
 
-  Sqrat::Table data(vm);
-
-  data.SetValue("x", pos.x);
-  data.SetValue("y", pos.y);
-  data.SetValue("processedByUi", processed_by_ui);
-
-  sqeventbus::send_event("mouse-move", data, eventbus_src);
+  sqeventbus::write_event_main_thread(
+    "mouse-move",
+    [&](auto &data) {
+      data["x"] = pos.x;
+      data["y"] = pos.y;
+      data["processedByUi"] = processed_by_ui;
+    },
+    eventbus_src);
 }
 
 
@@ -153,16 +160,19 @@ static bool dispatch_joystick_state_changed(HSQUIRRELVM vm, const HumanInput::Bu
   {
     if (btnXor.getIter(btn, inc))
     {
-      Hotkeys::EncodedKey btnEncoded = (DEVID_JOYSTICK << Hotkeys::DEV_ID_SHIFT) | btn;
-      data.SetValue("btn", btnEncoded);
-      auto nameIt = btn_name_by_id.find(btnEncoded);
-      if (nameIt != btn_name_by_id.end())
-        data.SetValue("btnName", nameIt->second.c_str());
-      else
-        data.SetValue("btnName", Sqrat::Object(vm));
-      data.SetValue("pressed", buttons.get(btn) ? true : false);
-
-      sqeventbus::send_event("joystick-button", data, eventbus_src);
+      sqeventbus::write_event_main_thread(
+        "joystick-button",
+        [&](auto &data) {
+          Hotkeys::EncodedKey btnEncoded = (DEVID_JOYSTICK << Hotkeys::DEV_ID_SHIFT) | btn;
+          data["btn"] = btnEncoded;
+          auto nameIt = btn_name_by_id.find(btnEncoded);
+          if (nameIt != btn_name_by_id.end())
+            data["btnName"] = nameIt->second.c_str();
+          else
+            data["btnName"] = Sqrat::Object(data.getVM());
+          data["pressed"] = buttons.get(btn) ? true : false;
+        },
+        eventbus_src);
     }
   }
 

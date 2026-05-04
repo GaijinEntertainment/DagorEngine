@@ -13,7 +13,6 @@ shader dynamic_modulate2x_diffuse_decal, dynamic_deferred_modulate2x_decal
   render_stage decal;
   z_write = false;
 
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   SUPPORT_MULTIDRAW(false)
 
@@ -34,11 +33,11 @@ shader dynamic_modulate2x_diffuse_decal, dynamic_deferred_modulate2x_decal
   if (shader == dynamic_deferred_modulate2x_decal)
   {
     DYNAMIC_DECAL_VS(true)
-    MODULATE_2X_DECAL_PS(true)
+    MODULATE_2X_DECAL_PS(true, true)
   }
   else
   {
     DYNAMIC_DECAL_VS(false)
-    MODULATE_2X_DECAL_PS(false)
+    MODULATE_2X_DECAL_PS(false, true)
   }
 }

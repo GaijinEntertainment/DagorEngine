@@ -22,11 +22,11 @@
 LENS_GLOW_VARS_LIST
 #undef VAR
 
-void validate_shadervars()
+void require_shadervars()
 {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
   LENS_GLOW_VARS_LIST
 #undef VAR
 }
@@ -41,7 +41,7 @@ void apply_lens_glow_settings(bool enabled, const IPoint2 &display_resolution, f
     ShaderGlobal::set_texture(lens_glow_texVarId, BAD_TEXTUREID);
     return;
   }
-  validate_shadervars();
+  require_shadervars();
   TEXTUREID texId = ::get_tex_gameres(texture_name.c_str(), true);
   if (texId == BAD_TEXTUREID)
   {
@@ -56,14 +56,14 @@ void apply_lens_glow_settings(bool enabled, const IPoint2 &display_resolution, f
     tex->getinfo(texInfo);
     Point2 tc_scaling = Point2(float(display_resolution.x) / display_resolution.y * float(texInfo.h) / texInfo.w, 1);
     tc_scaling /= max(tc_scaling.x, tc_scaling.y);
-    ShaderGlobal::set_color4(lens_glow_tex_paramsVarId, tc_scaling.x, tc_scaling.y, 0, 0);
+    ShaderGlobal::set_float4(lens_glow_tex_paramsVarId, tc_scaling.x, tc_scaling.y, 0, 0);
   }
   ShaderGlobal::set_int(lens_glow_enabledVarId, 1);
   ShaderGlobal::set_texture(lens_glow_texVarId, texId);
-  ShaderGlobal::set_color4(lens_glow_tintVarId, lens_glow_config__texture_tint * lens_glow_config__texture_intensity_multiplier, 0);
-  ShaderGlobal::set_color4(lens_glow_flare_paramsVarId, lens_glow_config__lens_flare_offset, lens_glow_config__lens_flare_multiplier,
+  ShaderGlobal::set_float4(lens_glow_tintVarId, lens_glow_config__texture_tint * lens_glow_config__texture_intensity_multiplier, 0);
+  ShaderGlobal::set_float4(lens_glow_flare_paramsVarId, lens_glow_config__lens_flare_offset, lens_glow_config__lens_flare_multiplier,
     0, 0);
-  ShaderGlobal::set_color4(lens_glow_bloom_paramsVarId, lens_glow_config__bloom_offset, lens_glow_config__bloom_multiplier, 0, 0);
+  ShaderGlobal::set_float4(lens_glow_bloom_paramsVarId, lens_glow_config__bloom_offset, lens_glow_config__bloom_multiplier, 0, 0);
   ::release_managed_tex(texId); // ShaderGlobal holds the reference now
 }
 

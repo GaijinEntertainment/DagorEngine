@@ -23,14 +23,15 @@
 
 #include "internal/fmodCompatibility.h"
 #include "internal/framememString.h"
-#include "internal/attributes.h"
-#include "internal/delayed.h"
+#include "internal/attributes_internal.h"
+#include "internal/delayed_internal.h"
 #include "internal/releasing.h"
-#include "internal/events.h"
-#include "internal/streams.h"
-#include "internal/soundSystem.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/events_internal.h"
+#include "internal/streams_internal.h"
+#include "internal/soundSystem_internal.h"
+#include "internal/occlusion_internal.h"
+#include "internal/occlusionGPU_internal.h"
+#include "internal/debug_internal.h"
 
 static WinCritSec g_debug_trace_cs;
 #define SNDSYS_DEBUG_TRACE_BLOCK WinAutoLock debugTraceLock(g_debug_trace_cs);
@@ -86,6 +87,7 @@ static int g_box_extent_x = 0;
 static int g_box_extent_y = 0;
 static int g_box_offset = 0;
 static bool g_have_3d_stream_in_zero = false;
+static eastl::string g_filter = "";
 
 static constexpr TraceLevel def_log_level = TraceLevel::err;
 static TraceLevel g_log_level = def_log_level;
@@ -210,6 +212,12 @@ static bool is_muted(const FMOD::Studio::EventInstance &event_instance)
   event_instance.getVolume(&volume);
   return volume == 0.f;
 }
+static bool is_paused(const FMOD::Studio::EventInstance &event_instance)
+{
+  bool paused = false;
+  event_instance.getPaused(&paused);
+  return paused;
+}
 static bool is_snapshot(const FMOD::Studio::EventDescription &event_description)
 {
   bool snapshot = false;
@@ -247,6 +255,7 @@ static class GlobalInstances
     uint8_t numPlaying = 0;
     uint8_t numVirtual = 0;
     uint8_t numMuted = 0;
+    uint8_t numPaused = 0;
     uint8_t numDuplicated = 0;
     uint8_t time = 0;
   };
@@ -255,7 +264,7 @@ static class GlobalInstances
 
 public:
   void push(const FMOD::Studio::EventInstance &event_instance, const FMOD::Studio::EventDescription &event_description,
-    int num_instances, int num_playing, int num_virtual, int num_muted)
+    int num_instances, int num_playing, int num_virtual, int num_muted, int num_paused)
   {
     Desc *desc = eastl::find_if(descs.begin(), descs.end(), [&](const auto &it) { return it.desc == &event_description; });
     if (desc != descs.end())
@@ -279,6 +288,7 @@ public:
     desc->numPlaying = min(num_playing, 0xff);
     desc->numVirtual = min(num_virtual, 0xff);
     desc->numMuted = min(num_muted, 0xff);
+    desc->numPaused = min(num_paused, 0xff);
     desc->updateId = updateId;
   }
 
@@ -312,6 +322,8 @@ public:
       if (desc.time < max_time)
         ++desc.time;
   }
+
+  void reset() { descs.clear(); }
 
   const Desc *begin() const { return descs.begin(); }
   const Desc *end() const { return descs.end(); }
@@ -351,6 +363,9 @@ static void get_event_name(const FMOD::Studio::EventInstance &event_instance, co
   FrameString &text)
 {
   text = get_debug_name_handle(event_instance, event_description);
+
+  if (!event_instance.isValid())
+    return;
 
   int paramDescCount = 0;
   event_description.getParameterDescriptionCount(&paramDescCount);
@@ -407,7 +422,10 @@ static void print_samples_instances(int offset)
     offset += print(g_offset.x, offset, g_def_color, "");
   }
 
-  offset += print(g_offset.x, offset, g_def_color, "[INSTANCES]");
+  if (!g_filter.empty())
+    offset += print_format(g_offset.x, offset, g_def_color, "[INSTANCES filtered by=*%s*]", g_filter.c_str());
+  else
+    offset += print(g_offset.x, offset, g_def_color, "[INSTANCES]");
 
   FrameString text;
   int numBanks = 0;
@@ -437,20 +455,28 @@ static void print_samples_instances(int offset)
       if (!numInstances)
         continue;
 
+      if (!g_filter.empty())
+      {
+        FrameStr name = get_debug_name(*evtDesc);
+        if (name.find(g_filter.c_str(), 0, g_filter.size()) == eastl::string::npos)
+          continue;
+      }
+
       bool is3d = false;
       evtDesc->is3D(&is3d);
 
-      int numPlaying = 0, numVirtual = 0, numMuted = 0;
+      int numPlaying = 0, numVirtual = 0, numMuted = 0, numPaused = 0;
       const auto instancesSlice = make_span(instance_list.begin(), numInstances);
       for (const FMOD::Studio::EventInstance *instance : instancesSlice)
       {
         numPlaying += is_playing(*instance) ? 1 : 0;
         numVirtual += is_virtual(*instance) ? 1 : 0;
         numMuted += is_muted(*instance) ? 1 : 0;
+        numPaused += is_paused(*instance) ? 1 : 0;
       }
 
       const FMOD::Studio::EventInstance &firstInstance = *instance_list.front();
-      g_instances.push(firstInstance, *evtDesc, numInstances, numPlaying, numVirtual, numMuted);
+      g_instances.push(firstInstance, *evtDesc, numInstances, numPlaying, numVirtual, numMuted, numPaused);
 
       for (const FMOD::Studio::EventInstance *instance : instancesSlice)
       {
@@ -530,8 +556,21 @@ static void print_samples_instances(int offset)
         text.append_sprintf(" (%d virtual)", it.numVirtual);
       if (it.numMuted)
         text.append_sprintf(" (%d muted)", it.numMuted);
+      if (it.numPaused)
+        text.append_sprintf(" (%d paused)", it.numPaused);
       if (it.numPlaying < it.numInstances)
         text.append_sprintf(" (%d stopped)", it.numInstances - it.numPlaying);
+    }
+    else if (it.numInstances == 1)
+    {
+      if (it.numVirtual)
+        text.append(" (virtual)");
+      if (it.numMuted)
+        text.append(" (muted)");
+      if (it.numPaused)
+        text.append(" (paused)");
+      if (!it.numPlaying)
+        text.append(" (stopped)");
     }
 
     if (const char *sampleLoadingState = get_sample_loading_state(desc))
@@ -619,6 +658,12 @@ static void print_messages()
   for (int i = 0; i < g_num_messages; ++i)
   {
     const DebugMessage &msg = debug_messages[(i + g_first_message_id) % debug_messages.size()];
+    if (!g_filter.empty())
+    {
+      if (msg.text.find(g_filter.c_str(), 0, g_filter.size()) == eastl::string::npos)
+        continue;
+    }
+
     const uint32_t color = (msg.level == TraceLevel::warn) ? g_warn_color : (msg.level == TraceLevel::err) ? g_err_color : g_log_color;
     const auto background = msg.level == TraceLevel::err ? g_background_err : g_background_none;
     if (msg.count <= 1)
@@ -690,19 +735,49 @@ static void draw_occlusion_src(FMOD::Studio::EventInstance *instance, occlusion:
       group_id, value, shortName, pos.x, pos.z);
 }
 
-static void print_occlusion(int y, int max_y)
+static void print_occlusion_blobs(const Point3 & /*pos*/, int num_instances, float occlusion, bool auto_delete)
 {
-  g_occlusion_x = get_channels_x();
-  g_occlusion_y = y;
-  g_occlusion_y += print(g_occlusion_x, g_occlusion_y, g_def_color, "[OCCLUSION]");
-  g_occlusion_max_y = max_y;
+  if (g_occlusion_y >= StdGuiRender::get_viewport().rightBottom.y)
+    return;
+  g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_update_color, "instances: %d  occlusion: %.2f%s", num_instances,
+    occlusion, auto_delete ? "  [x]" : "");
+}
 
-  int totalTraces = 0;
-  int maxTraces = 0;
-  occlusion::get_debug_info(totalTraces, maxTraces);
-  g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "traces total/max: %d/%d", totalTraces, maxTraces);
+static void draw_occlusion(int y, int max_y)
+{
+  if (occlusion::is_valid())
+  {
+    g_occlusion_x = get_channels_x();
+    g_occlusion_y = y;
+    g_occlusion_y += print(g_occlusion_x, g_occlusion_y, g_def_color, "[OCCLUSION]");
+    g_occlusion_max_y = max_y;
 
-  occlusion::debug_enum_sources(&draw_occlusion_src);
+    int totalTraces = 0;
+    int maxTraces = 0;
+    occlusion::get_debug_info(totalTraces, maxTraces);
+    g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "traces total/max: %d/%d", totalTraces, maxTraces);
+
+    occlusion::debug_enum_sources(&draw_occlusion_src);
+  }
+  else if (occlusion_gpu::is_inited())
+  {
+    g_occlusion_x = get_channels_x();
+    g_occlusion_y = y;
+    g_occlusion_y += print(g_occlusion_x, g_occlusion_y, g_def_color, "[OCCLUSION_GPU]");
+    g_occlusion_max_y = max_y;
+
+    const occlusion_gpu::DebugState state = occlusion_gpu::get_debug_state();
+    g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "gpu blobs used/max: %d/%d", state.numActiveGPUSources,
+      state.maxActiveGPUSources);
+    g_occlusion_y +=
+      print_format(g_occlusion_x, g_occlusion_y, g_def_color, "blobs used/free: %d/%d", state.numUsedBlobs, state.numFreeBlobs);
+    g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "blobs active: %d", state.numActiveBlobs);
+    g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "blobs auto delete: %d", state.numAutoDeleteBlobs);
+    g_occlusion_y += print_format(g_occlusion_x, g_occlusion_y, g_def_color, "instances: %d", state.numInstances);
+    g_occlusion_y += g_interligne;
+
+    occlusion_gpu::debug_enum_blobs(&print_occlusion_blobs);
+  }
 }
 
 void debug_draw()
@@ -760,7 +835,7 @@ void debug_draw()
   const int screenBottom = StdGuiRender::get_viewport().rightBottom.y;
   const int occlusionY = (screenTop + screenBottom) / 2;
   print_channels(occlusionY - g_interligne);
-  print_occlusion(occlusionY, screenBottom);
+  draw_occlusion(occlusionY, screenBottom);
 
   print_messages();
   draw_streams();
@@ -956,6 +1031,12 @@ DEBUG_TRACE_IMPL(debug_trace_log, log, false)
 DEBUG_TRACE_IMPL(debug_trace_log_once, log, true)
 
 void debug_set_cur_scene_name(const char *scene_name) { g_cur_scene_name = scene_name; }
+
+void set_debug_filter(const char *text)
+{
+  g_filter = text;
+  g_instances.reset();
+}
 
 void debug_init(const DataBlock &blk)
 {

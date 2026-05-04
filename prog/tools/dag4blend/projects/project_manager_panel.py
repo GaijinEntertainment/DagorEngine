@@ -2,7 +2,7 @@ import bpy
 from bpy.types  import Operator, Panel
 from bpy.utils  import register_class, unregister_class
 
-from ..helpers.popup        import show_popup
+from ..popup.popup_functions    import show_popup
 from ..ui.draw_elements     import draw_custom_header
 from .draw_project_manager  import *
 

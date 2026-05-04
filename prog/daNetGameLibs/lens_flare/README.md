@@ -62,6 +62,15 @@ These lights are pre-culled by the lights manager and are available in a buffer 
 
 The compute shader is dispatched two times: one for the omnilights and one for the spotlights (if such lights are present in the view frustum and a lens flare config is available for them). The shader checks all visible lights, but culls those whose mask doesn't contain the lens flare bit.
 
+##### Optional Providers
+
+Renderer skips light provider processing if it is as optional and toggleOptionalProvidersProcessing(false) was called before.
+
+Sun and Dynamic lights providers are optional by default.
+Manual flares provider is optional only if the entity doesn't have a **"lensFlareNonOptionalProvider:tag"{}** component in the template.
+
+This way a gameplay logic is able to provide a custom light provider that will not be disabled even when the graphics setting is turned off.
+
 #### Occlusion test
 
 The occlusion check uses a compute shader on **only** the pre-culled instances and tests depth in an area of 16x16 around the light. The flares intensity is scaled proportional to the number of pixels that passed the depth test.

@@ -9,14 +9,19 @@ macro RADIANCE_CACHE_MARK_PROBES(code)
       StructuredBuffer<uint> radiance_cache_indirection_clipmap@buf;
     }
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    new_radiance_cache_probes_needed@uav : register(0) hlsl {
+      RWByteAddressBuffer new_radiance_cache_probes_needed@uav;
+    }
+    radiance_cache_used_mask@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_used_mask@uav;
+    }
+    radiance_cache_age@uav : register(2) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
 
   hlsl (code) {
     #include <waveUtils.hlsl>
-
-    RWByteAddressBuffer new_radiance_cache_probes_needed: register(u0);
-    RWByteAddressBuffer radiance_cache_used_mask: register(u1);
-    RWByteAddressBuffer radiance_cache_age: register(u2);
 
     void radiance_cache_mark_clipmap(int3 worldCoord, uint clip)
     {

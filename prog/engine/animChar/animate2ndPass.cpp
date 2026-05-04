@@ -40,13 +40,13 @@ bool Animate2ndPass::load(const AnimV20::AnimcharBaseComponent *animchar, const 
   if (*a2d_name == '*')
   {
     a2d_name++;
-    a2d = (AnimV20::AnimData *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(a2d_name), Anim2DataGameResClassId);
+    a2d = (AnimV20::AnimData *)::get_game_resource_ex(a2d_name, Anim2DataGameResClassId);
     if (!a2d.get())
     {
       logerr("failed to get a2d \"%s\" gameres in %s", a2d_name, b.resolveFilename());
       return false;
     }
-    ::release_game_resource((GameResource *)a2d.get());
+    ::release_game_resource_ex(a2d.get(), Anim2DataGameResClassId);
   }
   else
   {

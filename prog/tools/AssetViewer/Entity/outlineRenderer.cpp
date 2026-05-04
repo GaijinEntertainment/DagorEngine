@@ -44,10 +44,7 @@ void OutlineRenderer::init()
   global_frame_block_id = ShaderGlobal::getBlockId("global_frame");
   rendinst_scene_block_id = ShaderGlobal::getBlockId("rendinst_scene");
 
-  ShaderGlobal::set_color4(simple_outline_colorVarId, outline_color);
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-  ShaderGlobal::set_sampler(get_shader_variable_id("simple_outline_color_rt_samplerstate", true), d3d::request_sampler(smpInfo));
+  ShaderGlobal::set_float4(simple_outline_colorVarId, outline_color);
 }
 
 void OutlineRenderer::initResolution(int width_, int height_)
@@ -86,6 +83,7 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   // rendinst
   mat44f globtm;
   d3d::getglobtm(globtm);
+  rendinst::prepareRIGenExtraVisibility(globtm, ::grs_cur_view.pos, *globalVisibility, false, nullptr);
   rendinst::prepareRIGenVisibility(Frustum(globtm), ::grs_cur_view.pos, globalVisibility, false, nullptr);
 
   rendinst::VisibilityExternalIdFilter ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
@@ -96,6 +94,7 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
     return false;
   };
   rendinst::filterRIGenVisibilityById(globalVisibility, filteredVisibility, ri_id_filter);
+  rendinst::filterRIGenExtraVisibilityById(globalVisibility, filteredVisibility, ri_id_filter);
   {
     SCENE_LAYER_GUARD(rendinst_scene_block_id);
     rendinst::render::renderRIGen(rendinst::RenderPass::Normal, filteredVisibility, ::grs_cur_view.itm,

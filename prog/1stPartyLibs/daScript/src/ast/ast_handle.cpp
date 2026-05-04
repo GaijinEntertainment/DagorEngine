@@ -171,8 +171,11 @@ namespace das {
             auto debugInfo = helpA.debugInfo;
             sti = debugInfo->template makeNode<StructInfo>();
             sti->name = debugInfo->allocateName(name);
+            sti_gc = debugInfo->template makeNode<StructInfo>();
+            sti_gc->name = sti->name;
             // flags
             sti->flags = 0;
+            sti_gc->flags = 0;
             // count fields
             sti->count = 0;
             for ( auto & fi : fields ) {
@@ -182,7 +185,9 @@ namespace das {
                 }
             }
             // and allocate
+            sti_gc->count = 0;
             sti->size = (uint32_t) getSizeOf();
+            sti_gc->size = sti->size;
             sti->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti->count );
             int i = 0;
             for ( const auto & fn : fieldsInOrder ) {
@@ -195,17 +200,37 @@ namespace das {
                         vi->name = debugInfo->allocateName(fn);
                         vi->offset = var.offset;
                         sti->fields[i++] = vi;
+                        if ( vi->flags & (TypeInfo::flag_heapGC | TypeInfo::flag_stringHeapGC)   ) {
+                            sti_gc->count++;
+                        }
                     }
                 }
             }
+            if ( sti_gc->count ) {
+                sti_gc->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti_gc->count );
+                int j = 0;
+                for ( uint32_t n=0; n!=sti->count; ++n ) {
+                    auto & fi = sti->fields[n];
+                    if ( fi->flags & (TypeInfo::flag_heapGC | TypeInfo::flag_stringHeapGC) ) {
+                        sti_gc->fields[j++] = fi;
+                    }
+                }
+            } else {
+                sti_gc->fields = nullptr;
+            }
             sti->module_name = debugInfo->allocateCachedName(this->module->name);
         }
-
     }
 
     void BasicStructureAnnotation::walk ( DataWalker & walker, void * data ) {
         updateTypeInfo();
-        walker.walk_struct((char *)data, sti);
+        if ( walker.collecting ) {
+            if ( sti_gc->count ) {
+                walker.walk_struct((char *)data, sti_gc);
+            }
+        } else {
+            walker.walk_struct((char *)data, sti);
+        }
     }
 
     void BasicStructureAnnotation::from ( BasicStructureAnnotation * ann ) {

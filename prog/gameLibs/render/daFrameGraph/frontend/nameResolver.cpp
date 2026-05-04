@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "nameResolver.h"
-#include "recompilationData.h"
 
 #include <common/genericPoint.h>
 
@@ -9,18 +8,39 @@
 namespace dafg
 {
 
-void NameResolver::update()
+NameResolver::Changes NameResolver::update(const NodesChanged &node_changed)
 {
+  NameResolver::Changes result;
+
+  result.nameResolutionChanged.resize<ResNameId>(registry.knownNames.nameCount<ResNameId>(), false);
+  result.nameResolutionChanged.resize<AutoResTypeNameId>(registry.knownNames.nameCount<AutoResTypeNameId>(), false);
+  result.nodesWithChangedRequests.resize(registry.knownNames.nameCount<NodeNameId>(), false);
+
   FRAMEMEM_VALIDATE;
 
-  PrevResolvedNameForResource prevResolvedNameForResource(resolver.size<ResNameId>(), ResNameId::Invalid);
+  // IMPORTANT: sizes of these MUST match the CURRENT registry sizes!
+  // Otherwise we will miss new resources appearing!
+  PrevResolvedNameForResource prevResolvedNameForResource(registry.knownNames.nameCount<ResNameId>(), ResNameId::Invalid);
+  PrevResolvedNameForAutoResType prevResolvedNameForAutoResType(registry.knownNames.nameCount<AutoResTypeNameId>(),
+    AutoResTypeNameId::Invalid);
 
-  for (auto [resId, wasResolvedTo] : prevResolvedNameForResource.enumerate())
-    wasResolvedTo = getPrevResolvedNameForResource(resId);
+  for (auto resId : IdRange<ResNameId>(resolver.size<ResNameId>()))
+    prevResolvedNameForResource[resId] = getPrevResolvedNameForResource(resId);
+
+  for (auto autoResTypeId : IdRange<AutoResTypeNameId>(resolver.size<AutoResTypeNameId>()))
+    prevResolvedNameForAutoResType[autoResTypeId] = resolve(autoResTypeId);
 
   updateMapping();
-  updateFrontendRecompilationData(prevResolvedNameForResource);
-  updateInverseMapping(prevResolvedNameForResource);
+
+  for (auto [resId, wasResolvedTo] : prevResolvedNameForResource.enumerate())
+    result.nameResolutionChanged.set<ResNameId>(resId, wasResolvedTo != resolve(resId));
+
+  for (auto [autoResTypeId, wasResolvedTo] : prevResolvedNameForAutoResType.enumerate())
+    result.nameResolutionChanged.set<AutoResTypeNameId>(autoResTypeId, wasResolvedTo != resolve(autoResTypeId));
+
+  updateInverseMapping(result.nodesWithChangedRequests, prevResolvedNameForResource, node_changed, result.nameResolutionChanged);
+
+  return result;
 }
 
 ResNameId NameResolver::getPrevResolvedNameForResource(ResNameId res_id) const
@@ -80,18 +100,9 @@ void NameResolver::updateMapping()
   resolver.rebuild(registry.knownNames, resourceValid, nodeValid, autoResTypeValid);
 }
 
-void NameResolver::updateFrontendRecompilationData(const PrevResolvedNameForResource &prev_resolved_name_for_resource)
-{
-  auto &resourceResolvedNameUnchanged = frontendRecompilationData.resourceResolvedNameUnchanged;
-
-  resourceResolvedNameUnchanged.clear();
-  resourceResolvedNameUnchanged.resize(registry.knownNames.nameCount<ResNameId>(), false);
-
-  for (auto [resId, wasResolvedTo] : prev_resolved_name_for_resource.enumerate())
-    resourceResolvedNameUnchanged.set(resId, wasResolvedTo == resolve(resId));
-}
-
-void NameResolver::updateInverseMapping(const PrevResolvedNameForResource &prev_resolved_name_for_resource)
+void NameResolver::updateInverseMapping(NodesChanged &out_nodes_with_changed_requests,
+  const PrevResolvedNameForResource &prev_resolved_name_for_resource, const NodesChanged &node_changed,
+  const NameResolutionChanged &name_resolution_changed)
 {
   // Don't free memory pre-allocated inside the vector maps
   inverseMapping.resize(registry.knownNames.nameCount<NodeNameId>());
@@ -121,51 +132,40 @@ void NameResolver::updateInverseMapping(const PrevResolvedNameForResource &prev_
     inv_mapping[resolve(unresolved_res_id)].push_back(unresolved_res_id);
   };
 
-  const auto &resourceResolvedNameUnchanged = frontendRecompilationData.resourceResolvedNameUnchanged;
-
-  auto &resourceRequestsForNodeUnchagned = frontendRecompilationData.resourceRequestsForNodeUnchanged;
-  auto &nodeUnchanged = frontendRecompilationData.nodeUnchanged;
-  resourceRequestsForNodeUnchagned = nodeUnchanged;
-
   for (auto [nodeId, nodeData] : registry.nodes.enumerate())
   {
     auto &nodeInverseMapping = inverseMapping[nodeId];
-    auto &nodeInverseHistoyMapping = inverseHistoryMapping[nodeId];
+    auto &nodeInverseHistoryMapping = inverseHistoryMapping[nodeId];
 
-    if (!frontendRecompilationData.nodeUnchanged[nodeId])
+    if (node_changed[nodeId])
     {
       nodeInverseMapping.clear();
-      nodeInverseHistoyMapping.clear();
+      nodeInverseHistoryMapping.clear();
 
       for (const auto &[resId, _] : nodeData.resourceRequests)
         nodeInverseMapping[resolve(resId)].push_back(resId);
       for (const auto &[resId, _] : nodeData.historyResourceReadRequests)
-        nodeInverseHistoyMapping[resolve(resId)].push_back(resId);
+        nodeInverseHistoryMapping[resolve(resId)].push_back(resId);
     }
     else
     {
-      bool resolvedRequestsUnchanged = true;
+      bool resolvedRequestsChanged = false;
       for (const auto &[resId, _] : nodeData.resourceRequests)
-        if (!resourceResolvedNameUnchanged[resId])
+        if (name_resolution_changed[resId])
         {
           updateInverseMappingForResWithChangedResolvedName(resId, nodeInverseMapping, nodeId);
-          resolvedRequestsUnchanged = false;
+          resolvedRequestsChanged = true;
         }
 
-      bool resolvedHistoryRequestsUnchanged = true;
+      bool resolvedHistoryRequestsChanged = false;
       for (const auto &[resId, _] : nodeData.historyResourceReadRequests)
-        if (!resourceResolvedNameUnchanged[resId])
+        if (name_resolution_changed[resId])
         {
-          updateInverseMappingForResWithChangedResolvedName(resId, nodeInverseHistoyMapping, nodeId);
-          resolvedHistoryRequestsUnchanged = false;
+          updateInverseMappingForResWithChangedResolvedName(resId, nodeInverseHistoryMapping, nodeId);
+          resolvedHistoryRequestsChanged = true;
         }
 
-      // nodeUnchanged --- true if node declaration, resolved requests and resolved history requests weren't changed
-      // resourceRequestsForNodeUnchagned --- true if node declaration and resolved requests weren't changed
-      // We need both flags, because recalculation of lifetimes in dependencyDataCalculator uses only resourceRequests,
-      // but irNode calculation can only be skipped if resourceRequests and historyResourceReadRequests weren't changed
-      frontendRecompilationData.nodeUnchanged.set(nodeId, resolvedRequestsUnchanged && resolvedHistoryRequestsUnchanged);
-      frontendRecompilationData.resourceRequestsForNodeUnchanged.set(nodeId, resolvedRequestsUnchanged);
+      out_nodes_with_changed_requests.set(nodeId, resolvedRequestsChanged || resolvedHistoryRequestsChanged);
     }
   }
 }
@@ -186,13 +186,18 @@ T NameResolver::resolve(T name_id) const
 }
 
 template ResNameId NameResolver::resolve(ResNameId res_name_id) const;
-template NodeNameId NameResolver::resolve(NodeNameId res_name_id) const;
 template AutoResTypeNameId NameResolver::resolve(AutoResTypeNameId res_name_id) const;
 
 eastl::span<ResNameId const> NameResolver::unresolve(NodeNameId nodeId, ResNameId resId) const
 {
   const auto it = inverseMapping[nodeId].find(resId);
   return it != inverseMapping[nodeId].end() ? it->second : eastl::span<ResNameId const>{};
+}
+
+eastl::span<ResNameId const> NameResolver::historyUnresolve(NodeNameId nodeId, ResNameId resId) const
+{
+  const auto it = inverseHistoryMapping[nodeId].find(resId);
+  return it != inverseHistoryMapping[nodeId].end() ? it->second : eastl::span<ResNameId const>{};
 }
 
 } // namespace dafg

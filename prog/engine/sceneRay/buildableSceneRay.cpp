@@ -19,18 +19,11 @@ static inline void init_index_and_flags(SceneRayI24F8 &out, unsigned i, unsigned
 static inline void init_index_and_flags(uint16_t &out, unsigned i, unsigned) { out = i; }
 
 template <typename FI>
-BuildableStaticSceneRayTracerT<FI>::BuildableStaticSceneRayTracerT(const Point3 &lsz, int lev) :
-  StaticSceneRayTracerT<FI>(),
-  vertsTab(midmem),
-  facesTab(midmem),
-  faceboundsTab(midmem),
-  faceIndicesTab(midmem),
-  createdGrid(lev),
-  faceFlagsTab(midmem)
+BuildableStaticSceneRayTracerT<FI>::BuildableStaticSceneRayTracerT(const Point3 &lsz, int lev) : createdGrid(lev)
 {
   dump.leafSize = lsz;
-
   dump.grid = &createdGrid;
+  dump.version = VER_MAGIC;
 }
 
 template <typename FI>
@@ -347,9 +340,9 @@ bool BuildableStaticSceneRayTracerT<FI>::rebuild(bool fast)
   Tab<IPoint3> fcell(tmpmem);
   fboxes.resize(getFacesCount());
   G_ASSERTF((((intptr_t)(&dump)) & 15) == 0, "this=%p dump=%p", this, &dump);
-  G_ASSERTF((((intptr_t)(&v_rtBBox)) & 15) == 0, "this=%p v_rtBBox=%p", this, &v_rtBBox);
   G_ASSERT((((intptr_t)fboxes.data()) & 15) == 0);
   G_ASSERT((((intptr_t)(&verts(0))) & 15) == 0);
+  bbox3f v_rtBBox;
   v_bbox3_init_empty(v_rtBBox);
   for (int i = 0; i < getFacesCount(); ++i)
   {
@@ -450,6 +443,7 @@ bool BuildableStaticSceneRayTracerT<FI>::rebuild(bool fast)
   clear_and_shrink(faceboundsTab);
   clear_and_shrink(faceFlagsTab);
   clear_and_shrink(fboxes);
+
   return true;
 }
 

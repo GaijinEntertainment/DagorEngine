@@ -17,10 +17,11 @@ class ShaderMeshData;
 
 
 // maximum bones-per-vertex
-#define MAX_SKINBONES 4
+#define MAX_SKINBONES 8
 
 // total maximum bone count
-#define MAXBONE 255
+#define MAXBONE_16BIT 32767
+#define MAXBONE_8BIT  255
 
 /*********************************
  *
@@ -41,7 +42,7 @@ public:
 
   typedef Tab<Bone> BoneTab;
 
-  typedef Tab<unsigned char> BoneIndexTab;
+  typedef Tab<int16_t> BoneIndexTab;
 
   //************************************************************************
   //* material description
@@ -100,6 +101,8 @@ public:
     boneCount = v;
   }
 
+  inline void setUse16BitBoneIndices(bool v) { use16BitBoneIndices = v; }
+
   // add all used vertex data to CB
   inline void enumVertexData(ShaderMeshDataSaveCB &mdcb) const { meshData.enumVertexData(mdcb); }
 
@@ -115,4 +118,5 @@ private:
   int boneCount;
 
   int maxVPRConst;
+  bool use16BitBoneIndices;
 };

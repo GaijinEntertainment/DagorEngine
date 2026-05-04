@@ -1,0 +1,9 @@
+ERROR: expression of type 'table|array' cannot be assigned to type 'table'
+testData/diagnostics/compilation_errors/type_inference/test_complex_table_ternary.nut:5:4
+
+function get_data(flag: bool): table {
+    return flag ? { x = 1 } : [1, 2, 3]
+    ^----------------------------------
+}
+
+

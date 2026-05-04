@@ -208,29 +208,18 @@ void BhvTouchScreenButton::handlePress(TouchButtonState *buttonState)
     pressAh(buttonState, buttonState->ahs);
   }
   if (!buttonState->onTouchBegin.IsNull())
-  {
-    Sqrat::Object retValue;
-    buttonState->onTouchBegin.Evaluate(retValue);
-  }
+    buttonState->onTouchBegin.Execute();
 }
 
 void BhvTouchScreenButton::handleRelease(TouchButtonState *buttonState)
 {
   releaseAh(buttonState->ahs);
   if (!buttonState->onTouchEnd.IsNull())
-  {
-    Sqrat::Object retValue;
-    buttonState->onTouchEnd.Evaluate(retValue);
-  }
+    buttonState->onTouchEnd.Execute();
 }
 
-int BhvTouchScreenButton::touchEvent(ElementTree *,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
+int BhvTouchScreenButton::pointingEvent(
+  ElementTree *, Element *elem, InputDevice, InputEvent event, int touch_idx, int /*btn_id*/, Point2 pos, int accum_res)
 {
   if (event != INP_EV_PRESS && event != INP_EV_RELEASE)
     return 0;
@@ -248,7 +237,7 @@ int BhvTouchScreenButton::touchEvent(ElementTree *,
 
   if (event == INP_EV_PRESS)
   {
-    if (buttonState->touchIdx < 0 && elem->hitTestWithTouchMargin(Point2(touch.x, touch.y), DEVID_TOUCH) && !(accum_res & R_PROCESSED))
+    if (buttonState->touchIdx < 0 && elem->hitTestWithTouchMargin(pos, DEVID_TOUCH) && !(accum_res & R_PROCESSED))
     {
       buttonState->touchIdx = touch_idx;
       if (!buttonState->delayedAhs.empty())
@@ -369,8 +358,7 @@ int BhvTouchScreenButton::update(UpdateStage /*stage*/, darg::Element *elem, flo
   }
   if (!buttonState->forceResendAh.IsNull())
   {
-    Sqrat::Object retValue;
-    if (buttonState->forceResendAh.Evaluate(retValue) && retValue.GetType() == OT_BOOL && retValue.GetVar<bool>().value)
+    if (buttonState->forceResendAh.Eval<bool>().value_or(false))
     {
       handleRelease(buttonState);
       handlePress(buttonState);

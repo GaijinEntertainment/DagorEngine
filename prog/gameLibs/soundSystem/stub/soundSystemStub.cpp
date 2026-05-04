@@ -13,6 +13,7 @@
 #include <soundSystem/streams.h>
 #include <soundSystem/eventInstanceStealing.h>
 #include <soundSystem/occlusion.h>
+#include <soundSystem/occlusionGPU.h>
 
 class DataBlock;
 
@@ -76,6 +77,7 @@ namespace dsp
 void init(const DataBlock &) {}
 void close() {}
 void apply() {}
+void get_spectrum_bars(dag::Span<float>) {}
 } // namespace dsp
 
 // events.cpp
@@ -129,6 +131,7 @@ bool get_var_desc(const char *, const char *, VarDesc &) { return false; }
 VarId get_var_id(EventHandle, const char *) { return {}; }
 VarId get_var_id_global(const char *) { return {}; }
 bool set_var(EventHandle, const VarId &, float) { return false; }
+bool set_var_immediate(EventHandle, const VarId &, float) { return false; }
 bool set_var(EventHandle, const char *, float) { return false; }
 bool set_var_optional(EventHandle, const char *, float) { return false; }
 void set_vars(EventHandle, dag::ConstSpan<VarId>, dag::ConstSpan<float>) {}
@@ -189,7 +192,8 @@ void reset_3d_listener() {}
 void set_time_speed(float) {}
 void begin_update(float) {}
 void end_update(float) {}
-void lazy_update() {}
+void sync_update() {}
+void gpu_update() {}
 void override_time_speed(float) {}
 Point3 get_3d_listener_pos() { return {}; }
 Point3 get_3d_listener_up() { return {}; }
@@ -208,8 +212,20 @@ bool is_valid() { return false; }
 void enable(bool) {}
 void set_group_pos(group_id_t, const Point3 &) {}
 void set_event_group(EventHandle, group_id_t) {}
+void set_radius(EventHandle, float) {}
 void set_trace_proc(trace_proc_t) {}
 void set_before_trace_proc(before_trace_proc_t) {}
 } // namespace occlusion
+
+namespace occlusion_gpu
+{
+OcclusionBlobHandle create_blob(const Point3 &, float, float) { return {}; }
+void delete_blob(OcclusionBlobHandle &) {}
+void set_pos(OcclusionBlobHandle, const Point3 &) {}
+void set_blob_active_range(OcclusionBlobHandle, float) {}
+void attach_to_blob(EventHandle, OcclusionBlobHandle) {}
+void drop_instance(EventHandle) {}
+bool is_inside_active_range(const Point3 &) { return {}; }
+} // namespace occlusion_gpu
 
 } // namespace sndsys

@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <cinttypes>
+#include "driver_defs.h"
+#include <util/dag_inttypes.h>
 
 namespace drv3d_dx11
 {

@@ -45,7 +45,7 @@ void teardown();
 
 void turn_off();
 
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID depth, bool in_cockpit, const denoiser::TexMap &textures,
+void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, bool in_cockpit, const denoiser::TexMap &textures,
   Quality quality, bool checkerboard = true);
 
 } // namespace ptgi

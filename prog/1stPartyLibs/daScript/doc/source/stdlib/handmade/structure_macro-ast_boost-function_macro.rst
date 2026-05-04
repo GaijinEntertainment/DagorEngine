@@ -1,0 +1,1 @@
+The ``[function_macro]`` structure annotation — registers an ``AstFunctionAnnotation`` subclass as a named function annotation available to the compiler.

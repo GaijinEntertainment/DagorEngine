@@ -40,7 +40,8 @@ public:
 
   // ObjectEditor interface implementation
   void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
-  void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false) override;
+  void addEditorCommandButton(PropPanel::ContainerPropertyControl *tb, int id, const char *editor_command_id, const char *icon_name,
+    const char *hint, bool check = false) override;
   void updateToolbarButtons() override;
   bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs) override;
 
@@ -48,6 +49,7 @@ public:
   bool handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
+  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override;
   void gizmoStarted() override;
   void gizmoEnded(bool apply) override;
 
@@ -60,6 +62,7 @@ public:
   void setEditMode(int cm) override;
   bool canSelectObj(RenderableEditableObject *o) override;
   void createObjectBySample(RenderableEditableObject *sample) override;
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerViewportAccelerators(IWndManager &wndManager) override;
 
   // IMenuEventHandler
@@ -119,6 +122,7 @@ public:
   void clone(bool clone_seed);
 
   bool isCloneMode() { return cloneMode; }
+  bool isInGizmo() const { return inGizmo; }
   bool isEditingSpline(SplineObject *spline) { return spline == curSpline; }
 
   void exportAsComposit();
@@ -254,6 +258,9 @@ protected:
   // Returns true if it was in progress and got canceled.
   bool stopSplineCreation();
 
+  void createRegularShape(const Point3 &center, float radius, bool as_poly);
+  void updateShapeToast(int x, int y);
+
   bool isOutlinerWindowOpen() const { return outlinerWindowOpen; }
   void showOutlinerWindow(bool show);
 
@@ -281,6 +288,14 @@ protected:
   Ptr<SplinePointObject> curPt;
   SplineObject *curSpline;
   String curSplineAsset;
+
+  bool shapeCenterPlaced = false;
+  bool shapeReadyToConfirm = false;
+  Point3 shapeCenter;
+  float shapeRadius = 0.f;
+  float shapeRotation = 0.f;
+  int shapeSegments = 4;
+  int lastMouseX = 0, lastMouseY = 0;
 
   Ptr<LandscapeEntityObject> newObj;
 

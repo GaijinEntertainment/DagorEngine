@@ -40,6 +40,7 @@ namespace das {
             ExpressionSources globSrc;
             mod->functions.foreach([&](const FunctionPtr & gfunc){
                 // not built-in, used, address taken, can potentially alias, compatible
+                if ( gfunc->isTemplate ) return;
                 if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && isCompatibleFunction(gfunc, inv) ) {
                     appendIndVariables(gfunc.get(), sources, accessed);
                 }
@@ -67,6 +68,7 @@ namespace das {
             ExpressionSources globSrc;
             mod->functions.foreach([&](const FunctionPtr & gfunc){
                 // not built-in, used, address taken, can potentially alias, compatible
+                if ( gfunc->isTemplate ) return;
                 if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && gfunc->lambda && isCompatibleLambdaFunction(gfunc, inv) ) {
                     appendIndVariables(gfunc.get(), sources, accessed);
                 }
@@ -320,6 +322,7 @@ namespace das {
             return true;
         }
         virtual bool canVisitFunction ( Function * fun ) override {
+            if ( fun->stub ) return false;
             if ( fun->isTemplate ) return false;
             if ( fun->aliasesResolved ) return false;
             if ( !fun->used && !isEverything ) return false;
@@ -612,7 +615,7 @@ namespace das {
         library.foreach([&](Module * mod){
             if ( logAliasing ) logs << "module " << mod->name << ":\n";
             mod->functions.foreach([&](const FunctionPtr & func){
-                if ( func->builtIn || !func->used ) return;
+                if ( func->builtIn || !func->used || func->isTemplate ) return;
                 deriveAliasing(func, logs, logAliasing);
             });
             return true;

@@ -127,11 +127,11 @@ public:
     BaseType::pushBack(std::forward<T>(v), p0, p0_count, get_notifaction_policy<T>());
   }
 
-  template <typename T, typename G0>
-  void pushBack(T &&v, size_t p0_count, G0 g0)
+  template <typename P0, typename T, typename G>
+  void pushBack(T &&v, size_t p0_count, G g)
   {
     onPushCommand<T>();
-    BaseType::pushBack(std::forward<T>(v), p0_count, g0, get_notifaction_policy<T>());
+    BaseType::pushBack<P0, T, G>(std::forward<T>(v), p0_count, g, get_notifaction_policy<T>());
   }
 
   template <typename T, typename P0, typename P1>
@@ -141,11 +141,18 @@ public:
     BaseType::pushBack<T, P0, P1>(v, p0, p0_count, p1, p1_count, get_notifaction_policy<T>());
   }
 
-  template <typename T, typename P0, typename P1, typename G>
-  void pushBack(const T &v, size_t p0_count, G g)
+  template <typename P0, typename P1, typename T, typename G>
+  void pushBack(const T &v, size_t p0_count, size_t p1_count, G g)
   {
     onPushCommand<T>();
-    BaseType::pushBack<T, P0, P1, G>(v, p0_count, g, get_notifaction_policy<T>());
+    BaseType::pushBack<P0, P1, T, G>(v, p0_count, p1_count, g, get_notifaction_policy<T>());
+  }
+
+  template <typename P0, typename P1, typename P2, typename T, typename G>
+  void pushBack(const T &v, size_t p0_count, size_t p1_count, size_t p2_count, G g)
+  {
+    onPushCommand<T>();
+    BaseType::pushBack<P0, P1, P2, T, G>(v, p0_count, p1_count, p2_count, g, get_notifaction_policy<T>());
   }
 };
 } // namespace drv3d_dx12

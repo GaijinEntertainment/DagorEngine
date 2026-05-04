@@ -198,9 +198,9 @@ static ecs::CompileTimeQueryDesc add_hmap_displacement_invalidator_ecs_query_des
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void add_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable function)
+inline void add_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, add_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, add_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -229,9 +229,9 @@ static ecs::CompileTimeQueryDesc move_hmap_displacement_invalidator_ecs_query_de
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void move_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable function)
+inline void move_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, move_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, move_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -260,9 +260,9 @@ static ecs::CompileTimeQueryDesc remove_hmap_displacement_invalidator_ecs_query_
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void remove_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable function)
+inline void remove_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, remove_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, remove_hmap_displacement_invalidator_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

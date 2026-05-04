@@ -1,6 +1,8 @@
 // this file is generated via Daslang automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+auto ann_ImTextureRef = make_smart<ImTextureRef_GeneratedAnnotation>(lib);
+addAnnotation(ann_ImTextureRef);
 auto ann_ImGuiTableSortSpecs = make_smart<ImGuiTableSortSpecs_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImGuiTableSortSpecs);
 auto ann_ImGuiTableColumnSortSpecs = make_smart<ImGuiTableColumnSortSpecs_GeneratedAnnotation>(lib);
@@ -57,16 +59,22 @@ auto ann_ImDrawList = make_smart<ImDrawList_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImDrawList);
 auto ann_ImDrawData = make_smart<ImDrawData_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImDrawData);
+auto ann_ImTextureRect = make_smart<ImTextureRect_GeneratedAnnotation>(lib);
+addAnnotation(ann_ImTextureRect);
+auto ann_ImTextureData = make_smart<ImTextureData_GeneratedAnnotation>(lib);
+addAnnotation(ann_ImTextureData);
 auto ann_ImFontConfig = make_smart<ImFontConfig_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImFontConfig);
 auto ann_ImFontGlyph = make_smart<ImFontGlyph_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImFontGlyph);
 auto ann_ImFontGlyphRangesBuilder = make_smart<ImFontGlyphRangesBuilder_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImFontGlyphRangesBuilder);
-auto ann_ImFontAtlasCustomRect = make_smart<ImFontAtlasCustomRect_GeneratedAnnotation>(lib);
-addAnnotation(ann_ImFontAtlasCustomRect);
+auto ann_ImFontAtlasRect = make_smart<ImFontAtlasRect_GeneratedAnnotation>(lib);
+addAnnotation(ann_ImFontAtlasRect);
 auto ann_ImFontAtlas = make_smart<ImFontAtlas_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImFontAtlas);
+auto ann_ImFontBaked = make_smart<ImFontBaked_GeneratedAnnotation>(lib);
+addAnnotation(ann_ImFontBaked);
 auto ann_ImFont = make_smart<ImFont_GeneratedAnnotation>(lib);
 addAnnotation(ann_ImFont);
 auto ann_ImGuiViewport = make_smart<ImGuiViewport_GeneratedAnnotation>(lib);

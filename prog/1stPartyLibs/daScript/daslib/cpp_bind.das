@@ -6,9 +6,15 @@ options strict_smart_pointers = true
 
 module cpp_bind public
 
-require fio
-require rtti
-require ast
+//! C++ adapter code generator.
+//!
+//! Given a daslang class type, generates C++ header code for a class adapter
+//! that forwards virtual method calls from C++ into the daslang context.
+//! Used together with ``log_cpp_class_adapter``.
+
+require daslib/fio
+require daslib/rtti
+require daslib/ast
 require daslib/ast_boost
 require daslib/strings_boost
 
@@ -67,7 +73,7 @@ def log_cpp_class_adapter(cpp_file : file; name : string; cinfo : TypeDeclPtr) {
     //! Generates C++ class adapter for the Daslang class.
     //! Intended use::
     //!
-    //!     log_cpp_class_adapter(cppFileNameDotInc, "daslangClassName", typeinfo(ast_typedecl type<daslangClassName>))
+    //!     log_cpp_class_adapter(cppFileNameDotInc, "daslangClassName", typeinfo ast_typedecl(type<daslangClassName>))
     assert(cinfo.isClass, "can only make adapter out of a class")
     var methods : array<tuple<name : string; index : int>>
     var inscope types : array<TypeDeclPtr>

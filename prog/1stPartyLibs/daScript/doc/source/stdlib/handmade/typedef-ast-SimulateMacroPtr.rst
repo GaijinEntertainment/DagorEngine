@@ -1,0 +1,1 @@
+Smart pointer to a `SimulateMacro` object. Used for registering and managing macros that hook into the simulation phase.

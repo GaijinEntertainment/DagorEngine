@@ -116,6 +116,35 @@ FORCE_INLINE void VtxFetch4<0>(__mw *v, const unsigned short *inTrisPtr, int tri
   (void)numLanes;
 }
 
+// Vert21 variant: same gather pattern but loads from 8-byte vert21 packed vertices
+template <int N>
+FORCE_INLINE void VtxFetch4Vert21(__mw *v, const unsigned short *inTrisPtr, int triVtx, const unsigned char *vert21Data, int numLanes)
+{
+  const int ssePart = (SIMD_LANES / 4) - N;
+  for (int k = 0; k < 4; k++)
+  {
+    int lane = 4 * ssePart + k;
+    if (numLanes > lane)
+    {
+      const uint8_t *src = vert21Data + inTrisPtr[lane * 3 + triVtx] * 8;
+      __m128 decoded = RayData::unpackVert21Raw(src);
+      v[k] = _mmw_insertf32x4_ps(v[k], decoded, ssePart);
+    }
+  }
+  VtxFetch4Vert21<N - 1>(v, inTrisPtr, triVtx, vert21Data, numLanes);
+}
+
+template <>
+FORCE_INLINE void VtxFetch4Vert21<0>(__mw *v, const unsigned short *inTrisPtr, int triVtx, const unsigned char *vert21Data,
+  int numLanes)
+{
+  (void)v;
+  (void)inTrisPtr;
+  (void)triVtx;
+  (void)vert21Data;
+  (void)numLanes;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Private class containing the implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1736,6 +1765,315 @@ public:
     RecordRenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, clipPlaneMask, bfWinding, vtxLayout, retVal);
 #endif
     return retVal;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // Quad rendering functions (BLAS quad-leaf format)
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  // Constants from daBVH/swBLASLeafDefs.hlsli (included via dag_swBLAS_ray.h)
+  static constexpr int VERT21_STRIDE = 8;
+  static constexpr int BVH_LEAF_EXTRA = 4; // leaf total = BVH_BLAS_NODE_SIZE + BVH_LEAF_EXTRA = 20
+
+  // SoA frustum planes for branchless 5-plane AABB test (portable via vecmath).
+  // First 4 planes stored transposed; W values doubled for center2/extent2 form.
+  struct alignas(16) BoxFrustumPlanes5
+  {
+    vec4f planesX;  // x for planes 0-3
+    vec4f planesY;  // y for planes 0-3
+    vec4f planesZ;  // z for planes 0-3
+    vec4f planesW2; // 2*w for planes 0-3
+    vec4f plane4W2; // 5th plane (x, y, z, 2*w)
+  };
+
+  static FORCE_INLINE BoxFrustumPlanes5 BuildBoxFrustumPlanes5(const __m128 csPlanes[5], const float *M)
+  {
+    vec4f col0 = v_make_vec4f(M[0], M[4], M[8], M[12]);
+    vec4f col1 = v_make_vec4f(M[1], M[5], M[9], M[13]);
+    vec4f col3 = v_make_vec4f(M[3], M[7], M[11], M[15]);
+    vec4f scale32_1 = v_make_vec4f(32.f, 32.f, 32.f, 1.f);
+
+    vec4f bp0, bp1, bp2, bp3, bp4;
+    vec4f *bp[5] = {&bp0, &bp1, &bp2, &bp3, &bp4};
+    for (int p = 0; p < 5; p++)
+    {
+      vec4f pl = csPlanes[p];
+      vec4f raw = v_add(v_add(v_mul(v_splat_x(pl), col0), v_mul(v_splat_y(pl), col1)), v_mul(v_splat_z(pl), col3));
+      // scale xyz by 32 (w by 1), then add d to w
+      *bp[p] = v_add(v_mul(raw, scale32_1), v_and(v_splat_w(pl), v_cast_vec4f(v_splatsi(0))));
+      // The v_and above zeros out - we need d only in w. Use perm instead:
+      *bp[p] = v_perm_xyzd(v_mul(raw, v_splats(32.f)), v_add(v_splat_w(raw), v_splat_w(pl)));
+    }
+
+    BoxFrustumPlanes5 result;
+    // Transpose first 4 planes from AoS to SoA
+    result.planesX = bp0;
+    result.planesY = bp1;
+    result.planesZ = bp2;
+    result.planesW2 = bp3;
+    v_mat44_transpose(result.planesX, result.planesY, result.planesZ, result.planesW2);
+    result.planesW2 = v_add(result.planesW2, result.planesW2);
+    // 5th plane with W doubled
+    result.plane4W2 = v_perm_xyzd(bp4, v_add(bp4, bp4));
+    return result;
+  }
+
+  enum
+  {
+    FRUSTUM_OUTSIDE = 0,
+    FRUSTUM_INTERSECT = 1,
+    FRUSTUM_INSIDE = 2
+  };
+
+  // Test AABB against 5 frustum planes (portable vecmath, branchless per-axis).
+  // Same p-vertex/n-vertex pattern as v_box_frustum_intersect_extent2.
+  // nodePtr: 16-byte BVH node with 3 uint32 words, each packing bmin (low16) / bmax (high16).
+  static FORCE_INLINE int TestBoxFrustum5(const unsigned char *nodePtr, const BoxFrustumPlanes5 &planes)
+  {
+    vec4i node = v_ldui((const int *)nodePtr);
+    vec4f vmin = v_cvt_vec4f(v_andi(node, v_splatsi(0xFFFF)));
+    vec4f vmax = v_cvt_vec4f(v_srli(node, 16));
+    vec4f center = v_add(vmax, vmin);
+    vec4f extent = v_sub(vmax, vmin);
+    vec4f signmask = v_cast_vec4f(V_CI_SIGN_MASK);
+
+    // First 4 planes (SoA): p-vertex = center + xor(extent, sign(plane))
+    vec4f res04;
+    res04 =
+      v_madd(v_add(v_splat_x(center), v_xor(v_splat_x(extent), v_and(planes.planesX, signmask))), planes.planesX, planes.planesW2);
+    res04 = v_madd(v_add(v_splat_y(center), v_xor(v_splat_y(extent), v_and(planes.planesY, signmask))), planes.planesY, res04);
+    res04 = v_madd(v_add(v_splat_z(center), v_xor(v_splat_z(extent), v_and(planes.planesZ, signmask))), planes.planesZ, res04);
+    // 5th plane
+    res04 = v_or(res04,
+      v_add(v_dot3(v_add(v_xor(extent, v_and(planes.plane4W2, signmask)), center), planes.plane4W2), v_splat_w(planes.plane4W2)));
+
+    if (v_test_vec_mask_neq_0(res04))
+      return FRUSTUM_OUTSIDE;
+
+    // n-vertex = center - xor(extent, sign(plane))
+    vec4f nres04;
+    nres04 =
+      v_madd(v_sub(v_splat_x(center), v_xor(v_splat_x(extent), v_and(planes.planesX, signmask))), planes.planesX, planes.planesW2);
+    nres04 = v_madd(v_sub(v_splat_y(center), v_xor(v_splat_y(extent), v_and(planes.planesY, signmask))), planes.planesY, nres04);
+    nres04 = v_madd(v_sub(v_splat_z(center), v_xor(v_splat_z(extent), v_and(planes.planesZ, signmask))), planes.planesZ, nres04);
+    nres04 = v_or(nres04,
+      v_add(v_dot3(v_sub(center, v_xor(extent, v_and(planes.plane4W2, signmask))), planes.plane4W2), v_splat_w(planes.plane4W2)));
+
+    return v_test_vec_mask_neq_0(nres04) ? FRUSTUM_INTERSECT : FRUSTUM_INSIDE;
+  }
+
+  FORCE_INLINE void GatherVerticesVert21Z(__mw *vtxX, __mw *vtxY, __mw *vtxW, const unsigned char *vert21Data,
+    const unsigned short *inTrisPtr, int numLanes)
+  {
+    assert(numLanes >= 1);
+    __mw v[4], swz[4];
+    for (int i = 0; i < 3; i++)
+    {
+      VtxFetch4Vert21<SIMD_LANES / 4>(v, inTrisPtr, i, vert21Data, numLanes);
+      swz[0] = _mmw_shuffle_ps_1010(v[0], v[1]);
+      swz[2] = _mmw_shuffle_ps_3232(v[0], v[1]);
+      swz[1] = _mmw_shuffle_ps_1010(v[2], v[3]);
+      swz[3] = _mmw_shuffle_ps_3232(v[2], v[3]);
+      vtxX[i] = _mmw_shuffle_ps_2020(swz[0], swz[1]);
+      vtxY[i] = _mmw_shuffle_ps_3131(swz[0], swz[1]);
+      vtxW[i] = _mmw_shuffle_ps_2020(swz[2], swz[3]); // z component
+    }
+    (void)swz;
+  }
+
+  // Render a flat vert21-indexed trilist through the SIMD pipeline.
+  int RenderVert21TriList(const unsigned char *blasData, const unsigned short *indices, int triCount, const float *rawToClipMatrix,
+    BackfaceWinding bfWinding, ClipPlanes clipMask)
+  {
+    int clipHead = 0, clipTail = 0;
+    __m128 clipTriBuffer[MAX_CLIPPED * 3];
+    int cullResult = CullingResult::VIEW_CULLED;
+    const unsigned short *idxPtr = indices;
+    int triIndex = 0;
+    while (triIndex < triCount || clipHead != clipTail)
+    {
+      __mw vtxX[3], vtxY[3], vtxW[3];
+      unsigned int triMask, triClipMask;
+      if (clipHead != clipTail)
+      {
+        int clippedTris = clipHead > clipTail ? clipHead - clipTail : MAX_CLIPPED + clipHead - clipTail;
+        clippedTris = min(clippedTris, SIMD_LANES);
+#if CLIPPING_PRESERVES_ORDER != 0
+        int numNewTris = 0;
+#else
+        int numNewTris = max(0, min(SIMD_LANES - clippedTris, triCount - triIndex));
+#endif
+        if (numNewTris > 0)
+        {
+          GatherVerticesVert21Z(vtxX, vtxY, vtxW, blasData, idxPtr, numNewTris);
+          TransformVerts(vtxX, vtxY, vtxW, rawToClipMatrix);
+        }
+        for (int ct = numNewTris; ct < numNewTris + clippedTris; ct++)
+        {
+          int idx = clipTail * 3;
+          for (int i = 0; i < 3; i++)
+          {
+            simd_f32(vtxX[i])[ct] = simd_f32(clipTriBuffer[idx + i])[0];
+            simd_f32(vtxY[i])[ct] = simd_f32(clipTriBuffer[idx + i])[1];
+            simd_f32(vtxW[i])[ct] = simd_f32(clipTriBuffer[idx + i])[2];
+          }
+          clipTail = (clipTail + 1) & (MAX_CLIPPED - 1);
+        }
+        triIndex += numNewTris;
+        idxPtr += numNewTris * 3;
+        triMask = (1U << (clippedTris + numNewTris)) - 1;
+        triClipMask = (1U << numNewTris) - 1;
+      }
+      else
+      {
+        int numTris = min(SIMD_LANES, triCount - triIndex);
+        triMask = (1U << numTris) - 1;
+        triClipMask = triMask;
+        GatherVerticesVert21Z(vtxX, vtxY, vtxW, blasData, idxPtr, numTris);
+        TransformVerts(vtxX, vtxY, vtxW, rawToClipMatrix);
+        triIndex += numTris;
+        idxPtr += numTris * 3;
+      }
+      if (clipMask != ClipPlanes::CLIP_PLANE_NONE)
+        ClipTriangleAndAddToBuffer(vtxX, vtxY, vtxW, clipTriBuffer, clipHead, triMask, triClipMask, clipMask);
+      if (triMask == 0x0)
+        continue;
+      __mw pVtxX[3], pVtxY[3], pVtxZ[3];
+#if PRECISE_COVERAGE != 0
+      __mwi ipVtxX[3], ipVtxY[3];
+      ProjectVertices(ipVtxX, ipVtxY, pVtxX, pVtxY, pVtxZ, vtxX, vtxY, vtxW);
+      __mw triArea1 = _mmw_mul_ps(_mmw_sub_ps(pVtxX[1], pVtxX[0]), _mmw_sub_ps(pVtxY[2], pVtxY[0]));
+      __mw triArea2 = _mmw_mul_ps(_mmw_sub_ps(pVtxX[0], pVtxX[2]), _mmw_sub_ps(pVtxY[0], pVtxY[1]));
+      __mw ccwMask = _mmw_cmpgt_ps(_mmw_sub_ps(triArea1, triArea2), _mmw_setzero_ps());
+      triMask &= CullBackfaces(ipVtxX, ipVtxY, pVtxX, pVtxY, pVtxZ, ccwMask, bfWinding);
+#else
+      ProjectVertices(pVtxX, pVtxY, pVtxZ, vtxX, vtxY, vtxW);
+      __mw triArea1 = _mmw_mul_ps(_mmw_sub_ps(pVtxX[1], pVtxX[0]), _mmw_sub_ps(pVtxY[2], pVtxY[0]));
+      __mw triArea2 = _mmw_mul_ps(_mmw_sub_ps(pVtxX[0], pVtxX[2]), _mmw_sub_ps(pVtxY[0], pVtxY[1]));
+      __mw ccwMask = _mmw_cmpgt_ps(_mmw_sub_ps(triArea1, triArea2), _mmw_setzero_ps());
+      triMask &= CullBackfaces(pVtxX, pVtxY, pVtxZ, ccwMask, bfWinding);
+#endif
+      if (triMask == 0x0)
+        continue;
+#if PRECISE_COVERAGE != 0
+      cullResult &= RasterizeTriangleBatch<0>(ipVtxX, ipVtxY, pVtxX, pVtxY, pVtxZ, triMask, &mFullscreenScissor);
+#else
+      cullResult &= RasterizeTriangleBatch<0>(pVtxX, pVtxY, pVtxZ, triMask, &mFullscreenScissor);
+#endif
+    }
+    return cullResult;
+  }
+
+  // Walk BVH, emit triangle indices into outIndices. Returns number of triangles emitted.
+  template <bool checkFrustum>
+  int EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned short *outIndices,
+    const BoxFrustumPlanes5 *boxPlanes)
+  {
+    int triCount = 0;
+    int offset = treeStart;
+    int noClipEnd = treeStart;
+
+    while (offset < treeEnd)
+    {
+      const unsigned char *nodePtr = blasData + offset;
+      unsigned int skipWord = *(const unsigned int *)(nodePtr + 12);
+      bool isLeaf = (skipWord & QUAD_LEAF_FLAG) != 0;
+      offset += BVH_BLAS_NODE_SIZE;
+      if constexpr (!checkFrustum)
+      {
+        if (!isLeaf)
+          continue;
+      }
+      else
+      {
+        if (offset <= noClipEnd)
+        {
+          if (!isLeaf)
+            continue;
+        }
+        else
+        {
+          int frustumResult = TestBoxFrustum5(nodePtr, *boxPlanes);
+          if (frustumResult == FRUSTUM_OUTSIDE)
+          {
+            offset += isLeaf ? BVH_LEAF_EXTRA : skipWord;
+            continue;
+          }
+          if (!isLeaf)
+          {
+            if (frustumResult == FRUSTUM_INSIDE)
+              noClipEnd = offset + skipWord;
+            continue;
+          }
+        }
+      }
+
+      // Decode leaf -> emit triangle indices
+      int relOfs = *(const int *)(blasData + offset);
+      int vtxByteOfs = offset + relOfs;
+      unsigned short v0 = (unsigned short)(vtxByteOfs / VERT21_STRIDE);
+      unsigned int o1 = (skipWord & QUAD_O1_MASK) + 1;
+      unsigned int o2 = ((skipWord >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
+      unsigned int o3 = ((skipWord >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
+      unsigned short v1 = v0 + (unsigned short)o1, v2 = v0 + (unsigned short)o2, v3 = v0 + (unsigned short)o3;
+
+      outIndices[triCount * 3 + 0] = v0;
+      outIndices[triCount * 3 + 1] = v1;
+      outIndices[triCount * 3 + 2] = v2;
+      triCount++;
+      if (o3 != o2)
+      {
+        if (skipWord & QUAD_FAN_FLAG)
+        {
+          outIndices[triCount * 3 + 0] = v0;
+          outIndices[triCount * 3 + 1] = v2;
+          outIndices[triCount * 3 + 2] = v3;
+        }
+        else
+        {
+          outIndices[triCount * 3 + 0] = v1;
+          outIndices[triCount * 3 + 1] = v3;
+          outIndices[triCount * 3 + 2] = v2;
+        }
+        triCount++;
+      }
+      offset += BVH_LEAF_EXTRA;
+    }
+    return triCount;
+  }
+
+  FORCE_INLINE
+  CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
+    unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding) MOC_OVERRIDE
+  {
+    assert(mMaskedHiZBuffer != nullptr);
+
+#if PRECISE_COVERAGE != 0
+    int originalRoundingMode = _MM_GET_ROUNDING_MODE();
+    _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
+#endif
+
+    int cullResult;
+    int triCount = 0;
+
+    if (cacheMode == CACHE_INSUFFICIENT)
+    {
+      BoxFrustumPlanes5 boxPlanes = BuildBoxFrustumPlanes5(mCSFrustumPlanes, rawToClipMatrix);
+      triCount = EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, &boxPlanes);
+    }
+    else
+    {
+      if (cacheMode == CACHE_FILL)
+        *cacheTriCount = EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, nullptr);
+      triCount = *cacheTriCount;
+    }
+
+    cullResult = RenderVert21TriList(blasData, cacheIndices, triCount, rawToClipMatrix, bfWinding, CLIP_PLANE_ALL);
+
+#if PRECISE_COVERAGE != 0
+    _MM_SET_ROUNDING_MODE(originalRoundingMode);
+#endif
+    return (CullingResult)cullResult;
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

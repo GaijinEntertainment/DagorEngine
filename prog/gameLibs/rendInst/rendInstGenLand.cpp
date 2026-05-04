@@ -4,6 +4,7 @@
 #include <rendInst/rendInstGenRender.h>
 #include "riGen/landClassData.h"
 #include "riGen/riGenData.h"
+#include "riGen/riCollOptimize.h"
 
 #include <landMesh/riLandClass.h>
 #include <gameRes/dag_collisionResource.h>
@@ -66,20 +67,19 @@ public:
   bool isResLoaded(int res_id) override { return findRes(res_id) >= 0; }
   bool checkResPtr(GameResource *res) override { return findGameRes(res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0 || !interlocked_acquire_load(resData[id].landData->riResResolved))
       return nullptr;
 
     resData[id].refCount++;
-
     return (GameResource *)resData[id].landData.get();
   }
 
@@ -124,14 +124,14 @@ public:
   }
 
 
-  bool freeUnusedResources(bool /*force*/, bool /*once*/) override
+  bool freeUnusedResources(RRL rrl, bool /*force*/, bool /*once*/) override
   {
     bool result = false;
     for (int i = resData.size() - 1; i >= 0; --i)
     {
       if (resData[i].refCount != 0)
         continue;
-      if (get_refcount_game_resource_pack_by_resid(resData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, resData[i].resId))
         continue;
 
       resData.erase(resData.begin() + i);
@@ -163,16 +163,16 @@ public:
   }
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     rendinst::gen::land::AssetData *ld;
+    String name;
     {
       WinAutoLock lock(cs);
       int id = findRes(res_id);
       if (id < 0)
       {
-        String name;
         get_game_resource_name(res_id, name);
         logerr("no LandClass resource %s", name.str());
         return;
@@ -181,7 +181,6 @@ public:
     }
     if (ld->riRes.size() * 2 != num_refs)
     {
-      String name;
       get_game_resource_name(res_id, name);
       logerr("LandClass resource %s refs mismatch %d != %d", name.str(), ld->riRes.size() * 2, num_refs);
       ld->clear();
@@ -201,33 +200,29 @@ public:
     {
       String ri_name;
       get_game_resource_name(ref_ids[i * 2], ri_name);
-      ld->riRes[i] = (RenderableInstanceLodsResource *)::get_game_resource(ref_ids[i * 2]);
+      ld->riRes[i] = (RenderableInstanceLodsResource *)get_game_resource(ref_ids[i * 2], rrl);
       ld->riResName[i] = str_dup(ri_name, strmem);
       ld->riCollRes[i] = nullptr;
       if (!ld->riRes[i])
       {
-        String name;
         get_game_resource_name(res_id, name);
-        G_ASSERT_LOG(ld->riRes[i] != nullptr, "LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2],
-          ri_name.str());
+        logerr("LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2], ri_name.str());
         ld->riRes[i] = rendinst::get_stub_res();
         continue;
       }
-      ld->riCollRes[i] = (CollisionResource *)::get_game_resource(ref_ids[i * 2 + 1]);
+      ld->riCollRes[i] = (CollisionResource *)get_game_resource(ref_ids[i * 2 + 1], rrl);
       if (!ld->riCollRes[i] && ref_ids[i * 2 + 1] >= 0)
       {
-        String name;
         get_game_resource_name(res_id, name);
         String name2;
         get_game_resource_name(ref_ids[i * 2 + 1], name2);
         logerr("LandClass resource %s failed to resolve ref[%d]=%d <%s>", name.str(), i, ref_ids[i * 2 + 1], name2.str());
       }
       if (ld->riCollRes[i])
-      {
-        String name;
-        get_game_resource_name(res_id, name);
-        ld->riCollRes[i]->collapseAndOptimize(name, USE_GRID_FOR_RI);
-      }
+        optimize_collres_on_load(ld->riCollRes[i], [rid = ref_ids[i * 2 + 1], &name]() {
+          get_game_resource_name(rid, name);
+          return name;
+        });
       else if (ld->riRes[i]->hasImpostor())
         logwarn("missing tree-RI-collRes: ri=%s", ri_name);
       riPosInst[i] = ld->riRes[i]->hasImpostor();
@@ -362,9 +357,9 @@ void rendinst::gen::land::AssetData::clear()
   del_it(planted);
   clear_and_shrink(riColPair);
   for (int i = 0; i < riRes.size(); i++)
-    ::release_game_resource((GameResource *)riRes[i]);
+    ::release_game_resource_ex(riRes[i], RendInstGameResClassId);
   for (int i = 0; i < riCollRes.size(); i++)
-    ::release_game_resource((GameResource *)riCollRes[i]);
+    ::release_game_resource_ex(riCollRes[i], CollisionGameResClassId);
   clear_and_shrink(riRes);
   clear_and_shrink(riCollRes);
   clear_all_ptr_items(riResName);
@@ -645,10 +640,10 @@ bool rendinst::gen::land::AssetData::loadPlantedEntities(const RoDataBlock &blk,
 
 static bool get_detail_data(DataBlock &dest_data, const char *land_cls_res_nm)
 {
-  if (GameResource *res = ::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(land_cls_res_nm), rendinst::HUID_LandClassGameRes))
+  if (GameResource *res = ::get_one_game_resource_ex(land_cls_res_nm, rendinst::HUID_LandClassGameRes))
   {
     dest_data = reinterpret_cast<rendinst::gen::land::AssetData *>(res)->detailData;
-    release_game_resource(res);
+    release_game_resource_ex(res, rendinst::HUID_LandClassGameRes);
     return true;
   }
   return false;
@@ -665,7 +660,7 @@ namespace rendinst
 void rt_rigen_free_unused_land_classes()
 {
   if (land_gameres_factory)
-    land_gameres_factory->freeUnusedResources(false, false);
+    land_gameres_factory->freeUnusedResources(nullptr, false, false);
 }
 } // namespace rendinst
 

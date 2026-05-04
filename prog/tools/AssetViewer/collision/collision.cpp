@@ -32,6 +32,8 @@
 #include "propPanelPids.h"
 #include "collisionUtils.h"
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_viewScissor.h>
 
 const unsigned int phys_collidable_color = 0xFF00FF00;
 const unsigned int traceable_color = 0xFFFF0000;
@@ -118,6 +120,7 @@ CollisionPlugin::CollisionPlugin()
   showTraceable = false;
   drawSolid = false;
   showFaceOrientation = false;
+  showDegenerativeTriangles = false;
   collisionRes = NULL;
   nodeTree = NULL;
   selectedNodeId = -1;
@@ -147,6 +150,9 @@ bool CollisionPlugin::begin(DagorAsset *asset)
   {
     InitCollisionResource(*asset, &collisionRes, &nodeTree);
     nodesProcessing.init(asset, collisionRes, this);
+    curAsset = asset;
+    if (showDegenerativeTriangles)
+      degenerativeNodes = collisionRes->getDegenerativeNodes(curAsset->getName());
 
     if (const DagorAsset *modelAsset = get_model_asset_from_collision_asset(*asset))
       modelAssetName = modelAsset->getNameTypified();
@@ -171,6 +177,8 @@ bool CollisionPlugin::end()
   ReleaseCollisionResource(&collisionRes, &nodeTree);
   destroy_it(modelEntity);
   modelAssetName.clear();
+  curAsset = nullptr;
+  degenerativeNodes.clear();
   return true;
 }
 
@@ -198,7 +206,8 @@ void CollisionPlugin::renderTransObjects()
   }
 
   RenderCollisionResource(*collisionRes, nodeTree, showBbox, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation,
-    selectedNodeId, nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
+    showDegenerativeTriangles, degenerativeNodes, selectedNodeId, nodesProcessing.editMode,
+    nodesProcessing.selectionNodesProcessing.hiddenNodes);
   nodesProcessing.renderNodes(selectedNodeId, drawSolid);
 
   fillAssetStats();
@@ -220,6 +229,9 @@ void CollisionPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   }
   panel.createCheckBox(PID_SHOW_MODEL, "Show model", showModel && !modelAssetName.empty(), !modelAssetName.empty());
   panel.setTooltipId(PID_SHOW_MODEL, modelAssetName);
+  panel.createCheckBox(PID_SHOW_DEGENERATIVE_TRIANGLES, "Show degenerative triangles (for Jolt)", showDegenerativeTriangles);
+  panel.setTooltipId(PID_SHOW_DEGENERATIVE_TRIANGLES,
+    "Degenerate triangles highlighted with red lines and vertices shown as yellow spheres.");
 
   nodesProcessing.setPropPanel(&panel);
   nodesProcessing.fillCollisionInfoPanel();
@@ -263,6 +275,13 @@ void CollisionPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
     case PID_SHOW_MODEL:
       showModel = panel->getBool(pcb_id);
       updateModel();
+      repaintView();
+      break;
+
+    case PID_SHOW_DEGENERATIVE_TRIANGLES:
+      showDegenerativeTriangles = panel->getBool(pcb_id);
+      if (showDegenerativeTriangles)
+        degenerativeNodes = collisionRes->getDegenerativeNodes(curAsset->getName());
       repaintView();
       break;
 
@@ -335,7 +354,7 @@ bool CollisionPlugin::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, b
         if (selectedNodeId != candidateId)
         {
           selectedNodeId = candidateId;
-          nodesProcessing.selectNode(nodes[selectedNodeId].name, key_modif == wingw::M_CTRL);
+          nodesProcessing.selectNode(collisionRes->getNodeName(selectedNodeId), key_modif == wingw::M_CTRL);
           return false;
         }
       }
@@ -385,7 +404,7 @@ int CollisionPlugin::onMenuItemClick(unsigned id)
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_COLLISION_NODES_TREE)->getContainer();
 
   dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-  tree->getSelectedLeafs(selectedLeafs);
+  tree->getSelectedLeafs(selectedLeafs, false, false);
 
   dag::Vector<int> selectedIndices;
   for (PropPanel::TLeafHandle selLeaf : selectedLeafs)
@@ -488,7 +507,7 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
     Point2 pos;
     real z;
 
-    Point3 pos3 = allNodes[i].tm * allNodes[i].boundingSphere.c;
+    Point3 pos3 = collisionRes->getNodeTm(i) * collisionRes->getNodeBSphere(i).c;
 
     if (!wnd->worldToClient(pos3, pos, &z) || (z < 0.001))
       continue;
@@ -510,7 +529,7 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
   {
     int id = nodesData[i].nodeId;
     const CollisionNode &node = allNodes[id];
-    const char *name = node.name;
+    const char *name = collisionRes->getNodeName(id);
     if (!name || (selectedNodeId >= 0 && selectedNodeId != id))
       continue;
 
@@ -519,7 +538,7 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
     String selectedName(128, name);
     if (selectedNodeId >= 0)
     {
-      selectedName.aprintf(128, " | triangles %d, phmat '%s'", node.indices.size() / 3,
+      selectedName.aprintf(128, " | triangles %d, phmat '%s'", collisionRes->getNodeFaceCount(id),
         node.physMatId != PHYSMAT_INVALID ? PhysMat::getMaterial(node.physMatId).name : "none");
       if (node.behaviorFlags >> 3)
       {
@@ -639,7 +658,7 @@ int CollisionPlugin::getNodeIdx(PropPanel::ContainerPropertyControl *tree, PropP
     String sel_name = tree->getCaption(leaf);
     NodesProcessing::delete_flags_prefix(sel_name);
     for (const auto &n : collisionRes->getAllNodes())
-      if (sel_name == n.name.str())
+      if (sel_name == collisionRes->getNodeName(n.nodeIndex))
         return &n - collisionRes->getAllNodes().data();
   }
   return -1;
@@ -664,29 +683,19 @@ static void reset_nodes_tm(CollisionResource *collision_res, GeomNodeTree *node_
   if (node_tree)
     return;
 
-  for (auto &node : collision_res->getAllNodes())
+  auto allNodes = collision_res->getAllNodes();
+  for (int ni = 0; ni < allNodes.size(); ni++)
   {
-    if (
-      (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CAPSULE || node.type == COLLISION_NODE_TYPE_CONVEX) &&
-      node.tm.det() < 0.0f)
-    {
-      for (int i = 0; i < node.indices.size(); i += 3)
-        eastl::swap(node.indices[i], node.indices[i + 1]);
-
-      for (auto &vert : node.vertices)
-        vert = node.tm * vert;
-
-      node.modelBBox = node.tm * node.modelBBox;
-      node.boundingSphere = node.tm * node.boundingSphere;
-
-      node.tm = TMatrix::IDENT;
-    }
+    auto &node = allNodes[ni];
+    const TMatrix &nodeTmRef = collision_res->getNodeTm(ni);
+    if ((node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX) && nodeTmRef.det() < 0.0f)
+      collision_res->bakeNodeTransform(ni);
   }
 }
 
 void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree)
 {
-  *collision_res = (CollisionResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(asset.getName()), CollisionGameResClassId);
+  *collision_res = (CollisionResource *)::get_game_resource_ex(asset.getName(), CollisionGameResClassId);
 
   const DataBlock &props = asset.getProfileTargetProps(_MAKE4C('PC'), NULL);
   if (const char *skeletonName = props.getStr("ref_skeleton", nullptr))
@@ -713,7 +722,7 @@ void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **
 {
   if (*collision_res)
   {
-    ::release_game_resource((GameResource *)*collision_res);
+    ::release_game_resource_ex(*collision_res, CollisionGameResClassId);
     *collision_res = NULL;
   }
 
@@ -724,40 +733,150 @@ void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **
   }
 }
 
-static void draw_collision_mesh(const CollisionNode &node, const TMatrix &tm, const E3DCOLOR &color, bool draw_solid,
-  bool show_face_orientation)
+struct ScreenSpaceParams
 {
-  if (show_face_orientation)
+  TMatrix viewItm;
+  Point3 camPos;
+  float pixelToWorld;
+};
+
+static void draw_collision_mesh(const CollisionResource &collision_res, int node_id, const TMatrix &tm, const E3DCOLOR &color,
+  dag::ConstSpan<uint16_t> degenerative_indices, bool draw_solid, bool show_face_orientation, const ScreenSpaceParams &params)
+{
+  if (show_face_orientation || draw_solid)
   {
-    ShaderGlobal::set_int(debug_ri_face_orientationVarId, 1);
-
-    draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
-      node.vertices.size(), tm, E3DCOLOR(255, 255, 255), true, DrawSolidMeshCull::FLIP);
-
-    ShaderGlobal::set_int(debug_ri_face_orientationVarId, 0);
+    // draw_debug_solid_mesh uploads to a d3d buffer so it needs contiguous indices/vertices; materialize only when solid is drawn.
+    const int faceCount = collision_res.getNodeFaceCount(node_id);
+    const int vertCount = collision_res.getNodeVertCount(node_id);
+    if (faceCount > 0 && vertCount > 0)
+    {
+      dag::Vector<uint16_t> idx(faceCount * 3);
+      dag::Vector<Point3_vec4> verts(vertCount);
+      collision_res.iterateNodeFaces(node_id, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
+        idx[fi * 3 + 0] = i0;
+        idx[fi * 3 + 1] = i1;
+        idx[fi * 3 + 2] = i2;
+      });
+      collision_res.iterateNodeVerts(node_id, [&](int vi, vec4f v) { v_st(&verts[vi].x, v); });
+      if (show_face_orientation)
+      {
+        ShaderGlobal::set_int(debug_ri_face_orientationVarId, 1);
+        draw_debug_solid_mesh(idx.data(), faceCount, &verts[0].x, sizeof(Point3_vec4), vertCount, tm, E3DCOLOR(255, 255, 255), true,
+          DrawSolidMeshCull::FLIP);
+        ShaderGlobal::set_int(debug_ri_face_orientationVarId, 0);
+      }
+      else
+      {
+        draw_debug_solid_mesh(idx.data(), faceCount, &verts[0].x, sizeof(Point3_vec4), vertCount, tm, color, false,
+          DrawSolidMeshCull::FLIP);
+      }
+    }
   }
-  else if (draw_solid)
-  {
-    draw_debug_solid_mesh(node.indices.data(), node.indices.size() / 3, &node.vertices.data()->x, elem_size(node.vertices),
-      node.vertices.size(), tm, color, false, DrawSolidMeshCull::FLIP);
-  }
 
-  for (int j = 0; j < node.indices.size(); j += 3)
-  {
-    Point3 p1 = node.vertices[node.indices[j + 0]];
-    Point3 p2 = node.vertices[node.indices[j + 1]];
-    Point3 p3 = node.vertices[node.indices[j + 2]];
-
+  collision_res.iterateNodeFacesVerts(node_id, [&](int, vec4f v0, vec4f v1, vec4f v2) {
+    Point3_vec4 p1, p2, p3;
+    v_st(&p1.x, v0);
+    v_st(&p2.x, v1);
+    v_st(&p3.x, v2);
     draw_cached_debug_line(p1, p2, color);
     draw_cached_debug_line(p2, p3, color);
     draw_cached_debug_line(p3, p1, color);
+  });
+
+  if (degenerative_indices.empty())
+    return;
+
+  // Flush mesh wireframe into its own draw call so degenerate markers always render on top,
+  // preventing mesh edges from occluding them.
+  flush_cached_debug_lines();
+  const E3DCOLOR lineColor = E3DCOLOR(255, 0, 0, color.a);
+  const E3DCOLOR markerColor = E3DCOLOR(255, 255, 0, color.a);
+
+  constexpr float LINE_HALF_WIDTH_PX = 3.0f;
+  constexpr float MARKER_RADIUS_PX = 8.0f;
+  const float halfWidthScale = LINE_HALF_WIDTH_PX * params.pixelToWorld;
+  const float markerRadiusScale = MARKER_RADIUS_PX * params.pixelToWorld;
+
+  auto draw_thick_line = [&](const Point3 &a, const Point3 &b) {
+    Point3 wa = tm * a;
+    Point3 wb = tm * b;
+    Point3 dir = wb - wa;
+    float len = length(dir);
+    if (len < 1e-6f)
+      return;
+    dir /= len;
+    Point3 toMid = (wa + wb) * 0.5f - params.camPos;
+    float toMidLen = length(toMid);
+    if (toMidLen < 1e-6f)
+      return;
+    toMid /= toMidLen;
+    Point3 sideDir = cross(dir, toMid);
+    float sideDirLen = length(sideDir);
+    if (sideDirLen < 1e-6f)
+    {
+      sideDir = cross(dir, params.viewItm.getcol(1));
+      sideDirLen = length(sideDir);
+      if (sideDirLen < 1e-6f)
+      {
+        sideDir = cross(dir, params.viewItm.getcol(0));
+        sideDirLen = length(sideDir);
+        if (sideDirLen < 1e-6f)
+          return;
+      }
+    }
+    sideDir /= sideDirLen;
+    // Compute per-endpoint offsets so the quad has constant screen-space width along its full length
+    const Point3 sideA = sideDir * (length(wa - params.camPos) * halfWidthScale);
+    const Point3 sideB = sideDir * (length(wb - params.camPos) * halfWidthScale);
+    Point3 q[4] = {wa - sideA, wa + sideA, wb + sideB, wb - sideB};
+    draw_cached_debug_quad(q, lineColor);
+  };
+
+  auto draw_screen_marker = [&](const Point3 &p) {
+    Point3 wp = tm * p;
+    const float rad = length(wp - params.camPos) * markerRadiusScale;
+    draw_cached_debug_hex(params.viewItm, wp, rad, markerColor);
+  };
+
+  // Degenerate markers index into the node's vertex array; materialize it once here since the debug-only path is rarely hit.
+  dag::Vector<Point3_vec4> degenVerts(collision_res.getNodeVertCount(node_id));
+  collision_res.iterateNodeVerts(node_id, [&](int vi, vec4f v) { v_st(&degenVerts[vi].x, v); });
+
+  for (int i = 0; i + 2 < degenerative_indices.size(); i += 3)
+  {
+    const Point3 &p1 = degenVerts[degenerative_indices[i + 0]];
+    const Point3 &p2 = degenVerts[degenerative_indices[i + 1]];
+    const Point3 &p3 = degenVerts[degenerative_indices[i + 2]];
+    draw_thick_line(p1, p2);
+    draw_thick_line(p2, p3);
+    draw_thick_line(p3, p1);
+  }
+
+  for (int i = 0; i + 2 < degenerative_indices.size(); i += 3)
+  {
+    draw_screen_marker(degenVerts[degenerative_indices[i + 0]]);
+    draw_screen_marker(degenVerts[degenerative_indices[i + 1]]);
+    draw_screen_marker(degenVerts[degenerative_indices[i + 2]]);
   }
 }
 
 void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox,
-  bool show_phys_collidable, bool show_traceable, bool draw_solid, bool show_face_orientation, int selected_node_id, bool edit_mode,
+  bool show_phys_collidable, bool show_traceable, bool draw_solid, bool show_face_orientation, bool show_degenerate_triangles,
+  const dag::Vector<DegenerativeNodeData> &degenerative_nodes, int selected_node_id, bool edit_mode,
   const dag::Vector<bool> &hidden_nodes)
 {
+  TMatrix viewTm;
+  d3d::gettm(TM_VIEW, viewTm);
+  TMatrix4 projTm;
+  d3d::gettm(TM_PROJ, &projTm);
+  int vx, vy, vw, vh;
+  float vzn, vzf;
+  d3d::getview(vx, vy, vw, vh, vzn, vzf);
+  ScreenSpaceParams ssParams;
+  ssParams.viewItm = inverse(viewTm);
+  ssParams.camPos = ssParams.viewItm.getcol(3);
+  ssParams.pixelToWorld = (vh > 0 && projTm[1][1] > 1e-6f) ? 2.0f / (projTm[1][1] * vh) : 0.001f;
+
   begin_draw_cached_debug_lines();
 
   if (show_bbox)
@@ -769,6 +888,14 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
   for (int i = 0; i < cnt; i++)
   {
     const CollisionNode &node = allNodes[i];
+    dag::ConstSpan<uint16_t> degenerativeIndices;
+    if (show_degenerate_triangles)
+    {
+      const DegenerativeNodeData *degenerativeNode = eastl::find_if(degenerative_nodes.begin(), degenerative_nodes.end(),
+        [&node](const DegenerativeNodeData &degenerative_node) { return degenerative_node.node == &node; });
+      if (degenerativeNode != degenerative_nodes.end())
+        degenerativeIndices = degenerativeNode->indices;
+    }
 
     const CollisionNodeVisibility visibility = getNodeVisibility(node, show_phys_collidable, show_traceable);
     const bool isVisible = visibility == CollisionNodeVisibility::INVISIBLE;
@@ -791,37 +918,43 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
       if (customColor)
         customColor.value().a = alpha;
     }
+    if (show_degenerate_triangles)
+      customColor = E3DCOLOR_MAKE(0, 255, 0, alpha);
 
     if (node.type == COLLISION_NODE_TYPE_BOX)
     {
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR_MAKE(255, 255, 255, alpha);
+      BBox3 nodeBBox = collision_res.getNodeBBox(i);
       if (draw_solid)
-        draw_debug_solid_cube(node.modelBBox, TMatrix::IDENT, color);
+        draw_debug_solid_cube(nodeBBox, TMatrix::IDENT, color);
 
       set_cached_debug_lines_wtm(TMatrix::IDENT);
-      draw_cached_debug_box(node.modelBBox, color);
+      draw_cached_debug_box(nodeBBox, color);
     }
     else if (node.type == COLLISION_NODE_TYPE_SPHERE)
     {
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR_MAKE(255, 255, 0, alpha);
+      BSphere3 nodeBSphere = collision_res.getNodeBSphere(i);
       if (draw_solid)
-        draw_debug_solid_sphere(node.boundingSphere.c, node.boundingSphere.r, TMatrix::IDENT, color);
+        draw_debug_solid_sphere(nodeBSphere.c, nodeBSphere.r, TMatrix::IDENT, color);
 
       set_cached_debug_lines_wtm(TMatrix::IDENT);
-      draw_cached_debug_sphere(node.boundingSphere.c, node.boundingSphere.r, color);
+      draw_cached_debug_sphere(nodeBSphere.c, nodeBSphere.r, color);
     }
     else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
     {
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR_MAKE(255, 0, 255, alpha);
+      Capsule nodeCapsule;
+      collision_res.getNodeCapsule(i, nodeCapsule);
       if (draw_solid)
-        draw_debug_solid_capsule(node.capsule, TMatrix::IDENT, color);
+        draw_debug_solid_capsule(nodeCapsule, TMatrix::IDENT, color);
 
       set_cached_debug_lines_wtm(TMatrix::IDENT);
-      draw_cached_debug_capsule_w(node.capsule, color);
+      draw_cached_debug_capsule_w(nodeCapsule, color);
     }
     else if (node.type == COLLISION_NODE_TYPE_MESH)
     {
-      TMatrix nodeTm = node.tm;
+      TMatrix nodeTm = collision_res.getNodeTm(i);
       if (node_tree)
         collision_res.getCollisionNodeTm(&node, TMatrix::IDENT, node_tree, nodeTm);
 
@@ -829,8 +962,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR(colors[i % (sizeof(colors) / sizeof(colors[0]))]);
       color.a = alpha;
-
-      draw_collision_mesh(node, nodeTm, color, draw_solid, show_face_orientation);
+      draw_collision_mesh(collision_res, i, nodeTm, color, degenerativeIndices, draw_solid, show_face_orientation, ssParams);
     }
     else if (node.type == COLLISION_NODE_TYPE_CONVEX)
     {
@@ -838,46 +970,56 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
 
       E3DCOLOR color = customColor ? customColor.value() : E3DCOLOR(colors[i % (sizeof(colors) / sizeof(colors[0]))]);
 
-      Tab<Point3> vertList;
-      for (int j = 0; j < node.indices.size(); ++j)
-        vertList.push_back(node.tm * node.vertices[node.indices[j]]);
+      const TMatrix &nTm = collision_res.getNodeTm(i);
       bool haveInvalidVertices = false;
       const float distEps = 1e-3f;
-      vec4f nodeEps = v_splats(max(node.boundingSphere.r * distEps, 1e-2f));
-      for (int k = 0; k < node.convexPlanes.size(); ++k)
+      vec4f nodeEps = v_splats(max(collision_res.getNodeBSphere(i).r * distEps, 1e-2f));
+      dag::ConstSpan<plane3f> convexPlanes = collision_res.getNodeConvexPlanes(i);
+      for (int k = 0; k < convexPlanes.size(); ++k)
       {
-        const plane3f &plane = node.convexPlanes[k];
-        for (const Point3_vec4 &vert : node.vertices)
-        {
-          vec4f vertex = v_ld(&vert.x);
+        const plane3f &plane = convexPlanes[k];
+        Point3 fv0, fv1, fv2;
+        const bool hasFace = collision_res.getNodeFaceVerts(i, k, fv0, fv1, fv2);
+        collision_res.iterateNodeVerts(i, [&](int, vec4f vertex) {
           vec4f dist = v_plane_dist(plane, vertex);
           if (v_test_vec_x_gt(dist, nodeEps))
           {
             haveInvalidVertices = true;
             vec4f v_projPt = v_add(vertex, v_neg(v_mul(dist, plane)));
-            Point3_vec4 projPt;
+            Point3_vec4 vert, projPt;
+            v_st(&vert.x, vertex);
             v_st(&projPt.x, v_projPt);
-            draw_cached_debug_line(node.tm * vert, node.tm * projPt, E3DCOLOR_MAKE(255, 0, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 0]], node.tm * node.vertices[node.indices[k * 3 + 1]],
-              E3DCOLOR_MAKE(255, 255, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 1]], node.tm * node.vertices[node.indices[k * 3 + 2]],
-              E3DCOLOR_MAKE(255, 255, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 2]], node.tm * node.vertices[node.indices[k * 3 + 0]],
-              E3DCOLOR_MAKE(255, 255, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 0]], node.tm * projPt,
-              E3DCOLOR_MAKE(255, 255, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 1]], node.tm * projPt,
-              E3DCOLOR_MAKE(255, 255, 0, 255));
-            draw_cached_debug_line(node.tm * node.vertices[node.indices[k * 3 + 2]], node.tm * projPt,
-              E3DCOLOR_MAKE(255, 255, 0, 255));
+            draw_cached_debug_line(nTm * vert, nTm * projPt, E3DCOLOR_MAKE(255, 0, 0, 255));
+            if (hasFace)
+            {
+              draw_cached_debug_line(nTm * fv0, nTm * fv1, E3DCOLOR_MAKE(255, 255, 0, 255));
+              draw_cached_debug_line(nTm * fv1, nTm * fv2, E3DCOLOR_MAKE(255, 255, 0, 255));
+              draw_cached_debug_line(nTm * fv2, nTm * fv0, E3DCOLOR_MAKE(255, 255, 0, 255));
+              draw_cached_debug_line(nTm * fv0, nTm * projPt, E3DCOLOR_MAKE(255, 255, 0, 255));
+              draw_cached_debug_line(nTm * fv1, nTm * projPt, E3DCOLOR_MAKE(255, 255, 0, 255));
+              draw_cached_debug_line(nTm * fv2, nTm * projPt, E3DCOLOR_MAKE(255, 255, 0, 255));
+            }
           }
-        }
+        });
       }
       color.a = clamp(alpha, 0, haveInvalidVertices ? 40 : 128);
       if (draw_solid)
-        draw_collision_mesh(node, TMatrix::IDENT, color, draw_solid, show_face_orientation);
+        draw_collision_mesh(collision_res, i, TMatrix::IDENT, color, {}, draw_solid, show_face_orientation, ssParams);
       else
+      {
+        Tab<Point3> vertList;
+        vertList.reserve(collision_res.getNodeFaceCount(i) * 3);
+        collision_res.iterateNodeFacesVerts(i, [&](int, vec4f v0, vec4f v1, vec4f v2) {
+          Point3_vec4 p0, p1, p2;
+          v_st(&p0.x, v0);
+          v_st(&p1.x, v1);
+          v_st(&p2.x, v2);
+          vertList.push_back(nTm * p0);
+          vertList.push_back(nTm * p1);
+          vertList.push_back(nTm * p2);
+        });
         draw_cached_debug_trilist(vertList.data(), vertList.size() / 3, color);
+      }
     }
   }
 

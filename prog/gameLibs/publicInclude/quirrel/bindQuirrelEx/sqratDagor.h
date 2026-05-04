@@ -20,7 +20,7 @@ struct Var<SimpleString>
 
   Var(HSQUIRRELVM vm, SQInteger idx)
   {
-    const SQChar *ret = _SC("n/a");
+    const char *ret = "n/a";
     SQInteger size;
     G_VERIFY(SQ_SUCCEEDED(sq_tostring(vm, idx)));
     G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(vm, -1, &ret, &size)));
@@ -30,7 +30,7 @@ struct Var<SimpleString>
 
   static void push(HSQUIRRELVM vm, const SimpleString &value) { sq_pushstring(vm, value.c_str(), value.length()); }
 
-  static const SQChar *getVarTypeName() { return _SC("SimpleString"); }
+  static const char *getVarTypeName() { return "SimpleString"; }
   static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
@@ -41,7 +41,7 @@ struct Var<const SimpleString &>
 
   Var(HSQUIRRELVM vm, SQInteger idx)
   {
-    const SQChar *ret = _SC("n/a");
+    const char *ret = "n/a";
     SQInteger size;
     G_VERIFY(SQ_SUCCEEDED(sq_tostring(vm, idx)));
     G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(vm, -1, &ret, &size)));
@@ -51,7 +51,7 @@ struct Var<const SimpleString &>
 
   static void push(HSQUIRRELVM vm, const SimpleString &value) { sq_pushstring(vm, value.c_str(), value.length()); }
 
-  static const SQChar *getVarTypeName() { return _SC("SimpleString ref"); }
+  static const char *getVarTypeName() { return "SimpleString ref"; }
   static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
@@ -62,7 +62,7 @@ struct Var<String>
 
   Var(HSQUIRRELVM vm, SQInteger idx)
   {
-    const SQChar *ret = _SC("n/a");
+    const char *ret = "n/a";
     SQInteger size;
     G_VERIFY(SQ_SUCCEEDED(sq_tostring(vm, idx)));
     G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(vm, -1, &ret, &size)));
@@ -72,7 +72,7 @@ struct Var<String>
 
   static void push(HSQUIRRELVM vm, const String &value) { sq_pushstring(vm, value.c_str(), value.length()); }
 
-  static const SQChar *getVarTypeName() { return _SC("DagorString"); }
+  static const char *getVarTypeName() { return "DagorString"; }
   static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 
@@ -83,7 +83,7 @@ struct Var<const String &>
 
   Var(HSQUIRRELVM vm, SQInteger idx)
   {
-    const SQChar *ret = _SC("n/a");
+    const char *ret = "n/a";
     SQInteger size;
     G_VERIFY(SQ_SUCCEEDED(sq_tostring(vm, idx)));
     G_VERIFY(SQ_SUCCEEDED(sq_getstringandsize(vm, -1, &ret, &size)));
@@ -93,7 +93,7 @@ struct Var<const String &>
 
   static void push(HSQUIRRELVM vm, const String &value) { sq_pushstring(vm, value.c_str(), value.length()); }
 
-  static const SQChar *getVarTypeName() { return _SC("DagorString ref"); }
+  static const char *getVarTypeName() { return "DagorString ref"; }
   static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_STRING; }
 };
 

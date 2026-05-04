@@ -64,7 +64,7 @@ extern int das_yydebug;
     #include "formatter.h"
 
 #if defined(_MSC_VER) && !defined(__clang__)
-    #if defined(DAS_RELWITHDEBINFO)
+    #if !defined(_DEBUG)
         #pragma optimize( "s", on )
     #endif
 #endif
@@ -319,6 +319,7 @@ union DAS_YYSTYPE
     double                          fd;
     string *                        s;
     vector<string> *                pNameList;
+    vector<tuple<string,Expression *>> *  pNameExprList;
     vector<VariableNameAndPosition> * pNameWithPosList;
     VariableDeclaration *           pVarDecl;
     vector<VariableDeclaration*> *  pVarDeclList;
@@ -332,6 +333,7 @@ union DAS_YYSTYPE
     AnnotationList *                faList;
     MakeStruct *                    pMakeStruct;
     Enumeration *                   pEnum;
+    Enumeration *                   pEnumList;
     Structure *                     pStructure;
     Function *                      pFuncDecl;
     CaptureEntry *                  pCapt;

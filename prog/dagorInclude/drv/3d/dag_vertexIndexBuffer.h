@@ -25,7 +25,7 @@ namespace d3d
  * @param name The name of the vertex buffer (temporarily optional).
  * @return A pointer to the created vertex buffer.
  */
-Sbuffer *create_vb(int size_bytes, int flags, const char *name = "");
+Sbuffer *create_vb(int size_bytes, int flags, const char *name = "", ResourceTagType tag = nullptr);
 
 /**
  * @brief Creates an index buffer.
@@ -39,7 +39,7 @@ Sbuffer *create_vb(int size_bytes, int flags, const char *name = "");
  * @param stat_name The name of the index buffer (temporarily optional).
  * @return A pointer to the created index buffer.
  */
-Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib");
+Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name = "ib", ResourceTagType tag = nullptr);
 
 /**
  * @brief Sets the vertex buffer as a stream source.
@@ -112,8 +112,11 @@ bool setvdecl(VDECL vdecl);
 #include <drv/3d/dag_interface_table.h>
 namespace d3d
 {
-inline Sbuffer *create_vb(int sz, int f, const char *name) { return d3di.create_vb(sz, f, name); }
-inline Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name) { return d3di.create_ib(size_bytes, flags, stat_name); }
+inline Sbuffer *create_vb(int sz, int f, const char *name, ResourceTagType tag) { return d3di.create_vb(sz, f, name, tag); }
+inline Sbuffer *create_ib(int size_bytes, int flags, const char *stat_name, ResourceTagType tag)
+{
+  return d3di.create_ib(size_bytes, flags, stat_name, tag);
+}
 inline bool setvsrc_ex(int s, Sbuffer *vb, int ofs, int stride_bytes) { return d3di.setvsrc_ex(s, vb, ofs, stride_bytes); }
 inline bool setind(Sbuffer *ib) { return d3di.setind(ib); }
 inline VDECL create_vdecl(VSDTYPE *vsd) { return d3di.create_vdecl(vsd); }

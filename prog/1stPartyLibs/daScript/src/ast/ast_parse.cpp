@@ -66,10 +66,16 @@ namespace das {
         string incModName;
         const char * src_end = src + length;
         bool wb = true;
+        int32_t line = 1;
         while ( src < src_end ) {
+            if ( src[0]=='\n' ) {
+                line ++;
+            }
             if ( src[0]=='"' ) {
                 src ++;
                 while ( src < src_end && src[0]!='"' ) {
+                    if ( src[0]=='\n' )
+                        line ++;
                     src ++;
                 }
                 src ++;
@@ -79,12 +85,16 @@ namespace das {
                 while ( src < src_end && !(src[0]=='\n') ) {
                     src ++;
                 }
+                if ( src < src_end && src[0]=='\n' )
+                    line ++;
                 src ++;
                 wb = true;
                 continue;
             } else if ( src[0]=='/' && src[1]=='*' ) {
                 int depth = 0;
                 while ( src < src_end ) {
+                    if ( src[0]=='\n' )
+                        line ++;
                     if ( src[0]=='/' && src[1]=='*' ) {
                         depth ++;
                         src += 2;
@@ -128,7 +138,14 @@ namespace das {
                                     mod += *src ++;
                                 }
                                 if ( isReq ) {
-                                    req.push_back({mod,chain});
+                                    bool isPublic = false;
+                                    while ( src < src_end && src[0] == ' ' ) {
+                                        src ++;
+                                    }
+                                    if ( src + 6 < src_end && memcmp(src, "public", 6) == 0 ) {
+                                        isPublic = true;
+                                    }
+                                    req.push_back({mod, line, chain, isPublic});
                                 } else if ( isInc ) {
                                     string incFileName = access->getIncludeFileName(fi->name,mod);
                                     auto info = access->getFileInfo(incFileName);
@@ -152,6 +169,8 @@ namespace das {
                         src += 6;
                         if ( isspace(src[0]) ) {
                             while ( src < src_end && isspace(src[0]) ) {
+                                if ( src[0]=='\n' )
+                                    line ++;
                                 src ++;
                             }
                             if ( src >= src_end ) {
@@ -213,10 +232,10 @@ namespace das {
         return fname;
     }
 
-    bool addRequirements(const string & fileName, ModuleGroup & libGroup, Module * mod, const FileAccessPtr & access,
+    bool addRequirements(const string & fileName, ModuleGroup & libGroup, Module * mod, int32_t line, const FileAccessPtr & access,
             vector<RequireRecord> & notAllowed, vector<FileInfo*> & chain, TextWriter * log, int tab ) {
         if ( !access->isModuleAllowed(mod->name, fileName) ) {
-            notAllowed.push_back({mod->name,chain});
+            notAllowed.push_back({mod->name, line, chain});
             if ( log ) {
                 *log << string(tab,'\t') << "dependency " << mod->name << " - NOT ALLOWED\n";
             }
@@ -232,7 +251,7 @@ namespace das {
                                                return m1->name < m2->name;
                                            }) ) {
                     chain.push_back(dep.first->getFileInfo());
-                    if ( !addRequirements(fileName, libGroup, dep.first, access, notAllowed, chain, log, tab) ) {
+                    if ( !addRequirements(fileName, libGroup, dep.first, line, access, notAllowed, chain, log, tab) ) {
                         chain.pop_back();
                         return false;
                     }
@@ -260,7 +279,9 @@ namespace das {
                           ModuleGroup & libGroup,
                           TextWriter * log,
                           int tab,
-                          bool allowPromoted ) {
+                          bool allowPromoted,
+                          const string & reqNameHint,
+                          int32_t reqLineHint ) {
         if ( auto fi = access->getFileInfo(fileName) ) {
             ChainGuard guard(chain,fi);
             if ( log ) {
@@ -268,13 +289,13 @@ namespace das {
             }
             vector<RequireRecord> ownReq = getAllRequire(fi, modName, chain, access);
             for ( auto & modRec : ownReq ) {
-                string & mod = modRec.name;
+                string mod = modRec.name;
                 if ( log ) {
                     *log << string(tab,'\t') << "require " << mod << "\n";
                 }
-                if ( !access->canBeRequired(mod, fileName) )
+                if ( !access->canBeRequired(mod, fileName, modRec.isPublic) )
                 {
-                    notAllowed.push_back({mod,chain});
+                    notAllowed.push_back({mod, modRec.line, chain, modRec.isPublic});
                     if ( log ) {
                         *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - CAN'T BE REQUIRED\n";
                     }
@@ -298,9 +319,9 @@ namespace das {
                             if ( dependencies.find(mod) != dependencies.end() ) {
                                 // circular dependency
                                 if ( log ) {
-                                    *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - CIRCULAR DEPENDENCY\n";
+                                    *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - CIRCULAR DEPENDENCY\n";
                                 }
-                                circular.push_back({mod, chain});
+                                circular.push_back({modRec.name, modRec.line, chain, modRec.isPublic});
                                 return false;
                             }
                             dependencies.insert(mod);
@@ -308,14 +329,14 @@ namespace das {
                             if ( info.moduleName.empty() ) {
                                 // request can't be translated to module name
                                 if ( log ) {
-                                    *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - MODULE INFO NOT FOUND\n";
+                                    *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - MODULE INFO NOT FOUND\n";
                                 }
-                                missing.push_back({mod,chain});
+                                missing.push_back({modRec.name, modRec.line, chain, MissingHint::ModuleInfoNotFound});
                                 return false;
                             }
                             string fileModName;
                             if ( !getPrerequisits(info.fileName, access, fileModName, req, missing, circular, notAllowed, chain, dependencies,
-                                                  namelessReq, namelessMismatches, libGroup, log, tab + 1, allowPromoted) ) {
+                                                  namelessReq, namelessMismatches, libGroup, log, tab + 1, allowPromoted, modRec.name, modRec.line) ) {
                                 return false;
                             }
                             if ( !fileModName.empty() ) {
@@ -323,7 +344,7 @@ namespace das {
                                     if ( log ) {
                                         *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - MODULE INFO NOT FOUND; did you mean '" << fileModName << "'?\n";
                                     }
-                                    missing.push_back({mod,chain,fileModName});
+                                    missing.push_back({modRec.name, modRec.line, chain, MissingHint::WrongModuleName, mod, fileModName});
                                     return false;
                                 }
                                 info.moduleName = fileModName;
@@ -332,16 +353,17 @@ namespace das {
                                 builtin_string_tolower_in_place(caseInsensitiveName.data());
                                 auto prevMod = namelessReq.find(caseInsensitiveName);
                                 if ( prevMod == namelessReq.end() ) {
-                                    namelessReq[caseInsensitiveName] = NamelessModuleReq{info.moduleName, info.fileName};
-                                } else if ( prevMod->second.moduleName != info.moduleName ) {
+                                    namelessReq[caseInsensitiveName] = NamelessModuleReq{mod, info.moduleName, info.fileName, fileName};
+                                } else if ( prevMod->second.fileName != info.fileName ) {
                                     if ( log ) {
-                                        *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - MODULE NAME CASE CONFLICT; " << prevMod->second.moduleName << " vs " << info.moduleName << "\n"
-                                             << string(tab+1,'\t') << prevMod->second.moduleName << " from " << prevMod->second.fileName << "\n"
-                                             << string(tab+1,'\t') << info.moduleName << " from " << info.fileName << "\n";
+                                        *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - MODULE NAME CASE CONFLICT; "
+                                             << prevMod->second.name << " vs " << modRec.name << " \n"
+                                             << string(tab+1,'\t') << prevMod->second.name << " from " << prevMod->second.fromFile << "\n"
+                                             << string(tab+1,'\t') << modRec.name << " from " << fileName << "\n";
                                     }
-                                    namelessMismatches.push_back(NamelessMismatch{
-                                        prevMod->second.moduleName, prevMod->second.fileName,
-                                        info.moduleName, info.fileName
+                                    namelessMismatches.push_back(NamelessMismatch{chain, modRec.line,
+                                        modRec.name, info.fileName, fileName,
+                                        prevMod->second.name, prevMod->second.fileName, prevMod->second.fromFile
                                     });
                                     return false;
                                 }
@@ -353,11 +375,33 @@ namespace das {
                             req.push_back(info);
                         } else {
                             if ( !access->isSameFileName(it_r->fileName, info.fileName) ) {
-                                if ( log ) {
-                                    *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - module name collision\n"
-                                         << string(tab+1,'\t') << "requested from " << it_r->fileName << " and from " << info.fileName << "\n";
+                                if ( access->getFileInfo(info.fileName) ) {
+                                    // same module name, different file name, both files exist
+                                    if ( builtin_string_stricmp(it_r->fileName.c_str(), info.fileName.c_str()) == 0 ) {
+                                        // same file names, different case - probably typo
+                                         if ( log ) {
+                                            *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - MODULE INFO NOT FOUND; did you mean '" << it_r->fileName << "'?\n";
+                                        }
+                                        missing.push_back({modRec.name, modRec.line, chain, MissingHint::ModuleInfoNotFound, it_r->fileName});
+                                    } else {
+                                        // different file names - most likely module name collision
+                                        if ( log ) {
+                                            *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - MODULE NAME COLLISION\n"
+                                            << string(tab+1,'\t') << "requested from " << info.fileName << " and from " << it_r->fileName << "\n";
+                                        }
+                                        missing.push_back({modRec.name, modRec.line, chain, MissingHint::DuplicateModule, info.fileName, it_r->fileName});
+                                    }
+                                } else {
+                                    // not found, suggest the one we have
+                                    string caseInsensitiveName = info.moduleName;
+                                    builtin_string_tolower_in_place(caseInsensitiveName.data());
+                                    auto prevMod = namelessReq.find(caseInsensitiveName);
+                                    const string & maybeName = prevMod != namelessReq.end() ? prevMod->second.fileName : it_r->fileName;
+                                    if ( log ) {
+                                        *log << string(tab,'\t') << "from " << fileName << " require " << modRec.name << " - MODULE INFO NOT FOUND; did you mean '" << maybeName << "'?\n";
+                                    }
+                                    missing.push_back({modRec.name, modRec.line, chain, MissingHint::ModuleInfoNotFound, maybeName});
                                 }
-                                missing.push_back({mod, chain});
                                 return false;
                             } else {
                                 if ( log ) {
@@ -369,7 +413,7 @@ namespace das {
                         if ( log ) {
                             *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - shared, ok\n";
                         }
-                        if ( !addRequirements(fileName, libGroup, module, access, notAllowed, chain, log, tab) ) {
+                        if ( !addRequirements(fileName, libGroup, module, modRec.line, access, notAllowed, chain, log, tab) ) {
                             return false;
                         }
                     }
@@ -378,9 +422,9 @@ namespace das {
                         *log << string(tab,'\t') << "from " << fileName << " require " << mod << " - ok\n";
                     }
                     if ( !access->isModuleAllowed(module->name, fileName) ) {
-                        notAllowed.push_back({mod,chain});
+                        notAllowed.push_back({modRec.name, modRec.line, chain});
                         if ( log ) {
-                            *log << string(tab,'\t') << "in " << fileName << " module " << module->name << " - NOT ALLOWED\n";
+                            *log << string(tab,'\t') << "in " << fileName << " module " << modRec.name << " - NOT ALLOWED\n";
                         }
                         return false;
                     } else {
@@ -394,7 +438,7 @@ namespace das {
                 *log    << string(tab,'\t') << "in " << fileName << " - FILE NOT FOUND\n"
                         << string(tab+1,'\t') << "getDasRoot()='" << getDasRoot() << "'\n";
             }
-            missing.push_back({fileName,chain});
+            missing.push_back({!reqNameHint.empty() ? reqNameHint : fileName, !reqNameHint.empty() ? reqLineHint : 0, chain, MissingHint::FileNotFound});
             return false;
         }
     }
@@ -416,8 +460,8 @@ namespace das {
             const string        & fileName,
             ModuleGroup         & libGroup,
             TextWriter & logs ) {
-        auto & serializer_read = (*daScriptEnvironment::bound)->serializer_read;
-        auto & serializer_write = (*daScriptEnvironment::bound)->serializer_write;
+        auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
+        auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
 
         if ( serializer_read == nullptr || serializer_read->seenNewModule ) {
             return false;
@@ -471,7 +515,16 @@ namespace das {
         // we skip /* */ and // comments
         bool in_single_line_comment = false;
         bool in_multi_line_comment = false;
+        bool in_string = false;
         for (uint32_t i = 0; i < length; ++i) {
+            if (in_string) {
+                if (text[i] == '\\' && i + 1 < length) {
+                    ++i; // skip escaped character
+                } else if (text[i] == '"') {
+                    in_string = false;
+                }
+                continue;
+            }
             if (in_single_line_comment) {
                 if (text[i] == '\n') {
                     in_single_line_comment = false;
@@ -483,6 +536,10 @@ namespace das {
                     in_multi_line_comment = false;
                     ++i;
                 }
+                continue;
+            }
+            if (text[i] == '"') {
+                in_string = true;
                 continue;
             }
             if (text[i] == '/' && i + 1 < length) {
@@ -533,16 +590,17 @@ namespace das {
         }
 
         int err;
-        (*daScriptEnvironment::bound)->g_Program = program;
-        (*daScriptEnvironment::bound)->g_compilerLog = &logs;
-        (*daScriptEnvironment::bound)->g_compilingFileName = fileName.c_str();
-        (*daScriptEnvironment::bound)->g_compilingModuleName = moduleName.c_str();
+        daScriptEnvironment::getBound()->g_Program = program;
+        daScriptEnvironment::getBound()->g_compilerLog = &logs;
+        daScriptEnvironment::getBound()->g_compilingFileName = fileName.c_str();
+        daScriptEnvironment::getBound()->g_compilingModuleName = moduleName.c_str();
         program->promoteToBuiltin = false;
         program->isCompiling = true;
         program->isDependency = isDep;
         program->needMacroModule = false;
         program->policies = policies;
         program->thisModuleGroup = &libGroup;
+        program->thisModule->fileName = fileName;
         program->thisModuleName = program->thisModule->name;
         libGroup.foreach([&](Module * pm){
             program->library.addModule(pm);
@@ -551,7 +609,7 @@ namespace das {
         DasParserState parserState;
         parserState.g_Access = access;
         parserState.g_Program = program;
-        parserState.das_def_tab_size = (*daScriptEnvironment::bound)->das_def_tab_size;
+        parserState.das_def_tab_size = daScriptEnvironment::getBound()->das_def_tab_size;
         parserState.das_gen2_make_syntax = policies.gen2_make_syntax;
         yyscan_t scanner = nullptr;
         int64_t file_mtime = access->getFileMtime(fileName.c_str());
@@ -608,23 +666,26 @@ namespace das {
         } else {
             program->error(fileName + " not found", "","",LineInfo());
             program->isCompiling = false;
-            (*daScriptEnvironment::bound)->g_Program.reset();
-            (*daScriptEnvironment::bound)->g_compilerLog = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingFileName = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingModuleName = nullptr;
+            daScriptEnvironment::getBound()->g_Program.reset();
+            daScriptEnvironment::getBound()->g_compilerLog = nullptr;
+            daScriptEnvironment::getBound()->g_compilingFileName = nullptr;
+            daScriptEnvironment::getBound()->g_compilingModuleName = nullptr;
             return program;
         }
         parserState = DasParserState();
         *totParse += get_time_usec(time0);
         if ( err || program->failed() ) {
-            (*daScriptEnvironment::bound)->g_Program.reset();
-            (*daScriptEnvironment::bound)->g_compilerLog = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingFileName = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingModuleName = nullptr;
+            daScriptEnvironment::getBound()->g_Program.reset();
+            daScriptEnvironment::getBound()->g_compilerLog = nullptr;
+            daScriptEnvironment::getBound()->g_compilingFileName = nullptr;
+            daScriptEnvironment::getBound()->g_compilingModuleName = nullptr;
             sort(program->errors.begin(),program->errors.end());
             program->isCompiling = false;
             return program;
         } else {
+            if ( program->options.getBoolOption("force_inscope_pod", policies.force_inscope_pod) ) {
+                program->thisModule->allowPodInscope = access->isPodInScopeAllowed(program->thisModule->name, fileName);
+            }
             program->thisModule->doNotAllowUnsafe = !access->canModuleBeUnsafe(program->thisModule->name, fileName);
             if ( policies.solid_context || program->options.getBoolOption("solid_context",false) ) {
                 program->thisModule->isSolidContext = true;
@@ -636,6 +697,9 @@ namespace das {
             if ( !program->failed() ) {
                 program->buildAccessFlags(logs);    // this is used by the lint pass
                 if ( program->patchAnnotations() ) {
+                    program->thisModule->functions.foreach([&](auto && fn) {
+                        fn->notInferred();
+                    });
                     goto restartInfer;
                 }
             }
@@ -680,9 +744,9 @@ namespace das {
                     logs << *program;
                 }
             }
-            (*daScriptEnvironment::bound)->g_compilerLog = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingFileName = nullptr;
-            (*daScriptEnvironment::bound)->g_compilingModuleName = nullptr;
+            daScriptEnvironment::getBound()->g_compilerLog = nullptr;
+            daScriptEnvironment::getBound()->g_compilingFileName = nullptr;
+            daScriptEnvironment::getBound()->g_compilingModuleName = nullptr;
             sort(program->errors.begin(), program->errors.end());
             program->isCompiling = false;
             if ( !program->failed() ) {
@@ -704,13 +768,13 @@ namespace das {
                     *totM += get_time_usec(timeM);
                 }
             }
-            (*daScriptEnvironment::bound)->g_Program.reset();
+            daScriptEnvironment::getBound()->g_Program.reset();
             if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
             if ( program->options.getBoolOption("log_compile_time",policies.log_compile_time) ) {
                 auto dt = get_time_usec(time0) / 1000000.;
                 logs << "compiler took " << dt << ", " << fileName << "\n";
             }
-            auto & serializer_write = (*daScriptEnvironment::bound)->serializer_write;
+            auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
             if ( serializer_write != nullptr ) {
                 serializer_write->parsedModules.push_back({fileName, file_mtime, program, program->thisModule.get()});
             }
@@ -742,6 +806,9 @@ namespace das {
         if ( !hasModule && !modFile.empty() ) {
             vector<FileInfo *> chain;
             TextWriter tw;
+            // vector<ModuleInfo> new_reqs;
+            const auto prev_mod = libGroup.getModules();
+            auto prev_req = req;
             if ( !getPrerequisits(modFile, access, modName, req, missing, circular, notAllowed, chain,
                 dependencies, namelessReq, namelessMismatches, libGroup, &tw, 1, !policies.ignore_shared_modules) ) {
                 if ( log ) {
@@ -750,11 +817,35 @@ namespace das {
                 }
                 return false;
             }
+            for (auto mod : libGroup.getModules()) {
+                if (!count(prev_mod.begin(), prev_mod.end(), mod)) {
+                    mod->fromExtraDependency = true;
+                }
+            }
+            for (auto &reqR : req) {
+                if (!count_if(prev_req.begin(), prev_req.end(), [&reqR](const ModuleInfo &mod) {
+                    return mod.moduleName == reqR.moduleName;
+                })) {
+                    reqR.extraDepModule = true;
+                }
+            }
+            // If the module was already promoted to the global list
+            // by a prior compilation reuse it directly instead of
+            // recompilation.  Without this, a second Module* with the
+            // same nameHash ends up in the library and causes
+            // a hash-collision crash in addModule.
+            auto promotedMod = Module::requireEx(modName, true);
+            if ( promotedMod && promotedMod->promoted ) {
+                promotedMod->fromExtraDependency = true;
+                libGroup.addModule(promotedMod);
+                return true;
+            }
             auto finfo = access->getFileInfo(modFile);
             ModuleInfo info;
             info.fileName = finfo->name;
             info.importName = "";
             info.moduleName = modName;
+            info.extraDepModule = true;
             req.push_back(info);
         }
         return true;
@@ -798,7 +889,7 @@ namespace das {
     }
 
     void writebackModules ( ModuleGroup & libGroup ) {
-        auto & serializer_write = (*daScriptEnvironment::bound)->serializer_write;
+        auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
         for ( auto & parsedModule : serializer_write->parsedModules ) {
             auto & [fileName, fileMtime, program, thisModule] = parsedModule; // parsedModule is tuple<string, int64_t, ProgramPtr, Module *>
             *serializer_write << fileMtime;
@@ -865,40 +956,92 @@ namespace das {
         program->policies = policies;
         program->thisModuleGroup = &libGroup;
         TextWriter err;
+        LineInfo at;
+        bool first = true;
         for ( auto & mis : missing ) {
-            err << "missing prerequisit '" << mis.name;
-            if ( !mis.hintName.empty() ) {
-                err << "'; did you mean '" << mis.hintName << "'?\n";
-            } else {
-                err << "'\n";
+            if ( first && !mis.chain.empty() ) {
+                at.fileInfo = mis.chain.back();
+                at.line = at.last_line = mis.line;
+                at.column = 8;
+                at.last_column = at.column + (int)mis.name.size();
+                first = false;
+            }
+            switch ( mis.hintType ) {
+                case MissingHint::FileNotFound: {
+                    err << "missing prerequisite '" << mis.name << "'; file not found\n";
+                    break;
+                }
+                case MissingHint::WrongModuleName: {
+                    err << "wrong module name '" << mis.hintName << "'; did you mean '" << mis.hintName2 << "'?\n";
+                    break;
+                }
+                case MissingHint::ModuleInfoNotFound: {
+                    err << "missing prerequisite '" << mis.name << "'; module info not found";
+                    if ( !mis.hintName.empty() ) {
+                        err << ", did you mean '" << mis.hintName << "'?\n";
+                    } else {
+                        err << "'\n";
+                    }
+                    break;
+                }
+                case MissingHint::DuplicateModule: {
+                    err << "several modules with the same name '" << mis.name << "'\nnamely '" << mis.hintName << "' and '" << mis.hintName2 << "'\n";
+                    break;
+                }
+                default: {
+                    err << "'\n";
+                    break;
+                }
             }
             reportChain(err, mis.chain);
         }
         for ( auto & mis : circular ) {
+            if ( first && !mis.chain.empty() ) {
+                at.fileInfo = mis.chain.back();
+                at.line = at.last_line = mis.line;
+                at.column = 8;
+                at.last_column = at.column + (int)mis.name.size();
+                first = false;
+            }
             err << "circular dependency '" << mis.name << "'\n";
             reportChain(err, mis.chain);
         }
         for ( auto & mis : notAllowed ) {
+            if ( first && !mis.chain.empty() ) {
+                at.fileInfo = mis.chain.back();
+                at.line = at.last_line = mis.line;
+                at.column = 8;
+                at.last_column = at.column + (int)mis.name.size();
+                first = false;
+            }
             err << "module not allowed '" << mis.name << "'\n";
             reportChain(err, mis.chain);
         }
         for ( auto & nameless : namelessMismatches ) {
-            err << "module name case conflict: '" << nameless.moduleName << "' vs '" << nameless.moduleName2 << "'\n"
-                << "\t'" << nameless.moduleName << "' from " << nameless.fileName << "\n"
-                << "\t'" << nameless.moduleName2 << "' from " << nameless.fileName2 << "\n";
+            if ( first && !nameless.chain.empty() ) {
+                at.fileInfo = nameless.chain.back();
+                at.line = at.last_line = nameless.line;
+                at.column = 8;
+                at.last_column = at.column + (int)nameless.name1.size();
+                first = false;
+            }
+            err << "module name case conflict: '" << nameless.name1 << "' vs '" << nameless.name2 << "'\n"
+                << "'" << nameless.name1 << "' (" << nameless.fileName1 << ") from " << nameless.fromFile1 << "\n"
+                << "'" << nameless.name2 << "' (" << nameless.fileName2 << ") from " << nameless.fromFile2 << "\n\n";
+            reportChain(err, nameless.chain);
         }
-        program->error(err.str(), "", "", LineInfo(),
+        program->error(err.str(), "", "", at,
                         CompilationError::module_not_found);
         return program;
     }
 
     void disableSerializationOnDebugger ( vector<ModuleInfo> & req ) {
-        if ( (*daScriptEnvironment::bound)->serializer_read == nullptr )
+        if ( daScriptEnvironment::getBound()->serializer_read == nullptr )
             return;
         for ( auto & mod : req ) {
             if ( mod.fileName.find("daslib/debug") != string::npos ) {
-                auto & serializer_read = (*daScriptEnvironment::bound)->serializer_read;
-                auto & serializer_write = (*daScriptEnvironment::bound)->serializer_read;
+                auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
+                auto & serializer_write = daScriptEnvironment::getBound()->serializer_read;
                 serializer_read = serializer_write = nullptr;
                 break;
             }
@@ -910,7 +1053,7 @@ namespace das {
         for ( auto & r : req ) {
             if ( fullName.find(r.moduleName) != fullName.end() ) {
                 logs << "several modules with the same name '" << r.moduleName << "'\n" <<
-                        "namely " << r.fileName << "\n\tand " << fullName[r.moduleName] << "\n";
+                        "namely '" << r.fileName << "' and '" << fullName[r.moduleName] << "'\n";
                 return false;
             }
             fullName[r.moduleName] = r.fileName;
@@ -943,7 +1086,7 @@ namespace das {
         *totInfer = 0;
         *totOpt = 0;
         *totM = 0;
-        (*daScriptEnvironment::bound)->macroTimeTicks = 0;
+        daScriptEnvironment::getBound()->macroTimeTicks = 0;
         vector<ModuleInfo> req;
         vector<MissingRecord> missing;
         vector<RequireRecord> circular, notAllowed;
@@ -953,23 +1096,27 @@ namespace das {
         vector<NamelessMismatch> namelessMismatches;
         uint64_t preqT = 0;
         string modName;
+        auto builtinModule = Module::require("$");
+        DAS_ASSERTF(builtinModule, "Somehow `builtin` module is missing.");
+        auto builtin_path = getDasRoot() + "/daslib/builtin.das";
+        bool allGood = addExtraDependency("builtin", builtin_path, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs);
+        if ( !allGood ) {
+            auto res = make_smart<Program>();
+            res->error("internal error: failed to build builtin.das", logs.str(), "", LineInfo(), CompilationError::syntax_error);
+            return res;
+        }
+        for ( const auto & em : access->getExtraModules() ) {
+            allGood = addExtraDependency(em.first, em.second, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs) && allGood;
+        }
+        if ( !allGood ) {
+            auto res = make_smart<Program>();
+            res->error("internal error", logs.str(), "", LineInfo(), CompilationError::syntax_error);
+            return res;
+        }
         if ( getPrerequisits(fileName, access, modName, req, missing, circular, notAllowed, chain,
                 dependencies, namelessReq, namelessMismatches, libGroup, nullptr, 1, !policies.ignore_shared_modules) ) {
             preqT = get_time_usec(time0);
             disableSerializationOnDebugger(req);
-            bool allGood = true;
-            if ( policies.debugger ) {
-                allGood = addExtraDependency("debug", policies.debug_module, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs) && allGood;
-            } else if ( policies.profiler ) {
-                allGood = addExtraDependency("profiler", policies.profile_module, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs) && allGood;
-            } /* else */ if ( policies.jit ) {
-                allGood = addExtraDependency("just_in_time", policies.jit_module, missing, circular, notAllowed, req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies, &logs) && allGood;
-            }
-            if ( !allGood ) {
-                auto res = make_smart<Program>();
-                res->error("internal error", logs.str(), "", LineInfo(), CompilationError::syntax_error);
-                return res;
-            }
             if ( !verifyModuleNamesUnique(req, logs) ) {
                 auto res = make_smart<Program>();
                 res->error("Several modules with invalid names", logs.str(), "", LineInfo(),
@@ -987,7 +1134,9 @@ namespace das {
                 }
             }
             for ( auto & mod : req ) {
-                if ( libGroup.findModule(mod.moduleName) ) {
+                auto maybeMod = libGroup.findModule(mod.moduleName);
+                if ( maybeMod ) {
+                    maybeMod->fromExtraDependency &= mod.extraDepModule;
                     continue;
                 }
                 auto program = parseDaScript(mod.fileName, mod.moduleName, access, logs, libGroup, true, true, policies);
@@ -1003,6 +1152,7 @@ namespace das {
                     program->thisModule->wasParsedNameless = true;
                 }
                 program->thisModule->fileName = mod.fileName;
+                program->thisModule->fromExtraDependency = mod.extraDepModule;
                 if ( program->promoteToBuiltin ) {
                     if ( canShareModule(program) ) {
                         program->thisModule->promoteToBuiltin(access);
@@ -1012,12 +1162,12 @@ namespace das {
                 }
                 addNewModules(libGroup, program);
             }
-            auto & serializer_read = (*daScriptEnvironment::bound)->serializer_read;
+            auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
             if ( serializer_read && !policies.serialize_main_module ) serializer_read->seenNewModule = true;
             auto res = parseDaScript(fileName, modName, access, logs, libGroup, exportAll, false, policies);
             // wirteback all parsed modules from serializer_write
-            if ( (*daScriptEnvironment::bound)->serializer_write != nullptr
-                && (!(*daScriptEnvironment::bound)->serializer_read || (*daScriptEnvironment::bound)->serializer_read->failed) ) {
+            if ( daScriptEnvironment::getBound()->serializer_write != nullptr
+                && (!daScriptEnvironment::getBound()->serializer_read || daScriptEnvironment::getBound()->serializer_read->failed) ) {
                 writebackModules(libGroup);
             }
             policies.threadlock_context |= res->options.getBoolOption("threadlock_context",false);
@@ -1073,7 +1223,7 @@ namespace das {
                      << "\tparse    " << (*totParse / 1000000.) << "\n"
                      << "\tinfer    " << (*totInfer / 1000000.) << "\n"
                      << "\toptimize " << (*totOpt   / 1000000.) << "\n"
-                     << "\tmacro    " << (ref_time_delta_to_usec((*daScriptEnvironment::bound)->macroTimeTicks)  / 1000000.) << "\n"
+                     << "\tmacro    " << (ref_time_delta_to_usec(daScriptEnvironment::getBound()->macroTimeTicks)  / 1000000.) << "\n"
                      << "\tmacro mods " << (*totM     / 1000000.) << "\n"
                 ;
             }

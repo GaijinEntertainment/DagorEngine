@@ -4,11 +4,20 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_renderPass.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_viewScissor.h>
+#include <drv/3d/dag_barrier.h>
+#include <drv/3d/dag_variableRateShading.h>
+#include <startup/dag_globalSettings.h>
 #include <EASTL/fixed_string.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_assert.h>
 #include <EASTL/span.h>
 #include <ioSys/dag_dataBlock.h>
+#include "validation.h"
+
+#include "drv_assert_defs.h"
+#include "drv_log_defs.h"
 
 
 namespace rp_impl
@@ -23,6 +32,7 @@ inline dag::RelocatableFixedVector<MSAAResolvePair, 16> msaaResolves;
 inline dag::RelocatableFixedVector<RenderPassTarget, 16> targets;
 inline RenderPassArea activeRenderArea;
 inline int32_t subpass = 0;
+inline bool activeVRSTarget = false;
 
 } // namespace rp_impl
 
@@ -111,7 +121,7 @@ void RenderPass::execute(uint32_t idx)
     }
 
     // process clears
-    if (bind.action & (RP_TA_LOAD_CLEAR | RP_TA_LOAD_NO_CARE))
+    if (bind.action & (RP_TA_LOAD_CLEAR | RP_TA_LOAD_NO_CARE | RP_TA_LOAD_STENCIL_CLEAR))
     {
       clear_render_pass(target, rp_impl::activeRenderArea, bind);
     }
@@ -124,6 +134,13 @@ void RenderPass::execute(uint32_t idx)
       if ((srcBind.slot == bind.slot) && (srcBind.subpass == bind.subpass) && (srcIndex++ != idx))
         rp_impl::msaaResolves.push_back({srcBind.target, bind.target});
     }
+  }
+  else if (bind.action & RP_TA_SUBPASS_VRS_READ)
+  {
+    G_ASSERTF(bind.slot == RenderPassExtraIndexes::RP_SLOT_VRS_TEXTURE,
+      "RP: trying to bind target as VRS texture, yet slot %u != RP_SLOT_VRS_TEXTURE", bind.slot);
+    d3d::set_variable_rate_shading_texture(target.resource.tex);
+    rp_impl::activeVRSTarget = true;
   }
 }
 
@@ -152,8 +169,12 @@ static bool validate_renderpass_action(RenderPassTargetAction action, const char
 
   D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_SUBPASS_MASK) <= 1, noErrors &= false,
     "'%s' action consists of multiple subpass operations", what);
-  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_LOAD_MASK) <= 1, noErrors &= false,
-    "'%s' action consists of multiple load operations", what);
+  const int stencilLoadMask = (RP_TA_LOAD_STENCIL_CLEAR | RP_TA_LOAD_STENCIL_READ | RP_TA_LOAD_STENCIL_NO_CARE);
+  const int targetLoadMask = RP_TA_LOAD_MASK & ~stencilLoadMask;
+  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & targetLoadMask) <= 1, noErrors &= false,
+    "'%s' action consists of multiple target load operations", what);
+  D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & stencilLoadMask) <= 1, noErrors &= false,
+    "'%s' action consists of multiple stencil load operations", what);
   D3D_CONTRACT_ASSERTF_AND_DO(__popcount(action & RP_TA_STORE_MASK) <= 1, noErrors &= false,
     "'%s' action consists of multiple store operations", what);
 
@@ -221,6 +242,15 @@ void delete_render_pass(RenderPass *rp)
   delete rp;
 }
 
+void reset_vrs_texture()
+{
+  if (DAGOR_LIKELY(!rp_impl::activeVRSTarget))
+    return;
+
+  d3d::set_variable_rate_shading_texture(nullptr);
+  rp_impl::activeVRSTarget = false;
+}
+
 void next_subpass()
 {
   D3D_CONTRACT_ASSERT(activeRP);
@@ -232,6 +262,7 @@ void next_subpass()
   // bind fully empty RT/DS set
   set_render_target();
   set_render_target(0, nullptr, 0);
+  reset_vrs_texture();
 
   activeRP->resolveMSAATargets();
 
@@ -290,21 +321,22 @@ void end_render_pass()
   rp_impl::targets.clear();
   rp_impl::subpass = 0;
   activeRP = nullptr;
+  reset_vrs_texture();
 
   //! after render pass ends, render targets are reset to backbuffer
   set_render_target();
 }
 } // namespace render_pass_generic
 
-RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
+NO_UBSAN RenderPass *create_render_pass(const RenderPassDesc &rp_desc)
 {
   return reinterpret_cast<RenderPass *>(render_pass_generic::create_render_pass(rp_desc));
 }
-void delete_render_pass(RenderPass *rp)
+NO_UBSAN void delete_render_pass(RenderPass *rp)
 {
   render_pass_generic::delete_render_pass(reinterpret_cast<render_pass_generic::RenderPass *>(rp));
 }
-void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+NO_UBSAN void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
 {
   render_pass_generic::begin_render_pass(reinterpret_cast<render_pass_generic::RenderPass *>(rp), area, targets);
 }

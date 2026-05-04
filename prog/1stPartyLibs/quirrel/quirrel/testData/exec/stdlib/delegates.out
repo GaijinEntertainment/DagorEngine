@@ -1,0 +1,78 @@
+=== STRING METHODS TESTS ===
+len: 13
+tostring: 'Hello, World!'
+cannot convert the string to integer
+cannot convert the string to float
+hash: 4027599776755331851
+tolower: 'hello, world!'
+toupper: 'HELLO, WORLD!'
+tolower partial: 'hello, World!'
+toupper partial: 'Hello, WORLD!'
+indexof 'World': 7
+indexof 'o' from 5: 8
+contains 'World': true
+contains 'world' (case-sensitive): false
+hasindex 0: true
+hasindex 100: false
+startswith 'Hello': true
+endswith 'World!': true
+slice(0,5): 'Hello'
+slice(7): 'World!'
+replace 'World' -> 'Squirrel': 'Hello, Squirrel!'
+split: [Hello|World!]
+join: 'Hello Squirrel World'
+concat: 'abc'
+strip: 'test'
+lstrip: 'test  '
+rstrip: '  test'
+escape: '\x0a\x09\"\'\\'
+subst: 'Hello Squirrel, World!'
+format: 'Value: 42'
+printf test: value 100
+split_by_chars: [a|b|c|d]
+clone equality: true
+
+=== NUMERIC METHODS TESTS ===
+integer.tostring: '42'
+integer.tointeger: 42
+integer.tofloat: 42
+integer.tochar: '*'
+integer.clone: 42
+float.tostring: '3.14'
+float.tointeger: 3
+float.tofloat: 3.14
+float.clone: 3.14
+bool.tostring: 'true'
+bool.tointeger: 1
+bool.tofloat: 1
+bool.tochar: ''
+bool.clone: true
+
+=== CLOSURE METHODS TESTS ===
+closure.call: 'test captured'
+closure.pcall: safe captured
+error
+closure.pcall error: success
+closure.getfuncinfos keys: true, false
+closure.getfreevar name: 'free_var', value: 'captured'
+closure.clone type: function
+
+=== CLASS & INSTANCE METHODS TESTS ===
+class.rawget 'method' exists: true
+class.rawget dynamic: 100
+class.getbase: null
+class.getfuncinfos: null
+class.hasindex 'value': true
+class.is_frozen initially: false
+class.is_frozen after freeze: false
+instance.rawget 'value': 21
+instance.rawget after set: 42
+instance.rawin 'method': true
+instance.getfuncinfos type: null
+instance.hasindex 0: false
+instance.is_frozen: false
+clone isolation (original still 42): true
+swap result: t[1]=asd, t[2]=123
+getmetamethod 'add': null
+
+=== ALL TESTS COMPLETED ===

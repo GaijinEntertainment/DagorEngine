@@ -1,0 +1,8 @@
+ERROR: can't 'create' a local slot
+testData/diagnostics/compilation_errors/sema_errors/local_slot_create.nut:3:0
+
+local x = 5
+x <- 10
+^
+
+

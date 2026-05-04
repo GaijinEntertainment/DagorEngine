@@ -3,23 +3,22 @@
 #include <assert.h>
 #include <string.h>
 
-
 namespace NetImgui { namespace Internal
 {
 
-template <typename TType, typename... Args>
+template <typename TType, typename... Args> 
 TType* netImguiNew(Args... args)
 {
 	return new( ImGui::MemAlloc(sizeof(TType)) ) TType(args...);
 }
 
-template <typename TType>
+template <typename TType> 
 TType* netImguiSizedNew(size_t placementSize)
 {
 	return new( ImGui::MemAlloc(placementSize > sizeof(TType) ? placementSize : sizeof(TType)) ) TType();
 }
 
-template <typename TType>
+template <typename TType> 
 void netImguiDelete(TType* pData)
 {
 	if( pData )
@@ -29,7 +28,7 @@ void netImguiDelete(TType* pData)
 	}
 }
 
-template <typename TType>
+template <typename TType> 
 void netImguiDeleteSafe(TType*& pData)
 {
 	netImguiDelete(pData);
@@ -64,8 +63,8 @@ void ExchangePtr<TType>::Free()
 }
 
 template <typename TType>
-ExchangePtr<TType>::~ExchangePtr()
-{
+ExchangePtr<TType>::~ExchangePtr()	
+{ 
 	Free();
 }
 
@@ -211,7 +210,7 @@ template <typename TType, size_t TCount>
 bool Ringbuffer<TType,TCount>::ReadData(TType* pData)
 //=============================================================================
 {
-	if (mPosCur < mPosLast)
+	if (mPosCur < mPosLast) 
 	{
 		*pData = mBuffer[mPosCur % TCount];
 		mPosCur++;
@@ -256,7 +255,7 @@ int StringFormat(char(&output)[charCount], char const* const format, ...)
 {
 #if defined(__clang__)
 	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wformat-nonliteral"
+	#pragma clang diagnostic ignored "-Wformat-nonliteral"	
 #endif
 
 	va_list args;
@@ -287,34 +286,59 @@ IntType RoundUp(IntType Value, IntType Round)
 
 union TextureCastHelperUnion
 {
-	ImTextureID TextureID;
-	uint64_t	TextureUint;
-	const void*	TexturePtr;
+	const void*		TexData;
+	ImTextureID 	TexID;
+	ClientTextureID	TexClientID;
 };
 
-uint64_t TextureCastFromID(ImTextureID textureID)
+#if NETIMGUI_IMGUI_TEXTURES_ENABLED
+NetImgui::eTexFormat ConvertTextureFormat(ImTextureFormat ImFormat)
 {
-	TextureCastHelperUnion textureUnion;
-	textureUnion.TextureUint	= 0;
-	textureUnion.TextureID		= textureID;
-	return textureUnion.TextureUint;
+	switch(ImFormat)
+	{
+		case ImTextureFormat_RGBA32: return eTexFormat::kTexFmtRGBA8;
+		case ImTextureFormat_Alpha8: return eTexFormat::kTexFmtA8;
+	}
+	return eTexFormat::kTexFmtRGBA8;
 }
 
-ImTextureID TextureCastFromPtr(void* pTexture)
+ClientTextureID ConvertToClientTexID(const ImTextureRef& textureRef)
 {
+	static_assert(sizeof(uint64_t) >= sizeof(ImTextureID), "ImTextureID is bigger than 64bits, CmdTexture::mTextureId needs to be updated to support it");
 	TextureCastHelperUnion textureUnion;
-	textureUnion.TextureUint	= 0;
-	textureUnion.TexturePtr		= pTexture;
-	return textureUnion.TextureID;
-}
+	textureUnion.TexClientID = 0;
+	if( textureRef._TexData ){
+		//Note: Cannot rely on textureRef.GetTexID() because it uses a pointer to
+		//		a texture object that might not have been created by the backend yet.
+		//		Instead, use a stable value that remain valid for texture lifetime,
+		//		to id it with the NetImgui Server
 
-#ifndef IS_NETIMGUISERVER
-ImTextureID TextureCastFromUInt(uint64_t textureID)
-{
-	TextureCastHelperUnion textureUnion;
-	textureUnion.TextureUint = textureID;
-	return textureUnion.TextureID;
+		// MODIFICATION BY GAIJIN
+		// textureUnion.TexClientID = static_cast<ClientTextureID>(textureRef._TexData->UniqueID);
+		textureUnion.TexClientID = (ClientTextureID)((intptr_t)textureRef._TexData->UniqueID);
+	}
+	else{
+		textureUnion.TexID 	= textureRef._TexID;
+	}
+	return textureUnion.TexClientID;
 }
 #endif
+
+ClientTextureID ConvertToClientTexID(ImTextureID textureID)
+{
+	static_assert(sizeof(uint64_t) >= sizeof(ImTextureID), "ImTextureID is bigger than 64bits, CmdTexture::mTextureId needs to be updated to support it");
+	TextureCastHelperUnion textureUnion;
+	textureUnion.TexClientID	= 0;
+	textureUnion.TexID			= textureID;
+	return textureUnion.TexClientID;
+	
+}
+
+ImTextureID ConvertFromClientTexID(ClientTextureID clientTexID)
+{
+	TextureCastHelperUnion textureUnion;
+	textureUnion.TexClientID = clientTexID;
+	return textureUnion.TexID;
+}
 
 }} //namespace NetImgui::Internal

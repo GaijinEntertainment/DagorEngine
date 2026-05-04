@@ -190,7 +190,7 @@ bool ScreenShotSystem::makeTexScreenShot(ScreenShot &info, Texture *tex)
   tex->getinfo(ti, 0);
   if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
     logwarn("can't make screenshot of unlockable texture");
-  else if ((ti.cflg & TEXFMT_MASK))
+  else if ((ti.cflg & TEXFMT_MASK) != TEXFMT_DEFAULT && (ti.cflg & TEXFMT_MASK) != TEXFMT_A8B8G8R8)
   {
     logwarn("can't make screenshot of format 0x%x", ti.cflg & TEXFMT_MASK);
   }
@@ -215,6 +215,20 @@ bool ScreenShotSystem::makeTexScreenShot(ScreenShot &info, Texture *tex)
     for (int y = info.h; y > 0; y--, ptr = (char *)ptr + stride, op += info.stride)
       memcpy(op, ptr, info.stride);
     tex->unlockimg();
+
+    if ((ti.cflg & TEXFMT_MASK) == TEXFMT_A8B8G8R8)
+    {
+      char *op = (char *)info.picture;
+      for (int y = info.h; y > 0; y--, op += info.stride)
+      {
+        for (unsigned int pos = 0; pos < info.stride; pos += 4)
+        {
+          char tmp = op[pos];
+          op[pos] = op[pos + 2];
+          op[pos + 2] = tmp;
+        }
+      }
+    }
     return true;
   }
   return false;

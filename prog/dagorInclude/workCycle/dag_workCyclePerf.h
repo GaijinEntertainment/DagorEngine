@@ -43,25 +43,60 @@ void log(const Args &...)
 {}
 #endif
 
-extern bool cpu_only_cycle_record_enabled;
+enum class RecordMode : uint8_t
+{
+  Disabled = 0,
+  CpuCycleBit = 1u << 0,
+  WorkCycleBit = 1u << 1,
+  All = CpuCycleBit | WorkCycleBit,
+};
+
+extern RecordMode record_mode;
+
+inline RecordMode operator|(RecordMode a, RecordMode b)
+{
+  return static_cast<RecordMode>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+inline RecordMode &operator|=(RecordMode &a, RecordMode b)
+{
+  a = a | b;
+  return a;
+}
+inline RecordMode operator&(RecordMode a, RecordMode b)
+{
+  return static_cast<RecordMode>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+inline bool work_cycle_record_enabled() { return (record_mode & RecordMode::WorkCycleBit) != RecordMode::Disabled; }
+inline bool cpu_only_cycle_record_enabled() { return (record_mode & RecordMode::CpuCycleBit) != RecordMode::Disabled; }
+
 extern int64_t ref_cpu_only_cycle_start;
 extern int last_cpu_only_cycle_time_usec;
 extern double summed_cpu_only_cycle_time;
 extern uint64_t num_cpu_only_cycle;
 
-inline void mark_cpu_only_cycle_start()
+extern int64_t ref_workcycle_start;
+extern int last_workcycle_time_usec;
+
+inline void mark_workcycle_start()
 {
-  if (!cpu_only_cycle_record_enabled)
+  if (record_mode == RecordMode::Disabled)
     return;
 
-  ref_cpu_only_cycle_start = ref_time_ticks();
+  if (work_cycle_record_enabled() && ref_workcycle_start != 0)
+    last_workcycle_time_usec = get_time_usec(ref_workcycle_start);
+
+  // cpu only cycle is a part of workcycle and they start simultaneously
+  ref_workcycle_start = ref_cpu_only_cycle_start = ref_time_ticks();
 }
 
 inline void mark_cpu_only_cycle_end()
 {
-  if (!cpu_only_cycle_record_enabled)
+  if (!cpu_only_cycle_record_enabled())
     return;
 
+  // cpu only cycle is shorter than workcycle and ends before it
+  // ignore multiple calls of this function without new mark_workcycle_start to avoid incorrect results
   if (ref_cpu_only_cycle_start != 0)
   {
     last_cpu_only_cycle_time_usec = get_time_usec(ref_cpu_only_cycle_start);

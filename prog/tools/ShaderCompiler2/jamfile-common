@@ -45,12 +45,12 @@ Sources =
   shaderSemantic.cpp
   variantSemantic.cpp
   variantAssembly.cpp
+  preshaderCompilation.cpp
 
   shCode.cpp
   shTargetStorage.cpp
   shAssumes.cpp
   shaderBytecodeCache.cpp
-  stcodeBytecode.cpp
   cppStcode.cpp
   cppStcodeAssembly.cpp
   cppStcodePasses.cpp
@@ -96,6 +96,7 @@ for s in $(Sources) {
 AddIncludes     = $(Root)/prog/tools/ShaderCompiler2
                   $(Root)/prog/tools/sharedInclude
                   $(Root)/prog/engine/sharedInclude
+                  $(Root)/prog/engine/drv/drv3d_commonCode
 ;
 
 if ! $(Platform) in macOS linux { AddIncludes += $(Root)/prog/gameLibs/publicInclude/breakpad ; }
@@ -104,6 +105,7 @@ UseProgLibs =
   3rdPartyLibs/eastl
   engine/osApiWrappers
   engine/kernel
+  engine/memory
   engine/ioSys
   engine/startup
   engine/baseUtil
@@ -117,8 +119,7 @@ UseProgLibs =
 
 if $(Platform) = windows && $(PlatformArch) in x86 x86_64 { UseProgLibs += gameLibs/breakpad/binder ; }
 
-if ( ! $(Platform) in macOS linux ) && $(Sanitize) != address && $(Config) != dbg { UseProgLibs += engine/memory/mimallocMem ; }
-else { UseProgLibs += engine/memory ; }
+if $(Sanitize) != address && $(Config) != dbg  && ! $(Platform) in macOS linux { UseMemoryAllocator = mimalloc ; }
 UseMemoryDebugLevel = off ;
 
 HlslPredefines =

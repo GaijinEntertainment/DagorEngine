@@ -101,7 +101,7 @@ void BufferSyncOp::onPartialSplit()
 template <>
 void ExecutionSyncTracker::BufferOpsArray::removeRoSeal(Buffer *obj)
 {
-  arr[lastProcessed] = BufferSyncOp(SyncOpUid::next(), {}, obj->getRoSealReads(), obj, {0, obj->getBlockSize()});
+  arr[lastProcessed] = BufferSyncOp(SyncOpUid::next(obj), {}, obj->getRoSealReads(), obj, {0, obj->getBlockSize()});
 }
 
 template <>

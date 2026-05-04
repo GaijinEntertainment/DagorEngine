@@ -1,8 +1,8 @@
 options no_aot = true
 module logerr_once shared
 
-require ast
-require rtti
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require DagorSystem public

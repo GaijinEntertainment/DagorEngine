@@ -6,8 +6,6 @@ int dagi_irrad_grid_debug_type;
 
 shader dagi_irrad_grid_draw_debug
 {
-  ENABLE_ASSERT(ps)
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {
@@ -57,16 +55,17 @@ shader dagi_irrad_grid_draw_debug
   }
 
   hlsl(ps) {
-    #include "sh1.hlsl"
+    #include "dagi_irradiance_encode.hlsl"
     half3 test_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
       float3 dir = normalize(input.norm);
 
       uint3 t = input.probeTarget.xyz;
       t.z += 1 + input.probeTarget.w*dagi_irrad_grid_get_clip_size_with_border();
-      float3 ambient = texture3DAt(dagi_irradiance_grid_sph0, t).xyz;
-      float4 directional = texture3DAt(dagi_irradiance_grid_sph1, t);
-      SH1 sh1 = decode_sh1_luminance(ambient, directional);
+      SH1Encoded sh1e;
+      sh1e.s0  = texture3DAt(dagi_irradiance_grid_sph0, t);
+      sh1e.s1 = texture3DAt(dagi_irradiance_grid_sph1, t);
+      SH1 sh1 = dagi_irrad_decode_sh1(sh1e);
 
       return pack_hdr(sh1_premul_exp1_irradiance(sh1, dir));
     }

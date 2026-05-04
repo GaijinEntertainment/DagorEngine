@@ -4,6 +4,6 @@ testData/static_analyzer/w236.nut:4:30
 function foo(berserkFx, state){ //-declared-never-used
   if (!berserkFx && (state & (1 << ::SCRIPT_STATE_USER_SHIFT + 4)))
                               ^---------------------------------
-    ::print(1)
+    print(1)
 
 

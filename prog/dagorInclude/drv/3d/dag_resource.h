@@ -4,6 +4,9 @@
 //
 #pragma once
 
+#include <util/dag_stdint.h>
+#include <cstring>
+
 union ResourceClearValue
 {
   struct
@@ -23,6 +26,20 @@ union ResourceClearValue
     float asDepth;
     uint8_t asStencil;
   };
+
+  // NOTE: bitwise comparison of floats is INTENTIONAL here. We are only interested in exact matches.
+  bool operator==(const ResourceClearValue &other) const { return memcmp(this, &other, sizeof(ResourceClearValue)) == 0; } //-V1014
+};
+
+/// \brief Bitfield of clear mode for resource
+enum ResourceClearFlags : uint8_t
+{
+  /// \brief Clear depth only (for depth/stencil attachment)
+  RESOURCE_CLEAR_DEPTH = 1,
+  /// \brief Clear stencil only (for depth/stencil attachment)
+  RESOURCE_CLEAR_STENCIL = 2,
+  /// \brief Clear all content inside resource (for any kind of attachment)
+  RESOURCE_CLEAR_ALL_CONTENT = RESOURCE_CLEAR_DEPTH | RESOURCE_CLEAR_STENCIL
 };
 
 /**

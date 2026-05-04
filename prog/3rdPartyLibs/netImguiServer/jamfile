@@ -11,11 +11,10 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/imgui
   $(Root)/prog/3rdPartyLibs/netImgui
   $(Root)/prog/3rdPartyLibs/stb
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 Sources =
-  NetImguiServer_HAL_dagor.cpp
-
   NetImguiServer_App.cpp
   NetImguiServer_Config.cpp
   NetImguiServer_Network.cpp
@@ -25,6 +24,7 @@ Sources =
 
 UseProgLibs =
   3rdPartyLibs/netImgui
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

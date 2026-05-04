@@ -12,7 +12,7 @@
 #include <EASTL/unordered_map.h>
 #include <ioEventsPoll/ioEventsPoll.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel_json/quirrel_json.h>
 #include <sqstdblob.h>
 
@@ -125,25 +125,21 @@ static void update(void *)
   {
     if (sockets.find(p.sinfo->id) == sockets.end())
       continue; // packet from unregistered socket
-                //
-    char addr[20] = {0};
-    int port = os_socket_addr_get_port(&p.from, sizeof(p.from));
-    os_socket_addr_to_string(&p.from, sizeof(p.from), addr, sizeof(addr));
 
-    sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
-      if (vm)
-      {
-        Sqrat::Table evt(vm);
-        evt.SetValue("recvTime", p.recvTime);
-        evt.SetValue("host", addr);
-        evt.SetValue("port", port);
-        evt.SetValue("socketId", p.sinfo->id);
-        SQUserPointer destPtr = sqstd_createblob(vm, p.data.size());
-        memcpy(destPtr, p.data.data(), p.data.size());
-        evt.SetValue("data", Sqrat::Var<Sqrat::Object>(vm, -1).value);
-        sq_pop(vm, 1);
-        sqeventbus::send_event("udp.on_packet", evt);
-      }
+    sqeventbus::write_event_main_thread("udp.on_packet", [&](auto &evt) {
+      char addr[20] = {0};
+      int port = os_socket_addr_get_port(&p.from, sizeof(p.from));
+      os_socket_addr_to_string(&p.from, sizeof(p.from), addr, sizeof(addr));
+
+      evt["recvTime"] = p.recvTime;
+      evt["host"] = addr;
+      evt["port"] = port;
+      evt["socketId"] = p.sinfo->id;
+      auto vm = evt.getVM();
+      SQUserPointer destPtr = sqstd_createblob(vm, p.data.size());
+      memcpy(destPtr, p.data.data(), p.data.size());
+      evt["data"] = Sqrat::Var<Sqrat::Object>(vm, -1).value;
+      sq_pop(vm, 1);
     });
   }
   input_buffer->clear();

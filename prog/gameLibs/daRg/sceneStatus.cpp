@@ -9,6 +9,13 @@
 namespace darg
 {
 
+SceneStatus::SceneStatus()
+{
+  using namespace textlayout;
+
+  errorMsg.preformattedFlags = FMT_KEEP_SPACES | FMT_IGNORE_TAGS | FMT_HIDE_ELLIPSIS;
+}
+
 
 void SceneStatus::reset()
 {

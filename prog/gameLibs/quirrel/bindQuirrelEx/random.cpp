@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <math/random/dag_random.h>
 #include <dag_noise/dag_uint_noise.h>
 
@@ -41,10 +41,11 @@ void register_random(SqModules *module_mgr)
     .Func("srnd", script_srnd)
     .Func("rnd_float", script_rnd_float)
     .Func("rnd_int", script_rnd_int)
+    .Func("rnd_bound", [](int a) { return _rnd_bound(script_rnd_seed, a); })
     .Func("rnd_range", [](int a, int b) { return _rnd_range(script_rnd_seed, a, b); })
     .Func("set_rnd_seed", script_set_rnd_seed)
     .Func("get_rnd_seed", script_get_rnd_seed)
-    .SquirrelFunc("gauss_rnd", gauss_rnd_safe, 2, ".n")
+    .SquirrelFuncDeclString(gauss_rnd_safe, "gauss_rnd(n: number): float")
 
     //  !!do not bind _rnd, _frnd, _srnd functions! seed cannot be setup via script as seed is reference, not int
 

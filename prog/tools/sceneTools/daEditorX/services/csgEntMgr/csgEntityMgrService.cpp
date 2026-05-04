@@ -1431,9 +1431,9 @@ public:
               node->calcBoundSphere();
 
               if (loft.loftLayerOrder)
-                node->script.setInt("layer", loft.loftLayerOrder);
+                node->script.setInt("layer", node->layer = loft.loftLayerOrder);
               if (loft.stage)
-                node->script.setInt("stage", loft.stage);
+                node->script.setInt("stage", node->stage = loft.stage);
               if (!loft.layerTag.empty())
                 node->script.setStr("layerTag", loft.layerTag);
               genGeom.addNode(new StaticGeometryNode(*node));
@@ -1576,9 +1576,9 @@ public:
               node->calcBoundSphere();
 
               if (loft.loftLayerOrder)
-                node->script.setInt("layer", loft.loftLayerOrder);
+                node->script.setInt("layer", node->layer = loft.loftLayerOrder);
               if (loft.stage)
-                node->script.setInt("stage", loft.stage);
+                node->script.setInt("stage", node->stage = loft.stage);
               genGeom.addNode(new StaticGeometryNode(*node));
             }
             delete g;
@@ -1690,9 +1690,9 @@ public:
             node->calcBoundSphere();
 
             if (loft.loftLayerOrder)
-              node->script.setInt("layer", loft.loftLayerOrder);
+              node->script.setInt("layer", node->layer = loft.loftLayerOrder);
             if (loft.stage)
-              node->script.setInt("stage", loft.stage);
+              node->script.setInt("stage", node->stage = loft.stage);
             genGeom.addNode(new StaticGeometryNode(*node));
           }
           delete g;
@@ -1860,7 +1860,7 @@ public:
   void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
       return;
 

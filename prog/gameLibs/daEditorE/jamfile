@@ -1,7 +1,7 @@
 Root    ?= ../../.. ;
 Location = prog/gameLibs/daEditorE ;
 #StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/daEditorE.lib ;
@@ -24,7 +24,6 @@ Sources =
 
 UseProgLibs =
   tools/libTools/util
-  gameLibs/quirrel/sqModules
   gameLibs/quirrel/sqEventBus
   gameLibs/quirrel/quirrel_json
 ;

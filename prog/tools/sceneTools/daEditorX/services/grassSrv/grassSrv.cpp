@@ -29,15 +29,15 @@ extern vec3f custom_update_pregen_pos_y(vec4f pos, int16_t *dest_packed_y, float
 extern void custom_get_land_min_max(BBox2 bbox_xz, float &out_min, float &out_max);
 } // namespace rendinst::gen
 
-struct RandomGrassRenderHelper : IRandomGrassRenderHelper
+struct RandomGrassSrvRenderHelper : IRandomGrassRenderHelper
 {
   int lmeshRenderingMode;
   BBox3 box;
   bool renderRi;
   IRenderingService *hmap;
 
-  RandomGrassRenderHelper();
-  ~RandomGrassRenderHelper();
+  RandomGrassSrvRenderHelper();
+  ~RandomGrassSrvRenderHelper();
   bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm) override;
   void endRender() override;
   void renderHeight(float min_height, float max_height) override;
@@ -49,13 +49,13 @@ struct RandomGrassRenderHelper : IRandomGrassRenderHelper
 };
 
 
-RandomGrassRenderHelper::RandomGrassRenderHelper() : hmap(NULL) {}
+RandomGrassSrvRenderHelper::RandomGrassSrvRenderHelper() : hmap(NULL) {}
 
-RandomGrassRenderHelper::~RandomGrassRenderHelper() {}
+RandomGrassSrvRenderHelper::~RandomGrassSrvRenderHelper() {}
 
-bool RandomGrassRenderHelper::isValid() const { return hmap != NULL; }
+bool RandomGrassSrvRenderHelper::isValid() const { return hmap != NULL; }
 
-bool RandomGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm)
+bool RandomGrassSrvRenderHelper::beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &tm)
 {
   hmap = NULL;
 
@@ -80,9 +80,9 @@ bool RandomGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 
 }
 
 
-void RandomGrassRenderHelper::endRender() {}
+void RandomGrassSrvRenderHelper::endRender() {}
 
-void RandomGrassRenderHelper::renderColor()
+void RandomGrassSrvRenderHelper::renderColor()
 {
   if (!hmap)
     return;
@@ -90,7 +90,7 @@ void RandomGrassRenderHelper::renderColor()
   hmap->renderGeometry(IRenderingService::STG_RENDER_TO_CLIPMAP);
 }
 
-void RandomGrassRenderHelper::renderMask()
+void RandomGrassSrvRenderHelper::renderMask()
 {
   if (!hmap)
     return;
@@ -98,30 +98,30 @@ void RandomGrassRenderHelper::renderMask()
   hmap->renderGeometry(IRenderingService::STG_RENDER_GRASS_MASK);
 }
 
-void RandomGrassRenderHelper::renderHeight(float min_height, float max_height)
+void RandomGrassSrvRenderHelper::renderHeight(float min_height, float max_height)
 {
   if (!hmap)
     return;
 
   static int heightmap_min_maxVarId = get_shader_variable_id("heightmap_min_max");
-  Color4 oldHmap = ShaderGlobal::get_color4_fast(heightmap_min_maxVarId);
+  Color4 oldHmap = ShaderGlobal::get_float4(heightmap_min_maxVarId);
 
-  ShaderGlobal::set_color4(heightmap_min_maxVarId, 1.f / (max_height - min_height), -min_height / (max_height - min_height),
+  ShaderGlobal::set_float4(heightmap_min_maxVarId, 1.f / (max_height - min_height), -min_height / (max_height - min_height),
     (max_height - min_height), min_height);
 
   int oldSubDiv = hmap->setSubDiv(0);
   hmap->renderGeometry(IRenderingService::STG_RENDER_HEIGHT_FIELD);
   hmap->setSubDiv(oldSubDiv);
 
-  ShaderGlobal::set_color4(heightmap_min_maxVarId, oldHmap);
+  ShaderGlobal::set_float4(heightmap_min_maxVarId, oldHmap);
 
   // hmap->setRenderInBBox(BBox3());
 }
 
-void RandomGrassRenderHelper::renderExplosions() {}
+void RandomGrassSrvRenderHelper::renderExplosions() {}
 
 
-bool RandomGrassRenderHelper::getHeightmapAtPoint(float x, float y, float &out)
+bool RandomGrassSrvRenderHelper::getHeightmapAtPoint(float x, float y, float &out)
 {
   Point3 pos(x, 0, y);
   if (rendinst::gen::custom_get_height(pos))
@@ -136,7 +136,7 @@ bool RandomGrassRenderHelper::getHeightmapAtPoint(float x, float y, float &out)
 class GrassService : public IGrassService
 {
   eastl::unique_ptr<EditorGrass> randomGrass;
-  RandomGrassRenderHelper grassHelper;
+  RandomGrassSrvRenderHelper grassHelper;
   bool force_update;
   bool grassEnabled;
 
@@ -146,6 +146,8 @@ public:
   bool srvDisabled;
 
   GrassService() : force_update(true), grassEnabled(false), grassRenderIteration(0) { srvDisabled = false; }
+
+  void release() { randomGrass.reset(); }
 
   const char *getResName(TEXTUREID id) const override { return ::get_managed_res_name(id); }
 
@@ -179,7 +181,7 @@ public:
   void setWaterLevel()
   {
     static int water_level_vid = get_shader_variable_id("water_level", true);
-    float waterLevel = ShaderGlobal::get_real_fast(water_level_vid);
+    float waterLevel = ShaderGlobal::get_float(water_level_vid);
     randomGrass->setWaterLevel(waterLevel);
   }
 
@@ -291,6 +293,7 @@ public:
 
 
 static GrassService srv;
+static bool is_inited = false;
 
 void setup_grass_service(const DataBlock &app_blk)
 {
@@ -301,7 +304,6 @@ void *get_generic_grass_service()
   if (srv.srvDisabled)
     return NULL;
 
-  static bool is_inited = false;
   if (!is_inited)
   {
     is_inited = true;
@@ -312,4 +314,13 @@ void *get_generic_grass_service()
     }
   }
   return &srv;
+}
+
+void release_generic_grass_service()
+{
+  if (is_inited)
+  {
+    is_inited = false;
+    srv.release();
+  }
 }

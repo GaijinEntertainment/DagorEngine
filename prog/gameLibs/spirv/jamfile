@@ -7,8 +7,6 @@ Target      = gameLibs/spirv.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-DontUseVulkanGlslang ?= no ;
-
 Sources +=
   traits_table.cpp
   module_writer.cpp
@@ -26,9 +24,7 @@ Sources +=
 ;
 
 AddIncludes +=
-  $(Root)/prog/3rdPartyLibs/vulkan/glslang
   $(Root)/prog/3rdPartyLibs/vulkan/include
-  $(Root)/prog/3rdPartyLibs/vulkan/hlslcc/include
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/prog/gameLibs/publicInclude
 ;
@@ -46,21 +42,6 @@ UseProgLibs +=
 
 if $(Platform) = windows {
   AddLibs += Ole32.lib ;
-}
-
-if $(DontUseVulkanGlslang) = no {
-  Sources +=
-    compiler.cpp
-  ;
-
-  UseProgLibs +=
-    3rdPartyLibs/vulkan/glslang
-  ;
-} else {
-  Sources +=
-    glslangStub.cpp
-  ;
-  Target = $(Target:S=~n.lib) ;
 }
 
 CPPopt = -D_CROSS_TARGET_SPIRV ;

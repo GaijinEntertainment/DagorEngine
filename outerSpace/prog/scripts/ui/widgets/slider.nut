@@ -51,7 +51,7 @@ function slider(orient, var, options={}) {
   function knob() {
     return {
       rendObj = ROBJ_SOLID
-      size  = static [fsh(1), fsh(2)]
+      size  = const [fsh(1), fsh(2)]
       group = group
       color = calcKnobColor(knobStateFlags.get())
       watch = knobStateFlags

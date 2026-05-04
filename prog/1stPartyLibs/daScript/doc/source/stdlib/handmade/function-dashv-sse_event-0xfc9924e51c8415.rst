@@ -1,0 +1,1 @@
+Sends an SSE event through the response writer. Formats the data and event type according to the SSE wire protocol. Returns 0 on success.

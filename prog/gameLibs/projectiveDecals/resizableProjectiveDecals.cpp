@@ -3,16 +3,16 @@
 #include <projectiveDecals/projectiveDecals.h>
 
 
-void ResizableDecals::init_buffer(uint32_t initial_size)
+void ResizableDecalsBase::init_buffer(uint32_t initial_size, size_t instance_struct_size)
 {
   if (initial_size > 0)
-    ProjectiveDecals::init_buffer(initial_size);
+    ProjectiveDecalsBase::init_buffer(initial_size, instance_struct_size);
   else
     logerr("size of decals buffer should be greater zero");
 }
 
 
-int ResizableDecals::allocate_decal_id(DecalsBuffer &decals_buffer)
+int ResizableDecalsBase::allocate_decal_id(DecalsBuffer &decals_buffer)
 {
   int decalId = -1;
   if (!freeDecalIds.empty())
@@ -35,15 +35,31 @@ int ResizableDecals::allocate_decal_id(DecalsBuffer &decals_buffer)
 }
 
 // unsafe for double removing one decal
-void ResizableDecals::free_decal_id(int decal_id)
+void ResizableDecalsBase::free_decal_id(int decal_id)
 {
   decalsCount--;
   freeDecalIds.push_back(decal_id);
   G_ASSERTF(decalsCount >= 0, "we removed more decals then creates");
 }
-void ResizableDecals::clear()
+void ResizableDecalsBase::clear()
 {
   freeDecalIds.clear();
   bufferSize = 0;
-  ProjectiveDecals::clear();
+  ProjectiveDecalsBase::clear();
+}
+
+
+int ResizableDecalsBase::addDecal(dag::Span<Point4> decal_data)
+{
+  int decal_id = allocate_decal_id(buffer);
+  setDecalId(decal_data, decal_id);
+  updateDecal(decal_data);
+  return decal_id;
+}
+
+
+void ResizableDecalsBase::removeDecal(dag::ConstSpan<Point4> decal_data)
+{
+  updateDecal(decal_data);
+  free_decal_id(getDecalId(decal_data));
 }

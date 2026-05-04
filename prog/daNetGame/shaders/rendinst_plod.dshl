@@ -5,8 +5,6 @@ include "rendinst_plod_inc.dshl"
 
 shader rendinst_plod_simple
 {
-  ENABLE_ASSERT(ps)
-
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack;
   channel color8 tc[0] = tc[0];

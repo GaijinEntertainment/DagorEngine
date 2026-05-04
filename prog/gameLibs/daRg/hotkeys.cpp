@@ -29,7 +29,7 @@ namespace darg
 {
 
 
-bool HotkeyCombo::updateOnCombo()
+bool HotkeyCombo::updateOnCombo(HumanInput::IGenJoystick *joy)
 {
   if (!buttons.size())
   {
@@ -39,7 +39,6 @@ bool HotkeyCombo::updateOnCombo()
 
   bool newPressed = true;
   HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr;
-  HumanInput::IGenJoystick *joy = global_cls_drv_joy ? global_cls_drv_joy->getDevice(0) : nullptr;
   HumanInput::IGenPointing *mouse = global_cls_drv_pnt ? global_cls_drv_pnt->getDevice(0) : nullptr;
 
   for (const HotkeyButton &btn : buttons)
@@ -72,6 +71,14 @@ bool HotkeyCombo::updateOnCombo()
   }
 
   return false;
+}
+
+
+bool HotkeyCombo::forceReleaseButtons()
+{
+  bool wasPressed = isPressed;
+  isPressed = false;
+  return wasPressed;
 }
 
 
@@ -439,7 +446,7 @@ void Hotkeys::loadCombos(const StringKeys *csk, const Sqrat::Table &comp_desc, c
 
     if (key.GetType() == OT_STRING)
     {
-      auto buttonsString = key.GetVar<const SQChar *>();
+      auto buttonsString = key.GetVar<const char *>();
       HotkeyCombo::TriggerFront front;
       parseButtonsString(buttonsString.value, buttonsTmp, eventsTmp, front);
 

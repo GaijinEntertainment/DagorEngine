@@ -32,7 +32,7 @@ static ecs::EntitySystemDesc wind_update_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
-,"render",nullptr,"*");
+,"dngRenderIsActive,render",nullptr,"*");
 static constexpr ecs::ComponentDesc wind_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -75,7 +75,32 @@ static ecs::EntitySystemDesc wind_es_event_handler_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"wind__dir,wind__flowMap,wind__left_top_right_bottom,wind__noisePerpendicular,wind__noiseScale,wind__noiseSpeed,wind__noiseStrength,wind__strength","*");
+,"dngRenderIsActive","wind__dir,wind__flowMap,wind__left_top_right_bottom,wind__noisePerpendicular,wind__noiseScale,wind__noiseSpeed,wind__noiseStrength,wind__strength","*");
+static constexpr ecs::ComponentDesc wind_after_device_reset_es_event_handler_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("ambient_wind"), ecs::ComponentTypeInfo<AmbientWind>()}
+};
+static void wind_after_device_reset_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    wind_after_device_reset_es_event_handler(evt
+        , ECS_RW_COMP(wind_after_device_reset_es_event_handler_comps, "ambient_wind", AmbientWind)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc wind_after_device_reset_es_event_handler_es_desc
+(
+  "wind_after_device_reset_es",
+  "prog/daNetGame/main/windES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, wind_after_device_reset_es_event_handler_all_events),
+  make_span(wind_after_device_reset_es_event_handler_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<AfterDeviceReset>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc destroy_wind_managed_resources_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

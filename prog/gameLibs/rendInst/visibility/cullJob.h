@@ -8,6 +8,7 @@
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <util/dag_threadPool.h>
 
+#include <rendInst/rendInstGenRtTools.h>
 #include "render/genRender.h"
 #include "riGen/rendInstTiledScene.h"
 #include "visibility/extraVisibility.h"
@@ -61,7 +62,7 @@ public:
     auto use_occlusion = info->use_occlusion;
 
     auto &v = *info->v;
-    G_ASSERTF(v.forcedExtraLod < 0, "CullJob is expected to not have forcedExtraLod enabled.");
+    G_ASSERTF(get_effective_forced_lod(v.forcedExtraLod) < 0, "CullJob is expected to not have forced lod enabled.");
     auto &poolInfo = *info->poolInfo;
     const bool sortLarge = use_occlusion && check_occluders;
     dag::AtomicInteger<uint32_t> *riexDataCnt = info->riexDataCnt;

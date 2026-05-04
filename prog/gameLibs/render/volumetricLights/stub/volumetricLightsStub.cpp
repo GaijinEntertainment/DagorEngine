@@ -20,7 +20,7 @@ void VolumeLight::switchOff() {}
 void VolumeLight::switchOn() {}
 void VolumeLight::closeShaders() {}
 void VolumeLight::beforeReset() {}
-void VolumeLight::afterReset() {}
+void VolumeLight::afterReset(bool reset_shaders) {}
 void VolumeLight::invalidate() {}
 
 bool VolumeLight::performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm,

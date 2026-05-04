@@ -147,6 +147,8 @@ public:
     DynamicRenderableSceneLodsResSrc::limitBonePerVertex =
       a_props.getInt("limitBonePerVertex", dm_blk->getInt("limitBonePerVertex", -1));
     DynamicRenderableSceneLodsResSrc::setBonePerVertex = a_props.getInt("setBonePerVertex", dm_blk->getInt("setBonePerVertex", -1));
+    DynamicRenderableSceneLodsResSrc::use16BitBoneIndices =
+      a_props.getBool("use16BitBoneIndices", dm_blk->getBool("use16BitBoneIndices", false));
     dynmodel_use_direct_bones_array_combined_lods =
       a_props.getBool("useDirectBonesCombinedLods", dynmodel_use_direct_bones_array_combined_lods);
 

@@ -9,8 +9,9 @@
 #include "execution_state.h"
 #include "device_context.h"
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "wrapped_command_buffer.h"
+#include "backend/cmd/state.h"
 
 namespace drv3d_vulkan
 {
@@ -34,9 +35,21 @@ void StateFieldComputeProgram::applyTo(FrontComputeStateStorage &, ExecutionStat
     // that was deleted right before draw
     // trace back and fix this at caller site
     // but do not crash and use debug program as fallback
-    D3D_ERROR("vulkan: trying to use invalid compute program\n%s", target.getExecutionContext().getCurrentCmdCaller());
+    D3D_ERROR("vulkan: trying to use invalid compute program\n%s", Backend::ctx.getCurrentCmdCaller());
     return;
   }
+
+#if DAGOR_DBGLEVEL > 0
+  if (!Globals::pipelines.valid<ComputePipeline>(handle))
+  {
+    // check only if we about to use compute pipeline, otherwise ignore error,
+    // it still can happen, but at least we don't handle false positives and still see it sometimes
+    if (target.getRO<StateFieldActiveExecutionStage, ActiveExecutionStage>() != ActiveExecutionStage::COMPUTE)
+      return;
+    D3D_ERROR("vulkan: trying to use dead compute program %u\n from %s", handle.get(), Backend::ctx.getCurrentCmdCaller());
+    return;
+  }
+#endif
 
   auto *pipe = &Globals::pipelines.get<ComputePipeline>(handle);
   target.set<StateFieldComputePipeline, ComputePipeline *, BackComputeState>(pipe);
@@ -46,8 +59,7 @@ void StateFieldComputeProgram::applyTo(FrontComputeStateStorage &, ExecutionStat
 template <>
 void StateFieldComputeProgram::transit(FrontComputeStateStorage &, DeviceContext &target) const
 {
-  CmdSetComputeProgram cmd{handle};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetComputeProgram>({handle});
 }
 
 template <>
@@ -65,7 +77,7 @@ void StateFieldComputeProgram::dumpLog(const FrontComputeStateStorage &) const
 }
 
 template <>
-void StateFieldComputePipeline::applyTo(BackComputeStateStorage &, ExecutionContext &) const
+void StateFieldComputePipeline::applyTo(BackComputeStateStorage &, BEContext &) const
 {
   VULKAN_LOG_CALL(Backend::cb.wCmdBindPipeline(VK_PIPELINE_BIND_POINT_COMPUTE, ptr->getHandleForUse()));
 }
@@ -81,9 +93,9 @@ void StateFieldComputePipeline::dumpLog(const BackComputeStateStorage &) const
 }
 
 template <>
-void StateFieldComputeLayout::applyTo(BackComputeStateStorage &, ExecutionContext &) const
+void StateFieldComputeLayout::applyTo(BackComputeStateStorage &, BEContext &) const
 {
-  Backend::bindless.bindSets(VK_PIPELINE_BIND_POINT_COMPUTE, ptr->handle);
+  Backend::bindless.bindSets(VK_PIPELINE_BIND_POINT_COMPUTE, ptr->handle, ptr->bindlessSetsUsed);
   Backend::State::exec.getResBinds(STAGE_CS).invalidateState();
 }
 
@@ -94,18 +106,15 @@ void StateFieldComputeLayout::dumpLog(const BackComputeStateStorage &) const
 }
 
 template <>
-void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionContext &target) const
+void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, BEContext &) const
 {
   ComputePipeline *ptr = state.pipeline.ptr;
   auto &regRef = ptr->getLayout()->registers.cs();
   VulkanPipelineLayoutHandle layoutHandle = ptr->getLayout()->handle;
 
-  target.trackStageResAccessesNonParallel(regRef.header, ExtendedShaderStage::CS);
-
   Backend::State::exec.getResBinds(STAGE_CS).applyPushConstants(regRef, layoutHandle, VK_SHADER_STAGE_COMPUTE_BIT,
     ExtendedShaderStage::CS);
-  Backend::State::exec.getResBinds(STAGE_CS).apply(Globals::dummyResources.getTable(), Backend::gpuJob->index, regRef,
-    ExtendedShaderStage::CS,
+  Backend::State::exec.getResBinds(STAGE_CS).setResourcesWithSyncStep(Backend::gpuJob->index, regRef, ExtendedShaderStage::CS,
     [layoutHandle](VulkanDescriptorSetHandle set, const uint32_t *offsets, uint32_t offset_count) //
     {
       VULKAN_LOG_CALL(Backend::cb.wCmdBindDescriptorSets(VK_PIPELINE_BIND_POINT_COMPUTE, layoutHandle,
@@ -117,6 +126,8 @@ void StateFieldComputeFlush::applyTo(BackComputeStateStorage &state, ExecutionCo
     ptr->setNameForDescriptorSet(regRef.getSetForNaming(), spirv::compute::REGISTERS_SET_INDEX);
 
   Backend::sync.completeNeeded();
+
+  Backend::gpuJob.get().execTracker().addMarker(&regRef.hash, sizeof(regRef.hash));
 }
 
 template <>

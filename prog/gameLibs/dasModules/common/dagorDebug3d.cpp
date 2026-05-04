@@ -58,6 +58,8 @@ public:
     ADD_EXTERN(end_draw_cached_debug_lines_ex);
 
     ADD_EXTERN(draw_cached_debug_cone);
+    das::addExtern<DAS_BIND_FUN(::draw_cached_debug_cone)>(*this, lib, "_builtin_draw_cached_debug_cone",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_cone");
 
     das::addExtern<DAS_BIND_FUN(::set_cached_debug_lines_wtm)>(*this, lib, "set_cached_debug_lines_wtm",
       das::SideEffects::modifyExternal, "::set_cached_debug_lines_wtm");
@@ -65,6 +67,10 @@ public:
       das::SideEffects::modifyExternal, "::draw_cached_debug_line");
     das::addExtern<void (*)(const Point3 *, int, E3DCOLOR), &::draw_cached_debug_line>(*this, lib, "draw_cached_debug_line",
       das::SideEffects::modifyExternal, "::draw_cached_debug_line");
+    das::addExtern<void (*)(const Point3 &, const Point3 &, E3DCOLOR), &::draw_cached_debug_line>(*this, lib,
+      "_builtin_draw_cached_debug_line", das::SideEffects::modifyExternal, "::draw_cached_debug_line");
+    das::addExtern<void (*)(const Point3 *, int, E3DCOLOR), &::draw_cached_debug_line>(*this, lib,
+      "_builtin_draw_cached_debug_line_arr", das::SideEffects::modifyExternal, "::draw_cached_debug_line");
 
     das::addExtern<void (*)(const TMatrix &, float, float, E3DCOLOR), &::draw_cached_debug_cylinder>(*this, lib,
       "draw_cached_debug_cylinder", das::SideEffects::modifyExternal, "::draw_cached_debug_cylinder");
@@ -77,10 +83,21 @@ public:
       das::SideEffects::modifyExternal, "::draw_cached_debug_box");
     das::addExtern<void (*)(const Point3 &, const Point3 &, const Point3 &, const Point3 &, E3DCOLOR), draw_cached_debug_box>(*this,
       lib, "draw_cached_debug_box", das::SideEffects::modifyExternal, "::draw_cached_debug_box");
+    das::addExtern<void (*)(const BBox3 &, E3DCOLOR), draw_cached_debug_box>(*this, lib, "_builtin_draw_cached_debug_box",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_box");
+    das::addExtern<void (*)(const Point3 &, const Point3 &, const Point3 &, const Point3 &, E3DCOLOR), draw_cached_debug_box>(*this,
+      lib, "_builtin_draw_cached_debug_box", das::SideEffects::modifyExternal, "::draw_cached_debug_box");
 
-    ADD_EXTERN(draw_cached_debug_sphere);
+    das::addExtern<void (*)(const Point3 &, real, E3DCOLOR, int), &::draw_cached_debug_sphere>(*this, lib, "draw_cached_debug_sphere",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_sphere");
+    das::addExtern<void (*)(const Point3 &, real, E3DCOLOR, int), &::draw_cached_debug_sphere>(*this, lib,
+      "_builtin_draw_cached_debug_sphere", das::SideEffects::modifyExternal, "::draw_cached_debug_sphere");
     ADD_EXTERN(draw_cached_debug_circle);
+    das::addExtern<DAS_BIND_FUN(::draw_cached_debug_circle)>(*this, lib, "_builtin_draw_cached_debug_circle",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_circle");
     ADD_EXTERN(draw_cached_debug_xz_circle);
+    das::addExtern<DAS_BIND_FUN(::draw_cached_debug_xz_circle)>(*this, lib, "_builtin_draw_cached_debug_xz_circle",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_xz_circle");
     ADD_EXTERN(draw_skeleton_link);
     // ADD_EXTERN(draw_skeleton_tree);
 
@@ -88,9 +105,17 @@ public:
       "draw_cached_debug_capsule_w", das::SideEffects::modifyExternal, "::draw_cached_debug_capsule_w");
     das::addExtern<void (*)(const Capsule &, E3DCOLOR), &::draw_cached_debug_capsule_w>(*this, lib, "draw_cached_debug_capsule_w",
       das::SideEffects::modifyExternal, "::draw_cached_debug_capsule_w");
+    das::addExtern<void (*)(const Point3 &, const Point3 &, float, E3DCOLOR), &::draw_cached_debug_capsule_w>(*this, lib,
+      "_builtin_draw_cached_debug_capsule_w", das::SideEffects::modifyExternal, "::draw_cached_debug_capsule_w");
+    das::addExtern<void (*)(const Capsule &, E3DCOLOR), &::draw_cached_debug_capsule_w>(*this, lib,
+      "_builtin_draw_cached_debug_capsule_w", das::SideEffects::modifyExternal, "::draw_cached_debug_capsule_w");
 
     ADD_EXTERN(draw_cached_debug_capsule);
+    das::addExtern<DAS_BIND_FUN(::draw_cached_debug_capsule)>(*this, lib, "_builtin_draw_cached_debug_capsule",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_capsule");
     ADD_EXTERN(draw_cached_debug_hex);
+    das::addExtern<DAS_BIND_FUN(::draw_cached_debug_hex)>(*this, lib, "_builtin_draw_cached_debug_hex",
+      das::SideEffects::modifyExternal, "::draw_cached_debug_hex");
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::draw_cached_debug_quad)>(*this, lib, "_builtin_draw_cached_debug_quad",
       das::SideEffects::modifyExternal, "bind_dascript::draw_cached_debug_quad");

@@ -13,8 +13,6 @@ texture volfog_occlusion;
 
 shader froxel_fog_fill_media_cs
 {
-  ENABLE_ASSERT(cs)
-
   VIEW_VEC_OPTIMIZED(cs)
   INIT_JITTER_PARAMS(cs)
 

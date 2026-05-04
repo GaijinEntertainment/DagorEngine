@@ -20,7 +20,15 @@
 MAKE_TYPE_FACTORY(ProjectileProps, ballistics::ProjectileProps);
 MAKE_TYPE_FACTORY(ShellProps, ballistics::ShellProps);
 MAKE_TYPE_FACTORY(ShellPayloadProps, ShellPayloadProps);
+MAKE_TYPE_FACTORY(RocketMotorPropulsionImpulseProps, ballistics::RocketMotorProps::Propulsion::Impulse);
+MAKE_TYPE_FACTORY(RocketMotorPropulsionProps, ballistics::RocketMotorProps::Propulsion);
 MAKE_TYPE_FACTORY(RocketMotorProps, ballistics::RocketMotorProps);
 
-using RocketMotorPropsArrayFloat2 = carray<float, 2>;
-DAS_BIND_ARRAY(RocketMotorPropsArrayFloat2, RocketMotorPropsArrayFloat2, Point3);
+typedef ballistics::RocketMotorProps::Propulsion::Impulses RocketMotorPropulsionImpulsesProps;
+DAS_BIND_STATIC_TAB(RocketMotorPropulsionImpulsesProps, RocketMotorPropulsionImpulsesProps, int, "RocketMotorPropulsionImpulsesProps");
+
+typedef ballistics::RocketMotorProps::Propulsions RocketMotorPropulsionsProps;
+DAS_BIND_STATIC_TAB(RocketMotorPropulsionsProps, RocketMotorPropulsionsProps, int, "RocketMotorPropulsionsProps");
+
+using PropulsionsValue = ballistics::PropulsionsValue;
+DAS_BIND_ARRAY(PropulsionsValue, PropulsionsValue, float);

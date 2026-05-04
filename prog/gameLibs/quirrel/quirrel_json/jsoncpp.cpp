@@ -84,7 +84,7 @@ static Json::Value sqval_to_json(Sqrat::Object val)
     case OT_FLOAT: return Json::Value(val.Cast<float>());
     case OT_STRING:
     {
-      auto str = val.GetVar<const SQChar *>();
+      auto str = val.GetVar<const char *>();
       return Json::Value(str.value, str.value + str.valueLen);
     }
     case OT_BOOL: return Json::Value(val.Cast<bool>());
@@ -168,7 +168,7 @@ Json::Value quirrel_to_jsoncpp(Sqrat::Object obj)
           {
             reportedInvalidKey = true;
 
-            const SQChar *stack = nullptr;
+            const char *stack = nullptr;
             if (SQ_SUCCEEDED(sqstd_formatcallstackstring(vm)))
             {
               G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &stack)));

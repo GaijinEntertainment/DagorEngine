@@ -15,6 +15,7 @@
 #include <libTools/util/strUtil.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
+#include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_wndGlobal.h>
 #include <osApiWrappers/dag_direct.h>
 
@@ -22,86 +23,25 @@
 #include <shaders/dag_shaders.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
+#include <math/dag_mathUtils.h>
 #include <stdio.h>
 
 InitOnDemand<DebugTexOverlay> de3_show_tex_helper;
 
-// This does the same as the "tex.show" command but the "Console commands and variables" debug dialog uses a different
-// console system and the command is called "render.show_tex" there.
-class ShowTexConsole : public console::ICommandProcessor
+static Point3 to_point3(dag::ConstSpan<const char *> params, int idx = 0)
 {
-  bool processCommand(const char *argv[], int argc) override
-  {
-    if (argc < 1)
-      return false;
-    int found = 0;
-    CONSOLE_CHECK_NAME("render", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT)
-    {
-      de3_show_tex_helper.demandInit();
-      String str = de3_show_tex_helper->processConsoleCmd(argv, argc);
-      if (!str.empty())
-        console::print(str);
-    }
-    return found;
-  }
+  if ((idx + 3) <= params.size())
+    return Point3(console::to_real(params[idx + 0]), console::to_real(params[idx + 1]), console::to_real(params[idx + 2]));
 
-  void destroy() override {}
-};
-static ShowTexConsole show_tex_console;
-
-//==================================================================================================
-void DagorEdAppWindow::registerConsoleCommands()
-{
-#define REGISTER_COMMAND(cmd_name)               \
-  if (!console->registerCommand(cmd_name, this)) \
-    console->addMessage(ILogWriter::ERROR, "[DaEditorX] Couldn't register command '" cmd_name "'");
-
-  REGISTER_COMMAND("exit");
-  REGISTER_COMMAND("set_workspace");
-
-  REGISTER_COMMAND("camera.pos");
-  REGISTER_COMMAND("camera.dir");
-
-  REGISTER_COMMAND("project.open");
-  REGISTER_COMMAND("project.export.pc");
-  REGISTER_COMMAND("project.export.xbox");
-  REGISTER_COMMAND("project.export.ps3");
-#if _TARGET_64BIT
-  REGISTER_COMMAND("project.export.ps4");
-#endif
-  REGISTER_COMMAND("project.export.iOS");
-  REGISTER_COMMAND("project.export.and");
-  REGISTER_COMMAND("project.export.all");
-  REGISTER_COMMAND("screenshot.ortho");
-
-  REGISTER_COMMAND("entity.stat");
-  REGISTER_COMMAND("entity.ri_stat");
-  REGISTER_COMMAND("shaders.list");
-  REGISTER_COMMAND("shaders.set");
-  REGISTER_COMMAND("shaderVar");
-  REGISTER_COMMAND("shaders.reload");
-
-  REGISTER_COMMAND("perf.on");
-  REGISTER_COMMAND("perf.off");
-  REGISTER_COMMAND("perf.dump");
-
-  REGISTER_COMMAND("tex.info");
-  REGISTER_COMMAND("tex.refs");
-  REGISTER_COMMAND("tex.show");
-  REGISTER_COMMAND("tex.hide");
-  REGISTER_COMMAND("project.tex_metrics");
-
-  REGISTER_COMMAND("driver.reset");
-
-  REGISTER_COMMAND("render.puddles");
-
-#undef REGISTER_COMMAND
-
-  console::init();
-  add_con_proc(&show_tex_console);
+  return Point3(0, 0, 0);
 }
+
+static inline float deg_to_fov(float deg) { return 1.f / tanf(DEG_TO_RAD * 0.5f * deg); }
+
+static inline float fov_to_deg(float fov) { return RAD_TO_DEG * 2.f * atan(1.f / fov); }
 
 static int __cdecl sort_texid_by_refc(const TEXTUREID *a, const TEXTUREID *b)
 {
@@ -110,46 +50,167 @@ static int __cdecl sort_texid_by_refc(const TEXTUREID *a, const TEXTUREID *b)
   return strcmp(get_managed_texture_name(*a), get_managed_texture_name(*b));
 }
 
-//==============================================================================
-bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
+class DagorEdConsoleCommandProcessor : public console::ICommandProcessor
 {
-  if (!stricmp(cmd, "exit"))
-    return runExitCmd(params);
+public:
+  using ICommandProcessor::ICommandProcessor;
 
-  if (!stricmp(cmd, "camera.pos"))
-    return runCameraPosCmd(params);
+  void destroy() override { delete this; }
 
-  if (!stricmp(cmd, "camera.dir"))
-    return runCameraDirCmd(params);
+  bool processCommand(const char *argv[], int argc) override;
 
-  if (!stricmp(cmd, "project.open"))
-    return runProjectOpenCmd(params);
+private:
+  static void runTexShow(const char *argv[], int argc);
+};
 
-  if (!stricmp(cmd, "set_workspace"))
-    return runSetWorkspaceCmd(params);
+//==============================================================================
+bool DagorEdConsoleCommandProcessor::processCommand(const char *argv[], int argc)
+{
+  if (argc < 1)
+    return false;
 
-  if (!stricmp(cmd, "project.export.pc"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PC);
+  const dag::Span<const char *> params = make_span(&argv[1], argc - 1);
+  int found = 0;
 
-  if (!stricmp(cmd, "project.export.xbox"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_XBOX360);
+  CONSOLE_CHECK_NAME_EX("", "exit", 1, 2,
+    "'exit [save_project]' to exit from daEditor.\nif save_project is set no message box will be shown", "[save_project]")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runExitCmd(params));
+  }
 
-  if (!stricmp(cmd, "project.export.ps3"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PS3);
+  CONSOLE_CHECK_NAME_EX("camera", "at", 1, 8,
+    "Type:\n"
+    "'camera.at' prints the camera's position, direction and FOV in last active viewport.\n"
+    "'camera.at pos_x pos_y pos_z [dir_x dir_y dir_z] [fov]' to set camera position, direction and FOV in last active viewport.",
+    "")
+  {
+    get_app().runCameraAtCmd(params);
+  }
 
-  if (!stricmp(cmd, "project.export.ps4"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PS4);
+  CONSOLE_CHECK_NAME_EX("camera", "pos", 1, 4,
+    "Type:\n"
+    "'camera.pos' to know camera position in last active viewport.\n"
+    "'camera.pos x y z' to set camera position in last active viewport.",
+    "")
+  {
+    get_app().runCameraPosCmd(params);
+  }
 
-  if (!stricmp(cmd, "project.export.iOS"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_iOS);
+  CONSOLE_CHECK_NAME_EX("camera", "dir", 1, 7,
+    "Type:\n"
+    "'camera.dir x y z [x_up = 0 y_up = 1 z_up = 0]' to set camera direction in last active viewport.",
+    "")
+  {
+    get_app().runCameraDirCmd(params);
+  }
 
-  if (!stricmp(cmd, "project.export.and"))
-    return runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_AND);
+  CONSOLE_CHECK_NAME_EX("camera", "save", 1, 1,
+    "Saves the current camera position and direction to the .level.local.blk file.\n"
+    "It can be useful if you do not want to save the entire project but want to use the current camera at the next start.",
+    "")
+  {
+    get_app().runCameraSaveCmd(params);
+  }
 
-  if (!stricmp(cmd, "project.export.all"))
-    return runProjectExportCmd(params);
+  CONSOLE_CHECK_NAME_EX("project", "open", 1, 4,
+    "Type:\n"
+    "'project.open file_path [lock = false] [save_project]'\n"
+    "where\n"
+    "file_path - full path to \"level.blk\" or path relative to project's \"develop\" folder\n"
+    "lock - boolean value to determine to lock project or not\n"
+    "save_project - boolean value to supress save question message box",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectOpenCmd(params));
+  }
 
-  if (!stricmp(cmd, "screenshot.ortho"))
+  CONSOLE_CHECK_NAME_EX("", "set_workspace", 1, 3,
+    "Type:\n"
+    "'set_workspace application_blk_path [save_project]' to load workspace from mentioned "
+    "\"application.blk\" file\n"
+    "where\n"
+    "application_blk_path - path to desired \"application.blk\" file. Must be full or "
+    "relative to daEditor folder\n"
+    "save_project - boolean value to supress save question message box",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runSetWorkspaceCmd(params));
+  }
+
+  CONSOLE_CHECK_NAME_EX("project", "export.pc", 1, 2,
+    "Type:\n"
+    "'project.export.pc level_name' to export project in PC format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PC));
+  }
+
+  CONSOLE_CHECK_NAME_EX("project", "export.xbox", 1, 2,
+    "Type:\n"
+    "'project.export.xbox level_name' to export project in XBOX 360 format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_XBOX360));
+  }
+
+  CONSOLE_CHECK_NAME_EX("project", "export.ps3", 1, 2,
+    "Type:\n"
+    "'project.export.ps3 level_name' to export project in PS3 format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PS3));
+  }
+
+#if _TARGET_64BIT
+  CONSOLE_CHECK_NAME_EX("project", "export.ps4", 1, 2,
+    "Type:\n"
+    "'project.export.ps4 level_name' to export project in PS4 format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_PS4));
+  }
+#endif
+
+  CONSOLE_CHECK_NAME_EX("project", "export.iOS", 1, 2,
+    "Type:\n"
+    "'project.export.iOS level_name' to export project in iOS format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_iOS));
+  }
+
+  CONSOLE_CHECK_NAME_EX("project", "export.and", 1, 2,
+    "Type:\n"
+    "'project.export.and level_name' to export project in Android (Tegra GPU family) format\n"
+    "where\n"
+    "level_name - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params, CM_FILE_EXPORT_TO_GAME_AND));
+  }
+
+  CONSOLE_CHECK_NAME_EX("project", "export.all", 1, 4,
+    "Type:\n"
+    "'project.export.all level_name_pc level_name_xbox level_name_ps3'"
+    " to export project in all formats\n"
+    "where\n"
+    "level_name_* - path to exported level relative application levels folder",
+    "")
+  {
+    CONSOLE_COMMAND_BATCH_MODE_RESULT(get_app().runProjectExportCmd(params));
+  }
+
+  CONSOLE_CHECK_NAME_EX("screenshot", "ortho", 1, 1, "Outputs orthogonal screenshot using extents from landscape.", "")
   {
     IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
     if (GenHmapData *genHmap = hmlService ? hmlService->findGenHmap("hmap") : NULL)
@@ -159,23 +220,25 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
       x0z0x1z1[1] = genHmap->getHeightmapOffset().z;
       x0z0x1z1[2] = x0z0x1z1[0] + genHmap->getHeightmapSizeX() * genHmap->getHeightmapCellSize();
       x0z0x1z1[3] = x0z0x1z1[1] + genHmap->getHeightmapSizeY() * genHmap->getHeightmapCellSize();
-      createOrthogonalScreenshot(NULL, x0z0x1z1);
-      return true;
+      get_app().createOrthogonalScreenshot(NULL, x0z0x1z1);
     }
-    return false;
   }
 
-  if (!stricmp(cmd, "entity.stat"))
+  CONSOLE_CHECK_NAME_EX("entity", "stat", 1, 1, "Outputs statistics for entity pools to console.", "")
   {
-    spawnEvent(HUID_DumpEntityStat, NULL);
-    return true;
+    get_app().spawnEvent(HUID_DumpEntityStat, NULL);
   }
-  if (!stricmp(cmd, "entity.ri_stat"))
+
+  CONSOLE_CHECK_NAME_EX("entity", "ri_stat", 1, 2,
+    "entity.ri_stat [min_vb_size_Kb_to_report]\n"
+    "Outputs statistics for RI entities (per-cell), reports all non-empty cells if min VB size is not specified",
+    "")
   {
-    spawnEvent(HUID_DumpRiEntityStat, (void *)(uintptr_t)(params.size() == 1 ? atoi(params[0]) << 10 : 0));
-    return true;
+    get_app().spawnEvent(HUID_DumpRiEntityStat, (void *)(uintptr_t)(params.size() == 1 ? atoi(params[0]) << 10 : 0));
   }
-  if (!stricmp(cmd, "project.tex_metrics"))
+
+  CONSOLE_CHECK_NAME_EX("project", "tex_metrics", 1, 3,
+    "Computes and outputs tex metrics to console.\n  project.tex_metrics [verbose] [nodlg]", "")
   {
     Tab<IGenEditorPlugin *> buildPlugin(tmpmem);
     Tab<bool *> doExport(tmpmem), doExternal(tmpmem);
@@ -186,12 +249,12 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
       if (strcmp(p, "verbose") == 0)
         verbose = true;
       else if (strcmp(p, "nodlg") == 0)
-        mNeedSuppress = true;
+        get_app().mNeedSuppress = true;
       else
-        DAEDITOR3.conError("unsupported arg '%s' for command '%s'", p, cmd);
+        DAEDITOR3.conError("unsupported arg '%s' for command '%s'", p, argv[0]);
 
-    if (!showPluginDlg(buildPlugin, doExport, doExternal))
-      return true;
+    if (!get_app().showPluginDlg(buildPlugin, doExport, doExternal))
+      return found != 0;
 
     Tab<IBinaryDataBuilder *> exporters(tmpmem);
 
@@ -213,15 +276,15 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
 
     int64_t texSize = 0;
     int texCount = 0;
-    gatherUsedResStats(exporters, targetCode, levelResList, trh, texSize, texCount, verbose);
+    get_app().gatherUsedResStats(exporters, targetCode, levelResList, trh, texSize, texCount, verbose);
     for (int i = 0; i < buildPlugin.size(); ++i)
       if (*doExport[i])
         if (IOnExportNotify *iface = buildPlugin[i]->queryInterface<IOnExportNotify>())
           iface->onAfterExport(targetCode);
-    mNeedSuppress = false;
+    get_app().mNeedSuppress = false;
 
     DataBlock metrixBlk;
-    if (wsp->getMetricsBlk(metrixBlk))
+    if (get_app().wsp->getMetricsBlk(metrixBlk))
       if (const DataBlock *levelMetricsBlk = metrixBlk.getBlockByName("whole_level"))
       {
         const int custom_tex_cnt = trh.getCustomMetricsTexCount();
@@ -231,35 +294,27 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
         DAEDITOR3.conNote("Actual metrics: max %d textures, max %dM texture size%s", maxTexCount, maxTexSize >> 20,
           (custom_tex_cnt >= 0 || custom_tex_sz >= 0) ? " [using custom metrics from level-BLK]" : "");
       }
-    return true;
   }
 
-  if (!stricmp(cmd, "shaders.list"))
-    return runShadersListVars(params);
-  if (!stricmp(cmd, "shaders.set"))
-    return runShadersSetVar(params);
-  if (!stricmp(cmd, "shaderVar"))
-    return runShadersSetVar(params);
-  if (!stricmp(cmd, "shaders.reload"))
-    return runShadersReload(params);
+  CONSOLE_CHECK_NAME_EX("shaders", "list", 1, 2, "", "[filter-string]") { get_app().runShadersListVars(params); }
 
-  if (!stricmp(cmd, "perf.on"))
-  {
-    EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(true);
-    return true;
-  }
-  if (!stricmp(cmd, "perf.off"))
-  {
-    EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(false);
-    return true;
-  }
-  if (!stricmp(cmd, "perf.dump"))
+  CONSOLE_CHECK_NAME_EX("shaders", "set", 1, 6, "", "<shader-variable-name> <value>") { get_app().runShadersSetVar(params); }
+
+  CONSOLE_CHECK_NAME_EX("", "shaderVar", 1, 6, "", "<shader-variable-name> <value>") { get_app().runShadersSetVar(params); }
+
+  CONSOLE_CHECK_NAME_EX("shaders", "reload", 1, 2, "", "[shaders-binary-dump-filename]") { get_app().runShadersReload(params); }
+
+  CONSOLE_CHECK_NAME("perf", "on", 1, 1) { EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(true); }
+
+  CONSOLE_CHECK_NAME("perf", "off", 1, 1) { EDITORCORE->queryEditorInterface<IRenderHelperService>()->enableFrameProfiler(false); }
+
+  CONSOLE_CHECK_NAME("perf", "dump", 1, 1)
   {
     EDITORCORE->queryEditorInterface<IRenderHelperService>()->profilerDumpFrame();
-    repaint();
-    return true;
+    get_app().repaint();
   }
-  if (!stricmp(cmd, "tex.info"))
+
+  CONSOLE_CHECK_NAME_EX("tex", "info", 1, 2, "", "[full]")
   {
     if (params.size() == 0 || (params.size() == 1 && strcmp(params[0], "full") == 0))
     {
@@ -282,7 +337,8 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
         DAEDITOR3.conNote("%d tex use %dM of GPU memory", num_textures, total_mem >> 20);
     }
   }
-  if (!stricmp(cmd, "tex.refs"))
+
+  CONSOLE_CHECK_NAME("tex", "refs", 1, 1)
   {
     Tab<TEXTUREID> ids;
     ids.reserve(32 < 10);
@@ -294,34 +350,25 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
       DAEDITOR3.conNote("  [%5d] refc=%-3d %s", texId, get_managed_texture_refcount(texId), get_managed_texture_name(texId));
     DAEDITOR3.conNote("total %d referenced textures", ids.size());
   }
-  if (!stricmp(cmd, "tex.show"))
-  {
-    de3_show_tex_helper.demandInit();
 
-    Tab<const char *> argv;
-    argv.push_back("app.tex");
-    append_items(argv, params.size(), params.data());
-    String str = de3_show_tex_helper->processConsoleCmd(argv.data(), argv.size());
-    if (!str.empty())
-      DAEDITOR3.conNote(str);
-    return true;
-  }
-  if (!stricmp(cmd, "tex.hide"))
+  CONSOLE_CHECK_NAME("tex", "show", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT) { runTexShow(argv, argc); }
+
+  // This is the same as the "tex.show" command but the "Console commands and variables" debug dialog executes this command.
+  CONSOLE_CHECK_NAME("render", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT) { runTexShow(argv, argc); }
+
+  CONSOLE_CHECK_NAME("tex", "hide", 1, 1)
   {
     if (de3_show_tex_helper.get())
       de3_show_tex_helper->hideTex();
-    return true;
   }
-  if (!stricmp(cmd, "driver.reset"))
-  {
-    dagor_d3d_force_driver_reset = true;
-    return true;
-  }
-  if (!stricmp(cmd, "render.puddles"))
+
+  CONSOLE_CHECK_NAME("driver", "reset", 1, 1) { dagor_d3d_force_driver_reset = true; }
+
+  CONSOLE_CHECK_NAME("render", "puddles", 1, 4)
   {
     IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
     if (!hmlService)
-      return true;
+      return found != 0;
 
     static int puddles_powerVarId = ::get_shader_glob_var_id("puddles_power", true);
     static int puddles_seedVarId = ::get_shader_glob_var_id("puddles_seed", true);
@@ -329,145 +376,44 @@ bool DagorEdAppWindow::onConsoleCommand(const char *cmd, dag::ConstSpan<const ch
 
     if (params.size() == 0)
     {
-      DAEDITOR3.conNote("puddles power %f puddles_seed %f puddles_noise_influence %f", ShaderGlobal::get_real(puddles_powerVarId),
-        ShaderGlobal::get_real(puddles_seedVarId), ShaderGlobal::get_real(puddles_noise_influenceVarId));
+      DAEDITOR3.conNote("puddles power %f puddles_seed %f puddles_noise_influence %f", ShaderGlobal::get_float(puddles_powerVarId),
+        ShaderGlobal::get_float(puddles_seedVarId), ShaderGlobal::get_float(puddles_noise_influenceVarId));
     }
 
     if (params.size() >= 1)
     {
-      ShaderGlobal::set_real(puddles_powerVarId, atof(params[0]));
+      ShaderGlobal::set_float(puddles_powerVarId, atof(params[0]));
     }
     if (params.size() >= 2)
     {
-      ShaderGlobal::set_real(puddles_seedVarId, atof(params[1]));
+      ShaderGlobal::set_float(puddles_seedVarId, atof(params[1]));
     }
     if (params.size() >= 3)
     {
-      ShaderGlobal::set_real(puddles_noise_influenceVarId, atof(params[2]));
+      ShaderGlobal::set_float(puddles_noise_influenceVarId, atof(params[2]));
     }
 
     hmlService->invalidateClipmap(false, false);
-    return true;
   }
-  return false;
+
+  return found != 0;
 }
 
-
-//==============================================================================
-const char *DagorEdAppWindow::onConsoleCommandHelp(const char *cmd)
+void DagorEdConsoleCommandProcessor::runTexShow(const char *argv[], int argc)
 {
-  if (!stricmp(cmd, "exit"))
-    return "Type:\n"
-           "'exit [save_project]' to exit from daEditor.\n"
-           "if save_project is set no message box will be shown\n";
+  de3_show_tex_helper.demandInit();
 
-  if (!stricmp(cmd, "camera.pos"))
-    return "Type:\n"
-           "'camera.pos' to know camera position in last active viewport.\n"
-           "'camera.pos x y z' to set camera position in last active viewport.\n";
-
-  if (!stricmp(cmd, "camera.dir"))
-    return "Type:\n"
-           "'camera.dir x y z [x_up = 0 y_up = 1 z_up = 0]' to set camera "
-           "direction in last active viewport.\n";
-
-  if (!stricmp(cmd, "project.open"))
-    return "Type:\n"
-           "'project.open file_path [lock = false] [save_project]'\n"
-           "where\n"
-           "file_path - full path to \"level.blk\" or path relative to project's \"develop\" folder\n"
-           "lock - boolean value to determine to lock project or not\n"
-           "save_project - boolean value to supress save question message box\n";
-
-  if (!stricmp(cmd, "project.export.pc"))
-    return "Type:\n"
-           "'project.export.pc level_name' to export project in PC format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.xbox"))
-    return "Type:\n"
-           "'project.export.xbox level_name' to export project in XBOX 360 format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.ps3"))
-    return "Type:\n"
-           "'project.export.ps3 level_name' to export project in PS3 format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.ps4"))
-    return "Type:\n"
-           "'project.export.ps4 level_name' to export project in PS4 format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.iOS"))
-    return "Type:\n"
-           "'project.export.iOS level_name' to export project in iOS format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.and"))
-    return "Type:\n"
-           "'project.export.and level_name' to export project in Android (Tegra GPU family) format\n"
-           "where\n"
-           "level_name - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "project.export.all"))
-    return "Type:\n"
-           "'project.export.all level_name_pc level_name_xbox level_name_ps3'"
-           " to export project in all formats\n"
-           "where\n"
-           "level_name_* - path to exported level relative application levels folder\n";
-
-  if (!stricmp(cmd, "set_workspace"))
-    return "Type:\n"
-           "'set_workspace application_blk_path [save_project]' to load workspace from mentioned "
-           "\"application.blk\" file\n"
-           "where\n"
-           "application_blk_path - path to desired \"application.blk\" file. Must be full or "
-           "relative to daEditor folder\n"
-           "save_project - boolean value to supress save question message box\n";
-
-  if (!stricmp(cmd, "screenshot.ortho"))
-    return "Outputs orthogonal screenshot using extents from landscape.";
-
-  if (!stricmp(cmd, "entity.stat"))
-    return "Outputs statistics for entity pools to console.";
-  if (!stricmp(cmd, "entity.ri_stat"))
-    return "entity.ri_stat [min_vb_size_Kb_to_report]\n"
-           "Outputs statistics for RI entities (per-cell), reports all non-empty cells if min VB size is not specified";
-  if (!stricmp(cmd, "project.tex_metrics"))
-    return "Computes and outputs tex metrics to console.\n  project.tex_metrics [verbose] [nodlg]";
-
-  if (!stricmp(cmd, "shaders.list"))
-    return "shaders.list [name_substr]";
-  if (!stricmp(cmd, "shaders.set"))
-    return "shaders.set <shader-var-name> <value>";
-  if (!stricmp(cmd, "shaders.reload"))
-    return "shaders.reload [shaders-binary-dump-fname]";
-  if (!stricmp(cmd, "tex.info"))
-    return "tex.info [full]";
-  if (!stricmp(cmd, "tex.refs"))
-    return "tex.refs";
-  if (!stricmp(cmd, "driver.reset"))
-    return "driver.reset";
-  if (!stricmp(cmd, "tex.show"))
-  {
-    static String str;
-    de3_show_tex_helper.demandInit();
-    str = de3_show_tex_helper->processConsoleCmd(NULL, 0);
-    if (!str.empty())
-      return str;
-  }
-  if (!stricmp(cmd, "tex.hide"))
-    return "tex.hide";
-
-  return NULL;
+  String str = de3_show_tex_helper->processConsoleCmd(argv, argc);
+  if (!str.empty())
+    DAEDITOR3.conNote(str);
 }
 
+//==================================================================================================
+void DagorEdAppWindow::registerConsoleCommands()
+{
+  console::init();
+  add_con_proc(new DagorEdConsoleCommandProcessor(10000)); // Let daEditorX override all other commands.
+}
 
 //==============================================================================
 bool DagorEdAppWindow::runExitCmd(dag::ConstSpan<const char *> params)
@@ -476,7 +422,7 @@ bool DagorEdAppWindow::runExitCmd(dag::ConstSpan<const char *> params)
   if (params.size())
   {
     mNeedSuppress = true;
-    mMsgBoxResult = strToBool(params[0]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
+    mMsgBoxResult = console::to_bool(params[0]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
   }
 
   if (on_batch_exit)
@@ -492,11 +438,54 @@ bool DagorEdAppWindow::runExitCmd(dag::ConstSpan<const char *> params)
 
 
 //==============================================================================
-bool DagorEdAppWindow::runCameraPosCmd(dag::ConstSpan<const char *> params)
+void DagorEdAppWindow::runCameraAtCmd(dag::ConstSpan<const char *> params)
 {
   IGenViewportWnd *vpw = getCurrentViewport();
   if (!vpw)
-    return false;
+    return;
+
+  if (params.size() == 0)
+  {
+    TMatrix tm;
+    vpw->getCameraTransform(tm);
+
+    const float fovRad = vpw->getFov();
+    const float fovDeg = fovRad > 0.0f ? fov_to_deg(fovRad) : -1.0f;
+
+    console->addMessage(ILogWriter::NOTE, "\tcamera.at %g %g %g %g %g %g %g", P3D(tm.getcol(3)), P3D(tm.getcol(2)), fovDeg);
+    return;
+  }
+  else if (params.size() == 3 || params.size() == 6 || params.size() == 7)
+  {
+    TMatrix tm;
+    vpw->getCameraTransform(tm);
+
+    tm.setcol(3, to_point3(params));
+    if (params.size() >= 6)
+      lookAt(tm.getcol(3), tm.getcol(3) + to_point3(params, 3), Point3(0, 1, 0), tm);
+
+    vpw->setCameraTransform(tm);
+
+    if (params.size() == 7)
+    {
+      const float fovDeg = console::to_real(params[6]);
+      if (fovDeg > 0.0f)
+        vpw->setFov(deg_to_fov(fovDeg));
+    }
+
+    return;
+  }
+
+  console->runHelp("camera.at");
+}
+
+
+//==============================================================================
+void DagorEdAppWindow::runCameraPosCmd(dag::ConstSpan<const char *> params)
+{
+  IGenViewportWnd *vpw = getCurrentViewport();
+  if (!vpw)
+    return;
 
   if (!params.size())
   {
@@ -505,37 +494,72 @@ bool DagorEdAppWindow::runCameraPosCmd(dag::ConstSpan<const char *> params)
 
     console->addMessage(ILogWriter::NOTE, "Current camera position: %g, %g, %g", P3D(tm.getcol(3)));
 
-    return true;
+    return;
   }
   else if (params.size() >= 3)
   {
-    vpw->setCameraPos(strToPoint3(params, 0));
-    return true;
+    vpw->setCameraPos(to_point3(params, 0));
+    return;
   }
 
-  console->addMessage(ILogWriter::NOTE, onConsoleCommandHelp("camera.pos"));
-  return false;
+  console->runHelp("camera.pos");
 }
 
 
 //==============================================================================
-bool DagorEdAppWindow::runCameraDirCmd(dag::ConstSpan<const char *> params)
+void DagorEdAppWindow::runCameraDirCmd(dag::ConstSpan<const char *> params)
 {
   IGenViewportWnd *vpw = getCurrentViewport();
   if (!vpw)
-    return false;
+    return;
 
   if (params.size() >= 3)
   {
-    Point3 p3 = strToPoint3(params, 0);
-    Point3 up = params.size() >= 6 ? strToPoint3(params, 3) : Point3(0, 1, 0);
+    Point3 p3 = to_point3(params, 0);
+    Point3 up = params.size() >= 6 ? to_point3(params, 3) : Point3(0, 1, 0);
 
     vpw->setCameraDirection(::normalize(p3), ::normalize(up));
-    return true;
+    return;
   }
 
-  console->addMessage(ILogWriter::NOTE, onConsoleCommandHelp("camera.dir"));
-  return false;
+  console->runHelp("camera.dir");
+}
+
+
+//==============================================================================
+void DagorEdAppWindow::runCameraSaveCmd(dag::ConstSpan<const char *> /*params*/)
+{
+  ViewportWindow *viewport = ged.getViewport(0);
+  if (!viewport)
+  {
+    console->addMessage(ILogWriter::ERROR, "No viewport. Cannot save camera.");
+    return;
+  }
+
+  if (sceneFname[0] == 0)
+  {
+    console->addMessage(ILogWriter::ERROR, "The project has never been saved. Cannot save camera.");
+    return;
+  }
+
+  String localSetPath;
+  DataBlock localBlk;
+  prepareLocalLevelBlk(sceneFname, localSetPath, localBlk);
+
+  const TMatrix viewTm = viewport->getViewTm();
+  DataBlock *viewportBlk = localBlk.addBlock("viewport0");
+  viewportBlk->setPoint3("viewMatrix0", viewTm.getcol(0));
+  viewportBlk->setPoint3("viewMatrix1", viewTm.getcol(1));
+  viewportBlk->setPoint3("viewMatrix2", viewTm.getcol(2));
+  viewportBlk->setPoint3("viewMatrix3", viewTm.getcol(3));
+
+  if (!localBlk.saveToTextFile(localSetPath))
+  {
+    console->addMessage(ILogWriter::ERROR, "Error saving \"%s\".", localSetPath.c_str());
+    return;
+  }
+
+  console->addMessage(ILogWriter::NOTE, "The camera has been updated in \"%s\".", localSetPath.c_str());
 }
 
 
@@ -551,13 +575,14 @@ bool DagorEdAppWindow::runProjectOpenCmd(dag::ConstSpan<const char *> params)
     mSuppressDlgResult = projectPath;
 
     if (params.size() >= 2)
-      lock = strToBool(params[1]);
+      lock = console::to_bool(params[1]);
 
     mMsgBoxResult = -1;
     if (params.size() >= 3)
-      mMsgBoxResult = strToBool(params[2]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
+      mMsgBoxResult = console::to_bool(params[2]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
 
     bool result = handleOpenProject(lock);
+    setDocTitle();
 
     mNeedSuppress = false;
     mSuppressDlgResult = "";
@@ -567,7 +592,7 @@ bool DagorEdAppWindow::runProjectOpenCmd(dag::ConstSpan<const char *> params)
   }
 
 
-  console->addMessage(ILogWriter::NOTE, onConsoleCommandHelp("project.open"));
+  console->runHelp("project.open");
   return false;
 }
 
@@ -657,7 +682,7 @@ bool DagorEdAppWindow::runSetWorkspaceCmd(dag::ConstSpan<const char *> params)
   {
     mNeedSuppress = true;
     if (params.size() >= 2)
-      mMsgBoxResult = strToBool(params[1]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
+      mMsgBoxResult = console::to_bool(params[1]) ? wingw::MB_ID_YES : wingw::MB_ID_NO;
 
     String wspPath = ::make_full_path(sgg::get_exe_path_full(), params[0]);
 
@@ -694,21 +719,27 @@ bool DagorEdAppWindow::runShadersListVars(dag::ConstSpan<const char *> params)
       continue;
 
     Color4 c;
-    TEXTUREID tid;
     found++;
     switch (type)
     {
       case SHVT_INT: console->addMessage(ILogWriter::NOTE, "[int]   %-40s %d", name, ShaderGlobal::get_int_fast(varId)); break;
-      case SHVT_REAL: console->addMessage(ILogWriter::NOTE, "[real]  %-40s %.3f", name, ShaderGlobal::get_real_fast(varId)); break;
+      case SHVT_REAL: console->addMessage(ILogWriter::NOTE, "[real]  %-40s %.3f", name, ShaderGlobal::get_float(varId)); break;
       case SHVT_INT4: console->addMessage(ILogWriter::NOTE, "[int4]  %-40s %@", name, ShaderGlobal::get_int4(varId)); break;
       case SHVT_COLOR4:
-        c = ShaderGlobal::get_color4_fast(varId);
+        c = ShaderGlobal::get_float4(varId);
         console->addMessage(ILogWriter::NOTE, "[color] %-40s %.3f,%.3f,%.3f,%.3f", name, c.r, c.g, c.b, c.a);
         break;
       case SHVT_TEXTURE:
-        tid = ShaderGlobal::get_tex_fast(varId);
-        console->addMessage(ILogWriter::NOTE, "[tex]   %-40s %s", name, tid == BAD_TEXTUREID ? "---" : get_managed_texture_name(tid));
-        break;
+      {
+        TEXTUREID tid = ShaderGlobal::get_tex_fast(varId);
+        BaseTexture *tptr = ShaderGlobal::get_tex_ptr_fast(varId);
+        if (tid == BAD_TEXTUREID && tptr)
+          console->addMessage(ILogWriter::NOTE, "[tex]   %-40s %p", tptr);
+        else
+          console->addMessage(ILogWriter::NOTE, "[tex]   %-40s %s", name,
+            tid == BAD_TEXTUREID ? "---" : get_managed_texture_name(tid));
+      }
+      break;
     }
   }
   if (!found)
@@ -734,14 +765,14 @@ bool DagorEdAppWindow::runShadersSetVar(dag::ConstSpan<const char *> params)
     switch (type)
     {
       case SHVT_INT: ShaderGlobal::set_int(varId, atoi(params[1])); break;
-      case SHVT_REAL: ShaderGlobal::set_real(varId, atof(params[1])); break;
+      case SHVT_REAL: ShaderGlobal::set_float(varId, atof(params[1])); break;
       case SHVT_COLOR4:
         if (params.size() < 5)
         {
           console->addMessage(ILogWriter::ERROR, "shaders.set requires <name> <R> <G> <B> <A> for color var");
           return false;
         }
-        ShaderGlobal::set_color4(varId, atof(params[1]), atof(params[2]), atof(params[3]), atof(params[4]));
+        ShaderGlobal::set_float4(varId, atof(params[1]), atof(params[2]), atof(params[3]), atof(params[4]));
         break;
       case SHVT_TEXTURE:
         TEXTUREID tex_id = get_managed_texture_id(params[1]);
@@ -760,11 +791,11 @@ bool DagorEdAppWindow::runShadersSetVar(dag::ConstSpan<const char *> params)
       console->addMessage(ILogWriter::NOTE, "globalvar <%s> [int] set to %d", params[0], ShaderGlobal::get_int_fast(varId));
       break;
     case SHVT_REAL:
-      console->addMessage(ILogWriter::NOTE, "globalvar <%s> [real] set to %.3f", params[0], ShaderGlobal::get_real_fast(varId));
+      console->addMessage(ILogWriter::NOTE, "globalvar <%s> [real] set to %.3f", params[0], ShaderGlobal::get_float(varId));
       break;
     case SHVT_COLOR4:
     {
-      Color4 val = ShaderGlobal::get_color4_fast(varId);
+      Color4 val = ShaderGlobal::get_float4(varId);
       console->addMessage(ILogWriter::NOTE, "globalvar <%s> [color] set to %.3f,%.3f,%.3f,%.3f", params[0], val.r, val.g, val.b,
         val.a);
     }
@@ -783,14 +814,14 @@ bool DagorEdAppWindow::runShadersSetVar(dag::ConstSpan<const char *> params)
 bool DagorEdAppWindow::runShadersReload(dag::ConstSpan<const char *> params)
 {
   G_ASSERT(d3d::is_inited());
-  const Driver3dDesc &dsc = d3d::get_driver_desc();
+  auto shaderModel = d3d::get_driver_desc().shaderModel;
 
-  DataBlock appblk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   String sh_file;
   if (appblk.getStr("shaders", NULL))
     sh_file.printf(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), appblk.getStr("shaders", NULL));
   else
-    sh_file.printf(260, "%s/../commonData/compiledShaders/classic/tools", sgg::get_exe_path_full());
+    sh_file.printf(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
   simplify_fname(sh_file);
 
   const char *shname = params.size() > 0 ? params[0] : sh_file;
@@ -798,7 +829,7 @@ bool DagorEdAppWindow::runShadersReload(dag::ConstSpan<const char *> params)
   String fileName;
   for (auto version : d3d::smAll)
   {
-    if (dsc.shaderModel < version)
+    if (shaderModel < version)
       continue;
     fileName.printf(260, "%s.%s.shdump.bin", shname, version.psName);
     if (!dd_file_exist(fileName))
@@ -811,6 +842,6 @@ bool DagorEdAppWindow::runShadersReload(dag::ConstSpan<const char *> params)
     console->addMessage(ILogWriter::NOTE, "reloaded %s, ver=%s", shname, version.psName);
     return true;
   }
-  console->addMessage(ILogWriter::FATAL, "failed to reload %s, dsc.shaderModel=%s", shname, d3d::as_string(dsc.shaderModel));
+  console->addMessage(ILogWriter::FATAL, "failed to reload %s, dsc.shaderModel=%s", shname, d3d::as_string(shaderModel));
   return false;
 }

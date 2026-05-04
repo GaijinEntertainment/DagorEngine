@@ -45,12 +45,23 @@ void * reuse_cache_allocate ( size_t size ) {
     }
 }
 
+
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZER_ADDRESS__)
+#include <sanitizer/asan_interface.h>
+#endif
+
 void reuse_cache_free ( void * ptr, size_t size ) {
     size = (size+15) & ~15;
     if ( size<=DAS_MAX_REUSE_SIZE && *tlsReuseCache ) {
         auto bucket = (size >> 4) - 1;
         auto & hold = (*tlsReuseCache)->hold[bucket];
         auto next = hold;
+
+        // Asan treats `ptr` as already freed, however we reuse it as a node in linked list.
+        // Let's unpoison it to make asan work.
+        #if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZER_ADDRESS__)
+        ASAN_UNPOISON_MEMORY_REGION(ptr, size);
+        #endif
         hold = (ReuseChunk *) ptr;
         hold->next = next;
     } else {
@@ -92,7 +103,10 @@ void reuse_cache_destroy() {
 
 }
 
-#if defined(__linux__) && !defined(DAS_NO_GLOBAL_NEW_AND_DELETE)
+// Note: DAS_ENABLE_DLL -- Temporary disable ReuseAllocator in shared lib mode,
+// until pointers ownership won't be passed between main library and modules.
+// We allocate pointers with ReuseAllocator and free them using regular one.
+#if (defined(__linux__) || DAS_ENABLE_DLL) && !defined(DAS_NO_GLOBAL_NEW_AND_DELETE)
 #define DAS_NO_GLOBAL_NEW_AND_DELETE
 #endif
 
@@ -138,3 +152,8 @@ void reuse_cache_pop() {}
 }
 
 #endif
+
+namespace das {
+    ReuseCacheGuard::ReuseCacheGuard() { reuse_cache_push(); }
+    ReuseCacheGuard::~ReuseCacheGuard() { reuse_cache_pop(); }
+}

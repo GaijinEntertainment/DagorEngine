@@ -28,13 +28,13 @@ DistortionRenderer::DistortionRenderer(int screenWidth, int screenHeight, bool _
 
   const DataBlock *distortionBlk = ::dgs_get_game_params()->getBlockByNameEx("distortion");
 
-  ShaderGlobal::set_real(get_shader_variable_id("distortion_offset_scale"), distortionBlk->getReal("offsetScale", 1.f));
+  ShaderGlobal::set_float(get_shader_variable_id("distortion_offset_scale"), distortionBlk->getReal("offsetScale", 1.f));
 
 
   if (!msaaPs3)
   {
     distortionTargetTex =
-      d3d::create_tex(NULL, screenWidth, screenHeight, ::hdr_render_format | TEXCF_RTARGET, 1, "distortionTargetTex");
+      d3d::create_tex(NULL, screenWidth, screenHeight, ::hdr_render_format | TEXCF_RTARGET, 1, "distortionTargetTex", RESTAG_FX);
     G_ASSERT(distortionTargetTex);
 
     distortionTargetTexId = register_managed_tex("distortionTargetTex", distortionTargetTex);
@@ -67,12 +67,12 @@ void DistortionRenderer::startRenderDistortion(Texture *distortionOffsetTex)
   // Render offset map masked by depth.
 
   d3d::get_render_target(prevRt);
-  d3d::set_render_target(distortionOffsetTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{distortionOffsetTex, 0, 0}});
   d3d::clearview(CLEAR_TARGET, E3DCOLOR_MAKE(0x80, 0x80, 0, 0), 0.f, 0);
 
-  /*float prevHdrOverbright = ShaderGlobal::get_real_fast(hdrOverbrightGlobVarId);
-  ShaderGlobal::set_real(hdrOverbrightVarId, 1.f);
-  ShaderGlobal::set_real(maxHdrOverbrightVarId, 1.f);*/
+  /*float prevHdrOverbright = ShaderGlobal::get_float(hdrOverbrightGlobVarId);
+  ShaderGlobal::set_float(hdrOverbrightVarId, 1.f);
+  ShaderGlobal::set_float(maxHdrOverbrightVarId, 1.f);*/
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   // ShaderGlobal::set_int_fast(mistEnableVarId, 0);
 }
@@ -83,8 +83,8 @@ void DistortionRenderer::endRenderDistortion()
   G_ASSERT(started);
   started = false;
 
-  /*ShaderGlobal::set_real(hdrOverbrightVarId, prevHdrOverbright);
-  ShaderGlobal::set_real(maxHdrOverbrightVarId, ::hdr_max_overbright);*/
+  /*ShaderGlobal::set_float(hdrOverbrightVarId, prevHdrOverbright);
+  ShaderGlobal::set_float(maxHdrOverbrightVarId, ::hdr_max_overbright);*/
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   // ShaderGlobal::set_int_fast(mistEnableVarId, 1);
 
@@ -109,7 +109,7 @@ void DistortionRenderer::applyDistortion(TEXTUREID sourceTexId, Texture *destTex
     distortionFxRenderer->getMat()->set_color4_param(target_sizeId,
       Color4(float(l) / wd + (0.1f / wd), float(t) / ht + (0.1f / ht), float(1), float(1)));
 
-    d3d::set_render_target(destTex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{destTex, 0, 0}});
 
     ShaderGlobal::set_texture(sourceTexVarId, sourceTexId);
     ShaderGlobal::set_texture(distortionOffsetTexVarId, distortionOffsetTexId);
@@ -125,7 +125,7 @@ void DistortionRenderer::applyDistortion(TEXTUREID sourceTexId, Texture *destTex
     return;
   }
 
-  d3d::set_render_target(distortionTargetTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{distortionTargetTex, 0, 0}});
 
   ShaderGlobal::set_texture(sourceTexVarId, sourceTexId);
   ShaderGlobal::set_texture(distortionOffsetTexVarId, distortionOffsetTexId);

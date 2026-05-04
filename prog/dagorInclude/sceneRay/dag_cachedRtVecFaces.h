@@ -145,7 +145,7 @@ template <typename FI>
 template <class CB>
 inline bool StaticSceneRayTracerT<FI>::getVecFacesCached(bbox3f_cref wbox, CB &ctx) const
 {
-  if (!v_bbox3_test_box_intersect(wbox, v_rtBBox))
+  if (!v_bbox3_test_box_intersect(wbox, v_ldu_bbox3(getBox())))
     return true;
   vec3f v_inv_leaf_size = v_rcp(v_ldu(&getLeafSize().x));
   vec4i v_b0 = v_cvt_floori(v_mul(v_inv_leaf_size, wbox.bmin));

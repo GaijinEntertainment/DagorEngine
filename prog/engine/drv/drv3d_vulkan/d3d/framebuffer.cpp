@@ -5,6 +5,7 @@
 #include <drv/3d/dag_renderPass.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_variableRateShading.h>
 
 #include "driver.h"
 #include "pipeline_state.h"
@@ -13,6 +14,8 @@
 #include "frontend.h"
 #include "device_context.h"
 #include "global_lock.h"
+#include "backend/cmd/draw_dispatch.h"
+#include "backend/cmd/framebuffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -31,7 +34,7 @@ struct LocalAccessor
 StateFieldFramebufferAttachment::RawFrontData make_back_buffer_attachment()
 {
   StateFieldFramebufferAttachment::RawFrontData bb;
-  bb.tex = Frontend::swapchain.getCurrentTargetTex();
+  bb.tex = Frontend::currentSwapchainToPresent->getCurrentTargetTex();
   bb.layer = 0;
   bb.mip = 0;
   return bb;
@@ -93,7 +96,7 @@ bool d3d::copy_from_current_render_target(BaseTexture *to_tex)
   blit.srcOffsets[1].z = 1;
   blit.dstOffsets[1].z = 1;
 
-  Globals::ctx.blitImage(srcImg, dstImg, blit, /*whole_subres*/ true);
+  Globals::ctx.dispatchCmd<CmdBlitImage>({srcImg, dstImg, blit, /*whole_subres*/ true});
   return true;
 }
 
@@ -255,7 +258,7 @@ bool d3d::clearview(int what, E3DCOLOR color, float z, uint32_t stencil)
   la.pipeState.set<StateFieldFramebufferClearColor, E3DCOLOR, FrontGraphicsState, FrontFramebufferState>(color);
   la.pipeState.set<StateFieldFramebufferClearDepth, float, FrontGraphicsState, FrontFramebufferState>(z);
   la.pipeState.set<StateFieldFramebufferClearStencil, uint8_t, FrontGraphicsState, FrontFramebufferState>((uint8_t)stencil);
-  la.ctx.clearView(what);
+  la.ctx.dispatchPipeline<CmdClearView>({what}, "clearView");
   return true;
 }
 
@@ -265,6 +268,16 @@ void d3d::allow_render_pass_target_load()
   LocalAccessor la;
   // No need to insert an extra command if the validation is disabled.
   if (Globals::cfg.bits.validateRenderPassSplits)
-    Globals::ctx.allowOpLoad();
+    Globals::ctx.dispatchCmd<CmdAllowOpLoad>({});
 }
 #endif
+
+void d3d::set_variable_rate_shading_texture(BaseTexture *tex)
+{
+  D3D_CONTRACT_ASSERTF(Globals::VK::phy.hasAttachmentFragmentShadingRate, "vulkan: VRS used on device without tex rate VRS support!");
+  LocalAccessor la;
+  using Bind = StateFieldFramebufferAttachment;
+
+  la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
+    {MRT_INDEX_SHADING_RATE, {tex, 0, 0}});
+}

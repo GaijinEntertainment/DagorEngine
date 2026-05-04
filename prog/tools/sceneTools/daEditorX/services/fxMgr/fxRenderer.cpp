@@ -25,9 +25,6 @@ void FxRenderer::initResolution(int width, int height)
 
   colorRt.close();
   colorRt = dag::create_tex(NULL, width, height, TEXCF_RTARGET | TEXFMT_DEFAULT, 1, "fx_debug_color_rt");
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-  ShaderGlobal::set_sampler(get_shader_variable_id("fx_debug_color_rt_samplerstate"), d3d::request_sampler(smpInfo));
 }
 
 void FxRenderer::render(IGenViewportWnd &wnd, eastl::function<void()> render_fx_cb)

@@ -4,7 +4,7 @@ require math.base
 require DagorMath
 require soundEvent
 require soundSystem
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 require environment_sounds.modules.sound_field_common
 require DagorSystem
 require gameObject

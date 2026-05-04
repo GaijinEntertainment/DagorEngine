@@ -71,7 +71,7 @@ class DrawRequest : private detail::DrawRequestBase
     return isBlob<T>() && hasPolicy<policy>(RRP::Readonly) && eastl::is_invocable_v<decltype(projector), const T &> && eastl::is_integral_v<ProjectedType> && sizeof(ProjectedType) == sizeof(uint32_t);
   }
 
-  friend class Registry;
+  friend class BaseRegistry;
   DrawRequest(InternalRegistry *reg, NodeNameId node_id, ShaderNameId shader_id, dafg::DrawPrimitive primitive) : Base{reg, node_id, shader_id}
   {
     if constexpr (draw_policy == DRP::Default && indexed)

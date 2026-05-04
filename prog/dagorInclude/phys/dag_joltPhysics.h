@@ -118,6 +118,7 @@ public:
   }
 
   void setTm(const TMatrix &wtm);
+  void setTmWhenChanged(const TMatrix &wtm);
   void getTm(TMatrix &wtm) const;
   void setTmInstant(const TMatrix &local_to_world, bool = false) { setTm(local_to_world); }
   void getTmInstant(TMatrix &local_to_world) const { getTm(local_to_world); }

@@ -263,7 +263,30 @@ VECTORCALL real distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2)
   return rabs(dp * Point2(dir.y, -dir.x)) / sqrtf(len2);
 }
 
-VECTORCALL real distance_point_to_line_segment_square(Point2 pt, Point2 p1, Point2 p2)
+VECTORCALL real distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2, float &out_t)
+{
+  Point2 dp = pt - p1;
+  Point2 dir = p2 - p1;
+  real len2 = lengthSq(dir);
+
+  out_t = 0.f;
+  if (len2 == 0)
+    return length(dp);
+  real t = (dp * dir) / len2;
+
+  if (t <= 0)
+    return length(dp);
+  if (t >= 1)
+  {
+    out_t = 1.f;
+    return length(pt - p2);
+  }
+
+  out_t = t;
+  return rabs(dp * Point2(dir.y, -dir.x)) / sqrtf(len2);
+}
+
+VECTORCALL real sq_distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2)
 {
   Point2 dp = pt - p1;
   Point2 dir = p2 - p1;
@@ -279,6 +302,31 @@ VECTORCALL real distance_point_to_line_segment_square(Point2 pt, Point2 p1, Poin
   if (t >= 1)
     return lengthSq(pt - p2);
 
+  float mult = dp * Point2(dir.y, -dir.x);
+  return mult * mult / len2;
+}
+
+VECTORCALL real sq_distance_point_to_line_segment(Point2 pt, Point2 p1, Point2 p2, float &out_t)
+{
+  Point2 dp = pt - p1;
+  Point2 dir = p2 - p1;
+  real len2 = lengthSq(dir);
+
+  out_t = 0.f;
+  if (len2 == 0)
+    return lengthSq(dp);
+
+  real t = (dp * dir) / len2;
+
+  if (t <= 0)
+    return lengthSq(dp);
+  if (t >= 1)
+  {
+    out_t = 1.f;
+    return lengthSq(pt - p2);
+  }
+
+  out_t = t;
   float mult = dp * Point2(dir.y, -dir.x);
   return mult * mult / len2;
 }

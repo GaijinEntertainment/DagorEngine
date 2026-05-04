@@ -1,0 +1,80 @@
+buffer gpu_debug_render_flat_spheres_buf;
+buffer gpu_debug_render_flat_spheres_count_buf;
+
+buffer gpu_debug_render_lines_buf;
+buffer gpu_debug_render_lines_count_buf;
+
+float gpu_debug_render_buffering_active = 0;
+
+macro INIT_GPU_DEBUG_RENDER(code)
+  (code) {
+    gpu_debug_render_flat_spheres_buf@uav = gpu_debug_render_flat_spheres_buf hlsl {
+      #include "gpu_debug_render_structs.hlsli"
+      RWStructuredBuffer<GpuDrivenDebugRenderFlatSphere> gpu_debug_render_flat_spheres_buf@uav;
+    }
+
+    gpu_debug_render_flat_spheres_count_buf@uav = gpu_debug_render_flat_spheres_count_buf hlsl {
+      RWStructuredBuffer<uint> gpu_debug_render_flat_spheres_count_buf@uav;
+    }
+
+    gpu_debug_render_lines_buf@uav = gpu_debug_render_lines_buf hlsl {
+      #include "gpu_debug_render_structs.hlsli"
+      RWStructuredBuffer<GpuDrivenDebugRenderLine> gpu_debug_render_lines_buf@uav;
+    }
+
+    gpu_debug_render_lines_count_buf@uav = gpu_debug_render_lines_count_buf hlsl {
+      RWStructuredBuffer<uint> gpu_debug_render_lines_count_buf@uav;
+    }
+
+    gpu_debug_render_buffering_active@f1 = gpu_debug_render_buffering_active;
+  }
+endmacro
+
+macro USE_GPU_DEBUG_RENDER(code)
+  hlsl(code) {
+    void draw_debug_flat_sphere(float3 center_wpos, float radius, float4 color)
+    {
+      BRANCH
+      if (gpu_debug_render_buffering_active > 0.0)
+      {
+        int offset;
+        InterlockedAdd(gpu_debug_render_flat_spheres_count_buf[0], +1, offset);
+        offset = min(GPU_DEBUG_RENDER_MAX_ELEMS_PER_TYPE, offset);
+
+        GpuDrivenDebugRenderFlatSphere sphere;
+        sphere.centerWpos = center_wpos;
+        sphere.radius = radius;
+        sphere.color = color;
+
+        structuredBufferAt(gpu_debug_render_flat_spheres_buf, offset) = sphere;
+      }
+    }
+
+    void draw_debug_line(float3 start_wpos, float3 end_wpos, float4 start_color, float4 end_color, float start_size, float end_size)
+    {
+      BRANCH
+      if (gpu_debug_render_buffering_active > 0.0)
+      {
+        int offset;
+        InterlockedAdd(gpu_debug_render_lines_count_buf[0], +1, offset);
+        offset = min(GPU_DEBUG_RENDER_MAX_ELEMS_PER_TYPE, offset);
+
+        GpuDrivenDebugRenderLine debug_line;
+        debug_line.startWpos = start_wpos;
+        debug_line.endWpos = end_wpos;
+        debug_line.startColor = start_color;
+        debug_line.endColor = end_color;
+        debug_line.startSize = start_size;
+        debug_line.endSize = end_size;
+
+        structuredBufferAt(gpu_debug_render_lines_buf, offset) = debug_line;
+      }
+    }
+
+    void draw_debug_line(float3 start_wpos, float3 end_wpos, float4 color, float radius)
+    {
+      draw_debug_line(start_wpos, end_wpos, color, color, radius, radius);
+    }
+
+  }
+endmacro

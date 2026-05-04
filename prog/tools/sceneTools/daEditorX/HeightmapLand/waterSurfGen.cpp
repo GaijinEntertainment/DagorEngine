@@ -32,12 +32,6 @@ using editorcore_extapi::dagTools;
 
 extern bool allow_debug_bitmap_dump;
 
-class Point3Deref : public Point3
-{
-public:
-  Point3 getPt() const { return *this; }
-};
-
 #if 1
 static void draw_poly(objgenerator::HugeBitmask &m, dag::ConstSpan<Point2> pts, float ofs_x, float ofs_y, float scale)
 {
@@ -68,8 +62,6 @@ static void write_tif(objgenerator::HugeBitmask &m, const char *fname)
 static void draw_solution(objgenerator::HugeBitmask &m, const ClipperLib::ExPolygons &sol, float ox, float oz, float scl)
 {
   Tab<Point2> pts_2(tmpmem);
-  Tab<Point3> pts_3(tmpmem);
-  Tab<Point3Deref *> pts(tmpmem);
 
   // debug("sol=%d", sol.size());
   for (int i = 0; i < sol.size(); i++)
@@ -87,16 +79,15 @@ static void draw_solution(objgenerator::HugeBitmask &m, const ClipperLib::ExPoly
     for (int k = 0; k < sol[i].holes.size(); k++)
     {
       // debug_("  holes[%d]: sz=%d ", k, sol[i].holes[k].size());
-      pts_3.resize(sol[i].holes[k].size());
-      pts.resize(pts_3.size());
+      pts_2.resize(sol[i].holes[k].size());
       for (int j = 0; j < sol[i].holes[k].size(); j++)
       {
-        pts_3[j].set(sol[i].holes[k][j].X * 0.001f, 0, sol[i].holes[k][j].Y * 0.001f);
-        pts[j] = static_cast<Point3Deref *>(&pts_3[j]);
-        // debug_(" %.3f,%.3f ", sol[i].holes[k][j].X*0.001f, sol[i].holes[k][j].Y*0.001f);
+        pts_2[j].set(sol[i].holes[k][j].X * 0.001f, sol[i].holes[k][j].Y * 0.001f);
+        // debug_(" %.3f,%.3f ", pts_2[j].x, pts_2[j].y);
       }
       // debug("");
-      rasterize_poly_2_nz(m, pts, ox, oz, scl);
+      if (!rasterize_poly_2_nz(m, pts_2, ox, oz, scl))
+        logerr("rasterize_poly_2_nz failed for clipper hole poly (%d pts)", (int)pts_2.size());
     }
   }
 }
@@ -1139,7 +1130,7 @@ void HmapLandPlugin::rebuildWaterSurface(Tab<Point3> *p_loft_pt, Tab<Point3> *p_
     dagGeom->deleteStaticGeometryContainer(g);
 
     waterGeom.setTm(TMatrix::IDENT);
-    SplineObject::PolyGeom::recalcLighting(&waterGeom);
+    splSrv->recalcLighting(&waterGeom);
 
     waterGeom.notChangeVertexColors(true);
     dagGeom->geomObjectRecompile(waterGeom);

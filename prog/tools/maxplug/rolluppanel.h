@@ -30,8 +30,8 @@ private:
   IRollupWindow *iRoll;
   static DataBlock *templateBlk;
 
-  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab<String> &items);
-  void addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab<String> &items);
+  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, std::vector<std::string> &items);
+  void addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, std::vector<std::string> &items);
   void addIntInput(const HWND group_hwnd, int idc, const char *name, int val, bool enable);
   void addRealInput(const HWND group_hwnd, int idc, const char *name, real val, bool enable);
   void addStrInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable);
@@ -47,7 +47,6 @@ private:
   void fillFromBlk(const DataBlock &blk, bool enable);
 
   static bool saveBlkToUserPropBuffer(const DataBlock &blk, INode *n, const char *additional = NULL);
-  static void getMaxBlkFileName(const char *blk, char *file_name);
   static bool getBlkInString(const DataBlock &blk, CStr &out);
 
   void saveToUserPropBuffer(INode *n, const char *additional = NULL);
@@ -61,7 +60,7 @@ private:
 
   static void analyzeCfg(DataBlock &blk, CStr &source);
 
-  static bool loadStrFromFile(const char *fname, CStr &str);
+  static bool loadStrFromFile(const std::wstring &fname, CStr &str);
 
   static BOOL CALLBACK generalRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };

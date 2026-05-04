@@ -34,11 +34,11 @@ Sources =
 ;
 
 UseProgLibs +=
-  engine/memory
-  engine/kernel
-  engine/osApiWrappers
-  engine/baseUtil
-  engine/perfMon/daProfilerStub
+  engine/memory # FIXME_BROKEN_DEP
+  engine/kernel # FIXME_BROKEN_DEP
+  engine/osApiWrappers # FIXME_BROKEN_DEP
+  engine/baseUtil # FIXME_BROKEN_DEP
+  engine/perfMon/daProfilerStub # FIXME_BROKEN_DEP
 
   3rdPartyLibs/eastl
   3rdPartyLibs/unittest-cpp

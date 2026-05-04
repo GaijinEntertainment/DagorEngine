@@ -2,9 +2,11 @@
 
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
+#include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/updateStageRender.h>
+#include <ecs/render/renderEvent.h>
 #include <render/collimatorMoaCore/moaShapesPacking.h>
 
 #include <generic/dag_enumerate.h>
@@ -29,7 +31,7 @@ static const char *shape_names[(int)SDFShape::COUNT] = {
 #undef SDF_SHAPE
 
 template <typename Callable>
-inline void gather_gun_mode_collimator_moa_shapes_ecs_query(ecs::EntityId, Callable c);
+inline void gather_gun_mode_collimator_moa_shapes_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 using ShapeTypesVector = dag::Vector<SDFShape, framemem_allocator>;
 
@@ -154,7 +156,7 @@ static ShapesBufSize update_shapes_buf(UniqueBufHolder &shapes_buf, const ecs::A
 
   // metal validates that cbuffers size match what is written in shader so it has to match
   const int cbufferRegsCount = d3d::get_driver_code().is(d3d::metal) ? 1024 : packedShapes.buf.size();
-  shapes_buf = dag::buffers::create_persistent_cb(cbufferRegsCount, "dcm_shapes_buf");
+  shapes_buf = dag::buffers::create_persistent_cb(cbufferRegsCount, "dcm_shapes_buf", RESTAG_ENGINE);
 
   if (!shapes_buf)
   {
@@ -162,7 +164,8 @@ static ShapesBufSize update_shapes_buf(UniqueBufHolder &shapes_buf, const ecs::A
     return {};
   }
 
-  if (!shapes_buf->updateDataWithLock(0, cbufferRegsCount * sizeof(packedShapes.buf[0]), packedShapes.buf.data(), VBLOCK_WRITEONLY))
+  if (!shapes_buf->updateDataWithLock(0, cbufferRegsCount * sizeof(packedShapes.buf[0]), packedShapes.buf.data(),
+        VBLOCK_WRITEONLY | VBLOCK_DISCARD))
   {
     logerr("collimator_moa: failed to update shapes buffer with regs count '%d'", cbufferRegsCount);
     shapes_buf.close();
@@ -188,7 +191,7 @@ const ecs::Array *get_collimator_moa_image_shapes(const ecs::EntityId img_eid)
   {
     bool shapesValid = false;
     const ecs::Array *shapes;
-    gather_gun_mode_collimator_moa_shapes_ecs_query(img_eid,
+    gather_gun_mode_collimator_moa_shapes_ecs_query(*g_entity_mgr, img_eid,
       [&shapes, &shapesValid](const ecs::Array &collimator_moa_image__shapes, const bool collimator_moa_image__valid) {
         shapes = &collimator_moa_image__shapes;
         shapesValid = collimator_moa_image__valid;
@@ -228,14 +231,25 @@ static void collimator_moa_track_selected_image_es(const UpdateStageInfoBeforeRe
 }
 
 ECS_TAG(render)
+ECS_NO_ORDER
+ECS_ON_EVENT(AfterDeviceReset)
+static void collimator_moa_on_device_reset_es_event_handler(const ecs::Event &, ecs::EntityId &collimator_moa_render__active_image_eid,
+  int &collimator_moa_render__shapes_buf_reg_count, UniqueBufHolder &collimator_moa_render__current_shapes_buf)
+{
+  collimator_moa_render__active_image_eid = {};
+  collimator_moa_render__current_shapes_buf.close();
+  collimator_moa_render__shapes_buf_reg_count = 0;
+}
+
+ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(collimator_moa_image__shapes)
-static void collimator_moa_image_validation_es_event_handler(const ecs::Event &, ecs::EntityId eid,
+static void collimator_moa_image_validation_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
   const ecs::Array &collimator_moa_image__shapes, bool &collimator_moa_image__valid)
 {
   collimator_moa_image__valid = false;
 
-  const char *tmpl = g_entity_mgr->getEntityTemplateName(eid);
+  const char *tmpl = manager.getEntityTemplateName(eid);
   tmpl = tmpl ? tmpl : "[unknown]";
 
   if (collimator_moa_image__shapes.empty())
@@ -284,10 +298,10 @@ static void collimator_moa_image_validation_es_event_handler(const ecs::Event &,
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(gunmod__collimator_moa_img_template)
-static void gunmod_track_collimator_moa_img_eid_es_event_handler(const ecs::Event &,
+static void gunmod_track_collimator_moa_img_eid_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
   const ecs::string &gunmod__collimator_moa_img_template, ecs::EntityId &gunmod__collimator_moa_img_eid)
 {
   gunmod__collimator_moa_img_eid = ecs::EntityId{};
   if (!gunmod__collimator_moa_img_template.empty())
-    gunmod__collimator_moa_img_eid = g_entity_mgr->getSingletonEntity(ECS_HASH_SLOW(gunmod__collimator_moa_img_template.c_str()));
+    gunmod__collimator_moa_img_eid = manager.getSingletonEntity(ECS_HASH_SLOW(gunmod__collimator_moa_img_template.c_str()));
 }

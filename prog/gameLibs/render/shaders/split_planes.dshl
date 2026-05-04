@@ -15,7 +15,6 @@ shader split_planes
     linear_tex@tex2d = linear_tex;
   }
 
-  ENABLE_ASSERT(ps)
   POSTFX_VS(1)
 
   hlsl (ps)

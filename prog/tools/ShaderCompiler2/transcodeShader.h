@@ -4,6 +4,7 @@
 #include <generic/dag_span.h>
 #include "const3d.h"
 
-dag::ConstSpan<uint32_t> transcode_vertex_shader(dag::ConstSpan<uint32_t> vpr);
-dag::ConstSpan<uint32_t> transcode_pixel_shader(dag::ConstSpan<uint32_t> fsh);
+dag::ConstSpan<uint32_t> transcode_vertex_shader(uint32_t type, dag::ConstSpan<uint32_t> vpr);
+dag::ConstSpan<uint32_t> transcode_pixel_shader(uint32_t type, dag::ConstSpan<uint32_t> fsh);
+dag::ConstSpan<uint8_t> transcode_metadata(dag::ConstSpan<uint8_t> meta);
 dag::ConstSpan<int32_t> transcode_stcode(dag::ConstSpan<int32_t> stcode);

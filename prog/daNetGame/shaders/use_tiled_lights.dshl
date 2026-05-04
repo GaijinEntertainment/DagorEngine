@@ -28,34 +28,11 @@ macro INIT_TILED_LIGHTS(code)
   }
 endmacro
 
-macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
-hlsl(code)
-{
-  #define max_lights_distance lights_distance.x
-  #define inv_lights_distance lights_distance.y
-}
-if (dynamic_lights_count != lights_off)
-{
+macro USE_TILED_LIGHTS_COMMON(code)
   hlsl(code) {
-    #ifndef DYNAMIC_LIGHTS_SPECULAR
-      #define DYNAMIC_LIGHTS_SPECULAR 1
-    #endif
-  }
+    #define max_lights_distance lights_distance.x
+    #define inv_lights_distance lights_distance.y
 
-  hlsl(code) {
-    #define LAMBERT_LIGHT 1
-    #define DYNAMIC_LIGHTS_EARLY_EXIT 1
-    #define OMNI_SHADOWS 1
-  }
-  USE_PHOTOMETRY_TEXTURES(code)
-  USE_CLUSTERED_LIGHTS(code)
-  USE_OMNI_LIGHTS_CB(code)
-  USE_LIGHT_SHADOWS(code)
-  USE_COMMON_LIGHTS_SHADOWS_CB(code)
-  USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
-}
-
-  hlsl(code) {
     #if WAVE_INTRINSICS//reduce divergence, on SM6.0 and consoles
       #define WAVE_OR(v) WaveReadFirstLane(WaveAllBitOr(v))
       #define WAVE_MIN(v) WaveReadFirstLane(WaveAllMin_U32(v))
@@ -87,12 +64,10 @@ if (dynamic_lights_count != lights_off)
       return uint2(screenpos) / TILE_EDGE;
     }
 
-##if (dynamic_lights_count != lights_off)
     uint depth_to_z_bin(float depth)
     {
       return clamp(int((depth * inv_lights_distance) * Z_BINS_COUNT), 0, Z_BINS_COUNT - 1);
     }
-##endif
 
 ##if !(hardware.ps4 || hardware.ps5)
     uint BitFieldMask(uint ones_width, uint offset)
@@ -100,7 +75,34 @@ if (dynamic_lights_count != lights_off)
       return ((1U << ones_width) - 1) << offset;
     }
 ##endif
+  }
+endmacro
 
+macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
+  USE_TILED_LIGHTS_COMMON(code)
+
+  if (dynamic_lights_count != lights_off)
+  {
+    hlsl(code) {
+      #ifndef DYNAMIC_LIGHTS_SPECULAR
+        #define DYNAMIC_LIGHTS_SPECULAR 1
+      #endif
+    }
+
+    hlsl(code) {
+      #define LAMBERT_LIGHT 1
+      #define DYNAMIC_LIGHTS_EARLY_EXIT 1
+      #define OMNI_SHADOWS 1
+    }
+    USE_PHOTOMETRY_TEXTURES(code)
+    USE_CLUSTERED_LIGHTS(code)
+    USE_OMNI_LIGHTS_CB(code)
+    USE_LIGHT_SHADOWS(code)
+    USE_COMMON_LIGHTS_SHADOWS_CB(code)
+    USE_SPOTLIGHTS_SSSS_TRANSMITTANCE_FACTOR(code)
+  }
+
+  hlsl(code) {
     #include "pbr/pbr.hlsl"
     #include "clustered/punctualLights.hlsl"
     #include "spot_light_shadow_flags.hlsli"
@@ -200,6 +202,12 @@ if (dynamic_lights_count != lights_off)
             {
               uint bitIdx = firstbitlow(mergedMask);
               uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
+              // This branch is a workaround for NV specific bug.
+              // The condition can't be true by design, but when we have a bug,
+              // PIX shows NaN pixels and totally correct data in buffer.
+              // Also using -O0 "fixes" the issue.
+              if (omni_light_index >= omniLightsCount)
+                break;
               mergedMask ^= (1U << bitIdx);
 
               // Broadcast data to all lanes
@@ -210,23 +218,25 @@ if (dynamic_lights_count != lights_off)
               ol.boxR0 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR0, bitIdx);
               ol.boxR1 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR1, bitIdx);
               ol.boxR2 = WAVE_READ_LANE_AT_FLOAT4(ol_32.boxR2, bitIdx);
+              ol.shadowZnZf_pad = WAVE_READ_LANE_AT_FLOAT4(ol_32.shadowZnZf_pad, bitIdx);
 
               float4 pos_and_radius = ol.posRadius;
               float4 color_and_specular = getFinalColor(ol, worldPos);
-              bool hasShadow = all(ol.colorFlags.rgb > 0);
+              float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
+              bool hasShadow = any(ol.colorFlags.rgb > 0);
               #if OMNI_SHADOWS
                 float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
               #else
                 float4 shadowTcToAtlas = float4(0, 0, 0, 0);
               #endif
-              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, shadowZnZfar, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
               OMNI_CONTACT_SHADOWS_CALC
 
               if (hasShadow)
               {
                 float3 point2light = pos_and_radius.xyz - worldPos.xyz;
-                shadow_callback(omniLight, point2light, shadow_context);
+                shadow_callback(omniLight, point2light, shadow_context, shadowZnZfar.x);
               }
 
               dynamicLighting += omniLight;
@@ -241,25 +251,32 @@ if (dynamic_lights_count != lights_off)
           {
             uint bitIdx = firstbitlow(mergedMask);
             uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
+            // This branch is a workaround for NV specific bug.
+            // The condition can't be true by design, but when we have a bug,
+            // PIX shows NaN pixels and totally correct data in buffer.
+            // Also using -O0 "fixes" the issue.
+            if (omni_light_index >= omniLightsCount)
+              break;
             mergedMask ^= (1U << bitIdx);
 
             RenderOmniLight ol = omni_lights_cb[omni_light_index];
             float4 pos_and_radius = ol.posRadius;
             float4 color_and_specular = getFinalColor(ol, worldPos);
-            bool hasShadow = all(ol.colorFlags.rgb > 0);
+            float2 shadowZnZf = ol.shadowZnZf_pad.xy;
+            bool hasShadow = any(ol.colorFlags.rgb > 0);
             #if OMNI_SHADOWS
               float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
             #else
               float4 shadowTcToAtlas = float4(0, 0, 0, 0);
             #endif
-            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, shadowZnZf, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
             OMNI_CONTACT_SHADOWS_CALC
 
             if (hasShadow)
             {
               float3 point2light = pos_and_radius.xyz - worldPos.xyz;
-              shadow_callback(omniLight, point2light, shadow_context);
+              shadow_callback(omniLight, point2light, shadow_context, shadowZnZf.x);
             }
 
             dynamicLighting += omniLight;
@@ -314,18 +331,26 @@ if (dynamic_lights_count != lights_off)
             {
               uint bitIdx = firstbitlow(mergedMask);
               uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
+              // This branch is a workaround for NV specific bug.
+              // The condition can't be true by design, but when we have a bug,
+              // PIX shows NaN pixels and totally correct data in buffer.
+              // Also using -O0 "fixes" the issue.
+              if (spot_light_index >= spotLightsCount)
+                break;
               mergedMask ^= (1U << bitIdx);
 
-              float4 lightPosRadius = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightPosRadius, bitIdx);
+              float4 lightPosRadius = decode_spot_light_pos_radius(WAVE_READ_LANE_AT_FLOAT4(sl_32.lightPos_halfRadius_halfCullRadius, bitIdx));
               float4 lightColor = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightColorAngleScale, bitIdx);
               float4 lightDirection = WAVE_READ_LANE_AT_FLOAT4(sl_32.lightDirectionAngleOffset, bitIdx);
-              float4 texId_scale_illuminatingplane_shadow_contactshadow = WAVE_READ_LANE_AT_FLOAT4(sl_32.texId_scale_illuminatingplane_shadow_contactshadow, bitIdx);
-              float2 texId_scale = texId_scale_illuminatingplane_shadow_contactshadow.xy;
+              float4 texId_scale_illuminatingplane_packedDataBits = WAVE_READ_LANE_AT_FLOAT4(sl_32.texId_scale_illuminatingplane_packedDataBits, bitIdx);
+              float2 texId_scale = texId_scale_illuminatingplane_packedDataBits.xy;
               float ao = dynamicAO;
-              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
-              uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
-              bool hasShadow = shadowContactShadowsBits & SPOT_LIGHT_HAS_SHADOW_MASK;
-              bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+              float lightRollAngle = decode_light_roll_angle(sl);
+              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+              uint shadowDataBits = asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
+              bool hasShadow = shadowDataBits & SPOT_LIGHT_HAS_SHADOW_MASK;
+              bool needsContactShadows = shadowDataBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+              uint shadowAtlasRectBits = (shadowDataBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK;
 
               #define EXIT_STATEMENT continue
               #define SPOT_SHADOWS 1
@@ -335,7 +360,7 @@ if (dynamic_lights_count != lights_off)
               ##endif
               #include "clustered/oneSpotLight.hlsl"
               if (hasShadow)
-                shadow_callback(lightBRDF, point2light, shadow_context);
+                shadow_callback(lightBRDF, point2light, shadow_context, 0);
               dynamicLighting += lightBRDF;
             }
           }
@@ -348,18 +373,26 @@ if (dynamic_lights_count != lights_off)
           {
             uint bitIdx = firstbitlow(mergedMask);
             uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
+            // This branch is a workaround for NV specific bug.
+            // The condition can't be true by design, but when we have a bug,
+            // PIX shows NaN pixels and totally correct data in buffer.
+            // Also using -O0 "fixes" the issue.
+            if (spot_light_index >= spotLightsCount)
+              break;
             mergedMask ^= (1U << bitIdx);
 
             RenderSpotLight sl = spot_lights_cb[spot_light_index];
-            float4 lightPosRadius = sl.lightPosRadius;
+            float4 lightPosRadius = decode_spot_light_pos_radius(sl);
             float4 lightColor = sl.lightColorAngleScale;
             float4 lightDirection = sl.lightDirectionAngleOffset;
-            float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+            float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
             float ao = dynamicAO;
-            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
-            uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
-            bool hasShadow = shadowContactShadowsBits & SPOT_LIGHT_HAS_SHADOW_MASK;
-            bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+            float lightRollAngle = decode_light_roll_angle(sl);
+            uint shadowDataBits = asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
+            bool hasShadow = shadowDataBits & SPOT_LIGHT_HAS_SHADOW_MASK;
+            bool needsContactShadows = shadowDataBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+            uint shadowAtlasRectBits = (shadowDataBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK;
 
             #define EXIT_STATEMENT continue
             #define SPOT_SHADOWS 1
@@ -369,7 +402,7 @@ if (dynamic_lights_count != lights_off)
             ##endif
             #include "clustered/oneSpotLight.hlsl"
             if (hasShadow)
-                shadow_callback(lightBRDF, point2light, shadow_context);
+                shadow_callback(lightBRDF, point2light, shadow_context, 0);
             dynamicLighting += lightBRDF;
           }
         }
@@ -393,7 +426,7 @@ macro INIT_AND_USE_TILED_LIGHTS(code)
   hlsl(code)
   {
     struct ShadowContext {};
-    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
+    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context, float shadow_frustum_offset)
     {
     }
   }
@@ -404,7 +437,7 @@ macro INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(code)
   hlsl(code)
   {
     struct ShadowContext {};
-    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context)
+    void dummy_shadow_callback(inout half3 result, float3 light_direction, ShadowContext context, float shadow_frustum_offset)
     {
     }
   }

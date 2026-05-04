@@ -62,3 +62,43 @@ static ecs::EntitySystemDesc render_services_transp_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoRenderTrans>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc render_services_has_any_visible_distortion_es_comps[] ={};
+static void render_services_has_any_visible_distortion_es_all_events(ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<UpdateStageInfoNeedDistortion>());
+  render_services_has_any_visible_distortion_es(static_cast<UpdateStageInfoNeedDistortion&>(evt)
+        );
+}
+static ecs::EntitySystemDesc render_services_has_any_visible_distortion_es_es_desc
+(
+  "render_services_has_any_visible_distortion_es",
+  "prog/tools/sceneTools/daEditorX/services/dngBasedRenderSrv/renderServicesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, render_services_has_any_visible_distortion_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoNeedDistortion>::build(),
+  0
+,"render",nullptr,"*");
+//static constexpr ecs::ComponentDesc render_services_distortion_es_comps[] ={};
+static void render_services_distortion_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<UpdateStageInfoRenderDistortion>());
+  render_services_distortion_es(static_cast<const UpdateStageInfoRenderDistortion&>(evt)
+        );
+}
+static ecs::EntitySystemDesc render_services_distortion_es_es_desc
+(
+  "render_services_distortion_es",
+  "prog/tools/sceneTools/daEditorX/services/dngBasedRenderSrv/renderServicesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, render_services_distortion_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoRenderDistortion>::build(),
+  0
+,"render");

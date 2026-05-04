@@ -345,6 +345,8 @@ INLINE BBox3 &BBox3::operator+=(const BSphere3 &s)
   return *this;
 }
 
+INLINE BBox3 get_intersection(const BBox3 &left, const BBox3 &right) { return {max(left[0], right[0]), min(left[1], right[1])}; }
+
 #undef INLINE
 
 /// @}

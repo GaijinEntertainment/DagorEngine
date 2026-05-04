@@ -106,7 +106,7 @@ void DeferredRT::setVar()
       TexImage32 *texel = TexImage32::create(1, 1);
       texel->getPixels()[0].u = 0;
       String dummyName(128, "%s_bvh_dummy", name);
-      blackPixelTex = dag::create_tex(texel, 1, 1, TEXFMT_R32UI, 1, dummyName);
+      blackPixelTex = dag::create_tex(texel, 1, 1, TEXFMT_R32UI, 1, dummyName, RESTAG_TARGET);
       delete texel;
       d3d::SamplerInfo smpInfo;
       smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -119,10 +119,14 @@ void DeferredRT::setVar()
   else
     ShaderGlobal::set_texture(bvh_gbufVarId, BAD_TEXTUREID);
 
-  ShaderGlobal::set_texture(depth_gbufVarId, depth);
-  ShaderGlobal::set_sampler(depth_gbuf_samplerstateVarId, baseSampler);
-  ShaderGlobal::set_color4(screen_pos_to_texcoordVarId, 1.f / width, 1.f / height, 0, 0);
-  ShaderGlobal::set_color4(screen_sizeVarId, width, height, 1.0 / width, 1.0 / height);
+  if (depth.getTex2D())
+  {
+    ShaderGlobal::set_texture(depth_gbufVarId, depth.getTex2D());
+    ShaderGlobal::set_sampler(depth_gbuf_samplerstateVarId, baseSampler);
+  }
+
+  ShaderGlobal::set_float4(screen_pos_to_texcoordVarId, 1.f / width, 1.f / height, 0, 0);
+  ShaderGlobal::set_float4(screen_sizeVarId, width, height, 1.0 / width, 1.0 / height);
   ShaderGlobal::set_int4(gbuffer_view_sizeVarId, width, height, 0, 0);
 }
 
@@ -144,19 +148,23 @@ uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
   if (currentFmt == targetFmt)
     return currentFmt;
 
+  if (depth.getTex2D() == ShaderGlobal::get_tex_ptr_fast(depth_gbufVarId))
+  {
+    ShaderGlobal::set_texture(depth_gbufVarId, nullptr);
+  }
   depth.close();
 
   auto cs = calcCreationSize();
 
   const uint32_t flags = TEXCF_RTARGET;
   String depthName(128, "%s_intzDepthTex", name);
-  TexPtr depthTex = dag::create_tex(NULL, cs.x, cs.y, targetFmt | flags, 1, depthName);
+  TexPtr depthTex = dag::create_tex(NULL, cs.x, cs.y, targetFmt | flags, 1, depthName, RESTAG_TARGET);
 
   if (!depthTex && (targetFmt & TEXFMT_MASK) != TEXFMT_DEPTH24)
   {
     debug("can't create depth format 0x%08x, fallback to TEXFMT_DEPTH24", targetFmt);
     targetFmt = (targetFmt & (~TEXFMT_MASK)) | TEXFMT_DEPTH24;
-    depthTex = dag::create_tex(NULL, cs.x, cs.y, targetFmt | flags, 1, depthName);
+    depthTex = dag::create_tex(NULL, cs.x, cs.y, targetFmt | flags, 1, depthName, RESTAG_TARGET);
   }
 
   if (!depthTex)
@@ -257,7 +265,8 @@ void DeferredRT::initDebugTex()
   if (!dbgTex.getTex2D())
   {
     IPoint2 cs = calcCreationSize();
-    auto tempTex = dag::create_tex(NULL, cs.x, cs.y, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, 1, "dbg_gbuff_tex");
+    auto tempTex =
+      dag::create_tex(NULL, cs.x, cs.y, TEXFMT_R8 | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, 1, "dbg_gbuff_tex", RESTAG_TARGET);
 
     dbgTex = ResizableTex(eastl::move(tempTex), "dbg_gbuff_tex");
   }

@@ -1,0 +1,75 @@
+WinSdkVer  = win.sdk.100 ;
+
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
+
+Root    ?= ../../../.. ;
+Location = prog/tools/ShaderCompiler2/shaderBlobDisassembler ;
+
+TargetType = lib ;
+Target = tools/shaderBlobDisassembler.lib ;
+
+Sources +=
+  disasm.cpp
+  debugSpitfile.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+UseProgLibs =
+  3rdPartyLibs/regExp
+;
+
+if $(Platform) = windows {
+
+  AddIncludes +=
+    $(Root)/prog/tools/ShaderCompiler2/hlsl11transcode
+    $(Root)/prog/tools/ShaderCompiler2/dx12
+    $(Root)/prog/tools/ShaderCompiler2/hlsl2metal
+    $(Root)/prog/tools/ShaderCompiler2/hlsl2spirv
+
+    $(Root)/prog/3rdPartyLibs/vulkan/include
+  ;
+
+  UseProgLibs +=
+    tools/ShaderCompiler2/dx12
+    tools/ShaderCompiler2/hlsl2metal
+    tools/ShaderCompiler2/hlsl2spirv
+  ;
+
+  if $(PlatformArch) = x86_64 &&
+     [ GLOB $(_DEVTOOL)/ps4.sdk.$(PS4SdkVer) : * ] && [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode : jamfile ] {
+
+    AddIncludes +=
+      $(Root)/prog/tools/ShaderCompiler2/ps4transcode
+      $(Root)/prog/tools/ShaderCompiler2/ps5transcode
+    ;
+    UseProgLibs +=
+      tools/ShaderCompiler2/ps4transcode
+      tools/ShaderCompiler2/ps5transcode
+    ;
+
+    CPPopt += -DHAS_PS4_PS5_TRANSCODE ;
+  }
+
+} else if $(Platform) = macOS {
+
+  # AddIncludes += $(Root)/prog/tools/ShaderCompiler2/hlsl2metal ;
+  # UseProgLibs += tools/ShaderCompiler2/hlsl2metal ;
+
+} else if $(Platform) = linux {
+
+  AddIncludes += 
+    $(Root)/prog/tools/ShaderCompiler2/hlsl2spirv
+
+    $(Root)/prog/3rdPartyLibs/vulkan/include
+  ;
+  UseProgLibs += tools/ShaderCompiler2/hlsl2spirv ;
+
+} else {
+  Exit Platform=$(Platform) is not supported! ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

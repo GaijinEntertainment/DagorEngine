@@ -1,11 +1,11 @@
 Root    ?= ../../../.. ;
 Location = prog/1stPartyLibs/quirrel/nut_formatter ;
-include $(Root)/prog/tools/tools_setup.jam ;
+include $(Root)/prog/tools/tools_setup.jam ; # FIXME_BROKEN_DEP
 ConsoleExe = yes ;
 
 TargetType  = exe ;
 Target      = 1stPartyLibs/quirrel/nut_formatter ;
-include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ; # FIXME_BROKEN_DEP
 
 Sources =
   nut_formatter.cpp

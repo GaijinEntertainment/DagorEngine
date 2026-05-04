@@ -6,6 +6,8 @@
 #include <assets/assetExporter.h>
 
 #include <animChar/dag_animCharacter2.h>
+#include <gameRes/dag_gameResources.h>
+#include <gameRes/dag_stdGameResId.h>
 
 #include <libTools/fastPhysData/fp_edpoint.h>
 #include <libTools/fastPhysData/fp_edclipper.h>
@@ -276,13 +278,6 @@ void FastPhysEditor::onCharWtmChanged()
 bool FastPhysEditor::loadCharacter(DagorAssetMgr &mgr, SimpleString sa_name, ILogWriter &log)
 {
   int char_atype = mgr.getAssetTypeId("animChar");
-
-  if (!sa_name.length())
-  {
-    log.addMessage(ILogWriter::ERROR, "can't get skeleton name <%s>", sa_name.str());
-    return false;
-  }
-
   Tab<int> types(tmpmem);
   types.push_back(char_atype);
 
@@ -312,6 +307,7 @@ bool FastPhysEditor::loadCharacter(DagorAssetMgr &mgr, SimpleString sa_name, ILo
       return false;
 
     AnimV20::AnimCharCreationProps cp;
+    cp.createVisInst = true;
 
     // dabuildcache::invalidate_asset(asset, true);
 
@@ -333,33 +329,32 @@ bool FastPhysEditor::loadCharacter(DagorAssetMgr &mgr, SimpleString sa_name, ILo
     */
 
     AnimV20::IAnimCharacter2 *animchar = new AnimCharV20::IAnimCharacter2;
-    int modelId = dabuildcache::get_asset_res_id(*model_asset);
-    int skeletonId = dabuildcache::get_asset_res_id(*sk_asset);
-    int physId = -1;
-    int acId = -1; // dabuildcache::get_asset_res_id(*scene.assetMain);
+    auto *modelRes = (DynamicRenderableSceneLodsResource *)::get_game_resource_ex(model_name, DynModelGameResClassId);
+    auto *skeletonRes = (GeomNodeTree *)::get_game_resource_ex(sk_name, GeomNodeTreeGameResClassId);
 
-    if (!animchar->load(cp, modelId, skeletonId, acId, physId))
-      destroy_it(animchar);
-    else
+    if (animchar->load(cp, modelRes, skeletonRes, nullptr, nullptr))
     {
+      nodeTree = *skeletonRes;
       // animchar->reset();
       // animchar->recalcWtm();
       animchar->beforeRender();
     }
+    else
+    {
+      log.addMessage(ILogWriter::ERROR, "can't create animChar with skeleton(%s)=%p and dynModel(%s)=%p", sk_name, skeletonRes,
+        model_name, modelRes);
+      destroy_it(animchar);
+    }
+    ::release_game_resource_ex(modelRes, DynModelGameResClassId);
+    ::release_game_resource_ex(skeletonRes, GeomNodeTreeGameResClassId);
 
     /*
     const char *fp_name = asset.props.getStr("ref_fastPhys", NULL);
     if (fp_name)
-    {
-      FastPhysSystem *fpRes = (FastPhysSystem*)
-        ::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(fp_name), FastPhysGameResClassId);
-
-      if (!fpRes)
-        log.addMessage(ILogWriter::ERROR, "cannot find fastphys <%s> for animChar: %s",
-          fp_name, asset.getNameTypified());
-      else
+      if (auto *fpRes = (FastPhysSystem *)::get_game_resource_ex(fp_name, FastPhysGameResClassId))
         animchar->setFastPhysSystem(fpRes);
-    }
+      else
+        log.addMessage(ILogWriter::ERROR, "cannot find fastphys <%s> for animChar: %s", fp_name, asset.getNameTypified());
     */
 
     objects.push_back(charRoot = new FastPhysCharRoot(animchar, *this));
@@ -367,45 +362,6 @@ bool FastPhysEditor::loadCharacter(DagorAssetMgr &mgr, SimpleString sa_name, ILo
   }
 
   return false;
-}
-
-
-bool FastPhysEditor::loadSkeleton(DagorAssetMgr &mgr, SimpleString sa_name, ILogWriter &log)
-{
-  int skeleton_atype = mgr.getAssetTypeId("skeleton");
-
-  if (!sa_name.length())
-  {
-    log.addMessage(ILogWriter::ERROR, "can't get skeleton name <%s>", sa_name.str());
-    return false;
-  }
-
-  DagorAsset *sk_asset = mgr.findAsset(sa_name, skeleton_atype);
-
-  if (!sk_asset)
-  {
-    log.addMessage(ILogWriter::ERROR, "can't get skeleton asset <%s>", sa_name.str());
-    return false;
-  }
-
-  IDagorAssetExporter *e = mgr.getAssetExporter(skeleton_atype);
-  if (!e)
-  {
-    log.addMessage(ILogWriter::ERROR, "can't get skeleton exporter plugin");
-    return false;
-  }
-
-  mkbindump::BinDumpSaveCB cwr(16 << 10, _MAKE4C('PC'), false);
-  if (!e->exportAsset(*sk_asset, cwr, log))
-  {
-    log.addMessage(ILogWriter::ERROR, "can't build skeleton asset <%s> data", sa_name.str());
-    return false;
-  }
-
-  MemoryLoadCB crd(cwr.getMem(), false);
-  nodeTree.load(crd);
-
-  return true;
 }
 
 
@@ -439,8 +395,11 @@ void FastPhysEditor::load(const DagorAsset &asset)
 
   // load skeleton
   mSkeletonName = blk.getStr("skeleton", "");
-  if (!loadSkeleton(asset.getMgr(), mSkeletonName, log))
+  if (mSkeletonName.empty())
+  {
+    log.addMessage(ILogWriter::ERROR, "can't get skeleton for <%s>", asset.getNameTypified());
     return;
+  }
 
   if (!loadCharacter(asset.getMgr(), mSkeletonName, log))
     return;

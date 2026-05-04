@@ -49,7 +49,7 @@ shader debug_tex_overlay
   {
     (ps) { swizzled_texture@shd = swizzled_texture; }
   }
-  else if ((swizzled_texture_type == swizzled_texture_cube_array) && (hardware.dx11 || hardware.vulkan))
+  else if ((swizzled_texture_type == swizzled_texture_cube_array) && (hardware.dx11 || hardware.dx12 || hardware.vulkan))
   {
     (ps) {
       swizzled_texture@smpCubeArray = swizzled_texture;
@@ -182,7 +182,7 @@ shader debug_tex_overlay
         ##elif swizzled_texture_type == swizzled_texture_cube
           float4 src = texCUBElod( swizzled_texture, input.texcoord );
         ##elif swizzled_texture_type == swizzled_texture_cube_array
-          ##if (hardware.dx11 || hardware.vulkan)
+          ##if (hardware.dx11 || hardware.dx12 || hardware.vulkan)
             float4 src = texCUBEArraylod(swizzled_texture, float4(input.texcoord.xyz, cube_index), input.texcoord.w);
           ##else
             float4 src = float4(0, 0, 0, 0);

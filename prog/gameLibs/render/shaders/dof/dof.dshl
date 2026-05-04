@@ -3,6 +3,7 @@ include "gbuffer.dshl"
 include "reprojected_motion_vectors.dshl"
 include "viewVecVS.dshl"
 include "dof/dof_composite.dshl"
+include "dynamic_resolution.dshl"
 
 //include "dacloud_mask.dshl"
 
@@ -12,6 +13,7 @@ texture dof_frame_tex;
 texture dof_downsampled_frame_tex;
 texture dof_downsampled_close_depth_tex;
 texture dof_coc_history;
+texture dof_mask;
 
 int simplified_dof = 0;
 interval simplified_dof: off<1, on;
@@ -71,7 +73,6 @@ endmacro
 
 shader dof_downsample
 {
-  ENABLE_ASSERT(ps)
   POSTFX()
 
   INIT_ZNZFAR()
@@ -81,9 +82,11 @@ shader dof_downsample
 
   INIT_READ_DEPTH_GBUFFER()
 
+  INIT_DYNAMIC_RESOLUTION(ps)
+
   if (dof_downsampled_frame_tex != NULL)
   {
-    (ps) { downsampled_frame@smp2d = dof_downsampled_frame_tex; }
+    (ps) { downsampled_frame@tex2d = dof_downsampled_frame_tex; }
   }
   else
   {
@@ -95,6 +98,7 @@ shader dof_downsample
     downsampled_close_depth_tex@smp2d = dof_downsampled_close_depth_tex;
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     dof_coc_history@smp2d = dof_coc_history;
+    dof_mask@smp2d = dof_mask;
   }
   NEAR_FAR_DEFINES()
 
@@ -129,6 +133,7 @@ shader dof_downsample
     OutDownscaleDof dof_downsample_ps(VsOutput IN HW_USE_SCREEN_POS)
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
+      float2 posDepth = pos.xy * current_dynamic_resolution_scale;
       OutDownscaleDof OUT = (OutDownscaleDof) 0;
 
       // downsampled frame affects area 4x4 of original frame because of interpolation
@@ -141,7 +146,7 @@ shader dof_downsample
         //farDepth is calculated from area 2x2 for each mip level
         //so to get real min within the surrounding area we need to sample from left up quarter
         //todo: check if GatherRed op can make it faster
-        float2 far_depth_tc = IN.tc.xy;
+        float2 far_depth_tc = IN.tc.xy * current_dynamic_resolution_scale;
         ##if simplified_dof == on
         float4 depths = downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, far_depth_tc, int2(0, 0));
         farDepth = min4(depths.x, depths.y, depths.z, depths.w);
@@ -163,25 +168,25 @@ shader dof_downsample
         farDepth = min(farDepth, downsampled_far_depth_tex.SampleLevel(downsampled_far_depth_tex_samplerstate, far_depth_tc, 0, int2(0,0)).x);
         ##endif
         //center sample of close_depth is considered as depth to let thin objects be capable to belong to near layer
-        depth = texelFetch(downsampled_close_depth_tex, int2(pos.xy), 0).x;
+        depth = texelFetch(downsampled_close_depth_tex, int2(posDepth.xy), 0).x;
         ##if simplified_dof == on
         depths = downsampled_close_depth_tex.GatherRed(downsampled_close_depth_tex_samplerstate, far_depth_tc, int2(0, 0));
         nearDepth = min4(depths.x, depths.y, depths.z, depths.w);
         ##else
         //sampling close_depth
         depths = float4(
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(-1, -1)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2( 0, -1)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(+1, -1)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(+1,  0)).x
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(-1, -1)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2( 0, -1)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(+1, -1)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(+1,  0)).x
         );
         nearDepth = max4(depths.x, depths.y, depths.z, depths.w);
         float nearDepthMin = min4(depths.x, depths.y, depths.z, depths.w);
         depths = float4(
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(-1,  0)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(-1, +1)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2( 0, +1)).x,
-          texelFetchOffset(downsampled_close_depth_tex, int2(pos.xy), 0, int2(+1, +1)).x
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(-1,  0)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(-1, +1)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2( 0, +1)).x,
+          texelFetchOffset(downsampled_close_depth_tex, int2(posDepth.xy), 0, int2(+1, +1)).x
         );
         nearDepth = max(nearDepth, max4(depths.x, depths.y, depths.z, depths.w));
         nearDepthMin = min(nearDepthMin, min4(depths.x, depths.y, depths.z, depths.w));
@@ -207,9 +212,28 @@ shader dof_downsample
           cocNear = lerp(saturate(cocNear), cocNearHistory, 0.9);
         ##endif
 
+        ##if dof_mask != NULL
+          float4 dofMasks = float4(
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(-1, -1)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2( 0, -1)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(+1, -1)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(+1,  0)).x
+          );
+          float minDoFMask = min4(dofMasks.x, dofMasks.y, dofMasks.z, dofMasks.w);
+          dofMasks = float4(
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(-1,  0)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(-1, +1)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2( 0, +1)).x,
+            texelFetchOffset(dof_mask, int2(pos.xy), 1, int2(+1, +1)).x
+          );
+          minDoFMask = min(minDoFMask, min4(dofMasks.x, dofMasks.y, dofMasks.z, dofMasks.w));
+          minDoFMask = 1 - saturate(32*(1 - minDoFMask));
+
+          minCocFar *= minDoFMask;
+        ##endif
       ##else  // FIXME : usage of fullsize depthmap requires usage of 16 samples
               // downsampled frame affects area 4x4 of original frame so we need to sample depth from area 4x4 too
-        float2 depthTc = IN.tc.xy+0.0001;
+        float2 depthTc = IN.tc.xy * current_dynamic_resolution_scale + 0.0001;
         float4 depths = float4(
             depth_gbuf_read.SampleLevel(depth_gbuf_read_samplerstate, depthTc, 0, int2(-1,-1)).x,
             depth_gbuf_read.SampleLevel(depth_gbuf_read_samplerstate, depthTc, 0, int2(+1,-1)).x,
@@ -232,8 +256,11 @@ shader dof_downsample
           cocNearHistory = clamp(cocNearHistory, cocNearMin * 0.75, cocNearMax * 1.25);
           cocNear = lerp(saturate(cocNear), cocNearHistory, 0.9);
         ##endif
-      ##endif
 
+        // ##if dof_mask != NULL
+        // TODO: dof mask blur exclusion
+        // ##endif
+      ##endif
 
       ##if (dof_downsampled_frame_tex != NULL)
         float3 color = downsampled_frame[int2(pos.xy)].xyz;
@@ -286,10 +313,12 @@ shader dof_tile
 {
   POSTFX()
 
-  hlsl(ps) {
-    Texture2D _tex0:register(t0);
-    SamplerState _tex0_samplerstate:register(s0);
+  (ps) {
+    _tex0@tex2d : register(0);
+    _tex0_samplerstate@sampler : register(0);
+  }
 
+  hlsl(ps) {
     struct OutTileMinCoC
     {
       float CocNear : SV_Target0;
@@ -342,6 +371,18 @@ shader dof_gather
 {
   POSTFX()
 
+  (ps) {
+    texLayerNear@tex2d : register(0);
+    texLayerNear_samplerstate@sampler : register(0);
+    texLayerFar@tex2d : register(1);
+    texLayerFar_samplerstate@sampler : register(1);
+    texTile@tex2d : register(2);
+    texTile_samplerstate@sampler : register(2);
+    texMaxCocFar@tex2d : register(3);
+    texMaxCocFar_samplerstate@sampler : register(3);
+    g_Taps@f4[49] : register(6);
+  }
+
   if (dof_gather_iteration == second)
   {
     (ps) { dof_coc_scale@f4 = (dof_rt_size.z*(2*0.15), dof_rt_size.w*(2*0.15), num_dof_taps, dof_rt_size.w); }
@@ -354,35 +395,17 @@ shader dof_gather
 
   hlsl(ps) {
 
-    Texture2D texLayerNear:register(t0);
-    SamplerState texLayerNear_samplerstate:register(s0);
-
-    Texture2D texTile:register(t2);
-    SamplerState texTile_samplerstate:register(s2);
     ##if dof_gather_iteration == second
       ##if simplified_dof == on
         #define num_dof_taps 4
       ##else
         #define num_dof_taps 9
       ##endif
-      float4 g_Taps[9]:register(c6);
-      #if !SHADER_COMPILER_DXC
-      float4 last:register(c55);
-      #endif
       #define USE_LOOP [unroll]
-      Texture2D texLayerFar:register(t1);
-      SamplerState texLayerFar_samplerstate:register(s1);
-      Texture2D texMaxCocFar:register(t3);
-      SamplerState texMaxCocFar_samplerstate:register(s3);
 
     ##else
       #if COMBINE_LAYERS
         #define _tex2 _tex1
-      #else
-        Texture2D texLayerFar:register(t1);
-        SamplerState texLayerFar_samplerstate:register(s1);
-        Texture2D texMaxCocFar:register(t3);
-        SamplerState texMaxCocFar_samplerstate:register(s3);
       #endif
       ##if simplified_dof == on
         #define num_dof_taps 16
@@ -390,10 +413,6 @@ shader dof_gather
         #define num_dof_taps 49
       ##endif
       //#define num_dof_taps (dof_coc_scale.z)
-      float4 g_Taps[7*7]:register(c6);  // Max is 7x7 (for first iteration)
-      #if !SHADER_COMPILER_DXC
-      float4 last:register(c55);
-      #endif
       #define USE_LOOP [loop]
     ##endif
 
@@ -706,9 +725,8 @@ shader downsample_depth_for_far_dof
 
   (ps)
   {
-    downsampled_depth_with_transparency@smp2d = downsampled_depth_with_transparency;
+    downsampled_depth_with_transparency@tex2d = downsampled_depth_with_transparency;
   }
-  ENABLE_ASSERT(ps)
   POSTFX_VS(1)
   hlsl(ps)
   {

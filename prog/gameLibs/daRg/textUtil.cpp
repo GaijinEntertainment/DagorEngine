@@ -1,8 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "textUtil.h"
+#include "textLayout.h"
 
 #include <daRg/dag_element.h>
+#include <daRg/dag_stringKeys.h>
 
 #include <gui/dag_stdGuiRender.h>
 #include <osApiWrappers/dag_unicode.h>
@@ -108,7 +110,7 @@ int font_mono_width_from_sq(int font_id, int font_ht, const Sqrat::Object &obj)
 
   if (obj.GetType() == OT_STRING)
   {
-    auto s = obj.GetVar<const SQChar *>();
+    auto s = obj.GetVar<const char *>();
     StdGuiFontContext fctx;
     StdGuiRender::get_font_context(fctx, font_id, 0, 0, font_ht);
     return int(StdGuiRender::get_str_bbox(s.value, (int)s.valueLen, fctx).width().x);
@@ -154,6 +156,37 @@ bool is_text_input(const Element *elem)
     if (bhv == &bhv_text_input || bhv == &bhv_text_area_edit)
       return true;
   return false;
+}
+
+
+int calc_textarea_max_width(const Element *elem, const Point2 &elem_size)
+{
+  float styleMaxWidth = elem->props.getFloat(elem->csk->maxContentWidth, VERY_BIG_NUMBER);
+  if (styleMaxWidth == VERY_BIG_NUMBER)
+    styleMaxWidth = elem->sizeSpecToPixels(elem->layout.maxSize(0), 0);
+
+  const float maxW = (styleMaxWidth == VERY_BIG_NUMBER || styleMaxWidth <= 0) //
+                       ? elem_size.x
+                       : elem_size.x <= 0 ? styleMaxWidth : min(elem_size.x, styleMaxWidth);
+  return (int)maxW;
+}
+
+
+void fill_textarea_format_params(const Element *elem, const Point2 &elem_size, textlayout::FormatParams &params)
+{
+  const Properties &props = elem->props;
+
+  params.reset();
+
+  params.defFontId = props.getFontId();
+  params.defFontHt = (int)floorf(props.getFontSize() + 0.5f);
+  params.spacing = props.getFloat(elem->csk->spacing, 0);
+  params.monoWidth = font_mono_width_from_sq(params.defFontId, params.defFontHt, props.getObject(elem->csk->monoWidth));
+  params.lineSpacing = props.getFloat(elem->csk->lineSpacing, 0.0);
+  params.parSpacing = props.getFloat(elem->csk->parSpacing, 0);
+  params.indent = props.getFloat(elem->csk->indent, 0);
+  params.hangingIndent = props.getFloat(elem->csk->hangingIndent, 0);
+  params.maxWidth = calc_textarea_max_width(elem, elem_size);
 }
 
 

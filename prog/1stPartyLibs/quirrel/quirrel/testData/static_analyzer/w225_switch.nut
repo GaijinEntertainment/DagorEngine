@@ -1,5 +1,7 @@
 #allow-switch-statement
 
+// No false positives in switch fallthrough
+
 function foo(_p) {}
 function _dataToBlk(data) {
     let blk = {}

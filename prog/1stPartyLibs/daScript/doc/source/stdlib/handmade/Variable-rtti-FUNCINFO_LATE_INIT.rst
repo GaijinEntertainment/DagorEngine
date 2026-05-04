@@ -1,0 +1,1 @@
+Bit flag constant on ``FuncInfo.flags`` indicating the function uses late initialization with a custom init order (``[init(order)]`` attribute).

@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver_defs.h"
 #include <generic/dag_relocatableFixedVector.h>
-#include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <drv/3d/dag_sampler.h>
 #include "keyMapPools.h"
 
@@ -39,12 +40,11 @@ struct SamplerKey
 
 static constexpr size_t SAMPLER_KEYS_INPLACE_COUNT = 128;
 extern dag::RelocatableFixedVector<SamplerKey, SAMPLER_KEYS_INPLACE_COUNT> g_sampler_keys;
-extern WinCritSec g_sampler_keys_cs;
+extern OSSpinlock g_sampler_keys_mtx;
 
-struct SamplerKeysAutoLock
+struct SamplerKeysAutoLock : public OSSpinlockScopedLock
 {
-  SamplerKeysAutoLock() { g_sampler_keys_cs.lock(); }
-  ~SamplerKeysAutoLock() { g_sampler_keys_cs.unlock(); }
+  SamplerKeysAutoLock() : OSSpinlockScopedLock(g_sampler_keys_mtx) {}
 };
 
 } // namespace drv3d_dx11

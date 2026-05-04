@@ -60,7 +60,7 @@ void MaterialsPlugin::registered()
 
   previewGeom->setTm(tm);
 
-  DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+  DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
   initMatParamsDescr(appBlk);
   initMatShaders(appBlk);
 }

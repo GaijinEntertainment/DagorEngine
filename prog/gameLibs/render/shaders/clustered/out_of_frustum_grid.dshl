@@ -19,11 +19,9 @@ endmacro
 
 macro USE_OOF_LIGHTS_GRID(code)
   hlsl(code) {
-    #if WAVE_INTRINSICS//reduce divirgence, on SM6.0 and consoles
-      #define MERGE_MASK(m) WaveReadFirstLane( WaveAllBitOr( (m) ) )
-    #else
-      #define MERGE_MASK(m) (m)
-    #endif
+    #include "spot_light_shadow_flags.hlsli"
+    // Wave intrinsics don't work correctly in this shader
+    #define MERGE_MASK(m) (m)
     half3 get_oof_dynamic_lighting(ProcessedGbuffer gbuffer, float3 worldPos, float dynamicLightsSpecularStrength, float ao, float3 view, float3 specularColor, float NoV)
     {
       half3 ambientLight = 0;
@@ -38,6 +36,7 @@ macro USE_OOF_LIGHTS_GRID(code)
           RenderOmniLight ol = omni_lights_cb[omni_light_index];
           float4 pos_and_radius = ol.posRadius;
           float3 posToLight = pos_and_radius.xyz - worldPos;
+          float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
           if (dot(posToLight, posToLight) > pos_and_radius.w*pos_and_radius.w)
             continue;
           float4 color_and_specular = getFinalColor(ol, worldPos);
@@ -46,7 +45,7 @@ macro USE_OOF_LIGHTS_GRID(code)
           #else
             float4 shadowTcToAtlas = float4(0, 0, 0, 0);
           #endif
-          half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
+          half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, shadowZnZfar, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
           ambientLight += omniLight;
         }
         #else
@@ -72,6 +71,7 @@ macro USE_OOF_LIGHTS_GRID(code)
             RenderOmniLight ol = omni_lights_cb[omni_light_index];
             float4 pos_and_radius = ol.posRadius;
             float3 posToLight = pos_and_radius.xyz - worldPos;
+            float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
             if (dot(posToLight, posToLight) > pos_and_radius.w*pos_and_radius.w)
               continue;
             float4 color_and_specular = getFinalColor(ol, worldPos);
@@ -80,7 +80,7 @@ macro USE_OOF_LIGHTS_GRID(code)
             #else
               float4 shadowTcToAtlas = float4(0, 0, 0, 0);
             #endif
-            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
+            half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, ao, pos_and_radius, color_and_specular, shadowTcToAtlas, shadowZnZfar, float2(0, 0));//use gbuffer.specularColor for equality with point_lights.dshl
             ambientLight += omniLight;
           }
         }
@@ -94,11 +94,12 @@ macro USE_OOF_LIGHTS_GRID(code)
         for (uint spot_light_index = 0, spot_count = min(spot_lights_count.x, MAX_SPOT_LIGHTS); spot_light_index < spot_count; spot_light_index++)
         {
           RenderSpotLight sl = spot_lights_cb[spot_light_index];
-          float4 lightPosRadius = sl.lightPosRadius;
+          float4 lightPosRadius = decode_spot_light_pos_radius(sl);
           float4 lightColor = sl.lightColorAngleScale;
           float4 lightDirection = sl.lightDirectionAngleOffset;
-          float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
-          float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
+          float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+          float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+          float lightRollAngle = decode_light_roll_angle(sl);
           #include "clustered/oneSpotLight.hlsl"
           ambientLight += lightBRDF;
         }
@@ -122,11 +123,14 @@ macro USE_OOF_LIGHTS_GRID(code)
             // for safety! should not be needed, but ensures no OOB access
             spot_light_index = min(spot_light_index, spot_lights_count.z);
             RenderSpotLight sl = spot_lights_cb[spot_light_index];
-            float4 lightPosRadius = sl.lightPosRadius;
+            float4 lightPosRadius = decode_spot_light_pos_radius(sl);
             float4 lightColor = sl.lightColorAngleScale;
             float4 lightDirection = sl.lightDirectionAngleOffset;
-            float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
-            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
+            float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+            float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+            uint shadowDataBits = asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
+            uint shadowAtlasRectBits = (shadowDataBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK;
+            float lightRollAngle = decode_light_roll_angle(sl);
             #include "clustered/oneSpotLight.hlsl"
             ambientLight += lightBRDF;
           }

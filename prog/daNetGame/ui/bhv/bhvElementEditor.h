@@ -22,13 +22,14 @@ public:
   virtual void onAttach(darg::Element *) override;
   virtual void onDetach(darg::Element *, DetachMode) override;
 
-  virtual int touchEvent(darg::ElementTree *,
+  virtual int pointingEvent(darg::ElementTree *,
     darg::Element *,
-    darg::InputEvent /*event*/,
-    HumanInput::IGenPointing * /*pnt*/,
-    int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/,
-    int /*accum_res*/) override;
+    darg::InputDevice device,
+    darg::InputEvent event,
+    int touch_idx,
+    int button_idx,
+    Point2 pos,
+    int accum_res) override;
 
 private:
   void touchBegin(ElementEditorState *state, darg::Element *elem, int idx, int flags, Point2 pos);

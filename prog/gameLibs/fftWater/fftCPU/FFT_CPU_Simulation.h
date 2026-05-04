@@ -77,7 +77,8 @@ public:
     {
       return wave_amplitude != params.wave_amplitude || wind_speed != params.wind_speed || wind_dir_x != params.wind_dir_x ||
              wind_dir_y != params.wind_dir_y || wind_dependency != params.wind_dependency || wind_alignment != params.wind_alignment ||
-             small_wave_fraction != params.small_wave_fraction || window_in != params.window_in || window_out != params.window_out;
+             small_wave_fraction != params.small_wave_fraction || window_in != params.window_in || window_out != params.window_out ||
+             spectrum != params.spectrum;
     }
     bool operator==(const Params &p) { return !(*this != p); }
   };
@@ -138,6 +139,10 @@ private:
 };
 
 float get_spectrum_rms_sqr(const NVWaveWorks_FFT_CPU_Simulation::Params &params);
+
+class ChopWaterGenerator;
+void calc_wave_height_chop(const ChopWaterGenerator &chopGen, int num_cascades, float &out_significant_wave_height,
+  float &out_max_wave_height, float *out_max_wave_size);
 void calc_wave_height(const NVWaveWorks_FFT_CPU_Simulation::Params *fft, int num_cascades, float &out_significant_wave_height,
   float &out_max_wave_height, float *out_max_wave_size);
 const cpu_types::float2 *get_global_gauss_data(int &gauss_resolution, int &stride);

@@ -20,8 +20,8 @@ struct ResUpdateBufferImp
 
 namespace
 {
-d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, MipMapIndex mip, ArrayLayerIndex array, Offset3D offset,
-  Extent3D extent)
+NO_UBSAN d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, MipMapIndex mip, ArrayLayerIndex array,
+  Offset3D offset, Extent3D extent)
 {
   D3D_CONTRACT_ASSERTF_RETURN(mip < image->getMipLevelRange(), nullptr, "DX12: mip: %u < image->getMipLevelRange(): %u", mip.index(),
     image->getMipLevelRange().count());
@@ -45,11 +45,11 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
     mipExtents.width);
   D3D_CONTRACT_ASSERTF_RETURN(offset.y < mipExtents.height, nullptr, "DX12: offset.y: %u < mipExtents.height: %u", offset.y,
     mipExtents.height);
-  D3D_CONTRACT_ASSERTF_RETURN(offset.z < mipExtents.depth, nullptr, "DX12: offset.z: %u < mipExtents.width: %u", offset.z,
+  D3D_CONTRACT_ASSERTF_RETURN(offset.z < mipExtents.depth, nullptr, "DX12: offset.z: %u < mipExtents.depth: %u", offset.z,
     mipExtents.depth);
-  D3D_CONTRACT_ASSERTF_RETURN(outline.width <= mipExtents.width, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
+  D3D_CONTRACT_ASSERTF_RETURN(outline.width <= mipExtents.width, nullptr, "DX12: outline.width: %u <= mipExtents.width: %u",
     outline.width, mipExtents.width);
-  D3D_CONTRACT_ASSERTF_RETURN(outline.height <= mipExtents.height, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
+  D3D_CONTRACT_ASSERTF_RETURN(outline.height <= mipExtents.height, nullptr, "DX12: outline.height: %u <= mipExtents.height: %u",
     outline.height, mipExtents.height);
   D3D_CONTRACT_ASSERTF_RETURN(outline.depth <= mipExtents.depth, nullptr, "DX12: outline.depth: %u <= mipExtents.depth: %u",
     outline.depth, mipExtents.depth);
@@ -75,7 +75,7 @@ d3d::ResUpdateBuffer *allocate_update_buffer(BaseTex *texture, Image *image, Mip
 }
 } // namespace
 
-d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,
+NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,
   unsigned dest_slice, unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth)
 {
   D3D_CONTRACT_ASSERT_RETURN(dest_base_texture, nullptr);
@@ -93,10 +93,12 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *de
     Offset3D{int32_t(offset_x), int32_t(offset_y), int32_t(offset_z)}, Extent3D{uint32_t(width), uint32_t(height), uint32_t(depth)});
 }
 
-d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base_texture, int dest_mip, int dest_slice)
+NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base_texture, int dest_mip, int dest_slice)
 {
   D3D_CONTRACT_ASSERT_RETURN(dest_base_texture, nullptr);
   STORE_RETURN_ADDRESS();
+
+  ScopedCommitLock lock{drv3d_dx12::get_device().getContext()};
 
   BaseTex *texture = cast_to_texture_base(dest_base_texture);
   Image *image = texture->getDeviceImage();
@@ -117,7 +119,7 @@ d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_base
     align_value(Extent3D{ext.width, ext.height, 1}, blockExtent));
 }
 
-void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)
+NO_UBSAN void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)
 {
   if (ResUpdateBufferImp *&rubImp = reinterpret_cast<ResUpdateBufferImp *&>(rub))
   {
@@ -127,27 +129,27 @@ void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)
   }
 }
 
-char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)
+NO_UBSAN char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)
 {
   return rub ? ((ResUpdateBufferImp *)rub)->stagingBuffer.as<char>() : nullptr;
 }
 
-size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *rub)
+NO_UBSAN size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *rub)
 {
   return rub ? reinterpret_cast<ResUpdateBufferImp *>(rub)->stagingBuffer.range.size() : 0;
 }
 
-size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *rub)
+NO_UBSAN size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *rub)
 {
   return rub ? ((ResUpdateBufferImp *)rub)->uploadInfo.layout.Footprint.RowPitch : 0;
 }
 
-size_t d3d::get_update_buffer_slice_pitch(d3d::ResUpdateBuffer *rub)
+NO_UBSAN size_t d3d::get_update_buffer_slice_pitch(d3d::ResUpdateBuffer *rub)
 {
   return rub ? reinterpret_cast<ResUpdateBufferImp *>(rub)->slicePitch : 0;
 }
 
-bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
+NO_UBSAN bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)
 {
   if (!rub)
     return false;

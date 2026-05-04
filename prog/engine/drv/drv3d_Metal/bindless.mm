@@ -137,12 +137,12 @@ uint32_t BindlessManager::registerBindlessSampler(int index, float bias)
   }
 
   G_ASSERTF(newIndex < Render::BINDLESS_SAMPLER_COUNT, "bindless sampler slot out of range: %d (max slot id: %d)", newIndex, Render::BINDLESS_SAMPLER_COUNT);
-  if (render.bindlessSamplers.size() < newIndex + 1)
+  if (render.bindlessSamplerBiases.size() < newIndex + 1)
   {
-    render.bindlessSamplers.resize(newIndex + 1);
+    render.bindlessSamplerBiases.resize(newIndex + 1);
     render.bindlessSamplersCache.resize(newIndex + 1);
   }
-  render.bindlessSamplers[newIndex] = sampler;
+  render.bindlessSamplerBiases[newIndex] = bias;
   if (@available(iOS 16, macOS 13.0, *))
   {
     MTLResourceID res = sampler.gpuResourceID;

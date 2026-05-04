@@ -6,7 +6,7 @@ texture deform_hmap_ri_landclass_arr;
 macro DECLARE_CLIPMAP_INDIRECTION_OFFSET(use_landclass_params)
   if (use_landclass_params)
   {
-    static int ri_landclass_index = -1; // invalid target id by default ->> see RI_INVALID_ID
+    static int ri_landclass_index = -1 no_warnings; // invalid target id by default ->> see RI_INVALID_ID
   }
 endmacro
 
@@ -34,6 +34,7 @@ macro INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
         cbuffer ri_landclass_data@cbuf
         {
           float4 clipmap_ri_landscape2uv_arr[MAX_RI_VTEX_CNT_BUF];
+          int4 clipmap_ri_mippos_offset_arr[MAX_RI_VTEX_CNT_BUF];
           float4 ri_landclass_tm_pos_arr[MAX_RI_VTEX_CNT_BUF];
           float4 ri_landclass_tm_y_arr[MAX_RI_VTEX_CNT_BUF];
           float4 ri_landclass_mapping_arr[MAX_RI_VTEX_CNT_BUF];
@@ -54,15 +55,9 @@ endmacro
 
 macro INIT_CLIPMAP_INDIRECTION_OFFSET(stage, use_landclass_params)
   INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
-  if (use_landclass_params)
-  {
-    (stage) {
-      ri_landclass_index@i1 = ri_landclass_index;
-    }
-  }
 endmacro
 
-macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_index)
+macro USE_LANDCLASS_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
   hlsl (stage) {
 
     bool is_clipmap_indirection_invalid(uint offset)
@@ -76,8 +71,7 @@ macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_in
 
     uint get_clipmap_indirection_offset_by_index(int ri_index)
     {
-##if (use_landclass_params)
-  #if MAX_RI_VTEX_CNT_BITS > 0
+##if (use_landclass_params && clipmap_use_ri_vtex == yes)
       // TODO: this could be computed in preshader (if it wouldn't be so dumb)
       int fallbackLastIndexBit = 1; // so firstbithigh returns 0 if none of them matches
       int indexBits = fallbackLastIndexBit;
@@ -85,14 +79,24 @@ macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_in
       for (int i = 0; i < (MAX_RI_VTEX_CNT + 4 - 1) / 4; ++i)
         indexBits |= dot(((int4)ri_index == ri_landclass_closest_indices_arr[i]) << (i*4 + int4(1,2,3,4)), 1);
       return firstbithigh(indexBits);
-  #else
-      return 0;
-  #endif
 ##else
       return 0;
 ##endif
     }
+  }
+endmacro
 
+define_macro_if_not_defined USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_index)
+  USE_LANDCLASS_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
+
+  if (use_landclass_params && use_ri_index)
+  {
+    (stage) {
+      ri_landclass_index@i1 = ri_landclass_index;
+    }
+  }
+
+  hlsl (stage) {
     uint get_clipmap_indirection_offset()
     {
 ##if (use_landclass_params && use_ri_index)
@@ -111,13 +115,32 @@ macro USE_CLIPMAP_INDIRECTION_OFFSET(stage, use_landclass_params)
     float4 get_l2uv(uint indirection_offset)
     {
 ##if (use_landclass_params)
+      ##assert(indirection_offset < MAX_RI_VTEX_CNT + 1, "clipmap: get_l2uv: invalid indirection_offset = %i", indirection_offset);
+
       if (indirection_offset == 0)
         return landscape2uv;
-
-      indirection_offset = clamp(indirection_offset-1, 0, MAX_RI_VTEX_CNT - 1);
-      return clipmap_ri_landscape2uv_arr[indirection_offset];
+      else if (indirection_offset - 1u < MAX_RI_VTEX_CNT)
+        return clipmap_ri_landscape2uv_arr[indirection_offset - 1u];
+      else
+        return float4(0, 0, 0, 0);
 ##else
       return landscape2uv;
+##endif
+    }
+
+    int2 get_mippos_offset(uint indirection_offset)
+    {
+##if (use_landclass_params)
+      ##assert(indirection_offset < MAX_RI_VTEX_CNT + 1, "clipmap: get_mippos_offset: invalid indirection_offset = %i", indirection_offset);
+
+      if (indirection_offset == 0)
+        return mippos_offset;
+      else if (indirection_offset - 1u < MAX_RI_VTEX_CNT)
+        return clipmap_ri_mippos_offset_arr[indirection_offset - 1u].xy;
+      else
+        return int2(0, 0);
+##else
+      return mippos_offset;
 ##endif
     }
   }
@@ -190,8 +213,9 @@ macro USE_LANDCLASS_PUDDLES()
         puddleWorldPos.y = puddleLocalPos.y;
         puddleTcWorldPos.y = puddleTcLocalPos.y;
       }
+      float waterLevel = get_wetness_water_level();
       return addPuddlesWithConstHeight(result, realWorldPos, puddleTcWorldPos.y, htTc, porosity,
-        puddleWorldPos.y + get_landclass_water_level(), puddleWorldPos.y + get_max_landclass_water_level(), planeNormal);
+        puddleWorldPos.y + get_landclass_water_level(), puddleWorldPos.y + get_max_landclass_water_level(), planeNormal, waterLevel);
     }
   }
 endmacro

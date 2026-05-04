@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <util/dag_delayedAction.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
@@ -19,7 +19,7 @@ namespace bindquirrel
 {
 
 
-static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_direct_is_equal(vm, &a, &b); }
+static bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_obj_is_equal(vm, &a, &b); }
 
 
 // Note using framemem allocator may for unknown reason lead to crash
@@ -235,6 +235,27 @@ static void clear_timer(const Sqrat::Object &id_)
 }
 
 
+static bool has_timer(const Sqrat::Object &id_)
+{
+  const HSQOBJECT &id = id_.GetObject();
+  HSQUIRRELVM vm = id_.GetVM();
+
+  auto it = vms.find(vm);
+  if (it == vms.end())
+    return false;
+
+  VmData &v = it->second;
+
+  for (int i = v.timers.size() - 1; i >= 0; --i)
+  {
+    Timer &t = v.timers[i];
+    if (are_sq_obj_equal(vm, t.id, id))
+      return true; // timer ids are unique
+  }
+  return false;
+}
+
+
 static void do_deferred_calls(VmData &v)
 {
   if (v.deferredCalls.empty())
@@ -309,10 +330,11 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
   HSQUIRRELVM vm = module_mgr->getVM();
   Sqrat::Table nsTbl(vm);
   nsTbl //
-    .SquirrelFunc("defer", defer, 2, ".c")
-    .SquirrelFunc("deferOnce", deferOnce, 2, ".c")
-    .SquirrelFunc(
-      "setTimeout", [](HSQUIRRELVM vm) { return set_timer(vm, false, false); }, -3, ".nc")
+    .SquirrelFuncDeclString(defer, "defer(fn: function): null")
+    .SquirrelFuncDeclString(deferOnce, "deferOnce(fn: function): null")
+    .SquirrelFuncDeclString(
+      +[](HSQUIRRELVM vm) { return set_timer(vm, false, false); },
+      "setTimeout(time_in_seconds: number, func: function, [id: any]): any")
     /* qdox
     @function setTimeout set timer with function to be called on time. if called more than once with same id would call logerr
 
@@ -320,8 +342,9 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     @param func c : function to be called on time
     @param id . null : optional id of timer. If not provided closure 'func' is used as id
     */
-    .SquirrelFunc(
-      "resetTimeout", [](HSQUIRRELVM vm) { return set_timer(vm, false, true); }, -3, ".nc")
+    .SquirrelFuncDeclString(
+      +[](HSQUIRRELVM vm) { return set_timer(vm, false, true); },
+      "resetTimeout(time_in_seconds: number, func: function, [id: any]): any")
     /* qdox
     @function resetTimeout reset timer with function to be called on time. Will replace timer with the same id.
 
@@ -329,8 +352,9 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     @param func c : function to be called on time
     @param id . null : optional id of timer. If not provided closure 'func' is used as id
     */
-    .SquirrelFunc(
-      "setInterval", [](HSQUIRRELVM vm) { return set_timer(vm, true, false); }, -3, ".nc")
+    .SquirrelFuncDeclString(
+      +[](HSQUIRRELVM vm) { return set_timer(vm, true, false); },
+      "setInterval(period_in_seconds: number, func: function, [id: any]): any")
     /* qdox
     @function setInterval will set periodical timer with function to be called each period of time.
 
@@ -339,6 +363,8 @@ void bind_dagor_workcycle(SqModules *module_mgr, bool auto_update_from_idle_cycl
     @param id . null : optional id of timer. If not provided closure 'func' is used as id
     */
     .Func("clearTimer", clear_timer)
+    .Func("hasTimer", has_timer)
+    .Func("sleep", sleep_msec)
     /**/;
 
   module_mgr->addNativeModule("dagor.workcycle", nsTbl);

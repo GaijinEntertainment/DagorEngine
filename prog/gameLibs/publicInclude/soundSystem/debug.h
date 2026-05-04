@@ -23,4 +23,5 @@ void set_draw_audibility(bool enable);
 void debug_enum_events();
 void debug_enum_events(const char *bank_name, eastl::function<void(const char *)> &&fun);
 void debug_set_cur_scene_name(const char *scene_name);
+void set_debug_filter(const char *text);
 }; // namespace sndsys

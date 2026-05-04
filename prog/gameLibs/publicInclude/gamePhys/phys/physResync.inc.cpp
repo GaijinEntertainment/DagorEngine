@@ -13,7 +13,7 @@
 #endif
 
 template <typename PhysActor, typename PhysImpl>
-void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, bool is_desync_reported = true,
+void apply_authority_state(PhysActor *unit, PhysImpl &phys, double current_time, bool is_desync_reported = true,
   bool client_smoothing = true, bool dump_phys_update_info = false, danet::BitStream **sync_dump_output_stream = NULL,
   bool update_by_controls = false)
 {
@@ -196,7 +196,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
             phys.currentState.applyAlternativeHistoryState(alternativeHistoryStates[currentAlternativeHistoryStateIndex]);
 
           unit->prePhysUpdate(tick, phys.timeStep, false);
-          phys.updatePhys(float(tick) * phys.timeStep, phys.timeStep, false);
+          phys.updatePhys(double(tick) * phys.timeStep, phys.timeStep, false);
           unit->postPhysUpdate(tick, phys.timeStep, false);
           phys.currentState.lastAppliedControlsForTick = controlsTick;
 
@@ -346,7 +346,7 @@ void apply_authority_state(PhysActor *unit, PhysImpl &phys, float current_time, 
           if (currentAlternativeHistoryStateIndex < alternativeHistoryStates.size())
             phys.currentState.applyAlternativeHistoryState(alternativeHistoryStates[currentAlternativeHistoryStateIndex]);
           unit->prePhysUpdate(tick, phys.timeStep, false);
-          phys.updatePhys(float(tick) * phys.timeStep, phys.timeStep, false);
+          phys.updatePhys(double(tick) * phys.timeStep, phys.timeStep, false);
           unit->postPhysUpdate(tick, phys.timeStep, false);
           phys.currentState.lastAppliedControlsForTick = controlsTick;
 
@@ -451,8 +451,8 @@ void send_authority_state(IPhysActor *unit, PhysImpl &phys, float state_send_per
   }
 }
 
-template <typename PhysImpl>
-ResyncState start_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, float current_time, bool is_player,
+template <typename PhysActor, typename PhysImpl>
+ResyncState start_update_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, double current_time, bool is_player,
   float time_speed = 1.f, bool *is_model_leaping = NULL)
 {
   const int32_t deferredControllsGracePeriod = max(0, int32_t(ceilf(phys.getMaxTimeDeferredControls() / phys.timeStep)));
@@ -478,7 +478,7 @@ ResyncState start_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, 
   int32_t maxGraceTick = currentTick - deferredControllsGracePeriod;
   int32_t latestControlledTick = (phys.unapprovedCT.size() == 0) ? maxGraceTick : phys.unapprovedCT.back().producedAtTick + 1;
 
-  float stateTimeBefore = float(phys.currentState.atTick) * phys.timeStep;
+  double stateTimeBefore = double(phys.currentState.atTick) * phys.timeStep;
 
   // We need to have the latest state that is after updatedUpToTime but before forceUpdatesUpToTime.
   // When updating for bots, we need something like previousState.atTime < currentTime and currentState.atTime > currentTime
@@ -494,7 +494,7 @@ ResyncState start_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, 
   bool isCorrectedStateObtained = false;
   ExtrapolatedPhysState correctedExtrapolatedState;
   correctedExtrapolatedState = phys.extrapolatedState;
-  if (correctedExtrapolatedState.atTime <= float(phys.currentState.atTick) * phys.timeStep)
+  if (correctedExtrapolatedState.atTime <= double(phys.currentState.atTick) * phys.timeStep)
     isCorrectedStateObtained = true;
 
   bool isNewCorrrectionRequired = (phys.currentState.atTick + 1 < forceUpdatesUpToTick);
@@ -510,8 +510,8 @@ ResyncState start_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, 
   return state;
 }
 
-template <typename PhysImpl>
-void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, int controls_tick, ResyncState &resync_state,
+template <typename PhysActor, typename PhysImpl>
+void tick_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, int32_t tick, int controls_tick, ResyncState &resync_state,
   bool is_player, bool is_desync_reported = true, bool dump_phys_update_info = false,
   danet::BitStream **sync_dump_output_stream = NULL)
 {
@@ -545,7 +545,7 @@ void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, i
       interlocked_release_store_ptr(*sync_dump_output_stream, (danet::BitStream *)nullptr);
   }
 
-  float curTime = tick * phys.timeStep;
+  double curTime = double(tick) * phys.timeStep;
 
   // Act physics, updating currentState up to updatedUpToTime
   unit->prePhysUpdate(tick, phys.timeStep, true);
@@ -557,8 +557,8 @@ void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, i
   // Authority keeps an extrapolated fakeState of remotely controlled ships,
   // If we update through time, where fakeState is, we can calculate the extrapolation error and fix it slowly
   if (unit->getRole() == IPhysActor::ROLE_REMOTELY_CONTROLLED_AUTHORITY &&
-      phys.extrapolatedState.atTime >= float(phys.currentState.atTick) * phys.timeStep - phys.timeStep &&
-      phys.extrapolatedState.atTime <= float(phys.currentState.atTick) * phys.timeStep && !resync_state.isCorrectedStateObtained)
+      phys.extrapolatedState.atTime >= double(phys.currentState.atTick) * phys.timeStep - phys.timeStep &&
+      phys.extrapolatedState.atTime <= double(phys.currentState.atTick) * phys.timeStep && !resync_state.isCorrectedStateObtained)
   {
     phys.interpolateVisualPosition(phys.extrapolatedState.atTime);
     resync_state.correctedExtrapolatedState.location = phys.visualLocation;
@@ -572,8 +572,8 @@ void tick_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, int32_t tick, i
   }
 }
 
-template <typename PhysImpl>
-void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, ResyncState &resync_state, float current_time,
+template <typename PhysActor, typename PhysImpl>
+void finish_update_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, ResyncState &resync_state, double current_time,
   void (*on_frame_end_cb)(IPhysActor *net_unit) = NULL)
 {
   if (on_frame_end_cb != NULL)
@@ -581,7 +581,7 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
 
   // If ship physics state weas updated, calculate how much.
   // We want to periodically send authority state to clients, but periodically in 'the ship time', not in real one.
-  float stateTimeAfter = float(phys.currentState.atTick) * phys.timeStep;
+  double stateTimeAfter = double(phys.currentState.atTick) * phys.timeStep;
   float updatedBySeconds = stateTimeAfter - resync_state.stateTimeBefore;
   // G_ASSERT(updatedBySeconds >= 0.f);
   phys.physicsTimeToSendState -= updatedBySeconds;
@@ -626,7 +626,7 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
   // We want to have extrapolatedState that contains extra/interpolated position of all the aircrafts at currentTime
   // For locally controlled aircrafts we need to interpolate visual position between pervious and current states
   // every time updateInThreads is called, so the aircrafts move smoothly.
-  const bool isExtrapolation = current_time > float(phys.currentState.atTick) * phys.timeStep;
+  const bool isExtrapolation = current_time > double(phys.currentState.atTick) * phys.timeStep;
   if (isExtrapolation)
   {
     // Extrapolate to currentTime
@@ -636,7 +636,7 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
   else
   {
     // We're lucky, we can use interpolation, not extrapolation
-    phys.extrapolatedState.copyFrom(phys.currentState, float(phys.currentState.atTick) * phys.timeStep);
+    phys.extrapolatedState.copyFrom(phys.currentState, double(phys.currentState.atTick) * phys.timeStep);
     phys.interpolateVisualPosition(current_time);
     phys.extrapolatedState.location = phys.visualLocation;
     phys.extrapolatedState.atTime = current_time;
@@ -648,8 +648,8 @@ void finish_update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, Resync
   phys.fixVisualErrors(current_time);
 }
 
-template <typename PhysImpl>
-void update_phys_for_multiplayer(IPhysActor *unit, PhysImpl &phys, float current_time, bool is_player, float time_speed = 1.f,
+template <typename PhysActor, typename PhysImpl>
+void update_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, double current_time, bool is_player, float time_speed = 1.f,
   bool *is_model_leaping = NULL, bool is_desync_reported = true, bool dump_phys_update_info = false,
   danet::BitStream **sync_dump_output_stream = NULL, void (*on_frame_end_cb)(IPhysActor *net_unit) = NULL)
 {

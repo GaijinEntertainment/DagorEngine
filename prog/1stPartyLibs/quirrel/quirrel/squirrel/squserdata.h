@@ -24,7 +24,7 @@ struct SQUserData : SQDelegable
     SQObjectType GetType(){ return OT_USERDATA;}
 #endif
     void Release() {
-        if (_hook) _hook((SQUserPointer)sq_aligning(this + 1),_size);
+        if (_hook) _hook(_thread(_sharedstate->_root_vm),(SQUserPointer)sq_aligning(this + 1),_size);
         SQInteger tsize = _size;
         this->~SQUserData();
         SQ_FREE(_sharedstate->_alloc_ctx, this, sq_aligning(sizeof(SQUserData)) + tsize);
@@ -34,7 +34,7 @@ struct SQUserData : SQDelegable
     SQInteger _size;
     SQRELEASEHOOK _hook;
     SQUserPointer _typetag;
-    //SQChar _val[1];
+    //char _val[1];
 };
 
 #endif //_SQUSERDATA_H_

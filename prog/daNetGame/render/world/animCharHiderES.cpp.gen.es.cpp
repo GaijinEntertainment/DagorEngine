@@ -17,7 +17,8 @@ static void animchar_hider_at_node_created_es_event_handler_all_events(const ecs
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_hider_at_node_created_es_event_handler(evt
-        , ECS_RO_COMP(animchar_hider_at_node_created_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(animchar_hider_at_node_created_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(animchar_hider_at_node_created_es_event_handler_comps, "animchar", AnimCharV20::AnimcharBaseComponent)
     , ECS_RO_COMP(animchar_hider_at_node_created_es_event_handler_comps, "animchar_hider__nodeName", ecs::string)
     , ECS_RW_COMP(animchar_hider_at_node_created_es_event_handler_comps, "animchar_hider__nodeIdx", int)

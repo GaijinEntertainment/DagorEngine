@@ -30,6 +30,11 @@ inline void draw_debug_triangle_buffered(Point3 a, Point3 b, Point3 c, const Col
   return ::draw_debug_solid_triangle_buffered(a, b, c, color, (size_t)frames);
 }
 
+inline void draw_debug_tehedron_buffered(const Point3 &pos, float radius, const Color4 &color, int frames)
+{
+  return ::draw_debug_solid_tehedron_buffered(pos, radius, color, (size_t)frames);
+}
+
 inline void draw_debug_ball_buffered(const Point3 &sphere_c, float sphere_r, const Color4 &color, int frames)
 {
   return ::draw_debug_ball_buffered(sphere_c, sphere_r, color, (size_t)frames);

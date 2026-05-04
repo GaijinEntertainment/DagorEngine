@@ -54,14 +54,14 @@ public:
   {
     if (memcmp(&inout_tm, &TMatrix::IDENT, sizeof(Point3) * 3) == 0) //-V1014 //-V512
       return false;
+    Matrix3 atm;
     unsigned zeroes_cnt = 0;
     for (unsigned c = 0; c < 3; c++)
       for (unsigned r = 0; r < 3; r++)
-        if (fabsf(inout_tm.m[c][r]) < 1e-6)
-          zeroes_cnt++;
+        zeroes_cnt += (atm.m[c][r] = fabsf(inout_tm.m[c][r])) < 1e-6f;
     if (zeroes_cnt == 6)
     {
-      inout_box_extents = inout_tm % inout_box_extents;
+      inout_box_extents = atm * inout_box_extents;
       inout_tm.setcol(0, Point3(1, 0, 0));
       inout_tm.setcol(1, Point3(0, 1, 0));
       inout_tm.setcol(2, Point3(0, 0, 1));

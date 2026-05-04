@@ -25,7 +25,7 @@ void scanDdsxTexPack(const char *filename);
 static FastNameMapEx refTexAll;
 static FastNameMapEx refResAll;
 
-static bool on_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
+static bool on_get_game_resource(int res_id, gameres_rrl_cptr_t, dag::Span<GameResourceFactory *>, GameResource *&)
 {
   if (res_id >= 0)
   {
@@ -41,7 +41,7 @@ static void acquire_dynmodel_tex_refs(const char *name, Tab<DynamicRenderableSce
 {
   if (get_resource_type_id(name) == DynModelGameResClassId)
   {
-    auto *res = (DynamicRenderableSceneLodsResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), DynModelGameResClassId);
+    auto *res = (DynamicRenderableSceneLodsResource *)::get_game_resource_ex(name, DynModelGameResClassId);
     if (res)
     {
       res->addInstanceRef();
@@ -54,7 +54,7 @@ static void release_dynmodel_tex_refs(Tab<DynamicRenderableSceneLodsResource *> 
   for (auto *res : stor)
   {
     res->delInstanceRef();
-    release_game_resource((GameResource *)res);
+    release_game_resource_ex(res, DynModelGameResClassId);
   }
   stor.clear();
 }
@@ -98,10 +98,7 @@ bool dump_grp_tex_refs(const char *grp_fn, bool detailed)
         case EffectGameResClassId:
         case MaterialGameResClassId:
         case rendinst::HUID_LandClassGameRes:
-          FastNameMap res_list;
-          res_list.addNameId(names[ri]);
-          set_required_res_list_restriction(res_list);
-          preload_all_required_res();
+          preload_game_resource(names[ri]);
           acquire_dynmodel_tex_refs(names[ri], dm);
 
           for (TEXTUREID i = first_managed_texture(1); i != BAD_TEXTUREID; i = next_managed_texture(i, 1))
@@ -120,7 +117,6 @@ bool dump_grp_tex_refs(const char *grp_fn, bool detailed)
           }
           printf("\n");
 
-          reset_required_res_list_restriction();
           release_dynmodel_tex_refs(dm);
           free_unused_game_resources();
           refTexAll.reset();
@@ -141,9 +137,7 @@ bool dump_grp_tex_refs(const char *grp_fn, bool detailed)
         case MaterialGameResClassId:
         case rendinst::HUID_LandClassGameRes: res_list.addNameId(names[ri]); break;
       }
-
-    set_required_res_list_restriction(res_list);
-    preload_all_required_res();
+    preload_game_resources(res_list);
 
     for (int ri = 0; ri < names.size(); ri++)
       acquire_dynmodel_tex_refs(names[ri], dm);
@@ -158,7 +152,6 @@ bool dump_grp_tex_refs(const char *grp_fn, bool detailed)
     for (int i = 0; i < refTexAll.nameCount(); i++)
       printf("  %s\n", refTexAll.getName(i));
 
-    reset_required_res_list_restriction();
     release_dynmodel_tex_refs(dm);
     free_unused_game_resources();
     refTexAll.reset();

@@ -22,24 +22,39 @@ class IMenu
 public:
   virtual ~IMenu() {}
 
+  // title: the title and the shortcut key text of the menu item. The shortcut key text must be separated with \t.
   virtual void addItem(unsigned menu_id, unsigned item_id, const char *title) = 0;
+
   virtual void addSeparator(unsigned menu_id, unsigned item_id = 0) = 0;
   virtual void addSubMenu(unsigned menu_id, unsigned submenu_id, const char *title) = 0;
 
   virtual int getItemCount(unsigned menu_id) = 0;
+  virtual bool isEmpty() const = 0;
 
   virtual void clearMenu(unsigned menu_id) = 0;
 
   virtual void setEnabledById(unsigned item_id, bool enabled = true) = 0;
   virtual void setCheckById(unsigned item_id, bool checked = true) = 0;
+
   // Both group_first_item_id and group_last_item_id are inclusive.
   virtual void setRadioById(unsigned item_id, unsigned group_first_item_id = 0, unsigned group_last_item_id = 0) = 0;
-  virtual void setCaptionById(unsigned item_id, const char caption[]) = 0;
+
+  // title: the title of the menu item. If null then it will not be changed.
+  // shortcut: the shortcut key text of the menu item (e.g.: Ctrl+F1). If null then it will not be changed.
+  virtual void setCaptionById(unsigned item_id, const char *title = nullptr, const char *shortcut = nullptr) = 0;
 
   virtual void setEventHandler(IMenuEventHandler *event_handler) = 0;
   virtual void click(unsigned item_id) = 0;
 
   virtual bool isContextMenu() const = 0;
+
+  virtual void *queryInterfacePtr([[maybe_unused]] unsigned huid) = 0;
+
+  template <class T>
+  T *queryInterface()
+  {
+    return (T *)queryInterfacePtr(T::HUID);
+  }
 };
 
 IMenu *create_menu();

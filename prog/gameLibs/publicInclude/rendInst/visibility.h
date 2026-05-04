@@ -5,6 +5,7 @@
 #pragma once
 
 #include <rendInst/visibilityDecl.h>
+#include <rendInst/layerFlags.h>
 
 #include <3d/dag_texStreamingContext.h>
 #include <math/dag_frustum.h>
@@ -39,12 +40,31 @@ extern void setRIGenVisibilityRendering(RiGenVisibility *visibility, VisibilityR
 using VisibilityExternalFilter = eastl::fixed_function<sizeof(vec4f), bool(vec4f bbmin, vec4f bbmax)>;
 using VisibilityExternalIdFilter = eastl::fixed_function<sizeof(void *), bool(int ri_idx, const TMatrix &tm)>;
 
+struct PrepareRiGenVisibilityParams
+{
+  rendinst::LayerFlags layerFlags = {};
+  Point3 viewPos = Point3::ZERO;
+  Occlusion *occlusion = nullptr;
+  const bbox3f *tileCullBox = nullptr;
+  const VisibilityExternalFilter &externalFilter = {};
+  bool forShadow = false;
+  bool forVisualCollision = false;
+};
 // prepares visibility for specified frustum/position.
 // if forShadow is true, only opaque part will be created, and only partially transparent cells are added to opaque
 // returns false if nothing is visible
 //  if for_visual_collision is true, only rendinst without collision will be rendered
-extern bool prepareRIGenVisibility(const Frustum &frustum, const Point3 &viewPos, RiGenVisibility *, bool forShadow,
-  Occlusion *occlusion, bool for_visual_collision = false, const VisibilityExternalFilter &external_filter = {});
+bool prepareRIGenVisibility(RiGenVisibility *vis, const Frustum &frustum, const PrepareRiGenVisibilityParams &params);
+inline bool prepareRIGenVisibility(const Frustum &frustum, const Point3 &view_pos, RiGenVisibility *visibility, bool for_shadow,
+  Occlusion *occlusion, bool for_visual_collision = false, const VisibilityExternalFilter &external_filter = {})
+{
+  return prepareRIGenVisibility(visibility, frustum,
+    PrepareRiGenVisibilityParams{.viewPos = view_pos,
+      .occlusion = occlusion,
+      .externalFilter = external_filter,
+      .forShadow = for_shadow,
+      .forVisualCollision = for_visual_collision});
+}
 
 extern void filterRIGenVisibilityById(const RiGenVisibility *visibility, RiGenVisibility *filteredVis,
   const VisibilityExternalIdFilter &id_filter);
@@ -61,16 +81,39 @@ enum class RiExtraCullIntention
   LANDMASK,
 };
 
-template <bool use_external_filter = false, bool external_filter_use_bbox = false>
-bool prepareExtraVisibilityInternal(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow, Occlusion *occlusion,
-  eastl::optional<IPoint2> target = {}, RiExtraCullIntention cullIntention = RiExtraCullIntention::MAIN,
+struct PrepareRiexVisibilityParams
+{
+  const Point3 &viewPos = Point3::ZERO;
+  eastl::optional<IPoint2> target;
+  RiExtraCullIntention cullIntention = RiExtraCullIntention::MAIN;
+  Occlusion *occlusion = nullptr;
+  const bbox3f *tileCullBox = nullptr;
+  const VisibilityExternalFilter &externalFilter = {};
+  float minSizeToDistRatio = -1.f;
+  bool forShadow = false;
+  bool forVisualCollision = false;
+  bool filterRendinstClipmap = false;
+  bool forVsm = false;
+  bool filterPreciseBBox = false;
+};
+bool prepareRIGenExtraVisibility(RiGenVisibility &v, mat44f_cref gtm, const PrepareRiexVisibilityParams &params);
+inline bool prepareRIGenExtraVisibility(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow,
+  Occlusion *occlusion, eastl::optional<IPoint2> target = {}, RiExtraCullIntention cullIntention = RiExtraCullIntention::MAIN,
   bool for_visual_collision = false, bool filter_rendinst_clipmap = false, bool for_vsm = false,
-  const VisibilityExternalFilter &external_filter = {});
-
-bool prepareRIGenExtraVisibility(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow, Occlusion *occlusion,
-  eastl::optional<IPoint2> target = {}, RiExtraCullIntention cullIntention = RiExtraCullIntention::MAIN,
-  bool for_visual_collision = false, bool filter_rendinst_clipmap = false, bool for_vsm = false,
-  const VisibilityExternalFilter &external_filter = {}, bool filter_precise_bbox = false);
+  const VisibilityExternalFilter &external_filter = {}, bool filter_precise_bbox = false)
+{
+  return prepareRIGenExtraVisibility(v, gtm,
+    {.viewPos = viewPos,
+      .target = target,
+      .cullIntention = cullIntention,
+      .occlusion = occlusion,
+      .externalFilter = external_filter,
+      .forShadow = forShadow,
+      .forVisualCollision = for_visual_collision,
+      .filterRendinstClipmap = filter_rendinst_clipmap,
+      .forVsm = for_vsm,
+      .filterPreciseBBox = filter_precise_bbox});
+}
 bool prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist, RiGenVisibility &vbase,
   bbox3f *result_box = nullptr);
 bool prepareRIGenExtraVisibilityForGrassifyBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
@@ -78,6 +121,8 @@ bool prepareRIGenExtraVisibilityForGrassifyBox(bbox3f_cref box_cull, int forced_
 bool prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist, bool filter_grassify,
   RiGenVisibility &vbase, bbox3f *result_box);
 void filterVisibility(RiGenVisibility &from, RiGenVisibility &to, const VisibilityExternalFilter &external_filter);
+void filterRIGenExtraVisibilityById(const RiGenVisibility *visibility, RiGenVisibility *filteredVis,
+  const VisibilityExternalIdFilter &id_filter);
 
 void requestRiExtraLodsByDistance(const Point3 &view_pos);
 

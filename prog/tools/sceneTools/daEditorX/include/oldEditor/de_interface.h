@@ -13,6 +13,7 @@
 
 
 class IDagorEdCustomCollider;
+class IEditorCommandSystem;
 class DeWorkspace;
 
 struct LightingSettings;
@@ -77,6 +78,9 @@ public:
   // called before enter in main loop when all plugins loaded and initialized
   virtual void beforeMainLoop() = 0;
 
+  // Register the available editor commands. Called only once.
+  virtual void registerEditorCommands([[maybe_unused]] IEditorCommandSystem &command_system) {}
+
   // called when user requests switch to this plugin (or for current plugin when returning from excl. camera mode)
   virtual void registerMenuAccelerators() {}
   // called when user requests switch to this plugin; returns true on success
@@ -109,6 +113,8 @@ public:
   virtual void selectAll() = 0;
   // deselects all objects
   virtual void deselectAll() = 0;
+  // select all previously unselected objects, deselect all previously selected objects
+  virtual void invertSelection() = 0;
 
   // render/acting interface
   //! update plugin objects regularly between frames

@@ -20,18 +20,24 @@ class VoiceSourceControl
 public:
   bool init(IVoiceSource &source_, float volume);
   void updatePlayback(FMOD::System *fmod_sys);
-  void setGlobalVoiceVolume(float volume);
+  void setExternalVoiceVolume(float volume);
+  void updateSourceVolume();
+
+private:
+  void update3dAttributes();
 
 private:
   IVoiceSource *source = nullptr;
   fmod_ptr<FMOD::Sound> playbackSound;
   FMOD::ChannelGroup *voiceChannelGroup = nullptr;
   FMOD::Channel *playbackChannel = nullptr;
-  float volume = 0.0f;
+  float externalVolume = 0.0f;
+  float localVolume = 1.0f;
   unsigned chanSampleRate = 0;
   unsigned chanFrameSamples = 0;
   unsigned chanFrameBytes = 0;
   int playbackLastFilledFrame = -1;
+  bool isPositional = false;
 };
 
 } // namespace voicechat

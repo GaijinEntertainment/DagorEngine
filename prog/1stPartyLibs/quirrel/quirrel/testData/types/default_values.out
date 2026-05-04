@@ -6,6 +6,8 @@ fn([a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(a: bool = true)
 fn([a: bool = true])
@@ -15,6 +17,8 @@ fn([a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(x, a = 111)
 fn(x, [a = 111])
@@ -24,6 +28,8 @@ fn(x, [a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn(x, a: bool = true)
 fn(x, [a: bool = true])
@@ -33,6 +39,8 @@ fn(x, [a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn(x: bool, a = 111)
 fn(x: bool, [a = 111])
@@ -42,6 +50,8 @@ fn(x: bool, [a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn(x: bool, a: bool = true)
 fn(x: bool, [a: bool = true])
@@ -51,6 +61,8 @@ fn(x: bool, [a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn(x: bool, a = 111)
 fn(x: bool, [a = 111])
@@ -60,6 +72,8 @@ fn(x: bool, [a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 1
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn(tab: table = {})
 fn([tab: table = {}])
@@ -69,6 +83,8 @@ fn([tab: table = {}])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(tab: table = {x = 5, y = 6})
 fn([tab: table = {x = 5, y = 6}])
@@ -78,6 +94,8 @@ fn([tab: table = {x = 5, y = 6}])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(arr: array = [])
 fn([arr: array = []])
@@ -87,6 +105,8 @@ fn([arr: array = []])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(arr: array = [234, null, value])
 fn([arr: array = [234, null, value]])
@@ -96,6 +116,8 @@ fn([arr: array = [234, null, value]])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(expr: int = (0))
 fn([expr: int = (0)])
@@ -105,6 +127,8 @@ fn([expr: int = (0)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(expr: int = (20 + 50 * 10))
 fn([expr: int = (20 + 50 * 10)])
@@ -114,6 +138,8 @@ fn([expr: int = (20 + 50 * 10)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: int = Color32(123, 45, 45, 23))
 fn([c: int = Color32(123, 45, 45, 23)])
@@ -123,6 +149,8 @@ fn([c: int = Color32(123, 45, 45, 23)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: string = "{")
 fn([c: string = "{"])
@@ -132,6 +160,8 @@ fn([c: string = "{"])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: int = '{')
 fn([c: int = '{'])
@@ -141,6 +171,8 @@ fn([c: int = '{'])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: string = "]")
 fn([c: string = "]"])
@@ -150,6 +182,8 @@ fn([c: string = "]"])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: string = "\"")
 fn([c: string = "\""])
@@ -159,6 +193,8 @@ fn([c: string = "\""])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: int = '\'')
 fn([c: int = '\''])
@@ -168,6 +204,8 @@ fn([c: int = '\''])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: int = '"')
 fn([c: int = '"'])
@@ -177,6 +215,8 @@ fn([c: int = '"'])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c: string = "")
 fn([c: string = ""])
@@ -186,6 +226,8 @@ fn([c: string = ""])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn(c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66))
 fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
@@ -195,6 +237,8 @@ fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([a = 111])
 fn([a = 111])
@@ -204,6 +248,8 @@ fn([a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([a: bool = true])
 fn([a: bool = true])
@@ -213,6 +259,8 @@ fn([a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([x, a = 111])
 fn([x, a = 111])
@@ -222,6 +270,8 @@ fn([x, a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([x, a: bool = true])
 fn([x, a: bool = true])
@@ -231,6 +281,8 @@ fn([x, a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([x: bool, a = 111])
 fn([x: bool, a = 111])
@@ -240,6 +292,8 @@ fn([x: bool, a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([x: bool, a: bool = true])
 fn([x: bool, a: bool = true])
@@ -249,6 +303,8 @@ fn([x: bool, a: bool = true])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([x: bool, a = 111])
 fn([x: bool, a = 111])
@@ -258,6 +314,8 @@ fn([x: bool, a = 111])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([tab: table = {}])
 fn([tab: table = {}])
@@ -267,6 +325,8 @@ fn([tab: table = {}])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([tab: table = {x = 5, y = 6}])
 fn([tab: table = {x = 5, y = 6}])
@@ -276,6 +336,8 @@ fn([tab: table = {x = 5, y = 6}])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([arr: array = []])
 fn([arr: array = []])
@@ -285,6 +347,8 @@ fn([arr: array = []])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([arr: array = [234, null, value]])
 fn([arr: array = [234, null, value]])
@@ -294,6 +358,8 @@ fn([arr: array = [234, null, value]])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([expr: int = (0)])
 fn([expr: int = (0)])
@@ -303,6 +369,8 @@ fn([expr: int = (0)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([expr: int = (20 + 50 * 10)])
 fn([expr: int = (20 + 50 * 10)])
@@ -312,6 +380,8 @@ fn([expr: int = (20 + 50 * 10)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([c: int = Color32(123, 45, 45, 23)])
 fn([c: int = Color32(123, 45, 45, 23)])
@@ -321,6 +391,8 @@ fn([c: int = Color32(123, 45, 45, 23)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
 fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
@@ -330,6 +402,8 @@ fn([c1: int = Color32(123, 45, 45, 23), c2: int = Color32(33, 44, 55, 66)])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 2
+  pure: false
+  nodiscard: false
 
 fn([c: string = "{"])
 fn([c: string = "{"])
@@ -339,6 +413,8 @@ fn([c: string = "{"])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 
 fn([c: int = '{'])
 fn([c: int = '{'])
@@ -348,4 +424,6 @@ fn([c: int = '{'])
   ellipsisArgTypeMask: 0x0
   requiredArgs: 0
   argCount: 1
+  pure: false
+  nodiscard: false
 

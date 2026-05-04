@@ -76,7 +76,6 @@ public:
   void renderService() override
   {
     int stType = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     ::render_invalid_entities(pool.getEntities(), stType);
   }
 

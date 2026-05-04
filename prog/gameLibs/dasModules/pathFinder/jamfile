@@ -11,7 +11,7 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
-  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
 ;
 
 local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
@@ -29,7 +29,7 @@ if $(Platform) in windows {
 
 UseProgLibs =
   1stPartyLibs/daScript
-  3rdPartyLibs/Detour
+  3rdPartyLibs/recastnavigation/Detour
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

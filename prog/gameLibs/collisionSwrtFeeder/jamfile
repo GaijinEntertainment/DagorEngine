@@ -1,0 +1,26 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/collisionSwrtFeeder ;
+
+TargetType  = lib ;
+Target      = gameLibs/collisionSwrtFeeder.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/engine/daBVH
+;
+
+Sources =
+  collisionSwrtFeeder_bvh.cpp
+;
+
+UseProgLibs +=
+  gameLibs/daSWRT
+  engine/daBVH
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -37,12 +37,12 @@ endmacro
 
 macro VIEW_VEC_OPTIMIZED(code)
   (code) {
-    view_vecLT@f3 = view_vecLT;
+    view_vecLT_opt@f3 = view_vecLT; // _opt is added so both the optimized and the normal version can be used in the same shader
     view_vecRT_minus_view_vecLT@f3 = (view_vecRT-view_vecLT);
     view_vecLB_minus_view_vecLT@f3 = (view_vecLB-view_vecLT);
   }
   hlsl(code) {
-    float3 getViewVecOptimized(float2 tc) {return view_vecLT + view_vecRT_minus_view_vecLT*tc.x + view_vecLB_minus_view_vecLT*tc.y;}
+    float3 getViewVecOptimized(float2 tc) {return view_vecLT_opt + view_vecRT_minus_view_vecLT*tc.x + view_vecLB_minus_view_vecLT*tc.y;}
   }
 endmacro
 

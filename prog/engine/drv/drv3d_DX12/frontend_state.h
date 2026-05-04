@@ -281,10 +281,11 @@ struct FrontendState
   bool registerMemoryUpdate(uint32_t stage, uint32_t offset, eastl::span<const ConstRegisterType> src)
   {
     auto dstBase = getRegisterSection(stage);
-    G_ASSERTF_RETURN(offset < dstBase.size(), false, "const register offset out of range %u is larger than %u", offset,
-      dstBase.size());
+    D3D_CONTRACT_ASSERTF_RETURN(offset < dstBase.size(), false,
+      "DX12: const register for stage %u offset out of range %u is larger than %u", stage, offset, dstBase.size());
     auto dst = dstBase.last(dstBase.size() - offset);
-    G_ASSERTF_RETURN(src.size() <= dst.size(), false, "const register update overflow, %u > %u", src.size(), dst.size());
+    D3D_CONTRACT_ASSERTF_RETURN(src.size() <= dst.size(), false,
+      "DX12: const register for stage %u update overflow, %u > %u (offset: %u)", stage, src.size(), dst.size(), offset);
     // search for first difference
     auto range = eastl::mismatch(src.begin(), src.end(), dst.begin());
     return range.second != eastl::copy(range.first, src.end(), range.second);
@@ -309,6 +310,7 @@ struct FrontendState
         info.isStreamBuffer = gbuf->isStreamBuffer();
 #endif
         G_ASSERT(info.buffer.size % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
+        G_ASSERT(info.buffer.gpuPointer % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
         ctx.setConstBuffer(stage, i, info, gbuf->getName());
       }
       else
@@ -1145,8 +1147,13 @@ struct FrontendState
           if (DAGOR_UNLIKELY(D3D12_SHADING_RATE_COMBINER_PASSTHROUGH == pixelShadingRateCombiner))
           {
             // sort of valid usage, but when no rate texture is needed it should be set to null
-            logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to PASSTHROUGH, but a sampling "
-                    "rate texture is set, with this combiner the texture is not used");
+            // yet if we work in render pass approach where VRS texture is part of render pass setup,
+            // it can't be changed inside of render pass
+            // while we may want to disable it for some draws inside render pass
+            // so it makes such configuration justified
+            ;
+            // logwarn("DX12: VRS: Pixel Shading Rate Combiner is set to PASSTHROUGH, but a sampling "
+            //         "rate texture is set, with this combiner the texture is not used");
           }
         }
         else if (shadingTier == 1)

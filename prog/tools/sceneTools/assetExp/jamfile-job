@@ -53,23 +53,12 @@ if $(KernelLinkage) = dynamic {
   ImportProgLibs = tools/libTools/daKernel ;
   ImportsRelativeDir = . ;
 } else {
-  local memory_lib = memory ;
-  if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
-
-  if [ GLOB $(Root)/prog/gameLibs/vehiclePhys : * ] { DabuildUseOptionalExporters += vehiclePhys ; }
-  if [ GLOB $(Root)/prog/gameLibs/gamePhys/phys/shipSections : * ] { DabuildUseOptionalExporters += shipSections ; }
-  if [ GLOB $(Root)/prog/3rdPartyLibs/phys/fractureTool : * ] { DabuildUseOptionalExporters += apex ; }
-
-  UseProgLibs =
-    engine/osApiWrappers
-    engine/kernel
-    engine/$(memory_lib)
-    engine/ioSys
-    engine/baseUtil
-    $(UseProgLibs)
+  include $(Root)/$(Location)/dabuild_static.jam ;
+  UseProgLibs +=
     tools/sceneTools/assetExp/exporters
     tools/sceneTools/assetExp/refProviders
   ;
+  Dependencies += $(Root)/$(Location)/exporters/jamfile-stubsForMissingEditorCode ;
   ProjectAllowsOodle = yes ;
 }
 

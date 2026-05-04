@@ -1,0 +1,9 @@
+WARNING: w260 (named-like-must-return-result) Function 'make_and_return_object' has name like it should return a value, but not all control paths return a value.
+testData/static_analyzer/w260_table_sqconfig.nut:4:27
+
+::game <- {
+  make_and_return_object = function(x) { return } //-declared-never-used
+                           ^---------------------
+}
+
+

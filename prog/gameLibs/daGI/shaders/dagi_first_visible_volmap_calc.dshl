@@ -27,7 +27,6 @@ shader calc_initial_ambient_walls_dist_cs
 {
   CALC_CLOSEST_PLANES()
   SSGI_USE_VOLMAP_GI_COORD(cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     visible_ambient_voxels@buf = frustum_visible_point_voxels hlsl {
       #include "dagi_common_types.hlsli"
@@ -62,7 +61,6 @@ shader light_initial_ambient_voxels_cs
   SSGI_USE_VOLMAP_GI_COORD(cs)
   RAY_CAST_VOXELS_AND_INLINE_RT_INIT(cs)
   USE_CLOSEST_PLANES()
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #define AVERAGE_CUBE_WARP_SIZE INITIAL_VOXELS_RAYS
     #include <parallel_average_cube.hlsl>

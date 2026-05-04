@@ -86,7 +86,7 @@ void overlay_checkbox(const char *label)
 
 static UniqueTex create_empty_debug_tex(int fmt, int w, int h, int miplevels, const char *name)
 {
-  return dag::create_tex(nullptr, w, h, fmt, miplevels, name);
+  return dag::create_tex(nullptr, w, h, fmt, miplevels, name, RESTAG_DEBUG);
 }
 
 static const char *get_selected_resource_name(dafg::ResNameId nameId, const dafg::InternalRegistry &registry)
@@ -226,7 +226,7 @@ auto reconstruct_namespace_request(dafg::Registry reg, const char *full_path)
 
 // Normally it's not allowed to modify framegraph structure when it's being executed.
 // Modifies are deferred in fact, it's needed to prevent user mistakes.
-// However, texture visulization may be rendered in the node and it should be able to create debug nodes on the fly.
+// However, texture visualization may be rendered in the node and it should be able to create debug nodes on the fly.
 // So need to workaround graph change lock.
 class DebugNodeRegisterScope
 {
@@ -326,7 +326,8 @@ static bool operator==(const PreciseTimePoint &lhs, const PreciseTimePoint &rhs)
 
 static bool operator==(const Selection &lhs, const Selection &rhs) { return lhs.when == rhs.when && lhs.what == rhs.what; }
 
-void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry)
+void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry,
+  const dafg::DependencyData &dep_data)
 {
   const bool changed = selection != savedSelection;
   if (changed)
@@ -335,7 +336,9 @@ void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::Inte
     runShowTex = true;
     if (selection)
     {
-      if (registry.resources[selection->what].type != dafg::ResourceType::Texture)
+      const auto &createdResData = registry.resources[dep_data.renamingRepresentatives[selection->what]].createdResData;
+
+      if (createdResData->type != dafg::ResourceType::Texture)
       {
         selectedResourceIsATexture = false;
         return;
@@ -461,19 +464,21 @@ void update_external_texture_visualization(dafg::InternalRegistry &registry, con
 
   for (const auto [resId, lifetime] : dep_data.resourceLifetimes.enumerate())
   {
-    if (registry.resources[resId].type != dafg::ResourceType::Texture)
+    const auto &createdResData = registry.resources[dep_data.renamingRepresentatives[resId]].createdResData;
+
+    if (!createdResData.has_value() || createdResData->type != dafg::ResourceType::Texture)
       continue;
 
     if (lifetime.consumedBy == dafg::NodeNameId::Invalid && lifetime.readers.empty())
       continue;
 
     TextureInfo info{};
-    if (auto resInfo = eastl::get_if<dafg::Texture2dCreateInfo>(&registry.resources[resId].creationInfo))
+    if (auto resInfo = eastl::get_if<dafg::Texture2dCreateInfo>(&createdResData->creationInfo))
     {
       info.type = D3DResourceType::TEX;
       info.cflg = resInfo->creationFlags;
     }
-    else if (auto resInfo = eastl::get_if<dafg::Texture3dCreateInfo>(&registry.resources[resId].creationInfo))
+    else if (auto resInfo = eastl::get_if<dafg::Texture3dCreateInfo>(&createdResData->creationInfo))
     {
       info.type = D3DResourceType::VOLTEX;
       info.cflg = resInfo->creationFlags;

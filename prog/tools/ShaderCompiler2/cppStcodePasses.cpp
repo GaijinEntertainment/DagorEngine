@@ -5,14 +5,16 @@
 #include "shaderSemantic.h"
 
 
-StcodeBranchedBuildEvalCB::StcodeBranchedBuildEvalCB(shc::VariantContext &a_ctx) :
-  ctx{a_ctx}, parser{ctx.tgtCtx().sourceParseState().parser}
+StcodeBranchedBuildEvalCB::StcodeBranchedBuildEvalCB(StcodePass &built_cppstcode, shc::VariantContext &a_ctx) :
+  ctx{a_ctx}, parser{ctx.tgtCtx().sourceParseState().parser}, cppStcode{built_cppstcode}
 {
   for (auto &pt : ctx.parsedSemCode().passes)
     if (pt && pt->pass)
     {
-      for (uintptr_t stmtNode : pt->pass->usedConstStatAstNodes)
+      for (uintptr_t stmtNode : pt->pass->preshader->usedPreshaderStatements)
         preshaderStatementsUsedInAnyVariant.insert((const state_block_stat *)stmtNode);
+      for (uintptr_t samplerNode : pt->pass->preshader->preshaderVarsNeedingSamplerAsm)
+        preshaderVarsNeedingSamplerAsm.insert((const Terminal *)samplerNode);
       for (auto [boolNode, evalRes] : pt->pass->boolAstNodesEvaluationResults)
       {
         auto [it, insterted] = boolEvalResults.emplace(boolNode, evalRes);
@@ -93,7 +95,12 @@ void StcodeBranchedBuildEvalCB::evalExternalBlockStat(const state_block_stat &st
   if (!def.isDynamic)
     return;
 
-  bool ok = assembly::build_stcode_for_named_const<assembly::StcodeBuildFlagsBits::CPP>(def, ID_PLACEHOLDER, ctx, &rm_alloc, false);
+  bool ok = assembly::build_stcode_for_named_const<assembly::StcodeBuildFlagsBits::CPP>(
+    def, ID_PLACEHOLDER, ctx, &cppStcode, nullptr,
+    [this](int, void *var_node) {
+      return preshaderVarsNeedingSamplerAsm.find((const Terminal *)var_node) != preshaderVarsNeedingSamplerAsm.end();
+    },
+    &rm_alloc, false);
   G_ASSERT(ok);
 
   if (def.pairSamplerTmpDecl && def.isDynamic && def.hardcodedRegister == -1)
@@ -101,7 +108,7 @@ void StcodeBranchedBuildEvalCB::evalExternalBlockStat(const state_block_stat &st
     auto [samplerVarId, _1, _2] = semantic::lookup_state_var(*def.pairSamplerTmpDecl->name, ctx);
     const String samplerConstName{0, "%s%s", def.mangledName.c_str(), def.pairSamplerBindSuffix};
     assembly::build_stcode_for_pair_sampler<assembly::StcodeBuildFlagsBits::CPP>(samplerConstName.c_str(), def.pairSamplerName.c_str(),
-      ID_PLACEHOLDER, stage, samplerVarId, def.pairSamplerIsGlobal, ctx);
+      ID_PLACEHOLDER, stage, samplerVarId, def.pairSamplerIsGlobal, &cppStcode, nullptr);
   }
 }
 
@@ -113,7 +120,8 @@ void StcodeBranchedBuildEvalCB::eval_shader_locdecl(local_var_decl &s)
     return;
 
   if (!parseResMaybe->var->isConst)
-    assembly::assemble_local_var<assembly::StcodeBuildFlagsBits::CPP>(parseResMaybe->var, parseResMaybe->expr.get(), s.name, ctx);
+    assembly::assemble_local_var<assembly::StcodeBuildFlagsBits::CPP>(parseResMaybe->var, parseResMaybe->expr.get(), s.name,
+      &cppStcode, nullptr);
 }
 
 void StcodeBranchedBuildEvalCB::eval_bool_decl(bool_decl &d)

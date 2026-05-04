@@ -5,7 +5,7 @@
 // use with related headers
 
 class WinCritSec;
-struct Driver3dDesc;
+struct DriverDesc;
 
 class StreamlineAdapter;
 
@@ -20,7 +20,6 @@ class PipelineManager;
 class RenderPassManager;
 class FenceManager;
 class TimelineManager;
-class ExecutionMarkers;
 class SurveyQueryManager;
 class QueryManager;
 class BindlessManager;
@@ -35,7 +34,7 @@ struct PhysicalDeviceSet;
 class DebugNaming;
 class SamplerCache;
 struct FormatUtil;
-class BufferAlignment;
+class BufferProps;
 class RaytraceBLASCompactionSizeQueryPool;
 class VulkanInstance;
 class ShaderProgramDatabase;
@@ -47,6 +46,8 @@ class RenderDocCaptureModule;
 class DebugCallbacks;
 struct GlobalDriverLock;
 class DLSSSuperResolutionDirect;
+struct EventQueryPool;
+struct ResUpdateBufferPool;
 
 struct Globals
 {
@@ -65,6 +66,8 @@ struct Globals
   {
     static TexturePool tex;
     static BufferPool buf;
+    static EventQueryPool queries;
+    static ResUpdateBufferPool rub;
   };
 
   struct Dbg
@@ -78,7 +81,6 @@ struct Globals
   static RenderPassManager passes;
   static FenceManager fences;
   static TimelineManager timelines;
-  static ExecutionMarkers gpuExecMarkers;
   static SurveyQueryManager surveys;
   static QueryManager timestamps;
   static QueryManager occlusionQueries;
@@ -89,7 +91,7 @@ struct Globals
   static DeviceContext ctx;
   static SamplerCache samplers;
   static ShaderProgramDatabase shaderProgramDatabase;
-  static Driver3dDesc desc;
+  static DriverDesc desc;
   static WindowState window;
   static GlobalDriverLock lock;
 #if !USE_STREAMLINE_FOR_DLSS
@@ -104,7 +106,7 @@ struct Globals
     static DeviceQueueGroup queue;
     static PhysicalDeviceSet phy;
     static FormatUtil fmt;
-    static BufferAlignment bufAlign;
+    static BufferProps bufProps;
   };
 };
 

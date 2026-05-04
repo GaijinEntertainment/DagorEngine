@@ -9,7 +9,7 @@ return {
   get_console_model_revision = @(_consoleModel) ""
   get_platform_sdk = @() get_arg_value_by_name("sdk") ?? "none"
   get_default_lang = @() "English"
-  is_gdk_used = @() false
+  is_gdk_used = @() ["xboxScarlett", "xboxOne"].contains(get_arg_value_by_name("platform"))
   XBOXONE = "XBOXONE"
   XBOXONE_S = "XBOXONE_S"
   XBOXONE_X = "XBOXONE_X"

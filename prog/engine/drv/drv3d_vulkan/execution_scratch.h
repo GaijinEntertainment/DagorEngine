@@ -72,6 +72,8 @@ struct ExecutionScratch
     const char *name;
   };
   dag::Vector<DebugEvent> debugEventStack;
+
+  dag::Vector<Image *> mipGenList;
 };
 
 } // namespace drv3d_vulkan

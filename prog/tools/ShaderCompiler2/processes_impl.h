@@ -72,6 +72,7 @@ void end_execution(ExecutionState &state);
 AwaitResult await_processes(ExecutionState &state, bool listen_to_cancellation_event, int timeout_ms = NO_TIMEOUT);
 eastl::optional<ProcessHandle> spawn_process(ExecutionState &state, ProcessTask &&task);
 void serve_process_output(ExecutionState &state, ProcessHandle &hnd);
+eastl::string convert_message(eastl::string_view msg);
 void send_interrupt_signal_to_process(const ProcessHandle &process);
 void kill_process(const ProcessHandle &process);
 

@@ -3,11 +3,23 @@
 #define _SQFUNCSTATE_H_
 ///////////////////////////////////
 #include "squtils.h"
-#include "sqcompilationcontext.h"
+#include "compilationcontext.h"
 
 namespace SQCompilation { class Expr; }
 
 using namespace SQCompilation;
+
+struct SQCompiletimeVarInfo
+{
+    char var_flags;
+    SQUnsignedInteger32 type_mask;
+    Expr *initializer;
+
+    SQCompiletimeVarInfo() { var_flags = 0; type_mask = ~0u; initializer = nullptr; }
+
+    SQCompiletimeVarInfo(char var_flags, SQUnsignedInteger32 type_mask, Expr *initializer) :
+        var_flags(var_flags), type_mask(type_mask), initializer(initializer) {}
+};
 
 struct SQFuncState
 {
@@ -31,13 +43,13 @@ struct SQFuncState
     SQInteger GetCurrentPos(){return _instructions.size()-1;}
     SQInteger GetNumericConstant(const SQInteger cons);
     SQInteger GetNumericConstant(const SQFloat cons);
-    SQInteger PushLocalVariable(const SQObject &name, char varFlags, Expr *node);
-    void AddParameter(const SQObject &name);
-    SQInteger GetLocalVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
+    SQInteger PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo &ct_var_info);
+    void AddParameter(const SQObject &name, SQUnsignedInteger32 type_mask);
+    SQInteger GetLocalVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     void MarkLocalAsOuter(SQInteger pos);
-    SQInteger GetOuterVariable(const SQObject &name, char &varFlags, Expr **node = nullptr);
+    SQInteger GetOuterVariable(const SQObject &name, SQCompiletimeVarInfo &ct_var_info);
     SQInteger GetStackSize();
-    void AddLineInfos(SQInteger line, bool lineop, bool force);
+    void AddLineInfos(SQInteger line, bool is_dbg_step_point, bool force);
     SQFunctionProto *BuildProto();
     SQInteger AllocStackPos();
     SQInteger PushTarget(SQInteger n=-1);
@@ -46,32 +58,34 @@ struct SQFuncState
     SQInteger GetUpTarget(SQInteger n);
     void DiscardTarget();
     bool IsLocal(SQUnsignedInteger stkpos);
-    SQObject CreateString(const SQChar *s,SQInteger len = -1);
-    SQObject CreateTable();
+    SQObjectPtr CreateString(const char *s,SQInteger len = -1);
     void CheckForPurity();
     SQUnsignedInteger lang_features;
     SQInteger _returnexp;
     SQLocalVarInfoVec _vlocals;
-    sqvector<Expr*> _vlocals_nodes; // compile time only
+    sqvector<SQCompiletimeVarInfo> _vlocals_info; // compile time only
     SQIntVec _targetstack;
     SQInteger _stacksize;
     bool _varparams;
     bool _bgenerator;
     bool _purefunction;
+    bool _nodiscard;
     SQIntVec _unresolvedbreaks;
     SQIntVec _unresolvedcontinues;
+    SQIntVec _expr_block_results;
     SQObjectPtrVec _functions;
     SQObjectPtrVec _parameters;
+    sqvector<SQUnsignedInteger32> _param_type_masks;
+    SQUnsignedInteger32 _result_type_mask;
     SQOuterVarVec _outervalues;
-    sqvector<Expr*> _outervalues_nodes; // compile time only
+    sqvector<SQCompiletimeVarInfo> _outervalues_info; // compile time only
     SQInstructionVec _instructions;
     SQLocalVarInfoVec _localvarinfos;
     SQObjectPtr _literals;
-    SQObjectPtr _ref_holder; // to allow long jumps on compilation errors
     SQObjectPtr _name;
     SQObjectPtr _sourcename;
     SQInteger _nliterals;
-    SQLineInfoVec _lineinfos;
+    SQFullLineInfoVec _full_line_infos;
     SQFuncState *_parent;
     SQIntVec _breaktargets;
     SQIntVec _continuetargets;
@@ -85,7 +99,7 @@ struct SQFuncState
     bool _optimization;
     SQSharedState *_sharedstate;
     sqvector<SQFuncState*> _childstates;
-    SQInteger GetConstant(const SQObject &cons, int max_const_no = 0x7FFFFFFF);//will return value <= max_const_no, or -1
+    SQInteger GetConstant(const SQObjectPtr &cons, int max_const_no = 0x7FFFFFFF);//will return value <= max_const_no, or -1
 private:
     SQCompilationContext &_ctx;
     SQSharedState *_ss;

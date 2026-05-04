@@ -14,8 +14,6 @@ float cfd_solver_push_val = 0.001;
 
 shader dirichlet_initial_conditions
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     potential_tex@uav = cfd_potential_tex hlsl {
       RWTexture3D<float2> potential_tex@uav;
@@ -43,8 +41,6 @@ shader dirichlet_initial_conditions
 int4 cfd_toroidal_offset = 0;
 shader dirichlet_initial_conditions_toroidal
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     initial_potential_tex@smp3d = cfd_initial_potential_tex;
     potential_tex@uav = cfd_potential_tex hlsl {
@@ -92,8 +88,6 @@ shader dirichlet_initial_conditions_toroidal
 
 shader dirichlet_initial_conditions_from_tex
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     initial_potential_tex@smp3d = cfd_initial_potential_tex;
     potential_tex@uav = cfd_potential_tex hlsl {
@@ -120,7 +114,6 @@ interval dirichlet_partial_solve: off<1, on;
 
 shader dirichlet_solver
 {
-  ENABLE_ASSERT(cs)
   USE_DIFFERENTIAL_UTILS(cs)
 
   (cs) {
@@ -131,14 +124,18 @@ shader dirichlet_solver
 
     solid_boundaries@smp3d = cfd_solid_boundaries_tex;
     calc_offset@i2 = (cfd_calc_offset.x, cfd_calc_offset.y);
+
+    potential_tex@tex : register(1) hlsl {
+      Texture3D<float2> potential_tex@tex;
+    }
+    next_potential_tex@uav : register(0) hlsl {
+      RWTexture3D<float2> next_potential_tex@uav;
+    }
   }
 
   hlsl(cs) {
     #define x_ofs uint3(1, 0, 0)
     #define y_ofs uint3(0, 1, 0)
-
-    Texture3D<float2> potential_tex : register(t1);
-    RWTexture3D<float2> next_potential_tex : register(u0);
 
     [numthreads(8, 8, 1)]
     void cs_main(uint3 tid : SV_DispatchThreadID)

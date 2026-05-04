@@ -19,20 +19,14 @@
 namespace darg
 {
 
-void PanelRenderInfo::resetPointer()
+
+Panel::Panel(GuiScene &scene_, const Sqrat::Object &object, int panelIndex) : scene(&scene_), index(panelIndex)
 {
-  pointerTexture[0] = BAD_TEXTUREID;
-  pointerTexture[1] = BAD_TEXTUREID;
-  pointerUVLeftTop[0].set(-1, -1);
-  pointerUVLeftTop[1].set(-1, -1);
-  pointerUVInvSize[0].set(0, 0);
-  pointerUVInvSize[1].set(0, 0);
-  pointerColor[0] = 0;
-  pointerColor[1] = 0;
+  init(panelIndex, object);
+
+  if (spatialInfo.anchor != PanelAnchor::None)
+    syncCanvas();
 }
-
-
-Panel::Panel(GuiScene *scene_) : scene(scene_) {}
 
 
 Panel::~Panel() { clear(); }
@@ -122,6 +116,14 @@ void Panel::updateActiveCursors()
   }
 }
 
+bool Panel::hasActiveCursors() const
+{
+  for (const PanelPointer &ptr : pointers)
+    if (ptr.cursor && ptr.isPresent)
+      return true;
+  return false;
+}
+
 
 void Panel::onRemoveCursor(Cursor *cursor)
 {
@@ -131,36 +133,28 @@ void Panel::onRemoveCursor(Cursor *cursor)
 }
 
 
-void Panel::updateSpatialInfoFromScript()
+void Panel::updatePanelParamsFromScript(const Sqrat::Table &desc)
 {
-  G_ASSERT_RETURN(screen && screen->etree.root, );
+  spatialInfo.anchor = PanelAnchor(desc.RawGetSlotValue("worldAnchor", PanelAnchor::None));
+  spatialInfo.constraint = PanelRotationConstraint(desc.RawGetSlotValue("worldRotationConstraint", PanelRotationConstraint::None));
+  spatialInfo.geometry = PanelGeometry(desc.RawGetSlotValue("worldGeometry", PanelGeometry::None));
+  spatialInfo.canBePointedAt = desc.RawGetSlotValue("worldCanBePointedAt", false);
+  spatialInfo.canBeTouched = desc.RawGetSlotValue("worldCanBeTouched", false);
+  spatialInfo.shouldBlockVrHandInteractions = desc.RawGetSlotValue("shouldBlockVrHandInteractions", false);
+  spatialInfo.allowDisplayCursorProjection = desc.RawGetSlotValue("allowDisplayCursorProjection", true);
 
-  const Sqrat::Table &scriptDesc = screen->etree.root->props.scriptDesc;
+  spatialInfo.position = desc.RawGetSlotValue("worldOffset", Point3(0, 0, 0));
+  spatialInfo.angles = desc.RawGetSlotValue("worldAngles", Point3(0, 0, 0));
+  spatialInfo.headDirOffset = desc.RawGetSlotValue("headDirOffset", 0.f);
 
-  spatialInfo.anchor = PanelAnchor(scriptDesc.RawGetSlotValue("worldAnchor", PanelAnchor::None));
-  spatialInfo.constraint =
-    PanelRotationConstraint(scriptDesc.RawGetSlotValue("worldRotationConstraint", PanelRotationConstraint::None));
-  spatialInfo.geometry = PanelGeometry(scriptDesc.RawGetSlotValue("worldGeometry", PanelGeometry::None));
-  spatialInfo.canBePointedAt = scriptDesc.RawGetSlotValue("worldCanBePointedAt", false);
-  spatialInfo.canBeTouched = scriptDesc.RawGetSlotValue("worldCanBeTouched", false);
-
-  spatialInfo.position = scriptDesc.RawGetSlotValue("worldOffset", Point3(0, 0, 0));
-  spatialInfo.angles = scriptDesc.RawGetSlotValue("worldAngles", Point3(0, 0, 0));
-  spatialInfo.headDirOffset = scriptDesc.RawGetSlotValue("headDirOffset", 0.f);
-
-  Point2 size2 = scriptDesc.RawGetSlotValue("worldSize", Point2(0, 0));
+  Point2 size2 = desc.RawGetSlotValue("worldSize", Point2(0, 0));
   spatialInfo.size.set(size2.x, size2.y, 1);
 
-  spatialInfo.anchorEntityId = scriptDesc.RawGetSlotValue("worldAnchorEntity", 0u);
-  spatialInfo.facingEntityId = scriptDesc.RawGetSlotValue("worldFacingEntity", 0u);
+  spatialInfo.anchorEntityId = desc.RawGetSlotValue("worldAnchorEntity", 0u);
+  spatialInfo.facingEntityId = desc.RawGetSlotValue("worldFacingEntity", 0u);
 
-  spatialInfo.anchorNodeName = scriptDesc.RawGetSlotValue("worldAnchorEntityNode", eastl::string());
-}
+  spatialInfo.anchorNodeName = desc.RawGetSlotValue("worldAnchorEntityNode", eastl::string());
 
-void Panel::updateRenderInfoParamsFromScript()
-{
-  G_ASSERT_RETURN(screen && screen->etree.root, );
-  Sqrat::Table &desc = screen->etree.root->props.scriptDesc;
   renderInfo.brightness = desc.RawGetSlotValue("worldBrightness", PanelRenderInfo::def_brightness);
   renderInfo.smoothness = desc.RawGetSlotValue("worldSmoothness", PanelRenderInfo::def_smoothness);
   renderInfo.reflectance = desc.RawGetSlotValue("worldReflectance", PanelRenderInfo::def_reflectance);
@@ -172,65 +166,26 @@ void Panel::updateRenderInfoParamsFromScript()
 /* *******************************************************/
 
 
-PanelData::PanelData(GuiScene &scene, const Sqrat::Object &object, int panelIndex)
+bool Panel::getCanvasSize(IPoint2 &size) const
 {
-  panel.reset(new Panel(&scene));
-  panel->init(panelIndex, object);
-
-  index = panelIndex;
-
-  panel->updateSpatialInfoFromScript();
-  if (panel->spatialInfo.anchor != PanelAnchor::None)
-    syncCanvas();
-}
-
-
-bool PanelData::getCanvasSize(IPoint2 &size) const
-{
-  if (!panel->screen || !panel->screen->etree.root)
+  if (!screen || !screen->etree.root)
     return false;
-  size = panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("canvasSize", IPoint2(-1, -1));
+  size = screen->etree.root->props.scriptDesc.RawGetSlotValue("canvasSize", IPoint2(-1, -1));
   return size.x > 0 && size.y > 0;
 }
 
 
-eastl::string PanelData::getPointerPath() const
+bool Panel::isAutoUpdated() const
 {
-  if (!panel->screen || !panel->screen->etree.root)
-    return eastl::string();
-  return panel->screen->etree.root->props.scriptDesc.GetSlotValue("worldPointerTexture", eastl::string());
-}
-
-
-Point2 PanelData::getPointerSize() const
-{
-  const auto defaultValue = Point2(64, 64);
-  if (!panel->screen || !panel->screen->etree.root)
-    return defaultValue;
-  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerSize", defaultValue);
-}
-
-
-bool PanelData::isAutoUpdated() const
-{
-  if (!panel->screen || !panel->screen->etree.root)
+  if (!screen || !screen->etree.root)
     return true;
-  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("isAutoUpdated", true);
+  return screen->etree.root->props.scriptDesc.RawGetSlotValue("isAutoUpdated", true);
 }
 
 
-E3DCOLOR PanelData::getPointerColor() const
+bool Panel::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
 {
-  auto defaultValue = E3DCOLOR(255, 0, 0);
-  if (!panel->screen || !panel->screen->etree.root)
-    return defaultValue;
-  return panel->screen->etree.root->props.scriptDesc.RawGetSlotValue("worldPointerColor", defaultValue);
-}
-
-
-bool PanelData::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
-{
-  int features = panel->renderInfo.worldRenderFeatures;
+  int features = renderInfo.worldRenderFeatures;
 
   switch (render_pass)
   {
@@ -243,6 +198,8 @@ bool PanelData::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
 
     case darg_panel_renderer::RenderPass::GBuffer: return (features & darg_panel_renderer::RenderFeatures::Opaque) != 0;
 
+    case darg_panel_renderer::RenderPass::ReactiveMask: return true;
+
     default: G_ASSERTF(false, "Implement handling this pass!");
   }
 
@@ -250,39 +207,31 @@ bool PanelData::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
 }
 
 
-void PanelData::setCursorStatus(int hand, bool enabled)
+void Panel::setCursorState(int hand, bool enabled, Point2 pos)
 {
-  if (panel)
+  if (hand < 0 || hand >= MAX_POINTERS)
+    G_ASSERTF(0, "Invalid hand %d", hand);
+  else
   {
-    if (hand < 0 || hand >= Panel::MAX_POINTERS)
-      G_ASSERTF(0, "Invalid hand %d", hand);
-    else
-    {
-      debug("[DARG][CTRL] %s(hand=%d, en=%d)", __FUNCTION__, hand, enabled);
-      PanelPointer &ptr = panel->pointers[hand];
-      if (ptr.isPresent != enabled)
-      {
-        ptr.isPresent = enabled;
-        ptr.pos.set(-100, -100);
-        panel->updateHover();
-      }
-    }
+    PanelPointer &ptr = pointers[hand];
+    bool needHoverUpdate = (ptr.isPresent != enabled) || (enabled && pos != ptr.pos);
+    ptr.isPresent = enabled;
+    ptr.pos = pos;
+    if (needHoverUpdate)
+      updateHover();
   }
 }
 
 
-bool PanelData::needRenderInWorld() const
+bool Panel::needRenderInWorld() const
 {
-  if (!panel)
+  if (spatialInfo.anchor == PanelAnchor::None)
     return false;
 
-  if (panel->spatialInfo.anchor == PanelAnchor::None)
+  if (spatialInfo.geometry == PanelGeometry::None)
     return false;
 
-  if (panel->spatialInfo.geometry == PanelGeometry::None)
-    return false;
-
-  if (panel->spatialInfo.renderRedirection)
+  if (spatialInfo.renderRedirection)
     return false;
 
   IPoint2 size;
@@ -290,7 +239,7 @@ bool PanelData::needRenderInWorld() const
 }
 
 
-void PanelData::syncCanvas()
+void Panel::syncCanvas()
 {
   IPoint2 targetSize;
   if (getCanvasSize(targetSize))
@@ -310,21 +259,7 @@ void PanelData::syncCanvas()
     eastl::string canvasName;
     canvasName.eastl::string::sprintf("panelCanvas_%d", index);
     const int flags = TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_RTARGET;
-    canvas->set(d3d::create_tex(nullptr, targetSize.x, targetSize.y, flags, 1, canvasName.data()));
-
-    if (panel->spatialInfo.canBePointedAt)
-    {
-      eastl::string currentPointerPath = getPointerPath();
-      if (pointerPath != currentPointerPath && pointerTex != BAD_TEXTUREID)
-        ::release_managed_tex(pointerTex);
-      if (!currentPointerPath.empty())
-      {
-        pointerTex = ::get_managed_texture_id(currentPointerPath.data());
-        pointerPath = currentPointerPath;
-
-        G_ASSERTF(pointerTex != BAD_TEXTUREID, "Pointer specified for panel can't be found: %s", currentPointerPath.data());
-      }
-    }
+    canvas->set(d3d::create_tex(nullptr, targetSize.x, targetSize.y, flags, 1, canvasName.data(), RESTAG_GUI));
   }
   else if (canvas)
   {
@@ -333,12 +268,12 @@ void PanelData::syncCanvas()
 }
 
 
-void PanelData::updateTexture(GuiScene &scene, BaseTexture *target)
+void Panel::updateTexture(GuiScene &gui_scene, BaseTexture *target)
 {
   if (!isAutoUpdated() && !isDirty)
     return;
 
-  TIME_D3D_PROFILE(PanelData__updateTexture);
+  TIME_D3D_PROFILE(Panel__updateTexture);
 
   {
     SCOPE_RENDER_TARGET;
@@ -353,21 +288,21 @@ void PanelData::updateTexture(GuiScene &scene, BaseTexture *target)
     TextureInfo texInfo;
     target->getinfo(texInfo);
 
-    d3d::set_render_target(target, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
     d3d::setview(0, 0, texInfo.w, texInfo.h, 0, 1);
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     int savedBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
-    scene.refreshGuiContextState();
-    scene.buildPanelRender(index);
+    gui_scene.refreshGuiContextState();
+    gui_scene.buildPanelRender(index);
 
     // basically, the same as GuiScene::flushRenderImpl() / GuiScene::flushPanelRender()
-    scene.getGuiContext()->setTarget();
+    gui_scene.getGuiContext()->setTarget();
     StdGuiRender::acquire();
-    scene.getGuiContext()->flushData();
-    scene.getGuiContext()->end_render();
+    gui_scene.getGuiContext()->flushData();
+    gui_scene.getGuiContext()->end_render();
 
     ShaderGlobal::setBlock(savedBlockId, ShaderGlobal::LAYER_FRAME);
 

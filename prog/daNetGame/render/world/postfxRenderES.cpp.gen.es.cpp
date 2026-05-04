@@ -153,9 +153,9 @@ static ecs::CompileTimeQueryDesc set_fade_mul_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_fade_mul_ecs_query(Callable function)
+inline void set_fade_mul_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_fade_mul_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_fade_mul_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -182,9 +182,9 @@ static ecs::CompileTimeQueryDesc init_dof_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void init_dof_ecs_query(ecs::EntityId eid, Callable function)
+inline void init_dof_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, init_dof_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, init_dof_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -211,9 +211,9 @@ static ecs::CompileTimeQueryDesc get_dof_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_dof_ecs_query(Callable function)
+inline void get_dof_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_dof_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_dof_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -242,9 +242,9 @@ static ecs::CompileTimeQueryDesc set_far_dof_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_far_dof_ecs_query(Callable function)
+inline void set_far_dof_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_far_dof_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_far_dof_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -273,9 +273,9 @@ static ecs::CompileTimeQueryDesc postfx_bind_additional_textures_from_registry_e
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void postfx_bind_additional_textures_from_registry_ecs_query(Callable function)
+inline void postfx_bind_additional_textures_from_registry_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, postfx_bind_additional_textures_from_registry_ecs_query_desc.getHandle(),
+  perform_query(&manager, postfx_bind_additional_textures_from_registry_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -301,9 +301,9 @@ static ecs::CompileTimeQueryDesc postfx_bind_additional_textures_from_namespace_
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void postfx_bind_additional_textures_from_namespace_ecs_query(Callable function)
+inline void postfx_bind_additional_textures_from_namespace_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, postfx_bind_additional_textures_from_namespace_ecs_query_desc.getHandle(),
+  perform_query(&manager, postfx_bind_additional_textures_from_namespace_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -329,9 +329,9 @@ static ecs::CompileTimeQueryDesc postfx_read_additional_textures_from_registry_e
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void postfx_read_additional_textures_from_registry_ecs_query(Callable function)
+inline void postfx_read_additional_textures_from_registry_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, postfx_read_additional_textures_from_registry_ecs_query_desc.getHandle(),
+  perform_query(&manager, postfx_read_additional_textures_from_registry_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

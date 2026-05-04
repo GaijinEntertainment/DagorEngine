@@ -43,10 +43,18 @@ namespace
 static String cache_UUID_as_str()
 {
   uint32_t cacheUUID[4] = {};
-  d3d::driver_command(Drv3dCommand::GET_SHADER_CACHE_UUID, &cacheUUID[0]);
   String cacheUUIDstr("");
-  for (uint32_t i : cacheUUID)
-    cacheUUIDstr += String(4, "%08lX", i);
+  if (d3d::driver_command(Drv3dCommand::GET_SHADER_CACHE_UUID, &cacheUUID[0]))
+  {
+    for (uint32_t i : cacheUUID)
+      cacheUUIDstr += String(4, "%08lX", i);
+  }
+  else
+  {
+    cacheUUIDstr += d3d::get_device_name();
+    cacheUUIDstr += " ";
+    cacheUUIDstr += d3d::get_driver_desc().info.driverVersion.toString().c_str();
+  }
   return cacheUUIDstr;
 }
 
@@ -158,6 +166,11 @@ static bool is_loading_thread = false;
 static int compileTimeLimit = 0;
 static int flushEveryNPipelines = 0;
 static int maxFlushPeriodMs = 0;
+// multiplier for flushEveryNPipelines to detect how much max queued pipes can exist
+// before flushing and how much is fine to leave queued on any flush
+// this allows overlapping pipeline setup on main thread with compiler workers properly
+static int queuedPipesSoftLimitMul = 2;
+static int queuedPipesHardLimitMul = 3;
 enum
 {
   NOT_PRESENTED = 0,
@@ -172,6 +185,7 @@ struct WarmupCompletionStatus
   uint32_t completed;
   uint32_t total;
   uint32_t summaryCompleted;
+  size_t refCompiledPipes;
   bool done;
 };
 static WarmupCompletionStatus warmupCompletionStatus = {0, 0, 0, true};
@@ -212,7 +226,7 @@ public:
     compiledPipelinesCount += 1;
     size_t queued = d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH);
     perPipeFlush = compiledPipelinesCount == flushEveryNPipelines;
-    perQueueFlush = queued >= (flushEveryNPipelines * 2);
+    perQueueFlush = queued >= (flushEveryNPipelines * queuedPipesHardLimitMul);
     return perPipeFlush || perQueueFlush;
   }
 
@@ -228,7 +242,7 @@ public:
     }
     else if (perQueueFlush)
     {
-      TIME_PROFILE_NAME(pq_flush, String(32, "per_queued-%u-%u", queued, flushEveryNPipelines));
+      TIME_PROFILE_NAME(pq_flush, String(32, "per_queued-%u-%u", d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH), flushEveryNPipelines));
       timeus = flushCommands();
     }
 #else
@@ -284,11 +298,14 @@ private:
     if (is_loading_thread)
     {
       int64_t timeus = profile_ref_ticks();
-      interlocked_release_store(was_present, NOT_PRESENTED);
       unlockGpu();
       if (perQueueFlush)
-        spin_wait([&] { return d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH) > flushEveryNPipelines; });
+        spin_wait([&] {
+          return d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH) >
+                 flushEveryNPipelines * queuedPipesSoftLimitMul;
+        });
       spin_wait([&] { return interlocked_relaxed_load(was_present) <= PRESENTED_ENOUGH; });
+      interlocked_release_store(was_present, NOT_PRESENTED);
       timeus = profile_time_usec(timeus);
       return timeus;
     }
@@ -536,26 +553,38 @@ private:
 class GraphicsShadersWarmup final : public ShadersWarmup
 {
 public:
-  GraphicsShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals, BaseTexture *color, BaseTexture *depth) :
-    ShadersWarmup(flusher, intervals), colorTarget(color), depthTarget(depth)
+  GraphicsShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals, const shadercache::WarmupParams &params) :
+    ShadersWarmup(flusher, intervals), depthTarget(params.depthTarget)
   {
-    initResources();
+    initResources(params.colorTargetCount, params.colorTargetFormat);
   }
 
   ~GraphicsShadersWarmup()
   {
     if (texBlobId != BAD_TEXTUREID)
       release_managed_tex(texBlobId);
+    for (BaseTexture *tex : colorTargets)
+      tex->destroy();
   }
 
 private:
-  void initResources()
+  void initResources(int colorTargetCount, int colorTargetFormat)
   {
     sbd = &shBinDump();
 
-    BaseTexture *tex = d3d::create_tex(nullptr, 1, 1, TEXCF_RGB, 1, "shaders_warmup_blob");
+    BaseTexture *tex = d3d::create_tex(nullptr, 1, 1, TEXCF_RGB, 1, "shaders_warmup_blob", RESTAG_SHADER_CAHCE);
     if (tex)
       texBlobId = register_managed_tex("shaders_warmup_blob", tex);
+
+    colorTargets.clear();
+    for (int i = 0; i < colorTargetCount; ++i)
+    {
+      String colorTargetName(-1, "warmup_tmp_color_%d", i);
+      BaseTexture *colorTarget =
+        d3d::create_tex(nullptr, 1, 1, colorTargetFormat | TEXCF_RTARGET, 1, colorTargetName.c_str(), RESTAG_SHADER_CAHCE);
+      G_ASSERT(colorTarget);
+      colorTargets.push_back(colorTarget);
+    }
   }
 
   virtual ScriptedShaderMaterial *initMaterial(const shaderbindump::ShaderClass &sc) override
@@ -588,8 +617,8 @@ private:
     d3d_get_render_target(prevRT);
 
     d3d::set_render_target();
-    if (colorTarget)
-      d3d::set_render_target(colorTarget, 0);
+    for (int i = 0; i < colorTargets.size(); ++i)
+      d3d::set_render_target(i, colorTargets[i], 0);
     if (depthTarget)
       d3d::set_depth(depthTarget, DepthAccess::RW);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0.f, 0);
@@ -610,8 +639,8 @@ private:
 private:
   eastl::vector<const shaderbindump::ShaderClass *> shaderClasses;
   const ScriptedShadersBinDump *sbd = nullptr;
-  BaseTexture *colorTarget = nullptr;
   BaseTexture *depthTarget = nullptr;
+  eastl::vector<BaseTexture *> colorTargets;
   Driver3dRenderTarget prevRT;
 
   TEXTUREID texBlobId = BAD_TEXTUREID;
@@ -668,7 +697,9 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
 
   shader_warmup_status_file = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getStr("statusBlk", shader_warmup_status_file);
   debug("shader warmup status file: %s", shader_warmup_status_file);
-  if (cache_already_warmed_up())
+
+  const bool skipWhenUpToDate = ::dgs_get_settings()->getBlockByNameEx("shadersWarmup")->getBool("skipWhenUpToDate", true);
+  if (cache_already_warmed_up() && skipWhenUpToDate)
   {
     debug("shaders cache up to date, skipping warmup");
     return;
@@ -698,13 +729,16 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
     const auto graphicsShaderClasses = gather_shader_classes(graphics_shader_names);
     const auto computeShaderClasses = gather_shader_classes(compute_shader_names);
 
-    GraphicsShadersWarmup graphics(d3dFlusher, invalidIntervals, params.colorTarget, params.depthTarget);
+    GraphicsShadersWarmup graphics(d3dFlusher, invalidIntervals, params);
     ComputeShadersWarmup compute(d3dFlusher, invalidIntervals);
 
     d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
     warmupCompletionStatus.completed = 0;
     warmupCompletionStatus.total = graphics.getAmount(graphicsShaderClasses) + compute.getAmount(computeShaderClasses);
     warmupCompletionStatus.summaryCompleted = 0;
+    warmupCompletionStatus.refCompiledPipes = 0;
+    d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH, nullptr,
+      (void *)&warmupCompletionStatus.refCompiledPipes);
     warmupCompletionStatus.done = false;
     d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
@@ -723,6 +757,14 @@ void shadercache::warmup_shaders(const Tab<const char *> &graphics_shader_names,
 
   {
     TIME_PROFILE(warmup_shaders_async_complete_wait);
+    {
+      // ensure that queued compilations are visible to us be cause there can be latency hiding them from us
+      uint32_t framesToViewQueued = 1;
+      d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH, (void *)&framesToViewQueued);
+      interlocked_release_store(was_present, NOT_PRESENTED);
+      ++framesToViewQueued; // to avoid any hidden transients/border cases
+      spin_wait([&] { return interlocked_relaxed_load(was_present) <= framesToViewQueued; });
+    }
     while (d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH) > 0)
       sleep_msec(TAIL_WAIT_TIME);
   }
@@ -758,11 +800,21 @@ bool shadercache::get_warmup_status(uint32_t &completed, uint32_t &total)
   if (warmupCompletionStatus.done)
     return false;
 
-  uint32_t queued = (uint32_t)d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH);
-  uint32_t asyncCorrectedCompleted = warmupCompletionStatus.completed > queued ? (warmupCompletionStatus.completed - queued) : 0;
+  size_t totalCompiledPipes = 0;
+  uint32_t queued =
+    (uint32_t)d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH, nullptr, (void *)&totalCompiledPipes);
+  if (totalCompiledPipes > 0)
+  {
+    uint32_t pipesCompiledSinceWarmupStart = totalCompiledPipes - warmupCompletionStatus.refCompiledPipes;
+    uint32_t totalNonCompiledPipes =
+      warmupCompletionStatus.total >= pipesCompiledSinceWarmupStart ? warmupCompletionStatus.total - pipesCompiledSinceWarmupStart : 0;
+    queued = max(totalNonCompiledPipes, queued);
+  }
+  uint32_t asyncCorrectedCompleted =
+    warmupCompletionStatus.completed > queued ? (warmupCompletionStatus.completed - queued) : warmupCompletionStatus.total - queued;
   // do not make it smaller than last visible one, to not confuse API user with "rollbacks"
   warmupCompletionStatus.summaryCompleted = max(warmupCompletionStatus.summaryCompleted, asyncCorrectedCompleted);
-  completed = warmupCompletionStatus.completed;
+  completed = warmupCompletionStatus.summaryCompleted;
   total = warmupCompletionStatus.total;
   return total > 0;
 }
@@ -776,10 +828,19 @@ void shadercache::draw_warmup_status()
     int w = 0, h = 0;
     d3d::get_target_size(w, h);
     int barH = 32;
-    int barW = (completed * 100 / total) * w / 100;
+    int barW = (completed * w * 100) / (total * 100);
     d3d::setview(0, h - barH, w, barH, 0, 1);
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
     d3d::setview(0, h - barH, barW, barH, 0, 1);
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+
+    // retro style load progress
+    // int barHofs = barH;
+    // barH = 8;
+    // barW = completed % w;
+    // d3d::setview(0, h - barH - barHofs, w, barH, 0, 1);
+    // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
+    // d3d::setview(0, h - barH - barHofs, barW, barH, 0, 1);
+    // d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
   }
 }

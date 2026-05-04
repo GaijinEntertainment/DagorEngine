@@ -37,6 +37,8 @@
 
 #include <osApiWrappers/dag_progGlobals.h>
 
+#include <drv/3d/dag_drv3d_multi.h>
+
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
 //  2025-XX-XX: Added support for multiple windows via the ImGuiPlatformIO interface.
@@ -517,7 +519,7 @@ bool ImGui_ImplOSX_Init(NSView* view)
     [view addSubview:bd->KeyEventResponder];
     ImGui_ImplOSX_AddTrackingArea(view);
 
-    io.PlatformSetImeDataFn = [](ImGuiContext*, ImGuiViewport* viewport, ImGuiPlatformImeData* data) -> void
+    ImGui::GetPlatformIO().Platform_SetImeDataFn = [](ImGuiContext*, ImGuiViewport* viewport, ImGuiPlatformImeData* data) -> void
     {
         ImGui_ImplOSX_Data* bd = ImGui_ImplOSX_GetBackendData();
         if (data->WantVisible)
@@ -956,6 +958,7 @@ static void ImGui_ImplOSX_DestroyWindow(ImGuiViewport* viewport)
         {
             void destroy_cached_window_data(void *window);
             destroy_cached_window_data(window);
+            d3d::window_destroyed(viewport->PlatformHandle);
 
             window.contentView = nil;
             window.contentViewController = nil;

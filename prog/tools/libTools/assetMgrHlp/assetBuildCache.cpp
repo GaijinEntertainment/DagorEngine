@@ -23,11 +23,13 @@
 #include <util/dag_texMetaData.h>
 #include <util/dag_safeArg.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <debug/dag_debug.h>
 
 static const int ASSET_RESID_BASE = 512 << 10;
+static WinCritSec dabuild_cache_cs;
 
-static String startDir, tmpStr;
+static String startDir;
 static IDaBuildInterface *dabuild = NULL;
 static DagorAssetMgr *assetMgr = NULL;
 static ILogWriter *buildLog = NULL;
@@ -36,7 +38,6 @@ static FastNameMap assetMap;
 static Tab<unsigned> assetRev(inimem);
 static Tab<unsigned> assetTypeToClassId(inimem);
 static Tab<int> assetExpTypes(inimem);
-static Tab<int> tmpRefList(inimem);
 static int texTypeId = -1;
 
 static void install_gameres_hooks();
@@ -79,6 +80,7 @@ public:
   void onAssetBaseChanged(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
     dag::ConstSpan<DagorAsset *> removed_assets) override
   {
+    WinAutoLock lock(dabuild_cache_cs);
     for (int i = 0; i < changed_assets.size(); i++)
     {
       const DagorAsset &a = *changed_assets[i];
@@ -151,6 +153,7 @@ IDaBuildInterface *dabuildcache::get_dabuild() { return dabuild; }
 
 int dabuildcache::bind_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const char *appdir, const char *ddsx_plugins_path)
 {
+  WinAutoLock lock(dabuild_cache_cs);
   if (!dabuild)
     return -1;
 
@@ -199,11 +202,11 @@ int dabuildcache::bind_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
 void dabuildcache::post_base_update_notify() { free_unused_game_resources(); }
 
 
-static String tmpConStr;
 static void post_con_error(const char *fmt, const DagorSafeArg *arg, int anum)
 {
   if (!assetMgr)
     return;
+  String tmpConStr;
   tmpConStr.vprintf(512, fmt, arg, anum);
   assetMgr->getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::ERROR, tmpConStr, NULL, NULL);
 }
@@ -211,6 +214,7 @@ static void post_con_warning(const char *fmt, const DagorSafeArg *arg, int anum)
 {
   if (!assetMgr)
     return;
+  String tmpConStr;
   tmpConStr.vprintf(512, fmt, arg, anum);
   assetMgr->getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::WARNING, tmpConStr, NULL, NULL);
 }
@@ -218,6 +222,7 @@ static void post_con_note(const char *fmt, const DagorSafeArg *arg, int anum)
 {
   if (!assetMgr)
     return;
+  String tmpConStr;
   tmpConStr.vprintf(512, fmt, arg, anum);
   assetMgr->getMsgPipe().onAssetMgrMessage(IDagorAssetMsgPipe::NOTE, tmpConStr, NULL, NULL);
 }
@@ -296,6 +301,8 @@ static bool abc_on_get_res_name(int res_id, String &out_res_name)
 {
   if (res_id < ASSET_RESID_BASE) //== fallback for old resources built separately
     return false;
+
+  WinAutoLock lock(dabuild_cache_cs);
   if (DagorAsset *a = getAssetByResId(res_id - ASSET_RESID_BASE))
   {
     out_res_name = a->getName();
@@ -303,9 +310,11 @@ static bool abc_on_get_res_name(int res_id, String &out_res_name)
   }
   return true;
 }
-static bool abc_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out_res_id)
+static bool abc_resolve_res_handle(const char *aname, unsigned class_id, int &out_res_id)
 {
-  const char *aname = (const char *)rh;
+  if (!aname || !*aname)
+    return false;
+  WinAutoLock lock(dabuild_cache_cs);
   int a_type = -1;
   DagorAsset *a;
 
@@ -337,7 +346,7 @@ static bool abc_resolve_res_handle(GameResHandle rh, unsigned class_id, int &out
     if (class_id != 0xFFFFFFFFU)
     {
       gamereshooks::resolve_res_handle = NULL;
-      out_res_id = gamereshooks::aux_game_res_handle_to_id(rh, class_id);
+      out_res_id = gamereshooks::aux_game_res_handle_to_id(aname, class_id);
       gamereshooks::resolve_res_handle = abc_resolve_res_handle;
       if (out_res_id >= 0)
       {
@@ -368,6 +377,7 @@ static bool resolve_res_handle(const DagorAsset *a, int &out_res_id)
     assetRev.push_back(0);
   G_ASSERT(asset_nid < assetRev.size());
 
+  String tmpStr;
   if (assetRev[asset_nid])
     tmpStr.printf(128, "%d?%s:%s", assetRev[asset_nid], a->getName(), a->getTypeStr());
   else
@@ -391,6 +401,7 @@ static bool abc_get_game_res_class_id(int res_id, unsigned &out_class_id)
   if (res_id < ASSET_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  WinAutoLock lock(dabuild_cache_cs);
   DagorAsset *a = getAssetByResId(res_id - ASSET_RESID_BASE);
   if (!a)
   {
@@ -401,11 +412,12 @@ static bool abc_get_game_res_class_id(int res_id, unsigned &out_class_id)
   out_class_id = assetTypeToClassId[a->getType()];
   return true;
 }
-static bool abc_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
+static bool abc_get_game_resource(int res_id, gameres_rrl_cptr_t rrl, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
 {
   if (res_id < ASSET_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  WinAutoLock lock(dabuild_cache_cs);
   DagorAsset *a = getAssetByResId(res_id - ASSET_RESID_BASE);
   if (!a)
   {
@@ -434,46 +446,17 @@ static bool abc_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f
     return true;
   }
 
-  out_res = fac->getGameResource(res_id);
+  lock.unlock();
+  out_res = fac->getGameResource(rrl, res_id);
   return true;
 }
 static bool abc_release_game_resource(int res_id, dag::Span<GameResourceFactory *> f) { return false; }
-static bool abc_release_game_res2(GameResHandle rh, dag::Span<GameResourceFactory *> f)
-{
-  const char *aname = (const char *)rh;
-  DagorAsset *a = assetMgr->findAsset(aname, assetExpTypes);
-
-  if (!a)
-  {
-    post_con_error("try release non-existing asset <%s>", aname);
-    return true;
-  }
-  if (!assetMgr->isAssetNameUnique(*a, assetExpTypes))
-  {
-    post_con_error("cannot use ambiguous asset name <%s> without type qualification", aname);
-    return true;
-  }
-  if (a->getFolderIndex() == -1) //== fallback for old resources built separately
-    return false;
-
-  int asset_nid = assetMap.getNameId(a->getNameTypified());
-  if (asset_nid == -1)
-  {
-    post_con_error("try release not created asset <%s>", aname);
-    return true;
-  }
-  if (assetRev[asset_nid] != 0)
-  {
-    post_con_error("disabled non-safe release of asset <%s>, leaks may occur", aname);
-    return true;
-  }
-  return false;
-}
 static bool abc_get_res_refs(int res_id, Tab<int> &out_refs)
 {
   if (res_id < ASSET_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  WinAutoLock lock(dabuild_cache_cs);
   DagorAsset *a = getAssetByResId(res_id - ASSET_RESID_BASE);
   out_refs.clear();
   if (!a)
@@ -496,8 +479,8 @@ static bool abc_get_res_refs(int res_id, Tab<int> &out_refs)
       if (!refList[i].getAsset())
         out_refs.push_back(-1);
       else
-        out_refs.push_back(gamereshooks::aux_game_res_handle_to_id(GAMERES_HANDLE_FROM_STRING(refList[i].refAsset->getName()),
-          assetTypeToClassId[refList[i].refAsset->getType()]));
+        out_refs.push_back(
+          gamereshooks::aux_game_res_handle_to_id(refList[i].refAsset->getName(), assetTypeToClassId[refList[i].refAsset->getType()]));
     }
   }
   return true;
@@ -522,6 +505,7 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   if (res_id < ASSET_RESID_BASE) //== fallback for old resources built separately
     return false;
 
+  WinAutoLock lock(dabuild_cache_cs);
   DagorAsset *a = getAssetByResId(res_id - ASSET_RESID_BASE);
   if (!a)
     return true;
@@ -535,7 +519,7 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   if (!exp)
     return true;
 
-  int tmp_top = tmpRefList.size();
+  Tab<int> tmpRefList(tmpmem);
   if (IDagorAssetRefProvider *refResv = assetMgr->getAssetRefProvider(a->getType()))
   {
     Tab<IDagorAssetRefProvider::Ref> refList;
@@ -559,7 +543,7 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
         if (!refList[i].getAsset())
           tmpRefList.push_back(-1);
         else
-          tmpRefList.push_back(gamereshooks::aux_game_res_handle_to_id(GAMERES_HANDLE_FROM_STRING(refList[i].refAsset->getName()),
+          tmpRefList.push_back(gamereshooks::aux_game_res_handle_to_id(refList[i].refAsset->getName(),
             assetTypeToClassId[refList[i].refAsset->getType()]));
       }
     }
@@ -579,19 +563,17 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   {
     AssetCacheLoadCB crd(cwr.getRawWriter().getMem(), false, eastl::move(cachePath), dataOffset);
 
+    lock.unlock();
     fac->loadGameResourceData(res_id, crd);
-    if (tmpRefList.size() > tmp_top)
-    {
-      Tab<int> refList;
-      refList = make_span_const(tmpRefList).subspan(tmp_top);
-      fac->createGameResource(res_id, refList.data(), refList.size());
-    }
+    lock.lock();
+
+    if (!tmpRefList.empty())
+      fac->createGameResource(nullptr, res_id, tmpRefList.data(), tmpRefList.size());
     else
-      fac->createGameResource(res_id, NULL, 0);
+      fac->createGameResource(nullptr, res_id, NULL, 0);
   }
 
   dabuild->setupReports(NULL, NULL);
-  tmpRefList.resize(tmp_top);
   return true;
 }
 
@@ -603,7 +585,6 @@ static void install_gameres_hooks()
   gamereshooks::on_get_game_res_class_id = abc_get_game_res_class_id;
   gamereshooks::on_get_game_resource = abc_get_game_resource;
   gamereshooks::on_release_game_resource = abc_release_game_resource;
-  gamereshooks::on_release_game_res2 = abc_release_game_res2;
   gamereshooks::on_load_game_resource_pack = abc_load_game_resource_pack;
   gamereshooks::on_get_res_name = &abc_on_get_res_name;
   post_con_note("assetBuildCache installed hooks to gameres system");
@@ -616,21 +597,22 @@ static void reset_gameres_hooks()
   gamereshooks::on_get_game_res_class_id = 0;
   gamereshooks::on_get_game_resource = 0;
   gamereshooks::on_release_game_resource = 0;
-  gamereshooks::on_release_game_res2 = 0;
   gamereshooks::on_load_game_resource_pack = 0;
   gamereshooks::on_get_res_name = 0;
 }
 
 int dabuildcache::get_asset_res_id(const DagorAsset &a)
 {
+  WinAutoLock lock(dabuild_cache_cs);
   int res_id = -1;
   if (resolve_res_handle(&a, res_id))
     return res_id;
-  return gamereshooks::aux_game_res_handle_to_id(GAMERES_HANDLE_FROM_STRING(a.getName()), assetTypeToClassId[a.getType()]);
+  return gamereshooks::aux_game_res_handle_to_id(a.getName(), assetTypeToClassId[a.getType()]);
 }
 
 bool dabuildcache::invalidate_asset(const DagorAsset &a, bool free_unused_resources)
 {
+  WinAutoLock lock(dabuild_cache_cs);
   if (a.getType() == texTypeId)
     ::reload_changed_texture_asset(a);
 
@@ -641,7 +623,7 @@ bool dabuildcache::invalidate_asset(const DagorAsset &a, bool free_unused_resour
     {
       GameResourceFactory *f = find_gameres_factory(assetTypeToClassId[a.getType()]);
       if (f)
-        while (f->freeUnusedResources(false)) {}
+        while (f->freeUnusedResources(nullptr, false)) {}
     }
     dabuild->invalidateBuiltRes(a, assetlocalprops::makePath("cache"));
     assetRev[anid]++;

@@ -143,6 +143,7 @@ namespace das {
             :  AstExpressionAnnotation<ExprAssume> ("ExprAssume", ml) {
             addField<DAS_BIND_MANAGED_FIELD(alias)>("alias", "alias");
             addField<DAS_BIND_MANAGED_FIELD(subexpr)>("subexpr");
+            addField<DAS_BIND_MANAGED_FIELD(assumeType)>("assumeType");
         }
     };
 

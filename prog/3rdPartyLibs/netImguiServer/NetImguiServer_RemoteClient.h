@@ -1,14 +1,10 @@
 #pragma once
 
-#include "NetImguiServer_App.h"
-
 #include <vector>
 #include <chrono>
 #include <unordered_map>
-
 #include <netImgui/source/NetImgui_CmdPackets.h>
-#include <drv/3d/dag_resId.h>
-
+#include "NetImguiServer_App.h"
 
 namespace NetImguiServer { namespace RemoteClient
 {
@@ -25,6 +21,7 @@ struct NetImguiImDrawData : ImDrawData
 {
 				NetImguiImDrawData();
 	ImDrawList	mCommandList;
+	uint64_t 	mFrameIndex = 0;
 };
 
 //=================================================================================================
@@ -37,37 +34,50 @@ struct Client
 	using ExchPtrClipboard	= NetImgui::Internal::ExchangePtr<NetImgui::Internal::CmdClipboard>;
 	using ExchPtrBackground = NetImgui::Internal::ExchangePtr<NetImgui::Internal::CmdBackground>;
 	using ExchPtrImguiDraw	= NetImgui::Internal::ExchangePtr<NetImguiImDrawData>;
-	using TextureTable		= std::unordered_map<uint64_t, App::ServerTexture>;
+	using TextureTable		= std::unordered_map<uint64_t, App::ServerTexture*>;
+	struct TexUpdateInfo
+	{
+		uint64_t ClientId;
+		uint64_t Frame;
+		uint32_t UpdateId;
+		uint32_t Format;
+		uint32_t x;
+		uint32_t y;
+		uint32_t w;
+		uint32_t h;
+		uint32_t isCreate : 1;
+		uint32_t isDestroy : 1;
+		uint32_t isUpdate : 1;
+		uint32_t isDearImguiManaged : 1;
+	};
+												Client();
+												~Client();
+												Client(const Client&)	= delete;
+												Client(const Client&&)	= delete;
+	void										operator=(const Client&) = delete;
+	void										Initialize();
+	void										Uninitialize();
+	void										Release();
+	bool										IsValid()const;
+												
+	void										ReceiveTexture(NetImgui::Internal::CmdTexture*);
+	void										ReceiveDrawFrame(NetImgui::Internal::CmdDrawFrame*);
+	void										ProcessCmdDrawFrame(NetImgui::Internal::CmdDrawFrame* pCmdDrawFrame);
+	NetImguiImDrawData*							GetImguiDrawData(ImTextureID EmtpyTextureID);	// Get current active Imgui draw data
+		                                    	
+	void										CaptureImguiInput();
+	NetImgui::Internal::CmdInput*				TakePendingInput();
+	NetImgui::Internal::CmdClipboard*			TakePendingClipboard();
+	void										ProcessPendingTextureCmds();
 
-											Client();
-											~Client();
-											Client(const Client&)	= delete;
-											Client(const Client&&)	= delete;
-	void									operator=(const Client&) = delete;
-	void									Initialize();
-	void									Uninitialize();
-	void									Release();
-	bool									IsValid()const;
-
-	void									ReceiveTexture(NetImgui::Internal::CmdTexture*);
-	void									ReceiveDrawFrame(NetImgui::Internal::CmdDrawFrame*);
-	NetImguiImDrawData*						ConvertToImguiDrawData(const NetImgui::Internal::CmdDrawFrame* pCmdDrawFrame);
-	NetImguiImDrawData*						GetImguiDrawData(void* pEmtpyTextureHAL);	// Get current active Imgui draw data
-		
-	void									CaptureImguiInput();
-	NetImgui::Internal::CmdInput*			TakePendingInput();
-	NetImgui::Internal::CmdClipboard*		TakePendingClipboard();
-	void									ProcessPendingTextures();
-	
-	static bool								Startup(uint32_t clientCountMax);
-	static void								Shutdown();
-	static uint32_t							GetCountMax();
-	static uint32_t							GetFreeIndex();
-	static Client&							Get(uint32_t index);
+	static bool									Startup(uint32_t clientCountMax);
+	static void									Shutdown();
+	static uint32_t								GetCountMax();
+	static uint32_t								GetFreeIndex();
+	static Client&								Get(uint32_t index);
 
 	void*										mpHAL_AreaRT			= nullptr;
-	void*										mpHAL_AreaTexture		= nullptr;
-	TEXTUREID 							mAreaTexId = {};
+	ImTextureData								mHAL_AreaTexture;
 	uint16_t									mAreaRTSizeX			= 0;		//!< Currently allocated RenderTarget size
 	uint16_t									mAreaRTSizeY			= 0;		//!< Currently allocated RenderTarget size
 	uint16_t									mAreaSizeX				= 0;		//!< Available area size available to remote client
@@ -82,15 +92,16 @@ struct Client
 	int											mConnectPort			= 0;		//!< Connected Port of this remote client
 
 	NetImguiImDrawData*							mpImguiDrawData			= nullptr;	//!< Current Imgui Data that this client is the owner of
+	NetImguiImDrawData*							mpPendingDrawData		= nullptr;	//!< Pending Imgui Data that has to have 1 frame display delay, to avoid issue with textures with pending updates
 	NetImgui::Internal::CmdDrawFrame*			mpFrameDrawPrev			= nullptr;	//!< Last valid DrawDrame (used by com thread, to uncompress data)
-	TextureTable								mTextureTable;						//!< Table of textures received and used by the client
+	TextureTable								mTextureTable;						//!< Table matching client TextureUserID to textures allocated on Server for it
 	ExchPtrImguiDraw							mPendingImguiDrawDataIn;			//!< Pending received Imgui DrawData, waiting to be taken ownership of
 	ExchPtrBackground							mPendingBackgroundIn;				//!< Background settings received and waiting to update client setting
 	ExchPtrClipboard							mPendingClipboardIn;				//!< Clipboard received from Client and waiting to be processed on Server
 	ExchPtrInput								mPendingInputOut;					//!< Input command waiting to be sent out to client
 	ExchPtrClipboard							mPendingClipboardOut;				//!< Clipboard command waiting to be sent out to client
 	std::vector<ImWchar>						mPendingInputChars;					//!< Captured Imgui characters input waiting to be added to new InputCmd
-	NetImgui::Internal::CmdTexture*				mpPendingTextures[64]	= {};		//!< Textures commands waiting to be processed in main update loop
+	NetImgui::Internal::CmdTexture*				mpPendingTextures[1024]	= {};		//!< Textures commands waiting to be processed in main update loop
 	std::atomic_uint64_t						mPendingTextureReadIndex;
 	std::atomic_uint64_t						mPendingTextureWriteIndex;
 	bool										mbIsVisible				= false;	//!< If currently shown
@@ -118,13 +129,16 @@ struct Client
 	float										mMousePos[2]			= {0,0};
 	float										mMouseWheelPos[2]		= {0,0};
 	ImGuiMouseCursor							mMouseCursor			= ImGuiMouseCursor_None;	// Last mosue cursor remote client requested
-	ImGuiContext*								mpBGContext				= nullptr;					// Special Imgui Context used to render the background (only updated when needed)	
+	ImGuiContext*								mpBGContext				= nullptr;					// Special Imgui Context used to render the background (only updated when needed)
 	bool										mBGNeedUpdate			= true;						// Let engine know that we should regenerate the background draw commands
 	NetImgui::Internal::Network::SocketInfo*	mpSocket				= nullptr;	//!< Socket used for communications 
 	NetImgui::Internal::CmdBackground			mBGSettings;						//!< Settings for client background drawing settings
 	NetImgui::Internal::CmdPendingRead 			mCmdPendingRead;					//!< Used to get info on the next incoming command from Client
 	NetImgui::Internal::PendingCom 				mPendingRcv;						//!< Data being currently received from Client
 	NetImgui::Internal::PendingCom 				mPendingSend;						//!< Data being currently sent to Client
+	TexUpdateInfo								mTextureHistory[256]	= {};		//!< Keeps track of texture changes (for debug info)
+	uint32_t 									mTextureHistoryIndex	= 0;
+	uint64_t									mLastDrawFrameIndex		= 0;		//!< Last frame index of valid drawdata drawn
 };
 
 }} // namespace NetImguiServer { namespace Client

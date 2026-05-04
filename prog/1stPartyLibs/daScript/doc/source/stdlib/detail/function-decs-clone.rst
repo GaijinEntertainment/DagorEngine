@@ -1,1 +1,0 @@
-Clones component value.

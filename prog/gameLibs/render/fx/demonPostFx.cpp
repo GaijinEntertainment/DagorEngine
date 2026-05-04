@@ -48,6 +48,8 @@
 static int darkThresholdVarId = -1, darkThreshold0VarId = -1, darkThreshold1VarId = -1;
 static int texVarId = -1, texSzVarId = -1, texUvTransformVarId = -1;
 static int tex_samplerstateVarId = -1;
+static int glob_demon_postfix_combine_texVarId = -1;
+static int glob_demon_postfix_combine_tex_samplerstateVarId = -1;
 static int glowTexVarId = -1, glowTexSzVarId = -1, glowScaleVarId = -1, hasPostFxGlowVarId = -1;
 static int volfogTexVarId = -1, volfogScaleVarId = -1;
 static int volFogOnVarId = -1;
@@ -60,6 +62,8 @@ static int targetTextureSizeVarId = -1;
 static int ldr_vignette_multiplierVarId = -1;
 static int ldr_vignette_widthVarId = -1;
 static int ldr_vignette_aspectVarId = -1;
+
+static int underwater_use_film_grainVarId = -1;
 
 static int has_mobile_glowVarId = -1;
 static int has_mobile_flaresVarId = -1;
@@ -74,7 +78,7 @@ static ShaderVariableInfo film_grain_params("film_grain_params", true);
 
 #define BLUR_SAMPLES 8
 static int weight0VarId, weight1VarId;
-static int weightVarId[BLUR_SAMPLES], texTmVarId[BLUR_SAMPLES];
+static int texTmVarId[BLUR_SAMPLES];
 
 static DemonPostFx *postFx = NULL;
 
@@ -133,6 +137,8 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
 
   texVarId = get_shader_variable_id("tex");
   tex_samplerstateVarId = get_shader_variable_id("tex_samplerstate");
+  glob_demon_postfix_combine_texVarId = get_shader_variable_id("glob_demon_postfix_combine_tex", true);
+  glob_demon_postfix_combine_tex_samplerstateVarId = get_shader_variable_id("glob_demon_postfix_combine_tex_samplerstate", true);
   texSzVarId = get_shader_variable_id("texsz_consts");
   texUvTransformVarId = get_shader_variable_id("texUvTransform");
 
@@ -146,6 +152,8 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
   ldr_vignette_multiplierVarId = get_shader_variable_id("ldr_vignette_multiplier", true);
   ldr_vignette_widthVarId = get_shader_variable_id("ldr_vignette_width", true);
   ldr_vignette_aspectVarId = get_shader_variable_id("ldr_vignette_aspect", true);
+
+  underwater_use_film_grainVarId = ::get_shader_variable_id("underwater_use_film_grain", true);
 
   has_mobile_glowVarId = get_shader_variable_id("has_mobile_glow", true);
   has_mobile_flaresVarId = get_shader_variable_id("has_mobile_flares", true);
@@ -178,7 +186,7 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
 
     if (initUIBlur)
     {
-      uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur");
+      uiBlurTex = dag::create_tex(NULL, lowResSize.x, lowResSize.y, sky_fmt | TEXCF_RTARGET, 1, "postfx_uiBlur", RESTAG_GUI);
       d3d_err(uiBlurTex.getTex2D());
     }
 
@@ -203,6 +211,7 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
     glowBlur2XFx.init("demon_postfx_blur");
     glowBlur2YFx.init("demon_postfx_blur");
     radialBlur1Fx.init("demon_postfx_blur");
+    gaussianHBlur.init("demon_postfx_hblur");
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
@@ -234,8 +243,6 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
     char name[64];
     for (int i = 0; i < BLUR_SAMPLES; ++i)
     {
-      snprintf(name, sizeof(name), "weight%d", i);
-      weightVarId[i] = get_shader_variable_id(name);
       snprintf(name, sizeof(name), "texTm%d", i);
       texTmVarId[i] = get_shader_variable_id(name);
     }
@@ -267,7 +274,8 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
   else
     combineFx.init(useSimpleMode ? "demon_postfx_combine_simple" : "demon_postfx_combine");
   combineFx.getMat()->set_sampler_param(::get_shader_variable_id("glowTex_samplerstate"), clampSampler);
-  combineFx.getMat()->set_sampler_param(tex_samplerstateVarId, clampSampler);
+  ShaderGlobal::set_sampler(glob_demon_postfix_combine_tex_samplerstateVarId, clampSampler);
+
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Mirror;
@@ -276,10 +284,12 @@ DemonPostFx::DemonPostFx(const DataBlock &main_blk, const DataBlock &adaptation_
 
   postFx = this;
   max_hdr_overbrightGVarId = ::get_shader_glob_var_id("max_hdr_overbright", true);
-  ShaderGlobal::set_real_fast(max_hdr_overbrightGVarId, ::hdr_max_overbright);
+  ShaderGlobal::set_float(max_hdr_overbrightGVarId, ::hdr_max_overbright);
 }
 
 void DemonPostFx::closeLenseFlare() { lensFlare.close(); }
+
+void DemonPostFx::setGaussianBlurAmount(float blur) { gaussianBlurAmount = blur; }
 
 void DemonPostFx::initLenseFlare(const char *lense_covering_tex_name, const char *lense_radial_tex_name)
 {
@@ -342,10 +352,11 @@ bool DemonPostFx::updateSettings(const DataBlock &main_blk)
 
 DemonPostFx::~DemonPostFx()
 {
-  if (combineFx.getMat())
-    combineFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
   if (downsample4x.getMat())
     downsample4x.getMat()->set_texture_param(srcTexVarId, BAD_TEXTUREID);
+
+  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
+  ShaderGlobal::set_sampler(glob_demon_postfix_combine_tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
 
   postFx = NULL;
 
@@ -374,11 +385,11 @@ DemonPostFx::~DemonPostFx()
 }
 
 #include <perfMon/dag_statDrv.h>
-void DemonPostFx::applyLenseFlare(BaseTexture *srcTex, TEXTUREID srcId)
+void DemonPostFx::applyLenseFlare(BaseTexture *srcTex)
 {
   if (!lenseFlareEnabled)
     return;
-  lensFlare.apply(srcTex, srcId);
+  lensFlare.apply(srcTex);
 }
 
 void DemonPostFx::calcGlowGraphics()
@@ -625,6 +636,7 @@ void DemonPostFx::setLenseFlareEnabled(bool enabled)
 }
 
 void DemonPostFx::setFilmGrainEnabled(bool enabled) { filmGrainEnabled = enabled; }
+void DemonPostFx::setUnderwaterFilmGrainEnabled(bool enabled) { underwaterfilmGrainEnabled = enabled; }
 
 #include <debug/dag_debug3d.h>
 
@@ -634,7 +646,7 @@ void DemonPostFx::downsample(Texture *to, TEXTUREID src, int srcW, int srcH, con
   TIME_D3D_PROFILE(downsample);
 
   // use filtered downsampling
-  d3d::set_render_target(to, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{to, 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
   Color4 target_coefs = quadCoeffs0001;
   static int texelOffsetVarId = ::get_shader_variable_id("texelOffset");
@@ -776,11 +788,10 @@ TextureIDPair DemonPostFx::downsample(Texture *input_tex, TEXTUREID input_id, co
 }
 
 // eye -1 for mono, 0,1 for stereo
-void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, Texture *output_tex, TEXTUREID output_id,
-  const TMatrix &view_tm, const TMatrix4 &proj_tm, Texture *depth_tex, int eye, int target_layer, const Point4 &target_uv_transform,
-  const RectInt *output_viewport, PreCombineFxProc pre_combine_fx_proc, TextureIDPair downsampled_color)
+void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+  Texture *depth_tex, int eye, int target_layer, const Point4 &target_uv_transform, const RectInt *output_viewport,
+  PreCombineFxProc pre_combine_fx_proc, Texture *downsampled_color)
 {
-  G_UNREFERENCED(output_id);
 #if DAGOR_DBGLEVEL == 0
   current.debugFlags = 0;
 #endif
@@ -801,9 +812,9 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     {
       if (usePrevFrameTex)
       {
-        if (downsampled_color.getTex2D())
+        if (downsampled_color)
         {
-          applyLenseFlare(downsampled_color.getTex2D(), downsampled_color.getId());
+          applyLenseFlare(downsampled_color);
         }
         else
         {
@@ -811,11 +822,11 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
           {
             prevFrameLowResTex = lowResDefRTPool->acquire();
           }
-          applyLenseFlare(prevFrameLowResTex->getTex2D(), prevFrameLowResTex->getTexId());
+          applyLenseFlare(prevFrameLowResTex->getTex2D());
         }
       }
       else
-        applyLenseFlare(nullptr, BAD_TEXTUREID);
+        applyLenseFlare(nullptr);
     }
 
     // apply glow color curve
@@ -829,7 +840,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     }
 
     ShaderGlobal::set_int(has_mobile_glowVarId, hasGlow);
-    ShaderGlobal::set_real_fast(hasPostFxGlowVarId, hasGlow ? 1 : 0);
+    ShaderGlobal::set_float(hasPostFxGlowVarId, hasGlow ? 1 : 0);
     if (current.hdrGlowMul * current.hdrGlowPower > 0 && hasGlow)
     {
       if (useCompute)
@@ -888,13 +899,16 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
       // perform radial blur
       lowResLumTex = lowResSkyRTPool->acquire();
 
+      float invRange = 1.0f / current.volfogRange;
+
       d3d::set_render_target(lowResLumTex->getTex2D(), 0);
 
+      float step = powf(invRange, 1.0f / (BLUR_SAMPLES * BLUR_SAMPLES * BLUR_SAMPLES));
+      real s = step;
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
-        real s = powf(1 / current.volfogRange, (i + 1) / real(BLUR_SAMPLES * BLUR_SAMPLES * BLUR_SAMPLES));
-
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
+        s *= step;
       }
 
       G_ASSERT(lowResLumTexPrepared != nullptr);
@@ -906,11 +920,12 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
       d3d::set_render_target(lowResLumTexPrepared->getTex2D(), 0);
 
+      step = powf(invRange, 1.0f / (BLUR_SAMPLES * BLUR_SAMPLES));
+      s = step;
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
-        real s = powf(1 / current.volfogRange, (i + 1) / real(BLUR_SAMPLES * BLUR_SAMPLES));
-
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
+        s *= step;
       }
 
       radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTex->getTexId());
@@ -921,11 +936,12 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
       d3d::set_render_target(lowResLumTex->getTex2D(), 0);
 
+      step = powf(invRange, 1.0f / (BLUR_SAMPLES));
+      s = 1.0;
       for (int i = 0; i < BLUR_SAMPLES; ++i)
       {
-        real s = powf(1 / current.volfogRange, i / real(BLUR_SAMPLES));
-
         radialBlur1Fx.getMat()->set_color4_param(texTmVarId[i], Color4(s, s, sunX - sunX * s, sunY - sunY * s));
+        s *= step;
       }
 
       radialBlur1Fx.getMat()->set_texture_param(texVarId, lowResLumTexPrepared->getTexId());
@@ -939,6 +955,27 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
     else
       sunLightK = 0;
   }
+
+  static int gaussian_blur_texVarId = ::get_shader_variable_id("gaussian_blur_tex", true);
+  static int gaussian_blur_mulVarId = ::get_shader_variable_id("gaussian_blur_mul", true);
+  static int hblur_inputVarId = ::get_shader_variable_id("hblur_input", true);
+  static int hblur_outputVarId = ::get_shader_variable_id("hblur_output", true);
+  RTarget::CPtr hblurTarget;
+  if (gaussianBlurAmount > 0)
+  {
+    hblurTarget = lowResDefRTPool->acquire();
+
+    ShaderGlobal::set_texture(hblur_inputVarId, target_tex);
+    ShaderGlobal::set_texture(hblur_outputVarId, hblurTarget->getTexId());
+    ShaderGlobal::set_float(gaussian_blur_mulVarId, gaussianBlurAmount);
+    d3d::set_render_target(hblurTarget->getTex2D(), 0);
+
+    gaussianHBlur.render();
+    ShaderGlobal::set_texture(hblur_inputVarId, nullptr);
+    ShaderGlobal::set_texture(gaussian_blur_texVarId, hblurTarget->getTexId());
+  }
+  else
+    ShaderGlobal::set_texture(gaussian_blur_texVarId, BAD_TEXTUREID);
 
   Color4 quad_coefs = quadCoeffs;
 
@@ -976,7 +1013,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
   if (current.debugFlags & current.NO_SCENE)
   {
     TIME_D3D_PROFILE(clearTarget);
-    d3d::set_render_target(target_tex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target_tex, 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   }
 
@@ -1010,24 +1047,28 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
 
-  combineFx.getMat()->set_texture_param(texVarId, target_id);
+
+  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, target_tex);
+
   combineFx.getMat()->set_color4_param(texUvTransformVarId, reinterpret_cast<const Color4 &>(target_uv_transform));
   int outW, outH;
   d3d::get_target_size(outW, outH);
   combineFx.getMat()->set_color4_param(texSzVarId, quadCoeffs);
   if (vignette_multiplierGlobVarId >= 0)
-    ShaderGlobal::set_real_fast(vignette_multiplierGlobVarId, vignetteMul);
+    ShaderGlobal::set_float(vignette_multiplierGlobVarId, vignetteMul);
   if (vignette_start_endGlobVarId >= 0)
-    ShaderGlobal::set_color4_fast(vignette_start_endGlobVarId, Color4(vignetteStart.x, vignetteEnd.x, vignetteStart.y, vignetteEnd.y));
+    ShaderGlobal::set_float4(vignette_start_endGlobVarId, Color4(vignetteStart.x, vignetteEnd.x, vignetteStart.y, vignetteEnd.y));
 
-  ShaderGlobal::set_real(ldr_vignette_multiplierVarId, ldrVignetteMul);
-  ShaderGlobal::set_real(ldr_vignette_widthVarId, ldrVignetteWidth);
-  ShaderGlobal::set_real(ldr_vignette_aspectVarId, float(targtexW) / targtexH);
+  ShaderGlobal::set_float(ldr_vignette_multiplierVarId, ldrVignetteMul);
+  ShaderGlobal::set_float(ldr_vignette_widthVarId, ldrVignetteWidth);
+  ShaderGlobal::set_float(ldr_vignette_aspectVarId, float(targtexW) / targtexH);
 
   ShaderGlobal::set_int(has_mobile_flaresVarId, lenseFlareEnabled && lensFlare.flareBlur ? 1 : 0);
 
-  film_grain_params.set_color4(
+  film_grain_params.set_float4(
     Color4(current.filmGrainParams.x * filmGrainEnabled, current.filmGrainParams.y, current.filmGrainParams.z, 0.f));
+
+  ShaderGlobal::set_float(underwater_use_film_grainVarId, float(underwaterfilmGrainEnabled));
 
   {
     if (pre_combine_fx_proc)
@@ -1042,16 +1083,18 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, TEXTUREID target_id, 
 
   lensFlare.releaseRTs();
 
-  combineFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
   combineFx.getMat()->set_texture_param(volfogTexVarId, BAD_TEXTUREID);
   radialBlur1Fx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
+
+  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
 }
 
 void DemonPostFx::delayedCombineFx(TEXTUREID textureId)
 {
   // combine result to output
   ShaderGlobal::set_int_fast(renderCombinePassGVarId, 2);
-  combineFx.getMat()->set_texture_param(texVarId, textureId);
+  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, textureId);
   combineFx.render();
   ShaderGlobal::set_int_fast(renderCombinePassGVarId, 0);
+  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
 }

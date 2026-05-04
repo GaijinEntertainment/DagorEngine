@@ -65,7 +65,7 @@ endmacro
 
 define_macro_if_not_defined APPLY_PUDDLE(stage)
   hlsl (stage) {
-    half applyPuddle(inout UnpackedGbuffer result, float3 worldPos, float3 waterNormal, half porosity, float onlyPuddleHeight, float puddle)
+    half applyPuddle(inout UnpackedGbuffer result, float3 worldPos, float3 waterNormal, float waterLevel, half porosity, float onlyPuddleHeight, float puddle)
     {
       return 0;
     }
@@ -76,13 +76,13 @@ define_macro_if_not_defined USE_AND_CALCULATE_PUDDLES()
   USE_PUDDLE(ps)
   APPLY_PUDDLE(ps)
   hlsl(ps) {
-    half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle)
+    half addPuddles(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc, half porosity, float heightForPuddle, float waterLevel)
     {
       return 0;
     }
 
     half addPuddlesWithConstHeight(inout UnpackedGbuffer result, float3 worldPos, half tc_world_pos_w, float2 htTc,
-      half porosity, float puddleHeight, float maxPuddleHeight, float3 waterNormal)
+      half porosity, float puddleHeight, float maxPuddleHeight, float3 waterNormal, float waterLevel)
     {
       return 0;
     }

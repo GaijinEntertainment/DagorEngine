@@ -1,1 +1,0 @@
-This macro implements `qmacro_variable` expression reification. Expected input is are variable name and type expression (type<...>). Result is a new VariablePtr with the matching name and type.

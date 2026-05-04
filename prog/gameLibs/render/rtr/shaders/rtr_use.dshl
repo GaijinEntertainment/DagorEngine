@@ -1,10 +1,14 @@
 int rtr_bindless_slot = -1;
 int rtr_bindless_sampler_slot = -1;
+
+int rtr_normal_roughness_bindless_slot = -1;
+int rtr_normal_roughness_bindless_sampler_slot = -1;
+
 int rtr_output_type = 0;
 int rtr_res_mul = 1;
 int4 rtr_resolutionI = (1,1,1,1);
-
-int rtr_use_rr;
+int4 rtr_texture_resolution = (1,1,1,1);
+float4 rtr_uv_max;
 
 macro CHECKING_RTR(stage)
   if (use_hw_raytracing)
@@ -12,6 +16,8 @@ macro CHECKING_RTR(stage)
     (stage) {
       rtr_bindless_slot@i1 = rtr_bindless_slot;
       rtr_bindless_sampler_slot@u1 = rtr_bindless_sampler_slot;
+      rtr_normal_roughness_bindless_slot@i1 = rtr_normal_roughness_bindless_slot;
+      rtr_normal_roughness_bindless_sampler_slot@u1 = rtr_normal_roughness_bindless_sampler_slot;
     }
 
     hlsl (stage) {
@@ -39,60 +45,112 @@ macro USING_RTR(stage)
   {
     (stage) {
       rtr_output_type@i1 = rtr_output_type;
-      inv_output_resolution_rt@f2 = (1.0 / (rtr_resolutionI.x * rtr_res_mul), 1.0 / (rtr_resolutionI.y * rtr_res_mul));
-      resolutionF_rt@f2 = rtr_resolutionI.xy;
-      resolutionI_rt@u2 = rtr_resolutionI.xy;
-      use_rr@u1 = rtr_use_rr;
+      inv_output_resolution_rt@f2 = (1.0 / (rtr_texture_resolution.x * rtr_res_mul), 1.0 / (rtr_texture_resolution.y * rtr_res_mul));
+      rtr_uv_max@f2 = rtr_uv_max;
+      rtr_res_mul@u1 = rtr_res_mul;
     }
 
     hlsl (stage) {
-      #include <Include/NRDEncoding.hlsli>
-      #include <Include/NRD.hlsli>
+      #include <NRD.hlsli>
 
       #define HAS_RTR 1
 
       #define RTR_REBLUR 0
       #define RTR_RELAX  1
+      #define RTR_RR     2
 
       #include <rt_texture_outputs.inc.hlsli>
 
-      float3 getRTR(uint2 tci)
+      float3 getRTR(uint2 tci, float roughness)
       {
         BRANCH
-        if (use_rr)
+        if (rtr_output_type == RTR_RR)
         {
-          return texture2DAt(rt_texture_outputs[rtr_bindless_slot], tci).gba;
+          return texture2DAt(uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot), tci).gba;
+        }
+        else if (rtr_res_mul != 1)
+        {
+          // Read the roughness for the RTR as well. Sample an RTR value where the roughness matches the gbuffer.
+          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
+
+          float4 rtrRoughness;
+          #if( NRD_NORMAL_ENCODING == NRD_NORMAL_ENCODING_R10G10B10A2_UNORM )
+            float4 s = uniformBindlessTex2D(rt_texture_outputs, rtr_normal_roughness_bindless_slot).GatherBlue(global_samplers_array[rtr_normal_roughness_bindless_sampler_slot], uv, 0);
+            rtrRoughness = abs(2*s-1);
+          #else
+            rtrRoughness = uniformBindlessTex2D(rt_texture_outputs, rtr_normal_roughness_bindless_slot).GatherAlpha(global_samplers_array[rtr_normal_roughness_bindless_sampler_slot], uv, 0);
+          #endif
+          #if( NRD_ROUGHNESS_ENCODING == NRD_ROUGHNESS_ENCODING_SQRT_LINEAR )
+            rtrRoughness *= rtrRoughness;
+          #elif( NRD_ROUGHNESS_ENCODING == NRD_ROUGHNESS_ENCODING_SQ_LINEAR )
+            rtrRoughness = sqrt(saturate(rtrRoughness));
+          #endif
+
+          const float tolerance = 0.1;
+          float minr = min(min(rtrRoughness.x, rtrRoughness.y), min(rtrRoughness.z, rtrRoughness.w));
+          float maxr = max(max(rtrRoughness.x, rtrRoughness.y), max(rtrRoughness.z, rtrRoughness.w));
+
+          float4 color = 1;
+
+          [branch]
+          if (abs(minr - maxr) < tolerance)
+            color = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
+          else
+          {
+            uint di = 0;
+            float d = abs(roughness - rtrRoughness[0]);
+
+            [unroll]
+            for (uint i = 1; i < 4; ++i)
+            {
+              float ds = abs(roughness - rtrRoughness[i]);
+              if (ds < d)
+              {
+                d = ds;
+                di = i;
+              }
+            }
+
+            color.r = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
+            color.g = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherGreen(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
+            color.b = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherBlue(global_samplers_array[rtr_bindless_sampler_slot], uv, 0)[di];
+          }
+
+          return rtr_output_type == RTR_REBLUR
+                ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
+                : RELAX_BackEnd_UnpackRadiance(color).rgb;
         }
         else
         {
-          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
-          float4 color = rt_texture_outputs[rtr_bindless_slot].SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
+          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
+          float4 color = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).SampleLevel(global_samplers_array[rtr_bindless_sampler_slot], uv, 0);
 
           return rtr_output_type == RTR_REBLUR
                ? REBLUR_BackEnd_UnpackRadianceAndNormHitDist(color).rgb
                : RELAX_BackEnd_UnpackRadiance(color).rgb;
         }
       }
-      float3 getRTRFiltered(uint2 tci)
+
+      float3 getRTRFiltered(uint2 tci, float roughness)
       {
         BRANCH
-        if (use_rr)
+        if (rtr_output_type == RTR_RR)
         {
-          return getRTR(tci);
+          return getRTR(tci, roughness);
         }
         else
         {
-          float2 uv = (tci.xy + 0.5) * inv_output_resolution_rt;
-          float4 red = rt_texture_outputs[rtr_bindless_slot].GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv);
+          float2 uv = min(rtr_uv_max, (tci.xy + 0.5) * inv_output_resolution_rt);
+          float4 red = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherRed(global_samplers_array[rtr_bindless_sampler_slot], uv);
 
           bool4 isColorFinite = isfinite(red);
           if (all(isColorFinite))
-            return getRTR(tci);
+            return getRTR(tci, roughness);
           if (!any(isColorFinite))
             return 0;
 
-          float4 green = rt_texture_outputs[rtr_bindless_slot].GatherGreen(global_samplers_array[rtr_bindless_sampler_slot], uv);
-          float4 blue = rt_texture_outputs[rtr_bindless_slot].GatherBlue(global_samplers_array[rtr_bindless_sampler_slot], uv);
+          float4 green = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherGreen(global_samplers_array[rtr_bindless_sampler_slot], uv);
+          float4 blue = uniformBindlessTex2D(rt_texture_outputs, rtr_bindless_slot).GatherBlue(global_samplers_array[rtr_bindless_sampler_slot], uv);
 
           float4 weight = float4(isColorFinite);
           float weightTotal = dot(weight, weight);
@@ -120,11 +178,11 @@ macro USING_RTR(stage)
   else
   {
     hlsl (stage) {
-      float3 getRTR(uint2 tci)
+      float3 getRTR(uint2 tci, float roughness)
       {
         return 0;
       }
-      float3 getRTRFiltered(uint2 tci)
+      float3 getRTRFiltered(uint2 tci, float roughness)
       {
         return 0;
       }

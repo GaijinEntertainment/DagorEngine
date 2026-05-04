@@ -30,7 +30,7 @@ public:
 
     TableContext(Sqrat::Table &tbl) : table(tbl) {}
 
-    // This constructor is not needed in C++17 with guaranted copy ellision
+    // This constructor is not needed in C++17 with guaranteed copy ellision
     // allowing to return non-copyable and non-movable objects by value
     TableContext(TableContext &&rhs) : table(rhs.table) {}
 
@@ -47,20 +47,18 @@ public:
     eastl::optional<R> eval(const char *sq_func, const Args &...args)
     {
       Sqrat::Function func = table.GetFunction(sq_func);
-      R result;
-      if (!func.IsNull() && func.Evaluate(args..., result))
-        return eastl::make_optional(eastl::move(result));
-      return eastl::optional<R>();
+      if (func.IsNull())
+        return eastl::optional<R>();
+      return func.Eval<R>(args...);
     }
 
     template <typename R, typename... Args>
     R try_eval(const R &result_def, const char *sq_func, const Args &...args)
     {
       Sqrat::Function func = table.GetFunction(sq_func);
-      R result{};
-      if (!func.IsNull() && func.Evaluate(args..., result))
-        return result;
-      return result_def;
+      if (func.IsNull())
+        return result_def;
+      return func.Eval<R>(args...).value_or(result_def);
     }
 
     template <typename... Args>

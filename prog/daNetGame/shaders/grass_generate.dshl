@@ -1,4 +1,6 @@
+texture perlin_noise3d;
 include "grass_generate_inc.dshl"
+include "rt/grass_generate_rt_inc.dshl"
 include "shader_global.dshl"
 include "gbuffer.dshl"
 include "psh_tangent.dshl"
@@ -11,9 +13,30 @@ include "static_shadow.dshl"
 include "deform_hmap_common.dshl"
 include "world_sdf.dshl"
 include "gpu_occlusion.dshl"
+include "taa_inc.dshl"
+include_optional "burnt_ground/shaders/burnt_grass.dshl"
 
-texture perlin_noise3d;
-include "wind/wind_simulation_inc.dshl"
+define_macro_if_not_defined INIT_BURNT_GRASS()
+endmacro
+
+define_macro_if_not_defined USE_BURNT_GRASS()
+  PACK_UNPACK_GBUFFER()
+
+  hlsl (vs) {
+    float get_instance_burnt_grass_progress(float3 instance_world_pos)
+    {
+      return 0;
+    }
+  }
+  hlsl (ps) {
+    float get_burnt_grass_progress(float instance_burnt_progress, float3 instance_world_pos, float3 tc, float pixel_burn_offset)
+    {
+      return 0;
+    }
+    void apply_burnt_grass_alpha(float progress, inout float alpha) {}
+    void apply_burnt_grass(float progress, inout UnpackedGbuffer gbuffer) {}
+  }
+endmacro
 
 buffer grass_eraser_instances;
 buffer grass_instances_count_readback;
@@ -23,8 +46,16 @@ float4 grass_smoothness_fade_params = float4(1.0, 30.0, 0.0, 0.0); // X - fade s
 int grass_use_hzb_occlusion = 0;
 interval grass_use_hzb_occlusion: no<1, yes;
 
+int has_motion_vectors = 0;
+interval has_motion_vectors: no < 1, yes;
+
+float4x4 jitteredCamPosToUnjitteredHistoryClip;
+float4 prev_world_view_pos;
+float4 prev_world_to_grass_position;
+
+float4 camera_base_offset = (0, 0, 0, 0);
+
 shader grass_create_indirect {
-  ENABLE_ASSERT(cs)
   INIT_GRASS_GENERATE(cs)
   (cs) {
     readbackCountBuffer@uav = grass_instances_count_readback hlsl { RWByteAddressBuffer readbackCountBuffer@uav; }
@@ -113,6 +144,13 @@ shader grass_generate_cs
     USE_REPROJECTED_HZB_OCCLUSION(cs)
     GPU_OCCLUSION(cs)
   }
+
+  INIT_GPU_GRASS_BVH_RANGE(cs)
+  USE_GPU_GRASS_BVH_RANGE(cs)
+  INIT_GPU_GRASS_BVH_RANDOM_DISCARD(cs)
+  USE_GPU_GRASS_BVH_RANDOM_DISCARD(cs)
+  INIT_GPU_GRASS_BVH_BURNING(cs)
+  USE_GPU_GRASS_BVH_BURNING(cs)
 
   hlsl(cs) {
     #define water_level (water_level_displacement.x)
@@ -210,8 +248,9 @@ shader grass_generate_cs
         const float ht_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.y; //0.5*(max_ht-min_ht + max_grass_height)
         const float avg_hor = grass_average_ht__ht_extent__avg_hor__hor_extent.z; //grass_grid_params.z*0.5
         const float hor_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.w;//grass_grid_params.z*0.5 + max_grass_size*0.5
-        if (!testBoxExtentB(float3(worldGridPos+avg_hor.xx, avg_ht).xzy,
-                            float2(hor_ext, ht_ext).xyx))
+        float3 boxCenter = float3(worldGridPos+avg_hor.xx, avg_ht).xzy;
+        float3 boxExtent = float2(hor_ext, ht_ext).xyx;
+        if (!testBoxExtentB(boxCenter, boxExtent) && !keep_grass_for_bvh_extent(boxCenter, boxExtent, world_view_pos))
           return;
       }
 
@@ -305,7 +344,9 @@ shader grass_generate_cs
 
       float3 boundingSphereWpos = worldPos+float3(0,height_horSize.x*0.5,0);
       float boundingSphereDiameter = length(height_horSize);
-      if (!testSphereB(boundingSphereWpos, 0.5 * boundingSphereDiameter))
+      float boundingSphereRadius = 0.5 * boundingSphereDiameter;
+      worldPos = round_grass_world_pos_for_bvh(worldPos);
+      if (!testSphereB(boundingSphereWpos, boundingSphereRadius) && !(keep_grass_for_bvh_sphere(boundingSphereWpos, boundingSphereRadius, world_view_pos) && keep_grass_randomly(worldPos) && !discard_burnt_grass(worldPos)))
         return;
 
     ##if grass_use_hzb_occlusion == yes
@@ -390,13 +431,9 @@ texture grass_texture_n;
 texture grass_texture_a;
 int grass_pass = 0;
 interval grass_pass:prepass_off<1, depth_prepass<2, prepass_on<3, visibility_pass;
-float grass_inv_vis_distance = 0.01;
 
 buffer grass_insts_buf;
-buffer obstacle_indices_buf;
-const_buffer obstacles_buf;
-const_buffer grass_colors_buf;
-
+int grass_dynamic_flag = 1;
 buffer grass_instance_indices_buf;
 
 shader grass_render_billboards
@@ -408,6 +445,24 @@ shader grass_render_billboards
   }
   supports global_frame;
   cull_mode = none;
+
+  if (grass_pass != visibility_pass)
+  {
+    INIT_BURNT_GRASS()
+    USE_BURNT_GRASS()
+
+    (ps){grass_dynamic_flag@i1 = grass_dynamic_flag;}
+
+    if (has_motion_vectors == yes && in_editor_assume == no)
+    {
+      USE_MOTION_VEC_ENCODE(ps)
+      hlsl {
+         #define MOTION_VECTORS_ENABLED
+         #define HAS_PREV_OBSTACLES 1
+         #define IS_DYNAMIC grass_dynamic_flag
+      }
+    }
+  }
 
   if (compatibility_mode == compatibility_mode_on)
   {
@@ -426,15 +481,22 @@ shader grass_render_billboards
       ##else
       nointerpolation uint idx:  TEXCOORD0;
       ##endif
-      ##if grass_pass != depth_prepass && grass_pass != visibility_pass
-      float3 p2e:  TEXCOORD1;
-      float3 normal:  TEXCOORD2;//replace with tangent space
-      float4 color_height_from_ground:TEXCOORD3;
-      float3 mask_r:TEXCOORD4;
-      float3 mask_b:TEXCOORD5;
-      float3 color_mask_g_from:TEXCOORD6;
-      float4 color_mask_g_to__porosity:TEXCOORD7;
+      ##if grass_pass != visibility_pass
+      nointerpolation float4 instance_pos__burnt_progress:TEXCOORD1;
+      float3 p2e:  TEXCOORD2;
       ##endif
+      ##if grass_pass != depth_prepass && grass_pass != visibility_pass
+      float3 normal:  TEXCOORD3;//replace with tangent space
+      float4 color_height_from_ground:TEXCOORD4;
+      float3 mask_r:TEXCOORD5;
+      float3 mask_b:TEXCOORD6;
+      float3 color_mask_g_from:TEXCOORD7;
+      float4 color_mask_g_to__porosity:TEXCOORD8;
+      ##endif
+      #ifdef MOTION_VECTORS_ENABLED
+        float4 out_pos : TEXCOORD9;
+        float4 out_pos_prev : TEXCOORD10;
+      #endif
     };
   }
 
@@ -452,152 +514,43 @@ shader grass_render_billboards
     }
   }
 
+  if (has_motion_vectors == yes)
+  {
+    (vs) {
+      prev_world_to_grass_position@f4 = prev_world_to_grass_position;
+      prev_grass_to_world_position@f4 = (1/prev_world_to_grass_position.x, 0, -prev_world_to_grass_position.z/prev_world_to_grass_position.x, -prev_world_to_grass_position.w/prev_world_to_grass_position.x);
+      prev_world_view_pos@f3 = (prev_world_view_pos.xyz);
+    }
+  }
+
   (vs) {
     globtm@f44 = globtm;
-    grass_inv_vis_distance@f1 = (grass_inv_vis_distance);
     grass_to_world_position@f4 = (1/world_to_grass_position.x, 0, -world_to_grass_position.z/world_to_grass_position.x, -world_to_grass_position.w/world_to_grass_position.x);
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
+    camera_base_offset@f3 = camera_base_offset;
 
     instances@buf = grass_insts_buf hlsl {
       #include <grassInstance.hlsli>
       StructuredBuffer<GrassInstance> instances@buf;
     };
-    obstacle_indices@buf = obstacle_indices_buf hlsl {
-      StructuredBuffer<uint> obstacle_indices@buf;//fixme: move that to generate phase! it is totally doable, since all we do in the end is squash one direction
-    };
-    obstacles_indirection@cbuf = obstacles_buf hlsl {
-      #include "obstacleStruct.hlsli"
-      cbuffer obstacles_indirection@cbuf
-      {
-        ObstaclesData obstacles;
-      };
-    }
-    VSGrassColors@cbuf = grass_colors_buf hlsl {
-      #include <grassInstance.hlsli>
-      cbuffer VSGrassColors@cbuf
-      {
-        GrassColorVS grass_colors_vs[GRASS_MAX_TYPES];
-      };
-    };
   }
+  INIT_GPU_GRASS_CORNER_POS(vs)
+  USE_GPU_GRASS_CORNER_POS(vs)
 
   INIT_STATICS_WETNESS()
   USE_MICRODETAIL_BASED_WETNESS()
-  INIT_USE_COMBINED_WIND(vs)
   INIT_GRASS_GENERATE_NO_UAV(vs)
   USE_GRASS_GENERATE(vs)
-  ENABLE_ASSERT(ps)
 
   hlsl(vs) {
-    float rand(float co)
-    {
-      return frac(sin(co*12.9898) * 43758.5453);
-    }
-
-    float4 sdBoxNorm(float3 localPos, float3 boxExt)
-    {
-      float3 dist = abs(localPos) - boxExt;
-      float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
-      float3 ptOnBox = max(dist, 0);
-      float outsideDist = length(ptOnBox);
-      float signedDist = outsideDist + insideDist;
-      float3 norm;
-      FLATTEN
-      if (signedDist <= 0)
-        norm = (float3(insideDist == dist.x, insideDist == dist.y, insideDist == dist.z));
-      else
-        norm = ptOnBox/(outsideDist+1e-6);
-      norm = (localPos < 0 ? -norm : norm);
-      return float4(signedDist, norm);
-    }
-
-    float3 offsetFromObstacle( float3 worldPivot, float3 worldPos, float4 dir_x, float4 dir_y, float4 dir_z, float3 boxSize, float sz, float height, float rad, out float effect)
-    {
-      float3 center = float3(dir_x.w, dir_y.w, dir_z.w);
-      float3 relPos = worldPos - center;
-      float3 local_pos = mul(float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz), relPos);
-
-      effect = 0;
-      float3 ret = 0;
-
-      float4 distToBoxNorm = sdBoxNorm(local_pos, 0.5*boxSize+rad);
-      if (distToBoxNorm.x<0)
-      {
-        float3 moveDir = -distToBoxNorm.yzw*distToBoxNorm.x;
-        moveDir = mul(moveDir, float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz));
-        float radDist = (-distToBoxNorm.x/rad);
-        float squashed = saturate(radDist-1);//grass is totally squashed
-        moveDir.y = -abs(moveDir.y);//don't allow grass move up
-        moveDir = lerp(moveDir, float3(0,-height,0) + rad*normalize(float3(relPos.x, 0, relPos.z)), squashed);
-        ret = moveDir;
-        effect = saturate(radDist*2);
-      }
-      return ret;
-    }
-
-    // (rotate + change of height)
-    float3 apply_obstacles(float3 worldPivot, float3 worldPos, float verticalPos, float2 height_horSize)
-    {
-      float2 pos = worldPivot.xz-obstacles.indirection_lt;
-      pos.xy /= obstacles.indirection_cell;
-      float2 vignette = abs((pos.xy/obstacles.indirection_wd)*2-1);
-      float vignetteEffect = saturate(10-9*dot(vignette,vignette));
-      if (vignetteEffect==0 || obstacles.indirection_wd == 0 || verticalPos == 0)
-        return 0;
-      uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd-1);
-      uint index = coord.x+coord.y*obstacles.indirection_wd;
-
-      float3 totalOfs = 0;
-      uint obstIndCount = structuredBufferAt(obstacle_indices, index);
-      uint obstIndStart = obstIndCount>>OBSTACLE_OFFSET_BIT_SHIFT;
-      uint obstIndEnd = (obstIndCount&((1U<<OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
-
-      float ceffect = 1;
-      float height = 0.8*height_horSize.y;
-      float radius = 0.5*height_horSize.x;
-      worldPos = worldPivot + float3(0,height,0);//instead of float worldPos, use offseted pivot. So whole grass move one direction
-      for (uint i = obstIndStart; i < obstIndEnd; ++i)
-      {
-        uint index = structuredBufferAt(obstacle_indices, i);
-      //for (uint i = 0; i < 1; ++i)
-      //{
-      //  uint index = i;
-        float effect;
-        float3 ofs = offsetFromObstacle( worldPivot, worldPos+totalOfs, obstacles.obstacles[index].dir_x, obstacles.obstacles[index].dir_y, obstacles.obstacles[index].dir_z,
-                                         obstacles.obstacles[index].box.xyz, verticalPos, height, radius, effect);
-        totalOfs += ofs*ceffect;
-
-        //compiler workaround:
-        ceffect = saturate(ceffect * saturate(1-effect));//this saturate is required because compiler generate something bad otherwise (and ceffect is not corret)
-      }
-      return totalOfs*vignetteEffect;
-    }
-    float TriangleWave(float x)
-    {
-      float y = abs(frac(x + 0.5) * 2. - 1.);
-      return y * y * (3. - 2. * y);
-    }
-    void ApplyGrassWind(inout float3 pos, float height, float noise_speed_mult, float stiffness, float random_wind_amp)
-    {
-      FLATTEN
-      if (height>0.0001)
-      {
-        const float WIND_TIME_MULT = 0.25;
-        const float WIND_MULT = 0.03;
-        float3 wind = sampleWindCurrentTime(pos,noise_speed_mult, 0);
-        float wind_speed = length(wind);
-        float t = WIND_TIME_MULT * (ambient_wind__speed__current_time__previous_time.y + wind_speed);
-        wind.xz += random_wind_amp * wind_speed*float2(TriangleWave(pos.x + t),TriangleWave(pos.z + t));
-        wind *= WIND_MULT * stiffness;
-        wind = wind * height / length(wind + float3(0,height,0));
-        pos +=wind;
-      }
-    }
+  ##if !hardware.scarlett
     ##if grass_pass == depth_prepass
       #define __XBOX_REGALLOC_VGPR_LIMIT 32//found by pix
     ##elif grass_pass == prepass_on
       #define __XBOX_ENABLE_DOM_LIFETIME_SHORTENING 1//found by pix
       #define __XBOX_REGALLOC_VGPR_LIMIT 40//found by pix
     ##endif
+  ##endif
 
     ##if grass_instancing == off
     VsOutput grass_vs(uint vertexId : SV_VertexID)
@@ -620,7 +573,15 @@ shader grass_render_billboards
       ##endif
       GrassInstanceUncompressed grass = uncompress_instance(instances[inst]);
       uint grassType = grass.grassType;
-      grass.position.xz = grass_to_world_position.x*grass.position.xz + grass_to_world_position.zw;
+      float2 storedXZ = grass.position.xz;
+      grass.position.xz = grass_to_world_position.x*storedXZ + grass_to_world_position.zw;
+#ifdef MOTION_VECTORS_ENABLED
+      float3 instanceWorldPosPrev = float3(prev_grass_to_world_position.x*storedXZ.x + prev_grass_to_world_position.z,
+                                           grass.position.y,
+                                           prev_grass_to_world_position.x*storedXZ.y + prev_grass_to_world_position.w);
+#else
+      float3 instanceWorldPosPrev = float3(0, grass.position.y, 0);
+#endif
       //0 1      4|1
       //2    3|2 5|3
       // subvertex
@@ -639,135 +600,44 @@ shader grass_render_billboards
       float2 localPos = int2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
 ##endif
       float cornerX = localPos.x, cornerY = localPos.y;
-      float3 instanceWorldPos = grass.position;
-      float2 height_horSize = float2(grass.height, grass.size);
-      //float height = structuredBufferAt(grass, instance).height;
-      float normalizedViewRadius = length(instanceWorldPos.xz-world_view_pos.xz)*grass_inv_vis_distance;
-      float normalizedScale = saturate(5-normalizedViewRadius*5);
-      height_horSize.x = height_horSize.x*normalizedScale;//fixme: get height from type and position
-      //instancePos = 0;
-      //instancePos.z = instance;
-      //height = 1;
 
-      half xPos = (cornerX-0.5)*height_horSize.y;
-      bool is_horizontal = grass.rotation < 0;
-      float vHeight = (is_horizontal ? cornerY - 0.5 : cornerY) * height_horSize.x;
+      GrassCorner corner = get_gpu_grass_corner_pos(grass, localPos
+#ifdef MOTION_VECTORS_ENABLED
+      , instanceWorldPosPrev
+#endif
+      );
+      float3 worldPos = corner.worldPos;
+      float3 normal = corner.normal;
+      float height_from_ground = corner.height_from_ground;
 
-      half angle = grass.rotation;
-      half2 rotSC;
-      sincos(angle, rotSC.x, rotSC.y);
-
-      half vAngle = grass.vAngle;
-      half2 rotVSC;
-      sincos(vAngle, rotVSC.x, rotVSC.y);
-
-      //float3 worldPos = instanceWorldPos+ float3((rotSC.y*xPos), (vHeight), (rotSC.x*xPos));//no rotation
-      //float zPos = (rotSC.x*xPos);
-      //float3x3 rotYTM = float3x3(float3(rotSC.y,0,rotSC.x), float3(0,1,0), float3(-rotSC.x,0,rotSC.y));
-      //float3x3 rotXTM = float3x3(float3(1,0,0), float3(0,rotVSC.y,rotVSC.x), float3(0,-rotVSC.x,rotVSC.y));
-      //float3x3 ntm = mul(rotYTM, rotXTM);
-      /*rotSC.y, 0, rotSC.x
-        0,     1,    0
-      -rotSC.x, 0, rotSC.y
-
-      1,     0,        0
-      0, rotVSC.y, rotVSC.x
-      0, -rotVSC.x, rotVSC.y*/
-
-      //float3x3 ntm = float3x3(float3(rotSC.y, -rotSC.x*rotVSC.x, rotSC.x*rotVSC.y),
-      //                        float3(0,        rotVSC.y,         rotVSC.x),
-      //                        float3(-rotSC.x,-rotSC.y*rotVSC.x, rotSC.y*rotVSC.y));
-      //float3 worldCornerPos = mul(ntm, float3(xPos, vHeight, 0));//no rotation
-      float3 worldCornerPos = float3(rotSC.y*xPos - rotSC.x*(rotVSC.x*vHeight), (vHeight)*rotVSC.y, -rotSC.x*xPos - rotSC.y*(rotVSC.x*vHeight));//no rotation
-      FLATTEN
-      if (is_horizontal)
-      {
-        float2 rotatedPos = float2(xPos*rotSC.y + vHeight*rotSC.x, -xPos*rotSC.x + vHeight*rotSC.y);
-        worldCornerPos.y = -dot(grass.landNormal.xz, rotatedPos);
-        worldCornerPos.xz = rotatedPos;
-      }
-
-      // Rotate around land normal
-      BRANCH
-      if (!grass.worldYOrientation)
-      {
-        float3 xVector = cross(float3(0.0, 0.0, 1.0), grass.landNormal);
-        // Fix rare case when normal is equal to (0,0,1)
-        xVector = dot(xVector, xVector) < 1E-4 ?  float3(1.0, 0.0, 0.0) : normalize(xVector);
-
-        float3x3 ntm = float3x3(xVector, grass.landNormal, cross(grass.landNormal, xVector) );
-        worldCornerPos = mul(worldCornerPos, ntm);
-      }
-
-      // Apply wind simulation
-      float3 worldPos = instanceWorldPos + worldCornerPos;//no rotation
-
-      float wind_speed_mult = 2 - grass_colors_vs[grassType].stiffness;
-      float wind_amp_mult = is_horizontal ? 0 : grass_colors_vs[grassType].stiffness;
-
-    ##if mobile_render == off
-      if (cornerY > 0.001)
-      {
-        ApplyGrassWind(worldPos.xyz,vHeight, wind_speed_mult* cornerY,wind_amp_mult,0.4);
-      }
-    ##endif
-
-      //float3 unit_pos = world_view_pos;//float3(-324, 7.42, 48.15);
-      //float unit_aspect = 1, unit_radius = 1;
-      //float2 unit_dir = float2(0,1);
-      BRANCH
-      if (!is_horizontal)
-        worldPos += apply_obstacles(instanceWorldPos, worldPos, cornerY, height_horSize);
-
-      /*
-      worldCornerPos.xz += vWavesSum.xy * amp;
-      float fBendScale = 0.2;
-      float windGustPosFreq = 0.25, windGustTimeFreq = 1;
-      float2 windDir=float2(1,0);
-      float windGust = dot(sin((instanceWorldPos.xz*windGustPosFreq+wind_time*windGustTimeFreq*windDir)), 0.25)*3/2 + 0.25;//better use perlin noise
-      float fBF = cornerY * fBendScale;
-      // Smooth bending factor and increase its nearby height limit.
-      fBF += 1.0;
-      fBF *= fBF;
-      fBF = fBF * fBF - fBF;
-      float fLength = length(worldCornerPos);
-      float2 vWind = windDir*(windGust*wind_strength);
-      worldCornerPos.xz += vWind.xy * fBF;
-      // Rescale
-      worldCornerPos = normalize(worldCornerPos.xyz)* fLength;
-      worldPos = worldCornerPos+instanceWorldPos;*/
-
-
-
-      //float3 worldPos = instanceWorldPos+ float3(rotSC.y*xPos, (vHeight)*rotVSC.y+zPos*rotVSC.x, zPos*rotVSC.y-(vHeight)*rotVSC.x);//no rotation
       VsOutput output;
-      output.pos = mul(float4(worldPos, 1), globtm);
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      #ifdef MOTION_VECTORS_ENABLED
+        output.out_pos = output.pos;
+        output.out_pos_prev = mul(float4(corner.worldPosPrev - world_view_pos, 1), jitteredCamPosToUnjitteredHistoryClip);
+      #endif
       ##if grass_pass == visibility_pass
       output.idx = inst;
       return output;
       ##else
+
+      float3 instanceWorldPos = grass.position;
+      output.instance_pos__burnt_progress.xyz = instanceWorldPos;
+      output.instance_pos__burnt_progress.w = get_instance_burnt_grass_progress(instanceWorldPos);
 
       uint grassTextureType = grass_colors_vs[grassType].grassTextureType;
       float grassVariations = grass_colors_vs[grassType].grassVariations;
       //grassTextureType = 1;
       //grassVariations = 2;
 
+      output.p2e.xyz = corner.p2e;
       ##if grass_pass != depth_prepass
       output.color_height_from_ground.rgb = grass.landColor*grass.landColor;//use gamma 2
-      output.color_height_from_ground.w = vHeight*pow4(saturate(3-normalizedViewRadius*3));
-      output.p2e.xyz = world_view_pos-worldPos;
+      output.color_height_from_ground.w = height_from_ground;
       float randV = grass.random;//
-      //output.normal = float3(-rotSC.x, 0, rotSC.y); //rotSC.y,0,rotSC.x
-      //rotSC.y, rotVSC.y+rotSC.x*rotVSC.x, rotSC.x*rotVSC.y-rotVSC.x
-      //1, rotVSC.y, -rotVSC.x
-      //0, rotVSC.y+rotVSC.x, rotVSC.y-rotVSC.x
-      output.normal = float3(rotSC.x*rotVSC.y, rotVSC.x, rotSC.y*rotVSC.y);
-      if (dot(output.normal, output.p2e)<0)
-        output.normal = -output.normal;
-      if (is_horizontal || localPos.y == 0)
-        output.normal = grass.landNormal*0.75;//float3(0,1,0);
+      output.normal = normal;
 
-      //output.normal = mul(float3(0,0,1), transpose(ntm));
       output.mask_r = lerp( grass_colors_vs[grassType].mask_r_color0.rgb, grass_colors_vs[grassType].mask_r_color1.rgb, randV );
       output.mask_b = lerp( grass_colors_vs[grassType].mask_b_color0.rgb, grass_colors_vs[grassType].mask_b_color1.rgb, randV );
       output.color_mask_g_from = grass_colors_vs[grassType].mask_g_color0.rgb;
@@ -785,6 +655,7 @@ shader grass_render_billboards
     }
   }
 
+  (ps) {mip_bias@f1 = (mip_bias);}
   if (grass_pass != prepass_on)
   {
     (ps) { grass_texture_a@smpArray = grass_texture_a; }
@@ -794,7 +665,6 @@ shader grass_render_billboards
     (ps) {
       grass_texture@smpArray = grass_texture;
       grass_texture_n@smpArray = grass_texture_n;
-      mip_bias@f1 = (mip_bias);
       smoothnessfadeParams@f2 = (grass_smoothness_fade_params.x, 1.0 / max(grass_smoothness_fade_params.y - grass_smoothness_fade_params.x, 0.001) );
     }
 
@@ -843,7 +713,7 @@ shader grass_render_billboards
           {
             uint dwordMasks[packedWritesLimit];
             uint baseIndices[packedWritesLimit];
-            // Iterate over affacted dwords.
+            // Iterate over affected dwords.
             for (uint i = 0; i < packedWrites; ++i)
             {
               // Extract encoded index of the dword.
@@ -854,7 +724,7 @@ shader grass_render_billboards
             }
             // This prefix sum returns an index of the active thread in the wave.
             uint threadIndex = WavePrefixSum(1);
-            // Active threads update corresponding dwords in the buffer with laready merged bitmasks.
+            // Active threads update corresponding dwords in the buffer with already merged bitmasks.
             if (threadIndex < packedWrites)
             {
               InterlockedOr(grass_visibility_buf[baseIndices[threadIndex] + minWaveInstanceDword], dwordMasks[threadIndex]);
@@ -866,7 +736,8 @@ shader grass_render_billboards
             if (WaveReadFirstLane(instanceDword) == instanceDword)
             {
               uint firstDwordMask = WaveActiveBitOr(instanceBitMask);
-              InterlockedOr(grass_visibility_buf[instanceDword], firstDwordMask);
+              if (WaveIsFirstLane())
+                InterlockedOr(grass_visibility_buf[instanceDword], firstDwordMask);
             }
             // Other threads just set their bits in the dword.
             else
@@ -881,6 +752,9 @@ shader grass_render_billboards
   else
   {
   hlsl(ps) {
+    #ifndef IS_DYNAMIC
+    #define IS_DYNAMIC 0
+    #endif
 
     ##if grass_pass == depth_prepass
 ##if hardware.ps4 || hardware.ps5
@@ -896,13 +770,18 @@ shader grass_render_billboards
 
       float opacity = input.tc_opacity.w;
 
+      half3 worldPos = world_view_pos - input.p2e.xyz;
+      float burnOffset = tc.y;
+      float burntProgress = get_burnt_grass_progress(input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, float3(tc.xy, 0), burnOffset);
+
       ##if grass_pass == prepass_off || grass_pass == depth_prepass
-      half alpha = tex3D(grass_texture_a, tc).r;
+      half alpha = tex3Dbias(grass_texture_a, tc, mip_bias).r;
+      apply_burnt_grass_alpha(burntProgress, alpha);
       clip(alpha-opacity);
       //clip(grassAlbedo.a-0.01);
       ##endif
       ##if grass_pass != depth_prepass
-      half3 grassAlbedo = tex3D(grass_texture, tc).rgb;
+      half3 grassAlbedo = tex3Dbias(grass_texture, tc, mip_bias).rgb;
       //== fill pixel shader
       //input.normal.xyz = (dot(input.normal.xyz, input.p2e)<0) ? -input.normal.xyz : input.normal.xyz;
 
@@ -925,7 +804,7 @@ shader grass_render_billboards
       color = lerp( color.rgb, input.mask_b, grassAlbedo.b );
       color = color * lerp( input.color_mask_g_from, input.color_mask_g_to__porosity.rgb, grassAlbedo.g ) * COLOR_CORRECTION_MULTIPLIER;
       grassAlbedo.rgb = color;
-      half4 packedNormalMap = tex3D(grass_texture_n, tc.xyz);
+      half4 packedNormalMap = tex3Dbias(grass_texture_n, tc.xyz, mip_bias);
       half3 normalMap = unpack_ag_normal(packedNormalMap);
       half3 worldNormal = perturb_normal( normalMap, input.normal.xyz, input.p2e, tc.xy );//==
       half translucency = packedNormalMap.b;
@@ -962,11 +841,7 @@ shader grass_render_billboards
       smoothness *= smoothnessfade;
       reflectance *= smoothnessfade;
       //end of filter
-
-      half3 worldPos = world_view_pos - input.p2e.xyz;
-    ##if mobile_render == off
       apply_wetness_by_porosity(input.color_mask_g_to__porosity.w, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
-    ##endif
 
       init_gbuffer(gbuffer);
 
@@ -978,10 +853,18 @@ shader grass_render_billboards
       init_reflectance(gbuffer, reflectance);
       init_isLandscape(gbuffer, 1);
       init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
+      init_dynamic(gbuffer, IS_DYNAMIC);
 
       //init_metalness(result, 0);
       init_shadow(gbuffer, ao);
       init_ao(gbuffer, ao);
+      #ifdef MOTION_VECTORS_ENABLED
+        float3 motion = encode_motion_vector(input.out_pos.xyw, input.out_pos_prev.xyw);
+        init_motion_vector(gbuffer, motion);
+      #endif
+
+      apply_burnt_grass(burntProgress, gbuffer);
+
       return encode_gbuffer(gbuffer, input.p2e.xyz, GET_SCREEN_POS(input.pos));
       ##endif
     }
@@ -1070,9 +953,12 @@ shader grass_eraser {
       if (dot(d, d) > input.pos_radius.w*input.pos_radius.w)
         discard;
 
+      float distToCenter = length(d) / input.pos_radius.w;
+
       MRT_Output ret;
       float invalidGrassChannel = (GRASS_MAX_CHANNELS + 1.0) / 255.0;
-      ret.maskTex = float4(invalidGrassChannel, 0, 0, 0);
+      float decalsGrassMask = 1 - smoothstep(0.6, 0.8, distToCenter);
+      ret.maskTex = float4(invalidGrassChannel, 0, 0, decalsGrassMask);
       return ret;
     }
   }
@@ -1085,8 +971,6 @@ shader grass_eraser {
 
 shader grass_sdf_eraser
 {
-  ENABLE_ASSERT(ps)
-
   supports none;
   supports global_frame;
 
@@ -1180,7 +1064,7 @@ shader grass_compact_instance_indices_cs
       uint valuesToAdd = 0;
       for (int i = 0; i < DWORDS_PROCESSED_BY_WAVE; ++i)
       {
-        mask[i] = grass_visibility_buf[dwordIdx * DWORDS_PROCESSED_BY_WAVE + i];
+        mask[i] = structuredBufferAt(grass_visibility_buf, dwordIdx * DWORDS_PROCESSED_BY_WAVE + i);
         valuesToAdd += countbits(mask[i]);
       }
       // No instances in the dwords, nothing to do.

@@ -173,8 +173,8 @@ Animation *create_anim(const AnimDesc &desc, Element *elem)
     case AP_FVALUE:
     case AP_PICSATURATE:
     case AP_BRIGHTNESS: anim = new FloatAnim(elem); break;
-    case AP_SCALE:
-    case AP_TRANSLATE: anim = new Point2Anim(elem); break;
+    case AP_SCALE: anim = new Point2Anim(elem, Point2::ONE); break;
+    case AP_TRANSLATE: anim = new Point2Anim(elem, Point2::ZERO); break;
     default: G_ASSERTF(0, "Unexpected anim prop %d", desc.prop); break;
   }
 
@@ -210,6 +210,8 @@ bool Animation::baseUpdate(int64_t dt)
 {
   if (isFinished())
     return false;
+  if (isPaused)
+    return true;
 
   if (delayLeft > 0)
   {
@@ -229,7 +231,10 @@ bool Animation::baseUpdate(int64_t dt)
   if (isPlayingLoop)
   {
     if (desc.globalTimer)
-      t = get_time_usec(get_anim_ref_time()) % desc.fullDuration();
+    {
+      int64_t ticksDelta = ref_time_ticks() - get_anim_ref_time();
+      t = ref_time_delta_to_usec(ticksDelta) % desc.fullDuration();
+    }
     else
       t = t % desc.fullDuration();
   }
@@ -301,6 +306,9 @@ void Animation::skipDelay()
 }
 
 
+void Animation::setPause(bool on) { isPaused = on; }
+
+
 void Animation::init(const AnimDesc &desc_)
 {
   desc = desc_;
@@ -312,6 +320,8 @@ void Animation::init(const AnimDesc &desc_)
 
 
 bool Animation::isFinished() const { return t >= desc.fullDuration(); }
+
+bool Animation::isFadingOut() const { return desc.playFadeOut && elem->isDetached(); }
 
 
 void Animation::start()
@@ -382,9 +392,7 @@ float Animation::applyEasing(float k)
   else
   {
     Sqrat::Function f(sqfunc.GetVM(), Sqrat::Object(sqfunc.GetVM()), sqfunc.GetObject());
-    float res = k;
-    f.Evaluate(k, res);
-    return res;
+    return f.Eval<float>(k).value_or(k);
   }
 }
 
@@ -456,7 +464,7 @@ void ColorAnim::apply()
   ColorHsva res = lerp_hsva(valFrom, valTo, k);
   E3DCOLOR val = e3dcolor(hsv2rgb(res));
 
-  if (isFinished() && !desc.playFadeOut)
+  if (isFinished() && !isFadingOut())
   {
     if (output)
       *output = baseElemColor;
@@ -539,7 +547,7 @@ void FloatAnim::apply()
   switch (desc.prop)
   {
     case AP_OPACITY:
-      if (isFinished() && !desc.playFadeOut)
+      if (isFinished() && !isFadingOut())
         elem->props.resetCurrentOpacity();
       else
         elem->props.setCurrentOpacity(val);
@@ -548,7 +556,7 @@ void FloatAnim::apply()
     case AP_ROTATE:
       if (elem->transform)
       {
-        if (isFinished() && !desc.playFadeOut)
+        if (isFinished() && !isFadingOut())
           elem->transform->haveCurRotate = false;
         else
         {
@@ -559,7 +567,7 @@ void FloatAnim::apply()
       break;
 
     case AP_FVALUE:
-      if (isFinished() && !desc.playFadeOut)
+      if (isFinished() && !isFadingOut())
         elem->props.resetOverride(elem->csk->fValue);
       else
         elem->props.overrideFloat(elem->csk->fValue, val);
@@ -578,14 +586,14 @@ void FloatAnim::apply()
 void Point2Anim::setup(bool /*initial*/)
 {
   if (!desc.fromElemProp())
-    p2From = script_get_point2(desc.from);
+    p2From = script_get_point2(desc.from, defVal);
   else
-    p2From.zero();
+    p2From = defVal;
 
   if (!desc.toElemProp())
-    p2To = script_get_point2(desc.to);
+    p2To = script_get_point2(desc.to, defVal);
   else
-    p2To.zero();
+    p2To = defVal;
 }
 
 
@@ -625,7 +633,7 @@ void Point2Anim::apply()
     case AP_SCALE:
       if (elem->transform)
       {
-        if (isFinished() && !desc.playFadeOut)
+        if (isFinished() && !isFadingOut())
           elem->transform->haveCurScale = false;
         else
         {
@@ -639,7 +647,7 @@ void Point2Anim::apply()
     case AP_TRANSLATE:
       if (elem->transform)
       {
-        if (isFinished() && !desc.playFadeOut)
+        if (isFinished() && !isFadingOut())
           elem->transform->haveCurTranslate = false;
         else
         {
@@ -861,9 +869,7 @@ void Transition::update(int64_t dt)
     else
     {
       Sqrat::Function f(sqEasingFunc.GetVM(), Sqrat::Object(sqEasingFunc.GetVM()), sqEasingFunc.GetObject());
-      float res = k;
-      f.Evaluate(k, res);
-      k = res;
+      k = f.Eval<float>(k).value_or(k);
     }
 
     recalcCurValues(prop, k);

@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <animChar/dag_animCharacter2.h>
 #include <debug/dag_assert.h>
@@ -9,8 +11,8 @@
 #include <ecs/render/updateStageRender.h>
 #include <debug/dag_debug3d.h>
 #include <util/dag_console.h>
-#include <ecs/core/utility/ecsRecreate.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/core/utility/ecsRecreate.h>
+#include <daECS/delayedAct/actInThread.h>
 #include "fastPhysTag.h"
 
 static dag::VectorSet<uint32_t> debugAnimCharsSet;
@@ -23,7 +25,7 @@ static void createTemplate()
   eastl::string name = template_name;
   g_entity_mgr->addTemplate(ecs::Template(template_name, eastl::move(map), ecs::Template::component_set(),
     ecs::Template::component_set(), ecs::Template::component_set(), false));
-  g_entity_mgr->instantiateTemplate(g_entity_mgr->buildTemplateIdByName(template_name));
+  g_entity_mgr->instantiateTemplate(g_entity_mgr->buildTemplateIdByName(template_name), true);
 }
 
 static void removeSubTemplateAsync(ecs::EntityId eid)
@@ -49,7 +51,7 @@ static void addSubTemplateAsync(ecs::EntityId eid)
 }
 
 template <typename Callable>
-static void get_animchar_by_name_ecs_query(Callable c);
+static void get_animchar_by_name_ecs_query(ecs::EntityManager &manager, Callable c);
 
 
 static void toggleDebugAnimChar(const eastl::string &str)
@@ -57,7 +59,7 @@ static void toggleDebugAnimChar(const eastl::string &str)
   auto it = debugAnimCharsSet.find(str_hash_fnv1(str.c_str()));
   if (it != debugAnimCharsSet.end())
   {
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
+    get_animchar_by_name_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, const ecs::string &animchar__res) {
       if (animchar__res == str)
         removeSubTemplateAsync(eid);
     });
@@ -65,7 +67,7 @@ static void toggleDebugAnimChar(const eastl::string &str)
   }
   else
   {
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
+    get_animchar_by_name_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, const ecs::string &animchar__res) {
       if (animchar__res == str)
         addSubTemplateAsync(eid);
     });
@@ -77,7 +79,7 @@ static void resetDebugAnimChars()
 {
   for (auto &hash : debugAnimCharsSet)
   {
-    get_animchar_by_name_ecs_query([&](ecs::EntityId eid, const ecs::string &animchar__res) {
+    get_animchar_by_name_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, const ecs::string &animchar__res) {
       if (str_hash_fnv1(animchar__res.c_str()) == hash)
         removeSubTemplateAsync(eid);
     });

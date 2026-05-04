@@ -39,9 +39,9 @@ void SphereRenderer::createAndFillBuffers()
   G_ASSERT(isInited());
 
   if (!sphereVb)
-    sphereVb = dag::create_vb(vertexCount * sizeof(Point3), 0, "sphereRenderer_VB");
+    sphereVb = dag::create_vb(vertexCount * sizeof(Point3), 0, "sphereRenderer_VB", RESTAG_DEBUG);
   if (!sphereIb)
-    sphereIb = dag::create_ib(faceCount * 6, 0, "sphereRenderer_IB");
+    sphereIb = dag::create_ib(faceCount * 6, 0, "sphereRenderer_IB", RESTAG_DEBUG);
 
   auto indices = lock_sbuffer<uint8_t>(sphereIb.getBuf(), 0, 6 * faceCount, VBLOCK_WRITEONLY);
   auto vertices = lock_sbuffer<uint8_t>(sphereVb.getBuf(), 0, vertexCount * sizeof(Point3), VBLOCK_WRITEONLY);

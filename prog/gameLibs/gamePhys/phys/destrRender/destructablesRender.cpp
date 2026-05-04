@@ -58,7 +58,8 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
     if (!destr->isAlive())
       continue;
     const Point4 *itm = destr->intialTmAndHash;
-    Point4 initialPos(itm[0].w, itm[1].w, itm[2].w, itm[3].x); // mat43f + hash
+    Point4 initialPos(itm[0].w, itm[1].w, itm[2].w, 0); // mat43f + hash
+    memcpy(&initialPos.w, &itm[3].x, sizeof(float));
     if (dynrend::is_initialized())
     {
       if (destr->rendData)

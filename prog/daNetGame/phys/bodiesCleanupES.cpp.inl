@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "bodiesCleanup.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <EASTL/vector_set.h>
 #include "game/player.h"
 #include "game/dasEvents.h"
@@ -27,14 +29,15 @@ ECS_DECLARE_RELOCATABLE_TYPE(BodiesCleanup);
 ECS_REGISTER_RELOCATABLE_TYPE(BodiesCleanup, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(BodiesCleanup, "bodies_cleanup", nullptr, 0);
 
-inline void bodies_cmd_cleanup_es_event_handler(const CmdBodyCleanup &evt, ecs::EntityId eid, net::Object *replication)
+inline void bodies_cmd_cleanup_es_event_handler(
+  const CmdBodyCleanup &evt, ecs::EntityManager &manager, ecs::EntityId eid, net::Object *replication)
 {
   if (replication && replication->isReplica()) // networking entities are cleaned by server
     return;
-  ecs::EntityId bodiesEid = g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("bodies_cleanup"));
+  ecs::EntityId bodiesEid = manager.getOrCreateSingletonEntity(ECS_HASH("bodies_cleanup"));
   if (!bodiesEid)
     return;
-  BodiesCleanup &bodies_cleanup = ECS_GET_RW(BodiesCleanup, bodiesEid, bodies_cleanup);
+  BodiesCleanup &bodies_cleanup = ECS_GET_RW_MGR(manager, BodiesCleanup, bodiesEid, bodies_cleanup);
 
   float ttl = evt.get<0>();
   if (ttl >= 0.f)
@@ -43,12 +46,12 @@ inline void bodies_cmd_cleanup_es_event_handler(const CmdBodyCleanup &evt, ecs::
     bodies_cleanup.erase(BodiesClnRec{eid, 0.f});
 }
 
-inline void update_body_cleanup_ttl_es(const CmdBodyCleanupUpdateTtl &evt, ecs::EntityId eid)
+inline void update_body_cleanup_ttl_es(const CmdBodyCleanupUpdateTtl &evt, ecs::EntityManager &manager, ecs::EntityId eid)
 {
-  ecs::EntityId bodiesEid = g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("bodies_cleanup"));
+  ecs::EntityId bodiesEid = manager.getOrCreateSingletonEntity(ECS_HASH("bodies_cleanup"));
   if (!bodiesEid)
     return;
-  BodiesCleanup &bodiesCleanup = ECS_GET_RW(BodiesCleanup, bodiesEid, bodies_cleanup);
+  BodiesCleanup &bodiesCleanup = ECS_GET_RW_MGR(manager, BodiesCleanup, bodiesEid, bodies_cleanup);
 
   float newTtl = evt.get<0>();
   BodiesClnRec *body = bodiesCleanup.find(BodiesClnRec{eid, 0.f});
@@ -62,7 +65,7 @@ inline void bodies_resurrected_es_event_handler(const EventAnyEntityResurrected 
 }
 
 ECS_NO_ORDER
-static inline void bodies_cleanup_es(const ecs::UpdateStageInfoAct &info, BodiesCleanup &bodies_cleanup)
+static inline void bodies_cleanup_es(const ecs::UpdateStageInfoAct &info, ecs::EntityManager &manager, BodiesCleanup &bodies_cleanup)
 {
   for (auto bi = bodies_cleanup.begin(); bi != bodies_cleanup.end();)
   {
@@ -73,7 +76,7 @@ static inline void bodies_cleanup_es(const ecs::UpdateStageInfoAct &info, Bodies
       ++bi;
       continue;
     }
-    if (!ECS_GET_OR(b.eid, canRemoveWhilePossessed, true))
+    if (!ECS_GET_OR_MGR(manager, b.eid, canRemoveWhilePossessed, true))
     {
       const ecs::EntityId playerEid = game::find_player_eid_that_possess(b.eid);
       const bool isPossessed = playerEid != ecs::INVALID_ENTITY_ID;
@@ -85,7 +88,7 @@ static inline void bodies_cleanup_es(const ecs::UpdateStageInfoAct &info, Bodies
         continue;
       }
     }
-    g_entity_mgr->destroyEntity(b.eid);
+    manager.destroyEntity(b.eid);
     bi = bodies_cleanup.erase(bi);
   }
 }

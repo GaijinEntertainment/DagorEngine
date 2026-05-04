@@ -42,7 +42,7 @@ macro INIT_AND_USE_GI_FORWARD()
 endmacro
 
 macro INIT_AND_USE_VOLFOG_FORWARD()
-  if (mobile_render == off && in_editor_assume == no)
+  if (in_editor_assume == no)
   {
     BRUNETON_FOG()
     USE_SCREENPOS_TO_TC()
@@ -66,16 +66,13 @@ macro INIT_GBUFFER_FORWARD()
     }
     INIT_HDR(ps)
   }
-  if (mobile_render == off)
-  {
-    (ps) {
-      air_fog_density@f1 = (air_fog_density);
-    }
+  (ps) {
+    air_fog_density@f1 = (air_fog_density);
   }
 endmacro
 
 macro INIT_AND_USE_TILED_LIGHTS_FORWARD()
-  if (compatibility_mode == compatibility_mode_off && mobile_render == off)
+  if (compatibility_mode == compatibility_mode_off)
   {
     USE_SCREENPOS_TO_TC()
     INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(ps)
@@ -249,10 +246,10 @@ macro WRITE_GBUFFER_FORWARD()
         ##elif (gi_quality == only_ao)
           float ofs = max(dist * 0.04, 0.25 * dagi_sky_vis_probe_size(0));
           float3 filteredWorldPos = worldPos.xyz + view * ofs;
-          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0);
+          float vignette;
+          float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0, vignette);
           ##if (compatibility_mode == compatibility_mode_off)
-            if (all(sh1 != 1))
-              environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx);
+            environmentAmbientUnoccludedLighting = lerp(GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx), environmentAmbientUnoccludedLighting, vignette);
           ##else
             float wsao = dot(float4(gbuffer.normal, 1), sh1.wyzx);
             wsao = lerp(0.01, 1, wsao);
@@ -339,9 +336,9 @@ macro WRITE_GBUFFER_FORWARD()
         ##elif (gi_quality == only_ao)
           float ofs = max(dist * 0.04, 0.25 * dagi_sky_vis_probe_size(0));
           float3 filteredWorldPos = worldPos.xyz + view * ofs;
-          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0);
-          if (all(sh1 != 1))
-            environmentAmbientUnoccludedLighting = GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx);
+          float vignette;
+          float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, filteredWorldPos, view, max(0, dist - ofs), gbuffer.normal, 0, vignette);
+          environmentAmbientUnoccludedLighting = lerp(GetSHFunctionValueSimple(gbuffer.normal, sph0 * sh1.wyzx, sph1 * sh1.wyzx, sph2 * sh1.wyzx), environmentAmbientUnoccludedLighting, vignette);
         ##endif
       ##endif
 

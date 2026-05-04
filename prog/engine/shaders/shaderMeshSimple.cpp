@@ -125,9 +125,7 @@ static unsigned real2int10(real a)
   if (ret >= 0)
     return ((unsigned)ret) & ((1 << 9) - 1);
   else
-  {
-    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 10);
-  }
+    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 9);
 }
 
 static unsigned real2uint(real a) { return real2int(a < 0 ? 0 : a); }
@@ -145,7 +143,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
 
   int nv = 0;
   appendIndexData(m, sf, numf, f2vmap, vDescSrc, bvert, cvert, ib, nv);
-  G_ASSERT(nv <= 65545);
+  G_ASSERT(nv <= 65535);
 
   // prepare vertex data placement
   uint8_t *p = vb;
@@ -181,6 +179,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
           const uint8_t *vp = &m.getExtra(eci).vt[m.getExtra(eci).vsize * ind];
           float *fp = (float *)vp;
           E3DCOLOR &ep = *(E3DCOLOR *)vp;
+          BoneIndices &bi = *(BoneIndices *)vp;
 
           switch (m.getExtra(eci).type)
           {
@@ -189,6 +188,7 @@ static int addVertices(Mesh &m, int sf, int numf, VertToFaceVertMap &f2vmap, uin
             case MeshData::CHT_FLOAT3: SETV(fp[0], fp[1], fp[2], 1); break;
             case MeshData::CHT_FLOAT4: SETV(fp[0], fp[1], fp[2], fp[3]); break;
             case MeshData::CHT_E3DCOLOR: SETV(ep.r / 255.0f, ep.g / 255.0f, ep.b / 255.0f, ep.a / 255.0f); break;
+            case MeshData::CHT_SHORT4: SETV(bi.x, bi.y, bi.z, bi.w); break;
           }
         }
         else

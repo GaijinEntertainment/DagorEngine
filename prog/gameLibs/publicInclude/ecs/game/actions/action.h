@@ -44,6 +44,7 @@ struct EntityAction
   int propsId = -1; // props of action
   int varId = -1;
   bool blocksSprint = true;
+  bool isAnimStateFullBody = false;
   ecs::string name;
   ecs::hash_str_t classHash = 0;
 };

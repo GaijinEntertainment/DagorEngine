@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/aviWriter ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/aviWriter.lib ;
+
+Sources =
+  aviWriter.cpp
+;
+
+AddIncludes = 
+  $(Root)/prog/gameLibs/publicInclude 
+  $(Root)/prog/engine/sharedInclude
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -1,0 +1,9 @@
+WARNING: w222 (bool-as-index) Boolean used as array index.
+testData/static_analyzer/w222_inside_detructure.nut:3:12
+
+  function foo(a,x,y) {
+    print(a[x < y])
+            ^----
+  }
+
+

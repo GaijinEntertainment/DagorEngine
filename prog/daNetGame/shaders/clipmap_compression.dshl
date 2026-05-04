@@ -1,7 +1,13 @@
 include "clipmap_compression_common.dshl"
 
+float src_mip = 0;
+float dst_mip = 0;
+
 int uncompressed_clipmap_buffer_srgb_mode = 0;
 interval uncompressed_clipmap_buffer_srgb_mode : native < 1, software;
+
+int clipmap_compression_gather4_allowed = 1;
+interval clipmap_compression_gather4_allowed : no < 1, yes;
 
 shader direct_cache_bypass
 {
@@ -12,27 +18,26 @@ shader direct_cache_bypass
   DIRECT_CACHE_BYPASS_VS()
 
   (ps) {
-    cache_buffer_tex_0@smp2d = cache_buffer_tex_0;
-    cache_buffer_tex_1@smp2d = cache_buffer_tex_1;
-    cache_buffer_tex_2@smp2d = cache_buffer_tex_2;
+    cache_buffer_tex_0@tex2d = cache_buffer_tex_0;
+    cache_buffer_tex_0_samplerstate@sampler = CompressionInputTexSampler;
+    cache_buffer_tex_1@tex2d = cache_buffer_tex_1;
+    cache_buffer_tex_1_samplerstate@sampler = CompressionInputTexSampler;
+    cache_buffer_tex_2@tex2d = cache_buffer_tex_2;
+    cache_buffer_tex_2_samplerstate@sampler = CompressionInputTexSampler;
+    src_mip@f1 = src_mip;
   }
   hlsl(ps) {
     #include <pixelPacking/ColorSpaceUtility.hlsl>
 
     struct MRT_OUTPUT {
-    ##if mobile_simplified_materials == no
       float4 cache0:SV_Target0;
       float2 cache1:SV_Target1;
       float4 cache2:SV_Target2;
-    ##else
-      float4 cache0:SV_Target0;
-      float2 cache1:SV_Target1;
-    ##endif
     };
 
     MRT_OUTPUT bypass_ps(VsOutput IN)
     {
-      float4 tc = float4(IN.texcoord.xy,0,0);
+      float4 tc = float4(IN.texcoord.xy,0,src_mip);
       float4 buffer0 = tex2Dlod(cache_buffer_tex_0, tc);
       float4 buffer1 = tex2Dlod(cache_buffer_tex_1, tc);
       float4 buffer2 = tex2Dlod(cache_buffer_tex_2, tc);
@@ -43,14 +48,9 @@ shader direct_cache_bypass
         ret.cache0 = float4(buffer0.xyz, buffer1.b);
       ##endif
 
-      ##if mobile_simplified_materials == yes
-        ret.cache0.w = buffer2.z;
-        ret.cache1 = buffer1.xy;
-      ##else
         ret.cache1 = buffer1.xy;
         float2 ao_emission = saturate(float2(buffer2.x, buffer2.x - 0.5) * 2.0);
         ret.cache2 = float4(ao_emission.x, buffer2.y, ao_emission.y, buffer2.z);
-      ##endif
 
       return ret;
     }
@@ -59,31 +59,103 @@ shader direct_cache_bypass
   compile( "target_ps", "bypass_ps" );
 }
 
+macro USE_CACHE_GATHER_0(code)
+  USE_COMMON_GATHER_HELPERS(code)
+  (code) {
+    src_tex@tex2d = cache_buffer_tex_0;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  (code) {
+    src_smoothness_tex@tex2d = cache_buffer_tex_1;
+    src_smoothness_tex_samplerstate@sampler = CompressionInputTexSampler;
+  }
+
+  hlsl(code)
+  {
+    ##if clipmap_compression_gather4_allowed == yes
+      #define GATHER_W gatherTexels(Blue, w, src_smoothness_tex);
+    ##else
+      #define GATHER_W GET_TEXELS(w, b, src_smoothness_tex)
+    ##endif
+
+    #define GATHER_BLOCK { \
+      GET_TEXELS(rgb, rgb, src_tex) \
+      GATHER_W \
+      ADD_BC_LEGACY_ENDPOINTS_BIAS \
+    }
+  }
+endmacro
+
+macro USE_CACHE_GATHER_1(code)
+  USE_COMMON_GATHER_HELPERS(code)
+  (code) {
+    src_tex@tex2d = cache_buffer_tex_1;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  hlsl(code)
+  {
+    ##if clipmap_compression_gather4_allowed == yes
+      #define GATHER_BLOCK { \
+        gatherTexels(Red, x, src_tex); \
+        gatherTexels(Green, y, src_tex); \
+      }
+    ##else
+      #define GATHER_BLOCK { \
+        GET_TEXELS(xy, rg, src_tex) \
+      }
+    ##endif
+  }
+endmacro
+
+macro USE_CACHE_GATHER_2(code)
+  USE_COMMON_GATHER_HELPERS(code)
+  (code) {
+    src_tex@tex2d = cache_buffer_tex_2;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  hlsl(code)
+  {
+    #define GATHER_BLOCK { \
+      GET_TEXELS(rgb, rgb, src_tex); \
+      UNROLL \
+      for (int i = 0; i < 16; ++i) \
+      { \
+        float2 ao_emission = saturate(float2(texels[i].x, texels[i].x - 0.5) * 2.0); \
+        texels[i].x = ao_emission.x; \
+        texels[i].w = texels[i].z; \
+        texels[i].z = ao_emission.y; \
+        ADD_BC_LEGACY_ENDPOINTS_BIAS_ITERATION \
+      } \
+    }
+  }
+endmacro
+
 shader cache0_compressor, cache1_compressor, cache2_compressor
 {
   supports global_frame;
   supports land_mesh_prepare_clipmap;
+
+  hlsl
+  {
+    #define BC_COMPRESSION_USE_MIPS
+  }
+  (vs) { src_dst_mip__src_face@f3 = (src_mip, dst_mip, 0, 0); }
+
   if (shader == cache0_compressor)
   {
-    (ps) { src_tex@smp2d = cache_buffer_tex_0; }
+    USE_CACHE_GATHER_0(ps)
     INIT_BC_COMPRESSION()
     USE_BC3_COMPRESSION(ps)
-    if (mobile_simplified_materials == yes) {
-      (ps) { src_detail_tex@smp2d = cache_buffer_tex_2; }
-    } else {
-      (ps) { src_smoothness_tex@smp2d = cache_buffer_tex_1; }
-    }
   } else if (shader == cache1_compressor)
   {
-    (ps) { src_tex@smp2d = cache_buffer_tex_1; }
+    USE_CACHE_GATHER_1(ps)
     INIT_BC_COMPRESSION()
     USE_BC5_COMPRESSION(ps)
   } else
   {
-    (ps) { src_tex@smp2d = cache_buffer_tex_2; }
+    USE_CACHE_GATHER_2(ps)
     INIT_BC_COMPRESSION()
     USE_BC3_COMPRESSION(ps)
-    INIT_BC_COMPRESSION_GET_HELPER()
   }
 
   //PS4_DEF_TARGET_FMT_32_GR() use for BC1/BC4
@@ -91,78 +163,20 @@ shader cache0_compressor, cache1_compressor, cache2_compressor
 
   hlsl(ps)
   {
-    #define gatherTexels(channel, attr, tex) \
-      block = tex.Gather##channel(tex##_samplerstate, texTc).wzxy;\
-      texels[0+0*4].attr = block.x;texels[1+0*4].attr = block.y;texels[0+1*4].attr = block.z;texels[1+1*4].attr = block.w;\
-      block = tex.Gather##channel(tex##_samplerstate, texTc, int2(2,0)).wzxy;\
-      texels[2+0*4].attr = block.x;texels[3+0*4].attr = block.y;texels[2+1*4].attr = block.z;texels[3+1*4].attr = block.w;\
-      block = tex.Gather##channel(tex##_samplerstate, texTc, int2(0,2)).wzxy;\
-      texels[0+2*4].attr = block.x;texels[1+2*4].attr = block.y;texels[0+3*4].attr = block.z;texels[1+3*4].attr = block.w;\
-      block = tex.Gather##channel(tex##_samplerstate, texTc, int2(2,2)).wzxy;\
-      texels[2+2*4].attr = block.x;texels[3+2*4].attr = block.y;texels[2+3*4].attr = block.z;texels[3+3*4].attr = block.w;
-
     uint4 bc_compressor_ps( VsOutput input ) : SV_Target
     {
+      float2 src_top_left = input.tex.xy;
+      float2 src_texel_size = input.tex.zw;
+      float src_mip = input.src_mip;
+
       half4 texels[16];
+      GATHER_BLOCK
+
       half4 min_color, max_color;
-
       ##if shader == cache1_compressor
-        float2 texTc = input.tex.xy+input.tex.zw; // sample in all directions
-        float4 block;
-
-        gatherTexels(Red, x, src_tex);
-        gatherTexels(Green, y, src_tex);
-
         find_base_colors( texels, min_color, max_color );
         return pack_bc5_block( texels, min_color, max_color );
-      ##elif shader == cache2_compressor
-        get_texels( input.tex, texels, 0 );
-        UNROLL
-        for (int i = 0; i < 16; ++i)
-        {
-          float2 ao_emission = saturate(float2(texels[i].x, texels[i].x - 0.5) * 2.0);
-          texels[i].x = ao_emission.x;
-          texels[i].w = texels[i].z;
-          texels[i].z = ao_emission.y;
-          texels[i].rgb = saturate(texels[i].rgb - float3(4./255., 2./255., 4./255.)); // Mimic the error of a fixed BC3 encoder bug for which artists have adapted.
-        }
-
-        ##if find_base_colors_with_pca
-          find_base_colors_pca_rgb( texels, min_color, max_color );
-          inset_rgb_base_colors( min_color, max_color );
-        ##else
-          find_base_colors( texels, min_color, max_color );
-          correlate_rgb_base_colors( texels, min_color, max_color );
-          inset_rgb_base_colors( min_color, max_color );
-        ##endif
-        return pack_bc3_block( texels, min_color, max_color );
-      ##elif shader == cache0_compressor
-        //##if hardware.dx11 || hardware.vulkan || hardware.metal
-        //int2 texTCi  = int2(input.tex.xy);
-        //##else
-        float2 texTc = input.tex.xy; // sample in all directions
-        float2 src_texel_size = input.tex.zw;
-        //##endif
-        #define GET_TEXEL(x, y) {\
-          float2 tc = texTc + float2( x, y ) * src_texel_size; texels[y * 4 + x] = tex2D( src_tex, tc ); }
-        GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
-        GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
-        GET_TEXEL(0,2);GET_TEXEL(1,2);GET_TEXEL(2,2);GET_TEXEL(3,2);
-        GET_TEXEL(0,3);GET_TEXEL(1,3);GET_TEXEL(2,3);GET_TEXEL(3,3);
-        #undef GET_TEXEL
-        texTc += src_texel_size;
-
-        float4 block;
-      ##if mobile_simplified_materials == yes
-        gatherTexels(Blue, w, src_detail_tex);
       ##else
-        gatherTexels(Blue, w, src_smoothness_tex);
-      ##endif
-
-        UNROLL
-        for (int i = 0; i < 16; ++i)
-          texels[i].rgb = saturate(texels[i].rgb - float3(4./255., 2./255., 4./255.)); // Mimic the error of a fixed BC3 encoder bug for which artists have adapted.
-
         ##if find_base_colors_with_pca
           find_base_colors_pca_rgb( texels, min_color, max_color );
         ##else
@@ -186,20 +200,16 @@ shader cache0_etc2_compressor, cache1_etc2_compressor, cache2_etc2_compressor
     dont_render;
   }
 
+  (cs) { src_mip@f1 = (src_mip, 0, 0, 0); }
   if (shader == cache0_etc2_compressor)
   {
-    (cs) { src_tex@smp2d = cache_buffer_tex_0; }
-    if (mobile_simplified_materials == yes) {
-      (cs) { src_detail_tex@smp2d = cache_buffer_tex_2; }
-    } else {
-      (cs) { src_smoothness_tex@smp2d = cache_buffer_tex_1; }
-    }
+    USE_CACHE_GATHER_0(cs)
   } else if (shader == cache1_etc2_compressor)
   {
-    (cs) { src_tex@smp2d = cache_buffer_tex_1; }
+    USE_CACHE_GATHER_1(cs)
   } else
   {
-    (cs) { src_tex@smp2d = cache_buffer_tex_2; }
+    USE_CACHE_GATHER_2(cs)
   }
 
   INIT_ETC2_COMPRESSION()
@@ -215,34 +225,11 @@ shader cache0_etc2_compressor, cache1_etc2_compressor, cache2_etc2_compressor
     ##endif
     void bc_compressor_cs(uint3 dtId : SV_DispatchThreadID)
     {
+      float2 src_top_left = dtId.xy * 4 * tex_size__mip_zero.xy;
+      float2 src_texel_size = tex_size__mip_zero.xy;
+
       float4 texels[16];
-
-      float2 uv = dtId.xy * 4 * tex_size__mip_zero.xy;
-
-    ##if shader == cache1_etc2_compressor
-      #define GET_TEXEL(xx, yy) \
-        texels[xx+yy*4].rg = tex2Dlod(src_tex, float4(uv + uint2(xx, yy)*tex_size__mip_zero.xy, 0, 0)).rg;
-    ##elif shader == cache0_etc2_compressor
-      ##if mobile_simplified_materials == yes
-        #define SRC_CACHE_TEX src_detail_tex
-      ##else
-        #define SRC_CACHE_TEX src_smoothness_tex
-      ##endif
-      #define GET_TEXEL(xx, yy) \
-        texels[xx+yy*4].rgb = tex2Dlod(src_tex, float4(uv + uint2(xx, yy)*tex_size__mip_zero.xy, 0, 0)).rgb; \
-        texels[xx+yy*4].a = tex2Dlod(SRC_CACHE_TEX, float4(uv + uint2(xx, yy)*tex_size__mip_zero.xy, 0, 0)).b;
-    ##else
-        #define GET_TEXEL(xx, yy) \
-        { float4 temp = tex2Dlod(src_tex, float4(uv + uint2(xx, yy)*tex_size__mip_zero.xy, 0, 0)).rgba; \
-          texels[xx+yy*4].xz = saturate(float2(temp.x, temp.x - 0.5)*2.0); \
-          texels[xx+yy*4].yw = temp.yz; \
-        }
-    ##endif
-
-      GET_TEXEL(0, 0); GET_TEXEL(1, 0); GET_TEXEL(2, 0); GET_TEXEL(3, 0);
-      GET_TEXEL(0, 1); GET_TEXEL(1, 1); GET_TEXEL(2, 1); GET_TEXEL(3, 1);
-      GET_TEXEL(0, 2); GET_TEXEL(1, 2); GET_TEXEL(2, 2); GET_TEXEL(3, 2);
-      GET_TEXEL(0, 3); GET_TEXEL(1, 3); GET_TEXEL(2, 3); GET_TEXEL(3, 3);
+      GATHER_BLOCK
 
     ##if shader == cache0_etc2_compressor || shader == cache2_etc2_compressor
       compressedTexture[dtId.xy] = CompressBlock_ETC2_RGBA(texels);

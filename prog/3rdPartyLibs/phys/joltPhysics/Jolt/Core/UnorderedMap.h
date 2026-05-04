@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Jolt/Core/HashTable.h>
+#include <Jolt/Core/UnorderedMapFwd.h>
 
 JPH_NAMESPACE_BEGIN
 
@@ -25,7 +26,7 @@ public:
 /// @tparam Value Value type
 /// @tparam Hash Hash function (note should be 64-bits)
 /// @tparam KeyEqual Equality comparison function
-template <class Key, class Value, class Hash = JPH::Hash<Key>, class KeyEqual = std::equal_to<Key>>
+template <class Key, class Value, class Hash, class KeyEqual>
 class UnorderedMap : public HashTable<Key, std::pair<Key, Value>, UnorderedMapDetail<Key, Value>, Hash, KeyEqual>
 {
 	using Base = HashTable<Key, std::pair<Key, Value>, UnorderedMapDetail<Key, Value>, Hash, KeyEqual>;
@@ -38,7 +39,7 @@ public:
 
 	Value &						operator [] (const Key &inKey)
 	{
-		size_type index = ~0;
+		size_type index;
 		bool inserted = this->InsertKey(inKey, index);
 		value_type &key_value = this->GetElement(index);
 		if (inserted)
@@ -49,7 +50,7 @@ public:
 	template<class... Args>
 	std::pair<iterator, bool>	try_emplace(const Key &inKey, Args &&...inArgs)
 	{
-		size_type index = ~0;
+		size_type index;
 		bool inserted = this->InsertKey(inKey, index);
 		if (inserted)
 			new (&this->GetElement(index)) value_type(std::piecewise_construct, std::forward_as_tuple(inKey), std::forward_as_tuple(std::forward<Args>(inArgs)...));
@@ -59,7 +60,7 @@ public:
 	template<class... Args>
 	std::pair<iterator, bool>	try_emplace(Key &&inKey, Args &&...inArgs)
 	{
-		size_type index = ~0;
+		size_type index;
 		bool inserted = this->InsertKey(inKey, index);
 		if (inserted)
 			new (&this->GetElement(index)) value_type(std::piecewise_construct, std::forward_as_tuple(std::move(inKey)), std::forward_as_tuple(std::forward<Args>(inArgs)...));

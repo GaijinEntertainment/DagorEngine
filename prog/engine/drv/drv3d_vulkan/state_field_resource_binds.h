@@ -8,7 +8,6 @@
 #include "sampler_resource.h"
 #include "image_view_state.h"
 #include "buffer_ref.h"
-#include "immediate_const_buffer.h"
 
 class BaseTexture;
 class Sbuffer;
@@ -95,6 +94,14 @@ struct URegister
   Image *image = nullptr;
   ImageViewState imageView = {};
   BufferRef buffer;
+
+  enum
+  {
+    TYPE_NULL = 0,
+    TYPE_IMG = 1,
+    TYPE_BUF = 2
+  };
+
 
   URegister() = default;
   URegister(BaseTexture *tex, uint32_t face, uint32_t mip_level, bool as_uint);

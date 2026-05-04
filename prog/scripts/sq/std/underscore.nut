@@ -24,8 +24,8 @@ function isDataBlock(obj) {
   return false
 }
 
-let callableTypes = static ["function","table","instance"].totable()
-let recursivetypes = static ["table","array","class"].totable()
+let callableTypes = const ["function","table","instance"].totable()
+let recursivetypes = const ["table","array","class"].totable()
 
 function isCallable(v) {
   let typ = typeof v
@@ -49,10 +49,11 @@ function mkIteratee(func){
 */
 function funcCheckArgsNum(func, numRequired){
   let infos = func.getfuncinfos()
-  local plen = infos.parameters.len() - 1
+  let params = infos.parameters
+  local plen = params.len() - 1
   let deplen = infos.defparams.len()
-  let isVargv = infos.varargs > 0
-  if (isVargv)
+  let isVargv = !!infos.varargs
+  if (isVargv && params.top()=="...")
     plen -= 2
   let mandatoryParams = plen - deplen
   if (mandatoryParams > numRequired)
@@ -395,6 +396,18 @@ function insertGap(list, gap){
   return res
 }
 
+function getSubArray(tbl, key) {
+  if (key not in tbl)
+    tbl[key] <- []
+  return tbl[key]
+}
+
+function getSubTable(tbl, key) {
+  if (key not in tbl)
+    tbl[key] <- {}
+  return tbl[key]
+}
+
 return freeze({
   invert
   tablesCombine
@@ -421,4 +434,6 @@ return freeze({
   deep_merge
   flatten
   insertGap
+  getSubArray
+  getSubTable
 })

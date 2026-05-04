@@ -1,0 +1,1 @@
+Macro that participates in type declarations, enabling syntax like ``$macro_name<type_args...>(args)`` for custom type construction and transformation.

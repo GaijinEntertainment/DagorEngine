@@ -141,6 +141,7 @@ class ShadersPreCache
   {
     uint64_t hash = 0;
     char entry[96] = {0};
+    eastl::string name;
     eastl::vector<uint8_t> data;
     CachedShader *result = nullptr;
   };
@@ -179,7 +180,7 @@ public:
   void savePreCache();
 
   MTLVertexDescriptor *buildDescriptor(Shader *vshader, VDecl *vdecl, const Program::RenderState &rstate, uint64_t &hash);
-  id<MTLFunction> getShader(uint64_t shader_hash, const char *entry, const char *data, int size, bool async);
+  id<MTLFunction> getShader(Shader *shader, const char *data, int size, bool async);
   id<MTLRenderPipelineState> getState(Program *program, VDecl *vdecl, const Program::RenderState &rstate, bool async);
 
   id<MTLFunction> compileShader(const QueuedShader &shader);
@@ -198,6 +199,8 @@ public:
 
   void saverThread();
   void compilerThread();
+
+  void unloadShaders();
 
   void release();
 };

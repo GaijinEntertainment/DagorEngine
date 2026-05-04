@@ -1,17 +1,19 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "rolluppanel.h"
-#include "datablk.h"
-#include "resource.h"
-#include "enumnode.h"
-#include "cfg.h"
-#include "dlg_dim.h"
-
 #include <stdio.h>
 #include <io.h>
 #include <stdlib.h>
 
+#include "rolluppanel.h"
+#include "cfg.h"
+#include "datablk.h"
+#include "resource.h"
+#include "enumnode.h"
+#include "dlg_dim.h"
+#include "common.h"
+
 #include "mater.h"
+#include "debug.h"
 
 
 M_STD_STRING strToWide(const char *sz);
@@ -51,7 +53,7 @@ public:
   virtual ~EDataBlockCB() {}
   virtual int procCheck(bool val) = 0;
   virtual int procInt(int val) = 0;
-  virtual int procCombo(const char *val, Tab<String> &items) = 0;
+  virtual int procCombo(const char *val, std::vector<std::string> &items) = 0;
   virtual int procReal(real val) = 0;
   virtual int procStr(const char *val) = 0;
   virtual int procPoint3(const Point3 &val) = 0;
@@ -172,7 +174,7 @@ public:
     panel->addCheck(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable);
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items) override
+  int procCombo(const char *val, std::vector<std::string> &items) override
   {
     // panel->addComboInput( hwnd, paramId*PARAM_IDC_COUNT, name, val, enable, items );
     panel->addButtons(hwnd, paramId * PARAM_IDC_COUNT, find_info_by_name("caption", name, name), val, enable, items);
@@ -231,14 +233,14 @@ public:
     ::CheckDlgButton(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC, nodeBlk->getBool(name, false));
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items) override
+  int procCombo(const char *val, std::vector<std::string> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     clearParam(hwnd, paramId);
-    for (int i = 0; i < items.Count(); i++)
+    for (int i = 0; i < int(items.size()); i++)
     {
       ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
-      iEdit->SetCheck(strcmp((char *)nodeBlk->getStr(name, ""), items[i]) == NULL);
+      iEdit->SetCheck(nodeBlk->getStr(name, "") == items[i]);
       iEdit->Enable();
       ReleaseICustButton(iEdit);
     }
@@ -312,16 +314,15 @@ public:
       ::SetDlgItemText(hwnd, valNCIdc, nc ? _T("-NC") : _T(""));
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items) override
+  int procCombo(const char *val, std::vector<std::string> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
-    const int valEditIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
     const int valNCIdc = paramId * PARAM_IDC_COUNT + PARAM_NC_IDC;
     bool nc = false;
-    for (int i = 0; i < items.Count(); i++)
+    for (int i = 0; i < int(items.size()); i++)
     {
       ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
-      if (iEdit->IsChecked() != (strcmp((char *)nodeBlk->getStr(name, ""), items[i]) == NULL))
+      if (iEdit->IsChecked() != BOOL(nodeBlk->getStr(name, "") == items[i]))
         nc = true;
       ReleaseICustButton(iEdit);
     }
@@ -416,7 +417,7 @@ public:
     }
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items) override
+  int procCombo(const char *val, std::vector<std::string> &items) override
   {
     M_STD_STRING old = getName(name);
     if (!old.empty())
@@ -500,15 +501,15 @@ public:
     rezBlk->addBool(name, ::IsDlgButtonChecked(hwnd, valControlIdc) ? 1 : 0);
     return ECB_CONT;
   }
-  int procCombo(const char *val, Tab<String> &items) override
+  int procCombo(const char *val, std::vector<std::string> &items) override
   {
     HWND hwnd = iRoll->GetPanelDlg(groupId);
     const int valControlIdc = paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC;
-    for (int i = 0; i < items.Count(); i++)
+    for (int i = 0; i < int(items.size()); i++)
     {
       ICustButton *iEdit = GetICustButton(GetDlgItem(hwnd, paramId * PARAM_IDC_COUNT + PARAM_EDIT_IDC + i));
       if (iEdit->IsChecked())
-        rezBlk->addStr(name, items[i]);
+        rezBlk->addStr(name, items[i].data());
       ReleaseICustButton(iEdit);
     }
     return ECB_CONT;
@@ -603,13 +604,10 @@ int enum_params(const DataBlock *blk, EDataBlockCB *cb)
       }
       else if (stricmp(type, "combo") == NULL)
       {
-        Tab<String> items;
+        std::vector<std::string> items;
         for (int i = 0; i < paramBlk->paramCount(); i++)
-          if (stricmp(paramBlk->getParamName(i), "item") == NULL && paramBlk->getParamType(i) == DataBlock::TYPE_STRING)
-          {
-            String *s = new String(paramBlk->getStr(i));
-            items.Append(1, s);
-          }
+          if (!stricmp(paramBlk->getParamName(i), "item") && paramBlk->getParamType(i) == DataBlock::ParamType::TYPE_STRING)
+            items.emplace_back(paramBlk->getStr(i));
         cb->procCombo(paramBlk->getStr(1), items);
       }
       id++;
@@ -641,7 +639,7 @@ public:
       RollupPanel::correctUserProp(n);
       RollupPanel::getBlkFromUserProp(n, blkStr, nonBlkStr);
 
-      DataBlock blk;
+      DataBlock blk(std::make_shared<NameMap>());
       blk.loadText(STR_DEST(blkStr), blkStr.length(), NULL);
 
       if (stricmp(type, "string") == NULL)
@@ -739,10 +737,9 @@ DataBlock *RollupPanel::templateBlk = NULL;
 RollupPanel::RollupPanel(Interface *ip_, const HWND dlg_hwnd) : ip(ip_)
 {
   iRoll = GetIRollup(GetDlgItem(dlg_hwnd, IDC_ROLLUPWINDOW));
-  char filename[1024];
   debug("load defparams.blk");
-  getMaxBlkFileName("defparams.blk", filename);
-  templateBlk = new DataBlock;
+  std::wstring filename = get_cfg_filename(L"defparams.blk");
+  templateBlk = new DataBlock(std::make_shared<NameMap>());
   templateBlk->load(filename);
 }
 
@@ -751,9 +748,8 @@ DataBlock &RollupPanel::getTemplateBlk()
   if (!templateBlk)
   {
     debug("load defparams.blk");
-    char filename[1024];
-    getMaxBlkFileName("defparams.blk", filename);
-    templateBlk = new DataBlock;
+    std::wstring filename = get_cfg_filename(L"defparams.blk");
+    templateBlk = new DataBlock(std::make_shared<NameMap>());
     templateBlk->load(filename);
   }
   return *templateBlk;
@@ -792,29 +788,6 @@ void RollupPanel::updateNCFromBlk(const DataBlock &blk)
   enum_groups(&cb);
 }
 
-void RollupPanel::getMaxBlkFileName(const char *blk, char *filename)
-{
-  ::GetModuleFileNameA(hInstance, filename, MAX_PATH);
-  char drive[_MAX_DRIVE];
-  char dir[_MAX_DIR];
-  char fName[_MAX_FNAME];
-  char ext[_MAX_EXT];
-  _splitpath(filename, drive, dir, fName, ext);
-  strcpy(filename, drive);
-  strcat(filename, dir);
-  strcat(filename, "../"); // search one dir up first
-  strcat(filename, blk);
-  if (FILE *fp = fopen(filename, "rb"))
-    fclose(fp);
-  else
-  {
-    // if not found then get in module dir
-    strcpy(filename, drive);
-    strcat(filename, dir);
-    strcat(filename, blk);
-  }
-}
-
 
 void RollupPanel::analyzeCfg(DataBlock &blk, CStr &source)
 {
@@ -822,15 +795,15 @@ void RollupPanel::analyzeCfg(DataBlock &blk, CStr &source)
   script += "\r\n";
   script += source;
 
-  char filename[1024];
-  getMaxBlkFileName("tempcfg.ini", filename);
+  std::wstring filename = get_cfg_filename(L"tempcfg.ini");
 
-  FILE *h = fopen(filename, "w+b");
-  fwrite(script.data(), script.length(), 1, h);
-  fclose(h);
+  {
+    std::ofstream os(filename, std::ios::binary);
+    if (os)
+      os << script;
+  }
 
-
-  CfgReader cfg(strToWide(filename).c_str());
+  CfgReader cfg(filename);
 
   const DataBlock &scheme = RollupPanel::getTemplateBlk();
   const int nid = scheme.getNameId("parameter");
@@ -871,27 +844,27 @@ void RollupPanel::analyzeCfg(DataBlock &blk, CStr &source)
               {
                 if (!strcmp(paramType, "bool"))
                 {
-                  const bool val = !stricmp(valStr.c_str(), "yes") || !stricmp(valStr.c_str(), "on") ||
-                                   !stricmp(valStr.c_str(), "true") || !stricmp(valStr.c_str(), "1");
+                  const bool v = !stricmp(valStr.c_str(), "yes") || !stricmp(valStr.c_str(), "on") ||
+                                 !stricmp(valStr.c_str(), "true") || !stricmp(valStr.c_str(), "1");
 
-                  blk.setBool(paramName, val);
+                  blk.setBool(paramName, v);
                 }
                 else if (!strcmp(paramType, "int"))
                 {
-                  const int val = strtol(valStr.c_str(), NULL, 0);
-                  blk.setInt(paramName, val);
+                  const int v = strtol(valStr.c_str(), NULL, 0);
+                  blk.setInt(paramName, v);
                 }
                 else if (!strcmp(paramType, "real"))
                 {
-                  const real val = strtod(valStr.c_str(), NULL);
-                  blk.setReal(paramName, val);
+                  const real v = strtod(valStr.c_str(), NULL);
+                  blk.setReal(paramName, v);
                 }
                 else if (!strcmp(paramType, "p3"))
                 {
-                  Point3 val = Point3(0, 0, 0);
-                  sscanf(valStr.c_str(), " %f , %f , %f", &val.x, &val.y, &val.z);
+                  Point3 v = Point3(0, 0, 0);
+                  (void)sscanf(valStr.c_str(), " %f , %f , %f", &v.x, &v.y, &v.z);
 
-                  blk.setPoint3(paramName, val);
+                  blk.setPoint3(paramName, v);
                 }
                 else
                   blk.setStr(paramName, valStr.c_str());
@@ -962,8 +935,8 @@ void RollupPanel::getBlkFromUserProp(INode *n, CStr &blk_string, CStr &non_blk_s
   if (*start)
   {
     CStr line;
-    const char *end = str + strlen(str);
-    const int strLen = end - start;
+    const char *e = str + strlen(str);
+    const int strLen = e - start;
 
     line.Resize(strLen + 1);
     memcpy(STR_DEST(line), start, strLen);
@@ -986,12 +959,13 @@ bool RollupPanel::saveUserPropBufferToBlk(DataBlock &blk, INode *n, int &blk_par
   if (!buf.length())
     return false;
 
-  char filename[1024];
-  getMaxBlkFileName("tempfake.blk", filename);
+  std::wstring filename = get_cfg_filename(L"tempfake.blk");
 
-  FILE *h = fopen(filename, "w+b");
-  fwrite(buf.data(), buf.length(), 1, h);
-  fclose(h);
+  {
+    std::ofstream os(filename, std::ios::binary);
+    if (os)
+      os << buf;
+  }
 
   blk.load(filename);
   blk_param_count = blk.paramCount();
@@ -1019,7 +993,7 @@ void RollupPanel::correctUserProp(INode *n)
 
       if (nonBlkScript.length())
       {
-        DataBlock blk;
+        DataBlock blk(std::make_shared<NameMap>());
         blk.loadText(STR_DEST(blkScript), blkScript.length(), NULL);
 
         analyzeCfg(blk, nonBlkScript);
@@ -1054,38 +1028,20 @@ bool RollupPanel::saveBlkToUserPropBuffer(const DataBlock &blk, INode *n, const 
 
 bool RollupPanel::getBlkInString(const DataBlock &blk, CStr &out)
 {
-  char filename[1024];
-  getMaxBlkFileName("tempfake.blk", filename);
-
+  std::wstring filename = get_cfg_filename(L"tempfake.blk");
   blk.saveToTextFile(filename);
-
   return loadStrFromFile(filename, out);
 }
 
 
-bool RollupPanel::loadStrFromFile(const char *fname, CStr &str)
+bool RollupPanel::loadStrFromFile(const std::wstring &fname, CStr &str)
 {
-  FILE *h = fopen(fname, "r+b");
-
-  if (!h)
+  std::ifstream is(wideToStr(fname.data()), std::ios::binary); // FIXME wide
+  if (!is)
     return false;
 
-  CStr buffer;
-  static char buf[0x10000 + 1];
-
-  size_t count = fread(buf, 1, 0x10000, h);
-
-  while (count)
-  {
-    buf[count] = 0;
-    buffer += buf;
-
-    count = fread(buf, 1, 0x10000, h);
-  }
-
-  fclose(h);
-  str = buffer;
-
+  std::string buf((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+  str = buf.data();
   return true;
 }
 
@@ -1094,7 +1050,7 @@ bool RollupPanel::updateNCFromUserPropBuffer(INode *n, int &blk_param_count)
 {
   correctUserProp(n);
 
-  DataBlock blk;
+  DataBlock blk(std::make_shared<NameMap>());
   if (!saveUserPropBufferToBlk(blk, n, blk_param_count))
     return false;
 
@@ -1108,7 +1064,7 @@ bool RollupPanel::updateFromUserPropBuffer(INode *n, int &blk_param_count)
 {
   correctUserProp(n);
 
-  DataBlock blk;
+  DataBlock blk(std::make_shared<NameMap>());
   if (!saveUserPropBufferToBlk(blk, n, blk_param_count))
     return false;
 
@@ -1120,7 +1076,7 @@ bool RollupPanel::updateFromUserPropBuffer(INode *n, int &blk_param_count)
 
 void RollupPanel::saveToUserPropBuffer(INode *n, const char *additional)
 {
-  DataBlock blk;
+  DataBlock blk(std::make_shared<NameMap>());
   UserPropCB cb(iRoll, &blk);
   enum_groups(&cb);
   saveBlkToUserPropBuffer(blk, n, additional);
@@ -1223,7 +1179,8 @@ HWND RollupPanel::addGroup(IRollupWindow *roll, int count, const char *name)
   return roll->GetPanelDlg(index);
 }
 
-void RollupPanel::addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab<String> &items)
+void RollupPanel::addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
+  std::vector<std::string> &items)
 {
   int top = (PARAM_CTRL_H + PARAM_CTRL_GAP) * (idc / PARAM_IDC_COUNT + 1);
   HWND hStaticNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_RIGHT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT, top,
@@ -1233,16 +1190,16 @@ void RollupPanel::addButtons(const HWND group_hwnd, int idc, const char *name, c
   SendMessage(hStaticNew, WM_SETFONT, (WPARAM)hFont, TRUE);
   ::SetDlgItemText(group_hwnd, idc + PARAM_LABEL_IDC, strToWide(name).c_str());
 
-  int w = (PARAM_CTRL_W + PARAM_CTRL_H + 2 * PARAM_CTRL_CAPTION_W / 3) / items.Count();
-  for (int i = 0; i < items.Count(); i++)
+  int w = int((PARAM_CTRL_W + PARAM_CTRL_H + 2 * PARAM_CTRL_CAPTION_W / 3) / items.size());
+  for (int i = 0; i < int(items.size()); i++)
   {
     HWND hInputNew = ::CreateWindowEx(0, _T("CustButton"), _T(""), SS_RIGHT | WS_VISIBLE | WS_CHILD,
       PARAM_CTRL_LEFT1 - 2 * PARAM_CTRL_CAPTION_W / 3 + i * w, top, w, PARAM_CTRL_H, group_hwnd,
       (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC + i), ::hInstance, NULL);
     ICustButton *iEdit = GetICustButton(hInputNew);
-    iEdit->SetText((TCHAR *)strToWide(items[i]).c_str());
+    iEdit->SetText((TCHAR *)strToWide(items[i].data()).c_str());
     iEdit->SetType(CBT_CHECK);
-    iEdit->SetCheck(!strcmp(val, items[i]));
+    iEdit->SetCheck(val == items[i]);
     iEdit->Enable(enable);
     iEdit->SetButtonDownNotify(true);
     ReleaseICustButton(iEdit);
@@ -1253,7 +1210,8 @@ void RollupPanel::addButtons(const HWND group_hwnd, int idc, const char *name, c
 }
 
 
-void RollupPanel::addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, Tab<String> &items)
+void RollupPanel::addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
+  std::vector<std::string> &items)
 {
   int top = (PARAM_CTRL_H + PARAM_CTRL_GAP) * (idc / PARAM_IDC_COUNT + 1);
   HWND hStaticNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_RIGHT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT, top,
@@ -1267,8 +1225,8 @@ void RollupPanel::addComboInput(const HWND group_hwnd, int idc, const char *name
     ::CreateWindowEx(0, _T("COMBOBOX"), _T(""), WS_VISIBLE | WS_CHILD | CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP, PARAM_CTRL_LEFT1, top,
       PARAM_CTRL_W + PARAM_CTRL_H, PARAM_CTRL_H * 9, group_hwnd, (HMENU)(intptr_t)(idc + PARAM_EDIT_IDC), ::hInstance, NULL);
   ::EnableWindow(hInputNew, enable);
-  for (int i = 0; i < items.Count(); i++)
-    ComboBox_AddString(hInputNew, strToWide(items[i]).c_str());
+  for (int i = 0; i < int(items.size()); i++)
+    ComboBox_AddString(hInputNew, strToWide(items[i].data()).c_str());
   ComboBox_SelectString(hInputNew, -1, strToWide(val).c_str());
 
   HWND hNCNew = ::CreateWindowEx(0, _T("STATIC"), _T(""), SS_LEFT | WS_VISIBLE | WS_CHILD, PARAM_CTRL_LEFT3, top, PARAM_CTRL_W,
@@ -1495,10 +1453,10 @@ void RollupPanel::bindCommand(INode *n, const char *name, const DataBlock &blk)
 
     switch (blk.getParamType(blk.findParam(name)))
     {
-      case DataBlock::TYPE_STRING: n->SetUserPropString(w_old.c_str(), strToWide(blk.getStr(name, "")).c_str()); break;
-      case DataBlock::TYPE_INT: n->SetUserPropInt(w_old.c_str(), blk.getInt(name, 0)); break;
-      case DataBlock::TYPE_REAL: n->SetUserPropFloat(w_old.c_str(), blk.getReal(name, 0)); break;
-      case DataBlock::TYPE_POINT3:
+      case DataBlock::ParamType::TYPE_STRING: n->SetUserPropString(w_old.c_str(), strToWide(blk.getStr(name, "")).c_str()); break;
+      case DataBlock::ParamType::TYPE_INT: n->SetUserPropInt(w_old.c_str(), blk.getInt(name, 0)); break;
+      case DataBlock::ParamType::TYPE_REAL: n->SetUserPropFloat(w_old.c_str(), blk.getReal(name, 0)); break;
+      case DataBlock::ParamType::TYPE_POINT3:
       {
         Point3 p = blk.getPoint3(name, Point3(0, 0, 0));
         const TCHAR *xyz = _T( "XYZ" );
@@ -1510,7 +1468,7 @@ void RollupPanel::bindCommand(INode *n, const char *name, const DataBlock &blk)
         }
       }
       break;
-      case DataBlock::TYPE_BOOL: n->SetUserPropBool(w_old.c_str(), blk.getBool(name, false)); break;
+      case DataBlock::ParamType::TYPE_BOOL: n->SetUserPropBool(w_old.c_str(), blk.getBool(name, false)); break;
       default:
         debug("error");
         // G_ASSERT(0);

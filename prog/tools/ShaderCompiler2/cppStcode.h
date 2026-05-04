@@ -4,6 +4,7 @@
 #include "cppStcodeAssembly.h"
 #include "processes.h"
 #include "blkHash.h"
+#include "samplers.h"
 #include <generic/dag_expected.h>
 #include <shaders/shader_layout.h>
 
@@ -29,7 +30,7 @@ struct StcodeCompilationDirs
 eastl::optional<shader_layout::ExternalStcodeMode> arg_str_to_cpp_stcode_mode(const char *str);
 
 bool set_stcode_config_from_arg(const char *str, shc::CompilerConfig &config_rw);
-bool set_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw);
+bool add_stcode_arch_from_arg(const char *str, shc::CompilerConfig &config_rw);
 
 #if _CROSS_TARGET_SPIRV | _CROSS_TARGET_METAL
 bool set_stcode_platform_from_arg(const char *str, shc::CompilerConfig &config_rw);
@@ -45,7 +46,7 @@ bool set_stcode_platform_from_arg(const char *str, shc::CompilerConfig &config_r
 StcodeCompilationDirs init_stcode_compilation(const char *dest_dir, const char *shortened_dest_dir_for_caching);
 
 void save_compiled_cpp_stcode(StcodeShader &&cpp_shader, const ShCompilationInfo &comp);
-void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars, const ShCompilationInfo &comp);
+void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars, const ShCompilationInfo &comp, const shc::TargetContext &ctx);
 void save_stcode_dll_main(StcodeShader &&combined_cppstcode, const CryptoHash &stcode_hash, const ShCompilationInfo &comp);
 
 struct StcodeSourceFileStat
@@ -64,5 +65,5 @@ enum class StcodeMakeTaskError
   DISABLED
 };
 
-dag::Expected<proc::ProcessTask, StcodeMakeTaskError> make_stcode_compilation_task(const char *out_dir, const char *lib_name,
+dag::Expected<Tab<proc::ProcessTask>, StcodeMakeTaskError> make_stcode_compilation_tasks(const char *out_dir, const char *lib_name,
   const ShCompilationInfo &comp);

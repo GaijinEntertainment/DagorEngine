@@ -6,7 +6,6 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <generic/dag_tabUtils.h>
 #include <debug/dag_debug.h>
-#include <math/twistCtrl.h>
 #include <3d/dag_render.h>
 
 
@@ -18,13 +17,11 @@ DynamicPhysObject::DynamicPhysObjectClass() : physSys(NULL), nodeTree(NULL)
 template <>
 DynamicPhysObject::~DynamicPhysObjectClass()
 {
-#ifndef NO_3D_GFX
   for (int i = 0; i < modelEntries.size(); i++)
   {
     del_it(modelEntries[i]->model);
     del_it(modelEntries[i]);
   }
-#endif
 
   del_it(physSys);
   del_it(nodeTree);
@@ -48,7 +45,6 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
   if (phys_obj_data->nodeTree)
     nodeTree = new GeomNodeTree(*phys_obj_data->nodeTree);
 
-#ifndef NO_3D_GFX
   for (int nModel = 0; nModel < phys_obj_data->models.size(); nModel++)
   {
     if (!phys_obj_data->models[nModel])
@@ -87,27 +83,7 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
           }
       });
 
-      dag::ConstSpan<PhysicsResource::NodeAlignCtrl> c = phys_obj_data->physRes->getNodeAlignCtrl();
-      entry->nodeAlignCtrl.reserve(c.size());
-      for (int i = 0; i < c.size(); i++)
-      {
-        NodeAlignCtrl &ctrl = entry->nodeAlignCtrl.push_back();
-        ctrl.node0Id = nodeTree->findNodeIndex(c[i].node0);
-        ctrl.node1Id = nodeTree->findNodeIndex(c[i].node1);
-        ctrl.angDiff = c[i].angDiff;
-        for (int j = 0; j < countof(c[i].twist) && !c[i].twist[j].empty(); j++)
-        {
-          ctrl.twistId[j] = nodeTree->findNodeIndex(c[i].twist[j]);
-          if (!ctrl.twistId[j])
-          {
-            ctrl.twistCnt = 0;
-            break;
-          }
-          ctrl.twistCnt = j + 1;
-        }
-        if (!ctrl.node0Id || !ctrl.node1Id || !ctrl.twistCnt)
-          entry->nodeAlignCtrl.pop_back();
-      }
+      entry->twistCtrl = make_phys_twist_ctrls(*phys_obj_data->physRes, *nodeTree);
     }
     else if (physSys)
     {
@@ -125,7 +101,6 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
       });
     }
   }
-#endif // NO_3D_GFX
 }
 
 
@@ -144,7 +119,6 @@ DynamicPhysObject *DynamicPhysObject::create(const DynamicPhysObjectData *data, 
 }
 
 
-#ifndef NO_3D_GFX
 template <>
 void DynamicPhysObject::replaceModel(int index, DynamicRenderableSceneLodsResource *res)
 {
@@ -196,9 +170,8 @@ void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
             nodeTree->setNodeWtmScalar(i, *entry->nodeHelpers[i.index()]);
             nodeTree->invalidateWtm(i);
           }
-        for (int j = 0; j < entry->nodeAlignCtrl.size(); j++)
-          apply_twist_ctrl(*nodeTree, entry->nodeAlignCtrl[j].node0Id, entry->nodeAlignCtrl[j].node1Id,
-            make_span(entry->nodeAlignCtrl[j].twistId, entry->nodeAlignCtrl[j].twistCnt), entry->nodeAlignCtrl[j].angDiff);
+        for (const TwistCtrlParams &ctrl : entry->twistCtrl)
+          apply_phys_twist_ctrl(*nodeTree, ctrl);
 
         nodeTree->calcWtm();
         for (int i = 0; i < entry->treeIndex.size(); ++i)
@@ -252,5 +225,3 @@ void DynamicPhysObject::getBodyVisualTm(int index, TMatrix &tm)
 
   physSys->getBody(index)->getTm(tm);
 }
-
-#endif // NO_3D_GFX

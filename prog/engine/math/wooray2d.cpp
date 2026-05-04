@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <EASTL/type_traits.h>
 #include <math/dag_wooray2d.h>
 #include <vecmath/dag_vecMath.h>
 

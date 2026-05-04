@@ -29,7 +29,7 @@ namespace das {
                 anyStructFields.pop_back();
             }
         }
-        virtual void beforeStructureField ( char * ps, StructInfo *si, char * pf, VarInfo * vi, bool ) override {
+        virtual void beforeStructureField ( char * /*ps*/, StructInfo *si, char * pf, VarInfo * vi, bool ) override {
             enumAsInt = false;
             unescape = false;
             embed = false;
@@ -46,8 +46,12 @@ namespace das {
                         embed = arg.bValue;
                     } else if ( arg.name=="optional" && arg.type==Type::tBool ) {
                         optional = arg.bValue;
-                    } else if ( arg.name=="rename" && arg.type==Type::tString ) {
-                        name = arg.sValue;
+                    } else if ( arg.name=="rename" ) {
+                        if ( arg.type==Type::tString ) {
+                            name = arg.sValue;
+                        } else if ( arg.type==Type::tBool && !name.empty() && name[0]=='_' ) {
+                            name = name.substr(1);
+                        }
                     }
                 }
             }
@@ -100,10 +104,10 @@ namespace das {
             }
             ignoreNextFields.push_back(ignoreNextField);
         }
-        virtual bool canVisitArray ( Array * ar, TypeInfo * ) override {
+        virtual bool canVisitArray ( Array * /*ar*/, TypeInfo * ) override {
             return ignoreNextFields.empty() || !ignoreNextFields.back();
         }
-        virtual bool canVisitTable ( char * ps, TypeInfo * ) override {
+        virtual bool canVisitTable ( char * /*ps*/, TypeInfo * ) override {
             return ignoreNextFields.empty() || !ignoreNextFields.back();
         }
         virtual void afterStructureField ( char *, StructInfo *, char *, VarInfo *, bool ) override {
@@ -121,7 +125,7 @@ namespace das {
         virtual void afterTuple ( char *, TypeInfo * ) override {
             ss << "}";
         }
-        virtual void beforeTupleEntry ( char *, TypeInfo * ti, char *, int idx, bool ) override {
+        virtual void beforeTupleEntry ( char *, TypeInfo * /*ti*/, char *, int idx, bool ) override {
             ss << "\"_" << idx << "\":";
         }
         virtual void afterTupleEntry ( char *, TypeInfo *, char *, int, bool last ) override {
@@ -169,7 +173,7 @@ namespace das {
         }
         virtual void Int8 ( int8_t & value ) override {
             if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
-            ss << value;
+            ss << int32_t(value);
         }
         virtual void UInt8 ( uint8_t & value ) override {
             if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
@@ -177,7 +181,7 @@ namespace das {
         }
         virtual void Int16 ( int16_t & value ) override {
             if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
-            ss << value;
+            ss << int32_t(value);
         }
         virtual void UInt16 ( uint16_t & value ) override {
             if ( !ignoreNextFields.empty() && ignoreNextFields.back() ) return;
@@ -219,6 +223,15 @@ namespace das {
         }
         virtual void Bitfield ( uint32_t & value, TypeInfo * ) override {
             ss << value;
+        }
+        virtual void Bitfield8 ( uint8_t & value, TypeInfo * ) override {
+            ss << int32_t(value);
+        }
+        virtual void Bitfield16 ( uint16_t & value, TypeInfo * ) override {
+            ss << int32_t(value);
+        }
+        virtual void Bitfield64 ( uint64_t & value, TypeInfo * ) override {
+            ss << int64_t(value);
         }
         virtual void Int2 ( int2 & value ) override {
             ss << "[" << value.x << "," << value.y << "]";
@@ -292,11 +305,11 @@ namespace das {
             Enum(value,info);
         }
 
-        virtual bool revisitStructure ( char * ps, StructInfo * si ) override {
+        virtual bool revisitStructure ( char * /*ps*/, StructInfo * /*si*/ ) override {
             ss << "null";
             return false;
         }
-        virtual bool revisitHandle ( char * ps, TypeInfo * ti ) override {
+        virtual bool revisitHandle ( char * /*ps*/, TypeInfo * /*ti*/ ) override {
             ss << "null";
             return false;
         }

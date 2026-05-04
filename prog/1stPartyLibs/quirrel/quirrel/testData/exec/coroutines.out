@@ -1,0 +1,8 @@
+test coroutine
+suspend passed [suspend 1]
+the coroutine says ciao 1
+suspend passed [suspend 2]
+the coroutine says ciao 2
+suspend passed [suspend 3]
+the coroutine says ciao 3
+return passed [I'm done]

@@ -33,12 +33,12 @@
   #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
 #endif
 
-#define tex_hmap_low_samplerstate  land_heightmap_tex_samplerstate
+#define hmapMain_samplerstate  tex_hmap_low_samplerstate
 
 #define downsampled_checkerboard_depth_tex_samplerstate  downsampled_far_depth_tex_samplerstate
 #define prev_downsampled_far_depth_tex_samplerstate     downsampled_far_depth_tex_samplerstate
 #define downsampled_close_depth_tex_samplerstate        downsampled_far_depth_tex_samplerstate
-#define distant_heightmap_tex_samplerstate              land_heightmap_tex_samplerstate
+#define distant_heightmap_tex_samplerstate              tex_hmap_low_samplerstate
 
 
 #define HAS_STATIC_SHADOW 1
@@ -539,10 +539,10 @@ float3 getWorldNormal(float3 worldPos)
 {
   float2 uvLow  = worldPos.xz * world_to_hmap_low.xy + world_to_hmap_low.zw;
   float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
-  float W = tex2Dlod(land_heightmap_tex, float4(uvLow - offset.xy,0,0)).x;
-  float E = tex2Dlod(land_heightmap_tex, float4(uvLow + offset.xy,0,0)).x;
-  float N = tex2Dlod(land_heightmap_tex, float4(uvLow - offset.yz,0,0)).x;
-  float S = tex2Dlod(land_heightmap_tex, float4(uvLow + offset.yz,0,0)).x;
+  float W = tex2Dlod(hmapMain, float4(uvLow - offset.xy,0,0)).x;
+  float E = tex2Dlod(hmapMain, float4(uvLow + offset.xy,0,0)).x;
+  float N = tex2Dlod(hmapMain, float4(uvLow - offset.yz,0,0)).x;
+  float S = tex2Dlod(hmapMain, float4(uvLow + offset.yz,0,0)).x;
   return normalize(half3(W-E, tex_hmap_inv_sizes.x/world_to_hmap_low.x/heightmap_scale.x, N-S));
 }
 
@@ -556,7 +556,7 @@ float linearize_z(float rawDepth, float2 decode_depth)
   return rcp(decode_depth.x + decode_depth.y * rawDepth);
 }
 
-float sample_spheres_density(StructuredBuffer<float4> spheres, int spheres_count, float3 world_pos)
+float sample_spheres_density(StructuredBuffer<NBSSphere> spheres, int spheres_count, float3 world_pos)
 {
   if (IS_DISTANT_FOG && !IS_ENVI_COVER)
     return 0;
@@ -564,13 +564,11 @@ float sample_spheres_density(StructuredBuffer<float4> spheres, int spheres_count
   float density = 0;
   for (int i = 0; i < spheres_count; ++i)
   {
-    float4 sphere = spheres[2 * i];
-    float2 densityParams = spheres[2 * i + 1].xy;
-    float dist = distance(sphere.xyz, world_pos);
-    float radiusInv = sphere.w;
-    float weight = dist * radiusInv;
+    NBSSphere sphere = spheres[i];
+    float dist = distance(sphere.pos, world_pos);
+    float weight = dist * sphere.invRadius;
     FLATTEN if (weight <= 1)
-      density += lerp(densityParams.x, densityParams.y, weight);
+      density += lerp(sphere.centerDensity, sphere.edgeDensity, weight);
   }
   return density;
 }

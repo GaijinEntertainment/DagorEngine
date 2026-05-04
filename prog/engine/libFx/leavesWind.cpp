@@ -129,9 +129,9 @@ void LeavesWindEffect::setShaderVars(const TMatrix &view_itm, real rocking_scale
 
     tm = view_itm % tm;
 
-    ShaderGlobal::set_color4_fast(windMatrixXId[i], Color4(tm[0][0], tm[0][1], tm[0][2], 0));
-    ShaderGlobal::set_color4_fast(windMatrixYId[i], Color4(tm[1][0], tm[1][1], tm[1][2], 0));
-    ShaderGlobal::set_color4_fast(windMatrixZId[i], -Color4(tm[2][0], tm[2][1], tm[2][2], 0));
+    ShaderGlobal::set_float4(windMatrixXId[i], Color4(tm[0][0], tm[0][1], tm[0][2], 0));
+    ShaderGlobal::set_float4(windMatrixYId[i], Color4(tm[1][0], tm[1][1], tm[1][2], 0));
+    ShaderGlobal::set_float4(windMatrixZId[i], -Color4(tm[2][0], tm[2][1], tm[2][2], 0));
   }
 }
 
@@ -144,8 +144,8 @@ void LeavesWindEffect::setNoAnimShaderVars(const Point3 &colX, const Point3 &col
   Color4 z(-colZ.x, -colZ.y, -colZ.z, 0);
   for (int i = 0; i < WIND_GRP_NUM; ++i)
   {
-    ShaderGlobal::set_color4_fast(windMatrixXId[i], x);
-    ShaderGlobal::set_color4_fast(windMatrixYId[i], y);
-    ShaderGlobal::set_color4_fast(windMatrixZId[i], z);
+    ShaderGlobal::set_float4(windMatrixXId[i], x);
+    ShaderGlobal::set_float4(windMatrixYId[i], y);
+    ShaderGlobal::set_float4(windMatrixZId[i], z);
   }
 }

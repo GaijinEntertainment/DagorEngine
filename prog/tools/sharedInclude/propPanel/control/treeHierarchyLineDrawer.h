@@ -23,7 +23,6 @@ public:
   {
     const bool hasPreviousSibling = nodeHasPreviousSibling(node);
     const bool hasNextSibling = nodeHasNextSibling(node);
-    const float treeNodeToLabelSpacing = ImGui::GetTreeNodeToLabelSpacing();
     const float indentSpacing = ImGui::GetStyle().IndentSpacing;
     const float centerX = floorf(item_rect.Min.x + (ImGui::GetStyle().FramePadding.x * 3.0f));
     const float centerY = floorf((item_rect.Min.y + item_rect.Max.y) / 2.0f);

@@ -139,40 +139,49 @@ def on_client_disconnected_server(evt : EventOnClientDisconnected)
         destroyEntity(possessed)
       print("request destroy player {eid}")
       destroyEntity(eid)
+      query() <| $ [es(REQUIRE=respbase)] (var checkpoint__occupiedBy : EntityId&)
+        if checkpoint__occupiedBy == eid
+          checkpoint__occupiedBy = INVALID_ENTITY_ID
       return true
     return false
   broadcastEvent(PlayerStartQuitGameTimer())
 
 def spawn_player_entity(possessed_by_player : EntityId)
-  var spawnTms : array<float3x4>
+  var spawnpoints : array<EntityId>
   var obstacles : array<float4> // other players/dynamic obstacles: .xyz=pos, .w=rad
   var has_gravity : bool = false
   query() <| $ [es] (transform : float3x4; force_shield : float4)
     //print("player pos={transform[3]} rad={force_shield_rad}")
     obstacles |> push(float4(transform[3], force_shield.x))
 
-  query() <| $ [es(REQUIRE=respbase)] (transform : float3x4)
-    //print("spawn {transform[3]}")
-    spawnTms |> push(transform)
+  query() <| $ [es(REQUIRE=respbase)] (eid : EntityId)
+    spawnpoints |> push(eid)
   query() <| $ [es] (phys_props__gravity : float)
     has_gravity = abs(phys_props__gravity) > 0.0f
 
   var spawnTm : float3x4
-  assert(length(spawnTms) > 0, "No spawn bases to spawn onto")
-  var idx : int = grnd() % length(spawnTms)
-  let stop_idx = (idx + length(spawnTms) - 1) % length(spawnTms)
-  while idx != stop_idx
-    var good_idx : bool = true
-    for o in obstacles // find spawn position not occupied by other players/obstacles
-      if length(spawnTms[idx][3] - o.xyz) < 2.0f * o.w
+  assert(length(spawnpoints) > 0, "No spawn bases to spawn onto")
+  var idx : int = grnd() % length(spawnpoints)
+  let stop_idx = (idx + length(spawnpoints) - 1) % length(spawnpoints)
+  var good_idx : bool = false
+  while true
+    good_idx = true
+    query(spawnpoints[idx]) <| $ [es] (transform : float3x4; var checkpoint__occupiedBy : EntityId&)
+      if checkpoint__occupiedBy != INVALID_ENTITY_ID
         good_idx = false
-        break
-    //print("idx={idx}  {good_idx} stop_idx={stop_idx}");
-    if good_idx
-      break
-    idx = (idx + 1) % length(spawnTms)
+        return
+      for o in obstacles // find spawn position not occupied by other players/obstacles
+        if length(transform[3] - o.xyz) < 2.0f * o.w
+          good_idx = false
+          return
 
-  spawnTm = spawnTms[idx]
+      //print("idx={idx}  {good_idx} stop_idx={stop_idx}");
+      spawnTm = transform
+      checkpoint__occupiedBy = possessed_by_player
+    if good_idx || idx == stop_idx
+      break
+    idx = (idx + 1) % length(spawnpoints)
+  assert(good_idx, "No vacant spawn bases to spawn onto")
 
   createEntity("combat_space_unit") <| $(var init)
     init |> set("transform", spawnTm)

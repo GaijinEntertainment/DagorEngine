@@ -8,7 +8,9 @@
 #include "net/userid.h"
 #include "main/appProfile.h"
 #include "main/main.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 namespace dedicated_matching
 {
@@ -83,6 +85,7 @@ static eastl::string room_secret;
 static eastl::unordered_map<matching::UserId, Json::Value> room_members;
 static int group_size = 0; // 0 = unlimited
 bool (*generate_peer_auth)(matching::UserId, void const *, size_t, matching::AuthKey &) = nullptr;
+void (*try_start_relay_and_subscribe)(void(__cdecl *)(bool)) = nullptr;
 } // namespace state_data
 
 static void merge_json(Json::Value const &what, Json::Value &where)
@@ -315,7 +318,10 @@ const char *get_player_custom_info(matching::UserId uid)
 
 const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players() { return room_members; }
 
+matching::RoomId get_current_room_id() { return state_data::current_room_id; }
+eastl::string get_current_cluster() { return state_data::room_info.get("private", {}).get("cluster", "").asCString(); }
 } // namespace dedicated_matching
+
 
 #define NET_MATCHING_ECS_EVENT ECS_REGISTER_EVENT
 NET_MATCHING_ECS_EVENTS

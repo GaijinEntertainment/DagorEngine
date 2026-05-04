@@ -79,3 +79,11 @@ inline bool setviews(dag::ConstSpan<Viewport> viewports) { return d3di.setviews(
 inline bool getview(int &x, int &y, int &w, int &h, float &minz, float &maxz) { return d3di.getview(x, y, w, h, minz, maxz); }
 } // namespace d3d
 #endif
+
+namespace d3d
+{
+inline bool setviewscissor(int x, int y, int w, int h, float minz = 0, float maxz = 1)
+{
+  return setview(x, y, w, h, minz, maxz) && setscissor(x, y, w, h);
+}
+} // namespace d3d

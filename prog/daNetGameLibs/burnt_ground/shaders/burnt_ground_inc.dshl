@@ -1,0 +1,96 @@
+include "water_heightmap.dshl"
+include "rendinst_heightmap_ofs.dshl"
+include "heightmap_ofs.dshl"
+include "biomes.dshl"
+include "toroidal_grass.dshl"
+
+float4 autodetect_burnt_ground_selfillum_color = float4(10.0, 10.0, 10.0, -100);
+float burnt_ground_selfillum_strength = 1;
+float burnt_ground_selfillum_worldscale = 1;
+float4 burnt_ground_edge_params = float4(1.0, 1.0, 1.0, 0); // float4(frequency, scale, transition width, -)
+float4 burnt_ground_tiling_scale = float4(1, 1, 0, 0);
+
+int4 burnt_ground_allowed_biomes_1;
+int4 burnt_ground_allowed_biomes_2;
+
+macro INIT_BURNT_GROUND_COMMON(need_perlin_noise)
+  if (need_perlin_noise)
+  {
+    (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+  }
+  (ps) {
+    burnt_ground_tiling_scale@f4 = (burnt_ground_tiling_scale.x, burnt_ground_tiling_scale.y, 1.0/burnt_ground_tiling_scale.x, 1.0/burnt_ground_tiling_scale.y);
+    autodetect_burnt_ground_selfillum_color@f4 = autodetect_burnt_ground_selfillum_color;
+    burnt_ground_selfillum_params@f4 = (burnt_ground_selfillum_strength, 1.0/autodetect_burnt_ground_selfillum_color.w,
+                                time_phase(0.0, 0.0), burnt_ground_selfillum_worldscale);
+    edge_params@f4 = (burnt_ground_edge_params.x, burnt_ground_edge_params.y, burnt_ground_edge_params.z, 1.0/burnt_ground_edge_params.z);
+    waterLevel_wetnessAboveRcp@f2 = (water_level, 1.0 / wetness_above, 0, 0);
+
+    burnt_ground_allowed_biomes_1@i4 = burnt_ground_allowed_biomes_1;
+    burnt_ground_allowed_biomes_2@i4 = burnt_ground_allowed_biomes_2;
+  }
+endmacro
+
+macro USE_BURNT_GROUND_COMMON()
+  if (in_editor_assume == no)
+  {
+    USE_GRASS_TC(ps)
+  }
+  hlsl (ps) {
+    bool isBiomeAllowed(uint biome_index)
+    {
+      uint4 biomesMask4 = biome_index < 128 ? burnt_ground_allowed_biomes_1 : burnt_ground_allowed_biomes_2;
+      biome_index &= 127;
+      uint2 biomesMask2 = biome_index < 64 ? biomesMask4.xy : biomesMask4.zw;
+      biome_index &= 63;
+      uint biomeMask = biome_index < 32 ? biomesMask2.x : biomesMask2.y;
+      biome_index &= 31;
+      return (biomeMask & (1u << biome_index)) > 0;
+    }
+
+    float getBurntGroundBiomeMask(float3 world_pos)
+    {
+      float4 weights = float4(0, 0, 0, 0);
+      uint4 indices = getBiomeIndices(world_pos, weights);
+      float4 biomeMask = bool4(isBiomeAllowed(indices.x), isBiomeAllowed(indices.y), isBiomeAllowed(indices.z), isBiomeAllowed(indices.w))
+        ? float4(1, 1, 1, 1) : float4(0, 0, 0, 0);
+      return dot(biomeMask, weights);
+    }
+
+    float2 getBurntGroundTc(float2 world_xz)
+    {
+      return world_xz * burnt_ground_tiling_scale.zw;
+    }
+
+    // max_variance: [0, 1], 0=> no variance, 1=> max variance
+    float getBurntGroundEmission(float3 diffuse, float2 world_xz, float max_variance)
+    {
+      float selfillum_strength = dot(abs(diffuse.rgb - autodetect_burnt_ground_selfillum_color.rgb), float3(1,1,1));
+      selfillum_strength =
+        max(autodetect_burnt_ground_selfillum_color.a - selfillum_strength, 0.0) * burnt_ground_selfillum_params.y;
+      float emission_varying =
+        (1.0-max_variance)+max_variance*sin((world_xz.x+world_xz.y)*burnt_ground_selfillum_params.w+burnt_ground_selfillum_params.z);
+      return emission_varying*burnt_ground_selfillum_params.x*selfillum_strength;
+    }
+
+    float getBurntGroundMask(float2 world_xz, float2 decal_center_xz, float decal_size, float fadein_progress)
+    {
+      float burnRadius = decal_size - edge_params.y - edge_params.z; // decal_size is extended by these parameters
+      float2 noise = (tex3Dlod(perlin_noise3d, float4(world_xz * edge_params.x / decal_size, 0, 0)).xy * 2.0 - 1.0) * edge_params.y;
+      float2 noisyLocalPos = (world_xz - decal_center_xz) + noise;
+      float noisyDistance = length(noisyLocalPos) + (1.0-fadein_progress)*burnRadius;
+      float intensity = noisyDistance <= burnRadius
+        ? 1
+        : saturate(1.0 + (burnRadius - noisyDistance) * edge_params.w);
+      ##if in_editor_assume == no
+        float2 grass_mask_tc = getGrassTC(float3(world_xz.x, 0, world_xz.y));
+        float grassMask = tex2Dlod(grass_mask_tex, float4(grass_mask_tc, 0, 0)).a;
+        // Without the multiplier, the decal is partially visible on parts of masked areas, like roads
+        const float grassMaskMultiplier = 3;
+        return intensity * saturate(1.0 - grassMask*grassMaskMultiplier);
+      ##else
+        return intensity;
+      ##endif
+    }
+  }
+endmacro

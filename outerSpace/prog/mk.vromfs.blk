@@ -92,15 +92,15 @@ folder {
 
 "@clone-last:folder"{
   "@override:path":t="../../prog/gameLibs/das/ecs"
-  "@override:dest_path":t="das/ecs"
+  "@override:dest_path":t="gameLibs/das/ecs"
 }
 "@clone-last:folder"{
   "@override:path":t="../../prog/gameLibs/das/daFrameGraph"
-  "@override:dest_path":t="das/daFrameGraph"
+  "@override:dest_path":t="gameLibs/das/daFrameGraph"
 }
 "@clone-last:folder"{
   "@override:path":t="../../prog/gameLibs/das/math"
-  "@override:dest_path":t="das/math"
+  "@override:dest_path":t="gameLibs/das/math"
 }
 
 "@clone-last:folder"{
@@ -129,8 +129,23 @@ folder {
 }
 
 "@clone-last:folder"{
-  "@override:path":t="../../prog/daNetGameLibs/bloom/"
-  "@override:dest_path":t="danetlibs/bloom/"
+  "@override:path":t="../../prog/gameLibs/render_events/"
+  "@override:dest_path":t="gameLibs/render_events/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/fast_grass/"
+  "@override:dest_path":t="gameLibs/fast_grass/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/pufd_events/"
+  "@override:dest_path":t="gameLibs/pufd_events/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/gameLibs/upscale_sampling/"
+  "@override:dest_path":t="gameLibs/upscale_sampling/"
 }
 
 "@clone-last:folder"{
@@ -141,6 +156,11 @@ folder {
 "@clone-last:folder"{
   "@override:path":t="../../prog/daNetGameLibs/blurred_ui/"
   "@override:dest_path":t="danetlibs/blurred_ui/"
+}
+
+"@clone-last:folder"{
+  "@override:path":t="../../prog/daNetGameLibs/composite_entity/"
+  "@override:dest_path":t="danetlibs/composite_entity/"
 }
 
 exclude {

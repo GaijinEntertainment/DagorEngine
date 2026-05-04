@@ -1,0 +1,1 @@
+Macro for implementing custom comment parsing, such as extracting doxygen-style documentation or other structured metadata from source comments during compilation.

@@ -21,6 +21,7 @@
 #include <render/viewTransformData.h>
 #include <math/dag_viewMatrix.h>
 #include <render/toroidalStaticShadows.h>
+#include <generic/dag_sort.h>
 
 static constexpr int TEXEL_ALIGN = 8; // align by 4 texels for performance (faster rasterization)
 
@@ -219,7 +220,7 @@ void ToroidalStaticShadowCascade::setShadervarsToInvalid()
   const Point4 matrixVals[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {-1, -1, -1, 0}};
   for (int i = 0; i < 4; i++)
   {
-    ShaderGlobal::set_color4(static_shadow_matrixVarId[i], matrixVals[i]);
+    ShaderGlobal::set_float4(static_shadow_matrixVarId[i], matrixVals[i]);
   }
 }
 
@@ -244,6 +245,8 @@ Point3 ToroidalStaticShadowCascade::clipPointToWorld(const Point3 &pos) const
 
 bool ToroidalStaticShadowCascade::isValid(const BBox3 &box) const
 {
+  if (isRenderingRegionFirstTime)
+    return false;
   if (notRenderedRegions.empty())
     return true;
   IBBox2 bx = texel_ibbox2(toTexelSpaceClipped(box));
@@ -273,6 +276,8 @@ void ToroidalStaticShadowCascade::updateSunBelowHorizon(const ManagedTex &tex)
 
 bool ToroidalStaticShadowCascade::isCompletelyValid(const BBox3 &box) const
 {
+  if (inTransition)
+    return false;
   if (invalidRegions.empty())
     return true;
   IBBox2 bx = texel_ibbox2(toTexelSpaceClipped(box));
@@ -282,7 +287,10 @@ bool ToroidalStaticShadowCascade::isCompletelyValid(const BBox3 &box) const
 
 bool ToroidalStaticShadowCascade::isInside(const BBox3 &box) const
 {
-  const IBBox2 bx = texel_ibbox2(toTexelSpaceClipped(box));
+  const BBox3 boxClipped = toTexelSpaceClipped(box);
+  if (boxClipped.width().x < VERY_SMALL_NUMBER && boxClipped.width().y < VERY_SMALL_NUMBER && boxClipped.width().z < VERY_SMALL_NUMBER)
+    return false;
+  const IBBox2 bx = texel_ibbox2(boxClipped);
   return bx.isEmpty() ? false : bx & get_texture_box(helper);
 }
 
@@ -293,16 +301,16 @@ void ToroidalStaticShadowCascade::setShaderVars()
 
   const FrameData &fr = getReadFrameData();
 
-  ShaderGlobal::set_color4(static_shadow_cascade_scale_ofs_z_torVarId, 1, 0, -fr.torOfs.x + 0.5, fr.torOfs.y + 0.5);
-  ShaderGlobal::set_real(static_shadow_scrolled_depth_minVarId, scrolledDepthMin);
-  ShaderGlobal::set_real(static_shadow_scrolled_depth_maxVarId, scrolledDepthMax);
+  ShaderGlobal::set_float4(static_shadow_cascade_scale_ofs_z_torVarId, 1, 0, -fr.torOfs.x + 0.5, fr.torOfs.y + 0.5);
+  ShaderGlobal::set_float(static_shadow_scrolled_depth_minVarId, scrolledDepthMin);
+  ShaderGlobal::set_float(static_shadow_scrolled_depth_maxVarId, scrolledDepthMax);
 
   TMatrix wtm = getLightViewProj();
 
-  ShaderGlobal::set_color4(static_shadow_matrixVarId[0], P3D(wtm.getcol(0)), 1. / helper.texSize);
-  ShaderGlobal::set_color4(static_shadow_matrixVarId[1], P3D(wtm.getcol(1)), 0);
-  ShaderGlobal::set_color4(static_shadow_matrixVarId[2], P3D(wtm.getcol(2)), 0);
-  ShaderGlobal::set_color4(static_shadow_matrixVarId[3], P3D(wtm.getcol(3)), 0);
+  ShaderGlobal::set_float4(static_shadow_matrixVarId[0], P3D(wtm.getcol(0)), 1. / helper.texSize);
+  ShaderGlobal::set_float4(static_shadow_matrixVarId[1], P3D(wtm.getcol(1)), texelSize);
+  ShaderGlobal::set_float4(static_shadow_matrixVarId[2], P3D(wtm.getcol(2)), current.maxHtRange);
+  ShaderGlobal::set_float4(static_shadow_matrixVarId[3], P3D(wtm.getcol(3)), 0);
 }
 
 TMatrix ToroidalStaticShadowCascade::getLightViewProj() const
@@ -334,7 +342,7 @@ void ToroidalStaticShadowCascade::enableTransitionCascade(bool en)
   if (!transitionTex)
   {
     transitionTex = dag::create_tex(nullptr, helper.texSize, helper.texSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1,
-      String(26, "static_shadow_trans_tex_%d", cascade_id));
+      String(26, "static_shadow_trans_tex_%d", cascade_id), RESTAG_SHADOW);
   }
 }
 

@@ -2,10 +2,18 @@ include "shader_global.dshl"
 include "clustered/lights_cb.dshl"
 include "viewVecVS.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_resolution.dshl"
 
 float pixel_scale;
+float4x4 globtm_inv;
 int has_conservative_rasterization = 0;
 interval has_conservative_rasterization : no < 1, yes;
+
+int use_downsampled_depth_in_tiled_lights = 0;
+interval use_downsampled_depth_in_tiled_lights : no < 1, far_only < 2, far_and_close;
+
+int spot_cones_vertex_slices = 8;
+int spot_cones_vertex_stacks = 10;
 
 shader spot_lights_tiles, omni_lights_tiles
 {
@@ -29,81 +37,115 @@ shader spot_lights_tiles, omni_lights_tiles
       nointerpolation uint index : TEXCOORD0;
       nointerpolation float4 sourceToEye : TEXCOORD1;
       ##if shader == spot_lights_tiles
-      nointerpolation float4 cone : TEXCOORD2;
+        nointerpolation float4 cone : TEXCOORD2;
+      ##elif use_downsampled_depth_in_tiled_lights != no
+        #if !NO_OMNI_LIGHT_FADE
+          nointerpolation float3 boxPos : TEXCOORD2;
+          nointerpolation float3 box0   : TEXCOORD3;
+          nointerpolation float3 box1   : TEXCOORD4;
+          nointerpolation float3 box2   : TEXCOORD5;
+        #endif
       ##endif
     };
+
+    // 5% on both sides
+    #define BOX_RANGE 1.05f
+    #define REV_BOX_RANGE (1.0f / BOX_RANGE)
   }
 
   INIT_ZNZFAR()
-  ENABLE_ASSERT(ps)
 
   if (shader == spot_lights_tiles)
   {
     INIT_SPOT_LIGHTS_CB(vs)
+
+    (vs) {
+      spot_cones_vertex_slices@i1 = spot_cones_vertex_slices;
+      spot_cones_vertex_stacks@i1 = spot_cones_vertex_stacks;
+      spot_cones_circumscribe_scale@f1 = 1.0 / cos(PI / (spot_cones_vertex_stacks - 1));
+
+      if (has_conservative_rasterization == no)
+      {
+        globtm_inv@f44 = globtm_inv;
+      }
+    }
     hlsl(vs) {
+
       VsOutput spot_lights_tiles_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
       {
         RenderSpotLight light = spot_lights_cb[instanceId];
         float3 e1 = abs(light.lightDirectionAngleOffset.z) < 0.9 ? float3(0, 0, 1) : float3(1, 0, 0);
         float3 e2 = normalize(cross(light.lightDirectionAngleOffset.xyz, e1));
         e1 = normalize(cross(light.lightDirectionAngleOffset.xyz, e2));
+
         float halfCos = -light.lightDirectionAngleOffset.w / abs(light.lightColorAngleScale.w);
-        float halfTan = sqrt(1 / pow2(halfCos) - 1);
-        float halfWidth = light.lightPosRadius.w * halfTan;
+
+        const float3 lightWorldPos = light.lightPos_halfRadius_halfCullRadius.xyz;
+        float3 sourceToEye = world_view_pos - lightWorldPos;
+        float radius = decode_spot_light_radius_and_culling_radius(light.lightPos_halfRadius_halfCullRadius.w).x;
+
+        int stackNo = vertexId % spot_cones_vertex_stacks;
+        float ang = 2.0f * M_PI * float(stackNo) / (spot_cones_vertex_stacks - 1);
+        float3 vertexPos = 0;
+
+        vertexPos.x = cos(ang);
+        vertexPos.z = sin(ang);
 
         ##if has_conservative_rasterization == no
-          float worstZ = mul(float4(light.lightPosRadius.xyz, 1), globtm).z + light.lightPosRadius.w;
-          const float ENLARGE_GEOMETRY = 2;
-          halfWidth += ENLARGE_GEOMETRY * worstZ * tile_scale;
+          float3 worstErrorPos = lightWorldPos - normalize(sourceToEye) * radius;
+          float4 worstErrorPosProjected = mul(float4(worstErrorPos, 1), globtm);
+          worstErrorPosProjected /= worstErrorPosProjected.w;
+          worstErrorPosProjected.xy -= tile_scale;
+          float4 worstErrorPosShifted = mul(worstErrorPosProjected, globtm_inv);
+          float noConservativeRasterizationExpansion = distance(worstErrorPos, worstErrorPosShifted.xyz);
+
+          radius += noConservativeRasterizationExpansion;
+          float3 noConservativeRasterizationShift = vertexPos;
         ##endif
 
-        e1 *= halfWidth;
-        e2 *= halfWidth;
-        float3 worldPos = light.lightPosRadius.xyz;
-        uint triangleId = vertexId / 3;
-        uint vertId = vertexId % 3;
-        bool bottomTriangles = triangleId > 3;
-        if (vertId != 0 || bottomTriangles)
-          worldPos += light.lightDirectionAngleOffset.xyz * light.lightPosRadius.w;
-        triangleId &= 3;
-        if (vertId != 0) {
-          if (triangleId == 0)
-            worldPos += e1;
-          else if (triangleId == 1)
-            worldPos += e2;
-          else if (triangleId == 2)
-            worldPos -= e1;
-          else if (triangleId == 3)
-            worldPos -= e2;
+        int sliceNo = vertexId / spot_cones_vertex_stacks;
+        if (sliceNo == 0)
+        {
+          vertexPos.xz = 0;
+          ##if has_conservative_rasterization == no
+            noConservativeRasterizationShift = float3(0, -noConservativeRasterizationExpansion, 0);
+          ##endif
         }
-        if ((vertId == 2 && !bottomTriangles) || (vertId == 1 && bottomTriangles)) {
-          if (triangleId == 0)
-            worldPos += e2;
-          else if (triangleId == 1)
-            worldPos -= e1;
-          else if (triangleId == 2)
-            worldPos -= e2;
-          else if (triangleId == 3)
-            worldPos += e1;
+        else
+        {
+          float lerpParam = float(sliceNo - 1) / float(spot_cones_vertex_slices - 2);
+
+          float localHalfCos = lerp(halfCos, 1, lerpParam);
+
+          float halfTan = sqrt(1 / pow2(localHalfCos) - 1);
+          float halfWidth = halfTan;
+
+          vertexPos.xz *= halfWidth;
+          vertexPos.y = 1;
+          vertexPos = normalize(vertexPos) * radius * 1.05; // enlarge area a bit
+          vertexPos.xz *= spot_cones_circumscribe_scale;
+
+          ##if has_conservative_rasterization == no
+            noConservativeRasterizationExpansion = lerp(noConservativeRasterizationExpansion, 0, lerpParam);
+            noConservativeRasterizationShift.y = -halfTan;
+            noConservativeRasterizationShift = normalize(noConservativeRasterizationShift) * noConservativeRasterizationExpansion;
+          ##endif
         }
-        if ((vertId == 1 && !bottomTriangles) || (vertId == 2 && bottomTriangles)) {
-          if (triangleId == 0)
-            worldPos -= e2;
-          else if (triangleId == 1)
-            worldPos += e1;
-          else if (triangleId == 2)
-            worldPos += e2;
-          else if (triangleId == 3)
-            worldPos -= e1;
-        }
+
+        ##if has_conservative_rasterization == no
+          vertexPos += noConservativeRasterizationShift;
+        ##endif
+
+        float3 worldPos = lightWorldPos + vertexPos.x * e1 + vertexPos.z * e2 +
+                                          vertexPos.y * light.lightDirectionAngleOffset.xyz;
+
         VsOutput output;
         output.pos = mul(float4(worldPos, 1), globtm);
         output.pos.z = max(0.0000001, output.pos.z);
         output.index = instanceId + 256;
-        float3 sourceToEye = world_view_pos - light.lightPosRadius.xyz;
         output.cone = float4(light.lightDirectionAngleOffset.xyz, pow2(halfCos));
         output.sourceToEye.xyz = sourceToEye;
-        output.sourceToEye.w = pow2(light.lightPosRadius.w) - dot(sourceToEye, sourceToEye);
+        output.sourceToEye.w = pow2(radius) - dot(sourceToEye, sourceToEye);
         return output;
       }
     }
@@ -130,6 +172,43 @@ shader spot_lights_tiles, omni_lights_tiles
         ##endif
         float3 worldPos = get_sphere_vertex_pos(vertexId) * radius + light.posRadius.xyz;
 
+        #if !NO_OMNI_LIGHT_FADE
+          float3 boxPos = float3(light.boxR0.w, light.boxR1.w, light.boxR2.w);
+
+          ##if use_downsampled_depth_in_tiled_lights != no
+            output.boxPos = 0;
+            output.box0 = light.boxR0.xyz;
+            output.box1 = light.boxR1.xyz;
+            output.box2 = light.boxR2.xyz;
+          ##endif
+
+          BRANCH
+          if (dot(boxPos, boxPos) > 0) // we don't want to check lenght of every component of matrix, so check box pos only
+          {
+            float3 boxDiff = worldPos - boxPos;
+            // transpose
+            float3 boxX = float3(light.boxR0.x, light.boxR1.x, light.boxR2.x);
+            float3 boxY = float3(light.boxR0.y, light.boxR1.y, light.boxR2.y);
+            float3 boxZ = float3(light.boxR0.z, light.boxR1.z, light.boxR2.z);
+
+            // default restriction box have size of 100000 meters
+            #define MIN_VALUE 1e-12
+
+            boxX /= max(dot(boxX, boxX), MIN_VALUE);
+            boxY /= max(dot(boxY, boxY), MIN_VALUE);
+            boxZ /= max(dot(boxZ, boxZ), MIN_VALUE);
+
+            half3 posInBox = 2 * (light.boxR0.xyz * boxDiff.x + light.boxR1.xyz * boxDiff.y + light.boxR2.xyz * boxDiff.z);
+            worldPos =  boxPos + 0.5 * (clamp(posInBox.x, -BOX_RANGE, BOX_RANGE) * boxX +
+                                        clamp(posInBox.y, -BOX_RANGE, BOX_RANGE) * boxY +
+                                        clamp(posInBox.z, -BOX_RANGE, BOX_RANGE) * boxZ);
+
+            ##if use_downsampled_depth_in_tiled_lights != no
+              output.boxPos = boxPos - world_view_pos;
+            ##endif
+          }
+        #endif
+
         output.pos = mul(float4(worldPos, 1), globtm);
         output.pos.z = max(0.0000001, output.pos.z);
         output.index = instanceId;
@@ -144,15 +223,19 @@ shader spot_lights_tiles, omni_lights_tiles
 
   (ps) {
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    close_depth_tex@smp2d = downsampled_close_depth_tex;
+    close_depth_tex@tex2d = downsampled_close_depth_tex;
     screen_size@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+
+    perTileLights@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> perTileLights@uav;
+    }
   }
   USE_AND_INIT_VIEW_VEC(ps)
 
+  INIT_DYNAMIC_RESOLUTION(ps)
+
   hlsl(ps) {
     #include <tiled_light_consts.hlsli>
-
-    RWStructuredBuffer<uint> perTileLights : register(u1);
 
     bool check_ray_light_intersection(VsOutput input, float2 depth_min_max, float3 view_vec)
     {
@@ -187,6 +270,30 @@ shader spot_lights_tiles, omni_lights_tiles
         t1 = max(t1, coneT1);
         t2 = min(t2, coneT2);
       }
+##else
+      #if !NO_OMNI_LIGHT_FADE
+        ##if use_downsampled_depth_in_tiled_lights != no
+          BRANCH
+          if (dot(input.boxPos, input.boxPos) > 0) // we don't want to check length of every component of matrix, so check box pos only
+          {
+            float3 posClose = depth_min_max.x * view_vec - input.boxPos;
+            float3 posFar = depth_min_max.y * view_vec - input.boxPos;
+
+            half3 posInBoxClose = REV_BOX_RANGE * 2 * (input.box0.xyz * posClose.x + input.box1.xyz * posClose.y + input.box2.xyz * posClose.z);
+            half3 posInBoxFar   = REV_BOX_RANGE * 2 * (input.box0.xyz * posFar.x   + input.box1.xyz * posFar.y   + input.box2.xyz * posFar.z);
+
+            // tricky check:
+            // we already know that infinite ray is intersecting the box (we assume that in VS), so we need to check
+            // only is our close-far ray intersecting it.
+            // if far and close points are on different sides of box, we have negative value -> valid pixel
+            // if far or close point have coodrs in box in -1..1 range, its valid pixel, and mul is less than 1
+            float3 boxMul = clamp(posInBoxClose, -1, 1) * clamp(posInBoxFar, -1, 1);
+
+            if (boxMul.x == 1 || boxMul.y == 1 || boxMul.z == 1)
+              return false;
+          }
+        ##endif
+      #endif
 ##endif
 
       const float EPS = 1e-5;
@@ -199,6 +306,7 @@ shader spot_lights_tiles, omni_lights_tiles
       float2 uv = screenpos.xy * screen_size.zw * TILE_EDGE;
 
       DISCARD_IF_INVALID_VIEW_AREA_PS(uv);
+      screenpos.xy = floor(screenpos.xy); // Get rid of the .5 for  the viewVec logic
 
       uint2 tileIdx = screenpos.xy;
       uint2 depthTile = tileIdx;
@@ -206,11 +314,15 @@ shader spot_lights_tiles, omni_lights_tiles
       depthTile = tileIdx * TILE_EDGE + TILE_EDGE - 1 < screen_size.xy ? depthTile : depthTile - 1;
       uint index = input.index;
       uint finalIdx = (tileIdx.x * tiledGridSize.y + (tileIdx.y)) * DWORDS_PER_TILE + (index / BITS_IN_UINT);
-      #if DISABLE_RAY_LIGHT_INTERSECTION
+      ##if use_downsampled_depth_in_tiled_lights == no
         InterlockedOr(structuredBufferAt(perTileLights, finalIdx), 1u << (index % BITS_IN_UINT));
-      #else
-        float closeDepth = linearize_z(texelFetch(close_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
-        float farDepth = linearize_z(texelFetch(downsampled_far_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+      ##else
+        float farDepth = linearize_z(texelFetch(downsampled_far_depth_tex, depthTile * current_dynamic_resolution_scale, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+        ##if use_downsampled_depth_in_tiled_lights == far_and_close
+          float closeDepth = linearize_z(texelFetch(close_depth_tex, depthTile * current_dynamic_resolution_scale, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+        ##else
+          float closeDepth = 0;
+        ##endif
         float3 viewVecTileLT = lerp_view_vec(screenpos.xy * screen_size.zw * TILE_EDGE);
         float3 viewVecTileLB = lerp_view_vec((screenpos.xy + float2(0, 1)) * screen_size.zw * TILE_EDGE);
         float3 viewVecTileRT = lerp_view_vec((screenpos.xy + float2(1, 0)) * screen_size.zw * TILE_EDGE);
@@ -221,8 +333,178 @@ shader spot_lights_tiles, omni_lights_tiles
           || check_ray_light_intersection(input, float2(closeDepth, farDepth), viewVecTileRT)
           || check_ray_light_intersection(input, float2(closeDepth, farDepth), viewVecTileRB))
           InterlockedOr(structuredBufferAt(perTileLights, finalIdx), 1u << (index % BITS_IN_UINT));
-      #endif
+      ##endif
     }
   }
   compile("target_ps", "light_tiles_ps");
+}
+
+buffer z_binning_lookup;
+buffer z_binning_begins_ends_buf;
+
+shader tiled_lights_zbinning_clear_cs
+{
+  (cs) {
+    z_binning_begins_ends_buf@uav = z_binning_begins_ends_buf hlsl { RWStructuredBuffer<uint2> z_binning_begins_ends_buf@uav; };
+  }
+
+  hlsl(cs) {
+
+    #include <tiled_light_consts.hlsli>
+    #include <renderLightsConsts.hlsli>
+
+    [numthreads(Z_BINNING_GROUP_SIZE, 1, 1)]
+    void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
+    {
+      if (dispatch_thread_id.x >= (uint)(2 * Z_BINS_COUNT))
+        return;
+
+      bool isSpot = dispatch_thread_id.x >= (uint)Z_BINS_COUNT;
+      uint maxId = isSpot ? MAX_SPOT_LIGHTS : MAX_OMNI_LIGHTS;
+      uint2 beginEndIdx = uint2(maxId, 0);
+
+      structuredBufferAt(z_binning_begins_ends_buf, dispatch_thread_id.x) = beginEndIdx;
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+shader tiled_lights_zbinning_pack_cs
+{
+  (cs) {
+    z_binning_begins_ends_buf@buf = z_binning_begins_ends_buf hlsl { StructuredBuffer<uint2> z_binning_begins_ends_buf@buf; };
+    z_binning_lookup@uav = z_binning_lookup hlsl { RWStructuredBuffer<uint> z_binning_lookup@uav; };
+  }
+
+  hlsl(cs) {
+
+    #include <tiled_light_consts.hlsli>
+
+    [numthreads(Z_BINNING_GROUP_SIZE, 1, 1)]
+    void main(uint3 dispatch_thread_id : SV_DispatchThreadID)
+    {
+      if (dispatch_thread_id.x >= (uint)(2 * Z_BINS_COUNT))
+        return;
+
+      uint2 beginEndIdx = structuredBufferAt(z_binning_begins_ends_buf, dispatch_thread_id.x);
+      structuredBufferAt(z_binning_lookup, dispatch_thread_id.x) = (beginEndIdx.x << 16) | beginEndIdx.y;
+    }
+  }
+
+  compile("target_cs", "main");
+}
+
+float max_lights_distance;
+float4 zbinning_view_pos;
+float4 zbinning_view_dir;
+
+shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
+{
+  if (shader == tiled_lights_zbinning_omni_cs)
+  {
+    INIT_OMNI_LIGHTS_CB(cs)
+    USE_OMNI_LIGHTS_BOUNDS(cs)
+    (cs) {
+      lights_count@i1 = omniLightsCount;
+    }
+  }
+
+  if (shader == tiled_lights_zbinning_spot_cs)
+  {
+    INIT_SPOT_LIGHTS_CB(cs)
+    USE_SPOT_LIGHTS_BOUNDS(cs)
+    (cs) {
+      lights_count@i1 = spotLightsCount;
+    }
+  }
+
+  (cs) {
+    max_lights_distance@f1 = max_lights_distance;
+    view_pos@f3 = zbinning_view_pos;
+    view_dir@f3 = zbinning_view_dir;
+    z_binning_begins_ends_buf@uav = z_binning_begins_ends_buf hlsl { RWStructuredBuffer<uint2> z_binning_begins_ends_buf@uav; };
+  }
+
+  hlsl(cs) {
+
+    #include <tiled_light_consts.hlsli>
+    #include <renderLightsConsts.hlsli>
+
+    groupshared float4 lightData[Z_BINNING_LIGHTS_BLOCK_SIZE];
+
+    float4 get_light_cb_data(uint idx)
+    {
+      ##if shader == tiled_lights_zbinning_omni_cs
+        ##assert(idx < lights_count, "omni_lights_cb OOB access. index = %f", idx);
+        return getOmniLightBoundingSphere(omni_lights_cb[idx]);
+      ##endif
+
+      ##if shader == tiled_lights_zbinning_spot_cs
+        ##assert(idx < lights_count, "spot_lights_cb OOB access. index = %f", idx);
+        return getSpotLightBoundingSphere(spot_lights_cb[idx]);
+      ##endif
+
+      return float4(0.0f, 0.0f, 0.0f, 0.0f);
+    };
+
+    [numthreads(Z_BINNING_GROUP_SIZE, 1, 1)]
+    void main(
+        uint3 dispatch_thread_id : SV_DispatchThreadID,
+        uint3 group_thread_id : SV_GroupThreadID,
+        uint3 group_id : SV_GroupID
+    )
+    {
+      uint startIndex = (uint)(Z_BINNING_LIGHTS_BLOCK_SIZE * group_id.y);
+      uint preloadLightIndex = startIndex + group_thread_id.x;
+      if ((group_thread_id.x < (uint)Z_BINNING_LIGHTS_BLOCK_SIZE) && (preloadLightIndex < lights_count))
+        lightData[group_thread_id.x] = get_light_cb_data(preloadLightIndex);
+      GroupMemoryBarrierWithGroupSync();
+
+      if (dispatch_thread_id.x >= (uint)Z_BINS_COUNT)
+        return;
+
+      uint binLocalIdx = dispatch_thread_id.x;
+      float distScale = (float)Z_BINS_COUNT / max_lights_distance;
+
+      ##if shader == tiled_lights_zbinning_omni_cs
+        uint binLUTIdx = binLocalIdx;
+        const uint maxLightsCount = (uint)MAX_OMNI_LIGHTS;
+      ##endif
+
+      ##if shader == tiled_lights_zbinning_spot_cs
+        uint binLUTIdx = binLocalIdx + (uint)Z_BINS_COUNT;
+        const uint maxLightsCount = (uint)MAX_SPOT_LIGHTS;
+      ##endif
+
+      uint beginIdx = maxLightsCount;
+      uint endIdx = 0;
+
+      UNROLL
+      for (uint j = 0; j < Z_BINNING_LIGHTS_BLOCK_SIZE; ++j)
+      {
+        uint lightIndex = startIndex + j;
+        float3 lightPos = lightData[j].xyz;
+        float radius = lightData[j].w;
+
+        float depth = dot(view_dir, lightPos - view_pos);
+        float minDepth = depth - radius;
+        float maxDepth = depth + radius;
+        int minBin = clamp(int(minDepth * distScale), 0, Z_BINS_COUNT);
+        int maxBin = clamp(int(maxDepth * distScale), 0, Z_BINS_COUNT - 1);
+
+        bool currentBinInLightRange = (lightIndex < lights_count && minBin < Z_BINS_COUNT && (int)binLocalIdx >= minBin && (int)binLocalIdx <= maxBin);
+        uint newBeginIdx = currentBinInLightRange ? lightIndex : beginIdx;
+        uint newEndIdx = currentBinInLightRange ? lightIndex : endIdx;
+
+        beginIdx = min(beginIdx, newBeginIdx);
+        endIdx = max(endIdx, newEndIdx);
+      }
+
+      InterlockedMin(structuredBufferAt(z_binning_begins_ends_buf, binLUTIdx).x, beginIdx);
+      InterlockedMax(structuredBufferAt(z_binning_begins_ends_buf, binLUTIdx).y, endIdx);
+    }
+  }
+
+  compile("target_cs", "main");
 }

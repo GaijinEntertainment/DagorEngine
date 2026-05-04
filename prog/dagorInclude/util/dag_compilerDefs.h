@@ -48,26 +48,20 @@
 #endif
 
 #ifndef DAGOR_THREAD_SANITIZER
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define DAGOR_THREAD_SANITIZER 1
-#endif
-#else
 #if defined(__SANITIZE_THREAD__)
+#define DAGOR_THREAD_SANITIZER 1
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
 #define DAGOR_THREAD_SANITIZER 1
 #endif
 #endif
 #endif
 
 #ifndef DAGOR_ADDRESS_SANITIZER
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-#define DAGOR_ADDRESS_SANITIZER 1
-#elif defined(__SANITIZE_ADDRESS__)
-#define DAGOR_ADDRESS_SANITIZER 1
-#endif
-#else
 #if defined(__SANITIZE_ADDRESS__)
+#define DAGOR_ADDRESS_SANITIZER 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(hwaddress_sanitizer)
 #define DAGOR_ADDRESS_SANITIZER 1
 #endif
 #endif

@@ -12,7 +12,7 @@ For more information, see
 
 **Example:**
 
-```text
+```blk
 pkg_dev{                         // package name
   PC:b=yes; iOS:b=no; and:b=no;  // platforms
   destSuffix:t="/../content.hq"  // if the package should be placed in content.hq (needed for HQ versions)
@@ -54,5 +54,4 @@ package paths in both the `addons{}` and `addons_no_check{}` blocks.
 For more information, see
 [settings.blk](../../assets/all-about-blk/config_and_settings_blk.md).
 ```
-
 

@@ -21,6 +21,7 @@ bool has_scenes();
 void update_all_gui_scenes_mainthread(float dt);
 void before_render(float dt, const TMatrix &view_itm, const TMatrix &view_tm, const TMatrix4 &proj_tm);
 void start_ui_render_job(bool wake);
+void prepare_to_start_ui_before_render_job();
 void start_ui_before_render_job();
 void skip_ui_render_job();
 void wait_ui_render_job_done();

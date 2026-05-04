@@ -2,5 +2,5 @@
 ::SCRIPT_STATE_USER_SHIFT <- 2
 function foo(berserkFx, state){ //-declared-never-used
   if (!berserkFx && (state & (1 << ::SCRIPT_STATE_USER_SHIFT + 4)))
-    ::print(1)
+    print(1)
 }

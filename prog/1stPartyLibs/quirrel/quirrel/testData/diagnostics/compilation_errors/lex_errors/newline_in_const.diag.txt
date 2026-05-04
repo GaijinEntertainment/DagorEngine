@@ -1,0 +1,9 @@
+ERROR: newline in a constant
+testData/diagnostics/compilation_errors/lex_errors/newline_in_const.nut:2:8
+
+// EXPECT_ERROR: "newline in a constant"
+let x = "hello
+        ^------
+"
+
+

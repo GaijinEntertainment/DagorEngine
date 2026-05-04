@@ -39,8 +39,8 @@ public:
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
-  virtual void onCustomFillPanel(PropPanel::ContainerPropertyControl &panel) {}
-  virtual bool onCustomSettings(PropPanel::ContainerPropertyControl &panel) { return true; }
+  virtual void onCustomFillPanel(PropPanel::ContainerPropertyControl &) {}
+  virtual bool onCustomSettings(PropPanel::ContainerPropertyControl &) { return true; }
 
 protected:
   EditorWorkspace &wsp;

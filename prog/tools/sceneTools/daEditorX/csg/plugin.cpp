@@ -299,6 +299,8 @@ void *CSGPlugin::queryInterfacePtr(unsigned huid)
 
 void CSGPlugin::handleViewportAcceleratorCommand(unsigned id) { objEd.onClick(id, nullptr); }
 
+void CSGPlugin::registerEditorCommands(IEditorCommandSystem &command_system) { objEd.registerEditorCommands(command_system); }
+
 void CSGPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();

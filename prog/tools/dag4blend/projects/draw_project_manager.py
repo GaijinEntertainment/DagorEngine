@@ -1,5 +1,5 @@
 from ..ui.draw_elements         import draw_custom_header
-from ..helpers.get_preferences  import get_preferences
+from ..helpers.getters          import get_preferences
 from os.path                    import exists
 
 
@@ -42,8 +42,7 @@ def draw_project_settings(layout, project, index):
     column = row.column()  # restores rounding of the unlock button
     column.prop(project, 'unlock', text = "", icon = 'UNLOCKED' if project.unlock else 'LOCKED')
     header = draw_custom_header(row, project.name if named else "NO NAME",
-     project, "maximized", control_value = project.maximized,
-        icon = 'ERROR' if not configured else 'BLANK1')
+     project, "maximized", icon = 'ERROR' if not configured else 'BLANK1')
     del_button = header.column()
     del_button.operator('dt.remove_project', icon = 'TRASH', text = "").index = index
     del_button.active = del_button.enabled = project.unlock
@@ -66,8 +65,7 @@ def draw_project_settings(layout, project, index):
 
 def draw_project_palettes(layout, project):
     box = layout.box()
-    draw_custom_header(box, "Palettes", project, 'palettes_maximized',
-        control_value = project.palettes_maximized, icon = 'IMAGE')  # control_value is used for non-inicialized props.
+    draw_custom_header(box, "Palettes", project, 'palettes_maximized', icon = 'IMAGE')
     if not project.palettes_maximized:
         return
     paths = box.column(align = True)

@@ -33,7 +33,7 @@ macro DISTORTION_PS()
 
   (ps)
   {
-    normal_tex@static            = normal;
+    normal_tex@staticSmp         = normal;
     distortion_strength_twist@f3 = (distortion_strength, sin(distortion_twist * 2.0 * PI), cos(distortion_twist * 2.0 * PI), 0);
     camera_right@f3              = (camera_right);
     camera_up@f3                 = (camera_up);

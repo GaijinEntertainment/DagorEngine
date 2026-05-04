@@ -1,7 +1,10 @@
 hlsl(cs) {
-  #include "NRDEncoding.hlsli"
-
   #pragma hlsl2021
+
+  #define NRD_SIGNAL DIFF
+  #define NRD_MODE   OCCLUSION
+  #define NRD_INTERNAL
+  #define MODE_5X5 0
 }
 
 // This one is used by all reblur shaders
@@ -18,16 +21,7 @@ shader nrd_reblur_classify_tiles
 shader nrd_reblur_diffuse_occlusion_hit_dist_reconstruction
 {
   hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_HitDistReconstruction.cs.hlsl"
-  }
-
-  compile("cs_6_5", "main");
-}
-
-shader nrd_reblur_diffuse_occlusion_hit_dist_reconstruction_5x5
-{
-  hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_HitDistReconstruction_5x5.cs.hlsl"
+    #include "REBLUR_HitDistReconstruction.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -36,16 +30,8 @@ shader nrd_reblur_diffuse_occlusion_hit_dist_reconstruction_5x5
 shader nrd_reblur_perf_diffuse_occlusion_hit_dist_reconstruction
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_HitDistReconstruction.cs.hlsl"
-  }
-
-  compile("cs_6_5", "main");
-}
-
-shader nrd_reblur_perf_diffuse_occlusion_hit_dist_reconstruction_5x5
-{
-  hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_HitDistReconstruction_5x5.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_HitDistReconstruction.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -54,7 +40,7 @@ shader nrd_reblur_perf_diffuse_occlusion_hit_dist_reconstruction_5x5
 shader nrd_reblur_diffuse_occlusion_temporal_accumulation
 {
   hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_TemporalAccumulation.cs.hlsl"
+    #include "REBLUR_TemporalAccumulation.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -63,7 +49,8 @@ shader nrd_reblur_diffuse_occlusion_temporal_accumulation
 shader nrd_reblur_perf_diffuse_occlusion_temporal_accumulation
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_TemporalAccumulation.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_TemporalAccumulation.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -72,7 +59,7 @@ shader nrd_reblur_perf_diffuse_occlusion_temporal_accumulation
 shader nrd_reblur_diffuse_occlusion_history_fix
 {
   hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_HistoryFix.cs.hlsl"
+    #include "REBLUR_HistoryFix.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -81,7 +68,8 @@ shader nrd_reblur_diffuse_occlusion_history_fix
 shader nrd_reblur_perf_diffuse_occlusion_history_fix
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_HistoryFix.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_HistoryFix.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -90,7 +78,7 @@ shader nrd_reblur_perf_diffuse_occlusion_history_fix
 shader nrd_reblur_diffuse_occlusion_blur
 {
   hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_Blur.cs.hlsl"
+    #include "REBLUR_Blur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -99,7 +87,8 @@ shader nrd_reblur_diffuse_occlusion_blur
 shader nrd_reblur_perf_diffuse_occlusion_blur
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_Blur.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #include "REBLUR_Blur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -108,7 +97,8 @@ shader nrd_reblur_perf_diffuse_occlusion_blur
 shader nrd_reblur_diffuse_occlusion_postblur_no_temporal_stabilization
 {
   hlsl(cs) {
-    #include "REBLUR_DiffuseOcclusion_PostBlur_NoTemporalStabilization.cs.hlsl"
+    #define TEMPORAL_STABILIZATION 0
+    #include "REBLUR_PostBlur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");
@@ -117,7 +107,9 @@ shader nrd_reblur_diffuse_occlusion_postblur_no_temporal_stabilization
 shader nrd_reblur_perf_diffuse_occlusion_postblur_no_temporal_stabilization
 {
   hlsl(cs) {
-    #include "REBLUR_Perf_DiffuseOcclusion_PostBlur_NoTemporalStabilization.cs.hlsl"
+    #define REBLUR_PERFORMANCE_MODE 1
+    #define TEMPORAL_STABILIZATION 0
+    #include "REBLUR_PostBlur.cs.hlsl"
   }
 
   compile("cs_6_5", "main");

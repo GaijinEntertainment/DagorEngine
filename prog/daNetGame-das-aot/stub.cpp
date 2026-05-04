@@ -32,6 +32,8 @@ class StubTimeManager final : public ITimeManager
   int getType4CC() const override { return 0; }
 };
 
+void auth_get_country_code(eastl::string &) { G_ASSERT(0); }
+
 ITimeManager &get_time_mgr()
 {
   G_ASSERT(0);
@@ -39,6 +41,7 @@ ITimeManager &get_time_mgr()
   return stub;
 }
 float get_sync_time() { G_ASSERT_RETURN(false, 0.); }
+double get_sync_time_d() { G_ASSERT_RETURN(false, 0.); }
 
 std::uint32_t get_current_server_route_id() { G_ASSERT_RETURN(false, {}); }
 const char *get_server_route_host(std::uint32_t) { G_ASSERT_RETURN(false, {}); }
@@ -186,6 +189,7 @@ public:
   void setColorMult(struct Color4 const &);
   void setVelocity(const Point3 &vel);
   void setGravityTm(const Matrix3 &);
+  void setSplineControlPoints(const Point4 &, const Point4 &, const Point4 &, const Point4 &);
   void hide(bool);
 };
 void AcesEffect::unlock() { G_ASSERT(0); }
@@ -196,6 +200,7 @@ void AcesEffect::setSpawnRate(float) { G_ASSERT(0); }
 void AcesEffect::setColorMult(struct Color4 const &) { G_ASSERT(0); }
 void AcesEffect::setVelocity(const Point3 &vel) { G_ASSERT(0); }
 void AcesEffect::setGravityTm(const Matrix3 &) { G_ASSERT(0); }
+void AcesEffect::setSplineControlPoints(const Point4 &, const Point4 &, const Point4 &, const Point4 &) { G_ASSERT(0); }
 void AcesEffect::hide(bool) { G_ASSERT(0); }
 namespace acesfx
 {
@@ -299,11 +304,6 @@ void add_debug_text_mark(const Point3 &wp, const char *str, int length, float li
 
 bool check_action_precondition(ecs::EntityId, int) { G_ASSERT_RETURN(false, false); }
 
-#include <gamePhys/common/loc.h>
-void gamephys::Loc::interpolate(const Loc &, const Loc &, const float) { G_ASSERT(0); }
-void gamephys::Loc::substract(const Loc &lhs, const Loc &rhs) { G_ASSERT(0); }
-void gamephys::Loc::add(const Loc &lhs, const Loc &rhs) { G_ASSERT(0); }
-
 namespace circuit
 {
 eastl::string_view get_name() { G_ASSERT_RETURN(false, eastl::string_view("")); }
@@ -384,7 +384,7 @@ void BasePhysActor::resizeSyncStates(int) { G_ASSERT(0); }
 float BasePhysActor::minTimeStep = 0.0f;
 float BasePhysActor::maxTimeStep = 0.0f;
 void teleport_phys_actor(ecs::EntityId, TMatrix const &) { G_ASSERT(0); }
-int calc_phys_update_to_tick(float, float, int, int, int) { G_ASSERT_RETURN(false, -1); }
+int calc_phys_update_to_tick(double, float, int, int, int) { G_ASSERT_RETURN(false, -1); }
 
 #include <daInput/input_api.h>
 namespace dainput
@@ -583,6 +583,7 @@ void worldRenderer_shadowsInvalidate(const BBox3 &bbox) { G_ASSERT(0); }
 void worldRenderer_invalidateAllShadows() { G_ASSERT(0); }
 int worldRenderer_getDynamicResolutionTargetFps() { G_ASSERT_RETURN(false, 0); }
 void worldRenderer_setDaGdpRangeScale(float) { G_ASSERT(0); }
+void worldRenderer_setCockpitReprojectionMode(CockpitReprojectionMode) { G_ASSERT(0); }
 bool does_world_renderer_exist() { G_ASSERT_RETURN(false, 0); }
 } // namespace bind_dascript
 
@@ -603,6 +604,7 @@ void clipmap_decals_mgr::createDecal(int, const Point2 &, float, const Point2 &,
 void erase_grass(const Point3 &, float) { G_ASSERT(0); }
 void invalidate_after_heightmap_change(const BBox3 &box) { G_ASSERT(0); }
 void invalidate_ssr_history(int) { G_ASSERT(0); }
+void luminance_filter_ssr_history(int) { G_ASSERT(0); }
 void remove_puddles_in_crater(const Point3 &, float) { G_ASSERT(0); }
 
 struct PortalParams;
@@ -682,25 +684,21 @@ void stop() { G_ASSERT(0); }
 
 #include <projectiveDecals/projectiveDecals.h>
 
-ProjectiveDecals::~ProjectiveDecals() { G_ASSERT(0); }
-void ProjectiveDecals::updateDecal(
-  unsigned int, TMatrix const &, float, unsigned short, unsigned short, Point4 const &, unsigned short)
-{
-  G_ASSERT(0);
-}
-bool ProjectiveDecals::init(const char *, const char *, const char *, const char *) { G_ASSERT_RETURN(false, false); }
-void ProjectiveDecals::prepareRender(const Frustum &) { G_ASSERT(0); }
-void ProjectiveDecals::render() { G_ASSERT(0); }
-void ProjectiveDecals::afterReset() { G_ASSERT(0); }
-int RingBufferDecals::allocate_decal_id() { G_ASSERT_RETURN(false, -1); }
-void RingBufferDecals::init_buffer(uint32_t) { G_ASSERT(0); }
-void RingBufferDecals::clear() { G_ASSERT(0); }
-
-
-#include <projectiveDecals/projectiveDecals.h>
-
-void ProjectiveDecals::updateParams(uint32_t, const Point4 &, uint16_t) { G_ASSERT(0); }
-
+ProjectiveDecalsBase::~ProjectiveDecalsBase() { G_ASSERT(0); }
+void ProjectiveDecalsBase::updateDecal(dag::ConstSpan<Point4>) { G_ASSERT(0); }
+bool ProjectiveDecalsBase::init(const char *, const char *, const char *, const char *, size_t) { G_ASSERT_RETURN(false, false); }
+void ProjectiveDecalsBase::prepareRender(const Frustum &) { G_ASSERT(0); }
+void ProjectiveDecalsBase::render() { G_ASSERT(0); }
+void ProjectiveDecalsBase::afterReset() { G_ASSERT(0); }
+dag::Span<class Point4> ProjectiveDecalsBase::getSrcData(unsigned int) { G_ASSERT_RETURN(false, dag::Span<Point4>()); }
+int RingBufferDecalsBase::allocate_decal_id() { G_ASSERT_RETURN(false, -1); }
+void RingBufferDecalsBase::init_buffer(uint32_t, size_t) { G_ASSERT(0); }
+void RingBufferDecalsBase::clear() { G_ASSERT(0); }
+int RingBufferDecalsBase::addDecal(dag::Span<Point4>) { G_ASSERT_RETURN(false, 0); }
+int ResizableDecalsBase::addDecal(dag::Span<Point4>) { G_ASSERT_RETURN(false, 0); }
+DefaultDecalData::DefaultDecalData(uint32_t, const TMatrix &, float, uint16_t, uint16_t, const Point4 &, uint16_t) { G_ASSERT(0); }
+DefaultDecalData::DefaultDecalData(uint32_t, const Point4 &) { G_ASSERT(0); }
+void DefaultDecalData::partialUpdate(class dag::Span<class Point4>) const { G_ASSERT(0); }
 
 #include <daECS/utility/createInstantiated.h>
 namespace ecs
@@ -709,7 +707,12 @@ EntityId createInstantiatedEntitySync(EntityManager &, const char *, ComponentsI
 } // namespace ecs
 
 #include <contentUpdater/fsUtils.h>
-eastl::string updater::fs::join_path(std::initializer_list<const char *> parts) { G_ASSERT_RETURN(false, eastl::string{}); }
+template <>
+eastl::string updater::fs::join_path<EASTLAllocatorType>(std::initializer_list<const char *> parts)
+{
+  G_ASSERT(0);
+  return eastl::string{};
+}
 
 #include <videoPlayer/dag_videoPlayer.h>
 class IGenVideoPlayer *IGenVideoPlayer::create_ogg_video_player(char const *, int) { G_ASSERT_RETURN(false, nullptr); }
@@ -756,9 +759,9 @@ const char *dedicated_matching::get_player_custom_info(matching::UserId) { G_ASS
 #include <render/priorityManagedShadervar.h>
 namespace PriorityShadervar
 {
-void set_real(int, int, float) { G_ASSERT(0); }
+void set_float(int, int, float) { G_ASSERT(0); }
 void set_int(int, int, int) { G_ASSERT(0); }
-void set_color4(int, int, Point4) { G_ASSERT(0); }
+void set_float4(int, int, Point4) { G_ASSERT(0); }
 void set_int4(int, int, IPoint4) { G_ASSERT(0); }
 void clear(int, int) { G_ASSERT(0); }
 } // namespace PriorityShadervar
@@ -814,3 +817,20 @@ ILagCompensationMgr &get_lag_compensation()
   static StubLagCompensationMgr stub;
   return stub;
 }
+
+#include <perFrameStat/perFrameStat.h>
+namespace benchmark_perframe_stat
+{
+namespace gpu_time
+{
+void init() { G_ASSERT(0); }
+bool initialized() { G_ASSERT_RETURN(0, false); }
+void close() { G_ASSERT(0); }
+} // namespace gpu_time
+void init(unsigned) { G_ASSERT(0); }
+void reset() { G_ASSERT(0); }
+void add_last_frame() { G_ASSERT(0); }
+void dump_to_file(const char *) { G_ASSERT(0); }
+void set_dump_to_file(void (*)(const char *)) { G_ASSERT(0); }
+dag::ConstSpan<PerFrameData> get_per_frame_data() { G_ASSERT_RETURN(0, {}); }
+} // namespace benchmark_perframe_stat

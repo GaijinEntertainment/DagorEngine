@@ -72,11 +72,17 @@ endmacro
 
 shader gen_cloud_field
 {
-  ENABLE_ASSERT(cs)
   GEN_FIELD(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      ACCESS_FORMAT(r8)
+      RWTexture3D<float> output@uav;
+    }
+    layerHt@uav : register(1) hlsl {
+      RWTexture2D<float> layerHt@uav; //layer's opaque pixels count
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<float> output : register(u0);
-    RWTexture2D<float> layerHt : register(u1);//layer's opaque pixels count
     [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
     void cs_main(uint3 tid : SV_DispatchThreadID) {
       float encodedResult = getFinalDensity(tid);
@@ -168,8 +174,8 @@ shader gen_cloud_layers_non_empty_cmpr
   WRITE_TO_TEX1D_SUMZ()
 
   (ps) {
-    clouds_field_volume_tmp@smp = clouds_field_volume_tmp hlsl {
-      Texture3D<uint2> clouds_field_volume_tmp@smp;
+    clouds_field_volume_tmp@tex = clouds_field_volume_tmp hlsl {
+      Texture3D<uint2> clouds_field_volume_tmp@tex;
     };
   }
   hlsl(ps) {
@@ -218,11 +224,16 @@ endmacro
 
 shader gen_cloud_field_cmpr
 {
-  ENABLE_ASSERT(cs)
   USE_GEN_CLOUD_FIELD(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture3D<uint2> output@uav;
+    }
+    layerHt@uav : register(1) hlsl {
+      RWTexture2D<float> layerHt@uav; //layer's opaque pixels count
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<uint2> output : register(u0);
-    RWTexture2D<float> layerHt : register(u1);//layer's opaque pixels count
     [numthreads(4, 4, 4)]
     void cs_main(uint3 tid : SV_DispatchThreadID)
     {

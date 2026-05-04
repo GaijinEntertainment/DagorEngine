@@ -14,4 +14,4 @@ namespace das {
     void set_project_specific_ctx_callbacks(GetNewContextFunc getNewContext, GetCloneContextFunc getCloneContext);
 }
 
-das::Context * get_context( int stackSize = 0 );
+DAS_API das::Context * get_context( int stackSize = 0 );

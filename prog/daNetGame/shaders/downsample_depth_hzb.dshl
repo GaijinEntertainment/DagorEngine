@@ -16,11 +16,6 @@ int occlusion_lens_mask_mode = 0;
 interval occlusion_lens_mask_mode : world_area < 1 , lens_area;
 
 int downsample_depth_from_const_no = 4 always_referenced;
-hlsl(ps) {
-  Texture2D downsample_depth_from:register(t4);
-  SamplerState downsample_depth_from_samplerstate:register(s4);
-}
-
 
 shader downsample_depth_hzb
 {
@@ -40,6 +35,8 @@ shader downsample_depth_hzb
     depth_target_sz@f2 = depth_target_sz;
     depth_source_rcp@f2 = (1.0 / depth_source_sz.x, 1.0 / depth_source_sz.y);
     half_target_rcp@f2 = (0.5 / depth_target_sz.x, 0.5 / depth_target_sz.y);
+    downsample_depth_from@tex2d : register(downsample_depth_from_const_no);
+    downsample_depth_from_samplerstate@sampler : register(downsample_depth_from_const_no);
   }
   if (occlusionExclusionMask!=NULL)
   {

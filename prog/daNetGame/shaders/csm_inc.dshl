@@ -1,0 +1,4 @@
+
+macro USE_CSM_SHADOW(code, num_cascades, get_csm_shadow_func)
+  USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
+endmacro

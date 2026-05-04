@@ -6,7 +6,9 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 #include <animChar/dag_animCharacter2.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <gameRes/dag_collisionResource.h>
 #include <math/dag_geomTree.h>
 #include <gamePhys/phys/utils.h>

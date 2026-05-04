@@ -6,6 +6,7 @@
 #include <math/dag_Point2.h>
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
+#include <EASTL/utility.h>
 #include <generic/dag_tab.h>
 #include <memory/dag_fixedBlockAllocator.h>
 #include "stdRendObj.h"
@@ -27,6 +28,7 @@ struct TextBlock
     TBT_TEXT,
     TBT_SPACE,
     TBT_LINE_BREAK,
+    TBT_COMPONENT
   };
 
   Type type = TBT_NONE;
@@ -40,9 +42,16 @@ struct TextBlock
   Point2 size = Point2(0, 0);     //< only valid afer format() call
   Point2 position = Point2(0, 0); //< only valid afer format() call
 
+  // Shape cache. When true, block->size is still valid and FormattedText::format
+  // skips the harfbuzz/get_str_bbox call for this block. Cleared in bulk by
+  // format() when any shape-affecting FormatParams field changes, or by
+  // FormattedText::invalidateShapes() on in-place text mutation. Parsed blocks
+  // default to false.
+  bool hasValidShape = false;
+
   bool useCustomColor = false;
 
-  int numChars = -1; // Calculated only for editable texteare, otherwise -1
+  int numChars = -1; // Calculated only for editable textarea, otherwise -1
 
   int toWChar(Tab<wchar_t> &wtext);
   void calcNumChars();
@@ -81,9 +90,15 @@ struct FormatParams
   float indent = 0;
   float hangingIndent = 0;
   int maxWidth = 0;
-  int maxHeight = 0;
 
   void reset() { memset(this, 0, sizeof(*this)); }
+
+  bool isSameCacheKey(const FormatParams &fp) const
+  {
+    return maxWidth == fp.maxWidth && // most volatile
+           defFontId == fp.defFontId && defFontHt == fp.defFontHt && spacing == fp.spacing && monoWidth == fp.monoWidth &&
+           lineSpacing == fp.lineSpacing && parSpacing == fp.parSpacing && indent == fp.indent && hangingIndent == fp.hangingIndent;
+  }
 };
 
 
@@ -100,6 +115,7 @@ struct ITextParams
   virtual bool getColor(const char *color_name, E3DCOLOR &res, String &err_msg) = 0;
   virtual void getUserTags(Tab<String> &tags) = 0;
   virtual bool getTagAttr(const char *tag, TagAttributes &attr) = 0;
+  virtual bool getEmbeddedComponent(const char *tag, Sqrat::Object &comp) = 0;
 };
 
 
@@ -121,18 +137,35 @@ public:
   void clear();
   void updateText(const char *text, int len = -1, ITextParams *tp = nullptr);
   void appendText(const char *text, int len = -1, ITextParams *tp = nullptr);
+  void parseAndSplitText(Tab<TextBlock *> &output, const char *str, int strLen = -1, ITextParams *tp = nullptr);
 
   void format(const FormatParams &params);
 
+  // Call when block text or font changes without going through parseAndSplitText
+  // (e.g. in-place edits in bhvTextAreaEdit). Resets both the format params
+  // cache and every block's per-block shape cache.
+  void invalidateShapes();
+
   bool hasFormatError() const { return !formatErrorMsg.empty(); }
 
-  void join(eastl::string &dest);
+  // True when the previously formatted lines are still valid for a call that
+  // would use this maxWidth. Safe because every other FormatParams input comes
+  // from script properties; any change to those goes through updateText/clear
+  // (empties lines) or invalidateShapes/reset (zeroes lastFormatParamsForCurText),
+  // so lines being non-empty with a matching stored maxWidth implies a full match.
+  bool canReuseLinesFor(int max_width) const
+  {
+    return !lines.empty() && !hasFormatError() && lastFormatParamsForCurText.maxWidth == max_width;
+  }
+
+  void join(eastl::string &dest) const;
 
   int preformattedFlags;
 
 private:
-  void parseAndSplitText(const char *str, int strLen = -1, ITextParams *tp = nullptr);
   E3DCOLOR strToColor(const char *str, int &out_length, bool &out_error);
+  Point2 calcEmbeddedComponentSize(const Sqrat::Object &desc, float def_height);
+  void shapeBlock(TextBlock *block, const StdGuiFontContext &fontCtx, float ascent, float descent);
 
 public:
   Tab<TextBlock *> blocks;
@@ -144,6 +177,12 @@ public:
 
   TextBlock *allocateTextBlock();
   void freeTextBlock(TextBlock *block);
+
+  void setEmbeddedComp(TextBlock *block, Sqrat::Object &&comp);
+  Sqrat::Object *getEmbeddedComp(const TextBlock *block);
+  const Sqrat::Object *getEmbeddedComp(const TextBlock *block) const;
+
+  eastl::vector<eastl::pair<TextBlock *, Sqrat::Object>> embeddedComps;
 
   String formatErrorMsg;
 };

@@ -7,10 +7,10 @@ ECS_DEF_PULL_VAR(nbsVolumes);
 //static constexpr ecs::ComponentDesc update_nbs_volumes_es_comps[] ={};
 static void update_nbs_volumes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   update_nbs_volumes_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc update_nbs_volumes_es_es_desc
 (
@@ -67,9 +67,9 @@ static ecs::CompileTimeQueryDesc gather_nbs_spheres_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_nbs_spheres_ecs_query(Callable function)
+inline void gather_nbs_spheres_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_nbs_spheres_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_nbs_spheres_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -101,9 +101,9 @@ static ecs::CompileTimeQueryDesc update_nbs_buffers_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void update_nbs_buffers_ecs_query(Callable function)
+inline void update_nbs_buffers_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, update_nbs_buffers_ecs_query_desc.getHandle(),
+  perform_query(&manager, update_nbs_buffers_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

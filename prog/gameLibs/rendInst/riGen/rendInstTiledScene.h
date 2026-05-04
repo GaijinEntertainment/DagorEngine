@@ -55,6 +55,7 @@ public:
   using TiledScene::getNodesAliveCount;
   using TiledScene::getNodesCount;
   using TiledScene::getPoolBbox;
+  using TiledScene::getTileBoxByIdx;
   using TiledScene::getTileCountInBox;
   using TiledScene::getTileSize;
   using TiledScene::lockForRead;
@@ -65,7 +66,6 @@ public:
   using TiledScene::setPoolBBox;
   using TiledScene::setPoolDistanceSqScale;
   using TiledScene::setTransform;
-  using TiledScene::term;
   using TiledScene::unlockAfterRead;
   using TiledScene::unsetFlags;
   using TiledScene::unsetFlagsUnordered;
@@ -98,6 +98,16 @@ public:
   {
     TiledScene::init(tile_sz);
     reserve(nodes_reserve);
+  }
+
+  void term()
+  {
+    TiledScene::term();
+    distance.clear();
+    nodeUserData.clear();
+    perInstanceRenderAdditionalData.clear();
+    userDataWordCount = 0;
+    dirFromSunOnPrevDistInvalidation = {0, 0, 0};
   }
 
   uint8_t getDistance(scene::node_index id) const
@@ -158,14 +168,11 @@ public:
     if (isInWritingThread() && mDeferredCommand.empty())
     {
       WriteLockRAII lock(*this);
-      if (mDeferredCommand.empty())
-      {
-        int32_t data[16];
-        memcpy(data, dw_data, dw_cnt * 4);
-        data[15] = dw_cnt;
-        if (user_cmd_processsor(user_cmd, *this, node, (const char *)&data))
-          return;
-      }
+      int32_t data[16];
+      memcpy(data, dw_data, dw_cnt * 4);
+      data[15] = dw_cnt;
+      if (user_cmd_processsor(user_cmd, *this, node, (const char *)&data))
+        return;
     }
 
     setNodeUserDataDeferred(node, user_cmd, dw_cnt, dw_data);
@@ -235,27 +242,12 @@ public:
     return 0;
   }
 
-  void setPerInstanceRenderAdditionalDataImm(scene::node_index ni, uint32_t encoded_data)
-  {
-    G_ASSERT_RETURN(isInWritingThread(), );
-    if (encoded_data)
-    {
-      setFlagsImm(ni, HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA);
-      perInstanceRenderAdditionalData[ni] = encoded_data;
-    }
-    else
-    {
-      if (getNodeFlags(ni) & HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA)
-      {
-        unsetFlagsImm(ni, HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA);
-        perInstanceRenderAdditionalData.erase(ni);
-      }
-    }
-  }
+  void setPerInstanceRenderAdditionalData(scene::node_index ni, uint32_t encoded_data);
 
   void onDirFromSunChanged(const Point3 &nd);
 
 protected:
+  void setPerInstanceRenderAdditionalDataImm(scene::node_index ni, uint32_t encoded_data);
   void invalidateShadowDist()
   {
     for (auto &di : distance)

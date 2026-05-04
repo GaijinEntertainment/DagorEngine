@@ -1,29 +1,11 @@
 import bpy
-from bpy.types                  import Operator, Panel
-from bpy.utils                  import register_class, unregister_class
-from bpy.props                  import IntProperty, StringProperty
-from ..helpers.basename         import basename
-from ..helpers.popup            import show_popup
-from ..helpers.get_preferences  import get_preferences
+from bpy.types          import Operator, Panel
+from bpy.utils          import register_class, unregister_class
+from bpy.props          import IntProperty, StringProperty
+from ..helpers.getters  import get_preferences
+from ..ui.draw_elements import draw_custom_header
 
-#FUNCTIONS
-def get_lod_collections():
-    o=bpy.context.object
-    act_col=o.instance_collection
-    cols=[]#All,lod00,lod01,etc
-    if re.search('.*lod0[0-9]',act_col.name) is not None:
-        basename=act_col.name[:-6]
-    else:
-        basename=act_col.name
-    for i in range(9):
-        name=f"{basename}.lod0{i}"
-        lod=bpy.data.collections.get(name)
-        if lod is not None:
-            cols.append(lod.name)
-    all=bpy.data.collections.get(basename)
-    if all is not None:
-        cols.append(basename)
-    return cols
+from ..popup.popup_functions    import show_popup
 
 #OPERATORS
 
@@ -104,11 +86,7 @@ class DAGOR_PT_CollectionProperties(Panel):
         col = C.collection
         if col is not None:
             colprops = column.box()
-            header = colprops.row()
-            header.prop(pref, 'colprops_maximized',
-                icon = 'DOWNARROW_HLT'if pref.colprops_maximized else 'RIGHTARROW_THIN',
-                emboss=False,text='Active Collection')
-            header.prop(pref, 'colprops_maximized',text='', icon='OUTLINER_COLLECTION', emboss = False)
+            draw_custom_header(colprops, 'Active Collection', pref, 'colprops_maximized', icon = 'OUTLINER_COLLECTION')
             if pref.colprops_maximized:
                 props = col.keys()
                 renamed = "name" in props
@@ -127,11 +105,7 @@ class DAGOR_PT_CollectionProperties(Panel):
             cols = [col for col in bpy.data.collections if "name" in col.keys()]
             if cols.__len__()>0:
                 all_col = column.box()
-                header = all_col.row()
-                header.prop(pref, 'colprops_all_maximized',
-                    icon = 'DOWNARROW_HLT'if pref.colprops_all_maximized else 'RIGHTARROW_THIN',
-                    emboss=False,text='Overridden:')
-                header.prop(pref, 'colprops_all_maximized', text='', icon='OUTLINER_COLLECTION', emboss = False)
+                draw_custom_header(all_col, 'Overridden:', pref, 'colprops_all_maximized', icon = 'OUTLINER_COLLECTION')
                 if pref.colprops_all_maximized:
                     cols = list(col for col in bpy.data.collections if 'name' in col.keys() and col.children.__len__()==0)
                     for col in cols:
@@ -142,12 +116,7 @@ class DAGOR_PT_CollectionProperties(Panel):
                         box.prop(col, '["name"]',text='')
             if pref.guess_dag_type or pref.use_cmp_editor:
                 typebox = column.box()
-                boxname = typebox.row()
-                boxname.prop(pref, 'type_maximized', text = "",
-                    icon = 'DOWNARROW_HLT'if pref.type_maximized else 'RIGHTARROW_THIN',
-                    emboss=False)
-                boxname.prop(pref, 'type_maximized', text = 'Type:' if pref.type_maximized else "Type", emboss = False)
-                boxname.prop(pref, 'type_maximized', text = "", icon = 'BLANK1', emboss = False)
+                draw_custom_header(typebox, 'Type:', pref, 'type_maximized')
                 if not pref.type_maximized:
                     return
                 if not "type" in col.keys():

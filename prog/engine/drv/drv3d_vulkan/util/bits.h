@@ -22,12 +22,6 @@ struct BitsNeeded<1>
   static constexpr int VALUE = 1;
 };
 
-template <typename T, size_t N>
-inline constexpr size_t array_size(T (&)[N])
-{
-  return N;
-}
-
 inline uint32_t count_bits(uint32_t v)
 {
   // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel

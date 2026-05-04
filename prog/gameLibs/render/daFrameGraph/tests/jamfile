@@ -12,6 +12,10 @@ TargetType  = exe ;
 OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
 Target      = testFrameGraph ;
 
+UseD3DMulti = yes ;
+UseD3DMultiList = stub ;
+UseD3DMultiForced = windows ;
+
 if $(PlatformSpec) = clang
 {
   # These warnings are enabled by default on some systems and are
@@ -29,20 +33,23 @@ UseProgLibs =
   engine/memory
   engine/kernel
   engine/osApiWrappers
+  engine/coreUtil
   engine/baseUtil
   engine/ioSys
   engine/math
-  engine/drv/drv3d_stub
   engine/shaders
   engine/lib3d
   engine/image
   engine/startup
+  engine/perfMon/daProfilerStub
+  engine/perfMon/gpuProfilerStub
+  engine/perfMon/perfTimerStub
+
+  engine/drv/drv3d_pc_multi
 
   3rdPartyLibs/eastl
   3rdPartyLibs/catch2
 
-  engine/perfMon/daProfilerStub
-  engine/perfMon/perfTimerStub
   gameLibs/render/daFrameGraph
 ;
 
@@ -56,9 +63,16 @@ AddIncludes =
 
 Sources =
   main.cpp
+  benchmark.cpp
   packer.cpp
   performance.cpp
   runtime.cpp
+  multiplexing.cpp
+  idContainers.cpp
+  bitSearch.cpp
+  irGraphBuilder.cpp
+  nodeStateDeltas.cpp
+  resourceScheduler.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

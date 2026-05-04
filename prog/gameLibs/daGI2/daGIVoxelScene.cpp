@@ -16,8 +16,7 @@ CONSOLE_INT_VAL("gi", gi_voxel_scene_update_from_gbuf_speed_count, 8192, 0, 256 
   VAR(dagi_lit_voxel_scene_res_np2)       \
   VAR(dagi_lit_voxel_scene_to_sdf_clips)  \
   VAR(dagi_lit_scene_to_atlas_decode)     \
-  VAR(dagi_lit_voxel_scene_to_sdf)        \
-  VAR(dagi_lit_voxel_scene_alpha_samplerstate)
+  VAR(dagi_lit_voxel_scene_to_sdf)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -31,7 +30,7 @@ void DaGIVoxelScene::init(uint32_t sdfW, uint32_t sdfH, float scale, uint32_t fi
 {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
   GLOBAL_VARS_LIST
 #undef VAR
 
@@ -55,21 +54,20 @@ void DaGIVoxelScene::init(uint32_t sdfW, uint32_t sdfH, float scale, uint32_t fi
   dagi_lit_voxel_scene.close();
   dagi_lit_voxel_scene_alpha.close();
   const uint32_t fmt = lumaOnly ? TEXFMT_R16F : TEXFMT_R11G11B10F;
-  dagi_lit_voxel_scene = dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | fmt, 1, "dagi_lit_voxel_scene");
+  dagi_lit_voxel_scene = dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | fmt, 1, "dagi_lit_voxel_scene", RESTAG_DAGI2);
   dagi_lit_voxel_scene_alpha =
-    dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | TEXFMT_R8, 1, "dagi_lit_voxel_scene_alpha");
-  dagi_lit_voxel_scene_alpha_samplerstateVarId.set_sampler(d3d::request_sampler({}));
+    dag::create_voltex(resW, resW, fullAtlasResD, TEXCF_UNORDERED | TEXFMT_R8, 1, "dagi_lit_voxel_scene_alpha", RESTAG_DAGI2);
   ShaderGlobal::set_int4(dagi_lit_voxel_scene_resVarId, resW, resD, clips, anisotropy ? 1 : 0);
 
   constexpr int max_pos = (1 << 30) - 1;
   ShaderGlobal::set_int4(dagi_lit_voxel_scene_res_np2VarId, resW, resD, is_pow_of2(resW) ? 0 : (max_pos / resW) * resW,
     is_pow_of2(resD) ? 0 : (max_pos / resD) * resD);
-  ShaderGlobal::set_color4(dagi_lit_voxel_scene_to_sdfVarId, float(resW) / sdfW, float(resD) / sdfH, 0, 0);
+  ShaderGlobal::set_float4(dagi_lit_voxel_scene_to_sdfVarId, float(resW) / sdfW, float(resD) / sdfH, 0, 0);
 
   ShaderGlobal::set_int4(dagi_lit_voxel_scene_to_sdf_clipsVarId, firstSdfClip, fullAtlasResD, oneClipSizeWithBorderInTexels,
     oneAxisSliceSizeWithBorderInTexels);
   ShaderGlobal::set_int(dagi_lit_voxel_scene_luma_onlyVarId, lumaOnly);
-  ShaderGlobal::set_color4(dagi_lit_scene_to_atlas_decodeVarId,
+  ShaderGlobal::set_float4(dagi_lit_scene_to_atlas_decodeVarId,
     Color4(resD, oneClipSizeWithBorderInTexels, oneAxisSliceSizeWithBorderInTexels, 1) / fullAtlasResD);
   cleared = false;
   if (!dagi_voxel_scene_reset_cs)
@@ -79,7 +77,7 @@ void DaGIVoxelScene::init(uint32_t sdfW, uint32_t sdfH, float scale, uint32_t fi
   }
 }
 
-void DaGIVoxelScene::update()
+void DaGIVoxelScene::doPendingClear()
 {
   if (cleared)
     return;

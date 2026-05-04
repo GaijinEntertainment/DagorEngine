@@ -1,5 +1,5 @@
 require ecs
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 
 
 [es(tag=sound, after=sound_begin_update_es, before=sound_end_update_es)]

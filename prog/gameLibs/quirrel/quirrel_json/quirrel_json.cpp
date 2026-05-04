@@ -1,12 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <quirrel/quirrel_json/quirrel_json.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqStackChecker.h>
 #include <sqstdblob.h>
 #include <stddef.h>
 #include <EASTL/unique_ptr.h>
-#include <util/dag_finally.h>
 
 #include <sqstdlib/sqstdblobimpl.h> // Quirrel standard library internals
 
@@ -16,10 +15,10 @@
 eastl::string quirrel_to_jsonstr(Sqrat::Object obj, bool pretty)
 {
   sq_pushobject(obj.GetVM(), obj.GetObject());
-  FINALLY([&] { sq_poptop(obj.GetVM()); });
-  return directly_convert_quirrel_val_to_json_string(obj.GetVM(), -1, pretty);
+  eastl::string res = directly_convert_quirrel_val_to_json_string(obj.GetVM(), -1, pretty);
+  sq_poptop(obj.GetVM());
+  return res;
 }
-
 
 Sqrat::Object parse_json_to_sqrat(HSQUIRRELVM vm, eastl::string_view json_str, eastl::optional<eastl::string> &err_str)
 {
@@ -117,25 +116,25 @@ void bind_json_api(SqModules *module_mgr)
 {
   Sqrat::Table ns(module_mgr->getVM());
   ///@module json
-  ns.SquirrelFunc("parse_json", api_parse_json_direct, 2, ".s")
+  ns.SquirrelFuncDeclString(api_parse_json_direct, "parse_json(string: string): any")
     /* qdox
       @function parse_json
       @param string s : string that would be parsed to json
       @return o|s|n|t|a : quirrel object
     */
-    .SquirrelFunc("parse_json_from_zstd_stream", api_parse_json_direct_from_zstd_stream, 2, ".x")
+    .SquirrelFuncDeclString(api_parse_json_direct_from_zstd_stream, "parse_json_from_zstd_stream(blob: instance): any")
     /* qdox
       @function parse_json_from_zstd_stream
       @param blob s : blob with ztsd stream that would be parsed to json
       @return o|s|n|t|a : quirrel object
     */
-    .SquirrelFunc("object_to_json_string", api_object_to_json_string_direct, -2, "..b")
+    .SquirrelFuncDeclString(api_object_to_json_string_direct, "object_to_json_string(object: any, [pretty: bool]): string")
     /* qdox
       @function object_to_json_string
       @param object o|s|n|t|a|b : object that will be converted to json string
       @return s : json string
     */
-    .SquirrelFunc("object_to_zstd_json", api_object_to_zstd_json_direct, -2, "..")
+    .SquirrelFuncDeclString(api_object_to_zstd_json_direct, "object_to_zstd_json(object: any): instance")
     /* qdox
       @function object_to_json_string
       @param object o|s|n|t|a|b : object that will be converted to json

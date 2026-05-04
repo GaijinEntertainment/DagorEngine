@@ -1,0 +1,9 @@
+ERROR: expression of type 'table' cannot be assigned to type 'array'
+testData/diagnostics/compilation_errors/type_inference/test_const_table.nut:3:0
+
+const TAB2 = {x = 4}
+let x: array = true ? TAB1 : TAB2
+^--------------------------------
+return x
+
+

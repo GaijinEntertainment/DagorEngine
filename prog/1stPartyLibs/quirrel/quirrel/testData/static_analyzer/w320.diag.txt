@@ -1,0 +1,91 @@
+WARNING: w320 (callback-should-return-value) Callback passed to 'filter' must return a value.
+testData/static_analyzer/w320.nut:17:23
+
+  // filter without return
+  let _f1 = arr.filter(function(v) { print(v) })
+                       ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'reduce' must return a value.
+testData/static_analyzer/w320.nut:20:23
+
+  // reduce without return
+  let _r1 = arr.reduce(function(acc, v) { print(acc + v) })
+                       ^----------------------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'findindex' must return a value.
+testData/static_analyzer/w320.nut:23:27
+
+  // findindex without return
+  let _fi1 = arr.findindex(function(v) { print(v) })
+                           ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'findvalue' must return a value.
+testData/static_analyzer/w320.nut:26:27
+
+  // findvalue without return
+  let _fv1 = arr.findvalue(function(v) { print(v) })
+                           ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'sort' must return a value.
+testData/static_analyzer/w320.nut:29:11
+
+  // sort without return
+  arr.sort(function(a, b) { print(a + b) })
+           ^------------------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'apply' must return a value.
+testData/static_analyzer/w320.nut:32:12
+
+  // apply without return
+  arr.apply(function(v) { print(v) })
+            ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'map' must return a value.
+testData/static_analyzer/w320.nut:35:21
+
+  // table map without return
+  let _tm1 = tbl.map(function(v) { print(v) })
+                     ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'filter' must return a value.
+testData/static_analyzer/w320.nut:38:24
+
+  // table filter without return
+  let _tf1 = tbl.filter(function(v) { print(v) })
+                        ^-----------------------
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'map' must return a value.
+testData/static_analyzer/w320.nut:41:20
+
+  // partial return (not all paths)
+  let _m2 = arr.map(function(v) {
+                    ^
+    if (v > 0)
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'map' must return a value.
+testData/static_analyzer/w320.nut:47:19
+
+  // function passed as binding
+  let noReturnFn = function(v) { print(v) }
+                   ^-----------------------
+  let _m5 = arr.map(noReturnFn)
+
+
+WARNING: w320 (callback-should-return-value) Callback passed to 'filter' must return a value.
+testData/static_analyzer/w320.nut:51:18
+
+  // binding with partial return
+  let partialFn = function(v) {
+                  ^
+    if (v > 0)
+
+

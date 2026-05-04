@@ -10,7 +10,7 @@ WARNING: w287 (range-check) It looks like the range boundaries are not checked c
 testData/static_analyzer/w287.nut:16:9
 
 let e2 = (value >= 0) && (value <= cnt) // EXPECTED 2
-         ^-----------------------------
+         ^----------------------------
 let c2 = (value >= 0) && (value < cnt) // FP 2
 
 

@@ -9,6 +9,7 @@ void sound::ActionProps::load(const DataBlock *blk)
   const DataBlock *actBlk = blk->getBlockByName("actionSound");
   humanHitSoundName = actBlk->getStr("humanHitSoundName", "");
   humanHitSoundPath = actBlk->getStr("humanHitSoundPath", "");
+  voicePhrase = actBlk->getStr("voicePhrase", "");
 }
 bool sound::ActionProps::can_load(const DataBlock *blk) { return blk->getBlockByNameEx("actionSound", nullptr) != nullptr; }
 

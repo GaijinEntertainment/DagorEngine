@@ -14,7 +14,6 @@ macro SSGE_SCENE_COMMON_INIT_WRITE(code)
 endmacro
 
 macro SSGE_WRITE_VOXEL_DATA(code, color_reg, alpha_reg)
-  ENABLE_ASSERT(code)
   (code) {
     voxelsColor@uav: register(color_reg) hlsl {
       #define VOXELSCOLOR(type) RWTexture3D<type> voxelsColor@uav;

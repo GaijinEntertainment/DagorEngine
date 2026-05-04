@@ -1,5 +1,6 @@
 include "postfx_common.dshl"
 include "forward_postfx_modifier.dshl"
+include "screenEffects/concussion_effect.dshl"
 
 define_macro_if_not_defined INIT_FORWARD_POSTFX_OPTIONAL_FEATURES()
 endmacro
@@ -24,27 +25,18 @@ shader forward_postfx
     dont_render;
   }
 
-  ENABLE_ASSERT(ps)
-
   (ps) {
-    inv_screen_size_flash_blind_confusion_time@f4 = (
+    inv_screen_size_flash_blind@f3 = (
       rendering_res.z,
       rendering_res.w,
       flash_blind_remaining_time,
-      //concussion_time
-      (time_phase(0, 0) - concussion_effect_time_start) / concussion_effect_duration
-    );
-    concussion_offset_time_shake_intensity@f2 = (
-      time_phase(0, 0),
-      concussion_shake_intensity,
-      0,
-      0
     );
     frame_tex@smp2d = frame_tex;
   }
 
   INIT_FORWARD_POSTFX_OPTIONAL_FEATURES()
   USE_FORWARD_POSTFX_OPTIONAL_FEATURES()
+  INIT_AND_USE_CONCUSSION_EFFECT(ps, frame_tex)
 
   INIT_SHADER_GAMMA()
   USE_SHADER_GAMMA()
@@ -52,10 +44,7 @@ shader forward_postfx
   HDR_PS_OUTPUT(POSTFX_OUTPUT, float4)
 
   hlsl(ps) {
-    #define flash_blind_remaining_time inv_screen_size_flash_blind_confusion_time.z
-    #define concussion_time inv_screen_size_flash_blind_confusion_time.w
-    #define concussion_offset_time concussion_offset_time_shake_intensity.x
-    #define concussion_shake_intensity concussion_offset_time_shake_intensity.y
+    #define flash_blind_remaining_time inv_screen_size_flash_blind.z
 
     #include <noise/Value1D.hlsl>
 
@@ -91,14 +80,6 @@ shader forward_postfx
     void sampleSceneColor(float2 uv, out half3 color)
     {
       color = h4tex2Dlod(frame_tex, float4(uv, 0.0, 0.0)).xyz;
-    }
-
-    void concussion_effect(float2 screen_uv, inout float3 color)
-    {
-      float2 noise_vec = float2(noise_value1D(concussion_offset_time*2.0), noise_value1D(concussion_offset_time*1.1))*2.0 - 1.0;
-      float intensity = concussion_shake_intensity*(1.0 - concussion_time);
-      float3 image_moved = h4tex2Dlod(frame_tex, half4(screen_uv + noise_vec*intensity, 0.0, 0.0)).rgb;
-      color = lerp(image_moved, color, (1.0 + pow2(concussion_time))*0.5);
     }
 
     POSTFX_OUTPUT postfx_ps(VsOutput input HW_USE_SCREEN_POS)

@@ -17,6 +17,10 @@ class BBox3;
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(UpdateStageInfoRender::RenderPass, RenderPass);
 DAS_BIND_ENUM_CAST_98(FeatureRenderFlags)
 
+DAS_BIND_ENUM_CAST_98(CockpitReprojectionMode)
+DAS_BASE_BIND_ENUM_98(
+  CockpitReprojectionMode, CockpitReprojectionMode, COCKPIT_NO_REPROJECT, COCKPIT_REPROJECT_OUT_OF_SCREEN, COCKPIT_REPROJECT_ANIMATED)
+
 MAKE_TYPE_FACTORY(CameraParams, CameraParams)
 MAKE_TYPE_FACTORY(CameraViewVisibilityMgr, CameraViewVisibilityMgr)
 
@@ -29,9 +33,11 @@ void worldRenderer_invalidateAllShadows();
 void worldRenderer_renderDebug(const CameraParams &camera);
 int worldRenderer_getDynamicResolutionTargetFps();
 void worldRenderer_setDaGdpRangeScale(float scale);
+void worldRenderer_setCockpitReprojectionMode(CockpitReprojectionMode mode);
 bool does_world_renderer_exist();
 } // namespace bind_dascript
 
 void erase_grass(const Point3 &world_pos, float radius);
 void invalidate_after_heightmap_change(const BBox3 &box);
 void invalidate_ssr_history(int frames);
+void luminance_filter_ssr_history(int frames);

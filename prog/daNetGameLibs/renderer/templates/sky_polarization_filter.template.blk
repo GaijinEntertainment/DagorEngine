@@ -1,0 +1,6 @@
+sky_polarization_filter{
+  _singleton:b=yes
+  _tags:t="render"
+
+  sky_polarization_filter__value:r=1.0
+}

@@ -6,7 +6,7 @@
 #include <EASTL/hash_set.h>
 #include <EASTL/vector_map.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 #include <squirrel.h>
 #include <sqstdblob.h>
@@ -202,7 +202,7 @@ static SQInteger request(HSQUIRRELVM vm)
           if (SQ_FAILED(sq_tostring(vm, -2)))
             return sq_throwerror(vm, "Failed to convert data object value to string");
 
-          const SQChar *strKey = nullptr, *strValue = nullptr;
+          const char *strKey = nullptr, *strValue = nullptr;
           G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -2, &strKey)));
           G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &strValue)));
 
@@ -304,55 +304,44 @@ static SQInteger request(HSQUIRRELVM vm)
 
   reqParams.callback =
     make_http_callback([req](RequestStatus status, int http_code, dag::ConstSpan<char> response, StringMap const &resp_headers) {
-      bool haveCb = !req->callback.IsNull();
-      if ((haveCb || !req->respEventId.empty()) && (status != RequestStatus::SHUTDOWN))
-      {
-        auto cb = [haveCb, status, http_code, req, response, &resp_headers](HSQUIRRELVM vm) {
-          if (vm)
+      auto cb = [&](sqeventbus::Value &resp) {
+        auto vm = resp.getVM();
+        resp["status"] = (SQInteger)status;
+        resp["http_code"] = (SQInteger)http_code;
+        resp["context"] = req->context;
+
+        if (!resp_headers.empty())
+        {
+          sqeventbus::Value sqRespHeaders(vm);
+          for (auto &kv : resp_headers)
+            sqRespHeaders[kv.first.data()] = kv.second.data();
+          resp["headers"] = sqRespHeaders; // TODO: rename to `resp_headers`
+        }
+        if (!response.empty())
+        {
+          SQUserPointer ptr = sqstd_createblob(vm, response.size());
+          G_ASSERT(ptr); // can happen if blob library was not registered
+          if (ptr)
           {
-            Sqrat::Table resp(vm);
-            resp.SetValue("status", (SQInteger)status);
-            resp.SetValue("http_code", (SQInteger)http_code);
-            resp.SetValue("context", req->context);
-
-            if (!resp_headers.empty())
-            {
-              Sqrat::Table sqRespHeaders(vm);
-              for (auto &kv : resp_headers)
-                sqRespHeaders.SetValue(kv.first.data(), kv.second.data());
-              resp.SetValue("headers", sqRespHeaders); // TODO: rename to `resp_headers`
-            }
-            if (!response.empty())
-            {
-              SQUserPointer ptr = sqstd_createblob(vm, response.size());
-              G_ASSERT(ptr); // can happen if blob library was not registered
-              if (ptr)
-              {
-                memcpy(ptr, response.data(), response.size());
-                HSQOBJECT hBlob;
-                sq_getstackobj(vm, -1, &hBlob);
-                resp.SetValue("body", Sqrat::Object(hBlob, vm));
-                sq_pop(vm, 1);
-              }
-            }
-
-            resp.FreezeSelf();
-            if (haveCb)
-            {
-              if (!req->callback(resp))
-                LOGERR_CTX("Failed to call HTTP request callback");
-            }
-            if (!req->respEventId.empty())
-              sqeventbus::send_event(req->respEventId.c_str(), resp);
+            memcpy(ptr, response.data(), response.size());
+            resp["body"] = Sqrat::Var<Sqrat::Object>(vm, -1).value;
+            sq_pop(vm, 1);
           }
-        };
-
-        if (haveCb)
-          cb(req->callback.GetVM());
-        else
-          sqeventbus::do_with_vm(cb);
+        }
+        resp.obj.FreezeSelf();
+      };
+      if (status != RequestStatus::SHUTDOWN)
+      {
+        if (!req->callback.IsNull())
+        {
+          sqeventbus::Value resp(req->callback.GetVM());
+          cb(resp);
+          if (!req->callback(resp.obj))
+            LOGERR_CTX("Failed to call HTTP request callback");
+        }
+        if (!req->respEventId.empty())
+          sqeventbus::write_event_main_thread(req->respEventId.c_str(), cb);
       }
-
       auto it = eastl::find_if(active_requests.begin(), active_requests.end(),
         [req](eastl::unique_ptr<Request> &p) { return p.get() == req; });
       G_ASSERT(it != active_requests.end());
@@ -481,15 +470,12 @@ static SQInteger download(HSQUIRRELVM vm)
       if (status != httprequests::RequestStatus::SUCCESS)
         dd_erase(req->filepath.c_str());
 
-      delayed_call([status, http_code, event = req->doneEventId, downloaded = req->totalDownloaded, id = req->id]() {
-        sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
-          Sqrat::Table resp(vm);
-          resp.SetValue("status", (SQInteger)status);
-          resp.SetValue("http_code", (SQInteger)http_code);
-          resp.SetValue("id", id);
-          resp.SetValue("downloaded", (SQInteger)downloaded);
-          sqeventbus::send_event(event.c_str(), resp);
-        });
+      // Note: no need to `delayed_call` since `sendResponseInMainThreadOnly=true`
+      sqeventbus::write_event_main_thread(req->doneEventId.c_str(), [&](auto &resp) {
+        resp["status"] = (SQInteger)status;
+        resp["http_code"] = (SQInteger)http_code;
+        resp["id"] = req->id;
+        resp["downloaded"] = (SQInteger)req->totalDownloaded;
       });
     }
 
@@ -513,11 +499,9 @@ static SQInteger download(HSQUIRRELVM vm)
         req->lastUpdate = curTime;
 
         delayed_call([event = req->progressEventId, id = req->id, downloaded = req->totalDownloaded]() {
-          sqeventbus::do_with_vm([&](HSQUIRRELVM vm) {
-            Sqrat::Table resp(vm);
-            resp.SetValue("downloaded", (SQInteger)downloaded);
-            resp.SetValue("id", id);
-            sqeventbus::send_event(event.c_str(), resp);
+          sqeventbus::write_event_main_thread(event.c_str(), [&](auto &resp) {
+            resp["downloaded"] = (SQInteger)downloaded;
+            resp["id"] = id;
           });
         });
       }
@@ -526,7 +510,7 @@ static SQInteger download(HSQUIRRELVM vm)
 
     void onHttpHeadersResponse(httprequests::StringMap const &resp_headers) override
     {
-      // if headers are recieved after the first data chunk (they shouldn't), then don't allocate the whole file
+      // if headers are received after the first data chunk (they shouldn't), then don't allocate the whole file
       if (req->totalDownloaded > 0)
         return;
 
@@ -575,9 +559,10 @@ void bind_http_client(SqModules *module_mgr)
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module dagor.http
   nsTbl //
-    .SquirrelFunc("httpRequest", request, 2, ".t")
-    .SquirrelFunc("httpAbort", abort_request, 2, ".i")
-    .SquirrelFunc("httpDownload", download, 2, ".t")
+    .SquirrelFuncDeclString(request, "httpRequest(params: table): int")
+    .SquirrelFuncDeclString(abort_request, "httpAbort(request_id: int): null")
+    .SquirrelFuncDeclString(download, "httpDownload(params: table): int")
+    .Func("poll", httprequests::poll)
     ///@param request_id i
     .SetValue("HTTP_SUCCESS", (SQInteger)httprequests::RequestStatus::SUCCESS)
     .SetValue("HTTP_FAILED", (SQInteger)httprequests::RequestStatus::FAILED)

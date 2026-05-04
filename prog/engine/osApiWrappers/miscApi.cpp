@@ -3,6 +3,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <osApiWrappers/dag_versionQuery.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
 #include <supp/_platform.h>
 #include <util/dag_globDef.h>
 #include <string.h>
@@ -51,16 +53,15 @@ extern void win32_set_instance(void *hinst);
 void sleep_usec(uint64_t us)
 {
 #if _TARGET_PC_WIN | _TARGET_XBOX
-  uint32_t ms = us / 1000; // convert msec
-  if (ms == 0)
+  if (us < 500)
     SwitchToThread(); // Sleep(0) doesn't give up cpu to lower priority threads
   else
-    Sleep(ms);
+    Sleep((us + 500) / 1000); // round to nearest ms
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_C3
 
-#elif defined(__GNUC__)
+#else
   if (us == 0)
     sched_yield();
   else
@@ -88,14 +89,13 @@ void sleep_msec(int ms)
 
 void terminate_process(int code)
 {
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WIN | _TARGET_XBOX
   TerminateProcess(GetCurrentProcess(), code);
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_APPLE | _TARGET_PC_LINUX
   _exit(code);
 #elif _TARGET_ANDROID
-
 #if DAGOR_DBGLEVEL > 0
   // disable automatic app restart in debug mode
   G_UNUSED(code);
@@ -111,9 +111,6 @@ void terminate_process(int code)
 #else
   _exit(code);
 #endif // DAGOR_DBGLEVEL
-
-#elif _TARGET_XBOX
-  TerminateProcess(GetCurrentProcess(), code); //==
 #endif
 }
 
@@ -355,39 +352,6 @@ void flash_window(void *wnd_handle, bool always_flash)
 #endif
 }
 
-#if _TARGET_PC_WIN
-bool get_version_ex(OSVERSIONINFOEXW *osversioninfo)
-{
-  // Deprecated GetVersionEx returns 6.2 on Windows 10 build 1511 (10.0.10586.0) even with manifest trick,
-  // while suggested replacements like IsWindowsVersionOrGreater are not available on Windows XP.
-
-  if (!osversioninfo)
-    return false;
-
-  HMODULE ntdllHandle = GetModuleHandle("ntdll");
-  if (ntdllHandle)
-  {
-    long(WINAPI * rtlGetVersion)(LPOSVERSIONINFOEXW);
-    *(FARPROC *)&rtlGetVersion = GetProcAddress(ntdllHandle, "RtlGetVersion");
-    if (rtlGetVersion)
-      return rtlGetVersion(osversioninfo) == 0;
-  }
-
-  // Fallback.
-  return GetVersionExW((OSVERSIONINFOW *)osversioninfo);
-}
-#endif
-
-WindowsVersion get_windows_version()
-{
-#if _TARGET_PC_WIN
-  OSVERSIONINFOEXW osvi{};
-  if (get_version_ex(&osvi))
-    return {osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber};
-#endif
-  return {};
-}
-
 bool is_debugger_present()
 {
 #if DAGOR_DBGLEVEL == 0
@@ -453,43 +417,6 @@ static void *wine_get_version_proc()
   return (handle != 0) ? ::GetProcAddress(handle, "wine_get_version") : NULL;
 }
 
-
-static bool get_dll_version(const char *dllName, DWORD &versionMajor, DWORD &versionMinor)
-{
-  G_ASSERT(dllName != NULL && dllName[0] != 0);
-
-  DWORD handle;
-  const DWORD size = ::GetFileVersionInfoSize(dllName, &handle);
-
-  if (size == 0)
-    return false;
-
-  void *buf = malloc(size);
-  if (!buf)
-    return false;
-
-  if (::GetFileVersionInfo(dllName, handle, size, buf) == 0)
-  {
-    free(buf);
-    return false;
-  }
-
-  VS_FIXEDFILEINFO *fileInfo = NULL;
-  UINT len = 0;
-
-  if (::VerQueryValue(buf, TEXT("\\"), (void **)(&fileInfo), &len) == 0 || fileInfo == NULL || len == 0)
-  {
-    free(buf);
-    return false;
-  }
-
-  versionMajor = HIWORD(fileInfo->dwProductVersionMS);
-  versionMinor = LOWORD(fileInfo->dwProductVersionMS);
-  free(buf);
-  return true;
-}
-
-
 bool detect_os_compatibility_mode(char *os_real_name, size_t os_real_name_size)
 {
   if (os_real_name != NULL)
@@ -504,20 +431,16 @@ bool detect_os_compatibility_mode(char *os_real_name, size_t os_real_name_size)
   // https://stackoverflow.com/questions/57124/how-to-detect-true-windows-version/
   // Get the version that is returned from GetVersionEx()
   // and compare it to file version on 'kernel32.dll'
-  DWORD dllVersionMajor, dllVersionMinor;
-  if (get_dll_version("kernel32.dll", dllVersionMajor, dllVersionMinor))
+  if (auto kernel32Version = get_library_version("kernel32.dll"))
   {
-    OSVERSIONINFOEXW osvi;
-    ZeroMemory(&osvi, sizeof(osvi));
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
-    if (get_version_ex(&osvi))
+    if (OSVERSIONINFOEXW osvi{.dwOSVersionInfoSize = sizeof(osvi)}; get_version_ex(&osvi))
     {
-      if (dllVersionMajor != osvi.dwMajorVersion || dllVersionMinor != osvi.dwMinorVersion)
+      if (kernel32Version->major != osvi.dwMajorVersion || kernel32Version->minor != osvi.dwMinorVersion)
       {
         if (os_real_name != NULL)
         {
           SNPRINTF(os_real_name, os_real_name_size, "Windows %s v%d.%d",
-            osvi.wProductType == VER_NT_WORKSTATION ? "Workstation" : "Server", (int)dllVersionMajor, (int)dllVersionMinor);
+            osvi.wProductType == VER_NT_WORKSTATION ? "Workstation" : "Server", kernel32Version->major, kernel32Version->minor);
         }
         return true;
       }

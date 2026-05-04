@@ -13,7 +13,6 @@
 #include "util/backtrace.h"
 #include "descriptor_table.h"
 #include "dummy_resources.h"
-#include "immediate_const_buffer.h"
 
 namespace drv3d_vulkan
 {
@@ -33,24 +32,19 @@ struct PipelineStageStateBase
     static_assert(Count <= 32);
     static constexpr uint32_t FULL_MASK = (uint32_t)((1ull << Count) - 1);
     uint32_t dirtyMask = FULL_MASK;
-    uint32_t emptyMask = FULL_MASK;
 
     void markDirty() { dirtyMask = FULL_MASK; }
-    uint32_t validMask() { return FULL_MASK & ~emptyMask; }
-    uint32_t validDirtyMask() { return dirtyMask & ~emptyMask; }
     void resetDirtyBits(uint32_t bits) { dirtyMask &= ~bits; }
 
     void clear(uint32_t unit)
     {
       dirtyMask |= (1 << unit);
-      emptyMask |= (1 << unit);
       regs[unit].clear();
     }
 
     Element &set(uint32_t unit)
     {
       dirtyMask |= (1 << unit);
-      emptyMask &= ~(1 << unit);
       return regs[unit];
     }
 
@@ -70,6 +64,7 @@ struct PipelineStageStateBase
 
   DescriptorTable dtab;
 
+  // resetted on pipeline layout changes
   VulkanDescriptorSetHandle lastDescriptorSet;
 
   bool pushConstantsChanged = false;
@@ -80,12 +75,12 @@ struct PipelineStageStateBase
   void setImmediateConsts(const uint32_t *data);
 
   void setUempty(uint32_t unit);
-  void setUtexture(uint32_t unit, Image *image, ImageViewState view_state, VulkanImageViewHandle view);
+  void setUtexture(uint32_t unit, Image *image, ImageViewState view_state);
   void setUbuffer(uint32_t unit, BufferRef buffer);
 
   void setTempty(uint32_t unit);
-  void setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds, VulkanImageViewHandle view);
-  void setTinputAttachment(uint32_t unit, Image *image, bool as_const_ds, VulkanImageViewHandle view);
+  void setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds);
+  void setTinputAttachment(uint32_t flat_binding_index, Image *image, bool as_const_ds, VulkanImageViewHandle view);
   void setTbuffer(uint32_t unit, BufferRef buffer);
 #if VULKAN_HAS_RAYTRACING
   void setTas(uint32_t unit, RaytraceAccelerationStructure *as);
@@ -96,24 +91,19 @@ struct PipelineStageStateBase
 
   void setSempty(uint32_t unit);
   void setSSampler(uint32_t unit, const SamplerInfo *sampler);
-  bool applySamplersToCombinedImage(uint32_t unit);
-  void applySamplers(uint32_t unit);
+  void applySamplersToCombinedImage(uint32_t unit, VkAnyDescriptorInfo &descriptor);
 
   // set RO DS if matches and drop RO DS if not
   void syncDepthROStateInT(Image *image, uint32_t mip, uint32_t face, bool ro_ds);
-  // extensive checks only in dev builds
-  // hard conflict = sure buggy binding recived from caller
-  // dead resource = resource that was removed but still bound somehow
-  // missing bind = shader used some resource at bind X but resource was not provided
+  void syncAccessesForBOffsets(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage);
+  void syncAccessesNoDiff(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage);
 
-  // TODO: promote this method do dev only! (need to invest time and cleanup many places)
-  void checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table, ExtendedShaderStage stage);
+  void replaceAndTrackFallbackAccess(const spirv::ShaderHeader &hdr, uint8_t shader_reg, ExtendedShaderStage stage);
+  void trackResAccess(spirv::EngineSlotMapping mapped_slot, ExtendedShaderStage stage);
 
-#if VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
-  void checkForDeadResources(const spirv::ShaderHeader &hdr);
-#else
-  void checkForDeadResources(const spirv::ShaderHeader &) {}
-#endif
+  void trackTResAccesses(uint32_t slot, ExtendedShaderStage stage);
+  void trackUResAccesses(uint32_t slot, ExtendedShaderStage stage);
+  void trackBResAccesses(uint32_t slot, ExtendedShaderStage stage);
 
   void clearDirty(const spirv::ShaderHeader &hdr)
   {
@@ -132,12 +122,17 @@ struct PipelineStageStateBase
 
   void invalidateState();
   template <typename T>
-  void apply(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-    ExtendedShaderStage target_stage, T bind);
+  void setResources(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind);
 
   template <typename T>
-  void applyNoDiff(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-    ExtendedShaderStage target_stage, T bind);
+  void setResourcesWithSyncStep(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind);
+
+  template <typename T>
+  void setResourcesNoDiff(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind);
+
+
+  bool updateOnDemand(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index);
+  bool updateOnDemandWithSyncStep(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index);
 
 
   template <typename T>
@@ -154,57 +149,47 @@ struct PipelineStageStateBase
 
   void applyPushConstants(DescriptorSet &registers, VulkanPipelineLayoutHandle layout, VkShaderStageFlags shader_stages,
     ExtendedShaderStage target_stage);
+
+  void updateDescriptors(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage);
+  void updateDescriptorsNoTrack(const spirv::ShaderHeader &hdr);
+
+  enum ApplyStatus
+  {
+    RESOURCE,
+    DUMMY
+  };
+
+
+  ApplyStatus applyTReg(const TRegister &reg, uint32_t idx, const spirv::ShaderHeader &hdr);
+  ApplyStatus applyUReg(const URegister &reg, uint32_t idx, const spirv::ShaderHeader &hdr);
+  ApplyStatus applyBReg(const BufferRef &reg, uint32_t idx, const spirv::ShaderHeader &hdr);
+  ApplyStatus applySReg(const ReducedSRegister &reg, uint32_t idx, const spirv::ShaderHeader &hdr);
 };
 
 // this needs to be here, or it will fail to compile because of incomplete types
 template <typename T>
-void PipelineStageStateBase::apply(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-  ExtendedShaderStage target_stage, T bind)
+void PipelineStageStateBase::setResources(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
 {
-  const auto &header = registers.header;
-
-  // frequency sorted jump outs
-  for (;;)
-  {
-    if (bBinds.dirtyMask & header.bRegisterUseMask)
-      break;
-    if (is_null(lastDescriptorSet))
-      break;
-    if (tBinds.dirtyMask & header.tRegisterUseMask)
-      break;
-    if (sBinds.dirtyMask & header.sRegisterUseMask)
-      break;
-    if (uBinds.dirtyMask & header.uRegisterUseMask)
-      break;
-    if (bOffsetDirtyMask & header.bRegisterUseMask)
-    {
-      bindDescriptor(header, lastDescriptorSet, bind);
-      bOffsetDirtyMask &= ~header.bRegisterUseMask;
-    }
-    return;
-  }
-  checkForDeadResources(header);
-
-  if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
-      (header.bRegisterUseMask & bBinds.emptyMask) || (header.sRegisterUseMask & sBinds.emptyMask))
-    checkForMissingBinds(header, dummy_resource_table, target_stage);
-
-  lastDescriptorSet = registers.getSet(frame_index, &dtab.arr[0]);
-  clearDirty(header);
-  bindDescriptor(header, lastDescriptorSet, bind);
+  if (updateOnDemand(registers, target_stage, frame_index))
+    bindDescriptor(registers.header, lastDescriptorSet, bind);
 }
 
 template <typename T>
-void PipelineStageStateBase::applyNoDiff(const ResourceDummySet &dummy_resource_table, size_t frame_index, DescriptorSet &registers,
-  ExtendedShaderStage target_stage, T bind)
+void PipelineStageStateBase::setResourcesWithSyncStep(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage,
+  T bind)
 {
+  if (updateOnDemandWithSyncStep(registers, target_stage, frame_index))
+    bindDescriptor(registers.header, lastDescriptorSet, bind);
+}
+
+template <typename T>
+void PipelineStageStateBase::setResourcesNoDiff(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
+{
+  // assume that state is invalidated before call and check it lightly
+  G_ASSERT(is_null(lastDescriptorSet));
+  G_ASSERT(tBinds.dirtyMask == tBinds.FULL_MASK);
   const auto &header = registers.header;
-  checkForDeadResources(header);
-
-  if ((header.tRegisterUseMask & tBinds.emptyMask) || (header.uRegisterUseMask & uBinds.emptyMask) ||
-      (header.bRegisterUseMask & bBinds.emptyMask) || (header.sRegisterUseMask & sBinds.emptyMask))
-    checkForMissingBinds(header, dummy_resource_table, target_stage);
-
+  updateDescriptors(header, target_stage);
   bindDescriptor(header, registers.getSet(frame_index, &dtab.arr[0]), bind);
 }
 

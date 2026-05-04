@@ -43,11 +43,16 @@ function [pure] change_bit_mask(bitMask, bitMaskToSet, value) {
 * Linear interpolation of f(value) where:
 * f(valueMin) = resMin
 * f(valueMax) = resMax
+* Res values can be instances, that have `_sub` and `_add` and `_mul`
+* Cur value and valueMin\Max should be numerics, or should have tofloat() or length()
 */
 function [pure] lerp(valueMin, valueMax, resMin, resMax, curValue) {
   if (valueMin == valueMax)
-    return 0.5 * (resMin + resMax)
-  return resMin + (resMax - resMin) * (curValue - valueMin) / (valueMax - valueMin)
+    return (resMin + resMax) * 0.5
+//  return resMin + (resMax - resMin) * ((curValue - valueMin).tofloat() / (valueMax - valueMin).tofloat())
+  return type(curValue)!="instance" || "tofloat" in curValue
+    ? resMin + (resMax - resMin) * ((curValue - valueMin).tofloat() / (valueMax - valueMin).tofloat())
+    : resMin + (resMax - resMin) * ((curValue - valueMin).length() / (valueMax - valueMin).length())
 }
 
 /**

@@ -15,6 +15,6 @@ struct RenderState;
 }
 
 bool get_file_time64(const char *fn, int64_t &ft);
-CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const ShCompilationInfo &comp,
+CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const shc::CompilationContext &ctx,
   bool check_cppstcode);
 bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetContext &out_ctx);

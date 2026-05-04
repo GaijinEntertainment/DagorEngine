@@ -8,7 +8,7 @@ namespace dafg::detail
 {
 
 template <class T>
-T VirtualResourceHandleBase::getResourceView() const
+T VirtualResourceHandleBase::getResourceData() const
 {
   auto &storage = resUid.history ? provider->providedHistoryResources : provider->providedResources;
   if (auto it = storage.find(resUid.resId); it != storage.end())
@@ -26,8 +26,8 @@ T VirtualResourceHandleBase::getResourceView() const
   }
 }
 
-template ManagedTexView VirtualResourceHandleBase::getResourceView<ManagedTexView>() const;
-template ManagedBufView VirtualResourceHandleBase::getResourceView<ManagedBufView>() const;
-template BlobView VirtualResourceHandleBase::getResourceView<BlobView>() const;
+template BaseTexture *VirtualResourceHandleBase::getResourceData<BaseTexture *>() const;
+template Sbuffer *VirtualResourceHandleBase::getResourceData<Sbuffer *>() const;
+template BlobView VirtualResourceHandleBase::getResourceData<BlobView>() const;
 
 } // namespace dafg::detail

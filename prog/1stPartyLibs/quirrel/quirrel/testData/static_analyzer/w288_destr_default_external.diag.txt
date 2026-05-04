@@ -1,0 +1,16 @@
+WARNING: w288 (param-count) Function '(module_foo.nut:1)' (2..2 parameters) is called with the wrong number of arguments (1).
+testData/static_analyzer/w288_destr_default_external.nut:8:9
+
+let _y = missing(1)
+         ^---------
+
+
+HINT: h314 (see-other) You can find the function here.
+testData/static_analyzer/w288_destr_default_external.nut:2:6
+
+let mod = require("testData/static_analyzer/module_foo.nut")
+let { foo } = mod
+      ^--
+let { missing = foo } = mod
+
+

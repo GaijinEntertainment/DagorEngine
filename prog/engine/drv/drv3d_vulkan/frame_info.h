@@ -3,6 +3,7 @@
 
 // gpu work item aka frame info
 
+#include <perfMon/dag_sleepPrecise.h>
 #include "buffer_resource.h"
 #include "driver.h"
 #include "fence_manager.h"
@@ -31,6 +32,7 @@ struct FrameInfo
     VulkanCommandPoolHandle commandPool;
     Tab<VulkanCommandBufferHandle> freeCommandBuffers;
     Tab<VulkanCommandBufferHandle> pendingCommandBuffers;
+    int64_t nextMemoryReleaseTime;
 
     void init(DeviceQueueType target_queue);
     VulkanCommandBufferHandle allocateCommandBuffer();
@@ -57,8 +59,20 @@ struct FrameInfo
   QueryBlock *pendingTimestamps = nullptr;
   QueryBlock *pendingOcclusionQueries = nullptr;
   dag::Vector<eastl::unique_ptr<ShaderModule>> deletedShaderModules;
-  DeviceExecutionTracker execTracker;
+  DeviceExecutionTracker execTrackers[REPLAY_TIMELINE_HISTORY_SIZE];
+  int execTrackerId = 0;
+  DeviceExecutionTracker &execTracker() { return execTrackers[execTrackerId]; }
+  const DeviceExecutionTracker &execTracker() const { return execTrackers[execTrackerId]; }
   Tab<VulkanEventHandle> gpuEvents;
+
+  PreciseSleepContext preciseSleepContext = {};
+  int64_t nextVsyncTimeRef = 0;
+  // streamline + FIFO swapchain is broken either by presenting frames in bad order
+  // or randomly freezing up for some time amount
+  // but that only happens if we limit frame rate by natural waits in present or gpu wait
+  // limiting frame rate to vsync refresh rate fixes this issue, so custom made frame limit
+  // workaround is implemented in this method
+  void nvStreamlineVsyncWait();
 
   void init();
   VulkanEventHandle allocateGpuEvent();

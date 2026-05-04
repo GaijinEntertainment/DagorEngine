@@ -1,5 +1,5 @@
 WARNING: w192 (statement-on-same-line) Next statement on the same line after 'then' statement.
-testData/static_analyzer/w192.nut:5:9
+testData/static_analyzer/w192.nut:4:9
 
 if (test == 3)
   a = 6; a = 10
@@ -7,7 +7,7 @@ if (test == 3)
 
 
 WARNING: w192 (statement-on-same-line) Next statement on the same line after 'else' statement.
-testData/static_analyzer/w192.nut:11:9
+testData/static_analyzer/w192.nut:10:9
 
 else
   a = 6; a = 10
@@ -15,57 +15,57 @@ else
 
 
 WARNING: w192 (statement-on-same-line) Next statement on the same line after 'while loop body' statement.
-testData/static_analyzer/w192.nut:15:11
+testData/static_analyzer/w192.nut:14:11
 
 while (a > b)
     a = 0; b = 20;
            ^
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 5.
-testData/static_analyzer/w192.nut:5:9
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 3 and 4.
+testData/static_analyzer/w192.nut:4:9
 
 if (test == 3)
   a = 6; a = 10
          ^-----
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 5 and 8.
-testData/static_analyzer/w192.nut:8:0
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 4 and 7.
+testData/static_analyzer/w192.nut:7:0
 
 if (test == 5)
-^---------
+^
   a = 7
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 8 and 11.
-testData/static_analyzer/w192.nut:11:9
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 7 and 10.
+testData/static_analyzer/w192.nut:10:9
 
 else
   a = 6; a = 10
          ^-----
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 11 and 14.
-testData/static_analyzer/w192.nut:14:0
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 10 and 13.
+testData/static_analyzer/w192.nut:13:0
 
 while (a > b)
-^-----------
+^
     a = 0; b = 20;
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 14 and 15.
-testData/static_analyzer/w192.nut:15:11
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 13 and 14.
+testData/static_analyzer/w192.nut:14:11
 
 while (a > b)
     a = 0; b = 20;
            ^-----
 
 
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 15 and 19.
-testData/static_analyzer/w192.nut:19:0
+WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 14 and 18.
+testData/static_analyzer/w192.nut:18:0
 
-::print(a + b);
-^-------------
+print(a + b);
+^-----------
 
 

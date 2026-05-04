@@ -12,6 +12,7 @@
 #include "main/settings.h"
 #include <quirrel/sqSysInfo/sqSysInfo.h>
 #include <quirrel/yupfile_parse/yupfile_parse.h>
+#include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #include "main/watchdog.h"
 #include "net/netBindSq.h"
 #include "net/authEvents.h"
@@ -24,8 +25,10 @@
 #include <daRg/dag_guiScene.h>
 #include <daRg/dag_browser.h>
 #include <daECS/net/msgSink.h>
-#include <daECS/net/dasEvents.h>
-#include <ecs/core/entityManager.h>
+#include <ecs/net/dasEvents.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/scripts/scripts.h>
 #include <ecs/scripts/netBindSq.h>
 #include <ecs/scripts/dasEs.h>
@@ -42,7 +45,7 @@
 #include <EASTL/unique_ptr.h>
 #include <main/circuit.h>
 #include <forceFeedback/forceFeedback.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/bindQuirrelEx/autoBind.h>
 #include <quirrel/bindQuirrelEx/autoCleanup.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
@@ -77,6 +80,9 @@
 #include <perfMon/dag_autoFuncProf.h>
 #include <fpsProfiler/dag_perfRating.h>
 #include "main/gameLoad.h"
+
+#include <webui/httpserver.h>
+#include <webui/sqDebuggerPlugin.h>
 
 #include <soundSystem/quirrel/sqSoundSystem.h>
 
@@ -172,10 +178,10 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
 static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
 {
 #if DAGOR_DBGLEVEL > 0
-  sq_enabledebuginfo(vm, true);
   sq_enablevartrace(vm, true);
   sq_set_thread_id_function(vm, get_thread_id_func);
-  dag_sq_debuggers.initDebugger(SQ_DEBUGGER_OVERLAY_UI_SCRIPTS, moduleMgr, "Overlay UI Scripts");
+
+  webui::register_quirrel_debugger(moduleMgr, "sqdebug_overlay_ui", "quirrel debugger - Overlay UI Scripts");
   scriptprofile::register_profiler_module(vm, moduleMgr);
   const bool varTraceOn = sq_isvartracesupported();
 #else
@@ -183,7 +189,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
 #endif
   Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("VAR_TRACE_ENABLED", varTraceOn);
 
-  sqeventbus::bind(moduleMgr, "overlay_ui", sqeventbus::ProcessingMode::MANUAL_PUMP);
+  sqeventbus::bind_ex(moduleMgr, "overlay_ui", /*freeze_wevt_tables*/ true);
 
   moduleMgr->registerIoLib();
   moduleMgr->registerSystemLib();
@@ -203,6 +209,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   bindquirrel::bind_http_client(moduleMgr);
   bindquirrel::bind_json_api(moduleMgr);
   bindquirrel::bind_statsd(moduleMgr);
+  inputmonitor::register_sq_module(moduleMgr);
 
   watchdog::bind_sq(moduleMgr);
 
@@ -344,7 +351,7 @@ static inline void overlay_ui_init_on_appstart_es_event_handler(const EventOnGam
 #endif
       if (!(app_profile::get().disableRemoteNetServices || app_profile::get().devMode || doconnect))
         overlay_ui::init_network_services();
-      else if (doconnect) //-V547
+      else
         overlay_ui::init_network_voicechat_only();
       overlay_ui::init_ui();
     });
@@ -386,7 +393,7 @@ void shutdown_ui(bool quit)
   sound::sqapi::release_vm(vm); // Note: this is also implicitly pulls 'bind_sound'
 
 #if DAGOR_DBGLEVEL > 0
-  dag_sq_debuggers.shutdownDebugger(SQ_DEBUGGER_OVERLAY_UI_SCRIPTS);
+  webui::shutdown_quirrel_debugger(dargScene->getModuleMgr());
 #endif
   // cleanup scene after all elements referncing inner VM are processed
 
@@ -401,9 +408,9 @@ void shutdown_ui(bool quit)
 
 void shutdown_network_services()
 {
+  g_entity_mgr->broadcastEventImmediate(EventScriptUiTermNetworkServices());
   if (app_profile::get().disableRemoteNetServices)
     return;
-  g_entity_mgr->broadcastEventImmediate(EventScriptUiTermNetworkServices());
 #if _TARGET_C4
 
 #endif

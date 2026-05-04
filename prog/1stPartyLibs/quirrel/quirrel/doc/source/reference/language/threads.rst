@@ -15,7 +15,7 @@ point where it was suspended.
 At first look a Quirrel thread can be confused with a generator, in fact their behaviour is quite similar.
 However while a generator runs in the caller stack and can suspend only the local routine stack a thread
 has its own execution stack, global table and error handler; This allows a thread to suspend nested calls and
-have it's own error policies.
+have its own error policies.
 
 ------------------
 Using threads

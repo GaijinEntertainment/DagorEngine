@@ -86,10 +86,7 @@ inline void get_destructable_objects(
     return;
 
   das::Array arr;
-  arr.data = (char *)destructables.data();
-  arr.size = destructables.size();
-  arr.capacity = destructables.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)destructables.data(), destructables.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

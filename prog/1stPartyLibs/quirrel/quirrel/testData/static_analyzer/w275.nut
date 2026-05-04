@@ -6,19 +6,19 @@ function fn(x) { //-declared-never-used
     case 0:
     case 1:
     case 2:
-      ::print("aaa")
+      print("aaa")
       if (x == 1) {
         return
       } else {
-        ::print("123")
+        print("123")
         return
       }
     case 3:
-      ::print("bbb")
+      print("bbb")
       break
     case 4:
-      ::print("ccc")
+      print("ccc")
     default:        // <<<<<<< here
-      ::print("ddd")
+      print("ddd")
   }
 }

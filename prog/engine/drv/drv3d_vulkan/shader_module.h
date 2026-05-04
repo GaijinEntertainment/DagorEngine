@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <drv/3d/dag_shader.h>
 #include <util/dag_string.h>
 #include <util/dag_hash.h>
 #include <dag/dag_vector.h>
@@ -23,14 +24,25 @@ struct ShaderDebugInfo
 
 struct ShaderModuleBlob
 {
-  dag::Vector<uint32_t> blob;
-  spirv::HashValue hash;
+  ShaderSource source;
+  uint32_t offset = 0;
+  // size 0 means whole bytecode data is used
+  uint32_t size = 0;
+  // 0 means the bytecode is not smolv encoded
+  uint32_t sizeSmolv = 0;
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
   String name;
 #endif
-  size_t getBlobSize() const { return blob.size() * sizeof(uint32_t); }
 
-  uint32_t getHash32() const { return mem_hash_fnv1<32>((const char *)&hash, sizeof(hash)); }
+  ShaderModuleBlob() = default;
+  ShaderModuleBlob(const uint8_t *start, const uint8_t *end)
+  {
+    source.compressedData = make_span_const(start, end - start);
+    source.uncompressedSize = source.compressedData.size();
+    size = source.compressedData.size();
+  }
+
+  uint32_t getHash32() const { return 0u; }
 };
 
 struct ShaderModuleHeader

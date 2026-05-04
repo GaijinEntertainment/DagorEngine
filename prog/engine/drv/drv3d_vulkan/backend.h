@@ -4,6 +4,8 @@
 // globals facade-like structure for quick access on everything that is singleton/global like under backend visibility
 // use with related headers
 
+class StackedProfileEvents;
+
 namespace drv3d_vulkan
 {
 
@@ -14,17 +16,16 @@ class PipelineCompiler;
 struct BackExecutionTimings;
 class ExecutionSyncTracker;
 struct ExecutionSyncCapture;
-struct StackedProfileEvents;
 class ExecutionState;
 class PipelineState;
 class PipelineStatePendingReferenceList;
 struct PredictedLatencyWaiter;
 class ShaderModuleStorage;
 class GpuExecuteTimelineSpan;
-struct ImmediateConstBuffers;
 struct BackendInterop;
 class AliasedMemoryStorage;
 struct WrappedCommandBuffer;
+class BEContext;
 
 struct Backend
 {
@@ -35,13 +36,13 @@ struct Backend
   static BindlessManagerBackend bindless;
   static RenderStateSystemBackend renderStateSystem;
   static PipelineCompiler pipelineCompiler;
-  static ImmediateConstBuffers immediateConstBuffers;
   static PredictedLatencyWaiter latencyWaiter;
   static ShaderModuleStorage shaderModules;
   static GpuExecuteTimelineSpan gpuJob;
   static BackendInterop interop;
   static AliasedMemoryStorage aliasedMemory;
   static WrappedCommandBuffer cb;
+  static BEContext ctx;
 
   struct State
   {

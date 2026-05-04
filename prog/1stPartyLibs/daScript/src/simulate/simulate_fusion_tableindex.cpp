@@ -41,7 +41,7 @@ namespace das {
         INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             auto tab = (Table *) l.compute##COMPUTEL(context); \
-            if ( tab->lock ) context.throw_error_at(debugInfo, "can't insert to a locked table"); \
+            if ( tab->isLocked() ) context.throw_error_at(debugInfo, "can't insert to a locked table"); \
             auto key = EvalTT<CTYPE>::eval(context,r.subexpr); \
             TableHash<CTYPE> thh(&context,valueTypeSize); \
             auto hfn = hash_function(context, key); \
@@ -56,7 +56,7 @@ namespace das {
         INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             auto tab = (Table *) l.compute##COMPUTEL(context); \
-            if ( tab->lock ) context.throw_error_at(debugInfo, "can't insert to a locked table"); \
+            if ( tab->isLocked() ) context.throw_error_at(debugInfo, "can't insert to a locked table"); \
             auto key = *((CTYPE *)r.compute##COMPUTER(context)); \
             TableHash<CTYPE> thh(&context,valueTypeSize); \
             auto hfn = hash_function(context, key); \

@@ -1,2 +1,3 @@
 file:t = "scope/shaders/scope_lens.dshl"
 file:t = "scope/shaders/scope_vrs_mask_cs.dshl"
+file:t = "scope/shaders/scope_lens_reflections.dshl"

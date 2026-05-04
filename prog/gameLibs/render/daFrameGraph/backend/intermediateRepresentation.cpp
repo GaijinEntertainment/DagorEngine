@@ -4,8 +4,10 @@
 
 #include <memory/dag_framemem.h>
 #include <math/integer/dag_IPoint2.h>
+#include <perfMon/dag_statDrv.h>
 #include <EASTL/bitvector.h>
 
+#include <id/idIndexedFlags.h>
 #include <id/idRange.h>
 #include <id/idExtentsFinder.h>
 
@@ -16,123 +18,22 @@ namespace dafg
 namespace intermediate
 {
 
-void Graph::choseSubgraph(eastl::span<const NodeIndex> old_to_new_index_mapping)
+void Graph::pruneResources()
 {
-  G_ASSERT(old_to_new_index_mapping.size() == nodes.size());
+  IdIndexedFlags<ResourceIndex, framemem_allocator> resourceStillUsed(resources.totalKeys(), false);
 
-  // Jump through hoops in order to do this without any persistent
-  // allocations
+  for (const auto &node : nodes.values())
+    for (const auto &req : node.resourceRequests)
+      resourceStillUsed.set(req.resource, true);
 
-  FRAMEMEM_VALIDATE;
-
-  size_t newNodeCount = 0;
-  for (auto [i, _] : nodes.enumerate())
-    if (old_to_new_index_mapping[i] != NODE_NOT_MAPPED)
-      ++newNodeCount;
-
-  // Sanity check: new indexing should not have gaps
-  for (auto [i, _] : nodes.enumerate())
-    if (old_to_new_index_mapping[i] != NODE_NOT_MAPPED)
-      G_ASSERT(old_to_new_index_mapping[i] < newNodeCount);
-
-
-  const auto choseSoa = [](auto &old_data, size_t new_count, const auto &mapping, const auto unmappedSentinel) {
-    using Mapping = eastl::decay_t<decltype(old_data)>;
-    IdIndexedMapping<typename Mapping::index_type, typename Mapping::value_type, framemem_allocator> newData;
-    newData.resize(new_count);
-    for (auto [i, data] : old_data.enumerate())
-      if (mapping[i] != unmappedSentinel)
-        newData[mapping[i]] = eastl::move(data);
-
-    old_data.resize(new_count);
-    eastl::move(newData.begin(), newData.end(), old_data.begin());
-  };
-
-  choseSoa(nodes, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
-  choseSoa(nodeStates, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
-  if (!nodeNames.empty())
-    choseSoa(nodeNames, newNodeCount, old_to_new_index_mapping, NODE_NOT_MAPPED);
-
-  // We need to fixup all node -> node references
-  for (auto [i, node] : nodes.enumerate())
-  {
-    auto oldPreds = eastl::move(node.predecessors);
-    node.predecessors.clear();
-    for (const auto pred : oldPreds)
-      if (old_to_new_index_mapping[pred] != NODE_NOT_MAPPED)
-        node.predecessors.insert(old_to_new_index_mapping[pred]);
-  }
-
-  dag::Vector<ResourceIndex, framemem_allocator> resourceMapping(resources.size(), RESOURCE_NOT_MAPPED);
-
-  {
-    dag::Vector<Resource, framemem_allocator> newResources;
-    newResources.reserve(resources.size());
-    for (auto &node : nodes)
-      for (auto &req : node.resourceRequests)
-      {
-        if (resourceMapping[req.resource] == RESOURCE_NOT_MAPPED)
-        {
-          resourceMapping[req.resource] = static_cast<ResourceIndex>(newResources.size());
-          newResources.emplace_back(eastl::move(resources[req.resource]));
-        }
-        req.resource = resourceMapping[req.resource];
-      }
-    resources.resize(newResources.size());
-    eastl::move(newResources.begin(), newResources.end(), resources.begin());
-  }
-  for (auto [resIdx, res] : resources.enumerate())
-  {
-    if (!res.isScheduled())
-      continue;
-    if (const auto dynamicClearValue = eastl::get_if<DynamicParameter>(&res.asScheduled().clearValue))
-      dynamicClearValue->resource = resourceMapping[dynamicClearValue->resource];
-  }
-
-  if (!resourceNames.empty())
-    choseSoa(resourceNames, resources.size(), resourceMapping, RESOURCE_NOT_MAPPED);
-
-  const auto updateResourceIndex = [&resourceMapping](ResourceIndex &index) {
-    G_ASSERT(resourceMapping[index] != RESOURCE_NOT_MAPPED);
-    index = resourceMapping[index];
-  };
-
-  // We also need to fix up node -> resource references
-  for (auto &state : nodeStates)
-  {
-    for (const auto &[id, binding] : state.bindings)
-      if (binding.resource.has_value())
-      {
-        // FIXME: this is a dumb hack due to iteration being const only
-        // for dag::FixedVectorMap, should probably fix it at some point...
-        updateResourceIndex(*state.bindings[id].resource);
-      }
-
-    if (state.pass)
+  for (auto [idx, used] : resourceStillUsed.enumerate())
+    if (!used)
     {
-      if (state.pass->depthAttachment.has_value())
-        updateResourceIndex(state.pass->depthAttachment->resource);
-      if (state.pass->vrsRateAttachment.has_value())
-        updateResourceIndex(state.pass->vrsRateAttachment->resource);
-      for (auto &color : state.pass->colorAttachments)
-        if (color.has_value())
-          updateResourceIndex(color->resource);
-      const auto oldResolves = eastl::move(state.pass->resolves);
-      state.pass->resolves.clear();
-      for (const auto &[src, dst] : oldResolves)
-      {
-        G_ASSERT(resourceMapping[src] != RESOURCE_NOT_MAPPED);
-        G_ASSERT(resourceMapping[dst] != RESOURCE_NOT_MAPPED);
-        state.pass->resolves.insert({resourceMapping[src], resourceMapping[dst]});
-      }
+      if (resources.isMapped(idx))
+        resources.erase(idx);
+      if (resourceNames.isMapped(idx))
+        resourceNames.erase(idx);
     }
-
-    for (auto &vertexSource : state.vertexSources)
-      if (vertexSource.has_value() && vertexSource->buffer.has_value())
-        updateResourceIndex(*vertexSource->buffer);
-    if (state.indexSource.has_value() && state.indexSource->buffer.has_value())
-      updateResourceIndex(*state.indexSource->buffer);
-  }
 }
 
 Mapping Graph::calculateMapping() const
@@ -142,7 +43,7 @@ Mapping Graph::calculateMapping() const
   IdExtentsFinder<MultiplexingIndex> multiIdxExtents;
 
   IdExtentsFinder<NodeNameId> nodeNameIdExtents;
-  for (const auto &node : nodes)
+  for (const auto &node : nodes.values())
   {
     multiIdxExtents.update(node.multiplexingIndex);
     if (node.frontendNode)
@@ -150,7 +51,7 @@ Mapping Graph::calculateMapping() const
   }
 
   IdExtentsFinder<ResNameId> resNameIdExtents;
-  for (const auto &res : resources)
+  for (const auto &res : resources.values())
   {
     multiIdxExtents.update(res.multiplexingIndex);
     for (auto resNameId : res.frontendResources)
@@ -191,28 +92,34 @@ Mapping Graph::calculateMapping() const
 
 void Graph::validate() const
 {
-#if DAGOR_DBGLEVEL > 0
-  G_ASSERTF_RETURN(nodes.size() == nodeStates.size(), , //
-    "Inconsistent IR: node count %d and node state count %d should be equal!", nodes.size(), nodeStates.size());
-  G_ASSERTF_RETURN(nodeNames.empty() || nodes.size() == nodeNames.size(), , //
-    "Inconsistent IR: node count %d and node name count %d should be equal if names are present at all!", nodes.size(),
-    nodeNames.size());
-  G_ASSERTF_RETURN(resourceNames.empty() || resources.size() == resourceNames.size(), , //
-    "Inconsistent IR: resource count %d and resource name count %d should be equal if names are present at all!", resources.size(),
-    resourceNames.size());
+  TIME_PROFILE(validate);
 
-  for (auto &node : nodes)
+#if DAGOR_DBGLEVEL > 0
+  G_ASSERTF_RETURN(nodes.usedKeysSameAs(nodeStates), , //
+    "Inconsistent IR: nodes (mask %s) and node states (mask %s) should have the same set of keys!",
+    nodes.makeUsedKeysBitmaskString().c_str(), nodeStates.makeUsedKeysBitmaskString().c_str());
+  G_ASSERTF_RETURN(nodeNames.empty() || nodes.usedKeysSameAs(nodeNames), , //
+    "Inconsistent IR: nodes (mask %s) and node names (mask %s) should have the same set of keys if names are present at all!",
+    nodes.makeUsedKeysBitmaskString().c_str(), nodeNames.makeUsedKeysBitmaskString().c_str());
+  G_ASSERTF_RETURN(resourceNames.empty() || resources.usedKeysSameAs(resourceNames), , //
+    "Inconsistent IR: resources (mask %s) and resource names (mask %s) should be parallel if names are present at all!",
+    resources.makeUsedKeysBitmaskString().c_str(), resourceNames.makeUsedKeysBitmaskString().c_str());
+
+  for (auto &node : nodes.values())
   {
     for (const auto pred : node.predecessors)
-      G_ASSERTF(pred < nodes.size(), "Inconsistent IR: missing node with index %d", pred);
+      G_ASSERTF(nodes.isMapped(pred), "Inconsistent IR: missing node with index %d", pred);
     for (auto &req : node.resourceRequests)
-      G_ASSERTF(req.resource < resources.size(), "Inconsistent IR: missing resource with index %d", req.resource);
+      G_ASSERTF(resources.isMapped(req.resource), "Inconsistent IR: missing resource with index %d", req.resource);
   }
 
   for (auto [nodeIdx, state] : nodeStates.enumerate())
   {
     const auto validateRes = [this, nodeIdx = nodeIdx](ResourceIndex res_idx) {
-      G_ASSERTF_RETURN(res_idx < resources.size(), , "Inconsistent IR: missing resource with index %d", res_idx);
+      G_ASSERTF_RETURN(resources.isMapped(res_idx), , "Inconsistent IR: missing resource with index %d", res_idx);
+
+      if (!nodes[nodeIdx].hasSideEffects)
+        return;
 
       bool found = false;
       for (const auto &req : nodes[nodeIdx].resourceRequests)
@@ -241,6 +148,156 @@ void Graph::validate() const
   for (auto [resIdx, res] : resources.enumerate())
     G_ASSERT(!res.frontendResources.empty());
 #endif
+}
+
+IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> try_remap_node_order(const Graph &graph,
+  const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &desired, const IdIndexedMapping<NodeIndex, NodeIndex> &prev)
+{
+  IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> result(desired.size(), NODE_NOT_MAPPED);
+
+  // Build inverse of desired: inverseDesired[sortedIdx] = unsortedIdx
+  IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> inverseDesired;
+  for (auto [unsortedIdx, sortedIdx] : desired.enumerate())
+    if (sortedIdx != NODE_NOT_MAPPED)
+    {
+      inverseDesired.expandMapping(sortedIdx, NODE_NOT_MAPPED);
+      inverseDesired.set(sortedIdx, unsortedIdx);
+    }
+
+  // Pass 1: reuse old sorted positions, maintaining monotonic order
+  NodeIndex nextUnusedIdx{0};
+  for (auto [desiredSortedIdx, unsortedIdx] : inverseDesired.enumerate())
+  {
+    if (unsortedIdx == NODE_NOT_MAPPED)
+      continue;
+    if (!prev.isMapped(unsortedIdx) || prev[unsortedIdx] == NODE_NOT_MAPPED)
+      continue;
+    if (!graph.nodes.isMapped(prev[unsortedIdx]))
+      continue;
+    if (eastl::to_underlying(nextUnusedIdx) > eastl::to_underlying(prev[unsortedIdx]))
+      continue;
+
+    result[unsortedIdx] = prev[unsortedIdx];
+    nextUnusedIdx = static_cast<NodeIndex>(eastl::to_underlying(prev[unsortedIdx]) + 1);
+  }
+
+  // Pass 2: fill remaining nodes into free slots
+  nextUnusedIdx = NodeIndex{0};
+  for (auto [desiredSortedIdx, unsortedIdx] : inverseDesired.enumerate())
+  {
+    G_FAST_ASSERT(unsortedIdx != NODE_NOT_MAPPED);
+    if (result[unsortedIdx] != NODE_NOT_MAPPED)
+    {
+      nextUnusedIdx = static_cast<NodeIndex>(eastl::to_underlying(result[unsortedIdx]) + 1);
+      continue;
+    }
+    if (!graph.nodes.isMapped(nextUnusedIdx))
+    {
+      result[unsortedIdx] = nextUnusedIdx;
+      nextUnusedIdx = static_cast<NodeIndex>(eastl::to_underlying(nextUnusedIdx) + 1);
+    }
+  }
+
+  return result;
+}
+
+IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Graph &graph, const Graph &source_graph,
+  const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &desired_mapping,
+  const IdIndexedMapping<NodeIndex, NodeIndex> &prev_mapping,
+  const IdIndexedFlags<NodeIndex, framemem_allocator> &source_nodes_changed,
+  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed)
+{
+  // Step 1: Erase changed/deleted/culled nodes
+  for (auto [srcIdx, oldDstIdx] : prev_mapping.enumerate())
+  {
+    if (oldDstIdx == NODE_NOT_MAPPED)
+      continue;
+    if (source_nodes_changed.test(srcIdx, false) || !desired_mapping.isMapped(srcIdx) || desired_mapping[srcIdx] == NODE_NOT_MAPPED)
+    {
+      graph.nodes.erase(oldDstIdx);
+      graph.nodeStates.erase(oldDstIdx);
+      graph.nodeNames.erase(oldDstIdx);
+    }
+  }
+
+  // Step 2: Remap to preserve old sorted positions where possible
+  auto newMapping = try_remap_node_order(graph, desired_mapping, prev_mapping);
+
+  // Step 3: Erase moved-but-unchanged nodes (old position differs from new)
+  for (auto [srcIdx, oldDstIdx] : prev_mapping.enumerate())
+  {
+    if (oldDstIdx == NODE_NOT_MAPPED)
+      continue;
+    if (!source_nodes_changed.test(srcIdx, false) && newMapping.isMapped(srcIdx) && newMapping[srcIdx] != NODE_NOT_MAPPED &&
+        newMapping[srcIdx] != oldDstIdx)
+    {
+      graph.nodes.erase(oldDstIdx);
+      graph.nodeStates.erase(oldDstIdx);
+      graph.nodeNames.erase(oldDstIdx);
+    }
+  }
+
+  // Step 4: Fallback -- if remap failed for any node, clear graph and use dense mapping
+  bool fallback = false;
+  for (auto [srcIdx, dstIdx] : newMapping.enumerate())
+    if (dstIdx == NODE_NOT_MAPPED && desired_mapping[srcIdx] != NODE_NOT_MAPPED)
+    {
+      newMapping.assign(desired_mapping.begin(), desired_mapping.end());
+      graph.nodes.clear();
+      graph.nodeStates.clear();
+      graph.nodeNames.clear();
+      fallback = true;
+      break;
+    }
+
+  // Step 5: Initialize output nodesChanged
+  out_nodes_changed.resize(graph.nodes.totalKeys(), false);
+
+  // Step 6: Emplace new/moved nodes from source graph
+  for (auto [srcIdx, dstIdx] : newMapping.enumerate())
+  {
+    if (dstIdx == NODE_NOT_MAPPED)
+      continue;
+    if (graph.nodes.isMapped(dstIdx))
+      continue;
+
+    graph.nodes.emplaceAt(dstIdx, source_graph.nodes[srcIdx]);
+    if (source_graph.nodeStates.isMapped(srcIdx))
+      graph.nodeStates.emplaceAt(dstIdx, source_graph.nodeStates[srcIdx]);
+    if (source_graph.nodeNames.isMapped(srcIdx))
+      graph.nodeNames.emplaceAt(dstIdx, source_graph.nodeNames[srcIdx]);
+
+    out_nodes_changed.set(dstIdx, true);
+  }
+
+  // Step 7: Propagate source changes to output
+  if (fallback)
+  {
+    out_nodes_changed.assign(out_nodes_changed.size(), true);
+  }
+  else
+  {
+    for (auto [srcIdx, dstIdx] : newMapping.enumerate())
+      if (dstIdx != NODE_NOT_MAPPED && source_nodes_changed.test(srcIdx, false))
+        out_nodes_changed.set(dstIdx, true);
+    // Previously-pruned-now-restored nodes
+    for (auto [srcIdx, dstIdx] : newMapping.enumerate())
+      if (dstIdx != NODE_NOT_MAPPED && prev_mapping.isMapped(srcIdx) && prev_mapping[srcIdx] == NODE_NOT_MAPPED)
+        out_nodes_changed.set(dstIdx, true);
+  }
+
+  // Step 8: Refresh predecessors (remap from source space to destination space)
+  for (auto [srcIdx, dstIdx] : newMapping.enumerate())
+  {
+    if (dstIdx == NODE_NOT_MAPPED)
+      continue;
+    graph.nodes[dstIdx].predecessors.clear();
+    for (const auto pred : source_graph.nodes[srcIdx].predecessors)
+      if (newMapping[pred] != NODE_NOT_MAPPED)
+        graph.nodes[dstIdx].predecessors.insert(newMapping[pred]);
+  }
+
+  return newMapping;
 }
 
 Mapping::Mapping(uint32_t node_count, uint32_t res_count, uint32_t multiplexing_extent) :

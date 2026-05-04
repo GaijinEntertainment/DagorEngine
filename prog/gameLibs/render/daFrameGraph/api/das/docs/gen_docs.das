@@ -1,7 +1,7 @@
 require daFrameGraph.fg_ecs
 require daFrameGraph.resource_slot_ecs
-require rtti
-require fio
+require daslib/rtti
+require daslib/fio
 require daslib/rst
 require daslib/regex
 require daslib/regex_boost

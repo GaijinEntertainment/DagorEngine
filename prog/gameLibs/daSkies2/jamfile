@@ -43,4 +43,10 @@ UseProgLibs +=
   gameLibs/resourcePool
 ;
 
+SourceES =
+  cloudsRainMapES.cpp.inl
+;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
 include $(Root)/prog/_jBuild/build.jam ;

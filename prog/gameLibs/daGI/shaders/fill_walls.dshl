@@ -9,7 +9,6 @@ shader fill_walls_grid_range_cs
   supports none;
   supports global_frame;
   USE_WALLS_BASE(cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     grid@uav : register(fill_walls_grid_range_cs_grid_uav_no) hlsl {
       #include <gi_walls.hlsli>

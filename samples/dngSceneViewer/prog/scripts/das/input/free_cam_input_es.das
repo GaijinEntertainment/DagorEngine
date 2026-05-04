@@ -1,7 +1,7 @@
 require ecs
 require DagorInput
 require das.input.input_events
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 
 def private init_actions(var free_cam_input__move : uint16&;
                          var free_cam_input__rotate : uint16&;

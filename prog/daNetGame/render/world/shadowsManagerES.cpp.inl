@@ -3,6 +3,7 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/componentTypes.h>
+#include <daECS/core/entityManager.h>
 
 #include <render/world/wrDispatcher.h>
 #include <render/world/shadowsManager.h>
@@ -15,12 +16,12 @@
 #include <render/world/bvh.h>
 
 
-ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures)
-ECS_TRACK(
-  render_settings__ssssQuality, render_settings__waterQuality, render_settings__forwardRendering, render_settings__combinedShadows)
+ECS_ON_EVENT(OnRenderSettingsReady,
+  ChangeRenderFeatures,
+  OnRenderSettingsUpdated) // todo: remove OnRenderSettingsUpdated from here once graphics preset applying is removed from UI code
+ECS_TRACK(render_settings__ssssQuality, render_settings__waterQuality, render_settings__combinedShadows)
 ECS_AFTER(ssss_settings_tracking_es)
-ECS_REQUIRE(
-  const ecs::string &render_settings__waterQuality, bool render_settings__forwardRendering, bool render_settings__combinedShadows)
+ECS_REQUIRE(const ecs::string &render_settings__waterQuality, bool render_settings__combinedShadows)
 static void shadows_settings_tracking_es(const ecs::Event &evt, const ecs::string &render_settings__ssssQuality)
 {
   if (!WRDispatcher::isReadyToUse())
@@ -38,30 +39,27 @@ static void shadows_settings_tracking_es(const ecs::Event &evt, const ecs::strin
 }
 
 template <typename Callable>
-static void use_rgba_fmt_ecs_query(Callable c);
+static void use_rgba_fmt_ecs_query(ecs::EntityManager &manager, Callable c);
 bool combined_shadows_use_additional_textures()
 {
   bool useAdditionalTextures = false;
-  use_rgba_fmt_ecs_query([&useAdditionalTextures](bool combined_shadows__use_additional_textures) {
+  use_rgba_fmt_ecs_query(*g_entity_mgr, [&useAdditionalTextures](bool combined_shadows__use_additional_textures) {
     useAdditionalTextures = useAdditionalTextures || combined_shadows__use_additional_textures;
   });
   return useAdditionalTextures;
 }
 
 template <typename Callable>
-static void bind_additional_textures_ecs_query(Callable c);
+static void bind_additional_textures_ecs_query(ecs::EntityManager &manager, Callable c);
 void combined_shadows_bind_additional_textures(dafg::Registry &registry)
 {
-  bind_additional_textures_ecs_query(
-    [&registry](bool combined_shadows__use_additional_textures, const ecs::StringList &combined_shadows__additional_textures,
-      const ecs::StringList &combined_shadows__additional_samplers) {
+  bind_additional_textures_ecs_query(*g_entity_mgr,
+    [&registry](bool combined_shadows__use_additional_textures, const ecs::StringList &combined_shadows__additional_textures) {
       if (!combined_shadows__use_additional_textures)
         return;
 
       for (const ecs::string texName : combined_shadows__additional_textures)
         registry.readTexture(texName.c_str()).atStage(dafg::Stage::PS).bindToShaderVar(texName.c_str());
-      for (const ecs::string samplerName : combined_shadows__additional_samplers)
-        registry.read(samplerName.c_str()).blob<d3d::SamplerHandle>().bindToShaderVar(samplerName.c_str());
     });
 }
 
@@ -78,8 +76,10 @@ static void update_world_bbox_es(
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
-ECS_TRACK(render_settings__shadowsQuality, render_settings__enableRTSM)
-ECS_REQUIRE(const ecs::string &render_settings__shadowsQuality, const ecs::string &render_settings__enableRTSM)
+ECS_TRACK(render_settings__shadowsQuality, render_settings__enableRTSM, render_settings__bare_minimum)
+ECS_REQUIRE(const ecs::string &render_settings__shadowsQuality,
+  const ecs::string &render_settings__enableRTSM,
+  bool render_settings__bare_minimum)
 ECS_AFTER(bvh_render_settings_changed_es)
 static void init_shadows_es(const ecs::Event &)
 {

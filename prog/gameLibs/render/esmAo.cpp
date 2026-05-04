@@ -13,7 +13,8 @@ static int esm_ao_view_posVarId = -1;
 
 bool EsmAoManager::init(int resolution, float esm_exp)
 {
-  Sbuffer *buf = d3d::buffers::create_one_frame_cb(dag::buffers::cb_array_reg_count<EsmAoDecal>(MAX_ESM_AO_DECALS), "esm_ao_decals");
+  Sbuffer *buf =
+    d3d::buffers::create_one_frame_cb(dag::buffers::cb_array_reg_count<EsmAoDecal>(MAX_ESM_AO_DECALS), "esm_ao_decals", RESTAG_AO);
   if (!buf)
     return false;
 
@@ -82,8 +83,8 @@ void EsmAoManager::applyAoDecals(int target_width, int target_height, const Poin
   if (decalCnt <= 0)
     return;
   esmAoDecalsBuf.getBuf()->updateData(0, sizeof(*esmAoDecals.data()) * decalCnt, esmAoDecals.data(), VBLOCK_DISCARD);
-  ShaderGlobal::set_color4(esm_ao_target_sizeVarId, Color4(target_width, target_height, 0.0f, 0.0f));
-  ShaderGlobal::set_color4(esm_ao_view_posVarId, view_pos.x, view_pos.y, view_pos.z, 0.0f);
+  ShaderGlobal::set_float4(esm_ao_target_sizeVarId, Color4(target_width, target_height, 0.0f, 0.0f));
+  ShaderGlobal::set_float4(esm_ao_view_posVarId, view_pos.x, view_pos.y, view_pos.z, 0.0f);
   shaders::overrides::set(aoDecalsStateId);
   esmAoDecalsRenderer.shader->setStates();
   index_buffer::use_box();

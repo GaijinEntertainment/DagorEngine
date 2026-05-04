@@ -4,6 +4,7 @@
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
 #include <util/dag_convar.h>
@@ -65,7 +66,7 @@ bool VoxelizationTarget::ensureSampledTarget(int w, int h, uint32_t fmt)
     sampledTarget->getinfo(tinfo);
   if (((tinfo.cflg & TEXFMT_MASK) != (fmt & TEXFMT_MASK)) || tinfo.w < w || tinfo.h < h)
   {
-    TexPtr tex = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, "voxelization_msaa_target");
+    TexPtr tex = dag::create_tex(NULL, w, h, fmt | TEXCF_RTARGET, 1, "voxelization_msaa_target", RESTAG_VOXEL);
     debug("MSAA voxelization target %s %dx%d fmt 0x%X", tex ? "created" : "can't be created", w, h, fmt);
     if (!tex)
       return false;

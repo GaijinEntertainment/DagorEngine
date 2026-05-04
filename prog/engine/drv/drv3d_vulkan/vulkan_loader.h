@@ -37,7 +37,7 @@ public:
   dag::Vector<VkLayerProperties> getLayers();
   dag::Vector<VkExtensionProperties> getExtensions();
 
-  bool load(const char *name, bool validate);
+  bool load(const char *name, bool validate, bool init_streamline);
   void unload();
 
 #if USE_STREAMLINE_FOR_DLSS

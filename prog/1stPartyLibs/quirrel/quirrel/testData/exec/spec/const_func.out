@@ -1,0 +1,10 @@
+Non-pure, can be declared as constant, but can't be called as constant initializer
+20
+25
+Hello, world
+Hello, Kitty
+27
+30
+20
+555
+12345

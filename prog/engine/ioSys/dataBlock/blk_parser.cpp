@@ -10,6 +10,7 @@
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_dataBlockCommentsDef.h>
+#include <memory/dag_framemem.h>
 #include <util/le2be.h>
 #include <util/dag_string.h>
 #include <math/integer/dag_IPoint2.h>
@@ -628,7 +629,8 @@ static void makeFullPathFromRelative(String &path, const char *base_filename)
   {                                                                                                       \
     logmessage(blk.shared->blkRobustLoad() ? LOGLEVEL_WARN : LOGLEVEL_ERR,                                \
       "DataBlockParser: invalid value '%s' at line %d of file '%s'", (VALUE).c_str(), curLine, fileName); \
-    return false;                                                                                         \
+    if (!blk.shared->blkRobustLoad())                                                                     \
+      return false;                                                                                       \
   }
 
 static inline int is_digit(char value) { return value >= '0' && value <= '9'; }
@@ -711,9 +713,13 @@ inline const char *parse_naive(const char *__restrict value, const char *__restr
 #ifdef _DEBUG_TAB_
   if (endPtr)
   {
+    char *endPtr2 = NULL;
     long long int i2 = 0;
-    int res = sscanf(value, "%lld", &i2);
-    if (res != 1 || v != i2)
+    if (value[0] == '0') // for hex
+      i2 = strtoull(value, &endPtr2, 0);
+    else
+      i2 = strtoll(value, &endPtr2, 0);
+    if (endPtr != endPtr2 || v != i2)
     {
       logerr("Parsed incorrectly, %d != %d, <%s>", v, i2, value);
       return nullptr;
@@ -1522,7 +1528,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
         inc_blk.loadFromStream(crd, valueStr, fnotify, len);
         erase_items(buffer, pos, len + 2);
 
-        DynamicMemGeneralSaveCB cwr(tmpmem, len * 2, 4 << 10);
+        DynamicMemGeneralSaveCB cwr(framemem_ptr(), len * 2, 4 << 10);
         inc_blk.saveToTextStream(cwr);
         len = cwr.size();
         insert_items(buffer, pos, len + 2);
@@ -1584,7 +1590,7 @@ bool DataBlock::loadText(const char *text, int len, const char *filename, DataBl
     return true;
   }
 
-  Tab<char> buf(tmpmem);
+  Tab<char> buf(framemem_ptr());
   buf.reserve(len + 3); // +3 because of append in loadText
   buf.resize(len);      // don't use copyFrom because it does realloc despite of total (i.e. reserved) memory
   memcpy(buf.data(), text, len);
@@ -1596,7 +1602,8 @@ bool DataBlock::loadText(const char *text, int len, const char *filename, DataBl
       shared->setSrc(filename);
 #if DAGOR_DBGLEVEL > 0
     else
-      shared->setSrc(String(0, "BLK\n%.*s", min(buf.size(), 512u), buf.size() ? buf.data() : ""));
+      shared->setSrc(String(0, framemem_ptr(), "BLK\n%.*s%s", min(len, int(512 - sizeof("..."))), buf.data(),
+        (len < (512 - sizeof("..."))) ? "" : "..."));
 #endif
   }
 

@@ -73,19 +73,26 @@ macro USE_FLUID_WIND_SIMULATION()
     width@f1 = (fluid_wind_width);
     height@f1 = (fluid_wind_height);
     fluid_wind_origin_delta@f3 = (fluid_wind_origin_delta.x, fluid_wind_origin_delta.y, fluid_wind_origin_delta.z, 0);
+
+    speed@tex3d : register(0);
+    divergence@tex3d : register(1);
+    pressure@tex3d : register(2);
+    speed_samplerstate@sampler : register(0);
+    speedRW@uav : register(0) hlsl {
+        RWTexture3D<float4> speedRW@uav;
+    };
+    divergenceRW@uav : register(1) hlsl {
+        RWTexture3D<float4> divergenceRW@uav;
+    };
+    pressureRW@uav : register(2) hlsl {
+        RWTexture3D<float4> pressureRW@uav;
+    };
+    output@uav : register(3) hlsl {
+        RWTexture2D<float4> output@uav;
+    };
   }
 
   hlsl(cs) {
-    Texture3D<float4> speed: register (t0);
-    SamplerState speed_samplerstate : register(s0);
-    Texture3D<float4> divergence: register (t1);
-    Texture3D<float4> pressure: register (t2);
-
-    RWTexture3D<float4> speedRW: register (u0);
-    RWTexture3D<float4> divergenceRW: register (u1);
-    RWTexture3D<float4> pressureRW: register (u2);
-    RWTexture2D<float4> output: register(u3);
-
     bool isBorder(float3 i)
     {
       return i.x < 0.5 || i.x > dim.x - 0.5 || i.y < 0.5 || i.y > dim.y - 0.5 || i.z < 0.5 || i.z > dim.z - 0.5;
@@ -100,7 +107,6 @@ endmacro
 
 shader fluid_wind_clear
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -119,7 +125,6 @@ shader fluid_wind_clear
 
 shader fluid_wind_advect
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -140,7 +145,6 @@ shader fluid_wind_advect
 
 shader fluid_wind_divergence
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -158,13 +162,31 @@ shader fluid_wind_divergence
       UNROLL
       for (int j = 0; j < 4; j++)
       {
-        uint3 i4 = uint3(4 * i.x + j, i.y, i.z);
-        pxm = speed[i4 + uint3(-1, 0, 0)].x;
-        pxp = speed[i4 + uint3(1, 0, 0)].x;
-        pym = speed[i4 + uint3(0, -1, 0)].y;
-        pyp = speed[i4 + uint3(0, 1, 0)].y;
-        pzm = speed[i4 + uint3(0, 0, -1)].z;
-        pzp = speed[i4 + uint3(0, 0, 1)].z;
+        int3 i4 = int3(4 * i.x + j, i.y, i.z);
+        pxm = 0;
+        int3 offset = int3(-1, 0, 0);
+        if (all(i4 + offset >= 0))
+          pxm = texture3DAt(speed, i4 + offset).x;
+        offset = int3(1, 0, 0);
+        pxp = 0;
+        if (all(i4 + offset < dim))
+          pxp = texture3DAt(speed, i4 + offset).x;
+        pym = 0;
+        offset = int3(0, -1, 0);
+        if (all(i4 + offset >= 0))
+          pym = texture3DAt(speed, i4 + offset).y;
+        pyp = 0;
+        offset = int3(0, 1, 0);
+        if (all(i4 + offset < dim))
+          pyp = texture3DAt(speed, i4 + offset).y;
+        pzm = 0;
+        offset = int3(0, 0, -1);
+        if (all(i4 + offset >= 0))
+          pzm = texture3DAt(speed, i4 + offset).z;
+        pzp = 0;
+        offset = int3(0, 0, 1);
+        if (all(i4 + offset < dim))
+          pzp = texture3DAt(speed, i4 + offset).z;
         divergence[j] = (pxp - pxm + pyp - pym + pzp - pzm) / 2;
       }
       texture3DAt(divergenceRW, i) = divergence;
@@ -176,7 +198,6 @@ shader fluid_wind_divergence
 
 shader fluid_wind_jaccobi3d
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -218,7 +239,6 @@ shader fluid_wind_jaccobi3d
 
 shader fluid_wind_project3d
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -284,7 +304,6 @@ shader fluid_wind_project3d
 
 shader fluid_wind_render
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   hlsl(cs) {
@@ -383,7 +402,6 @@ shader fluid_wind_render
 
 shader fluid_motor_omni
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {
@@ -440,7 +458,6 @@ shader fluid_motor_omni
 
 shader fluid_motor_directional
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {
@@ -474,7 +491,6 @@ shader fluid_motor_directional
 
 shader fluid_motor_vortex
 {
-  ENABLE_ASSERT(cs)
   USE_FLUID_WIND_SIMULATION()
 
   (cs) {

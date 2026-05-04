@@ -203,7 +203,7 @@ void WaterNVPhysics::syncRun(int nextLastTick)
   currentJobSize = totalJobSize;
   int64_t reft = ref_time_ticks();
   doJob();
-  debug("sync to %d in %dus", nextLastTick, get_time_usec(reft));
+  // debug("sync to %d in %dus", nextLastTick, get_time_usec(reft));
 
   /*int64_t reft = ref_time_ticks();
   updateH0();

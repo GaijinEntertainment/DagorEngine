@@ -47,6 +47,7 @@ DAS_BIND_SPAN(RoNameMapExIdPatchableTab, RoNameMapExIdPatchableTab, uint16_t);
 MAKE_TYPE_FACTORY(NameIdPair, das::NameIdPair);
 MAKE_TYPE_FACTORY(AnimcharBaseComponent, AnimV20::AnimcharBaseComponent);
 MAKE_TYPE_FACTORY(AnimcharRendComponent, AnimV20::AnimcharRendComponent);
+MAKE_TYPE_FACTORY(IAnimCharacter2, AnimV20::IAnimCharacter2);
 MAKE_TYPE_FACTORY(AnimationGraph, AnimV20::AnimationGraph);
 MAKE_TYPE_FACTORY(IAnimStateHolder, AnimV20::IAnimStateHolder);
 MAKE_TYPE_FACTORY(IAnimBlendNode, AnimV20::IAnimBlendNode);
@@ -105,6 +106,7 @@ DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<AnimV20::
 DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<AnimV20::AnimPostBlendCtrl>");
 
 MAKE_TYPE_FACTORY(AnimBlender, AnimV20::AnimBlender);
+MAKE_TYPE_FACTORY(AnimcharDebugContext, AnimV20::AnimcharDebugContext);
 
 DAS_BIND_ENUM_CAST_98(AnimcharVisbits);
 
@@ -192,10 +194,7 @@ inline void AnimBlendCtrl_1axis_getChildren(const ::AnimV20::AnimBlendCtrl_1axis
   auto res = ctrl.getChildren();
 
   das::Array arr;
-  arr.data = (char *)res.data();
-  arr.size = uint32_t(res.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)res.data(), res.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -209,10 +208,7 @@ inline void anim_graph_getParamNames(const ::AnimV20::AnimationGraph &animGraph,
   iterate_names(animGraph.getParamNames(), [&pairs](int id, const char *name) { pairs.push_back(das::NameIdPair{id, name}); });
 
   das::Array arr;
-  arr.data = (char *)pairs.data();
-  arr.size = uint32_t(pairs.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, pairs.data(), pairs.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -226,10 +222,7 @@ inline void anim_graph_getAnimNodeNames(const ::AnimV20::AnimationGraph &animGra
   iterate_names(animGraph.getAnimNodeNames(), [&pairs](int id, const char *name) { pairs.push_back(das::NameIdPair{id, name}); });
 
   das::Array arr;
-  arr.data = (char *)pairs.data();
-  arr.size = uint32_t(pairs.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, pairs.data(), pairs.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -242,10 +235,7 @@ inline void anim_graph_getStRec(const ::AnimV20::AnimationGraph &animGraph,
   dag::ConstSpan<::AnimV20::AnimationGraph::StateRec> names = animGraph.getStRec();
 
   das::Array arr;
-  arr.data = (char *)names.data();
-  arr.size = uint32_t(names.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)names.data(), names.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -267,10 +257,7 @@ inline void AnimBlendCtrl_ParametricSwitcher_getChildren(::AnimV20::AnimBlendCtr
   dag::ConstSpan<::AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim> children = param_switch.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -283,10 +270,7 @@ inline void AnimBlendCtrl_RandomSwitcher_getChildren(const ::AnimV20::AnimBlendC
   dag::ConstSpan<::AnimV20::AnimBlendCtrl_RandomSwitcher::RandomAnim> children = param_switch.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -299,10 +283,7 @@ inline void AnimBlendCtrl_Hub_getChildren(const ::AnimV20::AnimBlendCtrl_Hub &hu
   dag::ConstSpan<Ptr<::AnimV20::IAnimBlendNode>> children = hub.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -314,10 +295,7 @@ inline void AnimBlendCtrl_Hub_getDefNodeWt(const ::AnimV20::AnimBlendCtrl_Hub &h
   dag::ConstSpan<float> children = hub.getDefNodeWt();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -330,10 +308,7 @@ inline void AnimBlendCtrl_Blender_getChildren(const ::AnimV20::AnimBlendCtrl_Ble
   dag::ConstSpan<Ptr<::AnimV20::IAnimBlendNode>> children = hub.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -346,10 +321,7 @@ inline void AnimBlendCtrl_BinaryIndirectSwitch_getChildren(const ::AnimV20::Anim
   dag::ConstSpan<Ptr<::AnimV20::IAnimBlendNode>> children = hub.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -362,10 +334,7 @@ inline void AnimBlendCtrl_LinearPoly_getChildren(const ::AnimV20::AnimBlendCtrl_
   dag::ConstSpan<::AnimV20::AnimBlendCtrl_LinearPoly::AnimPoint> children = hub.getChildren();
 
   das::Array arr;
-  arr.data = (char *)children.data();
-  arr.size = uint32_t(children.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)children.data(), children.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -375,10 +344,7 @@ inline void AttachGeomNodeCtrl_getNodeNames(const ::AnimV20::AttachGeomNodeCtrl 
   const das::TBlock<void, das::TTemporary<das::TArray<const char *>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   das::Array arr;
-  arr.data = (char *)pbc.nodeNames.data();
-  arr.size = uint32_t(pbc.nodeNames.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)pbc.nodeNames.data(), pbc.nodeNames.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -436,7 +402,7 @@ inline bool anim_graph_enqueueNode(::AnimV20::AnimationGraph &anim_graph, ::Anim
     AnimV20::AnimBlendCtrl_Fifo3 *fifo = (AnimV20::AnimBlendCtrl_Fifo3 *)anim_graph.getRoot();
     if (!fifo->isEnqueued(state, n))
       n->resume(state, true);
-    fifo->enqueueState(state, n, /*overlap_time*/ 0.15f, /*max_lag*/ 0.0f);
+    fifo->enqueueState(state, n, /*overlap_time*/ 0.15f);
     return true;
   }
   return false;
@@ -474,6 +440,15 @@ inline BBox3 animchar_render_calcWorldBox(const ::AnimCharV20::AnimcharRendCompo
   return out;
 }
 
+inline das::float4 animchar_render_prepareSphereAndCalcBox(const ::AnimCharV20::AnimcharRendComponent &animchar_render,
+  const AnimcharNodesMat44 &nodes, BBox3 &out_box)
+{
+  bbox3f out_wbb;
+  vec4f sphere = animchar_render.prepareSphereAndCalcBox(out_wbb, nodes);
+  v_stu_bbox3(out_box, out_wbb);
+  return sphere;
+}
+
 inline void animchar_getDebugBlenderState(::AnimV20::AnimcharBaseComponent &animchar, bool dump_tm,
   const das::TBlock<void, das::TTemporary<const DataBlock>> &block, das::Context *context, das::LineInfoArg *at)
 {
@@ -490,35 +465,31 @@ inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, :
   das::Context *context, das::LineInfoArg *at)
 {
   ::AnimV20::AnimBlender::TlsContext &tlsCtx = graph.selectBlenderCtx();
+  // animchar_getAnimBlendNodeWeights right now is only used for debug viewing.
+  // buildBlendingList might change animchars state. We don't want the char to change how it behaves
+  // because we opened a debug window. So copy the chars state and use that for calculating the blend
+  // list and displaying that.
+  ::AnimV20::IPureAnimStateHolder stateCopy = ::AnimV20::IPureAnimStateHolder(st);
 
   Tab<float> abnWt(framemem_ptr());
   mem_set_0(tlsCtx.bnlWt);
   mem_set_0(tlsCtx.pbcWt);
   abnWt.resize(graph.getAnimNodeCount());
   mem_set_0(abnWt);
-  ::AnimV20::IAnimBlendNode::BlendCtx bctx(st, tlsCtx, true);
+  ::AnimV20::IAnimBlendNode::BlendCtx bctx(stateCopy, tlsCtx, true);
   bctx.abnWt = abnWt.data();
   graph.getRoot()->buildBlendingList(bctx, 1.0);
 
   das::Array abnWtArr;
-  abnWtArr.data = (char *)abnWt.data();
-  abnWtArr.size = uint32_t(abnWt.size());
-  abnWtArr.capacity = abnWtArr.size;
-  abnWtArr.lock = 1;
+  das::array_mark_locked(abnWtArr, abnWt.data(), abnWt.size());
   abnWtArr.flags = 0;
 
   das::Array bnlWtArr;
-  bnlWtArr.data = (char *)tlsCtx.bnlWt.data();
-  bnlWtArr.size = uint32_t(tlsCtx.bnlWt.size());
-  bnlWtArr.capacity = bnlWtArr.size;
-  bnlWtArr.lock = 1;
+  das::array_mark_locked(bnlWtArr, tlsCtx.bnlWt.data(), tlsCtx.bnlWt.size());
   bnlWtArr.flags = 0;
 
   das::Array pbcWtArr;
-  pbcWtArr.data = (char *)tlsCtx.pbcWt.data();
-  pbcWtArr.size = uint32_t(tlsCtx.pbcWt.size());
-  pbcWtArr.capacity = pbcWtArr.size;
-  pbcWtArr.lock = 1;
+  das::array_mark_locked(pbcWtArr, tlsCtx.pbcWt.data(), tlsCtx.pbcWt.size());
   pbcWtArr.flags = 0;
 
   vec4f args[3];
@@ -534,5 +505,26 @@ inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, :
     at);
 }
 
+inline int animchar_getSlotNodeIdx(const ::AnimCharV20::AnimcharBaseComponent &animchar, int slot_id)
+{
+  return static_cast<int>(animchar.getSlotNodeIdx(slot_id));
+}
+
+inline void AnimcharNodesMat44_getWtms(AnimcharNodesMat44 &nodes, const das::TBlock<void, das::TTemporary<das::TArray<mat44f>>> &block,
+  das::Context *context, das::LineInfoArg *at)
+{
+  das::Array arr;
+  das::array_mark_locked(arr, nodes.nwtm.data(), nodes.nwtm.size());
+  arr.flags = 0;
+  vec4f arg = das::cast<das::Array *>::from(&arr);
+  context->invoke(block, &arg, nullptr, at);
+}
+
+inline char *anim_state_holder_dumpStateText(const ::AnimV20::IAnimStateHolder &st, das::Context *context, das::LineInfoArg *at)
+{
+  String out;
+  st.dumpStateText(out);
+  return context->allocateString(out.c_str(), out.length(), at);
+}
 
 } // namespace bind_dascript

@@ -108,6 +108,8 @@ inline HlslCompilationStage profile_to_hlsl_stage(const char *profile)
 
 
 #endif
+  if (0 == strcmp("lib", profile))
+    return HLSL_CS;
   for (HlslCompilationStage stage : HLSL_ALL_LIST)
   {
     if (strcmp(HLSL_ALL_PROFILES[stage], profile) == 0)
@@ -122,6 +124,8 @@ inline HlslCompilationStage profile_to_hlsl_stage(const char *profile, size_t le
 
 
 #endif
+  if (0 == strncmp("lib", profile, len))
+    return HLSL_CS;
   for (HlslCompilationStage stage : HLSL_ALL_LIST)
   {
     if (strncmp(HLSL_ALL_PROFILES[stage], profile, len) == 0)
@@ -132,6 +136,10 @@ inline HlslCompilationStage profile_to_hlsl_stage(const char *profile, size_t le
 
 inline HlslCompilationStage valid_profile_to_hlsl_stage(const char *profile)
 {
+  if ('l' == profile[0] && 'i' == profile[1])
+  {
+    return HLSL_CS;
+  }
   switch (profile[0])
   {
     case 'p': return HLSL_PS;

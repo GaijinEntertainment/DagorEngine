@@ -1,18 +1,13 @@
-//-file:declared-never-used
-
 function foo() {}
 let gg = foo()
 
-
-function bar() {
-
+function _bar() {
     let { cfg = null, hasOwned = false } = gg.value
 
     if (cfg == null || hasOwned)
-        return
+        return  // Early exit if cfg is null OR hasOwned is true
 
-    // !(cfg == null || hasOwned) -> cfg != null && hasOwned = true
-
-    let { c, g } = cfg
+    // After return: cfg != null && !hasOwned
+    let { _c, _g } = cfg  // No warning - cfg is non-null after the guard
     return
 }

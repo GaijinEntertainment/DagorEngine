@@ -9,6 +9,8 @@ include "shaders_dx11.blk"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_dynrend_indices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_bake_texture_to_vertices.dshl"
   file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_ahs_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/bvh/shaders/bvh_process_tree_vertices.dshl"
+  file:t = "../../../../prog/gameLibs/render/denoiser/shaders/denoiser_prepare.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
@@ -24,6 +26,10 @@ include "shaders_dx11.blk"
   }
 }
 
-
 incDir:t="../../../../prog/gameLibs/bvh/shaders"
 incDir:t="../../../../prog/gameLibs/render/shaders/NRD"
+incDir:t="../../../../prog/gameLibs/render/indoorProbes/shaders"
+incDir:t="../../../../prog/daNetGame/shaders"
+incDir:t="../../../../prog/gameLibs/render/denoiser/shaders"
+incDir:t="../../../../prog/gameLibs/render/shaders/vegetation"
+incDir:t="../../../../prog/3rdPartyLibs/NRD"

@@ -86,8 +86,7 @@ struct DaRgMouseKbdHandler : public ecs::IGenHidEventHandler
         Sqrat::Function f(interop, "toggleUi");
         if (!f.IsNull())
         {
-          bool uiOn = false;
-          f.Evaluate(uiOn);
+          bool uiOn = f.Eval<bool>().value_or(false);
 
           HumanInput::IGenPointing *mouse = global_cls_drv_pnt->getDevice(0);
           mouse->setRelativeMovementMode(!uiOn);

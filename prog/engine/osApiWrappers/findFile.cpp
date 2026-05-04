@@ -84,11 +84,14 @@ static int bp_find_first(const char *mask, char attr, alefind_t *fs, const char 
   fs->data = NULL;
   RealFind *rf = RealFind::open();
   if (!rf)
+  {
+    logerr("too many file search requests (%d), can't process '%s'", RealFind::MAX_RF, mask);
     return 0;
+  }
 
   static constexpr int MASK_SZ = DAGOR_MAX_PATH;
-  static wchar_t msk[MASK_SZ];
-  static wchar_t mask_w[MASK_SZ];
+  wchar_t msk[MASK_SZ];
+  wchar_t mask_w[MASK_SZ];
   if (!convert_path_to_u16_c(msk, MASK_SZ, basepath))
   {
     RealFind::close(rf);

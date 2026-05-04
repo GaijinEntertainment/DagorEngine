@@ -37,7 +37,7 @@ return {
 
   children = @() {
     watch = [movieFileName, movieError]
-    size = static [sh(60), sh(40)]
+    size = const [sh(60), sh(40)]
     rendObj = ROBJ_MOVIE
     movie = movieFileName.get()
     behavior = movieFileName.get() ? Behaviors.Movie : null

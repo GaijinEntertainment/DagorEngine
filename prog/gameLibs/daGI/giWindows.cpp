@@ -34,12 +34,6 @@ void GI3D::updateWindowsPos(const Point3 &pos)
     cWindows->updatePos(pos);
 }
 
-void GI3D::invalidateWindows()
-{
-  if (cWindows)
-    cWindows->invalidate();
-}
-
 eastl::unique_ptr<scene::TiledScene> &GI3D::getWindowsScene() const
 {
   static eastl::unique_ptr<scene::TiledScene> empty;

@@ -1,4 +1,0 @@
-if $(HaveRenderer) = yes {
-    gamePulls += daNetGameLibs_custom_gi_zones_DAS_pull_AOT ;
-}
-UseProgLibs += daNetGameLibs/custom_gi_zones ;

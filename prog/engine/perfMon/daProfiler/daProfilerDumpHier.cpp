@@ -190,6 +190,8 @@ void dumpHierFrames(const ProfilerData &pd, ProfilerDumpFunctionPtr cb, void *ct
 
     for (auto &thread : pd.threadsData)
     {
+      if (!thread)
+        continue;
       if (!thread->storage.events.empty())
         dumpHierEvents(pd, thread->storage.description, thread->storage.events, cb, ctx, startDumpTicks, endDumpTicks, curTicks,
           totalFrames, cpuFreq);

@@ -1,0 +1,8 @@
+ERROR: Only single variable declaration is allowed here
+testData/diagnostics/single_var_decl_in_if.nut:1:13
+
+if (let x = 4, y = 6)
+             ^
+    println("fail")
+
+

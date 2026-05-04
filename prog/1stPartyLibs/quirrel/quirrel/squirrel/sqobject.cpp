@@ -12,46 +12,47 @@
 #include "sqclosure.h"
 
 
-const SQChar *IdType2Name(SQObjectType type)
+const char *IdType2Name(SQObjectType type)
 {
     switch(_RAW_TYPE(type))
     {
-    case _RT_NULL:return _SC("null");
-    case _RT_INTEGER:return _SC("integer");
-    case _RT_FLOAT:return _SC("float");
-    case _RT_BOOL:return _SC("bool");
-    case _RT_STRING:return _SC("string");
-    case _RT_TABLE:return _SC("table");
-    case _RT_ARRAY:return _SC("array");
-    case _RT_GENERATOR:return _SC("generator");
+    case OT_NULL: // fallthrough
+    case _RT_NULL:return "null";
+    case _RT_INTEGER:return "integer";
+    case _RT_FLOAT:return "float";
+    case _RT_BOOL:return "bool";
+    case _RT_STRING:return "string";
+    case _RT_TABLE:return "table";
+    case _RT_ARRAY:return "array";
+    case _RT_GENERATOR:return "generator";
     case _RT_CLOSURE:
     case _RT_NATIVECLOSURE:
-        return _SC("function");
+        return "function";
     case _RT_USERDATA:
     case _RT_USERPOINTER:
-        return _SC("userdata");
-    case _RT_THREAD: return _SC("thread");
-    case _RT_FUNCPROTO: return _SC("function");
-    case _RT_CLASS: return _SC("class");
-    case _RT_INSTANCE: return _SC("instance");
-    case _RT_WEAKREF: return _SC("weakref");
-    case _RT_OUTER: return _SC("outer");
+        return "userdata";
+    case _RT_THREAD: return "thread";
+    case _RT_FUNCPROTO: return "function";
+    case _RT_CLASS: return "class";
+    case _RT_INSTANCE: return "instance";
+    case _RT_WEAKREF: return "weakref";
+    case _RT_OUTER: return "outer";
     default:
         return NULL;
     }
 }
 
-const SQChar *GetTypeName(const SQObject &obj1)
+const char *GetTypeName(const SQObject &obj1)
 {
     return IdType2Name(sq_type(obj1));
 }
 
-SQObjectPtr::SQObjectPtr(SQVM *vm, const SQChar *str, SQInteger len)
+SQObjectPtr::SQObjectPtr(SQVM *vm, const char *str, SQInteger len)
     : SQObjectPtr(SQString::Create(vm->_sharedstate, str, len))
 {
 }
 
-SQString *SQString::Create(SQSharedState *ss,const SQChar *s,SQInteger len)
+SQString *SQString::Create(SQSharedState *ss,const char *s,SQInteger len)
 {
     SQString *str=ADD_STRING(ss,s,len);
     return str;
@@ -126,8 +127,8 @@ bool SQDelegable::SetDelegate(SQTable *mt)
 
 bool SQGenerator::Yield(SQVM *v,SQInteger target)
 {
-    if(_state==eSuspended) { v->Raise_Error(_SC("internal vm error, yielding dead generator"));  return false;}
-    if(_state==eDead) { v->Raise_Error(_SC("internal vm error, yielding a dead generator")); return false; }
+    if(_state==eSuspended) { v->Raise_Error("internal vm error, yielding dead generator");  return false;}
+    if(_state==eDead) { v->Raise_Error("internal vm error, yielding a dead generator"); return false; }
     SQInteger size = v->_top-v->_stackbase;
 
     _stack.resize(size);
@@ -160,8 +161,8 @@ bool SQGenerator::Yield(SQVM *v,SQInteger target)
 
 bool SQGenerator::Resume(SQVM *v,SQObjectPtr &dest)
 {
-    if(_state==eDead){ v->Raise_Error(_SC("resuming dead generator")); return false; }
-    if(_state==eRunning){ v->Raise_Error(_SC("resuming active generator")); return false; }
+    if(_state==eDead){ v->Raise_Error("resuming dead generator"); return false; }
+    if(_state==eRunning){ v->Raise_Error("resuming active generator"); return false; }
     SQInteger size = _stack.size();
     SQInteger target = &dest - &(v->_stack._vals[v->_stackbase]);
     assert(target>=0 && target<=255);
@@ -196,7 +197,7 @@ bool SQGenerator::Resume(SQVM *v,SQObjectPtr &dest)
 
     _state=eRunning;
     if (v->_debughook)
-        v->CallDebugHook(_SC('c'));
+        v->CallDebugHook('c');
 
     return true;
 }
@@ -220,10 +221,10 @@ bool SQArray::IsBinaryEqual(const SQArray *o)
     return memcmp(_values._vals, o->_values._vals, _values.size() * sizeof(SQObjectPtr)) == 0;
 }
 
-const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop)
+const char* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop)
 {
     SQUnsignedInteger nvars=_nlocalvarinfos;
-    const SQChar *res=NULL;
+    const char *res=NULL;
     if(nvars>=nseq){
         for(SQUnsignedInteger i=0;i<nvars;i++){
             if(_localvarinfos[i]._start_op<=nop && _localvarinfos[i]._end_op>=nop)
@@ -241,7 +242,8 @@ const SQChar* SQFunctionProto::GetLocal(SQVM *vm,SQUnsignedInteger stackbase,SQU
 }
 
 
-SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_line_op)
+template <typename T>
+inline SQInteger get_line_offset_impl(T* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
 {
     int pos = nlineinfos - 1;
     int low = 0;
@@ -250,25 +252,25 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
 
     if (hint && unsigned(*hint) < unsigned(high)) {
         int h = *hint;
-        if (instruction_index >= lineinfos[h]._op && instruction_index < lineinfos[h + 1]._op) {
-            if (is_line_op)
-                *is_line_op = lineinfos[h]._is_line_op;
-            return lineinfos[h]._line;
+        if (instruction_index >= (int)lineinfos[h]._op && instruction_index < (int)lineinfos[h + 1]._op) {
+            if (is_dbg_step_point)
+                *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
+            return lineinfos[h]._line_offset;
         }
-        else if (instruction_index >= lineinfos[h + 1]._op && instruction_index < lineinfos[h + 2]._op) {
+        else if (instruction_index >= (int)lineinfos[h + 1]._op && instruction_index < (int)lineinfos[h + 2]._op) {
             h++;
             *hint = h;
-            if (is_line_op)
-                *is_line_op = lineinfos[h]._is_line_op;
-            return lineinfos[h]._line;
+            if (is_dbg_step_point)
+                *is_dbg_step_point = lineinfos[h]._is_dbg_step_point;
+            return lineinfos[h]._line_offset;
         }
         else if (instruction_index == 0) {
             for (int i = 0; i < nlineinfos - 1; i++)
-                if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+                if (instruction_index >= (int)lineinfos[i]._op && instruction_index < (int)lineinfos[i + 1]._op) {
                     *hint = i;
-                    if (is_line_op)
-                        *is_line_op = lineinfos[i]._is_line_op;
-                    return lineinfos[i]._line;
+                    if (is_dbg_step_point)
+                        *is_dbg_step_point = lineinfos[i]._is_dbg_step_point;
+                    return lineinfos[i]._line_offset;
                 }
         }
     }
@@ -276,9 +278,9 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
     while (high >= low && --tryCount) {
         int mid = (high + low) / 2;
 
-        if (instruction_index < lineinfos[mid]._op)
+        if (instruction_index < (int)lineinfos[mid]._op)
             high = mid - 1;
-        else if (instruction_index >= lineinfos[mid + 1]._op)
+        else if (instruction_index >= (int)lineinfos[mid + 1]._op)
             low = mid + 1;
         else {
             pos = mid;
@@ -290,25 +292,34 @@ SQInteger SQFunctionProto::GetLine(SQLineInfo* lineinfos, int nlineinfos, int in
         // TODO: failsafe pass, to be reomved later
         assert(0);
         for (int i = 0; i < nlineinfos - 1; i++)
-            if (instruction_index >= lineinfos[i]._op && instruction_index < lineinfos[i + 1]._op) {
+            if (instruction_index >= (int)lineinfos[i]._op && instruction_index < (int)lineinfos[i + 1]._op) {
                 pos = i;
                 break;
             }
     }
 
-    if (is_line_op)
-        *is_line_op = lineinfos[pos]._is_line_op;
+    if (is_dbg_step_point)
+        *is_dbg_step_point = lineinfos[pos]._is_dbg_step_point;
 
     if (hint)
         *hint = pos;
 
-    return lineinfos[pos]._line;
+    return lineinfos[pos]._line_offset;
 }
 
 
-SQInteger SQFunctionProto::GetLine(const SQInstruction *curr, int *hint, bool *is_line_op)
+SQInteger SQFunctionProto::GetLine(SQLineInfosHeader* lineinfos, int nlineinfos, int instruction_index, int* hint, bool* is_dbg_step_point)
 {
-    return GetLine(_lineinfos, _nlineinfos, int(curr - _instructions), hint, is_line_op);
+    if (lineinfos->_is_compressed)
+        return get_line_offset_impl((SQCompressedLineInfo *)(void *)(lineinfos + 1), nlineinfos, instruction_index, hint, is_dbg_step_point) + lineinfos->_first_line;
+    else
+        return get_line_offset_impl((SQFullLineInfo *)(void *)(lineinfos + 1), nlineinfos, instruction_index, hint, is_dbg_step_point) + lineinfos->_first_line;
+}
+
+
+SQInteger SQFunctionProto::GetLine(const SQInstruction *curr, int *hint, bool *is_dbg_step_point)
+{
+    return GetLine(_lineinfos, _nlineinfos, int(curr - _instructions), hint, is_dbg_step_point);
 }
 
 
@@ -323,7 +334,7 @@ SQClosure::~SQClosure()
 static bool SafeWrite(HSQUIRRELVM v,SQWRITEFUNC write,SQUserPointer up,SQUserPointer dest,SQInteger size)
 {
     if(write(up,dest,size) != size) {
-        v->Raise_Error(_SC("io error (write function failure)"));
+        v->Raise_Error("io error (write function failure)");
         return false;
     }
     return true;
@@ -332,7 +343,7 @@ static bool SafeWrite(HSQUIRRELVM v,SQWRITEFUNC write,SQUserPointer up,SQUserPoi
 static bool SafeRead(HSQUIRRELVM v,SQREADFUNC read,SQUserPointer up,SQUserPointer dest,SQInteger size)
 {
     if(size && read(up,dest,size) != size) {
-        v->Raise_Error(_SC("io error, read function failure, the origin stream could be corrupted/trucated"));
+        v->Raise_Error("io error, read function failure, the origin stream could be corrupted/trucated");
         return false;
     }
     return true;
@@ -348,7 +359,7 @@ static bool CheckTag(HSQUIRRELVM v,SQREADFUNC read,SQUserPointer up,SQUnsignedIn
     SQUnsignedInteger32 t;
     _CHECK_IO(SafeRead(v,read,up,&t,sizeof(t)));
     if(t != tag){
-        v->Raise_Error(_SC("invalid or corrupted closure stream"));
+        v->Raise_Error("invalid or corrupted closure stream");
         return false;
     }
     return true;
@@ -371,7 +382,7 @@ static bool WriteObject(HSQUIRRELVM v,SQUserPointer up,SQWRITEFUNC write,SQObjec
     case OT_NULL:
         break;
     default:
-        v->Raise_Error(_SC("cannot serialize a %s"),GetTypeName(o));
+        v->Raise_Error("cannot serialize a %s",GetTypeName(o));
         return false;
     }
     return true;
@@ -406,7 +417,7 @@ static bool ReadObject(HSQUIRRELVM v,SQUserPointer up,SQREADFUNC read,SQObjectPt
         o.Null();
         break;
     default:
-        v->Raise_Error(_SC("cannot serialize a %s"),IdType2Name(t));
+        v->Raise_Error("cannot serialize a %s",IdType2Name(t));
         return false;
     }
     return true;
@@ -415,7 +426,7 @@ static bool ReadObject(HSQUIRRELVM v,SQUserPointer up,SQREADFUNC read,SQObjectPt
 bool SQClosure::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
 {
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_HEAD));
-    _CHECK_IO(WriteTag(v,write,up,sizeof(SQChar)));
+    _CHECK_IO(WriteTag(v,write,up,sizeof(char)));
     _CHECK_IO(WriteTag(v,write,up,sizeof(SQInteger)));
     _CHECK_IO(WriteTag(v,write,up,sizeof(SQFloat)));
     _CHECK_IO(_function->Save(v,up,write));
@@ -426,7 +437,7 @@ bool SQClosure::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
 bool SQClosure::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret)
 {
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_HEAD));
-    _CHECK_IO(CheckTag(v,read,up,sizeof(SQChar)));
+    _CHECK_IO(CheckTag(v,read,up,sizeof(char)));
     _CHECK_IO(CheckTag(v,read,up,sizeof(SQInteger)));
     _CHECK_IO(CheckTag(v,read,up,sizeof(SQFloat)));
     SQObjectPtr func;
@@ -441,7 +452,8 @@ SQFunctionProto::SQFunctionProto(SQSharedState *ss)
     _stacksize=0;
     _bgenerator=false;
     _purefunction=false;
-    _hoistingLevel=0;
+    _nodiscard=false;
+    _inside_hoisted_scope=false;
     INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
 }
 
@@ -457,6 +469,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     SQInteger nlineinfos=_nlineinfos,ninstructions = _ninstructions,nfunctions=_nfunctions;
     SQInteger ndefaultparams = _ndefaultparams;
     SQInteger nstaticmemos = _nstaticmemos;
+    bool compressedLineInfos = _lineinfos->_is_compressed;
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(WriteObject(v,up,write,_sourcename));
     _CHECK_IO(WriteObject(v,up,write,_name));
@@ -467,6 +480,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     _CHECK_IO(SafeWrite(v,write,up,&noutervalues,sizeof(noutervalues)));
     _CHECK_IO(SafeWrite(v,write,up,&nlocalvarinfos,sizeof(nlocalvarinfos)));
     _CHECK_IO(SafeWrite(v,write,up,&nlineinfos,sizeof(nlineinfos)));
+    _CHECK_IO(SafeWrite(v,write,up,&compressedLineInfos,sizeof(compressedLineInfos)));
     _CHECK_IO(SafeWrite(v,write,up,&ndefaultparams,sizeof(ndefaultparams)));
     _CHECK_IO(SafeWrite(v,write,up,&ninstructions,sizeof(ninstructions)));
     _CHECK_IO(SafeWrite(v,write,up,&nfunctions,sizeof(nfunctions)));
@@ -500,7 +514,8 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     }
 
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
-    _CHECK_IO(SafeWrite(v,write,up,_lineinfos,sizeof(SQLineInfo)*nlineinfos));
+    size_t lineinfosSize = (char *)_defaultparams - (char *)_lineinfos;
+    _CHECK_IO(SafeWrite(v,write,up,_lineinfos,lineinfosSize));
 
     _CHECK_IO(WriteTag(v,write,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(SafeWrite(v,write,up,_defaultparams,sizeof(SQInteger)*ndefaultparams));
@@ -515,6 +530,7 @@ bool SQFunctionProto::Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write)
     _CHECK_IO(SafeWrite(v,write,up,&_stacksize,sizeof(_stacksize)));
     _CHECK_IO(SafeWrite(v,write,up,&_bgenerator,sizeof(_bgenerator)));
     _CHECK_IO(SafeWrite(v,write,up,&_purefunction,sizeof(_purefunction)));
+    _CHECK_IO(SafeWrite(v,write,up,&_nodiscard,sizeof(_nodiscard)));
     _CHECK_IO(SafeWrite(v,write,up,&_varparams,sizeof(_varparams)));
     return true;
 }
@@ -528,6 +544,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     SQInteger nstaticmemos;
     SQObjectPtr sourcename, name;
     SQObjectPtr o;
+    bool compressedLineInfos = false;
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(ReadObject(v, up, read, sourcename));
     _CHECK_IO(ReadObject(v, up, read, name));
@@ -539,15 +556,16 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     _CHECK_IO(SafeRead(v,read,up, &noutervalues, sizeof(noutervalues)));
     _CHECK_IO(SafeRead(v,read,up, &nlocalvarinfos, sizeof(nlocalvarinfos)));
     _CHECK_IO(SafeRead(v,read,up, &nlineinfos, sizeof(nlineinfos)));
+    _CHECK_IO(SafeRead(v,read,up, &compressedLineInfos, sizeof(compressedLineInfos)));
     _CHECK_IO(SafeRead(v,read,up, &ndefaultparams, sizeof(ndefaultparams)));
     _CHECK_IO(SafeRead(v,read,up, &ninstructions, sizeof(ninstructions)));
     _CHECK_IO(SafeRead(v,read,up, &nfunctions, sizeof(nfunctions)));
     _CHECK_IO(SafeRead(v,read,up, &nstaticmemos, sizeof(nfunctions)));
 
-
     SQFunctionProto *f = SQFunctionProto::Create(_opt_ss(v), langFeatures,
             ninstructions,nliterals,nparameters,
-            nfunctions,noutervalues,nlineinfos,nlocalvarinfos,ndefaultparams,nstaticmemos);
+            nfunctions,noutervalues,nlineinfos,compressedLineInfos,
+            nlocalvarinfos,ndefaultparams,nstaticmemos);
     SQObjectPtr proto(f); //gets a ref in case of failure
     f->_sourcename = sourcename;
     f->_name = name;
@@ -587,7 +605,8 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
         f->_localvarinfos[i] = lvi;
     }
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
-    _CHECK_IO(SafeRead(v,read,up, f->_lineinfos, sizeof(SQLineInfo)*nlineinfos));
+    size_t lineinfosSize = (char *)f->_defaultparams - (char *)f->_lineinfos;
+    _CHECK_IO(SafeRead(v,read,up, f->_lineinfos, lineinfosSize));
 
     _CHECK_IO(CheckTag(v,read,up,SQ_CLOSURESTREAM_PART));
     _CHECK_IO(SafeRead(v,read,up, f->_defaultparams, sizeof(SQInteger)*ndefaultparams));
@@ -603,6 +622,7 @@ bool SQFunctionProto::Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr 
     _CHECK_IO(SafeRead(v,read,up, &f->_stacksize, sizeof(f->_stacksize)));
     _CHECK_IO(SafeRead(v,read,up, &f->_bgenerator, sizeof(f->_bgenerator)));
     _CHECK_IO(SafeRead(v,read,up, &f->_purefunction, sizeof(f->_purefunction)));
+    _CHECK_IO(SafeRead(v,read,up, &f->_nodiscard, sizeof(f->_nodiscard)));
     _CHECK_IO(SafeRead(v,read,up, &f->_varparams, sizeof(f->_varparams)));
 
     ret = f;

@@ -34,8 +34,8 @@ uint32_t DataBlock::complexParamsSize() const
   return data->data.size() - ((isBlocksOwned() ? blocksCount * sizeof(block_id_t) : 0) + paramsCount * sizeof(Param));
 }
 
-DataBlock::DataBlock(IMemAlloc *) : shared(new DataBlockShared) { nameIdAndFlags |= IS_TOPMOST; }
-DataBlock::DataBlock(const char *filename, IMemAlloc *a) : DataBlock(a) { load(filename); }
+DataBlock::DataBlock() : shared(new DataBlockShared), nameIdAndFlags(IS_TOPMOST) {}
+DataBlock::DataBlock(const char *filename, IMemAlloc *) : DataBlock() { load(filename); }
 DataBlock::DataBlock(const DataBlock &b) : DataBlock()
 {
   if (!b.hasNoNameId())
@@ -128,7 +128,7 @@ void DataBlock::deleteShared()
   }
 }
 
-const DataBlock DataBlock::emptyBlock((IMemAlloc *)nullptr);
+const DataBlock DataBlock::emptyBlock;
 
 const DataBlock::Param *DataBlock::getParamsPtr() const { return getParamsImpl(); }
 const DataBlock *const *DataBlock::getBlockRWPtr() const

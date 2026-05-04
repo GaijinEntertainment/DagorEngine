@@ -20,6 +20,7 @@
 #include <debug/dag_logSys.h>
 #include <debug/dag_debug.h>
 #include <unistd.h>
+#include <signal.h>
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 #include <mach-o/dyld.h>
@@ -326,7 +327,7 @@ bool mbox_user_allows_abort(const char *msg, const char *call_stack)
 #endif
 }
 
-extern "C" int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   measure_cpu_freq();
 # if DAGOR_DBGLEVEL == 0
@@ -356,6 +357,9 @@ extern "C" int main(int argc, char *argv[])
   ::dgs_execute_quiet = ::dgs_get_argv("quiet");
 
   DagorHwException::setHandler( "main" );
+
+  // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
+  signal(SIGPIPE, SIG_IGN);
 
 DAGOR_TRY
 {

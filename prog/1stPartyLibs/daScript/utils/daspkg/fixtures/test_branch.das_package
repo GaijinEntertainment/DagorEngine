@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("branch-pkg")
+    package_source("https://github.com/test/branch-pkg")
+}
+
+[export]
+def resolve(sdk_version, version : string) {
+    download_branch("main")
+}

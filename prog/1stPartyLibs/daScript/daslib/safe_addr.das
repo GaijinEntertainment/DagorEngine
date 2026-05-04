@@ -6,8 +6,15 @@ options strict_smart_pointers = true
 
 module safe_addr shared private
 
-require ast
-require rtti
+//! Safe temporary pointer macros.
+//!
+//! Provides ``safe_addr``, ``temp_ptr``, and ``shared_addr`` for obtaining
+//! temporary pointers with compile-time safety checks. ``safe_addr`` only works
+//! on local or global variables (not fields of expiring objects). ``shared_addr``
+//! only works on shared global variables.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/is_local
 
@@ -21,7 +28,7 @@ def public safe_addr(var x : auto(T)& ==const) : T -&?# {
 
 [tag_function(safe_addr_tag)]
 def public safe_addr(x : auto(T)& ==const) : T -&? const# {
-    //! returns temporary pointer to the given expressio
+    //! returns temporary pointer to the given expression
     unsafe {
         return reinterpret<T -&? const#>(addr(x))
     }
@@ -82,7 +89,7 @@ class SharedAddrMacro : AstFunctionAnnotation {
 
 [tag_function(temp_value_tag)]
 def public temp_value(x : auto(T)& ==const) : T&# const {
-    //! returns temporary pointer to the given expression
+    //! returns temporary reference to the given expression
     unsafe {
         return reinterpret<T&# const>(x)
     }
@@ -90,7 +97,7 @@ def public temp_value(x : auto(T)& ==const) : T&# const {
 
 [tag_function(temp_value_tag)]
 def public temp_value(var x : auto(T)& ==const) : T&# {
-    //! returns temporary pointer to the given expression
+    //! returns temporary reference to the given expression
     unsafe {
         return reinterpret<T&#>(x)
     }
@@ -120,6 +127,7 @@ def public temp_addr(var x : auto(T)& ==const) : T-& ? #
 
 [tag_function(temp_addr_tag)]
 def public temp_addr(x : auto(T)& ==const) : T-& ? const #
+    //! Returns a temporary const pointer to the given expression.
     unsafe
         return reinterpret<T-&? const #>(addr(x))
 

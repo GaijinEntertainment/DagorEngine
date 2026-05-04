@@ -9,7 +9,7 @@ hlsl
 {
   uint calc_histogram_index(uint x, uint y, uint mip, uint ri_offset)
   {
-    return (mip << (TILE_WIDTH_BITS + TILE_WIDTH_BITS + MAX_RI_VTEX_CNT_BITS)) | (ri_offset << (TILE_WIDTH_BITS + TILE_WIDTH_BITS)) | (y << TILE_WIDTH_BITS) | (x);
+    return (mip << (TILE_WIDTH_BITS + TILE_WIDTH_BITS + RI_VTEX_CNT_BITS)) | (ri_offset << (TILE_WIDTH_BITS + TILE_WIDTH_BITS)) | (y << TILE_WIDTH_BITS) | (x);
   }
 }
 
@@ -17,6 +17,7 @@ hlsl
 
 buffer clipmap_histogram_buf_rw;
 buffer clipmap_tile_info_buf_rw;
+int clipmap_tile_info_buf_max_elements;
 
 macro CLIPMAP_CLEAR_HISTOGRAM(stage)
   (stage) {
@@ -46,7 +47,6 @@ endmacro
 
 shader clipmap_clear_histogram_cs
 {
-  ENABLE_ASSERT(cs)
   CLIPMAP_CLEAR_HISTOGRAM(cs)
 
   hlsl(cs)
@@ -65,39 +65,26 @@ shader clipmap_clear_histogram_cs
 
 
 int clipmap_tex_mips = 6;
-interval clipmap_tex_mips: other_low<4, n_4<5, n_5<6, n_6<7, n_7<8, other_high;
+interval clipmap_tex_mips: other_low<4, n_4<5, n_5<6, n_6<7, n_7<8, n_8<9, n_9<10, n_10<11, n_11<12, other_high;
 
 int feedback_downsample_dim = 2;
 interval feedback_downsample_dim: dim_1 < 2, dim_2 < 4, dim_4 < 8, dim_8 < 16, dim_16 < 32, dim_other;
 
-int clipmap_feedback_calc_histogram_on_gpu = 0;
-interval clipmap_feedback_calc_histogram_on_gpu: no < 1, yes;
-
 buffer clipmap_feedback_buf;
-buffer clipmap_feedback_readback_buf_rw;
 int clipmap_feedback_readback_size;
 int clipmap_feedback_stride;
 int clipmap_feedback_readback_stride;
 
 shader clipmap_process_feedback_cs
 {
-  ENABLE_ASSERT(cs)
-
   USE_FEEDBACK_PACKER(cs)
   (cs)
   {
     clipmap_feedback_buf@buf = clipmap_feedback_buf hlsl { ByteAddressBuffer clipmap_feedback_buf@buf; };
-    clipmap_feedback_readback_buf_rw@uav = clipmap_feedback_readback_buf_rw hlsl { RWByteAddressBuffer clipmap_feedback_readback_buf_rw@uav; };
     clipmap_feedback_readback_size@i1 = clipmap_feedback_readback_size;
     clipmap_tex_mips@i1 = clipmap_tex_mips;
-  }
-  if (clipmap_feedback_calc_histogram_on_gpu == yes)
-  {
-    (cs)
-    {
-      clipmap_histogram_buf_rw@uav = clipmap_histogram_buf_rw hlsl {
+    clipmap_histogram_buf_rw@uav = clipmap_histogram_buf_rw hlsl {
         RWByteAddressBuffer clipmap_histogram_buf_rw@uav;
-      }
     }
   }
   if (feedback_downsample_dim != dim_1)
@@ -173,17 +160,11 @@ shader clipmap_process_feedback_cs
       uint2 pos; uint mip; uint ri_offset;
       unpackFeedbackInfo(loadFeedback(dtId), pos.xy, mip, ri_offset);
 
-      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_offset < MAX_VTEX_CNT) )
+      if ( all(pos < TILE_WIDTH && mip < clipmap_tex_mips && ri_offset < MAX_RI_OFFSET) )
       {
-##if clipmap_feedback_calc_histogram_on_gpu == yes
         uint histId = calc_histogram_index(pos.x, pos.y, mip, ri_offset);
         clipmap_histogram_buf_rw.InterlockedAdd(histId*4, 1u);
-##endif
       }
-
-      // pack again, but without dummy clear offset, to make it consistent (pack/unpack can use tricks)
-      uint feedback = packFinalFeedbackInfo(pos.xy, mip, ri_offset);
-      storeBuffer(clipmap_feedback_readback_buf_rw, dtId*4, feedback);
     }
   }
 
@@ -205,6 +186,7 @@ macro BUILD_TILE_INFO(stage)
     clipmap_tile_info_buf_rw@uav = clipmap_tile_info_buf_rw hlsl {
       RWByteAddressBuffer clipmap_tile_info_buf_rw@uav;
     }
+    clipmap_tile_info_buf_max_elements@u1 = clipmap_tile_info_buf_max_elements;
   }
 
   hlsl(stage)
@@ -234,9 +216,17 @@ macro BUILD_TILE_INFO(stage)
       #define UNROLLED_MIP_CNT 6
 ##elif clipmap_tex_mips == n_7
       #define UNROLLED_MIP_CNT 7
+##elif clipmap_tex_mips == n_8
+      #define UNROLLED_MIP_CNT 8
+##elif clipmap_tex_mips == n_9
+      #define UNROLLED_MIP_CNT 9
+##elif clipmap_tex_mips == n_10
+      #define UNROLLED_MIP_CNT 10
+##elif clipmap_tex_mips == n_11
+      #define UNROLLED_MIP_CNT 11
 ##endif
 
-      UNROLL for (uint ri_offset = 0; ri_offset < MAX_VTEX_CNT; ++ri_offset)
+      UNROLL for (uint ri_offset = 0; ri_offset < MAX_RI_OFFSET; ++ri_offset)
       {
 #ifdef UNROLLED_MIP_CNT
       UNROLL for (uint mip = 0; mip < UNROLLED_MIP_CNT; ++mip)
@@ -252,14 +242,19 @@ macro BUILD_TILE_INFO(stage)
         {
           uint at;
           clipmap_tile_info_buf_rw.InterlockedAdd(0, 1u, at);
-          ++at; // first entry is cnt
 
-#if MAX_RI_VTEX_CNT_BITS > 0
-          storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 0)*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
-          storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 1)*4, ri_offset);
-#else
-          storeBuffer(clipmap_tile_info_buf_rw, at*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
-#endif
+          if (at < clipmap_tile_info_buf_max_elements)
+          {
+            ++at; // first entry is cnt
+
+##if clipmap_use_ri_vtex == yes
+            storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 0)*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
+            storeBuffer(clipmap_tile_info_buf_rw, (at*2 + 1)*4, ri_offset);
+##else
+            storeBuffer(clipmap_tile_info_buf_rw, at*4, packTileInfo(dtId.x, dtId.y, mip, histCnt));
+##endif
+
+          }
         }
       }
       }
@@ -271,7 +266,6 @@ endmacro
 
 shader clipmap_build_tile_info_cs
 {
-  ENABLE_ASSERT(cs)
   BUILD_TILE_INFO(cs)
 
   hlsl(cs)

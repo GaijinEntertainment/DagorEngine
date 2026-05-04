@@ -1,7 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/sqEventBus ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/sqEventBus.lib ;
@@ -19,6 +19,7 @@ UseProgLibs =
 
 Sources =
   sqEventBus.cpp
+  bind.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

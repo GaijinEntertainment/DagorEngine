@@ -124,7 +124,7 @@ public:
     bool humanAnimCharVisible;
   };
 
-  static constexpr const int MAX_COLLISION_SUBOBJECTS = 32;
+  static constexpr const int MAX_COLLISION_SUBOBJECTS = 64;
 
   ecs::EntityId eid = ecs::INVALID_ENTITY_ID;
   const PhysType physType;
@@ -163,7 +163,7 @@ public:
 
   BasePhysActor(ecs::EntityId eid_, PhysType phys_type_);
 
-  virtual void enqueueCT(float at_time) = 0;
+  virtual void enqueueCT(double at_time) = 0;
 
   virtual void savePhysSnapshot(BasePhysSnapshot &&snap, float additional_delay = 0.f) = 0;
 
@@ -324,21 +324,21 @@ public:
   static phys_sync_states_packed_t syncStatesPacked;
 
   // daecs reg
-  PhysActor(const ecs::EntityManager &mgr, ecs::EntityId eid);
+  PhysActor(ecs::EntityManager &mgr, ecs::EntityId eid);
   bool onLoaded(ecs::EntityManager &mgr, ecs::EntityId eid);
   ~PhysActor();
 
-  void update(float at_time, float remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
-  void updateNetPhys(IPhysActor::NetRole my_role, float at_time);
+  void update(double at_time, double remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
+  void updateNetPhys(IPhysActor::NetRole my_role, double at_time);
   virtual void initRole() const override final;
-  bool beforeEnqueueCT(float /*at_time*/) { return true; }
+  bool beforeEnqueueCT(double /*at_time*/) { return true; }
   void afterEnqueueCT() {}
-  void doEnqueueCT(float at_time);
-  virtual void enqueueCT(float at_time) override final { doEnqueueCT(at_time); }
+  void doEnqueueCT(double at_time);
+  virtual void enqueueCT(double at_time) override final { doEnqueueCT(at_time); }
 
   void setRoleAndTickrateType(IPhysActor::NetRole nr, PhysTickRateType trtype) override;
 
-  const SnapshotPair *findPhysSnapshotPair(float at_time) const;
+  const SnapshotPair *findPhysSnapshotPair(double at_time) const;
 
   // Returns true if phys actor in motion
   bool serializePhysSnapshotBase(danet::BitStream &bs, PhysSnapSerializeType pst) const;
@@ -357,8 +357,8 @@ public:
 
   static void processSnapshotNoEntity(uint16_t netPhysId, BasePhysSnapshot &&basesnap);
 
-  const SnapshotPair *updateRemoteShadowBase(float remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
-  void updateRemoteShadow(float remote_time, float dt, const BasePhysActor::UpdateContext &uctx)
+  const SnapshotPair *updateRemoteShadowBase(double remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
+  void updateRemoteShadow(double remote_time, float dt, const BasePhysActor::UpdateContext &uctx)
   {
     updateRemoteShadowBase(remote_time, dt, uctx);
   }
@@ -430,8 +430,8 @@ struct PhysUpdateCtx
 
 void teleport_phys_actor(ecs::EntityId eid, const TMatrix &tm);
 void reset_phys_actor(ecs::EntityId eid);
-void phys_enqueue_controls(float at_time);
-void net_send_phys_snapshots(float cur_time, float dt);
+void phys_enqueue_controls(double at_time);
+void net_send_phys_snapshots(double cur_time, float dt);
 typedef bool (*deserialize_snapshot_cb_t)(const danet::BitStream &, PhysSnapSerializeType, BasePhysSnapshot &, net::IConnection &);
 typedef void(process_snapshot_no_entity_cb_t)(uint16_t netPhysId, BasePhysSnapshot &&);
 void net_rcv_phys_snapshots(const net::IMessage &msg,
@@ -446,7 +446,7 @@ void cleanup_phys();
 void clear_all_phys_actors_lists();
 ecs::EntityId find_closest_net_phys_actor(const Point3 &pos);
 
-int calc_phys_update_to_tick(float at_time, float dt, int ctrl_tick, int ct_produced_at_tick, int last_aas_tick);
+int calc_phys_update_to_tick(double at_time, float dt, int ctrl_tick, int ct_produced_at_tick, int last_aas_tick);
 
 struct PairCollisionData
 {
@@ -461,6 +461,7 @@ struct PairCollisionData
   float maxMassRatioForPushOnCollision;
   int collisionMaterialId;
   int ignoreMaterialId;
+  bool ignoreWorldContacts = false;
 };
 void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data);
 

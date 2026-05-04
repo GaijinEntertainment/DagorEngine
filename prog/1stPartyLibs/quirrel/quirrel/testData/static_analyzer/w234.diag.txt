@@ -1,9 +1,9 @@
 WARNING: w234 (div-by-zero) Integer division by zero.
-testData/static_analyzer/w234.nut:4:10
+testData/static_analyzer/w234.nut:5:8
 
-function foo() { //-declared-never-used
-  ::print(1 / (0))
-          ^------
+  let zero = 0
+  print(1 / (zero))
+        ^--------
 }
 
 

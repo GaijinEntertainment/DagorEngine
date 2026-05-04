@@ -84,15 +84,14 @@ public:
       vector<ProfilerData::LastRevCallStack> threadRevStacks;
       HashedKeyMap<uint64_t, uint16_t> tidIndices;
 
-      for (const uint16_t *b = dump.stacks.begin(), *i = b, *end = dump.stacks.end(); i < end;)
-      {
+      auto processStack = [&](const uint16_t *&i) -> bool {
         ++samples;
         const uint32_t newCount = sampling_saved_cs_count(i), sameCount = sampling_same_cs_count(i);
         const uint64_t totalSize = newCount + sameCount;
         if (totalSize > countof(ProfilerData::LastRevCallStack::revStack))
         {
           report_logerr("too big stack");
-          break;
+          return true;
         }
         const uint64_t tid = sampling_saved_tid(i);
         const uint16_t *cs_p48 = sampling_saved_cs(i);
@@ -106,7 +105,7 @@ public:
         if (sameCount > tidRevStack.currentStackSize)
         {
           report_logerr("invalid stack");
-          break;
+          return true;
         }
         for (uint32_t newStackI = 0; newStackI < newCount; ++newStackI, cs_p48 += 3)
           tidRevStack.revStack[sameCount + newStackI] = to_64_bit_pointer(cs_p48);
@@ -130,7 +129,14 @@ public:
           }
         }
         i += sampling_allocated_words(newCount);
-      }
+        return false;
+      };
+      dump.stacks.forEachChunkStoppable([&](const uint16_t *i, const uint16_t *end) {
+        while (i < end)
+          if (processStack(i))
+            return true;
+        return false;
+      });
 
       samplesCountMap.iterate([&](uint64_t, uint64_t index_count) {
         const uint64_t *cs = callFrames.data() + uint32_t(index_count);

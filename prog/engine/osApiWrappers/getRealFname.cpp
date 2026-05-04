@@ -11,7 +11,7 @@
 
 extern VromReadHandle vromfs_get_file_data_one(const char *fname, VirtualRomFsData **out_vrom);
 
-static thread_local char frn_tls[512];
+static thread_local char frn_tls[DAGOR_MAX_PATH];
 
 static inline const char *get_abs_vrom_name(const char *fname)
 {
@@ -25,7 +25,8 @@ static inline const char *get_real_name(const char *fname, bool folder, bool all
   if (is_path_abs(fname))
   {
     char *full_real_name = frn_tls;
-    strcpy(full_real_name, fname);
+    strncpy(full_real_name, fname, DAGOR_MAX_PATH - 1);
+    full_real_name[DAGOR_MAX_PATH - 1] = '\0';
     dd_simplify_fname_c(full_real_name);
     if (!folder)
     {

@@ -73,7 +73,7 @@
 #if MODFX_RIBBON_SHAPE
     // TODO implement based on modfx_bboard_render implementation.
 #else
-    input.tc += modfx_render_get_motion_vecs(parent_data, input.tc, input.frame_blend);;
+    input.tc += modfx_render_get_motion_vecs(parent_data, input.tc, input.frame_blend, gdata);
 
     ModfxDeclWaterFxParams water_params = ModfxDeclWaterFxParams_load( 0, parent_data.mods_offsets[MODFX_RMOD_WATER_FX_PARAMS] );
 

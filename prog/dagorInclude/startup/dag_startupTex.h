@@ -37,8 +37,6 @@ void register_any_tex_load_factory(const char *try_order = "jpg|jpeg|avif|png|tg
 //! registers factory for loading images from URLs using auxilary callback
 void register_url_tex_load_factory(user_get_file_data_t cb_get, void *cb_arg, const char *url = "http|https",
   const char *ext = "jpg|jpeg|avif|png|tga");
-//! registers factory for loading lottie animation files
-void register_lottie_tex_load_factory(unsigned int atlas_w = 512, unsigned int atlas_h = 512);
 
 //! registers factory for texture creating from files without extension that reside in vromfs
 void register_any_vromfs_tex_create_factory(const char *try_order = "ddsx|jpg|jpeg|avif|tga|png");

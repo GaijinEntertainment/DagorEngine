@@ -7,7 +7,6 @@ include "globtm.dshl"
 
 shader sdf_object_debug
 {
-  supports global_const_block;
   supports global_frame;
   cull_mode = none;
   z_write = true;

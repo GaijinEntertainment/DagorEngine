@@ -9,6 +9,7 @@
 #include <math/dag_e3dColor.h>
 #include <EASTL/array.h>
 #include <dag/dag_relocatable.h>
+#include <rendInst/riShaderConstBufferFlags.hlsli>
 
 
 namespace rendinst::render
@@ -49,7 +50,7 @@ struct RiShaderConstBuffers
 
   RiShaderConstBuffers();
 
-  // ofs and stride in typed vec4 (not in bytes)
+  // ofs and stride in typed vec4 (not in bytes), for flags see RI_CBUFFER_FLAGS__* defines
   void setInstancing(uint32_t ofs, uint32_t stride, uint32_t flags, uint32_t impostor_data_offset);
   void setBBoxZero();
   void setBBoxNoChange();
@@ -82,6 +83,9 @@ inline void RiShaderConstBuffers::setRandomColors(const E3DCOLOR colors[2])
   consts.color_to = v_mul(v_cvti_vec4f(v_make_vec4i(colors[1].r, colors[1].g, colors[1].b, colors[1].a)), i255);
 #endif
 }
+
+void updateRiColorByName(const char *ri_res_name, const E3DCOLOR &color_from, const E3DCOLOR &color_to,
+  E3DCOLOR *prev_color_from = nullptr, E3DCOLOR *prev_color_to = nullptr);
 
 
 } // namespace rendinst::render

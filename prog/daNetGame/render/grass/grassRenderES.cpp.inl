@@ -2,6 +2,7 @@
 
 #include <landMesh/lmeshManager.h>
 #include <heightmap/heightmapHandler.h>
+#include <heightmap/heightmapMetricsCalc.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_convar.h>
@@ -30,13 +31,12 @@
 #include <render/renderEvent.h>
 #include <render/renderer.h>
 #include <daSDF/worldSDF.h>
-#include <render/daFrameGraph/ecs/frameGraphNode.h>
+#include <daGI2/daGI2.h>
 #include <ecs/rendInst/riExtra.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/world/defaultVrsSettings.h>
 #include <render/world/deformHeightmap.h>
 #include <render/world/cameraParams.h>
-#include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -52,6 +52,8 @@ CONSOLE_BOOL_VAL("grass", grassColorIgnoreTerrainDetail, false);
 CONSOLE_BOOL_VAL("grass", grassUseSdfEraser, false);
 CONSOLE_FLOAT_VAL_MINMAX("grass", grassSdfEraserHeight, 1, 0.001f, 100);
 CONSOLE_BOOL_VAL("grass", grassLogSdfChanges, false);
+
+extern ConVarB prepass;
 
 namespace var
 {
@@ -78,7 +80,8 @@ public:
     uint32_t eraser_count,
     Sbuffer *eraser_instance_buffer,
     ShaderElement *grass_eraser,
-    PostFxRenderer &sdf_eraser) :
+    PostFxRenderer &sdf_eraser,
+    bool useSdfEraser) :
     renderer(r),
     provider(p),
     oviewproj(),
@@ -88,7 +91,8 @@ public:
     eraserCount(eraser_count),
     eraserInstanceBuffer(eraser_instance_buffer),
     grassEraser(grass_eraser),
-    sdfEraser(sdf_eraser)
+    sdfEraser(sdf_eraser),
+    useSdfEraser(useSdfEraser)
   {}
   ~RandomGrassRenderHelper() {}
   bool beginRender(const Point3 &center_pos, const BBox3 &box, const TMatrix4 &glob_tm, const TMatrix4 &proj_tm) override;
@@ -105,6 +109,7 @@ private:
   Sbuffer *eraserInstanceBuffer;
   ShaderElement *grassEraser;
   PostFxRenderer &sdfEraser;
+  bool useSdfEraser;
 };
 
 
@@ -116,8 +121,8 @@ bool RandomGrassRenderHelper::getMinMaxHt(const BBox2 &box, float &min_ht, float
     const float lod = provider.getHmapHandler()->heightmapHeightCulling->getLod(patchSize);
     float minHt = min_ht, maxHt = max_ht;
     provider.getHmapHandler()->heightmapHeightCulling->getMinMax(floorf(lod), box[0], patchSize, minHt, maxHt);
-    min_ht = max(min_ht, minHt + ShaderGlobal::get_real(hmap_displacement_downVarId));
-    max_ht = min(max_ht, maxHt + ShaderGlobal::get_real(hmap_displacement_upVarId));
+    min_ht = max(min_ht, minHt + ShaderGlobal::get_float(hmap_displacement_downVarId));
+    max_ht = min(max_ht, maxHt + ShaderGlobal::get_float(hmap_displacement_upVarId));
     max_ht = max(max_ht, rendInstHeightmapMaxHt);
     return true;
   }
@@ -167,7 +172,7 @@ void RandomGrassRenderHelper::renderMask()
     d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, eraserCount);
   }
 
-  if (grassUseSdfEraser)
+  if (useSdfEraser)
     sdfEraser.render();
 }
 
@@ -223,28 +228,9 @@ void GrassRenderer::renderGrass(const GrassView view)
     grass.render(view, grass.GRASS_NO_PREPASS);
 }
 
-void GrassRenderer::renderFastGrass(const TMatrix4 &globtm, const Point3 &view_pos)
-{
-  fast_grass_baker::fast_grass_baker_on_render();
-  if (!fast_grass_render.get())
-    return;
-  if (auto *lmeshManager = WRDispatcher::getLandMeshManager())
-  {
-    float minHt = lmeshManager->getBBox()[0].y;
-    float maxHt = lmeshManager->getBBox()[1].y;
-    if (rendInstHeightmap)
-      maxHt = max(maxHt, rendInstHeightmap->getMaxHt());
-    float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
-    if (auto hmapHandler = lmeshManager->getHmapHandler())
-      waterLevel = hmapHandler->getPreparedWaterLevel();
-    BBox2 clipBox = grass.getGrassWorldBox();
-    fastGrass.render(globtm, view_pos, minHt, maxHt, waterLevel, &clipBox);
-  }
-}
-
 void GrassRenderer::updateSdfEraser()
 {
-  if (!grassUseSdfEraser)
+  if (!useSdfEraser)
     return;
 
   if (!sdfBoxesToUpdate.empty())
@@ -263,11 +249,12 @@ void GrassRenderer::updateSdfEraser()
   if (!worldRenderer)
     return;
 
-  auto *worldSdf = worldRenderer->getWorldSDF();
-  if (!worldSdf)
+  DaGI *gi = worldRenderer->getGI();
+  if (!gi)
     return;
 
-  int numClips = worldSdf->getClipsCount();
+  const WorldSDF &worldSdf = gi->getWorldSDF();
+  int numClips = worldSdf.getClipsCount();
   if (numClips != lastSdfBoxes.size())
   {
     lastSdfBoxes.clear();
@@ -278,7 +265,7 @@ void GrassRenderer::updateSdfEraser()
 
   for (int i = 0; i < lastSdfBoxes.size(); i++)
   {
-    BBox3 box = worldSdf->getClipBox(i);
+    BBox3 box = worldSdf.getClipBox(i);
     auto &lastBox = lastSdfBoxes[i];
     if (box == lastBox)
       continue;
@@ -360,11 +347,19 @@ void GrassRenderer::generateGrassPerCamera(const TMatrix &itm)
     d3d::resource_barrier({grassEraserBuffer.getBuf(), RB_RO_SRV | RB_STAGE_VERTEX});
   }
 
-  bool needInvalidate = grassColorIgnoreTerrainDetail.pullValueChange();
-  if (grassUseSdfEraser.pullValueChange() || (grassUseSdfEraser && grassSdfEraserHeight.pullValueChange()))
+  needInvalidate = grassColorIgnoreTerrainDetail.pullValueChange();
+
+  // Debug override
+  if (grassUseSdfEraser.pullValueChange())
+  {
+    useSdfEraser = grassUseSdfEraser;
+    needInvalidate = true;
+  }
+
+  if (useSdfEraser && grassSdfEraserHeight.pullValueChange())
   {
     needInvalidate = true;
-    ShaderGlobal::set_real(var::grass_eraser_sdf_height, grassSdfEraserHeight);
+    ShaderGlobal::set_float(var::grass_eraser_sdf_height, grassSdfEraserHeight);
   }
   if (needInvalidate)
   {
@@ -380,14 +375,14 @@ void GrassRenderer::generateGrassPerCamera(const TMatrix &itm)
     const float rendInstHeightmapMaxHt = get_rendinst_heightmap_max_ht(rendInstHeightmap.get());
 
     RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManager, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
-      grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser);
+      grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser);
 
     grass.generatePerCamera(itm.getcol(3), rhlp);
   }
 }
 
 void GrassRenderer::generateGrassPerView(
-  const GrassView view, const Frustum &frustum, const TMatrix &itm, const Driver3dPerspective &perspective)
+  const GrassView view, const Frustum &frustum, const TMatrix &itm, const TMatrix &prev_itm, const Driver3dPerspective &perspective)
 {
   auto *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
   auto *lmeshManager = WRDispatcher::getLandMeshManager();
@@ -400,9 +395,9 @@ void GrassRenderer::generateGrassPerView(
   const float rendInstHeightmapMaxHt = get_rendinst_heightmap_max_ht(rendInstHeightmap.get());
 
   RandomGrassRenderHelper rhlp(*lmeshRenderer, *lmeshManager, rendInstHeightmapMaxHt, min(grassErasersActualSize, MAX_GRASS_ERASERS),
-    grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser);
+    grassEraserBuffer.getBuf(), grassEraserShader.shader, grassSdfEraser, useSdfEraser);
 
-  grass.generatePerView(view, frustum, itm.getcol(3), itm.getcol(2), rhlp);
+  grass.generatePerView(view, frustum, itm.getcol(3), prev_itm.getcol(3), itm.getcol(2), rhlp);
 
   if (grassify)
   {
@@ -414,13 +409,13 @@ void GrassRenderer::generateGrassPerView(
 }
 
 template <typename Callable>
-static void get_grass_render_ecs_query(Callable c);
+static void get_grass_render_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-static void init_grass_render_ecs_query(Callable c);
+static void init_grass_render_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-static void grass_erasers_ecs_query(Callable c);
+static void grass_erasers_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-static void fast_grass_types_ecs_query(Callable c);
+static void fast_grass_types_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 static void grass_render_update_es(const UpdateStageInfoBeforeRender &, GrassRenderer &grass_render)
@@ -429,6 +424,7 @@ static void grass_render_update_es(const UpdateStageInfoBeforeRender &, GrassRen
     grass_render.initOrUpdateFastGrass();
 }
 
+ECS_TAG(render)
 ECS_TRACK(fast_grass__slice_step,
   fast_grass__fade_start,
   fast_grass__fade_end,
@@ -459,20 +455,22 @@ ECS_REQUIRE(float fast_grass__slice_step,
   float fast_grass__ao_curve,
   int fast_grass__num_samples,
   int fast_grass__max_samples)
-static void track_fast_grass_settings_es(const ecs::Event &)
+static void track_fast_grass_settings_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
 }
 
 // split because of ECS limit of 15 tracked components
+ECS_TAG(render)
 ECS_TRACK(fast_grass__hmap_range, fast_grass__hmap_cell_size, fast_grass__clipmap_resolution, fast_grass__clipmap_cascades)
 ECS_REQUIRE(
   float fast_grass__hmap_range, float fast_grass__hmap_cell_size, int fast_grass__clipmap_resolution, int fast_grass__clipmap_cascades)
-static void track_fast_grass_settings2_es(const ecs::Event &)
+static void track_fast_grass_settings2_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
 }
 
+ECS_TAG(render)
 ECS_ON_EVENT(on_appear, on_disappear)
 ECS_TRACK(fast_grass__impostor,
   dagdp__biomes,
@@ -499,9 +497,33 @@ ECS_REQUIRE(ecs::Tag fast_grass_type,
   E3DCOLOR fast_grass__color_mask_g_to,
   E3DCOLOR fast_grass__color_mask_b_from,
   E3DCOLOR fast_grass__color_mask_b_to)
-static void track_fast_grass_types_es(const ecs::Event &)
+static void track_fast_grass_types_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
+}
+
+ECS_TAG(render)
+ECS_TRACK(render_settings__grassRendInstRangeMul)
+ECS_REQUIRE(float render_settings__grassRendInstRangeMul)
+ECS_ON_EVENT(OnRenderSettingsReady)
+ECS_NO_ORDER
+static void fast_grass_on_render_settings_change_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) { grass_render.fastGrassChanged = true; });
+}
+
+template <typename Callable>
+static inline void grass_range_mul_ecs_query(ecs::EntityManager &manager, Callable);
+
+template <typename Callable>
+static inline void grass_max_range_ecs_query(ecs::EntityManager &manager, Callable);
+
+static float get_grass_range_mul()
+{
+  float mul = 1;
+  grass_range_mul_ecs_query(*g_entity_mgr,
+    [&mul](float &render_settings__grassRendInstRangeMul) { mul = render_settings__grassRendInstRangeMul; });
+  return mul;
 }
 
 void GrassRenderer::initOrUpdateFastGrass()
@@ -533,7 +555,7 @@ void GrassRenderer::initOrUpdateFastGrass()
 #undef GET_PARAM
   }
 
-  fast_grass_types_ecs_query(
+  fast_grass_types_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag fast_grass_type) const ecs::string &dagdp__name, const ecs::List<int> &dagdp__biomes,
       const ecs::string &fast_grass__impostor, float fast_grass__height, float fast_grass__weight_to_height_mul,
       float fast_grass__height_variance, float fast_grass__stiffness, E3DCOLOR fast_grass__color_mask_r_from,
@@ -556,18 +578,32 @@ void GrassRenderer::initOrUpdateFastGrass()
       gd.colors[5] = fast_grass__color_mask_b_to;
     });
 
-  fastGrass.initOrUpdate(make_span(grassTypes));
+  const float rangeMul = get_grass_range_mul();
+  fastGrass.placedFadeStart *= rangeMul;
+  fastGrass.placedFadeEnd *= rangeMul;
+  fastGrass.fadeStart *= rangeMul;
+  fastGrass.fadeEnd *= rangeMul;
+
+  grass_max_range_ecs_query(*g_entity_mgr,
+    [r = fastGrass.placedFadeEnd](float &dagdp__grass_max_range) { dagdp__grass_max_range = r; });
+
+  int dimBits = default_patch_bits;
+  if (auto *lmeshManager = WRDispatcher::getLandMeshManager())
+    if (auto *hmapHandler = lmeshManager->getHmapHandler())
+      if (auto *metrics = hmapHandler->getMetricsRaw())
+        dimBits = get_log2i(metrics->dim);
+  fastGrass.initOrUpdate(make_span(grassTypes), dimBits);
   fastGrassChanged = false;
+
+  makeFastGrassNodes();
 }
 
 void GrassRenderer::initGrass(const DataBlock &grass_settings)
 {
   const DataBlock *grCfg = ::dgs_get_settings()->getBlockByNameEx("graphics");
 
-  if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-    grassPrepass.set(grCfg->getBool("grassPrepass", grassPrepass.get()));
-  else
-    grassPrepass.set(false);
+  grassPrepass.set(grCfg->getBool("grassPrepass", grassPrepass.get()));
+
   if (!grCfg->getBool("grassPrepassEarly", true))
     logerr("Sorry, the late grass prepass feature was removed. Go away.");
 
@@ -582,24 +618,25 @@ void GrassRenderer::initGrass(const DataBlock &grass_settings)
 
   grassSdfEraser.init("grass_sdf_eraser", true);
   sdfUpdatePeriod = max(1, grass_settings.getInt("sdf_eraser_update_period", grCfg->getInt("sdf_eraser_update_period", 2)));
-  float eraserHeight = grass_settings.getReal("grass_eraser_sdf_height", -1);
-  bool sdfEraserOn = (eraserHeight > 0);
-  grassUseSdfEraser.set(sdfEraserOn);
+  float eraserHeight = grCfg->getReal("grass_eraser_sdf_height", -1);
+  eastl::string_view environmentalDetail = grCfg->getStr("environmentDetailsQuality", "low");
+  bool sdfEraserOn = (eraserHeight > 0) && environmentalDetail == "high";
+  useSdfEraser = sdfEraserOn;
   if (sdfEraserOn)
   {
     grassSdfEraserHeight.set(eraserHeight);
-    ShaderGlobal::set_real(var::grass_eraser_sdf_height, eraserHeight);
+    ShaderGlobal::set_float(var::grass_eraser_sdf_height, eraserHeight);
   }
 
-  initOrUpdateFastGrass();
   fast_grass_baker::init_fast_grass_baker();
+  fastGrassChanged = true;
 
   grassify.reset();
   const auto grassify_settings = grass_settings.getBlockByName("grassify");
   if (grassify_settings)
     grassify = eastl::make_unique<Grassify>(*grassify_settings, grass.getGrassDistance());
 
-  grass_erasers_ecs_query([this](const ecs::Point4List &grass_erasers__spots) {
+  grass_erasers_ecs_query(*g_entity_mgr, [this](const ecs::Point4List &grass_erasers__spots) {
     setGrassErasers(grass_erasers__spots.size(), grass_erasers__spots.data());
   });
 }
@@ -641,31 +678,28 @@ void GrassRenderer::toggleCameraInCamera(const bool v)
   const bool inited = grass.base.toggleCameraInCameraView(v);
   if (!inited)
     logerr("grassRenderer: failed to toggle camcam ctx view to %d", v);
+
+  makeFastGrassNodes();
 }
 
 void render_grass_prepass(const GrassView view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.renderGrassPrepass(view); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.renderGrassPrepass(view); });
 }
 
 void render_grass_visibility_pass(const GrassView view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.renderGrassVisibilityPass(view); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.renderGrassVisibilityPass(view); });
 }
 
 void resolve_grass_visibility(const GrassView view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.resolveGrassVisibility(view); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.resolveGrassVisibility(view); });
 }
 
 void render_grass(const GrassView view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.renderGrass(view); });
-}
-
-void render_fast_grass(const TMatrix4 &globtm, const Point3 &view_pos)
-{
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.renderFastGrass(globtm, view_pos); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.renderGrass(view); });
 }
 
 DataBlock load_grass_settings(ecs::EntityId eid)
@@ -787,53 +821,9 @@ void init_grass(const DataBlock *grass_settings_from_level_fallback)
     return;
   g_entity_mgr->createEntitySync("grass_render");
 
-  init_grass_render_ecs_query([&](GrassRenderer &grass_render) {
+  init_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
     grass_render.initGrass(*grassSettings);
     grass_render.invalidateGrass(true);
-  });
-}
-
-ECS_ON_EVENT(on_appear, ChangeRenderFeatures)
-ECS_REQUIRE(const GrassRenderer &grass_render)
-void init_grass_render_es(const ecs::Event &evt, dafg::NodeHandle &grass_node)
-{
-  if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-    return;
-
-  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
-  {
-    if (!changedFeatures->isFeatureChanged(FeatureRenderFlags::CAMERA_IN_CAMERA))
-      return;
-    else
-      init_grass_render_ecs_query(
-        [&](GrassRenderer &grass_render) { grass_render.toggleCameraInCamera(changedFeatures->hasFeature(CAMERA_IN_CAMERA)); });
-  }
-
-  auto decoNs = dafg::root() / "opaque" / "decorations";
-  grass_node = decoNs.registerNode("fullres_grass_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.readBlob<OrderingToken>("grass_generated_token").optional();
-
-    shaders::OverrideState st;
-    st.set(shaders::OverrideState::Z_FUNC);
-    st.zFunc = CMPF_EQUAL;
-
-    use_camera_in_camera(registry);
-    registry.requestState().allowWireframe().setFrameBlock("global_frame").enableOverride(st);
-
-    render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
-
-    if (grass_supports_visibility_prepass())
-      registry.read("grass_visibility_resolved").blob<OrderingToken>();
-
-    // For grass billboards
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
-
-    return [](const dafg::multiplexing::Index &multiplexing_index) {
-      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-
-      const GrassView gv = multiplexing_index.subCamera == 0 ? GrassView::Main : GrassView::CameraInCamera;
-      render_grass(gv);
-    };
   });
 }
 
@@ -842,9 +832,12 @@ void init_grass_ri_clipmap_es(const ecs::Event &, GrassRenderer &grass_render) {
 
 ECS_ON_EVENT(OnRenderSettingsReady)
 ECS_TRACK(render_settings__bare_minimum, render_settings__grassQuality)
-static void grass_quiality_es(const ecs::Event &, bool render_settings__bare_minimum, const ecs::string &render_settings__grassQuality)
+static void grass_quiality_es(const ecs::Event &,
+  ecs::EntityManager &manager,
+  bool render_settings__bare_minimum,
+  const ecs::string &render_settings__grassQuality)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) {
+  get_grass_render_ecs_query(manager, [&](GrassRenderer &grass_render) {
     const GrassQuality newQuality =
       render_settings__bare_minimum ? GrassQuality::GRASS_QUALITY_LOW : str_to_grass_quality(render_settings__grassQuality.c_str());
     grass_render.grass.setQuality(newQuality);
@@ -856,46 +849,60 @@ ECS_TRACK(render_settings__anisotropy)
 ECS_REQUIRE(int render_settings__anisotropy)
 static void track_anisotropy_change_es(const ecs::Event &, GrassRenderer &grass_render) { grass_render.grass.applyAnisotropy(); }
 
-void grass_prepare(const CameraParams &main_view, const eastl::optional<CameraParams> &camcam_view)
+void grass_prepare(const CameraParams &main_view,
+  const CameraParams &prev_main_view,
+  const eastl::optional<CameraParams> &camcam_view,
+  const eastl::optional<CameraParams> &prev_camcam_view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) {
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
     grass_render.generateGrassPerCamera(main_view.viewItm);
 
-    grass_render.generateGrassPerView(GrassView::Main, main_view.noJitterFrustum, main_view.viewItm, main_view.noJitterPersp);
+    grass_render.generateGrassPerView(GrassView::Main, main_view.noJitterFrustum, main_view.viewItm, prev_main_view.viewItm,
+      main_view.noJitterPersp);
     if (camcam_view.has_value())
       grass_render.generateGrassPerView(GrassView::CameraInCamera, camcam_view->noJitterFrustum, camcam_view->viewItm,
-        camcam_view->noJitterPersp);
+        prev_camcam_view.value_or(camcam_view.value()).viewItm, camcam_view->noJitterPersp);
   });
+}
+
+void grass_change_set_ereaser_es(const SetGrassSdfEareaser &evt, GrassRenderer &grass_render)
+{
+  grass_render.useSdfEraser = evt.get<0>();
+  grass_render.needInvalidate = true;
 }
 
 void grass_prepare_per_camera(const CameraParams &main_view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.generateGrassPerCamera(main_view.viewItm); });
+  get_grass_render_ecs_query(*g_entity_mgr,
+    [&](GrassRenderer &grass_render) { grass_render.generateGrassPerCamera(main_view.viewItm); });
 }
 
-void grass_prepare_per_view(const CameraParams &view, const bool is_main_view)
+void grass_prepare_per_view(const CameraParams &view, const CameraParams &prev_view, const bool is_main_view)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) {
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
     grass_render.generateGrassPerView(is_main_view ? GrassView::Main : GrassView::CameraInCamera, view.noJitterFrustum, view.viewItm,
-      view.noJitterPersp);
+      prev_view.viewItm, view.noJitterPersp);
   });
 }
 
 void grass_invalidate()
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.invalidateGrass(false); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.invalidateGrass(false); });
 }
 
 void grass_invalidate(const dag::ConstSpan<BBox3> &boxes)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) { grass_render.invalidateGrassBoxes(boxes); });
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) { grass_render.invalidateGrassBoxes(boxes); });
 }
 
 #include <drv/3d/dag_resetDevice.h>
 
 static void reset_grass_render(bool full_reset)
 {
-  get_grass_render_ecs_query([&](GrassRenderer &grass_render) {
+  if (!g_entity_mgr)
+    return;
+
+  get_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
     if (!full_reset)
     {
       grass_render.invalidateGrass(false);

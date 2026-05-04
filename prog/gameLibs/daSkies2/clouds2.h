@@ -56,17 +56,19 @@ struct Clouds2
   void update(float dt);
   void setCloudsOffsetVars(CloudsRendererData &data) { clouds.setCloudsOffsetVars(data, weatherParams.worldSize); }
   void setCloudsOffsetVars(float current_clouds_offset) { clouds.setCloudsOffsetVars(current_clouds_offset, weatherParams.worldSize); }
-  IPoint2 getResolution(CloudsRendererData &data) { return IPoint2(data.w, data.h); }
-  void renderClouds(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm, const bool acquare_new_resource = true, const bool set_camera_vars = true);
-  void renderCloudsScreen(CloudsRendererData &data, const TextureIDPair &downsampled_depth, TEXTUREID target_depth,
-    const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  IPoint2 getResolution(const CloudsRendererData &data) { return data.cloudTexRes; }
+  void renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, const CloudsRenderFlags flags = CloudsRenderFlags::Default, const DynRes *dynamic_resolution = nullptr);
+  void renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampled_depth, BaseTexture *target_depth,
+    const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default);
 
   bool isPrepareRequired() const { return noises.isPrepareRequired(); }
   bool isReady() const { return noises.isReady(); }
 
-  CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir);
-  void renderCloudVolume(VolTexture *cloud_volume, float max_dist, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir, bool scattering_ready);
+  void renderCloudVolume(VolTexture *cloud_volume, TEXTUREID prev_cloud_volume, float max_dist, const TMatrix &view_tm,
+    const TMatrix4 &proj_tm, const TMatrix4 &prev_glob_tm);
   void setUseShadows2D(bool on);
   void reset() { noises.reset(); }
 
@@ -84,6 +86,8 @@ struct Clouds2
     if (weather.setExternalWeatherTexture(tid))
       field.invalidate();
   }
+
+  bool isLightRendered() const;
 
 private:
   void initHole();

@@ -1,5 +1,8 @@
 include "shader_global.dshl"
 include "gbuffer.dshl"
+include "bvh.dshl"
+include "bvh_common_includes.dshl"
+include "viewVecVS.dshl"
 
 int4 denoiser_resolution;
 
@@ -8,9 +11,6 @@ texture denoiser_nr;
 texture denoiser_half_view_z;
 texture denoiser_half_normals;
 texture denoiser_half_nr;
-texture denoiser_spec_history_confidence;
-
-float denoiser_glass_history_confidence_tweak = 0;
 
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
@@ -18,13 +18,14 @@ endmacro
 int denoiser_half_res = 0;
 interval denoiser_half_res: no < 1, yes;
 
-int denoiser_spec_confidence_half_res = 0;
-interval denoiser_spec_confidence_half_res: no < 1, yes;
+int denoiser_apply_wetness = 0;
+interval denoiser_apply_wetness : no < 1, yes;
 
 shader denoiser_prepare
 {
   (cs) {
     resolution@u2 = denoiser_resolution.xy;
+    inv_resolution@f2 = (1.0 / denoiser_resolution.xy);
 
     nrTexture@uav = denoiser_nr hlsl { RWTexture2D<float4> nrTexture@uav; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
@@ -33,41 +34,51 @@ shader denoiser_prepare
     halfNormalsTexture@tex2d = denoiser_half_normals;
     halfNrTexture@uav = denoiser_half_nr hlsl { RWTexture2D<float4> halfNrTexture@uav; };
     halfZTexture@uav = denoiser_half_view_z hlsl { RWTexture2D<float> halfZTexture@uav; };
-
-    glass_tweak@f1 = denoiser_glass_history_confidence_tweak;
   }
 
-  if (denoiser_spec_history_confidence != NULL)
+  if (denoiser_apply_wetness == yes)
   {
     (cs) {
-      specHistoryConfidence@uav = denoiser_spec_history_confidence hlsl { RWTexture2D<float> specHistoryConfidence@uav; };
+      bvh_origin@f3 = bvh_origin;
     }
-  }
 
+    USE_AND_INIT_VIEW_VEC_CS()
+    WETNESS_FOR_SPEC_BRDF(cs)
+    USE_CALC_CAMERA_RELATIVE_POS(cs)
+  }
 
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
   }
 
-  ENABLE_ASSERT(cs)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
   INIT_ZNZFAR_STAGE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, true)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, true)
-  INIT_READ_IS_HERO_COCKPIT(cs)
-  USE_READ_IS_HERO_COCKPIT(cs)
+  USE_LOAD_IS_HERO_COCKPIT(cs)
 
   hlsl(cs) {
     #define INF 1e6
 
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
 
     #include "common_consts.hlsli"
+
+    ##if (denoiser_apply_wetness == yes)
+      float wet(float roughness, float3 world_pos, float3 vertical_normal, float3 view, float material, bool isLandscape, float3 normal)
+      {
+        half3 albedo = 1;
+        half smoothness = 1 - roughness;
+        half reflectance = 1;
+        apply_env_wetness(world_pos, vertical_normal, view, material, isLandscape, albedo, smoothness, normal, reflectance);
+        return 1 - smoothness;
+      }
+    ##endif
 
     [numthreads(8, 8, 1)]
     void main(uint2 dtid : SV_DispatchThreadID)
@@ -76,27 +87,39 @@ shader denoiser_prepare
         return;
 
       float  viewZ = INF;
-      float4 normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(0, 0, 0);
-      float  historyConfidence = 1;
+      float4 normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(float3(0, 1, 0), 0, 0); // Use a dummy vector to avoid nan values
 
       float rawDepth = loadGbufferDepth(dtid);
 
-      float roughness = 1;
+      float material = 0;
+      bool isLandscape = false;
       float materialID = 0;
+      UnpackedGbuffer unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
       BRANCH
       if (rawDepth > 0)
       {
-        UnpackedGbuffer unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid));
         ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
 
-        viewZ           = linearize_z(rawDepth, zn_zfar.zw);
+        if (gbuffer.isGrass || gbuffer.isFoliage)
+          materialID = STRAND_MATERIAL_ID;
         ##if gbuffer_has_hero_cockpit
-          materialID      = gbuffer.isHeroCockpit ? CAMERA_ATTACHED_REFLECTION_MATERIAL_ID : 0;
+        if (gbuffer.isHeroCockpit)
+          materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
         ##endif
-        normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(normalize(gbuffer.normal), gbuffer.linearRoughness, materialID);
-        roughness = gbuffer.linearRoughness;
-        if (gbuffer.isGlass)
-          historyConfidence = gbuffer.linearRoughness + glass_tweak;
+
+        viewZ = linearize_z(rawDepth, zn_zfar.zw);
+
+        float roughness = gbuffer.linearRoughness;
+        ##if (denoiser_apply_wetness == yes)
+          float3 relPos = calc_camera_relative_pos(dtid, viewZ, inv_resolution);
+          float3 worldPos = relPos + bvh_origin;
+          float3 verticalNormal = gbuffer.normal;
+          float3 view = -normalize(relPos);
+          material = gbuffer.material;
+          isLandscape = gbuffer.isLandscape;
+          roughness = wet(gbuffer.linearRoughness, worldPos, verticalNormal, view, material, isLandscape, gbuffer.normal);
+        ##endif
+        normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(gbuffer.normal, roughness, materialID);
       }
 
       texture2DAt(viewZTexture, dtid.xy) = viewZ;
@@ -105,18 +128,26 @@ shader denoiser_prepare
         if (all(dtid.xy & 1) == 0 && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
         {
           float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
-          texture2DAt(halfZTexture, dtid.xy / 2) = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
-          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(normalize(texture2DAt(halfNormalsTexture, dtid.xy / 2).xyz * 2 - 1), roughness, materialID);
-        }
-      ##endif
+          float halfViewZ = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
+          texture2DAt(halfZTexture, dtid.xy / 2) = halfViewZ;
+          float4 halfNormal = texture2DAt(halfNormalsTexture, dtid.xy / 2);
+          halfNormal.xyz = normalize(halfNormal.xyz * 2 - 1);
+          float roughness = 1-halfNormal.w;
+          if (unpacked_gbuffer.isGlass)
+            roughness = 0;
+          ##if (denoiser_apply_wetness == yes)
+            if (rawHalfDepth > 0)
+            {
+              float3 relPos = calc_camera_relative_pos(dtid / 2, halfViewZ, inv_resolution * 2);
+              float3 worldPos = relPos + bvh_origin;
+              float3 verticalNormal = halfNormal.xyz;
+              float3 view = -normalize(relPos);
+              roughness = wet(roughness, worldPos, verticalNormal, view, material, isLandscape, halfNormal.xyz);
+            }
+          ##endif
 
-      ##if denoiser_spec_history_confidence != NULL
-        ##if denoiser_spec_confidence_half_res == yes
-          if (all(dtid.xy & 1) == 0 && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
-            texture2DAt(specHistoryConfidence, dtid.xy / 2) = historyConfidence;
-        ##else
-          texture2DAt(specHistoryConfidence, dtid.xy) = historyConfidence;
-        ##endif
+          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(halfNormal.xyz, roughness, materialID);
+        }
       ##endif
     }
   }

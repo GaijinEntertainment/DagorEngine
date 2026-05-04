@@ -1,0 +1,19 @@
+Root    ?= ../../../../.. ;
+Location = prog/engine/daECS/net/replay ;
+
+TargetType  = lib ;
+Target      = engine/daECS/net/replay.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+Sources =
+  replay.cpp
+  stubs.cpp
+;
+
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
+
+include $(Root)/prog/_jBuild/build.jam ;

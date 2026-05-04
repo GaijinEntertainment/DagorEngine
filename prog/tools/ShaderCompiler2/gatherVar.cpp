@@ -24,6 +24,8 @@
 
 #if _CROSS_TARGET_DX12
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
+#elif _CROSS_TARGET_METAL
+#include "buffBindPoints.h"
 #endif
 
 using namespace ShaderParser;
@@ -44,26 +46,36 @@ static void validate_local_debug_mode_assume(const auto &stat, Parser &parser)
  * class GatherVarShaderEvalCB
  *
  *********************************/
-GatherVarShaderEvalCB::GatherVarShaderEvalCB(shc::ShaderContext &ctx) :
-  ctx{ctx}, types{ctx.typeTables()}, parser{ctx.tgtCtx().sourceParseState().parser}, dynStack(tmpmem), dynCount(0), hasDynFlag(false)
-{}
+GatherVarShaderEvalCB::GatherVarShaderEvalCB(shc::ShaderContext &ctx) : ctx{ctx}, parser{ctx.tgtCtx().sourceParseState().parser} {}
 
 void GatherVarShaderEvalCB::eval_channel_decl(channel_decl &s, int str_id)
 {
   // channels must be independed by dynamic variables
-  if (dynCount > 0)
+  if (dynState.count > 0)
     report_error(parser, s.type->type, "cannot declare dynamic-depended channels (check 'if' condition(s) for dynamic variants)!");
 }
 
 // clang-format off
 void GatherVarShaderEvalCB::eval_assume_stat(assume_stat &s)
 {
+  // variables must be independed by static and dynamic variants
+  if (dynState.count > 0)
+    report_error(parser, s.interval, "cannot use assumes under dynamic branches in shader '%s' (check 'if' condition(s) for dynamic variants)!", ctx.name());
+  if (staticState.count > 0)
+    report_error(parser, s.interval, "cannot use assumes under static branches in shader '%s' (check 'if' condition(s) for material-var dependent variants)!", ctx.name());
+
   validate_local_debug_mode_assume(s, parser);
   add_shader_assume(s, parser, ctx);
 }
 
 void GatherVarShaderEvalCB::eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &s)
 {
+  // variables must be independed by static and dynamic variants
+  if (dynState.count > 0)
+    report_error(parser, s.interval, "cannot use assumes under dynamic branches in shader '%s' (check 'if' condition(s) for dynamic variants)!", ctx.name());
+  if (staticState.count > 0)
+    report_error(parser, s.interval, "cannot use assumes under static branches in shader '%s' (check 'if' condition(s) for material-var dependent variants)!", ctx.name());
+
   validate_local_debug_mode_assume(s, parser);
   add_shader_assume_if_not_assumed(s, parser, ctx);
 }
@@ -93,7 +105,7 @@ void GatherVarShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
 void GatherVarShaderEvalCB::eval_static(static_var_decl &s)
 {
   // variables must be independed by dynamic variants
-  if (dynCount > 0)
+  if (dynState.count > 0)
     report_error(parser, s.name, "cannot declare dynamic-depended variables (check 'if' condition(s) for dynamic variants)!");
 
   // register static variable name for future use
@@ -107,7 +119,7 @@ void GatherVarShaderEvalCB::eval_static(static_var_decl &s)
 void GatherVarShaderEvalCB::eval_interval_decl(interval &interv)
 {
   // intervals must be independed by dynamic variants
-  if (dynCount > 0)
+  if (dynState.count > 0)
     report_error(parser, interv.name, "cannot declare dynamic-depended intervals (check 'if' condition(s) for dynamic variants)!");
 
   // check for global
@@ -121,7 +133,7 @@ void GatherVarShaderEvalCB::eval_interval_decl(interval &interv)
   add_interval(ctx.intervals(), interv, type, parser, ctx.tgtCtx());
 }
 
-ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal *terminal, bool_value *e)
+ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e)
 {
   // try to find registered interval
   int intervalName_id = ctx.tgtCtx().intervalNameMap().getNameId(intervalName);
@@ -180,21 +192,20 @@ ShVarBool GatherVarShaderEvalCB::addInterval(const char *intervalName, Terminal 
     report_error(parser, terminal, "Non-assumed interval '%s' doesn't have a corresponding var", intervalName);
 
   // ok, found, adding variant flag
-  ShaderVariant::TypeTable *lst = NULL;
   if (interv->getVarType() != ShaderVariant::VARTYPE_INTERVAL || !is_static)
   {
-    lst = &types.allDynamicTypes;
-    hasDynFlag = true;
+    dynState.hasFlag = true;
+    ctx.typeTables().allDynamicTypes.addType(interv->getVarType(), intervalIndex, true);
   }
   else
   {
-    lst = &types.allStaticTypes;
+    staticState.hasFlag = true;
+    ctx.typeTables().allStaticTypes.addType(interv->getVarType(), intervalIndex, true);
   }
-  lst->addType(interv->getVarType(), intervalIndex, true);
   return ShVarBool(true, false);
 }
 
-ShVarBool GatherVarShaderEvalCB::addTextureInterval(const char *textureName, Terminal *terminal, bool_value &e)
+ShVarBool GatherVarShaderEvalCB::addTextureIntervalRef(const char *textureName, Terminal *terminal, bool_value &e)
 {
   //  try to find registered interval
   bool isGlobal = ctx.tgtCtx().globVars().getVarInternalIndex(ctx.tgtCtx().varNameMap().getVarId(textureName)) >= 0;
@@ -236,17 +247,70 @@ ShVarBool GatherVarShaderEvalCB::addTextureInterval(const char *textureName, Ter
   bool is_static = staticVars.getNameId(textureName) != -1;
 
   if (is_static)
-    types.allStaticTypes.addType(type, intervalIndex, true);
+  {
+    staticState.hasFlag = true;
+    ctx.typeTables().allStaticTypes.addType(type, intervalIndex, true);
+  }
   else
   {
-    hasDynFlag = true;
-    types.allDynamicTypes.addType(type, intervalIndex, true);
+    dynState.hasFlag = true;
+    ctx.typeTables().allDynamicTypes.addType(type, intervalIndex, true);
   }
   return ShVarBool(true, false);
 }
 
 void GatherVarShaderEvalCB::eval_external_block(external_state_block &state_block)
 {
+  auto eval_stat = [this](state_block_stat &s, auto &&eval_stat, auto &&eval_if_stat) -> void {
+    if (s.stblock_if_stat)
+    {
+      eval_if_stat(*s.stblock_if_stat, eval_if_stat);
+      return;
+    }
+    else if (!shc::config().dependencyDumpMode)
+    {
+      return;
+    }
+
+    // collect includes from hlsl source and discard the source for dependency dump
+    char const *hlsl = nullptr;
+    if (s.var)
+      hlsl = s.var->hlsl_var_text->text;
+    else if (s.arr)
+      hlsl = s.arr->hlsl_var_text->text;
+    else if (s.reg)
+      hlsl = s.reg->hlsl_var_text->text;
+    else if (s.reg_arr)
+      hlsl = s.reg_arr->hlsl_var_text->text;
+
+    CodeSourceBlocks cb;
+    struct NullEval : public ShaderParser::ShaderBoolEvalCB
+    {
+      bool anyCond = false;
+      ShVarBool eval_expr(bool_expr &) override
+      {
+        anyCond = true;
+        return ShVarBool(false, true);
+      }
+      ShVarBool eval_bool_value(bool_value &) override
+      {
+        anyCond = true;
+        return ShVarBool(false, true);
+      }
+      int eval_interval_value(const char *ival_name) override
+      {
+        anyCond = true;
+        return -1;
+      }
+    } null_eval;
+
+    if (!cb.parseSourceCode("", hlsl, null_eval, false, ctx.tgtCtx()))
+    {
+      report_error(parser, &s, "bad HLSL decl for named const\n%s", hlsl);
+      return;
+    }
+  };
+
   auto eval_if_stat = [this](state_block_if_stat &s, auto &&eval_if_stat) -> void {
     G_ASSERT(s.expr);
 
@@ -275,6 +339,7 @@ void GatherVarShaderEvalCB::eval_external_block(external_state_block &state_bloc
 
 ShVarBool GatherVarShaderEvalCB::eval_expr(bool_expr &e)
 {
+  auto &types = ctx.typeTables();
   int statStartIdx = types.allStaticTypes.getCount();
   int dynStartIdx = types.allDynamicTypes.getCount();
   ShVarBool v = ShaderParser::eval_shader_bool(e, *this);
@@ -295,12 +360,12 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
 {
   if (e.two_sided)
   {
-    types.allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED, true);
+    ctx.typeTables().allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED, true);
     return ShVarBool(true, false);
   }
   else if (e.real_two_sided)
   {
-    types.allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED, true);
+    ctx.typeTables().allStaticTypes.addType(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED, true);
     return ShVarBool(true, false);
   }
   else if (e.shader)
@@ -313,11 +378,11 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
   }
   else if (e.interval_ident)
   {
-    return addInterval(e.interval_ident->text, e.interval_ident, &e);
+    return addIntervalRef(e.interval_ident->text, e.interval_ident, &e);
   }
   else if (e.texture_name)
   {
-    return addTextureInterval(e.texture_name->text, e.texture_name, e);
+    return addTextureIntervalRef(e.texture_name->text, e.texture_name, e);
   }
   else if (e.bool_var)
   {
@@ -325,6 +390,8 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
     if (expr)
     {
       // Local bool var declarations at this point may depend on intervals, if there has been more than one
+      if (hasMultipleDeclarations)
+        dynState.hasFlag = true;
       ShVarBool evalRes = eval_expr(*expr);
       return ShVarBool(evalRes.value, evalRes.isConst && (isGlobal || !hasMultipleDeclarations));
     }
@@ -336,6 +403,11 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
     {
       // With maybe the branch eval result may depend on intervals even if there was only one decl up to this point -- cause it may not
       // be present in some variants.
+
+      // @TODO: this validation currently kills the begin-once via maybe pattern for declaring material params.
+      // In order to reenable it, we should further improve detection of possible bool var conflicts.
+      //
+      // dynState.hasFlag = true;
       ShVarBool evalRes = eval_expr(*expr);
       return ShVarBool(evalRes.value, evalRes.isConst && isGlobal);
     }
@@ -358,8 +430,29 @@ ShVarBool GatherVarShaderEvalCB::eval_bool_value(bool_value &e)
 }
 int GatherVarShaderEvalCB::eval_interval_value(const char *ival_name)
 {
-  addInterval(ival_name, NULL, NULL);
+  addIntervalRef(ival_name, NULL, NULL);
   return 0;
+}
+
+static void update_cond_parse_state(auto &state)
+{
+  state.stack.push_back(state.hasFlag);
+  if (state.hasFlag)
+    state.count++;
+  state.hasFlag = false;
+}
+
+static void unwind_cond_parse_state(auto &state)
+{
+  G_ASSERT(state.stack.size() > 0);
+  bool v = state.stack.back();
+  state.stack.pop_back();
+
+  if (v)
+  {
+    G_ASSERT(state.count > 0);
+    state.count--;
+  }
 }
 
 int GatherVarShaderEvalCB::eval_if(bool_expr &e)
@@ -372,11 +465,9 @@ int GatherVarShaderEvalCB::eval_if(bool_expr &e)
   // debug("expr-----------");
   ShVarBool b = eval_expr(e);
 
-  // count dynamic flag
-  dynStack.push_back(hasDynFlag);
-  if (hasDynFlag)
-    dynCount++;
-  hasDynFlag = false;
+  // count static & dynamic flag
+  update_cond_parse_state(dynState);
+  update_cond_parse_state(staticState);
 
   // debug("expr ok--------");
   return b.isConst ? (b.value ? IF_TRUE : IF_FALSE) : IF_BOTH;
@@ -401,7 +492,7 @@ void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
     {
       uint32_t slot = dxil::SPECIAL_CONSTANTS_REGISTER_INDEX;
       uint32_t space = dxil::DRAW_ID_REGISTER_SPACE;
-      hlsl.append_sprintf("cbuffer draw_id_const_buffer:register(b%d, space%d){ uint __draw_id; };\n", slot, space);
+      hlsl.append_sprintf("cbuffer draw_id_const_buffer:REGISTER(b%d, space%d){ uint __draw_id; };\n", slot, space);
       hlsl.append("uint get_draw_id() {return __draw_id;}\n");
     }
   }
@@ -438,17 +529,24 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   // way of letting DXC do the work for us.
   uint32_t slot = dxil::ROOT_CONSTANT_BUFFER_REGISTER_INDEX;
   uint32_t space = dxil::ROOT_CONSTANT_BUFFER_REGISTER_SPACE_OFFSET + words;
-  hlsl.aprintf(128, "cbuffer immediate_const_buffer:register(b%d, space%d){ uint", slot, space);
+  hlsl.aprintf(128, "cbuffer immediate_const_buffer:REGISTER(b%d, space%d){ uint", slot, space);
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "%s immediate_dword_%d", i != 0 ? "," : "", i);
   hlsl.aprintf(32, ";};\n");
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return immediate_dword_%d;}\n", i, i);
+#elif _CROSS_TARGET_SPIRV
+  const uint32_t MAX_IMMEDIATE_CONST_WORDS = 4;
+  hlsl.aprintf(128,
+    "struct ImmDwords { [[vk::offset(%u)]] uint data[%d]; };\n"
+    "[[vk::push_constant]] ImmDwords imm_dwords;\n",
+    (stage == HLSL_PS) ? MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t) : 0, words);
+  for (int i = 0; i < words; ++i)
+    hlsl.aprintf(32, "uint get_immediate_dword_%d() {return imm_dwords.data[%d];}\n", i, i);
 #else
   uint32_t slot = 8;
-#if _CROSS_TARGET_SPIRV
-  hlsl.aprintf(128, "#if SPIRV_DISALLOW_PUSH_CONSTANTS\n");
-  slot = 7;
+#if _CROSS_TARGET_METAL
+  slot = drv3d_metal::IMMEDIATE_BIND_POINT;
 #endif
   hlsl.aprintf(128, "#define NUM_IMMEDIATE_DWORDS %u\n", words);
   hlsl.aprintf(128, "cbuffer immediate_const_buffer:register(b%d){ uint", slot);
@@ -457,17 +555,6 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   hlsl.aprintf(32, ";};\n");
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return immediate_dword_%d;}\n", i, i);
-#if _CROSS_TARGET_SPIRV
-  hlsl.aprintf(128, "#else\n");
-  const uint32_t MAX_IMMEDIATE_CONST_WORDS = 4;
-  hlsl.aprintf(128,
-    "struct ImmDwords { [[vk::offset(%u)]] uint data[%d]; };\n"
-    "[[vk::push_constant]] ImmDwords imm_dwords;\n",
-    (stage == HLSL_PS) ? MAX_IMMEDIATE_CONST_WORDS * sizeof(uint32_t) : 0, words);
-  for (int i = 0; i < words; ++i)
-    hlsl.aprintf(32, "uint get_immediate_dword_%d() {return imm_dwords.data[%d];}\n", i, i);
-  hlsl.aprintf(128, "#endif\n");
-#endif
 #endif
 
   if (!item_is_in(stage, {HLSL_VS, HLSL_PS, HLSL_CS, HLSL_MS, HLSL_AS}))
@@ -517,14 +604,7 @@ void GatherVarShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
 
 void GatherVarShaderEvalCB::eval_endif(bool_expr &e)
 {
-  G_ASSERT(dynStack.size() > 0);
-  bool v = dynStack.back();
-  dynStack.pop_back();
-
-  if (v)
-  {
-    G_ASSERT(dynCount > 0);
-    dynCount--;
-  }
+  unwind_cond_parse_state(dynState);
+  unwind_cond_parse_state(staticState);
   ctx.localHlslSrc().forEach([&](String &src) { src.append("##endif\n"); });
 }

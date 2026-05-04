@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include "net/netStat.h"
 #include "net/plosscalc.h"
 #include <frameTimeMetrics/aggregator.h>
@@ -91,7 +95,7 @@ static void ui_perf_stats_es(const RenderEventUI & /*evt*/,
   }
 
   auto &fps = ui_perf_stats.frameTimeMetrics;
-  fps->update(::get_time_msec(), ::dagor_frame_no(), ::dagor_game_act_time, PerfDisplayMode::FPS);
+  fps->update(::get_time_msec(), ::dagor_frames_presented(), ::dagor_game_act_time, PerfDisplayMode::FPS);
   set_warn_level_lower(ui_perf_stats__low_fps_warn, fps->getLastAverageFps(), ui_perf_stats__low_fps_thr);
   if (!ui_perf_stats__low_fps_warn)
     if (fps->getLastMaxFrameTime() > fps->getLastAverageFrameTime() / ui_perf_stats__fps_drop_thr)

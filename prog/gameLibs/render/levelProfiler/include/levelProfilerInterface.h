@@ -12,18 +12,42 @@ namespace levelprofiler
 {
 
 class ICopyProvider;
+class LevelProfilerUI;
 
-enum TableColumn
+enum class TextureColumn : int
 {
-  COLUMN_NONE = -1, // Invalid column indicator
-  COL_NAME,         // Texture/resource name
-  COL_FORMAT,       // Texture format
-  COL_WIDTH,        // Texture width
-  COL_HEIGHT,       // Texture height
-  COL_MIPS,         // Mipmap count
-  COL_MEM_SIZE,     // Memory size
-  COL_TEX_USAGE     // Texture Usage information
+  NONE = -1,
+  NAME = 0,
+  FORMAT,
+  WIDTH,
+  HEIGHT,
+  MIPS,
+  MEM_SIZE,
+  USAGE,
+  BASE_COUNT // Number of static columns - must always be last
 };
+
+enum class RiColumn : int
+{
+  NONE = -1,
+  NAME = 0,
+  COUNT_ON_MAP,
+  BSPHERE_RAD,
+  BBOX_RAD,
+  PHYS_TRIS,
+  TRACE_TRIS,
+  BASE_COUNT // Number of static columns - must always be last
+};
+
+using ColumnIndex = int;
+inline constexpr ColumnIndex operator*(TextureColumn c) { return static_cast<ColumnIndex>(c); }
+inline constexpr ColumnIndex operator*(RiColumn c) { return static_cast<ColumnIndex>(c); }
+inline constexpr bool isValidColumn(ColumnIndex c) { return c >= 0; }
+
+static_assert(static_cast<int>(TextureColumn::BASE_COUNT) == static_cast<int>(TextureColumn::USAGE) + 1,
+  "TextureColumn::BASE_COUNT must follow last data column");
+static_assert(static_cast<int>(RiColumn::BASE_COUNT) == static_cast<int>(RiColumn::TRACE_TRIS) + 1,
+  "RiColumn::BASE_COUNT must follow last data column");
 
 using ProfilerString = eastl::string;
 using TextureID = unsigned int;
@@ -70,8 +94,11 @@ struct ProfilerTab
 {
   ProfilerString name;
   IProfilerModule *module;
+  void (*collectFn)(LevelProfilerUI *self) = nullptr;
 
-  ProfilerTab(const char *tab_name, IProfilerModule *module_ptr) : name(tab_name), module(module_ptr) {}
+  ProfilerTab(const char *tab_name, IProfilerModule *module_ptr, void (*fn)(LevelProfilerUI *) = nullptr) :
+    name(tab_name), module(module_ptr), collectFn(fn)
+  {}
 };
 
 enum class ExportFormat
@@ -93,7 +120,7 @@ public:
   virtual void collectData() = 0;
   virtual void clearData() = 0;
 
-  virtual void addTab(const char *name, IProfilerModule *module_ptr) = 0;
+  virtual void addTab(const char *name, IProfilerModule *module_ptr, void (*collectFn)(LevelProfilerUI *) = nullptr) = 0;
   virtual int getTabCount() const = 0;
   virtual ProfilerTab *getTab(int index) = 0;
   virtual void renameTab(int index, const char *new_name) = 0;

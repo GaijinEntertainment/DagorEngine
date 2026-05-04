@@ -1,0 +1,10 @@
+1. Direct .call() from ctor: OK
+2. Indirect .call() from ctor: OK
+3. .call() with value passing: OK
+4. Inherited yield via .call(): OK
+5. Deep nesting + yield .call(): OK
+6. Generator .call() outside ctor: OK
+7. Multiple generators from ctor: OK
+8. newthread + generator: OK
+
+All tests passed.

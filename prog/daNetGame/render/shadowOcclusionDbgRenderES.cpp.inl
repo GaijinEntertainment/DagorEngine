@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <daECS/core/updateStage.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animchar_visbits.h>
@@ -16,11 +22,11 @@ bool is_bbox_visible_in_shadows(const AnimCharShadowOcclusionManager *manager, b
 CONSOLE_BOOL_VAL("app", debug_shadow_culling, false);
 
 template <typename Callable>
-inline void animchar_shadow_cull_bounds_debug_render_ecs_query(Callable c);
+inline void animchar_shadow_cull_bounds_debug_render_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render, dev)
 ECS_NO_ORDER
-static __forceinline void shadow_occlusion_render_debug_es(const ecs::UpdateStageInfoRenderDebug &)
+static __forceinline void shadow_occlusion_render_debug_es(const ecs::UpdateStageInfoRenderDebug &, ecs::EntityManager &manager)
 {
   if (!debug_shadow_culling.get())
     return;
@@ -28,7 +34,7 @@ static __forceinline void shadow_occlusion_render_debug_es(const ecs::UpdateStag
   const AnimCharShadowOcclusionManager *animCharShadowOcclMgr = get_animchar_shadow_occlusion();
 
   begin_draw_cached_debug_lines();
-  animchar_shadow_cull_bounds_debug_render_ecs_query(
+  animchar_shadow_cull_bounds_debug_render_ecs_query(manager,
     [&](const bbox3f &animchar_shadow_cull_bbox,
       const animchar_visbits_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {
       if (!(animchar_visbits & VISFLG_MAIN_VISIBLE) || is_bbox_visible_in_shadows(animCharShadowOcclMgr, animchar_shadow_cull_bbox))

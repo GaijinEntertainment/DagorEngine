@@ -4,7 +4,6 @@
 #include "NetImgui_WarningDisable.h"
 #include "NetImgui_CmdPackets.h"
 
-
 namespace NetImgui { namespace Internal
 {
 
@@ -34,7 +33,7 @@ TInt PointerCast(TPointer* pointer)
 }
 
 //=================================================================================================
-//
+// 
 //=================================================================================================
 inline void ImGui_ExtractIndices(const ImDrawList& cmdList, ImguiDrawGroup& drawGroupOut, ComDataType*& pDataOutput)
 {
@@ -64,7 +63,7 @@ inline void ImGui_ExtractIndices(const ImDrawList& cmdList, ImguiDrawGroup& draw
 }
 
 //=================================================================================================
-//
+// 
 //=================================================================================================
 inline void ImGui_ExtractVertices(const ImDrawList& cmdList, ImguiDrawGroup& drawGroupOut, ComDataType*& pDataOutput)
 {
@@ -76,22 +75,31 @@ inline void ImGui_ExtractVertices(const ImDrawList& cmdList, ImguiDrawGroup& dra
 	for(int i(0); i<static_cast<int>(drawGroupOut.mVerticeCount); ++i)
 	{
 		const auto& Vtx			= cmdList.VtxBuffer[i];
+
+		// MODIFICATION BY GAIJIN
+		// using halfs instead of quantized float to avoid bit crush
 		pVertices[i].mColor		= Vtx.col;
+		/*
 		pVertices[i].mUV[0]		= static_cast<uint16_t>((Vtx.uv.x	- static_cast<float>(ImguiVert::kUvRange_Min) + 0.5f/65535.f) * 0xFFFF / (ImguiVert::kUvRange_Max - ImguiVert::kUvRange_Min));
 		pVertices[i].mUV[1]		= static_cast<uint16_t>((Vtx.uv.y	- static_cast<float>(ImguiVert::kUvRange_Min) + 0.5f/65535.f) * 0xFFFF / (ImguiVert::kUvRange_Max - ImguiVert::kUvRange_Min));
 		pVertices[i].mPos[0]	= static_cast<uint16_t>((Vtx.pos.x	- drawGroupOut.mReferenceCoord[0] - static_cast<float>(ImguiVert::kPosRange_Min)) * 0xFFFF / (ImguiVert::kPosRange_Max - ImguiVert::kPosRange_Min));
 		pVertices[i].mPos[1]	= static_cast<uint16_t>((Vtx.pos.y	- drawGroupOut.mReferenceCoord[1] - static_cast<float>(ImguiVert::kPosRange_Min)) * 0xFFFF / (ImguiVert::kPosRange_Max - ImguiVert::kPosRange_Min));
+		*/
+		pVertices[i].mUV[0]		= float_to_half(Vtx.uv.x);
+		pVertices[i].mUV[1]		= float_to_half(Vtx.uv.y);
+		pVertices[i].mPos[0]	= float_to_half(Vtx.pos.x);
+		pVertices[i].mPos[1]	= float_to_half(Vtx.pos.y);
 	}
 }
 
 //=================================================================================================
-//
+// 
 //=================================================================================================
 inline void ImGui_ExtractDraws(const ImDrawList& cmdList, ImguiDrawGroup& drawGroupOut, ComDataType*& pDataOutput)
 {
-	int maxDrawCount		= static_cast<int>(cmdList.CmdBuffer.size());
-	uint32_t drawCount		= 0;
-	ImguiDraw* pOutDraws	= reinterpret_cast<ImguiDraw*>(pDataOutput);
+	int maxDrawCount			= static_cast<int>(cmdList.CmdBuffer.size());
+	uint32_t drawCount			= 0;
+	ImguiDraw* pOutDraws		= reinterpret_cast<ImguiDraw*>(pDataOutput);
 	for(int cmd_i = 0; cmd_i < maxDrawCount; ++cmd_i)
 	{
 		const ImDrawCmd* pCmd = &cmdList.CmdBuffer[cmd_i];
@@ -104,8 +112,13 @@ inline void ImGui_ExtractDraws(const ImDrawList& cmdList, ImguiDrawGroup& drawGr
 			pOutDraws[drawCount].mVtxOffset		= 0;
 			pOutDraws[drawCount].mIdxOffset		= 0;
 		#endif
-
-			pOutDraws[drawCount].mTextureId		= TextureCastFromID(pCmd->TextureId);
+			
+		#if NETIMGUI_IMGUI_TEXTURES_ENABLED
+			ClientTextureID texClientID			= ConvertToClientTexID(pCmd->TexRef);
+		#else
+			ClientTextureID texClientID			= ConvertToClientTexID(pCmd->TextureId);
+		#endif
+			pOutDraws[drawCount].mClientTexId	= texClientID;
 			pOutDraws[drawCount].mIdxCount		= pCmd->ElemCount;
 			pOutDraws[drawCount].mClipRect[0]	= pCmd->ClipRect.x;
 			pOutDraws[drawCount].mClipRect[1]	= pCmd->ClipRect.y;
@@ -122,7 +135,7 @@ inline void ImGui_ExtractDraws(const ImDrawList& cmdList, ImguiDrawGroup& drawGr
 
 //=================================================================================================
 // Delta comress data.
-// Take a data stream and output a version with only the difference from other stream is written
+// Take 2 data stream and output a stream with only the data difference from each other
 //=================================================================================================
 void CompressData(const ComDataType* pDataPrev, size_t dataSizePrev, const ComDataType* pDataNew, size_t dataSizeNew, ComDataType*& pCommandMemoryInOut)
 {
@@ -185,7 +198,7 @@ void DecompressData(const ComDataType* pDataPrev, size_t dataSizePrev, const Com
 		memcpy(pCommandMemoryInOut, pDataPack, pBlockInfo[1] * sizeof(uint64_t));
 		pCommandMemoryInOut			+= pBlockInfo[1];
 		pDataPack					+= pBlockInfo[1];
-	}
+	}	
 }
 
 //=================================================================================================
@@ -221,7 +234,7 @@ CmdDrawFrame* CompressCmdDrawFrame(const CmdDrawFrame* pDrawFramePrev, const Cmd
 	for(uint32_t n = 0; n < pDrawFramePacked->mDrawGroupCount; n++)
 	{
 		// Look for the same drawgroup in previous frame
-		// Can usually avoid a search by checking same index in previous frame (drawgroup ordering shouldn't change often)
+		// Can usually avoid a search by checking same index in previous frame (drawgroup ordering shouldn't change often)		
 		const ImguiDrawGroup& drawGroupNew	= pDrawFrameNew->mpDrawGroups[n];
 		ImguiDrawGroup& drawGroup			= pDrawFramePacked->mpDrawGroups[n];
 		drawGroup							= drawGroupNew;
@@ -244,7 +257,7 @@ CmdDrawFrame* CompressCmdDrawFrame(const CmdDrawFrame* pDrawFramePrev, const Cmd
 		}
 
 		drawGroup.mpIndices.SetComDataPtr(pDataOutput);
-		CompressData(	pIndicePrev,							indiceSizePrev,
+		CompressData(	pIndicePrev,							indiceSizePrev,	
 						drawGroupNew.mpIndices.GetComData(),	drawGroupNew.mIndiceCount*static_cast<size_t>(drawGroupNew.mBytePerIndex),
 						pDataOutput);
 
@@ -265,7 +278,7 @@ CmdDrawFrame* CompressCmdDrawFrame(const CmdDrawFrame* pDrawFramePrev, const Cmd
 }
 
 //=================================================================================================
-//
+// 
 //=================================================================================================
 CmdDrawFrame* DecompressCmdDrawFrame(const CmdDrawFrame* pDrawFramePrev, const CmdDrawFrame* pDrawFramePacked)
 {
@@ -319,7 +332,7 @@ CmdDrawFrame* DecompressCmdDrawFrame(const CmdDrawFrame* pDrawFramePrev, const C
 
 //=================================================================================================
 // Take a regular Dear Imgui Draw Data, and convert it to a NetImgui DrawFrame Command
-// It involves saving each window draw group vertex/indices/draw buffers
+// It involves saving each window draw group vertex/indices/draw buffers 
 // and packing their data a little bit, to reduce the bandwidth usage
 //=================================================================================================
 CmdDrawFrame* ConvertToCmdDrawFrame(const ImDrawData* pDearImguiData, ImGuiMouseCursor mouseCursor)
@@ -341,7 +354,7 @@ CmdDrawFrame* ConvertToCmdDrawFrame(const ImDrawData* pDearImguiData, ImGuiMouse
 
 	//-----------------------------------------------------------------------------------------
 	// Allocate Data and initialize general frame information
-	//-----------------------------------------------------------------------------------------
+	//-----------------------------------------------------------------------------------------	
 	CmdDrawFrame* pDrawFrame		= netImguiSizedNew<CmdDrawFrame>(neededDataCount*ComDataSize);
 	ComDataType* pDataOutput		= reinterpret_cast<ComDataType*>(&pDrawFrame[1]);
 	pDrawFrame->mMouseCursor		= static_cast<uint32_t>(mouseCursor);
@@ -351,12 +364,10 @@ CmdDrawFrame* ConvertToCmdDrawFrame(const ImDrawData* pDearImguiData, ImGuiMouse
 	pDrawFrame->mDisplayArea[3]		= pDearImguiData->DisplayPos.y + pDearImguiData->DisplaySize.y;
 	pDrawFrame->mDrawGroupCount		= static_cast<uint32_t>(pDearImguiData->CmdListsCount);
 	SetAndIncreaseDataPointer(pDrawFrame->mpDrawGroups, static_cast<uint32_t>(pDrawFrame->mDrawGroupCount * sizeof(ImguiDrawGroup)), pDataOutput);
-
+	
 	//-----------------------------------------------------------------------------------------
 	// Copy draw data (vertices, indices, drawcall info, ...)
 	//-----------------------------------------------------------------------------------------
-
-
 	for(size_t n = 0; n < pDrawFrame->mDrawGroupCount; n++)
 	{
 		ImguiDrawGroup& drawGroup		= pDrawFrame->mpDrawGroups[n];

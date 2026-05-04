@@ -7,7 +7,7 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <util/dag_string.h>
 #include <sqrat.h>
-#include <squirrel/memtrace.h>
+#include <quirrel/quirrelHost/memtrace.h>
 #include <util/dag_delayedAction.h>
 #include <debug/dag_logSys.h>
 #include <memory/dag_framemem.h>
@@ -128,9 +128,12 @@ static bool sq_console_handler(const char *argv[], int argc) // move it somewher
     user_ui::reload_user_ui_script(false);
   }
   CONSOLE_CHECK_NAME("sq_memtrace", "reset_all", 1, 1) { sqmemtrace::reset_all(); }
-  CONSOLE_CHECK_NAME("sq_memtrace", "dump_all", 1, 2)
+  CONSOLE_CHECK_NAME_EX("sq_memtrace", "dump_all", 1, 3, "dumps script memory allocations with callstacks",
+    "<out_file_name> <first_n_records>")
   {
-    sqmemtrace::dump_all(argc > 1 ? console::to_int(argv[1]) : -1);
+    const char *fname = argc > 1 ? argv[1] : nullptr;
+    int firstNRecords = argc > 2 ? console::to_int(argv[2]) : -1;
+    sqmemtrace::dump_all(fname, firstNRecords);
     flush_debug_file();
   }
 

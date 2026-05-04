@@ -3,9 +3,14 @@
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_camera_elem.h>
 #include <de3_dynRenderService.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <shaders/dag_shaderBlock.h>
+#include "render/renderEvent.h"
+
+extern bool dynmodel_mgr_has_active_entities();
 
 namespace dng_based_render
 {
@@ -54,6 +59,23 @@ static void render_services_transp_es(const UpdateStageInfoRenderTrans &)
     srv->renderGeometry(IRenderingService::STG_RENDER_STATIC_TRANS);
   for (auto *srv : rendSrv)
     srv->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_TRANS);
+}
+
+ECS_TAG(render)
+ECS_NO_ORDER
+static void render_services_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion &e)
+{
+  e.needed = e.needed || dynmodel_mgr_has_active_entities();
+}
+
+ECS_TAG(render)
+static void render_services_distortion_es(const UpdateStageInfoRenderDistortion &)
+{
+  PreserveShaderBlocksAndAllowAutoChange shBlkPreserve;
+  for (auto *srv : rendSrv)
+    srv->renderGeometry(IRenderingService::STG_RENDER_STATIC_DISTORTION);
+  for (auto *srv : rendSrv)
+    srv->renderGeometry(IRenderingService::STG_RENDER_DYNAMIC_DISTORTION);
 }
 
 ECS_NO_ORDER

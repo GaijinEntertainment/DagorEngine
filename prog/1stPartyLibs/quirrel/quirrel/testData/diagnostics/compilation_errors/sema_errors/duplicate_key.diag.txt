@@ -1,0 +1,9 @@
+ERROR: duplicate key 'a'
+testData/diagnostics/compilation_errors/sema_errors/duplicate_key.nut:4:4
+
+    a = 1,
+    a = 2
+    ^
+}
+
+

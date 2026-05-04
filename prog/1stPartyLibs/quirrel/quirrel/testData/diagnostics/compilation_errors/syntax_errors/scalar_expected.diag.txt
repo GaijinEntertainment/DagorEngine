@@ -1,0 +1,9 @@
+ERROR: scalar expected : integer, float, or string
+testData/diagnostics/compilation_errors/syntax_errors/scalar_expected.nut:3:8
+
+enum BadEnum {
+    A = [1, 2, 3]
+        ^
+}
+
+

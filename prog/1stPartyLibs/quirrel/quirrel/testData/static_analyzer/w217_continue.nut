@@ -1,4 +1,4 @@
-//expect:w217
+//-file:undefined-global
 
 function foo(x) { //-declared-never-used
   do {
@@ -8,5 +8,3 @@ function foo(x) { //-declared-never-used
     x--;
   } while (x)
 }
-
-//-file:undefined-global

@@ -18,7 +18,15 @@ G_STATIC_ASSERT(D3DRESID::INVALID_ID == 0u);
 struct D3DRESIDAnnotation final : das::ManagedValueAnnotation<D3DRESID>
 {
   D3DRESIDAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "D3DRESID") { cppName = " ::D3DRESID"; }
-  virtual void walk(das::DataWalker &walker, void *data) override { walker.UInt(*reinterpret_cast<unsigned *>(data)); }
+  virtual void walk(das::DataWalker &walker, void *data) override
+  {
+    if (walker.collecting)
+    {
+      das::ManagedValueAnnotation<D3DRESID>::walk(walker, data);
+      return;
+    }
+    walker.UInt(*reinterpret_cast<unsigned *>(data));
+  }
   virtual bool hasNonTrivialCtor() const override { return false; }
   virtual bool hasNonTrivialCopy() const override { return false; }
   virtual bool hasNonTrivialDtor() const override { return false; }

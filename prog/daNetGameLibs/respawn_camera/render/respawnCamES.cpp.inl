@@ -7,13 +7,13 @@
 #include <rendInst/rendInstGen.h>
 
 template <typename Callable>
-static void respawn_camera_target_point_ecs_query(ecs::EntityId eid, Callable c);
+static void respawn_camera_target_point_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-static void respawn_cam_created_es(const ecs::Event &, ecs::EntityId respawnCameraTargerPoint)
+static void respawn_cam_created_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId respawnCameraTargerPoint)
 {
-  respawn_camera_target_point_ecs_query(respawnCameraTargerPoint,
+  respawn_camera_target_point_ecs_query(manager, respawnCameraTargerPoint,
     [](float respawnCameraLODMultiplier) { rendinst::setAdditionalRiExtraLodDistMul(respawnCameraLODMultiplier); });
 }
 

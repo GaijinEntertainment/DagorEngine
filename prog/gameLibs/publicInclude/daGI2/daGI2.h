@@ -34,13 +34,8 @@ typedef eastl::fixed_function<64, UpdateGiQualityStatus(int clip_no, const BBox3
   rasterize_sdf_radiance_cb;
 typedef eastl::fixed_function<64, UpdateGiQualityStatus(const BBox3 &box, float voxelSize, uintptr_t &handle)> rasterize_albedo_cb;
 
-// if NOT_READY update will be postponed till next frame using same handle, request won't be called again unless cancel is rendered.
-// Only case when we reuse handle. if CANCEL update will be restarted on next frame, handle is already invalid and won't be used if
-// NOTHING - it was empty handle (no data to render), handle won't be used if RENDERED - data was rendered, handle won't be used again
-
-class DaGI
+struct DaGISettings
 {
-public:
   struct VolumetricGISettings
   {
     uint16_t slices = 16, tileSize = 64;
@@ -110,20 +105,15 @@ public:
     // speed of convergence (amount of pixels for random sampling from gbuffer).
     uint8_t w = 32, d = 0; // 0 - autodetect
     uint8_t clips = 3;
-    uint8_t framesToUpdateOneClip = 16; // temporality
-    float irradianceProbeDetail = 1.f;  // 1+, 1 - means same as radiance grid. Much faster option (if with additionalIrradianceClips =
-                                        // 0).
+    // how many batches to split clip update into
+    // more batches - less accurate distribution and more count fluctuation in selected probes, but faster probes selection
+    // only one batch is processed per frame, so it makes no sense to set it greater than 1/temporalSpeed
+    uint8_t temporalSelectBatchCount = 8;
+    // probability for updating a probe in each frame (not counting for frustum culling, surface proximity and cascade updation rate)
+    float temporalSpeed = 0.0625f;
+    float irradianceProbeDetail = 1.f; // 1+, 1 - means same as radiance grid. Much faster option (if with additionalIrradianceClips =
+                                       // 0).
     uint8_t additionalIrradianceClips = 0; // amount of additional clips in radiance grid.
-  };
-
-  struct GiDatablockCache
-  {
-    float voxelSceneResScale = 0.5f;
-    uint8_t sdfClips = 5;
-    float sdfVoxel0 = 0.15f;
-    uint8_t albedoClips = 3;
-    uint8_t radianceGridClipW = 28;
-    uint8_t radianceGridClips = 4;
   };
 
   // begin not used
@@ -158,24 +148,28 @@ public:
   };
   // end not used
 
-  struct Settings
-  {
-    SDFSettings sdf;
-    AlbedoScene albedoScene;
-    VoxelScene voxelScene;
-    MediaScene mediaScene;
-    ScreenProbesSettings screenProbes;
-    VolumetricGISettings volumetricGI;
-    RadianceGridSettings radianceGrid;
-    SkyVisibilitySettings skyVisibility;
-    GiDatablockCache giDatablockCache;
+  SDFSettings sdf;
+  AlbedoScene albedoScene;
+  VoxelScene voxelScene;
+  MediaScene mediaScene;
+  ScreenProbesSettings screenProbes;
+  VolumetricGISettings volumetricGI;
+  RadianceGridSettings radianceGrid;
+  SkyVisibilitySettings skyVisibility;
 
-    // not used
-    RadianceCacheSettings radianceCache;
-  };
+  // not used
+  RadianceCacheSettings radianceCache;
+};
 
+// if NOT_READY update will be postponed till next frame using same handle, request won't be called again unless cancel is rendered.
+// Only case when we reuse handle. if CANCEL update will be restarted on next frame, handle is already invalid and won't be used if
+// NOTHING - it was empty handle (no data to render), handle won't be used if RENDERED - data was rendered, handle won't be used again
+
+class DaGI
+{
+public:
   virtual ~DaGI() {}
-  virtual void fix(Settings &settings) const = 0;
+  virtual void fix(DaGISettings &settings) const = 0;
   virtual void debugRenderScreenDepth() = 0;
   virtual void debugRenderScreen() = 0;
   virtual void debugRenderTrans() = 0;
@@ -183,6 +177,8 @@ public:
   virtual void requestUpdatePosition(const request_sdf_radiance_data_cb &sdf_cb, const cancel_sdf_radiance_data_cb &cancel_sdf_cb,
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb) = 0;
   virtual void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb) = 0;
+  virtual void invalidateBox(const BBox3 &box) = 0;
+  virtual void invalidateRadianceFrustum(const Frustum &frustum) = 0;
   enum class RadianceUpdate
   {
     Off,
@@ -190,10 +186,9 @@ public:
   };
   virtual void beforeRender(uint32_t screen_w, uint32_t screen_h, uint32_t max_screen_w, uint32_t max_screen_h, const TMatrix &viewItm,
     const TMatrix4 &projTm, float zn, float zf, RadianceUpdate u = RadianceUpdate::On) = 0;
-  virtual void setSettings(const Settings &s) = 0;
-  virtual Settings getCurrentSettings() const = 0;
-  virtual Settings getNextSettings() const = 0;
-  virtual void afterSettingsChanged() const = 0;
+  virtual void setSettings(const DaGISettings &s) = 0;
+  virtual DaGISettings getCurrentSettings() const = 0;
+  virtual DaGISettings getNextSettings() const = 0;
   virtual const WorldSDF &getWorldSDF() const = 0;
   virtual WorldSDF &getWorldSDF() = 0;
   virtual void afterReset() = 0;
@@ -219,3 +214,4 @@ public:
 };
 
 DaGI *create_dagi();
+bool is_only_low_gi_supported();

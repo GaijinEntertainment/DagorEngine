@@ -7,15 +7,22 @@
 
 class BhvPlaceRoundCompassOnCompassStrip : public darg::Behavior
 {
+  float fov = 360.f;
+  float fadeOutZone = 0.f;
+
 public:
   SQ_PRECACHED_STRINGS_DECLARE(CachedStrings,
     cstr, //
     eid,
     worldPos,
-    clampToBorder);
+    clampToBorder,
+    fov,
+    fadeOutZone,
+    radiusOffset);
 
   BhvPlaceRoundCompassOnCompassStrip();
   virtual int update(UpdateStage stage, darg::Element *elem, float dt) override final;
+  virtual void onAttach(darg::Element *elem) override final;
 };
 
 

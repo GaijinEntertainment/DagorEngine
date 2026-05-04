@@ -12,7 +12,7 @@ BaseTexture *StubTextureFactory::createTexture(TEXTUREID id)
   if (!textureName)
     return NULL;
 
-  return d3d::create_tex(NULL, 1, 1, 0, 1, textureName);
+  return d3d::create_tex(NULL, 1, 1, 0, 1, textureName, RESTAG_DEBUG);
 }
 
 void StubTextureFactory::releaseTexture(BaseTexture *texture, TEXTUREID id)

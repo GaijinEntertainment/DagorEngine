@@ -11,41 +11,48 @@ bool shaderbindump::autoBlockStateWordChange = false;
 char ShaderVariableInfo::zero[64]; // static variables are zero by default
 shaderbindump::ShaderBlock *shaderbindump::nullBlock[shaderbindump::MAX_BLOCK_LAYERS] = {0};
 
+#if DAGOR_DBGLEVEL > 0
+bool validate_var_const_state(int) { return true; }
+#endif
+
 bool ShaderGlobal::set_texture(int, TEXTUREID) { return true; }
+bool ShaderGlobal::set_texture(int, BaseTexture *) { return true; }
 bool ShaderGlobal::set_texture(int, const ManagedTex &) { return true; }
 bool ShaderGlobal::set_texture(const ShaderVariableInfo &, const ManagedTex &) { return true; }
 bool ShaderGlobal::set_buffer(const ShaderVariableInfo &, const ManagedBuf &) { return true; }
 bool ShaderGlobal::set_buffer(int, D3DRESID) { return true; }
+bool ShaderGlobal::set_buffer(int, Sbuffer *) { return true; }
 bool ShaderGlobal::set_buffer(int, const ManagedBuf &) { return true; }
 bool ShaderGlobal::set_tlas(int, RaytraceTopAccelerationStructure *) { return true; }
 bool ShaderGlobal::set_sampler(int, d3d::SamplerHandle) { return true; }
 
-bool ShaderGlobal::set_color4(int, const Point2 &, const Point2 &) { return true; }
-bool ShaderGlobal::set_color4(int, const Point3 &, float) { return true; }
-bool ShaderGlobal::set_color4(int, const Point4 &) { return true; }
-bool ShaderGlobal::set_color4(int, const Color3 &, float) { return true; }
-bool ShaderGlobal::set_color4(int, const Color4 &) { return true; }
-bool ShaderGlobal::set_color4(int, E3DCOLOR) { return true; }
-bool ShaderGlobal::set_color4(int, real, real, real, real) { return true; }
-bool ShaderGlobal::set_color4(int, const XMFLOAT2 &, const XMFLOAT2 &) { return true; }
-bool ShaderGlobal::set_color4(int, const XMFLOAT4 &) { return true; }
-bool ShaderGlobal::set_color4(int, FXMVECTOR) { return true; }
-bool ShaderGlobal::set_color4_array(int, const Point4 *, int) { return true; }
+bool ShaderGlobal::set_float4(int, const Point2 &, const Point2 &) { return true; }
+bool ShaderGlobal::set_float4(int, const Point3 &, float) { return true; }
+bool ShaderGlobal::set_float4(int, const Point4 &) { return true; }
+bool ShaderGlobal::set_float4(int, const Color3 &, float) { return true; }
+bool ShaderGlobal::set_float4(int, const Color4 &) { return true; }
+bool ShaderGlobal::set_float4(int, E3DCOLOR) { return true; }
+bool ShaderGlobal::set_float4(int, real, real, real, real) { return true; }
+bool ShaderGlobal::set_float4(int, const XMFLOAT2 &, const XMFLOAT2 &) { return true; }
+bool ShaderGlobal::set_float4(int, const XMFLOAT4 &) { return true; }
+bool ShaderGlobal::set_float4(int, FXMVECTOR) { return true; }
+bool ShaderGlobal::set_float4_array(int, const Point4 *, int) { return true; }
 bool ShaderGlobal::set_int(int, int v) { return true; }
 bool ShaderGlobal::set_int4(int, const IPoint4 &) { return true; }
 bool ShaderGlobal::set_float4x4(int, const TMatrix4 &) { return true; }
 bool ShaderGlobal::set_float4x4(int, const XMFLOAT4X4 &) { return true; }
 bool ShaderGlobal::set_float4x4(int variable_id, FXMMATRIX) { return true; }
-bool ShaderGlobal::set_real(int, real) { return true; }
+bool ShaderGlobal::set_float(int, real) { return true; }
 
 int ShaderGlobal::get_int_fast(int) { return 0; }
-real ShaderGlobal::get_real_fast(int) { return 0.f; }
-Color4 ShaderGlobal::get_color4_fast(int) { return ZERO<Color4>(); }
-Color4 ShaderGlobal::get_color4(int) { return ZERO<Color4>(); }
+real ShaderGlobal::get_float(int) { return 0.f; }
+Color4 ShaderGlobal::get_float4(int) { return ZERO<Color4>(); }
 TMatrix4 ShaderGlobal::get_float4x4(int) { return ZERO<TMatrix4>(); }
 IPoint4 ShaderGlobal::get_int4(int) { return IPoint4::ZERO; }
 TEXTUREID ShaderGlobal::get_tex_fast(int) { return BAD_TEXTUREID; }
 D3DRESID ShaderGlobal::get_buf_fast(int) { return BAD_D3DRESID; }
+BaseTexture *ShaderGlobal::get_tex_ptr_fast(int var_id) { return nullptr; }
+Sbuffer *ShaderGlobal::get_buf_ptr_fast(int var_id) { return nullptr; }
 d3d::SamplerHandle ShaderGlobal::get_sampler(int) { return d3d::INVALID_SAMPLER_HANDLE; }
 int ShaderGlobal::get_var_type(int) { return -1; }
 int ShaderGlobal::get_interval_current_value(int) { return -1; }
@@ -57,6 +64,10 @@ dag::ConstSpan<float> ShaderGlobal::get_interval_ranges(int) { return {}; }
 dag::Vector<String> ShaderGlobal::get_subinterval_names(Interval) { return {}; }
 ShaderGlobal::Subinterval ShaderGlobal::get_variant(Interval) { return Subinterval(nullptr, 0); }
 void ShaderGlobal::set_variant(Interval, Subinterval) {}
+
+#if DAGOR_DBGLEVEL > 0
+bool ShaderGlobal::is_resource_used_as_umnamaged_pointer(D3dResource *, bool) { return false; }
+#endif
 
 bool VariableMap::isGlobVariablePresent(int) { return false; }
 bool VariableMap::isVariablePresent(int) { return false; }
@@ -71,13 +82,15 @@ const char *VariableMap::getGlobalVariableName(int) { return nullptr; }
 
 void ShaderVariableInfo::set_texture_ool(TEXTUREID) const {}
 void ShaderVariableInfo::set_buffer_ool(D3DRESID) const {}
+void ShaderVariableInfo::set_texture_ool(BaseTexture *) const {}
+void ShaderVariableInfo::set_buffer_ool(Sbuffer *) const {}
 void ShaderVariableInfo::set_int_var_interval(int) const {}
 void ShaderVariableInfo::set_float_var_interval(float) const {}
 void ShaderVariableInfo::resolve() {}
-void ShaderVariableInfo::setEnabled(bool) {}
 
 int mapbinarysearch::bfindStrId(dag::ConstSpan<StrHolder>, const char *) { return -1; }
-void ScriptedShadersBinDumpOwner::initVarIndexMaps(size_t) {}
+void ScriptedShadersGlobalData::initVarIndexMaps(size_t) {}
+void ScriptedShadersGlobalData::preRequestStaticSamplers(ScriptedShadersBinDumpOwner const &) {}
 
 template <>
 int shaderbindump::VariantTable::qfindIntervalVariant(unsigned) const

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <shaders/dag_shadersRes.h>
-#include <shaders/dag_IRenderWrapperControl.h>
 #include <generic/dag_smallTab.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_bounds3.h>
@@ -31,7 +30,7 @@ extern int dynamic_pos_unpack_reg; // readonly
 class DynamicRenderableSceneInstance;
 
 
-typedef void (*on_dynsceneres_beforedrawmeshes_cb)(DynamicRenderableSceneInstance &inst, int node_id);
+typedef void (*on_dynsceneres_beforedrawmeshes_cb)(DynamicRenderableSceneInstance &inst, int node_id, int idx);
 on_dynsceneres_beforedrawmeshes_cb set_dynsceneres_beforedrawmeshes_cb(on_dynsceneres_beforedrawmeshes_cb cb);
 
 
@@ -170,7 +169,7 @@ public:
     Point3 sph_c; //< in local coords: bounding sphere center
     real sph_r;   //< in local coords: bounding sphere radius (can be scaled, but only x scale is used)
     int32_t nodeId;
-    uint32_t __resv;
+    uint32_t uniqueRefId;
   };
 
 protected:
@@ -182,7 +181,8 @@ protected:
   Tab<int> skinNodes;
   PtrTab<BindPoseElem> bindPoseElemPtrArr;
 
-  PatchableTab<RigidObject> rigids;
+  // start of dump:
+  alignas(16) PatchableTab<RigidObject> rigids;
   PatchableTab<PatchablePtr<ShaderSkinnedMeshResource>> skins;
 
 
@@ -206,7 +206,7 @@ decl_dclass_and_id(DynamicRenderableSceneLodsResource, DObject, 0xC03E9CC2)
 public:
   DAG_DECLARE_NEW(midmem)
 
-  static DynamicRenderableSceneLodsResource *loadResource(IGenLoad & crd, int srl_flags, int res_sz = -1,
+  static DynamicRenderableSceneLodsResource *loadResource(IGenLoad & crd, int srl_flags, const char *name, int res_sz = -1,
     const DataBlock *desc = nullptr);
   static DynamicRenderableSceneLodsResource *makeStubRes();
 
@@ -298,6 +298,14 @@ public:
     float texScale;
     int getAllElems(Tab<dag::ConstSpan<ShaderMesh::RElem>> &out_elems) const;
   };
+
+  enum StaticFlags : uint32_t
+  {
+    SF_XRAY = 1 << 1,
+    SF_DESTR = 1 << 2,
+    SF_PHYSTRACK = 1 << 3,
+  };
+  uint32_t getStaticFlags() const { return staticFlags; }
 
   static inline int dumpStartOfs() { return offsetof(DynamicRenderableSceneLodsResource, lods); }
   void *dumpStartPtr() { return &lods; }
@@ -410,42 +418,34 @@ protected:
   };
   static_assert(RESERVED_SHIFT + RESERVED_SIZE == 32,
     "Since we use one dword for the bitfield, we shouldn't have unhandled bits there.");
-  uint32_t packedFields;
-  int instanceRefCount;
+  uint32_t packedFields = 0;
+  uint32_t staticFlags = 0;
+  int instanceRefCount = 0;
   volatile unsigned short qlReqLod = qlReqLodInitialValue, qlReqLodPrev = qlReqLodInitialValue;
   volatile unsigned short qlReloadCnt = 0, qlDiscardCnt = 0;
   int qlReqLFU = 0;
   mutable DynamicRenderableSceneLodsResource *nextClonedRes = nullptr;
   mutable Ptr<DynamicRenderableSceneLodsResource> originalRes;
-  PATCHABLE_32BIT_PAD32(_resv[3]);
-  PATCHABLE_64BIT_PAD32(_resv[2]);
+  PATCHABLE_32BIT_PAD32(_resv[1]);
+  PATCHABLE_64BIT_PAD32(_resv[1]);
 
 public:
-  PatchableTab<Lod> lods;
+  // start of dump:
+  alignas(16) PatchableTab<Lod> lods;
   BBox3 bbox;
   float bpC254[4], bpC255[4]; //< available only when boundPackUsed==1 (overlaps with other data in older bindump format)
 
 protected:
-  DynamicRenderableSceneLodsResource() //-V730
-  {
-    packedFields = 0;
-    instanceRefCount = 0;
-  }
+  DynamicRenderableSceneLodsResource() = default; //-V730
   DynamicRenderableSceneLodsResource(const DynamicRenderableSceneLodsResource &);
-  ~DynamicRenderableSceneLodsResource()
-  {
-    G_ASSERT(getInstanceRefCount() == 0);
-    clearData();
-  }
+  ~DynamicRenderableSceneLodsResource();
+
   void addToCloneList(const DynamicRenderableSceneLodsResource &from);
 
   // patches data after resource dump loading
   int patchAndLoadData(IGenLoad & crd, int flags, int res_sz);
 
   void loadSkins(IGenLoad & crd, int flags, const DataBlock *desc = nullptr);
-
-  // explicit destructor
-  void clearData();
 
   uint32_t getResSize() const { return (interlocked_relaxed_load(packedFields) >> RES_SIZE_SHIFT) & RES_SIZE_MASK; }
 

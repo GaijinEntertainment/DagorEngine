@@ -269,4 +269,16 @@
     </Expand>
   </Type>
 
+  <Type Name="DriverCode">
+    <DisplayString Condition="value==0">null</DisplayString>
+    <DisplayString Condition="value==-1">undefined</DisplayString>
+    <DisplayString Condition="value==825317444">dx11</DisplayString>
+    <DisplayString Condition="value==842094660">dx12</DisplayString>
+    <DisplayString Condition="value==1280593152">metal</DisplayString>
+    <DisplayString Condition="value==877875200">ps4</DisplayString>
+    <DisplayString Condition="value==894652416">ps5</DisplayString>
+    <DisplayString Condition="value==1112888403">stub</DisplayString>
+    <DisplayString Condition="value==1263293782">vulkan</DisplayString>
+  </Type>
+
 </AutoVisualizer>

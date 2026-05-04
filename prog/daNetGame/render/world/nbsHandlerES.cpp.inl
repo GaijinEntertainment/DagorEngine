@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <util/dag_string.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/sharedComponent.h>
 
@@ -13,41 +15,53 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <ecs/gameres/commonLoadingJobMgr.h>
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
+#include <ecs/render/updateStageRender.h>
 
 
 extern const char *const EMPTY_LEVEL_NAME;
 extern const char *const DEFAULT_WR_LEVEL_NAME;
 
+namespace var
+{
+static ShaderVariableInfo nbs_params("nbs_params", true);
+}
+
+static void update_nbs_params_es(const UpdateStageInfoBeforeRender &, const Point4 &nbs_params)
+{
+  ShaderGlobal::set_float4(var::nbs_params, nbs_params);
+}
+
 template <typename Callable>
-static void volfog_optional_graphs_ecs_query(Callable c);
+static void volfog_optional_graphs_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void add_volfog_optional_graphs()
 {
   if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
   {
-    volfog_optional_graphs_ecs_query(
-      [wr](const ecs::string &volfog) { wr->enableVolumeFogOptionalShader(String(volfog.c_str()), true); });
+    volfog_optional_graphs_ecs_query(*g_entity_mgr, [wr](const ecs::string &volfog_optional_graph) {
+      wr->enableVolumeFogOptionalShader(String(volfog_optional_graph.c_str()), true);
+    });
   }
 }
 
 ECS_ON_EVENT(on_appear, on_disappear)
-static void add_volfog_optional_graph_es_event_handler(const ecs::Event &evt, const ecs::string &volfog)
+static void add_volfog_optional_graph_es_event_handler(const ecs::Event &evt, const ecs::string &volfog_optional_graph)
 {
   if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
   {
     bool dest = evt.is<ecs::EventEntityDestroyed>() || evt.is<ecs::EventComponentsDisappear>();
-    wr->enableVolumeFogOptionalShader(String(volfog.c_str()), !dest);
+    wr->enableVolumeFogOptionalShader(String(volfog_optional_graph.c_str()), !dest);
   }
 }
 
 template <typename Callable>
-static void envi_cover_optional_graphs_ecs_query(Callable c);
+static void envi_cover_optional_graphs_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void add_envi_cover_optional_graphs()
 {
   if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
   {
-    envi_cover_optional_graphs_ecs_query([wr](const ecs::string &envi_cover_optional_graph) {
+    envi_cover_optional_graphs_ecs_query(*g_entity_mgr, [wr](const ecs::string &envi_cover_optional_graph) {
       wr->enableEnviCoverOptionalShader(String(envi_cover_optional_graph.c_str()), true);
     });
   }
@@ -87,8 +101,8 @@ struct LoadNbsVolfogJob final : public cpujobs::IJob
 
   void doJob() override
   {
-    if (auto res = get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(resName.c_str()), LShaderGameResClassId))
-      release_game_resource(res);
+    if (auto res = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId))
+      release_game_resource_ex(res, LShaderGameResClassId);
   }
 
   void releaseJob() override
@@ -100,47 +114,23 @@ struct LoadNbsVolfogJob final : public cpujobs::IJob
   }
 };
 
-template <typename Callable>
-inline void get_volfog_nbs_ecs_query(Callable c);
-
 ECS_ON_EVENT(OnLevelLoaded)
-static void nbs_volfog_init_es(const OnLevelLoaded &evt)
+static void nbs_volfog_init_es(const OnLevelLoaded &,
+  const ecs::string &volfog_nbs__rootGraph,
+  const float volfog_nbs__low_range,
+  const float volfog_nbs__high_range,
+  const float volfog_nbs__low_height,
+  const float volfog_nbs__high_height)
 {
-  bool volFogLoaded = false;
-
-  get_volfog_nbs_ecs_query(
-    [&volFogLoaded](const ecs::string &volfog_nbs__rootGraph, const float volfog_nbs__low_range, const float volfog_nbs__high_range,
-      const float volfog_nbs__low_height, const float volfog_nbs__high_height) {
-      eastl::string fullName = node_based_shader_get_resource_name(volfog_nbs__rootGraph.c_str());
-      if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-      {
-        volFogLoaded = true;
-        auto job = new LoadNbsVolfogJob(eastl::move(fullName), volfog_nbs__rootGraph.c_str(), volfog_nbs__low_range,
-          volfog_nbs__high_range, volfog_nbs__low_height, volfog_nbs__high_height);
-        G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-      }
-    });
-
-  if (volFogLoaded)
-    return;
-
-  // Fallback
-  const DataBlock *volFogBlk = evt.level_blk.getBlockByNameEx("volFog");
-  if (ecs::string rootGraph = volFogBlk->getStr("rootFogGraph", ""); !rootGraph.empty())
+  eastl::string fullName = node_based_shader_get_resource_name(volfog_nbs__rootGraph.c_str());
+  if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
   {
-    eastl::string fullName = node_based_shader_get_resource_name(rootGraph.c_str());
-    if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-    {
-      logerr("rootFogGraph definition in level.blk is deprecated, please avoid using it!");
-      float lowRange = volFogBlk->getReal("low_range", 256.0);
-      float highRange = volFogBlk->getReal("high_range", lowRange * 4);
-      float lowHeight = volFogBlk->getReal("low_height", 8.0);
-      float highHeight = volFogBlk->getReal("high_height", 200.0);
-
-      auto job = new LoadNbsVolfogJob(eastl::move(fullName), rootGraph.c_str(), lowRange, highRange, lowHeight, highHeight);
-      G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-    }
+    auto job = new LoadNbsVolfogJob(eastl::move(fullName), volfog_nbs__rootGraph.c_str(), volfog_nbs__low_range,
+      volfog_nbs__high_range, volfog_nbs__low_height, volfog_nbs__high_height);
+    G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
+    return;
   }
+  logerr("Tried to load volFog graph with name %s, but was not found in gameResources, loading failed", volfog_nbs__rootGraph.c_str());
 }
 
 
@@ -155,8 +145,8 @@ struct LoadNbsEnviCoverJob final : public cpujobs::IJob
 
   void doJob() override
   {
-    if (auto res = get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(resName.c_str()), LShaderGameResClassId))
-      release_game_resource(res);
+    if (auto res = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId))
+      release_game_resource_ex(res, LShaderGameResClassId);
   }
   void releaseJob() override
   {
@@ -167,37 +157,17 @@ struct LoadNbsEnviCoverJob final : public cpujobs::IJob
   }
 };
 
-template <typename Callable>
-inline void get_envicover_nbs_ecs_query(Callable c);
-
 ECS_ON_EVENT(OnLevelLoaded)
-static void nbs_envi_cover_init_es(const OnLevelLoaded &evt)
+static void nbs_envi_cover_init_es(const OnLevelLoaded &, const ecs::string &envi_cover_nbs__rootGraph)
 {
-  bool enviCoverLoaded = false;
-
-  get_envicover_nbs_ecs_query([&enviCoverLoaded](const ecs::string &envi_cover_nbs__rootGraph) {
-    eastl::string fullName = node_based_shader_get_resource_name(envi_cover_nbs__rootGraph.c_str());
-    if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-    {
-      enviCoverLoaded = true;
-      auto job = new LoadNbsEnviCoverJob(eastl::move(fullName), envi_cover_nbs__rootGraph.c_str());
-      G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-    }
-  });
-
-  if (enviCoverLoaded)
-    return;
-
-  // Fallback
-  const DataBlock *volFogBlk = evt.level_blk.getBlockByNameEx("enviCover");
-  if (ecs::string rootGraph = volFogBlk->getStr("rootEnviCoverGraph", ""); !rootGraph.empty())
+  eastl::string fullName = node_based_shader_get_resource_name(envi_cover_nbs__rootGraph.c_str());
+  if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
   {
-    logerr("rootEnviCoverGraph definition in level.blk is deprecated, please avoid using it!");
-    eastl::string fullName = node_based_shader_get_resource_name(rootGraph.c_str());
-    if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-    {
-      auto job = new LoadNbsEnviCoverJob(eastl::move(fullName), rootGraph.c_str());
-      G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-    }
+    auto job = new LoadNbsEnviCoverJob(eastl::move(fullName), envi_cover_nbs__rootGraph.c_str());
+    G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
+    return;
   }
+
+  logerr("Tried to load enviCover graph with name %s, but was not found in gameResources, loading failed",
+    envi_cover_nbs__rootGraph.c_str());
 }

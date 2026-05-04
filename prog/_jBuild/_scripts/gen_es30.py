@@ -1,5 +1,5 @@
 import os
-
+import sys
 
 def strip_end(text, suffix):
     if not text.endswith(suffix):
@@ -110,6 +110,12 @@ def checkForPresenceAndRemoveOptional(noParam, paramsList, name):
         paramsList.remove(param)
 
 
+def red_text(txt):
+  if sys.stdout.isatty():
+    return f"\033[91m{txt}\033[0m"
+  else:
+    return txt
+
 def es_function_from_parsed_function(fun):
   for fid in range(0, len(fun.call_params)):
     if ("type" in fun.call_params[fid]):
@@ -151,7 +157,13 @@ def es_function_from_parsed_function(fun):
   esFun.annotatedTags += gather_annotate_list("@tag:", fun.functionDeclAnnotation)
   esFun.annotatedBefore = gather_annotate_list("@before:", fun.annotations)
   esFun.annotatedAfter = gather_annotate_list("@after:", fun.annotations)
-  if "*" in esFun.annotatedBefore or "*" in esFun.annotatedAfter:
+
+  hasBeforeAny = "*" in esFun.annotatedBefore
+  hasAfterAny = "*" in esFun.annotatedAfter
+  if hasBeforeAny or hasAfterAny:
+    if hasBeforeAny and len(esFun.annotatedAfter) != 0 or hasAfterAny and len(esFun.annotatedBefore) != 0:
+      print(f"{red_text('[E]')} ES {red_text(fun.funcName)} is explicitly marked with no-order(ECS_NO_ORDER or ECS_AFTER=(*) or ECS_BEFORE=(*)). But it has additional non empty ECS_AFTER/ECS_BEFORE, this is forbidden!")
+      exit(1)
     esFun.annotatedBefore = ["*"]
     esFun.annotatedAfter = []
 

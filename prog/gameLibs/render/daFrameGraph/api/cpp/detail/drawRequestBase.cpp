@@ -10,7 +10,7 @@ void DrawRequestBase::draw(DrawPrimitive primitive)
 {
   auto &node = registry->nodes[nodeId];
 
-  if (DAGOR_UNLIKELY(!eastl::holds_alternative<DrawRequirements>(node.executeRequirements)))
+  if (DAGOR_UNLIKELY(!eastl::holds_alternative<eastl::monostate>(node.executeRequirements)))
     logerr("daFG: Node %s has already specified execute requirements", registry->knownNames.getName(nodeId));
 
   node.executeRequirements = DrawRequirements{shaderId, DrawRequirements::DirectNonIndexedArgs{primitive}};
@@ -20,7 +20,7 @@ void DrawRequestBase::drawIndexed(DrawPrimitive primitive)
 {
   auto &node = registry->nodes[nodeId];
 
-  if (DAGOR_UNLIKELY(!eastl::holds_alternative<DrawRequirements>(node.executeRequirements)))
+  if (DAGOR_UNLIKELY(!eastl::holds_alternative<eastl::monostate>(node.executeRequirements)))
     logerr("daFG: Node %s has already specified execute requirements", registry->knownNames.getName(nodeId));
 
   node.executeRequirements = DrawRequirements{shaderId, DrawRequirements::DirectIndexedArgs{primitive}};
@@ -38,7 +38,7 @@ void DrawRequestBase::indirect(const char *buffer)
 
   registry->nodes[nodeId].readResources.insert(resNameId);
   registry->nodes[nodeId].resourceRequests.emplace(resNameId,
-    ResourceRequest{ResourceUsage{Usage::INDIRECTION_BUFFER, Access::READ_ONLY}});
+    ResourceRequest{ResourceUsage{Usage::INDIRECTION_BUFFER, Access::READ_ONLY, Stage::ALL_GRAPHICS}});
 
   eastl::visit(
     [&](auto &args) {
@@ -67,7 +67,7 @@ static DrawRequirements *update_draw_requirements(dafg::NodeData &node)
         arg_type == DrawRequestBase::ArgType::Stride || arg_type == DrawRequestBase::ArgType::Count;
       if constexpr (isMultiDrawArg && eastl::is_same_v<DrawRequirements::IndirectNonIndexedArgs, T>)
         drawRequirements->arguments = DrawRequirements::MultiIndirectNonIndexedArgs{args};
-      else if constexpr (!isMultiDrawArg && eastl::is_same_v<DrawRequirements::IndirectIndexedArgs, T>)
+      else if constexpr (isMultiDrawArg && eastl::is_same_v<DrawRequirements::IndirectIndexedArgs, T>)
         drawRequirements->arguments = DrawRequirements::MultiIndirectIndexedArgs{args};
     },
     drawRequirements->arguments);

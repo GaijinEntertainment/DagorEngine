@@ -8,10 +8,10 @@ var
 
 let commonMountPointPrefixes <- {
   "danetlibs" => "daNetGameLibs",
-  "ecs" => "%dasGameLibs/ecs",
-  "docs" => "%dasGameLibs/docs",
-  "math" => "%dasGameLibs/math",
-  "daFrameGraph" => "%dasGameLibs/daFrameGraph",
+  "ecs" => "%gameLibs/das/ecs",
+  "docs" => "%gameLibs/das/docs",
+  "math" => "%gameLibs/das/math",
+  "daFrameGraph" => "%gameLibs/das/daFrameGraph",
   "daslib" => "%daslib",
   "imgui" => "%dasImgui",
   "debug" => "%dngdas/debug",

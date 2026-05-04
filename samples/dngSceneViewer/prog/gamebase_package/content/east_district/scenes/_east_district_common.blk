@@ -1,6 +1,12 @@
 import{
   scene:t="content/east_district/scenes/_east_district_sounds.blk"
+}
+
+import{
   scene:t="content/east_district/scenes/_east_district_biome_fx.blk"
+}
+
+import{
   scene:t="content/east_district/scenes/_east_district_gpu_objects.blk"
 }
 

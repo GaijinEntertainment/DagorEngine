@@ -4,7 +4,7 @@ options no_aot
 
 require ecs
 require app
-require debugapi
+require daslib/debugger
 
 require remote.server_agent
 

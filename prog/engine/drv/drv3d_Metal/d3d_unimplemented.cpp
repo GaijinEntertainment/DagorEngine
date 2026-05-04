@@ -13,6 +13,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_shaderLibrary.h>
+#include <drv/3d/dag_resourceTag.h>
 #include "drv_utils.h"
 
 #include <ioSys/dag_dataBlock.h>
@@ -24,20 +25,6 @@
 #if _TARGET_PC_MACOSX
 #include <drv/3d/dag_platform_pc.h>
 #endif
-
-void getCodeFromZ(const char *source, int sz, Tab<char> &code)
-{
-  InPlaceMemLoadCB crd(source, sz);
-  ZlibLoadCB zlib_crd(crd, sz);
-
-  int size = zlib_crd.readInt();
-
-  code.resize(size + 1);
-  zlib_crd.readExact(&code[0], size);
-  code[size] = 0;
-
-  zlib_crd.ceaseReading();
-}
 
 bool getUseRetina() { return get_settings_use_retina(); }
 
@@ -70,6 +57,8 @@ VDECL d3d::get_program_vdecl(PROGRAM p) { return -1; }
 
 // Device management
 void *d3d::get_device() { return 0; }
+
+unsigned d3d::get_dedicated_gpu_memory_system_internal_overhead_kb() { return 0; }
 
 /// returns raw pointer to device interface
 void *d3d::get_context() { return 0; }
@@ -146,8 +135,6 @@ ShaderLibrary d3d::create_shader_library(const ShaderLibraryCreateInfo &) { retu
 
 void d3d::destroy_shader_library(ShaderLibrary) {}
 
-void d3d::wait_for_async_present(bool force) { G_UNUSED(force); }
-
 void d3d::begin_frame(uint32_t, bool) {}
 
 void d3d::mark_simulation_start(uint32_t) {}
@@ -158,3 +145,5 @@ void d3d::mark_render_end(uint32_t) {}
 IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC();
 
 #include <legacyCaptureImpl.cpp.inl>
+
+void d3d::visit_tagged_resources(const ResourceTypeFilter &, const ResourceVisitor &) {}

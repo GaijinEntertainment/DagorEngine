@@ -19,6 +19,7 @@ static void bodies_cleanup_es_all(const ecs::UpdateStageInfo &__restrict info, c
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     bodies_cleanup_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RW_COMP(bodies_cleanup_es_comps, "bodies_cleanup", BodiesCleanup)
     );
   while (++comp != compE);
@@ -47,7 +48,8 @@ static void bodies_cmd_cleanup_es_event_handler_all_events(const ecs::Event &__r
   G_FAST_ASSERT(evt.is<CmdBodyCleanup>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     bodies_cmd_cleanup_es_event_handler(static_cast<const CmdBodyCleanup&>(evt)
-        , ECS_RO_COMP(bodies_cmd_cleanup_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(bodies_cmd_cleanup_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(bodies_cmd_cleanup_es_event_handler_comps, "replication", net::Object)
     );
   while (++comp != compE);
@@ -74,7 +76,8 @@ static void update_body_cleanup_ttl_es_all_events(const ecs::Event &__restrict e
   G_FAST_ASSERT(evt.is<CmdBodyCleanupUpdateTtl>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_body_cleanup_ttl_es(static_cast<const CmdBodyCleanupUpdateTtl&>(evt)
-        , ECS_RO_COMP(update_body_cleanup_ttl_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(update_body_cleanup_ttl_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }

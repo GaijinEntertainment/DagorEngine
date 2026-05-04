@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <memory/dag_framemem.h>
 #include <ioSys/dag_fileIo.h>
 #include <ioSys/dag_zlibIo.h>
 #include <osApiWrappers/dag_files.h>
@@ -86,6 +87,23 @@ void PipelineManager::unloadAll()
   seenGraphicsPipes.clear();
 }
 
+void PipelineManager::onDeviceReset()
+{
+  seenGraphicsPipes.clear();
+
+  graphics.enumerate([](auto &pipeline, auto) { pipeline.shutdown(); });
+  graphics.enumerateLayouts([](auto &layout) { layout.onDeviceReset(); });
+  compute.enumerate([](auto &pipeline, auto) { pipeline.onDeviceReset(); });
+  compute.enumerateLayouts([](auto &layout) { layout.onDeviceReset(); });
+}
+
+void PipelineManager::afterDeviceReset()
+{
+  graphics.enumerateLayouts([](auto &layout) { layout.afterDeviceReset(); });
+  compute.enumerateLayouts([](auto &layout) { layout.afterDeviceReset(); });
+  compute.enumerate([](auto &pipeline, auto) { pipeline.afterDeviceReset(false); });
+}
+
 void PipelineManager::prepareRemoval(ProgramID program)
 {
   CleanupQueue &cleanups = Backend::gpuJob.get().cleanups;
@@ -98,11 +116,28 @@ void PipelineManager::prepareRemoval(ProgramID program)
   }
 }
 
-VulkanShaderModuleHandle PipelineManager::makeVkModule(const ShaderModuleBlob *module)
+VulkanShaderModuleHandle PipelineManager::makeVkModule(const ShaderModuleBlob *module, spirv::HashValue &hv)
 {
+  Tab<uint8_t> tmpstorage(framemem_ptr());
+  module->source.uncompress(tmpstorage);
+
+  Tab<uint8_t> tmpstorageSmolv(framemem_ptr());
+  if (module->sizeSmolv)
+  {
+    G_ASSERT(module->sizeSmolv <= tmpstorage.size());
+    uint32_t decodedSize = smolv::GetDecodedBufferSize(tmpstorage.data() + module->offset, module->sizeSmolv);
+    tmpstorageSmolv.resize(decodedSize);
+    G_VERIFY(smolv::Decode(tmpstorage.data() + module->offset, module->sizeSmolv, tmpstorageSmolv.data(), tmpstorageSmolv.size()));
+  }
+  const auto &src = module->sizeSmolv ? tmpstorageSmolv : tmpstorage;
+  const uint32_t size = module->sizeSmolv == 0 && module->size ? module->size : src.size();
+  const uint32_t offset = module->sizeSmolv ? 0 : module->offset;
+  G_ASSERT(offset + size <= src.size());
+  hv = spirv::HashValue::calculate(src.data() + offset, size);
+
   VkShaderModuleCreateInfo smci = {VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, NULL, 0};
-  smci.codeSize = module->getBlobSize();
-  smci.pCode = module->blob.data();
+  smci.codeSize = size;
+  smci.pCode = (const uint32_t *)(src.data() + offset);
 
   VulkanShaderModuleHandle shader = VulkanShaderModuleHandle();
   VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateShaderModule(Globals::VK::dev.get(), &smci, VKALLOC(shader_module), ptr(shader)));

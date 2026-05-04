@@ -154,6 +154,8 @@ void DeviceMemoryPool::init(const VkPhysicalDeviceMemoryProperties &mem_info)
 {
   const DataBlock *vkCfg = ::dgs_get_settings()->getBlockByNameEx("vulkan");
 
+  for (Tab<uint32_t> &i : classTypes)
+    i.clear();
   heaps.resize(mem_info.memoryHeapCount);
   for (uint32_t i = 0; i < mem_info.memoryHeapCount; ++i)
   {
@@ -213,8 +215,10 @@ void DeviceMemoryPool::init(const VkPhysicalDeviceMemoryProperties &mem_info)
   }
 #endif
 
-  for (int i = 0; i < array_size(classTypes); ++i)
+  for (int i = 0; i < eastl::size(classTypes); ++i)
     initClassType(static_cast<DeviceMemoryClass>(i));
+
+  evictedSysCopiesSize = 0;
 }
 
 #if VK_EXT_memory_budget
@@ -380,6 +384,8 @@ DeviceMemory DeviceMemoryPool::allocate(const DeviceMemoryTypeAllocationInfo &in
   }
   else
     logAllocationError(info, "vulkan error");
+
+  updateInternalDeviceMemoryUsageKb();
   return result;
 }
 
@@ -389,18 +395,61 @@ void DeviceMemoryPool::free(const DeviceMemory &memory)
   types[memory.type].heap->inUse -= memory.size;
   VULKAN_LOG_CALL(vkDev.vkFreeMemory(vkDev.get(), memory.memory, VKALLOC(device_memory)));
   ++frees;
+  updateInternalDeviceMemoryUsageKb();
+}
+
+void DeviceMemoryPool::updateInternalDeviceMemoryUsageKb()
+{
+#if VK_EXT_memory_budget
+  bool hasBudget = Globals::VK::phy.memoryBudgetInfoAvailable;
+
+  VkPhysicalDeviceMemoryBudgetPropertiesEXT budget;
+  if (hasBudget)
+  {
+    Globals::VK::phy.getCurrentMemoryBudget(Globals::VK::inst, budget);
+
+    uint64_t totalUsed = 0;
+    for (uint32_t i = 0; i < heaps.size(); ++i)
+    {
+      const Heap &heap = heaps[i];
+      if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+        totalUsed += budget.heapUsage[i] - heap.inUse;
+    }
+    lastInternalDeviceMemoryUsageKb.store(totalUsed >> 10, std::memory_order_release);
+    return;
+  }
+#endif
+  lastInternalDeviceMemoryUsageKb.store(0, std::memory_order_release);
+}
+
+uint32_t DeviceMemoryPool::getInternalDeviceMemoryUsageKb() const
+{
+  return lastInternalDeviceMemoryUsageKb.load(std::memory_order_acquire);
 }
 
 void DeviceMemoryPool::printStats()
 {
+  updateInternalDeviceMemoryUsageKb();
   debug("Vulkan memory stats:");
   VkDeviceSize totalSize = 0;
+  bool hasBudget = Globals::VK::phy.memoryBudgetInfoAvailable;
+#if VK_EXT_memory_budget
+  VkPhysicalDeviceMemoryBudgetPropertiesEXT budget;
+  if (hasBudget)
+    Globals::VK::phy.getCurrentMemoryBudget(Globals::VK::inst, budget);
+#endif
   for (uint32_t i = 0; i < heaps.size(); ++i)
   {
     const Heap &heap = heaps[i];
     const char *deviceLocalInfo = (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) ? "device local" : "host local";
-    debug("Heap %u (%s): %s of %s in use (%f%%, %s max)", i, deviceLocalInfo, byte_size_unit(heap.inUse), byte_size_unit(heap.limit),
-      float(heap.inUse) / heap.limit * 100.f, byte_size_unit(heap.size));
+    String budgetStr;
+#if VK_EXT_memory_budget
+    if (hasBudget)
+      budgetStr = String(32, " [%s/%s, %f%% by budget]", byte_size_unit(budget.heapUsage[i]), byte_size_unit(budget.heapBudget[i]),
+        budget.heapUsage[i] * 100.0f / budget.heapBudget[i]);
+#endif
+    debug("Heap %u (%s): %s/%s%s (%f%%, %s max)", i, deviceLocalInfo, byte_size_unit(heap.inUse), byte_size_unit(heap.limit),
+      budgetStr, float(heap.inUse) / heap.limit * 100.f, byte_size_unit(heap.size));
     totalSize += heap.inUse;
   }
 
@@ -459,10 +508,20 @@ int DeviceMemoryPool::MemoryClassCompare::order(uint32_t l, uint32_t r) const
     return 0;
 }
 
+void DeviceMemoryPool::onResidencySysCopyChange(VkDeviceSize sz, bool alloc)
+{
+  if (alloc)
+    evictedSysCopiesSize += sz;
+  else
+    evictedSysCopiesSize -= sz;
+}
+
 uint32_t DeviceMemoryPool::getCurrentAvailableDeviceKb()
 {
   // TODO: use cached values if reading takes too much time
-  return Globals::VK::phy.getCurrentAvailableMemoryKb(Globals::VK::inst);
+  uint32_t physReportedKb = Globals::VK::phy.getCurrentAvailableMemoryKb(Globals::VK::inst);
+  uint32_t evictedKb = evictedSysCopiesSize >> 10;
+  return physReportedKb > evictedKb ? physReportedKb - evictedKb : 0;
 }
 
 bool drv3d_vulkan::isMemoryClassHostResident(DeviceMemoryClass dmc)

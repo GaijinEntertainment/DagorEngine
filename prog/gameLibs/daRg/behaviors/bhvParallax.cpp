@@ -26,7 +26,7 @@ int BhvParallax::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/
 
   GuiScene *scene = GuiScene::get_from_elem(elem);
 
-  Point2 mousePos = scene->getMousePos();
+  Point2 mousePos = scene->activePointerPos();
   float halfW = StdGuiRender::screen_width() / 2;
   float halfH = StdGuiRender::screen_height() / 2;
 

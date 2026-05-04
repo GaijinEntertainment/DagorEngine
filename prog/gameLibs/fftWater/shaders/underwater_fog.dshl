@@ -18,51 +18,31 @@ macro INIT_UNDERWATER_FOG(stage)
   }
 endmacro
 
-int water_colormap_assume;
-interval water_colormap_assume : off < 1, on;
-texture water_colormap;
-float4 water_colormap_area = (-512,-512,512,512);
-
 macro GET_UNDERWATER_FOG_PERLIN(stage)
-
-  if (water_colormap_assume == on) {
-    (stage) {
-      water_colormap@smp2d = water_colormap;
-      world_to_water_colormap@f4 = (1/(water_colormap_area.z-water_colormap_area.x), 1/(water_colormap_area.w-water_colormap_area.y),
-        -water_colormap_area.x/(water_colormap_area.z-water_colormap_area.x), -water_colormap_area.y/(water_colormap_area.w-water_colormap_area.y));
-    }
-  }
-
-hlsl(stage) {
-  half4 get_ocean_color_perlin(float2 waterPos, float ocean_part, float perlin_noise_water_color)
-  {
-    ##if water_colormap_assume == off || water_colormap == NULL
+  hlsl(stage) {
+    half4 get_ocean_color_perlin(float2 waterPos, float ocean_part, float perlin_noise_water_color)
+    {
       float4 water_color0 = lerp(river0, ocean0, ocean_part);
       float3 water_color1 = lerp(river1.rgb, ocean1.rgb, ocean_part);
       return half4(lerp(water_color0.rgb, water_color1.rgb, perlin_noise_water_color), water_color0.w);
-    ##else
-      float4 water_color = tex2Dlod(water_colormap, float4(waterPos*world_to_water_colormap.xy+world_to_water_colormap.zw,0,0));
-      water_color.a = lerp(-water_color.a, 0.41*0.3/3.14, ocean_part);
-      return water_color;
-    ##endif
+    }
+    void get_underwater_fog_colored(float4 oceanColorDensity, float3 waterWorldPos, float3 view, float water_view_depth, out half3 underwater_loss, out half3 underwater_inscatter)
+    {
+      //float dist = depthDist;
+      //if (waterWorldPos.y>water_level && view.y<-0.01)
+      //  dist = depthDist + water_level/view.y;
+      underwater_loss = half3(exp2(saturate(float3(1.0,1.0,1.0)-oceanColorDensity.rgb)*(oceanColorDensity.w*max(0.0, water_view_depth))));
+      float water_total_inscatter = river1.w;
+      underwater_inscatter = half3(oceanColorDensity.rgb*water_total_inscatter);
+    }
+    void get_underwater_fog_perlin(float3 waterWorldPos, float3 view, float water_view_depth, float ocean_part, half perlin_noise_water_color, out half3 underwater_loss, out half3 underwater_inscatter)
+    {
+      //half3 oceanColor = get_ocean_color(waterWorldPos.xz, lerp(1, ocean_part, pow4(1-saturate(-view.y*4-0.1))));
+      //half3 oceanColor = get_ocean_color(waterWorldPos.xz, saturate((view.y+0.1)*10) > 0 ? ocean_part : 1);
+      float4 oceanColor = get_ocean_color_perlin(waterWorldPos.xz, ocean_part, perlin_noise_water_color);
+      get_underwater_fog_colored(oceanColor, waterWorldPos, view, water_view_depth, underwater_loss, underwater_inscatter);
+    }
   }
-  void get_underwater_fog_colored(float4 oceanColorDensity, float3 waterWorldPos, float3 underWaterWorldPos, float3 view, float water_view_depth, out half3 underwater_loss, out half3 underwater_inscatter)
-  {
-    //float dist = depthDist;
-    //if (waterWorldPos.y>water_level && view.y<-0.01)
-    //  dist = depthDist + water_level/view.y;
-    underwater_loss = half3(exp2(saturate(float3(1.0,1.0,1.0)-oceanColorDensity.rgb)*(oceanColorDensity.w*max(0.0, water_view_depth))));
-    float water_total_inscatter = river1.w;
-    underwater_inscatter = half3(oceanColorDensity.rgb*water_total_inscatter);
-  }
-  void get_underwater_fog_perlin(float3 waterWorldPos, float3 underWaterWorldPos, float3 view, float water_view_depth, float water_down_deep, float ocean_part, half perlin_noise_water_color, out half3 underwater_loss, out half3 underwater_inscatter)
-  {
-    //half3 oceanColor = get_ocean_color(waterWorldPos.xz, lerp(1, ocean_part, pow4(1-saturate(-view.y*4-0.1))));
-    //half3 oceanColor = get_ocean_color(waterWorldPos.xz, saturate((view.y+0.1)*10) > 0 ? ocean_part : 1);
-    float4 oceanColor = get_ocean_color_perlin(waterWorldPos.xz, ocean_part, perlin_noise_water_color);
-    get_underwater_fog_colored(oceanColor, waterWorldPos, underWaterWorldPos, view, water_view_depth, underwater_loss, underwater_inscatter);
-  }
-}
 endmacro
 
 // FIXME: move out here, it is global constansts affecting not only underwater fog
@@ -92,12 +72,10 @@ macro GET_UNDERWATER_FOG()
     {
       return get_ocean_color_perlin(waterPos, ocean_part, get_perlin_water_color(waterPos));
     }
-    void get_underwater_fog(float3 waterWorldPos, float3 underWaterWorldPos, float3 view, float water_view_depth, float water_down_deep, float ocean_part, out half3 underwater_loss, out half3 underwater_inscatter)
+    void get_underwater_fog(float3 waterWorldPos, float3 view, float water_view_depth, float ocean_part, out half3 underwater_loss, out half3 underwater_inscatter)
     {
       half perlin_noise_water_color = get_perlin_water_color(waterWorldPos.xz);
-      get_underwater_fog_perlin(waterWorldPos, underWaterWorldPos, view, water_view_depth, water_down_deep, ocean_part, perlin_noise_water_color, underwater_loss, underwater_inscatter);
+      get_underwater_fog_perlin(waterWorldPos, view, water_view_depth, ocean_part, perlin_noise_water_color, underwater_loss, underwater_inscatter);
     }
   }
 endmacro
-
-

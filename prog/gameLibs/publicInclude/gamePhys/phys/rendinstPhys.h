@@ -61,6 +61,7 @@ struct RendInstPhys
   gamephys::DynamicPhysModel *physModel;
   PhysBody *physBody;
   PhysBody *additionalBody;
+  PhysBody *bendHelperBody;
   Tab<PhysJoint *> joints;
   TMatrix centerOfMassTm;
   Point3 scale;

@@ -17,7 +17,6 @@ namespace drv3d_vulkan
 {
 
 struct BaseTex;
-class ExecutionContext;
 class SamplerResource;
 class Buffer;
 
@@ -60,7 +59,7 @@ struct BindlessImageSlot
 {
   Image *img;
   ImageViewState viewState;
-  bool stub;
+  void *owner;
 };
 
 class BindlessManagerBackend // -V730
@@ -77,8 +76,9 @@ public:
   void evictBindlessTexture(uint32_t index, Image *image);
   void cleanupBindlessTexture(uint32_t index, Image *image);
   // true - slot was updated
-  bool updateBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub, bool stub_swap);
-  void setBindlessTexture(uint32_t index, Image *image, const ImageViewState view, bool stub);
+  bool updateBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view);
+  void setBindlessTexture(uint32_t index, Image *image, void *owner, const ImageViewState view);
+  bool isBindlessTextureOwnedBy(uint32_t index, void *owner);
 
   void restoreBindlessBuffer(uint32_t index, Buffer *buf);
   void evictBindlessBuffer(uint32_t index, Buffer *buf);
@@ -93,7 +93,7 @@ public:
   uint32_t getActiveBindlessSetCount() const;
 
   void advance();
-  void bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout);
+  void bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout, uint8_t sets_to_use);
   void resetSets();
 
 private:

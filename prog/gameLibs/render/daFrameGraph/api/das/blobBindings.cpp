@@ -74,14 +74,14 @@ void setBlobDescription(dafg::ResourceData &res, const char *mangled_name, int s
   }
 
   const auto tag = dafg::Runtime::get().getTypeDb().registerForeignType(mangled_name, eastl::move(rtti));
-  res.creationInfo = dafg::BlobDescription{tag};
+  res.createdResData->creationInfo = dafg::BlobDescription{tag};
 }
 
 void overrideBlobCtor(dafg::ResourceData &res, das::TypeInfo *type_info, das::TLambda<void, void *> ctor, das::Context *ctx)
 {
   G_ASSERT_RETURN(ctor, );
 
-  eastl::get<dafg::BlobDescription>(res.creationInfo).ctorOverride = eastl::make_unique<dafg::BlobDescription::CtorT>(
+  eastl::get<dafg::BlobDescription>(res.createdResData->creationInfo).ctorOverride = eastl::make_unique<dafg::BlobDescription::CtorT>(
     eastl::move([ctx, ctor = das::GcRootLambda(eastl::move(ctor), ctx), type_info](void *p) {
       const auto call = [ctx, &ctor, p]() { das::das_invoke_lambda<void>::invoke<void *>(ctx, nullptr, ctor, p); };
       callDasFunction(ctx, call);

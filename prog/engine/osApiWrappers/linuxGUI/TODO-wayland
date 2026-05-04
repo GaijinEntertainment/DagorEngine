@@ -1,0 +1,8 @@
+-pointer input may be misplaced when window in windowed mode changes output
+-pointer constraints broken on some systems and clipping won't work well due to this
+-decorations for windowed mode is not done and no handling for everything related to that
+-no fullscreen for multiple outputs
+-no tests done for fractional scale/transformed/etc outputs
+-idle loop is simple one, maybe should use poll based one for some perf gains
+-add cursor restore handling after hidding it
+-extend "mode" list with standart resolutions below main mode

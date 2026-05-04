@@ -1,0 +1,29 @@
+class PcmSound {
+  constructor(_params_or_filename) {}
+  function getSoundData(_target) {} //-named-like-must-return-result
+  function setSoundData(_source) {}
+
+  dataMemorySize = 0
+  duration = 0
+  freq = 48000
+  samples = 480
+  channel = 1
+}
+
+return {
+  PcmSound
+
+  play_sound = @(_snd, _params=null) null
+  set_sound_pitch = @(_handle, _v) null
+  set_sound_volume = @(_handle, _v) null
+  set_sound_pan = @(_handle, _v) null
+  is_playing = @(_handle) false
+  get_sound_play_pos = @(_handle) 0
+  set_sound_play_pos = @(_handle, _val) null
+  stop_sound = @(_handle) null
+  stop_all_sounds = @() null
+  set_master_volume = @(_) null
+  get_output_sample_rate = @() 48000
+  get_total_samples_played = @() 0
+  get_total_time_played = @() 0
+}

@@ -14,23 +14,48 @@ public:
 #if DAGOR_DBGLEVEL > 0
   static void init();
   static void report();
+
+// Set to 1 to enable per-buffer framemem update tracking when the limit is exceeded.
+#ifndef RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
+#define RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG 0
+#endif
+
+#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
+  struct FramememUpdateEntry
+  {
+    const char *name;
+    uint32_t size;
+    int lockFlags;
+  };
+
+  static void recordFramememUpdate(const char *name, uint32_t size, int lock_flags);
+#endif
+
 #else
   static void init() {}
   static void report() {}
 #endif
 protected:
-  void checkLockParams(uint32_t offset, uint32_t size, int flags, int bufFlags)
+  void checkLockParams(uint32_t offset, uint32_t size, int flags, int bufFlags, const char *name, uint32_t bufSize)
   {
     G_UNUSED(offset);
     G_UNUSED(size);
     G_UNUSED(flags);
     G_UNUSED(bufFlags);
+    G_UNUSED(name);
+    G_UNUSED(bufSize);
 #if DAGOR_DBGLEVEL > 0
+    if (size == 0)
+      size = bufSize;
     interlocked_add(uploaded_total, size);
     if ((bufFlags & SBCF_FRAMEMEM) == 0)
       return;
 
     interlocked_add(uploaded_framemem, size);
+
+#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
+    recordFramememUpdate(name, size, flags);
+#endif
 
     // this is max size of single upload, has to fit internal ring buffer chunk size
     // otherwise its gonna be always allocated/freed. could be logerr instead of assert

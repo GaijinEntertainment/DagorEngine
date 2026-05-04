@@ -16,7 +16,7 @@ class De3GuiMgrDrawFps : public IGeneralGuiManager
 public:
   virtual void beforeRender(int ticks_usec)
   {
-    frameTimeMetrics.update(::get_time_msec(), ::dagor_frame_no(), ticks_usec / 1000.f / 1000.f, PerfDisplayMode::FPS);
+    frameTimeMetrics.update(::get_time_msec(), ::dagor_frames_presented(), ticks_usec / 1000.f / 1000.f, PerfDisplayMode::FPS);
   }
 
   virtual bool canCloseNow()

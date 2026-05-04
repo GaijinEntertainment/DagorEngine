@@ -13,12 +13,13 @@ static constexpr ecs::ComponentDesc grid_obj_update_main_with_animchar_es_comps[
 {
 //start of 1 rw components at [0]
   {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()},
-//start of 4 ro components at [1]
+//start of 5 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>()},
   {ECS_HASH("grid_obj__fixedTmScale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-//start of 2 rq components at [5]
+  {ECS_HASH("grid_obj__bigObject"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
+//start of 2 rq components at [6]
   {ECS_HASH("grid_obj__updateAlways"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("grid_obj__updateInMainThread"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
@@ -32,6 +33,7 @@ static void grid_obj_update_main_with_animchar_es_all(const ecs::UpdateStageInfo
     , ECS_RO_COMP_PTR(grid_obj_update_main_with_animchar_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(grid_obj_update_main_with_animchar_es_comps, "collres", CollisionResource)
     , ECS_RO_COMP_OR(grid_obj_update_main_with_animchar_es_comps, "grid_obj__fixedTmScale", float(-1.f))
+    , ECS_RO_COMP_PTR(grid_obj_update_main_with_animchar_es_comps, "grid_obj__bigObject", ecs::Tag)
     );
   while (++comp != compE);
 }
@@ -41,30 +43,17 @@ static ecs::EntitySystemDesc grid_obj_update_main_with_animchar_es_es_desc
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(grid_obj_update_main_with_animchar_es_all),
   make_span(grid_obj_update_main_with_animchar_es_comps+0, 1)/*rw*/,
-  make_span(grid_obj_update_main_with_animchar_es_comps+1, 4)/*ro*/,
-  make_span(grid_obj_update_main_with_animchar_es_comps+5, 2)/*rq*/,
+  make_span(grid_obj_update_main_with_animchar_es_comps+1, 5)/*ro*/,
+  make_span(grid_obj_update_main_with_animchar_es_comps+6, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<>::build(),
   (1<<ecs::UpdateStageInfoAct::STAGE)
 ,nullptr,nullptr,nullptr,"after_animchar_update_sync");
-static constexpr ecs::ComponentDesc grid_debug_draw_es_comps[] =
-{
-//start of 2 ro components at [0]
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
-};
+//static constexpr ecs::ComponentDesc grid_debug_draw_es_comps[] ={};
 static void grid_debug_draw_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
-  do
-  {
-    if ( !(ECS_RO_COMP(grid_debug_draw_es_comps, "camera__active", bool)) )
-      continue;
-    grid_debug_draw_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
-    , ECS_RO_COMP(grid_debug_draw_es_comps, "transform", TMatrix)
-    );
-  }
-  while (++comp != compE);
+  G_UNUSED(components);
+    grid_debug_draw_es(*info.cast<ecs::UpdateStageInfoRenderDebug>());
 }
 static ecs::EntitySystemDesc grid_debug_draw_es_es_desc
 (
@@ -72,7 +61,7 @@ static ecs::EntitySystemDesc grid_debug_draw_es_es_desc
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(grid_debug_draw_es_all),
   empty_span(),
-  make_span(grid_debug_draw_es_comps+0, 2)/*ro*/,
+  empty_span(),
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -88,7 +77,8 @@ static void grid_holder_destroyed_es_event_handler_all_events(const ecs::Event &
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grid_holder_destroyed_es_event_handler(evt
-        , ECS_RO_COMP(grid_holder_destroyed_es_event_handler_comps, "grid_holder", GridHolder)
+        , components.manager()
+    , ECS_RO_COMP(grid_holder_destroyed_es_event_handler_comps, "grid_holder", GridHolder)
     , ECS_RO_COMP(grid_holder_destroyed_es_event_handler_comps, "grid_holder__typeHash", int)
     );
   while (++comp != compE);
@@ -118,9 +108,10 @@ static void grid_obj_verify_server_es_all_events(const ecs::Event &__restrict ev
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grid_obj_verify_server_es(evt
-        , ECS_RO_COMP(grid_obj_verify_server_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(grid_obj_verify_server_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(grid_obj_verify_server_es_comps, "grid_obj", GridObjComponent)
-    , ECS_RO_COMP_OR(grid_obj_verify_server_es_comps, "grid_obj__gridType", ecs::string("default"))
+    , ECS_RO_COMP_PTR(grid_obj_verify_server_es_comps, "grid_obj__gridType", ecs::string)
     );
   while (++comp != compE);
 }
@@ -173,25 +164,28 @@ static constexpr ecs::ComponentDesc grid_obj_update_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()},
-//start of 5 ro components at [1]
+//start of 6 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("grid_obj__fixedTmScale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("grid_obj__scaledBoxBounding"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
-//start of 1 no components at [6]
+  {ECS_HASH("grid_obj__bigObject"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
+//start of 1 no components at [7]
   {ECS_HASH("grid_obj__updateAlways"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void grid_obj_update_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grid_obj_update_es_event_handler(evt
-        , ECS_RW_COMP(grid_obj_update_es_event_handler_comps, "grid_obj", GridObjComponent)
+        , components.manager()
+    , ECS_RW_COMP(grid_obj_update_es_event_handler_comps, "grid_obj", GridObjComponent)
     , ECS_RO_COMP(grid_obj_update_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP_PTR(grid_obj_update_es_event_handler_comps, "collres", CollisionResource)
     , ECS_RO_COMP_PTR(grid_obj_update_es_event_handler_comps, "ri_extra", RiExtraComponent)
     , ECS_RO_COMP_OR(grid_obj_update_es_event_handler_comps, "grid_obj__fixedTmScale", float(-1.f))
     , ECS_RO_COMP_PTR(grid_obj_update_es_event_handler_comps, "grid_obj__scaledBoxBounding", ecs::Tag)
+    , ECS_RO_COMP_PTR(grid_obj_update_es_event_handler_comps, "grid_obj__bigObject", ecs::Tag)
     );
   while (++comp != compE);
 }
@@ -201,9 +195,9 @@ static ecs::EntitySystemDesc grid_obj_update_es_event_handler_es_desc
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(nullptr, grid_obj_update_es_event_handler_all_events),
   make_span(grid_obj_update_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(grid_obj_update_es_event_handler_comps+1, 5)/*ro*/,
+  make_span(grid_obj_update_es_event_handler_comps+1, 6)/*ro*/,
   empty_span(),
-  make_span(grid_obj_update_es_event_handler_comps+6, 1)/*no*/,
+  make_span(grid_obj_update_es_event_handler_comps+7, 1)/*no*/,
   ecs::EventSetBuilder<CmdUpdateGrid,
                        EventOnEntityTeleported,
                        ecs::EventEntityCreated,
@@ -214,14 +208,15 @@ static constexpr ecs::ComponentDesc grid_obj_update_with_animchar_es_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()},
-//start of 4 ro components at [1]
+//start of 5 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>()},
   {ECS_HASH("grid_obj__fixedTmScale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [5]
+  {ECS_HASH("grid_obj__bigObject"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [6]
   {ECS_HASH("grid_obj__updateAlways"), ecs::ComponentTypeInfo<ecs::Tag>()},
-//start of 1 no components at [6]
+//start of 1 no components at [7]
   {ECS_HASH("grid_obj__updateInMainThread"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void grid_obj_update_with_animchar_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -234,6 +229,7 @@ static void grid_obj_update_with_animchar_es_all_events(const ecs::Event &__rest
     , ECS_RO_COMP_PTR(grid_obj_update_with_animchar_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(grid_obj_update_with_animchar_es_comps, "collres", CollisionResource)
     , ECS_RO_COMP_OR(grid_obj_update_with_animchar_es_comps, "grid_obj__fixedTmScale", float(-1.f))
+    , ECS_RO_COMP_PTR(grid_obj_update_with_animchar_es_comps, "grid_obj__bigObject", ecs::Tag)
     );
   while (++comp != compE);
 }
@@ -243,9 +239,9 @@ static ecs::EntitySystemDesc grid_obj_update_with_animchar_es_es_desc
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(nullptr, grid_obj_update_with_animchar_es_all_events),
   make_span(grid_obj_update_with_animchar_es_comps+0, 1)/*rw*/,
-  make_span(grid_obj_update_with_animchar_es_comps+1, 4)/*ro*/,
-  make_span(grid_obj_update_with_animchar_es_comps+5, 1)/*rq*/,
-  make_span(grid_obj_update_with_animchar_es_comps+6, 1)/*no*/,
+  make_span(grid_obj_update_with_animchar_es_comps+1, 5)/*ro*/,
+  make_span(grid_obj_update_with_animchar_es_comps+6, 1)/*rq*/,
+  make_span(grid_obj_update_with_animchar_es_comps+7, 1)/*no*/,
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
 ,nullptr,nullptr,nullptr,"after_animchar_update_sync");
@@ -253,12 +249,13 @@ static constexpr ecs::ComponentDesc grid_obj_update_with_animchar_evt_es_comps[]
 {
 //start of 1 rw components at [0]
   {ECS_HASH("grid_obj"), ecs::ComponentTypeInfo<GridObjComponent>()},
-//start of 4 ro components at [1]
+//start of 5 ro components at [1]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("collres"), ecs::ComponentTypeInfo<CollisionResource>()},
   {ECS_HASH("grid_obj__fixedTmScale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [5]
+  {ECS_HASH("grid_obj__bigObject"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [6]
   {ECS_HASH("grid_obj__updateAlways"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void grid_obj_update_with_animchar_evt_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -270,6 +267,7 @@ static void grid_obj_update_with_animchar_evt_es_all_events(const ecs::Event &__
     , ECS_RO_COMP(grid_obj_update_with_animchar_evt_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(grid_obj_update_with_animchar_evt_es_comps, "collres", CollisionResource)
     , ECS_RO_COMP_OR(grid_obj_update_with_animchar_evt_es_comps, "grid_obj__fixedTmScale", float(-1.f))
+    , ECS_RO_COMP_PTR(grid_obj_update_with_animchar_evt_es_comps, "grid_obj__bigObject", ecs::Tag)
     );
   while (++comp != compE);
 }
@@ -279,10 +277,11 @@ static ecs::EntitySystemDesc grid_obj_update_with_animchar_evt_es_es_desc
   "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
   ecs::EntitySystemOps(nullptr, grid_obj_update_with_animchar_evt_es_all_events),
   make_span(grid_obj_update_with_animchar_evt_es_comps+0, 1)/*rw*/,
-  make_span(grid_obj_update_with_animchar_evt_es_comps+1, 4)/*ro*/,
-  make_span(grid_obj_update_with_animchar_evt_es_comps+5, 1)/*rq*/,
+  make_span(grid_obj_update_with_animchar_evt_es_comps+1, 5)/*ro*/,
+  make_span(grid_obj_update_with_animchar_evt_es_comps+6, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<EventOnEntityTeleported>::build(),
+  ecs::EventSetBuilder<CmdUpdateGrid,
+                       EventOnEntityTeleported>::build(),
   0
 ,nullptr,nullptr,nullptr,"animchar_act_on_phys_teleport_es");
 static constexpr ecs::ComponentDesc grid_obj_disappear_es_comps[] =
@@ -418,7 +417,8 @@ static void grid_holder_created_client_es_all_events(const ecs::Event &__restric
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     grid_holder_created_client_es(evt
-        , ECS_RW_COMP(grid_holder_created_client_es_comps, "grid_holder", GridHolder)
+        , components.manager()
+    , ECS_RW_COMP(grid_holder_created_client_es_comps, "grid_holder", GridHolder)
     , ECS_RO_COMP(grid_holder_created_client_es_comps, "grid_holder__type", ecs::string)
     );
   while (++comp != compE);
@@ -436,6 +436,64 @@ static ecs::EntitySystemDesc grid_holder_created_client_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"netClient");
+static constexpr ecs::ComponentDesc grid_debug_collect_es_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
+};
+static void grid_debug_collect_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+  {
+    if ( !(ECS_RO_COMP(grid_debug_collect_es_comps, "camera__active", bool)) )
+      continue;
+    grid_debug_collect_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
+          , ECS_RO_COMP(grid_debug_collect_es_comps, "transform", TMatrix)
+      );
+  } while (++comp != compE);
+}
+static ecs::EntitySystemDesc grid_debug_collect_es_es_desc
+(
+  "grid_debug_collect_es",
+  "prog/gameLibs/ecs/game/generic/./gridES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, grid_debug_collect_es_all_events),
+  empty_span(),
+  make_span(grid_debug_collect_es_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
+  0
+,"dev,render",nullptr,"*");
+static constexpr ecs::ComponentDesc level_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("level__sceneBlk"), ecs::ComponentTypeInfo<ecs::string>(), ecs::CDF_OPTIONAL}
+};
+static ecs::CompileTimeQueryDesc level_ecs_query_desc
+(
+  "level_ecs_query",
+  empty_span(),
+  make_span(level_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void level_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, level_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP_PTR(level_ecs_query_comps, "level__sceneBlk", ecs::string)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc all_grid_holders_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
@@ -449,9 +507,9 @@ static ecs::CompileTimeQueryDesc all_grid_holders_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void all_grid_holders_ecs_query(Callable function)
+inline void all_grid_holders_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, all_grid_holders_ecs_query_desc.getHandle(),
+  perform_query(&manager, all_grid_holders_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -477,9 +535,9 @@ static ecs::CompileTimeQueryDesc all_grid_objects_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void all_grid_objects_ecs_query(Callable function)
+inline void all_grid_objects_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, all_grid_objects_ecs_query_desc.getHandle(),
+  perform_query(&manager, all_grid_objects_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -508,9 +566,9 @@ static ecs::CompileTimeQueryDesc grid_object_assigned_grid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void grid_object_assigned_grid_ecs_query(Callable function)
+inline void grid_object_assigned_grid_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, grid_object_assigned_grid_ecs_query_desc.getHandle(),
+  perform_query(&manager, grid_object_assigned_grid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -518,7 +576,7 @@ inline void grid_object_assigned_grid_ecs_query(Callable function)
           function(
               ECS_RO_COMP(grid_object_assigned_grid_ecs_query_comps, "eid", ecs::EntityId)
             , ECS_RW_COMP(grid_object_assigned_grid_ecs_query_comps, "grid_obj", GridObjComponent)
-            , ECS_RO_COMP_OR(grid_object_assigned_grid_ecs_query_comps, "grid_obj__gridType", ecs::string("default"))
+            , ECS_RO_COMP_PTR(grid_object_assigned_grid_ecs_query_comps, "grid_obj__gridType", ecs::string)
             );
 
         }while (++comp != compE);
@@ -540,9 +598,9 @@ static ecs::CompileTimeQueryDesc all_grid_holders_with_type_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void all_grid_holders_with_type_ecs_query(Callable function)
+inline void all_grid_holders_with_type_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, all_grid_holders_with_type_ecs_query_desc.getHandle(),
+  perform_query(&manager, all_grid_holders_with_type_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -572,9 +630,9 @@ static ecs::CompileTimeQueryDesc all_doors_ecs_query_desc
   make_span(all_doors_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void all_doors_ecs_query(Callable function)
+inline void all_doors_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, all_doors_ecs_query_desc.getHandle(),
+  perform_query(&manager, all_doors_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

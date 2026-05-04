@@ -62,6 +62,8 @@ public:
       "bind_dascript::effect_set_spawn_rate");
     das::addExtern<DAS_BIND_FUN(effect_set_gravity_tm)>(*this, lib, "effect_set_gravity_tm", das::SideEffects::modifyArgument,
       "bind_dascript::effect_set_gravity_tm");
+    das::addExtern<DAS_BIND_FUN(effect_set_spline_control_points)>(*this, lib, "effect_set_spline_control_points",
+      das::SideEffects::modifyArgument, "bind_dascript::effect_set_spline_control_points");
     das::addExtern<DAS_BIND_FUN(effect_hide_and_reset)>(*this, lib, "effect_hide_and_reset", das::SideEffects::modifyArgument,
       "bind_dascript::effect_hide_and_reset");
     das::addExtern<DAS_BIND_FUN(acesfx::set_gravity_zones)>(*this, lib, "acesfx_set_gravity_zones",
@@ -106,6 +108,9 @@ public:
     using method_setGravityTm = DAS_CALL_MEMBER(AcesEffect::setGravityTm);
     das::addExtern<DAS_CALL_METHOD(method_setGravityTm)>(*this, lib, "setGravityTm", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(AcesEffect::setGravityTm));
+    using method_setSplineControlPoints = DAS_CALL_MEMBER(AcesEffect::setSplineControlPoints);
+    das::addExtern<DAS_CALL_METHOD(method_setSplineControlPoints)>(*this, lib, "setSplineControlPoints",
+      das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(AcesEffect::setSplineControlPoints));
     das::addUsing<::acesfx::GravityZoneBuffer>(*this, lib, "::acesfx::GravityZoneBuffer");
     das::addExtern<DAS_BIND_FUN(acesfx::push_gravity_zone)>(*this, lib, "push", das::SideEffects::modifyArgument,
       "::acesfx::push_gravity_zone")

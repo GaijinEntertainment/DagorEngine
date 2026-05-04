@@ -44,7 +44,55 @@
   </Expand>
 </Type>
 
-<Type Name="dag::Span&lt;char&gt;">
+<Type Name="dag::FixedVectorSet&lt;*,*,*,*,*,*&gt;">
+	<Intrinsic Name="isInplace" Expression="!canOverflow || mAllocatorAndCount.count &lt;= $T3" />
+	<DisplayString>{{ count={mAllocatorAndCount.count} }}</DisplayString>
+	<Expand>
+		<CustomListItems Condition="isInplace()">
+			<Variable Name="_i" InitialValue="0" />
+			<Size>mAllocatorAndCount.count</Size>
+			<Loop Condition="_i &lt; mAllocatorAndCount.count">
+				<Item Name="[{_i}]">((value_type*)inplaceStor.data)[_i]</Item>
+				<Exec>_i++</Exec>
+			</Loop>
+		</CustomListItems>
+
+		<CustomListItems Condition="!isInplace()">
+			<Variable Name="_i" InitialValue="0" />
+			<Size>mAllocatorAndCount.count</Size>
+			<Loop Condition="_i &lt; mAllocatorAndCount.count">
+				<Item Name="[{_i}]">((value_type*)heap.data)[_i]</Item>
+				<Exec>_i++</Exec>
+			</Loop>
+		</CustomListItems>
+	</Expand>
+</Type>
+
+<Type Name="dag::FixedVectorMap&lt;*,*,*,*,*,*&gt;">
+	<Intrinsic Name="isInplace" Expression="!canOverflow || mAllocatorAndCount.count &lt;= $T3" />
+	<DisplayString>{{ count={mAllocatorAndCount.count} }}</DisplayString>
+	<Expand>
+		<CustomListItems Condition="isInplace()">
+			<Variable Name="_i" InitialValue="0" />
+			<Size>mAllocatorAndCount.count</Size>
+			<Loop Condition="_i &lt; mAllocatorAndCount.count">
+				<Item Name="[{((value_type*)inplaceStor.data)[_i].first}]">((value_type*)inplaceStor.data)[_i].second</Item>
+				<Exec>_i++</Exec>
+			</Loop>
+		</CustomListItems>
+
+		<CustomListItems Condition="!isInplace()">
+			<Variable Name="_i" InitialValue="0" />
+			<Size>mAllocatorAndCount.count</Size>
+			<Loop Condition="_i &lt; mAllocatorAndCount.count">
+				<Item Name="[{((value_type*)heap.data)[_i].first}]">((value_type*)heap.data)[_i].second</Item>
+				<Exec>_i++</Exec>
+			</Loop>
+		</CustomListItems>
+	</Expand>
+</Type>
+
+	<Type Name="dag::Span&lt;char&gt;">
   <DisplayString>{dptr,na}</DisplayString>
   <StringView>dptr,na</StringView>
   <Expand>
@@ -271,12 +319,12 @@
   <Intrinsic Name="_ro" Expression="(DBNameMapBase*)shared->ro" />
   <Intrinsic Name="_data" Expression="data->data.mBeginAndAllocator.mFirst" />
 
-  <DisplayString Condition=" _isEmpty()">empty</DisplayString>
+  <DisplayString Condition=" _isEmpty()">[Empty]</DisplayString>
   <DisplayString Condition="!_isEmpty()" ExcludeView="tree">{{ paramCount={paramsCount} blockCount={blocksCount} }}</DisplayString>
   <DisplayString Condition="!_isEmpty()" IncludeView="tree">paramCount={paramsCount} blockCount={blocksCount}</DisplayString>
 
   <Expand HideRawView="false">
-    <CustomListItems Condition="_isEmpty()" />
+    <Synthetic Condition="_isEmpty()" Name="[Empty]" />
 
     <Synthetic ExcludeView="tree" Condition="!_isEmpty() &amp;&amp; !(nameIdAndFlags &amp; NAME_ID_MASK)" Name="[Source]">
       <DisplayString>{shared->srcFilename}</DisplayString>
@@ -461,7 +509,7 @@
       <If Condition="firstBlockId == IS_OWNED">
         <Exec>
           _i = 0,
-          _pblock = (DataBlock**)(_data() + data->data.mCount - (blocksCount - 1) * sizeof(DataBlock*))
+          _pblock = (DataBlock**)(_data() + data->data.mCount - (blocksCount - 0) * sizeof(DataBlock*))
         </Exec>
 
         <Loop Condition="_i &lt; blocksCount">
@@ -528,8 +576,19 @@
 <Type Name="bindump::Span&lt;char,*&gt;">
   <DisplayString>{(char *)this + mOffset,na}</DisplayString>
   <StringView>(char *)this + mOffset,na</StringView>
-</Type>  
-  
+</Type>
+
+<Type Name="bindump::Span&lt;*,*&gt;">
+  <DisplayString>{{ size = {mCount} }}</DisplayString>
+  <Expand>
+    <Item Name="[size]" ExcludeView="simple">mCount</Item>
+    <ArrayItems>
+      <Size>mCount</Size>
+      <ValuePointer>($T1*)((uint8_t *)this + mOffset)</ValuePointer>
+    </ArrayItems>
+  </Expand>
+</Type>
+
 <Type Name="bindump::detail::VecHolderBase&lt;*,bindump::detail::MAPPER&gt;">
   <AlternativeType Name="bindump::detail::mapper::ListMapper&lt;*&gt;" />
   <DisplayString>{{ size = {mCount} }}</DisplayString>
@@ -562,8 +621,9 @@
   <StringView>(char*)((uint8_t *)this + mOffset),na</StringView>
 </Type>
 
-<Type Name="bindump::detail::mapper::PtrMapper&lt;*&gt;">
-  <DisplayString>{{ {*($T1*)((uint8_t *)this + mOffset)} }}</DisplayString>
+<Type Name="bindump::detail::StrHolderBase&lt;*&gt;">
+  <DisplayString>{(char*)((uint8_t *)this + mOffset),na}</DisplayString>
+  <StringView>(char*)((uint8_t *)this + mOffset),na</StringView>
 </Type>
 
 <Type Name="bindump::detail::mapper::PtrMapper&lt;*&gt;">
@@ -637,6 +697,21 @@
       </Loop>
     </CustomListItems>
   </Expand>
+</Type>
+
+<Type Name="IdSparseIndexedMapping&lt;*,*,*&gt;">
+	<DisplayString>{{ keys={usedCount} }}</DisplayString>
+	<Expand>
+		<CustomListItems>
+			<Variable Name="_i" InitialValue="0" />
+			<Loop Condition="_i &lt; size">
+				<If Condition="(((uint32_t *)usedBits)[_i / 32] &amp; (1u &lt;&lt; (_i % 32))) != 0">
+					<Item Name="[{_i}]">elements[_i].value</Item>
+				</If>
+				<Exec>_i++</Exec>
+			</Loop>
+		</CustomListItems>
+	</Expand>
 </Type>
 
 </AutoVisualizer>

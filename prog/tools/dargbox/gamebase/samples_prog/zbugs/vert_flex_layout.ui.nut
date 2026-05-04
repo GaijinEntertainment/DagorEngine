@@ -18,7 +18,7 @@ let offsets = sh(1) // change it to view overflow difference
 
 let mkPanel = @(text, content = null) {
   rendObj = ROBJ_FRAME
-  size = static [sw(12), flex()]
+  size = const [sw(12), flex()]
   minHeight = SIZE_TO_CONTENT
   flow = FLOW_VERTICAL
   gap = offsets

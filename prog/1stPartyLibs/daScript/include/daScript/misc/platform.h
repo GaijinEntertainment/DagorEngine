@@ -2,9 +2,17 @@
 
 #ifndef DAS_VERSION
 #define DAS_VERSION_MAJOR 0
-#define DAS_VERSION_MINOR 5
-#define DAS_VERSION_PATCH 0
+#define DAS_VERSION_MINOR 6
+#define DAS_VERSION_PATCH 1
 #define DAS_VERSION (DAS_VERSION_MAJOR*10000 + DAS_VERSION_MINOR*100 + DAS_VERSION_PATCH)
+#endif
+
+#ifndef DAS_BUILD_ID
+#ifdef DAS_NO_ASSERTIONS
+#define DAS_BUILD_ID (DAS_VERSION * 100 + sizeof(void*))
+#else
+#define DAS_BUILD_ID (DAS_VERSION * 100 + 10 + sizeof(void*))
+#endif
 #endif
 
 #ifdef __HAIKU__
@@ -25,6 +33,8 @@
 #pragma warning(disable:4714)    // marked as __forceinline not inlined
 #pragma warning(disable:4180)    // qualifier applied to function type has no meaning; ignored
 #pragma warning(disable:4305)    // truncation from 'double' to 'float'
+#pragma warning(disable:4744)    // variable has different type in different TUs (WPO false positive with inline static atomic)
+#pragma warning(disable:4743)    // type has different size in different TUs (WPO false positive with inline static atomic)
 #endif
 
 #ifdef __clang__
@@ -82,13 +92,14 @@
 
 #include <stdint.h>
 #include <float.h>
+#include <atomic>
 #include <daScript/das_config.h>
 #include <daScript/misc/hash.h>
 #include <daScript/misc/macro.h>
 
 #if _TARGET_PC_MACOSX && __SSE__
    #define DAS_EVAL_ABI [[clang::vectorcall]]
-#elif (defined(_MSC_VER) || defined(__clang__)) && __SSE__ && !defined __HAIKU__
+#elif _TARGET_PC_WIN && (defined(_MSC_VER) || defined(__clang__)) && __SSE__ && !defined __HAIKU__
     #define DAS_EVAL_ABI __vectorcall
 #else
     #define DAS_EVAL_ABI
@@ -102,7 +113,7 @@
 #endif
 
 #if defined(__has_feature)
-    #if __has_feature(address_sanitizer)
+    #if __has_feature(undefined_behavior_sanitizer)
         #define DAS_SUPPRESS_UB  __attribute__((no_sanitize("undefined")))
     #endif
 #endif
@@ -237,9 +248,41 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 
 #endif
 
+
+#if DAS_ENABLE_DLL
+#ifndef DAS_API
+#ifdef _MSC_VER
+    #define DAS_EXPORT_DLL __declspec(dllexport)
+    #define DAS_IMPORT_DLL __declspec(dllimport)
+#else
+    #define DAS_EXPORT_DLL __attribute__((visibility("default")))
+    #define DAS_IMPORT_DLL
+#endif
+
+#ifdef DAS_EXPORTS
+    #define DAS_API DAS_EXPORT_DLL
+#else
+    #define DAS_API DAS_IMPORT_DLL
+#endif
+#ifdef DAS_MOD_EXPORTS
+    #define DAS_MOD_API DAS_EXPORT_DLL
+#else
+    #define DAS_MOD_API DAS_IMPORT_DLL
+#endif
+#endif
+#else
+
+#define DAS_EXPORT_DLL
+#define DAS_IMPORT_DLL
+#define DAS_API
+#define DAS_MOD_API
+
+#endif
+
+
 #include "daScript/misc/hal.h"
 
-void os_debug_break();
+void DAS_API os_debug_break();
 
 #ifndef DAS_FATAL_LOG
 #define DAS_FATAL_LOG(...)   do { printf(__VA_ARGS__); fflush(stdout); } while(0)
@@ -254,7 +297,7 @@ void os_debug_break();
 #endif
 
 #ifndef DAS_ASSERT
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_ASSERT(cond)
     #else
         #define DAS_ASSERT(cond) { \
@@ -267,7 +310,7 @@ void os_debug_break();
 #endif
 
 #ifndef DAS_ASSERTF
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_ASSERTF(cond,...)
     #else
         #define DAS_ASSERTF(cond,...) { \
@@ -282,7 +325,7 @@ void os_debug_break();
 
 
 #ifndef DAS_VERIFY
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_VERIFY(cond) { \
             if ( !(cond) ) { \
                 DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
@@ -300,7 +343,7 @@ void os_debug_break();
 #endif
 
 #ifndef DAS_VERIFYF
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_VERIFYF(cond,...) { \
             if ( !(cond) ) { \
                 DAS_FATAL_LOG("verify failed: %s, %s:%d\n", #cond, __FILE__, __LINE__); \
@@ -322,6 +365,7 @@ void os_debug_break();
 #ifndef DAS_ALIGNED_ALLOC
 #define DAS_ALIGNED_ALLOC 1
 inline void *das_aligned_alloc16(size_t size) {
+    DAS_ASSERTF(size != 0, "das_aligned_alloc16 called with size 0");
 #if defined(_MSC_VER)
     return _aligned_malloc(size, 16);
 #else
@@ -377,7 +421,7 @@ inline size_t das_aligned_memsize(void * ptr){
 #define DAS_MACRO_SANITIZER 0
 #endif
 
-#if !_TARGET_64BIT && !defined(__clang__) && (_MSC_VER <= 1900)
+#if defined(_M_IX86) && defined(_MSC_VER) && !defined(__clang__) && _MSC_VER <= 1900
 #define _msc_inline_bug __declspec(noinline)
 #else
 #define _msc_inline_bug __forceinline
@@ -389,7 +433,7 @@ public:
     using SelfType = DasThreadLocal<T, TAG>;
 
     inline DasThreadLocal() {
-        if ( initCounter++ ) {
+        if ( initCounter.fetch_add(1, std::memory_order_relaxed) ) {
             DAS_ASSERTF(false, "Type with tag is already used, pls change tag!");
         }
     }
@@ -404,7 +448,7 @@ public:
 
 private:
     inline static thread_local T value_{};
-    inline static int initCounter = 0;
+    inline static std::atomic<int> initCounter{0};
 };
 
 #ifndef DAS_THREAD_LOCAL
@@ -430,7 +474,7 @@ private:
 #endif
 
 #ifndef DAS_SMART_PTR_TRACKER
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_SMART_PTR_TRACKER   0
     #else
         #define DAS_SMART_PTR_TRACKER   1
@@ -438,7 +482,7 @@ private:
 #endif
 
 #ifndef DAS_SMART_PTR_MAGIC
-    #ifdef NDEBUG
+    #ifdef DAS_NO_ASSERTIONS
         #define DAS_SMART_PTR_MAGIC     0
     #else
         #define DAS_SMART_PTR_MAGIC     1
@@ -453,6 +497,16 @@ private:
     #else
         #define DAS_FAST_INTEGER_MOD 1
     #endif
+#endif
+
+// Workaround for https://github.com/google/sanitizers/issues/749
+#if DAS_ENABLE_EXCEPTIONS && defined(__clang__) && defined(_WIN32) && defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define WIN_EH_NO_ASAN __attribute__((no_sanitize_address))
+#endif
+#endif
+#ifndef WIN_EH_NO_ASAN
+#define WIN_EH_NO_ASAN
 #endif
 
 #include "daScript/misc/smart_ptr.h"

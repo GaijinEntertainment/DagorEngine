@@ -6,7 +6,12 @@
 
 namespace shader_assert
 {
-void init();
-void close();
-void readback();
+void readback_all();
+void reset_all();
+
+// @TODO: remove, legacy
+inline void init() {}
+inline void close() {}
+inline void readback() { readback_all(); }
+inline void bind(int) {}
 } // namespace shader_assert

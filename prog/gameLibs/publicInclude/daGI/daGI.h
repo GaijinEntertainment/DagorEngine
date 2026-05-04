@@ -320,7 +320,6 @@ private:
   void invalidateWalls();
 
   void updateWindowsPos(const Point3 &pos);
-  void invalidateWindows();
   eastl::unique_ptr<GIWindows> cWindows;
 
   struct GIWallsDestroyer

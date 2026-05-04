@@ -27,10 +27,10 @@
 //  IPoint2 newTexelsOrigin = ipoint2(floor(world_view_pos/mTexelSize));
 //  int pixelsUpdated = toroidal_update(newTexelsOrigin, m_data, m_data.texSize/2, cb);
 //  Point2 ofs = point2((data.mainOrigin-data.curOrigin)%data.texSize)/data.texSize;
-//  ShaderGlobal::set_color4(world_to_hmap_tex_ofsVarId, ofs.x, ofs.y,0,0);
+//  ShaderGlobal::set_float4(world_to_hmap_tex_ofsVarId, ofs.x, ofs.y,0,0);
 //  Point2 worldSpaceOrigin = point2(m_data.curOrigin)*mTexelSize;
 //  float worldArea = m_data.texSize*mTexelSize
-//  ShaderGlobal::set_color4(world_to_hmap_ofsVarId, 1.0f/worldArea, 1.0f/worldArea, -worldSpaceOrigin.x/worldArea+0.5f,
+//  ShaderGlobal::set_float4(world_to_hmap_ofsVarId, 1.0f/worldArea, 1.0f/worldArea, -worldSpaceOrigin.x/worldArea+0.5f,
 //  -worldSpaceOrigin.y/worldArea+0.5); shader code: float2 tc = worldPos.xz*world_to_hmap_ofs.x + world_to_hmap_ofs.zw;// clamp
 //  adressing will be saturate(worldPos.xz*world_to_hmap_ofs.x + world_to_hmap_ofs.zw); float val = tex2D(hmap_ofs_tex, float4(tc -
 //  world_to_hmap_tex_ofs,0,0) ).x;
@@ -39,13 +39,13 @@
 //  val *= saturate( 1.0 - dot( vignette, vignette ) );//vignetting instead of border adressing
 
 // or, if we don't need adressing, we can use optimized version
-// ShaderGlobal::set_color4(world_to_hmap_ofsVarId, 1.0f/worldArea, 1.0f/worldArea, -worldSpaceOrigin.x/worldArea+0.5f-ofs.x,
+// ShaderGlobal::set_float4(world_to_hmap_ofsVarId, 1.0f/worldArea, 1.0f/worldArea, -worldSpaceOrigin.x/worldArea+0.5f-ofs.x,
 // -worldSpaceOrigin.y/worldArea+0.5-ofs.y); float2 tc = worldPos.xz*world_to_hmap_ofs.x + world_to_hmap_ofs.zw;// that's it! float val
 // = tex2D(hmap_ofs_tex, float4(tc,0,0) ).x;
 
 // or, if we want optimized vignette onle we can use
-// ShaderGlobal::set_color4(world_to_hmap_ofsVarId, 2.0f/worldArea, 2.0f/worldArea, -2*worldSpaceOrigin.x/worldArea,
-// -2*worldSpaceOrigin.y/worldArea); ShaderGlobal::set_color4(world_to_hmap_tex_ofsVarId, 1.0f/worldArea, 1.0f/worldArea,
+// ShaderGlobal::set_float4(world_to_hmap_ofsVarId, 2.0f/worldArea, 2.0f/worldArea, -2*worldSpaceOrigin.x/worldArea,
+// -2*worldSpaceOrigin.y/worldArea); ShaderGlobal::set_float4(world_to_hmap_tex_ofsVarId, 1.0f/worldArea, 1.0f/worldArea,
 // -worldSpaceOrigin.x/worldArea+0.5f-ofs.x, -worldSpaceOrigin.y/worldArea+0.5-ofs.y); float2 tc_vignette =
 // abs(worldPos.xz*world_to_hmap_ofs.x + world_to_hmap_ofs.zw); float2 tc = worldPos.xz*world_to_hmap_tex_ofs.x +
 // world_to_hmap_tex_ofs.zw;// that's it! float val = tex2D(hmap_ofs_tex, float4(tc,0,0) ).x; float2 vignette = saturate( tc_vignette *

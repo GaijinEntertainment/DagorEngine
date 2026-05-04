@@ -7,6 +7,7 @@
 #include <osApiWrappers/dag_files.h>
 
 #include <libTools/util/binDumpReader.h>
+#include <libTools/util/fileUtils.h>
 #include <ioSys/dag_fileIo.h>
 
 #include <util/dag_string.h>
@@ -15,7 +16,6 @@
 #include <assets/assetHlp.h>
 #include <assets/assetRefs.h>
 
-#include <windows.h>
 #include <libTools/util/setupTexStreaming.h>
 
 
@@ -141,11 +141,8 @@ void TexChecker::readAssetBaseTexList()
       mAssetMgr.loadAssetsBase(fname, "global");
     }
 
-  char _path[512];
-  GetModuleFileName(GetModuleHandle(NULL), (LPTSTR)_path, 512);
-  ::dd_get_fname_location(_path, _path);
-
-  if (assetrefs::load_plugins(mAssetMgr, appblk, _path))
+  char dir_path[512];
+  if (assetrefs::load_plugins(mAssetMgr, appblk, dag_get_appmodule_dir(dir_path, sizeof(dir_path))))
     debug("asset refs plugins inited");
   else
     debug("asset refs plugins not inited");

@@ -6,7 +6,7 @@
 
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_buffers.h>
-#include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <util/dag_globDef.h>
 #include <3d/dag_lockSbuffer.h>
@@ -131,7 +131,7 @@ public:
   void init(int v_count, int v_stride, const char *stat_name)
   {
     close();
-    buf = dag::create_vb(v_count * v_stride, SBCF_DYNAMIC, stat_name);
+    buf = dag::create_vb(v_count * v_stride, SBCF_DYNAMIC, stat_name, RESTAG_RINGDYNBUF);
     stride = v_stride;
     size = v_count;
   }
@@ -155,10 +155,11 @@ public:
     {
       String stagingName(0, "%s_staging", stat_name);
       stagingBuf = dag::create_sbuffer(elem_size, v_count * (v_stride / elem_size),
-        SBCF_DYNAMIC | SBCF_BIND_VERTEX | SBCF_CPU_ACCESS_WRITE, 0, stagingName.c_str()); // we don't need SBCF_BIND_VERTEX, but
-                                                                                          // DX driver demands it
+        SBCF_DYNAMIC | SBCF_BIND_VERTEX | SBCF_CPU_ACCESS_WRITE, 0, stagingName.c_str(), RESTAG_RINGDYNBUF); // we don't need
+                                                                                                             // SBCF_BIND_VERTEX, but
+                                                                                                             // DX driver demands it
     }
-    buf = dag::create_sbuffer(elem_size, v_count * (v_stride / elem_size), flags, format, stat_name);
+    buf = dag::create_sbuffer(elem_size, v_count * (v_stride / elem_size), flags, format, stat_name, RESTAG_RINGDYNBUF);
     if (stagingBuf)
     {
       renderBuf = eastl::move(buf);
@@ -208,7 +209,7 @@ public:
   void init(int i_count, const char *name)
   {
     close();
-    buf = dag::create_ib(i_count * 2, SBCF_DYNAMIC, name);
+    buf = dag::create_ib(i_count * 2, SBCF_DYNAMIC, name, RESTAG_RINGDYNBUF);
     stride = 2;
     size = i_count;
   }
@@ -220,7 +221,7 @@ public:
   void init(int i_count, const char *name)
   {
     close();
-    buf = dag::create_ib(i_count * sizeof(uint32_t), SBCF_DYNAMIC | SBCF_INDEX32, name);
+    buf = dag::create_ib(i_count * sizeof(uint32_t), SBCF_DYNAMIC | SBCF_INDEX32, name, RESTAG_RINGDYNBUF);
     stride = sizeof(uint32_t);
     size = i_count;
   }

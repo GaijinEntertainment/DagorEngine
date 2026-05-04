@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_dataBlock.h>
-#include <sqplus.h>
+#include <sqrat.h>
 #include <propPanel/control/container.h>
 
 #include <scriptPanelWrapper/spw_main.h>
@@ -32,7 +32,7 @@ void ScriptPanelParam::setupParameter(PropPanel::ContainerPropertyControl *panel
 }
 
 
-void ScriptPanelParam::fillParameter(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject so)
+void ScriptPanelParam::fillParameter(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table so)
 {
   setupParameter(panel, pid);
   mParam = so;
@@ -56,8 +56,8 @@ void ScriptPanelParam::getFromScript()
     visible = mParent->getParamVisible(mParam);
 
   bool enabled = true;
-  if (mParam.Exists("disabled"))
-    enabled = !mParam.GetBool("disabled");
+  if (mParam.HasKey("disabled"))
+    enabled = !mParam.GetSlotValue<bool>("disabled", false);
   else
     mParam.SetValue("disabled", !enabled);
 
@@ -72,12 +72,9 @@ void ScriptPanelParam::getFromScript()
 
   if (!onChangeCallback)
   {
-    onChangeCallback = new SqPlus::SquirrelFunction<void>(mParam, "onChange");
-    if (onChangeCallback->func.IsNull())
-    {
-      delete onChangeCallback;
-      onChangeCallback = NULL;
-    }
+    Sqrat::Object onChange = mParam.GetSlot("onChange");
+    if (onChange.GetType() == OT_CLOSURE)
+      onChangeCallback = new Sqrat::Function(mParam.GetVM(), mParam.GetObject(), onChange.GetObject());
   }
 }
 
@@ -105,18 +102,14 @@ void ScriptPanelParam::callChangeScript(bool script_update_flag)
 {
   if (onChangeCallback)
   {
-    try
+    if (onChangeCallback->Execute())
     {
-      (*onChangeCallback)();
-
       CSQPanelWrapper *wrp = mParent->getWrapper();
       if (script_update_flag && wrp)
         wrp->setScriptUpdateFlag();
     }
-    catch (SquirrelError e)
-    {
-      logerr("Panel script error( %s::onChange() ): %s", paramName.str(), e.desc);
-    }
+    else
+      logerr("Panel script error( %s::onChange() )", paramName.str());
   }
 }
 
@@ -128,8 +121,8 @@ void ScriptPanelParam::setTooltip(const char *text)
   }
 }
 
-void ScriptPanelParam::setToScript(SquirrelObject &param) {}
-void ScriptPanelParam::getValueFromScript(SquirrelObject param) {}
+void ScriptPanelParam::setToScript(Sqrat::Table &param) {}
+void ScriptPanelParam::getValueFromScript(Sqrat::Table param) {}
 
 
 //=============================================================================
@@ -145,45 +138,48 @@ ScriptPanelContainer::ScriptPanelContainer(CSQPanelWrapper *wrapper, ScriptPanel
 ScriptPanelContainer::~ScriptPanelContainer() { clear(); }
 
 
-void ScriptPanelContainer::fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject so)
+void ScriptPanelContainer::fillParams(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table so)
 {
   clear();
   if (panel)
     panel->clear();
 
-  if (!so.IsNull() && so.GetType() == OT_ARRAY && so.BeginIteration())
+  if (so.GetType() == OT_ARRAY)
   {
-    SquirrelObject param, key;
-
-    while (so.Next(key, param))
+    Sqrat::Array arr(so);
+    SQInteger len = arr.Length();
+    for (SQInteger i = 0; i < len; ++i)
     {
+      Sqrat::Table param = arr.GetSlot(i);
       if (param.GetType() == OT_TABLE)
         scriptControlFactory(panel, ++pid, param);
     }
-    so.EndIteration();
   }
 }
 
 
-const char *ScriptPanelContainer::getParamType(SquirrelObject param)
+const char *ScriptPanelContainer::getParamType(Sqrat::Table param)
 {
-  return (param.Exists("type") && param.GetString("type")) ? param.GetString("type") : "group";
+  Sqrat::Object tp = param.GetSlot("type");
+  return tp.GetType() == OT_STRING ? tp.GetVar<const char *>().value : "group";
 }
 
 
-const char *ScriptPanelContainer::getParamName(SquirrelObject param)
+const char *ScriptPanelContainer::getParamName(Sqrat::Table param)
 {
-  return (param.Exists("name") && param.GetString("name")) ? param.GetString("name") : "noname";
+  Sqrat::Object name = param.GetSlot("name");
+  return name.GetType() == OT_STRING ? name.GetVar<const char *>().value : "noname";
 }
 
 
-const char *ScriptPanelContainer::getParamCaption(SquirrelObject param, const char *name)
+const char *ScriptPanelContainer::getParamCaption(Sqrat::Table param, const char *name)
 {
-  return (param.Exists("caption") && param.GetString("caption")) ? param.GetString("caption") : name;
+  Sqrat::Object caption = param.GetSlot("caption");
+  return caption.GetType() == OT_STRING ? caption.GetVar<const char *>().value : name;
 }
 
 
-bool ScriptPanelContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param)
+bool ScriptPanelContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param)
 {
   ScriptPanelParam *panel_param = NULL;
 
@@ -358,29 +354,27 @@ void ScriptPanelContainer::getTargetList(Tab<SimpleString> &list)
 }
 
 
-bool ScriptPanelContainer::getParamVisible(SquirrelObject param)
+bool ScriptPanelContainer::getParamVisible(Sqrat::Table param)
 {
   bool visible = true;
-  if (param.Exists("visible"))
-    visible = param.GetBool("visible");
+  if (param.HasKey("visible"))
+    visible = param.GetSlotValue<bool>("visible", false);
   else
     param.SetValue("visible", visible);
 
   return visible;
 }
 
-const char *ScriptPanelContainer::getTooltipLocalizationKey(SquirrelObject param)
+const char *ScriptPanelContainer::getTooltipLocalizationKey(Sqrat::Table param)
 {
-  return (param.Exists(TOOLTIP_LOCALIZATION_KEY_PARAM) && param.GetString(TOOLTIP_LOCALIZATION_KEY_PARAM))
-           ? param.GetString(TOOLTIP_LOCALIZATION_KEY_PARAM)
-           : "";
+  Sqrat::Object str = param.GetSlot(TOOLTIP_LOCALIZATION_KEY_PARAM);
+  return str.GetType() == OT_STRING ? str.GetVar<const char *>().value : "";
 }
 
-const char *ScriptPanelContainer::getDefaultTooltip(SquirrelObject param)
+const char *ScriptPanelContainer::getDefaultTooltip(Sqrat::Table param)
 {
-  return (param.Exists(TOOLTIP_DEFAULT_TEXT_PARAM) && param.GetString(TOOLTIP_DEFAULT_TEXT_PARAM))
-           ? param.GetString(TOOLTIP_DEFAULT_TEXT_PARAM)
-           : "";
+  Sqrat::Object str = param.GetSlot(TOOLTIP_DEFAULT_TEXT_PARAM);
+  return str.GetType() == OT_STRING ? str.GetVar<const char *>().value : "";
 }
 
 //=============================================================================

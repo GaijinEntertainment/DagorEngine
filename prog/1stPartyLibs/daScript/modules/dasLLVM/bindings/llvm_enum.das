@@ -1,0 +1,520 @@
+// this file is generated via Daslang automatic binder
+// all user modifications will be lost after this file is re-generated
+
+options gen2
+module llvm_enum shared
+enum LLVMVerifierFailureAction {
+    LLVMAbortProcessAction = 0
+    LLVMPrintMessageAction = 1
+    LLVMReturnStatusAction = 2
+}
+enum LLVMComdatSelectionKind {
+    LLVMAnyComdatSelectionKind = 0
+    LLVMExactMatchComdatSelectionKind = 1
+    LLVMLargestComdatSelectionKind = 2
+    LLVMNoDeduplicateComdatSelectionKind = 3
+    LLVMSameSizeComdatSelectionKind = 4
+}
+enum LLVMOpcode {
+    LLVMRet = 1
+    LLVMBr = 2
+    LLVMSwitch = 3
+    LLVMIndirectBr = 4
+    LLVMInvoke = 5
+    LLVMUnreachable = 7
+    LLVMCallBr = 67
+    LLVMFNeg = 66
+    LLVMAdd = 8
+    LLVMFAdd = 9
+    LLVMSub = 10
+    LLVMFSub = 11
+    LLVMMul = 12
+    LLVMFMul = 13
+    LLVMUDiv = 14
+    LLVMSDiv = 15
+    LLVMFDiv = 16
+    LLVMURem = 17
+    LLVMSRem = 18
+    LLVMFRem = 19
+    LLVMShl = 20
+    LLVMLShr = 21
+    LLVMAShr = 22
+    LLVMAnd = 23
+    LLVMOr = 24
+    LLVMXor = 25
+    LLVMAlloca = 26
+    LLVMLoad = 27
+    LLVMStore = 28
+    LLVMGetElementPtr = 29
+    LLVMTrunc = 30
+    LLVMZExt = 31
+    LLVMSExt = 32
+    LLVMFPToUI = 33
+    LLVMFPToSI = 34
+    LLVMUIToFP = 35
+    LLVMSIToFP = 36
+    LLVMFPTrunc = 37
+    LLVMFPExt = 38
+    LLVMPtrToInt = 39
+    LLVMIntToPtr = 40
+    LLVMBitCast = 41
+    LLVMAddrSpaceCast = 60
+    LLVMICmp = 42
+    LLVMFCmp = 43
+    LLVMPHI = 44
+    LLVMCall = 45
+    LLVMSelect = 46
+    LLVMUserOp1 = 47
+    LLVMUserOp2 = 48
+    LLVMVAArg = 49
+    LLVMExtractElement = 50
+    LLVMInsertElement = 51
+    LLVMShuffleVector = 52
+    LLVMExtractValue = 53
+    LLVMInsertValue = 54
+    LLVMFreeze = 68
+    LLVMFence = 55
+    LLVMAtomicCmpXchg = 56
+    LLVMAtomicRMW = 57
+    LLVMResume = 58
+    LLVMLandingPad = 59
+    LLVMCleanupRet = 61
+    LLVMCatchRet = 62
+    LLVMCatchPad = 63
+    LLVMCleanupPad = 64
+    LLVMCatchSwitch = 65
+}
+enum LLVMTypeKind {
+    LLVMVoidTypeKind = 0
+    LLVMHalfTypeKind = 1
+    LLVMFloatTypeKind = 2
+    LLVMDoubleTypeKind = 3
+    LLVMX86_FP80TypeKind = 4
+    LLVMFP128TypeKind = 5
+    LLVMPPC_FP128TypeKind = 6
+    LLVMLabelTypeKind = 7
+    LLVMIntegerTypeKind = 8
+    LLVMFunctionTypeKind = 9
+    LLVMStructTypeKind = 10
+    LLVMArrayTypeKind = 11
+    LLVMPointerTypeKind = 12
+    LLVMVectorTypeKind = 13
+    LLVMMetadataTypeKind = 14
+    LLVMX86_MMXTypeKind = 15
+    LLVMTokenTypeKind = 16
+    LLVMScalableVectorTypeKind = 17
+    LLVMBFloatTypeKind = 18
+    LLVMX86_AMXTypeKind = 19
+    LLVMTargetExtTypeKind = 20
+}
+enum LLVMLinkage {
+    LLVMExternalLinkage = 0
+    LLVMAvailableExternallyLinkage = 1
+    LLVMLinkOnceAnyLinkage = 2
+    LLVMLinkOnceODRLinkage = 3
+    LLVMLinkOnceODRAutoHideLinkage = 4
+    LLVMWeakAnyLinkage = 5
+    LLVMWeakODRLinkage = 6
+    LLVMAppendingLinkage = 7
+    LLVMInternalLinkage = 8
+    LLVMPrivateLinkage = 9
+    LLVMDLLImportLinkage = 10
+    LLVMDLLExportLinkage = 11
+    LLVMExternalWeakLinkage = 12
+    LLVMGhostLinkage = 13
+    LLVMCommonLinkage = 14
+    LLVMLinkerPrivateLinkage = 15
+    LLVMLinkerPrivateWeakLinkage = 16
+}
+enum LLVMVisibility {
+    LLVMDefaultVisibility = 0
+    LLVMHiddenVisibility = 1
+    LLVMProtectedVisibility = 2
+}
+enum LLVMUnnamedAddr {
+    LLVMNoUnnamedAddr = 0
+    LLVMLocalUnnamedAddr = 1
+    LLVMGlobalUnnamedAddr = 2
+}
+enum LLVMDLLStorageClass {
+    LLVMDefaultStorageClass = 0
+    LLVMDLLImportStorageClass = 1
+    LLVMDLLExportStorageClass = 2
+}
+enum LLVMCallConv {
+    LLVMCCallConv = 0
+    LLVMFastCallConv = 8
+    LLVMColdCallConv = 9
+    LLVMGHCCallConv = 10
+    LLVMHiPECallConv = 11
+    LLVMWebKitJSCallConv = 12
+    LLVMAnyRegCallConv = 13
+    LLVMPreserveMostCallConv = 14
+    LLVMPreserveAllCallConv = 15
+    LLVMSwiftCallConv = 16
+    LLVMCXXFASTTLSCallConv = 17
+    LLVMX86StdcallCallConv = 64
+    LLVMX86FastcallCallConv = 65
+    LLVMARMAPCSCallConv = 66
+    LLVMARMAAPCSCallConv = 67
+    LLVMARMAAPCSVFPCallConv = 68
+    LLVMMSP430INTRCallConv = 69
+    LLVMX86ThisCallCallConv = 70
+    LLVMPTXKernelCallConv = 71
+    LLVMPTXDeviceCallConv = 72
+    LLVMSPIRFUNCCallConv = 75
+    LLVMSPIRKERNELCallConv = 76
+    LLVMIntelOCLBICallConv = 77
+    LLVMX8664SysVCallConv = 78
+    LLVMWin64CallConv = 79
+    LLVMX86VectorCallCallConv = 80
+    LLVMHHVMCallConv = 81
+    LLVMHHVMCCallConv = 82
+    LLVMX86INTRCallConv = 83
+    LLVMAVRINTRCallConv = 84
+    LLVMAVRSIGNALCallConv = 85
+    LLVMAVRBUILTINCallConv = 86
+    LLVMAMDGPUVSCallConv = 87
+    LLVMAMDGPUGSCallConv = 88
+    LLVMAMDGPUPSCallConv = 89
+    LLVMAMDGPUCSCallConv = 90
+    LLVMAMDGPUKERNELCallConv = 91
+    LLVMX86RegCallCallConv = 92
+    LLVMAMDGPUHSCallConv = 93
+    LLVMMSP430BUILTINCallConv = 94
+    LLVMAMDGPULSCallConv = 95
+    LLVMAMDGPUESCallConv = 96
+}
+enum LLVMValueKind {
+    LLVMArgumentValueKind = 0
+    LLVMBasicBlockValueKind = 1
+    LLVMMemoryUseValueKind = 2
+    LLVMMemoryDefValueKind = 3
+    LLVMMemoryPhiValueKind = 4
+    LLVMFunctionValueKind = 5
+    LLVMGlobalAliasValueKind = 6
+    LLVMGlobalIFuncValueKind = 7
+    LLVMGlobalVariableValueKind = 8
+    LLVMBlockAddressValueKind = 9
+    LLVMConstantExprValueKind = 10
+    LLVMConstantArrayValueKind = 11
+    LLVMConstantStructValueKind = 12
+    LLVMConstantVectorValueKind = 13
+    LLVMUndefValueValueKind = 14
+    LLVMConstantAggregateZeroValueKind = 15
+    LLVMConstantDataArrayValueKind = 16
+    LLVMConstantDataVectorValueKind = 17
+    LLVMConstantIntValueKind = 18
+    LLVMConstantFPValueKind = 19
+    LLVMConstantPointerNullValueKind = 20
+    LLVMConstantTokenNoneValueKind = 21
+    LLVMMetadataAsValueValueKind = 22
+    LLVMInlineAsmValueKind = 23
+    LLVMInstructionValueKind = 24
+    LLVMPoisonValueValueKind = 25
+    LLVMConstantTargetNoneValueKind = 26
+}
+enum LLVMIntPredicate {
+    LLVMIntEQ = 32
+    LLVMIntNE = 33
+    LLVMIntUGT = 34
+    LLVMIntUGE = 35
+    LLVMIntULT = 36
+    LLVMIntULE = 37
+    LLVMIntSGT = 38
+    LLVMIntSGE = 39
+    LLVMIntSLT = 40
+    LLVMIntSLE = 41
+}
+enum LLVMRealPredicate {
+    False = 0
+    LLVMRealOEQ = 1
+    LLVMRealOGT = 2
+    LLVMRealOGE = 3
+    LLVMRealOLT = 4
+    LLVMRealOLE = 5
+    LLVMRealONE = 6
+    LLVMRealORD = 7
+    LLVMRealUNO = 8
+    LLVMRealUEQ = 9
+    LLVMRealUGT = 10
+    LLVMRealUGE = 11
+    LLVMRealULT = 12
+    LLVMRealULE = 13
+    LLVMRealUNE = 14
+    True = 15
+}
+enum LLVMLandingPadClauseTy {
+    LLVMLandingPadCatch = 0
+    LLVMLandingPadFilter = 1
+}
+enum LLVMThreadLocalMode {
+    LLVMNotThreadLocal = 0
+    LLVMGeneralDynamicTLSModel = 1
+    LLVMLocalDynamicTLSModel = 2
+    LLVMInitialExecTLSModel = 3
+    LLVMLocalExecTLSModel = 4
+}
+enum LLVMAtomicOrdering {
+    NotAtomic = 0
+    Unordered = 1
+    Monotonic = 2
+    Acquire = 4
+    Release = 5
+    AcquireRelease = 6
+    SequentiallyConsistent = 7
+}
+enum LLVMAtomicRMWBinOp {
+    Xchg = 0
+    Add = 1
+    Sub = 2
+    And = 3
+    Nand = 4
+    Or = 5
+    Xor = 6
+    Max = 7
+    Min = 8
+    UMax = 9
+    UMin = 10
+    FAdd = 11
+    FSub = 12
+    FMax = 13
+    FMin = 14
+}
+enum LLVMDiagnosticSeverity {
+    LLVMDSError = 0
+    LLVMDSWarning = 1
+    LLVMDSRemark = 2
+    LLVMDSNote = 3
+}
+enum LLVMInlineAsmDialect {
+    ATT = 0
+    Intel = 1
+}
+enum LLVMModuleFlagBehavior {
+    Error = 0
+    Warning = 1
+    Require = 2
+    Override = 3
+    Append = 4
+    AppendUnique = 5
+}
+enum LLVMDIFlags {
+    LLVMDIFlagZero = 0
+    LLVMDIFlagPrivate = 1
+    LLVMDIFlagProtected = 2
+    LLVMDIFlagPublic = 3
+    LLVMDIFlagFwdDecl = 4
+    LLVMDIFlagAppleBlock = 8
+    LLVMDIFlagReservedBit4 = 16
+    LLVMDIFlagVirtual = 32
+    LLVMDIFlagArtificial = 64
+    LLVMDIFlagExplicit = 128
+    LLVMDIFlagPrototyped = 256
+    LLVMDIFlagObjcClassComplete = 512
+    LLVMDIFlagObjectPointer = 1024
+    LLVMDIFlagVector = 2048
+    LLVMDIFlagStaticMember = 4096
+    LLVMDIFlagLValueReference = 8192
+    LLVMDIFlagRValueReference = 16384
+    LLVMDIFlagReserved = 32768
+    LLVMDIFlagSingleInheritance = 65536
+    LLVMDIFlagMultipleInheritance = 131072
+    LLVMDIFlagVirtualInheritance = 196608
+    LLVMDIFlagIntroducedVirtual = 262144
+    LLVMDIFlagBitField = 524288
+    LLVMDIFlagNoReturn = 1048576
+    LLVMDIFlagTypePassByValue = 4194304
+    LLVMDIFlagTypePassByReference = 8388608
+    LLVMDIFlagEnumClass = 16777216
+    LLVMDIFlagFixedEnum = 16777216
+    LLVMDIFlagThunk = 33554432
+    LLVMDIFlagNonTrivial = 67108864
+    LLVMDIFlagBigEndian = 134217728
+    LLVMDIFlagLittleEndian = 268435456
+    LLVMDIFlagIndirectVirtualBase = 36
+    LLVMDIFlagAccessibility = 3
+    LLVMDIFlagPtrToMemberRep = 196608
+}
+enum LLVMDWARFSourceLanguage {
+    C89 = 0
+    C = 1
+    Ada83 = 2
+    C_plus_plus = 3
+    Cobol74 = 4
+    Cobol85 = 5
+    Fortran77 = 6
+    Fortran90 = 7
+    Pascal83 = 8
+    Modula2 = 9
+    Java = 10
+    C99 = 11
+    Ada95 = 12
+    Fortran95 = 13
+    PLI = 14
+    ObjC = 15
+    ObjC_plus_plus = 16
+    UPC = 17
+    D = 18
+    Python = 19
+    OpenCL = 20
+    Go = 21
+    Modula3 = 22
+    Haskell = 23
+    C_plus_plus_03 = 24
+    C_plus_plus_11 = 25
+    OCaml = 26
+    Rust = 27
+    C11 = 28
+    Swift = 29
+    Julia = 30
+    Dylan = 31
+    C_plus_plus_14 = 32
+    Fortran03 = 33
+    Fortran08 = 34
+    RenderScript = 35
+    BLISS = 36
+    Kotlin = 37
+    Zig = 38
+    Crystal = 39
+    C_plus_plus_17 = 40
+    C_plus_plus_20 = 41
+    C17 = 42
+    Fortran18 = 43
+    Ada2005 = 44
+    Ada2012 = 45
+    Mips_Assembler = 46
+    GOOGLE_RenderScript = 47
+    BORLAND_Delphi = 48
+}
+enum LLVMDWARFEmissionKind {
+    LLVMDWARFEmissionNone = 0
+    LLVMDWARFEmissionFull = 1
+    LLVMDWARFEmissionLineTablesOnly = 2
+}
+enum LLVMDWARFMacinfoRecordType {
+    Define = 1
+    Macro = 2
+    StartFile = 3
+    EndFile = 4
+    VendorExt = 255
+}
+enum LLVMByteOrdering {
+    LLVMBigEndian = 0
+    LLVMLittleEndian = 1
+}
+enum LLVMCodeGenOptLevel {
+    LLVMCodeGenLevelNone = 0
+    LLVMCodeGenLevelLess = 1
+    LLVMCodeGenLevelDefault = 2
+    LLVMCodeGenLevelAggressive = 3
+}
+enum LLVMRelocMode {
+    LLVMRelocDefault = 0
+    LLVMRelocStatic = 1
+    LLVMRelocPIC = 2
+    LLVMRelocDynamicNoPic = 3
+    LLVMRelocROPI = 4
+    LLVMRelocRWPI = 5
+    LLVMRelocROPI_RWPI = 6
+}
+enum LLVMCodeModel {
+    Default = 0
+    JITDefault = 1
+    Tiny = 2
+    Small = 3
+    Kernel = 4
+    Medium = 5
+    Large = 6
+}
+enum LLVMCodeGenFileType {
+    LLVMAssemblyFile = 0
+    LLVMObjectFile = 1
+}
+enum LLVMLinkerMode {
+    LLVMLinkerDestroySource = 0
+    LLVMLinkerPreserveSource_Removed = 1
+}
+enum LLVMJITSymbolGenericFlags {
+    None = 0
+    Exported = 1
+    Weak = 2
+    Callable = 4
+    MaterializationSideEffectsOnly = 8
+}
+enum LLVMOrcLookupKind {
+    Static = 0
+    DLSym = 1
+}
+enum LLVMOrcJITDylibLookupFlags {
+    MatchExportedSymbolsOnly = 0
+    MatchAllSymbols = 1
+}
+enum LLVMOrcSymbolLookupFlags {
+    RequiredSymbol = 0
+    WeaklyReferencedSymbol = 1
+}
+enum lto_symbol_attributes {
+    LTO_SYMBOL_ALIGNMENT_MASK = 31
+    LTO_SYMBOL_PERMISSIONS_MASK = 224
+    LTO_SYMBOL_PERMISSIONS_CODE = 160
+    LTO_SYMBOL_PERMISSIONS_DATA = 192
+    LTO_SYMBOL_PERMISSIONS_RODATA = 128
+    LTO_SYMBOL_DEFINITION_MASK = 1792
+    LTO_SYMBOL_DEFINITION_REGULAR = 256
+    LTO_SYMBOL_DEFINITION_TENTATIVE = 512
+    LTO_SYMBOL_DEFINITION_WEAK = 768
+    LTO_SYMBOL_DEFINITION_UNDEFINED = 1024
+    LTO_SYMBOL_DEFINITION_WEAKUNDEF = 1280
+    LTO_SYMBOL_SCOPE_MASK = 14336
+    LTO_SYMBOL_SCOPE_INTERNAL = 2048
+    LTO_SYMBOL_SCOPE_HIDDEN = 4096
+    LTO_SYMBOL_SCOPE_PROTECTED = 8192
+    LTO_SYMBOL_SCOPE_DEFAULT = 6144
+    LTO_SYMBOL_SCOPE_DEFAULT_CAN_BE_HIDDEN = 10240
+    LTO_SYMBOL_COMDAT = 16384
+    LTO_SYMBOL_ALIAS = 32768
+}
+enum lto_debug_model {
+    NONE = 0
+    DWARF = 1
+}
+enum lto_codegen_model {
+    LTO_CODEGEN_PIC_MODEL_STATIC = 0
+    LTO_CODEGEN_PIC_MODEL_DYNAMIC = 1
+    LTO_CODEGEN_PIC_MODEL_DYNAMIC_NO_PIC = 2
+    LTO_CODEGEN_PIC_MODEL_DEFAULT = 3
+}
+enum lto_codegen_diagnostic_severity_t {
+    LTO_DS_ERROR = 0
+    LTO_DS_WARNING = 1
+    LTO_DS_REMARK = 3
+    LTO_DS_NOTE = 2
+}
+enum LLVMBinaryType {
+    Archive = 0
+    MachOUniversalBinary = 1
+    COFFImportFile = 2
+    IR = 3
+    WinRes = 4
+    COFF = 5
+    ELF32L = 6
+    ELF32B = 7
+    ELF64L = 8
+    ELF64B = 9
+    MachO32L = 10
+    MachO32B = 11
+    MachO64L = 12
+    MachO64B = 13
+    Wasm = 14
+    Offload = 15
+}
+enum LLVMRemarkType {
+    Unknown = 0
+    Passed = 1
+    Missed = 2
+    Analysis = 3
+    AnalysisFPCommute = 4
+    AnalysisAliasing = 5
+    Failure = 6
+}

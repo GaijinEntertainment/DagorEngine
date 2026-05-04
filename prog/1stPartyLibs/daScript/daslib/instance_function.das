@@ -6,8 +6,14 @@ options strict_smart_pointers = true
 
 module instance_function shared private
 
-require ast
-require rtti
+//! Generic function instantiation annotation.
+//!
+//! ``[instance_function(generic_name, TT="int")]`` replaces the body of the annotated
+//! function with an instantiation of the named generic, substituting the specified
+//! type parameters. Useful for creating concrete exports of generic functions.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/defer

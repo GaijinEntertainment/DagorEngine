@@ -6,7 +6,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_computeShaders.h>
@@ -74,11 +74,11 @@ void VoltexRenderer::render(const ManagedTex &voltex, int mip_level, IPoint3 sha
     d3d::set_render_target(0, voltex.getVolTex(), d3d::RENDER_TO_WHOLE_ARRAY, mip_level);
     if (shape.x != (tinfo.w >> mip_level) || shape.y != (tinfo.h >> mip_level) || shape.z != (tinfo.d >> mip_level))
       d3d::setview(offset.x, offset.y, shape.x, shape.y, 0.0, 1.0);
-    ShaderGlobal::set_real(sliceOffsetVarId, offset.z);
-    ShaderGlobal::set_color4(dispatchSizeVarId, Color4(shape.x, shape.y, shape.z, 0.0));
+    ShaderGlobal::set_float(sliceOffsetVarId, offset.z);
+    ShaderGlobal::set_float4(dispatchSizeVarId, Color4(shape.x, shape.y, shape.z, 0.0));
     shaderPs.getElem()->setStates();
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, shape.z);
-    ShaderGlobal::set_real(sliceOffsetVarId, 0);
+    ShaderGlobal::set_float(sliceOffsetVarId, 0);
   }
   else
   {

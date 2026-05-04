@@ -1,0 +1,25 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <rendInst/rendInstGen.h>
+#include <render/daFrameGraph/daFG.h>
+
+#include <render/renderEvent.h>
+#include <render/world/frameGraphHelpers.h>
+#include "frameGraphNodes.h"
+
+
+dafg::NodeHandle makeRendinstUpdateNode()
+{
+  auto rootNs = dafg::root();
+  return rootNs.registerNode("ri_update_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    // RI cell buffer may be outdated and need to update it before ri rendering to avoid splitting render pass
+    registry.createBlob<OrderingToken>("ri_update_token");
+    return [] { rendinst::updateHeapVb(); };
+  });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraNodeConstruction)
+static void create_rendinst_update_node_es(const OnCameraNodeConstruction &evt) { evt.nodes->push_back(makeRendinstUpdateNode()); }

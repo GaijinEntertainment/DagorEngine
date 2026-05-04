@@ -150,8 +150,8 @@ public:
   bool forEachReverseStop(Cb cb) const
   {
     return forEachCunkReverseStoppable([&](const T *ti, const T *te) {
-      for (ti--, te--; te != ti; --te)
-        if (cb(*te))
+      for (; te != ti;)
+        if (cb(*--te))
           return true;
       return false;
     });
@@ -332,7 +332,7 @@ public:
       auto t = interlocked_acquire_load_ptr(tail);
       if (!t)
         break;
-      for (T *ti = t->at(t->count) - 1, *tb = tail->at(0) - 1; ti != tb; --ti)
+      for (T *ti = t->at(interlocked_acquire_load(t->count)) - 1, *tb = t->at(0) - 1; ti != tb; --ti)
         ti->~T();
     }
     interlocked_release_store_ptr(head, (Node *)NULL);

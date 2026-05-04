@@ -24,10 +24,11 @@ struct LoadedScript
       bool requireAot : 1;
       bool hasDebugger : 1;
       bool postProcessed : 1;
+      bool verySafeContext : 1;
+      bool forceInscopePod : 1;
     };
     uint8_t flags = 0;
   };
-
   das::smart_ptr<DagFileAccess> access;
   using EsContextUniquePtr = das::shared_ptr<EsContext>;
   dag::VectorSet<ecs::EntitySystemDesc *> systems;
@@ -42,7 +43,8 @@ struct LoadedScript
 
 
   LoadedScript(das::ProgramPtr &&program_, EsContextUniquePtr &&ctx_, DagFileAccessPtr access_, AotMode aot_mode_override,
-    AotModeIsRequired aot_mode_is_required, DasSyntax syntax_, EnableDebugger enable_debugger) :
+    AotModeIsRequired aot_mode_is_required, DasSyntax syntax_, EnableDebugger enable_debugger, bool very_safe_context,
+    bool force_inscope_pod) :
     program(eastl::move(program_)),
     ctx(eastl::move(ctx_)),
     access(access_),
@@ -50,7 +52,9 @@ struct LoadedScript
     requireAot(aot_mode_is_required == AotModeIsRequired::YES),
     syntax(syntax_),
     hasDebugger(enable_debugger == EnableDebugger::YES),
-    postProcessed(false)
+    postProcessed(false),
+    verySafeContext(very_safe_context),
+    forceInscopePod(force_inscope_pod)
   {}
 
   LoadedScript(LoadedScript &&l) :

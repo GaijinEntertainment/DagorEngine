@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <ecs/core/entityManager.h>
+#include "splineGenGeometryPointers.h"
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <math/dag_hlsl_floatx.h>
 #include "../shaders/spline_gen_buffer.hlsli"
 
@@ -33,11 +36,18 @@ public:
     float tile_size_meters,
     float obj_size_mul,
     float meter_between_objs,
-    const Point4 &emissive_color);
+    const Point4 &emissive_color,
+    float cylinder_start_offset,
+    float index_of_refraction,
+    const Point4 &uv_scroll_first_offset_and_scale,
+    const Point4 &uv_scroll_second_offset_and_scale,
+    float uv_scroll_interpolation_value,
+    float surface_opaqueness,
+    const Point2 &additional_thickness_bounds);
   void updateAttachmentBatchIds();
 
 private:
-  SplineGenGeometryManager *managerPtr = nullptr;
+  SplineGenGeometryManagerPtr managerPtr;
   InstanceId id = INVALID_INSTANCE_ID;
   SplineGenInstance instance;
   eastl::vector<BatchId> batchIds;

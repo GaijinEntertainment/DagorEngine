@@ -6,6 +6,7 @@
 
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_tex3d.h>
+#include <3d/dag_resourceTags.h>
 
 struct TexImage32;
 
@@ -66,7 +67,8 @@ bool check_voltexformat(int cflg);
  * @param stat_name The name of the texture for statistics purposes (optional).
  * @return A pointer to the created texture, or nullptr on error.
  */
-BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name = nullptr);
+BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name = nullptr,
+  ResourceTagType tag = nullptr);
 
 /**
  * @brief Create a texture from a DDSx stream.
@@ -113,7 +115,7 @@ inline TexLoadRes load_ddsx_tex_contents(BaseTexture *t, const ddsx::Header &hdr
  * @param stat_name The name of the texture for statistics purposes (optional).
  * @return A pointer to the created texture, or nullptr on error.
  */
-BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name = nullptr);
+BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name = nullptr, ResourceTagType tag = nullptr);
 
 /**
  * @brief Create a volume texture.
@@ -125,7 +127,7 @@ BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name
  * @param stat_name The name of the texture for statistics purposes (optional).
  * @return A pointer to the created texture, or nullptr on error.
  */
-BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name = nullptr);
+BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name = nullptr, ResourceTagType tag = nullptr);
 
 /**
  * @brief Create a texture2d array.
@@ -137,7 +139,7 @@ BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char 
  * @param stat_name The name of the texture for statistics purposes.
  * @return A pointer to the created texture, or nullptr on error.
  */
-BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name);
+BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag = nullptr);
 
 /**
  * @brief Create a cube array tex object
@@ -148,7 +150,7 @@ BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const ch
  * @param stat_name The name of the texture for statistics purposes.
  * @return A pointer to the created texture, or nullptr on error.
  */
-BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name);
+BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType tag = nullptr);
 
 /**
  * @brief Create a texture alias, a texture using the same memory as another texture but with different properties.
@@ -293,25 +295,25 @@ inline bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texforma
 inline bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
 inline bool check_voltexformat(int cflg) { return d3di.check_voltexformat(cflg); }
 
-inline BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+inline BaseTexture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_tex(img, w, h, flg, levels, stat_name);
+  return d3di.create_tex(img, w, h, flg, levels, stat_name, tag);
 }
-inline BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name)
+inline BaseTexture *create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_cubetex(size, flg, levels, stat_name);
+  return d3di.create_cubetex(size, flg, levels, stat_name, tag);
 }
-inline BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+inline BaseTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_voltex(w, h, d, flg, levels, stat_name);
+  return d3di.create_voltex(w, h, d, flg, levels, stat_name, tag);
 }
-inline BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+inline BaseTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_array_tex(w, h, d, flg, levels, stat_name);
+  return d3di.create_array_tex(w, h, d, flg, levels, stat_name, tag);
 }
-inline BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+inline BaseTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_cube_array_tex(side, d, flg, levels, stat_name);
+  return d3di.create_cube_array_tex(side, d, flg, levels, stat_name, tag);
 }
 
 inline BaseTexture *create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels, const char *stat_name)

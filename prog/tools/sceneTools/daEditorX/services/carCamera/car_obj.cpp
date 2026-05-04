@@ -15,6 +15,7 @@
 #include <de3_objEntity.h>
 #include <EditorCore/ec_workspace.h>
 #include <gameRes/dag_gameResources.h>
+#include <gameRes/dag_stdGameResId.h>
 #include <de3_entityFilter.h>
 
 #include <workCycle/dag_workCycle.h>
@@ -77,7 +78,7 @@ bool VehicleViewer::begin(IGenViewportWnd *_vpw)
   steady = false;
   rwd = fwd = rsa = fsa = false;
 
-  DataBlock appBlk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
 
   const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
   load_car_params_block_from(String(260, "%s%s", DAGORED2->getWorkspace().getAppDir(), cpBlkPath));
@@ -133,7 +134,7 @@ bool VehicleViewer::end()
 
   if (dynPhysObjData)
   {
-    release_game_resource((GameResource *)dynPhysObjData);
+    release_game_resource_ex(dynPhysObjData, PhysObjGameResClassId);
     dynPhysObjData = NULL;
   }
 

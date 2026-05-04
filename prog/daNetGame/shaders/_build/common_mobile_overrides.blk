@@ -1,0 +1,11 @@
+"@override:Compile" {
+  "@override:assume_vars" {
+    use_simplified_vegetation:i=1
+    additional_ao_use_full_occlusion:i=0
+    indoor_probes_enable_cube_tex:i=0
+    use_dng_mobile_optimizations:i=1
+    heightmap_use_simplified_ao:i=1
+    forcefield_use_full_fbm:i=0
+    modfx_use_simplified_vs_lighting:i=1
+  }
+}

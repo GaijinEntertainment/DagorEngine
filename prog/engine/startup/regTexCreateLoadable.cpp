@@ -164,7 +164,7 @@ public:
         Texture *t;
         {
           d3d::LoadingAutoLock gpuLock;
-          t = d3d::create_tex(NULL, w, h, f, levels, fname);
+          t = d3d::create_tex(NULL, w, h, f, levels, fname, RESTAG_REGTEX);
         }
         if (!t)
           logerr("cannot create texture %dx%d to load image from %s", w, h, fname);
@@ -206,7 +206,7 @@ public:
 
     {
       d3d::LoadingAutoLock gpuLock;
-      t = d3d::create_tex(im, 0, 0, flg, levels, texName);
+      t = d3d::create_tex(im, 0, 0, flg, levels, texName, RESTAG_REGTEX);
     }
     memfree(im, tmpmem);
     if (!t)

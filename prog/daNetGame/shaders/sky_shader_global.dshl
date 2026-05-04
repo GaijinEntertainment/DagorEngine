@@ -10,6 +10,10 @@ int clouds_direct_sequence = 0;
 interval clouds_direct_sequence: auto < 1, first < 2, second < 3, third;
 assume clouds_direct_sequence = auto;
 
+int deferred_msaa_subpass = 0;
+interval deferred_msaa_subpass: no < 1, yes;
+assume deferred_msaa_subpass = no;
+
 hlsl {
   //remove scattering closer than 30m
   #define REDUCE_SCATTERING_ON_CLOSE_DIST 0.03

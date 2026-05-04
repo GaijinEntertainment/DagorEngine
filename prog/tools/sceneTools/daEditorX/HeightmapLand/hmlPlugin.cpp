@@ -27,6 +27,7 @@
 
 #include <coolConsole/coolConsole.h>
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <oldEditor/de_workspace.h>
 #include <oldEditor/pluginService/de_IDagorPhys.h>
@@ -67,13 +68,10 @@ G_STATIC_ASSERT(MAX_NAVMESHES == MAX_UI_NAVMESHES);
 
 #define MIN_HEIGHT_SCALE 0.01
 
-#if !_TARGET_STATIC_LIB
-size_t dagormem_max_crt_pool_sz = ~0u;
-#endif
-
 IHmapService *HmapLandPlugin::hmlService = NULL;
 IBitMaskImageMgr *HmapLandPlugin::bitMaskImgMgr = NULL;
 IDagorPhys *HmapLandPlugin::dagPhys = NULL;
+ISplineGenService *HmapLandPlugin::splSrv = nullptr;
 int HmapLandPlugin::hmapSubtypeMask = -1;
 int HmapLandPlugin::lmeshSubtypeMask = -1;
 int HmapLandPlugin::lmeshDetSubtypeMask = -1;
@@ -125,6 +123,13 @@ bool HmapLandPlugin::prepareRequiredServices()
   if (!dagPhys)
   {
     con.addMessage(ILogWriter::FATAL, "missing IDagorPhys interface");
+    return false;
+  }
+
+  splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>();
+  if (!splSrv)
+  {
+    con.addMessage(ILogWriter::FATAL, "missing ISplineGenService interface");
     return false;
   }
 
@@ -200,7 +205,7 @@ HmapLandPlugin::HmapLandPlugin() :
   snowValSVId(-1)
 {
   lastMinHeight[0] = lastMinHeight[1] = lastHeightRange[0] = lastHeightRange[1] = MAX_REAL;
-  detTexIdxMap = detTexWtMap = NULL;
+  detTexMap = nullptr;
   hmapTex[0] = hmapTex[1] = NULL;
   hmapTexId[0] = hmapTexId[1] = BAD_TEXTUREID;
   waterHeightMinRangeDet = Point2(0, 0);
@@ -242,8 +247,8 @@ HmapLandPlugin::HmapLandPlugin() :
   DAGORED2->getWorkspace().getHmapSettings(requireTileTex, hasColorTex, hasLightmapTex, useMeshSurface, useNormalMap);
 
   DataBlock app_blk;
-  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
 
   ::game_res_sys_v2 = app_blk.getBlockByNameEx("assets")->getBlockByName("export") != NULL;
   allow_debug_bitmap_dump = app_blk.getBlockByNameEx("SDK")->getBool("allow_debug_bitmap_dump", false);
@@ -413,14 +418,15 @@ void HmapLandPlugin::RenderParams::init()
   canyonVertTile = 10.0f;
   hm2YbaseForLod = 0;
   showFinalHM = true;
+  useMetricsHM = false;
+  useHm2Mirror = true;
   hm2displacementQ = 1;
 }
 
 
 HmapLandPlugin::~HmapLandPlugin()
 {
-  if (ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>())
-    splSrv->setSweepMask(nullptr, 0, 0, 1);
+  splSrv->resetSweepMasks();
 
   detailedLandMask = NULL;
   editedScriptImage = NULL;
@@ -436,8 +442,7 @@ HmapLandPlugin::~HmapLandPlugin()
   clearTexCache();
   hmlService->unregisterGenHmap("hmap");
   del_it(lcMgr);
-  del_it(detTexIdxMap);
-  del_it(detTexWtMap);
+  del_it(detTexMap);
   delete &landClsMap;
   delete &colorMap;
   delete &lightMapScaled;
@@ -485,31 +490,107 @@ PropPanel::ContainerPropertyControl *HmapLandPlugin::getPropPanel() const { retu
 
 
 //==============================================================================
+void HmapLandPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  objEd.registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::CREATE_HEIGHTMAP);
+  command_system.addCommand(EditorCommandIds::IMPORT_HEIGHTMAP);
+  command_system.addCommand(EditorCommandIds::ERASE_HEIGHTMAP);
+  command_system.addCommand(EditorCommandIds::IMPORT_WATER_DET_HMAP);
+  command_system.addCommand(EditorCommandIds::IMPORT_WATER_MAIN_HMAP);
+  command_system.addCommand(EditorCommandIds::ERASE_WATER_HEIGHTMAPS);
+  command_system.addCommand(EditorCommandIds::REIMPORT, ImGuiKey_F4);
+  command_system.addCommand(EditorCommandIds::RESCALE_HMAP);
+  command_system.addCommand(EditorCommandIds::MOVE_OBJECTS);
+  command_system.addCommand(EditorCommandIds::BUILD_COLORMAP, ImGuiMod_Ctrl | ImGuiKey_G);
+  command_system.addCommand(EditorCommandIds::BUILD_LIGHTMAP);
+  command_system.addCommand(EditorCommandIds::REBUILD_RIVERS);
+  command_system.addCommand(EditorCommandIds::EXPORT_AS_COMPOSIT);
+  command_system.addCommand(EditorCommandIds::SPLIT_COMPOSIT);
+  command_system.addCommand(EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
+  command_system.addCommand(EditorCommandIds::EXPORT_LAND_TO_GAME);
+  command_system.addCommand(EditorCommandIds::EXPORT_HEIGHTMAP);
+  command_system.addCommand(EditorCommandIds::EXPORT_COLORMAP);
+  command_system.addCommand(EditorCommandIds::EXPORT_LAYERS);
+  command_system.addCommand(EditorCommandIds::EXPORT_LOFT_MASKS, ImGuiKey_F9);
+  command_system.addCommand(EditorCommandIds::SPLINE_IMPORT_FROM_DAG);
+  command_system.addCommand(EditorCommandIds::SPLINE_EXPORT_TO_DAG);
+  command_system.addCommand(EditorCommandIds::UNIFY_OBJ_NAMES);
+  command_system.addCommand(EditorCommandIds::SET_PT_VIS_DIST);
+  command_system.addCommand(EditorCommandIds::AUTO_ATACH);
+  command_system.addCommand(EditorCommandIds::MAKE_SPLINES_CROSSES);
+  command_system.addCommand(EditorCommandIds::MAKE_BOTTOM_SPLINES);
+
+  command_system.addCommand(EditorCommandIds::TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES, ImGuiKey_P);
+
+  command_system.addCommand(EditorCommandIds::DECREASE_BRUSH_SIZE, ImGuiKey_LeftBracket);
+  command_system.addCommand(EditorCommandIds::INCREASE_BRUSH_SIZE, ImGuiKey_RightBracket);
+  command_system.addCommand(EditorCommandIds::COMMIT_HM_CHANGES, ImGuiMod_Ctrl | ImGuiKey_H);
+  command_system.addCommand(EditorCommandIds::RESTORE_HM_BACKUP, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_H);
+  command_system.addCommand(EditorCommandIds::HIDE_UNSELECTED_SPLINES, ImGuiMod_Ctrl | ImGuiKey_E);
+  command_system.addCommand(EditorCommandIds::UNHIDE_ALL_SPLINES, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_E);
+  command_system.addCommand(EditorCommandIds::COLLAPSE_MODIFIERS, ImGuiMod_Ctrl | ImGuiKey_M);
+  command_system.addCommand(EditorCommandIds::REBUILD, ImGuiMod_Ctrl | ImGuiKey_R);
+  command_system.addCommand(EditorCommandIds::HILL_UP, ImGuiKey_1);
+  command_system.addCommand(EditorCommandIds::HILL_DOWN, ImGuiKey_2);
+  command_system.addCommand(EditorCommandIds::ALIGN, ImGuiKey_3);
+  command_system.addCommand(EditorCommandIds::SMOOTH, ImGuiKey_4);
+  command_system.addCommand(EditorCommandIds::SHADOWS, ImGuiKey_5);
+  command_system.addCommand(EditorCommandIds::SCRIPT, ImGuiKey_6);
+}
+
+//==============================================================================
 void HmapLandPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
 
-  wndManager.addAccelerator(CM_REIMPORT, ImGuiKey_F4);
-  wndManager.addAccelerator(CM_EXPORT_LOFT_MASKS, ImGuiKey_F9);
+  wndManager.addAccelerator(CM_CREATE_HEIGHTMAP, EditorCommandIds::CREATE_HEIGHTMAP);
+  wndManager.addAccelerator(CM_IMPORT_HEIGHTMAP, EditorCommandIds::IMPORT_HEIGHTMAP);
+  wndManager.addAccelerator(CM_ERASE_HEIGHTMAP, EditorCommandIds::ERASE_HEIGHTMAP);
+  wndManager.addAccelerator(CM_IMPORT_WATER_DET_HMAP, EditorCommandIds::IMPORT_WATER_DET_HMAP);
+  wndManager.addAccelerator(CM_IMPORT_WATER_MAIN_HMAP, EditorCommandIds::IMPORT_WATER_MAIN_HMAP);
+  wndManager.addAccelerator(CM_ERASE_WATER_HEIGHTMAPS, EditorCommandIds::ERASE_WATER_HEIGHTMAPS);
+  wndManager.addAccelerator(CM_REIMPORT, EditorCommandIds::REIMPORT);
+  wndManager.addAccelerator(CM_RESCALE_HMAP, EditorCommandIds::RESCALE_HMAP);
+  wndManager.addAccelerator(CM_MOVE_OBJECTS, EditorCommandIds::MOVE_OBJECTS);
+  wndManager.addAccelerator(CM_BUILD_COLORMAP, EditorCommandIds::BUILD_COLORMAP);
+  wndManager.addAccelerator(CM_BUILD_LIGHTMAP, EditorCommandIds::BUILD_LIGHTMAP);
+  wndManager.addAccelerator(CM_REBUILD_RIVERS, EditorCommandIds::REBUILD_RIVERS);
+  wndManager.addAccelerator(CM_EXPORT_AS_COMPOSIT, EditorCommandIds::EXPORT_AS_COMPOSIT);
+  wndManager.addAccelerator(CM_SPLIT_COMPOSIT, EditorCommandIds::SPLIT_COMPOSIT);
+  wndManager.addAccelerator(CM_INSTANTIATE_GENOBJ_INTO_ENTITIES, EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
+  wndManager.addAccelerator(CM_EXPORT_LAND_TO_GAME, EditorCommandIds::EXPORT_LAND_TO_GAME);
+  wndManager.addAccelerator(CM_EXPORT_HEIGHTMAP, EditorCommandIds::EXPORT_HEIGHTMAP);
+  wndManager.addAccelerator(CM_EXPORT_COLORMAP, EditorCommandIds::EXPORT_COLORMAP);
+  wndManager.addAccelerator(CM_EXPORT_LAYERS, EditorCommandIds::EXPORT_LAYERS);
+  wndManager.addAccelerator(CM_EXPORT_LOFT_MASKS, EditorCommandIds::EXPORT_LOFT_MASKS);
+  wndManager.addAccelerator(CM_SPLINE_IMPORT_FROM_DAG, EditorCommandIds::SPLINE_IMPORT_FROM_DAG);
+  wndManager.addAccelerator(CM_SPLINE_EXPORT_TO_DAG, EditorCommandIds::SPLINE_EXPORT_TO_DAG);
+  wndManager.addAccelerator(CM_UNIFY_OBJ_NAMES, EditorCommandIds::UNIFY_OBJ_NAMES);
+  wndManager.addAccelerator(CM_SET_PT_VIS_DIST, EditorCommandIds::SET_PT_VIS_DIST);
+  wndManager.addAccelerator(CM_AUTO_ATACH, EditorCommandIds::AUTO_ATACH);
+  wndManager.addAccelerator(CM_MAKE_SPLINES_CROSSES, EditorCommandIds::MAKE_SPLINES_CROSSES);
+  wndManager.addAccelerator(CM_MAKE_BOTTOM_SPLINES, EditorCommandIds::MAKE_BOTTOM_SPLINES);
 
   // ObjectEditor has an accelerator with the same hotkey but because this is registered first, this will "win".
-  wndManager.addViewportAccelerator(CM_TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES, ImGuiKey_P);
+  wndManager.addViewportAccelerator(CM_TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES,
+    EditorCommandIds::TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES);
 
-  wndManager.addViewportAccelerator(CM_DECREASE_BRUSH_SIZE, ImGuiKey_LeftBracket, true);
-  wndManager.addViewportAccelerator(CM_INCREASE_BRUSH_SIZE, ImGuiKey_RightBracket, true);
-  wndManager.addViewportAccelerator(CM_BUILD_COLORMAP, ImGuiMod_Ctrl | ImGuiKey_G);
-  wndManager.addViewportAccelerator(CM_COMMIT_HM_CHANGES, ImGuiMod_Ctrl | ImGuiKey_H);
-  wndManager.addViewportAccelerator(CM_RESTORE_HM_BACKUP, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_H);
-  wndManager.addViewportAccelerator(CM_HIDE_UNSELECTED_SPLINES, ImGuiMod_Ctrl | ImGuiKey_E);
-  wndManager.addViewportAccelerator(CM_UNHIDE_ALL_SPLINES, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_E);
-  wndManager.addViewportAccelerator(CM_COLLAPSE_MODIFIERS, ImGuiMod_Ctrl | ImGuiKey_M);
-  wndManager.addViewportAccelerator(CM_REBUILD, ImGuiMod_Ctrl | ImGuiKey_R);
-  wndManager.addViewportAccelerator(CM_HILL_UP, ImGuiKey_1);
-  wndManager.addViewportAccelerator(CM_HILL_DOWN, ImGuiKey_2);
-  wndManager.addViewportAccelerator(CM_ALIGN, ImGuiKey_3);
-  wndManager.addViewportAccelerator(CM_SMOOTH, ImGuiKey_4);
-  wndManager.addViewportAccelerator(CM_SHADOWS, ImGuiKey_5);
-  wndManager.addViewportAccelerator(CM_SCRIPT, ImGuiKey_6);
+  wndManager.addViewportAccelerator(CM_DECREASE_BRUSH_SIZE, EditorCommandIds::DECREASE_BRUSH_SIZE, true);
+  wndManager.addViewportAccelerator(CM_INCREASE_BRUSH_SIZE, EditorCommandIds::INCREASE_BRUSH_SIZE, true);
+  wndManager.addViewportAccelerator(CM_COMMIT_HM_CHANGES, EditorCommandIds::COMMIT_HM_CHANGES);
+  wndManager.addViewportAccelerator(CM_RESTORE_HM_BACKUP, EditorCommandIds::RESTORE_HM_BACKUP);
+  wndManager.addViewportAccelerator(CM_HIDE_UNSELECTED_SPLINES, EditorCommandIds::HIDE_UNSELECTED_SPLINES);
+  wndManager.addViewportAccelerator(CM_UNHIDE_ALL_SPLINES, EditorCommandIds::UNHIDE_ALL_SPLINES);
+  wndManager.addViewportAccelerator(CM_COLLAPSE_MODIFIERS, EditorCommandIds::COLLAPSE_MODIFIERS);
+  wndManager.addViewportAccelerator(CM_REBUILD, EditorCommandIds::REBUILD);
+  wndManager.addViewportAccelerator(CM_HILL_UP, EditorCommandIds::HILL_UP);
+  wndManager.addViewportAccelerator(CM_HILL_DOWN, EditorCommandIds::HILL_DOWN);
+  wndManager.addViewportAccelerator(CM_ALIGN, EditorCommandIds::ALIGN);
+  wndManager.addViewportAccelerator(CM_SMOOTH, EditorCommandIds::SMOOTH);
+  wndManager.addViewportAccelerator(CM_SHADOWS, EditorCommandIds::SHADOWS);
+  wndManager.addViewportAccelerator(CM_SCRIPT, EditorCommandIds::SCRIPT);
 
   objEd.registerViewportAccelerators(wndManager);
 }
@@ -539,58 +620,72 @@ void HmapLandPlugin::createMenu(unsigned menu_id)
   // menu
 
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
 
-  mainMenu->addItem(menu_id, CM_CREATE_HEIGHTMAP, "Create heightmap");
-  mainMenu->addItem(menu_id, CM_IMPORT_HEIGHTMAP, "Import heightmap");
-  mainMenu->addItem(menu_id, CM_ERASE_HEIGHTMAP, "Erase heightmap");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_CREATE_HEIGHTMAP, EditorCommandIds::CREATE_HEIGHTMAP, "Create heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_IMPORT_HEIGHTMAP, EditorCommandIds::IMPORT_HEIGHTMAP, "Import heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_ERASE_HEIGHTMAP, EditorCommandIds::ERASE_HEIGHTMAP, "Erase heightmap");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_IMPORT_WATER_DET_HMAP, "Import water det heightmap");
-  mainMenu->addItem(menu_id, CM_IMPORT_WATER_MAIN_HMAP, "Import water main heightmap");
-  mainMenu->addItem(menu_id, CM_ERASE_WATER_HEIGHTMAPS, "Erase water heightmaps");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_IMPORT_WATER_DET_HMAP, EditorCommandIds::IMPORT_WATER_DET_HMAP,
+    "Import water det heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_IMPORT_WATER_MAIN_HMAP, EditorCommandIds::IMPORT_WATER_MAIN_HMAP,
+    "Import water main heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_ERASE_WATER_HEIGHTMAPS, EditorCommandIds::ERASE_WATER_HEIGHTMAPS,
+    "Erase water heightmaps...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_REIMPORT, "Re-import changed heightmaps\tF4");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_REIMPORT, EditorCommandIds::REIMPORT, "Re-import changed heightmaps");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_RESCALE_HMAP, "Rescale heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_RESCALE_HMAP, EditorCommandIds::RESCALE_HMAP, "Rescale heightmap...");
   mainMenu->addSeparator(menu_id);
 
-  mainMenu->addItem(menu_id, CM_RESTORE_HM_BACKUP, "Revert heightmap changes\tCtrl+Alt+H");
-  mainMenu->addItem(menu_id, CM_COMMIT_HM_CHANGES, "Save heightmap changes\tCtrl+H");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_RESTORE_HM_BACKUP, EditorCommandIds::RESTORE_HM_BACKUP,
+    "Revert heightmap changes");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_COMMIT_HM_CHANGES, EditorCommandIds::COMMIT_HM_CHANGES, "Save heightmap changes");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_MOVE_OBJECTS, "Move objects...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_MOVE_OBJECTS, EditorCommandIds::MOVE_OBJECTS, "Move objects...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_BUILD_COLORMAP, "Rebuild colors\tCtrl+G");
-  mainMenu->addItem(menu_id, CM_BUILD_LIGHTMAP, "Rebuild ligting");
-  mainMenu->addItem(menu_id, CM_REBUILD, "Rebuild colors and lighting\tCtrl+R");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_BUILD_COLORMAP, EditorCommandIds::BUILD_COLORMAP, "Rebuild colors");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_BUILD_LIGHTMAP, EditorCommandIds::BUILD_LIGHTMAP, "Rebuild lighting");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_REBUILD, EditorCommandIds::REBUILD, "Rebuild colors and lighting");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_REBUILD_RIVERS, "Rebuild rivers");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_REBUILD_RIVERS, EditorCommandIds::REBUILD_RIVERS, "Rebuild rivers");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_EXPORT_AS_COMPOSIT, "Export as composit...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_AS_COMPOSIT, EditorCommandIds::EXPORT_AS_COMPOSIT, "Export as composit...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_SPLIT_COMPOSIT, "Split composits into separate objects...");
-  mainMenu->addItem(menu_id, CM_INSTANTIATE_GENOBJ_INTO_ENTITIES, "Instantiate gen. objects into separate entities...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SPLIT_COMPOSIT, EditorCommandIds::SPLIT_COMPOSIT,
+    "Split composits into separate objects...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_INSTANTIATE_GENOBJ_INTO_ENTITIES,
+    EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES, "Instantiate gen. objects into separate entities...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_EXPORT_LAND_TO_GAME, "Export to game...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LAND_TO_GAME, EditorCommandIds::EXPORT_LAND_TO_GAME, "Export to game...");
 
-  mainMenu->addItem(menu_id, CM_EXPORT_HEIGHTMAP, "Export heightmap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_HEIGHTMAP, EditorCommandIds::EXPORT_HEIGHTMAP, "Export heightmap...");
   if (hasColorTex)
-    mainMenu->addItem(menu_id, CM_EXPORT_COLORMAP, "Export colormap...");
-  mainMenu->addItem(menu_id, CM_EXPORT_LAYERS, "Export landClass layers...");
-  mainMenu->addItem(menu_id, CM_EXPORT_LOFT_MASKS, "Export loft masks...\tF9");
+    commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_COLORMAP, EditorCommandIds::EXPORT_COLORMAP, "Export colormap...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LAYERS, EditorCommandIds::EXPORT_LAYERS, "Export landClass layers...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LOFT_MASKS, EditorCommandIds::EXPORT_LOFT_MASKS, "Export loft masks...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_SPLINE_IMPORT_FROM_DAG, "Import from DAG...");
-  mainMenu->addItem(menu_id, CM_SPLINE_EXPORT_TO_DAG, "Export to DAG...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SPLINE_IMPORT_FROM_DAG, EditorCommandIds::SPLINE_IMPORT_FROM_DAG,
+    "Import from DAG...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SPLINE_EXPORT_TO_DAG, EditorCommandIds::SPLINE_EXPORT_TO_DAG, "Export to DAG...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_COLLAPSE_MODIFIERS, "Collapse modifier(s)\tCtrl+M");
-  mainMenu->addItem(menu_id, CM_UNIFY_OBJ_NAMES, "Unify object names...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_COLLAPSE_MODIFIERS, EditorCommandIds::COLLAPSE_MODIFIERS, "Collapse modifier(s)");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_UNIFY_OBJ_NAMES, EditorCommandIds::UNIFY_OBJ_NAMES, "Unify object names...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_SET_PT_VIS_DIST, "Set spline points vis. range...");
-  mainMenu->addItem(menu_id, CM_HIDE_UNSELECTED_SPLINES, "Hide (inactivate) all unselected splines\tCtrl+E");
-  mainMenu->addItem(menu_id, CM_UNHIDE_ALL_SPLINES, "Unhide (activate) all splines\tCtrl+Shift+E");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SET_PT_VIS_DIST, EditorCommandIds::SET_PT_VIS_DIST,
+    "Set spline points vis. range...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_HIDE_UNSELECTED_SPLINES, EditorCommandIds::HIDE_UNSELECTED_SPLINES,
+    "Hide (inactivate) all unselected splines");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_UNHIDE_ALL_SPLINES, EditorCommandIds::UNHIDE_ALL_SPLINES,
+    "Unhide (activate) all splines");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_AUTO_ATACH, "Auto attach splines...");
-  mainMenu->addItem(menu_id, CM_MAKE_SPLINES_CROSSES, "Make crosspoints for splines...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_AUTO_ATACH, EditorCommandIds::AUTO_ATACH, "Auto attach splines...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_MAKE_SPLINES_CROSSES, EditorCommandIds::MAKE_SPLINES_CROSSES,
+    "Make crosspoints for splines...");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_MAKE_BOTTOM_SPLINES, "Make bottom splines for polygons...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_MAKE_BOTTOM_SPLINES, EditorCommandIds::MAKE_BOTTOM_SPLINES,
+    "Make bottom splines for polygons...");
 }
 
 
@@ -775,12 +870,9 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
 
   if (gpuGrassService && gpuGrassBlk)
     gpuGrassPanel.fillPanel(gpuGrassService, gpuGrassBlk, panel);
-  //---Script Parameters
-  maxGrp = panel.createGroup(PID_SCRIPT_PARAMS_GRP, "Script Parameters");
+  //---Land Details and Color settings
+  maxGrp = panel.createGroup(PID_SCRIPT_PARAMS_GRP, "Land Details Settings");
 
-  maxGrp->createButton(PID_SCRIPT_FILE, String("Script: ") + ::get_file_name_wo_ext(colorGenScriptFilename));
-  maxGrp->createButton(PID_RESET_SCRIPT, "Reset script");
-  maxGrp->createButton(PID_RELOAD_SCRIPT, "Reload script");
   // maxGrp->createButton(PID_IMPORT_SCRIPT_IMAGE, "Import image...");
   // maxGrp->createButton(PID_CREATE_MASK, "Create mask...");
   maxGrp->createButton(PID_GENERATE_COLORMAP, "Generate color map");
@@ -792,6 +884,7 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
     colorGenParams[i]->fillParams(*maxGrp, pid);
 
   maxGrp->createCheckBox(PID_SHOWMASK, "Show blue-white mask", showBlueWhiteMask);
+  maxGrp->createCheckBox(PID_SHOW_LANDCLASS_COLORS, "Show landclass weights (color)", showLandClassColors);
 
   for (int i = 0; i < genLayers.size(); ++i)
     genLayers[i]->fillParams(*maxGrp, pid);
@@ -895,6 +988,8 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
     rg->createRadio(PID_RENDER_INITIAL_HM, "initial");
     rg->createRadio(PID_RENDER_FINAL_HM, "final (after modifiers)");
     grp->setInt(PID_RENDER_RADIOGROUP_HM, (render.showFinalHM) ? PID_RENDER_FINAL_HM : PID_RENDER_INITIAL_HM);
+    grp->createCheckBox(PID_RENDER_HM_METRICS, "Use metrics for HMAP render", render.useMetricsHM);
+    grp->createCheckBox(PID_RENDER_HM_MIRROR, "Mirror HMAP (infinite terrain)", render.useHm2Mirror);
 
     grp->createSeparator(0);
     grp->createEditInt(PID_HM2_DISPLACEMENT_Q, "HMAP displacement quality", render.hm2displacementQ);
@@ -1904,6 +1999,8 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   }
 
 
+  render.useMetricsHM = panel->getBool(PID_RENDER_HM_METRICS);
+  render.useHm2Mirror = panel->getBool(PID_RENDER_HM_MIRROR);
   bool newShowHm = panel->getInt(PID_RENDER_RADIOGROUP_HM) == PID_RENDER_FINAL_HM;
   if (newShowHm != render.showFinalHM)
   {
@@ -1915,6 +2012,8 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     updateHeightMapTex(false);
     updateHeightMapTex(true);
   }
+  else if (render.useMetricsHM != hmlService->areMetricsUsedForHm2())
+    hmlService->updateMetricsHm2(render.useMetricsHM, heightMap, render.showFinalHM, gridCellSize, getWaterSurfLevel());
 
   int newLightingDetails = 0;
   switch (panel->getInt(PID_LIGHTING_SUBDIV))
@@ -1930,7 +2029,7 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   {
     lightmapScaleFactor = newLightingDetails;
     lightMapScaled.reset(heightMap.getMapSizeX() * lightmapScaleFactor, heightMap.getMapSizeY() * lightmapScaleFactor, 0xFFFF);
-    createLightmapFile(DAGORED2->getConsole());
+    // lightMapScaled is RAM-only; calcFastLandLighting re-populates it.
     resetRenderer();
   }
 
@@ -2127,6 +2226,12 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
           updateBlueWhiteMask(NULL);
         DAGORED2->invalidateViewportCache();
       }
+      break;
+
+    case PID_SHOW_LANDCLASS_COLORS:
+      showLandClassColors = panel->getBool(pcb_id);
+      updateBlueWhiteMask(NULL);
+      DAGORED2->invalidateViewportCache();
       break;
 
     case PID_MONOLAND:
@@ -2714,28 +2819,6 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   {
     createMask(1);
   }
-  else if (pcb_id == PID_RESET_SCRIPT)
-  {
-    if (colorGenScriptFilename.empty())
-      return;
-    if (wingw::message_box(wingw::MBS_YESNO | wingw::MBS_QUEST, "Confirmation",
-          "Do you really want to reset generation script?\n\n"
-          "(generation layers, if any, can do processing without script)") != wingw::MB_ID_YES)
-      return;
-
-    colorGenScriptFilename = "";
-    getColorGenVarsFromScript();
-    onWholeLandChanged();
-    if (propPanel)
-      propPanel->fillPanel();
-  }
-  else if (pcb_id == PID_RELOAD_SCRIPT)
-  {
-    getColorGenVarsFromScript();
-    onWholeLandChanged();
-    if (propPanel)
-      propPanel->fillPanel();
-  }
   else if (pcb_id == PID_GENERATE_COLORMAP)
   {
     generateLandColors();
@@ -2786,20 +2869,6 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     for (int i = 0; i < genLayers.size(); ++i)
       if (genLayers[i]->onPPBtnPressedEx(pcb_id, *panel))
         break;
-  }
-  else if (pcb_id == PID_SCRIPT_FILE)
-  {
-    String fname = wingw::file_open_dlg(NULL, "Select color map generator script", "Squirrel files (*.nut)|*.nut|All files (*.*)|*.*",
-      "nut", colorGenScriptFilename);
-
-    if (!fname.length())
-      return;
-
-    colorGenScriptFilename = fname;
-    getColorGenVarsFromScript();
-    onWholeLandChanged();
-    if (propPanel)
-      propPanel->fillPanel();
   }
   else if (pcb_id == PID_ADDLAYER)
   {
@@ -2877,17 +2946,51 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   }
   else if (pcb_id == PID_GRID_H2_APPLY)
   {
+    // detRect shifted -- derived maps (landClsMap, detTex*), landmesh
+    // geometry (delaunay importance inside detRect), and the landmesh
+    // physmap all key off the new rect. Invalidate + regen in the same order
+    // as beforeMainLoop so the viewport picks up the edit without requiring
+    // a manual Ctrl+G, and so the next saveObjects persists consistent
+    // derived state alongside the new detRect0/detRect1 in plugin.blk.
+    //
+    // Order matters: colors first (so landClsMap is populated), then mesh
+    // re-gen (uses landClsMap for importance-driven triangulation), then
+    // dump/manager/renderer/clipmap. rebuildLandmeshPhysMap runs last and
+    // is cheap thanks to the landClsMapGenerated gate in buildAndWritePhysMap.
+    auto regenAfterDetRectChange = [this]() {
+      landClsMapGenerated = false;
+      // may_rebuild_lmesh_if_needed=false: the landMeshMap re-triangulation
+      // and explicit rebuildLandmeshDump/Manager/PhysMap chain below is
+      // what actually puts lmDump in sync (it has to be downstream of the
+      // new landMeshMap). The in-function rebuild would build lmDump from
+      // the still-flat-importance landMeshMap, only to be overwritten
+      // immediately. Same opt-out as beforeMainLoop.
+      generateLandColors(nullptr, true, false);
+      if (useMeshSurface && exportType != EXPORT_PSEUDO_PLANE && !landMeshMap.isEmpty())
+      {
+        landMeshMap.clear(true);
+        generateLandMeshMap(landMeshMap, DAGORED2->getConsole(), false, NULL);
+      }
+      rebuildLandmeshDump();
+      rebuildLandmeshManager();
+      delayedResetRenderer();
+      if (hmlService)
+        hmlService->invalidateClipmap(true);
+      pendingLandmeshRebuild = false;
+      rebuildLandmeshPhysMap();
+    };
+
     float csz = panel->getFloat(PID_GRID_H2_CELL_SIZE);
     Point2 b0 = panel->getPoint2(PID_GRID_H2_BBOX_OFS);
     Point2 b1 = panel->getPoint2(PID_GRID_H2_BBOX_SZ) + b0;
-    int old_detDivisor = detDivisor;
-    BBox2 old_detRect = detRect;
-    IBBox2 old_detRectC = detRectC;
-    float *heights = NULL;
+    const int old_detDivisor = detDivisor;
+    const BBox2 old_detRect = detRect;
+    const IBBox2 old_detRectC = detRectC;
 
-    if (!csz)
-      detDivisor = 0;
-    else
+    int new_detDivisor = 0;
+    BBox2 new_detRect = detRect;
+    IBBox2 new_detRectC = detRectC;
+    if (csz)
     {
       float land_cell_sz = getLandCellSize();
       b0.x = floor((b0.x - heightMapOffset.x) / land_cell_sz) * land_cell_sz + heightMapOffset.x;
@@ -2898,31 +3001,79 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
         b1.x += land_cell_sz;
       if (b0.y == b1.y)
         b1.y += land_cell_sz;
-      detDivisor = gridCellSize / csz;
-      detRect[0] = b0;
-      detRect[1] = b1;
-      detRectC[0].set_xy((detRect[0] - heightMapOffset) / gridCellSize);
-      detRectC[0] *= detDivisor;
-      detRectC[1].set_xy((detRect[1] - heightMapOffset) / gridCellSize);
-      detRectC[1] *= detDivisor;
+      new_detDivisor = gridCellSize / csz;
+      new_detRect[0] = b0;
+      new_detRect[1] = b1;
+      new_detRectC[0].set_xy((new_detRect[0] - heightMapOffset) / gridCellSize);
+      new_detRectC[0] *= new_detDivisor;
+      new_detRectC[1].set_xy((new_detRect[1] - heightMapOffset) / gridCellSize);
+      new_detRectC[1] *= new_detDivisor;
+    }
 
-      heights = (float *)midmem->tryAlloc(sizeof(float) * (detRectC[1].x - detRectC[0].x) * (detRectC[1].y - detRectC[0].y));
+    // Classify the edit to decide whether existing det-hmap data can be
+    // preserved. divisorChanged / just-enabled / just-disabled require the
+    // old resample-from-main-hmap path; within a fixed divisor, origin and
+    // size edits are served by the reshape/translate primitives plus user
+    // prompts so accidental Apply presses don't silently discard data.
+    const bool divisorChanged = (new_detDivisor != old_detDivisor);
+    const bool disabling = (old_detDivisor && !new_detDivisor);
+    const bool createdAnew = new_detDivisor && !heightMapDet.isFileOpened();
+    const IPoint2 oldSizeC = old_detRectC.width();
+    const IPoint2 newSizeC = new_detRectC.width();
+    const bool originChanged = new_detDivisor && !divisorChanged && (new_detRectC[0] != old_detRectC[0]);
+    const bool sizeChanged = new_detDivisor && !divisorChanged && (newSizeC != oldSizeC);
+    const bool shrank = sizeChanged && (newSizeC.x < oldSizeC.x || newSizeC.y < oldSizeC.y);
+
+    bool cancelled = false;
+    if (!divisorChanged && !disabling && !createdAnew && (originChanged || sizeChanged))
+    {
+      int r = wingw::MB_ID_CANCEL;
+      if (originChanged && !sizeChanged)
+        r = wingw::message_box(wingw::MBS_YESNOCANCEL | wingw::MBS_QUEST, "Detail rect origin changed",
+          "How should existing detail heightmap data be handled?\n\n"
+          "Yes    = Translate: keep data in buffer, shift offset (terrain moves with rect)\n"
+          "No     = Move: keep data at world coords (overlap preserved, non-overlap zeroed)\n"
+          "Cancel = revert origin edit");
+      else if (sizeChanged && !originChanged && shrank)
+        r = wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Detail rect shrunk",
+          "Crop detail heightmap data outside the new rect?");
+      else if (sizeChanged && !originChanged) // size increased only
+        r = wingw::MB_ID_OK;                  // silent zero-expand; no prompt
+      else                                    // origin + size changed together -- Translate has no meaning
+        r = wingw::message_box(wingw::MBS_OKCANCEL | wingw::MBS_QUEST, "Detail rect moved and resized",
+          "Move detail heightmap data? Overlap preserved, non-overlap zeroed.");
+      cancelled = (r == wingw::MB_ID_CANCEL);
+      if (!cancelled)
+      {
+        detDivisor = new_detDivisor;
+        detRect = new_detRect;
+        detRectC = new_detRectC;
+        if (originChanged && !sizeChanged && r == wingw::MB_ID_YES)
+          heightMapDet.translateStoredRect(new_detRectC[0].x, new_detRectC[0].y);
+        else
+          heightMapDet.reshapeStoredRect(new_detRectC[0].x, new_detRectC[0].y, newSizeC.x, newSizeC.y);
+        onLandRegionChanged(new_detRectC[0].x / new_detDivisor, new_detRectC[0].y / new_detDivisor, new_detRectC[1].x / new_detDivisor,
+          new_detRectC[1].y / new_detDivisor);
+        applyHmModifiers();
+        heightMapDet.flushData();
+
+        regenAfterDetRectChange();
+      }
+    }
+    else if (divisorChanged || createdAnew)
+    {
+      // Resample-from-main-heightmap path: cell size differs (or the det map
+      // is being turned on for the first time), so no pixel-for-pixel copy
+      // is possible. Allocate heights from the old main heightmap sampled at
+      // the new grid, then stamp into the freshly-sized det storage.
+      float *heights = NULL;
+      const int area = (new_detRectC[1].x - new_detRectC[0].x) * (new_detRectC[1].y - new_detRectC[0].y);
+      if (area > 0)
+        heights = (float *)midmem->tryAlloc(sizeof(float) * area);
       if (heights)
       {
-        memset(heights, 0, sizeof(float) * (detRectC[1].x - detRectC[0].x) * (detRectC[1].y - detRectC[0].y));
-
-        int new_detDivisor = detDivisor;
-        BBox2 new_detRect = detRect;
-        IBBox2 new_detRectC = detRectC;
-
-        detDivisor = old_detDivisor;
-        detRect = old_detRect;
-        detRectC = old_detRectC;
-
+        memset(heights, 0, sizeof(float) * area);
         float *hp = heights;
-        DEBUG_DUMP_VAR(old_detRectC);
-        DEBUG_DUMP_VAR(detRectC);
-        DEBUG_DUMP_VAR(new_detRectC);
         for (int y = new_detRectC[0].y; y < new_detRectC[1].y; y++)
           for (int x = new_detRectC[0].x; x < new_detRectC[1].x; x++, hp++)
           {
@@ -2933,47 +3084,53 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
             else
               debug("failed %d,%d: %@", x, y, p);
           }
-
-        detDivisor = new_detDivisor;
-        detRect = new_detRect;
-        detRectC = new_detRectC;
       }
+
+      detDivisor = new_detDivisor;
+      detRect = new_detRect;
+      detRectC = new_detRectC;
+
+      resizeHeightMapDet(DAGORED2->getConsole());
+      if (heights)
+      {
+        float *hp = heights;
+        for (int y = detRectC[0].y; y < detRectC[1].y; y++)
+          for (int x = detRectC[0].x; x < detRectC[1].x; x++, hp++)
+          {
+            heightMapDet.setInitialData(x, y, *hp);
+            heightMapDet.setFinalData(x, y, *hp);
+          }
+        midmem->free(heights);
+      }
+      onLandRegionChanged(detRectC[0].x / detDivisor, detRectC[0].y / detDivisor, detRectC[1].x / detDivisor,
+        detRectC[1].y / detDivisor);
+      applyHmModifiers();
+      heightMapDet.flushData();
+
+      regenAfterDetRectChange();
+    }
+    else if (disabling)
+    {
+      detDivisor = new_detDivisor;
+      detRect = new_detRect;
+      detRectC = new_detRectC;
+      heightMapDet.closeFile();
+    }
+    // else: nothing changed -- no storage mutation.
+
+    if (cancelled)
+    {
+      detDivisor = old_detDivisor;
+      detRect = old_detRect;
+      detRectC = old_detRectC;
     }
     panel->setFloat(PID_GRID_H2_CELL_SIZE, detDivisor ? gridCellSize / detDivisor : 0);
     panel->setPoint2(PID_GRID_H2_BBOX_OFS, detRect[0]);
     panel->setPoint2(PID_GRID_H2_BBOX_SZ, detRect.width());
 
-    if (detDivisor)
-    {
-      int dw = heightMap.getMapSizeX() * detDivisor, dh = heightMap.getMapSizeY() * detDivisor;
-      bool created_anew = !heightMapDet.isFileOpened();
-
-      if (created_anew || heightMapDet.getMapSizeX() != dw || heightMapDet.getMapSizeY() != dh)
-      {
-        resizeHeightMapDet(DAGORED2->getConsole());
-
-        if (heights)
-        {
-          float *hp = heights;
-          for (int y = detRectC[0].y; y < detRectC[1].y; y++)
-            for (int x = detRectC[0].x; x < detRectC[1].x; x++, hp++)
-            {
-              heightMapDet.setInitialData(x, y, *hp);
-              heightMapDet.setFinalData(x, y, *hp);
-            }
-        }
-        onLandRegionChanged(detRectC[0].x / detDivisor, detRectC[0].y / detDivisor, detRectC[1].x / detDivisor,
-          detRectC[1].y / detDivisor);
-        applyHmModifiers();
-        heightMapDet.flushData();
-      }
-    }
-    else
-      heightMapDet.closeFile();
-
-    if (heights)
-      midmem->free(heights);
-
+    panel->setBool(PID_RENDER_HM_METRICS, render.useMetricsHM = !detDivisor);
+    if (render.useMetricsHM != hmlService->areMetricsUsedForHm2())
+      hmlService->updateMetricsHm2(render.useMetricsHM, heightMap, render.showFinalHM, gridCellSize, getWaterSurfLevel());
     updateHeightMapTex(true);
     updateHeightMapConstants();
     panel->setEnabledById(PID_GRID_H2_APPLY, false);
@@ -4048,7 +4205,7 @@ void HmapLandPlugin::setSelectMode() { objEd.setEditMode(CM_OBJED_MODE_SELECT); 
 // IPostProcessGeometry
 void HmapLandPlugin::processGeometry(StaticGeometryContainer &container)
 {
-  DataBlock app_blk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock app_blk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *mgr_type = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getStr("type", NULL);
   bool snow = (!mgr_type || strcmp(mgr_type, "aces") != 0);
   if (snow)
@@ -4332,7 +4489,20 @@ bool HmapLandPlugin::loadGPUGrassFromBlk(const DataBlock &level_blk)
 {
   const DataBlock *gpuGrassBlock = level_blk.getBlockByNameEx("grass", nullptr);
   if (!gpuGrassBlock)
+  {
+    if (grassBlk)
+    {
+      const DataBlock *smallGrassBlk = grassBlk->getBlockByNameEx("small_grass", nullptr);
+      if (smallGrassBlk)
+      {
+        enableGrass = true;
+        delete gpuGrassBlk;
+        gpuGrassBlk = new DataBlock(*smallGrassBlk);
+        return true;
+      }
+    }
     return false;
+  }
   enableGrass = true;
   delete gpuGrassBlk;
   gpuGrassBlk = new DataBlock(*gpuGrassBlock);

@@ -15,7 +15,7 @@
 #define DAS_SMART_PTR_BROKEN 0
 #endif
 
-void os_debug_break();
+DAS_API void os_debug_break();
 
 namespace das {
 
@@ -354,7 +354,7 @@ namespace das {
 #endif
 
 #if DAS_SMART_PTR_TRACKER
-    extern atomic<uint64_t>  g_smart_ptr_total;
+    DAS_API extern atomic<uint64_t> g_smart_ptr_total;
     #define DAS_SMART_PTR_NEW     g_smart_ptr_total++;
     #define DAS_SMART_PTR_DELETE  g_smart_ptr_total--;
 #else
@@ -362,7 +362,7 @@ namespace das {
     #define DAS_SMART_PTR_DELETE
 #endif
 
-    class ptr_ref_count {
+    class DAS_API ptr_ref_count {
     public:
 #if DAS_SMART_PTR_ID
         uint64_t                    ref_count_id;

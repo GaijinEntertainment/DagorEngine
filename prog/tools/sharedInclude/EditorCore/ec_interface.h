@@ -9,6 +9,8 @@
 #include <propPanel/control/menu.h>
 #include <libTools/util/hdpiUtil.h>
 
+#include <EASTL/unique_ptr.h>
+
 // forward declarations for external classes
 namespace PropPanel
 {
@@ -600,6 +602,11 @@ public:
   virtual PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) = 0;
   /// Delete dialog
   virtual void deleteDialog(PropPanel::DialogWindow *dlg) = 0;
+
+  // Create a context menu.
+  virtual eastl::unique_ptr<PropPanel::IMenu> createContextMenu() = 0;
+  // Render the context menu created by createContextMenu. See the comment at PropPanel::render_context_menu() about usage.
+  virtual bool renderContextMenu(PropPanel::IMenu &menu) = 0;
   //@}
 
 
@@ -715,6 +722,11 @@ public:
   /// @param[out] box - selection box
   /// @return @b true if operation successful, @b false in other case
   virtual bool getSelectionBox(BBox3 &box) = 0;
+
+  /// Get global bounding box.
+  /// @param[out] box - global box
+  /// @return @b true if operation successful, @b false in other case
+  virtual bool getGlobalBox(BBox3 &box) = 0;
 
   /// Zoom and center objects.
   virtual void zoomAndCenter() = 0;

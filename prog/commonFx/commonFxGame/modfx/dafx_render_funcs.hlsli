@@ -6,6 +6,13 @@ float dafx_linearize_z(float depth, GlobalData_cref gdata)
   return linearize_z(depth, gdata.zn_zfar.zw);
 }
 
+half dafx_calc_soft_depth_mask(float sampled_depth, GlobalData_cref gdata, float softness_depth_rcp, float tc_w)
+{
+  float linearizedDepth = dafx_linearize_z(sampled_depth, gdata);
+  float diff = linearizedDepth - tc_w;
+  return saturate(softness_depth_rcp * diff);
+}
+
 #ifdef DAFX_DEPTH_TEX
 float dafx_sample_depth(uint2 tci, GlobalData_cref gdata)
 {
@@ -42,9 +49,8 @@ half dafx_get_soft_depth_mask(float4 tc, float4 cloud_tc, float softness_depth_r
   // occluded by something in the previous frame.
   half depthMask = (diff < -0.1) ? 1.0 : saturate(softness_depth_rcp * diff);
 #else
-  float depth = dafx_get_depth_base(tc.xy, gdata);
-  float diff = depth - tc.w;
-  half depthMask = saturate(softness_depth_rcp * diff);
+  float depth = dafx_sample_depth(tc.xy * gdata.depth_size.xy, gdata);
+  half depthMask = dafx_calc_soft_depth_mask(depth, gdata, softness_depth_rcp, tc.w);
 #endif
 #ifndef DAFXEX_DISABLE_NEARPLANE_FADE
   depthMask *= saturate(tc.w - tc.w*tc.z);

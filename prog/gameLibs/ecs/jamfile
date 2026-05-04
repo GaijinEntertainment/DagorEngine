@@ -4,7 +4,6 @@ Location = prog/gameLibs/ecs ;
 TargetType  = util ;
 Target      = externalLibs ;
 
-ProjectUseQuirrel = sq3r ;
 
 Dependencies =
   $(Root)/$(Location)/anim/jamfile

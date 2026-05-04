@@ -112,14 +112,20 @@ endmacro
 macro FULL_TONEMAP_COMPUTE()
   MAKE_TONEMAP(cs)
 
-  (cs) { lut_size@f2=(lut_size, 1.0/(lut_size-1),0,0); }
-  hlsl(cs) {
-    RWTexture3D<float4>  lut : register(u0);
+  (cs) {
+    lut_size@f2=(lut_size, 1.0/(lut_size-1),0,0);
 
+    lut@uav : register(0) hlsl {
+      RWTexture3D<float4> lut@uav;
+    }
+  }
+  hlsl(cs) {
     [numthreads(4, 4, 4)]
     void make_lut_cs(uint3 tId : SV_DispatchThreadID)
     {
-      lut[tId].rgba = float4(makeTonemap(lut_size.y*float3(tId)), 1.0);
+      if (any(tId >= lut_size.x))
+        return;
+      texture3DAt(lut, tId).rgba = float4(makeTonemap(lut_size.y*float3(tId)), 1.0);
     }
   }
   compile("target_cs", "make_lut_cs");

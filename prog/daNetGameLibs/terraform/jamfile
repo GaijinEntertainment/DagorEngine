@@ -1,7 +1,7 @@
 Module = terraform ;
 Root    ?= ../../.. ;
 Location = prog/daNetGameLibs/$(Module) ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 local AllSrcFolder_CPP =
   .

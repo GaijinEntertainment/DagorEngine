@@ -18,6 +18,7 @@
   VAR(ssss_reflectance_blur_quality)         \
   VAR(ssss_reflectance_follow_surface)       \
   VAR(ssss_reflectance_blur_pass)            \
+  VAR(ssss_rr_guide_pass)                    \
   VAR(use_ssss)                              \
   VAR(ssss_quality)
 

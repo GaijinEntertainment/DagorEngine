@@ -1,0 +1,15 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/antialiasing/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/antialiasing/stub.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  antialiasingStub.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

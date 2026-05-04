@@ -1,0 +1,69 @@
+include "shader_global.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+include "depth_above.dshl"
+include "heightmap_common.dshl"
+
+int dao_show_normal = 0;
+interval dao_show_normal: off < 1, on;
+
+shader debug_depth_above
+{
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  INIT_ZNZFAR()
+  USE_DECODE_DEPTH()
+  INIT_PACK_UNPACK_DYNSTCODE(ps)
+  INIT_READ_DEPTH_GBUFFER()
+  INIT_READ_GBUFFER()
+  USE_AND_INIT_VIEW_VEC_VS()
+  USE_AND_INIT_VIEW_VEC_PS()
+  INIT_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  USE_DEPTH_ABOVE(ps, blurred_depth_transparent)
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+  USE_EMISSION_DECODE_COLOR_MAP(ps)
+  USE_READ_DEPTH_GBUFFER()
+  USE_READ_GBUFFER()
+
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    viewport@f4 = get_viewport();
+  }
+
+  hlsl(ps) {
+    float4 debug_depth_above_ps(VsOutput input) : SV_Target
+    {
+      float sceneDepth = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
+      if (sceneDepth >= zn_zfar.y)
+        discard;
+
+      float3 viewVect = lerp_view_vec(input.texcoord);
+      float3 cameraToPoint = sceneDepth * viewVect;
+      float3 worldPos = world_view_pos + cameraToPoint;
+
+      float3 normal = normalize(cross(ddx(cameraToPoint), ddy(cameraToPoint)));
+
+      float depthVignette = 0;
+      float3 biasedWorldPos = worldPos + normal;
+      float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
+      float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+
+      UnpackedGbuffer gbuf = unpackGbuffer(readPackedGbuffer(input.texcoord));
+      ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+
+      float3 color = ApplySRGBCurve(gbuffer.diffuseColor);
+    ##if dao_show_normal == on
+      float vignetteEffect;
+      color = get_depth_above_normal(worldPos, 0)*0.5+0.5;
+    ##endif
+      if (depthInfl < 0.0001)
+        color.g = 1;
+
+      return float4(color, 1);
+    }
+  }
+
+  compile("target_ps", "debug_depth_above_ps");
+}
