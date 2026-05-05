@@ -148,6 +148,7 @@ if $(Dedicated) != yes {
       for dll in $(FmodStudioSharedLibs) { BundleCopy += @$(dll) $(dll:D=:S=) ; }
     }
   } else if $(Platform) = macOS {
+    if $(PlatformArch) = arm64 { ForceSignTarget_macOS = yes ; }
     BundleID   = com.gaijinent.$(BundleName) ;
     BundlePlist = @$(Root)/prog/_jBuild/macOS/generic.info.plist ../Info.plist ;
     BundleIcon = $(BundleName) ;
