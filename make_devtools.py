@@ -99,19 +99,23 @@ pathlib.Path(dest_dir+'/.packages').mkdir(parents=True, exist_ok=True)
 
 # python3
 python_dest_folder = dest_dir+'/python3'
+python_src_folder = os.path.dirname(sys.executable)
+if not pathlib.Path(python_src_folder+'/python.exe').exists():
+  python_src_folder = os.environ.get('LOCALAPPDATA', '') + '/Programs/Python'
+if pathlib.Path(python_src_folder).exists():
+  if not pathlib.Path(python_src_folder+'/python.exe').exists():
+    for item in pathlib.Path(python_src_folder).glob("Python3*"):
+      if item.is_dir():
+        if pathlib.Path(os.path.normpath(item)+'/python.exe').exists():
+          python_src_folder = os.path.normpath(item)
+          break
+else:
+  python_src_folder = ''
+
 if pathlib.Path(python_dest_folder).exists():
   print('=== Python 3 symlink found at {0}, skipping setup'.format(python_dest_folder))
 else:
-  python_src_folder = os.path.dirname(sys.executable)
-  if not pathlib.Path(python_src_folder+'/python.exe').exists():
-    python_src_folder = os.environ.get('LOCALAPPDATA', '') + '/Programs/Python'
-  if pathlib.Path(python_src_folder).exists():
-    if not pathlib.Path(python_src_folder+'/python.exe').exists():
-      for item in pathlib.Path(python_src_folder).glob("Python3*"):
-        if item.is_dir():
-          if pathlib.Path(os.path.normpath(item)+'/python.exe').exists():
-            python_src_folder = os.path.normpath(item)
-            break
+  if python_src_folder != '' and pathlib.Path(python_src_folder).exists():
     print('+++ Python 3 found at {0}'.format(python_src_folder))
     make_directory_symlink(python_src_folder, python_dest_folder)
 
@@ -119,7 +123,7 @@ else:
       make_file_link(python_dest_folder+'/python.exe', python_dest_folder+'/python3.exe')
   else:
     error("Python 3 not found")
-    
+
 if 'WindowsApps' in python_src_folder:
   print('WARNING: Detected Microsoft Store Python. Skipping pip upgrade/install due to access restrictions.')
   print('Install official Python from python.org for full functionality.')
