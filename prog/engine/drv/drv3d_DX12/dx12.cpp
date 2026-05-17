@@ -68,6 +68,18 @@ namespace
 constexpr int min_major_feature_level = 11;
 constexpr int min_minor_feature_level = 0;
 
+enum class SwapchainKind
+{
+  Default,
+  NvidiaDLSSG,
+  AMDFSRFG,
+  IntelXeSSFG,
+};
+
+SwapchainKind determine_swapchain_kind();
+void configure_main_swapchain_factory(SwapchainKind kind, drv3d_dx12::SwapchainCreateInfo &sci);
+bool rebuild_main_swapchain_for_mode_reset();
+
 D3D_FEATURE_LEVEL make_feature_level(int major, int minor)
 {
   struct FeatureLevelTableEntry
@@ -610,7 +622,7 @@ APISupport check_device_features(const ComPtr<ID3D12Device> &device)
 }
 
 APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVEL feature_level, const DataBlock *gpu_cfg,
-  bool use_any_device, const ComPtr<DXGIAdapter> &adapter)
+  const ComPtr<DXGIAdapter> &adapter)
 {
   DXGI_ADAPTER_DESC1 info;
   adapter->GetDesc1(&info);
@@ -639,12 +651,6 @@ APISupport check_adapter(const Direct3D12Enviroment &d3d12_env, D3D_FEATURE_LEVE
 
   if (gpu_cfg)
   {
-    if (!use_any_device && !gpu::is_preferred_device(*gpu_cfg, info.VendorId, info.DeviceId, {}))
-    {
-      logdbg("DX12: Rejected, because the driver mode is \"auto\" and the device isn't a prefered one");
-      return APISupport::NO_DEVICE_FOUND;
-    }
-
     DriverVersion minVersion{};
     auto result = check_driver_version(info, version, *gpu_cfg, &minVersion);
     switch (result)
@@ -854,6 +860,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   sci.resolution.width = api_state.windowState.settings.resolutionX;
   sci.resolution.height = api_state.windowState.settings.resolutionY;
   set_hdr_config(sci);
+  configure_main_swapchain_factory(determine_swapchain_kind(), sci);
 
   auto featureLevel = make_feature_level(dxCfg->getInt("FeatureLevelMajor", min_major_feature_level),
     dxCfg->getInt("FeatureLevelMinor", min_minor_feature_level));
@@ -1219,12 +1226,12 @@ void enable_tracking_on_resource(D3dResource *resource)
 }
 } // namespace
 
-#if _TARGET_PC_WIN
 static IPoint2 handleAutoResolution(const IPoint2 &target)
 {
   IPoint2 result = target;
   if (result.x <= 0 || result.y <= 0)
   {
+#if _TARGET_PC_WIN
     // We are expected to get resolution for "Auto" in this case
     // FIXME: This is getting the "Auto" resolution for the current video mode (fullscreen or windowed) saved in the settings and not
     //        for the one currently selected on the UI. "Auto" resolutions should be really close in these cases, so let's hope it
@@ -1238,10 +1245,13 @@ static IPoint2 handleAutoResolution(const IPoint2 &target)
       get_current_main_window_rect(base_scr_left, base_scr_top, result.x, result.y);
     else
       get_current_display_screen_mode(base_scr_left, base_scr_top, result.x, result.y);
+#else
+    result.x = api_state.windowState.settings.resolutionX;
+    result.y = api_state.windowState.settings.resolutionY;
+#endif
   }
   return result;
 }
-#endif
 
 namespace
 {
@@ -1584,12 +1594,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       }
       return q != nullptr;
     }
-    case Drv3dCommand::PIPELINE_STATS_RASTERIZED_PRIMITIVES:
+    case Drv3dCommand::PIPELINE_STATS_INVOKED_PRIMITIVES:
     {
       PipelineStatsQuery *q = static_cast<PipelineStatsQuery *>(par1);
       if (q && q->isFinalized())
       {
-        *reinterpret_cast<uint64_t *>(par2) = q->getValue(&PipelineStatsQuery::ResultType::CPrimitives);
+        *reinterpret_cast<uint64_t *>(par2) = q->getValue(&PipelineStatsQuery::ResultType::CInvocations);
         return 1;
       }
     }
@@ -1726,6 +1736,80 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().scheduleXeFG(params);
       return 1;
     }
+    case Drv3dCommand::INIT_FSR_UPSCALING:
+    {
+      return int(api_state.device.getContext().initFsrUpscaling(*reinterpret_cast<const amd::FSR::ContextArgs *>(par1)));
+    }
+    case Drv3dCommand::TEARDOWN_FSR_UPSCALING:
+    {
+      api_state.device.getContext().teardownFsrUpscaling();
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_LOADED:
+    {
+      return int(api_state.device.getContext().isFsrLoaded());
+    }
+    case Drv3dCommand::GET_FSR_UPSCALING_SUPPORTED:
+    {
+      return int(api_state.device.getContext().isFsrUpscalingSupported());
+    }
+    case Drv3dCommand::GET_FSR_RESOLUTION:
+    {
+      IPoint2 targetResolution = handleAutoResolution(*(IPoint2 *)par1);
+      auto mode = static_cast<amd::FSR::UpscalingMode>(*(int *)par2);
+      IPoint2 &renderResolution = *(IPoint2 *)par3;
+      renderResolution = api_state.device.getContext().getFsrRenderResolution(mode, targetResolution);
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_VERSION:
+    {
+      auto versionString = api_state.device.getContext().getFsrVersion();
+
+      char *data = reinterpret_cast<char *>(par1);
+      size_t size = reinterpret_cast<size_t>(par2);
+      strncpy(data, versionString.c_str(), size);
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_SUPPORTED_GEN_FRAMES:
+    {
+      auto &frames = *(int *)par1;
+      frames = api_state.device.getContext().isFsrFGSupported() ? amd::FSR::getMaximumNumberOfGeneratedFrames() : 0;
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_PRESENTED_FRAME_COUNT:
+    {
+      auto &presented_frames = *(int *)par1;
+      presented_frames = api_state.device.getContext().getFsrFgPresentedFrameCount();
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_FG_ENABLED:
+    {
+      auto &enabled = *(bool *)par1;
+      enabled = api_state.device.getContext().isFsrFGEnabled();
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_FG_SUPPORTED:
+    {
+      return int(api_state.device.getContext().isFsrFGSupported());
+    }
+    case Drv3dCommand::GET_FSR_FG_SUPPRESSED:
+    {
+      auto &suppressed = *(bool *)par1;
+      suppressed = api_state.device.getContext().isFsrFGSuppressed();
+      return 1;
+    }
+    case Drv3dCommand::FSR_ENABLE_FG:
+    {
+      auto enable = *(bool *)par1;
+      api_state.device.getContext().enableFsrFG(enable);
+      return 1;
+    }
+    case Drv3dCommand::FSR_SUPPRESS_FG:
+    {
+      auto suppress = *(bool *)par1;
+      api_state.device.getContext().suppressFsrFG(suppress);
+      return 1;
+    }
 #if _TARGET_PC_WIN
     case Drv3dCommand::GET_STREAMLINE:
     {
@@ -1776,15 +1860,15 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
     case Drv3dCommand::EXECUTE_FSR:
     {
-      const amd::FSR::UpscalingArgs &args = *reinterpret_cast<const amd::FSR::UpscalingArgs *>(par2);
+      const amd::FSR::UpscalingArgs &args = *reinterpret_cast<const amd::FSR::UpscalingArgs *>(par1);
       d3d::resource_barrier({args.outputTexture, RB_RO_SRV | RB_STAGE_ALL_SHADERS, 0, 0});
-      api_state.device.getContext().executeFSR((amd::FSR *)par1, args);
+      api_state.device.getContext().executeFSR(args);
       return 1;
     }
     case Drv3dCommand::EXECUTE_FSR_FG:
     {
-      const amd::FSR::FrameGenArgs &args = *reinterpret_cast<const amd::FSR::FrameGenArgs *>(par2);
-      api_state.device.getContext().executeFSRFG((amd::FSR *)par1, args);
+      const amd::FSR::FrameGenArgs &args = *reinterpret_cast<const amd::FSR::FrameGenArgs *>(par1);
+      api_state.device.getContext().executeFSRFG(args);
       return 1;
     }
     case Drv3dCommand::EXECUTE_FSR2:
@@ -1908,6 +1992,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
         double vsyncRefreshRate = (double)modeDesc.RefreshRate.Numerator / (double)max(modeDesc.RefreshRate.Denominator, 1u);
         vsyncRefreshRate /= presentInterval ? presentInterval : 1;
         *(double *)par1 = *(double *)&vsyncRefreshRate;
+        return 1;
+      }
+#elif _TARGET_XBOX
+      if (auto freq = api_state.device.getContext().getXboxSwapchainFrequency(); freq > 0)
+      {
+        *(double *)par1 = freq;
         return 1;
       }
 #endif
@@ -2240,8 +2330,12 @@ bool d3d::reset_device()
     return false;
 
   api_state.device.getContext().finish();
+
+  api_state.device.getContext().shutdownInternalSwapchain();
+
   api_state.device.getContext().shutdownXess();
   api_state.device.getContext().shutdownDLSS();
+  api_state.device.getContext().shutdownFSR();
   api_state.device.getContext().shutdownFsr2();
 
   if (dagor_d3d_force_driver_reset || api_state.device.isIll())
@@ -2265,6 +2359,7 @@ bool d3d::reset_device()
       sci.resolution.width = api_state.windowState.settings.resolutionX;
       sci.resolution.height = api_state.windowState.settings.resolutionY;
       set_hdr_config(sci);
+      configure_main_swapchain_factory(determine_swapchain_kind(), sci);
       sci.output = get_output_monitor_by_name_or_default(api_state.dxgiFactory.Get(), displayName);
       api_state.device.recover(api_state.d3d12Env, api_state.dxgiFactory.Get(), eastl::move(adapter), featureLevel, eastl::move(sci),
         reinterpret_cast<HWND>(api_state.windowState.getMainWindow()), []() { api_state.adjustCaps(); });
@@ -2308,15 +2403,25 @@ bool d3d::reset_device()
     bool refreshSwapchain = shouldChangeHdr || bbres.width != api_state.windowState.settings.resolutionX ||
                             bbres.height != api_state.windowState.settings.resolutionY;
 
-    api_state.device.getContext().changePresentInterval(get_presentation_interval_from_settings());
-
-    // must refresh these after output (fullscreen mode) change
-    if (refreshSwapchain)
+    if (!api_state.device.getContext().hasVirtualMainSwapchain())
     {
-      bbres.width = api_state.windowState.settings.resolutionX;
-      bbres.height = api_state.windowState.settings.resolutionY;
-      api_state.device.getContext().changeCurrentSwapchainExtents(bbres, shouldChangeHdr);
+      if (!rebuild_main_swapchain_for_mode_reset())
+        return false;
       api_state.state.notifySwapchainChange();
+    }
+    else
+    {
+      logdbg("DX12: Falling back to ResizeBuffers for mode reset because the main swapchain uses virtual backbuffers");
+      api_state.device.getContext().changePresentInterval(get_presentation_interval_from_settings());
+
+      // must refresh these after output (fullscreen mode) change
+      if (refreshSwapchain)
+      {
+        bbres.width = api_state.windowState.settings.resolutionX;
+        bbres.height = api_state.windowState.settings.resolutionY;
+        api_state.device.getContext().changeCurrentSwapchainExtents(bbres, shouldChangeHdr);
+        api_state.state.notifySwapchainChange();
+      }
     }
   }
 
@@ -2326,6 +2431,7 @@ bool d3d::reset_device()
   if (d3d::get_driver_desc().caps.hasXESS)
     api_state.device.getContext().initXeSS();
 
+  api_state.device.getContext().initFSR();
   api_state.device.getContext().initFsr2();
 
   if (!is_window_resizing_by_mouse())
@@ -4247,17 +4353,10 @@ void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure 
 #endif
 
 #if _TARGET_PC_WIN
-APISupport get_dx12_support_status(bool use_any_device)
+APISupport get_dx12_support_status()
 {
   const DataBlock &dxCfg = *::dgs_get_settings()->getBlockByNameEx("dx12");
   const DataBlock *gpuCfg = dxCfg.getBlockByName("gpuPreferences");
-
-  // if the driver mode is auto but there is no hint in the config how to choose the driver,
-  // then we give up with dx12.
-  if (!use_any_device && !gpuCfg)
-  {
-    return APISupport::NO_DEVICE_FOUND;
-  }
 
   // https://devblogs.microsoft.com/directx/gettingstarted-dx12agility/
   // Use the D3D12.dll's version to check the Agility SDK support.
@@ -4297,7 +4396,7 @@ APISupport get_dx12_support_status(bool use_any_device)
   APISupport apiSupport = APISupport::NO_DEVICE_FOUND;
   if (dxgiFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter)) != DXGI_ERROR_NOT_FOUND)
   {
-    apiSupport = check_adapter(d3d12Env, featureLevel, gpuCfg, use_any_device, adapter);
+    apiSupport = check_adapter(d3d12Env, featureLevel, gpuCfg, adapter);
     if (apiSupport != APISupport::FULL_SUPPORT)
     {
       logdbg("DX12: No viable device found, DX12 is unavailable!");
@@ -4516,7 +4615,7 @@ void validate_buffer_barrier(ResourceBarrier barrier, GpuPipeline q)
   }
 }
 // Returns false if the barrier has to be skipped
-bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt, bool is_uav, GpuPipeline q)
+bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt, bool is_uav, bool is_update_dest, GpuPipeline q)
 {
   // noop to turn off uav flush check
   if (RB_NONE == barrier)
@@ -4560,9 +4659,9 @@ bool validate_texture_barrier(ResourceBarrier barrier, bool is_depth, bool is_rt
     }
   }
 
-  if (!is_uav && !is_rt)
+  if (!is_uav && !is_rt && !is_update_dest)
   {
-    reportError("DX12: Barriers for textures without TEXCF_RTARGET and/or TEXCF_UNORDERED creation "
+    reportError("DX12: Barriers for textures without TEXCF_RTARGET, TEXCF_UNORDERED and/or TEXCF_UPDATE_DESTINATION creation "
                 "flags are unnecessary");
   }
 
@@ -4726,7 +4825,8 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipe
     }
 
     auto btex = cast_to_texture_base(tex);
-    if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUav(), gpu_pipeline))
+    if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUav(),
+          btex->isUpdateDestination(), gpu_pipeline))
     {
       D3D_ERROR("DX12: Barrier validation resulted in skipped barrier for %s", btex->getName());
       return;
@@ -5555,55 +5655,65 @@ void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructu
 #endif
 
 #if _TARGET_PC_WIN
-eastl::tuple<ComPtr<DXGIFactory>, ComPtr<DXGISwapChain>, ComPtr<ID3D12CommandQueue>> get_fg_initializers()
-{
-  ComPtr<DXGIFactory> factory;
-  *factory.GetAddressOf() = StreamlineAdapter::unhook(api_state.dxgiFactory.Get());
-  ComPtr<DXGISwapChain> swapchain;
-  *swapchain.GetAddressOf() = StreamlineAdapter::unhook(api_state.device.getContext().getDxgiSwapchain());
-  ComPtr<ID3D12CommandQueue> graphicsQueue;
-  *graphicsQueue.GetAddressOf() = StreamlineAdapter::unhook(api_state.device.getGraphicsCommandQueue());
-  return {eastl::move(factory), eastl::move(swapchain), eastl::move(graphicsQueue)};
-}
-
-ComPtr<DXGISwapChain> get_fg_swapchain()
-{
-  ComPtr<DXGISwapChain> swapchain;
-  *swapchain.GetAddressOf() = StreamlineAdapter::unhook(api_state.device.getContext().getDxgiSwapchain());
-  return swapchain;
-}
+ComPtr<DXGISwapChain> get_fg_swapchain() { return api_state.device.getContext().getDxgiSwapchain(); }
 
 namespace
 {
+
+SwapchainKind determine_swapchain_kind()
+{
+  const DataBlock *video = dgs_get_settings()->getBlockByNameEx("video");
+  if (video->getInt("antialiasing_fgc", 0) >= 1)
+  {
+    if (stricmp(video->getStr("antialiasing_mode", "off"), "dlss") == 0)
+      return SwapchainKind::NvidiaDLSSG;
+    else if (stricmp(video->getStr("antialiasing_mode", "off"), "fsr") == 0)
+      return SwapchainKind::AMDFSRFG;
+    else if (stricmp(video->getStr("antialiasing_mode", "off"), "xess") == 0)
+      return SwapchainKind::IntelXeSSFG;
+  }
+  return SwapchainKind::Default;
+}
+
+void configure_main_swapchain_factory(SwapchainKind kind, SwapchainCreateInfo &sci)
+{
+  switch (kind)
+  {
+    case SwapchainKind::Default: break;
+    case SwapchainKind::NvidiaDLSSG: sci.swapchainFactory = nvidia_dlssg_swapchain_factory; break;
+    case SwapchainKind::AMDFSRFG: sci.swapchainFactory = amd_fsrfg_swapchain_factory; break;
+    case SwapchainKind::IntelXeSSFG: sci.swapchainFactory = intel_xessfg_swapchain_factory; break;
+    default: D3D_CONTRACT_ASSERTF(false, "Unknown swapchain kind");
+  }
+}
+
 SwapchainCreateInfo createSci(DXGIFactory *factory)
 {
   SwapchainCreateInfo sci = {
     .window = reinterpret_cast<HWND>(api_state.windowState.getMainWindow()),
+    .presentInterval = get_presentation_interval_from_settings(),
     .output = get_output_monitor_by_name_or_default(factory, get_monitor_name_from_settings()),
   };
   sci.resolution.width = api_state.windowState.settings.resolutionX;
   sci.resolution.height = api_state.windowState.settings.resolutionY;
   set_hdr_config(sci);
+  configure_main_swapchain_factory(determine_swapchain_kind(), sci);
   return sci;
 }
-} // namespace
 
-void shutdown_internal_swapchain() { api_state.device.getContext().shutdownInternalSwapchain(); }
-
-bool adopt_external_swapchain(DXGISwapChain *swapchain)
+bool rebuild_main_swapchain_for_mode_reset()
 {
-  if (!swapchain)
+  DXGIFactory *factory = api_state.dxgiFactory.Get();
+  auto &context = api_state.device.getContext();
+  if (!context.createDefaultSwapchain(factory, createSci(factory)))
+  {
+    api_state.lastErrorCode = E_FAIL;
+    logdbg("DX12: Failed to recreate swapchain during mode reset");
     return false;
-  DXGIFactory *factory = api_state.dxgiFactory.Get();
-  return api_state.device.getContext().adoptUserSwapchain(swapchain, createSci(factory));
+  }
+  return true;
 }
-
-void create_default_swapchain()
-{
-  DXGIFactory *factory = api_state.dxgiFactory.Get();
-  if (!api_state.device.getContext().createDefaultSwapchain(factory, createSci(factory)))
-    DAG_FATAL("DX12: Restoring the DXGI swapchain is failed");
-}
+} // namespace
 #endif
 
 #if USE_DLSS_WITHOUT_STREAMLINE

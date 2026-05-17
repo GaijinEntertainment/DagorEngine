@@ -5,7 +5,7 @@
 #include <propPanel/propPanel.h>
 #include <propPanel/focusHelper.h>
 #include <propPanel/colors.h>
-#include "control/spinEditStandalone.h"
+#include <propPanel/control/spinEditStandalone.h>
 #include "c_constants.h"
 #include "imageHelper.h"
 #include <drv/3d/dag_resId.h>

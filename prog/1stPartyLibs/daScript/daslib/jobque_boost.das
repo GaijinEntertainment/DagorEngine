@@ -49,7 +49,7 @@ class private NewJobMacro : AstFunctionAnnotation {
     //! this macro handles `new_job` and `new_thread` calls.
     //! the call is replaced with `new_job_invoke` and `new_thread_invoke` accordingly.
     //! a cloning infrastructure is generated for the lambda, which is invoked in the new context.
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         //! Transforms the new_job or new_thread call by generating lambda cloning infrastructure.
         macro_verify(call.arguments[0] is ExprAscend, compiling_program(), call.at, "expecting lambda declaration, ExprAscend")
         var asc = call.arguments[0] as ExprAscend
@@ -57,28 +57,28 @@ class private NewJobMacro : AstFunctionAnnotation {
         var mks = asc.subexpr as ExprMakeStruct
         macro_verify(!(mks._type == null || mks._type.baseType != Type.tStructure), compiling_program(), call.at, "expecting lambda declaration, not a structure")
         // clone structure type. make fields non-constant, so that they can be cloned
-        var inscope stype <- clone_structure(mks._type.structType)
+        var stype <- clone_structure(mks._type.structType)
         stype.name := "{stype.name}_new_job_clone"
-        var stype_ptr = get_ptr(stype)
-        var inscope sttype <- new TypeDecl(at = call.at, baseType = Type.tStructure, structType = stype_ptr)
+        var stype_ptr = stype
+        var sttype = new TypeDecl(at = call.at, baseType = Type.tStructure, structType = stype_ptr)
         for (fld in stype.fields) {// TODO: verify field type here
             fld._type.flags &= ~(TypeDeclFlags.constant)
             fld.flags &= ~(FieldDeclarationFlags.capturedConstant)
         }
-        var inscope pclone <- make_clone_structure(stype_ptr)
+        var pclone = make_clone_structure(stype_ptr)
         let const_clone = pclone.arguments[1]._type.flags.constant
         compiling_module() |> add_function(pclone)
         compiling_module() |> add_structure(stype)
         // make an @@<function<(var L;L):void> type or @@<function<(var L;var L):void> type - depending on how the capture went
-        var inscope ftype <- new TypeDecl(at = call.at, baseType = Type.tFunction)
-        move_new(ftype.firstType) <| new TypeDecl(at = call.at, baseType = Type.tVoid)
+        var ftype = new TypeDecl(at = call.at, baseType = Type.tFunction)
+        ftype.firstType = new TypeDecl(at = call.at, baseType = Type.tVoid)
         ftype.argTypes |> emplace_new <| clone_type(sttype)
         ftype.argTypes |> emplace <| sttype
         if (const_clone) {
             ftype.argTypes[1].flags |= TypeDeclFlags.constant
         }
         // make a new_job_invoke call
-        var inscope ncall <- new ExprCall(at = call.at, name := "{call.name}_invoke")
+        var ncall = new ExprCall(at = call.at, name := "{call.name}_invoke")
         ncall.arguments |> emplace_new <| clone_expression(call.arguments[0])
         ncall.arguments |> emplace_new <| new ExprAddr(at = call.at, target := "clone", funcType <- ftype)
         ncall.arguments |> emplace_new <| new ExprConstInt(at = call.at, value = int(mks._type.sizeOf))
@@ -333,6 +333,25 @@ def clear(box : LockBox?; type_ : auto(TT)) {
     }
 }
 
+def fill(box : LockBox?; data : auto(TT)) {
+    //! stores pointer to data in the lock box and marks it as full (isReady becomes false).
+    //! data must outlive the grab — caller owns the lifetime.
+    _builtin_lockbox_fill(box, unsafe(addr(data)))
+}
+
+def grab(box : LockBox?; blk : block<(var res : auto(TT)) : void>) : bool {
+    //! grabs data from lock box, marks it as empty (isReady becomes true), invokes block.
+    //! does not free the data — caller owns the lifetime.
+    var res = false
+    _builtin_lockbox_grab(box) $(void_data) {
+        if (void_data != null) {
+            var typed_data = unsafe(reinterpret<TT -const?> void_data)
+            invoke(blk, *typed_data)
+            res = true
+        }
+    }
+    return res
+}
 
 [template(tinfo), deprecated(message="use `each_clone` instead")]
 def each(var channel : Channel?; tinfo : auto(TT)) {
@@ -340,7 +359,7 @@ def each(var channel : Channel?; tinfo : auto(TT)) {
     //! iterator stops once channel is depleted (internal entry counter is 0)
     //! iteration can happen on multiple threads or jobs at the same time.
     unsafe {
-        return <- generator<TT&#>() <| $() {
+        return <- generator<TT&#> {
             while (true) {
                 var void_data : void?
                 _builtin_channel_pop(channel) $(vd) {
@@ -366,7 +385,7 @@ def each_clone(var channel : Channel?; tinfo : auto(TT)) {
     //! iterator stops once channel is depleted (internal entry counter is 0)
     //! iteration can happen on multiple threads or jobs at the same time.
     unsafe {
-        return <- generator<TT&#>() <| $() {
+        return <- generator<TT&#> {
             while (true) {
                 var temp : TT -# -& -const
                 var any = false
@@ -385,6 +404,113 @@ def each_clone(var channel : Channel?; tinfo : auto(TT)) {
             return false
         } finally {
             channel |> release
+        }
+    }
+}
+
+//
+// Stream wrappers — cross-context byte pipeline. Bytes are owned C++-side,
+// so either end may free the Stream without coordinating with the other.
+//
+
+require daslib/archive
+
+def push(stream : Stream?; var data : array<uint8>) {
+    //! Copy bytes into the stream (at the tail). Bytes are owned by the Stream C++-side
+    //! after push — caller may free the source buffer immediately.
+    _builtin_stream_push(stream, data)
+}
+
+def push(stream : Stream?; data : array<uint8> const#) {
+    //! Overload for temporary/borrowed views (e.g. bytes popped from another stream).
+    _builtin_stream_push(stream, data)
+}
+
+def push_batch(stream : Stream?; var data : array<array<uint8>>) {
+    //! Copy a batch of byte blobs into the stream atomically under a single lock.
+    _builtin_stream_push_batch(stream, data)
+}
+
+def push_archive(stream : Stream?; var value : auto(TT)) {
+    //! Serialize ``value`` via ``daslib/archive`` and push the resulting bytes onto the stream.
+    //! Use ``pop_archive`` or ``gather_archive`` on the consumer side to deserialize.
+    var bytes <- mem_archive_save(value)
+    _builtin_stream_push(stream, bytes)
+    unsafe {
+        delete bytes
+    }
+}
+
+def pop(stream : Stream?; blk : block<(bytes : array<uint8># -const) : void>) {
+    //! Blocking pop from the stream. Invokes the block with a borrowed view over the
+    //! popped bytes. The view is only valid for the duration of the block.
+    _builtin_stream_pop(stream, blk)
+}
+
+def try_pop(stream : Stream?; blk : block<(bytes : array<uint8># -const) : void>) : bool {
+    //! Non-blocking pop. Returns true if an item was consumed, false if the stream was empty.
+    return _builtin_stream_try_pop(stream, blk)
+}
+
+def pop_with_timeout(stream : Stream?; timeout_ms : int; blk : block<(bytes : array<uint8># -const) : void>) : bool {
+    //! Pop with a timeout in milliseconds. Returns true if an item was consumed in time.
+    return _builtin_stream_pop_with_timeout(stream, timeout_ms, blk)
+}
+
+def gather(stream : Stream?; blk : block<(bytes : array<uint8># -const) : void>) {
+    //! Drain the stream: invoke the block once per buffered blob in push order, then clear.
+    _builtin_stream_gather(stream, blk)
+}
+
+def peek(stream : Stream?; blk : block<(bytes : array<uint8># -const) : void>) {
+    //! Iterate buffered blobs in push order WITHOUT consuming them.
+    _builtin_stream_peek(stream, blk)
+}
+
+def pop_archive(stream : Stream?; blk : block<(var value : auto(TT)&) : void>) : bool {
+    //! Blocking pop + deserialize via ``daslib/archive``. Returns true if a value was consumed.
+    //! The block receives an owned reference — safe to pass fields to functions expecting ``const``.
+    var any = false
+    var value : TT -# -& -const
+    _builtin_stream_pop(stream) $(bytes : array<uint8># -const) {
+        if (length(bytes) > 0) {
+            any = true
+            mem_archive_load(bytes, value)
+        }
+    }
+    if (any) {
+        invoke(blk, value)
+    }
+    unsafe {
+        delete value
+    }
+    return any
+}
+
+def try_pop_archive(stream : Stream?; blk : block<(var value : auto(TT)&) : void>) : bool {
+    //! Non-blocking pop + deserialize. Returns true if a value was consumed.
+    var any = false
+    var value : TT -# -& -const
+    any = _builtin_stream_try_pop(stream) $(bytes : array<uint8># -const) {
+        mem_archive_load(bytes, value)
+    }
+    if (any) {
+        invoke(blk, value)
+    }
+    unsafe {
+        delete value
+    }
+    return any
+}
+
+def gather_archive(stream : Stream?; blk : block<(var value : auto(TT)&) : void>) {
+    //! Drain the stream, deserializing each blob via ``daslib/archive`` and invoking the block on each.
+    _builtin_stream_gather(stream) $(bytes : array<uint8># -const) {
+        var value : TT -# -& -const
+        mem_archive_load(bytes, value)
+        invoke(blk, value)
+        unsafe {
+            delete value
         }
     }
 }
@@ -451,13 +577,13 @@ class private ParallelForJobMacro : AstFunctionAnnotation {
     //! Base macro for parallel_for, parallel_for_each, and parallel_map.
     //! Wraps the block body in ``new_job`` and redirects to the runtime implementation.
     function_name : string = "jobque_boost::_parallel_for"
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         let last_index = call.arguments.length() - 1
         macro_verify(call.arguments[last_index] is ExprMakeBlock, compiling_program(), call.at, "expecting block as {last_index} argument")
-        var inscope newCall <- clone_expression(call)
+        var newCall = clone_expression(call)
         assume newCallCall = (newCall as ExprCall)
         newCallCall.name := function_name
-        var inscope new_body <- qmacro(new_job(@ {$b(((call.arguments[last_index] as ExprMakeBlock)._block as ExprBlock).list); }))
+        var new_body = qmacro(new_job(@ {$b(((call.arguments[last_index] as ExprMakeBlock)._block as ExprBlock).list); }))
         var new_block = ((newCallCall.arguments[last_index] as ExprMakeBlock)._block as ExprBlock)
         new_block.list.clear()
         new_block.list.emplace(new_body)
@@ -536,6 +662,12 @@ def public capture_jobque_lock_box(var js : LockBox?) : LockBox? {
     return js
 }
 
+def public capture_jobque_stream(var s : Stream?) : Stream? {
+    //! this function is used to capture a stream that is used by the jobque.
+    s |> add_ref
+    return s
+}
+
 def public release_capture_jobque_channel(ch : Channel?) {
     //! this function is used to release a channel that is used by the jobque.
     if (ch != null) {
@@ -554,6 +686,13 @@ def public release_capture_jobque_lock_box(js : LockBox?) {
     //! this function is used to release a lock box that is used by the jobque.
     if (js != null) {
         panic("LockBox has not been released. missing box|>release or box|>notify_and_release")
+    }
+}
+
+def public release_capture_jobque_stream(s : Stream?) {
+    //! this function is used to release a stream that is used by the jobque.
+    if (s != null) {
+        panic("Stream has not been released. missing stream|>release or stream|>notify_and_release")
     }
 }
 
@@ -583,13 +722,13 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
     //! Capture macro for channel and job status objects in lambda captures.
     def make_capture_call(expr : ExpressionPtr; name : string) : ExpressionPtr {
         //! Creates a call expression that captures (adds a reference to) a jobque object.
-        var inscope pCall <- new ExprCall(at = expr.at, name := name)
+        var pCall = new ExprCall(at = expr.at, name := name)
         pCall.arguments |> emplace_new <| clone_expression(expr)
         return <- pCall
     }
     def make_release_call(fld : FieldDeclaration; name : string) : ExpressionPtr {
         //! Creates a call expression that releases (decrements the reference of) a captured jobque object.
-        var inscope pCall <- new ExprCall(at = fld.at, name := name)
+        var pCall = new ExprCall(at = fld.at, name := name)
         pCall.arguments |> emplace_new <| new ExprField(at = fld.at,
             value <- new ExprVar(at = fld.at, name := "__this"),
             name := fld.name,
@@ -597,7 +736,7 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
         )
         return <- pCall
     }
-    //! This macro implements capturing of the `jobque::Channel` and `jobque::JobStatus` types.
+    //! This macro implements capturing of the `jobque::Channel`, `jobque::JobStatus`, `jobque::LockBox`, and `jobque::Stream` types.
     //! When captured reference counts are increased. When lambda is destroyed, reference counts are decreased.
     def override captureExpression(prog : Program?; mod : Module?; expr : ExpressionPtr; typ : TypeDeclPtr) : ExpressionPtr {
         //! Implementation details for the capture macro.
@@ -607,27 +746,32 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_job_status")
         } elif (typ |> isPtrToJQ("LockBox")) {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_lock_box")
+        } elif (typ |> isPtrToJQ("Stream")) {
+            return <- make_capture_call(expr, "jobque_boost::capture_jobque_stream")
         }
-        return <- default<ExpressionPtr>
+        return null
     }
     def override captureFunction(prog : Program?; mod : Module?; var lcs : Structure?; var fun : FunctionPtr) : void {
         //! Implementation details for the capture macro.
         //! Note: generators are skipped because their ``finally`` section is called on every
-        //! iteration, not just once at destruction. This means ``Channel``, ``JobStatus``, and
-        //! ``LockBox`` captures inside generators do NOT get automatic release checks.
+        //! iteration, not just once at destruction. This means ``Channel``, ``JobStatus``,
+        //! ``LockBox``, and ``Stream`` captures inside generators do NOT get automatic release checks.
         //! Users must manually call ``release`` on captured jobque objects inside generators.
         if (fun.flags._generator) {// generator gets finally section called every single time. nothing we can do
             return
         }
         for (fld in lcs.fields) {
             if (fld._type |> isPtrToJQ("Channel")) {
-                var inscope pCall <- make_release_call(fld, "jobque_boost::release_capture_jobque_channel")
+                var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_channel")
                 (fun.body as ExprBlock).finalList |> emplace(pCall)
             } elif (fld._type |> isPtrToJQ("JobStatus")) {
-                var inscope pCall <- make_release_call(fld, "jobque_boost::release_capture_jobque_job_status")
+                var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_job_status")
                 (fun.body as ExprBlock).finalList |> emplace(pCall)
             } elif (fld._type |> isPtrToJQ("LockBox")) {
-                var inscope pCall <- make_release_call(fld, "jobque_boost::release_capture_jobque_lock_box")
+                var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_lock_box")
+                (fun.body as ExprBlock).finalList |> emplace(pCall)
+            } elif (fld._type |> isPtrToJQ("Stream")) {
+                var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_stream")
                 (fun.body as ExprBlock).finalList |> emplace(pCall)
             }
         }

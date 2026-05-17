@@ -118,6 +118,9 @@ enum CollisionResourceFlags : uint32_t
 
 struct CollisionNode
 {
+  // Sentinel for nextNode / CollisionResource::*NodesHead (no node).
+  static constexpr uint16_t INVALID_IDX = 0xffff;
+
   // Be careful using that flags since entity tm might be scaled too and in most cases will be faster to assume that instance_tm*nodeTm
   // is always scaled See also cachedMaxTmScale member if you anyway want use it
   enum NodeFlag : uint8_t
@@ -129,9 +132,6 @@ struct CollisionNode
     TRANSLATE = 2,       // Identity tm with offset
     ORTHONORMALIZED = 4, // Unscaled
     ORTHOUNIFORM = 8,    // With uniform scale
-
-    FLAG_VERTICES_ARE_REFS = 64,
-    FLAG_INDICES_ARE_REFS = 128,
   };
 
   enum BehaviorFlag : uint16_t
@@ -145,6 +145,7 @@ struct CollisionNode
     FLAG_CUT_REQUIRED = 1 << 5,
     FLAG_CHECK_SIDE = 1 << 6,
     FLAG_ALLOW_BULLET_DECAL = 1 << 7,
+    FLAG_TRANSPARENT = 1 << 8,
 
     FLAG_CHECK_SURROUNDING_PART_FOR_EXCLUSION = 1 << 14,
     FLAG_ALLOW_SPLASH_HOLE = 1 << 15
@@ -155,11 +156,10 @@ struct CollisionNode
   CollisionResourceNodeType type = COLLISION_NODE_TYPE_MESH;
   dag::Index16 geomNodeId;
   int16_t physMatId = -1;
-  CollisionNode *nextNode = nullptr;
 
 protected:
-  alignas(16) TMatrix tm = TMatrix::IDENT;
-  alignas(16) BBox3 modelBBox;
+  TMatrix tm = TMatrix::IDENT;
+  BBox3 modelBBox;
   struct
   {
     Point3 c;
@@ -174,45 +174,41 @@ protected:
   friend class TestMeshNodeSphereNodesIntersectionAlgo;
   friend class TestBoxNodeBoxNodesIntersectionAlgo;
   friend struct CollisionResourceUnittest;
-
-protected:
-  SmallTab<plane3f, MidmemAlloc> convexPlanes;
+  friend CollisionExporter;
+  friend dabuildExp_collision::CollisionExporter;
 
 public:
-  dag::Span<Point3_vec4> vertices;
-  dag::Span<uint16_t> indices;
   uint16_t nodeIndex = 0; // In allNodesList.
   uint16_t insideOfNode = 0xffff;
 
 protected:
-  uint32_t nameOfs = 0;      // offset into CollisionResource::names; 0 means empty
-  uint16_t capsuleIndex = 0; // index into CollisionResource::capsules; valid only for COLLISION_NODE_TYPE_CAPSULE
+  // Per-type intrusive linked list. Walk via CollisionResource::forEachMeshNode / forEachBoxNode /
+  // forEachSphereNode / forEachCapsuleNode (or visitCollisionNodes) -- this field is internal.
+  // Stored as an index into CollisionResource::allNodesList; INVALID_IDX terminates the list.
+  uint16_t nextNode = INVALID_IDX;
+  // capsuleIndex valid only for COLLISION_NODE_TYPE_CAPSULE; planesOfs valid only for
+  // COLLISION_NODE_TYPE_CONVEX. The two types are mutually exclusive, so they share storage.
+  union
+  {
+    uint16_t capsuleIndex = 0; // index into CollisionResource::capsules
+    uint16_t planesOfs;        // start in CollisionResource::convexPlanes
+  };
+  uint16_t planesCount = 0; // number of planes for this node (0 unless CONVEX)
+
+  // Count-minus-one encoding so 65536 fits in uint16_t: stored 0..65535 = actual 1..65536.
+  // Only meaningful when indicesCount > 0; for non-mesh nodes / dropped meshes the field is
+  // ignored, so its raw 0-default does NOT mean "1 vertex" -- always gate on indicesCount.
+  uint16_t verticesCount = 0;
+
+  // Mesh data lives in CollisionResource::meshVertsBase / meshIndicesBase (which point either
+  // at CollisionResource::ownVertices/ownIndices or at the FRT vertex/face arrays).
+  uint32_t verticesOfs = 0;
+  uint32_t indicesOfs = 0;
+  uint32_t indicesCount = 0;
+
+  uint32_t nameOfs = 0; // offset into CollisionResource::names; 0 means empty
 
 public:
-  CollisionNode() = default;
-  explicit CollisionNode(const CollisionNode &n) : CollisionNode() { operator=(n); }
-  CollisionNode(CollisionNode &&n) : CollisionNode() { operator=((CollisionNode &&)n); }
-  ~CollisionNode()
-  {
-    resetVertices();
-    resetIndices();
-  }
-  CollisionNode &operator=(const CollisionNode &n);
-  CollisionNode &operator=(CollisionNode &&n);
-
-  void resetVertices(dag::Span<Point3_vec4> new_val = {})
-  {
-    if (!(flags & FLAG_VERTICES_ARE_REFS))
-      midmem->free(vertices.data());
-    vertices.set(new_val);
-  }
-  void resetIndices(dag::Span<uint16_t> new_val = {})
-  {
-    if (!(flags & FLAG_INDICES_ARE_REFS))
-      midmem->free(indices.data());
-    indices.set(new_val);
-  }
-
   int getNodeIdAsInt() const { return (int)geomNodeId; }
 
   // If you got crash here with (this == nullptr), it's compiler error. Try to make node iterator simpler.
@@ -255,44 +251,62 @@ public:
   float boundingSphereRad = 0;
   uint32_t collisionFlags = 0;
 
+  // Per-type linked-list heads. Each is an index into allNodesList (CollisionNode::INVALID_IDX
+  // when the list is empty). nodeLists[] aliases the named heads via the union.
   union
   {
     struct
     {
-      const CollisionNode *meshNodesHead;
-      const CollisionNode *pointsNodesHead;
-      const CollisionNode *boxNodesHead;
-      const CollisionNode *sphereNodesHead;
-      const CollisionNode *capsuleNodesHead;
+      uint16_t meshNodesHead;
+      uint16_t pointsNodesHead;
+      uint16_t boxNodesHead;
+      uint16_t sphereNodesHead;
+      uint16_t capsuleNodesHead;
     };
-    const CollisionNode *nodeLists[NUM_COLLISION_NODE_TYPES];
+    uint16_t nodeLists[NUM_COLLISION_NODE_TYPES];
   };
-  uint32_t numMeshNodes = 0, numBoxNodes = 0;
+  uint16_t numMeshNodes = 0, numBoxNodes = 0, numCapsuleNodes = 0;
   dag::Index16 bsphereCenterNode;
 
-  CollisionResource() { memset(nodeLists, 0, sizeof(nodeLists)); }
+  CollisionResource() { memset(nodeLists, 0xff, sizeof(nodeLists)); } // CollisionNode::INVALID_IDX in every slot
   CollisionResource *deepCopy(void *inplace_mem_ptr = nullptr) const;
 
   dag::Span<CollisionNode> getAllNodes() { return make_span(allNodesList); }
   dag::ConstSpan<CollisionNode> getAllNodes() const { return allNodesList; }
 
   static CollisionResource *loadResource(IGenLoad & crd, int res_id);
-  // Create a single-node MESH resource with non-owning vertex span.
-  // Vertex data are referenced (FLAG_VERTICES_ARE_REFS), caller must keep data alive.
-  // Index data is owned by resource
-  static CollisionResource *createSingleMesh(dag::Span<Point3_vec4> vertices, dag::Span<uint16_t> indices, const BBox3 &bbox,
+  // Create a single-node MESH resource. Vertex and index data are copied into the resource's
+  // own dense storage.
+  static CollisionResource *createSingleMesh(dag::ConstSpan<Point3_vec4> vertices, dag::ConstSpan<uint16_t> indices, const BBox3 &bbox,
     const BSphere3 &bsphere, uint32_t node_flags);
-  static CollisionResource *createSingleMeshNonOwningVerts(dag::Span<Point3_vec4> vertices, dag::Span<uint16_t> indices,
-    const BBox3 &bbox, const BSphere3 &bsphere)
-  {
-    return createSingleMesh(vertices, indices, bbox, bsphere, CollisionNode::FLAG_VERTICES_ARE_REFS);
-  }
+  // Create a single-node MESH resource that references externally-owned vertex/index data.
+  // Caller must keep the supplied buffers alive for the lifetime of the resource.
+  static CollisionResource *createSingleMeshNonOwning(dag::ConstSpan<Point3_vec4> vertices, dag::ConstSpan<uint16_t> indices,
+    const BBox3 &bbox, const BSphere3 &bsphere);
   void load(IGenLoad & cb, int res_id);
 
   // Add typed collision nodes. Returns nodeIndex. Sets type, modelBBox, boundingSphere, capsule.
   int addSphereNode(const char *name, int16_t phys_mat_id, const BSphere3 &bsphere);
   int addBoxNode(const char *name, int16_t phys_mat_id, const BBox3 &bbox);
   int addCapsuleNode(const char *name, int16_t phys_mat_id, const Point3 &p0, const Point3 &p1, float radius);
+  // Add a MESH or CONVEX node fully populated in one call. Mirrors the addSphereNode /
+  // addBoxNode / addCapsuleNode "create at once" pattern. Verts/indices are appended to the
+  // resource's owning storage (ownVertices/ownIndices); meshVertsBase/meshIndicesBase are
+  // updated to point at the new dense buffers. Multiple calls accumulate into a single
+  // resource. (Provided for API parity with the BVH-backed CollisionResource so the same
+  // unittest source compiles against both implementations.)
+  // Default behavior_flags mirrors CollisionNode's member default so omitting the arg preserves
+  // standard hole/damage participation; pass an explicit value to opt out.
+  int addMeshNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox, const BSphere3 &bsphere,
+    dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint16_t> indices,
+    uint16_t behavior_flags =
+      CollisionNode::TRACEABLE | CollisionNode::PHYS_COLLIDABLE | CollisionNode::FLAG_ALLOW_HOLE | CollisionNode::FLAG_DAMAGE_REQUIRED,
+    uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED);
+  int addConvexNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox, const BSphere3 &bsphere,
+    dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint16_t> indices, dag::ConstSpan<plane3f> convex_planes,
+    uint16_t behavior_flags =
+      CollisionNode::TRACEABLE | CollisionNode::PHYS_COLLIDABLE | CollisionNode::FLAG_ALLOW_HOLE | CollisionNode::FLAG_DAMAGE_REQUIRED,
+    uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED);
 
   void collapseAndOptimize(const char *res_name, bool need_frt = false, bool frt_build_fast = true);
 
@@ -450,19 +464,25 @@ public:
 
   bool checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list) const;
 
+private:
+  // No callers anywhere in the tree; scheduled for deletion.
   // Can check mesh-box, box-box and sph-box only, asserts on any other types
-  static bool calcOffsetForIntersection(const TMatrix &tm1, const CollisionNode &node_to_move, const CollisionNode &node_to_check,
-    Point3 &offset);
+  bool calcOffsetForIntersection(const TMatrix &tm1, const CollisionNode &node_to_move, const CollisionNode &node_to_check,
+    Point3 &offset) const;
 
-  static bool calcOffsetForSeparation(const TMatrix &tm1, const CollisionNode &node_to_move, const CollisionNode &node_to_check,
-    const Point3 &axis, Point3 &offset);
+  bool calcOffsetForSeparation(const TMatrix &tm1, const CollisionNode &node_to_move, const CollisionNode &node_to_check,
+    const Point3 &axis, Point3 &offset) const;
 
+public:
+  // The test (probe) node lives in *this; the restraining (convex) node lives in
+  // restraining_resource, which may be the same or a different CollisionResource -- e.g.
+  // attachableEditor tests slot volumes against attachment geometry on a separate model.
+  bool testInclusion(int test_node_index, const TMatrix &tm_test, const CollisionResource *restraining_resource,
+    int restraining_node_index, const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree = NULL,
+    const GeomNodeTree *restrain_node_tree = NULL) const;
 
-  bool testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, const CollisionNode &restraining_node,
-    const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree = NULL, const GeomNodeTree *restrain_node_tree = NULL) const;
-
-  bool testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex,
-    const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree = NULL, Point3 *res_pos = nullptr) const;
+  bool testInclusion(int test_node_index, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex, const TMatrix &tm_restrain,
+    const GeomNodeTree *test_node_tree = NULL, Point3 *res_pos = nullptr) const;
 
   bool testSphereIntersection(const CollisionNodeFilter &filter, const BSphere3 &sphere, const Point3 &dir_norm, Point3 &out_norm,
     float &out_depth, int &out_node_id) const;
@@ -478,18 +498,21 @@ public:
   void clipCapsule(const TMatrix &instance_tm, const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized);
   void clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized);
 
-  static bool test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm,
-    Point3 &out_norm, float &out_depth);
-  static bool test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node);
+  bool test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm, Point3 &out_norm,
+    float &out_depth) const;
+  bool test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node) const;
 
   template <typename Func, CollisionResourceNodeType node_type = COLLISION_NODE_TYPE_MESH, bool binded_to_gntree = true>
   void visitCollisionNodes(const Func &func) const
   {
     if (node_type != NUM_COLLISION_NODE_TYPES)
     {
-      for (const CollisionNode *node = nodeLists[node_type]; node; node = node->nextNode)
-        if (!binded_to_gntree || node->geomNodeId)
-          func(*node);
+      for (uint16_t i = nodeLists[node_type]; i != CollisionNode::INVALID_IDX; i = allNodesList[i].nextNode)
+      {
+        const CollisionNode &node = allNodesList[i];
+        if (!binded_to_gntree || node.geomNodeId)
+          func(node);
+      }
     }
     else
       for (const CollisionNode &node : allNodesList)
@@ -505,28 +528,46 @@ public:
   int getNodeVertCount(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? (int)n->vertices.size() : 0;
+    return (n && n->indicesCount) ? (int)n->verticesCount + 1 : 0;
   }
   int getNodeFaceCount(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? (int)n->indices.size() / 3 : 0;
+    return n ? (int)(n->indicesCount / 3u) : 0;
   }
 
   int getNodeIndexCount(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? (int)n->indices.size() : 0;
+    return n ? (int)n->indicesCount : 0;
+  }
+
+  dag::ConstSpan<Point3_vec4> getNodeVertices(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n || n->indicesCount == 0)
+      return {};
+    return dag::ConstSpan<Point3_vec4>(meshVertsBase + n->verticesOfs, (uint32_t)n->verticesCount + 1u);
+  }
+
+  dag::ConstSpan<uint16_t> getNodeIndices(int node_id) const
+  {
+    const CollisionNode *n = getNode(node_id);
+    if (!n || n->indicesCount == 0)
+      return {};
+    return dag::ConstSpan<uint16_t>(meshIndicesBase + n->indicesOfs, n->indicesCount);
   }
 
   bool getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, Point3 &v1, Point3 &v2) const
   {
     const CollisionNode *n = getNode(node_id);
-    if (!n || face_idx * 3 + 2 >= (int)n->indices.size())
+    if (!n || (uint32_t)(face_idx * 3 + 2) >= n->indicesCount)
       return false;
-    v0 = n->vertices[n->indices[face_idx * 3 + 0]];
-    v1 = n->vertices[n->indices[face_idx * 3 + 1]];
-    v2 = n->vertices[n->indices[face_idx * 3 + 2]];
+    const uint16_t *idx = meshIndicesBase + n->indicesOfs;
+    const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
+    v0 = verts[idx[face_idx * 3 + 0]];
+    v1 = verts[idx[face_idx * 3 + 1]];
+    v2 = verts[idx[face_idx * 3 + 2]];
     return true;
   }
 
@@ -536,20 +577,20 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n)
       return;
-    const uint16_t *idx = n->indices.data();
-    for (int i = 0, fi = 0, e = (int)n->indices.size(); i < e; i += 3, ++fi)
-      cb(fi, idx[i], idx[i + 1], idx[i + 2]);
+    const uint16_t *idx = meshIndicesBase + n->indicesOfs;
+    for (uint32_t i = 0, fi = 0, e = n->indicesCount; i < e; i += 3, ++fi)
+      cb((int)fi, idx[i], idx[i + 1], idx[i + 2]);
   }
 
   template <class CB> // void(int vert_idx, vec4f v)
   void iterateNodeVerts(int node_id, CB cb) const
   {
     const CollisionNode *n = getNode(node_id);
-    if (!n)
+    if (!n || n->indicesCount == 0)
       return;
-    const Point3_vec4 *verts = n->vertices.data();
-    for (int i = 0, e = (int)n->vertices.size(); i < e; ++i)
-      cb(i, v_ld(&verts[i].x));
+    const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
+    for (uint32_t i = 0, e = (uint32_t)n->verticesCount + 1u; i < e; ++i)
+      cb((int)i, v_ld(&verts[i].x));
   }
 
   template <class CB> // void(int face_idx, vec4f v0, vec4f v1, vec4f v2)
@@ -558,22 +599,24 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n)
       return;
-    const uint16_t *idx = n->indices.data();
-    const Point3_vec4 *verts = n->vertices.data();
-    for (int i = 0, fi = 0, e = (int)n->indices.size(); i < e; i += 3, ++fi)
-      cb(fi, v_ld(&verts[idx[i]].x), v_ld(&verts[idx[i + 1]].x), v_ld(&verts[idx[i + 2]].x));
+    const uint16_t *idx = meshIndicesBase + n->indicesOfs;
+    const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
+    for (uint32_t i = 0, fi = 0, e = n->indicesCount; i < e; i += 3, ++fi)
+      cb((int)fi, v_ld(&verts[idx[i]].x), v_ld(&verts[idx[i + 1]].x), v_ld(&verts[idx[i + 2]].x));
   }
 
   int getNodeConvexPlaneCount(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? (int)n->convexPlanes.size() : 0;
+    return n ? (int)n->planesCount : 0;
   }
 
   dag::ConstSpan<plane3f> getNodeConvexPlanes(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    return n ? dag::ConstSpan<plane3f>(n->convexPlanes.data(), n->convexPlanes.size()) : dag::ConstSpan<plane3f>();
+    if (!n || n->planesCount == 0)
+      return {};
+    return dag::ConstSpan<plane3f>(convexPlanes.data() + n->planesOfs, n->planesCount);
   }
 
   template <class CB> // void(int plane_idx, plane3f plane)
@@ -582,8 +625,9 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n)
       return;
-    for (int i = 0, e = (int)n->convexPlanes.size(); i < e; ++i)
-      cb(i, n->convexPlanes[i]);
+    const plane3f *p = convexPlanes.data() + n->planesOfs;
+    for (int i = 0, e = (int)n->planesCount; i < e; ++i)
+      cb(i, p[i]);
   }
 
   BBox3 getNodeBBox(int node_id) const
@@ -662,16 +706,22 @@ public:
   template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
   void forEachMeshNode(CB cb) const
   {
-    for (const CollisionNode *n = meshNodesHead; n; n = n->nextNode)
-    {
-      if constexpr (eastl::is_same_v<decltype(cb(*n)), bool>)
-      {
-        if (cb(*n))
-          return;
-      }
-      else
-        cb(*n);
-    }
+    forEachNodeImpl(meshNodesHead, cb);
+  }
+  template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
+  void forEachBoxNode(CB cb) const
+  {
+    forEachNodeImpl(boxNodesHead, cb);
+  }
+  template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
+  void forEachSphereNode(CB cb) const
+  {
+    forEachNodeImpl(sphereNodesHead, cb);
+  }
+  template <class CB> // void(const CollisionNode &node) or bool(const CollisionNode &node) - return true to stop
+  void forEachCapsuleNode(CB cb) const
+  {
+    forEachNodeImpl(capsuleNodesHead, cb);
   }
 
   bool getRelGeomNodeTms(int node_no, TMatrix &out_tm) const
@@ -711,6 +761,22 @@ public:
   void rebuildNodesLL(); //< rebuild *NodesHead linked lists for actual nodes
 
 private:
+  template <class CB>
+  void forEachNodeImpl(uint16_t headIdx, CB & cb) const
+  {
+    for (uint16_t i = headIdx; i != CollisionNode::INVALID_IDX; i = allNodesList[i].nextNode)
+    {
+      const CollisionNode &n = allNodesList[i];
+      if constexpr (eastl::is_same_v<decltype(cb(n)), bool>)
+      {
+        if (cb(n))
+          return;
+      }
+      else
+        cb(n);
+    }
+  }
+
   enum IterationMode
   {
     ALL_INTERSECTIONS,       // all intersections will be passed to callback
@@ -746,29 +812,29 @@ private:
     TraceCollisionResourceStats *out_stats, bool force_no_cull) const;
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
   template <bool check_bounding, uint32_t mainBatchSize = 8>
-  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
   DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
     float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const;
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array,
-    all_collres_tri_indices_t &tri_indices);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull,
+    all_collres_nodes_t &ret_array, all_collres_tri_indices_t &tri_indices);
   template <bool check_bounding, uint32_t mainBatchSize = 8>
-  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array,
-    all_collres_tri_indices_t &tri_indices);
+  DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull,
+    all_collres_nodes_t &ret_array, all_collres_tri_indices_t &tri_indices);
 
   template <bool check_bounding>
-  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
-    float in_t);
+  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t);
   template <bool check_bounding, uint32_t mainBatchSize = 8>
-  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const CollisionNode &node, const vec4f &v_local_from,
-    const vec4f &v_local_dir, float in_t);
+  DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t);
 
   DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
     float in_t, float radius) const;
@@ -803,6 +869,15 @@ protected:
   dag::Vector<char> names;
   // Dense storage for capsule-type nodes; CollisionNode::capsuleIndex addresses entries here
   dag::Vector<Capsule> capsules;
+  // Dense storage for CONVEX-type node planes; CollisionNode::planesOfs/planesCount address entries here.
+  dag::Vector<plane3f> convexPlanes;
+  // Owning storage for mesh / convex node geometry. May be empty if mesh data is referenced
+  // externally (e.g. via the FRT vertex/face arrays after collapseAndOptimize, or via
+  // createSingleMeshNonOwning). meshVertsBase / meshIndicesBase point at the active source.
+  dag::Vector<Point3_vec4> ownVertices;
+  dag::Vector<uint16_t> ownIndices;
+  const Point3_vec4 *meshVertsBase = nullptr;
+  const uint16_t *meshIndicesBase = nullptr;
   uint32_t addName(const char *name);
 
   Grid gridForTraceable;

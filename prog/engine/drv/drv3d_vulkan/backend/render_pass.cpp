@@ -118,6 +118,53 @@ void BEContext::ensureStateForDepthAttachment(VkRect2D area)
   }
 }
 
+void BEContext::checkAttachmentsResMatch()
+{
+#if DAGOR_DBGLEVEL > 0
+  const FramebufferState &fbs = getFramebufferState();
+  const RenderPassClass::Identifier &passIdent = fbs.renderPassClass;
+  const RenderPassClass::FramebufferDescription fbInfo = fbs.frameBufferInfo;
+
+  int32_t testWidth = 0;
+  int32_t testHeight = 0;
+  const char *prevTexName = nullptr;
+
+  if (passIdent.colorTargetMask)
+  {
+    const uint8_t usageMask = passIdent.colorTargetMask;
+    for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    {
+      if (!(usageMask & (1 << i)))
+        continue;
+
+      const RenderPassClass::FramebufferDescription::AttachmentInfo &colorAttInfo = fbInfo.colorAttachments[i];
+      const VkExtent2D extents = colorAttInfo.img->getMipExtents2D(colorAttInfo.view.getMipBase());
+      const char *texName = colorAttInfo.img->getDebugName();
+
+      if (!(testWidth == 0 && testHeight == 0))
+        D3D_CONTRACT_ASSERTF((extents.width == testWidth && extents.height == testHeight),
+          "Render target resolution mismatch: %dx%d(%s) != %dx%d(%s)", testWidth, testHeight, prevTexName, extents.width,
+          extents.height, texName);
+
+      testWidth = extents.width;
+      testHeight = extents.height;
+      prevTexName = texName;
+    }
+  }
+
+  if (passIdent.hasDepth())
+  {
+    const RenderPassClass::FramebufferDescription::AttachmentInfo &dsAttInfo = fbInfo.depthStencilAttachment;
+    const VkExtent2D depthExtents = dsAttInfo.img->getMipExtents2D(dsAttInfo.view.getMipBase());
+    const char *depthTexName = dsAttInfo.img->getDebugName();
+
+    D3D_CONTRACT_ASSERTF(depthExtents.width >= testWidth && depthExtents.height >= testHeight,
+      "Insufficient depth resolution: %dx%d(%s) < %dx%d(%s)", depthExtents.width, depthExtents.height, depthTexName, testWidth,
+      testHeight, prevTexName);
+  }
+#endif
+}
+
 void BEContext::beginPassInternal(RenderPassClass *pass_class, VulkanFramebufferHandle fb_handle, VkRect2D area)
 {
   // input verify
@@ -134,6 +181,8 @@ void BEContext::beginPassInternal(RenderPassClass *pass_class, VulkanFramebuffer
 
   if (passIdent.shadingRateAttachment)
     ensureStateForShadingRateAttachment();
+
+  checkAttachmentsResMatch();
 
   uint32_t opLoadMask = pass_class->getAttachmentsLoadMask(fbs.clearMode);
 

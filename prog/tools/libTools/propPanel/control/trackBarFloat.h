@@ -6,7 +6,7 @@
 #include <propPanel/constants.h>
 #include <propPanel/imguiHelper.h>
 #include <propPanel/immediateFocusLossHandler.h>
-#include "spinEditStandalone.h"
+#include <propPanel/control/spinEditStandalone.h>
 #include "../scopedImguiBeginDisabled.h"
 
 namespace PropPanel

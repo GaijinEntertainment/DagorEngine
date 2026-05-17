@@ -83,15 +83,15 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
   }
 
   virtual bool isIterable() const override { return true; }
-  virtual das::TypeDeclPtr makeIteratorType(const das::ExpressionPtr &) const override
+  virtual das::TypeDeclPtr makeIteratorType(das::ExpressionPtr) const override
   {
-    return das::make_smart<das::TypeDecl>(*vecType);
+    return new das::TypeDecl(*vecType);
   }
 
   virtual das::SimNode * simulateGetIterator(
-    das::Context &context, const das::LineInfo &at, const das::ExpressionPtr &src) const override
+    das::Context &context, const das::LineInfo &at, das::ExpressionPtr src) const override
   {
-    auto rv = src->simulate(context);
+    auto rv = das::simulateExpression(context, src);
     if (src->type->isConst())
       return context.code->makeNode<
         das::SimNode_AnyIterator<const TJsonArray, DasArrayIterator<const TJsonArray>>>(at, rv);
@@ -104,9 +104,9 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
 
   virtual das::SimNode * simulateGetAt(
     das::Context &context, const das::LineInfo &at, const das::TypeDeclPtr &,
-    const das::ExpressionPtr &rv, const das::ExpressionPtr &idx, uint32_t ofs) const override
+    das::ExpressionPtr rv, das::ExpressionPtr idx, uint32_t ofs) const override
   {
-    auto rNode = rv->simulate(context), idxNode = idx->simulate(context);
+    auto rNode = das::simulateExpression(context, rv), idxNode = das::simulateExpression(context, idx);
     if (rv->type->isConst())
       return context.code->makeNode<SimNodeAtArray<const TJsonArray>>(
         at, rNode, idxNode, ofs);
@@ -115,9 +115,9 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
         at, rNode, idxNode, ofs);
   }
   virtual bool isIndexable(const das::TypeDeclPtr &indexType) const override { return indexType->isIndex(); }
-  virtual das::TypeDeclPtr makeIndexType(const das::ExpressionPtr &, const das::ExpressionPtr &) const override
+  virtual das::TypeDeclPtr makeIndexType(das::ExpressionPtr, das::ExpressionPtr) const override
   {
-    return das::make_smart<das::TypeDecl>(*vecType);
+    return new das::TypeDecl(*vecType);
   }
 
   template<class Array>
@@ -182,6 +182,18 @@ struct GenericJsonArrayAnnotation : public das::ManagedStructureAnnotation<TJson
   };
 
   das::TypeDeclPtr vecType;
+
+  virtual void gc_collect(das::gc_root *target, das::gc_root *from) override
+  {
+    das::ManagedStructureAnnotation<TJsonArray, false>::gc_collect(target, from);
+    if (vecType)
+      vecType->gc_collect(target, from);
+  }
+  virtual void visitTypeDecls(const das::function<void(das::TypeDecl *)> &callback) override
+  {
+    if (vecType)
+      callback(vecType);
+  }
 };
 
 struct JsonArrayAnnotation final
@@ -220,18 +232,18 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("jsonwriter"));
 
-    addEnumeration(das::make_smart<EnumerationJsonType>());
-    addEnumeration(das::make_smart<EnumerationParseErrorCode>());
+    addEnumeration(new EnumerationJsonType());
+    addEnumeration(new EnumerationParseErrorCode());
 
-    auto jsonValueAnn = das::make_smart<JsonValueAnnotation>(lib);
+    auto jsonValueAnn = new JsonValueAnnotation(lib);
     addAnnotation(jsonValueAnn);
 
-    auto jsonDocumentAnn = das::make_smart<JsonDocumentAnnotation>(lib);
+    auto jsonDocumentAnn = new JsonDocumentAnnotation(lib);
     addAnnotation(jsonDocumentAnn);
-    jsonDocumentAnn->from(jsonValueAnn.get());
+    jsonDocumentAnn->from(jsonValueAnn);
 
-    addAnnotation(das::make_smart<JsonArrayAnnotation>(lib));
-    addAnnotation(das::make_smart<JsonConstArrayAnnotation>(lib));
+    addAnnotation(new JsonArrayAnnotation(lib));
+    addAnnotation(new JsonConstArrayAnnotation(lib));
 
     das::addUsing<rapidjson::Value>(*this, lib, "rapidjson::Value");
     das::addUsing<rapidjson::Value, rapidjson::Type>(*this, lib, "rapidjson::Value");

@@ -707,6 +707,19 @@ VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu(mat44f &tmV, const float 
   tmV.col3 = vsetq_lane_f32(1.f, col3, 3);
 }
 
+// mat44f from unaligned TMatrix
+VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu_unsafe(mat44f &tmV, const float *const __restrict m43)
+{
+  vec4f v0 = v_ldu(m43 + 0);
+  vec4f v1 = v_ldu(m43 + 4);
+  vec4f v2 = v_ldu(m43 + 8);
+
+  tmV.col0 = v0;
+  tmV.col1 = vextq_f32(v0, v1, 3);
+  tmV.col2 = vextq_f32(v1, v2, 2);
+  tmV.col3 = vextq_f32(v2, v2, 1);
+}
+
 //mat44f from aligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43ca(mat44f &tmV, const float *const __restrict m43)
 {

@@ -56,8 +56,8 @@ public:
   SystemInfoModule() : das::Module("SystemInfo")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<VideoInfoAnnotation>(lib));
-    addAnnotation(das::make_smart<CpuInfoAnnotation>(lib));
+    addAnnotation(new VideoInfoAnnotation(lib));
+    addAnnotation(new CpuInfoAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(get_video_info)>(*this, lib, "get_video_info", das::SideEffects::accessExternal,
       "bind_dascript::get_video_info");

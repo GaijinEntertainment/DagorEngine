@@ -99,6 +99,10 @@ def with_advanced_test_server(port : int; blk : block<(base_url : string) : void
                         sleep(1u)
                     }
                     server->stop()
+                    server->cleanup()
+                    unsafe {
+                        delete server
+                    }
                     finished |> notify_and_release
                 }
                 started |> join

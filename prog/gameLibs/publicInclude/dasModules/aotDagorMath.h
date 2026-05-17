@@ -56,21 +56,17 @@ struct WrapType<Quat>
   typedef Point4 type;
   typedef Point4 rettype;
 };
-template <>
-struct WrapRetType<Quat>
-{
-  typedef Point4 type;
-};
-class Quat_WrapArg : public Quat
-{
-public:
-  Quat_WrapArg(const Point4 &t) : Quat(t.x, t.y, t.z, t.w) {}
-};
 
 template <>
 struct WrapArgType<Quat>
 {
-  typedef Quat_WrapArg type;
+  typedef WrapVec4Arg<Quat, real> type;
+};
+
+template <>
+struct WrapRetType<Quat>
+{
+  typedef WrapVec4Arg<Quat, real> type;
 };
 
 template <>

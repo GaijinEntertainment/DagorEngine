@@ -11,6 +11,7 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <generic/dag_span.h>
+#include <util/dag_hash.h>
 
 class framemem_allocator;
 class DataBlock;
@@ -28,6 +29,11 @@ struct ProhibitedBankDesc
   const char *label;
 };
 using ProhibitedBankDescs = dag::ConstSpan<ProhibitedBankDesc>;
+
+inline ProhibitedBankDesc::file_hash_t mod_file_hash_fun(const char *data, size_t data_len, ProhibitedBankDesc::file_hash_t hash)
+{
+  return mem_hash_fnv1<64>(data, data_len, hash);
+}
 
 void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs = {},
   dag::ConstSpan<const char *> no_mod_banks_names = {});

@@ -144,12 +144,8 @@ static int sweepRIGenInBoxByMask(RendInstGenData *rgl, const BBox3 &_box, unsign
                 {
                   if (create_debris && rendinst::isRgLayerPrimary(rgl->rtData->layerIdx))
                   {
-                    rendinst::RendInstBufferData riBuffer;
-                    rgl->rtData->riRwCs.unlockRead(); // Note: add_destroyed_data that called in doRiGenDestr acquires write lock
-                                                      // within
-                    rendinst::riex_handle_t destroyedRiexHandle;
-                    rendinst::doRIGenDestr(riDesc, riBuffer, true /*create_destr_effects*/, nullptr /*callback*/, destroyedRiexHandle,
-                      0 /*userdata*/);
+                    rgl->rtData->riRwCs.unlockRead(); // Note: delRIGen locks it for write
+                    rendinst::delRIGen(riDesc, /* add destr data */ true);
                     rgl->rtData->riRwCs.lockRead();
                   }
                   rendinst::destroy_pos_rendinst_data(data, mrange);
@@ -286,55 +282,8 @@ bool rendinst::applyDamageRIGenExtra(const rendinst::RendInstDesc &desc, float d
   return rendinst::applyDamageRIGenExtra(make_handle(desc.pool, desc.idx), dmg_pts, absorbed_dmg_impulse, ignore_damage_threshold);
 }
 
-rendinst::DestroyedRi *rendinst::doRIGenExternalControl(const rendinst::RendInstDesc &desc, bool rem_rendinst)
-{
-  if (desc.isRiExtra())
-  {
-    const int pool = rendinst::riExtra[desc.pool].riPoolRef;
-    if (pool < 0)
-      return nullptr;
-
-    RendInstGenData *rgl = rendinst::getRgLayer(rendinst::riExtra[desc.pool].riPoolRefLayer);
-    G_ASSERT(rgl && pool < rgl->rtData->riProperties.size());
-
-    const bool treeBehaviour = rgl ? rgl->rtData->riProperties[pool].treeBehaviour : false;
-
-    if (!treeBehaviour)
-      return nullptr;
-
-    TMatrix tm = rendinst::getRIGenMatrix(desc);
-    uint32_t paletteId = rendinst::get_riextra_instance_seed(desc.getRiExtraHandle());
-    mat44f tm44;
-    v_mat44_make_from_43cu_unsafe(tm44, tm.array);
-
-    return rgl->rtData->addExternalDebris(tm44, pool, paletteId);
-  }
-
-  RendInstGenData::Cell *cell = nullptr;
-  int16_t *data = desc.idx == 0 ? riutil::get_data_by_desc_no_subcell(desc, cell) : riutil::get_data_by_desc(desc, cell);
-  if (!data)
-    return nullptr;
-  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-
-  rendinst::RendInstBufferData buffer;
-  if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
-    return nullptr;
-  mat44f tm;
-  uint32_t paletteId = 0;
-  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
-    return nullptr;
-  if (rem_rendinst)
-    riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
-
-  DestroyedRi *ri = rgl->rtData->addExternalDebris(tm, desc.pool, paletteId);
-  if (ri)
-    ri->savedData = buffer; // just POD copy
-  if (RendInstGenData::renderResRequired)
-    rgl->updateVb(*cell->rtData, desc.cellIdx);
-  return ri;
-}
-
-Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const RendInstDesc &desc, int copy_count, bool rem_rendinst)
+Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControl(const RendInstDesc &desc, const RendInstBufferData &buffer,
+  int copy_count)
 {
   if (desc.isRiExtra())
   {
@@ -350,37 +299,34 @@ Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const Rend
     if (!treeBehaviour)
       return {};
 
-    TMatrix tm = rendinst::getRIGenMatrix(desc);
-    mat44f tm44;
-    v_mat44_make_from_43cu_unsafe(tm44, tm.array);
-    uint32_t paletteId = rendinst::get_riextra_instance_seed(desc.getRiExtraHandle());
-
+    mat44f tm44 = buffer.tm;
+    uint32_t paletteId = buffer.riExUserData[0];
     Tab<DestroyedRi *> result(framemem_ptr());
     result.reserve(copy_count);
     for (int i = 0; i < copy_count; ++i)
     {
       if (DestroyedRi *ri = rgl->rtData->addExternalDebris(tm44, pool, paletteId))
+      {
+        ri->savedData = buffer; // just POD copy
         result.push_back(ri);
+      }
     }
 
     return result;
   }
 
-  RendInstGenData::Cell *cell = nullptr;
-  int16_t *data = desc.idx == 0 ? riutil::get_data_by_desc_no_subcell(desc, cell) : riutil::get_data_by_desc(desc, cell);
-  if (!data)
+  RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
+  if (!rgl || !rgl->rtData)
     return {};
-  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
 
-  rendinst::RendInstBufferData buffer;
-  if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
+  if ((unsigned)desc.cellIdx >= rgl->cells.size())
     return {};
+
+  RendInstGenData::Cell *cell = &rgl->cells[desc.cellIdx];
   mat44f tm;
   uint32_t paletteId = 0;
-  if (!riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
+  if (!riutil::get_rendinst_matrix(desc, rgl, buffer.data.data(), cell, tm, paletteId))
     return {};
-  if (rem_rendinst)
-    riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
 
   Tab<DestroyedRi *> result(framemem_ptr());
   result.reserve(copy_count);
@@ -393,8 +339,6 @@ Tab<rendinst::DestroyedRi *> rendinst::doRIGenExternalControlMultiple(const Rend
       result.push_back(ri);
     }
   }
-  if (RendInstGenData::renderResRequired)
-    rgl->updateVb(*cell->rtData, desc.cellIdx);
   return result;
 }
 
@@ -811,199 +755,98 @@ static void play_riextra_destroy_effect(rendinst::riex_handle_t id, mat44f_cref 
   }
 }
 
-DynamicPhysObjectData *rendinst::doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, bool create_destr_effects,
-  ri_damage_effect_cb effect_cb, riex_handle_t &out_destroyed_riex, int32_t user_data, const Point3 *coll_point, bool *ri_removed,
-  DestrOptionFlags destroy_flags, const Point3 &impulse, const Point3 &impulse_pos)
+void rendinst::playRIGenDestrEffect(const RendInstBufferData &buffer, ri_damage_effect_cb effect_cb, const Point3 *coll_point)
 {
-  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  rendinst::RendInstDesc restorableDesc = desc;
+  const RendInstDesc &desc = buffer.desc;
+  const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
   if (desc.isRiExtra())
   {
-    if (!riExtra[desc.pool].isInGrid(desc.idx))
-      return nullptr; // it can be already destroyed
-
-    const int cellId = riExtra[desc.pool].riUniqueData[desc.idx].cellId;
-    riex_handle_t id = rendinst::make_handle(desc.pool, desc.idx);
-    const bool burntTree = rendinst::getRiExtraPerInstanceRenderAdditionalDataFlags(id) &
-                           static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING);
-    bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || cellId < 0;
-    rendinst::onRiExtraDestruction(id, isDynamicRi, create_destr_effects, user_data, impulse, impulse_pos);
-    if (isDynamicRi)
-      return nullptr;
-
-    G_ASSERT(cellId >= 0);
-    if (cellId < 0)
-      return nullptr;
-
-    int instanceOffset = riExtra[desc.pool].riUniqueData[desc.idx].offset;
-    mat44f tm;
-    if (rendinst::damageRIGenExtra(id, FLT_MAX, &tm, out_destroyed_riex, nullptr /*offs*/, destroy_flags)) // we want to definitely
-                                                                                                           // destroy it if external
-                                                                                                           // system says that we
-                                                                                                           // should do it.
-    {
-      out_buffer.tm = tm;
-      if (rgl)
-      {
-        if (effect_cb && !burntTree)
-          play_destroy_effect(rgl->rtData, riExtra[desc.pool].riPoolRef, tm, effect_cb, false, coll_point);
-      }
-      restorableDesc.cellIdx = -(cellId + 1);
-      restorableDesc.offs = instanceOffset;
-      if (rgl)
-        add_destroyed_data(restorableDesc, rgl);
-
-      if (effect_cb && !burntTree)
-        play_riextra_destroy_effect(id, tm, effect_cb, false /*bbScale*/, true /*restorable*/, coll_point);
-      if (ri_removed)
-        *ri_removed = true;
-
-      if (rendinst::riExtra[desc.pool].destroyedPhysRes)
-        return rendinst::riExtra[desc.pool].destroyedPhysRes;
-      else
-      {
-        RendInstGenData::DestrProps *dp = rgl ? safe_at(rgl->rtData->riDestr, riExtra[desc.pool].riPoolRef) : nullptr;
-        return dp ? dp->res : nullptr;
-      }
-    }
-    return nullptr;
+    const bool isBurntTree = rendinst::getRiExtraPerInstanceRenderAdditionalDataFlags(desc.getRiExtraHandle()) &
+                             static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING);
+    if (isBurntTree)
+      return;
+    if (rgl)
+      play_destroy_effect(rgl->rtData, riExtra[desc.pool].riPoolRef, buffer.tm, effect_cb, false, coll_point);
+    // NOTE: The RI in question is already destroyed at this point, however the handle in question is only used
+    // for restorables as a key to internal map, it never used to query RI, so it is fine to use it here
+    play_riextra_destroy_effect(desc.getRiExtraHandle(), buffer.tm, effect_cb, false /*bbScale*/, true /*restorable*/, coll_point);
   }
+  else
+  {
+    if (rgl)
+      play_destroy_effect(rgl->rtData, desc.pool, buffer.tm, effect_cb, false, coll_point);
+  }
+}
+
+bool rendinst::doDynamicRIExtraDestr(const RendInstDesc &desc, bool create_destr_effects, int32_t user_data, const Point3 &impulse,
+  const Point3 &impulse_pos)
+{
+  if (!desc.isRiExtra())
+    return false;
+  const int cellId = riExtra[desc.pool].riUniqueData[desc.idx].cellId;
+  const bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || cellId < 0;
+  rendinst::onRiExtraDestruction(desc.getRiExtraHandle(), isDynamicRi, create_destr_effects, user_data, impulse, impulse_pos);
+  return isDynamicRi;
+}
+
+bool rendinst::doRIGenDestr(const RendInstDesc &desc, riex_handle_t &out_destroyed_riex, DestrOptionFlags destroy_flags)
+{
+  if (desc.isRiExtra())
+  {
+    if (!rendinst::isRiGenDescValid(desc)) // already deleted
+      return false;
+
+    const RendInstDesc restorableDesc = rendinst::get_restorable_desc(desc);
+    mat44f tm;
+    // we want to definitely destroy it if external system says that we should do it.
+    if (rendinst::damageRIGenExtra(desc.getRiExtraHandle(), FLT_MAX, &tm, out_destroyed_riex, nullptr /*offs*/, destroy_flags))
+    {
+      if (RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc))
+        add_destroyed_data(restorableDesc, rgl);
+      return true;
+    }
+    return false;
+  }
+  else
+  {
+    return delRIGen(desc, /* add destr data */ true);
+  }
+}
+
+bool rendinst::delRIGen(const RendInstDesc &desc, bool add_destr_data)
+{
+  G_ASSERT_RETURN(!desc.isRiExtra(), false);
+  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
 
   ScopedLockWrite lock(rgl ? &rgl->rtData->riRwCs : nullptr);
   RendInstGenData::Cell *cell = nullptr;
   int16_t *data = riutil::get_data_by_desc(desc, cell);
   if (!data)
-    return nullptr;
-  G_ASSERT_RETURN(rgl, nullptr);
+    return false;
+  G_ASSERT_RETURN(rgl, false);
 
-  if (!riutil::extract_buffer_data(desc, rgl, data, out_buffer))
-    return nullptr;
-  if (effect_cb)
-  {
-    mat44f tm;
-    uint32_t paletteId = 0;
-    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
-      play_destroy_effect(rgl->rtData, desc.pool, tm, effect_cb, false);
-  }
+  rendinst::RendInstBufferData buffer;
+  if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
+    return false;
   riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
-  if (ri_removed)
-    *ri_removed = true;
-
-  if (desc.pool >= rgl->rtData->riDestr.size() || desc.pool < 0)
-    return nullptr;
-
-  DynamicPhysObjectData *res = rgl->rtData->riDestr[desc.pool].res;
 
   if (RendInstGenData::renderResRequired)
     rgl->updateVb(*cell->rtData, desc.cellIdx);
 
-  int offs = riutil::get_data_offs_from_start(desc);
-  G_ASSERTF(offs >= 0 && offs / 8 < 0xffff, "Offs '%d' out of range of 0x0000-0xffff", offs / 8); // fits in our range
-  if (offs < 0 || unsigned(offs / 8) > 0xffff)
-    return nullptr;
-
-  restorableDesc.idx = 0;
-  restorableDesc.offs = offs;
-  add_destroyed_data(restorableDesc, rgl);
-
-  return res;
-}
-
-DynamicPhysObjectData *rendinst::doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb,
-  int user_data, const Point3 &impulse, const Point3 &impulse_pos)
-{
-  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  if (desc.isRiExtra())
+  if (add_destr_data)
   {
-    const RiExtraPool::ElemUniqueData *uniqueData = safe_at(riExtra[desc.pool].riUniqueData, desc.idx);
-    bool isDynamicRi = riExtra[desc.pool].isDynamicRendinst || (uniqueData && uniqueData->cellId < 0);
-    riex_handle_t id = rendinst::make_handle(desc.pool, desc.idx);
-    const bool burntTree = rendinst::getRiExtraPerInstanceRenderAdditionalDataFlags(id) &
-                           static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING);
-    rendinst::onRiExtraDestruction(id, isDynamicRi, create_destr_effects, user_data, impulse, impulse_pos);
-    if (isDynamicRi)
-      return nullptr;
+    int offs = riutil::get_data_offs_from_start(desc);
+    G_ASSERTF(offs >= 0 && offs / 8 < 0xffff, "Offs '%d' out of range of 0x0000-0xffff", offs / 8); // fits in our range
+    if (offs < 0 || unsigned(offs / 8) > 0xffff)
+      return false;
 
-    //== what should it DO?
-    // Search for this cellid/offset in unique data
-    int idx = -1;
-    for (int i = 0; i < riExtra[desc.pool].riUniqueData.size(); ++i)
-    {
-      if (riExtra[desc.pool].riUniqueData[i].cellId != -(desc.cellIdx + 1) || riExtra[desc.pool].riUniqueData[i].offset != desc.offs)
-        continue;
-      idx = i;
-      break;
-    }
-    if (idx < 0)
-    {
-      if (rgl)
-        add_destroyed_data(desc, rgl);
-      return nullptr; // We cannot find it. It's okay, maybe it's not generated yet
-    }
-    id = rendinst::make_handle(desc.pool, idx);
-    mat44f tm;
-    rendinst::riex_handle_t destroyedRiexHandle;
-    ;
-    DestrOptionFlags flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy;
-    if (rendinst::damageRIGenExtra(id, FLT_MAX, &tm, destroyedRiexHandle, nullptr /*offs*/, flags) && rgl) // we want to definitely
-                                                                                                           // destroy it
-                                                                                                           // if external
-    // system says that we should do it.
-    {
-      add_destroyed_data(desc, rgl);
-      if (effect_cb && !burntTree)
-        play_riextra_destroy_effect(id, tm, effect_cb, false /*bbScale*/, false /*restorable*/);
-
-      if (rendinst::riExtra[desc.pool].destroyedPhysRes)
-        return rendinst::riExtra[desc.pool].destroyedPhysRes;
-      else
-      {
-        RendInstGenData::DestrProps *dp = safe_at(rgl->rtData->riDestr, riExtra[desc.pool].riPoolRef);
-        return dp ? dp->res : nullptr;
-      }
-    }
-    return nullptr;
+    rendinst::RendInstDesc restorableDesc = desc;
+    restorableDesc.idx = 0;
+    restorableDesc.offs = offs;
+    add_destroyed_data(restorableDesc, rgl);
   }
 
-  ScopedLockWrite lock(rgl ? &rgl->rtData->riRwCs : nullptr);
-  RendInstGenData::Cell *cell = nullptr;
-  int16_t *data = riutil::get_data_by_desc_no_subcell(desc, cell);
-  if (!data)
-  {
-    // Cell is not loaded
-    if (rgl)
-      add_destroyed_data(desc, rgl);
-    return nullptr;
-  }
-  G_ASSERT_RETURN(rgl, nullptr);
-
-  if (effect_cb)
-  {
-    mat44f tm;
-    uint32_t paletteId = 0;
-    if (riutil::get_rendinst_matrix(desc, rgl, data, cell, tm, paletteId))
-      play_destroy_effect(rgl->rtData, desc.pool, tm, effect_cb, false);
-  }
-  riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
-
-  if (desc.pool >= rgl->rtData->riDestr.size() || desc.pool < 0)
-    return nullptr;
-
-  add_destroyed_data(desc, rgl);
-  return rgl->rtData->riDestr[desc.pool].res;
-}
-
-DynamicPhysObjectData *rendinst::doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb)
-{
-  if (effect_cb)
-  {
-    mat44f tm;
-    mat43f m43 = rendinst::getRIGenExtra43(riex_handle);
-    v_mat43_transpose_to_mat44(tm, m43);
-    play_riextra_destroy_effect(riex_handle, tm, effect_cb, false /*bbScale*/);
-  }
-  uint32_t idx = handle_to_ri_type(riex_handle);
-  return rendinst::riExtra[idx].destroyedPhysRes;
+  return true;
 }
 
 bool rendinst::getDestrCellData(int layer_idx, const eastl::fixed_function<64, bool(const Tab<DestroyedCellData> &)> &callback)
@@ -1017,29 +860,6 @@ bool rendinst::getDestrCellData(int layer_idx, const eastl::fixed_function<64, b
   return false;
 }
 
-bool rendinst::restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer)
-{
-  if (desc.isRiExtra())
-    return false;
-  RendInstGenData::Cell *cell = nullptr;
-  int16_t *data = riutil::get_data_by_desc(desc, cell);
-  if (!data)
-    return false;
-
-  RendInstGenData::CellRtData &crt = *cell->rtData;
-  RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  int maxData = RIGEN_STRIDE_B(rgl->rtData->riPosInst[desc.pool], rgl->rtData->riZeroInstSeeds[desc.pool], rgl->perInstDataDwords) / 2;
-  for (int i = 0; i < maxData; ++i)
-    data[i] = buffer.data[i];
-
-  if (RendInstGenData::renderResRequired)
-    rgl->updateVb(crt, desc.cellIdx);
-
-  riutil::world_version_inc(crt.bbox[0]);
-
-  return true;
-}
-
 bool rendinst::should_clear_external_controls()
 { // make sure that riExtra is not shut down
   return rendinst::getRgLayer(0) != nullptr;
@@ -1049,7 +869,7 @@ bool rendinst::returnRIGenExternalControl(const RendInstDesc &desc, DestroyedRi 
 {
   RendInstGenData *rgl = rendinst::getRgLayer(desc.isRiExtra() ? rendinst::riExtra[desc.pool].riPoolRefLayer : desc.layer);
   ScopedLockWrite lock(rgl->rtData->riRwCs); //-V522
-  if (!ri || !restoreRiGen(desc, ri->savedData))
+  if (!ri || !restoreRendInst(ri->savedData, false))
     return false;
 
   return removeRIGenExternalControl(desc, ri, false /*lock*/);
@@ -1082,19 +902,20 @@ bool rendinst::removeRIGenExternalControl(const RendInstDesc &desc, DestroyedRi 
 }
 
 
-rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferData &buffer)
+rendinst::riex_handle_t rendinst::restoreRendInst(const RendInstBufferData &buffer, bool remove_from_destr_data)
 {
   riex_handle_t h = RIEX_HANDLE_NULL;
+  const RendInstDesc &desc = buffer.desc;
   RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
 
   if (desc.isRiExtra())
   {
     if (desc.pool < 0 || desc.pool >= riExtra.size())
       return RIEX_HANDLE_NULL;
-    RendInstDesc nonExtraDesc = desc;
-    nonExtraDesc.cellIdx = -(nonExtraDesc.cellIdx + 1);
-    nonExtraDesc.pool = riExtra[desc.pool].riPoolRef;
-    h = addRIGenExtra44(desc.pool, buffer.tm, true /*has_collision*/, nonExtraDesc.cellIdx, desc.offs);
+    const int cellIdx = -(desc.cellIdx + 1);
+    const int offs = int(desc.offs);
+    h = addRIGenExtra44(desc.pool, buffer.tm, true /*has_collision*/, cellIdx, offs, buffer.riExUserData[15],
+      buffer.riExUserData.data());
     if (h == RIEX_HANDLE_NULL)
       return h;
   }
@@ -1103,7 +924,7 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
     if (!rgl)
       return RIEX_HANDLE_NULL;
     RendInstGenData::Cell *cell = nullptr;
-    int16_t *data = riutil::get_data_by_desc_no_subcell(desc, cell);
+    int16_t *data = riutil::get_data_by_desc(desc, cell);
     if (!data)
       return RIEX_HANDLE_NULL;
 
@@ -1120,11 +941,12 @@ rendinst::riex_handle_t rendinst::restoreRiGenDestr(const RendInstDesc &desc, co
   }
 
 #if DEBUG_RI_DESTR
-  debug("restoreRiGenDestr cell (%d) pool (%d) offs (%d)", desc.cellIdx, desc.pool, desc.offs);
-  print_debug_destr_data();
+  debug("restoreRendInst cell (%d) pool (%d) offs (%d)", desc.cellIdx, desc.pool, desc.offs);
+  if (remove_from_destr_data)
+    print_debug_destr_data();
 #endif
 
-  if (!rgl)
+  if (!rgl || !remove_from_destr_data)
     return h;
 
   ScopedLockWrite lock(rgl->rtData->riRwCs);
@@ -1281,9 +1103,9 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
         objectDmgBlk->getBool("treeBehaviour", riPosInst[i] ? commonTreeBlk->getBool("treeBehaviour", false) : false);
       const bool canopyTriangle = objectDmgBlk->getBool("canopyTriangle", false);
       const bool canopySphere = objectDmgBlk->getBool("canopySphere", false);
-      riProperties[i].canopyShape = canopyTriangle ? RendInstGenData::CanopyShape::CONE
-                                    : canopySphere ? RendInstGenData::CanopyShape::SPHEROID
-                                                   : RendInstGenData::CanopyShape::BOX;
+      riProperties[i].canopyShape = canopyTriangle ? rendinst::props::CanopyShape::CONE
+                                    : canopySphere ? rendinst::props::CanopyShape::SPHEROID
+                                                   : rendinst::props::CanopyShape::BOX;
       riProperties[i].canopyTopOffset = objectDmgBlk->getReal("canopyTopOffset", 0.1f);
       riProperties[i].canopyTopPart = objectDmgBlk->getReal("canopyTopPart", canopyTriangle ? 0.75f : 0.4f);
       riProperties[i].canopyWidthPart = objectDmgBlk->getReal("canopyWidthPart", 0.3f);
@@ -1503,7 +1325,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
       if (riProperties[curRi.riPoolRef].immortal || (rendinst::riExtra[i].initialHP < 0.f && !riDestr[curRi.riPoolRef].destructable))
         curRi.immortal = true;
 
-      const DestrProps &curRiDestr = riDestr[curRi.riPoolRef];
+      const rendinst::props::DestrProps &curRiDestr = riDestr[curRi.riPoolRef];
       // NOTE: apex destructible buildings might be immortal if 1.apex disabled & 2.they don't have physObj
       if (curRiDestr.apexDestructible)
         curRi.immortal = !curRiDestr.destructable;
@@ -1636,7 +1458,7 @@ void RendInstGenData::RtData::addDebrisForRiExtraRange(const DataBlock &ri_blk, 
   if (add_ref)
   {
     riProperties.resize(riProperties.size() + add_ref);
-    memset(riProperties.data() + (riProperties.size() - add_ref), 0, sizeof(RendinstProperties) * add_ref);
+    memset(riProperties.data() + (riProperties.size() - add_ref), 0, sizeof(rendinst::props::RendinstProperties) * add_ref);
     append_items(riDestr, add_ref);
   }
 
@@ -1794,7 +1616,7 @@ void RendInstGenData::RtData::updateDelayedDebrisRi(float dt, bbox3f *movedDebri
 
 rendinst::DestroyedRi::~DestroyedRi() { rendinst::delRIGenExtra(riHandle); }
 
-RendInstGenData::DestrProps &RendInstGenData::DestrProps::operator=(const DestrProps &p)
+rendinst::props::DestrProps &rendinst::props::DestrProps::operator=(const rendinst::props::DestrProps &p)
 {
   res = p.res;
   if (res)
@@ -1819,7 +1641,7 @@ RendInstGenData::DestrProps &RendInstGenData::DestrProps::operator=(const DestrP
   destrFxTemplate = p.destrFxTemplate;
   return *this;
 }
-RendInstGenData::DestrProps::~DestrProps()
+rendinst::props::DestrProps::~DestrProps()
 {
   if (res)
   {

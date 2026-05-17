@@ -34,12 +34,12 @@ def read_file(filename : string) : string {
 
 def bare_str(str : string) : string {
     return replace_multiple(str, [
-        ("\x1B[0m", ""),
+        (text = "\x1B[0m", replacement = ""),
 
-        ("\x1B[31m", ""),
-        ("\x1B[32m", ""),
-        ("\x1B[33m", ""),
-        ("\x1B[34m", ""),
+        (text = "\x1B[31m", replacement = ""),
+        (text = "\x1B[32m", replacement = ""),
+        (text = "\x1B[33m", replacement = ""),
+        (text = "\x1B[34m", replacement = ""),
     ])
 }
 

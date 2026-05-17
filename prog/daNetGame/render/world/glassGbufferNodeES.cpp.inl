@@ -46,6 +46,8 @@ ECS_REGISTER_EVENT(OnRTTRChanged);
 
 extern ShaderBlockIdHolder dynamicSceneTransBlockId;
 
+extern ConVarT<bool, false> sort_transparent_riex_instances;
+
 extern void render_mainhero_trans(const TMatrix &view_tm);
 
 static void render_state(
@@ -85,7 +87,6 @@ static void glass_gbuffer_renderer_es(
       overrideState.set(shaders::OverrideState::Z_WRITE_ENABLE);
       overrideState.zFunc = CMPF_GREATEREQUAL;
       registry.orderMeAfter("begin"); // need for correct ordering inside transparent "group"
-      registry.read("ri_update_token").blob<OrderingToken>();
       auto depth =
         registry.createTexture2d("glass_depth", {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view", targetSize)})
           .clear(make_clear_value(0.f, 0));
@@ -103,10 +104,10 @@ static void glass_gbuffer_renderer_es(
         registry.allowAsyncPipelines().requestRenderPass().color({target}).depthRw(depth);
       }
 
-      registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+      registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
       registry.setPriority(TRANSPARENCY_NODE_PRIORITY_RENDINST);
 
-      registry.requestState().allowWireframe().enableOverride(overrideState).setFrameBlock("global_frame");
+      registry.requestState().enableOverride(overrideState).setFrameBlock("global_frame");
       int rendinstTransSceneBlockid = ShaderGlobal::getBlockId("rendinst_trans_scene");
 
       auto cameraHndl = use_camera_in_camera(registry).handle();
@@ -149,6 +150,51 @@ static void glass_gbuffer_renderer_es(
 
         render_mainhero_trans(cameraHndl.ref().viewTm);
         ShaderGlobal::set_int(rendinst_transparent_gbuffer_passVarId, TrancslucentGbufferPass::OFF);
+      };
+    });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear, ChangeRenderFeatures)
+static void glass_reactive_mask_pass_renderer_es(const ecs::Event &evt, dafg::NodeHandle &rendinst_glass_reactive_mask_node)
+{
+  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
+    if (!(changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA)))
+      return;
+  auto nodeNs = dafg::root() / "transparent" / "close";
+  rendinst_glass_reactive_mask_node =
+    nodeNs.registerNode("rendinst_glass_reactive_mask", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      auto reactiveMask = registry.modify("reactive_mask").texture().optional();
+      registry.allowAsyncPipelines().requestRenderPass().color({reactiveMask}).depthRo("depth");
+
+
+      registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
+      registry.setPriority(TRANSPARENCY_NODE_PRIORITY_RENDINST);
+
+      registry.requestState().setFrameBlock("global_frame");
+      int rendinstTransSceneBlockid = ShaderGlobal::getBlockId("rendinst_trans_scene");
+
+      auto cameraHndl = use_camera_in_camera(registry).handle();
+      auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+      return [cameraHndl, strmCtxHndl, rendinstTransSceneBlockid,
+               rendinst_reactive_mask_passVarId = get_shader_variable_id("rendinst_reactive_mask_pass")] {
+        ShaderGlobal::set_int(rendinst_reactive_mask_passVarId, 1);
+        RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
+        SCENE_LAYER_GUARD(rendinstTransSceneBlockid);
+
+        RiGenVisibility *riMainVisibility = cameraHndl.ref().jobsMgr->getRiMainVisibility();
+        if (sort_transparent_riex_instances)
+        {
+          rendinst::render::renderSortedTransparentRiExtraInstances(*riMainVisibility, strmCtxHndl.ref(), false);
+        }
+        else
+        {
+          rendinst::render::renderRIGen(rendinst::RenderPass::Normal, riMainVisibility, cameraHndl.ref().viewItm,
+            rendinst::LayerFlag::Transparent, rendinst::OptimizeDepthPass::No, 1, rendinst::AtestStage::All, nullptr,
+            strmCtxHndl.ref());
+        }
+
+        ShaderGlobal::set_int(rendinst_reactive_mask_passVarId, 0);
       };
     });
 }

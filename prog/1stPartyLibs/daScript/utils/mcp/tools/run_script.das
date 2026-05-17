@@ -4,7 +4,7 @@ options no_unused_block_arguments = false
 
 require common public
 
-def do_run_script(file, code : string; timeout_str : string = "") : string {
+def do_run_script(file, code : string; timeout_str : string = ""; track_allocations : bool = false) : string {
     let exe = get_daslang_exe()
     if (empty(exe)) {
         return make_tool_result("Cannot determine daslang executable path", true)
@@ -16,7 +16,7 @@ def do_run_script(file, code : string; timeout_str : string = "") : string {
         script_path = make_temp_das_file()
         is_temp = true
         var write_ok = false
-        fopen(script_path, "wb") <| $(fw) {
+        fopen(script_path, "wb") $(fw) {
             if (fw == null) {
                 return
             }
@@ -32,7 +32,13 @@ def do_run_script(file, code : string; timeout_str : string = "") : string {
     }
     let timeout_sec = empty(timeout_str) ? 30.0 : float(to_int(timeout_str))
     var output : string
-    let exit_code = run_and_capture("{exe} {script_path}", output, timeout_sec)
+    var argv <- [exe]
+    if (track_allocations) {
+        argv |> push("-track-allocations")
+        argv |> push("-heap-report")
+    }
+    argv |> push(string(script_path))
+    let exit_code = run_and_capture(argv, output, timeout_sec)
     if (is_temp) {
         remove(script_path)
     }

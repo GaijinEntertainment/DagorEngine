@@ -41,7 +41,7 @@ shader dynamic_painted_by_mask
   USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
 
   texture normalMap = material.texture[2];
-  texture aoTex = material.texture[3];
+  texture aoTex = material.texture[3] stub=(1,1,1,1);
   texture primaryMaskTex = material.texture[4];
   texture secondaryMaskTex = material.texture[5];
 
@@ -142,14 +142,11 @@ shader dynamic_painted_by_mask
 
     (ps){
       normalmap_tex@staticSmp = normalMap;
+      aoTex@staticSmp = aoTex;
       primary_mask_tex@staticSmp = primaryMaskTex;
     }
     if (secondaryMaskTex != NULL) {
       (ps){ secondary_mask_tex@staticSmp = secondaryMaskTex; }
-    }
-    if (aoTex != NULL)
-    {
-      (ps){ aoTex@staticSmp = aoTex; }
     }
 
     hlsl(ps) {
@@ -216,9 +213,7 @@ shader dynamic_painted_by_mask
         apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal,
           diffuseColor.rgb, smoothness, reflectance, skipBloodWound);
 
-        ##if aoTex != NULL
         ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;
-        ##endif
         UnpackedGbuffer result;
         init_gbuffer(result);
 

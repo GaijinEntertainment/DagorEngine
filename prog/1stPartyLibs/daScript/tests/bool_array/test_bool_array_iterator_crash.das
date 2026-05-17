@@ -12,7 +12,7 @@ require daslib/rtti
 [benchmark]
 def benchmark_context_check(b : B?) {
     unsafe {
-        print("benchmark_context_check: context name = '{this_context().name}'\n")
+        to_log(LOG_INFO, "benchmark_context_check: context name = '{this_context().name}'\n")
     }
     var a : BoolArray
     for (i in 0 .. 10) {

@@ -69,5 +69,5 @@ protected:
 
   E3DCOLOR clearValue;
 
-  UniqueTexHolder toroidalPuddles;
+  UniqueTexWithShaderVar toroidalPuddles;
 };

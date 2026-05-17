@@ -18,6 +18,10 @@ vromList {
   }
 }
 
+debug{
+  toolsPathWin:t="../../../tools/dagor_cdk/windows-x86_64"
+}
+
 
 screenshots{
   dir:t="Screenshots"

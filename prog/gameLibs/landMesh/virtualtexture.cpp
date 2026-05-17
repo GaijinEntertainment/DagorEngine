@@ -450,7 +450,7 @@ struct MipContext
   RiIndices bindedRiIndices;
   int bindedTexMipCnt = 0;
 
-  UniqueTexHolder indirection;
+  UniqueTexWithShaderVar indirection;
   uint32_t captureTargetCounter = 0;
   int oldestCaptureTargetCounter = 0;
 
@@ -571,7 +571,8 @@ public:
   void init()
   {
     clear();
-    riLandclassDataBuf = dag::buffers::create_persistent_cb(RI_LANDCLASS_DATA_BUFFER_SIZE, "ri_landclass_data_buffer", RESTAG_LAND);
+    riLandclassDataBuf = dag::create_sbuffer(sizeof(Point4), RI_LANDCLASS_DATA_BUFFER_SIZE,
+      SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC, 0, "ri_landclass_data_buffer", RESTAG_LAND);
   }
 
   RiLandclassDataManager() { init(); }
@@ -966,7 +967,7 @@ private:
   IPoint2 bufferTexDim = IPoint2::ZERO;
 
   carray<BcCompressor *, Clipmap::MAX_TEXTURES> compressor;
-  carray<UniqueTexHolder, Clipmap::MAX_TEXTURES> cache;
+  carray<UniqueTexWithShaderVar, Clipmap::MAX_TEXTURES> cache;
 
   int cacheCnt = 0;
   int maxCacheCnt = 0;
@@ -3305,9 +3306,27 @@ void ClipmapImpl::beginUpdateTiles(ClipmapRenderer &renderer)
   for (int i = 0; i < bindedBufferTex.size(); ++i)
     d3d::set_render_target(i, bindedBufferTex[i], 0);
   renderer.startRenderTiles(Point2::xz(viewerPosition));
+
+  for (int ci = 0; ci < cacheCnt; ++ci)
+  {
+    if (!(compressor[ci] && compressor[ci]->isValid())) // for uncompressed caches
+      d3d::resource_barrier({cache[ci].getTex2D(), RB_RW_RENDER_TARGET | RB_STAGE_PIXEL, 0, 0});
+    else if (d3d::get_driver_code().is(d3d::dx12)) // Dx12 tricks
+      d3d::resource_barrier({cache[ci].getTex2D(), RB_RW_COPY_DEST, 0, 0});
+  }
 }
 
-void ClipmapImpl::endUpdateTiles(ClipmapRenderer &renderer) { renderer.endRenderTiles(); }
+void ClipmapImpl::endUpdateTiles(ClipmapRenderer &renderer)
+{
+  for (int ci = 0; ci < cacheCnt; ++ci)
+  {
+    if (!(compressor[ci] && compressor[ci]->isValid()) // for uncompressed caches or Dx12
+        || d3d::get_driver_code().is(d3d::dx12))       // or Dx12 tricks
+      d3d::resource_barrier({cache[ci].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+  }
+
+  renderer.endRenderTiles();
+}
 
 void ClipmapImpl::finalizeCompressionQueue()
 {
@@ -3317,17 +3336,88 @@ void ClipmapImpl::finalizeCompressionQueue()
 
   G_ASSERT(bindedBufferTex.size());
 
-  for (int ci = 0; ci < bindedBufferTex.size(); ++ci)
+  // Create mips
+  if (mipCnt > 1)
   {
-    if (mipCnt > 1)
+    // Prepare mip 0 state.
+    {
+      eastl::fixed_vector<ResourceBarrier, Clipmap::MAX_TEXTURES, false> resourceBarriers(bindedBufferTex.size(),
+        (ResourceBarrier)RB_RO_BLIT_SOURCE);
+      eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> subResIndex(bindedBufferTex.size(), 0u);
+      eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> subResRange(bindedBufferTex.size(), 1u);
+      d3d::resource_barrier(
+        {bindedBufferTex.data(), resourceBarriers.data(), subResIndex.data(), subResRange.data(), (unsigned)bindedBufferTex.size()});
+    }
+
+    // Prepare destination mip levels.
+    {
+      eastl::fixed_vector<ResourceBarrier, Clipmap::MAX_TEXTURES, false> resourceBarriers(bindedBufferTex.size(),
+        (ResourceBarrier)RB_RW_BLIT_DEST);
+      eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> subResIndex(bindedBufferTex.size(), 1u);
+      eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> subResRange(bindedBufferTex.size(), (unsigned)(mipCnt - 1));
+      d3d::resource_barrier(
+        {bindedBufferTex.data(), resourceBarriers.data(), subResIndex.data(), subResRange.data(), (unsigned)bindedBufferTex.size()});
+    }
+
+    // Create mips
+    for (int ci = 0; ci < bindedBufferTex.size(); ++ci)
+    {
       bindedBufferTex[ci]->generateMips();
 
-    d3d::resource_barrier({bindedBufferTex[ci], RB_RO_SRV | RB_STAGE_PIXEL, 0, unsigned(mipCnt)});
+      if (d3d::get_driver_code().is(d3d::dx12)) // Dx12 trick: Postpones last mip barrier and batch with other later on.
+        d3d::resource_barrier({bindedBufferTex[ci], RB_RW_BLIT_DEST, (unsigned)(mipCnt - 1), 1});
+    }
+  }
+
+  // Collect compressors buffers.
+  bool hasUncompressed = false;
+  eastl::fixed_vector<Texture *, Clipmap::MAX_TEXTURES, false> compressorsTex;
+  eastl::fixed_vector<bool, Clipmap::MAX_TEXTURES, false> compressorsIsComputeShader;
+  for (int ci = 0; ci < cacheCnt; ++ci)
+  {
+    if (compressor[ci] && compressor[ci]->isValid())
+    {
+      compressorsTex.emplace_back(!useOwnBuffers ? bindedCompressorTex[ci] : compressor[ci]->getBuffer());
+      compressorsIsComputeShader.emplace_back(compressor[ci]->getBufferFlags() & TEXCF_UNORDERED);
+    }
+    else
+    {
+      hasUncompressed = true;
+    }
+  }
+
+  // Prepare bindedBufferTex for read.
+  {
+    bool compressorWithComputeShader =
+      eastl::find(compressorsIsComputeShader.begin(), compressorsIsComputeShader.end(), true) != compressorsIsComputeShader.end();
+    bool compressorWithPixelShader =
+      eastl::find(compressorsIsComputeShader.begin(), compressorsIsComputeShader.end(), false) != compressorsIsComputeShader.end();
+    ResourceBarrier resourceBarrier = (ResourceBarrier)((hasUncompressed || compressorWithPixelShader) ? RB_STAGE_PIXEL : 0) |
+                                      (ResourceBarrier)(compressorWithComputeShader ? RB_STAGE_COMPUTE : 0) | RB_RO_SRV;
+    eastl::fixed_vector<ResourceBarrier, Clipmap::MAX_TEXTURES, false> resourceBarriers(bindedBufferTex.size(), resourceBarrier);
+    eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> zeros(bindedBufferTex.size(), 0u); // subResIndex, subResRange
+    d3d::resource_barrier(
+      {bindedBufferTex.data(), resourceBarriers.data(), zeros.data(), zeros.data(), (unsigned)bindedBufferTex.size()});
+  }
+
+  // Bind buffers to shaderVars.
+  for (int ci = 0; ci < bindedBufferTex.size(); ++ci)
+  {
     // "compressor"'s shaders can use components from different attachments. We should bind them all beforehand.
     ShaderGlobal::set_texture(bufferTexVarId[ci], bindedBufferTex[ci]);
   }
 
-  bool hasUncompressed = false;
+  // Batch compressor buffers transition barriers.
+  if (compressorsTex.size())
+  {
+    eastl::fixed_vector<ResourceBarrier, Clipmap::MAX_TEXTURES, false> resourceBarriers;
+    for (bool isCompute : compressorsIsComputeShader)
+      resourceBarriers.emplace_back(isCompute ? RB_RW_UAV | RB_STAGE_COMPUTE : RB_RW_RENDER_TARGET | RB_STAGE_PIXEL);
+    eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> zeros(compressorsTex.size(), 0u); // subResIndex, subResRange
+    d3d::resource_barrier(
+      {compressorsTex.data(), resourceBarriers.data(), zeros.data(), zeros.data(), (unsigned)compressorsTex.size()});
+  }
+
   for (int ci = 0; ci < cacheCnt; ++ci)
   {
     if (compressor[ci] && compressor[ci]->isValid())
@@ -3340,10 +3430,16 @@ void ClipmapImpl::finalizeCompressionQueue()
           !useOwnBuffers ? bindedCompressorTex[ci] : nullptr);
       }
     }
-    else
-    {
-      hasUncompressed = true;
-    }
+  }
+
+  // Batch compressor buffers transition barriers.
+  if (compressorsTex.size())
+  {
+    eastl::fixed_vector<ResourceBarrier, Clipmap::MAX_TEXTURES, false> resourceBarriers(compressorsTex.size(),
+      (ResourceBarrier)RB_RO_COPY_SOURCE);
+    eastl::fixed_vector<unsigned, Clipmap::MAX_TEXTURES, false> zeros(compressorsTex.size(), 0u); // subResIndex, subResRange
+    d3d::resource_barrier(
+      {compressorsTex.data(), resourceBarriers.data(), zeros.data(), zeros.data(), (unsigned)compressorsTex.size()});
   }
 
   // Get compression error of cache mip0 if such debug option has been enabled
@@ -3360,18 +3456,24 @@ void ClipmapImpl::finalizeCompressionQueue()
     }
   }
 
+  // Copy compressor results to cache.
   G_ASSERT(compressionQueue.size() <= COMPRESS_QUEUE_SIZE);
-  // fixme: actually we need compressors for each format, not for each texture!
   for (int ci = 0; ci < cacheCnt; ++ci)
   {
     if (compressor[ci] && compressor[ci]->isValid())
     {
       TIME_D3D_PROFILE(copyBufferToCache);
       for (int mipNo = 0; mipNo < mipCnt; mipNo++)
+      {
         for (int i = 0; i < compressionQueue.size(); ++i)
           compressor[ci]->copyToMip(cache[ci].getTex2D(), mipNo, (compressionQueue[i].x * texTileSize) >> mipNo,
             (compressionQueue[i].y * texTileSize) >> mipNo, mipNo, (i * texTileSize) >> mipNo, 0, texTileSize >> mipNo,
             texTileSize >> mipNo, bindedCompressorTex[ci]);
+
+        // Prevent our Dx12 layer/driver to switch cache state
+        if (d3d::get_driver_code().is(d3d::dx12))
+          d3d::resource_barrier({cache[ci].getTex2D(), RB_RW_COPY_DEST, 0, 0});
+      }
     }
   }
 
@@ -3425,11 +3527,6 @@ void ClipmapImpl::finalizeCompressionQueue()
         d3d::set_vs_const(52, &quads[0].x, quads.size());
         d3d::draw(PRIM_TRILIST, 0, quads.size() * 2);
       }
-    }
-
-    for (int ci = 0; ci < cacheCnt; ++ci)
-    {
-      d3d::resource_barrier({cache[ci].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, (unsigned)mipCnt});
     }
   }
 

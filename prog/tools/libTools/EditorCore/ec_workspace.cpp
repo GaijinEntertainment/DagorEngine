@@ -340,7 +340,7 @@ bool EditorWorkspace::save()
   if (!blk.load(blkPath))
     return false;
 
-  if (name && *name)
+  if (!name.empty())
   {
     DataBlock *wspSaveBlk = findWspBlk(blk, name, true);
 

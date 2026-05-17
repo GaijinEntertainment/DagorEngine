@@ -18,6 +18,7 @@ if $(CheckedContainers) = yes { Target = $(Target)-c ; }
 
 Sources =
   da.cpp
+  aotStub.cpp
   stub.cpp
   inc_da_dummy.cpp
   inc_main.cpp

@@ -392,7 +392,7 @@ namespace drv3d_metal
 
     texture = [render.device newTextureWithDescriptor : pTexDesc];
     if (texture == nil)
-      DAG_FATAL("Failed to allocate texture %s", base->getName());
+      DAG_FATAL("Failed to allocate texture %s, available %llukb of %llukb", base->getName(), render.device.currentAllocatedSize >> 10, render.device.recommendedMaxWorkingSetSize >> 10);
 
     int slises = 1;
     if (base->type == D3DResourceType::ARRTEX || base->type == D3DResourceType::VOLTEX)

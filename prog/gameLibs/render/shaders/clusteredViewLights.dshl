@@ -96,8 +96,8 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
             #define SPOT_CONTACT_SHADOWS_CALC
           #endif
           half3 dynamicLighting = 0;
-          uint sliceId = min(getSliceAtDepth(w, depthSliceScale, depthSliceBias), CLUSTERS_D);
-          uint clusterIndex = getClusterIndex(tc.xy, sliceId);
+          uint sliceId = min(frustum_clusters_get_slice_at_depth(w, depthSliceScale, depthSliceBias), CLUSTERS_D);
+          uint clusterIndex = frustum_clusters_get_cluster_index(tc.xy, sliceId);
           uint wordsPerOmni = omniLightsWordCount;
           uint wordsPerSpot = spotLightsWordCount;
           ##if dynamic_lights_count == lights_omnispot_1

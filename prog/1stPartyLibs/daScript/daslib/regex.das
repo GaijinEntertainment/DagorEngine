@@ -559,7 +559,7 @@ def private re_group(expr : string; offset : int) : MaybeReNode {
             group_offset += 2
         } elif (!eos(expr, group_offset + 1) && at(expr, group_offset + 1) == 'P') {
             if (!eos(expr, group_offset + 2) && at(expr, group_offset + 2) == '<') {
-                var name_start = group_offset + 3
+                let name_start = group_offset + 3
                 var name_end = name_start
                 while (!eos(expr, name_end) && at(expr, name_end) != '>') {
                     name_end++
@@ -1258,7 +1258,6 @@ def private re_match2_plus_set(var regex : Regex; var node : ReNode?; str : uint
     if (*str == 0u8) {
         return null
     }
-    var nsub = node.subexpr
     if (!is_char_in_set(int(*str), node.cset)) {
         return null
     }
@@ -1451,7 +1450,7 @@ def private re_match2_repeat(var regex : Regex; var node : ReNode?; str : uint8 
     var nsub = node.subexpr
     var ofs = str
     // match minimum required repetitions
-    for (i in range(node.min_rep)) {
+    for (_i in range(node.min_rep)) {
         if (*ofs == 0u8 && nsub.op != ReOp.Eos && nsub.op != ReOp.Bos && nsub.op != ReOp.WordBoundary && nsub.op != ReOp.NonWordBoundary) {
             return null
         }
@@ -1507,7 +1506,7 @@ def private re_match2_repeat(var regex : Regex; var node : ReNode?; str : uint8 
         if (node2 != null) {
             var positions : array<uint8 const?>
             push(positions, ofs)
-            for (i in range(remaining)) {
+            for (_i in range(remaining)) {
                 var osym = invoke(nsub.fun2, regex, nsub, ofs)
                 if (osym == null || osym == ofs) {
                     break
@@ -1528,7 +1527,7 @@ def private re_match2_repeat(var regex : Regex; var node : ReNode?; str : uint8 
             }
             return null
         } else {
-            for (i in range(remaining)) {
+            for (_i in range(remaining)) {
                 var osym = invoke(nsub.fun2, regex, nsub, ofs)
                 if (osym == null || osym == ofs) {
                     break
@@ -1642,7 +1641,7 @@ def private re_match2_repeat_lazy(var regex : Regex; var node : ReNode?; str : u
     var nsub = node.subexpr
     var ofs = str
     // match minimum required repetitions
-    for (i in range(node.min_rep)) {
+    for (_i in range(node.min_rep)) {
         if (*ofs == 0u8 && nsub.op != ReOp.Eos && nsub.op != ReOp.Bos && nsub.op != ReOp.WordBoundary && nsub.op != ReOp.NonWordBoundary) {
             return null
         }
@@ -2408,7 +2407,7 @@ def private re_gen2_plus(var node : ReNode?; var rnd : ReGenRandom; var str : St
     cnt = (cnt % re_gen_rep_limit) + 1u
     var nsub = node.subexpr
     if (nsub != null) {
-        for (i in urange(cnt)) {
+        for (_i in urange(cnt)) {
             invoke(nsub.gen2, nsub, rnd, str)
         }
     }
@@ -2427,7 +2426,7 @@ def private re_gen2_star(var node : ReNode?; var rnd : ReGenRandom; var str : St
     cnt = cnt % re_gen_rep_limit
     var nsub = node.subexpr
     if (nsub != null) {
-        for (i in urange(cnt)) {
+        for (_i in urange(cnt)) {
             invoke(nsub.gen2, nsub, rnd, str)
         }
     }
@@ -2478,7 +2477,7 @@ def private re_gen2_repeat(var node : ReNode?; var rnd : ReGenRandom; var str : 
     }
     var nsub = node.subexpr
     if (nsub != null) {
-        for (i in urange(cnt)) {
+        for (_i in urange(cnt)) {
             invoke(nsub.gen2, nsub, rnd, str)
         }
     }

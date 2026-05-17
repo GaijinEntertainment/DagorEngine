@@ -41,9 +41,10 @@ def test_walk_null_pointer(t : T?) {
     t |> run("null pointer") @(t : T?) {
         var walker = new LogWalker()
         var p : SimpleStruct?
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
+            }
         }
         // Null pointer: beforePtr → Null → afterPtr (walker still brackets with ptr callbacks)
         var expected = "beforePtr\n"
@@ -56,9 +57,10 @@ def test_walk_null_pointer(t : T?) {
         var walker = new LogWalker()
         var s = SimpleStruct(x = 7, y = 1.5)
         var p : SimpleStruct? = unsafe(addr(s))
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(p), typeinfo rtti_typeinfo(p))
+            }
         }
         t |> equal(find(walker.log, "beforePtr") != -1, true)
         t |> equal(find(walker.log, "beforeStruct:SimpleStruct") != -1, true)
@@ -81,9 +83,10 @@ def test_walk_lambda(t : T?) {
         var lam <- @ {
             return captured_value
         }
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(lam), typeinfo rtti_typeinfo(lam))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(lam), typeinfo rtti_typeinfo(lam))
+            }
         }
         t |> equal(find(walker.log, "beforeLambda") != -1, true)
         t |> equal(find(walker.log, "afterLambda") != -1, true)
@@ -101,9 +104,10 @@ def test_walk_edge_values(t : T?) {
     t |> run("zero int") @(t : T?) {
         var walker = new LogWalker()
         var x = 0
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(walker.log, "Int:0\n")
         unsafe { delete walker; }
@@ -111,9 +115,10 @@ def test_walk_edge_values(t : T?) {
     t |> run("negative int") @(t : T?) {
         var walker = new LogWalker()
         var x = -42
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(walker.log, "Int:-42\n")
         unsafe { delete walker; }
@@ -121,9 +126,10 @@ def test_walk_edge_values(t : T?) {
     t |> run("negative float") @(t : T?) {
         var walker = new LogWalker()
         var x = -1.5
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(walker.log, "Float:-1.5\n")
         unsafe { delete walker; }
@@ -131,9 +137,10 @@ def test_walk_edge_values(t : T?) {
     t |> run("max int") @(t : T?) {
         var walker = new LogWalker()
         var x = 2147483647
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(walker.log, "Int:2147483647\n")
         unsafe { delete walker; }
@@ -141,9 +148,10 @@ def test_walk_edge_values(t : T?) {
     t |> run("min int") @(t : T?) {
         var walker = new LogWalker()
         var x = -2147483647 - 1
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(walker.log, "Int:-2147483648\n")
         unsafe { delete walker; }
@@ -163,9 +171,10 @@ def test_deeply_nested(t : T?) {
         root.children |> emplace(TreeNode(value = 2))
         root.children |> emplace(TreeNode(value = 3))
         root.children[0].children |> emplace(TreeNode(value = 4))
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(root), typeinfo rtti_typeinfo(root))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(root), typeinfo rtti_typeinfo(root))
+            }
         }
         // All 4 values should be visited
         t |> equal(find(walker.log, "Int:1") != -1, true)
@@ -185,19 +194,20 @@ def test_deeply_nested(t : T?) {
 def test_reuse_adapter(t : T?) {
     t |> run("walk twice with same adapter") @(t : T?) {
         var walker = new LogWalker()
-        var inscope adapter <- make_data_walker(walker)
-        var x = 10
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            var x = 10
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
+            t |> equal(walker.log, "Int:10\n")
+            // Reset log and walk again
+            walker.log = ""
+            var y = 20
+            unsafe {
+                adapter |> walk_data(addr(y), typeinfo rtti_typeinfo(y))
+            }
+            t |> equal(walker.log, "Int:20\n")
         }
-        t |> equal(walker.log, "Int:10\n")
-        // Reset log and walk again
-        walker.log = ""
-        var y = 20
-        unsafe {
-            adapter |> walk_data(addr(y), typeinfo rtti_typeinfo(y))
-        }
-        t |> equal(walker.log, "Int:20\n")
         unsafe { delete walker; }
     }
 }
@@ -212,9 +222,10 @@ def test_count_scalars(t : T?) {
     t |> run("count in struct") @(t : T?) {
         var walker = new CountWalker()
         var s = SimpleStruct(x = 1, y = 2.0)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(walker.count, 2)   // x(int) + y(float)
         unsafe { delete walker; }
@@ -222,9 +233,10 @@ def test_count_scalars(t : T?) {
     t |> run("count in nested struct") @(t : T?) {
         var walker = new CountWalker()
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "test")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(walker.count, 3)   // inner.x(int) + inner.y(float) + tag(string)
         unsafe { delete walker; }
@@ -232,9 +244,10 @@ def test_count_scalars(t : T?) {
     t |> run("count in array") @(t : T?) {
         var walker = new CountWalker()
         var arr = [1, 2, 3, 4, 5]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(walker.count, 5)
         unsafe { delete walker; }

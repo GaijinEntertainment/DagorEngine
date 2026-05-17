@@ -1941,10 +1941,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     vpr_bytes + fsh_bytes + hs_ds_gs_bytes + cs_bytes, vpr_bytes, hs_ds_gs_bytes, fsh_bytes, cs_bytes);
   sh_debug(SHLOG_INFO, "  stcode: %d/%d/%d bytes", stcode_bytes0, stcode_bytes1, stcode_bytes2);
 
-  sh_debug(SHLOG_NORMAL, "  scripted shaders size: %d bytes (%d K)", compressedSize, compressedSize >> 10);
+  const char *binPackedStr = packBin ? "compressed" : "not compressed";
+  const char *shadersPackedStr = packShaders ? "compressed" : "not compressed";
+  sh_debug(SHLOG_NORMAL, "  scripted shaders size (the whole dump is %s, separate shaders are %s): %d bytes (%d K)", binPackedStr,
+    shadersPackedStr, compressedSize, compressedSize >> 10);
   if (shaders_dump_compressed.scriptedShadersBindumpCompressed.getDecompressedSize())
   {
-    sh_debug(SHLOG_NORMAL, "  scripted shaders size uncompressed: %d bytes (%d K)",
+    sh_debug(SHLOG_NORMAL,
+      "  scripted shaders size in memory (after the dump decompression, separate shaders are %s): %d bytes (%d K)", shadersPackedStr,
       shaders_dump_compressed.scriptedShadersBindumpCompressed.getDecompressedSize(),
       shaders_dump_compressed.scriptedShadersBindumpCompressed.getDecompressedSize() >> 10);
   }

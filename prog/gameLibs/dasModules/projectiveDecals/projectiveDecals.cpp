@@ -73,15 +73,15 @@ public:
   ProjectiveDecalsModule() : das::Module("ProjectiveDecals")
   {
     das::ModuleLibrary lib(this);
-    auto projectiveDecals = das::make_smart<ProjectiveDecalsBaseAnnotation>(lib);
+    auto projectiveDecals = new ProjectiveDecalsBaseAnnotation(lib);
     addAnnotation(projectiveDecals);
-    add_annotation(this, das::make_smart<RingBufferDecalsBaseAnnotation>(lib), projectiveDecals);
-    add_annotation(this, das::make_smart<ResizableDecalsBaseAnnotation>(lib), projectiveDecals);
-    addAnnotation(das::make_smart<RingBufferDecalsBaseManagerAnnotation>(lib));
-    addAnnotation(das::make_smart<ResizableDecalManagerAnnotation>(lib));
-    auto decalDataBase = das::make_smart<DecalDataBaseAnnotation>(lib);
+    add_annotation(this, new RingBufferDecalsBaseAnnotation(lib), projectiveDecals);
+    add_annotation(this, new ResizableDecalsBaseAnnotation(lib), projectiveDecals);
+    addAnnotation(new RingBufferDecalsBaseManagerAnnotation(lib));
+    addAnnotation(new ResizableDecalManagerAnnotation(lib));
+    auto decalDataBase = new DecalDataBaseAnnotation(lib);
     addAnnotation(decalDataBase);
-    add_annotation(this, das::make_smart<DefaultDecalDataAnnotation>(lib), decalDataBase);
+    add_annotation(this, new DefaultDecalDataAnnotation(lib), decalDataBase);
 #define CLASS_MEMBER(FUNC_NAME, SYNONIM, SIDE_EFFECT)                                                                \
   {                                                                                                                  \
     using memberMethod = DAS_CALL_MEMBER(FUNC_NAME);                                                                 \

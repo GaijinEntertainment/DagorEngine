@@ -926,7 +926,8 @@ void build_cpp_declarations_for_used_local_vars(StcodePass &out_cppstcode, const
 
 void build_cpp_declarations_for_used_bool_vars(StcodePass &out_cppstcode, const shc::VariantContext &ctx)
 {
-  ctx.localBoolVars().iterateBoolVars([&](const char *name, const BoolVar &) {
+  ctx.localBoolVars().iterateBoolVars([&](int name_id, const BoolVar &) {
+    const char *name = ctx.tgtCtx().boolVarNameMap().getName(name_id);
     out_cppstcode.cppStcode.addBoolVarDecl(name);
     out_cppstcode.cppStblkcode.addBoolVarDecl(name);
   });

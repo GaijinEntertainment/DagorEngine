@@ -25,7 +25,7 @@ static ecs::EntitySystemDesc debug_physmap_decals_es_es_desc
 static constexpr ecs::ComponentDesc debug_physmap_appear_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("phys_map_tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("phys_map_tex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
 //start of 1 ro components at [1]
   {ECS_HASH("aim_ruler__drawPhysMap"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -33,7 +33,7 @@ static void debug_physmap_appear_es_all_events(const ecs::Event &__restrict evt,
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     debug_physmap_appear_es(evt
-        , ECS_RW_COMP(debug_physmap_appear_es_comps, "phys_map_tex", UniqueTexHolder)
+        , ECS_RW_COMP(debug_physmap_appear_es_comps, "phys_map_tex", UniqueTexWithShaderVar)
     , ECS_RO_COMP(debug_physmap_appear_es_comps, "aim_ruler__drawPhysMap", bool)
     );
   while (++comp != compE);

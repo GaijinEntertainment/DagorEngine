@@ -558,8 +558,7 @@ void ImpostorTextureManager::end_rendering_slices()
   d3d::setind(nullptr);
   d3d::setvdecl(BAD_VDECL);
   d3d::setvsrc(0, nullptr, 0);
-  d3d::set_render_target(0, nullptr, 0);
-  d3d::set_depth(nullptr, DepthAccess::SampledRO);
+  d3d::set_render_target({}, DepthAccess::SampledRO, {});
   ShaderElement::invalidate_cached_state_block();
 }
 
@@ -643,8 +642,7 @@ UniqueTex ImpostorTextureManager::renderDepthAtlasForShadow(RenderableInstanceLo
   ShaderGlobal::set_int(rendinst_render_passVarId, eastl::to_underlying(rendinst::RenderPass::Depth));
   ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
-  d3d::set_render_target(nullptr, 0);
-  d3d::set_depth(impostorDepthBuffer.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({impostorDepthBuffer.getTex2D(), 0, 0}, DepthAccess::RW, {});
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
   rendinst::render::setCoordType(rendinst::render::COORD_TYPE_TM);
 
@@ -738,7 +736,7 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
       modelToShadow.getcol(3).z);
     ShaderGlobal::set_texture(impostor_shadowVarId, info.impostor_shadowID);
     d3d::resource_barrier({impostorDepthBuffer.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::set_render_target(0, targetTex, targetSlice, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{targetTex, 0, static_cast<uint32_t>(targetSlice)}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     for (int v = 0; v < params.verticalSamples; ++v)
     {
@@ -746,7 +744,7 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
       {
         SCOPE_RENDER_TARGET;
         TIME_D3D_PROFILE(render_impostor_shadow_atlas_slice);
-        d3d::set_render_target(0, targetTex, targetSlice, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{targetTex, 0, static_cast<uint32_t>(targetSlice)}});
         d3d::setview(0, 0, texInfo.w, texInfo.h, 0, 1);
         ShaderGlobal::set_texture(impostor_shadow_textureVarId, impostorDepthBuffer.getTexId());
         ShaderGlobal::set_float4(impostor_sliceVarId, h, v, 0, 0);

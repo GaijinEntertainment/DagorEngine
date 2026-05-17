@@ -56,6 +56,13 @@ class CollectExternVisitor : AstVisitor {
     types : PrimitiveTypes -const? -const
     seen : table<string; bool>
     any_unimplemented : bool
+    needs_whole_lib : bool
+    extern_modules : table<string; bool>
+    registered_modules : table<string; bool>
+    dynamic_modules : table<string; bool>
+    register_mod_type : LLVMOpaqueType?
+    init_fn : LLVMOpaqueValue?
+    init_builder : LLVMBuilderRef
 
     reg_extern_fn_type : LLVMOpaqueType?
     reg_extern_fn : LLVMOpaqueValue?
@@ -78,12 +85,35 @@ class CollectExternVisitor : AstVisitor {
                              _mod : LLVMOpaqueModule?; var _types : PrimitiveTypes?,
                              uids : UidNodes?) {
         any_unimplemented = false
+        needs_whole_lib = false
         uid := uids
         ctx = _ctx
         standalone_ctx = standalone_context
         mod = _mod
         types = _types
         builder = _builder
+        register_mod_type = LLVMFunctionType(types.LLVMVoidPtrType(), array<LLVMTypeRef>())
+
+        // Create initialize_modules() function — filled incrementally as we discover needed modules
+        let init_fn_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+        init_fn = LLVMGetNamedFunction(g_mod, "initialize_modules")
+        let init_entry = LLVMAppendBasicBlockInContext(ctx, init_fn, "entry")
+        init_builder = LLVMCreateBuilder()
+        LLVMPositionBuilderAtEnd(init_builder, init_entry)
+        // Always call das_ensure_environment first
+        let env_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+        var env_fn = LLVMGetNamedFunction(g_mod, "das_ensure_environment")
+        if (env_fn == null) {
+            env_fn = LLVMAddFunctionWithType(g_mod, "das_ensure_environment", env_type)
+        }
+        LLVMBuildCall2(init_builder, env_type, env_fn, array<LLVMValueRef>(), "")
+        // Always register Module_BuiltIn ($) and Module_Strings (strings)
+        var reg_builtin = LLVMAddFunctionWithType(g_mod, "jit_register_Module_BuiltIn", register_mod_type)
+        LLVMBuildCall2(init_builder, register_mod_type, reg_builtin, array<LLVMValueRef>(), "")
+        registered_modules["$"] = true
+        var reg_strings = LLVMAddFunctionWithType(g_mod, "jit_register_Module_Strings", register_mod_type)
+        LLVMBuildCall2(init_builder, register_mod_type, reg_strings, array<LLVMValueRef>(), "")
+        registered_modules["strings"] = true
 
         reg_extern_tab_type = LLVMFunctionType(types.LLVMVoidPtrType(),
             fixed_array<LLVMTypeRef>(
@@ -97,14 +127,8 @@ class CollectExternVisitor : AstVisitor {
         trap_typ = LLVMFunctionType(types.t_void, [])
         trap_ptr = LLVMAddFunctionWithType(g_mod, "jit_trap", trap_typ)
 
-        reg_extern_fn_type = LLVMFunctionType(types.t_void,
-            fixed_array<LLVMTypeRef>(
-                types.LLVMVoidPtrType(),  // const char* module_name
-                types.LLVMVoidPtrType(),  // const char* mangled_name
-                types.LLVMVoidPtrType(),  // void**      ptr  (address of the function-pointer global)
-            )
-        )
-        reg_extern_fn = LLVMAddFunctionWithType(g_mod, "jit_init_extern_function", reg_extern_fn_type)
+        reg_extern_fn_type = g_fn_types[FN_JIT_INIT_EXTERN]
+        reg_extern_fn = LLVMGetNamedFunction(g_mod, FN_JIT_INIT_EXTERN)
 
         get_extern_ann_type = LLVMFunctionType(types.LLVMVoidPtrType(),
             fixed_array<LLVMTypeRef>(
@@ -148,13 +172,37 @@ class CollectExternVisitor : AstVisitor {
                 types.t_int1,             // bool cmres
                 types.t_int1,             // bool fastcall
                 types.t_int1,             // bool pinvoke
+                types.t_int32,            // uint32_t nArguments
             )
         )
         reg_standalone_fn = LLVMAddFunctionWithType(g_mod, "jit_register_standalone_function", reg_standalone_fn_type)
     }
 
+    def register_function(fn : Function?) : LLVMOpaqueValue? {
+        let fnmna = uid.get_dll_fn_name_ptr(fn)
+        let fn_publ = LLVMGetNamedFunction(g_mod, fnmna.publ())
+        if (fn_publ == null) {
+            return null
+        }
+        let fn_ptr_cast = LLVMBuildPointerCast(builder, fn_publ, types.LLVMVoidPtrType(), "")
+        var reg_args = fixed_array<LLVMOpaqueValue?>(
+            standalone_ctx,
+            types.ConstI64(fn.index |> uint64),
+            get_string_constant_ptr(builder, string(fn.name)),
+            get_string_constant_ptr(builder, string(fn |> get_mangled_name())),
+            types.ConstI64(fn.getMangledNameHash),
+            types.ConstI32(fn.totalStackSize |> uint64),
+            fn_ptr_cast,
+            types.ConstI1(isCMRES(fn)),
+            types.ConstI1(fn.flags.fastCall),
+            types.ConstI1(fn.moreFlags.pinvoke),
+            types.ConstI32(fn.arguments |> length |> uint64),
+        )
+        return LLVMBuildCall2(builder, reg_standalone_fn_type, reg_standalone_fn, reg_args, "")
+    }
+
     def override preVisitFunction(var fun : FunctionPtr) : void {
-        uid.reset(get_ptr(fun))
+        uid.reset(fun)
     }
 
     def override visitFunction(fun : FunctionPtr) : FunctionPtr {
@@ -173,7 +221,25 @@ class CollectExternVisitor : AstVisitor {
         }
     }
 
-    def make_call(expr : smart_ptr<ExprCallFunc>) {
+    def ensure_module(m : Module?) {
+        if (m == null) { return ; }
+        let mod_name = string(m.name)
+        if (key_exists(registered_modules, mod_name)) { return ; }
+        if (key_exists(dynamic_modules, mod_name)) { return ; }
+        registered_modules[mod_name] = true
+        // First ensure all dependencies of this module are registered
+        module_for_each_dependency(m) <| $(var dep : Module?; var pub : bool) {
+            ensure_module(dep)
+        }
+        let cpp_name = string(m.cppClassName)
+        if (empty(cpp_name)) { return ; }
+        let reg_fn_name = "jit_register_{cpp_name}"
+        to_log(LOG_INFO, "LLVM EXE: NEED_MODULE({cpp_name}) for `{mod_name}`\n")
+        var reg_fn = LLVMAddFunctionWithType(g_mod, reg_fn_name, register_mod_type)
+        LLVMBuildCall2(init_builder, register_mod_type, reg_fn, array<LLVMValueRef>(), "")
+    }
+
+    def make_call(expr : ExprCallFunc?) {
         if (expr.func == null) { return ; }
         if (has_intrinsic(expr)) { return ; }
         if (expr.func.flags.builtIn) {
@@ -193,8 +259,16 @@ class CollectExternVisitor : AstVisitor {
                 if (global_var == null) {
                     return
                 }
+                let mod_name = string(expr.func._module.name)
+                extern_modules[mod_name] = true
+                ensure_module(expr.func._module)
+                // Sort functions with cblock use Context/Block infrastructure from the compiler lib
+                let fn_name = string(expr.func.name)
+                if (find(fn_name, "sort") != -1 && find(fn_name, "cblock") != -1) {
+                    needs_whole_lib = true
+                }
                 var call_args = array<LLVMValueRef>(
-                    get_string_constant_ptr(builder, string(expr.func._module.name)),
+                    get_string_constant_ptr(builder, mod_name),
                     get_string_constant_ptr(builder, get_mangled_name(expr.func)),
                     LLVMBuildPointerCast(builder, global_var, types.LLVMVoidPtrType(), ""),
                 )
@@ -204,8 +278,11 @@ class CollectExternVisitor : AstVisitor {
     }
 
     def get_annotation(ann : TypeAnnotation?) {
+        let mod_name = string(ann._module.name)
+        extern_modules[mod_name] = true
+        ensure_module(ann._module)
         var call_args = array<LLVMValueRef>(
-            get_string_constant_ptr(builder, string(ann._module.name)),
+            get_string_constant_ptr(builder, mod_name),
             get_string_constant_ptr(builder, string(ann.name)),
         )
         return LLVMBuildCall2(builder, get_extern_ann_type, get_extern_ann, call_args, "")
@@ -243,23 +320,23 @@ class CollectExternVisitor : AstVisitor {
         any_unimplemented = true
     }
 
-    def override preVisitExprCall(expr : smart_ptr<ExprCall>) {
+    def override preVisitExprCall(expr : ExprCall?) {
         make_call(expr)
     }
 
-    def override preVisitExprOp2(var expr : smart_ptr<ExprOp2>) {
+    def override preVisitExprOp2(var expr : ExprOp2?) {
         if (isExprOp2_Func(expr)) {
             make_call(expr)
         }
     }
 
-    def override preVisitExprOp1(var expr : smart_ptr<ExprOp1>) {
+    def override preVisitExprOp1(var expr : ExprOp1?) {
         if (isExprOp1_Func(expr)) {
             make_call(expr)
         }
     }
 
-    def override preVisitExprNew(expr : smart_ptr<ExprNew>) {
+    def override preVisitExprNew(expr : ExprNew?) {
         if (expr.typeexpr.isHandle) {
             let name = uid.get_new(expr.typeexpr)
             if (initialize(name)) {
@@ -268,7 +345,7 @@ class CollectExternVisitor : AstVisitor {
         } else {
             if (expr.typeexpr.dim |> length > 0) {
                 if (expr.typeexpr.baseType == Type.tHandle) {
-                    var inscope elemT = clone_type(expr.typeexpr)
+                    var elemT = clone_type(expr.typeexpr)
                     elemT.dim |> clear() // hack to get correct ptr to ctor
                     let name = uid.get_new(expr.typeexpr)
                     if (initialize(name)) {
@@ -287,7 +364,7 @@ class CollectExternVisitor : AstVisitor {
         }
     }
 
-    def override preVisitExprDelete(var expr : smart_ptr<ExprDelete>) {
+    def override preVisitExprDelete(var expr : ExprDelete?) {
         assume subexpr = expr.subexpr
         assume subT = expr.subexpr._type
         if (subT.isPointer) {
@@ -301,7 +378,7 @@ class CollectExternVisitor : AstVisitor {
         }
     }
 
-    def override preVisitExprClone(expr : smart_ptr<ExprClone>) : void {
+    def override preVisitExprClone(expr : ExprClone?) : void {
         assume leftT = expr.left._type
         if (leftT.isHandle) {
             let name = uid.get_clone_type(leftT)
@@ -311,54 +388,27 @@ class CollectExternVisitor : AstVisitor {
         }
     }
 
-    def override preVisitExprAddr(expr : smart_ptr<ExprAddr>) {
-        let fn = expr.func
-
-        let fnmna = uid.get_dll_fn_name_ptr(expr.func)
-        let fn_publ = LLVMGetNamedFunction(g_mod, fnmna.publ())
-        let fn_ptr_cast = LLVMBuildPointerCast(builder, fn_publ, types.LLVMVoidPtrType(), "")
-        var reg_args = fixed_array<LLVMOpaqueValue?>(
-            standalone_ctx,
-            types.ConstI64(fn.index |> uint64),
-            get_string_constant_ptr(builder, string(fn.name)),
-            get_string_constant_ptr(builder, string(fn |> get_mangled_name())),
-            types.ConstI64(fn.getMangledNameHash),
-            types.ConstI32(fn.totalStackSize |> uint64),
-            fn_ptr_cast,
-            types.ConstI1(isCMRES(fn)),
-            types.ConstI1(fn.flags.fastCall),
-            types.ConstI1(fn.moreFlags.pinvoke),
-        )
-        let fn_ptr = LLVMBuildCall2(builder, reg_standalone_fn_type, reg_standalone_fn, reg_args, "")
-
+    def override preVisitExprAddr(expr : ExprAddr?) {
+        let fn_ptr = register_function(expr.func)
+        if (fn_ptr == null) {
+            return
+        }
         let name = uid.get_addr(expr)
         let global_var = LLVMGetNamedGlobal(mod, name.glob())
+        if (global_var == null) {
+            // Can be unvisited, e.g. default function argument.
+            return
+        }
         LLVMBuildStore(builder, fn_ptr, global_var)
     }
 
-    def override preVisitExprMakeStructIndex(expr : smart_ptr<ExprMakeStruct>; index : int; last : bool) : void {
+    def override preVisitExprMakeStructIndex(expr : ExprMakeStruct?; index : int; last : bool) : void {
         if (expr.constructor != null && !expr.constructor.moreFlags.requestJit) {
-            let fn = expr.constructor
-            let fnmna = uid.get_dll_fn_name_ptr(fn)
-            let fn_publ = LLVMGetNamedFunction(g_mod, fnmna.publ())
-            let fn_ptr_cast = LLVMBuildPointerCast(builder, fn_publ, types.LLVMVoidPtrType(), "")
-            var reg_args = fixed_array<LLVMOpaqueValue?>(
-                standalone_ctx,
-                types.ConstI64(fn.index |> uint64),
-                get_string_constant_ptr(builder, string(fn.name)),
-                get_string_constant_ptr(builder, string(fn |> get_mangled_name())),
-                types.ConstI64(fn.getMangledNameHash),
-                types.ConstI32(fn.totalStackSize |> uint64),
-                fn_ptr_cast,
-                types.ConstI1(isCMRES(fn)),
-                types.ConstI1(fn.flags.fastCall),
-                types.ConstI1(fn.moreFlags.pinvoke),
-            )
-            LLVMBuildCall2(builder, reg_standalone_fn_type, reg_standalone_fn, reg_args, "")
+            register_function(expr.constructor)
         }
     }
 
-    def override preVisitExprMakeBlock(expr : smart_ptr<ExprMakeBlock>) : void {
+    def override preVisitExprMakeBlock(expr : ExprMakeBlock?) : void {
         let annotationData = (expr._block as ExprBlock).annotationData
         if (annotationData != 0 |> uint64()) {
             add_unimplemented(uid.get_block_ann(expr), expr)
@@ -373,7 +423,7 @@ class CollectExternVisitor : AstVisitor {
         if (firstT.isWorkhorseType) {
             return firstT.baseType
         } else {
-            var inscope uvt <- get_underlying_value_type(firstT)
+            var uvt = get_underlying_value_type(firstT)
             return uvt.baseType
         }
     }
@@ -405,58 +455,150 @@ class CollectExternVisitor : AstVisitor {
         LLVMBuildStore(builder, tab_ptr, tab_method)
     }
 
-    def override preVisitExprAt(expr : smart_ptr<ExprAt>) {
+    def override preVisitExprAt(expr : ExprAt?) {
         assume subExprT = expr.subexpr._type
         if (subExprT.isGoodTableType) {
             add_table_at_call(subExprT)
         }
     }
 
-    def override preVisitExprSetInsert(expr : smart_ptr<ExprSetInsert>) {
+    def override preVisitExprSetInsert(expr : ExprSetInsert?) {
         add_table_at_call(expr.arguments[0]._type)
     }
 
-    def override preVisitExprKeyExists(expr : smart_ptr<ExprKeyExists>) {
+    def override preVisitExprKeyExists(expr : ExprKeyExists?) {
         add_table_find_call(expr.arguments[0]._type)
     }
 
-    def override preVisitExprFind(expr : smart_ptr<ExprFind>) {
+    def override preVisitExprFind(expr : ExprFind?) {
         add_table_find_call(expr.arguments[0]._type)
     }
 
-    def override preVisitExprSafeAt(expr : smart_ptr<ExprSafeAt>) {
+    def override preVisitExprSafeAt(expr : ExprSafeAt?) {
         assume subExprT = expr.subexpr._type
         if (subExprT.isGoodTableType || (subExprT.isPointer && subExprT.firstType.isGoodTableType)) {
-            var inscope etype := subExprT.isPointer ? subExprT.firstType : subExprT
+            var etype = subExprT.isPointer ? subExprT.firstType : subExprT
             add_table_find_call(etype)
         }
     }
 
-    def override preVisitExprErase(expr : smart_ptr<ExprErase>) {
+    def override preVisitExprErase(expr : ExprErase?) {
         add_table_erase_call(expr.arguments[0]._type)
     }
 }
 
 def collect_external_functions(standalone_context : LLVMOpaqueValue?; ctx : LLVMContextRef; builder : LLVMBuilderRef,
                                mod : LLVMOpaqueModule?; var types : PrimitiveTypes?;
-                               funcs : array<FunctionPtr>; var uids : UidNodes?) {
+                               var funcs : array<FunctionPtr>; var uids : UidNodes?;
+                               var used_modules : table<string; bool>&;
+                               dynamic_modules : table<string; bool>) : tuple<any_unimplemented : bool; needs_whole_lib : bool> {
     var extern_resolver = new CollectExternVisitor(standalone_context, ctx, builder, mod, types, uids)
-    var inscope adapter_resolve = make_visitor(*extern_resolver)
-    for (fn in funcs) {
-        visit(fn, adapter_resolve)
+    extern_resolver.dynamic_modules := dynamic_modules
+    make_visitor(*extern_resolver) $(adapter_resolve) {
+        ast_gc_guard() {
+            for (fn in funcs) {
+                visit(fn, adapter_resolve)
+            }
+        }
+        // Register [pinvoke] and [export] functions in tabMnLookup so they can be
+        // found by name at runtime (e.g. via invoke_in_context).
+        for (fn in funcs) {
+            if (!fn.flags.builtIn && (fn.moreFlags.pinvoke || fn.flags.exports)) {
+                extern_resolver.uid.reset(fn)
+                extern_resolver.register_function(fn)
+                extern_resolver.uid.reset(null)
+            }
+        }
     }
-    var result = extern_resolver.any_unimplemented
+    var any_unimp = extern_resolver.any_unimplemented
+    var whole_lib = extern_resolver.needs_whole_lib
+    for (mod_name in keys(extern_resolver.extern_modules)) {
+        used_modules[mod_name] = true
+    }
+    // Finalize initialize_modules(): emit dynamic modules, native paths, Module::Initialize, ret
+    let ib = extern_resolver.init_builder
+    let t = extern_resolver.types
+    let reg_dyn_mod_type = LLVMFunctionType(t.LLVMVoidPtrType(),
+        fixed_array<LLVMTypeRef>(t.LLVMVoidPtrType(), t.LLVMVoidPtrType())
+    )
+    var jit_reg_dyn_mod = LLVMGetNamedFunction(g_mod, "jit_register_dynamic_module")
+    if (jit_reg_dyn_mod == null) {
+        jit_reg_dyn_mod = LLVMAddFunctionWithType(g_mod, "jit_register_dynamic_module", reg_dyn_mod_type)
+    }
+    for_each_registered_dynamic_module() <| $(path, mod_name, das_name) {
+        if (key_exists(used_modules, das_name)) {
+            to_log(LOG_INFO, "LLVM EXE: include dynamic module: `{das_name}`\n")
+            let path_str = get_string_constant_ptr(ib, path)
+            let name_str = get_string_constant_ptr(ib, mod_name)
+            LLVMBuildCall2(ib, reg_dyn_mod_type, jit_reg_dyn_mod, fixed_array(path_str, name_str), "")
+        }
+    }
+    let reg_native_path_type = LLVMFunctionType(t.t_void,
+        fixed_array<LLVMTypeRef>(t.LLVMVoidPtrType(), t.LLVMVoidPtrType(), t.LLVMVoidPtrType())
+    )
+    var jit_reg_native_path = LLVMGetNamedFunction(g_mod, "jit_register_native_path")
+    if (jit_reg_native_path == null) {
+        jit_reg_native_path = LLVMAddFunctionWithType(g_mod, "jit_register_native_path", reg_native_path_type)
+    }
+    for_each_registered_native_path() <| $(mod_name, src_path, dst_path) {
+        let mod_str = get_string_constant_ptr(ib, mod_name)
+        let src_str = get_string_constant_ptr(ib, src_path)
+        let dst_str = get_string_constant_ptr(ib, dst_path)
+        LLVMBuildCall2(ib, reg_native_path_type, jit_reg_native_path, fixed_array(mod_str, src_str, dst_str), "")
+    }
+    if (!empty(extern_resolver.registered_modules) || !empty(used_modules)) {
+        let init_done_type = LLVMFunctionType(t.t_void, array<LLVMTypeRef>())
+        var jit_init_done = LLVMAddFunctionWithType(g_mod, "jit_initialize_modules_done", init_done_type)
+        LLVMBuildCall2(ib, init_done_type, jit_init_done, array<LLVMValueRef>(), "")
+    }
+    LLVMBuildRetVoid(ib)
+    LLVMDisposeBuilder(ib)
     extern_resolver.uid = null
     extern_resolver.types = null
     unsafe { delete extern_resolver; }
-    return <- result
+    return (any_unimplemented = any_unimp, needs_whole_lib = whole_lib)
 }
 
 // Creates main function that initializes a standalone JIT context, registers
 // all compiled functions, runs init scripts, then calls the program entry point.
-def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs : array<FunctionPtr>;
+def public inject_main(program_context : Context?; ctx : LLVMContextRef;
                        prog : Program?; entry_point : string; mod : LLVMOpaqueModule?;
-                       var types : PrimitiveTypes?, var uids : UidNodes?; strict : bool) : LLVMOpaqueValue? {
+                       var types : PrimitiveTypes?, var uids : UidNodes?; strict : bool) : tuple<fn : LLVMOpaqueValue?; link_whole_lib : bool> {
+
+    let builder = LLVMCreateBuilder()
+    defer() {
+        LLVMDisposeBuilder(builder)
+    }
+    // Collect ALL used functions from the program (not just JIT-compiled ones from `funcs`).
+    // There shouldn't be any `das` functions in standalone_exe, otherwise it
+    // will crash.
+    var funcs : array<FunctionPtr>
+    var has_no_jit = false
+    var any_pinvoke = false
+    var used_modules : table<string; bool>
+    prog |> for_each_module <| $(m) {
+        if (m.name == "llvm_func" || m.name == "llvm_macro") {
+            return
+        }
+        m |> for_each_function("") $(fun) {
+            if (fun.flags.used) {
+                if (!fun.flags.builtIn && fun.moreFlags.requestNoJit) {
+                    has_no_jit = true
+                    to_log(LOG_ERROR, "LLVM EXE: function '{fun.name}' is marked no_jit but standalone exe requires all functions to be JIT-compiled\n")
+                }
+                if (fun.moreFlags.pinvoke) {
+                    any_pinvoke = true
+                }
+                used_modules[string(fun._module.name)] = true
+                funcs |> emplace(fun)
+            }
+        }
+    }
+    if (strict && has_no_jit) {
+        to_log(LOG_ERROR, "Cannot build standalone exe: some functions are no_jit in strict mode\n")
+        return (fn = null, link_whole_lib = false)
+    }
+
     var start_fn_name = ""
     var no_return = true
     for (fn in funcs) {
@@ -473,7 +615,7 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
     }
     if (start_fn_name |> empty()) {
         to_log(LOG_ERROR, "entrypoint `{entry_point}()` not found in input file.\n")
-        return null
+        return (fn = null, link_whole_lib = false)
     }
 
     let main_fn_type = LLVMFunctionType(types.t_int32,
@@ -483,20 +625,87 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
         )
     )
     let main_fn = LLVMAddFunctionWithType(mod, "main", main_fn_type)
-    let builder = LLVMCreateBuilder()
-    defer <| ${
-        LLVMDisposeBuilder(builder)
-    }
     let entry = LLVMAppendBasicBlockInContext(ctx, main_fn, "entry")
     LLVMPositionBuilderAtEnd(builder, entry)
 
-    // Init modules. Right now we init only builtin modules.
-    // Custom modules is not implemented yet.
-    let das_initialize_type = LLVMFunctionType(types.t_void,
-        array<LLVMTypeRef>()
+    // Collect dynamic module names — used by CollectExternVisitor to skip dlopen'd modules
+    var dynamic_modules : table<string; bool>
+    for_each_registered_dynamic_module() <| $(path, mod_name, das_name) {
+        dynamic_modules[das_name] = true
+    }
+
+    // Init static modules — emit register_ClassName() for each used non-dynamic module
+    let register_mod_type = LLVMFunctionType(types.LLVMVoidPtrType(), array<LLVMTypeRef>())
+    let das_ensure_env_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+    var das_ensure_env = LLVMAddFunctionWithType(g_mod, "das_ensure_environment", das_ensure_env_type)
+    LLVMBuildCall2(builder, das_ensure_env_type, das_ensure_env, array<LLVMValueRef>(), "")
+    var has_cpp_modules = false
+    for (mod_name in keys(used_modules)) {
+        if (key_exists(dynamic_modules, mod_name)) {
+            continue
+        }
+        prog |> for_each_module <| $(m) {
+            if (string(m.name) != mod_name) {
+                return
+            }
+            if (!empty(m.cppClassName)) {
+                has_cpp_modules = true
+                let reg_fn_name = "jit_register_{m.cppClassName}"
+                to_log(LOG_INFO, "LLVM EXE: NEED_MODULE({m.cppClassName}) for `{m.name}`\n")
+                var reg_fn = LLVMAddFunctionWithType(g_mod, reg_fn_name, register_mod_type)
+                LLVMBuildCall2(builder, register_mod_type, reg_fn, array<LLVMValueRef>(), "")
+            }
+        }
+    }
+
+    // Register dynamic modules that were loaded during compilation
+    let reg_dyn_mod_type = LLVMFunctionType(types.LLVMVoidPtrType(),
+        fixed_array<LLVMTypeRef>(
+            types.LLVMVoidPtrType(), // const char * path
+            types.LLVMVoidPtrType()  // const char * mod_name
+        )
     )
-    var das_initialize = LLVMAddFunctionWithType(g_mod, "jit_initialize_modules", das_initialize_type)
-    LLVMBuildCall2(builder, das_initialize_type, das_initialize, array<LLVMValueRef>(), "")
+    var jit_reg_dyn_mod = LLVMAddFunctionWithType(g_mod, "jit_register_dynamic_module", reg_dyn_mod_type)
+    for_each_registered_dynamic_module() <| $(path, mod_name, das_name) {
+        if (key_exists(used_modules, das_name)) {
+            has_cpp_modules = true
+            to_log(LOG_INFO, "LLVM EXE: include dynamic module: `{das_name}`\n")
+            let path_str = get_string_constant_ptr(builder, path)
+            let name_str = get_string_constant_ptr(builder, mod_name)
+            LLVMBuildCall2(builder, reg_dyn_mod_type, jit_reg_dyn_mod, fixed_array(path_str, name_str), "")
+        }
+    }
+
+    // Register native paths (das include paths) that were loaded during compilation
+    let reg_native_path_type = LLVMFunctionType(types.t_void,
+        fixed_array<LLVMTypeRef>(
+            types.LLVMVoidPtrType(), // const char * mod_name
+            types.LLVMVoidPtrType(), // const char * src_path
+            types.LLVMVoidPtrType()  // const char * dst_path
+        )
+    )
+    var jit_reg_native_path = LLVMAddFunctionWithType(g_mod, "jit_register_native_path", reg_native_path_type)
+    for_each_registered_native_path() <| $(mod_name, src_path, dst_path) {
+        let mod_str = get_string_constant_ptr(builder, mod_name)
+        let src_str = get_string_constant_ptr(builder, src_path)
+        let dst_str = get_string_constant_ptr(builder, dst_path)
+        LLVMBuildCall2(builder, reg_native_path_type, jit_reg_native_path, fixed_array(mod_str, src_str, dst_str), "")
+    }
+
+    // Finalize module initialization after all static/dynamic modules are registered
+    if (has_cpp_modules) {
+        let init_done_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+        var jit_init_done = LLVMAddFunctionWithType(g_mod, "jit_initialize_modules_done", init_done_type)
+        LLVMBuildCall2(builder, init_done_type, jit_init_done, array<LLVMValueRef>(), "")
+    }
+
+    // Call initialize_modules() — built by CollectExternVisitor during collect_external_functions
+    let init_modules_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+    var init_modules_fn = LLVMGetNamedFunction(g_mod, "initialize_modules")
+    if (init_modules_fn == null) {
+        init_modules_fn = LLVMAddFunctionWithType(g_mod, "initialize_modules", init_modules_type)
+    }
+    LLVMBuildCall2(builder, init_modules_type, init_modules_fn, array<LLVMValueRef>(), "")
 
     // Init argc, argv
     let set_cmd_args_type = LLVMFunctionType(types.t_void,
@@ -514,13 +723,25 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
         jit_set_cmd_args, fixed_array(argc, argv), "")
 
 
+    // Determine the context stack size from options (mirrors Program::getContextStackSize)
+    var context_stack_size = uint64(prog.policies.stack)
+    let stack_opt = find_arg(prog._options, "stack")
+    if (stack_opt is tInt) {
+        context_stack_size = uint64(stack_opt as tInt)
+    } elif (stack_opt is tUInt) {
+        context_stack_size = uint64(stack_opt as tUInt)
+    }
+
     // Declare jit_create_standalone_ctx
     let create_ctx_type = LLVMFunctionType(types.LLVMVoidPtrType(),
         fixed_array<LLVMTypeRef>(
             types.t_int64,         // totalVariables
             types.t_int64,         // totalFunctions
             types.t_int64,         // globalStringHeapSize
+            types.t_int64,         // globalsSize
+            types.t_int64,         // sharedSize
             types.t_int1,          // pinvoke
+            types.t_int64,         // stackSize
         )
     )
     var jit_create_context = LLVMAddFunctionWithType(
@@ -530,16 +751,33 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
         types.ConstI64(prog.totalVariables |> uint64),
         types.ConstI64(prog.totalFunctions |> uint64),
         types.ConstI64(prog.globalStringHeapSize |> uint64),
-        types.ConstI1(false)
+        types.ConstI64(get_context_globals_size(program_context)),
+        types.ConstI64(get_context_shared_size(program_context)),
+        types.ConstI1(any_pinvoke || prog.policies.threadlock_context || prog.policies.debugger),
+        types.ConstI64(context_stack_size)
     )
     let global_context = LLVMBuildCall2(builder, create_ctx_type, jit_create_context, params, "")
 
-    let any_unimplemented = collect_external_functions(global_context, ctx, builder, mod, types, funcs, uids)
+    let (any_unimplemented, sort_needs_whole_lib) = collect_external_functions(global_context, ctx, builder, mod, types, funcs, uids, used_modules, dynamic_modules)
     if (strict && any_unimplemented) {
         to_log(LOG_ERROR, "Some of the nodes above are unimplemented!\n")
-        return null
+        return (fn = null, link_whole_lib = false)
+    }
+    // Determine if exe needs the whole compiler lib (rtti, ast, debugger, jit, sort-with-cblock)
+    var needs_whole_lib = sort_needs_whole_lib
+    for (mod_name in keys(used_modules)) {
+        if (mod_name == "rtti_core") {
+            needs_whole_lib = true
+            break
+        }
     }
 
+    // When linking whole compiler lib, register fusion engine (needed by simulate)
+    if (needs_whole_lib) {
+        let reg_fusion_type = LLVMFunctionType(types.t_void, array<LLVMTypeRef>())
+        let reg_fusion_fn = LLVMAddFunctionWithType(g_mod, "jit_register_fusion", reg_fusion_type)
+        LLVMBuildCall2(builder, reg_fusion_type, reg_fusion_fn, array<LLVMValueRef>(), "")
+    }
 
     let init_global_var_type = LLVMFunctionType(types.LLVMVoidPtrType(),
         fixed_array<LLVMTypeRef>(
@@ -585,6 +823,18 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
         LLVMBuildCall2(builder, set_init_script_type, jit_set_init_script,
             fixed_array(global_context, LLVMBuildPointerCast(builder, init_glob, types.LLVMVoidPtrType(), "")), "")
     }
+
+    // Call [init]-annotated functions (e.g. DECS stage registration generated by [decs] macro)
+    for (fn in funcs) {
+        if (fn.flags.init) {
+            let fn_impl_name = uids.get_dll_fn_name(fn).impl()
+            let init_fn = LLVMGetNamedFunction(g_mod, fn_impl_name)
+            if (init_fn != null) {
+                LLVMBuildCall2(builder, g_fn_types[fn_impl_name], init_fn, main_params, "")
+            }
+        }
+    }
+
     let main_ret = LLVMBuildCall2(builder, g_fn_types[start_fn_name], LLVMGetNamedFunction(g_mod, start_fn_name), main_params, "")
     if (no_return) {
         LLVMBuildRet(builder, types.ConstI32(uint64(0)))
@@ -592,5 +842,5 @@ def public inject_main(program_context : Context?; ctx : LLVMContextRef; funcs :
         LLVMBuildRet(builder, main_ret)
     }
     to_log(LOG_INFO, "LLVM JIT: standalone exe entry point generated '{start_fn_name}', {length(funcs)} functions\n")
-    return main_fn
+    return (fn = main_fn, link_whole_lib = needs_whole_lib)
 }

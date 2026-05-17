@@ -166,6 +166,7 @@ namespace das
     ,   no_writing_to_nameless                  =   40215       // writing to nameless variable, like in a().b = 5
     ,   table_lookup_collision                  =   40216       // multiple lookups of the same table in the same expression, i.e. tab[1] = tab[2]
     ,   performance_lint                        =   40217       // performance lint warning from perf_lint module
+    ,   style_lint                             =   40218       // style lint warning from style_lint module
 
     ,   duplicate_key                           =   40300       // { 1:1, ..., 1:* }
 

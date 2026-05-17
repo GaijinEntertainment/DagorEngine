@@ -328,6 +328,11 @@ macro USE_SAMPLE_DEPTH_TEX(code)
       return tex2Dlod(downsampled_far_depth_tex, float4(tc.x, tc.y, 0, (float)level)).r;
     }
 
+    float sample_far_depth_tex_linear(float2 tc, int level)
+    {
+      return downsampled_far_depth_tex.SampleLevel(water_refraction_tex_samplerstate, tc, (float)level).r;
+    }
+
     float4 gather_far_depth(float2 uv)
     {
       return downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, uv);
@@ -565,6 +570,15 @@ macro APPLY_WATER_FOG(stage)
     {
       FogData fogData;
 
+      if (backFaceCalcs)
+      {
+        fogData.fogAdd = 0;
+        fogData.fogMul = 1;
+        fogData.fogAddSrgb = 0;
+        fogData.applyFogWithSrgbCurve = false;
+        return fogData;
+      }
+
       if (portal_use_dense_fog)
       {
         get_portal_rendering_fog(vd.dist, fogData.fogMul, fogData.fogAdd, fogData.fogAddSrgb);
@@ -572,8 +586,13 @@ macro APPLY_WATER_FOG(stage)
       }
       else
       {
-        float3 viewVec = vd.pointToEyeNormalized;
-        get_volfog_with_scattering(vd.linearTc, vd.linearTc, viewVec, vd.dist, screenPosW, fogData.fogMul, fogData.fogAdd);
+        ##if hardware.metal // currently volfog does not work with metal properly
+          get_scattering_tc_fog(vd.linearTc, vd.pointToEye, fogData.fogMul, fogData.fogAdd);
+        ##else
+          float2 volfogTc = vd.linearTc;
+          get_volfog_with_scattering(volfogTc, volfogTc, vd.pointToEye, screenPosW, fogData.fogMul, fogData.fogAdd);
+        ##endif
+
         fogData.fogAddSrgb = fogData.fogAdd;
         fogData.applyFogWithSrgbCurve = false;
       }
@@ -589,11 +608,6 @@ macro APPLY_WATER_FOG(stage)
       if (fogData.applyFogWithSrgbCurve)
         color = pow2(color);
       return color;
-    }
-
-    float3 applyWaterFogInverse(float3 color, FogData fogData)
-    {
-      return max(float3(0, 0, 0), (color - fogData.fogAdd) / max(fogData.fogMul, 0.000001));
     }
   }
 endmacro

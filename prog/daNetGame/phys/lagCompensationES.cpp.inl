@@ -103,7 +103,7 @@ struct LagRecordLoc<LR_POS_QUAT>
 
 struct LagRecordHdr
 {
-  float atTime = -1.f;
+  double atTime = -1.f;
   int flags = 0;
 };
 
@@ -117,7 +117,7 @@ struct LagRecord : public LagRecordHdr, public LagRecordLoc<lrtype>
 
   bool operator<(const LagRecord &rhs) const { return atTime < rhs.atTime; }
 
-  static LagRecord make(const BasePhysActor &physActor, float at_time)
+  static LagRecord make(const BasePhysActor &physActor, double at_time)
   {
     ecs::EntityId peid = physActor.getEid();
 
@@ -141,7 +141,7 @@ struct LagRecord : public LagRecordHdr, public LagRecordLoc<lrtype>
     physActor.updateTransform(tm);
   }
 
-  static LagRecord<LR_POS_QUAT> interpolate(const LagRecord &a, const LagRecord &b, float at_time)
+  static LagRecord<LR_POS_QUAT> interpolate(const LagRecord &a, const LagRecord &b, double at_time)
   {
     float alpha = (at_time - a.atTime) / float(b.atTime - a.atTime);
     G_ASSERTF(alpha > -1e-6f && alpha < (1.f + 1e-6f), "%f not in range [%f..%f]", at_time, a.atTime, b.atTime);
@@ -165,9 +165,9 @@ struct LagRecord : public LagRecordHdr, public LagRecordLoc<lrtype>
 typedef eastl::vector<LagRecord<LR_POS_QUAT>> EntityLagTrack;
 
 bool is_need_to_lag_compensate() { return PHYS_ENABLE_INTERPOLATION && is_true_net_server(); }
-float lag_compensation_time(ecs::EntityId avatar_eid,
+double lag_compensation_time(ecs::EntityId avatar_eid,
   ecs::EntityId lc_eid,
-  float at_time,
+  double at_time,
   int interp_delay_ticks_packed,
   float additional_interp_delay,
   BasePhysActor **out_lc_eid_phys_actor)
@@ -199,7 +199,7 @@ class CLagCompensationManager final : public ILagCompensationMgr
   eastl::vector_map<ecs::EntityId, LagRecord<LR_TRANSFORM>> restoreRecords;
 
 public:
-  void startLagCompensation(float to_time, ecs::EntityId except_eid) override
+  void startLagCompensation(double to_time, ecs::EntityId except_eid) override
   {
     if (to_time == NO_LAG_COMPENSATION_TIME)
       return;
@@ -220,7 +220,7 @@ public:
   }
 
 
-  LCError backtrackEntity(ecs::EntityId eid, float to_time) override
+  LCError backtrackEntity(ecs::EntityId eid, double to_time) override
   {
     auto pit = entityTrack.find(eid);
     return (pit == entityTrack.end()) ? LCError::UnknownEntity : backtrackEntity(pit, to_time);
@@ -233,7 +233,7 @@ public:
       restoreRecords.emplace(eid, decltype(restoreRecords)::mapped_type::make(actor, 0.f));
   }
 
-  LCError backtrackEntity(eastl::vector_map<ecs::EntityId, EntityLagTrack>::const_iterator pit, float at_time)
+  LCError backtrackEntity(eastl::vector_map<ecs::EntityId, EntityLagTrack>::const_iterator pit, double at_time)
   {
 #ifdef _DEBUG_TAB_
     G_ASSERT(pit != entityTrack.cend());
@@ -289,7 +289,7 @@ public:
     return LCError::Ok;
   }
 
-  void captureEntities(float)
+  void captureEntities(double)
   {
     entityTrackTmp.clear();
     int nTracksMoved = 0;
@@ -313,7 +313,7 @@ public:
       }
       else // new entity and no free tracks for reuse
         track = &entityTrackTmp.insert(physActor->eid).first->second;
-      float actorTime = physActor->getPhys().getCurrentTick() * physActor->getPhys().getTimeStep();
+      double actorTime = double(physActor->getPhys().getCurrentTick()) * double(physActor->getPhys().getTimeStep());
       if (EntityLagTrack::value_type *prevRec = track->empty() ? nullptr : &track->back())
       {
         if (prevRec->isPhysAsleep() && physActor->isAsleep()) // Optimization: don't waste memory on static (asleep) phys actors
@@ -342,9 +342,9 @@ public:
     }
   }
 
-  void decayOldHistory(float at_time)
+  void decayOldHistory(double at_time)
   {
-    float minTime = at_time - MAX_UNLAG_TIME_SEC;
+    double minTime = at_time - MAX_UNLAG_TIME_SEC;
     for (auto it = entityTrack.begin(); it != entityTrack.end();)
     {
       auto &track = it->second;
@@ -363,7 +363,7 @@ public:
     }
   }
 
-  void update(float at_time)
+  void update(double at_time)
   {
     if (!PHYS_ENABLE_INTERPOLATION)
       return;
@@ -377,4 +377,4 @@ static CLagCompensationManager lag_compensation_mgr;
 ILagCompensationMgr &get_lag_compensation() { return lag_compensation_mgr; }
 
 ECS_TAG(net, server)
-static void lag_compensation_update_es(const ecs::UpdateStageInfoAct &info) { lag_compensation_mgr.update(info.curTime); }
+static void lag_compensation_update_es(const ecs::UpdateStageInfoAct &info) { lag_compensation_mgr.update(info.curTimeD); }

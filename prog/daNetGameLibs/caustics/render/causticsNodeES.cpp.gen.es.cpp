@@ -34,7 +34,7 @@ static constexpr ecs::ComponentDesc caustics_render_features_changed_es_comps[] 
 //start of 5 rw components at [0]
   {ECS_HASH("caustics__perCameraResNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("caustics__renderNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("needs_water_heightmap"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("combined_shadows__use_additional_textures"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -44,7 +44,7 @@ static void caustics_render_features_changed_es_all_events(const ecs::Event &__r
     caustics_render_features_changed_es(evt
         , ECS_RW_COMP(caustics_render_features_changed_es_comps, "caustics__perCameraResNode", dafg::NodeHandle)
     , ECS_RW_COMP(caustics_render_features_changed_es_comps, "caustics__renderNode", dafg::NodeHandle)
-    , ECS_RW_COMP(caustics_render_features_changed_es_comps, "caustics__indoor_probe_mask", UniqueTexHolder)
+    , ECS_RW_COMP(caustics_render_features_changed_es_comps, "caustics__indoor_probe_mask", UniqueTexWithShaderVar)
     , ECS_RW_COMP(caustics_render_features_changed_es_comps, "needs_water_heightmap", bool)
     , ECS_RW_COMP(caustics_render_features_changed_es_comps, "combined_shadows__use_additional_textures", bool)
     );
@@ -67,7 +67,7 @@ static constexpr ecs::ComponentDesc caustics_before_render_es_comps[] =
 //start of 3 rw components at [0]
   {ECS_HASH("caustics__perCameraResNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("caustics__renderNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
 //start of 1 ro components at [3]
   {ECS_HASH("caustics__indoor_probe_shader"), ecs::ComponentTypeInfo<ShadersECS>()}
 };
@@ -78,7 +78,7 @@ static void caustics_before_render_es_all_events(const ecs::Event &__restrict ev
     caustics_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
         , ECS_RW_COMP(caustics_before_render_es_comps, "caustics__perCameraResNode", dafg::NodeHandle)
     , ECS_RW_COMP(caustics_before_render_es_comps, "caustics__renderNode", dafg::NodeHandle)
-    , ECS_RW_COMP(caustics_before_render_es_comps, "caustics__indoor_probe_mask", UniqueTexHolder)
+    , ECS_RW_COMP(caustics_before_render_es_comps, "caustics__indoor_probe_mask", UniqueTexWithShaderVar)
     , ECS_RO_COMP(caustics_before_render_es_comps, "caustics__indoor_probe_shader", ShadersECS)
     );
   while (++comp != compE);
@@ -186,7 +186,7 @@ static constexpr ecs::ComponentDesc create_caustics_node_ecs_query_comps[] =
 //start of 5 rw components at [0]
   {ECS_HASH("caustics__perCameraResNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("caustics__renderNode"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("caustics__indoor_probe_mask"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("needs_water_heightmap"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("combined_shadows__use_additional_textures"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -208,7 +208,7 @@ inline void create_caustics_node_ecs_query(ecs::EntityManager &manager, Callable
           function(
               ECS_RW_COMP(create_caustics_node_ecs_query_comps, "caustics__perCameraResNode", dafg::NodeHandle)
             , ECS_RW_COMP(create_caustics_node_ecs_query_comps, "caustics__renderNode", dafg::NodeHandle)
-            , ECS_RW_COMP(create_caustics_node_ecs_query_comps, "caustics__indoor_probe_mask", UniqueTexHolder)
+            , ECS_RW_COMP(create_caustics_node_ecs_query_comps, "caustics__indoor_probe_mask", UniqueTexWithShaderVar)
             , ECS_RW_COMP(create_caustics_node_ecs_query_comps, "needs_water_heightmap", bool)
             , ECS_RW_COMP(create_caustics_node_ecs_query_comps, "combined_shadows__use_additional_textures", bool)
             );

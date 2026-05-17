@@ -34,6 +34,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_lambdas.das | AOT lambda codegen — capture, invoke, nested | |
 | test_strings.das | AOT string operations — interpolation, comparison, builder | |
 | test_structures.das | AOT struct codegen — construction, fields, methods, inheritance | |
+| t_invoke_void.das | AOT `invoke` dispatch — void-returning function pointer via AOT path | |
 
 ## apply/
 
@@ -81,6 +82,13 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 |---|---|---|
 | test_bool_array.das | BoolArray — push, index, clear, resize, iteration, operators | |
 | test_bool_array_iterator_crash.das | BoolArray iterator context mismatch repro — benchmark context isolation | |
+
+## class_boost/
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_class_boost.das | class_boost annotations on classes — self injection, inheritance calls, explicit const overload dispatch | |
+| failed_explicit_const_non_static.das | Non-static method annotated with `explicit_const_class_method` is rejected | **expect** `30111` |
 
 ## bare_block/
 
@@ -147,12 +155,120 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_serial_vectors.das | Vector/range serialization — float2/3/4, int2/3/4, uint4, range, urange, range64, urange64 | |
 | test_serial_annotations.das | Annotation support — @rename, @enum_as_int, mixed annotations, roundtrip with annotations | |
 
+## dasSQLITE/
+
+> **Note:** These tests require the dasSQLITE module (`DAS_SQLITE_DISABLED=OFF`). Run: `dastest -- --test tests/dasSQLITE/`
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_01_with_sqlite.das | Runner lifecycle — `with_sqlite`, `open_sqlite`, `query_scalar`, `try_open_sqlite` failure path, `try_exec` bad SQL, `try_query_scalar` zero rows, `last_insert_rowid` initial state, `sqlite_version` | |
+| test_02_insert.das | `[sql_table]` macro emissions (table name, DDL, two INSERT shapes), `create_table` / `drop_table_if_exists` round-trip, single-row + array `insert`, `try_insert` constraint violation | |
+| test_03_last_rowid.das | `INTEGER PRIMARY KEY` ↔ ROWID — no-PK insert auto-assigns rowid, explicit-PK insert preserves Id, array insert returns last rowid, `_sql_pk_is_unset` predicate, drop+recreate resets rowid | |
+| test_04_user_types.das | User-defined SQL-mapped types — `sqlite_sql_type` / `sqlite_bind` overloads for a user `Color` struct, `[sql_table]` DDL emission with the user type, INSERT round-trip through the custom bind path | |
+| test_05_sql_macro.das | `_sql` bare `select_from` chain with `_where` / `_select` / `_to_array` composability (bind captures, literals, boolean ops) | |
+| test_05a_select_from_compat.das | Compatibility mode: `select_from(db, type<T>)` bare function vs `_sql` macro optimizer (client-side `_where` filtering via linq) | |
+| test_06_sql_text.das | `_sql_text` compile-time SQL emission (bare select, projections, WHERE with captures, AND/OR/NOT, composed chains, no-op `_to_array`) | |
+| test_07_macros.das | Macro support module: `when_price_lt` and `when_lt` user-defined call_macro examples for composability testing | |
+| test_07_sql_composability.das | Mode 2 composability: user-defined call_macros expand bottom-up, interleave with canonical `_where` / `_select`, produce identical SQL | |
+| test_08_first.das | `_first()` single-row terminal (LIMIT 1, panic on empty, with `_where` filter, named-tuple projection) | |
+| test_09_first_opt.das | `_first_opt()` returns Option<T> (some on match, none on empty or no-match) | |
+| test_10_query_one_positional.das | `query_one` 0/1-arg positional bind (zero-arg returns first row, single-arg filters by bind param) | |
+| test_11_query_one_variadic.das | `query_one` 2/3-arg positional binds (mixed types: string+int, three mixed args) | |
+| test_13_query_one_opt.das | `query_one_opt` returns Option<T> on 0-row case (some on match, none on no-match, zero-arg empty table) | |
+| test_15_query_scalar_int.das | `query_scalar` scalar return types: int (positive, negative) | |
+| test_16_query_scalar_int64.das | `query_scalar` int64 (max value, COUNT(*) narrowing) | |
+| test_17_query_scalar_double.das | `query_scalar` double precision floating-point | |
+| test_18_query_scalar_bool.das | `query_scalar` boolean (1→true, 0→false, predicates) | |
+| test_19_query_scalar_opt.das | `query_scalar_opt` returns Option<T> (string, int, int64, double, bool; none on empty) | |
+| test_20_try_query_scalar_overloads.das | `try_query_scalar` all type overloads (int, int64, double, bool) and error on no rows | |
+| test_21_try_sql_macro.das | `_try_sql` wrapper (non-panicking Result sibling of `_sql`; array, `_first`, `_first_opt`, count, empty-table error handling) | |
+| test_22_select_named_tuple.das | `_select` with named-tuple projection `(Name=_.Name, Price=_.Price)` (2-field, 3-field, emits SELECT distinct cols) | |
+| test_24_where_starts_with.das | `starts_with` string predicate (LIKE pattern escape, literal `%` handling) | |
+| test_25_where_ends_with.das | `ends_with` string predicate (LIKE pattern escape, literal `_` handling) | |
+| test_26_where_contains.das | `contains` substring match (LIKE wildcards, escape, literal `\` handling) | |
+| test_27_where_to_lower.das | `to_lower()` / `to_upper()` case-insensitive matching (emits LOWER/UPPER SQL functions) | |
+| test_28_where_length.das | `length()` string function in predicates (emits LENGTH SQL function) | |
+| test_29_where_abs.das | `abs()` mathematical function (emits ABS SQL function) | |
+| test_30_count_canary.das | `count()` aggregate canary — emits COUNT(*), empty table returns 0, `_select` pass-through | |
+| test_31_count_with_where.das | `count()` with `_where` filter (emits COUNT(*) FROM ... WHERE) | |
+| test_32_distinct.das | `distinct()` emits SELECT DISTINCT (full-row dedup, composes with `_where`) | |
+| test_33_take_skip.das | `take(n)` / `skip(n)` emit LIMIT / OFFSET; bind ordering, `_first` overrides take | |
+| test_34_order_by.das | `_order_by` ASC and `_order_by_descending` DESC; tuple-key multi-column sorting | |
+| test_35_aggregates.das | Column aggregates: `sum()` / `average()` / `min()` / `max()` with `_select(_.Col)` | |
+| test_36_group_by.das | `_group_by` with IGrouping shape (`_._0`=key, `_._1`=rows for COUNT/SUM/AVG/MIN/MAX) | |
+| test_37_null_handling.das | Option<T> type-driven nullability (NOT NULL vs nullable, DDL, INSERT/SELECT round-trip) | |
+| test_38_join.das | `_join` inner equi-join (INNER JOIN ON, table aliases, named-tuple result projection) | |
+| test_39_left_join.das | `_left_join` LEFT OUTER JOIN (right param Option<TB>, `is_some()` / `is_none()` probes for NULL) | |
+| test_40_in_not_in.das | `_in` / `_not_in` subquery operators (emits IN (SELECT ...), `_select(_.Col)` projection required) | |
+| test_41_any_none.das | `_any` / `_none` EXISTS / NOT EXISTS operators (uncorrelated subqueries in WHERE) | |
+| test_42_set_ops.das | Set operations: `union()` / `intersect()` / `except()` (UNION SELECT, same column projections) | |
+| test_43_update_by_pk.das | `update(row)` row-based by-PK update (PK match returns 1, missing PK returns 0) | |
+| test_44_update_bulk.das | `_sql_update(type<T>, predicate, set_dict)` bulk predicate-based update with literal/captured values | |
+| test_45_update_returning.das | `_sql_update_returning` UPDATE ... RETURNING (surfaces post-update row, multi-row with WHERE filters) | |
+| test_46_delete_by_pk.das | `delete_(row)` and `delete_by_id(type<T>, pk)` by-PK deletion (1 row affected on match, 0 on missing) | |
+| test_47_delete_bulk.das | `_sql_delete(type<T>, predicate)` bulk predicate-based delete | |
+| test_48_delete_returning.das | `_sql_delete_returning` DELETE ... RETURNING (surfaces deleted rows, empty on no-match) | |
+| test_49_changes.das | `changes()` queries rows-affected count from last exec UPDATE/DELETE | |
+| test_50_with_transaction.das | `with_transaction()` / `in_transaction()` autocommit/manual mode (Deferred / Immediate modes) | |
+| test_51_try_transaction.das | `try_transaction()` non-panicking transaction wrapper (error recovery, immediate mode) | |
+| test_52_insert_or_ignore.das | `insert_or_ignore` CONFLICT IGNORE strategy (fresh insert, silent on PK clash, bulk array partitioning) | |
+| test_53_insert_or_replace.das | `insert_or_replace` CONFLICT REPLACE strategy (overwrite on PK match, fresh insert, bulk) | |
+| test_54_upsert_single_col.das | `_sql_upsert(row, _.Col, set_dict)` single-column ON CONFLICT key (insert vs merge branch, _excluded reference) | |
+| test_55_upsert_composite.das | `_sql_upsert` multi-column composite conflict keys via tuple `(_.Email, _.Tenant)` | |
+| test_56_upsert_returning.das | `_sql_upsert_returning` UPSERT ... RETURNING (post-merge row on conflict, fresh row on insert) | |
+| test_57_sql_unique.das | `@sql_unique` column annotation (DDL emission, constraint enforcement, distinct values allowed) | |
+| test_58_sql_references.das | `@sql_references` / `@sql_on_delete` foreign-key relationships (DDL REFERENCES clause, CASCADE delete semantics) | |
+| test_59_sql_index.das | `[sql_index]` DDL emission (single-col, composite, unique indexes with auto-naming) | |
+| test_60_defaults_computed.das | Defaults (native field init → DEFAULT, `@sql_default_fn` built-ins) and computed columns (`@sql_computed` VIRTUAL/STORED) | |
+| test_61_custom_types.das | `sql_bind` / `sql_extract` adapter rail (DateTime via int64, Guid via array<uint8>, enum via int, Option<T> nullability) | |
+| test_62_blob.das | `array<uint8>` BLOB storage (DDL, byte-level round-trip, large blobs, Option<array<uint8>>) | |
+| test_63_exec_params.das | `exec` parameterized binds (0/1/2/3-arg variadic overloads for raw DDL/DML) | |
+| test_64_json_columns.das | `@sql_json` tuple storage (TEXT storage via daslib/json JV/from_JV, DDL override, round-trip) | |
+| test_65_blob_struct.das | `@sql_blob` struct storage (archive-based via daslib/archive, multiple BLOB fields, nested shapes, mixed plain+blob+json) | |
+| test_66_column_info.das | `column_info(type<T>)` compile-time struct walk (ColumnInfo array, nullable probes, `sqlite_sql_type` rendering) | |
+| test_67_query_raw.das | Raw SQL query shapes (PRAGMA, sqlite_master; position-based field mapping without name alignment) | |
+| test_68_sql_column_rename.das | `@sql_column = "<sql_name>"` renames on-disk column (DDL, _sql predicates, _order_by, column_info, INSERT/UPDATE/DELETE) | |
+| test_69_sql_column_join.das | `@sql_column` rename through JOIN ON clause (both sides renamed to SQL keywords) | |
+| test_70_sql_column_upsert.das | `@sql_column` rename across UPSERT (ON CONFLICT/DO UPDATE SET emit renamed SQL identifiers) | |
+| test_71_sql_column_index_fk.das | `@sql_column` rename with `[sql_index]` and `@sql_references` (FK target PK rename) | |
+| test_72_view_basic.das | `[sql_view]` read-only views (macro emit, `_create_view`, select_from on view type, named projections) | |
+| test_74_register_function_basic.das | `register_function("name", @@fn)` UDF registration (0–4-arg overloads, all scalar types) | |
+| test_75_register_function_null_panic.das | NULL short-circuit (no invocation on NULL arg → NULL result) and panic recovery | |
+| test_76_register_function_use_in_chains.das | Registered UDFs usable in WHERE / ORDER BY / projection (deterministic UDF embed in `_sql` chains) | |
+| test_77_register_function_lifetime.das | UDF registration lifetime (re-register replaces binding, per-connection scope) | |
+| test_80_pragma_basic.das | `set_pragma` string/int64/bool values (journal_mode, busy_timeout, foreign_keys round-trip) | |
+| test_83_backup_to.das | `backup_to(dst_db)` snapshot copy (memory-to-memory, row count preservation, content verification) | |
+| test_85_vacuum.das | `vacuum()` database rebuild (in-memory rebuilds, `try_vacuum()` errors in transactions) | |
+| test_90_each_sql_basic.das | `_each_sql` iterator form (for loop over cursor, break finalizes stmt, streaming without materializing) | |
+| test_91_sql_pragma_macro.das | `_sql_pragma("name", value)` macro form (const/runtime string values and names) | |
+| test_91_sql_vacuum_into_macro.das | `_sql_vacuum_into(path)` macro form (vacuum into file path, runtime string path, verification across reopen) | |
+| test_92_order_by_runtime.das | Runtime `_order_by(string)` column-name binding (const string folds to compile-time, runtime path uses sql_quote_id) | |
+| test_93_attach.das | `with_attached(path, alias)` attach secondary database file (query across attached, temp-file cleanup) | |
+| test_94_fts5.das | `[sql_fts5]` full-text search (CREATE VIRTUAL TABLE fts5, `@sql_fts_rank` hidden rank column, INSERT skips rank) | |
+| failed_create_view.das | `_create_view` macro validation failures (column count/type mismatches, non-annotated struct, bound parameters) | **expect** `40104:7` |
+| failed_each_sql_terminals.das | `_each_sql` rejects materializing terminals (`_to_array`, `_first`, `_first_opt`, aggregates) | **expect** `40104:4` |
+| failed_pred_json_path_typo.das | Predicate-side JSON-path validation (typo detection in `_.Field.nested` chains) | **expect** `40104:3, 30503:3` |
+| failed_register_function.das | `register_function` compile-time type validation (struct args, struct returns, pointers, non-function references) | **expect** `40104:5` |
+| failed_sql_column.das | `@sql_column` annotation validation (empty value, embedded quotes/backslashes, cross-field collisions) | **expect** `30111:5` |
+| failed_sql_fts5.das | `[sql_fts5]` field-annotation rejections (`@sql_column` on `@sql_fts_rank`) | **expect** `30111:1` |
+| failed_sql_index.das | `[sql_index]` validation (missing fields, nonexistent columns, ordering with `[sql_table]`) | **expect** `30111:4` |
+| failed_sql_json_blob_kind_collision.das | Payload type kind collision rejection (same type in `@sql_json` vs `@sql_blob`) | **expect** `30111:3` |
+| failed_sql_macro.das | `_sql` / `_sql_text` analyzer failures (22 malformed chains: invalid roots, duplicate modifiers, unsupported expressions) | **expect** `40104:22, 30304:2, 30503:2` |
+| failed_sql_pragma_vacuum.das | `_sql_pragma` / `_sql_vacuum_into` argument-shape validation (wrong types, arg counts) | **expect** `40104:5` |
+| failed_sql_table_schema.das | `[sql_table]` schema-validation failures (computed+PK collision, defaults+initializers, FK actions, reference resolution) | **expect** `30111:12` |
+| failed_sql_update_delete.das | `_sql_update` / `_sql_delete` analyzer failures (wrong arity, non-type args, typos, duplicate columns) | **expect** `40104:7` |
+| failed_sql_upsert.das | `_sql_upsert` analyzer failures (wrong arity, on_conflict/do_update validation, duplicate columns) | **expect** `40104:10` |
+| failed_sql_view_mutations.das | `_sql_update` / `_sql_delete` / `_sql_upsert` against `[sql_view]` types (read-only rejection) | **expect** `40104:8` |
+| failed_sql_view_schema.das | `[sql_view]` field-annotation rejections (PK, UNIQUE, COMPUTED, DEFAULT, initializers, FK, column collisions) | **expect** `30111:9` |
+
 ## daslib/
 
 | File | Description | Expects errors |
 |---|---|---|
 | ast_cursor_fixture.das | *(helper)* Fixture file for ast_cursor tests | |
 | ast_cursor_test.das | `daslib/ast_cursor` — cursor-based AST navigation and query | |
+| clargs_test.das | `daslib/clargs` — string flags, `=`-style assignment, array flags, int/float flags, bool/help flags | |
+| keyword_test.das | `daslib/keyword` — `is_cpp_keyword`, `is_das_keyword`, `is_keyword` predicates | |
 
 ## dastest/
 
@@ -181,6 +297,24 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_on_log.das | to_log/print triggering onLog on debug agents | |
 | test_state_collection.das | State collection via onCollect and onVariable | |
 | test_threadlock.das | threadlock_context option propagation | |
+
+## dasPEG/
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_alternatives.das | Ordered choice, fallthrough, many alternatives, prefix ordering | |
+| test_binding.das | Rule binding (as name), text extraction, nonterminal binding, multiple bindings | |
+| test_builtins.das | Built-in terminals: number, double_, string_, WS, TS, EOF, EOL, any | |
+| test_character_sets.das | set() ranges, multiple ranges, single chars, not_set(), vowels | |
+| test_commit.das | commit cut operator, error generation, error position, commit in expressions | |
+| test_edge_cases.das | Empty input, single char, long input, whitespace-only, WS vs TS, large numbers | |
+| test_error_reporting.das | ParsingError fields, error position, commit vs no-commit errors | |
+| test_literals.das | Literal matching, multi-word, escaped braces, case sensitivity, partial match | |
+| test_lookahead.das | PEEK positive lookahead, ! negative lookahead, keyword rejection, no-consume | |
+| test_optional.das | MB() optional present/absent, optional suffix, default values | |
+| test_recursion.das | Direct recursion, mutual recursion, deep nesting stress test | |
+| test_repetition.das | * zero-or-more, + one-or-more, comma-separated lists, lines of text | |
+| test_return_types.das | Return int, double, string, bool, struct, tuple, void? pattern rules | |
 
 ## decs/
 
@@ -227,6 +361,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | fio_errors.das | Path manipulation and error handling — extension, dir_name, base_name, normalize, mkdir/rmdir edge cases | |
 | fio_file.das | File I/O — fopen, fread, fwrite with fuzzing | |
 | fio_utils.das | File utilities — fexist, rmdir, rmdir_rec, fread/fwrite by path, get_das_version | |
+| popen_argv.das | `popen_argv` — basic invocation, non-zero exit on unknown flag, exit code capture | |
 
 ## functional/
 
@@ -271,7 +406,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 ## jit_tests/
 
-48 files testing JIT compilation code generation. None have `expect` directives.
+50 files testing JIT compilation code generation. None have `expect` directives.
 
 | File | Description | Expects errors |
 |---|---|---|
@@ -288,6 +423,8 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | compare.das | Comparison operators | |
 | dim.das | Fixed-size arrays (dim) | |
 | dim2d.das | 2D fixed arrays | |
+| default_fn_ptr.das | Default function pointer argument — invoke with default `@@noop_handler` | |
+| dll_cache.das | JIT DLL content-addressed caching — identical source → cache hit, changed source → cache miss | |
 | extern_call.das | External function calls | |
 | finally.das | Finally blocks | |
 | for_loop.das | For loop codegen | |
@@ -334,8 +471,11 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_jobque_edge.das | Channel edge cases — single-item, large batch | |
 | test_jobque_jobs.das | JobStatus, new_job with channels and messages | |
 | test_jobque_lockbox.das | LockBox basics — create, destroy, validity | |
+| test_jobque_lockbox_fill_grab.das | LockBox `fill`/`grab` — fill marks ready, grab returns data and resets, multi-element batch | |
 | test_jobque_parallel.das | parallel_for, parallel work distribution | |
+| test_jobque_stream.das | Channel stream — push/pop bytes, structured data serialization via archive | |
 | test_jobque_try_pop.das | try_pop_clone — non-blocking pop, empty/data/drain | |
+| test_jobque_tracking.das | Job status leak tracking — channel create+remove leaves no leak, `--track-job-status` canary | |
 | test_jobque_wait_group.das | with_wait_group — convenience wrapper for job completion | |
 
 ## json/
@@ -355,6 +495,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 |---|---|---|
 | _glob.das | *(helper)* Shared module defining `AAA = 10` | |
 | _helper_foo.das | *(helper)* Module providing `TestObjectFoo` struct and `testFoo` function | |
+| _helper_macro_uninferred.das | *(helper)* `[bad_emitter]` structure_macro that adds an un-inferred function during patch | |
 | _module_a.das | *(helper)* Module for module_vis_fail — globals, types, functions | |
 | _module_b.das | *(helper)* Module for module_vis_fail — requires _module_a | |
 | _operators_derived.das | *(helper)* Derived class BarOp | |
@@ -427,7 +568,6 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_call_depth.das | Recursive default argument expansion — max call depth exceeded | **expect** `41000:1` `30301:50` |
 | failed_capture_self.das | Capturing `self` in lambda fails | **expect** `30508` `30124` |
 | failed_constants.das | Out-of-range numeric literal errors | **expect** `10006:12` `10010:4` |
-| failed_if_one_liner_multiline.das | One-liner if/else/elif body on separate line is an error | **expect** `20000:7` |
 | failed_table_lookup_collision.das | Table lookup collision lint — same table indexed twice in one expression | **expect** `40216:7` |
 | finally.das | `finally` blocks — exceptions, loops, nested, return | |
 | for_const_array.das | For-loop over `fixed_array` constant | |
@@ -448,6 +588,8 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_function_argument_already_declared.das | Duplicate function argument name | **expect** `30202` |
 | failed_function_not_found_ambiguous.das | Ambiguous function call — same name in two modules | **expect** `30304` |
 | generators.das | Generator mechanics — yield, ranges, nested, early return | |
+| generic_class_method.das | `[class_method]` on generic static methods — verifies `isAppliedToGeneric` flag | |
+| failed_class_method_non_static.das | `[class_method]` rejected on non-static class method | **expect** `30111` |
 | failed_global_init_type_mismatch.das | Global variable type mismatch on init | **expect** `30113` |
 | global_order.das | Global variable initialization ordering with clone | |
 | global_ptr_init.das | Global pointer struct initialization | |
@@ -487,6 +629,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | make_handle.das | Handle construction — `TestObjectFoo(fooData=...)`, global/local/cmres/ascend | |
 | make_local.das | Struct local construction — defaults, `uninitialized`, fixed_array | |
 | make_struct_with_clone.das | Struct construction with clone `:=` for array fields | |
+| failed_macro_added_function_must_infer.das | structure_macro adds a function during patch without setting astChanged — compiler reports internal-error diagnostics with a hint, instead of crashing | **expect** `50100:2` |
 | map_to_a.das | `map_to_array` — reinterpret raw memory as typed array via unsafe block | |
 | memset.das | memset8, memset16, memset32, memset64, memset128 | |
 | memzero.das | memzero for float and fixed_array | |
@@ -513,6 +656,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | override_field.das | Struct field `override` for function pointers in derived struct | |
 | partial_specialization.das | Generic function specialization dispatch | |
 | peek_and_modify_string.das | `peek_data` finds chars, `modify_data` replaces bytes | |
+| permissive_tuple_const.das | Tuple param with `const?` field accepts argument tuple with non-const `?` field (generic + exact overloads) | |
 | pointers.das | Pointer operations — new, deref, safe navigation, null checks | |
 | ptr_arithmetic.das | Pointer arithmetic — signed/unsigned int/int64/uint/uint64 | |
 | ptr_index.das | Pointer deref and index, default null pointer argument | |
@@ -527,7 +671,6 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | safe_index.das | Safe index `?[]` on arrays, tables, vectors, strings | |
 | safe_ptr_at.das | Safe index `?[]` on pointer types — null safety, struct pointer arrays | |
 | safe_operators.das | Custom `operator []`, `?[]`, `.`, `?.` on user struct | |
-| scatter_gather.das | SIMD gather/scatter ops — int, uint, float arrays with uint4 indices | |
 | serialization.das | Archive serialization — structs, custom serialize, arrays, tables | |
 | set_table.das | `table<int>` as set — insert, erase, keys iteration, clone, literal | |
 | setand_and_setor_bool.das | Short-circuit `\|\|=` and `&&=` operators | |
@@ -535,7 +678,6 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | simple_string.das | String pass semantics — by value, by ref, clone, return, struct fields | |
 | failed_sizeof_reference.das | `sizeof` on reference types | **expect** `39902:2` |
 | smart_ptr.das | `smart_ptr<TestObjectSmart>` — scope, move, ref count, clone, use_count | |
-| failed_smart_ptr_move.das | Unsafe `<-` move on `smart_ptr<>` type | **expect** `31300:1` |
 | sort.das | Sort on arrays/fixed_arrays — int, uint, int64, float, double, string, custom struct, vector | |
 | static.das | Static class members and methods | |
 | failed_static_assert_in_infer.das | Static assertion during type inference | **expect** `40100` |
@@ -550,7 +692,10 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | failed_structure_field_already_declared.das | Duplicate struct field name | **expect** `30115` |
 | failed_structure_not_found_ambiguous.das | Ambiguous struct name — same name in two modules | **expect** `30302` |
 | super.das | `super` keyword — parent constructor calls, parent method calls, 3-level hierarchy | |
+| super_finalize.das | `delete super.self` — base-class finalizer chain (class, 3-level, free struct finalizer) | |
+| cant_delete_super_self.das | `delete super.self` misuse — outside finalizer, no base, wrong arg shape | **expect** `31002:6` `30305:6` `30503:6` |
 | table.das | Table tombstone handling and iteration | |
+| table_get_key.das | `get_key(table, value)` — retrieve key by iterator value for int↔float, string↔int, const table, tombstones, empty, single entry | |
 | table_operations.das | Table find, insert, delete, key_exists, erase collision, lock panic, defaults, modify | |
 | test_value_table_key.das | `table<EntityId; string>` — value-type table key ops, set operations | |
 | testing_tools.das | Faker, fuzzer, testing_boost tools | |
@@ -581,6 +726,21 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | vector_fields.das | float4 .r/.g/.b/.a fields and swizzle | |
 | with_statement.das | `with (struct) { field = val }` block scoping | |
 
+## loops/
+
+Coverage of per-iteration `finally` semantics across every loop form. Each cell asserts the finally counter equals the expected per-iteration count; `inscope` cells verify `var inscope` inside a loop body is legal and leak-free.
+
+| File | Description | Expects errors |
+|---|---|---|
+| for_range.das | `for (x in range(n))` — plain, break, continue, return, nested, var inscope, empty | |
+| for_array.das | `for (x in array<int>)` — plain, break, continue, return, nested, var inscope, empty | |
+| for_fixed_array.das | `for (x in int[N])` — plain, break, continue, return, var inscope | |
+| for_iterator.das | `for (x in iterator<int>)` (generator-backed) — plain, break, continue, return, var inscope, empty | |
+| for_multi_source.das | `for (a, b in src1, src2)` — plain, break, continue, return, var inscope, empty, uneven sources | |
+| while.das | `while (cond)` — plain, break, continue, return, nested, var inscope, never-taken | |
+| nested.das | Mixed nested loops — for-in-for, while-in-for, for-in-while, triple-nested, break isolation | |
+| generator_loops.das | `for`/`while` inside a generator body — yield-from-finally interleaves with body yields per iteration; break, continue, return, nested, empty | |
+
 ## linq/
 
 | File | Description | Expects errors |
@@ -592,9 +752,12 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_linq_concat.das | append, prepend, concat operations | |
 | test_linq_element.das | element_at, first, last, single | |
 | test_linq_fold.das | Comprehension fold, method chaining syntax | |
+| test_linq_fold_ast.das | Compile-time AST fold — `_where` rewrite to comprehension, pattern recognition in macro | |
 | test_linq_from_decs.das | LINQ querying decs entities | |
 | test_linq_generation.das | default_empty, repeat, range generation | |
+| test_linq_group_by.das | `_group_by_lazy` on arrays — primitive key, string key, `_having` filter | |
 | test_linq_join.das | join, group_join operations | |
+| test_linq_join_errors.das | `_join` / `_left_join` non-equi-join rejection (theta joins, AND-chained keys) | **expect** `40104:5` |
 | test_linq_partition.das | skip, take, skip_while, take_while | |
 | test_linq_querying.das | any, all, contains, where | |
 | test_linq_set.das | distinct, union, intersect, except | |
@@ -618,8 +781,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 
 | File | Description | Expects errors |
 |---|---|---|
-| test_modules.das | Module system integration — compiles and runs 7 module scenarios via compile_file + make_file_access | |
+| test_modules.das | Module system integration — compiles and runs 9 module scenarios via compile_file + make_file_access (incl. file-path requires `./`, `../`, `%/`) | |
 | _modules/ | *(helper directory)* Module source files for test_modules.das (dastest skips `_`-prefixed dirs) | |
+| _modules/filepath/ | *(helper)* Fixture for file-path require tests — main.das exercises `./`, `../`, `%/` plus dedup; main_missing.das exercises the failure path | |
 
 ## math/
 
@@ -627,6 +791,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 |---|---|---|
 | fake_numeric.das | *(helper)* Macro module — FakeNumericMacro for comprehensive faker tests | |
 | inf_and_nan.das | Infinity and NaN comparisons | |
+| double_math.das | `double` math functions — floor, ceil, round, fract, saturate, min/max, clamp, abs, sign, sqrt, large-cycle precision | |
 | math_matrix.das | Matrix operations — multiply, equality, transpose with fuzzing | |
 | math_numeric.das | Numeric math functions (sin, cos, tan, etc.) via fake_numeric macro | |
 | mat_ctors.das | Matrix constructors — float3x3, float3x4, float4x4, identity, sequence, row verification | |
@@ -634,6 +799,15 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | math_misc.das | Misc math — min, lerp, reflect, dot, length, cross, noise, ceili, saturate | |
 | math_pack_unpack.das | pack_float_to_byte / unpack_byte_to_float with fuzzing | |
 | math_quaternions.das | Quaternion operations with fuzzing | |
+
+## option/
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_option.das | `Option<T>` — some/none constructors, map/filter/and_then/or_else/or_value, unwrap family, operators `??`/`==`, zip, if_some/if_none, chaining | |
+| test_option_non_copyable.das | `Option<array<int>>` — every constructor/combinator/unwrap/operator with a non-copyable payload, plus `move_some` | |
+| test_result.das | `Result<T, E>` — ok/err constructors, map/map_err/and_then/or_else, unwrap family, operators `??`/`==`, to_option/err_to_option bridges, if_ok/if_err, chaining | |
+| test_result_non_copyable.das | `Result<array<int>, string>` — every constructor/combinator/unwrap/operator with a non-copyable T, plus `move_ok` and `move_err` | |
 
 ## regex/
 
@@ -683,6 +857,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_load_info.das | Image info queries — dimensions, channels, format detection without full load | |
 | test_raster.das | Rasterization — draw_line, draw_rect, fill_rect, draw_circle, pixel blending | |
 | test_raster_blit.das | Blit operations — copy, scale, alpha-blend, region transfer | |
+| scatter_gather.das | SIMD gather/scatter — `gather_scatter` for int, uint, float, float2/3/4, int2/3/4 via uint4 index pairs | |
 | test_resize.das | Image resize — nearest, bilinear, bicubic, different target sizes | |
 | test_settings.das | Image load/save settings — quality, compression, flip | |
 | test_stbimage_ttf.das | stbimage_ttf — safe TrueType font rendering via stbimage_boost + stbtruetype | |
@@ -707,6 +882,9 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | strings_properties.das | length, empty, starts_with, ends_with with fuzzing | |
 | strings_replace_multiple.das | replace_multiple — multiple replacements, special chars, empty | |
 | strings_search.das | find (string and char) with fuzzing | |
+| utf8_word_boundary.das | utf32_is_word_char / utf32_to_lower / each_word — Unicode word-boundary primitives | |
+| fts5_query.das | FTS5 query parser — terms, phrases, AND/OR/NOT, NEAR, parens, error reporting | |
+| fts5_query_eval.das | FTS5 query evaluator — match semantics including Unicode case-fold and prefix phrases | |
 | strings_traits.das | is_alpha, is_new_line, is_white_space, is_number with fuzzing | |
 | temporary_intern_strings.das | temp_string with intern_strings option | |
 | temporary_strings.das | temp_string, build_temp_string — no heap allocations | |
@@ -715,6 +893,7 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | test_cpp_functions.das | C++ string functions — fmt, safe_unescape, to_lower_in_place, character_at | |
 | test_new_string_functions.das | New string utilities — contains, count_chars, pad_left/right, trim_chars | |
 | test_strings_boost_extra.das | Extra strings_boost — wide, is_character_at, eq, join overloads | |
+| test_strings_convert.das | `daslib/strings_convert` — `try_to_*` returning `Result<T; ConversionError>` | |
 
 ## template/
 

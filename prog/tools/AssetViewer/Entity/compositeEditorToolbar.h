@@ -19,6 +19,8 @@ public:
 private:
   void addCheckButton(PropPanel::ContainerPropertyControl &tb, int id, const char *editor_command_id, const char *bmp_name,
     const char *hint);
+  void addButton(PropPanel::ContainerPropertyControl &tb, int id, const char *editor_command_id, const char *bmp_name,
+    const char *hint);
   void setButtonState(int id, bool checked, bool enabled);
 
   int toolBarId = -1;

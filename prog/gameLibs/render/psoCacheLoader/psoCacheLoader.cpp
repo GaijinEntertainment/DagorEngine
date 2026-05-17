@@ -10,6 +10,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <EASTL/string.h>
+#include <EASTL/string_view.h>
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_memIo.h>
 
@@ -112,7 +113,8 @@ public:
 namespace circuit
 {
 const DataBlock *get_conf();
-}
+eastl::string_view get_name();
+} // namespace circuit
 
 void load_pso_cache(const char *game_version)
 {
@@ -126,7 +128,7 @@ void load_pso_cache(const char *game_version)
   const char *loadedCacheMsg = waitableCallback.previousCacheLoadedFromDisk ? "Will use previous loaded cache from disk." : "";
   if (canMakeRequest && !baseurl)
   {
-    debug("URL for pso cache has not beed setup in <curcuit_name>{ pso_cache_download_url:t= }.%s", loadedCacheMsg);
+    debug("URL for pso cache has not beed setup in %s{ pso_cache_download_url:t= }.%s", circuit::get_name().data(), loadedCacheMsg);
   }
   const char *appkey = ::dgs_get_settings()->getBlockByNameEx("dx12")->getStr("pso_app_key", nullptr);
   if (canMakeRequest && !appkey)

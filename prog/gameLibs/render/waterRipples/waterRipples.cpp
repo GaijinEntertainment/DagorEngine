@@ -28,7 +28,7 @@ WaterRipples::WaterRipples(float world_size, int simulation_tex_size, float wate
   texBuffers[2] = dag::create_tex(NULL, texSize, texSize, TEXFMT_R16F | TEXCF_RTARGET, 1, "water_ripples_2", RESTAG_WATER);
 
   // normal texture 2 times larger than solution texture
-  heightNormalTexture = UniqueTexHolder(
+  heightNormalTexture = UniqueTexWithShaderVar(
     dag::create_tex(NULL, texSize * 2, texSize * 2, TEXFMT_A2R10G10B10 | TEXCF_RTARGET, 1, "water_ripples_normal", RESTAG_WATER),
     get_shader_variable_id("water_ripples_normal", true));
   {
@@ -305,9 +305,11 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
     if (useDistortion)
       ShaderGlobal::set_texture(waterRipplesDistortT1VarId, distortionTexBuffers[1 - curDistortionBuffer].getTexId());
 
-    d3d::set_render_target(texBuffers[curBuffer].getTex2D(), 0);
     if (useDistortion)
-      d3d::set_render_target(1, distortionTexBuffers[curDistortionBuffer].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW,
+        {{texBuffers[curBuffer].getTex2D(), 0, 0}, {distortionTexBuffers[curDistortionBuffer].getTex2D(), 0, 0}});
+    else
+      d3d::set_render_target({}, DepthAccess::RW, {{texBuffers[curBuffer].getTex2D(), 0, 0}});
     updateRenderer.render();
     d3d::resource_barrier({texBuffers[curBuffer].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     if (useDistortion)
@@ -316,7 +318,7 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
     if (stepNo == 0) // update normal and distortion texture only once per update cycle
     {
       TIME_D3D_PROFILE(water_ripples_resolve);
-      d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{heightNormalTexture.getTex2D(), 0, 0}});
       ShaderGlobal::set_texture(waterRipplesT1VarId, texBuffers[get_buf_idx(curBuffer, 0)].getTexId());
       ShaderGlobal::set_sampler(waterRipplesT1_samplerstateVarId, waterRipplesLinearSampler);
       ShaderGlobal::set_int(waterRipplesResolveModeVarId, 0);
@@ -326,7 +328,7 @@ void WaterRipples::advance(float dt, const Point2 &origin_)
       if (useDistortion)
       {
         TIME_D3D_PROFILE(water_ripples_resolve_distortion);
-        d3d::set_render_target(distortionTexture.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{distortionTexture.getTex2D(), 0, 0}});
         ShaderGlobal::set_texture(waterRipplesDistortT1VarId, distortionTexBuffers[curDistortionBuffer].getTexId());
         ShaderGlobal::set_sampler(waterRipplesDistortT1_samplerstateVarId, waterRipplesLinearSampler);
         ShaderGlobal::set_int(waterRipplesResolveModeVarId, 1);
@@ -351,22 +353,19 @@ void WaterRipples::addDropInst(int reg_num)
 void WaterRipples::clearRts()
 {
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target();
-  d3d::set_render_target(0, texBuffers[0].getTex2D(), 0);
-  d3d::set_render_target(1, texBuffers[1].getTex2D(), 0);
-  d3d::set_render_target(2, texBuffers[2].getTex2D(), 0);
   if (useDistortion)
-  {
-    d3d::set_render_target(3, distortionTexBuffers[0].getTex2D(), 0);
-    d3d::set_render_target(4, distortionTexBuffers[1].getTex2D(), 0);
-    d3d::set_render_target(5, distortionTexture.getTex2D(), 0);
-  }
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{texBuffers[0].getTex2D(), 0, 0}, {texBuffers[1].getTex2D(), 0, 0}, {texBuffers[2].getTex2D(), 0, 0},
+        {distortionTexBuffers[0].getTex2D(), 0, 0}, {distortionTexBuffers[1].getTex2D(), 0, 0}, {distortionTexture.getTex2D(), 0, 0}});
+  else
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{texBuffers[0].getTex2D(), 0, 0}, {texBuffers[1].getTex2D(), 0, 0}, {texBuffers[2].getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-  d3d::set_render_target(heightNormalTexture.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{heightNormalTexture.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(127, 127, 127), 0, 0);
   if (!useDistortion) // clear stub texture then
   {
-    d3d::set_render_target(distortionTexture.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{distortionTexture.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     d3d::resource_barrier({distortionTexture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }

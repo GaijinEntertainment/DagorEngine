@@ -58,7 +58,7 @@ shader tex_view
       int2 tc0: TEXCOORD0;
     };
 
-    VsOutput gui_main_vs(VsInput v)
+    VsOutput tex_main_vs(VsInput v)
     {
       VsOutput o;
 
@@ -69,7 +69,7 @@ shader tex_view
       return o;
     }
   }
-  compile("target_vs", "gui_main_vs");
+  compile("target_vs", "tex_main_vs");
 
   hlsl(ps) {
     float4 tex_main_ps(VsOutput v): SV_Target

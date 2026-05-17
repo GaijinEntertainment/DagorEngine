@@ -102,7 +102,7 @@ ToroidalStaticShadows::ToroidalStaticShadows(int tsz, int cnt, float dist, float
     d3d::get_driver_desc().issues.hasRenderPassClearDataRace ? TEXCF_RTARGET | TEXFMT_DEPTH32_S8 : TEXCF_RTARGET | TEXFMT_DEPTH16;
   TexPtr tex = is_array ? dag::create_array_tex(texSize, texSize, cnt, fmt, 1, "static_shadow_tex_arr", RESTAG_SHADOW)
                         : dag::create_tex(nullptr, texSize, texSize, fmt, 1, "static_shadow_tex2d", RESTAG_SHADOW);
-  staticShadowTex = UniqueTexHolder(eastl::move(tex), "static_shadow_tex");
+  staticShadowTex = UniqueTexWithShaderVar(eastl::move(tex), "static_shadow_tex");
   restoreShadowSampler();
   clearTexture();
   static_shadows_cascades = get_shader_variable_id("static_shadows_cascades", true);

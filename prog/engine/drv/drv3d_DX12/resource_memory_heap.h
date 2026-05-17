@@ -62,7 +62,6 @@ protected:
     Image *original);
 
 public:
-  uint64_t getDeviceResidentImageMemoryFreeRangesTotalSize();
   ImageCreateResult createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii, const char *name);
   Image *adoptTexture(ID3D12Resource *texture, const char *name);
 #if _TARGET_PC_WIN
@@ -675,7 +674,7 @@ private:
     BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation);
   void findBufferOwnersAndReplaceDeviceObjects(BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
     frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
-    BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation,
+    BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation, uint64_t buffer_resource_size,
     const ScratchBuffer &scratch = {});
   bool hasLockedOwners(BufferGlobalId buffer_id);
 
@@ -1422,7 +1421,6 @@ public:
   using BaseType::afterEmergencyDefragmentation;
   using BaseType::beforeEmergencyDefragmentation;
   using BaseType::get_memory_groups_count;
-  using BaseType::getDeviceResidentImageMemoryFreeRangesTotalSize;
   using BaseType::getFreeMemorySizeAndFragmentation;
   using BaseType::isDefragmentationRequired;
   using BaseType::isDefragmentationRequiredOom;

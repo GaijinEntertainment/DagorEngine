@@ -173,6 +173,7 @@ static constexpr const char *OBJED_CANCEL_GIZMO_TRANSFORM = "ObjectEditor.Cancel
 static constexpr const char *VIEW_GRID_MOVE_SNAP = "Main.Grid.MoveSnap";
 static constexpr const char *VIEW_GRID_ANGLE_SNAP = "Main.Grid.AngleSnap";
 static constexpr const char *VIEW_GRID_SCALE_SNAP = "Main.Grid.ScaleSnap";
+static constexpr const char *VIEW_GRID_SETTINGS = "Main.Grid.Settings";
 
 static constexpr const char *VIEW_GRID_SHOW = "Viewport.ToggleGrid";
 static constexpr const char *VIEW_WIREFRAME = "Viewport.ToggleWireframe";

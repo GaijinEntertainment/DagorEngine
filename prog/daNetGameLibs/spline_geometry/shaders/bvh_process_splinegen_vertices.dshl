@@ -56,7 +56,7 @@ shader bvh_process_splinegen_vertices
 
       int vertexStart = start_vertex + vertexId;
       SplineGenVertex v = structuredBufferAt(source, vertexStart);
-      PRECISE float3 worldPos = v.worldPos;
+      PRECISE_VAR float3 worldPos = v.worldPos;
 
       float4 normal = float4(decode_unit_vector(v.normal), 0);
       uint packedNormal = pack_normal4(normal);

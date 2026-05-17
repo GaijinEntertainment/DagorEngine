@@ -137,6 +137,8 @@ class CheckerVisitor : public Visitor
   void checkShiftPriority(const BinExpr *expr);
   void checkCompareWithContainer(const BinExpr *expr);
   void checkBoolToStrangePosition(const BinExpr *expr);
+  void checkInvalidTypeString(const BinExpr *expr);
+  void checkInvalidTypeofString(const BinExpr *expr);
   void checkNewSlotNameMatch(const BinExpr *expr);
   void checkPlusString(const BinExpr *expr);
   void checkNewGlobalSlot(const BinExpr *);
@@ -149,6 +151,7 @@ class CheckerVisitor : public Visitor
   void checkTernaryPriority(const TerExpr *expr);
   void checkSameValues(const TerExpr *expr);
   void checkCanBeSimplified(const TerExpr *expr);
+  void checkDuplicateTernaryCondition(const TerExpr *expr);
   void checkExtendToAppend(const CallExpr *callExpr);
   void checkMergeEmptyTable(const CallExpr *callExpr);
   void checkEmptyArrayResize(const CallExpr *callExpr);
@@ -197,6 +200,8 @@ class CheckerVisitor : public Visitor
   void checkDuplicateSwitchCases(SwitchStatement *swtch);
   void checkDuplicateIfBranches(IfStatement *ifStmt);
   void checkDuplicateIfConditions(IfStatement *ifStmt);
+  void checkRepeatedNestedIfConditions(IfStatement *ifStmt);
+  void checkSubsumedIfConditions(IfStatement *ifStmt);
   void checkSuspiciousFormatting(const Statement *body, const Statement *stmt);
   void checkSuspiciousFormattingOfStetementSequence(const Statement* prev, const Statement* cur);
 
@@ -226,11 +231,16 @@ class CheckerVisitor : public Visitor
 
   void checkUnterminatedLoop(LoopStatement *loop);
   void checkVariableMismatchForLoop(ForStatement *loop);
+  void checkForLoopDirection(ForStatement *loop);
+  int getForLoopAssignmentDirection(const Expr *rhs, const char *varname);
+  int getForLoopModifierDirection(const Expr *mod, const char *varname);
+  int getNumericExpressionDirection(const Expr *expr);
   void checkEmptyWhileBody(WhileStatement *loop);
   void checkEmptyThenBody(IfStatement *stmt);
   void checkForgottenDo(const Block *block);
   void checkUnreachableCode(const Block *block);
   void checkAssignedTwice(const Block *b);
+  void checkAssignedBack(const Block *b);
 
   void checkFunctionSimilarity(const Block *b);
   void checkFunctionSimilarity(const TableExpr *table);
@@ -285,6 +295,7 @@ class CheckerVisitor : public Visitor
 
   std::unordered_set<const char *, StringHasher, StringEqualer> requiredModules;
   std::unordered_set<const char *, StringHasher, StringEqualer> persistedKeys;
+  std::unordered_set<const Expr *> reportedSubsumedIfConditions;
 
   std::unordered_map<const Node *, ValueRef *> astValues;
 
@@ -327,6 +338,13 @@ class CheckerVisitor : public Visitor
   bool isPotentiallyNullable(const Expr *e);
   bool isPotentiallyNullable(const Expr *e, std::unordered_set<const Expr *> &visited);
   bool couldBeString(const Expr *e);
+  bool isTypeFunctionResult(const Expr *e);
+  bool isTypeofResult(const Expr *e);
+  const LiteralExpr *findStringLiteral(const Expr *e);
+  void checkRuntimeTypeLiteral(const LiteralExpr *lit);
+  void checkRuntimeTypeLiteralContainer(const Expr *e);
+  void checkRuntimeTypeofLiteral(const LiteralExpr *lit);
+  void checkRuntimeTypeofLiteralContainer(const Expr *e);
 
   void visitBinaryBranches(Expr *lhs, Expr *rhs, bool inv);
   void speculateIfConditionHeuristics(const Expr *cond, VarScope *thenScope, VarScope *elseScope, bool inv = false);

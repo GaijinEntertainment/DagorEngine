@@ -20,7 +20,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<ShellSoundNetPropsAnnotation>(lib));
+    addAnnotation(new ShellSoundNetPropsAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::das_get_props<ShellSoundNetProps>)>(*this, lib, "shell_sound_net_get_props",
       das::SideEffects::accessExternal, "bind_dascript::das_get_props<ShellSoundNetProps>");

@@ -9,13 +9,13 @@ def do_list_module_api(module_name : string; filter : string = ""; section : str
     // write a temp stub file that requires the module
     let stub_path = make_temp_das_file()
     let stub = "require {module_name}\n[export]\ndef main\n    pass\n"
-    fopen(stub_path, "w") <| $(f) {
+    fopen(stub_path, "w") $(f) {
         fwrite(f, stub)
     }
-    let result = compile_and_simulate(stub_path, project) <| $(program; issues) {
+    let result = compile_and_simulate(stub_path, project) $(program; issues) {
         // find the target module
         var target_mod : Module?
-        program_for_each_module(program) <| $(mod) {
+        program_for_each_module(program) $(mod) {
             let mname = string(mod.name)
             if (mname == module_name || "{module_name}" |> ends_with("/{mname}")) {
                 target_mod = mod
@@ -24,7 +24,7 @@ def do_list_module_api(module_name : string; filter : string = ""; section : str
         if (target_mod == null) {
             return "Module '{module_name}' not found after compilation"
         }
-        var res = build_string() <| $(var writer) {
+        var res = build_string() $(var writer) {
             write_module_api(writer, target_mod, filter, section, compact)
         }
         return empty(res) ? "(empty module)" : res
@@ -87,7 +87,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     var type_macros : array<string>
     // functions via AST
     if (want_section(section, "functions") || want_section(section, "operators")) {
-        for_each_function(mod, "") <| $(func) {
+        for_each_function(mod, "") $(func) {
             if (func.flags.privateFunction || func.flags._lambda || func.flags.generated) {
                 return
             }
@@ -95,7 +95,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
             if (!name_matches_filter(fname, filter)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  def {func.name}")
                 if (compact) {
                     write_compact_func_signature(w, func)
@@ -112,7 +112,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // generics via AST
     if (want_section(section, "generics") || want_section(section, "operators")) {
-        for_each_generic(mod) <| $(func) {
+        for_each_generic(mod) $(func) {
             if (func.flags.privateFunction || func.flags.generated || string(func.name) |> starts_with("```")) {
                 return
             }
@@ -120,7 +120,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
             if (!name_matches_filter(fname, filter)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  def {func.name}")
                 if (compact) {
                     write_compact_func_signature(w, func)
@@ -137,14 +137,14 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // structures via AST
     if (want_section(section, "structs")) {
-        for_each_structure(mod) <| $(value) {
+        for_each_structure(mod) $(value) {
         if (value.flags.isLambda || value.flags._generator || value.flags.generated || value.flags.privateStructure) {
             return
         }
         if (!name_matches_filter(string(value.name), filter)) {
             return
         }
-        var entry = build_string() <| $(var w) {
+        var entry = build_string() $(var w) {
             if (value.flags.isClass) {
                 write(w, "  class {value.name}")
             } else {
@@ -168,14 +168,14 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // handled types via annotations
     if (want_section(section, "handled")) {
-        module_for_each_annotation(mod) <| $(value) {
+        module_for_each_annotation(mod) $(value) {
             if (!value.isBasicStructureAnnotation) {
                 return
             }
             if (!name_matches_filter(string(value.name), filter)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 if (compact) {
                     write(w, "  handled {value.name}\n")
                 } else {
@@ -187,14 +187,14 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // enumerations via AST
     if (want_section(section, "enums")) {
-        for_each_enumeration(mod) <| $(value) {
+        for_each_enumeration(mod) $(value) {
             if (value.isPrivate) {
                 return
             }
             if (!name_matches_filter(string(value.name), filter)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  enum {value.name}")
                 if (!compact && int(value.at.line) > 0) {
                     write(w, "  // line {int(value.at.line)}")
@@ -211,7 +211,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // annotations (function annotations, structure macros)
     if (want_section(section, "annotations")) {
-        module_for_each_annotation(mod) <| $(value) {
+        module_for_each_annotation(mod) $(value) {
             if (value.isBasicStructureAnnotation || value.isEnumerationAnnotation) {
                 return  // already in handled/enums sections
             }
@@ -228,7 +228,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // call macros
     if (want_section(section, "annotations")) {
-        for_each_call_macro(mod) <| $(value) {
+        for_each_call_macro(mod) $(value) {
             let mname = string(value)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -238,7 +238,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // reader macros
     if (want_section(section, "annotations")) {
-        for_each_reader_macro(mod) <| $(value) {
+        for_each_reader_macro(mod) $(value) {
             let mname = string(value)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -248,7 +248,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // variant macros
     if (want_section(section, "annotations")) {
-        for_each_variant_macro(mod) <| $(value) {
+        for_each_variant_macro(mod) $(value) {
             let mname = string(value.name)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -258,7 +258,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // typeinfo macros
     if (want_section(section, "annotations")) {
-        for_each_typeinfo_macro(mod) <| $(value) {
+        for_each_typeinfo_macro(mod) $(value) {
             let mname = string(value.name)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -268,7 +268,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // for loop macros
     if (want_section(section, "annotations")) {
-        for_each_for_loop_macro(mod) <| $(value) {
+        for_each_for_loop_macro(mod) $(value) {
             let mname = string(value.name)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -278,7 +278,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // type macros
     if (want_section(section, "annotations")) {
-        for_each_typemacro(mod) <| $(value) {
+        for_each_typemacro(mod) $(value) {
             let mname = string(value.name)
             if (!name_matches_filter(mname, filter)) {
                 return
@@ -288,7 +288,7 @@ def write_module_api(var writer : StringBuilderWriter; mod : Module?; filter : s
     }
     // globals via AST
     if (want_section(section, "globals")) {
-        for_each_global(mod) <| $(value) {
+        for_each_global(mod) $(value) {
             if (value.flags.private_variable) {
                 return
             }

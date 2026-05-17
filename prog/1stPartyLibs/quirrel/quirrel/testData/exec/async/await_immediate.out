@@ -1,0 +1,4 @@
+before call
+script done
+body start
+body got: 42

@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#if _TARGET_PC_WIN
 #include <assets/daBuildExpPluginChain.h>
 #include <assets/assetPlugin.h>
 #include <assets/assetExporter.h>
@@ -15,9 +14,18 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_globalMutex.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_string.h>
 #include <debug/dag_debug.h>
+#if _TARGET_PC_WIN
 #include <windows.h>
+#undef ERROR
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+#include <stdio.h>
+#if _TARGET_PC_LINUX
+#include <sys/wait.h>
+#endif
+#endif
 #include <util/dag_stlqsort.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/string_map.h>
@@ -26,7 +34,6 @@
 #include <regExp/regExp.h>
 #include <util/dag_finally.h>
 #include <generic/dag_enumerate.h>
-#undef ERROR
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(locShader)
 
@@ -40,7 +47,6 @@ enum class NBSType
 static eastl::string_map<NBSType> types;
 static const char *TYPE = "lshader";
 static String compilerExePath;
-static Tab<String> compilerBinariesUsedByExe;
 static String permutationsFileName;
 static DataBlock permutationsFile;
 static String nonOptionalFileName;
@@ -48,12 +54,16 @@ static DataBlock nonOptionalFile;
 static String categorizationsFileName;
 static DataBlock categorizationsFile;
 static char appBlkDir[512] = {0};
-static DWORD thisPid = DWORD(-1);
-static DWORD thisTid = DWORD(-1);
+static int thisPid = -1;
+static int64_t thisTid = -1;
 
 static constexpr const char *ALL_PLATFORM_NAMES[] = {
   "dx11", "ps4", "spirv", "dx12", "dx12x", "dx12xs", "ps5", "metal", "spirvb", "metalb"};
+static constexpr const char *ALL_PLATFORM_COMPILER_SUFFICES[] = {
+  "hlsl11", "ps4", "spirv", "dx12", "dx12", "dx12", "ps5", "metal", "spirv", "metal"};
 static carray<carray<eastl::optional<Tab<String>>, 3>, c_countof(ALL_PLATFORM_NAMES)> perPlatformShaderTemplateSourceFiles;
+
+static char exePath[1024];
 
 static String find_shader_editors_path()
 {
@@ -95,6 +105,7 @@ static String extractGraphName(const String &path)
   return String(begin, path.end() - begin);
 }
 
+#if _TARGET_PC_WIN
 static bool run_process(String &cmd, const char *logtag, auto &&error_reporter)
 {
   cmd.replaceAll("/", "\\");
@@ -156,6 +167,39 @@ static bool run_process(String &cmd, const char *logtag, auto &&error_reporter)
 
   return true;
 };
+#elif _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+static bool run_process(String &cmd, const char *logtag, auto &&error_reporter)
+{
+  FILE *pipe = popen(cmd, "r");
+  if (!pipe)
+  {
+    error_reporter("%s: cannot start process with <%s>", logtag, cmd);
+    return false;
+  }
+
+  String output;
+  {
+    char buf[1024];
+    while (fgets(buf, sizeof(buf), pipe) != nullptr)
+      output.append(buf, strlen(buf));
+  }
+
+  int status = pclose(pipe);
+  int res = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+
+  if (res != 0)
+  {
+    error_reporter("%s: process <%s> returned %d", logtag, cmd.str(), res);
+    if (!output.empty())
+    {
+      error_reporter("%s: process output:\n%s\n", logtag, output.str());
+    }
+    return false;
+  }
+
+  return true;
+};
+#endif
 
 static bool run_process(String &cmd, const char *logtag, ILogWriter &log)
 {
@@ -228,30 +272,36 @@ static eastl::optional<Tab<String>> gather_all_shader_resources(const char *targ
   return uniqueFiles;
 }
 
+static auto run_for_target(const char *target, auto &&cb)
+{
+  for (auto [platform, tgt] : enumerate(ALL_PLATFORM_NAMES))
+  {
+    if (strcmp(tgt, target) == 0)
+      return cb(platform, target);
+  }
+  return eastl::invoke_result_t<decltype(cb), int, const char *>{};
+}
+
 static dag::ConstSpan<String> fetch_shader_resources(const char *target, NBSType type, String &out_error)
 {
   if (!target)
     return dag::ConstSpan<String>{};
   G_ASSERT(type != NBSType::UNKNOWN);
-  for (auto [platform, tgt] : enumerate(ALL_PLATFORM_NAMES))
-  {
-    if (strcmp(tgt, target) == 0)
+  return run_for_target(target, [&](int platform, const char *tgt) {
+    auto &slot = perPlatformShaderTemplateSourceFiles[platform][uint32_t(type)];
+    if (!slot)
     {
-      auto &slot = perPlatformShaderTemplateSourceFiles[platform][uint32_t(type)];
-      if (!slot)
-      {
-        slot = gather_all_shader_resources(target,
-          eastl::string{eastl::string::CtorSprintf{}, "ec_%s_srcgather_%d_%d", target, thisPid, thisTid}.c_str(), type, out_error);
-      }
-      if (!slot)
-      {
-        return dag::ConstSpan<String>{};
-      }
-      out_error.clear();
-      return *slot;
+      slot = gather_all_shader_resources(target,
+        eastl::string{eastl::string::CtorSprintf{}, "ec_%s_srcgather_%d_%lld", target, thisPid, (long long)thisTid}.c_str(), type,
+        out_error);
     }
-  }
-  return dag::ConstSpan<String>{};
+    if (!slot)
+    {
+      return dag::ConstSpan<String>{};
+    }
+    out_error.clear();
+    return make_span_const(*slot);
+  });
 }
 
 class NodeBasedLocShaderExporter : public IDagorAssetExporter
@@ -274,8 +324,6 @@ public:
   {
     files.clear();
     files.push_back() = compilerExePath;
-    for (const String &bin : compilerBinariesUsedByExe)
-      files.push_back() = bin;
     if (!permutationsFileName.empty())
       files.push_back() = permutationsFileName;
     if (!nonOptionalFileName.empty())
@@ -298,6 +346,14 @@ public:
 
     for (const auto &sourceFile : gatherAllShaderResources(a, graphType))
       files.push_back() = sourceFile;
+
+    files.push_back() = run_for_target(a.props.getStr("target", nullptr), [&, this](int platform, const char *) {
+#if _TARGET_PC_WIN
+      return String(0, "%s/dsc2-%s-dev.exe", exePath, ALL_PLATFORM_COMPILER_SUFFICES[platform]);
+#else
+      return String(0, "%s/dsc2-%s-dev", exePath, ALL_PLATFORM_COMPILER_SUFFICES[platform]);
+#endif
+    });
   }
 
   Tab<String> gatherNonOptionalGraphFilenames(const DagorAsset &a)
@@ -657,11 +713,11 @@ public:
     const char *nonOptionalFileNamePtr = lshaderBlk->getStr("nonOptionalFile", nullptr);
     nonOptionalFileName = nonOptionalFileNamePtr ? String(0, "%sdevelop/%s", appBlkDir, nonOptionalFileNamePtr) : String();
 
-    char exePath[1024];
     dag_get_appmodule_dir(exePath, sizeof(exePath));
-    compilerExePath.printf(0, "%s/dsc2-nodeBased-dev.exe", exePath);
-    for (const char *platform : {"hlsl11", "dx12", "spirv", "metal", "ps4", "ps5"})
-      compilerBinariesUsedByExe.emplace_back(0, "%s/dsc2-%s-dev.exe", exePath, platform);
+    compilerExePath.setStrCat(exePath, "/dsc2-nodeBased-dev");
+#if _TARGET_PC_WIN
+    compilerExePath.append(".exe");
+#endif
     if (!permutationsFileName.empty())
       permutationsFile.load(permutationsFileName);
     if (!nonOptionalFileName.empty())
@@ -669,8 +725,8 @@ public:
     if (!categorizationsFileName.empty())
       categorizationsFile.load(categorizationsFileName);
 
-    thisPid = GetCurrentProcessId();
-    thisTid = GetCurrentThreadId();
+    thisPid = get_process_uid();
+    thisTid = get_current_thread_id();
 
     return true;
   }
@@ -696,6 +752,3 @@ protected:
 DABUILD_PLUGIN_API IDaBuildPlugin *__stdcall get_dabuild_plugin() { return new (midmem) NodeBasedLocShaderExporterPlugin; }
 END_DABUILD_PLUGIN_NAMESPACE(locShader)
 REGISTER_DABUILD_PLUGIN(locShader, nullptr)
-#else
-int pull_locShader = 1;
-#endif

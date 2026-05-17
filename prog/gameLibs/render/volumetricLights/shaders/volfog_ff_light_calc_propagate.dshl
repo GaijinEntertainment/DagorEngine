@@ -225,8 +225,8 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
         #define OMNI_SHADOWS 1
 
         half lightsEffect = 1;
-        uint sliceId = min(getSliceAtDepth(nextDepth, depthSliceScale, depthSliceBias), CLUSTERS_D);
-        uint clusterIndex = getClusterIndex(half2(screenTcJittered.xy), sliceId);
+        uint sliceId = min(frustum_clusters_get_slice_at_depth(nextDepth, depthSliceScale, depthSliceBias), CLUSTERS_D);
+        uint clusterIndex = frustum_clusters_get_cluster_index(half2(screenTcJittered.xy), sliceId);
         uint wordsPerOmni = omniLightsWordCount;
         uint wordsPerSpot = spotLightsWordCount;
         uint omniAddress = clusterIndex*wordsPerOmni;
@@ -877,7 +877,8 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
           }
         }
 
-        half2 prevExtinction = tid.z == 0 ? accumulatedExtinction : sharedTmpAccumulatedExtinction[flatId - 1];
+        // access index should be valid, even if resulting value is not used to avoid gpu OOB
+        half2 prevExtinction = tid.z == 0 ? accumulatedExtinction : sharedTmpAccumulatedExtinction[max(flatId, 1) - 1];
         half2 finalExtinction = prevExtinction * volfogTransmittance;
 
         // then evaluate transmittance-dependent inscatter

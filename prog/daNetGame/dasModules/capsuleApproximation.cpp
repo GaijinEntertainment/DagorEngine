@@ -39,8 +39,8 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     lib.addBuiltInModule();
 
-    addAnnotation(das::make_smart<CapsuleDataAnnotation>(lib));
-    addAnnotation(das::make_smart<CapsuleApproximationAnnotation>(lib));
+    addAnnotation(new CapsuleDataAnnotation(lib));
+    addAnnotation(new CapsuleApproximationAnnotation(lib));
 
     verifyAotReady();
   }

@@ -1399,6 +1399,13 @@ public:
   {
     d3d::settm(TM_VIEW, TMatrix::IDENT);
     d3d::settm(TM_PROJ, &deferredCsm->getWorldRenderMatrix(cascade_no));
+
+    static int shadow_zn_zfarVarId = get_shader_variable_id("shadow_zn_zfar", true);
+    static int impostor_shadow_depth_offset_signVarId = get_shader_variable_id("impostor_shadow_depth_offset_sign", true);
+
+    ShaderGlobal::set_float4(shadow_zn_zfarVarId, znzf.x, znzf.y, 0.0f, 0.0f); // Used to restore depth of impostors.
+    ShaderGlobal::set_float(impostor_shadow_depth_offset_signVarId, 1.0f);
+
     const TMatrix &shadowViewItm = deferredCsm->getShadowViewItm(cascade_no);
     windEffect.setNoAnimShaderVars(shadowViewItm.getcol(0), shadowViewItm.getcol(1), shadowViewItm.getcol(2));
     if (render_shadow())
@@ -1899,7 +1906,7 @@ public:
 
       if (vrWidth && !vrResources.combinedShadowsTex)
         if (VariableMap::isGlobVariablePresent(get_shader_variable_id("combined_shadows", true)))
-          vrResources.combinedShadowsTex = UniqueTexHolder(
+          vrResources.combinedShadowsTex = UniqueTexWithShaderVar(
             dag::create_tex(nullptr, vrWidth, vrHeight, TEXFMT_R8 | TEXCF_RTARGET, 1, "vr_combined_shadows"), "combined_shadows");
       ShaderGlobal::set_sampler(get_shader_variable_id("combined_shadows_samplerstate", true), d3d::request_sampler({}));
     }
@@ -2045,7 +2052,7 @@ public:
       }
 
 
-      vrResources.downsampledFarDepth = UniqueTexHolder(
+      vrResources.downsampledFarDepth = UniqueTexWithShaderVar(
         dag::create_tex(nullptr, targetW / 2, targetH / 2, TEXCF_RTARGET | TEXFMT_R32F, 1, "downsampled_far_depth_tex_vr"),
         "downsampled_far_depth_tex");
       vrResources.downsampledFarDepth.setVar();
@@ -2286,20 +2293,20 @@ private:
   TEXTUREID sceneRtId, postfxRtId;
   UniqueTex fallbackSceneDepth; // For case when we don't have deferred rendering (do we have such case on practice?).
 
-  UniqueTexHolder wireframeTex;
+  UniqueTexWithShaderVar wireframeTex;
   shaders::OverrideStateId wireframeState;
   PostFxRenderer wireframeRenderer;
 
   UniqueTex resolvedDepth;
   PostFxRenderer resolvedDepthRenderer;
-  UniqueTexHolder preIntegratedGF;
+  UniqueTexWithShaderVar preIntegratedGF;
 
   DataBlock gameParamsBlk;
 
   eastl::unique_ptr<DeferredRenderTarget> deferredTarget;
   CascadeShadows *deferredCsm;
   PostFxRenderer combinedShadowsRenderer;
-  UniqueTexHolder combinedShadowsTex;
+  UniqueTexWithShaderVar combinedShadowsTex;
   light_probe::Cube *enviProbe;
   light_probe::Cube *enviProbeBlack;
   int deferredRtFmt;
@@ -2309,7 +2316,7 @@ private:
   bool srgb_backbuf_wr;
   eastl::unique_ptr<SSAORenderer> ssao;
   eastl::unique_ptr<ScreenSpaceReflections> ssr;
-  UniqueTexHolder downsampledNormals, downsampledOpaqueTarget, downsampledFarDepth, checkerboardDepth;
+  UniqueTexWithShaderVar downsampledNormals, downsampledOpaqueTarget, downsampledFarDepth, checkerboardDepth;
   UniqueTex lowresFxTex;
   UniqueTex blackTex;
   eastl::unique_ptr<UpscaleSamplingTex> upscaleSamplingRenderer;
@@ -2361,7 +2368,7 @@ private:
   float fomXyViewBoxSize;
   float fomZViewBoxSize;
   float fomTexSize;
-  UniqueTexHolder fomShadowsCos, fomShadowsSin;
+  UniqueTexWithShaderVar fomShadowsCos, fomShadowsSin;
   DataBlock enviBlk;
   SunLightProps enviSlp;
   TEXTUREID enviCubeTexId;
@@ -2379,8 +2386,8 @@ private:
     UniqueTex sceneRt, postfxRt;
     UniqueTex resolvedDepth;
     UniqueTex imguiTex;
-    UniqueTexHolder downsampledFarDepth;
-    UniqueTexHolder combinedShadowsTex;
+    UniqueTexWithShaderVar downsampledFarDepth;
+    UniqueTexWithShaderVar combinedShadowsTex;
 
     eastl::unique_ptr<SSAORenderer> ssao;
 

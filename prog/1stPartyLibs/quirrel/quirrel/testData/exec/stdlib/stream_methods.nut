@@ -85,6 +85,7 @@ z.writen(1, 'b')
 z.seek(0)
 
 mustThrow("readblob",    @() z.readblob(null))
+mustThrow("readblob.-1", @() z.readblob(-1))
 mustThrow("readn",       @() z.readn(null))
 mustThrow("writeblob",   @() z.writeblob(null))
 mustThrow("writestring", @() z.writestring(null))

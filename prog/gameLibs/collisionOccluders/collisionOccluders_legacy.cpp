@@ -7,10 +7,11 @@
 
 void CollisionGeometryFeeder::withNodeMeshData(const CollisionResource &coll_res, int node_id, const NodeMeshConsumer &cb)
 {
-  const CollisionNode *n = coll_res.getNode(node_id);
-  if (!n)
+  auto verts = coll_res.getNodeVertices(node_id);
+  auto idxs = coll_res.getNodeIndices(node_id);
+  if (verts.empty())
     return;
-  cb(n->vertices.data(), (int)n->vertices.size(), sizeof(Point3_vec4), n->indices.data(), (int)n->indices.size(), sizeof(uint16_t));
+  cb(verts.data(), (int)verts.size(), sizeof(Point3_vec4), idxs.data(), (int)idxs.size(), sizeof(uint16_t));
 }
 
 void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &coll_res, mat44f_cref worldviewproj,
@@ -22,16 +23,18 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
   for (int ni = 0, ne = (int)allNodes.size(); ni < ne; ++ni)
   {
     const CollisionNode *node = coll_res.getNode(ni);
-    if (!node || !node->indices.size())
+    if (!node || !node->indicesCount)
       continue;
     if (!(node->type == COLLISION_NODE_TYPE_MESH || (allow_convex && node->type == COLLISION_NODE_TYPE_CONVEX)))
       continue;
-    if (!node->checkBehaviorFlags(CollisionNode::TRACEABLE))
+    if (!node->checkBehaviorFlags(CollisionNode::TRACEABLE) || node->checkBehaviorFlags(CollisionNode::FLAG_TRANSPARENT))
       continue;
 
-    const float *const vertsPtr = (const float *)node->vertices.data();
-    const uint16_t *const facesPtr = node->indices.data();
-    const uint32_t faceCount = (uint32_t)node->indices.size() / 3;
+    auto nodeVerts = coll_res.getNodeVertices(ni);
+    auto nodeIdx = coll_res.getNodeIndices(ni);
+    const float *const vertsPtr = (const float *)nodeVerts.data();
+    const uint16_t *const facesPtr = nodeIdx.data();
+    const uint32_t faceCount = (uint32_t)nodeIdx.size() / 3;
 
     if ((node->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT)
     {

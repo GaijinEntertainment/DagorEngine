@@ -4851,6 +4851,8 @@ void GuiScene::bindScriptClasses()
     V(allScreensAcceptInput)
     ///@var moveClickThreshold
     V(moveClickThreshold)
+    ///@var buttonTouchMargin
+    V(buttonTouchMargin)
     .Prop("defSceneBgColor", &SceneConfig::getDefSceneBgColor, &SceneConfig::setDefSceneBgColor)
     .Prop("defTextColor", &SceneConfig::getDefTextColor, &SceneConfig::setDefTextColor)
     .SquirrelFunc("setClickButtons", &SceneConfig::setClickButtons, 2, "xa")

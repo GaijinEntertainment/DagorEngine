@@ -271,6 +271,7 @@ WinCritSec tql::reqLDCritSection;
 eastl::vector_set<TEXTUREID> tql::reqLD;
 int tql::mem_used_persistent_kb = 0;
 int tql::mem_quota_reserve_kb = 256 << 10;
+int tql::gpu_mem_backend_overhead_kb = 0;
 #if _TARGET_C1 | _TARGET_C2
 
 #elif _TARGET_64BIT && _TARGET_PC_WIN
@@ -310,7 +311,8 @@ TexLoadRes (*texmgr_internal::d3d_load_genmip_sysmemcopy)(TEXTUREID, TEXTUREID, 
 
 bool texmgr_internal::is_gpu_mem_enough_to_load_hq_tex()
 {
-  int actual_quota_kb = tql::mem_quota_kb - interlocked_relaxed_load(tql::mem_used_persistent_kb) - tql::mem_quota_reserve_kb;
+  int actual_quota_kb = tql::mem_quota_kb - interlocked_relaxed_load(tql::mem_used_persistent_kb) -
+                        interlocked_relaxed_load(tql::gpu_mem_backend_overhead_kb) - tql::mem_quota_reserve_kb;
   int overuse = tql::mem_quota_reserve_kb / 4;
   return actual_quota_kb + overuse > RMGR.getTotalUsedTexSzKB() + min(RMGR.getTotalAddMemNeededSzKB(), overuse) ||
          !texmgr_internal::texq_load_on_demand;

@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <windows.h>
+#include <EASTL/fixed_vector.h>
 #include <EASTL/span.h>
 #include <EASTL/string_view.h>
 #include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
+#include <Windows.h>
 
 
 struct UnloadLibHandler
@@ -85,12 +86,14 @@ struct RegistryKey
 
   eastl::tuple<DWORD, DWORD, DWORD> queryValueCountMaxLengthAndSize() const;
 
-  eastl::string_view enumKeyName(DWORD index, eastl::span<char> buffer);
+  eastl::string_view enumKeyName(DWORD index, eastl::span<char> buffer) const;
 
-  eastl::string_view enumValueName(DWORD index, eastl::span<char> buffer);
+  eastl::string_view enumValueName(DWORD index, eastl::span<char> buffer) const;
 
   eastl::tuple<eastl::string_view, eastl::span<char>> enumValueNameAndValue(DWORD index, eastl::span<char> name_buffer,
-    eastl::span<char> data_buffer);
+    eastl::span<char> data_buffer) const;
 
   explicit operator bool() const { return static_cast<bool>(ptr); }
 };
+
+eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs();

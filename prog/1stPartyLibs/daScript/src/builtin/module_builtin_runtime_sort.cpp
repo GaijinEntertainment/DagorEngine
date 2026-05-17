@@ -133,15 +133,15 @@ namespace das
             }
             const auto & arg = call->arguments[0];
             if ( arg->type->dim.size() ) {
-                auto arrType = make_smart<TypeDecl>(*arg->type);
+                auto arrType = new TypeDecl(*arg->type);
                 arrType->dim.clear();
-                auto newCall = static_pointer_cast<ExprCall>(call->clone());
+                auto newCall = static_cast<ExprCall*>(call->clone());
                 auto stride = arrType->getSizeOf();
-                auto strideArg = make_smart<ExprConstInt>(call->at, stride);
+                auto strideArg = new ExprConstInt(call->at, stride);
                 strideArg->generated = true;
                 newCall->arguments.insert(newCall->arguments.begin()+1,strideArg);
                 auto length = arg->type->dim.back();
-                auto lengthArg = make_smart<ExprConstInt>(call->at, length);
+                auto lengthArg = new ExprConstInt(call->at, length);
                 lengthArg->generated = true;
                 newCall->arguments.insert(newCall->arguments.begin()+2,lengthArg);
                 if ( arrType->isNumericComparable() || arrType->isVectorType() || arrType->isString() ) {
@@ -156,12 +156,12 @@ namespace das
                 return newCall;
             } else if ( arg->type->isGoodArrayType() ) {
                 const auto & arrType = arg->type->firstType;
-                auto newCall = static_pointer_cast<ExprCall>(call->clone());
+                auto newCall = static_cast<ExprCall*>(call->clone());
                 auto stride = arrType->getSizeOf();
-                auto strideArg = make_smart<ExprConstInt>(call->at, stride);
+                auto strideArg = new ExprConstInt(call->at, stride);
                 strideArg->generated = true;
                 newCall->arguments.insert(newCall->arguments.begin()+1,strideArg);
-                auto lengthArg = make_smart<ExprConstInt>(call->at, 0);
+                auto lengthArg = new ExprConstInt(call->at, 0);
                 lengthArg->generated = true;
                 newCall->arguments.insert(newCall->arguments.begin()+2,lengthArg);
                 if ( arrType->isNumericComparable() || arrType->isVectorType() || arrType->isString() ) {
@@ -183,7 +183,7 @@ namespace das
 
     void Module_BuiltIn::addRuntimeSort(ModuleLibrary & lib) {
         // annotation
-        addAnnotation(make_smart<BuiltinSortFunctionAnnotation>());
+        addAnnotation(new BuiltinSortFunctionAnnotation());
         // numeric
         ADD_NUMERIC_SORT(int32_t);
         ADD_NUMERIC_SORT(uint32_t);

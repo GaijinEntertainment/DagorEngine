@@ -68,13 +68,13 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addEnumeration(das::make_smart<EnumerationConsoleModel>());
+    addEnumeration(new EnumerationConsoleModel());
     das::addExtern<DAS_BIND_FUN(fatal_func)>(*this, lib, "fatal", das::SideEffects::modifyExternal, "bind_dascript::fatal_func");
     das::addExtern<DAS_BIND_FUN(exit_func)>(*this, lib, "exit", das::SideEffects::modifyExternal, "bind_dascript::exit_func");
     das::addExtern<DAS_BIND_FUN(logmsg_func)>(*this, lib, "logmessage", das::SideEffects::modifyExternal,
       "bind_dascript::logmsg_func");
     das::addExtern<DAS_BIND_FUN(logerr_func)>(*this, lib, "logerr", das::SideEffects::modifyExternal, "bind_dascript::logerr_func")
-      ->annotations.push_back(annotation_declaration(das::make_smart<LogFmtHashFunctionAnnotation>()));
+      ->annotations.push_back(annotation_declaration(new LogFmtHashFunctionAnnotation()));
     das::addExtern<DAS_BIND_FUN(logerr_func_hash)>(*this, lib, "logerr", das::SideEffects::modifyExternal,
       "bind_dascript::logerr_func_hash");
     das::addExtern<DAS_BIND_FUN(logwarn_func)>(*this, lib, "logwarn", das::SideEffects::modifyExternal, "bind_dascript::logwarn_func");

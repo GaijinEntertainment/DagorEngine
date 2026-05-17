@@ -35,7 +35,7 @@ private:
   const LandMeshManager *lmeshMgr = nullptr;
 
   ToroidalHelper puddlesHelper;
-  UniqueTexHolder puddles;
+  UniqueTexWithShaderVar puddles;
   bool removedPuddlesNeedUpdate = false;
   uint32_t removedPuddlesIndexToAdd = 0;
   uint32_t removedPuddlesActualSize = 0;

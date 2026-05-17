@@ -2,6 +2,7 @@
 
 #include "daBuild.h"
 #include <libTools/dtx/ddsxPlugin.h>
+#include <libTools/dtx/makeDDS.h>
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/progressInd.h>
 #include <libTools/util/strUtil.h>
@@ -334,6 +335,7 @@ public:
 #define GET_PROP(TYPE, PROP, DEF) props.get##TYPE(PROP, &props != &a->props ? a->props.get##TYPE(PROP, DEF) : DEF)
       const DataBlock &props = a->getProfileTargetProps(cwr.getTarget(), cwr.getProfile());
       cp.imgGamma = GET_PROP(Real, "gamma", 2.2);
+      fix_gamma_for_fmt(cp.imgGamma, GET_PROP(Str, "fmt", "ARGB"));
       cp.mipOrdRev = GET_PROP(Bool, "mipOrdRev", cp.mipOrdRev);
       cp.splitHigh = GET_PROP(Bool, "splitHigh", false);
       cp.splitAt = GET_PROP(Int, "splitAt", 0);

@@ -85,10 +85,13 @@ if $(Platform) in nswitch {
   ;
 }
 
+if $(Platform) in android iOS {
+  Sources += mobile_debug.cpp ;
+}
+
 if $(Platform) in android {
   Sources +=
     and_native_app.c
-    and_debug.cpp
     and_native_activity.cpp
   ;
   AndroidSources = android/android.bundle/src/DagorLogger.java src/com/gaijinent/common/DagorLogger.java ;

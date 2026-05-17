@@ -10,7 +10,6 @@ namespace drv3d_vulkan
 
 struct CmdExecuteFSR
 {
-  amd::FSR *fsr;
   FSRUpscalingArgs params;
 };
 

@@ -262,13 +262,14 @@ public:
   ExtrapolatedPhysState extrapolatedState;
 
   bool isAuthorityApprovedStateProcessed = true;
+  bool skipVisualErrorUpdate = false;
   PhysPartialState authorityApprovedPartialState;
   uint8_t authorityApprovedStateUnitVersion;
   float authorityApprovedStateDumpFromTime;
   int32_t lastProcessedAuthorityApprovedStateAtTick;
 
-  double physicsTimeToSendState = 0;
-  double physicsTimeToSendPartialState = 0;
+  float physicsTimeToSendState = 0;
+  float physicsTimeToSendPartialState = 0;
   int32_t lastAuthorityApprovedStateSentAtTick = 0;
   float timeStep;
   float maxTimeDeferredControls = 0.350f;
@@ -461,6 +462,9 @@ public:
     if (getActor()->isAuthority() && authorityApprovedState)
       authorityApprovedState->location.O = currentState.location.O;
 
+    // visualLocationError is updated after all gameplay code in finish_update_phys_for_multiplayer
+    // this flag is needed to signal to that function that this frame it shouldn't be updated
+    skipVisualErrorUpdate = true;
     visualLocationError.resetLoc();
     currentState.canBeCheckedForSync = false;
 
@@ -653,7 +657,7 @@ public:
       lastAuthorityApprovedStateSentAtTick = currentState.atTick;
     }
     else
-      physicsTimeToSendState = min(physicsTimeToSendState, double(ticks_threshold) * timeStep);
+      physicsTimeToSendState = min(physicsTimeToSendState, ticks_threshold * timeStep);
   }
   typedef void (*custom_resync_cb_t)(IPhysBase *self, const PhysStateBase & /*prev_desynced_state*/,
     const PhysStateBase & /*desynced_state*/, const PhysStateBase & /*incoming_state*/, const PhysStateBase * /*matching_state*/);

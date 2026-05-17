@@ -55,8 +55,6 @@ float4 projection_center = (0, 0, 0, 0);
 
 float4 redout_blackout_color = (0, 0, 0, 0);
 
-int fsr_on = 1;
-
 define_macro_if_not_defined INIT_POSTFX_UV_MODIFIER()
 endmacro
 
@@ -123,7 +121,6 @@ shader postfx
   (ps) {
     inv_screen_size@f2 = (rendering_res.z, rendering_res.w, 0, 0);
     dof_rt_size@f4 = dof_rt_size;
-    fsr_on@i1 = (fsr_on);
     frame_tex@smp2d = frame_tex;
     frame_tex_resolution@f4 = (frame_tex_resolution.xy, 1/frame_tex_resolution.xy);
     damage_indicator_color@f4 = (damage_indicator_color.x, damage_indicator_color.y, damage_indicator_color.z, damage_indicator);
@@ -385,17 +382,6 @@ shader postfx
       }
     }
 
-    #define A_GPU 1
-    #define A_HLSL 1
-    #include "../../3rdPartyLibs/fsr/ffx_a.h"
-    #include "../../3rdPartyLibs/fsr/ffx_fsr1.h"
-    float3 apply_gamma2_and_strm(float3 c)
-    {
-      c = sqrt(c);
-      FsrSrtmF(c);
-      return c;
-    }
-
     void apply_cinematic_mode_pre_tonemap_effects(inout float3 result, float2 tc, float2 pos)
     {
       BRANCH
@@ -491,11 +477,7 @@ shader postfx
         float3 hdr_result = performLUTColorGrade(result);
         apply_cinematic_mode_post_tonemap_effects(hdr_result, input.tc);
         apply_postfx_post_tonemap_effects_modifiers(hdr_result, input.tc, pos.xy);
-        BRANCH
-        if (fsr_on == 1)
-          ret.hdr_result = half4(apply_gamma2_and_strm(hdr_result), 1.0);
-        else
-          ret.hdr_result = half4(hdr_result, 1);
+        ret.hdr_result = half4(hdr_result, 1);
       ##endif
 
       ##if (hdr_ps_output_mode == sdr_only) || (hdr_ps_output_mode == hdr10_and_sdr)

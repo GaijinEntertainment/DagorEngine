@@ -866,8 +866,8 @@ void TracerManager::doJob()
     batchInstancesCount[MAX_TAIL_BATCHES - 1] = 0;
 
     uint32_t *instanceData = NULL;
-    if (
-      !tailInstancesBuffer.lock(0, sizeof(uint32_t) * 2 * MAX_FX_TRACERS * MAX_FX_SEGMENTS, (void **)&instanceData, VBLOCK_WRITEONLY))
+    if (!tailInstancesBuffer.lock(0, sizeof(uint32_t) * 2 * MAX_FX_TRACERS * MAX_FX_SEGMENTS, (void **)&instanceData,
+          VBLOCK_WRITEONLY | VBLOCK_DISCARD))
       instanceData = NULL;
     G_ASSERT(instanceData && tailArgsData);
     if (instanceData && tailArgsData)

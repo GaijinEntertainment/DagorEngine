@@ -9,6 +9,7 @@ include "taa_inc.dshl"
 include "use_tiled_lights.dshl"
 include "motion_vector_access.dshl"
 include "csm.dshl"
+include "static_shadow.dshl"
 
 macro MODE(mode, num)
   mode < num,
@@ -107,6 +108,12 @@ shader debug_final_gbuffer
   {
     INIT_CSM_SHADOW(ps)
     BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(ps)
+  }
+
+  if (show_gbuffer == staticShadowCascades)
+  {
+    INIT_STATIC_SHADOW()
+    USE_STATIC_SHADOW()
   }
 
   if (show_gbuffer >= debug_mesh)
@@ -302,6 +309,21 @@ shader debug_final_gbuffer
           half3(0.3, 0.3, 0.3),
         };
         return half4(CASCADE_COLORS[min(cascadeId, 6u)] * NoV, 1);
+      ##elif show_gbuffer == staticShadowCascades
+        float3 cameraToPoint = viewVect * w;
+        float3 cameraToCSMPos = cameraToPoint;
+        float3 pointToEye = -cameraToPoint;
+        float4 worldPos = float4( world_view_pos.xyz - pointToEye, 1.f );
+        uint cascadeId;
+        getStaticShadowWithBias(worldPos.xyz, gbuffer.normal, 0, cascadeId, 1, 0, 0);
+
+        static const half3 CASCADE_COLORS[3] = {
+          half3(1, 0, 0),
+          half3(0, 1, 0),
+          half3(0.3, 0.3, 0.3),
+        };
+
+        return half4(CASCADE_COLORS[min(cascadeId, 3u)] * NoV, 1);
       ##endif
       return 0;
     }

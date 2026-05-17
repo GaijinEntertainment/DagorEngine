@@ -1459,12 +1459,13 @@ void PhysWorld::startSim(real dt, bool wake_up_thread)
 }
 bool PhysWorld::fetchSimRes(bool wait, PhysBody *)
 {
-  if (wait && interlocked_acquire_load(sim_job.done) == 0)
-  {
+  if (interlocked_acquire_load(sim_job.done))
+    ;
+  else if (wait)
     threadpool::barrier_active_wait_for_job(&sim_job, threadpool::PRIO_DEFAULT, sim_job.qPos);
-    threadpool::wait(&sim_job);
-  }
-  return interlocked_acquire_load(sim_job.done) == 1;
+  else
+    return false;
+  return true;
 }
 
 

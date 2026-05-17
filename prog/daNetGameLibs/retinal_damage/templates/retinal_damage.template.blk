@@ -11,7 +11,7 @@ retinal_damage_renderer{
   retinal_damage__remaining_time:r=0
 
   "retinal_damage__node_handle:dafg::NodeHandle"{}
-  "retinal_damage__tex:UniqueTexHolder" {}
+  "retinal_damage__tex:UniqueTexWithShaderVar" {}
 }
 
 retinal_damage_effect{

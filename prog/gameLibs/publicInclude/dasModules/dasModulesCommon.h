@@ -22,7 +22,7 @@ namespace das
     static TypeDeclPtr make(const ModuleLibrary &lib)          \
     {                                                          \
       G_UNUSED(lib);                                           \
-      auto t = make_smart<TypeDecl>(Type::DAS_DECL_TYPE);      \
+      auto t = new TypeDecl(Type::DAS_DECL_TYPE);              \
       t->alias = #TYPE;                                        \
       t->aotAlias = true;                                      \
       return t;                                                \
@@ -105,12 +105,11 @@ struct das_alias<TMatrix4> : das::das_alias_vec<TMatrix4, float4x4>
 {};
 
 template <typename TAnnotation, typename TParentAnnotation>
-inline bool add_annotation(das::Module *module, const das::smart_ptr<TAnnotation> &ann,
-  const das::smart_ptr<TParentAnnotation> &parent_ann)
+inline bool add_annotation(das::Module *module, TAnnotation *ann, TParentAnnotation *parent_ann)
 {
   bool result = module->addAnnotation(ann);
   if (result)
-    ann->from(parent_ann.get());
+    ann->from(parent_ann);
   return result;
 }
 

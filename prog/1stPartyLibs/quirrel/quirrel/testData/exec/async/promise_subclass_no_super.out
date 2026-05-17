@@ -1,0 +1,4 @@
+getState: Promise.getState: invalid 'this'
+resolve: Promise: invalid 'this'
+reject: Promise: invalid 'this'
+plain: pending

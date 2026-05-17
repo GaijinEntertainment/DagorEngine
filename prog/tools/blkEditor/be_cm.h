@@ -1,0 +1,24 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+#pragma once
+
+// MAIN_MENU_CONSTANTS
+enum
+{
+  CM_FILE_MENU = 600,
+  CM_TOOLS,
+  CM_NEW,
+  CM_LOAD,
+  CM_SAVE,
+  CM_SAVE_AS,
+  CM_UNDO,
+  CM_REDO,
+  CM_CONSOLE,
+  CM_EDIT,
+  CM_EXIT,
+  CM_CHANGE_SCHEME,
+
+  CM_WINDOW,
+  CM_WINDOW_SCINTILLA,
+  CM_WINDOW_PPANEL,
+  CM_WINDOW_TOOLBAR,
+};

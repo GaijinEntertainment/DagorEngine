@@ -3,7 +3,7 @@ Location         = prog/1stPartyLibs/yuplay2auth ;
 
 Yuplay2UseGnome   ?= no ; #Set to yes in jamfile of app using webLogin on Linux
 Yuplay2NoCurlInit ?= no ;
-Yuplay2UseXcurl   ?= $(UseGDK) ;
+Yuplay2UseXcurl   ?= no ;
 
 UseZlibVer        ?= ng ;
 

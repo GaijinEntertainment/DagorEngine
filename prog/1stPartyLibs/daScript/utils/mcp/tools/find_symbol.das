@@ -23,10 +23,9 @@ def write_cpp_name(var w : StringBuilderWriter; cppName : string) {
     }
 }
 
-def get_func_cpp_name(func) : string {
-    let fptr = get_ptr(func)
-    if (fptr.flags.builtIn) {
-        let bfn = fptr as BuiltInFunction
+def get_func_cpp_name(func : Function?) : string {
+    if (func.flags.builtIn) {
+        let bfn = func as BuiltInFunction
         if (bfn != null) {
             return string(bfn.cppName)
         }
@@ -46,7 +45,7 @@ def struct_has_matching_field(value; query : string) : bool {
 def handled_has_matching_field(value : Annotation const; query : string) : bool {
     var found = false
     var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
-    for_each_field(*ann) <| $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, offset) {
         if (symbol_matches(name, query)) {
             found = true
         }
@@ -66,7 +65,7 @@ def write_struct_fields_highlighted(var w : StringBuilderWriter; value; query : 
 
 def write_handled_fields_highlighted(var w : StringBuilderWriter; value : Annotation const; query : string; field_search : bool) {
     var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
-    for_each_field(*ann) <| $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, offset) {
         let prefix = field_search && symbol_matches(name, query) ? "  > " : "    "
         if (!empty(cppName) && cppName != name) {
             write(w, "{prefix}{name} : {describe(xtype)}  // C++ {cppName}\n")
@@ -80,7 +79,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     let dname = module_display_name(mname)
     // functions
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "function")) {
-        for_each_function(mod, "") <| $(func) {
+        for_each_function(mod, "") $(func) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -91,7 +90,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (!symbol_matches(fname, query)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] def {fname}")
                 write_func_signature(w, func)
                 write_cpp_name(w, get_func_cpp_name(func))
@@ -102,7 +101,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // generics
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "generic")) {
-        for_each_generic(mod) <| $(func) {
+        for_each_generic(mod) $(func) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -113,7 +112,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (fname |> starts_with("```") || !symbol_matches(fname, query)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] def {fname}")
                 write_func_signature(w, func)
                 write_cpp_name(w, get_func_cpp_name(func))
@@ -124,7 +123,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // structs/classes (match by name or field name)
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "struct" || kind == "field")) {
-        for_each_structure(mod) <| $(value) {
+        for_each_structure(mod) $(value) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -139,7 +138,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (kind != "field" && !name_match && !field_match) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 if (value.flags.isClass) {
                     write(w, "  [{dname}] class {value.name}")
                 } else {
@@ -155,7 +154,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // handled types via annotations (match by name or field name)
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "handled" || kind == "struct" || kind == "field")) {
-        module_for_each_annotation(mod) <| $(value) {
+        module_for_each_annotation(mod) $(value) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -168,7 +167,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (kind != "field" && !name_match && !field_match) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] handled {value.name}")
                 write_cpp_name(w, string(value.cppName))
                 write(w, "\n")
@@ -182,7 +181,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // enums
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "enum")) {
-        for_each_enumeration(mod) <| $(value) {
+        for_each_enumeration(mod) $(value) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -192,7 +191,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (!symbol_matches(string(value.name), query)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] enum {value.name}")
                 write_location(w, value.at)
                 write(w, "\n")
@@ -206,11 +205,11 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // type aliases (typedef, bitfield, variant, tuple)
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "typedef" || kind == "alias")) {
-        for_each_typedef(mod) <| $(name : string#; var value : TypeDeclPtr) {
+        for_each_typedef(mod) $(name : string#; var value : TypeDeclPtr) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
-            let td = get_ptr(value)
+            let td = value
             if (td.flags.isPrivateAlias) {
                 return
             }
@@ -218,7 +217,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (!symbol_matches(sname, query)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] typedef {sname} = {describe(value)}")
                 write_location(w, td.at)
             }
@@ -228,7 +227,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
     }
     // globals
     if (total_found < MAX_FIND_RESULTS && (empty(kind) || kind == "global")) {
-        for_each_global(mod) <| $(value) {
+        for_each_global(mod) $(value) {
             if (total_found >= MAX_FIND_RESULTS) {
                 return
             }
@@ -238,7 +237,7 @@ def search_module(var results : array<string>; var total_found : int&; mname : s
             if (!symbol_matches(string(value.name), query)) {
                 return
             }
-            var entry = build_string() <| $(var w) {
+            var entry = build_string() $(var w) {
                 write(w, "  [{dname}] {value.name} : {describe(value._type)}")
                 write_location(w, value.at)
             }
@@ -254,10 +253,10 @@ def do_find_symbol(query : string; kind : string = ""; file : string = ""; proje
     }
     if (!empty(file)) {
         // compile the file and search all its modules (including builtin $)
-        return compile_and_simulate(file, project) <| $(program; issues) {
+        return compile_and_simulate(file, project) $(program; issues) {
             var results : array<string>
             var total_found = 0
-            program_for_each_module(program) <| $(mod) {
+            program_for_each_module(program) $(mod) {
                 let mname = string(mod.name)
                 if (mname == "__main__" || empty(mname)) {
                     return
@@ -270,7 +269,7 @@ def do_find_symbol(query : string; kind : string = ""; file : string = ""; proje
         // search all registered C++ modules (including builtin $)
         var results : array<string>
         var total_found = 0
-        program_for_each_registered_module() <| $(mod) {
+        program_for_each_registered_module() $(mod) {
             let mname = string(mod.name)
             if (mname == "__main__" || empty(mname)) {
                 return
@@ -286,7 +285,7 @@ def format_find_results(results : array<string>; total_found : int; query : stri
         return "No symbols found matching '{query}'" + (empty(kind) ? "" : " (kind={kind})")
     }
     let truncated = total_found >= MAX_FIND_RESULTS ? "\n(truncated at {MAX_FIND_RESULTS} results)" : ""
-    return build_string() <| $(var writer) {
+    return build_string() $(var writer) {
         write(writer, "Found {length(results)} symbol(s) matching '{query}':\n")
         for (r in results) {
             write(writer, "{r}\n")

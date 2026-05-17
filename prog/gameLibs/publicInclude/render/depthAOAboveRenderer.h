@@ -110,10 +110,10 @@ class DepthAOAboveRenderer
   const unsigned int texSize;
   const unsigned int refreshTileSize;
   UniqueTex debugRegionMap;
-  UniqueTexHolder worldAODepth;
-  UniqueTexHolder worldAODepthWithTransparency;
-  UniqueTexHolder blurredDepth;
-  UniqueTexHolder blurredDepthWithTransparency;
+  UniqueTexWithShaderVar worldAODepth;
+  UniqueTexWithShaderVar worldAODepthWithTransparency;
+  UniqueTexWithShaderVar blurredDepth;
+  UniqueTexWithShaderVar blurredDepthWithTransparency;
   Point2 sceneMinMaxZ;
 
   bool renderTransparent = false;

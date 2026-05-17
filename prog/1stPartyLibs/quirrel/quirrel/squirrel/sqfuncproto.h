@@ -214,8 +214,6 @@ public:
     const char* GetLocal(SQVM *v,SQUnsignedInteger stackbase,SQUnsignedInteger nseq,SQUnsignedInteger nop);
     static SQInteger GetLine(SQLineInfosHeader *lineinfos, int nlineinfos, int instruction_index, int *hint, bool *is_dbg_step_point = nullptr);
     SQInteger GetLine(const SQInstruction *curr, int *hint = nullptr, bool *is_dbg_step_point = nullptr);
-    bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
-    static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
     void Finalize(){
@@ -233,6 +231,7 @@ public:
     bool _bgenerator;
     bool _purefunction;
     bool _nodiscard;
+    bool _isAsync;     // true: function body is a generator wrapped as a Promise on call
     SQInt32 _stacksize;
     SQInt32 _varparams;
 
@@ -271,7 +270,7 @@ public:
 };
 
 void Dump(SQFunctionProto *func, int instruction_index = -1);
-void Dump(OutputStream *stream, SQFunctionProto *func, bool deep = false, int instruction_index = -1);
+void Dump(SQStreamWriteFunc write, void *ud, SQFunctionProto *func, bool deep = false, int instruction_index = -1);
 
 void ResetStaticMemos(SQFunctionProto *func, SQSharedState *ss);
 

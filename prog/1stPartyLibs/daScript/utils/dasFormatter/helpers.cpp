@@ -51,7 +51,7 @@ namespace das::format {
             } else {
                 std::abort();
             }
-            auto new_line = convert_to_string(*el.get());
+            auto new_line = convert_to_string(*el);
             result
                 .append(concat)
                 .append(new_line);
@@ -82,7 +82,7 @@ namespace das::format {
             Pos to;
             auto real_sep = suffix + sep;
             if ( el->rtti_isMakeTuple() ) {
-                const auto & Values = static_cast<ExprMakeTuple *>(el.get())->values;
+                const auto & Values = static_cast<ExprMakeTuple *>(el)->values;
                 prefix = "(";
                 suffix = ")";
                 middle = convert_to_string(Values);

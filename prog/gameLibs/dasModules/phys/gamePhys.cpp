@@ -155,20 +155,20 @@ public:
     addBuiltinDependency(lib, require("math"));
     addBuiltinDependency(lib, require("DagorMath"));
 
-    addEnumeration(das::make_smart<EnumerationDamageReason>());
+    addEnumeration(new EnumerationDamageReason());
 
-    addAnnotation(das::make_smart<OrientAnnotation>(lib));
-    addAnnotation(das::make_smart<LocAnnotation>(lib));
-    addAnnotation(das::make_smart<CommonPhysPartialStateAnnotation>(lib));
-    addAnnotation(das::make_smart<GamePhysMassPropsAnnotation>(lib));
-    addAnnotation(das::make_smart<GamePhysMassStateAnnotation>(lib));
-    addAnnotation(das::make_smart<GamePhysMassAnnotation>(lib));
-    addAnnotation(das::make_smart<FloatingVolumeAnnotation>(lib));
-    addAnnotation(das::make_smart<VolumetricDamageDataAnnotation>(lib));
-    addAnnotation(das::make_smart<FuelTankPropsAnnotation>(lib));
-    addAnnotation(das::make_smart<FuelTankStateAnnotation>(lib));
+    addAnnotation(new OrientAnnotation(lib));
+    addAnnotation(new LocAnnotation(lib));
+    addAnnotation(new CommonPhysPartialStateAnnotation(lib));
+    addAnnotation(new GamePhysMassPropsAnnotation(lib));
+    addAnnotation(new GamePhysMassStateAnnotation(lib));
+    addAnnotation(new GamePhysMassAnnotation(lib));
+    addAnnotation(new FloatingVolumeAnnotation(lib));
+    addAnnotation(new VolumetricDamageDataAnnotation(lib));
+    addAnnotation(new FuelTankPropsAnnotation(lib));
+    addAnnotation(new FuelTankStateAnnotation(lib));
 
-    addAnnotation(das::make_smart<ECSCustomPhysStateSyncerDataAnnotation>(lib));
+    addAnnotation(new ECSCustomPhysStateSyncerDataAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(gamephys::atmosphere::g)>(*this, lib, "gravity", das::SideEffects::accessExternal,
       "gamephys::atmosphere::g");
@@ -234,7 +234,7 @@ public:
       using method_init = DAS_CALL_MEMBER(ECSCustomPhysStateSyncer::init);
       das::addExtern<DAS_CALL_METHOD(method_init)>(*this, lib, "init", das::SideEffects::modifyArgument,
         DAS_CALL_MEMBER_CPP(ECSCustomPhysStateSyncer::init))
-        ->arg_init(/*resv*/ 1, das::make_smart<das::ExprConstInt>(0));
+        ->arg_init(/*resv*/ 1, new das::ExprConstInt(0));
 
       using method_registerSyncComponentFloat = das::das_call_member<void (ECSCustomPhysStateSyncer::*)(const char *, float &),
         &ECSCustomPhysStateSyncer::registerSyncComponent>;

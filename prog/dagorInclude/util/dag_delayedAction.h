@@ -73,9 +73,9 @@ DelayedAction *make_delayed_action(F &&func)
 };
 
 template <class F>
-void delayed_call(F &&func)
+void delayed_call(F &&func, const char *debug_name = NULL)
 {
-  add_delayed_action(make_delayed_action(eastl::forward<F>(func)));
+  add_delayed_action(make_delayed_action(eastl::forward<F>(func)), debug_name);
 }
 
 template <class F>

@@ -40,7 +40,7 @@ namespace das {
             if (!aT) {
                 auto bT = nameToBasicType(decl->alias);
                 if (bT != Type::none) {
-                    aT = make_smart<TypeDecl>(bT);
+                    aT = new TypeDecl(bT);
                 }
             }
             if (!aT) {
@@ -157,7 +157,7 @@ namespace das {
         }
         rank += int(pFn->arguments.size() - types.size()) * 1000;
         for (const auto &ann : pFn->annotations) {
-            auto fnAnn = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+            auto fnAnn = static_cast<FunctionAnnotation*>(ann->annotation);
             if (fnAnn->isSpecialized()) {
                 string err;
                 if (!fnAnn->isCompatible(pFn, types, *ann, err)) {
@@ -230,7 +230,7 @@ namespace das {
             }
         }
         for (const auto &ann : pFn->annotations) {
-            auto fnAnn = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+            auto fnAnn = static_cast<FunctionAnnotation*>(ann->annotation);
             if (fnAnn->isSpecialized()) {
                 string err;
                 if (!fnAnn->isCompatible(pFn, types, *ann, err)) {
@@ -249,18 +249,18 @@ namespace das {
         }
         auto addr = field->init;
         if (addr->rtti_isCast()) {
-            addr = static_pointer_cast<ExprCast>(addr)->subexpr;
+            addr = static_cast<ExprCast*>(addr)->subexpr;
         }
         if (!addr->rtti_isAddr()) {
             return "function is not inferred yet\n";
         }
-        auto pAddr = static_pointer_cast<ExprAddr>(addr);
+        auto pAddr = static_cast<ExprAddr*>(addr);
         if (!pAddr->func) {
             return "expecting @@ in class member initialization\n";
         }
         vector<TypeDeclPtr> nna = nonNamedArguments;
         if (!methodCall) {
-            nna.insert(nna.begin(), make_smart<TypeDecl>(st));
+            nna.insert(nna.begin(), new TypeDecl(st));
         }
         return describeMismatchingFunction(pAddr->func, nna, arguments, false, false);
     }
@@ -597,12 +597,12 @@ namespace das {
     }
     void InferTypes::reportMissingFinalizer(const string &message, const LineInfo &at, const TypeDeclPtr &ftype) {
         if (verbose) {
-            auto fakeCall = make_smart<ExprCall>(at, "_::finalize");
-            auto fakeVar = make_smart<ExprVar>(at, "this");
-            fakeVar->type = make_smart<TypeDecl>(*ftype);
+            auto fakeCall = new ExprCall(at, "_::finalize");
+            auto fakeVar = new ExprVar(at, "this");
+            fakeVar->type = new TypeDecl(*ftype);
             fakeCall->arguments.push_back(fakeVar);
             vector<TypeDeclPtr> fakeTypes = {ftype};
-            reportMissing(fakeCall.get(), fakeTypes, message, true, CompilationError::function_already_declared);
+            reportMissing(fakeCall, fakeTypes, message, true, CompilationError::function_already_declared);
         } else {
             error(message, "", "", at, CompilationError::function_already_declared);
         }
@@ -653,8 +653,8 @@ namespace das {
             auto can2 = findMissingGenericCandidates(expr->name, false);
             can1.reserve(can1.size() + can2.size());
             can1.insert(can1.end(), can2.begin(), can2.end());
-            auto nExtra = prepareCandidates(can1, nonNamedArguments, expr->arguments, true, true);
-            reportFunctionNotFound(expr->name, msg + expr->name, expr->at, can1, nonNamedArguments, expr->arguments, false, true, reportDetails, cerror, nExtra, moreError);
+            auto nExtra = prepareCandidates(can1, nonNamedArguments, *expr->arguments, true, true);
+            reportFunctionNotFound(expr->name, msg + expr->name, expr->at, can1, nonNamedArguments, *expr->arguments, false, true, reportDetails, cerror, nExtra, moreError);
         } else {
             error("no matching functions or generics: " + expr->name, "", "", expr->at, cerror);
         }
@@ -664,7 +664,7 @@ namespace das {
         if (verbose) {
             can1.reserve(can1.size() + can2.size());
             can1.insert(can1.end(), can2.begin(), can2.end());
-            reportFunctionNotFound(expr->name, msg + expr->name, expr->at, can1, nonNamedArguments, expr->arguments, false, true, false, cerror, 0, "");
+            reportFunctionNotFound(expr->name, msg + expr->name, expr->at, can1, nonNamedArguments, *expr->arguments, false, true, false, cerror, 0, "");
         } else {
             error("too many matching functions or generics: " + expr->name, "", "", expr->at, cerror);
         }
@@ -682,7 +682,7 @@ namespace das {
     }
     string InferTypes::reportMethodVsCall(ExprLooksLikeCall *expr) {
         if (verbose && expr->arguments.size() >= 1) {
-            if (auto tp = expr->arguments[0]->type.get()) {
+            if (auto tp = expr->arguments[0]->type) {
                 Structure *cls = nullptr;
                 if (tp->isClass()) {
                     cls = tp->structType;
@@ -736,8 +736,8 @@ namespace das {
         }
     }
     bool InferTypes::reportOp2Errors(ExprLooksLikeCall *expr) {
-        auto expr_left = expr->arguments[0].get();
-        auto expr_right = expr->arguments[1].get();
+        auto expr_left = expr->arguments[0];
+        auto expr_right = expr->arguments[1];
         auto expr_op = expr->name.substr(3);
         if (expr_left->type->isNumeric() && expr_right->type->isNumeric()) {
             if (isAssignmentOperator(expr_op)) {

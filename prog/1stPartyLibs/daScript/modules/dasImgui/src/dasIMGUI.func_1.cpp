@@ -23,12 +23,12 @@ void Module_dasIMGUI::initFunctions_1() {
 // from imgui/imgui.h:399:29
 	makeExtern< ImGuiContext * (*)(ImFontAtlas *) , ImGui::CreateContext , SimNode_ExtFuncCall , imguiTempFn>(lib,"CreateContext","ImGui::CreateContext")
 		->args({"shared_font_atlas"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:400:29
 	makeExtern< void (*)(ImGuiContext *) , ImGui::DestroyContext , SimNode_ExtFuncCall , imguiTempFn>(lib,"DestroyContext","ImGui::DestroyContext")
 		->args({"ctx"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:401:29
 	makeExtern< ImGuiContext * (*)() , ImGui::GetCurrentContext , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetCurrentContext","ImGui::GetCurrentContext")
@@ -61,32 +61,32 @@ void Module_dasIMGUI::initFunctions_1() {
 // from imgui/imgui.h:414:29
 	makeExtern< void (*)(bool *) , ImGui::ShowDemoWindow , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowDemoWindow","ImGui::ShowDemoWindow")
 		->args({"p_open"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:415:29
 	makeExtern< void (*)(bool *) , ImGui::ShowMetricsWindow , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowMetricsWindow","ImGui::ShowMetricsWindow")
 		->args({"p_open"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:416:29
 	makeExtern< void (*)(bool *) , ImGui::ShowDebugLogWindow , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowDebugLogWindow","ImGui::ShowDebugLogWindow")
 		->args({"p_open"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:417:29
 	makeExtern< void (*)(bool *) , ImGui::ShowIDStackToolWindow , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowIDStackToolWindow","ImGui::ShowIDStackToolWindow")
 		->args({"p_open"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:418:29
 	makeExtern< void (*)(bool *) , ImGui::ShowAboutWindow , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowAboutWindow","ImGui::ShowAboutWindow")
 		->args({"p_open"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:419:29
 	makeExtern< void (*)(ImGuiStyle *) , ImGui::ShowStyleEditor , SimNode_ExtFuncCall , imguiTempFn>(lib,"ShowStyleEditor","ImGui::ShowStyleEditor")
 		->args({"ref"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 }
 }

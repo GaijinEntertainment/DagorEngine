@@ -1,63 +1,43 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/daFrameGraph/daFG.h>
-#include "drv/3d/dag_texFlags.h"
-#include "frameGraphNodes.h"
+#include <render/daFrameGraph/ecs/frameGraphNode.h>
+#include <daECS/core/entitySystem.h>
+#include <drv/3d/dag_texFlags.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <shaders/dag_postFxRenderer.h>
 #include <util/dag_convar.h>
-#include "ui/userUi.h"
-#include "ui/uiShared.h"
-#include "ui/uiRender.h"
 #include <render/screencap.h>
 #include <render/renderEvent.h>
-#include <gui/dag_stdGuiRender.h>
-#include <daECS/core/entityManager.h>
-#include <daECS/core/entitySystem.h>
 #include <render/antiAliasing_legacy.h>
-#include <render/world/cameraParams.h>
-#include <render/world/frameGraphHelpers.h>
 #include "render/world/uiBlurTexHelper.h"
 #include <render/world/wrDispatcher.h>
-#include <daRg/dag_guiScene.h>
-#include <gui/dag_imgui.h>
-#include <gui/dag_visualLog.h>
-#include <main/console.h>
-#include <debug/dag_textMarks.h>
-#include <render/dag_cur_view.h>
 #include <render/renderer.h>
-#include <render/renderEvent.h>
-#include <drv/3d/dag_renderTarget.h>
 
 extern ConVarT<bool, false> hide_gui;
 
-namespace
-{
-bool should_hide_gui() { return screencap::should_hide_gui() || hide_gui.get(); }
-bool should_hide_debug() { return screencap::should_hide_debug(); }
-} // namespace
+static inline bool should_hide_gui() { return screencap::should_hide_gui() || hide_gui.get(); }
+static inline bool should_hide_debug() { return screencap::should_hide_debug(); }
 
-eastl::fixed_vector<dafg::NodeHandle, 2> makeBeforeUIControlNodes()
+static inline void makeBeforeUIControlNodes(dafg::NodeHandle &before_ui_begin, dafg::NodeHandle &before_ui_end)
 {
   auto ns = dafg::root() / "before_ui";
 
-  eastl::fixed_vector<dafg::NodeHandle, 2> res;
-
-  res.push_back(ns.registerNode("begin", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  before_ui_begin = ns.registerNode("begin", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto prevNs = registry.root();
     prevNs.renameTexture("frame_to_present", "frame");
     return []() {};
-  }));
+  });
 
-  res.push_back(ns.registerNode("end", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+  before_ui_end = ns.registerNode("end", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.multiplex(dafg::multiplexing::Mode::Viewport);
     registry.renameTexture("frame", "frame_done");
     return []() {};
-  }));
-
-  return res;
+  });
 }
 
-dafg::NodeHandle makeUIRenderNode(bool withHistory)
+static inline dafg::NodeHandle makeUIRenderNode(bool withHistory)
 {
   return dafg::register_node("ui_render", DAFG_PP_NODE_SRC, [withHistory](dafg::Registry registry) {
     auto targetHndl =
@@ -84,7 +64,7 @@ dafg::NodeHandle makeUIRenderNode(bool withHistory)
   });
 }
 
-dafg::NodeHandle makeUIBlendNode()
+static inline dafg::NodeHandle makeUIBlendNode()
 {
   return dafg::register_node("ui_blend", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.readTexture("ui_tex").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("ui_tex");
@@ -100,20 +80,28 @@ dafg::NodeHandle makeUIBlendNode()
 }
 
 ECS_TAG(render)
-ECS_ON_EVENT(OnCameraNodeConstruction)
-static void create_ui_nodes_es(const OnCameraNodeConstruction &evt)
+ECS_ON_EVENT(OnCameraNodeConstruction, SetAntialiasing)
+static inline void create_ui_nodes_es(const ecs::Event &,
+  dafg::NodeHandle &before_ui_begin,
+  dafg::NodeHandle &before_ui_end,
+  dafg::NodeHandle &ui_render,
+  dafg::NodeHandle &ui_blend)
 {
-  for (auto &&n : makeBeforeUIControlNodes())
-    evt.nodes->push_back(eastl::move(n));
+  if (!get_world_renderer())
+    return;
 
+  makeBeforeUIControlNodes(before_ui_begin, before_ui_end);
+
+  ui_render = {};
+  ui_blend = {};
   if (WRDispatcher::needSeparatedUI())
   {
     AntiAliasing *antiAliasing = WRDispatcher::getAntialiasing();
     // this is currently only used for frame generation, so currently always true in this branch
     const bool needHistory = true;
-    evt.nodes->push_back(makeUIRenderNode(needHistory));
+    ui_render = makeUIRenderNode(needHistory);
 
     if (antiAliasing && antiAliasing->needsUIBlending())
-      evt.nodes->push_back(makeUIBlendNode());
+      ui_blend = makeUIBlendNode();
   }
 }

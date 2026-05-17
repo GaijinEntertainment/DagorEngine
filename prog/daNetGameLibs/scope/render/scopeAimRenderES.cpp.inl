@@ -682,8 +682,7 @@ void prepare_aim_dof(const ScopeAimRenderingData &scopeAimData,
       ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_DEPTH);
       ShaderGlobal::set_int(lens_detail_levelVarId, LENS_DETAIL_REFLECTIONS);
       ScopeRenderTarget scopeRt;
-      d3d::set_render_target((Texture *)NULL, 0);
-      d3d::set_depth(aim_dof_depth, DepthAccess::RW);
+      d3d::set_render_target({aim_dof_depth, 0, 0}, DepthAccess::RW, {});
       render_scope_trans(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId, tex_ctx);
       ShaderGlobal::set_int(lens_render_modeVarId, LENS_RENDER_OPTICS);
       d3d::resource_barrier({aim_dof_depth, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});

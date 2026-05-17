@@ -56,14 +56,15 @@ dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode)
     return [cameraHndl = cameraHndl, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
-      bool isFirstIteration = multiplexing_index == dafg::multiplexing::Index{};
+      bool enableFeedback =
+        multiplexing_index.superSample == 0 && multiplexing_index.subSample == 0 && multiplexing_index.viewport == 0;
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       {
         RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
         CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
         camJobsMgr->waitGroundVisibility();
         STATE_GUARD_0(ShaderGlobal::set_int(var::lmesh_triangle_size_debug, VALUE), debugTriangle);
-        wr.renderGround(camJobsMgr->getLandMeshCullingData(), isFirstIteration && !debugTriangle);
+        wr.renderGround(camJobsMgr->getLandMeshCullingData(), enableFeedback && !debugTriangle);
         if (wr.clipmap && !debugTriangle)
           wr.clipmap->increaseUAVAtomicPrefix();
       }

@@ -70,8 +70,8 @@ static void toggle_underwater_dof(ecs::EntityManager &manager, bool is_underwate
             savedDof__nearDofStart = dof__nearDofStart;
             savedDof__nearDofEnd = dof__nearDofEnd;
             savedDof__farDofStart = dof__farDofStart;
-            savedDof__farDofEnd = savedDof__farDofEnd;
-            savedDof__farDofAmountPercent = savedDof__farDofAmountPercent;
+            savedDof__farDofEnd = dof__farDofEnd;
+            savedDof__farDofAmountPercent = dof__farDofAmountPercent;
 
             dof__on = true;
             dof__is_filmic = false;

@@ -388,10 +388,11 @@ static void initBVH()
       rtSettings.ultraPerformanceOverwrite
         ? true
         : dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhPrioritizeCompaction", false);
-    additionalSettings.use_fast_tlas_build = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhUseFastTlasBuild", false);
+    additionalSettings.useFastTlasBuild = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhUseFastTlasBuild", false);
     additionalSettings.discardDestrAssets = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhDiscardDestrAssets", 0);
     additionalSettings.singleLodFilterMaxFaces = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhSingleLodMaxFaces", 0);
     additionalSettings.singleLodFilterMaxRange = dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhSingleLodMaxRange", 0);
+    additionalSettings.enableCaching = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhEnableCaching", true);
     bvh::init(bvh::process_elem, nullptr, additionalSettings);
     bvhRenderingContextId = bvh::create_context("Rendering", static_cast<bvh::Features>(features));
     bvh::connect_fx(bvhRenderingContextId, [](BVHConnection *connection) { fxBvhConnection = connection; });
@@ -807,6 +808,7 @@ static ShaderVariableInfo bvh_instance_data_bufferVarId("bvh_instance_data_buffe
 static void upload_dynmodel_instance_data()
 {
   TIME_PROFILE(bvh::upload_dynmodel_instance_data)
+  bvh::wait_dynamic_instances_jobs();
   bvhDynmodelInstanceBuffer = bvhDynmodelState->requestBuffer(dynmodel_renderer::BufferType::BVH);
   if (bvhDynmodelInstanceBuffer)
   {
@@ -857,7 +859,7 @@ static dafg::NodeHandle makeBVHUpdateNode()
     registry.executionHas(dafg::SideEffects::External);
     registry.readBlob<OrderingToken>("prepare_skies_token");
     registry.createBlob<OrderingToken>("bvh_ready_token");
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     registry.readBlob<OrderingToken>("acesfx_update_token");
     registry.readBlob<OrderingToken>("grass_generated_token").optional();
     const auto resolution = registry.getResolution<2>("main_view");
@@ -1414,7 +1416,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
 
     const RtTexturesDescriptors ds = RtTexturesDescriptors::collectRTR();
     auto textureMaps = RTTextureMaps::makeForInitNode(registry, rt_persistent_textures, ds);
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
 
     return [textureMaps = eastl::move(textureMaps)]() {
@@ -1448,7 +1450,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
     auto camera = read_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     read_gbuffer(registry, dafg::Stage::PS_OR_CS);
     read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
 
@@ -1522,15 +1524,15 @@ static dafg::NodeHandle makeRTTRNode()
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
     auto camera = read_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
 
     use_bindless_fom_shadows(registry, dafg::Stage::CS);
 
     auto glassGbufferHndl =
       registry.modify("glass_target").texture().atStage(dafg::Stage::CS).bindToShaderVar("translucent_gbuffer").handle();
 
-    registry.read("glass_depth").texture().atStage(dafg::Stage::CS).bindToShaderVar("translucent_gbuffer_depth");
-    registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::CS).bindToShaderVar("downsampled_far_depth_tex");
+    registry.bindTexCs("glass_depth", "translucent_gbuffer_depth");
+    registry.bindTexCs("far_downsampled_depth", "downsampled_far_depth_tex");
 
     return
       [cameraHndl, glassGbufferHndl, glass_rt = Ptr(new_compute_shader("rt_glass_reflection")),
@@ -1586,7 +1588,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTAONodes(RTPersistentTexturesECS &
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
     auto camera = read_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     read_gbuffer(registry, dafg::Stage::PS_OR_CS);
     read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
     // TODO remove this from the interface of rtao::render
@@ -1648,7 +1650,7 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
     registry.createBlob<OrderingToken>("ptgi_token");
     auto camera = registry.readBlob<CameraParams>("current_camera");
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
     read_gbuffer(registry, dafg::Stage::PS_OR_CS);
     read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
     // TODO remove this from the interface of ptgi::render
@@ -1700,11 +1702,11 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto prevCameraHndl = read_history_camera_in_camera(registry).handle();
 
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
 
     auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
 
-    registry.read(WATER_NORMAL_DIR_TEX[modeIdx]).texture().atStage(dafg::Stage::CS).bindToShaderVar("water_normal_dir");
+    registry.bindTexCs(WATER_NORMAL_DIR_TEX[modeIdx], "water_normal_dir");
     registry.readBlob<OrderingToken>(WATER_SSR_COLOR_TOKEN[modeIdx]);
     auto colorTexHndl = registry.modify(WATER_SSR_COLOR_TEX[modeIdx + 1])
                           .texture()
@@ -1716,13 +1718,7 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
       .atStage(dafg::Stage::CS)
       .bindToShaderVar("water_reflection_strength_tex_uav");
 
-    if (is_rr_enabled())
-    {
-      registry.modifyTexture("packed_normal_roughness_with_water").atStage(dafg::Stage::CS).bindToShaderVar("dlss_normal_roughness");
-      registry.modifyTexture("dlss_albedo_with_water").atStage(dafg::Stage::CS).bindToShaderVar("dlss_albedo");
-      registry.modifyTexture("specular_albedo_with_water").atStage(dafg::Stage::CS).bindToShaderVar("dlss_specular_albedo");
-    }
-    else
+    if (!is_rr_enabled())
     {
       registry.historyFor(WATER_SSR_COLOR_TEX[eastl::to_underlying(WaterRenderMode::COUNT)])
         .texture()
@@ -1741,7 +1737,7 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
 
     use_bindless_fom_shadows(registry, dafg::Stage::CS);
 
-    registry.readTexture("water_planar_reflection_clouds").atStage(dafg::Stage::CS).bindToShaderVar().optional();
+    registry.bindTexCs("water_planar_reflection_clouds", "water_planar_reflection_clouds").optional();
     registry.read("water_planar_reflection_clouds_sampler")
       .blob<d3d::SamplerHandle>()
       .bindToShaderVar("water_planar_reflection_clouds_samplerstate")
@@ -1883,6 +1879,7 @@ void setup_unitedvdata_allocation_limits()
       {
         case ConsoleModel::XBOX_ANACONDA: limitsBlk = streamingBlk->getBlockByNameEx("scarlettXRTLimits"); break;
         case ConsoleModel::XBOX_LOCKHART: limitsBlk = streamingBlk->getBlockByNameEx("scarlettSRTLimits"); break;
+        case ConsoleModel::PS5: limitsBlk = streamingBlk->getBlockByNameEx("ps5RTLimits"); break;
         case ConsoleModel::PS5_PRO: limitsBlk = streamingBlk->getBlockByNameEx("ps5proRTLimits"); break;
         default: break;
       }

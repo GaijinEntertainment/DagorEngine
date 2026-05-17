@@ -15,7 +15,7 @@
   if (tinfo.cflg & TEXCF_RTARGET)
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(t.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{t.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   }
   else if (tinfo.cflg & TEXCF_UNORDERED)

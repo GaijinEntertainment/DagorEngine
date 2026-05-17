@@ -23,6 +23,6 @@ include foo/foo.das_module
 
 [export]
 def include_get(inc, from : string) : string {
-    print("including {inc} from {from}\n")
+    to_log(LOG_INFO, "including {inc} from {from}\n")
     return "{get_das_root()}/tests/module_tests/_modules/include/{inc}"
 }

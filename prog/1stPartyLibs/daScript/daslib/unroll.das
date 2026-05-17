@@ -34,31 +34,39 @@ class UnrollMacro : AstFunctionAnnotation {
     //!     unroll <|   // contents of the loop will be replaced with 9 image load instructions.
     //!         for i in range(9)
     //!             n[i] = imageLoad(c_bloom_htex, xy + int2(0,i-4))
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
+        if (is_in_lint_check()) {
+            // In lint mode, skip unrolling — return the inner for loop as-is
+            var mblk = unsafe(reinterpret<ExprMakeBlock?>(call.arguments[0]))
+            var blk = unsafe(reinterpret<ExprBlock?>(mblk._block))
+            if (blk.list |> length == 1 && blk.list[0] is ExprFor) {
+                return <- clone_expression(blk.list[0])
+            }
+        }
         assert(call.arguments[0] is ExprMakeBlock)
         var mblk = unsafe(reinterpret<ExprMakeBlock?>(call.arguments[0]))
         var blk = unsafe(reinterpret<ExprBlock?>(mblk._block))
         if (blk.finalList |> length != 0) {
             errors := "not expecting finally section in the unroll"
-            return <- default<ExpressionPtr>
+            return null
         }
         if (blk.list |> length != 1 || !(blk.list[0] is ExprFor)) {
             errors := "expecting unroll <| for ..."
-            return <- default<ExpressionPtr>
+            return null
         }
         let efor = unsafe(reinterpret<ExprFor?>(blk.list[0]))
         if (!(efor.sources[0] is ExprConstRange)) {
             errors := "can only unroll for loop with range"
-            return <- default<ExpressionPtr>
+            return null
         }
-        let euc = unsafe(reinterpret<ExprConstRange?> efor.sources[0])
+        let euc = efor.sources[0] as ExprConstRange
         let van = "{efor.iterators[0]}"
-        var inscope nblk <- new ExprBlock(at = call.at)
+        var nblk = new ExprBlock(at = call.at)
         for (i in euc.value) {
             {
-                var inscope iblk <- clone_expression(efor.body)
+                var iblk = clone_expression(efor.body)
                 remove_deref(van, iblk)
-                var inscope rules : Template
+                var rules : Template
                 rules |> replaceVariable(van) <| new ExprConstInt(at = call.at, value = i)
                 rules |> apply_template(call.at, iblk, false)
                 nblk.list |> emplace(iblk)

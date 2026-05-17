@@ -11,8 +11,9 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
 {
 #if DAGOR_DBGLEVEL > 0
   if (debug_data.drawBits & CRDD_NODES)
-    for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+    for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
     {
+      const CollisionNode *meshNode = &allNodesList[mi];
       if (!meshNode->geomNodeId && !(debug_data.drawBits & CRDD_NON_GEOM_TREE_NODES))
         continue;
 
@@ -28,10 +29,12 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
         add_debug_text_mark(tm.getcol(3), getNodeName(meshNode->nodeIndex), -1, 0.f);
 
       set_cached_debug_lines_wtm(tm);
-      for (unsigned int indexNo = 0; indexNo < meshNode->indices.size(); indexNo += 3)
+      const Point3_vec4 *meshVerts = meshVertsBase + meshNode->verticesOfs;
+      const uint16_t *meshIdx = meshIndicesBase + meshNode->indicesOfs;
+      for (unsigned int indexNo = 0; indexNo < meshNode->indicesCount; indexNo += 3)
       {
         const Point3 *points[3] = {
-#define _P3(n) points[n] = &meshNode->vertices[meshNode->indices[indexNo + (n)]]
+#define _P3(n) points[n] = &meshVerts[meshIdx[indexNo + (n)]]
           _P3(0), _P3(1), _P3(2)
 #undef _P3
         };
@@ -71,14 +74,17 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
 
   if (debug_data.drawBits & CRDD_NODES)
   {
-    for (const CollisionNode *boxNode = boxNodesHead; boxNode; boxNode = boxNode->nextNode)
-      draw_cached_debug_box(boxNode->modelBBox, debug_data.color);
+    for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
+      draw_cached_debug_box(allNodesList[bi].modelBBox, debug_data.color);
 
-    for (const CollisionNode *sphereNode = sphereNodesHead; sphereNode; sphereNode = sphereNode->nextNode)
-      draw_cached_debug_sphere(sphereNode->boundingSphere.c, sphereNode->boundingSphere.r, debug_data.color);
+    for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
+    {
+      const CollisionNode &sphereNode = allNodesList[si];
+      draw_cached_debug_sphere(sphereNode.boundingSphere.c, sphereNode.boundingSphere.r, debug_data.color);
+    }
 
-    for (const CollisionNode *capsuleNode = capsuleNodesHead; capsuleNode; capsuleNode = capsuleNode->nextNode)
-      draw_cached_debug_capsule(capsules[capsuleNode->capsuleIndex], debug_data.color, TMatrix::IDENT);
+    for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
+      draw_cached_debug_capsule(capsules[allNodesList[ci].capsuleIndex], debug_data.color, TMatrix::IDENT);
   }
 #else
   G_UNUSED(instance_tm);

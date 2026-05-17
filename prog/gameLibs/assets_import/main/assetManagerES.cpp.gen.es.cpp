@@ -172,19 +172,21 @@ static ecs::EntitySystemDesc track_animchar_assets_es_es_desc
 );
 static constexpr ecs::ComponentDesc reload_animchar_resources_ecs_query_comps[] =
 {
-//start of 4 rw components at [0]
+//start of 6 rw components at [0]
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar__animStateDirty"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 ro components at [4]
+  {ECS_HASH("human_anim__disableHubsIds"), ecs::ComponentTypeInfo<ecs::IPoint2List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("human_anim__disableNodesIds"), ecs::ComponentTypeInfo<ecs::IntList>(), ecs::CDF_OPTIONAL},
+//start of 1 ro components at [6]
   {ECS_HASH("animchar__res"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static ecs::CompileTimeQueryDesc reload_animchar_resources_ecs_query_desc
 (
   "reload_animchar_resources_ecs_query",
-  make_span(reload_animchar_resources_ecs_query_comps+0, 4)/*rw*/,
-  make_span(reload_animchar_resources_ecs_query_comps+4, 1)/*ro*/,
+  make_span(reload_animchar_resources_ecs_query_comps+0, 6)/*rw*/,
+  make_span(reload_animchar_resources_ecs_query_comps+6, 1)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -201,6 +203,8 @@ inline void reload_animchar_resources_ecs_query(ecs::EntityManager &manager, ecs
             , ECS_RO_COMP(reload_animchar_resources_ecs_query_comps, "animchar__res", ecs::string)
             , ECS_RW_COMP_PTR(reload_animchar_resources_ecs_query_comps, "animchar_node_wtm", AnimcharNodesMat44)
             , ECS_RW_COMP_PTR(reload_animchar_resources_ecs_query_comps, "animchar__animStateDirty", bool)
+            , ECS_RW_COMP_PTR(reload_animchar_resources_ecs_query_comps, "human_anim__disableHubsIds", ecs::IPoint2List)
+            , ECS_RW_COMP_PTR(reload_animchar_resources_ecs_query_comps, "human_anim__disableNodesIds", ecs::IntList)
             );
 
         }

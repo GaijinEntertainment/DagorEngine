@@ -1074,11 +1074,13 @@ void add_hlsl(hlsl_global_decl_class &sh, Parser &parser, shc::TargetContext &ct
 }
 #undef REPORT_ERR
 
-void add_global_bool(ShaderTerminal::bool_decl &bool_var, Parser &parser, shc::TargetContext &ctx)
+void add_global_bool(ShaderTerminal::bool_decl &decl, Parser &parser, shc::TargetContext &ctx)
 {
-  ctx.globBoolVars().add(bool_var, parser);
+  G_ASSERT(decl.resolvedNid < 0);
+  decl.resolvedNid = ctx.boolVarNameMap().addVarId(decl.name->text);
+  ctx.globBoolVars().add(decl.resolvedNid, decl.expr, parser, decl.name);
 
-  String hlsl_bool_var(0, "##bool %s\n", bool_var.name->text);
+  String hlsl_bool_var(0, "##bool %s\n", decl.name->text);
   ctx.globHlslSrc().forEach([&](String &src) { src.append(hlsl_bool_var); });
 }
 }; // namespace ShaderParser

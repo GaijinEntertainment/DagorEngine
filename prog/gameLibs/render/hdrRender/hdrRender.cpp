@@ -40,7 +40,7 @@ float hdr_brightness = defaults::hdr_brightness;
 float hdr_shadows = defaults::hdr_shadows;
 bool use_dynamic_hdr = false;
 
-static UniqueTexHolder float_rt_tex;
+static UniqueTexWithShaderVar float_rt_tex;
 eastl::unique_ptr<PostFxRenderer> encode_hdr_renderer;
 
 bool hdrrender::is_hdr_enabled() { return !!d3d::driver_command(Drv3dCommand::IS_HDR_ENABLED); }

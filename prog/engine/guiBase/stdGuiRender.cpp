@@ -1874,7 +1874,7 @@ void GuiContext::rollStateBlock()
   if (rollState & ROLL_GUI_STATE)
     renderer->pushGuiState(&renderer->quadCache.guiState);
 
-  if ((rollState & ROLL_EXT_STATE) && (currentBufferId >= 0))
+  if ((rollState & ROLL_EXT_STATE) && (currentBufferId >= 0) && renderer->extStatePtrs[currentBufferId] != nullptr)
     renderer->pushExtState(renderer->extStatePtrs[currentBufferId]);
 
   rollState = 0;

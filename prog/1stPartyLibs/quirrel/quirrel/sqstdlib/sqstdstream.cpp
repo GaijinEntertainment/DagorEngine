@@ -19,14 +19,19 @@
     if(!self || !self->IsValid())  \
         return sq_throwerror(v,"the stream is invalid");
 
-SQInteger _stream_readblob(HSQUIRRELVM v)
+static SQInteger _stream_readblob(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQUserPointer data,blobp;
     SQInteger size,res;
     sq_getinteger(v,2,&size);
-    if(size > self->Len()) {
-        size = self->Len();
+    if(size < 0)
+        return sq_throwerror(v, "invalid size");
+    SQInteger len = self->Len();
+    if(len < 0)
+        return sq_throwerror(v, "io error");
+    if(size > len) {
+        size = len;
     }
     data = sq_getscratchpad(v,size);
     res = self->Read(data,size);
@@ -40,7 +45,8 @@ SQInteger _stream_readblob(HSQUIRRELVM v)
 #define SAFE_READN(ptr,len) { \
     if(self->Read(ptr,len) != len) return sq_throwerror(v,"io error"); \
     }
-SQInteger _stream_readn(HSQUIRRELVM v)
+
+static SQInteger _stream_readn(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQInteger format;
@@ -100,7 +106,7 @@ SQInteger _stream_readn(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger _stream_writeblob(HSQUIRRELVM v)
+static SQInteger _stream_writeblob(HSQUIRRELVM v)
 {
     SQUserPointer data;
     SQInteger size;
@@ -114,7 +120,7 @@ SQInteger _stream_writeblob(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger _stream_writestring(HSQUIRRELVM v)
+static SQInteger _stream_writestring(HSQUIRRELVM v)
 {
     const char * str;
     SQInteger len;
@@ -129,7 +135,7 @@ SQInteger _stream_writestring(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger _stream_writen(HSQUIRRELVM v)
+static SQInteger _stream_writen(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQInteger format, ti;
@@ -198,7 +204,7 @@ SQInteger _stream_writen(HSQUIRRELVM v)
     return 0;
 }
 
-SQInteger _stream_seek(HSQUIRRELVM v)
+static SQInteger _stream_seek(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQInteger offset, origin = SQ_SEEK_SET;
@@ -217,21 +223,21 @@ SQInteger _stream_seek(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger _stream_tell(HSQUIRRELVM v)
+static SQInteger _stream_tell(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     sq_pushinteger(v, self->Tell());
     return 1;
 }
 
-SQInteger _stream_len(HSQUIRRELVM v)
+static SQInteger _stream_len(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     sq_pushinteger(v, self->Len());
     return 1;
 }
 
-SQInteger _stream_flush(HSQUIRRELVM v)
+static SQInteger _stream_flush(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     if(!self->Flush())
@@ -241,7 +247,7 @@ SQInteger _stream_flush(HSQUIRRELVM v)
     return 1;
 }
 
-SQInteger _stream_eos(HSQUIRRELVM v)
+static SQInteger _stream_eos(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     if(self->EOS())
@@ -252,7 +258,7 @@ SQInteger _stream_eos(HSQUIRRELVM v)
 }
 
 
-SQInteger _stream_writeobject(HSQUIRRELVM v)
+static SQInteger _stream_writeobject(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQObjectPtr obj = stack_get(v, 2);
@@ -264,7 +270,7 @@ SQInteger _stream_writeobject(HSQUIRRELVM v)
     return SQ_FAILED(res) ? res : 0;
 }
 
-SQInteger _stream_readobject(HSQUIRRELVM v)
+static SQInteger _stream_readobject(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
     SQObjectPtr availableClasses;
@@ -275,7 +281,7 @@ SQInteger _stream_readobject(HSQUIRRELVM v)
 }
 
 
-SQInteger _stream__cloned(HSQUIRRELVM v)
+static SQInteger _stream__cloned(HSQUIRRELVM v)
 {
     return sq_throwerror(v,"this object cannot be cloned");
 }

@@ -1,0 +1,8 @@
+script done
+c1 waits
+c2 waits
+c3 waits
+resolver runs
+c1 got: V
+c2 got: V
+c3 got: V

@@ -987,17 +987,17 @@ void LandscapeEntityObject::save(DataBlock &blk)
     sblk->setStr("scriptClass", physObjProps.scriptClass);
   }
 
-  if (entity)
-  {
-    IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>();
-    if (irsh && (rndSeed != -1))
-      blk.addInt("entSeed", rndSeed);
-    if (irsh && perInstSeed)
-      blk.addInt("entPerInstSeed", perInstSeed);
+  // Preserve editor-side cached fields even when the asset cannot be resolved
+  // on this machine (entity == nullptr). Otherwise re-saving on a machine
+  // missing some assets silently strips entSeed/entPerInstSeed/isCollidable.
+  const bool seedSupported = !entity || entity->queryInterface<IRandomSeedHolder>() != nullptr;
+  if (seedSupported && rndSeed != -1)
+    blk.addInt("entSeed", rndSeed);
+  if (seedSupported && perInstSeed)
+    blk.addInt("entPerInstSeed", perInstSeed);
 
-    if (!isCollidable)
-      blk.addBool("isCollidable", isCollidable);
-  }
+  if (!isCollidable)
+    blk.addBool("isCollidable", isCollidable);
 }
 void LandscapeEntityObject::load(const DataBlock &blk)
 {

@@ -59,8 +59,8 @@ bool rendinst::is_riextra_rendinst_clipmap(rendinst::riex_handle_t handle)
 uint32_t rendinst::get_riextra_instance_seed(rendinst::riex_handle_t handle)
 {
   uint32_t instSeed = 0;
-  if (const uint32_t *userData = rendinst::get_user_data(handle))
-    instSeed = userData[0]; // correct while instSeed lying at the start of data
+  if (dag::ConstSpan<int32_t> userData = rendinst::get_user_data(handle); !userData.empty())
+    instSeed = uint32_t(userData[0]); // correct while instSeed lying at the start of data
   return instSeed;
 }
 
@@ -409,7 +409,7 @@ void rendinst::setRiGenResMatId(uint32_t res_idx, int matId)
   const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
   if (RendInstGenData *rgl = (pool.riPoolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
   {
-    RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[pool.riPoolRef];
+    rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[pool.riPoolRef];
     riProp.matId = matId;
   }
 }
@@ -426,7 +426,7 @@ void rendinst::setRiGenResDestructionImpulse(uint32_t res_idx, float impulse)
   const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
   if (RendInstGenData *rgl = (pool.riPoolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
   {
-    RendInstGenData::DestrProps &riDestr = rgl->rtData->riDestr[pool.riPoolRef];
+    rendinst::props::DestrProps &riDestr = rgl->rtData->riDestr[pool.riPoolRef];
     riDestr.destructionImpulse = impulse;
   }
 }

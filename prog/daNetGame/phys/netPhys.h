@@ -46,7 +46,7 @@ struct SolverBodyInfo;
 
 struct BasePhysSnapshot
 {
-  float atTime;
+  double atTime;
   int atTick;
   Point3 pos;
   Point3 vel; // used even in interpolation (for animation's speed & locomotion)

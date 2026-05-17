@@ -301,10 +301,10 @@ def onEnum(var root) {
     let name = root["name"] as _string
     let fullName = getCppName(name)
     if (root |> key_exists("scopedEnumTag")) {
-        let tag = root["scopedEnumTag"] as _string
+        let _tag = root["scopedEnumTag"] as _string
         let qtype = getQualType(root, "fixedUnderlyingType")
         if (verbose) {
-            print("enum {tag} {name} : {qtype} // {fullName}\n")
+            print("enum {_tag} {name} : {qtype} // {fullName}\n")
         }
         ast.enums[fullName] <- ClangEnum(
             name = name,
@@ -327,7 +327,7 @@ def onEnum(var root) {
             assert(edo is _object)
             var ed & = unsafe(edo as _object)
             if (ed["kind"] as _string == "EnumConstantDecl") {
-                var cname = ed["name"] as _string
+                let cname = ed["name"] as _string
                 ast.enums[fullName].edecl |> push(cname)
             }
         }
@@ -339,7 +339,7 @@ def onVar(var root) {
     let name = root["name"] as _string
     let fullName = getCppName(name)
     let mangledName = root["mangledName"] as _string // todo: undecorate mangled name
-    var qualType = getQualType(root)
+    let qualType = getQualType(root)
     if (verbose) {
         print("global variable {name} // {fullName}\n// {mangledName}\n// {qualType}\n")
     }
@@ -431,7 +431,7 @@ def onFunctionBody(var root; isMethod : bool; ofClass : string = "") : ClangFunc
     let name = root["name"] as _string
     let fullName = getCppName(name)
     let mangledName = root["mangledName"] as _string // todo: undecorate mangled name
-    var qualType = getQualType(root)
+    let qualType = getQualType(root)
     if (verbose) {
         print("function {name} // {fullName}\n// {mangledName}\n// {qualType}\n")
     }
@@ -457,7 +457,7 @@ def onFunctionBody(var root; isMethod : bool; ofClass : string = "") : ClangFunc
                 var ad & = unsafe(fad as _object)
                 if (ad["kind"] as _string == "ParmVarDecl") {
                     let fieldName = key_exists(ad, "name") ? (ad["name"] as _string) : ""
-                    var fqualType = getQualType(ad)
+                    let fqualType = getQualType(ad)
                     var fieldInit = ""
                     var fieldInitType = ""
                     if (key_exists(ad, "init")) {
@@ -484,7 +484,7 @@ def onFunctionBody(var root; isMethod : bool; ofClass : string = "") : ClangFunc
 def onMethod(var root) {
     //! Processes a C++ method declaration within a struct or class.
     if (length(struct_stack) > 0) {
-        var in_class = struct_stack[length(struct_stack) - 1]
+        let in_class = struct_stack[length(struct_stack) - 1]
         ast.structs[in_class].methods |> emplace <| onFunctionBody(root, true, join(struct_stack, "::"))
     } else {
         print("WARNING: method not in class {root["name"]}")
@@ -556,8 +556,8 @@ def isBitfield(var root) {
 def onField(var root) {
     //! Processes a struct or class field declaration.
     let name = key_exists(root, "name") ? (root["name"] as _string) : ""
-    var qualType = getQualType(root)
-    var access = access_stack[length(access_stack) - 1]
+    let qualType = getQualType(root)
+    let access = access_stack[length(access_stack) - 1]
     if (verbose) {
         print("\t{qualType} {name} // {access}\n")
     }
@@ -586,7 +586,7 @@ def onTypeDecl(var root) {
     //! Processes a C++ typedef declaration.
     let name = root["name"] as _string
     let fullName = getCppName(name)
-    var qualType = getQualType(root)
+    let qualType = getQualType(root)
     if (verbose) {
         print("typedecl {name} = {qualType} // {fullName}\n")
     }
@@ -636,7 +636,7 @@ def genEnums(hf, mf, df : FILE const?) {
             continue
         }
         fprint(df, "#ifdef {getDefinePrefix(en.cppName)}\n")
-        fprint(df, "addEnumeration(make_smart<Enumeration{enName}>());\n")
+        fprint(df, "addEnumeration(new Enumeration{enName}());\n")
         if (isFlags) {
             fprint(df, "addEnumFlagOps<{en.cppName}>(*this,lib,\"{en.cppName}\");\n")
         }
@@ -660,7 +660,7 @@ public:
         let uename = to_upper(en.name);
         for (ene in en.edecl) {
             var entryName = ene;
-            var entryCppName = ene;
+            let entryCppName = ene;
             if (removePrefix) {
                 if (ene |> starts_with("{en.name}_")) {
                     entryName = slice(ene, length(en.name) + 1);
@@ -937,7 +937,7 @@ def openSplitFile {
         let fname = "{split_prefix}_{split_index}.cpp"
         print("SPLIT {split_index} at {fname}\n")
         g_split_file = fopen(fname, "wb")
-        var prefix = replace(split_cpp_prefix, "$$$", "{split_index}")
+        let prefix = replace(split_cpp_prefix, "$$$", "{split_index}")
         fprint(g_split_file, prefix)
     }
     g_split_count ++
@@ -1099,11 +1099,11 @@ def genFunction(fn : ClangFunc; castbind : bool; df : FILE const?) {
             fprint(df, "\t\t->res_type(makeType<{rt}>(lib))\n")
         }
     }
-    for (arg, _argi in fn.args, count()) {
-        let argi = fn.isMethod ? _argi + 1 : _argi
+    for (arg, argi0 in fn.args, count()) {
+        let argi = fn.isMethod ? argi0 + 1 : argi0
         var thisArgEnum = ""
         if (revArgs) {
-            get(rev_enums, qargs[_argi]) $(en) {
+            get(rev_enums, qargs[argi0]) $(en) {
                 thisArgEnum = en
                 fprint(df, "\t\t->arg_type({argi},makeType<{thisArgEnum}>(lib))\n")
             }

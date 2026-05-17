@@ -91,34 +91,60 @@ def test_is_index_name(t : T?) {
 [test]
 def test_parse_args(t : T?) {
     t |> run("install command") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "install", "dasImgui"])
-        t |> equal(parsed.command, "install")
-        t |> equal(parsed.command_arg, "dasImgui")
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["install", "dasImgui"]), "")
+        t |> equal(parsed.command ?? "", "install")
+        t |> equal(parsed.command_arg ?? "", "dasImgui")
         t |> success(!parsed.force)
     }
     t |> run("install with force") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "install", "dasImgui", "--force"])
-        t |> equal(parsed.command, "install")
-        t |> equal(parsed.command_arg, "dasImgui")
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["install", "dasImgui", "--force"]), "")
+        t |> equal(parsed.command ?? "", "install")
+        t |> equal(parsed.command_arg ?? "", "dasImgui")
         t |> success(parsed.force)
     }
     t |> run("install with root") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "--root", "/tmp/proj", "install", "foo"])
-        t |> equal(parsed.command, "install")
-        t |> equal(parsed.command_arg, "foo")
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["--root", "/tmp/proj", "install", "foo"]), "")
+        t |> equal(parsed.command ?? "", "install")
+        t |> equal(parsed.command_arg ?? "", "foo")
         t |> equal(parsed.root, "/tmp/proj")
     }
     t |> run("list command no arg") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "list"])
-        t |> equal(parsed.command, "list")
-        t |> success(empty(parsed.command_arg))
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["list"]), "")
+        t |> equal(parsed.command ?? "", "list")
+        t |> success(parsed.command_arg |> is_none)
     }
     t |> run("no command") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--"])
-        t |> success(empty(parsed.command))
+        var parsed = DaspkgArgs()
+        let empty_args : array<string>
+        t |> equal(parse_args(parsed, empty_args), "")
+        t |> success(parsed.command |> is_none)
+    }
+    t |> run("cleanup command") @(t : T?) {
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["cleanup"]), "")
+        t |> equal(parsed.command ?? "", "cleanup")
+        t |> success(!parsed.force)
+    }
+    t |> run("cleanup with force") @(t : T?) {
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["cleanup", "--force"]), "")
+        t |> equal(parsed.command ?? "", "cleanup")
+        t |> success(parsed.force)
+    }
+    t |> run("cleanup with global and force") @(t : T?) {
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["cleanup", "--global", "--force"]), "")
+        t |> equal(parsed.command ?? "", "cleanup")
+        t |> success(parsed.force)
+        t |> success(parsed.global_flag)
     }
     t |> run("default root is dot") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "list"])
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["list"]), "")
         t |> equal(parsed.root, ".")
     }
 }
@@ -181,6 +207,237 @@ def test_install_local(t : T?) {
     }
 }
 
+// ===== Local-package fixture helpers =====
+
+// Writes a .das_package + CMakeLists.txt that always FATAL_ERRORs on configure.
+def private write_failing_pkg(src_dir, pkg_name : string) {
+    mkdir(src_dir)
+    let manifest = "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"{pkg_name}\")\n\}\n[export]\ndef build() \{\n    cmake_build()\n\}\n"
+    fwrite("{src_dir}/.das_package", manifest)
+    fwrite("{src_dir}/CMakeLists.txt", "cmake_minimum_required(VERSION 3.16)\nproject({pkg_name})\nmessage(FATAL_ERROR \"forced test failure\")\n")
+}
+
+// Writes a .das_package with no build() — install always succeeds.
+def private write_passing_pkg(src_dir, pkg_name : string) {
+    let no_deps : array<string>
+    write_passing_pkg(src_dir, pkg_name, no_deps)
+}
+
+// Writes a .das_package with optional dependencies (each entry is a require_package source).
+def private write_passing_pkg(src_dir, pkg_name : string; deps : array<string>) {
+    mkdir(src_dir)
+    let manifest = build_string() $(var w) {
+        w |> write("options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"")
+        w |> write(pkg_name)
+        w |> write("\")\n\}\n")
+        if (length(deps) > 0) {
+            w |> write("[export]\ndef dependencies(version : string) \{\n")
+            for (d in deps) {
+                w |> write("    require_package(\"")
+                w |> write(d)
+                w |> write("\")\n")
+            }
+            w |> write("\}\n")
+        }
+    }
+    fwrite("{src_dir}/.das_package", manifest)
+}
+
+[test]
+def test_install_local_build_failure_not_recorded(t : T?) {
+    t |> run("failed build does not stay installed") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_fail_root"
+        let tmp_src = "{get_das_root()}/_daspkg_test_fail_src"
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+        mkdir(tmp_root)
+        write_failing_pkg(tmp_src, "failpkg")
+
+        var lf : LockFile
+        let rc = install_local(tmp_root, "failpkg", tmp_src, lf)
+        t |> success(rc != 0)
+        t |> success(!has_package(lf, "failpkg"))
+        t |> success(!fexist("{tmp_root}/modules/failpkg"))
+        // failure with no prior install must NOT create an empty lock file
+        t |> success(!fexist("{tmp_root}/{LOCK_FILE_NAME}"))
+
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src)
+    }
+}
+
+[test]
+def test_install_local_reinstall_failure_clears_entry(t : T?) {
+    // First install a healthy pkg, then reinstall in place with a failing source.
+    // The reinstall must remove both the directory AND the prior lockfile entry,
+    // so the lockfile is consistent with the on-disk state.
+    t |> run("reinstall over healthy pkg with failing src clears lock entry") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_reinst_root"
+        let tmp_src_ok = "{get_das_root()}/_daspkg_test_reinst_ok_src"
+        let tmp_src_bad = "{get_das_root()}/_daspkg_test_reinst_bad_src"
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src_ok)
+        force_rmdir(tmp_src_bad)
+        mkdir(tmp_root)
+        write_passing_pkg(tmp_src_ok, "reinstpkg")
+        write_failing_pkg(tmp_src_bad, "reinstpkg")
+
+        var lf : LockFile
+        let rc1 = install_local(tmp_root, "reinstpkg", tmp_src_ok, lf)
+        t |> success(rc1 == 0)
+        t |> success(has_package(lf, "reinstpkg"))
+        t |> success(fexist("{tmp_root}/modules/reinstpkg"))
+
+        let rc2 = install_local(tmp_root, "reinstpkg", tmp_src_bad, lf)
+        t |> success(rc2 != 0)
+        t |> success(!has_package(lf, "reinstpkg"))
+        t |> success(!fexist("{tmp_root}/modules/reinstpkg"))
+
+        // disk lock file must agree with in-memory lf
+        var lf2 : LockFile
+        if (read_lock_file(tmp_root, lf2)) {
+            t |> success(!has_package(lf2, "reinstpkg"))
+        }
+
+        force_rmdir(tmp_root)
+        force_rmdir(tmp_src_ok)
+        force_rmdir(tmp_src_bad)
+    }
+}
+
+[test]
+def test_install_local_failing_transitive_dep(t : T?) {
+    // Parent depends on a failing local child. Both should be rolled back.
+    // Pkg names must match the source-dir basenames — install_dependencies
+    // derives dep names from the source path, not the .das_package manifest.
+    t |> run("failing transitive dep rolls back parent") @(t : T?) {
+        let fix = "{get_das_root()}/_daspkg_test_dep_fix"
+        force_rmdir(fix)
+        mkdir(fix)
+        let proj = "{fix}/proj"
+        let parent_src = "{fix}/depparent"
+        let child_src = "{fix}/depchild"
+        mkdir(proj)
+        write_failing_pkg(child_src, "depchild")
+        let parent_deps <- [child_src]
+        write_passing_pkg(parent_src, "depparent", parent_deps)
+
+        var lf : LockFile
+        let rc = install_local(proj, "depparent", parent_src, lf)
+        t |> success(rc != 0)
+        t |> success(!has_package(lf, "depparent"))
+        t |> success(!has_package(lf, "depchild"))
+        t |> success(!fexist("{proj}/modules/depparent"))
+        t |> success(!fexist("{proj}/modules/depchild"))
+
+        force_rmdir(fix)
+    }
+}
+
+[test]
+def test_install_local_cycle(t : T?) {
+    // A depends on B, B depends on A. Both passing — should install once each
+    // without infinite recursion or directory wipes.
+    t |> run("cycle between two healthy packages installs both") @(t : T?) {
+        let fix = "{get_das_root()}/_daspkg_test_cycle_fix"
+        force_rmdir(fix)
+        mkdir(fix)
+        let proj = "{fix}/proj"
+        let a_src = "{fix}/cycleA"
+        let b_src = "{fix}/cycleB"
+        mkdir(proj)
+        let a_deps <- [b_src]
+        let b_deps <- [a_src]
+        write_passing_pkg(a_src, "cycleA", a_deps)
+        write_passing_pkg(b_src, "cycleB", b_deps)
+
+        var lf : LockFile
+        let rc = install_local(proj, "cycleA", a_src, lf)
+        t |> success(rc == 0)
+        t |> success(has_package(lf, "cycleA"))
+        t |> success(has_package(lf, "cycleB"))
+        t |> success(fexist("{proj}/modules/cycleA"))
+        t |> success(fexist("{proj}/modules/cycleB"))
+        // root vs transitive flags
+        let a_entry = get_package(lf, "cycleA")
+        let b_entry = get_package(lf, "cycleB")
+        t |> success(a_entry.root)
+        t |> success(!b_entry.root)
+
+        force_rmdir(fix)
+    }
+}
+
+[test]
+def test_install_local_diamond_dep(t : T?) {
+    // P depends on A and B; both A and B depend on shared C.
+    // C should install once; the second sibling's iteration must take the
+    // has_package path, NOT the cycle-detection path. Without erasing
+    // visiting on unwind, C would still be in `visiting` when B is
+    // processed and would emit a misleading "cycle detected" log.
+    t |> run("shared dep installs once via has_package, not cycle path") @(t : T?) {
+        let fix = "{get_das_root()}/_daspkg_test_diamond_fix"
+        force_rmdir(fix)
+        mkdir(fix)
+        let proj = "{fix}/proj"
+        let p_src = "{fix}/diamondP"
+        let a_src = "{fix}/diamondA"
+        let b_src = "{fix}/diamondB"
+        let c_src = "{fix}/diamondC"
+        mkdir(proj)
+        write_passing_pkg(c_src, "diamondC")
+        let a_deps <- [c_src]
+        let b_deps <- [c_src]
+        write_passing_pkg(a_src, "diamondA", a_deps)
+        write_passing_pkg(b_src, "diamondB", b_deps)
+        let p_deps <- [a_src, b_src]
+        write_passing_pkg(p_src, "diamondP", p_deps)
+
+        var lf : LockFile
+        let rc = install_local(proj, "diamondP", p_src, lf)
+        t |> success(rc == 0)
+        t |> success(has_package(lf, "diamondP"))
+        t |> success(has_package(lf, "diamondA"))
+        t |> success(has_package(lf, "diamondB"))
+        t |> success(has_package(lf, "diamondC"))
+        t |> success(fexist("{proj}/modules/diamondC"))
+
+        force_rmdir(fix)
+    }
+}
+
+[test]
+def test_install_local_cycle_with_failure(t : T?) {
+    // A depends on B, B depends on A — but B's build fails.
+    // Both must be rolled back; nothing left in lockfile or on disk.
+    t |> run("cycle with failing dep rolls back both") @(t : T?) {
+        let fix = "{get_das_root()}/_daspkg_test_cyclefail_fix"
+        force_rmdir(fix)
+        mkdir(fix)
+        let proj = "{fix}/proj"
+        let a_src = "{fix}/cyclefailA"
+        let b_src = "{fix}/cyclefailB"
+        mkdir(proj)
+        let a_deps <- [b_src]
+        write_passing_pkg(a_src, "cyclefailA", a_deps)
+        // failing B with a back-edge to A to form the cycle
+        mkdir(b_src)
+        let b_manifest = "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"cyclefailB\")\n\}\n[export]\ndef dependencies(version : string) \{\n    require_package(\"{a_src}\")\n\}\n[export]\ndef build() \{\n    cmake_build()\n\}\n"
+        fwrite("{b_src}/.das_package", b_manifest)
+        fwrite("{b_src}/CMakeLists.txt", "cmake_minimum_required(VERSION 3.16)\nproject(cyclefailB)\nmessage(FATAL_ERROR \"forced test failure\")\n")
+
+        var lf : LockFile
+        let rc = install_local(proj, "cyclefailA", a_src, lf)
+        t |> success(rc != 0)
+        t |> success(!has_package(lf, "cyclefailA"))
+        t |> success(!has_package(lf, "cyclefailB"))
+        t |> success(!fexist("{proj}/modules/cyclefailA"))
+        t |> success(!fexist("{proj}/modules/cyclefailB"))
+
+        force_rmdir(fix)
+    }
+}
+
 [test]
 def test_cmd_remove(t : T?) {
     t |> run("removes package and updates lockfile") @(t : T?) {
@@ -202,6 +459,112 @@ def test_cmd_remove(t : T?) {
         t |> success(read_lock_file(tmp_root, lf2))
         t |> success(!has_package(lf2, "testpkg"))
         // cleanup
+        force_rmdir(tmp_root)
+    }
+}
+
+[test]
+def test_cmd_cleanup(t : T?) {
+    t |> run("removes modules, lockfile, and gitignore entries") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_cleanup"
+        force_rmdir(tmp_root)
+        mkdir(tmp_root)
+        // fake .git so gitignore_remove runs
+        mkdir("{tmp_root}/.git")
+        fwrite("{tmp_root}/.das_package", "options gen2\n")
+        mkdir("{tmp_root}/modules")
+        mkdir("{tmp_root}/modules/foo")
+        fwrite("{tmp_root}/modules/foo/dummy.txt", "x")
+        var lf : LockFile
+        set_package(lf, PackageEntry(name = "foo", source = "github.com/u/foo", root = true))
+        write_lock_file(tmp_root, lf)
+        fwrite("{tmp_root}/.gitignore", "modules/foo\nother-entry\n")
+        let rc = cmd_cleanup(tmp_root, true)
+        t |> equal(rc, 0)
+        t |> success(!fexist("{tmp_root}/modules"))
+        t |> success(!fexist("{tmp_root}/daspkg.lock"))
+        var content = ""
+        fopen("{tmp_root}/.gitignore", "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "other-entry\n")
+        force_rmdir(tmp_root)
+    }
+}
+
+[test]
+def test_cmd_cleanup_refuses_without_marker(t : T?) {
+    t |> run("refuses in dir without .das_package or lockfile") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_cleanup_bare"
+        force_rmdir(tmp_root)
+        mkdir(tmp_root)
+        mkdir("{tmp_root}/modules")
+        mkdir("{tmp_root}/modules/foo")
+        let rc = cmd_cleanup(tmp_root, true)
+        t |> equal(rc, 1)
+        // modules untouched
+        t |> success(fexist("{tmp_root}/modules/foo"))
+        force_rmdir(tmp_root)
+    }
+}
+
+[test]
+def test_cmd_cleanup_no_lockfile(t : T?) {
+    t |> run("no-op on project with .das_package but no lockfile/modules") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_cleanup_empty"
+        force_rmdir(tmp_root)
+        mkdir(tmp_root)
+        fwrite("{tmp_root}/.das_package", "options gen2\n")
+        let rc = cmd_cleanup(tmp_root, true)
+        t |> equal(rc, 0)
+        t |> success(fexist("{tmp_root}/.das_package"))
+        force_rmdir(tmp_root)
+    }
+}
+
+[test]
+def test_cmd_cleanup_preserves_user_files(t : T?) {
+    t |> run("leaves non-daspkg files alongside modules") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_cleanup_preserve"
+        force_rmdir(tmp_root)
+        mkdir(tmp_root)
+        fwrite("{tmp_root}/.das_package", "options gen2\n")
+        fwrite("{tmp_root}/main.das", "// user file\n")
+        fwrite("{tmp_root}/README.md", "hello\n")
+        mkdir("{tmp_root}/modules")
+        mkdir("{tmp_root}/modules/foo")
+        var lf : LockFile
+        set_package(lf, PackageEntry(name = "foo", source = "github.com/u/foo", root = true))
+        write_lock_file(tmp_root, lf)
+        let rc = cmd_cleanup(tmp_root, true)
+        t |> equal(rc, 0)
+        t |> success(fexist("{tmp_root}/.das_package"))
+        t |> success(fexist("{tmp_root}/main.das"))
+        t |> success(fexist("{tmp_root}/README.md"))
+        t |> success(!fexist("{tmp_root}/modules"))
+        t |> success(!fexist("{tmp_root}/daspkg.lock"))
+        force_rmdir(tmp_root)
+    }
+}
+
+[test]
+def test_cmd_cleanup_without_force_dry_runs(t : T?) {
+    t |> run("without --force, modules and lockfile are preserved") @(t : T?) {
+        let tmp_root = "{get_das_root()}/_daspkg_test_cleanup_dryrun"
+        force_rmdir(tmp_root)
+        mkdir(tmp_root)
+        fwrite("{tmp_root}/.das_package", "options gen2\n")
+        mkdir("{tmp_root}/modules")
+        mkdir("{tmp_root}/modules/foo")
+        var lf : LockFile
+        set_package(lf, PackageEntry(name = "foo", source = "github.com/u/foo", root = true))
+        write_lock_file(tmp_root, lf)
+        let rc = cmd_cleanup(tmp_root, false)
+        t |> equal(rc, 0)
+        t |> success(fexist("{tmp_root}/modules/foo"))
+        t |> success(fexist("{tmp_root}/daspkg.lock"))
         force_rmdir(tmp_root)
     }
 }
@@ -329,7 +692,7 @@ def test_cmd_check(t : T?) {
     mkdir(test_root)
     mkdir(modules_dir)
     mkdir(pkg_dir)
-    fopen("{pkg_dir}/.das_module", "wb") <| $(f) {
+    fopen("{pkg_dir}/.das_module", "wb") $(f) {
         fwrite(f, "options gen2\n")
     }
 
@@ -648,7 +1011,7 @@ def test_log_writes_to_file(t : T?) {
         log("hello from test\n")
         // read the log file and check content
         var content : string
-        fopen("{test_root}/modules/.daspkg.log", "rb") <| $(f) {
+        fopen("{test_root}/modules/.daspkg.log", "rb") $(f) {
             if (f != null) {
                 content = fread(f)
             }
@@ -662,7 +1025,7 @@ def test_log_writes_to_file(t : T?) {
         log_init(test_root)
         log_debug("debug message here")
         var content : string
-        fopen("{test_root}/modules/.daspkg.log", "rb") <| $(f) {
+        fopen("{test_root}/modules/.daspkg.log", "rb") $(f) {
             if (f != null) {
                 content = fread(f)
             }
@@ -675,7 +1038,7 @@ def test_log_writes_to_file(t : T?) {
         var output : string
         run_cmd("git --version", output)
         var content : string
-        fopen("{test_root}/modules/.daspkg.log", "rb") <| $(f) {
+        fopen("{test_root}/modules/.daspkg.log", "rb") $(f) {
             if (f != null) {
                 content = fread(f)
             }
@@ -811,14 +1174,15 @@ def test_serialize_index_rich(t : T?) {
 [test]
 def test_add_to_index_json_rich(t : T?) {
     t |> run("adds package with full manifest") @(t : T?) {
-        var manifest : PackageManifest
-        manifest.name = "rich"
-        manifest.description = "A rich package"
-        manifest.author = "alice"
-        manifest.license = "MIT"
+        var manifest = PackageManifest(
+            name = "rich",
+            description = "A rich package",
+            author = "alice",
+            license = "MIT",
+            min_sdk = "0.4",
+            has_native = true
+        )
         manifest.tags |> push_clone("ai")
-        manifest.min_sdk = "0.4"
-        manifest.has_native = true
         manifest.dependencies |> push_clone("dep-x")
         let result = add_to_index_json_rich("[]", "rich", manifest, "github.com/alice/rich")
         t |> success(!empty(result))
@@ -933,19 +1297,33 @@ def test_ansi_colors(t : T?) {
 }
 
 // --- parse_args color flags ---
+// Under clargs, --color/--no-color populate parsed.color/.no_color and
+// main.das's apply_global_flags flips use_tty_colors.  We test the parse +
+// apply pipeline together so the integration stays covered.
 
 [test]
 def test_parse_args_color_flags(t : T?) {
     t |> run("--color sets use_tty_colors") @(t : T?) {
         use_tty_colors = false
-        parse_args(["exe", "main.das", "--", "list", "--color"])
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["list", "--color"]), "")
+        t |> success(parsed.color, "color flag parsed")
+        apply_global_flags(parsed)
         t |> success(use_tty_colors)
         use_tty_colors = false
     }
     t |> run("--no-color clears use_tty_colors") @(t : T?) {
         use_tty_colors = true
-        parse_args(["exe", "main.das", "--", "list", "--no-color"])
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["list", "--no-color"]), "")
+        t |> success(parsed.no_color, "no_color flag parsed")
+        apply_global_flags(parsed)
         t |> success(!use_tty_colors)
+    }
+    t |> run("--color and --no-color together is mutex error") @(t : T?) {
+        var parsed = DaspkgArgs()
+        let err = parse_args(parsed, ["list", "--color", "--no-color"])
+        t |> success(!empty(err), "mutex group rejects both")
     }
 }
 
@@ -973,18 +1351,21 @@ def test_read_manifest_rich(t : T?) {
 [test]
 def test_parse_args_global_flag(t : T?) {
     t |> run("--global flag parsed") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "install", "foo", "--global"])
-        t |> equal(parsed.command, "install")
-        t |> equal(parsed.command_arg, "foo")
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["install", "foo", "--global"]), "")
+        t |> equal(parsed.command ?? "", "install")
+        t |> equal(parsed.command_arg ?? "", "foo")
         t |> success(parsed.global_flag)
     }
     t |> run("-g shorthand") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "-g", "list"])
-        t |> equal(parsed.command, "list")
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["-g", "list"]), "")
+        t |> equal(parsed.command ?? "", "list")
         t |> success(parsed.global_flag)
     }
     t |> run("default global is false") @(t : T?) {
-        let parsed = parse_args(["daslang.exe", "main.das", "--", "install", "foo"])
+        var parsed = DaspkgArgs()
+        t |> equal(parse_args(parsed, ["install", "foo"]), "")
         t |> success(!parsed.global_flag)
     }
 }
@@ -1104,5 +1485,113 @@ def test_cmd_remove_global_entry(t : T?) {
         remove("{tmp_root}/{LOCK_FILE_NAME}")
         rmdir(tmp_root)
     }
+}
+
+[test]
+def test_gitignore_add(t : T?) {
+    let tmp_root = "{get_das_root()}/_daspkg_test_gitignore"
+    mkdir(tmp_root)
+    // create a fake .git dir so gitignore_add doesn't skip
+    mkdir("{tmp_root}/.git")
+    let gitignore = "{tmp_root}/.gitignore"
+
+    t |> run("creates .gitignore if missing") @(t : T?) {
+        remove(gitignore)
+        gitignore_add(tmp_root, "modules/foo")
+        var content = ""
+        fopen(gitignore, "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "modules/foo\n")
+    }
+    t |> run("appends without duplicating") @(t : T?) {
+        remove(gitignore)
+        gitignore_add(tmp_root, "modules/foo")
+        gitignore_add(tmp_root, "modules/bar")
+        gitignore_add(tmp_root, "modules/foo")  // duplicate
+        var content = ""
+        fopen(gitignore, "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "modules/foo\nmodules/bar\n")
+    }
+    t |> run("appends newline if file doesn't end with one") @(t : T?) {
+        fopen(gitignore, "wb") $(f) {
+            if (f != null) {
+                fprint(f, "existing")
+            }
+        }
+        gitignore_add(tmp_root, "modules/baz")
+        var content = ""
+        fopen(gitignore, "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "existing\nmodules/baz\n")
+    }
+    t |> run("skips if no .git directory") @(t : T?) {
+        let no_git = "{get_das_root()}/_daspkg_test_nogit"
+        mkdir(no_git)
+        gitignore_add(no_git, "modules/foo")
+        t |> success(!fexist("{no_git}/.gitignore"))
+        rmdir(no_git)
+    }
+    // cleanup
+    remove(gitignore)
+    force_rmdir("{tmp_root}/.git")
+    rmdir(tmp_root)
+}
+
+[test]
+def test_gitignore_remove(t : T?) {
+    let tmp_root = "{get_das_root()}/_daspkg_test_gitignore_rm"
+    mkdir(tmp_root)
+    mkdir("{tmp_root}/.git")
+    let gitignore = "{tmp_root}/.gitignore"
+
+    t |> run("removes matching line") @(t : T?) {
+        fopen(gitignore, "wb") $(f) {
+            if (f != null) {
+                fprint(f, "modules/foo\nmodules/bar\nmodules/baz\n")
+            }
+        }
+        gitignore_remove(tmp_root, "modules/bar")
+        var content = ""
+        fopen(gitignore, "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "modules/foo\nmodules/baz\n")
+    }
+    t |> run("no-op if pattern not found") @(t : T?) {
+        fopen(gitignore, "wb") $(f) {
+            if (f != null) {
+                fprint(f, "modules/foo\n")
+            }
+        }
+        gitignore_remove(tmp_root, "modules/nope")
+        var content = ""
+        fopen(gitignore, "rb") $(f) {
+            if (f != null) {
+                content = fread(f)
+            }
+        }
+        t |> equal(content, "modules/foo\n")
+    }
+    t |> run("no-op if no .gitignore") @(t : T?) {
+        remove(gitignore)
+        gitignore_remove(tmp_root, "modules/foo")
+        t |> success(!fexist(gitignore))
+    }
+    // cleanup
+    remove(gitignore)
+    force_rmdir("{tmp_root}/.git")
+    rmdir(tmp_root)
 }
 

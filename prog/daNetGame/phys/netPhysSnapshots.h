@@ -62,6 +62,9 @@ inline void send_snapshot_t(ecs::EntityId eid, danet::BitStream &&bs, net::IConn
   msg.template get<0>().swap(bs); //< swap it back to preserve allocated memory buffers (in case if it wasn't really moved)
 }
 
+void write_cur_time(danet::BitStream &bs, double ct);
+void read_cur_time(const danet::BitStream &bs, double &ct);
+
 struct GatherRecordsToSend
 {
   //! CLOSEST, NORMAL, FARAWAY, MIN

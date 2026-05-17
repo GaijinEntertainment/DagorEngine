@@ -6,9 +6,9 @@
 
 #include <vecmath/dag_vecMathDecl.h>
 #include <vecmath/dag_vecMath.h>
+#include <math/dag_Point3.h>
 
 class Point4;
-class Point3;
 class Plane3;
 class Quat;
 class TMatrix4;
@@ -40,3 +40,15 @@ __forceinline Plane3 &as_plane3(vec4f *v) { return *(Plane3 *)(char *)v; }
 __forceinline const Point4 &as_point4(const vec4f *v) { return *(const Point4 *)(const char *)v; }
 __forceinline const Point3 &as_point3(const vec4f *v) { return *(const Point3 *)(const char *)v; }
 __forceinline const Plane3 &as_plane3(const vec4f *v) { return *(const Plane3 *)(const char *)v; }
+
+VECMATH_FINLINE Point3 operator*(mat44f_cref tm, const Point3 &p)
+{
+  alignas(16) vec4f r = v_mat44_mul_vec3p(tm, v_ldu_p3(&p.x));
+  return as_point3(&r);
+}
+
+VECMATH_FINLINE Point3 operator%(mat44f_cref tm, const Point3 &p)
+{
+  alignas(16) vec4f r = v_mat44_mul_vec3v(tm, v_ldu_p3(&p.x));
+  return as_point3(&r);
+}

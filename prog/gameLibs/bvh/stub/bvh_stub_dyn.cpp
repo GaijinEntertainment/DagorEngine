@@ -4,7 +4,7 @@
 
 namespace bvh::dyn
 {
-void init(int, float, bool) {}
+void init(const AdditionalSettings &) {}
 void teardown(bool, bool) {}
 void init(ContextId) {}
 void teardown(ContextId) {}
@@ -14,6 +14,7 @@ void update_dynrend_instances(ContextId, dynrend::ContextId, dynrend::ContextId,
 void update_animchar_instances(ContextId, dynrend::ContextId, dynrend::ContextId, const Point3 &, dynrend::BVHIterateCallback) {}
 void set_up_dynrend_context_for_processing(dynrend::ContextId) {}
 void wait_dynrend_instances() {}
+void wait_animchar_instances() {}
 void tidy_up_skins(ContextId) {}
 void wait_tidy_up_skins() {}
 

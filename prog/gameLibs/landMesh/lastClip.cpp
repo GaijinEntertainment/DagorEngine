@@ -215,7 +215,7 @@ enum class LastClipComp
 };
 
 template <typename T>
-void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const LandMeshData &data, int numMips,
+void render_and_compress(const T &render_func, UniqueTexWithShaderVar &last_clip, const LandMeshData &data, int numMips,
   LastClipComp comp_type)
 {
   UniqueTex temp = dag::create_tex(NULL, data.texture_size, data.texture_size, TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_SRGBWRITE, 1,
@@ -241,8 +241,8 @@ void render_and_compress(const T &render_func, UniqueTexHolder &last_clip, const
   temp.close();
 }
 
-void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data, bool update_game_screen,
-  const Point3 &view_pos)
+void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data,
+  bool update_game_screen, const Point3 &view_pos)
 {
   last_clip.close();
   if (!data.lmeshMgr || !data.lmeshRenderer)

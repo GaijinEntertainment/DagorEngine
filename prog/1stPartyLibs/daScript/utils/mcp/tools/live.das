@@ -12,10 +12,10 @@ def live_get(path, port : string) : string {
     let p = empty(port) ? "9090" : port
     var result = ""
     var is_error = false
-    with_http_request() <| $(var req) {
+    with_http_request() $(var req) {
         req.method = http_method.GET
         req.url := "http://localhost:{p}{path}"
-        request(req) <| $(resp) {
+        request(req) $(resp) {
             if (resp != null) {
                 result = clone_string(string(resp.body))
                 if (int(resp.status_code) >= 400) {
@@ -34,14 +34,14 @@ def live_post(path, port : string; body : string = "") : string {
     let p = empty(port) ? "9090" : port
     var result = ""
     var is_error = false
-    with_http_request() <| $(var req) {
+    with_http_request() $(var req) {
         req.method = http_method.POST
         req.url := "http://localhost:{p}{path}"
         if (!empty(body)) {
             req.body := body
             set_content_type(req, "application/json")
         }
-        request(req) <| $(resp) {
+        request(req) $(resp) {
             if (resp != null) {
                 result = clone_string(string(resp.body))
                 if (int(resp.status_code) >= 400) {
@@ -93,11 +93,11 @@ def do_live_shutdown(port : string) : string {
 def live_is_running(port : string) : bool {
     let p = empty(port) ? "9090" : port
     var running = false
-    with_http_request() <| $(var req) {
+    with_http_request() $(var req) {
         req.method = http_method.GET
         req.url := "http://localhost:{p}/status"
         req.timeout = uint16(2)
-        request(req) <| $(resp) {
+        request(req) $(resp) {
             if (resp != null && int(resp.status_code) > 0) {
                 running = true
             }
@@ -141,7 +141,7 @@ def do_live_launch(file, project, port : string) : string {
     let launcher = "{root}/_mcp_live_launch"
     if (is_windows) {
         let ps1 = replace("{launcher}.ps1", "/", "\\")
-        fopen(ps1, "wt") <| $(f) {
+        fopen(ps1, "wt") $(f) {
             if (f != null) {
                 fprint(f, "Start-Process -FilePath \"{launch_exe}\" -ArgumentList '{script_args}'\n")
             }
@@ -156,7 +156,7 @@ def do_live_launch(file, project, port : string) : string {
         }
     } else {
         let sh = "{launcher}.sh"
-        fopen(sh, "wt") <| $(f) {
+        fopen(sh, "wt") $(f) {
             if (f != null) {
                 fprint(f, "#!/bin/sh\nnohup \"{live_exe}\" {script_args} > /dev/null 2>&1 &\n")
             }

@@ -45,11 +45,12 @@ namespace das {
     };
 #endif
 
-    DAS_API const FILE * builtin_fopen  ( const char * name, const char * mode );
+    DAS_API const FILE * builtin_fopen  ( const char * name, const char * mode, Context * context, LineInfoArg * at );
     DAS_API void builtin_fclose ( const FILE * f, Context * context, LineInfoArg * at );
     DAS_API void builtin_fflush ( const FILE * f, Context * context, LineInfoArg * at );
     DAS_API void builtin_fprint ( const FILE * f, const char * text, Context * context, LineInfoArg * at );
     DAS_API char * builtin_fread ( const FILE * _f, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_fread_to_eof ( const FILE * _f, Context * context, LineInfoArg * at );
     DAS_API char* builtin_fgets(const FILE* _f, Context* context, LineInfoArg * at );
     DAS_API void builtin_fwrite(const FILE * _f, char * str, Context * context, LineInfoArg * at );
     DAS_API bool builtin_feof(const FILE* _f);
@@ -73,6 +74,7 @@ namespace das {
     DAS_API int builtin_popen ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_binary ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_timeout ( const char * cmd, float timeout_sec, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
+    DAS_API int builtin_popen_argv ( const Array & args_arr, float timeout_sec, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API char * get_full_file_name ( const char * path, Context * context, LineInfoArg * );
     DAS_API bool builtin_remove_file ( const char * path );
     DAS_API bool builtin_rename_file ( const char * old_path, const char * new_path );

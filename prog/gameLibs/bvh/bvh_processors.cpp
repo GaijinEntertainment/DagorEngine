@@ -263,7 +263,6 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, int 
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
   args.positionOffset = 0;
@@ -346,7 +345,6 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
     params.pos_format_half = args.positionFormat == VSDT_SHORT4N ? 1 : 0;
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
   args.positionOffset = 0;
@@ -545,7 +543,6 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     params.source_slot = source_buffer_bindless;
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
   args.positionOffset = 0;
@@ -1001,7 +998,6 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, in
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
   args.positionOffset = 0;
@@ -1138,7 +1134,6 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
   args.positionOffset = 0;
@@ -1250,7 +1245,6 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, int
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
 
@@ -1400,7 +1394,6 @@ bool SplineGenVertexProcessor::process(ContextId context_id, Sbuffer *source, in
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
 
-  args.positionFormat = VSDT_FLOAT3;
   args.vertexStride = vertexSize;
   args.startVertex = 0;
 

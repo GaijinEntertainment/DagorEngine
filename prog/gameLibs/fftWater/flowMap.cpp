@@ -296,7 +296,7 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
       UniqueTex &flowmapSrc = evenFrame ? waterFlowmapCascade.texA : waterFlowmapCascade.texB;
       UniqueTex &flowmapDst = evenFrame ? waterFlowmapCascade.texB : waterFlowmapCascade.texA;
 
-      d3d::set_render_target(flowmapDst.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{flowmapDst.getTex2D(), 0, 0}});
       ShaderGlobal::set_texture(flowmap_temp_texVarId, flowmapSrc);
       if (cascade <= 1)
         waterFlowmap->builder.render();
@@ -360,12 +360,12 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
 
         ShaderGlobal::set_float4(texszVarId, Color4(0.5f, -0.5f, 1.0f / flowmap_texture_size, 1.0f / flowmap_texture_size));
 
-        d3d::set_render_target(waterFlowmapCascade.tempTex.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{waterFlowmapCascade.tempTex.getTex2D(), 0, 0}});
         ShaderGlobal::set_texture(texVarId, flowmapDst);
         ShaderGlobal::set_sampler(tex_samplerstateVarId, clampLinearSampler);
         waterFlowmap->flowmapBlurX.render();
 
-        d3d::set_render_target(blurDst.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{blurDst.getTex2D(), 0, 0}});
         ShaderGlobal::set_texture(texVarId, waterFlowmapCascade.tempTex);
         waterFlowmap->flowmapBlurY.render();
         ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
@@ -384,7 +384,7 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
 
     ShaderGlobal::set_float4(water_flowmap_offsetVarId, waterFlowmapCascade.flowmapOffset);
 
-    d3d::set_render_target(waterFlowmapCascade.tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{waterFlowmapCascade.tex.getTex2D(), 0, 0}});
 
     UniqueTex &tex1A = evenFrame ? waterFlowmapCascade.texB : waterFlowmapCascade.texA;
     UniqueTex &tex1B = evenFrame ? waterFlowmapCascade.texA : waterFlowmapCascade.texB;
@@ -414,7 +414,7 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
 
     if (cascade == waterFlowmap->cascades.size() - 1)
     {
-      d3d::set_render_target(waterFlowmap->blurTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{waterFlowmap->blurTex.getTex2D(), 0, 0}});
 
       WaterFlowmapCascade &waterFlowmapCascade1 = waterFlowmap->cascades[1];
       UniqueTex &tex1A = evenFrame ? waterFlowmapCascade1.blurTexB : waterFlowmapCascade1.blurTexA;
@@ -573,10 +573,11 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
 
   if (heightmapTexView && floodfillTexView)
   {
-    int queueSize = texSize * texSize * 2;
+    int queueSize = texSize * texSize * 2 / 16;
+    int queueSizeUsed = 0;
     int queueBegin = 0;
     int queueEnd = 0;
-    Tab<int> queue(framemem_ptr());
+    Tab<uint16_t> queue(framemem_ptr());
     queue.resize(queueSize);
 
     float x1 = levelBox.boxMin().x;
@@ -615,6 +616,34 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
       }
     }
 
+    auto floodWater = [&](int u, int v, int &nx, int &ny) {
+      uint16_t &flood = floodfillTexView[IPoint2(u, v)];
+      if (flood == FloodType::WATER)
+      {
+        flood = FloodType::QUEUED;
+        queue[queueEnd++] = uint16_t(u);
+        queue[queueEnd++] = uint16_t(v);
+        if (queueEnd >= queueSize)
+          queueEnd = 0;
+
+        int size = queueEnd - queueBegin;
+        if (size <= 0)
+          size += queueSize;
+        if (queueSizeUsed < size)
+          queueSizeUsed = size;
+
+        if (size == queueSize)
+          logwarn("flowmap_floodfill queue is full");
+      }
+      else if (flood > FloodType::GROUND)
+      {
+        nx += ((flood >> 0) & 0xff) - 0x80;
+        ny += ((flood >> 8) & 0xff) - 0x80;
+        return true;
+      }
+      return false;
+    };
+
     for (int y = 0; y < texSize; y++)
     {
       for (int x = 0; x < texSize; x++)
@@ -622,8 +651,8 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
         if (floodfillTexView[IPoint2(x, y)] != FloodType::WATER)
           continue;
 
-        queue[queueEnd++] = x;
-        queue[queueEnd++] = y;
+        queue[queueEnd++] = uint16_t(x);
+        queue[queueEnd++] = uint16_t(y);
         if (queueEnd >= queueSize)
           queueEnd = 0;
 
@@ -642,75 +671,23 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
 
           if (u - 1 >= 0)
           {
-            uint16_t &flood = floodfillTexView[IPoint2(u - 1, v)];
-            if (flood == FloodType::WATER)
-            {
-              flood = FloodType::QUEUED;
-              queue[queueEnd++] = u - 1;
-              queue[queueEnd++] = v;
-              if (queueEnd >= queueSize)
-                queueEnd = 0;
-            }
-            else if (flood > FloodType::GROUND)
-            {
+            if (floodWater(u - 1, v, nx, ny))
               fx++;
-              nx += ((flood >> 0) & 0xff) - 0x80;
-              ny += ((flood >> 8) & 0xff) - 0x80;
-            }
           }
           if (u + 1 < texSize)
           {
-            uint16_t &flood = floodfillTexView[IPoint2(u + 1, v)];
-            if (flood == FloodType::WATER)
-            {
-              flood = FloodType::QUEUED;
-              queue[queueEnd++] = u + 1;
-              queue[queueEnd++] = v;
-              if (queueEnd >= queueSize)
-                queueEnd = 0;
-            }
-            else if (flood > FloodType::GROUND)
-            {
+            if (floodWater(u + 1, v, nx, ny))
               fx--;
-              nx += ((flood >> 0) & 0xff) - 0x80;
-              ny += ((flood >> 8) & 0xff) - 0x80;
-            }
           }
           if (v - 1 >= 0)
           {
-            uint16_t &flood = floodfillTexView[IPoint2(u, v - 1)];
-            if (flood == FloodType::WATER)
-            {
-              flood = FloodType::QUEUED;
-              queue[queueEnd++] = u;
-              queue[queueEnd++] = v - 1;
-              if (queueEnd >= queueSize)
-                queueEnd = 0;
-            }
-            else if (flood > FloodType::GROUND)
-            {
+            if (floodWater(u, v - 1, nx, ny))
               fy++;
-              nx += ((flood >> 0) & 0xff) - 0x80;
-              ny += ((flood >> 8) & 0xff) - 0x80;
-            }
           }
           if (v + 1 < texSize)
           {
-            uint16_t &flood = floodfillTexView[IPoint2(u, v + 1)];
-            if (flood == FloodType::WATER)
-            {
-              flood = FloodType::QUEUED;
-              queue[queueEnd++] = u;
-              queue[queueEnd++] = v + 1;
-              if (queueEnd >= queueSize)
-                queueEnd = 0;
-            }
-            else if (flood > FloodType::GROUND)
-            {
+            if (floodWater(u, v + 1, nx, ny))
               fy--;
-              nx += ((flood >> 0) & 0xff) - 0x80;
-              ny += ((flood >> 8) & 0xff) - 0x80;
-            }
           }
 
           fx = fx * 6 + nx;
@@ -738,6 +715,8 @@ void flowmap_floodfill(int texSize, const LockedImage2DView<const uint16_t> &hei
           flood = 0x8080;
       }
     }
+
+    debug("flowmap_floodfill used a %d element queue for the %dx%d texture", queueSizeUsed, texSize, texSize);
   }
 }
 

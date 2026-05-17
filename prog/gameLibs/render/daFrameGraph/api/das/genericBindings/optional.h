@@ -47,6 +47,18 @@ struct ManagedOptionalAnnotation : TypeAnnotation
   TypeDeclPtr valueType;
   DebugInfoHelper helpA;
   TypeInfo *ati = nullptr;
+
+  virtual void gc_collect(gc_root *target, gc_root *from) override
+  {
+    TypeAnnotation::gc_collect(target, from);
+    if (valueType)
+      valueType->gc_collect(target, from);
+  }
+  virtual void visitTypeDecls(const function<void(TypeDecl *)> &callback) override
+  {
+    if (valueType)
+      callback(valueType);
+  }
 };
 
 template <typename TT>
@@ -93,7 +105,7 @@ struct typeFactory<eastl::optional<OT>>
     if (library.findAnnotation(declN, nullptr).size() == 0)
     {
       auto declT = makeType<OT>(library);
-      auto ann = make_smart<ManagedOptionalAnnotation<TT>>(declN, const_cast<ModuleLibrary &>(library));
+      auto ann = new ManagedOptionalAnnotation<TT>(declN, const_cast<ModuleLibrary &>(library));
       ann->cppName = "eastl::optional<" + describeCppType(declT) + ">";
       auto mod = library.front();
       mod->addAnnotation(ann);

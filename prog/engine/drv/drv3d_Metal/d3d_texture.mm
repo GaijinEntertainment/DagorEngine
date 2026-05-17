@@ -9,6 +9,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
@@ -302,6 +303,7 @@ static bool isReadWriteTier2Format(int fmt)
     case TEXFMT_R16F:
     case TEXFMT_R16UI:
     case TEXFMT_R8:
+    case TEXFMT_R8G8:
     case TEXFMT_R8UI:
       return true;
   }
@@ -397,6 +399,18 @@ int d3d::get_max_sample_count(int cflg)
   }
 
   return 1;
+}
+
+bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned> formats)
+{
+  const uint32_t UAV_OPERATIONS = d3d::USAGE_UNORDERED | d3d::USAGE_UNORDERED_LOAD;
+  for (unsigned format : formats)
+    if ((d3d::get_texformat_usage(format, D3DResourceType::TEX) & UAV_OPERATIONS) != UAV_OPERATIONS)
+    {
+      logdbg("d3d::should_use_compute_for_image_processing is false due to lack of UAV support for %u.", (format & TEXFMT_MASK));
+      return false;
+    }
+  return true;
 }
 
 /// check whether this cube texture format is available

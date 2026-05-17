@@ -117,7 +117,7 @@ static TextureIDPair composite_frame_with_ui(BaseTexture *frame_tex, BaseTexture
 
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(frame_with_ui_for_blur.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{frame_with_ui_for_blur.getTex2D(), 0, 0}});
     ShaderGlobal::set_texture(var::ui_tex, ui_tex);
     if (!ui_blend_renderer)
       ui_blend_renderer = eastl::make_unique<PostFxRenderer>("ui_blend");

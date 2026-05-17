@@ -237,9 +237,9 @@ macro COMMON_RENDINST_SIMPLE_INIT(for_dng)
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 
-  assume instancing_type = tm_vb;
   if (for_dng)
   {
+    assume instancing_type = tm_vb;
     if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
         rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
         rendinst_render_pass == rendinst_render_pass_grassify ||
@@ -250,6 +250,11 @@ macro COMMON_RENDINST_SIMPLE_INIT(for_dng)
   }
   else  // in WT we don't have such render passes
   {
+    if (instancing_type != tm_vb && instancing_type != tm_apex)
+    {
+      dont_render;
+    }
+
     if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
         rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
         rendinst_render_pass == rendinst_render_pass_grass_height)
@@ -325,6 +330,10 @@ macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
   hlsl {
     #if PN_TESSELATION
       #define HLSL_FULL_VS_OUTPUT 1
+    #endif
+
+    #ifndef VSOUT_DRAW_ID
+      #define VSOUT_DRAW_ID
     #endif
 
     #define COMMON_OUTPUT_MEMBERS  \

@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "scope_lens_reflections_inc.dshl"
+include "scope/scope_lens_inc.dshl"
 include "alternate_reflections.dshl"
 include "dynamic_simple_inc.dshl"
 include "glass.dshl"
@@ -140,17 +141,13 @@ shader scope_lens_reflections
 
   INIT_HDR(ps)
   USE_HDR(ps)
-  USE_ROUGH_TO_MIP()
   INIT_SKY()
-  USE_SKY_DIFFUSE()
   INIT_ENVI_SPECULAR_BASE(ps)
   INIT_ENVI_SPECULAR_SAMPLE(ps)
   USE_ENVI_SPECULAR_SAMPLE(ps)
-  USE_INDOOR_LIGHT_PROBES(ps, false)
 
   hlsl(ps) {
     #define isRefractionGlass 0
-    #define hasNormal 0
     #define HAS_NIGHT_EMISSION 0
     #define NO_SPECULAR 0
     #include <pbr/BRDF.hlsl>
@@ -173,7 +170,7 @@ shader scope_lens_reflections
     }
   }
   SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
-  GLASS_APPLY_FUNC_PS(false)
+  SAMPLE_ENVI_PROBE_REFLECTIONS()
 
   hlsl(ps) {
     float4 scope_reflections_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
@@ -188,7 +185,7 @@ shader scope_lens_reflections
       float VoN = abs(dot(input.normal, normalize(input.pointToEye)));
       float reflectionsTerm = 1.0 - saturate((VoN - scope_reflections_visibility_min_cos) / scope_reflections_visibility_diff_cos);
 
-      float3 radiance = apply_glass_ps(input, screenpos, float4(0,0,0,1), 1).color.rgb;
+      float3 radiance = sample_scope_lens_reflections(input, screenpos, float2(0,0), float4(0,0,0,1));
       return float4(radiance * reflectionsTerm, 1);
     }
   }

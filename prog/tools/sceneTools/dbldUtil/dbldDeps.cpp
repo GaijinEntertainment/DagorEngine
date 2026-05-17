@@ -691,6 +691,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   dd_remove_base_path(start_dirbase_path);
   debug("restored %s", prev_dir);
   term_dafx();
+  shutdown_game(RESTART_ALL);
   return true;
 }
 

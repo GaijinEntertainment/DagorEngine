@@ -862,6 +862,11 @@ struct FrontendState
 
     ImageViewState newViews[Driver3dRenderTarget::MAX_SIMRT + 1] = {};
     Image *newImages[Driver3dRenderTarget::MAX_SIMRT + 1] = {};
+#if DAGOR_DBGLEVEL > 0
+    uint16_t testWidth = 0;
+    uint16_t testHeight = 0;
+    const char *prevTexName = nullptr;
+#endif
 
     if (0 != (renderTargets.used & Driver3dRenderTarget::COLOR0))
     {
@@ -873,6 +878,14 @@ struct FrontendState
         targetView = base->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.color[0].level),
           ArrayLayerIndex::make(renderTargets.color[0].layer), false);
         targetImage = base->getDeviceImage();
+
+#if DAGOR_DBGLEVEL > 0
+        TextureInfo ti;
+        base->getinfo(ti);
+        testWidth = ti.w;
+        testHeight = ti.h;
+        prevTexName = base->getTexName();
+#endif
       }
       else
       {
@@ -895,6 +908,14 @@ struct FrontendState
           newViews[1].setFormat(useSrgb ? baseFormat.getSRGBVariant() : baseFormat.getLinearVariant());
           newImages[1] = swapchainSecondaryColor->getDeviceImage();
         }
+
+#if DAGOR_DBGLEVEL > 0
+        TextureInfo ti;
+        swapchainColor->getinfo(ti);
+        testWidth = ti.w;
+        testHeight = ti.h;
+        prevTexName = swapchainColor->getTexName();
+#endif
       }
     }
 
@@ -907,6 +928,20 @@ struct FrontendState
       targetView = base->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.color[i].level),
         ArrayLayerIndex::make(renderTargets.color[i].layer), false);
       targetImage = base->getDeviceImage();
+
+#if DAGOR_DBGLEVEL > 0
+      TextureInfo ti;
+      base->getinfo(ti);
+      const char *texName = base->getTexName();
+
+      if (!(testWidth == 0 && testHeight == 0))
+        D3D_CONTRACT_ASSERTF((ti.w == testWidth && ti.h == testHeight), "Render target resolution mismatch: %dx%d(%s) != %dx%d(%s)",
+          testWidth, testHeight, prevTexName, ti.w, ti.h, texName);
+
+      testWidth = ti.w;
+      testHeight = ti.h;
+      prevTexName = texName;
+#endif
     }
 
     if (renderTargets.isDepthUsed())
@@ -918,6 +953,15 @@ struct FrontendState
       targetView = depthTex->getViewInfoRenderTarget(MipMapIndex::make(renderTargets.depth.level),
         ArrayLayerIndex::make(renderTargets.depth.layer), renderTargets.isDepthReadOnly());
       targetImage = depthTex->getDeviceImage();
+
+#if DAGOR_DBGLEVEL > 0
+      TextureInfo ti;
+      depthTex->getinfo(ti);
+      const char *texName = depthTex->getTexName();
+
+      D3D_CONTRACT_ASSERTF(ti.w >= testWidth && ti.h >= testHeight, "Insufficient depth resolution: %dx%d(%s) < %dx%d(%s)", ti.w, ti.h,
+        texName, testWidth, testHeight, prevTexName);
+#endif
     }
     ctx.setFramebuffer(newImages, newViews, renderTargets.isDepthReadOnly());
     activeRenderTargets = renderTargets;

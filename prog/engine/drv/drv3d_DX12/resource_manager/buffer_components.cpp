@@ -391,15 +391,15 @@ void BufferHeap::notifyBufferMemoryAllocate(size_t sz, bool /*kick_off_shuffle*/
 }
 
 BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
-  BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags)
+  BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size)
 {
   auto &heap = bufferHeapStateAccess->getConstHeap(buffer_id.index());
   auto &memory = heap.getBufferMemory();
   if (heap.getFlags() & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     allocation_flags.set(AllocationFlag::IS_UAV);
   const auto [resIndex, errorCode] =
-    bufferHeapStateAccess->createBufferHeap(this, adapter, device, memory.size, getPropertiesFromMemory(memory), heap.getFlags(),
-      D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);
+    bufferHeapStateAccess->createBufferHeap(this, adapter, device, buffer_resource_size, getPropertiesFromMemory(memory),
+      heap.getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);
   G_UNUSED(errorCode);
   return resIndex;
 }

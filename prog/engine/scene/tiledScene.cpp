@@ -1292,6 +1292,7 @@ void scene::TiledScene::updateTileMaxExt(int tidx)
   updateMaxExt((float *)(char *)(&tbox.bmin), tdata.objMaxExt, tdata.getTileX(getTileX0()), tdata.getTileZ(getTileZ0()), tileSize);
   // todo: we currently never shrink gridObjMaxExt!!!
   inplace_max(gridObjMaxExt, tdata.getObjMaxExt());
+  inplace_max(gridObjMaxHeight, v_extract_y(tbox.bmax));
 }
 
 bool scene::TiledScene::doMaintenance(int64_t reft, unsigned max_time_to_spend_usec)

@@ -7,24 +7,24 @@ require math
 
 [test]
 def test_splitSpans(t : T?) {
-    var spans <- splitSpans(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let spans <- splitSpans(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(spans), 1)
     t |> success(abs(spans[0].start - 0.0lf) < 0.001lf)
     t |> success(abs(spans[0].stop - 1.0lf) < 0.001lf)
-    var spans2 <- splitSpans(TimeSpan(start = 0.75lf, stop = 1.25lf))
+    let spans2 <- splitSpans(TimeSpan(start = 0.75lf, stop = 1.25lf))
     t |> equal(length(spans2), 2)
     t |> success(abs(spans2[0].start - 0.75lf) < 0.001lf)
     t |> success(abs(spans2[0].stop - 1.0lf) < 0.001lf)
     t |> success(abs(spans2[1].start - 1.0lf) < 0.001lf)
     t |> success(abs(spans2[1].stop - 1.25lf) < 0.001lf)
-    var spans3 <- splitSpans(TimeSpan(start = 0.75lf, stop = 2.25lf))
+    let spans3 <- splitSpans(TimeSpan(start = 0.75lf, stop = 2.25lf))
     t |> equal(length(spans3), 3)
 }
 
 [test]
 def test_pure(t : T?) {
-    var pat <- pure(Event(s = "bd"))
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- pure(Event(s = "bd"))
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 1)
     t |> equal(haps[0].value.s, "bd")
     t |> success(abs(haps[0].whole.start - 0.0lf) < 0.001lf)
@@ -35,8 +35,8 @@ def test_pure(t : T?) {
 
 [test]
 def test_pure_partial(t : T?) {
-    var pat <- pure(Event(s = "bd"))
-    var haps <- pat(TimeSpan(start = 0.25lf, stop = 0.75lf))
+    let pat <- pure(Event(s = "bd"))
+    let haps <- pat(TimeSpan(start = 0.25lf, stop = 0.75lf))
     t |> equal(length(haps), 1)
     t |> success(abs(haps[0].whole.start - 0.0lf) < 0.001lf)
     t |> success(abs(haps[0].whole.stop - 1.0lf) < 0.001lf)
@@ -46,23 +46,23 @@ def test_pure_partial(t : T?) {
 
 [test]
 def test_silence(t : T?) {
-    var pat <- silence()
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 10.0lf))
+    let pat <- silence()
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 10.0lf))
     t |> equal(length(haps), 0)
 }
 
 [test]
 def test_atom(t : T?) {
-    var pat <- atom("sd")
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- atom("sd")
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 1)
     t |> equal(haps[0].value.s, "sd")
 }
 
 [test]
 def test_fast(t : T?) {
-    var pat <- atom("bd") |> fast(2.0lf)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- atom("bd") |> fast(2.0lf)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 2)
     t |> success(abs(haps[0].whole.start - 0.0lf) < 0.001lf)
     t |> success(abs(haps[0].whole.stop - 0.5lf) < 0.001lf)
@@ -72,8 +72,8 @@ def test_fast(t : T?) {
 
 [test]
 def test_slow(t : T?) {
-    var pat <- atom("bd") |> slow(2.0lf)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- atom("bd") |> slow(2.0lf)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 1)
     t |> success(abs(haps[0].whole.start - 0.0lf) < 0.001lf)
     t |> success(abs(haps[0].whole.stop - 2.0lf) < 0.001lf)
@@ -86,8 +86,8 @@ def test_stack(t : T?) {
     var p1 <- atom("hh")
     pats |> emplace <| p0
     pats |> emplace <| p1
-    var pat <- stack(pats)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- stack(pats)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 2)
     t |> equal(haps[0].value.s, "bd")
     t |> equal(haps[1].value.s, "hh")
@@ -100,14 +100,14 @@ def test_cat(t : T?) {
     var p1 <- atom("sd")
     pats |> emplace <| p0
     pats |> emplace <| p1
-    var pat <- cat(pats)
-    var haps0 <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- cat(pats)
+    let haps0 <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps0), 1)
     t |> equal(haps0[0].value.s, "bd")
-    var haps1 <- pat(TimeSpan(start = 1.0lf, stop = 2.0lf))
+    let haps1 <- pat(TimeSpan(start = 1.0lf, stop = 2.0lf))
     t |> equal(length(haps1), 1)
     t |> equal(haps1[0].value.s, "sd")
-    var haps2 <- pat(TimeSpan(start = 2.0lf, stop = 3.0lf))
+    let haps2 <- pat(TimeSpan(start = 2.0lf, stop = 3.0lf))
     t |> equal(length(haps2), 1)
     t |> equal(haps2[0].value.s, "bd")
 }
@@ -123,8 +123,8 @@ def test_fastcat(t : T?) {
     pats |> emplace <| p1
     pats |> emplace <| p2
     pats |> emplace <| p3
-    var pat <- fastcat(pats)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- fastcat(pats)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 4)
     t |> equal(haps[0].value.s, "bd")
     t |> equal(haps[1].value.s, "sd")
@@ -138,9 +138,9 @@ def test_fastcat(t : T?) {
 
 [test]
 def test_fmap(t : T?) {
-    var fn <- @(e : Event) : Event { return Event(s = e.s, gain = 0.5); }
-    var pat <- atom("bd") |> fmap(fn)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let fn <- @(e : Event) : Event { return Event(s = e.s, gain = 0.5); }
+    let pat <- atom("bd") |> fmap(fn)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 1)
     t |> equal(haps[0].value.s, "bd")
     t |> success(abs(haps[0].value.gain - 0.5) < 0.001)
@@ -148,11 +148,11 @@ def test_fmap(t : T?) {
 
 [test]
 def test_degrade(t : T?) {
-    var pat <- atom("bd") |> degrade(1.0)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- atom("bd") |> degrade(1.0)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 0)
-    var pat2 <- atom("bd") |> degrade(0.0)
-    var haps2 <- pat2(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat2 <- atom("bd") |> degrade(0.0)
+    let haps2 <- pat2(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps2), 1)
 }
 
@@ -171,8 +171,8 @@ def test_bjorklund(t : T?) {
 
 [test]
 def test_euclid(t : T?) {
-    var pat <- atom("bd") |> euclid(3, 8)
-    var haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
+    let pat <- atom("bd") |> euclid(3, 8)
+    let haps <- pat(TimeSpan(start = 0.0lf, stop = 1.0lf))
     t |> equal(length(haps), 3)
 }
 
@@ -183,8 +183,8 @@ def test_cross_cycle_query(t : T?) {
     var p1 <- atom("sd")
     pats |> emplace <| p0
     pats |> emplace <| p1
-    var pat <- cat(pats)
-    var haps <- pat(TimeSpan(start = 0.5lf, stop = 1.5lf))
+    let pat <- cat(pats)
+    let haps <- pat(TimeSpan(start = 0.5lf, stop = 1.5lf))
     t |> equal(length(haps), 2)
     t |> equal(haps[0].value.s, "bd")
     t |> equal(haps[1].value.s, "sd")

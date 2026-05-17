@@ -673,9 +673,10 @@ static PhysCollision *create_shape_from_collision_node(const CollisionResource *
 
   if (nodeType == CST_MESH)
   {
-    G_ASSERTF_RETURN(node->indices.size() / 3 < 300 * 1024, nullptr,
-      "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", vertices.size(), node->indices.size() / 3);
-    return new PhysTriMeshCollision(vertices, node->indices, nullptr, false, false /*reverse normals*/);
+    auto nodeIdx = coll_res->getNodeIndices(node->nodeIndex);
+    G_ASSERTF_RETURN(nodeIdx.size() / 3 < 300 * 1024, nullptr,
+      "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", vertices.size(), nodeIdx.size() / 3);
+    return new PhysTriMeshCollision(vertices, nodeIdx, nullptr, false, false /*reverse normals*/);
   }
 
   if (nodeType == CST_CONVEX_HULL)
@@ -707,16 +708,15 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
       continue;
 
     const char *nodeName = props.getParamName(i);
-    for (const CollisionNode *meshNode = resource->meshNodesHead; meshNode; meshNode = meshNode->nextNode)
-    {
-      if (!meshNode->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-        continue;
+    resource->forEachMeshNode([&](const CollisionNode &meshNode) -> bool {
+      if (!meshNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+        return false;
 
-      if (::strcmp(nodeName, resource->getNodeName(meshNode->nodeIndex)) != 0)
-        continue;
+      if (::strcmp(nodeName, resource->getNodeName(meshNode.nodeIndex)) != 0)
+        return false;
 
       TMatrix nodeTm;
-      resource->getCollisionNodeTm(meshNode, TMatrix::IDENT, tree, nodeTm);
+      resource->getCollisionNodeTm(&meshNode, TMatrix::IDENT, tree, nodeTm);
 
       TMatrix childTm = nodeTm * inverse(rootTm);
 
@@ -724,17 +724,17 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
         childTm.setcol(3, ZERO<Point3>());
 
       Point3 outCenter = ZERO<Point3>();
-      PhysCollision *childShape = create_shape_from_collision_node(resource, shapeType, meshNode, scale, childTm,
+      PhysCollision *childShape = create_shape_from_collision_node(resource, shapeType, &meshNode, scale, childTm,
         rootNode ? nullptr : &outCenter, vertices_stor);
       if (!childShape)
-        continue;
+        return false;
 
       childShape->setMargin(margin);
       shape.addChildCollision(childShape, childTm);
 
       if (!rootNode)
       {
-        rootNode = meshNode;
+        rootNode = &meshNode;
         rootTm = nodeTm;
         rootTm.setcol(3, rootTm.getcol(3) - childTm * outCenter);
         out_center = childTm * outCenter;
@@ -743,8 +743,8 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
         out_tm.setcol(3, childTm * outCenter);
       }
 
-      break;
-    }
+      return true; // stop after first match
+    });
   }
 
   return dacoll::create_coll_obj_from_shape(shape, nullptr, /*kinematic*/ true, /* add to world */ add_to_world,
@@ -785,9 +785,14 @@ CollisionObject dacoll::build_dynamic_collision_from_coll_resource(const Collisi
 CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock *props, const CollisionResource *coll_resource,
   void *user_ptr, int flags, int phys_layer, int mask, const TMatrix *wtm, const char *debug_name, const TMatrix *ptr_inv_parent_tm)
 {
+  // Must match the set of node types this function actually attaches as child shapes (mesh, box,
+  // sphere, capsule). A broader getAllNodes().empty() test would let point-only / fully-filtered
+  // resources through and reach physx_add_dynamic_collision_from_coll_resource() below, which
+  // allocates the rigid actor before any child shape is built; with shape.getChildrenCount()==0
+  // this function later returns an empty CollisionObject and the actor leaks.
   if (!phys_world || !phys_world->getScene() || !coll_resource ||
-      (!coll_resource->meshNodesHead && !coll_resource->boxNodesHead && !coll_resource->sphereNodesHead &&
-        !coll_resource->capsuleNodesHead))
+      (coll_resource->meshNodesHead == CollisionNode::INVALID_IDX && coll_resource->boxNodesHead == CollisionNode::INVALID_IDX &&
+        coll_resource->sphereNodesHead == CollisionNode::INVALID_IDX && coll_resource->capsuleNodesHead == CollisionNode::INVALID_IDX))
     return CollisionObject();
 
 #define APPLY_PARENT_ITM(v) ptr_inv_parent_tm ? *ptr_inv_parent_tm *(v) : (v)
@@ -807,7 +812,9 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
   if (collapseConvexes)
   {
     // go through all convexes and collapse them into one
-    bool haveNonConvex = coll_resource->boxNodesHead || coll_resource->sphereNodesHead || coll_resource->capsuleNodesHead;
+    bool haveNonConvex = coll_resource->boxNodesHead != CollisionNode::INVALID_IDX ||
+                         coll_resource->sphereNodesHead != CollisionNode::INVALID_IDX ||
+                         coll_resource->capsuleNodesHead != CollisionNode::INVALID_IDX;
     Tab<Point3> &convexVerts = vertices_stor.push_back();
     dag::set_allocator(convexVerts, dag::get_allocator(vertices_stor));
     coll_resource->forEachMeshNode([&](const CollisionNode &meshNode) {
@@ -876,10 +883,11 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
 
       case CST_MESH:
       {
-        G_ASSERTF_AND_DO(meshNode.indices.size() / 3 < 300 * 1024, break,
-          "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", meshNode.vertices.size(),
-          meshNode.indices.size() / 3);
-        auto trim = new PhysTriMeshCollision(meshNode.vertices, meshNode.indices, nullptr, false, false /*reverse normals*/);
+        auto meshVerts = coll_resource->getNodeVertices(meshNode.nodeIndex);
+        auto meshIdx = coll_resource->getNodeIndices(meshNode.nodeIndex);
+        G_ASSERTF_AND_DO(meshIdx.size() / 3 < 300 * 1024, break,
+          "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", meshVerts.size(), meshIdx.size() / 3);
+        auto trim = new PhysTriMeshCollision(meshVerts, meshIdx, nullptr, false, false /*reverse normals*/);
 #if DAGOR_DBGLEVEL > 0
         meshDebugNames.emplace_back(framemem_ptr()).printf(0, "%s/%s", debug_name, coll_resource->getNodeName(meshNode.nodeIndex));
         trim->setDebugNamePtr(meshDebugNames.back().c_str());
@@ -907,40 +915,37 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
     };
   });
 
-  for (const CollisionNode *boxNode = coll_resource->boxNodesHead; boxNode; boxNode = boxNode->nextNode)
-  {
-    if (!boxNode->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      continue;
-    if (props && !props->getBool(coll_resource->getNodeName(boxNode->nodeIndex), false))
-      continue;
+  coll_resource->forEachBoxNode([&](const CollisionNode &boxNode) {
+    if (!boxNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+      return;
+    if (props && !props->getBool(coll_resource->getNodeName(boxNode.nodeIndex), false))
+      return;
     TMatrix tm = TMatrix::IDENT;
-    BBox3 bbox = coll_resource->getNodeBBox(boxNode->nodeIndex);
+    BBox3 bbox = coll_resource->getNodeBBox(boxNode.nodeIndex);
     tm.setcol(3, bbox.center());
     Point3 width = bbox.width();
     shape.addChildCollision(new PhysBoxCollision(width.x, width.y, width.z), APPLY_PARENT_ITM(tm));
-  }
+  });
 
-  for (const CollisionNode *sphereNode = coll_resource->sphereNodesHead; sphereNode; sphereNode = sphereNode->nextNode)
-  {
-    if (!sphereNode->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      continue;
-    if (props && !props->getBool(coll_resource->getNodeName(sphereNode->nodeIndex), false))
-      continue;
-    BSphere3 bsph = coll_resource->getNodeBSphere(sphereNode->nodeIndex);
+  coll_resource->forEachSphereNode([&](const CollisionNode &sphereNode) {
+    if (!sphereNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+      return;
+    if (props && !props->getBool(coll_resource->getNodeName(sphereNode.nodeIndex), false))
+      return;
+    BSphere3 bsph = coll_resource->getNodeBSphere(sphereNode.nodeIndex);
     TMatrix tm = TMatrix::IDENT;
     tm.setcol(3, bsph.c);
     shape.addChildCollision(new PhysSphereCollision(bsph.r), APPLY_PARENT_ITM(tm));
-  }
+  });
 
-  for (const CollisionNode *capNode = coll_resource->capsuleNodesHead; capNode; capNode = capNode->nextNode)
-  {
-    if (!capNode->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      continue;
-    if (props && !props->getBool(coll_resource->getNodeName(capNode->nodeIndex), false))
-      continue;
-    TMatrix tm = coll_resource->getNodeTm(capNode->nodeIndex);
+  coll_resource->forEachCapsuleNode([&](const CollisionNode &capNode) {
+    if (!capNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+      return;
+    if (props && !props->getBool(coll_resource->getNodeName(capNode.nodeIndex), false))
+      return;
+    TMatrix tm = coll_resource->getNodeTm(capNode.nodeIndex);
     Point3 scale = Point3(length(tm.getcol(0)), length(tm.getcol(1)), length(tm.getcol(2)));
-    BBox3 capBBox = coll_resource->getNodeBBox(capNode->nodeIndex);
+    BBox3 capBBox = coll_resource->getNodeBBox(capNode.nodeIndex);
     Point3 boxWidth = capBBox.width();
     boxWidth.x *= scale.x;
     boxWidth.y *= scale.y;
@@ -957,7 +962,7 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
     else
       ax = 2 /*Z*/;
     shape.addChildCollision(new PhysCapsuleCollision(capRad, capHt + capRad * 2, ax), APPLY_PARENT_ITM(tm));
-  }
+  });
 
   if (props)
   {

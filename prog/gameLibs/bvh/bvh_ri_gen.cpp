@@ -15,6 +15,9 @@
 #include "bvh_tools.h"
 #include "bvh_add_instance.h"
 
+CONSOLE_BOOL_VAL("raytracing", bvh_ri_gen_split_enabled, true);
+CONSOLE_INT_VAL("raytracing", bvh_ri_gen_split_chunk_budget, 1000, 100, 100000);
+
 #if DAGOR_DBGLEVEL > 0
 extern bool bvh_ri_gen_range_enable;
 extern float bvh_ri_gen_range;
@@ -162,6 +165,10 @@ static struct RiGenBVHJob : public cpujobs::IJob
   bbox3f treeArea;
 
   eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> newUniqueTreeBuffers[Context::maxUniqueLods];
+  RiGenBVHJob *otherFlip = nullptr;
+  threadpool::JobPriority prio = threadpool::PRIO_DEFAULT;
+  dag::AtomicInteger<unsigned> chunkBudgetItems = 0;
+  bool hitChunkBudget = false;
 
   static ReferencedTransformData *mapTreeRiGen(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
     int lod_ix, void *user_data, bool &recycled, int &anim_index)
@@ -183,8 +190,16 @@ static struct RiGenBVHJob : public cpujobs::IJob
     pointers.uniqueTreeBuffers = make_span(context_id->uniqueTreeBuffers, Context::maxUniqueLods);
     pointers.newUniqueTreeBuffers = make_span(static_cast<RiGenBVHJob *>(user_data)->newUniqueTreeBuffers, Context::maxUniqueLods);
     pointers.treeAnimIndexCount = make_span(context_id->treeAnimIndexCount, Context::MaxTreeAnimIndices);
+    pointers.treeAnimIndexCountLock = &context_id->treeAnimIndexCountLock;
     pointers.freeUniqueTreeBLASes = &context_id->freeUniqueTreeBLASes;
     return map_tree_base<RiGenTreeHash, true>(object_id, pos, handle, lod_ix, recycled, anim_index, pointers);
+  }
+
+  void updateSplitBudgetHit()
+  {
+    const unsigned heuristic = riGenCount * 27 + impostorCount;
+    if (DAGOR_UNLIKELY(heuristic >= chunkBudgetItems.load(dag::memory_order_relaxed)))
+      hitChunkBudget = true;
   }
 
   template <bool use_min_lod, bool filter_out_view_frustum>
@@ -244,6 +259,8 @@ static struct RiGenBVHJob : public cpujobs::IJob
           v_bbox3_add_pt(thiz->treeArea, v_mat43_extract_pos(tm43));
 
         thiz->impostorCount++;
+
+        thiz->updateSplitBudgetHit();
         return;
       }
 
@@ -277,13 +294,7 @@ static struct RiGenBVHJob : public cpujobs::IJob
           {
             vec4f localBounds = v_make_vec4f(riRes->bsphCenter.x, riRes->bsphCenter.y, riRes->bsphCenter.z, riRes->bsphRad);
             vec4f worldBounds = v_mat44_mul_bsph(tm, localBounds);
-            bbox3f worldBoundsBox;
-            worldBoundsBox.bmin = v_sub(worldBounds, v_splat_w(worldBounds));
-            worldBoundsBox.bmax = v_add(worldBounds, v_splat_w(worldBounds));
-            vec3f farPoint = v_mul(v_add(v_add(worldBoundsBox.bmax, worldBoundsBox.bmin), thiz->lightDirection), V_C_HALF);
-            worldBoundsBox.bmin = v_min(worldBoundsBox.bmin, farPoint);
-            worldBoundsBox.bmax = v_max(worldBoundsBox.bmax, farPoint);
-            isStationary = !thiz->viewFrustum.testBoxB(worldBoundsBox.bmin, worldBoundsBox.bmax);
+            isStationary = !instance_needs_animation(worldBounds, thiz->viewFrustum, thiz->lightDirection);
           }
 
         for (auto [elemIx, elem] : enumerate(elems))
@@ -329,6 +340,8 @@ static struct RiGenBVHJob : public cpujobs::IJob
           }
         }
       }
+
+      thiz->updateSplitBudgetHit();
     };
 
     riGenCount = 0;
@@ -338,10 +351,8 @@ static struct RiGenBVHJob : public cpujobs::IJob
     meta_alloc_id_accel = -1;
     blas_accel = 0;
 
-    v_bbox3_init_empty(treeArea);
-
     rendinst::foreachRiGenInstance(riGenVisibility, callback, this, accels[visibilityIndex].accel1, accels[visibilityIndex].accel2,
-      accels[visibilityIndex].accel1Cursor, accels[visibilityIndex].accel2Cursor, true);
+      accels[visibilityIndex].accel1Cursor, accels[visibilityIndex].accel2Cursor, true, hitChunkBudget);
 
     DA_PROFILE_TAG_DESC(getJobNameProfDesc(), "riGen count: %d, impostor count: %d", riGenCount, impostorCount);
   }
@@ -364,16 +375,27 @@ static struct RiGenBVHJob : public cpujobs::IJob
       }
     } doJobWrapper;
 
+    hitChunkBudget = false;
+
     const bool filterOutViewFrustum = visibilityIndex == OUT_OF_FRUSTUM_VISIVILITY_INDEX;
     const bool useMinLod = bvh::ri::get_ri_lod_dist_bias() > 0;
     doJobWrapper(*this, filterOutViewFrustum, useMinLod);
+
+    // flip-flop scheduling: start the other pair right before this one finishes, so the parallel processing finish is consistent
+    if (hitChunkBudget)
+    {
+      G_ASSERT(otherFlip);
+      threadpool::wait(otherFlip); // just in case it is still running
+      parallel_instance_processing::before_job_start(contextId);
+      threadpool::add(otherFlip, prio);
+    }
 
     parallel_instance_processing::after_job_end(contextId);
   }
 
   const char *getJobName(bool &) const override { return "RiGenBVHJob"; }
 
-} ri_gen_bvh_job[ri_gen_thread_count];
+} ri_gen_bvh_job[ri_gen_thread_count][2]; // flip-flop pair
 
 void wait_ri_gen_instances_update([[maybe_unused]] ContextId context_id)
 {
@@ -382,10 +404,19 @@ void wait_ri_gen_instances_update([[maybe_unused]] ContextId context_id)
 
   for (int threadIx = 0; threadIx < ri_gen_thread_count; ++threadIx)
   {
-    TIME_PROFILE(bvh::update_ri_extra_instances);
-    DA_PROFILE_TAG(bvh::update_ri_extra_instances, "wait thread %d", threadIx);
-    threadpool::wait(&ri_gen_bvh_job[threadIx]);
-    v_bbox3_add_box(treeArea, ri_gen_bvh_job[threadIx].treeArea);
+    // skip budget check and process the rest
+    ri_gen_bvh_job[threadIx][0].chunkBudgetItems.store(~0u, dag::memory_order_relaxed);
+    ri_gen_bvh_job[threadIx][1].chunkBudgetItems.store(~0u, dag::memory_order_relaxed);
+  }
+  for (int threadIx = 0; threadIx < ri_gen_thread_count; ++threadIx)
+  {
+    TIME_PROFILE(bvh::update_ri_gen_instances);
+    DA_PROFILE_TAG(bvh::update_ri_gen_instances, "wait thread %d", threadIx);
+    threadpool::wait(&ri_gen_bvh_job[threadIx][0]);
+    threadpool::wait(&ri_gen_bvh_job[threadIx][1]);
+    threadpool::wait(&ri_gen_bvh_job[threadIx][0]); // just in case for the edge case when job[0] starts job[1] in-between
+    v_bbox3_add_box(treeArea, ri_gen_bvh_job[threadIx][0].treeArea);
+    v_bbox3_add_box(treeArea, ri_gen_bvh_job[threadIx][1].treeArea);
   }
 
   static int rtsm_tree_areaVarId = get_shader_variable_id("rtsm_tree_area");
@@ -403,32 +434,38 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
   wait_ri_gen_instances_update(context_id);
   start_new_tree_mapping_debug_frame();
 
-  const float maxLightDistForBvhShadow = 20.0f;
-
   for (auto [i, ri_gen_visibility] : enumerate(ri_gen_visibilities))
   {
     rendinst::build_ri_gen_thread_accel(ri_gen_visibility, RiGenBVHJob::accels[i].accel1, RiGenBVHJob::accels[i].accel2);
     RiGenBVHJob::accels[i].accel1Cursor = 0;
     RiGenBVHJob::accels[i].accel2Cursor = 0;
 
+    const unsigned chunkBudgetItems = bvh_ri_gen_split_enabled ? (unsigned)bvh_ri_gen_split_chunk_budget.get() : ~0u;
+
     int threadStart = get_ri_gen_worker_count() * i;
     int threadEnd = get_ri_gen_worker_count() * (i + 1);
     for (int threadIx = threadStart; threadIx < threadEnd; ++threadIx)
     {
-      auto &job = ri_gen_bvh_job[threadIx];
-      job.riGenVisibility = ri_gen_visibility;
-      job.contextId = context_id;
-      job.threadIx = threadIx;
-      job.visibilityIndex = i;
-      job.viewPosition = v_ldu_p3_safe(&view_position.x);
-      job.viewFrustum = view_frustum;
-      job.viewPositionX = v_make_vec4f(0, 0, 0, view_position.x);
-      job.viewPositionY = v_make_vec4f(0, 0, 0, view_position.y);
-      job.viewPositionZ = v_make_vec4f(0, 0, 0, view_position.z);
-      job.lightDirection = v_mul(v_ldu_p3_safe(&light_direction.x), v_splats(maxLightDistForBvhShadow * 2));
-
+      for (int flip = 0; flip < 2; ++flip)
+      {
+        auto &job = ri_gen_bvh_job[threadIx][flip];
+        job.riGenVisibility = ri_gen_visibility;
+        job.contextId = context_id;
+        job.threadIx = threadIx;
+        job.visibilityIndex = i;
+        job.viewPosition = v_ldu_p3_safe(&view_position.x);
+        job.viewFrustum = view_frustum;
+        job.viewPositionX = v_make_vec4f(0, 0, 0, view_position.x);
+        job.viewPositionY = v_make_vec4f(0, 0, 0, view_position.y);
+        job.viewPositionZ = v_make_vec4f(0, 0, 0, view_position.z);
+        job.lightDirection = light_direction_for_animation(light_direction);
+        job.prio = prio;
+        job.otherFlip = &ri_gen_bvh_job[threadIx][flip ^ 1];
+        job.chunkBudgetItems.store(chunkBudgetItems, dag::memory_order_relaxed);
+        v_bbox3_init_empty(job.treeArea);
+      }
       parallel_instance_processing::before_job_start(context_id);
-      threadpool::add(&job, prio);
+      threadpool::add(&ri_gen_bvh_job[threadIx][0], prio);
     }
   }
 }
@@ -437,13 +474,17 @@ void tidy_up_rigen_trees(ContextId context_id)
 {
   TIME_PROFILE(tidy_up_rigen_trees);
 
-  for (auto &job : ri_gen_bvh_job)
+  for (auto &jobFlips : ri_gen_bvh_job)
   {
-    for (auto [index, lod] : enumerate(job.newUniqueTreeBuffers))
+    for (int flip = 0; flip < 2; ++flip)
     {
-      for (auto &tree : lod)
-        context_id->uniqueTreeBuffers[index].insert(std::move(tree));
-      lod.clear();
+      auto &job = jobFlips[flip];
+      for (auto [index, lod] : enumerate(job.newUniqueTreeBuffers))
+      {
+        for (auto &tree : lod)
+          context_id->uniqueTreeBuffers[index].insert(std::move(tree));
+        lod.clear();
+      }
     }
   }
   TidyUpTreePointers pointers;

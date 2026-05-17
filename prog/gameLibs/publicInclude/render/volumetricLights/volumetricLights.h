@@ -123,32 +123,32 @@ protected:
   eastl::array<UniqueTex, FRAME_HISTORY> initialInscatter;
   eastl::array<UniqueTex, FRAME_HISTORY> initialExtinction;
 
-  UniqueTexHolder initialMedia;
-  UniqueTexHolder resultInscatter;
-  UniqueTexHolder initialPhase; // for local lights (if present)
+  UniqueTexWithShaderVar initialMedia;
+  UniqueTexWithShaderVar resultInscatter;
+  UniqueTexWithShaderVar initialPhase; // for local lights (if present)
   eastl::array<UniqueTex, FRAME_HISTORY> volfogOcclusion;
   eastl::array<UniqueTex, FRAME_HISTORY> volfogWeight;
 
   eastl::array<UniqueTex, FRAME_HISTORY> volfogShadow;
-  UniqueTexHolder volfogShadowOcclusion;
+  UniqueTexWithShaderVar volfogShadowOcclusion;
 
-  UniqueTexHolder poissonSamples; // TODO: refactor and optimize it
+  UniqueTexWithShaderVar poissonSamples; // TODO: refactor and optimize it
   UniqueBufHolder froxelFogDitheringSamples;
 
-  UniqueTexHolder distantFogFrameRaymarchInscatter;
-  UniqueTexHolder distantFogFrameRaymarchExtinction;
-  UniqueTexHolder distantFogFrameRaymarchDist;
-  UniqueTexHolder distantFogFrameRaymarchDebug;
+  UniqueTexWithShaderVar distantFogFrameRaymarchInscatter;
+  UniqueTexWithShaderVar distantFogFrameRaymarchExtinction;
+  UniqueTexWithShaderVar distantFogFrameRaymarchDist;
+  UniqueTexWithShaderVar distantFogFrameRaymarchDebug;
 
   // for FX and other transparent shaders only,
   // uses half res of reconstruction (quad res by default)
-  UniqueTexHolder distantFogFrameReprojectionDist;
+  UniqueTexWithShaderVar distantFogFrameReprojectionDist;
 
   eastl::array<UniqueTex, FRAME_HISTORY> distantFogFrameReconstruct;
   eastl::array<UniqueTex, FRAME_HISTORY> distantFogRaymarchStartWeights;
   eastl::array<UniqueTex, FRAME_HISTORY> distantFogFrameReconstructionWeight;
 
-  UniqueTexHolder distantFogDebug;
+  UniqueTexWithShaderVar distantFogDebug;
 
   eastl::unique_ptr<ComputeShaderElement> froxelFogOcclusionCs;
   eastl::unique_ptr<ComputeShaderElement> froxelFogLightCalcPropagateCs;

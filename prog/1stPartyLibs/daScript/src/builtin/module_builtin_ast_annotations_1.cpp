@@ -22,7 +22,7 @@ namespace das {
         }
     };
 
-    struct AstTypeDeclAnnnotation : ManagedStructureAnnotation <TypeDecl> {
+    struct AstTypeDeclAnnnotation : ManagedStructureAnnotation <TypeDecl, true, false> {
         AstTypeDeclAnnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("TypeDecl", ml) {
         }
@@ -133,7 +133,7 @@ namespace das {
         }
     };
 
-    struct AstStructureAnnotation : ManagedStructureAnnotation<Structure> {
+    struct AstStructureAnnotation : ManagedStructureAnnotation<Structure, true, false> {
         AstStructureAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("Structure", ml) {
         }
@@ -176,7 +176,7 @@ namespace das {
         }
     };
 
-    struct AstEnumerationAnnotation : ManagedStructureAnnotation <Enumeration> {
+    struct AstEnumerationAnnotation : ManagedStructureAnnotation <Enumeration, true, false> {
         AstEnumerationAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("Enumeration", ml) {
         }
@@ -193,11 +193,11 @@ namespace das {
         }
     };
 
-    template <typename FUNC>
-    struct AstFunctionAnnotation : public ManagedStructureAnnotation<FUNC> {
+    template <typename FUNC, bool hasNew = true>
+    struct AstFunctionAnnotation : public ManagedStructureAnnotation<FUNC, hasNew, false> {
         using ManagedType = FUNC;
         AstFunctionAnnotation(const char *name, ModuleLibrary & ml)
-            : ManagedStructureAnnotation<FUNC> (name, ml) {
+            : ManagedStructureAnnotation<FUNC, hasNew, false> (name, ml) {
         }
         void init () {
             this->template addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
@@ -232,7 +232,7 @@ namespace das {
         }
     };
 
-    struct AstBuiltInFunctionAnnotation : AstFunctionAnnotation<BuiltInFunction> {
+    struct AstBuiltInFunctionAnnotation : AstFunctionAnnotation<BuiltInFunction, false> {
         AstBuiltInFunctionAnnotation(ModuleLibrary &ml)
             : AstFunctionAnnotation("BuiltInFunction", ml) {
             this->template addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
@@ -241,7 +241,7 @@ namespace das {
         }
     };
 
-    struct AstExternalFnBaseAnnotation : AstFunctionAnnotation<ExternalFnBase> {
+    struct AstExternalFnBaseAnnotation : AstFunctionAnnotation<ExternalFnBase, false> {
         AstExternalFnBaseAnnotation(ModuleLibrary &ml)
             : AstFunctionAnnotation("ExternalFnBase", ml) {
             this->template addField<DAS_BIND_MANAGED_FIELD(cppName)>("cppName");
@@ -261,7 +261,7 @@ namespace das {
     };
 
 
-    struct AstVariableAnnotation : ManagedStructureAnnotation<Variable> {
+    struct AstVariableAnnotation : ManagedStructureAnnotation<Variable, true, false> {
         AstVariableAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("Variable", ml) {
         }
@@ -271,6 +271,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(type)>("_type","type");
             addField<DAS_BIND_MANAGED_FIELD(init)>("init");
             addField<DAS_BIND_MANAGED_FIELD(source)>("source");
+            addField<DAS_BIND_MANAGED_FIELD(loop_source)>("loop_source");
             addField<DAS_BIND_MANAGED_FIELD(at)>("at");
             addField<DAS_BIND_MANAGED_FIELD(index)>("index");
             addField<DAS_BIND_MANAGED_FIELD(stackTop)>("stackTop");
@@ -333,29 +334,29 @@ namespace das {
         // flags
         registerFlags(lib);
         // modules
-        addAnnotation(make_smart<AstModuleLibraryAnnotation>(lib));
+        addAnnotation(new AstModuleLibraryAnnotation(lib));
         // AST TYPES (due to a lot of xrefs we declare everyone as recursive type)
-        auto exa = make_smart<AstExprAnnotation<Expression>>("Expression",lib);
+        auto exa = new AstExprAnnotation<Expression>("Expression",lib);
         addAnnotation(exa);
-        auto tda = make_smart<AstTypeDeclAnnnotation>(lib);
+        auto tda = new AstTypeDeclAnnnotation(lib);
         addAnnotation(tda);
-        auto sta = make_smart<AstStructureAnnotation>(lib);
+        auto sta = new AstStructureAnnotation(lib);
         addAnnotation(sta);
-        auto fta = make_smart<AstFieldDeclarationAnnotation>(lib);
+        auto fta = new AstFieldDeclarationAnnotation(lib);
         addAnnotation(fta);
-        auto ene = make_smart<AstEnumEntryAnnotation>(lib);
+        auto ene = new AstEnumEntryAnnotation(lib);
         addAnnotation(ene);
-        auto ena = make_smart<AstEnumerationAnnotation>(lib);
+        auto ena = new AstEnumerationAnnotation(lib);
         addAnnotation(ena);
-        auto fna = make_smart<AstFunctionAnnotation<Function>>("Function", lib);
+        auto fna = new AstFunctionAnnotation<Function>("Function", lib);
         addAnnotation(fna);
-        auto bfn = make_smart<AstBuiltInFunctionAnnotation>(lib);
+        auto bfn = new AstBuiltInFunctionAnnotation(lib);
         addAnnotation(bfn);
-        auto extfn = make_smart<AstExternalFnBaseAnnotation>(lib);
+        auto extfn = new AstExternalFnBaseAnnotation(lib);
         addAnnotation(extfn);
-        auto iha = make_smart<AstInferHistoryAnnotation>(lib);
+        auto iha = new AstInferHistoryAnnotation(lib);
         addAnnotation(iha);
-        auto vaa = make_smart<AstVariableAnnotation>(lib);
+        auto vaa = new AstVariableAnnotation(lib);
         addAnnotation(vaa);
         initRecAnnotation(tda, lib);
         initRecAnnotation(sta, lib);
@@ -369,9 +370,9 @@ namespace das {
         initRecAnnotation(iha, lib);
         initRecAnnotation(vaa, lib);
         // misc
-        addAnnotation(make_smart<AstContextAnnotation>(lib));
+        addAnnotation(new AstContextAnnotation(lib));
         // expressions (in order of inheritance)
-        addExpressionAnnotation(make_smart<AstExprBlockAnnotation>(lib))->from("Expression");
-        addExpressionAnnotation(make_smart<AstExprLetAnnotation>(lib))->from("Expression");
+        addExpressionAnnotation(new AstExprBlockAnnotation(lib))->from("Expression");
+        addExpressionAnnotation(new AstExprLetAnnotation(lib))->from("Expression");
     }
 }

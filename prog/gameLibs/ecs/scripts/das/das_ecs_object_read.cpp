@@ -22,30 +22,30 @@ void ECS::addObjectRead(das::ModuleLibrary &lib)
   das::addExtern<DAS_BIND_FUN(objectHasHint)>(*this, lib, "has", das::SideEffects::accessExternal, "bind_dascript::objectHasHint");
   auto objectHasExt =
     das::addExtern<DAS_BIND_FUN(objectHas)>(*this, lib, "has", das::SideEffects::accessExternal, "bind_dascript::objectHas");
-  objectHasExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectHasExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 
   das::addExtern<DAS_BIND_FUN(objectGetStringHint)>(*this, lib, "get_string", das::SideEffects::none,
     "bind_dascript::objectGetStringHint");
   auto objectGetStringExt = das::addExtern<DAS_BIND_FUN(objectGetString)>(*this, lib, "get_string", das::SideEffects::accessExternal,
     "bind_dascript::objectGetString");
-  objectGetStringExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectGetStringExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 
   das::addExtern<DAS_BIND_FUN(objectPtrGetStringHint)>(*this, lib, "get_string", das::SideEffects::none,
     "bind_dascript::objectPtrGetStringHint");
   auto objectPtrGetStringExt = das::addExtern<DAS_BIND_FUN(objectPtrGetString)>(*this, lib, "get_string",
     das::SideEffects::accessExternal, "bind_dascript::objectPtrGetString");
-  objectPtrGetStringExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectPtrGetStringExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 
   das::addExtern<DAS_BIND_FUN(objectGetChildHint)>(*this, lib, "get_child", das::SideEffects::none,
     "bind_dascript::objectGetChildHint");
   auto objectGetChildExt = das::addExtern<DAS_BIND_FUN(objectGetChild)>(*this, lib, "get_child", das::SideEffects::accessExternal,
     "bind_dascript::objectGetChild");
-  objectGetChildExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectGetChildExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 
   das::addExtern<DAS_BIND_FUN(objectPtrGetChildHint)>(*this, lib, "get_child", das::SideEffects::none,
     "bind_dascript::objectPtrGetChildHint");
   auto objectPtrGetChildExt = das::addExtern<DAS_BIND_FUN(objectPtrGetChild)>(*this, lib, "get_child",
     das::SideEffects::accessExternal, "bind_dascript::objectPtrGetChild");
-  objectPtrGetChildExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectPtrGetChildExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 }
 } // namespace bind_dascript

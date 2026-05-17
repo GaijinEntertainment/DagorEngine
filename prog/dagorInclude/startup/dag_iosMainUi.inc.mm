@@ -755,8 +755,6 @@ extern "C" const char *dagor_exe_build_time;
 
 extern void messagebox_report_fatal_error(const char *title, const char *msg, const char *call_stack);
 
-char ios_global_log_fname[1024] = "";
-
 #if _TARGET_TVOS
 // need to correct close log when catch crash
 namespace debug_internal
@@ -826,21 +824,33 @@ static void remove_old_logs(const char *debug_path)
     if (error)
       return;
 
-    // Remove files like: aces-2025.02.07-15.41.38.clog
+    // Remove files like: aces-*.clog aces-*.log
     for (NSString *log : files)
-      for (const char * year : {"-2022.", "-2023.", "-2024.", "-2025."})
-        if (strstr([log UTF8String], year))
-          [fileManager removeItemAtPath:[debugPath stringByAppendingPathComponent:log] error:&error];
+      if (strstr([log UTF8String], "aces-"))
+      {
+        NSString *fullPath = [debugPath stringByAppendingPathComponent:log];
+        BOOL isDir = NO;
+        if ([fileManager fileExistsAtPath:fullPath isDirectory:&isDir] && !isDir)
+          [fileManager removeItemAtPath:fullPath error:&error];
+      }
   }
 }
 
-extern const unsigned char *get_dagor_log_crypt_key();
+extern void setup_debug_system(const char *exe_fname, const char *prefix, const char *debug_fname, bool datetime_name,
+  const size_t rotated_count);
 
 static void dagor_ios_before_main_init(int argc, char *argv[])
 {
   static DagorSettingsBlkHolder stgBlkHolder;
 
   measure_cpu_freq();
+
+#if defined OPTIONAL_ADD_ARGS
+  OPTIONAL_ADD_ARGS(argc, argv);
+#endif
+
+  dgs_init_argv(argc, argv);
+
 #if !_TARGET_TVOS
 #if DAGOR_DBGLEVEL == 0
   stderr = freopen("/dev/null", "wt", stderr);
@@ -848,46 +858,27 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
   NSString *documentsDirectory = [paths objectAtIndex:0];
   {
-#if DAGOR_FORCE_LOGS
-    const char *logExt = ".clog";
-#else
-    const char *logExt = ".log";
-#endif
+    remove_old_logs([documentsDirectory UTF8String]);
 
-    char logFilename[DAGOR_MAX_PATH];
-    strcpy(logFilename, [documentsDirectory UTF8String]);
-
-    remove_old_logs(logFilename);
-
-    const char *logName = dd_get_fname(argv[0]);
-    const int logIndex = rotate_debug_files(logName, logFilename, logExt, 3/* rotatedCount */);
-    SNPRINTF(logFilename, sizeof(logFilename), "%s-%d%s", logName, logIndex, logExt);
-
-    strcpy(ios_global_log_fname,
-      [[documentsDirectory stringByAppendingPathComponent:[[NSString alloc] initWithUTF8String: logFilename]] UTF8String]);
+    const char *logsDirName = ::dgs_get_argv("logsDirName");
+    const bool useDateTimeName = logsDirName ? false : (DAGOR_DBGLEVEL > 0);
+    const size_t useRotatedLogs = logsDirName ? DAGOR_DBGLEVEL > 0 ? 0 : 3 : 3;
+    setup_debug_system(logsDirName ? logsDirName : argv[0], [documentsDirectory UTF8String], "debug", useDateTimeName, useRotatedLogs);
   }
 
   pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
 
-#if defined OPTIONAL_ADD_ARGS
-  OPTIONAL_ADD_ARGS(argc, argv);
-#endif
-  dgs_init_argv(argc, argv);
   dgs_report_fatal_error = messagebox_report_fatal_error;
   apply_hinstance(NULL, NULL);
 
   set_debug_console_ios_file_output(true);
   set_copy_debug_to_ios_console(DAGOR_DBGLEVEL > 0);
 
-#if DAGOR_FORCE_LOGS && DAGOR_DBGLEVEL <= 0
-  crypt_debug_setup(get_dagor_log_crypt_key(), 60 << 20 /* MAX_LOGS_FILE_SIZE */);
-#endif
-
 #if DAGOR_DBGLEVEL != 0
   debug("BUILD TIMESTAMP:   %s %s\n\n", dagor_exe_build_date, dagor_exe_build_time);
 #endif
-  debug("app: <%s>", ios_global_log_fname);
+  debug("app: <%s>", get_log_filename());
 
   DagorHwException::setHandler("main");
 

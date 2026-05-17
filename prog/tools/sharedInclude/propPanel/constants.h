@@ -28,11 +28,23 @@ public:
   // Vertical space between a label and a control when they are on a separate line.
   static constexpr int SPACE_BETWEEN_SEPARATE_LINE_LABEL_AND_CONTROL = 0;
 
+  // The default height is ~2.5 lines for multiline editboxes.
+  static constexpr hdpi::Px EDITBOX_MULTILINE_DEFAULT_HEIGHT = (hdpi::Px)1;
+
+  // 8 line tall multiline editbox. (This is ImGui's default height.)
+  static constexpr hdpi::Px EDITBOX_MULTILINE_8_LINES_HEIGHT = (hdpi::Px)0;
+
+  // Use all the available height for multiline editboxes.
+  static constexpr hdpi::Px EDITBOX_MULTILINE_FULL_HEIGHT = (hdpi::Px)2;
+
   // The default height can fit ~7 items.
   static constexpr hdpi::Px LISTBOX_DEFAULT_HEIGHT = (hdpi::Px)0;
 
   // Use all the available height.
   static constexpr hdpi::Px LISTBOX_FULL_HEIGHT = (hdpi::Px)1;
+
+  // The length of the splitter's resize grip along the split axis. So for a vertical splitter this is the height of the grip.
+  static constexpr int SPLITTER_GRIP_LENGTH = 32;
 
   // The inner window padding of toolbars.
   static constexpr ImVec2 TOOLBAR_WINDOW_PADDING = ImVec2(0.0f, 5.0f);

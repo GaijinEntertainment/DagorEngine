@@ -28,7 +28,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("gpuReadbackQuery"));
 
-    addAnnotation(das::make_smart<BiomeQueryResultAnnotation>(lib));
+    addAnnotation(new BiomeQueryResultAnnotation(lib));
 
     das::addCtor<BiomeQueryResult>(*this, lib, "BiomeQueryResult", "::BiomeQueryResult");
 

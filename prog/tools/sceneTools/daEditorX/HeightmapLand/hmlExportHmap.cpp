@@ -319,3 +319,42 @@ bool HmapLandPlugin::exportHeightmap(String &filename, real min_height, real hei
   delete exporter;
   return true;
 }
+
+
+bool HmapLandPlugin::exportWaterHeightmap(const String &filename, real min_height, real height_range, bool export_detailed)
+{
+  const char *ext = dd_get_fname_ext(filename);
+  if (!ext)
+    return false;
+
+  CoolConsole &con = DAGORED2->getConsole();
+  con.startLog();
+
+  eastl::unique_ptr<HeightmapExporter> exporter;
+  if (stricmp(ext, ".r32") == 0)
+    exporter.reset(new Raw32fHeightmapExporter(false));
+  else if (stricmp(ext, ".height") == 0)
+    exporter.reset(new Raw32fHeightmapExporter(true));
+  else if (stricmp(ext, ".r16") == 0 || stricmp(ext, ".raw") == 0)
+    exporter.reset(new Raw16HeightmapExporter);
+  else if (stricmp(ext, ".tif") == 0 || stricmp(ext, ".tiff") == 0)
+    exporter.reset(new TiffHeightmapExporter);
+  else
+    exporter.reset(new TgaHeightmapExporter);
+
+  HeightMapStorage &heightMapStorage = export_detailed ? waterHeightmapDet : waterHeightmapMain;
+  const MapStorage<float> &mapStorage = heightMapStorage.getFinalMap();
+
+  if (!exporter->exportHeightmap(filename, heightMapStorage, min_height, height_range, con, mapStorage.getStoredOfsX(),
+        mapStorage.getStoredOfsY(), mapStorage.getStoredOfsX() + mapStorage.getStoredWidth(),
+        mapStorage.getStoredOfsY() + mapStorage.getStoredHeight()))
+  {
+    con.endLog();
+    return false;
+  }
+
+  con.addMessage(ILogWriter::NOTE, "Exported water heightmap to '%s'", (const char *)filename);
+  con.endLog();
+
+  return true;
+}

@@ -56,7 +56,7 @@ struct typeFactory<IdNameMap<T>>
     if (library.findAnnotation(declN, nullptr).size() == 0)
     {
       auto declT = makeType<T>(library);
-      auto ann = make_smart<IdNameMapAnnotation<T>>(declN);
+      auto ann = new IdNameMapAnnotation<T>(declN);
       ann->cppName = "IdNameMap<" + describeCppType(declT) + ">";
       auto mod = library.front();
       mod->addAnnotation(ann);

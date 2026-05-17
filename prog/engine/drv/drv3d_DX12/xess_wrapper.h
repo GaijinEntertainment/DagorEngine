@@ -8,11 +8,21 @@
 #include <EASTL/string.h>
 
 struct ID3D12CommandList;
+#if _TARGET_PC_WIN
+struct IDXGIFactory7;
+using DXGIFactory = IDXGIFactory7;
+struct IDXGISwapChain3;
+using DXGISwapChain = IDXGISwapChain3;
+struct DXGI_SWAP_CHAIN_DESC1;
+struct DXGI_SWAP_CHAIN_FULLSCREEN_DESC;
+struct ID3D12CommandQueue;
+#endif
 
 namespace drv3d_dx12
 {
 class XessWrapperImpl;
 class Image;
+struct SwapchainCreateInfo;
 
 struct XessParamsDx12
 {
@@ -97,8 +107,18 @@ public:
     ID3D12CommandList *d3dCommandList);
   int getPresentedFrameCount();
   uint64_t getMemoryUsage() const;
+#if _TARGET_PC_WIN
+  bool createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+    const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+  void releaseFrameGenerationSwapchainContext();
+#endif
 
 private:
   eastl::unique_ptr<XessWrapperImpl> pImpl;
 };
+
+#if _TARGET_PC_WIN
+bool create_xessfg_swapchain(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+#endif
 } // namespace drv3d_dx12

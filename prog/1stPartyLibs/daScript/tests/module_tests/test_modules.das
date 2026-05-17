@@ -153,3 +153,53 @@ def test_module_conflict(t : T?) {
         t |> success(run_module_test_expect_failure(base, "main.das"))
     }
 }
+
+// File-path require tests — exercises ./, ../, %/ resolution in default
+// (no-project) mode. main.das requires the same helpers.das module via four
+// different paths and must dedup them; main_missing.das has a require to a
+// non-existent file and must fail compilation cleanly.
+[test]
+def test_module_filepath(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/filepath"
+    t |> run("file-path requires (./, ../, %/) resolve and dedup in default mode") @(t : T?) {
+        t |> success(run_module_test(base, "main.das", false))
+    }
+}
+
+// Helper: assert that compile_file on `main_file` (in default mode, no
+// project) returns ok == false. Used by the failure-path tests below.
+def expect_compile_failure_default(base, main_file : string) : bool {
+    var result = false
+    let file_path = "{base}/{main_file}"
+    var inscope access <- make_file_access("")
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
+            cop.threadlock_context = true
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, issues) {
+                if (!ok) {
+                    result = true
+                }
+            }
+        }
+    }
+    return result
+}
+
+[test]
+def test_module_filepath_missing(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/filepath"
+    t |> run("missing file-path require produces a clean compilation error") @(t : T?) {
+        t |> success(expect_compile_failure_default(base, "main_missing.das"))
+    }
+}
+
+// Security regression: %/ must stay rooted at get_das_root(). %/../etc/x.das
+// would normalize to <dasroot>'s parent and escape unless the resolver
+// rejects `..` segments in the %/ branch.
+[test]
+def test_module_filepath_escape(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/filepath"
+    t |> run("%/ require with .. cannot escape get_das_root") @(t : T?) {
+        t |> success(expect_compile_failure_default(base, "main_escape.das"))
+    }
+}

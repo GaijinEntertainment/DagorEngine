@@ -182,7 +182,7 @@ protected:
   void notifyBufferMemoryAllocate(size_t sz, bool /*kick_off_shuffle*/);
 
   BufferGlobalId tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
-    BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags);
+    BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size);
 
   // Checks if the buffer is actually needed and if not it will be deleted immediately
   bool freeBufferHeapIfUnused(BufferGlobalId buffer_id, BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess,

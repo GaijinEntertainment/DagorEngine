@@ -149,6 +149,9 @@ void Visualizer::draw()
   if (ImGui::IsWindowCollapsed() || !layoutReady)
     return;
 
+  if (updateNeeded)
+    updateVisualization();
+
   focusedNode.wasChanged = false;
   focusedResource.wasChanged = false;
   searchBoxHovered = !ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByPopup);
@@ -172,11 +175,12 @@ void Visualizer::drawUI()
 {
   // first line
   {
-    if (ImGuiDagor::ComboWithFilter("Node Search", nodeNames, focusedNodeIndex, nodeSearchInput, false, true, "Search for node...") &&
+    if (ImGuiDagor::ComboWithFilter("User Node Search", nsNodeNames, focusedNodeIndex, nodeSearchInput, false, true,
+          "Search for node...") &&
         focusedNodeIndex != UNKNOWN_INDEX)
     {
       resetFocusedResource();
-      setFocusedNode(nodeIds[focusedNodeIndex]);
+      setFocusedNode(regNodesRepresent[nsNodeNameIds[focusedNodeIndex]]);
     }
     searchBoxHovered = searchBoxHovered || ImGui::IsItemHovered();
     ImGui::SameLine();
@@ -184,12 +188,12 @@ void Visualizer::drawUI()
       resetFocusedNode();
 
     ImGui::SameLine();
-    if (treeWithFilter("FG Managed Resource Search", resNames, focusedResourceIndex, resourceSearchInput, true,
+    if (treeWithFilter("FG Managed Resource Search", nsResNames, focusedResourceIndex, resourceSearchInput, true,
           "Search for resource...") &&
         focusedResourceIndex != UNKNOWN_INDEX)
     {
       resetFocusedNode();
-      setFocusedResource(resIds[focusedResourceIndex]);
+      setFocusedResource(regResRepresent[nsResNameIds[focusedResourceIndex]]);
     }
     searchBoxHovered = searchBoxHovered || ImGui::IsItemHovered();
     ImGui::SameLine();
@@ -287,8 +291,8 @@ void Visualizer::drawCanvas()
     for (uint32_t nodeBoxIndex = 0; nodeBoxIndex < nodeBoxes.size(); ++nodeBoxIndex)
       drawNodeBox(drawList, NodeBoxId(nodeBoxIndex), layoutOffset + condensedLayout.objectsOffsets[nodeBoxIndex]);
   else
-    for (uint32_t userNodeIndex = 0; userNodeIndex < registry.nodes.size(); ++userNodeIndex)
-      drawNode(drawList, NodeNameId(userNodeIndex), layoutOffset + wholeGraphLayout.objectsOffsets[userNodeIndex],
+    for (uint32_t userNodeIndex = 0; userNodeIndex < userNodes.size(); ++userNodeIndex)
+      drawNode(drawList, NodeId(userNodeIndex), layoutOffset + wholeGraphLayout.objectsOffsets[userNodeIndex],
         wholeGraphLayout.objectsSizes[userNodeIndex]);
 
   drawEdges(drawList, layoutToUse, layoutOffset);
@@ -296,6 +300,7 @@ void Visualizer::drawCanvas()
   for (const auto depId : disabledDependencies)
   {
     const auto &dep = registryDependencies[depId];
+    const auto resNameId = nameIdByResId(dep.resource);
     ImVec2 fromOffset = layoutOffset;
     ImVec2 toOffset = layoutOffset;
     ImVec2 fromSize = {};
@@ -352,7 +357,7 @@ void Visualizer::drawCanvas()
         (!focusedResource.valid() || (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
           (focusedResource.valid() && focusedResource.id == dep.resource) ||
           (focusedResource.valid() && focusedResource.id != dep.resource && isVisibleRename(dep.resource))))
-      tooltipMessage.aprintf(0, "disabled: %s\n", getName(dep.resource));
+      tooltipMessage.aprintf(0, "disabled: %s\n", getName(resNameId));
   }
 
   {
@@ -361,68 +366,73 @@ void Visualizer::drawCanvas()
     {
       drawList->ChannelsSetCurrent(CanvasChannels::EDGES);
 
-      for (const auto depId : historyDependencies)
+      for (const auto &node : userNodes)
       {
-        const auto &dep = registryDependencies[depId];
-        ImVec2 fromOffset = layoutOffset;
-        ImVec2 toOffset = layoutOffset;
-        ImVec2 fromSize = {};
-        ImVec2 toSize = {};
 
-        if (hierarchicalView)
+        for (const auto depId : node.outHistDeps)
         {
-          const auto fromBoxId = nodesNodeBox[dep.from];
-          const auto toBoxId = nodesNodeBox[dep.to];
-          fromOffset += condensedLayout.objectsOffsets[NodeIdx(fromBoxId)];
-          toOffset += condensedLayout.objectsOffsets[NodeIdx(toBoxId)];
+          const auto &dep = registryDependencies[depId];
+          const auto resNameId = nameIdByResId(dep.resource);
+          ImVec2 fromOffset = layoutOffset;
+          ImVec2 toOffset = layoutOffset;
+          ImVec2 fromSize = {};
+          ImVec2 toSize = {};
 
-          for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[fromBoxId].nodes.size(); ++nodeIndex)
-            if (nodeBoxes[fromBoxId].nodes[nodeIndex] == dep.from)
-            {
-              fromOffset += nodeBoxesLayouts[fromBoxId].objectsOffsets[nodeIndex];
-              fromSize = nodeBoxesLayouts[fromBoxId].objectsSizes[nodeIndex];
-              break;
-            }
+          if (hierarchicalView)
+          {
+            const auto fromBoxId = nodesNodeBox[dep.from];
+            const auto toBoxId = nodesNodeBox[dep.to];
+            fromOffset += condensedLayout.objectsOffsets[NodeIdx(fromBoxId)];
+            toOffset += condensedLayout.objectsOffsets[NodeIdx(toBoxId)];
 
-          for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[toBoxId].nodes.size(); ++nodeIndex)
-            if (nodeBoxes[toBoxId].nodes[nodeIndex] == dep.to)
-            {
-              toOffset += nodeBoxesLayouts[toBoxId].objectsOffsets[nodeIndex];
-              toSize = nodeBoxesLayouts[toBoxId].objectsSizes[nodeIndex];
-              break;
-            }
+            for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[fromBoxId].nodes.size(); ++nodeIndex)
+              if (nodeBoxes[fromBoxId].nodes[nodeIndex] == dep.from)
+              {
+                fromOffset += nodeBoxesLayouts[fromBoxId].objectsOffsets[nodeIndex];
+                fromSize = nodeBoxesLayouts[fromBoxId].objectsSizes[nodeIndex];
+                break;
+              }
+
+            for (uint32_t nodeIndex = 0; nodeIndex < nodeBoxes[toBoxId].nodes.size(); ++nodeIndex)
+              if (nodeBoxes[toBoxId].nodes[nodeIndex] == dep.to)
+              {
+                toOffset += nodeBoxesLayouts[toBoxId].objectsOffsets[nodeIndex];
+                toSize = nodeBoxesLayouts[toBoxId].objectsSizes[nodeIndex];
+                break;
+              }
+          }
+          else
+          {
+            fromOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.from)];
+            toOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.to)];
+            fromSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.from)];
+            toSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.to)];
+          }
+          const ImVec2 leftAnchor = toOffset + ImVec2{0.f, toSize.y};
+          const ImVec2 rightAnchor = fromOffset + ImVec2{fromSize.x, fromSize.y};
+
+          const float dx = HISTORY_WAVE_LEN / 3.f;
+          const ImCubicBezierPoints leftLine = {leftAnchor, leftAnchor - ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
+            leftAnchor - ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, leftAnchor - ImVec2{3.f * dx, 0.f}};
+          const ImCubicBezierPoints rightLine = {rightAnchor, rightAnchor + ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
+            rightAnchor + ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, rightAnchor + ImVec2{3.f * dx, 0.f}};
+
+
+          drawList->AddBezierCubic(leftLine.P0, leftLine.P1, leftLine.P2, leftLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
+          drawList->AddBezierCubic(rightLine.P0, rightLine.P1, rightLine.P2, rightLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
+
+          const auto leftHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, leftLine);
+          const auto rightHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, rightLine);
+          const bool resVisible = !focusedResource.valid() ||
+                                  (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
+                                  (focusedResource.valid() && focusedResource.id == dep.resource) ||
+                                  (focusedResource.valid() && focusedResource.id != dep.resource && isVisibleRename(dep.resource));
+
+          if (resVisible && leftHit.Distance < HISTORY_DEP_WIDTH)
+            tooltipMessage.aprintf(0, "history of: %s\n", getName(resNameId));
+          if (resVisible && rightHit.Distance < HISTORY_DEP_WIDTH)
+            tooltipMessage.aprintf(0, "to next frame: %s\n", getName(resNameId));
         }
-        else
-        {
-          fromOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.from)];
-          toOffset += wholeGraphLayout.objectsOffsets[NodeIdx(dep.to)];
-          fromSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.from)];
-          toSize = wholeGraphLayout.objectsSizes[NodeIdx(dep.to)];
-        }
-        const ImVec2 leftAnchor = toOffset + ImVec2{0.f, toSize.y};
-        const ImVec2 rightAnchor = fromOffset + ImVec2{fromSize.x, fromSize.y};
-
-        const float dx = HISTORY_WAVE_LEN / 3.f;
-        const ImCubicBezierPoints leftLine = {leftAnchor, leftAnchor - ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
-          leftAnchor - ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, leftAnchor - ImVec2{3.f * dx, 0.f}};
-        const ImCubicBezierPoints rightLine = {rightAnchor, rightAnchor + ImVec2{1.f * dx, HISTORY_WAVE_HEIGHT},
-          rightAnchor + ImVec2{2.f * dx, -HISTORY_WAVE_HEIGHT}, rightAnchor + ImVec2{3.f * dx, 0.f}};
-
-
-        drawList->AddBezierCubic(leftLine.P0, leftLine.P1, leftLine.P2, leftLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
-        drawList->AddBezierCubic(rightLine.P0, rightLine.P1, rightLine.P2, rightLine.P3, typeInfo.imguiColor, HISTORY_DEP_WIDTH);
-
-        const auto leftHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, leftLine);
-        const auto rightHit = ImProjectOnCubicBezier(ImGui::GetIO().MousePos, rightLine);
-        const bool resVisible = !focusedResource.valid() ||
-                                (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
-                                (focusedResource.valid() && focusedResource.id == dep.resource) ||
-                                (focusedResource.valid() && focusedResource.id != dep.resource && isVisibleRename(dep.resource));
-
-        if (resVisible && leftHit.Distance < HISTORY_DEP_WIDTH)
-          tooltipMessage.aprintf(0, "history of: %s\n", getName(dep.resource));
-        if (resVisible && rightHit.Distance < HISTORY_DEP_WIDTH)
-          tooltipMessage.aprintf(0, "to next frame: %s\n", getName(dep.resource));
       }
     }
   }
@@ -436,7 +446,7 @@ void Visualizer::drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id,
 {
   const auto &box = nodeBoxes[node_box_id];
   const auto &boxLayout = nodeBoxesLayouts[node_box_id];
-  const auto nameSpaceId = nodeBoxesNameSpace[node_box_id];
+  const auto nameSpaceId = box.nameSpace;
 
   if (nameSpaceId != registry.knownNames.root())
   {
@@ -462,7 +472,7 @@ void Visualizer::drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id,
     const ImVec2 nameBoxTextStart = nameBoxLeftTopPos + NAMESPACE_NAMETAG_PADDING;
 
     draw_list->AddRectFilled(nameBoxLeftTopPos, nameBoxRightBottomPos, nameSpaceBorderColor, 4.0f);
-    ImGui::SetCursorPos(nameBoxTextStart);
+    ImGui::SetCursorScreenPos(nameBoxTextStart);
     ImGui::TextUnformatted(nameSpaceName);
   }
 
@@ -473,10 +483,12 @@ void Visualizer::drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id,
   drawEdges(draw_list, boxLayout, offset);
 }
 
-void Visualizer::drawNode(ImDrawList *draw_list, const NodeNameId node_id, const ImVec2 node_offset, const ImVec2 node_size)
+void Visualizer::drawNode(ImDrawList *draw_list, const NodeId node_id, const ImVec2 node_offset, const ImVec2 node_size)
 {
-  const auto nodeName = getName(node_id);
-  auto &nodeData = registry.nodes[node_id];
+  const auto &node = userNodes[node_id];
+  const auto nodeNameId = node.regId;
+  const auto nodeName = getName(nodeNameId);
+  auto &nodeData = registry.nodes[nodeNameId];
 
   // draw node rectangle and borders
   {
@@ -494,7 +506,7 @@ void Visualizer::drawNode(ImDrawList *draw_list, const NodeNameId node_id, const
     {
       resetFocusedResource();
       setFocusedNode(node_id);
-      focusedNodeIndex = eastl::find(nodeIds.begin(), nodeIds.end(), node_id) - nodeIds.begin();
+      focusedNodeIndex = eastl::find(nsNodeNameIds.begin(), nsNodeNameIds.end(), nodeNameId) - nsNodeNameIds.begin();
       nodeSearchInput = nodeName;
     }
 
@@ -539,16 +551,16 @@ void Visualizer::drawNode(ImDrawList *draw_list, const NodeNameId node_id, const
       }
       case ColorationType::Pass:
       {
-        nodeFillColor = color_by_hash(static_cast<size_t>(passColors[node_id]));
+        nodeFillColor = color_by_hash(static_cast<size_t>(node.passColor));
 
         if (nodeBoxHovered)
-          tooltipMessage.aprintf(0, "Pass color: %d\n", eastl::to_underlying(passColors[node_id]));
+          tooltipMessage.aprintf(0, "Pass color: %d\n", eastl::to_underlying(node.passColor));
 
         break;
       }
     }
 
-    if (nodesCycled[node_id])
+    if (node.cycled)
       draw_list->AddRect(leftTopPos - ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH},
         rightBottomPos + ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH}, CYCLED_DEP_COLOR, 4.0f, 0, DISABLED_DEP_WIDTH);
     draw_list->AddRectFilled(leftTopPos, rightBottomPos, nodeFillColor, 4.0f);
@@ -611,9 +623,9 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
     // get list of explicit dependencies witout resources and list of unique resources
     // and calcutale line widths
     dag::Vector<DependencyId, framemem_allocator> explicitDeps;
-    dag::VectorSet<ResNameId, eastl::less<ResNameId>, framemem_allocator> carriedResources;
-    IdIndexedMapping<ResNameId, DependencyType, framemem_allocator> dependencyTypes;
-    IdIndexedFlags<ResNameId, framemem_allocator> reIsCycled;
+    dag::VectorSet<ResourceId, eastl::less<ResourceId>, framemem_allocator> carriedResources;
+    IdIndexedMapping<ResourceId, DependencyType, framemem_allocator> dependencyTypes;
+    IdIndexedFlags<ResourceId, framemem_allocator> reIsCycled;
     explicitDeps.reserve(edge.carriedDeps.size());
     carriedResources.reserve(edge.carriedDeps.size());
     dependencyTypes.resize(registry.resources.size());
@@ -621,7 +633,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
     for (const auto depId : edge.carriedDeps)
     {
       const auto &dependency = registryDependencies[depId];
-      if (dependency.resource == ResNameId::Invalid)
+      if (dependency.resource == ResourceId::Invalid)
       {
         explicitDeps.push_back(depId);
       }
@@ -702,12 +714,13 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const Layout &layout, const Im
           for (const auto resId : carriedResources)
           {
             const auto depType = dependencyTypes[resId];
+            const auto resNameId = nameIdByResId(resId);
             const auto &[_, depColor, depVisible] = dependency_info_by_type(depType);
             if (
               depVisible && (!focusedResource.valid() || (focusedResource.valid() && focusedResource.type == ResourceFocusType::All) ||
                               (focusedResource.valid() && focusedResource.id == resId) ||
                               (focusedResource.valid() && focusedResource.id != resId && isVisibleRename(resId))))
-              tooltipMessage.aprintf(0, "%s\n", getName(resId));
+              tooltipMessage.aprintf(0, "%s\n", getName(resNameId));
           }
 
           if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -741,12 +754,13 @@ void Visualizer::processPopup()
       for (const auto depId : edgePtr->carriedDeps)
       {
         const auto &dep = registryDependencies[depId];
-        if (dep.resource != ResNameId::Invalid)
+        if (dep.resource != ResourceId::Invalid)
         {
-          auto label = getName(dep.resource).data();
+          const auto resNameId = nameIdByResId(dep.resource);
+          auto label = getName(resNameId).data();
           if (ImGui::Selectable(label))
           {
-            selectedResId = dep.resource;
+            selectedResId = resNameId;
             selectedEdge = edgePtr;
 
             resetFocusedNode();
@@ -826,9 +840,10 @@ void Visualizer::processTextureDebug()
       for (const auto depId : selectedEdge->carriedDeps)
       {
         const auto &dep = registryDependencies[depId];
-        if (dep.resource == selectedResId)
+        const auto resNameId = nameIdByResId(dep.resource);
+        if (resNameId == selectedResId)
         {
-          resSelection = Selection{PreciseTimePoint{dep.from, dep.to}, selectedResId};
+          resSelection = Selection{PreciseTimePoint{userNodes[dep.from].regId, userNodes[dep.to].regId}, selectedResId};
           break;
         }
       }
@@ -874,15 +889,15 @@ void Visualizer::showResourcesInNameSpace(NameSpaceNameId namespace_id)
 }
 
 
-void Visualizer::setFocusedNode(NodeNameId node_id)
+void Visualizer::setFocusedNode(NodeId node_id)
 {
   focusedNode = {
-    .id = node_id,
-    .wasChanged = true,
+    node_id,
+    true,
   };
 }
 
-void Visualizer::setFocusedResource(ResNameId res_id, ResourceFocusType focus_type)
+void Visualizer::setFocusedResource(ResourceId res_id, ResourceFocusType focus_type)
 {
   focusedResource = {
     res_id,
@@ -892,19 +907,23 @@ void Visualizer::setFocusedResource(ResNameId res_id, ResourceFocusType focus_ty
   };
 
   if (focusedResource.valid())
-    for (const auto &[from, to] : depData.renamingChains.enumerate())
-    {
-      focusedResource.hasRenames =
-        (from != focusedResource.id && to == focusedResource.id) || (from == focusedResource.id && to != focusedResource.id);
-      if (focusedResource.hasRenames)
+  {
+    const auto focusedResNameId = nameIdByResId(focusedResource.id);
+    for (const auto [from, to] : depData.renamingChains.enumerate())
+      if ((from != focusedResNameId && to == focusedResNameId) || (from == focusedResNameId && to != focusedResNameId))
+      {
+        focusedResource.hasRenames = true;
         return;
-    }
+      }
+  }
 }
 
 
 void Visualizer::updateVisualization()
 {
   TIME_PROFILE(update_usergraph_visualization);
+
+  updateNeeded = true;
 
   if (!imgui_window_is_visible(nullptr, IMGUI_USG_WIN_NAME) || imgui_window_is_collapsed(nullptr, IMGUI_USG_WIN_NAME))
     return;
@@ -913,6 +932,7 @@ void Visualizer::updateVisualization()
   selectedEdge = nullptr;
   layoutReady = false;
 
+  updateNodesRess();
   updateIRInfo();
   updateNameSpaces();
   updateDependencies();
@@ -927,25 +947,48 @@ void Visualizer::updateVisualization()
 
 
   update_external_texture_visualization(registry, depData);
+
+  updateNeeded = false;
+}
+
+
+void Visualizer::updateNodesRess()
+{
+  TIME_PROFILE(update_nodes_resources);
+
+  const uint32_t totalNodeCount = registry.nodes.size();
+  const uint32_t totalResourceCount = registry.resources.size();
+
+  userNodes.clear();
+  userResources.clear();
+  regNodesRepresent.clear();
+  regResRepresent.clear();
+
+  userNodes.reserve(totalNodeCount);
+  userResources.reserve(totalResourceCount);
+  regNodesRepresent.resize(totalNodeCount, NodeId::Invalid);
+  regResRepresent.resize(totalResourceCount, ResourceId::Invalid);
+
+  for (const auto nodeNameId : registry.nodes.keys())
+    if (!getName(nodeNameId).starts_with("/.debug"))
+      regNodesRepresent[nodeNameId] = userNodes.appendNew(Node{nodeNameId}).first;
+
+  for (const auto resNameId : registry.resources.keys())
+    if (!getName(resNameId).starts_with("/.debug"))
+      regResRepresent[resNameId] = userResources.appendNew(Resource{resNameId}).first;
 }
 
 void Visualizer::updateIRInfo()
 {
   TIME_PROFILE(update_ir_info);
 
-  passColors.clear();
-  passColors.resize(registry.nodes.size(), UNKNOWN_PASS_COLOR);
-  executionTime.clear();
-  executionTime.resize(registry.nodes.size(), CULLED_OUT_NODE);
-
-
   uint32_t currExecTime = 0;
-  for (auto [idx, irNode] : intermediateGraph.nodes.enumerate())
-    if (irNode.multiplexingIndex == 0 && irNode.frontendNode)
+  for (auto [irIndex, irNode] : intermediateGraph.nodes.enumerate())
+    if (irNode.multiplexingIndex == 0 && irNode.frontendNode && nodeIsPresented(*irNode.frontendNode))
     {
-      const auto nodeNameId = *irNode.frontendNode;
-      passColors[nodeNameId] = intermediatePassColoring[idx];
-      executionTime[nodeNameId] = currExecTime;
+      auto &node = userNodes[regNodesRepresent[*irNode.frontendNode]];
+      node.passColor = intermediatePassColoring[irIndex];
+      node.executionTime = currExecTime;
       ++currExecTime;
     }
 }
@@ -955,74 +998,61 @@ void Visualizer::updateNameSpaces()
   TIME_PROFILE(update_name_spaces);
 
   nameSpaces.clear();
-  nameSpaces.reserve(registry.knownNames.nameCount<NameSpaceNameId>());
+  nsNodeNameIds.clear();
+  nsResNameIds.clear();
 
-  nodeIds.clear();
-  resIds.clear();
-  hiddenResources.clear();
+  nameSpaces.resize(registry.knownNames.nameCount<NameSpaceNameId>(), {});
+  nsNodeNameIds.reserve(userNodes.size());
+  nsResNameIds.reserve(userResources.size());
 
-  nodeIds.reserve(registry.nodes.size());
-  resIds.reserve(registry.resources.size());
-  hiddenResources.resize(registry.resources.size(), false);
-
-  nodeNames.clear();
-  resNames.clear();
-
-
-  // populate name spaces map
-  {
-    auto insertNS = [&](const NameSpaceNameId namespace_id) { nameSpaces.set(namespace_id, {}); };
-    insertNS(registry.knownNames.root());
-    registry.knownNames.iterateSubTree<NameSpaceNameId>(registry.knownNames.root(), insertNS);
-  }
 
   // collect sub namespaces
-  for (const auto namespaceId : nameSpaces.keys())
-    if (namespaceId != registry.knownNames.root())
-      nameSpaces[registry.knownNames.getParent(namespaceId)].subNameSpaces.push_back(namespaceId);
+  for (const auto nameSpaceId : nameSpaces.keys())
+    if (nameSpaceId != registry.knownNames.root())
+      nameSpaces[getParent(nameSpaceId)].subNameSpaces.push_back(nameSpaceId);
 
   // collect nodes and resources ids
-  for (const auto nodeId : registry.nodes.keys())
-    nameSpaces[registry.knownNames.getParent(nodeId)].nodes.push_back(nodeId);
-  for (const auto resId : registry.resources.keys())
-    nameSpaces[registry.knownNames.getParent(resId)].resources.push_back(resId);
+  for (const auto &node : userNodes)
+    nameSpaces[getParent(node.regId)].nodes.push_back(node.regId);
+  for (const auto &resource : userResources)
+    nameSpaces[getParent(resource.regId)].resources.push_back(resource.regId);
 
   // calculate contents
   {
-    auto nameComparator = [&names = registry.knownNames](const auto &fst, const auto &snd) {
-      return eastl::string_view(names.getShortName(fst)) < eastl::string_view(names.getShortName(snd));
-    };
+    const auto nameComparator = [&](const auto first, const auto second) { return getShortName(first) < getShortName(second); };
 
-    dag::FixedMoveOnlyFunction<24, void(const NameSpaceNameId)> processTree = [&](const NameSpaceNameId name_space_id) {
-      NameSpace &currNameSpace = nameSpaces[name_space_id];
-      currNameSpace.totalNodesInSubtree = currNameSpace.nodes.size();
-      currNameSpace.totalResourcesInSubtree = currNameSpace.resources.size();
+    dag::FixedMoveOnlyFunction<24, void(const NameSpaceNameId)> calculateContents = [&](const NameSpaceNameId name_space_id) {
+      NameSpace &nameSpace = nameSpaces[name_space_id];
+      nameSpace.totalNodesInSubtree = nameSpace.nodes.size();
+      nameSpace.totalResourcesInSubtree = nameSpace.resources.size();
 
-      stlsort::sort(currNameSpace.subNameSpaces.begin(), currNameSpace.subNameSpaces.end(), nameComparator);
-      stlsort::sort(currNameSpace.nodes.begin(), currNameSpace.nodes.end(), nameComparator);
-      stlsort::sort(currNameSpace.resources.begin(), currNameSpace.resources.end(), nameComparator);
+      stlsort::sort(nameSpace.subNameSpaces.begin(), nameSpace.subNameSpaces.end(), nameComparator);
+      stlsort::sort(nameSpace.nodes.begin(), nameSpace.nodes.end(), nameComparator);
+      stlsort::sort(nameSpace.resources.begin(), nameSpace.resources.end(), nameComparator);
 
-      for (const auto &subNameSpaceId : currNameSpace.subNameSpaces)
+      for (const auto &subNameSpaceId : nameSpace.subNameSpaces)
       {
-        processTree(subNameSpaceId);
+        calculateContents(subNameSpaceId);
 
         const NameSpace &subNameSpace = nameSpaces[subNameSpaceId];
-        currNameSpace.totalNodesInSubtree += subNameSpace.totalNodesInSubtree;
-        currNameSpace.totalResourcesInSubtree += subNameSpace.totalResourcesInSubtree;
+        nameSpace.totalNodesInSubtree += subNameSpace.totalNodesInSubtree;
+        nameSpace.totalResourcesInSubtree += subNameSpace.totalResourcesInSubtree;
       }
 
-      currNameSpace.visibleResourcesInSubtree = currNameSpace.totalResourcesInSubtree;
+      nameSpace.visibleResourcesInSubtree = nameSpace.totalResourcesInSubtree;
 
-      nodeIds.insert(nodeIds.end(), currNameSpace.nodes.begin(), currNameSpace.nodes.end());
-      resIds.insert(resIds.end(), currNameSpace.resources.begin(), currNameSpace.resources.end());
+      nsNodeNameIds.insert(nsNodeNameIds.end(), nameSpace.nodes.begin(), nameSpace.nodes.end());
+      nsResNameIds.insert(nsResNameIds.end(), nameSpace.resources.begin(), nameSpace.resources.end());
     };
 
-    processTree(registry.knownNames.root());
+    calculateContents(registry.knownNames.root());
   }
 
   // get names
-  nodeNames = gatherNames<NodeNameId>(nodeIds);
-  resNames = gatherNames<ResNameId>(resIds);
+  nsNodeNames.clear();
+  nsResNames.clear();
+  nsNodeNames = gatherNames<NodeNameId>(nsNodeNameIds);
+  nsResNames = gatherNames<ResNameId>(nsResNameIds);
 }
 
 void Visualizer::updateDependencies()
@@ -1031,24 +1061,39 @@ void Visualizer::updateDependencies()
 
   registryDependencies.clear();
 
+  auto addDependency = [&](const NodeId from, const NodeId to, const DependencyType dep_type,
+                         const ResourceId res = ResourceId::Invalid) {
+    const auto depId = registryDependencies.appendNew(Dependency{dep_type, from, to, res}).first;
+    userNodes[from].outDeps.push_back(depId);
+    userNodes[to].inDeps.push_back(depId);
+  };
 
-  // firstly, we will get all the dependencies, stated in InternalRegistry
-  auto addDependency = [&](const NodeNameId from, const NodeNameId to, const DependencyType dep,
-                         const ResNameId res = ResNameId::Invalid) { registryDependencies.appendNew(Dependency{dep, from, to, res}); };
+  auto addHistoryRead = [&](const NodeId from, const NodeId to, const ResourceId res) {
+    const auto depId = registryDependencies.appendNew(Dependency{DependencyType::IMPLICIT_RES_HIST, from, to, res}).first;
+    userNodes[from].outHistDeps.push_back(depId);
+    userNodes[to].inHistDeps.push_back(depId);
+  };
+
 
   // filling explicit dependencies
-  for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+  for (auto [nodeId, node] : userNodes.enumerate())
   {
-    for (const NodeNameId prevId : nodeData.precedingNodeIds)
-      addDependency(prevId, nodeId, DependencyType::EXPLICIT_PREVIOUS);
+    const auto &nodeData = registry.nodes[node.regId];
 
-    for (const NodeNameId nextId : nodeData.followingNodeIds)
-      addDependency(nodeId, nextId, DependencyType::EXPLICIT_FOLLOW);
+    for (const auto prevNameId : nodeData.precedingNodeIds)
+      if (nodeIsPresented(prevNameId))
+        addDependency(regNodesRepresent[prevNameId], nodeId, DependencyType::EXPLICIT_PREVIOUS);
+
+    for (const auto nextNameId : nodeData.followingNodeIds)
+      if (nodeIsPresented(nextNameId))
+        addDependency(nodeId, regNodesRepresent[nextNameId], DependencyType::EXPLICIT_FOLLOW);
   }
 
   // filling resource dependencies
-  for (auto [resId, lifetime] : depData.resourceLifetimes.enumerate())
+  for (auto [resourceId, resource] : userResources.enumerate())
   {
+    const auto &lifetime = depData.resourceLifetimes[resource.regId];
+
     /*
     consumer is dependent on every reader
     if there are no readers, consumer is dependent on last modifier
@@ -1091,50 +1136,63 @@ void Visualizer::updateDependencies()
     // clang-format on
     */
 
-    const NodeNameId introducerId = lifetime.introducedBy;
-    const NodeNameId consumerId = lifetime.consumedBy;
-    NodeNameId readSourceId = introducerId;
+    NodeId introducerId = lifetime.introducedBy != NodeNameId::Invalid ? regNodesRepresent[lifetime.introducedBy] : NodeId::Invalid;
+    NodeId consumerId = lifetime.consumedBy != NodeNameId::Invalid ? regNodesRepresent[lifetime.consumedBy] : NodeId::Invalid;
+    NodeId readSourceId = introducerId;
 
-    const bool resHasIntroducer = introducerId != NodeNameId::Invalid;
-    const bool resHasModifiers = !lifetime.modificationChain.empty();
-    const bool resHasReaders = !lifetime.readers.empty();
-    const bool resHasConsumer = consumerId != NodeNameId::Invalid;
+    dag::Vector<NodeId, framemem_allocator> modifiers;
+    for (const auto modifierNameId : lifetime.modificationChain)
+      if (nodeIsPresented(modifierNameId))
+        modifiers.push_back(regNodesRepresent[modifierNameId]);
+
+    dag::Vector<NodeId, framemem_allocator> readers;
+    for (const auto readerNameId : lifetime.readers)
+      if (nodeIsPresented(readerNameId))
+        readers.push_back(regNodesRepresent[readerNameId]);
+
+    const bool resHasIntroducer = introducerId != NodeId::Invalid;
+    const bool resHasModifiers = !modifiers.empty();
+    const bool resHasReaders = !readers.empty();
+    const bool resHasConsumer = consumerId != NodeId::Invalid;
 
     if (resHasModifiers)
     {
       // we sort modifiers as we can
       // nodes, which were used in intermediate graph, will go first in execution order
       // all other nodes will be considered culled away and will go in random order after exucutable nodes
-      dag::Vector<NodeNameId, framemem_allocator> modifiersOrder(lifetime.modificationChain.begin(), lifetime.modificationChain.end());
+      dag::Vector<NodeId, framemem_allocator> modifiersOrder(modifiers.begin(), modifiers.end());
       eastl::sort(modifiersOrder.begin(), modifiersOrder.end(),
-        [&](const NodeNameId first, const NodeNameId second) { return executionTime[first] < executionTime[second]; });
+        [&](const NodeId first, const NodeId second) { return userNodes[first].executionTime < userNodes[second].executionTime; });
 
       if (resHasIntroducer)
-        addDependency(introducerId, modifiersOrder.front(), DependencyType::IMPLICIT_RES_MODIFY, resId);
+        addDependency(introducerId, modifiersOrder.front(), DependencyType::IMPLICIT_RES_MODIFY, resourceId);
 
       for (uint32_t modifierIdx = 1; modifierIdx < modifiersOrder.size(); ++modifierIdx)
-        addDependency(modifiersOrder[modifierIdx - 1], modifiersOrder[modifierIdx], DependencyType::IMPLICIT_RES_MODIFY, resId);
+        addDependency(modifiersOrder[modifierIdx - 1], modifiersOrder[modifierIdx], DependencyType::IMPLICIT_RES_MODIFY, resourceId);
 
       readSourceId = modifiersOrder.back();
     }
 
-    const bool readSourceValid = readSourceId != NodeNameId::Invalid;
+    const bool readSourceValid = readSourceId != NodeId::Invalid;
 
-    for (const auto readerId : lifetime.readers)
-    {
-      if (readSourceValid)
-        addDependency(readSourceId, readerId, DependencyType::IMPLICIT_RES_READ, resId);
-      if (resHasConsumer)
-        addDependency(readerId, consumerId, DependencyType::IMPLICIT_RES_CONSUME, resId);
-    }
+    for (const auto readerNameId : lifetime.readers)
+      if (nodeIsPresented(readerNameId))
+      {
+        if (readSourceValid)
+          addDependency(readSourceId, regNodesRepresent[readerNameId], DependencyType::IMPLICIT_RES_READ, resourceId);
+        if (resHasConsumer)
+          addDependency(regNodesRepresent[readerNameId], consumerId, DependencyType::IMPLICIT_RES_CONSUME, resourceId);
+      }
     if (!resHasReaders && readSourceValid && resHasConsumer)
-      addDependency(readSourceId, consumerId, DependencyType::IMPLICIT_RES_CONSUME, resId);
+      addDependency(readSourceId, consumerId, DependencyType::IMPLICIT_RES_CONSUME, resourceId);
 
     if (!resHasConsumer && readSourceValid)
-      for (const auto readerId : lifetime.historyReaders)
-        addDependency(readSourceId, readerId, DependencyType::IMPLICIT_RES_HIST, resId);
+      for (const auto readerNameId : lifetime.historyReaders)
+        if (nodeIsPresented(readerNameId))
+          addHistoryRead(readSourceId, regNodesRepresent[readerNameId], resourceId);
   }
 }
+
 
 static dag::Vector<NodeIdx> get_reversed_topsort(const AdjacencyLists &graph)
 {
@@ -1167,11 +1225,10 @@ void Visualizer::checkCycles()
 {
   TIME_PROFILE(check_cycled_dependencies);
 
-
   // here we will perform Kosaraju's algorithm to find all strongly connected components (SCC)
-  const uint32_t nodesCount = registry.nodes.size();
+  const uint32_t nodesCount = userNodes.size();
   constexpr uint32_t NONE = static_cast<uint32_t>(-1);
-  IdIndexedMapping<NodeNameId, uint32_t> nodesSCC(nodesCount, NONE);
+  IdIndexedMapping<NodeId, uint32_t> nodesSCC(nodesCount, NONE);
 
   uint32_t currentSCC = 0;
   {
@@ -1195,7 +1252,7 @@ void Visualizer::checkCycles()
     leftOut.reserve(nodesCount);
 
     for (const auto nodeIndex : componentOrder)
-      if (nodesSCC[NodeNameId(nodeIndex)] == NONE)
+      if (nodesSCC[NodeId(nodeIndex)] == NONE)
       {
         visitStack.push_back(nodeIndex);
         while (!visitStack.empty())
@@ -1204,10 +1261,10 @@ void Visualizer::checkCycles()
           leftOut.push_back(0);
           visitStack.pop_back();
 
-          nodesSCC[NodeNameId(dfsStack.back())] = currentSCC;
+          nodesSCC[NodeId(dfsStack.back())] = currentSCC;
 
           for (const auto toNodeIndex : graphAdjLists[dfsStack.back()])
-            if (nodesSCC[NodeNameId(toNodeIndex)] == NONE)
+            if (nodesSCC[NodeId(toNodeIndex)] == NONE)
             {
               visitStack.push_back(toNodeIndex);
               ++leftOut.back();
@@ -1228,13 +1285,11 @@ void Visualizer::checkCycles()
 
 
   // if each node is not a separate SCC - then some of them form a cycle
-  nodesCycled.clear();
-  nodesCycled.resize(nodesCount, false);
   if (sccCount != nodesCount)
   {
     // if graph has cycles, we can care less about perf
     dag::Vector<uint32_t, framemem_allocator> sccSizes(sccCount, 0);
-    for (const auto nodeId : registry.nodes.keys())
+    for (const auto nodeId : userNodes.keys())
       ++sccSizes[nodesSCC[nodeId]];
 
     dag::Vector<uint32_t, framemem_allocator> sccWithLoopsIndices;
@@ -1242,11 +1297,11 @@ void Visualizer::checkCycles()
       if (sccSizes[sccIndex] > 1)
         sccWithLoopsIndices.push_back(sccIndex);
 
-    dag::Vector<dag::Vector<NodeNameId, framemem_allocator>, framemem_allocator> sccMembers;
+    dag::Vector<dag::Vector<NodeId, framemem_allocator>, framemem_allocator> sccMembers;
     sccMembers.resize(sccCount, {});
     for (uint32_t i = sccWithLoopsIndices.size(); i > 0; --i)
       sccMembers[sccWithLoopsIndices[i - 1]].reserve(sccSizes[sccWithLoopsIndices[i - 1]]);
-    for (const auto nodeId : registry.nodes.keys())
+    for (const auto nodeId : userNodes.keys())
       if (sccSizes[nodesSCC[nodeId]] > 1)
         sccMembers[nodesSCC[nodeId]].push_back(nodeId);
 
@@ -1266,7 +1321,7 @@ void Visualizer::checkCycles()
       const auto &sccNodes = sccMembers[sccIndex];
       const auto &sccDeps = sccDependencies[sccIndex];
 
-      IdIndexedMapping<NodeNameId, uint32_t, framemem_allocator> localIdx(nodesCount, NONE);
+      IdIndexedMapping<NodeId, uint32_t, framemem_allocator> localIdx(nodesCount, NONE);
       for (uint32_t i = 0; i < sccNodes.size(); ++i)
         localIdx[sccNodes[i]] = i;
 
@@ -1421,30 +1476,29 @@ void Visualizer::checkCycles()
       }
 
       for (const auto nodeId : sccNodes)
-        nodesCycled[nodeId] = true;
+        userNodes[nodeId].cycled = true;
       for (const auto depId : sccDeps)
         registryDependencies[depId].cycled = true;
     }
   }
 
 
-  // and finally, we make lists of dependencies per node
-  // we won't use disabled dependencies to keep graph acyclic
-  nodesDependencies.clear();
-  nodesDependencies.resize(registry.nodes.size(), {});
-  historyDependencies.clear();
+  // and finally, we recreate lists of dependencies per node,
+  // but we filter out disabled dependencies to keep graph acyclic
+  for (auto &node : userNodes)
+  {
+    node.inDeps.clear();
+    node.outDeps.clear();
+  }
   disabledDependencies.clear();
+
   for (auto [depId, dep] : registryDependencies.enumerate())
     if (!dep.disabled)
     {
       if (dep.type != DependencyType::IMPLICIT_RES_HIST)
       {
-        nodesDependencies[dep.from].out.push_back(depId);
-        nodesDependencies[dep.to].in.push_back(depId);
-      }
-      else
-      {
-        historyDependencies.push_back(depId);
+        userNodes[dep.from].outDeps.push_back(depId);
+        userNodes[dep.to].inDeps.push_back(depId);
       }
     }
     else
@@ -1455,15 +1509,9 @@ void Visualizer::checkCycles()
 
 void Visualizer::condenseGraph()
 {
-  TIME_PROFILE(condence_graph_nodes);
+  TIME_PROFILE(condense_graph_nodes);
 
   nodeBoxes.clear();
-  nodeBoxDependencies.clear();
-  nodesNodeBox.clear();
-  nodeBoxesNameSpace.clear();
-
-  nodesNodeBox.resize(registry.nodes.size(), NodeBoxId::Invalid);
-  nodeBoxesNameSpace.resize(registry.knownNames.nameCount<NameSpaceNameId>(), NameSpaceNameId::Invalid);
 
   IdIndexedMapping<NameSpaceNameId, dag::Vector<NodeBoxId, framemem_allocator>, framemem_allocator> nameSpacesNodeBoxes;
   nameSpacesNodeBoxes.resize(registry.knownNames.nameCount<NameSpaceNameId>(), {});
@@ -1473,10 +1521,7 @@ void Visualizer::condenseGraph()
   {
     dag::FixedMoveOnlyFunction<24, void(const NameSpaceNameId)> initNSBoxes = [&](const NameSpaceNameId namespace_id) {
       if (nameSpaces[namespace_id].nodes.size() != 0)
-      {
-        auto [newBoxId, newBox] = nodeBoxes.appendNew();
-        nameSpacesNodeBoxes[namespace_id].push_back(newBoxId);
-      }
+        nameSpacesNodeBoxes[namespace_id].push_back(nodeBoxes.appendNew(NodeBox{namespace_id}).first);
 
       for (const auto subNameSpaceId : nameSpaces[namespace_id].subNameSpaces)
         initNSBoxes(subNameSpaceId);
@@ -1488,27 +1533,32 @@ void Visualizer::condenseGraph()
   // algorithm is similar to pass coloration in PassColorer::performSubpassColoring()
   // but we dont check conflicts, caused by barriers, because we dont have them in user graph
   {
-    SimdBitMatrix<NodeBoxId, framemem_allocator> boxReachability(registry.nodes.size(), false);
+    const uint32_t userNodesCount = userNodes.size();
+
+    nodesNodeBox.clear();
+    nodesNodeBox.resize(userNodesCount, NodeBoxId::Invalid);
+
+    SimdBitMatrix<NodeBoxId, framemem_allocator> boxReachability(userNodesCount, false);
     dag::Vector<NodeIdx, framemem_allocator> topOrder;
     {
-      AdjacencyLists graphAdjLists(nodesDependencies.size());
-      for (auto [nodeId, nodeDependencies] : nodesDependencies.enumerate())
+      AdjacencyLists graphAdjLists(userNodesCount);
+      for (auto [nodeId, node] : userNodes.enumerate())
       {
         const auto nodeIdx = NodeIdx(nodeId);
-        graphAdjLists[nodeIdx].reserve(nodeDependencies.out.size());
-        for (const auto depId : nodeDependencies.out)
+        graphAdjLists[nodeIdx].reserve(node.outDeps.size());
+        for (const auto depId : node.outDeps)
           graphAdjLists[nodeIdx].push_back(NodeIdx(registryDependencies[depId].to));
       }
       topOrder = get_reversed_topsort(graphAdjLists);
-      eastl::reverse(topOrder.begin(), topOrder.end());
     }
-    for (const auto nodeIndex : topOrder)
+    for (const auto nodeIndex : dag::ReverseView{topOrder})
     {
-      const auto nodeId = NodeNameId(nodeIndex);
-      const auto namespaceId = registry.knownNames.getParent(nodeId);
-      const auto &nodePredecessors = nodesDependencies[nodeId].in;
+      const auto nodeId = NodeId(nodeIndex);
+      const auto &node = userNodes[nodeId];
+      const auto nameSpaceId = getParent(node.regId);
+      const auto &nodePredecessors = node.inDeps;
 
-      SimdBitVector<NodeBoxId, framemem_allocator> reachableFromCurrent(registry.nodes.size(), false);
+      SimdBitVector<NodeBoxId, framemem_allocator> reachableFromCurrent(userNodesCount, false);
       {
         dag::VectorSet<NodeBoxId, eastl::less<NodeBoxId>, framemem_allocator> predecessorBoxes;
         predecessorBoxes.reserve(nodePredecessors.size());
@@ -1518,16 +1568,16 @@ void Visualizer::condenseGraph()
           reachableFromCurrent |= boxReachability.row(boxId);
       }
 
-      const auto candidateBox =
-        !nameSpacesNodeBoxes[namespaceId].empty() ? nameSpacesNodeBoxes[namespaceId].back() : NodeBoxId::Invalid;
-      if (candidateBox != NodeBoxId::Invalid && !reachableFromCurrent.test(candidateBox))
+      const auto candidateBoxId =
+        !nameSpacesNodeBoxes[nameSpaceId].empty() ? nameSpacesNodeBoxes[nameSpaceId].back() : NodeBoxId::Invalid;
+      if (candidateBoxId != NodeBoxId::Invalid && !reachableFromCurrent.test(candidateBoxId))
       {
-        nodesNodeBox[nodeId] = candidateBox;
+        nodesNodeBox[nodeId] = candidateBoxId;
       }
       else
       {
-        auto [newBoxId, newBox] = nodeBoxes.appendNew();
-        nameSpacesNodeBoxes[namespaceId].push_back(newBoxId);
+        const auto newBoxId = nodeBoxes.appendNew(NodeBox{nameSpaceId}).first;
+        nameSpacesNodeBoxes[nameSpaceId].push_back(newBoxId);
         nodesNodeBox[nodeId] = newBoxId;
       }
 
@@ -1536,48 +1586,43 @@ void Visualizer::condenseGraph()
           reachableFromCurrent.set(nodesNodeBox[registryDependencies[depId].from], true);
       boxReachability.row(nodesNodeBox[nodeId]) |= reachableFromCurrent;
     }
+
+    for (const auto nodeId : userNodes.keys())
+      nodeBoxes[nodesNodeBox[nodeId]].nodes.push_back(nodeId);
   }
 
-  // now, when we separated all nodes by boxes, we can fill boxes witn its nodes
-  // and unite node dependencies into node box dependencies
-  {
-    nodeBoxesNameSpace.clear();
-    nodeBoxesNameSpace.resize(nodeBoxes.size());
-    for (auto [nameSpaceId, nameSpaceBoxes] : nameSpacesNodeBoxes.enumerate())
-      for (const auto boxId : nameSpaceBoxes)
-        nodeBoxesNameSpace[boxId] = nameSpaceId;
 
-    for (const auto nodeId : registry.nodes.keys())
-      nodeBoxes[nodesNodeBox[nodeId]].nodes.push_back(nodeId);
+  // now, when we separated all nodes by boxes, we can
+  // condense node dependencies into node box dependencies
+  {
+    const uint32_t nodeBoxesCount = nodeBoxes.size();
+
+    nodeBoxDependencies.clear();
 
     IdIndexedMapping<NodeBoxId, IdIndexedMapping<NodeBoxId, NodeBoxDependencyId, framemem_allocator>, framemem_allocator> boxDepMap;
-    boxDepMap.resize(nodeBoxes.size(), {});
+    boxDepMap.resize(nodeBoxesCount, {});
     for (auto &row : dag::ReverseView{boxDepMap})
-      row.resize(nodeBoxes.size(), NodeBoxDependencyId::Invalid);
+      row.resize(nodeBoxesCount, NodeBoxDependencyId::Invalid);
+
+    auto getBoxDependency = [&](const NodeBoxId from, const NodeBoxId to) -> NodeBoxDependency & {
+      NodeBoxDependencyId targetDependencyId = boxDepMap[from][to];
+      if (targetDependencyId == NodeBoxDependencyId::Invalid)
+      {
+        const auto newBoxDepId = nodeBoxDependencies.appendNew(NodeBoxDependency{from, to}).first;
+        nodeBoxes[from].outDeps.push_back(newBoxDepId);
+        nodeBoxes[to].inDeps.push_back(newBoxDepId);
+        boxDepMap[from][to] = newBoxDepId;
+        targetDependencyId = newBoxDepId;
+      }
+      return nodeBoxDependencies[targetDependencyId];
+    };
 
     for (auto [depId, dep] : registryDependencies.enumerate())
     {
       const auto fromNodeBoxId = nodesNodeBox[dep.from];
       const auto toNodeBoxId = nodesNodeBox[dep.to];
       if (fromNodeBoxId != toNodeBoxId)
-      {
-        NodeBoxDependencyId targetDependency = boxDepMap[fromNodeBoxId][toNodeBoxId];
-        if (targetDependency == NodeBoxDependencyId::Invalid)
-        {
-          auto [newBoxDepId, newBoxDep] = nodeBoxDependencies.appendNew();
-          boxDepMap[fromNodeBoxId][toNodeBoxId] = newBoxDepId;
-          targetDependency = newBoxDepId;
-          newBoxDep.from = fromNodeBoxId;
-          newBoxDep.to = toNodeBoxId;
-        }
-        nodeBoxDependencies[targetDependency].carriedDeps.push_back(depId);
-      }
-    }
-
-    for (auto [boxDepId, boxDep] : nodeBoxDependencies.enumerate())
-    {
-      nodeBoxes[boxDep.from].outDeps.push_back(boxDepId);
-      nodeBoxes[boxDep.to].inDeps.push_back(boxDepId);
+        getBoxDependency(fromNodeBoxId, toNodeBoxId).carriedDeps.push_back(depId);
     }
   }
 }
@@ -1588,17 +1633,16 @@ void Visualizer::performLayout()
 
   wholeGraphLayout = {};
 
-
-  const uint32_t userNodesCount = nodesDependencies.size();
+  const uint32_t userNodesCount = userNodes.size();
   if (userNodesCount > 0)
   {
     // we generate adjacency lists of graph and layout it
     AdjacencyLists graphAdjLists(userNodesCount);
-    for (auto [nodeId, nodeDependencies] : nodesDependencies.enumerate())
+    for (auto [nodeId, node] : userNodes.enumerate())
     {
       const auto nodeIdx = NodeIdx(nodeId);
-      graphAdjLists[nodeIdx].reserve(nodeDependencies.out.size());
-      for (const auto depId : nodeDependencies.out)
+      graphAdjLists[nodeIdx].reserve(node.outDeps.size());
+      for (const auto depId : node.outDeps)
         graphAdjLists[nodeIdx].push_back(NodeIdx(registryDependencies[depId].to));
     }
     auto layout = layouter->layout(graphAdjLists, get_reversed_topsort(graphAdjLists), true);
@@ -1624,15 +1668,15 @@ void Visualizer::performLayout()
         const auto [depSourceNodeIdx, depsIndicies] = layout.edgeMapping[curNodeIdx][curEdgeIdx];
         newEdge.carriedDeps.reserve(depsIndicies.size());
         for (uint32_t curDepInx : depsIndicies)
-          newEdge.carriedDeps.push_back(nodesDependencies[NodeNameId(depSourceNodeIdx)].out[curDepInx]);
+          newEdge.carriedDeps.push_back(userNodes[NodeId(depSourceNodeIdx)].outDeps[curDepInx]);
       }
     }
     wholeGraphLayout.edgesCount = wholeGraphLayout.edges.size();
   }
 
 
-  dag::Vector<NodeNameId, framemem_allocator> userNodeIds(nodesDependencies.keys().begin(), nodesDependencies.keys().end());
-  calculatePositions(wholeGraphLayout, userNodeIds, {}, false);
+  dag::Vector<NodeId, framemem_allocator> nodeIds(userNodes.keys().begin(), userNodes.keys().end());
+  calculatePositions(wholeGraphLayout, nodeIds, {}, false);
 }
 
 void Visualizer::performBoxLayout(const NodeBox &node_box, Layout &node_box_layout)
@@ -1653,8 +1697,8 @@ void Visualizer::performBoxLayout(const NodeBox &node_box, Layout &node_box_layo
     for (uint32_t nodeIndex = 0; nodeIndex < userNodesCount; ++nodeIndex)
     {
       const auto nodeId = node_box.nodes[nodeIndex];
-      boxAdjLists[nodeIndex].reserve(nodesDependencies[nodeId].out.size());
-      for (const auto depId : nodesDependencies[nodeId].out)
+      boxAdjLists[nodeIndex].reserve(userNodes[nodeId].outDeps.size());
+      for (const auto depId : userNodes[nodeId].outDeps)
         if (nodesNodeBox[nodeId] == nodesNodeBox[registryDependencies[depId].to])
         {
           for (uint32_t anotherNodeIndex = 0; anotherNodeIndex < userNodesCount; ++anotherNodeIndex)
@@ -1708,7 +1752,7 @@ void Visualizer::performBoxLayout(const NodeBox &node_box, Layout &node_box_layo
         }
         else
         {
-          const auto &sourceNodeOutDeps = nodesDependencies[node_box.nodes[depSourceObjectIdx]].out;
+          const auto &sourceNodeOutDeps = userNodes[node_box.nodes[depSourceObjectIdx]].outDeps;
           for (const auto depIndex : depsIndicies)
             newEdge.carriedDeps.push_back(sourceNodeOutDeps[depIndex]);
         }
@@ -1731,7 +1775,7 @@ void Visualizer::performCondensedLayout()
     auto &nodeBoxLayout = nodeBoxesLayouts[nodeBoxId];
     performBoxLayout(nodeBox, nodeBoxLayout);
 
-    dag::Vector<NodeNameId, framemem_allocator> boxNodeIds(nodeBox.nodes.begin(), nodeBox.nodes.end());
+    dag::Vector<NodeId, framemem_allocator> boxNodeIds(nodeBox.nodes.begin(), nodeBox.nodes.end());
     calculatePositions(nodeBoxLayout, boxNodeIds, {}, true);
   }
 
@@ -1794,7 +1838,7 @@ void Visualizer::performCondensedLayout()
   }
 }
 
-void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
+void Visualizer::calculatePositions(Layout &layout, const eastl::span<NodeId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
   const bool has_io)
 {
   TIME_PROFILE(calculate_positions);
@@ -2121,9 +2165,9 @@ void Visualizer::drawTree(const dafg::NameSpaceNameId &namespace_id, int &res_id
   ImGui::SetCursorPosX(button_offset);
   if (ImGui::Button(buttonLabel.data()))
   {
-    auto cit = resIds.begin() + counter;
+    auto cit = nsResNameIds.begin() + counter;
     for (uint16_t i = 0; i < totalResourcesInSubtree; ++i, ++cit)
-      hiddenResources[*cit] = !hiddenNameSpace;
+      userResources[regResRepresent[*cit]].hidden = !hiddenNameSpace;
     if (hiddenNameSpace)
       showResourcesInNameSpace(namespace_id);
     else
@@ -2149,7 +2193,7 @@ void Visualizer::drawTree(const dafg::NameSpaceNameId &namespace_id, int &res_id
   for (const auto &resData : nsContent.resources)
   {
     const bool isSelected = res_idx == counter;
-    const bool hidden = hiddenResources[resData];
+    const bool hidden = userResources[regResRepresent[resData]].hidden;
     if (isSelected && (ImGui::IsWindowAppearing() || info.selectionChanged))
       ImGui::SetScrollHereY();
     if (isSelected && info.arrowScroll)
@@ -2187,7 +2231,7 @@ void Visualizer::drawTree(const dafg::NameSpaceNameId &namespace_id, int &res_id
     ImGui::SetCursorPosX(button_offset);
     if (ImGui::Button(buttonLabel.data()))
     {
-      hiddenResources[resData] = !hiddenResources[resData];
+      userResources[regResRepresent[resData]].hidden = !userResources[regResRepresent[resData]].hidden;
       dafg::NameSpaceNameId updatedNS = namespace_id;
       bool rootNameSpace = false;
       while (!rootNameSpace)

@@ -316,9 +316,11 @@ static bool check_file_hash_and_erase_if_broken(const char *key, datacache::Entr
 
 void WebVromfsDataCache::onFileLoaded(const char *key, datacache::ErrorCode err, datacache::Entry *ent, void * /*arg*/)
 {
-  datacache::EntryHolder holder(ent);
   if (err == datacache::ERR_OK && ent)
-    check_file_hash_and_erase_if_broken(key, ent);
+    if (!check_file_hash_and_erase_if_broken(key, ent))
+      return;
+  if (ent)
+    ent->free();
 }
 void WebVromfsDataCache::onFileLoadedSync(const char *key, datacache::ErrorCode err, datacache::Entry *ent, void *arg)
 {

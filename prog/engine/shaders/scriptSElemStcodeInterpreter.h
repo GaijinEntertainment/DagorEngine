@@ -17,6 +17,7 @@
 #include "profileStcode.h"
 #include "shRegs.h"
 #include "stcode/compareStcode.h"
+#include "stcodeInterpreterDivByZeroReporting.h"
 
 
 #ifndef S_DEBUG
@@ -39,6 +40,7 @@ void (*scripted_shader_element_on_before_resource_used)(const ShaderElement *sel
 #else
 static void scripted_shader_element_on_before_resource_used(const ShaderElement *, const D3dResource *, const char *) {}
 #endif
+
 
 static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::ShaderCode::Pass *__restrict code_cp,
   ScriptedShadersBinDumpOwner const &__restrict dump_owner, const ScriptedShaderElement &__restrict this_elem)
@@ -406,10 +408,11 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         if (int_reg(regs, regR) == 0)
         {
 #if DAGOR_DBGLEVEL > 0
-          debug("shclass: %s", (const char *)this_elem.shClass.name);
-          ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
-            this_elem.code.stVarMap);
-          DAG_FATAL("divide by zero [real] while exec shader code. stopped at operand #%d", codp - cod.data());
+          if (report_real_div_by_zero(codp - cod.data(), (const char *)this_elem.shClass.name))
+          {
+            ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
+              this_elem.code.stVarMap);
+          }
 #endif
           real_reg(regs, regDst) = real_reg(regs, regL);
         }
@@ -570,10 +573,11 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         for (int j = 0; j < 4; j++)
           if (rvalS[j] == 0)
           {
-            debug("shclass: %s", (const char *)this_elem.shClass.name);
-            ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
-              this_elem.code.stVarMap);
-            DAG_FATAL("divide by zero [color4[%d]] while exec shader code. stopped at operand #%d", j, codp - cod.data());
+            if (report_float4_div_by_zero(codp - cod.data(), j, (const char *)this_elem.shClass.name))
+            {
+              ShUtils::shcod_dump(cod, &dump.globVars, &shGlobalData().globVarsState, &this_elem.shClass.localVars, &dump,
+                this_elem.code.stVarMap);
+            }
           }
 #endif
       }

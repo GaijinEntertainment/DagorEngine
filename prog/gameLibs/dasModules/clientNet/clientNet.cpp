@@ -16,7 +16,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addEnumeration(das::make_smart<EnumerationEchoResponseResult>());
+    addEnumeration(new EnumerationEchoResponseResult());
 
     das::addExtern<DAS_BIND_FUN(::get_current_server_route_id)>(*this, lib, "get_current_server_route_id",
       das::SideEffects::accessExternal, "::get_current_server_route_id");

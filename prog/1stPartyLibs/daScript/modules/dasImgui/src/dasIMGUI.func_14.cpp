@@ -18,7 +18,7 @@ void Module_dasIMGUI::initFunctions_14() {
 // from imgui/imgui.h:952:29
 	makeExtern< float (*)(int) , ImGui::GetColumnWidth , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetColumnWidth","ImGui::GetColumnWidth")
 		->args({"column_index"})
-		->arg_init(0,make_smart<ExprConstInt>(-1))
+		->arg_init(0,new ExprConstInt(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:953:29
 	makeExtern< void (*)(int,float) , ImGui::SetColumnWidth , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetColumnWidth","ImGui::SetColumnWidth")
@@ -27,7 +27,7 @@ void Module_dasIMGUI::initFunctions_14() {
 // from imgui/imgui.h:954:29
 	makeExtern< float (*)(int) , ImGui::GetColumnOffset , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetColumnOffset","ImGui::GetColumnOffset")
 		->args({"column_index"})
-		->arg_init(0,make_smart<ExprConstInt>(-1))
+		->arg_init(0,new ExprConstInt(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:955:29
 	makeExtern< void (*)(int,float) , ImGui::SetColumnOffset , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetColumnOffset","ImGui::SetColumnOffset")
@@ -40,7 +40,7 @@ void Module_dasIMGUI::initFunctions_14() {
 	makeExtern< bool (*)(const char *,int) , ImGui::BeginTabBar , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginTabBar","ImGui::BeginTabBar")
 		->args({"str_id","flags"})
 		->arg_type(1,makeType<ImGuiTabBarFlags_>(lib))
-		->arg_init(1,make_smart<ExprConstEnumeration>(0,makeType<ImGuiTabBarFlags_>(lib)))
+		->arg_init(1,new ExprConstEnumeration(0,makeType<ImGuiTabBarFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:961:29
 	makeExtern< void (*)() , ImGui::EndTabBar , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndTabBar","ImGui::EndTabBar")
@@ -48,9 +48,9 @@ void Module_dasIMGUI::initFunctions_14() {
 // from imgui/imgui.h:962:29
 	makeExtern< bool (*)(const char *,bool *,int) , ImGui::BeginTabItem , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginTabItem","ImGui::BeginTabItem")
 		->args({"label","p_open","flags"})
-		->arg_init(1,make_smart<ExprConstPtr>())
+		->arg_init(1,new ExprConstPtr())
 		->arg_type(2,makeType<ImGuiTabItemFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImGuiTabItemFlags_>(lib)))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImGuiTabItemFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:963:29
 	makeExtern< void (*)() , ImGui::EndTabItem , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndTabItem","ImGui::EndTabItem")
@@ -59,7 +59,7 @@ void Module_dasIMGUI::initFunctions_14() {
 	makeExtern< bool (*)(const char *,int) , ImGui::TabItemButton , SimNode_ExtFuncCall , imguiTempFn>(lib,"TabItemButton","ImGui::TabItemButton")
 		->args({"label","flags"})
 		->arg_type(1,makeType<ImGuiTabItemFlags_>(lib))
-		->arg_init(1,make_smart<ExprConstEnumeration>(0,makeType<ImGuiTabItemFlags_>(lib)))
+		->arg_init(1,new ExprConstEnumeration(0,makeType<ImGuiTabItemFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:965:29
 	makeExtern< void (*)(const char *) , ImGui::SetTabItemClosed , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetTabItemClosed","ImGui::SetTabItemClosed")
@@ -68,22 +68,22 @@ void Module_dasIMGUI::initFunctions_14() {
 // from imgui/imgui.h:988:29
 	makeExtern< unsigned int (*)(unsigned int,const ImVec2 &,int,const ImGuiWindowClass *) , ImGui::DockSpace , SimNode_ExtFuncCall , imguiTempFn>(lib,"DockSpace","ImGui::DockSpace")
 		->args({"dockspace_id","size","flags","window_class"})
-		->arg_init(2,make_smart<ExprConstInt>(0))
-		->arg_init(3,make_smart<ExprConstPtr>())
+		->arg_init(2,new ExprConstInt(0))
+		->arg_init(3,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:989:29
 	makeExtern< unsigned int (*)(unsigned int,const ImGuiViewport *,int,const ImGuiWindowClass *) , ImGui::DockSpaceOverViewport , SimNode_ExtFuncCall , imguiTempFn>(lib,"DockSpaceOverViewport","ImGui::DockSpaceOverViewport")
 		->args({"dockspace_id","viewport","flags","window_class"})
-		->arg_init(0,make_smart<ExprConstUInt>(0x0))
-		->arg_init(1,make_smart<ExprConstPtr>())
-		->arg_init(2,make_smart<ExprConstInt>(0))
-		->arg_init(3,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstUInt(0x0))
+		->arg_init(1,new ExprConstPtr())
+		->arg_init(2,new ExprConstInt(0))
+		->arg_init(3,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:990:29
 	makeExtern< void (*)(unsigned int,int) , ImGui::SetNextWindowDockID , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetNextWindowDockID","ImGui::SetNextWindowDockID")
 		->args({"dock_id","cond"})
 		->arg_type(1,makeType<ImGuiCond_>(lib))
-		->arg_init(1,make_smart<ExprConstEnumeration>(0,makeType<ImGuiCond_>(lib)))
+		->arg_init(1,new ExprConstEnumeration(0,makeType<ImGuiCond_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:991:29
 	makeExtern< void (*)(const ImGuiWindowClass *) , ImGui::SetNextWindowClass , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetNextWindowClass","ImGui::SetNextWindowClass")
@@ -98,13 +98,13 @@ void Module_dasIMGUI::initFunctions_14() {
 // from imgui/imgui.h:997:29
 	makeExtern< void (*)(int) , ImGui::LogToTTY , SimNode_ExtFuncCall , imguiTempFn>(lib,"LogToTTY","ImGui::LogToTTY")
 		->args({"auto_open_depth"})
-		->arg_init(0,make_smart<ExprConstInt>(-1))
+		->arg_init(0,new ExprConstInt(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:998:29
 	makeExtern< void (*)(int,const char *) , ImGui::LogToFile , SimNode_ExtFuncCall , imguiTempFn>(lib,"LogToFile","ImGui::LogToFile")
 		->args({"auto_open_depth","filename"})
-		->arg_init(0,make_smart<ExprConstInt>(-1))
-		->arg_init(1,make_smart<ExprConstString>(""))
+		->arg_init(0,new ExprConstInt(-1))
+		->arg_init(1,new ExprConstString(""))
 		->addToModule(*this, SideEffects::worstDefault);
 }
 }

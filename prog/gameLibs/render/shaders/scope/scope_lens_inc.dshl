@@ -45,18 +45,26 @@ assume_if_not_assumed use_scope_cylinder_shadow = yes;
 
 float crosshair_scale = 1.0;
 
-define_macro_if_not_defined PROJECT_SCOPE_LENS_REFLECTIONS()
+macro SAMPLE_ENVI_PROBE_REFLECTIONS()
   USE_ROUGH_TO_MIP()
   USE_SKY_DIFFUSE()
   USE_INDOOR_LIGHT_PROBES(ps, false)
   GLASS_APPLY_FUNC_PS(false)
 
   hlsl(ps) {
-    half3 sample_scope_lens_reflections(VsOutput input, float4 screenpos, float2 lens_input_plane_coord, float4 lens_diffuse_color)
+    half3 sample_scope_lens_reflections(VsOutput input, float4 screenpos,
+                                        float2 lens_input_plane_coord, float4 lens_diffuse_color)
     {
-      return apply_glass_ps(input, screenpos, lens_diffuse_color, 1).color.rgb;
+      half3 worldNormal = normalize(input.normal.xyz);
+      half thickness = 0;
+      half smoothness = 1;
+      return apply_glass_base(input, screenpos, lens_diffuse_color, worldNormal, thickness, smoothness).color.rgb;
     }
   }
+endmacro
+
+define_macro_if_not_defined PROJECT_SCOPE_LENS_REFLECTIONS()
+  SAMPLE_ENVI_PROBE_REFLECTIONS()
 endmacro
 
 macro SCOPE_LENS_SHADER()
@@ -291,7 +299,7 @@ macro SCOPE_LENS_SHADER()
     ##endif
       output.clipPos = output.pos;
       // Fog isn't necessary in scopes.
-      // The parameters are needed only for apply_glass_ps().
+      // The parameters are needed only for apply_glass_base().
       output.fogMul = 1;
       output.fogAdd = 0;
     ##if lens_render_mode == render_depth
@@ -475,7 +483,6 @@ macro SCOPE_LENS_SHADER()
 
       hlsl(ps) {
         #define isRefractionGlass 0
-        #define hasNormal 0
         #define HAS_NIGHT_EMISSION 0
         #define NO_SPECULAR 0
         #include <pbr/BRDF.hlsl>

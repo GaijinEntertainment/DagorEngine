@@ -25,7 +25,7 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("math"));
 
-    addAnnotation(das::make_smart<GeomNodeTreeAnnotation>(lib));
+    addAnnotation(new GeomNodeTreeAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(geomtree_find_node_index)>(*this, lib, "geomtree_findNodeIndex", das::SideEffects::none,
       "bind_dascript::geomtree_find_node_index");

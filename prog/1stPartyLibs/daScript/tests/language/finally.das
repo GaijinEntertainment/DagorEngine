@@ -42,7 +42,8 @@ def test_for_finally(tt : T?) {
         t[9] = 13
         count += uno
     }
-    tt |> equal(count, 1)
+    // per-iteration finally: iterations 0..5 each run finally (break after x==5's finally)
+    tt |> equal(count, 6)
     tt |> equal(t[9], 13)
 }
 
@@ -62,7 +63,8 @@ def test_while_finally(tt : T?) {
         t[9] = 12 + uno
         count ++
     }
-    tt |> equal(count, 1)
+    // per-iteration finally: iterations 0..5 each run finally (break after x==5's finally)
+    tt |> equal(count, 6)
     tt |> equal(t[9], 13)
 }
 

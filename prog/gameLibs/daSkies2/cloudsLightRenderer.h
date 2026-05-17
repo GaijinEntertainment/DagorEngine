@@ -17,7 +17,7 @@ public:
   bool isRendered() const;
 
 private:
-  UniqueTexHolder clouds_light_color;
+  UniqueTexWithShaderVar clouds_light_color;
 
   PostFxRenderer gen_clouds_light_texture_ps;
   eastl::unique_ptr<ComputeShaderElement> gen_clouds_light_texture_cs;

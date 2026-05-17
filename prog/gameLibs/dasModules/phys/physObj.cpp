@@ -111,9 +111,9 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("GamePhys"));
 
-    addAnnotation(das::make_smart<PhysObjStateAnnotation>(lib));
-    addAnnotation(das::make_smart<PhysObjControlStateAnnotation>(lib));
-    addAnnotation(das::make_smart<PhysObjAnnotation>(lib));
+    addAnnotation(new PhysObjStateAnnotation(lib));
+    addAnnotation(new PhysObjControlStateAnnotation(lib));
+    addAnnotation(new PhysObjAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::phys_obj_rescheduleAuthorityApprovedSend)>(*this, lib,
       "phys_obj_rescheduleAuthorityApprovedSend", das::SideEffects::modifyArgument,

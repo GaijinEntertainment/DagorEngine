@@ -29,7 +29,6 @@
 
 #if _TARGET_XBOX
 #include <osApiWrappers/gdk/network.h>
-#include <osApiWrappers/gdk/plm.h>
 #include <gdk/main.h>
 #endif
 
@@ -732,9 +731,15 @@ static void update_multi_nolock(Cont &finished)
               "nl %.2fms. size: %d",
           url, addr, curl_easy_strerror(code), totalTime * 1000, connectTime * 1000, nameLookupTime * 1000, reqState->responseSize());
       }
-      else
+      else if (respCode >= 200 && respCode < 400)
       {
         debug("request to '%s' ip: %s succeed with code %d. times: total %.2fms, conn %.2fms, "
+              "nl %.2fms. size: %d",
+          url, addr, (int)respCode, totalTime * 1000, connectTime * 1000, nameLookupTime * 1000, reqState->responseSize());
+      }
+      else
+      {
+        debug("request to '%s' ip: %s failed with HTTP status %d. times: total %.2fms, conn %.2fms, "
               "nl %.2fms. size: %d",
           url, addr, (int)respCode, totalTime * 1000, connectTime * 1000, nameLookupTime * 1000, reqState->responseSize());
       }
@@ -832,34 +837,6 @@ void poll()
 }
 
 
-#if _TARGET_XBOX
-
-static struct SuspendHandler final : public gdk::PLMCallback
-{
-  SuspendHandler() : PLMCallback("CurlSuspendHandler") {}
-
-  void execute(bool suspended) override
-  {
-    if (suspended)
-    {
-      eastl::fixed_vector<RequestStatePtr, MAX_ACTIVE_REQUESTS, false> finished;
-      {
-        if (!mutex)
-          return;
-        mutex->lock();
-        while (!active_requests.empty())
-          update_multi_nolock(finished);
-        mutex->unlock();
-      }
-      for (RequestStatePtr &request : finished)
-        request->sendResult();
-    }
-  }
-} suspend_handler;
-
-#endif
-
-
 void init_async(InitAsyncParams const &params)
 {
   bool force_verbose_debug = (::dgs_get_argv("verbose-http-requests") != nullptr);
@@ -882,10 +859,6 @@ void init_async(InitAsyncParams const &params)
     queue_mutex = new WinCritSec;
 
     bool pollInThread = params.pollInThread;
-
-#if _TARGET_XBOX
-    gdk::register_suspend_callback(&suspend_handler);
-#endif
 
     if (pollInThread)
     {
@@ -938,10 +911,6 @@ void shutdown_async()
   unregister_regular_action_to_idle_cycle(&poll_on_idle_cycle, NULL);
   curl_multi_cleanup(curlm);
   curl_share_cleanup(curlsh);
-
-#if _TARGET_XBOX
-  gdk::unregister_suspend_callback(&suspend_handler);
-#endif
 
   curlm = NULL;
   curlsh = NULL;

@@ -25,11 +25,11 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addEnumeration(das::make_smart<EnumerationNetRole>());
+    addEnumeration(new EnumerationNetRole());
     das::addEnumFlagOps<IPhysActor::NetRole>(*this, lib, "IPhysActor::NetRole");
-    addEnumeration(das::make_smart<EnumerationPhysTickRateType>());
+    addEnumeration(new EnumerationPhysTickRateType());
 
-    addAnnotation(das::make_smart<BasePhysActorAnnotation>(lib));
+    addAnnotation(new BasePhysActorAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(BasePhysActor::resizeSyncStates)>(*this, lib, "base_phys_actor_resizeSyncStates",
       das::SideEffects::modifyExternal, "BasePhysActor::resizeSyncStates");

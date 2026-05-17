@@ -9,6 +9,9 @@ include "dafx_blocks.dshl"
 include "camera_in_camera.dshl"
 include "voxel_shadows_use.dshl"
 include "clouds2/clouds_rain_map.dshl"
+include "water_heightmap.dshl"
+
+texture water_heightmap_lowres;
 
 int modfx_debug_render = 0;
 interval modfx_debug_render : off < 1, on;
@@ -238,6 +241,9 @@ macro DAFXEX_USE_PARTICLE_PLACEMENT()
   (vs)
   {
     water_level@f1 = (water_level);
+    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
+    world_to_water_heightmap@f4 = (world_to_water_heightmap);
   }
   DAFXEX_USE_DEPTH_ABOVE(vs)
   DAFXEX_USE_HMAP(vs)
@@ -253,7 +259,15 @@ macro DAFXEX_USE_PARTICLE_PLACEMENT()
 
 ##if (in_editor_assume == no)
       FLATTEN if (flags & MODFX_GPU_PLACEMENT_WATER)
-        height = max(height, water_level);
+      {
+        float wl = water_level;
+        if (water_heightmap_lowres_exists)
+        {
+          float2 uv = wpos.xz * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+          wl = tex2Dlod(water_heightmap_lowres, float4(uv, 0, 0)).r;
+        }
+        height = max(height, wl);
+      }
 ##endif
 
 #if DAFX_USE_HMAP
@@ -264,9 +278,13 @@ macro DAFXEX_USE_PARTICLE_PLACEMENT()
 #if DAFX_USE_DEPTH_ABOVE
       if (flags & MODFX_GPU_PLACEMENT_DEPTH_ABOVE)
       {
+        FLATTEN if ((flags == MODFX_GPU_PLACEMENT_DEPTH_ABOVE) && !is_inside_depth_above_bounds(wpos))
+          return false;
+
         float vignette = 0;
         float suggestedHeight = get_depth_above_fast(wpos, vignette);
-        height = max(lerp(suggestedHeight, wpos.y, vignette), height); // must be checked last because of vignette
+        float fallbackHeight = (height <= INVALID_HEIGHT + EPS) ? wpos.y : height;
+        height = max(lerp(suggestedHeight, fallbackHeight, vignette), height); // must be checked last because of vignette
       }
 #endif
 

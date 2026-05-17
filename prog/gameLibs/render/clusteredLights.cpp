@@ -518,11 +518,7 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
   {
     uint32_t id = visibleOmniLightsId[i];
     renderOmniLights[i] = omniLights.getRenderLight(id);
-    const float cullRadius = renderOmniLights[i].posRelToOrigin_cullRadius.w;
-    vec4f bounds = v_ldu(reinterpret_cast<float *>(&renderOmniLights[i].posRadius));
-    if (cullRadius > 0.f)
-      bounds = v_perm_xyzd(bounds, v_splats(cullRadius));
-    visibleOmniLightsBounds[i] = bounds;
+    visibleOmniLightsBounds[i] = omniLights.getBoundingSphere(id);
     visibleOmniLightsMasks[i] = omniLights.getLightMask(id);
   }
   for (int i = visibleOmniLightsId.size(), e = (visibleOmniLightsId.size() + 3) & ~3; i < e; ++i)

@@ -188,8 +188,7 @@ struct WrappedCommandBuffer
   //
   // case $1Parameters::ID:
   // {
-  //   auto& cmdPar = ((CmdAndParameter<$1Parameters>*)cmdPtr)->param;
-  //   cmdPtr += sizeof(CmdAndParameter<$1Parameters>);
+  //   FILL_CMD_PAR($1Parameters);
   //   Globals::VK::dev.vkCmd$1(cb,
   //     cmdPar.
   //   );

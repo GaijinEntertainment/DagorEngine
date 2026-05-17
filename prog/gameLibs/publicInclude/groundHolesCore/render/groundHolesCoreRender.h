@@ -9,9 +9,9 @@ namespace ground_holes
 void holes_initialize(int &hmap_holes_scale_step_offset_varId, int &hmap_holes_temp_ofs_size_varId, bool &should_render_ground_holes,
   ecs::Point4List &holes);
 
-void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexHolder &hmapHolesTex);
+void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexWithShaderVar &hmapHolesTex);
 
-void render(UniqueTexHolder &hmapHolesTex, UniqueTexHolder &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
+void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer, PostFxRenderer &hmapHolesMipmapRenderer, ShadersECS &hmapHolesPrepareRenderer,
   bool &should_render_ground_holes, int hmap_holes_scale_step_offset_varId, int hmap_holes_temp_ofs_size_varId, ecs::Point4List &holes,
   ecs::Point3List &invalidate_bboxes, const ComputeShader &heightmap_holes_process_cs);

@@ -68,6 +68,7 @@ let public FN_JIT_DEBUG_ENTER       = "jit_debug_enter"
 let public FN_JIT_DEBUG_EXIT        = "jit_debug_exit"
 let public FN_JIT_DEBUG_LINE        = "jit_debug_line"
 let public FN_JIT_AST_TYPEDECL      = "jit_ast_typedecl"
+let public FN_JIT_INIT_EXTERN       = "jit_init_extern_function"
 
 var public g_ctx : LLVMContextRef
 var public g_prim_t : PrimitiveTypes?
@@ -558,6 +559,18 @@ def public init_jit(cg_opt_level : uint) {
     LLVMAddGlobalMapping(g_engine, jit_ast_typedecl, get_jit_ast_typedecl())
     LLVMAddAttributesToFunction(jit_ast_typedecl, fixed_array(nounwind, willreturn))
     LLVMAddAttributeToFunctionArgumentRange(jit_ast_typedecl, urange(1, 3), nocapture)
+    // void jit_init_extern_function ( const char * moduleName, const char * funcMangledName, void ** dllGlobal )
+    let jit_init_extern_type = LLVMFunctionType(g_prim_t.t_void,
+        fixed_array<LLVMTypeRef>(
+            g_prim_t.LLVMVoidPtrType(),  // const char * moduleName
+            g_prim_t.LLVMVoidPtrType(),  // const char * funcMangledName
+            g_prim_t.LLVMVoidPtrType()   // void ** dllGlobal
+        ))
+    var jit_init_extern = LLVMAddFunctionWithType(g_mod, FN_JIT_INIT_EXTERN, jit_init_extern_type)
+    g_fn_types[FN_JIT_INIT_EXTERN] = jit_init_extern_type
+    LLVMAddGlobalMapping(g_engine, jit_init_extern, get_jit_init_extern_function())
+    LLVMAddAttributesToFunction(jit_init_extern, fixed_array(nounwind, willreturn))
+    LLVMAddAttributeToFunctionArgumentRange(jit_init_extern, urange(0, 3), nocapture)
 }
 
 
@@ -655,23 +668,23 @@ def public with_default_target_machine(blk : block<(LLVMTargetMachineRef) : void
 // @path_to_dascript_lib - path to library, required on Windows. Has no effect on Linux.
 // @path_to_linker - path to clang-cl on Windows. By default we'll use clang-cl from LLVM package
 // on Windows, default otherwise.
-def public write_dll(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string) {
-    with_default_target_machine <| $(targetMachine : LLVMTargetMachineRef) {
+def public write_dll(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string; link_whole_lib : bool) {
+    with_default_target_machine() $(targetMachine : LLVMTargetMachineRef) {
         let error : string?
         let file = add_obj_extension(out_path)
         let filetype = LLVMCodeGenFileType.LLVMObjectFile
         LLVMTargetMachineEmitToFile(targetMachine, mod, file, filetype, error)
-        create_shared_library(file, add_dll_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", true)
+        create_shared_library(file, add_dll_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", true, link_whole_lib)
     }
 }
 
-def public write_exe(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string) {
-    with_default_target_machine <| $(targetMachine : LLVMTargetMachineRef) {
+def public write_exe(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string; link_whole_lib : bool) {
+    with_default_target_machine() $(targetMachine : LLVMTargetMachineRef) {
         let error : string?
         let file = add_obj_extension(out_path)
         let filetype = LLVMCodeGenFileType.LLVMObjectFile
         LLVMTargetMachineEmitToFile(targetMachine, mod, file, filetype, error)
-        create_shared_library(file, add_exe_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", false)
+        create_shared_library(file, add_exe_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", false, link_whole_lib)
     }
 }
 
@@ -717,14 +730,8 @@ def public get_string_constant_ptr(builder : LLVMOpaqueBuilder?; message : strin
 }
 
 def public failed(msg : string) {
-    static_if (LLVM_DEBUG_EVERYTHING) {
-        to_log(LOG_ERROR, "LLVM JIT: {msg}\n")
-    }
+    to_log(LOG_ERROR, "LLVM JIT: {msg}\n")
     g_errors |> push("{msg}")
-}
-
-def public failed_E(e : ExpressionPtr; msg : string) {
-    failed("{msg}. expr = {e.__rtti} at {describe(e.at)}")
 }
 
 def public failed_E(e : Expression?; msg : string) {
@@ -733,10 +740,6 @@ def public failed_E(e : Expression?; msg : string) {
 
 def public failed_V(v : VariablePtr; msg : string) {
     failed("{msg}. var = {describe(v)} at {describe(v.at)}")
-}
-
-def public failed_V(v : Variable?; msg : string) {
-    failed("{msg}. var = {v.name} at {describe(v.at)}")
 }
 
 def public failed_T(v : TypeDeclPtr; msg : string) {
@@ -786,7 +789,7 @@ def public type_to_llvm_abi_type(t : TypeDeclPtr) {
             failed("type_to_llvm_abi_type: internal error. unsupported type {describe(t)} at {describe(t.at)}")
             return g_prim_t.LLVMVoidPtrType()
         } else {
-            var inscope tp <- get_underlying_value_type(t)
+            var tp = get_underlying_value_type(t)
             if (tp == null) {
                 failed("internal integration error.`get_underlying_value_type` returned null for {describe(t)} at {describe(t.at)}")
                 return g_prim_t.LLVMFloat4Type()
@@ -807,11 +810,12 @@ def public type_to_llvm_abi_type(t : TypeDeclPtr) {
 def public type_to_llvm_type(t : TypeDeclPtr) {
     var res : LLVMOpaqueType?
     if (t.dim |> length != 0) {
-        var inscope ndt <- clone_type(t)
+        var ndt = clone_type(t)
         ndt.dim |> clear()
         res = type_to_llvm_type(ndt)
-        for (d in t.dim) {
-            res = LLVMArrayType(res, uint(d))
+        let ndim = length(t.dim)
+        for (i in range(ndim)) {
+            res = LLVMArrayType(res, uint(t.dim[ndim - 1 - i]))
         }
     } elif (t.isPointer) {
         res = get_type_pointer(t.firstType)
@@ -872,7 +876,7 @@ def public type_to_llvm_type(t : TypeDeclPtr) {
         if (t.isRefType) {
             res = LLVMArrayType(g_prim_t.t_int8, uint(t.sizeOf))
         } else {
-            var inscope tp <- get_underlying_value_type(t)
+            var tp = get_underlying_value_type(t)
             if (tp == null) {
                 failed("internal integration error.`get_underlying_value_type` returned null for {describe(t)} at {describe(t.at)}")
                 return g_prim_t.t_int32
@@ -893,7 +897,7 @@ def public dim_element_type_to_llvm_type(typ : TypeDeclPtr) {
     if (typ.dim |> length == 0) {
         return type_to_llvm_type(typ)
     } else {
-        var inscope ndt <- clone_type(typ)
+        var ndt = clone_type(typ)
         ndt.dim |> clear()
         return type_to_llvm_type(ndt)
     }

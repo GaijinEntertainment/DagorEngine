@@ -174,7 +174,7 @@ public:
 
     using namespace das_jsonwriter;
 
-    addAnnotation(das::make_smart<JsonWriterAnnotation>(lib));
+    addAnnotation(new JsonWriterAnnotation(lib));
     das::addInterop<checked_interop<jw_reset, 1>, void, RapidJsonWriter &>(
         *this, lib, "jw_reset", das::SideEffects::modifyArgument,
         "das_jsonwriter::checked_interop<das_jsonwriter::jw_reset, 1>");

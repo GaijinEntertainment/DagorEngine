@@ -157,8 +157,8 @@ public:
   {
     das::ModuleLibrary lib(this);
     // file annotation
-    addAnnotation(das::make_smart<DagFileAnnotation>(lib));
-    addAnnotation(das::make_smart<DagorStatAnnotation>(lib));
+    addAnnotation(new DagFileAnnotation(lib));
+    addAnnotation(new DagorStatAnnotation(lib));
     // file constants
     das::addConstant(*this, "DF_READ", (int32_t)DF_READ);
     das::addConstant(*this, "DF_WRITE", (int32_t)DF_WRITE);

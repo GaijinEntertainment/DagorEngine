@@ -685,10 +685,10 @@ DXGI_FORMAT FormatStore::asDxGiResourceCreateFormat() const
     return asDxGiBaseFormat();
   // For block compressed, we use the requested specific format
   if (isBlockCompressed())
-    return asDxGiFormat<false>();
+    return asDxGiFormat<true>();
   // For depth (and stencil) or when srgb is requested and the format has a
   // srgb variation, we use the base format to allow views of different formats.
-  if ((isSrgbCapableFormatType() && srgbWrite) || isDepth())
+  if ((isSrgbCapableFormatType() && srgbRead) || isDepth())
     return asDxGiBaseFormat();
   // For any other format we use linear.
   return asLinearDxGiFormat();

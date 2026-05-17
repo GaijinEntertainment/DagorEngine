@@ -14,6 +14,7 @@
 #include <math/dag_hlsl_floatx.h>
 #include <fftWater/flow_map_inc.hlsli>
 #include <fftWater/fftWaterQuality.h>
+#include <heightmap/heightmapHandler.h>
 
 class Point2;
 class Point3;
@@ -234,7 +235,7 @@ struct WaterFlowmap
   dag::Vector<WaterFlowmapCascade> cascades;
 };
 
-struct WaterHeightmap
+struct WaterHeightmap : public IHeightmapHandler
 {
   static const int PATCHES_GRID_SIZE = 512;
   static const int HEIGHTMAP_PAGE_SIZE = 128;
@@ -256,6 +257,13 @@ struct WaterHeightmap
 
   bool getHeightmapDataBilinear(float x, float z, float &result) const;
   bool isFlat(int x, int z) const;
+
+  float getMaxUpwardDisplacement() const override;
+  float getMaxDownwardDisplacement() const override;
+  IPoint2 getHeightmapSize() const override;
+  Point3 getHeightmapOffset() const override;
+  float getHeightmapCellSize() const override;
+  bool getHeightmapHeightMinMaxInChunk(const Point2 &pos, const real &chunkSize, real &hmin, real &hmax) const override;
 
   size_t calcDumpSize() const;
   void arrangeDataLayout(size_t dump_sz);
@@ -348,7 +356,7 @@ enum FlowmapCascadeFlags
   FLOWMAP_FOAM_SAMPLE = 1 << 1
 };
 // if detect_rivers_width <= 0 or reiversCB == 0, it won't be used
-void build_distance_field(UniqueTexHolder &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
+void build_distance_field(UniqueTexWithShaderVar &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
   RiverRendererCB *riversCB, bool high_precision_distance_field = true, bool shore_waves_on = true);
 void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,
   int flags);

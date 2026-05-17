@@ -2,6 +2,7 @@
 
 #include "daScript/ast/ast_visitor.h"
 #include "daScript/ast/ast.h"
+#include "daScript/misc/enums.h"
 
 #include <inttypes.h>
 
@@ -60,9 +61,10 @@ namespace das
 
     // auto or generic type conversion
 
-    TypeDecl::TypeDecl(const EnumerationPtr & ep)
-        : baseType(ep->getEnumType()), enumType(ep.get())
+    TypeDecl::TypeDecl(Enumeration * ep)
+        : baseType(ep->getEnumType()), enumType(ep)
     {
+        gc_magic = GC_MAGIC_TYPEDECL;
     }
 
     LineInfo TypeDecl::getDeclarationLocation() const {
@@ -169,15 +171,15 @@ namespace das
             }
         }
         if ( firstType ) {
-            vis.preVisit(firstType.get());
+            vis.preVisit(firstType);
             firstType = firstType->visit(vis);
         }
         if ( secondType ) {
-            vis.preVisit(secondType.get());
+            vis.preVisit(secondType);
             secondType = secondType->visit(vis);
         }
         for ( auto & argType : argTypes ) {
-            vis.preVisit(argType.get());
+            vis.preVisit(argType);
             argType = argType->visit(vis);
         }
         return this;
@@ -249,12 +251,12 @@ namespace das
         if ( !pass ) {
             return;
         } else if ( decl->baseType==Type::option ) {
-            auto it = options.find(decl.get());
+            auto it = options.find(decl);
             DAS_VERIFYF(it!=options.end(),"internal error, option not found for the optional type");
             return updateAliasMap(decl->argTypes[it->second], pass, aliases, options);
         } else if ( decl->baseType==Type::autoinfer ) {
             if ( !decl->alias.empty() && aliases.find(decl->alias)==aliases.end() ) {
-                auto TT = make_smart<TypeDecl>(*pass);
+                auto TT = new TypeDecl(*pass);
                 TT->alias = decl->alias;
                 TT->dim.clear();
                 TT->constant = false;
@@ -265,7 +267,7 @@ namespace das
             }
         } else if ( pass->baseType==Type::autoinfer ) {
             if ( !pass->alias.empty() && aliases.find(pass->alias)==aliases.end() ) {
-                auto TT = make_smart<TypeDecl>(*decl);
+                auto TT = new TypeDecl(*decl);
                 TT->alias = pass->alias;
                 TT->dim.clear();
                 TT->constant = false;
@@ -312,7 +314,7 @@ namespace das
                 TT->implicit = TT->implicit || autoT->implicit;
                 // now we infer type
                 if ( auto resT = inferGenericType(TT,initT,topLevel,passType,options) ) {
-                    if ( options!=nullptr ) (*options)[autoT.get()] = int(i);
+                    if ( options!=nullptr ) (*options)[autoT] = int(i);
                     return resT;
                 }
             }
@@ -329,7 +331,7 @@ namespace das
         // can't infer from the type, which is already 'auto'
         if ( initT->isAuto() ) {
             if (!autoT->isAuto()) {
-                return make_smart<TypeDecl>(*autoT);
+                return new TypeDecl(*autoT);
             } else if (autoT->baseType == Type::tBlock || autoT->baseType == Type::tFunction
                 || autoT->baseType == Type::tLambda || autoT->baseType == Type::tTuple
                 || autoT->baseType == Type::tVariant ) {
@@ -339,7 +341,7 @@ namespace das
                 if ( aliases && !autoT->alias.empty() ) {
                     auto it = aliases->find(autoT->alias);
                     if ( it != aliases->end() ) {
-                        return make_smart<TypeDecl>(*it->second);
+                        return new TypeDecl(*it->second);
                     }
                 }
                 */
@@ -359,7 +361,7 @@ namespace das
                 }
             }
             if ( autoT->isSameType(*initT, rm,cm, TemporaryMatters::yes, AllowSubstitute::yes, true, passType ) ) {
-                return make_smart<TypeDecl>(*autoT);
+                return new TypeDecl(*autoT);
             } else {
                 return nullptr;
             }
@@ -416,7 +418,7 @@ namespace das
                 return nullptr;
         }
         // now, lets make the type
-        auto TT = make_smart<TypeDecl>(*initT);
+        auto TT = new TypeDecl(*initT);
         TT->at = autoT->at;
         TT->aotAlias = autoT->aotAlias;
         TT->alias = autoT->alias;
@@ -496,7 +498,9 @@ namespace das
             secondType->getLookupHash(hash);
         }
         if (baseType == Type::tBitfield || baseType == Type::tBitfield8 ||
-            baseType == Type::tBitfield16 || baseType == Type::tBitfield64) {
+            baseType == Type::tBitfield16 || baseType == Type::tBitfield64 ||
+            baseType == Type::tVariant || baseType == Type::tTuple
+        ) {
             for ( const auto & name : argNames ) {
                 hash = hashmix(hash, hash_block64(reinterpret_cast<const uint8_t *>(name.c_str()), name.size()));
             }
@@ -854,6 +858,7 @@ namespace das
     }
 
     TypeDecl::TypeDecl(const TypeDecl & decl) {
+        gc_magic = GC_MAGIC_TYPEDECL;
         baseType = decl.baseType;
         structType = decl.structType;
         enumType = decl.enumType;
@@ -872,30 +877,28 @@ namespace das
         at = decl.at;
         module = decl.module;
         if ( decl.firstType )
-            firstType = make_smart<TypeDecl>(*decl.firstType);
+            firstType = new TypeDecl(*decl.firstType);
         if ( decl.secondType )
-            secondType = make_smart<TypeDecl>(*decl.secondType);
+            secondType = new TypeDecl(*decl.secondType);
         for ( const auto & arg : decl.argTypes ) {
-            argTypes.push_back(make_smart<TypeDecl>(*arg) );
+            argTypes.push_back(new TypeDecl(*arg) );
         }
         argNames = decl.argNames;
     }
 
     void TypeDecl::clone ( TypeDeclPtr & dest, const TypeDeclPtr & src ) {
+        // this only works when there are no duplicated types whatsoever
+        // there is CodeOfPolicies::validate_ast that checks for that, but its off by default (slow)
+        // if you suspect this is whats causing a problem, disable the optimization, enable the validation and find the duplicated type
+#if 0
+        dest = new TypeDecl(*src);
+#else
         if ( src==nullptr ) {
             dest = nullptr;
             return;
         }
         if ( !dest ) {
-            dest = make_smart<TypeDecl>(*src);
-            return;
-        }
-        if ( dest->use_count()!=1 ) {
-#if DAS_TRACK_LOST_POINTER
-            trackLostPointer(dest.get());
-#endif
-            DAS_ASSERTF(false, "internal error: cloning into shared TypeDeclPtr");
-            dest = make_smart<TypeDecl>(*src);                                      // this is a fallback
+            dest = new TypeDecl(*src);
             return;
         }
         dest->baseType = src->baseType;
@@ -922,6 +925,22 @@ namespace das
             clone(dest->argTypes[i], src->argTypes[i]);
         }
         dest->argNames = src->argNames;
+#endif
+    }
+
+    void TypeDecl::gc_collect ( gc_root * target, gc_root * from ) {
+        if ( gc_owner == target ) return;                           // already collected
+        if ( from && gc_owner != from ) return;                     // not from our scope
+        if ( !from && gc_owner == nullptr ) return;                 // detached
+        gc_assign(target);
+        if ( firstType ) firstType->gc_collect(target, from);
+        if ( secondType ) secondType->gc_collect(target, from);
+        for ( auto t : argTypes ) if ( t ) t->gc_collect(target, from);
+        for ( auto & de : dimExpr ) if ( de ) de->gc_collect(target, from);
+        // this??
+        if ( structType ) structType->gc_collect(target, from);
+        if ( enumType ) enumType->gc_collect(target, from);
+        if ( annotation ) annotation->gc_collect(target, from);
     }
 
     TypeDecl * TypeDecl::findAlias ( const string & name, bool allowAuto ) {
@@ -1716,7 +1735,7 @@ namespace das
                 if ( argTypes.size() != decl.argTypes.size() ) {
                     return false;
                 }
-                if (baseType == Type::tVariant) {
+                if (baseType == Type::tVariant || baseType == Type::tTuple) {
                     if (argNames.size() != decl.argNames.size()) {
                         return false;
                     }
@@ -1728,11 +1747,12 @@ namespace das
                         }
                     }
                 }
+                auto isPass = baseType==Type::tTuple ? isPassType : false;
                 for ( size_t i=0, is=argTypes.size(); i!=is; ++i ) {
                     const auto & arg = argTypes[i];
                     const auto & declArg = decl.argTypes[i];
                     if ( !arg->isSameType(*declArg, RefMatters::yes, ConstMatters::yes,
-                            TemporaryMatters::yes,AllowSubstitute::no,true ) ) {
+                            TemporaryMatters::yes,AllowSubstitute::no,true,isPass ) ) {
                         return false;
                     }
                 }
@@ -3115,7 +3135,7 @@ namespace das
         }
         // if ( type->firstType && isCircularType(type->firstType, all) ) return true;
         // if ( type->secondType && isCircularType(type->secondType, all) ) return true;
-        auto pt = type.get();
+        auto pt = type;
         for (auto it : all) {
             if ( it == pt ) return true;
         }
@@ -3304,7 +3324,7 @@ namespace das
         aMain.first = td;
         aMain.second |= viaPointer;
         if ( td->isBaseVectorType() ) {
-            auto bt = make_smart<TypeDecl>(td->getVectorBaseType());
+            auto bt = new TypeDecl(td->getVectorBaseType());
             auto & aSub = aliases[bt->getMangledName()];
             aSub.first = bt;
             aSub.second |= viaPointer;
@@ -3379,7 +3399,7 @@ namespace das
         if ( sscanf(name.c_str(),"_%d",&index)==1 ) {
             return index;
         } else {
-            auto vT = isPointer() ? firstType.get() : this;
+            auto vT = isPointer() ? firstType : this;
             if (!vT) return -1;
             if ( name=="_first" ) {
                 return 0;
@@ -3393,12 +3413,357 @@ namespace das
     }
 
     int TypeDecl::variantFieldIndex ( const string & name ) const {
-        auto vT = isPointer() ? firstType.get() : this;
+        auto vT = isPointer() ? firstType : this;
         if (!vT) return -1;
         return vT->findArgumentIndex(name);
     }
 
     uint64_t TypeDecl::getMangledNameHash() const { return hash_blockz64((uint8_t *)getMangledName().c_str()); }
+
+    // Name dumper
+
+    Enum<Type> g_cppCTypeTable = {
+        {   Type::autoinfer,    "autoinfer"  },
+        {   Type::alias,        "alias"  },
+        {   Type::anyArgument,  "anyArgument"  },
+        {   Type::tVoid,        "tVoid"  },
+        {   Type::tStructure,   "tStructure" },
+        {   Type::tPointer,     "tPointer" },
+        {   Type::tBool,        "tBool"  },
+        {   Type::tInt8,        "tInt8"  },
+        {   Type::tUInt8,       "tUInt8"  },
+        {   Type::tInt16,       "tInt16"  },
+        {   Type::tUInt16,      "tUInt16"  },
+        {   Type::tInt64,       "tInt64"  },
+        {   Type::tUInt64,      "tUInt64"  },
+        {   Type::tString,      "tString" },
+        {   Type::tPointer,     "tPointer" },
+        {   Type::tEnumeration,   "tEnumeration" },
+        {   Type::tEnumeration8,  "tEnumeration8" },
+        {   Type::tEnumeration16, "tEnumeration16" },
+        {   Type::tEnumeration64, "tEnumeration64" },
+        {   Type::tBitfield,    "tBitfield" },
+        {   Type::tBitfield8,    "tBitfield8" },
+        {   Type::tBitfield16,    "tBitfield16" },
+        {   Type::tBitfield64,    "tBitfield64" },
+        {   Type::tIterator,    "tIterator" },
+        {   Type::tArray,       "tArray" },
+        {   Type::tTable,       "tTable" },
+        {   Type::tInt,         "tInt"   },
+        {   Type::tInt2,        "tInt2"  },
+        {   Type::tInt3,        "tInt3"  },
+        {   Type::tInt4,        "tInt4"  },
+        {   Type::tUInt,        "tUInt"  },
+        {   Type::tUInt2,       "tUInt2" },
+        {   Type::tUInt3,       "tUInt3" },
+        {   Type::tUInt4,       "tUInt4" },
+        {   Type::tFloat,       "tFloat" },
+        {   Type::tFloat2,      "tFloat2"},
+        {   Type::tFloat3,      "tFloat3"},
+        {   Type::tFloat4,      "tFloat4"},
+        {   Type::tDouble,      "tDouble" },
+        {   Type::tRange,       "tRange" },
+        {   Type::tURange,      "tURange"},
+        {   Type::tRange64,     "tRange64" },
+        {   Type::tURange64,    "tURange64"},
+        {   Type::tBlock,       "tBlock"},
+        {   Type::tFunction,    "tFunction"},
+        {   Type::tLambda,      "tLambda"},
+        {   Type::tTuple,       "tTuple"},
+        {   Type::tVariant,     "tVariant"},
+        {   Type::tHandle,      "tHandle"}
+    };
+
+    Enum<Type> g_cppTypeTable = {
+        {   Type::anyArgument,  "vec4f"    },
+        {   Type::tVoid,        "void"     },
+        {   Type::tBool,        "bool"     },
+        {   Type::tInt8,        "int8_t"   },
+        {   Type::tUInt8,       "uint8_t"  },
+        {   Type::tInt16,       "int16_t"  },
+        {   Type::tUInt16,      "uint16_t" },
+        {   Type::tInt64,       "int64_t"  },
+        {   Type::tUInt64,      "uint64_t" },
+        {   Type::tBitfield,    "Bitfield" },
+        {   Type::tBitfield8,   "Bitfield8" },
+        {   Type::tBitfield16,  "Bitfield16" },
+        {   Type::tBitfield64,  "Bitfield64" },
+        {   Type::tString,      "char *"   },
+        {   Type::tInt,         "int32_t"  },
+        {   Type::tInt2,        "int2"     },
+        {   Type::tInt3,        "int3"     },
+        {   Type::tInt4,        "int4"     },
+        {   Type::tUInt,        "uint32_t" },
+        {   Type::tUInt2,       "uint2"    },
+        {   Type::tUInt3,       "uint3"    },
+        {   Type::tUInt4,       "uint4"    },
+        {   Type::tFloat,       "float"    },
+        {   Type::tFloat2,      "float2"   },
+        {   Type::tFloat3,      "float3"   },
+        {   Type::tFloat4,      "float4"   },
+        {   Type::tDouble,      "double"   },
+        {   Type::tRange,       "range"    },
+        {   Type::tURange,      "urange"   },
+        {   Type::tRange64,     "range64"  },
+        {   Type::tURange64,    "urange64" },
+        {   Type::tBlock,       "Block"    },
+        {   Type::tFunction,    "Func"     },
+        {   Type::tLambda,      "Lambda"   },
+        {   Type::tTuple,       "Tuple"    },
+        {   Type::tVariant,     "Variant"  }
+    };
+
+    string aotModuleName ( Module * pm  ) {
+        if ( pm->name.empty() ) {
+            return "";
+        } else if ( pm->name=="$" ) {
+            return "_builtin_";
+        } else {
+            return pm->name;
+        }
+    }
+
+    string das_to_cppString ( Type t ) {
+        return g_cppTypeTable.find(t);
+    }
+
+    string das_to_cppCTypeString ( Type t ) {
+        return g_cppCTypeTable.find(t);
+    }
+
+    bool isConstRedundantForCpp ( const TypeDecl * type ) {
+        if ( type->dim.size() ) return false;
+        if ( type->isVectorType() ) return true;
+        switch ( type->baseType ) {
+            case Type::tBool:
+            case Type::tInt8:
+            case Type::tUInt8:
+            case Type::tInt16:
+            case Type::tUInt16:
+            case Type::tInt64:
+            case Type::tUInt64:
+            case Type::tInt:
+            case Type::tUInt:
+            case Type::tFloat:
+            case Type::tDouble:
+            case Type::tEnumeration:
+            case Type::tEnumeration8:
+            case Type::tEnumeration16:
+            case Type::tEnumeration64:
+            case Type::tBitfield:
+            case Type::tBitfield8:
+            case Type::tBitfield16:
+            case Type::tBitfield64:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    static char hex_char ( int Ch ) {
+        Ch &= 0x0f;
+        if ( Ch<=9 ) return (char)('0'+Ch);
+        else return (char)('a'+(Ch-10));
+    }
+
+    string aotSuffixNameEx ( const string & funcName, const char * suffix ) {
+        string name;
+        bool prefix = false;
+        for ( char ch : funcName ) {
+            if ( isalnum(ch) || ch=='_' ) {
+                name += ch;
+            } else {
+                prefix = true;
+                switch ( ch ) {
+                    case '=':   name += "Equ"; break;
+                    case '+':   name += "Add"; break;
+                    case '-':   name += "Sub"; break;
+                    case '*':   name += "Mul"; break;
+                    case '/':   name += "Div"; break;
+                    case '%':   name += "Mod"; break;
+                    case '&':   name += "And"; break;
+                    case '|':   name += "Or"; break;
+                    case '^':   name += "Xor"; break;
+                    case '?':   name += "Qmark"; break;
+                    case '~':   name += "Tilda"; break;
+                    case '!':   name += "Excl"; break;
+                    case '>':   name += "Greater"; break;
+                    case '<':   name += "Less"; break;
+                    case '[':   name += "Sqbl"; break;
+                    case ']':   name += "Sqbr"; break;
+                    case '.':   name += "Dot"; break;
+                    case '`':   name += "Tick"; break;
+                    case ',':   name += "Comma"; break;
+                    default:
+                        name += "_0x";
+                        name += hex_char(ch>>4);
+                        name += hex_char(ch & 0x0f);
+                        name += "_";
+                        break;
+                }
+            }
+        }
+        return prefix ? (suffix + name) : name;
+    }
+
+    static string aotStructName ( Structure * st ) {
+        return aotSuffixNameEx(st->name,"");
+    }
+
+    static string describeCppTypeEx ( const TypeDecl * type,
+                            CpptSubstitureRef substituteRef,
+                            CpptSkipRef skipRef,
+                            CpptSkipConst skipConst,
+                            CpptRedundantConst redundantConst,
+                            ChooseSmartPtr chooseSmartPtr) {
+
+        TextWriter stream;
+        auto baseType = type->baseType;
+        if ( isConstRedundantForCpp(type) && redundantConst==CpptRedundantConst::yes ) {
+            if (substituteRef == CpptSubstitureRef::yes && type->ref) {
+                // can't skip const
+            } else if ( type->ref ) {
+                // can't skip const
+            } else {
+                skipConst = CpptSkipConst::yes;
+            }
+        }
+        if ( type->dim.size() ) {
+            for ( size_t d=0, ds=type->dim.size(); d!=ds; ++d ) {
+                stream << "TDim<";
+            }
+        }
+        if ( baseType==Type::alias ) {
+            stream << "DAS_COMMENT(alias)";
+        } else if ( baseType==Type::autoinfer ) {
+            stream << "DAS_COMMENT(auto";
+            if ( !type->alias.empty() ) {
+                stream << "(" << type->alias << ")";
+            }
+            stream << ")";
+        } else if ( baseType==Type::tHandle ) {
+            if ( type->annotation->cppName.empty() ) {
+                stream << type->annotation->name;
+            } else {
+                stream << type->annotation->cppName;
+            }
+        } else if ( baseType==Type::tArray ) {
+            if ( type->firstType ) {
+                stream << "TArray<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr) << ">";
+            } else {
+                stream << "Array";
+            }
+        } else if ( baseType==Type::tTable ) {
+            if ( type->firstType && type->secondType ) {
+                stream << "TTable<" << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::yes,CpptRedundantConst::yes, chooseSmartPtr)
+                << "," << describeCppTypeEx(type->secondType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr) << ">";
+            } else {
+                stream << "Table";
+            }
+        } else if ( baseType==Type::tTuple ) {
+            stream << "TTuple<" << int(type->getTupleSize());
+            for ( const auto & arg : type->argTypes ) {
+                stream << ",";
+                stream << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr);
+            }
+            stream << ">";
+        } else if ( baseType==Type::tVariant ) {
+            stream << "TVariant<" << int(type->getVariantSize()) << "," << int(type->getVariantAlign());
+            for ( const auto & arg : type->argTypes ) {
+                stream << ",";
+                stream << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr);
+            }
+            stream << ">";
+        } else if ( baseType==Type::tStructure ) {
+            if ( type->structType ) {
+                if ( type->structType->module->name.empty() ) {
+                    stream << aotStructName(type->structType);
+                } else {
+                    stream << aotModuleName(type->structType->module) << "::" << aotStructName(type->structType);
+                }
+            } else {
+                stream << "DAS_COMMENT(unspecified structure) ";
+            }
+        } else if ( baseType==Type::tPointer ) {
+            if ( !type->smartPtr ) {
+                if ( type->firstType ) {
+                    stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no, chooseSmartPtr) << " *";
+                } else {
+                    stream << "void *";
+                }
+            } else {
+                if ( type->firstType ) {
+                    stream  << (type->smartPtrNative && chooseSmartPtr == ChooseSmartPtr::yes ? "smart_ptr<" : "smart_ptr_raw<")
+                            <<  describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::no, chooseSmartPtr)
+                            << ">";
+                } else {
+                    stream  << (type->smartPtrNative && chooseSmartPtr == ChooseSmartPtr::yes ? "smart_ptr<" : "smart_ptr_raw<") << "void>";
+                }
+            }
+        } else if ( type->isEnumT() ) {
+            if ( type->enumType ) {
+                if ( type->enumType->external ) {
+                    stream << "DAS_COMMENT(bound_enum) " << type->enumType->cppName;
+                } else if ( type->enumType->module->name.empty() ) {
+                    stream << "DAS_COMMENT(enum) " << type->enumType->name;
+                } else {
+                    stream << "DAS_COMMENT(enum) " << aotModuleName(type->enumType->module) << "::" << type->enumType->name;
+                }
+            } else {
+                stream << "DAS_COMMENT(unspecified enumeration)";
+            }
+        } else if ( baseType==Type::tIterator ) {
+            if ( type->firstType ) {
+                stream << "Sequence DAS_COMMENT((" << describeCppTypeEx(type->firstType,substituteRef,skipRef,skipConst,CpptRedundantConst::yes, chooseSmartPtr) << "))";
+            } else {
+                stream << "Sequence";
+            }
+        } else if ( baseType==Type::tBlock || baseType==Type::tFunction || baseType==Type::tLambda ) {
+            if ( !type->constant && type->baseType==Type::tBlock ) {
+                stream << "const ";
+            }
+            stream << das_to_cppString(baseType) << " DAS_COMMENT((";
+            if ( type->firstType ) {
+                stream << describeCppTypeEx(type->firstType,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr);
+            } else {
+                stream << "void";
+            }
+            if ( type->argTypes.size() ) {
+                for ( const auto & arg : type->argTypes ) {
+                    stream << "," << describeCppTypeEx(arg,CpptSubstitureRef::no,CpptSkipRef::no,CpptSkipConst::no,CpptRedundantConst::yes, chooseSmartPtr);
+                }
+            }
+            stream << "))";
+        } else {
+            stream << das_to_cppString(baseType);
+        }
+        if ( type->dim.size() ) {
+            for ( auto itd=type->dim.rbegin(), itds=type->dim.rend(); itd!=itds; ++itd ) {
+                stream << "," << *itd << ">";
+            }
+        }
+        if ( skipConst==CpptSkipConst::no ) {
+            if ( type->constant ) {
+                stream << " const ";
+            }
+        }
+        if ( type->ref && skipRef==CpptSkipRef::no ) {
+            if ( substituteRef==CpptSubstitureRef::no ) {
+                stream << " &";
+            } else {
+                stream << " *";
+            }
+        }
+        return stream.str();
+    }
+
+    string describeCppType ( const TypeDecl * type,
+                            CpptSubstitureRef substituteRef,
+                            CpptSkipRef skipRef,
+                            CpptSkipConst skipConst,
+                            CpptRedundantConst redundantConst, ChooseSmartPtr chooseSmartPtr ) {
+        return describeCppTypeEx(type, substituteRef, skipRef, skipConst, redundantConst, chooseSmartPtr);
+    }
 
     // Mangled name parser
 
@@ -3471,7 +3836,7 @@ namespace das
             };
             case 'H': {
                 ch ++;
-                auto pt = make_smart<TypeDecl>(Type::tHandle);
+                auto pt = new TypeDecl(Type::tHandle);
                 auto annName = parseAnyNameInBrackets(ch,true);
                 auto ann = library.findAnnotation(annName,thisModule);
                 if ( thisModule && ann.size()==0 ) {
@@ -3492,14 +3857,14 @@ namespace das
                     }
                 }
                 if ( ann.size()!=1 ) error("unresolved annotation '" + annName + "'", ch);
-                pt->annotation = (TypeAnnotation *) ann.back().get();
+                pt->annotation = (TypeAnnotation *) ann.back();
                 if ( !pt->annotation->rtti_isHandledTypeAnnotation() ) error("'" + annName + "' is not a handled type", ch);
                 return pt;
             };
             case 'S': {
                 ch ++;
                 auto sname = parseAnyNameInBrackets(ch,true);
-                auto pt = make_smart<TypeDecl>(Type::tStructure);
+                auto pt = new TypeDecl(Type::tStructure);
                 auto stt = library.findStructure(sname, thisModule);
                 if ( thisModule && stt.size()==0 ) {
                     if ( auto tstt = thisModule->findStructure(sname) ) {
@@ -3507,7 +3872,7 @@ namespace das
                     }
                 }
                 if ( stt.size()==1 ) error("unknown structure '" + sname + "'", ch);
-                pt->structType = stt.back().get();
+                pt->structType = stt.back();
                 return pt;
             }
             case '0': {
@@ -3541,18 +3906,18 @@ namespace das
             };
             case 'E': {
                 ch ++;
-                TypeDeclPtr pt;
+                TypeDeclPtr pt = nullptr;
                 if ( *ch=='8' ) {
                     ch ++;
-                    pt = make_smart<TypeDecl>(Type::tEnumeration8);
+                    pt = new TypeDecl(Type::tEnumeration8);
                 } else if ( ch[0]=='1' && ch[1]=='6' ) {
                     ch += 2;
-                    pt = make_smart<TypeDecl>(Type::tEnumeration16);
+                    pt = new TypeDecl(Type::tEnumeration16);
                 } else if ( ch[0]=='6' && ch[1]=='4' ) {
                     ch += 2;
-                    pt = make_smart<TypeDecl>(Type::tEnumeration64);
+                    pt = new TypeDecl(Type::tEnumeration64);
                 } else {
-                    pt = make_smart<TypeDecl>(Type::tEnumeration);
+                    pt = new TypeDecl(Type::tEnumeration);
                 }
                 if ( *ch=='<' ) {
                     auto sname = parseAnyNameInBrackets(ch,true);
@@ -3563,7 +3928,7 @@ namespace das
                         }
                     }
                     if ( stt.size()!=1 ) error("unresolved enumeration '" + sname + "'", ch);
-                    pt->enumType = stt.back().get();
+                    pt->enumType = stt.back();
                 }
                 return pt;
             }
@@ -3575,66 +3940,66 @@ namespace das
                 return pt;
             };
             case '_': {
-                        if ( ch[1]=='c' )                   { ch+=2; return make_smart<TypeDecl>(Type::fakeContext); }
-                else    if ( ch[1]=='l' )                   { ch+=2; return make_smart<TypeDecl>(Type::fakeLineInfo); }
-                else                                        { error("unsupported mangled name format - expecting fake...", ch); return make_smart<TypeDecl>(); }
+                        if ( ch[1]=='c' )                   { ch+=2; return new TypeDecl(Type::fakeContext); }
+                else    if ( ch[1]=='l' )                   { ch+=2; return new TypeDecl(Type::fakeLineInfo); }
+                else                                        { error("unsupported mangled name format - expecting fake...", ch); return new TypeDecl(); }
             }
             case 'i': {
-                        if ( ch[1]=='2' )                   { ch+=2; return make_smart<TypeDecl>(Type::tInt2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return make_smart<TypeDecl>(Type::tInt3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return make_smart<TypeDecl>(Type::tInt4); }
-                else    if ( ch[1]=='8' )                   { ch+=2; return make_smart<TypeDecl>(Type::tInt8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return make_smart<TypeDecl>(Type::tInt16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return make_smart<TypeDecl>(Type::tInt64); }
-                else                                        { ch+=1; return make_smart<TypeDecl>(Type::tInt); }
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tInt2); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tInt3); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tInt4); }
+                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tInt8); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tInt16); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tInt64); }
+                else                                        { ch+=1; return new TypeDecl(Type::tInt); }
             }
             case 'u': {
-                        if ( ch[1]=='2' )                   { ch+=2; return make_smart<TypeDecl>(Type::tUInt2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return make_smart<TypeDecl>(Type::tUInt3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return make_smart<TypeDecl>(Type::tUInt4); }
-                else    if ( ch[1]=='8' )                   { ch+=2; return make_smart<TypeDecl>(Type::tUInt8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return make_smart<TypeDecl>(Type::tUInt16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return make_smart<TypeDecl>(Type::tUInt64); }
-                else                                        { ch+=1; return make_smart<TypeDecl>(Type::tUInt); }
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tUInt2); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tUInt3); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tUInt4); }
+                else    if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tUInt8); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tUInt16); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tUInt64); }
+                else                                        { ch+=1; return new TypeDecl(Type::tUInt); }
             }
             case 'f': {
-                        if ( ch[1]=='2' )                   { ch+=2; return make_smart<TypeDecl>(Type::tFloat2); }
-                else    if ( ch[1]=='3' )                   { ch+=2; return make_smart<TypeDecl>(Type::tFloat3); }
-                else    if ( ch[1]=='4' )                   { ch+=2; return make_smart<TypeDecl>(Type::tFloat4); }
-                else                                        { ch+=1; return make_smart<TypeDecl>(Type::tFloat); }
-            case '.':   ch++; return make_smart<TypeDecl>(Type::autoinfer);
-            case '|':   ch++; return make_smart<TypeDecl>(Type::option);
-            case 'D':   ch++; return make_smart<TypeDecl>(Type::typeDecl);
-            case '^':   ch++; return make_smart<TypeDecl>(Type::typeMacro);
-            case '*':   ch++; return make_smart<TypeDecl>(Type::anyArgument);
-            case 'L':   ch++; return make_smart<TypeDecl>(Type::alias);
-            case 'A':   ch++; return make_smart<TypeDecl>(Type::tArray);
-            case 'T':   ch++; return make_smart<TypeDecl>(Type::tTable);
-            case 'G':   ch++; return make_smart<TypeDecl>(Type::tIterator);
-            case '$':   ch++; return make_smart<TypeDecl>(Type::tBlock);
-            case 'U':   ch++; return make_smart<TypeDecl>(Type::tTuple);
-            case 'V':   ch++; return make_smart<TypeDecl>(Type::tVariant);
+                        if ( ch[1]=='2' )                   { ch+=2; return new TypeDecl(Type::tFloat2); }
+                else    if ( ch[1]=='3' )                   { ch+=2; return new TypeDecl(Type::tFloat3); }
+                else    if ( ch[1]=='4' )                   { ch+=2; return new TypeDecl(Type::tFloat4); }
+                else                                        { ch+=1; return new TypeDecl(Type::tFloat); }
+            case '.':   ch++; return new TypeDecl(Type::autoinfer);
+            case '|':   ch++; return new TypeDecl(Type::option);
+            case 'D':   ch++; return new TypeDecl(Type::typeDecl);
+            case '^':   ch++; return new TypeDecl(Type::typeMacro);
+            case '*':   ch++; return new TypeDecl(Type::anyArgument);
+            case 'L':   ch++; return new TypeDecl(Type::alias);
+            case 'A':   ch++; return new TypeDecl(Type::tArray);
+            case 'T':   ch++; return new TypeDecl(Type::tTable);
+            case 'G':   ch++; return new TypeDecl(Type::tIterator);
+            case '$':   ch++; return new TypeDecl(Type::tBlock);
+            case 'U':   ch++; return new TypeDecl(Type::tTuple);
+            case 'V':   ch++; return new TypeDecl(Type::tVariant);
             case 't':   {
-                        if ( ch[1]=='8' )                   { ch+=2; return make_smart<TypeDecl>(Type::tBitfield8); }
-                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return make_smart<TypeDecl>(Type::tBitfield16); }
-                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return make_smart<TypeDecl>(Type::tBitfield64); }
-                else                                        { ch++; return make_smart<TypeDecl>(Type::tBitfield); }
+                        if ( ch[1]=='8' )                   { ch+=2; return new TypeDecl(Type::tBitfield8); }
+                else    if ( ch[1]=='1' && ch[2]=='6' )     { ch+=3; return new TypeDecl(Type::tBitfield16); }
+                else    if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tBitfield64); }
+                else                                        { ch++; return new TypeDecl(Type::tBitfield); }
             }
             case 'r':   {
-                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return make_smart<TypeDecl>(Type::tRange64); }
-                else                                        { ch+=1; return make_smart<TypeDecl>(Type::tRange); }
+                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tRange64); }
+                else                                        { ch+=1; return new TypeDecl(Type::tRange); }
             }
             case 'z':   {
-                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return make_smart<TypeDecl>(Type::tURange64); }
-                else                                        { ch+=1; return make_smart<TypeDecl>(Type::tURange); }
+                        if ( ch[1]=='6' && ch[2]=='4' )     { ch+=3; return new TypeDecl(Type::tURange64); }
+                else                                        { ch+=1; return new TypeDecl(Type::tURange); }
             }
-            case 'd':   ch++; return make_smart<TypeDecl>(Type::tDouble);
-            case 's':   ch++; return make_smart<TypeDecl>(Type::tString);
-            case 'v':   ch++; return make_smart<TypeDecl>(Type::tVoid);
-            case 'b':   ch++; return make_smart<TypeDecl>(Type::tBool);
+            case 'd':   ch++; return new TypeDecl(Type::tDouble);
+            case 's':   ch++; return new TypeDecl(Type::tString);
+            case 'v':   ch++; return new TypeDecl(Type::tVoid);
+            case 'b':   ch++; return new TypeDecl(Type::tBool);
             case '?':   {
                 ch++;
-                auto pt = make_smart<TypeDecl>(Type::tPointer);
+                auto pt = new TypeDecl(Type::tPointer);
                 if ( *ch=='M' ) {
                     pt->smartPtr = true;
                     pt->smartPtrNative = false;
@@ -3649,10 +4014,10 @@ namespace das
             case '@':   {
                 if ( ch[1]=='@' ) {
                     ch+=2;
-                    return make_smart<TypeDecl>(Type::tFunction);
+                    return new TypeDecl(Type::tFunction);
                 } else {
                     ch++;
-                    return make_smart<TypeDecl>(Type::tLambda);
+                    return new TypeDecl(Type::tLambda);
                 }
             };
             case '&': {
@@ -3705,7 +4070,7 @@ namespace das
                 }
                 }
                 error("unsupported mangled name format - expecting remove trait", ch);
-                return make_smart<TypeDecl>();
+                return new TypeDecl();
             };
             case 'I': {
                 ch ++;
@@ -3740,7 +4105,7 @@ namespace das
             }
         }
         error("unsupported mangled name format symbol", ch);
-        return make_smart<TypeDecl>();
+        return new TypeDecl();
     }
 
     TypeDeclPtr parseTypeFromMangledName ( const char * & ch, const ModuleLibrary & library, Module * thisModule ) {

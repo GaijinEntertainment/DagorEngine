@@ -39,7 +39,7 @@ static ecs::EntitySystemDesc ground_holes_initialize_es_es_desc
 static constexpr ecs::ComponentDesc ground_holes_on_disappear_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
 //start of 1 ro components at [1]
   {ECS_HASH("hmap_holes_scale_step_offset_varId"), ecs::ComponentTypeInfo<int>()}
 };
@@ -48,7 +48,7 @@ static void ground_holes_on_disappear_es_all_events(const ecs::Event &__restrict
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_on_disappear_es(evt
         , ECS_RO_COMP(ground_holes_on_disappear_es_comps, "hmap_holes_scale_step_offset_varId", int)
-    , ECS_RW_COMP(ground_holes_on_disappear_es_comps, "hmapHolesTex", UniqueTexHolder)
+    , ECS_RW_COMP(ground_holes_on_disappear_es_comps, "hmapHolesTex", UniqueTexWithShaderVar)
     );
   while (++comp != compE);
 }
@@ -68,8 +68,8 @@ static ecs::EntitySystemDesc ground_holes_on_disappear_es_es_desc
 static constexpr ecs::ComponentDesc ground_hole_render_es_comps[] =
 {
 //start of 9 rw components at [0]
-  {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
-  {ECS_HASH("hmapHolesTmpTex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
+  {ECS_HASH("hmapHolesTmpTex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("hmapHolesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
   {ECS_HASH("hmapHolesProcessRenderer"), ecs::ComponentTypeInfo<PostFxRenderer>()},
   {ECS_HASH("hmapHolesMipmapRenderer"), ecs::ComponentTypeInfo<PostFxRenderer>()},
@@ -87,8 +87,8 @@ static void ground_hole_render_es_all_events(const ecs::Event &__restrict evt, c
   G_FAST_ASSERT(evt.is<UpdateStageInfoRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_hole_render_es(static_cast<const UpdateStageInfoRender&>(evt)
-        , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTex", UniqueTexHolder)
-    , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTmpTex", UniqueTexHolder)
+        , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTex", UniqueTexWithShaderVar)
+    , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTmpTex", UniqueTexWithShaderVar)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesBuf", UniqueBufHolder)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesProcessRenderer", PostFxRenderer)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesMipmapRenderer", PostFxRenderer)

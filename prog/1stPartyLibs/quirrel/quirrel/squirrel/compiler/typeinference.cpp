@@ -226,38 +226,11 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
         if (isFreezeCall(expr))
             return inferExprTypeMask(call->arguments()[0]);
 
-        unsigned retMask = ~0u;
-
-        if (callee->op() == TO_ID) {
-            SQObjectPtr calleeName(_fs->CreateString(callee->asId()->name()));
-            SQCompiletimeVarInfo calleeInfo;
-            if ((_fs->GetLocalVariable(calleeName, calleeInfo) != -1 ||
-                 _fs->GetOuterVariable(calleeName, calleeInfo) != -1) &&
-                calleeInfo.initializer) {
-                if (calleeInfo.initializer->op() == TO_FUNCTION) {
-                    retMask = calleeInfo.initializer->asFunctionExpr()->getResultTypeMask();
-                } else if (calleeInfo.initializer->op() == TO_CLASS) {
-                    retMask = _RT_INSTANCE;
-                }
-            }
-            // Check named constants (const function [pure] ...)
-            if (retMask == ~0u) {
-                SQObjectPtr constant;
-                if (IsConstant(calleeName, constant)) {
-                    if (sq_type(constant) == OT_CLOSURE) {
-                        SQClosure *cls = _closure(constant);
-                        if (cls->_function)
-                            retMask = cls->_function->_result_type_mask;
-                    } else if (sq_type(constant) == OT_NATIVECLOSURE) {
-                        SQNativeClosure *nc = _nativeclosure(constant);
-                        retMask = nc->_result_type_mask;
-                    }
-                }
-            }
-        }
-        else if (callee->op() == TO_FUNCTION) {
-            retMask = callee->asFunctionExpr()->getResultTypeMask();
-        }
+        ResolvedCallee info = resolveCallee(callee);
+        // For an async function, the call value is the Promise wrapper (an
+        // instance), not the resolved type. The resolved type is what
+        // `await call(...)` produces; see TO_AWAIT below.
+        unsigned retMask = info.known ? (info.isAsync ? _RT_INSTANCE : info.resultMask) : ~0u;
 
         if (call->isNullable() && retMask != ~0u)
             retMask |= _RT_NULL;
@@ -297,6 +270,18 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
     }
 
 
+    // Only await-on-direct-async-call is handled; flowing through a variable
+    // (`let p = f(); await p`) would need Promise<T> generics, which Quirrel lacks.
+    case TO_AWAIT: {
+        Expr *arg = deparen(static_cast<UnExpr *>(expr)->argument());
+        if (arg->op() == TO_CALL) {
+            ResolvedCallee info = resolveCallee(arg->asCallExpr()->callee());
+            if (info.known && info.isAsync)
+                return info.resultMask;
+        }
+        return ~0u;
+    }
+
     case TO_DELETE:
     case TO_RESUME:
     // Compound assign are complex; fall through to runtime
@@ -319,19 +304,99 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 }
 
 
+// Statically resolve a callee expression to (isAsync, isNative, resultMask).
+// Returns {known=false} when the callee shape isn't statically resolvable
+// (anything other than TO_ID -> known initializer/constant, or TO_FUNCTION).
+// Note: class-method calls (`obj.method()`) intentionally stay opaque.
+// Adding tracking would require receiver-class inference and member walks;
+// skipped for now for simplicity.
+CodeGenVisitor::ResolvedCallee CodeGenVisitor::resolveCallee(Expr *callee) {
+    ResolvedCallee r{false, false, false, ~0u};
+
+    if (callee->op() == TO_ID) {
+        SQObjectPtr calleeName(_fs->CreateString(callee->asId()->name()));
+        SQCompiletimeVarInfo calleeInfo;
+        if ((_fs->GetLocalVariable(calleeName, calleeInfo) != -1 ||
+             _fs->GetOuterVariable(calleeName, calleeInfo) != -1) &&
+            calleeInfo.initializer) {
+            if (calleeInfo.initializer->op() == TO_FUNCTION) {
+                FunctionExpr *fn = calleeInfo.initializer->asFunctionExpr();
+                r.known = true;
+                r.isAsync = fn->isAsync();
+                r.resultMask = fn->getResultTypeMask();
+                return r;
+            }
+            if (calleeInfo.initializer->op() == TO_CLASS) {
+                r.known = true;
+                r.resultMask = _RT_INSTANCE;
+                return r;
+            }
+        }
+        // Named constants: const closure (compiled async possible) or native closure.
+        SQObjectPtr constant;
+        if (IsConstant(calleeName, constant)) {
+            if (sq_type(constant) == OT_CLOSURE) {
+                SQClosure *cls = _closure(constant);
+                if (cls->_function) {
+                    r.known = true;
+                    r.isAsync = cls->_function->_isAsync;
+                    r.resultMask = cls->_function->_result_type_mask;
+                    return r;
+                }
+            } else if (sq_type(constant) == OT_NATIVECLOSURE) {
+                SQNativeClosure *nc = _nativeclosure(constant);
+                r.known = true;
+                r.isNative = true;
+                r.resultMask = nc->_result_type_mask;
+                return r;
+            }
+        }
+        return r;
+    }
+
+    if (callee->op() == TO_FUNCTION) {
+        FunctionExpr *fn = callee->asFunctionExpr();
+        r.known = true;
+        r.isAsync = fn->isAsync();
+        r.resultMask = fn->getResultTypeMask();
+        return r;
+    }
+
+    return r;
+}
+
+
 bool CodeGenVisitor::checkInferredType(Node *reportNode, Expr *expr, unsigned declaredMask) {
 #if SQ_RUNTIME_TYPE_CHECK
     if (declaredMask == ~0u)
         return false;
+
+    // Non-Promise lvalue assigned an async-function call: that's a forgotten `await`.
+    // Skip when the lvalue accepts 'instance' -- user intentionally captured the Promise.
+    // deparen so `let x: int = (asyncFn())` is also caught.
+    Expr *call = deparen(expr);
+    if ((declaredMask & _RT_INSTANCE) == 0 && call->op() == TO_CALL) {
+        Expr *callee = call->asCallExpr()->callee();
+        ResolvedCallee info = resolveCallee(callee);
+        if (info.known && info.isAsync) {
+            const char *fnName = (callee->op() == TO_ID) ? callee->asId()->name() : "the function";
+            char declaredBuf[160];
+            sq_stringify_type_mask(declaredBuf, sizeof(declaredBuf), declaredMask);
+            _ctx.throwError(reportNode,
+                "call to async function returns a Promise, not '%s'; did you mean 'await %s(...)'?",
+                declaredBuf, fnName);
+            return false; // unreachable
+        }
+    }
 
     unsigned inferredMask = inferExprTypeMask(expr);
     if (inferredMask != ~0u && (inferredMask & ~declaredMask) != 0) {
         char inferredBuf[160], declaredBuf[160];
         sq_stringify_type_mask(inferredBuf, sizeof(inferredBuf), inferredMask);
         sq_stringify_type_mask(declaredBuf, sizeof(declaredBuf), declaredMask);
-        reportDiagnostic(reportNode, DiagnosticsId::DI_INFERRED_TYPE_MISMATCH,
-                         inferredBuf, declaredBuf);
-        return false;
+        _ctx.throwError(reportNode, "expression of type '%s' cannot be assigned to type '%s'",
+                   inferredBuf, declaredBuf);
+        return false; // unreachable
     }
     return inferredMask != ~0u;
 #else

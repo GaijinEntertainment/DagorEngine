@@ -594,7 +594,6 @@ void DagorEdAppWindow::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::LOAD_LAYOUT);
   editor_command_system.addCommand(EditorCommandIds::SAVE_LAYOUT);
   editor_command_system.addCommand(EditorCommandIds::OPTIONS_TOTAL, ImGuiKey_F11);
-  editor_command_system.addCommand(EditorCommandIds::OPTIONS_GRID);
   editor_command_system.addCommand(EditorCommandIds::USE_OCCLUDERS);
   editor_command_system.addCommand(EditorCommandIds::NAV_COMPASS);
   editor_command_system.addCommand(EditorCommandIds::SHOW_COLLISION);
@@ -624,6 +623,7 @@ void DagorEdAppWindow::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_MOVE_SNAP, ImGuiKey_S);
   editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_ANGLE_SNAP, ImGuiKey_A);
   editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
+  editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_SETTINGS);
 
   editor_command_system.addCommand(EditorCommandIds::SWITCH_PLUGIN_F5, ImGuiKey_F5);
   editor_command_system.addCommand(EditorCommandIds::SWITCH_PLUGIN_F6, ImGuiKey_F6);
@@ -698,7 +698,7 @@ void DagorEdAppWindow::addEditorAccelerators()
     mManager->addAccelerator(CM_LOAD_LAYOUT, EditorCommandIds::LOAD_LAYOUT);
     mManager->addAccelerator(CM_SAVE_LAYOUT, EditorCommandIds::SAVE_LAYOUT);
     mManager->addAccelerator(CM_OPTIONS_TOTAL, EditorCommandIds::OPTIONS_TOTAL);
-    mManager->addAccelerator(CM_OPTIONS_GRID, EditorCommandIds::OPTIONS_GRID);
+    mManager->addAccelerator(CM_OPTIONS_GRID, EditorCommandIds::VIEW_GRID_SETTINGS);
     mManager->addAccelerator(CM_USE_OCCLUDERS, EditorCommandIds::USE_OCCLUDERS);
     mManager->addAccelerator(CM_NAV_COMPASS, EditorCommandIds::NAV_COMPASS);
     mManager->addAccelerator(CM_SHOW_COLLISION, EditorCommandIds::SHOW_COLLISION);
@@ -1089,7 +1089,7 @@ void DagorEdAppWindow::fillMenu(PropPanel::IMenu *menu)
   menu->addSeparator(CM_VIEW);
 
   editor_command_system.addMenuItem(*menu, CM_VIEW, CM_OPTIONS_TOTAL, EditorCommandIds::OPTIONS_TOTAL, "Plugins visibility...");
-  editor_command_system.addMenuItem(*menu, CM_VIEW, CM_OPTIONS_GRID, EditorCommandIds::OPTIONS_GRID, "Edit grid options...");
+  editor_command_system.addMenuItem(*menu, CM_VIEW, CM_OPTIONS_GRID, EditorCommandIds::VIEW_GRID_SETTINGS, "Edit grid options...");
 
   menu->addSeparator(CM_VIEW);
 

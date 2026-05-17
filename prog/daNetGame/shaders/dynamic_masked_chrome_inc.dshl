@@ -29,7 +29,7 @@ macro COMMON_MASKED_CHROME_SHADER_INIT()
   (ps) { diffuse_tex@staticSmp = diffuseTex; }
 
   texture normalMap = material.texture[2];
-  texture aoTex = material.texture[3];
+  texture aoTex = material.texture[3] stub=(1,1,1,1);
 
   INIT_MASKED_MICRODETAIL()
 
@@ -95,11 +95,8 @@ macro COMMON_MASKED_CHROME_PS()
 
     (ps){
       normalmap_tex@staticSmp = normalMap;
+      aoTex@staticSmp = aoTex;
       thermal_vision_temperature@f1 = thermal_vision_temperature;
-    }
-    if (aoTex != NULL)
-    {
-      (ps){ aoTex@staticSmp = aoTex; }
     }
 
     hlsl(ps) {
@@ -165,9 +162,7 @@ macro COMMON_MASKED_CHROME_PS()
 
         apply_burning_and_wounds(input, character_micro_detail_layer, worldNormal, diffuseColor.rgb, smoothness, reflectance);
 
-        ##if (aoTex != NULL)
         ao *= tex2DBindless(get_aoTex(), input.diffuseTexcoord.xy).g;
-        ##endif
         UnpackedGbuffer result;
         init_gbuffer(result);
 

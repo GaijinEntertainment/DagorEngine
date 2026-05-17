@@ -83,11 +83,11 @@ public:
     addBuiltinDependency(lib, require("rapidjson")); // for get_matching_invite_data
     addBuiltinDependency(lib, require("net"), true);
     addBuiltinDependency(lib, require("BitStream"));
-    addEnumeration(das::make_smart<EnumerationDisconnectionCause>());
-    addEnumeration(das::make_smart<EnumerationClientNetFlags>());
-    addAnnotation(das::make_smart<LocSnapshotAnnotation>(lib));
-    // addAnnotation(das::make_smart<SnapshotEntityDataAnnotation>(lib));
-    das::addVectorAnnotation<LocSnapshotsList>(this, lib, das::make_smart<LocSnapshotsListAnnotation>(lib));
+    addEnumeration(new EnumerationDisconnectionCause());
+    addEnumeration(new EnumerationClientNetFlags());
+    addAnnotation(new LocSnapshotAnnotation(lib));
+    // addAnnotation(new SnapshotEntityDataAnnotation(lib));
+    das::addVectorAnnotation<LocSnapshotsList>(this, lib, new LocSnapshotsListAnnotation(lib));
 
     addExtern<DAS_BIND_FUN(_builtin_remote_recreate_entity_from)>(*this, lib, "_builtin_remote_recreate_entity_from",
       SideEffects::modifyExternal, "bind_dascript::_builtin_remote_recreate_entity_from");
@@ -98,10 +98,10 @@ public:
       "bind_dascript::_builtin_remote_recreate_entity_from_block_lambda");
     addExtern<DAS_BIND_FUN(_builtin_remote_change_sub_template)>(*this, lib, "remote_change_sub_template", SideEffects::modifyExternal,
       "bind_dascript::_builtin_remote_change_sub_template")
-      ->arg_init(3, make_smart<ExprConstBool>(false)); // force = false
+      ->arg_init(3, new ExprConstBool(false)); // force = false
     addExtern<DAS_BIND_FUN(_builtin_remote_change_sub_template_block)>(*this, lib, "remote_change_sub_template",
       SideEffects::modifyExternal, "bind_dascript::_builtin_remote_change_sub_template_block")
-      ->arg_init(4, make_smart<ExprConstBool>(false)); // force = false
+      ->arg_init(4, new ExprConstBool(false)); // force = false
     addExtern<DAS_BIND_FUN(_builtin_remote_change_sub_template_block_lambda)>(*this, lib, "remote_change_sub_template",
       SideEffects::modifyExternal, "bind_dascript::_builtin_remote_change_sub_template_block_lambda");
 

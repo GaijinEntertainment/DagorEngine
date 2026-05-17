@@ -31,7 +31,7 @@ void save_occlusion(class IGenSave &cb, const Occlusion &occlusion)
   cb.endBlock();
 
   cb.beginBlock();
-  cb.write(occlusion.getOcclusionTest().getZbuffer(), sizeof(float) * OCCLUSION_W * OCCLUSION_H);
+  cb.write(occlusion.getOcclusionZBuffer().getZbuffer(), sizeof(float) * OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT);
   cb.endBlock();
 }
 
@@ -64,9 +64,9 @@ bool load_occlusion(class IGenLoad &cb, Occlusion &occlusion)
   occlusion.startFrame(pos, view, proj, viewProj, cockpitDist, cockpitMode, cockpitAnim, 0, 0);
 
   cb.beginBlock();
-  OcclusionTest<OCCLUSION_W, OCCLUSION_H> &occlusionTest = occlusion.getOcclusionTest();
-  cb.read(occlusionTest.getZbuffer(), sizeof(float) * OCCLUSION_W * OCCLUSION_H);
-  occlusionTest.buildMips();
+  OcclusionZBuffer &occlusionZBuffer = occlusion.getOcclusionZBuffer();
+  cb.read(occlusionZBuffer.getZbuffer(), sizeof(float) * OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT);
+  occlusionZBuffer.buildMips();
   cb.endBlock();
   return true;
 }

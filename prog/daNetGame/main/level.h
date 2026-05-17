@@ -18,6 +18,7 @@ ecs::EntityId get_current_level_eid();
 
 void select_weather_preset(const char *preset_name);
 void select_weather_preset_delayed(const char *preset_name);
+void update_delayed_weather_selection();
 
 const char *get_rendinst_dmg_blk_fn();
 

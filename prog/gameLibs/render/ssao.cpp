@@ -99,8 +99,8 @@ void SSAORenderer::initRandomPattern()
   String name(128, "%srandom_pattern_tex", tag);
 
   randomPatternTex.close();
-  randomPatternTex = UniqueTexHolder(dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT,
-                                       TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, name.data(), RESTAG_AO),
+  randomPatternTex = UniqueTexWithShaderVar(dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT,
+                                              TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, name.data(), RESTAG_AO),
     "random_pattern_tex");
   renderRandomPattern();
 }

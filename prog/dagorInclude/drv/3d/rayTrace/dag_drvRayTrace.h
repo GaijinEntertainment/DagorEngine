@@ -6,7 +6,7 @@
 
 // raytrace interface
 
-#if _TARGET_PC || _TARGET_SCARLETT || _TARGET_ANDROID || _TARGET_IOS || _TARGET_C2
+#if _TARGET_PC || _TARGET_SCARLETT || _TARGET_ANDROID || _TARGET_IOS || _TARGET_PC_MACOSX || _TARGET_C2
 #define D3D_HAS_RAY_TRACING 1
 // it somehow screws with some ps4 platform headers
 #include <generic/dag_enumBitMask.h>

@@ -30,6 +30,7 @@
   file:t = "../clipmap_compression.dshl"
   file:t = "../make_clipmap.dshl"
   file:t = "clipmap_histogram.dshl"
+  file:t = "tileConstantFiller.dshl"
   file:t = "../land_aces.dshl"
   file:t = "../water_3d_forward.dshl"
   file:t = "../postfx.dshl"

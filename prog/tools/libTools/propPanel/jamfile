@@ -54,6 +54,7 @@ Sources =
   control/gradientControlStandalone.cpp
   control/panelWindow.cpp
   control/propertyControlBase.cpp
+  control/spinEditFloat.cpp
   control/spinEditStandalone.cpp
   control/toolbarButton.cpp
   control/toolbarContainer.cpp

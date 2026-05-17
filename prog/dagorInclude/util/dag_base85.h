@@ -23,7 +23,7 @@ struct Base85OutputBlock
 };
 
 /// Some settings for the base 85 encoder, those control the use of string shortcut optimizations.
-struct EncoderSettings
+struct Base85EncoderSettings
 {
   /// Allow to encode 0 into a single 'z'.
   /// Encodes 4 bytes into 1 byte, instead of 5.
@@ -43,7 +43,7 @@ struct EncoderSettings
 /// @param word The 32 bit word to encode with base 85
 /// @param settings Settings to control some optimizations, see type for details. Enables all by default.
 /// @return Returns an array of chars, holding a null terminated string with up to 5 ASCII characters.
-constexpr Base85OutputBlock encode_32_bit_word_to_base_85_block(uint32_t word, const EncoderSettings &settings = {})
+constexpr Base85OutputBlock encode_32_bit_word_to_base_85_block(uint32_t word, const Base85EncoderSettings &settings = {})
 {
   Base85OutputBlock result{};
   uint32_t v0 = word % 85;
@@ -124,3 +124,8 @@ constexpr Base85DecodeResult dencode_32_bit_word_from_base_85_string(const char 
   value += detail::decode_value_from_base_85(data[4]) * pow85[4];
   return {data + 5, len - 5, value};
 }
+
+/// @brief Calculates the max string length (without 0 terminator) the data of the given length in bytes needs.
+/// @param len The number of bytes that should be encoded.
+/// @return The number of chars needed to encode the number of bytes.
+constexpr size_t calculate_max_base_86_string_length(size_t len) { return ((len + 3) / 4) * 5; }

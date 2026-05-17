@@ -14,7 +14,7 @@ namespace das {
 
 	void Module_dasIMGUI_NODE_EDITOR::initMain () {
         auto fnLink = findUniqueFunction("Link");
-        fnLink->arg_init(3, make_smart<ExprConstFloat4>(float4(1.0f)));
+        fnLink->arg_init(3, new ExprConstFloat4(float4(1.0f)));
         // time to fix-up const & ImVec2 and const & ImVec4
         for ( auto & pfn : this->functions.each() ) {
             bool anyString = false;

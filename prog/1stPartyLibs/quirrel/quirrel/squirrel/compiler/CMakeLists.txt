@@ -4,7 +4,6 @@ set(COMPILER_SRC
     parser.cpp
     codegen.cpp
     constgen.cpp
-    sqio.cpp
     compiler.cpp
     sqfuncstate.cpp
     sqdump.cpp

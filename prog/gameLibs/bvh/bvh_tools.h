@@ -12,6 +12,7 @@
 #include <generic/dag_enumerate.h>
 #include <generic/dag_zip.h>
 #include <atomic>
+#include <math/dag_frustum.h>
 
 #include "bvh_context.h"
 #include "bvh_ri_common.h"
@@ -192,6 +193,43 @@ inline void process_relems(ContextId context_id, const char *tag, const dag::Spa
     const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, 0);
     add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, isAnimated, tag});
   }
+}
+
+inline vec4f light_direction_for_animation(const Point3 &light_direction)
+{
+  const float maxLightDistForBvhShadow = 20.0f;
+  const auto lightDirection = v_mul(v_ldu_p3_safe(&light_direction.x), v_splats(maxLightDistForBvhShadow * 2));
+  return lightDirection;
+}
+
+inline bool instance_needs_animation(const vec4f &world_bounds, const Frustum &frustum, const vec4f &light_direction)
+{
+  bbox3f worldBoundsBox;
+  worldBoundsBox.bmin = v_sub(world_bounds, v_splat_w(world_bounds));
+  worldBoundsBox.bmax = v_add(world_bounds, v_splat_w(world_bounds));
+  vec3f far_point = v_mul(v_add(v_add(worldBoundsBox.bmax, worldBoundsBox.bmin), light_direction), V_C_HALF);
+  worldBoundsBox.bmin = v_min(worldBoundsBox.bmin, far_point);
+  worldBoundsBox.bmax = v_max(worldBoundsBox.bmax, far_point);
+  auto isVisible = !!frustum.testBoxB(worldBoundsBox.bmin, worldBoundsBox.bmax);
+  return isVisible;
+}
+
+inline bool instance_needs_animation(const vec4f &world_bounds, const Frustum &frustum, const vec4f &view_pos,
+  const vec4f &light_direction)
+{
+  static constexpr float animation_distance_rate = 20;
+
+  bool isVisible = instance_needs_animation(world_bounds, frustum, light_direction);
+
+  if (isVisible)
+  {
+    auto distance = v_length3(v_sub(view_pos, world_bounds));
+    auto rate = v_extract_x(v_mul(v_div(distance, v_splat_w(world_bounds)), V_C_HALF));
+
+    if (rate < animation_distance_rate)
+      return true;
+  }
+  return false;
 }
 
 } // namespace bvh

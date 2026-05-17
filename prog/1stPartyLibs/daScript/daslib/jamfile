@@ -47,6 +47,7 @@ Sources +=
   templates.das
   templates_boost.das
   typemacro_boost.das
+  utf8_utils.das
 ;
 
 ExplicitLicenseUsed += $(Root)/prog/1stPartyLibs/daScript ;

@@ -32,7 +32,7 @@ struct typeFactory<dag::FixedVectorSet<TT, inplace_count>>
     if (library.findAnnotation(declN, nullptr).size() == 0)
     {
       auto declT = makeType<TT>(library);
-      auto ann = make_smart<ManagedVectorAnnotation<VT>>(declN, const_cast<ModuleLibrary &>(library));
+      auto ann = new ManagedVectorAnnotation<VT>(declN, const_cast<ModuleLibrary &>(library));
       ann->cppName = "dag::FixedVectorSet<" + describeCppType(declT) + ", " + to_string(inplace_count) + ">";
       auto mod = library.front();
       mod->addAnnotation(ann);

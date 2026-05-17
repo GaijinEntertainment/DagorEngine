@@ -25,12 +25,12 @@ def test_from_decs(t : T?) {
         )
         t |> equal(qq.length(), 2)
         var expected = [
-            (1, "1"),
-            (0, "0")
+            (index = 1, text = "1"),
+            (index = 0, text = "0")
         ]
         for (c, e in qq, expected) {
-            t |> equal(c.index, e._0)
-            t |> equal(c.text, e._1)
+            t |> equal(c.index, e.index)
+            t |> equal(c.text, e.text)
         }
     }
 }

@@ -1,7 +1,7 @@
 options gen2
 options indenting = 4
 
-module log shared
+module log
 
 require daslib/rtti
 require uriparser

@@ -21,8 +21,8 @@
 #include <sqstdstring.h>
 #include <sqstdaux.h>
 #include <sqmodules.h>
-#include <sqio.h>
 #include <sqstddebug.h>
+#include <sqasync.h>
 #include <compiler/sqtypeparser.h>
 
 #define scvprintf vfprintf
@@ -62,8 +62,6 @@ void PrintUsage()
 {
     fprintf(stderr,"Usage: sq <scriptpath [args]> [options]\n"
         "Available options are:\n"
-        "  -c                        compiles the file to bytecode (default output 'out.cnut')\n"
-        "  -o <out-file>             specifies output file for the -c option\n"
         "  -ast-dump [out-file]      dump AST into console or file if specified\n"
         "  -nodes-location           print AST nodes locations\n"
         "  -absolute-path            use absolute path when print diangostics\n"
@@ -158,10 +156,11 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
     {
         if (dumpOpt->astDumpFileName)
         {
-            FileOutputStream fos(dumpOpt->astDumpFileName);
-            if (fos.valid())
+            FILE *f = fopen(dumpOpt->astDumpFileName, "wb");
+            if (f)
             {
-                sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
+                sq_dumpast(vm, astData, dumpOpt->nodesLocation, &sq_stream_write_file, f);
+                fclose(f);
             }
             else
             {
@@ -170,8 +169,7 @@ static void dumpAst_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *astData, 
         }
         else
         {
-            FileOutputStream fos(stdout);
-            sq_dumpast(vm, astData, dumpOpt->nodesLocation, &fos);
+            sq_dumpast(vm, astData, dumpOpt->nodesLocation, &sq_stream_write_file, stdout);
         }
     }
 }
@@ -185,10 +183,11 @@ static void dumpBytecodeAst_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
     {
         if (dumpOpt->bytecodeDumpFileName)
         {
-            FileOutputStream fos(dumpOpt->bytecodeDumpFileName);
-            if (fos.valid())
+            FILE *f = fopen(dumpOpt->bytecodeDumpFileName, "wb");
+            if (f)
             {
-                sq_dumpbytecode(vm, obj, &fos);
+                sq_dumpbytecode(vm, obj, &sq_stream_write_file, f);
+                fclose(f);
             }
             else
             {
@@ -197,8 +196,7 @@ static void dumpBytecodeAst_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
         }
         else
         {
-            FileOutputStream fos(stdout);
-            sq_dumpbytecode(vm, obj, &fos);
+            sq_dumpbytecode(vm, obj, &sq_stream_write_file, stdout);
         }
     }
 }
@@ -347,7 +345,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     const char *optArg = nullptr;
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
-    int compiles_only = 0;
     bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
     bool parse_types = false;
 
@@ -357,7 +354,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
 
     std::vector<std::string> listOfNutFiles;
 
-    const char * output = NULL;
     *retval = 0;
     if(argc>1)
     {
@@ -416,13 +412,6 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
               {
                   dumpOpt.bytecodeDumpFileName = argv[++index];
               }
-            }
-            else if (strcmp("-c", arg) == 0) {
-                compiles_only = 1;
-            }
-            else if (strcmp("-o", arg) == 0) {
-                index++;
-                output = arg;
             }
             else if (strcmp("-check-stack", arg) == 0) {
                 check_stack_mode = true;
@@ -508,58 +497,35 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
               }
             }
 
-            if (compiles_only) {
-                if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,SQTrue))){
-                    const char *outfile = "out.cnut";
-                    if(output) {
-                        outfile = output;
-                    }
-                    if(SQ_SUCCEEDED(sqstd_writeclosuretofile(v,outfile)))
-                        return _DONE;
-                }
-            }
-            else {
-                int top = fill_stack(v);
+            int top = fill_stack(v);
 
-                Sqrat::Object exports;
-                SqModules::string errMsg;
-                int retCode = _DONE;
+            Sqrat::Object exports;
+            SqModules::string errMsg;
+            int retCode = _DONE;
 
-                if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
-                    retCode = _ERROR;
-                }
-
-                if (retCode == _DONE && sq_isinteger(exports.GetObject())) {
-                    *retval = exports.GetObject()._unVal.nInteger;
-                }
-
-                if (static_analysis) {
-                  sq_checkglobalnames(v);
-                }
-
-                if (retCode != _DONE) {
-                  fprintf(stderr, "Error [%s]\n", errMsg.c_str());
-                }
-
-                if (!check_stack(v, top)) {
-                    fprintf(stderr, "Stack check failed after execution of '%s'\n", filename);
-                    *retval = -3;
-                    retCode = _ERROR;
-                }
-
-                return retCode;
+            if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
+                retCode = _ERROR;
             }
 
-            //if this point is reached an error occurred
-            {
-                const char *err;
-                sq_getlasterror(v);
-                if(SQ_SUCCEEDED(sq_getstring(v,-1,&err))) {
-                    printf("Error [%s]\n",err);
-                    *retval = -2;
-                    return _ERROR;
-                }
+            if (retCode == _DONE && sq_isinteger(exports.GetObject())) {
+                *retval = exports.GetObject()._unVal.nInteger;
             }
+
+            if (static_analysis) {
+              sq_checkglobalnames(v);
+            }
+
+            if (retCode != _DONE) {
+              fprintf(stderr, "Error [%s]\n", errMsg.c_str());
+            }
+
+            if (!check_stack(v, top)) {
+                fprintf(stderr, "Stack check failed after execution of '%s'\n", filename);
+                *retval = -3;
+                retCode = _ERROR;
+            }
+
+            return retCode;
 
         }
     }
@@ -571,6 +537,19 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     }
 
     return _DONE;
+}
+
+static void pump_sqasync_until_idle(HSQUIRRELVM v)
+{
+    const int kMaxTickIterations = 10000;
+    int iterations = 0;
+    while (sqasync::has_pending(v)) {
+        sqasync::pump(v);
+        if (++iterations >= kMaxTickIterations) {
+            fprintf(stderr, "[sqasync] async drain hit max iterations (%d) -- deadlock?\n", kMaxTickIterations);
+            break;
+        }
+    }
 }
 
 int sq_interpreter_main(int argc, char* argv[])
@@ -591,13 +570,17 @@ int sq_interpreter_main(int argc, char* argv[])
     module_mgr->registerDateTimeLib();
     module_mgr->registerDebugLib();
 
+    sqasync::bind(v);
+    module_mgr->registerAsyncLib();
+
     sqstd_register_command_line_args(v, argc, argv);
 
     extern void register_test_natives(SqModules *);
     register_test_natives(module_mgr);
 
-    //gets arguments
     getargs(v, argc, argv, &retval);
+
+    pump_sqasync_until_idle(v);
 
     if (errorStream != stderr)
     {

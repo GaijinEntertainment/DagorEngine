@@ -219,6 +219,7 @@ static void prepare_pool_for_render_global_shadows(rendinst::render::RtPoolData 
     flags = TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION;
 #endif
   }
+  flags |= TEXCF_CLEAR_ON_CREATE;
 
   pool.rendinstGlobalShadowTex = dag::create_array_tex(rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize,
     rotation_palette.count, flags, mips, name.c_str(), RESTAG_RENDINST);

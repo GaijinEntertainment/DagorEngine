@@ -11,6 +11,7 @@
 #include <de3_dataBlockIdHolder.h>
 #include <de3_interface.h>
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_ViewportWindow.h>
 #include <assets/assetUtils.h>
 #include <assetsGui/av_assetTreeDragHandler.h>
 #include <libTools/util/strUtil.h>
@@ -389,6 +390,14 @@ void CompositeEditor::toggleSnapMode(int pcb_id)
   get_app().onSnapSettingChanged();
 }
 
+void CompositeEditor::openGridSettings()
+{
+  if (ViewportWindow *viewport = static_cast<ViewportWindow *>(EDITORCORE->getCurrentViewport()))
+  {
+    viewport->showGridSettingsDialog();
+  }
+}
+
 DragAndDropResult EntityTreeDropHandler::onDropTargetDirect(PropPanel::TLeafHandle leaf)
 {
   CompositeEditorTree *compositeTreeView = editor.compositeTreeView.get();
@@ -551,6 +560,10 @@ void CompositeEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
   {
     toggleSnapMode(pcb_id);
     focusViewport();
+  }
+  else if (pcb_id == CM_OPTIONS_GRID)
+  {
+    openGridSettings();
   }
   else if (compositePropPanel && selectedTreeDataNode)
   {

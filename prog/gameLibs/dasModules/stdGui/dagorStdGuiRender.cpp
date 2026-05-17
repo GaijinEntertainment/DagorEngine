@@ -107,13 +107,13 @@ struct DagorStdGuiRender final : public das::Module
     addBuiltinDependency(lib, require("DagorShaders"));
     addBuiltinDependency(lib, require("DagorDriver3D"));
 
-    addEnumeration(das::make_smart<EnumerationFontFxType>());
-    addEnumeration(das::make_smart<EnumerationBlendMode>());
-    addEnumeration(das::make_smart<EnumerationTexFormat>());
-    addAnnotation(das::make_smart<GuiContextAnnotation>(lib));
-    addAnnotation(das::make_smart<StdGuiFontContextAnnotation>(lib));
-    addAnnotation(das::make_smart<GuiVertexTransformAnnotation>(lib));
-    addAnnotation(das::make_smart<StdGuiShaderAnnotation>(lib));
+    addEnumeration(new EnumerationFontFxType());
+    addEnumeration(new EnumerationBlendMode());
+    addEnumeration(new EnumerationTexFormat());
+    addAnnotation(new GuiContextAnnotation(lib));
+    addAnnotation(new StdGuiFontContextAnnotation(lib));
+    addAnnotation(new GuiVertexTransformAnnotation(lib));
+    addAnnotation(new StdGuiShaderAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::StdGuiShader_ctor)>(*this, lib, "StdGuiShader_ctor", das::SideEffects::accessExternal,
       "::bind_dascript::StdGuiShader_ctor");

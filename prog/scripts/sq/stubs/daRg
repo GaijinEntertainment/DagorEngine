@@ -96,6 +96,7 @@ let gui_scene = {
   getAllObservables = @() []
   addPanel = function(_idx, _desc){return 0}
   removePanel = function(_idx){return 0}
+  mark_panel_dirty = function(_idx){return 0}
   setConfigProps = function(tbl) {assert(type(tbl)=="table", "params must be passed as table")}
   setFocusedScreen = @(_id) false
   enableInput = @(_bool) null

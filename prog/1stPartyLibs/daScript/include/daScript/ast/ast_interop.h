@@ -237,13 +237,13 @@ namespace das
                                     bool explicitConst=false, SideEffects sideEffects = SideEffects::none ) {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, SimNodeType, FuncT>>(fn, name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, SimNodeType, FuncT>(fn, name, lib, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, lib, cppName);
 #endif
         defaultTempFn tempFn;
-        tempFn(fnX.get());
+        tempFn(fnX);
         fnX->arguments[0]->type->explicitConst = explicitConst;
         fnX->setSideEffects(sideEffects);
         fnX->propertyFunction = true;
@@ -264,10 +264,10 @@ namespace das
                                     bool explicitConst=false, SideEffects sideEffects = SideEffects::none) {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, cppName);
 #endif
         vector<TypeDeclPtr> types(2);
         types[0] = makeType<RetType>(lib);
@@ -275,7 +275,7 @@ namespace das
         types[1]->constant = ArgConst;
         fnX->constructExternal(types);
         defaultTempFn tempFn;
-        tempFn(fnX.get());
+        tempFn(fnX);
         fnX->arguments[0]->type->explicitConst = explicitConst;
         fnX->setSideEffects(sideEffects);
         fnX->propertyFunction = true;
@@ -296,13 +296,13 @@ namespace das
                                   const char * cppName = nullptr, QQ && tempFn = QQ() ) {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, SimNodeType, FuncT>>(fn, name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, SimNodeType, FuncT>(fn, name, lib, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, lib, cppName);
 #endif
 
-        tempFn(fnX.get());
+        tempFn(fnX);
 #if VERIFY_JIT_ARGUMENTS
         VerifyFn<FuncT, fn>::verify(fnX);
 #endif
@@ -319,13 +319,13 @@ namespace das
                                 const char * cppName = nullptr, QQ && tempFn = QQ() ) {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, SimNodeType, FuncT>>(fn, name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, SimNodeType, FuncT>(fn, name, lib, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, lib, cppName);
 #endif
 
-        tempFn(fnX.get());
+        tempFn(fnX);
 
         if (!SimNodeType::IS_CMRES) {
             if (fnX->result->isRefType() && !fnX->result->ref) {
@@ -351,12 +351,12 @@ namespace das
                                   const char * cppName = nullptr, QQ && tempFn = QQ() ) {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, SimNodeType, FuncArgT>>(fn, name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, SimNodeType, FuncArgT>(fn, name, lib, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncArgT>>(name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncArgT>(name, lib, cppName);
 #endif
-        tempFn(fnX.get());
+        tempFn(fnX);
 #if VERIFY_JIT_ARGUMENTS
         VerifyFn<FuncT, fn>::verify(fnX);
 #endif
@@ -374,12 +374,12 @@ namespace das
     {
 #if DAS_SLOW_CALL_INTEROP
         using SimNodeType = SimNodeT<FuncT>;
-        auto fnX = make_smart<ExternalFn<FuncT, SimNodeType, FuncT>>(fn, name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, SimNodeType, FuncT>(fn, name, lib, cppName);
 #else
         using SimNodeType = SimNodeT<FuncT, fn>;
-        auto fnX = make_smart<ExternalFn<FuncT, fn, SimNodeType, FuncT>>(name, lib, cppName);
+        auto fnX = new ExternalFn<FuncT, fn, SimNodeType, FuncT>(name, lib, cppName);
 #endif
-        tempFn(fnX.get());
+        tempFn(fnX);
         fnX->result->temporary = true;
 #if VERIFY_JIT_ARGUMENTS
         VerifyFn<FuncT, fn>::verify(fnX);
@@ -391,14 +391,14 @@ namespace das
     template <InteropFunction func, typename RetT, typename ...Args>
     inline auto addInterop ( Module & mod, const ModuleLibrary & lib, const char * name, SideEffects seFlags,
                                    const char * cppName = nullptr ) {
-        auto fnX = make_smart<InteropFn<func, RetT, Args...>>(name, lib, cppName);
+        auto fnX = new InteropFn<func, RetT, Args...>(name, lib, cppName);
         addExternFunc(mod, fnX, true, seFlags);
         return fnX;
     }
 
     template <typename CType, typename ...Args>
     inline auto addCtor ( Module & mod, const ModuleLibrary & lib, const char * name, const char * cppName = nullptr ) {
-        auto fn = make_smart<BuiltIn_PlacementNew<CType,Args...>>(name,lib,cppName);
+        auto fn = new BuiltIn_PlacementNew<CType,Args...>(name,lib,cppName);
         DAS_ASSERT(fn->result->isRefType() && "can't add ctor to by-value types");
         mod.addFunction(fn);
         return fn;
@@ -406,17 +406,17 @@ namespace das
 
     template <typename CType, typename ...Args>
     inline auto addUsing ( Module & mod, const ModuleLibrary & lib, const char * cppName ) {
-        auto fn = make_smart<BuiltIn_Using<CType,Args...>>(lib,cppName);
+        auto fn = new BuiltIn_Using<CType,Args...>(lib,cppName);
         mod.addFunction(fn);
         return fn;
     }
 
     template <typename CType, typename ...Args>
     inline auto addCtorAndUsing ( Module & mod, const ModuleLibrary & lib, const char * name, const char * cppName ) {
-        auto fn = make_smart<BuiltIn_PlacementNew<CType,Args...>>(name,lib,cppName);
+        auto fn = new BuiltIn_PlacementNew<CType,Args...>(name,lib,cppName);
         DAS_ASSERT(fn->result->isRefType() && "can't add ctor to by-value types");
         mod.addFunction(fn);
-        mod.addFunction(make_smart<BuiltIn_Using<CType,Args...>>(lib,cppName));
+        mod.addFunction(new BuiltIn_Using<CType,Args...>(lib,cppName));
         return fn;
     }
 

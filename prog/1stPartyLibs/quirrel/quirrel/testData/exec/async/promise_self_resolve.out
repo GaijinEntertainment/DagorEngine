@@ -1,0 +1,4 @@
+resolve threw: Promise.resolve: cannot resolve with self
+reject threw: Promise.reject: cannot reject with self
+cross-resolve: fulfilled
+script done

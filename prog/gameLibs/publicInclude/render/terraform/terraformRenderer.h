@@ -76,7 +76,7 @@ private:
   Desc desc;
   Point2 heightMaskWorldSize = Point2(1, 1);
   DynamicShaderHelper patchShader;
-  UniqueTexHolder hmapSavedTex;
+  UniqueTexWithShaderVar hmapSavedTex;
   ska::flat_hash_map<uint32_t, Patch *> patches;
   ska::flat_hash_map<uint32_t, Prim *> prims;
   uint32_t curTimestep = 0;
@@ -92,5 +92,5 @@ private:
   int tform_detail_rtexVarId = -1;
   int tform_normals_texVarId = -1;
 
-  UniqueTexHolder heightMaskTex;
+  UniqueTexWithShaderVar heightMaskTex;
 };

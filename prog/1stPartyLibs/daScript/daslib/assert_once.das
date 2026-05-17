@@ -31,14 +31,14 @@ class AssertOnceMacro : AstFunctionAnnotation {
     //!     if __assert_once_I && !expr
     //!         __assert_once_I = false
     //!         assert(false,message)
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         let once_name = make_unique_private_name("__assert_once", call.at)
         if (!compiling_module() |> add_global_private_var(once_name, call.at) <| quote(true)) {
             errors := "can't add global variable {once_name}"
-            return <- default<ExpressionPtr>
+            return null
         }
         // if ..
-        var inscope qb <- qmacro_block() {
+        var qb = qmacro_block() {
             if ($i(once_name) && !$e(call.arguments[0])) {
                 $i(once_name) = false
                 assert(false, $e(call.arguments[1]))

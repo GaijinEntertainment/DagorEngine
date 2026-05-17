@@ -16,12 +16,13 @@ uint32_t EntityManager::defragTemplates()
   {
     if (ei.archetype == INVALID_ARCHETYPE)
       continue;
+    G_ASSERT(ei.template_id != INVALID_TEMPLATE_INDEX);
     templUsed.set(ei.template_id, true);
   }
 
   for (auto &ci : delayedCreationQueue)
     for (auto &cr : ci)
-      if (!cr.isToDestroy())
+      if (!cr.isToDestroy() && cr.templ != INVALID_TEMPLATE_INDEX)
         templUsed.set(cr.templ, true);
   G_ASSERT(templUsed.size() == templates.size());
   SmallTab<template_t, framemem_allocator> remapTemplates(templates.size());
@@ -50,7 +51,7 @@ uint32_t EntityManager::defragTemplates()
   }
   for (auto &ci : delayedCreationQueue)
     for (auto &cr : ci)
-      if (!cr.isToDestroy())
+      if (!cr.isToDestroy() && cr.templ != INVALID_TEMPLATE_INDEX)
       {
         G_ASSERT(cr.templ < remapTemplates.size());
         cr.templ = remapTemplates[cr.templ];

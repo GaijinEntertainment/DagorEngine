@@ -21,7 +21,7 @@ var private total_fuzz_count : int = 1000
 def public fuzz(blk : block) {
     //! run block however many times
     //! ignore panic, so that we can see that runtime crashes
-    for (i in range(total_fuzz_count)) {
+    for (_i in range(total_fuzz_count)) {
         try {
             invoke(blk)
         } recover {
@@ -33,7 +33,7 @@ def public fuzz(blk : block) {
 def public fuzz(fuzz_count : int; blk : block) {
     //! run block however many times
     //! ignore panic, so that we can see that runtime crashes
-    for (i in range(fuzz_count)) {
+    for (_i in range(fuzz_count)) {
         try {
             invoke(blk)
         } recover {
@@ -46,7 +46,7 @@ def public fuzz_debug(blk : block) {
     //! run block however many times
     //! do not ignore panic, so that we can see where the runtime fails
     //! this is here so that `fuzz` can be easily replaced with `fuzz_debug` for the purpose of debugging
-    for (i in range(total_fuzz_count)) {
+    for (_i in range(total_fuzz_count)) {
         invoke(blk)
     }
 }
@@ -55,7 +55,7 @@ def public fuzz_debug(fuzz_count : int; blk : block) {
     //! run block however many times
     //! do not ignore panic, so that we can see where the runtime fails
     //! this is here so that `fuzz` can be easily replaced with `fuzz_debug` for the purpose of debugging
-    for (i in range(fuzz_count)) {
+    for (_i in range(fuzz_count)) {
         invoke(blk)
     }
 }

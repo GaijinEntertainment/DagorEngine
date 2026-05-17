@@ -1,0 +1,27 @@
+WARNING: w330 (assigned-back) Assignment writes back the value that was just copied from this expression.
+testData/static_analyzer/w330.nut:3:2
+
+  x.z = y.w
+  y.w = x.z
+  ^--------
+}
+
+
+WARNING: w330 (assigned-back) Assignment writes back the value that was just copied from this expression.
+testData/static_analyzer/w330.nut:8:2
+
+  let a = b
+  b = a
+  ^----
+}
+
+
+WARNING: w330 (assigned-back) Assignment writes back the value that was just copied from this expression.
+testData/static_analyzer/w330.nut:13:2
+
+  local h = m.p
+  m.p = h
+  ^------
+}
+
+

@@ -274,7 +274,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 }
 
 template <typename Callable>
-static void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager &manager, Callable c);
+static void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager &manager, Callable ECS_CAN_PARALLEL_FOR(c, 4));
 
 void preprocess_visible_animchars_in_frustum(
   // Before render stage is needed, because it holds the correct rounded camera positions (those are NOT the same as the eye pos)

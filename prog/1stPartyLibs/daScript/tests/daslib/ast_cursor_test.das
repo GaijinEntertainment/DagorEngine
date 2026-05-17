@@ -21,12 +21,12 @@ def compile_fixture(blk : block<(program : smart_ptr<Program>) : void>) {
             cop.export_all = true
             compile_file(fixture_path(), access, unsafe(addr(mg)), cop) <| $(ok; program; issues) {
                 if (!ok) {
-                    print("compile error: {issues}\n")
+                    to_log(LOG_ERROR, "compile error: {issues}\n")
                     return
                 }
                 simulate(program) <| $(sok; ctx; serrors) {
                     if (!sok) {
-                        print("simulate error: {serrors}\n")
+                        to_log(LOG_ERROR, "simulate error: {serrors}\n")
                         return
                     }
                     invoke(blk, program)
@@ -53,16 +53,16 @@ def test_find_var_at_cursor(t : T?) {
 def test_find_call_at_cursor(t : T?) {
     t |> run("finds ExprCall at function call") <| @(t2 : T?) {
         compile_fixture() <| $(program) {
-            // ExprCall(print) at 19:4-19:9 (line 19 after macro expansion of string builder)
+            // ExprCall(to_log) at 19:4-19:10 (line 19 after macro expansion of string builder)
             let hits = find_at_cursor(program, "ast_cursor_fixture", 19, 5)
             var found_call = false
             for (h in hits) {
-                if (h.rtti == "ExprCall" && h.name == "print") {
+                if (h.rtti == "ExprCall" && h.name == "to_log") {
                     found_call = true
                     break
                 }
             }
-            t2 |> success(found_call, "should find ExprCall(print)")
+            t2 |> success(found_call, "should find ExprCall(to_log)")
         }
     }
 }
@@ -107,8 +107,8 @@ def test_enclosing_function(t : T?) {
 def test_field_access(t : T?) {
     t |> run("finds ExprField for field access") <| @(t2 : T?) {
         compile_fixture() <| $(program) {
-            // ExprField(x) at 21:13-21:14
-            let hits = find_at_cursor(program, "ast_cursor_fixture", 21, 13)
+            // ExprField(x) at 21:24-21:26
+            let hits = find_at_cursor(program, "ast_cursor_fixture", 21, 24)
             var found_field = false
             for (h in hits) {
                 if (h.rtti == "ExprField" && h.name == "x") {

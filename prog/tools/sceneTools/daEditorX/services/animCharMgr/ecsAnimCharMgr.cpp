@@ -87,7 +87,7 @@ public:
 
   void clear()
   {
-    termDebugFifo();
+    enqueueAnim(NULL); // restores correct anim graph root back
 
     if (g_entity_mgr.get())
     {
@@ -559,7 +559,8 @@ public:
       dbgAnimNodes.reserve(ag->getAnimNodeCount());
       iterate_names(ag->getAnimNodeNames(), [&](int id, const char *name) {
         if (IAnimBlendNode *n = ag->getBlendNodePtr(id))
-          if (n != ag->getRoot() && name[0] != '~' && !n->isSubOf(AnimPostBlendAlignCtrlCID) && !n->isSubOf(AnimBlendCtrl_Fifo3CID))
+          if (n != ag->getRoot() && name[0] != '~' && !n->isSubOf(AnimPostBlendAlignCtrlCID) && !n->isSubOf(AnimBlendCtrl_Fifo3CID) &&
+              !n->isSubOf(AnimBlendNodeNullCID))
             dbgAnimNodes.push_back(name);
       });
       dbgAnimNodes.shrink_to_fit();

@@ -1149,7 +1149,7 @@ public:
   }
 
   HeightmapRenderer heightmapRenderer;
-  UniqueTexHolder heightmap;
+  UniqueTexWithShaderVar heightmap;
   d3d::SamplerHandle heightmapSampler;
   eastl::unique_ptr<WaterReflectionsMipRenderer> waterReflectionsMipRenderer;
 
@@ -2771,10 +2771,10 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
 
         struct InitHeightmap : public DelayedAction
         {
-          UniqueTexHolder &tex;
+          UniqueTexWithShaderVar &tex;
           TexPtr ht;
-          InitHeightmap(UniqueTexHolder &_tex, TexPtr &&_ht) : ht(eastl::move(_ht)), tex(_tex) {}
-          void performAction() override { tex = UniqueTexHolder(eastl::move(ht), "heightmap"); }
+          InitHeightmap(UniqueTexWithShaderVar &_tex, TexPtr &&_ht) : ht(eastl::move(_ht)), tex(_tex) {}
+          void performAction() override { tex = UniqueTexWithShaderVar(eastl::move(ht), "heightmap"); }
         };
         add_delayed_action(new InitHeightmap(s.heightmap, eastl::move(tex)));
       };

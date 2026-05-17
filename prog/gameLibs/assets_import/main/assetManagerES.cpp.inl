@@ -365,7 +365,8 @@ void reload_animchar_resources(ecs::EntityId eid, bool update_base_component, bo
 {
   reload_animchar_resources_ecs_query(*g_entity_mgr, eid,
     [&](AnimV20::AnimcharBaseComponent &animchar, AnimV20::AnimcharRendComponent &animchar_render, const ecs::string &animchar__res,
-      AnimcharNodesMat44 *animchar_node_wtm, bool *animchar__animStateDirty) {
+      AnimcharNodesMat44 *animchar_node_wtm, bool *animchar__animStateDirty, ecs::IPoint2List *human_anim__disableHubsIds,
+      ecs::IntList *human_anim__disableNodesIds) {
       AnimV20::IAnimCharacter2 *animCharSource =
         (AnimV20::IAnimCharacter2 *)::get_game_resource_ex(animchar__res.c_str(), CharacterGameResClassId);
 
@@ -387,6 +388,10 @@ void reload_animchar_resources(ecs::EntityId eid, bool update_base_component, bo
         *animchar__animStateDirty = true;
       g_entity_mgr->sendEventImmediate(eid, InvalidateEffectorData());
       g_entity_mgr->sendEventImmediate(eid, InvalidateAnimatedPhys());
+      if (human_anim__disableHubsIds)
+        human_anim__disableHubsIds->clear();
+      if (human_anim__disableNodesIds)
+        human_anim__disableNodesIds->clear();
 
       ::release_game_resource_ex(animCharSource, CharacterGameResClassId);
     });

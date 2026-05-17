@@ -45,7 +45,7 @@ protected:
   uint32_t renderCascade(const UpdateCascade &c, int steps, const hmap_shadows_prepare_cb &cb);
   void updateCascades(const Point3 &pos, const Point3 &from_sun_dir, const hmap_shadows_prepare_cb &cb, int steps);
   void setVars();
-  UniqueTexHolder heightmap_shadow;
+  UniqueTexWithShaderVar heightmap_shadow;
   UniqueBuf heightmap_shadow_start;
   struct Cascade
   {

@@ -28,12 +28,6 @@ class SqModules;
 namespace sqeventbus
 {
 
-enum class ProcessingMode : uint8_t
-{
-  IMMEDIATE,
-  MANUAL_PUMP
-};
-
 struct EventParams
 {
   const char *sourceId = nullptr; // nullptr intepreted as "native"
@@ -109,12 +103,10 @@ struct Value // Json::Value -> Sqrat::Object adapter
   auto operator[](int i) { return SlotRef<Sqrat::Array, int(OT_ARRAY), int>(*this, i); }
 };
 
-void bind(SqModules *module_mgr, const char *vm_id, ProcessingMode mode, bool freeze_wevt_tables = false,
-  bool freeze_sq_tables = false);
-ProcessingMode bind_ex(SqModules *module_mgr, const char *vm_id, bool freeze_wevt_tables = false, bool immediate = false);
+void bind(SqModules *module_mgr, const char *vm_id, bool freeze_wevt_tables = false, bool freeze_sq_tables = false);
+void bind_ex(SqModules *module_mgr, const char *vm_id, bool freeze_wevt_tables = false);
 void unbind(HSQUIRRELVM vm);
 // If true all sent events converted to json before saving to queue (even in main thread).
-// Relevant only for MANUAL_PUMP processing mode.
 void set_mtsafe_mode(bool enable);
 void clear_on_reload(HSQUIRRELVM vm);
 // Note: nullptr `source_id` interpreted as "native"
@@ -137,6 +129,7 @@ void write_event(const char *event_name, F wcb, const char *source_id = nullptr)
   }
 }
 bool has_listeners(const char *event_name, const char *source_id = nullptr);
+bool has_pending(HSQUIRRELVM vm);
 void process_events(HSQUIRRELVM vm);
 void flush_events(); // process queued events for all VMs
 

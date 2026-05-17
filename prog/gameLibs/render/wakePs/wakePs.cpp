@@ -19,6 +19,7 @@
 #define VERIFY_EMITTER_INDEX      G_ASSERT(index < emitters.size())
 #define MAX_EMITTERS              1024u
 #define MAX_PARTICLES             16384
+#define MIN_PARTICLES_PER_EMITTER 1
 #define MAX_PARTICLES_PER_EMITTER 64
 #define ALLOC_EMITTERS_STEP       16
 G_STATIC_ASSERT((sizeof(GPUEmitter) % 16) == 0);
@@ -450,12 +451,15 @@ void ParticleSystem::emit(float dt)
       continue;
 
     float maxLifetime = emitter.params.spawn.lifeTime + emitter.params.spawn.lifeSpread;
+    float minAllowedEmissionFrequency = maxLifetime > 0.f ? MIN_PARTICLES_PER_EMITTER / maxLifetime * 0.9f : 0.f;
     float maxAllowedEmissionFrequency = maxLifetime > 0.f ? MAX_PARTICLES_PER_EMITTER / maxLifetime * 0.9f : 0.f;
     float distance = length(emitter.lastPos - emitter.params.pose.pos);
     float emitPerSecond = min(emitter.params.spawn.emitPerSecond, maxAllowedEmissionFrequency);
     float emitPerMeter = emitter.params.spawn.emitPerMeter;
     float distanceEmissionFrequency = safediv(emitPerMeter * distance, dt);
-    if (distanceEmissionFrequency > maxAllowedEmissionFrequency)
+    if (distanceEmissionFrequency < minAllowedEmissionFrequency)
+      emitPerMeter = 0.0f;
+    else if (distanceEmissionFrequency > maxAllowedEmissionFrequency)
       emitPerMeter *= safediv(maxAllowedEmissionFrequency, distanceEmissionFrequency);
 
     emitter.accumTime = min(emitter.accumTime + dt * emitPerSecond, (float)EMIT_PER_FRAME_LIMIT);

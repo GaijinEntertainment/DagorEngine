@@ -6,6 +6,12 @@
 #include <perfMon/dag_perfTimer.h>
 #include <osApiWrappers/dag_miscApi.h>
 
+#if _TARGET_PC_LINUX
+extern uint64_t profile_ref_ticks_ool();
+#else
+inline uint64_t profile_ref_ticks_ool() { return profile_ref_ticks(); }
+#endif
+
 #define USE_NEON_TICKS_SCALE (_TARGET_SIMD_NEON && !(_TARGET_PC_WIN | _TARGET_C3))
 #if USE_NEON_TICKS_SCALE
 uint32_t profiler_ticks_scale = 1;
@@ -36,10 +42,10 @@ static bool verify_profile_timer()
 
   for (int i = 0; i < checkLoops; ++i)
   {
-    const uint64_t profileRef = profile_ref_ticks();
+    const uint64_t profileRef = profile_ref_ticks_ool();
     // we can't use precise sleep at it uses profile timer!
     sleep_msec(checkWaitMs);
-    const uint64_t now = profile_ref_ticks();
+    const uint64_t now = profile_ref_ticks_ool();
 
     uint64_t fq;
     asm volatile("mrs %0, cntfrq_el0" : "=r"(fq));
@@ -134,9 +140,9 @@ static void measure_profile_timer()
 #endif
   measure_cpu_freq();
   const int64_t reft = ref_time_ticks();
-  const uint64_t profileRef = profile_ref_ticks();
+  const uint64_t profileRef = profile_ref_ticks_ool();
   sleep_msec(10);
-  const uint64_t nowt = profile_ref_ticks();
+  const uint64_t nowt = profile_ref_ticks_ool();
   const int64_t reft2 = ref_time_ticks();
   const double ref_time_passed_seconds = double(reft2 - reft) / ref_ticks_frequency();
   const double profFreq = double(int64_t(nowt) - int64_t(profileRef)) / ref_time_passed_seconds;

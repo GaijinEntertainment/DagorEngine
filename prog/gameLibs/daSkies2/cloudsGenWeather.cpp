@@ -34,7 +34,7 @@ CloudsChangeFlags GenWeather::render()
   if (externalWeatherTexture == BAD_TEXTUREID)
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(clouds_weather_texture.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{clouds_weather_texture.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
     gen_weather.render();
     d3d::resource_barrier({clouds_weather_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});

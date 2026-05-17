@@ -983,7 +983,8 @@ bool Template::isEqual(const Template &t, const ecs::ComponentTypes &types) cons
 {
   if (t.components.size() != components.size())
     return false;
-  if (templAllFlags() != t.templAllFlags() || ignoredSet() != t.ignoredSet())
+  if ((templAllFlags() & ~FLAG_DEPENDENCIES_RESOLVED) != (t.templAllFlags() & ~FLAG_DEPENDENCIES_RESOLVED) ||
+      ignoredSet() != t.ignoredSet())
     return false;
   if (trackedSet() != t.trackedSet() || replicatedSet() != t.replicatedSet())
     return false;

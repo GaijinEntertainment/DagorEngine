@@ -69,7 +69,7 @@ private:
     mVariant{variant},
     mParsedSemcodeRef{parsed_code},
     mParsedPassRef{parsed_pass},
-    mBoolVarTable{tgt_parent.globBoolVars().maxId()},
+    mBoolVarTable{tgt_parent.boolVarNameMap(), &tgt_parent.globBoolVars()},
     mLocVars{tgt_parent},
     mStcodeBytecode{tgt_parent.sourceParseState().parser},
     mCppStcode{use_branches_for_cppstcode},

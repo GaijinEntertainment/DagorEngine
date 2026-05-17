@@ -45,7 +45,7 @@ def module_default(req, from : string) : module_info {
 
 [export]
 def module_get(req, from : string) : module_info {
-    print("get '{req}` from `{from}`\n")
+    to_log(LOG_INFO, "get '{req}` from `{from}`\n")
     for (mod in modules) {
         let res = invoke(mod, req, from)
         if (res._0 != "") {
@@ -57,12 +57,12 @@ def module_get(req, from : string) : module_info {
 
 [export]
 def module_allowed(mod : string#; fname : string#) {
-    print("is `{mod}` allowed in `{fname}`? yes\n")
+    to_log(LOG_INFO, "is `{mod}` allowed in `{fname}`? yes\n")
     return true // false is not
 }
 
 [export]
 def module_allowed_unsafe(mod : string#; fname : string#) {
-    print("is `{mod}` can be unsafe `{fname}`? {mod!=""}\n")
+    to_log(LOG_INFO, "is `{mod}` can be unsafe `{fname}`? {mod!=""}\n")
     return mod != ""
 }

@@ -51,7 +51,7 @@ shader clouds_rain_map_cs
     }
 
     [numthreads(8, 8, 1)]
-    void main_cs(uint2 dtId : SV_DispatchThreadID)
+    void clouds_rain_map_cs(uint2 dtId : SV_DispatchThreadID)
     {
       if (any(dtId >= int(rain_map_resolution)))
         return;
@@ -70,7 +70,7 @@ shader clouds_rain_map_cs
       clouds_rain_map_tex[dtId] = traceCloudsHeight(startPos, rayStep, stepSize, clouds_rain_map_max_height - startPos.y);
     }
   }
-  compile("cs_5_0", "main_cs");
+  compile("cs_5_0", "clouds_rain_map_cs");
 }
 
 

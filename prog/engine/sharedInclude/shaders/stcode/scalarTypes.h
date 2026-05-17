@@ -3,8 +3,8 @@
 
 #include <cstdint>
 #include <drv/3d/dag_consts.h>
+#include <util/dag_bitwise_cast.h>
 #include <EASTL/algorithm.h>
-#include <EASTL/bit.h>
 
 namespace stcode::cpp
 {
@@ -72,7 +72,7 @@ inline Tv4 get_swizzle(const Tv4 &v)
   using Vt = decltype(v.r);
   static_assert(sizeof(Vt) == sizeof(float));
 
-  constexpr Vt def = eastl::bit_cast<Vt>(float(1.f));
+  constexpr Vt def = dag::bit_cast<Vt>(float(1.f));
 
   Tv4 res{def};
 
@@ -306,5 +306,8 @@ struct int3
     return *this;
   }
 };
+
+inline int4 slice_int2(int4 v) { return int4(v.r, v.g, bitwise_cast<int32_t, float>(1.f), bitwise_cast<int32_t, float>(1.f)); }
+inline int4 slice_int3(int4 v) { return int4(v.r, v.g, v.b, bitwise_cast<int32_t, float>(1.f)); }
 
 } // namespace stcode::cpp

@@ -64,6 +64,7 @@ namespace das
         if ( memSize64>=0xffffffff ) {
             context.throw_error_at(at, "can't grow array, out of index space [capacity=%i] [stride=%i]", newCapacity, stride);
         }
+        const char * prev_comment = arr.data ? context.heap->get_comment(arr.data) : nullptr;
         char * newData = nullptr;
         if ( context.verySafeContext ) {
             newData = (char *)context.allocate(newCapacity*stride, at);
@@ -73,7 +74,7 @@ namespace das
         } else {
             newData = (char *)context.reallocate(arr.data, arr.capacity*stride, newCapacity*stride, at);
         }
-        context.heap->mark_comment(newData, "array");
+        context.heap->mark_comment(newData, prev_comment ? prev_comment : "array");
         if ( newData != arr.data ) {
             // memcpy(newData, arr.data, arr.capacity);
             arr.data = newData;

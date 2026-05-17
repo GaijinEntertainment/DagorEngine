@@ -596,7 +596,7 @@ void finish_update_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, ResyncS
 
   // Calculate visual location error in order to smoothen visual location of the aircraft on the authority.
   // This will result in some sort of lag-compensation.
-  if (unit->getRole() == IPhysActor::ROLE_REMOTELY_CONTROLLED_AUTHORITY)
+  if (unit->getRole() == IPhysActor::ROLE_REMOTELY_CONTROLLED_AUTHORITY && !phys.skipVisualErrorUpdate)
   {
     if (resync_state.isNewCorrrectionRequired)
     {
@@ -621,6 +621,9 @@ void finish_update_phys_for_multiplayer(PhysActor *unit, PhysImpl &phys, ResyncS
         resync_state.correctedExtrapolatedState.location);
     }
   }
+
+  // Reset the skip flag after processing
+  phys.skipVisualErrorUpdate = false;
 
   // Obtain extrapolated state.
   // We want to have extrapolatedState that contains extra/interpolated position of all the aircrafts at currentTime

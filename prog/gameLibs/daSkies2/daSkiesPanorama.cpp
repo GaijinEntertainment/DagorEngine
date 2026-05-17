@@ -637,11 +637,10 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
       d3d::resource_barrier({to.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     };
 
-    auto updateSubpixelWithDepth = [&](ManagedTex &to, UniqueTex &depth, UniqueTexHolder &downsampled_depth, int x, int y, int w,
-                                     int h) {
+    auto updateSubpixelWithDepth = [&](ManagedTex &to, UniqueTex &depth, UniqueTexWithShaderVar &downsampled_depth, int x, int y,
+                                     int w, int h) {
       TIME_D3D_PROFILE(panoramaSubframe);
-      d3d::set_render_target(to.getTex2D(), 0);
-      d3d::set_render_target(1, depth.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{to.getTex2D(), 0, 0}, {depth.getTex2D(), 0, 0}});
       if (w != 0)
         d3d::setview(x, y, w, h, 0, 1);
       cloudsPanorama.render();
@@ -795,7 +794,7 @@ const Point3 DaSkies::calcPanoramaSunDir(const Point3 &camera_pos) const
     clouds_layer, clouds_layer * clouds_layer, skies_planet_radius);
 }
 
-void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
+void DaSkies::createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexWithShaderVar &downsampled_depth,
   const char *downsampled_depth_name, int w, int h, d3d::AddressMode addru, d3d::AddressMode addrv)
 {
   depth.close();
@@ -836,7 +835,7 @@ void DaSkies::createDepthPanoramaPatchTex()
     "clouds_depth_downsampled_panorama_patch_tex", resolutionW, resolutionH, d3d::AddressMode::Clamp, d3d::AddressMode::Clamp);
 }
 
-void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth)
+void DaSkies::downsamplePanoramaDepth(UniqueTex &depth, UniqueTexWithShaderVar &downsampled_depth)
 {
   depth.getTex2D()->generateMips();
   TextureInfo depthTexInfo;

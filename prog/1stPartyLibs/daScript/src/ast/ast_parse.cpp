@@ -76,9 +76,30 @@ namespace das {
                 while ( src < src_end && src[0]!='"' ) {
                     if ( src[0]=='\n' )
                         line ++;
-                    src ++;
+                    if ( src[0]=='\\' && src+1<src_end ) {
+                        // Skip the escaped character so that \" inside a string literal does not terminate the string (likewise \\, \n, etc.).
+                        if ( src[1]=='\n' ) line ++;
+                        src += 2;
+                    } else {
+                        src ++;
+                    }
                 }
+                if ( src < src_end ) src ++;
+                wb = true;
+                continue;
+            } else if ( src[0]=='\'' ) {
                 src ++;
+                while ( src < src_end && src[0]!='\'' ) {
+                    if ( src[0]=='\n' )
+                        line ++;
+                    if ( src[0]=='\\' && src+1<src_end ) {
+                        if ( src[1]=='\n' ) line ++;
+                        src += 2;
+                    } else {
+                        src ++;
+                    }
+                }
+                if ( src < src_end ) src ++;
                 wb = true;
                 continue;
             } else if ( src[0]=='/' && src[1]=='/' ) {
@@ -572,6 +593,91 @@ namespace das {
         return false;
     }
 
+    bool detectOptionLogRequire ( const char * text, uint32_t length ) {
+        // search for `options log_require` outside of comments and strings
+        bool in_single_line_comment = false;
+        bool in_multi_line_comment = false;
+        bool in_string = false;
+        for (uint32_t i = 0; i < length; ++i) {
+            if (in_string) {
+                if (text[i] == '\\' && i + 1 < length) {
+                    ++i;
+                } else if (text[i] == '"') {
+                    in_string = false;
+                }
+                continue;
+            }
+            if (in_single_line_comment) {
+                if (text[i] == '\n') {
+                    in_single_line_comment = false;
+                }
+                continue;
+            }
+            if (in_multi_line_comment) {
+                if (text[i] == '*' && i + 1 < length && text[i + 1] == '/') {
+                    in_multi_line_comment = false;
+                    ++i;
+                }
+                continue;
+            }
+            if (text[i] == '"') {
+                in_string = true;
+                continue;
+            }
+            if (text[i] == '/' && i + 1 < length) {
+                if (text[i + 1] == '/') {
+                    in_single_line_comment = true;
+                    ++i;
+                    continue;
+                } else if (text[i + 1] == '*') {
+                    in_multi_line_comment = true;
+                    ++i;
+                    continue;
+                }
+            }
+            // check for options\s+log_require
+            if (text[i] == 'o' && i + 7 < length && text[i + 1] == 'p' && text[i + 2] == 't' && text[i + 3] == 'i' && text[i + 4] == 'o' && text[i + 5] == 'n' && text[i + 6] == 's' && isspace(text[i + 7]) ) {
+                i += 7;
+                while (i < length && isspace(text[i])) {
+                    ++i;
+                }
+                if (i + 11 < length && text[i] == 'l' && text[i + 1] == 'o' && text[i + 2] == 'g' && text[i + 3] == '_'
+                    && text[i + 4] == 'r' && text[i + 5] == 'e' && text[i + 6] == 'q' && text[i + 7] == 'u'
+                    && text[i + 8] == 'i' && text[i + 9] == 'r' && text[i + 10] == 'e' && !isalnum(text[i + 11]) && text[i + 11] != '_') {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // `Function::lookup` keys cache entries by `intptr_t(structType)` via
+    // `getLookupHash(types)`. After gc sweep, freed Structure addresses can be
+    // reused by later allocations — a stale cached `false` then poisons the
+    // lookup for the new Structure at the same address, surfacing as a flaky
+    // "no matching functions or generics" on legitimate calls. Clear every
+    // function/generic cache before gc_guard sweeps.
+    static void clearAllFunctionLookups() {
+        Module::foreach([](Module * m) -> bool {
+            m->functions.foreach([](auto & fn) { fn->lookup.clear(); });
+            m->generics.foreach([](auto & fn) { fn->lookup.clear(); });
+            return true;
+        });
+    }
+
+    struct GcCollectOnExit {
+        gc_guard & scope;
+        Program * prog = nullptr;
+        GcCollectOnExit(gc_guard & s) : scope(s) {}
+        GcCollectOnExit(gc_guard & s, Program * p) : scope(s), prog(p) {}
+        ~GcCollectOnExit() {
+            if ( prog ) {
+                prog->thisModule->gc_collect(&scope.guard_root);
+            }
+            clearAllFunctionLookups();
+        }
+    };
+
     ProgramPtr parseDaScript ( const string & fileName,
                                const string & moduleName,
                               const FileAccessPtr & access,
@@ -580,7 +686,10 @@ namespace das {
                               bool exportAll,
                               bool isDep,
                               CodeOfPolicies policies ) {
+        CompilationCallbackGuard compilationCallbackGuard(moduleName, fileName);
         ProgramPtr program = make_smart<Program>();
+        gc_guard parse_gc_scope;
+        GcCollectOnExit parse_gc_collect(parse_gc_scope, program.get());
         program->library.renameModule(program->thisModule.get(), moduleName);
         ReuseCacheGuard rcg;
         auto time0 = ref_time_ticks();
@@ -588,6 +697,9 @@ namespace das {
         if ( trySerializeProgramModule(program, access, fileName, libGroup, logs) ) {
             return program;
         }
+
+        // Serialization failed and the program changed, so set it for proper GC collection on exit.
+        parse_gc_collect.prog = program.get();
 
         int err;
         daScriptEnvironment::getBound()->g_Program = program;
@@ -614,6 +726,7 @@ namespace das {
         yyscan_t scanner = nullptr;
         int64_t file_mtime = access->getFileMtime(fileName.c_str());
         if ( auto fi = access->getFileInfo(fileName) ) {
+            callCompilationCallback(moduleName, fileName, "parse");
             parserState.g_FileAccessStack.push_back(fi);
             const char * src = nullptr;
             uint32_t len = 0;
@@ -690,6 +803,7 @@ namespace das {
             if ( policies.solid_context || program->options.getBoolOption("solid_context",false) ) {
                 program->thisModule->isSolidContext = true;
             }
+            callCompilationCallback(moduleName, fileName, "infer");
             auto timeI = ref_time_ticks();
             restartInfer: program->inferTypes(logs, libGroup);
             if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
@@ -708,12 +822,16 @@ namespace das {
                 if (!program->failed())
                     program->lint(logs, libGroup);
                 if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
-                program->foldUnsafe();
+                if (!program->failed())
+                    program->foldUnsafe();
                 auto timeO = ref_time_ticks();
-                if (program->getOptimize()) {
-                    program->optimize(logs,libGroup);
-                } else {
-                    program->buildAccessFlags(logs);
+                if (!program->failed()) {
+                    if (program->getOptimize()) {
+                        callCompilationCallback(moduleName, fileName, "optimize");
+                        program->optimize(logs,libGroup);
+                    } else {
+                        program->buildAccessFlags(logs);
+                    }
                 }
                 if ( policies.macro_context_collect ) libGroup.collectMacroContexts();
                 *totOpt += get_time_usec(timeO);
@@ -756,6 +874,7 @@ namespace das {
                             "module Module_Name is required", "", LineInfo(),
                                 CompilationError::module_does_not_have_a_name);
                     }
+                    callCompilationCallback(moduleName, fileName, "macro_module");
                     auto timeM = ref_time_ticks();
                     if (!program->failed())
                         program->markMacroSymbolUse();
@@ -911,11 +1030,11 @@ namespace das {
             ss << get<1>(arq) << " ";
         }
         ss << fileName;
-        auto rtti_require = make_smart<Variable>();
+        auto rtti_require = new Variable();
         rtti_require->name = "__rtti_require";
-        rtti_require->type = make_smart<TypeDecl>(Type::tString);
-        rtti_require->init = make_smart<ExprConstString>(ss.str());
-        rtti_require->init->type = make_smart<TypeDecl>(Type::tString);
+        rtti_require->type = new TypeDecl(Type::tString);
+        rtti_require->init = new ExprConstString(ss.str());
+        rtti_require->init->type = new TypeDecl(Type::tString);
         rtti_require->used = true;
         rtti_require->private_variable = true;
         res->thisModule->addVariable(rtti_require);
@@ -1039,7 +1158,7 @@ namespace das {
         if ( daScriptEnvironment::getBound()->serializer_read == nullptr )
             return;
         for ( auto & mod : req ) {
-            if ( mod.fileName.find("daslib/debug") != string::npos ) {
+            if ( mod.fileName.find("daslib/debug.") != string::npos ) {
                 auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
                 auto & serializer_write = daScriptEnvironment::getBound()->serializer_read;
                 serializer_read = serializer_write = nullptr;
@@ -1074,13 +1193,33 @@ namespace das {
         return hash_blockz64(reinterpret_cast<const uint8_t *>(relPath.c_str()));
     }
 
+    void logRequireDependencyGraph ( const string & fileName,
+                                    const FileAccessPtr & access,
+                                    string & modName,
+                                    ModuleGroup & libGroup,
+                                    TextWriter & logs ) {
+        TextWriter tw;
+        vector<ModuleInfo> req;
+        vector<MissingRecord> missing;
+        vector<RequireRecord> circular, notAllowed;
+        vector<FileInfo *> chain;
+        das_set<string> dependencies;
+        das_hash_map<string, NamelessModuleReq> namelessReq;
+        vector<NamelessMismatch> namelessMismatches;
+        getPrerequisits(fileName, access, modName, req, missing, circular, notAllowed, chain, dependencies, namelessReq, namelessMismatches, libGroup, &tw, 1, false);
+        logs << "module dependency graph:\n" << tw.str();
+    }
+
     ProgramPtr compileDaScript ( const string & fileName,
                                 const FileAccessPtr & access,
                                 TextWriter & logs,
                                 ModuleGroup & libGroup,
                                 CodeOfPolicies policies ) {
+        gc_guard compile_gc_scope;
+        GcCollectOnExit compile_gc_collect(compile_gc_scope);
         ReuseCacheGuard rcg;
-        bool exportAll = policies.export_all;
+        bool exportAll = policies.export_all || policies.validate_ast;
+        if ( policies.validate_ast ) policies.rtti = true;
         auto time0 = ref_time_ticks();
         *totParse = 0;
         *totInfer = 0;
@@ -1165,6 +1304,7 @@ namespace das {
             auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
             if ( serializer_read && !policies.serialize_main_module ) serializer_read->seenNewModule = true;
             auto res = parseDaScript(fileName, modName, access, logs, libGroup, exportAll, false, policies);
+            compile_gc_collect.prog = res.get();
             // wirteback all parsed modules from serializer_write
             if ( daScriptEnvironment::getBound()->serializer_write != nullptr
                 && (!daScriptEnvironment::getBound()->serializer_read || daScriptEnvironment::getBound()->serializer_read->failed) ) {
@@ -1202,20 +1342,12 @@ namespace das {
                     res->allocateStack(logs,true,false);
             }
             if ( res->options.getBoolOption("log_require",false) ) {
-                TextWriter tw;
-                req.clear();
-                missing.clear();
-                circular.clear();
-                notAllowed.clear();
-                dependencies.clear();
-                namelessReq.clear();
-                namelessMismatches.clear();
-                getPrerequisits(fileName, access, modName, req, missing, circular, notAllowed, chain, dependencies, namelessReq, namelessMismatches, libGroup, &tw, 1, false);
-                logs << "module dependency graph:\n" << tw.str();
+                logRequireDependencyGraph(fileName, access, modName, libGroup, logs);
             }
             if ( !res->failed() ) {
                 res->thisNamespace = "_anon_" + to_string(normalizedPathHash(fileName, getDasRoot()));
             }
+            res->validateAst();
             if ( res->options.getBoolOption("log_total_compile_time",policies.log_total_compile_time) ) {
                 auto totT = get_time_usec(time0);
                 logs << "compiler took " << (totT  / 1000000.) << ", " << fileName << "\n"
@@ -1236,8 +1368,17 @@ namespace das {
             dependencies.clear();
             namelessReq.clear();
             namelessMismatches.clear();
-            return reportPrerequisitesErrors(fileName, missing, circular, notAllowed,
+            auto res = reportPrerequisitesErrors(fileName, missing, circular, notAllowed,
                                         req, dependencies, namelessReq, namelessMismatches, access, libGroup, policies);
+            if ( auto fi = access->getFileInfo(fileName) ) {
+                const char * src = nullptr;
+                uint32_t len = 0;
+                fi->getSourceAndLength(src, len);
+                if ( src && detectOptionLogRequire(src, len) ) {
+                    logRequireDependencyGraph(fileName, access, modName, libGroup, logs);
+                }
+            }
+            return res;
         }
     }
 }

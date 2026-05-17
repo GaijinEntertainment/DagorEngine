@@ -150,7 +150,7 @@ protected:
   FastNameMap requiredResources;
   bool intited;
 
-  UniqueTexHolder last_clip;
+  UniqueTexWithShaderVar last_clip;
   d3d::SamplerInfo last_clip_sampler;
   int lastClipTexSz;
   bool rebuildLastClip;

@@ -68,7 +68,7 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
       #endif
 
       float2 octTC = (octCoord + 0.5)/radiance_res;
-      #if DAGI_LIT_SCENE_TYPED_UAV_LOAD
+      #if DAGI_RAD_GRID_TYPED_UAV_LOAD
         //sample higher grid if we are inside it
         //this allows optimize a
         const float featureToCaptureSize = 4.f; // solid angle of feature (both dark and bright) that we can miss is 1./4 (0.25)
@@ -118,7 +118,7 @@ macro RADIANCE_GRID_TRACE_PROBE(code)
       else
       {
         t = maxT;
-        #if DAGI_LIT_SCENE_TYPED_UAV_LOAD
+        #if DAGI_RAD_GRID_TYPED_UAV_LOAD
           float3 worldPosAt = worldPos + rayDir*max(t - sqrt(3)*nextProbeSize, 0);
           //nextClip = dagi_rad_grid_get_best_enclosing_clip_border(worldPosAt, radiance_grid_clip+1, .5f);
           if (nextClip < dagi_rad_grid_get_clip_count())

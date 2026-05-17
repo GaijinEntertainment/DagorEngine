@@ -37,7 +37,7 @@ class private LongStringReader : AstReaderMacro {
             return true
         }
     }
-    def override visit(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprReader>) : ExpressionPtr {
+    def override visit(prog : ProgramPtr; mod : Module?; expr : ExprReader?) : ExpressionPtr {
         //! Converts the accumulated reader sequence into a constant string expression.
         return <- new ExprConstString(at = expr.at, value := expr.sequence)
     }

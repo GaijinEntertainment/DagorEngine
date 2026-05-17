@@ -16,7 +16,7 @@ return freeze({
   sound_play_oneshot = @(_evt) null
   sound_set_fixed_time_speed = @(_time) null
   sound_get_length = @(path) assert(type(path)=="string")
-  sound_set_timeline_pos = @(_evh, pos) assert(type(pos)=="int")
+  sound_set_timeline_pos = @(_evh, pos) assert(type(pos)=="integer")
   sound_get_timeline_pos = @(_evh) null
 
   sound_play = @(soundEventName, _volume_or_params = null) assert(type(soundEventName)=="string")

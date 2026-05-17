@@ -39,8 +39,8 @@ protected:
     MAX_MIPS = 7,
     MAX_UI_MIP = 2
   };
-  UniqueTexHolder bloomMips; // 1/4 and smaller mips
-  UniqueTex bloomLastMip;    // (1/4 or lower) and smaller mips
+  UniqueTexWithShaderVar bloomMips; // 1/4 and smaller mips
+  UniqueTex bloomLastMip;           // (1/4 or lower) and smaller mips
   int width = 0, height = 0, mipsCount = 0;
   int bloomLastMipStartMip = 100;
   BloomSettings settings;

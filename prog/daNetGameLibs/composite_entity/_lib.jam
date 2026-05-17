@@ -1,0 +1,3 @@
+gamePulls += daNetGameLibs_composite_entity_DAS_pull_AOT ;
+UseProgLibs += daNetGameLibs/composite_entity ;
+

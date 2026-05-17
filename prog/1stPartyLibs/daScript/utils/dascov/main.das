@@ -61,7 +61,7 @@ def main() {
             new_args |> push(args[i])
         }
     }
-    using <| $(var cop : CodeOfPolicies) {
+    using() $(var cop : CodeOfPolicies) {
         using() $(var mg : ModuleGroup) {
             var inscope access <- make_file_access("")
             cop.threadlock_context = true
@@ -82,7 +82,7 @@ def main() {
                     unsafe(invoke_in_context(pctx, "fill_coverage_report", unsafe(addr(rep)), ""))
                     // Clone to current context.
                     report = clone_string(rep)
-                    fopen(coverage_file, "wb") <| $(fw) {
+                    fopen(coverage_file, "wb") $(fw) {
                         if (fw != null) {
                             to_log(LOG_INFO, "Coverage to {coverage_file}\n")
                             fwrite(fw, report)

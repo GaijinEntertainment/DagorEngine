@@ -237,12 +237,12 @@ shader gen_curl_clouds_2d_ps
   GEN_CURL_CLOUDS(ps)
 
   hlsl(ps) {
-    float2 main_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    float2 gen_curl_clouds_2d_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       return getCurl(uint2(input.texcoord * CLOUD_CURL_RES));
     }
   }
-  compile("target_ps", "main_ps")
+  compile("target_ps", "gen_curl_clouds_2d_ps")
 }
 
 shader gen_curl_clouds_3d

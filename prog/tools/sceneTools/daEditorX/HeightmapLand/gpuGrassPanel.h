@@ -27,5 +27,4 @@ public:
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel, const eastl::function<void()> &loadGPUGrassFromLevelBlk,
     const eastl::function<void()> &fillPanel);
-  bool isGrassValid() const;
 };

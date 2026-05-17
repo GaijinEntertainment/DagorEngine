@@ -144,7 +144,7 @@ public:
         FastNameMap dupNodes;
         int node(Node &n) override
         {
-          if (!n.name || !*n.name)
+          if (n.name.empty())
             return 0;
           if (allNodes.getNameId(n.name) < 0)
             allNodes.addNameId(n.name);

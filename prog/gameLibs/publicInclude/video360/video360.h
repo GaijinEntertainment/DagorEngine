@@ -52,6 +52,6 @@ private:
   int cubeSize;
   int convergenceFrames;
 
-  UniqueTexHolder envCubeTex;
+  UniqueTexWithShaderVar envCubeTex;
   UniqueTex faces[6];
 };

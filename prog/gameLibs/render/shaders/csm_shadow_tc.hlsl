@@ -31,10 +31,6 @@ float get_csm_shadow_effect( uint cascade_id, float3 t0, float3 t1, float3 t2, f
   return csmEffect;
 }
 
-#ifndef CSM_CASCADE_SELECTION
-#define CSM_CASCADE_SELECTION CSM_CASCADE_SELECTION_PROJECTION_BOUNDS
-#endif
-
 #if CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_PROJECTION_BOUNDS
 float3 get_csm_shadow_tc(float3 pointToEye, out uint cascade_id, out float csmEffect)
 {
@@ -44,19 +40,19 @@ float3 get_csm_shadow_tc(float3 pointToEye, out uint cascade_id, out float csmEf
   float4 p4 = float4(pointToEye, 1);
   t0 = float3(dot(shadow_cascade_0_tm[0], p4), dot(shadow_cascade_0_tm[1], p4), dot(shadow_cascade_0_tm[2], p4));
   #if NUM_CASCADES>1
-    t1 = t0 * shadow_cascade_relative_scale[1].xyz + shadow_cascade_relative_offset[1].xyz;
+    t1 = t0 * shadow_cascade_relative_scale_and_near[1].xyz + shadow_cascade_relative_offset_and_far[1].xyz;
   #endif
   #if NUM_CASCADES>2
-    t2 = t0 * shadow_cascade_relative_scale[2].xyz + shadow_cascade_relative_offset[2].xyz;
+    t2 = t0 * shadow_cascade_relative_scale_and_near[2].xyz + shadow_cascade_relative_offset_and_far[2].xyz;
   #endif
   #if NUM_CASCADES>3
-    t3 = t0 * shadow_cascade_relative_scale[3].xyz + shadow_cascade_relative_offset[3].xyz;
+    t3 = t0 * shadow_cascade_relative_scale_and_near[3].xyz + shadow_cascade_relative_offset_and_far[3].xyz;
   #endif
   #if NUM_CASCADES>4
-    t4 = t0 * shadow_cascade_relative_scale[4].xyz + shadow_cascade_relative_offset[4].xyz;
+    t4 = t0 * shadow_cascade_relative_scale_and_near[4].xyz + shadow_cascade_relative_offset_and_far[4].xyz;
   #endif
   #if NUM_CASCADES>5
-    t5 = t0 * shadow_cascade_relative_scale[5].xyz + shadow_cascade_relative_offset[5].xyz;
+    t5 = t0 * shadow_cascade_relative_scale_and_near[5].xyz + shadow_cascade_relative_offset_and_far[5].xyz;
   #endif
 
   bool b5 = NUM_CASCADES > 5 && all(abs(t5) < HALF);
@@ -115,18 +111,50 @@ float3 get_csm_shadow_tc(float3 pointToEye, out uint cascade_id, out float csmEf
 {
   pointToEye = -pointToEye;
   float viewDepth = dot(shadow_cascade_camera_near_plane.xyz, pointToEye);
+  float4 p4 = float4(pointToEye, 1);
+  float3 t0 = float3(dot(shadow_cascade_0_tm[0], p4), dot(shadow_cascade_0_tm[1], p4), dot(shadow_cascade_0_tm[2], p4));
 
-  // shadow_cascade_splits stores per-cascade far distances:
-  //   splits[0] = (cascade0_far, cascade1_far, cascade2_far, cascade3_far)
-  //   splits[1] = (cascade4_far, cascade5_far, -, -)
-  // bi = viewDepth < far[i] means the point is within cascade i's range.
-  // The override chain picks the smallest (innermost) cascade.
-  bool b5 = NUM_CASCADES > 5 && viewDepth < shadow_cascade_splits[1].y;
-  bool b4 = NUM_CASCADES > 4 && viewDepth < shadow_cascade_splits[1].x;
-  bool b3 = NUM_CASCADES > 3 && viewDepth < shadow_cascade_splits[0].w;
-  bool b2 = NUM_CASCADES > 2 && viewDepth < shadow_cascade_splits[0].z;
-  bool b1 = NUM_CASCADES > 1 && viewDepth < shadow_cascade_splits[0].y;
-  bool b0 = viewDepth < shadow_cascade_splits[0].x;
+  // Regular cascades pick by viewDepth < far[i]; the override chain
+  // takes the smallest (innermost) matching cascade.
+  //
+  // Manual (anchored) cascades can occupy first N slots and can represent any box in world space
+  // so they're selected using projection bounds.
+
+#if HAS_MANUAL_CASCADES
+  uint manualCount = uint(shadow_cascade_manual_cascade_count);
+  // Compute ti for cascades that may be manual at runtime.
+  // The NUM_CASCADES > i guard on each bi short-circuits the read when ti is unused.
+  float3 t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0;
+  #if NUM_CASCADES > 1
+    t1 = t0 * shadow_cascade_relative_scale_and_near[1].xyz + shadow_cascade_relative_offset_and_far[1].xyz;
+  #endif
+  #if NUM_CASCADES > 2
+    t2 = t0 * shadow_cascade_relative_scale_and_near[2].xyz + shadow_cascade_relative_offset_and_far[2].xyz;
+  #endif
+  #if NUM_CASCADES > 3
+    t3 = t0 * shadow_cascade_relative_scale_and_near[3].xyz + shadow_cascade_relative_offset_and_far[3].xyz;
+  #endif
+  #if NUM_CASCADES > 4
+    t4 = t0 * shadow_cascade_relative_scale_and_near[4].xyz + shadow_cascade_relative_offset_and_far[4].xyz;
+  #endif
+  #if NUM_CASCADES > 5
+    t5 = t0 * shadow_cascade_relative_scale_and_near[5].xyz + shadow_cascade_relative_offset_and_far[5].xyz;
+  #endif
+
+  bool b0 = all(abs(t0) < HALF);
+  bool b1 = NUM_CASCADES > 1 && ((manualCount > 1u) ? all(abs(t1) < HALF) : (viewDepth < shadow_cascade_relative_offset_and_far[1].w));
+  bool b2 = NUM_CASCADES > 2 && ((manualCount > 2u) ? all(abs(t2) < HALF) : (viewDepth < shadow_cascade_relative_offset_and_far[2].w));
+  bool b3 = NUM_CASCADES > 3 && ((manualCount > 3u) ? all(abs(t3) < HALF) : (viewDepth < shadow_cascade_relative_offset_and_far[3].w));
+  bool b4 = NUM_CASCADES > 4 && ((manualCount > 4u) ? all(abs(t4) < HALF) : (viewDepth < shadow_cascade_relative_offset_and_far[4].w));
+  bool b5 = NUM_CASCADES > 5 && ((manualCount > 5u) ? all(abs(t5) < HALF) : (viewDepth < shadow_cascade_relative_offset_and_far[5].w));
+#else
+  bool b5 = NUM_CASCADES > 5 && viewDepth < shadow_cascade_relative_offset_and_far[5].w;
+  bool b4 = NUM_CASCADES > 4 && viewDepth < shadow_cascade_relative_offset_and_far[4].w;
+  bool b3 = NUM_CASCADES > 3 && viewDepth < shadow_cascade_relative_offset_and_far[3].w;
+  bool b2 = NUM_CASCADES > 2 && viewDepth < shadow_cascade_relative_offset_and_far[2].w;
+  bool b1 = NUM_CASCADES > 1 && viewDepth < shadow_cascade_relative_offset_and_far[1].w;
+  bool b0 = viewDepth < shadow_cascade_relative_offset_and_far[0].w;
+#endif
 
   float3 t = 2;
   cascade_id = 6;
@@ -159,11 +187,16 @@ float3 get_csm_shadow_tc(float3 pointToEye, out uint cascade_id, out float csmEf
   if (cascade_id == 6)
     return t;
 
-  float4 p4 = float4(pointToEye, 1);
-  float3 t0 = float3(dot(shadow_cascade_0_tm[0], p4), dot(shadow_cascade_0_tm[1], p4), dot(shadow_cascade_0_tm[2], p4));
-  t = t0 * shadow_cascade_relative_scale[cascade_id].xyz + shadow_cascade_relative_offset[cascade_id].xyz;
+  t = t0 * shadow_cascade_relative_scale_and_near[cascade_id].xyz + shadow_cascade_relative_offset_and_far[cascade_id].xyz;
 
-  csmEffect = (cascade_id == NUM_CASCADES - 1) ? max3(abs(t.x), abs(t.y), abs(t.z)) * 2 : 0;
+  BRANCH
+  if (cascade_id == NUM_CASCADES - 1)
+  {
+    float near = shadow_cascade_relative_scale_and_near[NUM_CASCADES - 1].w;
+    float far = shadow_cascade_relative_offset_and_far[NUM_CASCADES - 1].w;
+    float mid = (near + far) * 0.5;
+    csmEffect = saturate((viewDepth - mid) * 2.0 / (far - near));
+  }
 
   t.xy = t.xy*shadow_cascade_tc_mul_offset[cascade_id].xy + shadow_cascade_tc_mul_offset[cascade_id].zw;
   t.z += 0.5;
@@ -187,24 +220,24 @@ float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out floa
   t0 = float3(dot(shadow_cascade_0_tm[0].xyz, pointToEye), dot(shadow_cascade_0_tm[1].xyz, pointToEye), dot(shadow_cascade_0_tm[2].xyz, pointToEye));
   t0_o = float3(shadow_cascade_0_tm[0].w, shadow_cascade_0_tm[1].w, shadow_cascade_0_tm[2].w);
   #if NUM_CASCADES>1
-    t1 = t0 * shadow_cascade_relative_scale[1].xyz;
-    t1_o = t0_o * shadow_cascade_relative_scale[1].xyz + shadow_cascade_relative_offset[1].xyz;
+    t1 = t0 * shadow_cascade_relative_scale_and_near[1].xyz;
+    t1_o = t0_o * shadow_cascade_relative_scale_and_near[1].xyz + shadow_cascade_relative_offset_and_far[1].xyz;
   #endif
   #if NUM_CASCADES>2
-    t2 = t0 * shadow_cascade_relative_scale[2].xyz;
-    t2_o = t0_o * shadow_cascade_relative_scale[2].xyz + shadow_cascade_relative_offset[2].xyz;
+    t2 = t0 * shadow_cascade_relative_scale_and_near[2].xyz;
+    t2_o = t0_o * shadow_cascade_relative_scale_and_near[2].xyz + shadow_cascade_relative_offset_and_far[2].xyz;
   #endif
   #if NUM_CASCADES>3
-    t3 = t0 * shadow_cascade_relative_scale[3].xyz;
-    t3_o = t0_o * shadow_cascade_relative_scale[3].xyz + shadow_cascade_relative_offset[3].xyz;
+    t3 = t0 * shadow_cascade_relative_scale_and_near[3].xyz;
+    t3_o = t0_o * shadow_cascade_relative_scale_and_near[3].xyz + shadow_cascade_relative_offset_and_far[3].xyz;
   #endif
   #if NUM_CASCADES>4
-    t4 = t0 * shadow_cascade_relative_scale[4].xyz;
-    t4_o = t0_o * shadow_cascade_relative_scale[4].xyz + shadow_cascade_relative_offset[4].xyz;
+    t4 = t0 * shadow_cascade_relative_scale_and_near[4].xyz;
+    t4_o = t0_o * shadow_cascade_relative_scale_and_near[4].xyz + shadow_cascade_relative_offset_and_far[4].xyz;
   #endif
   #if NUM_CASCADES>5
-    t5 = t0 * shadow_cascade_relative_scale[5].xyz;
-    t5_o = t0_o * shadow_cascade_relative_scale[5].xyz + shadow_cascade_relative_offset[5].xyz;
+    t5 = t0 * shadow_cascade_relative_scale_and_near[5].xyz;
+    t5_o = t0_o * shadow_cascade_relative_scale_and_near[5].xyz + shadow_cascade_relative_offset_and_far[5].xyz;
   #endif
 
   t0 = (NUM_CASCADES==1) ? t0 + t0_o : t0;
@@ -274,21 +307,84 @@ float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out floa
   return t;
 }
 #elif CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_VIEW_DEPTH
-float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out float csmEffect, float scale)
+float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out float csmEffect, float randomTransitionOffset)
 {
   pointToEye = -pointToEye;
   float viewDepth = dot(shadow_cascade_camera_near_plane.xyz, pointToEye);
-  // Scale shrinks the acceptance range for non-last cascades, creating a dithered transition zone.
-  // The last cascade is unscaled (matches the projection-bounds version where scale only affects xy,
-  // and the last cascade uses the full unscaled bounds).
-  float scaledViewDepth = viewDepth * scale;
 
-  bool b5 = NUM_CASCADES > 5 && (NUM_CASCADES == 6 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[1].y;
-  bool b4 = NUM_CASCADES > 4 && (NUM_CASCADES == 5 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[1].x;
-  bool b3 = NUM_CASCADES > 3 && (NUM_CASCADES == 4 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[0].w;
-  bool b2 = NUM_CASCADES > 2 && (NUM_CASCADES == 3 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[0].z;
-  bool b1 = NUM_CASCADES > 1 && (NUM_CASCADES == 2 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[0].y;
-  bool b0 = (NUM_CASCADES == 1 ? viewDepth : scaledViewDepth) < shadow_cascade_splits[0].x;
+#if HAS_MANUAL_CASCADES
+  // randomTransitionOffset should be in range [-0.5, 0.5].
+  // scale for projection bounds shrinkage was in range [1, 1.1]
+  float scale = randomTransitionOffset * 0.1 + 1.05;
+  uint manualCount = uint(shadow_cascade_manual_cascade_count);
+  float3 t0 = float3(
+    dot(shadow_cascade_0_tm[0].xyz, pointToEye),
+    dot(shadow_cascade_0_tm[1].xyz, pointToEye),
+    dot(shadow_cascade_0_tm[2].xyz, pointToEye));
+  float3 t0_o = float3(shadow_cascade_0_tm[0].w, shadow_cascade_0_tm[1].w, shadow_cascade_0_tm[2].w);
+  float3 t1 = 0, t1_o = 0;
+  float3 t2 = 0, t2_o = 0;
+  float3 t3 = 0, t3_o = 0;
+  float3 t4 = 0, t4_o = 0;
+  float3 t5 = 0, t5_o = 0;
+  #if NUM_CASCADES > 1
+    t1 = t0 * shadow_cascade_relative_scale_and_near[1].xyz;
+    t1_o = t0_o * shadow_cascade_relative_scale_and_near[1].xyz + shadow_cascade_relative_offset_and_far[1].xyz;
+  #endif
+  #if NUM_CASCADES > 2
+    t2 = t0 * shadow_cascade_relative_scale_and_near[2].xyz;
+    t2_o = t0_o * shadow_cascade_relative_scale_and_near[2].xyz + shadow_cascade_relative_offset_and_far[2].xyz;
+  #endif
+  #if NUM_CASCADES > 3
+    t3 = t0 * shadow_cascade_relative_scale_and_near[3].xyz;
+    t3_o = t0_o * shadow_cascade_relative_scale_and_near[3].xyz + shadow_cascade_relative_offset_and_far[3].xyz;
+  #endif
+  #if NUM_CASCADES > 4
+    t4 = t0 * shadow_cascade_relative_scale_and_near[4].xyz;
+    t4_o = t0_o * shadow_cascade_relative_scale_and_near[4].xyz + shadow_cascade_relative_offset_and_far[4].xyz;
+  #endif
+  #if NUM_CASCADES > 5
+    t5 = t0 * shadow_cascade_relative_scale_and_near[5].xyz;
+    t5_o = t0_o * shadow_cascade_relative_scale_and_near[5].xyz + shadow_cascade_relative_offset_and_far[5].xyz;
+  #endif
+
+  t0 = (NUM_CASCADES == 1) ? t0 + t0_o : t0;
+  t1 = (NUM_CASCADES == 2) ? t1 + t1_o : t1;
+  t2 = (NUM_CASCADES == 3) ? t2 + t2_o : t2;
+  t3 = (NUM_CASCADES == 4) ? t3 + t3_o : t3;
+  t4 = (NUM_CASCADES == 5) ? t4 + t4_o : t4;
+  t5 = (NUM_CASCADES == 6) ? t5 + t5_o : t5;
+
+  float3 scale3 = float3(scale, scale, 1); // don't shrink frustum depth, it causes popping
+
+  bool b0 = all(abs(NUM_CASCADES == 1 ? t0 : t0_o + t0 * scale3) < HALF);
+  bool b1 = NUM_CASCADES > 1 && ((manualCount > 1u)
+    ? all(abs(NUM_CASCADES == 2 ? t1 : t1_o + t1 * scale3) < HALF)
+    : (viewDepth  < shadow_cascade_relative_offset_and_far[1].w));
+  bool b2 = NUM_CASCADES > 2 && ((manualCount > 2u)
+    ? all(abs(NUM_CASCADES == 3 ? t2 : t2_o + t2 * scale3) < HALF)
+    : (viewDepth < shadow_cascade_relative_offset_and_far[2].w));
+  bool b3 = NUM_CASCADES > 3 && ((manualCount > 3u)
+    ? all(abs(NUM_CASCADES == 4 ? t3 : t3_o + t3 * scale3) < HALF)
+    : (viewDepth < shadow_cascade_relative_offset_and_far[3].w));
+  bool b4 = NUM_CASCADES > 4 && ((manualCount > 4u)
+    ? all(abs(NUM_CASCADES == 5 ? t4 : t4_o + t4 * scale3) < HALF)
+    : (viewDepth < shadow_cascade_relative_offset_and_far[4].w));
+  bool b5 = NUM_CASCADES > 5 && ((manualCount > 5u)
+    ? all(abs(NUM_CASCADES == 6 ? t5 : t5_o + t5 * scale3) < HALF)
+    : (viewDepth < shadow_cascade_relative_offset_and_far[5].w));
+
+  // Promote t0 to combined for post-selection (no-op when NUM_CASCADES == 1
+  // since the first promotion already combined it).
+  t0 = (NUM_CASCADES == 1) ? t0 : t0 + t0_o;
+#else
+  bool b5 = NUM_CASCADES > 5 && viewDepth < shadow_cascade_relative_offset_and_far[5].w;
+  bool b4 = NUM_CASCADES > 4 && viewDepth < shadow_cascade_relative_offset_and_far[4].w;
+  bool b3 = NUM_CASCADES > 3 && viewDepth < shadow_cascade_relative_offset_and_far[3].w;
+  bool b2 = NUM_CASCADES > 2 && viewDepth < shadow_cascade_relative_offset_and_far[2].w;
+  bool b1 = NUM_CASCADES > 1 && viewDepth < shadow_cascade_relative_offset_and_far[1].w;
+  bool b0 = viewDepth < shadow_cascade_relative_offset_and_far[0].w;
+#endif
 
   float3 t = 2;
   cascade_id = 6;
@@ -321,16 +417,62 @@ float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out floa
   if (cascade_id == 6)
     return t;
 
+  bool shouldTransition = cascade_id != NUM_CASCADES - 1;
+#if HAS_MANUAL_CASCADES
+  shouldTransition = shouldTransition && cascade_id >= manualCount;
+#endif
+
+  BRANCH
+  if (shouldTransition)
+  {
+    uint nextCascadeId = cascade_id + 1;
+    float near = shadow_cascade_relative_scale_and_near[nextCascadeId].w;
+    float far = shadow_cascade_relative_offset_and_far[cascade_id].w;
+
+    float transition = saturate((viewDepth - near) / (far - near));
+    cascade_id = cascade_id + round(transition + randomTransitionOffset);
+  }
+
+#if !HAS_MANUAL_CASCADES
   float4 p4 = float4(pointToEye, 1);
   float3 t0 = float3(dot(shadow_cascade_0_tm[0], p4), dot(shadow_cascade_0_tm[1], p4), dot(shadow_cascade_0_tm[2], p4));
-  t = t0 * shadow_cascade_relative_scale[cascade_id].xyz + shadow_cascade_relative_offset[cascade_id].xyz;
+#endif
+  t = t0 * shadow_cascade_relative_scale_and_near[cascade_id].xyz + shadow_cascade_relative_offset_and_far[cascade_id].xyz;
 
-  csmEffect = (cascade_id == NUM_CASCADES - 1) ? max3(abs(t.x), abs(t.y), abs(t.z)) * 2 : 0;
+  BRANCH
+  if (cascade_id == NUM_CASCADES - 1)
+  {
+    float near = shadow_cascade_relative_scale_and_near[NUM_CASCADES - 1].w;
+    float far = shadow_cascade_relative_offset_and_far[NUM_CASCADES - 1].w;
+    float mid = (near + far) * 0.5;
+    csmEffect = saturate((viewDepth - mid) * 2.0 / (far - near));
+  }
 
   t.xy = t.xy*shadow_cascade_tc_mul_offset[cascade_id].xy + shadow_cascade_tc_mul_offset[cascade_id].zw;
   t.z += 0.5;
   return t;
 }
 #endif
+
+float get_csm_shadow_last_cascade_vignette(float3 pointToEye)
+{
+#if NUM_CASCADES == 0
+  return 1;
+#endif
+  pointToEye = -pointToEye;
+#if CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_PROJECTION_BOUNDS
+  float4 p4 = float4(pointToEye, 1);
+  float3 t0 = float3(dot(shadow_cascade_0_tm[0], p4), dot(shadow_cascade_0_tm[1], p4), dot(shadow_cascade_0_tm[2], p4));
+  float3 tLast = t0 * shadow_cascade_relative_scale_and_near[LAST_CASCADE-1].xyz + shadow_cascade_relative_offset_and_far[LAST_CASCADE-1].xyz;
+  float v = max3(abs(tLast.x), abs(tLast.y), saturate(tLast.z))*2.f; // ignore upper z, since we want depth from all cascades to be included
+#elif CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_VIEW_DEPTH
+  float viewDepth = dot(shadow_cascade_camera_near_plane.xyz, pointToEye);
+  float near = shadow_cascade_relative_scale_and_near[LAST_CASCADE - 1].w;
+  float far = shadow_cascade_relative_offset_and_far[LAST_CASCADE - 1].w;
+  float mid = (near + far) * 0.5;
+  float v = saturate((viewDepth - mid) * 2.0 / (far - near));
+#endif
+  return saturate(v);
+}
 
 #undef HALF

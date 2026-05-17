@@ -5,6 +5,7 @@
 #pragma once
 
 #include <propPanel/control/propertyControlBase.h>
+#include <propPanel/constants.h>
 
 namespace PropPanel
 {
@@ -40,6 +41,8 @@ public:
   virtual ContainerPropertyControl *createGroupHorzFlow(int id, const char caption[]);
   virtual ContainerPropertyControl *createGroupBox(int id, const char caption[]);
   virtual ContainerPropertyControl *createRadioGroup(int id, const char caption[], bool new_line = true);
+  virtual ContainerPropertyControl *createHorizontalSplitter(int id);
+  virtual ContainerPropertyControl *createVerticalSplitter(int id);
   virtual ContainerPropertyControl *createTabPanel(int id, const char caption[]);
   virtual ContainerPropertyControl *createTabPage(int id, const char caption[]);
   virtual ContainerPropertyControl *createToolbarPanel(int id, const char caption[], bool new_line = true);
@@ -50,8 +53,11 @@ public:
   virtual ContainerPropertyControl *createMultiSelectTreeCheckbox(int id, const char caption[], hdpi::Px height, bool new_line = true);
 
   virtual void createStatic(int id, const char caption[], bool new_line = true, bool use_text_width = false, bool word_wrap = false);
+
+  // You can also use Constants::EDITBOX_MULTILINE_8_LINES_HEIGHT and Constants::EDITBOX_MULTILINE_FULL_HEIGHT for height.
   virtual void createEditBox(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true,
-    bool multiline = false, hdpi::Px multi_line_height = hdpi::_pxScaled(40), bool auto_height = false);
+    bool multiline = false, hdpi::Px multi_line_height = Constants::EDITBOX_MULTILINE_DEFAULT_HEIGHT, bool auto_height = false);
+
   virtual void createFileEditBox(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createFileButton(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createTargetButton(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true);
@@ -229,6 +235,10 @@ public:
 
   virtual bool removeById(int id);
   virtual bool moveById(int id, int ba_id = -1, bool after = false);
+
+  // SplitterPropertyControl
+  virtual void setSplitRatios([[maybe_unused]] dag::ConstSpan<float> ratios) {}
+  virtual dag::ConstSpan<float> getSplitRatios() const { return {}; }
 
   // tree leaf handling
   virtual void setCaption(TLeafHandle leaf, const char value[])

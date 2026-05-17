@@ -54,7 +54,7 @@ void Module_dasQUIRREL::initFunctions_1() {
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:233:23
 	addExtern< SQRESULT (*)(SQVM *,const char *,SQInteger,const char *,SQBool,const tagSQObject *) , sq_compile >(*this,lib,"sq_compile",SideEffects::worstDefault,"sq_compile")
 		->args({"v","s","size","sourcename","raiseerror","bindings"})
-		->arg_init(5,make_smart<ExprConstPtr>());
+		->arg_init(5,new ExprConstPtr());
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:235:19
 	addExtern< void (*)(SQVM *,SQBool) , sq_enablevartrace >(*this,lib,"sq_enablevartrace",SideEffects::worstDefault,"sq_enablevartrace")
 		->args({"v","enable"});

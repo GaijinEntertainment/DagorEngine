@@ -469,6 +469,7 @@ ECS_BROADCAST_EVENT_TYPE(BVHAdditionalAnimcharIterate, BVHAdditionalAnimcharIter
 ECS_BROADCAST_EVENT_TYPE(BVHDagdpChanged)
 
 ECS_BROADCAST_EVENT_TYPE(ChangeRenderFeaturesEarly)
+ECS_BROADCAST_EVENT_TYPE(SetAntialiasing)
 
 ECS_BROADCAST_EVENT_TYPE(RenderAlbedoVoxelization, BBox3 /*cullBox*/, bool /*outRenderedAnything*/)
 ECS_BROADCAST_EVENT_TYPE(RenderSdfVoxelization, BBox3 /*cullBox*/, bool /*outRenderedAnything*/)

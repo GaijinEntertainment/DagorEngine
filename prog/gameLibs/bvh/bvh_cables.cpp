@@ -109,6 +109,8 @@ void on_cables_changed(Cables *cables, ContextId context_id)
 
   TIME_D3D_PROFILE("on_cables_changed");
 
+  d3d::set_render_target(RenderTarget{}, DepthAccess::SampledRO, {RenderTarget{}});
+
   auto triPerCable = cables->getTranglesPerCable();
   auto triangleCount = triPerCable * maxCables;
   auto vertexCount = (triPerCable + 2) * maxCables;

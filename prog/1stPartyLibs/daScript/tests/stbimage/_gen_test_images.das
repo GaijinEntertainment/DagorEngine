@@ -29,15 +29,15 @@ def main() {
 
     // PNG (RGBA, lossless)
     var ok = stbi_write_png("{root}/test.png", W, H, 4, unsafe(addr(rgba[0])), W * 4)
-    print(ok != 0 ? "PNG: ok\n" : "PNG: FAILED\n")
+    to_log(LOG_INFO, ok != 0 ? "PNG: ok\n" : "PNG: FAILED\n")
 
     // BMP (RGBA)
     ok = stbi_write_bmp("{root}/test.bmp", W, H, 4, unsafe(addr(rgba[0])))
-    print(ok != 0 ? "BMP: ok\n" : "BMP: FAILED\n")
+    to_log(LOG_INFO, ok != 0 ? "BMP: ok\n" : "BMP: FAILED\n")
 
     // TGA (RGBA)
     ok = stbi_write_tga("{root}/test.tga", W, H, 4, unsafe(addr(rgba[0])))
-    print(ok != 0 ? "TGA: ok\n" : "TGA: FAILED\n")
+    to_log(LOG_INFO, ok != 0 ? "TGA: ok\n" : "TGA: FAILED\n")
 
     // JPG (RGB, lossy - strip alpha)
     var rgb : array<uint8>
@@ -52,7 +52,7 @@ def main() {
         }
     }
     ok = stbi_write_jpg("{root}/test.jpg", W, H, 3, unsafe(addr(rgb[0])), 90)
-    print(ok != 0 ? "JPG: ok\n" : "JPG: FAILED\n")
+    to_log(LOG_INFO, ok != 0 ? "JPG: ok\n" : "JPG: FAILED\n")
 
     // HDR (RGBA float)
     var hdr : array<float>
@@ -67,5 +67,5 @@ def main() {
         }
     }
     ok = stbi_write_hdr("{root}/test.hdr", W, H, 4, unsafe(addr(hdr[0])))
-    print(ok != 0 ? "HDR: ok\n" : "HDR: FAILED\n")
+    to_log(LOG_INFO, ok != 0 ? "HDR: ok\n" : "HDR: FAILED\n")
 }

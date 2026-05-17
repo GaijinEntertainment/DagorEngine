@@ -180,9 +180,14 @@ void StreamContext::sendRequest(const char *url, completion_cb_t complete_cb, st
       int lastModified = 0;
       if (status == httprequests::RequestStatus::SUCCESS)
       {
-        result = ERR_OK;
+        // RequestStatus::SUCCESS only means the transport completed; the HTTP status
+        // can still be 4xx/5xx. Surface non-2xx/3xx as ERR_UNKNOWN so the caller
+        // (e.g. datacache webcache) falls over to an alternative base URL instead
+        // of consuming the error body as a "successful" response.
         if (http_code == HTTP_NOT_MODIFIED)
           result = ERR_NOT_MODIFIED;
+        else if (http_code >= 200 && http_code < 400)
+          result = ERR_OK;
         if (response.size() > 0 && http_code == HTTP_OK)
           loadCb = new MemGeneralLoadCB(response.data(), (int)response.size());
         if (auto lmIt = resp_headers.find("Last-Modified"); lmIt != resp_headers.end())

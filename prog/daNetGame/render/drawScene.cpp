@@ -33,7 +33,6 @@
 #include <debug/dag_textMarks.h>
 #include <render/debug3dSolidBuffered.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <osApiWrappers/dag_events.h>
 #include <workCycle/dag_workCycle.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <webui/shaderEditors.h>
@@ -72,7 +71,6 @@
 #include <camTrack/camTrack.h>
 #include <daRg/dag_guiScene.h>
 #include <util/dag_threadPool.h>
-#include <util/dag_finally.h>
 
 #include "animatedSplashScreen.h"
 #include <debug/dag_memReport.h>
@@ -115,18 +113,13 @@ extern void free_reserved_tp_worker();
 
 static class AdditionalGameJob final : public cpujobs::IJob
 {
-  os_event_t doneEvent;
   das::daScriptEnvironment *bound = nullptr;
   uint32_t frameId = 0;
   float dt = 0.;
   float rtdt = 0.;
   double curTime = 0.;
 
-  friend void wait_additional_game_job_done();
-
 public:
-  AdditionalGameJob() { os_event_create(&doneEvent); }
-  ~AdditionalGameJob() { os_event_destroy(&doneEvent); }
   AdditionalGameJob *prepare(uint32_t frame_id, float _rtdt, float time_speed, double _curTime, das::daScriptEnvironment *bound_)
   {
     bound = bound_;
@@ -136,14 +129,11 @@ public:
     curTime = _curTime;
     bind_dascript::enable_thread_safe_das_ctx_region(true);
     uirender::prepare_to_start_ui_before_render_job();
-    os_event_reset(&doneEvent);
     return this;
   }
   const char *getJobName(bool &) const override { return "AdditionalGameJob"; }
   void doJob() override
   {
-    FINALLY([this] { os_event_set(&doneEvent); });
-
     int64_t ownedThread = g_entity_mgr->getOwnerThreadId();
     g_entity_mgr->setOwnerThreadId(get_current_thread_id());
 
@@ -156,7 +146,6 @@ public:
         start_next_frame_in_additional_game_job_cb();
       dagor_start_next_frame(gpuLatencyWait);
     }
-
     TIME_PROFILE(ParallelUpdateFrameDelayed);
     FRAMEMEM_REGION;
     bind_dascript::SharedFramememStack ctxStack;
@@ -188,9 +177,7 @@ void wait_additional_game_job_done()
   if (!interlocked_acquire_load(additional_game_job.done))
   {
     TIME_PROFILE(wait_additional_game_job_done);
-    os_event_wait(&additional_game_job.doneEvent, OS_WAIT_INFINITE);
-    while (!interlocked_acquire_load(additional_game_job.done)) [[unlikely]]
-      cpu_yield();
+    threadpool::wait(&additional_game_job);
   }
   bind_dascript::enable_thread_safe_das_ctx_region(false);
 }

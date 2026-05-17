@@ -216,11 +216,11 @@ namespace das {
     template <typename V>
     using safebox_map = das_hash_map<uint64_t,V,skip_hash,das::equal_to<uint64_t>>;
 
-    template <typename DataType>
+    template <typename DataType, typename VT = smart_ptr<DataType>>
     struct safebox {
     public:
-        typedef smart_ptr<DataType> ValueType;
-        typedef safebox<ValueType> this_type;
+        typedef VT ValueType;
+        typedef safebox<DataType,VT> this_type;
     public:
         safebox() {}
         safebox( this_type && sb ) {

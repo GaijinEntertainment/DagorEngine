@@ -69,7 +69,7 @@ bool use_water_caustics()
 
 static void update_caustics_entity(dafg::NodeHandle &caustics__perCameraResNode,
   dafg::NodeHandle &caustics__renderNode,
-  UniqueTexHolder &caustics__indoor_probe_mask,
+  UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   bool &needs_water_heightmap,
   bool &combined_shadows__use_additional_textures)
 {
@@ -105,12 +105,12 @@ ECS_REQUIRE(
   ecs::string &render_settings__waterQuality, ecs::string render_settings__antialiasing_mode, bool render_settings__rayReconstruction)
 static void caustics_water_quality_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  create_caustics_node_ecs_query(manager,
-    [](dafg::NodeHandle &caustics__perCameraResNode, dafg::NodeHandle &caustics__renderNode,
-      UniqueTexHolder &caustics__indoor_probe_mask, bool &needs_water_heightmap, bool &combined_shadows__use_additional_textures) {
-      update_caustics_entity(caustics__perCameraResNode, caustics__renderNode, caustics__indoor_probe_mask, needs_water_heightmap,
-        combined_shadows__use_additional_textures);
-    });
+  create_caustics_node_ecs_query(manager, [](dafg::NodeHandle &caustics__perCameraResNode, dafg::NodeHandle &caustics__renderNode,
+                                            UniqueTexWithShaderVar &caustics__indoor_probe_mask, bool &needs_water_heightmap,
+                                            bool &combined_shadows__use_additional_textures) {
+    update_caustics_entity(caustics__perCameraResNode, caustics__renderNode, caustics__indoor_probe_mask, needs_water_heightmap,
+      combined_shadows__use_additional_textures);
+  });
 }
 
 ECS_TAG(render)
@@ -118,7 +118,7 @@ ECS_ON_EVENT(ChangeRenderFeatures)
 static void caustics_render_features_changed_es(const ecs::Event &evt,
   dafg::NodeHandle &caustics__perCameraResNode,
   dafg::NodeHandle &caustics__renderNode,
-  UniqueTexHolder &caustics__indoor_probe_mask,
+  UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   bool &needs_water_heightmap,
   bool &combined_shadows__use_additional_textures)
 {
@@ -138,7 +138,7 @@ ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_rend
 static void caustics_before_render_es(const UpdateStageInfoBeforeRender &,
   dafg::NodeHandle &caustics__perCameraResNode,
   dafg::NodeHandle &caustics__renderNode,
-  UniqueTexHolder &caustics__indoor_probe_mask,
+  UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   const ShadersECS &caustics__indoor_probe_shader)
 {
   if (!caustics__indoor_probe_shader)

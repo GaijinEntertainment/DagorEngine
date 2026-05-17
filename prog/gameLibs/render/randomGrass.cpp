@@ -83,6 +83,7 @@ enum
   SHV_GRASS_LAYERS_COUNT,
   SHV_GRASS_ALPHA_TO_COVERAGE,
   SHV_WORLD_VIEW_POS,
+  SHV_GRASS_GENERATE_UNDERWATER,
   SHV_COUNT
 };
 
@@ -188,6 +189,7 @@ RandomGrass::RandomGrass(const DataBlock &level_grass_blk, const DataBlock &para
   shaderVars[SHV_GRASS_LAYERS_COUNT] = ::get_shader_variable_id("grass_layers_count", true);
   shaderVars[SHV_GRASS_ALPHA_TO_COVERAGE] = ::get_shader_variable_id("grass_alpha_to_coverage", true);
   shaderVars[SHV_WORLD_VIEW_POS] = ::get_shader_variable_id("world_view_pos");
+  shaderVars[SHV_GRASS_GENERATE_UNDERWATER] = ::get_shader_variable_id("grass_generate_underwater", true);
 
   shaderVars[SHV_CELL_TO_SQUARE_WORLD_REG] = ShaderGlobal::get_int_fast(get_shader_variable_id("cell_to_square_world_const_no"));
   shaderVars[SHV_GRASS_LAYER_IMMEDIATE_NO] = ShaderGlobal::get_int_fast(get_shader_variable_id("grass_layer_no_immediate_const_no"));
@@ -340,10 +342,12 @@ void RandomGrass::loadParams(const DataBlock &level_grass_blk, const DataBlock &
   replaceVdecls();
   fillLayers(grassRadiusMul, params_blk);
 
+  const bool generateUnderwater = level_grass_blk.getBool("generateUnderwater", false);
 
   // shader vars
   ShaderGlobal::set_float4(::get_shader_variable_id("grass_noise_rnd"), noiseRnd.x, noiseRnd.y, 0, 0);
   ShaderGlobal::set_float4(::get_shader_variable_id("grass_noise_val"), noiseVal.x, noiseVal.y, noiseVal.z, noiseVal.w);
+  ShaderGlobal::set_int(shaderVars[SHV_GRASS_GENERATE_UNDERWATER], generateUnderwater ? 1 : 0);
 }
 
 void RandomGrass::onReset()

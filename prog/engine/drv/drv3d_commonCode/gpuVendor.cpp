@@ -657,19 +657,11 @@ static bool match_device_families(const DataBlock &gpu_preferences, uint32_t ven
   return false;
 }
 
-bool gpu::is_forced_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
-  eastl::span<const uint32_t> other_discrete)
-{
-  const char *familyKeys[] = {"forcedFamily"};
-  const char *deviceKeys[] = {"forcedDeviceIds"};
-  return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, familyKeys, deviceKeys);
-}
-
 bool gpu::is_preferred_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete)
 {
-  const char *familyKeys[] = {"forcedFamily", "preferredFamily"};
-  const char *deviceKeys[] = {"forcedDeviceIds", "preferredDeviceIds"};
+  const char *familyKeys[] = {"preferredFamily"};
+  const char *deviceKeys[] = {"preferredDeviceIds"};
   return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, familyKeys, deviceKeys);
 }
 

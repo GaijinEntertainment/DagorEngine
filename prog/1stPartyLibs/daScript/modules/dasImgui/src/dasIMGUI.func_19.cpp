@@ -19,7 +19,7 @@ void Module_dasIMGUI::initFunctions_19() {
 // from imgui/imgui.h:1167:29
 	makeExtern< void (*)(const char *,uint64_t) , ImGui::LoadIniSettingsFromMemory , SimNode_ExtFuncCall , imguiTempFn>(lib,"LoadIniSettingsFromMemory","ImGui::LoadIniSettingsFromMemory")
 		->args({"ini_data","ini_size"})
-		->arg_init(1,make_smart<ExprConstUInt64>(0x0))
+		->arg_init(1,new ExprConstUInt64(0x0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1168:29
 	makeExtern< void (*)(const char *) , ImGui::SaveIniSettingsToDisk , SimNode_ExtFuncCall , imguiTempFn>(lib,"SaveIniSettingsToDisk","ImGui::SaveIniSettingsToDisk")
@@ -28,7 +28,7 @@ void Module_dasIMGUI::initFunctions_19() {
 // from imgui/imgui.h:1169:29
 	makeExtern< const char * (*)(size_t *) , ImGui::SaveIniSettingsToMemory , SimNode_ExtFuncCall , imguiTempFn>(lib,"SaveIniSettingsToMemory","ImGui::SaveIniSettingsToMemory")
 		->args({"out_ini_size"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1175:29
 	makeExtern< void (*)(const char *) , ImGui::DebugTextEncoding , SimNode_ExtFuncCall , imguiTempFn>(lib,"DebugTextEncoding","ImGui::DebugTextEncoding")
@@ -60,8 +60,8 @@ void Module_dasIMGUI::initFunctions_19() {
 // from imgui/imgui.h:1197:29
 	makeExtern< void (*)(void *,void *) , ImGui::RenderPlatformWindowsDefault , SimNode_ExtFuncCall , imguiTempFn>(lib,"RenderPlatformWindowsDefault","ImGui::RenderPlatformWindowsDefault")
 		->args({"platform_render_arg","renderer_render_arg"})
-		->arg_init(0,make_smart<ExprConstPtr>())
-		->arg_init(1,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
+		->arg_init(1,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1198:29
 	makeExtern< void (*)() , ImGui::DestroyPlatformWindows , SimNode_ExtFuncCall , imguiTempFn>(lib,"DestroyPlatformWindows","ImGui::DestroyPlatformWindows")

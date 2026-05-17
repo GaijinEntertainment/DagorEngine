@@ -64,7 +64,7 @@ void CloudsField::genFieldGeneral(VoltexRenderer &renderer, DynamicShaderHelper 
   {
     SCOPE_RENDER_TARGET;
     ShaderGlobal::set_float4(dispatch_sizeVarId, resXZ, resXZ, resY, 0);
-    d3d::set_render_target(layersPixelCount.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{layersPixelCount.getTex2D(), 0, 0}});
     non_empty_fill.shader->setStates(0, true);
     d3d::setvsrc(0, 0, 0);
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, resXZ * resXZ);
@@ -251,7 +251,7 @@ CloudsChangeFlags CloudsField::render()
     else
     {
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target(layersHeights.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{layersHeights.getTex2D(), 0, 0}});
       refineAltitudesPs.render();
     }
     d3d::resource_barrier({layersHeights.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -308,7 +308,7 @@ void CloudsField::renderCloudVolume(VolTexture *cloud_volume, TEXTUREID prev_clo
   else
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(0, cloud_volume, d3d::RENDER_TO_WHOLE_ARRAY, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{cloud_volume, 0, d3d::RENDER_TO_WHOLE_ARRAY}});
     build_dacloud_volume_ps.getElem()->setStates();
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, tinfo.d);
   }

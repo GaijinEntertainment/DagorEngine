@@ -27,8 +27,21 @@ struct WrapType<smart_ptr_raw<T>> { enum { value = true }; typedef smart_ptr_jit
 template <typename T>
 struct WrapType<smart_ptr<T>> { enum { value = true }; typedef smart_ptr_jit * type; typedef smart_ptr_jit * rettype; };
 
+// Resolve WrapType transitively: if WrapType<T>::type is itself wrapped, follow the chain.
+// e.g. Quat -> Point4 -> vec4f resolves to vec4f.
+template <typename T, bool = WrapType<typename WrapType<T>::type>::value>
+struct ResolvedWrapType : WrapType<T> {};
+
 template <typename T>
-using JitSideT = WrapType<
+struct ResolvedWrapType<T, true> {
+    using inner = typename WrapType<T>::type;
+    enum { value = true };
+    typedef typename WrapType<inner>::type type;
+    typedef typename WrapType<inner>::rettype rettype;
+};
+
+template <typename T>
+using JitSideT = ResolvedWrapType<
     conditional_t<JitConstRefByValue<T>::value,
         remove_cv_t<remove_reference_t<T>>,
         T>
@@ -81,10 +94,10 @@ struct ImplWrapCall<true,wrap,RetT(*)(Args...),fn> {                        // w
 template <typename RetT, typename ...Args, RetT(*fn)(Args...)>
 struct ImplWrapCall<false,true,RetT(*)(Args...),fn> {   // no cmres, wrap
     DAS_SUPPRESS_UB
-    static typename WrapType<RetT>::rettype static_call (JitSideT_t<Args>... args ) {
+    static typename ResolvedWrapType<RetT>::rettype static_call (JitSideT_t<Args>... args ) {
         typedef typename WrapRetType<RetT>::type (* FuncType)(typename WrapArgType<Args>::type...);
         auto fnPtr = reinterpret_cast<FuncType>(fn);
-        return static_cast<typename WrapType<RetT>::rettype>(fnPtr(args...));   // note explicit cast
+        return static_cast<typename ResolvedWrapType<RetT>::rettype>(fnPtr(args...));   // note explicit cast
     };
     static void * get_builtin_address() { return (void *) &static_call; }
 };
@@ -93,7 +106,7 @@ struct ImplWrapCall<false,true,RetT(*)(Args...),fn> {   // no cmres, wrap
 template <typename RetT, typename ...Args>
 struct CallJitFn {   // no cmres, wrap
     static RetT static_call (const JitFn &fn, Args... args ) { // Explicitly cast arguments
-        typedef typename WrapType<RetT>::type (* FuncType)(typename WrapType<Args>::rettype...);
+        typedef typename ResolvedWrapType<RetT>::type (* FuncType)(typename ResolvedWrapType<Args>::rettype...);
         auto fnPtr = reinterpret_cast<FuncType>(fn.jitFn);
         return static_cast<typename WrapArgType<RetT>::type>(fnPtr(static_cast<typename WrapRetType<Args>::type>(args)...));
     }

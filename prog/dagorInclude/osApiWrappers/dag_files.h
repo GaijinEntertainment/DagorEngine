@@ -121,6 +121,9 @@ extern "C"
   // file is avaible both for read & write access
   KRNLIMP file_ptr_t df_mkstemp(char *templ);
 
+  // Return last errno with optional string desription
+  KRNLIMP int df_get_last_error(char *tmpbuf = nullptr, size_t tmpbufsz = 0);
+
 #ifdef __cplusplus
 
   class DagorFileCloser

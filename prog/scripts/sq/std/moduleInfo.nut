@@ -133,7 +133,7 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
   let typ = type(val)
   let indentStr = "".join(array(indent, INDENT_SYM))
   let mkStubSt = callee()
-  if (["string", "float", "integer", "boolean"].contains(typ))
+  if (["string", "float", "integer", "bool"].contains(typ))
     return name == null ? val.tostring() : $"{indentStr}{name} = {val.tostring()}"
   if (typ=="function")
     return  $"{indentStr}{mkFunStubStr(val, name, indent, verbose, manualModInfo)}"

@@ -14,6 +14,7 @@
 #include <shaders/dag_rendInstRes.h>
 #include <util/dag_convar.h>
 #include <debug/dag_debug3d.h>
+#include <render/renderEvent.h>
 #include "../riexProcessor.h"
 #include "../globalManager.h"
 #include "../../shaders/dagdp_heightmap.hlsli"
@@ -148,8 +149,123 @@ ECS_NO_ORDER static inline void volume_view_finalize_es(const dagdp::EventViewFi
   dagdp__volume_manager.currentBuilder = {};
 }
 
-void gather(const VolumeMapping &volume_mapping,
+ECS_TAG(render)
+ECS_NO_ORDER
+static inline void dagdp_volume_before_draw_es(const BeforeDraw &evt) { start_gather_before_draw_volumes(evt.camPos, evt.frustum); }
+
+static bbox3f compute_around_ri_fbox(bbox3f_cref frustum_box,
+  const ecs::EidList &volume_box_eids,
+  const ecs::EidList &volume_cylinder_eids,
+  const ecs::EidList &volume_sphere_eids)
+{
+  float maxLocalRad = 0;
+  for (auto volume_eid : volume_box_eids)
+    local_volume_box_ecs_query(*g_entity_mgr, volume_eid, [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
+      float r = sqrtf(transform.col[0].lengthSq() + transform.col[1].lengthSq() + transform.col[2].lengthSq()) * 0.5f;
+      r += transform.col[3].length();
+      maxLocalRad = max(maxLocalRad, r);
+    });
+  for (auto volume_eid : volume_cylinder_eids)
+    local_volume_cylinder_ecs_query(*g_entity_mgr, volume_eid,
+      [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
+        float r = sqrtf(max(transform.col[0].lengthSq(), transform.col[2].lengthSq()) + transform.col[1].lengthSq()) * 0.5f;
+        r += transform.col[3].length();
+        maxLocalRad = max(maxLocalRad, r);
+      });
+  for (auto volume_eid : volume_sphere_eids)
+    local_volume_sphere_ecs_query(*g_entity_mgr, volume_eid,
+      [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
+        float r =
+          sqrtf(max(max(transform.col[0].lengthSq(), transform.col[1].lengthSq()), transform.col[2].lengthSq())) * sphere_zone__radius;
+        r += transform.col[3].length();
+        maxLocalRad = max(maxLocalRad, r);
+      });
+
+  bbox3f fbox = frustum_box;
+  const float RAD_SCALE_FACTOR = 1.5f;
+  v_bbox3_extend(fbox, v_splats(maxLocalRad * RAD_SCALE_FACTOR));
+  return fbox;
+}
+
+static bbox3f calc_frustum_box(const Frustum &frustum, const Point3 &worldPos, vec4f range)
+{
+  bbox3f frustumBox;
+  frustum.calcFrustumBBox(frustumBox);
+  bbox3f rangeBox;
+  v_bbox3_init_by_bsph(rangeBox, v_make_vec3f(worldPos.x, worldPos.y, worldPos.z), range);
+  return v_bbox3_get_box_intersection(frustumBox, rangeBox);
+}
+
+void gather_start(DagdpRiexGatherJob &job,
+  const VolumeMapping &volume_mapping,
+  const ViewInfo &view_info,
+  const ViewPerFrameData &view_per_frame,
+  GatherMode mode)
+{
+  if (job.launched)
+    return;
+  job.reset();
+
+  for (uint32_t viewportIndex = 0; viewportIndex < view_per_frame.viewports.size(); ++viewportIndex)
+  {
+    const auto &viewport = view_per_frame.viewports[viewportIndex];
+    auto &viewportData = job.addViewport();
+
+    Frustum frustum = viewport.frustum;
+    Point4 worldPos(viewport.worldPos.x, viewport.worldPos.y, viewport.worldPos.z, 0.0f);
+    auto range = v_splats(min(view_info.maxDrawDistance, viewport.maxDrawDistance) * get_global_range_scale());
+    shrink_frustum_zfar(frustum, v_ldu(&worldPos.x), range);
+    const bbox3f frustumBox = calc_frustum_box(frustum, viewport.worldPos, range);
+
+    if (!v_test_xyz_finite(frustumBox.bmin) || !v_test_xyz_finite(frustumBox.bmax))
+      continue;
+
+    viewportData.frustumBox = frustumBox;
+    viewportData.valid = true;
+
+    on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
+                                             const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
+      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+        return;
+      if (volume_mapping.find(eid) == volume_mapping.end())
+        return;
+
+      DagdpRiexGatherJob::PerViewportData::PlacerData rec;
+      rec.eid = eid;
+      rec.firstEntry = job.entryCount;
+      for (int resIdx : dagdp__resource_ids)
+        job.addEntry(resIdx, frustumBox);
+      rec.entryCount = job.entryCount - rec.firstEntry;
+      viewportData.onRi.push_back(rec);
+    });
+
+    around_ri_placers_ecs_query(*g_entity_mgr,
+      [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids,
+        const ecs::EidList &dagdp__volume_box_eids, const ecs::EidList &dagdp__volume_cylinder_eids,
+        const ecs::EidList &dagdp__volume_sphere_eids, int dagdp__csm_cascade_count) {
+        if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+          return;
+
+        const bbox3f fbox =
+          compute_around_ri_fbox(frustumBox, dagdp__volume_box_eids, dagdp__volume_cylinder_eids, dagdp__volume_sphere_eids);
+
+        DagdpRiexGatherJob::PerViewportData::PlacerData rec;
+        rec.eid = eid;
+        rec.firstEntry = job.entryCount;
+        for (int resIdx : dagdp__resource_ids)
+          job.addEntry(resIdx, fbox);
+        rec.entryCount = job.entryCount - rec.firstEntry;
+        viewportData.aroundRi.push_back(rec);
+      });
+  }
+
+  job.start(mode);
+}
+
+void gather_process(DagdpRiexGatherJob &job,
+  const VolumeMapping &volume_mapping,
   const ViewInfo &viewInfo,
+  uint32_t viewport_index,
   const Viewport &viewport,
   float max_bounding_radius,
   int target_mesh_lod,
@@ -219,17 +335,27 @@ void gather(const VolumeMapping &volume_mapping,
     }
   };
 
+  const bool asyncPath = is_volume_early_riex_gather_enabled();
+
   Frustum frustum = viewport.frustum;
   Point4 worldPos(viewport.worldPos.x, viewport.worldPos.y, viewport.worldPos.z, 0.0f);
   auto range = v_splats(min(viewInfo.maxDrawDistance, viewport.maxDrawDistance) * get_global_range_scale());
   shrink_frustum_zfar(frustum, v_ldu(&worldPos.x), range);
-  bbox3f frustumBox, rangeBox;
-  frustum.calcFrustumBBox(frustumBox);
-  v_bbox3_init_by_bsph(rangeBox, v_make_vec3f(viewport.worldPos.x, viewport.worldPos.y, viewport.worldPos.z), range);
-  frustumBox = v_bbox3_get_box_intersection(frustumBox, rangeBox);
 
-  if (!v_test_xyz_finite(frustumBox.bmin) || !v_test_xyz_finite(frustumBox.bmax))
-    return;
+  bbox3f frustumBox;
+  if (asyncPath)
+  {
+    G_ASSERT(viewport_index < job.viewportCount);
+    if (!job.viewportDataPool[viewport_index].valid)
+      return;
+    frustumBox = job.viewportDataPool[viewport_index].frustumBox;
+  }
+  else
+  {
+    frustumBox = calc_frustum_box(frustum, viewport.worldPos, range);
+    if (!v_test_xyz_finite(frustumBox.bmin) || !v_test_xyz_finite(frustumBox.bmax))
+      return;
+  }
 
   const auto addVolume = [&](const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform, float scale,
                            int volume_type) {
@@ -370,6 +496,15 @@ void gather(const VolumeMapping &volume_mapping,
       addVolume(dagdp_internal__volume_placer_eid, transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
     });
 
+  const DagdpRiexGatherJob::PerViewportData *viewportData = nullptr;
+  size_t onRiIdx = 0;
+  size_t aroundRiIdx = 0;
+  if (asyncPath)
+  {
+    job.waitDone();
+    viewportData = &job.viewportDataPool[viewport_index];
+  }
+
   on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
                                            const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
     if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
@@ -381,12 +516,26 @@ void gather(const VolumeMapping &volume_mapping,
     const auto &variant = iter->second;
 
     rendinst::riex_collidable_t out_handles;
-    Tab<rendinst::riex_handle_t> ri_handles;
-    for (int resIdx : dagdp__resource_ids)
+    if (asyncPath)
     {
-      rendinst::getRiGenExtraInstances(ri_handles, resIdx, frustumBox);
-      out_handles.insert(out_handles.end(), ri_handles.begin(), ri_handles.end());
-      ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
+      G_ASSERT(onRiIdx < viewportData->onRi.size());
+      const auto &rec = viewportData->onRi[onRiIdx++];
+      G_ASSERT(rec.eid == eid);
+      for (size_t i = 0; i < rec.entryCount; ++i)
+      {
+        const auto &h = job.entryPool[rec.firstEntry + i].handles;
+        out_handles.insert(out_handles.end(), h.begin(), h.end());
+      }
+    }
+    else
+    {
+      Tab<rendinst::riex_handle_t> ri_handles;
+      for (int resIdx : dagdp__resource_ids)
+      {
+        rendinst::getRiGenExtraInstances(ri_handles, resIdx, frustumBox);
+        out_handles.insert(out_handles.end(), ri_handles.begin(), ri_handles.end());
+        ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
+      }
     }
 
     if (out_handles.empty())
@@ -411,42 +560,9 @@ void gather(const VolumeMapping &volume_mapping,
       if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
         return;
 
-      // find maximum local volume radius
-      float maxLocalRad = 0;
+      const bbox3f fbox =
+        compute_around_ri_fbox(frustumBox, dagdp__volume_box_eids, dagdp__volume_cylinder_eids, dagdp__volume_sphere_eids);
 
-      for (auto volume_eid : dagdp__volume_box_eids)
-        local_volume_box_ecs_query(*g_entity_mgr, volume_eid,
-          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
-            float r = sqrtf(transform.col[0].lengthSq() + transform.col[1].lengthSq() + transform.col[2].lengthSq()) * 0.5f;
-            r += transform.col[3].length();
-            maxLocalRad = max(maxLocalRad, r);
-          });
-
-      for (auto volume_eid : dagdp__volume_cylinder_eids)
-        local_volume_cylinder_ecs_query(*g_entity_mgr, volume_eid,
-          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
-            float r = sqrtf(max(transform.col[0].lengthSq(), transform.col[2].lengthSq()) + transform.col[1].lengthSq()) * 0.5f;
-            r += transform.col[3].length();
-            maxLocalRad = max(maxLocalRad, r);
-          });
-
-      for (auto volume_eid : dagdp__volume_sphere_eids)
-        local_volume_sphere_ecs_query(*g_entity_mgr, volume_eid,
-          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
-            float r = sqrtf(max(max(transform.col[0].lengthSq(), transform.col[1].lengthSq()), transform.col[2].lengthSq())) *
-                      sphere_zone__radius;
-            r += transform.col[3].length();
-            maxLocalRad = max(maxLocalRad, r);
-          });
-
-      // Enlarge frustum box.
-      // To be precise we need either maximum instance scale, or to test our local-space bound instead of RI bounding box for each
-      // instance. Instead, we fudge it with a scale factor. Remember, we're still hitting instance boxes with this enlarged volume.
-      bbox3f fbox = frustumBox;
-      const float RAD_SCALE_FACTOR = 1.5f;
-      v_bbox3_extend(fbox, v_splats(maxLocalRad * RAD_SCALE_FACTOR));
-
-      // ri gen
       eastl::fixed_vector<int16_t, 32> riGenPools;
       for (auto id : dagdp__resource_ids)
         if (int pool = rendinst::getRIExtraPoolRef(id); pool >= 0)
@@ -459,14 +575,28 @@ void gather(const VolumeMapping &volume_mapping,
       rendinst::getRIGenTMsInBox(box, make_span_const(riGenPools),
         [&sources](const rendinst::RendInstDesc & /* desc */, const mat44f &m44) { sources.push_back(m44); });
 
-      // ri extra
-      Tab<rendinst::riex_handle_t> ri_handles;
-      for (int resIdx : dagdp__resource_ids)
+      if (asyncPath)
       {
-        rendinst::getRiGenExtraInstances(ri_handles, resIdx, fbox);
-        for (auto h : ri_handles)
-          rendinst::getRIGenExtra44(h, sources.push_back());
-        ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
+        G_ASSERT(aroundRiIdx < viewportData->aroundRi.size());
+        const auto &rec = viewportData->aroundRi[aroundRiIdx++];
+        G_ASSERT(rec.eid == eid);
+        for (size_t i = 0; i < rec.entryCount; ++i)
+        {
+          const auto &h = job.entryPool[rec.firstEntry + i].handles;
+          for (auto handle : h)
+            rendinst::getRIGenExtra44(handle, sources.push_back());
+        }
+      }
+      else
+      {
+        Tab<rendinst::riex_handle_t> ri_handles;
+        for (int resIdx : dagdp__resource_ids)
+        {
+          rendinst::getRiGenExtraInstances(ri_handles, resIdx, fbox);
+          for (auto h : ri_handles)
+            rendinst::getRIGenExtra44(h, sources.push_back());
+          ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
+        }
       }
 
       if (sources.empty())
@@ -499,6 +629,12 @@ void gather(const VolumeMapping &volume_mapping,
             addLocalVolume(transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
           });
     });
+
+  if (asyncPath)
+  {
+    G_ASSERT(onRiIdx == viewportData->onRi.size());
+    G_ASSERT(aroundRiIdx == viewportData->aroundRi.size());
+  }
 }
 
 template <typename Callable>

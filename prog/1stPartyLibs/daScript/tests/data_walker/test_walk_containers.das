@@ -20,9 +20,10 @@ def test_walk_array(t : T?) {
     t |> run("array of ints") @(t : T?) {
         var walker = new LogWalker()
         var arr = [10, 20, 30]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         var expected = "beforeArray\n"
         expected += "beforeArrayData:3\n"
@@ -43,9 +44,10 @@ def test_walk_array(t : T?) {
     t |> run("empty array") @(t : T?) {
         var walker = new LogWalker()
         var arr : array<int>
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         var expected = "beforeArray\n"
         expected += "beforeArrayData:0\n"
@@ -57,9 +59,10 @@ def test_walk_array(t : T?) {
     t |> run("single element array") @(t : T?) {
         var walker = new LogWalker()
         var arr = [42]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         // Single element: index=0, last=true
         t |> equal(find(walker.log, "beforeElem:0:true") != -1, true)
@@ -71,9 +74,10 @@ def test_walk_array(t : T?) {
         var arr : array<SimpleStruct>
         arr |> push(SimpleStruct(x = 1, y = 1.0))
         arr |> push(SimpleStruct(x = 2, y = 2.0))
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(find(walker.log, "beforeArray") != -1, true)
         t |> equal(find(walker.log, "beforeStruct:SimpleStruct") != -1, true)
@@ -84,9 +88,10 @@ def test_walk_array(t : T?) {
     t |> run("array of strings") @(t : T?) {
         var walker = new LogWalker()
         var arr = ["foo", "bar", "baz"]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(find(walker.log, "String:foo") != -1, true)
         t |> equal(find(walker.log, "String:bar") != -1, true)
@@ -98,9 +103,10 @@ def test_walk_array(t : T?) {
         var arr : array<tuple<int; string>>
         arr |> push((1, "one"))
         arr |> push((2, "two"))
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(find(walker.log, "beforeArray") != -1, true)
         t |> equal(find(walker.log, "beforeTuple") != -1, true)
@@ -125,9 +131,10 @@ def test_walk_dim(t : T?) {
         arr[0] = 100
         arr[1] = 200
         arr[2] = 300
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(find(walker.log, "beforeDim") != -1, true)
         t |> equal(find(walker.log, "Int:100") != -1, true)
@@ -149,9 +156,10 @@ def test_walk_table(t : T?) {
         var walker = new LogWalker()
         var tab : table<string; int>
         tab |> insert("alpha", 1)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+            }
         }
         t |> equal(find(walker.log, "beforeTable") != -1, true)
         t |> equal(find(walker.log, "String:alpha") != -1, true)
@@ -162,9 +170,10 @@ def test_walk_table(t : T?) {
     t |> run("empty table") @(t : T?) {
         var walker = new LogWalker()
         var tab : table<string; int>
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+            }
         }
         var expected = "beforeTable\n"
         expected += "afterTable\n"
@@ -176,9 +185,10 @@ def test_walk_table(t : T?) {
         var walker = new LogWalker()
         var tab : table<string; int>
         tab |> insert("x", 42)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+            }
         }
         var key_pos = find(walker.log, "beforeKey")
         var key_after_pos = find(walker.log, "afterKey")
@@ -194,9 +204,10 @@ def test_walk_table(t : T?) {
         var walker = new LogWalker()
         var tab : table<int; string>
         tab |> insert(42, "answer")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+            }
         }
         t |> equal(find(walker.log, "Int:42") != -1, true)
         t |> equal(find(walker.log, "String:answer") != -1, true)
@@ -208,9 +219,10 @@ def test_walk_table(t : T?) {
         tab |> insert("a", 1)
         tab |> insert("b", 2)
         tab |> insert("c", 3)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
+            }
         }
         // All 3 keys and values should appear (order may vary due to hash table)
         t |> equal(find(walker.log, "String:a") != -1, true)

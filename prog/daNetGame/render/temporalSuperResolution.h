@@ -10,8 +10,7 @@ class TemporalSuperResolution : public AntiAliasing
 public:
   enum class Preset
   {
-    Low,
-    High
+    High = 1
   };
 
   TemporalSuperResolution(const IPoint2 &outputResolution);
@@ -20,7 +19,7 @@ public:
   bool needMotionVectors() const override;
   bool supportsReactiveMask() const override;
 
-  bool supportsDynamicResolution() const override { return preset == Preset::High; }
+  bool supportsDynamicResolution() const override { return true; }
 
   static TemporalSuperResolution::Preset parse_preset();
 

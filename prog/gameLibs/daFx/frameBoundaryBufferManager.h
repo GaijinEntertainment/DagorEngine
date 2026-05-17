@@ -78,7 +78,7 @@ protected:
 
   UniqueBuf frameBoundaryBuffer;
   UniqueBuf frameBoundaryBufferTmp;
-  UniqueTexHolder debugTexture;
+  UniqueTexWithShaderVar debugTexture;
 
   Ptr<ComputeShaderElement> fillBoundaryLegacyCs;
   Ptr<ComputeShaderElement> fillBoundaryApproxCs;

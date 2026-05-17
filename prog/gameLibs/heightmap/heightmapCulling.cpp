@@ -21,8 +21,8 @@ void HeightmapHeightCulling::updateMinMaxHeights(IHeightmapHandler *handler, con
 {
   displacementUpwardMaxOffset = handler->getMaxUpwardDisplacement();
   displacementDownwardMaxOffset = handler->getMaxDownwardDisplacement();
-
-  IBBox2 updateBox = {ib[0] / chunkSizeInTexels, ib[1] / chunkSizeInTexels + IPoint2(1, 1)};
+  IBBox2 updateBox = {div((ib[0] * HEIGHT_CULLING_BUFFER_SIZE), handler->getHeightmapSize()),
+    div(((ib[1] + IPoint2(1, 1)) * HEIGHT_CULLING_BUFFER_SIZE), handler->getHeightmapSize()) + IPoint2(1, 1)};
   updateBox[1] = min(updateBox[1], IPoint2(HEIGHT_CULLING_BUFFER_SIZE, HEIGHT_CULLING_BUFFER_SIZE));
   // fill lod 0
   for (int j = updateBox[0].y; j < updateBox[1].y; j++)
@@ -68,7 +68,6 @@ bool HeightmapHeightCulling::init(IHeightmapHandler *handler)
   G_ASSERT(handler->getHeightmapSize().x == handler->getHeightmapSize().y);
 
   hmapSize = handler->getHeightmapCellSize() * (float)handler->getHeightmapSize().x;
-  chunkSizeInTexels = max<int>(1, (handler->getHeightmapSize().x + HEIGHT_CULLING_BUFFER_SIZE - 1) / HEIGHT_CULLING_BUFFER_SIZE);
   chunkSize = hmapSize / (float)HEIGHT_CULLING_BUFFER_SIZE;
 
   arraySize = 0;

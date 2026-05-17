@@ -52,6 +52,8 @@ jam -s Root=../.. -f shaderCompiler2/nodeBased/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -f shaderInfo/jamfile
   if errorlevel 1 goto error
+jam -s Root=../.. -f ../3rdPartyLibs/scripts/duktape/jamfile
+  if errorlevel 1 goto error
 
 rem common minimal gui shaders for tools
 pushd sceneTools\guiShaders_commonData

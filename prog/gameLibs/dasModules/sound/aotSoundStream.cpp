@@ -33,8 +33,8 @@ public:
   SoundStreamModule() : das::Module("soundStream")
   {
     das::ModuleLibrary lib(this);
-    addEnumeration(das::make_smart<EnumerationSoundStreamState>());
-    addAnnotation(das::make_smart<SoundStreamAnnotation>(lib));
+    addEnumeration(new EnumerationSoundStreamState());
+    addAnnotation(new SoundStreamAnnotation(lib));
 
     // functions
     SND_BIND_FUN(init, das::SideEffects::modifyArgumentAndExternal);

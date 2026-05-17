@@ -3,6 +3,7 @@
 
 #include <rendInst/rendInstConsts.h>
 #include <rendInst/rendInstGen.h>
+#include <rendInst/rendInstProps.h>
 #include <rendInst/rendInstDebris.h>
 #include <rendInst/rendInstGenDamageInfo.h>
 #include <rendInst/visibility.h>
@@ -111,102 +112,16 @@ struct RendInstGenData
     bool needsUpdate;
   };
 
+  struct DebrisPool
+  {
+    const rendinst::props::DebrisProps *props = nullptr;
+    int resIdx = -1;
+  };
+
   struct CollisionResData
   {
     CollisionResource *collRes;
     void *handle;
-  };
-
-  struct DebrisProps
-  {
-    mat44f debrisTm;
-    Tab<short> debrisPoolIdx;
-    int delayedPoolIdx;
-    int fxType;
-    float fxScale;
-    float damageDelay;
-    float submersion;
-    float inclination;
-    float impulseOnExplosion;
-    SimpleString fxTemplate;
-    DebrisProps() : delayedPoolIdx(-1), fxType(-1), fxScale(1.f) {} //-V730
-    bool needsUpdate() const { return submersion > 0.f || inclination > 0.f; }
-  };
-  struct DebrisPool
-  {
-    const DebrisProps *props = nullptr;
-    int resIdx = -1;
-  };
-
-  struct DestrProps
-  {
-    DynamicPhysObjectData *res = nullptr; // Exists only on clients for now
-    float destructionImpulse = 0.f;
-    float collisionHeightScale = 1.0f;
-    bool destructable = false;
-    bool apexDestructible = false;
-    SimpleString apexDestructionOptionsPresetName;
-    bool isParent = false;
-    bool destructibleByParent = false;
-    int destroyNeighbourDepth = 1;
-    SimpleString tag;
-    SimpleString destroyedByTag;
-    SimpleString destrName;
-    int destrFxId = -1;
-    SimpleString destrFxName;
-    SimpleString destrFxTemplate;
-
-    DestrProps() = default;
-    DestrProps(const DestrProps &p) : DestrProps() { operator=(p); }
-    DestrProps(DestrProps &&p) : DestrProps() { operator=(eastl::move(p)); }
-    DestrProps &operator=(const DestrProps &p);
-    DestrProps &operator=(DestrProps &&p)
-    {
-      eastl::swap(res, p.res);
-      eastl::swap(destructionImpulse, p.destructionImpulse);
-      eastl::swap(collisionHeightScale, p.collisionHeightScale);
-      destructable = p.destructable;
-      apexDestructible = p.apexDestructible;
-      eastl::swap(apexDestructionOptionsPresetName, p.apexDestructionOptionsPresetName);
-      isParent = p.isParent;
-      destructibleByParent = p.destructibleByParent;
-      destroyNeighbourDepth = p.destroyNeighbourDepth;
-      eastl::swap(tag, p.tag);
-      eastl::swap(destroyedByTag, p.destroyedByTag);
-      eastl::swap(destrName, p.destrName);
-      eastl::swap(destrFxId, p.destrFxId);
-      eastl::swap(destrFxName, p.destrFxName);
-      eastl::swap(destrFxTemplate, p.destrFxTemplate);
-      return *this;
-    }
-    ~DestrProps();
-  };
-
-  enum class CanopyShape : uint8_t
-  {
-    BOX,
-    CONE,
-    SPHEROID
-  };
-
-  struct RendinstProperties
-  {
-    int matId;
-    bool overrideMaterialForTraces;
-    bool immortal;
-    bool damageable;
-    bool stopsBullets;
-    bool bushBehaviour;
-    bool treeBehaviour;
-    CanopyShape canopyShape;
-    float canopyTopOffset;
-    float canopyTopPart;
-    float canopyWidthPart;
-    float canopyOpacity;
-    float trunkRadius;
-    float soundOcclusion;
-    rendinstdestr::BranchDestr treeBranchDestrFromDamage;
-    rendinstdestr::BranchDestr treeBranchDestrOther;
   };
 
   struct ElemMask
@@ -232,12 +147,12 @@ struct RendInstGenData
     SmallTab<bbox3f, MidmemAlloc> riResBb;
     SmallTab<bbox3f, MidmemAlloc> riCollResBb;
     SmallTab<rendinst::render::RtPoolData *, MidmemAlloc> rtPoolData;
-    Tab<RendinstProperties> riProperties;
+    Tab<rendinst::props::RendinstProperties> riProperties;
     SmallTab<uint8_t, MidmemAlloc> riResHideMask;
-    Tab<DebrisProps> riDebrisMap;
+    Tab<rendinst::props::DebrisProps> riDebrisMap;
     Tab<DebrisPool> riDebris;
     Tab<eastl::unique_ptr<rendinst::DestroyedRi>> riDebrisDelayedRi; // TODO: remove indirection (put by value)
-    Tab<DestrProps> riDestr;
+    Tab<rendinst::props::DestrProps> riDestr;
     Tab<rendinst::DestroyedCellData> riDestrCellData;
     Tab<uint16_t> riExtraIdxPair;
     carray<int, 2> maxDebris, curDebris;
@@ -663,7 +578,6 @@ public:
 
   static RendInstGenData *getGenDataByLayer(const rendinst::RendInstDesc &desc);
 };
-DAG_DECLARE_RELOCATABLE(RendInstGenData::DestrProps);
 
 namespace rendinst
 {
@@ -763,7 +677,7 @@ inline bool is_rendinst_marked_collision_ignored(const int16_t *data, int per_in
   return false;
 }
 
-inline bool getRIGenCanopyBBox(const RendInstGenData::RendinstProperties &prop, const BBox3 &ri_world_bbox, BBox3 &out_canopy_bbox)
+inline bool getRIGenCanopyBBox(const props::RendinstProperties &prop, const BBox3 &ri_world_bbox, BBox3 &out_canopy_bbox)
 {
   float canopyWidth = prop.canopyWidthPart * (ri_world_bbox[1].y - ri_world_bbox[0].y) * 0.5f;
   float boxHeight = ri_world_bbox[1].y - ri_world_bbox[0].y;

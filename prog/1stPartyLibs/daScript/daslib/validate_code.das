@@ -23,7 +23,7 @@ def check_recursive(at : LineInfo; var fun : Function?; var call_graph : array<F
         return
     }
     if (call_graph |> find_index(fun) >= 0) {
-        var sb = build_string() $(writer) {
+        let sb = build_string() $(writer) {
             writer |> write("recursive calls are not allowed")
             for (v in call_graph) {
                 writer |> write(" -> ")
@@ -37,8 +37,8 @@ def check_recursive(at : LineInfo; var fun : Function?; var call_graph : array<F
     }
     visited |> insert(fun)
     call_graph |> push(fun)
-    unsafe(reinterpret<FunctionPtr> fun) |> get_use_functions() $(f) {
-        check_recursive(at, get_ptr(f), call_graph, visited)
+    fun |> get_use_functions() $(f) {
+        check_recursive(at, f, call_graph, visited)
     }
     call_graph |> pop()
 }
@@ -60,7 +60,7 @@ def collect_call_tree(fun : Function?; var visited : table<Function?>) {
     }
     visited |> insert(fun)
     unsafe(reinterpret<FunctionPtr> fun) |> get_use_functions() $(f) {
-        collect_call_tree(get_ptr(f), visited)
+        collect_call_tree(f, visited)
     }
 }
 
@@ -69,13 +69,13 @@ class ValidateCompletionVisitor : AstVisitor {
     //! AST visitor that validates code for completion safety.
     @do_not_delete thisFunc : Function?
     def override preVisitFunction(var fun : FunctionPtr) : void {
-        thisFunc = get_ptr(fun)
+        thisFunc = fun
     }
     def override visitFunction(var fun : FunctionPtr) : FunctionPtr {
         thisFunc = null
         return <- fun
     }
-    def override preVisitExprFor(expr : smart_ptr<ExprFor>) : void {
+    def override preVisitExprFor(expr : ExprFor?) : void {
         var srcOk = false
         for (src in expr.sources) {
             if (src._type.isRange || src._type.isArray || src._type.isGoodArrayType || isYetAnotherVectorTemplate(src._type)) {
@@ -94,10 +94,10 @@ class ValidateCompletionVisitor : AstVisitor {
             macro_error(compiling_program(), expr.at, "we don't know if this `for` loop ever finishes. add explicit range")
         }
     }
-    def override preVisitExprWhile(expr : smart_ptr<ExprWhile>) : void {
+    def override preVisitExprWhile(expr : ExprWhile?) : void {
         macro_error(compiling_program(), expr.at, "we can't tell if this `while` loop ever finishes")
     }
-    def override preVisitExprCall(var expr : smart_ptr<ExprCall>) : void {
+    def override preVisitExprCall(var expr : ExprCall?) : void {
         if (expr.func.flags.builtIn) {
             return
         }
@@ -118,10 +118,11 @@ class VerifyCompletion : AstFunctionAnnotation {
     def override lint(var func : FunctionPtr; var group : ModuleGroup; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         var visited : table<Function?>
         var astVisitor = new ValidateCompletionVisitor()
-        var inscope adapter <- make_visitor(*astVisitor)
-        collect_call_tree(get_ptr(func), visited)
-        for (fun in visited |> keys()) {
-            visit(unsafe(reinterpret<FunctionPtr> fun), adapter)
+        make_visitor(*astVisitor) $(adapter) {
+            collect_call_tree(func, visited)
+            for (fun in visited |> keys()) {
+                visit(fun, adapter)
+            }
         }
         unsafe {
             delete astVisitor
@@ -138,10 +139,10 @@ class ValidateShaderVisitor : AstVisitor {
             macro_error(compiling_program(), typ.at, "not shader-like, type requires heap {describe(typ)}")
         }
     }
-    def override preVisitExprAscend(expr : smart_ptr<ExprAscend>) : void {
+    def override preVisitExprAscend(expr : ExprAscend?) : void {
         macro_error(compiling_program(), expr.at, "can't ascend in shader-like code (new [[...]])")
     }
-    def override preVisitExprNew(expr : smart_ptr<ExprNew>) : void {
+    def override preVisitExprNew(expr : ExprNew?) : void {
         macro_error(compiling_program(), expr.at, "can't new in shader-like code (new ...)")
     }
 }
@@ -151,19 +152,20 @@ class JIT_LLVM : AstSimulateMacro {
     //! Simulate macro for LLVM JIT compilation.
     def lint_module(prog : Program?; var ctx : Context?) {
         var astVisitor = new ValidateShaderVisitor()
-        var inscope adapter <- make_visitor(*astVisitor)
-        prog |> for_each_module() $(mod) {
-            mod |> for_each_function("") $(f) {
-                if (f.flags.used) {
-                    visit(f, adapter)
+        make_visitor(*astVisitor) $(adapter) {
+            prog |> for_each_module() $(mod) {
+                mod |> for_each_function("") $(f) {
+                    if (f.flags.used) {
+                        visit(f, adapter)
+                    }
                 }
-            }
-            mod |> for_each_global() $(g) {
-                if (g.flags.used) {
-                    if (!g._type.isNoHeapType) {
-                        macro_error(compiling_program(), g.at, "global variable {g.name} requires heap")
-                    } elif (g.init != null) {
-                        visit(g.init, adapter)
+                mod |> for_each_global() $(g) {
+                    if (g.flags.used) {
+                        if (!g._type.isNoHeapType) {
+                            macro_error(compiling_program(), g.at, "global variable {g.name} requires heap")
+                        } elif (g.init != null) {
+                            visit(g.init, adapter)
+                        }
                     }
                 }
             }

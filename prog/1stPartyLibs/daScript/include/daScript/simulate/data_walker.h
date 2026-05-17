@@ -184,7 +184,7 @@ namespace das {
         vector<loop_point> visited_handles;
     };
 
-    typedef smart_ptr<DataWalker> DataWalkerPtr;
+    typedef DataWalker * DataWalkerPtr;
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

@@ -93,19 +93,19 @@ namespace das {
     MatchingFunctions InferTypes::findTypedFuncAddr(string &name, const vector<TypeDeclPtr> &arguments) {
         MatchingFunctions result = findMatchingFunctions(name, arguments, false, false);
         if (result.size() == 0) {
-            auto fakeCall = make_smart<ExprCall>(LineInfo(), name);
+            auto fakeCall = new ExprCall(LineInfo(), name);
             for (auto &arg : arguments) {
                 // TODO: support blocks?
-                auto fakeArg = make_smart<ExprTypeDecl>(LineInfo(), arg);
-                fakeArg->type = make_smart<TypeDecl>(*arg);
+                auto fakeArg = new ExprTypeDecl(LineInfo(), arg);
+                fakeArg->type = new TypeDecl(*arg);
                 fakeCall->arguments.push_back(fakeArg);
             }
-            auto fn = inferFunctionCall(fakeCall.get());
+            auto fn = inferFunctionCall(fakeCall);
             if (fakeCall->name != name) {
                 name = fakeCall->name;
                 result = findMatchingFunctions(fakeCall->name, arguments, false, false);
             } else if (fn) {
-                result.push_back(fn.get());
+                result.push_back(fn);
             }
         }
         return result;
@@ -171,7 +171,7 @@ namespace das {
                     if ( fn->isTemplate ) return true;
                     if ( isCloseEnoughName(fn->name,funcName,identicalName) ) {
                         isCloseEnoughName(fn->name,funcName,identicalName);
-                        result.push_back(fn.get());
+                        result.push_back(fn);
                     }
                     return true;
                 });
@@ -187,7 +187,7 @@ namespace das {
         program->library.foreach ([&](Module *mod) -> bool {
                 mod->generics.foreach([&](const FunctionPtr & fn) -> bool {
                     if ( isCloseEnoughName(fn->name,funcName,identicalName) ) {
-                        result.push_back(fn.get());
+                        result.push_back(fn);
                     }
                     return true;
                 });
@@ -295,7 +295,7 @@ namespace das {
             }
         }
         for (const auto &ann : pFn->annotations) {
-            auto fnAnn = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+            auto fnAnn = static_cast<FunctionAnnotation*>(ann->annotation);
             if (fnAnn->isSpecialized()) {
                 string err;
                 if (!fnAnn->isCompatible(pFn, types, *ann, err)) {
@@ -357,12 +357,12 @@ namespace das {
         }
         auto addr = field->init;
         if (addr->rtti_isCast()) {
-            addr = static_pointer_cast<ExprCast>(addr)->subexpr;
+            addr = static_cast<ExprCast*>(addr)->subexpr;
         }
         if (!addr->rtti_isAddr()) {
             return nullptr;
         }
-        auto pAddr = static_pointer_cast<ExprAddr>(addr);
+        auto pAddr = static_cast<ExprAddr*>(addr);
         if (!pAddr->func) {
             return nullptr;
         }
@@ -375,7 +375,7 @@ namespace das {
         }
         vector<TypeDeclPtr> nna = nonNamedArguments;
         if (!methodCall) {
-            nna.insert(nna.begin(), make_smart<TypeDecl>(st));
+            nna.insert(nna.begin(), new TypeDecl(st));
         }
         return isFunctionCompatible(methodFunc, nna, arguments, false, false);
     }
@@ -646,8 +646,8 @@ namespace das {
     vector<ExpressionPtr> InferTypes::demoteCallArguments(ExprNamedCall *expr, const FunctionPtr &pFn) {
         vector<ExpressionPtr> newCallArguments;
         size_t fnArgIndex = 0;
-        for (size_t ai = 0, ais = expr->arguments.size(); ai != ais; ++ai) {
-            auto &arg = expr->arguments[ai];
+        for (size_t ai = 0, ais = expr->arguments->size(); ai != ais; ++ai) {
+            auto &arg = (*expr->arguments)[ai];
             for (;;) {
                 DAS_ASSERTF(fnArgIndex < pFn->arguments.size(), "somehow matched function which does not match. not enough args");
                 auto &fnArg = pFn->arguments[fnArgIndex];
@@ -675,7 +675,7 @@ namespace das {
         return newCallArguments;
     }
     ExpressionPtr InferTypes::demoteCall(ExprNamedCall *expr, const FunctionPtr &pFn) {
-        auto newCall = make_smart<ExprCall>(expr->at, pFn->name);
+        auto newCall = new ExprCall(expr->at, pFn->name);
         newCall->arguments = demoteCallArguments(expr, pFn);
         return newCall;
     }
@@ -792,7 +792,12 @@ namespace das {
             const auto &funType = fn->arguments[i]->type;
             if (!argType->isSameType(*funType, RefMatters::no, ConstMatters::no,
                                      TemporaryMatters::no, AllowSubstitute::no)) {
-                distance++;
+                distance += 100;
+            }
+            // tiebreaker: a candidate that exactly matches caller's constness
+            // is more specific than one accepting a wider const range.
+            if (funType->constant != argType->constant) {
+                distance += 1;
             }
         }
         return distance;
@@ -886,12 +891,12 @@ namespace das {
             bool less = false;
             bool more = false;
             for (size_t d = 0; d != d1; ++d) {
-                TypeDeclPtr t1Arg, t2Arg;
+                TypeDeclPtr t1Arg = nullptr, t2Arg = nullptr;
                 if (t1->dimExpr[d]->rtti_isTypeDecl()) {
-                    t1Arg = static_pointer_cast<ExprTypeDecl>(t1->dimExpr[d])->typeexpr;
+                    t1Arg = static_cast<ExprTypeDecl*>(t1->dimExpr[d])->typeexpr;
                 }
                 if (t2->dimExpr[d]->rtti_isTypeDecl()) {
-                    t2Arg = static_pointer_cast<ExprTypeDecl>(t2->dimExpr[d])->typeexpr;
+                    t2Arg = static_cast<ExprTypeDecl*>(t2->dimExpr[d])->typeexpr;
                 }
                 if (t1Arg && t2Arg) {
                     // only if both are types, we can compare
@@ -1009,13 +1014,13 @@ namespace das {
             // if functions are identical, the one with more specialization annotations win
             int spF1 = 0;
             for (auto &ann : f1->annotations) {
-                auto fnA = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+                auto fnA = static_cast<FunctionAnnotation*>(ann->annotation);
                 if (fnA->isSpecialized())
                     spF1++;
             }
             int spF2 = 0;
             for (auto &ann : f2->annotations) {
-                auto fnA = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+                auto fnA = static_cast<FunctionAnnotation*>(ann->annotation);
                 if (fnA->isSpecialized())
                     spF2++;
             }
@@ -1126,21 +1131,24 @@ namespace das {
                 if (arg->type->isAuto()) {
                     if (arg->type->isGoodBlockType() || arg->type->isGoodLambdaType() || arg->type->isGoodFunctionType()) {
                         if (arg->rtti_isMakeBlock()) { // "it's always MakeBlock. unless its function and @@funcName
-                            auto mkBlock = static_pointer_cast<ExprMakeBlock>(arg);
-                            auto block = static_pointer_cast<ExprBlock>(mkBlock->block);
+                            auto mkBlock = static_cast<ExprMakeBlock*>(arg);
+                            auto block = static_cast<ExprBlock*>(mkBlock->block);
                             auto retT = TypeDecl::inferGenericType(mkBlock->type, funcC->arguments[iF]->type, true, true, nullptr);
-                            DAS_ASSERTF(retT, "how? it matched during findMatchingFunctions the same way");
+                            if ( !retT ) {
+                                error("default arguments don't match the function signature of '" + funcC->name + "'", "", "", expr->at, CompilationError::invalid_type);
+                                return nullptr;
+                            }
                             TypeDecl::applyAutoContracts(mkBlock->type, funcC->arguments[iF]->type);
                             TypeDecl::clone(block->returnType, retT->firstType);
                             for (size_t ba = 0, bas = retT->argTypes.size(); ba != bas; ++ba) {
                                 TypeDecl::clone(block->arguments[ba]->type, retT->argTypes[ba]);
                             }
-                            setBlockCopyMoveFlags(block.get());
+                            setBlockCopyMoveFlags(block);
                             reportAstChanged();
                         }
                     } else if (arg->type->isGoodArrayType() || arg->type->isGoodTableType()) {
                         if (arg->rtti_isMakeStruct()) { // its always MakeStruct
-                            auto mkStruct = static_pointer_cast<ExprMakeStruct>(arg);
+                            auto mkStruct = static_cast<ExprMakeStruct*>(arg);
                             if (mkStruct->structs.size()) {
                                 error("internal compiler error: array<auto> type not under default<array<auto>> or default<table<auto;auto>>", "", "", expr->at);
                                 return nullptr;
@@ -1239,9 +1247,9 @@ namespace das {
                             }
                             TypeDecl::updateAliasMap(argType, passType, aliases, options);
                             if (argType->baseType == Type::option) {
-                                auto it = options.find(argType.get());
+                                auto it = options.find(argType);
                                 if (it != options.end()) {
-                                    auto optionType = argType->argTypes[it->second].get();
+                                    auto optionType = argType->argTypes[it->second];
                                     defaultRef[ai] = optionType->ref;
                                 }
                             } else {
@@ -1283,7 +1291,7 @@ namespace das {
                             if (arg->init) {
                                 arg->init = arg->init->visit(*this);
                                 if (arg->init->type && !arg->init->type->isAutoOrAlias()) {
-                                    arg->type = make_smart<TypeDecl>(*arg->init->type);
+                                    arg->type = new TypeDecl(*arg->init->type);
                                     continue;
                                 }
                             }
@@ -1325,9 +1333,9 @@ namespace das {
                                 }
                             }
                             if (!found) {
-                                auto localAlias = make_smart<ExprAssume>(expr->at, it.first, it.second);
+                                auto localAlias = new ExprAssume(expr->at, it.first, it.second);
                                 DAS_ASSERT(clone->body->rtti_isBlock());
-                                auto blk = (ExprBlock *)clone->body.get();
+                                auto blk = (ExprBlock *)clone->body;
                                 blk->list.insert(blk->list.begin(), localAlias);
                             }
                         }
@@ -1348,7 +1356,7 @@ namespace das {
                         // perform generic_apply
                         for (auto &pA : clone->annotations) {
                             if (pA->annotation->rtti_isFunctionAnnotation()) {
-                                auto ann = static_pointer_cast<FunctionAnnotation>(pA->annotation);
+                                auto ann = static_cast<FunctionAnnotation*>(pA->annotation);
                                 string err;
                                 if (!ann->generic_apply(clone, *(program->thisModuleGroup), pA->arguments, err)) {
                                     error("Macro [" + pA->annotation->name + "] failed to generic_apply to a function " + clone->name + "\n",
@@ -1414,63 +1422,63 @@ namespace das {
         }
         return nullptr;
     }
-    ExpressionPtr InferTypes::inferGenericOperator3(const string &opN, const LineInfo &expr_at, const ExpressionPtr &arg0, const ExpressionPtr &arg1, const ExpressionPtr &arg2, InferCallError err) {
+    ExpressionPtr InferTypes::inferGenericOperator3(const string &opN, const LineInfo &expr_at, ExpressionPtr arg0, ExpressionPtr arg1, ExpressionPtr arg2, InferCallError err) {
         auto opName = "_::" + opN;
-        auto tempCall = make_smart<ExprLooksLikeCall>(expr_at, opName);
+        auto tempCall = new ExprLooksLikeCall(expr_at, opName);
         tempCall->arguments.push_back(arg0);
         if (arg1)
             tempCall->arguments.push_back(arg1);
         if (arg2)
             tempCall->arguments.push_back(arg2);
-        auto ffunc = inferFunctionCall(tempCall.get(), err).get();
+        auto ffunc = inferFunctionCall(tempCall, err);
         if (opName != tempCall->name) { // this happens when the operator gets instanced
             reportAstChanged();
-            auto opCall = make_smart<ExprCall>(expr_at, tempCall->name);
+            auto opCall = new ExprCall(expr_at, tempCall->name);
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else if (ffunc) { // function found
             reportAstChanged();
-            auto opCall = make_smart<ExprCall>(expr_at, opN);
+            auto opCall = new ExprCall(expr_at, opN);
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else {
             return nullptr;
         }
     }
-    ExpressionPtr InferTypes::inferGenericOperator(const string &opN, const LineInfo &expr_at, const ExpressionPtr &arg0, const ExpressionPtr &arg1, InferCallError err) {
+    ExpressionPtr InferTypes::inferGenericOperator(const string &opN, const LineInfo &expr_at, ExpressionPtr arg0, ExpressionPtr arg1, InferCallError err) {
         if ( arg0->type && arg0->type->isExprType() ) return nullptr;
         if ( arg1 && arg1->type && arg1->type->isExprType() ) return nullptr;
         auto opName = "_::" + opN;
-        auto tempCall = make_smart<ExprLooksLikeCall>(expr_at, opName);
+        auto tempCall = new ExprLooksLikeCall(expr_at, opName);
         tempCall->arguments.push_back(arg0);
         if (arg1)
             tempCall->arguments.push_back(arg1);
-        auto ffunc = inferFunctionCall(tempCall.get(), err).get();
+        auto ffunc = inferFunctionCall(tempCall, err);
         if (opName != tempCall->name) { // this happens when the operator gets instanced
             reportAstChanged();
-            auto opCall = make_smart<ExprCall>(expr_at, tempCall->name);
+            auto opCall = new ExprCall(expr_at, tempCall->name);
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else if (ffunc) { // function found
             reportAstChanged();
-            auto opCall = make_smart<ExprCall>(expr_at, opN);
+            auto opCall = new ExprCall(expr_at, opN);
             opCall->arguments = das::move(tempCall->arguments);
             return opCall;
         } else {
             return nullptr;
         }
     }
-    ExpressionPtr InferTypes::inferGenericOperatorWithName(const string &opN, const LineInfo &expr_at, const ExpressionPtr &arg0, const string &arg1, InferCallError err) {
-        auto conststring = make_smart<TypeDecl>(Type::tString);
+    ExpressionPtr InferTypes::inferGenericOperatorWithName(const string &opN, const LineInfo &expr_at, ExpressionPtr arg0, const string &arg1, InferCallError err) {
+        auto conststring = new TypeDecl(Type::tString);
         conststring->constant = true;
-        auto fieldName = make_smart<ExprConstString>(expr_at, arg1);
+        auto fieldName = new ExprConstString(expr_at, arg1);
         fieldName->type = conststring;
         return inferGenericOperator(opN, expr_at, arg0, fieldName, err);
     }
     Variable *InferTypes::findMatchingBlockOrLambdaVariable(const string &name) {
         // local (that on the stack)
         for (auto it = local.rbegin(); it != local.rend(); ++it) {
-            auto var = (*it).get();
+            auto var = *it;
             if (var->name == name || var->aka == name) {
                 return var;
             }
@@ -1480,7 +1488,7 @@ namespace das {
             ExprBlock *block = *it;
             for (auto &arg : block->arguments) {
                 if (arg->name == name || arg->aka == name) {
-                    return arg.get();
+                    return arg;
                 }
             }
         }
@@ -1488,7 +1496,7 @@ namespace das {
         if (func) {
             for (auto &arg : func->arguments) {
                 if (arg->name == name || arg->aka == name) {
-                    return arg.get();
+                    return arg;
                 }
             }
         }
@@ -1496,14 +1504,14 @@ namespace das {
         if (func && func->isStaticClassMethod && func->classParent->hasStaticMembers) {
             auto staticVarName = func->classParent->name + "`" + name;
             if (auto var = func->classParent->module->findVariable(staticVarName)) {
-                return var.get();
+                return var;
             }
         }
         // global
         auto vars = findMatchingVar(name, false);
         if (vars.size() == 1) {
             auto var = vars.back();
-            return var.get();
+            return var;
         }
         // and nada
         return nullptr;

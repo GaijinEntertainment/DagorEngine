@@ -216,6 +216,8 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
     }
   }
 
+  behaviorStatus.set(BehaviorBits::PRINT_MEMORY_REPORTS, info.reportMemoryInfo);
+
   updateBudgetLevelStatus();
 }
 
@@ -258,6 +260,10 @@ void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *na
   auto CurrentUsageUnits = size_to_unit_table(info.CurrentUsage);
   logdbg("DX12: CurrentUsage %.2f %s (level: %s)", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits),
     get_unit_name(CurrentUsageUnits), level);
+  if (info.CurrentUsage > info.Budget)
+    D3D_ERROR("DX12: %s memory CurrentUsage %.2f %s exceeds Budget %.2f %s", name,
+      compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits), get_unit_name(CurrentUsageUnits),
+      compute_unit_type_size(info.Budget, BudgetUnits), get_unit_name(BudgetUnits));
   auto AvailableForReservationUnits = size_to_unit_table(info.AvailableForReservation);
   logdbg("DX12: AvailableForReservation %.2f %s", compute_unit_type_size(info.AvailableForReservation, AvailableForReservationUnits),
     get_unit_name(AvailableForReservationUnits));
@@ -307,10 +313,14 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
 
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[device_local_memory_pool], poolStates[device_local_memory_pool],
       usageSizeReportingThreshold);
-    if (!isEqual)
+    const bool shouldPrint = !isEqual && behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS);
+
+    if (shouldPrint)
       report_budget_info(poolStates[device_local_memory_pool], "Device Local", as_string(getDeviceLocalBudgetLevel()));
-    update_reservation(adapter, poolStates[device_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_LOCAL, "Device Local", !isEqual);
-    if (!isEqual)
+
+    update_reservation(adapter, poolStates[device_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_LOCAL, "Device Local", shouldPrint);
+
+    if (shouldPrint)
       reportedPoolStates[device_local_memory_pool] = poolStates[device_local_memory_pool];
   }
   if (!behaviorStatus.test(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY) && adapter)
@@ -321,10 +331,14 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
 
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[host_local_memory_pool], poolStates[host_local_memory_pool],
       usageSizeReportingThreshold);
-    if (!isEqual)
+    const bool shouldPrint = !isEqual && behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS);
+
+    if (shouldPrint)
       report_budget_info(poolStates[host_local_memory_pool], "Host Local", as_string(getHostLocalBudgetLevel()));
-    update_reservation(adapter, poolStates[host_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, "Host Local", !isEqual);
-    if (!isEqual)
+
+    update_reservation(adapter, poolStates[host_local_memory_pool], DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, "Host Local", shouldPrint);
+
+    if (shouldPrint)
       reportedPoolStates[host_local_memory_pool] = poolStates[host_local_memory_pool];
   }
 
@@ -340,20 +354,23 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     processVirtualAddressUse = systemMemoryStatus.ullTotalVirtual - systemMemoryStatus.ullAvailVirtual;
     behaviorStatus.set(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY);
 
-    logdbg("DX12: GlobalMemoryStatusEx report:");
-    logdbg("DX12: dwLoad: %u", systemMemoryStatus.dwMemoryLoad);
-    ByteUnits totalPhys = systemMemoryStatus.ullTotalPhys;
-    logdbg("DX12: ullTotalPhys: %.3f %s", totalPhys.units(), totalPhys.name());
-    ByteUnits availPhys = systemMemoryStatus.ullAvailPhys;
-    logdbg("DX12: ullAvailPhys: %.3f %s", availPhys.units(), availPhys.name());
-    ByteUnits totalPage = systemMemoryStatus.ullTotalPageFile;
-    logdbg("DX12: ullTotalPageFile: %.3f %s", totalPage.units(), totalPage.name());
-    ByteUnits availPage = systemMemoryStatus.ullAvailPageFile;
-    logdbg("DX12: ullAvailPageFile: %.3f %s", availPage.units(), availPage.name());
-    ByteUnits totalVirtual = systemMemoryStatus.ullTotalVirtual;
-    logdbg("DX12: ullTotalVirtual: %.3f %s", totalVirtual.units(), totalVirtual.name());
-    ByteUnits availVirtual = systemMemoryStatus.ullAvailVirtual;
-    logdbg("DX12: ullAvailVirtual: %.3f %s", availVirtual.units(), availVirtual.name());
+    if (behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS))
+    {
+      logdbg("DX12: GlobalMemoryStatusEx report:");
+      logdbg("DX12: dwLoad: %u", systemMemoryStatus.dwMemoryLoad);
+      ByteUnits totalPhys = systemMemoryStatus.ullTotalPhys;
+      logdbg("DX12: ullTotalPhys: %.3f %s", totalPhys.units(), totalPhys.name());
+      ByteUnits availPhys = systemMemoryStatus.ullAvailPhys;
+      logdbg("DX12: ullAvailPhys: %.3f %s", availPhys.units(), availPhys.name());
+      ByteUnits totalPage = systemMemoryStatus.ullTotalPageFile;
+      logdbg("DX12: ullTotalPageFile: %.3f %s", totalPage.units(), totalPage.name());
+      ByteUnits availPage = systemMemoryStatus.ullAvailPageFile;
+      logdbg("DX12: ullAvailPageFile: %.3f %s", availPage.units(), availPage.name());
+      ByteUnits totalVirtual = systemMemoryStatus.ullTotalVirtual;
+      logdbg("DX12: ullTotalVirtual: %.3f %s", totalVirtual.units(), totalVirtual.name());
+      ByteUnits availVirtual = systemMemoryStatus.ullAvailVirtual;
+      logdbg("DX12: ullAvailVirtual: %.3f %s", availVirtual.units(), availVirtual.name());
+    }
   }
 
   auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
@@ -536,6 +553,12 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     {
       logdbg("DX12: Current memory budget usage is %u%% %.2f %s (level: %s)", gameUsed * 100 / gameLimit, currentUsageUnitsSize,
         get_unit_name(currentUsageUnitsIndex), as_string(getDeviceLocalBudgetLevel()));
+      if (isOverBudget)
+      {
+        auto budgetUnits = size_to_unit_table(gameLimit);
+        D3D_ERROR("DX12: Device Local memory CurrentUsage %.2f %s exceeds Budget %.2f %s", currentUsageUnitsSize,
+          get_unit_name(currentUsageUnitsIndex), compute_unit_type_size(gameLimit, budgetUnits), get_unit_name(budgetUnits));
+      }
       lastReportedUsage = currentUsage;
     }
   }
@@ -913,6 +936,18 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
         ByteUnits{heap.totalSize}.name());
 
       recordHeapAllocated(newHeap.totalSize, heap_properties.isOnDevice(getFeatureSet()));
+    }
+    else
+    {
+      logdbg("DX12: Allocation failed, D3D12_HEAP_DESC was:");
+      logdbg("DX12: .SizeInBytes: %u", newHeapDesc.SizeInBytes);
+      logdbg("DX12: .Properties.Type: %u", newHeapDesc.Properties.Type);
+      logdbg("DX12: .Properties.CPUPageProperty: %u", newHeapDesc.Properties.CPUPageProperty);
+      logdbg("DX12: .Properties.MemoryPoolPreference: %u", newHeapDesc.Properties.MemoryPoolPreference);
+      logdbg("DX12: .Properties.CreationNodeMask: %08X", newHeapDesc.Properties.CreationNodeMask);
+      logdbg("DX12: .Properties.VisibleNodeMask: %08X", newHeapDesc.Properties.VisibleNodeMask);
+      logdbg("DX12: .Alignment: %u", newHeapDesc.Alignment);
+      logdbg("DX12: .Flags: %08X", newHeapDesc.Flags);
     }
   }
 

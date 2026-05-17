@@ -21,7 +21,7 @@ module functional shared public
 def private filter_any(var src : iterator<auto(TT)>; var blk) {
     //! iterates over `src` and yields only those elements for which `blk` returns true
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- src, <- blk) () <| $() {
+        return <- generator<TT -&> capture(<- src, <- blk) {
             for (w in src) {
                 if (invoke(blk, w)) {
                     yield w
@@ -30,7 +30,7 @@ def private filter_any(var src : iterator<auto(TT)>; var blk) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- src, <- blk) () <| $() {
+        return <- generator<TT&> capture(<- src, <- blk) {
             for (w in src) {
                 if (invoke(blk, w)) {
                     yield w
@@ -55,7 +55,7 @@ def filter(var src : iterator<auto(TT)>; blk : function<(what : TT -&) : bool>) 
 def private map_any(var src : iterator<auto(TT)>; var blk) {
     //! iterates over `src` and yields the result of `blk` for each element
     static_if (typeinfo can_copy(type<QQ>)) {
-        return <- generator<QQ -&> capture(<- src, <- blk) () <| $() {
+        return <- generator<QQ -&> capture(<- src, <- blk) {
             for (w in src) {
                 static_if (typeinfo is_ref_type(invoke(blk, w))) {
                     yield copy_to_local(invoke(blk, w))
@@ -66,7 +66,7 @@ def private map_any(var src : iterator<auto(TT)>; var blk) {
             return false
         }
     } static_elif (typeinfo can_move(type<QQ>)) {
-        return <- generator<QQ -&> capture(<- src, <- blk) () <| $() {
+        return <- generator<QQ -&> capture(<- src, <- blk) {
             for (w in src) {
                 static_if (typeinfo is_ref_type(invoke(blk, w))) {
                     yield <- move_to_local(invoke(blk, w))
@@ -206,7 +206,7 @@ def all(var it : iterator<auto(TT)>) {
 def cycle(var src : iterator<auto(TT)>) {
     //! endlessly iterates over `src`
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- src) () <| $() {
+        return <- generator<TT -&> capture(<- src) {
             var arr : array<TT -const -&>
             for (x in src) {
                 yield x
@@ -220,7 +220,7 @@ def cycle(var src : iterator<auto(TT)>) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- src) () <| $() {
+        return <- generator<TT&> capture(<- src) {
             var arr : array<TT -const -&>
             for (x in src) {
                 yield x
@@ -239,7 +239,7 @@ def cycle(var src : iterator<auto(TT)>) {
 def islice(var src : iterator<auto(TT)>; start, stop : int) {
     //! iterates over `src` and yields only the elements in the range [start,stop)
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- src) () <| $() {
+        return <- generator<TT -&> capture(<- src) {
             for (x, i in src, range(stop)) {
                 if (i >= start) {
                     yield x
@@ -248,7 +248,7 @@ def islice(var src : iterator<auto(TT)>; start, stop : int) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- src) () <| $() {
+        return <- generator<TT&> capture(<- src) {
             for (x, i in src, range(stop)) {
                 if (i >= start) {
                     yield x
@@ -262,7 +262,7 @@ def islice(var src : iterator<auto(TT)>; start, stop : int) {
 // [[ value; value; value; .... count times ]]
 def repeat_ref(value : auto(TT); var total : int) {
     //! yields `value` by reference `count` times
-    return <- generator<TT const&>() <| $() {
+    return <- generator<TT const&> {
         while (total > 0) {
             yield value
             total --
@@ -274,7 +274,7 @@ def repeat_ref(value : auto(TT); var total : int) {
 // [[ value; value; value; .... count times ]]
 def repeat(value : auto(TT); var count : int = -1) {
     //! yields `value` `count` times. If `count` is negative, repeats forever.
-    return <- generator<TT const -&>() <| $() {
+    return <- generator<TT const -&> {
         if (count < 0) {
             while (true) {
                 yield value
@@ -312,7 +312,7 @@ def echo(x; extra : string = "\n") {
 def private flatten_one(var src : iterator<iterator<auto(TT)>>) {
     //! iterates over `src`, then iterates over each element of each element of `src` and yields it
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- src) () <| $() {
+        return <- generator<TT -&> capture(<- src) {
             for (i in src) {
                 for (j in i) {
                     yield j
@@ -321,7 +321,7 @@ def private flatten_one(var src : iterator<iterator<auto(TT)>>) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- src) () <| $() {
+        return <- generator<TT&> capture(<- src) {
             for (i in src) {
                 for (j in i) {
                     yield j
@@ -353,7 +353,7 @@ def sorted(var it : iterator<auto(TT)>) {
     //! iterates over input and returns it sorted version
     var arr <- to_array(it)
     sort(arr)
-    return <- generator<TT> capture(<- arr) () <| $() {
+    return <- generator<TT> capture(<- arr) {
         for (x in arr) {
             yield x
         }
@@ -438,7 +438,7 @@ def fold(var it : iterator<auto(TT)>; seed : auto(AGG); blk : block<(acc : AGG -
 
 def private scan_any(var src : iterator<auto(TT)>; seed : auto(AGG); var functor) {
     //! like fold, but yields every intermediate accumulator value
-    return <- generator<AGG -&> capture(<- src, <- functor) () <| $() {
+    return <- generator<AGG -&> capture(<- src, <- functor) {
         var acc : AGG -& = seed
         yield acc
         for (x in src) {
@@ -469,7 +469,7 @@ def scan(var src : iterator<auto(TT)>; seed : auto(AGG); blk : function<(acc : A
 
 def enumerate(var src : iterator<auto(TT)>) {
     //! yields tuples of `(index, element)` for each element in `src`
-    return <- generator<tuple<int, TT -&>> capture(<- src) () <| $() {
+    return <- generator<tuple<int, TT -&>> capture(<- src) {
         var idx = 0
         for (x in src) {
             yield (idx, x)
@@ -605,7 +605,7 @@ def partition(var src : iterator<auto(TT)>; blk : block<(what : TT -&) : bool>) 
 def private tap_any(var src : iterator<auto(TT)>; var blk) {
     //! yields every element unchanged, calling `blk` on each as a side-effect
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- src, <- blk) () <| $() {
+        return <- generator<TT -&> capture(<- src, <- blk) {
             for (x in src) {
                 invoke(blk, x)
                 yield x
@@ -613,7 +613,7 @@ def private tap_any(var src : iterator<auto(TT)>; var blk) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- src, <- blk) () <| $() {
+        return <- generator<TT&> capture(<- src, <- blk) {
             for (x in src) {
                 invoke(blk, x)
                 yield x
@@ -640,7 +640,7 @@ def tap(var src : iterator<auto(TT)>; blk : function<(what : TT -&) : void>) {
 def iterate(seed : auto(TT); var blk : lambda<(what : TT -&) : TT const -&>) {
     //! yields `seed`, `f(seed)`, `f(f(seed))`, ... infinitely.
     //! Use with `islice` or `take` to limit output.
-    return <- generator<TT -&> capture(<- blk) () <| $() {
+    return <- generator<TT -&> capture(<- blk) {
         var current : TT -& = seed
         while (true) {
             yield current
@@ -656,7 +656,7 @@ def iterate(seed : auto(TT); var blk : lambda<(what : TT -&) : TT const -&>) {
 
 def iterate(seed : auto(TT); var blk : function<(what : TT -&) : TT const -&>) {
     //! yields `seed`, `f(seed)`, `f(f(seed))`, ... infinitely.
-    return <- generator<TT -&> capture(<- blk) () <| $() {
+    return <- generator<TT -&> capture(<- blk) {
         var current : TT -& = seed
         while (true) {
             yield current
@@ -677,7 +677,7 @@ def iterate(seed : auto(TT); var blk : function<(what : TT -&) : TT const -&>) {
 def chain(var a : iterator<auto(TT)>; var b : iterator<auto(TT)>) {
     //! yields all elements of `a`, then all elements of `b`
     static_if (!typeinfo is_ref_type(type<TT>)) {
-        return <- generator<TT -&> capture(<- a, <- b) () <| $() {
+        return <- generator<TT -&> capture(<- a, <- b) {
             for (x in a) {
                 yield x
             }
@@ -687,7 +687,7 @@ def chain(var a : iterator<auto(TT)>; var b : iterator<auto(TT)>) {
             return false
         }
     } else {
-        return <- generator<TT&> capture(<- a, <- b) () <| $() {
+        return <- generator<TT&> capture(<- a, <- b) {
             for (x in a) {
                 yield x
             }
@@ -705,7 +705,7 @@ def chain(var a : iterator<auto(TT)>; var b : iterator<auto(TT)>) {
 
 def pairwise(var src : iterator<auto(TT)>) {
     //! yields consecutive pairs: `(a,b)`, `(b,c)`, `(c,d)`, ...
-    return <- generator<tuple<TT -&, TT -&>> capture(<- src) () <| $() {
+    return <- generator<tuple<TT -&, TT -&>> capture(<- src) {
         var prev : TT -&
         var first = true
         for (x in src) {
@@ -727,7 +727,7 @@ def pairwise(var src : iterator<auto(TT)>) {
 
 def private flat_map_any(var src : iterator<auto(TT)>; var blk) {
     //! maps each element to an iterator, then flattens the results one level
-    return <- generator<auto(QQ) -&> capture(<- src, <- blk) () <| $() {
+    return <- generator<auto(QQ) -&> capture(<- src, <- blk) {
         for (x in src) {
             for (y in invoke(blk, x)) {
                 yield y

@@ -18,6 +18,7 @@ public:
 
   static void onGridVisibilityChanged(int viewport_index);
   static void onSnapSettingChanged();
+  static void onSnapStepChanged();
 
 private:
   bool isOwningDialog() const;

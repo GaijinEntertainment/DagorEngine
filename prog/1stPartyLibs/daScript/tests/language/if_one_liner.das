@@ -19,6 +19,59 @@ def prefix_early_return(a : int) : int {
     return a
 }
 
+// --- helpers for multi-line one-liner shapes (previously rejected) ---
+// expression_if_one_liner accepts return/yield/break/continue/expr_no_bracket;
+// these helpers exercise the now-legal "body on the next line" layout.
+
+def if_body_on_next_line(a : int) : int {
+    if (a < 10)
+        return 1
+    return 0
+}
+
+def else_body_on_next_line(a : int) : int {
+    if (a < 10) {
+        return 1
+    } else
+        return 2
+}
+
+def if_and_else_bodies_on_next_lines(a : int) : int {
+    if (a < 10)
+        return 1
+    else
+        return 2
+}
+
+def elif_body_on_next_line(a : int) : int {
+    if (a == 1) {
+        return 1
+    } elif (a == 2)
+        return 2
+    return 0
+}
+
+def static_if_true_body_on_next_line() : int {
+    static_if (true)
+        return 7
+    return 0
+}
+
+def static_if_false_body_on_next_line() : int {
+    static_if (false)
+        return 7
+    return 0
+}
+
+def postfix_if_split_across_lines(a : int) : int {
+    // historically rejected: parses as `return 13` (unconditional)
+    // followed by `if (a < 10) return a` (prefix-if, body on next line).
+    // Compiles cleanly now; always returns 13.
+    return 13
+        if (a < 10)
+    return a
+}
+
 // --- tests ---
 
 [test]
@@ -85,5 +138,66 @@ def test_oneliner_break_continue(t : T?) {
             count++
         }
         t |> equal(count, 3)
+    }
+}
+
+[test]
+def test_if_body_on_next_line(t : T?) {
+    t |> run("body executes when condition true") @(t : T?) {
+        t |> equal(if_body_on_next_line(5), 1)
+    }
+    t |> run("body skipped when condition false") @(t : T?) {
+        t |> equal(if_body_on_next_line(20), 0)
+    }
+}
+
+[test]
+def test_else_body_on_next_line(t : T?) {
+    t |> run("if branch taken") @(t : T?) {
+        t |> equal(else_body_on_next_line(5), 1)
+    }
+    t |> run("else branch taken") @(t : T?) {
+        t |> equal(else_body_on_next_line(20), 2)
+    }
+}
+
+[test]
+def test_if_and_else_bodies_on_next_lines(t : T?) {
+    t |> run("if branch taken") @(t : T?) {
+        t |> equal(if_and_else_bodies_on_next_lines(5), 1)
+    }
+    t |> run("else branch taken") @(t : T?) {
+        t |> equal(if_and_else_bodies_on_next_lines(20), 2)
+    }
+}
+
+[test]
+def test_elif_body_on_next_line(t : T?) {
+    t |> run("if branch taken") @(t : T?) {
+        t |> equal(elif_body_on_next_line(1), 1)
+    }
+    t |> run("elif branch taken") @(t : T?) {
+        t |> equal(elif_body_on_next_line(2), 2)
+    }
+    t |> run("neither branch taken") @(t : T?) {
+        t |> equal(elif_body_on_next_line(3), 0)
+    }
+}
+
+[test]
+def test_static_if_body_on_next_line(t : T?) {
+    t |> run("static_if (true) body on next line returns 7") @(t : T?) {
+        t |> equal(static_if_true_body_on_next_line(), 7)
+    }
+    t |> run("static_if (false) elides next-line body, returns 0") @(t : T?) {
+        t |> equal(static_if_false_body_on_next_line(), 0)
+    }
+}
+
+[test]
+def test_postfix_if_split_across_lines(t : T?) {
+    t |> run("split layout compiles and returns 13") @(t : T?) {
+        t |> equal(postfix_if_split_across_lines(5), 13)
+        t |> equal(postfix_if_split_across_lines(20), 13)
     }
 }

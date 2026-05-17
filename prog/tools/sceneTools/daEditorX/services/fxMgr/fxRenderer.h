@@ -26,5 +26,5 @@ private:
   bool isInited = false;
 
   PostFxRenderer finalRender;
-  UniqueTexHolder colorRt;
+  UniqueTexWithShaderVar colorRt;
 };

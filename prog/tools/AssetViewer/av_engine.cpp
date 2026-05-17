@@ -56,6 +56,7 @@ extern void *get_generic_color_range_service();
 extern void *get_generic_rendinstgen_service();
 extern void *get_generic_spline_gen_service();
 extern void *get_generic_wind_service();
+extern void *get_dng_based_wind_service();
 extern void *get_pixel_perfect_selection_service();
 extern void *get_visibility_finder_service();
 
@@ -186,7 +187,7 @@ void *AssetViewerApp::queryEditorInterfacePtr(unsigned huid)
     return get_generic_spline_gen_service();
 
   if (huid == HUID_IWindService)
-    return !useDngBasedSceneRender ? get_generic_wind_service() : nullptr;
+    return useDngBasedSceneRender ? get_dng_based_wind_service() : get_generic_wind_service();
 
   if (huid == HUID_IPixelPerfectSelectionService)
     return get_pixel_perfect_selection_service();

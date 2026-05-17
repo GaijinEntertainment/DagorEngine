@@ -26,7 +26,7 @@ struct UnifiedTexGenLoad
     else if (hdr.isCompression7ZIP())
       ucrd = new (&crdStorage, _NEW_INPLACE) BufferedLzmaLoadCB(crd, hdr.packedSz);
     else if (hdr.isCompressionZSTD())
-      ucrd = new (&crdStorage, _NEW_INPLACE) ZstdLoadCB(crd, hdr.packedSz);
+      ucrd = new (&crdStorage, _NEW_INPLACE) ZstdLoadCB(crd, hdr.packedSz, nullptr, false, ZstdErrorMode::Soft);
     else if (hdr.isCompressionOODLE())
       ucrd = new (&crdStorage, _NEW_INPLACE) OodleLoadCB(crd, hdr.packedSz, hdr.memSz);
   }

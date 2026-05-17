@@ -20,6 +20,9 @@
 
 CONSOLE_BOOL_VAL("raytracing", invalidate_ri_ex_instances, false);
 
+CONSOLE_BOOL_VAL("raytracing", bvh_ri_extra_split_enabled, true);
+CONSOLE_INT_VAL("raytracing", bvh_ri_extra_split_chunk_budget, 6400, 1000, 100000);
+
 #if DAGOR_DBGLEVEL > 0
 extern bool bvh_ri_extra_range_enable;
 extern float bvh_ri_extra_range;
@@ -219,12 +222,17 @@ struct RiExtraBVHJob : public cpujobs::IJob
   Point3 viewPosition;
   Frustum bvhFrustum;
   Frustum viewFrustum;
+  vec4f lightDirection;
   unsigned handleCount;
   unsigned instanceCount;
   unsigned elemCount;
 
   dag::AtomicInteger<int> *nextGroupIx = nullptr;
   eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> newUniqueRiExtraTreeBuffers[Context::maxUniqueLods];
+  RiExtraBVHJob *otherFlip = nullptr;
+  threadpool::JobPriority prio = threadpool::PRIO_DEFAULT;
+  dag::AtomicInteger<unsigned> chunkBudgetItems = 0;
+  bool hitChunkBudget = false;
 
   int fetchNextGroupIx() { return nextGroupIx->fetch_add(1); }
 
@@ -283,6 +291,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
 #endif
 
       float distCheckSq;
+      vec4f worldBsphereForAnimation;
       if constexpr (!instanceHasNode)
       {
         // The instance has no node. This can happen for some trees which are fallen
@@ -313,6 +322,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
             continue;
 
         distCheckSq = distSq * rendinst::getCullDistSqMul();
+        auto approxRadius = v_mul(v_length3(v_bbox3_size(lbb)), V_C_HALF);
+        worldBsphereForAnimation = v_perm_xyzd(center, approxRadius);
       }
       else
       {
@@ -334,6 +345,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
             continue;
 
         distCheckSq = distSqScaledNormalized;
+        worldBsphereForAnimation = bsphere;
       }
 
       if (maxLodDistSq <= distCheckSq)
@@ -421,10 +433,14 @@ struct RiExtraBVHJob : public cpujobs::IJob
               //  debug("riExtra tree: %s", name.data());
               TreeInfo treeInfo;
               MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-              if (!handle_tree<mapTreeRiEx>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors, handle, invWorldTm,
-                    treeInfo, metaAllocId, this, false, isBurning, hashVal))
+              bool isStationary = !instance_needs_animation(worldBsphereForAnimation, viewFrustum, viewPositionVec, lightDirection);
+              bool isOk = isStationary ? handle_tree<map_tree_stationary>(contextId, elem, meshId, lodIx, false, tm44, originalPos,
+                                           colors, handle, invWorldTm, treeInfo, metaAllocId, this, true, isBurning, hashVal)
+                                       : handle_tree<mapTreeRiEx>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors,
+                                           handle, invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
+              if (!isOk)
                 continue;
-              add_riExtra_instance(contextId, meshId, transform, &treeInfo, metaAllocId, threadIx);
+              add_riExtra_instance(contextId, meshId, transform, &treeInfo, isStationary, metaAllocId, threadIx);
             }
           }
           else if (DAGOR_UNLIKELY(is_flag(contextId, elem)))
@@ -504,6 +520,13 @@ struct RiExtraBVHJob : public cpujobs::IJob
         doJobHotPath<useMinLod, cullDistIncreased, riBaked, rangeCheck, false, false>(group.riType, region1, group.maxLodDistSq,
           distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ);
       }
+
+      const int heuristic = handleCount + elemCount * 15;
+      if (DAGOR_UNLIKELY(heuristic >= chunkBudgetItems.load(dag::memory_order_relaxed)))
+      {
+        hitChunkBudget = true;
+        return;
+      }
     }
   }
 
@@ -545,9 +568,21 @@ struct RiExtraBVHJob : public cpujobs::IJob
     bool cullDistIncreased = distSqMul != distSqMulOOC;
     bool riBaked = contextId->has(Features::RIBaked);
     const bool useMinLod = bvh::ri::get_ri_lod_dist_bias() > 0;
+
+    hitChunkBudget = false;
+
     doJobWrapper(*this, distSqMul, distSqMulOOC, cullDistIncreased, riBaked, bvh_ri_extra_range_enable, useMinLod);
 
     DA_PROFILE_TAG_DESC(getJobNameProfDesc(), "handles: %d, instances: %d, elems: %d", handleCount, instanceCount, elemCount);
+
+    // flip-flop scheduling: start the other pair right before this one finishes, so the parallel processing finish is consistent
+    if (hitChunkBudget && nextGroupIx->load() < (int)orderedRiExtraHandles.size())
+    {
+      G_ASSERT(otherFlip);
+      threadpool::wait(otherFlip); // just in case it is still running
+      parallel_instance_processing::before_job_start(contextId);
+      threadpool::add(otherFlip, prio);
+    }
 
     parallel_instance_processing::after_job_end(contextId);
   }
@@ -556,18 +591,27 @@ struct RiExtraBVHJob : public cpujobs::IJob
 struct RIExtraBVHJobGroup
 {
   dag::AtomicInteger<int> nextGroupIx;
-  RiExtraBVHJob jobs[ri_extra_thread_count];
+  RiExtraBVHJob jobs[ri_extra_thread_count][2]; // flip-flop pair
 };
 
 static eastl::unordered_map<ContextId, RIExtraBVHJobGroup> riExtraJobGroups;
 
 void wait_ri_extra_instances_update(ContextId context_id)
 {
+  TIME_PROFILE(bvh::update_ri_extra_instances);
+  auto &jobGroup = riExtraJobGroups[context_id];
   for (int threadIx = 0; threadIx < ri_extra_thread_count; ++threadIx)
   {
-    TIME_PROFILE(bvh::update_ri_extra_instances);
+    // skip budget check and process the rest
+    jobGroup.jobs[threadIx][0].chunkBudgetItems.store(~0u, dag::memory_order_relaxed);
+    jobGroup.jobs[threadIx][1].chunkBudgetItems.store(~0u, dag::memory_order_relaxed);
+  }
+  for (int threadIx = 0; threadIx < ri_extra_thread_count; ++threadIx)
+  {
     DA_PROFILE_TAG(bvh::update_ri_extra_instances, "wait thread %d", threadIx);
-    threadpool::wait(&riExtraJobGroups[context_id].jobs[threadIx]);
+    threadpool::wait(&jobGroup.jobs[threadIx][0]);
+    threadpool::wait(&jobGroup.jobs[threadIx][1]);
+    threadpool::wait(&jobGroup.jobs[threadIx][0]); // just in case for the edge case when job[0] starts job[1] in-between
   }
 }
 
@@ -751,7 +795,7 @@ void prepare_ri_extra_instances()
 }
 
 void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, threadpool::JobPriority prio)
+  const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio)
 {
   {
     OSSpinlockScopedLock lock(typeDirtListLock);
@@ -764,18 +808,28 @@ void update_ri_extra_instances(ContextId context_id, const Point3 &view_position
 
   jobGroup.nextGroupIx.store(0);
 
+  const vec4f lightDirection = light_direction_for_animation(light_direction);
+  const unsigned chunkBudgetItems = bvh_ri_extra_split_enabled ? (unsigned)bvh_ri_extra_split_chunk_budget.get() : ~0u;
+
   // Sets up and extra job for the main thread, just in case these don't finish in time
   for (int threadIx = 0; threadIx < get_ri_extra_worker_count(); ++threadIx)
   {
-    auto &job = jobGroup.jobs[threadIx];
-    job.contextId = context_id;
-    job.threadIx = threadIx;
-    job.viewPosition = view_position;
-    job.nextGroupIx = &jobGroup.nextGroupIx;
-    job.bvhFrustum = bvh_frustum;
-    job.viewFrustum = view_frustum;
+    for (int flip = 0; flip < 2; ++flip)
+    {
+      auto &job = jobGroup.jobs[threadIx][flip];
+      job.contextId = context_id;
+      job.threadIx = threadIx;
+      job.viewPosition = view_position;
+      job.nextGroupIx = &jobGroup.nextGroupIx;
+      job.bvhFrustum = bvh_frustum;
+      job.viewFrustum = view_frustum;
+      job.lightDirection = lightDirection;
+      job.prio = prio;
+      job.otherFlip = &jobGroup.jobs[threadIx][flip ^ 1];
+      job.chunkBudgetItems.store(chunkBudgetItems, dag::memory_order_relaxed);
+    }
     parallel_instance_processing::before_job_start(context_id);
-    threadpool::add(&job, prio);
+    threadpool::add(&jobGroup.jobs[threadIx][0], prio);
   }
 }
 
@@ -823,13 +877,17 @@ void tidy_up_riex_trees(ContextId context_id)
 {
   TIME_PROFILE(tidy_up_riex_trees)
 
-  for (auto &job : riExtraJobGroups[context_id].jobs)
+  for (auto &jobFlips : riExtraJobGroups[context_id].jobs)
   {
-    for (auto [index, lod] : enumerate(job.newUniqueRiExtraTreeBuffers))
+    for (int flip = 0; flip < 2; ++flip)
     {
-      for (auto &tree : lod)
-        context_id->uniqueRiExtraTreeBuffers[index].insert(std::move(tree));
-      lod.clear();
+      auto &job = jobFlips[flip];
+      for (auto [index, lod] : enumerate(job.newUniqueRiExtraTreeBuffers))
+      {
+        for (auto &tree : lod)
+          context_id->uniqueRiExtraTreeBuffers[index].insert(std::move(tree));
+        lod.clear();
+      }
     }
   }
 

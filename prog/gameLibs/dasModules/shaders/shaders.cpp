@@ -46,17 +46,17 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("DagorResPtr"), true);
     addBuiltinDependency(lib, require("DagorDriver3D"));
-    addEnumeration(das::make_smart<EnumerationSHVT>());
-    addAnnotation(das::make_smart<ShaderVarAnnotation>(lib));
-    addAnnotation(das::make_smart<ShaderMaterialAnnotation>(lib));
-    addAnnotation(das::make_smart<ShaderMaterialPtrAnnotation>(lib));
+    addEnumeration(new EnumerationSHVT());
+    addAnnotation(new ShaderVarAnnotation(lib));
+    addAnnotation(new ShaderMaterialAnnotation(lib));
+    addAnnotation(new ShaderMaterialPtrAnnotation(lib));
 
 
     das::addExtern<DAS_BIND_FUN(my_get_var_type)>(*this, lib, "get_var_type", das::SideEffects::modifyExternal,
       "::bind_dascript::my_get_var_type");
     das::addExtern<DAS_BIND_FUN(get_shader_variable_id)>(*this, lib, "get_shader_variable_id", das::SideEffects::modifyExternal,
       "get_shader_variable_id")
-      ->arg_init(/*is_optional*/ 1, das::make_smart<das::ExprConstBool>(false));
+      ->arg_init(/*is_optional*/ 1, new das::ExprConstBool(false));
     das::addExtern<bool (*)(int, int), set_int>(*this, lib, "set_int", das::SideEffects::modifyExternal, "::ShaderGlobal::set_int");
     das::addExtern<bool (*)(int, const IPoint4 &), set_int4>(*this, lib, "set_int4", das::SideEffects::modifyExternal,
       "::ShaderGlobal::set_int4");
@@ -108,12 +108,12 @@ public:
     das::addExtern<DAS_BIND_FUN(ShaderGlobal::getBlockId)>(*this, lib, "getBlockId", das::SideEffects::accessExternal,
       "ShaderGlobal::getBlockId")
       ->args({"block_name", "layer"})
-      ->arg_init(1, das::make_smart<das::ExprConstInt>(-1));
+      ->arg_init(1, new das::ExprConstInt(-1));
 
     das::addExtern<DAS_BIND_FUN(ShaderGlobal::setBlock)>(*this, lib, "setBlock", das::SideEffects::accessExternal,
       "ShaderGlobal::setBlock")
       ->args({"block_id", "layer", "invalidate_cached_stblk"})
-      ->arg_init(2, das::make_smart<das::ExprConstBool>(true));
+      ->arg_init(2, new das::ExprConstBool(true));
 
     das::addExtern<DAS_BIND_FUN(exec_with_shader_blocks_scope_reset)>(*this, lib, "exec_with_shader_blocks_scope_reset",
       das::SideEffects::modifyExternal, "::bind_dascript::exec_with_shader_blocks_scope_reset");

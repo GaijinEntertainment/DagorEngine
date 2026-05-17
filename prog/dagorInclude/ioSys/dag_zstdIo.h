@@ -13,6 +13,12 @@ struct ZSTD_DDict_s;
 
 #include <supp/dag_define_KRNLIMP.h>
 
+enum class ZstdErrorMode : uint8_t
+{
+  Fatal,
+  Soft
+};
+
 class ZstdLoadFromMemCB : public IGenLoad
 {
 public:
@@ -60,6 +66,7 @@ public:
   bool ceaseReading() override { return true; }
 
 protected:
+  ZstdErrorMode errorMode = ZstdErrorMode::Fatal;
   ZSTD_DCtx_s *dstrm = nullptr;
   dag::ConstSpan<unsigned char> encDataBuf;
   unsigned encDataPos = 0;
@@ -74,7 +81,12 @@ class ZstdLoadCB : public ZstdLoadFromMemCB
 {
 public:
   ZstdLoadCB() = default; //-V730   /* since rdBuf shall not be filled in ctor for performance reasons */
-  ZstdLoadCB(IGenLoad &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false) { open(in_crd, in_size, dict, tmp); }
+  ZstdLoadCB(IGenLoad &in_crd, int in_size, const ZSTD_DDict_s *dict = nullptr, bool tmp = false,
+    ZstdErrorMode err_mode = ZstdErrorMode::Fatal)
+  {
+    errorMode = err_mode;
+    open(in_crd, in_size, dict, tmp);
+  }
   ~ZstdLoadCB() { close(); }
 
   const char *getTargetName() override { return loadCb ? loadCb->getTargetName() : NULL; }

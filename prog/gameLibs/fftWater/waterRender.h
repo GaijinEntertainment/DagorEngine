@@ -169,8 +169,8 @@ protected:
   GPGPUData *gpGpu;
   CSGPUData *csGpu;
 
-  UniqueTexHolder heightmapGridTex;
-  UniqueTexHolder heightmapPagesTex;
+  UniqueTexWithShaderVar heightmapGridTex;
+  UniqueTexWithShaderVar heightmapPagesTex;
 
   UniqueBufHolder heightmapBuf;
   eastl::unique_ptr<ShaderMaterial> heightmapShmat[fft_water::RenderMode::MAX];

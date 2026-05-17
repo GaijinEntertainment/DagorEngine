@@ -26,6 +26,8 @@ static float ri_lod_dist_bias = 0.0f;
 static int ri_single_lod_filter_max_faces = 0;
 static float ri_single_lod_filter_max_range = 0;
 
+bool ri_enable_caching = true;
+
 struct BrokenAssetDetails
 {
   const RenderableInstanceLodsResource *resource;
@@ -203,11 +205,12 @@ static void on_relem_changed_all(const RenderableInstanceLodsResource *resource,
     on_relem_changed(contextId, resource, deleted, upper_lod, pre_change_event);
 }
 
-void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, float lod_dist_bias)
+void init(const AdditionalSettings &settings)
 {
-  ri_single_lod_filter_max_faces = single_lod_filter_max_faces;
-  ri_single_lod_filter_max_range = single_lod_filter_max_range;
-  ri_lod_dist_bias = lod_dist_bias;
+  ri_single_lod_filter_max_faces = settings.singleLodFilterMaxFaces;
+  ri_single_lod_filter_max_range = settings.singleLodFilterMaxRange;
+  ri_lod_dist_bias = settings.riLodDistBias;
+  ri_enable_caching = settings.enableCaching;
   relem_prechanged_token = unitedvdata::riUnitedVdata.on_mesh_relems_about_to_be_updated.subscribe(
     [](const RenderableInstanceLodsResource *resource, bool deleted, int upper_lod) {
       on_relem_changed_all(resource, deleted, upper_lod, true);

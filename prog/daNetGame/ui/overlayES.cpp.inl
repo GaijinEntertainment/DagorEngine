@@ -50,6 +50,7 @@
 #include <quirrel/bindQuirrelEx/autoCleanup.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include <quirrel/http/sqHttpClient.h>
+#include <quirrel/asyncRuntime/dagorAsyncRuntime.h>
 #include <quirrel/quirrel_json/quirrel_json.h>
 #include <quirrel/sqJwt/sqJwt.h>
 #include <quirrel/clientLog/clientLog.h>
@@ -104,6 +105,8 @@ namespace overlay_ui
 
 static eastl::unique_ptr<darg::IGuiScene> dargScene;
 
+static eastl::unique_ptr<sqasync_dagor::AsyncRuntimeScope> async_runtime;
+
 
 static const char *get_overlay_ui_script_fn()
 {
@@ -131,6 +134,8 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
 
   virtual void onShutdownScript(HSQUIRRELVM vm) override
   {
+    if (async_runtime)
+      async_runtime->shutdown();
     sq::cleanup_unreg_native_api(vm);
     bindquirrel::http_client_on_vm_shutdown(vm);
   }
@@ -190,6 +195,7 @@ static void bind_overlay_ui_script_apis(SqModules *moduleMgr, HSQUIRRELVM vm)
   Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("VAR_TRACE_ENABLED", varTraceOn);
 
   sqeventbus::bind_ex(moduleMgr, "overlay_ui", /*freeze_wevt_tables*/ true);
+  async_runtime = eastl::make_unique<sqasync_dagor::AsyncRuntimeScope>(moduleMgr);
 
   moduleMgr->registerIoLib();
   moduleMgr->registerSystemLib();
@@ -399,7 +405,8 @@ void shutdown_ui(bool quit)
 
   dainput::unregister_darg_scene(0);
 
-  dargScene.reset();
+  dargScene.reset();     // closes the VM via IGuiScene dtor (after onShutdownScript)
+  async_runtime.reset(); // safe now: VM is gone, no closure can deref the scope pointer
 
   if (quit)
     bindquirrel::shutdown_datacache();
@@ -424,12 +431,16 @@ void update()
 
   if (dargScene)
   {
+    HSQUIRRELVM vm = dargScene->getScriptVM();
     {
       TIME_PROFILE(sq_timers);
-      bindquirrel::dagor_workcycle_frame_update(dargScene->getScriptVM());
+      bindquirrel::dagor_workcycle_frame_update(vm);
     }
 
-    sqeventbus::process_events(dargScene->getScriptVM());
+    if (async_runtime)
+      async_runtime->pump();
+
+    sqeventbus::process_events(vm);
   }
 }
 

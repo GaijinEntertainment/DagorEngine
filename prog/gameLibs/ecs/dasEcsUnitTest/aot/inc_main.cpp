@@ -57,11 +57,6 @@ int DagorWinMain(bool debugmode)
   set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE));
 #endif
   dgs_report_fatal_error = stderr_report_fatal_error;
-  if (dgs_argc < 3)
-  {
-    ::debug("dasAot <in_script.das> <out_script.das.cpp> [-q] [-j] -- [--config aot_config.blk]\n");
-    return -1;
-  }
   debug_set_log_callback(&log_callback);
 
   char exe_dir[DAGOR_MAX_PATH] = {0};

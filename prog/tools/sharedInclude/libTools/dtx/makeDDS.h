@@ -82,3 +82,20 @@ inline bool create_dds_header(void *data, int size, int w, int h, int bpp, int m
   }
   return true;
 }
+
+inline bool is_srgb_capable_fmt(const char *fmt)
+{
+  static const char *const srgbFmts[] = {"ARGB", "RGB", "DXT1", "DXT1a", "DXT3", "DXT5", "DXT1|DXT5", "DXT1|BC7", "BC7"};
+  for (const char *s : srgbFmts)
+    if (stricmp(fmt, s) == 0)
+      return true;
+  return strnicmp(fmt, "ASTC", 4) == 0;
+}
+
+inline bool fix_gamma_for_fmt(float &gamma, const char *fmt)
+{
+  if (is_equal_float(gamma, 1.0f) || is_srgb_capable_fmt(fmt))
+    return false;
+  gamma = 1.0f;
+  return true;
+}

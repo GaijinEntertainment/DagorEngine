@@ -31,6 +31,7 @@ namespace das {
             } else {
                 context->to_err(&context->exceptionAt, ("macro caused exception during " + message + "\n" + context->getException()).c_str());
             }
+            context->clearException();
         }
         if (bound->g_Program) {
             bound->macroTimeTicks += ref_time_ticks() - timeM;
@@ -238,11 +239,11 @@ namespace das {
 
     TypeDeclPtr VisitorAdapter::visit(TypeDecl *td) {
         if ( auto fnVisit = get_visitTypeDecl(classPtr) ) {
-            TypeDeclPtr result;
+            TypeDeclPtr result = nullptr;
             runMacroFunction(context, "visit", [&]() {
                 result = invoke_visitTypeDecl(context,fnVisit,classPtr,td);
             });
-            return return_smart(result,td);
+            return result ? result : td;
         } else {
             return td;
         }
@@ -258,11 +259,11 @@ namespace das {
 
     TypeDeclPtr VisitorAdapter::visitAlias(TypeDecl *td, const string &name) {
         if ( auto fnVisit = get_visitAlias(classPtr) ) {
-            TypeDeclPtr result;
+            TypeDeclPtr result = nullptr;
             runMacroFunction(context, "visitAlias", [&]() {
                 result = invoke_visitAlias(context,fnVisit,classPtr,td,name);
             });
-            return return_smart(result,td);
+            return result ? result : td;
         } else {
             return td;
         }
@@ -286,11 +287,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitEnumerationValue(Enumeration *enu, const string &name, Expression *value, bool last) {
         if ( auto fnVisit = get_visitEnumerationValue(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitEnumerationValue", [&]() {
                 result = invoke_visitEnumerationValue(context,fnVisit,classPtr,enu,name,value,last);
             });
-            return return_smart(result,value);
+            return result ? result : value;
         } else {
             return value;
         }
@@ -306,11 +307,11 @@ namespace das {
 
     EnumerationPtr VisitorAdapter::visit(Enumeration *enu) {
         if ( auto fnVisit = get_visitEnumeration(classPtr) ) {
-            EnumerationPtr result;
+            EnumerationPtr result = nullptr;
             runMacroFunction(context, "visit", [&]() {
                 result = invoke_visitEnumeration(context,fnVisit,classPtr,enu);
             });
-            return return_smart(result,enu);
+            return result ? result : enu;
         } else {
             return enu;
         }
@@ -326,11 +327,11 @@ namespace das {
 
     TypeDeclPtr VisitorAdapter::visitStructureAlias ( Structure * var, const string & name, TypeDecl * at ) {
         if ( auto fnVisit = get_visitStructureAlias(classPtr) ) {
-            TypeDeclPtr result;
+            TypeDeclPtr result = nullptr;
             runMacroFunction(context, "visitStructureAlias", [&]() {
                 result = invoke_visitStructureAlias(context,fnVisit,classPtr,var,name,at);
             });
-            return return_smart(result,at);
+            return result ? result : at;
         } else {
             return at;
         }
@@ -366,11 +367,11 @@ namespace das {
 
     StructurePtr VisitorAdapter::visit(Structure *var) {
         if ( auto fnVisit = get_visitStructure(classPtr) ) {
-            StructurePtr result;
+            StructurePtr result = nullptr;
             runMacroFunction(context, "visit", [&]() {
                 result = invoke_visitStructure(context,fnVisit,classPtr,var);
             });
-            return return_smart(result,var);
+            return result ? result : var;
         } else {
             return var;
         }
@@ -393,11 +394,11 @@ namespace das {
 
     FunctionPtr VisitorAdapter::visit(Function *that) {
         if ( auto fnVisit = get_visitFunction(classPtr) ) {
-            FunctionPtr result;
+            FunctionPtr result = nullptr;
             runMacroFunction(context, "visit", [&]() {
                 result = invoke_visitFunction(context,fnVisit,classPtr,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -413,11 +414,11 @@ namespace das {
 
     VariablePtr VisitorAdapter::visitArgument(Function *fn, const VariablePtr &that, bool lastArg) {
         if ( auto fnVisit = get_visitFunctionArgument(classPtr) ) {
-            VariablePtr result;
+            VariablePtr result = nullptr;
             runMacroFunction(context, "visitArgument", [&]() {
                 result = invoke_visitFunctionArgument(context,fnVisit,classPtr,fn,that,lastArg);
             });
-            return return_smart(result,that.get());
+            return result ? result : that;
         } else {
             return that;
         }
@@ -433,11 +434,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitArgumentInit(Function *fn, const VariablePtr &var, Expression *that) {
         if ( auto fnVisit = get_visitFunctionArgumentInit(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitArgumentInit", [&]() {
                 result = invoke_visitFunctionArgumentInit(context,fnVisit,classPtr,fn,var,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -453,11 +454,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitFunctionBody(Function *fn, Expression *that) {
         if ( auto fnVisit = get_visitFunctionBody(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitFunctionBody", [&]() {
                 result = invoke_visitFunctionBody(context,fnVisit,classPtr,fn,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -473,11 +474,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitExpression(Expression *expr) {
         if ( auto fnVisit = get_visitExpression(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitExpression", [&]() {
                 result = invoke_visitExpression(context,fnVisit,classPtr,expr);
             });
-            return return_smart(result,expr);
+            return result ? result : expr;
         } else {
             return expr;
         }
@@ -493,11 +494,11 @@ namespace das {
 
     VariablePtr VisitorAdapter::visitBlockArgument(ExprBlock *block, const VariablePtr &var, bool lastArg) {
         if ( auto fnVisit = get_visitExprBlockArgument(classPtr) ) {
-            VariablePtr result;
+            VariablePtr result = nullptr;
             runMacroFunction(context, "visitBlockArgument", [&]() {
                 result = invoke_visitExprBlockArgument(context,fnVisit,classPtr,block,var,lastArg);
             });
-            return return_smart(result,var.get());
+            return result ? result : var;
         } else {
             return var;
         }
@@ -513,11 +514,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitBlockArgumentInit(ExprBlock *block, const VariablePtr &var, Expression *that) {
         if ( auto fnVisit = get_visitExprBlockArgumentInit(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitBlockArgumentInit", [&]() {
                 result = invoke_visitExprBlockArgumentInit(context,fnVisit,classPtr,block,var,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -533,11 +534,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitBlockExpression(ExprBlock *block, Expression *expr) {
         if ( auto fnVisit = get_visitExprBlockExpression(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitBlockExpression", [&]() {
                 result = invoke_visitExprBlockExpression(context,fnVisit,classPtr,block,expr);
             });
-            return return_smart(result,expr);
+            return result ? result : expr;
         } else {
             return expr;
         }
@@ -569,11 +570,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitBlockFinalExpression(ExprBlock *block, Expression *expr) {
         if ( auto fnVisit = get_visitExprBlockFinalExpression(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitBlockFinalExpression", [&]() {
                 result = invoke_visitExprBlockFinalExpression(context,fnVisit,classPtr,block,expr);
             });
-            return return_smart(result,expr);
+            return result ? result : expr;
         } else {
             return expr;
         }
@@ -589,11 +590,11 @@ namespace das {
 
     VariablePtr VisitorAdapter::visitLet(ExprLet *let, const VariablePtr &var, bool last) {
         if ( auto fnVisit = get_visitExprLetVariable(classPtr) ) {
-            VariablePtr result;
+            VariablePtr result = nullptr;
             runMacroFunction(context, "visitLet", [&]() {
                 result = invoke_visitExprLetVariable(context,fnVisit,classPtr,let,var,last);
             });
-            return return_smart(result,var.get());
+            return result ? result : var;
         } else {
             return var;
         }
@@ -609,11 +610,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitLetInit(ExprLet *let, const VariablePtr &var, Expression *that) {
         if ( auto fnVisit = get_visitExprLetVariableInit(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitLetInit", [&]() {
                 result = invoke_visitExprLetVariableInit(context,fnVisit,classPtr,let,var,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -645,11 +646,11 @@ namespace das {
 
     VariablePtr VisitorAdapter::visitGlobalLet(const VariablePtr &var) {
         if ( auto fnVisit = get_visitGlobalLetVariable(classPtr) ) {
-            VariablePtr result;
+            VariablePtr result = nullptr;
             runMacroFunction(context, "visitGlobalLet", [&]() {
                 result = invoke_visitGlobalLetVariable(context,fnVisit,classPtr,var,false); // TODO: remove 'last'
             });
-            return return_smart(result,var.get());
+            return result ? result : var;
         } else {
             return var;
         }
@@ -665,11 +666,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitGlobalLetInit(const VariablePtr &var, Expression *that) {
         if ( auto fnVisit = get_visitGlobalLetVariableInit(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitGlobalLetInit", [&]() {
                 result = invoke_visitGlobalLetVariableInit(context,fnVisit,classPtr,var,that);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -693,11 +694,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitStringBuilderElement(ExprStringBuilder *sb, Expression *expr, bool last) {
         if ( auto fnVisit = get_visitExprStringBuilderElement(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitStringBuilderElement", [&]() {
                 result = invoke_visitExprStringBuilderElement(context,fnVisit,classPtr,sb,expr,last);
             });
-            return return_smart(result,expr);
+            return result ? result : expr;
         } else {
             return expr;
         }
@@ -713,11 +714,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visit(ExprStringBuilder *expr) {
         if ( auto fnVisit = get_visitExprStringBuilder(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visit", [&]() {
                 result = invoke_visitExprStringBuilder(context,fnVisit,classPtr,expr);
             });
-            return return_smart(result,expr);
+            return result ? result : expr;
         } else {
             return expr;
         }
@@ -725,11 +726,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitNewArg(ExprNew *call, Expression *arg, bool last) {
         if ( auto fnVisit = get_visitExprNewArgument(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitNewArg", [&]() {
                 result = invoke_visitExprNewArgument(context,fnVisit,classPtr,call,arg,last);
             });
-            return return_smart(result,arg);
+            return result ? result : arg;
         } else {
             return arg;
         }
@@ -745,11 +746,11 @@ namespace das {
 
     MakeFieldDeclPtr VisitorAdapter::visitNamedCallArg(ExprNamedCall *call, MakeFieldDecl *arg, bool last) {
         if ( auto fnVisit = get_visitExprNamedCallArgument(classPtr) ) {
-            MakeFieldDeclPtr result;
+            MakeFieldDeclPtr result = nullptr;
             runMacroFunction(context, "visitNamedCallArg", [&]() {
                 result = invoke_visitExprNamedCallArgument(context,fnVisit,classPtr,call,arg,last);
             });
-            return return_smart(result,arg);
+            return result ? result : arg;
         } else {
             return arg;
         }
@@ -765,11 +766,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitCallArg(ExprCall *call, Expression *arg, bool last) {
         if ( auto fnVisit = get_visitExprCallArgument(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitCallArg", [&]() {
                 result = invoke_visitExprCallArgument(context,fnVisit,classPtr,call,arg,last);
             });
-            return return_smart(result,arg);
+            return result ? result : arg;
         } else {
             return arg;
         }
@@ -797,11 +798,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitLooksLikeCallArg(ExprLooksLikeCall *call, Expression *arg, bool last) {
         if ( auto fnVisit = get_visitExprLooksLikeCallArgument(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitLooksLikeCallArg", [&]() {
                 result = invoke_visitExprLooksLikeCallArgument(context,fnVisit,classPtr,call,arg,last);
             });
-            return return_smart(result,arg);
+            return result ? result : arg;
         } else {
             return arg;
         }
@@ -981,11 +982,11 @@ namespace das {
 
     VariablePtr VisitorAdapter::visitFor(ExprFor *expr, const VariablePtr &var, bool last) {
         if ( auto fnVisit = get_visitExprForVariable(classPtr) ) {
-            VariablePtr result;
+            VariablePtr result = nullptr;
             runMacroFunction(context, "visitFor", [&]() {
                 result = invoke_visitExprForVariable(context,fnVisit,classPtr,expr,var,last);
             });
-            return return_smart(result,var.get());
+            return result ? result : var;
         } else {
             return var;
         }
@@ -1017,11 +1018,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitForSource(ExprFor *expr, Expression *that, bool last) {
         if ( auto fnVisit = get_visitExprForSource(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitForSource", [&]() {
                 result = invoke_visitExprForSource(context,fnVisit,classPtr,expr,that,last);
             });
-            return return_smart(result,that);
+            return result ? result : that;
         } else {
             return that;
         }
@@ -1038,11 +1039,11 @@ namespace das {
     MakeFieldDeclPtr
     VisitorAdapter::visitMakeVariantField(ExprMakeVariant *expr, int index, MakeFieldDecl *decl, bool lastField) {
         if ( auto fnVisit = get_visitExprMakeVariantField(classPtr) ) {
-            MakeFieldDeclPtr result;
+            MakeFieldDeclPtr result = nullptr;
             runMacroFunction(context, "visitMakeVariantField", [&]() {
                 result = invoke_visitExprMakeVariantField(context,fnVisit,classPtr,expr,index,decl,lastField);
             });
-            return return_smart(result,decl);
+            return result ? result : decl;
         } else {
             return decl;
         }
@@ -1075,11 +1076,11 @@ namespace das {
     MakeFieldDeclPtr
     VisitorAdapter::visitMakeStructureField(ExprMakeStruct *expr, int index, MakeFieldDecl *decl, bool lastField) {
         if ( auto fnVisit = get_visitExprMakeStructField(classPtr) ) {
-            MakeFieldDeclPtr result;
+            MakeFieldDeclPtr result = nullptr;
             runMacroFunction(context, "visitMakeStructureField", [&]() {
                 result = invoke_visitExprMakeStructField(context,fnVisit,classPtr,expr,index,decl,lastField);
             });
-            return return_smart(result,decl);
+            return result ? result : decl;
         } else {
             return decl;
         }
@@ -1095,11 +1096,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitMakeStructureBlock(ExprMakeStruct *expr, Expression *blk) {
         if ( auto fnVisit = get_visitMakeStructureBlock(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitMakeStructureBlock", [&]() {
                 result = invoke_visitMakeStructureBlock(context,fnVisit,classPtr,expr,blk);
             });
-            return return_smart(result,blk);
+            return result ? result : blk;
         } else {
             return blk;
         }
@@ -1115,11 +1116,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitMakeArrayIndex(ExprMakeArray *expr, int index, Expression *init, bool lastField) {
         if ( auto fnVisit = get_visitExprMakeArrayIndex(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitMakeArrayIndex", [&]() {
                 result = invoke_visitExprMakeArrayIndex(context,fnVisit,classPtr,expr,index,init,lastField);
             });
-            return return_smart(result,init);
+            return result ? result : init;
         } else {
             return init;
         }
@@ -1135,11 +1136,11 @@ namespace das {
 
     ExpressionPtr VisitorAdapter::visitMakeTupleIndex(ExprMakeTuple *expr, int index, Expression *init, bool lastField) {
         if ( auto fnVisit = get_visitExprMakeTupleIndex(classPtr) ) {
-            ExpressionPtr result;
+            ExpressionPtr result = nullptr;
             runMacroFunction(context, "visitMakeTupleIndex", [&]() {
                 result = invoke_visitExprMakeTupleIndex(context,fnVisit,classPtr,expr,index,init,lastField);
             });
-            return return_smart(result,init);
+            return result ? result : init;
         } else {
             return init;
         }
@@ -1162,7 +1163,7 @@ namespace das {
     }
 
 
-    struct AstVisitorAdapterAnnotation : ManagedStructureAnnotation<VisitorAdapter,false,true> {
+    struct AstVisitorAdapterAnnotation : ManagedStructureAnnotation<VisitorAdapter,false,false> {
         AstVisitorAdapterAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("VisitorAdapter", ml) {
         }
@@ -1308,7 +1309,7 @@ namespace das {
         }
         virtual ExpressionPtr transformCall ( ExprCallFunc * call, string & err ) override {
             if ( auto fnTransform = get_transform(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "transformCall", [&]() {
                     result = invoke_transform(context,fnTransform,classPtr,call,err);
                 });
@@ -1334,6 +1335,17 @@ namespace das {
                 bool result = false;
                 runMacroFunction(context, "isSpecialized", [&]() {
                     result = invoke_isSpecialized(context,fnIsSpecialized,classPtr);
+                });
+                return result;
+            } else {
+                return false;
+            }
+        }
+        virtual bool isAppliedToGeneric () const override {
+            if ( auto fnIsAppliedToGeneric = get_isAppliedToGeneric(classPtr) ) {
+                bool result = false;
+                runMacroFunction(context, "isAppliedToGeneric", [&]() {
+                    result = invoke_isAppliedToGeneric(context,fnIsAppliedToGeneric,classPtr);
                 });
                 return result;
             } else {
@@ -1504,7 +1516,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstPassMacroAnnotation : ManagedStructureAnnotation<PassMacro,false,true> {
+    struct AstPassMacroAnnotation : ManagedStructureAnnotation<PassMacro,false,false> {
         AstPassMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("PassMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -1517,7 +1529,7 @@ namespace das {
         }
         virtual ExpressionPtr visitIs ( Program * prog, Module * mod, ExprIsVariant * expr ) override {
             if ( auto fnVisitIs = get_visitExprIsVariant(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visitExprIsVariant", [&]() {
                     result = invoke_visitExprIsVariant(context,fnVisitIs,classPtr,prog,mod,expr);
                 });
@@ -1528,7 +1540,7 @@ namespace das {
         }
         virtual ExpressionPtr visitAs ( Program * prog, Module * mod, ExprAsVariant * expr ) override {
             if ( auto fnVisitAs = get_visitExprAsVariant(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visitExprAsVariant", [&]() {
                     result = invoke_visitExprAsVariant(context,fnVisitAs,classPtr,prog,mod,expr);
                 });
@@ -1539,7 +1551,7 @@ namespace das {
         }
         virtual ExpressionPtr visitSafeAs ( Program * prog, Module * mod, ExprSafeAsVariant * expr ) override {
             if ( auto fnVisitSafeAs = get_visitExprSafeAsVariant(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visitExprSafeAsVariant", [&]() {
                     result = invoke_visitExprSafeAsVariant(context,fnVisitSafeAs,classPtr,prog,mod,expr);
                 });
@@ -1553,7 +1565,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstVariantMacroAnnotation : ManagedStructureAnnotation<VariantMacro,false,true> {
+    struct AstVariantMacroAnnotation : ManagedStructureAnnotation<VariantMacro,false,false> {
         AstVariantMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("VariantMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -1566,7 +1578,7 @@ namespace das {
         }
         virtual ExpressionPtr visit ( Program * prog, Module * mod, ExprFor * loop ) override {
             if ( auto fnVisit = get_visitExprFor(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visitExprFor", [&]() {
                     result = invoke_visitExprFor(context,fnVisit,classPtr,prog,mod,loop);
                 });
@@ -1580,7 +1592,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstForLoopMacroAnnotation : ManagedStructureAnnotation<ForLoopMacro,false,true> {
+    struct AstForLoopMacroAnnotation : ManagedStructureAnnotation<ForLoopMacro,false,false> {
         AstForLoopMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("ForLoopMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -1593,7 +1605,7 @@ namespace das {
         }
         virtual ExpressionPtr captureExpression ( Program * prog, Module * mod, Expression * expr, TypeDecl * typ ) override {
             if ( auto fnCaptureExpression = get_captureExpression(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "captureExpression", [&]() {
                     result = invoke_captureExpression(context,fnCaptureExpression,classPtr,prog,mod,expr,typ);
                 });
@@ -1627,7 +1639,7 @@ namespace das {
         }
         virtual TypeDeclPtr visit ( Program * prog, Module * mod, const TypeDeclPtr & typ, const TypeDeclPtr & passT ) override {
             if ( auto fnVisit = get_visit(classPtr) ) {
-                TypeDeclPtr result;
+                TypeDeclPtr result = nullptr;
                 runMacroFunction(context, "visit", [&]() {
                     result = invoke_visit(context,fnVisit,classPtr,prog,mod,typ,passT);
                 });
@@ -1641,14 +1653,14 @@ namespace das {
         Context *   context;
     };
 
-    struct AstCaptureMacroAnnotation : ManagedStructureAnnotation<CaptureMacro,false,true> {
+    struct AstCaptureMacroAnnotation : ManagedStructureAnnotation<CaptureMacro,false,false> {
         AstCaptureMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("CaptureMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
         }
     };
 
-    struct AstTypeMacroAnnotation : ManagedStructureAnnotation<TypeMacro,false,true> {
+    struct AstTypeMacroAnnotation : ManagedStructureAnnotation<TypeMacro,false,false> {
         AstTypeMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("TypeMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -1686,7 +1698,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstSimulateMacroAnnotation : ManagedStructureAnnotation<SimulateMacro,false,true> {
+    struct AstSimulateMacroAnnotation : ManagedStructureAnnotation<SimulateMacro,false,false> {
         AstSimulateMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("SimulateMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -1722,7 +1734,7 @@ namespace das {
         }
         virtual ExpressionPtr visit (  Program * prog, Module * mod, ExprReader * expr ) override {
             if ( auto fnVisit = get_visit(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visit", [&]() {
                     result = invoke_visit(context,fnVisit,classPtr,prog,mod,expr);
                 });
@@ -1736,7 +1748,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstReaderMacroAnnotation : ManagedStructureAnnotation<ReaderMacro,false,true> {
+    struct AstReaderMacroAnnotation : ManagedStructureAnnotation<ReaderMacro,false,false> {
         AstReaderMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("ReaderMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -2104,7 +2116,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstCommentReaderAnnotation : ManagedStructureAnnotation<CommentReader,false,true> {
+    struct AstCommentReaderAnnotation : ManagedStructureAnnotation<CommentReader,false,false> {
         AstCommentReaderAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("CommentReader", ml) {
         }
@@ -2123,7 +2135,7 @@ namespace das {
         }
         virtual ExpressionPtr visit (  Program * prog, Module * mod, ExprCallMacro * expr ) override {
             if ( auto fnVisit = get_visit(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "visit", [&]() {
                     result = invoke_visit(context,fnVisit,classPtr,prog,mod,expr);
                 });
@@ -2159,7 +2171,7 @@ namespace das {
         Context *   context;
     };
 
-    struct AstCallMacroAnnotation : ManagedStructureAnnotation<CallMacro,false,true> {
+    struct AstCallMacroAnnotation : ManagedStructureAnnotation<CallMacro,false,false> {
         AstCallMacroAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("CallMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
@@ -2170,11 +2182,11 @@ namespace das {
         TypeInfoMacroAdapter ( const string & n, char * pClass, const StructInfo * info, Context * ctx )
             : TypeInfoMacro(n), AstTypeInfoMacro_Adapter(info), classPtr(pClass), context(ctx) {
         }
-        virtual ExpressionPtr getAstChange ( const ExpressionPtr & expr, string & err ) override {
+        virtual ExpressionPtr getAstChange ( ExpressionPtr expr, string & err ) override {
             if ( auto fnGetAstChange = get_getAstChange(classPtr) ) {
-                ExpressionPtr result;
+                ExpressionPtr result = nullptr;
                 runMacroFunction(context, "getAstChange", [&]() {
-                    auto tinfo = static_pointer_cast<ExprTypeInfo>(expr);
+                    auto tinfo = static_cast<ExprTypeInfo*>(expr);
                     result = invoke_getAstChange(context,fnGetAstChange,classPtr,tinfo,err);
                 });
                 return result;
@@ -2182,11 +2194,11 @@ namespace das {
                 return nullptr;
             }
         }
-        virtual TypeDeclPtr getAstType ( ModuleLibrary & lib, const ExpressionPtr & expr, string & err ) override {
+        virtual TypeDeclPtr getAstType ( ModuleLibrary & lib, ExpressionPtr expr, string & err ) override {
             if ( auto fnGetAstType = get_getAstType(classPtr) ) {
-                TypeDeclPtr result;
+                TypeDeclPtr result = nullptr;
                 runMacroFunction(context, "getAstType", [&]() {
-                    auto tinfo = static_pointer_cast<ExprTypeInfo>(expr);
+                    auto tinfo = static_cast<ExprTypeInfo*>(expr);
                     result = invoke_getAstType(context,fnGetAstType,classPtr,lib,tinfo,err);
                 });
                 return result;
@@ -2200,29 +2212,27 @@ namespace das {
     };
 
     ReaderMacroPtr makeReaderMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<ReaderMacroAdapter>(name,(char *)pClass,info,context);
+        return new ReaderMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleReaderMacro ( Module * module, ReaderMacroPtr & _newM, Context * context, LineInfoArg * at ) {
-        ReaderMacroPtr newM = das::move(_newM);
+    void addModuleReaderMacro ( Module * module, ReaderMacroPtr newM, Context * context, LineInfoArg * at ) {
         if ( !module->addReaderMacro(newM, true) ) {
             context->throw_error_at(at, "can't add reader macro %s to module %s", newM->name.c_str(), module->name.c_str());
         }
     }
 
     CommentReaderPtr makeCommentReader ( const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<CommentReaderAdapter>((char *)pClass,info,context);
+        return new CommentReaderAdapter((char *)pClass,info,context);
     }
 
-    void addModuleCommentReader ( Module * module, CommentReaderPtr & _newM, Context * context, LineInfoArg * at ) {
-        CommentReaderPtr newM = das::move(_newM);
+    void addModuleCommentReader ( Module * module, CommentReaderPtr newM, Context * context, LineInfoArg * at ) {
         if ( !module->addCommentReader(newM, true) ) {
             context->throw_error_at(at, "can't add comment reader to module %s", module->name.c_str());
         }
     }
 
     CallMacroPtr makeCallMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<CallMacroAdapter>(name,(char *)pClass,info,context);
+        return new CallMacroAdapter(name,(char *)pClass,info,context);
     }
 
     CallMacro *findModuleCallMacro ( Module * module, const char *name, Context * /*context*/, LineInfoArg * at ) {
@@ -2232,11 +2242,11 @@ namespace das {
         return res;
     }
 
-    void addModuleCallMacro ( Module * module, CallMacroPtr & _newM, Context * context, LineInfoArg * at ) {
-        CallMacroPtr newM = das::move(_newM);
+    void addModuleCallMacro ( Module * module, CallMacroPtr newM, Context * context, LineInfoArg * at ) {
+        module->ownedCallMacros.push_back(unique_ptr<CallMacro>(newM));
         if ( ! module->addCallMacro(newM->name, [=](const LineInfo & at) -> ExprLooksLikeCall * {
             auto ecm = new ExprCallMacro(at, newM->name);
-            ecm->macro = newM.get();
+            ecm->macro = newM;
             newM->module = module;
             return ecm;
         }) ) {
@@ -2249,100 +2259,95 @@ namespace das {
     }
 
     TypeInfoMacroPtr makeTypeInfoMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<TypeInfoMacroAdapter>(name,(char *)pClass,info,context);
+        return new TypeInfoMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleTypeInfoMacro ( Module * module, TypeInfoMacroPtr & _newM, Context * context, LineInfoArg * at ) {
-        TypeInfoMacroPtr newM = das::move(_newM);
+    void addModuleTypeInfoMacro ( Module * module, TypeInfoMacroPtr newM, Context * context, LineInfoArg * at ) {
         if ( ! module->addTypeInfoMacro(newM,true) ) {
             context->throw_error_at(at, "can't add type info macro %s to module %s", newM->name.c_str(), module->name.c_str());
         }
     }
 
-    smart_ptr<VisitorAdapter> makeVisitor ( const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<VisitorAdapter>((char *)pClass,info,context);
+    void makeVisitor ( const void * pClass, const StructInfo * info,
+            const TBlock<void,VisitorAdapter*> & blk, Context * context, LineInfoArg * at ) {
+        auto adapter = new VisitorAdapter((char *)pClass,info,context);
+        vec4f args[1];
+        args[0] = cast<VisitorAdapter*>::from(adapter);
+        context->invoke(blk, args, nullptr, at);
+        delete adapter;
     }
 
     PassMacroPtr makePassMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<PassMacroAdapter>(name,(char *)pClass,info,context);
+        return new PassMacroAdapter(name,(char *)pClass,info,context);
     }
 
     VariantMacroPtr makeVariantMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<VariantMacroAdapter>(name,(char *)pClass,info,context);
+        return new VariantMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleVariantMacro ( Module * module, VariantMacroPtr & _newM, Context * ) {
-        VariantMacroPtr newM = das::move(_newM);
-        module->variantMacros.push_back(newM);
+    void addModuleVariantMacro ( Module * module, VariantMacroPtr newM, Context * ) {
+        module->variantMacros.push_back(unique_ptr<VariantMacro>(newM));
     }
 
     ForLoopMacroPtr makeForLoopMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<ForLoopMacroAdapter>(name,(char *)pClass,info,context);
+        return new ForLoopMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleForLoopMacro ( Module * module, ForLoopMacroPtr & _newM, Context * ) {
-        ForLoopMacroPtr newM = das::move(_newM);
-        module->forLoopMacros.push_back(newM);
+    void addModuleForLoopMacro ( Module * module, ForLoopMacroPtr newM, Context * ) {
+        module->forLoopMacros.push_back(unique_ptr<ForLoopMacro>(newM));
     }
 
     CaptureMacroPtr makeCaptureMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<CaptureMacroAdapter>(name,(char *)pClass,info,context);
+        return new CaptureMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleCaptureMacro ( Module * module, CaptureMacroPtr & _newM, Context * ) {
-        CaptureMacroPtr newM = das::move(_newM);
-        module->captureMacros.push_back(newM);
+    void addModuleCaptureMacro ( Module * module, CaptureMacroPtr newM, Context * ) {
+        module->captureMacros.push_back(unique_ptr<CaptureMacro>(newM));
     }
 
     TypeMacroPtr makeTypeMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<TypeMacroAdapter>(name,(char *)pClass,info,context);
+        return new TypeMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleTypeMacro ( Module * module, TypeMacroPtr & _newM, Context * ctx, LineInfoArg * at ) {
-        auto it = module->typeMacros.find(_newM->name);
+    void addModuleTypeMacro ( Module * module, TypeMacroPtr newM, Context * ctx, LineInfoArg * at ) {
+        auto it = module->typeMacros.find(newM->name);
         if ( it != module->typeMacros.end() ) {
-            ctx->throw_error_at(at, "type macro %s already exists in module %s", _newM->name.c_str(), module->name.c_str());
+            ctx->throw_error_at(at, "type macro %s already exists in module %s", newM->name.c_str(), module->name.c_str());
         }
-        string name = _newM->name;
-        module->typeMacros[name] = das::move(_newM);
+        string name = newM->name;
+        module->typeMacros[name] = unique_ptr<TypeMacro>(newM);
     }
 
     SimulateMacroPtr makeSimulateMacro ( const char * name, const void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<SimulateMacroAdapter>(name,(char *)pClass,info,context);
+        return new SimulateMacroAdapter(name,(char *)pClass,info,context);
     }
 
-    void addModuleSimulateMacro ( Module * module, SimulateMacroPtr & _newM, Context * ) {
-        SimulateMacroPtr newM = das::move(_newM);
-        module->simulateMacros.push_back(newM);
+    void addModuleSimulateMacro ( Module * module, SimulateMacroPtr newM, Context * ) {
+        module->simulateMacros.push_back(unique_ptr<SimulateMacro>(newM));
     }
 
-    void addModuleInferMacro ( Module * module, PassMacroPtr & _newM, Context * ) {
-        PassMacroPtr newM = das::move(_newM);
-        module->macros.push_back(newM);
+    void addModuleInferMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->macros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModuleInferDirtyMacro ( Module * module, PassMacroPtr & _newM, Context * ) {
-        PassMacroPtr newM = das::move(_newM);
-        module->inferMacros.push_back(newM);
+    void addModuleInferDirtyMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->inferMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModuleLintMacro ( Module * module, PassMacroPtr & _newM, Context * ) {
-        PassMacroPtr newM = das::move(_newM);
-        module->lintMacros.push_back(newM);
+    void addModuleLintMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->lintMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModuleGlobalLintMacro ( Module * module, PassMacroPtr & _newM, Context * ) {
-        PassMacroPtr newM = das::move(_newM);
-        module->globalLintMacros.push_back(newM);
+    void addModuleGlobalLintMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->globalLintMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
-    void addModuleOptimizationMacro ( Module * module, PassMacroPtr & _newM, Context * ) {
-        PassMacroPtr newM = das::move(_newM);
-        module->optimizationMacros.push_back(newM);
+    void addModuleOptimizationMacro ( Module * module, PassMacroPtr newM, Context * ) {
+        module->optimizationMacros.push_back(unique_ptr<PassMacro>(newM));
     }
 
     EnumerationAnnotationPtr makeEnumerationAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<EnumerationAnnotationAdapter>(name,(char *)pClass,info,context);
+        return new EnumerationAnnotationAdapter(name,(char *)pClass,info,context);
     }
 
     void addModuleEnumerationAnnotation ( Module * module, EnumerationAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
@@ -2353,7 +2358,7 @@ namespace das {
         }
     }
 
-    int addEnumerationEntry ( smart_ptr<Enumeration> enu, const char* name ) {
+    int addEnumerationEntry ( Enumeration * enu, const char* name ) {
         if ( !name ) return -1;
         for ( auto & ee : enu->list ) {
             if ( ee.name==name ) {
@@ -2367,7 +2372,7 @@ namespace das {
     }
 
     StructureAnnotationPtr makeStructureAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<StructureAnnotationAdapter>(name,(char *)pClass,info,context);
+        return new StructureAnnotationAdapter(name,(char *)pClass,info,context);
     }
 
     void addModuleStructureAnnotation ( Module * module, StructureAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
@@ -2378,7 +2383,7 @@ namespace das {
         }
     }
 
-    void addStructureStructureAnnotation ( smart_ptr_raw<Structure> st, StructureAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+    void addStructureStructureAnnotation ( Structure * st, StructureAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
         StructureAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
@@ -2386,17 +2391,17 @@ namespace das {
             context->throw_error_at(at, "annotation %s failed to apply to structure %s",
                 ann->name.c_str(), st->name.c_str());
         }
-        auto annDecl = make_smart<AnnotationDeclaration>();
+        auto annDecl = new AnnotationDeclaration();
         annDecl->annotation = ann;
         st->annotations.push_back(annDecl);
     }
 
     FunctionAnnotationPtr makeBlockAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<BlockAnnotationAdapter>(name,(char *)pClass,info,context);
+        return new BlockAnnotationAdapter(name,(char *)pClass,info,context);
     }
 
     FunctionAnnotationPtr makeFunctionAnnotation ( const char * name, void * pClass, const StructInfo * info, Context * context ) {
-        return make_smart<FunctionAnnotationAdapter>(name,(char *)pClass,info,context);
+        return new FunctionAnnotationAdapter(name,(char *)pClass,info,context);
     }
 
     void addModuleFunctionAnnotation ( Module * module, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
@@ -2407,7 +2412,7 @@ namespace das {
         }
     }
 
-    void addFunctionFunctionAnnotation ( smart_ptr_raw<Function> func, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+    void addFunctionFunctionAnnotation ( Function * func, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
         FunctionAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
@@ -2415,31 +2420,31 @@ namespace das {
             context->throw_error_at(at, "annotation %s failed to apply to function %s",
                 ann->name.c_str(), func->name.c_str());
         }
-        auto annDecl = make_smart<AnnotationDeclaration>();
+        auto annDecl = new AnnotationDeclaration();
         annDecl->annotation = ann;
         func->annotations.push_back(annDecl);
     }
 
-    void addBlockBlockAnnotation ( smart_ptr_raw<ExprBlock> blk, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
+    void addBlockBlockAnnotation ( ExprBlock * blk, FunctionAnnotationPtr & _ann, Context * context, LineInfoArg * at ) {
         FunctionAnnotationPtr ann = das::move(_ann);
         string err;
         ModuleGroup dummy;
-        if ( !ann->apply(blk.ptr, dummy, AnnotationArgumentList(), err) ) {
+        if ( !ann->apply(blk, dummy, AnnotationArgumentList(), err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to block %s",
                 ann->name.c_str(), blk->at.describe().c_str());
         }
-        auto annDecl = make_smart<AnnotationDeclaration>();
+        auto annDecl = new AnnotationDeclaration();
         annDecl->annotation = ann;
         blk->annotations.push_back(annDecl);
     }
 
-    void addAndApplyFunctionAnnotation ( smart_ptr_raw<Function> func, smart_ptr_raw<AnnotationDeclaration> & ann, Context * context, LineInfoArg * at ) {
+    void addAndApplyFunctionAnnotation ( Function * func, AnnotationDeclarationPtr & ann, Context * context, LineInfoArg * at ) {
         string err;
         if (!ann->annotation->rtti_isFunctionAnnotation()) {
             context->throw_error_at(at, "annotation %s failed to apply to function %s, not a FunctionAnnotation",
                 ann->annotation->name.c_str(), func->name.c_str());
         }
-        auto fAnn = (FunctionAnnotation*)ann->annotation.get();
+        auto fAnn = (FunctionAnnotation*)ann->annotation;
         auto program = daScriptEnvironment::getBound()->g_Program;
         if ( !fAnn->apply(func, *program->thisModuleGroup, ann->arguments, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to function %s",
@@ -2448,28 +2453,28 @@ namespace das {
         func->annotations.push_back(ann);
     }
 
-    void addAndApplyBlockAnnotation ( smart_ptr_raw<ExprBlock> blk, smart_ptr_raw<AnnotationDeclaration> & ann, Context * context, LineInfoArg * at ) {
+    void addAndApplyBlockAnnotation ( ExprBlock * blk, AnnotationDeclarationPtr & ann, Context * context, LineInfoArg * at ) {
         string err;
         if (!ann->annotation->rtti_isFunctionAnnotation()) {
             context->throw_error_at(at, "annotation %s failed to apply to block %s, not a FunctionAnnotation",
                 ann->annotation->name.c_str(), blk->at.describe().c_str());
         }
-        auto fAnn = (FunctionAnnotation*)ann->annotation.get();
+        auto fAnn = (FunctionAnnotation*)ann->annotation;
         auto program = daScriptEnvironment::getBound()->g_Program;
-        if ( !fAnn->apply(blk.ptr, *program->thisModuleGroup, ann->arguments, err) ) {
+        if ( !fAnn->apply(blk, *program->thisModuleGroup, ann->arguments, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to block %s",
                 ann->annotation->name.c_str(), blk->at.describe().c_str());
         }
         blk->annotations.push_back(ann);
     }
 
-    void addAndApplyStructAnnotation ( smart_ptr_raw<Structure> st, smart_ptr_raw<AnnotationDeclaration> & ann, Context * context, LineInfoArg * at ) {
+    void addAndApplyStructAnnotation ( Structure * st, AnnotationDeclarationPtr & ann, Context * context, LineInfoArg * at ) {
         string err;
         if (!ann->annotation->rtti_isStructureAnnotation()) {
             context->throw_error_at(at, "annotation %s failed to apply to struct %s, not a StructureAnnotation",
                 ann->annotation->name.c_str(), st->name.c_str());
         }
-        auto stAnn = (StructureAnnotation*)ann->annotation.get();
+        auto stAnn = (StructureAnnotation*)ann->annotation;
         auto program = daScriptEnvironment::getBound()->g_Program;
         if ( !stAnn->touch(st, *program->thisModuleGroup, ann->arguments, err) ) {
             context->throw_error_at(at, "annotation %s failed to apply to struct %s",
@@ -2478,7 +2483,7 @@ namespace das {
         st->annotations.push_back(ann);
     }
 
-    void astVisit ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    void astVisit ( smart_ptr_raw<Program> program, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!program)
@@ -2486,7 +2491,15 @@ namespace das {
         program->visit(*adapter);
     }
 
-    void astVisitWithSort ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter, bool sortStructures, Context * context, LineInfoArg * line_info ) {
+    void astVisitGenerics ( smart_ptr_raw<Program> program, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
+        if (!adapter)
+            context->throw_error_at(line_info, "adapter is required");
+        if (!program)
+            context->throw_error_at(line_info, "program is required");
+        program->visit(*adapter, true);
+    }
+
+    void astVisitWithSort ( smart_ptr_raw<Program> program, VisitorAdapter * adapter, bool sortStructures, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!program)
@@ -2494,7 +2507,7 @@ namespace das {
         program->visit(*adapter, false, sortStructures);
     }
 
-    void astVisitModule ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter,
+    void astVisitModule ( smart_ptr_raw<Program> program, VisitorAdapter * adapter,
                           Module* module, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
@@ -2503,7 +2516,7 @@ namespace das {
         program->visitModule(*adapter, module);
     }
 
-    void astVisitModulesInOrder ( smart_ptr_raw<Program> program, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    void astVisitModulesInOrder ( smart_ptr_raw<Program> program, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!program)
@@ -2511,7 +2524,7 @@ namespace das {
         program->visitModulesInOrder(*adapter);
     }
 
-    void astVisitFunction ( smart_ptr_raw<Function> func, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    void astVisitFunction ( Function * func, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!func)
@@ -2519,43 +2532,35 @@ namespace das {
         func->visit(*adapter);
     }
 
-    smart_ptr_raw<TypeDecl> astVisitTypeDecl ( smart_ptr_raw<TypeDecl> expr, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    TypeDecl * astVisitTypeDecl ( TypeDecl * expr, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!expr)
             context->throw_error_at(line_info, "expr is required");
-        adapter->preVisit(expr.get());
+        adapter->preVisit(expr);
         expr->visit(*adapter);
-        smart_ptr<TypeDecl> res = adapter->visit(expr.get());
-        if ( res.get()!=expr.get() ) {
-            DAS_VERIFYF(res->use_count()==1,"visitor returns new value, refcount must be 1 or else there will be a leak");
-            res->addRef();
-        }
+        TypeDecl * res = adapter->visit(expr);
         return res;
     }
 
-    void visitEnumeration ( ProgramPtr program, smart_ptr_raw<Enumeration> enumeration, smart_ptr_raw<VisitorAdapter> adapter, Context * , LineInfoArg * ) {
-        program->visitEnumeration(*adapter, enumeration.get());
+    void visitEnumeration ( ProgramPtr program, Enumeration * enumeration, VisitorAdapter * adapter, Context * , LineInfoArg * ) {
+        program->visitEnumeration(*adapter, enumeration);
     }
 
-    void visitStructure ( ProgramPtr program, smart_ptr_raw<Structure> structure, smart_ptr_raw<VisitorAdapter> adapter, Context * , LineInfoArg *  ) {
-        program->visitStructure(*adapter, structure.get());
+    void visitStructure ( ProgramPtr program, Structure * structure, VisitorAdapter * adapter, Context * , LineInfoArg *  ) {
+        program->visitStructure(*adapter, structure);
     }
 
-    smart_ptr_raw<Expression> astVisitExpression ( smart_ptr_raw<Expression> expr, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    Expression * astVisitExpression ( Expression * expr, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!expr)
             context->throw_error_at(line_info, "expr is required");
-        smart_ptr<Expression> res = expr->visit(*adapter);
-        if ( res.get()!=expr.get() ) {
-            DAS_VERIFYF(res->use_count()==1,"visitor returns new value, refcount must be 1 or else there will be a leak");
-            res->addRef();
-        }
+        Expression * res = expr->visit(*adapter);
         return res;
     }
 
-    void astVisitBlockFinally ( smart_ptr_raw<ExprBlock> expr, smart_ptr_raw<VisitorAdapter> adapter, Context * context, LineInfoArg * line_info ) {
+    void astVisitBlockFinally ( ExprBlock * expr, VisitorAdapter * adapter, Context * context, LineInfoArg * line_info ) {
         if (!adapter)
             context->throw_error_at(line_info, "adapter is required");
         if (!expr)
@@ -2565,12 +2570,15 @@ namespace das {
 
     void Module_Ast::registerAdapterAnnotations(ModuleLibrary & lib) {
         // visitor
-        addAnnotation(make_smart<AstVisitorAdapterAnnotation>(lib));
+        addAnnotation(new AstVisitorAdapterAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeVisitor)>(*this, lib,  "make_visitor",
             SideEffects::modifyExternal, "makeVisitor")
-                ->args({"class","info","context"});
+                ->args({"class","info","blk","context","at"})->unsafeOperation = true;
         addExtern<DAS_BIND_FUN(astVisit)>(*this, lib,  "visit",
             SideEffects::accessExternal, "astVisit")
+                ->args({"program","adapter","context","line"});
+        addExtern<DAS_BIND_FUN(astVisitGenerics)>(*this, lib,  "visit_with_generics",
+            SideEffects::accessExternal, "astVisitGenerics")
                 ->args({"program","adapter","context","line"});
         addExtern<DAS_BIND_FUN(astVisitWithSort)>(*this, lib,  "visit",
             SideEffects::accessExternal, "astVisitWithSort")
@@ -2600,7 +2608,7 @@ namespace das {
             SideEffects::accessExternal, "astVisitBlockFinally")
                 ->args({"expression","adapter","context","line"});
         // function annotation
-        addAnnotation(make_smart<AstFunctionAnnotationAnnotation>(lib));
+        addAnnotation(new AstFunctionAnnotationAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeFunctionAnnotation)>(*this, lib,  "make_function_annotation",
             SideEffects::modifyExternal, "makeFunctionAnnotation")
                 ->args({"name","class","info","context"});
@@ -2624,7 +2632,7 @@ namespace das {
             SideEffects::modifyExternal, "addAndApplyBlockAnnotation")
                 ->args({"block","annotation","context","at"});
         // structure annotation
-        addAnnotation(make_smart<AstStructureAnnotationAnnotation>(lib));
+        addAnnotation(new AstStructureAnnotationAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeStructureAnnotation)>(*this, lib,  "make_structure_annotation",
             SideEffects::modifyExternal, "makeStructureAnnotation")
                 ->args({"name","class","info","context"});
@@ -2638,7 +2646,7 @@ namespace das {
             SideEffects::modifyExternal, "addAndApplyStructAnnotation")
                 ->args({"structure","annotation","context","at"});
         // enumeration annotation
-        addAnnotation(make_smart<AstEnumerationAnnotationAnnotation>(lib));
+        addAnnotation(new AstEnumerationAnnotationAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeEnumerationAnnotation)>(*this, lib,  "make_enumeration_annotation",
             SideEffects::modifyExternal, "makeEnumerationAnnotation")
                 ->args({"name","class","info","context"});
@@ -2649,7 +2657,7 @@ namespace das {
             SideEffects::modifyExternal, "addEnumerationEntry")
                 ->args({"enum","name"});
         // pass macro
-        addAnnotation(make_smart<AstPassMacroAnnotation>(lib));
+        addAnnotation(new AstPassMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makePassMacro)>(*this, lib,  "make_pass_macro",
             SideEffects::modifyExternal, "makePassMacro")
                 ->args({"name","class","info","context"});
@@ -2671,7 +2679,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleOptimizationMacro")
                 ->args({"module","annotation","context"});
         // reader macro
-        addAnnotation(make_smart<AstReaderMacroAnnotation>(lib));
+        addAnnotation(new AstReaderMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeReaderMacro)>(*this, lib,  "make_reader_macro",
             SideEffects::modifyExternal, "makeReaderMacro")
                 ->args({"name","class","info","context"});
@@ -2679,7 +2687,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleReaderMacro")
                 ->args({"module","annotation","context","at"});
         // comment reader
-        addAnnotation(make_smart<AstCommentReaderAnnotation>(lib));
+        addAnnotation(new AstCommentReaderAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeCommentReader)>(*this, lib,  "make_comment_reader",
             SideEffects::modifyExternal, "makeCommentReader")
                 ->args({"class","info","context"});
@@ -2687,7 +2695,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleCommentReader")
                 ->args({"module","reader","context","at"});
         // call macro
-        addAnnotation(make_smart<AstCallMacroAnnotation>(lib));
+        addAnnotation(new AstCallMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeCallMacro)>(*this, lib,  "make_call_macro",
             SideEffects::modifyExternal, "makeCallMacro")
                 ->args({"name","class","info","context"});
@@ -2705,7 +2713,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleTypeInfoMacro")
                 ->args({"module","annotation","context","at"});
         // variant macro
-        addAnnotation(make_smart<AstVariantMacroAnnotation>(lib));
+        addAnnotation(new AstVariantMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeVariantMacro)>(*this, lib,  "make_variant_macro",
             SideEffects::modifyExternal, "makeVariantMacro")
                 ->args({"name","class","info","context"});
@@ -2713,7 +2721,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleVariantMacro")
                 ->args({"module","annotation","context"});
         // for loop macro
-        addAnnotation(make_smart<AstForLoopMacroAnnotation>(lib));
+        addAnnotation(new AstForLoopMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeForLoopMacro)>(*this, lib,  "make_for_loop_macro",
             SideEffects::modifyExternal, "makeForLoopMacro")
                 ->args({"name","class","info","context"});
@@ -2721,7 +2729,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleForLoopMacro")
                 ->args({"module","annotation","context"});
         // capture macro
-        addAnnotation(make_smart<AstCaptureMacroAnnotation>(lib));
+        addAnnotation(new AstCaptureMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeCaptureMacro)>(*this, lib,  "make_capture_macro",
             SideEffects::modifyExternal, "makeCaptureMacro")
                 ->args({"name","class","info","context"});
@@ -2729,7 +2737,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleCaptureMacro")
                 ->args({"module","annotation","context"});
         // type macro
-        addAnnotation(make_smart<AstTypeMacroAnnotation>(lib));
+        addAnnotation(new AstTypeMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeTypeMacro)>(*this, lib,  "make_type_macro",
             SideEffects::modifyExternal, "makeTypeMacro")
                 ->args({"name","class","info","context"});
@@ -2737,7 +2745,7 @@ namespace das {
             SideEffects::modifyExternal, "addModuleTypeMacro")
                 ->args({"module","annotation","context","at"});
         // simulate macro macro
-        addAnnotation(make_smart<AstSimulateMacroAnnotation>(lib));
+        addAnnotation(new AstSimulateMacroAnnotation(lib));
         addExtern<DAS_BIND_FUN(makeSimulateMacro)>(*this, lib,  "make_simulate_macro",
             SideEffects::modifyExternal, "makeSimulateMacro")
                 ->args({"name","class","info","context"});

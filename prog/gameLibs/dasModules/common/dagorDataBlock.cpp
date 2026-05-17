@@ -95,11 +95,11 @@ public:
     addBuiltinDependency(lib, require("math"));
     addBuiltinDependency(lib, require("DagorMath"));
 
-    addEnumeration(das::make_smart<EnumerationDataBlockParamType>());
-    addEnumeration(das::make_smart<EnumerationDataBlockReadFlag>());
+    addEnumeration(new EnumerationDataBlockParamType());
+    addEnumeration(new EnumerationDataBlockReadFlag());
 
-    addAnnotation(das::make_smart<DataBlockAnnotation>(lib));
-    addAnnotation(das::make_smart<SharedDataBlockAnnotation>(lib));
+    addAnnotation(new DataBlockAnnotation(lib));
+    addAnnotation(new SharedDataBlockAnnotation(lib));
     das::addUsing<DataBlock>(*this, lib, "DataBlock");
 
 #define BIND_BLK(FUNC_NAME, SIDE_EFFECT) \

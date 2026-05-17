@@ -2,26 +2,56 @@
 
 var offlineSettings = {};
 
+var isWindows = (function() {
+  try {
+    var args = getCommandLineArgs();
+    for (var i = 0; i < args.length; i++)
+      if (args[i].length >= 2 && args[i][1] === ':')
+        return true;
+    return false;
+  } catch(e) {
+    return true;
+  }
+})();
+
 function normalizeSlashes(s)
 {
-  return s.split("/").join("\\");
+  if (isWindows)
+    return s.split("/").join("\\");
+  return s.split("\\").join("/");
 }
 
-function runBatchCommandGetOutput(cmd, tag)
+function runCommandGetOutput(cmd, tag)
 {
   var tmpFileName = "__temp__" + tag;
-  systemExec("(" + cmd + ")" + " > " + tmpFileName);
+  if (isWindows)
+    systemExec("(" + cmd + ")" + " > " + tmpFileName);
+  else
+    systemExec(cmd + " > " + tmpFileName);
   var output = offlineReadFileToString(tmpFileName);
-  systemExec("del " + tmpFileName);
+  if (isWindows)
+    systemExec("del " + tmpFileName);
+  else
+    systemExec("rm -f " + tmpFileName);
   return output;
 }
 
 function getDirectoryFilesList(dir, tag)
 {
-  var exists = runBatchCommandGetOutput("if exist " + dir + " (echo yes) else (echo no)", tag);
-  if (exists.includes("no"))
-    return [];
-  var files = runBatchCommandGetOutput("call dir /b " + dir, tag);
+  if (isWindows)
+  {
+    var exists = runCommandGetOutput("if exist " + dir + " (echo yes) else (echo no)", tag);
+    if (exists.includes("no"))
+      return [];
+    var files = runCommandGetOutput("dir /b " + dir, tag);
+  }
+  else
+  {
+    var exists = runCommandGetOutput("if [ -d " + dir + " ]; then echo yes; else echo no; fi", tag);
+    if (exists.includes("no"))
+      return [];
+    var files = runCommandGetOutput("ls " + dir, tag);
+  }
   files = files.split("\r").join("");
   return files.split("\n");
 }
@@ -31,7 +61,10 @@ function renameFile(source, dest)
 {
   source = normalizeSlashes(source);
   dest = normalizeSlashes(dest);
-  systemExec('copy /b/v/y "' + source + '" "' + dest + '">nul && del "' + source + '">nul');
+  if (isWindows)
+    systemExec('copy /b/v/y "' + source + '" "' + dest + '">nul && del "' + source + '">nul');
+  else
+    systemExec('cp "' + source + '" "' + dest + '" && rm -f "' + source + '"');
 }
 
 
@@ -50,7 +83,7 @@ function collectSubgraphs(dir, tag)
     {
       var fname = files[i].split(".json")[0];
       out_file_names.push(fname);
-      var txt = offlineReadFileToString(offlineSettings.globalSubgraphsDir + "\\" + files[i]);
+      var txt = offlineReadFileToString(offlineSettings.globalSubgraphsDir + (isWindows ? "\\" : "/") + files[i]);
        
       if (txt.indexOf("[[plugin:" + pluginName + "]]") < 0)
         continue;

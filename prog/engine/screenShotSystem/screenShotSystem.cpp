@@ -407,7 +407,7 @@ const char *ScreenShotSystem::lastMessage() { return last_error; }
 
 void ScreenShotSystem::setWriteImageCB(write_image_cb cb, const char *ext)
 {
-  if (!cb || !file_ext)
+  if (!cb || file_ext.empty())
   {
     writeImageCb = save_tga32_shot;
     file_ext = "tga";

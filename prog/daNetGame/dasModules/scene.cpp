@@ -21,7 +21,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<OcclusionAnnotation>(lib));
+    addAnnotation(new OcclusionAnnotation(lib));
     dafg::das::register_interop_type<Occlusion *>(lib);
 
     verifyAotReady();

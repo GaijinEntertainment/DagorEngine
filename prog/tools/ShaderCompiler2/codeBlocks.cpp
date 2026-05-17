@@ -652,10 +652,8 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
 
     f.uncond.codeId = -2;
     f.uncond.declBool.name = mangle_bool_var(ctx.stage, ident);
-    f.uncond.declBool.expr = parse_pp_condition(nullptr, ident, ident.length(), fileNames.getName(fnameId), line, ctx.mainCtx);
-    if (!f.uncond.declBool.expr)
-      return false;
-    ctx.evalCb.decl_bool_alias(f.uncond.declBool.name, *f.uncond.declBool.expr);
+    f.uncond.declBool.baseName = eastl::move(ident);
+    ctx.evalCb.decl_bool_alias(f.uncond.declBool.name, f.uncond.declBool.baseName.str());
     return true;
   }
   else if (strncmp(dtext, "declare ", 8) == 0)
@@ -858,7 +856,7 @@ static void distill_code(dag::Span<CodeSourceBlocks::Fragment> p, ShaderParser::
           fragment.decl().identValue = c.eval_interval_value(declIdents.getName(fragment.decl().identId));
         else if (fragment.isDeclBool())
         {
-          c.decl_bool_alias(fragment.declBool().name, *fragment.declBool().expr);
+          c.decl_bool_alias(fragment.declBool().name, fragment.declBool().baseName);
           continue;
         }
         tmpUncondProg.push_back(&fragment.uncond);

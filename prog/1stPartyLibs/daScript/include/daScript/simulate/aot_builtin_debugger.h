@@ -6,12 +6,14 @@ namespace das {
     DAS_API void debuggerStackWalk ( Context & context, const LineInfo & lineInfo );
     DAS_API void debuggerSetContextSingleStep ( Context & context, bool step );
 
-    DAS_API DataWalkerPtr makeDataWalker ( const void * pClass, const StructInfo * info, Context * context );
+    DAS_API void makeDataWalker ( const void * pClass, const StructInfo * info,
+        const TBlock<void, DataWalker *> & blk, Context * context, LineInfoArg * at );
     DAS_API void dapiWalkData ( DataWalkerPtr walker, void * data, const TypeInfo & info );
     DAS_API void dapiWalkDataV ( DataWalkerPtr walker, float4 data, const TypeInfo & info );
     DAS_API void dapiWalkDataS ( DataWalkerPtr walker, void * data, const StructInfo & info );
 
-    DAS_API StackWalkerPtr makeStackWalker ( const void * pClass, const StructInfo * info, Context * context );
+    DAS_API void makeStackWalker ( const void * pClass, const StructInfo * info,
+        const TBlock<void, StackWalker *> & blk, Context * context, LineInfoArg * at );
 
     DAS_API vec4f pinvoke_impl ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API vec4f pinvoke_impl2 ( Context & context, SimNode_CallBase * call, vec4f * args );

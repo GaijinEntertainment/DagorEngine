@@ -90,7 +90,7 @@ private:
   ViewDependentResource<int, 2> frame;
 
   Point2 jitterPixelOfs;
-  UniqueTexHolder taaPrecomputedWeights;
+  UniqueTexWithShaderVar taaPrecomputedWeights;
 
   RTargetPool::Ptr historyTexPool;
   RTargetPool::Ptr wasDynamicTexPool;

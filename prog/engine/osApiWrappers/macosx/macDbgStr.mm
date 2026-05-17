@@ -37,16 +37,6 @@ void out_debug_str(const char *str)
   }
 }
 
-#if _TARGET_IOS
-extern char ios_global_log_fname[];
-
-namespace debug_internal
-{
-const char *get_logfilename_for_sending() { return ios_global_log_fname; }
-const char *get_logging_directory() { return ""; }
-}
-#endif
-
 #if _TARGET_IOS|_TARGET_TVOS
 static bool only_file_log = false;
 static bool copy_log_to_console = false;
@@ -54,7 +44,6 @@ static bool copy_log_to_console = false;
 void set_debug_console_ios_file_output(bool val)
 {
   only_file_log = val;
-  out_debug_console_handle = (intptr_t)stdout;
 }
 
 bool is_debug_console_ios_file_output()

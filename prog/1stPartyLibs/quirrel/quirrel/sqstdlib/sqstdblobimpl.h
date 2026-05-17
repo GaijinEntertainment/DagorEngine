@@ -18,6 +18,8 @@ struct SQBlob : public SQStream
     }
 
     SQInteger Write(const void *buffer, SQInteger size) override {
+        if(size < 0)
+            return 0;
         if(!CanAdvance(size)) {
             GrowBufOf(_ptr + size - _size);
         }
@@ -27,6 +29,8 @@ struct SQBlob : public SQStream
     }
 
     SQInteger Read(void *buffer,SQInteger size) override {
+        if(size < 0)
+            return 0;
         SQInteger n = size;
         if(!CanAdvance(size)) {
             if((_size - _ptr) > 0)
@@ -72,7 +76,7 @@ struct SQBlob : public SQStream
     }
 
     bool CanAdvance(SQInteger n) {
-        if(_ptr+n>_size)return false;
+        if(n < 0 || n > _size - _ptr)return false;
         return true;
     }
 
@@ -83,11 +87,11 @@ struct SQBlob : public SQStream
                 _ptr = offset;
                 break;
             case SQ_SEEK_CUR:
-                if(_ptr + offset > _size || _ptr + offset < 0) return -1;
+                if(offset < -_ptr || offset > _size - _ptr) return -1;
                 _ptr += offset;
                 break;
             case SQ_SEEK_END:
-                if(_size + offset > _size || _size + offset < 0) return -1;
+                if(offset > 0 || offset < -_size) return -1;
                 _ptr = _size + offset;
                 break;
             default: return -1;

@@ -170,27 +170,6 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       return v + q.w * t + cross(q.xyz, t);
     }
 
-    // Dynamic indexing on NVIDIA Vk can be compiled differently based on register preassure
-    // which can cause differences in color and depth pass -> this workaround fixes that issue
-    // (Note: This should be ensured by precise flag / loop, but seemingly NVIDIA chooses to ignore it)
-    ##if hardware.vulkan
-      float3 getHierarchyPivotPos(HierarchyData input, int revIdx)
-      {
-        if (revIdx == 3) return input.branchPivotPos[3];
-        if (revIdx == 2) return input.branchPivotPos[2];
-        if (revIdx == 1) return input.branchPivotPos[1];
-        return input.branchPivotPos[0];
-      }
-
-      float4 getHierarchyDirExtent(HierarchyData input, int revIdx)
-      {
-        if (revIdx == 3) return input.branchDirExtent[3];
-        if (revIdx == 2) return input.branchDirExtent[2];
-        if (revIdx == 1) return input.branchDirExtent[1];
-        return input.branchDirExtent[0];
-      }
-    ##endif
-
     float3 evaluate_wind_animation(
       float3 windDirectionScaleNormalized, float windSpeed, int idx,
       float3 branchPivotPos, float3 branchDir, float branchExtent,
@@ -237,15 +216,9 @@ macro USE_PIVOT_PAINTER_BASE(stage)
         // Because HierarchyData and this loop have reversed ordering, we need reversed index
         int revIdx = max(input.maxHierarchyLevel - idx, 0);
 
-        ##if hardware.vulkan
-          float3 branchPivotPos = getHierarchyPivotPos(input, revIdx);
-          float4 branchDirExtentData = getHierarchyDirExtent(input, revIdx);
-        ##else
-          float3 branchPivotPos = input.branchPivotPos[revIdx];
-          float4 branchDirExtentData = input.branchDirExtent[revIdx];
-        ##endif
-        float3 branchDir = branchDirExtentData.xyz;
-        float branchExtent = branchDirExtentData.w;
+        float3 branchPivotPos = input.branchPivotPos[revIdx];
+        float3 branchDir = input.branchDirExtent[revIdx].xyz;
+        float branchExtent = input.branchDirExtent[revIdx].w;
 
         float3 branchTipPos = branchPivotPos + branchDir * branchExtent;
         float4 rotQuat = float4(0, 0, 0, 0);
@@ -283,16 +256,9 @@ macro USE_PIVOT_PAINTER_BASE(stage)
         // Because HierarchyData and this loop have reversed ordering, we need reversed index
         int revIdx = max(input.maxHierarchyLevel - idx, 0);
 
-        ##if hardware.vulkan
-          float3 branchPivotPos = getHierarchyPivotPos(input, revIdx);
-          float4 branchDirExtentData = getHierarchyDirExtent(input, revIdx);
-        ##else
-          float3 branchPivotPos = input.branchPivotPos[revIdx];
-          float4 branchDirExtentData = input.branchDirExtent[revIdx];
-        ##endif
-
-        float3 branchDir = branchDirExtentData.xyz;
-        float branchExtent = branchDirExtentData.w;
+        float3 branchPivotPos = input.branchPivotPos[revIdx];
+        float3 branchDir = input.branchDirExtent[revIdx].xyz;
+        float branchExtent = input.branchDirExtent[revIdx].w;
 
         float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
         float4 rotQuat = float4(0, 0, 0, 0);

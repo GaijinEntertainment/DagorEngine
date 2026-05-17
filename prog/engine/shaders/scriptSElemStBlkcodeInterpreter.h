@@ -16,6 +16,7 @@
 #include "profileStcode.h"
 #include "stcode/compareStcode.h"
 #include "stcode/bindlessStblkcodeContext.h"
+#include "stcodeInterpreterDivByZeroReporting.h"
 
 #if !_TARGET_STATIC_LIB
 #define SHOW_ERROR(fmt, ...) G_ASSERTF(0, fmt, ##__VA_ARGS__);
@@ -201,7 +202,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
           real_reg(regs, getOp3p1(opc)) = real_reg(regs, getOp3p2(opc)) / rval;
 #if DAGOR_DBGLEVEL > 0
         else
-          SHOW_ERROR("%s: divide by zero [real] while exec shader code. stopped at operand #%d", context, codp - codpStart);
+          report_real_div_by_zero(codp - codpStart, context);
 #endif
         break;
       case SHCOD_DIV_VEC:
@@ -212,7 +213,7 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
           if (rval[j] == 0)
           {
 #if DAGOR_DBGLEVEL > 0
-            SHOW_ERROR("%s: divide by zero [color4[%d]] while exec shader code. stopped at operand #%d", context, j, codp - codpStart);
+            report_float4_div_by_zero(codp - codpStart, j, context);
 #endif
             break;
           }

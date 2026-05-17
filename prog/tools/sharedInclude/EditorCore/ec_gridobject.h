@@ -204,6 +204,7 @@ public:
   void showGridEditDialog(int viewport_index);
   void onGridVisibilityChanged(int viewport_index);
   void onSnapSettingChanged();
+  void onSnapStepChanged();
 
   void updateImguiDialog() override;
 

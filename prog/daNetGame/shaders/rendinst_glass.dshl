@@ -22,6 +22,12 @@ shader rendinst_refraction
   ENABLE_MULTI_DRAW(false)
 
   INIT_REFRACTION_GLASS(use_hw_raytracing && rendinst_transparent_gbuffer_pass == generate)
+  if (rendinst_reactive_mask_pass == yes)
+  {
+    blend_src = 1;  blend_dst = isc;
+    z_write = false;
+  }
+
   INIT_GLASS_USE_TILED_LIGHTS()
 
   if (gi_quality != off)
@@ -112,6 +118,10 @@ shader rendinst_refraction
   else if (rendinst_transparent_gbuffer_pass == generate)
   {
     GENERATE_TRANSPARENT_GBUFFER_PS()
+  }
+  else if (rendinst_reactive_mask_pass == yes)
+  {
+    REFRACTION_GLASS_REACTIVE_MASK_PS()
   }
   else
   {

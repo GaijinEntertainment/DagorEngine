@@ -20,7 +20,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("Dacoll"));
-    addAnnotation(das::make_smart<DestructableObjectAnnotation>(lib));
+    addAnnotation(new DestructableObjectAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(rendinstdestr::apply_damage_to_riextra)>(*this, lib, "apply_damage_to_riextra",
       das::SideEffects::modifyExternal, "rendinstdestr::apply_damage_to_riextra");
     das::addExtern<DAS_BIND_FUN(rendinstdestr::remove_ri_without_collision_in_radius)>(*this, lib,

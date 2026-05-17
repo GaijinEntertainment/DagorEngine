@@ -135,7 +135,7 @@ void main( uint GI : SV_GroupIndex )
       calc_weighted_sum(GI, EyeAdaptationParams[2].z, weightedSum, totalWeight);
 
     bool enoughSamples = totalWeight >= adaptation__minSamples;
-    if (GI == 0 && enoughSamples)
+    if (GI == 0 && (enoughSamples || compatibility_mode))
     {
       const float exposureOffsetMultipler = EyeAdaptationParams[1].x;
       const float avgLogLuminance = totalWeight > 0

@@ -53,9 +53,9 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("RendInst"));
-    addEnumeration(das::make_smart<EnumerationBloodPuddlesGroup>());
-    addAnnotation(das::make_smart<BloodPuddlesAnnotation>(lib));
-    addAnnotation(das::make_smart<PuddleCtxAnnotation>(lib));
+    addEnumeration(new EnumerationBloodPuddlesGroup());
+    addAnnotation(new BloodPuddlesAnnotation(lib));
+    addAnnotation(new PuddleCtxAnnotation(lib));
     addConstant(*this, "INVALID_VARIANT", static_cast<int>(BloodPuddles::INVALID_VARIANT));
 
     das::addExtern<DAS_BIND_FUN(add_hit_blood_effect)>(*this, lib, "add_hit_blood_effect", das::SideEffects::modifyExternal,

@@ -105,7 +105,7 @@ static inline void phys_obj_phys_es(const UpdatePhysEvent &info,
   manager.sendEventImmediate(eid, CmdUpdateGrid());
 
   if (uctx.prevRShadowTick)
-    *uctx.prevRShadowTick = gamephys::nearestPhysicsTickNumber(get_sync_time(), phys_obj_net_phys.phys.timeStep);
+    *uctx.prevRShadowTick = gamephys::nearestPhysicsTickNumber(info.curTimeD, phys_obj_net_phys.phys.timeStep);
 }
 
 ECS_ON_EVENT(NET_PHYS_ES_EVENT_SET)
@@ -212,7 +212,7 @@ PhysObjActor &PhysObjCustomPhys::getPhysObj()
 void PhysObjCustomPhys::onPostInit(ecs::EntityId eid, BasePhysActor &act)
 {
   auto &phys = static_cast<PhysObjActor &>(act).phys;
-  float curTimeDelayed = max(get_sync_time() - phys_get_present_time_delay_sec(act.tickrateType, phys.timeStep), 0.f);
+  double curTimeDelayed = max(get_sync_time_d() - phys_get_present_time_delay_sec(act.tickrateType, phys.timeStep), 0.0);
   phys.currentState.atTick = gamephys::nearestPhysicsTickNumber(curTimeDelayed, phys.timeStep);
   phys.currentState.velocity = g_entity_mgr->getOr(eid, ECS_HASH("start_vel"), phys.currentState.velocity);
   phys.previousState.velocity = phys.currentState.velocity;
@@ -229,7 +229,7 @@ void PhysObjCustomPhys::onPostUpdate(float, const BasePhysActor::UpdateContext &
   auto &physobj = getPhysObj();
   auto &uctx = static_cast<const PhysObjActorUpdateContext &>(uctx_);
   if (uctx.prevRShadowTick)
-    if (gamephys::ceilPhysicsTickNumber(get_sync_time(), physobj.phys.timeStep) > *uctx.prevRShadowTick)
+    if (gamephys::ceilPhysicsTickNumber(get_sync_time_d(), physobj.phys.timeStep) > *uctx.prevRShadowTick)
       g_entity_mgr->sendEventImmediate(physobj.getEid(),
         CmdPostPhysUpdateRemoteShadow(physobj.phys.currentState.atTick, physobj.phys.timeStep));
 }

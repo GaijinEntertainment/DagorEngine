@@ -53,6 +53,7 @@ void CompositeEditorViewport::registerEditorCommands(IEditorCommandSystem &comma
   command_system.addCommand(EditorCommandIds::VIEW_GRID_MOVE_SNAP, ImGuiKey_S);
   command_system.addCommand(EditorCommandIds::VIEW_GRID_ANGLE_SNAP, ImGuiKey_A);
   command_system.addCommand(EditorCommandIds::VIEW_GRID_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
+  command_system.addCommand(EditorCommandIds::VIEW_GRID_SETTINGS);
 }
 
 void CompositeEditorViewport::registerMenuAccelerators()
@@ -67,6 +68,7 @@ void CompositeEditorViewport::registerMenuAccelerators()
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, EditorCommandIds::VIEW_GRID_ANGLE_SNAP);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_OPEN_GRID_SETTINGS, EditorCommandIds::VIEW_GRID_SETTINGS);
   wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM, EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM);
 }
 
@@ -108,6 +110,10 @@ void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGen
   else if (id == CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP)
   {
     get_app().getCompositeEditor().toggleSnapMode(CM_VIEW_GRID_SCALE_SNAP);
+  }
+  else if (id == CM_COMPOSITE_EDITOR_OPEN_GRID_SETTINGS)
+  {
+    get_app().getCompositeEditor().openGridSettings();
   }
   else if (id == CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM)
   {

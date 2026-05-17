@@ -28,8 +28,8 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
-    addAnnotation(das::make_smart<TiledSceneAnnotation>(lib));
-    addAnnotation(das::make_smart<GameObjectsAnnotation>(lib));
+    addAnnotation(new TiledSceneAnnotation(lib));
+    addAnnotation(new GameObjectsAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(das_find_scene_game_objects)>(*this, lib, "find_scene_game_objects", das::SideEffects::accessExternal,
       "::bind_dascript::das_find_scene_game_objects");
     das::addExtern<DAS_BIND_FUN(das_for_scene_game_objects_in_box)>(*this, lib, "for_scene_game_objects",

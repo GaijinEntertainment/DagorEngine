@@ -52,7 +52,6 @@ struct SQInstance;
 struct SQDelegable;
 struct SQOuter;
 
-class OutputStream;
 class Arena;
 
 class KeyValueFile;
@@ -66,7 +65,7 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 20
+#define SQUIRREL_VERSION_NUMBER_MINOR 22
 #define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
@@ -85,7 +84,6 @@ namespace SQCompilation
 #define SQ_VMSTATE_SUSPENDED    2
 
 #define SQUIRREL_EOB 0
-#define SQ_BYTECODE_STREAM_TAG  0xFAFA
 
 #define SQOBJECT_REF_COUNTED    0x08000000
 #define SQOBJECT_NUMERIC        0x04000000
@@ -203,8 +201,6 @@ typedef void (*SQCOMPILERERROR)(HSQUIRRELVM,SQMessageSeverity /*severity*/,const
 typedef void (*SQPRINTFUNCTION)(HSQUIRRELVM,const char * ,...);
 typedef void (*SQDEBUGHOOK)(HSQUIRRELVM /*v*/, SQInteger /*type*/, const char * /*sourcename*/, SQInteger /*line*/, const char * /*funcname*/);
 typedef void (*SQCOMPILELINEHOOK)(HSQUIRRELVM /*v*/, const char * /*sourcename*/, SQInteger /*line*/);
-typedef SQInteger (*SQWRITEFUNC)(SQUserPointer,SQUserPointer,SQInteger);
-typedef SQInteger (*SQREADFUNC)(SQUserPointer,SQUserPointer,SQInteger);
 typedef SQInteger (*SQGETTHREAD)();
 typedef void (*SQSQCALLHOOK)(HSQUIRRELVM);
 typedef bool (*SQWATCHDOGHOOK)(HSQUIRRELVM, bool kick);
@@ -307,8 +303,11 @@ SQUIRREL_API SQRESULT sq_getimports(HSQUIRRELVM v, SQCompilation::SqASTData *ast
 SQUIRREL_API void sq_freeimports(HSQUIRRELVM v, SQInteger num, SQModuleImport *imports);
 
 
-SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, OutputStream *s);
-SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index = -1);
+typedef void (*SQStreamWriteFunc)(const char *s, void *userdata);
+inline void sq_stream_write_file(const char *s, void *ud) { fputs(s, (FILE*)ud); }
+
+SQUIRREL_API void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, SQStreamWriteFunc write, void *ud);
+SQUIRREL_API void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void *ud, int instruction_index = -1);
 
 SQUIRREL_API void sq_reset_static_memos(HSQUIRRELVM v, HSQOBJECT func);
 
@@ -499,10 +498,6 @@ SQUIRREL_API SQBool sq_tracevar(HSQUIRRELVM v, const HSQOBJECT * container, cons
 /*GC*/
 SQUIRREL_API SQInteger sq_collectgarbage(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sq_resurrectunreachable(HSQUIRRELVM v);
-
-/*serialization*/
-SQUIRREL_API SQRESULT sq_writeclosure(HSQUIRRELVM vm,SQWRITEFUNC writef,SQUserPointer up);
-SQUIRREL_API SQRESULT sq_readclosure(HSQUIRRELVM vm,SQREADFUNC readf,SQUserPointer up);
 
 SQUIRREL_API SQRESULT sq_limitthreadaccess(HSQUIRRELVM vm, int64_t tid);
 SQUIRREL_API bool sq_canaccessfromthisthread(HSQUIRRELVM vm);

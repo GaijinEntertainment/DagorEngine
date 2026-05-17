@@ -66,6 +66,17 @@ using hdpi::_pxScaled;
 
 G_STATIC_ASSERT(MAX_NAVMESHES == MAX_UI_NAVMESHES);
 
+// Keep the typed-vars panel cap in sync with the PID window reserved in hmlCm.h.
+// Each row consumes LV_PID_PER_VAR PIDs starting at PID_LAND_VAR_PARAM_START;
+// dispatch in onChange / onClick checks pcb_id <= PID_LAST_LAND_VAR_PARAM, so
+// the cap times the stride must fit inside that window. Both sides go through
+// plain-int constexprs because the LV_* and PID_* constants live in unrelated
+// anonymous enums, and PVS V556 flags enum-vs-enum compares even after the
+// usual int promotion.
+constexpr int LV_PANEL_PID_SPAN = static_cast<int>(LV_MAX_TYPED_VARS) * static_cast<int>(LV_PID_PER_VAR);
+constexpr int LV_PANEL_PID_BUDGET = static_cast<int>(PID_LAST_LAND_VAR_PARAM) - static_cast<int>(PID_LAND_VAR_PARAM_START);
+G_STATIC_ASSERT(LV_PANEL_PID_SPAN <= LV_PANEL_PID_BUDGET);
+
 #define MIN_HEIGHT_SCALE 0.01
 
 IHmapService *HmapLandPlugin::hmlService = NULL;
@@ -260,7 +271,7 @@ HmapLandPlugin::HmapLandPlugin() :
 
   genHmap = hmlService->registerGenHmap("hmap", &heightMap, &landClsMap, landClsLayer, hasColorTex ? &colorMap : NULL,
     hasLightmapTex ? &lightMapScaled : NULL, heightMapOffset, gridCellSize);
-  G_ASSERT(genHmap && "can't register as <hmap>");
+  G_ASSERT_RETURN(genHmap && "can't register as <hmap>", );
 
   genHmap->sunColor = ldrLight.getSunLightColor();
   genHmap->skyColor = ldrLight.getSkyLightColor();
@@ -510,8 +521,11 @@ void HmapLandPlugin::registerEditorCommands(IEditorCommandSystem &command_system
   command_system.addCommand(EditorCommandIds::SPLIT_COMPOSIT);
   command_system.addCommand(EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
   command_system.addCommand(EditorCommandIds::EXPORT_LAND_TO_GAME);
-  command_system.addCommand(EditorCommandIds::EXPORT_HEIGHTMAP);
+  command_system.addCommand(EditorCommandIds::EXPORT_HEIGHTMAP_MAIN);
+  command_system.addCommand(EditorCommandIds::EXPORT_HEIGHTMAP_DETAILED);
   command_system.addCommand(EditorCommandIds::EXPORT_COLORMAP);
+  command_system.addCommand(EditorCommandIds::EXPORT_WATER_HEIGHTMAP_MAIN);
+  command_system.addCommand(EditorCommandIds::EXPORT_WATER_HEIGHTMAP_DETAILED);
   command_system.addCommand(EditorCommandIds::EXPORT_LAYERS);
   command_system.addCommand(EditorCommandIds::EXPORT_LOFT_MASKS, ImGuiKey_F9);
   command_system.addCommand(EditorCommandIds::SPLINE_IMPORT_FROM_DAG);
@@ -561,8 +575,11 @@ void HmapLandPlugin::registerMenuAccelerators()
   wndManager.addAccelerator(CM_SPLIT_COMPOSIT, EditorCommandIds::SPLIT_COMPOSIT);
   wndManager.addAccelerator(CM_INSTANTIATE_GENOBJ_INTO_ENTITIES, EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
   wndManager.addAccelerator(CM_EXPORT_LAND_TO_GAME, EditorCommandIds::EXPORT_LAND_TO_GAME);
-  wndManager.addAccelerator(CM_EXPORT_HEIGHTMAP, EditorCommandIds::EXPORT_HEIGHTMAP);
+  wndManager.addAccelerator(CM_EXPORT_HEIGHTMAP_MAIN, EditorCommandIds::EXPORT_HEIGHTMAP_MAIN);
+  wndManager.addAccelerator(CM_EXPORT_HEIGHTMAP_DETAILED, EditorCommandIds::EXPORT_HEIGHTMAP_DETAILED);
   wndManager.addAccelerator(CM_EXPORT_COLORMAP, EditorCommandIds::EXPORT_COLORMAP);
+  wndManager.addAccelerator(CM_EXPORT_WATER_HEIGHTMAP_MAIN, EditorCommandIds::EXPORT_WATER_HEIGHTMAP_MAIN);
+  wndManager.addAccelerator(CM_EXPORT_WATER_HEIGHTMAP_DETAILED, EditorCommandIds::EXPORT_WATER_HEIGHTMAP_DETAILED);
   wndManager.addAccelerator(CM_EXPORT_LAYERS, EditorCommandIds::EXPORT_LAYERS);
   wndManager.addAccelerator(CM_EXPORT_LOFT_MASKS, EditorCommandIds::EXPORT_LOFT_MASKS);
   wndManager.addAccelerator(CM_SPLINE_IMPORT_FROM_DAG, EditorCommandIds::SPLINE_IMPORT_FROM_DAG);
@@ -660,9 +677,26 @@ void HmapLandPlugin::createMenu(unsigned menu_id)
   mainMenu->addSeparator(menu_id);
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LAND_TO_GAME, EditorCommandIds::EXPORT_LAND_TO_GAME, "Export to game...");
 
-  commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_HEIGHTMAP, EditorCommandIds::EXPORT_HEIGHTMAP, "Export heightmap...");
+  mainMenu->addSubMenu(menu_id, CM_EXPORT_HEIGHTMAP, "Export heightmap");
+
+  commandSystem->addMenuItem(*mainMenu, CM_EXPORT_HEIGHTMAP, CM_EXPORT_HEIGHTMAP_MAIN, EditorCommandIds::EXPORT_HEIGHTMAP_MAIN,
+    "Main heightmap...");
+
+  if (detDivisor)
+    commandSystem->addMenuItem(*mainMenu, CM_EXPORT_HEIGHTMAP, CM_EXPORT_HEIGHTMAP_DETAILED,
+      EditorCommandIds::EXPORT_HEIGHTMAP_DETAILED, "Detailed heightmap...");
+
+  if (waterHeightmapMain.getMapSizeX() > 0 && waterHeightmapMain.getMapSizeY() > 0)
+    commandSystem->addMenuItem(*mainMenu, CM_EXPORT_HEIGHTMAP, CM_EXPORT_WATER_HEIGHTMAP_MAIN,
+      EditorCommandIds::EXPORT_WATER_HEIGHTMAP_MAIN, "Water main heightmap...");
+
+  if (waterHeightmapDet.getMapSizeX() > 0 && waterHeightmapDet.getMapSizeY() > 0)
+    commandSystem->addMenuItem(*mainMenu, CM_EXPORT_HEIGHTMAP, CM_EXPORT_WATER_HEIGHTMAP_DETAILED,
+      EditorCommandIds::EXPORT_WATER_HEIGHTMAP_DETAILED, "Water detailed heightmap ...");
+
   if (hasColorTex)
     commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_COLORMAP, EditorCommandIds::EXPORT_COLORMAP, "Export colormap...");
+
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LAYERS, EditorCommandIds::EXPORT_LAYERS, "Export landClass layers...");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_LOFT_MASKS, EditorCommandIds::EXPORT_LOFT_MASKS, "Export loft masks...");
   mainMenu->addSeparator(menu_id);
@@ -870,6 +904,17 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
 
   if (gpuGrassService && gpuGrassBlk)
     gpuGrassPanel.fillPanel(gpuGrassService, gpuGrassBlk, panel);
+
+  // Land variables: artist-editable named typed parameters (Float / Range / Mask / Curve).
+  // Milestone 1 wires panel + BLK + add/delete only; the landClassEval parser does not yet
+  // see them. Dispatch in onChange/onClick checks PID_LAND_VAR_PARAM_START..PID_LAST_LAND_VAR_PARAM.
+  {
+    PropPanel::ContainerPropertyControl *lvGrp = panel.createGroup(PID_LAND_VAR_GRP, "Land variables");
+    lvGrp->createButton(PID_LAND_VAR_ADD, "Add typed variable...");
+    fill_typed_vars_panel(*lvGrp, PID_LAND_VAR_PARAM_START, typedVars);
+    panel.setBool(PID_LAND_VAR_GRP, true);
+  }
+
   //---Land Details and Color settings
   maxGrp = panel.createGroup(PID_SCRIPT_PARAMS_GRP, "Land Details Settings");
 
@@ -885,6 +930,16 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
 
   maxGrp->createCheckBox(PID_SHOWMASK, "Show blue-white mask", showBlueWhiteMask);
   maxGrp->createCheckBox(PID_SHOW_LANDCLASS_COLORS, "Show landclass weights (color)", showLandClassColors);
+
+  // Common expression: runs once per pixel before any layer's expression so var/let
+  // declarations made here are visible to every layer below. The store is single-line
+  // (no `\n`); the editor display reflows by inserting `\n` after each `;`.
+  {
+    eastl::string display = getCommonExprDisplayText();
+    maxGrp->createEditBox(PID_COMMON_EXPR_EDIT, "Common expression:", display.c_str(), /*enabled*/ true, /*new_line*/ true,
+      /*multiline*/ true, _pxScaled(80), /*auto_height*/ false);
+    maxGrp->createButton(PID_COMMON_EXPR_APPLY, "Apply common expression");
+  }
 
   for (int i = 0; i < genLayers.size(); ++i)
     genLayers[i]->fillParams(*maxGrp, pid);
@@ -1541,6 +1596,23 @@ void HmapLandPlugin::fillAreatypeRectPanel(PropPanel::ContainerPropertyControl &
 
 void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
+  if (pcb_id >= PID_LAND_VAR_PARAM_START && pcb_id <= PID_LAST_LAND_VAR_PARAM)
+  {
+    const int rel = pcb_id - PID_LAND_VAR_PARAM_START;
+    const int row = rel / LV_PID_PER_VAR;
+    const int sub = rel % LV_PID_PER_VAR;
+    if (row < typedVars.size())
+    {
+      on_typed_var_change(sub, typedVars[row], *panel, PID_LAND_VAR_PARAM_START + row * LV_PID_PER_VAR);
+      // Curve point/type edits update typedVars[row]'s curve data; mirror the
+      // change into evalCurves so the next bake samples the new shape. Float /
+      // Range values are picked up at bake time directly from typedVars and
+      // need no follow-up here.
+      if (typedVars[row].kind == TypedVarKind::Curve && (sub == LV_PID_CURVE_EDIT || sub == LV_PID_CURVE_TYPE))
+        rebuildEvalCurveForRow(row);
+    }
+    return;
+  }
 
   if (pcb_id >= PID_SCRIPT_PARAM_START && pcb_id <= PID_LAST_SCRIPT_PARAM)
   {
@@ -2683,7 +2755,7 @@ bool HmapLandPlugin::createMask(int bpp, String *name)
       bitMaskImgMgr->createBitMask(img, getHeightmapSizeX(), getHeightmapSizeY(), bpp);
 
     if (bitMaskImgMgr->saveImage(img, HmapLandPlugin::self->getInternalName(), result))
-      if (*name)
+      if (name)
         *name = result;
     bitMaskImgMgr->destroyImage(img);
     return true;
@@ -2694,6 +2766,66 @@ bool HmapLandPlugin::createMask(int bpp, String *name)
 
 void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
+  if (pcb_id >= PID_LAND_VAR_PARAM_START && pcb_id <= PID_LAST_LAND_VAR_PARAM)
+  {
+    const int rel = pcb_id - PID_LAND_VAR_PARAM_START;
+    const int row = rel / LV_PID_PER_VAR;
+    const int sub = rel % LV_PID_PER_VAR;
+    if (row < typedVars.size() && sub == LV_PID_DELETE)
+    {
+      // Refuse delete if the variable is still referenced by any layer's
+      // expression or by the common expression. Range variables expand to
+      // <name>_lo / <name>_hi, both checked.
+      Tab<String> sites;
+      if (scanTypedVarRefs(typedVars[row], sites))
+      {
+        String msg(0, "Cannot delete '%s' - still referenced by:\n", typedVars[row].name.str());
+        for (int i = 0; i < sites.size(); i++)
+          msg.aprintf(0, "  - %s\n", sites[i].str());
+        msg += "\nRemove the references from those expressions first, then try again.";
+        wingw::message_box(wingw::MBS_EXCL, "Variable in use", "%s", msg.str());
+        return;
+      }
+
+      if (wingw::message_box(wingw::MBS_YESNO | wingw::MBS_QUEST, "Delete typed variable", "Delete '%s'?",
+            typedVars[row].name.str()) == wingw::MB_ID_YES)
+      {
+        erase_items(typedVars, row, 1);
+        // typedVars list shifted, so the parser's external-var binding is
+        // now stale; trigger a recompile to resync varMap, varTypes and
+        // evalCurves with the surviving entries. Same reasoning as the Add
+        // path: bake-side state must stay coherent regardless of UI presence.
+        recompileGenLayerExpressions();
+        if (propPanel)
+          propPanel->fillPanel();
+      }
+      return;
+    }
+    // Fall through: not a delete click (e.g. file-button click on a Mask label was rejected
+    // because Mask rows have no clickable controls in milestone 1). Returning silently.
+    return;
+  }
+
+  if (pcb_id == PID_LAND_VAR_ADD)
+  {
+    TypedVar v;
+    if (show_typed_var_add_dialog(v, typedVars))
+    {
+      typedVars.push_back(v);
+      // Sync varMap / varTypes / evalCurves / typedVarRuntime with the new
+      // typedVar so it is parser-visible immediately and the bake reads the
+      // right shape. The bake / common-expr / per-layer eval paths all
+      // depend on these tables matching typedVars; gating the recompile on
+      // a UI handle would leave them out of sync if the panel hadn't been
+      // created yet (PID_LAND_VAR_ADD comes from a panel callback in
+      // practice, but the state guarantee should not depend on UI presence).
+      recompileGenLayerExpressions();
+      if (propPanel)
+        propPanel->fillPanel();
+    }
+    return;
+  }
+
   if (pcb_id >= PID_GRASS_PARAM_START && pcb_id <= PID_LAST_GRASS_PARAM)
   {
     bool layer_removed = false;
@@ -2870,6 +3002,57 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
       if (genLayers[i]->onPPBtnPressedEx(pcb_id, *panel))
         break;
   }
+  else if (pcb_id == PID_COMMON_EXPR_APPLY)
+  {
+    // Mirror the per-layer Apply contract: validate via the authoritative recompile.
+    // Two failure modes to roll back:
+    //   1. The common expression itself fails to parse/compile.
+    //   2. The common expression compiles, but the new var/let bindings it introduces
+    //      shift varIds or shadow names enough to break a previously-valid per-layer
+    //      expression. We snapshot per-layer exprValid before mutating commonExprText
+    //      and check for regressions afterwards.
+    // Empty text is a legitimate "clear" -- only non-empty text that ends up
+    // !commonExprValid counts as failure mode 1.
+    //
+    // On failure we leave the edit box untouched so the user can fix their typo
+    // without having to re-type from scratch -- only the success path re-flows the
+    // stored text back into the widget.
+    SimpleString uiText = panel->getText(PID_COMMON_EXPR_EDIT);
+    SimpleString prev = commonExprText;
+    Tab<bool> wasValid;
+    snapshotGenLayerValidity(wasValid);
+    setCommonExprText(uiText.str());
+
+    SimpleString failTitle, failMsg;
+    if (!commonExprText.empty() && !commonExprValid)
+    {
+      failTitle = "Common expression error";
+      failMsg = commonExprLastErr.empty() ? "compile failed" : commonExprLastErr.str();
+    }
+    else
+    {
+      SimpleString regName, regErr;
+      int regIdx = findFirstRegressedGenLayer(wasValid, regName, regErr);
+      if (regIdx >= 0)
+      {
+        failTitle = "Common expression regression";
+        String msg(0,
+          "Common expression accepted, but layer[%d] '%s' now fails to compile:\n%s\n\nReverted to the previous common expression.",
+          regIdx, regName.str(), regErr.empty() ? "compile failed" : regErr.str());
+        failMsg = msg;
+      }
+    }
+
+    if (!failMsg.empty())
+    {
+      setCommonExprText(prev.str());
+      wingw::message_box(wingw::MBS_EXCL, failTitle.str(), "%s", failMsg.str());
+      return;
+    }
+    // Success: re-flow the stored text back into the multiline edit so the user
+    // sees exactly what got persisted (newlines normalised to one-per-`;`).
+    panel->setText(PID_COMMON_EXPR_EDIT, getCommonExprDisplayText().c_str());
+  }
   else if (pcb_id == PID_ADDLAYER)
   {
     PropPanel::DialogWindow *dialog = DAGORED2->createDialog(_pxScaled(250), _pxScaled(125), "Create generation layer");
@@ -2881,9 +3064,36 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     int ret = dialog->showDialog();
     if (ret == PropPanel::DIALOG_ID_OK)
     {
-      addGenLayer(panel->getText(0));
-      if (propPanel)
-        propPanel->fillPanel();
+      SimpleString newName = panel->getText(0);
+      if (!HmapLandPlugin::isValidGenLayerName(newName))
+        wingw::message_box(wingw::MBS_EXCL, "Invalid layer name",
+          "Layer name '%s' contains characters that aren't allowed.\n\n"
+          "Use only letters, digits, and underscore so the mask_<name> binding can be referenced from expressions.",
+          newName.str());
+      else if (isGenLayerNameInUse(newName))
+        wingw::message_box(wingw::MBS_EXCL, "Duplicate name", "A generation layer named '%s' already exists. Pick a unique name.",
+          newName.str());
+      // mask_<paramName> shares the lcexpr varMap with typed vars; reject layer
+      // names whose binding would alias an existing typed-var slot.
+      else if (SimpleString conflict; collidesWithTypedVar(String(0, "mask_%s", newName.str()).str(), conflict))
+        wingw::message_box(wingw::MBS_EXCL, "Name collides with typed variable",
+          "Layer name '%s' would create binding 'mask_%s' which collides with typed variable '%s'. "
+          "Pick a different layer name or rename the typed variable first.",
+          newName.str(), newName.str(), conflict.str());
+      // Reject layer names whose mask_<name> binding is already declared as
+      // var/let in commonExprText or any layer exprText (parser would fail on
+      // the next recompile after the layer add commits).
+      else if (SimpleString site; findVarLetDeclSite(String(0, "mask_%s", newName.str()).str(), site))
+        wingw::message_box(wingw::MBS_EXCL, "Name already declared",
+          "Layer name '%s' would create binding 'mask_%s' which is already declared as 'var' or 'let' in %s. "
+          "Pick a different layer name or remove the declaration first.",
+          newName.str(), newName.str(), site.str());
+      else
+      {
+        addGenLayer(newName);
+        if (propPanel)
+          propPanel->fillPanel();
+      }
     }
     DAGORED2->deleteDialog(dialog);
   }
@@ -3280,7 +3490,7 @@ void HmapLandPlugin::ScriptImage::onFileChanged(int)
   }
 }
 
-E3DCOLOR HmapLandPlugin::ScriptImage::sampleImageUV(real fx, real fy, bool clamp_x, bool clamp_y)
+E3DCOLOR HmapLandPlugin::ScriptImage::sampleImageUV(real fx, real fy, bool clamp_x, bool clamp_y) const
 {
   if (!getBitsPerPixel() || !isImage32())
     return E3DCOLOR(255, 255, 255, 0);
@@ -3371,7 +3581,7 @@ E3DCOLOR HmapLandPlugin::ScriptImage::sampleImageUV(real fx, real fy, bool clamp
 }
 
 
-E3DCOLOR HmapLandPlugin::ScriptImage::sampleImagePixelUV(real fx, real fy, bool clamp_x, bool clamp_y)
+E3DCOLOR HmapLandPlugin::ScriptImage::sampleImagePixelUV(real fx, real fy, bool clamp_x, bool clamp_y) const
 {
   if (!getBitsPerPixel() || !isImage32())
     return E3DCOLOR(255, 255, 255, 0);
@@ -3430,7 +3640,7 @@ E3DCOLOR HmapLandPlugin::ScriptImage::sampleImagePixelUV(real fx, real fy, bool 
   return getImagePixel(ix, iy);
 }
 
-inline void HmapLandPlugin::ScriptImage::calcClampMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny)
+inline void HmapLandPlugin::ScriptImage::calcClampMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny) const
 {
   fy = 1 - fy;
 
@@ -3473,7 +3683,7 @@ inline void HmapLandPlugin::ScriptImage::calcClampMapping(float &fx, float &fy, 
     ny = 0;
 }
 inline void HmapLandPlugin::ScriptImage::calcMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny, bool clamp_u,
-  bool clamp_v)
+  bool clamp_v) const
 {
   fy = 1 - fy;
 
@@ -3533,7 +3743,7 @@ inline void HmapLandPlugin::ScriptImage::calcMapping(float &fx, float &fy, int &
   if (ny >= getHeight())
     ny = 0;
 }
-inline void HmapLandPlugin::ScriptImage::calcClampMapping(float fx0, float fy0, int &ix0, int &iy0)
+inline void HmapLandPlugin::ScriptImage::calcClampMapping(float fx0, float fy0, int &ix0, int &iy0) const
 {
   fy0 = 1 - fy0;
 
@@ -3555,7 +3765,7 @@ inline void HmapLandPlugin::ScriptImage::calcClampMapping(float fx0, float fy0, 
 }
 
 
-float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy)
+float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy) const
 {
   if (getBitsPerPixel() != 1)
     return 1.0;
@@ -3571,7 +3781,7 @@ float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy)
   return (c00 * (1 - fx) + c01 * fx) * (1 - fy) + (c10 * (1 - fx) + c11 * fx) * fy;
 }
 
-float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy, bool clamp_u, bool clamp_v)
+float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy, bool clamp_u, bool clamp_v) const
 {
   if (getBitsPerPixel() != 1)
     return 1.0;
@@ -3587,7 +3797,7 @@ float HmapLandPlugin::ScriptImage::sampleMask1UV(real fx, real fy, bool clamp_u,
   return (c00 * (1 - fx) + c01 * fx) * (1 - fy) + (c10 * (1 - fx) + c11 * fx) * fy;
 }
 
-float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy)
+float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy) const
 {
   if (getBitsPerPixel() != 8)
     return 1.0;
@@ -3603,7 +3813,7 @@ float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy)
   return (c00 * (1 - fx) + c01 * fx) * (1 - fy) + (c10 * (1 - fx) + c11 * fx) * fy;
 }
 
-float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy, bool clamp_u, bool clamp_v)
+float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy, bool clamp_u, bool clamp_v) const
 {
   if (getBitsPerPixel() != 8)
     return 1.0;
@@ -3619,7 +3829,7 @@ float HmapLandPlugin::ScriptImage::sampleMask8UV(real fx, real fy, bool clamp_u,
   return (c00 * (1 - fx) + c01 * fx) * (1 - fy) + (c10 * (1 - fx) + c11 * fx) * fy;
 }
 
-float HmapLandPlugin::ScriptImage::sampleMask1PixelUV(real fx, real fy)
+float HmapLandPlugin::ScriptImage::sampleMask1PixelUV(real fx, real fy) const
 {
   if (getBitsPerPixel() != 1)
     return 1.0;
@@ -3629,7 +3839,7 @@ float HmapLandPlugin::ScriptImage::sampleMask1PixelUV(real fx, real fy)
   return getMaskPixel1(ix, iy) ? 1.0 : 0.0;
 }
 
-float HmapLandPlugin::ScriptImage::sampleMask8PixelUV(real fx, real fy)
+float HmapLandPlugin::ScriptImage::sampleMask8PixelUV(real fx, real fy) const
 {
   if (getBitsPerPixel() != 8)
     return 1.0;
@@ -3762,7 +3972,7 @@ const char *HmapLandPlugin::pickScriptImage(const char *current_name, int bpp)
 }
 
 
-E3DCOLOR HmapLandPlugin::sampleScriptImageUV(int id, real x, real y, bool clamp_x, bool clamp_y)
+E3DCOLOR HmapLandPlugin::sampleScriptImageUV(int id, real x, real y, bool clamp_x, bool clamp_y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return E3DCOLOR(255, 255, 255, 0);
@@ -3770,7 +3980,7 @@ E3DCOLOR HmapLandPlugin::sampleScriptImageUV(int id, real x, real y, bool clamp_
 }
 
 
-E3DCOLOR HmapLandPlugin::sampleScriptImagePixelUV(int id, real x, real y, bool clamp_x, bool clamp_y)
+E3DCOLOR HmapLandPlugin::sampleScriptImagePixelUV(int id, real x, real y, bool clamp_x, bool clamp_y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return E3DCOLOR(255, 255, 255, 0);
@@ -3785,37 +3995,37 @@ void HmapLandPlugin::paintScriptImageUV(int id, real x0, real y0, real x1, real 
   return scriptImages[id]->paintImageUV(x0, y0, x1, y1, clamp_x, clamp_y, color);
 }
 
-float HmapLandPlugin::sampleMask1UV(int id, real x, real y)
+float HmapLandPlugin::sampleMask1UV(int id, real x, real y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
   return scriptImages[id]->sampleMask1UV(x, y);
 }
-float HmapLandPlugin::sampleMask1UV(int id, real x, real y, bool clamp_u, bool clamp_v)
+float HmapLandPlugin::sampleMask1UV(int id, real x, real y, bool clamp_u, bool clamp_v) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
   return scriptImages[id]->sampleMask1UV(x, y, clamp_u, clamp_v);
 }
-float HmapLandPlugin::sampleMask8UV(int id, real x, real y)
+float HmapLandPlugin::sampleMask8UV(int id, real x, real y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
   return scriptImages[id]->sampleMask8UV(x, y);
 }
-float HmapLandPlugin::sampleMask8UV(int id, real x, real y, bool clamp_u, bool clamp_v)
+float HmapLandPlugin::sampleMask8UV(int id, real x, real y, bool clamp_u, bool clamp_v) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
   return scriptImages[id]->sampleMask8UV(x, y, clamp_u, clamp_v);
 }
-float HmapLandPlugin::sampleMask1PixelUV(int id, real x, real y)
+float HmapLandPlugin::sampleMask1PixelUV(int id, real x, real y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
   return scriptImages[id]->sampleMask1PixelUV(x, y);
 }
-float HmapLandPlugin::sampleMask8PixelUV(int id, real x, real y)
+float HmapLandPlugin::sampleMask8PixelUV(int id, real x, real y) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1.0;
@@ -3841,7 +4051,7 @@ bool HmapLandPlugin::saveImage(int id)
   return scriptImages[id]->saveImage();
 }
 
-int HmapLandPlugin::getScriptImageWidth(int id)
+int HmapLandPlugin::getScriptImageWidth(int id) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1;
@@ -3849,14 +4059,14 @@ int HmapLandPlugin::getScriptImageWidth(int id)
 }
 
 
-int HmapLandPlugin::getScriptImageHeight(int id)
+int HmapLandPlugin::getScriptImageHeight(int id) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1;
   return scriptImages[id]->getHeight();
 }
 
-int HmapLandPlugin::getScriptImageBpp(int id)
+int HmapLandPlugin::getScriptImageBpp(int id) const
 {
   if (id < 0 || id >= scriptImages.size())
     return 1;

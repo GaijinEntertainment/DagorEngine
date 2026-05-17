@@ -9,6 +9,8 @@ include "taa_inc.dshl"
 
 shader tsr_cs
 {
+  bool calc_weights_online = tsr_use_precalculated_filter_weights == no || tsr_vrs_mask != NULL;
+
   hlsl(cs)
   {
     #define DEBUG_SHOW_OUT_OF_BOUNDS 0
@@ -21,20 +23,24 @@ shader tsr_cs
   INIT_READ_DEPTH_GBUFFER_BASE(cs)
   USE_READ_DEPTH_GBUFFER_BASE(cs)
 
-  if (tsr_quality == low)
-  {
-    INIT_READ_DYNAMIC_FLAG(cs)
-    USE_READ_DYNAMIC_FLAG(cs)
-  }
-
   INIT_FETCH_MOTION_VECTOR(cs, resolved)
   USE_FETCH_MOTION_VECTOR(cs, resolved)
   MOTION_MASK_NOJITTER(cs)
 
   local float4 input_tex_resolution = get_dimensions(tsr_input_color, 0);
+  if (tsr_vrs_mask != NULL)
+  {
+    local float4 tsr_vrs_mask_dimensions = get_dimensions(tsr_vrs_mask, 0);
+    (cs)
+    {
+      vrsMask@tex2d = tsr_vrs_mask;
+      vrsMaskDimensions@f4 = (tsr_vrs_mask_dimensions.xy, 1.0 / tsr_vrs_mask_dimensions.xy);
+    }
+  }
+
   (cs)
   {
-    inputColorTex@smp2d = tsr_input_color;
+    inputColorTex@tex2d = tsr_input_color;
 
     historyColorTex@smp2d = tsr_history_color;
     historyConfidenceTex@smp2d = tsr_history_confidence;
@@ -56,11 +62,6 @@ shader tsr_cs
     aabbScaleBase@f1 = tsr_scale_base;
     aabbScaleMotionSteepness@f1 = tsr_scale_motion_steepness;
     aabbScaleMotionMax@f1 = tsr_scale_motion_max;
-
-    processLossDynamic@f1 = tsr_process_loss_dynamic;
-    aabbScaleBaseDynamic@f1 = tsr_scale_base_dynamic;
-    aabbScaleMotionSteepnessDynamic@f1 = tsr_scale_motion_steepness_dynamic;
-    aabbScaleMotionMaxDynamic@f1 = tsr_scale_motion_max_dynamic;
 
     inputResolution@f4 = (tsr_input_resolution.x, tsr_input_resolution.y, 1/tsr_input_resolution.x, 1/tsr_input_resolution.y);
     inputTextureResolution@f4 = (input_tex_resolution.x, input_tex_resolution.y, 1/input_tex_resolution.x, 1/input_tex_resolution.y);
@@ -149,8 +150,11 @@ shader tsr_cs
       float2 prefetchInputTexelCoordBase;
       uint prefetchIndexBase;
       int flatCacheIndexOffset;
-##if tsr_use_precalculated_filter_weights == no
+##if calc_weights_online
       float gaussKernel[9];
+##endif
+##if tsr_vrs_mask != NULL
+      float vrsTileArea[9];
 ##endif
     };
 
@@ -158,6 +162,16 @@ shader tsr_cs
     {
       float2 clampedInputTexelCoord = clamp(input_texel_coord, 0, inputResolution.xy - 1);
       return (clampedInputTexelCoord + 0.5) * inputTextureResolution.zw;
+    }
+
+    int2 inputTexelCoordToFetchCoord(float2 input_texel_coord)
+    {
+      return int2(clamp(input_texel_coord, 0, inputResolution.xy - 1));
+    }
+
+    int2 inputUvToFetchCoord(float2 uv)
+    {
+      return int2(clamp(uv * inputTextureResolution.xy, 0, inputTextureResolution.xy - 1));
     }
 
     CacheParams calcCacheParams(uint2 thread_id, float2 global_offset, float2 input_texel_coord)
@@ -189,20 +203,33 @@ shader tsr_cs
       {
         UNROLL for(uint i = 0; i < PREFETCH_CALLS_IN_THREAD; ++i)
         {
-          float2 tc = inputTexelCoordToUv(cache_params.prefetchInputTexelCoordBase + float2(i, 0));
-          float3 color = tonemap(PackToYCoCg(inputColorTex.SampleLevel( inputColorTex_samplerstate, tc, 0 ).rgb));
+          int2 tc = inputTexelCoordToFetchCoord(cache_params.prefetchInputTexelCoordBase + float2(i, 0));
+          float3 color = tonemap(PackToYCoCg(texelFetch(inputColorTex, tc, 0).rgb));
           tonemappedInputColorCache[cache_params.prefetchIndexBase + i] = color;
         }
       }
 
       float2 texelCoordDiffMul = (frac(input_texel_coord) - 0.5) * upsamplingRatio;
 
-##if tsr_use_precalculated_filter_weights == no
+##if calc_weights_online
       // heavy ALU calc while waiting for texture fetches to hide the latency
       UNROLL for(uint i = 0; i < 9; i++)
       {
         float2 deltaOnDisplay = (-(float2)reconstructionTexelOffsetsInt[i]) * upsamplingRatio + texelCoordDiffMul;
+##if tsr_vrs_mask != NULL
+        static const float centers[] = {0.f, 0.5f, 1.5f}; // tile centers by log(tileSize) without .5 offset
+        float2 tapUV = inputTexelCoordToUv(floor(input_texel_coord) + (float2)reconstructionTexelOffsetsInt[i]);
+        uint vrsMaskValue = asuint(texelFetch(vrsMask, tapUV * vrsMaskDimensions.xy, 0).x);
+        uint2 logTileSize = uint2((vrsMaskValue>>2)&3, vrsMaskValue&3);
+        uint2 tileSize = uint2(1, 1) << logTileSize;
+        float2 center = float2(centers[logTileSize.x], centers[logTileSize.y]);
+        uint2 transformedInputCoord = floor(tapUV * inputTextureResolution.xy);
+        deltaOnDisplay += float2(transformedInputCoord & (tileSize - 1)) - center;
+        cache_params.gaussKernel[i] = gaussianKernel(deltaOnDisplay, sigma_inv * rcp(tileSize));
+        cache_params.vrsTileArea[i] = tileSize.x * tileSize.y;
+##else
         cache_params.gaussKernel[i] = gaussianKernel(deltaOnDisplay, sigma_inv);
+##endif
       }
 ##endif
     }
@@ -213,7 +240,7 @@ shader tsr_cs
       float3 firstMoment = 0;
       float3 secondMoment = 0;
 
-##if tsr_use_precalculated_filter_weights == no
+##if calc_weights_online
       float sumWeights = EPS;
 ##else
       uint2 phaseId = dtId * phaseConfiguration.xy % phaseConfiguration.zw;
@@ -224,7 +251,7 @@ shader tsr_cs
       UNROLL
       for(uint i = 0; i < 9; i++)
       {
-##if tsr_use_precalculated_filter_weights == no
+##if calc_weights_online
         float weight = cache_params.gaussKernel[i];
         sumWeights += weight;
 ##else
@@ -234,7 +261,11 @@ shader tsr_cs
 
         result += weight * color;
         firstMoment += color;
-        secondMoment +=  color * color;
+##if tsr_vrs_mask != NULL
+        secondMoment += color * color * cache_params.vrsTileArea[i];
+##else
+        secondMoment += color * color;
+##endif
       }
 
       confidence = 1 - rcp(sumWeights + 1);
@@ -242,7 +273,7 @@ shader tsr_cs
       mean = firstMoment;
       variance = max(EPS, secondMoment / 9 - firstMoment * firstMoment);
 
-##if tsr_use_precalculated_filter_weights == no
+##if calc_weights_online
       return result / sumWeights;
 ##else
       return result;
@@ -297,7 +328,7 @@ shader tsr_cs
       return gaussianKernel(frac(uv * outputResolution.xy) - 0.5, resamplingLossSigmaInv);
     }
 
-    float4 reconstructHistory(float2 history_tc, bool is_dynamic, out float confidence)
+    float4 reconstructHistory(float2 history_tc, out float confidence)
     {
     ##if tsr_history_reconstruction == bicubic
       BicubicSharpenWeights weights;
@@ -319,7 +350,7 @@ shader tsr_cs
       confidence *= calculateResamplingLoss(history_tc);
 
       // even if there is no movement (resampling is perfect) there has to be some loss
-      confidence *= is_dynamic ? processLossDynamic : processLoss;
+      confidence *= processLoss;
 
       return tonemap(PackToYCoCgAlpha(result));
     }
@@ -335,12 +366,9 @@ shader tsr_cs
       return gaussianKernel(float2(overhang,0), depthOverhangSigmaInv * rcp(depth));
     }
 
-    float calculateAabbScale(float motionVectorLength, bool is_dynamic, float reactive)
+    float calculateAabbScale(float motionVectorLength, float reactive)
     {
-      float scaleBase = is_dynamic ? aabbScaleBaseDynamic : aabbScaleBase;
-      float scaleMotionSteepness = is_dynamic ? aabbScaleMotionSteepnessDynamic : aabbScaleMotionSteepness;
-      float scaleMotionMax = is_dynamic ? aabbScaleMotionMaxDynamic : aabbScaleMotionMax;
-      return scaleBase * (1 + rcp(motionVectorLength * scaleMotionSteepness + scaleMotionMax) * (1 - reactive));
+      return aabbScaleBase * (1 + rcp(motionVectorLength * aabbScaleMotionSteepness + aabbScaleMotionMax) * (1 - reactive));
     }
 
     float3 clipHistory(float3 history, float3 current, float3 mean, float3 variance, float aabbScale)
@@ -436,12 +464,6 @@ shader tsr_cs
 
       DepthStatistics depthStats = getDepthStatistics(jitteredInputTexelCoord);
 
-      ##if tsr_quality == low
-        bool currentIsDynamic = isGbufferDynamic(depthStats.closestUv);
-      ##else
-        bool currentIsDynamic = false;
-      ##endif
-
       float3 motionVector = fetchMotionVector(depthStats.closestDepth, depthStats.closestUv);
       float2 historyUV = screenTc + motionVector.xy;
       ##if tsr_reactive_mask != NULL
@@ -451,11 +473,11 @@ shader tsr_cs
       ##endif
 
       float historyConfidence;
-      float4 historyColorDepth = reconstructHistory(historyUV, currentIsDynamic, historyConfidence);
+      float4 historyColorDepth = reconstructHistory(historyUV, historyConfidence);
 
       float expectedDepth = historyColorDepth.a - motionVector.z;
       float overhang = calculateDepthOverhang(expectedDepth, depthStats.farthestDepth, depthStats.closestDepth);
-      float rejection = calculateDepthVarianceRejection(overhang, expectedDepth);
+      float rejection = calculateDepthVarianceRejection(overhang, max(EPS, expectedDepth));
       historyConfidence *= rejection;
 
       validateHistory(historyUV, historyColorDepth, historyConfidence, rejection);
@@ -467,7 +489,7 @@ shader tsr_cs
       BRANCH
       if (is_motion_mask_no_jitter(motionVector.xy))
       {
-          float4 motionMaskedColor = inputColorTex.SampleLevel(inputColorTex_samplerstate, screenTc, 0);
+          float4 motionMaskedColor = texelFetch(inputColorTex, inputUvToFetchCoord(screenTc), 0);
           texture2DAt(outColor, dtId) = motionMaskedColor;
           texture2DAt(outConfidence, dtId) = 0;
           return;
@@ -477,7 +499,7 @@ shader tsr_cs
       float3 inputVariance;
       float3 inputColor = reconstructInput(dtId, cacheParams, inputConfidence, inputMean, inputVariance);
 
-      float aabbScale = calculateAabbScale(length(motionVector.xy), currentIsDynamic, reactive);
+      float aabbScale = calculateAabbScale(length(motionVector.xy), reactive);
       float3 rectifiedhistoryColor = clipHistory(historyColorDepth.rgb, inputColor, inputMean, inputVariance, aabbScale);
 
       TemporalSuperResolutionOutput result = calcResult(float4(inputColor, depthStats.depth), inputConfidence, float4(rectifiedhistoryColor, historyColorDepth.a), historyConfidence, rejection, reactive);

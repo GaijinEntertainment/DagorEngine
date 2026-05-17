@@ -58,6 +58,7 @@ public:
 		int line = -1;
 		int column = -1;
 		eastl::string text;
+		uint32_t compileErrorId = UINT32_MAX;
 	};
 
 	typedef eastl::vector<ErrorMarker> ErrorMarkers;
@@ -87,6 +88,7 @@ public:
 
 	inline static void SetDefaultPalette(PaletteId aValue) { defaultPalette = aValue; }
 	inline static PaletteId GetDefaultPalette() { return defaultPalette; }
+	static void RegisterExtensionLanguage(const eastl::string& extension, LanguageDefinitionId language);
 
 	void SelectAll();
 	void SelectLine(int aLine);

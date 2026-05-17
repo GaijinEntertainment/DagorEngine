@@ -21,6 +21,8 @@
 
 const char *gameproj::game_telemetry_name() { return nullptr; }
 
+bool NEED_DAS_AOT_COMPILE = false; // AOT compiler tool itself doesn't load AOT-compiled scripts at runtime
+
 float dagor_game_act_time = 0.f;
 
 class StubTimeManager final : public ITimeManager
@@ -244,6 +246,8 @@ void move_cumulus_clouds(const Point2 &) { G_ASSERT(0); }
 void move_strata_clouds(const Point2 &) { G_ASSERT(0); }
 
 void select_weather_preset_delayed(const char *) { G_ASSERT(0); }
+
+void update_delayed_weather_selection() { G_ASSERT(0); }
 
 Point3 calculate_server_sun_dir() { G_ASSERT_RETURN(false, Point3()); }
 
@@ -794,20 +798,20 @@ void render_picture(StdGuiRender::GuiContext &, Picture *, Point2, Point2, E3DCO
 
 #include <compressionUtils/compression.h>
 
-float lag_compensation_time(ecs::EntityId avatar_eid,
+double lag_compensation_time(ecs::EntityId avatar_eid,
   ecs::EntityId lc_eid,
-  float at_time,
+  double at_time,
   int interp_delay_ticks_packed,
   float additional_interp_delay,
   BasePhysActor **out_lc_eid_phys_actor)
 {
-  G_ASSERT_RETURN(false, 0.f);
+  G_ASSERT_RETURN(false, 0.0);
 }
 
 class StubLagCompensationMgr final : public ILagCompensationMgr
 {
-  void startLagCompensation(float, ecs::EntityId) override {}
-  LCError backtrackEntity(ecs::EntityId, float) override { return LCError::UnknownEntity; }
+  void startLagCompensation(double, ecs::EntityId) override {}
+  LCError backtrackEntity(ecs::EntityId, double) override { return LCError::UnknownEntity; }
   void finishLagCompensation() override {}
 };
 

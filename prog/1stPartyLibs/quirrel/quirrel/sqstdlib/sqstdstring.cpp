@@ -346,7 +346,6 @@ static const SQRegFunctionFromStr stringlib_funcs[] = {
     { _string_endswith, "pure endswith(str: string, suffix: string): bool" },
     { NULL, NULL },
 };
-#undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_stringlib(HSQUIRRELVM v)

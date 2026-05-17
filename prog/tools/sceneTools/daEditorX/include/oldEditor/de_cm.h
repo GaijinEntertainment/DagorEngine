@@ -126,7 +126,6 @@ static constexpr const char *LOAD_DEFAULT_LAYOUT = "Main.LoadDefaultLayout";
 static constexpr const char *LOAD_LAYOUT = "Main.LoadLayout";
 static constexpr const char *SAVE_LAYOUT = "Main.SaveLayout";
 static constexpr const char *OPTIONS_TOTAL = "Main.OptionsTotal";
-static constexpr const char *OPTIONS_GRID = "Main.EditGridSettings";
 static constexpr const char *USE_OCCLUDERS = "Main.ToggleUseOccluders";
 static constexpr const char *NAV_COMPASS = "Main.ToggleCompass";
 static constexpr const char *SHOW_COLLISION = "Main.ShowCollision";

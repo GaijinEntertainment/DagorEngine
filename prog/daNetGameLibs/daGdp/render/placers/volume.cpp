@@ -1,20 +1,29 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <EASTL/shared_ptr.h>
+#include <EASTL/weak_ptr.h>
 #include <generic/dag_enumerate.h>
 #include <generic/dag_span.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
 #include <render/daFrameGraph/daFG.h>
+#include <render/world/bvh.h>
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <frustumCulling/frustumPlanes.h>
+#include <util/dag_convar.h>
+#include "../CSMShadows.h"
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../../shaders/dagdp_volume.hlsli"
 #include "volume.h"
+#include <rendInst/rendInstExtra.h>
+#include <util/dag_threadPool.h>
+#include <osApiWrappers/dag_cpuJobs.h>
+
+CONSOLE_BOOL_VAL("dagdp", volume_early_riex_gather, true);
 
 namespace var
 {
@@ -76,6 +85,11 @@ bool requires_indirect_buf_copy()
 namespace dagdp
 {
 
+bool is_volume_early_riex_gather_enabled() { return volume_early_riex_gather.get(); }
+
+struct VolumePersistentData;
+static dag::Vector<eastl::weak_ptr<VolumePersistentData>> g_volume_views;
+
 static constexpr uint32_t ESTIMATED_PREFIX_SUM_LEVELS = 4;
 static inline uint32_t divUp(uint32_t size, uint32_t stride) { return (size + stride - 1) / stride; }
 
@@ -103,6 +117,7 @@ struct VolumeMutables
 {
   uint32_t areasUsed = 0;
   RiexProcessor riexProcessor;
+  DagdpRiexGatherJob riexGatherJob;
 };
 
 struct VolumePersistentData
@@ -174,6 +189,74 @@ bool updateFrameMem(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_size,
   return true;
 }
 
+void DagdpRiexGatherJob::reset()
+{
+  entryCount = 0;
+  for (size_t i = 0; i < viewportCount; ++i)
+  {
+    viewportDataPool[i].onRi.clear();
+    viewportDataPool[i].aroundRi.clear();
+    viewportDataPool[i].valid = false;
+  }
+  viewportCount = 0;
+}
+
+DagdpRiexGatherJob::PerViewportData &DagdpRiexGatherJob::addViewport()
+{
+  if (viewportCount >= viewportDataPool.size())
+    viewportDataPool.emplace_back();
+  auto &v = viewportDataPool[viewportCount++];
+  v.onRi.clear();
+  v.aroundRi.clear();
+  v.valid = false;
+  return v;
+}
+
+size_t DagdpRiexGatherJob::addEntry(int res_idx, bbox3f_cref box)
+{
+  if (entryCount >= entryPool.size())
+    entryPool.emplace_back();
+  auto &e = entryPool[entryCount];
+  e.resIdx = res_idx;
+  e.box = box;
+  return entryCount++;
+}
+
+void DagdpRiexGatherJob::start(GatherMode mode)
+{
+  launched = true;
+  scheduled = false;
+  if (entryCount == 0)
+    return;
+  if (mode == GatherMode::Synchronous)
+    doJob();
+  else
+  {
+    threadpool::add(this, threadpool::PRIO_NORMAL);
+    scheduled = true;
+  }
+}
+
+void DagdpRiexGatherJob::doJob()
+{
+  for (size_t i = 0; i < entryCount; ++i)
+  {
+    auto &e = entryPool[i];
+    rendinst::getRiGenExtraInstances(e.handles, e.resIdx, e.box);
+  }
+}
+
+void DagdpRiexGatherJob::waitDone()
+{
+  if (scheduled)
+  {
+    TIME_PROFILE(wait_dagdp_volume_riex_gather);
+    threadpool::wait(this);
+    scheduled = false;
+  }
+  launched = false;
+}
+
 void create_volume_nodes(const ViewInfo &view_info,
   const ViewBuilder &view_builder,
   const VolumeManager &volume_manager,
@@ -193,6 +276,7 @@ void create_volume_nodes(const ViewInfo &view_info,
 
   TmpName bufferNamePrefix(TmpName::CtorSprintf(), "dagdp_%s_volume", view_info.uniqueName.c_str());
   auto persistentData = eastl::make_shared<VolumePersistentData>();
+  g_volume_views.push_back(persistentData);
   VolumeConstants &constants = persistentData->constants;
   constants.mapping = eastl::move(builder.mapping);
   constants.viewInfo = view_info;
@@ -304,6 +388,9 @@ void create_volume_nodes(const ViewInfo &view_info,
       const auto &view = viewHandle.ref();
       G_ASSERT(view.viewports.size() <= constants.viewInfo.maxViewports);
 
+      if (is_volume_early_riex_gather_enabled())
+        gather_start(persistentData->mutables.riexGatherJob, constants.mapping, constants.viewInfo, view, GatherMode::Synchronous);
+
       persistentData->mutables.riexProcessor.resetCurrent();
 
       gatheredInfo.dispatches.push_back(0);
@@ -314,9 +401,9 @@ void create_volume_nodes(const ViewInfo &view_info,
         const uint32_t tileStartIndex = gatheredInfo.relevantTiles.size();
         const uint32_t dispatchStartIndex = gatheredInfo.dispatches.size() - 1;
         const auto &viewport = view.viewports[viewportIndex];
-        gather(persistentData->constants.mapping, constants.viewInfo, viewport, constants.maxPlaceableBoundingRadius,
-          constants.targetMeshLod, persistentData->mutables.riexProcessor, meshes, gatheredInfo.relevantTiles,
-          gatheredInfo.relevantVolumes);
+        gather_process(persistentData->mutables.riexGatherJob, persistentData->constants.mapping, constants.viewInfo, viewportIndex,
+          viewport, constants.maxPlaceableBoundingRadius, constants.targetMeshLod, persistentData->mutables.riexProcessor, meshes,
+          gatheredInfo.relevantTiles, gatheredInfo.relevantVolumes);
 
         auto &item = gatheredInfo.perViewport.push_back();
         item.tileStartIndex = tileStartIndex;
@@ -830,6 +917,49 @@ void create_volume_nodes(const ViewInfo &view_info,
 
   node_inserter(createTerrainPlaceNode(true));
   node_inserter(createTerrainPlaceNode(false));
+}
+
+static bool populate_viewport_data_early(
+  const ViewInfo &info, const Point3 &cam_pos, const Frustum &cam_frustum, ViewPerFrameData &out)
+{
+  switch (info.kind)
+  {
+    case ViewKind::MAIN_CAMERA:
+    case ViewKind::BVH:
+    {
+      auto &vp = out.viewports.emplace_back();
+      vp.worldPos = DPoint3(cam_pos.x, cam_pos.y, cam_pos.z);
+      vp.maxDrawDistance = FLT_MAX;
+      vp.frustum = info.kind == ViewKind::BVH ? Frustum(get_bvh_culling_matrix(cam_pos)) : cam_frustum;
+      return true;
+    }
+    case ViewKind::CSM_SHADOWS:
+      // shadowsManager.prepareShadowsMatrices runs earlier in draw_frame, so CSM state is valid.
+      populate_csm_viewports(out, info.maxViewports);
+      return !out.viewports.empty();
+    default: return false;
+  }
+}
+
+void start_gather_before_draw_volumes(const Point3 &cam_pos, const Frustum &cam_frustum)
+{
+  if (!is_volume_early_riex_gather_enabled())
+    return;
+
+  for (auto it = g_volume_views.begin(); it != g_volume_views.end();)
+  {
+    auto pd = it->lock(); // it is valid as long as the node that registered it is alive
+    if (!pd)
+    {
+      it = g_volume_views.erase(it);
+      continue;
+    }
+    ++it;
+
+    ViewPerFrameData viewData;
+    if (populate_viewport_data_early(pd->constants.viewInfo, cam_pos, cam_frustum, viewData))
+      gather_start(pd->mutables.riexGatherJob, pd->constants.mapping, pd->constants.viewInfo, viewData, GatherMode::Async);
+  }
 }
 
 } // namespace dagdp

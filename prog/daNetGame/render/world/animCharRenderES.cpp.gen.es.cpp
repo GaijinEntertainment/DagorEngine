@@ -443,7 +443,8 @@ static ecs::CompileTimeQueryDesc preprocess_visible_animchars_in_frustum_ecs_que
   make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+0, 2)/*rw*/,
   make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+2, 3)/*ro*/,
   empty_span(),
-  empty_span());
+  empty_span()
+  , 4);
 template<typename Callable>
 inline void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager &manager, Callable function)
 {
@@ -462,7 +463,7 @@ inline void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager
 
         }while (++comp != compE);
     }
-  );
+    , nullptr, preprocess_visible_animchars_in_frustum_ecs_query_desc.getQuant());
 }
 static constexpr ecs::ComponentDesc animchar_csm_distance_ecs_query_comps[] =
 {

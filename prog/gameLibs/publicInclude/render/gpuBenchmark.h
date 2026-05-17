@@ -32,7 +32,7 @@ private:
 
   DynamicShaderHelper benchShader;
   SbufferIDHolder vb;
-  UniqueTexHolder randomTex;
+  UniqueTexWithShaderVar randomTex;
   UniqueTex benchmarkDepthTex;
 
   int gpu_benchmark_hmapVarId;

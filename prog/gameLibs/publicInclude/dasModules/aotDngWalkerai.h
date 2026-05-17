@@ -126,6 +126,7 @@ inline void get_agent_path(const walkerai::EntityAgent &agent,
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
 }
+inline int get_agent_pathLen(const walkerai::EntityAgent &agent) { return (int)agent.path.size(); }
 inline bool get_agent_pathPos(const walkerai::EntityAgent &agent, int path_pos_index, Point3 &out_pos)
 {
   if (path_pos_index < 0 || path_pos_index >= agent.path.size())

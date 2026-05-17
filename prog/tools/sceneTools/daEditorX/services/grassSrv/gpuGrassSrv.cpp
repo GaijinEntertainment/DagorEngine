@@ -110,6 +110,34 @@ BBox3 *GPUGrassService::getGrassBbox() { return &grassHelper.box; }
 
 bool GPUGrassService::isGrassEnabled() const { return enabled; }
 
+bool GPUGrassService::isGrassValid() const
+{
+  if (grassTypes.empty() || (grassTypes.size() == 1 && grassTypes[0].name == "nograss"))
+    return false;
+  for (const GPUGrassDecal &decal : grassDecals)
+  {
+    if (decal.channels.empty())
+      continue;
+    for (const auto &channel : decal.channels)
+    {
+      if (channel.second < 1.0)
+        continue;
+      const GPUGrassType *type = nullptr;
+      for (const auto &t : grassTypes)
+        if (t.name == channel.first.c_str())
+        {
+          type = &t;
+          break;
+        }
+      if (!type)
+        continue;
+      if (!type->diffuse.empty() && !type->normal.empty())
+        return true;
+    }
+  }
+  return false;
+}
+
 void GPUGrassService::enumerateGrassTypes(DataBlock &grassBlk)
 {
   grassTypes.clear();

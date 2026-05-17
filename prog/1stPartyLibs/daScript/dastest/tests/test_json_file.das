@@ -25,7 +25,7 @@ def run_dastest_json(test_file : string; var json_content : string&; var exit_co
     let cmd = "{exe} {dastest_root()}/dastest.das -- --test {test_file} --json-file {json_path}"
     var output : string
     unsafe {
-        exit_code = popen(cmd) <| $(f) {
+        exit_code = popen(cmd) $(f) {
             if (f != null) {
                 while (!feof(f)) {
                     output += fgets(f)
@@ -34,7 +34,7 @@ def run_dastest_json(test_file : string; var json_content : string&; var exit_co
         }
     }
     json_content = ""
-    fopen(json_path, "rb") <| $(f) {
+    fopen(json_path, "rb") $(f) {
         if (f != null) {
             json_content = fread(f)
         }
@@ -166,7 +166,7 @@ def test_json_file_not_created_without_flag(tt : T?) {
         let fix_path = fixture_path("_fixture_passing.das")
         let cmd = "{exe} {dastest_root()}/dastest.das -- --test {fix_path}"
         unsafe {
-            popen(cmd) <| $(f) {
+            popen(cmd) $(f) {
                 if (f != null) {
                     while (!feof(f)) {
                         fgets(f)

@@ -1,0 +1,8 @@
+ERROR: call to async function returns a Promise, not 'int'; did you mean 'await makeInt(...)'?
+testData/diagnostics/async_missing_await_param_default.nut:12:17
+
+function consume(n: int = makeInt()) {
+                 ^-----------------
+  print(n)
+
+

@@ -18,10 +18,15 @@ struct JitCtx {
     builder : LLVMOpaqueBuilder -const? -const
 }
 
+// Set by llvm_macro before codegen when prog.policies.jit_exe_mode is true.
+// Read by intrinsic_is_standalone_exe to fold $::is_standalone_exe() into a constant.
+var public g_jit_exe_mode = false
+
 let g_intrin_lookup <- {
 // $, aka builtin
     // misc
         "$::length" => @@intrinsic_builtin_length,
+        "$::is_standalone_exe" => @@intrinsic_is_standalone_exe,
     // pointer math
         "$::i_das_ptr_set_add" => @@intrinsic_das_ptr_set_add,
         "$::i_das_ptr_add" => @@intrinsic_das_ptr_add,
@@ -117,39 +122,53 @@ let g_intrin_lookup <- {
     "math::normalize" => @@intrinsic_math_normalize
 }
 
-def public has_intrinsic(expr : smart_ptr<ExprCallFunc>) {
+def public has_intrinsic(expr : ExprCallFunc?) {
     var result = false
     assume argType = expr.arguments[0]._type
     let call_name = "{expr.func._module.name}::{expr.func.name}"
+
+    // We skip some intrinsics below, because g_intrin_lookup
+    // is not enough and `pfun` can return null sometimes.
+    // But we don't have full picture without arguments.
+    // Anyway, assertion in lookup_intrinsic guarantees consistency.
     if (call_name == "$::length" && !argType.isGoodArrayType) {
+        // table<string; json::JsonValue>
+        // $::dasvector`ptr`Variable&
         return false
     }
-    g_intrin_lookup |> get(call_name) <| $(pfun) {
+    if (!expr.arguments |> empty() && argType.isHandle) {
+        // intrinsics can't have handle types:
+        // int64(clock)
+        return false
+    }
+    g_intrin_lookup |> get(call_name) $(pfun) {
         result = true
     }
     return result
 }
 
-def public lookup_intinsic(g_ctx : LLVMContextRef; g_builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def public lookup_intinsic(g_ctx : LLVMContextRef; g_builder : LLVMOpaqueBuilder?; var types : PrimitiveTypes?; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var result :  LLVMOpaqueValue?
     let call_name = "{expr.func._module.name}::{expr.func.name}"
-    g_intrin_lookup |> get(call_name) <| $(pfun) {
+    g_intrin_lookup |> get(call_name) $(pfun) {
         result = pfun |> invoke(JitCtx(ctx = g_ctx, builder = g_builder, types = types), expr, arguments)
     }
+    // Check initrinsic consistency
+    verify(result != null == has_intrinsic(expr))
     return result
 }
 
 // intrinsics, $ aka builtin
 
-def intrinsic_builtin_variant_index(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_variant_index(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     return LLVMBuildLoad2(ctx.builder, ctx.types.t_int32, arguments[0], "$::variant_index")
 }
 
-def intrinsic_builtin_set_variant_index(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_set_variant_index(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     return LLVMBuildStore2(ctx.builder, ctx.types, ctx.types.t_int32, arguments[1], arguments[0])
 }
 
-def intrinsic_builtin_length(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_length(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume argType = expr.arguments[0]._type
     if (argType.isGoodArrayType) {
         var arr = LLVMBuildLoad2(ctx.builder, type_to_llvm_type(expr.arguments[0]._type), arguments[0], "arr")
@@ -159,7 +178,11 @@ def intrinsic_builtin_length(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; a
     }
 }
 
-def intrinsic_builtin_int(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_is_standalone_exe(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+    return LLVMConstInt(ctx.types.t_int1, g_jit_exe_mode ? 1ul : 0ul, 0)
+}
+
+def intrinsic_builtin_int(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     let intType = base_type_to_llvm_type(expr._type.baseType)
     if (length(arguments) == 0) {
         return LLVMConstInt(intType, 0ul, 0)
@@ -213,7 +236,7 @@ def any2int(var ctx : JitCtx; val : LLVMOpaqueValue?; argType : Type; _outType :
     }
 }
 
-def intrinsic_builtin_int_vec(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_int_vec(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume resType = expr._type
     assume argType = expr.arguments[0]._type
     if (length(arguments) == 0) {
@@ -221,7 +244,7 @@ def intrinsic_builtin_int_vec(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; 
     }
     let outSigned = resType.vectorBaseType == Type.tInt
     // this works around the bug of fp2ui not working correctly for vectors on some values
-    var isFloatToUintVec = argType.isVectorType && (argType.vectorBaseType == Type.tFloat) && !outSigned
+    let isFloatToUintVec = argType.isVectorType && (argType.vectorBaseType == Type.tFloat) && !outSigned
     if (length(arguments) == 1 && !isFloatToUintVec) {
         if (argType.isVectorType) {
             return any2int(ctx, arguments[0], argType.vectorBaseType, type_to_llvm_type(expr._type), 4, 4, outSigned)
@@ -260,7 +283,7 @@ def any2float(var ctx : JitCtx; val : LLVMOpaqueValue?; argType : Type; _outType
     return null
 }
 
-def intrinsic_builtin_float_vec(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_float_vec(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume resType = expr._type
     if (length(arguments) == 0) {
         return build_broadcast_vector(ctx.builder, resType, LLVMConstReal(ctx.types.t_float, 0.0lf))
@@ -294,7 +317,7 @@ def intrinsic_builtin_float_vec(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>
     return vres
 }
 
-def intrinsic_builtin_float(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_float(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     let floatType = base_type_to_llvm_type(expr._type.baseType)
     if (length(arguments) == 0) {
         return LLVMConstReal(floatType, 0.0lf)
@@ -317,7 +340,7 @@ def intrinsic_builtin_float(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; ar
     }
 }
 
-def intrinsic_builtin_range(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_builtin_range(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var x, y : LLVMOpaqueValue?
     assume argType = expr.arguments[0]._type
     assume exprBaseType = expr._type.baseType
@@ -363,24 +386,24 @@ def build_op_name(op_name : string; opType : TypeDeclPtr) : string {
     return ""
 }
 
-def intrinsic_bit_nzp_op1(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_bit_nzp_op1(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var op_name : string
-    bit_op1_name |> get(string(expr.name)) <| $(pname) {
+    bit_op1_name |> get(string(expr.name)) $(pname) {
         op_name = pname
     }
     if (op_name == "") {
         failed_E(expr, "intrinsic {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
-    var sqrt_name = build_op_name(op_name, opType)
+    let sqrt_name = build_op_name(op_name, opType)
     if (sqrt_name == "") {
         failed_E(expr, "intrinsic type for {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
     var args <- [ arguments[0], LLVMConstInt(ctx.types.t_int1, 0ul, 0)]
     var argTypes <- [ type_to_llvm_abi_type(expr.arguments[0]._type)]
-    var id = LLVMLookupIntrinsicID(sqrt_name)
+    let id = LLVMLookupIntrinsicID(sqrt_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {sqrt_name}")
@@ -390,24 +413,24 @@ def intrinsic_bit_nzp_op1(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argu
     return LLVMBuildCall2(ctx.builder, typ, decl, args, string(expr.name))
 }
 
-def intrinsic_bit_op1(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_bit_op1(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var op_name : string
-    bit_op1_name |> get(string(expr.name)) <| $(pname) {
+    bit_op1_name |> get(string(expr.name)) $(pname) {
         op_name = pname
     }
     if (op_name == "") {
         failed_E(expr, "intrinsic {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
-    var sqrt_name = build_op_name(op_name, opType)
+    let sqrt_name = build_op_name(op_name, opType)
     if (sqrt_name == "") {
         failed_E(expr, "intrinsic type {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
     var args <- [ arguments[0]]
     var argTypes <- [ type_to_llvm_abi_type(expr.arguments[0]._type)]
-    var id = LLVMLookupIntrinsicID(sqrt_name)
+    let id = LLVMLookupIntrinsicID(sqrt_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {sqrt_name}")
@@ -423,24 +446,24 @@ let private op2_name <- {
     "pow" => "pow"
 }
 
-def intrinsic_op2(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_op2(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var op_name : string
-    op2_name |> get(string(expr.name)) <| $(pname) {
+    op2_name |> get(string(expr.name)) $(pname) {
         op_name = pname
     }
     if (op_name == "") {
         failed_E(expr, "intrinsic {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
-    var sqrt_name = build_op_name(op_name, opType)
+    let sqrt_name = build_op_name(op_name, opType)
     if (sqrt_name == "") {
         failed_E(expr, "intrinsic type {expr.name}({describe(opType)}) is not supported (yet?)")
         return null
     }
     var args <- [ arguments[0], arguments[1]]
     var argTypes <- [ type_to_llvm_abi_type(expr.arguments[0]._type)]
-    var id = LLVMLookupIntrinsicID(sqrt_name)
+    let id = LLVMLookupIntrinsicID(sqrt_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {sqrt_name}")
@@ -450,11 +473,11 @@ def intrinsic_op2(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : 
     return LLVMBuildCall2(ctx.builder, typ, decl, args, string(expr.name))
 }
 
-def build_math_minmax(g_builder : LLVMOpaqueBuilder?; exprName : string; expr : smart_ptr<ExprCallFunc>; arg0, arg1 : LLVMOpaqueValue?) : LLVMOpaqueValue? {
+def build_math_minmax(g_builder : LLVMOpaqueBuilder?; exprName : string; expr : ExprCallFunc?; arg0, arg1 : LLVMOpaqueValue?) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var op_name : string
     if (opType.isFloatOrDouble || (opType.isVectorType && opType.vectorBaseType == Type.tFloat)) {
-        var pred = exprName == "min" ? LLVMRealPredicate.LLVMRealOLT : LLVMRealPredicate.LLVMRealOGT
+        let pred = exprName == "min" ? LLVMRealPredicate.LLVMRealOLT : LLVMRealPredicate.LLVMRealOGT
         var cond = LLVMBuildFCmp(g_builder, pred, arg0, arg1, "")
         return LLVMBuildSelect(g_builder, cond, arg0, arg1, "{exprName}")
     } elif (opType.isInteger || (opType.isVectorType && (opType.vectorBaseType == Type.tInt || opType.vectorBaseType == Type.tUInt))) {
@@ -471,7 +494,7 @@ def build_math_minmax(g_builder : LLVMOpaqueBuilder?; exprName : string; expr : 
     let sqrt_name = build_op_name(op_name, opType)
     var args <- [ arg0, arg1]
     var argTypes <- [ type_to_llvm_abi_type(expr.arguments[0]._type)]
-    var id = LLVMLookupIntrinsicID(sqrt_name)
+    let id = LLVMLookupIntrinsicID(sqrt_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {sqrt_name}")
@@ -481,18 +504,18 @@ def build_math_minmax(g_builder : LLVMOpaqueBuilder?; exprName : string; expr : 
     return LLVMBuildCall2(g_builder, typ, decl, args, string(exprName))
 }
 
-def intrinsic_math_minmax(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_minmax(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     return build_math_minmax(ctx.builder, string(expr.name), expr, arguments[0], arguments[1])
 }
 
-def intrinsic_math_clamp(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_clamp(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var mini = build_math_minmax(ctx.builder, "max", expr, arguments[0], arguments[1])
     return build_math_minmax(ctx.builder, "min", expr, mini, arguments[2])
 }
 
 // intrinsics, math
 
-def intrinsic_math_rcp(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_rcp(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume argType = expr.arguments[0]._type
     if (argType.baseType == Type.tFloat || (argType.isVectorType && argType.vectorBaseType == Type.tFloat)) {
         var one = build_broadcast_vector(ctx.builder, argType, LLVMConstReal(ctx.types.t_float, 1.0lf))
@@ -506,7 +529,7 @@ def intrinsic_math_rcp(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argumen
     }
 }
 
-def intrinsic_math_rsqrt(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_rsqrt(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume argType = expr.arguments[0]._type
     if (argType.baseType == Type.tFloat || (argType.isVectorType && argType.vectorBaseType == Type.tFloat)) {
         var one = build_broadcast_vector(ctx.builder, argType, LLVMConstReal(ctx.types.t_float, 1.0lf))
@@ -518,7 +541,7 @@ def intrinsic_math_rsqrt(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argum
     }
 }
 
-def intrinsic_math_any_float_op1(expr_name : string; g_builder : LLVMOpaqueBuilder?; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_any_float_op1(expr_name : string; g_builder : LLVMOpaqueBuilder?; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var sqrt_name = "llvm.{expr_name}.f32"
     assume opType = expr.arguments[0]._type
     if (opType.isFloatOrDouble || (opType.isVectorType && opType.vectorBaseType == Type.tFloat)) {
@@ -531,7 +554,7 @@ def intrinsic_math_any_float_op1(expr_name : string; g_builder : LLVMOpaqueBuild
     }
     var args <- [ arguments[0]]
     var argTypes <- [ type_to_llvm_abi_type(expr.arguments[0]._type)]
-    var id = LLVMLookupIntrinsicID(sqrt_name)
+    let id = LLVMLookupIntrinsicID(sqrt_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {sqrt_name}")
@@ -541,22 +564,22 @@ def intrinsic_math_any_float_op1(expr_name : string; g_builder : LLVMOpaqueBuild
     return LLVMBuildCall2(g_builder, typ, decl, args, expr_name)
 }
 
-def intrinsic_math_float_op1(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_float_op1(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     return intrinsic_math_any_float_op1(string(expr.name), ctx.builder, expr, arguments)
 }
 
-def intrinsic_math_float_op1_to_int(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_float_op1_to_int(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var res = intrinsic_math_any_float_op1(string(expr.name) |> slice(0, -1), ctx.builder, expr, arguments)
     return LLVMBuildFPToSI(ctx.builder, res, type_to_llvm_abi_type(expr._type), "")
 }
 
-def intrinsic_math_tan(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_tan(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var sin_a = intrinsic_math_any_float_op1("sin", ctx.builder, expr, arguments)
     var cos_a = intrinsic_math_any_float_op1("cos", ctx.builder, expr, arguments)
     return LLVMBuildFDiv(ctx.builder, sin_a, cos_a, "tan")
 }
 
-def intrinsic_math_lerp_op3(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_lerp_op3(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var a = arguments[0]
     var b = arguments[1]
     var t = arguments[2]
@@ -568,7 +591,7 @@ def intrinsic_math_lerp_op3(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; ar
     return LLVMBuildFAdd(ctx.builder, b_a_mul_t, a, "lerp")
 }
 
-def intrinsic_math_mad_op3(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_mad_op3(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var a = arguments[0]
     var b = arguments[1]
     if (expr.arguments[0]._type.isVectorType && !expr.arguments[1]._type.isVectorType) {
@@ -585,7 +608,7 @@ def intrinsic_math_mad_op3(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arg
     }
 }
 
-def intrinsic_math_abs(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_abs(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var int_name = ""
     if (opType.isInteger || (opType.isVectorType && (opType.vectorBaseType == Type.tInt || opType.vectorBaseType == Type.tUInt))) {
@@ -608,11 +631,11 @@ def intrinsic_math_abs(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argumen
     }
 }
 
-def intrinsic_math_abs_float(int_name : string; g_builder : LLVMOpaqueBuilder?; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_abs_float(int_name : string; g_builder : LLVMOpaqueBuilder?; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var args <- [ arguments[0]]
     var argTypes <- [ type_to_llvm_abi_type(opType)]
-    var id = LLVMLookupIntrinsicID(int_name)
+    let id = LLVMLookupIntrinsicID(int_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {int_name}")
@@ -622,11 +645,11 @@ def intrinsic_math_abs_float(int_name : string; g_builder : LLVMOpaqueBuilder?; 
     return LLVMBuildCall2(g_builder, typ, decl, args, string(expr.name))
 }
 
-def intrinsic_math_abs_int(abs_name : string; ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_abs_int(abs_name : string; ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     var args <- [ arguments[0], LLVMConstInt(ctx.types.t_int1, 0ul, 0)]
     var argTypes <- [ type_to_llvm_abi_type(opType)]
-    var id = LLVMLookupIntrinsicID(abs_name)
+    let id = LLVMLookupIntrinsicID(abs_name)
     var decl = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes)
     if (decl == null) {
         failed_E(expr, "missing intrinsic {abs_name}")
@@ -636,7 +659,7 @@ def intrinsic_math_abs_int(abs_name : string; ctx : JitCtx; expr : smart_ptr<Exp
     return LLVMBuildCall2(ctx.builder, typ, decl, args, string(expr.name))
 }
 
-def intrinsic_math_saturate(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_saturate(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     if (opType.isFloatOrDouble || (opType.isVectorType && opType.vectorBaseType == Type.tFloat)) {
         var v_0 = LLVMConstReal(ctx.types.t_float, double(0.))
@@ -660,7 +683,7 @@ def build_fadd(var ctx : JitCtx; opType : TypeDeclPtr; v2 : LLVMOpaqueValue?; na
     let neg_0 = LLVMConstReal(ctx.types.t_float, -double(0.))
     var args_fadd <- [ neg_0, v2]
     var argTypes_fadd <- [ type_to_llvm_abi_type(opType)]
-    var id = LLVMLookupIntrinsicID(fadd_name)
+    let id = LLVMLookupIntrinsicID(fadd_name)
     var decl_fadd = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes_fadd)
     if (decl_fadd == null) {
         failed("missing intrinsic {fadd_name}")
@@ -674,7 +697,7 @@ def build_fsqrt(var ctx : JitCtx; v2 : LLVMOpaqueValue?; name : string) : LLVMOp
     let fsqrt_name = "llvm.sqrt.f32"
     var args_fsqrt <- [ v2]
     var argTypes_fsqrt <- [ ctx.types.t_float]
-    var id = LLVMLookupIntrinsicID(fsqrt_name)
+    let id = LLVMLookupIntrinsicID(fsqrt_name)
     var decl_fsqrt = LLVMGetIntrinsicDeclaration(g_mod, id, argTypes_fsqrt)
     if (decl_fsqrt == null) {
         failed("missing intrinsic {fsqrt_name}")
@@ -690,21 +713,21 @@ def build_frcp(var ctx : JitCtx; v2 : LLVMOpaqueValue?; name : string) : LLVMOpa
     return fdiv
 }
 
-def intrinsic_math_length_sq(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_length_sq(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v2 = LLVMBuildFMul(ctx.builder, arguments[0], arguments[0], "")
     return build_fadd(ctx, opType, v2, "length_sq")
 }
 
-def intrinsic_math_dot(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_dot(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v2 = LLVMBuildFMul(ctx.builder, arguments[0], arguments[1], "")
     return build_fadd(ctx, opType, v2, "dot")
 }
 
-def intrinsic_math_fast_normalize(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_fast_normalize(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v2 = LLVMBuildFMul(ctx.builder, arguments[0], arguments[0], "")
@@ -716,7 +739,7 @@ def intrinsic_math_fast_normalize(var ctx : JitCtx; expr : smart_ptr<ExprCallFun
 }
 
 
-def intrinsic_math_normalize(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_normalize(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v2 = LLVMBuildFMul(ctx.builder, arguments[0], arguments[0], "")
@@ -749,7 +772,7 @@ def intrinsic_math_normalize(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; a
     return phi
 }
 
-def intrinsic_math_cross(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_cross(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     //! a.yzx * b.zxy - a.zxy * b.yzx
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType && opType.vectorDim == 3)
@@ -765,7 +788,7 @@ def intrinsic_math_cross(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argum
     return LLVMBuildShuffleVector(ctx.builder, ctx.types, cross, cross, [ 0, 1, 2], "cross")
 }
 
-def intrinsic_math_inv_distance_sq(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_inv_distance_sq(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v = LLVMBuildFSub(ctx.builder, arguments[0], arguments[1], "")
@@ -774,7 +797,7 @@ def intrinsic_math_inv_distance_sq(var ctx : JitCtx; expr : smart_ptr<ExprCallFu
     return LLVMBuildFDiv(ctx.builder, LLVMConstReal(ctx.types.t_float, 1.0lf), distance_sq, "inv_distance_sq")
 }
 
-def intrinsic_math_inv_length(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_inv_length(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isVectorType)
     let v2 = LLVMBuildFMul(ctx.builder, arguments[0], arguments[0], "")
@@ -783,7 +806,7 @@ def intrinsic_math_inv_length(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; 
     return build_frcp(ctx, len, "inv_length")
 }
 
-def intrinsic_das_ptr_set_add(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_das_ptr_set_add(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isPointer)
     var arg1 = arguments[1]
@@ -800,13 +823,13 @@ def intrinsic_das_ptr_set_add(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; 
     return LLVMBuildStore(ctx.builder, vptr_value_stride, arguments[0])
 }
 
-def intrinsic_das_ptr_set_sub(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_das_ptr_set_sub(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var args := arguments
     args[1] = LLVMBuildNeg(ctx.builder, args[1], "")
     return intrinsic_das_ptr_set_add(ctx, expr, args)
 }
 
-def intrinsic_das_ptr_add(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_das_ptr_add(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isPointer)
     var arg1 = arguments[1]
@@ -826,13 +849,13 @@ def intrinsic_das_ptr_add(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argu
     return vptr_value_stride
 }
 
-def intrinsic_das_ptr_sub(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_das_ptr_sub(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var args := arguments
     args[1] = LLVMBuildNeg(ctx.builder, args[1], "")
     return intrinsic_das_ptr_add(ctx, expr, args)
 }
 
-def intrinsic_memset8(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_memset8(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isPointer)
     return LLVMBuildMemSet(ctx.builder, arguments[0], arguments[1], arguments[2], 1u)
@@ -852,7 +875,7 @@ def build_cmove_nz(var ctx : JitCtx; val : LLVMOpaqueValue?; blk : block) {
 
 def build_write_n_values(var ctx : JitCtx; iptr, value, ival, isize : LLVMOpaqueValue?; count : int) {
     var ptr = LLVMBuildLoad2(ctx.builder, LLVMPointerType(ctx.types.LLVMInt4Type(), 0u), iptr, "")
-    for (i in range(count)) {
+    for (_i in range(count)) {
         LLVMSetAlignment(LLVMBuildStore(ctx.builder, value, ptr), 4u)
         ptr = LLVMBuildGEP2(ctx.builder, ctx.types.LLVMInt4Type(), ptr, LLVMConstInt(ctx.types.t_int64, 1ul, 0), "")
     }
@@ -870,19 +893,19 @@ def build_memset_128(var ctx : JitCtx; _ptr, value, _size : LLVMOpaqueValue?) : 
 // if ( size & 1 ) write 1 value
     var ival = LLVMBuildLoad2(ctx.builder, ctx.types.t_int64, isize, "")
     var size_and_1 = LLVMBuildAnd(ctx.builder, ival, LLVMConstInt(ctx.types.t_int64, 1ul, 0), "")
-    build_cmove_nz(ctx, size_and_1) <| $() {
+    build_cmove_nz(ctx, size_and_1) {
         build_write_n_values(ctx, iptr, value, ival, isize, 1)
     }
 // if ( size & 3 ) write 2 values
     ival = LLVMBuildLoad2(ctx.builder, ctx.types.t_int64, isize, "")
     var size_and_3 = LLVMBuildAnd(ctx.builder, ival, LLVMConstInt(ctx.types.t_int64, 3ul, 0), "")
-    build_cmove_nz(ctx, size_and_3) <| $() {
+    build_cmove_nz(ctx, size_and_3) {
         build_write_n_values(ctx, iptr, value, ival, isize, 2)
     }
 // if ( size & 7 ) write 4 values
     ival = LLVMBuildLoad2(ctx.builder, ctx.types.t_int64, isize, "")
     var size_and_7 = LLVMBuildAnd(ctx.builder, ival, LLVMConstInt(ctx.types.t_int64, 7ul, 0), "")
-    build_cmove_nz(ctx, size_and_7) <| $() {
+    build_cmove_nz(ctx, size_and_7) {
         build_write_n_values(ctx, iptr, value, ival, isize, 4)
     }
 // loop body
@@ -923,7 +946,7 @@ def build_write_if_cond(ctx : JitCtx; cond, ptr, value : LLVMOpaqueValue?) {
     LLVMPositionBuilderAtEnd(ctx.builder, skip)
 }
 
-def intrinsic_memset128(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_memset128(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume opType = expr.arguments[0]._type
     assert(opType.isPointer)
     var size = LLVMBuildZExtOrBitCast(ctx.builder, arguments[2], ctx.types.t_int64, "")
@@ -961,7 +984,7 @@ def build_memset_64(var ctx : JitCtx; ptr_type : LLVMOpaqueType?; _ptr, val, _si
     return build_memset_128(ctx, ptr, value, size)
 }
 
-def intrinsic_memset64(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_memset64(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var size = LLVMBuildZExtOrBitCast(ctx.builder, arguments[2], ctx.types.t_int64, "")
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[0], LLVMPointerType(ctx.types.t_int64, 0u), "")
     return build_memset_64(ctx, ctx.types.t_int64, ptr, arguments[1], size)
@@ -976,7 +999,7 @@ def build_memset_32(var ctx : JitCtx; ptr_type : LLVMOpaqueType?; _ptr, val, _si
     return build_memset_64(ctx, ctx.types.t_int64, ptr, value, size)
 }
 
-def intrinsic_memset32(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_memset32(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var size = LLVMBuildZExtOrBitCast(ctx.builder, arguments[2], ctx.types.t_int64, "")
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[0], LLVMPointerType(ctx.types.t_int32, 0u), "")
     return build_memset_32(ctx, ctx.types.t_int32, ptr, arguments[1], size)
@@ -991,13 +1014,13 @@ def build_memset_16(var ctx : JitCtx; ptr_type : LLVMOpaqueType?; _ptr, val, _si
     return build_memset_32(ctx, ctx.types.t_int32, ptr, value, size)
 }
 
-def intrinsic_memset16(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_memset16(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var size = LLVMBuildZExtOrBitCast(ctx.builder, arguments[2], ctx.types.t_int64, "")
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[0], LLVMPointerType(ctx.types.t_int16, 0u), "")
     return build_memset_16(ctx, ctx.types.t_int16, ptr, arguments[1], size)
 }
 
-def intrinsic_math_gather(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_gather(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[0], LLVMPointerType(ctx.types.t_int32, 0u), "")
     var ix = LLVMBuildExtractElement(ctx.builder, arguments[1], ctx.types.ConstI32(0ul), "")
     var iy = LLVMBuildExtractElement(ctx.builder, arguments[1], ctx.types.ConstI32(1ul), "")
@@ -1015,7 +1038,7 @@ def intrinsic_math_gather(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argu
     return res
 }
 
-def intrinsic_math_store_neq_mask(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_store_neq_mask(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[0], LLVMPointerType(ctx.types.LLVMInt4Type(), 0u), "")
     var value = arguments[1]
     var mask_v = arguments[2]
@@ -1028,14 +1051,14 @@ def intrinsic_math_store_neq_mask(var ctx : JitCtx; expr : smart_ptr<ExprCallFun
     return res
 }
 
-def intrinsic_math_gather_store_mask(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
-    var arg_gather <- [ arguments[1], arguments[2]]
+def intrinsic_math_gather_store_mask(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+    let arg_gather <- [ arguments[1], arguments[2]]
     var gather = intrinsic_math_gather(ctx, expr, arg_gather)
-    var arg_store_mask <- [ arguments[0], gather, arguments[3]]
+    let arg_store_mask <- [ arguments[0], gather, arguments[3]]
     return intrinsic_math_store_neq_mask(ctx, expr, arg_store_mask)
 }
 
-def intrinsic_math_gather_store_stride(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_gather_store_stride(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     // gather
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[2], LLVMPointerType(ctx.types.t_int32, 0u), "")
     var ix = LLVMBuildExtractElement(ctx.builder, arguments[3], ctx.types.ConstI32(0ul), "")
@@ -1088,7 +1111,7 @@ def intrinsic_math_gather_store_stride(var ctx : JitCtx; expr : smart_ptr<ExprCa
 // gather_store_neq_mask
 // def intrinsic_gather_store_neq_mask
 
-def intrinsic_math_u8x4_gather_store(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_u8x4_gather_store(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     // gather
     var ptr = LLVMBuildPointerCast(ctx.builder, arguments[1], LLVMPointerType(ctx.types.t_int8, 0u), "")
     var ix = LLVMBuildExtractElement(ctx.builder, arguments[2], ctx.types.ConstI32(0ul), "")
@@ -1112,17 +1135,17 @@ def intrinsic_math_u8x4_gather_store(var ctx : JitCtx; expr : smart_ptr<ExprCall
     return out
 }
 
-def intrinsic_math_roundi(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_roundi(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var res = intrinsic_math_any_float_op1("round", ctx.builder, expr, arguments)
     return LLVMBuildFPToSI(ctx.builder, res, type_to_llvm_abi_type(expr._type), "")
 }
 
-def intrinsic_math_trunci(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_trunci(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var res = intrinsic_math_any_float_op1("trunc", ctx.builder, expr, arguments)
     return LLVMBuildFPToSI(ctx.builder, res, type_to_llvm_abi_type(expr._type), "")
 }
 
-def intrinsic_math_sign(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_math_sign(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     assume resType = expr._type
     if (resType.isSignedInteger || (resType.isVectorType && resType.vectorBaseType == Type.tInt)) {
         var itype = base_type_to_llvm_type(resType.isSignedInteger ? resType.baseType : resType.vectorBaseType)
@@ -1157,7 +1180,7 @@ def intrinsic_math_sign(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; argume
     }
 }
 
-def intrinsic_mul_128(var ctx : JitCtx; expr : smart_ptr<ExprCallFunc>; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
+def intrinsic_mul_128(var ctx : JitCtx; expr : ExprCallFunc?; arguments : array<LLVMOpaqueValue?>) : LLVMOpaqueValue? {
     var a = arguments[0]
     var b = arguments[1]
     var A = LLVMBuildZExtOrBitCast(ctx.builder, a, ctx.types.t_int128, "")

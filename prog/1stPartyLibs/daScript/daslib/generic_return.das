@@ -18,15 +18,15 @@ require daslib/macro_boost
 [call_macro(name="generic_return")]
 class GenericReturn : AstCallMacro {
     //! Replaces generic_return(expr) with a block that calls expr and returns its result, handling void, copyable, and movable return types.
-    def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {
+    def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         if (expr.arguments |> length != 1) {
             macro_error(prog, expr.at, "generic_return expecting 1 argument")
-            return <- default<ExpressionPtr>
+            return null
         }
         assume ret_expr = expr.arguments[0]
         if (ret_expr._type == null || ret_expr._type.isAutoOrAlias) {
             macro_error(prog, expr.at, "generic_return requires fully inferred type")
-            return <- default<ExpressionPtr>
+            return null
         }
         if (ret_expr._type.isVoid) {
             return <- qmacro_block() {
@@ -43,7 +43,7 @@ class GenericReturn : AstCallMacro {
             }
         } else {
             macro_error(prog, expr.at, "generic_return for the type {describe(ret_expr._type)}, which can't be copied or moved")
-            return <- default<ExpressionPtr>
+            return null
         }
     }
 }

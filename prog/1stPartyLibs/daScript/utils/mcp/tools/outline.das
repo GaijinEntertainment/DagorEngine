@@ -242,11 +242,11 @@ def do_outline(file, glob_filter : string) : string {
     }
     var raw_json : string
     unsafe {
-        popen(cmd) <| $(f) {
+        popen(cmd) $(f) {
             if (f == null) {
                 return
             }
-            raw_json = build_string() <| $(var w) {
+            raw_json = build_string() $(var w) {
                 while (!feof(f)) {
                     write(w, fgets(f))
                 }
@@ -297,14 +297,14 @@ def do_outline(file, glob_filter : string) : string {
     // sort entries within each file by line
     for (fp in file_order) {
         unsafe {
-            sort(by_file[fp]) <| $(a, b) {
+            sort(by_file[fp]) $(a, b) {
                 return entries[a].line < entries[b].line
             }
         }
     }
     // format output
     let multi_file = length(file_order) > 1
-    var output = build_string() <| $(var w) {
+    var output = build_string() $(var w) {
         for (fp_idx in range(length(file_order))) {
             let fp = file_order[fp_idx]
             if (multi_file) {

@@ -225,13 +225,3 @@ Script loading and serialization
         sq_pushroottable(v); //push the root table(were the globals of the script will are stored)
         sqstd_dofile(v, "test.nut", SQFalse, SQTrue);// also prints syntax errors if any
 
-.. c:function:: SQRESULT sqstd_writeclosuretofile(HSQUIRRELVM v, const char* filename)
-
-    :param HSQUIRRELVM v: the target VM
-    :param char* filename: destination path of serialized closure
-    :returns: an SQRESULT
-
-    serializes the closure at the top position in the stack as bytecode in
-    the file specified by the parameter filename. If a file with the
-    same name already exists, it will be overwritten.
-

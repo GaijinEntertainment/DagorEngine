@@ -1190,9 +1190,9 @@ bool DagorAssetMgr::checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFo
   }
 
   ReadGuard guard(mutex);
-  post_error_f(*msgPipe, folder_path, fname, "duplicate %s asset %s of type <%s>, existing is %s asset from %s/%s",
+  post_error_f(*msgPipe, folder_path, fname, "duplicate %s asset %s of type <%s>, existing is %s asset from %s",
     ca->isVirtual() ? "virtual" : "BLK", assetNames.getName(asset_name_id), typeNames.getName(asset_type),
-    loaded_assets[pa_idx]->isVirtual() ? "virtual" : "BLK", folder_path, loaded_assets[pa_idx]->getSrcFileName());
+    loaded_assets[pa_idx]->isVirtual() ? "virtual" : "BLK", loaded_assets[pa_idx]->getSrcFilePath());
   return false;
 }
 

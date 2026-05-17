@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "vendor_exts.h"
+#include "../../driver.h"
 #include "backend/context.h"
 #include "execution_sync.h"
 #include "dlss.h"
+#include "../../amdFsr.h"
 
 using namespace drv3d_vulkan;
 
@@ -57,7 +59,8 @@ TSPEC void BEContext::execCmd(const CmdExecuteFSR &cmd)
 
   Backend::sync.completeNeeded();
 
-  cmd.fsr->doApplyUpscaling(args, frameCore);
+  if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+    fsr->doApplyUpscaling(args, frameCore);
 
   // FSR modifies state in command buffer, so we must setup it back,
   // same way as if command buffer was interrupted

@@ -376,7 +376,7 @@ struct yy_buffer_state
     FILE *yy_input_file;
 
     char *yy_ch_buf;        /* input buffer */
-    char *yy_buf_pos;       /* current position in input buffer */
+    char *yy_buf_pos;        /* current position in input buffer */
 
     /* Size of input buffer in bytes, not including room for EOB
      * characters.

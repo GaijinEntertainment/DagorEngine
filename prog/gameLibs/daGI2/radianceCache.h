@@ -71,7 +71,7 @@ protected:
     updateOldProbeFreq = 4;     // will skip each N-1 frames for non-active probes. Non-active probes will be updated in each
                                 // updateInFrames*updateOldProbeFreq frames
   // the cache
-  UniqueTexHolder current_radiance_cache, current_radiance_cache_hit_distance;
+  UniqueTexWithShaderVar current_radiance_cache, current_radiance_cache_hit_distance;
   UniqueBufHolder radiance_cache_positions; // current positions of radiance cache, (currently in absolute values)
   UniqueBufHolder radiance_cache_age;       // current age of radiance cache probes (latest frame it was used in)
   UniqueBufHolder radiance_cache_selected_temporal_probes;
@@ -95,7 +95,7 @@ protected:
   eastl::unique_ptr<ComputeShaderElement> radiance_cache_create_dispatch_indirect_cs;
   eastl::unique_ptr<RingCPUBufferLock> readBackData;
   // irradiance
-  UniqueTexHolder radiance_cache_irradiance;
+  UniqueTexWithShaderVar radiance_cache_irradiance;
   eastl::unique_ptr<ComputeShaderElement> rd_calc_irradiance_cache_new_cs, rd_calc_irradiance_cache_temporal_cs;
 
   void initIrradiance();

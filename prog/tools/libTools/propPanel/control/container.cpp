@@ -2,6 +2,7 @@
 
 #include <propPanel/control/container.h>
 #include <propPanel/control/dragAndDropHandler.h>
+#include <propPanel/control/spinEditFloat.h>
 #include <propPanel/c_indirect.h>
 #include <propPanel/focusHelper.h>
 #include "button.h"
@@ -29,8 +30,8 @@
 #include "radioGroup.h"
 #include "separator.h"
 #include "simpleColor.h"
-#include "spinEditFloat.h"
 #include "spinEditInt.h"
+#include "splitter.h"
 #include "static.h"
 #include "tabPanel.h"
 #include "targetButton.h"
@@ -109,6 +110,24 @@ ContainerPropertyControl *ContainerPropertyControl::createRadioGroup(int id, con
   RadioGroupPropertyControl *newControl =
     new RadioGroupPropertyControl(mEventHandler, this, id, 0, 0, hdpi::Px(0), hdpi::Px(0), caption);
   addControl(newControl, new_line);
+  return newControl;
+}
+
+ContainerPropertyControl *ContainerPropertyControl::createHorizontalSplitter(int id)
+{
+  SplitterPropertyControl *newControl =
+    new SplitterPropertyControl(mEventHandler, this, id, getNextControlX(), getNextControlY(), true);
+
+  addControl(newControl);
+  return newControl;
+}
+
+ContainerPropertyControl *ContainerPropertyControl::createVerticalSplitter(int id)
+{
+  SplitterPropertyControl *newControl =
+    new SplitterPropertyControl(mEventHandler, this, id, getNextControlX(), getNextControlY(), false);
+
+  addControl(newControl);
   return newControl;
 }
 

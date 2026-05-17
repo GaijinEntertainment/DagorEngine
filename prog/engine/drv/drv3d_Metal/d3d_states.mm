@@ -672,8 +672,6 @@ bool d3d::is_in_device_reset_now() { return false; }
 
 bool d3d::is_window_occluded() { return false; }
 
-bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned>) { return false; }
-
 bool d3d::reset_device()
 {
   return true;

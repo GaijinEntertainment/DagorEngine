@@ -111,6 +111,10 @@ constexpr bool cpu_feature_fast_256bit_avx = true;
 inline bool &cpu_feature_fast_256bit_avx = cpu_feature_fast_256bit_avx_checked;
 #endif // __AVX__
 
+KRNLIMP extern bool dag_check_cpu_features();
+KRNLIMP extern bool dag_check_cpu_features_basic();
+KRNLIMP extern bool dag_check_cpu_features_without_cpuid();
+
 #endif // __cplusplus >= 201703L
 
 #include <supp/dag_undef_KRNLIMP.h>

@@ -35,6 +35,8 @@ void debug_log_tvos(const char *);
 #endif
 #endif
 
+extern const unsigned MAX_LOG_FILE_SIZE = (64 << 20) - 16384;
+
 bool debug_internal::append_files = false;
 int debug_internal::append_files_stage = 0;
 
@@ -125,10 +127,7 @@ int uncrypt_out_str(unsigned char *buf, size_t sz, int key_offset)
 int uncrypt_out_str(unsigned char *, size_t, int) { return 0; }
 #endif
 
-#if _TARGET_IOS | _TARGET_TVOS | _TARGET_ANDROID
-extern char ios_global_log_fname[];
-static FILE *ios_global_fp = NULL;
-#elif _TARGET_XBOX
+#if _TARGET_XBOX
 static FILE *xbox_debug_file = NULL;
 static bool file_was_created_this_launch = false;
 #endif
@@ -355,21 +354,11 @@ static void log_write(char *data, size_t len)
 #if _TARGET_SIMD_NEON
   if (is_debug_console_ios_file_output() && get_debug_console_handle() != invalid_console_handle)
   {
-    if (!ios_global_fp && ios_global_log_fname[0])
+    intptr_t fp = get_debug_console_handle();
+    if (fp && fp != invalid_console_handle)
     {
-      ios_global_fp = fopen(ios_global_log_fname, "wt");
-      out_debug_str_fmt("Creating log file: %s", ios_global_log_fname);
-      if (!ios_global_fp)
-      {
-        out_debug_str("failed to create log file");
-        ios_global_log_fname[0] = 0;
-        set_debug_console_handle(invalid_console_handle);
-      }
-    }
-    if (ios_global_fp)
-    {
-      fwrite(data, 1, len, ios_global_fp);
-      fflush(ios_global_fp);
+      fwrite(data, 1, len, (FILE *)fp);
+      fflush((FILE *)fp);
     }
   }
   if (is_enabled_copy_debug_to_ios_console())
@@ -711,21 +700,23 @@ void debug_allow_level_files(bool en) { debug_internal::level_files = en; }
 #elif _TARGET_IOS | _TARGET_TVOS
 void flush_debug_file()
 {
-  if (ios_global_fp)
+  intptr_t fp = get_debug_console_handle();
+  if (fp && fp != invalid_console_handle)
   {
-    out_debug_str_fmt("flushing %s", ios_global_log_fname);
-    fflush(ios_global_fp);
+    out_debug_str_fmt("flushing %s\n", get_log_filename());
+    fflush((FILE *)fp);
   }
 }
 
 void close_debug_files()
 {
-  if (ios_global_fp)
+  intptr_t fp = get_debug_console_handle();
+  if (fp && fp != invalid_console_handle)
   {
-    out_debug_str_fmt("closing %s", ios_global_log_fname);
-    fclose(ios_global_fp);
+    out_debug_str_fmt("closing %s\n", get_log_filename());
+    fclose((FILE *)fp);
   }
-  ios_global_fp = NULL;
+  set_debug_console_handle(invalid_console_handle);
 }
 
 void debug_flush(bool) {}

@@ -55,7 +55,8 @@ def test_while_loop(t : T?) {
     t |> equal(count_all(10), 10)
     t |> equal(count_with_break(10, 5), 5)
     t |> equal(count_with_continue(10, 5), 4)
-    t |> equal(count_with_finally(10), 1)
+    // per-iter finally: finally fires once per iteration, so tf == 10 for while (i < 10)
+    t |> equal(count_with_finally(10), 10)
 }
 
 

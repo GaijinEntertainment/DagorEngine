@@ -11,6 +11,7 @@
 #include <image_view_state.h>
 #include <resource_memory.h>
 #include <texture_subresource_util.h>
+#include <d3d12_utils.h>
 
 #include <dag/dag_vector.h>
 #include <osApiWrappers/dag_spinlock.h>

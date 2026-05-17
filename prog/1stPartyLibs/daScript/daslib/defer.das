@@ -39,7 +39,7 @@ def public nada() {
 class DeferMacro : AstFunctionAnnotation {
     //! This macro converts defer() <| block expression
     //! into {}, and move block to the finally section of the current block
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         var success = true
         compiling_program() |> get_ast_context(call) $(valid, astc) {
             if (!valid) {
@@ -54,14 +54,15 @@ class DeferMacro : AstFunctionAnnotation {
                     compiling_program() |> macro_error(call.at, "defer can't be used in the loop. finally section of the loop only runs one. enclose in `if true` to ensure scope")
                     success = false
                 } else {
-                    var inscope c_arg <- clone_expression(call.arguments[0])
-                    var inscope from_block <- move_unquote_block(c_arg)
+                    var c_arg = clone_expression(call.arguments[0])
+                    var from_block = move_unquote_block(c_arg)
                     from_block.blockFlags ^= ExprBlockFlags.isClosure
                     scope.finalList |> emplace(from_block, 0)
                 }
             }
         }
-        return <- !success ? default<ExpressionPtr> : quote() <| nada()
+        return null if (!success)
+        return quote() <| nada()
     }
 }
 
@@ -69,7 +70,7 @@ class DeferMacro : AstFunctionAnnotation {
 class DeferDeleteMacro : AstCallMacro {
     //! This macro converts defer_delete() expression
     //! into {}, and add delete expression to the finally section of the current block
-    def override visit(prog : ProgramPtr; mod : Module?; var call : smart_ptr<ExprCallMacro>) : ExpressionPtr {
+    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : ExpressionPtr {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting defer_delete(expr)")
         to_compiler_log("{describe(call.at)}: *warning* defer_delete is deprecated. use var inscope instead\n")
         var success = true
@@ -87,11 +88,12 @@ class DeferDeleteMacro : AstCallMacro {
                     success = false
                 } else {
                     scope.finalList |> emplace_new <| new ExprDelete(at = call.at,
-                            subexpr <- clone_expression(call.arguments[0])
+                            subexpr = clone_expression(call.arguments[0])
                         )
                 }
             }
         }
-        return <- !success ? default<ExpressionPtr> : quote() <| nada()
+        return null if (!success)
+        return quote() <| nada()
     }
 }

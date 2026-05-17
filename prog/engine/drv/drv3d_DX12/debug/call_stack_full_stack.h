@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "call_stack_ext.h"
 #include <EASTL/array.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/hash_set.h>
@@ -34,6 +35,9 @@ struct CallStackHasher
 
 struct CommandData
 {
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Message msg;
+#endif
   const CallStack *callStack;
 };
 
@@ -57,9 +61,18 @@ class Generator
 {
   WinCritSec mutex;
   eastl::hash_set<CallStack, CallStackHasher> callstacks;
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Generator extGenerator;
+#endif
 
 public:
-  constexpr void configure(const DataBlock *) {}
+  void configure(const DataBlock *api_config)
+  {
+    G_UNUSED(api_config);
+#if DX12_HAS_CALLSTACK_EXT
+    extGenerator.configure(api_config);
+#endif
+  }
   const CallStack *captureCallStack(uint32_t offset)
   {
     CallStack callstack;
@@ -71,12 +84,24 @@ public:
   }
 
 public:
-  CommandData generateCommandData() { return {captureCallStack(2)}; }
+  CommandData generateCommandData(uint32_t frame_index)
+  {
+    G_UNUSED(frame_index);
+    return {
+#if DX12_HAS_CALLSTACK_EXT
+      extGenerator.captureExtMessage(frame_index),
+#endif
+      captureCallStack(2)};
+  }
 };
 
 class Reporter
 {
   eastl::hash_map<const CallStack *, eastl::string> callStackCache;
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Resolver extResolver;
+#endif
+
   const eastl::string &doResolve(const CommandData &data)
   {
     auto ref = callStackCache.find(data.callStack);
@@ -114,5 +139,9 @@ public:
   void append(String &, const char *, const null::CommandData &) {}
 
   eastl::string_view resolve(const CommandData &data) { return doResolve(data); }
+
+#if DX12_HAS_CALLSTACK_EXT
+  const char *extMessage(const CommandData &data) { return extResolver.extMessage(data.msg); }
+#endif
 };
 } // namespace drv3d_dx12::debug::call_stack::full_stack

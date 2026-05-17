@@ -86,7 +86,7 @@ public:
         {"return_address", CommandData::ActiveMember::AS_RETURN_ADDRESS}, //
         {"full_stack", CommandData::ActiveMember::AS_FULL_STACK}};
     // return_address is the default mode, it is almost free to use and available
-    const auto defaultMode = &modes[1];
+    const auto defaultMode = &modes[DAGOR_DBGLEVEL > 0];
 
     const char *modeName = "";
     const char *blockName = "";
@@ -124,13 +124,14 @@ public:
       case CommandData::ActiveMember::AS_FULL_STACK: FullStackBaseType::configure(api_config); break;
     }
   }
-  CommandData generateCommandData()
+  CommandData generateCommandData(uint32_t frame_index)
   {
     switch (generatorMode)
     {
-      case CommandData::ActiveMember::AS_NULL: return CommandData::make(NullBaseType::generateCommandData());
-      case CommandData::ActiveMember::AS_RETURN_ADDRESS: return CommandData::make(ReturnAddressBaseType::generateCommandData());
-      case CommandData::ActiveMember::AS_FULL_STACK: return CommandData::make(FullStackBaseType::generateCommandData());
+      case CommandData::ActiveMember::AS_NULL: return CommandData::make(NullBaseType::generateCommandData(frame_index));
+      case CommandData::ActiveMember::AS_RETURN_ADDRESS:
+        return CommandData::make(ReturnAddressBaseType::generateCommandData(frame_index));
+      case CommandData::ActiveMember::AS_FULL_STACK: return CommandData::make(FullStackBaseType::generateCommandData(frame_index));
     }
     return {};
   }
@@ -175,6 +176,19 @@ public:
     }
     return {};
   }
+
+#if DX12_HAS_CALLSTACK_EXT
+  const char *extMessage(const CommandData &data)
+  {
+    switch (data.activeMember)
+    {
+      case CommandData::ActiveMember::AS_NULL: return NullBaseType::extMessage(data.asNull); break;
+      case CommandData::ActiveMember::AS_RETURN_ADDRESS: return ReturnAddressBaseType::extMessage(data.asReturnAddress); break;
+      case CommandData::ActiveMember::AS_FULL_STACK: return FullStackBaseType::extMessage(data.asFullStack); break;
+    }
+    return "";
+  }
+#endif
 };
 
 } // namespace drv3d_dx12::debug::call_stack::selectable

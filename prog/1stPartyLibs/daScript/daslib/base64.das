@@ -69,7 +69,7 @@ def public base64_decode(_in : string) : tuple<text : string; size : int> {
     peek_data(_in) $(inp) {
         outlen = base64_decode(inp, out)
     }
-    return (string(out), outlen)
+    return (text = string(out), size = outlen)
 }
 
 def public base64_decode(_in : string; var out : array<uint8>) : int {
@@ -88,8 +88,8 @@ def base64_decode(inp : array<uint8> | #; var out : array<uint8>) : int {
     out |> resize(BASE64_DECODE_OUT_SIZE(inlen))
     for (i in range(inp |> length)) {
         var c = 0
-        var s = i % 4
-        var ii = int(inp[i])
+        let s = i % 4
+        let ii = int(inp[i])
         if (ii == BASE64_PAD) {
             break
         }
@@ -138,12 +138,12 @@ def public base64_encode(_inp : string) {
 
 def public base64_encode(inp : array<uint8> | #) {
     //! Encodes a byte array to its Base64 text representation.
-    var inlen = inp |> length
+    let inlen = inp |> length
     var j = 0
     var out : array<uint8>
     out |> resize(BASE64_ENCODE_OUT_SIZE(inlen))
     for (i in range(inlen)) {
-        var s = i % 3
+        let s = i % 3
         if (s == 0) {
             out[j++] = uint8(base64en[(uint(inp[i]) >> 2u) & 0x3F])
             continue
@@ -156,7 +156,7 @@ def public base64_encode(inp : array<uint8> | #) {
         }
     }
     // move back
-    var i = inlen - 1
+    let i = inlen - 1
     // check the last and add padding
     if ((i % 3) == 0) {
         out[j++] = uint8(base64en[(uint(inp[i]) & 0x3) << 4u])

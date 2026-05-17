@@ -486,6 +486,7 @@ public:
       collisionObjectProps.behaviorFlags = dagNodeScriptBlk.getBool("isTraceable", true) ? CollisionNode::TRACEABLE : 0;
       collisionObjectProps.behaviorFlags |= dagNodeScriptBlk.getBool("isPhysCollidable", true) ? CollisionNode::PHYS_COLLIDABLE : 0;
       collisionObjectProps.behaviorFlags |= dagNodeScriptBlk.getBool("solid", false) ? CollisionNode::SOLID : 0;
+      collisionObjectProps.behaviorFlags |= dagNodeScriptBlk.getBool("isTransparent", false) ? CollisionNode::FLAG_TRANSPARENT : 0;
       haveHolesFlags |= dagNodeScriptBlk.paramExists("noOverlapHoles") ? CollisionNode::FLAG_ALLOW_HOLE : 0;
       haveHolesFlags |= dagNodeScriptBlk.paramExists("noOverlapHolesIfNoDamage") ? CollisionNode::FLAG_DAMAGE_REQUIRED : 0;
       haveHolesFlags |= dagNodeScriptBlk.paramExists("noOverlapHolesIfNoCut") ? CollisionNode::FLAG_CUT_REQUIRED : 0;
@@ -943,6 +944,16 @@ public:
     auto remove_degenerate_faces = [&](const char *label) {
       unsigned degenerate_meshes_cnt = 0;
       unsigned bad_tm_cnt = 0;
+      // Per-mesh-node decision: KEEP existing slice, REPLACE with welded MeshData, or DROP entirely.
+      // We stage decisions, then rebuild ownVertices/ownIndices in a single pass after the loop.
+      enum class NodeAction : uint8_t
+      {
+        KEEP,
+        REPLACE,
+        DROP
+      };
+      dag::Vector<NodeAction> actions(coll.allNodesList.size(), NodeAction::KEEP);
+      dag::Vector<MeshData> replacements(coll.allNodesList.size());
       for (auto &n : coll.allNodesList)
         if (n.type == COLLISION_NODE_TYPE_MESH)
         {
@@ -956,13 +967,15 @@ public:
               logwarn("%s: bad mesh node \"%s\" tm=%@", a.getName(), coll.getNodeName(n.nodeIndex), nTm);
             bad_tm_cnt++;
           }
-          m.vert.resize(n.vertices.size());
+          auto srcVerts = coll.getNodeVertices(n.nodeIndex);
+          auto srcIndices = coll.getNodeIndices(n.nodeIndex);
+          m.vert.resize(srcVerts.size());
           for (unsigned i = 0; i < m.vert.size(); i++)
-            m.vert[i] = n.vertices[i];
-          m.face.resize(n.indices.size() / 3);
+            m.vert[i] = srcVerts[i];
+          m.face.resize(srcIndices.size() / 3);
           for (unsigned i = 0; i < m.face.size(); i++)
             for (unsigned fi = 0; fi < 3; fi++)
-              m.face[i].v[fi] = n.indices[i * 3 + fi];
+              m.face[i].v[fi] = srcIndices[i * 3 + fi];
 
           float maxTmScale = coll.getNodeMaxTmScale(n.nodeIndex);
           float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(maxTmScale);
@@ -985,54 +998,104 @@ public:
                 m.removeFacesFast(i, 1);
                 i--;
               }
-          if (m.face.size() * 3 != n.indices.size())
+          if (m.face.size() * 3 != srcIndices.size())
             m.kill_unused_verts(-1);
-          if (m.vert.size() != n.vertices.size() || m.face.size() * 3 != n.indices.size())
+          if (m.vert.size() != srcVerts.size() || m.face.size() * 3 != srcIndices.size())
           {
             if (m.vert.size() < 3 || m.face.size() < 1)
             {
               degenerate_meshes_cnt++;
               if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
                 log.addMessage(log.ERROR, "%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@",
-                  a.getName(), label, coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3,
+                  a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
                   m.face.size(), maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
               else
                 logwarn("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
-                  coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), maxTmScale,
-                  weld_eps, coll.getNodeBBox(n.nodeIndex));
-              for (unsigned i = 0; i < n.vertices.size(); i++)
-                debug("  v[%3d]=%+g,%+g,%+g", i, n.vertices[i].x, n.vertices[i].y, n.vertices[i].z);
-              for (unsigned i = 0; i < n.indices.size(); i += 3)
-                debug("  f[%3d]=%u, %u, %u", i / 3, n.indices[i + 0], n.indices[i + 1], n.indices[i + 2]);
+                  coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(),
+                  maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
+              for (unsigned i = 0; i < srcVerts.size(); i++)
+                debug("  v[%3d]=%+g,%+g,%+g", i, srcVerts[i].x, srcVerts[i].y, srcVerts[i].z);
+              for (unsigned i = 0; i < srcIndices.size(); i += 3)
+                debug("  f[%3d]=%u, %u, %u", i / 3, srcIndices[i + 0], srcIndices[i + 1], srcIndices[i + 2]);
               for (unsigned i = 0; i < m.vert.size(); i++)
                 debug("  mv[%d]=%+g,%+g,%+g", i, m.vert[i].x, m.vert[i].y, m.vert[i].z);
               if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
-              {
-                n.resetVertices();
-                n.resetIndices();
-              }
+                actions[n.nodeIndex] = NodeAction::DROP;
               continue;
             }
 
             if (zeroarea_faces_cnt)
               logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d zero-area faces removed)",
-                a.getName(), label, coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3,
+                a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
                 m.face.size(), weld_eps, zeroarea_faces_cnt);
             else
               logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label,
-                coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps);
+                coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(),
+                weld_eps);
 
-            if (n.vertices.size() != m.vert.size())
-              n.resetVertices({memalloc_typed<Point3_vec4>(m.vert.size(), midmem), (int)m.vert.size()});
-            for (unsigned i = 0; i < m.vert.size(); i++)
-              n.vertices[i] = m.vert[i], n.vertices[i].resv = 1.0f;
-            if (n.indices.size() != m.face.size() * 3)
-              n.resetIndices({memalloc_typed<uint16_t>(m.face.size() * 3, midmem), (int)m.face.size() * 3});
-            for (unsigned i = 0; i < m.face.size(); i++)
-              for (unsigned fi = 0; fi < 3; fi++)
-                n.indices[i * 3 + fi] = m.face[i].v[fi];
+            actions[n.nodeIndex] = NodeAction::REPLACE;
+            replacements[n.nodeIndex] = eastl::move(m);
           }
         }
+
+      // Rebuild ownVertices/ownIndices from per-node decisions. Walking allNodesList preserves
+      // the existing node order; offsets are stamped fresh.
+      dag::Vector<Point3_vec4> newOwnVerts;
+      dag::Vector<uint16_t> newOwnIdx;
+      newOwnVerts.reserve(coll.ownVertices.size());
+      newOwnIdx.reserve(coll.ownIndices.size());
+      for (CollisionNode &n : coll.allNodesList)
+      {
+        if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
+          continue;
+        if (n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] == NodeAction::DROP)
+        {
+          n.verticesOfs = 0;
+          n.verticesCount = 0;
+          n.indicesOfs = 0;
+          n.indicesCount = 0;
+          continue;
+        }
+        if (n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] == NodeAction::REPLACE)
+        {
+          const MeshData &m = replacements[n.nodeIndex];
+          n.verticesOfs = (uint32_t)newOwnVerts.size();
+          n.verticesCount = (uint16_t)(m.vert.size() - 1); // count-minus-one encoding
+          n.indicesOfs = (uint32_t)newOwnIdx.size();
+          n.indicesCount = (uint32_t)(m.face.size() * 3);
+          newOwnVerts.reserve(newOwnVerts.size() + m.vert.size());
+          for (const Point3 &v : m.vert)
+          {
+            Point3_vec4 vv;
+            vv.x = v.x;
+            vv.y = v.y;
+            vv.z = v.z;
+            vv.resv = 1.0f;
+            newOwnVerts.push_back(vv);
+          }
+          for (const auto &f : m.face)
+            for (int fi = 0; fi < 3; fi++)
+              newOwnIdx.push_back((uint16_t)f.v[fi]);
+          continue;
+        }
+        // KEEP: copy the existing slice into the new pool and re-stamp offsets.
+        if (n.indicesCount) // gate on indicesCount: verticesCount uses count-minus-one encoding
+        {
+          const Point3_vec4 *srcV = coll.ownVertices.data() + n.verticesOfs;
+          const uint16_t *srcI = coll.ownIndices.data() + n.indicesOfs;
+          uint32_t newVOfs = (uint32_t)newOwnVerts.size();
+          uint32_t newIOfs = (uint32_t)newOwnIdx.size();
+          newOwnVerts.insert(newOwnVerts.end(), srcV, srcV + (uint32_t)n.verticesCount + 1u);
+          newOwnIdx.insert(newOwnIdx.end(), srcI, srcI + n.indicesCount);
+          n.verticesOfs = newVOfs;
+          n.indicesOfs = newIOfs;
+        }
+      }
+      coll.ownVertices = eastl::move(newOwnVerts);
+      coll.ownIndices = eastl::move(newOwnIdx);
+      coll.meshVertsBase = coll.ownVertices.data();
+      coll.meshIndicesBase = coll.ownIndices.data();
+
       if (degenerate_meshes_cnt)
       {
         if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
@@ -1040,8 +1103,7 @@ public:
         if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
         {
           for (int ni = coll.allNodesList.size() - 1; ni >= 0; ni--)
-            if (coll.allNodesList[ni].type == COLLISION_NODE_TYPE_MESH && !coll.allNodesList[ni].vertices.size() &&
-                !coll.allNodesList[ni].indices.size())
+            if (coll.allNodesList[ni].type == COLLISION_NODE_TYPE_MESH && !coll.allNodesList[ni].indicesCount)
               erase_items(coll.allNodesList, ni, 1);
           coll.rebuildNodesLL();
           logwarn("%s: %sremoved %d nodes with degenerative meshes, %d nodes remain", //
@@ -1167,45 +1229,13 @@ public:
       cwr.writeInt16e(c.getNodeConvexPlanes(n.nodeIndex).size());
       cwr.write32ex(c.getNodeConvexPlanes(n.nodeIndex).data(), data_size(c.getNodeConvexPlanes(n.nodeIndex)));
 
-      cwr.writeInt32e(n.vertices.size());
-      if ((n.flags & n.FLAG_VERTICES_ARE_REFS) && n.vertices.size())
-      {
-#define CHECK_VERT_IN_FRT(G) \
-  (n.vertices.data() >= &c.G.tracer->verts(0) && n.vertices.data() < &c.G.tracer->verts(0) + c.G.tracer->getVertsCount())
-#define GET_VERT_OFS_IN_FRT(G) (n.vertices.data() - &c.G.tracer->verts(0))
-        if (CHECK_VERT_IN_FRT(gridForTraceable))
-          cwr.writeInt32e(GET_VERT_OFS_IN_FRT(gridForTraceable));
-        else if (CHECK_VERT_IN_FRT(gridForCollidable))
-          cwr.writeInt32e(GET_VERT_OFS_IN_FRT(gridForCollidable) | 0x40000000);
-        else
-          G_ASSERTF(0, "n.vertices=%p,%d gridForTraceable=%p,%d gridForCollidable=%p,%d", n.vertices.data(), n.vertices.size(),
-            &c.gridForTraceable.tracer->verts(0), c.gridForTraceable.tracer->getVertsCount(), //
-            &c.gridForCollidable.tracer->verts(0), c.gridForCollidable.tracer->getVertsCount());
-#undef CHECK_VERT_IN_FRT
-#undef GET_VERT_OFS_IN_FRT
-      }
-      else
-        cwr.write32ex(n.vertices.data(), data_size(n.vertices));
+      auto verts = c.getNodeVertices(n.nodeIndex);
+      cwr.writeInt32e((int)verts.size());
+      cwr.write32ex(verts.data(), data_size(verts));
 
-      cwr.writeInt32e(n.indices.size());
-      if ((n.flags & n.FLAG_INDICES_ARE_REFS) && n.indices.size())
-      {
-#define CHECK_IND_IN_FRT(G) \
-  (n.indices.data() >= c.G.tracer->faces(0).v && n.indices.data() < (&c.G.tracer->faces(0) + c.G.tracer->getFacesCount())->v)
-#define GET_IND_OFS_IN_FRT(G) (n.indices.data() - c.G.tracer->faces(0).v)
-        if (CHECK_IND_IN_FRT(gridForTraceable))
-          cwr.writeInt32e(GET_IND_OFS_IN_FRT(gridForTraceable));
-        else if (CHECK_IND_IN_FRT(gridForCollidable))
-          cwr.writeInt32e(GET_IND_OFS_IN_FRT(gridForCollidable) | 0x40000000);
-        else
-          G_ASSERTF(0, "n.indices=%p,%d gridForTraceable=%p,%d gridForCollidable=%p,%d", n.indices.data(), n.indices.size(),
-            &c.gridForTraceable.tracer->faces(0), c.gridForTraceable.tracer->getFacesCount(), //
-            &c.gridForCollidable.tracer->faces(0), c.gridForCollidable.tracer->getFacesCount());
-#undef CHECK_IND_IN_FRT
-#undef GET_IND_OFS_IN_FRT
-      }
-      else
-        cwr.write16ex(n.indices.data(), data_size(n.indices));
+      auto idxs = c.getNodeIndices(n.nodeIndex);
+      cwr.writeInt32e((int)idxs.size());
+      cwr.write16ex(idxs.data(), data_size(idxs));
     }
 
     if (c.collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)

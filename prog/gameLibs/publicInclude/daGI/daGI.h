@@ -189,8 +189,8 @@ private:
     UniqueBufHolder poissonBuf;
     UniqueBufHolder enviCube, enviCubes; // for two stage reduction
     UniqueBufHolder volmapCB;
-    UniqueTexHolder cube;
-    UniqueTexHolder ssgiTemporalWeight;
+    UniqueTexWithShaderVar cube;
+    UniqueTexWithShaderVar ssgiTemporalWeight;
 
     void init(int xz_dimensions, int y_dimensions, int maxVoxels, bool scalar_ao);
     void initCommon();
@@ -205,7 +205,7 @@ private:
     {
       eastl::unique_ptr<ComputeShaderElement> octahedral_distances_cs;
       eastl::unique_ptr<ComputeShaderElement> move_y_octahderal_distances_cs, move_y_dead_probes_cs;
-      UniqueTexHolder octahedralDistances, deadProbes;
+      UniqueTexWithShaderVar octahedralDistances, deadProbes;
       RaytraceTopAccelerationStructure *sceneTop = nullptr;
       void createTextures(QualitySettings quality, int xzDim, int yDim);
       void initShaders(QualitySettings quality);
@@ -278,7 +278,7 @@ private:
   // scene
   void invalidateGiCascades();
   void afterResetScene();
-  UniqueTexHolder sceneVoxelsColor, sceneVoxelsAlpha; // to consider using only one (4 bytes)
+  UniqueTexWithShaderVar sceneVoxelsColor, sceneVoxelsAlpha; // to consider using only one (4 bytes)
   eastl::unique_ptr<ComputeShaderElement> ssgi_mark_scene_voxels_from_gbuf_cs, ssgi_temporal_scene_voxels_cs, ssgi_clear_scene_cs;
   eastl::unique_ptr<ComputeShaderElement> ssgi_temporal_scene_voxels_create_cs, ssgi_invalidate_voxels_cs;
   BufPtr selectedGbufVoxels, selectedGbufVoxelsCount;
@@ -335,7 +335,7 @@ private:
   void DebugInlineRt(const TMatrix &view_tm, const TMatrix4 &proj_tm);
   eastl::unique_ptr<ComputeShaderElement> debug_inline_rt_cs;
   UniqueBufHolder debugInlineRtConstants;
-  UniqueTexHolder debugInlineRtTarget;
+  UniqueTexWithShaderVar debugInlineRtTarget;
 
   Tab<bbox3f> invalidBoxes;
   UniqueBufHolder invalidBoxesSB;

@@ -1821,6 +1821,9 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
     [&cs_header, &properties](const eastl::unique_ptr<ComputePipelineSignature> &cps) //
     {
       return cps->def.registers == cs_header &&
+#if _TARGET_SCARLETT
+             cps->def.hasAccelerationStructure == properties.hasAccelerationStructure &&
+#endif
              cps->def.useResourceDescriptorHeapIndexing == properties.useResourceDescriptorHeapIndexing &&
              cps->def.useSamplerDescriptorHeapIndexing == properties.useSamplerDescriptorHeapIndexing;
     });
@@ -2357,6 +2360,7 @@ void PipelineManager::unloadAll()
   clearPipelines.clear();
   blitSignature.Reset();
   clearSignature.Reset();
+  prepedForDeletion.clear();
 
   for (auto &group : graphicsPipelines)
   {

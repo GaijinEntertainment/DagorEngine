@@ -4,6 +4,7 @@
 #include "device.h"
 #include "device_context.h"
 #include "resource_manager/image.h"
+#include "streamline_adapter.h"
 #include "texture.h"
 
 #include <3d/gpuLatency.h>
@@ -284,6 +285,57 @@ static bool is_tearing_supported(DXGIFactory *factory)
   return SUCCEEDED(hr) && allowTearing;
 }
 
+using FgSwapchainCreator = bool (*)(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+
+static HRESULT fg_swapchain_factory(FgSwapchainCreator creator, DXGIFactory *factory, ID3D12CommandQueue *queue,
+  const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
+  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  if (creator(factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain))
+    return S_OK;
+  return default_swapchain_factory(factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
+HRESULT drv3d_dx12::default_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  ComPtr<IDXGISwapChain1> swapchainLevel1;
+  HRESULT hr =
+    factory->CreateSwapChainForHwnd(queue, create_info.window, &swapchain_desc, &fullscreen_desc, nullptr, &swapchainLevel1);
+  if (FAILED(hr))
+    return hr;
+
+  ComPtr<DXGISwapChain> nativeSwapchain;
+  hr = swapchainLevel1.As(&nativeSwapchain);
+  if (FAILED(hr))
+    return hr;
+
+  *swapchain = nativeSwapchain.Detach();
+  return S_OK;
+}
+
+HRESULT drv3d_dx12::nvidia_dlssg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,
+  const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
+  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  return default_swapchain_factory(StreamlineAdapter::hook(factory), queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
+HRESULT drv3d_dx12::amd_fsrfg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,
+  const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
+  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  return fg_swapchain_factory(create_fsrfg_swapchain, factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
+HRESULT drv3d_dx12::intel_xessfg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue,
+  const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
+  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  return fg_swapchain_factory(create_xessfg_swapchain, factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
 bool backend::Swapchain::adopt(Device &device, frontend::Swapchain &fe, DXGISwapChain *external_swapchain, SwapchainCreateInfo &&sci)
 {
   swapchainBufferSRVHeap.init(device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
@@ -338,17 +390,14 @@ bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFact
 
   DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {.Windowed = TRUE};
 
-  // create with default size (target size)
-  ComPtr<IDXGISwapChain1> swapchainLevel1;
-
-  if (DX12_CHECK_FAIL(factory->CreateSwapChainForHwnd(queue, sci.window, &swapchainDesc, &fullscreenDesc, nullptr, &swapchainLevel1)))
-    return false;
-
-
   auto &swapchain = swapchains[swapchain_index].swapchain;
   auto &output = swapchains[swapchain_index].output;
+  SwapchainFactory swapchainFactory = sci.swapchainFactory;
+  if (!swapchainFactory)
+    swapchainFactory = default_swapchain_factory;
 
-  swapchainLevel1.As(&swapchain);
+  if (DX12_CHECK_FAIL(swapchainFactory(factory, queue, sci, swapchainDesc, fullscreenDesc, &swapchain)))
+    return false;
   if (!swapchain)
   {
     return false;

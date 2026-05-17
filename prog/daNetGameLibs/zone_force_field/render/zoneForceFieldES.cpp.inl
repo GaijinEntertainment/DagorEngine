@@ -161,9 +161,8 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
         ScopeRenderTarget scopeRT;
 
-        d3d::set_render_target(lowResFfHndl.get(), 0);
-        if (maybeDownsampledDepthHndl)
-          d3d::set_depth(maybeDownsampledDepthHndl->view().getTex2D(), DepthAccess::SampledRO);
+        d3d::set_render_target({maybeDownsampledDepthHndl ? maybeDownsampledDepthHndl->view().getTex2D() : nullptr, 0, 0},
+          DepthAccess::SampledRO, {{lowResFfHndl.get(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
 
         startZoneIn();

@@ -30,6 +30,7 @@ MODE(emission_strength, 29)
 MODE(emission_mult, 30)
 MODE(contactShadows, 31)
 MODE(shadowCascades, 32)
+MODE(staticShadowCascades, 33)
 // must always be the last
 LAST_MODE(debug_mesh)
 DEBUG_MESH_MODE(lod)

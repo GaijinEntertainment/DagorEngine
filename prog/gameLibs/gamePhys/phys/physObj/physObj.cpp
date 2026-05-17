@@ -565,6 +565,8 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
 
         hasGroundCollisionPoint = true;
         groundCollisionPoint = c.wpos;
+        G_ASSERTF(daphys::validate_contacts(make_span(&c, 1), tm.getcol(3), boundingRadius), "Contacts validation failed %p %p %i",
+          &tm, contacts.data(), contacts.size());
       }
       else
       {

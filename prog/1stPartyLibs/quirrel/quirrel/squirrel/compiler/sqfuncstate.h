@@ -70,6 +70,7 @@ struct SQFuncState
     bool _bgenerator;
     bool _purefunction;
     bool _nodiscard;
+    bool _isAsync;
     SQIntVec _unresolvedbreaks;
     SQIntVec _unresolvedcontinues;
     SQIntVec _expr_block_results;

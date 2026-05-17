@@ -34,6 +34,10 @@ require tools/grep_usage public
 require tools/outline public
 require tools/aot public
 require tools/lint_tool public
+require tools/detect_duplicates public
+require tools/export_corpus public
+require tools/judge_duplicates public
+require tools/find_dupe public
 require tools/live public
 
 let HEAP_COLLECT_THRESHOLD = 1024ul * 1024ul  // 1 MB
@@ -48,7 +52,7 @@ var ast_grep_available : bool = false
 
 def log_open() {
     log_start_clock = get_clock()
-    fopen(log_path, "ab") <| $(f) {
+    fopen(log_path, "ab") $(f) {
         if (f != null) {
             fprint(f, "\n--- server start ---\n")
         }
@@ -61,7 +65,7 @@ def log_timestamp() : string {
     let h = total_sec / 3600
     let m = (total_sec % 3600) / 60
     let s = total_sec % 60
-    return build_string() <| $(var w) {
+    return build_string() $(var w) {
         if (h > 0) {
             write(w, "{h}h")
         }
@@ -77,7 +81,7 @@ def log_write(msg : string) {
     } else {
         print(line)
     }
-    fopen(log_path, "ab") <| $(f) {
+    fopen(log_path, "ab") $(f) {
         if (f != null) {
             fprint(f, line)
         }
@@ -240,14 +244,22 @@ def handle_tools_list(id_json : string) : string {
         },
         ["file"]
     ))
-    result.tools |> emplace(make_file_tool("format_file", "Format a .das file using the daslang code formatter"))
+    result.tools |> emplace(make_tool(
+        "format_file",
+        "Format .das file(s) using the daslang code formatter. Supports single file, comma-separated list, or glob pattern (e.g. 'daslib/*.das'). Returns JSON array with file, status, and message fields; status is 'formatted', 'already_formatted', or 'error'.",
+        {
+            "file" => PropertySchema(_type = "string", description = "Path to .das file, comma-separated paths, or glob pattern (e.g. 'dir/*.das')")
+        },
+        ["file"]
+    ))
     result.tools |> emplace(make_tool(
         "run_script",
         "Run a daslang script and return its stdout output. Provide either a file path or inline code.",
         {
             "file" => PropertySchema(_type = "string", description = "Path to the .das file to run"),
             "code" => PropertySchema(_type = "string", description = "Inline daslang code to run (written to temp file and executed)"),
-            "timeout" => PropertySchema(_type = "string", description = "Timeout in seconds (default: 30). Process tree is killed if exceeded")
+            "timeout" => PropertySchema(_type = "string", description = "Timeout in seconds (default: 30). Process tree is killed if exceeded"),
+            "track_allocations" => PropertySchema(_type = "string", description = "If 'true', enable heap allocation tracking and append a heap report at exit (shows where each allocation came from)")
         },
         []
     ))
@@ -414,12 +426,63 @@ def handle_tools_list(id_json : string) : string {
     ))
     result.tools |> emplace(make_tool(
         "lint",
-        "Run lint and performance checks on daScript file(s). Combines paranoid lint (unused variables, const suggestions, unreachable code, naming) with performance lint (PERF001-009: string concat in loops, character_at misuse, push without reserve, unnecessary string/get_ptr conversions, redundant move-return). Supports single file, comma-separated list, or glob pattern.",
+        "Run lint and performance checks on daScript file(s). Combines paranoid lint (unused variables, const suggestions, unreachable code, naming, redundant reinterpret casts) with performance lint (PERF001-012: string concat in loops, character_at misuse, push without reserve, unnecessary string/get_ptr conversions, redundant move-return, string(das_string) in strings functions) and style lint (STYLE001-011: pipe/block syntax, rtti is, if true, decl-then-assign). Supports single file, comma-separated list, or glob pattern.",
         {
             "file" => PropertySchema(_type = "string", description = "Path to .das file, comma-separated paths, or glob pattern"),
             "project" => PROJECT_PROP
         },
         ["file"]
+    ))
+    result.tools |> emplace(make_tool(
+        "export_corpus",
+        "Build a corpus.json from one or more .das files/dirs/globs. Output is the same shape `detect_duplicates` expects: a JSON dump of every user function's canonical token stream and source location. Run this once over a body of code (e.g. 'daslib', 'tests', or your project) to produce a corpus, then point `detect_duplicates` at it. Shells out to `daslang utils/detect-dupe/main.das` (daslang's `require` grammar can't use hyphenated path components, so the wrapper invokes the CLI as a subprocess). Pass `paths_file` to scope the export to an explicit precomputed list (e.g. files in a PR diff); pass `workers` to parallelize across child processes.",
+        {
+            "paths" => PropertySchema(_type = "string", description = "Files, directories, or globs to scan. Comma- or newline-delimited. Directories are walked recursively. Skips `_*` directories, hidden directories, `builtin.das`, `daslib/debugger.das`, and `daslib/profiler.das`. Optional when `paths_file` is given; otherwise required."),
+            "paths_file" => PropertySchema(_type = "string", description = "Path to a newline-delimited file of paths. Skips blank lines and lines starting with `#`. Composes with `paths` (union; deduped). Use this for PR-scoped runs where you'd otherwise hit ARG_MAX (e.g. piping `git diff --name-only` to a file)."),
+            "out" => PropertySchema(_type = "string", description = "Output corpus.json path. Overwrites if it exists. Refuses to write a partial corpus when any input file fails to compile (matches the CLI's --export-functions behavior)."),
+            "min_tokens" => PropertySchema(_type = "string", description = "Minimum canonical-token count per record (default 0 — keep every user function). Records below the threshold are dropped at export time. Most callers should leave this at 0 and let `detect_duplicates --min-tokens` filter at query time."),
+            "workers" => PropertySchema(_type = "string", description = "Worker count for parallel compilation. 0 = auto (= hardware threads). 1 = sequential. Files are split into N contiguous chunks; each chunk is compiled by a child detect-dupe process; shards are merged in chunk-index order so the output is byte-identical across worker counts. Below 16 input files the export stays sequential regardless.")
+        },
+        ["out"]
+    ))
+    result.tools |> emplace(make_tool(
+        "detect_duplicates",
+        "Find functions in `paths` that duplicate or closely resemble functions in a pre-built corpus (an `--export-functions` JSON from `detect-dupe`). Returns a per-candidate JSON report: each input function, its top exact-cluster siblings, and its top fuzzy partners with similarity scores. Use to answer 'did I just write something that already exists?' during PR authoring or review.",
+        {
+            "paths" => PropertySchema(_type = "string", description = "One or more .das files to compare against the corpus. Comma- or newline-delimited list, or a glob (e.g. 'daslib/perf_lint.das' or 'src/foo/*.das'). Directories are not expanded — use a glob. Newline support lets `git diff --name-only` output be piped in directly."),
+            "corpus" => PropertySchema(_type = "string", description = "Path to a corpus.json produced by `detect-dupe --export-functions`. Records whose `file` matches a `paths` entry are dropped from the corpus and replaced by the freshly-compiled version (so the candidate file is compared against the rest of the world, not against itself)."),
+            "threshold" => PropertySchema(_type = "string", description = "Fuzzy similarity floor 0..1 (default 0.7). Score is sqrt(jaccard × len_ratio)."),
+            "min_tokens" => PropertySchema(_type = "string", description = "Minimum canonical-token count per function (default 8). Filters trivial wrappers."),
+            "top" => PropertySchema(_type = "string", description = "Top-N similar matches per candidate (default 5)."),
+            "keep" => PropertySchema(_type = "string", description = "Comma-separated pattern names to KEEP despite the default-skip filter. Special value 'all' disables pattern filtering entirely. Default is empty — all known patterns are skipped (currently: 'visitor', 'dispatch', 'emit'). The skipped count per pattern is reported in the envelope as `patterns_skipped`.")
+        },
+        ["paths", "corpus"]
+    ))
+    result.tools |> emplace(make_tool(
+        "judge_duplicates",
+        "AI judge for detect-dupe clusters. Takes a detect-dupe JSON report and asks Claude (Haiku 4.5 by default) to partition each cluster into real-duplicate groups vs false positives, with a one-line reason per cluster. Returns an envelope with the embedded verdict JSON. Shells out to `daslang utils/find-dupe/main.das` — requires `daspkg install --root utils/find-dupe` first (fetches the `anthropic/anthropic` package) and the `ANTHROPIC_API_KEY` env var. WARNING: sends source code to Anthropic's API — only run on code your data-handling policy permits sharing.",
+        {
+            "input" => PropertySchema(_type = "string", description = "Path to a detect-dupe JSON report. Produce one with `detect-dupe --json <path>` from the CLI, or use the `find_dupe` MCP tool which writes a `dupes.json` and judges it in one call. (The `detect_duplicates` MCP tool embeds the report inline and deletes its temp file, so its output isn't a reusable path.)"),
+            "out" => PropertySchema(_type = "string", description = "Output directory for find_dupe_verdicts.json + .md. Defaults to a fresh temp dir under the project root."),
+            "model" => PropertySchema(_type = "string", description = "`haiku` (default — Claude Haiku 4.5) or `sonnet` (Claude Sonnet 4.6)."),
+            "max_clusters" => PropertySchema(_type = "string", description = "Hard cap on clusters analyzed after the worth-it gate (default 0 = no cap). Useful for cost control on large reports."),
+            "positives_only" => PropertySchema(_type = "string", description = "If `true`, the verdict report keeps only `real`+`partial` rows. Summary still reflects all clusters."),
+            "dry_run" => PropertySchema(_type = "string", description = "If `true`, estimate cluster count and token cost without making any API calls. Recommended as a first step.")
+        },
+        ["input"]
+    ))
+    result.tools |> emplace(make_tool(
+        "find_dupe",
+        "Convenience wrapper: runs `detect-dupe` against `paths` to produce a duplicate-cluster JSON, then hands it off to the AI judge in one call. Same daspkg + API-key requirement as `judge_duplicates`. Use this when starting fresh on a directory or PR; use `detect_duplicates` + `judge_duplicates` separately when you already have a curated corpus.",
+        {
+            "paths" => PropertySchema(_type = "string", description = "Files / directories / globs to scan (comma- or newline-delimited, same syntax as `detect_duplicates`)."),
+            "out" => PropertySchema(_type = "string", description = "Output directory. Stores the intermediate `dupes.json` and the verdict report. Defaults to a fresh temp dir under the project root."),
+            "model" => PropertySchema(_type = "string", description = "`haiku` (default) or `sonnet`."),
+            "threshold" => PropertySchema(_type = "string", description = "Fuzzy similarity floor 0..1 (default 0.7) — passed through to detect-dupe."),
+            "max_clusters" => PropertySchema(_type = "string", description = "Hard cap on clusters judged (default 0 = no cap)."),
+            "dry_run" => PropertySchema(_type = "string", description = "If `true`, run detect-dupe normally but skip the API calls — returns a token+cost estimate instead of verdicts.")
+        },
+        ["paths"]
     ))
     result.tools |> emplace(make_tool(
         "live_status",
@@ -509,7 +572,7 @@ def get_string_arg(args : JsonValue?; name : string) : string {
     return ""
 }
 
-def dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project : string) : string {
+def dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, arg6, project : string) : string {
     if (tool_name == "compile_check") {
         return do_compile_check(arg1, project, arg2 == "true")
     } elif (tool_name == "list_functions") {
@@ -521,7 +584,7 @@ def dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project : string) : s
     } elif (tool_name == "format_file") {
         return do_format_file(arg1)
     } elif (tool_name == "run_script") {
-        return do_run_script(arg1, arg2, arg3)
+        return do_run_script(arg1, arg2, arg3, arg4 == "true")
     } elif (tool_name == "eval_expression") {
         return do_eval_expression(arg1, arg2)
     } elif (tool_name == "describe_type") {
@@ -554,6 +617,14 @@ def dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project : string) : s
         return do_aot(arg1, arg2, project)
     } elif (tool_name == "lint") {
         return do_lint(arg1, project)
+    } elif (tool_name == "detect_duplicates") {
+        return do_detect_duplicates(arg1, arg2, arg3, arg4, arg5, arg6)
+    } elif (tool_name == "export_corpus") {
+        return do_export_corpus(arg1, arg2, arg3, arg4, arg5)
+    } elif (tool_name == "judge_duplicates") {
+        return do_judge_duplicates(arg1, arg2, arg3, arg4, arg5, arg6)
+    } elif (tool_name == "find_dupe") {
+        return do_find_dupe(arg1, arg2, arg3, arg4, arg5, arg6)
     } elif (tool_name == "live_status") {
         return do_live_status(arg1)
     } elif (tool_name == "live_error") {
@@ -576,22 +647,22 @@ def dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project : string) : s
     }
 }
 
-def run_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project : string) : string {
-    log_tool(tool_name, "{arg1} {arg2} {arg3} {arg4} {arg5}")
+def run_tool(tool_name, arg1, arg2, arg3, arg4, arg5, arg6, project : string) : string {
+    log_tool(tool_name, "{arg1} {arg2} {arg3} {arg4} {arg5} {arg6}")
     let t0 = get_clock()
     var result : string
     // Live tools run on the main thread — they use system() and sleep() which
     // don't work well from new_thread, and they don't need compilation context
     if (starts_with(tool_name, "live_")) {
-        result = dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project)
+        result = dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, arg6, project)
     } else {
-        with_channel(1) <| $(ch) {
+        with_channel(1) $(ch) {
             new_thread() <| @() {
-                let tool_result = dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, project)
+                let tool_result = dispatch_tool(tool_name, arg1, arg2, arg3, arg4, arg5, arg6, project)
                 ch |> push_clone(ToolMessage(text = tool_result))
                 ch |> notify_and_release()
             }
-            for_each_clone(ch) <| $(msg : ToolMessage#) {
+            for_each_clone(ch) $(msg : ToolMessage#) {
                 result = clone_string(msg.text)
             }
         }
@@ -608,7 +679,7 @@ def handle_tools_call(id_json : string; params : JsonValue?) : string {
         return json_rpc_error(id_json, -32602, "missing tool name")
     }
     let name = tool_name_val.value as _string
-    var arg1, arg2, arg3, arg4, arg5 : string
+    var arg1, arg2, arg3, arg4, arg5, arg6 : string
     let project = get_string_arg(args, "project")
     if (name == "compile_check") {
         arg1 = get_string_arg(args, "file")
@@ -616,7 +687,12 @@ def handle_tools_call(id_json : string; params : JsonValue?) : string {
             return json_rpc_error(id_json, -32602, "missing 'file' argument")
         }
         arg2 = get_string_arg(args, "json")
-    } elif (name == "list_functions" || name == "list_types" || name == "format_file") {
+    } elif (name == "list_functions" || name == "list_types") {
+        arg1 = get_string_arg(args, "file")
+        if (empty(arg1)) {
+            return json_rpc_error(id_json, -32602, "missing 'file' argument")
+        }
+    } elif (name == "format_file") {
         arg1 = get_string_arg(args, "file")
         if (empty(arg1)) {
             return json_rpc_error(id_json, -32602, "missing 'file' argument")
@@ -662,6 +738,7 @@ def handle_tools_call(id_json : string; params : JsonValue?) : string {
         arg1 = get_string_arg(args, "file")
         arg2 = get_string_arg(args, "code")
         arg3 = get_string_arg(args, "timeout")
+        arg4 = get_string_arg(args, "track_allocations")
     } elif (name == "eval_expression") {
         arg1 = get_string_arg(args, "expression")
         if (empty(arg1)) {
@@ -728,6 +805,51 @@ def handle_tools_call(id_json : string; params : JsonValue?) : string {
         if (empty(arg1)) {
             return json_rpc_error(id_json, -32602, "missing 'file' argument")
         }
+    } elif (name == "detect_duplicates") {
+        arg1 = get_string_arg(args, "paths")
+        if (empty(arg1)) {
+            return json_rpc_error(id_json, -32602, "missing 'paths' argument")
+        }
+        arg2 = get_string_arg(args, "corpus")
+        if (empty(arg2)) {
+            return json_rpc_error(id_json, -32602, "missing 'corpus' argument")
+        }
+        arg3 = get_string_arg(args, "threshold")
+        arg4 = get_string_arg(args, "min_tokens")
+        arg5 = get_string_arg(args, "top")
+        arg6 = get_string_arg(args, "keep")
+    } elif (name == "export_corpus") {
+        arg1 = get_string_arg(args, "paths")
+        arg2 = get_string_arg(args, "paths_file")
+        if (empty(arg1) && empty(arg2)) {
+            return json_rpc_error(id_json, -32602, "missing input — provide 'paths' and/or 'paths_file'")
+        }
+        arg3 = get_string_arg(args, "out")
+        if (empty(arg3)) {
+            return json_rpc_error(id_json, -32602, "missing 'out' argument")
+        }
+        arg4 = get_string_arg(args, "min_tokens")
+        arg5 = get_string_arg(args, "workers")
+    } elif (name == "judge_duplicates") {
+        arg1 = get_string_arg(args, "input")
+        if (empty(arg1)) {
+            return json_rpc_error(id_json, -32602, "missing 'input' argument")
+        }
+        arg2 = get_string_arg(args, "out")
+        arg3 = get_string_arg(args, "model")
+        arg4 = get_string_arg(args, "max_clusters")
+        arg5 = get_string_arg(args, "positives_only")
+        arg6 = get_string_arg(args, "dry_run")
+    } elif (name == "find_dupe") {
+        arg1 = get_string_arg(args, "paths")
+        if (empty(arg1)) {
+            return json_rpc_error(id_json, -32602, "missing 'paths' argument")
+        }
+        arg2 = get_string_arg(args, "out")
+        arg3 = get_string_arg(args, "model")
+        arg4 = get_string_arg(args, "threshold")
+        arg5 = get_string_arg(args, "max_clusters")
+        arg6 = get_string_arg(args, "dry_run")
     } elif (name == "live_status") {
         arg1 = get_string_arg(args, "port")
     } elif (name == "live_error") {
@@ -762,7 +884,7 @@ def handle_tools_call(id_json : string; params : JsonValue?) : string {
     } else {
         return json_rpc_error(id_json, -32602, "unknown tool: {name}")
     }
-    return json_rpc_response(id_json, run_tool(name, arg1, arg2, arg3, arg4, arg5, project))
+    return json_rpc_response(id_json, run_tool(name, arg1, arg2, arg3, arg4, arg5, arg6, project))
 }
 
 // ── JSON-RPC dispatcher ──────────────────────────────────────────────

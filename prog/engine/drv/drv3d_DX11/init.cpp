@@ -1880,6 +1880,10 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   if (g_device_desc.shaderModel < 5.0_sm)
     g_device_desc.caps.hasWellSupportedIndirect = false;
 
+  // On intel GPUs indirect draw is slower than regular draw and causes crashes.
+  if (g_device_desc.info.vendor == GpuVendor::INTEL)
+    g_device_desc.caps.hasWellSupportedIndirect = false;
+
   debug("DepthBoundsTest=%d", g_device_desc.caps.hasDepthBoundsTest);
 
   if (g_device_desc.caps.hasDepthBoundsTest) // All Intels and some GPUs with really old drivers.

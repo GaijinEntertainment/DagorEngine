@@ -57,7 +57,7 @@ CloudsChangeFlags CloudsLightRenderer::render(const Point3 &main_light_dir, cons
   else
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(0, clouds_light_color.getVolTex(), d3d::RENDER_TO_WHOLE_ARRAY, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{clouds_light_color.getVolTex(), 0, d3d::RENDER_TO_WHOLE_ARRAY}});
     gen_clouds_light_texture_ps.getElem()->setStates();
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, 2 * CLOUDS_LIGHT_TEXTURE_WIDTH);
   }

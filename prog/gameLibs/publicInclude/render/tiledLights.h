@@ -7,6 +7,7 @@
 #include <3d/dag_resPtr.h>
 #include <3d/dag_resizableTex.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/optional.h>
 #include <math/integer/dag_IPoint2.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_overrideStateId.h>
@@ -54,12 +55,12 @@ class TiledLights
   void fillzBins(uint32_t max_id, uint32_t offset, const Tab<vec4f> &ligth_bounds, const vec4f &cur_view_pos,
     const vec4f &cur_view_dir);
   void createSpotLightIb();
-  bool isGPUZBinning() const;
 
 public:
   void fillSpotLightIb();
-  TiledLights(float max_lights_dist);
+  TiledLights(float max_lights_dist, eastl::optional<bool> gpu_lights_override = {});
   ~TiledLights();
+  bool isGPUZBinning() const;
   void resizeTilesGrid(uint32_t width, uint32_t height);
   void setResolution(uint32_t width, uint32_t height);
   void changeResolution(uint32_t width, uint32_t height);
@@ -70,4 +71,6 @@ public:
   void setMaxLightsDist(const float max_lights_dist);
   void afterResetDevice();
   void beforeResetDevice();
+  Sbuffer *getLUTBuffer();
+  const Tab<uint32_t> &getZBinningData() const;
 };

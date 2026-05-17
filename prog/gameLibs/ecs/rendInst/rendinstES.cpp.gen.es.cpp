@@ -157,6 +157,46 @@ static ecs::EntitySystemDesc riextra_spawn_ri_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 );
+//static constexpr ecs::ComponentDesc riextra_em_before_clear_es_event_handler_comps[] ={};
+static void riextra_em_before_clear_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<ecs::EventEntityManagerBeforeClear>());
+  riextra_em_before_clear_es_event_handler(static_cast<const ecs::EventEntityManagerBeforeClear&>(evt)
+        );
+}
+static ecs::EntitySystemDesc riextra_em_before_clear_es_event_handler_es_desc
+(
+  "riextra_em_before_clear_es",
+  "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riextra_em_before_clear_es_event_handler_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityManagerBeforeClear>::build(),
+  0
+);
+//static constexpr ecs::ComponentDesc riextra_em_after_clear_es_event_handler_comps[] ={};
+static void riextra_em_after_clear_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<ecs::EventEntityManagerAfterClear>());
+  riextra_em_after_clear_es_event_handler(static_cast<const ecs::EventEntityManagerAfterClear&>(evt)
+        );
+}
+static ecs::EntitySystemDesc riextra_em_after_clear_es_event_handler_es_desc
+(
+  "riextra_em_after_clear_es",
+  "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, riextra_em_after_clear_es_event_handler_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityManagerAfterClear>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc riextra_destroyed_es_event_handler_comps[] =
 {
 //start of 5 ro components at [0]

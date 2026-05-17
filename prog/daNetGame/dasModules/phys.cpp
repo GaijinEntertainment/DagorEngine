@@ -20,7 +20,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<IPhysBaseAnnotation>(lib));
+    addAnnotation(new IPhysBaseAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(::phys_time_to_seed)>(*this, lib, "phys_time_to_seed", das::SideEffects::none, "::phys_time_to_seed");
     das::addExtern<DAS_BIND_FUN(base_phys_actor_phys)>(*this, lib, "base_phys_actor_phys", das::SideEffects::none,

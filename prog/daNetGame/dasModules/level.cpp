@@ -38,7 +38,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorMath"));
-    addAnnotation(das::make_smart<SplineRegionAnnotation>(lib));
+    addAnnotation(new SplineRegionAnnotation(lib));
     das::typeFactory<LevelRegions>::make(lib);
     das::addExtern<DAS_BIND_FUN(get_region_name_by_pos)>(*this, lib, "get_region_name_by_pos", das::SideEffects::accessExternal,
       "::get_region_name_by_pos");
@@ -58,6 +58,8 @@ public:
       "get_current_level_eid");
     das::addExtern<DAS_BIND_FUN(select_weather_preset_delayed)>(*this, lib, "select_weather_preset_delayed",
       das::SideEffects::modifyExternal, "select_weather_preset_delayed");
+    das::addExtern<DAS_BIND_FUN(update_delayed_weather_selection)>(*this, lib, "update_delayed_weather_selection",
+      das::SideEffects::modifyExternal, "update_delayed_weather_selection");
     das::addExtern<DAS_BIND_FUN(das_get_points_on_road_splines)>(*this, lib, "get_points_on_road_splines",
       das::SideEffects::accessExternal, "::bind_dascript::das_get_points_on_road_splines");
     das::addExtern<DAS_BIND_FUN(das_add_region_to_list)>(*this, lib, "add_region_to_list", das::SideEffects::modifyArgument,

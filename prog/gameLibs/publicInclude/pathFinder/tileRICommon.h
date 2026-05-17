@@ -87,13 +87,12 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
         if (node.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           buildMeshNode(coll_info.collRes, &node);
       });
-      for (const CollisionNode *node = coll_info.collRes->boxNodesHead; node; node = node->nextNode)
-      {
-        if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-          continue;
+      coll_info.collRes->forEachBoxNode([&](const CollisionNode &node) {
+        if (!node.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+          return;
         int idxBase = vertices.size();
         vertices.reserve(vertices.size() + 8);
-        BBox3 nodeBBox = coll_info.collRes->getNodeBBox(node->nodeIndex);
+        BBox3 nodeBBox = coll_info.collRes->getNodeBBox(node.nodeIndex);
         for (int i = 0; i < 8; ++i)
         {
           Point3_vec4 boxPt = nodeBBox.point(i);
@@ -149,7 +148,7 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
         indices.push_back(idxBase + 6);
         indices.push_back(idxBase + 4);
         indices.push_back(idxBase + 7);
-      }
+      });
     }
   };
 
@@ -187,13 +186,12 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       vertNum += coll_info.collRes->getNodeVertCount(node.nodeIndex);
       indNum += coll_info.collRes->getNodeFaceCount(node.nodeIndex) * 3;
     });
-    for (const CollisionNode *node = coll_info.collRes->boxNodesHead; node; node = node->nextNode)
-    {
-      if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-        continue;
+    coll_info.collRes->forEachBoxNode([&](const CollisionNode &node) {
+      if (!node.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+        return;
       vertNum += 8;
       indNum += 6 * 2 * 3;
-    }
+    });
   }
 
   void procAllCollision()

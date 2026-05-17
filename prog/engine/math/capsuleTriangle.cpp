@@ -502,7 +502,7 @@ bool test_capsule_triangle_intersection(const Capsule &capsule, const TriangleFa
 }
 
 VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float &t,
-  vec3f &out_norm, vec3f &out_pos, bool no_cull)
+  vec3f &out_norm, vec3f &out_pos, bool no_cull, float dp_cull_threshold, float h_zero_eps)
 {
   int col = -1;
   vec3f edge0 = v_sub(v1, v0);
@@ -510,7 +510,7 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
   vec3f vNorm = v_norm3(v_cross3(edge1, edge0));
   vec4f makeNeg = v_cast_vec4f(v_seti_x((no_cull ? 1 : 0) << 31)); // invert sign in no_cull mode
   float dp = v_extract_x(v_or(v_dot3_x(vNorm, dir), makeNeg));
-  if (!no_cull && dp > -0.001f) // culling
+  if (!no_cull && dp > dp_cull_threshold) // culling
     return false;
 
   vec3f vertices[3] = {v0, v1, v2};
@@ -526,12 +526,45 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
     float dist = -max(h - radius, 0.f) / dp;
     if (dist < t)
     {
-      vec3f vOnPlane = v_madd(dir, v_splats(-h / dp), from);
-      if (is_point_in_triangle(vOnPlane, v0, v1, v2))
+      // hitPos selection depends on the sign of h:
+      //
+      //   h >= 0 (origin in front of, or on, the plane):
+      //     vOnPlane = ray-plane intersection (along ray direction). For h > radius this is
+      //     the FIRST t at which the capsule axis enters the triangle's plane (forward of
+      //     the origin since -h/dp > 0 when dp < 0). For 0 <= h <= radius the intersection
+      //     still lies forward of the origin and is a sensible contact-point approximation.
+      //
+      //   h < 0 (origin BEHIND the plane, but |h| <= radius so the start sphere overlaps
+      //          the plane -- pass1 wouldn't run otherwise; the `h < -radius` early-out
+      //          above rejects the deeper case):
+      //     vOnPlane = from + dir * (-h/dp). With h < 0 and dp < 0, -h/dp < 0: the
+      //     ray-plane intersection lies BEHIND the ray origin. It is not the contact
+      //     point of the capsule's start sphere with the plane -- the capsule extends
+      //     forward from the origin, not backward. The actual contact (and the only one
+      //     the start sphere can reach when |h| <= radius) is the orthogonal projection
+      //     of the origin onto the plane: orthoProj = from - vNorm * h.
+      //
+      // Why this matters:
+      //   The legacy code unconditionally used vOnPlane and tested is_point_in_triangle
+      //   on it. For h < 0 there are configurations where vOnPlane (behind the ray)
+      //   lands inside the triangle while orthoProj (the real start-sphere contact)
+      //   lands outside it -- the start sphere is touching air just outside the
+      //   triangle face but pass1 spuriously reports a face hit at t = 0. With raw
+      //   verts both FRT and BVH paths share the bug identically (so it was invisible),
+      //   but BLAS-decoded verts (vert21 round-trip ~1e-6 noise on icosahedron-scale
+      //   coords) shift vOnPlane fractionally across the triangle's edge while
+      //   orthoProj stays decisively outside -- the BVH path then produces a hit the
+      //   FRT path does not, breaking BVH/FRT parity. Selecting hitPos = orthoProj for
+      //   the h < 0 branch is the rigorous "does the start sphere actually touch the
+      //   triangle face?" test. The h >= 0 branch is unchanged because vOnPlane there
+      //   is well-defined (forward of origin) and matches the geometric contact for
+      //   the start-of-capsule contact case.
+      vec3f hitPos = h < 0.f ? v_sub(from, v_mul(vNorm, v_splats(h))) : v_madd(dir, v_splats(-h / dp), from);
+      if (is_point_in_triangle(hitPos, v0, v1, v2))
       {
         t = dist;
         out_norm = vNorm;
-        out_pos = vOnPlane;
+        out_pos = hitPos;
         col = 0;
       }
     }
@@ -606,7 +639,9 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
 
     float dist;
     bool res = get_lines_intersection(l1s, l1e, l2s, l2e, dist);
-    if (!res || dist < -radius || (h < 0.f && dist < 0.f))
+    // h_zero_eps tolerates small negative h from quantized-vertex drift: a flat triangle whose
+    // y=0 plane decodes as y=-5e-5 must not flip the back-side rejection on grazing rays.
+    if (!res || dist < -radius || (h < -h_zero_eps && dist < 0.f))
       continue;
 
     vec3f inter = v_madd(dir, v_splats(dist), pt1);
@@ -615,8 +650,44 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
     if (v_extract_x(v_dot3_x(r1, r2)) > 0.f)
       continue;
 
-    dist = v_extract_x(v_btsel(v_set_x(dist), v_set_x(h), v_msbit())); // copy sign from h
-    dist = max(dist, 0.f);
+    // h-sign override of dist: the line-line intersection in 2D may produce a sign that
+    // doesn't reliably indicate "ahead vs behind the ray" depending on which axis was
+    // dropped during projection. The h sign is the canonical "in front (h>=0) / behind
+    // (h<0)" signal -- when h<0 the contact has already been happening, clamp dist to 0.
+    // h_zero_eps tolerates BLAS-decoded vertex precision drift (vert21 round-trip ~1e-5
+    // can flip h's sign on grazing rays where the geometric truth is h==0); without the
+    // tolerance, BVH's slightly-negative h would clamp a valid forward contact to t=0 while
+    // FRT's exact h=0 keeps the line-line value, producing spurious BVH-vs-FRT t-only divergence.
+    //
+    // TODO: a more accurate (precision-independent) version replaces the h-driven clamp
+    // with a direct geometric "is the start sphere already overlapping this edge segment?"
+    // test. Then `dist` is forced to 0 only when the capsule really IS in contact at t=0,
+    // and h's sign is no longer load-bearing -- so vertex-precision noise on h cannot
+    // affect the result at all. Sketch:
+    //
+    //   vec3f edgeDir = v_sub(p1, p0);
+    //   float edgeDirSq = v_extract_x(v_dot3_x(edgeDir, edgeDir));
+    //   vec3f originRel = v_sub(from, p0);
+    //   float t_seg = min(max(v_extract_x(v_dot3_x(originRel, edgeDir)) / edgeDirSq, 0.f), 1.f);
+    //   vec3f closestSeg = v_madd(edgeDir, v_splats(t_seg), p0);
+    //   float startSphereDistSq = v_extract_x(v_length3_sq_x(v_sub(closestSeg, from)));
+    //   if (startSphereDistSq < radius * radius)
+    //     dist = 0.f;
+    //   else
+    //     dist = max(dist, 0.f);
+    //
+    // Why we did not switch yet: the geometric check changes the SEMANTIC meaning of
+    // pass3's dist for cases where h>0 (origin in front of plane) but the start sphere
+    // happens to overlap the edge segment -- the legacy h-sign-copy reports the line-line
+    // forward t there (a non-physical "future contact"), and FRT-baselined hit-count
+    // expectancies in the unittest were generated with that legacy interpretation. The
+    // geometric version would correctly report t=0 for those cases, which would shift
+    // FRT counts on cylinder/icosphere/jaguar by a few hits each (similar to what the
+    // pass1 hitPos=orthoProj fix did) and require updating those baselines.
+    if (h < -h_zero_eps)
+      dist = 0.f;
+    else
+      dist = max(dist, 0.f);
     if (dist < t)
     {
       t = dist;
@@ -629,14 +700,15 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
   return col != -1;
 }
 
-VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float t, bool no_cull)
+VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f v1, vec3f v2, float radius, float t, bool no_cull,
+  float dp_cull_threshold, float h_zero_eps)
 {
   vec3f edge0 = v_sub(v1, v0);
   vec3f edge1 = v_sub(v2, v0);
   vec3f vNorm = v_norm3(v_cross3(edge1, edge0));
   vec4f makeNeg = v_cast_vec4f(v_seti_x((no_cull ? 1 : 0) << 31)); // invert sign in no_cull mode
   float dp = v_extract_x(v_or(v_dot3_x(vNorm, dir), makeNeg));
-  if (!no_cull && dp > -0.001f) // culling
+  if (!no_cull && dp > dp_cull_threshold) // culling
     return false;
 
   vec3f vertices[3] = {v0, v1, v2};
@@ -652,8 +724,10 @@ VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f
     float dist = -max(h - radius, 0.f) / dp;
     if (dist < t)
     {
-      vec3f vOnPlane = v_madd(dir, v_splats(-h / dp), from);
-      if (is_point_in_triangle(vOnPlane, v0, v1, v2))
+      // See test_capsule_triangle_intersection for the rationale -- mirror the same
+      // h<0 -> orthoProj, h>=0 -> ray-plane-intersection split here.
+      vec3f hitPos = h < 0.f ? v_sub(from, v_mul(vNorm, v_splats(h))) : v_madd(dir, v_splats(-h / dp), from);
+      if (is_point_in_triangle(hitPos, v0, v1, v2))
         return true;
     }
   }
@@ -722,7 +796,8 @@ VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f
 
     float dist;
     bool res = get_lines_intersection(l1s, l1e, l2s, l2e, dist);
-    if (!res || dist < -radius || (h < 0.f && dist < 0.f))
+    // h_zero_eps: same precision tolerance as test_capsule_triangle_intersection.
+    if (!res || dist < -radius || (h < -h_zero_eps && dist < 0.f))
       continue;
 
     vec3f inter = v_madd(dir, v_splats(dist), pt1);
@@ -731,8 +806,11 @@ VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f
     if (v_extract_x(v_dot3_x(r1, r2)) > 0.f)
       continue;
 
-    dist = v_extract_x(v_btsel(v_set_x(dist), v_set_x(h), v_msbit())); // copy sign from h
-    if (dist < t)
+    // See test_capsule_triangle_intersection's pass3 for the rationale -- h_zero_eps tolerance
+    // on the h-sign-driven clamp avoids spurious "behind plane" classification on quantized verts.
+    if (h < -h_zero_eps)
+      return true; // origin behind plane within radius -> contact at t=0 -> hit (0 < any input t)
+    if (max(dist, 0.f) < t)
       return true;
   }
 

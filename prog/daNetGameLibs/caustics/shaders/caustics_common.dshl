@@ -16,12 +16,12 @@ endmacro
 
 macro USE_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
 hlsl(code) {
-  float load_additional_light(float2 tc)
+  float2 load_caustics(float2 tc)
   {
     ##if caustics_tex != NULL
-    return tex2Dlod(caustics_tex, float4(tc, 0, 0)).r;
+    return pow2(tex2Dlod(caustics_tex, float4(tc, 0, 0)).rg) * float2(4.0f, 2.0f); // todo: move this magic and whole macro to gamelibs
     ##else
-    return 0;
+    return float2(1, 0);
     ##endif
   }
   float calculate_clouds_shadow(float caustics, float2 tc, float3 viewVec)

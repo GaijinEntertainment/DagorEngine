@@ -1066,6 +1066,14 @@ bool texmgr_internal::should_start_load_prio(int prio)
          !interlocked_relaxed_load(processingTexData[prio]) && !interlocked_relaxed_load(processingTexDataScheduled[prio]);
 }
 
+int get_managed_textures_streaming_pending_count()
+{
+  int sum = 0;
+  for (int p = 0; p < DXP_PRIO_COUNT; ++p)
+    sum += interlocked_relaxed_load(pendingTexCount[p]);
+  return sum;
+}
+
 bool isDiffuseTextureSuitableForMipColorization(const char *name)
 {
   static bool on = dgs_get_settings()->getBlockByNameEx("debug")->getBool("debugColorizeMipmapsForDiffuseTextures", false);

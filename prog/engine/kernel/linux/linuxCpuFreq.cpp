@@ -68,5 +68,8 @@ int get_time_msec() { return (ref_time_ticks() - startup_ref_time) / TICKS_MSEC;
 
 int64_t time_msec_to_localtime(int64_t t) { return t + startup_localtime_ticks / TICKS_MSEC; }
 
+#include <perfMon/dag_perfTimer.h>
+extern uint64_t profile_ref_ticks_ool() { return profile_ref_ticks(); }
+
 #define EXPORT_PULL dll_pull_kernel_cpuFreq
 #include <supp/exportPull.h>

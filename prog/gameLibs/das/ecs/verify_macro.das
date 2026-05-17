@@ -14,7 +14,7 @@ require daslib/macro_boost
 
 [call_macro(name="ecs_type_hash")]
 class EcsTypeMacro : AstCallMacro
-  [unused_argument(mod)] def override visit(prog : ProgramPtr; mod : Module ?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr
+  [unused_argument(mod)] def override visit(prog : ProgramPtr; mod : Module ?; expr : ExprCallMacro ?) : ExpressionPtr
     if length(expr.arguments) != 1
       macro_error(prog, expr.at, "ecs_type_hash expecting 1 argument")
       return <- default<ExpressionPtr>
@@ -76,10 +76,10 @@ class ReqTemplateAnnotation : AstStructureAnnotation
 
     st.fields |> clear()
 
-    var inscope fn <- get_ecs_verify_fn(st, name, map)
+    var fn = get_ecs_verify_fn(st, name, map)
 
     fn |> append_annotation("ecs", "es", [
-        ("on_event", RttiValue(tString="VerifyEcsTemplates"))
+        (argname="on_event", argvalue=RttiValue(tString="VerifyEcsTemplates"))
     ])
     compiling_module() |> add_function(fn)
     astChanged = true

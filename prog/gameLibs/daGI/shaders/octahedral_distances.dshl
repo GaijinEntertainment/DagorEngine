@@ -38,7 +38,7 @@ shader octahedral_distances_cs
 
     groupshared int i = 0, j = 0, k = 0;
     [numthreads(OCTAHEDRAL_TILE_SIDE_LENGTH, OCTAHEDRAL_TILE_SIDE_LENGTH, 1)]
-    void main_cs( uint3 gId : SV_GroupID, uint3 gTId : SV_GroupThreadID, uint tid: SV_GroupIndex, uint3 dtId : SV_DispatchThreadID)
+    void octahedral_distances_cs( uint3 gId : SV_GroupID, uint3 gTId : SV_GroupThreadID, uint tid: SV_GroupIndex, uint3 dtId : SV_DispatchThreadID)
     {
       uint cascadeId = ambient_voxels_move_ofs.w;
       if (tid == 0)
@@ -98,6 +98,6 @@ shader octahedral_distances_cs
         coord.z + ssgi_cascade_z_crd_ofs(cascadeId))) = rayDist / maxDist;
     }
   }
-  compile("cs_6_5", "main_cs");
+  compile("cs_6_5", "octahedral_distances_cs");
   if (gi_quality != raytracing) {dont_render;}
 }

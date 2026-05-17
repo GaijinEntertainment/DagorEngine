@@ -22,7 +22,7 @@ float compute_simple_sdf_occlusion(float3 worldPos, float3 worldNorm, float rang
 
   while (clip <= lastClip)
   {
-    if (clip == lastClip || (range <= world_sdf_voxel_size(clip) && world_sdf_is_inside_clip(clip, pos, 1)))
+    if ((range <= world_sdf_voxel_size(clip) && world_sdf_is_inside_clip(clip, pos, 1)))
     {
       float v = sample_world_sdf_value(clip, pos);
       if (v < 1)

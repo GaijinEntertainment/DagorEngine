@@ -66,12 +66,6 @@ int DagorWinMain(bool debugmode)
   set_debug_console_handle((intptr_t)stdout);
 #endif
   dgs_report_fatal_error = stderr_report_fatal_error;
-  if (dgs_argc < 3)
-  {
-    ::debug("dasAot <in_script.das> <out_script.das.cpp> [-q] [-j] "
-            "-- [--config aot_config.blk] [--das-root=das/root] [--strict] [--verbose]\n");
-    return -1;
-  }
   debug_set_log_callback(&log_callback);
 
   String dasRoot;

@@ -21,7 +21,6 @@
 #include <sqstdstring.h>
 #include <sqstdaux.h>
 #include <sqmodules.h>
-#include <sqio.h>
 #include <sqstddebug.h>
 #include <squirrel/sqtypeparser.h>
 

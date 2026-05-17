@@ -15,6 +15,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/pcre/pcre
   $(Root)/prog/3rdPartyLibs/utf8
   $(Root)/prog/3rdPartyLibs/arc/libzip/lib
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
 ;
 
 if $(Platform) in ps4 ps5 {

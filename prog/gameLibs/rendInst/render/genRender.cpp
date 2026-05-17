@@ -694,6 +694,15 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
                                   ? TEXFMT_ATI1N | TEXCF_UPDATE_DESTINATION
                                   : TEXCF_RTARGET | TEXFMT_R8 | TEXCF_GENERATEMIPS;
           rtData->riRes[i]->prepareTextures(rtData->riResName[i], shadowAtlasSize, preshadowAtlasMipOffset, preshadowFormat);
+          {
+            [[maybe_unused]] auto &imp = rtData->riRes[i]->getImpostorTextures();
+            G_ASSERTF(
+              imp.albedo_alpha != BAD_TEXTUREID && imp.normal_translucency != BAD_TEXTUREID && imp.ao_smoothness != BAD_TEXTUREID,
+              "Impostor textures not loaded for <%s>: albedo_alpha=%s normal_translucency=%s ao_smoothness=%s. "
+              "Check that <name>_aa, <name>_nt, <name>_as texture assets exist and are built.",
+              rtData->riResName[i], imp.albedo_alpha == BAD_TEXTUREID ? "MISSING" : "ok",
+              imp.normal_translucency == BAD_TEXTUREID ? "MISSING" : "ok", imp.ao_smoothness == BAD_TEXTUREID ? "MISSING" : "ok");
+          }
           Tab<ShaderMaterial *> mats;
           rtData->riRes[i]->lods.back().scene->gatherUsedMat(mats);
           for (size_t j = 0; j < mats.size(); ++j)

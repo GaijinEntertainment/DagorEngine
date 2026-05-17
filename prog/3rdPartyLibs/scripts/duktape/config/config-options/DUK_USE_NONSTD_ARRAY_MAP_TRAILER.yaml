@@ -1,0 +1,14 @@
+define: DUK_USE_NONSTD_ARRAY_MAP_TRAILER
+introduced: 1.0.0
+default: true
+tags:
+  - ecmascript
+  - compliance
+description: >
+  For better compatibility with existing code, enable non-standard
+  Array.prototype.map() behavior for trailing non-existent elements of
+  the map result, see
+  https://github.com/svaarala/duktape/blob/master/tests/ecmascript/test-bi-array-proto-map-nonstd-trailing.js.
+
+  If this option is disabled, map() will behave in a strictly conforming
+  fashion, ignoring non-existent trailing elements in the result length.

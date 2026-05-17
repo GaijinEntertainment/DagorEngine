@@ -428,6 +428,14 @@ static void delete_riextra(rendinst::riex_handle_t handle, int cell_idx, int off
     rendinst::delRIGenExtra(desc.getRiExtraHandle());
 }
 
+// Set between EventEntityManagerBeforeClear and EventEntityManagerAfterClear. While true, the on_disappear
+// handler below skips the "destruction" path: spawning destructables for every static ri_extra on level
+// teardown floods the Jolt body pool (e.g. on tunisia_city benchmark) — and the whole phys world / ri storage
+// are torn down within milliseconds anyway.
+static bool em_is_clearing = false;
+inline void riextra_em_before_clear_es_event_handler(const ecs::EventEntityManagerBeforeClear &) { em_is_clearing = true; }
+inline void riextra_em_after_clear_es_event_handler(const ecs::EventEntityManagerAfterClear &) { em_is_clearing = false; }
+
 ECS_ON_EVENT(on_disappear)
 void riextra_destroyed_es_event_handler(const ecs::Event &, const RiExtraComponent &ri_extra, bool ri_extra__destroyed,
   const rendinst::RendInstDesc *ri_extra__riSyncDesc, const Point3 &ri_extra__impulseOnDestruction = Point3(),
@@ -437,8 +445,11 @@ void riextra_destroyed_es_event_handler(const ecs::Event &, const RiExtraCompone
   const int riOffset = ri_extra__riSyncDesc && ri_extra__riSyncDesc->cellIdx < 0 ? int(ri_extra__riSyncDesc->offs) : -1;
   bool isRiHandleValid = rendinst::isRiGenExtraValid(ri_extra.handle);
   if (isRiHandleValid)
-    delete_riextra(ri_extra.handle, riCellIdx, riOffset, !ri_extra__destroyed, false /*add_restorable*/, true /*destr_effects*/, 1,
+  {
+    const bool destroy = !ri_extra__destroyed && !em_is_clearing;
+    delete_riextra(ri_extra.handle, riCellIdx, riOffset, destroy, false /*add_restorable*/, true /*destr_effects*/, 1,
       ri_extra__impulseOnDestruction, ri_extra__impulsePosOnDestruction);
+  }
 
   handles2eid.erase(ri_extra.handle);
 }

@@ -2,6 +2,15 @@
 
 #include "daScript/misc/wyhash.h"
 
+// defensive fallbacks — anyhash.h may be pulled in through das_config.h
+// before platform.h / vecmath/dag_vecMathDecl.h have defined these.
+#ifndef DAS_SUPPRESS_UB
+#define DAS_SUPPRESS_UB
+#endif
+#ifndef NO_ASAN_INLINE
+#define NO_ASAN_INLINE inline
+#endif
+
 /*
     this is where we configure low level hash implementation
 */
@@ -10,8 +19,24 @@
 #define HASH_KILLED64    1
 #define DAS_WYHASH_SEED  UINT64_C(0x1234567890abcdef)
 
+// Under ASAN, default DAS_SAFE_HASH to 1. The fast path's `*(uint16_t *)block`
+// reads 1 byte past the C-string null, which crosses the std::string allocation
+// boundary and ASAN flags. NO_ASAN_INLINE on hash_blockz64 (below) is best-effort
+// only — its fallback in this header is empty, so the attribute may not actually
+// take effect depending on whether vecmath/dag_vecMathDecl.h has been included.
+//
+// __has_feature is Clang-only; guard it with the standard portability shim so
+// GCC's preprocessor doesn't choke parsing the RHS of `&&` (short-circuit is
+// semantic, not lexical).
+#ifndef __has_feature
+    #define __has_feature(x) 0
+#endif
 #ifndef DAS_SAFE_HASH
-#define DAS_SAFE_HASH    0
+    #if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+        #define DAS_SAFE_HASH 1
+    #else
+        #define DAS_SAFE_HASH 0
+    #endif
 #endif
 
 namespace das {

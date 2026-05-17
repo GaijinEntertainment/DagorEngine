@@ -8,6 +8,8 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_rwLock.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_fileIo.h>
@@ -118,9 +120,6 @@ public:
   LocHashNameMapType map;
   PluralFormFn pluralFormFn;
 
-  LocHashNameMapType mapCI;
-  Tab<int> mapCItoCS;
-
   static constexpr int NOT_ALIGNED_POINTER_OFS = 3;
 
   Tab<LocalizedTextEntry> tableFull;
@@ -147,25 +146,11 @@ public:
     }
   }
 
-  int getTextIndex(const char *key, bool ci = false)
-  {
-    int idx = -1;
-    if (ci)
-    {
-      char *data = str_dup(key, tmpmem);
-      dd_strlwr(data);
-      int idxCI = mapCI.getNameId(key);
-      idx = (idxCI >= 0) ? mapCItoCS[idxCI] : -1;
-      memfree(data, tmpmem);
-    }
-    else
-      idx = map.getNameId(key);
-    return idx;
-  }
+  int getTextIndex(const char *key) { return map.getNameId(key); }
 
-  LocTextId getTextId(const char *key, bool ci = false)
+  LocTextId getTextId(const char *key)
   {
-    int idx = getTextIndex(key, ci);
+    int idx = getTextIndex(key);
     if (idx < 0)
     {
       if (const char *text = addRtLoc.getStrId(key))
@@ -722,7 +707,7 @@ public:
     if (len == -1)
       return false;
 
-    char *buffer = (char *)memalloc(len, tmpmem);
+    char *buffer = (char *)memalloc(len + 2, tmpmem);
     if (!buffer)
       return false;
 
@@ -731,6 +716,9 @@ public:
       memfree(buffer, tmpmem);
       return false;
     }
+    buffer[len] = '\n';
+    len++;
+    buffer[len] = '\0';
 
 #if DAGOR_DBGLEVEL > 0 || defined(DAGOR_FORCE_LOGS)
     lastFileNameForDebug = filename;
@@ -862,14 +850,6 @@ public:
     G_ASSERT(idx >= 0);
     if (tbl.size() < (idx + 1) * mul)
       append_items(tbl, (idx + 1) * mul - tbl.size());
-    if (!full)
-    {
-      dd_strlwr(data);
-      int idxCI = locTbl->mapCI.addNameId(data);
-      G_ASSERT(idxCI <= locTbl->mapCItoCS.size());
-      if (idxCI == locTbl->mapCItoCS.size())
-        locTbl->mapCItoCS.push_back(idx);
-    }
     memfree(data, tmpmem); // there's strdup in addNameId
   }
   virtual char *addValue(int n, int len, int lang_idx = -1)
@@ -922,18 +902,24 @@ bool LocalizationTable::loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int>
 static InitOnDemand<LocalizationTable> locTable;
 
 static eastl::vector_set<uint32_t> missing_loc_keys;
+static SpinLockReadWriteLock missing_loc_keys_lock;
 static bool should_report_missing_key(const char *key)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  return missing_loc_keys.insert(str_hash_fnv1(key)).second;
+  auto hash_key = str_hash_fnv1(key);
+  {
+    ScopedLockReadTemplate readLock(missing_loc_keys_lock);
+    if (missing_loc_keys.find(hash_key) != missing_loc_keys.end())
+      return false;
+  }
+  ScopedLockWriteTemplate writeLock(missing_loc_keys_lock);
+  return missing_loc_keys.insert(hash_key).second;
 }
 
-LocTextId get_localized_text_id(const char *key, bool ci)
+LocTextId get_localized_text_id(const char *key)
 {
   if (!key || !*key || !locTable)
     return NULL;
-  LocTextId result = locTable->getTextId(key, ci);
+  LocTextId result = locTable->getTextId(key);
   if (result)
     return result;
 #if DAGOR_DBGLEVEL > 0
@@ -947,18 +933,18 @@ LocTextId get_localized_text_id(const char *key, bool ci)
   return nullptr;
 }
 
-LocTextId get_localized_text_id_silent(const char *key, bool ci)
+LocTextId get_localized_text_id_silent(const char *key)
 {
   if (!key || !*key || !locTable)
     return NULL;
-  return locTable->getTextId(key, ci);
+  return locTable->getTextId(key);
 }
 
-LocTextId get_optional_localized_text_id(const char *key, bool ci)
+LocTextId get_optional_localized_text_id(const char *key)
 {
   if (!key || !*key || !locTable)
     return NULL;
-  LocTextId result = locTable->getTextId(key, ci);
+  LocTextId result = locTable->getTextId(key);
   if (result)
     return result;
 #if DAGOR_DBGLEVEL > 0
@@ -968,11 +954,11 @@ LocTextId get_optional_localized_text_id(const char *key, bool ci)
   return nullptr;
 }
 
-bool does_localized_text_exist(const char *key, bool ci)
+bool does_localized_text_exist(const char *key)
 {
   if (!key || !*key || !locTable)
     return false;
-  return locTable->getTextIndex(key, ci) >= 0;
+  return locTable->getTextIndex(key) >= 0;
 }
 
 const char *get_localized_text(LocTextId id) { return locTable ? locTable->getText(id) : ""; }

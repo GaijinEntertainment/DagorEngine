@@ -72,6 +72,69 @@ static bool is_hlsl_debug() { return shc::config().hlslDebugLevel != DebugLevel:
 #include <D3Dcompiler.h>
 #endif
 
+int ShaderParser::appendVarToContext(shc::VariantContext &ctx, const char *name, ShaderVarType type, const int nameId, void *loc,
+  bool dynamic, bool noWarning, bool used, int slot)
+{
+  ShaderSemCode &code = ctx.parsedSemCode();
+
+  int vi = append_items(code.vars, 1);
+  code.vars[vi].type = type;
+  code.vars[vi].nameId = nameId;
+  code.vars[vi].terminal = loc;
+  code.vars[vi].dynamic = dynamic;
+  code.vars[vi].used = used;
+  code.vars[vi].slot = slot;
+  code.vars[vi].noWarnings = noWarning;
+
+  code.staticStcodeVars.add(name, vi);
+
+  return vi;
+}
+
+void ShaderParser::parseAttribs(shc::VariantContext &ctx, const eastl::vector<static_attrib_decl *> &attribs,
+  const ShaderSemCode::Var &var, uint32_t &flags, uint32_t &stubCol)
+{
+  ExpressionParser exprParser{ctx};
+  auto &parser = ctx.tgtCtx().sourceParseState().parser;
+  for (auto *attrib : attribs)
+  {
+    if (streq(attrib->name->text, "stub"))
+    {
+      if (var.dynamic)
+      {
+        report_error(parser, attrib->name, "'%s' attribute is not supported for dynamic vars", attrib->name->text);
+        return;
+      }
+      if (var.type != SHVT_TEXTURE)
+      {
+        report_error(parser, attrib->name, "'%s' attribute is only supported for texture vars", attrib->name->text);
+        return;
+      }
+      if (attrib->value)
+      {
+        report_error(parser, attrib->name, "'%s' attribute takes a color expression", attrib->name->text);
+        return;
+      }
+
+      Color4 val{};
+      if (!exprParser.parseConstExpression(*attrib->expr, val, ExpressionParser::Context{shexpr::VT_COLOR4, false, attrib->name}))
+      {
+        report_error(parser, attrib->name, "Wrong expression for '%s' color", attrib->name->text);
+        return;
+      }
+
+      val = clamp(val, Color4(0.f, 0.f, 0.f, 0.f), Color4(1.f, 1.f, 1.f, 1.f));
+      flags |= ShaderClass::VF_HAS_STUB_COLOR;
+      stubCol =
+        (uint32_t(255.f * val.r)) | (uint32_t(255.f * val.g) << 8) | (uint32_t(255.f * val.b) << 16) | (uint32_t(255.f * val.a) << 24);
+    }
+    else
+    {
+      report_warning(parser, *attrib->name, "Unknown static attribute '%s'", attrib->name->text);
+    }
+  }
+}
+
 /*********************************
  *
  * class AssembleShaderEvalCB
@@ -126,15 +189,9 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
     return;
   }
   parser.get_lexer().register_symbol(varNameId, SymbolType::STATIC_VARIABLE, s.name);
-  v = append_items(code.vars, 1);
-  code.vars[v].type = t;
-  code.vars[v].nameId = varNameId;
-  code.vars[v].terminal = s.name;
-  code.vars[v].dynamic = s.mode && s.mode->mode->num == SHADER_TOKENS::SHTOK_dynamic;
-  if (s.no_warnings)
-    code.vars[v].noWarnings = true;
 
-  code.staticStcodeVars.add(s.name->text, v);
+  v = appendVarToContext(ctx, s.name->text, t, varNameId, s.name, s.mode && s.mode->mode->num == SHADER_TOKENS::SHTOK_dynamic,
+    s.no_warnings);
 
   bool inited = (!s.mode && s.init) || code.vars[v].dynamic || (t != SHVT_TEXTURE) || s.init;
   if (!inited)
@@ -142,44 +199,7 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
 
   uint32_t flags = 0;
   uint32_t stubCol = 0;
-
-  for (auto *attrib : s.attrib)
-  {
-    if (streq(attrib->name->text, "stub"))
-    {
-      if (code.vars[v].dynamic)
-      {
-        report_error(parser, attrib->name, "'%s' attribute is not supported for dynamic vars", attrib->name->text);
-        return;
-      }
-      if (code.vars[v].type != SHVT_TEXTURE)
-      {
-        report_error(parser, attrib->name, "'%s' attribute is only supported for texture vars", attrib->name->text);
-        return;
-      }
-      if (attrib->value)
-      {
-        report_error(parser, attrib->name, "'%s' attribute takes a color expression", attrib->name->text);
-        return;
-      }
-
-      Color4 val{};
-      if (!exprParser.parseConstExpression(*attrib->expr, val, ExpressionParser::Context{shexpr::VT_COLOR4, false, attrib->name}))
-      {
-        report_error(parser, attrib->name, "Wrong expression for '%s' color", attrib->name->text);
-        return;
-      }
-
-      val = clamp(val, Color4(0.f, 0.f, 0.f, 0.f), Color4(1.f, 1.f, 1.f, 1.f));
-      flags |= ShaderClass::VF_HAS_STUB_COLOR;
-      stubCol =
-        (uint32_t(255.f * val.r)) | (uint32_t(255.f * val.g) << 8) | (uint32_t(255.f * val.b) << 16) | (uint32_t(255.f * val.a) << 24);
-    }
-    else
-    {
-      report_warning(parser, *attrib->name, "Unknown static attribute '%s'", attrib->name->text);
-    }
-  }
+  parseAttribs(ctx, s.attrib, code.vars[v], flags, stubCol);
 
   const bool hasStubColor = flags & ShaderClass::VF_HAS_STUB_COLOR;
 
@@ -300,19 +320,18 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
   }
 }
 
-void AssembleShaderEvalCB::eval_bool_decl(bool_decl &decl) { ctx.localBoolVars().add(decl, parser); }
-
-void AssembleShaderEvalCB::decl_bool_alias(const char *name, bool_expr &expr)
+void AssembleShaderEvalCB::eval_bool_decl(bool_decl &decl)
 {
-  bool_decl decl;
-  SHTOK_ident ident;
-  ident.file_start = 0;
-  ident.line_start = 0;
-  ident.col_start = 0;
-  decl.name = &ident;
-  decl.name->text = name;
-  decl.expr = &expr;
-  eval_bool_decl(decl);
+  if (ctx.shCtx().blockLevel() == ShaderBlockLevel::SHADER)
+    G_ASSERT(decl.resolvedNid >= 0);
+  else if (decl.resolvedNid < 0)
+    decl.resolvedNid = ctx.tgtCtx().boolVarNameMap().addVarId(decl.name->text);
+  ctx.localBoolVars().add(decl.resolvedNid, decl.expr, parser, decl.name);
+}
+
+void AssembleShaderEvalCB::decl_bool_alias(const char *name, const char *base_name)
+{
+  ctx.localBoolVars().addAlias(name, base_name, parser);
 }
 
 void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v, bool is_referenced)

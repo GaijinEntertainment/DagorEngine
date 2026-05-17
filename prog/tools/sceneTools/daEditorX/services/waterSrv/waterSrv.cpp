@@ -4,6 +4,9 @@
 #include <de3_interface.h>
 #include "../../de_appwnd.h"
 
+#include <util/dag_hashedKeyMap.h>
+#include <EASTL/bit.h>
+
 #include <math/dag_mathUtils.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <debug/dag_debug.h>
@@ -42,7 +45,7 @@ class WaterService : public IWaterService
 {
 public:
   FFTWater *water = nullptr;
-  UniqueTexHolder distTex;
+  UniqueTexWithShaderVar distTex;
   TextureIDHolder heightmap;
   TextureIDHolder wfx_normals, wfx_details;
   float waterLevel = 0.f;
@@ -463,6 +466,8 @@ public:
       Point4(-mainRectOffset.x / mainRectSize.x, -mainRectOffset.y / mainRectSize.y, 1.0 / mainRectSize.x, 1.0 / mainRectSize.y);
     int pageCount = 0;
     int oneLevelPageCount = 0;
+    // key is float bit pattern; 0xFFFFFFFFu (NaN) is used as the empty sentinel so any finite height bit pattern is storable.
+    HashedKeyMap<uint32_t, uint32_t, 0xFFFFFFFFu, oa_hashmap_util::MumStepHash<uint32_t>> flatHeightHistogram;
     for (auto &p : pages)
     {
       int value = p.first;
@@ -493,13 +498,27 @@ public:
           whm_pages[destY * texWidth + destX] = min(max(0u, unsigned((ht - minHeight) / range * UINT16_MAX)), (unsigned)UINT16_MAX);
         }
       if (pageMin == pageMax)
+      {
         oneLevelPageCount++;
+        (*flatHeightHistogram.emplace_if_missing(eastl::bit_cast<uint32_t>(pageMin)).first)++;
+      }
     }
     if (oneLevelPageCount > pageCount / 2)
     {
-      CoolConsole &console = DAGORED2->getConsole();
-      console.addMessage(ILogWriter::ERROR, "More then half of all water heightmap pages have constant value. "
-                                            "Water level should be changed to reduce memory consumption.");
+      uint32_t dominantHeightBits = 0;
+      uint32_t dominantCount = 0;
+      for (auto &kv : flatHeightHistogram)
+        if (kv.val() > dominantCount)
+        {
+          dominantCount = kv.val();
+          dominantHeightBits = kv.key();
+        }
+      const float dominantHeight = eastl::bit_cast<float>(dominantHeightBits);
+      DAGORED2->getConsole().addMessage(ILogWriter::ERROR,
+        "More than half of all water heightmap pages (%d/%d) have constant height; "
+        "%u of them are at height %.3f, while water_level=%.3f. "
+        "Set water_level to %.3f to reduce memory consumption.",
+        oneLevelPageCount, pageCount, dominantCount, dominantHeight, waterLevel, dominantHeight);
     }
 
     if (pageCount > maxTotalPages / 2)

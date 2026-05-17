@@ -1,0 +1,9 @@
+ERROR: 'async' is only allowed on class methods, not table members
+testData/diagnostics/async_in_table_rejected.nut:3:2
+
+let t = {
+  async function foo() {
+  ^----
+    return 1
+
+

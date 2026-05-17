@@ -6,6 +6,7 @@ namespace das {
     DAS_API void set_aot();
     DAS_API void reset_aot();
     DAS_API bool is_in_completion();
+    DAS_API bool is_in_lint_check();
     DAS_API bool is_folding();
     DAS_API const char * compiling_file_name ( );
     DAS_API const char * compiling_module_name ( );
@@ -15,6 +16,7 @@ namespace das {
 
     DAS_API bool is_compiling ( );
     DAS_API bool is_compiling_macros ( );
+    DAS_API bool is_standalone_exe ( );
     DAS_API uint64_t get_context_share_counter ( Context * context );
 
     DAS_API char * builtin_das_root ( Context * context, LineInfoArg * at );
@@ -55,6 +57,11 @@ namespace das {
     DAS_API void heap_collect ( bool stringHeap, bool validate, Context * context, LineInfoArg * info );
     DAS_API void heap_report ( Context * context, LineInfoArg * info );
     DAS_API void memory_report ( bool errorsOnly, Context * context, LineInfoArg * info );
+    DAS_API uint64_t gc_thread_root_count();
+    DAS_API uint64_t gc_active_root_count();
+    DAS_API void gc_thread_root_report();
+    DAS_API void gc_thread_root_report_detailed(uint64_t max_nodes);
+    DAS_API uint64_t gc_total_id();
     DAS_API void builtin_table_lock_mutable ( const Table & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_table_unlock_mutable ( const Table & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_table_lock ( Table & arr, Context * context, LineInfoArg * at );
@@ -74,6 +81,8 @@ namespace das {
     DAS_API void builtin_array_lock ( Array & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_unlock ( Array & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_clear_lock ( const Array & arr, Context * );
+    DAS_API void builtin_array_tag ( Array & arr, const char * name, Context * context );
+    DAS_API void builtin_table_tag ( Table & tab, const char * name, Context * context );
     DAS_API void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * lineinfo );
     DAS_API void builtin_make_temp_array ( Array & arr, void * data, int size );
     DAS_API void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at );

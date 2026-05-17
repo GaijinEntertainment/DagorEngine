@@ -6,7 +6,7 @@ namespace das {
 
 template <> struct typeFactory<ImColor> {
 	static TypeDeclPtr make(const ModuleLibrary &) {
-		auto t = make_smart<TypeDecl>(Type::tFloat4);
+		auto t = new TypeDecl(Type::tFloat4);
 		t->alias = "ImColor";
 		t->aotAlias = true;
 		return t;
@@ -24,7 +24,7 @@ struct cast_arg<const ImColor &> {
 
 template <> struct typeFactory<ImVec2> {
 	static TypeDeclPtr make(const ModuleLibrary &) {
-		auto t = make_smart<TypeDecl>(Type::tFloat2);
+		auto t = new TypeDecl(Type::tFloat2);
 		t->alias = "ImVec2";
 		t->aotAlias = true;
 		return t;
@@ -41,7 +41,7 @@ template <> struct cast_arg<const ImVec2 &> {
 
 template <> struct typeFactory<ImVec4> {
 	static TypeDeclPtr make(const ModuleLibrary &) {
-		auto t = make_smart<TypeDecl>(Type::tFloat4);
+		auto t = new TypeDecl(Type::tFloat4);
 		t->alias = "ImVec4";
 		t->aotAlias = true;
 		return t;
@@ -68,13 +68,6 @@ struct typeName<char> {
 };
 
 template <typename TT>
-struct typeName<TT *> {
-    static string name() {
-        return string("ptr`") + typeName<TT>::name();
-    }
-};
-
-template <typename TT>
 struct typeName<ImVector<TT>> {
     static string name() {
         return string("ImVector`") + typeName<TT>::name();
@@ -88,7 +81,7 @@ struct typeFactory<ImVector<TT>> {
         string declN = typeName<VT>::name();
         if ( library.findAnnotation(declN,nullptr).size()==0 ) {
             auto declT = makeType<TT>(library);
-            auto ann = make_smart<ManagedVectorAnnotation<VT>>(declN,const_cast<ModuleLibrary &>(library));
+            auto ann = new ManagedVectorAnnotation<VT>(declN,const_cast<ModuleLibrary &>(library));
             ann->cppName = "ImVector<" + describeCppType(declT) + ">";
             auto mod = library.front();
             mod->addAnnotation(ann);

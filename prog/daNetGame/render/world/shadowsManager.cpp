@@ -596,11 +596,14 @@ struct ShadowsManager::StaticShadowCallback final : public IStaticShadowsCB
     auto &job = static_shadow_jobs[curTransform.cascade][region];
     threadpool::wait(&job);
     RiGenVisibility *rendinstStaticShadowVisibility = job.visibility;
-    bool forcedRiLodsLoaded = rendinst::isRiGenVisibilityForcedLodLoaded(rendinstStaticShadowVisibility);
-    if (!forcedRiLodsLoaded)
+    bool anyLodQualityFine = is_bvh_enabled();
+    auto riGenLodVisibilitycheck =
+      anyLodQualityFine ? rendinst::isRiGenVisibilityResLoadingFinished : rendinst::isRiGenVisibilityForcedLodLoaded;
+    bool riLodsLoaded = riGenLodVisibilitycheck(rendinstStaticShadowVisibility);
+    if (!riLodsLoaded && !anyLodQualityFine)
       rendinst::riGenVisibilityScheduleForcedLodLoading(rendinstStaticShadowVisibility);
     job.readyToRenderWithFinalQuality =
-      forcedRiLodsLoaded && (!rendinst::rendinstGlobalShadows || rendinst::render::isRIGenGlobalShadowTexturesReady());
+      riLodsLoaded && (!rendinst::rendinstGlobalShadows || rendinst::render::isRIGenGlobalShadowTexturesReady());
     return job.readyToRenderWithFinalQuality;
   }
 

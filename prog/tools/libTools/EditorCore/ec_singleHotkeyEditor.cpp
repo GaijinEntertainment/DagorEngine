@@ -6,6 +6,7 @@
 
 #include <gui/dag_imgui.h>
 #include <propPanel/colors.h>
+#include <propPanel/commonWindow/dialogManager.h>
 #include <util/dag_string.h>
 
 #include <imgui/imgui.h>
@@ -17,8 +18,8 @@ namespace
 class SingleHotkeyEditor
 {
 public:
-  SingleHotkeyEditor(const char *editor_command_id, int hotkey_index, ImGuiKeyChord initial_key_chord) :
-    editorCommandId(editor_command_id), hotkeyIndex(hotkey_index), pickedKeyChord(initial_key_chord)
+  SingleHotkeyEditor(const char *editor_command_id, int hotkey_index, ImGuiKeyChord initial_key_chord, ImVec2 open_pos) :
+    editorCommandId(editor_command_id), hotkeyIndex(hotkey_index), pickedKeyChord(initial_key_chord), openPos(open_pos)
   {
     updateCommandsUsingTheSameKeyLabel();
   }
@@ -34,15 +35,40 @@ public:
     if (!calledOpenPopup)
     {
       calledOpenPopup = true;
-      ImGui::OpenPopup(popupId);
+      openedFrame = ImGui::GetFrameCount();
+      ImGui::SetNextWindowFocus();
     }
 
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-    const bool popupIsOpen = ImGui::BeginPopup(popupId);
+    ImGuiWindowClass windowClass;
+    windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_NoAutoMerge | ImGuiViewportFlags_NoTaskBarIcon;
+
+    ImGui::SetNextWindowPos(openPos, ImGuiCond_Appearing);
+
+    bool windowOpen = true;
+
+    const ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings |
+                                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
+    ImGui::SetNextWindowClass(&windowClass);
+    const bool isOpen = ImGui::Begin(popupId, &windowOpen, flags);
     ImGui::PopStyleColor();
 
-    if (!popupIsOpen)
+    if (!isOpen)
+    {
+      ImGui::End();
       return false;
+    }
+
+    const bool canAutoClose = ImGui::GetFrameCount() > (openedFrame + 2);
+    ImGuiWindow *window = ImGui::GetCurrentWindow();
+    const bool viewportFocused = window && window->Viewport && (window->Viewport->Flags & ImGuiViewportFlags_IsFocused);
+
+    if (canAutoClose && (PropPanel::is_any_modal_dialog_open() || !viewportFocused))
+    {
+      ImGui::End();
+      return false;
+    }
 
     ImGui::PushFont(imgui_get_bold_font(), 0.0f);
     ImGui::TextUnformatted("Press the desired shortcut.");
@@ -58,9 +84,9 @@ public:
     ImGui::TextUnformatted(commandsUsingTheSameKeyLabel);
     ImGui::PopStyleColor();
 
-    ImGui::EndPopup();
+    ImGui::End();
 
-    return open;
+    return windowOpen && open;
   }
 
 private:
@@ -173,6 +199,7 @@ private:
     const float oldAlignX = ImGui::GetStyle().ButtonTextAlign.x;
     ImGui::GetStyle().ButtonTextAlign.x = 0.0f;
     ImGui::Button(inputButtonLabel, ImVec2(-FLT_MIN, 0.0f));
+    ImGui::SetActiveID(ImGui::GetItemID(), ImGui::GetCurrentWindow());
     ImGui::RenderNavCursor(ImGui::GetCurrentContext()->LastItemData.Rect, inputId, ImGuiNavRenderCursorFlags_AlwaysDraw);
     ImGui::GetStyle().ButtonTextAlign.x = oldAlignX;
 
@@ -236,29 +263,48 @@ private:
   bool allowPickingKeyChord = true;
   bool acceptedPick = false;
   bool calledOpenPopup = false;
+  ImVec2 openPos = ImVec2(0.0f, 0.0f);
+  int openedFrame = -1;
 };
 
+struct PendingEditorRequest
+{
+  const char *editorCommandId = nullptr;
+  int hotkeyIndex = -1;
+  ImVec2 openPos = ImVec2(0.0f, 0.0f);
+};
+
+eastl::optional<PendingEditorRequest> pending_single_hotkey_editor_request;
 eastl::unique_ptr<SingleHotkeyEditor> single_hotkey_editor;
+int closedFrame = -1;
 
 } // namespace
 
 void ec_create_single_hotkey_editor(const char *editor_command_id, int hotkey_index)
 {
-  const EditorCommand *command = ec_editor_commands.getCommand(editor_command_id);
-  G_ASSERT(command);
-
-  ImGuiKeyChord initialKeyChord = ImGuiKey_None;
-  if (hotkey_index >= 0)
-  {
-    G_ASSERT(hotkey_index < command->getHotkeyCount());
-    initialKeyChord = command->getKeyChord(hotkey_index);
-  }
-
-  single_hotkey_editor.reset(new SingleHotkeyEditor(editor_command_id, hotkey_index, initialKeyChord));
+  pending_single_hotkey_editor_request = PendingEditorRequest(editor_command_id, hotkey_index, ImGui::GetMousePos());
 }
 
 void ec_update_imgui_single_hotkey_editor()
 {
+  if ((ImGui::GetFrameCount() > closedFrame + 2) && pending_single_hotkey_editor_request)
+  {
+    const PendingEditorRequest &request = pending_single_hotkey_editor_request.value();
+
+    const EditorCommand *command = ec_editor_commands.getCommand(request.editorCommandId);
+    G_ASSERT(command);
+
+    ImGuiKeyChord initialKeyChord = ImGuiKey_None;
+    if (request.hotkeyIndex >= 0)
+    {
+      G_ASSERT(request.hotkeyIndex < command->getHotkeyCount());
+      initialKeyChord = command->getKeyChord(request.hotkeyIndex);
+    }
+
+    single_hotkey_editor.reset(new SingleHotkeyEditor(request.editorCommandId, request.hotkeyIndex, initialKeyChord, request.openPos));
+    pending_single_hotkey_editor_request.reset();
+  }
+
   if (single_hotkey_editor && !single_hotkey_editor->updateImgui())
   {
     eastl::optional<ImGuiKeyChord> keyChord = single_hotkey_editor->getPickedKeyChord();
@@ -275,12 +321,13 @@ void ec_update_imgui_single_hotkey_editor()
         else
           ec_editor_commands.changeHotkey(single_hotkey_editor->getEditorCommandId(), hotkeyIndex, keyChord.value());
       }
-      else if (keyChord.value() != 0) // when leaving shorcut blank on adding new shortcut
+      else if (keyChord.value() != ImGuiKey_None) // when leaving shorcut blank on adding new shortcut
       {
         ec_editor_commands.addHotkey(single_hotkey_editor->getEditorCommandId(), keyChord.value());
       }
     }
 
+    closedFrame = ImGui::GetFrameCount();
     single_hotkey_editor.reset();
   }
 }

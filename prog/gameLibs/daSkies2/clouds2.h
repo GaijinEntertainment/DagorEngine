@@ -137,7 +137,7 @@ protected:
   bool useHole = true;
 
   UniqueBufHolder holeBuf;
-  UniqueTexHolder holeTex;
+  UniqueTexWithShaderVar holeTex;
   UniqueTex holePosTex;
 
   eastl::unique_ptr<ComputeShaderElement> clouds_hole_cs;

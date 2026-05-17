@@ -8,12 +8,17 @@
 
 #if DAS_FUSION
 
-#include "daScript/misc/copy_bytes.h"
+#include <cstring>
+
 #include "daScript/simulate/sim_policy.h"
 #include "daScript/ast/ast.h"
 #include "daScript/simulate/simulate_fusion_op2.h"
 
 namespace das {
+
+    static __forceinline bool isFastCopyBytes(uint32_t s) {
+        return s == 1 || s == 2 || (s > 0 && s <= 32 && (s & 3) == 0);
+    }
 
     // copy reference
     //  &a = b
@@ -52,7 +57,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto pl = l.compute##COMPUTEL(context); \
             auto pr = r.compute##COMPUTER(context); \
-            CopyBytes<typeSize>::copy(pl, pr); \
+            memcpy(pl, pr, typeSize); \
             return v_zero(); \
         } \
     }; \

@@ -80,7 +80,7 @@ struct typeFactory<IdHierarchicalNameMap<Ts...>>
     das::string declN = typeName<VT>::name();
     if (library.findAnnotation(declN, nullptr).size() == 0)
     {
-      auto ann = make_smart<IdNameMapAnnotation<Ts...>>(declN);
+      auto ann = new IdNameMapAnnotation<Ts...>(declN);
 
       const string commaSeparatedCppParameters = ((", " + describeCppType(makeType<Ts>(library))) + ...).substr(2, string::npos);
 

@@ -131,16 +131,16 @@ static inline bool common_touch(const das::StructurePtr &st)
   G_STATIC_ASSERT(sizeof(TestEvent) == sizeof(uint32_t) + sizeof(uint32_t) + sizeof(ecs::event_size_t) + sizeof(ecs::event_flags_t));
   G_STATIC_ASSERT(offsetof(TestEvent, field) == sizeof(ecs::Event));
   st->fields
-    .emplace(st->fields.begin(), "eventFlags", das::make_smart<das::TypeDecl>(das::Type::tUInt16), das::ExpressionPtr(),
+    .emplace(st->fields.begin(), "eventFlags", new das::TypeDecl(das::Type::tUInt16), das::ExpressionPtr(),
       das::AnnotationArgumentList(), false, st->at)
     ->generated = true;
   st->fields
-    .emplace(st->fields.begin(), "eventSize", das::make_smart<das::TypeDecl>(das::Type::tUInt16), das::ExpressionPtr(),
+    .emplace(st->fields.begin(), "eventSize", new das::TypeDecl(das::Type::tUInt16), das::ExpressionPtr(),
       das::AnnotationArgumentList(), false, st->at)
     ->generated = true;
   st->fields
-    .emplace(st->fields.begin(), "eventType", das::make_smart<das::TypeDecl>(das::Type::tUInt), das::ExpressionPtr(),
-      das::AnnotationArgumentList(), false, st->at)
+    .emplace(st->fields.begin(), "eventType", new das::TypeDecl(das::Type::tUInt), das::ExpressionPtr(), das::AnnotationArgumentList(),
+      false, st->at)
     ->generated = true;
   return true;
 }
@@ -943,10 +943,10 @@ void ECS::addEvents(das::ModuleLibrary &lib)
 {
   das::addInterop<_builtin_event_dup, void, vec4f>(*this, lib, "_builtin_event_dup", das::SideEffects::modifyArgumentAndExternal,
     "bind_dascript::_builtin_event_dup");
-  addAnnotation(das::make_smart<EventRegistrator>());
-  addAnnotation(das::make_smart<CppEventRegistrator>());
-  addAnnotation(das::make_smart<EventAnnotation>(lib));
-  addAnnotation(das::make_smart<EventsDBAnnotation>(lib));
+  addAnnotation(new EventRegistrator());
+  addAnnotation(new CppEventRegistrator());
+  addAnnotation(new EventAnnotation(lib));
+  addAnnotation(new EventsDBAnnotation(lib));
 
   das::addExtern<DAS_BIND_FUN(_builtin_send_event)>(*this, lib, "_builtin_send_event", das::SideEffects::modifyExternal,
     "bind_dascript::_builtin_send_event");

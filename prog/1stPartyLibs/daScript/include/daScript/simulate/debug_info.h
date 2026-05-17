@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/misc/gc_node.h"
+
 namespace das
 {
 
@@ -102,8 +104,9 @@ namespace das
     struct TypeAnnotation;
     struct EnumInfo;
 
-    struct BasicAnnotation : ptr_ref_count {
+    struct BasicAnnotation : gc_node {
         BasicAnnotation ( const string & n, const string & cpn = "" ) : name(n), cppName(cpn) {}
+        virtual ~BasicAnnotation() {}
         string      name;
         string      cppName;
     };
@@ -190,7 +193,7 @@ namespace das
     typedef smart_ptr<class FileAccess> FileAccessPtr;
     class DAS_API FileAccess : public ptr_ref_count {
     public:
-        FileAccess() {}
+        FileAccess() { ref_count_magic = TRACK_PTR_FILE_ACCESS; }
         virtual ~FileAccess() {}
 
         FileAccess& operator=(const FileAccess&) = delete;

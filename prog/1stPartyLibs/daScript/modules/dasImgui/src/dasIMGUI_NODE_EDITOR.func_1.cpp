@@ -24,7 +24,7 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_1() {
 // from imgui-node-editor/imgui_node_editor.h:283:38
 	makeExtern< ax::NodeEditor::EditorContext * (*)(const ax::NodeEditor::Config *) , ax::NodeEditor::CreateEditor , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"CreateEditor","ax::NodeEditor::CreateEditor")
 		->args({"config"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:284:28
 	makeExtern< void (*)(ax::NodeEditor::EditorContext *) , ax::NodeEditor::DestroyEditor , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"DestroyEditor","ax::NodeEditor::DestroyEditor")
@@ -33,7 +33,7 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_1() {
 // from imgui-node-editor/imgui_node_editor.h:285:37
 	makeExtern< const ax::NodeEditor::Config & (*)(ax::NodeEditor::EditorContext *) , ax::NodeEditor::GetConfig , SimNode_ExtFuncCallRef , imgui_node_editorTempFn>(lib,"GetConfig","ax::NodeEditor::GetConfig")
 		->args({"ctx"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:287:30
 	makeExtern< ax::NodeEditor::Style & (*)() , ax::NodeEditor::GetStyle , SimNode_ExtFuncCallRef , imgui_node_editorTempFn>(lib,"GetStyle","ax::NodeEditor::GetStyle")
@@ -49,7 +49,7 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_1() {
 // from imgui-node-editor/imgui_node_editor.h:291:28
 	makeExtern< void (*)(int) , ax::NodeEditor::PopStyleColor , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"PopStyleColor","ax::NodeEditor::PopStyleColor")
 		->args({"count"})
-		->arg_init(0,make_smart<ExprConstInt>(1))
+		->arg_init(0,new ExprConstInt(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:293:28
 	makeExtern< void (*)(ax::NodeEditor::StyleVar,float) , ax::NodeEditor::PushStyleVar , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"PushStyleVar","ax::NodeEditor::PushStyleVar")
@@ -66,7 +66,7 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_1() {
 // from imgui-node-editor/imgui_node_editor.h:296:28
 	makeExtern< void (*)(int) , ax::NodeEditor::PopStyleVar , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"PopStyleVar","ax::NodeEditor::PopStyleVar")
 		->args({"count"})
-		->arg_init(0,make_smart<ExprConstInt>(1))
+		->arg_init(0,new ExprConstInt(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:298:28
 	makeExtern< void (*)(const char *,const ImVec2 &) , ax::NodeEditor::Begin , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"Begin","ax::NodeEditor::Begin")

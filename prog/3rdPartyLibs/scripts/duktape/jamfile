@@ -1,0 +1,52 @@
+Root ?= ../../../.. ;
+Location = prog/3rdPartyLibs/scripts/duktape ;
+include $(Root)/prog/tools/tools_setup.jam ; # FIXME_BROKEN_DEP
+ConsoleExe = yes ;
+
+
+Config ?= rel ;
+
+TargetType = exe ;
+Target ?= duktape ;
+include $(Root)/prog/tools/tools_setup_outdir_util.jam ; # FIXME_BROKEN_DEP
+
+
+AddIncludes =
+  $(Root)/$(Location)/examples/cmdline
+  $(Root)/$(Location)/src
+;
+
+Sources =
+  src/duktape.c
+  examples/cmdline/duk_cmdline.c
+;
+
+
+CPPopt = -D__B_NO_MEM_BASE_INCLUDE ;
+
+# Enable print() and alert() for command line using an optional extra module.
+CPPopt += -DDUK_CMDLINE_PRINTALERT_SUPPORT ;
+AddIncludes += $(Root)/$(Location)/extras/print-alert ;
+Sources += extras/print-alert/duk_print_alert.c ;
+
+# Enable console object (console.log() etc) for command line.
+CPPopt += -DDUK_CMDLINE_CONSOLE_SUPPORT ;
+AddIncludes += $(Root)/$(Location)/extras/console ;
+Sources += extras/console/duk_console.c ;
+
+# Enable Duktape.Logger for command line.
+CPPopt += -DDUK_CMDLINE_LOGGING_SUPPORT ;
+AddIncludes += $(Root)/$(Location)/extras/logging ;
+Sources += extras/logging/duk_logging.c ;
+
+# Enable Duktape 1.x module loading for command line.
+CPPopt += -DDUK_CMDLINE_MODULE_SUPPORT ;
+AddIncludes += $(Root)/$(Location)/extras/module-duktape ;
+Sources += extras/module-duktape/duk_module_duktape.c ;
+
+CPPopt += -DDUK_CMDLINE_FILEIO ;
+
+if $(Platform) in macOS linux { CPPopt += -fno-fast-math -Wno-format-overflow ; }
+
+include $(Root)/prog/_jBuild/build.jam ;
+

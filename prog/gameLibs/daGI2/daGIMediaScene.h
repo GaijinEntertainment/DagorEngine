@@ -38,7 +38,7 @@ protected:
 
   eastl::unique_ptr<ComputeShaderElement> dagi_media_scene_reset_cs, dagi_media_scene_from_gbuf_cs, dagi_media_toroidal_movement_cs;
   float temporalSpeed = 0.125;
-  UniqueTexHolder dagi_media_scene;
+  UniqueTexWithShaderVar dagi_media_scene;
   uint32_t gbuf_update_frame = 0;
   uint16_t clipW = 0, clipD = 0, fullAtlasResD = 0;
   float voxelSize0 = 0;

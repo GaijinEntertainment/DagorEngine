@@ -16,9 +16,9 @@ def greet(name : string) : string {
 
 [export]
 def main() {
-    print(greet("world"))
+    to_log(LOG_INFO, greet("world"))
     let p = Point(x = 1.0, y = 2.0)
-    print("{p.x + p.y}\n")
+    to_log(LOG_INFO, "{p.x + p.y}\n")
     let result = add(1, 2)
-    print("{result}\n")
+    to_log(LOG_INFO, "{result}\n")
 }

@@ -48,14 +48,14 @@ CONSOLE_BOOL_VAL("render", debug_ground_hole_use_cs_workaround, true); // TODO: 
 
 CONSOLE_BOOL_VAL("render", debug_ground_holes_hide, false);
 
-static void createTempResources(int tempTexSize, UniqueTexHolder &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
+static void createTempResources(int tempTexSize, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
 {
   hmapHolesBuf = dag::buffers::create_persistent_cb(MAX_GROUND_HOLES * 4 * 2, "hmap_holes_matrices", RESTAG_LAND);
   hmapHolesTmpTex = dag::create_tex(NULL, tempTexSize, tempTexSize, TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R8, 1,
     "temp_heightmap_holes_tex", RESTAG_LAND);
 }
 
-static void closeTempResources(UniqueTexHolder &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
+static void closeTempResources(UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
 {
   hmapHolesBuf.close();
   hmapHolesTmpTex.close();
@@ -96,14 +96,14 @@ void holes_initialize(int &hmap_holes_scale_step_offset_varId, int &hmap_holes_t
   should_render_ground_holes = true;
 }
 
-void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexHolder &hmapHolesTex)
+void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexWithShaderVar &hmapHolesTex)
 {
   const Point4 forceOutOfRangeCoeffs = Point4(0, 0, 10.f, 10.f);
   ShaderGlobal::set_float4(hmap_holes_scale_step_offset_varId, forceOutOfRangeCoeffs);
   hmapHolesTex.close();
 }
 
-void render(UniqueTexHolder &hmapHolesTex, UniqueTexHolder &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
+void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer, PostFxRenderer &hmapHolesMipmapRenderer, ShadersECS &hmapHolesPrepareRenderer,
   bool &should_render_ground_holes, int hmap_holes_scale_step_offset_varId, int hmap_holes_temp_ofs_size_varId, ecs::Point4List &holes,
   ecs::Point3List &invalidate_bboxes, const ComputeShader &heightmap_holes_process_cs)

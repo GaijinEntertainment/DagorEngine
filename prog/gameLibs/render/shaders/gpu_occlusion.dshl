@@ -9,10 +9,6 @@ int downsampled_depth_mip_count;
 macro USE_REPROJECTED_HZB_OCCLUSION(code)
   bool use_reprojected_hzb = true;
   hlsl (code) {
-    #include <occlusion_type.hlsli>
-    #if OCCLUSION_BUFFER != OCCLUSION_INVWBUFFER
-      #error "shader uses reprojected hzb occlusion culling but current occlusion buffer packing is not supported"
-    #endif
     #define USE_REPROJECTED_HZB 1
   }
 endmacro

@@ -191,27 +191,6 @@ struct ClusteredLights
 
   mutable OSSpinlock lightLock;
 
-protected:
-  Tab<uint16_t> visibleSpotLightsId;
-  Tab<uint16_t> visibleOmniLightsId;
-  eastl::bitset<OmniLightsManager::MAX_LIGHTS> visibleOmniLightsIdSet;
-  eastl::bitset<SpotLightsManager::MAX_LIGHTS> visibleSpotLightsIdSet;
-
-  FrustumClusters clusters; //-V730_NOINIT
-  static const float MARK_SMALL_LIGHT_AS_FAR_LIMIT;
-
-  // At least on win7 we have a limit for 64k of cb buffer size
-  // But drivers requires to keep cb buffer size under 64k on all platforms.
-  // So we limit it for all platforms.
-  // Reserve one Point4 for the element count constant that ReallocatableConstantBuffer
-  // prepends when store_elems_count is true (see reallocate()).
-  static constexpr int MAX_VISIBLE_FAR_LIGHTS = (65536 - sizeof(Point4)) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
-
-  static bool reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size_in_constants, const char *stat_name,
-    bool permanent = false);
-  static bool updateConsts(Sbuffer *buf, void *data, int data_size, int elems_count);
-  void changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit) DAG_TS_REQUIRES(lightLock);
-
   template <int elem_size_in_constants, bool store_elems_count>
   struct ReallocatableConstantBuffer
   {
@@ -258,6 +237,27 @@ protected:
     uint16_t size = 0; // in constants, i.e. 16 bytes*size is size in bytes
     bool wasWritten = false;
   };
+
+protected:
+  Tab<uint16_t> visibleSpotLightsId;
+  Tab<uint16_t> visibleOmniLightsId;
+  eastl::bitset<OmniLightsManager::MAX_LIGHTS> visibleOmniLightsIdSet;
+  eastl::bitset<SpotLightsManager::MAX_LIGHTS> visibleSpotLightsIdSet;
+
+  FrustumClusters clusters; //-V730_NOINIT
+  static const float MARK_SMALL_LIGHT_AS_FAR_LIMIT;
+
+  // At least on win7 we have a limit for 64k of cb buffer size
+  // But drivers requires to keep cb buffer size under 64k on all platforms.
+  // So we limit it for all platforms.
+  // Reserve one Point4 for the element count constant that ReallocatableConstantBuffer
+  // prepends when store_elems_count is true (see reallocate()).
+  static constexpr int MAX_VISIBLE_FAR_LIGHTS = (65536 - sizeof(Point4)) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
+
+  static bool reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size_in_constants, const char *stat_name,
+    bool permanent = false);
+  static bool updateConsts(Sbuffer *buf, void *data, int data_size, int elems_count);
+  void changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit) DAG_TS_REQUIRES(lightLock);
 
   enum class LightType
   {

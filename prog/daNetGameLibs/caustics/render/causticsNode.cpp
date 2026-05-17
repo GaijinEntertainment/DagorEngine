@@ -24,7 +24,7 @@ eastl::array<dafg::NodeHandle, 2> makeCausticsNode()
 {
   auto perCameraResNode = dafg::register_node("caustics_per_camera_res_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     float multiplier = is_rr_enabled() ? 1.0f : 0.5f;
-    registry.createTexture2d("caustics_tex", {TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view", multiplier)});
+    registry.createTexture2d("caustics_tex", {TEXFMT_R8G8 | TEXCF_RTARGET, registry.getResolution<2>("main_view", multiplier)});
   });
 
   auto renderNode = dafg::register_node("caustics_render_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {

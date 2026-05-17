@@ -29,7 +29,7 @@ def private collect_diff(before, after : string) : tuple<differ : bool; log : st
 
     // If identical after normalization, no differences
     if (normalized_before == normalized_after) {
-        return (false, "")
+        return (differ = false, log = "")
     }
 
     // Split into lines for line-by-line comparison
@@ -57,7 +57,7 @@ def private collect_diff(before, after : string) : tuple<differ : bool; log : st
         }
     }
 
-    return (true, diff_output)
+    return (differ = true, log = diff_output)
 }
 
 def private collect_input_paths(args : array<string>; key : string; var paths : array<string>) {

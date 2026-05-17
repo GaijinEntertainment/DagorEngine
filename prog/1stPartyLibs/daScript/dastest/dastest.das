@@ -7,13 +7,16 @@ require strings
 require uriparser
 require daslib/debugger
 require daslib/ast
+require daslib/ast_boost
 require daslib/json_boost
 require daslib/jobque_boost
+require daslib/rtti
 
 require fs
 require suite
 require log
 require math
+require dastest_clargs
 
 options multiple_contexts
 
@@ -46,15 +49,6 @@ var private failedFiles : array<FailedFile>
 var private timingOutliers : int = 0
 var private jsonFilePath : string
 var private jsonTestFile : string
-
-
-def private collect_input_paths(args : array<string>; var paths : array<string>) {
-    for (i in range(length(args) - 1)) {
-        if (args[i] == "--test") {
-            paths |> push <| args[i + 1]
-        }
-    }
-}
 
 
 def private collect_files_filtered(path, das_test_path : string; var cache : table<string; void?>; var files : array<string>) : bool {
@@ -145,16 +139,135 @@ struct IsolatedResult {
     log : array<string>
 }
 
+def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
+    var res : SuiteResult
+    fopen(out_file, "wb") $(f) {
+        if (f == null) {
+            log::error("Failed to open {out_file} for writing")
+            res.errors++
+            return
+        }
+        var ser = create_ast_serializer()
+        var inscope access <- make_file_access(ctx.projectPath)
+        access |> add_file_access_root("dastest", ctx.dastestRoot)
+        for (file in files) {
+            using() $(var mg : ModuleGroup) {
+                using() $(var cop : CodeOfPolicies) {
+                    cop.aot_module = true
+                    cop.aot = ctx.use_aot
+                    cop.fail_on_no_aot = ctx.use_aot
+                    cop.threadlock_context = true
+                    cop.jit_enabled = jit_enabled()
+                    compile_file(file, access, unsafe(addr(mg)), cop) $(ok, program, output) {
+                        if (!ok) {
+                            log::error("Failed to compile {file}\n{output}")
+                            res.errors++
+                            return
+                        }
+                        if (serialize_program(ser, program)) {
+                            res.total++
+                        } else {
+                            log::error("Failed to serialize {file}")
+                            res.errors++
+                        }
+                    }
+                }
+            }
+        }
+        fwrite(f, res.total)
+        ast_serializer_get_data(ser) $(data) {
+            var sz = uint64(length(data))
+            fwrite(f, sz)
+            fwrite(f, data)
+        }
+        delete_ast_serializer(ser)
+    }
+    log::info("Serialized {res.total:d} programs to {out_file}")
+    if (res.errors > 0) {
+        log::error("{res.errors} error(s)")
+    }
+    return res
+}
+
+def deserialize_path(var ctx : SuiteCtx, files : array<string>, in_file : string) : SuiteResult {
+    var res : SuiteResult
+    fopen(in_file, "rb") $(f) {
+        if (f == null) {
+            log::error("Failed to open {in_file}")
+            res.errors++
+            res.total++
+            return
+        }
+        var count = 0
+        unsafe {
+            _builtin_read(f, addr(count), typeinfo sizeof(count))
+        }
+        var sz = 0 |> uint64()
+        unsafe {
+            _builtin_read(f, addr(sz), typeinfo sizeof(sz))
+        }
+        var data : array<uint8>
+        data |> resize(int(sz))
+        fread(f, data)
+        log::info("Deserializing {count:d} programs from {in_file}")
+        var ser = create_ast_deserializer(data)
+        using() $(var mg : ModuleGroup) {
+            for (i in range(int(count))) {
+                deserialize_program(ser) <| $(ok, program, error) {
+                    if (!ok) {
+                        log::error("Deserialization failed at program {i}: {error}")
+                        res.errors++
+                        res.total++
+                        return
+                    }
+                    if (program._options |> find_arg("rtti") ?as tBool ?? false) {
+                        return
+                    }
+                    simulate(program) $(sok, context, serrors) {
+                        if (!sok) {
+                            log::error("Failed to simulate program {i}\n{serrors}")
+                            res.errors++
+                            res.total++
+                            return
+                        }
+                        var mod = program |> get_this_module()
+                        if (mod != null && context != null) {
+                            res += suite::test_module(*mod, *context, ctx)
+                        }
+                    }
+                }
+            }
+        }
+        delete_ast_serializer(ser)
+    }
+    return res
+}
+
 [export]
-def main() {
-    var args <- get_command_line_arguments()
-    log::init_log(args)
-    let runIdx = args |> find_index("--run")
-    if (runIdx != -1) {
-        let res = suite::test_file(args[runIdx + 1], SuiteCtx(args))
+def main() : int {
+    // ansi-colors detection scans full argv for --color / --no-color so the
+    // user can place either flag before or after the "--" separator.
+    log::init_log()
+
+    // Captured for isolated-mode subprocess invocation; raw_args[0] is the
+    // daslang interpreter path and raw_args[1] is dastest.das.  Everything
+    // else for this main() comes from the parsed test_args below.
+    var raw_args <- get_command_line_arguments()
+
+    var test_args = DastestArgs()
+    let parse_err = parse_args(test_args)
+    if (parse_err != "") {
+        log::red("command-line args: {parse_err}")
+        return 1
+    }
+
+    if (!empty(test_args.run)) {
+        // Isolated-mode single-file: --run=<file> covers both `--run X` and
+        // `--run=X` forms because parse_args has already populated the field.
+        let res = suite::test_file(test_args.run, SuiteCtx(test_args))
         // Send full report with per-test details for isolated mode JSON collection
         var report = JsonTestReport(
-            file = args[runIdx + 1],
+            file = test_args.run,
             total = res.total,
             passed = res.passed,
             failed = res.failed,
@@ -165,45 +278,53 @@ def main() {
             tests <- suite::test_results
         )
         log::info_raw("\n{jsonResultPrefix}{sprint_json(report, false)}\n{jsonResultPrefix}")
-        return
+        return res.failed + res.errors
     }
 
-    log::failuresOnly = args |> has_value("--failures-only")
+    log::failuresOnly = test_args.failures_only
 
     var res : SuiteResult
     let startTime = ref_time_ticks()
 
-    let timeout = args |> get_float_arg("--timeout", 600.) // 10min
+    let timeout = test_args.timeout
     if (timeout > 0.) {
         unsafe {
             var mainCtx & = this_context()
             new_thread <| @capture(& res, & mainCtx) {
-                fio::sleep(uint(timeout * 1000.))
-                unsafe {
-                    mainCtx |> invoke_in_context("timeout_tests", res, startTime, timeout)
+                // Polled sleep: chunk into 100ms slices and watch for jobque
+                // shutdown so a clean main-return does not have to wait for
+                // the full timeout. ~Module_JobQue busy-waits on the thread
+                // count, so without this the shutdown path hangs.
+                let total_ms = uint(timeout * 1000.)
+                var slept = 0u
+                while (slept < total_ms && !is_job_que_shutting_down()) {
+                    let chunk = min(100u, total_ms - slept)
+                    fio::sleep(chunk)
+                    slept += chunk
+                }
+                if (slept >= total_ms) {
+                    unsafe {
+                        mainCtx |> invoke_in_context("timeout_tests", res, startTime, timeout)
+                    }
                 }
             }
         }
     }
 
-    var inputPaths : array<string>
-    collect_input_paths(args, inputPaths)
+    var inputPaths := test_args.test_files
     var files : array<string>
     if (!collect_files(inputPaths, files)) {
-        unsafe {
-            fio::exit(1)
-        }
-        return
+        return 1
     }
 
-    timingOutliers = args |> get_int_arg("--timing-outliers", 0)
-    jsonFilePath = args |> get_str_arg("--json-file", "")
+    timingOutliers = test_args.timing_outliers
+    jsonFilePath = test_args.json_file
     if (!empty(jsonFilePath)) {
         suite::clear_test_results()
         if (length(files) == 1) {
             jsonTestFile = files[0]
         } else {
-            jsonTestFile = build_string() <| $(var w) {
+            jsonTestFile = build_string() $(var w) {
                 for (p, pi in inputPaths, range(length(inputPaths))) {
                     if (pi > 0) {
                         write(w, ",")
@@ -214,12 +335,19 @@ def main() {
         }
     }
 
-    let isolatedMode = args |> has_value("--isolated-mode")
-    var ctx <- SuiteCtx(args)
+    let isolatedMode = test_args.isolated_mode
+    var ctx <- SuiteCtx(test_args)
     if (!ctx.cov_path |> empty()) {
         remove(ctx.cov_path)
     }
-    if (!isolatedMode) {
+
+    let ser_file = test_args.ser
+    let deser_file = test_args.deser
+    if (!empty(ser_file)) {
+        res = serialize_path(ctx, files, ser_file)
+    } elif (!empty(deser_file)) {
+        res = deserialize_path(ctx, files, deser_file)
+    } elif (!isolatedMode) {
         for (file in files) {
             let uri = ctx.uriPaths ? file_name_to_uri(file) : file
             let fileTime = ref_time_ticks()
@@ -241,8 +369,11 @@ def main() {
         }
     } else {
         let totalFiles = length(files)
-        let totalThreads = max(1, args |> get_int_arg("--isolated-mode-threads", get_total_hw_threads() * 2)) // magic x2, os should be able to schedule sub processes in parallel
-        let testTimeout = args |> get_float_arg("--test-timeout", 0.)  // per-test timeout in seconds, 0 = no timeout
+        var totalThreads = test_args.isolated_mode_threads
+        if (totalThreads == 0) {
+            totalThreads = get_total_hw_threads() * 2
+        }
+        let testTimeout = test_args.test_timeout
         log::info("Running {totalFiles} tests in isolated mode with {totalThreads} threads\n")
         with_channel(totalFiles) $(inputChannel) {
             with_channel(totalFiles) $(outputChannel) {
@@ -306,7 +437,7 @@ def main() {
                         let jitstr = jit_enabled() ? "-jit" : ""
                         let aotstr = is_in_aot() ? "-use-aot" : ""
                         let benchstr = ctx.bench_enabled ? "--bench" : ""
-                        let singleTest = "{args[0]} {args[1]} {jitstr} {aotstr} -- --run {file} {benchstr} {log::useTtyColors ? " --color" : ""}"
+                        let singleTest = "{raw_args[0]} {raw_args[1]} {jitstr} {aotstr} -- --run {file} {benchstr} {log::useTtyColors ? " --color" : ""}"
                         inputChannel |> push_clone(IsoInput(uri = clone_string(uri), cmd = clone_string(singleTest)))
                         inputChannel |> notify()
                     }
@@ -330,13 +461,16 @@ def main() {
                         for (err in isoRes.err) {
                             log::error(err)
                         }
-                        for (l in isoRes.log) {
-                            log::info_raw(l)
-                        }
                         if (timingOutliers > 0) {
                             fileTimings |> push(FileTiming(uri = clone_string(isoRes.uri), dt = isoRes.fileDt))
                         }
-                        if (isoRes.exitCode == 0 && isoRes.parsedResult && isoRes.status.failed + isoRes.status.errors == 0) {
+                        let isoPassed = isoRes.exitCode == 0 && isoRes.parsedResult && isoRes.status.failed + isoRes.status.errors == 0
+                        if (!log::failuresOnly || !isoPassed) {
+                            for (l in isoRes.log) {
+                                log::info_raw(l)
+                            }
+                        }
+                        if (isoPassed) {
                             log::green("PASS {isoRes.uri} {time_dt_hr(isoRes.fileDt)}")
                         } else {
                             log::red("FAIL {isoRes.uri} {time_dt_hr(isoRes.fileDt)}")
@@ -368,7 +502,7 @@ def main() {
             }
         }
     }
-    finish_tests(res, startTime)
+    return finish_tests(res, startTime)
 }
 
 
@@ -377,7 +511,11 @@ def timeout_tests(var res : SuiteResult; start_time : int64; timeout_sec : float
     res.errors += 1
     res.total += 1
     log::error("Test timed out after {timeout_sec}s")
-    finish_tests(res, start_time)
+    // timeout fires from a worker thread; fio::exit is the cross-thread
+    // cancellation mechanism (bypasses shutdown dump — acceptable for this path).
+    unsafe {
+        fio::exit(finish_tests(res, start_time))
+    }
 }
 
 
@@ -397,7 +535,7 @@ def private print_timing_outliers() {
     }
     let stddev = sqrt(variance / double(n))
     // sort descending by time
-    sort(fileTimings) <| $(a, b) {
+    sort(fileTimings) $(a, b) {
         return a.dt > b.dt
     }
     let count = min(timingOutliers, n)
@@ -422,7 +560,7 @@ def private print_timing_outliers() {
 }
 
 
-def finish_tests(res : SuiteResult; start_time : int64) {
+def finish_tests(res : SuiteResult; start_time : int64) : int {
     let resCode = res.failed + res.errors
     let totalDt = get_time_usec(start_time)
     log::info("\n{to_string(res)}")
@@ -453,15 +591,13 @@ def finish_tests(res : SuiteResult; start_time : int64) {
             time_usec = totalDt,
             tests <- suite::test_results
         )
-        fopen(jsonFilePath, "wb") <| $(f) {
+        fopen(jsonFilePath, "wb") $(f) {
             if (f != null) {
                 fwrite(f, sprint_json(report, false))
             }
         }
     }
-    unsafe {
-        fio::exit(resCode)
-    }
+    return resCode
 }
 
 

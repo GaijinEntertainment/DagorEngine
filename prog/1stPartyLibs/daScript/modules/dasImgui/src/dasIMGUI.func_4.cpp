@@ -32,22 +32,22 @@ void Module_dasIMGUI::initFunctions_4() {
 // from imgui/imgui.h:510:29
 	makeExtern< void (*)(float) , ImGui::SetScrollHereX , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetScrollHereX","ImGui::SetScrollHereX")
 		->args({"center_x_ratio"})
-		->arg_init(0,make_smart<ExprConstFloat>(0.5))
+		->arg_init(0,new ExprConstFloat(0.5))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:511:29
 	makeExtern< void (*)(float) , ImGui::SetScrollHereY , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetScrollHereY","ImGui::SetScrollHereY")
 		->args({"center_y_ratio"})
-		->arg_init(0,make_smart<ExprConstFloat>(0.5))
+		->arg_init(0,new ExprConstFloat(0.5))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:512:29
 	makeExtern< void (*)(float,float) , ImGui::SetScrollFromPosX , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetScrollFromPosX","ImGui::SetScrollFromPosX")
 		->args({"local_x","center_x_ratio"})
-		->arg_init(1,make_smart<ExprConstFloat>(0.5))
+		->arg_init(1,new ExprConstFloat(0.5))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:513:29
 	makeExtern< void (*)(float,float) , ImGui::SetScrollFromPosY , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetScrollFromPosY","ImGui::SetScrollFromPosY")
 		->args({"local_y","center_y_ratio"})
-		->arg_init(1,make_smart<ExprConstFloat>(0.5))
+		->arg_init(1,new ExprConstFloat(0.5))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:531:29
 	makeExtern< void (*)(ImFont *,float) , ImGui::PushFont , SimNode_ExtFuncCall , imguiTempFn>(lib,"PushFont","ImGui::PushFont")
@@ -78,7 +78,7 @@ void Module_dasIMGUI::initFunctions_4() {
 // from imgui/imgui.h:540:29
 	makeExtern< void (*)(int) , ImGui::PopStyleColor , SimNode_ExtFuncCall , imguiTempFn>(lib,"PopStyleColor","ImGui::PopStyleColor")
 		->args({"count"})
-		->arg_init(0,make_smart<ExprConstInt>(1))
+		->arg_init(0,new ExprConstInt(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:541:29
 	makeExtern< void (*)(int,float) , ImGui::PushStyleVar , SimNode_ExtFuncCall , imguiTempFn>(lib,"PushStyleVar","ImGui::PushStyleVar")

@@ -6,6 +6,7 @@
 #include <rendInst/rendInstGenRtTools.h>
 
 #include "render/genRender.h"
+#include "render/riShaderConstBuffers.h"
 #include "riGen/genObjUtil.h"
 #include "visibility/cellVisibility.h"
 #include "visibility/cullingMath.h"
@@ -824,3 +825,157 @@ template bool RendInstGenData::prepareVisibility<true>(RiGenVisibility &, const 
   const rendinst::PrepareRiGenVisibilityParams &);
 template bool RendInstGenData::prepareVisibility<false>(RiGenVisibility &, const Frustum &,
   const rendinst::PrepareRiGenVisibilityParams &);
+
+static ShaderMesh *get_pool_mesh_at_lod(RenderableInstanceLodsResource *res, int lodIdx)
+{
+  if (!res || res->lods.size() == 0)
+    return nullptr;
+  uint32_t lodForMesh = (lodIdx == rendinst::MAX_LOD_COUNT - 1) ? (uint32_t)res->lods.size() - 1 : (uint32_t)max(lodIdx, 0);
+  if ((int)lodForMesh < res->getQlBestLod())
+    lodForMesh = (uint32_t)res->getQlBestLod();
+  if (lodForMesh >= res->lods.size())
+    lodForMesh = res->lods.size() - 1;
+  if (!res->lods[lodForMesh].scene)
+    return nullptr;
+  auto *meshRes = res->lods[lodForMesh].scene->getMesh();
+  if (!meshRes)
+    return nullptr;
+  auto *inner = meshRes->getMesh();
+  return inner ? inner->getMesh() : nullptr;
+}
+
+struct PerInstanceDrawStats
+{
+  int numElems = 0;
+  int totalFaces = 0;
+};
+
+static PerInstanceDrawStats gather_per_instance_draw_stats(ShaderMesh *mesh, uint32_t atest_mask, int atest_skip_mask, int start_stage,
+  int end_stage)
+{
+  PerInstanceDrawStats agg;
+  if (!mesh)
+    return agg;
+  for (int stage = start_stage; stage <= end_stage; ++stage)
+  {
+    const auto elems = mesh->getElems(stage);
+    for (uint32_t e = 0; e < elems.size(); ++e, atest_mask >>= 1)
+    {
+      if (!elems[e].e)
+        continue;
+      if ((int)(atest_mask & 1u) == atest_skip_mask)
+        continue;
+      ++agg.numElems;
+      agg.totalFaces += elems[e].numf;
+    }
+  }
+  return agg;
+}
+
+rendinst::RiVisibilityDrawStats rendinst::getRIGenVisibleDrawStats(const RiGenVisibility *visibility, int start_stage, int end_stage)
+{
+  RiVisibilityDrawStats stats;
+  if (!visibility)
+    return stats;
+  const int atestSkipMask = visibility[0].atest_skip_mask;
+  FOR_EACH_RG_LAYER_DO (rgl)
+  {
+    if (!rgl->rtData)
+      continue;
+    const RiGenVisibility &v = visibility[_layer];
+    auto &rtData = *rgl->rtData;
+    const auto &riRes = rtData.riRes;
+    const int poolCount = min((int)riRes.size(), (int)v.renderRanges.size());
+
+    for (int poolIdx = 0; poolIdx < poolCount; ++poolIdx)
+    {
+      RenderableInstanceLodsResource *res = riRes[poolIdx];
+      if (!res || poolIdx >= (int)rtData.rtPoolData.size() || !rtData.rtPoolData[poolIdx])
+        continue;
+      if (rtData.isHiddenId(poolIdx) || rendinst::isResHidden(rtData.riResHideMask[poolIdx]))
+        continue;
+      const RenderRanges &rr = v.renderRanges[poolIdx];
+      if (!rr.hasOpaque() && !rr.hasTransparent())
+        continue;
+
+      const int firstLod = rtData.riResFirstLod(poolIdx);
+      const int lodCnt = rtData.riResLodCount(poolIdx);
+      for (int lodIdx = firstLod; lodIdx <= lodCnt; ++lodIdx)
+      {
+        if (lodIdx >= (int)v.cellsLod.size())
+          break;
+        if (rr.endCell[lodIdx] <= rr.startCell[lodIdx])
+          continue;
+
+        int subcellRanges = 0, instances = 0;
+        for (int ci = rr.startCell[lodIdx]; ci < rr.endCell[lodIdx]; ++ci)
+        {
+          const RiGenVisibility::CellRange &cell = v.cellsLod[lodIdx][ci];
+          subcellRanges += cell.startSubCellCnt;
+          for (int s = 0; s < (int)cell.startSubCellCnt; ++s)
+            instances += v.subCells[cell.startSubCell + s].cnt;
+        }
+        if (!subcellRanges)
+          continue;
+
+        const int maskOffset = lodIdx < lodCnt ? lodIdx : lodCnt - 1;
+        const uint32_t atestMask = rtData.riResElemMask[poolIdx * rendinst::MAX_LOD_COUNT + maskOffset].atest;
+        ShaderMesh *mesh = get_pool_mesh_at_lod(res, lodIdx);
+        const PerInstanceDrawStats agg = gather_per_instance_draw_stats(mesh, atestMask, atestSkipMask, start_stage, end_stage);
+        if (!agg.numElems)
+          continue;
+
+        stats.drawCalls += subcellRanges * agg.numElems;
+        stats.submittedInstances += instances * agg.numElems;
+        stats.triangles += instances * agg.totalFaces;
+        stats.visibleInstances += instances;
+      }
+    }
+
+    for (int instLod = 0; instLod < (int)RiGenVisibility::PER_INSTANCE_LODS; ++instLod)
+    {
+      const auto &cells = v.perInstanceVisibilityCells[instLod];
+      if (cells.size() < 2)
+        continue;
+      for (int c = 0; c + 1 < (int)cells.size(); ++c)
+      {
+        const int poolIdx = cells[c].x;
+        if (poolIdx < 0)
+          break;
+        if (poolIdx >= poolCount || !rtData.rtPoolData[poolIdx] || rtData.isHiddenId(poolIdx) ||
+            rendinst::isResHidden(rtData.riResHideMask[poolIdx]))
+          continue;
+        RenderableInstanceLodsResource *res = riRes[poolIdx];
+        if (!res)
+          continue;
+
+        int lodIdx = (instLod == RiGenVisibility::PI_ALPHA_LOD) ? (int)RiGenVisibility::PI_IMPOSTOR_LOD : instLod;
+        int lodTranslation = (int)rendinst::MAX_LOD_COUNT - rtData.riResLodCount(poolIdx);
+        if (lodTranslation > 0 && !rtData.rtPoolData[poolIdx]->hasImpostor())
+          lodTranslation--;
+        lodIdx -= lodTranslation;
+        if (lodIdx < 0)
+          continue;
+
+        const int instCount = cells[c + 1].y - cells[c].y;
+        if (instCount <= 0)
+          continue;
+
+        const int lodCnt = rtData.riResLodCount(poolIdx);
+        const int maskOffset = lodIdx < lodCnt ? lodIdx : lodCnt - 1;
+        const uint32_t atestMask = rtData.riResElemMask[poolIdx * rendinst::MAX_LOD_COUNT + maskOffset].atest;
+        ShaderMesh *mesh = get_pool_mesh_at_lod(res, lodIdx);
+        const PerInstanceDrawStats agg = gather_per_instance_draw_stats(mesh, atestMask, atestSkipMask, start_stage, end_stage);
+        if (!agg.numElems)
+          continue;
+
+        const int chunks = (instCount + (int)rendinst::render::MAX_INSTANCES - 1) / (int)rendinst::render::MAX_INSTANCES;
+        stats.drawCalls += chunks * agg.numElems;
+        stats.submittedInstances += instCount * agg.numElems;
+        stats.triangles += instCount * agg.totalFaces;
+        stats.visibleInstances += instCount;
+      }
+    }
+  }
+  return stats;
+}

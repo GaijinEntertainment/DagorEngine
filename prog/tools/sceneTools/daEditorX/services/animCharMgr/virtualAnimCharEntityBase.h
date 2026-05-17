@@ -48,8 +48,6 @@ public:
 
   void copyFrom(const VirtualAnimCharEntityBase &e)
   {
-    dbgHub = e.dbgHub;
-    dbgFifo = e.dbgFifo;
     dbgOldRoot = e.dbgOldRoot;
     assetNameId = e.assetNameId;
     usedAssetNid = e.usedAssetNid;
@@ -67,58 +65,6 @@ public:
         if (ref_anim)
           setAnim(ref_anim);
       }
-    }
-  }
-
-  AnimV20::AnimBlendCtrl_Fifo3 *initDebugFifo(bool set_anim)
-  {
-    AnimV20::AnimationGraph *ag = getAnimGraph();
-    if (!ag)
-      return NULL;
-    AnimV20::IAnimStateHolder *as = getAnimState();
-    if (dbgHub.get())
-    {
-      dbgHub->setBlendNodeWt(*as, dbgOldRoot, set_anim ? 0.0f : 1.0f);
-      dbgHub->setBlendNodeWt(*as, dbgFifo, set_anim ? 1.0f : 0.0f);
-      return dbgFifo;
-    }
-    if (!set_anim)
-      return NULL;
-
-    dbgHub = new AnimV20::AnimBlendCtrl_Hub;
-    dbgFifo = new AnimV20::AnimBlendCtrl_Fifo3(*ag, "debug.fifo::var");
-    dbgOldRoot = ag->getRoot();
-
-    ag->registerBlendNode(dbgHub, "~debug.hub");
-    ag->registerBlendNode(dbgFifo, "debug.fifo");
-
-    dbgHub->addBlendNode(dbgFifo, false, 1.0);
-    if (dbgOldRoot.get())
-      dbgHub->addBlendNode(dbgOldRoot, true, 1.0);
-    dbgHub->finalizeInit(*ag, "debug.hub::var");
-
-    ag->replaceRoot(dbgHub);
-    getAnimCharBase()->reset();
-    dbgHub->setBlendNodeWt(*as, dbgOldRoot, set_anim ? 0.0f : 1.0f);
-    dbgHub->setBlendNodeWt(*as, dbgFifo, set_anim ? 1.0f : 0.0f);
-    return dbgFifo;
-  }
-
-  void termDebugFifo()
-  {
-    AnimV20::AnimationGraph *ag = getAnimGraph();
-    if (!ag)
-      return;
-
-    if (dbgHub.get())
-    {
-      ag->replaceRoot(dbgOldRoot);
-      ag->unregisterBlendNode(dbgHub);
-      ag->unregisterBlendNode(dbgFifo);
-      dbgHub = NULL;
-      dbgFifo = NULL;
-      dbgOldRoot = NULL;
-      getAnimCharBase()->reset();
     }
   }
 
@@ -171,34 +117,31 @@ public:
   bool enqueueAnim(const char *anim)
   {
     AnimV20::AnimationGraph *ag = getAnimGraph();
-    if (!ag)
+    AnimV20::IAnimStateHolder *as = getAnimState();
+
+    if (!ag || !as)
       return false;
     if (anim && !*anim)
       anim = NULL;
 
-    AnimV20::IAnimStateHolder *as = getAnimState();
-    AnimV20::AnimBlendCtrl_Fifo3 *fifo = NULL;
-    if (ag->getRoot() && ag->getRoot()->isSubOf(AnimV20::AnimBlendCtrl_Fifo3CID))
-      fifo = reinterpret_cast<AnimV20::AnimBlendCtrl_Fifo3 *>(ag->getRoot());
-    else
-      fifo = initDebugFifo(anim != NULL);
-
-    if (!fifo && anim)
+    if (!anim)
     {
-      DAEDITOR3.conWarning("cant set anim <%s> due to AG:root is missing or not fifo3", anim);
-      return false;
+      if (dbgOldRoot.get())
+        ag->replaceRoot(dbgOldRoot);
     }
-    if (anim)
+    else
     {
+      if (!dbgOldRoot.get())
+        dbgOldRoot = ag->getRoot();
+
       AnimV20::IAnimBlendNode *n = ag->getBlendNodePtr(anim);
       if (!n)
       {
         DAEDITOR3.conWarning("cant set missing anim <%s>", anim);
         return false;
       }
-      if (!fifo->isEnqueued(*as, n))
-        n->resume(*as, true);
-      fifo->enqueueState(*as, n, 0.15);
+      n->resume(*as, true);
+      ag->replaceRoot(n);
     }
     return true;
   }
@@ -236,8 +179,6 @@ protected:
 
 public:
   EntityPool *pool;
-  Ptr<AnimV20::AnimBlendCtrl_Hub> dbgHub;
-  Ptr<AnimV20::AnimBlendCtrl_Fifo3> dbgFifo;
   Ptr<AnimV20::IAnimBlendNode> dbgOldRoot;
   Tab<int> usedRefNids;
   Tab<DynamicAttachement> dynAtt;

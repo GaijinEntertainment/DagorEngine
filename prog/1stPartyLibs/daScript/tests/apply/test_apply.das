@@ -100,7 +100,7 @@ def test_apply_tuple(t : T?) {
 
 [test]
 def test_apply_named_tuple(t : T?) {
-    var foo : tuple<a : int; b : string> = (1, "hello")
+    var foo = (a = 1, b = "hello")
     apply(foo) $(name, field) {
         if (name != "a" && name != "b") {
             t->fatal("unknown field")

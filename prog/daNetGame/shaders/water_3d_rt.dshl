@@ -9,9 +9,7 @@ include "viewVecVS.dshl"
 include "water_3d_overrides.dshl"
 include "camera_in_camera.dshl"
 include "underwater_fog.dshl"
-include "ray_reconstruction_inc.dshl"
 include "sky_polarization_filter_term_inc.dshl"
-
 
 float4 rtr_water_hit_dist_params;
 int water_rt_frame_index;
@@ -22,9 +20,7 @@ texture water_reflection_strength_tex_uav;
 texture water_reflection_strength_tex;
 texture water_normal_dir;
 texture downsampled_depth;
-texture dlss_normal_roughness;
-texture dlss_albedo;
-texture dlss_specular_albedo;
+
 texture clouds_panorama_mip;
 
 int water_rt_output_mode = 0;
@@ -51,6 +47,7 @@ shader raytraced_water_reflections
   USE_EMISSION_DECODE_COLOR_MAP(cs)
   INIT_PACK_UNPACK_DYNSTCODE(cs)
   PACK_UNPACK_GBUFFER_BASE(cs)
+  USE_ADAPTIVE_RAY_OFFSET(cs)
   INIT_RT_LIGHTING(cs, true, false, true, rtr_shadow == on, rtr_use_csm, false)
   USE_RT_LIGHTING(cs, 1, false)
   INIT_BVH_ATMOSPHERE(cs)
@@ -81,11 +78,7 @@ shader raytraced_water_reflections
     {
       world_normal_dir_resolution@f4 = (world_normal_dir_resolution.xy, 1.0 / world_normal_dir_resolution.xy);
       downsampled_depth_resolution@f4 = (downsampled_depth_resolution.xy, 1.0 / downsampled_depth_resolution.xy);
-      dlss_normal_roughness@uav = dlss_normal_roughness hlsl {RWTexture2D<float4> dlss_normal_roughness@uav;};
-      dlss_albedo@uav = dlss_albedo hlsl {RWTexture2D<float3> dlss_albedo@uav;};
-      dlss_specular_albedo@uav = dlss_specular_albedo hlsl {RWTexture2D<float3> dlss_specular_albedo@uav;};
     }
-    RAY_RECONSTRUCTION_SPECULAR_ALBEDO_MATH()
   }
 
   (cs)
@@ -363,13 +356,6 @@ shader raytraced_water_reflections
         ##else
           texture2DAt(water_reflection_tex_uav, dtId) = h3nanofilter(currentReflection.rgb);
           texture2DAt(water_reflection_strength_tex_uav, dtId) = half4(currentReflection.a, 1, currentShadow, 1);
-          texture2DAt(dlss_normal_roughness, dtId) = float4(N, roughness);
-          float3 worldPos = cameraToPoint + world_view_pos;
-          float3 albedo = get_ocean_color_perlin(worldPos.xz, 0, 0.5).xyz;
-          float3 specularColor = decodeSpecularColor(1, 0, albedo);
-          float3 specularAlbedo = rr_specular_albedo(specularColor, roughness, dot(N, V));
-          texture2DAt(dlss_albedo, dtId) = albedo;
-          texture2DAt(dlss_specular_albedo, dtId) = specularAlbedo;
         ##endif
       }
     }

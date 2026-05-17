@@ -44,8 +44,8 @@ void apply_last_clip_anisotropy(d3d::SamplerInfo &last_clip_sampler);
 void configure_last_clip_sampler(d3d::SamplerInfo &last_clip_sampler);
 void configure_world_to_last_clip(const LandMeshManager *lmeshMgr);
 void preload_textures_for_last_clip();
-void prepare_fixed_clip(UniqueTexHolder &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data, bool update_game_screen,
-  const Point3 &view_pos);
+void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &last_clip_sampler, LandMeshData &data,
+  bool update_game_screen, const Point3 &view_pos);
 void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data);
 void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_texel, const Point3 &view_pos, LandMeshData &data,
   Point2 &tor_offsets, ToroidalHelper &tor_helper);

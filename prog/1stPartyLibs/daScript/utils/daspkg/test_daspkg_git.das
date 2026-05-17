@@ -166,7 +166,7 @@ def test_cmd_update_recopies_local(t : T?) {
         mkdir(tmp_root)
         mkdir(src_dir)
         // create a dummy source
-        fopen("{src_dir}/hello.das", "wb") <| $(f) {
+        fopen("{src_dir}/hello.das", "wb") $(f) {
             fwrite(f, "// hello v1\n")
         }
         // install locally
@@ -174,7 +174,7 @@ def test_cmd_update_recopies_local(t : T?) {
         install_local(tmp_root, "localpkg", src_dir, lf)
         t |> success(has_package(lf, "localpkg"))
         // modify source
-        fopen("{src_dir}/hello.das", "wb") <| $(f) {
+        fopen("{src_dir}/hello.das", "wb") $(f) {
             fwrite(f, "// hello v2\n")
         }
         // update should re-copy
@@ -359,10 +359,10 @@ def test_full_workflow_local(t : T?) {
         // create a simple das package source with .das_module
         mkdir(pkg_src)
         mkdir("{pkg_src}/daslib")
-        fopen("{pkg_src}/daslib/greeter.das", "wb") <| $(f) {
+        fopen("{pkg_src}/daslib/greeter.das", "wb") $(f) {
             fwrite(f, "options gen2\nmodule greeter\ndef greet(name : string) : string \{\n    return \"hello, \" + name\n\}\n")
         }
-        fopen("{pkg_src}/.das_module", "wb") <| $(f) {
+        fopen("{pkg_src}/.das_module", "wb") $(f) {
             fwrite(f, "options gen2\nrequire daslib/fio\n[export]\ndef initialize(project_path : string) \{\n    register_native_path(\"greeter\", \"greeter\", \"\{project_path\}/daslib/greeter.das\")\n\}\n")
         }
 
@@ -376,7 +376,7 @@ def test_full_workflow_local(t : T?) {
         t |> success(fexist("{tmp_root}/modules/greeter/.das_module"), ".das_module present")
 
         // step 2: write a script that uses the package
-        fopen("{tmp_root}/test_script.das", "wb") <| $(f) {
+        fopen("{tmp_root}/test_script.das", "wb") $(f) {
             fwrite(f, "options gen2\nrequire greeter/greeter\n[export]\ndef main() \{\n    print(greet(\"world\"))\n\}\n")
         }
 
@@ -387,7 +387,7 @@ def test_full_workflow_local(t : T?) {
         t |> equal("hello, world", strip(output), "correct output v1")
 
         // step 4: modify the source package
-        fopen("{pkg_src}/daslib/greeter.das", "wb") <| $(f) {
+        fopen("{pkg_src}/daslib/greeter.das", "wb") $(f) {
             fwrite(f, "options gen2\nmodule greeter\ndef greet(name : string) : string \{\n    return \"hi, \" + name\n\}\n")
         }
 
@@ -488,7 +488,7 @@ def test_cmd_upgrade_local_skips(t : T?) {
         let src_dir = "{get_das_root()}/_daspkg_test_upgr_src"
         mkdir(tmp_root)
         mkdir(src_dir)
-        fopen("{src_dir}/hello.das", "wb") <| $(f) {
+        fopen("{src_dir}/hello.das", "wb") $(f) {
             fwrite(f, "// hello\n")
         }
         var lf : LockFile
@@ -742,7 +742,7 @@ def test_install_all_version_constraint(t : T?) {
         var glf : LockFile
         install_git(das_root, "daspkg-test-versions", "github.com/borisbat/daspkg-test-versions", "2.0", glf, [is_root = true, is_global = true])
         // create a .das_package that requires =1.0
-        fopen("{tmp_root}/.das_package", "wb") <| $(f) {
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
             fwrite(f, "options gen2\nrequire daslib/daspkg\n\n[export]\ndef package() \{\n    package_name(\"test\")\n    package_description(\"test\")\n\}\n\n[export]\ndef dependencies(version : string) \{\n    require_package(\"daspkg-test-versions\", \"=1.0\")\n\}\n")
         }
         // cmd_install_all should detect mismatch and NOT install

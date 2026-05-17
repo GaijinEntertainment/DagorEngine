@@ -9,3 +9,4 @@ FluidWind *get_fluid_wind();
 void init_fluid_wind();
 void close_fluid_wind();
 void update_fluid_wind(float dt, const Point3 &origin);
+void after_device_reset_fluid_wind();

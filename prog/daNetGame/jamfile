@@ -283,6 +283,7 @@ UseProgLibs +=
   gameLibs/quirrel/quirrel_json
   gameLibs/quirrel/sqConsole
   gameLibs/quirrel/http
+  gameLibs/quirrel/asyncRuntime
   gameLibs/quirrel/sqDacoll
   gameLibs/quirrel/sqStatsd
   gameLibs/quirrel/base64
@@ -866,13 +867,6 @@ if $(Dedicated) = yes {
     ;
   }
 
-  if $(UseGDK) = yes {
-    UseProgLibs +=
-      gameLibs/quirrel/gdk
-      gameLibs/gdk
-    ;
-  }
-
   # link gamepad/joystick/mouse/kb drivers
   if $(IsHeadless) != yes {
     if $(Platform) in windows macOS linux xboxOne scarlett {
@@ -931,6 +925,13 @@ if $(Platform) in xboxOne scarlett {
 if $(Platform) = ps4 {
   UseProgLibs +=
     gameLibs/sony
+  ;
+}
+
+if $(UseGDK) = yes {
+  UseProgLibs +=
+    gameLibs/quirrel/gdk
+    gameLibs/gdk
   ;
 }
 

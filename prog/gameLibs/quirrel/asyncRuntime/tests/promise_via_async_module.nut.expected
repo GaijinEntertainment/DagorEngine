@@ -1,0 +1,4 @@
+start
+end
+await p
+got 42

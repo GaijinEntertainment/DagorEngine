@@ -105,16 +105,16 @@ class CursorVisitor : AstVisitor {
     }
 
     def override preVisitFunction(fun : FunctionPtr) : void {
-        currentFunc = get_ptr(fun)
+        currentFunc = fun
     }
 
     def override visitFunction(var fun : FunctionPtr) : FunctionPtr {
         currentFunc = null
-        return <- fun
+        return fun
     }
 
     def override preVisitExpression(expr : ExpressionPtr) : void {
-        let e = get_ptr(expr)
+        let e = expr
         // filter by file if specified
         if (!empty(targetFile) && e.at.fileInfo != null) {
             let fname = string(e.at.fileInfo.name)
@@ -148,8 +148,9 @@ def private reverse_hits(var src : array<CursorHit>) : array<CursorHit> {
 //! `file` is a substring matched against ``FileInfo.name`` (use "" to match any file).
 def public find_at_cursor(program : smart_ptr<Program>; file : string; line, col : int) : array<CursorHit> {
     var visitor = new CursorVisitor(file, line, col)
-    var inscope adapter <- make_visitor(*visitor)
-    visit(program, adapter)
+    make_visitor(*visitor) $(adapter) {
+        visit(program, adapter)
+    }
     // visitor collects parent-first (depth-first pre-order), reverse for innermost-first
     var result <- reverse_hits(visitor.hits)
     unsafe {
@@ -162,9 +163,10 @@ def public find_at_cursor(program : smart_ptr<Program>; file : string; line, col
 //! `file` is a substring matched against ``FileInfo.name`` (use "" to match any file).
 def public find_at_cursor_in_function(func : FunctionPtr; file : string; line, col : int) : array<CursorHit> {
     var visitor = new CursorVisitor(file, line, col)
-    visitor.currentFunc = get_ptr(func)
-    var inscope adapter <- make_visitor(*visitor)
-    visit(func, adapter)
+    visitor.currentFunc = func
+    make_visitor(*visitor) $(adapter) {
+        visit(func, adapter)
+    }
     var result <- reverse_hits(visitor.hits)
     unsafe {
         delete visitor
@@ -174,7 +176,7 @@ def public find_at_cursor_in_function(func : FunctionPtr; file : string; line, c
 
 //! Pretty-print a CursorHit for debugging. Includes RTTI type, name, resolved type, source location, and enclosing function.
 def public describe(hit : CursorHit) : string {
-    return build_string() <| $(var w) {
+    return build_string() $(var w) {
         write(w, hit.rtti)
         if (!empty(hit.name)) {
             write(w, "({hit.name})")

@@ -52,23 +52,15 @@ static inline void verify_trace(const Trace &trace)
 static inline void verify_trace(const Trace &) {}
 #endif
 
-static inline const RendInstGenData::RendinstProperties *get_ri_props(int layer_idx, int pool, bool is_ri_extra)
-{
-  const int poolRef = is_ri_extra ? rendinst::riExtra[pool].riPoolRef : pool;
-  const RendInstGenData *rgl = rendinst::getRgLayer(is_ri_extra ? rendinst::riExtra[pool].riPoolRefLayer : layer_idx);
-  if (poolRef < 0 || !rgl)
-    return nullptr;
-  return &rgl->rtData->riProperties[poolRef];
-}
-
-static inline bool should_override_material_from_ri_props(int mat_id, const RendInstGenData::RendinstProperties &ri_prop)
+static inline bool should_override_material_from_ri_props(int mat_id, const rendinst::props::RendinstProperties &ri_prop)
 {
   return ri_prop.overrideMaterialForTraces || mat_id == PHYSMAT_INVALID || mat_id == PHYSMAT_DEFAULT;
 }
 
 static inline void try_override_material_from_ri_props(int &mat_id, int layer_idx, int pool, int cell_idx)
 {
-  const RendInstGenData::RendinstProperties *riProp = get_ri_props(layer_idx, pool, cell_idx == -1);
+  const rendinst::props::RendinstProperties *riProp =
+    props::get_by_desc<props::RendinstProperties>(RendInstDesc(cell_idx, 0, pool, 0, layer_idx));
   if (riProp && should_override_material_from_ri_props(mat_id, *riProp))
     mat_id = riProp->matId;
 }
@@ -234,7 +226,8 @@ struct TraceRayAllUnsortedListStrat : public TraceRayStrat
       have_collision = true;
 
       int defPhysMatId = -1;
-      const RendInstGenData::RendinstProperties *riProp = get_ri_props(layer_idx, pool, /*is_ri_extra*/ cell_idx == -1);
+      const rendinst::props::RendinstProperties *riProp =
+        props::get_by_desc<props::RendinstProperties>(RendInstDesc(cell_idx, 0, pool, 0, layer_idx));
       if (riProp)
         out_mat_id = defPhysMatId = riProp->matId;
 
@@ -477,19 +470,19 @@ struct RayTransparencyStrat
     int idx, int pool, int offs, int &out_mat_id, int cell_idx, const BBox3 &bbox_all)
   {
     RendInstGenData *rgl = rendinst::rgLayer[layer_idx];
-    const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[pool];
+    const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[pool];
     float at = 1.f;
     bool traceToCanopy = checkCanopy && riProp.canopyOpacity > 0.f;
     if (checkTrunk && does_line_intersect_box(box_collision, pos, pos + dir * out_t, at))
     {
       // check coll resource for more then 1 capsule
-      bool traceToCollRes =
-        coll_res->boxNodesHead || coll_res->meshNodesHead || (coll_res->capsuleNodesHead && coll_res->capsuleNodesHead->nextNode);
+      bool traceToCollRes = coll_res->boxNodesHead != CollisionNode::INVALID_IDX ||
+                            coll_res->meshNodesHead != CollisionNode::INVALID_IDX || coll_res->numCapsuleNodes > 1;
       bool haveCollision = !traceToCollRes;
       if (!traceToCollRes && layer_idx >= rendinst::rgPrimaryLayers)
-        haveCollision = coll_res->capsuleNodesHead && [&]() {
+        haveCollision = coll_res->capsuleNodesHead != CollisionNode::INVALID_IDX && [&]() {
           Capsule cap;
-          return coll_res->capsuleNodesHead && coll_res->getNodeCapsule(coll_res->capsuleNodesHead->nodeIndex, cap) &&
+          return coll_res->getNodeCapsule(coll_res->capsuleNodesHead, cap) &&
                  secondLayerMinCapsuleHeightSq < (cap.a - cap.b).lengthSq();
         }();
       if (traceToCollRes)
@@ -509,7 +502,7 @@ struct RayTransparencyStrat
       BBox3 canopyBox; // synthetical tree canopy box
       getRIGenCanopyBBox(riProp, bbox_all, canopyBox);
       float dist = 0.0f;
-      if (riProp.canopyShape == RendInstGenData::CanopyShape::CONE)
+      if (riProp.canopyShape == rendinst::props::CanopyShape::CONE)
       {
         Point3 canopyBoxCenter = canopyBox.center();
         float coneHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
@@ -556,7 +549,7 @@ struct RayTransparencyStrat
             dist = out_t * (1.0f - at);
         }
       }
-      else if (riProp.canopyShape == RendInstGenData::CanopyShape::SPHEROID)
+      else if (riProp.canopyShape == rendinst::props::CanopyShape::SPHEROID)
       {
         Point3 canopyCenter = canopyBox.center();
         float canopyHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
@@ -804,7 +797,7 @@ static bool traverseRayCell(RendInstGenData::Cell &cell, bbox3f_cref rayBox, dag
       if (DAGOR_UNLIKELY(!collRes))
         continue;
       bool isPosInst = (riPosInstData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
-      const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[p];
+      const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[p];
       if (strategy.shouldIgnoreRendinst(isPosInst, riProp.immortal, riProp.damageable, riProp.matId))
         continue;
       if (DAGOR_UNLIKELY(!isPosInst))
@@ -1109,7 +1102,7 @@ static bool rayTraverseRiExtra(bbox3f_cref ray_box, dag::Span<Trace> traces, ren
       int poolRef = rendinst::riExtra[riType].riPoolRef;
       if (RendInstGenData *rgl = (poolRef >= 0) ? rendinst::getRgLayer(rendinst::riExtra[riType].riPoolRefLayer) : nullptr)
       {
-        const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[poolRef];
+        const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[poolRef];
         if (strategy.shouldIgnoreRendinst(/*isPos*/ false, riProp.immortal, riProp.damageable, riProp.matId))
           continue;
       }
@@ -1321,7 +1314,7 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
 
     if (RendInstGenData *rgl = (pool->riPoolRef >= 0) ? rendinst::getRgLayer(pool->riPoolRefLayer) : nullptr)
     {
-      const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[pool->riPoolRef];
+      const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[pool->riPoolRef];
       if (strategy.shouldIgnoreRendinst(/*isPos*/ false, riProp.immortal, riProp.damageable, riProp.matId))
         return false;
     }
@@ -2301,7 +2294,7 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
         int poolRef = pool.riPoolRef;
         if (RendInstGenData *rgl = (poolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
         {
-          const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[poolRef];
+          const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[poolRef];
           ignoreRi = should_ignore(/*isPos*/ false, riProp.immortal, riProp.damageable, riProp.matId);
         }
         else
@@ -2469,7 +2462,7 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
                 const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(p, idx);
                 if (DAGOR_LIKELY(!scs.sz))
                   continue;
-                const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[p];
+                const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[p];
                 bool isPosInst = (riPosInstData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
                 if (should_ignore(isPosInst, riProp.immortal, riProp.damageable, riProp.matId) || !scs.sz)
                   continue;

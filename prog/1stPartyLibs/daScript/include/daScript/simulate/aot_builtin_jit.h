@@ -14,7 +14,7 @@ namespace das {
     struct ExprStringBuilder;
 
     struct TypeDecl;
-    typedef smart_ptr<TypeDecl> TypeDeclPtr;
+    typedef TypeDecl * TypeDeclPtr;
 
     float4 das_invoke_code ( void * pfun, vec4f anything, void * cmres, Context * context );
     bool das_is_jit_function ( const Func func );

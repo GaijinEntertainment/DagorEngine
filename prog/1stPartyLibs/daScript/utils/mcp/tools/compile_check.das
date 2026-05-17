@@ -14,12 +14,12 @@ struct CompileResult {
 }
 
 def compile_check_single(file : string; project : string = "") : string {
-    return compile_and_simulate(file, project) <| $(program; issues) {
+    return compile_and_simulate(file, project) $(program; issues) {
         var warnings = ""
         if (!empty(issues)) {
             warnings = "Warnings:\n{issues}\n"
         }
-        var funcs = build_string() <| $(var writer) {
+        var funcs = build_string() $(var writer) {
             write_function_list(writer, program)
         }
         return "{warnings}Compilation OK.\n{funcs}"
@@ -29,15 +29,15 @@ def compile_check_single(file : string; project : string = "") : string {
 def private compile_check_single_json(file : string; project : string = "") : CompileResult {
     var result = CompileResult(file = file)
     var inscope access <- make_file_access(project)
-    using() <| $(var mg : ModuleGroup) {
-        using() <| $(var cop : CodeOfPolicies) {
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
-            compile_file(file, access, unsafe(addr(mg)), cop) <| $(ok; program; issues) {
+            compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result.errors = string(issues)
                 } else {
-                    simulate(program) <| $(sok; ctx; serrors) {
+                    simulate(program) $(sok; ctx; serrors) {
                         if (!sok) {
                             result.errors = string(serrors)
                         } else {
@@ -70,7 +70,7 @@ def do_compile_check(file : string; project : string = ""; json : bool = false) 
         }
         var passed = 0
         var failed = 0
-        var output = build_string() <| $(var w) {
+        var output = build_string() $(var w) {
             for (f in files) {
                 let result = compile_check_single(f, project)
                 let is_error = find(result, "\"isError\":true") >= 0

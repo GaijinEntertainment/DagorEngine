@@ -124,7 +124,7 @@ shader bvh_process_tree_vertices
 
       const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
 
-      PRECISE float3 inputPos = asfloat(loadBuffer3(source, vertexStart + params.position_offset));
+      PRECISE_VAR float3 inputPos = asfloat(loadBuffer3(source, vertexStart + params.position_offset));
       uint   packedNormal     = loadBuffer(source, vertexStart + params.normal_offset);
       float3 inputNormal      = (float4((packedNormal >> INPUT_ENCODING_OFFSET) & 255).xyz / 255) * 2 - 1;
       uint   packedColor      = loadBuffer(source, vertexStart + params.color_offset);
@@ -136,7 +136,7 @@ shader bvh_process_tree_vertices
       uint perInstanceRenderDataOffset = params.perInstanceRenderAdditionalData&RIEXTRA_PER_INSTANCE_RENDER_OFFSET_MASK;
       uint perInstanceRenderDataFlags  = (params.perInstanceRenderAdditionalData&RIEXTRA_PER_INSTANCE_RENDER_DATA_FLAG_MASK)>>RIEXTRA_PER_INSTANCE_RENDER_DATA_FLAG_BIT_OFFSET;
 
-      PRECISE float4 worldPos4;
+      PRECISE_VAR float4 worldPos4;
       float3 worldNormal;
 
       // Game specific

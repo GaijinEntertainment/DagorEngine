@@ -119,6 +119,10 @@ def with_form_test_server(port : int; blk : block<(base_url : string; upload_dir
                         sleep(1u)
                     }
                     server->stop()
+                    server->cleanup()
+                    unsafe {
+                        delete server
+                    }
                     finished |> notify_and_release
                 }
                 started |> join

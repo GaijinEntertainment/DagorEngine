@@ -148,39 +148,6 @@ struct FSR
   static bool isSupported();
 
   static int getMaximumNumberOfGeneratedFrames();
-
-  void applyUpscaling(const UpscalingArgs &args);
-  void scheduleGeneratedFrames(const FrameGenArgs &args);
-
-  virtual ~FSR() = default;
-
-  virtual bool isLoaded() const = 0;
-
-  virtual bool isUpscalingSupported() const = 0;
-  virtual bool isFrameGenerationSupported() const = 0;
-
-  virtual bool initUpscaling(const ContextArgs &args) = 0;
-  virtual void teardownUpscaling() = 0;
-
-  virtual Point2 getNextJitter(uint32_t render_width, uint32_t output_width) = 0;
-
-  virtual UpscalingMode getUpscalingMode() const = 0;
-
-  virtual IPoint2 getRenderingResolution(UpscalingMode mode, const IPoint2 &target_resolution) const = 0;
-
-  // To be called by the dagor drivers
-  virtual bool doApplyUpscaling(const UpscalingPlatformArgs &args, void *command_list) const = 0;
-
-  virtual String getVersionString() const { return String(8, "Unknown"); }
-
-  virtual void enableFrameGeneration(bool enable) = 0;
-  virtual void suppressFrameGeneration(bool suppress) = 0;
-  virtual void doScheduleGeneratedFrames(const FrameGenPlatformArgs &args, void *command_list) = 0;
-  virtual int getPresentedFrameCount() = 0;
-  virtual bool isFrameGenerationActive() const = 0;
-  virtual bool isFrameGenerationSuppressed() const = 0;
 };
-
-FSR *createFSR();
 
 } // namespace amd

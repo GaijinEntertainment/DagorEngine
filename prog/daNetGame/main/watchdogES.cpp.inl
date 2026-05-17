@@ -27,7 +27,7 @@ namespace watchdog
 #if EA_ASAN_ENABLED || defined(__SANITIZE_ADDRESS__) // Note: num-1|denom-1 (nible) per mode
 static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x202040;
 #else
-static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x000021;
+static constexpr uint32_t THRESHOLDS_MULTIPLIERS = 0x000010;
 #endif
 
 #if (DAGOR_DBGLEVEL > 0 || _TARGET_PC) && !DAGOR_THREAD_SANITIZER

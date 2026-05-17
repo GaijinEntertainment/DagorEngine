@@ -37,7 +37,7 @@ def main() {
 
     while (!feof(sin)) {
         // read one line (up to 16KB per fgets call; loop for longer messages)
-        var msg = build_string() <| $(var w) {
+        var msg = build_string() $(var w) {
             while (!feof(sin)) {
                 let chunk = fgets(sin)
                 let len = length(chunk)

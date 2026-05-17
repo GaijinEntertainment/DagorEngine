@@ -1256,6 +1256,7 @@ bool d3d::is_in_device_reset_now() { return /*device_is_lost != S_OK || */ devic
 
 static void closeDLSS()
 {
+  Globals::ctx.processAllPendingWork();
 #if USE_STREAMLINE_FOR_DLSS
   if (Globals::VK::loader.streamlineAdapter)
   {

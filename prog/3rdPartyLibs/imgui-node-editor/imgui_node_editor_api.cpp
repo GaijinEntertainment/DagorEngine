@@ -236,6 +236,16 @@ bool ax::NodeEditor::Link(LinkId id, PinId startPinId, PinId endPinId, const ImV
     return s_Editor->DoLink(id, startPinId, endPinId, ImColor(color), thickness);
 }
 
+ax::NodeEditor::LinkBezierCurve ax::NodeEditor::GetLinkCurve(LinkId id)
+{
+    if (auto* link = s_Editor->FindLink(id); link && link->m_IsLive)
+    {
+        auto c = link->GetCurve();
+        return {c.P0, c.P1, c.P2, c.P3};
+    }
+    return {};
+}
+
 void ax::NodeEditor::Flow(LinkId linkId, FlowDirection direction)
 {
     if (auto link = s_Editor->FindLink(linkId))

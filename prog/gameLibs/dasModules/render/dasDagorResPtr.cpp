@@ -89,9 +89,9 @@ struct UniqueTexAnnotation final : ManagedResAnnotation<UniqueTex>
     addPropertyForManagedType<DAS_BIND_MANAGED_PROP(getVolTex)>("getVolTex");
   }
 };
-struct UniqueTexHolderAnnotation final : ManagedResAnnotation<UniqueTexHolder>
+struct UniqueTexWithShaderVarAnnotation final : ManagedResAnnotation<UniqueTexWithShaderVar>
 {
-  UniqueTexHolderAnnotation(das::ModuleLibrary &ml) : ManagedResAnnotation("UniqueTexHolder", ml)
+  UniqueTexWithShaderVarAnnotation(das::ModuleLibrary &ml) : ManagedResAnnotation("UniqueTexWithShaderVar", ml)
   {
     addPropertyForManagedType<DAS_BIND_MANAGED_PROP(getTexId)>("getTexId");
     addPropertyForManagedType<DAS_BIND_MANAGED_PROP(getTex2D)>("getTex2D");
@@ -140,18 +140,18 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, das::Module::require("DagorTexture3D"), true);
 
-    addAnnotation(das::make_smart<ManagedTexAnnotation>(lib));
-    addAnnotation(das::make_smart<ManagedTexViewAnnotation>(lib));
-    addAnnotation(das::make_smart<ManagedBufViewAnnotation>(lib));
+    addAnnotation(new ManagedTexAnnotation(lib));
+    addAnnotation(new ManagedTexViewAnnotation(lib));
+    addAnnotation(new ManagedBufViewAnnotation(lib));
 
-    addAnnotation(das::make_smart<SharedBufAnnotation>(lib));
-    addAnnotation(das::make_smart<SharedBufHolderAnnotation>(lib));
-    addAnnotation(das::make_smart<UniqueBufAnnotation>(lib));
-    addAnnotation(das::make_smart<UniqueBufHolderAnnotation>(lib));
-    addAnnotation(das::make_smart<SharedTexAnnotation>(lib));
-    addAnnotation(das::make_smart<SharedTexHolderAnnotation>(lib));
-    addAnnotation(das::make_smart<UniqueTexAnnotation>(lib));
-    addAnnotation(das::make_smart<UniqueTexHolderAnnotation>(lib));
+    addAnnotation(new SharedBufAnnotation(lib));
+    addAnnotation(new SharedBufHolderAnnotation(lib));
+    addAnnotation(new UniqueBufAnnotation(lib));
+    addAnnotation(new UniqueBufHolderAnnotation(lib));
+    addAnnotation(new SharedTexAnnotation(lib));
+    addAnnotation(new SharedTexHolderAnnotation(lib));
+    addAnnotation(new UniqueTexAnnotation(lib));
+    addAnnotation(new UniqueTexWithShaderVarAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::get_tex2d)>(*this, lib, "get_tex2d", das::SideEffects::none,
       " ::bind_dascript::get_tex2d");

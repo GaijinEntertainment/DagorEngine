@@ -265,7 +265,10 @@ static bool check_client_vroms_and_send_diffs(const ClientInfo *msg)
     syncvroms::write_vrom_diffs(applyDiffsMsg.get<0>(), syncvroms::get_mounted_sync_vroms_list(), clientSyncVroms);
 
   if (diffsCount == 0)
+  {
+    debug("[SyncVroms]: Recieved client #%d and server vroms are the same, no diff to send.", (int)msg->connection->getId());
     return true;
+  }
 
   auto insIt = apply_diffs_timestamp_map.insert(msg->connection->getId());
   insIt.first->second = get_time_msec();

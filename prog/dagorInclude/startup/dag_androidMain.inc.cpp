@@ -868,7 +868,7 @@ SimpleString get_logs_folder(JavaVM *jvm, jobject activity)
 #undef JNI_ASSERT
 }
 
-SimpleString get_intent_arguments(JavaVM *jvm, jobject activity)
+SimpleString get_intent_string_extra(JavaVM *jvm, jobject activity, const char *key)
 {
 #define JNI_ASSERT(jni, cond)         \
   if (jni->ExceptionCheck())          \
@@ -884,7 +884,7 @@ SimpleString get_intent_arguments(JavaVM *jvm, jobject activity)
   jclass ourActivity = jni->GetObjectClass(activity);
   JNI_ASSERT(jni, ourActivity);
 
-  jmethodID getIntentArguments = jni->GetMethodID(ourActivity, "getIntentArguments", "()Ljava/lang/String;");
+  jmethodID getIntentStringExtra = jni->GetMethodID(ourActivity, "getIntentStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
   if (jni->ExceptionCheck()) // No method in class is normal case
   {
     jni->ExceptionClear();
@@ -892,7 +892,11 @@ SimpleString get_intent_arguments(JavaVM *jvm, jobject activity)
     return SimpleString("");
   }
 
-  jstring intentArguments = (jstring)jni->CallObjectMethod(activity, getIntentArguments);
+  jstring jkey = jni->NewStringUTF(key);
+  JNI_ASSERT(jni, jkey);
+
+  jstring intentArguments = (jstring)jni->CallObjectMethod(activity, getIntentStringExtra, jkey);
+  jni->DeleteLocalRef(jkey);
   JNI_ASSERT(jni, intentArguments);
 
   const char *intentArgumentsC = jni->GetStringUTFChars(intentArguments, NULL);
@@ -1001,9 +1005,16 @@ void android_main(struct android_app *state)
       externalDataPath = dagor_android_external_path_jni.c_str();
   }
 
+  SimpleString logsDirName = get_intent_string_extra(jvm, activityObj, "logsDirName");
   SimpleString libraryName = get_library_name(jvm, activityObj);
-  setup_debug_system((libraryName == "") ? "run" : libraryName, logsFolder.empty() ? externalDataPath : logsFolder.c_str(),
-    DAGOR_DEBUG_LOG_NAME, false, ANDROID_ROTATED_LOGS);
+  const char *logName = logsDirName.empty() ? libraryName.empty() ? "run" : libraryName.c_str() : logsDirName.c_str();
+  // If logsDirName is specified don't use log's rotation and don't add date time to log name and keep folder name as is.
+  // For example, VersionSelector will specify logsDirName in order to have it's own log in the same folder as keep date time in log
+  // folder name.
+  const bool useDateTimeName = logsDirName.empty() ? DAGOR_DBGLEVEL > 0 : false;
+  const size_t useRotatedLogs = logsDirName.empty() ? ANDROID_ROTATED_LOGS : (DAGOR_DBGLEVEL > 0 ? 0 : ANDROID_ROTATED_LOGS);
+  setup_debug_system(logName, logsFolder.empty() ? externalDataPath : logsFolder.c_str(), DAGOR_DEBUG_LOG_NAME, useDateTimeName,
+    useRotatedLogs);
 
   g_android_joystick_events_free.set();
 
@@ -1042,7 +1053,7 @@ void android_main(struct android_app *state)
   copyArg(libname, ::strlen(libname));
 
 #if DAGOR_ALLOW_INTENT_ARGUMENTS
-  SimpleString intentArguments = get_intent_arguments(jvm, activityObj);
+  SimpleString intentArguments = get_intent_string_extra(jvm, activityObj, "args");
   debug("intentArguments: %s", intentArguments.c_str());
 
   int start = 0;

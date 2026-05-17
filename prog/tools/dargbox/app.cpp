@@ -18,6 +18,7 @@
 #include <quirrel/sqConsole/sqConsole.h>
 #include <quirrel/quirrelHost/memtrace.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
+#include <quirrel/asyncRuntime/dagorAsyncRuntime.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sound/dag_genAudio.h>
 
@@ -131,6 +132,8 @@ static eastl::unique_ptr<ioevents::IOEventsPoll> io_events_poll;
 static darg::IGuiScene *darg_scene = NULL;
 static darg::JoystickHandler *joystick_handler = NULL;
 
+static eastl::unique_ptr<sqasync_dagor::AsyncRuntimeScope> async_runtime;
+
 int dargbox_get_exit_code()
 {
   if (had_darg_error)
@@ -173,6 +176,9 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
   void onDismissError() override {}
   void onShutdownScript(HSQUIRRELVM vm) override
   {
+    if (async_runtime)
+      async_runtime->shutdown();
+
     destroy_script_console_processor(vm);
     unbind_dargbox_script_api(vm);
 
@@ -331,7 +337,8 @@ public:
   void closeDargScene()
   {
     del_it(joystick_handler);
-    del_it(darg_scene);
+    del_it(darg_scene);    // triggers onShutdownScript, then sq_close
+    async_runtime.reset(); // safe now: VM is gone, no closure can deref the scope pointer
   }
 
 
@@ -388,6 +395,7 @@ public:
     Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("VAR_TRACE_ENABLED", varTraceOn);
 
     bind_dargbox_script_api(moduleMgr);
+    async_runtime = eastl::make_unique<sqasync_dagor::AsyncRuntimeScope>(moduleMgr);
     create_script_console_processor(moduleMgr, "sq.exec");
 
     const char *scriptFn = dgs_get_settings()->getStr("script", "scripts/script.nut");
@@ -599,6 +607,8 @@ public:
     visuallog::act(::dagor_game_act_time);
 
     cpujobs::release_done_jobs();
+    if (darg_scene && async_runtime)
+      async_runtime->pump();
     PictureManager::discard_unused_picture();
 
     if (::global_cls_drv_joy)
@@ -965,6 +975,7 @@ static void das_init()
   das::daScriptEnvironment::ensure();
   (*das::daScriptEnvironment::bound)->das_def_tab_size = 2; // our coding style requires indenting of 2
 
+  NEED_FUSION;
   NEED_MODULE(Module_BuiltIn);
   NEED_MODULE(Module_Math);
   NEED_MODULE(Module_Strings);

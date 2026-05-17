@@ -63,7 +63,7 @@ class %ListClass {
     }
     def each : iterator<%Foo?> {
         //! Returns an iterator over all elements in the list, from head to tail.
-        return <- generator <%Foo?> () <| $() {
+        return <- generator <%Foo?> {
             var node = head
             while (node != null) {
                 yield node.data

@@ -252,69 +252,6 @@ SQRESULT sqstd_getfile(HSQUIRRELVM v, SQInteger idx, SQFILE *file)
 }
 
 
-
-#define IO_BUFFER_SIZE 2048
-struct IOBuffer {
-    unsigned char buffer[IO_BUFFER_SIZE];
-    SQInteger size;
-    SQInteger ptr;
-    SQFILE file;
-};
-
-SQInteger _read_byte(IOBuffer *iobuffer)
-{
-    if(iobuffer->ptr < iobuffer->size) {
-
-        SQInteger ret = iobuffer->buffer[iobuffer->ptr];
-        iobuffer->ptr++;
-        return ret;
-    }
-    else {
-        if( (iobuffer->size = sqstd_fread(iobuffer->buffer,1,IO_BUFFER_SIZE,iobuffer->file )) > 0 )
-        {
-            SQInteger ret = iobuffer->buffer[0];
-            iobuffer->ptr = 1;
-            return ret;
-        }
-    }
-
-    return 0;
-}
-
-SQInteger _read_two_bytes(IOBuffer *iobuffer)
-{
-    if(iobuffer->ptr < iobuffer->size) {
-        if(iobuffer->size < 2) return 0;
-        SQInteger ret = *((const wchar_t*)&iobuffer->buffer[iobuffer->ptr]);
-        iobuffer->ptr += 2;
-        return ret;
-    }
-    else {
-        if( (iobuffer->size = sqstd_fread(iobuffer->buffer,1,IO_BUFFER_SIZE,iobuffer->file )) > 0 )
-        {
-            if(iobuffer->size < 2) return 0;
-            SQInteger ret = *((const wchar_t*)&iobuffer->buffer[0]);
-            iobuffer->ptr = 2;
-            return ret;
-        }
-    }
-
-    return 0;
-}
-
-
-SQInteger file_read(SQUserPointer file,SQUserPointer buf,SQInteger size)
-{
-    SQInteger ret;
-    if( ( ret = sqstd_fread(buf,1,size,(SQFILE)file ))!=0 )return ret;
-    return -1;
-}
-
-SQInteger file_write(SQUserPointer file,SQUserPointer p,SQInteger size)
-{
-    return sqstd_fwrite(p,1,size,(SQFILE)file);
-}
-
 static char *readFileData(HSQUIRRELVM v, SQFILE f, SQInteger &s) {
     sqstd_fseek(f, 0, SQ_SEEK_SET);
     SQInteger size = sqstd_fseek(f, 0, SQ_SEEK_END);
@@ -360,18 +297,6 @@ SQRESULT sqstd_dofile(HSQUIRRELVM v,const char *filename,SQBool retval,SQBool pr
         sq_pop(v,1); //removes the closure
     }
     return SQ_ERROR;
-}
-
-SQRESULT sqstd_writeclosuretofile(HSQUIRRELVM v,const char *filename)
-{
-    SQFILE file = sqstd_fopen(filename,"wb+");
-    if(!file) return sq_throwerror(v,"cannot open the file");
-    if(SQ_SUCCEEDED(sq_writeclosure(v,file_write,file))) {
-        sqstd_fclose(file);
-        return SQ_OK;
-    }
-    sqstd_fclose(file);
-    return SQ_ERROR; //forward the error
 }
 
 static const SQRegFunctionFromStr iolib_funcs[] = {

@@ -27,60 +27,6 @@
 #define IF_CONSTEXPR if
 #endif
 
-// CollisionNode assignment operators
-#define COLLNODE_COPY_BASIC_MEMBERS() \
-  ASSIGN_OP(behaviorFlags);           \
-  ASSIGN_OP(flags);                   \
-  ASSIGN_OP(type);                    \
-  ASSIGN_OP(geomNodeId);              \
-  ASSIGN_OP(physMatId);               \
-  ASSIGN_OP(nextNode);                \
-  ASSIGN_OP(tm);                      \
-  ASSIGN_OP(modelBBox);               \
-  ASSIGN_OP(boundingSphere);          \
-  ASSIGN_OP(cachedMaxTmScale);        \
-  ASSIGN_OP(convexPlanes);            \
-  ASSIGN_OP(nodeIndex);               \
-  ASSIGN_OP(insideOfNode);            \
-  ASSIGN_OP(nameOfs);                 \
-  ASSIGN_OP(capsuleIndex);
-
-CollisionNode &CollisionNode::operator=(const CollisionNode &n)
-{
-#define ASSIGN_OP(X) X = n.X
-  COLLNODE_COPY_BASIC_MEMBERS()
-#undef ASSIGN_OP
-
-  resetVertices(n.vertices);
-  if (!(flags & FLAG_VERTICES_ARE_REFS) && vertices.size())
-  {
-    vertices.set(memalloc_typed<Point3_vec4>(vertices.size(), midmem), vertices.size());
-    mem_copy_from(vertices, n.vertices.data());
-  }
-
-  resetIndices(n.indices);
-  if (!(flags & FLAG_INDICES_ARE_REFS) && indices.size())
-  {
-    indices.set(memalloc_typed<uint16_t>(indices.size(), midmem), indices.size());
-    mem_copy_from(indices, n.indices.data());
-  }
-  return *this;
-}
-CollisionNode &CollisionNode::operator=(CollisionNode &&n)
-{
-#define ASSIGN_OP(X) X = eastl::move(n.X)
-  COLLNODE_COPY_BASIC_MEMBERS()
-#undef ASSIGN_OP
-
-  resetVertices(n.vertices);
-  n.vertices.reset();
-
-  resetIndices(n.indices);
-  n.indices.reset();
-  return *this;
-}
-#undef COLLNODE_COPY_BASIC_MEMBERS
-
 // Squared radius for CollisionNode bounding sphere preserving the empty-sphere convention (r < 0 => r2 == -1).
 static inline float get_bsphere_r2(float r) { return r < 0 ? -1.f : r * r; }
 
@@ -114,29 +60,37 @@ void CollisionResource::bakeNodeTransform(int node_id)
     return;
   if (n->type != COLLISION_NODE_TYPE_MESH && n->type != COLLISION_NODE_TYPE_CONVEX)
     return;
-  if ((n->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || n->vertices.empty())
+  if ((n->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || n->indicesCount == 0)
     return;
+
+  // Bake mutates verts/indices in place, so we must mutate ownVertices/ownIndices directly
+  // (meshVertsBase/meshIndicesBase may point at FRT data which is read-only from here).
+  G_ASSERT(meshVertsBase == ownVertices.data());
+  Point3_vec4 *nodeVerts = ownVertices.data() + n->verticesOfs;
+  uint16_t *nodeIdx = ownIndices.data() + n->indicesOfs;
+  const uint32_t vCount = (uint32_t)n->verticesCount + 1u;
 
   mat44f nodeTm;
   v_mat44_make_from_43cu(nodeTm, n->tm[0]);
   bbox3f box;
   v_bbox3_init_empty(box);
-  for (Point3_vec4 *v = n->vertices.data(), *ve = v + n->vertices.size(); v != ve; ++v)
+  for (Point3_vec4 *v = nodeVerts, *ve = v + vCount; v != ve; ++v)
   {
     vec4f p = v_mat44_mul_vec3p(nodeTm, v_ld(&v->x));
     v_st(&v->x, p);
     v_bbox3_add_pt(box, p);
   }
   vec4f vSphereC = v_bbox3_center(box), sphereRad2 = v_zero();
-  for (const Point3_vec4 *v = n->vertices.data(), *ve = v + n->vertices.size(); v != ve; ++v)
+  for (const Point3_vec4 *v = nodeVerts, *ve = v + vCount; v != ve; ++v)
     sphereRad2 = v_max(sphereRad2, v_length3_sq_x(v_sub(vSphereC, v_ld(&v->x))));
 
-  if (!n->convexPlanes.empty())
+  if (n->planesCount)
   {
     mat44f N, TN;
     v_mat44_inverse(N, nodeTm);
     v_mat44_transpose(TN, N);
-    for (plane3f *p = n->convexPlanes.data(), *pe = p + n->convexPlanes.size(); p != pe; ++p)
+    plane3f *base = convexPlanes.data() + n->planesOfs;
+    for (plane3f *p = base, *pe = base + n->planesCount; p != pe; ++p)
       *p = v_mat44_mul_vec4(TN, *p);
   }
 
@@ -145,8 +99,8 @@ void CollisionResource::bakeNodeTransform(int node_id)
   n->boundingSphere.r = v_extract_x(v_sqrt_x(sphereRad2));
 
   if (n->tm.det() < 0.f)
-    for (int i = 0, e = (int)n->indices.size(); i + 2 < e; i += 3)
-      eastl::swap(n->indices[i + 0], n->indices[i + 2]);
+    for (uint32_t i = 0, e = n->indicesCount; i + 2 < e; i += 3)
+      eastl::swap(nodeIdx[i + 0], nodeIdx[i + 2]);
   n->tm = TMatrix::IDENT;
   n->flags =
     (n->flags & ~(CollisionNode::TRANSLATE | CollisionNode::ORTHOUNIFORM)) | CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED;
@@ -382,8 +336,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         v_bbox3_add_pt(traceBox, rMax);
       }
     }
-    for (const CollisionNode *meshNode = meshNodesHead; DAGOR_LIKELY(meshNode); meshNode = meshNode->nextNode)
+    for (uint16_t mi = meshNodesHead; DAGOR_LIKELY(mi != CollisionNode::INVALID_IDX); mi = allNodesList[mi].nextNode)
     {
+      const CollisionNode *meshNode = &allNodesList[mi];
       if (!filter(meshNode))
         continue;
 
@@ -454,6 +409,19 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
 
         // check mesh node bounding
         bbox3f bbox = v_ldu_bbox3(meshNode->modelBBox);
+        // Degenerate-axis inflation: meshNode->modelBBox can have an exact-zero extent on
+        // one axis (a Y=0 ground plane, an axis-aligned curtain mesh, etc.). The slab test
+        // then rejects rays that start exactly on the surface even when they hit a triangle
+        // -- the FRT brute-force per-tri loop below would have accepted the hit. Inflate
+        // degenerate axes by 1e-4 (matching the BVH backend's blas_size_eps) so the slab
+        // admits tangent rays. Mirrors the BVH-side fix in buildTLAS.
+        {
+          vec3f bsize = v_sub(bbox.bmax, bbox.bmin);
+          vec3f safeSize = v_max(bsize, v_splats(0.0001f));
+          vec3f sizeDelta = v_mul(v_sub(safeSize, bsize), V_C_HALF);
+          bbox.bmin = v_sub(bbox.bmin, sizeDelta);
+          bbox.bmax = v_add(bbox.bmax, sizeDelta);
+        }
         if (isTraceByCapsule)
         {
           // For capsule trace we do simple bbox extension by capsule radius and test ray intersection.
@@ -465,7 +433,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                                                                                                        // objects like vehicles
           continue;
         profileStats.meshNodesBoxCheckPassed++;
-        profileStats.meshTrianglesTraced += meshNode->indices.size() / 3;
+        profileStats.meshTrianglesTraced += meshNode->indicesCount / 3;
 
         IF_CONSTEXPR (trace_mode != ALL_INTERSECTIONS || trace_type == CollisionTraceType::RAY_HIT ||
                       trace_type == CollisionTraceType::CAPSULE_HIT)
@@ -478,13 +446,13 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           vec3f *normPtr = calc_normal ? &vNodeLocalNorm : nullptr;
 
           bool isHit = false;
-          bool isLightNode = meshNode->indices.size() < traceMeshNodeLocalApi.threshold;
+          bool isLightNode = meshNode->indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
           switch (trace_type)
           {
             case CollisionTraceType::TRACE_RAY:
               isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
-                                   : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(*meshNode, vNodeLocalFrom,
-                vNodeLocalDir, inOutLocalT, normPtr);
+                                   : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase,
+                *meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, normPtr);
               break;
             case CollisionTraceType::TRACE_CAPSULE:
               isHit = traceCapsuleMeshNodeLocalCullCCW(*meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, localCapsuleRadius,
@@ -492,8 +460,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               break;
             case CollisionTraceType::RAY_HIT:
               isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnRayHitMeshNodeLocalCullCCW
-                                   : traceMeshNodeLocalApi.heavy.pfnRayHitMeshNodeLocalCullCCW)(*meshNode, vNodeLocalFrom,
-                vNodeLocalDir, inOutLocalT);
+                                   : traceMeshNodeLocalApi.heavy.pfnRayHitMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase,
+                *meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT);
               break;
             case CollisionTraceType::CAPSULE_HIT:
               isHit = capsuleHitMeshNodeLocalCullCCW(*meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, localCapsuleRadius);
@@ -555,10 +523,10 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
 
           all_collres_nodes_t ret;
           all_collres_tri_indices_t retTriIndices;
-          bool isLightNode = meshNode->indices.size() < traceMeshNodeLocalApi.threshold;
+          bool isLightNode = meshNode->indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
           bool isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
-                                    : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(*meshNode, vNodeLocalFrom,
-            vNodeLocalDir, localT, calc_normal, force_no_cull, ret, retTriIndices);
+                                    : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(meshVertsBase, meshIndicesBase,
+            *meshNode, vNodeLocalFrom, vNodeLocalDir, localT, calc_normal, force_no_cull, ret, retTriIndices);
           if (isHit)
           {
             hasCollision = true;
@@ -591,7 +559,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       } // traces loop
     } // mesh nodes loop
 
-    if (DAGOR_LIKELY(!boxNodesHead && !sphereNodesHead && !capsuleNodesHead))
+    if (DAGOR_LIKELY(boxNodesHead == CollisionNode::INVALID_IDX && sphereNodesHead == CollisionNode::INVALID_IDX &&
+                     capsuleNodesHead == CollisionNode::INVALID_IDX))
       return hasCollision;
   } // if (!tracer)
 
@@ -763,8 +732,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       } // one hit or all intersections
     } // if (tracer)
 
-    for (const CollisionNode *boxNode = boxNodesHead; boxNode; boxNode = boxNode->nextNode)
+    for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
     {
+      const CollisionNode *boxNode = &allNodesList[bi];
       if (!filter(boxNode))
         continue;
       float atMin = 1.f, atMax = 1.f; // [0; 1]
@@ -821,8 +791,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       }
     } // box nodes loop
 
-    for (const CollisionNode *sphereNode = sphereNodesHead; sphereNode; sphereNode = sphereNode->nextNode)
+    for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
     {
+      const CollisionNode *sphereNode = &allNodesList[si];
       if (!filter(sphereNode))
         continue;
       bool isHit = false;
@@ -894,8 +865,9 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       }
     } // sphere nodes loop
 
-    for (const CollisionNode *capsuleNode = capsuleNodesHead; capsuleNode; capsuleNode = capsuleNode->nextNode)
+    for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
     {
+      const CollisionNode *capsuleNode = &allNodesList[ci];
       if (!filter(capsuleNode))
         continue;
       float inOutLocalT = localT;
@@ -1332,10 +1304,10 @@ bool CollisionResource::traceRayMeshNodeLocal(const CollisionNode &node, const v
   if (!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_out_t), bbox))
     return false;
 
-  bool isLightNode = node.indices.size() < traceMeshNodeLocalApi.threshold;
-  return (isLightNode
-            ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
-            : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(node, v_local_from, v_local_dir, in_out_t, v_out_norm);
+  bool isLightNode = node.indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
+  return (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
+                      : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase, node,
+    v_local_from, v_local_dir, in_out_t, v_out_norm);
 }
 
 
@@ -1352,11 +1324,11 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
 
   all_collres_nodes_t allNodes;
   all_collres_tri_indices_t allTriIndices;
-  const bool isLightNode = node.indices.size() < traceMeshNodeLocalApi.threshold;
+  const bool isLightNode = node.indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
   // -V::601 for some reason PVS glitches and fails with "The 'true' value becomes a class object" on calc_normal parameter
   const bool res = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
-                                : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(node, vLocalFrom, vLocalDir, in_t, true,
-    force_no_cull, allNodes, allTriIndices);
+                                : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(meshVertsBase, meshIndicesBase, node,
+    vLocalFrom, vLocalDir, in_t, true, force_no_cull, allNodes, allTriIndices);
 
   intersected_nodes_list.reserve(allNodes.size());
   for (int k = 0, cnt = allNodes.size(); k < cnt; k++)
@@ -1382,8 +1354,9 @@ bool CollisionResource::testSphereIntersection(const CollisionNodeFilter &filter
   if (!v_test_bsph_bsph_intersection(bsph, getBoundingSphereXYZR()))
     return false;
 
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     if ((filter && !filter(meshNode->nodeIndex)) || (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE)))
       continue;
     Point3 nodeNorm;
@@ -1410,8 +1383,9 @@ bool CollisionResource::testCapsuleNodeIntersection(const Point3 &p0, const Poin
   if (!v_bbox3_test_sph_intersect(bbox, vBoundingSphere, v_splat_w(vBoundingSphere)))
     return false;
 
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE))
       continue;
     if (test_capsule_node_intersection(p0, p1, radius, meshNode))
@@ -1431,18 +1405,19 @@ VECTORCALL bool CollisionResource::traceQuad(vec3f a00, vec3f a01, vec3f a10, ve
   if (!v_bbox3_test_sph_intersect(bbox, vBoundingSphere, v_splat_w(vBoundingSphere)))
     return false;
 
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(CollisionNode::TRACEABLE))
       continue;
     mat44f nodeTm, nodeItm;
     v_mat44_make_from_43cu_unsafe(nodeTm, meshNode->tm.array);
     bbox3f nodeBox;
     v_bbox3_init(nodeBox, nodeTm, v_ldu_bbox3(meshNode->modelBBox));
-    const uint16_t *__restrict cur = meshNode->indices.data();
+    const uint16_t *__restrict cur = meshIndicesBase + meshNode->indicesOfs;
     PREFETCH_DATA(0, cur);
-    const uint16_t *__restrict end = cur + meshNode->indices.size();
-    const Point3_vec4 *__restrict vertices = meshNode->vertices.data();
+    const uint16_t *__restrict end = cur + meshNode->indicesCount;
+    const Point3_vec4 *__restrict vertices = meshVertsBase + meshNode->verticesOfs;
 
     if (!v_bbox3_test_box_intersect(nodeBox, bbox))
       continue;
@@ -1492,15 +1467,16 @@ VECTORCALL bool CollisionResource::traceQuad(vec3f a00, vec3f a01, vec3f a10, ve
 }
 
 template <bool check_bounding>
-DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(const CollisionNode &node,
+DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+  const CollisionNode &node,
   const vec4f &v_local_from, // better to hold it in memory
   const vec4f &v_local_dir,  // it prevents inefficient loop optimizations
   float &in_out_t, vec4f *v_out_norm)
 {
   int resultIdx = -1;
-  const uint16_t *__restrict indices = node.indices.data();
-  const Point3_vec4 *__restrict vertices = node.vertices.data();
-  const uint32_t indicesSize = node.indices.size();
+  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
+  const uint32_t indicesSize = node.indicesCount;
 
   const uint32_t batchSize = 4;
 
@@ -1559,9 +1535,9 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsuleMeshNodeLocalCullCCW(const Co
   const vec4f &v_local_dir, float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const
 {
   bool ret = false;
-  const uint16_t *__restrict indices = node.indices.data();
-  const Point3_vec4 *__restrict vertices = node.vertices.data();
-  const uint32_t indicesSize = node.indices.size();
+  const uint16_t *__restrict indices = meshIndicesBase + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = meshVertsBase + node.verticesOfs;
+  const uint32_t indicesSize = node.indicesCount;
 
   // float bestScore = FLT_MIN;
 
@@ -1599,14 +1575,15 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsuleMeshNodeLocalCullCCW(const Co
 }
 
 template <bool check_bounding>
-DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node,
+DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+  const CollisionNode &node,
   const vec4f &v_local_from, // better to hold it in memory
   const vec4f &v_local_dir,  // it prevents inefficient loop optimizations
   float in_t, bool calc_normal, bool force_no_cull, all_collres_nodes_t &ret_array, all_collres_tri_indices_t &tri_indices)
 {
-  const uint16_t *__restrict indices = node.indices.data();
-  const Point3_vec4 *__restrict vertices = node.vertices.data();
-  const uint32_t indicesSize = node.indices.size();
+  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
+  const uint32_t indicesSize = node.indicesCount;
   bool noCull = force_no_cull || node.checkBehaviorFlags(CollisionNode::SOLID);
 
   const uint32_t batchSize = 4;
@@ -1702,12 +1679,12 @@ DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalAllHits(const Collis
 }
 
 template <bool check_bounding>
-DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec3f &v_local_from,
-  const vec3f &v_local_dir, float in_t)
+DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+  const CollisionNode &node, const vec3f &v_local_from, const vec3f &v_local_dir, float in_t)
 {
-  const uint16_t *__restrict indices = node.indices.data();
-  const Point3_vec4 *__restrict vertices = node.vertices.data();
-  const uint32_t indicesSize = node.indices.size();
+  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
+  const uint32_t indicesSize = node.indicesCount;
 
   const uint32_t batchSize = 4;
 
@@ -1755,9 +1732,9 @@ DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(const Collisio
 DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
   const vec4f &v_local_dir, float in_t, float radius) const
 {
-  const uint16_t *__restrict indices = node.indices.data();
-  const Point3_vec4 *__restrict vertices = node.vertices.data();
-  const uint32_t indicesSize = node.indices.size();
+  const uint16_t *__restrict indices = meshIndicesBase + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = meshVertsBase + node.verticesOfs;
+  const uint32_t indicesSize = node.indicesCount;
 
   for (uint32_t i = 0; DAGOR_LIKELY(i < indicesSize); i += 3)
   {
@@ -1784,11 +1761,12 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const Coll
 int CollisionResource::getNodeIndexByFaceId(int face_id, uint8_t behavior_filter) const
 {
   int facesNum = 0;
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(behavior_filter))
       continue;
-    facesNum += meshNode->indices.size() / 3;
+    facesNum += meshNode->indicesCount / 3;
     if (face_id < facesNum)
       return meshNode->nodeIndex;
   }
@@ -1802,8 +1780,9 @@ bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsTy
   if (!v_test_vec_x_le(v_length3_sq(v_sub(vPos, vBoundingSphere)), v_splat_w(vBoundingSphere)))
     return false;
 
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     // Test only for bbox
     TMatrix itm = meshNode->getInverseTmFlags();
     Point3 localPos = itm * pos;
@@ -1811,29 +1790,40 @@ bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsTy
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = meshNode->nodeIndex;
   }
 
-  for (const CollisionNode *boxNode = boxNodesHead; boxNode; boxNode = boxNode->nextNode)
+  for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
+  {
+    const CollisionNode *boxNode = &allNodesList[bi];
     if (boxNode->modelBBox & pos)
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = boxNode->nodeIndex;
+  }
 
-  for (const CollisionNode *sphNode = sphereNodesHead; sphNode; sphNode = sphNode->nextNode)
+  for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
+  {
+    const CollisionNode *sphNode = &allNodesList[si];
     if (lengthSq(pos - sphNode->boundingSphere.c) <= get_bsphere_r2(sphNode->boundingSphere.r))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = sphNode->nodeIndex;
+  }
 
-  for (const CollisionNode *capNode = capsuleNodesHead; capNode; capNode = capNode->nextNode)
+  for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
+  {
+    const CollisionNode *capNode = &allNodesList[ci];
     if (capsules[capNode->capsuleIndex].isInside(pos))
       ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = capNode->nodeIndex;
+  }
 
   return !intersected_nodes_list.empty();
 }
 
 bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const CollisionNode &node_to_move,
-  const CollisionNode &node_to_check, Point3 &offset)
+  const CollisionNode &node_to_check, Point3 &offset) const
 {
   offset.zero();
 
   G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
     (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
+  const plane3f *checkPlanes = convexPlanes.data() + node_to_check.planesOfs;
+  const int checkPlanesCount = node_to_check.planesCount;
   const int numIterations = 5;
   vec4f vOffset = v_zero();
   if (node_to_move.type == COLLISION_NODE_TYPE_BOX)
@@ -1849,11 +1839,11 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
       bool hasCollision = false;
       for (int i = 0; i < boundPoints.size(); ++i)
       {
-        for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+        for (int j = 0; j < checkPlanesCount; ++j)
         {
-          vec4f dist = v_max(v_plane_dist_x(node_to_check.convexPlanes[j], v_add(boundPoints[i], vOffset)), v_zero());
+          vec4f dist = v_max(v_plane_dist_x(checkPlanes[j], v_add(boundPoints[i], vOffset)), v_zero());
           hasCollision |= (v_test_vec_x_gt(dist, V_C_EPS_VAL) != 0);
-          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), node_to_check.convexPlanes[j]));
+          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), checkPlanes[j]));
         }
       }
       if (!hasCollision)
@@ -1871,11 +1861,11 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
       bool hasCollision = false;
-      for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+      for (int j = 0; j < checkPlanesCount; ++j)
       {
-        vec4f dist = v_max(v_add(v_plane_dist_x(node_to_check.convexPlanes[j], v_add(sph, vOffset)), v_splat_w(sph)), v_zero());
+        vec4f dist = v_max(v_add(v_plane_dist_x(checkPlanes[j], v_add(sph, vOffset)), v_splat_w(sph)), v_zero());
         hasCollision |= (v_test_vec_x_gt(dist, V_C_EPS_VAL) != 0);
-        vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), node_to_check.convexPlanes[j]));
+        vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), checkPlanes[j]));
       }
       if (!hasCollision)
       {
@@ -1890,20 +1880,21 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
     mat44f vFinalTm;
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
     Tab<vec4f> vertices(tmpmem);
-    reserve_and_resize(vertices, node_to_move.vertices.size());
+    reserve_and_resize(vertices, (uint32_t)node_to_move.verticesCount + 1u);
+    const Point3_vec4 *moveVerts = meshVertsBase + node_to_move.verticesOfs;
     for (int i = 0; i < vertices.size(); ++i)
-      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&node_to_move.vertices[i].x));
+      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&moveVerts[i].x));
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
       bool hasCollision = false;
       for (int i = 0; i < vertices.size(); ++i)
       {
         vec4f vert = vertices[i];
-        for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+        for (int j = 0; j < checkPlanesCount; ++j)
         {
-          vec4f dist = v_max(v_plane_dist_x(node_to_check.convexPlanes[j], v_add(vert, vOffset)), v_zero());
+          vec4f dist = v_max(v_plane_dist_x(checkPlanes[j], v_add(vert, vOffset)), v_zero());
           hasCollision |= (v_test_vec_x_gt(dist, V_C_EPS_VAL) != 0);
-          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), node_to_check.convexPlanes[j]));
+          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), checkPlanes[j]));
         }
       }
       if (!hasCollision)
@@ -1920,13 +1911,15 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
 }
 
 bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const CollisionNode &node_to_move,
-  const CollisionNode &node_to_check, const Point3 &axis, Point3 &offset)
+  const CollisionNode &node_to_check, const Point3 &axis, Point3 &offset) const
 {
   offset.zero();
 
   G_ASSERTF(node_to_check.type == COLLISION_NODE_TYPE_CONVEX, "final node #%u is not of convex type, only convex is supported",
     (unsigned)node_to_check.nodeIndex);
   TMatrix finalTm = node_to_check.getInverseTmFlags() * tm1;
+  const plane3f *checkPlanes = convexPlanes.data() + node_to_check.planesOfs;
+  const int checkPlanesCount = node_to_check.planesCount;
   const int numIterations = 5;
   vec4f zero = v_zero();
   vec4f vOffset = v_zero();
@@ -1944,11 +1937,11 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
       bool hasCollision = false;
       for (int i = 0; i < boundPoints.size(); ++i)
       {
-        for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+        for (int j = 0; j < checkPlanesCount; ++j)
         {
-          vec4f dist = v_max(v_plane_dist_x(node_to_check.convexPlanes[j], v_add(boundPoints[i], vOffset)), zero);
+          vec4f dist = v_max(v_plane_dist_x(checkPlanes[j], v_add(boundPoints[i], vOffset)), zero);
           hasCollision |= (v_test_vec_x_gt(dist, V_C_EPS_VAL) != 0);
-          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), node_to_check.convexPlanes[j]));
+          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), checkPlanes[j]));
         }
       }
       if (!hasCollision)
@@ -1968,12 +1961,12 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
       bool allInside = true;
       vec4f separationAxis = zero;
       vec4f minDist = V_C_MAX_VAL;
-      for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+      for (int j = 0; j < checkPlanesCount; ++j)
       {
-        vec4f dist = v_sub(v_plane_dist(node_to_check.convexPlanes[j], v_add(sph, vOffset)), v_splat_w(sph));
-        dist = v_mul(dist, v_abs(v_dot3(node_to_check.convexPlanes[j], axis_v)));
+        vec4f dist = v_sub(v_plane_dist(checkPlanes[j], v_add(sph, vOffset)), v_splat_w(sph));
+        dist = v_mul(dist, v_abs(v_dot3(checkPlanes[j], axis_v)));
         allInside &= (v_test_vec_x_lt(dist, V_C_EPS_VAL) != 0);
-        separationAxis = v_sel(separationAxis, node_to_check.convexPlanes[j], v_cmp_gt(minDist, v_splat_x(dist)));
+        separationAxis = v_sel(separationAxis, checkPlanes[j], v_cmp_gt(minDist, v_splat_x(dist)));
         minDist = v_min(minDist, dist);
       }
       // All points lies inside
@@ -1993,20 +1986,21 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
     mat44f vFinalTm;
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
     Tab<vec4f> vertices(tmpmem);
-    reserve_and_resize(vertices, node_to_move.vertices.size());
+    reserve_and_resize(vertices, (uint32_t)node_to_move.verticesCount + 1u);
+    const Point3_vec4 *moveVerts = meshVertsBase + node_to_move.verticesOfs;
     for (int i = 0; i < vertices.size(); ++i)
-      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&node_to_move.vertices[i].x));
+      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&moveVerts[i].x));
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
       bool hasCollision = false;
       for (int i = 0; i < vertices.size(); ++i)
       {
         vec4f vert = vertices[i];
-        for (int j = 0; j < node_to_check.convexPlanes.size(); ++j)
+        for (int j = 0; j < checkPlanesCount; ++j)
         {
-          vec4f dist = v_max(v_plane_dist_x(node_to_check.convexPlanes[j], v_add(vert, vOffset)), zero);
+          vec4f dist = v_max(v_plane_dist_x(checkPlanes[j], v_add(vert, vOffset)), zero);
           hasCollision |= (v_test_vec_x_gt(dist, V_C_EPS_VAL) != 0);
-          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), node_to_check.convexPlanes[j]));
+          vOffset = v_add(vOffset, v_mul(v_neg(v_splat_x(dist)), checkPlanes[j]));
         }
       }
       if (!hasCollision)
@@ -2023,21 +2017,25 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
   return false;
 }
 
-bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex,
+bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_test, dag::ConstSpan<plane3f> convex,
   const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree, Point3 *res_pos) const
 {
+  const CollisionNode *node_to_test = getNode((uint32_t)test_node_index);
+  if (!node_to_test)
+    return false;
+
   TMatrix testTm;
   if (test_node_tree)
-    getCollisionNodeTm(&node_to_test, tm_test, test_node_tree, testTm);
+    getCollisionNodeTm(node_to_test, tm_test, test_node_tree, testTm);
   else
-    testTm = tm_test * node_to_test.tm;
+    testTm = tm_test * node_to_test->tm;
 
   TMatrix finalTm = inverse(tm_restrain) * testTm;
-  if (node_to_test.type == COLLISION_NODE_TYPE_BOX)
+  if (node_to_test->type == COLLISION_NODE_TYPE_BOX)
   {
     for (int i = 0; i < 8; ++i)
     {
-      Point3_vec4 point = finalTm * node_to_test.modelBBox.point(i);
+      Point3_vec4 point = finalTm * node_to_test->modelBBox.point(i);
       vec4f vert = v_ld(&point.x);
       bool insideAll = true;
       for (int j = 0; j < convex.size() && insideAll; ++j)
@@ -2054,9 +2052,9 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
     }
     return false;
   }
-  else if (node_to_test.type == COLLISION_NODE_TYPE_SPHERE)
+  else if (node_to_test->type == COLLISION_NODE_TYPE_SPHERE)
   {
-    BSphere3 localSph = finalTm * make_node_bsphere(node_to_test.boundingSphere.c, node_to_test.boundingSphere.r);
+    BSphere3 localSph = finalTm * make_node_bsphere(node_to_test->boundingSphere.c, node_to_test->boundingSphere.r);
     vec4f sph = v_ldu(&localSph.c.x);
     bool insideAll = true;
     for (int j = 0; j < convex.size() && insideAll; ++j)
@@ -2068,14 +2066,15 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
       *res_pos = tm_restrain * localSph.c;
     return insideAll;
   }
-  else if (node_to_test.type == COLLISION_NODE_TYPE_MESH)
+  else if (node_to_test->type == COLLISION_NODE_TYPE_MESH)
   {
     mat44f vFinalTm;
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
-    for (int i = 0; i < node_to_test.vertices.size(); ++i)
+    const Point3_vec4 *testVerts = meshVertsBase + node_to_test->verticesOfs;
+    for (uint32_t i = 0, e = (uint32_t)node_to_test->verticesCount + 1u; i < e; ++i)
     {
       bool insideAll = true;
-      vec4f vert = v_mat44_mul_vec3p(vFinalTm, v_ld(&node_to_test.vertices[i].x));
+      vec4f vert = v_mat44_mul_vec3p(vFinalTm, v_ld(&testVerts[i].x));
       for (int j = 0; j < convex.size() && insideAll; ++j)
       {
         vec4f dist = v_plane_dist_x(convex[j], vert);
@@ -2099,18 +2098,26 @@ bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const T
   return false;
 }
 
-bool CollisionResource::testInclusion(const CollisionNode &node_to_test, const TMatrix &tm_test, const CollisionNode &restraining_node,
-  const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree, const GeomNodeTree *restrain_node_tree) const
+bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_test, const CollisionResource *restraining_resource,
+  int restraining_node_index, const TMatrix &tm_restrain, const GeomNodeTree *test_node_tree,
+  const GeomNodeTree *restrain_node_tree) const
 {
-  G_ASSERTF(restraining_node.type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
-    (unsigned)restraining_node.nodeIndex);
+  if (!restraining_resource)
+    return false;
+  const CollisionNode *restraining_node = restraining_resource->getNode((uint32_t)restraining_node_index);
+  if (!restraining_node)
+    return false;
+  G_ASSERTF(restraining_node->type == COLLISION_NODE_TYPE_CONVEX, "restrain node #%u is not of convex type, only convex is supported",
+    (unsigned)restraining_node->nodeIndex);
+
   TMatrix restrainTm;
   if (restrain_node_tree)
-    getCollisionNodeTm(&restraining_node, tm_restrain, restrain_node_tree, restrainTm);
+    restraining_resource->getCollisionNodeTm(restraining_node, tm_restrain, restrain_node_tree, restrainTm);
   else
-    restrainTm = tm_restrain * restraining_node.tm;
+    restrainTm = tm_restrain * restraining_node->tm;
 
-  return testInclusion(node_to_test, tm_test, restraining_node.convexPlanes, restrainTm, test_node_tree);
+  return testInclusion(test_node_index, tm_test, restraining_resource->getNodeConvexPlanes(restraining_node_index), restrainTm,
+    test_node_tree);
 }
 
 DAGOR_NOINLINE bool CollisionResource::rayHit(const mat44f &tm, const Point3 &from, const Point3 &dir, float in_t, int ray_mat_id,
@@ -2223,6 +2230,24 @@ CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
   collRes->relGeomNodeTms = relGeomNodeTms;
   collRes->names = names;
   collRes->capsules = capsules;
+  collRes->convexPlanes = convexPlanes;
+  // If source's mesh data lives in its own dense storage, deep-copy that storage.
+  // Otherwise the data lives somewhere external (FRT or caller-owned span), and we
+  // share the same base pointer; lifetime is the caller's problem.
+  if (meshVertsBase == ownVertices.data())
+  {
+    collRes->ownVertices = ownVertices;
+    collRes->meshVertsBase = collRes->ownVertices.data();
+  }
+  else
+    collRes->meshVertsBase = meshVertsBase;
+  if (meshIndicesBase == ownIndices.data())
+  {
+    collRes->ownIndices = ownIndices;
+    collRes->meshIndicesBase = collRes->ownIndices.data();
+  }
+  else
+    collRes->meshIndicesBase = meshIndicesBase;
 
   collRes->sortNodesList();
   collRes->rebuildNodesLL();
@@ -2277,66 +2302,74 @@ void CollisionResource::sortNodesList()
 }
 void CollisionResource::rebuildNodesLL()
 {
-  meshNodesHead = boxNodesHead = sphereNodesHead = capsuleNodesHead = NULL;
-  numMeshNodes = numBoxNodes = 0;
-  CollisionNode *meshNodesTail = NULL, *boxNodesTail = NULL, *sphereNodesTail = NULL, *capsuleNodesTail = NULL;
+  constexpr uint16_t INVALID = CollisionNode::INVALID_IDX;
+  meshNodesHead = boxNodesHead = sphereNodesHead = capsuleNodesHead = INVALID;
+  numMeshNodes = numBoxNodes = numCapsuleNodes = 0;
+  uint16_t meshNodesTail = INVALID, boxNodesTail = INVALID, sphereNodesTail = INVALID, capsuleNodesTail = INVALID;
   for (size_t nodeNo = 0; nodeNo < allNodesList.size(); nodeNo++)
   {
     CollisionNode &node = allNodesList[nodeNo];
-    node.nextNode = NULL;
+    node.nextNode = INVALID;
 
     node.nodeIndex = nodeNo;
+    const uint16_t idx = (uint16_t)nodeNo;
 
     if (node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX)
     {
-      if (meshNodesHead)
+      if (meshNodesHead != INVALID)
       {
-        G_ASSERT(node.vertices.size() && node.indices.size());
-        meshNodesTail->nextNode = &node;
-        meshNodesTail = &node;
+        // verticesCount uses count-minus-one encoding so 0 stored == 1 actual; gate on
+        // indicesCount instead, which uses raw 0-means-empty semantics.
+        G_ASSERT(node.indicesCount);
+        allNodesList[meshNodesTail].nextNode = idx;
+        meshNodesTail = idx;
       }
       else
-        meshNodesHead = meshNodesTail = &node;
+        meshNodesHead = meshNodesTail = idx;
       ++numMeshNodes;
     }
     else if (node.type == COLLISION_NODE_TYPE_BOX)
     {
-      if (boxNodesHead)
+      if (boxNodesHead != INVALID)
       {
-        boxNodesTail->nextNode = &node;
-        boxNodesTail = &node;
+        allNodesList[boxNodesTail].nextNode = idx;
+        boxNodesTail = idx;
       }
       else
-        boxNodesHead = boxNodesTail = &node;
+        boxNodesHead = boxNodesTail = idx;
       ++numBoxNodes;
     }
     else if (node.type == COLLISION_NODE_TYPE_SPHERE)
     {
-      if (sphereNodesHead)
+      if (sphereNodesHead != INVALID)
       {
-        sphereNodesTail->nextNode = &node;
-        sphereNodesTail = &node;
+        allNodesList[sphereNodesTail].nextNode = idx;
+        sphereNodesTail = idx;
       }
       else
-        sphereNodesHead = sphereNodesTail = &node;
+        sphereNodesHead = sphereNodesTail = idx;
     }
     else if (node.type == COLLISION_NODE_TYPE_CAPSULE)
     {
-      if (capsuleNodesHead)
+      if (capsuleNodesHead != INVALID)
       {
-        capsuleNodesTail->nextNode = &node;
-        capsuleNodesTail = &node;
+        allNodesList[capsuleNodesTail].nextNode = idx;
+        capsuleNodesTail = idx;
       }
       else
-        capsuleNodesHead = capsuleNodesTail = &node;
+        capsuleNodesHead = capsuleNodesTail = idx;
+      ++numCapsuleNodes;
     }
   }
 }
 
 struct ITestIntersectionAlgo
 {
-  virtual bool apply(const CollisionNode *node_a_head, const mat44f &tm_a, const CollisionNode *node_b_head, const mat44f &tm_b,
-    float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes) = 0;
+  // a_head_idx / b_head_idx index into a_all / b_all and address the head of the per-type linked
+  // list; CollisionNode::INVALID_IDX means the list is empty. Walk via allNodesList[i].nextNode.
+  virtual bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
+    dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
+    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 *b_verts_base, const uint16_t *b_idx_base) = 0;
   virtual ~ITestIntersectionAlgo() = 0;
 
   Point3 collisionPointA;
@@ -2354,17 +2387,23 @@ public:
   {}
   ~TestMeshNodeMeshNodesIntersectionAlgo() final = default;
 
-  bool apply(const CollisionNode *node_a_head, const mat44f &tm_a, const CollisionNode *node_b_head, const mat44f &tm_b,
-    float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes)
+  bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
+    dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
+    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 *b_verts_base, const uint16_t *b_idx_base) final
   {
+    aVertsBase = a_verts_base;
+    aIdxBase = a_idx_base;
+    bVertsBase = b_verts_base;
+    bIdxBase = b_idx_base;
     outsideOfBounding.clear();
     reserve_and_resize(outsideOfBounding, a_nodes_count);
     aWtms.clear();
     aWtms.reserve(a_nodes_count);
     aWtms.resize(a_nodes_count);
 
-    for (const CollisionNode *nodeA = node_a_head; nodeA; nodeA = nodeA->nextNode)
+    for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
+      const CollisionNode *nodeA = &a_all[ia];
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       mat44f vWtmA;
@@ -2375,8 +2414,9 @@ public:
       aWtms[nodeA->nodeIndex] = vWtmA;
     }
 
-    for (const CollisionNode *nodeB = node_b_head; nodeB; nodeB = nodeB->nextNode)
+    for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
     {
+      const CollisionNode *nodeB = &b_all[ib];
       if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
 
@@ -2389,8 +2429,9 @@ public:
       v_mat44_inverse43(vIWtmB, vWtmB);
       vec3f sphereCenterNodeB = v_mat44_mul_vec3p(vWtmB, v_ldu(&nodeB->boundingSphere.c.x));
 
-      for (const CollisionNode *nodeA = node_a_head; nodeA; nodeA = nodeA->nextNode)
+      for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
       {
+        const CollisionNode *nodeA = &a_all[ia];
         if (outsideOfBounding[nodeA->nodeIndex])
           continue;
         if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
@@ -2439,26 +2480,30 @@ private:
       BBox3 sbox;
       v_stu_bbox3(sbox, bbox);
       nodeBfaces.clear();
-      nodeBfaces.reserve(node_b->indices.size());
+      nodeBfaces.reserve(node_b->indicesCount);
       b_tracer->getFaces(nodeBfaces, sbox);
     }
 
-    for (uint32_t nodeAIndex = 0u, countA = node_a->indices.size(); nodeAIndex < countA; nodeAIndex += 3u)
+    const uint16_t *aIdx = aIdxBase + node_a->indicesOfs;
+    const Point3_vec4 *aVerts = aVertsBase + node_a->verticesOfs;
+    const uint16_t *bIdx = bIdxBase + node_b->indicesOfs;
+    const Point3_vec4 *bVerts = bVertsBase + node_b->verticesOfs;
+    for (uint32_t nodeAIndex = 0u, countA = node_a->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
     {
-      vec3f a0 = v_ld(&node_a->vertices[node_a->indices[nodeAIndex + 0]].x);
-      vec3f a1 = v_ld(&node_a->vertices[node_a->indices[nodeAIndex + 1]].x);
-      vec3f a2 = v_ld(&node_a->vertices[node_a->indices[nodeAIndex + 2]].x);
+      vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
+      vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
+      vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
       vec3f a0b = v_mat44_mul_vec3p(tm_a_to_b, a0);
       vec3f a1b = v_mat44_mul_vec3p(tm_a_to_b, a1);
       vec3f a2b = v_mat44_mul_vec3p(tm_a_to_b, a2);
 
       if (!b_tracer)
       {
-        for (uint32_t nodeBIndex = 0u, countB = node_b->indices.size(); nodeBIndex < countB; nodeBIndex += 3u)
+        for (uint32_t nodeBIndex = 0u, countB = node_b->indicesCount; nodeBIndex < countB; nodeBIndex += 3u)
         {
-          vec3f b0 = v_ld(&node_b->vertices[node_b->indices[nodeBIndex + 0]].x);
-          vec3f b1 = v_ld(&node_b->vertices[node_b->indices[nodeBIndex + 1]].x);
-          vec3f b2 = v_ld(&node_b->vertices[node_b->indices[nodeBIndex + 2]].x);
+          vec3f b0 = v_ld(&bVerts[bIdx[nodeBIndex + 0]].x);
+          vec3f b1 = v_ld(&bVerts[bIdx[nodeBIndex + 1]].x);
+          vec3f b2 = v_ld(&bVerts[bIdx[nodeBIndex + 2]].x);
 
           if (v_test_triangle_triangle_intersection(a0b, a1b, a2b, b0, b1, b2))
           {
@@ -2504,6 +2549,11 @@ private:
   vec4f b_wbsph; // pos|r
   const tracer_t *b_tracer;
   uint32_t a_nodes_count;
+  // Set on every apply() entry from the (a_verts_base, a_idx_base, b_verts_base, b_idx_base) args.
+  const Point3_vec4 *aVertsBase = nullptr;
+  const uint16_t *aIdxBase = nullptr;
+  const Point3_vec4 *bVertsBase = nullptr;
+  const uint16_t *bIdxBase = nullptr;
   eastl::bitvector<framemem_allocator> outsideOfBounding;
   dag::RelocatableFixedVector<mat44f, 40> aWtms;
   Tab<int> nodeBfaces;
@@ -2516,14 +2566,19 @@ public:
   TestMeshNodeBoxNodesIntersectionAlgo() = default;
   ~TestMeshNodeBoxNodesIntersectionAlgo() final = default;
 
-  bool apply(const CollisionNode *node_a_head, const mat44f &tm_a, const CollisionNode *node_b_head, const mat44f &tm_b,
-    float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes) final
+  bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
+    dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
+    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 * /*b_verts_base*/,
+    const uint16_t * /*b_idx_base*/) final
   {
+    aVertsBase = a_verts_base;
+    aIdxBase = a_idx_base;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
     v_mat44_inverse43(vIWtmB, tm_b);
 
-    for (const CollisionNode *nodeA = node_a_head; nodeA; nodeA = nodeA->nextNode)
+    for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
+      const CollisionNode *nodeA = &a_all[ia];
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       alignas(EA_CACHE_LINE_SIZE) mat44f vWtmA, vIWtmA, tmAtoB, tmBtoA;
@@ -2534,8 +2589,9 @@ public:
       v_mat44_mul43(tmBtoA, vIWtmA, tm_b);
       vec3f sphereCenterNodeA = v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x));
 
-      for (const CollisionNode *nodeB = node_b_head; nodeB; nodeB = nodeB->nextNode)
+      for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
+        const CollisionNode *nodeB = &b_all[ib];
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
         vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
@@ -2548,12 +2604,14 @@ public:
         if (v_bbox3_test_trasformed_box_intersect_rel_tm(bboxA, tmAtoB, bboxB, tmBtoA) == false)
           continue;
 
-        for (size_t nodeAIndex = 0u, countA = nodeA->indices.size(); nodeAIndex < countA; nodeAIndex += 3u)
+        const uint16_t *aIdx = aIdxBase + nodeA->indicesOfs;
+        const Point3_vec4 *aVerts = aVertsBase + nodeA->verticesOfs;
+        for (size_t nodeAIndex = 0u, countA = nodeA->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
         {
           Point3_vec4 a0b, a1b, a2b;
-          vec3f a0 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 0]].x);
-          vec3f a1 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 1]].x);
-          vec3f a2 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 2]].x);
+          vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
+          vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
+          vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
           v_st(&a0b.x, v_mat44_mul_vec3p(tmAtoB, a0));
           v_st(&a1b.x, v_mat44_mul_vec3p(tmAtoB, a1));
           v_st(&a2b.x, v_mat44_mul_vec3p(tmAtoB, a2));
@@ -2571,6 +2629,9 @@ public:
 
     return false;
   }
+
+  const Point3_vec4 *aVertsBase = nullptr;
+  const uint16_t *aIdxBase = nullptr;
 };
 
 class TestBoxNodeBoxNodesIntersectionAlgo final : public ITestIntersectionAlgo
@@ -2579,8 +2640,10 @@ public:
   TestBoxNodeBoxNodesIntersectionAlgo() = default;
   ~TestBoxNodeBoxNodesIntersectionAlgo() final = default;
 
-  bool apply(const CollisionNode *node_a_head, const mat44f &tm_a, const CollisionNode *node_b_head, const mat44f &tm_b,
-    float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes) final
+  bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
+    dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
+    const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/, const Point3_vec4 * /*b_verts_base*/,
+    const uint16_t * /*b_idx_base*/) final
   {
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmA, vIWtmB, tmBToA, tmAToB;
     v_mat44_inverse43(vIWtmA, tm_a);
@@ -2588,13 +2651,15 @@ public:
     v_mat44_mul43(tmBToA, vIWtmA, tm_b);
     v_mat44_mul43(tmAToB, vIWtmB, tm_a);
 
-    for (const CollisionNode *nodeA = node_a_head; nodeA; nodeA = nodeA->nextNode)
+    for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
+      const CollisionNode *nodeA = &a_all[ia];
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       vec3f sphereCenterNodeA = v_mat44_mul_vec3p(tm_a, v_ldu(&nodeA->boundingSphere.c.x));
-      for (const CollisionNode *nodeB = node_b_head; nodeB; nodeB = nodeB->nextNode)
+      for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
+        const CollisionNode *nodeB = &b_all[ib];
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
         vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
@@ -2621,14 +2686,19 @@ public:
   TestMeshNodeSphereNodesIntersectionAlgo() = default;
   ~TestMeshNodeSphereNodesIntersectionAlgo() final = default;
 
-  bool apply(const CollisionNode *node_a_head, const mat44f &tm_a, const CollisionNode *node_b_head, const mat44f &tm_b,
-    float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes) final
+  bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
+    dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
+    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 * /*b_verts_base*/,
+    const uint16_t * /*b_idx_base*/) final
   {
+    aVertsBase = a_verts_base;
+    aIdxBase = a_idx_base;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
     v_mat44_inverse43(vIWtmB, tm_b);
 
-    for (const CollisionNode *nodeA = node_a_head; nodeA; nodeA = nodeA->nextNode)
+    for (uint16_t ia = a_head_idx; ia != CollisionNode::INVALID_IDX; ia = a_all[ia].nextNode)
     {
+      const CollisionNode *nodeA = &a_all[ia];
       if (checkOnlyPhysNodes && !nodeA->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
         continue;
       alignas(EA_CACHE_LINE_SIZE) mat44f vWtmA, tmAToB;
@@ -2637,8 +2707,9 @@ public:
       v_mat44_mul43(tmAToB, vIWtmB, vWtmA);
 
       vec3f sphereCenterNodeA = v_mat44_mul_vec3p(vWtmA, v_ldu(&nodeA->boundingSphere.c.x));
-      for (const CollisionNode *nodeB = node_b_head; nodeB; nodeB = nodeB->nextNode)
+      for (uint16_t ib = b_head_idx; ib != CollisionNode::INVALID_IDX; ib = b_all[ib].nextNode)
       {
+        const CollisionNode *nodeB = &b_all[ib];
         if (checkOnlyPhysNodes && !nodeB->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
           continue;
         vec3f sphereCenterNodeB = v_mat44_mul_vec3p(tm_b, v_ldu(&nodeB->boundingSphere.c.x));
@@ -2646,11 +2717,13 @@ public:
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
-        for (size_t nodeAIndex = 0u, countA = nodeA->indices.size(); nodeAIndex < countA; nodeAIndex += 3u)
+        const uint16_t *aIdx = aIdxBase + nodeA->indicesOfs;
+        const Point3_vec4 *aVerts = aVertsBase + nodeA->verticesOfs;
+        for (size_t nodeAIndex = 0u, countA = nodeA->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
         {
-          vec3f a0 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 0]].x);
-          vec3f a1 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 1]].x);
-          vec3f a2 = v_ld(&nodeA->vertices[nodeA->indices[nodeAIndex + 2]].x);
+          vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
+          vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
+          vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
           vec3f a0b = v_mat44_mul_vec3p(tmAToB, a0);
           vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
           vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
@@ -2669,6 +2742,9 @@ public:
 
     return false;
   }
+
+  const Point3_vec4 *aVertsBase = nullptr;
+  const uint16_t *aIdxBase = nullptr;
 };
 
 bool CollisionResource::testIntersection(const CollisionResource *res_a, const TMatrix &tm_a, const CollisionResource *res_b,
@@ -2702,29 +2778,31 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
   arrIntersectionCall[COLLISION_NODE_TYPE_MESH][COLLISION_NODE_TYPE_SPHERE] = &testMeshNodeSphereNodesIntersectionAlgo;
   arrIntersectionCall[COLLISION_NODE_TYPE_BOX][COLLISION_NODE_TYPE_BOX] = &testBoxNodeBoxNodesIntersectionAlgo;
 
+  dag::ConstSpan<CollisionNode> aAll = res_a->getAllNodes();
+  dag::ConstSpan<CollisionNode> bAll = res_b->getAllNodes();
   for (int nodeTypeIxA = COLLISION_NODE_TYPE_MESH; nodeTypeIxA < COLLISION_NODE_TYPE_CAPSULE; nodeTypeIxA++)
   {
-    if (res_a->nodeLists[nodeTypeIxA] == nullptr)
+    if (res_a->nodeLists[nodeTypeIxA] == CollisionNode::INVALID_IDX)
       continue;
 
     for (int nodeTypeIxB = COLLISION_NODE_TYPE_MESH; nodeTypeIxB < COLLISION_NODE_TYPE_CAPSULE; nodeTypeIxB++)
     {
-      if (res_b->nodeLists[nodeTypeIxB] == nullptr)
+      if (res_b->nodeLists[nodeTypeIxB] == CollisionNode::INVALID_IDX)
         continue;
 
       bool result = false;
       if (ITestIntersectionAlgo *testAB = arrIntersectionCall[nodeTypeIxA][nodeTypeIxB])
       {
-        result = testAB->apply(res_a->nodeLists[nodeTypeIxA], vTmA, res_b->nodeLists[nodeTypeIxB], vTmB, maxScaleA, maxScaleB,
-          checkOnlyPhysNodes);
+        result = testAB->apply(res_a->nodeLists[nodeTypeIxA], aAll, vTmA, res_b->nodeLists[nodeTypeIxB], bAll, vTmB, maxScaleA,
+          maxScaleB, checkOnlyPhysNodes, res_a->meshVertsBase, res_a->meshIndicesBase, res_b->meshVertsBase, res_b->meshIndicesBase);
 
         collisionPointA = testAB->collisionPointA;
         collisionPointB = testAB->collisionPointB;
       }
       else if (ITestIntersectionAlgo *testBA = arrIntersectionCall[nodeTypeIxB][nodeTypeIxA])
       {
-        result = testBA->apply(res_b->nodeLists[nodeTypeIxB], vTmB, res_a->nodeLists[nodeTypeIxA], vTmA, maxScaleB, maxScaleA,
-          checkOnlyPhysNodes);
+        result = testBA->apply(res_b->nodeLists[nodeTypeIxB], bAll, vTmB, res_a->nodeLists[nodeTypeIxA], aAll, vTmA, maxScaleB,
+          maxScaleA, checkOnlyPhysNodes, res_b->meshVertsBase, res_b->meshIndicesBase, res_a->meshVertsBase, res_a->meshIndicesBase);
 
         collisionPointB = testBA->collisionPointA;
         collisionPointA = testBA->collisionPointB;
@@ -2765,8 +2843,13 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 #define _INC(x)
 #endif
 
-  for (const CollisionNode *node1 = res1->meshNodesHead; node1; node1 = node1->nextNode)
+  const Point3_vec4 *res1Verts = res1->meshVertsBase;
+  const uint16_t *res1Idx = res1->meshIndicesBase;
+  const Point3_vec4 *res2Verts = res2->meshVertsBase;
+  const uint16_t *res2Idx = res2->meshIndicesBase;
+  for (uint16_t mi1 = res1->meshNodesHead; mi1 != CollisionNode::INVALID_IDX; mi1 = res1->allNodesList[mi1].nextNode)
   {
+    const CollisionNode *node1 = &res1->allNodesList[mi1];
     if (filter1 && !filter1(node1->nodeIndex))
       continue;
 
@@ -2774,9 +2857,12 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
     TMatrix invTm1, tm1ToWorld;
     bool invTm1ready = false;
     mem_set_0(boxOutside);
+    const Point3_vec4 *node1Verts = res1Verts + node1->verticesOfs;
+    const uint16_t *node1Idx = res1Idx + node1->indicesOfs;
 
-    for (const CollisionNode *node2 = res2->meshNodesHead; node2; node2 = node2->nextNode)
+    for (uint16_t mi2 = res2->meshNodesHead; mi2 != CollisionNode::INVALID_IDX; mi2 = res2->allNodesList[mi2].nextNode)
     {
+      const CollisionNode *node2 = &res2->allNodesList[mi2];
       _INC(numNodesDebug);
 
       if (filter2 && !filter2(node2->nodeIndex))
@@ -2811,18 +2897,20 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 
           if (!res2->gridForTraceable.tracer)
           {
-            for (size_t index1 = 0; index1 < node1->indices.size(); index1 += 3)
+            const Point3_vec4 *node2Verts = res2Verts + node2->verticesOfs;
+            const uint16_t *node2Idx = res2Idx + node2->indicesOfs;
+            for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
             {
-              Point3 v1_0 = node1->vertices[node1->indices[index1 + 0]];
-              Point3 v1_1 = node1->vertices[node1->indices[index1 + 1]];
-              Point3 v1_2 = node1->vertices[node1->indices[index1 + 2]];
-              for (size_t index2 = 0; index2 < node2->indices.size(); index2 += 3)
+              Point3 v1_0 = node1Verts[node1Idx[index1 + 0]];
+              Point3 v1_1 = node1Verts[node1Idx[index1 + 1]];
+              Point3 v1_2 = node1Verts[node1Idx[index1 + 2]];
+              for (size_t index2 = 0; index2 < node2->indicesCount; index2 += 3)
               {
                 _INC(numTrianglesDebug);
 
-                const Point3 &v2_0 = node2->vertices[node2->indices[index2 + 0]];
-                const Point3 &v2_1 = node2->vertices[node2->indices[index2 + 1]];
-                const Point3 &v2_2 = node2->vertices[node2->indices[index2 + 2]];
+                const Point3 &v2_0 = node2Verts[node2Idx[index2 + 0]];
+                const Point3 &v2_1 = node2Verts[node2Idx[index2 + 1]];
+                const Point3 &v2_2 = node2Verts[node2Idx[index2 + 2]];
                 bool isIntersected =
                   test_triangle_triangle_intersection_mueller(v1_0, v1_1, v1_2, tm2to1 * v2_0, tm2to1 * v2_1, tm2to1 * v2_2);
 
@@ -2852,11 +2940,11 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
             faces.clear();
             if (res2->gridForTraceable.tracer->getFaces(faces, tm1to2 * node1->modelBBox))
             {
-              for (size_t index1 = 0; index1 < node1->indices.size(); index1 += 3)
+              for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
               {
-                Point3 v1_0 = node1->vertices[node1->indices[index1 + 0]];
-                Point3 v1_1 = node1->vertices[node1->indices[index1 + 1]];
-                Point3 v1_2 = node1->vertices[node1->indices[index1 + 2]];
+                Point3 v1_0 = node1Verts[node1Idx[index1 + 0]];
+                Point3 v1_1 = node1Verts[node1Idx[index1 + 1]];
+                Point3 v1_2 = node1Verts[node1Idx[index1 + 2]];
                 for (size_t index2 = 0; index2 < faces.size(); index2++)
                 {
                   _INC(numTrianglesDebug);
@@ -2901,8 +2989,9 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
     TMatrix tm1to2;
     bool tm1to2ready = false;
 
-    for (const CollisionNode *node2 = res2->boxNodesHead; node2; node2 = node2->nextNode)
+    for (uint16_t bi2 = res2->boxNodesHead; bi2 != CollisionNode::INVALID_IDX; bi2 = res2->allNodesList[bi2].nextNode)
     {
+      const CollisionNode *node2 = &res2->allNodesList[bi2];
       Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
 
       float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
@@ -2916,17 +3005,15 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
             tm1to2ready = true;
           }
 
-          for (size_t index1 = 0; index1 < node1->indices.size(); index1 += 3)
+          for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
           {
-            bool isIntersected = test_triangle_box_intersection(tm1to2 * node1->vertices[node1->indices[index1]],
-              tm1to2 * node1->vertices[node1->indices[index1 + 1]], tm1to2 * node1->vertices[node1->indices[index1 + 2]],
-              node2->modelBBox);
+            bool isIntersected = test_triangle_box_intersection(tm1to2 * node1Verts[node1Idx[index1]],
+              tm1to2 * node1Verts[node1Idx[index1 + 1]], tm1to2 * node1Verts[node1Idx[index1 + 2]], node2->modelBBox);
 
             if (isIntersected)
             {
               collisionPoint1 = node1->tm *
-                                (node1->vertices[node1->indices[index1]] + node1->vertices[node1->indices[index1 + 1]] +
-                                  node1->vertices[node1->indices[index1 + 2]]) *
+                                (node1Verts[node1Idx[index1]] + node1Verts[node1Idx[index1 + 1]] + node1Verts[node1Idx[index1 + 2]]) *
                                 0.333333f;
 
               collisionPoint2 = node2->boundingSphere.c;
@@ -2949,8 +3036,9 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       }
     }
 
-    for (const CollisionNode *node2 = res2->sphereNodesHead; node2; node2 = node2->nextNode)
+    for (uint16_t si2 = res2->sphereNodesHead; si2 != CollisionNode::INVALID_IDX; si2 = res2->allNodesList[si2].nextNode)
     {
+      const CollisionNode *node2 = &res2->allNodesList[si2];
       Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
 
       float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
@@ -2962,17 +3050,16 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
           tm1to2ready = true;
         }
 
-        for (size_t index1 = 0; index1 < node1->indices.size(); index1 += 3)
+        for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
         {
-          bool isIntersected = test_triangle_sphere_intersection(tm1to2 * node1->vertices[node1->indices[index1]],
-            tm1to2 * node1->vertices[node1->indices[index1 + 1]], tm1to2 * node1->vertices[node1->indices[index1 + 2]],
-            make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r));
+          bool isIntersected =
+            test_triangle_sphere_intersection(tm1to2 * node1Verts[node1Idx[index1]], tm1to2 * node1Verts[node1Idx[index1 + 1]],
+              tm1to2 * node1Verts[node1Idx[index1 + 2]], make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r));
 
           if (isIntersected)
           {
             collisionPoint1 = node1->tm *
-                              (node1->vertices[node1->indices[index1]] + node1->vertices[node1->indices[index1 + 1]] +
-                                node1->vertices[node1->indices[index1 + 2]]) *
+                              (node1Verts[node1Idx[index1]] + node1Verts[node1Idx[index1 + 1]] + node1Verts[node1Idx[index1 + 2]]) *
                               0.333333f;
 
             collisionPoint2 = node2->boundingSphere.c;
@@ -3078,7 +3165,7 @@ void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, 
 }
 
 bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm,
-  Point3 &out_norm, float &out_depth)
+  Point3 &out_norm, float &out_depth) const
 {
   TMatrix itm = inverse(node->tm);
 
@@ -3086,10 +3173,10 @@ bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, co
   if (!(node->modelBBox & localSphere))
     return false;
 
-  const uint16_t *__restrict cur = node->indices.data();
+  const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
   PREFETCH_DATA(0, cur);
-  const uint16_t *__restrict end = cur + node->indices.size();
-  const Point3_vec4 *__restrict vertices = node->vertices.data();
+  const uint16_t *__restrict end = cur + node->indicesCount;
+  const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
   const Point3 localDirNorm = itm % dir_norm;
 
   PREFETCH_DATA(128, cur);
@@ -3115,7 +3202,8 @@ bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, co
   return false;
 }
 
-bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius, const CollisionNode *node)
+bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const Point3 &p1, float radius,
+  const CollisionNode *node) const
 {
   TMatrix itm = inverse(node->tm);
   Point3 localCylinderPoint0 = itm * p0;
@@ -3133,10 +3221,10 @@ bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const P
   BSphere3 localSphere0(localCylinderPoint0, radius);
   BSphere3 localSphere1(localCylinderPoint1, radius);
 
-  const uint16_t *__restrict cur = node->indices.data();
+  const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
   PREFETCH_DATA(0, cur);
-  const uint16_t *__restrict end = cur + node->indices.size();
-  const Point3_vec4 *__restrict vertices = node->vertices.data();
+  const uint16_t *__restrict end = cur + node->indicesCount;
+  const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
 
   PREFETCH_DATA(128, cur);
   while (cur < end)
@@ -3165,15 +3253,11 @@ int CollisionResource::getMemoryUsed() const
     return t ? t->getVertsCount() * 16 + t->getFacesCount() * 6 + t->getFaceIndicesCount() * 2 + (int)sizeof(*t) : 0;
   };
   int mem = sizeof(*this);
-  for (auto &n : allNodesList)
-  {
-    if (!(n.flags & CollisionNode::FLAG_VERTICES_ARE_REFS))
-      mem += n.vertices.size() * sizeof(Point3_vec4);
-    if (!(n.flags & CollisionNode::FLAG_INDICES_ARE_REFS))
-      mem += n.indices.size() * sizeof(uint16_t);
-  }
+  mem += (int)(ownVertices.size() * sizeof(Point3_vec4));
+  mem += (int)(ownIndices.size() * sizeof(uint16_t));
   mem += (int)names.size();
   mem += capsules.size() * sizeof(Capsule);
+  mem += convexPlanes.size() * sizeof(plane3f);
   mem += frtMem(gridForTraceable) + frtMem(gridForCollidable);
   return mem;
 }
@@ -3221,11 +3305,12 @@ dag::Vector<DegenerativeNodeData> CollisionResource::getDegenerativeNodes(const 
 bool CollisionResource::validateVerticesForJolt(const char *res_name, auto &&on_degenerate)
 {
   bool passed = true;
-  for (const CollisionNode *node = meshNodesHead; node; node = node->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
-    const uint16_t *__restrict cur = node->indices.data();
-    const uint16_t *__restrict end = cur + node->indices.size();
-    const Point3_vec4 *__restrict vertices = node->vertices.data();
+    const CollisionNode *node = &allNodesList[mi];
+    const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
+    const uint16_t *__restrict end = cur + node->indicesCount;
+    const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
     const int packedBits = 21;
     bbox3f bb = v_ldu_bbox3(node->modelBBox);
     vec3f scale = v_div(v_bbox3_size(bb), v_splats((1 << packedBits) - 1));
@@ -3286,10 +3371,11 @@ bool CollisionResource::getGridSize(uint8_t behavior_filter, IPoint3 &width, Poi
 int CollisionResource::getTrianglesCount(uint8_t behavior_filter) const
 {
   unsigned count = 0;
-  for (const CollisionNode *meshNode = meshNodesHead; meshNode; meshNode = meshNode->nextNode)
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
+    const CollisionNode *meshNode = &allNodesList[mi];
     if (meshNode->checkBehaviorFlags(behavior_filter))
-      count += meshNode->indices.size();
+      count += meshNode->indicesCount;
   }
   return count / 3;
 }

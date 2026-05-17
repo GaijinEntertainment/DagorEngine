@@ -20,7 +20,7 @@ void Module_dasIMGUI::initFunctions_5() {
 // from imgui/imgui.h:545:29
 	makeExtern< void (*)(int) , ImGui::PopStyleVar , SimNode_ExtFuncCall , imguiTempFn>(lib,"PopStyleVar","ImGui::PopStyleVar")
 		->args({"count"})
-		->arg_init(0,make_smart<ExprConstInt>(1))
+		->arg_init(0,new ExprConstInt(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:546:29
 	makeExtern< void (*)(int,bool) , ImGui::PushItemFlag , SimNode_ExtFuncCall , imguiTempFn>(lib,"PushItemFlag","ImGui::PushItemFlag")
@@ -47,7 +47,7 @@ void Module_dasIMGUI::initFunctions_5() {
 // from imgui/imgui.h:554:29
 	makeExtern< void (*)(float) , ImGui::PushTextWrapPos , SimNode_ExtFuncCall , imguiTempFn>(lib,"PushTextWrapPos","ImGui::PushTextWrapPos")
 		->args({"wrap_local_pos_x"})
-		->arg_init(0,make_smart<ExprConstFloat>(0))
+		->arg_init(0,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:555:29
 	makeExtern< void (*)() , ImGui::PopTextWrapPos , SimNode_ExtFuncCall , imguiTempFn>(lib,"PopTextWrapPos","ImGui::PopTextWrapPos")
@@ -59,7 +59,7 @@ void Module_dasIMGUI::initFunctions_5() {
 	makeExtern< unsigned int (*)(int,float) , ImGui::GetColorU32 , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetColorU32","ImGui::GetColorU32")
 		->args({"idx","alpha_mul"})
 		->arg_type(0,makeType<ImGuiCol_>(lib))
-		->arg_init(1,make_smart<ExprConstFloat>(1))
+		->arg_init(1,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:561:29
 	makeExtern< unsigned int (*)(const ImVec4 &) , ImGui::GetColorU32 , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetColorU32","ImGui::GetColorU32")
@@ -68,7 +68,7 @@ void Module_dasIMGUI::initFunctions_5() {
 // from imgui/imgui.h:562:29
 	makeExtern< unsigned int (*)(unsigned int,float) , ImGui::GetColorU32 , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetColorU32","ImGui::GetColorU32")
 		->args({"col","alpha_mul"})
-		->arg_init(1,make_smart<ExprConstFloat>(1))
+		->arg_init(1,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:563:29
 	makeExtern< const ImVec4 & (*)(int) , ImGui::GetStyleColorVec4 , SimNode_ExtFuncCallRef , imguiTempFn>(lib,"GetStyleColorVec4","ImGui::GetStyleColorVec4")

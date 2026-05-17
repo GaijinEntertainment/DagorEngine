@@ -43,6 +43,7 @@ public:
   BBox3 *getGrassBbox() override;
 
   bool isGrassEnabled() const override;
+  bool isGrassValid() const override;
   int getTypeCount() const override;
   GPUGrassType &getType(int index) override;
   GPUGrassType &addType(const char *name) override;

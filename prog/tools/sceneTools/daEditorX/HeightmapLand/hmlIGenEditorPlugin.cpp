@@ -1952,7 +1952,7 @@ void HmapLandPlugin::buildAndWritePhysMap(BinDumpSaveCB &cwr)
       {
         DAEDITOR3.conError("Unsupported texture '%s' used in decal for PhysMap, only tga's or tiff's supported",
           textureNames.getName(i));
-        if (fname)
+        if (!fname.empty())
           DAEDITOR3.conError("Texture was tried to be loaded from '%s'", fname);
       }
       cwr_pm.write32ex(bitmap.data(), data_size(bitmap));
@@ -3715,18 +3715,12 @@ void HmapLandPlugin::exportLoftMasks(const char *_out_folder, int main_hmap_sz, 
       : String(0, "Exported %d loft masks (stage:i=2) to\n  %s", layers_exported, _out_folder));
 }
 
-void HmapLandPlugin::exportHeightmap()
+void HmapLandPlugin::exportHeightmap(bool export_detailed)
 {
-  int export_det_hmap = 0;
-  if (detDivisor)
-    switch (wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Select heightmap to export",
-      "Level contains both main and detailed heightmap\n"
-      "Select YES to export MAIN heightmap, or NO to export DETAILED heightmap"))
-    {
-      case wingw::MB_ID_YES: export_det_hmap = 0; break;
-      case wingw::MB_ID_NO: export_det_hmap = 1; break;
-      default: return;
-    }
+  if (export_detailed && !detDivisor)
+    return;
+
+  const int export_det_hmap = export_detailed ? 1 : 0;
 
   String path = wingw::file_save_dlg(NULL, "Export heightmap",
     "TIFF 16-bit files (*.tif)|*.tif;*.tiff|"
@@ -3795,6 +3789,76 @@ void HmapLandPlugin::exportHeightmap()
 
       exportHeightmap(path, minHeight, heightRange, export_det_hmap);
     }
+  }
+}
+
+
+void HmapLandPlugin::exportWaterHeightmap(bool export_detailed)
+{
+  static real lastWaterMinHeight[2] = {MAX_REAL, MAX_REAL};
+  static real lastWaterHeightRange[2] = {MAX_REAL, MAX_REAL};
+
+  if (export_detailed)
+  {
+    if (waterHeightmapDet.getMapSizeX() <= 0 || waterHeightmapDet.getMapSizeY() <= 0)
+      return;
+  }
+  else
+  {
+    if (waterHeightmapMain.getMapSizeX() <= 0 || waterHeightmapMain.getMapSizeY() <= 0)
+      return;
+  }
+
+  String path = wingw::file_save_dlg(NULL, "Export water heightmap",
+    "TIFF 16-bit files (*.tif)|*.tif;*.tiff|"
+    "Raw 32f (*.r32)|*.r32|Raw 16 (*.r16)|*.r16|Photoshop Raw 16 (*.raw)|*.raw|"
+    "Raw 32f with header (*.height)|*.height|TGA files (*.tga)|*.tga|All files (*.*)|*.*",
+    "r32", lastWaterHeightmapExportPath);
+
+  if (path.empty())
+    return;
+
+  lastWaterHeightmapExportPath = path;
+
+  const int heightIndex = export_detailed ? 1 : 0;
+  real minHeight = lastWaterMinHeight[heightIndex];
+  real heightRange = lastWaterHeightRange[heightIndex];
+  bool doExport = true;
+
+  const char *ext = dd_get_fname_ext(path);
+  if (!ext)
+  {
+    path += ".r16";
+    ext = dd_get_fname_ext(path);
+  }
+
+  if (stricmp(ext, ".r32") != 0 && stricmp(ext, ".height") != 0)
+  {
+    HeightMapStorage &heightMapStorage = export_detailed ? waterHeightmapDet : waterHeightmapMain;
+    const MapStorage<float> &mapStorage = heightMapStorage.getFinalMap();
+    const int x0 = mapStorage.getStoredOfsX();
+    const int y0 = mapStorage.getStoredOfsY();
+    const int x1 = mapStorage.getStoredOfsX() + mapStorage.getStoredWidth();
+    const int y1 = mapStorage.getStoredOfsY() + mapStorage.getStoredHeight();
+    const real minHeightHm = heightMapStorage.heightOffset;
+    const real heightRangeHm = heightMapStorage.heightScale;
+
+    if (minHeight == MAX_REAL || heightRange == MAX_REAL) //-V1051
+    {
+      minHeight = minHeightHm;
+      heightRange = heightRangeHm;
+    }
+
+    HmapExportSizeDlg dlg(minHeight, heightRange, minHeightHm, heightRangeHm);
+    doExport = dlg.execute();
+  }
+
+  if (doExport)
+  {
+    lastWaterMinHeight[heightIndex] = minHeight;
+    lastWaterHeightRange[heightIndex] = heightRange;
+
+    exportWaterHeightmap(path, minHeight, heightRange, export_detailed);
   }
 }
 
@@ -4764,6 +4828,7 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   lastLandExportPath = local_data.getStr("lastLandExportPath", lastLandExportPath);
   lastHmapExportPath = local_data.getStr("lastHmapExportPath", lastHmapExportPath);
   lastColormapExportPath = local_data.getStr("lastColormapExportPath", lastColormapExportPath);
+  lastWaterHeightmapExportPath = local_data.getStr("lastWaterHeightmapExportPath", lastWaterHeightmapExportPath);
   lastTexImportPath = local_data.getStr("lastTexImportPath", lastTexImportPath);
   objEd.autoUpdateSpline = local_data.getBool("autoUpdateSpline", true);
   objEd.maxPointVisDist = local_data.getReal("maxPointVisDist", 5000.0);
@@ -5104,12 +5169,28 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
       int h = blk.getInt(plugin_h_key, 0);
       if (w <= 0 || h <= 0)
       {
-        String legacyBlkPath(DAGORED2->getPluginFilePath(this, String(0, "%s/%s.blk", legacy_dir, legacy_dir)));
+        // Pre-refactor projects had no plugin.blk dim keys; fall back to the
+        // legacy paged sidecar's w/h. But also require at least one .dat
+        // submap page in the legacy dir before honoring those dims: some
+        // levels (e.g. hasWaterSurface=no) carry an orphan sidecar with
+        // w=h=4096 and zero pages, and read_legacy_paged_into_stored will
+        // happily "open" that as a default-zero buffer. Without this guard,
+        // first save then materializes a fake water heightmap (writes the
+        // dim keys to plugin.blk and emits an empty .r32.zst), changing the
+        // on-disk shape of a level that originally had no main water hmap.
+        String legacyDirPath(DAGORED2->getPluginFilePath(this, String(0, "%s/", legacy_dir)));
+        String legacyBlkPath(0, "%s%s.blk", legacyDirPath.c_str(), legacy_dir);
         DataBlock legacyBlk;
         if (legacyBlk.load(legacyBlkPath))
         {
-          w = legacyBlk.getInt("w", 0);
-          h = legacyBlk.getInt("h", 0);
+          String datMask(0, "%s*.dat", legacyDirPath.c_str());
+          dd_find_iterator datIter(datMask, DA_FILE);
+          bool hasDatPage = (datIter.begin() != datIter.end());
+          if (hasDatPage)
+          {
+            w = legacyBlk.getInt("w", 0);
+            h = legacyBlk.getInt("h", 0);
+          }
         }
       }
       if (w <= 0 || h <= 0)
@@ -5139,6 +5220,13 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
     loadLevelSettingsBlk(levelBlk); // load it here to setup per-location rendinst::tmInst12x32bit in riGen service
 
   loadGenLayers(*blk.getBlockByNameEx("genLayers"));
+  load_typed_vars(typedVars, *blk.getBlockByNameEx("landVars"));
+  // loadGenLayers already triggered a recompile, but typedVars were still empty
+  // at that point, so curve()/typed-var refs in any expression would have failed
+  // to resolve. Recompile once more now that landVars is populated; otherwise the
+  // freshly loaded typed vars stay absent from varMap / typedVarRuntime / evalCurves
+  // until the artist edits the panel.
+  recompileGenLayerExpressions();
 
   const DataBlock *grassBlock = blk.getBlockByNameEx("grassLayers", NULL);
   if (grassBlock)
@@ -5361,6 +5449,19 @@ void HmapLandPlugin::beforeMainLoop()
 
   rebuildLandmeshPhysMap();
   LandscapeEntityObject::rePlaceAllEntitiesOverRI(objEd);
+
+  // Force a second loft regen pass now that the heightmap collider is fully
+  // active. The eager regen in loadObjects ran before applyHmModifiers /
+  // landMeshMap / physmap finalization, so any loft whose shape uses
+  // ground-projecting attributes (TYPE_REL_TO_GND, TYPE_GROUP_REL_TO_GND,
+  // TYPE_MOVE_TO_MIN, TYPE_MOVE_TO_MAX) silently no-op'd its EDITORCORE->traceRay
+  // call inside SplineClassAssetMgr::createLoftMesh and the projected verts
+  // stayed at spline.y. Marking each spline dirty here lets the staged update
+  // dispatcher rebuild the lofts on the next tick against the now-ready
+  // collider, matching what happens today after any user-triggered regen.
+  for (int i = 0; i < objEd.splinesCount(); ++i)
+    if (SplineObject *s = objEd.getSpline(i))
+      s->pointChanged(-1);
 }
 
 
@@ -5900,6 +6001,7 @@ void HmapLandPlugin::autoSaveObjects(DataBlock &local_data)
   ST_LOCAL_VAR(lastLandExportPath, Str);
   ST_LOCAL_VAR(lastHmapExportPath, Str);
   ST_LOCAL_VAR(lastColormapExportPath, Str);
+  ST_LOCAL_VAR(lastWaterHeightmapExportPath, Str);
   ST_LOCAL_VAR(lastTexImportPath, Str);
 
   local_data.setBool("autoUpdateSpline", objEd.autoUpdateSpline);
@@ -5984,6 +6086,7 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
   local_data.setStr("lastLandExportPath", lastLandExportPath);
   local_data.setStr("lastHmapExportPath", lastHmapExportPath);
   local_data.setStr("lastColormapExportPath", lastColormapExportPath);
+  local_data.setStr("lastWaterHeightmapExportPath", lastWaterHeightmapExportPath);
   local_data.setStr("lastTexImportPath", lastTexImportPath);
   local_data.setBool("autoUpdateSpline", objEd.autoUpdateSpline);
   local_data.setReal("maxPointVisDist", objEd.maxPointVisDist);
@@ -6289,8 +6392,16 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
 
   DataBlock *b = blk.addBlock("genLayers");
   saveGenLayers(*b);
-  if (!b->blockCount())
+  // genLayers carries both per-layer sub-blocks AND the optional `commonExpr` param,
+  // so the "empty" check must look at params too -- a project with only a common
+  // expression and no layers would otherwise save and lose that expression.
+  if (!b->blockCount() && !b->paramCount())
     blk.removeBlock("genLayers");
+
+  DataBlock *lv = blk.addBlock("landVars");
+  save_typed_vars(typedVars, *lv);
+  if (!lv->blockCount())
+    blk.removeBlock("landVars");
 
 
   DataBlock *grassLayersBlk = blk.addBlock("grassLayers");
@@ -6303,7 +6414,7 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
     {
       if (!dd_file_exists(levelBlkFName))
         wingw::message_box(wingw::MBS_EXCL, "Error", "Level blk is not valid: %s", levelBlkFName.c_str());
-      else if (!gpuGrassPanel.isGrassValid())
+      else if (!gpuGrassService->isGrassValid())
         wingw::message_box(wingw::MBS_EXCL, "Error", "Grass properties are not valid and will not be saved");
       else
       {
@@ -6474,6 +6585,15 @@ void HmapLandPlugin::clearObjects()
   waterMask.resize(0, 0);
   syncLight = false;
   objEd.clearToDefaultState();
+
+  // The recreate_plugin branch above runs the destructor + placement-new and
+  // therefore re-initialises typedVars, but the first clearObjects() call
+  // hits this path (recreate_plugin starts as false), so typed vars from the
+  // previous project would otherwise leak into the new one. The parallel
+  // typedVarRuntime array (added in the next milestone) is rebuilt by
+  // recompileGenLayerExpressions on the next reload, so it does not need an
+  // explicit clear here.
+  typedVars.clear();
 
   DataBlock app_blk;
   if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))

@@ -23,6 +23,14 @@
 #include <rendInst/packedMultidrawParams.hlsli>
 #include <shaders/dag_shaderVarsUtils.h>
 #include <math/integer/dag_IPoint3.h>
+#include <util/dag_parallelForInline.h>
+#include <util/dag_convar.h>
+#include <osApiWrappers/dag_miscApi.h>
+
+extern ConVarB parallel_lod_add_enabled;
+extern ConVarB parallel_lod_add_main_thread_only;
+extern ConVarI parallel_lod_add_min_pool_count;
+extern ConVarI parallel_lod_add_small_lod_merge_threshold;
 
 template <class>
 class DynVariantsCache;
@@ -61,6 +69,22 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
   ska::flat_hash_map<shaders::ConstStateIdx, uint16_t, eastl::hash<shaders::ConstStateIdx>, eastl::equal_to<shaders::ConstStateIdx>,
     Alloc>
     bindlessStatesToUpdateTexLevels;
+
+  struct LodBucket
+  {
+    // NOT framemem, as it is processed in worker threads, then retrieved in the main thread
+    dag::Vector<RIExRenderRecord> list;
+    dag::Vector<RIExRenderRecord> multidraw;
+    int totalCount = 0;
+    int acceptedCount = 0;
+    void reset()
+    {
+      list.clear();
+      multidraw.clear();
+      totalCount = acceptedCount = 0;
+    }
+  };
+  eastl::array<LodBucket, RiExtraPool::MAX_LODS> buckets;
 
 public:
   RiExtraRendererT() = default;
@@ -543,6 +567,19 @@ public:
     float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide, const ShaderElement *shader_override = nullptr,
     bool gpu_instancing = false)
   {
+    const DynamicVariantsPolicy &sharedPolicy = static_cast<const DynamicVariantsPolicy &>(*this);
+    addObjectToRenderImpl(list, multidrawList, sharedPolicy, ri_idx, optimizationInstances, optimization_depth_prepass,
+      ignore_optimization_instances_limits, ofsAndCnt, lod, pool_order, texCtx, dist2, minDist2, elementsToHide, shader_override,
+      gpu_instancing);
+  }
+
+private:
+  template <class ListT, class MultiListT>
+  void addObjectToRenderImpl(ListT &dst_list, MultiListT &dst_multidraw, const DynamicVariantsPolicy &policy, uint16_t ri_idx,
+    int optimizationInstances, bool optimization_depth_prepass, bool ignore_optimization_instances_limits, IPoint2 ofsAndCnt, int lod,
+    uint16_t pool_order, const TexStreamingContext &texCtx, float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide,
+    const ShaderElement *shader_override = nullptr, bool gpu_instancing = false)
+  {
     if (ri_idx >= riExtra.size())
     {
       logerr("Attempted to add riex with pool index '%d' to RiExtraRendererT, total pool amount was '%d'.", ri_idx, riExtra.size());
@@ -622,7 +659,7 @@ public:
         shaders::TexStateIdx tstate;
         shaders::RenderStateId rstate;
         const ShaderElement *currentShader = (shader_override) ? shader_override : elem.shader;
-        int curVar = DynamicVariantsPolicy::getStates(currentShader->native(), prog, state, rstate, cstate, tstate);
+        int curVar = policy.getStates(currentShader->native(), prog, state, rstate, cstate, tstate);
 
         if (curVar < 0)
           continue;
@@ -667,9 +704,9 @@ public:
             if (record2.ofsAndCnt.y > 0)
             {
               if (!isPacked)
-                list.emplace_back(eastl::move(record2));
+                dst_list.emplace_back(eastl::move(record2));
               else
-                multidrawList.emplace_back(eastl::move(record2));
+                dst_multidraw.emplace_back(eastl::move(record2));
             }
           }
           if (record.ofsAndCnt.y <= 0)
@@ -677,61 +714,225 @@ public:
         }
 
         if (!isPacked)
-          list.emplace_back(eastl::move(record));
+          dst_list.emplace_back(eastl::move(record));
         else
-          multidrawList.emplace_back(eastl::move(record));
+          dst_multidraw.emplace_back(eastl::move(record));
         if (gpu_instancing) // gpu instancing only supports one mesh per one object
           return;           // TO BE REMOVED AFTER RESOLVING ALL MESHES
       }
   }
 
+  template <class ListT, class MultiListT>
+  void processPoolsForLodAdd(int l, int &next_dynamic_idx, ListT &dst_list, MultiListT &dst_multidraw,
+    const DynamicVariantsPolicy &policy, const RiGenExtraVisibility &v, dag::ConstSpan<uint16_t> riResOrder,
+    const TexStreamingContext &texCtx, OptimizeDepthPrepass optimization_depth_prepass,
+    IgnoreOptimizationLimits ignore_optimization_instances_limits, RiExtraRenderingSubset ri_extra_subset, int &total_count,
+    int &accepted_count)
+  {
+    total_count += (int)riResOrder.size();
+    for (int k = 0, ke = riResOrder.size(); k < ke; ++k)
+    {
+      int i = riResOrder[k] & RI_RES_ORDER_COUNT_MASK;
+      IPoint2 ofsAndCnt = IPoint2(v.vbOffsets[l][i], v.vbCounts[l][i]);
+      if (ri_extra_subset == RiExtraRenderingSubset::OnlyStatic && next_dynamic_idx < (int)v.dynamicRiExtraInstances.size() &&
+          v.dynamicRiExtraInstances[next_dynamic_idx].lod == l && v.dynamicRiExtraInstances[next_dynamic_idx].poolId == i)
+      {
+        ofsAndCnt.y = v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset;
+        next_dynamic_idx++;
+      }
+      else if (ri_extra_subset == RiExtraRenderingSubset::OnlyDynamic)
+      {
+        if (next_dynamic_idx < (int)v.dynamicRiExtraInstances.size() && v.dynamicRiExtraInstances[next_dynamic_idx].lod == l &&
+            v.dynamicRiExtraInstances[next_dynamic_idx].poolId == i)
+        {
+          ofsAndCnt.x += v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset * rendinst::RIEXTRA_VECS_COUNT;
+          ofsAndCnt.y -= v.dynamicRiExtraInstances[next_dynamic_idx].instancesOffset;
+          next_dynamic_idx++;
+        }
+        else
+          ofsAndCnt.y = 0;
+      }
+      if (ofsAndCnt.y == 0)
+        continue;
+
+      int optimizationInstances = (riResOrder[k] >> RI_RES_ORDER_COUNT_SHIFT);
+      float distSq = v.minSqDistances[l][i];
+      float minDistSq = v.approxInvDensities[l][i] * v.invDensityToMinSqAllowedDistance;
+      RiExtraElementsToHide elementsToHide(i, v.hideMarkedMaterialsForInstances);
+
+      addObjectToRenderImpl(dst_list, dst_multidraw, policy, i, optimizationInstances,
+        optimization_depth_prepass == OptimizeDepthPrepass::Yes, ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes,
+        ofsAndCnt, l, k, texCtx, distSq, minDistSq, elementsToHide);
+      ++accepted_count;
+    }
+  }
+
+  void addObjectsToRenderMultiThreaded(const RiGenExtraVisibility &v, dag::ConstSpan<uint16_t> riResOrder, TexStreamingContext texCtx,
+    OptimizeDepthPrepass optimization_depth_prepass, IgnoreOptimizationLimits ignore_optimization_instances_limits,
+    RiExtraRenderingSubset ri_extra_subset, int &total_count, int &accepted_count)
+  {
+    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || (v.rendering & VisibilityRenderingFlag::AllowSeparateRendering));
+
+    // cache dynamic instance offsets
+    uint32_t lodDynStart[RiExtraPool::MAX_LODS + 1] = {};
+    if (ri_extra_subset != RiExtraRenderingSubset::All)
+    {
+      int idx = 0;
+      for (int l = 0; l < RiExtraPool::MAX_LODS; ++l)
+      {
+        lodDynStart[l] = (uint32_t)idx;
+        while (idx < (int)v.dynamicRiExtraInstances.size() && v.dynamicRiExtraInstances[idx].lod == l)
+          ++idx;
+      }
+      lodDynStart[RiExtraPool::MAX_LODS] = (uint32_t)idx; // final one is the end interval for the last lod
+      G_ASSERT(idx == (int)v.dynamicRiExtraInstances.size());
+    }
+
+    int visibleLods[RiExtraPool::MAX_LODS];
+    int visibleLodCount = 0;
+    for (int l = 0; l < RiExtraPool::MAX_LODS; ++l)
+      if (v.riExLodNotEmpty & (1u << l))
+        visibleLods[visibleLodCount++] = l;
+
+    if (visibleLodCount == 0)
+      return;
+
+    const DynamicVariantsPolicy &sharedPolicy = static_cast<DynamicVariantsPolicy &>(*this);
+
+    int lodInstances[RiExtraPool::MAX_LODS] = {};
+    {
+      TIME_PROFILE(count_instances);
+      const unsigned short *__restrict cntPtrs[RiExtraPool::MAX_LODS];
+      for (int vi = 0; vi < visibleLodCount; ++vi)
+        cntPtrs[vi] = v.vbCounts[visibleLods[vi]].data();
+      const uint16_t *__restrict riResOrderPtr = riResOrder.data();
+      for (int k = 0, ke = riResOrder.size(); k < ke; ++k)
+      {
+        uint16_t i = riResOrderPtr[k] & (uint16_t)RI_RES_ORDER_COUNT_MASK;
+        for (int vi = 0; vi < visibleLodCount; ++vi)
+          lodInstances[vi] += (cntPtrs[vi][i] != 0);
+      }
+    }
+
+    // filter out small buckets and merge them
+    constexpr int SMALL_ITEM_FLAG = RiExtraPool::MAX_LODS + 1;
+    constexpr int EXTENDED_MAX_LOD_CNT = RiExtraPool::MAX_LODS + 1; // with batched as +1
+    int itemLods[EXTENDED_MAX_LOD_CNT];
+    int itemWork[EXTENDED_MAX_LOD_CNT] = {};
+    int smallLods[RiExtraPool::MAX_LODS];
+    int smallCount = 0;
+    int smallTotalInstances = 0;
+    int itemCount = 0;
+    for (int vi = 0; vi < visibleLodCount; ++vi)
+    {
+      if (lodInstances[vi] >= parallel_lod_add_small_lod_merge_threshold)
+      {
+        itemLods[itemCount] = visibleLods[vi];
+        itemWork[itemCount] = lodInstances[vi];
+        ++itemCount;
+      }
+      else
+      {
+        smallLods[smallCount++] = visibleLods[vi];
+        smallTotalInstances += lodInstances[vi];
+      }
+    }
+    if (smallCount > 0)
+    {
+      itemLods[itemCount] = SMALL_ITEM_FLAG;
+      itemWork[itemCount] = smallTotalInstances;
+      ++itemCount;
+    }
+
+    // find the biggest bucket (including merged small ones) and put it first to reduce stall on main thread
+    int bigI = 0;
+    for (int i = 1; i < itemCount; ++i)
+      if (itemWork[i] > itemWork[bigI])
+        bigI = i;
+    eastl::swap(itemLods[0], itemLods[bigI]);
+
+    for (auto &b : buckets)
+      b.reset();
+
+    auto runLodItem = [&](int lod) {
+      LodBucket &b = buckets[lod];
+      int nextDynamicIdx = (ri_extra_subset == RiExtraRenderingSubset::All) ? 0 : (int)lodDynStart[lod];
+      TIME_D3D_PROFILE(process_lod_add);
+      processPoolsForLodAdd(lod, nextDynamicIdx, b.list, b.multidraw, sharedPolicy, v, riResOrder, texCtx, optimization_depth_prepass,
+        ignore_optimization_instances_limits, ri_extra_subset, b.totalCount, b.acceptedCount);
+      DA_PROFILE_TAG(process_lod_add, "lod: %d, instances = %d/%d", lod, b.acceptedCount, b.totalCount);
+      G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || nextDynamicIdx == (int)lodDynStart[lod + 1]);
+    };
+
+    threadpool::parallel_for_inline_caller_first(0u, itemCount, 1u, [&](uint32_t tbegin, uint32_t tend, uint32_t /*thread_id*/) {
+      for (uint32_t i = tbegin; i < tend; ++i)
+      {
+        int lod = itemLods[i];
+        if (lod == SMALL_ITEM_FLAG)
+        {
+          for (int si = 0; si < smallCount; ++si)
+            runLodItem(smallLods[si]);
+        }
+        else
+        {
+          runLodItem(lod);
+        }
+      }
+    });
+
+    // merge buckets into main list
+    size_t extraList = 0, extraMulti = 0;
+    for (auto &b : buckets)
+    {
+      extraList += b.list.size();
+      extraMulti += b.multidraw.size();
+      total_count += b.totalCount;
+      accepted_count += b.acceptedCount;
+    }
+    list.reserve(list.size() + extraList);
+    multidrawList.reserve(multidrawList.size() + extraMulti);
+    for (auto &b : buckets)
+    {
+      auto &bl = b.list;
+      auto &bm = b.multidraw;
+      list.insert(list.end(), eastl::make_move_iterator(bl.begin()), eastl::make_move_iterator(bl.end()));
+      multidrawList.insert(multidrawList.end(), eastl::make_move_iterator(bm.begin()), eastl::make_move_iterator(bm.end()));
+    }
+  }
+
+  void addObjectsToRenderSingleThreaded(const RiGenExtraVisibility &v, dag::ConstSpan<uint16_t> riResOrder, TexStreamingContext texCtx,
+    OptimizeDepthPrepass optimization_depth_prepass, IgnoreOptimizationLimits ignore_optimization_instances_limits,
+    RiExtraRenderingSubset ri_extra_subset, int &total_count, int &accepted_count)
+  {
+    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || (v.rendering & VisibilityRenderingFlag::AllowSeparateRendering));
+    int nextDynamicIdx = 0;
+    const DynamicVariantsPolicy &sharedPolicy = static_cast<const DynamicVariantsPolicy &>(*this);
+    for (int l = 0; l < RiExtraPool::MAX_LODS; l++)
+    {
+      if (!(v.riExLodNotEmpty & (1 << l)))
+        continue;
+      processPoolsForLodAdd(l, nextDynamicIdx, list, multidrawList, sharedPolicy, v, riResOrder, texCtx, optimization_depth_prepass,
+        ignore_optimization_instances_limits, ri_extra_subset, total_count, accepted_count);
+    }
+    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || nextDynamicIdx == v.dynamicRiExtraInstances.size());
+  }
+
+public:
   void addObjectsToRender(const RiGenExtraVisibility &v, dag::ConstSpan<uint16_t> riResOrder, TexStreamingContext texCtx,
     OptimizeDepthPrepass optimization_depth_prepass = OptimizeDepthPrepass::No,
     IgnoreOptimizationLimits ignore_optimization_instances_limits = IgnoreOptimizationLimits::No,
     RiExtraRenderingSubset ri_extra_subset = RiExtraRenderingSubset::All)
   {
     TIME_D3D_PROFILE(ri_extra_add_objects_to_render);
-    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || (v.rendering & VisibilityRenderingFlag::AllowSeparateRendering));
-    int nextDynamicIdx = 0;
-    for (int l = 0; l < RiExtraPool::MAX_LODS; l++)
-    {
-      if (!(v.riExLodNotEmpty & (1 << l)))
-        continue;
-
-      for (int k = 0, ke = riResOrder.size(); k < ke; k++)
-      {
-        int i = riResOrder[k] & RI_RES_ORDER_COUNT_MASK;
-        IPoint2 ofsAndCnt = IPoint2(v.vbOffsets[l][i], v.vbCounts[l][i]);
-        if (ri_extra_subset == RiExtraRenderingSubset::OnlyStatic && nextDynamicIdx < v.dynamicRiExtraInstances.size() &&
-            v.dynamicRiExtraInstances[nextDynamicIdx].lod == l && v.dynamicRiExtraInstances[nextDynamicIdx].poolId == i)
-        {
-          ofsAndCnt.y = v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset;
-          nextDynamicIdx++;
-        }
-        else if (ri_extra_subset == RiExtraRenderingSubset::OnlyDynamic)
-        {
-          if (nextDynamicIdx < v.dynamicRiExtraInstances.size() && v.dynamicRiExtraInstances[nextDynamicIdx].lod == l &&
-              v.dynamicRiExtraInstances[nextDynamicIdx].poolId == i)
-          {
-            ofsAndCnt.x += v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset * rendinst::RIEXTRA_VECS_COUNT;
-            ofsAndCnt.y -= v.dynamicRiExtraInstances[nextDynamicIdx].instancesOffset;
-            nextDynamicIdx++;
-          }
-          else
-            ofsAndCnt.y = 0;
-        }
-        if (ofsAndCnt.y == 0)
-          continue;
-        int optimizationInstances = (riResOrder[k] >> RI_RES_ORDER_COUNT_SHIFT);
-        float distSq = v.minSqDistances[l][i];
-        float minDistSq = v.approxInvDensities[l][i] * v.invDensityToMinSqAllowedDistance;
-        RiExtraElementsToHide elementsToHide(i, v.hideMarkedMaterialsForInstances);
-        addObjectToRender(i, optimizationInstances, optimization_depth_prepass == OptimizeDepthPrepass::Yes,
-          ignore_optimization_instances_limits == IgnoreOptimizationLimits::Yes, ofsAndCnt, l, k, texCtx, distSq, minDistSq,
-          elementsToHide);
-      }
-    }
-    G_ASSERT(ri_extra_subset == RiExtraRenderingSubset::All || nextDynamicIdx == v.dynamicRiExtraInstances.size());
+    int totalCount = 0, acceptedCount = 0;
+    if (ri_extra_subset != RiExtraRenderingSubset::OnlyDynamic && parallel_lod_add_enabled &&
+        riResOrder.size() > parallel_lod_add_min_pool_count && (!parallel_lod_add_main_thread_only || is_main_thread()))
+      addObjectsToRenderMultiThreaded(v, riResOrder, texCtx, optimization_depth_prepass, ignore_optimization_instances_limits,
+        ri_extra_subset, totalCount, acceptedCount);
+    else
+      addObjectsToRenderSingleThreaded(v, riResOrder, texCtx, optimization_depth_prepass, ignore_optimization_instances_limits,
+        ri_extra_subset, totalCount, acceptedCount);
+    DA_PROFILE_TAG(ri_extra_add_objects_to_render, "resCnt = %d, instances = %d/%d", riResOrder.size(), acceptedCount, totalCount);
   }
 };
 

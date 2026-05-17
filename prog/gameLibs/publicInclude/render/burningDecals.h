@@ -41,8 +41,8 @@ protected:
 
   Tab<BurningDecal> decals;
 
-  UniqueTexHolder burningMap;
-  UniqueTexHolder bakedBurningMap;
+  UniqueTexWithShaderVar burningMap;
+  UniqueTexWithShaderVar bakedBurningMap;
 
 private:
   int activeCount = 0;

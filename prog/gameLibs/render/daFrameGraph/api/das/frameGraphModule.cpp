@@ -192,11 +192,11 @@ DaFgCoreModule::DaFgCoreModule() : das::Module("daFgCore")
   addStructureAnnotations(lib);
   addNodeDataAnnotation(lib);
 
-  addAnnotation(das::make_smart<ResourceProviderAnnotation>(lib));
-  addAnnotation(das::make_smart<InternalRegistryAnnotation>(lib));
-  addAnnotation(das::make_smart<NodeTrackerAnnotation>(lib));
+  addAnnotation(new ResourceProviderAnnotation(lib));
+  addAnnotation(new InternalRegistryAnnotation(lib));
+  addAnnotation(new NodeTrackerAnnotation(lib));
 
-  addAnnotation(das::make_smart<NodeHandleAnnotation>(lib));
+  addAnnotation(new NodeHandleAnnotation(lib));
 
   das::addUsing<TextureResourceDescription>(*this, lib, "TextureResourceDescription");
   das::addUsing<BufferResourceDescription>(*this, lib, "BufferResourceDescription");
@@ -232,7 +232,7 @@ DaFgCoreModule::DaFgCoreModule() : das::Module("daFgCore")
     "bind_dascript::setEcsNodeHandleHint");
   das::addExtern<DAS_BIND_FUN(bind_dascript::setEcsNodeHandle)>(*this, lib, "set", das::SideEffects::modifyArgument,
     "bind_dascript::setEcsNodeHandle")
-    ->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+    ->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
   das::addExtern<DAS_BIND_FUN(bind_dascript::registerNodeDeclaration)>(*this, lib, "registerNodeDeclaration",
     das::SideEffects::modifyArgumentAndExternal, "bind_dascript::registerNodeDeclaration");
   das::addExtern<DAS_BIND_FUN(bind_dascript::is_daframegraph_runtime_initialized)>(*this, lib, "is_daframegraph_runtime_initialized",

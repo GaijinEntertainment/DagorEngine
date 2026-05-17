@@ -152,7 +152,6 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend dafg::NodeHandle makeDepthWithTransparencyNode();
   friend dafg::NodeHandle makeDownsampleDepthWithTransparencyNode();
   friend dafg::NodeHandle makeSSAANode();
-  friend eastl::fixed_vector<dafg::NodeHandle, 3> makeFsrNodes();
   friend dafg::NodeHandle makeStaticUpsampleNode(const char *source_name);
   friend resource_slot::NodeHandleWithSlotsAccess makePreparePostFxNode();
   friend dafg::NodeHandle makePrepareTiledLightsNode();
@@ -711,7 +710,6 @@ protected:
     hasPendingFgRecreation = true;
   }
 
-  IPoint2 getFsrScaledResolution(const IPoint2 &orig_resolution) const;
   void updateLevelGraphicsSettings(const DataBlock &level_blk);
   bool forceStaticResolutionOff = false;
 
@@ -761,14 +759,14 @@ protected:
   shaders::UniqueOverrideStateId additiveBlendStateId;
   shaders::UniqueOverrideStateId enabledDepthBoundsId;
   shaders::UniqueOverrideStateId zFuncEqualStateId;
-  UniqueTexHolder last_clip;
+  UniqueTexWithShaderVar last_clip;
   d3d::SamplerInfo last_clip_sampler;
 
   float glassShadowK = 0.7;
 
   float cachedStaticResolutionScale = 100.f;
-  UniqueTexHolder distantHeightmapTex;
-  UniqueTexHolder paintColorsTex;
+  UniqueTexWithShaderVar distantHeightmapTex;
+  UniqueTexWithShaderVar paintColorsTex;
 
   TEXTUREID landMicrodetailsId = BAD_TEXTUREID, characterMicrodetailsId = BAD_TEXTUREID;
 
@@ -864,12 +862,6 @@ protected:
   ExternalTex backbufferTex;
   UniqueTex ownedBackbufferTex;
 
-  UniqueBuf superResolutionUpscalingConsts;
-  UniqueBuf superResolutionSharpeningConsts;
-  float fsrScale = 1.0f;
-  float fsrMipBias = 0.0f;
-  bool fsrEnabled = false;
-
   bool overrideDisplayRes = false;
   IPoint2 overridenDisplayRes = {};
 
@@ -908,8 +900,6 @@ protected:
 
   void loadAntiAliasingSettings();
   void applyFXAASettings();
-  void loadFsrSettings();
-  bool isFsrEnabled() const;
   bool hasMotionVectors = false;
   constexpr static int GBUF_TARGET_GLOBAL_FLAGS = TEXCF_ESRAM_ONLY;
   void initTarget();
@@ -937,7 +927,7 @@ protected:
   FFTWater *water = nullptr;
   ShoreRenderer shoreRenderer;
   static constexpr int lowresWaterHeightmapSize = 1024;
-  UniqueTexHolder lowresWaterHeightmap;
+  UniqueTexWithShaderVar lowresWaterHeightmap;
   PostFxRenderer lowresWaterHeightmapRenderer;
 
   int fftWaterQualitySetting = 0;
@@ -947,7 +937,7 @@ protected:
 
   SkiesData *refl_pov_data = nullptr;
 
-  UniqueTexHolder cloudsVolume;
+  UniqueTexWithShaderVar cloudsVolume;
 
   eastl::unique_ptr<GaussMipRenderer> planarReflectionMipRenderer;
   TMatrix waterPlanarReflectionViewItm;
@@ -993,9 +983,9 @@ private:
 
   eastl::unique_ptr<MultiFramePGF> preIntegratedGF;
 
-  UniqueTexHolder heightmapAround;
-  UniqueTexHolder hmapPatchesDepthTex;
-  UniqueTexHolder hmapPatchesTex;
+  UniqueTexWithShaderVar heightmapAround;
+  UniqueTexWithShaderVar hmapPatchesDepthTex;
+  UniqueTexWithShaderVar hmapPatchesTex;
   bool hmapPatchesEnabled = false;
   PostFxRenderer processHmapPatchesDepth;
   ToroidalHelper displacementData;
@@ -1008,7 +998,7 @@ private:
   void invalidateAfterHeightmapChange();
 
   // TODO: separate it from WR
-  UniqueTexHolder riLandclassDepthTextureArr;
+  UniqueTexWithShaderVar riLandclassDepthTextureArr;
   dag::Vector<int> riLandclassIndices;
   dag::Vector<int> riLandclassIndicesPrev;
   dag::Vector<ToroidalHelper> riLandclassDisplacementDataArr;
@@ -1124,6 +1114,7 @@ private:
   void resetGI();
   void giBeforeRender();
   void renderGiCollision(const TMatrix &view_itm, const Frustum &);
+  bool requiresGIUpdate() const;
   void updateGIPos(const Point3 &pos, const TMatrix &view_itm, float hmin, float hmax);
   void drawGIDebug(const Frustum &camera_frustum);
   void invalidateGI(bool force);
@@ -1135,9 +1126,6 @@ private:
   void resetGISettingsOverride() override;
   DaGISettings getGISettings() const;
 
-  void initFsr(const IPoint2 &postfx_resolution, const IPoint2 &display_resolution);
-  void closeFsr();
-
   const scene::TiledScene *getWallsScene() const;
   const scene::TiledScene *getWindowsScene() const;
   const scene::TiledScene *getEnviProbeBoxesScene() const;
@@ -1147,7 +1135,7 @@ private:
   FxRenderTargetOverride fxRtOverride = FX_RT_OVERRIDE_DEFAULT;
   void setFxQuality();
 
-  void setEnviromentDetailsQuality();
+  void setEnvironmentDetailsQuality();
   void setNbsQuality();
 
   void resetLatencyMode();
@@ -1158,7 +1146,7 @@ private:
 
   HeroWtmAndBox heroData;
   CameraViewVisibilityMgr mainCameraVisibilityMgr{RI_EXTRA_VB_CTX_ASYNC, "main_cam"};
-  CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam", COCKPIT_NO_REPROJECT};
+  CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam"};
   eastl::optional<CameraParams> camcamParams;
   eastl::optional<CameraParams> prevCamcamParams;
   CameraParams currentFrameCamera;

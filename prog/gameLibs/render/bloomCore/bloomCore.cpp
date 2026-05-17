@@ -5,6 +5,7 @@
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <drv/3d/dag_renderStates.h>
+#include <math/dag_mathUtils.h>
 
 #define GLOBAL_VARS_BLOOM VAR(bloom_upsample_mip_scale)
 
@@ -31,7 +32,7 @@ static eastl::string gen_downsample_target_tex_name(uint32_t mip_to_gen)
   return eastl::string("raw_bloom_mip_") + eastl::to_string(mip_to_gen);
 }
 
-void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, bool use_esram,
+void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, float mips_count_f, bool use_esram,
   RenderCallback cb)
 {
   nodes.clear();
@@ -61,7 +62,7 @@ void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandl
     }
   }));
 
-  for (uint32_t mip = 0; mip < mips_count; ++mip)
+  for (uint32_t mip = 0; mip < uint32_t(mips_count_f); ++mip)
   {
     const eastl::string downsampleNodeName = eastl::string("bloom_downsample_") + eastl::to_string(mip);
     nodes.push_back(ns.registerNode(downsampleNodeName.c_str(), DAFG_PP_NODE_SRC, [mip, cb, use_esram](dafg::Registry registry) {
@@ -86,11 +87,11 @@ void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandl
       const bool horizontal = blur_axis == 0;
       const char *blurNodeNameTemplate = horizontal ? "bloom_hor_blur_" : "bloom_ver_blur_";
       const eastl::string blurNodeName = eastl::string(blurNodeNameTemplate) + eastl::to_string(mip);
-      nodes.push_back(
-        ns.registerNode(blurNodeName.c_str(), DAFG_PP_NODE_SRC, [mip, mips_count, horizontal, cb, use_esram](dafg::Registry registry) {
+      nodes.push_back(ns.registerNode(blurNodeName.c_str(), DAFG_PP_NODE_SRC,
+        [mip, mips_count_f, horizontal, cb, use_esram](dafg::Registry registry) {
           const char *startName = "raw_bloom_mip_";
           const char *intermediateName = "hor_blured_bloom_mip_";
-          const char *finishName = mip + 1 == mips_count ? "upsampled_bloom_mip_" : "downsampled_bloom_mip_";
+          const char *finishName = mip + 1 == uint32_t(mips_count_f) ? "upsampled_bloom_mip_" : "downsampled_bloom_mip_";
           const eastl::string sourceTexName = eastl::string(horizontal ? startName : intermediateName) + eastl::to_string(mip);
           const eastl::string targetTexName = eastl::string(horizontal ? intermediateName : finishName) + eastl::to_string(mip);
 
@@ -109,16 +110,16 @@ void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandl
   }
 }
 
-void regenerate_upsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, uint32_t mips_count, float upsample_factor,
+void regenerate_upsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle> &nodes, float mips_count_f, float upsample_factor,
   const Color3 &halation_color, float halation_mip_factor, int halation_end_mip_ofs, RenderCallback cb)
 {
   nodes.clear();
 
-  for (uint32_t mip = mips_count - 1; mip > 0; --mip)
+  for (uint32_t mip = uint32_t(mips_count_f) - 1; mip > 0; --mip)
   {
     const eastl::string upsampleNodeName = eastl::string("bloom_upsample_") + eastl::to_string(mip);
     nodes.push_back(ns.registerNode(upsampleNodeName.c_str(), DAFG_PP_NODE_SRC,
-      [mip, mips_count, upsample_factor, halation_color, halation_mip_factor, halation_end_mip_ofs, cb](dafg::Registry registry) {
+      [mip, mips_count_f, upsample_factor, halation_color, halation_mip_factor, halation_end_mip_ofs, cb](dafg::Registry registry) {
         const eastl::string sourceTexName = eastl::string("upsampled_bloom_mip_") + eastl::to_string(mip);
         const eastl::string targetTexOriginName = eastl::string("downsampled_bloom_mip_") + eastl::to_string(mip - 1);
         const eastl::string targetTexFinalName = eastl::string("upsampled_bloom_mip_") + eastl::to_string(mip - 1);
@@ -128,12 +129,13 @@ void regenerate_upsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle>
 
         registry.requestRenderPass().color({registry.rename(targetTexOriginName.c_str(), targetTexFinalName.c_str()).texture()});
 
-        return [mip, mips_count, upsample_factor, halation_color, halation_mip_factor, halation_end_mip_ofs,
+        return [mip, mips_count_f, upsample_factor, halation_color, halation_mip_factor, halation_end_mip_ofs,
                  renderer = PostFxRenderer("bloom_upsample"), cb] {
-          const int lastMipWithHalation = clamp<int>(mips_count - halation_end_mip_ofs, 0, mips_count);
+          const int lastMipWithHalation = clamp<int>(mips_count_f - halation_end_mip_ofs, 0, mips_count_f);
           const float dstMipAddTint = mip - 1 >= lastMipWithHalation ? 0 : exp2f(-halation_mip_factor * (mip - 1));
-          Color3 dstColorTint = (Color3(1, 1, 1) + halation_color * dstMipAddTint) * (1 - upsample_factor);
-          ShaderGlobal::set_float4(bloom_upsample_mip_scaleVarId, upsample_factor, upsample_factor, upsample_factor, 0);
+          float mipUpsampleFactor = upsample_factor * saturate(mips_count_f - float(mip + 1));
+          Color3 dstColorTint = (Color3(1, 1, 1) + halation_color * dstMipAddTint) * (1 - mipUpsampleFactor);
+          ShaderGlobal::set_float4(bloom_upsample_mip_scaleVarId, mipUpsampleFactor, mipUpsampleFactor, mipUpsampleFactor, 0);
           d3d::set_blend_factor(e3dcolor(dstColorTint, 255));
 
           cb([&renderer]() { renderer.render(); });
@@ -142,10 +144,9 @@ void regenerate_upsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandle>
   }
 }
 
-uint32_t calculate_bloom_mips(uint32_t width, uint32_t height, int max_mips)
+float calculate_bloom_mips(uint32_t width, uint32_t height, int max_mips)
 {
   const int GAUSS_HALF_KERNEL = 7; // we perform 15x15 gauss on higher mips
-  const uint32_t mipsCount = clamp((int)get_log2i(min(width / 4, height / 4) / GAUSS_HALF_KERNEL), 1, max_mips);
-  return mipsCount;
+  return clamp(log2f(float(min(width, height)) * (0.25f / float(GAUSS_HALF_KERNEL))), 1.0f, float(max_mips) + 1.0f - 1e-3f);
 }
 } // namespace bloom

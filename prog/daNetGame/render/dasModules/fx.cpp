@@ -47,11 +47,11 @@ public:
     addBuiltinDependency(lib, require("math"));
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorSystem"));
-    addEnumeration(das::make_smart<EnumerationFxQuality>());
-    addAnnotation(das::make_smart<AcesEffectAnnotation>(lib));
-    addAnnotation(das::make_smart<ScaledAcesEffectAnnotation>(lib));
-    addAnnotation(das::make_smart<TheEffectAnnotation>(lib));
-    addAnnotation(das::make_smart<GravityZoneBufferAnnotation>(lib));
+    addEnumeration(new EnumerationFxQuality());
+    addAnnotation(new AcesEffectAnnotation(lib));
+    addAnnotation(new ScaledAcesEffectAnnotation(lib));
+    addAnnotation(new TheEffectAnnotation(lib));
+    addAnnotation(new GravityZoneBufferAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(effect_set_emitter_tm)>(*this, lib, "effect_set_emitter_tm", das::SideEffects::modifyArgument,
       "bind_dascript::effect_set_emitter_tm");
     das::addExtern<DAS_BIND_FUN(effect_set_scale)>(*this, lib, "effect_set_scale", das::SideEffects::modifyArgument,

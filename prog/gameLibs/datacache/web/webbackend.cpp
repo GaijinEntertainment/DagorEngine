@@ -323,6 +323,12 @@ struct DownloadRequest : public AsyncJob
   ~DownloadRequest() { delete stream; }
 
   virtual streamio::ProcessResult onStreamData(dag::ConstSpan<char>) { return streamio::ProcessResult::Discarded; }
+
+  // Called between fallback attempts (when the current attempt failed and we're
+  // about to re-issue against the next base URL). Subclasses that stream data
+  // directly into a cache write stream override this to discard whatever bytes
+  // the failed attempt wrote, so the next attempt starts from offset 0.
+  virtual void prepareForRetry() {}
 };
 
 struct IndexDownloadRequest : public DownloadRequest
@@ -484,6 +490,31 @@ struct NonIndexedFileDownloadRequest : public DownloadRequest
       return streamio::ProcessResult::IoError;
     }
     return streamio::ProcessResult::Consumed;
+  }
+
+  virtual void prepareForRetry() override
+  {
+    // Discard bytes streamed from the failed attempt: close and erase the temp
+    // file, then reopen a fresh write stream so the retry against the next base
+    // URL starts from offset 0. Without this, a non-2xx body (e.g. a 502 error
+    // page) from a previous attempt would remain prepended to whatever the next
+    // attempt streams, corrupting the cached file if a later attempt succeeds.
+    // `entry` is established in the ctor and the rest of this class (doJob,
+    // releaseJob) treats it as non-null, so no null guard here either.
+    if (writeStream)
+    {
+      // entry->closeStream() will delete the IGenSave object, so drop our copy
+      // of the pointer first to avoid leaving it dangling.
+      writeStream = nullptr;
+      entry->del();
+      entry->closeStream();
+      interlocked_decrement(num_opened_write_streams);
+    }
+    if (max_opened_write_streams > 0 && interlocked_acquire_load(num_opened_write_streams) >= max_opened_write_streams)
+      return;
+    writeStream = entry->getWriteStream();
+    if (writeStream)
+      interlocked_increment(num_opened_write_streams);
   }
 
   const char *getJobName(bool &) const override { return "NonIndexedFileDownloadRequest"; }
@@ -676,6 +707,7 @@ void WebBackend::onHttpReqComplete(DownloadRequest *req, const char *url, int er
   {
     DOTRACE1("re-request '%s' from new base %s", url, baseUrl.data());
     delete stream;
+    req->prepareForRetry();
     getOrCreateStreamCtx().createStream(url, onHttpReqCompleteCb, onHttpDataCb, onHttpRespHeadersCb, nullptr, req, req->lastModified);
   }
 }

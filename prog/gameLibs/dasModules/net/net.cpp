@@ -310,11 +310,11 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorDataBlock")); // for get_circuit_conf
-    addEnumeration(das::make_smart<EnumerationCompReplicationFilter>());
-    addAnnotation(das::make_smart<ConnectionIdAnnotation>(lib));
-    addAnnotation(das::make_smart<IConnectionAnnotation>(lib));
-    addAnnotation(das::make_smart<NetObjectAnnotation>(lib));
-    addAnnotation(das::make_smart<RegisterComponentFilterAnnotation>());
+    addEnumeration(new EnumerationCompReplicationFilter());
+    addAnnotation(new ConnectionIdAnnotation(lib));
+    addAnnotation(new IConnectionAnnotation(lib));
+    addAnnotation(new NetObjectAnnotation(lib));
+    addAnnotation(new RegisterComponentFilterAnnotation());
     das::addExtern<DAS_BIND_FUN(server_send_schemeless_event)>(*this, lib, "server_send_schemeless_event",
       das::SideEffects::modifyExternal, "bind_dascript::server_send_schemeless_event");
     das::addExtern<DAS_BIND_FUN(server_send_schemeless_event_to)>(*this, lib, "server_send_schemeless_event",

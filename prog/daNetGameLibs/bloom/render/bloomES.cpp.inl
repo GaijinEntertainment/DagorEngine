@@ -61,9 +61,9 @@ static void resize_bloom_es(const SetResolutionEvent &evt, ecs::EntityManager &m
       dag::Vector<dafg::NodeHandle> &bloom__upsample_chain, float bloom__upSample,
       E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
       float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
-      const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCount);
-      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
+      const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
+      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
+      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
         color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
         max(0, bloom__halation_end_mip));
     });
@@ -81,9 +81,9 @@ static void init_bloom_es(const ecs::Event &, ecs::EntityManager &manager)
       float bloom__upSample, E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
       float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
       IPoint2 postfx_resolution = get_postfx_resolution();
-      const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCount);
-      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
+      const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
+      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
+      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
         color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
         max(0, bloom__halation_end_mip));
     });
@@ -100,8 +100,8 @@ static void change_bloom_params_with_fg_change_es(const ecs::Event &,
   int bloom__halation_end_mip = 1)
 {
   IPoint2 postfx_resolution = get_postfx_resolution();
-  const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-  bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
+  const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
+  bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
     color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
     max(0, bloom__halation_end_mip));
 }

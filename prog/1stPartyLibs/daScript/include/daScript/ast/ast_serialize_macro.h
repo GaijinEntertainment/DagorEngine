@@ -22,7 +22,7 @@ namespace das {
 // Do not use in abstract classes
 #define ANNOTATION_DECLARE_SERIALIZABLE( annotation_type )                            \
     virtual const char * getFactoryTag () override { return #annotation_type; }       \
-    static AnnotationPtr createInstance () { return make_smart<annotation_type>(); }  \
+    static AnnotationPtr createInstance () { return new annotation_type(); }  \
     static bool registered;
 
 
@@ -50,7 +50,7 @@ namespace das {
 
 #define DECLARE_SERIALIZABLE( BaseType, DerivedType )                                   \
     virtual const char * getFactoryTag () override { return #DerivedType; }             \
-    static smart_ptr<BaseType> createInstance () { return make_smart<DerivedType>(); }  \
+    static smart_ptr<BaseType> createInstance () { return new DerivedType(); }  \
     static bool registered;
 
 #define FACTORY_REGISTER( BaseType, DerivedType )                                      \

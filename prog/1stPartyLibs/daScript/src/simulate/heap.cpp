@@ -59,12 +59,9 @@ namespace das {
 
     bool PersistentHeapAllocator::mark ( char * ptr, uint32_t len ) {
         auto size = (len + 15) & ~15; // model.alignMask
-#if !DAS_TRACK_ALLOCATIONS
-        if ( size <= DAS_MAX_SHOE_ALLOCATION ) {
+        if ( size <= model.maxShoeAllocation ) {
             return model.shoe.mark(ptr,size);
-        } else
-#endif
-        {
+        } else {
             auto it = model.bigStuff.find(ptr);
             if ( it != model.bigStuff.end() ) {
                 bool marked = it->second & DAS_PAGE_GC_MASK;
@@ -297,7 +294,7 @@ namespace das {
             }
             if ( auto str = (char *)impl_allocate(length + 1) ) {
 #if DAS_TRACK_ALLOCATIONS
-                if ( g_tracker_string==g_breakpoint_string ) os_debug_break();
+                if ( trackAllocations && g_tracker_string==g_breakpoint_string ) os_debug_break();
 #endif
                 if ( text ) memmove(str, text, length);
                 str[length] = 0;
@@ -361,12 +358,9 @@ namespace das {
 
     bool PersistentStringAllocator::mark ( char * ptr, uint32_t len ) {
         auto size = (len + 15) & ~15; // model.alignMask
-#if !DAS_TRACK_ALLOCATIONS
-        if (size <= DAS_MAX_SHOE_ALLOCATION) {
+        if (size <= model.maxShoeAllocation) {
             return model.shoe.mark(ptr,len);
-        } else
-#endif
-        {
+        } else {
             auto it = model.bigStuff.find(ptr);
             if ( it != model.bigStuff.end() ) {
                 bool marked = it->second & DAS_PAGE_GC_MASK;

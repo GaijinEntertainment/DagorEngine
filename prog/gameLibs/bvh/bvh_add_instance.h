@@ -206,11 +206,11 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,
-  MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
+  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
 {
   add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], object_id, transform, nullptr, false,
-    Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, tree_info, nullptr, nullptr, nullptr, nullptr,
-    meta_alloc_id);
+    is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
+    nullptr, tree_info, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, FlagInfo *flag_info,

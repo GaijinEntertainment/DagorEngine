@@ -52,7 +52,7 @@ public:
 
   void eval_static(static_var_decl &s) override;
   void eval_bool_decl(bool_decl &) override;
-  void decl_bool_alias(const char *name, bool_expr &expr) override;
+  void decl_bool_alias(const char *name, const char *base_name) override;
 
   void eval_channel_decl(channel_decl &s, int str_id = 0) override;
   void eval_state(state_stat &) override {}

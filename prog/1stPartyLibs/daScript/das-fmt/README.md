@@ -11,3 +11,5 @@ dasfmt is a tool that automatically formats daScript source code.
 - `--exclude-mask <mask>`: A path with given masks as part of the path will be ignored
 - `--verify`: (dry run) Doesn't change files, just make sure that all files are already formatted
 - `--t`: Max number of used threads
+- `--verbose`: Print more information about the formatting process
+- `--no-color`, `--color`: Disable or enable color output

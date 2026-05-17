@@ -167,8 +167,6 @@ dafg::NodeHandle makeShowSceneDebugNode();
 
 dafg::NodeHandle makeSSAANode();
 
-eastl::fixed_vector<dafg::NodeHandle, 3> makeFsrNodes();
-
 dafg::NodeHandle makeFXAANode(const char *target_name, bool external_target);
 
 dafg::NodeHandle makeStaticUpsampleNode(const char *source_name);
@@ -199,10 +197,6 @@ dafg::NodeHandle makeFrameDownsampleNode();
 dafg::NodeHandle makeFrameDownsampleSamplerNode();
 
 dafg::NodeHandle makeNoFxFrameNode();
-
-eastl::fixed_vector<dafg::NodeHandle, 2> makeBeforeUIControlNodes();
-dafg::NodeHandle makeUIRenderNode(bool withHistory);
-dafg::NodeHandle makeUIBlendNode();
 
 dafg::NodeHandle makeRendinstUpdateNode();
 

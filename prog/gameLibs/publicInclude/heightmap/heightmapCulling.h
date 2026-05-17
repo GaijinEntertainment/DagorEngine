@@ -65,7 +65,6 @@ protected:
   int arraySize = 0;
   float hmapSize = 0;
   float chunkSize = 0;
-  int chunkSizeInTexels = 1;
   real absMin = MIN_REAL;
   real absMax = MAX_REAL;
 };

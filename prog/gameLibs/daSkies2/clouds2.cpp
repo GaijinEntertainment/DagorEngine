@@ -388,7 +388,7 @@ bool Clouds2::findHole(const Point3 &main_light_dir)
   else if (clouds_hole_ps.getElem() && clouds_hole_pos_ps.getElem())
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(holeTex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{holeTex.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(), 0, 0);
     shaders::overrides::set(blendMaxState.get());
     clouds_hole_ps.getElem()->setStates();
@@ -397,7 +397,7 @@ bool Clouds2::findHole(const Point3 &main_light_dir)
 
     ShaderGlobal::set_float4(clouds_hole_target_altVarId, P3D(holeTarget), alt);
     ShaderGlobal::set_float4(clouds_hole_light_dirVarId, P3D(main_light_dir), 0);
-    d3d::set_render_target(holePosTex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{holePosTex.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(), 0, 0);
     clouds_hole_pos_ps.getElem()->setStates();
     d3d::draw_instanced(PRIM_TRILIST, 0, 1, 1);

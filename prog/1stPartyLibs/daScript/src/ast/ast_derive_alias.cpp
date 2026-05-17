@@ -42,7 +42,7 @@ namespace das {
                 // not built-in, used, address taken, can potentially alias, compatible
                 if ( gfunc->isTemplate ) return;
                 if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && isCompatibleFunction(gfunc, inv) ) {
-                    appendIndVariables(gfunc.get(), sources, accessed);
+                    appendIndVariables(gfunc, sources, accessed);
                 }
             });
             return true;
@@ -70,7 +70,7 @@ namespace das {
                 // not built-in, used, address taken, can potentially alias, compatible
                 if ( gfunc->isTemplate ) return;
                 if ( !gfunc->builtIn && gfunc->used && gfunc->addressTaken && !gfunc->aliasCMRES && gfunc->lambda && isCompatibleLambdaFunction(gfunc, inv) ) {
-                    appendIndVariables(gfunc.get(), sources, accessed);
+                    appendIndVariables(gfunc, sources, accessed);
                 }
             });
             return true;
@@ -98,7 +98,7 @@ namespace das {
     // we found source
         virtual void preVisit ( ExprVar * expr ) override {
             Visitor::preVisit(expr);
-            if ( !disabled ) sources.insert(expr->variable.get());
+            if ( !disabled ) sources.insert(expr->variable);
         }
     // in [] only value can alias
         virtual void preVisit ( ExprAt * expr ) override {
@@ -242,7 +242,7 @@ namespace das {
     // collect indirect global variables
         IndirectSources ind;
         das_hash_set<Function *> depInd;
-        appendIndVariables(func.get(),ind,depInd);
+        appendIndVariables(func,ind,depInd);
         if ( !(func->copyOnReturn || func->moveOnReturn) ) return;  // not a cmres function, we don't need cmres aliasing
         if ( func->arguments.size()==0 && ind.size()==0 ) return;   // no arguments, no globals, no cmres aliasing
     // collect type aliasing
@@ -332,11 +332,11 @@ namespace das {
     protected:
         virtual void preVisit ( ExprCopy * expr ) override {
             Visitor::preVisit(expr);
-            cmresDest[expr->right.get()] = expr->left.get();
+            cmresDest[expr->right] = expr->left;
         }
         virtual void preVisit ( ExprMove * expr ) override {
             Visitor::preVisit(expr);
-            cmresDest[expr->right.get()] = expr->left.get();
+            cmresDest[expr->right] = expr->left;
         }
         virtual FunctionPtr visit ( Function * fn ) override {
             cmresDest.clear();
@@ -393,7 +393,7 @@ namespace das {
             Visitor::preVisit(expr);
             preVisitMakeLocal(expr,[&](ExpressionSources & argSrc, bool anyGlobals) -> bool {
                 for ( auto & arg : expr->values ) {
-                    if ( appendSources(program, arg.get(), argSrc, true, anyGlobals) ) return true;
+                    if ( appendSources(program, arg, argSrc, true, anyGlobals) ) return true;
                 }
                 return false;
             });
@@ -403,7 +403,7 @@ namespace das {
             preVisitMakeLocal(expr,[&](ExpressionSources & argSrc, bool anyGlobals) -> bool {
                 for ( auto & arg : expr->structs ) {
                     for ( auto & subarg : *arg ) {
-                        if ( appendSources(program, subarg->value.get(), argSrc, true, anyGlobals) ) return true;
+                        if ( appendSources(program, subarg->value, argSrc, true, anyGlobals) ) return true;
                     }
                 }
                 return false;
@@ -413,7 +413,7 @@ namespace das {
             Visitor::preVisit(expr);
             preVisitMakeLocal(expr,[&](ExpressionSources & argSrc, bool anyGlobals) -> bool {
                 for ( auto & arg : expr->values ) {
-                    if ( appendSources(program, arg.get(), argSrc, true, anyGlobals) ) return true;
+                    if ( appendSources(program, arg, argSrc, true, anyGlobals) ) return true;
                 }
                 return false;
             });
@@ -422,7 +422,7 @@ namespace das {
             Visitor::preVisit(expr);
             preVisitMakeLocal(expr,[&](ExpressionSources & argSrc, bool anyGlobals) -> bool {
                 for ( auto & arg : expr->variants ) {
-                    if ( appendSources(program, arg->value.get(), argSrc, true, anyGlobals) ) return true;
+                    if ( appendSources(program, arg->value, argSrc, true, anyGlobals) ) return true;
                 }
                 return false;
             });
@@ -466,7 +466,7 @@ namespace das {
                         continue;
                     }
                     ExpressionSources argSrc;
-                    if ( collectSources(program, expr->arguments[ai].get(), argSrc, false, anyGlobals) ) {
+                    if ( collectSources(program, expr->arguments[ai], argSrc, false, anyGlobals) ) {
                         if ( checkAliasing ) {
                             program->error("invoke result aliases argument " + to_string(ai),
                                 "some form of ... = invoke( ... *ptr ... ) where we don't know where pointer came from", "",
@@ -550,7 +550,7 @@ namespace das {
                     // now go thorough all arguments, which are potential aliases
                     for ( auto ai : expr->func->resultAliases ) {
                         ExpressionSources argSrc;
-                        if ( collectSources(program, expr->arguments[ai].get(), argSrc, false, anyGlobals) ) {
+                        if ( collectSources(program, expr->arguments[ai], argSrc, false, anyGlobals) ) {
                             if ( checkAliasing ) {
                                 program->error("function " + expr->func->describeName() + " result aliases argument " + expr->func->arguments[ai]->name,
                                     "some form of ... = " + expr->func->name + "( ... *ptr ... ) where we don't know where pointer came from", "",

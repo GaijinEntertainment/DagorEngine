@@ -12,7 +12,7 @@ float3 equalAreaOctahedralDecode(float2 uv)
   float2 absUV = abs(uv);
   float d = 1.f - (absUV.x + absUV.y);  // end of 3.1.1
   float r = 1.f - abs(d); // end of 3.1.1
-  float phi = abs(r) < 1e-12f ? 0 : (PI / 4.) * ((absUV.y - absUV.x) / r + 1.0f); // equation (4), plus avoid division by zero
+  float phi = (abs(r) <= 1e-12f) ? 0 : (PI / 4.) * ((absUV.y - absUV.x) / r + 1.0f); // equation (4), plus avoid division by zero
   float z = sign(d)*(1.f - r * r); // end of 3.1.1
   // end of 3.1.1 gives us z radius of 1-r*r.
   // so, xy plane radius is sqrt(1 - z^2)

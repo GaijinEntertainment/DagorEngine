@@ -15,7 +15,7 @@ def do_eval_expression(expression, req_modules : string) : string {
     }
     let stub_path = make_temp_das_file()
     // build script source
-    let script = build_string() <| $(var w) {
+    let script = build_string() $(var w) {
         write(w, "options gen2\n")
         if (!empty(req_modules)) {
             var req_list <- split(req_modules, ",")
@@ -33,7 +33,7 @@ def do_eval_expression(expression, req_modules : string) : string {
         write(w, "\}\n")
     }
     var write_ok = false
-    fopen(stub_path, "wb") <| $(fw) {
+    fopen(stub_path, "wb") $(fw) {
         if (fw == null) {
             return
         }
@@ -44,7 +44,8 @@ def do_eval_expression(expression, req_modules : string) : string {
         return make_tool_result("Cannot write temp file: {stub_path}", true)
     }
     var output : string
-    let exit_code = run_and_capture("{exe} {stub_path}", output)
+    let argv <- [exe, stub_path]
+    let exit_code = run_and_capture(argv, output)
     remove(stub_path)
     if (exit_code != 0) {
         return make_tool_result("Evaluation failed (exit code {exit_code}):\n{output}", true)

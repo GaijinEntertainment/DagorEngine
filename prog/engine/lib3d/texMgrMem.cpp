@@ -48,7 +48,6 @@ using tql::sys_mem_usage_thres_mb;
 
 #endif
 
-static uint32_t local_mem_backend_overhead_kb = 0;
 static int mem_used_discardable_kb = 0;
 static int mem_used_discardable_kb_max = 0, mem_used_persistent_kb_max = 0, mem_used_sum_kb_max = 0;
 static int tex_used_discardable_cnt = 0, tex_used_persistent_cnt = 0;
@@ -62,7 +61,7 @@ static void free_up_gpu_mem(int mem_to_free_kb, int actual_quota_kb, bool should
 
 static uint32_t get_total_used_persistent_mem_kb()
 {
-  return interlocked_relaxed_load(mem_used_persistent_kb) + local_mem_backend_overhead_kb;
+  return interlocked_relaxed_load(mem_used_persistent_kb) + interlocked_relaxed_load(tql::gpu_mem_backend_overhead_kb);
 }
 
 void tql::get_tex_streaming_stats(int &_mem_used_discardable_kb, int &_mem_used_persistent_kb, int &_mem_used_discardable_kb_max,
@@ -353,7 +352,7 @@ static void on_frame_finished()
       free_up_sys_mem(int(mem_used_mb - sys_mem_usage_thres_mb + sys_mem_add_free_mb) << 10);
   }
 
-  local_mem_backend_overhead_kb = d3d::get_dedicated_gpu_memory_system_internal_overhead_kb();
+  interlocked_relaxed_store(tql::gpu_mem_backend_overhead_kb, int(d3d::get_dedicated_gpu_memory_system_internal_overhead_kb()));
   const int observedMemUsedPersistentKb = get_total_used_persistent_mem_kb();
 
   if (!(dagor_frame_no() & 0x7F))
@@ -390,8 +389,8 @@ static void on_frame_finished()
           debug(
             "freeGPUmem= %dM (%dM), vram overhead %dM, so tql::mem_quota_kb changed (%dM -> %dM). AS allocation is %dM, as reserve "
             "is %dM",
-            free_gpu_mem_sz_kb >> 10, total_gpu_mem_sz_kb >> 10, local_mem_backend_overhead_kb >> 10, tql::mem_quota_kb >> 10,
-            new_quota_kb >> 10, as_memory_kb >> 10, as_reserve_kb >> 10);
+            free_gpu_mem_sz_kb >> 10, total_gpu_mem_sz_kb >> 10, interlocked_relaxed_load(tql::gpu_mem_backend_overhead_kb) >> 10,
+            tql::mem_quota_kb >> 10, new_quota_kb >> 10, as_memory_kb >> 10, as_reserve_kb >> 10);
           tql::mem_quota_kb = new_quota_kb;
         }
       }

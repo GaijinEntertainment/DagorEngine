@@ -164,7 +164,7 @@ namespace das::format {
         if (!maybe_struct) {
             return false;
         } else {
-            const auto &fields = maybe_struct->get()->fields;
+            const auto &fields = (*maybe_struct)->fields;
             return all_of(fields.begin(), fields.end(), [](auto field) {
                 return field.init;
             });

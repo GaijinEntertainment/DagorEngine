@@ -8,6 +8,7 @@
 #include <propPanel/c_control_event_handler.h>
 #include <assets/asset.h>
 
+struct ObjPropDialogNode;
 
 class ObjectPropertyEditor : public PropPanel::ControlEventHandler
 {
@@ -20,27 +21,35 @@ public:
 private:
   struct Data
   {
-    DagData dagData;
-    String lod;
     struct NodeData
     {
-      DagData::Node::NodeBlock &nodeBlock;
+      DagData::Node::NodeBlock *nodeBlock;
       String name;
       SimpleString props;
-      NodeData(DagData::Node::NodeBlock &nodeBlock, const String &name, const SimpleString &props) :
+      eastl::vector<NodeData> children;
+
+      NodeData() : nodeBlock(nullptr) {}
+
+      NodeData(DagData::Node::NodeBlock *nodeBlock, const String &name, const SimpleString &props) :
         nodeBlock(nodeBlock), name(name), props(props)
       {}
     };
-    eastl::vector<NodeData> nodes;
-    void buildProps(Tab<DagData::Node> &nodes, const String &lod);
+
+    DagData dagData;
+    String filename;
+    NodeData rootNode;
+
+    void buildProps(NodeData &parent, Tab<DagData::Node> &nodes, const char *dag_file_name);
     void loadFromDag(const char *dag_file_name, const String &lod);
     void saveToDag(const char *dag_file_name);
   };
 
-  void getData(Tab<String> &nodes, Tab<String> &props);
+  void makeObjPropDialogNodes(ObjPropDialogNode &dialog_node, const Data::NodeData &node_data);
   void loadProps();
 
-  void saveChanges(const Tab<String> &props);
+  void saveChangesInternal(const ObjPropDialogNode &dialog_node);
+  void saveChanges(const ObjPropDialogNode &dialog_node);
+
   eastl::vector<Data> data;
   eastl::string assetSrcFolderPath;
   eastl::string assetName;

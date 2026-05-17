@@ -1560,6 +1560,88 @@ bool WaterHeightmap::isFlat(int x, int z) const
   return cellData == 0xFFFF;
 }
 
+float WaterHeightmap::getMaxUpwardDisplacement() const { return 0; }
+
+float WaterHeightmap::getMaxDownwardDisplacement() const { return 0; }
+
+IPoint2 WaterHeightmap::getHeightmapSize() const
+{
+  // Cell = page, return the count of pages
+  return {gridSize, gridSize};
+}
+
+Point3 WaterHeightmap::getHeightmapOffset() const
+{
+  return {-tcOffsetScale.x / tcOffsetScale.z, heightOffset, -tcOffsetScale.y / tcOffsetScale.w};
+}
+
+float WaterHeightmap::getHeightmapCellSize() const { return max(1.f / tcOffsetScale.z / gridSize, 1.f / tcOffsetScale.w / gridSize); }
+
+bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const real &chunk_size, real &hmin, real &hmax) const
+{
+  const Point2 origin = Point2(-tcOffsetScale.x / tcOffsetScale.z, -tcOffsetScale.y / tcOffsetScale.w);
+  const Point2 pageSize = Point2(1.f / tcOffsetScale.z, 1.f / tcOffsetScale.w) / gridSize;
+  const Point2 texelSize = pageSize / HEIGHTMAP_PAGE_SIZE;
+
+  // Add a texel to account for region of interpolation between two texels
+  const Point2 extendedStartPos = pos - texelSize;
+  const Point2 extendedChunkSize = Point2(chunk_size, chunk_size) + texelSize;
+
+  IPoint2 pageStart = IPoint2((extendedStartPos.x * tcOffsetScale.z + tcOffsetScale.x) * gridSize,
+    (extendedStartPos.y * tcOffsetScale.w + tcOffsetScale.y) * gridSize);
+  IPoint2 pageEnd = IPoint2(((extendedStartPos.x + extendedChunkSize.x) * tcOffsetScale.z + tcOffsetScale.x) * gridSize,
+    ((extendedStartPos.y + extendedChunkSize.y) * tcOffsetScale.w + tcOffsetScale.y) * gridSize);
+  if (pageStart.x >= gridSize || pageStart.y >= gridSize || pageEnd.x < 0 || pageEnd.y < 0 || pageEnd.x < pageStart.x ||
+      pageEnd.y < pageStart.y)
+  {
+    hmin = hmax = heightOffset;
+    return false;
+  }
+  pageStart = {max(0, pageStart.x), max(0, pageStart.y)};
+  pageEnd = {min(pageEnd.x, gridSize - 1), min(pageEnd.y, gridSize - 1)};
+
+  bool foundData = false;
+  hmin = 1000000;
+  hmax = -1000000;
+  for (int pageY = pageStart.y; pageY <= pageEnd.y; ++pageY)
+  {
+    for (int pageX = pageStart.x; pageX <= pageEnd.x; ++pageX)
+    {
+      if (grid[pageY * gridSize + pageX] == 0xFFFF)
+        continue;
+
+      const Point2 pageStartPos = origin + mul(pageSize, Point2(pageX, pageY));
+      const Point2 pageEndPos = pageStartPos + pageSize;
+
+      Point2 from = extendedStartPos;
+      from = mul(floor(div(from - pageStartPos, texelSize)), texelSize) + pageStartPos;
+      from = max(pageStartPos, from);
+      Point2 to = extendedStartPos + extendedChunkSize;
+      to = mul(ceil(div(to - pageStartPos, texelSize)), texelSize) + pageStartPos;
+      to = min(to, pageEndPos);
+
+      for (float y = from.y; y < to.y; y += texelSize.y) //-V1034
+      {
+        for (float x = from.x; x < to.x; x += texelSize.x) //-V1034
+        {
+          float height;
+          if (getHeightmapDataBilinear(x, y, height))
+          {
+            hmin = min(hmin, height);
+            hmax = max(hmax, height);
+            foundData = true;
+          }
+        }
+      }
+    }
+  }
+
+  if (!foundData)
+    hmin = hmax = heightOffset;
+  return true;
+}
+
+
 struct WaterQueryUser
 {
   uint32_t handle;

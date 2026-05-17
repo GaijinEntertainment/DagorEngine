@@ -39,8 +39,8 @@ public:
     addBuiltinDependency(lib, require("DngNet"));
     addBuiltinDependency(lib, require("DngActor"));
 
-    addAnnotation(das::make_smart<PlayerAnnotation>(lib));
-    addAnnotation(das::make_smart<LookingAtAnnotation>(lib));
+    addAnnotation(new PlayerAnnotation(lib));
+    addAnnotation(new LookingAtAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(game::get_local_player_eid)>(*this, lib, "get_local_player_eid", das::SideEffects::none,
       "game::get_local_player_eid");

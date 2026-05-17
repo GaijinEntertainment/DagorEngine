@@ -124,7 +124,7 @@ static float probe_size = 0.05;
 
 static d3d::SamplerHandle linear_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
-static UniqueTexHolder rtr_probes;
+static UniqueTexWithShaderVar rtr_probes;
 static UniqueBufHolder rtr_probe_locations;
 struct BindlessProbes
 {

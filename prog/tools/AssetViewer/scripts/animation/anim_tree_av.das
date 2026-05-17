@@ -61,12 +61,12 @@ def anim_tree_ui(event : ImGuiStage)
           chars |> emplace((unsafe(addr(attach_animchar)), attach_animchar |> animchar_getResName))
 
       imgui::Text("Chars: ")
-      for char, i in chars, range(length(chars))
+      for ch, i in chars, range(length(chars))
         imgui::SameLine()
-        if imgui::Button("{char._1} {i == selectedChar ? "(selected)" : ""}")
+        if imgui::Button("{ch._1} {i == selectedChar ? "(selected)" : ""}")
           selectedChar = i
         if i == selectedChar
-          animchar = char._0
+          animchar = ch._0
 
       var resetState = false
       render_anim_graph2(*animchar, *animchar.animGraph, *animchar.animState, resetState, *paramsFilter, *statesFilter)

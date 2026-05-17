@@ -50,7 +50,7 @@ class Foo3D : Foo {
         z = -2
     }
     def operator delete {
-        delete cast<Foo> self
+        delete super.self
         delFoo3D ++
     }
 }

@@ -104,21 +104,19 @@ bool setCreatingTemplateTyped(CreatingTemplate &map, das::Bitfield flags, const 
 void ECS::addTemplates(das::ModuleLibrary &lib)
 {
   addBuiltinDependency(lib, require("rtti_core"));
-  addAnnotation(das::make_smart<TemplateAnnotation>(lib));
-  addAnnotation(das::make_smart<das::DummyTypeAnnotation>("CreatingTemplate", " ::bind_dascript::CreatingTemplate", 1, 1));
+  addAnnotation(new TemplateAnnotation(lib));
+  addAnnotation(new das::DummyTypeAnnotation("CreatingTemplate", " ::bind_dascript::CreatingTemplate", 1, 1));
 
   ADD_EXTERN(getTemplateByName, das::SideEffects::accessExternal);
   ADD_EXTERN(buildTemplateByName, das::SideEffects::modifyExternal);
   ADD_EXTERN_NAME(templateHasComponentHint, "templateHasComponent", das::SideEffects::accessExternal);
   ADD_EXTERN(getTemplatePath, das::SideEffects::none);
   auto templateHasComponentExt = ADD_EXTERN(templateHasComponent, das::SideEffects::accessExternal);
-  templateHasComponentExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  templateHasComponentExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 
   ADD_EXTERN_NAME(getTemplateComponentHint, "getTemplateComponent", das::SideEffects::accessExternal);
   auto getTemplateComponentExt = ADD_EXTERN(getTemplateComponent, das::SideEffects::accessExternal);
-  getTemplateComponentExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  getTemplateComponentExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 
   das::addExtern<DAS_BIND_FUN(getRegExpInheritedFlags)>(*this, lib, "getRegExpInheritedFlags", das::SideEffects::none,
     "bind_dascript::getRegExpInheritedFlags");

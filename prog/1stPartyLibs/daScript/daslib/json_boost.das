@@ -179,35 +179,35 @@ def private is_json_ptr_value(td : TypeDeclPtr) {
 class private BetterJsonMacro : AstVariantMacro {
     //! This macro is used to implement `is json_value` and `as json_value` runtime checks.
     //! It essentially substitutes `value as name` with `value.value as name` and `value is name` with `value.value is name`.
-    def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprIsVariant>) : ExpressionPtr {
+    def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : ExprIsVariant?) : ExpressionPtr {
         //! Visit ExprIsVariant node.
         if (is_json_ptr_value(expr.value._type)) {
-            var inscope vdr <- new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
-            var inscope isv <- new ExprIsVariant(at = expr.at, name := expr.name, value <- vdr)
+            var vdr = new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
+            var isv = new ExprIsVariant(at = expr.at, name := expr.name, value <- vdr)
             isv.genFlags = expr.genFlags
             return <- isv
         }
-        return <- default<ExpressionPtr>
+        return null
     }
-    def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprAsVariant>) : ExpressionPtr {
+    def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprAsVariant?) : ExpressionPtr {
         //! Visit ExprAsVariant node.
         if (is_json_ptr_value(expr.value._type)) {
-            var inscope vdr <- new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
-            var inscope isv <- new ExprAsVariant(at = expr.at, name := expr.name, value <- vdr)
+            var vdr = new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
+            var isv = new ExprAsVariant(at = expr.at, name := expr.name, value <- vdr)
             isv.genFlags = expr.genFlags
             return <- isv
         }
-        return <- default<ExpressionPtr>
+        return null
     }
-    def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprSafeAsVariant>) : ExpressionPtr {
+    def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprSafeAsVariant?) : ExpressionPtr {
         //! Visit ExprSafeAsVariant node.
         if (is_json_ptr_value(expr.value._type)) {
-            var inscope vdr <- new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
-            var inscope isv <- new ExprSafeAsVariant(at = expr.at, name := expr.name, value <- vdr)
+            var vdr = new ExprField(at = expr.at, name := "value", value <- clone_expression(expr.value))
+            var isv = new ExprSafeAsVariant(at = expr.at, name := expr.name, value <- vdr)
             isv.genFlags = expr.genFlags
             return <- isv
         }
-        return <- default<ExpressionPtr>
+        return null
     }
 }
 
@@ -232,7 +232,7 @@ class private JsonReader : AstReaderMacro {
             return true
         }
     }
-    def override visit(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprReader>) : ExpressionPtr {
+    def override visit(prog : ProgramPtr; mod : Module?; expr : ExprReader?) : ExpressionPtr {
         //! Visit the ExprReader node and parse the JSON content.
         let seqStr = string(expr.sequence)
         var error = ""
@@ -251,7 +251,7 @@ def from_JV(v : JsonValue const explicit?; ent : auto(EnumT); defV : EnumT = def
     if (v.value is _string) {
         let name = v.value as _string
         var res : auto(EnumTT) = default<EnumT>
-        var ti = typeinfo rtti_typeinfo(type<EnumT>)
+        let ti = typeinfo rtti_typeinfo(type<EnumT>)
         for (ef in *ti.enumType) {
             if (name == ef.name) {
                 unsafe {
@@ -395,14 +395,13 @@ def from_JV(v : JsonValue const explicit?; ent : auto(VecT); defV : VecT = VecT(
     if (v == null) {
         return defV
     }
-    let VecV : auto(VecTT) = VecT()
     assume vo = v
-    static_if (typeinfo vector_dim(VecV) == 2) {
-        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y)
-    } static_elif (typeinfo vector_dim(VecV) == 3) {
-        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z)
-    } static_elif (typeinfo vector_dim(VecV) == 4) {
-        return VecTT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z, vo?["w"] ?? defV.w)
+    static_if (typeinfo vector_dim(defV) == 2) {
+        return VecT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y)
+    } static_elif (typeinfo vector_dim(defV) == 3) {
+        return VecT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z)
+    } static_elif (typeinfo vector_dim(defV) == 4) {
+        return VecT(vo?["x"] ?? defV.x, vo?["y"] ?? defV.y, vo?["z"] ?? defV.z, vo?["w"] ?? defV.w)
     }
 }
 

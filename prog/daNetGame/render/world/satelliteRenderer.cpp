@@ -221,8 +221,16 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
   d3d::settm(TM_VIEW, view);
   set_viewvecs_to_shader(view, proj);
   set_inv_globtm_to_shader(view, proj, true);
+  camera_params.viewTm = view;
+  camera_params.viewItm = view_itm;
   camera_params.jitterFrustum = frustum;
   camera_params.noJitterFrustum = frustum;
+
+  float halfW = (box[1].x - box[0].x) * 0.5f;
+  float halfH = (box[1].z - box[0].z) * 0.5f;
+  Driver3dPerspective orthoPersp(1.0f / halfW, 1.0f / halfH, zn, zf);
+  camera_params.jitterPersp = orthoPersp;
+  camera_params.noJitterPersp = orthoPersp;
 
   STATE_GUARD_0(ShaderGlobal::set_int(var::use_satellite_rendering, VALUE), 1);
 
@@ -279,11 +287,11 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
   }
 }
 
-void SatelliteRenderer::scanSettleCheck(int vtex_updates)
+void SatelliteRenderer::scanSettleCheck(int vtex_updates, int tex_streaming_pending)
 {
   if (scanSettleFrameId < scan_settle_frames)
   {
-    if (vtex_updates == 0)
+    if (vtex_updates == 0 && tex_streaming_pending == 0)
       ++scanSettleFrameId;
   }
   else if (scanSettleFrameId == scan_settle_frames)
@@ -341,7 +349,7 @@ void SatelliteRenderer::renderScripted(CameraParams &camera_params)
   citm.col[3] = {x, height * 1.1f, y};
   set_cam_itm(citm);
 
-  scanSettleCheck(callbackParams.clipmapGetLastUpdatedTileCount());
+  scanSettleCheck(callbackParams.clipmapGetLastUpdatedTileCount(), callbackParams.texStreamingGetPendingCount());
   renderFromPos({x, height, y}, callbackParams, camera_params);
 
   if (scanIndex.y >= (1 << zlevels))

@@ -29,7 +29,7 @@ void Module_dasQUIRREL::initFunctions_6() {
 		->args({"v","idx"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:336:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger,SQBool) , sq_clear >(*this,lib,"sq_clear",SideEffects::worstDefault,"sq_clear")
-		->args({"v","idx","freemem"})->arg_init(2, make_smart<ExprConstUInt>(1u));
+		->args({"v","idx","freemem"})->arg_init(2, new ExprConstUInt(1u));
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:337:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger) , sq_freeze >(*this,lib,"sq_freeze",SideEffects::worstDefault,"sq_freeze")
 		->args({"v","idx"});

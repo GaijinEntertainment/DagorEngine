@@ -15,5 +15,5 @@ struct ComponentsMapAnnotation final : das::ManagedStructureAnnotation<ecs::Comp
 };
 
 
-void ECS::addCompMap(das::ModuleLibrary &lib) { addAnnotation(das::make_smart<ComponentsMapAnnotation>(lib)); }
+void ECS::addCompMap(das::ModuleLibrary &lib) { addAnnotation(new ComponentsMapAnnotation(lib)); }
 } // namespace bind_dascript

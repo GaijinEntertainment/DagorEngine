@@ -13,6 +13,7 @@
 #include "daScript/simulate/fs_file_info.h"
 #include "daScript/ast/dyn_modules.h"
 #include "daScript/misc/crash_handler.h"
+#include "daScript/misc/job_que.h"
 #include <sys/stat.h>
 
 #if defined(_WIN32) && defined(_DEBUG)
@@ -35,6 +36,8 @@ static TextPrinter tout;
 static string projectFile;
 static string project_root;
 static bool version2syntax = true;
+static bool trackAllocations = false;
+static bool heapReportAtExit = false;
 
 // --- DLL function pointers (loaded at runtime from dasModuleLiveHost) ---
 // All use POD types only — safe across DLL boundary.
@@ -72,7 +75,8 @@ static SetWatchedFilesFn dll_set_watched_files = nullptr;
 
 static void * get_dll_symbol(const char * name) {
 #ifdef _WIN32
-    HMODULE hMod = GetModuleHandleA("dasModuleLiveHost.shared_module");
+    HMODULE hMod = GetModuleHandleA("dasModuleLiveHost_debug.shared_module");
+    if (!hMod) hMod = GetModuleHandleA("dasModuleLiveHost.shared_module");
     if (!hMod) hMod = GetModuleHandleA("dasModuleLiveHost");
     return hMod ? (void*)GetProcAddress(hMod, name) : nullptr;
 #else
@@ -157,7 +161,6 @@ struct CompileResult {
     ProgramPtr program;
     ContextPtr ctx;
     FileAccessPtr access;
-    ModuleGroup moduleGroup;
     string errors;  // non-empty if compile/simulate failed
 };
 
@@ -174,8 +177,10 @@ static CompileResult compile_script(const string & fn) {
     policies.threadlock_context = true;
     policies.ignore_shared_modules = true;
     policies.rtti = true;
+    policies.track_allocations = trackAllocations;
 
-    result.program = compileDaScript(fn, result.access, tout, result.moduleGroup, policies);
+    ModuleGroup moduleGroup;
+    result.program = compileDaScript(fn, result.access, tout, moduleGroup, policies);
     if (!result.program) {
         result.errors = "failed to compile " + fn;
         tout << "ERROR: " << result.errors << "\n";
@@ -194,6 +199,14 @@ static CompileResult compile_script(const string & fn) {
     }
 
     result.ctx = SimulateWithErrReport(result.program, tout);
+    // Check for compiler leaks (TypeDecl nodes left on thread root after compile+simulate)
+    {
+        auto & root = gc_root::gc_get_thread_root();
+        if (root.gc_count != 0) {
+            tout << "GC COMPILER LEAK: " << uint64_t(root.gc_count) << " gc_node(s) after compile+simulate\n";
+            root.gc_report();
+        }
+    }
     if (!result.ctx) {
         result.errors = "simulation failed for " + fn;
         tout << "ERROR: " << result.errors << "\n";
@@ -312,6 +325,15 @@ static int run_lifecycle(const string & fn) {
             if (auto ex = ctx->getException()) {
                 tout << "EXCEPTION: " << ex << " at " << ctx->exceptionAt.describe() << "\n";
                 return 1;
+            }
+            // Report app leaks (TypeDecl nodes created during execution)
+            {
+                auto& root = gc_root::gc_get_thread_root();
+                if (root.gc_count != 0) {
+                    tout << "GC APP LEAK: " << uint64_t(root.gc_count) << " gc_node(s) after execution\n";
+                    root.gc_report();
+                    return 1;
+                }
             }
             return 0;
         }
@@ -519,21 +541,42 @@ static int run_lifecycle(const string & fn) {
         }
     }
 
+    // Report GC TypeDecl leaks
+    {
+        auto& root = gc_root::gc_get_thread_root();
+        if (root.gc_count != 0) {
+            tout << "GC LEAK: " << uint64_t(root.gc_count) << " gc_node(s) leaked\n";
+            root.gc_report();
+            return 1;
+        }
+    }
+
+    if (heapReportAtExit && ctx) {
+        tout << "--- heap report ---\n";
+        ctx->heap->report();
+        tout << "--- string heap report ---\n";
+        ctx->stringHeap->report();
+    }
+
     return 0;
 }
 
 // --- Arg parsing ---
 
 static void print_help() {
-    tout << "daslang-live — live-reloading application host for daScript\n";
+    tout << "daslang-live version " << DAS_VERSION_MAJOR << "." << DAS_VERSION_MINOR << "." << DAS_VERSION_PATCH << "\n";
+    tout << "daslang-live - live-reloading application host for daScript\n";
     tout << "Usage: daslang-live [options] <script.das> [-- script arguments]\n";
-    tout << "  -project <file>   — project file (.das_project)\n";
-    tout << "  -dasroot <path>   — override DAS_ROOT\n";
-    tout << "  -cwd              — change working directory to script's folder\n";
-    tout << "  -v1syntax         — use v1 syntax (default: v2)\n";
-    tout << "  --no-dyn-modules  — skip loading dynamic modules\n";
-    tout << "  --                — separator for script arguments\n";
-    tout << "  -h, --help        — this help\n";
+    tout << "  -project <file>    - project file (.das_project)\n";
+    tout << "  -dasroot <path>    - override DAS_ROOT\n";
+    tout << "  -cwd               - change working directory to script's folder\n";
+    tout << "  -v1syntax          - use v1 syntax (default: v2)\n";
+    tout << "  -track-allocations - track where heap allocations came from\n";
+    tout << "  -heap-report       - dump heap contents on shutdown\n";
+    tout << "  --no-dyn-modules   - skip loading dynamic modules\n";
+    tout << "  --no-dump-leaks    - silence JobStatus + HandleRegistry leak dumps at exit (default: dump)\n";
+    tout << "  --                 - separator for script arguments\n";
+    tout << "  -h, --help         - this help\n";
 }
 
 // --- Single instance ---
@@ -594,10 +637,12 @@ int main(int argc, char * argv[]) {
 #endif
 
     install_das_crash_handler();
+    das::arm_alloc_tracking();
 
     string scriptFile;
     bool noDynamicModules = false;
     bool changeCwd = false;
+    bool dumpLeaks = true;
 
     // Parse args
     for (int i = 1; i < argc; i++) {
@@ -610,8 +655,16 @@ int main(int argc, char * argv[]) {
             changeCwd = true;
         } else if (arg == "-v1syntax") {
             version2syntax = false;
+        } else if (arg == "-track-allocations") {
+            trackAllocations = true;
+        } else if (arg == "-heap-report") {
+            heapReportAtExit = true;
         } else if (arg == "--no-dyn-modules") {
             noDynamicModules = true;
+        } else if (arg == "--dump-leaks") {
+            dumpLeaks = true;
+        } else if (arg == "--no-dump-leaks") {
+            dumpLeaks = false;
         } else if (arg == "-h" || arg == "--help") {
             print_help();
             return 0;
@@ -681,7 +734,15 @@ int main(int argc, char * argv[]) {
 
     int result = run_lifecycle(scriptFile);
 
-    Module::Shutdown();
+    // Handle-leak dump runs inside Module::Shutdown, between module
+    // destruction (drains job threads) and DLL unload (invalidates the
+    // dumpHandleLeaks<T> function pointers registered from shared modules).
+    Module::Shutdown(dumpLeaks);
+    if ( dumpLeaks ) {
+        JobStatus::DumpJobQueLeaks();
+    }
+    // das::dump_alloc_leaks is registered as an atexit handler via init_seg(lib),
+    // so it fires after all static destructors — cleaner than dumping here.
     release_single_instance();
     return result;
 }

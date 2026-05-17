@@ -44,9 +44,9 @@ void CloudsRenderer::renderTiledDist(CloudsRendererData &data)
   }
   else
   {
-    d3d::set_render_target(data.clouds_tile_distance_tmp.getTex2D(), 0, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{data.clouds_tile_distance_tmp.getTex2D(), 0, 0}});
     clouds_tile_dist_prepare_ps.render();
-    d3d::set_render_target(data.clouds_tile_distance.getTex2D(), 0, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{data.clouds_tile_distance.getTex2D(), 0, 0}});
     clouds_tile_dist_min_ps.render();
   }
   if (clouds_tile_dist_count_cs && data.clouds_close_layer_is_outside)
@@ -277,8 +277,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
     else
     {
-      d3d::set_render_target(data.nextCloudsColor->getTex2D(), 0);
-      d3d::set_render_target(1, data.cloudsTextureDepth.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW,
+        {{data.nextCloudsColor->getTex2D(), 0, 0}, {data.cloudsTextureDepth.getTex2D(), 0, 0}});
       clouds2_temporal_ps.render();
     }
   }
@@ -310,7 +310,7 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
     else
     {
-      d3d::set_render_target(data.clouds_color_close.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{data.clouds_color_close.getTex2D(), 0, 0}});
       if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
       {
         clouds2_close_temporal_ps.getElem()->setStates();
@@ -360,8 +360,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
     else
     {
-      d3d::set_render_target(data.cloudsTextureColor->getTex2D(), 0);
-      d3d::set_render_target(1, data.cloudsTextureWeight->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW,
+        {{data.cloudsTextureColor->getTex2D(), 0, 0}, {data.cloudsTextureWeight->getTex2D(), 0, 0}});
       d3d::setview(0, 0, w, h, 0, 1);
       d3d::setscissor(0, 0, w, h);
       d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
@@ -398,7 +398,7 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
     else
     {
-      d3d::set_render_target(data.nextCloudsColor->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{data.nextCloudsColor->getTex2D(), 0, 0}});
       clouds2_apply_blur_ps.render();
       d3d::resource_barrier({data.nextCloudsColor->getTex2D(), RB_RW_RENDER_TARGET | RB_STAGE_PIXEL, 0, 0});
     }

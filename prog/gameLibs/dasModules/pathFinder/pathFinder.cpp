@@ -104,20 +104,20 @@ public:
     addBuiltinDependency(lib, require("math"));
     addBuiltinDependency(lib, require("DagorMath"));
     G_STATIC_ASSERT(sizeof(dtPolyRef) == sizeof(uint64_t));
-    auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt64);
+    auto pType = new das::TypeDecl(das::Type::tUInt64);
     pType->alias = "dtPolyRef";
     addAlias(pType);
 
-    addEnumeration(das::make_smart<EnumerationFindPathResult>());
-    addEnumeration(das::make_smart<EnumerationPolyFlag>());
+    addEnumeration(new EnumerationFindPathResult());
+    addEnumeration(new EnumerationPolyFlag());
     das::addEnumFlagOps<pathfinder::PolyFlag>(*this, lib, "pathfinder::PolyFlag");
-    addEnumeration(das::make_smart<EnumerationStraightPathFlags>());
-    addAnnotation(das::make_smart<CustomNavAnnotation>(lib));
-    addAnnotation(das::make_smart<FindRequestAnnotation>(lib));
-    addAnnotation(das::make_smart<CorridorInputAnnotation>(lib));
-    addAnnotation(das::make_smart<DtPathCorridorAnnotation>(lib));
-    addAnnotation(das::make_smart<NavMeshTriangleAnnotation>(lib));
-    addAnnotation(das::make_smart<FindCornersResultAnnotation>(lib));
+    addEnumeration(new EnumerationStraightPathFlags());
+    addAnnotation(new CustomNavAnnotation(lib));
+    addAnnotation(new FindRequestAnnotation(lib));
+    addAnnotation(new CorridorInputAnnotation(lib));
+    addAnnotation(new DtPathCorridorAnnotation(lib));
+    addAnnotation(new NavMeshTriangleAnnotation(lib));
+    addAnnotation(new FindCornersResultAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(find_path_req)>(*this, lib, "find_path", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::find_path_req");
@@ -203,13 +203,13 @@ public:
     das::addExtern<float (*)(const Point3 &pos, float horz_extents, float search_rad, const pathfinder::CustomNav *custom_nav),
       pathfinder::get_distance_to_wall>(*this, lib, "get_distance_to_wall", das::SideEffects::accessExternal,
       "::pathfinder::get_distance_to_wall")
-      ->arg_init(3 /*custom_nav*/, das::make_smart<das::ExprConstPtr>());
+      ->arg_init(3 /*custom_nav*/, new das::ExprConstPtr());
 
     das::addExtern<float (*)(const Point3 &pos, float horz_extents, float search_rad, Point3 &hit_norm,
                      const pathfinder::CustomNav *custom_nav),
       pathfinder::get_distance_to_wall>(*this, lib, "get_distance_to_wall", das::SideEffects::modifyArgument,
       "::pathfinder::get_distance_to_wall")
-      ->arg_init(4 /*custom_nav*/, das::make_smart<das::ExprConstPtr>());
+      ->arg_init(4 /*custom_nav*/, new das::ExprConstPtr());
 
     das::addExtern<DAS_BIND_FUN(pathfinder::is_navmesh_position_suitable_ex)>(*this, lib, "is_navmesh_position_suitable_ex",
       das::SideEffects::accessExternal, "pathfinder::is_navmesh_position_suitable_ex");

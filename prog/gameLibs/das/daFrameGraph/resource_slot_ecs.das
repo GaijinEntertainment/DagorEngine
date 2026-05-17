@@ -58,14 +58,14 @@ class ResourceSlotEcsAnnotation : AstFunctionAnnotation
       errors := "Function {func.name} annotated with [resource_slot_ecs] expects first parameter '{func.arguments[0].name}' with type 'var {func.arguments[0].name} : NodeHandleWithSlotsAccess&' or 'var {func.arguments[0].name} : NodeHandleWithSlotsAccessVector&', but '{firstArgType}' provided."
       return <- ResSlotEcsAnnotationArgs()
 
-    var inscope fnArguments : array<VariablePtr>
-    var inscope callArguments : array<ExpressionPtr>
+    var fnArguments : array<VariablePtr>
+    var callArguments : array<ExpressionPtr>
     for arg in func.arguments
       if !(arg._type.isConst || arg._type.isRef || arg._type.isPointer)
         errors := "{func.name}: argument 'var {describe(arg)}' is var, but it's change won't affected the actual data. Probably you forgot &"
         return <- ResSlotEcsAnnotationArgs()
       fnArguments |> emplace_new <| clone_variable(arg)
-      callArguments |> emplace_new <| qmacro($i(arg.name))
+      callArguments |> push(qmacro($i(arg.name)))
 
     return <- ResSlotEcsAnnotationArgs(
       ok = true,
@@ -77,7 +77,7 @@ class ResourceSlotEcsAnnotation : AstFunctionAnnotation
   def declareReloadCallback(func : FunctionPtr; parsed : ResSlotEcsAnnotationArgs; args : AnnotationArgumentList)
     // To understand declaration syntax, read https://dascript.org/doc/reference/language/reification.html
 
-    var inscope reloadCallback <- qmacro_function("resource_slot_reload`{func.name}") <| $()
+    var reloadCallback = qmacro_function("resource_slot_reload`{func.name}") <| $()
       if !is_daframegraph_runtime_initialized()
         logerr("daFG: dafg::startup must be called before loading any das scripts that use daFG!")
         return
@@ -104,7 +104,7 @@ class ResourceSlotEcsAnnotation : AstFunctionAnnotation
     if !parsed.needDeclareEs
       return
 
-    var inscope resSlotES <- qmacro_function("resource_slot_es`{func.name}") <| $(evt : Event; $a(parsed.fnArguments))
+    var resSlotES = qmacro_function("resource_slot_es`{func.name}") <| $(evt : Event; $a(parsed.fnArguments))
       if !is_daframegraph_runtime_initialized()
         logerr("daFG: dafg::startup must be called before loading any das scripts that use daFG!")
         return
@@ -112,21 +112,21 @@ class ResourceSlotEcsAnnotation : AstFunctionAnnotation
       $c(func.name)($a(parsed.callArguments))
 
     var inscope esArguments <- [
-        ("tag", RttiValue(tString="render"))
+        (argname="tag", argvalue=RttiValue(tString="render"))
     ]
     for arg in args
       if RES_SLOT_ECS_NODE_PASS_ES |> has_value("{arg.name}")
         if arg.basicType == Type.tString
-          esArguments |> push(("{arg.name}", RttiValue(tString = "{arg.sValue}")))
+          esArguments |> push((argname = "{arg.name}", argvalue = RttiValue(tString = "{arg.sValue}")))
         elif arg.basicType == Type.tBool
-          esArguments |> push(("{arg.name}", RttiValue(tBool = arg.bValue)))
+          esArguments |> push((argname = "{arg.name}", argvalue = RttiValue(tBool = arg.bValue)))
 
     resSlotES |> append_annotation("ecs", "es", esArguments)
     compiling_module() |> add_function(resSlotES)
 
   [unused_argument(group)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool
 
-    var inscope parsed <- func |> parseArgs(args, errors)
+    var parsed <- func |> parseArgs(args, errors)
     if !parsed.ok
       return false
 

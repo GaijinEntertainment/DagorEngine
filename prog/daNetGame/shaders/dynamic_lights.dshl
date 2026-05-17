@@ -39,6 +39,8 @@ shader render_dynamic_lighting
 
     tiles@buf = render_direct_lights_tiles hlsl { ByteAddressBuffer tiles@buf; };
     dynamic_lights@uav = precomputed_dynamic_lights hlsl { RWTexture2D<float3> dynamic_lights@uav; };
+
+    special_vision@i1 = special_vision;
   }
 
   hlsl(cs) {
@@ -129,8 +131,9 @@ shader render_dynamic_lighting
 
       half AO = processedGbuffer.ao * ssao.x;
 
+      float3 specularColor = special_vision ? 0 : processedGbuffer.specularColor;
       float3 result = get_dynamic_lighting(processedGbuffer, worldPos.xyz, -viewVect, w, screenCoordCenter, NoV,
-        processedGbuffer.specularColor, curViewTc, AO);
+        specularColor, curViewTc, AO);
       texture2DAt(dynamic_lights, pixelCoord) = result;
     }
   }

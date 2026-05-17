@@ -76,7 +76,7 @@ class RouteTestServer : HvWebServer {
         }
         // JSON response
         GET("/api/status") <| @(var req : HttpRequest?; var resp : HttpResponse?) : http_status {
-            let payload : tuple<status : string; version : int> = ("ok", 3)
+            let payload = (status = "ok", version = 3)
             return resp |> JSON(write_json(JV(payload)))
         }
     }

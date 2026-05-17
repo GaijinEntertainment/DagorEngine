@@ -145,8 +145,8 @@ static d3d::SamplerHandle samplerNearestMirror = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle samplerLinearClamp = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle samplerLinearMirror = d3d::INVALID_SAMPLER_HANDLE;
 
-static UniqueTexHolder scramblingRankingTexture;
-static UniqueTexHolder sobolTexture;
+static UniqueTexWithShaderVar scramblingRankingTexture;
+static UniqueTexWithShaderVar sobolTexture;
 
 static UniqueBuf reblurSharedCb_ao;
 static UniqueBuf reblurSharedCb_gi;
@@ -177,7 +177,7 @@ static int rtr_normal_roughness_bindless_sampler_slotVarId = -1;
 static int ptgi_bindless_sampler_slotVarId = -1;
 static int ptgi_depth_bindless_sampler_slotVarId = -1;
 static int rtao_bindless_sampler_slotVarId = -1;
-
+static int ray_reconstruction_activeVarId = -1;
 static int blue_noise_frame_indexVarId = -1;
 
 static int bindless_range = -1;
@@ -703,7 +703,7 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
   ptgi_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_bindless_sampler_slot");
   ptgi_depth_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_depth_bindless_sampler_slot");
   rtao_bindless_sampler_slotVarId = get_shader_variable_id("rtao_bindless_sampler_slot");
-
+  ray_reconstruction_activeVarId = get_shader_variable_id("ray_reconstruction_active");
   blue_noise_frame_indexVarId = get_shader_variable_id("blue_noise_frame_index");
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, resolution_config.width, resolution_config.height, 0, 0);
@@ -1146,6 +1146,9 @@ void prepare(const FrameParams &params)
   frame_counter++;
 
   ShaderGlobal::set_int(blue_noise_frame_indexVarId, frame_counter);
+
+  ShaderGlobal::set_int(ray_reconstruction_activeVarId, resolution_config.useRayReconstruction ? 1 : 0);
+
   if (params.dynRes.has_value())
     resolution_config.dynRes = params.dynRes.value();
   else

@@ -9,7 +9,7 @@ require daslib/json_boost
 def private try_ast_grep(cmd : string) : bool {
     var found = false
     unsafe {
-        popen("{cmd} --version") <| $(f) {
+        popen("{cmd} --version") $(f) {
             if (f == null) {
                 return
             }
@@ -91,11 +91,11 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
     }
     var raw_json : string
     unsafe {
-        popen(cmd) <| $(f) {
+        popen(cmd) $(f) {
             if (f == null) {
                 return
             }
-            raw_json = build_string() <| $(var w) {
+            raw_json = build_string() $(var w) {
                 while (!feof(f)) {
                     write(w, fgets(f))
                 }
@@ -148,7 +148,7 @@ def do_grep_usage(symbol, directory, context_lines_str, glob_filter : string) : 
             match_count += length(by_file[fp])
         }
     }
-    var output = build_string() <| $(var w) {
+    var output = build_string() $(var w) {
         write(w, "Found {match_count} match")
         if (match_count != 1) {
             write(w, "es")

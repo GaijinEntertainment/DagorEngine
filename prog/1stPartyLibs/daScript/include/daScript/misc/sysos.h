@@ -30,6 +30,7 @@ namespace das {
     void * getFunctionAddress ( void * module, const char * func );
     void * getLibraryHandle ( const char * moduleName );
     bool closeLibrary ( void * module );
+    string getDynamicLibraryError ( void );
 
 
     void hwSetBreakpointHandler ( void (* handler ) ( int, void * ) );

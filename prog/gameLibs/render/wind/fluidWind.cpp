@@ -279,20 +279,20 @@ void FluidWind::init()
   for (int i = 0; i < 2; ++i)
   {
     String texName(0, "windSpeedTex%d", i);
-    speedTex[i] =
-      dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str(), RESTAG_WIND);
+    speedTex[i] = dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE,
+      1, texName.str(), RESTAG_WIND);
 
     texName = String(0, "windPressureTex%d", i);
-    pressureTex[i] =
-      dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str(), RESTAG_WIND);
+    pressureTex[i] = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ,
+      TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE, 1, texName.str(), RESTAG_WIND);
   }
 
-  divergenceTex = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1,
-    "windDivergenceTex", RESTAG_WIND);
+  divergenceTex = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ,
+    TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE, 1, "windDivergenceTex", RESTAG_WIND);
 
 #if DEBUG_OUTPUT
-  outputTex =
-    dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windOutputTex", RESTAG_WIND);
+  outputTex = dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_CLEAR_ON_CREATE, 1,
+    "windOutputTex", RESTAG_WIND);
 #endif
 }
 
@@ -366,4 +366,16 @@ bool FluidWind::isContained(const Point3 &center, float radius) const
 {
   Point3 regionSize = max(abs(center - lastOrigin) - Point3(radius, radius, radius), Point3(0, 0, 0));
   return regionSize.x < desc.worldSize.x || regionSize.y < desc.worldSize.y || regionSize.z < desc.worldSize.z;
+}
+
+void FluidWind::afterDeviceReset()
+{
+  // sleepTime set to 0: the next update will clear the texture before it would fill write into it
+  // set shaderVar to 0: it will prevent the reading of the texture before an update could occur
+  // The default state of this class is:
+  //  * The texture stores any data
+  //  * sleepTime = 0 (CPU-side state indicating that the fluid wind is inactive)
+  //  * fluid_wind_status (shadervar) = 0 (GPU side parameter, indicating that the fluid wind is inactive)
+  sleepTime = 0;
+  ShaderGlobal::set_int(fluidWindStatusVarId, 0);
 }

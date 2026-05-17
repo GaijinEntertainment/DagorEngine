@@ -1379,6 +1379,7 @@ namespace drv3d_metal
     debug("[METAL] validate_framemem_bounds : %s", validate_framemem_bounds ? "true" : "false");
     debug("[METAL] manual_hazard_tracking : %s", manual_hazard_tracking ? "true" : "false");
     debug("[METAL] use_separate_command_buffer_for_each_encoder : %s", use_separate_command_buffer_for_each_encoder ? "true" : "false");
+    debug("[METAL] max available video memory %lluMB", device.recommendedMaxWorkingSetSize >> 20u);
 
     commandQueue = [device newCommandQueue];
 
@@ -1966,7 +1967,8 @@ namespace drv3d_metal
   {
     Buffer *scratch = nullptr;
     uint32_t offset = 0;
-    bool update = false;
+    uint32_t size : 31 = 0;
+    uint32_t update : 1 = 0;
   };
 
   void Render::executeCommands(bool wait, bool present)
@@ -2648,6 +2650,7 @@ namespace drv3d_metal
 
           [accelerationEncoder copyAccelerationStructure : as_src
                                  toAccelerationStructure : as_dst];
+          dst->was_built = true;
         }
         break;
         case CommandType::BuildAccelerationStructure:
@@ -2688,6 +2691,11 @@ namespace drv3d_metal
           Texture *color = nullptr, *output = nullptr;
           uint32_t colorMode = 0;
           command_encoder.read(color).read(output).read(colorMode);
+
+          bool color_srgb = color->cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE);
+          bool output_srgb = output->cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE);
+          // upscale breaks when input is srgb and output is not, even though the formats are passed correctly
+          G_ASSERT(color_srgb == output_srgb);
 
           id<MTLFence> fence = nil;
           if (@available(iOS 16, macos 13, *))
@@ -4334,14 +4342,13 @@ namespace drv3d_metal
     }
     else if (!has_color)
     {
-      G_ASSERT(dirty_state & DirtyFlags::Viewport);
-      G_ASSERT(rt.vp.w > 0);
-      G_ASSERT(rt.vp.h > 0);
+      G_ASSERT(rt.vp.w >= 0);
+      G_ASSERT(rt.vp.h >= 0);
 
       // apple hardware only supports 4 so lets use 4 if any msaa is set
       samples = forcedSampleCount < 2 ? 1 : 4;
-      render_desc.renderTargetWidth = rt.vp.x + rt.vp.w;
-      render_desc.renderTargetHeight = rt.vp.y + rt.vp.h;
+      render_desc.renderTargetWidth = max(rt.vp.x + rt.vp.w, 1.f);
+      render_desc.renderTargetHeight = max(rt.vp.y + rt.vp.h, 1.f);
       render_desc.defaultRasterSampleCount = samples;
     }
 
@@ -5010,7 +5017,7 @@ namespace drv3d_metal
     id<MTLBuffer> buf = [device newBufferWithLength : size
                                             options : flags];
     if (buf == nil)
-      DAG_FATAL("Failed to allocate buffer %s with size %d", name, size);
+      DAG_FATAL("Failed to allocate buffer %s with size %d, available %llukb of %llukb", name, size, device.currentAllocatedSize >> 10, device.recommendedMaxWorkingSetSize >> 10);
 #if DAGOR_DBGLEVEL > 0
     buf.label = [NSString stringWithUTF8String : name];
 #endif
@@ -5104,8 +5111,6 @@ namespace drv3d_metal
   {
     checkRenderAcquired();
 
-    G_ASSERT(space_buffer);
-
     MTLAccelerationStructureSizes sizes = [device accelerationStructureSizesWithDescriptor: desc];
 
     G_ASSERT(as->acceleration_struct);
@@ -5115,10 +5120,13 @@ namespace drv3d_metal
     G_ASSERT(accStruct.size >= sizes.accelerationStructureSize);
 
     Buffer *sbuffer = (Buffer *)space_buffer;
-    G_ASSERT(sbuffer && !sbuffer->is_fast_discard());
-    track_resource_read(*sbuffer);
+    if (sbuffer)
+    {
+      G_ASSERT(sbuffer && !sbuffer->is_fast_discard());
+      track_resource_read(*sbuffer);
+    }
 
-    id<MTLBuffer> spaceBuf = sbuffer->getBuffer();
+    id<MTLBuffer> spaceBuf = sbuffer ? sbuffer->getBuffer() : nil;
 
     if (refit && as->was_built)
     {
@@ -5126,7 +5134,7 @@ namespace drv3d_metal
 
       G_ASSERT(desc.usage & MTLAccelerationStructureUsageRefit);
 
-      G_ASSERT(sizes.refitScratchBufferSize + space_buffer_offset <= spaceBuf.length);
+      G_ASSERT(sizes.refitScratchBufferSize == 0 || sizes.refitScratchBufferSize + space_buffer_offset <= spaceBuf.length);
 
       [accelerationEncoder refitAccelerationStructure: accStruct
                                            descriptor: desc
@@ -5174,7 +5182,7 @@ namespace drv3d_metal
 
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Acceleration);
 
-    ASBuildInfo info {.scratch = (Buffer *)tasbi.scratchSpaceBuffer, .offset = tasbi.scratchSpaceBufferOffsetInBytes, .update = tasbi.doUpdate};
+    ASBuildInfo info {.scratch = (Buffer *)tasbi.scratchSpaceBuffer, .offset = tasbi.scratchSpaceBufferOffsetInBytes, .size = tasbi.scratchSpaceBufferSizeInBytes, .update = tasbi.doUpdate ? 1u : 0u};
 
     uint8_t count = 1;
     command_encoder.write(CommandType::BuildAccelerationStructure).write(as).write([accDesc retain]).write(info).write(count).write(ibuffer);
@@ -5192,7 +5200,9 @@ namespace drv3d_metal
 
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Acceleration);
 
-    ASBuildInfo info {.scratch = (Buffer *)basbi.scratchSpaceBuffer, .offset = basbi.scratchSpaceBufferOffsetInBytes, .update = basbi.doUpdate};
+    G_ASSERT(basbi.doUpdate || basbi.scratchSpaceBufferSizeInBytes);
+    G_ASSERT(basbi.scratchSpaceBufferSizeInBytes == 0 || basbi.scratchSpaceBuffer);
+    ASBuildInfo info {.scratch = (Buffer *)basbi.scratchSpaceBuffer, .offset = basbi.scratchSpaceBufferOffsetInBytes, .size = basbi.scratchSpaceBufferSizeInBytes, .update = basbi.doUpdate ? 1u : 0u};
 
     uint8_t count = uint8_t(resources.size());
     command_encoder.write(CommandType::BuildAccelerationStructure).write(blas).write([accDesc retain]).write(info).write(count).write(resources.data(), resources.size()*sizeof(Buffer *));

@@ -535,7 +535,7 @@ ImpostorBaker::ImpostorData ImpostorBaker::generate(DagorAsset *asset, const Imp
 
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::set_int(impostor_sdf_max_distanceVarId, RENDER_OVERSCALE * 8);
-  UniqueTexHolder impostorSdfTex =
+  UniqueTexWithShaderVar impostorSdfTex =
     dag::create_tex(nullptr, gen_data.textureWidth, gen_data.textureHeight, TEXFMT_R32UI | TEXCF_UNORDERED, 1, "impostor_sdf_tex");
   uint32_t maxDistance[4] = {0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu};
   d3d::clear_rwtexi(impostorSdfTex.getTex2D(), maxDistance, 0, 0);

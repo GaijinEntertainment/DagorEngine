@@ -536,21 +536,13 @@ endmacro
 macro USE_LIGHTS_CLUSTERED_CB(code)
   hlsl(code) {
     #include <clustered_constants.hlsli>
+    #include <frustumClusters.hlsli>
     //helper macro to reduce divirgence
     #if WAVE_INTRINSICS//reduce divirgence, on SM6.0 and consoles
       #define MERGE_MASK(m) WaveReadFirstLane( WaveAllBitOr( (m) ) )
     #else
       #define MERGE_MASK(m) (m)
     #endif
-    uint getSliceAtDepth( float depth, float sliceScale, float sliceBias)
-    {
-      return max(0, log2(depth) * sliceScale + sliceBias);
-    }
-    uint getClusterIndex(half2 tc, uint sliceId)
-    {
-      uint2 gridCoord = min(uint2(saturate(tc)*half2(CLUSTERS_W, CLUSTERS_H)), uint2(CLUSTERS_W-1, CLUSTERS_H-1));
-      return gridCoord.x+gridCoord.y*CLUSTERS_W + sliceId*CLUSTERS_W*CLUSTERS_H;
-    }
   }
 endmacro
 

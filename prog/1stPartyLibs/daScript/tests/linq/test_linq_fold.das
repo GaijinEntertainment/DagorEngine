@@ -272,8 +272,8 @@ def test_generic_fold_aggregates(t : T?) {
             .average()
             ._fold()
         )
-        t |> equal(typeinfo typename(t2), "int")
-        t |> equal(4, t2)
+        t |> equal(typeinfo typename(t2), "double")
+        t |> equal(4.5lf, t2)
     }
     t |> run("min_max_avarage fold") @(t : T?) {
         var (tmin, tmax, tavg) = ([1, 2, 3, 4, 5, 6, 7, 8]

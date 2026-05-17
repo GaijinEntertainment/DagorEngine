@@ -24,7 +24,7 @@ class Generator
 {
 public:
   constexpr void configure(const DataBlock *) {}
-  constexpr CommandData generateCommandData() const { return {}; }
+  constexpr CommandData generateCommandData(uint32_t) const { return {}; }
 };
 
 class Reporter
@@ -34,5 +34,6 @@ public:
 
   constexpr void append(String &, const char *, const CommandData &) {}
   constexpr eastl::string_view resolve(const CommandData &) { return {}; }
+  const char *extMessage(const CommandData &) { return ""; }
 };
 } // namespace drv3d_dx12::debug::call_stack::null

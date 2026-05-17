@@ -1,6 +1,7 @@
 import:t="%danetlibs/renderer/templates/render_settings.template.blk"
 import:t="%danetlibs/renderer/templates/grass_render.template.blk"
 import:t="%danetlibs/renderer/templates/dynamic_lighting.template.blk"
+import:t="%danetlibs/renderer/templates/ui_nodes.template.blk"
 import:t="%danetlibs/render_debug/templates/debug_visualization.template.blk"
 import:t="%danetlibs/frame_graph_renderer/templates/frame_graph_nodes.template.blk"
 import:t="%danetlibs/blurred_ui/templates/blurred_ui.template.blk"

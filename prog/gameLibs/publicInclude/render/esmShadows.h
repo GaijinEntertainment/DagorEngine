@@ -30,7 +30,7 @@ private:
   void initEsmShadowsStateId();
 
   UniqueTex esmShadowBlurTmp;
-  UniqueTexHolder esmShadowArray;
+  UniqueTexWithShaderVar esmShadowArray;
   PostFxRenderer esmBlurRenderer;
   DynamicShaderHelper esmDepthShader;
 

@@ -3,7 +3,7 @@ caustics{
   _tags:t="render"
   "caustics__perCameraResNode:dafg::NodeHandle"{}
   "caustics__renderNode:dafg::NodeHandle"{}
-  "caustics__indoor_probe_mask:UniqueTexHolder"{}
+  "caustics__indoor_probe_mask:UniqueTexWithShaderVar"{}
   "caustics__indoor_probe_shader:ShadersECS"{}
   caustics__indoor_probe_shader_name:t = "indoor_probe_to_depth"
   needs_water_heightmap:b=no

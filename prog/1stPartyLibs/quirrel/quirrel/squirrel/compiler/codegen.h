@@ -56,8 +56,6 @@ public:
 
 private:
 
-    void reportDiagnostic(Node *n, int32_t id, ...);
-
     void CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts);
     bool CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj);
 
@@ -76,6 +74,7 @@ private:
     void SaveDocstringToVM(void *key, const DocObject &docObject);
 
     void emitUnaryOp(SQOpcode op, UnExpr *arg);
+    void emitAwait(UnExpr *arg);
     void emitDelete(UnExpr *argument);
     void emitSimpleBinaryOp(SQOpcode op, Expr *lhs, Expr *rhs, SQInteger op3 = 0);
     void emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs);
@@ -126,6 +125,14 @@ private:
     unsigned inferExprTypeMask(Expr *expr);
     unsigned inferExprTypeMaskImpl(Expr *expr);
     bool checkInferredType(Node *reportNode, Expr *expr, unsigned declaredMask);
+
+    struct ResolvedCallee {
+        bool known;       // true if statically resolvable
+        bool isAsync;     // valid only when known
+        bool isNative;    // resolved to a native closure -- can't tell sync vs Promise-returning
+        unsigned resultMask;
+    };
+    ResolvedCallee resolveCallee(Expr *callee);
 
     Expr *deparen(Expr *e) const;
     bool isFreezeCall(Expr *node);

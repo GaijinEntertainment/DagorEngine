@@ -143,7 +143,8 @@ void StcodeBranchedBuildEvalCB::eval_bool_decl(bool_decl &d)
     ctx.cppStcode().cppStcode.setVarValue(d.name->text, expr.c_str());
   }
 
-  ctx.localBoolVars().add(d, parser, true);
+  G_ASSERT(d.resolvedNid >= 0);
+  ctx.localBoolVars().add(d.resolvedNid, d.expr, parser, d.name, true);
 }
 
 int StcodeBranchedBuildEvalCB::eval_if(bool_expr &e)
@@ -185,7 +186,7 @@ void StcodeBranchedBuildEvalCB::buildConditionBoolValue(const bool_value &val, S
 
   if (val.bool_var)
   {
-    auto [e, isGlobal, hasMultipleDeclarations] = semantic::get_bool_expr(*val.bool_var, parser, ctx, ctx.tgtCtx());
+    auto [e, isGlobal, hasMultipleDeclarations] = semantic::get_bool_expr(*val.bool_var, parser, ctx);
     if (isGlobal || !hasMultipleDeclarations)
       buildConditionString(*e, out);
     else
@@ -193,7 +194,7 @@ void StcodeBranchedBuildEvalCB::buildConditionBoolValue(const bool_value &val, S
   }
   else if (val.maybe)
   {
-    auto [e, isGlobal, _] = semantic::get_bool_maybe(*val.maybe_bool_var, ctx, ctx.tgtCtx());
+    auto [e, isGlobal, _] = semantic::get_bool_maybe(*val.maybe_bool_var, ctx);
     if (e)
     {
       if (isGlobal)

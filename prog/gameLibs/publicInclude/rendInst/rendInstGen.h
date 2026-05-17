@@ -98,6 +98,8 @@ void addRIGenExtraSubst(const char *ri_res_name);
 void walkRIGenResourceNames(res_walk_cb cb);
 bool hasRiLayer(int res_idx, LayerFlag layer);
 
+int getRIGenLoadedInstancesCount();
+
 CollisionResource *getRIGenCollInfo(const rendinst::RendInstDesc &desc);
 
 float getMaxRiGenLoadingDistance();

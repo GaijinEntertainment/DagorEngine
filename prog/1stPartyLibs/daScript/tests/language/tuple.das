@@ -4,18 +4,18 @@ require dastest/testing_boost public
 // Tests tuple creation, named fields, positional access, sizeof, heap allocation,
 // make_tuple syntax, fixed_array of tuples, and finalize/clone operations.
 
-def testI(arg : tuple<i : int; float>) {
+def testI(arg : tuple<i : int; f : float>) {
     return arg.i == 1
 }
 
-def testF(arg : tuple<int; f : float>) {
+def testF(arg : tuple<i : int; f : float>) {
     return arg.f == 3.14
 }
 
 [test]
 def test_tuple(t : T?) {
     t |> run("basic creation and named fields") @(t : T?) {
-        let ttt = (1, 3.14)
+        let ttt = (i = 1, f = 3.14)
         t |> equal(testI(ttt), true)
         t |> equal(testF(ttt), true)
         t |> equal(ttt._first, 1)

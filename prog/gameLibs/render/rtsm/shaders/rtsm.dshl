@@ -51,6 +51,8 @@ interval rtsm_quality : full_res < 1, slow_fill < 2, fast_fill;
 int rtsm_add_far_screen_space_shadows = 0;
 interval rtsm_add_far_screen_space_shadows : no < 1, yes;
 
+int ray_reconstruction_active = 0;
+
 float impostor_shadow_offset = -10;
 
 float foliage_shadow_radius_scale = 2;
@@ -133,6 +135,7 @@ shader rt_shadows, rt_shadows_fill_high
     foliage_offset_distance@f1 = foliage_offset_distance;
     tree_area@f4 = rtsm_tree_area;
     grass_range@f2 = (rtsm_grass_range, 1.0 / rtsm_grass_range);
+    ray_reconstruction_active@u1 = ray_reconstruction_active;
 
     // Contact shadow stuff
     contact_shadow_len@f1 = contact_shadow_len;
@@ -431,31 +434,36 @@ shader rt_shadows, rt_shadows_fill_high
         groupMask &= ~bvhGroupGPUFoliage;
       }
 
-    ##if rtsm_pipeline_mode == inline
-      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, minT, maxTrace, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
-      float hitDistance = hitInfo.t;
-    ##else
-      RayPayload payload = (RayPayload)0;
-
-      RayDesc ray;
-      ray.Origin = relPos.xyz;
-      ray.Direction = direction;
-      ray.TMin = minT;
-      ray.TMax = maxTrace;
-
-      ##if rtsm_cull_back_face == yes
-        uint cullFlag = RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
-      ##else
-        uint cullFlag = 0;
+      ##if rtsm_add_far_screen_space_shadows == yes
+        if (ray_reconstruction_active)
+          groupMask |= bvhGroupGrass;
       ##endif
 
-      uint flags = cullFlag | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | extraFlags;
+      ##if rtsm_pipeline_mode == inline
+        bool isHit = trace_ray(bvhMain, relPos.xyz, direction, minT, maxTrace, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+        float hitDistance = hitInfo.t;
+      ##else
+        RayPayload payload = (RayPayload)0;
 
-      TraceRay(bvhMain, flags, groupMask, 0, 0, 0, ray, payload);
+        RayDesc ray;
+        ray.Origin = relPos.xyz;
+        ray.Direction = direction;
+        ray.TMin = minT;
+        ray.TMax = maxTrace;
 
-      bool isHit = payload.distance < maxTrace;
-      float hitDistance = payload.distance;
-    ##endif
+        ##if rtsm_cull_back_face == yes
+          uint cullFlag = RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+        ##else
+          uint cullFlag = 0;
+        ##endif
+
+        uint flags = cullFlag | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | extraFlags;
+
+        TraceRay(bvhMain, flags, groupMask, 0, 0, 0, ray, payload);
+
+        bool isHit = payload.distance < maxTrace;
+        float hitDistance = payload.distance;
+      ##endif
 
       bool isFarTrees = (any(relPos.xz < tree_area.xy) || any(relPos.xz > tree_area.zw));
 
@@ -463,6 +471,8 @@ shader rt_shadows, rt_shadows_fill_high
         bool useSSS = !isHit;
         if (isFarTrees)
           useSSS &= isFarTrees;
+        else if (ray_reconstruction_active)
+          useSSS = false;
         else if (isGrass)
         {
           useSSS &= isFacingSun;

@@ -61,7 +61,7 @@ public:
     das::ModuleLibrary lib(this);
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) { clear_deferred_to_act(ctx); });
 
-    addAnnotation(das::make_smart<DeferToActAnnotation>());
+    addAnnotation(new DeferToActAnnotation());
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter & /*tw*/) const override { return das::ModuleAotType::cpp; }

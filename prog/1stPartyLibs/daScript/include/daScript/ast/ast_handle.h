@@ -2,6 +2,8 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_interop.h"
+#include "daScript/ast/ast_simulate.h"
+#include "daScript/misc/handle_registry.h"
 #include "daScript/simulate/interop.h"
 #include "daScript/simulate/aot.h"
 #include "daScript/simulate/simulate_nodes.h"
@@ -77,8 +79,8 @@ namespace das
             string      cppName;
             string      aotPrefix;
             string      aotPostfix;
-            TypeDeclPtr decl;
-            TypeDeclPtr constDecl;
+            TypeDeclPtr decl = nullptr;
+            TypeDeclPtr constDecl = nullptr;
             uint32_t    offset;
             __forceinline void adjustAot ( const char * pref, const char * postf ) { aotPrefix=pref; aotPostfix=postf; }
         };
@@ -103,6 +105,19 @@ namespace das
         virtual void aotVisitGetFieldPtr(TextWriter & ss, const string & fieldName) override;
         virtual bool canSubstitute(TypeAnnotation * ann) const override;
         virtual bool hasStringData(das_set<void *> & dep) const override;
+        virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+            Annotation::gc_collect(target, from);
+            for ( auto && fp : fields ) {
+                if ( fp.second.decl ) fp.second.decl->gc_collect(target, from);
+                if ( fp.second.constDecl ) fp.second.constDecl->gc_collect(target, from);
+            }
+        }
+        virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+            for ( auto && fp : fields ) {
+                if ( fp.second.decl ) callback(fp.second.decl);
+                if ( fp.second.constDecl ) callback(fp.second.constDecl);
+            }
+        }
         StructureField & addFieldEx(const string & na, const string & cppNa, off_t offset, const TypeDeclPtr & pT);
         virtual void walk(DataWalker & walker, void * data) override;
         void updateTypeInfo() const;
@@ -449,45 +464,45 @@ namespace das
         virtual bool canMove() const override { return false; }
         virtual bool canCopy() const override { return false; }
         virtual bool isLocal() const override { return false; }
-        virtual TypeDeclPtr makeIndexType ( const ExpressionPtr &, const ExpressionPtr & ) const override {
-            return make_smart<TypeDecl>(*vecType);
+        virtual TypeDeclPtr makeIndexType ( ExpressionPtr, ExpressionPtr ) const override {
+            return new TypeDecl(*vecType);
         }
-        virtual TypeDeclPtr makeIteratorType ( const ExpressionPtr & ) const override {
-            return make_smart<TypeDecl>(*vecType);
+        virtual TypeDeclPtr makeIteratorType ( ExpressionPtr ) const override {
+            return new TypeDecl(*vecType);
         }
         virtual SimNode * simulateGetAt ( Context & context, const LineInfo & at, const TypeDeclPtr &,
-                                         const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
+                                         ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
             return context.code->makeNode<SimNode_AtStdVector>(at,
-                                                               rv->simulate(context),
-                                                               idx->simulate(context),
+                                                               simulateExpression(context, rv),
+                                                               simulateExpression(context, idx),
                                                                ofs);
         }
         virtual SimNode * simulateGetAtR2V ( Context & context, const LineInfo & at, const TypeDeclPtr & type,
-                                            const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
+                                            ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
             if ( type->isHandle() ) {
                 auto expr = context.code->makeNode<SimNode_AtStdVector>(at,
-                                                                rv->simulate(context),
-                                                                idx->simulate(context),
+                                                                simulateExpression(context, rv),
+                                                                simulateExpression(context, idx),
                                                                 ofs);
-                return ExprRef2Value::GetR2V(context, at, type, expr);
+                return GetR2V(context, at, type, expr);
             } else {
                 return context.code->makeValueNode<SimNode_AtStdVectorR2V>(type->baseType,
                                                                 at,
-                                                                rv->simulate(context),
-                                                                idx->simulate(context),
+                                                                simulateExpression(context, rv),
+                                                                simulateExpression(context, idx),
                                                                 ofs);
             }
         }
 
-        virtual SimNode * simulateGetIterator ( Context & context, const LineInfo & at, const ExpressionPtr & src ) const override {
-            auto rv = src->simulate(context);
+        virtual SimNode * simulateGetIterator ( Context & context, const LineInfo & at, ExpressionPtr src ) const override {
+            auto rv = simulateExpression(context, src);
             return context.code->makeNode<SimNode_AnyIterator<VectorType,StdVectorIterator<VectorType>>>(at, rv);
         }
         virtual void walk ( DataWalker & walker, void * vec ) override {
             {
                 lock_guard<recursive_mutex> guard(walkMutex);
                 if ( !ati ) {
-                    auto dimType = make_smart<TypeDecl>(*vecType);
+                    auto dimType = new TypeDecl(*vecType);
                     dimType->ref = 0;
                     dimType->dim.push_back(1);
                     ati = helpA.makeTypeInfo(nullptr, dimType);
@@ -506,7 +521,14 @@ namespace das
             vecType->getOwnSemanticHash(hb, dep, adep);
             return hb.getHash();
         }
-        TypeDeclPtr                vecType;
+        virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+            Annotation::gc_collect(target, from);
+            if ( vecType ) vecType->gc_collect(target, from);
+        }
+        virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+            if ( vecType ) callback(vecType);
+        }
+        TypeDeclPtr                vecType = nullptr;
         DebugInfoHelper            helpA;
         TypeInfo *                 ati = nullptr;
         recursive_mutex            walkMutex;
@@ -715,7 +737,7 @@ namespace das
             string declN = typeName<VT>::name();
             if ( library.findAnnotation(declN,nullptr).size()==0 ) {
                 auto declT = makeType<TT>(library);
-                auto ann = make_smart<ManagedVectorAnnotation<VT>>(declN,const_cast<ModuleLibrary &>(library));
+                auto ann = new ManagedVectorAnnotation<VT>(declN,const_cast<ModuleLibrary &>(library));
                 ann->cppName = "das::vector<" + describeCppType(declT, CpptSubstitureRef::no,
                                                                 CpptSkipRef::no, CpptSkipConst::no,
                                                                 CpptRedundantConst::yes, ChooseSmartPtr::yes) + ">";
@@ -742,7 +764,7 @@ namespace das
 
     template <typename TT>
     __forceinline void addVectorAnnotation(Module * mod, ModuleLibrary & lib, const string & name ) {
-        return addVectorAnnotation<TT>(mod,lib,make_smart<ManagedVectorAnnotation<TT>>(name,lib));
+        return addVectorAnnotation<TT>(mod,lib,new ManagedVectorAnnotation<TT>(name,lib));
     }
 
     template <typename OT>
@@ -791,17 +813,24 @@ namespace das
             valueType->getOwnSemanticHash(hb, dep, adep);
             return hb.getHash();
         }
-        TypeDeclPtr valueType;
+        virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+            Annotation::gc_collect(target, from);
+            if ( valueType ) valueType->gc_collect(target, from);
+        }
+        virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+            if ( valueType ) callback(valueType);
+        }
+        TypeDeclPtr valueType = nullptr;
     };
 
     template <typename TT>
     void addConstant ( Module & mod, const string & name, const TT & value ) {
-        VariablePtr pVar = make_smart<Variable>();
+        VariablePtr pVar = new Variable();
         pVar->name = name;
-        pVar->type = make_smart<TypeDecl>((Type)ToBasicType<TT>::type);
+        pVar->type = new TypeDecl((Type)ToBasicType<TT>::type);
         pVar->type->constant = true;
         pVar->init = Program::makeConst(LineInfo(),pVar->type,cast<TT>::from(value));
-        pVar->init->type = make_smart<TypeDecl>(*pVar->type);
+        pVar->init->type = new TypeDecl(*pVar->type);
         pVar->init->constexpression = true;
         pVar->initStackSize = sizeof(Prologue);
         if ( !mod.addVariable(pVar) ) {
@@ -809,12 +838,12 @@ namespace das
         }
     }
     __forceinline void addConstant ( Module & mod, const string & name, const string & value ) {
-        VariablePtr pVar = make_smart<Variable>();
+        VariablePtr pVar = new Variable();
         pVar->name = name;
-        pVar->type = make_smart<TypeDecl>(Type::tString);
+        pVar->type = new TypeDecl(Type::tString);
         pVar->type->constant = true;
-        pVar->init = make_smart<ExprConstString>(LineInfo(),value);
-        pVar->init->type = make_smart<TypeDecl>(*pVar->type);
+        pVar->init = new ExprConstString(LineInfo(),value);
+        pVar->init->type = new TypeDecl(*pVar->type);
         pVar->init->constexpression = true;
         pVar->initStackSize = sizeof(Prologue);
         if ( !mod.addVariable(pVar) ) {
@@ -834,6 +863,97 @@ namespace das
     void addEquNeqVal(Module & mod, const ModuleLibrary & lib) {
         addExtern<decltype(&das_equ_val<TT,TT>),  das_equ_val<TT,TT>> (mod, lib, "==", SideEffects::none, "das_equ_val");
         addExtern<decltype(&das_nequ_val<TT,TT>), das_nequ_val<TT,TT>>(mod, lib, "!=", SideEffects::none, "das_nequ_val");
+    }
+
+    template <typename T>
+    struct WrapType<Handle<T>> { enum { value = true }; typedef uint64_t type; typedef uint64_t rettype; };
+
+    template <typename T>
+    struct typeName<Handle<T>> {
+        static string name() {
+            return string("Handle<") + typeName<T>::name() + ">";
+        }
+    };
+
+    template <typename T>
+    struct cast<Handle<T>> {
+        static __forceinline Handle<T> to   ( vec4f x ) {
+            uint64_t raw = v_extract_xi64(v_cast_vec4i(x));
+            Handle<T> h;
+            h.value = raw;
+            return h;
+        }
+        static __forceinline vec4f from ( Handle<T> h ) {
+            uint64_t raw = h.value;
+            return v_cast_vec4f(v_ldui_half(&raw));
+        }
+    };
+
+    template <typename T>
+    struct typeFactory<Handle<T>> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary & library) {
+            // Normalize: typeName<T>::name() may return const char * or string
+            // depending on T's specialization. string -> const char* via c_str.
+            string tn = typeName<T>::name();
+            return makeHandleType(library, tn.c_str());
+        }
+    };
+
+    template <typename T>
+    struct ManagedHandleAnnotation : ManagedValueAnnotation<Handle<T>> {
+        ManagedHandleAnnotation ( ModuleLibrary & lib, const string & n, const string & cpn = string() )
+            : ManagedValueAnnotation<Handle<T>>(lib,n,cpn) {}
+    };
+
+    template <typename T> bool das_handle_is_alive ( Handle<T> h ) {
+        return HandleRegistry<T>::instance().is_alive(h);
+    }
+    template <typename T> bool das_handle_release  ( Handle<T> h ) {
+        return HandleRegistry<T>::instance().release(h);
+    }
+    template <typename T> bool das_handle_equ  ( Handle<T> a, Handle<T> b ) { return a == b; }
+    template <typename T> bool das_handle_nequ ( Handle<T> a, Handle<T> b ) { return a != b; }
+
+    template <typename T>
+    void dumpHandleLeaks () {
+        auto & reg = HandleRegistry<T>::instance();
+        if ( reg.live_count() == 0 ) return;
+        TextPrinter tp;
+        string tn = typeName<T>::name();
+        int total = 0;
+        reg.for_each_live([&](Handle<T> h, const shared_ptr<T> & p){
+            uint32_t idx = uint32_t(h.value & 0xFFFFFFFFu) - 1;
+            uint32_t gen = uint32_t(h.value >> 32);
+            tp << "  Handle<" << tn << "> idx=" << idx << " gen=" << gen
+               << " (rc=" << int(p.use_count()) << ")\n";
+            total++;
+        });
+        if ( total ) tp << "total " << total << " leaked handles of type " << tn << "\n";
+    }
+
+    template <typename T>
+    uint64_t countHandleLeaks () {
+        return uint64_t(HandleRegistry<T>::instance().live_count());
+    }
+
+    template <typename T>
+    void addHandleAnnotation ( Module * mod, ModuleLibrary & lib,
+                               const string & name,
+                               const string & destroyFnName = string(),
+                               const string & cppTypeName = string() ) {
+        handleRegistry_registerDump(&dumpHandleLeaks<T>);
+        handleRegistry_registerCount(&countHandleLeaks<T>);
+        mod->addAnnotation(new ManagedHandleAnnotation<T>(lib, name, cppTypeName));
+        addExtern<decltype(&das_handle_equ<T>),  das_handle_equ<T>>
+            (*mod, lib, "==", SideEffects::none, "das_handle_equ");
+        addExtern<decltype(&das_handle_nequ<T>), das_handle_nequ<T>>
+            (*mod, lib, "!=", SideEffects::none, "das_handle_nequ");
+        addExtern<decltype(&das_handle_is_alive<T>), das_handle_is_alive<T>>
+            (*mod, lib, "is_alive", SideEffects::accessExternal, "das_handle_is_alive");
+        if ( !destroyFnName.empty() ) {
+            addExtern<decltype(&das_handle_release<T>), das_handle_release<T>>
+                (*mod, lib, destroyFnName.c_str(), SideEffects::modifyExternal, "das_handle_release");
+        }
     }
 
     void setParents ( Module * mod, const char * child, const std::initializer_list<const char *> & parents );

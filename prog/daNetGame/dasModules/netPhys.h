@@ -31,14 +31,14 @@ inline bool test_obj_to_phys_collision(const CollisionObject &co_a, const das::f
     testColl, testCollActive, testTm, contacts, dacoll::TestPairFlags::Default & ~dacoll::TestPairFlags::CheckInWorld);
 }
 
-inline float lag_compensation_time(
-  ecs::EntityId avatar_eid, ecs::EntityId lc_eid, float at_time, int interp_delay_ticks_packed, float additional_interp_delay = 0.f)
+inline double lag_compensation_time(
+  ecs::EntityId avatar_eid, ecs::EntityId lc_eid, double at_time, int interp_delay_ticks_packed, float additional_interp_delay = 0.f)
 {
   return ::lag_compensation_time(avatar_eid, lc_eid, at_time, interp_delay_ticks_packed, additional_interp_delay, nullptr);
 }
 
 inline void using_lag_compensation(
-  float to_time, ecs::EntityId except_eid, const das::TBlock<void, void> &block, das::Context *context, das::LineInfoArg *at)
+  double to_time, ecs::EntityId except_eid, const das::TBlock<void, void> &block, das::Context *context, das::LineInfoArg *at)
 {
   get_lag_compensation().startLagCompensation(to_time, except_eid);
   context->invoke(block, nullptr, nullptr, at);

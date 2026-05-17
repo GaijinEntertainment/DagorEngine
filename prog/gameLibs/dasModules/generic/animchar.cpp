@@ -1028,98 +1028,98 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("GeomNodeTree"));
     addBuiltinDependency(lib, require("PhysDecl"));
-    addEnumeration(das::make_smart<EnumerationAnimcharVisbits>());
-    addAnnotation(das::make_smart<NameIdPairAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimDataAnnotation>(lib));
+    addEnumeration(new EnumerationAnimcharVisbits());
+    addAnnotation(new NameIdPairAnnotation(lib));
+    addAnnotation(new AnimDataAnnotation(lib));
 
-    addAnnotation(das::make_smart<IPureAnimStateHolderAnnotation>(lib));
-    addAnnotation(das::make_smart<IAnimBlendNodePtrAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimBlendNodeLeafPtrAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendCtrlPtrAnnotation>(lib));
+    addAnnotation(new IPureAnimStateHolderAnnotation(lib));
+    addAnnotation(new IAnimBlendNodePtrAnnotation(lib));
+    addAnnotation(new AnimBlendNodeLeafPtrAnnotation(lib));
+    addAnnotation(new AnimPostBlendCtrlPtrAnnotation(lib));
 
     das::typeFactory<BnlPtrTab>::make(lib);
     das::typeFactory<PbCtrlPtrTab>::make(lib);
 
-    auto iAnimBlendNodeAnn = das::make_smart<IAnimBlendNodeAnnotation>(lib);
-    auto animBlendNodeLeafAnn = das::make_smart<AnimBlendNodeLeafAnnotation>(lib);
-    auto animBlendNodeContinuousLeafAnn = das::make_smart<AnimBlendNodeContinuousLeafAnnotation>(lib);
+    auto iAnimBlendNodeAnn = new IAnimBlendNodeAnnotation(lib);
+    auto animBlendNodeLeafAnn = new AnimBlendNodeLeafAnnotation(lib);
+    auto animBlendNodeContinuousLeafAnn = new AnimBlendNodeContinuousLeafAnnotation(lib);
 
     addAnnotation(iAnimBlendNodeAnn);
     add_annotation(this, animBlendNodeLeafAnn, iAnimBlendNodeAnn);
     add_annotation(this, animBlendNodeContinuousLeafAnn, animBlendNodeLeafAnn);
-    add_annotation(this, das::make_smart<AnimBlendNodeNullAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendNodeStillLeafAnnotation>(lib), animBlendNodeLeafAnn);
-    add_annotation(this, das::make_smart<AnimBlendNodeParametricLeafAnnotation>(lib), animBlendNodeLeafAnn);
-    add_annotation(this, das::make_smart<AnimBlendNodeSingleLeafAnnotation>(lib), animBlendNodeContinuousLeafAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_1axisAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_Fifo3Annotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_RandomSwitcherAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_HubAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_BlenderAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_BinaryIndirectSwitchAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_SetMotionMatchingTagAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_LinearPolyAnnotation>(lib), iAnimBlendNodeAnn);
-    add_annotation(this, das::make_smart<AnimBlendCtrl_ParametricSwitcherAnnotation>(lib), animBlendNodeLeafAnn);
-    add_annotation(this, das::make_smart<AnimPostBlendCtrlAnnotation>(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendNodeNullAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendNodeStillLeafAnnotation(lib), animBlendNodeLeafAnn);
+    add_annotation(this, new AnimBlendNodeParametricLeafAnnotation(lib), animBlendNodeLeafAnn);
+    add_annotation(this, new AnimBlendNodeSingleLeafAnnotation(lib), animBlendNodeContinuousLeafAnn);
+    add_annotation(this, new AnimBlendCtrl_1axisAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_Fifo3Annotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_RandomSwitcherAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_HubAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_BlenderAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_BinaryIndirectSwitchAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_SetMotionMatchingTagAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_LinearPolyAnnotation(lib), iAnimBlendNodeAnn);
+    add_annotation(this, new AnimBlendCtrl_ParametricSwitcherAnnotation(lib), animBlendNodeLeafAnn);
+    add_annotation(this, new AnimPostBlendCtrlAnnotation(lib), iAnimBlendNodeAnn);
 
-    addAnnotation(das::make_smart<AnimFifo3QueueAnnotation>(lib));
+    addAnnotation(new AnimFifo3QueueAnnotation(lib));
 
-    addAnnotation(das::make_smart<AnimBlendCtrl_1axisAnimSliceAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimBlendCtrl_RandomSwitcherRandomAnimAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimBlendCtrl_LinearPolyAnimPointAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimBlendCtrl_ParametricSwitcherItemAnimAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimationGraphStateRecAnnotation>(lib));
+    addAnnotation(new AnimBlendCtrl_1axisAnimSliceAnnotation(lib));
+    addAnnotation(new AnimBlendCtrl_RandomSwitcherRandomAnimAnnotation(lib));
+    addAnnotation(new AnimBlendCtrl_LinearPolyAnimPointAnnotation(lib));
+    addAnnotation(new AnimBlendCtrl_ParametricSwitcherItemAnimAnnotation(lib));
+    addAnnotation(new AnimationGraphStateRecAnnotation(lib));
 
-    addAnnotation(das::make_smart<AnimPostBlendParamFromNodeLocalDataAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendParamFromNodeAnnotation>(lib));
-    addAnnotation(das::make_smart<AttachGeomNodeCtrlVarIdAnnotation>(lib));
-    addAnnotation(das::make_smart<AttachGeomNodeCtrlAttachDescAnnotation>(lib));
-    addAnnotation(das::make_smart<AttachGeomNodeCtrlAnnotation>(lib));
+    addAnnotation(new AnimPostBlendParamFromNodeLocalDataAnnotation(lib));
+    addAnnotation(new AnimPostBlendParamFromNodeAnnotation(lib));
+    addAnnotation(new AttachGeomNodeCtrlVarIdAnnotation(lib));
+    addAnnotation(new AttachGeomNodeCtrlAttachDescAnnotation(lib));
+    addAnnotation(new AttachGeomNodeCtrlAnnotation(lib));
 
-    addAnnotation(das::make_smart<AnimPostBlendAlignCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendAlignExCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendRotateCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendRotateAroundCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendScaleCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendMoveCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendCondHideCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendAimCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<ApbParamCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<DefClampParamCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<ApbAnimateCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<LegsIKCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<MultiChainFABRIKCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendNodeLookatCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendNodeLookatNodeCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendEffFromAttachementAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendNodeEffectorFromChildIKAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendMatVarFromNodeAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendNodesFromAttachementAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendCompoundRotateShiftAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendSetParamAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendTwistCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendEyeCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<DeltaRotateShiftCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<DeltaAnglesCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<FootLockerIKCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendHasAttachmentAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendHumanAimCtrlAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimPostBlendTwoBonesIKAnnotation>(lib));
+    addAnnotation(new AnimPostBlendAlignCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendAlignExCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendRotateCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendRotateAroundCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendScaleCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendMoveCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendCondHideCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendAimCtrlAnnotation(lib));
+    addAnnotation(new ApbParamCtrlAnnotation(lib));
+    addAnnotation(new DefClampParamCtrlAnnotation(lib));
+    addAnnotation(new ApbAnimateCtrlAnnotation(lib));
+    addAnnotation(new LegsIKCtrlAnnotation(lib));
+    addAnnotation(new MultiChainFABRIKCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendNodeLookatCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendNodeLookatNodeCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendEffFromAttachementAnnotation(lib));
+    addAnnotation(new AnimPostBlendNodeEffectorFromChildIKAnnotation(lib));
+    addAnnotation(new AnimPostBlendMatVarFromNodeAnnotation(lib));
+    addAnnotation(new AnimPostBlendNodesFromAttachementAnnotation(lib));
+    addAnnotation(new AnimPostBlendCompoundRotateShiftAnnotation(lib));
+    addAnnotation(new AnimPostBlendSetParamAnnotation(lib));
+    addAnnotation(new AnimPostBlendTwistCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendEyeCtrlAnnotation(lib));
+    addAnnotation(new DeltaRotateShiftCtrlAnnotation(lib));
+    addAnnotation(new DeltaAnglesCtrlAnnotation(lib));
+    addAnnotation(new FootLockerIKCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendHasAttachmentAnnotation(lib));
+    addAnnotation(new AnimPostBlendHumanAimCtrlAnnotation(lib));
+    addAnnotation(new AnimPostBlendTwoBonesIKAnnotation(lib));
 
-    addAnnotation(das::make_smart<AnimBlenderAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimationGraphAnnotation>(lib));
-    addAnnotation(das::make_smart<IAnimStateHolderAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimcharDebugContextAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimcharBaseComponentAnnotation>(lib));
-    addAnnotation(das::make_smart<RoNameMapExIdPatchableTabAnnotation>(lib));
-    addAnnotation(das::make_smart<RoNameMapExAnnotation>(lib));
-    addAnnotation(das::make_smart<DynSceneResNameMapResourceAnnotation>(lib));
-    addAnnotation(das::make_smart<DynamicRenderableSceneLodsResourceAnnotation>(lib));
-    addAnnotation(das::make_smart<DynamicRenderableSceneInstanceAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimcharRendComponentAnnotation>(lib));
-    addAnnotation(das::make_smart<IAnimCharacter2Annotation>(lib));
-    addAnnotation(das::make_smart<AnimcharNodesMat44Annotation>(lib));
-    addAnnotation(das::make_smart<Animate2ndPassCtxAnnotation>(lib));
+    addAnnotation(new AnimBlenderAnnotation(lib));
+    addAnnotation(new AnimationGraphAnnotation(lib));
+    addAnnotation(new IAnimStateHolderAnnotation(lib));
+    addAnnotation(new AnimcharDebugContextAnnotation(lib));
+    addAnnotation(new AnimcharBaseComponentAnnotation(lib));
+    addAnnotation(new RoNameMapExIdPatchableTabAnnotation(lib));
+    addAnnotation(new RoNameMapExAnnotation(lib));
+    addAnnotation(new DynSceneResNameMapResourceAnnotation(lib));
+    addAnnotation(new DynamicRenderableSceneLodsResourceAnnotation(lib));
+    addAnnotation(new DynamicRenderableSceneInstanceAnnotation(lib));
+    addAnnotation(new AnimcharRendComponentAnnotation(lib));
+    addAnnotation(new IAnimCharacter2Annotation(lib));
+    addAnnotation(new AnimcharNodesMat44Annotation(lib));
+    addAnnotation(new Animate2ndPassCtxAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(::AnimV20::addEnumValue)>(*this, lib, "animV20_add_enum_value", das::SideEffects::modifyExternal,
       "::AnimV20::addEnumValue");
     das::addExtern<DAS_BIND_FUN(::AnimV20::getEnumValueByName)>(*this, lib, "animV20_get_enum_value_by_name",
@@ -1175,8 +1175,7 @@ public:
       "&::DynamicRenderableSceneInstance::markNodeCollapserNode>::invoke");
     auto sendChangeAnimStateEventExt = das::addExtern<DAS_BIND_FUN(send_change_anim_state_event)>(*this, lib,
       "send_change_anim_state_event", das::SideEffects::modifyExternal, "bind_dascript::send_change_anim_state_event");
-    sendChangeAnimStateEventExt->annotations.push_back(
-      annotation_declaration(das::make_smart<ConstStringArgCallFunctionAnnotation<1>>()));
+    sendChangeAnimStateEventExt->annotations.push_back(annotation_declaration(new ConstStringArgCallFunctionAnnotation<1>()));
 
     das::addExtern<DAS_BIND_FUN(AnimCharV20::getSlotId)>(*this, lib, "animchar_getSlotId", das::SideEffects::accessExternal,
       "AnimCharV20::getSlotId");
@@ -1578,7 +1577,7 @@ public:
 #undef DAS_BIND_MEMBER
 #undef ALL_ANIM_CTRLS
 
-    auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt);
+    auto pType = new das::TypeDecl(das::Type::tUInt);
     pType->alias = "animchar_visbits_t";
     addAlias(pType);
 

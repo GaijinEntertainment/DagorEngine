@@ -79,6 +79,7 @@
 #include <render/lightCube.h>
 #include <drv/3d/dag_rwResource.h>
 #include <daSWRT/swBVH.h>
+#include <daSWRT/swBLASBoxResemblance.h>
 #include <drv/3d/dag_lock.h>
 #include <util/dag_parallelForInline.h>
 #include <memory/dag_framemem.h>
@@ -541,7 +542,7 @@ public:
   eastl::unique_ptr<UpscaleSamplingTex> upscale_tex;
   int currentDownsampledDepth;
 
-  UniqueTexHolder frame, prevFrame;
+  UniqueTexWithShaderVar frame, prevFrame;
   UniqueTex taaHistory[2];
   PostFxRenderer postfx;
   eastl::unique_ptr<ScreenSpaceReflections> ssr;
@@ -575,7 +576,7 @@ public:
       upscale_tex->render();
   }
 
-  UniqueTexHolder combined_shadows;
+  UniqueTexWithShaderVar combined_shadows;
   PostFxRenderer combine_shadows;
 
   MultiFramePGF preIntegratedGF;
@@ -1058,7 +1059,7 @@ public:
         // transient allocations go through framemem, so 32 is just a picked round.
         threadpool::parallel_for_inline(
           0, (uint32_t)meshes.size(), 64,
-          [&](uint32_t tbegin, uint32_t tend, uint32_t) {
+          [&](uint32_t tbegin, uint32_t tend, uint32_t worker_id) {
             Tab<Point3_vec4> verts4(framemem_ptr());
             for (uint32_t mi = tbegin; mi < tend; ++mi)
             {
@@ -1077,14 +1078,29 @@ public:
               for (int j = 0, n = (int)m.vertices.size(); j < n; ++j)
                 verts4[j] = m.vertices[j];
 
+              static const float dimAsBoxMin = 2.f, dimAsBoxMax = 16.f;
               daSWRT::BuiltBLAS built =
-                RenderSWRT::buildBLAS(m.indices.data(), (int)m.indices.size(), verts4.data(), (int)verts4.size(), 16.f);
+                RenderSWRT::buildBLAS(m.indices.data(), (int)m.indices.size(), verts4.data(), (int)verts4.size(), dimAsBoxMax);
+
+              // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree).
+              // `isBox()` meshes are already perfect boxes; skip and count separately.
+              if (!built.isBox())
+              {
+                float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(built.data.data(), 0, (int)built.treeBytes, built.box,
+                  daSWRT::BlasBoxEncoding::Fp16);
+                // Empirical calibration toward MC-yaw (fitted on this scene, 111 meshes).
+                // Pow law is the only single-param family that pins (0,0) and (1,1).
+                boxLike = powf(boxLike, 1.5f);
+                built.dimAsBoxDist = lerp(dimAsBoxMax, dimAsBoxMin, boxLike);
+              }
 
               WinAutoLock lk(addLock);
               modelIndex[mi] = swrt.addBuiltModel(eastl::move(built));
             }
           },
           32);
+
+        // Merge per-worker stats and log a single summary line.
         for (uint32_t mi = 0; mi < meshes.size(); ++mi)
         {
           int modelId = modelIndex[mi];
@@ -2737,7 +2753,7 @@ public:
     initEnviProbe();
     reloadCube(true);
   }
-  UniqueTexHolder enviProbe;
+  UniqueTexWithShaderVar enviProbe;
   UniqueTex enviProbe0;
   void initEnviProbe()
   {
@@ -3329,13 +3345,13 @@ protected:
       virtual void doJob()
       {
         scene_type_t *scn = new scene_type_t;
-        if (fn && strlen(fn))
+        if (!fn.empty())
         {
           textag_mark_begin(TEXTAG_LAND);
           scn->openSingle(fn);
           textag_mark_end();
         }
-        if (hmap_fn && strlen(hmap_fn))
+        if (!hmap_fn.empty())
         {
           if (cellSize > 0)
           {

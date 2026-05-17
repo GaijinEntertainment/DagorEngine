@@ -27,8 +27,7 @@ stackhelp::ext::ResolvedRecord CameraPosInCallstack::logCameraPos(char *buf, uns
   if (stack.stackSize < DATA_SIZE_IN_POINTERS)
     return {};
 
-  Data data;
-  memcpy(&data, stack.stack, sizeof(data));
+  const Data &data = *reinterpret_cast<const Data *>(stack.stack);
 
   int ret = snprintf(buf, max_buf, "Camera pos=%.3f,%.3f,%.3f dir=%.3f,%.3f,%.3f\n", data.pos.x, data.pos.y, data.pos.z, data.dir.x,
     data.dir.y, data.dir.z);

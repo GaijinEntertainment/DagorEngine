@@ -1,0 +1,45 @@
+WARNING: w326 (invalid-typeof-string) Result of typeof can never be 'bolean'. Did you mean 'bool'?
+testData/static_analyzer/w326.nut:3:18
+
+  //expect:w326
+  if (typeof x == "bolean")
+                  ^-------
+    println("b")
+
+
+WARNING: w326 (invalid-typeof-string) Result of typeof can never be 'insance'. Did you mean 'instance'?
+testData/static_analyzer/w326.nut:9:19
+
+  //expect:w326
+  if (typeof(x) != "insance")
+                   ^--------
+    println("i")
+
+
+WARNING: w326 (invalid-typeof-string) Result of typeof can never be 'talbe'. Did you mean 'table'?
+testData/static_analyzer/w326.nut:15:41
+
+  //expect:w326
+  if ((typeof x) not in {["array"] = 1, ["talbe"] = 1})
+                                         ^------
+    println("t")
+
+
+WARNING: w326 (invalid-typeof-string) Result of typeof can never be 'int'. Did you mean 'integer'?
+testData/static_analyzer/w326.nut:21:36
+
+  //expect:w326
+  if ((typeof x) in const ["array", "int"].totable())
+                                    ^----
+    println("n")
+
+
+WARNING: w326 (invalid-typeof-string) Result of typeof can never be 'talbe'. Did you mean 'table'?
+testData/static_analyzer/w326.nut:27:16
+
+//expect:w326
+if (dataType == "talbe")
+                ^------
+  println("a")
+
+

@@ -19,7 +19,7 @@ namespace das {
         string          name;
         string          aka;
         LineInfo        at;
-        ExpressionPtr   tag;
+        ExpressionPtr   tag = nullptr;
         bool            isTupleExpansion = false;
         VariableNameAndPosition ( const string & n, const string & a, const LineInfo & At, Expression * t = nullptr )
             : name(n), aka(a), at(At), tag(t) {}
@@ -47,8 +47,8 @@ namespace das {
             : pNameList(n), pTypeDecl(t), pInit(i) {}
         virtual ~VariableDeclaration () {
             if ( pNameList ) delete pNameList;
-            if ( pTypeDecl ) delete pTypeDecl;
-            if ( pInit ) delete pInit;
+            // if ( pTypeDecl ) delete pTypeDecl;
+            // if ( pInit ) delete pInit;
             if ( annotation ) delete annotation;
         }
         vector<VariableNameAndPosition>   *pNameList;
@@ -78,7 +78,7 @@ namespace das {
     void deleteNameExprList ( vector<tuple<string,Expression *>> * list );
     void varDeclToTypeDecl ( yyscan_t scanner, TypeDecl * pType, vector<VariableDeclaration*> * list, bool needNames = true );
     Annotation * findAnnotation ( yyscan_t scanner, const string & name, const LineInfo & at );
-    void runFunctionAnnotations ( yyscan_t scanner, DasParserState * extra, Function * func, AnnotationList * annL, const LineInfo & at );
+    void runFunctionAnnotations ( yyscan_t scanner, DasParserState * extra, Function * func, AnnotationList * annL, const LineInfo & at, bool genericMode = false );
     void appendDimExpr ( TypeDecl * typeDecl, Expression * dimExpr );
     void implAddGenericFunction ( yyscan_t scanner, Function * func );
     Expression * ast_arrayComprehension (yyscan_t scanner, const LineInfo & loc, vector<VariableNameAndPosition> * iters,

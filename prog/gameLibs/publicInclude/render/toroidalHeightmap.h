@@ -87,6 +87,6 @@ protected:
   Tab<ToroidalQuadRegion> quadRegions[LOD_COUNT];
   Tab<IBBox2> invalidRegions[LOD_COUNT];
 
-  UniqueTexHolder toroidalHeightmap;
+  UniqueTexWithShaderVar toroidalHeightmap;
   d3d::SamplerInfo heightmapSampler = {};
 };

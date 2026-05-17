@@ -13,6 +13,7 @@ require daslib/json_boost
 require daslib/defer
 require math
 
+require dastest_clargs
 require log
 require testing
 require suite_result public
@@ -33,6 +34,8 @@ struct SuiteCtx {
     compile_only : bool = false
     use_aot : bool = false
     cov_path : string = ""
+    debugger : bool = false
+    keep_alive : bool = false
 
     // Testing-related options.
     testNames : array<string>
@@ -59,57 +62,42 @@ struct Benchmark {
 }
 
 
-def createSuiteCtx() : SuiteCtx {
-    return <- SuiteCtx(get_command_line_arguments())
-}
-
-
-def private collect_target_names(key : string, args : array<string>; var names : array<string>) {
-    for (i in range(length(args) - 1)) {
-        if (args[i] == key) {
-            names |> push <| args[i + 1]
-        }
-    }
-}
-
-
-def private collect_tests_names(args : array<string>; var names : array<string>) {
-    collect_target_names("--test-names", args, names)
-}
-
-
-def private collect_bench_names(args : array<string>; var names : array<string>) {
-    collect_target_names("--bench-names", args, names)
-}
-
-
 def get_str_arg(args : array<string>; name : string; def_val : string) : string {
     let idx = find_index(args, name)
     return idx >= 0 && idx + 1 < length(args) ? args[idx + 1] : def_val
 }
 
 
-def SuiteCtx(args : array<string>) : SuiteCtx {
+def SuiteCtx(args : DastestArgs) : SuiteCtx {
     var ctx <- SuiteCtx()
     let at = get_line_info()
-    ctx.dastestRoot = dir_name(at.fileInfo != null ? string(at.fileInfo.name) : args[1])
-    ctx.verbose = args |> has_value("--verbose")
-    ctx.uriPaths = args |> has_value("--uri-paths")
-    ctx.projectPath = args |> get_str_arg("--test-project", "")
-    ctx.compile_only = args |> has_value("--compile-only")
-    ctx.use_aot = args |> has_value("--use-aot") || is_in_aot()
-    ctx.cov_path = args |> get_str_arg("--cov-path", "")
-    collect_tests_names(args, ctx.testNames)
 
-    ctx.bench_enabled = args |> has_value("--bench")
-    collect_bench_names(args, ctx.bench_names)
-    let bench_format = args |> get_str_arg("--bench-format", "")
+    // TODO: maybe just store DastestArgs inside the context?
+    // That would involve more diff, so maybe after the initial safer replacement?
+
+    // TODO: fix this somehow?
+    // Maybe include the das_root into command info?
+    let raw_args := get_command_line_arguments()
+    ctx.dastestRoot = dir_name(at.fileInfo != null ? string(at.fileInfo.name) : raw_args[1])
+
+    ctx.verbose = args.verbose
+    ctx.uriPaths = args.uri_paths
+    ctx.projectPath = args.test_project
+    ctx.compile_only = args.compile_only
+    ctx.use_aot = args.use_aot || is_in_aot()
+    ctx.cov_path = args.cov_path
+    ctx.testNames := args.test_names
+    ctx.bench_names := args.bench_names
+    ctx.bench_enabled = args.bench
+    ctx.keep_alive = args.keep_alive
+    ctx.debugger = args.debugger
+    let bench_format = args.bench_format
     if (bench_format == "go") {
         ctx.bench_format = BenchmarkOutputFormat.go_export
     } elif (bench_format == "json") {
         ctx.bench_format = BenchmarkOutputFormat.json
     }
-    ctx.bench_count  = to_int(args.get_str_arg("--count", "1"))
+    ctx.bench_count = args.count
 
     return <- ctx
 }
@@ -165,6 +153,7 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
     var res : SuiteResult
     var inscope access <- make_file_access(ctx.projectPath)
     access |> add_file_access_root("dastest", ctx.dastestRoot)
+    let gc_before = gc_thread_root_count()
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
             ctx.queued_benchmarks |> clear
@@ -173,6 +162,8 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
             cop.fail_on_no_aot = ctx.use_aot
             cop.threadlock_context = true
             cop.jit_enabled = jit_enabled()
+            cop.debugger = ctx.debugger
+            cop.keep_alive = ctx.keep_alive
             if (jit_enabled()) {
                 access |> add_extra_module("just_in_time", "{get_das_root()}/daslib/just_in_time.das")
             }
@@ -190,7 +181,7 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
                 }
                 var failed = !ok
                 if (ok) {
-                    if (!empty(output)) {
+                    if (!empty(output) && !log::failuresOnly) {
                         log::info("{output}")
                     }
                 } elif (program != null) {
@@ -260,7 +251,7 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
                             unsafe(invoke_in_context(*context, "fill_coverage_report", unsafe(addr(report)), ""))
                             // Clone to current context.
                             report := report
-                            fopen(ctx.cov_path, "ab") <| $(fw) {
+                            fopen(ctx.cov_path, "ab") $(fw) {
                                 if (fw != null) {
                                     to_log(LOG_INFO, "Coverage to {ctx.cov_path}\n")
                                     fwrite(fw, report)
@@ -293,6 +284,14 @@ def test_file(file_name : string; var ctx : SuiteCtx; var file_ctx : FileCtx) : 
             }
         }
     }
+    let gc_after = gc_thread_root_count()
+    // Small bounded leaks (< 10) are expected from RTTI type walks in test_module.
+    // Report only significant leaks that suggest a real gc_collect gap.
+    if (gc_after > gc_before + 10ul) {
+        let delta = int64(gc_after) - int64(gc_before)
+        to_log(LOG_WARNING, "GC LEAK: {file_name} — {delta} new TypeDecl nodes on thread root\n")
+        gc_thread_root_report_detailed(uint64(delta))
+    }
     return res
 }
 
@@ -320,7 +319,7 @@ def test_module(var mod : rtti::Module; var context : rtti::Context; var suite_c
             return
         }
         let func = context |> get_function_by_mnh(f.hash)
-        var inscope fn <- modPtr |> find_module_function_via_rtti(func)
+        var fn = modPtr |> find_module_function_via_rtti(func)
         if (fn == null) {
             return
         }
@@ -434,7 +433,7 @@ def private test_any(name : string; func; args_num : int; var context : FileCtx;
     var testLocation : string
     let t0 = ref_time_ticks()
     var testing : T?
-    defer <| $ {
+    defer() {
         unsafe {
             delete testing
         }

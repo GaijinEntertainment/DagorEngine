@@ -84,6 +84,18 @@ namespace das {
         initialSize = size;
     }
 
+    void MemoryModel::setTrackAllocations ( bool on ) {
+#if DAS_TRACK_ALLOCATIONS
+        DAS_ASSERTF(totalAllocated == 0 && bigStuff.empty() && shoe.depth() == 0,
+            "setTrackAllocations must be called before any allocation");
+        trackAllocations = on;
+        maxShoeAllocation = on ? 0u : uint32_t(DAS_MAX_SHOE_ALLOCATION);
+#else
+        (void)on;
+        DAS_ASSERTF(!on, "DAS_TRACK_ALLOCATIONS=0 at compile time, cannot enable at runtime");
+#endif
+    }
+
     uint32_t MemoryModel::grow ( uint32_t si ) {
         if ( shoe.chunks[si] ) {
             uint32_t size = shoe.chunks[si]->total;
@@ -106,18 +118,17 @@ namespace das {
         size = (size + alignMask) & ~alignMask;
         totalAllocated += size;
         maxAllocated = das::max(maxAllocated, totalAllocated);
-#if !DAS_TRACK_ALLOCATIONS
-        if ( size > DAS_MAX_SHOE_ALLOCATION ) {
-#endif
+        if ( size > maxShoeAllocation ) {
             char * ptr = (char *) das_aligned_alloc16(size);
             bigStuff[ptr] = size;
 #if DAS_TRACK_ALLOCATIONS
-            INSCRIBE_INSANE_POINTER(ptr, this);
-            if ( g_tracker==g_breakpoint ) os_debug_break();
-            bigStuffId[ptr] = g_tracker ++;
+            if ( trackAllocations ) {
+                INSCRIBE_INSANE_POINTER(ptr, this);
+                if ( g_tracker==g_breakpoint ) os_debug_break();
+                bigStuffId[ptr] = g_tracker ++;
+            }
 #endif
             return ptr;
-#if !DAS_TRACK_ALLOCATIONS
         } else {
             if ( char * res = shoe.allocate(size) ) {
                 return res;
@@ -129,7 +140,6 @@ namespace das {
             shoe.chunks[si] = new Deck(total, size, shoe.chunks[si]);
             return shoe.chunks[si]->allocate();
         }
-#endif
     }
 
     bool MemoryModel::free ( char * ptr, uint32_t size ) {
@@ -139,13 +149,11 @@ namespace das {
 #if DAS_SANITIZER
         memset(ptr, 0xcd, size);
 #endif
-#if !DAS_TRACK_ALLOCATIONS
-        if ( size <= DAS_MAX_SHOE_ALLOCATION ) {
+        if ( size <= maxShoeAllocation ) {
             shoe.free(ptr, size);
             totalAllocated -= size;
             return true;
         }
-#endif
 #if DAS_SANITIZER
         auto itd = deletedBigStuff.find(ptr);
         if ( itd!= deletedBigStuff.end() ) {
@@ -165,9 +173,11 @@ namespace das {
             bigStuff.erase(itb);
             totalAllocated -= size;
 #if DAS_TRACK_ALLOCATIONS
-            bigStuffId.erase(ptr);
-            bigStuffAt.erase(ptr);
-            bigStuffComment.erase(ptr);
+            if ( trackAllocations ) {
+                bigStuffId.erase(ptr);
+                bigStuffAt.erase(ptr);
+                bigStuffComment.erase(ptr);
+            }
 #endif
             return true;
         }
@@ -183,13 +193,15 @@ namespace das {
         DAS_VERIFYF(nptr,"out of memory?");
         memcpy ( nptr, ptr, das::min(size,nsize) );
 #if DAS_TRACK_ALLOCATIONS
-        auto pAt = bigStuffAt.find(ptr);
-        if ( pAt != bigStuffAt.end() ) {
-            bigStuffAt[nptr] = pAt->second;
-        }
-        auto pCm = bigStuffComment.find(ptr);
-        if ( pCm != bigStuffComment.end() ) {
-            bigStuffComment[nptr] = pCm->second;
+        if ( trackAllocations ) {
+            auto pAt = bigStuffAt.find(ptr);
+            if ( pAt != bigStuffAt.end() ) {
+                bigStuffAt[nptr] = pAt->second;
+            }
+            auto pCm = bigStuffComment.find(ptr);
+            if ( pCm != bigStuffComment.end() ) {
+                bigStuffComment[nptr] = pCm->second;
+            }
         }
 #endif
         free(ptr, size);
@@ -208,9 +220,11 @@ namespace das {
         }
         bigStuff.clear();
 #if DAS_TRACK_ALLOCATIONS
-        bigStuffId.clear();
-        bigStuffAt.clear();
-        bigStuffComment.clear();
+        if ( trackAllocations ) {
+            bigStuffId.clear();
+            bigStuffAt.clear();
+            bigStuffComment.clear();
+        }
 #endif
         shoe.reset();
     }
@@ -220,14 +234,16 @@ namespace das {
             bigStuff.shrink_to_fit();
         }
 #if DAS_TRACK_ALLOCATIONS
-        if constexpr (has_shrink_to_fit<decltype(bigStuffId)>::value) {
-            bigStuffId.shrink_to_fit();
-        }
-        if constexpr (has_shrink_to_fit<decltype(bigStuffAt)>::value) {
-            bigStuffAt.shrink_to_fit();
-        }
-        if constexpr (has_shrink_to_fit<decltype(bigStuffComment)>::value) {
-            bigStuffComment.shrink_to_fit();
+        if ( trackAllocations ) {
+            if constexpr (has_shrink_to_fit<decltype(bigStuffId)>::value) {
+                bigStuffId.shrink_to_fit();
+            }
+            if constexpr (has_shrink_to_fit<decltype(bigStuffAt)>::value) {
+                bigStuffAt.shrink_to_fit();
+            }
+            if constexpr (has_shrink_to_fit<decltype(bigStuffComment)>::value) {
+                bigStuffComment.shrink_to_fit();
+            }
         }
 #endif
     }
@@ -242,7 +258,8 @@ namespace das {
 
     void MemoryModel::sweep() {
         totalAllocated = 0;
-#if !DAS_TRACK_ALLOCATIONS
+        // When trackAllocations is on, maxShoeAllocation==0, so no shoe chunks exist
+        // and this loop is naturally a no-op (chunks[si] is always nullptr).
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {   // we re-track all small allocations
             for ( auto ch=shoe.chunks[si]; ch; ch=ch->next ) {
                 ch->afterGC();
@@ -261,7 +278,6 @@ namespace das {
                 }
             }
         }
-#endif
         for ( auto it = bigStuff.begin(); it!=bigStuff.end() ; ) {
             if ( it->second & DAS_PAGE_GC_MASK ) {
                 it->second &= ~DAS_PAGE_GC_MASK;

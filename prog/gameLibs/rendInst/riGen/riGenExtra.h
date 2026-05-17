@@ -11,6 +11,7 @@
 #include <util/dag_oaHashNameMap.h>
 #include <scene/dag_physMat.h>
 #include <dag/dag_vector.h>
+#include <generic/dag_span.h>
 #include <3d/dag_texStreamingContext.h>
 #include <EASTL/bitvector.h>
 #include <util/dag_multicastEvent.h>
@@ -107,7 +108,7 @@ void remove_instance_from_tiled_scene(scene::node_index nodeId);
 void init_instance_user_data_for_tiled_scene(rendinst::RiExtraPool &pool, scene::node_index ni, vec4f sphere, int add_data_dwords,
   const int32_t *add_data);
 void set_instance_user_data(scene::node_index ni, int add_data_dwords, const int32_t *add_data);
-const uint32_t *get_user_data(rendinst::riex_handle_t);
+dag::ConstSpan<int32_t> get_user_data(rendinst::riex_handle_t);
 vec4f get_node_bsphere(rendinst::riex_handle_t, float &);
 void prefetch_node(rendinst::riex_handle_t);
 } // namespace rendinst

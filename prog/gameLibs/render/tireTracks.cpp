@@ -181,8 +181,8 @@ public:
   }
 
   // emit new track (start new or continue existing)
-  bool emit(const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id, float additional_width,
-    float omnidirectional_tex_blend, bool correct_previous_node, bool direction_changed)
+  bool emit(const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, real wetness, int tex_id,
+    float additional_width, float omnidirectional_tex_blend, bool correct_previous_node, bool direction_changed)
   {
     lastNorm = normalize(norm);
     if (lastNorm.y < 0)
@@ -202,7 +202,7 @@ public:
     totalBatchLen += (pos - lastPos).length();
 
     TireTrackNode node =
-      genNewNode(pos, normalize(movedir), opacity, additional_width, omnidirectional_tex_blend, correct_previous_node);
+      genNewNode(pos, normalize(movedir), opacity, wetness, additional_width, omnidirectional_tex_blend, correct_previous_node);
 
     if (track.size() == MAX_NODES_PER_TRACK)
       track[currentIdx] = node;
@@ -275,16 +275,17 @@ public:
   }
 
 private:
-  Point4 genTexCoord(float alpha, float omnidirectional_tex_blend)
+  Point4 genTexCoord(float alpha, float wetness, float omnidirectional_tex_blend)
   {
     float longitudinalPosition = totalBatchLen;
     float textureCoord = longitudinalPosition / trackTypes[trackTypeNo].textureLength;
     if (lastTex < 0) // invalid texcoords
       alpha = 0;
 
-    return Point4((0.5f + (real)lastTex) / (real)trackTypes[trackTypeNo].frameCount, textureCoord, omnidirectional_tex_blend, alpha);
+    return Point4((0.5f + (real)lastTex) / (real)trackTypes[trackTypeNo].frameCount, textureCoord, omnidirectional_tex_blend,
+      alpha > 0.0f ? 0.99f * alpha + floor(999.0f * wetness) : 0.0f);
   }
-  TireTrackNode genNewNode(const Point3 &pos, const Point3 &segment_dir, float alpha, float additional_width,
+  TireTrackNode genNewNode(const Point3 &pos, const Point3 &segment_dir, float alpha, float wetness, float additional_width,
     float omnidirectional_tex_blend, bool correct_previous_node)
   {
     const Point3 b = normalize(lastNorm % -segment_dir);
@@ -299,7 +300,7 @@ private:
 
     result.pos = Point4(pos.x, pos.z, pwidth.x, pwidth.z);
 
-    result.tc = genTexCoord(alpha * transparency, omnidirectional_tex_blend);
+    result.tc = genTexCoord(alpha * transparency, wetness, omnidirectional_tex_blend);
 
     // generate invalidation box
 
@@ -489,9 +490,9 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
 
       unsigned writeAlbedo = trackBlk->getBool("writeAlbedo", true) ? (WRITEMASK_RED0 | WRITEMASK_GREEN0 | WRITEMASK_BLUE0) : 0;
       unsigned writeNormal = trackBlk->getBool("writeNormal", true) ? (WRITEMASK_RED1 | WRITEMASK_GREEN1) : 0;
-      unsigned writeMicrodetail = trackBlk->getBool("writeMaterial", false) ? (WRITEMASK_BLUE1) : 0;
-      unsigned writeSmoothness = trackBlk->getBool("writeSmoothness", false) ? (WRITEMASK_GREEN2) : 0;
-      unsigned writeReflectance = trackBlk->getBool("writeReflectance", false) ? (WRITEMASK_BLUE2) : 0;
+      unsigned writeSmoothness = trackBlk->getBool("writeSmoothness", false) ? (WRITEMASK_BLUE1) : 0;
+      unsigned writeMicrodetail = trackBlk->getBool("writeMaterial", false) ? (WRITEMASK_BLUE2) : 0;
+      unsigned writeReflectance = trackBlk->getBool("writeReflectance", false) ? (WRITEMASK_GREEN2) : 0;
 
       unsigned writemask = writeAlbedo | writeNormal | writeMicrodetail | writeSmoothness | writeReflectance;
 
@@ -731,13 +732,13 @@ int create_emitter(float width, float /*texture_length_factor*/, float min_time,
   return id;
 }
 
-bool emit(int emitterId, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id,
+bool emit(int emitterId, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, real wetness, int tex_id,
   float additional_width, float omnidirectional_tex_blend, bool correct_previous_node, bool direction_changed)
 {
   if (emitterId < 0 || emitterId >= emitters.size())
     return false;
 
-  return emitters[emitterId].emit(norm, pos, movedir, opacity, tex_id, additional_width, omnidirectional_tex_blend,
+  return emitters[emitterId].emit(norm, pos, movedir, opacity, wetness, tex_id, additional_width, omnidirectional_tex_blend,
     correct_previous_node, direction_changed);
 }
 

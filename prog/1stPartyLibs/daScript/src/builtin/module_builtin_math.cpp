@@ -5,6 +5,7 @@
 #include "daScript/simulate/simulate_nodes.h"
 #include "daScript/ast/ast_interop.h"
 #include "daScript/ast/ast_policy_types.h"
+#include "daScript/ast/ast_simulate.h"
 #include "daScript/ast/ast_handle.h"
 #include "daScript/simulate/sim_policy.h"
 #include "daScript/simulate/aot_builtin_math.h"
@@ -161,65 +162,65 @@ namespace das {
     template <typename TT>
     void addFunctionTrig(Module & mod, const ModuleLibrary & lib) {
         //                                    policy              ret   arg1 arg2     name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Sin<TT>,        TT,   TT>        >("sin",       lib, "Sin")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Cos<TT>,        TT,   TT>        >("cos",       lib, "Cos")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Tan<TT>,        TT,   TT>        >("tan",       lib, "Tan")->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Sin<TT>,        TT,   TT>("sin",       lib, "Sin"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Cos<TT>,        TT,   TT>("cos",       lib, "Cos"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Tan<TT>,        TT,   TT>("tan",       lib, "Tan"))->arg("x") );
     }
 
     template <typename TT>
     void addFunctionCommonTyped(Module & mod, const ModuleLibrary & lib) {
         //                                    policy              ret   arg1 arg2   name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Min <TT>, TT,   TT,   TT>      >("min",   lib, "Min")->args({"x","y"}) );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Max <TT>, TT,   TT,   TT>      >("max",   lib, "Max")->args({"x","y"}) );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Clamp<TT>,TT,   TT,   TT,  TT> >("clamp", lib, "Clamp")->args({"t","a","b"}) );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Abs<TT>,  TT,   TT>            >("abs",   lib, "Abs")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Sign<TT>, TT,   TT>            >("sign",  lib, "Sign")->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Min <TT>, TT,   TT,   TT>("min",   lib, "Min"))->args({"x","y"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Max <TT>, TT,   TT,   TT>("max",   lib, "Max"))->args({"x","y"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Clamp<TT>,TT,   TT,   TT,  TT>("clamp", lib, "Clamp"))->args({"t","a","b"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Abs<TT>,  TT,   TT>("abs",   lib, "Abs"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Sign<TT>, TT,   TT>("sign",  lib, "Sign"))->arg("x") );
     }
 
     template <typename TT>
     void addFunctionCommon(Module & mod, const ModuleLibrary & lib) {
         //                                    policy            ret   arg1     name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Floor<TT>,    TT,   TT>   >("floor",       lib, "Floor")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Ceil<TT>,     TT,   TT>   >("ceil",        lib, "Ceil")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Fract<TT>,    TT,   TT>   >("fract",       lib, "Fract")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Round<TT>,    TT,   TT>   >("round",       lib, "Round")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Sqrt<TT>,     TT,   TT>   >("sqrt",        lib, "Sqrt")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_RSqrt<TT>,    TT,   TT>   >("rsqrt",       lib, "RSqrt")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_RSqrtEst<TT>, TT,   TT>   >("rsqrt_est",   lib, "RSqrtEst")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Sat<TT>,      TT,   TT>   >("saturate",    lib, "Sat")->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Floor<TT>,    TT,   TT>("floor",       lib, "Floor"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Ceil<TT>,     TT,   TT>("ceil",        lib, "Ceil"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Fract<TT>,    TT,   TT>("fract",       lib, "Fract"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Round<TT>,    TT,   TT>("round",       lib, "Round"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Sqrt<TT>,     TT,   TT>("sqrt",        lib, "Sqrt"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_RSqrt<TT>,    TT,   TT>("rsqrt",       lib, "RSqrt"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_RSqrtEst<TT>, TT,   TT>("rsqrt_est",   lib, "RSqrtEst"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Sat<TT>,      TT,   TT>("saturate",    lib, "Sat"))->arg("x") );
     }
     template <typename Ret, typename TT>
     void addFunctionCommonConversion(Module & mod, const ModuleLibrary & lib) {
         //                                    policy          ret    arg1     name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Floori<TT>, Ret,   TT>   >("floori",  lib, "Floori")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Ceili <TT>, Ret,   TT>   >("ceili",   lib, "Ceili")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Roundi<TT>, Ret,   TT>   >("roundi",  lib, "Roundi")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Trunci<TT>, Ret,   TT>   >("trunci",  lib, "Trunci")->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Floori<TT>, Ret,   TT>("floori",  lib, "Floori"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Ceili <TT>, Ret,   TT>("ceili",   lib, "Ceili"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Roundi<TT>, Ret,   TT>("roundi",  lib, "Roundi"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Trunci<TT>, Ret,   TT>("trunci",  lib, "Trunci"))->arg("x") );
     }
 
     template <typename TT>
     void addFunctionPow(Module & mod, const ModuleLibrary & lib) {
         //                                    policy           ret   arg1   name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Exp<TT>,     TT,   TT> >("exp",      lib, "Exp")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Log<TT>,     TT,   TT> >("log",      lib, "Log")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Exp2<TT>,    TT,   TT> >("exp2",     lib, "Exp2")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Log2<TT>,    TT,   TT> >("log2",     lib, "Log2")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Rcp<TT>,     TT,   TT> >("rcp",      lib, "Rcp")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_RcpEst<TT>,  TT,   TT> >("rcp_est",  lib, "RcpEst")->arg("x") );
-        mod.addFunction( make_smart<BuiltInFn<Sim_Pow<TT>,  TT,   TT,   TT> >("pow",   lib, "Pow")->args({"x","y"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Exp<TT>,     TT,   TT>("exp",      lib, "Exp"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Log<TT>,     TT,   TT>("log",      lib, "Log"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Exp2<TT>,    TT,   TT>("exp2",     lib, "Exp2"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Log2<TT>,    TT,   TT>("log2",     lib, "Log2"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Rcp<TT>,     TT,   TT>("rcp",      lib, "Rcp"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_RcpEst<TT>,  TT,   TT>("rcp_est",  lib, "RcpEst"))->arg("x") );
+        mod.addFunction( (new BuiltInFn<Sim_Pow<TT>,  TT,   TT,   TT>("pow",   lib, "Pow"))->args({"x","y"}) );
     }
 
     template <typename TT>
     void addFunctionOp3i(Module & mod, const ModuleLibrary & lib) {
         //                                    policy         ret arg1 arg2 arg3   name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Mad<TT>,   TT, TT,  TT,  TT> >("mad",   lib, "Mad")->args({"a","b","c"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Mad<TT>,   TT, TT,  TT,  TT>("mad",   lib, "Mad"))->args({"a","b","c"}) );
     }
 
     template <typename TT>
     void addFunctionOp3(Module & mod, const ModuleLibrary & lib) {
         addFunctionOp3i<TT>(mod, lib);
         //                                    policy         ret arg1 arg2 arg3   name
-        mod.addFunction( make_smart<BuiltInFn<Sim_Lerp<TT>,  TT, TT,  TT,  TT> >("lerp",  lib, "Lerp")->args({"a","b","t"}) );
+        mod.addFunction( (new BuiltInFn<Sim_Lerp<TT>,  TT, TT,  TT,  TT>("lerp",  lib, "Lerp"))->args({"a","b","t"}) );
     }
 
     template <typename VecT, int RowC>
@@ -232,25 +233,25 @@ namespace das {
             const char * fieldNames [] = {"x","y","z","w"};
             for ( int r=0; r!=RowC; ++r ) {
                 this->addFieldEx(fieldNames[r], "m[" + to_string(r) + "]", r*ColC*sizeof(float),
-                    make_smart<TypeDecl>(TypeDecl::getVectorType(Type::tFloat, ColC)));
+                    new TypeDecl(TypeDecl::getVectorType(Type::tFloat, ColC)));
             }
         }
         virtual bool isIndexable ( const TypeDeclPtr & decl ) const override {
             return decl->isIndex();
         }
-        virtual TypeDeclPtr makeIndexType ( const ExpressionPtr &, const ExpressionPtr & idx ) const override {
+        virtual TypeDeclPtr makeIndexType ( ExpressionPtr, ExpressionPtr idx ) const override {
             auto decl = idx->type;
             if ( !decl->isIndex() ) return nullptr;
             auto bt = TypeDecl::getVectorType(Type::tFloat, ColC);
-            auto pt = make_smart<TypeDecl>(bt);
+            auto pt = new TypeDecl(bt);
             pt->ref = true;
             return pt;
         }
-        SimNode * trySimulate ( Context & context, const ExpressionPtr & subexpr, const ExpressionPtr & index,
+        SimNode * trySimulate ( Context & context, ExpressionPtr subexpr, ExpressionPtr index,
                                const TypeDeclPtr & r2vType, uint32_t ofs ) const {
             if ( index->rtti_isConstant() ) {
                 // if its constant index, like a[3]..., we try to let node bellow simulate
-                auto idxCE = static_pointer_cast<ExprConst>(index);
+                auto idxCE = static_cast<ExprConst*>(index);
                 uint32_t idxC = cast<uint32_t>::to(idxCE->value);
                 if ( idxC >= RowC ) {
                     context.thisProgram->error("matrix index out of range", "", "",
@@ -258,7 +259,7 @@ namespace das {
                     return nullptr;
                 }
                 uint32_t stride = sizeof(float)*ColC;
-                auto tnode = subexpr->trySimulate(context, idxC*stride + ofs, r2vType);
+                auto tnode = trySimulateExpression(context, subexpr, idxC*stride + ofs, r2vType);
                 if ( tnode ) {
                     return tnode;
                 }
@@ -266,25 +267,27 @@ namespace das {
             return nullptr;
         }
         virtual SimNode * simulateGetAt ( Context & context, const LineInfo & at, const TypeDeclPtr &,
-                                         const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
-            if ( auto tnode = trySimulate(context, rv, idx, make_smart<TypeDecl>(Type::none), ofs) ) {
+                                         ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
+            gc_local<TypeDecl> none = new TypeDecl(Type::none);
+            if ( auto tnode = trySimulate(context, rv, idx, none.ptr, ofs) ) {
                 return tnode;
             } else {
                 return context.code->makeNode<SimNode_At>(at,
-                                                          rv->simulate(context),
-                                                          idx->simulate(context),
+                                                          simulateExpression(context, rv),
+                                                          simulateExpression(context, idx),
                                                           uint32_t(sizeof(float)*ColC), ofs, RowC, "matrix[index]");
             }
         }
         virtual SimNode * simulateGetAtR2V ( Context & context, const LineInfo & at, const TypeDeclPtr & readType,
-                                            const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
+                                            ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
             auto r2vType = readType->baseType;
-            if ( auto tnode = trySimulate(context, rv, idx, make_smart<TypeDecl>(r2vType), ofs) ) {
+            gc_local<TypeDecl> r2vTypeDecl = new TypeDecl(r2vType);
+            if ( auto tnode = trySimulate(context, rv, idx, r2vTypeDecl.ptr, ofs) ) {
                 return tnode;
             } else {
                 return context.code->makeValueNode<SimNode_AtR2V>(  r2vType, at,
-                                                                    rv->simulate(context),
-                                                                    idx->simulate(context),
+                                                                    simulateExpression(context, rv),
+                                                                    simulateExpression(context, idx),
                                                                     uint32_t(sizeof(float)*ColC), ofs, RowC, "matrix[index]");
             }
         }
@@ -515,15 +518,15 @@ namespace das {
     }
 
     float4 quat_from_unit_arc(float3 v0, float3 v1) {
-        return v_quat_from_unit_arc(v_ldu(&v0.x), v_ldu(&v1.x));
+        return v_quat_from_unit_arc(v_ldu_p3(&v0.x), v_ldu_p3(&v1.x));
     }
 
     float4 quat_from_unit_vec_ang(float3 v, float ang) {
-        return v_quat_from_unit_vec_ang(v_ldu(&v.x), v_splats(ang));
+        return v_quat_from_unit_vec_ang(v_ldu_p3(&v.x), v_splats(ang));
     }
 
     float4 quat_from_euler_vec(float3 v) {
-        return v_quat_from_euler(v_ldu(&v.x));
+        return v_quat_from_euler(v_ldu_p3(&v.x));
     }
 
     float4 quat_from_euler(float x, float y, float z) {
@@ -627,33 +630,33 @@ namespace das {
             addFunctionOp3<float2>(*this,lib);
             addFunctionOp3<float3>(*this,lib);
             addFunctionOp3<float4>(*this,lib);
-            addFunction( make_smart<BuiltInFn<Sim_MadS<float2>,   float2, float2,  float,  float2> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<float3>,   float3, float3,  float,  float3> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<float4>,   float4, float4,  float,  float4> >("mad", lib, "MadS")->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<float2>,   float2, float2,  float,  float2>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<float3>,   float3, float3,  float,  float3>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<float4>,   float4, float4,  float,  float4>("mad", lib, "MadS"))->args({"a","b","c"}) );
             // op3i - int
             addFunctionOp3i<int32_t >(*this,lib);
             addFunctionOp3i<int2>(*this,lib);
             addFunctionOp3i<int3>(*this,lib);
             addFunctionOp3i<int4>(*this,lib);
-            addFunction( make_smart<BuiltInFn<Sim_MadS<int2>,   int2, int2,  int,  int2> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<int3>,   int3, int3,  int,  int3> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<int4>,   int4, int4,  int,  int4> >("mad", lib, "MadS")->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<int2>,   int2, int2,  int,  int2>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<int3>,   int3, int3,  int,  int3>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<int4>,   int4, int4,  int,  int4>("mad", lib, "MadS"))->args({"a","b","c"}) );
             // op3i - uint
             addFunctionOp3i<uint32_t>(*this,lib);
             addFunctionOp3i<uint2>(*this,lib);
             addFunctionOp3i<uint3>(*this,lib);
             addFunctionOp3i<uint4>(*this,lib);
-            addFunction( make_smart<BuiltInFn<Sim_MadS<uint2>,   uint2, uint2,  uint32_t,  uint2> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<uint3>,   uint3, uint3,  uint32_t,  uint3> >("mad", lib, "MadS")->args({"a","b","c"}) );
-            addFunction( make_smart<BuiltInFn<Sim_MadS<uint4>,   uint4, uint4,  uint32_t,  uint4> >("mad", lib, "MadS")->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<uint2>,   uint2, uint2,  uint32_t,  uint2>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<uint3>,   uint3, uint3,  uint32_t,  uint3>("mad", lib, "MadS"))->args({"a","b","c"}) );
+            addFunction( (new BuiltInFn<Sim_MadS<uint4>,   uint4, uint4,  uint32_t,  uint4>("mad", lib, "MadS"))->args({"a","b","c"}) );
             // and double
             addFunctionOp3<double>(*this,lib);
             // double common (sqrt/rsqrt/rcp already registered as externs below)
-            addFunction( make_smart<BuiltInFn<Sim_Floor<double>,    double,   double>   >("floor",       lib, "Floor")->arg("x") );
-            addFunction( make_smart<BuiltInFn<Sim_Ceil<double>,     double,   double>   >("ceil",        lib, "Ceil")->arg("x") );
-            addFunction( make_smart<BuiltInFn<Sim_Fract<double>,    double,   double>   >("fract",       lib, "Fract")->arg("x") );
-            addFunction( make_smart<BuiltInFn<Sim_Round<double>,    double,   double>   >("round",       lib, "Round")->arg("x") );
-            addFunction( make_smart<BuiltInFn<Sim_Sat<double>,      double,   double>   >("saturate",    lib, "Sat")->arg("x") );
+            addFunction( (new BuiltInFn<Sim_Floor<double>,    double,   double>("floor",       lib, "Floor"))->arg("x") );
+            addFunction( (new BuiltInFn<Sim_Ceil<double>,     double,   double>("ceil",        lib, "Ceil"))->arg("x") );
+            addFunction( (new BuiltInFn<Sim_Fract<double>,    double,   double>("fract",       lib, "Fract"))->arg("x") );
+            addFunction( (new BuiltInFn<Sim_Round<double>,    double,   double>("round",       lib, "Round"))->arg("x") );
+            addFunction( (new BuiltInFn<Sim_Sat<double>,      double,   double>("saturate",    lib, "Sat"))->arg("x") );
             //common
             addFunctionCommon<float>(*this, lib);
             addFunctionCommon<float2>(*this,lib);
@@ -738,6 +741,20 @@ namespace das {
             addExtern<DAS_BIND_FUN(dtan)>(*this, lib, "tan",     SideEffects::none, "dtan")->arg("x");
             addExtern<DAS_BIND_FUN(datan)>(*this, lib, "atan",   SideEffects::none, "datan")->arg("x");
             addExtern<DAS_BIND_FUN(datan2)>(*this, lib, "atan2", SideEffects::none, "datan2")->args({"y","x"});
+            addExtern<DAS_BIND_FUN(dsinh)>(*this, lib, "sinh", SideEffects::none, "dsinh")->arg("x");
+            addExtern<DAS_BIND_FUN(dcosh)>(*this, lib, "cosh", SideEffects::none, "dcosh")->arg("x");
+            addExtern<DAS_BIND_FUN(dtanh)>(*this, lib, "tanh", SideEffects::none, "dtanh")->arg("x");
+            addExtern<DAS_BIND_FUN(dasinh)>(*this, lib, "asinh", SideEffects::none, "dasinh")->arg("x");
+            addExtern<DAS_BIND_FUN(dacosh)>(*this, lib, "acosh", SideEffects::none, "dacosh")->arg("x");
+            addExtern<DAS_BIND_FUN(datanh)>(*this, lib, "atanh", SideEffects::none, "datanh")->arg("x");
+            addExtern<DAS_BIND_FUN(dlog10)>(*this, lib, "log10", SideEffects::none, "dlog10")->arg("x");
+            addExtern<DAS_BIND_FUN(dlog1p)>(*this, lib, "log1p", SideEffects::none, "dlog1p")->arg("x");
+            addExtern<DAS_BIND_FUN(dexpm1)>(*this, lib, "expm1", SideEffects::none, "dexpm1")->arg("x");
+            addExtern<DAS_BIND_FUN(dcbrt)>(*this, lib, "cbrt", SideEffects::none, "dcbrt")->arg("x");
+            addExtern<DAS_BIND_FUN(dtrunc)>(*this, lib, "trunc", SideEffects::none, "dtrunc")->arg("x");
+            addExtern<DAS_BIND_FUN(dhypot)>(*this, lib, "hypot", SideEffects::none, "dhypot")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(dfmod)>(*this, lib, "fmod", SideEffects::none, "dfmod")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(dremainder)>(*this, lib, "remainder", SideEffects::none, "dremainder")->args({"x","y"});
             addExtern<DAS_BIND_FUN(sincosF)>(*this, lib, "sincos", SideEffects::modifyArgument, "sincosF")->args({"x","s","c"});
             addExtern<DAS_BIND_FUN(sincosD)>(*this, lib, "sincos", SideEffects::modifyArgument, "sincosD")->args({"x","s","c"});
             // too big for intrinsic
@@ -749,6 +766,20 @@ namespace das {
             addExtern<DAS_BIND_FUN(fatan_est)>(*this, lib, "atan_est", SideEffects::none, "fatan_est")->arg("x");
             addExtern<DAS_BIND_FUN(fatan2)>(*this, lib, "atan2", SideEffects::none, "fatan2")->args({"y","x"});
             addExtern<DAS_BIND_FUN(fatan2_est)>(*this, lib, "atan2_est", SideEffects::none, "fatan2_est")->args({"y","x"});
+            addExtern<DAS_BIND_FUN(fsinh)>(*this, lib, "sinh", SideEffects::none, "fsinh")->arg("x");
+            addExtern<DAS_BIND_FUN(fcosh)>(*this, lib, "cosh", SideEffects::none, "fcosh")->arg("x");
+            addExtern<DAS_BIND_FUN(ftanh)>(*this, lib, "tanh", SideEffects::none, "ftanh")->arg("x");
+            addExtern<DAS_BIND_FUN(fasinh)>(*this, lib, "asinh", SideEffects::none, "fasinh")->arg("x");
+            addExtern<DAS_BIND_FUN(facosh)>(*this, lib, "acosh", SideEffects::none, "facosh")->arg("x");
+            addExtern<DAS_BIND_FUN(fatanh)>(*this, lib, "atanh", SideEffects::none, "fatanh")->arg("x");
+            addExtern<DAS_BIND_FUN(flog10)>(*this, lib, "log10", SideEffects::none, "flog10")->arg("x");
+            addExtern<DAS_BIND_FUN(flog1p)>(*this, lib, "log1p", SideEffects::none, "flog1p")->arg("x");
+            addExtern<DAS_BIND_FUN(fexpm1)>(*this, lib, "expm1", SideEffects::none, "fexpm1")->arg("x");
+            addExtern<DAS_BIND_FUN(fcbrt)>(*this, lib, "cbrt", SideEffects::none, "fcbrt")->arg("x");
+            addExtern<DAS_BIND_FUN(ftrunc)>(*this, lib, "trunc", SideEffects::none, "ftrunc")->arg("x");
+            addExtern<DAS_BIND_FUN(fhypot)>(*this, lib, "hypot", SideEffects::none, "fhypot")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(ffmod)>(*this, lib, "fmod", SideEffects::none, "ffmod")->args({"x","y"});
+            addExtern<DAS_BIND_FUN(fremainder)>(*this, lib, "remainder", SideEffects::none, "fremainder")->args({"x","y"});
             addExternEx<float2(float2),DAS_BIND_FUN(vasin)>(*this, lib, "asin", SideEffects::none, "vasin")->arg("x");
             addExternEx<float3(float3),DAS_BIND_FUN(vasin)>(*this, lib, "asin", SideEffects::none, "vasin")->arg("x");
             addExternEx<float4(float4),DAS_BIND_FUN(vasin)>(*this, lib, "asin", SideEffects::none, "vasin")->arg("x");
@@ -773,6 +804,48 @@ namespace das {
             addExternEx<float2(float2,float2),DAS_BIND_FUN(vatan2_est)>(*this, lib, "atan2_est", SideEffects::none, "vatan2_est")->args({"y","x"});
             addExternEx<float3(float3,float3),DAS_BIND_FUN(vatan2_est)>(*this, lib, "atan2_est", SideEffects::none, "vatan2_est")->args({"y","x"});
             addExternEx<float4(float4,float4),DAS_BIND_FUN(vatan2_est)>(*this, lib, "atan2_est", SideEffects::none, "vatan2_est")->args({"y","x"});
+            addExternEx<float2(float2),DAS_BIND_FUN(vsinh)>(*this, lib, "sinh", SideEffects::none, "vsinh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vsinh)>(*this, lib, "sinh", SideEffects::none, "vsinh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vsinh)>(*this, lib, "sinh", SideEffects::none, "vsinh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vcosh)>(*this, lib, "cosh", SideEffects::none, "vcosh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vcosh)>(*this, lib, "cosh", SideEffects::none, "vcosh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vcosh)>(*this, lib, "cosh", SideEffects::none, "vcosh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vtanh)>(*this, lib, "tanh", SideEffects::none, "vtanh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vtanh)>(*this, lib, "tanh", SideEffects::none, "vtanh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vtanh)>(*this, lib, "tanh", SideEffects::none, "vtanh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vasinh)>(*this, lib, "asinh", SideEffects::none, "vasinh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vasinh)>(*this, lib, "asinh", SideEffects::none, "vasinh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vasinh)>(*this, lib, "asinh", SideEffects::none, "vasinh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vacosh)>(*this, lib, "acosh", SideEffects::none, "vacosh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vacosh)>(*this, lib, "acosh", SideEffects::none, "vacosh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vacosh)>(*this, lib, "acosh", SideEffects::none, "vacosh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vatanh)>(*this, lib, "atanh", SideEffects::none, "vatanh")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vatanh)>(*this, lib, "atanh", SideEffects::none, "vatanh")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vatanh)>(*this, lib, "atanh", SideEffects::none, "vatanh")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vlog10)>(*this, lib, "log10", SideEffects::none, "vlog10")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vlog10)>(*this, lib, "log10", SideEffects::none, "vlog10")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vlog10)>(*this, lib, "log10", SideEffects::none, "vlog10")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vlog1p)>(*this, lib, "log1p", SideEffects::none, "vlog1p")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vlog1p)>(*this, lib, "log1p", SideEffects::none, "vlog1p")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vlog1p)>(*this, lib, "log1p", SideEffects::none, "vlog1p")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vexpm1)>(*this, lib, "expm1", SideEffects::none, "vexpm1")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vexpm1)>(*this, lib, "expm1", SideEffects::none, "vexpm1")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vexpm1)>(*this, lib, "expm1", SideEffects::none, "vexpm1")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vcbrt)>(*this, lib, "cbrt", SideEffects::none, "vcbrt")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vcbrt)>(*this, lib, "cbrt", SideEffects::none, "vcbrt")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vcbrt)>(*this, lib, "cbrt", SideEffects::none, "vcbrt")->arg("x");
+            addExternEx<float2(float2),DAS_BIND_FUN(vtrunc)>(*this, lib, "trunc", SideEffects::none, "vtrunc")->arg("x");
+            addExternEx<float3(float3),DAS_BIND_FUN(vtrunc)>(*this, lib, "trunc", SideEffects::none, "vtrunc")->arg("x");
+            addExternEx<float4(float4),DAS_BIND_FUN(vtrunc)>(*this, lib, "trunc", SideEffects::none, "vtrunc")->arg("x");
+            addExternEx<float2(float2,float2),DAS_BIND_FUN(vhypot)>(*this, lib, "hypot", SideEffects::none, "vhypot")->args({"x","y"});
+            addExternEx<float3(float3,float3),DAS_BIND_FUN(vhypot)>(*this, lib, "hypot", SideEffects::none, "vhypot")->args({"x","y"});
+            addExternEx<float4(float4,float4),DAS_BIND_FUN(vhypot)>(*this, lib, "hypot", SideEffects::none, "vhypot")->args({"x","y"});
+            addExternEx<float2(float2,float2),DAS_BIND_FUN(vfmod)>(*this, lib, "fmod", SideEffects::none, "vfmod")->args({"x","y"});
+            addExternEx<float3(float3,float3),DAS_BIND_FUN(vfmod)>(*this, lib, "fmod", SideEffects::none, "vfmod")->args({"x","y"});
+            addExternEx<float4(float4,float4),DAS_BIND_FUN(vfmod)>(*this, lib, "fmod", SideEffects::none, "vfmod")->args({"x","y"});
+            addExternEx<float2(float2,float2),DAS_BIND_FUN(vremainder)>(*this, lib, "remainder", SideEffects::none, "vremainder")->args({"x","y"});
+            addExternEx<float3(float3,float3),DAS_BIND_FUN(vremainder)>(*this, lib, "remainder", SideEffects::none, "vremainder")->args({"x","y"});
+            addExternEx<float4(float4,float4),DAS_BIND_FUN(vremainder)>(*this, lib, "remainder", SideEffects::none, "vremainder")->args({"x","y"});
 
             addExternEx<float3(float3,float3),DAS_BIND_FUN(reflect)>(*this, lib, "reflect",
                 SideEffects::none, "reflect")->args({"v","n"});
@@ -788,13 +861,13 @@ namespace das {
             addFunctionCommonConversion<int3, float3>(*this,lib);
             addFunctionCommonConversion<int4, float4>(*this,lib);
             // structure annotations
-            addAnnotation(make_smart<float4x4_ann>(lib));
-            addAnnotation(make_smart<float3x4_ann>(lib));
-            addAnnotation(make_smart<float3x3_ann>(lib));
+            addAnnotation(new float4x4_ann(lib));
+            addAnnotation(new float3x4_ann(lib));
+            addAnnotation(new float3x3_ann(lib));
             // c-tor
-            addFunction ( make_smart< MatrixCTorFn< SimNode_MatrixCtor<float3x3>,float3x3 > >("float3x3",lib) );
-            addFunction ( make_smart< MatrixCTorFn< SimNode_MatrixCtor<float3x4>,float3x4 > >("float3x4",lib) );
-            addFunction ( make_smart< MatrixCTorFn< SimNode_MatrixCtor<float4x4>,float4x4 > >("float4x4",lib) );
+            addFunction ( new MatrixCTorFn< SimNode_MatrixCtor<float3x3>,float3x3 >("float3x3",lib) );
+            addFunction ( new MatrixCTorFn< SimNode_MatrixCtor<float3x4>,float3x4 >("float3x4",lib) );
+            addFunction ( new MatrixCTorFn< SimNode_MatrixCtor<float4x4>,float4x4 >("float4x4",lib) );
             // 4x4
             addExtern<DAS_BIND_FUN(float4x4_from_float34), SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "float4x4",
                 SideEffects::none,"float4x4_from_float34");

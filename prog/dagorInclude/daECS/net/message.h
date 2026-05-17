@@ -10,6 +10,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/functional.h>
 #include <EASTL/memory.h>
+#include <EASTL/string.h>
 #include <daNet/packetPriority.h>
 #include <daNet/daNetTypes.h> // DaNetTime
 #include <debug/dag_assert.h>
@@ -134,15 +135,19 @@ class MessageClass : public MessageNetDesc
   static int numClassIdBits;
 
 public:
-  void (*msgSinkHandler)(const IMessage *msg); // If not null then this handler will be called on msgSink messages receival
-  const char *debugClassName = nullptr;        // null in release (see ECS_NET_MSG_CLASS_NAME)
+  void (*msgSinkHandler)(const IMessage *msg);        // If not null then this handler will be called on msgSink messages receival
+  eastl::string (*formatMsgStr)(const IMessage *msg); // called with the unpacked message on routing failure for logging
+  const char *debugClassName = nullptr;               // null in release (see ECS_NET_MSG_CLASS_NAME)
   uint32_t classHash;
   int16_t classId = -1;
   uint16_t memSize;
 
+  static eastl::string defaultFormatMsgStr(const IMessage *msg);
+
   MessageClass(const char *class_name, uint32_t class_hash, uint32_t class_sz, MessageRouting rout, bool timed,
     recipient_filter_t rcptf = ECS_NET_NO_RCPTF, PacketReliability rlb = RELIABLE_ORDERED, uint8_t chn = 0,
-    uint32_t flags_ = MF_DEFAULT_FLAGS, int dup_delay_ms = ECS_NET_NO_DUP, void (*msg_sink_handler)(const IMessage *) = nullptr);
+    uint32_t flags_ = MF_DEFAULT_FLAGS, int dup_delay_ms = ECS_NET_NO_DUP, void (*msg_sink_handler)(const IMessage *) = nullptr,
+    eastl::string (*format_msg_str)(const IMessage *) = &MessageClass::defaultFormatMsgStr);
 
 private:
   static uint32_t initImpl(bool server, bool dbg_output_table);

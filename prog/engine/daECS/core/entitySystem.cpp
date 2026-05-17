@@ -2,6 +2,7 @@
 
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
+#include <EASTL/vector_map.h>
 #include <util/dag_stlqsort.h>
 #include <memory/dag_framemem.h>
 #include <debug/dag_assert.h>
@@ -287,6 +288,10 @@ void EntityManager::resetEsOrder()
     SmallFmemTab<PrioEntitySystemDesc> prio;
     prio.reserve(esFullList.size());
 
+#if DAGOR_DBGLEVEL > 0
+    eastl::vector_map<eastl::string_view, SmallFmemTab<const char *>, eastl::less<eastl::string_view>, framemem_allocator>
+      skippedByTags;
+#endif
     for (int i = 0, e = esFullList.size(); i < e; ++i)
     {
       EntitySystemDesc *sd = esFullList[i];
@@ -305,7 +310,7 @@ void EntityManager::resetEsOrder()
       if (esTags.size() && !filter_needed(sd->getTags(), esTags))
       {
 #if DAGOR_DBGLEVEL > 0
-        debug("skip ES <%s> due to it is tags <%s>", sd->name, sd->getTags());
+        skippedByTags[eastl::string_view(sd->getTags())].push_back(sd->name);
 #endif
         continue;
       }
@@ -321,6 +326,20 @@ void EntityManager::resetEsOrder()
       }
       prio.push_back(PrioEntitySystemDesc({i, updatePrio}));
     }
+
+#if DAGOR_DBGLEVEL > 0
+    for (auto &kv : skippedByTags)
+    {
+      eastl::string list;
+      for (size_t k = 0, ke = kv.second.size(); k < ke; ++k)
+      {
+        if (k)
+          list += (k % 8 == 0) ? ",\n" : ", ";
+        list += kv.second[k];
+      }
+      debug("ES skipped due to tags <%.*s>:\n<%s>", (int)kv.first.length(), kv.first.data(), list.c_str());
+    }
+#endif
 
     queryToEsMap.clear();
     clear_and_shrink(esList);

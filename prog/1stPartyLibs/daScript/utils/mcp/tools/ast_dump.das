@@ -11,9 +11,9 @@ def do_ast_dump_expression(expression : string) : string {
         return make_tool_result("Cannot determine daslang executable path", true)
     }
     let script_path = make_temp_das_file()
-    let code = "options gen2\noptions rtti\nrequire daslib/ast\nrequire daslib/ast_boost\n\n[export]\ndef main() \{\n    var inscope ed <- quote({expression})\n    print(\"\{debug_expression(ed)\}\n\")\n\}\n"
+    let code = "options gen2\noptions rtti\nrequire daslib/ast\nrequire daslib/ast_boost\n\n[export]\ndef main() \{\n    var ed <- quote({expression})\n    print(\"\{debug_expression(ed)\}\n\")\n\}\n"
     var write_ok = false
-    fopen(script_path, "wb") <| $(fw) {
+    fopen(script_path, "wb") $(fw) {
         if (fw == null) {
             return
         }
@@ -24,7 +24,8 @@ def do_ast_dump_expression(expression : string) : string {
         return make_tool_result("Cannot write temp file", true)
     }
     var output : string
-    let exit_code = run_and_capture("{exe} {script_path}", output)
+    let argv <- [exe, script_path]
+    let exit_code = run_and_capture(argv, output)
     remove(script_path)
     if (exit_code != 0) {
         return make_tool_result("AST dump failed (exit code {exit_code}):\n{output}", true)
@@ -45,11 +46,11 @@ def format_func_body(func; use_source_mode : bool; use_lineinfo : bool = false) 
 }
 
 def do_ast_dump_file(file, func_name : string; use_source_mode, use_lineinfo : bool; project : string = "") : string {
-    return compile_program(file, true, false, project) <| $(program, issues) {
+    return compile_program(file, true, false, project) $(program, issues) {
         let thisMod = get_this_module(program)
         var result = ""
         var found = false
-        for_each_function(thisMod, "") <| $(func) {
+        for_each_function(thisMod, "") $(func) {
             if (func.flags.builtIn || func.flags._lambda || func.flags.generated) {
                 return
             }

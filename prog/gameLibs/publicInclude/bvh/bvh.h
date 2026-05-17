@@ -587,7 +587,8 @@ struct AdditionalSettings
   bool discardDestrAssets = false;
   int singleLodFilterMaxFaces = 0;   // 0 means no filtering
   float singleLodFilterMaxRange = 0; // 0 means no filtering
-  bool use_fast_tlas_build = false;
+  bool useFastTlasBuild = false;
+  bool enableCaching = true;
 };
 
 void init(elem_rules_fn elem_rules = nullptr, screenshot_fn screenshot = nullptr, AdditionalSettings settings = {});
@@ -625,6 +626,8 @@ void update_instances(ContextId bvh_context_id, const Point3 &view_position, con
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
   const Frustum &view_frustum, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
   threadpool::JobPriority prio);
+
+void wait_dynamic_instances_jobs();
 
 // The upper 32 bits of the object_id are reserved for RI
 void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info);

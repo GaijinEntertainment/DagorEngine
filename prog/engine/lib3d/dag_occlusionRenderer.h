@@ -1,8 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <math/dag_occlusionTest.h>
-#include <3d/dag_occlusionSystem.h>
+#include <math/dag_occlusionZBuffer.h>
 
 #define OCCLUSION_OPTIMIZE_OUTDOOR_EARLYEXIT 1
 // allows early exit in reprojection if 4 points are all too far (beyond zfar).
@@ -10,64 +9,56 @@
 // scene), results in optimization 15%. the help is not clear. On one side, sky is very fast to render, so we optimize optimized case.
 // On the other side, full occlusion is best scenario to occlude, so we optimize average case
 
-template <int sizeX, int sizeY>
 class OcclusionRenderer
 {
 private:
-  OcclusionTest<sizeX, sizeY> &occlusionTest;
-  alignas(32) float zBufferReprojected[sizeX * sizeY]; //-V730_NOINIT
+  OcclusionZBuffer &occlusionZBuffer;
+  alignas(32) float zBufferReprojected[OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT]; //-V730_NOINIT
 
 public:
 #if DAGOR_DBGLEVEL > 0
-  alignas(32) float reprojectionDebug[sizeX * sizeY]; //-V730_NOINIT
+  alignas(32) float reprojectionDebug[OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT]; //-V730_NOINIT
 #endif
 
   float *getReprojected() { return zBufferReprojected; }
 
-  OcclusionRenderer(OcclusionTest<sizeX, sizeY> &occl_test) : occlusionTest(occl_test) {}
+  OcclusionRenderer(OcclusionZBuffer &occ_zbuf) : occlusionZBuffer(occ_zbuf) {}
 
   ~OcclusionRenderer() {}
 
   void clear()
   {
-#if OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-    vec4f *dst = (vec4f *)zBufferReprojected;
-    vec4f zfar = v_splats(1e6);
-    for (int i = 0; i < sizeX * sizeY / 4; ++i, dst++)
-      *dst = zfar;
-#else
-    memset(zBufferReprojected, 0, sizeX * sizeY * sizeof(zBufferReprojected[0]));
-#endif
-    occlusionTest.clear();
+    memset(zBufferReprojected, 0, OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT * sizeof(zBufferReprojected[0]));
+    occlusionZBuffer.clear();
   }
   // toWorldHW
   // requires nonlinear depth buffer
   void reprojectHWDepthBuffer(mat44f_cref toWorldHW, const mat44f &viewproj, int nStartLine, int nNumLines, float *hwSrc)
   {
-    const float fWidth = (float)sizeX;
-    const float fHeight = (float)sizeY;
+    const float fWidth = (float)OcclusionZBuffer::WIDTH;
+    const float fHeight = (float)OcclusionZBuffer::HEIGHT;
     {
       const vec4f vXOffsets = v_make_vec4f(((0.0f + 0.5f) / fWidth) * 2.0f - 1.0f, ((1.0f + 0.5f) / fWidth) * 2.0f - 1.0f,
         ((2.0f + 0.5f) / fWidth) * 2.0f - 1.0f, ((3.0f + 0.5f) / fWidth) * 2.0f - 1.0f);
       const vec4f vXIncrement = v_splats(4.0f / fWidth * 2.0f);
 
-      const vec4f *pSrcZ = (const vec4f *)hwSrc + (nStartLine * sizeX);
+      const vec4f *pSrcZ = (const vec4f *)hwSrc + (nStartLine * OcclusionZBuffer::WIDTH);
       float fY = -(float(nStartLine + 0.5f) / fHeight) * 2.0f + 1.0f;
       mat44f clipToScreen;
-      clipToScreen.col0 = v_make_vec4f(float(sizeX / 2), 0, 0, 0);
-      clipToScreen.col1 = v_make_vec4f(0, -float(sizeY / 2), 0, 0);
+      clipToScreen.col0 = v_make_vec4f(float(OcclusionZBuffer::WIDTH / 2), 0, 0, 0);
+      clipToScreen.col1 = v_make_vec4f(0, -float(OcclusionZBuffer::HEIGHT / 2), 0, 0);
       clipToScreen.col2 = v_make_vec4f(0, 0, 1.0f, 0);
-      clipToScreen.col3 = v_make_vec4f(float(sizeX / 2), float(sizeY / 2), 0.0f, 1.0f);
+      clipToScreen.col3 = v_make_vec4f(float(OcclusionZBuffer::WIDTH / 2), float(OcclusionZBuffer::HEIGHT / 2), 0.0f, 1.0f);
       mat44f worldToScreen;
       v_mat44_mul(worldToScreen, clipToScreen, viewproj);
 
-      for (int y = nStartLine; y < nStartLine + nNumLines; y++, fY -= 1.0f / sizeY * 2.0f)
+      for (int y = nStartLine; y < nStartLine + nNumLines; y++, fY -= 1.0f / OcclusionZBuffer::HEIGHT * 2.0f)
       {
         const vec4f vYYYY = v_splats(fY);
 
         vec4f vXCoords = vXOffsets;
 
-        for (int x = 0; x < sizeX; x += 4)
+        for (int x = 0; x < OcclusionZBuffer::WIDTH; x += 4)
         {
           const vec4f vNonLinearDepth = *pSrcZ;
 
@@ -103,9 +94,9 @@ public:
               int xy[2];
               v_stui_half(xy, v_cvt_vec4i(vScreenPosH));
 
-              if (xy[0] >= 0 && xy[1] >= 0 && xy[0] < sizeX && xy[1] < sizeY)
+              if (xy[0] >= 0 && xy[1] >= 0 && xy[0] < OcclusionZBuffer::WIDTH && xy[1] < OcclusionZBuffer::HEIGHT)
               {
-                float *pDstZ = &zBufferReprojected[xy[0] + (xy[1] * sizeX)];
+                float *pDstZ = &zBufferReprojected[xy[0] + (xy[1] * OcclusionZBuffer::WIDTH)];
                 *pDstZ = max(*pDstZ, newDepth);
               }
             }
@@ -121,32 +112,17 @@ public:
 #define DEPTH_VTEST occlusion_depth_vtest
 #define DEPTH_VCMP  occlusion_depth_vcmp
 
-#if OCCLUSION_BUFFER == OCCLUSION_Z_BUFFER
 #define DEPTH_MIN            max
 #define DEPTH_MAX            min
 #define DEPTH_VGE_SRCINF(a)  v_cmp_ge(zero, a)
 #define DEPTH_VGE_PROCINF(a) v_cmp_ge(a, inf)
-#error convert_to_internal_zbuffer not implemented yet, we need encoding params, such as zn/zf
-#elif OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-#define DEPTH_MIN            min
-#define DEPTH_MAX            max
-#define DEPTH_VGE_SRCINF(a)  v_cmp_ge(a, srcinf)
-#define DEPTH_VGE_PROCINF(a) v_cmp_ge(zero, a)
-#elif OCCLUSION_BUFFER == OCCLUSION_INVWBUFFER
-#define DEPTH_MIN            max
-#define DEPTH_MAX            min
-#define DEPTH_VGE_SRCINF(a)  v_cmp_ge(zero, a)
-#define DEPTH_VGE_PROCINF(a) v_cmp_ge(a, inf)
-#else
-#error unselected occlusion type
-#endif
 
 
   // todo: replace with cameraspace (view separated from proj)
   void reprojectHWDepthBuffer(mat44f_cref toWorldHW, vec4f viewPos, float zn, float zf, const mat44f &viewproj, int nStartLine,
     int nNumLines, float *hwSrc, float cockpit_distance, CockpitReprojectionMode cockpitMode, const mat44f &cockpitAnim)
   {
-    const float fHeight = (float)sizeY;
+    const float fHeight = (float)OcclusionZBuffer::HEIGHT;
     {
       float zAt1 = zn * (zf - 1.f) / (zf - zn);
       // todo: pass viewLT vectors
@@ -158,25 +134,25 @@ public:
       viewLB = v_sub(v_div(viewLB, v_splat_w(viewLB)), viewPos);
       vec4f viewRB = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(+1, -1, zAt1, 1));
       viewRB = v_sub(v_div(viewRB, v_splat_w(viewRB)), viewPos);
-      vec4i bounds = v_make_vec4i(sizeX - 1, sizeY - 1, 0, 0);
+      vec4i bounds = v_make_vec4i(OcclusionZBuffer::WIDTH - 1, OcclusionZBuffer::HEIGHT - 1, 0, 0);
       vec4f znear = v_splats(zn);
       // debug("%f %f %f %f", v_extract_x(viewLT), v_extract_y(viewLT), v_extract_z(viewLT), v_extract_w(viewLT));
       // debug("%f %f %f", v_extract_x(viewRB), v_extract_y(viewRB), v_extract_z(viewRB));
       // vec4f viewPos = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(0, 0, 0, 1));
       // viewPos = v_div(viewPos, v_splat_w(viewPos))
 
-      const vec4f *pSrcZ = (const vec4f *)hwSrc + (nStartLine * sizeX);
+      const vec4f *pSrcZ = (const vec4f *)hwSrc + (nStartLine * OcclusionZBuffer::WIDTH);
       float fY = (float(nStartLine + 0.5f) / fHeight);
       mat44f clipToScreen;
-      clipToScreen.col0 = v_make_vec4f(float(sizeX / 2), 0, 0, 0);
-      clipToScreen.col1 = v_make_vec4f(0, -float(sizeY / 2), 0, 0);
+      clipToScreen.col0 = v_make_vec4f(float(OcclusionZBuffer::WIDTH / 2), 0, 0, 0);
+      clipToScreen.col1 = v_make_vec4f(0, -float(OcclusionZBuffer::HEIGHT / 2), 0, 0);
       clipToScreen.col2 = v_make_vec4f(0, 0, 1.0f, 0);
-      clipToScreen.col3 = v_make_vec4f(float(sizeX / 2), float(sizeY / 2), 0.0f, 1.0f);
+      clipToScreen.col3 = v_make_vec4f(float(OcclusionZBuffer::WIDTH / 2), float(OcclusionZBuffer::HEIGHT / 2), 0.0f, 1.0f);
       mat44f worldToScreen;
       v_mat44_mul(worldToScreen, clipToScreen, viewproj);
       mat44f worldToScreenCockpit;
       v_mat44_mul43(worldToScreenCockpit, worldToScreen, cockpitAnim);
-      constexpr int widthBits = OcclusionTest<sizeX, sizeY>::bitShiftX;
+      constexpr int widthBits = OcclusionZBuffer::bitShiftX;
 
       vec4f zfar = v_splats(zf * 0.9f);
       vec4f rcp_zf = v_splats(1 / zf);
@@ -185,28 +161,23 @@ public:
       vec4f viewPosX = v_splat_x(viewPos);
       vec4f viewPosY = v_splat_y(viewPos);
       vec4f viewPosZ = v_splat_z(viewPos);
-      alignas(16) float lineZ[sizeX];
-      alignas(16) int lineAddress[sizeX];
-      alignas(16) int lineAddress2[sizeX];
-      vec4i nonProjAddr = v_make_vec4i(nStartLine * sizeX, nStartLine * sizeX + 1, nStartLine * sizeX + 2, nStartLine * sizeX + 3);
+      alignas(16) float lineZ[OcclusionZBuffer::WIDTH];
+      alignas(16) int lineAddress[OcclusionZBuffer::WIDTH];
+      alignas(16) int lineAddress2[OcclusionZBuffer::WIDTH];
+      vec4i nonProjAddr = v_make_vec4i(nStartLine * OcclusionZBuffer::WIDTH, nStartLine * OcclusionZBuffer::WIDTH + 1,
+        nStartLine * OcclusionZBuffer::WIDTH + 2, nStartLine * OcclusionZBuffer::WIDTH + 3);
       if (cockpitMode == COCKPIT_REPROJECT_OUT_OF_SCREEN)
-        nonProjAddr = v_splatsi(sizeX * sizeY);
+        nonProjAddr = v_splatsi(OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT);
       vec4f cockpitDistance = v_splats(cockpit_distance);
-#if OCCLUSION_BUFFER == OCCLUSION_Z_BUFFER
-      const float occlusion_z_scale = 1. / 1.01f; //, occlusion_z_reprojection_scale = 1./1.04f;
-#elif OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-      const float occlusion_z_scale = 1.01f; //, occlusion_z_reprojection_scale = 1.04f;
-#elif OCCLUSION_BUFFER == OCCLUSION_INVWBUFFER
-      const float occlusion_z_scale = 1. / 1.01f; //, occlusion_z_reprojection_scale = 1./1.0f;
-#endif
+      const float occlusion_z_scale = 1. / 1.01f;
       vec4f scale_result_z = v_splats(occlusion_z_scale);
 
-      for (int y = nStartLine; y < nStartLine + nNumLines; y++, fY += 1.0f / sizeY)
+      for (int y = nStartLine; y < nStartLine + nNumLines; y++, fY += 1.0f / OcclusionZBuffer::HEIGHT)
       {
         vec4f scrY = v_splats(fY);
         vec4f scr1Y = v_splats(1.0f - fY);
         vec4f left = v_madd(viewLT, scr1Y, v_mul(viewLB, scrY)), right = v_madd(viewRT, scr1Y, v_mul(viewRB, scrY));
-        vec4f viewVecInc = v_mul(v_sub(right, left), v_splats(0.5f / sizeX));
+        vec4f viewVecInc = v_mul(v_sub(right, left), v_splats(0.5f / OcclusionZBuffer::WIDTH));
 
         vec4f viewVec = v_add(left, viewVecInc);
         viewVecInc = v_add(viewVecInc, viewVecInc);
@@ -225,18 +196,18 @@ public:
         viewVecInc4 = v_add(viewVecInc4, viewVecInc4);
         vec4f *z = (vec4f *)lineZ;
         vec4i *address = (vec4i *)lineAddress;
-        memset(address, 0xFF, sizeof(int) * sizeX);
+        memset(address, 0xFF, sizeof(int) * OcclusionZBuffer::WIDTH);
         vec4i *address2 = (vec4i *)(lineAddress2);
-        memset(address2, 0xFF, sizeof(int) * sizeX);
-        for (int x = 0; x < sizeX; x += 4, address2++, address++, z++, pSrcZ++, viewVecX = v_add(viewVecX, v_splat_x(viewVecInc4)),
-                 viewVecY = v_add(viewVecY, v_splat_y(viewVecInc4)), viewVecZ = v_add(viewVecZ, v_splat_z(viewVecInc4)),
-                 nonProjAddr = v_addi(nonProjAddr, v_splatsi(4)))
+        memset(address2, 0xFF, sizeof(int) * OcclusionZBuffer::WIDTH);
+        for (int x = 0; x < OcclusionZBuffer::WIDTH; x += 4, address2++, address++, z++, pSrcZ++,
+                 viewVecX = v_add(viewVecX, v_splat_x(viewVecInc4)), viewVecY = v_add(viewVecY, v_splat_y(viewVecInc4)),
+                 viewVecZ = v_add(viewVecZ, v_splat_z(viewVecInc4)), nonProjAddr = v_addi(nonProjAddr, v_splatsi(4)))
         {
           const vec4f rawDepth = *pSrcZ;
           const vec4f isWithinCockpit = v_is_neg(rawDepth);
           const vec4f depth = v_rcp(v_madd(decode_depth, v_abs(rawDepth), rcp_zf));
 #if DAGOR_DBGLEVEL > 0
-          *(vec4f *)&reprojectionDebug[y * sizeX + x] = v_and(isWithinCockpit, v_splats(1)); // 0 or 1 when cockpit
+          *(vec4f *)&reprojectionDebug[y * OcclusionZBuffer::WIDTH + x] = v_and(isWithinCockpit, v_splats(1)); // 0 or 1 when cockpit
 #endif
           bool shouldReprojectAnimated = v_check_xyzw_any_true(isWithinCockpit) & (cockpitMode == COCKPIT_REPROJECT_ANIMATED);
           vec4f vWorldPosX = v_madd(viewVecX, depth, viewPosX);
@@ -265,22 +236,7 @@ public:
 #endif
           vec4f invW = v_rcp(screenPosW);
 
-#if OCCLUSION_BUFFER == OCCLUSION_Z_BUFFER
-          vec4f screenPosZ = CALC_SCREEN_POS(z, worldToScreen);
-          if (shouldReprojectAnimated)
-          {
-            vec4f screenPosZCockpit = CALC_SCREEN_POS(z, worldToScreenCockpit);
-            screenPosZ = v_sel(screenPosZ, screenPosZCockpit, isWithinCockpit);
-          }
-          screenPosZ = v_mul(screenPosZ, invW);
-          *z = v_mul(screenPosZ, scale_result_z);
-#elif OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-          *z = v_mul(screenPosW, scale_result_z);
-#elif OCCLUSION_BUFFER == OCCLUSION_INVWBUFFER
           *z = v_mul(invW, scale_result_z);
-#else
-#error unselected occlusion type
-#endif
 
           vec4f screenPosX = CALC_SCREEN_POS(x, worldToScreen);
           if (shouldReprojectAnimated)
@@ -322,28 +278,30 @@ public:
           *address2 = v_ori(v_cast_vec4i(notInBounds), index2);
           if (cockpitMode != COCKPIT_REPROJECT_ANIMATED)
             *address2 = v_seli(*address2, nonProjAddr, v_cast_vec4i(isWithinCockpit));
-            // #define DEBUG_ADDRESS(a) G_ASSERT(uint32_t(a)<sizeX*sizeY)
+            // #define DEBUG_ADDRESS(a) G_ASSERT(uint32_t(a)<OcclusionZBuffer::WIDTH*OcclusionZBuffer::HEIGHT)
 
 #undef CALC_SCREEN_POS
         }
 
-        for (int i = 0; i < sizeX; ++i)
+        for (int i = 0; i < OcclusionZBuffer::WIDTH; ++i)
         {
-          if ((uint32_t)lineAddress[i] >= (uint32_t)(sizeX * sizeY)) // Filter both notInBounds (0xFFFFFFFF) and NaNs (0x80000000).
+          if ((uint32_t)lineAddress[i] >= (uint32_t)(OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT)) // Filter both notInBounds
+                                                                                                          // (0xFFFFFFFF) and NaNs
+                                                                                                          // (0x80000000).
             continue;
           uint32_t addr = lineAddress[i];
-          float *pDstZ = &occlusionTest.getZbuffer()[addr];
+          float *pDstZ = &occlusionZBuffer.getZbuffer()[addr];
           float z = lineZ[i];
           // G_ASSERTF(!check_nan(*pDstZ), "%f", *pDstZ);
           // G_ASSERTF(!check_nan(lineZ[i]), "%f", lineZ[i]);
           *pDstZ = DEPTH_MIN(*pDstZ, z);
           // unsigned addr2 = lineAddress2[i].x + (lineAddress2[i].y<<8);
           unsigned addr2 = lineAddress2[i];
-          if (addr2 >= sizeX * sizeY || addr2 == lineAddress[i])
+          if (addr2 >= OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT || addr2 == lineAddress[i])
             continue;
 
-          uint32_t addr3 = (addr2 & OcclusionTest<sizeX, sizeY>::bitMaskY) | (addr & OcclusionTest<sizeX, sizeY>::bitMaskX);
-          uint32_t addr4 = (addr2 & OcclusionTest<sizeX, sizeY>::bitMaskX) | (addr & OcclusionTest<sizeX, sizeY>::bitMaskY);
+          uint32_t addr3 = (addr2 & OcclusionZBuffer::bitMaskY) | (addr & OcclusionZBuffer::bitMaskX);
+          uint32_t addr4 = (addr2 & OcclusionZBuffer::bitMaskX) | (addr & OcclusionZBuffer::bitMaskY);
           // it is actually better to rely on farthest possible 'other' reprojected pixels, than on just random one
           // however, it is significantly slower
           // inplace_min(zBufferReprojected[addr2], z);
@@ -355,88 +313,32 @@ public:
 #undef DEBUG_ADDRESS
       }
     }
-    vec4f *zbuf2 = (vec4f *)occlusionTest.getZbuffer();
+    vec4f *zbuf2 = (vec4f *)occlusionZBuffer.getZbuffer();
     vec4f *zbuf1 = (vec4f *)zBufferReprojected;
     vec4f zero = v_zero();
-    for (int i = 0; i < sizeX * sizeY / 4; ++i, zbuf1++, zbuf2++)
+    for (int i = 0; i < OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT / 4; ++i, zbuf1++, zbuf2++)
     {
       vec4f z1 = *zbuf1, z2 = *zbuf2;
-      // z1 = v_sel(z1, zero, DEPTH_VGE_PROCINF(z1));
       *zbuf2 = v_sel(z2, z1, DEPTH_VGE_SRCINF(z2));
-      //*zbuf2 = DEPTH_VMIN(*zbuf1, *zbuf2);
     }
   }
-
-  /*#if _TARGET_SIMD_SSE
-  void fixupScalar(float)//reference implementation
-  {
-    vec4f zero = v_zero();
-    vec4f inf = v_splats(1e6f);
-    float *dst = zBuffer;
-    const float *src = zBufferReprojected;
-    memscpy(dst, src, sizeX*sizeY*sizeof(zBufferReprojected[0]));
-
-    vec4f *vSrc = (vec4f *)zBufferReprojected;
-    carray<uint8_t, sizeY*sizeX/8> fixUpMask;
-    uint8_t* mask = fixUpMask.data();
-    for (int i = 0; i < sizeY*sizeX/8; i++, vSrc+=2, mask++)
-    {
-      vec4f src1 = vSrc[0], src2 = vSrc[1];
-      vec4f mask1 = v_cmp_ge(zero, src1);
-      vSrc[0] = v_sel(src1, inf, mask1);
-      vec4f mask2 = v_cmp_ge(zero, src2);
-      vSrc[1] = v_sel(src2, inf, mask2);
-      *mask = v_signmask(mask1) | (v_signmask(mask2)<<4);
-    }
-    mask = fixUpMask.data();
-
-    for (int y = 0; y < sizeY; y++)
-    {
-      int minYOfs = y ? sizeX : 0, maxYOfs = y < sizeY-1 ? sizeX : 0;
-      for (int x8 = 0; x8 < sizeX; x8+=8, src+=8, dst+=8, mask++)
-      {
-        uint8_t mask1 = *mask;
-        int xl = x8 ? 1 : 0;
-        for (int x = 0; x < 8 && mask1; ++x, mask1>>=1)
-        {
-          if (mask1&1)
-          {
-            int xr = x+x8<sizeX-1 ? 1 : 0;
-            float maxAround = min(min(min(min(src[x-xl], src[x+xr]),
-                                      min(src[x-xl-minYOfs], src[x+xr-minYOfs])),
-                                      min(src[x-xl+maxYOfs], src[x+xr+maxYOfs])),
-                                      min(src[x-minYOfs], src[x+maxYOfs]));
-            if (maxAround < 1e6f)
-              dst[x] = maxAround;
-          }
-          xl = 1;
-        }
-      }
-    }
-  }
-  #endif*/
 
   void fixup(float /*bias*/)
   {
     vec4f zero = v_zero();
-#if OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-    vec4f inf = zero;
-    vec4f srcinf = v_splats(1e6f);
-#else
     vec4f inf = v_splats(1e6f);
     vec4f srcinf = zero;
-#endif
 
     vec4f *pSrc = reinterpret_cast<vec4f *>(&zBufferReprojected);
-    vec4f *pDst = reinterpret_cast<vec4f *>(occlusionTest.getZbuffer());
-    const int pitchX = sizeX / 4;
+    vec4f *pDst = reinterpret_cast<vec4f *>(occlusionZBuffer.getZbuffer());
+    const int pitchX = OcclusionZBuffer::WIDTH / 4;
 
-    for (int y = 0; y < sizeY; y++)
+    for (int y = 0; y < OcclusionZBuffer::HEIGHT; y++)
     {
       int vecX = 0;
 
       int minY = max(0, y - 1);
-      int maxY = min<int>(sizeY - 1, y + 1);
+      int maxY = min<int>(OcclusionZBuffer::HEIGHT - 1, y + 1);
       int maxX = min(pitchX - 1, vecX + 1);
 
       vec4f src[3];

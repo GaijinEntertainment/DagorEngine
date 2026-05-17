@@ -22,7 +22,7 @@ def do_convert_to_gen2(file : string; inplace : bool) : string {
     }
     // check file exists
     var file_ok = false
-    fopen(file, "rb") <| $(f) {
+    fopen(file, "rb") $(f) {
         if (f != null) {
             file_ok = true
         }
@@ -43,12 +43,12 @@ def do_convert_to_gen2(file : string; inplace : bool) : string {
     var output : string
     var exit_code = 0
     unsafe {
-        exit_code = popen(cmd) <| $(f) {
+        exit_code = popen(cmd) $(f) {
             if (f == null) {
                 output = "Failed to execute: {cmd}"
                 return
             }
-            output = build_string() <| $(var w) {
+            output = build_string() $(var w) {
                 while (!feof(f)) {
                     write(w, fgets(f))
                 }

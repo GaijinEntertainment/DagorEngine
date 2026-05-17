@@ -14,6 +14,7 @@
 #include <EASTL/fixed_function.h>
 
 #include <rendInst/rendInstDesc.h>
+#include <rendInst/rendInstAccess.h>
 #include <rendInst/constants.h>
 #include <rendInst/rendInstGenDamageInfo.h>
 #include <rendInst/treeDestr.h>
@@ -37,25 +38,16 @@ void doRIGenDamage(const BBox3 &box, unsigned frameNo, const TMatrix &check_itm,
 void doRIGenDamage(const Point3 &pos, unsigned frameNo, ri_damage_effect_cb effect_cb, const Point3 &axis = Point3(0.f, 0.f, 0.f),
   float dmg_pts = 1000, bool create_debris = true);
 
-struct RendInstBufferData
-{
-  mat44f tm;
-  carray<int16_t, 12> data;
-};
+void playRIGenDestrEffect(const RendInstBufferData &buffer, ri_damage_effect_cb effect_cb, const Point3 *coll_point);
 
-DynamicPhysObjectData *doRIGenDestr(const RendInstDesc &desc, RendInstBufferData &out_buffer, bool create_destr_effects,
-  ri_damage_effect_cb effect_cb, riex_handle_t &out_destroyed_riex_handle, int32_t user_data = -1, const Point3 *coll_point = nullptr,
-  bool *ri_removed = nullptr, DestrOptionFlags destroy_flags = DestrOptionFlag::AddDestroyedRi | DestrOptionFlag::ForceDestroy,
-  const Point3 &impulse = Point3::ZERO, const Point3 &impulse_pos = Point3::ZERO);
+// Invokes onRiExtraDestruction callback for RI extra, returns true for
+// dynamic RI, that must not undergo default destruction path
+bool doDynamicRIExtraDestr(const RendInstDesc &desc, bool create_destr_effects, int32_t user_data, const Point3 &impulse,
+  const Point3 &impulse_pos);
+bool doRIGenDestr(const RendInstDesc &desc, riex_handle_t &out_destroyed_riex, DestrOptionFlags destroy_flags);
 
-// This one ignores subcells and doesn't return buffer (as we use it when we don't need to restore it)
-// As well it doesn't updateVb, as it's used in batches, so you'll updateVb only once, when you need it
-DynamicPhysObjectData *doRIGenDestrEx(const RendInstDesc &desc, bool create_destr_effects, ri_damage_effect_cb effect_cb = nullptr,
-  int32_t user_data = -1, const Point3 &impulse = Point3(), const Point3 &impulse_pos = Point3());
-DynamicPhysObjectData *doRIExGenDestrEx(rendinst::riex_handle_t riex_handle, ri_damage_effect_cb effect_cb = nullptr);
-
-bool restoreRiGen(const RendInstDesc &desc, const RendInstBufferData &buffer);
-riex_handle_t restoreRiGenDestr(const RendInstDesc &desc, const RendInstBufferData &buffer);
+bool delRIGen(const RendInstDesc &desc, bool add_destr_data);
+riex_handle_t restoreRendInst(const RendInstBufferData &buffer, bool remove_from_destr_data);
 
 struct TreeInstData
 {
@@ -118,8 +110,7 @@ struct DestroyedRi
   ~DestroyedRi();
 };
 
-DestroyedRi *doRIGenExternalControl(const RendInstDesc &desc, bool rem_rendinst = true);
-Tab<DestroyedRi *> doRIGenExternalControlMultiple(const RendInstDesc &desc, int copy_count, bool rem_rendinst = true);
+Tab<DestroyedRi *> doRIGenExternalControl(const RendInstDesc &desc, const RendInstBufferData &buffer, int copy_count);
 bool fillTreeInstData(const RendInstDesc &desc, bool from_damage, TreeInstData &out_data);
 uint64_t updateTreeDestrRenderData(riex_handle_t ri_handle, const TreeInstData &tree_inst_data,
   const TreeInstDebugData *tree_inst_debug_data = nullptr);

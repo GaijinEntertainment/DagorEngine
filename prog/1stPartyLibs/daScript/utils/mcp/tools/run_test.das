@@ -11,26 +11,29 @@ def do_run_test(file : string; project : string = ""; timeout_str : string = "";
         return make_tool_result("Cannot determine daslang executable path", true)
     }
     let test_file = resolve_path(file)
-    var cmd = "{exe} {get_das_root()}/dastest/dastest.das -- --test {test_file}"
+    let dastest_main = "{get_das_root()}/dastest/dastest.das"
+    var argv <- [exe, dastest_main, "--", "--test", test_file]
     if (!empty(project)) {
-        cmd = "{cmd} --project {project}"
+        argv |> push("--project")
+        argv |> push(string(project))
     }
     if (failures_only) {
-        cmd = "{cmd} --failures-only"
+        argv |> push("--failures-only")
     }
     let timeout_sec = empty(timeout_str) ? 120.0 : float(to_int(timeout_str))
     if (json) {
         // Use dastest --json-file for native JSON output
         let json_path = "{get_das_root()}/.dastest_result.json"
-        cmd = "{cmd} --json-file {json_path}"
+        argv |> push("--json-file")
+        argv |> push(string(json_path))
         var output : string
-        let exit_code = run_and_capture(cmd, output, timeout_sec)
+        let exit_code = run_and_capture(argv, output, timeout_sec)
         if (exit_code == popen_timed_out) {
             return make_tool_result("\{\"file\":\"{file}\",\"success\":false,\"output\":\"Timed out after {timeout_sec}s\"}", true)
         }
         // Read the JSON file written by dastest
         var json_content = ""
-        fopen(json_path, "rb") <| $(f) {
+        fopen(json_path, "rb") $(f) {
             if (f != null) {
                 json_content = fread(f)
             }
@@ -45,7 +48,7 @@ def do_run_test(file : string; project : string = ""; timeout_str : string = "";
     }
     // Text mode
     var output : string
-    let exit_code = run_and_capture(cmd, output, timeout_sec)
+    let exit_code = run_and_capture(argv, output, timeout_sec)
     if (exit_code == popen_timed_out) {
         return make_tool_result("Tests timed out after {timeout_sec}s:\n{output}", true)
     }

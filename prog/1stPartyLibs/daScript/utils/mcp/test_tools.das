@@ -1,4 +1,5 @@
 options gen2
+options rtti
 options no_unused_function_arguments = false
 options no_unused_block_arguments = false
 
@@ -29,6 +30,8 @@ require tools/grep_usage public
 require tools/outline public
 require tools/aot public
 require tools/lint_tool public
+require tools/detect_duplicates public
+require tools/export_corpus public
 
 // helper: parse tool result JSON, return (text, isError)
 def parse_result(result : string; var text : string&; var is_error : bool&) : bool {
@@ -146,6 +149,93 @@ def test_compile_check_glob_no_match(t : T?) {
         parse_result(do_compile_check("nonexistent_dir_xyz/*.das"), text, is_error)
         t |> success(is_error, "should be error when no files match")
         t |> success(find(text, "no files matched") >= 0, "should mention no files matched")
+    }
+}
+
+// ── parse_file_list ──────────────────────────────────────────────────
+
+def has_path(files : array<string>; suffix : string) : bool {
+    for (f in files) {
+        if (find(f, suffix) >= 0) {
+            return true
+        }
+    }
+    return false
+}
+
+[test]
+def test_parse_file_list(t : T?) {
+    t |> run("single plain file") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("utils/mcp/tests/_fixture_valid.das", files)
+        t |> equal(length(files), 1, "1 file")
+        t |> equal(files[0], "utils/mcp/tests/_fixture_valid.das", "passes through")
+    }
+    t |> run("single glob expands") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("utils/mcp/tests/_fixture_v*.das", files)
+        t |> success(length(files) >= 1, "at least one match")
+        t |> success(has_path(files, "_fixture_valid.das"), "valid fixture matched")
+    }
+    t |> run("comma list of plain files") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("a.das,b.das,c.das", files)
+        t |> equal(length(files), 3, "3 files")
+        t |> equal(files[0], "a.das", "first")
+        t |> equal(files[1], "b.das", "second")
+        t |> equal(files[2], "c.das", "third")
+    }
+    t |> run("comma list of globs (issue #2498 repro)") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("utils/detect-dupe/*.das,utils/mcp/tests/*.das", files)
+        t |> success(has_path(files, "utils/detect-dupe/"), "detect-dupe glob expanded")
+        t |> success(has_path(files, "utils/mcp/tests/"), "mcp/tests glob expanded")
+    }
+    t |> run("mixed plain + glob") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("utils/mcp/tests/_fixture_valid.das,utils/mcp/tests/_fixture_e*.das", files)
+        t |> success(has_path(files, "_fixture_valid.das"), "plain file present")
+        t |> success(has_path(files, "_fixture_error.das"), "glob expanded")
+    }
+    t |> run("newline-delimited") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("a.das\nb.das\nc.das", files)
+        t |> equal(length(files), 3, "3 files")
+        t |> equal(files[0], "a.das", "first")
+        t |> equal(files[1], "b.das", "second")
+        t |> equal(files[2], "c.das", "third")
+    }
+    t |> run("mixed comma + newline + whitespace") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("  a.das , b.das \n c.das ", files)
+        t |> equal(length(files), 3, "3 files (whitespace stripped)")
+        t |> equal(files[0], "a.das", "first stripped")
+        t |> equal(files[2], "c.das", "third stripped")
+    }
+    t |> run("empty parts skipped") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("a.das,,\n,b.das", files)
+        t |> equal(length(files), 2, "2 non-empty files")
+    }
+    t |> run("single fast-path strips whitespace") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("  a.das  ", files)
+        t |> equal(length(files), 1, "1 file")
+        t |> equal(files[0], "a.das", "stripped")
+    }
+    t |> run("single fast-path skips empty/whitespace-only") <| @(t : T?) {
+        var files : array<string>
+        parse_file_list("   ", files)
+        t |> equal(length(files), 0, "no files for whitespace-only input")
+    }
+    t |> run("expand_glob preserves prior entries (no global re-sort)") <| @(t : T?) {
+        // Repro for the regression Copilot caught: expand_glob's sort()
+        // used to scramble entries pushed before it. Order must be
+        // preserved across (plain, glob, plain) sequences.
+        var files : array<string>
+        parse_file_list("zzz.das,utils/mcp/tests/_fixture_v*.das,aaa.das", files)
+        t |> equal(files[0], "zzz.das", "first plain stays first")
+        t |> equal(files[length(files) - 1], "aaa.das", "last plain stays last")
     }
 }
 
@@ -396,15 +486,155 @@ def test_list_module_api_annotations(t : T?) {
 
 // ── format_file ──────────────────────────────────────────────────────
 
+def private parse_json_array(text : string; var parsed : JsonValue?&) : bool {
+    var jerr : string
+    parsed = read_json(text, jerr)
+    return parsed != null && parsed.value is _array
+}
+
+def private find_format_result(arr : JsonValue?; file_substr : string; var status : string&; var message : string&) : bool {
+    if (arr == null || !(arr.value is _array)) {
+        return false
+    }
+    for (entry in arr.value as _array) {
+        if (entry == null) {
+            continue
+        }
+        let file_val = entry?["file"]
+        if (file_val == null || !(file_val.value is _string)) {
+            continue
+        }
+        let file = file_val.value as _string
+        if (find(file, file_substr) < 0) {
+            continue
+        }
+        let status_val = entry?["status"]
+        let msg_val = entry?["message"]
+        if (status_val != null && status_val.value is _string) {
+            status = status_val.value as _string
+        }
+        if (msg_val != null && msg_val.value is _string) {
+            message = msg_val.value as _string
+        }
+        return true
+    }
+    return false
+}
+
 [test]
 def test_format_file(t : T?) {
-    t |> run("formats already-formatted file") <| @(t : T?) {
+    t |> run("single file returns JSON array with required fields") <| @(t : T?) {
         var text : string
         var is_error = false
         parse_result(do_format_file(fixture_path("_fixture_valid.das")), text, is_error)
         t |> success(!is_error, "should not be error")
-        // might be "already formatted" or "Formatted" depending on state
-        t |> success(find(text, "ormatted") >= 0, "should mention formatting result")
+
+        var parsed : JsonValue?
+        let ok = parse_json_array(text, parsed)
+        t |> success(ok, "inner payload should be a JSON array")
+        if (!ok) {
+            unsafe { delete parsed; }
+            return
+        }
+
+        t |> success(length(parsed.value as _array) >= 1, "array should contain at least one result")
+        let first = (parsed.value as _array)[0]
+        t |> success(first != null, "first result should exist")
+        if (first != null) {
+            t |> success(first?["file"] != null, "result has file")
+            t |> success(first?["status"] != null, "result has status")
+            t |> success(first?["message"] != null, "result has message")
+            let st = first?["status"]
+            if (st != null && st.value is _string) {
+                let status = st.value as _string
+                t |> success(status == "formatted" || status == "already_formatted", "status is expected")
+            } else {
+                t |> failure("status should be a string")
+            }
+        }
+        unsafe { delete parsed; }
+    }
+
+    t |> run("comma-separated list returns one result per file") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_format_file("{fixture_path("_fixture_valid.das")},{fixture_path("_fixture_error.das")}"), text, is_error)
+        t |> success(!is_error, "both fixture files should be processable")
+
+        var parsed : JsonValue?
+        let ok = parse_json_array(text, parsed)
+        t |> success(ok, "inner payload should be a JSON array")
+        if (!ok) {
+            unsafe { delete parsed; }
+            return
+        }
+        t |> equal(length(parsed.value as _array), 2, "comma-separated list should yield two results")
+
+        var st1 = ""
+        var msg1 = ""
+        let has_valid = find_format_result(parsed, "_fixture_valid.das", st1, msg1)
+        t |> success(has_valid, "valid fixture result present")
+        t |> success(!empty(st1), "valid fixture has non-empty status")
+        t |> success(find(msg1, "fixture_valid") >= 0, "valid fixture message references file")
+
+        var st2 = ""
+        var msg2 = ""
+        let has_error_fixture = find_format_result(parsed, "_fixture_error.das", st2, msg2)
+        t |> success(has_error_fixture, "error fixture result present")
+        t |> success(!empty(st2), "error fixture has non-empty status")
+        t |> success(find(msg2, "fixture_error") >= 0, "error fixture message references file")
+        unsafe { delete parsed; }
+    }
+
+    t |> run("glob pattern expands and returns matching file entry") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_format_file("utils/mcp/tests/_fixture_v*.das"), text, is_error)
+        t |> success(!is_error, "glob with matches should not be error")
+
+        var parsed : JsonValue?
+        let ok = parse_json_array(text, parsed)
+        t |> success(ok, "inner payload should be a JSON array")
+        if (!ok) {
+            unsafe { delete parsed; }
+            return
+        }
+        var st = ""
+        var msg = ""
+        let has_valid = find_format_result(parsed, "_fixture_valid.das", st, msg)
+        t |> success(has_valid, "glob should include _fixture_valid.das")
+        t |> success(st == "formatted" || st == "already_formatted", "glob result status is expected")
+        unsafe { delete parsed; }
+    }
+
+    t |> run("mixed valid + missing sets isError and reports per-file statuses") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        parse_result(do_format_file("{fixture_path("_fixture_valid.das")},utils/mcp/tests/_fixture_does_not_exist_123.das"), text, is_error)
+        t |> success(is_error, "missing file in batch should set isError")
+
+        var parsed : JsonValue?
+        let ok = parse_json_array(text, parsed)
+        t |> success(ok, "inner payload should be a JSON array")
+        if (!ok) {
+            unsafe { delete parsed; }
+            return
+        }
+        t |> equal(length(parsed.value as _array), 2, "mixed batch should still return two result entries")
+
+        var st_ok = ""
+        var msg_ok = ""
+        let has_valid = find_format_result(parsed, "_fixture_valid.das", st_ok, msg_ok)
+        t |> success(has_valid, "valid file result present")
+        t |> success(st_ok == "formatted" || st_ok == "already_formatted", "valid file status is expected")
+
+        var st_missing = ""
+        var msg_missing = ""
+        let has_missing = find_format_result(parsed, "_fixture_does_not_exist_123.das", st_missing, msg_missing)
+        t |> success(has_missing, "missing file result present")
+        t |> equal(st_missing, "error")
+        t |> success(find(msg_missing, "Cannot open file") >= 0, "missing file reports open error")
+        unsafe { delete parsed; }
     }
 }
 
@@ -1256,6 +1486,380 @@ def test_lint_no_match(t : T?) {
         t |> success(ok, "parse result JSON")
         t |> success(is_error, "should be error")
         t |> success(find(text, "no files matched") >= 0, "should mention no files matched")
+    }
+}
+
+// ── detect_duplicates ────────────────────────────────────────────────
+
+
+// Generic write-temp-file helper: creates a unique temp file with `prefix`
+// and `ext`, writes `body` to it, returns the path. Returns "" and calls
+// `t |> failure` on temp-file allocation failure.
+def make_temp_text_file(t : T?; prefix : string; ext : string; body : string) : string {
+    let r = create_temp_file_result(prefix, ext)
+    if (!(r is value)) {
+        t |> failure("create_temp_file_result failed")
+        return ""
+    }
+    let path = unsafe(r.value)
+    fopen(path, "wb") $(fw) {
+        if (fw != null) {
+            fw |> fprint(body)
+        }
+    }
+    return path
+}
+
+
+def make_temp_corpus_file(t : T?; body : string) : string {
+    return make_temp_text_file(t, "detect_dupe_mcp_test", ".json", body)
+}
+
+
+[test]
+def test_detect_duplicates_missing_corpus(t : T?) {
+    t |> run("missing 'corpus' arg returns error envelope") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_detect_duplicates("foo.das", "", "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+        t |> success(find(text, "corpus") >= 0, "should mention corpus: {text}")
+    }
+}
+
+
+[test]
+def test_detect_duplicates_missing_paths(t : T?) {
+    t |> run("missing 'paths' arg returns error envelope") <| @(t : T?) {
+        let path = make_temp_corpus_file(t, "\{\"schema_version\":2,\"functions\":[]\}")
+        if (empty(path)) {
+            return
+        }
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_detect_duplicates("", path, "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+        t |> success(find(text, "paths") >= 0, "should mention paths: {text}")
+        remove(path)
+    }
+}
+
+
+[test]
+def test_detect_duplicates_corpus_not_found(t : T?) {
+    t |> run("nonexistent corpus path is reported") <| @(t : T?) {
+        // Generate a portable temp path then immediately delete the file
+        // — the path is now guaranteed nonexistent and unique to this run,
+        // and works on Windows runners where /tmp doesn't exist.
+        let bogus = make_temp_corpus_file(t, "")
+        if (empty(bogus)) {
+            return
+        }
+        remove(bogus)
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_detect_duplicates(fixture_path("_fixture_valid.das"),
+            bogus, "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+    }
+}
+
+
+[test]
+def test_detect_duplicates_empty_corpus(t : T?) {
+    t |> run("empty corpus + valid candidate yields envelope with embedded report") <| @(t : T?) {
+        let path = make_temp_corpus_file(t, "\{\"schema_version\":2,\"functions\":[]\}")
+        if (empty(path)) {
+            return
+        }
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_detect_duplicates(fixture_path("_fixture_valid.das"),
+            path, "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should NOT be error: {text}")
+        t |> success(find(text, "\"exit_code\":0") >= 0, "envelope has exit_code 0: {text}")
+        t |> success(find(text, "\"report\"") >= 0, "envelope has nested report: {text}")
+        t |> success(find(text, "candidates") >= 0, "report contains candidates array: {text}")
+        remove(path)
+    }
+}
+
+
+[test]
+def test_detect_duplicates_bad_schema(t : T?) {
+    t |> run("corpus with bad schema_version is rejected") <| @(t : T?) {
+        let path = make_temp_corpus_file(t, "\{\"schema_version\":99,\"functions\":[]\}")
+        if (empty(path)) {
+            return
+        }
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_detect_duplicates(fixture_path("_fixture_valid.das"),
+            path, "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+        t |> success(find(text, "schema_version") >= 0, "mentions schema_version: {text}")
+        remove(path)
+    }
+}
+
+
+// ── export_corpus ────────────────────────────────────────────────────
+
+
+[test]
+def test_export_corpus_missing_paths(t : T?) {
+    t |> run("missing 'paths' / 'paths_file' returns error envelope") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_export_corpus("", "", "export_corpus_test_out.json", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+        t |> success(find(text, "paths") >= 0, "should mention paths: {text}")
+    }
+}
+
+
+[test]
+def test_export_corpus_missing_out(t : T?) {
+    t |> run("missing 'out' arg returns error envelope") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_export_corpus("foo.das", "", "", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error")
+        t |> success(find(text, "out") >= 0, "should mention out: {text}")
+    }
+}
+
+
+[test]
+def test_export_corpus_no_match(t : T?) {
+    t |> run("paths matching nothing yields error envelope") <| @(t : T?) {
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_export_corpus("does_not_exist_xyzzy.das", "", "export_corpus_test_out.json", "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error: {text}")
+    }
+}
+
+
+[test]
+def test_export_corpus_writes_envelope(t : T?) {
+    t |> run("valid fixture produces a corpus and a populated envelope") <| @(t : T?) {
+        let r = create_temp_file_result("export_corpus_mcp_test", ".json")
+        if (!(r is value)) {
+            t |> failure("create_temp_file_result failed")
+            return
+        }
+        let out_path = unsafe(r.value)
+        // create_temp_file_result returns a path to a freshly-created temp
+        // file. write_export reopens it with "wb" and overwrites, so leaving
+        // the placeholder in place is the intended path.
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_export_corpus(fixture_path("_fixture_valid.das"), "", out_path, "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should NOT be error: {text}")
+        t |> success(find(text, "\"exit_code\":0") >= 0, "envelope has exit_code 0: {text}")
+        t |> success(find(text, "\"out\":") >= 0, "envelope echoes out path: {text}")
+        t |> success(find(text, "\"stdout\":") >= 0, "envelope has subprocess stdout: {text}")
+        // Confirm the file actually exists and is non-empty.
+        let body = fread(out_path)
+        t |> success(!empty(body), "corpus file is non-empty")
+        t |> success(find(body, "\"schema_version\"") >= 0, "corpus has schema_version: {body}")
+        remove(out_path)
+    }
+}
+
+
+// Helper: write `content` to a temp .txt and return its path. Used by
+// the paths_file / workers integration tests. Thin wrapper around
+// `make_temp_text_file` to keep the call sites readable.
+def make_temp_paths_file(t : T?; content : string) : string {
+    return make_temp_text_file(t, "export_corpus_paths", ".txt", content)
+}
+
+
+[test]
+def test_export_corpus_paths_file(t : T?) {
+    t |> run("paths_file alone produces a corpus") <| @(t : T?) {
+        let paths_body = "{fixture_path("_fixture_valid.das")}\n"
+        let paths_file = make_temp_paths_file(t, paths_body)
+        if (empty(paths_file)) return
+        let r = create_temp_file_result("export_corpus_paths_file", ".json")
+        if (!(r is value)) {
+            t |> failure("create_temp_file_result failed")
+            remove(paths_file)
+            return
+        }
+        let out_path = unsafe(r.value)
+        var text : string
+        var is_error = false
+        let ok = parse_result(do_export_corpus("", paths_file, out_path, "", ""), text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should NOT be error: {text}")
+        let body = fread(out_path)
+        t |> success(!empty(body), "corpus file is non-empty")
+        t |> success(find(body, "\"schema_version\"") >= 0, "corpus has schema_version")
+        t |> success(find(body, "_fixture_valid.das") >= 0, "corpus references the fixture file")
+        remove(paths_file)
+        remove(out_path)
+    }
+}
+
+
+[test]
+def test_export_corpus_paths_and_paths_file_union(t : T?) {
+    t |> run("paths and paths_file unioned (no duplicate records)") <| @(t : T?) {
+        // paths and paths_file each contribute one fixture; the union
+        // should compile both, with no (file, name, line) triple
+        // appearing twice — verifies the input dedup, not just that
+        // both filenames show up somewhere in the JSON text.
+        let paths_body = "{fixture_path("_fixture_test.das")}\n"
+        let paths_file = make_temp_paths_file(t, paths_body)
+        if (empty(paths_file)) return
+        let r = create_temp_file_result("export_corpus_union", ".json")
+        if (!(r is value)) {
+            t |> failure("create_temp_file_result failed")
+            remove(paths_file)
+            return
+        }
+        let out_path = unsafe(r.value)
+        var text : string
+        var is_error = false
+        let ok = parse_result(
+            do_export_corpus(fixture_path("_fixture_valid.das"), paths_file,
+                             out_path, "", ""),
+            text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should NOT be error: {text}")
+        let body = fread(out_path)
+        var jerr : string
+        var parsed = read_json(body, jerr)
+        t |> success(parsed != null, "envelope parses: {jerr}")
+        if (parsed == null) {
+            remove(paths_file)
+            remove(out_path)
+            return
+        }
+        let funcs = parsed?["functions"]
+        t |> success(funcs != null && funcs.value is _array, "functions array present")
+        var seen : table<string; int>
+        var have_valid = false
+        var have_test = false
+        if (funcs != null && funcs.value is _array) {
+            for (ef in funcs.value as _array) {
+                if (ef == null) {
+                    continue
+                }
+                var f = ""
+                var n = ""
+                var ln = 0
+                let fv = ef?["file"]
+                if (fv != null && fv.value is _string) {
+                    f = fv.value as _string
+                }
+                let nv = ef?["name"]
+                if (nv != null && nv.value is _string) {
+                    n = nv.value as _string
+                }
+                let lv = ef?["line"]
+                if (lv != null && lv.value is _number) {
+                    ln = int(lv.value as _number)
+                }
+                let key = "{f}:{n}:{ln}"
+                seen[key] = (seen?[key] ?? 0) + 1
+                if (find(f, "_fixture_valid.das") >= 0) {
+                    have_valid = true
+                }
+                if (find(f, "_fixture_test.das") >= 0) {
+                    have_test = true
+                }
+            }
+        }
+        t |> success(have_valid, "valid fixture contributed records")
+        t |> success(have_test, "test fixture contributed records")
+        var dupes = 0
+        for (count in values(seen)) {
+            if (count > 1) {
+                dupes++
+            }
+        }
+        t |> equal(dupes, 0)
+        unsafe { delete parsed; }
+        remove(paths_file)
+        remove(out_path)
+    }
+}
+
+
+[test]
+def test_export_corpus_workers_one(t : T?) {
+    t |> run("workers param parses and runs the sequential path") <| @(t : T?) {
+        // Argv-plumbing test only. The fixture is a single file —
+        // far below `PARALLEL_THRESHOLD = 16` — so both `workers=""`
+        // (default) and `workers="1"` go through the same in-process
+        // sequential loop. There is no parallel-vs-sequential
+        // equivalence to verify here; that's covered by the
+        // multi-stage manual determinism check (sequential vs
+        // parallel byte-equality on daslib / tests/language). What
+        // we DO verify: the `--workers 1` argv reaches the child
+        // and the child produces a well-formed envelope.
+        let r = create_temp_file_result("export_corpus_w1", ".json")
+        if (!(r is value)) {
+            t |> failure("create_temp_file_result failed")
+            return
+        }
+        let out_path = unsafe(r.value)
+        var text : string
+        var is_error = false
+        let ok = parse_result(
+            do_export_corpus(fixture_path("_fixture_valid.das"), "",
+                             out_path, "", "1"),
+            text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(!is_error, "should NOT be error: {text}")
+        let body = fread(out_path)
+        t |> success(!empty(body), "corpus non-empty")
+        t |> success(find(body, "\"schema_version\"") >= 0, "schema_version present")
+        remove(out_path)
+    }
+}
+
+
+[test]
+def test_export_corpus_workers_failure_propagates(t : T?) {
+    t |> run("compile error in input fails the run, even with workers") <| @(t : T?) {
+        // _fixture_error.das deliberately fails to compile. Whether the
+        // run goes parallel (large list) or sequential (small list),
+        // detect-dupe panics on compile failure → parent exit non-zero
+        // → MCP envelope reports is_error.
+        let paths_body = "{fixture_path("_fixture_error.das")}\n"
+        let paths_file = make_temp_paths_file(t, paths_body)
+        if (empty(paths_file)) return
+        let r = create_temp_file_result("export_corpus_fail", ".json")
+        if (!(r is value)) {
+            t |> failure("create_temp_file_result failed")
+            remove(paths_file)
+            return
+        }
+        let out_path = unsafe(r.value)
+        var text : string
+        var is_error = false
+        let ok = parse_result(
+            do_export_corpus("", paths_file, out_path, "", "1"),
+            text, is_error)
+        t |> success(ok, "parse result JSON")
+        t |> success(is_error, "should be error: {text}")
+        t |> success(find(text, "exit code") >= 0, "envelope mentions exit code: {text}")
+        remove(paths_file)
+        remove(out_path)
     }
 }
 

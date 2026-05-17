@@ -38,7 +38,7 @@ def get_remove_indices(args : AnnotationArgumentList) {
         }
     }
     if (length(indices) > 0) {
-        indices |> sort() <| $(a, b) => a >= b
+        indices |> sort() <| $(a, b) => a > b
     }
     return <- indices
 }
@@ -57,7 +57,7 @@ class RemoveCallArgsMacro : AstFunctionAnnotation {
             arg.flags |= VariableFlags.marked_used // to disable errors: unused function argument
         }
 
-        var inscope fn <- clone_function(func)
+        var fn = clone_function(func)
         fn.flags |= FunctionFlags.generated | FunctionFlags.exports
         for (idx in removeIndices) {
             fn.arguments |> erase(idx)
@@ -74,14 +74,14 @@ class RemoveCallArgsMacro : AstFunctionAnnotation {
         return true
     }
 
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         var removeIndices <- get_remove_indices(call.func)
 
         if (length(removeIndices) == 0) {
-            return <- default<ExpressionPtr>
+            return null
         }
 
-        var inscope newCall <- clone_expression(call)
+        var newCall = clone_expression(call)
         var ncall = newCall as ExprCall
         for (idx in removeIndices) {
             ncall.arguments |> erase(idx)

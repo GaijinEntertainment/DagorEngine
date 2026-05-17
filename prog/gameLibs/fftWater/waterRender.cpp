@@ -1367,15 +1367,23 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   BBox2 heightmapRegion;
   if (geom_lod_quality == fft_water::GEOM_HIGH)
   {
+    float lod0CellSize = defaultCullData.scaleX;
+    float lastLodCellSize = lod0CellSize * float(1 << (lodCount - 1));
+
     for (auto &patch : defaultCullData.patches)
     {
-      float size = gridDim * patch.size;
-      float border = 5.0f * 1.6f * patch.size; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
-      Point2 lt(patch.originX, patch.originY);
-      Point2 rb = lt + Point2(size, size);
-      heightmapRegion += lt + Point2(border, border);
-      heightmapRegion += rb - Point2(border, border);
+      if (patch.size > lastLodCellSize * 0.75f)
+      {
+        Point2 lt(patch.originX, patch.originY);
+        float size = gridDim * patch.size;
+        Point2 rb = lt + Point2(size, size);
+        heightmapRegion += lt;
+        heightmapRegion += rb;
+      }
     }
+
+    float border = 5.0f * 1.9f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
+    heightmapRegion.inflate(-border);
   }
 
   if (autoVsamplersAdjust)

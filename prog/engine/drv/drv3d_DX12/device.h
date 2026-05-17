@@ -26,14 +26,6 @@
 #include <drv/3d/dag_driverNetManager.h>
 #include <drv_log_defs.h>
 
-#if _TARGET_PC_WIN && _TARGET_64BIT && !_M_ARM64
-namespace amd
-{
-// bit of a hack to get access to the memory of FSR this way, but how its implemented would make it needlessly complicated to implement
-uint64_t getFSRMemorySize();
-} // namespace amd
-#endif
-
 namespace drv3d_dx12
 {
 class Device;
@@ -1201,7 +1193,7 @@ public:
       }
     }
 #if _TARGET_64BIT && !_M_ARM64
-    auto fsrMemoryUsage = ::amd::getFSRMemorySize();
+    auto fsrMemoryUsage = context.fsrWrapper.getMemoryUsage();
     if (fsrMemoryUsage > 0)
     {
       visitor({
@@ -1501,31 +1493,7 @@ inline FrontendQueryManager::HeapPredicate *FrontendQueryManager::newPredicateHe
   }
   return &predicateHeaps.emplace_back(eastl::move(newHeap));
 }
-inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Device *dx_device)
-{
-  WinAutoLock lock(predicateGuard);
-  HeapPredicate *ptr = nullptr;
-  auto ref = eastl::find_if(begin(predicateHeaps), end(predicateHeaps),
-    [](const FrontendQueryManager::HeapPredicate &heap) { return heap.hasAnyFree(); });
-  if (ref == end(predicateHeaps))
-  {
-    ptr = newPredicateHeap(device, dx_device);
-  }
-  else
-  {
-    ptr = &*ref;
-  }
-  if (!ptr)
-  {
-    return ~uint64_t(0);
-  }
-  Query *q = newQuery();
-  auto slotIndex = ptr->addQuery(q);
-  auto blockIndex = ptr - predicateHeaps.data();
-  auto index = blockIndex * heap_size + slotIndex;
-  q->setId(index, Query::Qtype::SURVEY);
-  return static_cast<uint64_t>(q->getId());
-}
+
 inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
 {
   WinAutoLock lock(predicateGuard);
@@ -1540,6 +1508,7 @@ inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
   }
   predicateHeaps.clear();
 }
+
 #define CHECK_IMAGE_TYPE(type)                                \
   if (!image)                                                 \
     DAG_FATAL("Expected an image but was a buffer!");         \
@@ -2080,6 +2049,17 @@ inline FormatStore DeviceContext::getSwapchainColorFormat() const { return front
 inline FormatStore DeviceContext::getSwapchainSecondaryColorFormat() const { return front.swapchain.getCurrentSecondaryColorFormat(); }
 
 inline DXGISwapChain *DeviceContext::getDxgiSwapchain() const { return back.swapchain.getDxgiSwapchain(); }
+
+inline bool DeviceContext::hasVirtualMainSwapchain() const { return back.swapchain.getVirtualColorImage(0) != nullptr; }
+
+inline int DeviceContext::getXboxSwapchainFrequency() const
+{
+#if _TARGET_XBOX
+  return back.swapchain.getXboxSwapchainFrequency();
+#else
+  return 0;
+#endif
+}
 
 inline Extent2D frontend::Swapchain::getCurrentExtent() const { return getExtent(getCurrentSwapchainIndex()); }
 

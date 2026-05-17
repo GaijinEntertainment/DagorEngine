@@ -46,7 +46,7 @@ void GeomNodeTreeBuilder::buildFromDagNodes(Node *sc_root, const char *unimporta
   dagNodes.push_back(sc_root);
   nodeData.push_back(NodeBuildData(0, 0, -1, 0));
 
-  if (sc_root->name)
+  if (!sc_root->name.empty())
     nameOfs += (int)strlen(sc_root->name) + 1;
   else
     nameOfs++;
@@ -64,7 +64,7 @@ void GeomNodeTreeBuilder::buildFromDagNodes(Node *sc_root, const char *unimporta
         nodeData.push_back(NodeBuildData(0, 0, i, nameOfs));
         ++nodeData[i].childNum;
 
-        if (n.child[j]->name)
+        if (!n.child[j]->name.empty())
           nameOfs += (int)strlen(n.child[j]->name) + 1;
         else
           nameOfs++;
@@ -106,7 +106,7 @@ void GeomNodeTreeBuilder::buildFromDagNodes(Node *sc_root, const char *unimporta
     as_point4(&n.wtm.col3).set(dn.wtm.m[3][0], dn.wtm.m[3][1], dn.wtm.m[3][2], 1);
 
     n.name = namePtr + bd.nameOfs;
-    strcpy(namePtr + bd.nameOfs, dn.name ? dn.name.c_str() : "");
+    strcpy(namePtr + bd.nameOfs, dn.name.c_str());
   }
 
   lastValidWtmIndex = -1;

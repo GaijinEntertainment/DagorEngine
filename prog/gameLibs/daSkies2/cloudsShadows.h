@@ -16,7 +16,7 @@ public:
   void closeShadows2D() { cloudsShadows2d.close(); }
   void initShadows2D();
 
-  UniqueTexHolder cloudsShadowsVol;
+  UniqueTexWithShaderVar cloudsShadowsVol;
 
 private:
   void validate();
@@ -29,8 +29,8 @@ private:
   bool updateTemporal();
   void updateTemporalStep(int x, int y, int z);
 
-  UniqueTexHolder cloudsShadowsTemp;
-  UniqueTexHolder cloudsShadows2d;
+  UniqueTexWithShaderVar cloudsShadowsTemp;
+  UniqueTexWithShaderVar cloudsShadows2d;
 
   VoltexRenderer gen_cloud_shadows_volume_partial, copy_cloud_shadows_volume;
   VoltexRenderer genCloudShadowsVolume;

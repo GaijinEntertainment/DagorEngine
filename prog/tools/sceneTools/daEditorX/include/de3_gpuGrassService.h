@@ -60,6 +60,7 @@ public:
   virtual BBox3 *getGrassBbox() = 0;
 
   virtual bool isGrassEnabled() const = 0;
+  virtual bool isGrassValid() const = 0;
   virtual int getTypeCount() const = 0;
   virtual GPUGrassType &getType(int index) = 0;
   virtual GPUGrassType &addType(const char *name) = 0;

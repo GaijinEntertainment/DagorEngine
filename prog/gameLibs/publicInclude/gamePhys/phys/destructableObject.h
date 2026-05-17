@@ -27,7 +27,7 @@ static constexpr int DESTRUCTABLES_DELETE_MAX_PER_FRAME = 10;
 
 struct DestructableCreationParams
 {
-  DynamicPhysObjectData *physObjData = nullptr;
+  const DynamicPhysObjectData *physObjData = nullptr;
   TMatrix tm = TMatrix::IDENT;
   // set out-of-bounds position, so if camera pos is not set,
   // it would count as being very far

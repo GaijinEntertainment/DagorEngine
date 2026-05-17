@@ -19,7 +19,7 @@ void Module_dasIMGUI::initFunctions_16() {
 	makeExtern< bool (*)(int) , ImGui::IsItemClicked , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsItemClicked","ImGui::IsItemClicked")
 		->args({"mouse_button"})
 		->arg_type(0,makeType<ImGuiMouseButton_>(lib))
-		->arg_init(0,make_smart<ExprConstEnumeration>(0,makeType<ImGuiMouseButton_>(lib)))
+		->arg_init(0,new ExprConstEnumeration(0,makeType<ImGuiMouseButton_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1048:29
 	makeExtern< bool (*)() , ImGui::IsItemVisible , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsItemVisible","ImGui::IsItemVisible")
@@ -69,12 +69,12 @@ void Module_dasIMGUI::initFunctions_16() {
 // from imgui/imgui.h:1070:29
 	makeExtern< ImDrawList * (*)(ImGuiViewport *) , ImGui::GetBackgroundDrawList , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetBackgroundDrawList","ImGui::GetBackgroundDrawList")
 		->args({"viewport"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1071:29
 	makeExtern< ImDrawList * (*)(ImGuiViewport *) , ImGui::GetForegroundDrawList , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetForegroundDrawList","ImGui::GetForegroundDrawList")
 		->args({"viewport"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1074:29
 	makeExtern< bool (*)(const ImVec2 &) , ImGui::IsRectVisible , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsRectVisible","ImGui::IsRectVisible")

@@ -43,7 +43,7 @@ function hashLocFunc(locId, ...) {
     let t = type(v)
     if (v==null)
       keys[idx] = ""
-    else if (t in const (["string", "float", "integer", "boolean"].totable()))
+    else if (t in const (["string", "float", "integer", "bool"].totable()))
       keys[idx] = v
     else {
       let r = []

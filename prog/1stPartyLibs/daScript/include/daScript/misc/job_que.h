@@ -6,6 +6,11 @@
 #include <atomic>
 
 namespace das {
+    struct LineInfo;
+
+    // shared tracking counter for JobStatus and Feature
+    DAS_API extern atomic<uint64_t> g_jobque_track_total;
+    DAS_API extern atomic<uint64_t> g_jobque_track_id;       // ID to detail-trace (0 = none)
     // single job
     typedef function<void()> Job;
     typedef function<void(int,int)> JobChunk;
@@ -26,23 +31,42 @@ namespace das {
     class DAS_API JobStatus {
     public:
         enum { STATUS_MAGIC = 0xdeadbeef };
-        JobStatus() {};
-        JobStatus(uint32_t count) { Clear( count); };
+        JobStatus();
+        JobStatus(uint32_t count);
         JobStatus ( JobStatus && ) = delete;
         JobStatus ( const JobStatus & ) = delete;
         virtual ~JobStatus();
         JobStatus & operator = ( JobStatus && ) = delete;
         JobStatus & operator = ( const JobStatus & ) = delete;
         bool Notify();
-        bool NotifyAndRelease();
+        bool NotifyAndRelease( LineInfo * at = nullptr );
         bool isReady();
         void Wait();
         void Clear(uint32_t count = 1);
-        int addRef() { return mRef++; }
-        int releaseRef() { return --mRef; }
+        int addRef( LineInfo * at = nullptr );
+        int releaseRef( LineInfo * at = nullptr );
         int size() const;
         int append(int size);
         bool isValid() const { return mMagic==uint32_t(STATUS_MAGIC); }
+    // tracking
+    public:
+        uint64_t        mTrackId = 0;
+        JobStatus *     mTrackNext = nullptr;
+        JobStatus *     mTrackPrev = nullptr;
+        uint32_t        mTrackMagic = 0;
+        string          mCreatedAt;
+        static JobStatus *  sTrackHead;
+        static mutex        sTrackMutex;
+        static constexpr uint32_t TRACK_JOB_STATUS = 0xDA5CA001;
+        static constexpr uint32_t TRACK_CHANNEL    = 0xDA5CA002;
+        static constexpr uint32_t TRACK_LOCKBOX    = 0xDA5CA003;
+        static constexpr uint32_t TRACK_STREAM     = 0xDA5CA004;
+        static void DumpJobQueLeaks();
+        static uint64_t CountJobQueLeaks();
+        void trackEvent ( LineInfo * at, bool isAddRef );
+    protected:
+        void trackInsert();
+        void trackRemove();
     protected:
         mutable mutex       mCompleteMutex;
         uint32_t            mRemaining = 0;

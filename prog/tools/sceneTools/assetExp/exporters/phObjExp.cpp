@@ -236,7 +236,7 @@ protected:
       {
         if (!(c.flags & NODEFLG_RCVSHADOW))
           return 0;
-        if (c.name && stricmp(c.name, "::mainBody") == 0)
+        if (!c.name.empty() && stricmp(c.name, "::mainBody") == 0)
           return 0;
 
         if (!checkBodyNode(&c))

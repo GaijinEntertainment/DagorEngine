@@ -50,14 +50,21 @@ shader downsample_depth_hzb
   {
     INIT_READ_IS_HERO_COCKPIT(ps)
     USE_READ_IS_HERO_COCKPIT(ps)
+    bool hasMaterialGbuf = true;
   }
 
   if (occlusion_lens_mask != NULL)
-    {
-      (ps) {
-        occlusion_lens_mask@smp2d = occlusion_lens_mask;
+  {
+    (ps) {
+      occlusion_lens_mask@smp2d = occlusion_lens_mask;
+    }
+
+    if (!maybe(hasMaterialGbuf)) {
+      INIT_READ_IS_HERO_COCKPIT(ps)
+      USE_READ_IS_HERO_COCKPIT(ps)
     }
   }
+
   PS4_DEF_TARGET_FMT_32_AR()
 
   hlsl(ps) {
@@ -67,18 +74,16 @@ shader downsample_depth_hzb
       float4 pos = GET_SCREEN_POS(IN.pos);
 
   ##if (downsampleTypeId == final2x2 || downsampleTypeId == final4x4) && (occlusion_lens_mask != NULL)
-    float lensDepth = tex2Dlod(occlusion_lens_mask, float4(IN.tc, 0, 0)).x;
+      float lensDepth = tex2Dlod(occlusion_lens_mask, float4(IN.tc, 0, 0)).x;
+      bool isLensViewArea = lensDepth > 0;
     ##if occlusion_lens_mask_mode == world_area
-    if (lensDepth > 0)
-    {
-      return -lensDepth;
-    }
+      if (isLensViewArea)
+        return -lensDepth;
     ##else
-    if (lensDepth == 0)
-    {
-      const float closeCockpitDistance = -0.001;
-      return closeCockpitDistance;
-    }
+      uint cockpitBit = isGbufferHeroCockpit(IN.tc.xy);
+      bool isWorldViewArea = !isLensViewArea && !cockpitBit;
+      if (isWorldViewArea)
+        return 0;
     ##endif
   ##endif
 

@@ -10,7 +10,6 @@
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 #include <shaders/dag_computeShaders.h>
-#include <render/world/gbufferConsts.h>
 
 bool DeepLearningSuperSampling::isFrameGenerationEnabled() const { return frameGenerationNode.valid(); }
 
@@ -41,20 +40,6 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
         return [this, renderer = ComputeShader("prepare_ray_reconstruction")] {
           renderer.dispatchThreads(inputResolution.x, inputResolution.y, 1);
         };
-      });
-
-    rayReconstructionWaterRenameNode =
-      dafg::register_node("dlss_ray_reconstruction_renamer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-        registry.renameTexture("packed_normal_roughness", "packed_normal_roughness_with_water");
-        registry.renameTexture("specular_albedo", "specular_albedo_with_water");
-        auto gbufAlbedoHndl = registry.readTexture("gbuf_0").atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::BLIT).handle();
-        auto dllsAlbedoHndl =
-          registry.create("dlss_albedo_with_water")
-            .texture({FULL_GBUFFER_FORMATS[0] | TEXCF_UNORDERED | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
-            .atStage(dafg::Stage::TRANSFER)
-            .useAs(dafg::Usage::BLIT)
-            .handle();
-        return [gbufAlbedoHndl, dllsAlbedoHndl]() { dllsAlbedoHndl.get()->update(gbufAlbedoHndl.get()); };
       });
 
     colorBeforeTransparencyNode =
@@ -93,22 +78,18 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
     auto camera = registry.readBlob<CameraParams>("current_camera").handle();
     auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-    auto albedoHndl = render::antialiasing::is_ray_reconstruction_enabled()
-                        ? eastl::make_optional(registry.read("dlss_albedo_with_water")
-                                                 .texture()
-                                                 .atStage(dafg::Stage::PS_OR_CS)
-                                                 .useAs(dafg::Usage::SHADER_RESOURCE)
-                                                 .handle())
-                        : eastl::nullopt;
-    auto specularAlbedoHndl = render::antialiasing::is_ray_reconstruction_enabled()
-                                ? eastl::make_optional(registry.read("specular_albedo_with_water")
-                                                         .texture()
-                                                         .atStage(dafg::Stage::PS_OR_CS)
-                                                         .useAs(dafg::Usage::SHADER_RESOURCE)
-                                                         .handle())
-                                : eastl::nullopt;
+    auto albedoHndl =
+      render::antialiasing::is_ray_reconstruction_enabled()
+        ? eastl::make_optional(
+            registry.read("gbuf_0").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle())
+        : eastl::nullopt;
+    auto specularAlbedoHndl =
+      render::antialiasing::is_ray_reconstruction_enabled()
+        ? eastl::make_optional(
+            registry.read("specular_albedo").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle())
+        : eastl::nullopt;
     auto normalRoughnessHndl = render::antialiasing::is_ray_reconstruction_enabled()
-                                 ? eastl::make_optional(registry.read("packed_normal_roughness_with_water")
+                                 ? eastl::make_optional(registry.read("packed_normal_roughness")
                                                           .texture()
                                                           .atStage(dafg::Stage::PS_OR_CS)
                                                           .useAs(dafg::Usage::SHADER_RESOURCE)

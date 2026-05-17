@@ -253,6 +253,9 @@ bool modfx_pos_gpu_placement(ModfxParentSimData_cref parent_sdata, BufferData_cr
 #if DAFX_USE_DEPTH_ABOVE
   if (pp.flags & MODFX_GPU_PLACEMENT_DEPTH_ABOVE)
   {
+    if ((pp.flags == MODFX_GPU_PLACEMENT_DEPTH_ABOVE) && !is_inside_depth_above_bounds(o_pos))
+      return false;
+
     float h = get_depth_above_fast(o_pos, vignette);
     r = lerp(r, h, 1.f - vignette);
   }

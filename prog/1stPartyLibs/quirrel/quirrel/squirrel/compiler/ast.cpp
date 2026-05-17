@@ -67,6 +67,7 @@ void Node::visitChildren(Visitor *visitor) {
     case TO_NEG:
     case TO_TYPEOF:
     case TO_RESUME:
+    case TO_AWAIT:
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:
@@ -178,6 +179,7 @@ void Node::transformChildren(Transformer *transformer) {
   case TO_NEG:
   case TO_TYPEOF:
   case TO_RESUME:
+  case TO_AWAIT:
   case TO_CLONE:
   case TO_PAREN:
   case TO_DELETE:

@@ -47,7 +47,7 @@ struct AuroraBorealis
 private:
   void setVars();
 
-  UniqueTexHolder auroraBorealisTex;
+  UniqueTexWithShaderVar auroraBorealisTex;
   AuroraBorealisParams params;
   PostFxRenderer auroraBorealisFX, applyAuroraBorealis;
 

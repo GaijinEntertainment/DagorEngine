@@ -23,6 +23,18 @@ float3 get_depth_above_tc(float3 worldPos, out half vignette_effect)
   float2 uncappedExtraTc = world_to_depth_ao_extra.xy * worldPos.xz + world_to_depth_ao_extra.zw;
   return clamp_depth_above_tc(uncappedTc, uncappedExtraTc, vignette_effect);
 }
+bool is_inside_depth_above_bounds(float3 worldPos)
+{
+  float2 uncappedTc = world_to_depth_ao.xy * worldPos.xz + world_to_depth_ao.zw;
+  if (all(saturate(uncappedTc) == uncappedTc))
+    return true;
+  if (depth_ao_extra_enabled > 0)
+  {
+    float2 uncappedExtraTc = world_to_depth_ao_extra.xy * worldPos.xz + world_to_depth_ao_extra.zw;
+    return all(saturate(uncappedExtraTc) == uncappedExtraTc);
+  }
+  return false;
+}
 float decode_depth_above(float depthHt)
 {
   return depthHt*depth_ao_heights.x+depth_ao_heights.y;

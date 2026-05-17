@@ -993,14 +993,6 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   controls::init_control(ugm_input_cfg_fn.empty() ? nullptr : ugm_input_cfg_fn.c_str());
   init_glob_input();
 
-  bool fsrEnabled = false;
-  // We have to check for fsr here, bacause otherwise hdrrender and gamma_pass will be created without
-  // uav usage support and if worldRenderer is not recrated (this is behaviour for all scenes except first loaded),
-  // textures will have incorrect flags for fsr
-  const char *quality = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("fsr", nullptr);
-  if (quality && strcmp(quality, "off") != 0)
-    fsrEnabled = true;
-
   // ui init can be long, process inputs to avoid application not responding status
   ::dagor_idle_cycle();
   uishared::init();
@@ -1009,7 +1001,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
 
   int width, height;
   d3d::get_render_target_size(width, height, 0, 0);
-  hdrrender::init(width, height, true, fsrEnabled);
+  hdrrender::init(width, height, true, false);
 
   g_entity_mgr->broadcastEventImmediate(
     EventOnBeforeSceneLoad(current_game.sceneName.c_str(), current_game.importScenes, current_game.gameSettings));
@@ -1104,34 +1096,40 @@ void on_apply_sync_vroms_diffs_msg(const net::IMessage *_msg)
     debug("[SyncVroms]: Applied diffs version: %s", maxVersion.to_string());
     updater::binarycache::set_cache_version(updater::binarycache::get_cache_folder().c_str(), maxVersion);
 
-    const int remountedCount = remount_changed_vroms();
-    debug("[SyncVroms]: Remounted %d vroms after diffs has been applied", remountedCount);
+    // Do not reload templates while inside ES event hanlder hence the delayed call.
+    delayed_call(
+      []() {
+        const int remountedCount = remount_changed_vroms();
+        debug("[SyncVroms]: Remounted %d vroms after diffs has been applied", remountedCount);
 
-    const bool isOk = reload_ecs_templates(*g_entity_mgr, [](const char *name, ecs::EntityManager::UpdateTemplateResult result) {
-      switch (result)
-      {
-        case ecs::EntityManager::UpdateTemplateResult::Same: break;
-        case ecs::EntityManager::UpdateTemplateResult::Added: debug("[SyncVroms]: %s added", name); break;
-        case ecs::EntityManager::UpdateTemplateResult::Updated: debug("[SyncVroms]: %s updated", name); break;
-        case ecs::EntityManager::UpdateTemplateResult::Removed: debug("[SyncVroms]: %s removed", name); break;
-        case ecs::EntityManager::UpdateTemplateResult::InvalidName: debug("[SyncVroms]: %s wrong name", name); break;
-        case ecs::EntityManager::UpdateTemplateResult::RemoveHasEntities:
-          logerr("[SyncVroms]: %s has entities and cant be removed", name);
-          break;
-        case ecs::EntityManager::UpdateTemplateResult::DifferentTag:
-          logerr("[SyncVroms]: %s is registered with different tag and can't be updated", name);
-          break;
-        default: logerr("[SyncVroms]: Unknown error %d for template '%s'", (int)result, name); break;
-      }
-    });
+        const bool isOk = reload_ecs_templates(*g_entity_mgr, [](const char *name, ecs::EntityManager::UpdateTemplateResult result) {
+          switch (result)
+          {
+            case ecs::EntityManager::UpdateTemplateResult::Same: break;
+            case ecs::EntityManager::UpdateTemplateResult::Added: debug("[SyncVroms]: %s added", name); break;
+            case ecs::EntityManager::UpdateTemplateResult::Updated: debug("[SyncVroms]: %s updated", name); break;
+            case ecs::EntityManager::UpdateTemplateResult::Removed: debug("[SyncVroms]: %s removed", name); break;
+            case ecs::EntityManager::UpdateTemplateResult::InvalidName: debug("[SyncVroms]: %s wrong name", name); break;
+            case ecs::EntityManager::UpdateTemplateResult::RemoveHasEntities:
+              logerr("[SyncVroms]: %s has entities and cant be removed", name);
+              break;
+            case ecs::EntityManager::UpdateTemplateResult::DifferentTag:
+              logerr("[SyncVroms]: %s is registered with different tag and can't be updated", name);
+              break;
+            default: logerr("[SyncVroms]: Unknown error %d for template '%s'", (int)result, name); break;
+          }
+        });
 
-    if (!isOk)
-      statsd::counter("syncvroms.error", 1, {"error", "reload_ecs_templates"});
+        if (!isOk)
+          statsd::counter("syncvroms.error", 1, {"error", "reload_ecs_templates"});
 
-    debug("[SyncVroms]: Templates has been reloaded: %s", isOk ? "success" : "fail");
+        debug("[SyncVroms]: Templates has been reloaded: %s", isOk ? "success" : "fail");
+        G_VERIFY(send_net_msg(net::get_msg_sink(), SyncVromsDone()) > 0);
+      },
+      "SyncVromsReloadTemplatesDelayedCall");
   }
-
-  G_VERIFY(send_net_msg(net::get_msg_sink(), SyncVromsDone()) > 0);
+  else
+    G_VERIFY(send_net_msg(net::get_msg_sink(), SyncVromsDone()) > 0);
 }
 
 static void switch_scene_and_apply_update(eastl::string_view scene)

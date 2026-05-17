@@ -24,11 +24,11 @@ class TemplateMacro : AstFunctionAnnotation {
         if (func.result.baseType == Type.tVoid) {
             return true
         }
-        var inscope resType <- clone_type(func.result)
+        var resType = clone_type(func.result)
         if (!resType.flags.ref) {
             resType.flags &= ~TypeDeclFlags.constant
         }
-        var inscope qblk <- qmacro_block() {
+        var qblk = qmacro_block() {
             panic("stub function called")
             unsafe {
                 var dummy : $t(resType)
@@ -36,7 +36,7 @@ class TemplateMacro : AstFunctionAnnotation {
             }
         }
         qblk |> force_at(func.body.at)
-        move(func.body) <| qblk
+        func.body = qblk
         return true
     }
 }

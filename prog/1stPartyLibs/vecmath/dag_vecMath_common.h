@@ -2694,17 +2694,6 @@ VECTORCALL VECMATH_FINLINE void v_mat33_make_from_33cu(mat33f &tmV, const float 
   tmV.col2 = v_perm_zwxy(v_perm_ayzw(v1, v2));
 }
 
-VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu_unsafe(mat44f &tmV, const float *const __restrict m43)
-{
-  vec4f v0 = v_ldu(m43 + 0);
-  vec4f v1 = v_ldu(m43 + 4);
-  vec4f v2 = v_ldu(m43 + 8);
-  tmV.col0 = v0;
-  tmV.col1 = v_perm_wxyz(v_perm_xycd(v1, v0));
-  tmV.col2 = v_perm_zwxy(v_perm_xycd(v2, v1));
-  tmV.col3 = v_rot_1(v2);
-}
-
 VECTORCALL VECMATH_FINLINE void v_mat_44cu_from_mat44(float* __restrict m44, const mat44f& tm)
 {
   v_stu(m44 + 0, tm.col0);

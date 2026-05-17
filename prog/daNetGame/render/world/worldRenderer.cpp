@@ -829,7 +829,7 @@ void WorldRenderer::generatePaintingTexture()
   if (!combinedPaintTex)
     return;
   paintColorsTex.close();
-  paintColorsTex = UniqueTexHolder(eastl::move(combinedPaintTex), "paint_details_tex");
+  paintColorsTex = UniqueTexWithShaderVar(eastl::move(combinedPaintTex), "paint_details_tex");
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
@@ -1429,7 +1429,7 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
 
   if (changed_fields.getNameId("graphics/environmentDetailsQuality") >= 0)
   {
-    setEnviromentDetailsQuality();
+    setEnvironmentDetailsQuality();
     setNbsQuality();
   }
 
@@ -1549,6 +1549,8 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
 
   if (auto portalRenderer = portal_renderer_mgr::query_portal_renderer())
     portalRenderer->afterDeviceReset();
+
+  after_device_reset_fluid_wind();
 
   if (full_reset)
   {
@@ -1898,14 +1900,6 @@ void WorldRenderer::getPostFxInternalResolution(int &w, int &h) const
   {
     resolution = getSSAAResolution(displayResolution);
   }
-  else if (currentAntiAliasingMode == AntiAliasingMode::TSR)
-  {
-    // TAA cannot be used to scale resolution by itself, but we can scale after the postfx pass
-    if (isFsrEnabled())
-    {
-      resolution = getFsrScaledResolution(displayResolution);
-    }
-  }
   else
   {
     // FXAA and OFF scale up after postfx
@@ -1942,7 +1936,6 @@ void WorldRenderer::resetResolutionOverride()
 float WorldRenderer::getMipmapBias() const
 {
   float lodBias = antiAliasing ? antiAliasing->getLodBias() : 0.f;
-  lodBias += isFsrEnabled() ? fsrMipBias : 0.0f;
   lodBias += isSSAAEnabled() ? ssaaMipBias : 0.0f;
   return taa_base_mip_scale.get() + lodBias;
 }
@@ -1977,10 +1970,6 @@ void WorldRenderer::setAntialiasing()
   getPostFxInternalResolution(postFxResolution.x, postFxResolution.y);
   ShaderGlobal::set_int(antialiasing_typeVarId, AntiAliasingType::TEMPORAL); // default
 
-  // TODO: Workaround for dynamic grass being noisy with TSR low if AA is forced on
-  // We should drop support for TSR low except on consoles
-  ShaderGlobal::set_int(grass_dynamic_flagVarId, 1);
-
   switch (currentAntiAliasingMode)
   {
     case AntiAliasingMode::DLSS:
@@ -1994,7 +1983,6 @@ void WorldRenderer::setAntialiasing()
     case AntiAliasingMode::TSR:
       antiAliasing = eastl::make_unique<TemporalSuperResolution>(postFxResolution);
       ShaderGlobal::set_int(antialiasing_typeVarId, AntiAliasingType::TSR);
-      ShaderGlobal::set_int(grass_dynamic_flagVarId, antiAliasing.get()->needMotionVectors());
       break;
     case AntiAliasingMode::FSR:
       antiAliasing = eastl::make_unique<FSR>(postFxResolution);
@@ -2029,7 +2017,6 @@ void WorldRenderer::setAntialiasing()
       render::antialiasing::set_method(render::antialiasing::AntialiasingMethod::TSR);
       antiAliasing = eastl::make_unique<TemporalSuperResolution>(postFxResolution);
       ShaderGlobal::set_int(antialiasing_typeVarId, AntiAliasingType::TSR);
-      ShaderGlobal::set_int(grass_dynamic_flagVarId, antiAliasing.get()->needMotionVectors());
     }
     if (!antiAliasing->isAvailable())
     {
@@ -2038,6 +2025,8 @@ void WorldRenderer::setAntialiasing()
       prepareForPostfxNoAANode = makePrepareForPostfxNoAANode();
     }
   }
+
+  g_entity_mgr->broadcastEventImmediate(SetAntialiasing());
 }
 
 void WorldRenderer::setResolution()
@@ -2047,11 +2036,8 @@ void WorldRenderer::setResolution()
 
   createDebugTexOverlay(w, h);
 
-  loadFsrSettings();
-
   antiAliasing.reset();
   closeStaticUpsample();
-  closeFsr();
   prepareForPostfxNoAANode = {};
 
   IPoint2 displayResolution(w, h);
@@ -2163,7 +2149,7 @@ void WorldRenderer::setResolution()
   if (hdrrender::is_hdr_enabled())
   {
     auto prevt = hdrrender::get_render_target_tex();
-    hdrrender::set_resolution(displayResolution.x, displayResolution.y, isFsrEnabled()); // This might re-create tex
+    hdrrender::set_resolution(displayResolution.x, displayResolution.y, false); // This might re-create tex
     setRtControl(RtControl::RT, /*force*/ prevt != hdrrender::get_render_target_tex());
     setFinalTargetTex(&hdrrender::get_render_target(), "[HDR, RT]");
   }
@@ -2181,8 +2167,8 @@ void WorldRenderer::setResolution()
       d3d::get_backbuffer_tex()->getinfo(info);
       bbFmt = info.cflg & TEXFMT_MASK;
     }
-    ownedBackbufferTex = dag::create_tex(NULL, displayResolution.x, displayResolution.y,
-      TEXCF_RTARGET | bbFmt | (isFsrEnabled() ? TEXCF_UNORDERED : 0), 1, "final_target_frame");
+    ownedBackbufferTex =
+      dag::create_tex(NULL, displayResolution.x, displayResolution.y, TEXCF_RTARGET | bbFmt, 1, "final_target_frame");
     setFinalTargetTex(&ownedBackbufferTex, "[OwnedRT]");
   }
   else
@@ -2190,12 +2176,6 @@ void WorldRenderer::setResolution()
     setRtControl(RtControl::BACKBUFFER, /*force*/ !backbufferTex || backbufferTex.getBaseTex() != d3d::get_backbuffer_tex());
     updateBackBufferTex();
   }
-
-  if (isFsrEnabled())
-  {
-    initFsr(postFxResolution, displayResolution);
-  }
-  ShaderGlobal::set_int(get_shader_glob_var_id("fsr_on", true), isFsrEnabled());
 
   changeStateFOMShadows();
 
@@ -2220,7 +2200,7 @@ void WorldRenderer::setResolution()
   dafg::set_resolution("texel_per_vrs_tile", vrsDims ? vrsDims.value() : IPoint2());
 
   if (hdrrender::is_hdr_enabled())
-    hdrrender::init(displayResolution.x, displayResolution.y, true, isFsrEnabled());
+    hdrrender::init(displayResolution.x, displayResolution.y, true, false);
   else
     hdrrender::shutdown();
 
@@ -2411,7 +2391,6 @@ void WorldRenderer::printResolutionScaleInfo() const
   }
   console::print_d("AA mode: %s", aaMode);
   auto bool_to_string = [](bool b) { return b ? "true" : "false"; };
-  console::print_d("Fsr enabled: %s", bool_to_string(isFsrEnabled()));
   console::print_d("Static Upsampling enabled: %s", bool_to_string(isStaticUpsampleEnabled()));
 }
 
@@ -2618,6 +2597,7 @@ void WorldRenderer::ctorCommon()
       }
     };
     satelliteCb.clipmapGetLastUpdatedTileCount = [this]() -> int { return clipmap ? clipmap->getLastUpdatedTileCount() : 0; };
+    satelliteCb.texStreamingGetPendingCount = []() -> int { return get_managed_textures_streaming_pending_count(); };
     satelliteCb.landmeshHeightGetter = [this](const Point2 &pos2d, float &height) -> bool {
       return lmeshMgr->getHeight(pos2d, height, NULL);
     };
@@ -2784,7 +2764,7 @@ void WorldRenderer::ctorDeferred()
   setSharpeningFromSettings();
   setChromaticAberrationFromSettings();
   setFilmGrainFromSettings();
-  setEnviromentDetailsQuality();
+  setEnvironmentDetailsQuality();
 
   camera_in_camera::setup(hasFeature(CAMERA_IN_CAMERA));
 
@@ -2863,20 +2843,11 @@ void WorldRenderer::createNodes()
     dafg::multiplexing::Mode::SubSampling | dafg::multiplexing::Mode::SuperSampling | dafg::multiplexing::Mode::Viewport,
     dafg::multiplexing::Mode::Viewport | dafg::multiplexing::Mode::CameraInCamera);
 
-  if (isFsrEnabled())
-  {
-    auto fsrNodes = makeFsrNodes();
-    for (auto &node : fsrNodes)
-      fgNodeHandles.push_back(eastl::move(node));
-  }
-  else
-  {
-    if (isFXAAEnabled())
-      fxaaNode = makeFXAANode(isStaticUpsampleEnabled() ? "frame_to_upscale" : "frame_after_postfx", !isStaticUpsampleEnabled());
+  if (isFXAAEnabled())
+    fxaaNode = makeFXAANode(isStaticUpsampleEnabled() ? "frame_to_upscale" : "frame_after_postfx", !isStaticUpsampleEnabled());
 
-    if (isStaticUpsampleEnabled())
-      fgNodeHandles.emplace_back(makeStaticUpsampleNode(isFXAAEnabled() ? "frame_to_upscale" : "postfxed_frame"));
-  }
+  if (isStaticUpsampleEnabled())
+    fgNodeHandles.emplace_back(makeStaticUpsampleNode(isFXAAEnabled() ? "frame_to_upscale" : "postfxed_frame"));
 
   shadowsManager.initVisibilityNode();
   shadowsManager.initShadowsDownsampleNode();
@@ -2891,12 +2862,6 @@ void WorldRenderer::createNodes()
   const bool needDepthHistory = aaNeedsHistory || giNeedsHistory;
   g_entity_mgr->broadcastEventImmediate(OnCameraNodeConstruction{
     &fgNodeHandles, &resSlotHandles, prepass.get(), giNeedsReprojection(), needDepthHistory, bareMinimumPreset, hasMotionVectors});
-}
-
-bool WorldRenderer::isFsrEnabled() const
-{
-  return fsrEnabled && currentAntiAliasingMode == AntiAliasingMode::TSR &&
-         TemporalSuperResolution::parse_preset() == TemporalSuperResolution::Preset::Low;
 }
 
 void WorldRenderer::debugRecreateNodes()
@@ -3855,7 +3820,10 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   const int cameraSpeedDependMinimumClipmapZoom =
     get_closest_pow2(clipmap ? (int)(((4.f / 512.f) / clipmap->getStartTexelSize()) * additionalHeight / 10.f) : 1);
   const int minimumClipmapZoom = max(cameraSpeedDependMinimumClipmapZoom, can_change_altitude_unexpectedly() ? 2 : 1);
-  prepareClipmap(itm.getcol(3), itm, currentFrameCamera.noJitterGlobtm, currentFrameCamera.noJitterPersp.wk, minimumClipmapZoom);
+  const float clipmapWk = camera_in_camera::is_lens_render_active()
+                            ? max(currentFrameCamera.noJitterPersp.wk, camcamParams->noJitterPersp.wk)
+                            : currentFrameCamera.noJitterPersp.wk;
+  prepareClipmap(itm.getcol(3), itm, currentFrameCamera.noJitterGlobtm, clipmapWk, minimumClipmapZoom);
 
   {
     TIME_D3D_PROFILE(biome_query_update)
@@ -3891,7 +3859,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   }
 
   giBeforeRender();
-  if (requiresGroundDetails || isTimeDynamic())
+  if (requiresGroundDetails || isTimeDynamic() || requiresGIUpdate())
     updateGIPos(giPos, itm, hmin, hmax);
 
   BBox3 riBox;
@@ -5748,7 +5716,7 @@ void WorldRenderer::setFxQuality()
   g_entity_mgr->broadcastEventImmediate(SetFxQuality(fxQuality));
 }
 
-void WorldRenderer::setEnviromentDetailsQuality()
+void WorldRenderer::setEnvironmentDetailsQuality()
 {
   const DataBlock *graphics = ::dgs_get_settings()->getBlockByNameEx("graphics");
 
@@ -6219,9 +6187,8 @@ void WorldRenderer::changePreset()
 #if DAGOR_DBGLEVEL > 0
   const char *preset = ::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("preset", "medium");
   const bool isMediumPreset = strcmp(preset, "medium") == 0;
-  // This shader interval is only assumed in _fast compile configs, so it's a good indicator.
-  // If this changes in the future and this assert triggers false, positives, tested variable should be changed.
-  const bool usesFastCompiledShaders = ShaderGlobal::is_var_assumed(antialiasing_typeVarId);
+  const bool usesFastCompiledShaders =
+    VariableMap::isVariablePresent(VariableMap::getVariableId("shaders_compiled_for_medium_preset"));
   // Fast compiled shaders are only usable with the medium preset.
   // If someone tries to modify graphics settings without compile fully shader configs, an error message can save a lot of headache
   G_ASSERTF(isMediumPreset || !usesFastCompiledShaders, "Fast compiled shaders only work with medium preset.\n"
@@ -6269,7 +6236,7 @@ void WorldRenderer::onBareMinimumSettingsChanged()
     return;
   bareMinimumPreset = bare_minimum;
   setWater(water);
-  setEnviromentDetailsQuality();
+  setEnvironmentDetailsQuality();
   setGIQualityFromSettings();
   resetSSAOImpl();
   initTarget();
@@ -6485,8 +6452,8 @@ int WorldRenderer::getDynamicResolutionTargetFps() const { return dynamicResolut
 BaseTexture *WorldRenderer::initAndGetHZBUploadStagingTex()
 {
   if (!hzbUploadStagingTex)
-    hzbUploadStagingTex =
-      dag::create_tex(nullptr, OCCLUSION_W + (OCCLUSION_W >> 1), OCCLUSION_H, TEXFMT_R32F | TEXCF_DYNAMIC, 1, "hzb_readback_staging");
+    hzbUploadStagingTex = dag::create_tex(nullptr, OcclusionZBuffer::WIDTH + (OcclusionZBuffer::WIDTH >> 1), OcclusionZBuffer::HEIGHT,
+      TEXFMT_R32F | TEXCF_DYNAMIC, 1, "hzb_readback_staging");
   return hzbUploadStagingTex.getTex2D();
 }
 
@@ -6540,12 +6507,6 @@ bool has_renderer_http_plugins_requirements()
   if (!dd_dir_exists("../develop/assets/loc_shaders"))
   {
     debug("has_renderer_http_plugins_requirements: develop/assets/loc_shaders does not exist, shader_recompiler disabled");
-    return false;
-  }
-
-  if (!dd_dir_exists("../../tools/dagor_cdk/commonData/graphEditor"))
-  {
-    debug("has_renderer_http_plugins_requirements: tools/dagor_cdk/commonData/graphEditor does not exist, shader_recompiler disabled");
     return false;
   }
 
@@ -6852,13 +6813,6 @@ bool WRDispatcher::isUpsampling()
 {
   if (isReadyToUse())
     return static_cast<WorldRenderer *>(get_world_renderer())->isUpsampling();
-  return false;
-}
-
-bool WRDispatcher::isFsrEnabled()
-{
-  if (isReadyToUse())
-    return static_cast<WorldRenderer *>(get_world_renderer())->isFsrEnabled();
   return false;
 }
 
@@ -7257,3 +7211,51 @@ ECS_REGISTER_EVENT(RenderReinitCube);
 ECS_REGISTER_EVENT(BeforeDraw);
 
 bool have_renderer() { return true; }
+
+#if DAGOR_DBGLEVEL > 0
+void WRDispatcher::reloadMainPovSkiesData(bool use_compute)
+{
+  auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
+  G_ASSERT_AND_DO(wr != nullptr, DAG_FATAL(WR_WAS_NULL_ERR_MSG));
+
+  wr->resetMainSkies(get_daskies());
+
+  get_daskies()->overrideSkiesDataCloudsUseCompute(wr->main_pov_data, use_compute);
+}
+
+static bool clouds_debug_console_handler(const char *argv[], int argc)
+{
+  int found = 0;
+  CONSOLE_CHECK_NAME("clouds", "enable_compute", 1, 2)
+  {
+    if (d3d::get_driver_desc().shaderModel >= 5.0_sm)
+    {
+      bool useCompute = true;
+      if (argc == 1)
+      {
+        console::print_d("usage: clouds.enable_compute true or clouds.enable_compute false");
+      }
+      else if (argc >= 2)
+      {
+        useCompute = console::to_bool(argv[1]);
+      }
+
+      auto mainPovData = WRDispatcher::getMainPovSkiesData();
+      if (mainPovData)
+      {
+        d3d::GpuAutoLock gpuLock;
+        SCOPE_RESET_SHADER_BLOCKS;
+
+        WRDispatcher::reloadMainPovSkiesData(useCompute);
+      }
+    }
+    else
+    {
+      console::print_d("command is not available for systems with no compute shaders");
+    }
+  }
+
+  return found;
+}
+REGISTER_CONSOLE_HANDLER(clouds_debug_console_handler);
+#endif

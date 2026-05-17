@@ -36,11 +36,11 @@ CloudsChangeFlags CloudsFormLUT::render()
   TIME_D3D_PROFILE(clouds_lut_gen);
   // todo: implement Compute version
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(clouds_types_lut.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{clouds_types_lut.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
   gen_clouds_types_lut.render();
   d3d::resource_barrier({clouds_types_lut.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-  d3d::set_render_target(clouds_erosion_lut.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{clouds_erosion_lut.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
   gen_clouds_erosion_lut.render();
   frameValid = true;

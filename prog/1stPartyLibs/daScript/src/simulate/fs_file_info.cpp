@@ -14,6 +14,7 @@
 
 #if !defined(DAS_NO_FILEIO)
 #include <sys/stat.h>
+#include <filesystem>
 #endif
 
 namespace das {
@@ -225,10 +226,50 @@ namespace das {
     bool FsFileAccess::introduceNativeModule ( const string & ) { return false; }
 #endif
 
+#if !defined(DAS_NO_FILEIO)
+    static bool endsWithExt ( const string & s, const char * suf ) {
+        size_t n = strlen(suf);
+        return s.size() >= n && memcmp(s.data() + s.size() - n, suf, n) == 0;
+    }
+#endif
+
     ModuleInfo FsFileAccess::getModuleInfo ( const string & req, const string & from ) const {
         if (!failed()) {
             return ModuleFileAccess::getModuleInfo(req, from);
         }
+#if !defined(DAS_NO_FILEIO)
+        // file-path mode: trigger on .das or .das_project suffix + ./, ../, %/ prefix
+        if ( endsWithExt(req, ".das") || endsWithExt(req, ".das_project") ) {
+            bool relCur  = (req.size() >= 2 && req[0] == '.' && req[1] == '/');
+            bool relPar  = (req.size() >= 3 && req[0] == '.' && req[1] == '.' && req[2] == '/');
+            bool dasRoot = (req.size() >= 2 && req[0] == '%' && req[1] == '/');
+            if ( relCur || relPar || dasRoot ) {
+                namespace fs = std::filesystem;
+                fs::path base = dasRoot ? fs::path(getDasRoot().c_str()) : fs::path(from.c_str()).parent_path();
+                fs::path rel  = dasRoot ? fs::path(req.substr(2).c_str()) : fs::path(req.c_str());
+                // refuse absolute paths in the right-hand side: fs::path::operator/
+                // discards the LHS when RHS is absolute, which would let `%//etc/x.das`
+                // (or `%/C:/x.das` on Windows) escape getDasRoot() and the `from` dir.
+                if ( rel.is_absolute() || rel.has_root_name() || rel.has_root_directory() ) {
+                    return ModuleInfo();   // empty info -> reported as missing prerequisite
+                }
+                // for %/ the result must stay under getDasRoot(). After lexically_normal
+                // any `..` segments left in rel pop above the root (e.g. `%/../etc/x.das`),
+                // so reject. `./` and `../` are by design and may escape `from`'s dir.
+                if ( dasRoot ) {
+                    for ( const auto & seg : rel.lexically_normal() ) {
+                        if ( seg == ".." ) return ModuleInfo();
+                    }
+                }
+                fs::path full = (base / rel).lexically_normal();
+                ModuleInfo info;
+                info.fileName   = full.generic_string().c_str();
+                info.moduleName = full.stem().generic_string().c_str();
+                info.importName = info.moduleName;
+                return info;
+            }
+        }
+#endif
         auto np = req.find_first_of("./");
         if ( np != string::npos ) {
             string top = req.substr(0,np);

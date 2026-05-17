@@ -159,7 +159,7 @@ private:
   UniqueBuf treeCrown;
   eastl::unique_ptr<DeferredRenderTarget> rt;
   eastl::unique_ptr<DeferredRenderTarget> maskRt;
-  UniqueTexHolder impostorBranchMaskTex;
+  UniqueTexWithShaderVar impostorBranchMaskTex;
   eastl::set<eastl::string> exportedFolderBlks;
   eastl::set<eastl::string> modifiedFiles;
   eastl::set<eastl::string> removedFiles;

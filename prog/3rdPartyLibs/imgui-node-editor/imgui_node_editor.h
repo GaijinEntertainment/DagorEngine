@@ -321,6 +321,11 @@ IMGUI_NODE_EDITOR_API ImDrawList* GetNodeBackgroundDrawList(NodeId nodeId);
 
 IMGUI_NODE_EDITOR_API bool Link(LinkId id, PinId startPinId, PinId endPinId, const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);
 
+// Returns the bezier control points for a link in canvas space.
+// Use to draw custom link visuals (e.g. gradient) on top of a transparent ed::Link call.
+struct LinkBezierCurve { ImVec2 P0, P1, P2, P3; };
+IMGUI_NODE_EDITOR_API LinkBezierCurve GetLinkCurve(LinkId id);
+
 IMGUI_NODE_EDITOR_API void Flow(LinkId linkId, FlowDirection direction = FlowDirection::Forward);
 
 IMGUI_NODE_EDITOR_API bool BeginCreate(const ImVec4& color = ImVec4(1, 1, 1, 1), float thickness = 1.0f);

@@ -6,8 +6,6 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
-#include <startup/dag_globalSettings.h>
-#include <ioSys/dag_dataBlock.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/resourceSlot/registerAccess.h>
 #include <render/viewVecs.h>
@@ -19,23 +17,16 @@ namespace var
 static ShaderVariableInfo contrast_adaptive_sharpening_aa_bias("contrast_adaptive_sharpening_aa_bias", true);
 }
 
-bool TemporalSuperResolution::needMotionVectors() const { return preset == Preset::High; }
+bool TemporalSuperResolution::needMotionVectors() const { return true; }
 
-bool TemporalSuperResolution::supportsReactiveMask() const { return preset == Preset::High && tsr_allow_reactive.get(); }
+bool TemporalSuperResolution::supportsReactiveMask() const { return tsr_allow_reactive.get(); }
 
-TemporalSuperResolution::Preset TemporalSuperResolution::parse_preset()
-{
-  using P = TemporalSuperResolution::Preset;
-  return P(clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("tsrQuality", eastl::to_underlying(P::High)),
-    eastl::to_underlying(P::Low), eastl::to_underlying(P::High)));
-}
+TemporalSuperResolution::Preset TemporalSuperResolution::parse_preset() { return TemporalSuperResolution::Preset::High; }
 
 TemporalSuperResolution::~TemporalSuperResolution() { ShaderGlobal::set_float(var::contrast_adaptive_sharpening_aa_bias, 0); }
 
 TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolution) :
-  AntiAliasing(parse_preset() == Preset::Low ? output_resolution : computeInputResolution(output_resolution), output_resolution),
-  preset(parse_preset()),
-  available(false)
+  AntiAliasing(computeInputResolution(output_resolution), output_resolution), preset(parse_preset()), available(false)
 {
   if (!render::antialiasing::try_init_tsr(outputResolution, inputResolution))
   {

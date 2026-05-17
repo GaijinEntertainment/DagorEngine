@@ -1,0 +1,4 @@
+script done
+consumer waits
+resolver runs
+consumer got: hello

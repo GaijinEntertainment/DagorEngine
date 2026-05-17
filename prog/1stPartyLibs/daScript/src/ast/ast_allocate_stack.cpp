@@ -15,8 +15,8 @@ namespace das {
         vector<ExprBlock *>     blocks;
         vector<ExprBlock *>     scopes;
         ProgramPtr              program;
-        FunctionPtr             func;
-        VariablePtr             cmresVAR;
+        FunctionPtr             func = nullptr;
+        VariablePtr             cmresVAR = nullptr;
         bool                    failedToCMRES = false;
         bool                    isEverything = false;
     protected:
@@ -33,8 +33,8 @@ namespace das {
         }
         virtual FunctionPtr visit ( Function * that ) override {
             if ( cmresVAR && !failedToCMRES ) cmresVAR->aliasCMRES = true;
-            func.reset();
-            cmresVAR.reset();
+            func = nullptr;
+            cmresVAR = nullptr;
             failedToCMRES = false;
             DAS_ASSERT(blocks.size()==0);
             return Visitor::visit(that);
@@ -61,7 +61,7 @@ namespace das {
                 expr->block = blocks.back();
                 return;
             }
-            expr->returnFunc = func.get();
+            expr->returnFunc = func;
             if ( failedToCMRES ) return;
             // we can safely skip makeLocal, invoke, or call
             // they are going to CMRES directly, and do not affect nothing
@@ -71,7 +71,7 @@ namespace das {
             else if ( expr->subexpr->rtti_isMakeLocal() ) return;
             // if its return X
             else if ( expr->subexpr->rtti_isVar() ) {
-                evar = (ExprVar *)(expr->subexpr.get());
+                evar = (ExprVar *)(expr->subexpr);
             } else {
                 return;
             }
@@ -126,7 +126,7 @@ namespace das {
         };
 
         ProgramPtr              program;
-        FunctionPtr             func;
+        FunctionPtr             func = nullptr;
         uint32_t                stackTop = 0;
         vector<StackInfo>       stackTopStack;
         vector<ExprBlock *>     blocks;
@@ -213,19 +213,19 @@ namespace das {
                         logs << "\t" << refStackTop << "\t" << sz
                             << "\tinit global " << var->name << " [[ ]], line " << var->init->at.line << "\n";
                     }
-                    auto mkl = static_pointer_cast<ExprMakeLocal>(var->init);
+                    auto mkl = static_cast<ExprMakeLocal*>(var->init);
                     mkl->setRefSp(true, false, refStackTop, 0);
                     mkl->doesNotNeedInit = false;
                     mkl->doesNotNeedSp = true;
                 } else if ( var->init->rtti_isCall() ) {
-                    auto cll = static_pointer_cast<ExprCall>(var->init);
+                    auto cll = static_cast<ExprCall*>(var->init);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                     } else {
                         cll->doesNotNeedSp = false;
                     }
                 } else if ( var->init->rtti_isInvoke() ) {
-                    auto cll = static_pointer_cast<ExprInvoke>(var->init);
+                    auto cll = static_cast<ExprInvoke*>(var->init);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                     } else {
@@ -260,10 +260,10 @@ namespace das {
             if ( !program->getDebugger() && !program->getProfiler() && !noFastCall ) {
                 if ( !func->exports && !func->addr && func->totalStackSize==sizeof(Prologue) && func->arguments.size()<=32 ) {
                     if (func->body->rtti_isBlock()) {
-                        auto block = static_pointer_cast<ExprBlock>(func->body);
+                        auto block = static_cast<ExprBlock*>(func->body);
                         if ( func->result->isWorkhorseType() ) {
                             if (block->list.size()==1 && block->finalList.size()==0 && block->list.back()->rtti_isReturn()) {
-                                auto ret = (ExprReturn *) block->list.back().get();
+                                auto ret = (ExprReturn *) block->list.back();
                                 if ( !ret->moveSemantics ) func->fastCall = true;   // can't fast-call return <-
                             }
                         } else if ( func->result->isVoid() ) {
@@ -279,7 +279,7 @@ namespace das {
             if ( log ) {
                 logs << func->totalStackSize << "\ttotal" << (func->fastCall ? ", fastcall" : "") << "\n";
             }
-            func.reset();
+            func = nullptr;
             return Visitor::visit(that);
         }
     // ExprReturn
@@ -304,7 +304,7 @@ namespace das {
                         logs << "\t" << expr->refStackTop << "\t" << sz
                         << "\treturn ref and eval, line " << expr->at.line << "\n";
                     }
-                    auto mkl = static_pointer_cast<ExprMakeLocal>(expr->subexpr);
+                    auto mkl = static_cast<ExprMakeLocal*>(expr->subexpr);
                     if ( expr->returnInBlock ) {
                         mkl->setRefSp(true, false, expr->refStackTop, 0);
                     } else {
@@ -313,7 +313,7 @@ namespace das {
                     }
                     mkl->doesNotNeedInit = false;
                 } else if ( expr->subexpr->rtti_isCall() ) {
-                    auto cll = static_pointer_cast<ExprCall>(expr->subexpr);
+                    auto cll = static_cast<ExprCall*>(expr->subexpr);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                         expr->returnCallCMRES = true;
@@ -322,7 +322,7 @@ namespace das {
                         expr->returnCallCMRES = false;
                     }
                 } else if ( expr->subexpr->rtti_isInvoke() ) {
-                    auto cll = static_pointer_cast<ExprInvoke>(expr->subexpr);
+                    auto cll = static_cast<ExprInvoke*>(expr->subexpr);
                     if ( cll->allowCmresSkip() ) {
                         cll->doesNotNeedSp = true;
                         expr->returnCallCMRES = true;
@@ -331,7 +331,7 @@ namespace das {
                         expr->returnCallCMRES = false;
                     }
                 } else if ( expr->subexpr->rtti_isVar() ) {
-                    auto evar = static_pointer_cast<ExprVar>(expr->subexpr);
+                    auto evar = static_cast<ExprVar*>(expr->subexpr);
                     if ( evar->variable->aliasCMRES ) {
                         expr->returnCMRES = true;
                     } else {
@@ -469,7 +469,7 @@ namespace das {
                 for ( int ai=int(expr->arguments.size())-1; ai>=0; ai-- ) {
                     auto & arg = expr->arguments[ai];
                     if ( arg->rtti_isStringBuilder() ) {
-                        auto sb = static_pointer_cast<ExprStringBuilder>(arg);
+                        auto sb = static_cast<ExprStringBuilder*>(arg);
                         sb->isTempString = true;
                         break;
                     }
@@ -541,7 +541,7 @@ namespace das {
             /*
             for ( auto & src : expr->sources ) {
                 if ( src->rtti_isMakeLocal() ) {
-                    auto mkl = static_pointer_cast<ExprMakeLocal>(src);
+                    auto mkl = static_cast<ExprMakeLocal*>(src);
                     mkl->needTempSrc = true;
                 }
             }
@@ -574,18 +574,18 @@ namespace das {
             }
             if ( var->init ) {
                 if ( var->init->rtti_isMakeLocal() ) {
-                    auto mkl = static_pointer_cast<ExprMakeLocal>(var->init);
+                    auto mkl = static_cast<ExprMakeLocal*>(var->init);
                     mkl->setRefSp(false, var->aliasCMRES, var->stackTop, 0);
                     mkl->doesNotNeedInit = false;
                 } else if ( var->init->rtti_isCall() ) {
-                    auto cll = static_pointer_cast<ExprCall>(var->init);
+                    auto cll = static_cast<ExprCall*>(var->init);
                     if ( (cll->func->copyOnReturn || cll->func->moveOnReturn) && !cll->func->aliasCMRES ) { // note: let never aliases!!!
                         cll->doesNotNeedSp = true;
                     } else {
                         cll->doesNotNeedSp = false;
                     }
                 } else if ( var->init->rtti_isInvoke() ) {
-                    auto cll = static_pointer_cast<ExprInvoke>(var->init);
+                    auto cll = static_cast<ExprInvoke*>(var->init);
                     if ( cll->isCopyOrMove() ) {
                         cll->doesNotNeedSp = true;
                     } else {
@@ -644,7 +644,7 @@ namespace das {
                     logs << "\t" << expr->stackTop << "\t" << sz
                     << "\tascend, line " << expr->at.line << "\n";
                 }
-                auto mkl = static_pointer_cast<ExprMakeLocal>(expr->subexpr);
+                auto mkl = static_cast<ExprMakeLocal*>(expr->subexpr);
                 mkl->setRefSp(true, false, expr->stackTop, 0);
             }
             pushSp();
@@ -784,7 +784,7 @@ namespace das {
             Visitor::preVisit(expr);
             if ( inStruct ) return;
             if ( expr->right->rtti_isMakeLocal() ) {
-                auto mkl = static_pointer_cast<ExprMakeLocal>(expr->right);
+                auto mkl = static_cast<ExprMakeLocal*>(expr->right);
                 if ( !mkl->alwaysAlias ) {
                     uint32_t sz = sizeof(void *);
                     expr->stackTop = allocateStack(sz);
@@ -797,14 +797,14 @@ namespace das {
                     mkl->doesNotNeedInit = false;
                 }
             } else if ( expr->right->rtti_isCall() ) {
-                auto cll = static_pointer_cast<ExprCall>(expr->right);
+                auto cll = static_cast<ExprCall*>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
                 } else {
                     cll->doesNotNeedSp = false;
                 }
             } else if ( expr->right->rtti_isInvoke() ) {
-                auto cll = static_pointer_cast<ExprInvoke>(expr->right);
+                auto cll = static_cast<ExprInvoke*>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
                 } else {
@@ -827,7 +827,7 @@ namespace das {
             Visitor::preVisit(expr);
             if ( inStruct ) return;
             if ( expr->right->rtti_isMakeLocal() ) {
-                auto mkl = static_pointer_cast<ExprMakeLocal>(expr->right);
+                auto mkl = static_cast<ExprMakeLocal*>(expr->right);
                 if ( !mkl->alwaysAlias ) {
                     uint32_t sz = sizeof(void *);
                     expr->stackTop = allocateStack(sz);
@@ -840,14 +840,14 @@ namespace das {
                     mkl->doesNotNeedInit = false;
                 }
             } else if ( expr->right->rtti_isCall() ) {
-                auto cll = static_pointer_cast<ExprCall>(expr->right);
+                auto cll = static_cast<ExprCall*>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
                 } else {
                     cll->doesNotNeedSp = false;
                 }
             } else if ( expr->right->rtti_isInvoke() ) {
-                auto cll = static_pointer_cast<ExprInvoke>(expr->right);
+                auto cll = static_cast<ExprInvoke*>(expr->right);
                 if ( cll->allowCmresSkip() ) {
                     cll->doesNotNeedSp = true;
                 } else  {
@@ -995,7 +995,7 @@ namespace das {
     public:
         virtual void preVisit ( ExprVar * var ) override {
             Visitor::preVisit(var);
-            auto it = variables.find(var->variable.get());
+            auto it = variables.find(var->variable);
             if ( it != variables.end() ) {
                 var->name = it->second;
             }
@@ -1003,7 +1003,7 @@ namespace das {
         virtual void preVisit ( ExprLet * let ) override {
             Visitor::preVisit(let);
             for ( auto & v : let->variables ) {
-                auto it = variables.find(v.get());
+                auto it = variables.find(v);
                 if ( it != variables.end() ) {
                     v->name = it->second;
                 }
@@ -1032,8 +1032,8 @@ namespace das {
             if ( onTopOfTheBlock.back().size() ) {
                 RenameVariables ren;
                 for ( auto & topE : onTopOfTheBlock.back() ) {
-                    auto eLet = static_pointer_cast<ExprLet>(topE);
-                    auto vVar = eLet->variables[0].get();
+                    auto eLet = static_cast<ExprLet*>(topE);
+                    auto vVar = eLet->variables[0];
                     ren.variables[vVar] = vVar->name + "`at`" + to_string(vVar->at.line) + "`" + to_string(vVar->at.column);
                     block->list.insert(block->list.begin(), topE);
                 }
@@ -1058,25 +1058,25 @@ namespace das {
                     vector<ExpressionPtr> afterThisExpression;
                     for ( auto & var : expr->variables ) {
                         if ( var->init ) {
-                            auto left = make_smart<ExprVar>(expr->at, var->name);
+                            auto left = new ExprVar(expr->at, var->name);
                             left->variable = var;
                             auto right = var->init->clone();
-                            ExpressionPtr assign;
+                            ExpressionPtr assign = nullptr;
                             if ( var->init_via_move ) {
-                                assign = make_smart<ExprMove>(expr->at, left, right);
-                                ((ExprMove *)assign.get())->allowConstantLValue = true;
+                                assign = new ExprMove(expr->at, left, right);
+                                ((ExprMove *)assign)->allowConstantLValue = true;
                             } else {
-                                assign = make_smart<ExprCopy>(expr->at, left, right);
-                                ((ExprCopy *)assign.get())->allowConstantLValue = true;
+                                assign = new ExprCopy(expr->at, left, right);
+                                ((ExprCopy *)assign)->allowConstantLValue = true;
                             }
                             assign->alwaysSafe = true;
                             assign->generated = true;
                             if ( var->type->constant ) {
-                                auto exprOp2 = (ExprOp2 *)(assign.get());
+                                auto exprOp2 = (ExprOp2 *)(assign);
                                 auto pLeft = exprOp2->left->clone();
-                                auto pLeftType = make_smart<TypeDecl>(*var->type);
+                                auto pLeftType = new TypeDecl(*var->type);
                                 pLeftType->constant = false;
-                                auto pLeftCast = make_smart<ExprCast>(exprOp2->left->at, pLeft, pLeftType);
+                                auto pLeftCast = new ExprCast(exprOp2->left->at, pLeft, pLeftType);
                                 pLeftCast->reinterpret = true;
                                 pLeftCast->alwaysSafe = true;
                                 exprOp2->left = pLeftCast;
@@ -1084,7 +1084,7 @@ namespace das {
                             afterThisExpression.push_back(assign);
                         }
                     }
-                    auto elet = static_pointer_cast<ExprLet>(expr->clone());
+                    auto elet = static_cast<ExprLet*>(expr->clone());
                     elet->alwaysSafe = true;
                     elet->variables = das::move(expr->variables);
                     for ( auto & evar : elet->variables ) {
@@ -1095,7 +1095,7 @@ namespace das {
                     if ( afterThisExpression.size()==1 ) {
                         return afterThisExpression.back();
                     } else {
-                        auto blk = make_smart<ExprBlock>();
+                        auto blk = new ExprBlock();
                         blk->at = expr->at;
                         blk->list.reserve(afterThisExpression.size());
                         for ( auto & ee : afterThisExpression ) {

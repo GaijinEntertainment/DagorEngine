@@ -380,8 +380,10 @@ inline int make_default_fusion_rules(FusionRule *out, int maxRules)
 // ============================================================================
 
 // outMaxVarId (optional): highest varId referenced by the expression, or -1 if none.
+// maxTempRegs / outPeakTempRegs / flags: see lcExprParser.h doc.
 inline uint32_t parseFused(const char *text, Arena &arena, const FuncParseMap &parseMap, const NodeEmitMap &emitMap,
-  const FusionRule *rules, int numRules, NameMap &varMap, uint16_t &nextVarId, eastl::string &error, int *outMaxVarId = nullptr)
+  const FusionRule *rules, int numRules, NameMap &varMap, uint16_t &nextVarId, eastl::string &error, int *outMaxVarId = nullptr,
+  uint8_t maxTempRegs = 0, int *outPeakTempRegs = nullptr, uint32_t flags = PARSE_EXPORT_TOP_LEVEL_VARS)
 {
   // Snapshot the name state so a post-parseToIR compile failure rolls back atomically.
   // parseToIR itself already restores varMap / nextVarId on its own failure, but once
@@ -391,7 +393,7 @@ inline uint32_t parseFused(const char *text, Arena &arena, const FuncParseMap &p
   NameMap savedVarMap(varMap);
   uint16_t savedNextVarId = nextVarId;
   Tab<IRNode> ir;
-  int root = parseToIR(text, ir, parseMap, emitMap, varMap, nextVarId, error);
+  int root = parseToIR(text, ir, parseMap, emitMap, varMap, nextVarId, error, maxTempRegs, outPeakTempRegs, flags);
   if (root < 0)
   {
     arena.resize(startOfs);
@@ -406,6 +408,8 @@ inline uint32_t parseFused(const char *text, Arena &arena, const FuncParseMap &p
       arena.resize(startOfs);
       varMap = savedVarMap;
       nextVarId = savedNextVarId;
+      if (outPeakTempRegs)
+        *outPeakTempRegs = 0;
       error = "compile failed: IR tag missing from emit map";
       return PARSE_ERROR;
     }

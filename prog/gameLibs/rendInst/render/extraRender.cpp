@@ -33,6 +33,11 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driverDesc.h>
 
+CONSOLE_BOOL_VAL("riExtra", parallel_lod_add_enabled, true);
+CONSOLE_BOOL_VAL("riExtra", parallel_lod_add_main_thread_only, false);
+CONSOLE_INT_VAL("riExtra", parallel_lod_add_min_pool_count, 300, 0, 2000);
+CONSOLE_INT_VAL("riExtra", parallel_lod_add_small_lod_merge_threshold, 50, 0, 200);
+
 
 #define USE_SHADOW_CULLING_HACK 1 // workaround for shadow occlusion culling bug // TODO: fix the root cause
 

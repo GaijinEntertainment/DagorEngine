@@ -6,7 +6,7 @@
 #include <render/world/cameraInCamera.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/cameraViewVisibilityManager.h>
-#include <math/dag_occlusionTest.h>
+#include <math/dag_occlusionZBuffer.h>
 #include <3d/dag_lockTexture.h>
 
 #include "frameGraphNodes.h"
@@ -15,7 +15,7 @@
 #include <render/world/private_worldRenderer.h>
 
 
-constexpr static int hzb_mips_count = OcclusionTest<OCCLUSION_W, OCCLUSION_H>::mip_chain_count;
+constexpr static int hzb_mips_count = OcclusionZBuffer::mip_chain_count;
 
 static void upload_hzb(CameraViewVisibilityMgr &view_jobs_mgr, BaseTexture *dst, BaseTexture *staging)
 {
@@ -28,18 +28,18 @@ static void upload_hzb(CameraViewVisibilityMgr &view_jobs_mgr, BaseTexture *dst,
     view_jobs_mgr.waitVisibilityReproject();
   }
 
-  const auto &occlusionTest = occl->getOcclusionTest();
+  const auto &occlusionZBuffer = occl->getOcclusionZBuffer();
 
   if (auto data = lock_texture<float>(staging, 0, TEXLOCK_DISCARD | TEXLOCK_WRITE))
   {
     for (int mip = 0; mip < hzb_mips_count; ++mip)
     {
-      const size_t mipW = OCCLUSION_W >> mip;
-      const size_t mipH = OCCLUSION_H >> mip;
-      const size_t mipXOffset = mip > 0 ? OCCLUSION_W : 0;
+      const size_t mipW = OcclusionZBuffer::WIDTH >> mip;
+      const size_t mipH = OcclusionZBuffer::HEIGHT >> mip;
+      const size_t mipXOffset = mip > 0 ? OcclusionZBuffer::WIDTH : 0;
       const size_t mipYOffset = mip > 0 ? mipH : 0;
 
-      const float *zbuffer = occlusionTest.getZbuffer(mip);
+      const float *zbuffer = occlusionZBuffer.getZbuffer(mip);
       for (int y = 0; y < mipH; y++)
         memcpy(&data.at(mipXOffset, y + mipYOffset), &zbuffer[y * mipW], mipW * sizeof(float));
     }
@@ -47,9 +47,9 @@ static void upload_hzb(CameraViewVisibilityMgr &view_jobs_mgr, BaseTexture *dst,
 
   for (int mip = 0; mip < hzb_mips_count; ++mip)
   {
-    const size_t mipW = OCCLUSION_W >> mip;
-    const size_t mipH = OCCLUSION_H >> mip;
-    const size_t mipXOffset = mip > 0 ? OCCLUSION_W : 0;
+    const size_t mipW = OcclusionZBuffer::WIDTH >> mip;
+    const size_t mipH = OcclusionZBuffer::HEIGHT >> mip;
+    const size_t mipXOffset = mip > 0 ? OcclusionZBuffer::WIDTH : 0;
     const size_t mipYOffset = mip > 0 ? mipH : 0;
     dst->updateSubRegion(staging, 0, mipXOffset, mipYOffset, 0, mipW, mipH, 1, mip, 0, 0, 0);
   }
@@ -66,10 +66,12 @@ dafg::NodeHandle makeReprojectedHzbImportNode()
 
     // FIXME: DX12 complain on FG generated barriers for non RT/UAV texture
     const uint32_t texflags = TEXFMT_R32F | (d3d::get_driver_code().is(d3d::dx12) ? TEXCF_RTARGET : TEXCF_UPDATE_DESTINATION);
-    auto hzbHndl = registry.createTexture2d("reprojected_hzb", {texflags, IPoint2{OCCLUSION_W, OCCLUSION_H}, hzb_mips_count})
-                     .atStage(dafg::Stage::TRANSFER)
-                     .useAs(dafg::Usage::COPY)
-                     .handle();
+    auto hzbHndl =
+      registry
+        .createTexture2d("reprojected_hzb", {texflags, IPoint2{OcclusionZBuffer::WIDTH, OcclusionZBuffer::HEIGHT}, hzb_mips_count})
+        .atStage(dafg::Stage::TRANSFER)
+        .useAs(dafg::Usage::COPY)
+        .handle();
 
     auto hzbMipsCountHndl = registry.createBlob<int>("reprojected_hzb_mip_count").handle();
 

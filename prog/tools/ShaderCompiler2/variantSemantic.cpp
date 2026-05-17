@@ -2,11 +2,16 @@
 
 #include "variantSemantic.h"
 #include "shaderSemantic.h"
+#include "assemblyShader.h"
 #include "hwSemantic.h"
 #include "shExprParser.h"
 #include <shaders/shUtils.h>
+#include <shaders/shOpcode.h>
+#include <shaders/shOpcodeFormat.h>
+#include <generic/dag_span.h>
 #include "defer.h"
 #include "semUtils.h"
+#include "varMap.h"
 
 namespace semantic
 {
@@ -137,7 +142,7 @@ ShVarBool VariantBoolExprEvalCB::eval_bool_value(bool_value &val)
     ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
     if (varValue == -1)
     {
-      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(val.interval_ident->text, isGlobal))
+      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(e_interval_ident_id, isGlobal))
         varValue = interv->normalizeValue(*valueMaybe);
     }
     const Interval *interval = intervalList->getInterval(intervalIndex);
@@ -188,7 +193,7 @@ ShVarBool VariantBoolExprEvalCB::eval_bool_value(bool_value &val)
     ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
     if (varValue == -1)
     {
-      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(val.texture_name->text, isGlobal))
+      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(e_texture_ident_id, isGlobal))
         varValue = interv->normalizeValue(*valueMaybe);
     }
 
@@ -220,13 +225,13 @@ ShVarBool VariantBoolExprEvalCB::eval_bool_value(bool_value &val)
   }
   else if (val.bool_var)
   {
-    auto res = semantic::get_bool_expr(*val.bool_var, parser, ctx, ctx.tgtCtx());
+    auto res = semantic::get_bool_expr(*val.bool_var, parser, ctx);
     if (res)
       return eval_expr(*res.expr);
   }
   else if (val.maybe)
   {
-    auto res = semantic::get_bool_maybe(*val.maybe_bool_var, ctx, ctx.tgtCtx());
+    auto res = semantic::get_bool_maybe(*val.maybe_bool_var, ctx);
     if (res)
       return eval_expr(*res.expr);
     else
@@ -280,7 +285,7 @@ int VariantBoolExprEvalCB::eval_interval_value(const char *ival_name)
   ShaderVariant::ValueType varValue = ctx.variant().getValue(interv->getVarType(), intervalIndex);
   if (varValue == -1)
   {
-    if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(ival_name, isGlobal))
+    if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(e_interval_ident_id, isGlobal))
       varValue = interv->normalizeValue(*valueMaybe);
   }
   return varValue;
@@ -300,6 +305,95 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str)
   }
 
   return eastl::nullopt;
+}
+
+// Synthesizes (or returns the existing) anonymous static texture shader var bound to material
+// texture slot `slot`. Equivalent in effect to the user writing:
+//   texture __dgrmat_tex_<slot> = material.texture[<slot>];
+// so that `@staticTex = material.texture.<diffuse|N>` can be desugared into a MaterialVar
+// initializer referencing this synthesized shader var.
+static int get_or_synth_static_mat_tex_var_id(int slot, shc::VariantContext &ctx, const eastl::vector<static_attrib_decl *> &attribs,
+  Symbol *loc)
+{
+  ShaderSemCode &code = ctx.parsedSemCode();
+
+  char nameBuf[32];
+  SNPRINTF(nameBuf, sizeof(nameBuf), "__dgrmat_tex_%d", slot);
+  const int varNameId = ctx.tgtCtx().varNameMap().addVarId(nameBuf);
+
+  int vi = code.find_var(varNameId);
+  if (vi >= 0)
+    return vi;
+
+  vi = ShaderParser::appendVarToContext(ctx, nameBuf, SHVT_TEXTURE, varNameId, loc, false, false, false, slot);
+
+  uint32_t flags = 0;
+  uint32_t stubCol = 0;
+
+  ShaderParser::parseAttribs(ctx, attribs, code.vars[vi], flags, stubCol);
+
+  const bool hasStubColor = flags & ShaderClass::VF_HAS_STUB_COLOR;
+
+  auto &sclass = ctx.shCtx().compiledShader();
+  auto &parser = ctx.tgtCtx().sourceParseState().parser;
+
+  int sv = sclass.find_static_var(varNameId);
+  if (sv < 0 && hasStubColor)
+  {
+    sv = append_items(sclass.stvar, 1);
+    sclass.stvar[sv].type = SHVT_TEXTURE;
+    sclass.stvar[sv].nameId = varNameId;
+    sclass.stvar[sv].additionalFlags = flags;
+    sclass.stvar[sv].stubColor = stubCol;
+    if (sclass.stvarsAreDynamic.size() <= sv)
+      sclass.stvarsAreDynamic.resize(sv + 1);
+
+    sclass.stvarsAreDynamic[sv] = code.vars[vi].dynamic;
+    sclass.stvar[sv].defval.texId = unsigned(BAD_TEXTUREID);
+  }
+  else if (sv >= 0)
+  {
+    if (sclass.stvar[sv].type != SHVT_TEXTURE)
+    {
+      report_error(parser, loc, "static var '%s' defined with different type", nameBuf);
+      return -1;
+    }
+    if (sclass.stvar[sv].additionalFlags != flags)
+    {
+      report_error(parser, loc, "static var '%s' defined with different attributes", nameBuf);
+      return -1;
+    }
+    if ((flags & ShaderClass::VF_HAS_STUB_COLOR) && (sclass.stvar[sv].stubColor != stubCol))
+    {
+      report_error(parser, loc, "static var '%s' defined with different stub colors", nameBuf);
+      return -1;
+    }
+  }
+
+  if (hasStubColor)
+  {
+    int i = append_items(code.stvarmap, 1);
+    code.stvarmap[i].v = vi;
+    code.stvarmap[i].sv = sv;
+
+    int opcode = shaderopcode::makeOp2(SHCOD_TEXTURE_STUBCOL, 0, sv);
+    for (int i = 0; i < sclass.shInitCode.size(); i += 2)
+      if (sclass.shInitCode[i + 1] == opcode)
+      {
+        if (sclass.shInitCode[i] != stubCol)
+          report_error(parser, loc, "ambiguous stub color for static texture <%s> used in branching", nameBuf);
+        return -1;
+      }
+    sclass.shInitCode.push_back(stubCol);
+    sclass.shInitCode.push_back(opcode);
+  }
+  else
+  {
+    code.initcode.push_back(vi);
+    code.initcode.push_back(shaderopcode::makeOp2(SHCOD_TEXTURE, slot, 0));
+  }
+
+  return vi;
 }
 
 eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_block_stat &state_block, ShaderStage stage,
@@ -323,6 +417,21 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     def.hlsl = state_block.var->hlsl_var_text;
     if (state_block.var->val->expr)
       def.shaderVarTerm = state_block.var->val->expr->lhs->lhs->var_name;
+    else if (state_block.var->val->tex)
+    {
+      const auto &tex = *state_block.var->val->tex;
+      const int slot = tex.tex_num ? semutils::int_number(tex.tex_num->text) : 0;
+      char nameBuf[32];
+      SNPRINTF(nameBuf, sizeof(nameBuf), "__dgrmat_tex_%d", slot);
+      char *nameStor = TMPMEM_ALLOC_N(char, strlen(nameBuf) + 1);
+      memcpy(nameStor, nameBuf, strlen(nameBuf) + 1);
+      SHTOK_ident *synthIdent = TMPMEM_ALLOC(SHTOK_ident);
+      synthIdent->text = nameStor;
+      synthIdent->file_start = state_block.var->val->mat->file_start;
+      synthIdent->line_start = state_block.var->val->mat->line_start;
+      synthIdent->col_start = state_block.var->val->mat->col_start;
+      def.shaderVarTerm = synthIdent;
+    }
     def.builtinVarTerm = state_block.var->val->builtin_var;
   }
   else if (state_block.arr)
@@ -702,6 +811,25 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       }
     });
 
+    if (val.tex)
+    {
+      if (!vt_is_static_texture(def.type))
+      {
+        report_error(parser, val.mat, "material.texture.* can only initialize a static texture named const (got %s)",
+          def.nameSpaceTerm->text);
+        return eastl::nullopt;
+      }
+      const int slot = val.tex->tex_num ? semutils::int_number(val.tex->tex_num->text) : 0;
+
+      if (!registerInitShvarType(SHVT_TEXTURE))
+        return eastl::nullopt;
+
+      const int vi = get_or_synth_static_mat_tex_var_id(slot, ctx, val.attrib, val.mat);
+      const char *vname = ctx.tgtCtx().varNameMap().getName(ctx.parsedSemCode().vars[vi].nameId);
+      hadStaticElements = true;
+      return Elem{Elem::MaterialVar{vi, ShaderVarType(SHVT_TEXTURE), vname}, val.mat};
+    }
+
     if (val.builtin_var)
     {
       def.isDynamic = true;
@@ -811,6 +939,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       arithmetic_operand *op = TMPMEM_ALLOC(arithmetic_operand);
       SHTOK_ident *varNameIdent = TMPMEM_ALLOC(SHTOK_ident);
       value->builtin_var = nullptr;
+      value->mat = nullptr;
+      value->tex = nullptr;
       value->expr = e;
       value->expr->lhs = emd;
       value->expr->lhs->lhs = op;

@@ -94,7 +94,7 @@ namespace das {
     //  a[b]=3  ->  #a#[b]=3
     class TrackFieldAndAtFlags : public Visitor {
         das_hash_set<const Function *>   asked;
-        FunctionPtr             func;
+        FunctionPtr             func = nullptr;
     public:
         void MarkSideEffects ( Module & mod ) {
             for ( auto & fn : mod.functions.each() ) {
@@ -118,14 +118,14 @@ namespace das {
         }
     protected:
         void propagateAt ( ExprAt * at ) {
-            if ( at->subexpr->type->isHandle() && at->subexpr->type->annotation->isIndexMutable(at->index->type.get()) ) {
-                propagateWrite(at->subexpr.get());
+            if ( at->subexpr->type->isHandle() && at->subexpr->type->annotation->isIndexMutable(at->index->type) ) {
+                propagateWrite(at->subexpr);
             } else if ( at->subexpr->type->isGoodTableType() ) {
-                propagateWrite(at->subexpr.get());  // note: this makes it so tab[foo] modifies itself
+                propagateWrite(at->subexpr);  // note: this makes it so tab[foo] modifies itself
             } else {
-                propagateRead(at->subexpr.get());
+                propagateRead(at->subexpr);
             }
-            propagateRead(at->index.get());
+            propagateRead(at->index);
         }
         bool isConstCast ( const TypeDeclPtr & td ) const {
             if ( td->constant ) return true;        // cast<foo const> is const
@@ -141,20 +141,20 @@ namespace das {
             if ( expr->rtti_isVar() ) {
                 auto var = (ExprVar *) expr;
                 var->r2cr = true;
-                if ( var->variable->source ) {
-                    propagateRead(var->variable->source.get());
+                if ( var->variable->loop_source ) {
+                    propagateRead(var->variable->loop_source);
                 }
             } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
                        || expr->rtti_isAsVariant() || expr->rtti_isIsVariant()
                        || expr->rtti_isSafeAsVariant() ) {
                 auto field = (ExprField *) expr;
                 field->r2cr = true;
-                propagateRead(field->value.get());
+                propagateRead(field->value);
                 if ( func && field->value->type->isPointer() ) func->sideEffectFlags |= uint32_t(SideEffects::accessExternal);
             } else if ( expr->rtti_isSwizzle() ) {
                 auto swiz = (ExprSwizzle *) expr;
                 swiz->r2cr = true;
-                propagateRead(swiz->value.get());
+                propagateRead(swiz->value);
             } else if ( expr->rtti_isAt() ) {
                 auto at = (ExprAt *) expr;
                 at->r2cr = true;
@@ -162,142 +162,150 @@ namespace das {
             } else if ( expr->rtti_isSafeAt() ) {
                 auto at = (ExprSafeAt *) expr;
                 at->r2cr = true;
-                propagateRead(at->subexpr.get());
-                propagateRead(at->index.get());
+                propagateRead(at->subexpr);
+                propagateRead(at->index);
             } else if ( expr->rtti_isOp3() ) {
                 auto op3 = (ExprOp3 *) expr;
-                propagateRead(op3->left.get());
-                propagateRead(op3->right.get());
+                propagateRead(op3->left);
+                propagateRead(op3->right);
             } else if ( expr->rtti_isNullCoalescing() ) {
                 auto nc = (ExprNullCoalescing *) expr;
-                propagateRead(nc->subexpr.get());
-                propagateRead(nc->defaultValue.get());
+                propagateRead(nc->subexpr);
+                propagateRead(nc->defaultValue);
             } else if ( expr->rtti_isCast() ) {
                 auto ca = (ExprCast *) expr;
                 if ( isConstCast(ca->castType) ) {
-                    propagateRead(ca->subexpr.get());
+                    propagateRead(ca->subexpr);
                 } else {
-                    propagateWrite(ca->subexpr.get());
+                    propagateWrite(ca->subexpr);
                 }
             } else if ( expr->rtti_isRef2Ptr() ) {
                 auto rr = (ExprRef2Ptr *)expr;
-                propagateRead(rr->subexpr.get());
+                propagateRead(rr->subexpr);
             } else if ( expr->rtti_isPtr2Ref() ) {
                 auto rr = (ExprPtr2Ref *)expr;
-                propagateRead(rr->subexpr.get());
+                propagateRead(rr->subexpr);
                 if ( func ) func->sideEffectFlags |= uint32_t(SideEffects::accessExternal);
             } else if ( expr->rtti_isR2V() ) {
                 auto rr = (ExprRef2Value *)expr;
-                propagateRead(rr->subexpr.get());
+                propagateRead(rr->subexpr);
             }
         }
         void propagateWrite ( Expression * expr ) {
             if ( expr->rtti_isVar() ) {
                 auto var = (ExprVar *) expr;
                 var->write = true;
-                if ( var->variable->source ) {
-                    propagateWrite(var->variable->source.get());
+                if ( var->variable->loop_source ) {
+                    propagateWrite(var->variable->loop_source);
                 }
             } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
                        || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
                 auto field = (ExprField *) expr;
                 //if ( !field->value->type->isPointer() ) {
                     field->write = true;
-                    propagateWrite(field->value.get());
+                    propagateWrite(field->value);
                 //} else {
-                //    propagateRead(field->value.get());
+                //    propagateRead(field->value);
                 //}
                 if ( func && field->value->type->isPointer() ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
             } else if ( expr->rtti_isSwizzle() ) {
                 auto swiz = (ExprSwizzle *) expr;
                 swiz->write = true;
-                propagateWrite(swiz->value.get());
+                propagateWrite(swiz->value);
             } else if ( expr->rtti_isAt() || expr->rtti_isSafeAt() ) {
                 auto at = (ExprAt *) expr;
                 at->write = true;
-                propagateWrite(at->subexpr.get());
+                propagateWrite(at->subexpr);
             } else if ( expr->rtti_isOp3() ) {
                 auto op3 = (ExprOp3 *) expr;
-                propagateWrite(op3->left.get());
-                propagateWrite(op3->right.get());
+                propagateWrite(op3->left);
+                propagateWrite(op3->right);
             } else if ( expr->rtti_isNullCoalescing() ) {
                 auto nc = (ExprNullCoalescing *) expr;
-                propagateWrite(nc->subexpr.get());
-                propagateWrite(nc->defaultValue.get());
+                propagateWrite(nc->subexpr);
+                propagateWrite(nc->defaultValue);
             } else if ( expr->rtti_isCast() ) {
                 auto ca = (ExprCast *) expr;
-                propagateWrite(ca->subexpr.get());
+                propagateWrite(ca->subexpr);
             } else if ( expr->rtti_isRef2Ptr() ) {
                 auto rr = (ExprRef2Ptr *)expr;
-                propagateWrite(rr->subexpr.get());
+                propagateWrite(rr->subexpr);
             } else if ( expr->rtti_isPtr2Ref() ) {
                 auto rr = (ExprPtr2Ref *)expr;
-                propagateWrite(rr->subexpr.get());
+                propagateWrite(rr->subexpr);
                 if ( func ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
             } else if ( expr->rtti_isR2V() ) {
                 auto rr = (ExprRef2Value *)expr;
-                propagateWrite(rr->subexpr.get());
+                propagateWrite(rr->subexpr);
+            } else if ( expr->rtti_isCallFunc() ) {
+                auto call = (ExprCallFunc *) expr;
+                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty) ) {
+                    propagateWrite(call->arguments[0]);
+                }
             }
         }
         void propagateWriteViaCopyOrMove ( Expression * expr ) {
             if ( expr->rtti_isVar() ) {
                 auto var = (ExprVar *) expr;
                 var->write = true;
-                if ( var->variable->source ) {
-                    propagateWrite(var->variable->source.get());    /// this went to variable, we done via copy or move
+                if ( var->variable->loop_source ) {
+                    propagateWrite(var->variable->loop_source);    /// this went to variable, we done via copy or move
                 }
             } else if ( expr->rtti_isField() || expr->rtti_isSafeField()
                        || expr->rtti_isAsVariant() || expr->rtti_isSafeAsVariant() ) {
                 auto field = (ExprField *) expr;
                 //if ( !field->value->type->isPointer() ) {
                     field->write = true;
-                    propagateWriteViaCopyOrMove(field->value.get());
+                    propagateWriteViaCopyOrMove(field->value);
                 //} else {
-                //    propagateRead(field->value.get());
+                //    propagateRead(field->value);
                 //}
                 if ( func && field->value->type->isPointer() ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
             } else if ( expr->rtti_isSwizzle() ) {
                 auto swiz = (ExprSwizzle *) expr;
                 swiz->write = true;
-                propagateWriteViaCopyOrMove(swiz->value.get());
+                propagateWriteViaCopyOrMove(swiz->value);
             } else if ( expr->rtti_isAt() || expr->rtti_isSafeAt() ) {
                 auto at = (ExprAt *) expr;
                 at->write = true;
-                propagateWriteViaCopyOrMove(at->subexpr.get());
+                propagateWriteViaCopyOrMove(at->subexpr);
             } else if ( expr->rtti_isOp3() ) {
                 auto op3 = (ExprOp3 *) expr;
-                propagateWriteViaCopyOrMove(op3->left.get());
-                propagateWriteViaCopyOrMove(op3->right.get());
+                propagateWriteViaCopyOrMove(op3->left);
+                propagateWriteViaCopyOrMove(op3->right);
             } else if ( expr->rtti_isNullCoalescing() ) {
                 auto nc = (ExprNullCoalescing *) expr;
-                propagateWriteViaCopyOrMove(nc->subexpr.get());
-                propagateWriteViaCopyOrMove(nc->defaultValue.get());
+                propagateWriteViaCopyOrMove(nc->subexpr);
+                propagateWriteViaCopyOrMove(nc->defaultValue);
             } else if ( expr->rtti_isCast() ) {
                 auto ca = (ExprCast *) expr;
-                propagateWriteViaCopyOrMove(ca->subexpr.get());
+                propagateWriteViaCopyOrMove(ca->subexpr);
             } else if ( expr->rtti_isRef2Ptr() ) {
                 auto rr = (ExprRef2Ptr *)expr;
-                propagateWriteViaCopyOrMove(rr->subexpr.get());
+                propagateWriteViaCopyOrMove(rr->subexpr);
             } else if ( expr->rtti_isPtr2Ref() ) {
                 auto rr = (ExprPtr2Ref *)expr;
-                propagateWriteViaCopyOrMove(rr->subexpr.get());
+                propagateWriteViaCopyOrMove(rr->subexpr);
                 if ( func ) func->sideEffectFlags |= uint32_t(SideEffects::modifyExternal);
             } else if ( expr->rtti_isR2V() ) {
                 auto rr = (ExprRef2Value *)expr;
-                propagateWriteViaCopyOrMove(rr->subexpr.get());
+                propagateWriteViaCopyOrMove(rr->subexpr);
             } else if ( expr->rtti_isCallFunc() ) {
                 auto call = (ExprCallFunc *) expr;
                 call->write = true;
+                if ( call->func && (call->func->propertyFunction || call->func->isCustomProperty) ) {
+                    propagateWriteViaCopyOrMove(call->arguments[0]);
+                }
             }
         }
         uint32_t getSideEffects ( const FunctionPtr & fnc ) {
             if ( fnc->stub || fnc->isTemplate || fnc->builtIn || fnc->knownSideEffects ) {
                 return fnc->sideEffectFlags;
             }
-            if ( asked.find(fnc.get())!=asked.end() ) {
+            if ( asked.find(fnc)!=asked.end() ) {
                 return fnc->sideEffectFlags;   // assume no extra side effects
             }
-            asked.insert(fnc.get());
+            asked.insert(fnc);
             auto sfn = func;
             func = fnc;
             fnc->visit(*this);
@@ -406,27 +414,27 @@ namespace das {
     // ExprField
         virtual void preVisit ( ExprField * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->value.get());
+            propagateRead(expr->value);
         }
     // ExprSafeField
         virtual void preVisit ( ExprSafeField * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->value.get());
+            propagateRead(expr->value);
         }
     // ExprIsVariant
         virtual void preVisit ( ExprIsVariant * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->value.get());
+            propagateRead(expr->value);
         }
     // ExprAsVariant
         virtual void preVisit ( ExprAsVariant * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->value.get());
+            propagateRead(expr->value);
         }
     // ExprSafeAsVariant
         virtual void preVisit ( ExprSafeAsVariant * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->value.get());
+            propagateRead(expr->value);
         }
     // ExprAt
         virtual void preVisit ( ExprAt * expr ) override {
@@ -436,32 +444,32 @@ namespace das {
     // ExprSafeAt
         virtual void preVisit ( ExprSafeAt * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->subexpr.get());
+            propagateRead(expr->subexpr);
         }
     // ExprMove
         virtual void preVisit ( ExprMove * expr ) override {
             Visitor::preVisit(expr);
-            propagateWriteViaCopyOrMove(expr->left.get());
-            propagateWrite(expr->right.get());
+            propagateWriteViaCopyOrMove(expr->left);
+            propagateWrite(expr->right);
         }
     // ExprCopy
         virtual void preVisit ( ExprCopy * expr ) override {
             Visitor::preVisit(expr);
-            propagateWriteViaCopyOrMove(expr->left.get());
-            propagateRead(expr->right.get());
+            propagateWriteViaCopyOrMove(expr->left);
+            propagateRead(expr->right);
         }
     // ExprClone
         virtual void preVisit ( ExprClone * expr ) override {
             Visitor::preVisit(expr);
-            propagateWrite(expr->left.get());
-            propagateRead(expr->right.get());
+            propagateWrite(expr->left);
+            propagateRead(expr->right);
         }
     // Op1
         virtual void preVisit ( ExprOp1 * expr ) override {
             Visitor::preVisit(expr);
             auto sef = getSideEffects(expr->func);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
-                propagateWrite(expr->subexpr.get());
+                propagateWrite(expr->subexpr);
             }
         }
     // Op2
@@ -471,11 +479,11 @@ namespace das {
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto leftT = expr->left->type;
                 if ( leftT->isRefOrPointer() && !leftT->constant ) {
-                    propagateWrite(expr->left.get());
+                    propagateWrite(expr->left);
                 }
                 auto rightT = expr->right->type;
                 if ( rightT->isRefOrPointer() && !rightT->constant ) {
-                    propagateWrite(expr->right.get());
+                    propagateWrite(expr->right);
                 }
             }
         }
@@ -486,15 +494,15 @@ namespace das {
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
                 auto condT = expr->subexpr->type;
                 if ( condT->isRefOrPointer() && !condT->constant ) {
-                    propagateWrite(expr->subexpr.get());
+                    propagateWrite(expr->subexpr);
                 }
                 auto leftT = expr->left->type;
                 if ( leftT->isRefOrPointer() && !leftT->constant ) {
-                    propagateWrite(expr->left.get());
+                    propagateWrite(expr->left);
                 }
                 auto rightT = expr->right->type;
                 if ( rightT->isRefOrPointer() && !rightT->constant ) {
-                    propagateWrite(expr->right.get());
+                    propagateWrite(expr->right);
                 }
             }
         }
@@ -503,8 +511,8 @@ namespace das {
             Visitor::preVisit(expr);
             // TODO:
             //  at some point we should do better data trackng for this type of aliasing
-            if ( expr->returnReference || expr->moveSemantics ) propagateWrite(expr->subexpr.get());
-            else if ( expr->subexpr ) propagateRead(expr->subexpr.get());
+            if ( expr->returnReference || expr->moveSemantics ) propagateWrite(expr->subexpr);
+            else if ( expr->subexpr ) propagateRead(expr->subexpr);
         }
     // New
         virtual void preVisit ( ExprNew * expr ) override {
@@ -526,11 +534,11 @@ namespace das {
                         if ( argT->canWrite() ) {
                             if ( !expr->func->builtIn ) {
                                 if ( expr->func->knownSideEffects ) {
-                                    propagateWrite(expr->arguments[ai].get());
+                                    propagateWrite(expr->arguments[ai]);
                                 }
                             } else {
                                 if ( expr->func->modifyArgument ) {
-                                    propagateWrite(expr->arguments[ai].get());
+                                    propagateWrite(expr->arguments[ai]);
                                 }
                             }
                         }
@@ -541,7 +549,7 @@ namespace das {
     // Delete
         virtual void preVisit ( ExprDelete * expr ) override {
             Visitor::preVisit(expr);
-            propagateWrite(expr->subexpr.get());
+            propagateWrite(expr->subexpr);
             bool deleteExternal = false;
             auto NT = expr->subexpr->type;
             if ( NT->baseType==Type::tHandle ) {
@@ -556,6 +564,10 @@ namespace das {
     // Call
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
+            // finalize calls are desugared from ExprDelete — always propagate write
+            if ( expr->func && expr->func->name == "finalize" && expr->arguments.size()==1 ) {
+                propagateWrite(expr->arguments[0]);
+            }
             // if modified, modify NEW
             auto sef = getSideEffects(expr->func);
             if ( sef & uint32_t(SideEffects::modifyArgument) ) {
@@ -564,11 +576,11 @@ namespace das {
                     if ( argT->canWrite() ) {
                         if ( !expr->func->builtIn ) {
                             if ( expr->func->knownSideEffects ) {
-                                propagateWrite(expr->arguments[ai].get());
+                                propagateWrite(expr->arguments[ai]);
                             }
                         } else {
                             if ( expr->func->modifyArgument ) {
-                                propagateWrite(expr->arguments[ai].get());
+                                propagateWrite(expr->arguments[ai]);
                             }
                         }
                     }
@@ -581,7 +593,7 @@ namespace das {
             for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
                 const auto & argT = expr->arguments[ai]->type;
                 if ( argT->isRefOrPointer() && !argT->constant ) {
-                    propagateWrite(expr->arguments[ai].get());
+                    propagateWrite(expr->arguments[ai]);
                 }
             }
         }
@@ -594,7 +606,7 @@ namespace das {
             for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
                 const auto & argT = expr->arguments[ai]->type;
                 if ( argT->isRefOrPointer() && !argT->constant ) {
-                    propagateWrite(expr->arguments[ai].get());
+                    propagateWrite(expr->arguments[ai]);
                 }
             }
         }
@@ -608,7 +620,7 @@ namespace das {
     // MemZero
         virtual void preVisit ( ExprMemZero * expr ) override {
             Visitor::preVisit(expr);
-            propagateWrite(expr->arguments[0].get());
+            propagateWrite(expr->arguments[0]);
         }
     // make array
         virtual void preVisit ( ExprMakeArray * expr ) override {
@@ -617,9 +629,9 @@ namespace das {
                 const bool canCopy = expr->values[0]->type->canCopy();
                 for (auto value : expr->values) {
                     if (canCopy) {
-                        propagateRead(value.get());
+                        propagateRead(value);
                     } else {
-                        propagateWrite(value.get());
+                        propagateWrite(value);
                     }
                 }
             }
@@ -629,9 +641,9 @@ namespace das {
             Visitor::preVisit(expr);
             for (auto value : expr->values) {
                 if (value->type->canCopy()) {
-                    propagateRead(value.get());
+                    propagateRead(value);
                 } else {
-                    propagateWrite(value.get());
+                    propagateWrite(value);
                 }
             }
         }
@@ -641,9 +653,9 @@ namespace das {
             for (auto st : expr->structs) {
                 for (auto mfd : *st) {
                     if (mfd->moveSemantics) {
-                        propagateWrite(mfd->value.get());
+                        propagateWrite(mfd->value);
                     } else {
-                        propagateRead(mfd->value.get());
+                        propagateRead(mfd->value);
                     }
                 }
             }
@@ -653,9 +665,9 @@ namespace das {
             Visitor::preVisit(expr);
             for (auto mfd : expr->variants) {
                  if (mfd->moveSemantics) {
-                    propagateWrite(mfd->value.get());
+                    propagateWrite(mfd->value);
                 } else {
-                    propagateRead(mfd->value.get());
+                    propagateRead(mfd->value);
                 }
             }
         }
@@ -667,7 +679,7 @@ namespace das {
     // if-then-else
         virtual void preVisit ( ExprIfThenElse * expr ) override {
             Visitor::preVisit(expr);
-            propagateRead(expr->cond.get());
+            propagateRead(expr->cond);
         }
     };
 
@@ -679,12 +691,12 @@ namespace das {
         virtual bool canVisitFunction ( Function * fun ) override {
             return funcIsDirty(fun) && !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
-        virtual bool canVisitStructure ( Structure * st ) override { return false; }
-        virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
-        virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
-        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return false; }
-        virtual bool canVisitGlobalVariable ( Variable * fun ) override { return false; }
-        virtual bool canVisitEnumeration ( Enumeration * en ) override { return false; }
+        virtual bool canVisitStructure ( Structure * /*st*/ ) override { return false; }
+        virtual bool canVisitStructureFieldInit ( Structure * /*var*/ ) override { return false; }
+        virtual bool canVisitArgumentInit ( Function * /*fun*/, const VariablePtr & /*var*/, Expression * /*init*/ ) override { return false; }
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * /*expr*/ ) override { return false; }
+        virtual bool canVisitGlobalVariable ( Variable * /*fun*/ ) override { return false; }
+        virtual bool canVisitEnumeration ( Enumeration * /*en*/ ) override { return false; }
 
     // ExprLet
         virtual VariablePtr visitLet ( ExprLet * let, const VariablePtr & var, bool last ) override {
@@ -717,7 +729,7 @@ namespace das {
                                 reportFolding();
                                 auto cle = expr->variable->init->clone();
                                 if ( !cle->type ) {
-                                    cle->type = make_smart<TypeDecl>(*expr->variable->init->type);
+                                    cle->type = new TypeDecl(*expr->variable->init->type);
                                 }
                                 return cle;
                             }
@@ -728,7 +740,7 @@ namespace das {
                                 auto cfv = expr->type->enumType->find(0, "");
                                 if ( !cfv.empty() ) {
                                     reportFolding();
-                                    auto exprV = make_smart<ExprConstEnumeration>(expr->at, cfv, make_smart<TypeDecl>(*expr->type));
+                                    auto exprV = new ExprConstEnumeration(expr->at, cfv, new TypeDecl(*expr->type));
                                     exprV->type = expr->type->enumType->makeEnumType();
                                     exprV->type->constant = true;
                                     exprV->value = v_zero();
@@ -736,14 +748,14 @@ namespace das {
                                 }
                             } else if ( expr->type->baseType==Type::tString ) {
                                 reportFolding();
-                                auto exprV = make_smart<ExprConstString>(expr->at);
-                                exprV->type = make_smart<TypeDecl>(Type::tString);
+                                auto exprV = new ExprConstString(expr->at);
+                                exprV->type = new TypeDecl(Type::tString);
                                 exprV->type->constant = true;
                                 return exprV;
                             } else {
                                 reportFolding();
                                 auto exprV = Program::makeConst(expr->at, expr->type, v_zero());
-                                exprV->type = make_smart<TypeDecl>(*expr->type);
+                                exprV->type = new TypeDecl(*expr->type);
                                 exprV->type->constant = true;
                                 return exprV;
                             }

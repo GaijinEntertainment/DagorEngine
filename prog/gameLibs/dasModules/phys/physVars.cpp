@@ -16,7 +16,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
-    addAnnotation(das::make_smart<PhysVarsAnnotation>(lib));
+    addAnnotation(new PhysVarsAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(physvars_get_var_id)>(*this, lib, "getVarId", das::SideEffects::accessExternal,
       "bind_dascript::physvars_get_var_id");
     das::addExtern<DAS_BIND_FUN(physvars_set_var)>(*this, lib, "setVar", das::SideEffects::modifyArgument,

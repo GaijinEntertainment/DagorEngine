@@ -569,8 +569,7 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
   }
   // d3d::set_render_target(0, (Texture*)rendinst::render::shadowImpostorTexture, 0, true);
   // d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 1.f, 0);
-  d3d::set_render_target(0, (Texture *)nullptr, 0);
-  d3d::set_depth(pool.shadowImpostorTexture, DepthAccess::RW);
+  d3d::set_render_target({pool.shadowImpostorTexture, 0, 0}, DepthAccess::RW, {});
   d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
   mat44f view;
   mat44f viewitm;
@@ -757,17 +756,21 @@ void renderImpostorMips(rendinst::render::RtPoolData &pool, int currentRenderMip
 
     impostorMipSRVBarrier(pool, src_mip);
 
+    RenderTarget rts[rendinst::render::IMP_COUNT] = {};
+    int rtCount = 0;
     for (int j = 0; j < pool.impostor.tex.size(); ++j)
     {
       UniqueTex &tex = pool.impostor.tex[j];
       BaseTexture *pTex = tex.getBaseTex();
       if (pTex)
       {
-        d3d::set_render_target(j, pTex, dst_mip);
+        rts[j] = {pTex, static_cast<uint32_t>(dst_mip), 0};
+        rtCount = j + 1;
         ShaderGlobal::set_texture(rendinst::render::sourceTexVarId[j], tex.getTexId());
         pTex->texmiplevel(src_mip, src_mip);
       }
     }
+    d3d::set_render_target({}, DepthAccess::RW, make_span_const(rts, rtCount));
 
     UniqueTex &tex = pool.impostor.tex[0];
     TextureInfo ti;
@@ -978,8 +981,7 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
     }
 
     // required to be set before block, soopengl driver use correct axis flipping
-    d3d::set_render_target(pool.impostor.tex[0].getBaseTex(), 0);
-    d3d::set_depth(nullptr, DepthAccess::RW);
+    d3d::set_render_target({}, DepthAccess::RW, {{pool.impostor.tex[0].getBaseTex(), 0, 0}});
     ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(rendinst::render::rendinstSceneBlockId, ShaderGlobal::LAYER_SCENE);
 
@@ -1025,15 +1027,12 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
           G_UNUSED(tinfo);
           G_ASSERT(tinfo.w == tinfo0.w && tinfo.h == tinfo0.h);
 
-          d3d::set_render_target(0, pTex, baseMip);
+          d3d::set_render_target({}, DepthAccess::RW, {{pTex, static_cast<uint32_t>(baseMip), 0}});
           d3d::clearview(CLEAR_TARGET, ::grs_draw_wire ? (E3DCOLOR)0xFF000000 : rendinst::render::impostor_clear_color[j], 1.f, 0);
         }
       }
       // reset index of mrt clear sequence to 0, to complete the mrt block
       d3d::driver_command(Drv3dCommand::BEGIN_MRT_CLEAR_SEQUENCE, ((uint8_t *)0));
-
-      // required to be set before block, soopengl driver use correct axis flipping
-      d3d::set_render_target(dstRT[0]->getBaseTex(), baseMip);
 
       auto depthTexIt = rendinst::render::impostorDepthTextures.find(IPoint2(tinfo0.w >> baseMip, tinfo0.h >> baseMip));
       if (depthTexIt == rendinst::render::impostorDepthTextures.end())
@@ -1044,7 +1043,10 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
         depthTexIt->second = dag::create_tex(nullptr, tinfo0.w >> baseMip, tinfo0.h >> baseMip, TEXCF_RTARGET | TEXFMT_DEPTH16, 1,
           name.str(), RESTAG_RENDINST);
       }
-      d3d::set_depth(depthTexIt->second.getTex2D(), d3d::get_driver_code().is(d3d::metal) ? DepthAccess::SampledRO : DepthAccess::RW);
+      // required to be set before block, soopengl driver use correct axis flipping
+      d3d::set_render_target({depthTexIt->second.getTex2D(), 0, 0},
+        d3d::get_driver_code().is(d3d::metal) ? DepthAccess::SampledRO : DepthAccess::RW,
+        {{dstRT[0]->getBaseTex(), static_cast<uint32_t>(baseMip), 0}});
 
       unsigned impostor_clear_color = (::grs_draw_wire ? 0xFF000000 : 0) | rendinst::render::impostor_clear_color[0];
       if (d3d::get_driver_code().is(!d3d::metal)) // clear color/depth for non-METAL here or it is not cleared at all!
@@ -1105,17 +1107,21 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
       {
         static int maxTranslucancyVarId = ::get_shader_variable_id("rendinst_max_translucancy");
 
+        RenderTarget rts[rendinst::render::IMP_COUNT] = {};
+        int rtCount = 0;
         for (int j = 0; j < pool.impostor.tex.size(); ++j)
         {
           UniqueTex &tex = pool.impostor.tex[j];
           BaseTexture *pTex = tex.getBaseTex();
           if (pTex)
           {
-            d3d::set_render_target(j, pTex, pool.impostor.baseMip);
+            rts[j] = {pTex, static_cast<uint32_t>(pool.impostor.baseMip), 0};
+            rtCount = j + 1;
             ShaderGlobal::set_texture(rendinst::render::sourceTexVarId[j], tempTargetPtrs[j]->getTexId());
             ShaderGlobal::set_sampler(rendinst::render::sourceTexSmpVarId[j], rendinst::render::smp);
           }
         }
+        d3d::set_render_target({}, DepthAccess::RW, make_span_const(rts, rtCount));
         TextureInfo ti;
         tempTargetPtrs[0]->getBaseTex()->getinfo(ti, 0);
         ShaderGlobal::set_float4(rendinst::render::texelSizeVarId, viewportPartX, viewportPartY, 1.f / ti.w, 1.f / ti.h);

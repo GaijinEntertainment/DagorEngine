@@ -53,7 +53,6 @@ namespace das {
                         || func->hasUnsafe
                         || !func->module->allowPodInscope
                         || (func->fromGeneric && !func->fromGeneric->module->allowPodInscope)
-                        || blocks.back()->inTheLoop
                     ) {
                     if ( logs ) {
                         if ( !var->at.empty() && var->at.fileInfo ) {
@@ -68,13 +67,12 @@ namespace das {
                         if ( !func->module->allowPodInscope ) *logs << "\tmodule " << func->module->name << " does not allow in-scope POD\n";
                         if ( func->fromGeneric && !func->fromGeneric->module->allowPodInscope )
                             *logs << "\tgeneric function module " << func->fromGeneric->module->name << " does not allow in-scope POD\n";
-                        if ( blocks.back()->inTheLoop ) *logs << "\tblock is in the loop, which does not have separate 'finally' scope. you can add 'if ( true )' to create scope, or take variable outside of loop\n";
                     }
                 } else {
                     func->notInferred();
-                    auto CallCollectLocal = make_smart<ExprCall>(expr->at,"_::builtin_collect_local_and_zero");
-                    CallCollectLocal->arguments.push_back(make_smart<ExprVar>(expr->at, var->name));
-                    CallCollectLocal->arguments.push_back(make_smart<ExprConstUInt>(expr->at, var->type->getSizeOf()));
+                    auto CallCollectLocal = new ExprCall(expr->at,"_::builtin_collect_local_and_zero");
+                    CallCollectLocal->arguments.push_back(new ExprVar(expr->at, var->name));
+                    CallCollectLocal->arguments.push_back(new ExprConstUInt(expr->at, var->type->getSizeOf()));
                     CallCollectLocal->alwaysSafe = true;
                     blocks.back()->finalList.push_back(CallCollectLocal);
                     if ( logs ) {
@@ -95,7 +93,7 @@ namespace das {
             // can't be any source - only temp PODS
             vector<int> podSourceIndices;
             for ( size_t i=0; i!=expr->sources.size(); ++i ) {
-                auto src = expr->sources[i].get();
+                auto src = expr->sources[i];
                 if ( src->type && src->type->isGoodArrayType() && !src->type->constant ) {
                     auto good = false;
                     if ( src->rtti_isMakeLocal() ){                         // its [1,2,3,4]
@@ -120,28 +118,28 @@ namespace das {
                 anyWork = true;
                 func->notInferred();
                 // we make a new block, we make a new variable for each pod source, and we assign it before the for
-                auto newBlock = make_smart<ExprBlock>();
+                auto newBlock = new ExprBlock();
                 newBlock->at = expr->at;
                 newBlock->isCollapseable = true;
-                auto letPod = make_smart<ExprLet>();
+                auto letPod = new ExprLet();
                 letPod->at = expr->at;
                 letPod->alwaysSafe = true;  // this is for the array<smart_ptr> and some such
                 newBlock->list.push_back(letPod);
                 for ( auto i : podSourceIndices ) {
-                    auto podVar = make_smart<Variable>();
+                    auto podVar = new Variable();
                     podVar->at = expr->sources[i]->at;
                     podVar->name = "`pod`source`" + expr->iterators[i];
-                    podVar->type = make_smart<TypeDecl>(Type::autoinfer);
+                    podVar->type = new TypeDecl(Type::autoinfer);
                     podVar->init = move(expr->sources[i]);
                     podVar->init_via_move = true;
                     podVar->pod_delete = true;
                     podVar->pod_delete_gen = true;
                     letPod->variables.push_back(podVar);
-                    expr->sources[i] = make_smart<ExprVar>(podVar->at, podVar->name);
+                    expr->sources[i] = new ExprVar(podVar->at, podVar->name);
                     // and collect
-                    auto CallCollectLocal = make_smart<ExprCall>(expr->at,"_::builtin_collect_local_and_zero");
-                    CallCollectLocal->arguments.push_back(make_smart<ExprVar>(expr->at, podVar->name));
-                    CallCollectLocal->arguments.push_back(make_smart<ExprConstUInt>(expr->at, expr->iteratorVariables[i]->type->getSizeOf()));
+                    auto CallCollectLocal = new ExprCall(expr->at,"_::builtin_collect_local_and_zero");
+                    CallCollectLocal->arguments.push_back(new ExprVar(expr->at, podVar->name));
+                    CallCollectLocal->arguments.push_back(new ExprConstUInt(expr->at, expr->iteratorVariables[i]->type->getSizeOf()));
                     CallCollectLocal->alwaysSafe = true;
                     newBlock->finalList.push_back(CallCollectLocal);
                     if ( logs ) {

@@ -58,7 +58,7 @@ def module_default(req, from : string) : module_info {
 
 [export]
 def module_get(req, from : string) : module_info {
-    print("looking for {req} from {from}\n")
+    to_log(LOG_INFO, "looking for {req} from {from}\n")
     for (mod in modules) {
         let res = invoke(mod, req, from)
         if (res._0 != "") {

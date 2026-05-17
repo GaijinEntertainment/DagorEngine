@@ -8,64 +8,11 @@
 #include "sqtable.h"
 #include "opcodes.h"
 #include "sqfuncstate.h"
-#include "sqio.h"
 #include "sqclosure.h"
 #include "sqarray.h"
 
 #include <stdarg.h>
 
-
-static void streamprintf(OutputStream *stream, const char *fmt, ...) {
-    static char buffer[4096] = { 0 };
-    va_list vl;
-    va_start(vl, fmt);
-    vsnprintf(buffer, 4096, fmt, vl);
-    va_end(vl);
-    stream->writeString(buffer);
-}
-
-static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
-{
-    switch (sq_type(o)) {
-        case OT_NULL: streamprintf(stream, "null"); break;
-        case OT_STRING: streamprintf(stream, "string(\"%s\")", _stringval(o)); break;
-        case OT_FLOAT: streamprintf(stream, "float(%1.9g)", _float(o)); break;
-        case OT_INTEGER: streamprintf(stream, "int(" _PRINT_INT_FMT ")", _integer(o)); break;
-        case OT_BOOL: streamprintf(stream, "%s", _integer(o) ? "bool(true)" : "bool(false)"); break;
-        case OT_ARRAY: streamprintf(stream, "array(0x%p size=%d)", (void*)_rawval(o), int(_array(o)->Size())); break;
-        case OT_TABLE: streamprintf(stream, "table(0x%p size=%d)", (void*)_rawval(o), int(_table(o)->CountUsed())); break;
-        case OT_CLOSURE:
-        {
-            SQFunctionProto *func = _closure(o)->_function;
-            const char *funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
-            break;
-        }
-        case OT_NATIVECLOSURE:
-        {
-            SQNativeClosure *nc = _nativeclosure(o);
-            const char* funcName = sq_isstring(nc->_name) ? _stringval(nc->_name) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)nc, funcName);
-            break;
-        }
-        case OT_FUNCPROTO:
-        {
-            SQFunctionProto *func = _funcproto(o);
-            const char* funcName = sq_isstring(func->_name) ? _stringval(func->_name) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)func, funcName);
-            break;
-        }
-        case OT_GENERATOR:
-        {
-            SQGenerator *gen = _generator(o);
-            SQObjectPtr nameObj = _closure(gen->_closure)->_function->_name;
-            const char* funcName = sq_isstring(nameObj) ? _stringval(nameObj) : "<null-name>";
-            streamprintf(stream, "%s(0x%p \"%s\")", GetTypeName(o), (void*)gen, funcName);
-            break;
-        }
-        default: streamprintf(stream, "%s(0x%p)", GetTypeName(o), (void*)_rawval(o)); break;
-    }
-}
 
 SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationContext &ctx) :
     _vlocals(ss->_alloc_ctx),
@@ -102,6 +49,7 @@ SQFuncState::SQFuncState(SQSharedState *ss,SQFuncState *parent,SQCompilationCont
         _bgenerator = false;
         _purefunction = false;
         _nodiscard = false;
+        _isAsync = false;
         _outers = 0;
         _hoistLevel = 0;
         _staticmemos_count = 0;
@@ -165,7 +113,7 @@ SQInteger SQFuncState::GetConstant(const SQObjectPtr &cons, int max_const_no)
             if (max_const_no == MAX_LITERALS)
             {
                 val.Null();
-                _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "literals");
+                _ctx.throwError("internal compiler error: too many literals");
             } else
                 return -1;
         }
@@ -199,7 +147,7 @@ SQInteger SQFuncState::AllocStackPos()
 {
     SQInteger npos=_vlocals.size();
     if(npos >= MAX_FUNC_STACKSIZE)
-        _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_MANY_SYMBOLS, -1, -1, 0, "locals");
+        _ctx.throwError("internal compiler error: too many locals");
     _vlocals.push_back(SQLocalVarInfo());
     _vlocals_info.push_back(SQCompiletimeVarInfo{});
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize)) {
@@ -636,6 +584,7 @@ SQFunctionProto *SQFuncState::BuildProto()
     f->_bgenerator = _bgenerator;
     f->_purefunction = _purefunction;
     f->_nodiscard = _nodiscard;
+    f->_isAsync = _isAsync;
     f->_name = _name;
     f->_inside_hoisted_scope = _hoistLevel > 0;
     f->_result_type_mask = _result_type_mask;

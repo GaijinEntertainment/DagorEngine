@@ -26,6 +26,7 @@
 #include <quirrel/frp/dag_frp.h>
 #include <quirrel/sqJwt/sqJwt.h>
 #include <quirrel/base64/base64.h>
+#include <quirrel/asyncRuntime/dagorAsyncRuntime.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #if _TARGET_PC_WIN
 #include <quirrel/win_registry/win_registry.h>
@@ -38,7 +39,6 @@
 #include <sqstdsystem.h>
 #include <sqstdio.h>
 #include <sqstdblob.h>
-#include <sqio.h>
 
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_fileIoErr.h>
@@ -109,6 +109,8 @@ static String sqconfig_dir;
 
 static HSQUIRRELVM sqvm = nullptr;
 static SqModules *module_manager = nullptr;
+static eastl::unique_ptr<sqasync_dagor::AsyncRuntimeScope> async_runtime;
+static bool is_eventbus_bound = false;
 
 static eastl::unique_ptr<sqfrp::ObservablesGraph> frp_graph;
 static std::vector<std::string> allowed_native_modules;
@@ -329,7 +331,10 @@ static Module modules[] = {
     }},
 #endif
   {"register_eventbus", "module eventbus: subscribe, subscribe_onehit",
-    [] { sqeventbus::bind(module_manager, "console", sqeventbus::ProcessingMode::IMMEDIATE); }},
+    [] {
+      is_eventbus_bound = true;
+      sqeventbus::bind(module_manager, "console");
+    }},
   {"register_reg_exp", "roottable: class regexp2, regexp2.match, regexp2.fullmatch, regexp2.replace",
     [] { bindquirrel::register_reg_exp(module_manager); }},
 #if HAS_YUP_PARSE
@@ -391,10 +396,30 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
   module_mgr->bindBaseLib(hBindings);
 
   SQCompilation::SqASTData *ast =
-    sq_parsetoast(sqvm, source.str(), source.length(), filename, /*static analysis*/ false, /* raise error*/ true);
+    sq_parsetoast(sqvm, source.str(), source.length(), filename, do_static_analysis, /* raise error*/ true);
 
   if (!ast)
     quit_game(1, false);
+
+  if (do_static_analysis)
+  {
+    sq_checktrailingspaces(sqvm, filename, source.str(), source.length());
+
+    HSQOBJECT hBindings = bindings.GetObject();
+    hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
+
+    SQInteger stackTop = sq_gettop(sqvm);
+    SQRESULT compileResult = sq_translateasttobytecode(sqvm, ast, &hBindings, source.str(), source.length(), /* raise error*/ true);
+    sq_settop(sqvm, stackTop);
+
+    if (SQ_FAILED(compileResult))
+    {
+      sq_releaseASTData(sqvm, ast);
+      quit_game(1, false);
+    }
+
+    sq_analyzeast(sqvm, ast, &hBindings, source.str(), source.length());
+  }
 
   sq_releaseASTData(sqvm, ast);
 }
@@ -461,16 +486,43 @@ static void dump_ast_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast_data
   G_UNUSED(opts);
   if (!ast_data)
     return;
-  FileOutputStream fos(stdout);
-  sq_dumpast(vm, ast_data, dump_ast_nodes_location, &fos);
+  sq_dumpast(vm, ast_data, dump_ast_nodes_location, &sq_stream_write_file, stdout);
 }
 
 
 static void dump_bytecode_callback(HSQUIRRELVM vm, HSQOBJECT obj, void *opts)
 {
   G_UNUSED(opts);
-  FileOutputStream fos(stdout);
-  sq_dumpbytecode(vm, obj, &fos);
+  sq_dumpbytecode(vm, obj, &sq_stream_write_file, stdout);
+}
+
+
+// Drain pending async work. Anything still parked when the main script returns
+// would otherwise be rejected with ShutdownError by sqasync_state_dtor.
+static void drain_async_until_idle(HSQUIRRELVM v)
+{
+  const int drain_timeout_msec = 10000;
+  const int t_drain_start = get_time_msec();
+  while ((async_runtime && async_runtime->hasPendingTimers()) || sqasync::has_pending(v) ||
+         bindquirrel::http_has_pending_async_fetch() || (is_eventbus_bound && sqeventbus::has_pending(v)))
+  {
+    perform_delayed_actions();
+    httprequests::poll();
+    if (async_runtime)
+      async_runtime->pump();
+    if (is_eventbus_bound)
+      sqeventbus::process_events(v);
+    if (get_time_msec() - t_drain_start > drain_timeout_msec)
+    {
+      printf("[asyncRuntime] csq drain timeout (%d ms); pending tasks rejected on shutdown\n", drain_timeout_msec);
+      break;
+    }
+    sleep_msec(1);
+  }
+  // Force-post leftover timers so their heap ctx / promise refs are freed
+  // during sqasync's shutdown drain at sq_close.
+  if (async_runtime)
+    async_runtime->shutdown();
 }
 
 
@@ -499,6 +551,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   }
 
   module_manager = new SqModules(sqvm, &fileAccess);
+  async_runtime = eastl::make_unique<sqasync_dagor::AsyncRuntimeScope>(module_manager);
 
   if (do_static_analysis)
   {
@@ -773,6 +826,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     }
   }
 
+  drain_async_until_idle(sqvm);
 
   if (frp_graph)
     frp_graph->shutdown(true);
@@ -783,12 +837,15 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   bindquirrel::clear_logerr_interceptors(sqvm);
   bindquirrel::http_client_on_vm_shutdown(sqvm);
   bindquirrel::cleanup_dagor_workcycle_module(sqvm);
-  sqeventbus::unbind(sqvm);
+  if (is_eventbus_bound)
+    sqeventbus::unbind(sqvm);
+
 #if HAS_CHARSQ
   charsq::shutdown();
 #endif
   sq_close(sqvm);
   sqvm = nullptr;
+  async_runtime.reset(); // safe now: VM is gone, no closure can deref the scope pointer
   if (cpujobs::is_inited())
     cpujobs::term(true);
 

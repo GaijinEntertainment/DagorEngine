@@ -20,7 +20,7 @@ public:
   };
   bool init(const char *lut_name, const char *render_shader_name, const char *compute_shader_name, HDROutput hdr, int lut_size = 32);
   bool perform();
-  const UniqueTexHolder &getLUT() const { return lut; }
+  const UniqueTexWithShaderVar &getLUT() const { return lut; }
   int getLUTSize() const { return lutSize; }
   bool isValid() const { return renderLUT || computeLUT; }
 
@@ -31,7 +31,7 @@ protected:
   GenericTonemapLUT &operator=(const GenericTonemapLUT &) = delete;
   GenericTonemapLUT(const GenericTonemapLUT &) = delete;
   int lutSize = 32;
-  UniqueTexHolder lut;
+  UniqueTexWithShaderVar lut;
   eastl::unique_ptr<ComputeShaderElement> computeLUT;
   eastl::unique_ptr<PostFxRenderer> renderLUT;
 };

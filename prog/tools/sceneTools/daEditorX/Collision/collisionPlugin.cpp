@@ -611,7 +611,7 @@ void CollisionPlugin::addClipNode(Node &n, ICollisionDumpBuilder *rt, const char
         const char *phmat_str = NULL;
         bool add_not_mesh = false;
 
-        if (n.script)
+        if (!n.script.empty())
         {
           DataBlock blk;
           dblk::load_text(blk, make_span_const(n.script), dblk::ReadFlag::ROBUST);
@@ -698,7 +698,7 @@ static void addCollisionRecurs(collisionpreview::Collision &c, Node &n)
       return;
     }
 
-    if (!n.script)
+    if (!n.script.empty())
     {
       DataBlock blk;
       dblk::load_text(blk, make_span_const(n.script), dblk::ReadFlag::ROBUST);

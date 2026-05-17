@@ -50,3 +50,6 @@ MAKE_EXTERNAL_TYPE_FACTORY(CodeOfPolicies,CodeOfPolicies)
 MAKE_EXTERNAL_TYPE_FACTORY(SimFunction,SimFunction)
 MAKE_EXTERNAL_TYPE_FACTORY(recursive_mutex,das::recursive_mutex)
 
+namespace das { struct AstSerializerState; }
+MAKE_EXTERNAL_TYPE_FACTORY(AstSerializer,das::AstSerializerState)
+

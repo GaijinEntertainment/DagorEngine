@@ -78,7 +78,7 @@ def edit_list(var list : auto(TT)&; text : string) : tuple<edited : bool; enlarg
     list |> resize(length(list) + 1)
     enlarged = true
     edited = true
-  return (edited, enlarged, eraseIdx)
+  return (edited=edited, enlarged=enlarged, eraseIdx=eraseIdx)
 
 def edit_root_update_params(var controller : MotionMatchingController)
   safe_checkbox("Root synchronization", controller.rootSynchronization)

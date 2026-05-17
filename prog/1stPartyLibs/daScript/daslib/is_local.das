@@ -47,16 +47,21 @@ def is_shared_expr(expr : ExpressionPtr) {
         if (evar.variable.flags.global_shared) {
             return true
         }
-        if (evar.variable.source != null) {
-            return is_shared_expr(evar.variable.source)
+        if (evar.variable.loop_source != null) {
+            return is_shared_expr(evar.variable.loop_source)
         }
         return false
     } elif (expr is ExprCall) {
         let ecall = expr as ExprCall
         let func = ecall.func;
-        if (func != null && func._module != null &&
-            (string(func.name).starts_with("builtin`keys`") || string(func.name).starts_with("builtin`values`"))) {
-            return is_shared_expr(ecall.arguments[0])
+        if (func != null && func._module != null) {
+            var isKeysOrValues = false
+            peek(func.name) $(fn_name) {
+                isKeysOrValues = fn_name |> starts_with("builtin`keys`") || fn_name |> starts_with("builtin`values`")
+            }
+            if (isKeysOrValues) {
+                return is_shared_expr(ecall.arguments[0])
+            }
         }
         return false
     } elif (expr is ExprAt) {

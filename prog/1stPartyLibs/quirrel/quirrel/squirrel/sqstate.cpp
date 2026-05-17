@@ -26,6 +26,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _notifyallexceptions = false;
     _foreignptr = NULL;
     _releasehook = NULL;
+    _asyncState = NULL;
     compilationOptions = 0;
     doc_object_index = 1;
     rand_seed = 0;
@@ -186,6 +187,11 @@ void SQSharedState::Init()
 
 SQSharedState::~SQSharedState()
 {
+    // Tear down the async runtime first, while the registry, root VM and refs table
+    // are still live: shutdown releases HSQOBJECTs (live task-promises, the bound
+    // Promise class, etc.) and those releases route through the refs table.
+    if (_asyncState)
+        sqasync::shutdown(this);
     if(_releasehook) { _releasehook(_thread(_root_vm),_foreignptr,0); _releasehook = NULL; }
     _constructorstr.Null();
     _table(_registry)->Finalize();

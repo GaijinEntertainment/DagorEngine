@@ -116,7 +116,7 @@ def random_in_unit_disk(var seed : int4&) {
 
 def each_random_uint(rnd_seed : int = 13) {
     //! infinite generator of random uints initialized with `rnd_seed`
-    return <- generator<uint>() <| $() {
+    return <- generator<uint> {
         var seed = random_seed(rnd_seed)
         while (true) {
             yield random_uint(seed)

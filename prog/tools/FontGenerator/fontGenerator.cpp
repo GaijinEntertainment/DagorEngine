@@ -2005,7 +2005,7 @@ static void stdout_report_fatal_error(const char *title, const char *msg, const 
 }
 
 static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<FontInfo> fontPack, const char *copyto_dir,
-  bool make_Ranges_txt)
+  bool make_Ranges_txt, bool verbose = false)
 {
   DataBlock dynFontBlk;
 
@@ -2096,7 +2096,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
         for (const auto &fbf : f.fallBackFonts)
           if (unsigned cnt = resoved_cnt[&fbf - f.fallBackFonts.data()])
           {
-            printf("NOTE: reusing %d unicode chars from fallback font: %s\n", cnt, fbf.file.c_str());
+            if (verbose)
+              printf("NOTE: reusing %d unicode chars from fallback font: %s\n", cnt, fbf.file.c_str());
             FontInfo &af = f.additional.push_back();
             af.file = fbf.file;
             af.size = f.size * fbf.htScale;
@@ -2110,7 +2111,7 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
                 if (af.include.getIter(i, inc))
                   f.additional[afi].include.clr(i);
           }
-        if (missing_cnt)
+        if (missing_cnt && verbose)
           printf("NOTE: '%s': unresolved %d missing unicode chars left\n", f.name.str(), missing_cnt);
 
         if (make_Ranges_txt)
@@ -2482,7 +2483,7 @@ int DagorWinMain(bool debugmode)
   {
     build_config_for_fully_dynamic_fonts(
       String(0, "%s/%s.dynFont.blk", blk.getStr("copyto", prefix), masterAtlas ? masterAtlas : "all"), make_span(fontPack),
-      blk.getStr("copyto", prefix), blk.getBool("makeRangesTxt", false));
+      blk.getStr("copyto", prefix), blk.getBool("makeRangesTxt", false), verbose);
     fontPack.clear();
     return 0;
   }
@@ -2497,11 +2498,11 @@ int DagorWinMain(bool debugmode)
       continue;
     clear_and_shrink(atlas);
     atlas.push_back(&fontPack[i]);
-    if (fontPack[i].atlas)
+    if (!fontPack[i].atlas.empty())
     {
       for (int j = i + 1; j < fontPack.size(); j++)
       {
-        if (!fontPack[j].wasCompiled && fontPack[j].atlas && !strcmp(fontPack[i].atlas, fontPack[j].atlas))
+        if (!fontPack[j].wasCompiled && !fontPack[j].atlas.empty() && !strcmp(fontPack[i].atlas, fontPack[j].atlas))
         {
           fontPack[j].wasCompiled = true;
           atlas.push_back(&fontPack[j]);

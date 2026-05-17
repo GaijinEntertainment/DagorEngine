@@ -18,6 +18,10 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
   $(Root)/prog/3rdPartyLibs/recastnavigation/DetourTileCache/Include
   $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+  # Private propPanel curve math (CubicPolynomCB / CubicPSplineCB) for typed-var
+  # Curve sampler construction. Bare-name include keeps it isolated from
+  # propPanel's public sharedInclude headers.
+  $(Root)/prog/tools/libTools/propPanel/commonWindow
 ;
 
 Sources =
@@ -29,6 +33,8 @@ Sources =
   hmlSplineObject.cpp
   hmlSplinePoint.cpp
   hmlGenColorMap.cpp
+  hmlGenColorMap_lcg.cpp
+  hmlBakeExpr.cpp
   blockedDetTexMap.cpp
   smooth_noise.cpp
   hmlImport.cpp
@@ -38,6 +44,7 @@ Sources =
   hmlModifiers.cpp
   hmlPanel.cpp
   hmlPlugin.cpp
+  hmlTypedVars.cpp
   navmeshAreasProcessing.cpp
   hmlExportSizeDlg.cpp
   hmlEditorEH.cpp
@@ -80,6 +87,10 @@ UseProgLibs =
   tools/libTools/assetMgr
   tools/libTools/delaunay
   tools/libTools/winGuiWrapper
+  # Pulls in CubicPolynomCB / CubicPSplineCB symbols used by build_curve_sampler
+  # to compute curve coefficients from artist control points. The header is
+  # surfaced via the AddIncludes entry above.
+  tools/libTools/propPanel
   tools/libTools/staticGeom
   tools/libTools/dagFileRW
   gameLibs/landMesh

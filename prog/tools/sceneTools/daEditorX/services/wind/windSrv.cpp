@@ -1,12 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <de3_windService.h>
-#include <render/wind/ambientWind.h>
-#include <ioSys/dag_dataBlock.h>
 #include <math/dag_mathUtils.h>
+#include <startup/dag_globalSettings.h>
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
+#include "windSrv.h"
 
 // Keep these values in-sync with skyquake/prog/render/weather.cpp
 const float MIN_BEAUFORT_SCALE = 0.0f;
@@ -65,199 +64,166 @@ void IWindService::readSettingsBlk(PreviewSettings &outSettings, const DataBlock
   readAmbientSettings(outSettings.ambient, *inBlk.getBlockByNameEx("ambientWind"));
 }
 
-class GenericWindService : public IWindService
+WindBaseService::WindBaseService() :
+  weatherWindStrength(defaultWindSettings.windStrength),
+  weatherWindDir(cosf(DegToRad(defaultWindSettings.windAzimuth)), sinf(DegToRad(defaultWindSettings.windAzimuth)))
+{}
+
+void WindBaseService::init(const char *inAppDdir, const DataBlock &envBlk)
 {
-  DataBlock windTemplateBlk;
-  DataBlock gameParamsAmbientWindBlk;
-  DataBlock weatherAmbientWindBlk;
-  float weatherWindStrength;
-  Point2 weatherWindDir;
-  WindSettings currentSettings;
-  PreviewSettings previewSettings;
-  bool useTemplate = false;
-  String appDir;
+  appDir = inAppDdir;
+  windTemplateBlk = DataBlock::emptyBlock;
+  gameParamsAmbientWindBlk = DataBlock::emptyBlock;
 
-public:
-  GenericWindService() :
-    weatherWindStrength(defaultWindSettings.windStrength),
-    weatherWindDir(cosf(DegToRad(defaultWindSettings.windAzimuth)), sinf(DegToRad(defaultWindSettings.windAzimuth)))
-  {}
+  const char *windTemplatePath = envBlk.getBlockByNameEx("ambientWind")->getStr("templatePath", NULL);
 
-  void init(const char *inAppDdir, const DataBlock &envBlk) override
+  if (windTemplatePath)
   {
-    appDir = inAppDdir;
-    windTemplateBlk = DataBlock::emptyBlock;
-    gameParamsAmbientWindBlk = DataBlock::emptyBlock;
-
-    const char *windTemplatePath = envBlk.getBlockByNameEx("ambientWind")->getStr("templatePath", NULL);
-
-    if (windTemplatePath)
+    useTemplate = true;
+    String absWindTemplatePath;
+    decode_rel_fname(absWindTemplatePath, windTemplatePath, appDir);
+    if (dd_file_exists(absWindTemplatePath))
     {
-      useTemplate = true;
-      String absWindTemplatePath;
-      decode_rel_fname(absWindTemplatePath, windTemplatePath, appDir);
-      if (dd_file_exists(absWindTemplatePath))
-      {
-        DataBlock windBlk;
-        if (windBlk.load(absWindTemplatePath))
-          windTemplateBlk = *(windBlk.getBlockByNameEx("wind")->getBlockByNameEx("_group"));
-      }
+      DataBlock windBlk;
+      if (windBlk.load(absWindTemplatePath))
+        windTemplateBlk = *(windBlk.getBlockByNameEx("wind")->getBlockByNameEx("_group"));
     }
-    else
-    {
-      useTemplate = false;
-      gameParamsAmbientWindBlk = *::dgs_get_game_params()->getBlockByNameEx("ambientWindParams");
-    }
-
-    updateParams();
+  }
+  else
+  {
+    useTemplate = false;
+    gameParamsAmbientWindBlk = *::dgs_get_game_params()->getBlockByNameEx("ambientWindParams");
   }
 
-  void term() override { close_ambient_wind(); }
+  updateParams();
+}
 
-  void update() override { update_ambient_wind(); }
+void WindBaseService::setWeather(const DataBlock &inWeatherTypeBlk, const Point2 &inWeatherWindDir)
+{
+  weatherWindStrength = inWeatherTypeBlk.getReal("wind_strength", defaultWindSettings.windStrength);
+  weatherAmbientWindBlk = *inWeatherTypeBlk.getBlockByNameEx("ambientWindParams");
+  weatherWindDir = inWeatherWindDir;
+  updateParams();
+}
 
-  void setWeather(const DataBlock &inWeatherTypeBlk, const Point2 &inWeatherWindDir) override
+void WindBaseService::setPreview(const PreviewSettings &inPreviewSettings)
+{
+  previewSettings = inPreviewSettings;
+  updateParams();
+}
+
+void WindBaseService::readFromTemplate(WindSettings &inout, const DataBlock &windTemplateBlk)
+{
+  inout.windAzimuth = windTemplateBlk.getReal("wind__dir", inout.windAzimuth);
+  inout.windStrength = windTemplateBlk.getReal("wind__strength", inout.windStrength);
+  inout.ambient.windNoiseStrength = windTemplateBlk.getReal("wind__noiseStrength", inout.ambient.windNoiseStrength);
+  inout.ambient.windNoiseSpeed = windTemplateBlk.getReal("wind__noiseSpeed", inout.ambient.windNoiseSpeed);
+  inout.ambient.windNoiseScale = windTemplateBlk.getReal("wind__noiseScale", inout.ambient.windNoiseScale);
+  inout.ambient.windNoisePerpendicular = windTemplateBlk.getReal("wind__noisePerpendicular", inout.ambient.windNoisePerpendicular);
+  inout.ambient.windMapBorders = windTemplateBlk.getPoint4("wind__left_top_right_bottom", inout.ambient.windMapBorders);
+  inout.ambient.windFlowTextureName = windTemplateBlk.getStr("wind__flowMap", inout.ambient.windFlowTextureName);
+}
+
+void WindBaseService::updateParams()
+{
+  currentSettings = WindSettings();
+  currentSettings.enabled = false;
+
+  WindSettings::Ambient &currentAmbient = currentSettings.ambient;
+
+  if (useTemplate)
   {
-    weatherWindStrength = inWeatherTypeBlk.getReal("wind_strength", defaultWindSettings.windStrength);
-    weatherAmbientWindBlk = *inWeatherTypeBlk.getBlockByNameEx("ambientWindParams");
-    weatherWindDir = inWeatherWindDir;
-    updateParams();
-  }
-
-  void setPreview(const PreviewSettings &inPreviewSettings) override
-  {
-    previewSettings = inPreviewSettings;
-    updateParams();
-  }
-
-  bool isLevelEcsSupported() const override { return useTemplate; }
-
-private:
-  static void readFromTemplate(WindSettings &inout, const DataBlock &windTemplateBlk)
-  {
-    inout.windAzimuth = windTemplateBlk.getReal("wind__dir", inout.windAzimuth);
-    inout.windStrength = windTemplateBlk.getReal("wind__strength", inout.windStrength);
-    inout.ambient.windNoiseStrength = windTemplateBlk.getReal("wind__noiseStrength", inout.ambient.windNoiseStrength);
-    inout.ambient.windNoiseSpeed = windTemplateBlk.getReal("wind__noiseSpeed", inout.ambient.windNoiseSpeed);
-    inout.ambient.windNoiseScale = windTemplateBlk.getReal("wind__noiseScale", inout.ambient.windNoiseScale);
-    inout.ambient.windNoisePerpendicular = windTemplateBlk.getReal("wind__noisePerpendicular", inout.ambient.windNoisePerpendicular);
-    inout.ambient.windMapBorders = windTemplateBlk.getPoint4("wind__left_top_right_bottom", inout.ambient.windMapBorders);
-    inout.ambient.windFlowTextureName = windTemplateBlk.getStr("wind__flowMap", inout.ambient.windFlowTextureName);
-  }
-
-  void updateParams()
-  {
-    currentSettings = WindSettings();
-    currentSettings.enabled = false;
-
-    WindSettings::Ambient &currentAmbient = currentSettings.ambient;
-
-    if (useTemplate)
+    // Template version uses the default values from the template definied in the application blk
+    //   Since customizing the settings per level is done through ecs in-game, it cannot be read here.
+    if (!windTemplateBlk.isEmpty())
     {
-      // Template version uses the default values from the template definied in the application blk
-      //   Since customizing the settings per level is done through ecs in-game, it cannot be read here.
-      if (!windTemplateBlk.isEmpty())
-      {
-        currentSettings.enabled = true;
+      currentSettings.enabled = true;
 
-        readFromTemplate(currentSettings, windTemplateBlk);
-      }
+      readFromTemplate(currentSettings, windTemplateBlk);
     }
-    else
+  }
+  else
+  {
+    // There is no template, so use the gameParams.blk as a default values, which can be override by the weather's settings
+    if (!gameParamsAmbientWindBlk.isEmpty())
     {
-      // There is no template, so use the gameParams.blk as a default values, which can be override by the weather's settings
-      if (!gameParamsAmbientWindBlk.isEmpty())
-      {
-        currentSettings.enabled = true;
+      currentSettings.enabled = true;
 
-        float minWindNoiseSpeed = gameParamsAmbientWindBlk.getReal("minWindNoiseSpeed", 1.0f);
-        float maxWindNoiseSpeed = gameParamsAmbientWindBlk.getReal("maxWindNoiseSpeed", 6.0f);
-        float minWindNoiseScale = gameParamsAmbientWindBlk.getReal("minWindNoiseScale", 1.0f);
-        float maxWindNoiseScale = gameParamsAmbientWindBlk.getReal("maxWindNoiseScale", 8.0f);
-        float minWindNoiseStrength = gameParamsAmbientWindBlk.getReal("minWindNoiseStrength", 0.5f);
-        float maxWindNoiseStrength = gameParamsAmbientWindBlk.getReal("maxWindNoiseStrength", 3.0f);
-        float maxWindNoisePerpendicularStrength = gameParamsAmbientWindBlk.getReal("maxWindNoisePerpendicularStrength", 0.5f);
-        float minWindNoisePerpendicularStrength = gameParamsAmbientWindBlk.getReal("minWindNoisePerpendicularStrength", 0.2f);
+      float minWindNoiseSpeed = gameParamsAmbientWindBlk.getReal("minWindNoiseSpeed", 1.0f);
+      float maxWindNoiseSpeed = gameParamsAmbientWindBlk.getReal("maxWindNoiseSpeed", 6.0f);
+      float minWindNoiseScale = gameParamsAmbientWindBlk.getReal("minWindNoiseScale", 1.0f);
+      float maxWindNoiseScale = gameParamsAmbientWindBlk.getReal("maxWindNoiseScale", 8.0f);
+      float minWindNoiseStrength = gameParamsAmbientWindBlk.getReal("minWindNoiseStrength", 0.5f);
+      float maxWindNoiseStrength = gameParamsAmbientWindBlk.getReal("maxWindNoiseStrength", 3.0f);
+      float maxWindNoisePerpendicularStrength = gameParamsAmbientWindBlk.getReal("maxWindNoisePerpendicularStrength", 0.5f);
+      float minWindNoisePerpendicularStrength = gameParamsAmbientWindBlk.getReal("minWindNoisePerpendicularStrength", 0.2f);
 
-        currentSettings.windStrength = weatherWindStrength;
-        currentSettings.windDir = weatherWindDir;
-        currentSettings.useWindDir = true;
+      currentSettings.windStrength = weatherWindStrength;
+      currentSettings.windDir = weatherWindDir;
+      currentSettings.useWindDir = true;
 
-        currentAmbient.windNoiseStrength =
-          cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseStrength, maxWindNoiseStrength);
-        currentAmbient.windNoiseSpeed =
-          cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseSpeed, maxWindNoiseSpeed);
-        currentAmbient.windNoiseScale =
-          cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseScale, maxWindNoiseScale);
-        currentAmbient.windNoisePerpendicular = cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE,
-          minWindNoisePerpendicularStrength, maxWindNoisePerpendicularStrength);
+      currentAmbient.windNoiseStrength =
+        cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseStrength, maxWindNoiseStrength);
+      currentAmbient.windNoiseSpeed =
+        cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseSpeed, maxWindNoiseSpeed);
+      currentAmbient.windNoiseScale =
+        cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE, minWindNoiseScale, maxWindNoiseScale);
+      currentAmbient.windNoisePerpendicular = cvt(currentSettings.windStrength, MIN_BEAUFORT_SCALE, MAX_BEAUFORT_SCALE,
+        minWindNoisePerpendicularStrength, maxWindNoisePerpendicularStrength);
 
-        currentAmbient.windMapBorders = gameParamsAmbientWindBlk.getPoint4("windMapBorders", currentAmbient.windMapBorders);
-        currentAmbient.windNoiseTextureName =
-          gameParamsAmbientWindBlk.getStr("windNoiseTextureName", currentAmbient.windNoiseTextureName);
-        currentAmbient.windFlowTextureName =
-          gameParamsAmbientWindBlk.getStr("windFlowTextureName", currentAmbient.windFlowTextureName);
-      }
-
-      if (!weatherAmbientWindBlk.isEmpty())
-      {
-        currentSettings.enabled = true;
-
-        currentSettings.windStrength = weatherWindStrength;
-        currentSettings.windDir = weatherWindDir;
-        currentSettings.useWindDir = true;
-
-        readAmbientSettings(currentAmbient, weatherAmbientWindBlk);
-      }
+      currentAmbient.windMapBorders = gameParamsAmbientWindBlk.getPoint4("windMapBorders", currentAmbient.windMapBorders);
+      currentAmbient.windNoiseTextureName =
+        gameParamsAmbientWindBlk.getStr("windNoiseTextureName", currentAmbient.windNoiseTextureName);
+      currentAmbient.windFlowTextureName = gameParamsAmbientWindBlk.getStr("windFlowTextureName", currentAmbient.windFlowTextureName);
     }
 
-    if (previewSettings.enabled)
+    if (!weatherAmbientWindBlk.isEmpty())
     {
-      currentSettings = previewSettings;
+      currentSettings.enabled = true;
 
-      String absLevelPath;
-      decode_rel_fname(absLevelPath, previewSettings.levelPath, appDir);
-      if (!dd_file_exists(absLevelPath) && dd_file_exists(previewSettings.levelPath))
-        absLevelPath = previewSettings.levelPath;
+      currentSettings.windStrength = weatherWindStrength;
+      currentSettings.windDir = weatherWindDir;
+      currentSettings.useWindDir = true;
 
-      if (!absLevelPath.empty())
+      readAmbientSettings(currentAmbient, weatherAmbientWindBlk);
+    }
+  }
+
+  if (previewSettings.enabled)
+  {
+    currentSettings = previewSettings;
+
+    String absLevelPath;
+    decode_rel_fname(absLevelPath, previewSettings.levelPath, appDir);
+    if (!dd_file_exists(absLevelPath) && dd_file_exists(previewSettings.levelPath))
+      absLevelPath = previewSettings.levelPath;
+
+    if (!absLevelPath.empty())
+    {
+      DataBlock levelBlk;
+      if (levelBlk.load(absLevelPath))
       {
-        DataBlock levelBlk;
-        if (levelBlk.load(absLevelPath))
+        for (int i = 0; i < levelBlk.blockCount(); i++)
         {
-          for (int i = 0; i < levelBlk.blockCount(); i++)
+          DataBlock *entityBlock = levelBlk.getBlock(i);
+          String templateName = String(entityBlock->getStr("_template", ""));
+          if (templateName == "wind")
           {
-            DataBlock *entityBlock = levelBlk.getBlock(i);
-            String templateName = String(entityBlock->getStr("_template", ""));
-            if (templateName == "wind")
-            {
-              readFromTemplate(currentSettings, *entityBlock);
-              break;
-            }
+            readFromTemplate(currentSettings, *entityBlock);
+            break;
           }
         }
       }
     }
-
-    if (!currentSettings.useWindDir)
-    {
-      float rad = DegToRad(currentSettings.windAzimuth);
-      currentSettings.windDir.x = cosf(rad);
-      currentSettings.windDir.y = sinf(rad);
-      currentSettings.useWindDir = true;
-    }
-
-    init_ambient_wind(currentAmbient.windFlowTextureName, currentAmbient.windMapBorders, currentSettings.windDir,
-      currentSettings.windStrength, currentAmbient.windNoiseStrength, currentAmbient.windNoiseSpeed, currentAmbient.windNoiseScale,
-      currentAmbient.windNoisePerpendicular, currentAmbient.windNoiseTextureName);
-
-    if (currentSettings.enabled)
-      enable_ambient_wind();
-    else
-      disable_ambient_wind();
   }
-};
 
-static GenericWindService srv;
+  if (!currentSettings.useWindDir)
+  {
+    float rad = DegToRad(currentSettings.windAzimuth);
+    currentSettings.windDir.x = cosf(rad);
+    currentSettings.windDir.y = sinf(rad);
+    currentSettings.useWindDir = true;
+  }
 
-void *get_generic_wind_service() { return &srv; }
+  applyWind(currentSettings, currentAmbient);
+}

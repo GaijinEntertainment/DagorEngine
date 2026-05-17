@@ -27,10 +27,6 @@ macro USE_RIEXTRA_PER_INSTANCE_RENDER_DATA_BASE(stage, is_ri_extra)
         #define RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED 1
       ##endif
     #endif
-
-    #if !RIEXTRA_PER_INSTANCE_RENDER_DATA_ENABLED
-      float4 LOAD_RIEXTRA_PID(uint idx, uint data_flag, float4 def) { return def; }
-    #endif
   }
 endmacro
 

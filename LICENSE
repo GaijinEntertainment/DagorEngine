@@ -189,6 +189,7 @@ third-party component as follows:
   prog/3rdPartyLibs/recastnavigation/DetourTileCache/LICENSE
   prog/3rdPartyLibs/recastnavigation/Recast/LICENSE
   prog/3rdPartyLibs/scintilla/LICENSE
+  prog/3rdPartyLibs/scripts/duktape/LICENSE.txt
   prog/3rdPartyLibs/SMAA/LICENSE.txt
   prog/3rdPartyLibs/SnapdragonSuperResolution/LICENSE.txt
   prog/3rdPartyLibs/stb/LICENSE

@@ -2,4 +2,7 @@ hlsl {
 ##if (hardware.ps4 || hardware.ps5)
     #include "ps4Defines.hlsl"
 ##endif
+##if hardware.ps5
+    #define NBS_HW_SRGB_UAV 1 // PS5 does hardware sRGB -> linear conversion on UAV read
+##endif
 }

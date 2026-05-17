@@ -152,7 +152,7 @@ namespace das
             case option:
             case autoinfer:     return 0;
             default:
-                DAS_VERIFYF(0, "not implemented. likely new built-intype been added, and support has not been updated.");
+                DAS_VERIFYF(0, "not implemented. likely new built-in type been added (type=%d), and support has not been updated.", int(type));
                 return 0;
         }
     }

@@ -98,7 +98,7 @@ static bool get_allowed_src_files_usage(String &stg_fn)
 #if DAGOR_DBGLEVEL > 0 && (_TARGET_PC || _TARGET_C3)
   String config_blk_fn = get_config_filename();
   DataBlock cfg;
-  if (config_blk_fn && dd_file_exist(config_blk_fn))
+  if (!config_blk_fn.empty() && dd_file_exist(config_blk_fn))
     dblk::load(cfg, config_blk_fn, dblk::ReadFlag::ROBUST);
 
   dgs_apply_command_line_to_config(&cfg);
@@ -672,7 +672,6 @@ bool do_settings_changes_need_videomode_change(const FastNameMap &changed_fields
       || changed_fields.getNameId("video/monitor") >= 0
       || changed_fields.getNameId("video/enableHdr") >= 0
       || changed_fields.getNameId("video/fsr") >= 0
-      || changed_fields.getNameId("graphics/tsrQuality") >= 0
       || changed_fields.getNameId("video/antialiasing_mode") >= 0
       || changed_fields.getNameId("video/antialiasing_upscaling") >= 0
       || changed_fields.getNameId("video/antialiasing_fgc") >= 0

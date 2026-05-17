@@ -49,8 +49,6 @@ CONSOLE_BOOL_VAL("render", bvh_disable_parallel_instance_processing_finish, fals
 static eastl::array<int, 3> per_frame_blas_model_budget = {10, 15, 30};
 static eastl::array<int, 3> per_frame_compaction_budget = {20, 30, 60};
 
-static constexpr float animation_distance_rate = 20;
-
 static constexpr bool showProceduralBLASBuildCount = false;
 
 static bool per_frame_processing_enabled = true;
@@ -83,7 +81,7 @@ void teardown(ContextId context_id);
 
 namespace ri
 {
-void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, float _ri_lod_dist_bias);
+void init(const AdditionalSettings &settings);
 void teardown(bool device_reset);
 void init(ContextId context_id);
 void teardown(ContextId context_id);
@@ -94,7 +92,7 @@ void prepare_ri_extra_instances();
 void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
   const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
 void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, threadpool::JobPriority prio);
+  const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio);
 void wait_ri_gen_instances_update(ContextId context_id);
 void wait_ri_extra_instances_update(ContextId context_id);
 void tidy_up_trees(ContextId context_id);
@@ -106,7 +104,7 @@ void readdRendinst(ContextId context_id, const RenderableInstanceLodsResource *r
 
 namespace dyn
 {
-void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, bool discard_destr_assets);
+void init(const AdditionalSettings &settings);
 void teardown(bool device_reset, bool zero_bvh_ids);
 void init(ContextId context_id);
 void teardown(ContextId context_id);
@@ -117,6 +115,7 @@ void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynre
 void wait_dynrend_instances();
 void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback);
+void wait_animchar_instances();
 void debug_update();
 void set_up_dynrend_context_for_processing(dynrend::ContextId dynrend_context_id);
 void tidy_up_skins(ContextId context_id);
@@ -237,8 +236,6 @@ float water_fade_power = 3.0f;
 float max_water_depth = 5.0f;
 float rtr_max_water_depth = 0.2f;
 
-int ri_thread_count_ofset = 0;
-
 float debug_min_t = 0;
 
 bool delay_sync = false;
@@ -253,6 +250,164 @@ static void copyHwInstancesCpu(void *dst, const NativeInstance *src, size_t inst
 #else
   memcpy(dst, src, sizeof(NativeInstance) * instance_count);
 #endif
+}
+
+static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &mesh, const Context::Instance *instance, bool recycled)
+{
+  BufferProcessor::ProcessArgs args{};
+  args.objectId = object_id;
+  args.indexStart = mesh.startIndex;
+  args.indexCount = mesh.indexCount;
+  args.indexFormat = mesh.indexFormat;
+  args.baseVertex = mesh.baseVertex;
+  args.startVertex = mesh.startVertex;
+  args.vertexCount = mesh.vertexCount;
+  args.vertexStride = mesh.vertexStride;
+  args.positionFormat = mesh.positionFormat;
+  args.positionOffset = mesh.positionOffset;
+  args.texcoordOffset = mesh.texcoordOffset;
+  args.texcoordFormat = mesh.texcoordFormat;
+  args.secTexcoordOffset = mesh.secTexcoordOffset;
+  args.normalOffset = mesh.normalOffset;
+  args.colorOffset = mesh.colorOffset;
+  args.indicesOffset = mesh.indicesOffset;
+  args.weightsOffset = mesh.weightsOffset;
+  args.posMul = mesh.posMul;
+  args.posAdd = mesh.posAdd;
+  args.texture = mesh.albedoTextureId;
+  args.textureLevel = mesh.albedoTextureLevel;
+  args.impostorHeightOffset = mesh.impostorHeightOffset;
+  args.impostorScale = mesh.impostorScale;
+  args.impostorSliceTm1 = mesh.impostorSliceTm1;
+  args.impostorSliceTm2 = mesh.impostorSliceTm2;
+  args.impostorSliceClippingLines1 = mesh.impostorSliceClippingLines1;
+  args.impostorSliceClippingLines2 = mesh.impostorSliceClippingLines2;
+  args.recycled = recycled;
+  memcpy(args.impostorOffsets, mesh.impostorOffsets, sizeof(args.impostorOffsets));
+  if (instance)
+  {
+    args.worldTm = instance->transform;
+    args.invWorldTm = instance->invWorldTm;
+    args.setTransformsFn = instance->setTransformsFn;
+    args.getHeliParamsFn = instance->getHeliParamsFn;
+    args.getDeformParamsFn = instance->getDeformParamsFn;
+    args.getSplineDataFn = instance->getSplineDataFn;
+    args.tree = instance->tree;
+    args.flag = instance->flag;
+  }
+  args.tree.ppPositionBindless = mesh.ppPositionBindless;
+  args.tree.ppDirectionBindless = mesh.ppDirectionBindless;
+  return args;
+}
+
+static bool process(ContextId context_id, Sbuffer *source_buffer, int source_buffer_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processedBuffer, uint32_t &bindless_id, const BufferProcessor *processor,
+  BufferProcessor::ProcessArgs &args, bool skipProcessing, bool &need_blas_build)
+{
+  bool didProcessing = false;
+  if (processedBuffer.needAllocation() || !processor->isOneTimeOnly())
+  {
+    need_blas_build |= processor->process(context_id, source_buffer, source_buffer_offset, source_buffer_bindless, processedBuffer,
+      bindless_id, args, skipProcessing);
+    didProcessing = true;
+  }
+
+  HANDLE_LOST_DEVICE_STATE(processedBuffer.isAllocated(), false);
+
+  return didProcessing;
+}
+
+static void process_instance_vertices(ContextId context_id, uint64_t object_id, const Mesh &mesh, const Context::Instance *instance,
+  const Frustum *frustum, vec4f_const view_pos, vec4f_const light_direction, UniqueOrReferencedBVHBuffer &transformed_vertices,
+  bool processed_vertices_recycled, bool &need_blas_build, MeshMeta &meta)
+{
+  if (mesh.vertexProcessor)
+  {
+    bool needProcessing = transformed_vertices.needAllocation();
+    bool hasVertexAnimation = !mesh.vertexProcessor->isOneTimeOnly();
+    if (hasVertexAnimation)
+    {
+      G_ASSERT(instance);
+      G_ASSERT(frustum);
+
+      if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::FORCE_ON)
+      {
+        needProcessing = true;
+      }
+      else if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::DO_CULLING)
+      {
+        mat44f tm44;
+        v_mat43_transpose_to_mat44(tm44, instance->transform);
+        vec4f localBounds = v_ldu(&mesh.boundingSphere.c.x);
+        vec4f worldBounds = v_mat44_mul_bsph(tm44, localBounds);
+        needProcessing = instance_needs_animation(worldBounds, *frustum, view_pos, light_direction);
+      }
+    }
+
+    auto args = build_args(object_id, mesh, instance, processed_vertices_recycled);
+    bool canProcess = mesh.vertexProcessor->isReady(args);
+
+    // Only do the processing if we either has a per instance output to process into, or the
+    // initial processing on the mesh is not yet done. Otherwise it would just process the same
+    // mesh again and again for no reason.
+    if (canProcess)
+    {
+      bool hadProcessedVertices = transformed_vertices.isAllocated();
+
+      if (hadProcessedVertices && !delay_sync)
+        d3d::resource_barrier(ResourceBarrierDesc(transformed_vertices.get(), RB_NONE));
+
+      uint32_t bindlessIndex;
+      if (process(context_id, mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset, mesh.pvBindlessIndex,
+            transformed_vertices, bindlessIndex, mesh.vertexProcessor, args, !needProcessing, need_blas_build))
+      {
+        meta.setTexcoordFormat(args.texcoordFormat);
+        meta.startVertex = args.startVertex;
+        meta.texcoordOffset = args.texcoordOffset;
+        meta.normalOffset = args.normalOffset;
+        meta.colorOffset = args.colorOffset;
+        meta.vertexStride = args.vertexStride;
+      }
+
+      if (!hadProcessedVertices && transformed_vertices.isAllocated())
+        meta.setVertexBufferIndex(bindlessIndex);
+    }
+  }
+}
+
+static void process_meta(ContextId context_id, MeshMeta &meta, const Mesh &mesh, bool &needBlasBuild,
+  const Context::Instance &instance, const Frustum &frustum, vec4f_const cameraPos, vec4f_const lightDirection,
+  UniqueOrReferencedBVHBuffer &animatedVertices, bool stationary, bool skipUpdate, const MeshMeta &baseMeta)
+{
+  auto verticesRecycled = instance.uniqueIsRecycled;
+  if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID && !meta.isInitialized())
+  {
+    // The meta is specific to an instance and not yet initialized.
+    meta = baseMeta;
+    meta.markInitialized();
+  }
+
+  if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
+  {
+    // It is possible that the mesh for the instance was unloaded and loaded again. When that
+    // happens, the mesh has new buffers and textures, so we need to make sure the meta has
+    // the correct indices.
+    if ((meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures) == 0)
+    {
+      meta.alphaTextureIndex = baseMeta.alphaTextureIndex;
+      meta.albedoTextureIndex = baseMeta.albedoTextureIndex;
+      meta.normalTextureIndex = baseMeta.normalTextureIndex;
+      meta.extraTextureIndex = baseMeta.extraTextureIndex;
+    }
+    meta.ahsVertexBufferIndex = baseMeta.ahsVertexBufferIndex;
+    // Copy the index buffer index only, the vertex buffer is part of the instance
+    meta.indexBufferIndex = baseMeta.indexBufferIndex;
+  }
+
+  if ((!stationary && !skipUpdate) || !animatedVertices.get())
+    process_instance_vertices(context_id, instance.objectId, mesh, &instance, &frustum, cameraPos, lightDirection, animatedVertices,
+      verticesRecycled, needBlasBuild, meta);
+  meta.vertexOffset = animatedVertices.getOffset();
 }
 
 namespace parallel_instance_processing
@@ -392,10 +547,9 @@ void start_frame(ContextId context_id)
 
 void finish_adding_jobs(ContextId context_id)
 {
-  G_UNUSED(context_id);
-  // remove the +1 we added in start_frame, now the counter reflects the number of jobs that can contribute to the release
-  // if the jobs finish before this call, there is not much to copy anyway, and we can do it separately
-  jobGroupReleaseCounter.sub_fetch(1);
+  int counter = jobGroupReleaseCounter.sub_fetch(1);
+  if (counter == 0) // the processing threads finished extremely early, need to call the finish function directly
+    on_parallel_jobs_finished(context_id);
 }
 
 void before_job_start(ContextId context_id)
@@ -745,7 +899,7 @@ void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSet
 {
   delay_sync = d3d::get_driver_code().is(d3d::vulkan) || d3d::get_driver_code().is(d3d::ps5) || d3d::get_driver_code().is(d3d::dx12);
   bvh_prioritize_compactions = settings.prioritizeCompactions;
-  bvh_use_fast_tlas_build = settings.use_fast_tlas_build;
+  bvh_use_fast_tlas_build = settings.useFastTlasBuild;
 
   elem_rules = elem_rules_init;
   screenshot_function = screenshot;
@@ -754,8 +908,8 @@ void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSet
   scratch_buffer_manager.alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffsetAlignment;
 
   terrain::init();
-  ri::init(settings.singleLodFilterMaxFaces, settings.singleLodFilterMaxRange, settings.riLodDistBias);
-  dyn::init(settings.singleLodFilterMaxFaces, settings.singleLodFilterMaxRange, settings.discardDestrAssets);
+  ri::init(settings);
+  dyn::init(settings);
   gobj::init();
   grass::init();
   fx::init();
@@ -906,33 +1060,29 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
   for (auto &data : bvh_context_id->impostorInstanceData)
     data.clear();
 
+  bvh_context_id->riGenStartIndexType = (bvh_context_id->riGenStartIndexType + 1) % Context::MaxTreeAnimIndices;
+  bvh_context_id->rebuildUpdateSlots();
+
   binscene::update_instances(bvh_context_id);
   splinegen::update_instances(bvh_context_id, view_position);
 
-  if (!dynrend_iterate)
-    ri_thread_count_ofset = -1;
-  else
-    ri_thread_count_ofset = 0;
-
   if (bvh_context_id->has(Features::AnyDynrend))
-    if (!dynrend_iterate)
+  {
+    dyn::wait_tidy_up_skins();
+    if (dynrend_iterate)
+      dyn::update_animchar_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
+        dynrend_iterate);
+    else
       dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position);
+  }
 
   if (bvh_context_id->has(Features::AnyRI))
   {
     ri::wait_tidy_up_trees();
     parallel_instance_processing::start_frame(bvh_context_id);
     ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
-    ri::update_ri_extra_instances(bvh_context_id, view_position, bvh_frustum, view_frustum, prio);
+    ri::update_ri_extra_instances(bvh_context_id, view_position, bvh_frustum, view_frustum, light_direction, prio);
     parallel_instance_processing::finish_adding_jobs(bvh_context_id);
-  }
-
-  if (bvh_context_id->has(Features::DynrendSkinnedFull))
-  {
-    dyn::wait_tidy_up_skins();
-    if (dynrend_iterate)
-      dyn::update_animchar_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
-        dynrend_iterate);
   }
 }
 
@@ -955,76 +1105,17 @@ void update_instances(ContextId bvh_context_id, const Point3 &view_position, con
     &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, prio);
 }
 
+void wait_dynamic_instances_jobs()
+{
+  dyn::wait_dynrend_instances();
+  dyn::wait_animchar_instances();
+}
+
 static __forceinline bool need_winding_flip(Mesh &mesh, const Context::Instance &instance)
 {
   if (!mesh.needWindingFlip.has_value())
     mesh.needWindingFlip = need_winding_flip(instance.transform);
   return mesh.needWindingFlip.value();
-}
-
-static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &mesh, const Context::Instance *instance, bool recycled)
-{
-  BufferProcessor::ProcessArgs args{};
-  args.objectId = object_id;
-  args.indexStart = mesh.startIndex;
-  args.indexCount = mesh.indexCount;
-  args.indexFormat = mesh.indexFormat;
-  args.baseVertex = mesh.baseVertex;
-  args.startVertex = mesh.startVertex;
-  args.vertexCount = mesh.vertexCount;
-  args.vertexStride = mesh.vertexStride;
-  args.positionFormat = mesh.positionFormat;
-  args.positionOffset = mesh.positionOffset;
-  args.texcoordOffset = mesh.texcoordOffset;
-  args.texcoordFormat = mesh.texcoordFormat;
-  args.secTexcoordOffset = mesh.secTexcoordOffset;
-  args.normalOffset = mesh.normalOffset;
-  args.colorOffset = mesh.colorOffset;
-  args.indicesOffset = mesh.indicesOffset;
-  args.weightsOffset = mesh.weightsOffset;
-  args.posMul = mesh.posMul;
-  args.posAdd = mesh.posAdd;
-  args.texture = mesh.albedoTextureId;
-  args.textureLevel = mesh.albedoTextureLevel;
-  args.impostorHeightOffset = mesh.impostorHeightOffset;
-  args.impostorScale = mesh.impostorScale;
-  args.impostorSliceTm1 = mesh.impostorSliceTm1;
-  args.impostorSliceTm2 = mesh.impostorSliceTm2;
-  args.impostorSliceClippingLines1 = mesh.impostorSliceClippingLines1;
-  args.impostorSliceClippingLines2 = mesh.impostorSliceClippingLines2;
-  args.recycled = recycled;
-  memcpy(args.impostorOffsets, mesh.impostorOffsets, sizeof(args.impostorOffsets));
-  if (instance)
-  {
-    args.worldTm = instance->transform;
-    args.invWorldTm = instance->invWorldTm;
-    args.setTransformsFn = instance->setTransformsFn;
-    args.getHeliParamsFn = instance->getHeliParamsFn;
-    args.getDeformParamsFn = instance->getDeformParamsFn;
-    args.getSplineDataFn = instance->getSplineDataFn;
-    args.tree = instance->tree;
-    args.flag = instance->flag;
-  }
-  args.tree.ppPositionBindless = mesh.ppPositionBindless;
-  args.tree.ppDirectionBindless = mesh.ppDirectionBindless;
-  return args;
-}
-
-static bool process(ContextId context_id, Sbuffer *source_buffer, int source_buffer_offset, uint32_t source_buffer_bindless,
-  UniqueOrReferencedBVHBuffer &processedBuffer, uint32_t &bindless_id, const BufferProcessor *processor,
-  BufferProcessor::ProcessArgs &args, bool skipProcessing, bool &need_blas_build)
-{
-  bool didProcessing = false;
-  if (processedBuffer.needAllocation() || !processor->isOneTimeOnly())
-  {
-    need_blas_build |= processor->process(context_id, source_buffer, source_buffer_offset, source_buffer_bindless, processedBuffer,
-      bindless_id, args, skipProcessing);
-    didProcessing = true;
-  }
-
-  HANDLE_LOST_DEVICE_STATE(processedBuffer.isAllocated(), false);
-
-  return didProcessing;
 }
 
 static void process_mesh_vertices(ContextId context_id, uint64_t object_id, Mesh &mesh,
@@ -1051,7 +1142,6 @@ static void process_mesh_vertices(ContextId context_id, uint64_t object_id, Mesh
 
         // Mesh should only change if this is not an animating mesh
         mesh.positionOffset = args.positionOffset;
-        mesh.processedPositionFormat = args.positionFormat;
 
         meta.setTexcoordFormat(args.texcoordFormat);
         meta.startVertex = args.startVertex;
@@ -1069,79 +1159,6 @@ static void process_mesh_vertices(ContextId context_id, uint64_t object_id, Mesh
   }
 }
 
-static void process_instance_vertices(ContextId context_id, uint64_t object_id, const Mesh &mesh, const Context::Instance *instance,
-  const Frustum *frustum, vec4f_const view_pos, vec4f_const light_direction, UniqueOrReferencedBVHBuffer &transformed_vertices,
-  bool processed_vertices_recycled, bool &need_blas_build, MeshMeta &meta, uint32_t &processed_position_format)
-{
-  if (mesh.vertexProcessor)
-  {
-    bool needProcessing = transformed_vertices.needAllocation();
-    bool hasVertexAnimation = !mesh.vertexProcessor->isOneTimeOnly();
-    if (hasVertexAnimation)
-    {
-      G_ASSERT(instance);
-      G_ASSERT(frustum);
-
-      if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::FORCE_ON)
-      {
-        needProcessing = true;
-      }
-      else if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::DO_CULLING)
-      {
-        mat44f tm44;
-        v_mat43_transpose_to_mat44(tm44, instance->transform);
-
-        vec4f localBounds = v_ldu(&mesh.boundingSphere.c.x);
-        vec4f worldBounds = v_mat44_mul_bsph(tm44, localBounds);
-        bbox3f worldBoundsBox;
-        worldBoundsBox.bmin = v_sub(worldBounds, v_splat_w(worldBounds));
-        worldBoundsBox.bmax = v_add(worldBounds, v_splat_w(worldBounds));
-        vec3f far_point = v_mul(v_add(v_add(worldBoundsBox.bmax, worldBoundsBox.bmin), light_direction), V_C_HALF);
-        worldBoundsBox.bmin = v_min(worldBoundsBox.bmin, far_point);
-        worldBoundsBox.bmax = v_max(worldBoundsBox.bmax, far_point);
-        auto isVisible = !!frustum->testBoxB(worldBoundsBox.bmin, worldBoundsBox.bmax);
-        if (isVisible)
-        {
-          auto distance = v_length3(v_sub(view_pos, worldBounds));
-          auto rate = v_extract_x(v_mul(v_div(distance, v_splat_w(worldBounds)), V_C_HALF));
-
-          if (rate < animation_distance_rate)
-            needProcessing = true;
-        }
-      }
-    }
-
-    auto args = build_args(object_id, mesh, instance, processed_vertices_recycled);
-    bool canProcess = mesh.vertexProcessor->isReady(args);
-
-    // Only do the processing if we either has a per instance output to process into, or the
-    // initial processing on the mesh is not yet done. Otherwise it would just process the same
-    // mesh again and again for no reason.
-    if (canProcess)
-    {
-      bool hadProcessedVertices = transformed_vertices.isAllocated();
-
-      if (hadProcessedVertices && !delay_sync)
-        d3d::resource_barrier(ResourceBarrierDesc(transformed_vertices.get(), RB_NONE));
-
-      uint32_t bindlessIndex;
-      if (process(context_id, mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset, mesh.pvBindlessIndex,
-            transformed_vertices, bindlessIndex, mesh.vertexProcessor, args, !needProcessing, need_blas_build))
-      {
-        meta.setTexcoordFormat(args.texcoordFormat);
-        meta.startVertex = args.startVertex;
-        meta.texcoordOffset = args.texcoordOffset;
-        meta.normalOffset = args.normalOffset;
-        meta.colorOffset = args.colorOffset;
-        meta.vertexStride = args.vertexStride;
-        processed_position_format = args.positionFormat;
-      }
-
-      if (!hadProcessedVertices && transformed_vertices.isAllocated())
-        meta.setVertexBufferIndex(bindlessIndex);
-    }
-  }
-}
 
 static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &meta)
 {
@@ -1232,7 +1249,8 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     mesh.vertexStride = info.vertexSize;
     mesh.positionFormat = info.positionFormat;
     mesh.positionOffset = info.positionOffset;
-    mesh.processedPositionFormat = info.positionFormat;
+    mesh.processedPositionFormat =
+      info.vertexProcessor ? info.vertexProcessor->getOutputPositionFormat(info.positionFormat) : info.positionFormat;
     mesh.texcoordOffset = info.texcoordOffset;
     mesh.texcoordFormat = info.texcoordFormat;
     mesh.secTexcoordOffset = info.secTexcoordOffset;
@@ -2171,27 +2189,13 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
   TIME_PROFILE_NAME(addInstance, name);
   DA_PROFILE_TAG(addInstance, "Instance count: %d", instances.size());
 
-  const float maxLightDistForBvhShadow = 20.0f;
-  const auto lightDirection = v_mul(v_ldu_p3_safe(&light_direction.x), v_splats(maxLightDistForBvhShadow * 2));
+  const auto lightDirection = light_direction_for_animation(light_direction);
   auto &perInstanceData = context_id->perInstanceDataCpu;
   auto &blasUpdates = context_id->blasUpdates;
   auto &updateGeoms = context_id->updateGeoms;
 
   const auto &frustum = is_camera_relative ? &frustumRelative : &frustumAbsolute;
   const auto cameraPos = is_camera_relative ? v_zero() : v_ldu_p3_safe(&camera_pos.x);
-
-  eastl::vector_set<int, eastl::less<int>, framemem_allocator> updateIndices;
-  {
-    // Calculate the skip pattern. Update indices hold the indices to be updated.
-    updateIndices.set_capacity(context_id->riGenIndexTypePerFrame);
-
-    float step = float(Context::MaxTreeAnimIndices) / context_id->riGenIndexTypePerFrame;
-    for (int ix = 0; ix < context_id->riGenIndexTypePerFrame; ++ix)
-    {
-      int ui = (context_id->riGenStartIndexType + int(step * ix + 0.5)) % Context::MaxTreeAnimIndices;
-      updateIndices.insert(ui);
-    }
-  }
 
   for (auto &instance : instances)
   {
@@ -2213,7 +2217,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     auto stationary = instance.uniqueIsStationary;
     auto skipUpdate = false;
     if (instance.animIndex > -1)
-      skipUpdate = updateIndices.count(instance.animIndex) == 0;
+      skipUpdate = !context_id->riGenUpdateSlots[instance.animIndex];
 
     if (object.hasVertexProcessor)
     {
@@ -2228,31 +2232,8 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
         G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
 
         auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
-        auto verticesRecycled = instance.uniqueIsRecycled;
-
-        if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID && !meta.isInitialized())
-        {
-          // The meta is specific to an instance and not yet initialized.
-          meta = baseMeta;
-          meta.markInitialized();
-        }
-
-        if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
-        {
-          // It is possible that the mesh for the instance was unloaded and loaded again. When that
-          // happens, the mesh has new buffers and textures, so we need to make sure the meta has
-          // the correct indices.
-          if ((meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures) == 0)
-          {
-            meta.alphaTextureIndex = baseMeta.alphaTextureIndex;
-            meta.albedoTextureIndex = baseMeta.albedoTextureIndex;
-            meta.normalTextureIndex = baseMeta.normalTextureIndex;
-            meta.extraTextureIndex = baseMeta.extraTextureIndex;
-          }
-          meta.ahsVertexBufferIndex = baseMeta.ahsVertexBufferIndex;
-          // Copy the index buffer index only, the vertex buffer is part of the instance
-          meta.indexBufferIndex = baseMeta.indexBufferIndex;
-        }
+        process_meta(context_id, meta, mesh, needBlasBuild, instance, *frustum, cameraPos, lightDirection, animatedVertices,
+          stationary, skipUpdate, baseMeta);
 
 #if DAGOR_DBGLEVEL > 0
         static bool check_alpha = true;
@@ -2271,14 +2252,8 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
         }
 #endif
 
-        uint32_t processedPositionFormat = mesh.processedPositionFormat;
-        if ((!stationary && !skipUpdate) || !animatedVertices.get())
-          process_instance_vertices(context_id, instance.objectId, mesh, &instance, frustum, cameraPos, lightDirection,
-            animatedVertices, verticesRecycled, needBlasBuild, meta, processedPositionFormat);
-
         CHECK_LOST_DEVICE_STATE();
 
-        meta.vertexOffset = animatedVertices.getOffset();
         bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
         auto &geom = *(RaytraceGeometryDescription *)geoms.push_back_uninitialized();
 
@@ -2291,7 +2266,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
         geom.data.triangles.vertexStride = meta.vertexStride;
         geom.data.triangles.vertexOffset = 0;
         geom.data.triangles.vertexOffsetExtraBytes = animatedVertices.getOffset();
-        geom.data.triangles.vertexFormat = processedPositionFormat;
+        geom.data.triangles.vertexFormat = mesh.processedPositionFormat;
         geom.data.triangles.indexCount = mesh.indexCount;
         geom.data.triangles.indexOffset = meta.startIndex;
         geom.data.triangles.flags =
@@ -2356,7 +2331,11 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           if (delay_sync)
             d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 
+#if _TARGET_C2
+
+#else
           G_ASSERT(update.basbi.scratchSpaceBufferSizeInBytes > 0);
+#endif
 
           for (auto &geom : geoms)
             d3d::resource_barrier(ResourceBarrierDesc(geom.data.triangles.vertexBuffer, bindlessSRVBarrier));
@@ -2425,7 +2404,10 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   TIME_D3D_PROFILE(bvh_build);
 
   if (context_id->has(Features::AnyDynrend))
+  {
     dyn::wait_dynrend_instances();
+    dyn::wait_animchar_instances();
+  }
   if (context_id->has(Features::AnyRI))
   {
     ri::wait_ri_gen_instances_update(context_id);

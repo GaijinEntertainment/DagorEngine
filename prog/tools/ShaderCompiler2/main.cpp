@@ -767,6 +767,8 @@ String shc::search_include_with_pathes(const char *fn) // we can save mem alloca
     auto it = file_to_full_path.find(key);
     return it == file_to_full_path.end() ? nullptr : it->second.c_str();
   };
+  if (path_is_abs(fn))
+    return String(fn);
 
   if (const char *path = fastLookup())
   {
@@ -1617,7 +1619,12 @@ int DagorWinMain(bool debugmode)
       for (const auto &mount_point : mount_points)
         for (const auto &inc_dir : include_dirs)
         {
-          folder = eastl::string{mount_point} + "/" + inc_dir;
+          if (!path_is_abs(inc_dir))
+            folder = eastl::string{mount_point} + "/" + inc_dir;
+          else if (strcmp(mount_point, ".") == 0)
+            folder = inc_dir;
+          else
+            continue;
           if (dd_dir_exists(folder.c_str()))
           {
             add_include_path(folder.c_str(), globalConfigRW);

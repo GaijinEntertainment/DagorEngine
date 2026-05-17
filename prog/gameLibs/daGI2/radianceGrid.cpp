@@ -29,6 +29,7 @@
   VAR(dagi_rad_grid_decode_z)                          \
   VAR(dagi_rad_grid_temporal_indirect)                 \
   VAR(dagi_rad_grid_temporal_average_probes_to_select) \
+  VAR(dagi_rad_grid_support_uav_load)                  \
   VAR(dagi_irrad_grid_debug_type)                      \
   VAR(dagi_irrad_grid_update_lt_coord)                 \
   VAR(dagi_irrad_grid_update_sz_coord)                 \
@@ -541,11 +542,12 @@ void RadianceGrid::initClipmap(uint32_t clipW, uint32_t clipD, uint32_t clips_, 
   radiance.resetHistory(clips_);
   octRes = oct_res;
 
-  debug("create RadianceGrid resolution %dx%dx%d * %d^2 : %d probe %f (dist %f)", clipW, clipW, clipD, clips_, octRes,
-    radiance.probeSize0, (clipW << (clips_ - 1)) * 0.5f * radiance.probeSize0);
+  const uint32_t texFmt = TEXFMT_R11G11B10F; // TEXFMT_A16B16G16R16F
+  const bool supportUnorderedLoad = d3d::get_texformat_usage(texFmt | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
+  debug("create RadianceGrid resolution %dx%dx%d * %d^2 : %d probe %f (dist %f), uav load : %d", clipW, clipW, clipD, clips_, octRes,
+    radiance.probeSize0, (clipW << (clips_ - 1)) * 0.5f * radiance.probeSize0, supportUnorderedLoad);
 
   dagi_radiance_grid.close();
-  const uint32_t texFmt = TEXFMT_R11G11B10F; // TEXFMT_A16B16G16R16F
   dagi_radiance_grid = dag::create_voltex(clipW * octRes, clipW * octRes, clipD * clips_, TEXCF_UNORDERED | texFmt, 1,
     "dagi_radiance_grid", RESTAG_DAGI2);
 
@@ -557,6 +559,7 @@ void RadianceGrid::initClipmap(uint32_t clipW, uint32_t clipD, uint32_t clips_, 
   ShaderGlobal::set_float4(dagi_rad_grid_decode_xyVarId, 0.5f / clipW, 0.5f / (octRes * clipW), (1.f - 0.5f / octRes) / clipW, 0);
   ShaderGlobal::set_float4(dagi_rad_grid_decode_zVarId, 1.f / clipD, 1.f / clips_, 0.5f / fullDepth, 1.f / clipW);
   ShaderGlobal::set_int(dagi_rad_oct_resiVarId, octRes);
+  ShaderGlobal::set_int(dagi_rad_grid_support_uav_loadVarId, supportUnorderedLoad);
 
   dagi_radiance_grid_probes_age.close();
   dagi_radiance_grid_probes_age =

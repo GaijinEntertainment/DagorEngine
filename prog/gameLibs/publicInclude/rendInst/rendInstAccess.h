@@ -10,11 +10,13 @@
 #include <math/dag_bounds3.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <dag/dag_vector.h>
+#include <generic/dag_carray.h>
 
 // The functions in this file provide access to various properties of rendInsts.
 
 class CollisionResource;
 class RenderableInstanceLodsResource;
+class DynamicPhysObjectData;
 struct RendInstGenData;
 struct RiGenVisibility;
 
@@ -55,6 +57,7 @@ int getRIGenCanopyShape(const RendInstDesc &desc);
 CollisionResource *getRIGenCollInfo(const RendInstDesc &desc);
 void *getCollisionResourceHandle(const RendInstDesc &desc);
 const CollisionResource *getRiGenCollisionResource(const RendInstDesc &desc);
+const DynamicPhysObjectData *getRIGenDestroyedPhysRes(const RendInstDesc &desc);
 bool isRIGenPosInst(const RendInstDesc &desc);
 bool isRIGenOnlyPosInst(int layer_ix, int pool_ix);
 bool isDestroyedRIExtraFromNextRes(const RendInstDesc &desc);
@@ -68,6 +71,19 @@ const char *getRIGenResName(const RendInstDesc &desc);
 const char *getRIGenDestrName(const RendInstDesc &desc);
 const char *getRIGenDestrFxTemplateName(const RendInstDesc &desc);
 bool isRIGenDestr(const RendInstDesc &desc);
+
+struct RendInstBufferData
+{
+  // in case of RI extra it also holds restorable cellIdx and offs
+  RendInstDesc desc;
+  mat44f tm;
+  union
+  {
+    carray<int16_t, 12> data;
+    carray<int32_t, 15 + 1> riExUserData; // last element is word count
+  };
+};
+bool fillRendInstBufferData(const RendInstDesc &desc, RendInstBufferData &out_buffer);
 
 int getRIGenStrideRaw(int layer_idx, int pool_id);
 int getRIGenStride(int layer_idx, int cell_id, int pool_id);
@@ -104,7 +120,8 @@ RenderableInstanceLodsResource *getRIGenRes(int layer_ix, int pool_ix);
 using RiGenIterator = void (*)(int layer_ix, int pool_ix, int lod_ix, int last_lod_ix, bool impostor, mat44f_cref tm,
   const E3DCOLOR *colors, uint32_t bvh_id, void *user_data, uint32_t palette_id);
 void foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data, const dag::Vector<uint32_t> &accel1,
-  const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2, bool simplified_impostor_matrix);
+  const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2, bool simplified_impostor_matrix,
+  bool &early_termination);
 void build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vector<uint32_t> &accel1, dag::Vector<uint64_t> &accel2);
 
 } // namespace rendinst

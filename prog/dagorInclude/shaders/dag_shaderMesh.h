@@ -35,6 +35,11 @@ namespace unitedvdata
 {
 struct BufPool;
 }
+namespace dag
+{
+template <typename Signature>
+class FunctionRef;
+}
 
 class ShaderMeshDataSaveCB;
 
@@ -55,6 +60,16 @@ enum
   VDATA_BIND_SHADER_RES = 0x400,
   VDATA_LOD_MASK = 0xF000,
 };
+
+struct ShaderMatVDataReadCbSrc
+{
+  virtual int getReadSize() = 0;
+  virtual void read(void *data) = 0;
+  virtual void readTmp(dag::FunctionRef<void(dag::ConstSpan<uint8_t>)>) = 0;
+  virtual void skip() = 0;
+};
+class GlobalVertexData;
+using ShaderMatVDataReadCb = dag::FunctionRef<void(ShaderMatVDataReadCbSrc &src, const GlobalVertexData *vd, bool is_ib)>;
 
 /*********************************
  *
@@ -149,7 +164,10 @@ public:
   void unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, Tab<uint8_t> &buf_stor);
   void unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, Ibuffer *shared_ib, int &vb_byte_pos, int &ib_byte_pos,
     Tab<uint8_t> &buf_stor);
+  void unpackToReadCb(IGenLoad &zcrd, ShaderMatVDataReadCb cb, Tab<uint8_t> &tmp_buf);
   int getVbIdx() const { return vbIdx; }
+  uint32_t getVOffs() const { return vOfs; }
+  uint32_t getIOffs() const { return iOfs; }
 
   void copyDescFrom(const GlobalVertexData &src)
   {
@@ -227,6 +245,7 @@ public:
   void finalizeMatRefs();
 
   void unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs, dag::Span<int> start_end_stride, Tab<uint8_t> &buf_stor);
+  void unpackVData(ShaderMatVDataReadCb cb);
   void clearVdataSrc();
   bool isReloadable() const { return matVdataSrcRef.fname != nullptr; }
 

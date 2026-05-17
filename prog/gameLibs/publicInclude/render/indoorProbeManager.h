@@ -121,6 +121,8 @@ public:
 
   uint32_t getProbeState(uint32_t probe_index) const;
 
+  bool hasActiveIndoorProbes() const;
+
 private:
   IIndoorProbeNodes *indoorProbeNodes = nullptr;
 

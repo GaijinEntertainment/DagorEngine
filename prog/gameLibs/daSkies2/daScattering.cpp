@@ -347,8 +347,8 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
     else
     {
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target(skies.skiesLutTex[cFrame].getTex2D(), 0);
-      d3d::set_render_target(1, skies.skiesLutMieTex[cFrame].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW,
+        {{skies.skiesLutTex[cFrame].getTex2D(), 0, 0}, {skies.skiesLutMieTex[cFrame].getTex2D(), 0, 0}});
       skies_view_lut_tex_prepare_ps.render();
     }
     d3d::resource_barrier({skies.skiesLutTex[cFrame].getTex2D(), RB_RO_SRV | RB_STAGE_ALL_GRAPHICS | RB_STAGE_COMPUTE, 0, 0});
@@ -399,8 +399,7 @@ void DaScattering::prepareFrustumScattering(PreparedSkies &skies, PreparedSkies 
     else
     {
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target();
-      d3d::set_render_target(0, skies.scatteringVolume[cFrame].getVolTex(), d3d::RENDER_TO_WHOLE_ARRAY, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{skies.scatteringVolume[cFrame].getVolTex(), 0, d3d::RENDER_TO_WHOLE_ARRAY}});
       skies_integrate_froxel_scattering_ps.getElem()->setStates();
       d3d::draw_instanced(PRIM_TRILIST, 0, 1, info.d);
     }
@@ -484,7 +483,7 @@ bool DaScattering::prepareSkyForAltitude(const Point3 &origin, float tolerance, 
   else
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(skies->preparedLoss.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{skies->preparedLoss.getTex2D(), 0, 0}});
     skies_prepare_transmittance_for_altitude_ps.render();
   }
   d3d::resource_barrier({skies->preparedLoss.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
@@ -567,7 +566,7 @@ void DaScattering::precompute_ms_approximation()
     TIME_D3D_PROFILE(prepare_transmittance_ps);
     SCOPE_RENDER_TARGET;
     // step 1 - transmittance
-    d3d::set_render_target(skies_transmittance_texture.getTex2D(), 0, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{skies_transmittance_texture.getTex2D(), 0, 0}});
     skies_generate_transmittance_ps.render(); // todo: use compute if available
   }
   d3d::resource_barrier({skies_transmittance_texture.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
@@ -583,7 +582,7 @@ void DaScattering::precompute_ms_approximation()
   {
     SCOPE_RENDER_TARGET;
     TIME_D3D_PROFILE(prepare_ms_ps);
-    d3d::set_render_target(skies_ms_texture.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{skies_ms_texture.getTex2D(), 0, 0}});
     skies_approximate_ms_lut_ps.render();
   }
   d3d::resource_barrier({skies_ms_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
@@ -597,7 +596,7 @@ void DaScattering::precompute_ms_approximation()
   {
     TIME_D3D_PROFILE(prepare_irradiance);
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(skies_irradiance_texture.getTex2D(), 0, 0); // todo: use compute if available
+    d3d::set_render_target({}, DepthAccess::RW, {{skies_irradiance_texture.getTex2D(), 0, 0}}); // todo: use compute if available
     indirect_irradiance_ms.render();
   }
   d3d::resource_barrier({skies_irradiance_texture.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});

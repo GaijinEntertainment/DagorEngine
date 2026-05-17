@@ -475,6 +475,13 @@ void WorldRenderer::renderGiCollision(const TMatrix &view_itm, const Frustum &)
       voxelizeCollision->renderCollisionElem, 1, false);
 }
 
+bool WorldRenderer::requiresGIUpdate() const
+{
+  if (!daGI2)
+    return false;
+  return daGI2->requiresUpdate();
+}
+
 void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, float hmin, float hmax)
 {
   if (daGI2 && !gi_enabled.get())
@@ -705,21 +712,20 @@ void WorldRenderer::initGI()
         logerr("not supporting frt dumps with %d verts correctly. Split into two collision resources", frt->getVertsCount());
 
       uint32_t indicesCnt = frt->getFacesCount() * 3;
-      uint16_t *indices = (uint16_t *)midmem->alloc(indicesCnt * sizeof(uint16_t));
-      uint32_t validIndices = 0;
+      dag::Vector<uint16_t> indices;
+      indices.reserve(indicesCnt);
       for (uint32_t j = 0, f = 0; j < indicesCnt; j += 3, ++f)
       {
         uint32_t v0 = frt->faces(f).v[0], v1 = frt->faces(f).v[1], v2 = frt->faces(f).v[2];
         if (v0 >= 65536 || v1 >= 65536 || v2 >= 65536)
           continue;
-        indices[validIndices + 0] = v0;
-        indices[validIndices + 1] = v1;
-        indices[validIndices + 2] = v2;
-        validIndices += 3;
+        indices.push_back((uint16_t)v0);
+        indices.push_back((uint16_t)v1);
+        indices.push_back((uint16_t)v2);
       }
-      staticSceneCollisionResource.reset(CollisionResource::createSingleMeshNonOwningVerts(
-        dag::Span<Point3_vec4>((Point3_vec4 *)&frt->verts(0), min<uint32_t>(65536, frt->getVertsCount())),
-        dag::Span<uint16_t>(indices, validIndices), frt->getBox(), frt->getSphere()));
+      staticSceneCollisionResource.reset(CollisionResource::createSingleMeshNonOwning(
+        dag::ConstSpan<Point3_vec4>((Point3_vec4 *)&frt->verts(0), min<uint32_t>(65536, frt->getVertsCount())),
+        dag::ConstSpan<uint16_t>(indices.data(), indices.size()), frt->getBox(), frt->getSphere()));
     }
   }
 

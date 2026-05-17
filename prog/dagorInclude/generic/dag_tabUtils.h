@@ -115,6 +115,24 @@ inline bool deleteElement(V &tab, T *element)
   return deleteElement(tab, index);
 }
 
+
+/************************************************************************
+  remove all elements where the predicate returns true
+
+  usage:
+  size_t removedCount = erase_if(tab_ptr_array, [](const ElementType &e) { return shouldRemove(e); });
+************************************************************************/
+template <class V, class Predicate>
+typename V::size_type erase_if(V &tab, Predicate predicate)
+{
+  auto oldEnd = tab.end();
+  auto newEnd = eastl::remove_if(tab.begin(), oldEnd, predicate);
+  auto removedCount = eastl::distance(newEnd, oldEnd);
+  tab.erase(newEnd, oldEnd);
+  return static_cast<typename V::size_type>(removedCount);
+}
+
+
 /************************************************************************
   get element's index in the Tab<T*> using T.operator== ()
 

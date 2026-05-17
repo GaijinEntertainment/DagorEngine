@@ -15,7 +15,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
-#include <math/dag_occlusionTest.h>
+#include <math/dag_occlusionZBuffer.h>
 
 #include <EASTL/shared_ptr.h>
 
@@ -154,7 +154,7 @@ dafg::NodeHandle makeScopeHZBMask()
   auto ns = dafg::root() / "opaque" / "closeups";
   return ns.registerNode("scope_lens_hzb_mask_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.create("scope_lens_hzb_mask")
-      .texture({TEXFMT_R32F | TEXCF_RTARGET, IPoint2{OCCLUSION_W, OCCLUSION_H}})
+      .texture({TEXFMT_R32F | TEXCF_RTARGET, IPoint2{OcclusionZBuffer::WIDTH, OcclusionZBuffer::HEIGHT}})
       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
     registry.requestRenderPass().color({"scope_lens_hzb_mask"});

@@ -204,6 +204,12 @@ bool is_managed_textures_streaming_load_on_demand();
 //! \brief Dumps current memory usage (Sys/Gpu) state of texture streaming
 void dump_texture_streaming_memory_state();
 
+//! \brief Returns total number of textures pending load across all streaming priorities.
+//! \details Useful as a "streaming idle?" signal for code that needs to wait until streaming has settled.
+//! Zero means no DDSx texture loads are queued.
+//! \returns Sum of pending texture load counts across all priority levels.
+int get_managed_textures_streaming_pending_count();
+
 //! \brief Checks whether the specified texture is split BQ/HQ with missing HQ part
 //! \param id ID of the texture to check
 //! \returns `true` if the texture is missing HQ part, `false` otherwise

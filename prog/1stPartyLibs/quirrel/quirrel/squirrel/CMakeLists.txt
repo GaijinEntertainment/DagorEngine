@@ -1,4 +1,5 @@
 set(SQUIRREL_SRC sqapi.cpp
+                 sqasync.cpp
                  sqbaselib.cpp
                  sqclass.cpp
                  sqdebug.cpp

@@ -42,7 +42,7 @@ struct typeFactory<dag::FixedVectorMap<K, V, inplace_count>>
     {
       auto keyDeclT = makeType<K>(library);
       auto valDeclT = makeType<V>(library);
-      auto ann = make_smart<ManagedVectorAnnotation<VT>>(declN, const_cast<ModuleLibrary &>(library));
+      auto ann = new ManagedVectorAnnotation<VT>(declN, const_cast<ModuleLibrary &>(library));
       ann->cppName =
         "dag::FixedVectorMap<" + describeCppType(keyDeclT) + ", " + describeCppType(valDeclT) + ", " + to_string(inplace_count) + ">";
       auto mod = library.front();

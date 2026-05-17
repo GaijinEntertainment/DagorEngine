@@ -97,7 +97,7 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass,
   // textures
 
   unsigned flags = TEXCF_RTARGET;
-  landHeightTex = UniqueTexHolder(
+  landHeightTex = UniqueTexWithShaderVar(
     dag::create_tex(NULL, landTexSize, landTexSize, TEXFMT_DEPTH16 | flags, 1, shader_var_names[SHV_LAND_HEIGHT_TEX], RESTAG_LAND),
     shader_var_names[SHV_GRASS_HEIGHTMAP]);
 
@@ -128,10 +128,10 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass,
       tmpMaskTex =
         dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_R8, 1, shader_var_names[SHV_TMP_GRASS_TEX], RESTAG_LAND);
 
-    landColorTex =
-      UniqueTexHolder(dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1,
-                        shader_var_names[SHV_LAND_COLOR_TEX], RESTAG_LAND),
-        shader_var_names[SHV_GRASS_LAND_COLOR_MASK]);
+    landColorTex = UniqueTexWithShaderVar(
+      dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1,
+        shader_var_names[SHV_LAND_COLOR_TEX], RESTAG_LAND),
+      shader_var_names[SHV_GRASS_LAND_COLOR_MASK]);
     ShaderGlobal::set_sampler(::get_shader_variable_id(shader_var_names[SHV_GRASS_LAND_COLOR_MASK_SAMPLERSTATE], true),
       d3d::request_sampler({}));
   }

@@ -19,6 +19,9 @@ namespace das
     extern DAS_API das::Module * register_##ClassName (); \
     *das::ModuleKarma += unsigned(intptr_t(register_##ClassName()));
 
+#define NEED_FUSION \
+    { extern DAS_CC_API void register_fusion(); register_fusion(); }
+
 #define NEED_ALL_DEFAULT_MODULES \
     NEED_MODULE(Module_BuiltIn); \
     NEED_MODULE(Module_Math); \
@@ -29,7 +32,8 @@ namespace das
     NEED_MODULE(Module_Jit); \
     NEED_MODULE(Module_FIO); \
     NEED_MODULE(Module_DASBIND); \
-    NEED_MODULE(Module_Network);
+    NEED_MODULE(Module_Network); \
+    NEED_FUSION;
 
 // DECLARE_MODULE / PULL_MODULE — namespace-safe alternatives to NEED_MODULE.
 //
@@ -55,6 +59,12 @@ namespace das
 #define PULL_MODULE(ClassName) \
     *das::ModuleKarma += unsigned(intptr_t(::register_##ClassName()))
 
+#define DECLARE_FUSION \
+    extern DAS_CC_API void register_fusion()
+
+#define PULL_FUSION \
+    ::register_fusion()
+
 #define DECLARE_ALL_DEFAULT_MODULES \
     DECLARE_MODULE(Module_BuiltIn); \
     DECLARE_MODULE(Module_Math); \
@@ -65,7 +75,8 @@ namespace das
     DECLARE_MODULE(Module_Jit); \
     DECLARE_MODULE(Module_FIO); \
     DECLARE_MODULE(Module_DASBIND); \
-    DECLARE_MODULE(Module_Network)
+    DECLARE_MODULE(Module_Network); \
+    DECLARE_FUSION
 
 #define PULL_ALL_DEFAULT_MODULES \
     PULL_MODULE(Module_BuiltIn); \
@@ -77,5 +88,6 @@ namespace das
     PULL_MODULE(Module_Jit); \
     PULL_MODULE(Module_FIO); \
     PULL_MODULE(Module_DASBIND); \
-    PULL_MODULE(Module_Network)
+    PULL_MODULE(Module_Network); \
+    PULL_FUSION
 

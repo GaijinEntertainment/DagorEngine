@@ -156,6 +156,10 @@ struct OmniLight
   {
     OmniLight l;
     l.setZero();
+    l.dir__tex_scale = Point4(0, 1, 0, 0);
+    l.setDefaultBox();
+    l.posRelToOrigin_cullRadius = Point4(0, 0, 0, -1);
+    l.shadowNearFarClippingPlanesPad = Point4(0, 0, 0, 0);
     return l;
   }
 };
